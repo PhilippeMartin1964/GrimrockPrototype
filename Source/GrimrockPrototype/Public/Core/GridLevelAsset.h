@@ -1,17 +1,57 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GridTypes.h"
 #include "GridLevelAsset.generated.h"
 
-/**
- * 
- */
-UCLASS()
+UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridLevelAsset : public UDataAsset
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY ()
+
+public:
+
+    // --- Grid size ---
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
+    int32 Width = 32;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
+    int32 Height = 32;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
+    float CellSize = 200.f;
+
+    // --- Grid data ---
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
+    TArray<FGridLevelCellData> Cells;
+
+    // --- Gameplay ---
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
+    TArray<FGridLevelObjectData> Objects;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
+    TArray<FGridLevelLinkData> Links;
+
+public:
+
+    void EnsureCellCount ();
+
+    bool IsValidCoord (int32 X, int32 Y) const;
+
+    int32 GetIndex (int32 X, int32 Y) const;
+
+    const FGridLevelCellData& GetCell (int32 X, int32 Y) const;
+
+    FGridLevelCellData& GetCellMutable (int32 X, int32 Y);
+
+    void ClearLevel ();
+
+    FGuid AddObject (const FGridLevelObjectData& NewObject);
+
+    bool RemoveObjectById (const FGuid& ObjectId);
+
+    void RemoveLinksForObject (const FGuid& ObjectId);
+
+    void EnsureObjectIds ();
 };

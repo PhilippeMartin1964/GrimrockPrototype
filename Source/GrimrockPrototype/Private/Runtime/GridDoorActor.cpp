@@ -1,27 +1,150 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Runtime/GridDoorActor.h"
 
-// Sets default values
-AGridDoorActor::AGridDoorActor()
-{
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+#include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
 
+AGridDoorActor::AGridDoorActor ()
+{
+    PrimaryActorTick.bCanEverTick = true;
+
+    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
+    SetRootComponent (SceneRoot);
+
+    DoorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("DoorMesh"));
+    DoorMeshComponent->SetupAttachment (SceneRoot);
+    DoorMeshComponent->SetMobility (EComponentMobility::Movable);
+    DoorMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
-// Called when the game starts or when spawned
-void AGridDoorActor::BeginPlay()
+void AGridDoorActor::BeginPlay ()
 {
-	Super::BeginPlay();
-	
+    Super::BeginPlay ();
 }
 
-// Called every frame
-void AGridDoorActor::Tick(float DeltaTime)
+void AGridDoorActor::Tick (float DeltaSeconds)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick (DeltaSeconds);
 
+    if (bIsAnimating)
+    {
+        UpdateAnimation (DeltaSeconds);
+    }
 }
 
+void AGridDoorActor::InitializeDoor (
+    UStaticMesh* InDoorMesh,
+    UMaterialInterface* InMaterial,
+    const FVector& ClosedWorldLocation,
+    const FRotator& WorldRotation,
+    int32 InCellX,
+    int32 InCellY,
+    EGridEdge InEdge,
+    bool bStartOpen)
+{
+    CellX = InCellX;
+    CellY = InCellY;
+    Edge = InEdge;
+
+    if (DoorMeshComponent)
+    {
+        DoorMeshComponent->SetStaticMesh (InDoorMesh);
+
+        if (InMaterial)
+        {
+            DoorMeshComponent->SetMaterial (0, InMaterial);
+        }
+    }
+
+    SetActorRotation (WorldRotation);
+
+    ClosedLocation = ClosedWorldLocation;
+    OpenLocation = ClosedLocation + FVector (0.f, 0.f, OpenHeight);
+
+    bIsOpen = bStartOpen;
+    bIsAnimating = false;
+    MoveElapsed = 0.f;
+    CurrentMoveDuration = 0.f;
+
+    SetActorLocation (bIsOpen ? OpenLocation : ClosedLocation);
+}
+
+void AGridDoorActor::SetDoorOpenState (bool bOpen)
+{
+    const FVector DesiredTarget = bOpen ? OpenLocation : ClosedLocation;
+
+    if (!bIsAnimating && bIsOpen == bOpen)
+    {
+        return;
+    }
+
+    const FVector CurrentLocation = GetActorLocation ();
+
+    if (CurrentLocation.Equals (DesiredTarget, 0.1f))
+    {
+        bIsOpen = bOpen;
+        bIsAnimating = false;
+        MoveElapsed = 0.f;
+        CurrentMoveDuration = 0.f;
+        SetActorLocation (DesiredTarget);
+        return;
+    }
+
+    const float FullTravelDistance = FVector::Dist (ClosedLocation, OpenLocation);
+    const float RemainingDistance = FVector::Dist (CurrentLocation, DesiredTarget);
+
+    if (FullTravelDistance <= KINDA_SMALL_NUMBER || RemainingDistance <= KINDA_SMALL_NUMBER)
+    {
+        bIsOpen = bOpen;
+        bIsAnimating = false;
+        MoveElapsed = 0.f;
+        CurrentMoveDuration = 0.f;
+        SetActorLocation (DesiredTarget);
+        return;
+    }
+
+    MoveStartLocation = CurrentLocation;
+    MoveTargetLocation = DesiredTarget;
+    MoveElapsed = 0.f;
+
+    const float TravelRatio = FMath::Clamp (RemainingDistance / FullTravelDistance, 0.f, 1.f);
+    CurrentMoveDuration = FMath::Max (0.01f, MoveDuration * TravelRatio);
+
+    bIsAnimating = true;
+    bIsOpen = bOpen;
+}
+
+void AGridDoorActor::OpenDoor ()
+{
+    SetDoorOpenState (true);
+}
+
+void AGridDoorActor::CloseDoor ()
+{
+    SetDoorOpenState (false);
+}
+
+bool AGridDoorActor::MatchesEdge (int32 InCellX, int32 InCellY, EGridEdge InEdge) const
+{
+    return CellX == InCellX && CellY == InCellY && Edge == InEdge;
+}
+
+void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
+{
+    const float SafeDuration = FMath::Max (0.01f, CurrentMoveDuration);
+
+    MoveElapsed += DeltaSeconds;
+    const float Alpha = FMath::Clamp (MoveElapsed / SafeDuration, 0.f, 1.f);
+
+    const FVector NewLocation = FMath::Lerp (MoveStartLocation, MoveTargetLocation, Alpha);
+    SetActorLocation (NewLocation);
+
+    if (Alpha >= 1.f)
+    {
+        SetActorLocation (MoveTargetLocation);
+        bIsAnimating = false;
+        MoveElapsed = 0.f;
+        CurrentMoveDuration = 0.f;
+
+        OnDoorAnimationFinished.Broadcast (CellX, CellY, Edge);
+    }
+}
