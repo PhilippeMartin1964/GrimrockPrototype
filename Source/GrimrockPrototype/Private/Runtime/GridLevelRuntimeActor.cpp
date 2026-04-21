@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridDoorActor.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -12,6 +13,12 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 
     WallISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("WallISM"));
     WallISM->SetupAttachment (SceneRoot);
+
+    DoorISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("DoorISM"));
+    DoorISM->SetupAttachment (SceneRoot);
+
+    SecretWallISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("SecretWallISM"));
+    SecretWallISM->SetupAttachment (SceneRoot);
 
     CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("CeilingISM"));
     CeilingISM->SetupAttachment (SceneRoot);
@@ -35,20 +42,13 @@ void AGridLevelRuntimeActor::BeginPlay ()
 
 void AGridLevelRuntimeActor::ClearVisuals ()
 {
-    if (FloorISM)
-    {
-        FloorISM->ClearInstances ();
-    }
+    if (FloorISM) FloorISM->ClearInstances ();
+    if (WallISM) WallISM->ClearInstances ();
+    if (DoorISM) DoorISM->ClearInstances ();
+    if (SecretWallISM) SecretWallISM->ClearInstances ();
+    if (CeilingISM) CeilingISM->ClearInstances ();
 
-    if (WallISM)
-    {
-        WallISM->ClearInstances ();
-    }
-
-    if (CeilingISM)
-    {
-        CeilingISM->ClearInstances ();
-    }
+    ClearRuntimeDoors ();
 }
 
 bool AGridLevelRuntimeActor::IsValidCell (int32 X, int32 Y) const
@@ -81,11 +81,6 @@ FVector AGridLevelRuntimeActor::GetCellCenterWorld (int32 X, int32 Y, float ZOff
 
 void AGridLevelRuntimeActor::AddFloor (int32 X, int32 Y, float CellSize)
 {
-    if (!FloorISM)
-    {
-        return;
-    }
-
     const FVector Base = CellToWorld (X, Y, 0.f);
     const FVector CenterOffset (CellSize * 0.5f, CellSize * 0.5f, 0.f);
 
@@ -100,11 +95,6 @@ void AGridLevelRuntimeActor::AddFloor (int32 X, int32 Y, float CellSize)
 
 void AGridLevelRuntimeActor::AddCeiling (int32 X, int32 Y, float CellSize)
 {
-    if (!CeilingISM)
-    {
-        return;
-    }
-
     const FVector Base = CellToWorld (X, Y, 200.f);
     const FVector CenterOffset (CellSize * 0.5f, CellSize * 0.5f, 0.f);
 
@@ -164,7 +154,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 {
     ClearVisuals ();
 
-    if (!LevelAsset || !FloorISM || !WallISM || !CeilingISM)
+    if (!LevelAsset || !FloorISM || !WallISM || !DoorISM || !SecretWallISM || !CeilingISM)
     {
         return;
     }
@@ -173,6 +163,8 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 
     FloorISM->SetStaticMesh (FloorMesh);
     WallISM->SetStaticMesh (WallMesh);
+    DoorISM->SetStaticMesh (DoorMesh);
+    SecretWallISM->SetStaticMesh (SecretWallMesh);
     CeilingISM->SetStaticMesh (CeilingMesh);
 
     const float CellSize = LevelAsset->CellSize;
@@ -195,36 +187,60 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                 AddCeiling (X, Y, CellSize);
             }
 
-            if (Cell.NorthWall == EGridWallType::Solid)
+            auto DrawEdgeIfNeeded = [&] (EGridEdge Edge, EGridWallType WallType, bool bShouldDraw)
             {
-                AddEdgeInstance (WallISM, X, Y, EGridEdge::North, CellSize);
-            }
+                if (!bShouldDraw)
+                {
+                    return;
+                }
 
-            if (Cell.EastWall == EGridWallType::Solid)
-            {
-                AddEdgeInstance (WallISM, X, Y, EGridEdge::East, CellSize);
-            }
+                switch (WallType)
+                {
+                    case EGridWallType::Solid:
+                        AddEdgeInstance (WallISM, X, Y, Edge, CellSize);
+                        break;
+
+                    case EGridWallType::Door:
+                        if (!GetWorld () || !GetWorld ()->IsGameWorld ())
+                        {
+                            AddEdgeInstance (DoorISM, X, Y, Edge, CellSize);
+                        }
+                        break;
+
+                    case EGridWallType::DoorOpen:
+                        break;
+
+                    case EGridWallType::Secret:
+                        AddEdgeInstance (SecretWallISM, X, Y, Edge, CellSize);
+                        break;
+
+                    default:
+                        break;
+                }
+            };
+
+            DrawEdgeIfNeeded (EGridEdge::North, Cell.NorthWall, Cell.NorthWall != EGridWallType::None);
+            DrawEdgeIfNeeded (EGridEdge::East, Cell.EastWall, Cell.EastWall != EGridWallType::None);
 
             const bool bDrawSouth =
-                Cell.SouthWall == EGridWallType::Solid &&
+                Cell.SouthWall != EGridWallType::None &&
                 (!LevelAsset->IsValidCoord (X, Y - 1) ||
                  LevelAsset->GetCell (X, Y - 1).CellType == EGridCellType::Empty);
 
-            if (bDrawSouth)
-            {
-                AddEdgeInstance (WallISM, X, Y, EGridEdge::South, CellSize);
-            }
+            DrawEdgeIfNeeded (EGridEdge::South, Cell.SouthWall, bDrawSouth);
 
             const bool bDrawWest =
-                Cell.WestWall == EGridWallType::Solid &&
+                Cell.WestWall != EGridWallType::None &&
                 (!LevelAsset->IsValidCoord (X - 1, Y) ||
                  LevelAsset->GetCell (X - 1, Y).CellType == EGridCellType::Empty);
 
-            if (bDrawWest)
-            {
-                AddEdgeInstance (WallISM, X, Y, EGridEdge::West, CellSize);
-            }
+            DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, bDrawWest);
         }
+    }
+
+    if (GetWorld () && GetWorld ()->IsGameWorld ())
+    {
+        RebuildRuntimeDoors ();
     }
 }
 
@@ -333,26 +349,327 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
         return false;
     }
 
+    if (HasDoorOnEdge (FromX, FromY, Direction))
+    {
+        const FString Key = MakeDoorEdgeKey (FromX, FromY, Direction);
+        return !RuntimeBlockedDoorEdges.Contains (Key);
+    }
+
     const EGridWallType Wall = GetWallOnEdge (FromX, FromY, Direction);
 
     switch (Wall)
     {
         case EGridWallType::None:
-            return true;
-
         case EGridWallType::DoorOpen:
             return true;
 
         case EGridWallType::Solid:
-            return false;
-
         case EGridWallType::Door:
-            return false;
-
         case EGridWallType::Secret:
-            return false;
-
         default:
             return false;
     }
+}
+
+void AGridLevelRuntimeActor::ClearRuntimeDoors ()
+{
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        SpawnedDoorActors.Empty ();
+        RuntimeBlockedDoorEdges.Empty ();
+        return;
+    }
+
+    for (AGridDoorActor* DoorActor : SpawnedDoorActors)
+    {
+        if (IsValid (DoorActor))
+        {
+            DoorActor->Destroy ();
+        }
+    }
+
+    SpawnedDoorActors.Empty ();
+    RuntimeBlockedDoorEdges.Empty ();
+}
+
+void AGridLevelRuntimeActor::GetEdgeTransform (
+    int32 X,
+    int32 Y,
+    EGridEdge Edge,
+    float CellSize,
+    FVector& OutWorldLocation,
+    FRotator& OutWorldRotation) const
+{
+    const FVector Base = GetActorLocation () + CellToWorld (X, Y, 0.f);
+
+    switch (Edge)
+    {
+        case EGridEdge::North:
+            OutWorldLocation = Base + FVector (CellSize * 0.5f, CellSize, 0.f);
+            OutWorldRotation = FRotator (0.f, 0.f, 0.f);
+            break;
+
+        case EGridEdge::East:
+            OutWorldLocation = Base + FVector (CellSize, CellSize * 0.5f, 0.f);
+            OutWorldRotation = FRotator (0.f, 90.f, 0.f);
+            break;
+
+        case EGridEdge::South:
+            OutWorldLocation = Base + FVector (CellSize * 0.5f, 0.f, 0.f);
+            OutWorldRotation = FRotator (0.f, 0.f, 0.f);
+            break;
+
+        case EGridEdge::West:
+            OutWorldLocation = Base + FVector (0.f, CellSize * 0.5f, 0.f);
+            OutWorldRotation = FRotator (0.f, 90.f, 0.f);
+            break;
+
+        default:
+            OutWorldLocation = Base;
+            OutWorldRotation = FRotator::ZeroRotator;
+            break;
+    }
+}
+
+void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& DoorObjectData)
+{
+    if (!DoorActorClass || !LevelAsset || !DoorMesh)
+    {
+        return;
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return;
+    }
+
+    FVector DoorWorldLocation = FVector::ZeroVector;
+    FRotator DoorWorldRotation = FRotator::ZeroRotator;
+    GetEdgeTransform (
+        DoorObjectData.CellX,
+        DoorObjectData.CellY,
+        DoorObjectData.Edge,
+        LevelAsset->CellSize,
+        DoorWorldLocation,
+        DoorWorldRotation
+    );
+
+    FActorSpawnParameters Params;
+    Params.Owner = this;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AGridDoorActor* DoorActor = World->SpawnActor<AGridDoorActor> (
+        DoorActorClass,
+        DoorWorldLocation,
+        DoorWorldRotation,
+        Params
+    );
+
+    if (!DoorActor)
+    {
+        return;
+    }
+
+    const bool bStartOpen = DoorObjectData.bInitiallyActive;
+
+    DoorActor->InitializeDoor (
+        DoorMesh,
+        nullptr,
+        DoorWorldLocation,
+        DoorWorldRotation,
+        DoorObjectData.CellX,
+        DoorObjectData.CellY,
+        DoorObjectData.Edge,
+        bStartOpen
+    );
+
+    DoorActor->OnDoorAnimationFinished.AddDynamic (
+        this,
+        &AGridLevelRuntimeActor::HandleDoorAnimationFinished
+    );
+
+    SetDoorPassageBlocked (
+        DoorObjectData.CellX,
+        DoorObjectData.CellY,
+        DoorObjectData.Edge,
+        !bStartOpen
+    );
+
+    SpawnedDoorActors.Add (DoorActor);
+}
+
+void AGridLevelRuntimeActor::RebuildRuntimeDoors ()
+{
+    ClearRuntimeDoors ();
+
+    if (!LevelAsset || !DoorActorClass)
+    {
+        return;
+    }
+
+    LevelAsset->EnsureCellCount ();
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type != EGridLevelObjectType::Door)
+        {
+            continue;
+        }
+
+        if (!ObjectData.bInitiallyEnabled)
+        {
+            continue;
+        }
+
+        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
+        {
+            continue;
+        }
+
+        if (ObjectData.Edge == EGridEdge::None)
+        {
+            continue;
+        }
+
+        AddRuntimeDoorActor (ObjectData);
+    }
+}
+
+AGridDoorActor* AGridLevelRuntimeActor::FindRuntimeDoorActor (int32 X, int32 Y, EGridEdge Edge) const
+{
+    for (AGridDoorActor* DoorActor : SpawnedDoorActors)
+    {
+        if (IsValid (DoorActor) && DoorActor->MatchesEdge (X, Y, Edge))
+        {
+            return DoorActor;
+        }
+    }
+
+    return nullptr;
+}
+
+const FGridLevelObjectData* AGridLevelRuntimeActor::FindDoorObjectData (int32 X, int32 Y, EGridEdge Edge) const
+{
+    if (!LevelAsset)
+    {
+        return nullptr;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type == EGridLevelObjectType::Door &&
+            ObjectData.CellX == X &&
+            ObjectData.CellY == Y &&
+            ObjectData.Edge == Edge)
+        {
+            return &ObjectData;
+        }
+    }
+
+    return nullptr;
+}
+
+FString AGridLevelRuntimeActor::MakeDoorEdgeKey (int32 X, int32 Y, EGridEdge Edge) const
+{
+    return FString::Printf (TEXT ("%d_%d_%d"), X, Y, static_cast<int32>(Edge));
+}
+
+void AGridLevelRuntimeActor::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
+{
+    const FString Key = MakeDoorEdgeKey (X, Y, Edge);
+
+    if (bBlocked)
+    {
+        RuntimeBlockedDoorEdges.Add (Key);
+    } else
+    {
+        RuntimeBlockedDoorEdges.Remove (Key);
+    }
+}
+
+void AGridLevelRuntimeActor::HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge)
+{
+    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    if (!DoorActor)
+    {
+        return;
+    }
+
+    if (DoorActor->IsFullyOpen ())
+    {
+        SetDoorPassageBlocked (X, Y, Edge, false);
+    } else
+    {
+        SetDoorPassageBlocked (X, Y, Edge, true);
+    }
+}
+
+bool AGridLevelRuntimeActor::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const
+{
+    return FindDoorObjectData (X, Y, Edge) != nullptr;
+}
+
+bool AGridLevelRuntimeActor::IsDoorOpenOnEdge (int32 X, int32 Y, EGridEdge Edge) const
+{
+    const AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    return DoorActor && DoorActor->IsFullyOpen ();
+}
+
+bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
+{
+    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    if (!DoorActor)
+    {
+        return false;
+    }
+
+    DoorActor->OpenDoor ();
+    SetDoorPassageBlocked (X, Y, Edge, true);
+    return true;
+}
+
+bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
+{
+    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    if (!DoorActor)
+    {
+        return false;
+    }
+
+    DoorActor->CloseDoor ();
+    SetDoorPassageBlocked (X, Y, Edge, true);
+    return true;
+}
+
+bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
+{
+    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    if (!DoorActor)
+    {
+        return false;
+    }
+
+    if (DoorActor->IsFullyOpen ())
+    {
+        return CloseDoorOnEdge (X, Y, Edge);
+    }
+
+    if (DoorActor->IsFullyClosed ())
+    {
+        return OpenDoorOnEdge (X, Y, Edge);
+    }
+
+    if (DoorActor->IsAnimating ())
+    {
+        if (DoorActor->bIsOpen)
+        {
+            return CloseDoorOnEdge (X, Y, Edge);
+        }
+
+        return OpenDoorOnEdge (X, Y, Edge);
+    }
+
+    return false;
 }

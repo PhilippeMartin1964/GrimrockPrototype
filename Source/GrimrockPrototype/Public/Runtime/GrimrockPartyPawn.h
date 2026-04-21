@@ -70,6 +70,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
     TObjectPtr<UInputAction> TurnRightAction;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
+    TObjectPtr<UInputAction> UseAction;
+
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void SnapToCurrentCell ();
@@ -86,7 +89,9 @@ protected:
     void HandleMoveBackward (const FInputActionValue& Value);
     void HandleTurnLeft (const FInputActionValue& Value);
     void HandleTurnRight (const FInputActionValue& Value);
+    void HandleUse (const FInputActionValue& Value);
 
+    bool TryUseFrontInteraction ();
     bool TryStartMove (EGridEdge MoveDirection);
     bool TryStartTurn (bool bTurnRight);
 
@@ -104,6 +109,7 @@ protected:
     bool CanMoveOnLevel (int32 FromX, int32 FromY, EGridEdge Direction) const;
     bool TryGetNeighborOnLevel (int32 X, int32 Y, EGridEdge Direction, int32& OutX, int32& OutY) const;
     FVector GetCellCenterOnLevel (int32 X, int32 Y, float ZOffset) const;
+    bool TryToggleDoorOnLevel (int32 X, int32 Y, EGridEdge Edge);
 
 private:
     FVector MoveStartLocation = FVector::ZeroVector;

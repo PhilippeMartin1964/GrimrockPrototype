@@ -114,6 +114,11 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
         {
             EIC->BindAction (TurnRightAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleTurnRight);
         }
+        
+        if (UseAction)
+        {
+            EIC->BindAction (UseAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleUse);
+        }
     }
 }
 
@@ -168,6 +173,23 @@ void AGrimrockPartyPawn::HandleTurnRight (const FInputActionValue& Value)
 {
     (void)Value;
     TryStartTurn (false);
+}
+
+void AGrimrockPartyPawn::HandleUse (const FInputActionValue& Value)
+{
+    (void)Value;
+    TryUseFrontInteraction ();
+}
+
+bool AGrimrockPartyPawn::TryUseFrontInteraction ()
+{
+    if (bIsMoving || bIsTurning || !HasLevelRuntimeActor ())
+    {
+        return false;
+    }
+
+    const EGridEdge FrontEdge = GetRelativeDirectionForward ();
+    return TryToggleDoorOnLevel (CurrentCellX, CurrentCellY, FrontEdge);
 }
 
 bool AGrimrockPartyPawn::TryStartMove (EGridEdge MoveDirection)
@@ -343,4 +365,9 @@ FVector AGrimrockPartyPawn::GetCellCenterOnLevel (int32 X, int32 Y, float ZOffse
     }
 
     return LevelRuntimeActor->GetCellCenterWorld (X, Y, ZOffset);
+}
+
+bool AGrimrockPartyPawn::TryToggleDoorOnLevel (int32 X, int32 Y, EGridEdge Edge)
+{
+    return LevelRuntimeActor && LevelRuntimeActor->ToggleDoorOnEdge (X, Y, Edge);
 }
