@@ -82,6 +82,20 @@ void AGrimrockPartyPawn::Tick (float DeltaSeconds)
     {
         UpdateTurn (DeltaSeconds);
     }
+    if (BufferedCommandType != EBufferedCommandType::None)
+    {
+        BufferedCommandAge += DeltaSeconds;
+
+        if (BufferedCommandAge > InputBufferMaxAge)
+        {
+            ClearBufferedCommand ();
+        }
+    }
+
+    if (!IsBusy ())
+    {
+        TryConsumeBufferedCommand ();
+    }
 }
 
 void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInputComponent)
@@ -113,6 +127,15 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
         if (TurnRightAction)
         {
             EIC->BindAction (TurnRightAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleTurnRight);
+        }
+        if (StrafeLeftAction)
+        {
+            EIC->BindAction (StrafeLeftAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleStrafeLeft);
+        }
+
+        if (StrafeRightAction)
+        {
+            EIC->BindAction (StrafeRightAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleStrafeRight);
         }
         
         if (UseAction)
@@ -147,37 +170,106 @@ void AGrimrockPartyPawn::SnapToCurrentCell ()
     SetActorLocation (WorldPos);
 
     FRotator Rot = GetActorRotation ();
-    Rot.Yaw = FacingToYaw (Facing);
+    Rot.Yaw = GridDirectionUtils::ToYaw (Facing);
     SetActorRotation (Rot);
 }
 
 void AGrimrockPartyPawn::HandleMoveForward (const FInputActionValue& Value)
 {
     (void)Value;
-    TryStartMove (GetRelativeDirectionForward ());
+
+    const EGridEdge Direction = GridDirectionUtils::GetForward (Facing);
+
+    if (IsBusy ())
+    {
+        BufferMoveCommand (Direction);
+        return;
+    }
+
+    TryStartMove (Direction);
 }
 
 void AGrimrockPartyPawn::HandleMoveBackward (const FInputActionValue& Value)
 {
     (void)Value;
-    TryStartMove (GetRelativeDirectionBackward ());
+
+    const EGridEdge Direction = GridDirectionUtils::GetBackward (Facing);
+
+    if (IsBusy ())
+    {
+        BufferMoveCommand (Direction);
+        return;
+    }
+
+    TryStartMove (Direction);
 }
 
 void AGrimrockPartyPawn::HandleTurnLeft (const FInputActionValue& Value)
 {
     (void)Value;
-    TryStartTurn (true);
+
+    if (IsBusy ())
+    {
+        BufferTurnCommand (false);
+        return;
+    }
+
+    TryStartTurn (false);
 }
 
 void AGrimrockPartyPawn::HandleTurnRight (const FInputActionValue& Value)
 {
     (void)Value;
-    TryStartTurn (false);
+
+    if (IsBusy ())
+    {
+        BufferTurnCommand (true);
+        return;
+    }
+
+    TryStartTurn (true);
+}
+
+void AGrimrockPartyPawn::HandleStrafeLeft (const FInputActionValue& Value)
+{
+    (void)Value;
+
+    const EGridEdge Direction = GridDirectionUtils::GetLeft (Facing);
+
+    if (IsBusy ())
+    {
+        BufferMoveCommand (Direction);
+        return;
+    }
+
+    TryStartMove (Direction);
+}
+
+void AGrimrockPartyPawn::HandleStrafeRight (const FInputActionValue& Value)
+{
+    (void)Value;
+
+    const EGridEdge Direction = GridDirectionUtils::GetRight (Facing);
+
+    if (IsBusy ())
+    {
+        BufferMoveCommand (Direction);
+        return;
+    }
+
+    TryStartMove (Direction);
 }
 
 void AGrimrockPartyPawn::HandleUse (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (IsBusy ())
+    {
+        BufferUseCommand ();
+        return;
+    }
+
     TryUseFrontInteraction ();
 }
 
@@ -188,7 +280,7 @@ bool AGrimrockPartyPawn::TryUseFrontInteraction ()
         return false;
     }
 
-    const EGridEdge FrontEdge = GetRelativeDirectionForward ();
+    const EGridEdge FrontEdge = GridDirectionUtils::GetForward (Facing);
     return TryToggleDoorOnLevel (CurrentCellX, CurrentCellY, FrontEdge);
 }
 
@@ -232,8 +324,8 @@ bool AGrimrockPartyPawn::TryStartTurn (bool bTurnRight)
 
     TurnStartYaw = GetActorRotation ().Yaw;
 
-    Facing = bTurnRight ? RotateRight (Facing) : RotateLeft (Facing);
-    TurnTargetYaw = FacingToYaw (Facing);
+    Facing = bTurnRight ? GridDirectionUtils::RotateRight (Facing) : GridDirectionUtils::RotateLeft (Facing);
+    TurnTargetYaw = GridDirectionUtils::ToYaw (Facing);
 
     TurnDeltaYaw = FMath::FindDeltaAngleDegrees (TurnStartYaw, TurnTargetYaw);
 
@@ -284,52 +376,6 @@ void AGrimrockPartyPawn::UpdateTurn (float DeltaSeconds)
     }
 }
 
-EGridEdge AGrimrockPartyPawn::GetRelativeDirectionForward () const
-{
-    return Facing;
-}
-
-EGridEdge AGrimrockPartyPawn::GetRelativeDirectionBackward () const
-{
-    return RotateRight (RotateRight (Facing));
-}
-
-EGridEdge AGrimrockPartyPawn::RotateLeft (EGridEdge Dir)
-{
-    switch (Dir)
-    {
-        case EGridEdge::North: return EGridEdge::West;
-        case EGridEdge::West:  return EGridEdge::South;
-        case EGridEdge::South: return EGridEdge::East;
-        case EGridEdge::East:  return EGridEdge::North;
-        default:               return EGridEdge::North;
-    }
-}
-
-EGridEdge AGrimrockPartyPawn::RotateRight (EGridEdge Dir)
-{
-    switch (Dir)
-    {
-        case EGridEdge::North: return EGridEdge::East;
-        case EGridEdge::East:  return EGridEdge::South;
-        case EGridEdge::South: return EGridEdge::West;
-        case EGridEdge::West:  return EGridEdge::North;
-        default:               return EGridEdge::North;
-    }
-}
-
-float AGrimrockPartyPawn::FacingToYaw (EGridEdge Dir)
-{
-    switch (Dir)
-    {
-        case EGridEdge::North: return 90.f;
-        case EGridEdge::East:  return 0.f;
-        case EGridEdge::South: return -90.f;
-        case EGridEdge::West:  return 180.f;
-        default:               return 0.f;
-    }
-}
-
 bool AGrimrockPartyPawn::HasLevelRuntimeActor () const
 {
     return LevelRuntimeActor != nullptr;
@@ -370,4 +416,85 @@ FVector AGrimrockPartyPawn::GetCellCenterOnLevel (int32 X, int32 Y, float ZOffse
 bool AGrimrockPartyPawn::TryToggleDoorOnLevel (int32 X, int32 Y, EGridEdge Edge)
 {
     return LevelRuntimeActor && LevelRuntimeActor->ToggleDoorOnEdge (X, Y, Edge);
+}
+
+void AGrimrockPartyPawn::BufferMoveCommand (EGridEdge MoveDirection)
+{
+    if (!bEnableInputBuffer)
+    {
+        return;
+    }
+
+    BufferedCommandType = EBufferedCommandType::Move;
+    BufferedMoveDirection = MoveDirection;
+    bBufferedTurnRight = false;
+    BufferedCommandAge = 0.f;
+}
+
+void AGrimrockPartyPawn::BufferTurnCommand (bool bTurnRight)
+{
+    if (!bEnableInputBuffer)
+    {
+        return;
+    }
+
+    BufferedCommandType = EBufferedCommandType::Turn;
+    BufferedMoveDirection = EGridEdge::None;
+    bBufferedTurnRight = bTurnRight;
+    BufferedCommandAge = 0.f;
+}
+
+void AGrimrockPartyPawn::BufferUseCommand ()
+{
+    if (!bEnableInputBuffer)
+    {
+        return;
+    }
+
+    BufferedCommandType = EBufferedCommandType::Use;
+    BufferedMoveDirection = EGridEdge::None;
+    bBufferedTurnRight = false;
+    BufferedCommandAge = 0.f;
+}
+
+void AGrimrockPartyPawn::ClearBufferedCommand ()
+{
+    BufferedCommandType = EBufferedCommandType::None;
+    BufferedMoveDirection = EGridEdge::None;
+    bBufferedTurnRight = false;
+    BufferedCommandAge = 0.f;
+}
+
+bool AGrimrockPartyPawn::TryConsumeBufferedCommand ()
+{
+    if (BufferedCommandType == EBufferedCommandType::None)
+    {
+        return false;
+    }
+
+    const EBufferedCommandType CommandType = BufferedCommandType;
+    const EGridEdge MoveDirection = BufferedMoveDirection;
+    const bool bTurnRight = bBufferedTurnRight;
+
+    ClearBufferedCommand ();
+
+    switch (CommandType)
+    {
+        case EBufferedCommandType::Move:
+            return TryStartMove (MoveDirection);
+
+        case EBufferedCommandType::Turn:
+            return TryStartTurn (bTurnRight);
+
+        case EBufferedCommandType::Use:
+            return TryUseFrontInteraction ();
+
+        default:
+            return false;
+    }
+}
+
+bool AGrimrockPartyPawn::IsBusy () const
+{
+    return bIsMoving || bIsTurning;
 }

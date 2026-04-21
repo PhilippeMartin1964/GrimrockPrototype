@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Core/GridTypes.h"
+#include "Core/GridDirectionUtils.h"
 #include "GrimrockPartyPawn.generated.h"
 
 class UCameraComponent;
@@ -71,7 +72,19 @@ public:
     TObjectPtr<UInputAction> TurnRightAction;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
+    TObjectPtr<UInputAction> StrafeLeftAction;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
+    TObjectPtr<UInputAction> StrafeRightAction;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
     TObjectPtr<UInputAction> UseAction;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer")
+    bool bEnableInputBuffer = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer", meta = (ClampMin = "0.0"))
+    float InputBufferMaxAge = 0.25f;
 
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
@@ -89,6 +102,8 @@ protected:
     void HandleMoveBackward (const FInputActionValue& Value);
     void HandleTurnLeft (const FInputActionValue& Value);
     void HandleTurnRight (const FInputActionValue& Value);
+    void HandleStrafeLeft (const FInputActionValue& Value);
+    void HandleStrafeRight (const FInputActionValue& Value);
     void HandleUse (const FInputActionValue& Value);
 
     bool TryUseFrontInteraction ();
@@ -98,18 +113,27 @@ protected:
     void UpdateMove (float DeltaSeconds);
     void UpdateTurn (float DeltaSeconds);
 
-    EGridEdge GetRelativeDirectionForward () const;
-    EGridEdge GetRelativeDirectionBackward () const;
-
-    static EGridEdge RotateLeft (EGridEdge Dir);
-    static EGridEdge RotateRight (EGridEdge Dir);
-    static float FacingToYaw (EGridEdge Dir);
-
     bool HasLevelRuntimeActor () const;
     bool CanMoveOnLevel (int32 FromX, int32 FromY, EGridEdge Direction) const;
     bool TryGetNeighborOnLevel (int32 X, int32 Y, EGridEdge Direction, int32& OutX, int32& OutY) const;
     FVector GetCellCenterOnLevel (int32 X, int32 Y, float ZOffset) const;
     bool TryToggleDoorOnLevel (int32 X, int32 Y, EGridEdge Edge);
+
+private:
+    enum class EBufferedCommandType : uint8
+    {
+        None,
+        Move,
+        Turn,
+        Use
+    };
+
+    void BufferMoveCommand (EGridEdge MoveDirection);
+    void BufferTurnCommand (bool bTurnRight);
+    void BufferUseCommand ();
+    void ClearBufferedCommand ();
+    bool TryConsumeBufferedCommand ();
+    bool IsBusy () const;
 
 private:
     FVector MoveStartLocation = FVector::ZeroVector;
@@ -122,4 +146,9 @@ private:
     float TurnElapsed = 0.f;
     float TurnDeltaYaw = 0.f;
     bool bIsTurning = false;
+
+    EBufferedCommandType BufferedCommandType = EBufferedCommandType::None;
+    EGridEdge BufferedMoveDirection = EGridEdge::None;
+    bool bBufferedTurnRight = false;
+    float BufferedCommandAge = 0.f;
 };
