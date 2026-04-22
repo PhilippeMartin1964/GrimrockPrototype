@@ -48,7 +48,7 @@ public:
     EGridEdge Facing = EGridEdge::North;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Movement")
-    float MoveDuration = 0.18f;
+    float MoveDuration = 0.36f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Movement")
     float TurnDuration = 0.12f;
@@ -85,6 +85,45 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer", meta = (ClampMin = "0.0"))
     float InputBufferMaxAge = 0.25f;
+    // Head Bob
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob")
+    bool bEnableHeadBob = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob", meta = (ClampMin = "0.0"))
+    float HeadBobVerticalAmplitude = 6.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob", meta = (ClampMin = "0.0"))
+    float HeadBobHorizontalAmplitude = 1.5f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob", meta = (ClampMin = "0.0"))
+    float HeadBobReturnSpeed = 10.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob")
+    bool bHeadBobStrafeSway = true;
+    // Free look
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    float FreeLookYawLimit = 60.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    float FreeLookPitchUpLimit = 35.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    float FreeLookPitchDownLimit = 45.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    float FreeLookSensitivityYaw = 0.20f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    float FreeLookSensitivityPitch = 0.20f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    bool bEnableFreeLookRecentering = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook", meta = (EditCondition = "bEnableFreeLookRecentering", ClampMin = "0.0"))
+    float FreeLookRecenteringSpeed = 6.f;
+
+    UPROPERTY (BlueprintReadOnly, Category = "FreeLook")
+    bool bIsFreeLooking = false;
 
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
@@ -118,6 +157,14 @@ protected:
     bool TryGetNeighborOnLevel (int32 X, int32 Y, EGridEdge Direction, int32& OutX, int32& OutY) const;
     FVector GetCellCenterOnLevel (int32 X, int32 Y, float ZOffset) const;
     bool TryToggleDoorOnLevel (int32 X, int32 Y, EGridEdge Edge);
+    // Head Bob
+    void UpdateHeadBob (float DeltaSeconds);
+    void ApplyCameraOffsets ();
+    // Free look
+    void BeginFreeLook ();
+    void EndFreeLook ();
+    void UpdateFreeLook (float DeltaSeconds);
+    void ApplyFreeLookRotation ();
 
 private:
     enum class EBufferedCommandType : uint8
@@ -151,4 +198,15 @@ private:
     EGridEdge BufferedMoveDirection = EGridEdge::None;
     bool bBufferedTurnRight = false;
     float BufferedCommandAge = 0.f;
+
+    // Head Bob
+    FVector SpringArmBaseRelativeLocation = FVector::ZeroVector;
+
+    float HeadBobAlpha = 0.f;
+    FVector CurrentHeadBobOffset = FVector::ZeroVector;
+    FVector TargetHeadBobOffset = FVector::ZeroVector;
+    EGridEdge ActiveMoveDirection = EGridEdge::None;
+    //Free look
+    float FreeLookYaw = 0.f;
+    float FreeLookPitch = 0.f;
 };

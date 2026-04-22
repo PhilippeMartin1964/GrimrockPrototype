@@ -8,6 +8,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "InputActionValue.h"
 #include "Kismet/GameplayStatics.h"
+#include "Core/GridDirectionUtils.h"
+#include "InputCoreTypes.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
 AGrimrockPartyPawn::AGrimrockPartyPawn ()
@@ -27,6 +29,7 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
     SpringArm->bInheritRoll = false;
     SpringArm->SetRelativeLocation (FVector::ZeroVector);
     SpringArm->SetRelativeRotation (FRotator::ZeroRotator);
+    SpringArmBaseRelativeLocation = SpringArm->GetRelativeLocation ();
 
     Camera = CreateDefaultSubobject<UCameraComponent> (TEXT ("Camera"));
     Camera->SetupAttachment (SpringArm);
@@ -82,6 +85,10 @@ void AGrimrockPartyPawn::Tick (float DeltaSeconds)
     {
         UpdateTurn (DeltaSeconds);
     }
+
+    UpdateHeadBob (DeltaSeconds);
+	UpdateFreeLook (DeltaSeconds);
+
     if (BufferedCommandType != EBufferedCommandType::None)
     {
         BufferedCommandAge += DeltaSeconds;
@@ -143,6 +150,8 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
             EIC->BindAction (UseAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleUse);
         }
     }
+    PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
+    PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
 }
 
 void AGrimrockPartyPawn::SetGridStart (
@@ -311,6 +320,7 @@ bool AGrimrockPartyPawn::TryStartMove (EGridEdge MoveDirection)
 
     CurrentCellX = NextX;
     CurrentCellY = NextY;
+    ActiveMoveDirection = MoveDirection;
 
     return true;
 }
@@ -349,6 +359,7 @@ void AGrimrockPartyPawn::UpdateMove (float DeltaSeconds)
         SetActorLocation (MoveTargetLocation);
         bIsMoving = false;
         MoveElapsed = 0.f;
+        ActiveMoveDirection = EGridEdge::None;
     }
 }
 
@@ -497,4 +508,138 @@ bool AGrimrockPartyPawn::TryConsumeBufferedCommand ()
 bool AGrimrockPartyPawn::IsBusy () const
 {
     return bIsMoving || bIsTurning;
+}
+void AGrimrockPartyPawn::UpdateHeadBob (float DeltaSeconds)
+{
+    if (!bEnableHeadBob)
+    {
+        TargetHeadBobOffset = FVector::ZeroVector;
+        CurrentHeadBobOffset = FMath::VInterpTo (
+            CurrentHeadBobOffset,
+            FVector::ZeroVector,
+            DeltaSeconds,
+            HeadBobReturnSpeed
+        );
+
+        ApplyCameraOffsets ();
+        return;
+    }
+
+    if (bIsMoving)
+    {
+        const float SafeDuration = FMath::Max (0.01f, MoveDuration);
+        HeadBobAlpha = FMath::Clamp (MoveElapsed / SafeDuration, 0.f, 1.f);
+
+        // Courbe simple type Grimrock : un seul "pas" par déplacement de case.
+        const float VerticalCurve = FMath::Sin (HeadBobAlpha * PI);
+        const float VerticalOffset = -VerticalCurve * HeadBobVerticalAmplitude;
+
+        float HorizontalOffset = 0.f;
+
+        if (bHeadBobStrafeSway)
+        {
+            const EGridEdge LeftDir = GridDirectionUtils::GetLeft (Facing);
+            const EGridEdge RightDir = GridDirectionUtils::GetRight (Facing);
+
+            if (ActiveMoveDirection == RightDir)
+            {
+                HorizontalOffset = VerticalCurve * HeadBobHorizontalAmplitude;
+            } else if (ActiveMoveDirection == LeftDir)
+            {
+                HorizontalOffset = -VerticalCurve * HeadBobHorizontalAmplitude;
+            }
+        }
+
+        TargetHeadBobOffset = FVector (0.f, HorizontalOffset, VerticalOffset);
+    } else
+    {
+        HeadBobAlpha = 0.f;
+        TargetHeadBobOffset = FVector::ZeroVector;
+    }
+
+    CurrentHeadBobOffset = FMath::VInterpTo (
+        CurrentHeadBobOffset,
+        TargetHeadBobOffset,
+        DeltaSeconds,
+        bIsMoving ? 18.f : HeadBobReturnSpeed
+    );
+
+    ApplyCameraOffsets ();
+}
+
+void AGrimrockPartyPawn::ApplyCameraOffsets ()
+{
+    if (!SpringArm)
+    {
+        return;
+    }
+
+    SpringArm->SetRelativeLocation (SpringArmBaseRelativeLocation + CurrentHeadBobOffset);
+}
+
+void AGrimrockPartyPawn::BeginFreeLook ()
+{
+    bIsFreeLooking = true;
+}
+
+void AGrimrockPartyPawn::EndFreeLook ()
+{
+    bIsFreeLooking = false;
+}
+
+void AGrimrockPartyPawn::UpdateFreeLook (float DeltaSeconds)
+{
+    if (!SpringArm)
+    {
+        return;
+    }
+
+    if (APlayerController* PC = Cast<APlayerController> (GetController ()))
+    {
+        if (bIsFreeLooking)
+        {
+            float MouseDeltaX = 0.f;
+            float MouseDeltaY = 0.f;
+            PC->GetInputMouseDelta (MouseDeltaX, MouseDeltaY);
+
+            FreeLookYaw += MouseDeltaX * FreeLookSensitivityYaw;
+            FreeLookPitch = FMath::Clamp (
+                FreeLookPitch + (MouseDeltaY * FreeLookSensitivityPitch),
+                -FreeLookPitchDownLimit,
+                FreeLookPitchUpLimit
+            );
+
+            FreeLookYaw = FMath::Clamp (
+                FreeLookYaw,
+                -FreeLookYawLimit,
+                FreeLookYawLimit
+            );
+        } else if (bEnableFreeLookRecentering)
+        {
+            FreeLookYaw = FMath::FInterpTo (FreeLookYaw, 0.f, DeltaSeconds, FreeLookRecenteringSpeed);
+            FreeLookPitch = FMath::FInterpTo (FreeLookPitch, 0.f, DeltaSeconds, FreeLookRecenteringSpeed);
+
+            if (FMath::Abs (FreeLookYaw) < 0.01f)
+            {
+                FreeLookYaw = 0.f;
+            }
+
+            if (FMath::Abs (FreeLookPitch) < 0.01f)
+            {
+                FreeLookPitch = 0.f;
+            }
+        }
+    }
+
+    ApplyFreeLookRotation ();
+}
+
+void AGrimrockPartyPawn::ApplyFreeLookRotation ()
+{
+    if (!SpringArm)
+    {
+        return;
+    }
+
+    SpringArm->SetRelativeRotation (FRotator (FreeLookPitch, FreeLookYaw, 0.f));
 }
