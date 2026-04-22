@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridDoorActor.h"
 #include "Core/GridTypes.h"
+#include "Runtime/GridButtonActor.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -50,6 +51,8 @@ void AGridLevelRuntimeActor::ClearVisuals ()
     if (CeilingISM) CeilingISM->ClearInstances ();
 
     ClearRuntimeDoors ();
+    ClearRuntimeButtons ();
+
 }
 
 bool AGridLevelRuntimeActor::IsValidCell (int32 X, int32 Y) const
@@ -238,10 +241,11 @@ void AGridLevelRuntimeActor::RebuildLevel ()
             DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, bDrawWest);
         }
     }
-
+    
     if (GetWorld () && GetWorld ()->IsGameWorld ())
     {
         RebuildRuntimeDoors ();
+        RebuildRuntimeButtons ();
     }
 }
 
@@ -787,6 +791,15 @@ bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectD
     switch (ObjectData.Type)
     {
         case EGridLevelObjectType::Button:
+        {
+            if (AGridButtonActor* ButtonActor = FindRuntimeButtonActor (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+            {
+                ButtonActor->TriggerPress ();
+            }
+
+            return ExecuteLinksFromObject (ObjectData.ObjectId);
+        }
+
         case EGridLevelObjectType::Lever:
             return ExecuteLinksFromObject (ObjectData.ObjectId);
 
@@ -806,4 +819,147 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY
     }
 
     return ActivateObject (*ObjectData);
+}
+
+void AGridLevelRuntimeActor::ClearRuntimeButtons ()
+{
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        SpawnedButtonActors.Empty ();
+        return;
+    }
+
+    for (AGridButtonActor* ButtonActor : SpawnedButtonActors)
+    {
+        if (IsValid (ButtonActor))
+        {
+            ButtonActor->Destroy ();
+        }
+    }
+
+    SpawnedButtonActors.Empty ();
+}
+
+void AGridLevelRuntimeActor::AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData)
+{
+    if (!ButtonActorClass || !ButtonMesh || !LevelAsset)
+    {
+        return;
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return;
+    }
+
+    const float CellSize = LevelAsset->CellSize;
+    const FVector Base = GetActorLocation () + CellToWorld (ButtonObjectData.CellX, ButtonObjectData.CellY, 80.f);
+
+    FVector Pos = Base;
+    FRotator Rot = FRotator::ZeroRotator;
+    const float WallInset = 6.f;
+
+    switch (ButtonObjectData.Edge)
+    {
+        case EGridEdge::North:
+            Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
+            Rot = FRotator (0.f, 90.f, 0.f);
+            break;
+
+        case EGridEdge::East:
+            Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
+            Rot = FRotator (0.f, 0.f, 0.f);
+            break;
+
+        case EGridEdge::South:
+            Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
+            Rot = FRotator (0.f, -90.f, 0.f);
+            break;
+
+        case EGridEdge::West:
+            Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
+            Rot = FRotator (0.f, 180.f, 0.f);
+            break;
+
+        default:
+            return;
+    }
+
+    FActorSpawnParameters Params;
+    Params.Owner = this;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AGridButtonActor* ButtonActor = World->SpawnActor<AGridButtonActor> (
+        ButtonActorClass,
+        Pos,
+        Rot,
+        Params
+    );
+
+    if (!ButtonActor)
+    {
+        return;
+    }
+
+    ButtonActor->InitializeButton (
+        ButtonMesh,
+        ButtonMaterial,
+        Pos,
+        Rot,
+        ButtonObjectData.CellX,
+        ButtonObjectData.CellY,
+        ButtonObjectData.Edge
+    );
+
+    SpawnedButtonActors.Add (ButtonActor);
+}
+
+void AGridLevelRuntimeActor::RebuildRuntimeButtons ()
+{
+    ClearRuntimeButtons ();
+
+    if (!LevelAsset || !ButtonActorClass)
+    {
+        return;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type != EGridLevelObjectType::Button)
+        {
+            continue;
+        }
+
+        if (!ObjectData.bInitiallyEnabled)
+        {
+            continue;
+        }
+
+        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
+        {
+            continue;
+        }
+
+        if (ObjectData.Edge == EGridEdge::None)
+        {
+            continue;
+        }
+
+        AddRuntimeButtonActor (ObjectData);
+    }
+}
+
+AGridButtonActor* AGridLevelRuntimeActor::FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const
+{
+    for (AGridButtonActor* ButtonActor : SpawnedButtonActors)
+    {
+        if (IsValid (ButtonActor) && ButtonActor->MatchesEdge (X, Y, Edge))
+        {
+            return ButtonActor;
+        }
+    }
+
+    return nullptr;
 }

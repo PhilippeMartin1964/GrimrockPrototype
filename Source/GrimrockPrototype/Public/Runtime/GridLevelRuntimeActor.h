@@ -7,6 +7,7 @@
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridDoorActor;
+class AGridButtonActor;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor
@@ -54,6 +55,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> CeilingMesh;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UStaticMesh> ButtonMesh;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
     FVector GridOrigin = FVector::ZeroVector;
 
@@ -62,6 +66,12 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Doors")
     TSubclassOf<AGridDoorActor> DoorActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Buttons")
+    TSubclassOf<AGridButtonActor> ButtonActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UMaterialInterface> ButtonMaterial;
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -153,4 +163,13 @@ private:
     bool ActivateObject (const FGridLevelObjectData& ObjectData);
     bool ExecuteLinksFromObject (FGuid SourceObjectId);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<AGridButtonActor>> SpawnedButtonActors;
+
+    void ClearRuntimeButtons ();
+    void RebuildRuntimeButtons ();
+    void AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData);
+
+    AGridButtonActor* FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const;
 };
