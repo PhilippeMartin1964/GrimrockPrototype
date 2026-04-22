@@ -107,6 +107,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge);
+	// Butttons and pressure plates could also use the same TryInteractAtEdge function, and then we can have different interaction types in the level data to distinguish them
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
 
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
@@ -143,4 +146,11 @@ private:
 
     UFUNCTION ()
     void HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge);
+	// Buttons and pressure plates could also use the same HandleInteractionFinished function, and then we can have different interaction types in the level data to distinguish them
+    const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
+    const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
+
+    bool ActivateObject (const FGridLevelObjectData& ObjectData);
+    bool ExecuteLinksFromObject (FGuid SourceObjectId);
+    bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
 };

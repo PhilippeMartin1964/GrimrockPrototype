@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridDoorActor.h"
+#include "Core/GridTypes.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -672,4 +673,137 @@ bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
     }
 
     return false;
+}
+
+const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectById (FGuid ObjectId) const
+{
+    if (!LevelAsset || !ObjectId.IsValid ())
+    {
+        return nullptr;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.ObjectId == ObjectId)
+        {
+            return &ObjectData;
+        }
+    }
+
+    return nullptr;
+}
+
+const FGridLevelObjectData* AGridLevelRuntimeActor::FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const
+{
+    if (!LevelAsset)
+    {
+        return nullptr;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (!ObjectData.bInitiallyEnabled)
+        {
+            continue;
+        }
+
+        if (ObjectData.CellX != X || ObjectData.CellY != Y || ObjectData.Edge != Edge)
+        {
+            continue;
+        }
+
+        switch (ObjectData.Type)
+        {
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::Lever:
+                return &ObjectData;
+
+            default:
+                break;
+        }
+    }
+
+    return nullptr;
+}
+
+bool AGridLevelRuntimeActor::ApplyLinkAction (const FGridLevelLinkData& LinkData)
+{
+    const FGridLevelObjectData* TargetObject = FindObjectById (LinkData.TargetObjectId);
+    if (!TargetObject)
+    {
+        return false;
+    }
+
+    switch (TargetObject->Type)
+    {
+        case EGridLevelObjectType::Door:
+            switch (LinkData.Action)
+            {
+                case EGridLinkAction::Toggle:
+                    return ToggleDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
+
+                case EGridLinkAction::Open:
+                    return OpenDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
+
+                case EGridLinkAction::Close:
+                    return CloseDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
+
+                default:
+                    return false;
+            }
+
+        default:
+            break;
+    }
+
+    return false;
+}
+
+bool AGridLevelRuntimeActor::ExecuteLinksFromObject (FGuid SourceObjectId)
+{
+    if (!LevelAsset || !SourceObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    bool bAnyApplied = false;
+
+    for (const FGridLevelLinkData& LinkData : LevelAsset->Links)
+    {
+        if (LinkData.SourceObjectId != SourceObjectId)
+        {
+            continue;
+        }
+
+        const bool bApplied = ApplyLinkAction (LinkData);
+        bAnyApplied = bAnyApplied || bApplied;
+    }
+
+    return bAnyApplied;
+}
+
+bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectData)
+{
+    switch (ObjectData.Type)
+    {
+        case EGridLevelObjectType::Button:
+        case EGridLevelObjectType::Lever:
+            return ExecuteLinksFromObject (ObjectData.ObjectId);
+
+        default:
+            break;
+    }
+
+    return false;
+}
+
+bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge)
+{
+    const FGridLevelObjectData* ObjectData = FindInteractableObjectOnEdge (FromCellX, FromCellY, Edge);
+    if (!ObjectData)
+    {
+        return false;
+    }
+
+    return ActivateObject (*ObjectData);
 }

@@ -290,6 +290,12 @@ bool AGrimrockPartyPawn::TryUseFrontInteraction ()
     }
 
     const EGridEdge FrontEdge = GridDirectionUtils::GetForward (Facing);
+
+    if (TryInteractOnLevel (CurrentCellX, CurrentCellY, FrontEdge))
+    {
+        return true;
+    }
+
     return TryToggleDoorOnLevel (CurrentCellX, CurrentCellY, FrontEdge);
 }
 
@@ -642,4 +648,9 @@ void AGrimrockPartyPawn::ApplyFreeLookRotation ()
     }
 
     SpringArm->SetRelativeRotation (FRotator (FreeLookPitch, FreeLookYaw, 0.f));
+}
+
+bool AGrimrockPartyPawn::TryInteractOnLevel (int32 X, int32 Y, EGridEdge Edge)
+{
+    return LevelRuntimeActor && LevelRuntimeActor->TryInteractAtEdge (X, Y, Edge);
 }

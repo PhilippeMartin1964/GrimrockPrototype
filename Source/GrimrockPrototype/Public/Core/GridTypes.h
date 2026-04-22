@@ -115,6 +115,12 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     bool bInitiallyActive = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    FName Tag = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    FString Notes;
 };
 
 USTRUCT (BlueprintType)
