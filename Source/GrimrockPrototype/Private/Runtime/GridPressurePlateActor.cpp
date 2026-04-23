@@ -16,11 +16,6 @@ AGridPressurePlateActor::AGridPressurePlateActor ()
     PlateMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
-void AGridPressurePlateActor::BeginPlay ()
-{
-    Super::BeginPlay ();
-}
-
 void AGridPressurePlateActor::Tick (float DeltaSeconds)
 {
     Super::Tick (DeltaSeconds);

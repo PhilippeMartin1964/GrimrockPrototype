@@ -16,11 +16,6 @@ AGridLeverActor::AGridLeverActor ()
     LeverMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
-void AGridLeverActor::BeginPlay ()
-{
-    Super::BeginPlay ();
-}
-
 void AGridLeverActor::Tick (float DeltaSeconds)
 {
     Super::Tick (DeltaSeconds);

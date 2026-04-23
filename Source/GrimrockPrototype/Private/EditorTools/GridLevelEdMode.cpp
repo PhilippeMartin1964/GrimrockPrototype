@@ -70,7 +70,7 @@ bool FGridLevelEdMode::UpdateHoverFromMouse (
     }
 
     const FPlane GridPlane (GridOrigin, FVector::UpVector);
-    const FVector RayEnd = RayOrigin + (RayDirection * 100000.f);
+    const FVector RayEnd = RayOrigin + (RayDirection * EditorActor->ViewportPickTraceDistance);
     const FVector HitPoint = FMath::LinePlaneIntersection (RayOrigin, RayEnd, GridPlane);
 
     const float ForwardDot = FVector::DotProduct (RayDirection, FVector::UpVector);

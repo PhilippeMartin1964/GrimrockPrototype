@@ -15,7 +15,6 @@ class GRIMROCKPROTOTYPE_API AGridLeverActor : public AActor
 public:
     AGridLeverActor ();
 
-    virtual void BeginPlay () override;
     virtual void Tick (float DeltaSeconds) override;
 
 public:

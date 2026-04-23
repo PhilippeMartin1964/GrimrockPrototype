@@ -1,4 +1,3 @@
-#include "GrimrockPrototype.h"
 #include "Modules/ModuleManager.h"
 
 #if WITH_EDITOR

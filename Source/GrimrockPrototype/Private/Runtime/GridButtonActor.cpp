@@ -16,11 +16,6 @@ AGridButtonActor::AGridButtonActor ()
     ButtonMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
-void AGridButtonActor::BeginPlay ()
-{
-    Super::BeginPlay ();
-}
-
 void AGridButtonActor::Tick (float DeltaSeconds)
 {
     Super::Tick (DeltaSeconds);

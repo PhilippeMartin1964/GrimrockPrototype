@@ -16,11 +16,6 @@ AGridDoorActor::AGridDoorActor ()
     DoorMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
-void AGridDoorActor::BeginPlay ()
-{
-    Super::BeginPlay ();
-}
-
 void AGridDoorActor::Tick (float DeltaSeconds)
 {
     Super::Tick (DeltaSeconds);

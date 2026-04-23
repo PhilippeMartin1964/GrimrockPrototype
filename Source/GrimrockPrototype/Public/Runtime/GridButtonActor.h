@@ -15,7 +15,6 @@ class GRIMROCKPROTOTYPE_API AGridButtonActor : public AActor
 public:
     AGridButtonActor ();
 
-    virtual void BeginPlay () override;
     virtual void Tick (float DeltaSeconds) override;
 
 public:

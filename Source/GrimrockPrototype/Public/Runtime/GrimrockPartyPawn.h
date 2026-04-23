@@ -165,7 +165,7 @@ protected:
     void EndFreeLook ();
     void UpdateFreeLook (float DeltaSeconds);
     void ApplyFreeLookRotation ();
-	// Button and pressure plate interactions could also use the same TryUseFrontInteraction function, and then we can have different interaction types in the level data to distinguish them
+
     bool TryInteractOnLevel (int32 X, int32 Y, EGridEdge Edge);
 
 private:

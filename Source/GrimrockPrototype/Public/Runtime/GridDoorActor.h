@@ -22,7 +22,6 @@ class GRIMROCKPROTOTYPE_API AGridDoorActor : public AActor
 public:
     AGridDoorActor ();
 
-    virtual void BeginPlay () override;
     virtual void Tick (float DeltaSeconds) override;
 
 public:

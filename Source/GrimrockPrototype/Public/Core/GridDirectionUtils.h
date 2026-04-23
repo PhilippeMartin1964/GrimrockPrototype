@@ -5,34 +5,6 @@
 
 namespace GridDirectionUtils
 {
-    /*
-    ============================================================
-    CONVENTION OFFICIELLE DU PROJET
-    ============================================================
-
-    Grille :
-        North = +Y
-        East  = +X
-        South = -Y
-        West  = -X
-
-    Unreal Yaw :
-        East  =   0°
-        North =  90°
-        South = -90°
-        West  = 180°
-
-    IMPORTANT :
-        - Tourner à gauche = RotateLeft = sens anti-horaire visuel
-        - Tourner à droite = RotateRight = sens horaire visuel
-        - MAIS selon cette convention :
-            RotateLeft  = math "inverse"
-            RotateRight = math "inverse"
-
-    => Ne jamais modifier sans tout recalibrer
-    ============================================================
-    */
-
     FORCEINLINE EGridEdge RotateLeft(EGridEdge Dir)
     {
         switch (Dir)

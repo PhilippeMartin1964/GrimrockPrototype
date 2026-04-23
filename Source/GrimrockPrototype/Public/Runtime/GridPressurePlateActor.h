@@ -14,7 +14,6 @@ class GRIMROCKPROTOTYPE_API AGridPressurePlateActor : public AActor
 public:
     AGridPressurePlateActor ();
 
-    virtual void BeginPlay () override;
     virtual void Tick (float DeltaSeconds) override;
 
 public:

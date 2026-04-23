@@ -128,12 +128,6 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
     void SnapActorToSelectedCell ();
 
-    UFUNCTION (CallInEditor, Category = "Viewport Picking")
-    void PickSelectionFromViewport ();
-
-    UFUNCTION (CallInEditor, Category = "Viewport Picking")
-    void PickSelectionAndPlaceObjectFromViewport ();
-
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Cell Paint")
     void PaintSelectedCell ();
 
@@ -195,7 +189,6 @@ public:
 
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
-    virtual void Tick (float DeltaTime) override;
 
 #if WITH_EDITOR
     virtual void PostEditMove (bool bFinished) override;
@@ -219,8 +212,6 @@ private:
     bool TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
 
     EGridEdge GetEdgeFromPointInCell (const FVector2D& LocalInCell, float CellSize) const;
-
-    bool bIsPainting = false;
 
     const FGridLevelObjectData* FindObjectAtSelection () const;
     const FGridLevelObjectData* FindObjectById (const FGuid& ObjectId) const;
