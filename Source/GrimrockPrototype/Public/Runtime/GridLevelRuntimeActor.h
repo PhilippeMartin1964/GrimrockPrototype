@@ -237,4 +237,23 @@ private:
 
     AGridLeverActor* FindRuntimeLeverActor (int32 X, int32 Y, EGridEdge Edge) const;
     AGridPressurePlateActor* FindRuntimePressurePlateActor (int32 X, int32 Y) const;
+
+    bool TryGetWallObjectPreviewTransform (
+        int32 CellX,
+        int32 CellY,
+        EGridEdge Edge,
+        float ZOffset,
+        float WallInset,
+        FTransform& OutTransform) const;
+
+    bool TryGetCenteredCellPreviewTransform (
+        int32 CellX,
+        int32 CellY,
+        float ZOffset,
+        const FVector& Scale,
+        FTransform& OutTransform) const;
+
+    void AddEditorObjectInstance (
+        UInstancedStaticMeshComponent* TargetISM,
+        const FTransform& InstanceTransform);
 };

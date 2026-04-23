@@ -1403,78 +1403,89 @@ AGridPressurePlateActor* AGridLevelRuntimeActor::FindRuntimePressurePlateActor (
 
 void AGridLevelRuntimeActor::AddEditorLeverInstance (const FGridLevelObjectData& LeverObjectData)
 {
-    if (!LeverISM || !LevelAsset)
+    if (!LeverISM)
     {
         return;
     }
 
-    const float CellSize = LevelAsset->CellSize;
-    const FVector Base = CellToWorld (LeverObjectData.CellX, LeverObjectData.CellY, 95.f);
-
-    FVector Pos = Base;
-    FRotator Rot = FRotator::ZeroRotator;
-    const float WallInset = 8.f;
-
-    switch (LeverObjectData.Edge)
+    FTransform InstanceTransform;
+    if (!TryGetWallObjectPreviewTransform (
+        LeverObjectData.CellX,
+        LeverObjectData.CellY,
+        LeverObjectData.Edge,
+        95.f,
+        8.f,
+        InstanceTransform))
     {
-        case EGridEdge::North:
-            Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-            Rot = FRotator (0.f, 90.f, 0.f);
-            break;
-
-        case EGridEdge::East:
-            Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 0.f, 0.f);
-            break;
-
-        case EGridEdge::South:
-            Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-            Rot = FRotator (0.f, -90.f, 0.f);
-            break;
-
-        case EGridEdge::West:
-            Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 180.f, 0.f);
-            break;
-
-        default:
-            return;
+        return;
     }
 
-    LeverISM->AddInstance (FTransform (Rot, Pos, FVector (1.f, 1.f, 1.f)));
+    AddEditorObjectInstance (LeverISM, InstanceTransform);
 }
 
 void AGridLevelRuntimeActor::AddEditorPressurePlateInstance (const FGridLevelObjectData& PlateObjectData)
 {
-    if (!PressurePlateISM || !LevelAsset)
+    if (!PressurePlateISM)
     {
         return;
     }
 
-    const FVector Pos =
-        CellToWorld (PlateObjectData.CellX, PlateObjectData.CellY, 4.f) +
-        FVector (LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
+    FTransform InstanceTransform;
+    if (!TryGetCenteredCellPreviewTransform (
+        PlateObjectData.CellX,
+        PlateObjectData.CellY,
+        4.f,
+        FVector (1.f, 1.f, 1.f),
+        InstanceTransform))
+    {
+        return;
+    }
 
-    PressurePlateISM->AddInstance (
-        FTransform (FRotator::ZeroRotator, Pos, FVector (1.f, 1.f, 1.f))
-    );
+    AddEditorObjectInstance (PressurePlateISM, InstanceTransform);
 }
 
 void AGridLevelRuntimeActor::AddEditorButtonInstance (const FGridLevelObjectData& ButtonObjectData)
 {
-    if (!ButtonISM || !LevelAsset)
+    if (!ButtonISM)
     {
         return;
     }
 
+    FTransform InstanceTransform;
+    if (!TryGetWallObjectPreviewTransform (
+        ButtonObjectData.CellX,
+        ButtonObjectData.CellY,
+        ButtonObjectData.Edge,
+        80.f,
+        6.f,
+        InstanceTransform))
+    {
+        return;
+    }
+
+    AddEditorObjectInstance (ButtonISM, InstanceTransform);
+}
+
+bool AGridLevelRuntimeActor::TryGetWallObjectPreviewTransform (
+    int32 CellX,
+    int32 CellY,
+    EGridEdge Edge,
+    float ZOffset,
+    float WallInset,
+    FTransform& OutTransform) const
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
     const float CellSize = LevelAsset->CellSize;
-    const FVector Base = CellToWorld (ButtonObjectData.CellX, ButtonObjectData.CellY, 80.f);
+    const FVector Base = CellToWorld (CellX, CellY, ZOffset);
 
     FVector Pos = Base;
     FRotator Rot = FRotator::ZeroRotator;
-    const float WallInset = 6.f;
 
-    switch (ButtonObjectData.Edge)
+    switch (Edge)
     {
         case EGridEdge::North:
             Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
@@ -1497,8 +1508,41 @@ void AGridLevelRuntimeActor::AddEditorButtonInstance (const FGridLevelObjectData
             break;
 
         default:
-            return;
+            return false;
     }
 
-    ButtonISM->AddInstance (FTransform (Rot, Pos, FVector (1.f, 1.f, 1.f)));
+    OutTransform = FTransform (Rot, Pos, FVector (1.f, 1.f, 1.f));
+    return true;
+}
+
+bool AGridLevelRuntimeActor::TryGetCenteredCellPreviewTransform (
+    int32 CellX,
+    int32 CellY,
+    float ZOffset,
+    const FVector& Scale,
+    FTransform& OutTransform) const
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
+    const FVector Pos =
+        CellToWorld (CellX, CellY, ZOffset) +
+        FVector (LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
+
+    OutTransform = FTransform (FRotator::ZeroRotator, Pos, Scale);
+    return true;
+}
+
+void AGridLevelRuntimeActor::AddEditorObjectInstance (
+    UInstancedStaticMeshComponent* TargetISM,
+    const FTransform& InstanceTransform)
+{
+    if (!TargetISM)
+    {
+        return;
+    }
+
+    TargetISM->AddInstance (InstanceTransform);
 }
