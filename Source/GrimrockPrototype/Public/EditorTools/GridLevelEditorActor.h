@@ -139,7 +139,12 @@ public:
     bool IsSelectionValidForEditing () const;
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
-    FVector GetSelectionPreviewCenter () const;
+    bool ApplyGridHoverFromWorldPoint (const FVector& WorldPoint);
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    FVector GetSelectionPreviewCenter (float ZOffset = 4.f) const;
+
+    void ResolvePreviewRuntimeActor ();
 
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -159,13 +164,14 @@ private:
     FGridLevelCellData* GetSelectedCellMutable ();
     EGridWallType* GetSelectedWallMutable (FGridLevelCellData& CellData);
 
-    void ResolvePreviewRuntimeActor ();
     int32 RemoveObjectsAtSelectionInternal (bool bSameTypeOnly);
 
     EGridEdge GetEdgeFromYaw (float YawDegrees) const;
     EGridEdge GetEdgeFromHitNormal (const FVector& HitNormal) const;
     FVector GetSelectedCellWorldCenter (float ZOffset = 0.f) const;
     bool TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
+
+    EGridEdge GetEdgeFromPointInCell (const FVector2D& LocalInCell, float CellSize) const;
 
     bool bIsPainting = false;
 };

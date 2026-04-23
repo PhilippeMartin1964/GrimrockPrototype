@@ -12,26 +12,6 @@
 
 const FEditorModeID FGridLevelEdMode::EM_GridLevelEdModeId = TEXT ("EM_GrimrockGridLevelEdMode");
 
-FGridLevelEdMode::FGridLevelEdMode ()
-{
-}
-
-FGridLevelEdMode::~FGridLevelEdMode ()
-{
-}
-
-void FGridLevelEdMode::Enter ()
-{
-    FEdMode::Enter ();
-}
-
-void FGridLevelEdMode::Exit ()
-{
-    bIsPainting = false;
-    bIsErasing = false;
-    FEdMode::Exit ();
-}
-
 AGridLevelEditorActor* FGridLevelEdMode::FindEditorActor () const
 {
     if (!GEditor)
@@ -53,11 +33,11 @@ AGridLevelEditorActor* FGridLevelEdMode::FindEditorActor () const
     return nullptr;
 }
 
-bool FGridLevelEdMode::UpdateSelectionFromMouseRay (
+bool FGridLevelEdMode::UpdateHoverFromMouse (
     FEditorViewportClient* ViewportClient,
     FViewport* Viewport,
-    int32 X,
-    int32 Y)
+    int32 MouseX,
+    int32 MouseY) const
 {
     AGridLevelEditorActor* EditorActor = FindEditorActor ();
     if (!EditorActor || !EditorActor->LevelAsset)
@@ -79,85 +59,43 @@ bool FGridLevelEdMode::UpdateSelectionFromMouseRay (
 
     FVector RayOrigin = FVector::ZeroVector;
     FVector RayDirection = FVector::ForwardVector;
-    SceneView->DeprojectFVector2D (FVector2D (X, Y), RayOrigin, RayDirection);
+    SceneView->DeprojectFVector2D (FVector2D (MouseX, MouseY), RayOrigin, RayDirection);
 
-    AGridLevelRuntimeActor* Preview = EditorActor->PreviewRuntimeActor;
-    const FVector GridOrigin = Preview
-        ? (Preview->GetActorLocation () + Preview->GridOrigin)
-        : FVector::ZeroVector;
+    EditorActor->ResolvePreviewRuntimeActor ();
 
-    // plan horizontal de la grille
+    FVector GridOrigin = FVector::ZeroVector;
+    if (EditorActor->PreviewRuntimeActor)
+    {
+        GridOrigin = EditorActor->PreviewRuntimeActor->GetActorLocation () + EditorActor->PreviewRuntimeActor->GridOrigin;
+    }
+
     const FPlane GridPlane (GridOrigin, FVector::UpVector);
+    const FVector RayEnd = RayOrigin + (RayDirection * 100000.f);
+    const FVector HitPoint = FMath::LinePlaneIntersection (RayOrigin, RayEnd, GridPlane);
 
-    const float Denom = FVector::DotProduct (RayDirection, FVector::UpVector);
-    if (FMath::IsNearlyZero (Denom))
+    const float ForwardDot = FVector::DotProduct (RayDirection, FVector::UpVector);
+    if (FMath::IsNearlyZero (ForwardDot))
     {
         return false;
     }
 
-    const float T = FMath::LinePlaneIntersection (
-        RayOrigin,
-        RayOrigin + RayDirection * 100000.f,
-        GridPlane).Equals (RayOrigin, KINDA_SMALL_NUMBER)
-        ? -1.f
-        : FVector::Dist (
-            RayOrigin,
-            FMath::LinePlaneIntersection (
-                RayOrigin,
-                RayOrigin + RayDirection * 100000.f,
-                GridPlane));
-
-    if (T < 0.f)
-    {
-        return false;
-    }
-
-    const FVector HitPoint = FMath::LinePlaneIntersection (
-        RayOrigin,
-        RayOrigin + RayDirection * 100000.f,
-        GridPlane);
-
-    // normale verticale : pour une cellule au sol, on garde l’edge courant
-    return EditorActor->ApplyViewportHitSelection (HitPoint, FVector::UpVector);
+    return EditorActor->ApplyGridHoverFromWorldPoint (HitPoint);
 }
 
-bool FGridLevelEdMode::HandleClick (
-    FEditorViewportClient* InViewportClient,
-    HHitProxy* HitProxy,
-    const FViewportClick& Click)
+void FGridLevelEdMode::ApplyPaint () const
 {
-    if (!InViewportClient)
+    if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
     {
-        return FEdMode::HandleClick (InViewportClient, HitProxy, Click);
+        EditorActor->PlaceSelectedObject ();
     }
+}
 
-    if (Click.GetKey () == EKeys::LeftMouseButton)
+void FGridLevelEdMode::ApplyErase () const
+{
+    if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
     {
-        if (UpdateSelectionFromMouseRay (
-            InViewportClient,
-            InViewportClient->Viewport,
-            Click.GetClickPos ().X,
-            Click.GetClickPos ().Y))
-        {
-            PaintCurrentSelection ();
-            return true;
-        }
+        EditorActor->RemoveObjectsAtSelection ();
     }
-
-    if (Click.GetKey () == EKeys::RightMouseButton)
-    {
-        if (UpdateSelectionFromMouseRay (
-            InViewportClient,
-            InViewportClient->Viewport,
-            Click.GetClickPos ().X,
-            Click.GetClickPos ().Y))
-        {
-            EraseCurrentSelection ();
-            return true;
-        }
-    }
-
-    return FEdMode::HandleClick (InViewportClient, HitProxy, Click);
 }
 
 bool FGridLevelEdMode::InputKey (
@@ -171,13 +109,21 @@ bool FGridLevelEdMode::InputKey (
         if (Event == IE_Pressed)
         {
             bIsPainting = true;
-            return true; // on consomme
+
+            FIntPoint MousePos;
+            Viewport->GetMousePos (MousePos);
+            if (UpdateHoverFromMouse (ViewportClient, Viewport, MousePos.X, MousePos.Y))
+            {
+                ApplyPaint ();
+            }
+
+            return true;
         }
 
         if (Event == IE_Released)
         {
             bIsPainting = false;
-            return true; // on consomme
+            return true;
         }
     }
 
@@ -186,13 +132,21 @@ bool FGridLevelEdMode::InputKey (
         if (Event == IE_Pressed)
         {
             bIsErasing = true;
-            return true; // on consomme
+
+            FIntPoint MousePos;
+            Viewport->GetMousePos (MousePos);
+            if (UpdateHoverFromMouse (ViewportClient, Viewport, MousePos.X, MousePos.Y))
+            {
+                ApplyErase ();
+            }
+
+            return true;
         }
 
         if (Event == IE_Released)
         {
             bIsErasing = false;
-            return true; // on consomme
+            return true;
         }
     }
 
@@ -205,67 +159,12 @@ bool FGridLevelEdMode::MouseMove (
     int32 X,
     int32 Y)
 {
-    if (!ViewportClient || !Viewport)
+    if (UpdateHoverFromMouse (ViewportClient, Viewport, X, Y))
     {
-        return FEdMode::MouseMove (ViewportClient, Viewport, X, Y);
-    }
-
-    if (bIsPainting || bIsErasing)
-    {
-        if (UpdateSelectionFromMouseRay (ViewportClient, Viewport, X, Y))
-        {
-            if (bIsPainting)
-            {
-                PaintCurrentSelection ();
-            } else if (bIsErasing)
-            {
-                EraseCurrentSelection ();
-            }
-
-            return true;
-        }
+        return true;
     }
 
     return FEdMode::MouseMove (ViewportClient, Viewport, X, Y);
-}
-
-void FGridLevelEdMode::PaintCurrentSelection ()
-{
-    if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
-    {
-        EditorActor->PlaceSelectedObject ();
-    }
-}
-
-void FGridLevelEdMode::EraseCurrentSelection ()
-{
-    if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
-    {
-        EditorActor->RemoveObjectsAtSelection ();
-    }
-}
-
-void FGridLevelEdMode::Render (
-    const FSceneView* View,
-    FViewport* Viewport,
-    FPrimitiveDrawInterface* PDI)
-{
-    FEdMode::Render (View, Viewport, PDI);
-
-    AGridLevelEditorActor* EditorActor = FindEditorActor ();
-    if (!EditorActor || !EditorActor->LevelAsset || !EditorActor->IsSelectionValidForEditing ())
-    {
-        return;
-    }
-
-    const FVector Center = EditorActor->GetSelectionPreviewCenter ();
-    const float Half = EditorActor->LevelAsset->CellSize * 0.5f;
-
-    DrawWireBox (
-        PDI,
-        FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 4.f)),
-        FColor::Yellow,
-        SDPG_Foreground);
 }
 
 bool FGridLevelEdMode::ProcessCapturedMouseMoves (
@@ -278,26 +177,61 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (
         return FEdMode::ProcessCapturedMouseMoves (InViewportClient, InViewport, MouseMoves);
     }
 
-    if (!InViewportClient || !InViewport)
-    {
-        return true;
-    }
-
     FIntPoint MousePos;
     InViewport->GetMousePos (MousePos);
 
-    if (UpdateSelectionFromMouseRay (InViewportClient, InViewport, MousePos.X, MousePos.Y))
+    if (UpdateHoverFromMouse (InViewportClient, InViewport, MousePos.X, MousePos.Y))
     {
         if (bIsPainting)
         {
-            PaintCurrentSelection ();
+            ApplyPaint ();
         } else if (bIsErasing)
         {
-            EraseCurrentSelection ();
+            ApplyErase ();
         }
     }
 
-    return true; // très important : bloque le comportement caméra du viewport
+    return true;
 }
 
+void FGridLevelEdMode::Render (
+    const FSceneView* View,
+    FViewport* Viewport,
+    FPrimitiveDrawInterface* PDI)
+{
+    FEdMode::Render (View, Viewport, PDI);
+
+    AGridLevelEditorActor* EditorActor = FindEditorActor ();
+    if (!EditorActor || !EditorActor->IsSelectionValidForEditing () || !EditorActor->LevelAsset)
+    {
+        return;
+    }
+
+    const FVector Center = EditorActor->GetSelectionPreviewCenter (4.f);
+    const float Half = EditorActor->LevelAsset->CellSize * 0.5f;
+
+    DrawWireBox (
+        PDI,
+        FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 4.f)),
+        FColor::Yellow,
+        SDPG_Foreground);
+
+    const FVector EdgeCenter = [&] ()
+    {
+        switch (EditorActor->SelectedEdge)
+        {
+            case EGridEdge::North: return Center + FVector (0.f, Half, 0.f);
+            case EGridEdge::East:  return Center + FVector (Half, 0.f, 0.f);
+            case EGridEdge::South: return Center + FVector (0.f, -Half, 0.f);
+            case EGridEdge::West:  return Center + FVector (-Half, 0.f, 0.f);
+            default:               return Center;
+        }
+    }();
+
+    DrawWireBox (
+        PDI,
+        FBox (EdgeCenter - FVector (12.f, 12.f, 12.f), EdgeCenter + FVector (12.f, 12.f, 12.f)),
+        FColor::Orange,
+        SDPG_Foreground);
+}
 #endif

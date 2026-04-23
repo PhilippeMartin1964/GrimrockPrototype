@@ -786,7 +786,88 @@ bool AGridLevelEditorActor::IsSelectionValidForEditing () const
     return HasValidLevelAsset () && IsValidSelectedCell ();
 }
 
-FVector AGridLevelEditorActor::GetSelectionPreviewCenter () const
+EGridEdge AGridLevelEditorActor::GetEdgeFromPointInCell (const FVector2D& LocalInCell, float CellSize) const
 {
-    return GetSelectedCellWorldCenter (4.f);
+    const float DistNorth = FMath::Abs (CellSize - LocalInCell.Y);
+    const float DistEast = FMath::Abs (CellSize - LocalInCell.X);
+    const float DistSouth = FMath::Abs (LocalInCell.Y);
+    const float DistWest = FMath::Abs (LocalInCell.X);
+
+    float BestDist = DistNorth;
+    EGridEdge BestEdge = EGridEdge::North;
+
+    if (DistEast < BestDist)
+    {
+        BestDist = DistEast;
+        BestEdge = EGridEdge::East;
+    }
+
+    if (DistSouth < BestDist)
+    {
+        BestDist = DistSouth;
+        BestEdge = EGridEdge::South;
+    }
+
+    if (DistWest < BestDist)
+    {
+        BestDist = DistWest;
+        BestEdge = EGridEdge::West;
+    }
+
+    return BestEdge;
+}
+
+bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPoint)
+{
+    if (!HasValidLevelAsset ())
+    {
+        return false;
+    }
+
+    ResolvePreviewRuntimeActor ();
+
+    const float CellSize = LevelAsset->CellSize;
+    if (CellSize <= KINDA_SMALL_NUMBER)
+    {
+        return false;
+    }
+
+    FVector GridWorldOrigin = FVector::ZeroVector;
+    if (PreviewRuntimeActor)
+    {
+        GridWorldOrigin = PreviewRuntimeActor->GetActorLocation () + PreviewRuntimeActor->GridOrigin;
+    }
+
+    const FVector Local = WorldPoint - GridWorldOrigin;
+
+    const int32 NewCellX = FMath::FloorToInt (Local.X / CellSize);
+    const int32 NewCellY = FMath::FloorToInt (Local.Y / CellSize);
+
+    if (!LevelAsset->IsValidCoord (NewCellX, NewCellY))
+    {
+        return false;
+    }
+
+    SelectedCellX = NewCellX;
+    SelectedCellY = NewCellY;
+
+    const float LocalInCellX = Local.X - (static_cast<float>(NewCellX) * CellSize);
+    const float LocalInCellY = Local.Y - (static_cast<float>(NewCellY) * CellSize);
+
+    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
+
+    if (bSnapAfterViewportPick)
+    {
+        const bool bWasAuto = bAutoSelectFromActorTransform;
+        bAutoSelectFromActorTransform = false;
+        SnapActorToSelectedCell ();
+        bAutoSelectFromActorTransform = bWasAuto;
+    }
+
+    return true;
+}
+
+FVector AGridLevelEditorActor::GetSelectionPreviewCenter (float ZOffset) const
+{
+    return GetSelectedCellWorldCenter (ZOffset);
 }
