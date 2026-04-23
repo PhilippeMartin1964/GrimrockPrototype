@@ -211,4 +211,7 @@ private:
     //Free look
     float FreeLookYaw = 0.f;
     float FreeLookPitch = 0.f;
+
+    int32 MoveStartCellX = 0;
+    int32 MoveStartCellY = 0;
 };

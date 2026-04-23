@@ -56,6 +56,11 @@ void AGrimrockPartyPawn::BeginPlay ()
 
     SnapToCurrentCell ();
 
+    if (LevelRuntimeActor)
+    {
+        LevelRuntimeActor->HandlePartyCellChanged (CurrentCellX, CurrentCellY, CurrentCellX, CurrentCellY);
+    }
+
     if (APlayerController* PC = Cast<APlayerController> (GetController ()))
     {
         if (ULocalPlayer* LP = PC->GetLocalPlayer ())
@@ -324,6 +329,9 @@ bool AGrimrockPartyPawn::TryStartMove (EGridEdge MoveDirection)
     MoveElapsed = 0.f;
     bIsMoving = true;
 
+    MoveStartCellX = CurrentCellX;
+    MoveStartCellY = CurrentCellY;
+
     CurrentCellX = NextX;
     CurrentCellY = NextY;
     ActiveMoveDirection = MoveDirection;
@@ -366,6 +374,14 @@ void AGrimrockPartyPawn::UpdateMove (float DeltaSeconds)
         bIsMoving = false;
         MoveElapsed = 0.f;
         ActiveMoveDirection = EGridEdge::None;
+        if (LevelRuntimeActor)
+        {
+            LevelRuntimeActor->HandlePartyCellChanged (
+                MoveStartCellX,
+                MoveStartCellY,
+                CurrentCellX,
+                CurrentCellY);
+        }
     }
 }
 

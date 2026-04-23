@@ -8,6 +8,8 @@
 
 class AGridDoorActor;
 class AGridButtonActor;
+class AGridLeverActor;
+class AGridPressurePlateActor;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor
@@ -35,6 +37,15 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* CeilingISM;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInstancedStaticMeshComponent* ButtonISM;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInstancedStaticMeshComponent* LeverISM;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInstancedStaticMeshComponent* PressurePlateISM;
 
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
@@ -72,6 +83,25 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UMaterialInterface> ButtonMaterial;
+
+    //Lever and PressurePlate 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Levers")
+    TSubclassOf<AGridLeverActor> LeverActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|PressurePlates")
+    TSubclassOf<AGridPressurePlateActor> PressurePlateActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UStaticMesh> LeverMesh;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UStaticMesh> PressurePlateMesh;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UMaterialInterface> LeverMaterial;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UMaterialInterface> PressurePlateMaterial;
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -120,6 +150,9 @@ public:
 	// Butttons and pressure plates could also use the same TryInteractAtEdge function, and then we can have different interaction types in the level data to distinguish them
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
+    
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
@@ -161,8 +194,8 @@ private:
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
 
     bool ActivateObject (const FGridLevelObjectData& ObjectData);
-    bool ExecuteLinksFromObject (FGuid SourceObjectId);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
+    bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
 
     UPROPERTY (Transient)
     TArray<TObjectPtr<AGridButtonActor>> SpawnedButtonActors;
@@ -172,4 +205,36 @@ private:
     void AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData);
 
     AGridButtonActor* FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const;
+
+    // PressurePlate and Levers
+    EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
+
+    const FGridLevelObjectData* FindPressurePlateObjectAtCell (int32 X, int32 Y) const;
+
+    bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
+    bool ActivatePressurePlateAtCell (int32 X, int32 Y);
+    bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
+    void AddEditorButtonInstance (const FGridLevelObjectData& ButtonObjectData);
+    void AddEditorLeverInstance (const FGridLevelObjectData& LeverObjectData);
+    void AddEditorPressurePlateInstance (const FGridLevelObjectData& PlateObjectData);
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<AGridLeverActor>> SpawnedLeverActors;
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<AGridPressurePlateActor>> SpawnedPressurePlateActors;
+
+    UPROPERTY (Transient)
+    TSet<FGuid> ActiveObjectIds;
+
+    void ClearRuntimeLevers ();
+    void RebuildRuntimeLevers ();
+    void AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData);
+
+    void ClearRuntimePressurePlates ();
+    void RebuildRuntimePressurePlates ();
+    void AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData);
+
+    AGridLeverActor* FindRuntimeLeverActor (int32 X, int32 Y, EGridEdge Edge) const;
+    AGridPressurePlateActor* FindRuntimePressurePlateActor (int32 X, int32 Y) const;
 };
