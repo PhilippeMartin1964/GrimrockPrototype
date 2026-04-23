@@ -217,6 +217,7 @@ private:
     void AddEditorButtonInstance (const FGridLevelObjectData& ButtonObjectData);
     void AddEditorLeverInstance (const FGridLevelObjectData& LeverObjectData);
     void AddEditorPressurePlateInstance (const FGridLevelObjectData& PlateObjectData);
+    void AddEditorDoorInstance (const FGridLevelObjectData& DoorObjectData);
 
     UPROPERTY (Transient)
     TArray<TObjectPtr<AGridLeverActor>> SpawnedLeverActors;

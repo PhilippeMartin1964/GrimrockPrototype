@@ -282,6 +282,9 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 
         switch (ObjectData.Type)
         {
+            case EGridLevelObjectType::Door:
+                AddEditorDoorInstance (ObjectData);
+                break;
             case EGridLevelObjectType::Button:
                 AddEditorButtonInstance (ObjectData);
                 break;
@@ -1464,6 +1467,34 @@ void AGridLevelRuntimeActor::AddEditorButtonInstance (const FGridLevelObjectData
     }
 
     AddEditorObjectInstance (ButtonISM, InstanceTransform);
+}
+
+void AGridLevelRuntimeActor::AddEditorDoorInstance (const FGridLevelObjectData& DoorObjectData)
+{
+    if (!DoorISM || !LevelAsset)
+    {
+        return;
+    }
+
+    FVector DoorWorldLocation = FVector::ZeroVector;
+    FRotator DoorWorldRotation = FRotator::ZeroRotator;
+
+    GetEdgeTransform (
+        DoorObjectData.CellX,
+        DoorObjectData.CellY,
+        DoorObjectData.Edge,
+        LevelAsset->CellSize,
+        DoorWorldLocation,
+        DoorWorldRotation
+    );
+
+    const FTransform InstanceTransform (
+        DoorWorldRotation,
+        DoorWorldLocation,
+        FVector (LevelAsset->CellSize / 100.f, 1.f, 1.f)
+    );
+
+    AddEditorObjectInstance (DoorISM, InstanceTransform);
 }
 
 bool AGridLevelRuntimeActor::TryGetWallObjectPreviewTransform (
