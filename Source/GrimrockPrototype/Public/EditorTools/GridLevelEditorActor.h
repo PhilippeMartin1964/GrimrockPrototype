@@ -8,6 +8,17 @@
 class AGridLevelRuntimeActor;
 
 UENUM (BlueprintType)
+enum class EGridEditorTool : uint8
+{
+    Select      UMETA (DisplayName = "Select"),
+    PaintCell   UMETA (DisplayName = "Paint Cell"),
+    PaintWall   UMETA (DisplayName = "Paint Wall"),
+    PaintObject UMETA (DisplayName = "Paint Object"),
+    Erase       UMETA (DisplayName = "Erase"),
+    Link        UMETA (DisplayName = "Link")
+};
+
+UENUM (BlueprintType)
 enum class EGridEditorObjectPlacementPolicy : uint8
 {
     ReplaceSameSlotOnly UMETA (DisplayName = "Replace Same Slot Only"),
@@ -92,6 +103,18 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
     FGuid LastSelectedObjectId;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Tool")
+    EGridEditorTool ActiveTool = EGridEditorTool::PaintObject;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
+    EGridLinkAction LinkAction = EGridLinkAction::Toggle;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link")
+    FGuid PendingLinkSourceObjectId;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link")
+    bool bHasPendingLinkSource = false;
+
 public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void EnsureLevelReady ();
@@ -144,6 +167,30 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Selection")
     FVector GetSelectionPreviewCenter (float ZOffset = 4.f) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Tool")
+    void ApplyPrimaryToolAction ();
+
+    UFUNCTION (BlueprintCallable, Category = "Tool")
+    void ApplySecondaryToolAction ();
+
+    UFUNCTION (BlueprintCallable, Category = "Link")
+    bool BeginOrCompleteLinkAtSelection ();
+
+    UFUNCTION (BlueprintCallable, Category = "Link")
+    void ClearPendingLinkSource ();
+
+    UFUNCTION (BlueprintCallable, Category = "Link")
+    bool RemoveLinksAtSelection ();
+
+    UFUNCTION (BlueprintCallable, Category = "Link")
+    bool HasPendingLinkSource () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Link")
+    bool TryGetPendingLinkSourceLocation (FVector& OutWorldLocation) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const;
+
     void ResolvePreviewRuntimeActor ();
 
 protected:
@@ -174,4 +221,8 @@ private:
     EGridEdge GetEdgeFromPointInCell (const FVector2D& LocalInCell, float CellSize) const;
 
     bool bIsPainting = false;
+
+    const FGridLevelObjectData* FindObjectAtSelection () const;
+    const FGridLevelObjectData* FindObjectById (const FGuid& ObjectId) const;
+    bool TryGetObjectWorldLocation (const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const;
 };

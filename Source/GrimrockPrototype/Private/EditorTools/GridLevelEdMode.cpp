@@ -86,7 +86,7 @@ void FGridLevelEdMode::ApplyPaint () const
 {
     if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
     {
-        EditorActor->PlaceSelectedObject ();
+        EditorActor->ApplyPrimaryToolAction ();
     }
 }
 
@@ -94,7 +94,7 @@ void FGridLevelEdMode::ApplyErase () const
 {
     if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
     {
-        EditorActor->RemoveObjectsAtSelection ();
+        EditorActor->ApplySecondaryToolAction ();
     }
 }
 
@@ -210,11 +210,19 @@ void FGridLevelEdMode::Render (
     const FVector Center = EditorActor->GetSelectionPreviewCenter (4.f);
     const float Half = EditorActor->LevelAsset->CellSize * 0.5f;
 
-    DrawWireBox (
-        PDI,
-        FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 4.f)),
-        FColor::Yellow,
-        SDPG_Foreground);
+    FColor MainColor = FColor::Yellow;
+
+    switch (EditorActor->ActiveTool)
+    {
+        case EGridEditorTool::PaintCell:   MainColor = FColor::Green; break;
+        case EGridEditorTool::PaintWall:   MainColor = FColor::Cyan; break;
+        case EGridEditorTool::PaintObject: MainColor = FColor::Yellow; break;
+        case EGridEditorTool::Erase:       MainColor = FColor::Red; break;
+        case EGridEditorTool::Select:      MainColor = FColor::White; break;
+        case EGridEditorTool::Link:        MainColor = FColor::Cyan; break;
+        default: break;
+    }
+    DrawWireBox (PDI, FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 4.f)), MainColor, SDPG_Foreground);
 
     const FVector EdgeCenter = [&] ()
     {
@@ -228,10 +236,36 @@ void FGridLevelEdMode::Render (
         }
     }();
 
-    DrawWireBox (
-        PDI,
-        FBox (EdgeCenter - FVector (12.f, 12.f, 12.f), EdgeCenter + FVector (12.f, 12.f, 12.f)),
-        FColor::Orange,
-        SDPG_Foreground);
+    DrawWireBox (PDI, FBox (EdgeCenter - FVector (12.f, 12.f, 12.f), EdgeCenter + FVector (12.f, 12.f, 12.f)), FColor::Orange, SDPG_Foreground);
+
+    FVector SourceLocation = FVector::ZeroVector;
+    if (EditorActor->HasPendingLinkSource () &&
+        EditorActor->TryGetPendingLinkSourceLocation (SourceLocation))
+    {
+        DrawWireBox (
+            PDI,
+            FBox (SourceLocation - FVector (16.f, 16.f, 16.f), SourceLocation + FVector (16.f, 16.f, 16.f)),
+            FColor::Cyan,
+            SDPG_Foreground);
+
+        FVector HoverLocation = FVector::ZeroVector;
+        if (EditorActor->TryGetSelectedObjectWorldLocation (HoverLocation))
+        {
+            PDI->DrawLine (
+                SourceLocation,
+                HoverLocation,
+                FLinearColor {0.f, 1.f, 1.f, 1.f},
+                SDPG_Foreground,
+                2.0f);
+        } else
+        {
+            PDI->DrawLine (
+                SourceLocation,
+                Center,
+                FLinearColor {0.f, 1.f, 1.f, 1.f},
+                SDPG_Foreground,
+                1.5f);
+        }
+    }
 }
 #endif

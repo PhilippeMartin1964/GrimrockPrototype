@@ -871,3 +871,311 @@ FVector AGridLevelEditorActor::GetSelectionPreviewCenter (float ZOffset) const
 {
     return GetSelectedCellWorldCenter (ZOffset);
 }
+
+void AGridLevelEditorActor::ApplyPrimaryToolAction ()
+{
+    switch (ActiveTool)
+    {
+        case EGridEditorTool::Select:
+            SelectObjectAtSelection ();
+            break;
+
+        case EGridEditorTool::PaintCell:
+            PaintSelectedCell ();
+            break;
+
+        case EGridEditorTool::PaintWall:
+            PaintSelectedWall ();
+            break;
+
+        case EGridEditorTool::PaintObject:
+            PlaceSelectedObject ();
+            break;
+
+        case EGridEditorTool::Erase:
+        {
+            RemoveObjectsAtSelection ();
+
+            if (FGridLevelCellData* CellData = GetSelectedCellMutable ())
+            {
+                EGridWallType* WallPtr = GetSelectedWallMutable (*CellData);
+                if (WallPtr && *WallPtr != EGridWallType::None)
+                {
+                    ClearSelectedWall ();
+                } else if (CellData->CellType != EGridCellType::Empty)
+                {
+                    ClearSelectedCell ();
+                }
+            }
+            break;
+        }
+
+        case EGridEditorTool::Link:
+            BeginOrCompleteLinkAtSelection ();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void AGridLevelEditorActor::ApplySecondaryToolAction ()
+{
+    switch (ActiveTool)
+    {
+        case EGridEditorTool::PaintCell:
+            ClearSelectedCell ();
+            break;
+
+        case EGridEditorTool::PaintWall:
+            ClearSelectedWall ();
+            break;
+
+        case EGridEditorTool::PaintObject:
+            RemoveObjectsAtSelection ();
+            break;
+
+        case EGridEditorTool::Link:
+            ClearPendingLinkSource ();
+            break;
+
+        case EGridEditorTool::Select:
+        case EGridEditorTool::Erase:
+        default:
+            break;
+    }
+}
+
+const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection () const
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return nullptr;
+    }
+
+    for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
+    {
+        const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
+
+        if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
+        {
+            continue;
+        }
+
+        if (RequiresEdge (Obj.Type) && Obj.Edge != SelectedEdge)
+        {
+            continue;
+        }
+
+        return &Obj;
+    }
+
+    return nullptr;
+}
+
+const FGridLevelObjectData* AGridLevelEditorActor::FindObjectById (const FGuid& ObjectId) const
+{
+    if (!HasValidLevelAsset () || !ObjectId.IsValid ())
+    {
+        return nullptr;
+    }
+
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (Obj.ObjectId == ObjectId)
+        {
+            return &Obj;
+        }
+    }
+
+    return nullptr;
+}
+
+bool AGridLevelEditorActor::TryGetObjectWorldLocation (
+    const FGridLevelObjectData& ObjectData,
+    FVector& OutWorldLocation) const
+{
+    if (!HasValidLevelAsset ())
+    {
+        return false;
+    }
+
+    const float CellSize = LevelAsset->CellSize;
+
+    FVector GridWorldOrigin = FVector::ZeroVector;
+    if (PreviewRuntimeActor)
+    {
+        GridWorldOrigin = PreviewRuntimeActor->GetActorLocation () + PreviewRuntimeActor->GridOrigin;
+    }
+
+    const FVector CellCenter = GridWorldOrigin + FVector (
+        (ObjectData.CellX * CellSize) + (CellSize * 0.5f),
+        (ObjectData.CellY * CellSize) + (CellSize * 0.5f),
+        12.f);
+
+    if (RequiresEdge (ObjectData.Type))
+    {
+        switch (ObjectData.Edge)
+        {
+            case EGridEdge::North:
+                OutWorldLocation = CellCenter + FVector (0.f, CellSize * 0.5f, 0.f);
+                return true;
+
+            case EGridEdge::East:
+                OutWorldLocation = CellCenter + FVector (CellSize * 0.5f, 0.f, 0.f);
+                return true;
+
+            case EGridEdge::South:
+                OutWorldLocation = CellCenter + FVector (0.f, -CellSize * 0.5f, 0.f);
+                return true;
+
+            case EGridEdge::West:
+                OutWorldLocation = CellCenter + FVector (-CellSize * 0.5f, 0.f, 0.f);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    OutWorldLocation = CellCenter;
+    return true;
+}
+
+bool AGridLevelEditorActor::TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const
+{
+    const FGridLevelObjectData* Obj = FindObjectAtSelection ();
+    return Obj ? TryGetObjectWorldLocation (*Obj, OutWorldLocation) : false;
+}
+
+bool AGridLevelEditorActor::TryGetPendingLinkSourceLocation (FVector& OutWorldLocation) const
+{
+    if (!bHasPendingLinkSource || !PendingLinkSourceObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    const FGridLevelObjectData* Obj = FindObjectById (PendingLinkSourceObjectId);
+    return Obj ? TryGetObjectWorldLocation (*Obj, OutWorldLocation) : false;
+}
+
+bool AGridLevelEditorActor::HasPendingLinkSource () const
+{
+    return bHasPendingLinkSource && PendingLinkSourceObjectId.IsValid ();
+}
+
+void AGridLevelEditorActor::ClearPendingLinkSource ()
+{
+    bHasPendingLinkSource = false;
+    PendingLinkSourceObjectId.Invalidate ();
+}
+
+bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return false;
+    }
+
+    const FGridLevelObjectData* SelectedObject = FindObjectAtSelection ();
+    if (!SelectedObject)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: no object at selection for link mode."));
+        return false;
+    }
+
+    if (!bHasPendingLinkSource)
+    {
+        PendingLinkSourceObjectId = SelectedObject->ObjectId;
+        bHasPendingLinkSource = true;
+        LastSelectedObjectId = SelectedObject->ObjectId;
+
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("GridLevelEditorActor: link source set to %s"),
+            *SelectedObject->ObjectId.ToString ());
+
+        return true;
+    }
+
+    if (PendingLinkSourceObjectId == SelectedObject->ObjectId)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: source and target are identical."));
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    const bool bAlreadyExists = LevelAsset->Links.ContainsByPredicate (
+        [&] (const FGridLevelLinkData& Link)
+    {
+        return Link.SourceObjectId == PendingLinkSourceObjectId &&
+            Link.TargetObjectId == SelectedObject->ObjectId &&
+            Link.Action == LinkAction;
+    });
+
+    if (!bAlreadyExists)
+    {
+        FGridLevelLinkData NewLink;
+        NewLink.SourceObjectId = PendingLinkSourceObjectId;
+        NewLink.TargetObjectId = SelectedObject->ObjectId;
+        NewLink.Action = LinkAction;
+        LevelAsset->Links.Add (NewLink);
+
+#if WITH_EDITOR
+        LevelAsset->MarkPackageDirty ();
+#endif
+
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("GridLevelEditorActor: link created %s -> %s"),
+            *PendingLinkSourceObjectId.ToString (),
+            *SelectedObject->ObjectId.ToString ());
+    }
+
+    LastSelectedObjectId = SelectedObject->ObjectId;
+    ClearPendingLinkSource ();
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::RemoveLinksAtSelection ()
+{
+    if (!HasValidLevelAsset ())
+    {
+        return false;
+    }
+
+    const FGridLevelObjectData* SelectedObject = FindObjectAtSelection ();
+    if (!SelectedObject)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    const int32 RemovedCount = LevelAsset->Links.RemoveAll (
+        [&] (const FGridLevelLinkData& Link)
+    {
+        return Link.SourceObjectId == SelectedObject->ObjectId ||
+            Link.TargetObjectId == SelectedObject->ObjectId;
+    });
+
+    if (RemovedCount > 0)
+    {
+#if WITH_EDITOR
+        LevelAsset->MarkPackageDirty ();
+#endif
+        RebuildPreview ();
+        return true;
+    }
+
+    return false;
+}
+
