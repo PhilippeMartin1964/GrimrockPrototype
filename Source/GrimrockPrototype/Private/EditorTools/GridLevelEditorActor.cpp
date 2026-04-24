@@ -2,6 +2,8 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Core/GridObjectPaletteAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
 
 #if WITH_EDITOR
 #include "Subsystems/UnrealEditorSubsystem.h"
@@ -502,6 +504,8 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.bInitiallyActive = bObjectInitiallyActive;
     NewObject.Tag = ObjectTag;
     NewObject.Notes = ObjectNotes;
+    NewObject.PaletteEntryId = SelectedPaletteEntryId;
+    NewObject.Behavior = ObjectBehavior;
 
     const FGuid NewId = LevelAsset->AddObject (NewObject);
     LastSelectedObjectId = NewId;
@@ -554,6 +558,8 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
         ObjectArchetypeId = Obj.ArchetypeId;
         ObjectTag = Obj.Tag;
         ObjectNotes = Obj.Notes;
+        SelectedPaletteEntryId = Obj.PaletteEntryId;
+        ObjectBehavior = Obj.Behavior;
 
         UE_LOG (
             LogTemp,
@@ -1047,3 +1053,41 @@ bool AGridLevelEditorActor::RemoveLinksAtSelection ()
     return false;
 }
 
+bool AGridLevelEditorActor::ApplyPaletteEntry (FName EntryId)
+{
+    if (!ObjectPalette)
+    {
+        return false;
+    }
+
+    const FGridObjectPaletteEntry* Entry = ObjectPalette->FindEntryById (EntryId);
+    if (!Entry)
+    {
+        return false;
+    }
+
+    SelectedPaletteEntryId = Entry->EntryId;
+    PaintObjectType = Entry->ObjectType;
+
+    if (Entry->DefaultArchetype)
+    {
+        ObjectArchetypeId = Entry->DefaultArchetype->ArchetypeId;
+        SelectedArchetypeId = Entry->DefaultArchetype->ArchetypeId;
+        bObjectInitiallyEnabled = Entry->DefaultArchetype->bDefaultInitiallyEnabled;
+        bObjectInitiallyActive = Entry->DefaultArchetype->bDefaultInitiallyActive;
+        ObjectTag = Entry->DefaultArchetype->DefaultTag;
+        ObjectBehavior = Entry->DefaultArchetype->DefaultBehavior;
+    } else
+    {
+        ObjectArchetypeId = NAME_None;
+        SelectedArchetypeId = NAME_None;
+        ObjectBehavior = FGridObjectBehaviorParams ();
+    }
+
+    return true;
+}
+
+void AGridLevelEditorActor::ApplySelectedPaletteEntry ()
+{
+    ApplyPaletteEntry (SelectedPaletteEntryId);
+}

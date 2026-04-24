@@ -6,13 +6,17 @@
 #include "EdMode.h"
 
 class AGridLevelEditorActor;
+class FGridLevelEdModeToolkit;
 
 class FGridLevelEdMode : public FEdMode
 {
 public:
     static const FEditorModeID EM_GridLevelEdModeId;
 
-    virtual bool UsesToolkits () const override { return false; }
+    virtual bool UsesToolkits () const override { return true; }
+
+    virtual void Enter () override;
+    virtual void Exit () override;
 
     virtual bool InputKey (
         FEditorViewportClient* ViewportClient,
@@ -50,5 +54,6 @@ private:
 private:
     bool bIsPainting = false;
     bool bIsErasing = false;
+    TSharedPtr<FGridLevelEdModeToolkit> Toolkit;
 };
 #endif

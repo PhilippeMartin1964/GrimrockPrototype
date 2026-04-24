@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GridObjectBehavior.h"
 #include "GridTypes.generated.h"
 
 UENUM (BlueprintType)
@@ -121,6 +122,12 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FString Notes;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    FName PaletteEntryId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    FGridObjectBehaviorParams Behavior;
 };
 
 USTRUCT (BlueprintType)

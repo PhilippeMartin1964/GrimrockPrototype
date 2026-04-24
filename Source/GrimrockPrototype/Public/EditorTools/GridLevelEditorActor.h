@@ -3,9 +3,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectBehavior.h"
 #include "GridLevelEditorActor.generated.h"
 
 class AGridLevelRuntimeActor;
+class UGridObjectPaletteAsset;
+class UGridObjectArchetypeAsset;
 
 UENUM (BlueprintType)
 enum class EGridEditorTool : uint8
@@ -115,6 +118,18 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link")
     bool bHasPendingLinkSource = false;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
+    TObjectPtr<UGridObjectPaletteAsset> ObjectPalette;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Palette")
+    FName SelectedPaletteEntryId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Palette")
+    FName SelectedArchetypeId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+    FGridObjectBehaviorParams ObjectBehavior;
+
 public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void EnsureLevelReady ();
@@ -186,6 +201,12 @@ public:
     bool TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const;
 
     void ResolvePreviewRuntimeActor ();
+
+    UFUNCTION (BlueprintCallable, Category = "Palette")
+    bool ApplyPaletteEntry (FName EntryId);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Palette")
+    void ApplySelectedPaletteEntry ();
 
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;

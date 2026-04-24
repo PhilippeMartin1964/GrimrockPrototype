@@ -1,0 +1,38 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Engine/DataAsset.h"
+#include "GridTypes.h"
+#include "GridObjectBehavior.h"
+#include "GridObjectArchetypeAsset.generated.h"
+
+UCLASS (BlueprintType)
+class GRIMROCKPROTOTYPE_API UGridObjectArchetypeAsset : public UDataAsset
+{
+    GENERATED_BODY ()
+
+public:
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+    FName ArchetypeId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+    FText DisplayName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+    EGridLevelObjectType SupportedType = EGridLevelObjectType::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+    FText Description;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
+    bool bDefaultInitiallyEnabled = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
+    bool bDefaultInitiallyActive = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
+    FName DefaultTag = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
+    FGridObjectBehaviorParams DefaultBehavior;
+};

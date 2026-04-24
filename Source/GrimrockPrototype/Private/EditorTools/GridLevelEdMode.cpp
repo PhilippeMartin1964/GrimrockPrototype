@@ -9,6 +9,9 @@
 
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Toolkits/ToolkitManager.h"
+#include "EditorModeManager.h"
+#include "EditorTools/GridLevelEdModeToolkit.h"
 
 const FEditorModeID FGridLevelEdMode::EM_GridLevelEdModeId = TEXT ("EM_GrimrockGridLevelEdMode");
 
@@ -269,3 +272,25 @@ void FGridLevelEdMode::Render (
     }
 }
 #endif
+
+void FGridLevelEdMode::Enter ()
+{
+    FEdMode::Enter ();
+
+    if (!Toolkit.IsValid () && UsesToolkits ())
+    {
+        Toolkit = MakeShareable (new FGridLevelEdModeToolkit);
+        Toolkit->Init (Owner->GetToolkitHost ());
+    }
+}
+
+void FGridLevelEdMode::Exit ()
+{
+    if (Toolkit.IsValid ())
+    {
+        FToolkitManager::Get ().CloseToolkit (Toolkit.ToSharedRef ());
+        Toolkit.Reset ();
+    }
+
+    FEdMode::Exit ();
+}
