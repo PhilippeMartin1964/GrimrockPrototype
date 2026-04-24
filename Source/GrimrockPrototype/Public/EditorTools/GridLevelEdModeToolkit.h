@@ -2,6 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboBox.h"
 
 #if WITH_EDITOR
 
@@ -51,10 +54,41 @@ private:
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
+    FReply OnFocusSelectedObjectClicked ();
 
 private:
     TSharedPtr<SVerticalBox> ToolkitRoot;
     TSharedPtr<SWidget> ToolkitWidget;
+
+private:
+    TSharedRef<SWidget> BuildBehaviorEditorSection ();
+
+    void SyncEditedBehaviorFromSelection ();
+    FReply OnApplyBehaviorClicked ();
+
+    TOptional<float> GetEditedDelay () const;
+    TOptional<float> GetEditedDuration () const;
+
+    ECheckBoxState GetEditedInvertLinksCheckState () const;
+    ECheckBoxState GetEditedFireOnEnterCheckState () const;
+    ECheckBoxState GetEditedFireOnExitCheckState () const;
+
+    void OnEditedDelayChanged (float NewValue);
+    void OnEditedDurationChanged (float NewValue);
+    void OnEditedInvertLinksChanged (ECheckBoxState NewState);
+    void OnEditedFireOnEnterChanged (ECheckBoxState NewState);
+    void OnEditedFireOnExitChanged (ECheckBoxState NewState);
+
+    void BuildTriggerModeOptions ();
+    TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
+    void OnTriggerModeSelectionChanged (TSharedPtr<EGridObjectTriggerMode> NewValue, ESelectInfo::Type SelectInfo);
+    FText GetSelectedTriggerModeText () const;
+
+private:
+    FGuid CachedBehaviorObjectId;
+    FGridObjectBehaviorParams EditedBehavior;
+
+    TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
 };
 
 #endif

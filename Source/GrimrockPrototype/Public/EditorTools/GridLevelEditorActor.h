@@ -225,6 +225,15 @@ public:
 
     const FGridLevelObjectData* GetSelectedObjectData () const;
 
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool TryGetObjectWorldLocationById (FGuid ObjectId, FVector& OutWorldLocation) const;
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
+    bool FocusSelectedObject ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    bool ApplyBehaviorToSelectedObject (const FGridObjectBehaviorParams& NewBehavior);
+
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
 

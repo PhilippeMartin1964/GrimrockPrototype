@@ -7,6 +7,7 @@
 
 #if WITH_EDITOR
 #include "Subsystems/UnrealEditorSubsystem.h"
+#include "Editor.h"
 #endif
 
 AGridLevelEditorActor::AGridLevelEditorActor ()
@@ -1221,10 +1222,7 @@ void AGridLevelEditorActor::ClearSelectedObjectState ()
     ObjectBehavior = FGridObjectBehaviorParams ();
 }
 
-bool AGridLevelEditorActor::RemoveExactLink (
-    FGuid SourceObjectId,
-    FGuid TargetObjectId,
-    EGridLinkAction Action)
+bool AGridLevelEditorActor::RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action)
 {
     if (!HasValidLevelAsset () || !SourceObjectId.IsValid () || !TargetObjectId.IsValid ())
     {
@@ -1303,4 +1301,83 @@ bool AGridLevelEditorActor::SelectObjectById (FGuid ObjectId)
     }
 
     return true;
+}
+
+bool AGridLevelEditorActor::TryGetObjectWorldLocationById (
+    FGuid ObjectId,
+    FVector& OutWorldLocation) const
+{
+    const FGridLevelObjectData* Obj = FindObjectById (ObjectId);
+    return Obj ? TryGetObjectWorldLocation (*Obj, OutWorldLocation) : false;
+}
+
+bool AGridLevelEditorActor::FocusSelectedObject ()
+{
+    if (!LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    const FGridLevelObjectData* Obj = FindObjectById (LastSelectedObjectId);
+    if (!Obj)
+    {
+        return false;
+    }
+
+    SelectedCellX = Obj->CellX;
+    SelectedCellY = Obj->CellY;
+    SelectedEdge = Obj->Edge;
+
+    const bool bWasAuto = bAutoSelectFromActorTransform;
+    bAutoSelectFromActorTransform = false;
+    SnapActorToSelectedCell ();
+    bAutoSelectFromActorTransform = bWasAuto;
+
+#if WITH_EDITOR
+    if (GEditor)
+    {
+        FVector WorldLocation = FVector::ZeroVector;
+        if (TryGetObjectWorldLocation (*Obj, WorldLocation))
+        {
+            GEditor->MoveViewportCamerasToActor (*this, false);
+            SetActorLocation (WorldLocation);
+            GEditor->MoveViewportCamerasToActor (*this, false);
+        }
+    }
+#endif
+
+    return true;
+}
+
+bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject (
+    const FGridObjectBehaviorParams& NewBehavior)
+{
+    if (!HasValidLevelAsset () || !LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    for (FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (Obj.ObjectId != LastSelectedObjectId)
+        {
+            continue;
+        }
+
+        Obj.Behavior = NewBehavior;
+        ObjectBehavior = NewBehavior;
+
+#if WITH_EDITOR
+        LevelAsset->MarkPackageDirty ();
+#endif
+
+        RebuildPreview ();
+        return true;
+    }
+
+    return false;
 }

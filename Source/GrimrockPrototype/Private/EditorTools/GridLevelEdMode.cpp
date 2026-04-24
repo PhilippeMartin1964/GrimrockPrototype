@@ -13,6 +13,88 @@
 #include "EditorModeManager.h"
 #include "EditorTools/GridLevelEdModeToolkit.h"
 
+namespace
+{
+    FLinearColor GetDebugLinkColor (EGridLinkAction Action, bool bIncoming)
+    {
+        if (bIncoming)
+        {
+            return FLinearColor (1.f, 0.55f, 0.f, 1.f); // Orange
+        }
+
+        switch (Action)
+        {
+            case EGridLinkAction::Open:
+            case EGridLinkAction::Activate:
+                return FLinearColor (0.1f, 1.f, 0.25f, 1.f); // Vert
+
+            case EGridLinkAction::Close:
+            case EGridLinkAction::Deactivate:
+                return FLinearColor (1.f, 0.1f, 0.1f, 1.f); // Rouge
+
+            case EGridLinkAction::Toggle:
+            default:
+                return FLinearColor (0.f, 0.85f, 1.f, 1.f); // Cyan
+        }
+    }
+
+    void DrawDebugArrowLine (
+        FPrimitiveDrawInterface* PDI,
+        const FVector& Start,
+        const FVector& End,
+        const FLinearColor& Color,
+        float Thickness)
+    {
+        const FVector Delta = End - Start;
+        const float Length = Delta.Size ();
+
+        if (Length <= KINDA_SMALL_NUMBER)
+        {
+            return;
+        }
+
+        const FVector Dir = Delta / Length;
+
+        const FVector LineStart = Start + FVector (0.f, 0.f, 24.f);
+        const FVector LineEnd = End + FVector (0.f, 0.f, 24.f);
+
+        PDI->DrawLine (LineStart, LineEnd, Color, SDPG_Foreground, Thickness);
+
+        const FVector ArrowBase = FMath::Lerp (LineStart, LineEnd, 0.82f);
+
+        FVector Right = FVector::CrossProduct (Dir, FVector::UpVector).GetSafeNormal ();
+        if (Right.IsNearlyZero ())
+        {
+            Right = FVector::RightVector;
+        }
+
+        const float ArrowLength = 28.f;
+        const float ArrowWidth = 14.f;
+
+        const FVector ArrowTip = LineEnd;
+        const FVector LeftWing = ArrowBase - Dir * ArrowLength + Right * ArrowWidth;
+        const FVector RightWing = ArrowBase - Dir * ArrowLength - Right * ArrowWidth;
+
+        PDI->DrawLine (ArrowTip, LeftWing, Color, SDPG_Foreground, Thickness);
+        PDI->DrawLine (ArrowTip, RightWing, Color, SDPG_Foreground, Thickness);
+    }
+
+    void DrawDebugObjectBox (FPrimitiveDrawInterface* PDI, const FVector& Center, const FColor& Color, float Size)
+    {
+        DrawWireBox (PDI, FBox (Center - FVector (Size, Size, Size), Center + FVector (Size, Size, Size)), Color, SDPG_Foreground);
+    }
+
+    void DrawDebugVerticalMarker (FPrimitiveDrawInterface* PDI, const FVector& Center, const FLinearColor& Color, float Height, float Radius, float Thickness)
+    {
+        const FVector Bottom = Center + FVector (0.f, 0.f, 8.f);
+        const FVector Top = Center + FVector (0.f, 0.f, Height);
+
+        PDI->DrawLine (Bottom, Top, Color, SDPG_Foreground, Thickness);
+
+        DrawWireBox (PDI, FBox (Top - FVector (Radius, Radius, Radius), Top + FVector (Radius, Radius, Radius)), Color.ToFColor (true), SDPG_Foreground);
+    }
+}
+
 const FEditorModeID FGridLevelEdMode::EM_GridLevelEdModeId = TEXT ("EM_GrimrockGridLevelEdMode");
 
 AGridLevelEditorActor* FGridLevelEdMode::FindEditorActor () const
@@ -111,11 +193,7 @@ void FGridLevelEdMode::ApplyErase () const
     }
 }
 
-bool FGridLevelEdMode::InputKey (
-    FEditorViewportClient* ViewportClient,
-    FViewport* Viewport,
-    FKey Key,
-    EInputEvent Event)
+bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
     if (Key == EKeys::LeftMouseButton)
     {
@@ -166,11 +244,7 @@ bool FGridLevelEdMode::InputKey (
     return FEdMode::InputKey (ViewportClient, Viewport, Key, Event);
 }
 
-bool FGridLevelEdMode::MouseMove (
-    FEditorViewportClient* ViewportClient,
-    FViewport* Viewport,
-    int32 X,
-    int32 Y)
+bool FGridLevelEdMode::MouseMove (FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 X, int32 Y)
 {
     if (UpdateHoverFromMouse (ViewportClient, Viewport, X, Y))
     {
@@ -207,10 +281,7 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (
     return true;
 }
 
-void FGridLevelEdMode::Render (
-    const FSceneView* View,
-    FViewport* Viewport,
-    FPrimitiveDrawInterface* PDI)
+void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
     FEdMode::Render (View, Viewport, PDI);
 
@@ -252,36 +323,67 @@ void FGridLevelEdMode::Render (
     DrawWireBox (PDI, FBox (EdgeCenter - FVector (12.f, 12.f, 12.f), EdgeCenter + FVector (12.f, 12.f, 12.f)), FColor::Orange, SDPG_Foreground);
 
     FVector SourceLocation = FVector::ZeroVector;
-    if (EditorActor->HasPendingLinkSource () &&
-        EditorActor->TryGetPendingLinkSourceLocation (SourceLocation))
+    if (EditorActor->HasPendingLinkSource () && EditorActor->TryGetPendingLinkSourceLocation (SourceLocation))
     {
-        DrawWireBox (
-            PDI,
-            FBox (SourceLocation - FVector (16.f, 16.f, 16.f), SourceLocation + FVector (16.f, 16.f, 16.f)),
-            FColor::Cyan,
-            SDPG_Foreground);
+        DrawWireBox (PDI, FBox (SourceLocation - FVector (16.f, 16.f, 16.f), SourceLocation + FVector (16.f, 16.f, 16.f)), FColor::Cyan, SDPG_Foreground);
 
         FVector HoverLocation = FVector::ZeroVector;
         if (EditorActor->TryGetSelectedObjectWorldLocation (HoverLocation))
         {
-            PDI->DrawLine (
-                SourceLocation,
-                HoverLocation,
-                FLinearColor {0.f, 1.f, 1.f, 1.f},
-                SDPG_Foreground,
-                2.0f);
+            PDI->DrawLine (SourceLocation, HoverLocation, FLinearColor {0.f, 1.f, 1.f, 1.f}, SDPG_Foreground, 2.0f);
         } else
         {
-            PDI->DrawLine (
-                SourceLocation,
-                Center,
-                FLinearColor {0.f, 1.f, 1.f, 1.f},
-                SDPG_Foreground,
-                1.5f);
+            PDI->DrawLine (SourceLocation, Center, FLinearColor {0.f, 1.f, 1.f, 1.f}, SDPG_Foreground, 1.5f);
+        }
+    }
+    const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
+    if (SelectedObject && EditorActor->LevelAsset)
+    {
+        FVector SelectedLocation = FVector::ZeroVector;
+
+        if (EditorActor->TryGetObjectWorldLocationById (SelectedObject->ObjectId, SelectedLocation))
+        {
+            DrawDebugObjectBox (PDI, SelectedLocation + FVector (0.f, 0.f, 24.f), FColor::White, 20.f);
+            DrawDebugVerticalMarker (PDI, SelectedLocation, FLinearColor::White, 72.f, 10.f, 2.5f);
+
+            for (const FGridLevelLinkData& Link : EditorActor->LevelAsset->Links)
+            {
+                const bool bOutgoing = Link.SourceObjectId == SelectedObject->ObjectId;
+                const bool bIncoming = Link.TargetObjectId == SelectedObject->ObjectId;
+
+                if (!bOutgoing && !bIncoming)
+                {
+                    continue;
+                }
+
+                FVector OtherLocation = FVector::ZeroVector;
+
+                const FGuid OtherId = bOutgoing
+                    ? Link.TargetObjectId
+                    : Link.SourceObjectId;
+
+                if (!EditorActor->TryGetObjectWorldLocationById (OtherId, OtherLocation))
+                {
+                    continue;
+                }
+
+                const FLinearColor LinkColor = GetDebugLinkColor (Link.Action, bIncoming);
+
+                if (bOutgoing)
+                {
+                    DrawDebugArrowLine (PDI, SelectedLocation, OtherLocation, LinkColor, 3.f);
+                    DrawDebugObjectBox (PDI, OtherLocation + FVector (0.f, 0.f, 24.f), LinkColor.ToFColor (true), 16.f);
+                    DrawDebugVerticalMarker (PDI, OtherLocation, LinkColor, 58.f, 8.f, 2.f);
+                } else
+                {
+                    DrawDebugArrowLine (PDI, OtherLocation, SelectedLocation, LinkColor, 2.25f);
+                    DrawDebugObjectBox (PDI, OtherLocation + FVector (0.f, 0.f, 24.f), LinkColor.ToFColor (true), 14.f);
+                    DrawDebugVerticalMarker (PDI, OtherLocation, LinkColor, 50.f, 7.f, 1.8f);
+                }
+            }
         }
     }
 }
-#endif
 
 void FGridLevelEdMode::Enter ()
 {
@@ -304,3 +406,6 @@ void FGridLevelEdMode::Exit ()
 
     FEdMode::Exit ();
 }
+
+#endif
+// WITH_EDITOR
