@@ -528,7 +528,7 @@ void AGridLevelEditorActor::RemoveObjectsAtSelection ()
 
 void AGridLevelEditorActor::SelectObjectAtSelection ()
 {
-    LastSelectedObjectId.Invalidate ();
+    ClearSelectedObjectState ();
 
     if (!HasValidLevelAsset () || !IsValidSelectedCell ())
     {
@@ -573,7 +573,8 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
         return;
     }
 
-    UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: no object found at current selection."));
+    ClearSelectedObjectState ();
+    UE_LOG (LogTemp, Log, TEXT ("GridLevelEditorActor: no object found at current selection."));
 }
 
 EGridEdge AGridLevelEditorActor::GetEdgeFromHitNormal (const FVector& HitNormal) const
@@ -1090,4 +1091,216 @@ bool AGridLevelEditorActor::ApplyPaletteEntry (FName EntryId)
 void AGridLevelEditorActor::ApplySelectedPaletteEntry ()
 {
     ApplyPaletteEntry (SelectedPaletteEntryId);
+}
+
+bool AGridLevelEditorActor::ApplyEditedSelectedObject ()
+{
+    if (!HasValidLevelAsset () || !LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    for (FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (Obj.ObjectId != LastSelectedObjectId)
+        {
+            continue;
+        }
+
+        Obj.Type = PaintObjectType;
+        Obj.Edge = RequiresEdge (PaintObjectType) ? SelectedEdge : EGridEdge::None;
+        Obj.ArchetypeId = ObjectArchetypeId;
+        Obj.PaletteEntryId = SelectedPaletteEntryId;
+        Obj.bInitiallyEnabled = bObjectInitiallyEnabled;
+        Obj.bInitiallyActive = bObjectInitiallyActive;
+        Obj.Tag = ObjectTag;
+        Obj.Notes = ObjectNotes;
+        Obj.Behavior = ObjectBehavior;
+
+#if WITH_EDITOR
+        LevelAsset->MarkPackageDirty ();
+#endif
+
+        RebuildPreview ();
+        return true;
+    }
+
+    return false;
+}
+
+bool AGridLevelEditorActor::RemoveLinkByIndexForSelectedObject (int32 LinkIndex)
+{
+    if (!HasValidLevelAsset () || !LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    int32 CurrentIndex = 0;
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    for (int32 Index = 0; Index < LevelAsset->Links.Num (); ++Index)
+    {
+        const FGridLevelLinkData& Link = LevelAsset->Links[Index];
+
+        if (Link.SourceObjectId != LastSelectedObjectId &&
+            Link.TargetObjectId != LastSelectedObjectId)
+        {
+            continue;
+        }
+
+        if (CurrentIndex == LinkIndex)
+        {
+            LevelAsset->Links.RemoveAt (Index);
+
+#if WITH_EDITOR
+            LevelAsset->MarkPackageDirty ();
+#endif
+
+            RebuildPreview ();
+            return true;
+        }
+
+        ++CurrentIndex;
+    }
+
+    return false;
+}
+
+bool AGridLevelEditorActor::RemoveAllLinksForSelectedObject ()
+{
+    if (!HasValidLevelAsset () || !LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    const int32 RemovedCount = LevelAsset->Links.RemoveAll (
+        [this] (const FGridLevelLinkData& Link)
+    {
+        return Link.SourceObjectId == LastSelectedObjectId ||
+            Link.TargetObjectId == LastSelectedObjectId;
+    });
+
+    if (RemovedCount <= 0)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+void AGridLevelEditorActor::ClearSelectedObjectState ()
+{
+    LastSelectedObjectId.Invalidate ();
+
+    PaintObjectType = EGridLevelObjectType::None;
+    ObjectArchetypeId = NAME_None;
+    SelectedArchetypeId = NAME_None;
+    SelectedPaletteEntryId = NAME_None;
+
+    bObjectInitiallyEnabled = true;
+    bObjectInitiallyActive = false;
+
+    ObjectTag = NAME_None;
+    ObjectNotes.Empty ();
+    ObjectBehavior = FGridObjectBehaviorParams ();
+}
+
+bool AGridLevelEditorActor::RemoveExactLink (
+    FGuid SourceObjectId,
+    FGuid TargetObjectId,
+    EGridLinkAction Action)
+{
+    if (!HasValidLevelAsset () || !SourceObjectId.IsValid () || !TargetObjectId.IsValid ())
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    const int32 RemovedCount = LevelAsset->Links.RemoveAll (
+        [&] (const FGridLevelLinkData& Link)
+    {
+        return Link.SourceObjectId == SourceObjectId &&
+            Link.TargetObjectId == TargetObjectId &&
+            Link.Action == Action;
+    });
+
+    if (RemovedCount <= 0)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+const FGridLevelObjectData* AGridLevelEditorActor::GetSelectedObjectData () const
+{
+    return FindObjectById (LastSelectedObjectId);
+}
+
+bool AGridLevelEditorActor::SelectObjectById (FGuid ObjectId)
+{
+    if (!HasValidLevelAsset () || !ObjectId.IsValid ())
+    {
+        ClearSelectedObjectState ();
+        return false;
+    }
+
+    const FGridLevelObjectData* Obj = FindObjectById (ObjectId);
+    if (!Obj)
+    {
+        ClearSelectedObjectState ();
+        return false;
+    }
+
+    LastSelectedObjectId = Obj->ObjectId;
+
+    SelectedCellX = Obj->CellX;
+    SelectedCellY = Obj->CellY;
+    SelectedEdge = Obj->Edge;
+
+    PaintObjectType = Obj->Type;
+    ObjectArchetypeId = Obj->ArchetypeId;
+    SelectedArchetypeId = Obj->ArchetypeId;
+    SelectedPaletteEntryId = Obj->PaletteEntryId;
+
+    bObjectInitiallyEnabled = Obj->bInitiallyEnabled;
+    bObjectInitiallyActive = Obj->bInitiallyActive;
+
+    ObjectTag = Obj->Tag;
+    ObjectNotes = Obj->Notes;
+    ObjectBehavior = Obj->Behavior;
+
+    if (bSnapAfterViewportPick)
+    {
+        const bool bWasAuto = bAutoSelectFromActorTransform;
+        bAutoSelectFromActorTransform = false;
+        SnapActorToSelectedCell ();
+        bAutoSelectFromActorTransform = bWasAuto;
+    }
+
+    return true;
 }

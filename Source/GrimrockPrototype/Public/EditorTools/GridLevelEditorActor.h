@@ -164,6 +164,9 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
     void SelectObjectAtSelection ();
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    bool ApplyEditedSelectedObject ();
+
     UFUNCTION (BlueprintCallable, Category = "Viewport Picking")
     bool ApplyViewportHitSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
 
@@ -197,8 +200,20 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Link")
     bool TryGetPendingLinkSourceLocation (FVector& OutWorldLocation) const;
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
+    bool RemoveLinkByIndexForSelectedObject (int32 LinkIndex);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
+    bool RemoveAllLinksForSelectedObject ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
+    bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
+
     UFUNCTION (BlueprintCallable, Category = "Selection")
     bool TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const;
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
+    bool SelectObjectById (FGuid ObjectId);
 
     void ResolvePreviewRuntimeActor ();
 
@@ -207,6 +222,8 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Palette")
     void ApplySelectedPaletteEntry ();
+
+    const FGridLevelObjectData* GetSelectedObjectData () const;
 
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -237,4 +254,6 @@ private:
     const FGridLevelObjectData* FindObjectAtSelection () const;
     const FGridLevelObjectData* FindObjectById (const FGuid& ObjectId) const;
     bool TryGetObjectWorldLocation (const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const;
+
+    void ClearSelectedObjectState ();
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/GridTypes.h"
 
 #if WITH_EDITOR
 
@@ -35,6 +36,21 @@ private:
 
     FText GetSelectedPaletteEntryText () const;
     FText GetActiveToolText () const;
+
+    FReply OnApplySelectedObjectClicked ();
+
+    TSharedRef<SWidget> BuildObjectInspectorSection ();
+
+    FText GetSelectedObjectDetailsText () const;
+
+    TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
+
+    FText GetObjectSummaryText (const FGuid& ObjectId) const;
+    FText GetLinkActionText (EGridLinkAction Action) const;
+
+    FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
+    FReply OnClearSelectedObjectLinksClicked ();
+    FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
 
 private:
     TSharedPtr<SVerticalBox> ToolkitRoot;

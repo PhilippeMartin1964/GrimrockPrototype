@@ -90,6 +90,11 @@ void FGridLevelEdMode::ApplyPaint () const
     if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
     {
         EditorActor->ApplyPrimaryToolAction ();
+
+        if (Toolkit.IsValid ())
+        {
+            Toolkit->RefreshPalette ();
+        }
     }
 }
 
@@ -98,6 +103,11 @@ void FGridLevelEdMode::ApplyErase () const
     if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
     {
         EditorActor->ApplySecondaryToolAction ();
+
+        if (Toolkit.IsValid ())
+        {
+            Toolkit->RefreshPalette ();
+        }
     }
 }
 
