@@ -311,6 +311,11 @@ void AGridLevelEditorActor::PaintSelectedCell ()
     CellData->bHasCeiling = bPaintCellHasCeiling;
     CellData->bBlocksOccupancy = bPaintCellBlocksOccupancy;
 
+    if (bAutoWallsWhenPaintingCells && PaintCellType != EGridCellType::Empty)
+    {
+        ApplyAutoWallsForPaintedCell ();
+    }
+
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
 #endif
@@ -1497,5 +1502,58 @@ void AGridLevelEditorActor::EraseAtSelection ()
             ClearSelectedCell ();
             return;
         }
+    }
+}
+
+void AGridLevelEditorActor::ApplyAutoWallsForPaintedCell ()
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return;
+    }
+
+    FGridLevelCellData& Cell = LevelAsset->GetCellMutable (SelectedCellX, SelectedCellY);
+
+    Cell.NorthWall = EGridWallType::Solid;
+    Cell.EastWall = EGridWallType::Solid;
+    Cell.SouthWall = EGridWallType::Solid;
+    Cell.WestWall = EGridWallType::Solid;
+
+    auto IsExistingPlayableCell = [this] (int32 X, int32 Y) -> bool
+    {
+        if (!LevelAsset->IsValidCoord (X, Y))
+        {
+            return false;
+        }
+
+        return LevelAsset->GetCell (X, Y).CellType != EGridCellType::Empty;
+    };
+
+    // North neighbour
+    if (IsExistingPlayableCell (SelectedCellX, SelectedCellY + 1))
+    {
+        Cell.NorthWall = EGridWallType::None;
+        LevelAsset->GetCellMutable (SelectedCellX, SelectedCellY + 1).SouthWall = EGridWallType::None;
+    }
+
+    // East neighbour
+    if (IsExistingPlayableCell (SelectedCellX + 1, SelectedCellY))
+    {
+        Cell.EastWall = EGridWallType::None;
+        LevelAsset->GetCellMutable (SelectedCellX + 1, SelectedCellY).WestWall = EGridWallType::None;
+    }
+
+    // South neighbour
+    if (IsExistingPlayableCell (SelectedCellX, SelectedCellY - 1))
+    {
+        Cell.SouthWall = EGridWallType::None;
+        LevelAsset->GetCellMutable (SelectedCellX, SelectedCellY - 1).NorthWall = EGridWallType::None;
+    }
+
+    // West neighbour
+    if (IsExistingPlayableCell (SelectedCellX - 1, SelectedCellY))
+    {
+        Cell.WestWall = EGridWallType::None;
+        LevelAsset->GetCellMutable (SelectedCellX - 1, SelectedCellY).EastWall = EGridWallType::None;
     }
 }
