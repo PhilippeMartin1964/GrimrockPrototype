@@ -164,7 +164,15 @@ bool FGridLevelEdMode::UpdateHoverFromMouse (
         return false;
     }
 
-    return EditorActor->ApplyGridHoverFromWorldPoint (HitPoint);
+    const bool bGridHoverOk = EditorActor->ApplyGridHoverFromWorldPoint (HitPoint);
+
+    if (EditorActor->ActiveTool == EGridEditorTool::Select ||
+        EditorActor->ActiveTool == EGridEditorTool::Link)
+    {
+        EditorActor->UpdateHoveredObjectFromWorldPoint (HitPoint);
+    }
+
+    return bGridHoverOk;
 }
 
 void FGridLevelEdMode::ApplyPaint () const

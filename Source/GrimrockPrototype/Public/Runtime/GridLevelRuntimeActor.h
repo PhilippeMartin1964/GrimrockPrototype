@@ -10,6 +10,7 @@ class AGridDoorActor;
 class AGridButtonActor;
 class AGridLeverActor;
 class AGridPressurePlateActor;
+class AGridEditorPreviewObjectActor;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor
@@ -86,6 +87,15 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
     float EditorSolidBlockHeight = 300.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    TSubclassOf<AGridEditorPreviewObjectActor> EditorPreviewObjectActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    TObjectPtr<UMaterialInterface> EditorObjectHighlightMaterial;
+
+    UFUNCTION (BlueprintCallable, Category = "Editor Preview")
+    void SetEditorHoveredObject (FGuid ObjectId);
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> ButtonMesh;
@@ -278,4 +288,16 @@ private:
     void AddEditorObjectInstance (
         UInstancedStaticMeshComponent* TargetISM,
         const FTransform& InstanceTransform);
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<AGridEditorPreviewObjectActor>> SpawnedEditorPreviewObjects;
+
+    FGuid CurrentHoveredEditorObjectId;
+
+    void ClearEditorPreviewObjects ();
+    void RebuildEditorPreviewObjects ();
+    void AddEditorPreviewObject (const FGridLevelObjectData& ObjectData);
+
+    UStaticMesh* GetEditorPreviewMeshForObject (EGridLevelObjectType ObjectType) const;
+    UMaterialInterface* GetEditorPreviewMaterialForObject (EGridLevelObjectType ObjectType) const;
 };

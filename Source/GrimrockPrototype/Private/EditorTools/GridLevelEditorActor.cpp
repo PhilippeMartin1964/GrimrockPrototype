@@ -764,8 +764,11 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
     switch (ActiveTool)
     {
         case EGridEditorTool::Select:
+        if (!SelectHoveredObject ())
+        {
             SelectObjectAtSelection ();
-            break;
+        }
+        break;
 
         case EGridEditorTool::PaintCell:
             PaintSelectedCell ();
@@ -1556,4 +1559,80 @@ void AGridLevelEditorActor::ApplyAutoWallsForPaintedCell ()
         Cell.WestWall = EGridWallType::None;
         LevelAsset->GetCellMutable (SelectedCellX - 1, SelectedCellY).EastWall = EGridWallType::None;
     }
+}
+
+bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint (const FVector& WorldPoint)
+{
+    ResolvePreviewRuntimeActor ();
+
+    HoveredObjectId.Invalidate ();
+
+    if (PreviewRuntimeActor)
+    {
+        PreviewRuntimeActor->SetEditorHoveredObject (FGuid ());
+    }
+
+    if (!HasValidLevelAsset ())
+    {
+        return false;
+    }
+
+    float BestDistSq = FMath::Square (ObjectHoverPickRadius);
+    const FGridLevelObjectData* BestObject = nullptr;
+
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        FVector ObjLocation = FVector::ZeroVector;
+
+        if (!TryGetObjectWorldLocation (Obj, ObjLocation))
+        {
+            continue;
+        }
+
+        const float DistSq = FVector::DistSquared2D (WorldPoint, ObjLocation);
+
+        if (DistSq <= BestDistSq)
+        {
+            BestDistSq = DistSq;
+            BestObject = &Obj;
+        }
+    }
+
+    if (!BestObject)
+    {
+        return false;
+    }
+
+    HoveredObjectId = BestObject->ObjectId;
+
+    SelectedCellX = BestObject->CellX;
+    SelectedCellY = BestObject->CellY;
+    SelectedEdge = BestObject->Edge;
+
+    if (PreviewRuntimeActor)
+    {
+        PreviewRuntimeActor->SetEditorHoveredObject (HoveredObjectId);
+    }
+
+    return true;
+}
+
+bool AGridLevelEditorActor::SelectHoveredObject ()
+{
+    if (!HoveredObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    return SelectObjectById (HoveredObjectId);
+}
+
+bool AGridLevelEditorActor::TryGetHoveredObjectWorldLocation (FVector& OutWorldLocation) const
+{
+    if (!HoveredObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    return TryGetObjectWorldLocationById (HoveredObjectId, OutWorldLocation);
 }

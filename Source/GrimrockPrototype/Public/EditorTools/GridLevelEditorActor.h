@@ -61,6 +61,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
     bool bAutoRebuildPreviewOnMove = true;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    FGuid HoveredObjectId;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "1.0"))
+    float ObjectHoverPickRadius = 48.f;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking", meta = (ClampMin = "100.0"))
     float ViewportPickTraceDistance = 50000.f;
 
@@ -181,6 +187,15 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
     FVector GetSelectionPreviewCenter (float ZOffset = 4.f) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool UpdateHoveredObjectFromWorldPoint (const FVector& WorldPoint);
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool SelectHoveredObject ();
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool TryGetHoveredObjectWorldLocation (FVector& OutWorldLocation) const;
 
     UFUNCTION (BlueprintCallable, Category = "Tool")
     void ApplyPrimaryToolAction ();

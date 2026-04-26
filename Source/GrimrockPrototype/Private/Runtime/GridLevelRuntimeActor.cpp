@@ -4,6 +4,7 @@
 #include "Runtime/GridButtonActor.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
+#include "Runtime/GridEditorPreviewObjectActor.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -77,6 +78,7 @@ void AGridLevelRuntimeActor::ClearVisuals ()
     ClearRuntimeButtons ();
     ClearRuntimeLevers ();
     ClearRuntimePressurePlates ();
+    ClearEditorPreviewObjects ();
     ActiveObjectIds.Empty ();
     if (EditorSolidBlockISM)
     {
@@ -363,28 +365,10 @@ void AGridLevelRuntimeActor::RebuildLevel ()
         {
             continue;
         }
-
-        switch (ObjectData.Type)
-        {
-            case EGridLevelObjectType::Door:
-            AddEditorDoorInstance (ObjectData);
-            break;
-
-            case EGridLevelObjectType::Button:
-            AddEditorButtonInstance (ObjectData);
-            break;
-
-            case EGridLevelObjectType::Lever:
-            AddEditorLeverInstance (ObjectData);
-            break;
-
-            case EGridLevelObjectType::PressurePlate:
-            AddEditorPressurePlateInstance (ObjectData);
-            break;
-
-            default:
-            break;
-        }
+    }
+    if (!GetWorld () || !GetWorld ()->IsGameWorld ())
+    {
+        RebuildEditorPreviewObjects ();
     }
     if (EditorSolidBlockTransforms.Num () > 0 && EditorSolidBlockISM)
     {
@@ -1671,3 +1655,259 @@ void AGridLevelRuntimeActor::AddEditorObjectInstance (
 
     TargetISM->AddInstance (InstanceTransform);
 }
+
+void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
+{
+    for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+    {
+        if (IsValid (Actor))
+        {
+            Actor->Destroy ();
+        }
+    }
+
+    SpawnedEditorPreviewObjects.Empty ();
+    CurrentHoveredEditorObjectId.Invalidate ();
+}
+
+UStaticMesh* AGridLevelRuntimeActor::GetEditorPreviewMeshForObject (EGridLevelObjectType ObjectType) const
+{
+    switch (ObjectType)
+    {
+        case EGridLevelObjectType::Door:
+        return DoorMesh;
+
+        case EGridLevelObjectType::Button:
+        return ButtonMesh;
+
+        case EGridLevelObjectType::Lever:
+        return LeverMesh;
+
+        case EGridLevelObjectType::PressurePlate:
+        return PressurePlateMesh;
+
+        default:
+        return nullptr;
+    }
+}
+
+UMaterialInterface* AGridLevelRuntimeActor::GetEditorPreviewMaterialForObject (EGridLevelObjectType ObjectType) const
+{
+    switch (ObjectType)
+    {
+        case EGridLevelObjectType::Button:
+        return ButtonMaterial;
+
+        case EGridLevelObjectType::Lever:
+        return LeverMaterial;
+
+        case EGridLevelObjectType::PressurePlate:
+        return PressurePlateMaterial;
+
+        default:
+        return nullptr;
+    }
+}
+
+void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData& ObjectData)
+{
+    if (!EditorPreviewObjectActorClass || !LevelAsset)
+    {
+        return;
+    }
+
+    UStaticMesh* Mesh = GetEditorPreviewMeshForObject (ObjectData.Type);
+    if (!Mesh)
+    {
+        return;
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return;
+    }
+
+    const float CellSize = LevelAsset->CellSize;
+
+    FVector Location = FVector::ZeroVector;
+    FRotator Rotation = FRotator::ZeroRotator;
+
+    switch (ObjectData.Type)
+    {
+        case EGridLevelObjectType::Door:
+        {
+            GetEdgeTransform (
+                ObjectData.CellX,
+                ObjectData.CellY,
+                ObjectData.Edge,
+                CellSize,
+                Location,
+                Rotation);
+            break;
+        }
+
+        case EGridLevelObjectType::Button:
+        {
+            const FVector Base = GetActorLocation () + CellToWorld (ObjectData.CellX, ObjectData.CellY, 80.f);
+            const float WallInset = 6.f;
+
+            switch (ObjectData.Edge)
+            {
+                case EGridEdge::North:
+                Location = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
+                Rotation = FRotator (0.f, 90.f, 0.f);
+                break;
+
+                case EGridEdge::East:
+                Location = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
+                Rotation = FRotator (0.f, 0.f, 0.f);
+                break;
+
+                case EGridEdge::South:
+                Location = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
+                Rotation = FRotator (0.f, -90.f, 0.f);
+                break;
+
+                case EGridEdge::West:
+                Location = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
+                Rotation = FRotator (0.f, 180.f, 0.f);
+                break;
+
+                default:
+                return;
+            }
+            break;
+        }
+
+        case EGridLevelObjectType::Lever:
+        {
+            const FVector Base = GetActorLocation () + CellToWorld (ObjectData.CellX, ObjectData.CellY, 95.f);
+            const float WallInset = 8.f;
+
+            switch (ObjectData.Edge)
+            {
+                case EGridEdge::North:
+                Location = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
+                Rotation = FRotator (0.f, 90.f, 0.f);
+                break;
+
+                case EGridEdge::East:
+                Location = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
+                Rotation = FRotator (0.f, 0.f, 0.f);
+                break;
+
+                case EGridEdge::South:
+                Location = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
+                Rotation = FRotator (0.f, -90.f, 0.f);
+                break;
+
+                case EGridEdge::West:
+                Location = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
+                Rotation = FRotator (0.f, 180.f, 0.f);
+                break;
+
+                default:
+                return;
+            }
+            break;
+        }
+
+        case EGridLevelObjectType::PressurePlate:
+        {
+            Location =
+                GetActorLocation () +
+                CellToWorld (ObjectData.CellX, ObjectData.CellY, 4.f) +
+                FVector (CellSize * 0.5f, CellSize * 0.5f, 0.f);
+
+            Rotation = FRotator::ZeroRotator;
+            break;
+        }
+
+        default:
+        return;
+    }
+
+    FActorSpawnParameters Params;
+    Params.Owner = this;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AGridEditorPreviewObjectActor* PreviewActor =
+        World->SpawnActor<AGridEditorPreviewObjectActor> (
+            EditorPreviewObjectActorClass,
+            Location,
+            Rotation,
+            Params);
+
+    if (!PreviewActor)
+    {
+        return;
+    }
+
+    PreviewActor->InitializePreviewObject (
+        ObjectData,
+        Mesh,
+        GetEditorPreviewMaterialForObject (ObjectData.Type),
+        EditorObjectHighlightMaterial);
+
+    SpawnedEditorPreviewObjects.Add (PreviewActor);
+}
+
+void AGridLevelRuntimeActor::RebuildEditorPreviewObjects ()
+{
+    ClearEditorPreviewObjects ();
+
+    if (!LevelAsset)
+    {
+        return;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (!ObjectData.bInitiallyEnabled)
+        {
+            continue;
+        }
+
+        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
+        {
+            continue;
+        }
+
+        switch (ObjectData.Type)
+        {
+            case EGridLevelObjectType::Door:
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::PressurePlate:
+            AddEditorPreviewObject (ObjectData);
+            break;
+
+            default:
+            break;
+        }
+    }
+}
+
+void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
+{
+    if (CurrentHoveredEditorObjectId == ObjectId)
+    {
+        return;
+    }
+
+    CurrentHoveredEditorObjectId = ObjectId;
+
+    for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+    {
+        if (!IsValid (Actor))
+        {
+            continue;
+        }
+
+        const bool bMatch = ObjectId.IsValid () && Actor->ObjectId == ObjectId;
+
+        Actor->SetHighlighted (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
+    }
+}
+
