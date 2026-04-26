@@ -3,6 +3,7 @@ Binaries/
 DerivedDataCache/
 Intermediate/
 Saved/
+Design/
 
 # --- Optional build artifacts ---
 Build/*

@@ -1,7 +1,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridTypes.h"
+#include "Core/GridObjectBehavior.h"
+
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
@@ -10,10 +13,10 @@
 
 #include "Toolkits/BaseToolkit.h"
 
-class IDetailsView;
 class SWidget;
 class AGridLevelEditorActor;
 class UGridObjectPaletteAsset;
+struct FGridObjectPaletteEntry;
 
 class FGridLevelEdModeToolkit : public FModeToolkit
 {
@@ -31,39 +34,45 @@ private:
     AGridLevelEditorActor* GetEditorActor () const;
 
     TSharedRef<SWidget> BuildToolkitWidget ();
+
+    TSharedRef<SWidget> BuildHeaderSection ();
+    TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content);
+
     TSharedRef<SWidget> BuildToolSection ();
+    TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
+    UTexture2D* GetToolIcon (EGridEditorTool Tool) const;
+    TSharedRef<SWidget> BuildIconOrFallback (UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size) const;
+
     TSharedRef<SWidget> BuildPaletteSection ();
+    TSharedRef<SWidget> BuildPaletteTile (const FGridObjectPaletteEntry& Entry);
+
+    TSharedRef<SWidget> BuildObjectInspectorSection ();
+    TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
+
+    TSharedRef<SWidget> BuildBehaviorEditorSection ();
+
+    TSharedRef<SWidget> BuildLinksSection (const FGridLevelObjectData& SelectedObject);
+    TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
 
     FReply OnToolClicked (int32 ToolValue);
     FReply OnPaletteEntryClicked (FName EntryId);
-
-    FText GetSelectedPaletteEntryText () const;
-    FText GetActiveToolText () const;
-
     FReply OnApplySelectedObjectClicked ();
-
-    TSharedRef<SWidget> BuildObjectInspectorSection ();
-
-    FText GetSelectedObjectDetailsText () const;
-
-    TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
-
-    FText GetObjectSummaryText (const FGuid& ObjectId) const;
-    FText GetLinkActionText (EGridLinkAction Action) const;
 
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
     FReply OnFocusSelectedObjectClicked ();
 
-private:
-    TSharedPtr<SVerticalBox> ToolkitRoot;
-    TSharedPtr<SWidget> ToolkitWidget;
+    FText GetSelectedPaletteEntryText () const;
+    FText GetActiveToolText () const;
+    FText GetSelectedObjectDetailsText () const;
+    FText GetObjectSummaryText (const FGuid& ObjectId) const;
+    FText GetLinkActionText (EGridLinkAction Action) const;
 
 private:
-    TSharedRef<SWidget> BuildBehaviorEditorSection ();
-
+    void BuildTriggerModeOptions ();
     void SyncEditedBehaviorFromSelection ();
+
     FReply OnApplyBehaviorClicked ();
 
     TOptional<float> GetEditedDelay () const;
@@ -79,12 +88,14 @@ private:
     void OnEditedFireOnEnterChanged (ECheckBoxState NewState);
     void OnEditedFireOnExitChanged (ECheckBoxState NewState);
 
-    void BuildTriggerModeOptions ();
     TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
     void OnTriggerModeSelectionChanged (TSharedPtr<EGridObjectTriggerMode> NewValue, ESelectInfo::Type SelectInfo);
     FText GetSelectedTriggerModeText () const;
 
 private:
+    TSharedPtr<SVerticalBox> ToolkitRoot;
+    TSharedPtr<SWidget> ToolkitWidget;
+
     FGuid CachedBehaviorObjectId;
     FGridObjectBehaviorParams EditedBehavior;
 
