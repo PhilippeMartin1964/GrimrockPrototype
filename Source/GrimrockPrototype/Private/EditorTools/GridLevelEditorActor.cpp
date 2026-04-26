@@ -351,6 +351,12 @@ void AGridLevelEditorActor::PaintSelectedWall ()
         return;
     }
 
+    if (CellData->CellType == EGridCellType::Empty)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: cannot paint wall on empty cell."));
+        return;
+    }
+
     EGridWallType* WallPtr = GetSelectedWallMutable (*CellData);
     if (!WallPtr)
     {
@@ -769,22 +775,8 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
             break;
 
         case EGridEditorTool::Erase:
-        {
-            RemoveObjectsAtSelection ();
-
-            if (FGridLevelCellData* CellData = GetSelectedCellMutable ())
-            {
-                EGridWallType* WallPtr = GetSelectedWallMutable (*CellData);
-                if (WallPtr && *WallPtr != EGridWallType::None)
-                {
-                    ClearSelectedWall ();
-                } else if (CellData->CellType != EGridCellType::Empty)
-                {
-                    ClearSelectedCell ();
-                }
-            }
+            EraseAtSelection ();
             break;
-        }
 
         case EGridEditorTool::Link:
             BeginOrCompleteLinkAtSelection ();
@@ -1380,4 +1372,130 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject (
     }
 
     return false;
+}
+
+int32 AGridLevelEditorActor::RemoveObjectsForEraseAtSelectionInternal ()
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return 0;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    TArray<FGuid> RemovedIds;
+
+    for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
+    {
+        const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
+
+        if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
+        {
+            continue;
+        }
+
+        bool bRemove = false;
+
+        if (RequiresEdge (Obj.Type))
+        {
+            bRemove = Obj.Edge == SelectedEdge;
+        } else
+        {
+            bRemove = true;
+        }
+
+        if (bRemove)
+        {
+            RemovedIds.Add (Obj.ObjectId);
+            LevelAsset->Objects.RemoveAt (Index);
+        }
+    }
+
+    if (RemovedIds.Num () > 0)
+    {
+        LevelAsset->Links.RemoveAll (
+            [&] (const FGridLevelLinkData& Link)
+        {
+            return RemovedIds.Contains (Link.SourceObjectId) ||
+                RemovedIds.Contains (Link.TargetObjectId);
+        });
+
+#if WITH_EDITOR
+        LevelAsset->MarkPackageDirty ();
+#endif
+    }
+
+    return RemovedIds.Num ();
+}
+
+bool AGridLevelEditorActor::HasAnyObjectInSelectedCell () const
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return false;
+    }
+
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (Obj.CellX == SelectedCellX && Obj.CellY == SelectedCellY)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool AGridLevelEditorActor::HasAnyWallInSelectedCell () const
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return false;
+    }
+
+    const FGridLevelCellData& CellData = LevelAsset->GetCell (SelectedCellX, SelectedCellY);
+
+    return CellData.NorthWall != EGridWallType::None ||
+        CellData.EastWall != EGridWallType::None ||
+        CellData.SouthWall != EGridWallType::None ||
+        CellData.WestWall != EGridWallType::None;
+}
+
+void AGridLevelEditorActor::EraseAtSelection ()
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return;
+    }
+
+    const int32 RemovedObjectCount = RemoveObjectsForEraseAtSelectionInternal ();
+
+    if (RemovedObjectCount > 0)
+    {
+        LastSelectedObjectId.Invalidate ();
+        RebuildPreview ();
+        return;
+    }
+
+    if (FGridLevelCellData* CellData = GetSelectedCellMutable ())
+    {
+        if (EGridWallType* WallPtr = GetSelectedWallMutable (*CellData))
+        {
+            if (*WallPtr != EGridWallType::None)
+            {
+                ClearSelectedWall ();
+                return;
+            }
+        }
+
+        if (CellData->CellType != EGridCellType::Empty &&
+            !HasAnyObjectInSelectedCell () &&
+            !HasAnyWallInSelectedCell ())
+        {
+            ClearSelectedCell ();
+            return;
+        }
+    }
 }

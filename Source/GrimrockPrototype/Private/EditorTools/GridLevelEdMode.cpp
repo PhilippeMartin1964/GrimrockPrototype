@@ -218,29 +218,6 @@ bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewpor
         }
     }
 
-    if (Key == EKeys::RightMouseButton)
-    {
-        if (Event == IE_Pressed)
-        {
-            bIsErasing = true;
-
-            FIntPoint MousePos;
-            Viewport->GetMousePos (MousePos);
-            if (UpdateHoverFromMouse (ViewportClient, Viewport, MousePos.X, MousePos.Y))
-            {
-                ApplyErase ();
-            }
-
-            return true;
-        }
-
-        if (Event == IE_Released)
-        {
-            bIsErasing = false;
-            return true;
-        }
-    }
-
     return FEdMode::InputKey (ViewportClient, Viewport, Key, Event);
 }
 
@@ -259,7 +236,7 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (
     FViewport* InViewport,
     const TArrayView<FIntPoint>& MouseMoves)
 {
-    if (!bIsPainting && !bIsErasing)
+    if (!bIsPainting)
     {
         return FEdMode::ProcessCapturedMouseMoves (InViewportClient, InViewport, MouseMoves);
     }
@@ -272,9 +249,6 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (
         if (bIsPainting)
         {
             ApplyPaint ();
-        } else if (bIsErasing)
-        {
-            ApplyErase ();
         }
     }
 

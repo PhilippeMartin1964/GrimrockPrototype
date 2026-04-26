@@ -166,14 +166,18 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
             BuildPanelSection (FText::FromString (TEXT ("TOOLS")), BuildToolSection ())
         ];
 
-    ToolkitRoot->AddSlot ()
-        .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, 8.f)
-        [
-            BuildPanelSection (FText::FromString (TEXT ("PALETTE")), BuildPaletteSection ())
-        ];
-
     const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+
+    if (EditorActor && EditorActor->ActiveTool == EGridEditorTool::PaintObject)
+    {
+        ToolkitRoot->AddSlot ()
+            .AutoHeight ()
+            .Padding (0.f, 0.f, 0.f, 8.f)
+            [
+                BuildPanelSection (FText::FromString (TEXT ("PALETTE")), BuildPaletteSection ())
+            ];
+    }
+
     const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData () : nullptr;
 
     ToolkitRoot->AddSlot ()

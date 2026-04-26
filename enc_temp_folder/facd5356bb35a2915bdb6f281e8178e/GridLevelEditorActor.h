@@ -107,7 +107,7 @@ public:
     FGuid LastSelectedObjectId;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Tool")
-    EGridEditorTool ActiveTool = EGridEditorTool::Select;
+    EGridEditorTool ActiveTool = EGridEditorTool::PaintCell;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
     EGridLinkAction LinkAction = EGridLinkAction::Toggle;
