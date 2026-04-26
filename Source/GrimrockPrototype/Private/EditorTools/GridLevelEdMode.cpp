@@ -280,7 +280,9 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
         case EGridEditorTool::Link:        MainColor = FColor::Cyan; break;
         default: break;
     }
-    DrawWireBox (PDI, FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 4.f)), MainColor, SDPG_Foreground);
+    DrawWireBox (PDI, 
+        FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 300.f)), 
+        MainColor, SDPG_Foreground);
 
     const FVector EdgeCenter = [&] ()
     {

@@ -35,6 +35,9 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 
     PressurePlateISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("PressurePlateISM"));
     PressurePlateISM->SetupAttachment (SceneRoot);
+
+    EditorSolidBlockISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("EditorSolidBlockISM"));
+    EditorSolidBlockISM->SetupAttachment (SceneRoot);
 }
 
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
@@ -59,7 +62,13 @@ void AGridLevelRuntimeActor::ClearVisuals ()
     if (WallISM) WallISM->ClearInstances ();
     if (DoorISM) DoorISM->ClearInstances ();
     if (SecretWallISM) SecretWallISM->ClearInstances ();
-    if (CeilingISM) CeilingISM->ClearInstances ();
+
+    if (CeilingISM)
+    {
+        CeilingISM->ClearInstances ();
+        CeilingISM->EmptyOverrideMaterials ();
+    }
+
     if (ButtonISM) ButtonISM->ClearInstances ();
     if (LeverISM) LeverISM->ClearInstances ();
     if (PressurePlateISM) PressurePlateISM->ClearInstances ();
@@ -69,7 +78,11 @@ void AGridLevelRuntimeActor::ClearVisuals ()
     ClearRuntimeLevers ();
     ClearRuntimePressurePlates ();
     ActiveObjectIds.Empty ();
-
+    if (EditorSolidBlockISM)
+    {
+        EditorSolidBlockISM->ClearInstances ();
+        EditorSolidBlockISM->EmptyOverrideMaterials ();
+    }
 }
 
 bool AGridLevelRuntimeActor::IsValidCell (int32 X, int32 Y) const
@@ -175,8 +188,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 {
     ClearVisuals ();
 
-    if (!LevelAsset || !FloorISM || !WallISM || !DoorISM || !SecretWallISM || !CeilingISM
-        || !ButtonISM || !LeverISM || !PressurePlateISM)
+    if (!LevelAsset || !FloorISM || !WallISM || !DoorISM || !SecretWallISM || !CeilingISM || !ButtonISM || !LeverISM || !PressurePlateISM)
     {
         return;
     }
@@ -192,7 +204,42 @@ void AGridLevelRuntimeActor::RebuildLevel ()
     LeverISM->SetStaticMesh (LeverMesh);
     PressurePlateISM->SetStaticMesh (PressurePlateMesh);
 
+    if (EditorSolidBlockISM)
+    {
+        EditorSolidBlockISM->SetStaticMesh (EditorSolidBlockMesh);
+
+        if (EditorSolidBlockMaterial)
+        {
+            EditorSolidBlockISM->SetMaterial (0, EditorSolidBlockMaterial);
+        }
+    }
+
+    const bool bIsGameWorld = GetWorld () && GetWorld ()->IsGameWorld ();
+
+    UMaterialInterface* DesiredCeilingMaterial = nullptr;
+
+    if (bIsGameWorld)
+    {
+        DesiredCeilingMaterial = CeilingMaterial;
+    } else
+    {
+        DesiredCeilingMaterial = CeilingEditorMaterial
+            ? CeilingEditorMaterial
+            : CeilingMaterial;
+    }
+
+    CeilingISM->SetMaterial (0, DesiredCeilingMaterial);
+
     const float CellSize = LevelAsset->CellSize;
+    TArray<FTransform> EditorSolidBlockTransforms;
+
+    if (!bIsGameWorld &&
+        bShowEditorSolidBlocks &&
+        EditorSolidBlockISM &&
+        EditorSolidBlockMesh)
+    {
+        EditorSolidBlockTransforms.Reserve (LevelAsset->Width * LevelAsset->Height);
+    }
 
     for (int32 Y = 0; Y < LevelAsset->Height; ++Y)
     {
@@ -202,6 +249,29 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 
             if (Cell.CellType == EGridCellType::Empty)
             {
+                if (!bIsGameWorld &&
+                    bShowEditorSolidBlocks &&
+                    EditorSolidBlockISM &&
+                    EditorSolidBlockMesh)
+                {
+                    const FVector Base = CellToWorld (X, Y, 0.f);
+
+                    const FVector Pos =
+                        Base + FVector (
+                            CellSize * 0.5f,
+                            CellSize * 0.5f,
+                            0.f);
+
+                    EditorSolidBlockTransforms.Add (
+                        FTransform (
+                            FRotator::ZeroRotator,
+                            Pos,
+                            FVector (
+                                CellSize / 100.f,
+                                CellSize / 100.f,
+                                EditorSolidBlockHeight / 100.f)));
+                }
+
                 continue;
             }
 
@@ -212,7 +282,8 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                 AddCeiling (X, Y, CellSize);
             }
 
-            auto DrawEdgeIfNeeded = [&] (EGridEdge Edge, EGridWallType WallType, bool bShouldDraw)
+            auto DrawEdgeIfNeeded =
+                [&] (EGridEdge Edge, EGridWallType WallType, bool bShouldDraw)
             {
                 if (!bShouldDraw)
                 {
@@ -222,44 +293,57 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                 switch (WallType)
                 {
                     case EGridWallType::Solid:
-                        AddEdgeInstance (WallISM, X, Y, Edge, CellSize);
-                        break;
+                    AddEdgeInstance (WallISM, X, Y, Edge, CellSize);
+                    break;
 
                     case EGridWallType::Door:
-                        if (!GetWorld () || !GetWorld ()->IsGameWorld ())
-                        {
-                            AddEdgeInstance (DoorISM, X, Y, Edge, CellSize);
-                        }
-                        break;
+                    if (!bIsGameWorld)
+                    {
+                        AddEdgeInstance (DoorISM, X, Y, Edge, CellSize);
+                    }
+                    break;
 
                     case EGridWallType::DoorOpen:
-                        break;
+                    break;
 
                     case EGridWallType::Secret:
-                        AddEdgeInstance (SecretWallISM, X, Y, Edge, CellSize);
-                        break;
+                    AddEdgeInstance (SecretWallISM, X, Y, Edge, CellSize);
+                    break;
 
                     default:
-                        break;
+                    break;
                 }
             };
 
-            DrawEdgeIfNeeded (EGridEdge::North, Cell.NorthWall, Cell.NorthWall != EGridWallType::None);
-            DrawEdgeIfNeeded (EGridEdge::East, Cell.EastWall, Cell.EastWall != EGridWallType::None);
+            DrawEdgeIfNeeded (
+                EGridEdge::North,
+                Cell.NorthWall,
+                Cell.NorthWall != EGridWallType::None);
+
+            DrawEdgeIfNeeded (
+                EGridEdge::East,
+                Cell.EastWall,
+                Cell.EastWall != EGridWallType::None);
 
             const bool bDrawSouth =
                 Cell.SouthWall != EGridWallType::None &&
                 (!LevelAsset->IsValidCoord (X, Y - 1) ||
-                 LevelAsset->GetCell (X, Y - 1).CellType == EGridCellType::Empty);
+                    LevelAsset->GetCell (X, Y - 1).CellType == EGridCellType::Empty);
 
-            DrawEdgeIfNeeded (EGridEdge::South, Cell.SouthWall, bDrawSouth);
+            DrawEdgeIfNeeded (
+                EGridEdge::South,
+                Cell.SouthWall,
+                bDrawSouth);
 
             const bool bDrawWest =
                 Cell.WestWall != EGridWallType::None &&
                 (!LevelAsset->IsValidCoord (X - 1, Y) ||
-                 LevelAsset->GetCell (X - 1, Y).CellType == EGridCellType::Empty);
+                    LevelAsset->GetCell (X - 1, Y).CellType == EGridCellType::Empty);
 
-            DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, bDrawWest);
+            DrawEdgeIfNeeded (
+                EGridEdge::West,
+                Cell.WestWall,
+                bDrawWest);
         }
     }
 
@@ -275,7 +359,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
             continue;
         }
 
-        if (GetWorld () && GetWorld ()->IsGameWorld ())
+        if (bIsGameWorld)
         {
             continue;
         }
@@ -283,23 +367,33 @@ void AGridLevelRuntimeActor::RebuildLevel ()
         switch (ObjectData.Type)
         {
             case EGridLevelObjectType::Door:
-                AddEditorDoorInstance (ObjectData);
-                break;
+            AddEditorDoorInstance (ObjectData);
+            break;
+
             case EGridLevelObjectType::Button:
-                AddEditorButtonInstance (ObjectData);
-                break;
+            AddEditorButtonInstance (ObjectData);
+            break;
+
             case EGridLevelObjectType::Lever:
-                AddEditorLeverInstance (ObjectData);
-                break;
+            AddEditorLeverInstance (ObjectData);
+            break;
+
             case EGridLevelObjectType::PressurePlate:
-                AddEditorPressurePlateInstance (ObjectData);
-                break;
+            AddEditorPressurePlateInstance (ObjectData);
+            break;
+
             default:
-                break;
+            break;
         }
     }
-    
-    if (GetWorld () && GetWorld ()->IsGameWorld ())
+    if (EditorSolidBlockTransforms.Num () > 0 && EditorSolidBlockISM)
+    {
+        EditorSolidBlockISM->AddInstances (
+            EditorSolidBlockTransforms,
+            false,
+            true);
+    }
+    if (bIsGameWorld)
     {
         RebuildRuntimeDoors ();
         RebuildRuntimeButtons ();

@@ -47,6 +47,9 @@ protected:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* PressurePlateISM;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInstancedStaticMeshComponent* EditorSolidBlockISM;
+
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
     TObjectPtr<UGridLevelAsset> LevelAsset;
@@ -65,6 +68,24 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> CeilingMesh;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
+    TObjectPtr<UMaterialInterface> CeilingMaterial;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    TObjectPtr<UStaticMesh> EditorSolidBlockMesh;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    TObjectPtr<UMaterialInterface> EditorSolidBlockMaterial;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    bool bShowEditorSolidBlocks = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
+    float EditorSolidBlockHeight = 300.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> ButtonMesh;
