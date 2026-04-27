@@ -19,9 +19,6 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     WallISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("WallISM"));
     WallISM->SetupAttachment (SceneRoot);
 
-    DoorISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("DoorISM"));
-    DoorISM->SetupAttachment (SceneRoot);
-
     SecretWallISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("SecretWallISM"));
     SecretWallISM->SetupAttachment (SceneRoot);
 
@@ -52,7 +49,6 @@ void AGridLevelRuntimeActor::ClearVisuals ()
 {
     if (FloorISM) FloorISM->ClearInstances ();
     if (WallISM) WallISM->ClearInstances ();
-    if (DoorISM) DoorISM->ClearInstances ();
     if (SecretWallISM) SecretWallISM->ClearInstances ();
 
     if (CeilingISM)
@@ -177,7 +173,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 {
     ClearVisuals ();
 
-    if (!LevelAsset || !FloorISM || !WallISM || !DoorISM || !SecretWallISM || !CeilingISM)
+    if (!LevelAsset || !FloorISM || !WallISM || !SecretWallISM || !CeilingISM)
     {
         return;
     }
@@ -186,7 +182,6 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 
     FloorISM->SetStaticMesh (FloorMesh);
     WallISM->SetStaticMesh (WallMesh);
-    DoorISM->SetStaticMesh (DoorMesh);
     SecretWallISM->SetStaticMesh (SecretWallMesh);
     CeilingISM->SetStaticMesh (CeilingMesh);
 
@@ -283,12 +278,6 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                     break;
 
                     case EGridWallType::Door:
-                    if (!bIsGameWorld)
-                    {
-                        AddEdgeInstance (DoorISM, X, Y, Edge, CellSize);
-                    }
-                    break;
-
                     case EGridWallType::DoorOpen:
                     break;
 
@@ -330,24 +319,6 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                 EGridEdge::West,
                 Cell.WestWall,
                 bDrawWest);
-        }
-    }
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
-        {
-            continue;
-        }
-
-        if (bIsGameWorld)
-        {
-            continue;
         }
     }
     if (!GetWorld () || !GetWorld ()->IsGameWorld ())

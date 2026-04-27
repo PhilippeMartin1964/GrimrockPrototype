@@ -31,9 +31,6 @@ protected:
     UInstancedStaticMeshComponent* WallISM;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UInstancedStaticMeshComponent* DoorISM;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* SecretWallISM;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
