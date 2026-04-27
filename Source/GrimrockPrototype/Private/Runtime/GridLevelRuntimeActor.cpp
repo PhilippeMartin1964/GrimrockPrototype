@@ -28,15 +28,6 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("CeilingISM"));
     CeilingISM->SetupAttachment (SceneRoot);
 
-    ButtonISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("ButtonISM"));
-    ButtonISM->SetupAttachment (SceneRoot);
-
-    LeverISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("LeverISM"));
-    LeverISM->SetupAttachment (SceneRoot);
-
-    PressurePlateISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("PressurePlateISM"));
-    PressurePlateISM->SetupAttachment (SceneRoot);
-
     EditorSolidBlockISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("EditorSolidBlockISM"));
     EditorSolidBlockISM->SetupAttachment (SceneRoot);
 }
@@ -69,10 +60,6 @@ void AGridLevelRuntimeActor::ClearVisuals ()
         CeilingISM->ClearInstances ();
         CeilingISM->EmptyOverrideMaterials ();
     }
-
-    if (ButtonISM) ButtonISM->ClearInstances ();
-    if (LeverISM) LeverISM->ClearInstances ();
-    if (PressurePlateISM) PressurePlateISM->ClearInstances ();
 
     ClearRuntimeDoors ();
     ClearRuntimeButtons ();
@@ -190,7 +177,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 {
     ClearVisuals ();
 
-    if (!LevelAsset || !FloorISM || !WallISM || !DoorISM || !SecretWallISM || !CeilingISM || !ButtonISM || !LeverISM || !PressurePlateISM)
+    if (!LevelAsset || !FloorISM || !WallISM || !DoorISM || !SecretWallISM || !CeilingISM)
     {
         return;
     }
@@ -202,9 +189,6 @@ void AGridLevelRuntimeActor::RebuildLevel ()
     DoorISM->SetStaticMesh (DoorMesh);
     SecretWallISM->SetStaticMesh (SecretWallMesh);
     CeilingISM->SetStaticMesh (CeilingMesh);
-    ButtonISM->SetStaticMesh (ButtonMesh);
-    LeverISM->SetStaticMesh (LeverMesh);
-    PressurePlateISM->SetStaticMesh (PressurePlateMesh);
 
     if (EditorSolidBlockISM)
     {
@@ -1482,99 +1466,6 @@ AGridPressurePlateActor* AGridLevelRuntimeActor::FindRuntimePressurePlateActor (
     return nullptr;
 }
 
-void AGridLevelRuntimeActor::AddEditorLeverInstance (const FGridLevelObjectData& LeverObjectData)
-{
-    if (!LeverISM)
-    {
-        return;
-    }
-
-    FTransform InstanceTransform;
-    if (!TryGetWallObjectPreviewTransform (
-        LeverObjectData.CellX,
-        LeverObjectData.CellY,
-        LeverObjectData.Edge,
-        95.f,
-        8.f,
-        InstanceTransform))
-    {
-        return;
-    }
-
-    AddEditorObjectInstance (LeverISM, InstanceTransform);
-}
-
-void AGridLevelRuntimeActor::AddEditorPressurePlateInstance (const FGridLevelObjectData& PlateObjectData)
-{
-    if (!PressurePlateISM)
-    {
-        return;
-    }
-
-    FTransform InstanceTransform;
-    if (!TryGetCenteredCellPreviewTransform (
-        PlateObjectData.CellX,
-        PlateObjectData.CellY,
-        4.f,
-        FVector (1.f, 1.f, 1.f),
-        InstanceTransform))
-    {
-        return;
-    }
-
-    AddEditorObjectInstance (PressurePlateISM, InstanceTransform);
-}
-
-void AGridLevelRuntimeActor::AddEditorButtonInstance (const FGridLevelObjectData& ButtonObjectData)
-{
-    if (!ButtonISM)
-    {
-        return;
-    }
-
-    FTransform InstanceTransform;
-    if (!TryGetWallObjectPreviewTransform (
-        ButtonObjectData.CellX,
-        ButtonObjectData.CellY,
-        ButtonObjectData.Edge,
-        80.f,
-        6.f,
-        InstanceTransform))
-    {
-        return;
-    }
-
-    AddEditorObjectInstance (ButtonISM, InstanceTransform);
-}
-
-void AGridLevelRuntimeActor::AddEditorDoorInstance (const FGridLevelObjectData& DoorObjectData)
-{
-    if (!DoorISM || !LevelAsset)
-    {
-        return;
-    }
-
-    FVector DoorWorldLocation = FVector::ZeroVector;
-    FRotator DoorWorldRotation = FRotator::ZeroRotator;
-
-    GetEdgeTransform (
-        DoorObjectData.CellX,
-        DoorObjectData.CellY,
-        DoorObjectData.Edge,
-        LevelAsset->CellSize,
-        DoorWorldLocation,
-        DoorWorldRotation
-    );
-
-    const FTransform InstanceTransform (
-        DoorWorldRotation,
-        DoorWorldLocation,
-        FVector (LevelAsset->CellSize / 100.f, 1.f, 1.f)
-    );
-
-    AddEditorObjectInstance (DoorISM, InstanceTransform);
-}
-
 bool AGridLevelRuntimeActor::TryGetWallObjectPreviewTransform (
     int32 CellX,
     int32 CellY,
@@ -1844,13 +1735,7 @@ void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData&
     {
         return;
     }
-
-    PreviewActor->InitializePreviewObject (
-        ObjectData,
-        Mesh,
-        GetEditorPreviewMaterialForObject (ObjectData.Type),
-        EditorObjectHighlightMaterial);
-
+    PreviewActor->InitializePreviewObject (ObjectData, Mesh, GetEditorPreviewMaterialForObject (ObjectData.Type));
     SpawnedEditorPreviewObjects.Add (PreviewActor);
 }
 
@@ -1900,7 +1785,6 @@ void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
         {
             continue;
         }
-
         Actor->SetHovered (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
     }
 }
@@ -1915,7 +1799,6 @@ void AGridLevelRuntimeActor::SetEditorSelectedObject (FGuid ObjectId)
         {
             continue;
         }
-
         Actor->SetSelected (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
     }
 }

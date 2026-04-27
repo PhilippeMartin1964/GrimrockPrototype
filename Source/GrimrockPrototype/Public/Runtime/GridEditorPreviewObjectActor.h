@@ -28,11 +28,7 @@ public:
     EGridLevelObjectType ObjectType = EGridLevelObjectType::None;
 
     UFUNCTION (BlueprintCallable, Category = "Preview")
-    void InitializePreviewObject (
-        const FGridLevelObjectData& ObjectData,
-        UStaticMesh* Mesh,
-        UMaterialInterface* NormalMaterial,
-        UMaterialInterface* HighlightMaterial);
+    void InitializePreviewObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* NormalMaterial);
 
     UFUNCTION (BlueprintCallable, Category = "Preview")
     void SetHovered (bool bHovered);
@@ -48,7 +44,4 @@ private:
 private:
     UPROPERTY (Transient)
     TObjectPtr<UMaterialInterface> CachedNormalMaterial;
-
-    UPROPERTY (Transient)
-    TObjectPtr<UMaterialInterface> CachedHighlightMaterial;
 };

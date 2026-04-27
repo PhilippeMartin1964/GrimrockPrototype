@@ -16,17 +16,12 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor ()
     MeshComponent->SetMobility (EComponentMobility::Movable);
 }
 
-void AGridEditorPreviewObjectActor::InitializePreviewObject (
-    const FGridLevelObjectData& ObjectData,
-    UStaticMesh* Mesh,
-    UMaterialInterface* NormalMaterial,
-    UMaterialInterface* HighlightMaterial)
+void AGridEditorPreviewObjectActor::InitializePreviewObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* NormalMaterial)
 {
     ObjectId = ObjectData.ObjectId;
     ObjectType = ObjectData.Type;
 
     CachedNormalMaterial = NormalMaterial;
-    CachedHighlightMaterial = HighlightMaterial;
 
     if (!MeshComponent)
     {

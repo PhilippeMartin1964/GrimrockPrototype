@@ -327,9 +327,6 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
 
         if (EditorActor->TryGetObjectWorldLocationById (SelectedObject->ObjectId, SelectedLocation))
         {
-            DrawDebugObjectBox (PDI, SelectedLocation + FVector (0.f, 0.f, 24.f), FColor::White, 20.f);
-            DrawDebugVerticalMarker (PDI, SelectedLocation, FLinearColor::White, 72.f, 10.f, 2.5f);
-
             for (const FGridLevelLinkData& Link : EditorActor->LevelAsset->Links)
             {
                 const bool bOutgoing = Link.SourceObjectId == SelectedObject->ObjectId;
@@ -356,13 +353,9 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
                 if (bOutgoing)
                 {
                     DrawDebugArrowLine (PDI, SelectedLocation, OtherLocation, LinkColor, 3.f);
-                    DrawDebugObjectBox (PDI, OtherLocation + FVector (0.f, 0.f, 24.f), LinkColor.ToFColor (true), 16.f);
-                    DrawDebugVerticalMarker (PDI, OtherLocation, LinkColor, 58.f, 8.f, 2.f);
                 } else
                 {
                     DrawDebugArrowLine (PDI, OtherLocation, SelectedLocation, LinkColor, 2.25f);
-                    DrawDebugObjectBox (PDI, OtherLocation + FVector (0.f, 0.f, 24.f), LinkColor.ToFColor (true), 14.f);
-                    DrawDebugVerticalMarker (PDI, OtherLocation, LinkColor, 50.f, 7.f, 1.8f);
                 }
             }
         }

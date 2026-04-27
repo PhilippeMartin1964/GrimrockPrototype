@@ -38,16 +38,6 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* CeilingISM;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UInstancedStaticMeshComponent* ButtonISM;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UInstancedStaticMeshComponent* LeverISM;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UInstancedStaticMeshComponent* PressurePlateISM;
-
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* EditorSolidBlockISM;
 
@@ -90,9 +80,6 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
     TSubclassOf<AGridEditorPreviewObjectActor> EditorPreviewObjectActorClass;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
-    TObjectPtr<UMaterialInterface> EditorObjectHighlightMaterial;
 
     UFUNCTION (BlueprintCallable, Category = "Editor Preview")
     void SetEditorHoveredObject (FGuid ObjectId);
@@ -248,10 +235,6 @@ private:
     bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
     bool ActivatePressurePlateAtCell (int32 X, int32 Y);
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
-    void AddEditorButtonInstance (const FGridLevelObjectData& ButtonObjectData);
-    void AddEditorLeverInstance (const FGridLevelObjectData& LeverObjectData);
-    void AddEditorPressurePlateInstance (const FGridLevelObjectData& PlateObjectData);
-    void AddEditorDoorInstance (const FGridLevelObjectData& DoorObjectData);
 
     UPROPERTY (Transient)
     TArray<TObjectPtr<AGridLeverActor>> SpawnedLeverActors;
