@@ -287,7 +287,6 @@ private:
 
     void ClearSelectedObjectState ();
 
-    int32 RemoveObjectsForEraseAtSelectionInternal ();
     bool HasAnyObjectInSelectedCell () const;
     bool HasAnyWallInSelectedCell () const;
 

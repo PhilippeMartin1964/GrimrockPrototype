@@ -92,6 +92,8 @@ private:
     void OnTriggerModeSelectionChanged (TSharedPtr<EGridObjectTriggerMode> NewValue, ESelectInfo::Type SelectInfo);
     FText GetSelectedTriggerModeText () const;
 
+    const FSlateBrush* GetOrCreateBrush (UTexture2D* Texture, float Size);
+
 private:
     TSharedPtr<SVerticalBox> ToolkitRoot;
     TSharedPtr<SWidget> ToolkitWidget;
@@ -100,6 +102,7 @@ private:
     FGridObjectBehaviorParams EditedBehavior;
 
     TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
+    TMap<UTexture2D*, TSharedPtr<FSlateBrush>> CachedIconBrushes;
 };
 
 #endif

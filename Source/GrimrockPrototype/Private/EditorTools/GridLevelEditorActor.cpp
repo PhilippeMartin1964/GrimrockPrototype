@@ -425,8 +425,6 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
     TArray<FGuid> RemovedIds;
 
     const EGridLevelObjectType FilterType = PaintObjectType;
-    const bool bUseEdge = RequiresEdge (PaintObjectType);
-    const bool bUseCenter = IsCellCenteredObject (PaintObjectType);
 
     for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
     {
@@ -444,17 +442,13 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
 
         bool bRemove = false;
 
-        if (bUseEdge)
+        if (RequiresEdge (Obj.Type))
         {
             bRemove = (Obj.Edge == SelectedEdge);
-        } else if (bUseCenter)
-        {
-            bRemove = true;
-        } else if (Obj.Type == FilterType)
+        } else
         {
             bRemove = true;
         }
-
         if (bRemove)
         {
             RemovedIds.Add (Obj.ObjectId);
@@ -1393,62 +1387,6 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject (
     return false;
 }
 
-int32 AGridLevelEditorActor::RemoveObjectsForEraseAtSelectionInternal ()
-{
-    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
-    {
-        return 0;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
-
-    TArray<FGuid> RemovedIds;
-
-    for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
-    {
-        const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
-
-        if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
-        {
-            continue;
-        }
-
-        bool bRemove = false;
-
-        if (RequiresEdge (Obj.Type))
-        {
-            bRemove = Obj.Edge == SelectedEdge;
-        } else
-        {
-            bRemove = true;
-        }
-
-        if (bRemove)
-        {
-            RemovedIds.Add (Obj.ObjectId);
-            LevelAsset->Objects.RemoveAt (Index);
-        }
-    }
-
-    if (RemovedIds.Num () > 0)
-    {
-        LevelAsset->Links.RemoveAll (
-            [&] (const FGridLevelLinkData& Link)
-        {
-            return RemovedIds.Contains (Link.SourceObjectId) ||
-                RemovedIds.Contains (Link.TargetObjectId);
-        });
-
-#if WITH_EDITOR
-        LevelAsset->MarkPackageDirty ();
-#endif
-    }
-
-    return RemovedIds.Num ();
-}
-
 bool AGridLevelEditorActor::HasAnyObjectInSelectedCell () const
 {
     if (!HasValidLevelAsset () || !IsValidSelectedCell ())
@@ -1489,7 +1427,7 @@ void AGridLevelEditorActor::EraseAtSelection ()
         return;
     }
 
-    const int32 RemovedObjectCount = RemoveObjectsForEraseAtSelectionInternal ();
+    const int32 RemovedObjectCount = RemoveObjectsAtSelectionInternal (false);
 
     if (RemovedObjectCount > 0)
     {

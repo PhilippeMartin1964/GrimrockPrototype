@@ -290,7 +290,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolTile (const FText& Label, 
         .VAlign (VAlign_Center)
         [IconTexture 
         ? StaticCastSharedRef<SWidget> (SNew (SImage)
-            .Image (new FSlateImageBrush (IconTexture, FVector2D (IconSize, IconSize))))
+            .Image (GetOrCreateBrush (IconTexture, IconSize)))
         : StaticCastSharedRef<SWidget> (SNew (STextBlock).Text (Glyph)
             .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 34))
         )]
@@ -1270,6 +1270,21 @@ FReply FGridLevelEdModeToolkit::OnApplySelectedObjectClicked ()
     }
 
     return FReply::Handled ();
+}
+
+const FSlateBrush* FGridLevelEdModeToolkit::GetOrCreateBrush (UTexture2D* Texture, float Size)
+{
+    if (!Texture)
+    {
+        return nullptr;
+    }
+    if (TSharedPtr<FSlateBrush>* Existing = CachedIconBrushes.Find (Texture))
+    {
+        return Existing->Get ();
+    }
+    TSharedPtr<FSlateBrush> NewBrush = MakeShared<FSlateImageBrush> (Texture, FVector2D (Size, Size));
+    CachedIconBrushes.Add (Texture, NewBrush);
+    return NewBrush.Get ();
 }
 
 #endif
