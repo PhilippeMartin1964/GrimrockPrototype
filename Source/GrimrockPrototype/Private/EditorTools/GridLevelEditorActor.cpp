@@ -1220,6 +1220,12 @@ void AGridLevelEditorActor::ClearSelectedObjectState ()
     ObjectTag = NAME_None;
     ObjectNotes.Empty ();
     ObjectBehavior = FGridObjectBehaviorParams ();
+    ResolvePreviewRuntimeActor ();
+
+    if (PreviewRuntimeActor)
+    {
+        PreviewRuntimeActor->SetEditorSelectedObject (FGuid ());
+    }
 }
 
 bool AGridLevelEditorActor::RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action)
@@ -1299,7 +1305,12 @@ bool AGridLevelEditorActor::SelectObjectById (FGuid ObjectId)
         SnapActorToSelectedCell ();
         bAutoSelectFromActorTransform = bWasAuto;
     }
+    ResolvePreviewRuntimeActor ();
 
+    if (PreviewRuntimeActor)
+    {
+        PreviewRuntimeActor->SetEditorSelectedObject (LastSelectedObjectId);
+    }
     return true;
 }
 

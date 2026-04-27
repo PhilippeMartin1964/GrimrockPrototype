@@ -35,8 +35,16 @@ public:
         UMaterialInterface* HighlightMaterial);
 
     UFUNCTION (BlueprintCallable, Category = "Preview")
-    void SetHighlighted (bool bHighlighted);
+    void SetHovered (bool bHovered);
 
+    UFUNCTION (BlueprintCallable, Category = "Preview")
+    void SetSelected (bool bSelected);
+
+private:
+    void RefreshStencilState ();
+
+    bool bIsHovered = false;
+    bool bIsSelected = false;
 private:
     UPROPERTY (Transient)
     TObjectPtr<UMaterialInterface> CachedNormalMaterial;

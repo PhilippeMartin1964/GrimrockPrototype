@@ -43,16 +43,42 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject (
     MeshComponent->SetRenderCustomDepth (false);
     MeshComponent->SetCustomDepthStencilValue (0);
     MeshComponent->MarkRenderStateDirty ();
+
+    bIsHovered = false;
+    bIsSelected = false;
+    RefreshStencilState ();
 }
 
-void AGridEditorPreviewObjectActor::SetHighlighted (bool bHighlighted)
+void AGridEditorPreviewObjectActor::SetHovered (bool bHovered)
+{
+    bIsHovered = bHovered;
+    RefreshStencilState ();
+}
+
+void AGridEditorPreviewObjectActor::SetSelected (bool bSelected)
+{
+    bIsSelected = bSelected;
+    RefreshStencilState ();
+}
+
+void AGridEditorPreviewObjectActor::RefreshStencilState ()
 {
     if (!MeshComponent)
     {
         return;
     }
 
-    MeshComponent->SetRenderCustomDepth (bHighlighted);
-    MeshComponent->SetCustomDepthStencilValue (bHighlighted ? 1 : 0);
+    int32 StencilValue = 0;
+
+    if (bIsSelected)
+    {
+        StencilValue = 2;
+    } else if (bIsHovered)
+    {
+        StencilValue = 1;
+    }
+
+    MeshComponent->SetRenderCustomDepth (StencilValue != 0);
+    MeshComponent->SetCustomDepthStencilValue (StencilValue);
     MeshComponent->MarkRenderStateDirty ();
 }

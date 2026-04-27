@@ -97,6 +97,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Editor Preview")
     void SetEditorHoveredObject (FGuid ObjectId);
 
+    UFUNCTION (BlueprintCallable, Category = "Editor Preview")
+    void SetEditorSelectedObject (FGuid ObjectId);
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> ButtonMesh;
 
@@ -293,6 +296,7 @@ private:
     TArray<TObjectPtr<AGridEditorPreviewObjectActor>> SpawnedEditorPreviewObjects;
 
     FGuid CurrentHoveredEditorObjectId;
+    FGuid CurrentSelectedEditorObjectId;
 
     void ClearEditorPreviewObjects ();
     void RebuildEditorPreviewObjects ();

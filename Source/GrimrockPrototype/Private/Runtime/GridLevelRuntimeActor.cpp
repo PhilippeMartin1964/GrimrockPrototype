@@ -1667,6 +1667,7 @@ void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
     }
 
     SpawnedEditorPreviewObjects.Empty ();
+    CurrentSelectedEditorObjectId.Invalidate ();
     CurrentHoveredEditorObjectId.Invalidate ();
 }
 
@@ -1891,11 +1892,6 @@ void AGridLevelRuntimeActor::RebuildEditorPreviewObjects ()
 
 void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
 {
-    if (CurrentHoveredEditorObjectId == ObjectId)
-    {
-        return;
-    }
-
     CurrentHoveredEditorObjectId = ObjectId;
 
     for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
@@ -1905,9 +1901,21 @@ void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
             continue;
         }
 
-        const bool bMatch = ObjectId.IsValid () && Actor->ObjectId == ObjectId;
-
-        Actor->SetHighlighted (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
+        Actor->SetHovered (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
     }
 }
 
+void AGridLevelRuntimeActor::SetEditorSelectedObject (FGuid ObjectId)
+{
+    CurrentSelectedEditorObjectId = ObjectId;
+
+    for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+    {
+        if (!IsValid (Actor))
+        {
+            continue;
+        }
+
+        Actor->SetSelected (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
+    }
+}
