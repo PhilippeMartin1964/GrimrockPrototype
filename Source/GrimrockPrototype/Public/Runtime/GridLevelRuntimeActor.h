@@ -11,6 +11,7 @@ class AGridButtonActor;
 class AGridLeverActor;
 class AGridPressurePlateActor;
 class AGridEditorPreviewObjectActor;
+class UGridObjectArchetypeAsset;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor
@@ -49,9 +50,6 @@ public:
     TObjectPtr<UStaticMesh> WallMesh;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UStaticMesh> DoorMesh;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> SecretWallMesh;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
@@ -84,9 +82,6 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Editor Preview")
     void SetEditorSelectedObject (FGuid ObjectId);
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UStaticMesh> ButtonMesh;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
     FVector GridOrigin = FVector::ZeroVector;
 
@@ -99,27 +94,14 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Buttons")
     TSubclassOf<AGridButtonActor> ButtonActorClass;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UMaterialInterface> ButtonMaterial;
-
-    //Lever and PressurePlate 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Levers")
     TSubclassOf<AGridLeverActor> LeverActorClass;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|PressurePlates")
     TSubclassOf<AGridPressurePlateActor> PressurePlateActorClass;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UStaticMesh> LeverMesh;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UStaticMesh> PressurePlateMesh;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UMaterialInterface> LeverMaterial;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UMaterialInterface> PressurePlateMaterial;
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
+    TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -282,6 +264,7 @@ private:
     void RebuildEditorPreviewObjects ();
     void AddEditorPreviewObject (const FGridLevelObjectData& ObjectData);
 
-    UStaticMesh* GetEditorPreviewMeshForObject (EGridLevelObjectType ObjectType) const;
-    UMaterialInterface* GetEditorPreviewMaterialForObject (EGridLevelObjectType ObjectType) const;
+    const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
+    UStaticMesh* GetObjectMesh (const FGridLevelObjectData& ObjectData) const;
+    UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const; 
 };

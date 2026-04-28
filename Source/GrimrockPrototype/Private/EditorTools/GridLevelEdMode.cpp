@@ -260,28 +260,19 @@ bool FGridLevelEdMode::MouseMove (FEditorViewportClient* ViewportClient, FViewpo
     return FEdMode::MouseMove (ViewportClient, Viewport, X, Y);
 }
 
-bool FGridLevelEdMode::ProcessCapturedMouseMoves (
-    FEditorViewportClient* InViewportClient,
-    FViewport* InViewport,
-    const TArrayView<FIntPoint>& MouseMoves)
+bool FGridLevelEdMode::ProcessCapturedMouseMoves (FEditorViewportClient* InViewportClient, FViewport* InViewport, const TArrayView<FIntPoint>& MouseMoves)
 {
     if (IsRightMouseButtonDown (InViewport))
     {
         bIsPainting = false;
         ResetPaintCache ();
 
-        return FEdMode::ProcessCapturedMouseMoves (
-            InViewportClient,
-            InViewport,
-            MouseMoves);
+        return FEdMode::ProcessCapturedMouseMoves (InViewportClient, InViewport, MouseMoves);
     }
 
     if (!bIsPainting)
     {
-        return FEdMode::ProcessCapturedMouseMoves (
-            InViewportClient,
-            InViewport,
-            MouseMoves);
+        return FEdMode::ProcessCapturedMouseMoves (InViewportClient, InViewport, MouseMoves);
     }
 
     FIntPoint MousePos;

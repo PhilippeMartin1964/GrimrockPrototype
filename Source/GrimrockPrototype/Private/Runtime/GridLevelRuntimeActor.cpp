@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridDoorActor.h"
 #include "Core/GridTypes.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridButtonActor.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
@@ -532,11 +533,13 @@ void AGridLevelRuntimeActor::GetEdgeTransform (
 
 void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& DoorObjectData)
 {
-    if (!DoorActorClass || !LevelAsset || !DoorMesh)
+    UStaticMesh* Mesh = GetObjectMesh (DoorObjectData);
+    UMaterialInterface* Material = GetObjectMaterial (DoorObjectData);
+
+    if (!DoorActorClass || !LevelAsset || !Mesh)
     {
         return;
     }
-
     UWorld* World = GetWorld ();
     if (!World)
     {
@@ -573,8 +576,8 @@ void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& Do
     const bool bStartOpen = DoorObjectData.bInitiallyActive;
 
     DoorActor->InitializeDoor (
-        DoorMesh,
-        nullptr,
+        Mesh,
+        Material,
         DoorWorldLocation,
         DoorWorldRotation,
         DoorObjectData.CellX,
@@ -982,11 +985,13 @@ void AGridLevelRuntimeActor::ClearRuntimeButtons ()
 
 void AGridLevelRuntimeActor::AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData)
 {
-    if (!ButtonActorClass || !ButtonMesh || !LevelAsset)
+    UStaticMesh* Mesh = GetObjectMesh (ButtonObjectData);
+    UMaterialInterface* Material = GetObjectMaterial (ButtonObjectData);
+
+    if (!ButtonActorClass || !LevelAsset || !Mesh)
     {
         return;
     }
-
     UWorld* World = GetWorld ();
     if (!World)
     {
@@ -1043,8 +1048,8 @@ void AGridLevelRuntimeActor::AddRuntimeButtonActor (const FGridLevelObjectData& 
     }
 
     ButtonActor->InitializeButton (
-        ButtonMesh,
-        ButtonMaterial,
+        Mesh,
+        Material,
         Pos,
         Rot,
         ButtonObjectData.CellX,
@@ -1204,11 +1209,13 @@ void AGridLevelRuntimeActor::ClearRuntimeLevers ()
 
 void AGridLevelRuntimeActor::AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData)
 {
-    if (!LeverActorClass || !LeverMesh || !LevelAsset)
+    UStaticMesh* Mesh = GetObjectMesh (LeverObjectData);
+    UMaterialInterface* Material = GetObjectMaterial (LeverObjectData);
+
+    if (!LeverActorClass || !LevelAsset || !Mesh)
     {
         return;
     }
-
     UWorld* World = GetWorld ();
     if (!World)
     {
@@ -1265,8 +1272,8 @@ void AGridLevelRuntimeActor::AddRuntimeLeverActor (const FGridLevelObjectData& L
     }
 
     LeverActor->InitializeLever (
-        LeverMesh,
-        LeverMaterial,
+        Mesh,
+        Material,
         Pos,
         Rot,
         LeverObjectData.CellX,
@@ -1346,11 +1353,13 @@ void AGridLevelRuntimeActor::ClearRuntimePressurePlates ()
 
 void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData)
 {
-    if (!PressurePlateActorClass || !PressurePlateMesh || !LevelAsset)
+    UStaticMesh* Mesh = GetObjectMesh (PlateObjectData);
+    UMaterialInterface* Material = GetObjectMaterial (PlateObjectData);
+
+    if (!PressurePlateActorClass || !LevelAsset || !Mesh)
     {
         return;
     }
-
     UWorld* World = GetWorld ();
     if (!World)
     {
@@ -1379,8 +1388,8 @@ void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjec
     }
 
     PlateActor->InitializePlate (
-        PressurePlateMesh,
-        PressurePlateMaterial,
+        Mesh,
+        Material,
         Pos,
         PlateObjectData.CellX,
         PlateObjectData.CellY,
@@ -1556,45 +1565,6 @@ void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
     CurrentHoveredEditorObjectId.Invalidate ();
 }
 
-UStaticMesh* AGridLevelRuntimeActor::GetEditorPreviewMeshForObject (EGridLevelObjectType ObjectType) const
-{
-    switch (ObjectType)
-    {
-        case EGridLevelObjectType::Door:
-        return DoorMesh;
-
-        case EGridLevelObjectType::Button:
-        return ButtonMesh;
-
-        case EGridLevelObjectType::Lever:
-        return LeverMesh;
-
-        case EGridLevelObjectType::PressurePlate:
-        return PressurePlateMesh;
-
-        default:
-        return nullptr;
-    }
-}
-
-UMaterialInterface* AGridLevelRuntimeActor::GetEditorPreviewMaterialForObject (EGridLevelObjectType ObjectType) const
-{
-    switch (ObjectType)
-    {
-        case EGridLevelObjectType::Button:
-        return ButtonMaterial;
-
-        case EGridLevelObjectType::Lever:
-        return LeverMaterial;
-
-        case EGridLevelObjectType::PressurePlate:
-        return PressurePlateMaterial;
-
-        default:
-        return nullptr;
-    }
-}
-
 void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData& ObjectData)
 {
     if (!EditorPreviewObjectActorClass || !LevelAsset)
@@ -1602,7 +1572,8 @@ void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData&
         return;
     }
 
-    UStaticMesh* Mesh = GetEditorPreviewMeshForObject (ObjectData.Type);
+    UStaticMesh* Mesh = GetObjectMesh (ObjectData);
+    UMaterialInterface* Material = GetObjectMaterial (ObjectData);
     if (!Mesh)
     {
         return;
@@ -1729,7 +1700,7 @@ void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData&
     {
         return;
     }
-    PreviewActor->InitializePreviewObject (ObjectData, Mesh, GetEditorPreviewMaterialForObject (ObjectData.Type));
+    PreviewActor->InitializePreviewObject (ObjectData, Mesh, Material);
     SpawnedEditorPreviewObjects.Add (PreviewActor);
 }
 
@@ -1795,4 +1766,39 @@ void AGridLevelRuntimeActor::SetEditorSelectedObject (FGuid ObjectId)
         }
         Actor->SetSelected (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
     }
+}
+
+const UGridObjectArchetypeAsset* AGridLevelRuntimeActor::FindObjectArchetype (FName ArchetypeId) const
+{
+    if (ArchetypeId.IsNone ())
+    {
+        return nullptr;
+    }
+
+    for (const UGridObjectArchetypeAsset* Archetype : ObjectArchetypes)
+    {
+        if (!Archetype)
+        {
+            continue;
+        }
+
+        if (Archetype->ArchetypeId == ArchetypeId)
+        {
+            return Archetype;
+        }
+    }
+
+    return nullptr;
+}
+
+UStaticMesh* AGridLevelRuntimeActor::GetObjectMesh (const FGridLevelObjectData& ObjectData) const
+{
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    return Archetype ? Archetype->PreviewMesh.Get () : nullptr;
+}
+
+UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelObjectData& ObjectData) const
+{
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    return Archetype ? Archetype->PreviewMaterial.Get () : nullptr;
 }
