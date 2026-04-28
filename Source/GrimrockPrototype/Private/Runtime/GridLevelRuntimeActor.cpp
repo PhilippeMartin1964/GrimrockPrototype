@@ -544,20 +544,13 @@ void AGridLevelRuntimeActor::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge 
 
 void AGridLevelRuntimeActor::HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
-        
+    AGridDoorActor* DoorActor =
+        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return;
     }
-
-    if (DoorActor->IsFullyOpen ())
-    {
-        SetDoorPassageBlocked (X, Y, Edge, false);
-    } else
-    {
-        SetDoorPassageBlocked (X, Y, Edge, true);
-    }
+    SetDoorPassageBlocked (X, Y, Edge, !DoorActor->IsFullyOpen ());
 }
 
 bool AGridLevelRuntimeActor::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const
@@ -567,18 +560,20 @@ bool AGridLevelRuntimeActor::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) co
 
 bool AGridLevelRuntimeActor::IsDoorOpenOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    const AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
+    const AGridDoorActor* DoorActor =
+        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
+
     return DoorActor && DoorActor->IsFullyOpen ();
 }
 
 bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
+    AGridDoorActor* DoorActor =
+        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return false;
     }
-
     DoorActor->OpenDoor ();
     SetDoorPassageBlocked (X, Y, Edge, true);
     return true;
@@ -586,12 +581,12 @@ bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 
 bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
+    AGridDoorActor* DoorActor =
+        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return false;
     }
-
     DoorActor->CloseDoor ();
     SetDoorPassageBlocked (X, Y, Edge, true);
     return true;
@@ -599,17 +594,16 @@ bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 
 bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
+    AGridDoorActor* DoorActor =
+        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return false;
     }
-
     if (DoorActor->IsFullyOpen ())
     {
         return CloseDoorOnEdge (X, Y, Edge);
     }
-
     if (DoorActor->IsFullyClosed ())
     {
         return OpenDoorOnEdge (X, Y, Edge);
@@ -617,14 +611,10 @@ bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 
     if (DoorActor->IsAnimating ())
     {
-        if (DoorActor->bIsOpen)
-        {
-            return CloseDoorOnEdge (X, Y, Edge);
-        }
-
-        return OpenDoorOnEdge (X, Y, Edge);
+        return DoorActor->bIsOpen
+            ? CloseDoorOnEdge (X, Y, Edge)
+            : OpenDoorOnEdge (X, Y, Edge);
     }
-
     return false;
 }
 
@@ -833,37 +823,9 @@ void AGridLevelRuntimeActor::AddRuntimeButtonActor (
     ButtonActor->InitializeButton (ButtonObjectData, Mesh, Material, Transform.GetLocation (), Transform.GetRotation ().Rotator ());
 }
 
-const FGridLevelObjectData* AGridLevelRuntimeActor::FindPressurePlateObjectAtCell (int32 X, int32 Y) const
-{
-    if (!LevelAsset)
-    {
-        return nullptr;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (ObjectData.Type != EGridLevelObjectType::PressurePlate)
-        {
-            continue;
-        }
-
-        if (ObjectData.CellX == X && ObjectData.CellY == Y)
-        {
-            return &ObjectData;
-        }
-    }
-
-    return nullptr;
-}
-
 bool AGridLevelRuntimeActor::ActivatePressurePlateAtCell (int32 X, int32 Y)
 {
-    const FGridLevelObjectData* PlateData = FindPressurePlateObjectAtCell (X, Y);
+    const FGridLevelObjectData* PlateData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
     if (!PlateData)
     {
         return false;
@@ -876,7 +838,8 @@ bool AGridLevelRuntimeActor::ActivatePressurePlateAtCell (int32 X, int32 Y)
 
     ActiveObjectIds.Add (PlateData->ObjectId);
 
-    if (AGridPressurePlateActor* PlateActor = FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
+    if (AGridPressurePlateActor* PlateActor =
+        FindRuntimeActorForObjectAtCell<AGridPressurePlateActor> (EGridLevelObjectType::PressurePlate, X, Y))
     {
         PlateActor->SetPressed (true);
     }
@@ -886,7 +849,7 @@ bool AGridLevelRuntimeActor::ActivatePressurePlateAtCell (int32 X, int32 Y)
 
 bool AGridLevelRuntimeActor::DeactivatePressurePlateAtCell (int32 X, int32 Y)
 {
-    const FGridLevelObjectData* PlateData = FindPressurePlateObjectAtCell (X, Y);
+    const FGridLevelObjectData* PlateData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
     if (!PlateData)
     {
         return false;
@@ -899,7 +862,8 @@ bool AGridLevelRuntimeActor::DeactivatePressurePlateAtCell (int32 X, int32 Y)
 
     ActiveObjectIds.Remove (PlateData->ObjectId);
 
-    if (AGridPressurePlateActor* PlateActor = FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
+    if (AGridPressurePlateActor* PlateActor = 
+        FindRuntimeActorForObjectAtCell<AGridPressurePlateActor> (EGridLevelObjectType::PressurePlate, X, Y))
     {
         PlateActor->SetPressed (false);
     }

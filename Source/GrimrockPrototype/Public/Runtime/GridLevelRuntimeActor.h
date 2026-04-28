@@ -213,8 +213,6 @@ private:
 
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
 
-    const FGridLevelObjectData* FindPressurePlateObjectAtCell (int32 X, int32 Y) const;
-
     bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
     bool ActivatePressurePlateAtCell (int32 X, int32 Y);
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
