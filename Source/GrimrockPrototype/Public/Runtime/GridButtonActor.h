@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "Core/GridTypes.h"
 #include "GridButtonActor.generated.h"
 
 class UStaticMeshComponent;
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridButtonActor : public AActor
+class GRIMROCKPROTOTYPE_API AGridButtonActor : public AGridRuntimeObjectActor
 {
     GENERATED_BODY ()
 
@@ -18,12 +18,6 @@ public:
     virtual void Tick (float DeltaSeconds) override;
 
 public:
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    USceneComponent* SceneRoot;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UStaticMeshComponent* ButtonMeshComponent;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Button")
     float PressDistance = 6.f;
 
@@ -36,30 +30,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Button")
     float HoldTime = 0.15f;
 
-    UPROPERTY (BlueprintReadOnly, Category = "Button")
-    int32 CellX = INDEX_NONE;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Button")
-    int32 CellY = INDEX_NONE;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Button")
-    EGridEdge Edge = EGridEdge::None;
-
     UFUNCTION (BlueprintCallable, Category = "Button")
-    void InitializeButton (
-        UStaticMesh* InButtonMesh,
-        UMaterialInterface* InMaterial,
-        const FVector& InWorldLocation,
-        const FRotator& InWorldRotation,
-        int32 InCellX,
-        int32 InCellY,
-        EGridEdge InEdge);
+    void InitializeButton (const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial,
+        const FVector& InWorldLocation, const FRotator& InWorldRotation);
 
     UFUNCTION (BlueprintCallable, Category = "Button")
     void TriggerPress ();
-
-    UFUNCTION (BlueprintCallable, Category = "Button")
-    bool MatchesEdge (int32 InCellX, int32 InCellY, EGridEdge InEdge) const;
 
 protected:
     void UpdateAnimation (float DeltaSeconds);

@@ -6,14 +6,6 @@
 AGridDoorActor::AGridDoorActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
-
-    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
-    SetRootComponent (SceneRoot);
-
-    DoorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("DoorMesh"));
-    DoorMeshComponent->SetupAttachment (SceneRoot);
-    DoorMeshComponent->SetMobility (EComponentMobility::Movable);
-    DoorMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
 void AGridDoorActor::Tick (float DeltaSeconds)
@@ -26,31 +18,10 @@ void AGridDoorActor::Tick (float DeltaSeconds)
     }
 }
 
-void AGridDoorActor::InitializeDoor (
-    UStaticMesh* InDoorMesh,
-    UMaterialInterface* InMaterial,
-    const FVector& ClosedWorldLocation,
-    const FRotator& WorldRotation,
-    int32 InCellX,
-    int32 InCellY,
-    EGridEdge InEdge,
-    bool bStartOpen)
+void AGridDoorActor::InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InDoorMesh, UMaterialInterface* InMaterial,
+    const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
 {
-    CellX = InCellX;
-    CellY = InCellY;
-    Edge = InEdge;
-
-    if (DoorMeshComponent)
-    {
-        DoorMeshComponent->SetStaticMesh (InDoorMesh);
-
-        if (InMaterial)
-        {
-            DoorMeshComponent->SetMaterial (0, InMaterial);
-        }
-    }
-
-    SetActorRotation (WorldRotation);
+    InitializeGridObjectBase (ObjectData, InDoorMesh, InMaterial, ClosedWorldLocation, WorldRotation);
 
     ClosedLocation = ClosedWorldLocation;
     OpenLocation = ClosedLocation + FVector (0.f, 0.f, OpenHeight);
@@ -116,11 +87,6 @@ void AGridDoorActor::OpenDoor ()
 void AGridDoorActor::CloseDoor ()
 {
     SetDoorOpenState (false);
-}
-
-bool AGridDoorActor::MatchesEdge (int32 InCellX, int32 InCellY, EGridEdge InEdge) const
-{
-    return CellX == InCellX && CellY == InCellY && Edge == InEdge;
 }
 
 void AGridDoorActor::UpdateAnimation (float DeltaSeconds)

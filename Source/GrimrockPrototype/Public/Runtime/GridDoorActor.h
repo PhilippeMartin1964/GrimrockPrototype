@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "Core/GridTypes.h"
 #include "GridDoorActor.generated.h"
 
@@ -15,7 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
 );
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridDoorActor : public AActor
+class GRIMROCKPROTOTYPE_API AGridDoorActor : public AGridRuntimeObjectActor
 {
     GENERATED_BODY ()
 
@@ -25,12 +25,6 @@ public:
     virtual void Tick (float DeltaSeconds) override;
 
 public:
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    USceneComponent* SceneRoot;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UStaticMeshComponent* DoorMeshComponent;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Door")
     float OpenHeight = 180.f;
 
@@ -40,25 +34,9 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Door")
     bool bIsOpen = false;
 
-    UPROPERTY (BlueprintReadOnly, Category = "Door")
-    int32 CellX = INDEX_NONE;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Door")
-    int32 CellY = INDEX_NONE;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Door")
-    EGridEdge Edge = EGridEdge::None;
-
     UFUNCTION (BlueprintCallable, Category = "Door")
-    void InitializeDoor (
-        UStaticMesh* InDoorMesh,
-        UMaterialInterface* InMaterial,
-        const FVector& ClosedWorldLocation,
-        const FRotator& WorldRotation,
-        int32 InCellX,
-        int32 InCellY,
-        EGridEdge InEdge,
-        bool bStartOpen);
+    void InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InDoorMesh, UMaterialInterface* InMaterial,
+        const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
 
     UFUNCTION (BlueprintCallable, Category = "Door")
     void SetDoorOpenState (bool bOpen);
@@ -68,9 +46,6 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Door")
     void CloseDoor ();
-
-    UFUNCTION (BlueprintCallable, Category = "Door")
-    bool MatchesEdge (int32 InCellX, int32 InCellY, EGridEdge InEdge) const;
 
     UFUNCTION (BlueprintCallable, Category = "Door")
     bool IsFullyOpen () const { return bIsOpen && !bIsAnimating; }

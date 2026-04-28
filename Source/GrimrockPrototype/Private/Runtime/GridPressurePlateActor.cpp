@@ -1,19 +1,8 @@
 #include "Runtime/GridPressurePlateActor.h"
 
-#include "Components/SceneComponent.h"
-#include "Components/StaticMeshComponent.h"
-
 AGridPressurePlateActor::AGridPressurePlateActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
-
-    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
-    SetRootComponent (SceneRoot);
-
-    PlateMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("PlateMesh"));
-    PlateMeshComponent->SetupAttachment (SceneRoot);
-    PlateMeshComponent->SetMobility (EComponentMobility::Movable);
-    PlateMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
 void AGridPressurePlateActor::Tick (float DeltaSeconds)
@@ -26,26 +15,10 @@ void AGridPressurePlateActor::Tick (float DeltaSeconds)
     }
 }
 
-void AGridPressurePlateActor::InitializePlate (
-    UStaticMesh* InPlateMesh,
-    UMaterialInterface* InMaterial,
-    const FVector& InWorldLocation,
-    int32 InCellX,
-    int32 InCellY,
-    bool bStartPressed)
+void AGridPressurePlateActor::InitializePlate (const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, UMaterialInterface* InMaterial,
+    const FVector& InWorldLocation, bool bStartPressed)
 {
-    CellX = InCellX;
-    CellY = InCellY;
-
-    if (PlateMeshComponent)
-    {
-        PlateMeshComponent->SetStaticMesh (InPlateMesh);
-
-        if (InMaterial)
-        {
-            PlateMeshComponent->SetMaterial (0, InMaterial);
-        }
-    }
+    InitializeGridObjectBase (ObjectData, InPlateMesh, InMaterial, InWorldLocation, FRotator::ZeroRotator);
 
     ReleasedLocation = InWorldLocation + FVector (0.f, 0.f, ReleasedHeightAboveFloor);
     PressedLocation = InWorldLocation + FVector (0.f, 0.f, PressedHeightAboveFloor);
@@ -70,11 +43,6 @@ void AGridPressurePlateActor::SetPressed (bool bNewPressed)
 
     AnimStartLocation = GetActorLocation ();
     AnimTargetLocation = bIsPressed ? PressedLocation : ReleasedLocation;
-}
-
-bool AGridPressurePlateActor::MatchesCell (int32 InCellX, int32 InCellY) const
-{
-    return CellX == InCellX && CellY == InCellY;
 }
 
 void AGridPressurePlateActor::UpdateAnimation (float DeltaSeconds)

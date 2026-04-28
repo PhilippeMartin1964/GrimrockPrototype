@@ -1,19 +1,8 @@
 #include "Runtime/GridButtonActor.h"
 
-#include "Components/SceneComponent.h"
-#include "Components/StaticMeshComponent.h"
-
 AGridButtonActor::AGridButtonActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
-
-    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
-    SetRootComponent (SceneRoot);
-
-    ButtonMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("ButtonMesh"));
-    ButtonMeshComponent->SetupAttachment (SceneRoot);
-    ButtonMeshComponent->SetMobility (EComponentMobility::Movable);
-    ButtonMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
 void AGridButtonActor::Tick (float DeltaSeconds)
@@ -22,35 +11,12 @@ void AGridButtonActor::Tick (float DeltaSeconds)
     UpdateAnimation (DeltaSeconds);
 }
 
-void AGridButtonActor::InitializeButton (
-    UStaticMesh* InButtonMesh,
-    UMaterialInterface* InMaterial,
-    const FVector& InWorldLocation,
-    const FRotator& InWorldRotation,
-    int32 InCellX,
-    int32 InCellY,
-    EGridEdge InEdge)
+void AGridButtonActor::InitializeButton (const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial,
+    const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
-    CellX = InCellX;
-    CellY = InCellY;
-    Edge = InEdge;
-
-    if (ButtonMeshComponent)
-    {
-        ButtonMeshComponent->SetStaticMesh (InButtonMesh);
-
-        if (InMaterial)
-        {
-            ButtonMeshComponent->SetMaterial (0, InMaterial);
-        }
-    }
-
-    SetActorRotation (InWorldRotation);
-
+	InitializeGridObjectBase (ObjectData, InButtonMesh, InMaterial, InWorldLocation, InWorldRotation);
     ReleasedLocation = InWorldLocation;
     PressedLocation = ReleasedLocation + (GetPressAxis () * PressDistance);
-
-    SetActorLocation (ReleasedLocation);
 
     AnimState = EButtonAnimState::Idle;
     StateElapsed = 0.f;
@@ -60,11 +26,6 @@ void AGridButtonActor::TriggerPress ()
 {
     AnimState = EButtonAnimState::Pressing;
     StateElapsed = 0.f;
-}
-
-bool AGridButtonActor::MatchesEdge (int32 InCellX, int32 InCellY, EGridEdge InEdge) const
-{
-    return CellX == InCellX && CellY == InCellY && Edge == InEdge;
 }
 
 FVector AGridButtonActor::GetPressAxis () const

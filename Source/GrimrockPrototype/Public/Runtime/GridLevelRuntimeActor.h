@@ -13,6 +13,46 @@ class AGridPressurePlateActor;
 class AGridEditorPreviewObjectActor;
 class UGridObjectArchetypeAsset;
 
+USTRUCT ()
+struct FGridObjectEdgeKey
+{
+    GENERATED_BODY ()
+
+    UPROPERTY ()
+    int32 X = INDEX_NONE;
+
+    UPROPERTY ()
+    int32 Y = INDEX_NONE;
+
+    UPROPERTY ()
+    EGridEdge Edge = EGridEdge::None;
+
+    FGridObjectEdgeKey () = default;
+
+    FGridObjectEdgeKey (int32 InX, int32 InY, EGridEdge InEdge)
+        : X (InX)
+        , Y (InY)
+        , Edge (InEdge)
+    {}
+
+    friend bool operator== (
+        const FGridObjectEdgeKey& A,
+        const FGridObjectEdgeKey& B)
+    {
+        return A.X == B.X &&
+            A.Y == B.Y &&
+            A.Edge == B.Edge;
+    }
+};
+
+FORCEINLINE uint32 GetTypeHash (const FGridObjectEdgeKey& Key)
+{
+    uint32 Hash = GetTypeHash (Key.X);
+    Hash = HashCombine (Hash, GetTypeHash (Key.Y));
+    Hash = HashCombine (Hash, GetTypeHash (static_cast<uint8> (Key.Edge)));
+    return Hash;
+}
+
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor
 {
@@ -157,12 +197,12 @@ protected:
     virtual void BeginPlay () override;
 
 private:
-    TSet<FString> RuntimeBlockedDoorEdges;
+    UPROPERTY (Transient)
+    TSet<FGridObjectEdgeKey> RuntimeBlockedDoorEdges;
 
     void AddRuntimeDoorActor (const FGridLevelObjectData& DoorObjectData);
 
     AGridDoorActor* FindRuntimeDoorActor (int32 X, int32 Y, EGridEdge Edge) const;
-    const FGridLevelObjectData* FindDoorObjectData (int32 X, int32 Y, EGridEdge Edge) const;
 
     void GetEdgeTransform (
         int32 X,
@@ -172,7 +212,6 @@ private:
         FVector& OutWorldLocation,
         FRotator& OutWorldRotation) const;
 
-    FString MakeDoorEdgeKey (int32 X, int32 Y, EGridEdge Edge) const;
     void SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked);
 
     UFUNCTION ()
@@ -232,6 +271,8 @@ private:
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AActor* Actor);
     void ClearRuntimeObjectActors ();
 
+    bool IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const;
+
     template<typename T>
     T* FindRuntimeObjectActor (const FGuid& ObjectId) const
     {
@@ -281,15 +322,10 @@ private:
         }
         FActorSpawnParameters Params;
         Params.Owner = this;
-        Params.SpawnCollisionHandlingOverride =
-            ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
         TActor* Actor = World->SpawnActor<TActor> (
-            ActorClass,
-            OutTransform.GetLocation (),
-            OutTransform.GetRotation ().Rotator (),
-            Params);
-
+            ActorClass, OutTransform.GetLocation (), OutTransform.GetRotation ().Rotator (), Params);
         if (!Actor)
         {
             return nullptr;

@@ -1,19 +1,10 @@
 #include "Runtime/GridLeverActor.h"
 
 #include "Components/SceneComponent.h"
-#include "Components/StaticMeshComponent.h"
 
 AGridLeverActor::AGridLeverActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
-
-    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
-    SetRootComponent (SceneRoot);
-
-    LeverMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("LeverMesh"));
-    LeverMeshComponent->SetupAttachment (SceneRoot);
-    LeverMeshComponent->SetMobility (EComponentMobility::Movable);
-    LeverMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
 }
 
 void AGridLeverActor::Tick (float DeltaSeconds)
@@ -26,32 +17,10 @@ void AGridLeverActor::Tick (float DeltaSeconds)
     }
 }
 
-void AGridLeverActor::InitializeLever (
-    UStaticMesh* InLeverMesh,
-    UMaterialInterface* InMaterial,
-    const FVector& InWorldLocation,
-    const FRotator& InWorldRotation,
-    int32 InCellX,
-    int32 InCellY,
-    EGridEdge InEdge,
-    bool bStartOn)
+void AGridLeverActor::InitializeLever (const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh, UMaterialInterface* InMaterial,
+    const FVector& InWorldLocation, const FRotator& InWorldRotation, bool bStartOn)
 {
-    CellX = InCellX;
-    CellY = InCellY;
-    Edge = InEdge;
-
-    if (LeverMeshComponent)
-    {
-        LeverMeshComponent->SetStaticMesh (InLeverMesh);
-
-        if (InMaterial)
-        {
-            LeverMeshComponent->SetMaterial (0, InMaterial);
-        }
-    }
-
-    SetActorLocation (InWorldLocation);
-    SetActorRotation (InWorldRotation);
+    InitializeGridObjectBase (ObjectData, InLeverMesh, InMaterial, InWorldLocation, InWorldRotation);
 
     OffRelativeRotation = FRotator (LeverOffPitch, 0.f, 0.f);
     OnRelativeRotation = FRotator (LeverOnPitch, 0.f, 0.f);
@@ -60,7 +29,7 @@ void AGridLeverActor::InitializeLever (
     bIsAnimating = false;
     AnimElapsed = 0.f;
 
-    LeverMeshComponent->SetRelativeRotation (bIsOn ? OnRelativeRotation : OffRelativeRotation);
+    MeshComponent->SetRelativeRotation (bIsOn ? OnRelativeRotation : OffRelativeRotation);
 }
 
 void AGridLeverActor::SetLeverState (bool bNewOn)
@@ -74,18 +43,13 @@ void AGridLeverActor::SetLeverState (bool bNewOn)
     AnimElapsed = 0.f;
     bIsAnimating = true;
 
-    AnimStartRotation = LeverMeshComponent->GetRelativeRotation ();
+    AnimStartRotation = MeshComponent->GetRelativeRotation ();
     AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
 }
 
 void AGridLeverActor::ToggleLever ()
 {
     SetLeverState (!bIsOn);
-}
-
-bool AGridLeverActor::MatchesEdge (int32 InCellX, int32 InCellY, EGridEdge InEdge) const
-{
-    return CellX == InCellX && CellY == InCellY && Edge == InEdge;
 }
 
 void AGridLeverActor::UpdateAnimation (float DeltaSeconds)
@@ -95,12 +59,12 @@ void AGridLeverActor::UpdateAnimation (float DeltaSeconds)
     AnimElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (AnimElapsed / SafeDuration, 0.f, 1.f);
 
-    LeverMeshComponent->SetRelativeRotation (
+    MeshComponent->SetRelativeRotation (
         FMath::Lerp (AnimStartRotation, AnimTargetRotation, Alpha));
 
     if (Alpha >= 1.f)
     {
-        LeverMeshComponent->SetRelativeRotation (AnimTargetRotation);
+        MeshComponent->SetRelativeRotation (AnimTargetRotation);
         bIsAnimating = false;
         AnimElapsed = 0.f;
     }
