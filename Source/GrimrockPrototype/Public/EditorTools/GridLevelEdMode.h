@@ -4,6 +4,8 @@
 
 #if WITH_EDITOR
 #include "EdMode.h"
+#include "Core/GridTypes.h"
+#include "GridLevelEditorActor.h"
 
 class AGridLevelEditorActor;
 class FGridLevelEdModeToolkit;
@@ -55,5 +57,13 @@ private:
     bool bIsPainting = false;
     bool bIsErasing = false;
     TSharedPtr<FGridLevelEdModeToolkit> Toolkit;
+
+    mutable int32 LastPaintCellX = INDEX_NONE;
+    mutable int32 LastPaintCellY = INDEX_NONE;
+    mutable EGridEdge LastPaintEdge = EGridEdge::None;
+    mutable EGridEditorTool LastPaintTool = EGridEditorTool::Select;
+
+    void ResetPaintCache () const;
+    bool ShouldApplyPaintForCurrentSelection (const AGridLevelEditorActor* EditorActor) const;
 };
 #endif

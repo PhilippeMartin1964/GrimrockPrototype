@@ -303,6 +303,16 @@ void AGridLevelEditorActor::PaintSelectedCell ()
         return;
     }
 
+    const bool bAlreadySame =
+        CellData->CellType == PaintCellType &&
+        CellData->bHasCeiling == bPaintCellHasCeiling &&
+        CellData->bBlocksOccupancy == bPaintCellBlocksOccupancy;
+
+    if (bAlreadySame)
+    {
+        return;
+    }
+
 #if WITH_EDITOR
     LevelAsset->Modify ();
 #endif

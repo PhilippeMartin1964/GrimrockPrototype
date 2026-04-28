@@ -97,6 +97,11 @@ namespace
 
 const FEditorModeID FGridLevelEdMode::EM_GridLevelEdModeId = TEXT ("EM_GrimrockGridLevelEdMode");
 
+static bool IsRightMouseButtonDown (FViewport* Viewport)
+{
+    return Viewport && Viewport->KeyState (EKeys::RightMouseButton);
+}
+
 AGridLevelEditorActor* FGridLevelEdMode::FindEditorActor () const
 {
     if (!GEditor)
@@ -203,39 +208,55 @@ void FGridLevelEdMode::ApplyErase () const
 
 bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
+    if (Key == EKeys::RightMouseButton)
+    {
+        bIsPainting = false;
+        ResetPaintCache ();
+
+        return FEdMode::InputKey (ViewportClient, Viewport, Key, Event);
+    }
+    if (IsRightMouseButtonDown (Viewport))
+    {
+        bIsPainting = false;
+        ResetPaintCache ();
+
+        return FEdMode::InputKey (ViewportClient, Viewport, Key, Event);
+    }
     if (Key == EKeys::LeftMouseButton)
     {
         if (Event == IE_Pressed)
         {
             bIsPainting = true;
+            ResetPaintCache ();
 
             FIntPoint MousePos;
             Viewport->GetMousePos (MousePos);
+
             if (UpdateHoverFromMouse (ViewportClient, Viewport, MousePos.X, MousePos.Y))
             {
-                ApplyPaint ();
+                if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
+                {
+                    if (ShouldApplyPaintForCurrentSelection (EditorActor))
+                    {
+                        ApplyPaint ();
+                    }
+                }
             }
-
             return true;
         }
-
         if (Event == IE_Released)
         {
             bIsPainting = false;
+            ResetPaintCache ();
             return true;
         }
     }
-
     return FEdMode::InputKey (ViewportClient, Viewport, Key, Event);
 }
 
 bool FGridLevelEdMode::MouseMove (FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 X, int32 Y)
 {
-    if (UpdateHoverFromMouse (ViewportClient, Viewport, X, Y))
-    {
-        return true;
-    }
-
+    UpdateHoverFromMouse (ViewportClient, Viewport, X, Y);
     return FEdMode::MouseMove (ViewportClient, Viewport, X, Y);
 }
 
@@ -244,9 +265,23 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (
     FViewport* InViewport,
     const TArrayView<FIntPoint>& MouseMoves)
 {
+    if (IsRightMouseButtonDown (InViewport))
+    {
+        bIsPainting = false;
+        ResetPaintCache ();
+
+        return FEdMode::ProcessCapturedMouseMoves (
+            InViewportClient,
+            InViewport,
+            MouseMoves);
+    }
+
     if (!bIsPainting)
     {
-        return FEdMode::ProcessCapturedMouseMoves (InViewportClient, InViewport, MouseMoves);
+        return FEdMode::ProcessCapturedMouseMoves (
+            InViewportClient,
+            InViewport,
+            MouseMoves);
     }
 
     FIntPoint MousePos;
@@ -254,9 +289,12 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (
 
     if (UpdateHoverFromMouse (InViewportClient, InViewport, MousePos.X, MousePos.Y))
     {
-        if (bIsPainting)
+        if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
         {
-            ApplyPaint ();
+            if (ShouldApplyPaintForCurrentSelection (EditorActor))
+            {
+                ApplyPaint ();
+            }
         }
     }
 
@@ -288,9 +326,7 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
         case EGridEditorTool::Link:        MainColor = FColor::Cyan; break;
         default: break;
     }
-    DrawWireBox (PDI, 
-        FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 300.f)), 
-        MainColor, SDPG_Foreground);
+    DrawWireBox (PDI, FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 300.f)), MainColor, SDPG_Foreground);
 
     const FVector EdgeCenter = [&] ()
     {
@@ -382,6 +418,37 @@ void FGridLevelEdMode::Exit ()
     }
 
     FEdMode::Exit ();
+}
+
+void FGridLevelEdMode::ResetPaintCache () const
+{
+    LastPaintCellX = INDEX_NONE;
+    LastPaintCellY = INDEX_NONE;
+    LastPaintEdge = EGridEdge::None;
+    LastPaintTool = EGridEditorTool::Select;
+}
+
+bool FGridLevelEdMode::ShouldApplyPaintForCurrentSelection (const AGridLevelEditorActor* EditorActor) const
+{
+    if (!EditorActor)
+    {
+        return false;
+    }
+
+    if (EditorActor->SelectedCellX == LastPaintCellX &&
+        EditorActor->SelectedCellY == LastPaintCellY &&
+        EditorActor->SelectedEdge == LastPaintEdge &&
+        EditorActor->ActiveTool == LastPaintTool)
+    {
+        return false;
+    }
+
+    LastPaintCellX = EditorActor->SelectedCellX;
+    LastPaintCellY = EditorActor->SelectedCellY;
+    LastPaintEdge = EditorActor->SelectedEdge;
+    LastPaintTool = EditorActor->ActiveTool;
+
+    return true;
 }
 
 #endif

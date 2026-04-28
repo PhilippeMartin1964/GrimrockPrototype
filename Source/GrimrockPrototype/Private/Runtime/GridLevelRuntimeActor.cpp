@@ -5,6 +5,7 @@
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
+#include "EngineUtils.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -1520,11 +1521,33 @@ void AGridLevelRuntimeActor::AddEditorObjectInstance (
 
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
 {
-    for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+    UWorld* World = GetWorld ();
+
+    if (World)
     {
-        if (IsValid (Actor))
+        for (TActorIterator<AGridEditorPreviewObjectActor> It (World); It; ++It)
         {
-            Actor->Destroy ();
+            AGridEditorPreviewObjectActor* PreviewActor = *It;
+
+            if (!IsValid (PreviewActor))
+            {
+                continue;
+            }
+
+            if (PreviewActor->GetOwner () == this ||
+                SpawnedEditorPreviewObjects.Contains (PreviewActor))
+            {
+                PreviewActor->Destroy ();
+            }
+        }
+    } else
+    {
+        for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+        {
+            if (IsValid (Actor))
+            {
+                Actor->Destroy ();
+            }
         }
     }
 
