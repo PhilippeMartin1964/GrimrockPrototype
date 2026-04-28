@@ -348,24 +348,16 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPaletteSection ()
     if (!EditorActor)
     {
         Root->AddSlot ().AutoHeight ()
-            [
-                SNew (STextBlock).Text (FText::FromString (TEXT ("No GridLevelEditorActor found.")))
-            ];
+            [SNew (STextBlock).Text (FText::FromString (TEXT ("No GridLevelEditorActor found.")))];
         return Root;
     }
-
     if (!EditorActor->ObjectPalette)
     {
         Root->AddSlot ().AutoHeight ()
-            [
-                SNew (STextBlock).Text (FText::FromString (TEXT ("No ObjectPalette assigned.")))
-            ];
+            [SNew (STextBlock).Text (FText::FromString (TEXT ("No ObjectPalette assigned.")))];
         return Root;
     }
-
-    TSharedRef<SUniformGridPanel> Grid = SNew (SUniformGridPanel)
-        .SlotPadding (FMargin (4.f));
-
+    TSharedRef<SUniformGridPanel> Grid = SNew (SUniformGridPanel).SlotPadding (FMargin (4.f));
     int32 Index = 0;
 
     for (const FGridObjectPaletteEntry& Entry : EditorActor->ObjectPalette->Entries)
@@ -373,30 +365,17 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPaletteSection ()
         const int32 Row = Index / 5;
         const int32 Column = Index % 5;
 
-        Grid->AddSlot (Column, Row)
-            [
-                BuildPaletteTile (Entry)
-            ];
-
+        Grid->AddSlot (Column, Row)[BuildPaletteTile (Entry)];
         ++Index;
     }
-
-    Root->AddSlot ().AutoHeight ()
-        [
-            Grid
-        ];
-
+    Root->AddSlot ().AutoHeight () [Grid];
     Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
-        [
-            SNew (STextBlock)
-                .Text_Lambda ([this] ()
-            {
-                return FText::Format (
-                    FText::FromString (TEXT ("Selected Palette Entry: {0}")),
-                    GetSelectedPaletteEntryText ());
-            })
+        [SNew (STextBlock).Text_Lambda ([this] ()
+    {
+        return FText::Format (FText::FromString (TEXT ("Selected Palette Entry: {0}")),
+            GetSelectedPaletteEntryText ());
+    })
         ];
-
     return Root;
 }
 

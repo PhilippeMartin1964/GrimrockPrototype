@@ -35,4 +35,19 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
     FGridObjectBehaviorParams DefaultBehavior;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
+    FName Category = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    bool bPlaceOnEdge = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    bool bPlaceAtCellCenter = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    TObjectPtr<UMaterialInterface> PreviewMaterial = nullptr;
 };
