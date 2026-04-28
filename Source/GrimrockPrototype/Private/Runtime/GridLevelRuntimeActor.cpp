@@ -1152,48 +1152,36 @@ bool AGridLevelRuntimeActor::GetCenteredObjectTransform (
     return true;
 }
 
-bool AGridLevelRuntimeActor::GetObjectPlacementTransform (
-    const FGridLevelObjectData& ObjectData,
-    FTransform& OutTransform) const
+bool AGridLevelRuntimeActor::GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const
 {
     if (!LevelAsset)
     {
         return false;
     }
-
-    switch (ObjectData.Type)
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    if (!Archetype)
     {
-        case EGridLevelObjectType::Door:
-        {
-            FVector Pos = FVector::ZeroVector;
-            FRotator Rot = FRotator::ZeroRotator;
-
-            GetEdgeTransform (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, LevelAsset->CellSize, Pos, Rot);
-
-            OutTransform = FTransform (Rot, Pos, FVector::OneVector);
-            return true;
-        }
-
-        case EGridLevelObjectType::Button:
-        return GetWallMountedObjectTransform (ObjectData, 80.f, 6.f, OutTransform);
-
-        case EGridLevelObjectType::Lever:
-        return GetWallMountedObjectTransform (ObjectData, 95.f, 8.f, OutTransform);
-
-        case EGridLevelObjectType::PressurePlate:
-        return GetCenteredObjectTransform (ObjectData, 0.f, OutTransform);
-
-        case EGridLevelObjectType::Decoration:
-        case EGridLevelObjectType::MonsterSpawn:
-        case EGridLevelObjectType::ItemSpawn:
-        case EGridLevelObjectType::Light:
-        case EGridLevelObjectType::Teleporter:
-        case EGridLevelObjectType::Trigger:
-        return GetCenteredObjectTransform (ObjectData, 12.f, OutTransform);
-
-        default:
         return false;
     }
+    if (ObjectData.Type == EGridLevelObjectType::Door)
+    {
+        FVector Pos = FVector::ZeroVector;
+        FRotator Rot = FRotator::ZeroRotator;
+
+        GetEdgeTransform (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, LevelAsset->CellSize, Pos, Rot);
+
+        OutTransform = FTransform (Rot, Pos, FVector::OneVector);
+        return true;
+    }
+    if (Archetype->bPlaceOnEdge)
+    {
+        return GetWallMountedObjectTransform (ObjectData, Archetype->PlacementZOffset, Archetype->WallInset, OutTransform);
+    }
+    if (Archetype->bPlaceAtCellCenter)
+    {
+        return GetCenteredObjectTransform (ObjectData, Archetype->PlacementZOffset, OutTransform);
+    }
+    return false;
 }
 
 void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor)

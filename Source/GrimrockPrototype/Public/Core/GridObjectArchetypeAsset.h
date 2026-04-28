@@ -55,4 +55,10 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")
     TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
+    float PlacementZOffset = 12.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
+    float WallInset = 6.f;
 };
