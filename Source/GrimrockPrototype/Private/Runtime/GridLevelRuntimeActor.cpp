@@ -59,10 +59,8 @@ void AGridLevelRuntimeActor::ClearVisuals ()
         CeilingISM->EmptyOverrideMaterials ();
     }
 
-    ClearRuntimeDoors ();
-    ClearRuntimeButtons ();
-    ClearRuntimeLevers ();
-    ClearRuntimePressurePlates ();
+    ClearRuntimeObjectActors ();
+    RuntimeBlockedDoorEdges.Empty ();
     ClearEditorPreviewObjects ();
     ActiveObjectIds.Empty ();
     if (EditorSolidBlockISM)
@@ -336,10 +334,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
     }
     if (bIsGameWorld)
     {
-        RebuildRuntimeDoors ();
-        RebuildRuntimeButtons ();
-        RebuildRuntimeLevers ();
-        RebuildRuntimePressurePlates ();
+        RebuildRuntimeObjects ();
     }
 }
 
@@ -470,28 +465,6 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
     }
 }
 
-void AGridLevelRuntimeActor::ClearRuntimeDoors ()
-{
-    UWorld* World = GetWorld ();
-    if (!World)
-    {
-        SpawnedDoorActors.Empty ();
-        RuntimeBlockedDoorEdges.Empty ();
-        return;
-    }
-
-    for (AGridDoorActor* DoorActor : SpawnedDoorActors)
-    {
-        if (IsValid (DoorActor))
-        {
-            DoorActor->Destroy ();
-        }
-    }
-
-    SpawnedDoorActors.Empty ();
-    RuntimeBlockedDoorEdges.Empty ();
-}
-
 void AGridLevelRuntimeActor::GetEdgeTransform (
     int32 X,
     int32 Y,
@@ -536,7 +509,9 @@ void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& Do
     UStaticMesh* Mesh = GetObjectMesh (DoorObjectData);
     UMaterialInterface* Material = GetObjectMaterial (DoorObjectData);
 
-    if (!DoorActorClass || !LevelAsset || !Mesh)
+    TSubclassOf<AActor> ActorClass = GetObjectRuntimeActorClass (DoorObjectData);
+
+    if (!ActorClass || !LevelAsset || !Mesh)
     {
         return;
     }
@@ -546,27 +521,20 @@ void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& Do
         return;
     }
 
-    FVector DoorWorldLocation = FVector::ZeroVector;
-    FRotator DoorWorldRotation = FRotator::ZeroRotator;
-    GetEdgeTransform (
-        DoorObjectData.CellX,
-        DoorObjectData.CellY,
-        DoorObjectData.Edge,
-        LevelAsset->CellSize,
-        DoorWorldLocation,
-        DoorWorldRotation
-    );
+    FTransform PlacementTransform;
+    if (!GetObjectPlacementTransform (DoorObjectData, PlacementTransform))
+    {
+        return;
+    }
+    const FVector DoorWorldLocation = PlacementTransform.GetLocation ();
+    const FRotator DoorWorldRotation = PlacementTransform.GetRotation ().Rotator ();
 
     FActorSpawnParameters Params;
     Params.Owner = this;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    AGridDoorActor* DoorActor = World->SpawnActor<AGridDoorActor> (
-        DoorActorClass,
-        DoorWorldLocation,
-        DoorWorldRotation,
-        Params
-    );
+    AGridDoorActor* DoorActor = World->SpawnActor<AGridDoorActor> (ActorClass,
+        DoorWorldLocation, DoorWorldRotation, Params);
 
     if (!DoorActor)
     {
@@ -575,16 +543,8 @@ void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& Do
 
     const bool bStartOpen = DoorObjectData.bInitiallyActive;
 
-    DoorActor->InitializeDoor (
-        Mesh,
-        Material,
-        DoorWorldLocation,
-        DoorWorldRotation,
-        DoorObjectData.CellX,
-        DoorObjectData.CellY,
-        DoorObjectData.Edge,
-        bStartOpen
-    );
+    DoorActor->InitializeDoor (Mesh, Material, DoorWorldLocation, DoorWorldRotation,
+        DoorObjectData.CellX, DoorObjectData.CellY, DoorObjectData.Edge, bStartOpen);
 
     DoorActor->OnDoorAnimationFinished.AddDynamic (
         this,
@@ -597,58 +557,14 @@ void AGridLevelRuntimeActor::AddRuntimeDoorActor (const FGridLevelObjectData& Do
         DoorObjectData.Edge,
         !bStartOpen
     );
-
-    SpawnedDoorActors.Add (DoorActor);
-}
-
-void AGridLevelRuntimeActor::RebuildRuntimeDoors ()
-{
-    ClearRuntimeDoors ();
-
-    if (!LevelAsset || !DoorActorClass)
-    {
-        return;
-    }
-
-    LevelAsset->EnsureCellCount ();
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type != EGridLevelObjectType::Door)
-        {
-            continue;
-        }
-
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
-        {
-            continue;
-        }
-
-        if (ObjectData.Edge == EGridEdge::None)
-        {
-            continue;
-        }
-
-        AddRuntimeDoorActor (ObjectData);
-    }
+    RegisterRuntimeObjectActor (DoorObjectData.ObjectId, DoorActor);
 }
 
 AGridDoorActor* AGridLevelRuntimeActor::FindRuntimeDoorActor (int32 X, int32 Y, EGridEdge Edge) const
 {
-    for (AGridDoorActor* DoorActor : SpawnedDoorActors)
-    {
-        if (IsValid (DoorActor) && DoorActor->MatchesEdge (X, Y, Edge))
-        {
-            return DoorActor;
-        }
-    }
+    const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (EGridLevelObjectType::Door, X, Y, Edge);
 
-    return nullptr;
+    return ObjectData ? FindRuntimeObjectActor<AGridDoorActor> (ObjectData->ObjectId) : nullptr;
 }
 
 const FGridLevelObjectData* AGridLevelRuntimeActor::FindDoorObjectData (int32 X, int32 Y, EGridEdge Edge) const
@@ -963,149 +879,48 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY
     return ActivateObject (*ObjectData);
 }
 
-void AGridLevelRuntimeActor::ClearRuntimeButtons ()
-{
-    UWorld* World = GetWorld ();
-    if (!World)
-    {
-        SpawnedButtonActors.Empty ();
-        return;
-    }
-
-    for (AGridButtonActor* ButtonActor : SpawnedButtonActors)
-    {
-        if (IsValid (ButtonActor))
-        {
-            ButtonActor->Destroy ();
-        }
-    }
-
-    SpawnedButtonActors.Empty ();
-}
-
 void AGridLevelRuntimeActor::AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData)
 {
     UStaticMesh* Mesh = GetObjectMesh (ButtonObjectData);
     UMaterialInterface* Material = GetObjectMaterial (ButtonObjectData);
 
-    if (!ButtonActorClass || !LevelAsset || !Mesh)
+    TSubclassOf<AActor> ActorClass = GetObjectRuntimeActorClass (ButtonObjectData);
+
+    if (!ActorClass || !LevelAsset || !Mesh)
     {
         return;
-    }
-    UWorld* World = GetWorld ();
+    }    UWorld* World = GetWorld ();
     if (!World)
     {
         return;
     }
-
-    const float CellSize = LevelAsset->CellSize;
-    const FVector Base = GetActorLocation () + CellToWorld (ButtonObjectData.CellX, ButtonObjectData.CellY, 80.f);
-
-    FVector Pos = Base;
-    FRotator Rot = FRotator::ZeroRotator;
-    const float WallInset = 6.f;
-
-    switch (ButtonObjectData.Edge)
+    FTransform PlacementTransform;
+    if (!GetObjectPlacementTransform (ButtonObjectData, PlacementTransform))
     {
-        case EGridEdge::North:
-            Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-            Rot = FRotator (0.f, 90.f, 0.f);
-            break;
-
-        case EGridEdge::East:
-            Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 0.f, 0.f);
-            break;
-
-        case EGridEdge::South:
-            Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-            Rot = FRotator (0.f, -90.f, 0.f);
-            break;
-
-        case EGridEdge::West:
-            Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 180.f, 0.f);
-            break;
-
-        default:
-            return;
+        return;
     }
+
+    const FVector Pos = PlacementTransform.GetLocation ();
+    const FRotator Rot = PlacementTransform.GetRotation ().Rotator ();
 
     FActorSpawnParameters Params;
     Params.Owner = this;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    AGridButtonActor* ButtonActor = World->SpawnActor<AGridButtonActor> (
-        ButtonActorClass,
-        Pos,
-        Rot,
-        Params
-    );
-
+    AGridButtonActor* ButtonActor =
+        World->SpawnActor<AGridButtonActor> (ActorClass, Pos, Rot, Params);
     if (!ButtonActor)
     {
         return;
     }
-
-    ButtonActor->InitializeButton (
-        Mesh,
-        Material,
-        Pos,
-        Rot,
-        ButtonObjectData.CellX,
-        ButtonObjectData.CellY,
-        ButtonObjectData.Edge
-    );
-
-    SpawnedButtonActors.Add (ButtonActor);
-}
-
-void AGridLevelRuntimeActor::RebuildRuntimeButtons ()
-{
-    ClearRuntimeButtons ();
-
-    if (!LevelAsset || !ButtonActorClass)
-    {
-        return;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type != EGridLevelObjectType::Button)
-        {
-            continue;
-        }
-
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
-        {
-            continue;
-        }
-
-        if (ObjectData.Edge == EGridEdge::None)
-        {
-            continue;
-        }
-
-        AddRuntimeButtonActor (ObjectData);
-    }
+    ButtonActor->InitializeButton (Mesh, Material, Pos, Rot, ButtonObjectData.CellX, ButtonObjectData.CellY, ButtonObjectData.Edge);
+    RegisterRuntimeObjectActor (ButtonObjectData.ObjectId, ButtonActor);
 }
 
 AGridButtonActor* AGridLevelRuntimeActor::FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const
 {
-    for (AGridButtonActor* ButtonActor : SpawnedButtonActors)
-    {
-        if (IsValid (ButtonActor) && ButtonActor->MatchesEdge (X, Y, Edge))
-        {
-            return ButtonActor;
-        }
-    }
-
-    return nullptr;
+    const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (EGridLevelObjectType::Button, X, Y, Edge);
+    return ObjectData ? FindRuntimeObjectActor<AGridButtonActor> (ObjectData->ObjectId) : nullptr;
 }
 
 const FGridLevelObjectData* AGridLevelRuntimeActor::FindPressurePlateObjectAtCell (int32 X, int32 Y) const
@@ -1194,78 +1009,36 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCe
     ActivatePressurePlateAtCell (NewCellX, NewCellY);
 }
 
-void AGridLevelRuntimeActor::ClearRuntimeLevers ()
-{
-    for (AGridLeverActor* LeverActor : SpawnedLeverActors)
-    {
-        if (IsValid (LeverActor))
-        {
-            LeverActor->Destroy ();
-        }
-    }
-
-    SpawnedLeverActors.Empty ();
-}
-
 void AGridLevelRuntimeActor::AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData)
 {
     UStaticMesh* Mesh = GetObjectMesh (LeverObjectData);
     UMaterialInterface* Material = GetObjectMaterial (LeverObjectData);
 
-    if (!LeverActorClass || !LevelAsset || !Mesh)
+    TSubclassOf<AActor> ActorClass = GetObjectRuntimeActorClass (LeverObjectData);
+
+    if (!ActorClass || !LevelAsset || !Mesh)
     {
         return;
-    }
-    UWorld* World = GetWorld ();
+    }    UWorld* World = GetWorld ();
     if (!World)
     {
         return;
     }
 
-    const float CellSize = LevelAsset->CellSize;
-    const FVector Base = GetActorLocation () + CellToWorld (LeverObjectData.CellX, LeverObjectData.CellY, 95.f);
-
-    FVector Pos = Base;
-    FRotator Rot = FRotator::ZeroRotator;
-    const float WallInset = 8.f;
-
-    switch (LeverObjectData.Edge)
+    FTransform PlacementTransform;
+    if (!GetObjectPlacementTransform (LeverObjectData, PlacementTransform))
     {
-        case EGridEdge::North:
-            Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-            Rot = FRotator (0.f, 90.f, 0.f);
-            break;
-
-        case EGridEdge::East:
-            Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 0.f, 0.f);
-            break;
-
-        case EGridEdge::South:
-            Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-            Rot = FRotator (0.f, -90.f, 0.f);
-            break;
-
-        case EGridEdge::West:
-            Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 180.f, 0.f);
-            break;
-
-        default:
-            return;
+        return;
     }
+    const FVector Pos = PlacementTransform.GetLocation ();
+    const FRotator Rot = PlacementTransform.GetRotation ().Rotator ();
 
     FActorSpawnParameters Params;
     Params.Owner = this;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    AGridLeverActor* LeverActor = World->SpawnActor<AGridLeverActor> (
-        LeverActorClass,
-        Pos,
-        Rot,
-        Params
-    );
-
+    AGridLeverActor* LeverActor =
+        World->SpawnActor<AGridLeverActor> (ActorClass, Pos, Rot, Params);
     if (!LeverActor)
     {
         return;
@@ -1286,69 +1059,13 @@ void AGridLevelRuntimeActor::AddRuntimeLeverActor (const FGridLevelObjectData& L
     {
         ActiveObjectIds.Add (LeverObjectData.ObjectId);
     }
-
-    SpawnedLeverActors.Add (LeverActor);
-}
-
-void AGridLevelRuntimeActor::RebuildRuntimeLevers ()
-{
-    ClearRuntimeLevers ();
-
-    if (!LevelAsset || !LeverActorClass)
-    {
-        return;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type != EGridLevelObjectType::Lever)
-        {
-            continue;
-        }
-
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
-        {
-            continue;
-        }
-
-        if (ObjectData.Edge == EGridEdge::None)
-        {
-            continue;
-        }
-
-        AddRuntimeLeverActor (ObjectData);
-    }
+    RegisterRuntimeObjectActor (LeverObjectData.ObjectId, LeverActor);
 }
 
 AGridLeverActor* AGridLevelRuntimeActor::FindRuntimeLeverActor (int32 X, int32 Y, EGridEdge Edge) const
 {
-    for (AGridLeverActor* LeverActor : SpawnedLeverActors)
-    {
-        if (IsValid (LeverActor) && LeverActor->MatchesEdge (X, Y, Edge))
-        {
-            return LeverActor;
-        }
-    }
-
-    return nullptr;
-}
-
-void AGridLevelRuntimeActor::ClearRuntimePressurePlates ()
-{
-    for (AGridPressurePlateActor* PlateActor : SpawnedPressurePlateActors)
-    {
-        if (IsValid (PlateActor))
-        {
-            PlateActor->Destroy ();
-        }
-    }
-
-    SpawnedPressurePlateActors.Empty ();
+    const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (EGridLevelObjectType::Lever, X, Y, Edge);
+    return ObjectData ? FindRuntimeObjectActor<AGridLeverActor> (ObjectData->ObjectId) : nullptr;
 }
 
 void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData)
@@ -1356,176 +1073,49 @@ void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjec
     UStaticMesh* Mesh = GetObjectMesh (PlateObjectData);
     UMaterialInterface* Material = GetObjectMaterial (PlateObjectData);
 
-    if (!PressurePlateActorClass || !LevelAsset || !Mesh)
+    TSubclassOf<AActor> ActorClass = GetObjectRuntimeActorClass (PlateObjectData);
+
+    if (!ActorClass || !LevelAsset || !Mesh)
     {
         return;
-    }
-    UWorld* World = GetWorld ();
+    }    UWorld* World = GetWorld ();
     if (!World)
     {
         return;
     }
 
-    const FVector Pos = GetActorLocation () + CellToWorld (
-        PlateObjectData.CellX,
-        PlateObjectData.CellY,
-        0.f) + FVector (LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
+    FTransform PlacementTransform;
+    if (!GetObjectPlacementTransform (PlateObjectData, PlacementTransform))
+    {
+        return;
+    }
+    const FVector Pos = PlacementTransform.GetLocation ();
+    const FRotator Rot = PlacementTransform.GetRotation ().Rotator ();
 
     FActorSpawnParameters Params;
     Params.Owner = this;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-    AGridPressurePlateActor* PlateActor = World->SpawnActor<AGridPressurePlateActor> (
-        PressurePlateActorClass,
-        Pos,
-        FRotator::ZeroRotator,
-        Params
-    );
-
+    AGridPressurePlateActor* PlateActor =
+        World->SpawnActor<AGridPressurePlateActor> (ActorClass, Pos, Rot, Params);
     if (!PlateActor)
     {
         return;
     }
 
-    PlateActor->InitializePlate (
-        Mesh,
-        Material,
-        Pos,
-        PlateObjectData.CellX,
-        PlateObjectData.CellY,
-        PlateObjectData.bInitiallyActive
-    );
+    PlateActor->InitializePlate (Mesh, Material, Pos, PlateObjectData.CellX, PlateObjectData.CellY, PlateObjectData.bInitiallyActive);
 
     if (PlateObjectData.bInitiallyActive)
     {
         ActiveObjectIds.Add (PlateObjectData.ObjectId);
     }
-
-    SpawnedPressurePlateActors.Add (PlateActor);
-}
-
-void AGridLevelRuntimeActor::RebuildRuntimePressurePlates ()
-{
-    ClearRuntimePressurePlates ();
-
-    if (!LevelAsset || !PressurePlateActorClass)
-    {
-        return;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type != EGridLevelObjectType::PressurePlate)
-        {
-            continue;
-        }
-
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
-        {
-            continue;
-        }
-
-        AddRuntimePressurePlateActor (ObjectData);
-    }
+    RegisterRuntimeObjectActor (PlateObjectData.ObjectId, PlateActor);
 }
 
 AGridPressurePlateActor* AGridLevelRuntimeActor::FindRuntimePressurePlateActor (int32 X, int32 Y) const
 {
-    for (AGridPressurePlateActor* PlateActor : SpawnedPressurePlateActors)
-    {
-        if (IsValid (PlateActor) && PlateActor->MatchesCell (X, Y))
-        {
-            return PlateActor;
-        }
-    }
-
-    return nullptr;
-}
-
-bool AGridLevelRuntimeActor::TryGetWallObjectPreviewTransform (
-    int32 CellX,
-    int32 CellY,
-    EGridEdge Edge,
-    float ZOffset,
-    float WallInset,
-    FTransform& OutTransform) const
-{
-    if (!LevelAsset)
-    {
-        return false;
-    }
-
-    const float CellSize = LevelAsset->CellSize;
-    const FVector Base = CellToWorld (CellX, CellY, ZOffset);
-
-    FVector Pos = Base;
-    FRotator Rot = FRotator::ZeroRotator;
-
-    switch (Edge)
-    {
-        case EGridEdge::North:
-            Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-            Rot = FRotator (0.f, 90.f, 0.f);
-            break;
-
-        case EGridEdge::East:
-            Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 0.f, 0.f);
-            break;
-
-        case EGridEdge::South:
-            Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-            Rot = FRotator (0.f, -90.f, 0.f);
-            break;
-
-        case EGridEdge::West:
-            Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 180.f, 0.f);
-            break;
-
-        default:
-            return false;
-    }
-
-    OutTransform = FTransform (Rot, Pos, FVector (1.f, 1.f, 1.f));
-    return true;
-}
-
-bool AGridLevelRuntimeActor::TryGetCenteredCellPreviewTransform (
-    int32 CellX,
-    int32 CellY,
-    float ZOffset,
-    const FVector& Scale,
-    FTransform& OutTransform) const
-{
-    if (!LevelAsset)
-    {
-        return false;
-    }
-
-    const FVector Pos =
-        CellToWorld (CellX, CellY, ZOffset) +
-        FVector (LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
-
-    OutTransform = FTransform (FRotator::ZeroRotator, Pos, Scale);
-    return true;
-}
-
-void AGridLevelRuntimeActor::AddEditorObjectInstance (
-    UInstancedStaticMeshComponent* TargetISM,
-    const FTransform& InstanceTransform)
-{
-    if (!TargetISM)
-    {
-        return;
-    }
-
-    TargetISM->AddInstance (InstanceTransform);
+    const FGridLevelObjectData* ObjectData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
+    return ObjectData ? FindRuntimeObjectActor<AGridPressurePlateActor> (ObjectData->ObjectId) : nullptr;
 }
 
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
@@ -1571,130 +1161,31 @@ void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData&
     {
         return;
     }
-
     UStaticMesh* Mesh = GetObjectMesh (ObjectData);
     UMaterialInterface* Material = GetObjectMaterial (ObjectData);
     if (!Mesh)
     {
         return;
     }
-
     UWorld* World = GetWorld ();
     if (!World)
     {
         return;
     }
-
-    const float CellSize = LevelAsset->CellSize;
-
-    FVector Location = FVector::ZeroVector;
-    FRotator Rotation = FRotator::ZeroRotator;
-
-    switch (ObjectData.Type)
+    FTransform PlacementTransform;
+    if (!GetObjectPlacementTransform (ObjectData, PlacementTransform))
     {
-        case EGridLevelObjectType::Door:
-        {
-            GetEdgeTransform (
-                ObjectData.CellX,
-                ObjectData.CellY,
-                ObjectData.Edge,
-                CellSize,
-                Location,
-                Rotation);
-            break;
-        }
-
-        case EGridLevelObjectType::Button:
-        {
-            const FVector Base = GetActorLocation () + CellToWorld (ObjectData.CellX, ObjectData.CellY, 80.f);
-            const float WallInset = 6.f;
-
-            switch (ObjectData.Edge)
-            {
-                case EGridEdge::North:
-                Location = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-                Rotation = FRotator (0.f, 90.f, 0.f);
-                break;
-
-                case EGridEdge::East:
-                Location = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-                Rotation = FRotator (0.f, 0.f, 0.f);
-                break;
-
-                case EGridEdge::South:
-                Location = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-                Rotation = FRotator (0.f, -90.f, 0.f);
-                break;
-
-                case EGridEdge::West:
-                Location = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-                Rotation = FRotator (0.f, 180.f, 0.f);
-                break;
-
-                default:
-                return;
-            }
-            break;
-        }
-
-        case EGridLevelObjectType::Lever:
-        {
-            const FVector Base = GetActorLocation () + CellToWorld (ObjectData.CellX, ObjectData.CellY, 95.f);
-            const float WallInset = 8.f;
-
-            switch (ObjectData.Edge)
-            {
-                case EGridEdge::North:
-                Location = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-                Rotation = FRotator (0.f, 90.f, 0.f);
-                break;
-
-                case EGridEdge::East:
-                Location = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-                Rotation = FRotator (0.f, 0.f, 0.f);
-                break;
-
-                case EGridEdge::South:
-                Location = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-                Rotation = FRotator (0.f, -90.f, 0.f);
-                break;
-
-                case EGridEdge::West:
-                Location = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-                Rotation = FRotator (0.f, 180.f, 0.f);
-                break;
-
-                default:
-                return;
-            }
-            break;
-        }
-
-        case EGridLevelObjectType::PressurePlate:
-        {
-            Location =
-                GetActorLocation () +
-                CellToWorld (ObjectData.CellX, ObjectData.CellY, 4.f) +
-                FVector (CellSize * 0.5f, CellSize * 0.5f, 0.f);
-
-            Rotation = FRotator::ZeroRotator;
-            break;
-        }
-
-        default:
         return;
     }
+    const FVector Location = PlacementTransform.GetLocation ();
+    const FRotator Rotation = PlacementTransform.GetRotation ().Rotator ();
 
     FActorSpawnParameters Params;
     Params.Owner = this;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     AGridEditorPreviewObjectActor* PreviewActor =
-        World->SpawnActor<AGridEditorPreviewObjectActor> (
-            EditorPreviewObjectActorClass,
-            Location,
-            Rotation,
-            Params);
+        World->SpawnActor<AGridEditorPreviewObjectActor> (EditorPreviewObjectActorClass, Location, Rotation, Params);
 
     if (!PreviewActor)
     {
@@ -1801,4 +1292,258 @@ UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelO
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
     return Archetype ? Archetype->PreviewMaterial.Get () : nullptr;
+}
+
+bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (
+    const FGridLevelObjectData& ObjectData,
+    float ZOffset,
+    float WallInset,
+    FTransform& OutTransform) const
+{
+    if (!LevelAsset || ObjectData.Edge == EGridEdge::None)
+    {
+        return false;
+    }
+
+    const float CellSize = LevelAsset->CellSize;
+    const FVector Base =
+        GetActorLocation () +
+        CellToWorld (ObjectData.CellX, ObjectData.CellY, ZOffset);
+
+    FVector Pos = Base;
+    FRotator Rot = FRotator::ZeroRotator;
+
+    switch (ObjectData.Edge)
+    {
+        case EGridEdge::North:
+        Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
+        Rot = FRotator (0.f, 90.f, 0.f);
+        break;
+
+        case EGridEdge::East:
+        Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
+        Rot = FRotator (0.f, 0.f, 0.f);
+        break;
+
+        case EGridEdge::South:
+        Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
+        Rot = FRotator (0.f, -90.f, 0.f);
+        break;
+
+        case EGridEdge::West:
+        Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
+        Rot = FRotator (0.f, 180.f, 0.f);
+        break;
+
+        default:
+        return false;
+    }
+
+    OutTransform = FTransform (Rot, Pos, FVector::OneVector);
+    return true;
+}
+
+bool AGridLevelRuntimeActor::GetCenteredObjectTransform (
+    const FGridLevelObjectData& ObjectData,
+    float ZOffset,
+    FTransform& OutTransform) const
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+    const FVector Pos = GetActorLocation () +
+        CellToWorld (ObjectData.CellX, ObjectData.CellY, ZOffset) +
+        FVector (LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
+
+    OutTransform = FTransform (FRotator::ZeroRotator, Pos, FVector::OneVector);
+    return true;
+}
+
+bool AGridLevelRuntimeActor::GetObjectPlacementTransform (
+    const FGridLevelObjectData& ObjectData,
+    FTransform& OutTransform) const
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
+    switch (ObjectData.Type)
+    {
+        case EGridLevelObjectType::Door:
+        {
+            FVector Pos = FVector::ZeroVector;
+            FRotator Rot = FRotator::ZeroRotator;
+
+            GetEdgeTransform (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, LevelAsset->CellSize, Pos, Rot);
+
+            OutTransform = FTransform (Rot, Pos, FVector::OneVector);
+            return true;
+        }
+
+        case EGridLevelObjectType::Button:
+        return GetWallMountedObjectTransform (ObjectData, 80.f, 6.f, OutTransform);
+
+        case EGridLevelObjectType::Lever:
+        return GetWallMountedObjectTransform (ObjectData, 95.f, 8.f, OutTransform);
+
+        case EGridLevelObjectType::PressurePlate:
+        return GetCenteredObjectTransform (ObjectData, 0.f, OutTransform);
+
+        case EGridLevelObjectType::Decoration:
+        case EGridLevelObjectType::MonsterSpawn:
+        case EGridLevelObjectType::ItemSpawn:
+        case EGridLevelObjectType::Light:
+        case EGridLevelObjectType::Teleporter:
+        case EGridLevelObjectType::Trigger:
+        return GetCenteredObjectTransform (ObjectData, 12.f, OutTransform);
+
+        default:
+        return false;
+    }
+}
+
+void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, AActor* Actor)
+{
+    if (!ObjectId.IsValid () || !IsValid (Actor))
+    {
+        return;
+    }
+
+    SpawnedRuntimeObjectActors.Add (ObjectId, Actor);
+}
+
+void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
+{
+    for (TPair<FGuid, TObjectPtr<AActor>>& Pair : SpawnedRuntimeObjectActors)
+    {
+        if (IsValid (Pair.Value))
+        {
+            Pair.Value->Destroy ();
+        }
+    }
+
+    SpawnedRuntimeObjectActors.Empty ();
+}
+
+const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const
+{
+    if (!LevelAsset)
+    {
+        return nullptr;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y && ObjectData.Edge == Edge)
+        {
+            return &ObjectData;
+        }
+    }
+
+    return nullptr;
+}
+
+const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
+{
+    if (!LevelAsset)
+    {
+        return nullptr;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y)
+        {
+            return &ObjectData;
+        }
+    }
+
+    return nullptr;
+}
+
+TSubclassOf<AActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
+{
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    return Archetype ? Archetype->RuntimeActorClass : nullptr;
+}
+
+bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (
+    const FGridLevelObjectData& ObjectData) const
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
+    if (!ObjectData.bInitiallyEnabled)
+    {
+        return false;
+    }
+
+    if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
+    {
+        return false;
+    }
+
+    switch (ObjectData.Type)
+    {
+        case EGridLevelObjectType::Door:
+        case EGridLevelObjectType::Button:
+        case EGridLevelObjectType::Lever:
+        return ObjectData.Edge != EGridEdge::None;
+
+        case EGridLevelObjectType::PressurePlate:
+        return true;
+
+        default:
+        return false;
+    }
+}
+
+void AGridLevelRuntimeActor::AddRuntimeObjectActor (
+    const FGridLevelObjectData& ObjectData)
+{
+    switch (ObjectData.Type)
+    {
+        case EGridLevelObjectType::Door:
+        AddRuntimeDoorActor (ObjectData);
+        break;
+
+        case EGridLevelObjectType::Button:
+        AddRuntimeButtonActor (ObjectData);
+        break;
+
+        case EGridLevelObjectType::Lever:
+        AddRuntimeLeverActor (ObjectData);
+        break;
+
+        case EGridLevelObjectType::PressurePlate:
+        AddRuntimePressurePlateActor (ObjectData);
+        break;
+
+        default:
+        break;
+    }
+}
+
+void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
+{
+    if (!LevelAsset)
+    {
+        return;
+    }
+
+    LevelAsset->EnsureCellCount ();
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (!IsRuntimeSpawnableObject (ObjectData))
+        {
+            continue;
+        }
+
+        AddRuntimeObjectActor (ObjectData);
+    }
 }

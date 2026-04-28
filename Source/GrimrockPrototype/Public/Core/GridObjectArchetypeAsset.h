@@ -6,6 +6,8 @@
 #include "GridObjectBehavior.h"
 #include "GridObjectArchetypeAsset.generated.h"
 
+class AActor;
+
 UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridObjectArchetypeAsset : public UDataAsset
 {
@@ -50,4 +52,7 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
     TObjectPtr<UMaterialInterface> PreviewMaterial = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")
+    TSubclassOf<AActor> RuntimeActorClass;
 };

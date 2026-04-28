@@ -88,20 +88,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
     bool bRebuildInConstruction = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Doors")
-    TSubclassOf<AGridDoorActor> DoorActorClass;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Buttons")
-    TSubclassOf<AGridButtonActor> ButtonActorClass;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|Levers")
-    TSubclassOf<AGridLeverActor> LeverActorClass;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime|PressurePlates")
-    TSubclassOf<AGridPressurePlateActor> PressurePlateActorClass;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
+
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -154,6 +143,10 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 
+    void RebuildRuntimeObjects ();
+    void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);
+    bool IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const;
+
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
 
@@ -164,13 +157,8 @@ protected:
     virtual void BeginPlay () override;
 
 private:
-    UPROPERTY (Transient)
-    TArray<TObjectPtr<AGridDoorActor>> SpawnedDoorActors;
-
     TSet<FString> RuntimeBlockedDoorEdges;
 
-    void ClearRuntimeDoors ();
-    void RebuildRuntimeDoors ();
     void AddRuntimeDoorActor (const FGridLevelObjectData& DoorObjectData);
 
     AGridDoorActor* FindRuntimeDoorActor (int32 X, int32 Y, EGridEdge Edge) const;
@@ -189,6 +177,8 @@ private:
 
     UFUNCTION ()
     void HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge);
+    
+    TSubclassOf<AActor> GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const;
 
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
@@ -196,17 +186,10 @@ private:
     bool ActivateObject (const FGridLevelObjectData& ObjectData);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
-
-    UPROPERTY (Transient)
-    TArray<TObjectPtr<AGridButtonActor>> SpawnedButtonActors;
-
-    void ClearRuntimeButtons ();
-    void RebuildRuntimeButtons ();
     void AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData);
 
     AGridButtonActor* FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const;
 
-    // PressurePlate and Levers
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
 
     const FGridLevelObjectData* FindPressurePlateObjectAtCell (int32 X, int32 Y) const;
@@ -216,43 +199,18 @@ private:
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
 
     UPROPERTY (Transient)
-    TArray<TObjectPtr<AGridLeverActor>> SpawnedLeverActors;
-
-    UPROPERTY (Transient)
-    TArray<TObjectPtr<AGridPressurePlateActor>> SpawnedPressurePlateActors;
-
-    UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
 
-    void ClearRuntimeLevers ();
-    void RebuildRuntimeLevers ();
     void AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData);
 
-    void ClearRuntimePressurePlates ();
-    void RebuildRuntimePressurePlates ();
     void AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData);
 
     AGridLeverActor* FindRuntimeLeverActor (int32 X, int32 Y, EGridEdge Edge) const;
     AGridPressurePlateActor* FindRuntimePressurePlateActor (int32 X, int32 Y) const;
 
-    bool TryGetWallObjectPreviewTransform (
-        int32 CellX,
-        int32 CellY,
-        EGridEdge Edge,
-        float ZOffset,
-        float WallInset,
-        FTransform& OutTransform) const;
-
-    bool TryGetCenteredCellPreviewTransform (
-        int32 CellX,
-        int32 CellY,
-        float ZOffset,
-        const FVector& Scale,
-        FTransform& OutTransform) const;
-
-    void AddEditorObjectInstance (
-        UInstancedStaticMeshComponent* TargetISM,
-        const FTransform& InstanceTransform);
+    bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
+    bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, FTransform& OutTransform) const;
+    bool GetCenteredObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const;
 
     UPROPERTY (Transient)
     TArray<TObjectPtr<AGridEditorPreviewObjectActor>> SpawnedEditorPreviewObjects;
@@ -267,4 +225,76 @@ private:
     const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
     UStaticMesh* GetObjectMesh (const FGridLevelObjectData& ObjectData) const;
     UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const; 
+
+    UPROPERTY (Transient)
+    TMap<FGuid, TObjectPtr<AActor>> SpawnedRuntimeObjectActors;
+
+    void RegisterRuntimeObjectActor (const FGuid& ObjectId, AActor* Actor);
+    void ClearRuntimeObjectActors ();
+
+    template<typename T>
+    T* FindRuntimeObjectActor (const FGuid& ObjectId) const
+    {
+        if (!ObjectId.IsValid ())
+        {
+            return nullptr;
+        }
+
+        if (const TObjectPtr<AActor>* ActorPtr = SpawnedRuntimeObjectActors.Find (ObjectId))
+        {
+            return Cast<T> (ActorPtr->Get ());
+        }
+
+        return nullptr;
+    }
+
+    const FGridLevelObjectData* FindObjectDataAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const;
+    const FGridLevelObjectData* FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const;
+
+    template<typename TActor>TActor* SpawnRuntimeObjectActor (
+        const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)
+    {
+        OutMesh = nullptr;
+        OutMaterial = nullptr;
+        OutTransform = FTransform::Identity;
+
+        if (!LevelAsset)
+        {
+            return nullptr;
+        }
+        OutMesh = GetObjectMesh (ObjectData);
+        OutMaterial = GetObjectMaterial (ObjectData);
+        TSubclassOf<AActor> ActorClass = GetObjectRuntimeActorClass (ObjectData);
+
+        if (!ActorClass || !OutMesh)
+        {
+            return nullptr;
+        }
+        UWorld* World = GetWorld ();
+        if (!World)
+        {
+            return nullptr;
+        }
+        if (!GetObjectPlacementTransform (ObjectData, OutTransform))
+        {
+            return nullptr;
+        }
+        FActorSpawnParameters Params;
+        Params.Owner = this;
+        Params.SpawnCollisionHandlingOverride =
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+        TActor* Actor = World->SpawnActor<TActor> (
+            ActorClass,
+            OutTransform.GetLocation (),
+            OutTransform.GetRotation ().Rotator (),
+            Params);
+
+        if (!Actor)
+        {
+            return nullptr;
+        }
+        RegisterRuntimeObjectActor (ObjectData.ObjectId, Actor);
+        return Actor;
+    }
 };
