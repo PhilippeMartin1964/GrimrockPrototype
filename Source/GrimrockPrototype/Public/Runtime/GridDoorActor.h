@@ -5,8 +5,6 @@
 #include "Core/GridTypes.h"
 #include "GridDoorActor.generated.h"
 
-class UStaticMeshComponent;
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
     FOnGridDoorAnimationFinished,
     int32, CellX,

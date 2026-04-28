@@ -6,6 +6,7 @@
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "EngineUtils.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
@@ -529,13 +530,6 @@ void AGridLevelRuntimeActor::AddRuntimeDoorActor (
     SetDoorPassageBlocked (DoorObjectData.CellX, DoorObjectData.CellY, DoorObjectData.Edge, !bStartOpen);
 }
 
-AGridDoorActor* AGridLevelRuntimeActor::FindRuntimeDoorActor (int32 X, int32 Y, EGridEdge Edge) const
-{
-    const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (EGridLevelObjectType::Door, X, Y, Edge);
-
-    return ObjectData ? FindRuntimeObjectActor<AGridDoorActor> (ObjectData->ObjectId) : nullptr;
-}
-
 void AGridLevelRuntimeActor::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
 {
     const FGridObjectEdgeKey Key (X, Y, Edge);
@@ -550,7 +544,8 @@ void AGridLevelRuntimeActor::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge 
 
 void AGridLevelRuntimeActor::HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
+        
     if (!DoorActor)
     {
         return;
@@ -567,18 +562,18 @@ void AGridLevelRuntimeActor::HandleDoorAnimationFinished (int32 X, int32 Y, EGri
 
 bool AGridLevelRuntimeActor::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    return FindObjectDataAtEdge (EGridLevelObjectType::Door, X, Y, Edge) != nullptr;
+    return FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge) != nullptr;
 }
 
 bool AGridLevelRuntimeActor::IsDoorOpenOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    const AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    const AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     return DoorActor && DoorActor->IsFullyOpen ();
 }
 
 bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return false;
@@ -591,7 +586,7 @@ bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 
 bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return false;
@@ -604,7 +599,7 @@ bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 
 bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor = FindRuntimeDoorActor (X, Y, Edge);
+    AGridDoorActor* DoorActor = FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
     if (!DoorActor)
     {
         return false;
@@ -774,7 +769,8 @@ bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectD
     {
         case EGridLevelObjectType::Button:
         {
-            if (AGridButtonActor* ButtonActor = FindRuntimeButtonActor (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+            if (AGridButtonActor* ButtonActor = FindRuntimeActorForObjectAtEdge<AGridButtonActor> (
+                EGridLevelObjectType::Button, ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
             {
                 ButtonActor->TriggerPress ();
             }
@@ -794,8 +790,8 @@ bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectD
             {
                 ActiveObjectIds.Remove (ObjectData.ObjectId);
             }
-
-            if (AGridLeverActor* LeverActor = FindRuntimeLeverActor (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+            if (AGridLeverActor* LeverActor = FindRuntimeActorForObjectAtEdge<AGridLeverActor> (
+                EGridLevelObjectType::Lever, ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
             {
                 LeverActor->SetLeverState (bNewActive);
             }
@@ -835,12 +831,6 @@ void AGridLevelRuntimeActor::AddRuntimeButtonActor (
         return;
     }
     ButtonActor->InitializeButton (ButtonObjectData, Mesh, Material, Transform.GetLocation (), Transform.GetRotation ().Rotator ());
-}
-
-AGridButtonActor* AGridLevelRuntimeActor::FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const
-{
-    const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (EGridLevelObjectType::Button, X, Y, Edge);
-    return ObjectData ? FindRuntimeObjectActor<AGridButtonActor> (ObjectData->ObjectId) : nullptr;
 }
 
 const FGridLevelObjectData* AGridLevelRuntimeActor::FindPressurePlateObjectAtCell (int32 X, int32 Y) const
@@ -886,7 +876,7 @@ bool AGridLevelRuntimeActor::ActivatePressurePlateAtCell (int32 X, int32 Y)
 
     ActiveObjectIds.Add (PlateData->ObjectId);
 
-    if (AGridPressurePlateActor* PlateActor = FindRuntimePressurePlateActor (X, Y))
+    if (AGridPressurePlateActor* PlateActor = FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
     {
         PlateActor->SetPressed (true);
     }
@@ -909,7 +899,7 @@ bool AGridLevelRuntimeActor::DeactivatePressurePlateAtCell (int32 X, int32 Y)
 
     ActiveObjectIds.Remove (PlateData->ObjectId);
 
-    if (AGridPressurePlateActor* PlateActor = FindRuntimePressurePlateActor (X, Y))
+    if (AGridPressurePlateActor* PlateActor = FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
     {
         PlateActor->SetPressed (false);
     }
@@ -949,12 +939,6 @@ void AGridLevelRuntimeActor::AddRuntimeLeverActor (const FGridLevelObjectData& L
     }
 }
 
-AGridLeverActor* AGridLevelRuntimeActor::FindRuntimeLeverActor (int32 X, int32 Y, EGridEdge Edge) const
-{
-    const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (EGridLevelObjectType::Lever, X, Y, Edge);
-    return ObjectData ? FindRuntimeObjectActor<AGridLeverActor> (ObjectData->ObjectId) : nullptr;
-}
-
 void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData)
 {
     UStaticMesh* Mesh = nullptr;
@@ -972,12 +956,6 @@ void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjec
     {
         ActiveObjectIds.Add (PlateObjectData.ObjectId);
     }
-}
-
-AGridPressurePlateActor* AGridLevelRuntimeActor::FindRuntimePressurePlateActor (int32 X, int32 Y) const
-{
-    const FGridLevelObjectData* ObjectData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
-    return ObjectData ? FindRuntimeObjectActor<AGridPressurePlateActor> (ObjectData->ObjectId) : nullptr;
 }
 
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
@@ -1019,9 +997,14 @@ void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
 
 void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData& ObjectData)
 {
-    if (!EditorPreviewObjectActorClass || !LevelAsset)
+    TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass;
+
+    if (EditorPreviewObjectActorClass)
     {
-        return;
+        PreviewClass = EditorPreviewObjectActorClass;
+    } else
+    {
+        PreviewClass = AGridEditorPreviewObjectActor::StaticClass ();
     }
     UStaticMesh* Mesh = GetObjectMesh (ObjectData);
     UMaterialInterface* Material = GetObjectMaterial (ObjectData);
@@ -1047,7 +1030,7 @@ void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData&
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     AGridEditorPreviewObjectActor* PreviewActor =
-        World->SpawnActor<AGridEditorPreviewObjectActor> (EditorPreviewObjectActorClass, Location, Rotation, Params);
+        World->SpawnActor<AGridEditorPreviewObjectActor> (PreviewClass, Location, Rotation, Params);
 
     if (!PreviewActor)
     {
@@ -1072,7 +1055,6 @@ void AGridLevelRuntimeActor::RebuildEditorPreviewObjects ()
         {
             continue;
         }
-
         AddEditorPreviewObject (ObjectData);
     }
 }
@@ -1250,7 +1232,7 @@ bool AGridLevelRuntimeActor::GetObjectPlacementTransform (
     }
 }
 
-void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, AActor* Actor)
+void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor)
 {
     if (!ObjectId.IsValid () || !IsValid (Actor))
     {
@@ -1262,7 +1244,7 @@ void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, 
 
 void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
 {
-    for (TPair<FGuid, TObjectPtr<AActor>>& Pair : SpawnedRuntimeObjectActors)
+    for (TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
     {
         if (IsValid (Pair.Value))
         {
@@ -1309,7 +1291,7 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtCell (EGridL
     return nullptr;
 }
 
-TSubclassOf<AActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
+TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
     return Archetype ? Archetype->RuntimeActorClass : nullptr;

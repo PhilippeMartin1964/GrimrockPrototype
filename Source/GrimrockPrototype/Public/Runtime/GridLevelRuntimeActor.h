@@ -6,12 +6,9 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "GridLevelRuntimeActor.generated.h"
 
-class AGridDoorActor;
-class AGridButtonActor;
-class AGridLeverActor;
-class AGridPressurePlateActor;
 class AGridEditorPreviewObjectActor;
 class UGridObjectArchetypeAsset;
+class AGridRuntimeObjectActor;
 
 USTRUCT ()
 struct FGridObjectEdgeKey
@@ -29,19 +26,14 @@ struct FGridObjectEdgeKey
 
     FGridObjectEdgeKey () = default;
 
-    FGridObjectEdgeKey (int32 InX, int32 InY, EGridEdge InEdge)
-        : X (InX)
-        , Y (InY)
-        , Edge (InEdge)
+    FGridObjectEdgeKey (int32 InX, int32 InY, EGridEdge InEdge) : X (InX), Y (InY), Edge (InEdge)
     {}
 
     friend bool operator== (
         const FGridObjectEdgeKey& A,
         const FGridObjectEdgeKey& B)
     {
-        return A.X == B.X &&
-            A.Y == B.Y &&
-            A.Edge == B.Edge;
+        return A.X == B.X && A.Y == B.Y && A.Edge == B.Edge;
     }
 };
 
@@ -202,22 +194,14 @@ private:
 
     void AddRuntimeDoorActor (const FGridLevelObjectData& DoorObjectData);
 
-    AGridDoorActor* FindRuntimeDoorActor (int32 X, int32 Y, EGridEdge Edge) const;
-
-    void GetEdgeTransform (
-        int32 X,
-        int32 Y,
-        EGridEdge Edge,
-        float CellSize,
-        FVector& OutWorldLocation,
-        FRotator& OutWorldRotation) const;
+    void GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;
 
     void SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked);
 
     UFUNCTION ()
     void HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge);
     
-    TSubclassOf<AActor> GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const;
+    TSubclassOf<AGridRuntimeObjectActor> GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const;
 
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
@@ -226,8 +210,6 @@ private:
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
     void AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData);
-
-    AGridButtonActor* FindRuntimeButtonActor (int32 X, int32 Y, EGridEdge Edge) const;
 
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
 
@@ -243,9 +225,6 @@ private:
     void AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData);
 
     void AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData);
-
-    AGridLeverActor* FindRuntimeLeverActor (int32 X, int32 Y, EGridEdge Edge) const;
-    AGridPressurePlateActor* FindRuntimePressurePlateActor (int32 X, int32 Y) const;
 
     bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
     bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, FTransform& OutTransform) const;
@@ -266,9 +245,9 @@ private:
     UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const; 
 
     UPROPERTY (Transient)
-    TMap<FGuid, TObjectPtr<AActor>> SpawnedRuntimeObjectActors;
+    TMap<FGuid, TObjectPtr<AGridRuntimeObjectActor>> SpawnedRuntimeObjectActors;
 
-    void RegisterRuntimeObjectActor (const FGuid& ObjectId, AActor* Actor);
+    void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();
 
     bool IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const;
@@ -281,12 +260,30 @@ private:
             return nullptr;
         }
 
-        if (const TObjectPtr<AActor>* ActorPtr = SpawnedRuntimeObjectActors.Find (ObjectId))
+        if (const TObjectPtr<AGridRuntimeObjectActor>* ActorPtr = SpawnedRuntimeObjectActors.Find (ObjectId))
         {
             return Cast<T> (ActorPtr->Get ());
         }
 
         return nullptr;
+    }
+
+    template<typename TActor>
+    TActor* FindRuntimeActorForObjectAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const
+    {
+        const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (Type, X, Y, Edge);
+
+        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId)
+            : nullptr;
+    }
+
+    template<typename TActor>
+    TActor* FindRuntimeActorForObjectAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
+    {
+        const FGridLevelObjectData* ObjectData = FindObjectDataAtCell (Type, X, Y);
+
+        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId)
+            : nullptr;
     }
 
     const FGridLevelObjectData* FindObjectDataAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const;
@@ -295,6 +292,8 @@ private:
     template<typename TActor>TActor* SpawnRuntimeObjectActor (
         const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)
     {
+        static_assert (TIsDerivedFrom<TActor, AGridRuntimeObjectActor>::IsDerived,
+                       "TActor must derive from AGridRuntimeObjectActor");
         OutMesh = nullptr;
         OutMaterial = nullptr;
         OutTransform = FTransform::Identity;
@@ -305,7 +304,7 @@ private:
         }
         OutMesh = GetObjectMesh (ObjectData);
         OutMaterial = GetObjectMaterial (ObjectData);
-        TSubclassOf<AActor> ActorClass = GetObjectRuntimeActorClass (ObjectData);
+        TSubclassOf<AGridRuntimeObjectActor> ActorClass = GetObjectRuntimeActorClass (ObjectData);
 
         if (!ActorClass || !OutMesh)
         {

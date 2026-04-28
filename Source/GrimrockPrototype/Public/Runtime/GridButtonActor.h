@@ -5,8 +5,6 @@
 #include "Core/GridTypes.h"
 #include "GridButtonActor.generated.h"
 
-class UStaticMeshComponent;
-
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridButtonActor : public AGridRuntimeObjectActor
 {

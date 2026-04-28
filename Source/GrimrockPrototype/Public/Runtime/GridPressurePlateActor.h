@@ -4,8 +4,6 @@
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "GridPressurePlateActor.generated.h"
 
-class UStaticMeshComponent;
-
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridPressurePlateActor : public AGridRuntimeObjectActor
 {

@@ -5,8 +5,6 @@
 #include "Core/GridTypes.h"
 #include "GridLeverActor.generated.h"
 
-class UStaticMeshComponent;
-
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLeverActor : public AGridRuntimeObjectActor
 {
