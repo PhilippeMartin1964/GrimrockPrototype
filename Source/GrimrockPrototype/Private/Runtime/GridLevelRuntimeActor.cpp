@@ -827,6 +827,8 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCe
     }
     DeactivatePressurePlateAtCell (OldCellX, OldCellY);
     ActivatePressurePlateAtCell (NewCellX, NewCellY);
+    DeactivateTriggersAtCell (OldCellX, OldCellY);
+    ActivateTriggersAtCell (NewCellX, NewCellY);
 }
 
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
@@ -1178,6 +1180,9 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (
         case EGridLevelObjectType::PressurePlate:
         return true;
 
+        case EGridLevelObjectType::Trigger:
+        return true;
+
         default:
         return false;
     }
@@ -1252,4 +1257,68 @@ bool AGridLevelRuntimeActor::IsEditorPreviewableObject (const FGridLevelObjectDa
     }
 
     return true;
+}
+
+void AGridLevelRuntimeActor::ActivateTriggersAtCell (int32 X, int32 Y)
+{
+    if (!LevelAsset)
+    {
+        return;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type != EGridLevelObjectType::Trigger)
+        {
+            continue;
+        }
+
+        if (!ObjectData.bInitiallyEnabled)
+        {
+            continue;
+        }
+
+        if (ObjectData.CellX != X || ObjectData.CellY != Y)
+        {
+            continue;
+        }
+
+        if (!ObjectData.Behavior.bFireOnEnter)
+        {
+            continue;
+        }
+		ExecuteLinksFromObject (ObjectData.ObjectId, false);
+    }
+}
+
+void AGridLevelRuntimeActor::DeactivateTriggersAtCell (int32 X, int32 Y)
+{
+    if (!LevelAsset)
+    {
+        return;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type != EGridLevelObjectType::Trigger)
+        {
+            continue;
+        }
+
+        if (!ObjectData.bInitiallyEnabled)
+        {
+            continue;
+        }
+
+        if (ObjectData.CellX != X || ObjectData.CellY != Y)
+        {
+            continue;
+        }
+
+        if (!ObjectData.Behavior.bFireOnExit)
+        {
+            continue;
+        }
+        ExecuteLinksFromObject (ObjectData.ObjectId, false);
+    }
 }

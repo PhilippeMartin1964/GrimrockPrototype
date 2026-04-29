@@ -12,9 +12,6 @@ class GRIMROCKPROTOTYPE_API AGridTriggerActor : public AGridRuntimeObjectActor
 public:
     AGridTriggerActor ();
 
-    void InitializeTrigger (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-        const FVector& WorldLocation, const FRotator& WorldRotation);
-
     virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
         const FTransform& WorldTransform) override;
 };

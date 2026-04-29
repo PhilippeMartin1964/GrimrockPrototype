@@ -211,8 +211,12 @@ private:
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
 
     bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
+
+	// TODO: Consider moving these to a separate component that handles triggers and pressure plates
     bool ActivatePressurePlateAtCell (int32 X, int32 Y);
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
+    void ActivateTriggersAtCell (int32 X, int32 Y);
+    void DeactivateTriggersAtCell (int32 X, int32 Y);
 
     UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
