@@ -330,7 +330,7 @@ void AGridLevelEditorActor::PaintSelectedCell ()
     LevelAsset->MarkPackageDirty ();
 #endif
 
-    RebuildPreview ();
+    RebuildGeometryPreview ();
 }
 
 void AGridLevelEditorActor::ClearSelectedCell ()
@@ -354,7 +354,7 @@ void AGridLevelEditorActor::ClearSelectedCell ()
     LevelAsset->MarkPackageDirty ();
 #endif
 
-    RebuildPreview ();
+    RebuildGeometryPreview ();
 }
 
 void AGridLevelEditorActor::PaintSelectedWall ()
@@ -393,7 +393,7 @@ void AGridLevelEditorActor::PaintSelectedWall ()
     LevelAsset->MarkPackageDirty ();
 #endif
 
-    RebuildPreview ();
+    RebuildGeometryPreview ();
 }
 
 void AGridLevelEditorActor::ClearSelectedWall ()
@@ -426,7 +426,7 @@ void AGridLevelEditorActor::ClearSelectedWall ()
     LevelAsset->MarkPackageDirty ();
 #endif
 
-    RebuildPreview ();
+    RebuildGeometryPreview ();
 }
 
 int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnly)
@@ -1605,4 +1605,15 @@ void AGridLevelEditorActor::PaintSelectedCellAndWall ()
 #endif
 
     RebuildPreview ();
+}
+
+void AGridLevelEditorActor::RebuildGeometryPreview ()
+{
+    ResolvePreviewRuntimeActor ();
+
+    if (PreviewRuntimeActor)
+    {
+        PreviewRuntimeActor->LevelAsset = LevelAsset;
+        PreviewRuntimeActor->RebuildLevel (EGridRuntimeRebuildMode::GeometryOnly);
+    }
 }

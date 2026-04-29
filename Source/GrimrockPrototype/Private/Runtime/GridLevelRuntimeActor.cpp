@@ -152,7 +152,7 @@ void AGridLevelRuntimeActor::AddEdgeInstance (UInstancedStaticMeshComponent* Tar
     TargetISM->AddInstance (T);
 }
 
-void AGridLevelRuntimeActor::RebuildLevel ()
+void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
 {
     ClearVisuals ();
 
@@ -187,9 +187,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
         DesiredCeilingMaterial = CeilingMaterial;
     } else
     {
-        DesiredCeilingMaterial = CeilingEditorMaterial
-            ? CeilingEditorMaterial
-            : CeilingMaterial;
+        DesiredCeilingMaterial = CeilingEditorMaterial ? CeilingEditorMaterial : CeilingMaterial;
     }
     CeilingISM->SetMaterial (0, DesiredCeilingMaterial);
     const float CellSize = LevelAsset->CellSize;
@@ -206,12 +204,10 @@ void AGridLevelRuntimeActor::RebuildLevel ()
             const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
             if (Cell.CellType == EGridCellType::Empty)
             {
-                if (!bIsGameWorld && bShowEditorSolidBlocks && EditorSolidBlockISM && EditorSolidBlockMesh)
+                if (!bFastEditMode && !bIsGameWorld && bShowEditorSolidBlocks && EditorSolidBlockISM && EditorSolidBlockMesh)
                 {
                     const FVector Base = CellToWorld (X, Y, 0.f);
-
-                    const FVector Pos =
-                        Base + FVector (CellSize * 0.5f,CellSize * 0.5f,0.f);
+                    const FVector Pos = Base + FVector (CellSize * 0.5f, CellSize * 0.5f, 0.f);
 
                     EditorSolidBlockTransforms.Add (FTransform (
                         FRotator::ZeroRotator, Pos, FVector (CellSize / 100.f, CellSize / 100.f, EditorSolidBlockHeight / 100.f)));
@@ -253,19 +249,23 @@ void AGridLevelRuntimeActor::RebuildLevel ()
             DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, Cell.WestWall != EGridWallType::None);
         }
     }
-    if (!GetWorld () || !GetWorld ()->IsGameWorld ())
+    if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {
-        RebuildEditorPreviewObjects ();
-    }
-    if (EditorSolidBlockTransforms.Num () > 0 && EditorSolidBlockISM)
+        if (!GetWorld () || !GetWorld ()->IsGameWorld ())
+        {
+            RebuildEditorPreviewObjects ();
+        }
+    }    if (EditorSolidBlockTransforms.Num () > 0 && EditorSolidBlockISM)
     {
         EditorSolidBlockISM->AddInstances (EditorSolidBlockTransforms, false, true);
     }
-    if (bIsGameWorld)
+    if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {
-        RebuildRuntimeObjects ();
-    }
-}
+        if (bIsGameWorld)
+        {
+            RebuildRuntimeObjects ();
+        }
+    }}
 
 bool AGridLevelRuntimeActor::IsWalkableCell (int32 X, int32 Y) const
 {

@@ -35,6 +35,14 @@ struct FGridObjectEdgeKey
     }
 };
 
+UENUM ()
+enum class EGridRuntimeRebuildMode : uint8
+{
+    Full,
+    GeometryOnly,
+    ObjectsOnly
+};
+
 FORCEINLINE uint32 GetTypeHash (const FGridObjectEdgeKey& Key)
 {
     uint32 Hash = GetTypeHash (Key.X);
@@ -128,7 +136,7 @@ public:
     virtual void OnConstruction (const FTransform& Transform) override;
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Level")
-    void RebuildLevel ();
+    void RebuildLevel (EGridRuntimeRebuildMode RebuildMode = EGridRuntimeRebuildMode::Full);
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Level")
     void ClearVisuals ();

@@ -288,4 +288,6 @@ private:
 
     void ApplyAutoWallsForPaintedCell ();
     void PaintSelectedCellAndWall ();
+
+    void RebuildGeometryPreview ();
 };
