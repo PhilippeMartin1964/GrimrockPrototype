@@ -593,23 +593,6 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
     UE_LOG (LogTemp, Log, TEXT ("GridLevelEditorActor: no object found at current selection."));
 }
 
-EGridEdge AGridLevelEditorActor::GetEdgeFromHitNormal (const FVector& HitNormal) const
-{
-    const FVector Normal = HitNormal.GetSafeNormal ();
-
-    if (FMath::Abs (Normal.Z) > 0.75f)
-    {
-        return SelectedEdge;
-    }
-
-    if (FMath::Abs (Normal.X) >= FMath::Abs (Normal.Y))
-    {
-        return (Normal.X >= 0.f) ? EGridEdge::East : EGridEdge::West;
-    }
-
-    return (Normal.Y >= 0.f) ? EGridEdge::North : EGridEdge::South;
-}
-
 bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal)
 {
     if (!HasValidLevelAsset ())
@@ -646,7 +629,7 @@ bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldH
     const float LocalInCellX = Local.X - (static_cast<float> (NewCellX) * CellSize);
     const float LocalInCellY = Local.Y - (static_cast<float> (NewCellY) * CellSize);
 
-    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
+    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY),CellSize);
     return true;
 }
 
@@ -739,7 +722,6 @@ bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPo
     const float LocalInCellY = Local.Y - (static_cast<float>(NewCellY) * CellSize);
 
     SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
-
     if (bSnapAfterViewportPick)
     {
         const bool bWasAuto = bAutoSelectFromActorTransform;
@@ -768,8 +750,7 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
         break;
 
         case EGridEditorTool::PaintCell:
-            PaintSelectedCell ();
-            PaintSelectedWall ();
+            PaintSelectedCellAndWall ();
             break;
 
         case EGridEditorTool::PaintWall:
@@ -1588,4 +1569,32 @@ bool AGridLevelEditorActor::TryGetHoveredObjectWorldLocation (FVector& OutWorldL
     }
 
     return TryGetObjectWorldLocationById (HoveredObjectId, OutWorldLocation);
+}
+
+void AGridLevelEditorActor::PaintSelectedCellAndWall ()
+{
+    FGridLevelCellData* CellData = GetSelectedCellMutable ();
+    if (!CellData)
+    {
+        return;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    CellData->CellType = PaintCellType;
+    CellData->bHasCeiling = bPaintCellHasCeiling;
+    CellData->bBlocksOccupancy = bPaintCellBlocksOccupancy;
+
+    if (EGridWallType* WallPtr = GetSelectedWallMutable (*CellData))
+    {
+        *WallPtr = PaintWallType;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
 }

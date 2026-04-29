@@ -263,35 +263,10 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                 }
             };
 
-            DrawEdgeIfNeeded (
-                EGridEdge::North,
-                Cell.NorthWall,
-                Cell.NorthWall != EGridWallType::None);
-
-            DrawEdgeIfNeeded (
-                EGridEdge::East,
-                Cell.EastWall,
-                Cell.EastWall != EGridWallType::None);
-
-            const bool bDrawSouth =
-                Cell.SouthWall != EGridWallType::None &&
-                (!LevelAsset->IsValidCoord (X, Y - 1) ||
-                    LevelAsset->GetCell (X, Y - 1).CellType == EGridCellType::Empty);
-
-            DrawEdgeIfNeeded (
-                EGridEdge::South,
-                Cell.SouthWall,
-                bDrawSouth);
-
-            const bool bDrawWest =
-                Cell.WestWall != EGridWallType::None &&
-                (!LevelAsset->IsValidCoord (X - 1, Y) ||
-                    LevelAsset->GetCell (X - 1, Y).CellType == EGridCellType::Empty);
-
-            DrawEdgeIfNeeded (
-                EGridEdge::West,
-                Cell.WestWall,
-                bDrawWest);
+            DrawEdgeIfNeeded (EGridEdge::North, Cell.NorthWall, Cell.NorthWall != EGridWallType::None);
+            DrawEdgeIfNeeded (EGridEdge::East, Cell.EastWall, Cell.EastWall != EGridWallType::None);
+            DrawEdgeIfNeeded (EGridEdge::South, Cell.SouthWall, Cell.SouthWall != EGridWallType::None);
+            DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, Cell.WestWall != EGridWallType::None);
         }
     }
     if (!GetWorld () || !GetWorld ()->IsGameWorld ())

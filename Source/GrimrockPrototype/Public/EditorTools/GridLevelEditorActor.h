@@ -71,9 +71,6 @@ public:
     float ViewportPickTraceDistance = 50000.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking")
-    bool bUseHitNormalForEdgeSelection = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking")
     bool bSnapAfterViewportPick = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
@@ -275,7 +272,6 @@ private:
     int32 RemoveObjectsAtSelectionInternal (bool bSameTypeOnly);
 
     EGridEdge GetEdgeFromYaw (float YawDegrees) const;
-    EGridEdge GetEdgeFromHitNormal (const FVector& HitNormal) const;
     FVector GetSelectedCellWorldCenter (float ZOffset = 0.f) const;
     bool TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
 
@@ -291,4 +287,5 @@ private:
     bool HasAnyWallInSelectedCell () const;
 
     void ApplyAutoWallsForPaintedCell ();
+    void PaintSelectedCellAndWall ();
 };
