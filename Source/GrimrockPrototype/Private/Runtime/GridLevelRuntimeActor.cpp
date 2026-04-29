@@ -1319,6 +1319,6 @@ void AGridLevelRuntimeActor::DeactivateTriggersAtCell (int32 X, int32 Y)
         {
             continue;
         }
-        ExecuteLinksFromObject (ObjectData.ObjectId, false);
+        ExecuteLinksFromObject (ObjectData.ObjectId, true);
     }
 }
