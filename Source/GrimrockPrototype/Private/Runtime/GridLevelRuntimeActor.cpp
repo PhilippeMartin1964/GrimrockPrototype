@@ -53,13 +53,11 @@ void AGridLevelRuntimeActor::ClearVisuals ()
     if (FloorISM) FloorISM->ClearInstances ();
     if (WallISM) WallISM->ClearInstances ();
     if (SecretWallISM) SecretWallISM->ClearInstances ();
-
     if (CeilingISM)
     {
         CeilingISM->ClearInstances ();
         CeilingISM->EmptyOverrideMaterials ();
     }
-
     ClearRuntimeObjectActors ();
     RuntimeBlockedDoorEdges.Empty ();
     ClearEditorPreviewObjects ();
@@ -91,25 +89,14 @@ FVector AGridLevelRuntimeActor::CellToWorld (int32 X, int32 Y, float ZOffset) co
 FVector AGridLevelRuntimeActor::GetCellCenterWorld (int32 X, int32 Y, float ZOffset) const
 {
     const float CellSize = LevelAsset ? LevelAsset->CellSize : 200.f;
-
-    return GetActorLocation () + GridOrigin + FVector (
-        (X * CellSize) + (CellSize * 0.5f),
-        (Y * CellSize) + (CellSize * 0.5f),
-        ZOffset
-    );
+    return GetActorLocation () + GridOrigin + FVector ((X * CellSize) + (CellSize * 0.5f), (Y * CellSize) + (CellSize * 0.5f), ZOffset);
 }
 
 void AGridLevelRuntimeActor::AddFloor (int32 X, int32 Y, float CellSize)
 {
     const FVector Base = CellToWorld (X, Y, 0.f);
     const FVector CenterOffset (CellSize * 0.5f, CellSize * 0.5f, 0.f);
-
-    const FTransform T (
-        FRotator::ZeroRotator,
-        Base + CenterOffset,
-        FVector (CellSize / 100.f, CellSize / 100.f, 1.f)
-    );
-
+    const FTransform T (FRotator::ZeroRotator, Base + CenterOffset, FVector::OneVector);
     FloorISM->AddInstance (T);
 }
 
@@ -117,13 +104,7 @@ void AGridLevelRuntimeActor::AddCeiling (int32 X, int32 Y, float CellSize)
 {
     const FVector Base = CellToWorld (X, Y, 200.f);
     const FVector CenterOffset (CellSize * 0.5f, CellSize * 0.5f, 0.f);
-
-    const FTransform T (
-        FRotator::ZeroRotator,
-        Base + CenterOffset,
-        FVector (1.f, 1.f, 1.f)
-    );
-
+    const FTransform T (FRotator::ZeroRotator, Base + CenterOffset, FVector (1.f, 1.f, 1.f));
     CeilingISM->AddInstance (T);
 }
 
@@ -133,40 +114,41 @@ void AGridLevelRuntimeActor::AddEdgeInstance (UInstancedStaticMeshComponent* Tar
     {
         return;
     }
-
     const FVector Base = CellToWorld (X, Y, 0.f);
-
     FVector Pos = Base;
     FRotator Rot = FRotator::ZeroRotator;
-    FVector Scale (CellSize / 100.f, 1.f, 1.f);
-
     switch (Edge)
     {
         case EGridEdge::North:
+        {
             Pos = Base + FVector (CellSize * 0.5f, CellSize, 0.f);
             Rot = FRotator (0.f, 0.f, 0.f);
             break;
-
-        case EGridEdge::East:
-            Pos = Base + FVector (CellSize, CellSize * 0.5f, 0.f);
-            Rot = FRotator (0.f, 90.f, 0.f);
-            break;
-
+        }
         case EGridEdge::South:
+        {
             Pos = Base + FVector (CellSize * 0.5f, 0.f, 0.f);
-            Rot = FRotator (0.f, 0.f, 0.f);
+            Rot = FRotator (0.f, 180.f, 0.f);
             break;
-
+        }
+        case EGridEdge::East:
+        {
+            Pos = Base + FVector (CellSize, CellSize * 0.5f, 0.f);
+            Rot = FRotator (0.f, -90.f, 0.f);
+            break;
+        }
         case EGridEdge::West:
+        {
             Pos = Base + FVector (0.f, CellSize * 0.5f, 0.f);
             Rot = FRotator (0.f, 90.f, 0.f);
             break;
-
+        }
         default:
+        {
             return;
+        }
     }
-
-    const FTransform T (Rot, Pos, Scale);
+    const FTransform T (Rot, Pos, FVector::OneVector); 
     TargetISM->AddInstance (T);
 }
 
@@ -209,9 +191,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
             ? CeilingEditorMaterial
             : CeilingMaterial;
     }
-
     CeilingISM->SetMaterial (0, DesiredCeilingMaterial);
-
     const float CellSize = LevelAsset->CellSize;
     TArray<FTransform> EditorSolidBlockTransforms;
 
@@ -222,13 +202,11 @@ void AGridLevelRuntimeActor::RebuildLevel ()
     {
         EditorSolidBlockTransforms.Reserve (LevelAsset->Width * LevelAsset->Height);
     }
-
     for (int32 Y = 0; Y < LevelAsset->Height; ++Y)
     {
         for (int32 X = 0; X < LevelAsset->Width; ++X)
         {
             const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
-
             if (Cell.CellType == EGridCellType::Empty)
             {
                 if (!bIsGameWorld &&
@@ -256,14 +234,12 @@ void AGridLevelRuntimeActor::RebuildLevel ()
 
                 continue;
             }
-
             AddFloor (X, Y, CellSize);
 
             if (Cell.bHasCeiling)
             {
                 AddCeiling (X, Y, CellSize);
             }
-
             auto DrawEdgeIfNeeded =
                 [&] (EGridEdge Edge, EGridWallType WallType, bool bShouldDraw)
             {
@@ -341,19 +317,15 @@ bool AGridLevelRuntimeActor::IsWalkableCell (int32 X, int32 Y) const
     {
         return false;
     }
-
     const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
-
     if (Cell.CellType == EGridCellType::Empty)
     {
         return false;
     }
-
     if (Cell.bBlocksOccupancy)
     {
         return false;
     }
-
     return true;
 }
 
@@ -467,29 +439,29 @@ void AGridLevelRuntimeActor::GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge,
     switch (Edge)
     {
         case EGridEdge::North:
-            OutWorldLocation = Base + FVector (CellSize * 0.5f, CellSize, 0.f);
-            OutWorldRotation = FRotator (0.f, 0.f, 0.f);
-            break;
+        OutWorldLocation = Base + FVector (CellSize * 0.5f, CellSize, 0.f);
+        OutWorldRotation = FRotator (0.f, 0.f, 0.f);
+        break;
 
         case EGridEdge::East:
-            OutWorldLocation = Base + FVector (CellSize, CellSize * 0.5f, 0.f);
-            OutWorldRotation = FRotator (0.f, 90.f, 0.f);
-            break;
+        OutWorldLocation = Base + FVector (CellSize, CellSize * 0.5f, 0.f);
+        OutWorldRotation = FRotator (0.f, -90.f, 0.f);
+        break;
 
         case EGridEdge::South:
-            OutWorldLocation = Base + FVector (CellSize * 0.5f, 0.f, 0.f);
-            OutWorldRotation = FRotator (0.f, 0.f, 0.f);
-            break;
+        OutWorldLocation = Base + FVector (CellSize * 0.5f, 0.f, 0.f);
+        OutWorldRotation = FRotator (0.f, 180.f, 0.f);
+        break;
 
         case EGridEdge::West:
-            OutWorldLocation = Base + FVector (0.f, CellSize * 0.5f, 0.f);
-            OutWorldRotation = FRotator (0.f, 90.f, 0.f);
-            break;
+        OutWorldLocation = Base + FVector (0.f, CellSize * 0.5f, 0.f);
+        OutWorldRotation = FRotator (0.f, 90.f, 0.f);
+        break;
 
         default:
-            OutWorldLocation = Base;
-            OutWorldRotation = FRotator::ZeroRotator;
-            break;
+        OutWorldLocation = Base;
+        OutWorldRotation = FRotator::ZeroRotator;
+        break;
     }
 }
 
@@ -587,7 +559,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectById (FGuid Object
     {
         return nullptr;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (ObjectData.ObjectId == ObjectId)
@@ -595,7 +566,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectById (FGuid Object
             return &ObjectData;
         }
     }
-
     return nullptr;
 }
 
@@ -605,7 +575,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindInteractableObjectOnEdge
     {
         return nullptr;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (!ObjectData.bInitiallyEnabled)
@@ -617,7 +586,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindInteractableObjectOnEdge
         {
             continue;
         }
-
         switch (ObjectData.Type)
         {
             case EGridLevelObjectType::Button:
@@ -628,7 +596,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindInteractableObjectOnEdge
                 break;
         }
     }
-
     return nullptr;
 }
 
@@ -685,11 +652,9 @@ bool AGridLevelRuntimeActor::ApplyLinkAction (const FGridLevelLinkData& LinkData
                 default:
                     return false;
             }
-
         default:
             break;
     }
-
     return false;
 }
 
@@ -699,20 +664,16 @@ bool AGridLevelRuntimeActor::ExecuteLinksFromObject (FGuid SourceObjectId, bool 
     {
         return false;
     }
-
     bool bAnyApplied = false;
-
     for (const FGridLevelLinkData& LinkData : LevelAsset->Links)
     {
         if (LinkData.SourceObjectId != SourceObjectId)
         {
             continue;
         }
-
         const bool bApplied = ApplyLinkAction (LinkData, bInvert);
         bAnyApplied = bAnyApplied || bApplied;
     }
-
     return bAnyApplied;
 }
 
@@ -730,7 +691,6 @@ bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectD
 
             return ExecuteLinksFromObject (ObjectData.ObjectId, false);
         }
-
         case EGridLevelObjectType::Lever:
         {
             const bool bWasActive = ActiveObjectIds.Contains (ObjectData.ObjectId);
@@ -751,7 +711,6 @@ bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectD
 
             return ExecuteLinksFromObject (ObjectData.ObjectId, bWasActive);
         }
-
         default:
             break;
     }
@@ -834,7 +793,6 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCe
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
 {
     UWorld* World = GetWorld ();
-
     if (World)
     {
         for (TActorIterator<AGridEditorPreviewObjectActor> It (World); It; ++It)
@@ -862,7 +820,6 @@ void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
             }
         }
     }
-
     SpawnedEditorPreviewObjects.Empty ();
     CurrentSelectedEditorObjectId.Invalidate ();
     CurrentHoveredEditorObjectId.Invalidate ();
@@ -916,12 +873,10 @@ void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData&
 void AGridLevelRuntimeActor::RebuildEditorPreviewObjects ()
 {
     ClearEditorPreviewObjects ();
-
     if (!LevelAsset)
     {
         return;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (!IsEditorPreviewableObject (ObjectData))
@@ -935,7 +890,6 @@ void AGridLevelRuntimeActor::RebuildEditorPreviewObjects ()
 void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
 {
     CurrentHoveredEditorObjectId = ObjectId;
-
     for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
     {
         if (!IsValid (Actor))
@@ -949,7 +903,6 @@ void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
 void AGridLevelRuntimeActor::SetEditorSelectedObject (FGuid ObjectId)
 {
     CurrentSelectedEditorObjectId = ObjectId;
-
     for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
     {
         if (!IsValid (Actor))
@@ -966,20 +919,17 @@ const UGridObjectArchetypeAsset* AGridLevelRuntimeActor::FindObjectArchetype (FN
     {
         return nullptr;
     }
-
     for (const UGridObjectArchetypeAsset* Archetype : ObjectArchetypes)
     {
         if (!Archetype)
         {
             continue;
         }
-
         if (Archetype->ArchetypeId == ArchetypeId)
         {
             return Archetype;
         }
     }
-
     return nullptr;
 }
 
@@ -1036,7 +986,6 @@ bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObje
         default:
         return false;
     }
-
     OutTransform = FTransform (Rot, Pos, FVector::OneVector);
     return true;
 }
@@ -1093,7 +1042,6 @@ void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, 
     {
         return;
     }
-
     SpawnedRuntimeObjectActors.Add (ObjectId, Actor);
 }
 
@@ -1106,7 +1054,6 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
             Pair.Value->Destroy ();
         }
     }
-
     SpawnedRuntimeObjectActors.Empty ();
 }
 
@@ -1116,7 +1063,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtEdge (EGridL
     {
         return nullptr;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y && ObjectData.Edge == Edge)
@@ -1124,7 +1070,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtEdge (EGridL
             return &ObjectData;
         }
     }
-
     return nullptr;
 }
 
@@ -1134,7 +1079,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtCell (EGridL
     {
         return nullptr;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y)
@@ -1142,7 +1086,6 @@ const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtCell (EGridL
             return &ObjectData;
         }
     }
-
     return nullptr;
 }
 
@@ -1152,8 +1095,7 @@ TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeAct
     return Archetype ? Archetype->RuntimeActorClass : nullptr;
 }
 
-bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (
-    const FGridLevelObjectData& ObjectData) const
+bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const
 {
     if (!LevelAsset)
     {
@@ -1220,16 +1162,13 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
     {
         return;
     }
-
     LevelAsset->EnsureCellCount ();
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (!IsRuntimeSpawnableObject (ObjectData))
         {
             continue;
         }
-
         AddRuntimeObjectActor (ObjectData);
     }
 }
@@ -1240,22 +1179,18 @@ bool AGridLevelRuntimeActor::IsEditorPreviewableObject (const FGridLevelObjectDa
     {
         return false;
     }
-
     if (!ObjectData.bInitiallyEnabled)
     {
         return false;
     }
-
     if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
     {
         return false;
     }
-
     if (!GetObjectMesh (ObjectData))
     {
         return false;
     }
-
     return true;
 }
 
@@ -1265,24 +1200,20 @@ void AGridLevelRuntimeActor::ActivateTriggersAtCell (int32 X, int32 Y)
     {
         return;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (ObjectData.Type != EGridLevelObjectType::Trigger)
         {
             continue;
         }
-
         if (!ObjectData.bInitiallyEnabled)
         {
             continue;
         }
-
         if (ObjectData.CellX != X || ObjectData.CellY != Y)
         {
             continue;
         }
-
         if (!ObjectData.Behavior.bFireOnEnter)
         {
             continue;
@@ -1297,24 +1228,20 @@ void AGridLevelRuntimeActor::DeactivateTriggersAtCell (int32 X, int32 Y)
     {
         return;
     }
-
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (ObjectData.Type != EGridLevelObjectType::Trigger)
         {
             continue;
         }
-
         if (!ObjectData.bInitiallyEnabled)
         {
             continue;
         }
-
         if (ObjectData.CellX != X || ObjectData.CellY != Y)
         {
             continue;
         }
-
         if (!ObjectData.Behavior.bFireOnExit)
         {
             continue;

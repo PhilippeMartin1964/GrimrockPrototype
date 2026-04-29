@@ -610,9 +610,7 @@ EGridEdge AGridLevelEditorActor::GetEdgeFromHitNormal (const FVector& HitNormal)
     return (Normal.Y >= 0.f) ? EGridEdge::North : EGridEdge::South;
 }
 
-bool AGridLevelEditorActor::TryConvertWorldHitToSelection (
-    const FVector& WorldHitLocation,
-    const FVector& HitNormal)
+bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal)
 {
     if (!HasValidLevelAsset ())
     {
@@ -645,15 +643,10 @@ bool AGridLevelEditorActor::TryConvertWorldHitToSelection (
 
     SelectedCellX = NewCellX;
     SelectedCellY = NewCellY;
+    const float LocalInCellX = Local.X - (static_cast<float> (NewCellX) * CellSize);
+    const float LocalInCellY = Local.Y - (static_cast<float> (NewCellY) * CellSize);
 
-    if (bUseHitNormalForEdgeSelection)
-    {
-        SelectedEdge = GetEdgeFromHitNormal (HitNormal);
-    } else
-    {
-        SelectedEdge = GetEdgeFromYaw (GetActorRotation ().Yaw);
-    }
-
+    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
     return true;
 }
 
@@ -776,6 +769,7 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
 
         case EGridEditorTool::PaintCell:
             PaintSelectedCell ();
+            PaintSelectedWall ();
             break;
 
         case EGridEditorTool::PaintWall:

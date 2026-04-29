@@ -4,6 +4,7 @@ DerivedDataCache/
 Intermediate/
 Saved/
 Design/
+Meshes/
 
 # --- Optional build artifacts ---
 Build/*

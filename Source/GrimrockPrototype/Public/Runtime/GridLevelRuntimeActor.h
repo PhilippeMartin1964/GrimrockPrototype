@@ -29,9 +29,7 @@ struct FGridObjectEdgeKey
     FGridObjectEdgeKey (int32 InX, int32 InY, EGridEdge InEdge) : X (InX), Y (InY), Edge (InEdge)
     {}
 
-    friend bool operator== (
-        const FGridObjectEdgeKey& A,
-        const FGridObjectEdgeKey& B)
+    friend bool operator== (const FGridObjectEdgeKey& A, const FGridObjectEdgeKey& B)
     {
         return A.X == B.X && A.Y == B.Y && A.Edge == B.Edge;
     }
@@ -254,12 +252,10 @@ private:
         {
             return nullptr;
         }
-
         if (const TObjectPtr<AGridRuntimeObjectActor>* ActorPtr = SpawnedRuntimeObjectActors.Find (ObjectId))
         {
             return Cast<T> (ActorPtr->Get ());
         }
-
         return nullptr;
     }
 
@@ -267,18 +263,14 @@ private:
     TActor* FindRuntimeActorForObjectAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const
     {
         const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (Type, X, Y, Edge);
-
-        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId)
-            : nullptr;
+        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId) : nullptr;
     }
 
     template<typename TActor>
     TActor* FindRuntimeActorForObjectAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
     {
         const FGridLevelObjectData* ObjectData = FindObjectDataAtCell (Type, X, Y);
-
-        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId)
-            : nullptr;
+        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId) : nullptr;
     }
 
     const FGridLevelObjectData* FindObjectDataAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const;
