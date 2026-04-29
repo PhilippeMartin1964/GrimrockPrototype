@@ -20,8 +20,6 @@ enum class EGridWallType : uint8
 {
     None        UMETA (DisplayName = "None"),
     Solid       UMETA (DisplayName = "Solid"),
-    Door        UMETA (DisplayName = "Door"),
-    DoorOpen    UMETA (DisplayName = "Door Open"),
     Secret      UMETA (DisplayName = "Secret")
 };
 

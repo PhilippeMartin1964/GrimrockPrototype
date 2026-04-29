@@ -278,10 +278,6 @@ void AGridLevelRuntimeActor::RebuildLevel ()
                     AddEdgeInstance (WallISM, X, Y, Edge, CellSize);
                     break;
 
-                    case EGridWallType::Door:
-                    case EGridWallType::DoorOpen:
-                    break;
-
                     case EGridWallType::Secret:
                     AddEdgeInstance (SecretWallISM, X, Y, Edge, CellSize);
                     break;
@@ -455,11 +451,9 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
     switch (Wall)
     {
         case EGridWallType::None:
-        case EGridWallType::DoorOpen:
             return true;
 
         case EGridWallType::Solid:
-        case EGridWallType::Door:
         case EGridWallType::Secret:
         default:
             return false;
