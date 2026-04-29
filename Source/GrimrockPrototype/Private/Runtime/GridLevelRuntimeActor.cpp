@@ -195,10 +195,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
     const float CellSize = LevelAsset->CellSize;
     TArray<FTransform> EditorSolidBlockTransforms;
 
-    if (!bIsGameWorld &&
-        bShowEditorSolidBlocks &&
-        EditorSolidBlockISM &&
-        EditorSolidBlockMesh)
+    if (!bFastEditMode && !bIsGameWorld && bShowEditorSolidBlocks && EditorSolidBlockISM && EditorSolidBlockMesh)
     {
         EditorSolidBlockTransforms.Reserve (LevelAsset->Width * LevelAsset->Height);
     }
@@ -209,29 +206,16 @@ void AGridLevelRuntimeActor::RebuildLevel ()
             const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
             if (Cell.CellType == EGridCellType::Empty)
             {
-                if (!bIsGameWorld &&
-                    bShowEditorSolidBlocks &&
-                    EditorSolidBlockISM &&
-                    EditorSolidBlockMesh)
+                if (!bIsGameWorld && bShowEditorSolidBlocks && EditorSolidBlockISM && EditorSolidBlockMesh)
                 {
                     const FVector Base = CellToWorld (X, Y, 0.f);
 
                     const FVector Pos =
-                        Base + FVector (
-                            CellSize * 0.5f,
-                            CellSize * 0.5f,
-                            0.f);
+                        Base + FVector (CellSize * 0.5f,CellSize * 0.5f,0.f);
 
-                    EditorSolidBlockTransforms.Add (
-                        FTransform (
-                            FRotator::ZeroRotator,
-                            Pos,
-                            FVector (
-                                CellSize / 100.f,
-                                CellSize / 100.f,
-                                EditorSolidBlockHeight / 100.f)));
+                    EditorSolidBlockTransforms.Add (FTransform (
+                        FRotator::ZeroRotator, Pos, FVector (CellSize / 100.f, CellSize / 100.f, EditorSolidBlockHeight / 100.f)));
                 }
-
                 continue;
             }
             AddFloor (X, Y, CellSize);
@@ -275,10 +259,7 @@ void AGridLevelRuntimeActor::RebuildLevel ()
     }
     if (EditorSolidBlockTransforms.Num () > 0 && EditorSolidBlockISM)
     {
-        EditorSolidBlockISM->AddInstances (
-            EditorSolidBlockTransforms,
-            false,
-            true);
+        EditorSolidBlockISM->AddInstances (EditorSolidBlockTransforms, false, true);
     }
     if (bIsGameWorld)
     {

@@ -121,6 +121,8 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
 
+    UPROPERTY (EditAnywhere, Category = "Performance")
+    bool bFastEditMode = true;
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;

@@ -380,6 +380,10 @@ void AGridLevelEditorActor::PaintSelectedWall ()
     }
 
 #if WITH_EDITOR
+    if (*WallPtr == PaintWallType)
+    {
+        return;
+    }
     LevelAsset->Modify ();
 #endif
 
@@ -409,6 +413,10 @@ void AGridLevelEditorActor::ClearSelectedWall ()
     }
 
 #if WITH_EDITOR
+    if (*WallPtr == EGridWallType::None)
+    {
+        return;
+    }
     LevelAsset->Modify ();
 #endif
 
