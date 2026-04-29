@@ -35,6 +35,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Button")
     void TriggerPress ();
 
+    virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
+        const FTransform& WorldTransform) override;
+
 protected:
     void UpdateAnimation (float DeltaSeconds);
     FVector GetPressAxis () const;

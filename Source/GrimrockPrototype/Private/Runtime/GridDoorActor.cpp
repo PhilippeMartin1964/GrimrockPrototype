@@ -109,3 +109,10 @@ void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
         OnDoorAnimationFinished.Broadcast (CellX, CellY, Edge);
     }
 }
+
+void AGridDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
+    const FTransform& WorldTransform)
+{
+    InitializeDoor (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator (),
+		ObjectData.bInitiallyActive);
+}

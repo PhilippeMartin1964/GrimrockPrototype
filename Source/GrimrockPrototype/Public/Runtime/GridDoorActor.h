@@ -54,6 +54,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Door")
     bool IsAnimating () const { return bIsAnimating; }
 
+    virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
+        const FTransform& WorldTransform) override;
+
 public:
     UPROPERTY (BlueprintAssignable, Category = "Door")
     FOnGridDoorAnimationFinished OnDoorAnimationFinished;

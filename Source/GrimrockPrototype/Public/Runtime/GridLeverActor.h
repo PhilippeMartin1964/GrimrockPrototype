@@ -38,6 +38,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Lever")
     void ToggleLever ();
 
+    virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
+        const FTransform& WorldTransform) override;
+
 protected:
     void UpdateAnimation (float DeltaSeconds);
 

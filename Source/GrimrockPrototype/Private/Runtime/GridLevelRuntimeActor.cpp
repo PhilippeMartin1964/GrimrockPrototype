@@ -460,13 +460,7 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
     }
 }
 
-void AGridLevelRuntimeActor::GetEdgeTransform (
-    int32 X,
-    int32 Y,
-    EGridEdge Edge,
-    float CellSize,
-    FVector& OutWorldLocation,
-    FRotator& OutWorldRotation) const
+void AGridLevelRuntimeActor::GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const
 {
     const FVector Base = GetActorLocation () + CellToWorld (X, Y, 0.f);
 
@@ -497,31 +491,6 @@ void AGridLevelRuntimeActor::GetEdgeTransform (
             OutWorldRotation = FRotator::ZeroRotator;
             break;
     }
-}
-
-void AGridLevelRuntimeActor::AddRuntimeDoorActor (
-    const FGridLevelObjectData& DoorObjectData)
-{
-    UStaticMesh* Mesh = nullptr;
-    UMaterialInterface* Material = nullptr;
-    FTransform Transform;
-
-    AGridDoorActor* DoorActor =
-        SpawnRuntimeObjectActor<AGridDoorActor> (DoorObjectData, Mesh, Material, Transform);
-
-    if (!DoorActor)
-    {
-        return;
-    }
-    const FVector Location = Transform.GetLocation ();
-    const FRotator Rotation = Transform.GetRotation ().Rotator ();
-    const bool bStartOpen = DoorObjectData.bInitiallyActive;
-
-    DoorActor->InitializeDoor (DoorObjectData, Mesh, Material, Location, Rotation, bStartOpen);
-
-    DoorActor->OnDoorAnimationFinished.AddDynamic (this, &AGridLevelRuntimeActor::HandleDoorAnimationFinished);
-
-    SetDoorPassageBlocked (DoorObjectData.CellX, DoorObjectData.CellY, DoorObjectData.Edge, !bStartOpen);
 }
 
 void AGridLevelRuntimeActor::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
@@ -801,22 +770,6 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY
     return ActivateObject (*ObjectData);
 }
 
-void AGridLevelRuntimeActor::AddRuntimeButtonActor (
-    const FGridLevelObjectData& ButtonObjectData)
-{
-    UStaticMesh* Mesh = nullptr;
-    UMaterialInterface* Material = nullptr;
-    FTransform Transform;
-
-    AGridButtonActor* ButtonActor =
-        SpawnRuntimeObjectActor<AGridButtonActor> (ButtonObjectData, Mesh, Material, Transform);
-    if (!ButtonActor)
-    {
-        return;
-    }
-    ButtonActor->InitializeButton (ButtonObjectData, Mesh, Material, Transform.GetLocation (), Transform.GetRotation ().Rotator ());
-}
-
 bool AGridLevelRuntimeActor::ActivatePressurePlateAtCell (int32 X, int32 Y)
 {
     const FGridLevelObjectData* PlateData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
@@ -872,48 +825,8 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCe
         ActivatePressurePlateAtCell (NewCellX, NewCellY);
         return;
     }
-
     DeactivatePressurePlateAtCell (OldCellX, OldCellY);
     ActivatePressurePlateAtCell (NewCellX, NewCellY);
-}
-
-void AGridLevelRuntimeActor::AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData)
-{
-    UStaticMesh* Mesh = nullptr;
-    UMaterialInterface* Material = nullptr;
-    FTransform Transform;
-
-    AGridLeverActor* LeverActor =
-        SpawnRuntimeObjectActor<AGridLeverActor> (LeverObjectData, Mesh, Material, Transform);
-
-    if (!LeverActor)
-    {
-        return;
-    }
-    LeverActor->InitializeLever (LeverObjectData, Mesh, Material, Transform.GetLocation (), Transform.GetRotation ().Rotator (), LeverObjectData.bInitiallyActive);
-    if (LeverObjectData.bInitiallyActive)
-    {
-        ActiveObjectIds.Add (LeverObjectData.ObjectId);
-    }
-}
-
-void AGridLevelRuntimeActor::AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData)
-{
-    UStaticMesh* Mesh = nullptr;
-    UMaterialInterface* Material = nullptr;
-    FTransform Transform;
-
-    AGridPressurePlateActor* PlateActor =
-        SpawnRuntimeObjectActor<AGridPressurePlateActor> (PlateObjectData, Mesh, Material, Transform);
-    if (!PlateActor)
-    {
-        return;
-    }
-    PlateActor->InitializePlate (PlateObjectData, Mesh, Material, Transform.GetLocation (), PlateObjectData.bInitiallyActive);
-    if (PlateObjectData.bInitiallyActive)
-    {
-        ActiveObjectIds.Add (PlateObjectData.ObjectId);
-    }
 }
 
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
@@ -1080,10 +993,7 @@ UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelO
     return Archetype ? Archetype->PreviewMaterial.Get () : nullptr;
 }
 
-bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (
-    const FGridLevelObjectData& ObjectData,
-    float ZOffset,
-    float WallInset,
+bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
     FTransform& OutTransform) const
 {
     if (!LevelAsset || ObjectData.Edge == EGridEdge::None)
@@ -1129,10 +1039,7 @@ bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (
     return true;
 }
 
-bool AGridLevelRuntimeActor::GetCenteredObjectTransform (
-    const FGridLevelObjectData& ObjectData,
-    float ZOffset,
-    FTransform& OutTransform) const
+bool AGridLevelRuntimeActor::GetCenteredObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const
 {
     if (!LevelAsset)
     {
@@ -1276,29 +1183,29 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (
     }
 }
 
-void AGridLevelRuntimeActor::AddRuntimeObjectActor (
-    const FGridLevelObjectData& ObjectData)
+void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
 {
-    switch (ObjectData.Type)
+    UStaticMesh* Mesh = nullptr;
+    UMaterialInterface* Material = nullptr;
+    FTransform Transform;
+
+    AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
+    if (!Actor)
     {
-        case EGridLevelObjectType::Door:
-        AddRuntimeDoorActor (ObjectData);
-        break;
-
-        case EGridLevelObjectType::Button:
-        AddRuntimeButtonActor (ObjectData);
-        break;
-
-        case EGridLevelObjectType::Lever:
-        AddRuntimeLeverActor (ObjectData);
-        break;
-
-        case EGridLevelObjectType::PressurePlate:
-        AddRuntimePressurePlateActor (ObjectData);
-        break;
-
-        default:
-        break;
+        return;
+    }
+    Actor->InitializeGridObject (ObjectData, Mesh, Material, Transform);
+    if (ObjectData.bInitiallyActive)
+    {
+        ActiveObjectIds.Add (ObjectData.ObjectId);
+    }
+    if (ObjectData.Type == EGridLevelObjectType::Door)
+    {
+        if (AGridDoorActor* DoorActor = Cast<AGridDoorActor> (Actor))
+        {
+            DoorActor->OnDoorAnimationFinished.AddDynamic (this, &AGridLevelRuntimeActor::HandleDoorAnimationFinished);
+            SetDoorPassageBlocked (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, !ObjectData.bInitiallyActive);
+        }
     }
 }
 
@@ -1322,8 +1229,7 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
     }
 }
 
-bool AGridLevelRuntimeActor::IsEditorPreviewableObject (
-    const FGridLevelObjectData& ObjectData) const
+bool AGridLevelRuntimeActor::IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const
 {
     if (!LevelAsset)
     {

@@ -60,3 +60,9 @@ bool AGridRuntimeObjectActor::MatchesEdge (
 {
     return CellX == InCellX && CellY == InCellY && Edge == InEdge;
 }
+
+void AGridRuntimeObjectActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh,
+    UMaterialInterface* Material, const FTransform& WorldTransform)
+{
+    InitializeGridObjectBase (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
+}

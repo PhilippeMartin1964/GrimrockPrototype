@@ -61,3 +61,9 @@ void AGridPressurePlateActor::UpdateAnimation (float DeltaSeconds)
         AnimElapsed = 0.f;
     }
 }
+
+void AGridPressurePlateActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
+    const FTransform& WorldTransform)
+{
+	InitializePlate (ObjectData, Mesh, Material, WorldTransform.GetLocation (), ObjectData.bInitiallyActive);
+}

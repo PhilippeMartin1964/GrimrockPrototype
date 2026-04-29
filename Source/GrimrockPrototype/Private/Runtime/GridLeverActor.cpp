@@ -69,3 +69,9 @@ void AGridLeverActor::UpdateAnimation (float DeltaSeconds)
         AnimElapsed = 0.f;
     }
 }
+
+void AGridLeverActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
+    const FTransform& WorldTransform)
+{
+    InitializeLever (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.Rotator (), bIsOn);
+}

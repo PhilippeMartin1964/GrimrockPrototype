@@ -192,8 +192,6 @@ private:
     UPROPERTY (Transient)
     TSet<FGridObjectEdgeKey> RuntimeBlockedDoorEdges;
 
-    void AddRuntimeDoorActor (const FGridLevelObjectData& DoorObjectData);
-
     void GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;
 
     void SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked);
@@ -209,7 +207,6 @@ private:
     bool ActivateObject (const FGridLevelObjectData& ObjectData);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
-    void AddRuntimeButtonActor (const FGridLevelObjectData& ButtonObjectData);
 
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
 
@@ -219,10 +216,6 @@ private:
 
     UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
-
-    void AddRuntimeLeverActor (const FGridLevelObjectData& LeverObjectData);
-
-    void AddRuntimePressurePlateActor (const FGridLevelObjectData& PlateObjectData);
 
     bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
     bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, FTransform& OutTransform) const;
