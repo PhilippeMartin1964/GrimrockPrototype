@@ -56,15 +56,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
     EGridEdge SelectedEdge = EGridEdge::North;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
-    bool bAutoSelectFromActorTransform = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "0.0"))
-    float AutoSelectionZ = 10.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
-    bool bAutoRebuildPreviewOnMove = true;
-
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
     FGuid HoveredObjectId;
 
@@ -73,9 +64,6 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking", meta = (ClampMin = "100.0"))
     float ViewportPickTraceDistance = 50000.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking")
-    bool bSnapAfterViewportPick = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
     EGridCellType PaintCellType = EGridCellType::Floor;
@@ -170,12 +158,6 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void RebuildPreview ();
-
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
-    void UpdateSelectionFromActorTransform ();
-
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
-    void SnapActorToSelectedCell ();
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Cell Paint")
     void PaintSelectedCell ();
@@ -284,7 +266,6 @@ protected:
     virtual void OnConstruction (const FTransform& Transform) override;
 
 #if WITH_EDITOR
-    virtual void PostEditMove (bool bFinished) override;
     virtual void PostEditChangeProperty (FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
@@ -299,7 +280,6 @@ private:
 
     int32 RemoveObjectsAtSelectionInternal (bool bSameTypeOnly);
 
-    EGridEdge GetEdgeFromYaw (float YawDegrees) const;
     FVector GetSelectedCellWorldCenter (float ZOffset = 0.f) const;
     bool TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
 

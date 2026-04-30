@@ -41,43 +41,32 @@ void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
 }
 
 #if WITH_EDITOR
-void AGridLevelEditorActor::PostEditMove (bool bFinished)
-{
-    Super::PostEditMove (bFinished);
-}
-
 void AGridLevelEditorActor::PostEditChangeProperty (FPropertyChangedEvent& PropertyChangedEvent)
 {
     Super::PostEditChangeProperty (PropertyChangedEvent);
 
-    ResolvePreviewRuntimeActor ();
+    const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName () : NAME_None;
 
-    if (PreviewRuntimeActor && LevelAsset && PreviewRuntimeActor->LevelAsset != LevelAsset)
+    if (PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, LevelAsset))
     {
-        PreviewRuntimeActor->LevelAsset = LevelAsset;
-    }
-
-    static const FName NAME_SelectedCellX = GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, SelectedCellX);
-    static const FName NAME_SelectedCellY = GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, SelectedCellY);
-    static const FName NAME_SelectedEdge = GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, SelectedEdge);
-    static const FName NAME_bAutoSelectFromActorTransform = GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bAutoSelectFromActorTransform);
-
-    const FName ChangedPropertyName =
-        PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName () : NAME_None;
-
-    if (ChangedPropertyName == NAME_bAutoSelectFromActorTransform && bAutoSelectFromActorTransform)
-    {
-        UpdateSelectionFromActorTransform ();
+        RebuildPreview ();
+        RebuildCoordinateGrid ();
         return;
     }
-
-    if (!bAutoSelectFromActorTransform &&
-        (ChangedPropertyName == NAME_SelectedCellX ||
-         ChangedPropertyName == NAME_SelectedCellY ||
-         ChangedPropertyName == NAME_SelectedEdge))
+    if (PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridPlaneMesh)
+        ||
+        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridMaterial)
+        ||
+        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bShowCoordinateGrid)
+        ||
+        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bShowCoordinateLabels)
+        ||
+        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateLabelWorldSize))
     {
-        SnapActorToSelectedCell ();
+        RebuildCoordinateGrid ();
+        return;
     }
+    RebuildPreview ();
 }
 #endif
 
@@ -154,28 +143,6 @@ void AGridLevelEditorActor::ResolvePreviewRuntimeActor ()
     }
 }
 
-EGridEdge AGridLevelEditorActor::GetEdgeFromYaw (float YawDegrees) const
-{
-    const float NormalizedYaw = FRotator::NormalizeAxis (YawDegrees);
-
-    if (NormalizedYaw >= -45.f && NormalizedYaw < 45.f)
-    {
-        return EGridEdge::East;
-    }
-
-    if (NormalizedYaw >= 45.f && NormalizedYaw < 135.f)
-    {
-        return EGridEdge::North;
-    }
-
-    if (NormalizedYaw >= -135.f && NormalizedYaw < -45.f)
-    {
-        return EGridEdge::South;
-    }
-
-    return EGridEdge::West;
-}
-
 FVector AGridLevelEditorActor::GetSelectedCellWorldCenter (float ZOffset) const
 {
     if (PreviewRuntimeActor)
@@ -216,46 +183,11 @@ void AGridLevelEditorActor::EnsureLevelReady ()
 void AGridLevelEditorActor::RebuildPreview ()
 {
     ResolvePreviewRuntimeActor ();
-
     if (PreviewRuntimeActor)
     {
         PreviewRuntimeActor->LevelAsset = LevelAsset;
         PreviewRuntimeActor->RebuildLevel ();
     }
-    RebuildCoordinateGrid ();
-}
-
-void AGridLevelEditorActor::UpdateSelectionFromActorTransform ()
-{
-    if (!HasValidLevelAsset ())
-    {
-        return;
-    }
-
-    const float CellSize = LevelAsset->CellSize;
-    if (CellSize <= KINDA_SMALL_NUMBER)
-    {
-        return;
-    }
-
-    FVector Origin = FVector::ZeroVector;
-    if (PreviewRuntimeActor)
-    {
-        Origin = PreviewRuntimeActor->GetActorLocation () + PreviewRuntimeActor->GridOrigin;
-    }
-
-    const FVector Local = GetActorLocation () - Origin;
-
-    const int32 NewCellX = FMath::FloorToInt (Local.X / CellSize);
-    const int32 NewCellY = FMath::FloorToInt (Local.Y / CellSize);
-
-    SelectedCellX = FMath::Clamp (NewCellX, 0, FMath::Max (0, LevelAsset->Width - 1));
-    SelectedCellY = FMath::Clamp (NewCellY, 0, FMath::Max (0, LevelAsset->Height - 1));
-    SelectedEdge = GetEdgeFromYaw (GetActorRotation ().Yaw);
-}
-
-void AGridLevelEditorActor::SnapActorToSelectedCell ()
-{
 }
 
 void AGridLevelEditorActor::PaintSelectedCell ()
@@ -1231,13 +1163,6 @@ bool AGridLevelEditorActor::SelectObjectById (FGuid ObjectId)
     ObjectNotes = Obj->Notes;
     ObjectBehavior = Obj->Behavior;
 
-    if (bSnapAfterViewportPick)
-    {
-        const bool bWasAuto = bAutoSelectFromActorTransform;
-        bAutoSelectFromActorTransform = false;
-        SnapActorToSelectedCell ();
-        bAutoSelectFromActorTransform = bWasAuto;
-    }
     ResolvePreviewRuntimeActor ();
 
     if (PreviewRuntimeActor)
@@ -1271,11 +1196,6 @@ bool AGridLevelEditorActor::FocusSelectedObject ()
     SelectedCellX = Obj->CellX;
     SelectedCellY = Obj->CellY;
     SelectedEdge = Obj->Edge;
-
-    const bool bWasAuto = bAutoSelectFromActorTransform;
-    bAutoSelectFromActorTransform = false;
-    SnapActorToSelectedCell ();
-    bAutoSelectFromActorTransform = bWasAuto;
 
 #if WITH_EDITOR
     if (GEditor)
