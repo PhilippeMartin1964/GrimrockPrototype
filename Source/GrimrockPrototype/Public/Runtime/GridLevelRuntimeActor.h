@@ -74,8 +74,6 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* CeilingISM;
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UInstancedStaticMeshComponent* EditorSolidBlockISM;
 
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
@@ -100,18 +98,6 @@ public:
     TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
-    TObjectPtr<UStaticMesh> EditorSolidBlockMesh;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
-    TObjectPtr<UMaterialInterface> EditorSolidBlockMaterial;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
-    bool bShowEditorSolidBlocks = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
-    float EditorSolidBlockHeight = 300.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
     TSubclassOf<AGridEditorPreviewObjectActor> EditorPreviewObjectActorClass;
 
     UFUNCTION (BlueprintCallable, Category = "Editor Preview")
@@ -128,9 +114,6 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
-
-    UPROPERTY (EditAnywhere, Category = "Performance")
-    bool bFastEditMode = true;
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;

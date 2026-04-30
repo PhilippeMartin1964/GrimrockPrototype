@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
+#include "Components/TextRenderComponent.h"
 #include "GridLevelEditorActor.generated.h"
 
 class AGridLevelRuntimeActor;
@@ -135,6 +136,30 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
     FGridObjectBehaviorParams ObjectBehavior;
+
+    UPROPERTY (VisibleAnywhere, Category = "Editor Grid")
+    TObjectPtr<UStaticMeshComponent> CoordinateGridPlane;
+
+    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    TObjectPtr<UStaticMesh> CoordinateGridPlaneMesh;
+
+    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    TObjectPtr<UMaterialInterface> CoordinateGridMaterial;
+
+    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    bool bShowCoordinateGrid = true;
+
+    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    float CoordinateGridZOffset = 2.f;
+
+    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    bool bShowCoordinateLabels = true;
+
+    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    float CoordinateLabelWorldSize = 28.f;
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<UTextRenderComponent>> CoordinateLabels;
 
 public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
@@ -290,4 +315,7 @@ private:
     void PaintSelectedCellAndWall ();
 
     void RebuildGeometryPreview ();
+
+    void RebuildCoordinateGrid ();
+    void ClearCoordinateLabels ();
 };

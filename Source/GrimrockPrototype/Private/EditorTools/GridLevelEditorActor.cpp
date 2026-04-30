@@ -17,6 +17,11 @@ AGridLevelEditorActor::AGridLevelEditorActor ()
 #if WITH_EDITORONLY_DATA
     bIsEditorOnlyActor = true;
 #endif
+    CoordinateGridPlane = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("CoordinateGridPlane"));
+    CoordinateGridPlane->SetupAttachment (RootComponent);
+    CoordinateGridPlane->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    CoordinateGridPlane->SetMobility (EComponentMobility::Movable);
+    CoordinateGridPlane->SetHiddenInGame (true);
 }
 
 void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
@@ -34,6 +39,7 @@ void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
     {
         UpdateSelectionFromActorTransform ();
     }
+    RebuildCoordinateGrid ();
 }
 
 #if WITH_EDITOR
@@ -230,6 +236,7 @@ void AGridLevelEditorActor::RebuildPreview ()
         PreviewRuntimeActor->LevelAsset = LevelAsset;
         PreviewRuntimeActor->RebuildLevel ();
     }
+    RebuildCoordinateGrid ();
 }
 
 void AGridLevelEditorActor::UpdateSelectionFromActorTransform ()
@@ -1615,5 +1622,74 @@ void AGridLevelEditorActor::RebuildGeometryPreview ()
     {
         PreviewRuntimeActor->LevelAsset = LevelAsset;
         PreviewRuntimeActor->RebuildLevel (EGridRuntimeRebuildMode::GeometryOnly);
+    }
+}
+
+void AGridLevelEditorActor::ClearCoordinateLabels ()
+{
+    for (UTextRenderComponent* Label : CoordinateLabels)
+    {
+        if (Label)
+        {
+            Label->DestroyComponent ();
+        }
+    }
+
+    CoordinateLabels.Empty ();
+}
+
+void AGridLevelEditorActor::RebuildCoordinateGrid ()
+{
+    ClearCoordinateLabels ();
+    if (!LevelAsset || !CoordinateGridPlane)
+    {
+        return;
+    }
+    const float CellSize = LevelAsset->CellSize;
+    const int32 Width = LevelAsset->Width;
+    const int32 Height = LevelAsset->Height;
+    const bool bShowGrid = bShowCoordinateGrid && CoordinateGridPlaneMesh != nullptr;
+    CoordinateGridPlane->SetVisibility (bShowGrid);
+    if (bShowGrid)
+    {
+        CoordinateGridPlane->SetStaticMesh (CoordinateGridPlaneMesh);
+        if (CoordinateGridMaterial)
+        {
+            CoordinateGridPlane->SetMaterial (0, CoordinateGridMaterial);
+        }
+        CoordinateGridPlane->SetRelativeLocation (
+            FVector (Width * CellSize * 0.5f, Height * CellSize * 0.5f, CoordinateGridZOffset));
+
+        CoordinateGridPlane->SetRelativeScale3D (
+            FVector (Width * CellSize / 100.f, Height * CellSize / 100.f, 1.f));
+    }
+    if (!bShowCoordinateLabels)
+    {
+        return;
+    }
+    for (int32 Y = 0; Y < Height; ++Y)
+    {
+        for (int32 X = 0; X < Width; ++X)
+        {
+            UTextRenderComponent* Label = NewObject<UTextRenderComponent> (this);
+            if (!Label)
+            {
+                continue;
+            }
+            Label->RegisterComponent ();
+            Label->AttachToComponent (GetRootComponent (), FAttachmentTransformRules::KeepRelativeTransform);
+            Label->SetRelativeLocation (
+                FVector ((static_cast<float> (X) + 0.5f) * CellSize, (static_cast<float> (Y) + 0.5f) * CellSize, 5.f));
+            Label->SetRelativeRotation (FRotator (90.f, 0.f, 0.f));
+            Label->SetText (FText::FromString (FString::Printf (TEXT ("%d,%d"), X, Y)));
+            Label->SetHorizontalAlignment (EHTA_Center);
+            Label->SetVerticalAlignment (EVRTA_TextCenter);
+            Label->SetWorldSize (CoordinateLabelWorldSize);
+            Label->SetVisibility (true, true);
+            Label->SetHiddenInGame (false);
+            Label->SetTextRenderColor (FColor::White);
+
+            CoordinateLabels.Add (Label);
+        }
     }
 }

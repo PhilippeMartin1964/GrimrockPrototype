@@ -27,9 +27,6 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 
     CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("CeilingISM"));
     CeilingISM->SetupAttachment (SceneRoot);
-
-    EditorSolidBlockISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("EditorSolidBlockISM"));
-    EditorSolidBlockISM->SetupAttachment (SceneRoot);
 }
 
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
@@ -62,11 +59,6 @@ void AGridLevelRuntimeActor::ClearVisuals ()
     RuntimeBlockedDoorEdges.Empty ();
     ClearEditorPreviewObjects ();
     ActiveObjectIds.Empty ();
-    if (EditorSolidBlockISM)
-    {
-        EditorSolidBlockISM->ClearInstances ();
-        EditorSolidBlockISM->EmptyOverrideMaterials ();
-    }
 }
 
 bool AGridLevelRuntimeActor::IsValidCell (int32 X, int32 Y) const
@@ -168,16 +160,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     SecretWallISM->SetStaticMesh (SecretWallMesh);
     CeilingISM->SetStaticMesh (CeilingMesh);
 
-    if (EditorSolidBlockISM)
-    {
-        EditorSolidBlockISM->SetStaticMesh (EditorSolidBlockMesh);
-
-        if (EditorSolidBlockMaterial)
-        {
-            EditorSolidBlockISM->SetMaterial (0, EditorSolidBlockMaterial);
-        }
-    }
-
     const bool bIsGameWorld = GetWorld () && GetWorld ()->IsGameWorld ();
 
     UMaterialInterface* DesiredCeilingMaterial = nullptr;
@@ -191,12 +173,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     }
     CeilingISM->SetMaterial (0, DesiredCeilingMaterial);
     const float CellSize = LevelAsset->CellSize;
-    TArray<FTransform> EditorSolidBlockTransforms;
-
-    if (!bFastEditMode && !bIsGameWorld && bShowEditorSolidBlocks && EditorSolidBlockISM && EditorSolidBlockMesh)
-    {
-        EditorSolidBlockTransforms.Reserve (LevelAsset->Width * LevelAsset->Height);
-    }
     for (int32 Y = 0; Y < LevelAsset->Height; ++Y)
     {
         for (int32 X = 0; X < LevelAsset->Width; ++X)
@@ -204,14 +180,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
             const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
             if (Cell.CellType == EGridCellType::Empty)
             {
-                if (!bFastEditMode && !bIsGameWorld && bShowEditorSolidBlocks && EditorSolidBlockISM && EditorSolidBlockMesh)
-                {
-                    const FVector Base = CellToWorld (X, Y, 0.f);
-                    const FVector Pos = Base + FVector (CellSize * 0.5f, CellSize * 0.5f, 0.f);
-
-                    EditorSolidBlockTransforms.Add (FTransform (
-                        FRotator::ZeroRotator, Pos, FVector (CellSize / 100.f, CellSize / 100.f, EditorSolidBlockHeight / 100.f)));
-                }
                 continue;
             }
             AddFloor (X, Y, CellSize);
@@ -227,7 +195,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
                 {
                     return;
                 }
-
                 switch (WallType)
                 {
                     case EGridWallType::Solid:
@@ -242,7 +209,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
                     break;
                 }
             };
-
             DrawEdgeIfNeeded (EGridEdge::North, Cell.NorthWall, Cell.NorthWall != EGridWallType::None);
             DrawEdgeIfNeeded (EGridEdge::East, Cell.EastWall, Cell.EastWall != EGridWallType::None);
             DrawEdgeIfNeeded (EGridEdge::South, Cell.SouthWall, Cell.SouthWall != EGridWallType::None);
@@ -255,10 +221,7 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
         {
             RebuildEditorPreviewObjects ();
         }
-    }    if (EditorSolidBlockTransforms.Num () > 0 && EditorSolidBlockISM)
-    {
-        EditorSolidBlockISM->AddInstances (EditorSolidBlockTransforms, false, true);
-    }
+    }    
     if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {
         if (bIsGameWorld)
