@@ -74,9 +74,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
     bool bPaintCellBlocksOccupancy = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
-    bool bAutoWallsWhenPaintingCells = true;
-
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Wall Paint")
     EGridWallType PaintWallType = EGridWallType::Solid;
 
@@ -158,9 +155,6 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void RebuildPreview ();
-
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Cell Paint")
-    void PaintSelectedCell ();
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Cell Paint")
     void ClearSelectedCell ();
@@ -294,7 +288,6 @@ private:
     bool HasAnyObjectInSelectedCell () const;
     bool HasAnyWallInSelectedCell () const;
 
-    void ApplyAutoWallsForPaintedCell ();
     void PaintSelectedCellAndWall ();
 
     void RebuildGeometryPreview ();

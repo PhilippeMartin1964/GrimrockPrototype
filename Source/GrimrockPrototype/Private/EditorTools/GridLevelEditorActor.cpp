@@ -13,7 +13,7 @@
 
 AGridLevelEditorActor::AGridLevelEditorActor ()
 {
-    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;
 
 #if WITH_EDITORONLY_DATA
     bIsEditorOnlyActor = true;
@@ -66,7 +66,6 @@ void AGridLevelEditorActor::PostEditChangeProperty (FPropertyChangedEvent& Prope
         RebuildCoordinateGrid ();
         return;
     }
-    RebuildPreview ();
 }
 #endif
 
@@ -188,45 +187,6 @@ void AGridLevelEditorActor::RebuildPreview ()
         PreviewRuntimeActor->LevelAsset = LevelAsset;
         PreviewRuntimeActor->RebuildLevel ();
     }
-}
-
-void AGridLevelEditorActor::PaintSelectedCell ()
-{
-    FGridLevelCellData* CellData = GetSelectedCellMutable ();
-    if (!CellData)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: invalid selected cell."));
-        return;
-    }
-
-    const bool bAlreadySame =
-        CellData->CellType == PaintCellType &&
-        CellData->bHasCeiling == bPaintCellHasCeiling &&
-        CellData->bBlocksOccupancy == bPaintCellBlocksOccupancy;
-
-    if (bAlreadySame)
-    {
-        return;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
-
-    CellData->CellType = PaintCellType;
-    CellData->bHasCeiling = bPaintCellHasCeiling;
-    CellData->bBlocksOccupancy = bPaintCellBlocksOccupancy;
-
-    if (bAutoWallsWhenPaintingCells && PaintCellType != EGridCellType::Empty)
-    {
-        ApplyAutoWallsForPaintedCell ();
-    }
-
-#if WITH_EDITOR
-    LevelAsset->MarkPackageDirty ();
-#endif
-
-    RebuildGeometryPreview ();
 }
 
 void AGridLevelEditorActor::ClearSelectedCell ()
@@ -1316,59 +1276,6 @@ void AGridLevelEditorActor::EraseAtSelection ()
     }
 }
 
-void AGridLevelEditorActor::ApplyAutoWallsForPaintedCell ()
-{
-    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
-    {
-        return;
-    }
-
-    FGridLevelCellData& Cell = LevelAsset->GetCellMutable (SelectedCellX, SelectedCellY);
-
-    Cell.NorthWall = EGridWallType::Solid;
-    Cell.EastWall = EGridWallType::Solid;
-    Cell.SouthWall = EGridWallType::Solid;
-    Cell.WestWall = EGridWallType::Solid;
-
-    auto IsExistingPlayableCell = [this] (int32 X, int32 Y) -> bool
-    {
-        if (!LevelAsset->IsValidCoord (X, Y))
-        {
-            return false;
-        }
-
-        return LevelAsset->GetCell (X, Y).CellType != EGridCellType::Empty;
-    };
-
-    // North neighbour
-    if (IsExistingPlayableCell (SelectedCellX, SelectedCellY + 1))
-    {
-        Cell.NorthWall = EGridWallType::None;
-        LevelAsset->GetCellMutable (SelectedCellX, SelectedCellY + 1).SouthWall = EGridWallType::None;
-    }
-
-    // East neighbour
-    if (IsExistingPlayableCell (SelectedCellX + 1, SelectedCellY))
-    {
-        Cell.EastWall = EGridWallType::None;
-        LevelAsset->GetCellMutable (SelectedCellX + 1, SelectedCellY).WestWall = EGridWallType::None;
-    }
-
-    // South neighbour
-    if (IsExistingPlayableCell (SelectedCellX, SelectedCellY - 1))
-    {
-        Cell.SouthWall = EGridWallType::None;
-        LevelAsset->GetCellMutable (SelectedCellX, SelectedCellY - 1).NorthWall = EGridWallType::None;
-    }
-
-    // West neighbour
-    if (IsExistingPlayableCell (SelectedCellX - 1, SelectedCellY))
-    {
-        Cell.WestWall = EGridWallType::None;
-        LevelAsset->GetCellMutable (SelectedCellX - 1, SelectedCellY).EastWall = EGridWallType::None;
-    }
-}
-
 bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint (const FVector& WorldPoint)
 {
     ResolvePreviewRuntimeActor ();
@@ -1508,6 +1415,8 @@ void AGridLevelEditorActor::RebuildCoordinateGrid ()
     const float CellSize = LevelAsset->CellSize;
     const int32 Width = LevelAsset->Width;
     const int32 Height = LevelAsset->Height;
+
+    const FRotator LabelRotation (90.f, -90.f, 0.f);
     const bool bShowGrid = bShowCoordinateGrid && CoordinateGridPlaneMesh != nullptr;
     CoordinateGridPlane->SetVisibility (bShowGrid);
     if (bShowGrid)
@@ -1539,26 +1448,23 @@ void AGridLevelEditorActor::RebuildCoordinateGrid ()
             }
             Label->CreationMethod = EComponentCreationMethod::Instance;
             AddInstanceComponent (Label);
-            
             Label->AttachToComponent (SceneRoot, FAttachmentTransformRules::KeepRelativeTransform);
-            Label->SetRelativeLocation (
-                FVector (
-                    (X + 0.5f) * CellSize,
-                    (Y + 0.5f) * CellSize,
-                    5.f));
 
-            Label->SetWorldSize (CoordinateLabelWorldSize);
-            Label->SetTextRenderColor (FColor::White);
-            Label->SetRelativeRotation (FRotator (90.f, -90.f, 5.f));
-            
-            Label->SetText (FText::FromString (FString::Printf (TEXT ("%d,%d"), X, Y)));
+            Label->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+            Label->SetHiddenInGame (false);
+            Label->SetVisibility (true, true);
             Label->SetHorizontalAlignment (EHTA_Center);
             Label->SetVerticalAlignment (EVRTA_TextCenter);
-            Label->SetVisibility (true, true);
-            Label->SetHiddenInGame (false);
+            Label->SetWorldSize (CoordinateLabelWorldSize);
+            Label->SetTextRenderColor (FColor::White);
+            Label->SetRelativeRotation (LabelRotation);
+
+            Label->SetRelativeLocation (FVector ((X + 0.5f) * CellSize, (Y + 0.5f) * CellSize, CoordinateGridZOffset));
+            
+            Label->SetText (FText::FromString (FString::Printf (TEXT ("%d,%d"), X, Y)));
+
             Label->RegisterComponentWithWorld (GetWorld ());
             Label->MarkRenderStateDirty ();
-            Label->SetCollisionEnabled (ECollisionEnabled::NoCollision);
             CoordinateLabels.Add (Label);
         }
     }
