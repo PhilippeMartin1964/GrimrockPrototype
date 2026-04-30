@@ -4,6 +4,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Components/TextRenderComponent.h"
 
 #if WITH_EDITOR
 #include "Subsystems/UnrealEditorSubsystem.h"
@@ -17,6 +18,8 @@ AGridLevelEditorActor::AGridLevelEditorActor ()
 #if WITH_EDITORONLY_DATA
     bIsEditorOnlyActor = true;
 #endif
+    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("SceneRoot"));
+    SetRootComponent (SceneRoot);
     CoordinateGridPlane = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("CoordinateGridPlane"));
     CoordinateGridPlane->SetupAttachment (RootComponent);
     CoordinateGridPlane->SetCollisionEnabled (ECollisionEnabled::NoCollision);
@@ -34,11 +37,6 @@ void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
     {
         PreviewRuntimeActor->LevelAsset = LevelAsset;
     }
-
-    if (bAutoSelectFromActorTransform)
-    {
-        UpdateSelectionFromActorTransform ();
-    }
     RebuildCoordinateGrid ();
 }
 
@@ -46,18 +44,6 @@ void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
 void AGridLevelEditorActor::PostEditMove (bool bFinished)
 {
     Super::PostEditMove (bFinished);
-
-    if (!bAutoSelectFromActorTransform)
-    {
-        return;
-    }
-
-    UpdateSelectionFromActorTransform ();
-
-    if (bAutoRebuildPreviewOnMove && bFinished)
-    {
-        RebuildPreview ();
-    }
 }
 
 void AGridLevelEditorActor::PostEditChangeProperty (FPropertyChangedEvent& PropertyChangedEvent)
@@ -270,35 +256,6 @@ void AGridLevelEditorActor::UpdateSelectionFromActorTransform ()
 
 void AGridLevelEditorActor::SnapActorToSelectedCell ()
 {
-    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
-    {
-        return;
-    }
-
-    const FVector CellCenter = GetSelectedCellWorldCenter (AutoSelectionZ);
-    SetActorLocation (CellCenter);
-
-    FRotator NewRotation = GetActorRotation ();
-
-    switch (SelectedEdge)
-    {
-        case EGridEdge::East:
-            NewRotation.Yaw = 0.f;
-            break;
-        case EGridEdge::North:
-            NewRotation.Yaw = 90.f;
-            break;
-        case EGridEdge::South:
-            NewRotation.Yaw = -90.f;
-            break;
-        case EGridEdge::West:
-            NewRotation.Yaw = 180.f;
-            break;
-        default:
-            break;
-    }
-
-    SetActorRotation (NewRotation);
 }
 
 void AGridLevelEditorActor::PaintSelectedCell ()
@@ -650,17 +607,7 @@ bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldH
 
 bool AGridLevelEditorActor::ApplyViewportHitSelection (const FVector& WorldHitLocation, const FVector& HitNormal)
 {
-    const bool bOk = TryConvertWorldHitToSelection (WorldHitLocation, HitNormal);
-
-    if (bOk && bSnapAfterViewportPick)
-    {
-        const bool bWasAuto = bAutoSelectFromActorTransform;
-        bAutoSelectFromActorTransform = false;
-        SnapActorToSelectedCell ();
-        bAutoSelectFromActorTransform = bWasAuto;
-    }
-
-    return bOk;
+    return TryConvertWorldHitToSelection (WorldHitLocation, HitNormal);
 }
 
 bool AGridLevelEditorActor::IsSelectionValidForEditing () const
@@ -737,14 +684,6 @@ bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPo
     const float LocalInCellY = Local.Y - (static_cast<float>(NewCellY) * CellSize);
 
     SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
-    if (bSnapAfterViewportPick)
-    {
-        const bool bWasAuto = bAutoSelectFromActorTransform;
-        bAutoSelectFromActorTransform = false;
-        SnapActorToSelectedCell ();
-        bAutoSelectFromActorTransform = bWasAuto;
-    }
-
     return true;
 }
 
@@ -1629,12 +1568,13 @@ void AGridLevelEditorActor::ClearCoordinateLabels ()
 {
     for (UTextRenderComponent* Label : CoordinateLabels)
     {
-        if (Label)
+        if (!Label)
         {
-            Label->DestroyComponent ();
+            continue;
         }
+        RemoveInstanceComponent (Label);
+        Label->DestroyComponent ();
     }
-
     CoordinateLabels.Empty ();
 }
 
@@ -1671,24 +1611,34 @@ void AGridLevelEditorActor::RebuildCoordinateGrid ()
     {
         for (int32 X = 0; X < Width; ++X)
         {
-            UTextRenderComponent* Label = NewObject<UTextRenderComponent> (this);
+            UTextRenderComponent* Label = NewObject<UTextRenderComponent> (this, UTextRenderComponent::StaticClass (), NAME_None,
+                    RF_Transactional);
             if (!Label)
             {
                 continue;
             }
-            Label->RegisterComponent ();
-            Label->AttachToComponent (GetRootComponent (), FAttachmentTransformRules::KeepRelativeTransform);
+            Label->CreationMethod = EComponentCreationMethod::Instance;
+            AddInstanceComponent (Label);
+            
+            Label->AttachToComponent (SceneRoot, FAttachmentTransformRules::KeepRelativeTransform);
             Label->SetRelativeLocation (
-                FVector ((static_cast<float> (X) + 0.5f) * CellSize, (static_cast<float> (Y) + 0.5f) * CellSize, 5.f));
-            Label->SetRelativeRotation (FRotator (90.f, 0.f, 0.f));
+                FVector (
+                    (X + 0.5f) * CellSize,
+                    (Y + 0.5f) * CellSize,
+                    5.f));
+
+            Label->SetWorldSize (CoordinateLabelWorldSize);
+            Label->SetTextRenderColor (FColor::White);
+            Label->SetRelativeRotation (FRotator (90.f, -90.f, 5.f));
+            
             Label->SetText (FText::FromString (FString::Printf (TEXT ("%d,%d"), X, Y)));
             Label->SetHorizontalAlignment (EHTA_Center);
             Label->SetVerticalAlignment (EVRTA_TextCenter);
-            Label->SetWorldSize (CoordinateLabelWorldSize);
             Label->SetVisibility (true, true);
             Label->SetHiddenInGame (false);
-            Label->SetTextRenderColor (FColor::White);
-
+            Label->RegisterComponentWithWorld (GetWorld ());
+            Label->MarkRenderStateDirty ();
+            Label->SetCollisionEnabled (ECollisionEnabled::NoCollision);
             CoordinateLabels.Add (Label);
         }
     }

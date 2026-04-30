@@ -44,6 +44,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor")
     TObjectPtr<AGridLevelRuntimeActor> PreviewRuntimeActor;
 
+    UPROPERTY (VisibleAnywhere, Category = "Editor")
+    TObjectPtr<USceneComponent> SceneRoot;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
     int32 SelectedCellX = 0;
 
