@@ -71,6 +71,8 @@ public:
     UFUNCTION ()
     void HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge);
 
+    void RebuildIndexes ();
+
 private:
     UPROPERTY (Transient)
     TObjectPtr<AGridLevelRuntimeActor> RuntimeActor;
@@ -81,4 +83,10 @@ private:
 private:
     const FGridLevelObjectData* FindDoorObjectDataAtEdge (int32 X, int32 Y, EGridEdge Edge) const;
     AGridDoorActor* FindDoorActorAtEdge (int32 X, int32 Y, EGridEdge Edge) const;
+
+private:
+    TMap<FGridDoorEdgeKey, int32> DoorIndexByEdge;
+    TMap<FGridDoorEdgeKey, TWeakObjectPtr<AGridDoorActor>> DoorActorByEdge;
+
+    const FGridLevelObjectData* GetDoorObjectByIndex (int32 ObjectIndex) const;
 };

@@ -20,29 +20,19 @@ void UGridDoorSystemComponent::ResetRuntimeState ()
     RuntimeBlockedDoorEdges.Reset ();
 }
 
-void UGridDoorSystemComponent::RegisterDoorObject (
-    const FGridLevelObjectData& ObjectData,
-    AGridRuntimeObjectActor* RuntimeObjectActor)
+void UGridDoorSystemComponent::RegisterDoorObject (const FGridLevelObjectData& ObjectData, AGridRuntimeObjectActor* RuntimeObjectActor)
 {
     if (ObjectData.Type != EGridLevelObjectType::Door)
     {
         return;
     }
-
+    const FGridDoorEdgeKey Key (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge);
     if (AGridDoorActor* DoorActor = Cast<AGridDoorActor> (RuntimeObjectActor))
     {
-        DoorActor->OnDoorAnimationFinished.AddDynamic (
-            this,
-            &UGridDoorSystemComponent::HandleDoorAnimationFinished
-        );
+        DoorActorByEdge.Add (Key, DoorActor);
+        DoorActor->OnDoorAnimationFinished.AddDynamic (this, &UGridDoorSystemComponent::HandleDoorAnimationFinished);
     }
-
-    SetDoorPassageBlocked (
-        ObjectData.CellX,
-        ObjectData.CellY,
-        ObjectData.Edge,
-        !ObjectData.bInitiallyActive
-    );
+    SetDoorPassageBlocked (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, !ObjectData.bInitiallyActive);
 }
 
 bool UGridDoorSystemComponent::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const
@@ -122,40 +112,46 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished (int32 X, int32 Y, EG
     // seulement à la fin de l’animation.
 }
 
-const FGridLevelObjectData* UGridDoorSystemComponent::FindDoorObjectDataAtEdge (
-    int32 X,
-    int32 Y,
-    EGridEdge Edge) const
+AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge (int32 X, int32 Y, EGridEdge Edge) const
+{
+    if (const TWeakObjectPtr<AGridDoorActor>* DoorActorPtr = DoorActorByEdge.Find (FGridDoorEdgeKey (X, Y, Edge)))
+    {
+        return DoorActorPtr->Get ();
+    }
+    return nullptr;
+}
+
+const FGridLevelObjectData* UGridDoorSystemComponent::FindDoorObjectDataAtEdge (int32 X, int32 Y, EGridEdge Edge) const
+{
+    const int32* DoorIndex = DoorIndexByEdge.Find (FGridDoorEdgeKey (X, Y, Edge));
+    return DoorIndex ? GetDoorObjectByIndex (*DoorIndex) : nullptr;
+}
+
+void UGridDoorSystemComponent::RebuildIndexes ()
+{
+    DoorIndexByEdge.Reset ();
+    DoorActorByEdge.Reset ();
+    if (!RuntimeActor || !RuntimeActor->LevelAsset)
+    {
+        return;
+    }
+    const TArray<FGridLevelObjectData>& Objects = RuntimeActor->LevelAsset->Objects;
+    for (int32 Index = 0; Index < Objects.Num (); ++Index)
+    {
+        const FGridLevelObjectData& ObjectData = Objects[Index];
+        if (ObjectData.Type != EGridLevelObjectType::Door)
+        {
+            continue;
+        }
+        DoorIndexByEdge.Add (FGridDoorEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
+    }
+}
+
+const FGridLevelObjectData* UGridDoorSystemComponent::GetDoorObjectByIndex (int32 ObjectIndex) const
 {
     if (!RuntimeActor || !RuntimeActor->LevelAsset)
     {
         return nullptr;
     }
-
-    for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
-    {
-        if (ObjectData.Type == EGridLevelObjectType::Door &&
-            ObjectData.CellX == X &&
-            ObjectData.CellY == Y &&
-            ObjectData.Edge == Edge)
-        {
-            return &ObjectData;
-        }
-    }
-
-    return nullptr;
-}
-
-AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge (
-    int32 X,
-    int32 Y,
-    EGridEdge Edge) const
-{
-    const FGridLevelObjectData* DoorData = FindDoorObjectDataAtEdge (X, Y, Edge);
-    if (!DoorData || !RuntimeActor)
-    {
-        return nullptr;
-    }
-
-    return RuntimeActor->FindRuntimeObjectActor<AGridDoorActor> (DoorData->ObjectId);
+    return RuntimeActor->LevelAsset->Objects.IsValidIndex (ObjectIndex) ? &RuntimeActor->LevelAsset->Objects[ObjectIndex] : nullptr;
 }

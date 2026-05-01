@@ -27,11 +27,7 @@ bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCel
     return ObjectData ? ActivateObject (*ObjectData) : false;
 }
 
-void UGridActivationComponent::HandlePartyCellChanged (
-    int32 OldCellX,
-    int32 OldCellY,
-    int32 NewCellX,
-    int32 NewCellY)
+void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
 {
     if (OldCellX == NewCellX && OldCellY == NewCellY)
     {
@@ -48,26 +44,11 @@ void UGridActivationComponent::HandlePartyCellChanged (
 
 const FGridLevelObjectData* UGridActivationComponent::FindObjectById (FGuid ObjectId) const
 {
-    if (!RuntimeActor || !RuntimeActor->LevelAsset || !ObjectId.IsValid ())
-    {
-        return nullptr;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
-    {
-        if (ObjectData.ObjectId == ObjectId)
-        {
-            return &ObjectData;
-        }
-    }
-
-    return nullptr;
+    const int32* ObjectIndex = ObjectIndexById.Find (ObjectId);
+    return ObjectIndex ? GetObjectByIndex (*ObjectIndex) : nullptr;
 }
 
-const FGridLevelObjectData* UGridActivationComponent::FindObjectDataAtCell (
-    EGridLevelObjectType Type,
-    int32 X,
-    int32 Y) const
+const FGridLevelObjectData* UGridActivationComponent::FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
 {
     if (!RuntimeActor || !RuntimeActor->LevelAsset)
     {
@@ -85,31 +66,10 @@ const FGridLevelObjectData* UGridActivationComponent::FindObjectDataAtCell (
     return nullptr;
 }
 
-const FGridLevelObjectData* UGridActivationComponent::FindInteractableObjectOnEdge (
-    int32 X,
-    int32 Y,
-    EGridEdge Edge) const
+const FGridLevelObjectData* UGridActivationComponent::FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    if (!RuntimeActor || !RuntimeActor->LevelAsset)
-    {
-        return nullptr;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
-    {
-        if (ObjectData.CellX != X || ObjectData.CellY != Y || ObjectData.Edge != Edge)
-        {
-            continue;
-        }
-
-        if (ObjectData.Type == EGridLevelObjectType::Button ||
-            ObjectData.Type == EGridLevelObjectType::Lever)
-        {
-            return &ObjectData;
-        }
-    }
-
-    return nullptr;
+    const int32* ObjectIndex = InteractableObjectIndexByEdge.Find (FGridObjectEdgeKey (X, Y, Edge));
+    return ObjectIndex ? GetObjectByIndex (*ObjectIndex) : nullptr;
 }
 
 bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& ObjectData)
@@ -123,8 +83,7 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
     {
         case EGridLevelObjectType::Button:
         {
-            if (AGridButtonActor* ButtonActor =
-                RuntimeActor->FindRuntimeObjectActor<AGridButtonActor> (ObjectData.ObjectId))
+            if (AGridButtonActor* ButtonActor = RuntimeActor->FindRuntimeObjectActor<AGridButtonActor> (ObjectData.ObjectId))
             {
                 ButtonActor->TriggerPress ();
             }
@@ -145,8 +104,7 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
                 ActiveObjectIds.Remove (ObjectData.ObjectId);
             }
 
-            if (AGridLeverActor* LeverActor =
-                RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (ObjectData.ObjectId))
+            if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (ObjectData.ObjectId))
             {
                 LeverActor->SetLeverState (bNewActive);
             }
@@ -161,50 +119,48 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
 
 bool UGridActivationComponent::ActivatePressurePlateAtCell (int32 X, int32 Y)
 {
-    const FGridLevelObjectData* PlateData =
-        FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
-
-    if (!PlateData || ActiveObjectIds.Contains (PlateData->ObjectId))
+    TArray<int32> PlateIndexes;
+    PressurePlateIndexesByCell.MultiFind (FIntPoint (X, Y), PlateIndexes);
+    bool bAnyActivated = false;
+    for (const int32 PlateIndex : PlateIndexes)
     {
-        return false;
-    }
-
-    ActiveObjectIds.Add (PlateData->ObjectId);
-
-    if (RuntimeActor)
-    {
+        const FGridLevelObjectData* PlateData = GetObjectByIndex (PlateIndex);
+        if (!PlateData || ActiveObjectIds.Contains (PlateData->ObjectId))
+        {
+            continue;
+        }
+        ActiveObjectIds.Add (PlateData->ObjectId);
         if (AGridPressurePlateActor* PlateActor =
             RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
         {
             PlateActor->SetPressed (true);
         }
+        bAnyActivated |= ExecuteLinksFromObject (PlateData->ObjectId, false);
     }
-
-    return ExecuteLinksFromObject (PlateData->ObjectId, false);
+    return bAnyActivated;
 }
 
 bool UGridActivationComponent::DeactivatePressurePlateAtCell (int32 X, int32 Y)
 {
-    const FGridLevelObjectData* PlateData =
-        FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
-
-    if (!PlateData || !ActiveObjectIds.Contains (PlateData->ObjectId))
+    TArray<int32> PlateIndexes;
+    PressurePlateIndexesByCell.MultiFind (FIntPoint (X, Y), PlateIndexes);
+    bool bAnyDeactivated = false;
+    for (const int32 PlateIndex : PlateIndexes)
     {
-        return false;
-    }
-
-    ActiveObjectIds.Remove (PlateData->ObjectId);
-
-    if (RuntimeActor)
-    {
+        const FGridLevelObjectData* PlateData = GetObjectByIndex (PlateIndex);
+        if (!PlateData || !ActiveObjectIds.Contains (PlateData->ObjectId))
+        {
+            continue;
+        }
+        ActiveObjectIds.Remove (PlateData->ObjectId);
         if (AGridPressurePlateActor* PlateActor =
             RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
         {
             PlateActor->SetPressed (false);
         }
+        bAnyDeactivated |= ExecuteLinksFromObject (PlateData->ObjectId, true);
     }
-
-    return ExecuteLinksFromObject (PlateData->ObjectId, true);
+    return bAnyDeactivated;
 }
 
 bool UGridActivationComponent::ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert)
@@ -216,14 +172,15 @@ bool UGridActivationComponent::ExecuteLinksFromObject (FGuid SourceObjectId, boo
 
     bool bAnyApplied = false;
 
-    for (const FGridLevelLinkData& LinkData : RuntimeActor->LevelAsset->Links)
-    {
-        if (LinkData.SourceObjectId != SourceObjectId)
-        {
-            continue;
-        }
+    TArray<int32> LinkIndexes;
+    LinkIndexesBySource.MultiFind (SourceObjectId, LinkIndexes);
 
-        bAnyApplied |= ApplyLinkAction (LinkData, bInvert);
+    for (const int32 LinkIndex : LinkIndexes)
+    {
+        if (RuntimeActor->LevelAsset->Links.IsValidIndex (LinkIndex))
+        {
+            bAnyApplied |= ApplyLinkAction (RuntimeActor->LevelAsset->Links[LinkIndex], bInvert);
+        }
     }
 
     return bAnyApplied;
@@ -332,4 +289,67 @@ void UGridActivationComponent::RegisterInitialObjectState (const FGridLevelObjec
     {
         ActiveObjectIds.Add (ObjectData.ObjectId);
     }
+}
+
+void UGridActivationComponent::RebuildIndexes ()
+{
+    ObjectIndexById.Reset ();
+    LinkIndexesBySource.Reset ();
+    InteractableObjectIndexByEdge.Reset ();
+    PressurePlateIndexesByCell.Reset ();
+    TriggerIndexesByCell.Reset ();
+
+    if (!RuntimeActor || !RuntimeActor->LevelAsset)
+    {
+        return;
+    }
+
+    const TArray<FGridLevelObjectData>& Objects = RuntimeActor->LevelAsset->Objects;
+
+    for (int32 Index = 0; Index < Objects.Num (); ++Index)
+    {
+        const FGridLevelObjectData& ObjectData = Objects[Index];
+
+        if (ObjectData.ObjectId.IsValid ())
+        {
+            ObjectIndexById.Add (ObjectData.ObjectId, Index);
+        }
+
+        if (ObjectData.Type == EGridLevelObjectType::Button ||
+            ObjectData.Type == EGridLevelObjectType::Lever)
+        {
+            InteractableObjectIndexByEdge.Add (
+                FGridObjectEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge),
+                Index
+            );
+        } else if (ObjectData.Type == EGridLevelObjectType::PressurePlate)
+        {
+            PressurePlateIndexesByCell.Add (FIntPoint (ObjectData.CellX, ObjectData.CellY), Index);
+        } else if (ObjectData.Type == EGridLevelObjectType::Trigger)
+        {
+            TriggerIndexesByCell.Add (FIntPoint (ObjectData.CellX, ObjectData.CellY), Index);
+        }
+    }
+
+    const TArray<FGridLevelLinkData>& Links = RuntimeActor->LevelAsset->Links;
+
+    for (int32 Index = 0; Index < Links.Num (); ++Index)
+    {
+        if (Links[Index].SourceObjectId.IsValid ())
+        {
+            LinkIndexesBySource.Add (Links[Index].SourceObjectId, Index);
+        }
+    }
+}
+
+const FGridLevelObjectData* UGridActivationComponent::GetObjectByIndex (int32 ObjectIndex) const
+{
+    if (!RuntimeActor || !RuntimeActor->LevelAsset)
+    {
+        return nullptr;
+    }
+
+    return RuntimeActor->LevelAsset->Objects.IsValidIndex (ObjectIndex)
+        ? &RuntimeActor->LevelAsset->Objects[ObjectIndex]
+        : nullptr;
 }

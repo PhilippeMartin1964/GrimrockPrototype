@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Core/GridTypes.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "GridActivationComponent.generated.h"
 
 class AGridLevelRuntimeActor;
@@ -25,6 +26,8 @@ public:
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 
     void RegisterInitialObjectState (const FGridLevelObjectData& ObjectData);
+
+    void RebuildIndexes ();
 
 private:
     UPROPERTY (Transient)
@@ -49,4 +52,13 @@ private:
 
     void ActivateTriggersAtCell (int32 X, int32 Y);
     void DeactivateTriggersAtCell (int32 X, int32 Y);
+
+private:
+    TMap<FGuid, int32> ObjectIndexById;
+    TMultiMap<FGuid, int32> LinkIndexesBySource;
+    TMap<FGridObjectEdgeKey, int32> InteractableObjectIndexByEdge;
+    TMultiMap<FIntPoint, int32> PressurePlateIndexesByCell;
+    TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
+
+    const FGridLevelObjectData* GetObjectByIndex (int32 ObjectIndex) const;
 };
