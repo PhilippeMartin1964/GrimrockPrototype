@@ -5,6 +5,18 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 
+static EGridEdge GetOppositeEdge (EGridEdge Edge)
+{
+    switch (Edge)
+    {
+        case EGridEdge::North: return EGridEdge::South;
+        case EGridEdge::South: return EGridEdge::North;
+        case EGridEdge::East:  return EGridEdge::West;
+        case EGridEdge::West:  return EGridEdge::East;
+        default:               return EGridEdge::None;
+    }
+}
+
 UGridDoorSystemComponent::UGridDoorSystemComponent ()
 {
     PrimaryComponentTick.bCanEverTick = false;
@@ -64,8 +76,7 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
     {
         return false;
     }
-
-    SetDoorPassageBlocked (X, Y, Edge, false);
+    SetDoorPassageBlocked (X, Y, Edge, true);
     DoorActor->OpenDoor ();
 
     return true;
@@ -78,16 +89,30 @@ bool UGridDoorSystemComponent::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge
     {
         return false;
     }
-
     SetDoorPassageBlocked (X, Y, Edge, true);
     DoorActor->CloseDoor ();
-
     return true;
 }
 
 bool UGridDoorSystemComponent::IsDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge) const
 {
-    return RuntimeBlockedDoorEdges.Contains (FGridEdgeKey (X, Y, Edge));
+    const FGridEdgeKey DirectKey (X, Y, Edge);
+    if (RuntimeBlockedDoorEdges.Contains (DirectKey))
+    {
+        return true;
+    }
+    if (!RuntimeActor)
+    {
+        return false;
+    }
+    int32 NeighborX = INDEX_NONE;
+    int32 NeighborY = INDEX_NONE;
+    if (!RuntimeActor->TryGetNeighborCell (X, Y, Edge, NeighborX, NeighborY))
+    {
+        return false;
+    }
+    const FGridEdgeKey ReverseKey (NeighborX, NeighborY, GetOppositeEdge (Edge));
+    return RuntimeBlockedDoorEdges.Contains (ReverseKey);
 }
 
 void UGridDoorSystemComponent::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
@@ -105,11 +130,12 @@ void UGridDoorSystemComponent::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdg
 
 void UGridDoorSystemComponent::HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge)
 {
-    // Pour l’instant rien à faire ici si le blocage est déjà mis à jour
-    // au début de OpenDoorOnEdge / CloseDoorOnEdge.
-    //
-    // Cette méthode reste utile si vous voulez plus tard bloquer/débloquer
-    // seulement à la fin de l’animation.
+    AGridDoorActor* DoorActor = FindDoorActorAtEdge (X, Y, Edge);
+    if (!DoorActor)
+    {
+        return;
+    }
+    SetDoorPassageBlocked (X, Y, Edge, !DoorActor->IsFullyOpen ());
 }
 
 AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge (int32 X, int32 Y, EGridEdge Edge) const
