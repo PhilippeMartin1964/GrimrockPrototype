@@ -173,6 +173,19 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     }
 
     LevelAsset->EnsureCellCount ();
+    if (ActivationComponent)
+    {
+        ActivationComponent->Initialize (this);
+        ActivationComponent->ResetRuntimeState ();
+        ActivationComponent->RebuildIndexes ();
+    }
+
+    if (DoorSystemComponent)
+    {
+        DoorSystemComponent->Initialize (this);
+        DoorSystemComponent->ResetRuntimeState ();
+        DoorSystemComponent->RebuildIndexes ();
+    }
 
     FloorISM->SetStaticMesh (FloorMesh);
     WallISM->SetStaticMesh (WallMesh);
@@ -233,10 +246,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
             DrawEdgeIfNeeded (EGridEdge::South, Cell.SouthWall, Cell.SouthWall != EGridWallType::None);
             DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, Cell.WestWall != EGridWallType::None);
         }
-    }
-    if (DoorSystemComponent)
-    {
-        DoorSystemComponent->ResetRuntimeState ();
     }
     if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {

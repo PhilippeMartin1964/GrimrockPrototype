@@ -39,7 +39,6 @@ private:
 private:
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
-    const FGridLevelObjectData* FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const;
 
     bool ActivateObject (const FGridLevelObjectData& ObjectData);
 

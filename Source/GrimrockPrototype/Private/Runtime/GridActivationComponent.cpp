@@ -48,24 +48,6 @@ const FGridLevelObjectData* UGridActivationComponent::FindObjectById (FGuid Obje
     return ObjectIndex ? GetObjectByIndex (*ObjectIndex) : nullptr;
 }
 
-const FGridLevelObjectData* UGridActivationComponent::FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
-{
-    if (!RuntimeActor || !RuntimeActor->LevelAsset)
-    {
-        return nullptr;
-    }
-
-    for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
-    {
-        if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y)
-        {
-            return &ObjectData;
-        }
-    }
-
-    return nullptr;
-}
-
 const FGridLevelObjectData* UGridActivationComponent::FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
     const int32* ObjectIndex = InteractableObjectIndexByEdge.Find (FGridObjectEdgeKey (X, Y, Edge));
@@ -257,30 +239,34 @@ EGridLinkAction UGridActivationComponent::GetResolvedLinkAction (EGridLinkAction
 
 void UGridActivationComponent::ActivateTriggersAtCell (int32 X, int32 Y)
 {
-    const FGridLevelObjectData* TriggerData =
-        FindObjectDataAtCell (EGridLevelObjectType::Trigger, X, Y);
-
-    if (!TriggerData || ActiveObjectIds.Contains (TriggerData->ObjectId))
+    TArray<int32> TriggerIndexes;
+    TriggerIndexesByCell.MultiFind (FIntPoint (X, Y), TriggerIndexes);
+    for (const int32 TriggerIndex : TriggerIndexes)
     {
-        return;
+        const FGridLevelObjectData* TriggerData = GetObjectByIndex (TriggerIndex);
+        if (!TriggerData || ActiveObjectIds.Contains (TriggerData->ObjectId))
+        {
+            continue;
+        }
+        ActiveObjectIds.Add (TriggerData->ObjectId);
+        ExecuteLinksFromObject (TriggerData->ObjectId, false);
     }
-
-    ActiveObjectIds.Add (TriggerData->ObjectId);
-    ExecuteLinksFromObject (TriggerData->ObjectId, false);
 }
 
 void UGridActivationComponent::DeactivateTriggersAtCell (int32 X, int32 Y)
 {
-    const FGridLevelObjectData* TriggerData =
-        FindObjectDataAtCell (EGridLevelObjectType::Trigger, X, Y);
-
-    if (!TriggerData || !ActiveObjectIds.Contains (TriggerData->ObjectId))
+    TArray<int32> TriggerIndexes;
+    TriggerIndexesByCell.MultiFind (FIntPoint (X, Y), TriggerIndexes);
+    for (const int32 TriggerIndex : TriggerIndexes)
     {
-        return;
+        const FGridLevelObjectData* TriggerData = GetObjectByIndex (TriggerIndex);
+        if (!TriggerData || !ActiveObjectIds.Contains (TriggerData->ObjectId))
+        {
+            continue;
+        }
+        ActiveObjectIds.Remove (TriggerData->ObjectId);
+        ExecuteLinksFromObject (TriggerData->ObjectId, true);
     }
-
-    ActiveObjectIds.Remove (TriggerData->ObjectId);
-    ExecuteLinksFromObject (TriggerData->ObjectId, true);
 }
 
 void UGridActivationComponent::RegisterInitialObjectState (const FGridLevelObjectData& ObjectData)
