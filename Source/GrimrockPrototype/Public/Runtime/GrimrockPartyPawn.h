@@ -12,6 +12,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 class AGridLevelRuntimeActor;
+class UPointLightComponent;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
@@ -34,6 +35,26 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UCameraComponent* Camera;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UPointLightComponent> TorchLight;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
+    bool bEnableTorchLight = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (ClampMin = "0.0"))
+    float TorchIntensity = 3500.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (ClampMin = "0.0"))
+    float TorchRadius = 700.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
+    float TorchFlickerSpeed = 3.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
+    float TorchFlickerAmount = 250.f;
+
+    float TorchTime = 0.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
     TObjectPtr<AGridLevelRuntimeActor> LevelRuntimeActor;
