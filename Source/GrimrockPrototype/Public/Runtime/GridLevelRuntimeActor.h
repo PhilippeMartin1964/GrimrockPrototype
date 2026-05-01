@@ -11,6 +11,7 @@ class UGridObjectArchetypeAsset;
 class AGridRuntimeObjectActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
+class UGridEditorPreviewComponent;
 
 UENUM ()
 enum class EGridRuntimeRebuildMode : uint8
@@ -49,6 +50,9 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UGridDoorSystemComponent> DoorSystemComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UGridEditorPreviewComponent> EditorPreviewComponent;
 
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
@@ -159,6 +163,10 @@ public:
         return nullptr;
     }
 
+    UStaticMesh* GetObjectMesh (const FGridLevelObjectData& ObjectData) const;
+    UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const;
+    bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
+
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
 
@@ -173,31 +181,16 @@ private:
 
     TSubclassOf<AGridRuntimeObjectActor> GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const;
 
-    bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
     bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, FTransform& OutTransform) const;
     bool GetCenteredObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const;
 
-    UPROPERTY (Transient)
-    TArray<TObjectPtr<AGridEditorPreviewObjectActor>> SpawnedEditorPreviewObjects;
-
-    FGuid CurrentHoveredEditorObjectId;
-    FGuid CurrentSelectedEditorObjectId;
-
-    void ClearEditorPreviewObjects ();
-    void RebuildEditorPreviewObjects ();
-    void AddEditorPreviewObject (const FGridLevelObjectData& ObjectData);
-
     const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
-    UStaticMesh* GetObjectMesh (const FGridLevelObjectData& ObjectData) const;
-    UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const; 
 
     UPROPERTY (Transient)
     TMap<FGuid, TObjectPtr<AGridRuntimeObjectActor>> SpawnedRuntimeObjectActors;
 
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();
-
-    bool IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const;
 
     template<typename TActor>TActor* SpawnRuntimeObjectActor (
         const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)

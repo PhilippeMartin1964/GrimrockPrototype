@@ -1,11 +1,10 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Core/GridTypes.h"
 #include "Core/GridObjectArchetypeAsset.h"
-#include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorSystemComponent.h"
-#include "EngineUtils.h"
+#include "Runtime/GridEditorPreviewComponent.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -29,6 +28,8 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     ActivationComponent = CreateDefaultSubobject<UGridActivationComponent> (TEXT ("ActivationComponent"));
 
     DoorSystemComponent = CreateDefaultSubobject<UGridDoorSystemComponent> (TEXT ("DoorSystemComponent"));
+
+    EditorPreviewComponent = CreateDefaultSubobject<UGridEditorPreviewComponent> (TEXT ("EditorPreviewComponent"));
 }
 
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
@@ -54,6 +55,10 @@ void AGridLevelRuntimeActor::BeginPlay ()
         DoorSystemComponent->Initialize (this);
         DoorSystemComponent->ResetRuntimeState ();
     }
+    if (EditorPreviewComponent)
+    {
+        EditorPreviewComponent->Initialize (this);
+    }
     RebuildLevel ();
 }
 
@@ -70,8 +75,11 @@ void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
     if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {
         ClearRuntimeObjectActors ();
-        ClearEditorPreviewObjects ();
-    }    
+        if (EditorPreviewComponent)
+        {
+            EditorPreviewComponent->ClearPreviewObjects ();
+        }
+    }
     if (DoorSystemComponent)
     {
         DoorSystemComponent->ResetRuntimeState ();
@@ -253,7 +261,10 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     {
         if (!GetWorld () || !GetWorld ()->IsGameWorld ())
         {
-            RebuildEditorPreviewObjects ();
+            if (EditorPreviewComponent)
+            {
+                EditorPreviewComponent->RebuildPreviewObjects ();
+            }
         }
     }    
     if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
@@ -454,126 +465,19 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCe
     }
 }
 
-void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
-{
-    UWorld* World = GetWorld ();
-    if (World)
-    {
-        for (TActorIterator<AGridEditorPreviewObjectActor> It (World); It; ++It)
-        {
-            AGridEditorPreviewObjectActor* PreviewActor = *It;
-
-            if (!IsValid (PreviewActor))
-            {
-                continue;
-            }
-
-            if (PreviewActor->GetOwner () == this ||
-                SpawnedEditorPreviewObjects.Contains (PreviewActor))
-            {
-                PreviewActor->Destroy ();
-            }
-        }
-    } else
-    {
-        for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
-        {
-            if (IsValid (Actor))
-            {
-                Actor->Destroy ();
-            }
-        }
-    }
-    SpawnedEditorPreviewObjects.Empty ();
-    CurrentSelectedEditorObjectId.Invalidate ();
-    CurrentHoveredEditorObjectId.Invalidate ();
-}
-
-void AGridLevelRuntimeActor::AddEditorPreviewObject (const FGridLevelObjectData& ObjectData)
-{
-    TSubclassOf<AGridEditorPreviewObjectActor> PreviewClass;
-
-    if (EditorPreviewObjectActorClass)
-    {
-        PreviewClass = EditorPreviewObjectActorClass;
-    } else
-    {
-        PreviewClass = AGridEditorPreviewObjectActor::StaticClass ();
-    }
-    UStaticMesh* Mesh = GetObjectMesh (ObjectData);
-    UMaterialInterface* Material = GetObjectMaterial (ObjectData);
-    if (!Mesh)
-    {
-        return;
-    }
-    UWorld* World = GetWorld ();
-    if (!World)
-    {
-        return;
-    }
-    FTransform PlacementTransform;
-    if (!GetObjectPlacementTransform (ObjectData, PlacementTransform))
-    {
-        return;
-    }
-    const FVector Location = PlacementTransform.GetLocation ();
-    const FRotator Rotation = PlacementTransform.GetRotation ().Rotator ();
-
-    FActorSpawnParameters Params;
-    Params.Owner = this;
-    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    AGridEditorPreviewObjectActor* PreviewActor =
-        World->SpawnActor<AGridEditorPreviewObjectActor> (PreviewClass, Location, Rotation, Params);
-
-    if (!PreviewActor)
-    {
-        return;
-    }
-    PreviewActor->InitializePreviewObject (ObjectData, Mesh, Material);
-    SpawnedEditorPreviewObjects.Add (PreviewActor);
-}
-
-void AGridLevelRuntimeActor::RebuildEditorPreviewObjects ()
-{
-    ClearEditorPreviewObjects ();
-    if (!LevelAsset)
-    {
-        return;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (!IsEditorPreviewableObject (ObjectData))
-        {
-            continue;
-        }
-        AddEditorPreviewObject (ObjectData);
-    }
-}
-
 void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
 {
-    CurrentHoveredEditorObjectId = ObjectId;
-    for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+    if (EditorPreviewComponent)
     {
-        if (!IsValid (Actor))
-        {
-            continue;
-        }
-        Actor->SetHovered (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
+        EditorPreviewComponent->SetHoveredObject (ObjectId);
     }
 }
 
 void AGridLevelRuntimeActor::SetEditorSelectedObject (FGuid ObjectId)
 {
-    CurrentSelectedEditorObjectId = ObjectId;
-    for (AGridEditorPreviewObjectActor* Actor : SpawnedEditorPreviewObjects)
+    if (EditorPreviewComponent)
     {
-        if (!IsValid (Actor))
-        {
-            continue;
-        }
-        Actor->SetSelected (ObjectId.IsValid () && Actor->ObjectId == ObjectId);
+        EditorPreviewComponent->SetSelectedObject (ObjectId);
     }
 }
 
@@ -799,25 +703,4 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
         }
         AddRuntimeObjectActor (ObjectData);
     }
-}
-
-bool AGridLevelRuntimeActor::IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const
-{
-    if (!LevelAsset)
-    {
-        return false;
-    }
-    if (!ObjectData.bInitiallyEnabled)
-    {
-        return false;
-    }
-    if (!LevelAsset->IsValidCoord (ObjectData.CellX, ObjectData.CellY))
-    {
-        return false;
-    }
-    if (!GetObjectMesh (ObjectData))
-    {
-        return false;
-    }
-    return true;
 }

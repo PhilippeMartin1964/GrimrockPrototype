@@ -6,6 +6,10 @@
 AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor ()
 {
     PrimaryActorTick.bCanEverTick = false;
+#if WITH_EDITORONLY_DATA
+    bIsEditorOnlyActor = true;
+#endif
+    SetActorHiddenInGame (true);
 
     SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
     SetRootComponent (SceneRoot);
