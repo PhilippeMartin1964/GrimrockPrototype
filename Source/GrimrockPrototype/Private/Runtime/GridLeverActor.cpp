@@ -5,6 +5,7 @@
 AGridLeverActor::AGridLeverActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
+    SetActorTickEnabled (false);
 }
 
 void AGridLeverActor::Tick (float DeltaSeconds)
@@ -45,6 +46,7 @@ void AGridLeverActor::SetLeverState (bool bNewOn)
 
     AnimStartRotation = MeshComponent->GetRelativeRotation ();
     AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
+    SetActorTickEnabled (true);
 }
 
 void AGridLeverActor::ToggleLever ()
@@ -59,19 +61,19 @@ void AGridLeverActor::UpdateAnimation (float DeltaSeconds)
     AnimElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (AnimElapsed / SafeDuration, 0.f, 1.f);
 
-    MeshComponent->SetRelativeRotation (
-        FMath::Lerp (AnimStartRotation, AnimTargetRotation, Alpha));
+    MeshComponent->SetRelativeRotation (FMath::Lerp (AnimStartRotation, AnimTargetRotation, Alpha));
 
     if (Alpha >= 1.f)
     {
         MeshComponent->SetRelativeRotation (AnimTargetRotation);
         bIsAnimating = false;
         AnimElapsed = 0.f;
+        SetActorTickEnabled (false);
     }
 }
 
 void AGridLeverActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
     const FTransform& WorldTransform)
 {
-    InitializeLever (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.Rotator (), bIsOn);
+    InitializeLever (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.Rotator (), ObjectData.bInitiallyActive);
 }

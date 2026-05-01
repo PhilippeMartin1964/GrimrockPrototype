@@ -3,6 +3,7 @@
 AGridButtonActor::AGridButtonActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
+    SetActorTickEnabled (false);
 }
 
 void AGridButtonActor::Tick (float DeltaSeconds)
@@ -26,6 +27,7 @@ void AGridButtonActor::TriggerPress ()
 {
     AnimState = EButtonAnimState::Pressing;
     StateElapsed = 0.f;
+    SetActorTickEnabled (true);
 }
 
 FVector AGridButtonActor::GetPressAxis () const
@@ -85,6 +87,7 @@ void AGridButtonActor::UpdateAnimation (float DeltaSeconds)
                 AnimState = EButtonAnimState::Idle;
                 StateElapsed = 0.f;
                 SetActorLocation (ReleasedLocation);
+				SetActorTickEnabled (false);
             }
             break;
         }

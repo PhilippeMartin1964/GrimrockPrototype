@@ -3,6 +3,7 @@
 AGridPressurePlateActor::AGridPressurePlateActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
+    SetActorTickEnabled (false);
 }
 
 void AGridPressurePlateActor::Tick (float DeltaSeconds)
@@ -43,6 +44,7 @@ void AGridPressurePlateActor::SetPressed (bool bNewPressed)
 
     AnimStartLocation = GetActorLocation ();
     AnimTargetLocation = bIsPressed ? PressedLocation : ReleasedLocation;
+    SetActorTickEnabled (true);
 }
 
 void AGridPressurePlateActor::UpdateAnimation (float DeltaSeconds)
@@ -59,6 +61,7 @@ void AGridPressurePlateActor::UpdateAnimation (float DeltaSeconds)
         SetActorLocation (AnimTargetLocation);
         bIsAnimating = false;
         AnimElapsed = 0.f;
+		SetActorTickEnabled (false);
     }
 }
 

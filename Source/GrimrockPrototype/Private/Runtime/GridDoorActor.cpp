@@ -6,6 +6,7 @@
 AGridDoorActor::AGridDoorActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
+    SetActorTickEnabled (false);
 }
 
 void AGridDoorActor::Tick (float DeltaSeconds)
@@ -77,6 +78,7 @@ void AGridDoorActor::SetDoorOpenState (bool bOpen)
 
     bIsAnimating = true;
     bIsOpen = bOpen;
+    SetActorTickEnabled (true);
 }
 
 void AGridDoorActor::OpenDoor ()
@@ -105,7 +107,7 @@ void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
         bIsAnimating = false;
         MoveElapsed = 0.f;
         CurrentMoveDuration = 0.f;
-
+        SetActorTickEnabled (false);
         OnDoorAnimationFinished.Broadcast (CellX, CellY, Edge);
     }
 }
