@@ -199,23 +199,6 @@ private:
 
     bool IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const;
 
-    template<typename TActor>
-    TActor* FindRuntimeActorForObjectAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const
-    {
-        const FGridLevelObjectData* ObjectData = FindObjectDataAtEdge (Type, X, Y, Edge);
-        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId) : nullptr;
-    }
-
-    template<typename TActor>
-    TActor* FindRuntimeActorForObjectAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
-    {
-        const FGridLevelObjectData* ObjectData = FindObjectDataAtCell (Type, X, Y);
-        return ObjectData ? FindRuntimeObjectActor<TActor> (ObjectData->ObjectId) : nullptr;
-    }
-
-    const FGridLevelObjectData* FindObjectDataAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const;
-    const FGridLevelObjectData* FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const;
-
     template<typename TActor>TActor* SpawnRuntimeObjectActor (
         const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)
     {

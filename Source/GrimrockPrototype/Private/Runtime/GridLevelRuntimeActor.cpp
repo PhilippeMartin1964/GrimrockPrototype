@@ -719,38 +719,6 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
     SpawnedRuntimeObjectActors.Empty ();
 }
 
-const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const
-{
-    if (!LevelAsset)
-    {
-        return nullptr;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y && ObjectData.Edge == Edge)
-        {
-            return &ObjectData;
-        }
-    }
-    return nullptr;
-}
-
-const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectDataAtCell (EGridLevelObjectType Type, int32 X, int32 Y) const
-{
-    if (!LevelAsset)
-    {
-        return nullptr;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type == Type && ObjectData.CellX == X && ObjectData.CellY == Y)
-        {
-            return &ObjectData;
-        }
-    }
-    return nullptr;
-}
-
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
