@@ -1164,8 +1164,6 @@ bool AGridLevelEditorActor::FocusSelectedObject ()
         if (TryGetObjectWorldLocation (*Obj, WorldLocation))
         {
             GEditor->MoveViewportCamerasToActor (*this, false);
-            SetActorLocation (WorldLocation);
-            GEditor->MoveViewportCamerasToActor (*this, false);
         }
     }
 #endif

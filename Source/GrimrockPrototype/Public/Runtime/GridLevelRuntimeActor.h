@@ -9,6 +9,8 @@
 class AGridEditorPreviewObjectActor;
 class UGridObjectArchetypeAsset;
 class AGridRuntimeObjectActor;
+class UGridActivationComponent;
+class UGridDoorSystemComponent;
 
 USTRUCT ()
 struct FGridObjectEdgeKey
@@ -74,6 +76,12 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* CeilingISM;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UGridActivationComponent> ActivationComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UGridDoorSystemComponent> DoorSystemComponent;
 
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
@@ -170,6 +178,20 @@ public:
     void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);
     bool IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const;
 
+    template<typename T>
+    T* FindRuntimeObjectActor (const FGuid& ObjectId) const
+    {
+        if (!ObjectId.IsValid ())
+        {
+            return nullptr;
+        }
+        if (const TObjectPtr<AGridRuntimeObjectActor>* ActorPtr = SpawnedRuntimeObjectActors.Find (ObjectId))
+        {
+            return Cast<T> (ActorPtr->Get ());
+        }
+        return nullptr;
+    }
+
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
 
@@ -180,37 +202,9 @@ protected:
     virtual void BeginPlay () override;
 
 private:
-    UPROPERTY (Transient)
-    TSet<FGridObjectEdgeKey> RuntimeBlockedDoorEdges;
-
     void GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;
 
-    void SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked);
-
-    UFUNCTION ()
-    void HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge);
-    
     TSubclassOf<AGridRuntimeObjectActor> GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const;
-
-    const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
-    const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
-
-    bool ActivateObject (const FGridLevelObjectData& ObjectData);
-    bool ApplyLinkAction (const FGridLevelLinkData& LinkData);
-    bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
-
-    EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
-
-    bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
-
-	// TODO: Consider moving these to a separate component that handles triggers and pressure plates
-    bool ActivatePressurePlateAtCell (int32 X, int32 Y);
-    bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
-    void ActivateTriggersAtCell (int32 X, int32 Y);
-    void DeactivateTriggersAtCell (int32 X, int32 Y);
-
-    UPROPERTY (Transient)
-    TSet<FGuid> ActiveObjectIds;
 
     bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
     bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, FTransform& OutTransform) const;
@@ -238,20 +232,6 @@ private:
 
     bool IsEditorPreviewableObject (const FGridLevelObjectData& ObjectData) const;
 
-    template<typename T>
-    T* FindRuntimeObjectActor (const FGuid& ObjectId) const
-    {
-        if (!ObjectId.IsValid ())
-        {
-            return nullptr;
-        }
-        if (const TObjectPtr<AGridRuntimeObjectActor>* ActorPtr = SpawnedRuntimeObjectActors.Find (ObjectId))
-        {
-            return Cast<T> (ActorPtr->Get ());
-        }
-        return nullptr;
-    }
-
     template<typename TActor>
     TActor* FindRuntimeActorForObjectAtEdge (EGridLevelObjectType Type, int32 X, int32 Y, EGridEdge Edge) const
     {
@@ -272,8 +252,7 @@ private:
     template<typename TActor>TActor* SpawnRuntimeObjectActor (
         const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)
     {
-        static_assert (TIsDerivedFrom<TActor, AGridRuntimeObjectActor>::IsDerived,
-                       "TActor must derive from AGridRuntimeObjectActor");
+        static_assert (TIsDerivedFrom<TActor, AGridRuntimeObjectActor>::IsDerived,  "TActor must derive from AGridRuntimeObjectActor");
         OutMesh = nullptr;
         OutMaterial = nullptr;
         OutTransform = FTransform::Identity;

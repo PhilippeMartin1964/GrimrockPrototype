@@ -2,11 +2,10 @@
 #include "Runtime/GridDoorActor.h"
 #include "Core/GridTypes.h"
 #include "Core/GridObjectArchetypeAsset.h"
-#include "Runtime/GridButtonActor.h"
-#include "Runtime/GridLeverActor.h"
-#include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridActivationComponent.h"
+#include "Runtime/GridDoorSystemComponent.h"
 #include "EngineUtils.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
@@ -27,6 +26,10 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 
     CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("CeilingISM"));
     CeilingISM->SetupAttachment (SceneRoot);
+
+    ActivationComponent = CreateDefaultSubobject<UGridActivationComponent> (TEXT ("ActivationComponent"));
+
+    DoorSystemComponent = CreateDefaultSubobject<UGridDoorSystemComponent> (TEXT ("DoorSystemComponent"));
 }
 
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
@@ -42,6 +45,16 @@ void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
 void AGridLevelRuntimeActor::BeginPlay ()
 {
     Super::BeginPlay ();
+    if (ActivationComponent)
+    {
+        ActivationComponent->Initialize (this);
+        ActivationComponent->ResetRuntimeState ();
+    }
+    if (DoorSystemComponent)
+    {
+        DoorSystemComponent->Initialize (this);
+        DoorSystemComponent->ResetRuntimeState ();
+    }
     RebuildLevel ();
 }
 
@@ -56,9 +69,15 @@ void AGridLevelRuntimeActor::ClearVisuals ()
         CeilingISM->EmptyOverrideMaterials ();
     }
     ClearRuntimeObjectActors ();
-    RuntimeBlockedDoorEdges.Empty ();
     ClearEditorPreviewObjects ();
-    ActiveObjectIds.Empty ();
+    if (DoorSystemComponent)
+    {
+        DoorSystemComponent->ResetRuntimeState ();
+    }
+    if (ActivationComponent)
+    {
+        ActivationComponent->ResetRuntimeState ();
+    }
 }
 
 bool AGridLevelRuntimeActor::IsValidCell (int32 X, int32 Y) const
@@ -215,6 +234,10 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
             DrawEdgeIfNeeded (EGridEdge::West, Cell.WestWall, Cell.WestWall != EGridWallType::None);
         }
     }
+    if (DoorSystemComponent)
+    {
+        DoorSystemComponent->ResetRuntimeState ();
+    }
     if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {
         if (!GetWorld () || !GetWorld ()->IsGameWorld ())
@@ -228,7 +251,8 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
         {
             RebuildRuntimeObjects ();
         }
-    }}
+    }
+}
 
 bool AGridLevelRuntimeActor::IsWalkableCell (int32 X, int32 Y) const
 {
@@ -330,13 +354,10 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
     {
         return false;
     }
-
-    if (HasDoorOnEdge (FromX, FromY, Direction))
+    if (DoorSystemComponent && DoorSystemComponent->IsDoorPassageBlocked (FromX, FromY, Direction))
     {
-        const FGridObjectEdgeKey Key (FromX, FromY, Direction);
-        return !RuntimeBlockedDoorEdges.Contains (Key);
+        return false;
     }
-
     const EGridWallType Wall = GetWallOnEdge (FromX, FromY, Direction);
 
     switch (Wall)
@@ -384,329 +405,42 @@ void AGridLevelRuntimeActor::GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge,
     }
 }
 
-void AGridLevelRuntimeActor::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
-{
-    const FGridObjectEdgeKey Key (X, Y, Edge);
-    if (bBlocked)
-    {
-        RuntimeBlockedDoorEdges.Add (Key);
-    } else
-    {
-        RuntimeBlockedDoorEdges.Remove (Key);
-    }
-}
-
-void AGridLevelRuntimeActor::HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge)
-{
-    AGridDoorActor* DoorActor =
-        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
-    if (!DoorActor)
-    {
-        return;
-    }
-    SetDoorPassageBlocked (X, Y, Edge, !DoorActor->IsFullyOpen ());
-}
-
 bool AGridLevelRuntimeActor::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    return FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge) != nullptr;
+    return DoorSystemComponent ? DoorSystemComponent->HasDoorOnEdge (X, Y, Edge) : false;
 }
 
 bool AGridLevelRuntimeActor::IsDoorOpenOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    const AGridDoorActor* DoorActor =
-        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
-
-    return DoorActor && DoorActor->IsFullyOpen ();
-}
-
-bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
-{
-    AGridDoorActor* DoorActor =
-        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
-    if (!DoorActor)
-    {
-        return false;
-    }
-    DoorActor->OpenDoor ();
-    SetDoorPassageBlocked (X, Y, Edge, true);
-    return true;
-}
-
-bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
-{
-    AGridDoorActor* DoorActor =
-        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
-    if (!DoorActor)
-    {
-        return false;
-    }
-    DoorActor->CloseDoor ();
-    SetDoorPassageBlocked (X, Y, Edge, true);
-    return true;
+    return DoorSystemComponent ? DoorSystemComponent->IsDoorOpenOnEdge (X, Y, Edge) : false;
 }
 
 bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    AGridDoorActor* DoorActor =
-        FindRuntimeActorForObjectAtEdge<AGridDoorActor> (EGridLevelObjectType::Door, X, Y, Edge);
-    if (!DoorActor)
-    {
-        return false;
-    }
-    if (DoorActor->IsFullyOpen ())
-    {
-        return CloseDoorOnEdge (X, Y, Edge);
-    }
-    if (DoorActor->IsFullyClosed ())
-    {
-        return OpenDoorOnEdge (X, Y, Edge);
-    }
-
-    if (DoorActor->IsAnimating ())
-    {
-        return DoorActor->bIsOpen
-            ? CloseDoorOnEdge (X, Y, Edge)
-            : OpenDoorOnEdge (X, Y, Edge);
-    }
-    return false;
+    return DoorSystemComponent ? DoorSystemComponent->ToggleDoorOnEdge (X, Y, Edge) : false;
 }
 
-const FGridLevelObjectData* AGridLevelRuntimeActor::FindObjectById (FGuid ObjectId) const
+bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    if (!LevelAsset || !ObjectId.IsValid ())
-    {
-        return nullptr;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.ObjectId == ObjectId)
-        {
-            return &ObjectData;
-        }
-    }
-    return nullptr;
+    return DoorSystemComponent ? DoorSystemComponent->OpenDoorOnEdge (X, Y, Edge) : false;
 }
 
-const FGridLevelObjectData* AGridLevelRuntimeActor::FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const
+bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    if (!LevelAsset)
-    {
-        return nullptr;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-
-        if (ObjectData.CellX != X || ObjectData.CellY != Y || ObjectData.Edge != Edge)
-        {
-            continue;
-        }
-        switch (ObjectData.Type)
-        {
-            case EGridLevelObjectType::Button:
-            case EGridLevelObjectType::Lever:
-                return &ObjectData;
-
-            default:
-                break;
-        }
-    }
-    return nullptr;
-}
-
-EGridLinkAction AGridLevelRuntimeActor::GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const
-{
-    if (!bInvert)
-    {
-        return Action;
-    }
-
-    switch (Action)
-    {
-        case EGridLinkAction::Open:       return EGridLinkAction::Close;
-        case EGridLinkAction::Close:      return EGridLinkAction::Open;
-        case EGridLinkAction::Activate:   return EGridLinkAction::Deactivate;
-        case EGridLinkAction::Deactivate: return EGridLinkAction::Activate;
-        case EGridLinkAction::Toggle:
-        default:
-            return EGridLinkAction::Toggle;
-    }
-}
-
-bool AGridLevelRuntimeActor::ApplyLinkAction (const FGridLevelLinkData& LinkData)
-{
-    return ApplyLinkAction (LinkData, false);
-}
-
-bool AGridLevelRuntimeActor::ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert)
-{
-    const FGridLevelObjectData* TargetObject = FindObjectById (LinkData.TargetObjectId);
-    if (!TargetObject)
-    {
-        return false;
-    }
-
-    const EGridLinkAction ResolvedAction = GetResolvedLinkAction (LinkData.Action, bInvert);
-
-    switch (TargetObject->Type)
-    {
-        case EGridLevelObjectType::Door:
-            switch (ResolvedAction)
-            {
-                case EGridLinkAction::Toggle:
-                    return ToggleDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
-
-                case EGridLinkAction::Open:
-                case EGridLinkAction::Activate:
-                    return OpenDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
-
-                case EGridLinkAction::Close:
-                case EGridLinkAction::Deactivate:
-                    return CloseDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
-
-                default:
-                    return false;
-            }
-        default:
-            break;
-    }
-    return false;
-}
-
-bool AGridLevelRuntimeActor::ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert)
-{
-    if (!LevelAsset || !SourceObjectId.IsValid ())
-    {
-        return false;
-    }
-    bool bAnyApplied = false;
-    for (const FGridLevelLinkData& LinkData : LevelAsset->Links)
-    {
-        if (LinkData.SourceObjectId != SourceObjectId)
-        {
-            continue;
-        }
-        const bool bApplied = ApplyLinkAction (LinkData, bInvert);
-        bAnyApplied = bAnyApplied || bApplied;
-    }
-    return bAnyApplied;
-}
-
-bool AGridLevelRuntimeActor::ActivateObject (const FGridLevelObjectData& ObjectData)
-{
-    switch (ObjectData.Type)
-    {
-        case EGridLevelObjectType::Button:
-        {
-            if (AGridButtonActor* ButtonActor = FindRuntimeActorForObjectAtEdge<AGridButtonActor> (
-                EGridLevelObjectType::Button, ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
-            {
-                ButtonActor->TriggerPress ();
-            }
-
-            return ExecuteLinksFromObject (ObjectData.ObjectId, false);
-        }
-        case EGridLevelObjectType::Lever:
-        {
-            const bool bWasActive = ActiveObjectIds.Contains (ObjectData.ObjectId);
-            const bool bNewActive = !bWasActive;
-
-            if (bNewActive)
-            {
-                ActiveObjectIds.Add (ObjectData.ObjectId);
-            } else
-            {
-                ActiveObjectIds.Remove (ObjectData.ObjectId);
-            }
-            if (AGridLeverActor* LeverActor = FindRuntimeActorForObjectAtEdge<AGridLeverActor> (
-                EGridLevelObjectType::Lever, ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
-            {
-                LeverActor->SetLeverState (bNewActive);
-            }
-
-            return ExecuteLinksFromObject (ObjectData.ObjectId, bWasActive);
-        }
-        default:
-            break;
-    }
-
-    return false;
+    return DoorSystemComponent ? DoorSystemComponent->CloseDoorOnEdge (X, Y, Edge) : false;
 }
 
 bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge)
 {
-    const FGridLevelObjectData* ObjectData = FindInteractableObjectOnEdge (FromCellX, FromCellY, Edge);
-    if (!ObjectData)
-    {
-        return false;
-    }
-
-    return ActivateObject (*ObjectData);
-}
-
-bool AGridLevelRuntimeActor::ActivatePressurePlateAtCell (int32 X, int32 Y)
-{
-    const FGridLevelObjectData* PlateData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
-    if (!PlateData)
-    {
-        return false;
-    }
-
-    if (ActiveObjectIds.Contains (PlateData->ObjectId))
-    {
-        return false;
-    }
-
-    ActiveObjectIds.Add (PlateData->ObjectId);
-
-    if (AGridPressurePlateActor* PlateActor =
-        FindRuntimeActorForObjectAtCell<AGridPressurePlateActor> (EGridLevelObjectType::PressurePlate, X, Y))
-    {
-        PlateActor->SetPressed (true);
-    }
-
-    return ExecuteLinksFromObject (PlateData->ObjectId, false);
-}
-
-bool AGridLevelRuntimeActor::DeactivatePressurePlateAtCell (int32 X, int32 Y)
-{
-    const FGridLevelObjectData* PlateData = FindObjectDataAtCell (EGridLevelObjectType::PressurePlate, X, Y);
-    if (!PlateData)
-    {
-        return false;
-    }
-
-    if (!ActiveObjectIds.Contains (PlateData->ObjectId))
-    {
-        return false;
-    }
-
-    ActiveObjectIds.Remove (PlateData->ObjectId);
-
-    if (AGridPressurePlateActor* PlateActor = 
-        FindRuntimeActorForObjectAtCell<AGridPressurePlateActor> (EGridLevelObjectType::PressurePlate, X, Y))
-    {
-        PlateActor->SetPressed (false);
-    }
-
-    return ExecuteLinksFromObject (PlateData->ObjectId, true);
+    return ActivationComponent ? ActivationComponent->TryInteractAtEdge (FromCellX, FromCellY, Edge) : false;
 }
 
 void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
 {
-    if (OldCellX == NewCellX && OldCellY == NewCellY)
+    if (ActivationComponent)
     {
-        ActivatePressurePlateAtCell (NewCellX, NewCellY);
-        return;
+        ActivationComponent->HandlePartyCellChanged (OldCellX, OldCellY, NewCellX, NewCellY);
     }
-    DeactivatePressurePlateAtCell (OldCellX, OldCellY);
-    ActivatePressurePlateAtCell (NewCellX, NewCellY);
-    DeactivateTriggersAtCell (OldCellX, OldCellY);
-    ActivateTriggersAtCell (NewCellX, NewCellY);
 }
 
 void AGridLevelRuntimeActor::ClearEditorPreviewObjects ()
@@ -1061,17 +795,13 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
         return;
     }
     Actor->InitializeGridObject (ObjectData, Mesh, Material, Transform);
-    if (ObjectData.bInitiallyActive)
+    if (ActivationComponent)
     {
-        ActiveObjectIds.Add (ObjectData.ObjectId);
+        ActivationComponent->RegisterInitialObjectState (ObjectData);
     }
-    if (ObjectData.Type == EGridLevelObjectType::Door)
+    if (ObjectData.Type == EGridLevelObjectType::Door && DoorSystemComponent)
     {
-        if (AGridDoorActor* DoorActor = Cast<AGridDoorActor> (Actor))
-        {
-            DoorActor->OnDoorAnimationFinished.AddDynamic (this, &AGridLevelRuntimeActor::HandleDoorAnimationFinished);
-            SetDoorPassageBlocked (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, !ObjectData.bInitiallyActive);
-        }
+        DoorSystemComponent->RegisterDoorObject (ObjectData, Actor);
     }
 }
 
@@ -1111,60 +841,4 @@ bool AGridLevelRuntimeActor::IsEditorPreviewableObject (const FGridLevelObjectDa
         return false;
     }
     return true;
-}
-
-void AGridLevelRuntimeActor::ActivateTriggersAtCell (int32 X, int32 Y)
-{
-    if (!LevelAsset)
-    {
-        return;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type != EGridLevelObjectType::Trigger)
-        {
-            continue;
-        }
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-        if (ObjectData.CellX != X || ObjectData.CellY != Y)
-        {
-            continue;
-        }
-        if (!ObjectData.Behavior.bFireOnEnter)
-        {
-            continue;
-        }
-		ExecuteLinksFromObject (ObjectData.ObjectId, false);
-    }
-}
-
-void AGridLevelRuntimeActor::DeactivateTriggersAtCell (int32 X, int32 Y)
-{
-    if (!LevelAsset)
-    {
-        return;
-    }
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Type != EGridLevelObjectType::Trigger)
-        {
-            continue;
-        }
-        if (!ObjectData.bInitiallyEnabled)
-        {
-            continue;
-        }
-        if (ObjectData.CellX != X || ObjectData.CellY != Y)
-        {
-            continue;
-        }
-        if (!ObjectData.Behavior.bFireOnExit)
-        {
-            continue;
-        }
-        ExecuteLinksFromObject (ObjectData.ObjectId, true);
-    }
 }
