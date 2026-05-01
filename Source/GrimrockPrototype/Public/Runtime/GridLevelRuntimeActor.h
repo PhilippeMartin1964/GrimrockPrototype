@@ -97,7 +97,7 @@ public:
     void RebuildLevel (EGridRuntimeRebuildMode RebuildMode = EGridRuntimeRebuildMode::Full);
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Level")
-    void ClearVisuals ();
+    void ClearVisuals (EGridRuntimeRebuildMode RebuildMode = EGridRuntimeRebuildMode::Full);
 
     UFUNCTION(BlueprintCallable, Category = "Runtime")
     FVector GetCellCenterWorld(int32 X, int32 Y, float ZOffset = 0.f) const;

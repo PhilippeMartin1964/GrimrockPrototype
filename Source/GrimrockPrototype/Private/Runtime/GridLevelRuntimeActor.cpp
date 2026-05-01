@@ -57,7 +57,7 @@ void AGridLevelRuntimeActor::BeginPlay ()
     RebuildLevel ();
 }
 
-void AGridLevelRuntimeActor::ClearVisuals ()
+void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
 {
     if (FloorISM) FloorISM->ClearInstances ();
     if (WallISM) WallISM->ClearInstances ();
@@ -67,8 +67,11 @@ void AGridLevelRuntimeActor::ClearVisuals ()
         CeilingISM->ClearInstances ();
         CeilingISM->EmptyOverrideMaterials ();
     }
-    ClearRuntimeObjectActors ();
-    ClearEditorPreviewObjects ();
+    if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
+    {
+        ClearRuntimeObjectActors ();
+        ClearEditorPreviewObjects ();
+    }    
     if (DoorSystemComponent)
     {
         DoorSystemComponent->ResetRuntimeState ();
@@ -164,7 +167,7 @@ void AGridLevelRuntimeActor::AddEdgeInstance (UInstancedStaticMeshComponent* Tar
 
 void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
 {
-    ClearVisuals ();
+    ClearVisuals (RebuildMode);
 
     if (!LevelAsset || !FloorISM || !WallISM || !SecretWallISM || !CeilingISM)
     {
