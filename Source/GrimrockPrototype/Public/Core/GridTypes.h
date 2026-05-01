@@ -142,3 +142,39 @@ struct FGridLevelLinkData
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     EGridLinkAction Action = EGridLinkAction::Toggle;
 };
+
+USTRUCT (BlueprintType)
+struct FGridEdgeKey
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Grid")
+    int32 X = INDEX_NONE;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Grid")
+    int32 Y = INDEX_NONE;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Grid")
+    EGridEdge Edge = EGridEdge::None;
+
+    FGridEdgeKey () = default;
+
+    FGridEdgeKey (int32 InX, int32 InY, EGridEdge InEdge)
+        : X (InX)
+        , Y (InY)
+        , Edge (InEdge)
+    {}
+
+    friend bool operator==(const FGridEdgeKey& A, const FGridEdgeKey& B)
+    {
+        return A.X == B.X && A.Y == B.Y && A.Edge == B.Edge;
+    }
+};
+
+FORCEINLINE uint32 GetTypeHash (const FGridEdgeKey& Key)
+{
+    uint32 Hash = GetTypeHash (Key.X);
+    Hash = HashCombine (Hash, GetTypeHash (Key.Y));
+    Hash = HashCombine (Hash, GetTypeHash (static_cast<uint8>(Key.Edge)));
+    return Hash;
+}

@@ -12,31 +12,6 @@ class AGridRuntimeObjectActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 
-USTRUCT ()
-struct FGridObjectEdgeKey
-{
-    GENERATED_BODY ()
-
-    UPROPERTY ()
-    int32 X = INDEX_NONE;
-
-    UPROPERTY ()
-    int32 Y = INDEX_NONE;
-
-    UPROPERTY ()
-    EGridEdge Edge = EGridEdge::None;
-
-    FGridObjectEdgeKey () = default;
-
-    FGridObjectEdgeKey (int32 InX, int32 InY, EGridEdge InEdge) : X (InX), Y (InY), Edge (InEdge)
-    {}
-
-    friend bool operator== (const FGridObjectEdgeKey& A, const FGridObjectEdgeKey& B)
-    {
-        return A.X == B.X && A.Y == B.Y && A.Edge == B.Edge;
-    }
-};
-
 UENUM ()
 enum class EGridRuntimeRebuildMode : uint8
 {
@@ -44,14 +19,6 @@ enum class EGridRuntimeRebuildMode : uint8
     GeometryOnly,
     ObjectsOnly
 };
-
-FORCEINLINE uint32 GetTypeHash (const FGridObjectEdgeKey& Key)
-{
-    uint32 Hash = GetTypeHash (Key.X);
-    Hash = HashCombine (Hash, GetTypeHash (Key.Y));
-    Hash = HashCombine (Hash, GetTypeHash (static_cast<uint8> (Key.Edge)));
-    return Hash;
-}
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor

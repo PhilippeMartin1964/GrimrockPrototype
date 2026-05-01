@@ -3,13 +3,9 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Core/GridTypes.h"
-#include "Runtime/GridLevelRuntimeActor.h"
 #include "GridActivationComponent.generated.h"
 
 class AGridLevelRuntimeActor;
-class AGridButtonActor;
-class AGridLeverActor;
-class AGridPressurePlateActor;
 
 UCLASS (ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridActivationComponent : public UActorComponent
@@ -55,7 +51,7 @@ private:
 private:
     TMap<FGuid, int32> ObjectIndexById;
     TMultiMap<FGuid, int32> LinkIndexesBySource;
-    TMap<FGridObjectEdgeKey, int32> InteractableObjectIndexByEdge;
+    TMap<FGridEdgeKey, int32> InteractableObjectIndexByEdge;
     TMultiMap<FIntPoint, int32> PressurePlateIndexesByCell;
     TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
 

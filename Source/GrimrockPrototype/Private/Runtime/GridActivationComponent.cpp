@@ -50,7 +50,7 @@ const FGridLevelObjectData* UGridActivationComponent::FindObjectById (FGuid Obje
 
 const FGridLevelObjectData* UGridActivationComponent::FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    const int32* ObjectIndex = InteractableObjectIndexByEdge.Find (FGridObjectEdgeKey (X, Y, Edge));
+    const int32* ObjectIndex = InteractableObjectIndexByEdge.Find (FGridEdgeKey (X, Y, Edge));
     return ObjectIndex ? GetObjectByIndex (*ObjectIndex) : nullptr;
 }
 
@@ -304,10 +304,7 @@ void UGridActivationComponent::RebuildIndexes ()
         if (ObjectData.Type == EGridLevelObjectType::Button ||
             ObjectData.Type == EGridLevelObjectType::Lever)
         {
-            InteractableObjectIndexByEdge.Add (
-                FGridObjectEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge),
-                Index
-            );
+            InteractableObjectIndexByEdge.Add (FGridEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
         } else if (ObjectData.Type == EGridLevelObjectType::PressurePlate)
         {
             PressurePlateIndexesByCell.Add (FIntPoint (ObjectData.CellX, ObjectData.CellY), Index);

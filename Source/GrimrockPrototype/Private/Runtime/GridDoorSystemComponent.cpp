@@ -26,7 +26,7 @@ void UGridDoorSystemComponent::RegisterDoorObject (const FGridLevelObjectData& O
     {
         return;
     }
-    const FGridDoorEdgeKey Key (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge);
+    const FGridEdgeKey Key (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge);
     if (AGridDoorActor* DoorActor = Cast<AGridDoorActor> (RuntimeObjectActor))
     {
         DoorActorByEdge.Add (Key, DoorActor);
@@ -47,7 +47,7 @@ bool UGridDoorSystemComponent::IsDoorOpenOnEdge (int32 X, int32 Y, EGridEdge Edg
         return false;
     }
 
-    return !RuntimeBlockedDoorEdges.Contains (FGridDoorEdgeKey (X, Y, Edge));
+    return !RuntimeBlockedDoorEdges.Contains (FGridEdgeKey (X, Y, Edge));
 }
 
 bool UGridDoorSystemComponent::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
@@ -87,12 +87,12 @@ bool UGridDoorSystemComponent::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge
 
 bool UGridDoorSystemComponent::IsDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge) const
 {
-    return RuntimeBlockedDoorEdges.Contains (FGridDoorEdgeKey (X, Y, Edge));
+    return RuntimeBlockedDoorEdges.Contains (FGridEdgeKey (X, Y, Edge));
 }
 
 void UGridDoorSystemComponent::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked)
 {
-    const FGridDoorEdgeKey Key (X, Y, Edge);
+    const FGridEdgeKey Key (X, Y, Edge);
 
     if (bBlocked)
     {
@@ -114,7 +114,7 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished (int32 X, int32 Y, EG
 
 AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    if (const TWeakObjectPtr<AGridDoorActor>* DoorActorPtr = DoorActorByEdge.Find (FGridDoorEdgeKey (X, Y, Edge)))
+    if (const TWeakObjectPtr<AGridDoorActor>* DoorActorPtr = DoorActorByEdge.Find (FGridEdgeKey (X, Y, Edge)))
     {
         return DoorActorPtr->Get ();
     }
@@ -123,7 +123,7 @@ AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge (int32 X, int32 Y,
 
 const FGridLevelObjectData* UGridDoorSystemComponent::FindDoorObjectDataAtEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    const int32* DoorIndex = DoorIndexByEdge.Find (FGridDoorEdgeKey (X, Y, Edge));
+    const int32* DoorIndex = DoorIndexByEdge.Find (FGridEdgeKey (X, Y, Edge));
     return DoorIndex ? GetDoorObjectByIndex (*DoorIndex) : nullptr;
 }
 
@@ -143,7 +143,7 @@ void UGridDoorSystemComponent::RebuildIndexes ()
         {
             continue;
         }
-        DoorIndexByEdge.Add (FGridDoorEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
+        DoorIndexByEdge.Add (FGridEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
     }
 }
 
