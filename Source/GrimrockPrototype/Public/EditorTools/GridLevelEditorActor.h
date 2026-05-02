@@ -146,6 +146,9 @@ public:
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateLabelWorldSize = 28.f;
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor Grid")
+    void RefreshPreview ();
+
     UPROPERTY (Transient)
     TArray<TObjectPtr<UTextRenderComponent>> CoordinateLabels;
 

@@ -157,6 +157,12 @@ FVector AGridLevelEditorActor::GetSelectedCellWorldCenter (float ZOffset) const
             ZOffset);
 }
 
+void AGridLevelEditorActor::RefreshPreview ()
+{
+    RebuildPreview ();
+    RebuildCoordinateGrid ();
+}
+
 void AGridLevelEditorActor::EnsureLevelReady ()
 {
     if (!HasValidLevelAsset ())
@@ -1375,7 +1381,7 @@ void AGridLevelEditorActor::PaintSelectedCellAndWall ()
     LevelAsset->MarkPackageDirty ();
 #endif
 
-    RebuildPreview ();
+    RebuildGeometryPreview ();
 }
 
 void AGridLevelEditorActor::RebuildGeometryPreview ()

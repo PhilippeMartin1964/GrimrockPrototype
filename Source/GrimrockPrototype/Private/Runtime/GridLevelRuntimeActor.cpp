@@ -191,7 +191,10 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
         DoorSystemComponent->Initialize (this);
         DoorSystemComponent->RebuildIndexes ();
     }
-
+    if (EditorPreviewComponent)
+    {
+        EditorPreviewComponent->Initialize (this);
+    }
     FloorISM->SetStaticMesh (FloorMesh);
     WallISM->SetStaticMesh (WallMesh);
     SecretWallISM->SetStaticMesh (SecretWallMesh);
