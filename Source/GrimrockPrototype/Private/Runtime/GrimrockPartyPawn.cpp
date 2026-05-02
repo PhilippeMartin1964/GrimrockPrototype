@@ -42,9 +42,11 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
 
     TorchLight->Intensity = TorchIntensity;
     TorchLight->AttenuationRadius = TorchRadius;
-    TorchLight->bUseInverseSquaredFalloff = true;
+    TorchLight->bUseInverseSquaredFalloff = false;
+	TorchLight->LightFalloffExponent = 4.f;
     TorchLight->CastShadows = true;
     TorchLight->SetVisibility (bEnableTorchLight);
+    TorchLight->SetLightColor (FColor (255, 180, 90));
 
     AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
