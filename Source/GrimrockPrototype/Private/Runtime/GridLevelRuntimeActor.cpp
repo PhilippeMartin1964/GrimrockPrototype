@@ -80,13 +80,10 @@ void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
             EditorPreviewComponent->ClearPreviewObjects ();
         }
     }
-    if (DoorSystemComponent)
+    if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
     {
-        DoorSystemComponent->ResetRuntimeState ();
-    }
-    if (ActivationComponent)
-    {
-        ActivationComponent->ResetRuntimeState ();
+        if (DoorSystemComponent) DoorSystemComponent->ResetRuntimeState ();
+        if (ActivationComponent) ActivationComponent->ResetRuntimeState ();
     }
 }
 
@@ -186,14 +183,12 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     if (ActivationComponent)
     {
         ActivationComponent->Initialize (this);
-        ActivationComponent->ResetRuntimeState ();
         ActivationComponent->RebuildIndexes ();
     }
 
     if (DoorSystemComponent)
     {
         DoorSystemComponent->Initialize (this);
-        DoorSystemComponent->ResetRuntimeState ();
         DoorSystemComponent->RebuildIndexes ();
     }
 
@@ -204,16 +199,15 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
 
     const bool bIsGameWorld = GetWorld () && GetWorld ()->IsGameWorld ();
 
-    UMaterialInterface* DesiredCeilingMaterial = nullptr;
+    if (!bIsGameWorld && CeilingEditorMaterial && CeilingMesh)
+    {
+        const int32 MaterialCount = CeilingMesh->GetStaticMaterials ().Num ();
 
-    if (bIsGameWorld)
-    {
-        DesiredCeilingMaterial = CeilingMaterial;
-    } else
-    {
-        DesiredCeilingMaterial = CeilingEditorMaterial ? CeilingEditorMaterial : CeilingMaterial;
+        for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+        {
+            CeilingISM->SetMaterial (MaterialIndex, CeilingEditorMaterial);
+        }
     }
-    CeilingISM->SetMaterial (0, DesiredCeilingMaterial);
     const float CellSize = LevelAsset->CellSize;
     for (int32 Y = 0; Y < LevelAsset->Height; ++Y)
     {
@@ -273,6 +267,15 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
         {
             RebuildRuntimeObjects ();
         }
+    }
+    if (bEnableRuntimeDebugLog)
+    {
+        LogRuntimeDebugSummary ();
+    }
+
+    if (bEnableRuntimeDebugScreen)
+    {
+        ShowRuntimeDebugSummary ();
     }
 }
 
@@ -478,6 +481,14 @@ void AGridLevelRuntimeActor::SetEditorSelectedObject (FGuid ObjectId)
     if (EditorPreviewComponent)
     {
         EditorPreviewComponent->SetSelectedObject (ObjectId);
+    }
+}
+
+void AGridLevelRuntimeActor::CleanupOrphanEditorPreviewObjects ()
+{
+    if (EditorPreviewComponent)
+    {
+		EditorPreviewComponent->CleanupOrphanPreviewObjects ();
     }
 }
 
@@ -703,4 +714,40 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
         }
         AddRuntimeObjectActor (ObjectData);
     }
+}
+
+FString AGridLevelRuntimeActor::GetRuntimeDebugSummary () const
+{
+    FString Result;
+
+    Result += FString::Printf (TEXT ("Grid Runtime | Level=%s\n"), LevelAsset ? *LevelAsset->GetName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("Runtime Actors=%d\n"), SpawnedRuntimeObjectActors.Num ());
+    Result += ActivationComponent ? ActivationComponent->GetDebugSummary () : TEXT ("Activation | Missing");
+    Result += TEXT ("\n");
+    Result += DoorSystemComponent ? DoorSystemComponent->GetDebugSummary () : TEXT ("Doors | Missing");
+    return Result;
+}
+
+void AGridLevelRuntimeActor::LogRuntimeDebugSummary () const
+{
+    const FString Summary = GetRuntimeDebugSummary ();
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *Summary);
+    if (ActivationComponent)
+    {
+        ActivationComponent->LogDebugSummary ();
+    }
+    if (DoorSystemComponent)
+    {
+        DoorSystemComponent->LogDebugSummary ();
+    }
+}
+
+void AGridLevelRuntimeActor::ShowRuntimeDebugSummary (float Duration) const
+{
+    if (!GEngine)
+    {
+        return;
+    }
+    GEngine->AddOnScreenDebugMessage (-1, Duration, FColor::Green, GetRuntimeDebugSummary ()
+    );
 }

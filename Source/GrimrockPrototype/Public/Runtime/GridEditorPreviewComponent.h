@@ -23,6 +23,7 @@ public:
 
     void SetHoveredObject (FGuid ObjectId);
     void SetSelectedObject (FGuid ObjectId);
+    void CleanupOrphanPreviewObjects ();
 
 private:
     UPROPERTY (Transient)
@@ -40,6 +41,4 @@ private:
 private:
     bool IsPreviewableObject (const FGridLevelObjectData& ObjectData) const;
     void AddPreviewObject (const FGridLevelObjectData& ObjectData);
-
-
 };

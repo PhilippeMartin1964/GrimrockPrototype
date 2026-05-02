@@ -336,3 +336,21 @@ const FGridLevelObjectData* UGridActivationComponent::GetObjectByIndex (int32 Ob
         ? &RuntimeActor->LevelAsset->Objects[ObjectIndex]
         : nullptr;
 }
+
+FString UGridActivationComponent::GetDebugSummary () const
+{
+    return FString::Printf (
+        TEXT ("Activation | Objects=%d Links=%d Interactables=%d Plates=%d Triggers=%d Active=%d"),
+        ObjectIndexById.Num (),
+        LinkIndexesBySource.Num (),
+        InteractableObjectIndexByEdge.Num (),
+        PressurePlateIndexesByCell.Num (),
+        TriggerIndexesByCell.Num (),
+        ActiveObjectIds.Num ()
+    );
+}
+
+void UGridActivationComponent::LogDebugSummary () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetDebugSummary ());
+}

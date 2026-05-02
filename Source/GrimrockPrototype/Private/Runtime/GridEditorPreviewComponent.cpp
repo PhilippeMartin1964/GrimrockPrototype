@@ -16,29 +16,11 @@ void UGridEditorPreviewComponent::Initialize (AGridLevelRuntimeActor* InRuntimeA
 
 void UGridEditorPreviewComponent::ClearPreviewObjects ()
 {
-    UWorld* World = GetWorld ();
-    if (World)
+    for (AGridEditorPreviewObjectActor* Actor : SpawnedPreviewObjects)
     {
-        for (TActorIterator<AGridEditorPreviewObjectActor> It (World); It; ++It)
+        if (IsValid (Actor))
         {
-            AGridEditorPreviewObjectActor* PreviewActor = *It;
-            if (!IsValid (PreviewActor))
-            {
-                continue;
-            }
-            if (PreviewActor->GetOwner () == RuntimeActor || SpawnedPreviewObjects.Contains (PreviewActor))
-            {
-                PreviewActor->Destroy ();
-            }
-        }
-    } else
-    {
-        for (AGridEditorPreviewObjectActor* Actor : SpawnedPreviewObjects)
-        {
-            if (IsValid (Actor))
-            {
-                Actor->Destroy ();
-            }
+            Actor->Destroy ();
         }
     }
     SpawnedPreviewObjects.Empty ();
@@ -106,6 +88,33 @@ void UGridEditorPreviewComponent::AddPreviewObject (const FGridLevelObjectData& 
     }
     PreviewActor->InitializePreviewObject (ObjectData, Mesh, Material);
     SpawnedPreviewObjects.Add (PreviewActor);
+}
+
+void UGridEditorPreviewComponent::CleanupOrphanPreviewObjects ()
+{
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return;
+    }
+    for (TActorIterator<AGridEditorPreviewObjectActor> It (World); It; ++It)
+    {
+        AGridEditorPreviewObjectActor* PreviewActor = *It;
+
+        if (!IsValid (PreviewActor))
+        {
+            continue;
+        }
+
+        if (PreviewActor->GetOwner () == RuntimeActor)
+        {
+            PreviewActor->Destroy ();
+        }
+    }
+    SpawnedPreviewObjects.RemoveAll ([] (const TObjectPtr<AGridEditorPreviewObjectActor>& Actor)
+    {
+        return !IsValid (Actor);
+    });
 }
 
 void UGridEditorPreviewComponent::SetHoveredObject (FGuid ObjectId)

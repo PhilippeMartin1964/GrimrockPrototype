@@ -181,3 +181,18 @@ const FGridLevelObjectData* UGridDoorSystemComponent::GetDoorObjectByIndex (int3
     }
     return RuntimeActor->LevelAsset->Objects.IsValidIndex (ObjectIndex) ? &RuntimeActor->LevelAsset->Objects[ObjectIndex] : nullptr;
 }
+
+FString UGridDoorSystemComponent::GetDebugSummary () const
+{
+    return FString::Printf (
+        TEXT ("Doors | Indexed=%d Actors=%d Blocked=%d"),
+        DoorIndexByEdge.Num (),
+        DoorActorByEdge.Num (),
+        RuntimeBlockedDoorEdges.Num ()
+    );
+}
+
+void UGridDoorSystemComponent::LogDebugSummary () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetDebugSummary ());
+}

@@ -25,6 +25,10 @@ public:
 
     void RebuildIndexes ();
 
+	// Debugging
+    FString GetDebugSummary () const;
+    void LogDebugSummary () const;
+
 private:
     UPROPERTY (Transient)
     TObjectPtr<AGridLevelRuntimeActor> RuntimeActor;
@@ -56,4 +60,17 @@ private:
     TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
 
     const FGridLevelObjectData* GetObjectByIndex (int32 ObjectIndex) const;
+
+    int32 GetIndexedObjectCount () const
+    {
+        return ObjectIndexById.Num ();
+    }
+    int32 GetIndexedLinkCount () const
+    {
+        return LinkIndexesBySource.Num ();
+    }
+    int32 GetActiveObjectCount () const
+    {
+        return ActiveObjectIds.Num ();
+    }
 };

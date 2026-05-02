@@ -43,16 +43,16 @@ public:
     bool bEnableTorchLight = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (ClampMin = "0.0"))
-    float TorchIntensity = 3500.f;
+    float TorchIntensity = 850.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (ClampMin = "0.0"))
-    float TorchRadius = 700.f;
+    float TorchRadius = 325.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
-    float TorchFlickerSpeed = 3.f;
+    float TorchFlickerSpeed = 1.7f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
-    float TorchFlickerAmount = 250.f;
+    float TorchFlickerAmount = 35.f;
 
     float TorchTime = 0.f;
 

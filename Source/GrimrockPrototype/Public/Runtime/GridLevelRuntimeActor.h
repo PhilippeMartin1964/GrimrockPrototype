@@ -70,9 +70,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> CeilingMesh;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UMaterialInterface> CeilingMaterial;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor Preview")
     TObjectPtr<UMaterialInterface> CeilingEditorMaterial;
 
@@ -85,11 +82,29 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Editor Preview")
     void SetEditorSelectedObject (FGuid ObjectId);
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor Preview")
+    void CleanupOrphanEditorPreviewObjects ();
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
     FVector GridOrigin = FVector::ZeroVector;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
     bool bRebuildInConstruction = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
+    bool bEnableRuntimeDebugLog = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
+    bool bEnableRuntimeDebugScreen = false;
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Debug")
+    void LogRuntimeDebugSummary () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Debug")
+    FString GetRuntimeDebugSummary () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Debug")
+    void ShowRuntimeDebugSummary (float Duration = 3.f) const;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;

@@ -37,6 +37,9 @@ public:
 
     void RebuildIndexes ();
 
+    FString GetDebugSummary () const;
+    void LogDebugSummary () const;
+
 private:
     UPROPERTY (Transient)
     TObjectPtr<AGridLevelRuntimeActor> RuntimeActor;
