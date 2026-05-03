@@ -50,9 +50,7 @@ void AGridSecretDoorActor::InitializeGridObject (const FGridLevelObjectData& Obj
             MovingMeshComponent->SetMaterial (0, Material);
         }
     }
-    MovingClosedRelativeLocation = MovingMeshComponent
-        ? MovingMeshComponent->GetRelativeLocation ()
-        : FVector::ZeroVector;
+    MovingClosedRelativeLocation = MovingMeshComponent ? MovingMeshComponent->GetRelativeLocation () : FVector::ZeroVector;
     MovingOpenRelativeLocation = MovingClosedRelativeLocation + FVector (0.f, 0.f, OpenHeight);
     bIsOpen = ObjectData.bInitiallyActive;
     bIsAnimating = false;
@@ -74,8 +72,7 @@ void AGridSecretDoorActor::SetDoorOpenState (bool bOpen)
         return;
     }
 
-    const FVector DesiredTarget =
-        bOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation;
+    const FVector DesiredTarget = bOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation;
 
     if (!bIsAnimating && bIsOpen == bOpen)
     {
@@ -123,9 +120,7 @@ void AGridSecretDoorActor::SetDoorOpenState (bool bOpen)
 
     CurrentMoveDuration = FMath::Max (0.01f, MoveDuration * TravelRatio);
 
-    bIsOpen = bOpen;
     bIsAnimating = true;
-
     SetActorTickEnabled (true);
 }
 
@@ -142,7 +137,7 @@ void AGridSecretDoorActor::UpdateAnimation (float DeltaSeconds)
     if (Alpha >= 1.f)
     {
         MovingMeshComponent->SetRelativeLocation (MoveTargetRelativeLocation);
-
+        bIsOpen = MoveTargetRelativeLocation.Equals (MovingOpenRelativeLocation, 0.1f);
         bIsAnimating = false;
         MoveElapsed = 0.f;
         CurrentMoveDuration = 0.f;

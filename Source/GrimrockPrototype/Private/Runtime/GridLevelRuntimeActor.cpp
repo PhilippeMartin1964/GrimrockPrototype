@@ -687,7 +687,16 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     {
         return;
     }
-    Actor->InitializeGridObject (ObjectData, Mesh, Material, Transform);
+    FGridLevelObjectData RuntimeObjectData = ObjectData;
+
+    if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId))
+    {
+        if (!ObjectData.bOverrideBehavior)
+        {
+            RuntimeObjectData.Behavior = Archetype->DefaultBehavior;
+        }
+    }
+    Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
     if (ActivationComponent)
     {
         ActivationComponent->RegisterInitialObjectState (ObjectData);

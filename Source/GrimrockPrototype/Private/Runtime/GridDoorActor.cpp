@@ -77,7 +77,6 @@ void AGridDoorActor::SetDoorOpenState (bool bOpen)
     CurrentMoveDuration = FMath::Max (0.01f, MoveDuration * TravelRatio);
 
     bIsAnimating = true;
-    bIsOpen = bOpen;
     SetActorTickEnabled (true);
 }
 
@@ -104,6 +103,7 @@ void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
     if (Alpha >= 1.f)
     {
         SetActorLocation (MoveTargetLocation);
+        bIsOpen = MoveTargetLocation.Equals (OpenLocation, 0.1f);
         bIsAnimating = false;
         MoveElapsed = 0.f;
         CurrentMoveDuration = 0.f;

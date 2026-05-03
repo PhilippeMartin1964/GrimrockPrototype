@@ -126,6 +126,9 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGridObjectBehaviorParams Behavior;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    bool bOverrideBehavior = false;
 };
 
 USTRUCT (BlueprintType)
