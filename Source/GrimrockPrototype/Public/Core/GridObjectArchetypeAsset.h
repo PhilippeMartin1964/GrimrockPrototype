@@ -61,4 +61,10 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
     float WallInset = 6.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (EditCondition = "bPlaceOnEdge"))
+    float LocalOffsetAlongWall = 0.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (EditCondition = "bPlaceOnEdge"))
+    float LocalOffsetVertical = 0.f;
 };

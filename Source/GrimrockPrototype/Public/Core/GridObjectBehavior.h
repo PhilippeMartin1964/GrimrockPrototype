@@ -43,4 +43,16 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
     int32 TargetCellY = INDEX_NONE;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
+    float ButtonPressDistance = 6.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
+    float ButtonPressDuration = 0.08f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
+    float ButtonReleaseDuration = 0.10f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
+    float ButtonHoldTime = 0.15f;
 };

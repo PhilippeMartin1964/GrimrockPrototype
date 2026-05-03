@@ -27,7 +27,7 @@ public:
     float OpenHeight = 180.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Door")
-    float MoveDuration = 0.25f;
+    float MoveDuration = 2.5f;
 
     UPROPERTY (BlueprintReadOnly, Category = "Door")
     bool bIsOpen = false;
@@ -37,10 +37,10 @@ public:
         const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
 
     UFUNCTION (BlueprintCallable, Category = "Door")
-    void SetDoorOpenState (bool bOpen);
+    virtual void SetDoorOpenState (bool bOpen);
 
     UFUNCTION (BlueprintCallable, Category = "Door")
-    void OpenDoor ();
+    virtual void OpenDoor ();
 
     UFUNCTION (BlueprintCallable, Category = "Door")
     void CloseDoor ();
@@ -62,9 +62,8 @@ public:
     FOnGridDoorAnimationFinished OnDoorAnimationFinished;
 
 protected:
-    void UpdateAnimation (float DeltaSeconds);
+    virtual void UpdateAnimation (float DeltaSeconds);
 
-private:
     FVector ClosedLocation = FVector::ZeroVector;
     FVector OpenLocation = FVector::ZeroVector;
     FVector MoveStartLocation = FVector::ZeroVector;
@@ -73,4 +72,6 @@ private:
     bool bIsAnimating = false;
     float MoveElapsed = 0.f;
     float CurrentMoveDuration = 0.f;
+
+private:
 };

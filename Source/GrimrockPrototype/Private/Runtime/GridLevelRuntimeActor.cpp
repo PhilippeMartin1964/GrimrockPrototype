@@ -528,7 +528,7 @@ UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelO
 }
 
 bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
-    FTransform& OutTransform) const
+    float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform) const
 {
     if (!LevelAsset || ObjectData.Edge == EGridEdge::None)
     {
@@ -536,37 +536,32 @@ bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObje
     }
 
     const float CellSize = LevelAsset->CellSize;
-    const FVector Base =
-        GetActorLocation () +
-        CellToWorld (ObjectData.CellX, ObjectData.CellY, ZOffset);
-
+    const float FinalZ = ZOffset + LocalOffsetVertical;
+    const FVector Base = GetActorLocation () + CellToWorld (ObjectData.CellX, ObjectData.CellY, FinalZ);
     FVector Pos = Base;
     FRotator Rot = FRotator::ZeroRotator;
 
     switch (ObjectData.Edge)
     {
         case EGridEdge::North:
-        Pos = Base + FVector (CellSize * 0.5f, CellSize - WallInset, 0.f);
-        Rot = FRotator (0.f, 90.f, 0.f);
-        break;
-
-        case EGridEdge::East:
-        Pos = Base + FVector (CellSize - WallInset, CellSize * 0.5f, 0.f);
-        Rot = FRotator (0.f, 0.f, 0.f);
-        break;
+            Pos = Base + FVector ((CellSize * 0.5f) + LocalOffsetAlongWall, CellSize - WallInset, 0.f);
+            Rot = FRotator (0.f, 90.f, 0.f);
+            break;
 
         case EGridEdge::South:
-        Pos = Base + FVector (CellSize * 0.5f, WallInset, 0.f);
-        Rot = FRotator (0.f, -90.f, 0.f);
-        break;
+            Pos = Base + FVector ((CellSize * 0.5f) - LocalOffsetAlongWall, WallInset, 0.f);
+            Rot = FRotator (0.f, -90.f, 0.f);
+            break;
+
+        case EGridEdge::East:
+            Pos = Base + FVector (CellSize - WallInset, (CellSize * 0.5f) - LocalOffsetAlongWall, 0.f);
+            Rot = FRotator (0.f, 0.f, 0.f);
+            break;
 
         case EGridEdge::West:
-        Pos = Base + FVector (WallInset, CellSize * 0.5f, 0.f);
-        Rot = FRotator (0.f, 180.f, 0.f);
-        break;
-
-        default:
-        return false;
+            Pos = Base + FVector (WallInset, (CellSize * 0.5f) + LocalOffsetAlongWall, 0.f);
+            Rot = FRotator (0.f, 180.f, 0.f);
+            break;
     }
     OutTransform = FTransform (Rot, Pos, FVector::OneVector);
     return true;
@@ -609,7 +604,8 @@ bool AGridLevelRuntimeActor::GetObjectPlacementTransform (const FGridLevelObject
     }
     if (Archetype->bPlaceOnEdge)
     {
-        return GetWallMountedObjectTransform (ObjectData, Archetype->PlacementZOffset, Archetype->WallInset, OutTransform);
+        return GetWallMountedObjectTransform (ObjectData, Archetype->PlacementZOffset, Archetype->WallInset,
+            Archetype->LocalOffsetAlongWall, Archetype->LocalOffsetVertical, OutTransform);
     }
     if (Archetype->bPlaceAtCellCenter)
     {

@@ -196,7 +196,8 @@ private:
 
     TSubclassOf<AGridRuntimeObjectActor> GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const;
 
-    bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset, FTransform& OutTransform) const;
+    bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
+        float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform) const;
     bool GetCenteredObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const;
 
     const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;

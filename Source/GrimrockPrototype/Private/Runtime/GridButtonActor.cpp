@@ -16,11 +16,23 @@ void AGridButtonActor::InitializeButton (const FGridLevelObjectData& ObjectData,
     const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
 	InitializeGridObjectBase (ObjectData, InButtonMesh, InMaterial, InWorldLocation, InWorldRotation);
+    PressDistance = ObjectData.Behavior.ButtonPressDistance;
+    PressDuration = ObjectData.Behavior.ButtonPressDuration;
+    ReleaseDuration = ObjectData.Behavior.ButtonReleaseDuration;
+    HoldTime = ObjectData.Behavior.ButtonHoldTime;
     ReleasedLocation = InWorldLocation;
     PressedLocation = ReleasedLocation + (GetPressAxis () * PressDistance);
 
     AnimState = EButtonAnimState::Idle;
     StateElapsed = 0.f;
+    UE_LOG (
+        LogTemp,
+        Warning,
+        TEXT ("Button %s | Archetype=%s | PressDistance=%f"),
+        *ObjectData.ObjectId.ToString (),
+        *ObjectData.ArchetypeId.ToString (),
+        ObjectData.Behavior.ButtonPressDistance
+    );
 }
 
 void AGridButtonActor::TriggerPress ()
