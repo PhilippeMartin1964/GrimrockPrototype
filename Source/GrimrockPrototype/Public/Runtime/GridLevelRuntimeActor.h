@@ -89,7 +89,7 @@ public:
     FVector GridOrigin = FVector::ZeroVector;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
-    bool bRebuildInConstruction = true;
+    bool bRebuildInConstruction = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
     bool bEnableRuntimeDebugLog = false;

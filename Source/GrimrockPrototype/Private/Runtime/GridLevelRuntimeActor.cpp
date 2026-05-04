@@ -35,11 +35,16 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
 {
     Super::OnConstruction (Transform);
-
-    if (bRebuildInConstruction)
+    if (!bRebuildInConstruction)
     {
-        RebuildLevel ();
+        return;
     }
+    UWorld* World = GetWorld ();
+    if (!World || World->IsGameWorld ())
+    {
+        return;
+    }
+    RebuildLevel (EGridRuntimeRebuildMode::GeometryOnly);
 }
 
 void AGridLevelRuntimeActor::BeginPlay ()

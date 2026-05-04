@@ -30,6 +30,7 @@ void UGridEditorPreviewComponent::ClearPreviewObjects ()
 
 void UGridEditorPreviewComponent::RebuildPreviewObjects ()
 {
+    CleanupOrphanPreviewObjects ();
     ClearPreviewObjects ();
     if (!RuntimeActor || !RuntimeActor->LevelAsset)
     {
@@ -77,6 +78,7 @@ void UGridEditorPreviewComponent::AddPreviewObject (const FGridLevelObjectData& 
 
     FActorSpawnParameters Params;
     Params.Owner = RuntimeActor;
+    Params.ObjectFlags = RF_Transient;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     AGridEditorPreviewObjectActor* PreviewActor =

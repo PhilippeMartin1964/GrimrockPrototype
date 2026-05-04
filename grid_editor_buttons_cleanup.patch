@@ -1,0 +1,44 @@
+diff --git a/Source/GrimrockPrototype/Public/EditorTools/GridLevelEditorActor.h b/Source/GrimrockPrototype/Public/EditorTools/GridLevelEditorActor.h
+index 0000000..0000000 100644
+--- a/Source/GrimrockPrototype/Public/EditorTools/GridLevelEditorActor.h
++++ b/Source/GrimrockPrototype/Public/EditorTools/GridLevelEditorActor.h
+@@
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor Grid")
++    UFUNCTION (BlueprintCallable, Category = "Editor Grid")
+     void RefreshPreview ();
+@@
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Cell Paint")
++    UFUNCTION (BlueprintCallable, Category = "Cell Paint")
+     void ClearSelectedCell ();
+ 
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Wall Paint")
++    UFUNCTION (BlueprintCallable, Category = "Wall Paint")
+     void PaintSelectedWall ();
+ 
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Wall Paint")
++    UFUNCTION (BlueprintCallable, Category = "Wall Paint")
+     void ClearSelectedWall ();
+@@
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
++    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+     void SelectObjectAtSelection ();
+@@
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
++    UFUNCTION (BlueprintCallable, Category = "Link")
+     bool RemoveLinkByIndexForSelectedObject (int32 LinkIndex);
+ 
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
++    UFUNCTION (BlueprintCallable, Category = "Link")
+     bool RemoveAllLinksForSelectedObject ();
+ 
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
++    UFUNCTION (BlueprintCallable, Category = "Link")
+     bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
+@@
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
++    UFUNCTION (BlueprintCallable, Category = "Selection")
+     bool SelectObjectById (FGuid ObjectId);
+@@
+-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
++    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+     bool ApplyBehaviorToSelectedObject (const FGridObjectBehaviorParams& NewBehavior);

@@ -146,7 +146,7 @@ public:
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateLabelWorldSize = 28.f;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor Grid")
+    UFUNCTION (BlueprintCallable, Category = "Editor Grid")
     void RefreshPreview ();
 
     UPROPERTY (Transient)
@@ -159,13 +159,13 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void RebuildPreview ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Cell Paint")
+    UFUNCTION (BlueprintCallable, Category = "Cell Paint")
     void ClearSelectedCell ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Wall Paint")
+    UFUNCTION (BlueprintCallable, Category = "Wall Paint")
     void PaintSelectedWall ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Wall Paint")
+    UFUNCTION (BlueprintCallable, Category = "Wall Paint")
     void ClearSelectedWall ();
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
@@ -174,7 +174,7 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
     void RemoveObjectsAtSelection ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     void SelectObjectAtSelection ();
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
@@ -225,19 +225,19 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Link")
     bool TryGetPendingLinkSourceLocation (FVector& OutWorldLocation) const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
+    UFUNCTION (BlueprintCallable, Category = "Link")
     bool RemoveLinkByIndexForSelectedObject (int32 LinkIndex);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
+    UFUNCTION (BlueprintCallable, Category = "Link")
     bool RemoveAllLinksForSelectedObject ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Link")
+    UFUNCTION (BlueprintCallable, Category = "Link")
     bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
     bool TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
+    UFUNCTION (BlueprintCallable, Category = "Selection")
     bool SelectObjectById (FGuid ObjectId);
 
     void ResolvePreviewRuntimeActor ();
@@ -256,7 +256,7 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
     bool FocusSelectedObject ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool ApplyBehaviorToSelectedObject (const FGridObjectBehaviorParams& NewBehavior);
 
 protected:
