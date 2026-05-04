@@ -112,5 +112,5 @@ void AGridButtonActor::UpdateAnimation (float DeltaSeconds)
 void AGridButtonActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
     const FTransform& WorldTransform)
 {
-    InitializeButton (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
+	AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, WorldTransform);
 }

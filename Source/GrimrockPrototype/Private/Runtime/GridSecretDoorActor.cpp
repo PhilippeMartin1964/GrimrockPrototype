@@ -11,7 +11,7 @@ AGridSecretDoorActor::AGridSecretDoorActor ()
 void AGridSecretDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
     const FTransform& WorldTransform)
 {
-    InitializeGridObjectBase (ObjectData, nullptr, nullptr, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
+    Super::InitializeGridObject (ObjectData, nullptr, nullptr, WorldTransform);
     if (FixedMeshComponent)
     {
         FixedMeshComponent->SetStaticMesh (FixedMesh);

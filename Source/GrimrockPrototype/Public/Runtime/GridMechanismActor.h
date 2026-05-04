@@ -12,7 +12,7 @@ class GRIMROCKPROTOTYPE_API AGridMechanismActor : public AGridRuntimeObjectActor
 
 public:
     AGridMechanismActor ();
-    virtual void InitializeMechanism (const FGridLevelObjectData& ObjectData,
+    virtual void InitializeMechanismVisuals (const FGridLevelObjectData& ObjectData,
         const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);
 
 protected:

@@ -13,7 +13,8 @@ AGridMechanismActor::AGridMechanismActor ()
     MovingMeshComponent->SetupAttachment (RootComponent);
 }
 
-void AGridMechanismActor::InitializeMechanism (const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
+void AGridMechanismActor::InitializeMechanismVisuals (const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype,
+    const FTransform& WorldTransform)
 {
     ObjectId = ObjectData.ObjectId;
     CellX = ObjectData.CellX;

@@ -704,11 +704,9 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
 
     if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor> (Actor))
     {
-        MechanismActor->InitializeMechanism (RuntimeObjectData, Archetype, Transform);
-    } else
-    {
-        Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
+        MechanismActor->InitializeMechanismVisuals (RuntimeObjectData, Archetype, Transform);
     }
+    Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
     if (ActivationComponent)
     {
         ActivationComponent->RegisterInitialObjectState (ObjectData);
