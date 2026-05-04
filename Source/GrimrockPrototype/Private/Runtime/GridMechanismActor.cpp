@@ -13,6 +13,25 @@ AGridMechanismActor::AGridMechanismActor ()
     MovingMeshComponent->SetupAttachment (RootComponent);
 }
 
+void AGridMechanismActor::InitializeMechanism (const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
+{
+    ObjectId = ObjectData.ObjectId;
+    CellX = ObjectData.CellX;
+    CellY = ObjectData.CellY;
+    Edge = ObjectData.Edge;
+
+    SetActorTransform (WorldTransform);
+
+    if (!Archetype)
+    {
+        return;
+    }
+    SetFixedMesh (Archetype->FixedMesh.Get (), Archetype->FixedMaterial.Get ());
+
+    SetMovingMesh (Archetype->MovingMesh ? Archetype->MovingMesh.Get () : Archetype->PreviewMesh.Get (),
+        Archetype->MovingMaterial ? Archetype->MovingMaterial.Get () : Archetype->PreviewMaterial.Get ());
+}
+
 void AGridMechanismActor::SetFixedMesh (UStaticMesh* Mesh, UMaterialInterface* Material)
 {
     if (!FixedMeshComponent)

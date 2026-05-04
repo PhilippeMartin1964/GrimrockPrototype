@@ -5,6 +5,7 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridEditorPreviewComponent.h"
+#include "Runtime/GridMechanismActor.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -688,24 +689,31 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     FTransform Transform;
 
     AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
+
     if (!Actor)
     {
         return;
     }
     FGridLevelObjectData RuntimeObjectData = ObjectData;
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
 
-    if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId))
+    if (Archetype && !ObjectData.bOverrideBehavior)
     {
-        if (!ObjectData.bOverrideBehavior)
-        {
-            RuntimeObjectData.Behavior = Archetype->DefaultBehavior;
-        }
+        RuntimeObjectData.Behavior = Archetype->DefaultBehavior;
     }
-    Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
+
+    if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor> (Actor))
+    {
+        MechanismActor->InitializeMechanism (RuntimeObjectData, Archetype, Transform);
+    } else
+    {
+        Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
+    }
     if (ActivationComponent)
     {
         ActivationComponent->RegisterInitialObjectState (ObjectData);
     }
+
     if (ObjectData.Type == EGridLevelObjectType::Door && DoorSystemComponent)
     {
         DoorSystemComponent->RegisterDoorObject (ObjectData, Actor);

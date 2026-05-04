@@ -144,9 +144,16 @@ void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
     }
 }
 
-void AGridDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-    const FTransform& WorldTransform)
+void AGridDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectData,UStaticMesh* Mesh,
+    UMaterialInterface* Material, const FTransform& WorldTransform)
 {
-    InitializeDoor (ObjectData, Mesh, Material, nullptr, nullptr, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator (),
-        ObjectData.bInitiallyActive);
+    Super::InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
+
+    MovingClosedRelativeLocation = FVector::ZeroVector;
+    MovingOpenRelativeLocation = FVector (0.f, 0.f, OpenHeight);
+
+    bIsOpen = ObjectData.bInitiallyActive;
+    bIsAnimating = false;
+
+    SetMovingRelativeLocation (bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
 }

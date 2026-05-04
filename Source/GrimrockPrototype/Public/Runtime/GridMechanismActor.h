@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "GridMechanismActor.generated.h"
 
 UCLASS ()
@@ -11,6 +12,8 @@ class GRIMROCKPROTOTYPE_API AGridMechanismActor : public AGridRuntimeObjectActor
 
 public:
     AGridMechanismActor ();
+    virtual void InitializeMechanism (const FGridLevelObjectData& ObjectData,
+        const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);
 
 protected:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
