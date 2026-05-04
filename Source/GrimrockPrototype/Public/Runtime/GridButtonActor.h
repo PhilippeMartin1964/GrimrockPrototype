@@ -1,12 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridMechanismActor.h"
 #include "Core/GridTypes.h"
 #include "GridButtonActor.generated.h"
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridButtonActor : public AGridRuntimeObjectActor
+class GRIMROCKPROTOTYPE_API AGridButtonActor : public AGridMechanismActor
 {
     GENERATED_BODY ()
 

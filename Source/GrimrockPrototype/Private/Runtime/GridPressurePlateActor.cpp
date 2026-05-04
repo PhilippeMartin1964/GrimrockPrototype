@@ -19,16 +19,16 @@ void AGridPressurePlateActor::Tick (float DeltaSeconds)
 void AGridPressurePlateActor::InitializePlate (const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, UMaterialInterface* InMaterial,
     const FVector& InWorldLocation, bool bStartPressed)
 {
-    InitializeGridObjectBase (ObjectData, InPlateMesh, InMaterial, InWorldLocation, FRotator::ZeroRotator);
+    AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (FRotator::ZeroRotator, InWorldLocation));
 
-    ReleasedLocation = InWorldLocation + FVector (0.f, 0.f, ReleasedHeightAboveFloor);
-    PressedLocation = InWorldLocation + FVector (0.f, 0.f, PressedHeightAboveFloor);
+    ReleasedLocation = FVector (0.f, 0.f, ReleasedHeightAboveFloor);
+    PressedLocation = FVector (0.f, 0.f, PressedHeightAboveFloor);
 
     bIsPressed = bStartPressed;
     bIsAnimating = false;
     AnimElapsed = 0.f;
 
-    SetActorLocation (bIsPressed ? PressedLocation : ReleasedLocation);
+    SetMovingRelativeLocation (bIsPressed ? PressedLocation : ReleasedLocation);
 }
 
 void AGridPressurePlateActor::SetPressed (bool bNewPressed)
@@ -37,12 +37,11 @@ void AGridPressurePlateActor::SetPressed (bool bNewPressed)
     {
         return;
     }
-
     bIsPressed = bNewPressed;
     AnimElapsed = 0.f;
     bIsAnimating = true;
 
-    AnimStartLocation = GetActorLocation ();
+    AnimStartLocation = GetMovingRelativeLocation ();
     AnimTargetLocation = bIsPressed ? PressedLocation : ReleasedLocation;
     SetActorTickEnabled (true);
 }
@@ -54,11 +53,11 @@ void AGridPressurePlateActor::UpdateAnimation (float DeltaSeconds)
     AnimElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (AnimElapsed / SafeDuration, 0.f, 1.f);
 
-    SetActorLocation (FMath::Lerp (AnimStartLocation, AnimTargetLocation, Alpha));
+    SetMovingRelativeLocation (FMath::Lerp (AnimStartLocation, AnimTargetLocation, Alpha));
 
     if (Alpha >= 1.f)
     {
-        SetActorLocation (AnimTargetLocation);
+        SetMovingRelativeLocation (AnimTargetLocation);
         bIsAnimating = false;
         AnimElapsed = 0.f;
 		SetActorTickEnabled (false);

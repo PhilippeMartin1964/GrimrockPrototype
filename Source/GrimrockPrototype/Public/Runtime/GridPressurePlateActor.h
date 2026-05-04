@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridMechanismActor.h"
 #include "GridPressurePlateActor.generated.h"
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridPressurePlateActor : public AGridRuntimeObjectActor
+class GRIMROCKPROTOTYPE_API AGridPressurePlateActor : public AGridMechanismActor
 {
     GENERATED_BODY ()
 

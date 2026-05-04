@@ -21,7 +21,7 @@ void AGridLeverActor::Tick (float DeltaSeconds)
 void AGridLeverActor::InitializeLever (const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh, UMaterialInterface* InMaterial,
     const FVector& InWorldLocation, const FRotator& InWorldRotation, bool bStartOn)
 {
-    InitializeGridObjectBase (ObjectData, InLeverMesh, InMaterial, InWorldLocation, InWorldRotation);
+    AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (InWorldRotation, InWorldLocation));
 
     OffRelativeRotation = FRotator (LeverOffPitch, 0.f, 0.f);
     OnRelativeRotation = FRotator (LeverOnPitch, 0.f, 0.f);
@@ -30,7 +30,7 @@ void AGridLeverActor::InitializeLever (const FGridLevelObjectData& ObjectData, U
     bIsAnimating = false;
     AnimElapsed = 0.f;
 
-    MeshComponent->SetRelativeRotation (bIsOn ? OnRelativeRotation : OffRelativeRotation);
+    MovingMeshComponent->SetRelativeRotation (bIsOn ? OnRelativeRotation : OffRelativeRotation);
 }
 
 void AGridLeverActor::SetLeverState (bool bNewOn)
@@ -44,7 +44,7 @@ void AGridLeverActor::SetLeverState (bool bNewOn)
     AnimElapsed = 0.f;
     bIsAnimating = true;
 
-    AnimStartRotation = MeshComponent->GetRelativeRotation ();
+    AnimStartRotation = MovingMeshComponent->GetRelativeRotation ();
     AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
     SetActorTickEnabled (true);
 }
@@ -61,11 +61,11 @@ void AGridLeverActor::UpdateAnimation (float DeltaSeconds)
     AnimElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (AnimElapsed / SafeDuration, 0.f, 1.f);
 
-    MeshComponent->SetRelativeRotation (FMath::Lerp (AnimStartRotation, AnimTargetRotation, Alpha));
+    MovingMeshComponent->SetRelativeRotation (FMath::Lerp (AnimStartRotation, AnimTargetRotation, Alpha));
 
     if (Alpha >= 1.f)
     {
-        MeshComponent->SetRelativeRotation (AnimTargetRotation);
+        MovingMeshComponent->SetRelativeRotation (AnimTargetRotation);
         bIsAnimating = false;
         AnimElapsed = 0.f;
         SetActorTickEnabled (false);

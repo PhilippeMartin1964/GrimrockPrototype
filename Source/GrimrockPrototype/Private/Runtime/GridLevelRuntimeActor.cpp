@@ -524,13 +524,53 @@ const UGridObjectArchetypeAsset* AGridLevelRuntimeActor::FindObjectArchetype (FN
 UStaticMesh* AGridLevelRuntimeActor::GetObjectMesh (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
-    return Archetype ? Archetype->PreviewMesh.Get () : nullptr;
+    if (!Archetype)
+    {
+        return nullptr;
+    }
+
+    if (Archetype->PreviewMesh)
+    {
+        return Archetype->PreviewMesh.Get ();
+    }
+
+    if (Archetype->MovingMesh)
+    {
+        return Archetype->MovingMesh.Get ();
+    }
+
+    if (Archetype->FixedMesh)
+    {
+        return Archetype->FixedMesh.Get ();
+    }
+
+    return nullptr;
 }
 
 UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
-    return Archetype ? Archetype->PreviewMaterial.Get () : nullptr;
+    if (!Archetype)
+    {
+        return nullptr;
+    }
+
+    if (Archetype->PreviewMaterial)
+    {
+        return Archetype->PreviewMaterial.Get ();
+    }
+
+    if (Archetype->MovingMaterial)
+    {
+        return Archetype->MovingMaterial.Get ();
+    }
+
+    if (Archetype->FixedMaterial)
+    {
+        return Archetype->FixedMaterial.Get ();
+    }
+
+    return nullptr;
 }
 
 bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,

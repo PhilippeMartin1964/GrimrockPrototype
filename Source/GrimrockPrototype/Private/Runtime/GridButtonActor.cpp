@@ -15,7 +15,7 @@ void AGridButtonActor::Tick (float DeltaSeconds)
 void AGridButtonActor::InitializeButton (const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial,
     const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
-	InitializeGridObjectBase (ObjectData, InButtonMesh, InMaterial, InWorldLocation, InWorldRotation);
+    AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (InWorldRotation, InWorldLocation));
     PressDistance = ObjectData.Behavior.ButtonPressDistance;
     PressDuration = ObjectData.Behavior.ButtonPressDuration;
     ReleaseDuration = ObjectData.Behavior.ButtonReleaseDuration;
@@ -65,13 +65,13 @@ void AGridButtonActor::UpdateAnimation (float DeltaSeconds)
         {
             StateElapsed += DeltaSeconds;
             const float Alpha = FMath::Clamp (StateElapsed / FMath::Max (0.01f, PressDuration), 0.f, 1.f);
-            SetActorLocation (FMath::Lerp (ReleasedLocation, PressedLocation, Alpha));
+            SetMovingRelativeLocation (FMath::Lerp (ReleasedLocation, PressedLocation, Alpha));
 
             if (Alpha >= 1.f)
             {
                 AnimState = EButtonAnimState::Holding;
                 StateElapsed = 0.f;
-                SetActorLocation (PressedLocation);
+                SetMovingRelativeLocation (PressedLocation);
             }
             break;
         }
@@ -92,13 +92,13 @@ void AGridButtonActor::UpdateAnimation (float DeltaSeconds)
         {
             StateElapsed += DeltaSeconds;
             const float Alpha = FMath::Clamp (StateElapsed / FMath::Max (0.01f, ReleaseDuration), 0.f, 1.f);
-            SetActorLocation (FMath::Lerp (PressedLocation, ReleasedLocation, Alpha));
+            SetMovingRelativeLocation (FMath::Lerp (PressedLocation, ReleasedLocation, Alpha));
 
             if (Alpha >= 1.f)
             {
                 AnimState = EButtonAnimState::Idle;
                 StateElapsed = 0.f;
-                SetActorLocation (ReleasedLocation);
+                SetMovingRelativeLocation (ReleasedLocation);
 				SetActorTickEnabled (false);
             }
             break;
