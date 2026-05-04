@@ -7,7 +7,6 @@
 #include "Components/TextRenderComponent.h"
 
 #if WITH_EDITOR
-#include "Subsystems/UnrealEditorSubsystem.h"
 #include "Editor.h"
 #endif
 
@@ -37,7 +36,8 @@ void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
     {
         PreviewRuntimeActor->LevelAsset = LevelAsset;
     }
-    RebuildCoordinateGrid ();
+    UpdateCoordinateGridPlane ();
+    UpdateCoordinateHoverLabel ();
 }
 
 #if WITH_EDITOR
@@ -47,23 +47,18 @@ void AGridLevelEditorActor::PostEditChangeProperty (FPropertyChangedEvent& Prope
 
     const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName () : NAME_None;
 
-    if (PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, LevelAsset))
+    if (PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridPlaneMesh)
+        || PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridMaterial)
+        || PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bShowCoordinateGrid)
+        || PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridZOffset))
     {
-        RebuildPreview ();
-        RebuildCoordinateGrid ();
+        UpdateCoordinateGridPlane ();
         return;
     }
-    if (PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridPlaneMesh)
-        ||
-        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateGridMaterial)
-        ||
-        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bShowCoordinateGrid)
-        ||
-        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bShowCoordinateLabels)
-        ||
-        PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateLabelWorldSize))
+    if (PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, bShowCoordinateLabels)
+        || PropertyName == GET_MEMBER_NAME_CHECKED (AGridLevelEditorActor, CoordinateLabelWorldSize))
     {
-        RebuildCoordinateGrid ();
+        UpdateCoordinateHoverLabel ();
         return;
     }
 }
@@ -87,7 +82,6 @@ bool AGridLevelEditorActor::RequiresEdge (EGridLevelObjectType ObjectType) const
         case EGridLevelObjectType::Button:
         case EGridLevelObjectType::Lever:
             return true;
-
         default:
             return false;
     }
@@ -105,7 +99,6 @@ bool AGridLevelEditorActor::IsCellCenteredObject (EGridLevelObjectType ObjectTyp
         case EGridLevelObjectType::Trigger:
         case EGridLevelObjectType::Decoration:
             return true;
-
         default:
             return false;
     }
@@ -148,19 +141,9 @@ FVector AGridLevelEditorActor::GetSelectedCellWorldCenter (float ZOffset) const
     {
         return PreviewRuntimeActor->GetCellCenterWorld (SelectedCellX, SelectedCellY, ZOffset);
     }
-
     const float CellSize = LevelAsset ? LevelAsset->CellSize : 200.f;
     return GetActorLocation () + FVector::ZeroVector +
-        FVector (
-            (SelectedCellX * CellSize) + (CellSize * 0.5f),
-            (SelectedCellY * CellSize) + (CellSize * 0.5f),
-            ZOffset);
-}
-
-void AGridLevelEditorActor::RefreshPreview ()
-{
-    RebuildPreview ();
-    RebuildCoordinateGrid ();
+        FVector ((SelectedCellX * CellSize) + (CellSize * 0.5f), (SelectedCellY * CellSize) + (CellSize * 0.5f), ZOffset);
 }
 
 void AGridLevelEditorActor::EnsureLevelReady ()
@@ -203,19 +186,14 @@ void AGridLevelEditorActor::ClearSelectedCell ()
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: invalid selected cell."));
         return;
     }
-
 #if WITH_EDITOR
     LevelAsset->Modify ();
 #endif
-
-    * CellData = FGridLevelCellData ();
-
+    *CellData = FGridLevelCellData ();
     RemoveObjectsAtSelectionInternal (false);
-
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
 #endif
-
     RebuildGeometryPreview ();
 }
 
@@ -227,20 +205,17 @@ void AGridLevelEditorActor::PaintSelectedWall ()
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: invalid selected cell."));
         return;
     }
-
     if (CellData->CellType == EGridCellType::Empty)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: cannot paint wall on empty cell."));
         return;
     }
-
     EGridWallType* WallPtr = GetSelectedWallMutable (*CellData);
     if (!WallPtr)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: SelectedEdge must be North/East/South/West."));
         return;
     }
-
 #if WITH_EDITOR
     if (*WallPtr == PaintWallType)
     {
@@ -248,13 +223,10 @@ void AGridLevelEditorActor::PaintSelectedWall ()
     }
     LevelAsset->Modify ();
 #endif
-
-    * WallPtr = PaintWallType;
-
+    *WallPtr = PaintWallType;
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
 #endif
-
     RebuildGeometryPreview ();
 }
 
@@ -297,31 +269,23 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
     {
         return 0;
     }
-
 #if WITH_EDITOR
     LevelAsset->Modify ();
 #endif
-
     TArray<FGuid> RemovedIds;
-
     const EGridLevelObjectType FilterType = PaintObjectType;
-
     for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
     {
         const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
-
         if (Obj.CellX != SelectedCellX || Obj.CellY != SelectedCellY)
         {
             continue;
         }
-
         if (bSameTypeOnly && Obj.Type != FilterType)
         {
             continue;
         }
-
         bool bRemove = false;
-
         if (RequiresEdge (Obj.Type))
         {
             bRemove = (Obj.Edge == SelectedEdge);
@@ -335,11 +299,9 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
             LevelAsset->Objects.RemoveAt (Index);
         }
     }
-
     if (RemovedIds.Num () > 0)
     {
-        LevelAsset->Links.RemoveAll (
-            [&] (const FGridLevelLinkData& Link)
+        LevelAsset->Links.RemoveAll ([&] (const FGridLevelLinkData& Link)
         {
             return RemovedIds.Contains (Link.SourceObjectId) || RemovedIds.Contains (Link.TargetObjectId);
         });
@@ -435,7 +397,6 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
         {
             continue;
         }
-
         LastSelectedObjectId = Obj.ObjectId;
         PaintObjectType = Obj.Type;
         SelectedEdge = Obj.Edge;
@@ -446,16 +407,6 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
         ObjectNotes = Obj.Notes;
         SelectedPaletteEntryId = Obj.PaletteEntryId;
         ObjectBehavior = Obj.Behavior;
-
-        UE_LOG (
-            LogTemp,
-            Log,
-            TEXT ("GridLevelEditorActor: selected object %s at (%d, %d), edge=%d"),
-            *Obj.ObjectId.ToString (),
-            Obj.CellX,
-            Obj.CellY,
-            static_cast<int32>(Obj.Edge));
-
         return;
     }
 
@@ -577,6 +528,7 @@ bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPo
 
     SelectedCellX = NewCellX;
     SelectedCellY = NewCellY;
+    UpdateCoordinateHoverLabel ();
 
     const float LocalInCellX = Local.X - (static_cast<float>(NewCellX) * CellSize);
     const float LocalInCellY = Local.Y - (static_cast<float>(NewCellY) * CellSize);
@@ -659,7 +611,6 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection () cons
     {
         return nullptr;
     }
-
     for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
     {
         const FGridLevelObjectData& Obj = LevelAsset->Objects[Index];
@@ -676,7 +627,6 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection () cons
 
         return &Obj;
     }
-
     return nullptr;
 }
 
@@ -694,7 +644,6 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectById (const FGuid& 
             return &Obj;
         }
     }
-
     return nullptr;
 }
 
@@ -706,9 +655,7 @@ bool AGridLevelEditorActor::TryGetObjectWorldLocation (
     {
         return false;
     }
-
     const float CellSize = LevelAsset->CellSize;
-
     FVector GridWorldOrigin = FVector::ZeroVector;
     if (PreviewRuntimeActor)
     {
@@ -882,7 +829,6 @@ bool AGridLevelEditorActor::RemoveLinksAtSelection ()
         RebuildPreview ();
         return true;
     }
-
     return false;
 }
 
@@ -898,7 +844,6 @@ bool AGridLevelEditorActor::ApplyPaletteEntry (FName EntryId)
     {
         return false;
     }
-
     SelectedPaletteEntryId = Entry->EntryId;
     PaintObjectType = Entry->ObjectType;
 
@@ -1001,7 +946,6 @@ bool AGridLevelEditorActor::RemoveLinkByIndexForSelectedObject (int32 LinkIndex)
 
         ++CurrentIndex;
     }
-
     return false;
 }
 
@@ -1321,9 +1265,7 @@ bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint (const FVector& Wo
     {
         return false;
     }
-
     HoveredObjectId = BestObject->ObjectId;
-
     SelectedCellX = BestObject->CellX;
     SelectedCellY = BestObject->CellY;
     SelectedEdge = BestObject->Edge;
@@ -1395,81 +1337,89 @@ void AGridLevelEditorActor::RebuildGeometryPreview ()
     }
 }
 
-void AGridLevelEditorActor::ClearCoordinateLabels ()
+void AGridLevelEditorActor::EnsureCoordinateHoverLabel ()
 {
-    for (UTextRenderComponent* Label : CoordinateLabels)
+    if (CoordinateHoverLabel || !SceneRoot)
     {
-        if (!Label)
-        {
-            continue;
-        }
-        RemoveInstanceComponent (Label);
-        Label->DestroyComponent ();
+        return;
     }
-    CoordinateLabels.Empty ();
+    CoordinateHoverLabel = NewObject<UTextRenderComponent> (this, UTextRenderComponent::StaticClass (),
+        TEXT ("CoordinateHoverLabel"), RF_Transactional);
+    if (!CoordinateHoverLabel)
+    {
+        return;
+    }
+    CoordinateHoverLabel->CreationMethod = EComponentCreationMethod::Instance;
+    AddInstanceComponent (CoordinateHoverLabel);
+    CoordinateHoverLabel->AttachToComponent (SceneRoot, FAttachmentTransformRules::KeepRelativeTransform);
+
+    CoordinateHoverLabel->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    CoordinateHoverLabel->SetHiddenInGame (false);
+    CoordinateHoverLabel->SetHorizontalAlignment (EHTA_Center);
+    CoordinateHoverLabel->SetVerticalAlignment (EVRTA_TextCenter);
+    CoordinateHoverLabel->SetTextRenderColor (FColor::White);
+    CoordinateHoverLabel->SetRelativeRotation (FRotator (90.f, -90.f, 0.f));
+
+    CoordinateHoverLabel->RegisterComponentWithWorld (GetWorld ());
 }
 
-void AGridLevelEditorActor::RebuildCoordinateGrid ()
+void AGridLevelEditorActor::UpdateCoordinateHoverLabel ()
 {
-    ClearCoordinateLabels ();
-    if (!LevelAsset || !CoordinateGridPlane)
+    if (!bShowCoordinateGrid || !bShowCoordinateLabels || !LevelAsset || !LevelAsset->IsValidCoord (SelectedCellX, SelectedCellY))
+    {
+        if (CoordinateHoverLabel)
+        {
+            CoordinateHoverLabel->SetVisibility (false, true);
+        }
+        return;
+    }
+    EnsureCoordinateHoverLabel ();
+    if (!CoordinateHoverLabel)
+    {
+        return;
+    }
+    const TCHAR* EdgeText = TEXT (" ");
+
+    switch (SelectedEdge)
+    {
+        case EGridEdge::North: EdgeText = TEXT ("N"); break;
+        case EGridEdge::East:  EdgeText = TEXT ("E"); break;
+        case EGridEdge::South: EdgeText = TEXT ("S"); break;
+        case EGridEdge::West:  EdgeText = TEXT ("W"); break;
+        default: break;
+    }
+    const float CellSize = LevelAsset->CellSize;
+    CoordinateHoverLabel->SetWorldSize (CoordinateLabelWorldSize);
+    CoordinateHoverLabel->SetText (
+        FText::FromString (
+            FString::Printf (TEXT ("X:%d   Y:%d  %s"), 
+                SelectedCellX, SelectedCellY, EdgeText)));
+    CoordinateHoverLabel->SetRelativeLocation (
+        FVector ((SelectedCellX + 0.5f) * CellSize, (SelectedCellY + 0.5f) * CellSize, CoordinateGridZOffset + 4.f));
+    CoordinateHoverLabel->SetVisibility (true, true);
+    CoordinateHoverLabel->MarkRenderStateDirty ();
+}
+
+void AGridLevelEditorActor::UpdateCoordinateGridPlane ()
+{
+    if (!CoordinateGridPlane)
+    {
+        return;
+    }
+    const bool bVisible = bShowCoordinateGrid && LevelAsset != nullptr && CoordinateGridPlaneMesh != nullptr;
+    CoordinateGridPlane->SetVisibility (bVisible, true);
+    if (!bVisible)
     {
         return;
     }
     const float CellSize = LevelAsset->CellSize;
     const int32 Width = LevelAsset->Width;
     const int32 Height = LevelAsset->Height;
-
-    const FRotator LabelRotation (90.f, -90.f, 0.f);
-    const bool bShowGrid = bShowCoordinateGrid && CoordinateGridPlaneMesh != nullptr;
-    CoordinateGridPlane->SetVisibility (bShowGrid);
-    if (bShowGrid)
+    CoordinateGridPlane->SetStaticMesh (CoordinateGridPlaneMesh);
+    if (CoordinateGridMaterial)
     {
-        CoordinateGridPlane->SetStaticMesh (CoordinateGridPlaneMesh);
-        if (CoordinateGridMaterial)
-        {
-            CoordinateGridPlane->SetMaterial (0, CoordinateGridMaterial);
-        }
-        CoordinateGridPlane->SetRelativeLocation (
-            FVector (Width * CellSize * 0.5f, Height * CellSize * 0.5f, CoordinateGridZOffset));
-
-        CoordinateGridPlane->SetRelativeScale3D (
-            FVector (Width * CellSize / 100.f, Height * CellSize / 100.f, 1.f));
+        CoordinateGridPlane->SetMaterial (0, CoordinateGridMaterial);
     }
-    if (!bShowCoordinateLabels)
-    {
-        return;
-    }
-    for (int32 Y = 0; Y < Height; ++Y)
-    {
-        for (int32 X = 0; X < Width; ++X)
-        {
-            UTextRenderComponent* Label = NewObject<UTextRenderComponent> (this, UTextRenderComponent::StaticClass (), NAME_None,
-                    RF_Transactional);
-            if (!Label)
-            {
-                continue;
-            }
-            Label->CreationMethod = EComponentCreationMethod::Instance;
-            AddInstanceComponent (Label);
-            Label->AttachToComponent (SceneRoot, FAttachmentTransformRules::KeepRelativeTransform);
-
-            Label->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-            Label->SetHiddenInGame (false);
-            Label->SetVisibility (true, true);
-            Label->SetHorizontalAlignment (EHTA_Center);
-            Label->SetVerticalAlignment (EVRTA_TextCenter);
-            Label->SetWorldSize (CoordinateLabelWorldSize);
-            Label->SetTextRenderColor (FColor::White);
-            Label->SetRelativeRotation (LabelRotation);
-
-            Label->SetRelativeLocation (FVector ((X + 0.5f) * CellSize, (Y + 0.5f) * CellSize, CoordinateGridZOffset));
-            
-            Label->SetText (FText::FromString (FString::Printf (TEXT ("%d,%d"), X, Y)));
-
-            Label->RegisterComponentWithWorld (GetWorld ());
-            Label->MarkRenderStateDirty ();
-            CoordinateLabels.Add (Label);
-        }
-    }
+    CoordinateGridPlane->SetRelativeLocation (FVector (Width * CellSize * 0.5f, Height * CellSize * 0.5f, CoordinateGridZOffset));
+    CoordinateGridPlane->SetRelativeScale3D (FVector (Width * CellSize / 100.f, Height * CellSize / 100.f, 1.f));
 }

@@ -20,19 +20,15 @@ void AGridButtonActor::InitializeButton (const FGridLevelObjectData& ObjectData,
     PressDuration = ObjectData.Behavior.ButtonPressDuration;
     ReleaseDuration = ObjectData.Behavior.ButtonReleaseDuration;
     HoldTime = ObjectData.Behavior.ButtonHoldTime;
-    ReleasedLocation = InWorldLocation;
-    PressedLocation = ReleasedLocation + (GetPressAxis () * PressDistance);
+    
+    ReleasedLocation = FVector::ZeroVector;
+    PressedLocation = FVector (PressDistance, 0.f, 0.f);
+
+	SetMovingRelativeLocation (ReleasedLocation);
 
     AnimState = EButtonAnimState::Idle;
     StateElapsed = 0.f;
-    UE_LOG (
-        LogTemp,
-        Warning,
-        TEXT ("Button %s | Archetype=%s | PressDistance=%f"),
-        *ObjectData.ObjectId.ToString (),
-        *ObjectData.ArchetypeId.ToString (),
-        ObjectData.Behavior.ButtonPressDistance
-    );
+    SetActorTickEnabled (false);
 }
 
 void AGridButtonActor::TriggerPress ()
@@ -112,5 +108,5 @@ void AGridButtonActor::UpdateAnimation (float DeltaSeconds)
 void AGridButtonActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
     const FTransform& WorldTransform)
 {
-	AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, WorldTransform);
+    InitializeButton (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
 }

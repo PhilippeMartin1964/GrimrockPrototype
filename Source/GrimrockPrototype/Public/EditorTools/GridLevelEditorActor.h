@@ -135,22 +135,16 @@ public:
     TObjectPtr<UMaterialInterface> CoordinateGridMaterial;
 
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
-    bool bShowCoordinateGrid = true;
+    bool bShowCoordinateGrid = false;
 
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateGridZOffset = 2.f;
 
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
-    bool bShowCoordinateLabels = true;
+    bool bShowCoordinateLabels = false;
 
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateLabelWorldSize = 28.f;
-
-    UFUNCTION (BlueprintCallable, Category = "Editor Grid")
-    void RefreshPreview ();
-
-    UPROPERTY (Transient)
-    TArray<TObjectPtr<UTextRenderComponent>> CoordinateLabels;
 
 public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
@@ -295,6 +289,11 @@ private:
 
     void RebuildGeometryPreview ();
 
-    void RebuildCoordinateGrid ();
-    void ClearCoordinateLabels ();
+    UPROPERTY (Transient)
+    TObjectPtr<UTextRenderComponent> CoordinateHoverLabel;
+
+    void EnsureCoordinateHoverLabel ();
+    void UpdateCoordinateHoverLabel ();
+    void UpdateCoordinateGridPlane ();
+
 };
