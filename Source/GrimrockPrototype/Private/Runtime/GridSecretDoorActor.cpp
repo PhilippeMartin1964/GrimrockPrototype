@@ -6,23 +6,6 @@ AGridSecretDoorActor::AGridSecretDoorActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
     SetActorTickEnabled (false);
-
-    FixedMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("FixedMesh"));
-    FixedMeshComponent->SetupAttachment (SceneRoot);
-    FixedMeshComponent->SetMobility (EComponentMobility::Movable);
-    FixedMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-
-    MovingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("MovingMesh"));
-    MovingMeshComponent->SetupAttachment (SceneRoot);
-    MovingMeshComponent->SetMobility (EComponentMobility::Movable);
-    MovingMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-
-    if (MeshComponent)
-    {
-        MeshComponent->SetHiddenInGame (true);
-        MeshComponent->SetVisibility (false);
-        MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-    }
 }
 
 void AGridSecretDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,

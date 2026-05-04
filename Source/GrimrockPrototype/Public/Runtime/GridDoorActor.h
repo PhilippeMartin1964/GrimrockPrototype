@@ -1,8 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Runtime/GridRuntimeObjectActor.h"
 #include "Core/GridTypes.h"
+#include "Runtime/GridMechanismActor.h"
 #include "GridDoorActor.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
@@ -13,7 +13,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
 );
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridDoorActor : public AGridRuntimeObjectActor
+class GRIMROCKPROTOTYPE_API AGridDoorActor : public AGridMechanismActor
 {
     GENERATED_BODY ()
 
@@ -33,8 +33,9 @@ public:
     bool bIsOpen = false;
 
     UFUNCTION (BlueprintCallable, Category = "Door")
-    void InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InDoorMesh, UMaterialInterface* InMaterial,
-        const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen);
+    void InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial,
+        UStaticMesh* InFixedMesh, UMaterialInterface* InFixedMaterial, const FVector& ClosedWorldLocation, const FRotator& WorldRotation,
+        bool bStartOpen);
 
     UFUNCTION (BlueprintCallable, Category = "Door")
     virtual void SetDoorOpenState (bool bOpen);
@@ -60,14 +61,14 @@ public:
 public:
     UPROPERTY (BlueprintAssignable, Category = "Door")
     FOnGridDoorAnimationFinished OnDoorAnimationFinished;
-
+    
 protected:
     virtual void UpdateAnimation (float DeltaSeconds);
 
-    FVector ClosedLocation = FVector::ZeroVector;
-    FVector OpenLocation = FVector::ZeroVector;
-    FVector MoveStartLocation = FVector::ZeroVector;
-    FVector MoveTargetLocation = FVector::ZeroVector;
+    FVector MovingClosedRelativeLocation = FVector::ZeroVector;
+    FVector MovingOpenRelativeLocation = FVector::ZeroVector;
+    FVector MoveStartRelativeLocation = FVector::ZeroVector;
+    FVector MoveTargetRelativeLocation = FVector::ZeroVector;
 
     bool bIsAnimating = false;
     float MoveElapsed = 0.f;

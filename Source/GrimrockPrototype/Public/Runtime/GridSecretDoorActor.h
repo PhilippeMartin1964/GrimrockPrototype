@@ -21,12 +21,6 @@ public:
     virtual void OnConstruction (const FTransform& Transform) override;
 
 public:
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Secret Door")
-    TObjectPtr<UStaticMeshComponent> FixedMeshComponent;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Secret Door")
-    TObjectPtr<UStaticMeshComponent> MovingMeshComponent;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Secret Door")
     TObjectPtr<UStaticMesh> FixedMesh;
 

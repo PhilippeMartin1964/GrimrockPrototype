@@ -19,32 +19,53 @@ void AGridDoorActor::Tick (float DeltaSeconds)
     }
 }
 
-void AGridDoorActor::InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InDoorMesh, UMaterialInterface* InMaterial,
-    const FVector& ClosedWorldLocation, const FRotator& WorldRotation, bool bStartOpen)
+void AGridDoorActor::InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial,
+    UStaticMesh* InFixedMesh, UMaterialInterface* InFixedMaterial, const FVector& ClosedWorldLocation, const FRotator& WorldRotation,
+    bool bStartOpen)
 {
-    InitializeGridObjectBase (ObjectData, InDoorMesh, InMaterial, ClosedWorldLocation, WorldRotation);
+    ObjectId = ObjectData.ObjectId;
+    CellX = ObjectData.CellX;
+    CellY = ObjectData.CellY;
+    Edge = ObjectData.Edge;
 
-    ClosedLocation = ClosedWorldLocation;
-    OpenLocation = ClosedLocation + FVector (0.f, 0.f, OpenHeight);
+    SetActorLocation (ClosedWorldLocation);
+    SetActorRotation (WorldRotation);
 
-    bIsOpen = bStartOpen;
-    bIsAnimating = false;
+    SetFixedMesh (InFixedMesh, InFixedMaterial);
+    SetMovingMesh (InMovingMesh, InMovingMaterial);
+
+    MovingClosedRelativeLocation = FVector::ZeroVector;
+    MovingOpenRelativeLocation = FVector (0.f, 0.f, OpenHeight);
+
+    MoveStartRelativeLocation = FVector::ZeroVector;
+    MoveTargetRelativeLocation = FVector::ZeroVector;
     MoveElapsed = 0.f;
     CurrentMoveDuration = 0.f;
 
-    SetActorLocation (bIsOpen ? OpenLocation : ClosedLocation);
+    bIsOpen = bStartOpen;
+    bIsAnimating = false;
+
+    SetMovingRelativeLocation (bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+
+    SetActorTickEnabled (false);
 }
 
 void AGridDoorActor::SetDoorOpenState (bool bOpen)
 {
-    const FVector DesiredTarget = bOpen ? OpenLocation : ClosedLocation;
+    if (!MovingMeshComponent)
+    {
+        return;
+    }
+
+    const FVector DesiredTarget =
+        bOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation;
 
     if (!bIsAnimating && bIsOpen == bOpen)
     {
         return;
     }
 
-    const FVector CurrentLocation = GetActorLocation ();
+    const FVector CurrentLocation = MovingMeshComponent->GetRelativeLocation ();
 
     if (CurrentLocation.Equals (DesiredTarget, 0.1f))
     {
@@ -52,12 +73,15 @@ void AGridDoorActor::SetDoorOpenState (bool bOpen)
         bIsAnimating = false;
         MoveElapsed = 0.f;
         CurrentMoveDuration = 0.f;
-        SetActorLocation (DesiredTarget);
+        MovingMeshComponent->SetRelativeLocation (DesiredTarget);
         return;
     }
 
-    const float FullTravelDistance = FVector::Dist (ClosedLocation, OpenLocation);
-    const float RemainingDistance = FVector::Dist (CurrentLocation, DesiredTarget);
+    const float FullTravelDistance =
+        FVector::Dist (MovingClosedRelativeLocation, MovingOpenRelativeLocation);
+
+    const float RemainingDistance =
+        FVector::Dist (CurrentLocation, DesiredTarget);
 
     if (FullTravelDistance <= KINDA_SMALL_NUMBER || RemainingDistance <= KINDA_SMALL_NUMBER)
     {
@@ -65,12 +89,12 @@ void AGridDoorActor::SetDoorOpenState (bool bOpen)
         bIsAnimating = false;
         MoveElapsed = 0.f;
         CurrentMoveDuration = 0.f;
-        SetActorLocation (DesiredTarget);
+        MovingMeshComponent->SetRelativeLocation (DesiredTarget);
         return;
     }
 
-    MoveStartLocation = CurrentLocation;
-    MoveTargetLocation = DesiredTarget;
+    MoveStartRelativeLocation = CurrentLocation;
+    MoveTargetRelativeLocation = DesiredTarget;
     MoveElapsed = 0.f;
 
     const float TravelRatio = FMath::Clamp (RemainingDistance / FullTravelDistance, 0.f, 1.f);
@@ -92,21 +116,29 @@ void AGridDoorActor::CloseDoor ()
 
 void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
 {
+    if (!MovingMeshComponent)
+    {
+        return;
+    }
+
     const float SafeDuration = FMath::Max (0.01f, CurrentMoveDuration);
 
     MoveElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (MoveElapsed / SafeDuration, 0.f, 1.f);
 
-    const FVector NewLocation = FMath::Lerp (MoveStartLocation, MoveTargetLocation, Alpha);
-    SetActorLocation (NewLocation);
+    MovingMeshComponent->SetRelativeLocation (
+        FMath::Lerp (MoveStartRelativeLocation, MoveTargetRelativeLocation, Alpha)
+    );
 
     if (Alpha >= 1.f)
     {
-        SetActorLocation (MoveTargetLocation);
-        bIsOpen = MoveTargetLocation.Equals (OpenLocation, 0.1f);
+        MovingMeshComponent->SetRelativeLocation (MoveTargetRelativeLocation);
+
+        bIsOpen = MoveTargetRelativeLocation.Equals (MovingOpenRelativeLocation, 0.1f);
         bIsAnimating = false;
         MoveElapsed = 0.f;
         CurrentMoveDuration = 0.f;
+
         SetActorTickEnabled (false);
         OnDoorAnimationFinished.Broadcast (CellX, CellY, Edge);
     }
@@ -115,6 +147,6 @@ void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
 void AGridDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
     const FTransform& WorldTransform)
 {
-    InitializeDoor (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator (),
-		ObjectData.bInitiallyActive);
+    InitializeDoor (ObjectData, Mesh, Material, nullptr, nullptr, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator (),
+        ObjectData.bInitiallyActive);
 }

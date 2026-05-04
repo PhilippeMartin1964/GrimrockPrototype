@@ -53,6 +53,18 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
     TObjectPtr<UMaterialInterface> PreviewMaterial = nullptr;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    TObjectPtr<UStaticMesh> FixedMesh = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    TObjectPtr<UStaticMesh> MovingMesh = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    TObjectPtr<UMaterialInterface> FixedMaterial = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    TObjectPtr<UMaterialInterface> MovingMaterial = nullptr;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")
     TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
 
