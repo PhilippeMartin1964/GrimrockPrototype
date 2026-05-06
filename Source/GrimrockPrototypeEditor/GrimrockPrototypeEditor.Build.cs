@@ -6,11 +6,12 @@ public class GrimrockPrototypeEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PrivateDependencyModuleNames.AddRange(new string[]
+        PublicDependencyModuleNames.AddRange(new string[]
         {
             "Core",
             "CoreUObject",
             "Engine",
+            "InputCore",
             "UnrealEd",
             "EditorFramework",
             "Slate",

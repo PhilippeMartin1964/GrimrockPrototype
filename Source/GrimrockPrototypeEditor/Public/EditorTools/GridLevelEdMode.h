@@ -5,7 +5,7 @@
 #if WITH_EDITOR
 #include "EdMode.h"
 #include "Core/GridTypes.h"
-#include "GridLevelEditorActor.h"
+#include "EditorTools/GridLevelEditorActor.h"
 
 class AGridLevelEditorActor;
 class FGridLevelEdModeToolkit;
