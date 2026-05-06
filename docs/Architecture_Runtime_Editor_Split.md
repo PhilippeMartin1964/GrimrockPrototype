@@ -2,26 +2,35 @@
 
 ## Objectif
 
-Ce document prépare la séparation progressive du projet Unreal Engine 5.5.4 `GrimrockPrototype` en deux modules :
+Ce document suit la séparation progressive du projet Unreal Engine 5.5.4 `GrimrockPrototype` en deux modules :
 
-- un module runtime contenant le jeu, les données, la génération de niveau et les objets jouables ;
-- un module editor contenant les outils d'édition Unreal, le mode d'édition de grille et l'interface Slate associée.
+- `GrimrockPrototype` : module runtime contenant les données, le gameplay, la génération de niveau et les objets jouables ;
+- `GrimrockPrototypeEditor` : module editor contenant les outils Unreal Editor, le mode d'édition de grille et l'interface Slate associée.
 
-Le but est de rendre le projet plus propre pour un futur build standalone, sans casser l'édition actuelle du niveau 32x32.
+Il sert à la fois d'historique de décision, d'état des lieux et de checklist restante pour continuer la migration sans casser les assets existants.
 
-## 1. Etat actuel
+## 1. État actuel
 
-### Module existant
+### Modules Unreal
 
-Le projet contient actuellement un seul module C++ principal :
+Le projet contient maintenant deux modules C++ :
 
 ```text
 Source/GrimrockPrototype/
+Source/GrimrockPrototypeEditor/
 ```
 
-Ce module est déclare comme module `Runtime` dans `GrimrockPrototype.uproject`.
+`GrimrockPrototype` reste déclaré comme module `Runtime`.
 
-### Presence de GrimrockPrototypeEditor.Target.cs
+`GrimrockPrototypeEditor` existe maintenant comme module `Editor` et est chargé avec :
+
+```text
+LoadingPhase = PreDefault
+```
+
+Ce chargement précoce est volontaire afin que les classes et l'enregistrement du mode editor soient disponibles au bon moment dans Unreal Editor.
+
+### Cible Editor
 
 Le fichier suivant existe :
 
@@ -29,17 +38,28 @@ Le fichier suivant existe :
 Source/GrimrockPrototypeEditor.Target.cs
 ```
 
-Il permet de compiler une cible Editor, mais il ne correspond pas encore a un module C++ séparé `GrimrockPrototypeEditor`.
+Il référence maintenant le module editor afin de compiler l'éditeur avec `GrimrockPrototypeEditor`.
 
-### Dépendances éditeur dans GrimrockPrototype.Build.cs
+### Module runtime GrimrockPrototype
 
-Le fichier suivant contient déjà une séparation conditionnelle partielle :
+Le runtime ne contient plus l'enregistrement du mode éditeur.
+
+`Source/GrimrockPrototype/GrimrockPrototype.cpp` est redevenu minimal :
 
 ```text
-Source/GrimrockPrototype/GrimrockPrototype.Build.cs
+IMPLEMENT_PRIMARY_GAME_MODULE(...)
 ```
 
-Dépendances runtime actuelles :
+Le runtime ne dépend plus explicitement de :
+
+```text
+UnrealEd
+EditorFramework
+Slate
+SlateCore
+```
+
+Les dépendances attendues du module runtime sont :
 
 ```text
 Core
@@ -49,100 +69,184 @@ InputCore
 EnhancedInput
 ```
 
-Dépendances editor ajoutées seulement quand `Target.bBuildEditor` est vrai :
+### Module editor GrimrockPrototypeEditor
+
+Le module editor dépend du runtime :
 
 ```text
-UnrealEd
-EditorFramework
-Slate
-SlateCore
+GrimrockPrototypeEditor -> GrimrockPrototype
 ```
 
-Cette approche limite les dépendances editor en build non-editor, mais le module principal contient encore du code editor.
+Cette direction est correcte. Le runtime ne doit jamais dépendre du module editor.
 
-### Code d'enregistrement du mode éditeur
-
-Le fichier suivant enregistre actuellement le mode éditeur :
+Le module editor contient maintenant :
 
 ```text
-Source/GrimrockPrototype/GrimrockPrototype.cpp
+Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdMode.h
+Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdMode.cpp
+Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdModeToolkit.h
+Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp
+Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h
+Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActor.cpp
 ```
 
-Il inclut `EditorModeRegistry.h` et `EditorTools/GridLevelEdMode.h` sous `#if WITH_EDITOR`, puis appelle :
+`GrimrockPrototypeEditor.cpp` est responsable de l'enregistrement et du désenregistrement de `FGridLevelEdMode`.
+
+### CoreRedirect actif
+
+`AGridLevelEditorActor` a changé de module, donc son chemin script Unreal est passé de :
 
 ```text
-FEditorModeRegistry::Get().RegisterMode<FGridLevelEdMode>(...)
+/Script/GrimrockPrototype.GridLevelEditorActor
 ```
 
-Cet enregistrement devrait à terme migrer dans le futur module `GrimrockPrototypeEditor`.
+vers :
 
-### Point incoherent actuel
+```text
+/Script/GrimrockPrototypeEditor.GridLevelEditorActor
+```
 
-`GrimrockPrototype.uproject` mentionne encore `UnrealEd` dans les `AdditionalDependencies` du module `GrimrockPrototype`, alors que ce module est declaré comme `Runtime`.
+Un `CoreRedirect` existe dans `Config/DefaultEngine.ini` pour préserver les références existantes :
 
-Ce point sera à nettoyer après création et validation du module editor.
+```ini
++ClassRedirects=(OldName="/Script/GrimrockPrototype.GridLevelEditorActor",NewName="/Script/GrimrockPrototypeEditor.GridLevelEditorActor")
+```
 
-## 2. Classification des fichiers C++
+Ce redirect doit être conservé tant que les assets concernés n'ont pas été ouverts, validés et resauvegardés avec la nouvelle classe.
 
-### Legende
+### Classes preview restantes
+
+Les classes suivantes restent volontairement dans le runtime pour l'instant :
+
+```text
+Source/GrimrockPrototype/Public/Runtime/GridEditorPreviewComponent.h
+Source/GrimrockPrototype/Private/Runtime/GridEditorPreviewComponent.cpp
+Source/GrimrockPrototype/Public/Runtime/GridEditorPreviewObjectActor.h
+Source/GrimrockPrototype/Private/Runtime/GridEditorPreviewObjectActor.cpp
+```
+
+Elles sont encore référencées par `AGridLevelRuntimeActor` et potentiellement par des Blueprints ou maps editor. Leur migration doit rester une étape séparée.
+
+## 2. Historique de migration
+
+### Étape 1 : documentation
+
+Statut : terminé.
+
+Ce document a été créé pour cadrer la séparation `Runtime / Editor`.
+
+### Étape 2 : création du module editor vide
+
+Statut : terminé.
+
+Créé :
+
+```text
+Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.Build.cs
+Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp
+```
+
+Le module `GrimrockPrototypeEditor` est déclaré dans `GrimrockPrototype.uproject` avec `Type = Editor`.
+
+### Étape 3 : migration du EdMode et du Toolkit
+
+Statut : terminé.
+
+Déplacé vers `GrimrockPrototypeEditor` :
+
+```text
+GridLevelEdMode.h/.cpp
+GridLevelEdModeToolkit.h/.cpp
+```
+
+L'enregistrement du mode éditeur a été retiré du runtime et déplacé dans le module editor.
+
+### Étape 4 : migration de GridLevelEditorActor
+
+Statut : terminé.
+
+Déplacé vers `GrimrockPrototypeEditor` :
+
+```text
+GridLevelEditorActor.h/.cpp
+```
+
+Un `CoreRedirect` a été ajouté pour préserver les références `/Script/GrimrockPrototype.GridLevelEditorActor`.
+
+### Étape 5 : nettoyage des dépendances editor du runtime
+
+Statut : terminé.
+
+Nettoyé :
+
+- retrait de `UnrealEd`, `EditorFramework`, `Slate`, `SlateCore` du module runtime ;
+- retrait de `UnrealEd` des `AdditionalDependencies` du module runtime dans `.uproject`.
+
+### Étape 6 : traitement des classes preview
+
+Statut : restant.
+
+Les classes de preview sont encore dans le runtime par décision prudente. Elles doivent être traitées plus tard, après validation des références Blueprint et map.
+
+## 3. Classification actuelle des fichiers C++
+
+### Légende
 
 - `Runtime` : doit rester dans le module runtime.
-- `Editor` : devrait migrer vers un module editor.
-- `Ambigu / à decider` : peut rester temporairement dans runtime, mais mérite une décision explicite.
+- `Editor` : appartient maintenant ou devrait appartenir au module editor.
+- `Ambigu / à décider` : reste temporairement dans runtime, mais demande une décision explicite.
 
-| Fichier | Classification | Role probable | Remarques |
+| Fichier | Classification | Rôle | État |
 |---|---:|---|---|
-| `Source/GrimrockPrototype/GrimrockPrototype.Build.cs` | Ambigu / à decider | Règles de build du module actuel | A nettoyer après création du module editor. |
-| `Source/GrimrockPrototype/GrimrockPrototype.cpp` | Ambigu / à decider | Module principal | Contient l'enregistrement du EdMode, qui devrait migrer côté editor. |
-| `Public/Core/GridTypes.h` | Runtime | Types de cellules, murs, objets, liens et directions | Coeur du format de niveau. |
-| `Public/Core/GridDirectionUtils.h` | Runtime | Helpers de direction grille | Utilitaire runtime pur. |
-| `Public/Core/GridLevelAsset.h` | Runtime | Asset de niveau 32x32, cellules, objets, liens | Doit rester accessible au runtime et à l'editor. |
-| `Private/Core/GridLevelAsset.cpp` | Runtime | Implémentation de l'asset de niveau | Contient du code `WITH_EDITOR`, acceptable si limite a validation/maintenance editor-safe. |
-| `Public/Core/GridObjectArchetypeAsset.h` | Runtime | Archetype data-driven d'objet | Utilise par runtime et editor ; appartient au modèle de données. |
-| `Public/Core/GridObjectBehavior.h` | Runtime | Parametres de comportement d'objet | Donnees runtime/editor partagées. |
-| `Public/Core/GridObjectPaletteAsset.h` | Runtime | Palette d'objets pour l'édition | Peut rester runtime car c'est un DataAsset partageable, meme si surtout utilise par l'editor. |
-| `Public/Runtime/GridLevelRuntimeActor.h` | Runtime | Génération de géometrie, spawn runtime, interactions | Classe centrale du gameplay. |
-| `Private/Runtime/GridLevelRuntimeActor.cpp` | Runtime | Implémentation du runtime de niveau | Contient des appels de preview editor ; a isoler progressivement. |
+| `Source/GrimrockPrototype/GrimrockPrototype.Build.cs` | Runtime | Règles de build runtime | Nettoyé, sans dépendances editor explicites. |
+| `Source/GrimrockPrototype/GrimrockPrototype.cpp` | Runtime | Module principal runtime | Minimal, sans enregistrement editor. |
+| `Public/Core/GridTypes.h` | Runtime | Types de cellules, murs, objets, liens et directions | Stable. |
+| `Public/Core/GridDirectionUtils.h` | Runtime | Helpers de direction grille | Stable. |
+| `Public/Core/GridLevelAsset.h` | Runtime | Asset de niveau, cellules, objets, liens | Données partagées runtime/editor. |
+| `Private/Core/GridLevelAsset.cpp` | Runtime | Implémentation de l'asset de niveau | Contient `WITH_EDITOR` pour `Modify` / `MarkPackageDirty`, acceptable. |
+| `Public/Core/GridObjectArchetypeAsset.h` | Runtime | Archétypes data-driven d'objets | Partagé runtime/editor. |
+| `Public/Core/GridObjectBehavior.h` | Runtime | Paramètres de comportement d'objet | Partagé runtime/editor. |
+| `Public/Core/GridObjectPaletteAsset.h` | Runtime | Palette d'objets pour l'édition | Peut rester runtime comme DataAsset partagé. |
+| `Public/Runtime/GridLevelRuntimeActor.h` | Runtime | Génération niveau, gameplay, interactions | Contient encore des références preview. |
+| `Private/Runtime/GridLevelRuntimeActor.cpp` | Runtime | Implémentation du niveau jouable | Contient encore la logique preview editor-world. |
 | `Public/Runtime/GrimrockPartyPawn.h` | Runtime | Pawn joueur case par case | Gameplay pur. |
-| `Private/Runtime/GrimrockPartyPawn.cpp` | Runtime | Déplacement, interaction, camera, inventaire simple | Gameplay pur. |
-| `Public/Runtime/GridRuntimeObjectActor.h` | Runtime | Base des objets runtime places sur la grille | Runtime pur. |
-| `Private/Runtime/GridRuntimeObjectActor.cpp` | Runtime | Implémentation de base objet runtime | Runtime pur. |
-| `Public/Runtime/GridMechanismActor.h` | Runtime | Base des mécanismes activables/animables | Runtime pur. |
-| `Private/Runtime/GridMechanismActor.cpp` | Runtime | Implémentation commune des mecanismes | Runtime pur. |
-| `Public/Runtime/GridDoorActor.h` | Runtime | Porte animable | Runtime pur. |
-| `Private/Runtime/GridDoorActor.cpp` | Runtime | Animation/ouverture/fermeture de porte | Runtime pur. |
-| `Public/Runtime/GridSecretDoorActor.h` | Runtime | Porte secrète specialisee | Runtime pur. |
-| `Private/Runtime/GridSecretDoorActor.cpp` | Runtime | Comportement de porte secrète | Runtime pur. |
-| `Public/Runtime/GridButtonActor.h` | Runtime | Bouton mural ou interactif | Runtime pur. |
-| `Private/Runtime/GridButtonActor.cpp` | Runtime | Animation/action du bouton | Runtime pur. |
-| `Public/Runtime/GridLeverActor.h` | Runtime | Levier | Runtime pur. |
-| `Private/Runtime/GridLeverActor.cpp` | Runtime | Animation/action du levier | Runtime pur. |
-| `Public/Runtime/GridPressurePlateActor.h` | Runtime | Plaque de pression | Runtime pur. |
-| `Private/Runtime/GridPressurePlateActor.cpp` | Runtime | Activation/desactivation plaque | Runtime pur. |
-| `Public/Runtime/GridTriggerActor.h` | Runtime | Trigger de cellule/evenement | Runtime pur. |
-| `Private/Runtime/GridTriggerActor.cpp` | Runtime | Execution du trigger | Runtime pur. |
-| `Public/Runtime/GridReceptacleActor.h` | Runtime | Receptacle d'objet, support de torche | Runtime pur. |
-| `Private/Runtime/GridReceptacleActor.cpp` | Runtime | Insertion/retrait d'objet, lien avec inventaire | Runtime pur. |
-| `Public/Runtime/GridActivationComponent.h` | Runtime | Indexation et execution des liens logiques | Runtime pur. |
-| `Private/Runtime/GridActivationComponent.cpp` | Runtime | Activation, evenements, actions liees | Runtime pur. |
-| `Public/Runtime/GridDoorSystemComponent.h` | Runtime | Indexation et controle des portes | Runtime pur. |
-| `Private/Runtime/GridDoorSystemComponent.cpp` | Runtime | Etat ouvert/ferme, blocage de passage | Runtime pur. |
-| `Public/EditorTools/GridLevelEditorActor.h` | Editor | Acteur d'édition du niveau | Devrait migrer vers `GrimrockPrototypeEditor`. |
-| `Private/EditorTools/GridLevelEditorActor.cpp` | Editor | Peinture cellules/murs/objets, liens, selection | Utilise `WITH_EDITOR` et `GEditor`. |
-| `Public/EditorTools/GridLevelEdMode.h` | Editor | Mode éditeur Unreal personnalise | Editor pur. |
-| `Private/EditorTools/GridLevelEdMode.cpp` | Editor | Interaction viewport du mode éditeur | Editor pur. |
-| `Public/EditorTools/GridLevelEdModeToolkit.h` | Editor | Toolkit Slate du mode éditeur | Editor pur. |
-| `Private/EditorTools/GridLevelEdModeToolkit.cpp` | Editor | UI Slate du Grimrock Grid Editor | Editor pur. |
-| `Public/Runtime/GridEditorPreviewComponent.h` | Ambigu / à decider | Preview d'objets en mode editor | Nom et role editor, mais depend de `GridLevelRuntimeActor`. |
-| `Private/Runtime/GridEditorPreviewComponent.cpp` | Ambigu / à decider | Spawn/selection/hover des objets preview | Candidat a migrer ou a isoler derrière `WITH_EDITOR`. |
-| `Public/Runtime/GridEditorPreviewObjectActor.h` | Ambigu / à decider | Acteur preview editor-only | Marque `bIsEditorOnlyActor` cote Implémentation. |
-| `Private/Runtime/GridEditorPreviewObjectActor.cpp` | Ambigu / à decider | Mesh preview, hover, selection stencil | Candidat editor, mais attention aux références Blueprint. |
+| `Private/Runtime/GrimrockPartyPawn.cpp` | Runtime | Déplacement, interaction, caméra, inventaire simple | Gameplay pur. |
+| `Public/Runtime/GridRuntimeObjectActor.h` | Runtime | Base des objets runtime placés sur la grille | Gameplay pur. |
+| `Private/Runtime/GridRuntimeObjectActor.cpp` | Runtime | Implémentation objet runtime | Gameplay pur. |
+| `Public/Runtime/GridMechanismActor.h` | Runtime | Base des mécanismes animables | Gameplay pur. |
+| `Private/Runtime/GridMechanismActor.cpp` | Runtime | Implémentation commune des mécanismes | Gameplay pur. |
+| `Public/Runtime/GridDoorActor.h` | Runtime | Porte animable | Gameplay pur. |
+| `Private/Runtime/GridDoorActor.cpp` | Runtime | Animation ouverture/fermeture | Gameplay pur. |
+| `Public/Runtime/GridSecretDoorActor.h` | Runtime | Porte secrète spécialisée | Gameplay pur. |
+| `Private/Runtime/GridSecretDoorActor.cpp` | Runtime | Implémentation porte secrète | Gameplay pur. |
+| `Public/Runtime/GridButtonActor.h` | Runtime | Bouton mural/interactif | Gameplay pur. |
+| `Private/Runtime/GridButtonActor.cpp` | Runtime | Animation/action bouton | Gameplay pur. |
+| `Public/Runtime/GridLeverActor.h` | Runtime | Levier | Gameplay pur. |
+| `Private/Runtime/GridLeverActor.cpp` | Runtime | Animation/action levier | Gameplay pur. |
+| `Public/Runtime/GridPressurePlateActor.h` | Runtime | Plaque de pression | Gameplay pur. |
+| `Private/Runtime/GridPressurePlateActor.cpp` | Runtime | Activation/désactivation plaque | Gameplay pur. |
+| `Public/Runtime/GridTriggerActor.h` | Runtime | Trigger de cellule | Gameplay pur. |
+| `Private/Runtime/GridTriggerActor.cpp` | Runtime | Trigger caché runtime | Gameplay pur. |
+| `Public/Runtime/GridReceptacleActor.h` | Runtime | Réceptacle d'objet | Gameplay pur. |
+| `Private/Runtime/GridReceptacleActor.cpp` | Runtime | Insertion/retrait d'objet | Gameplay pur. |
+| `Public/Runtime/GridActivationComponent.h` | Runtime | Indexation et exécution des liens | Gameplay pur. |
+| `Private/Runtime/GridActivationComponent.cpp` | Runtime | Activation objets, plaques, triggers, réceptacles | Gameplay pur. |
+| `Public/Runtime/GridDoorSystemComponent.h` | Runtime | Contrôle centralisé des portes | Gameplay pur. |
+| `Private/Runtime/GridDoorSystemComponent.cpp` | Runtime | État portes et blocage de passage | Gameplay pur. |
+| `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h` | Editor | Acteur d'édition du niveau | Migré. |
+| `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEditorActor.cpp` | Editor | Peinture, sélection, liens, édition asset | Migré. |
+| `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdMode.h` | Editor | Mode éditeur Unreal personnalisé | Migré. |
+| `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdMode.cpp` | Editor | Interaction viewport du mode éditeur | Migré. |
+| `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEdModeToolkit.h` | Editor | Toolkit Slate du mode éditeur | Migré. |
+| `Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp` | Editor | UI Slate du Grimrock Grid Editor | Migré. |
+| `Public/Runtime/GridEditorPreviewComponent.h` | Ambigu / à décider | Preview d'objets dans l'éditeur | Reste volontairement runtime pour l'instant. |
+| `Private/Runtime/GridEditorPreviewComponent.cpp` | Ambigu / à décider | Spawn/hover/sélection preview | Reste volontairement runtime pour l'instant. |
+| `Public/Runtime/GridEditorPreviewObjectActor.h` | Ambigu / à décider | Acteur preview editor-only | Reste volontairement runtime pour l'instant. |
+| `Private/Runtime/GridEditorPreviewObjectActor.cpp` | Ambigu / à décider | Mesh preview, stencil hover/sélection | Reste volontairement runtime pour l'instant. |
 
-## 3. Proposition de structure cible
+## 4. Structure cible
 
-### Module runtime
-
-Structure souhaitée :
+### Runtime
 
 ```text
 Source/GrimrockPrototype/
@@ -156,20 +260,18 @@ Source/GrimrockPrototype/
     └── Runtime/
 ```
 
-Responsabilites :
+Responsabilités :
 
-- types de grille ;
-- asset de niveau ;
-- archetypes et comportements ;
-- génération de géometrie runtime ;
+- format de grille ;
+- `UGridLevelAsset` ;
+- archétypes et comportements ;
+- génération de géométrie runtime ;
 - pawn joueur ;
-- portes, boutons, leviers, plaques, triggers, receptacles ;
-- composants d'activation et de portes ;
-- logique jouable en standalone.
+- objets jouables ;
+- systèmes d'activation et de portes ;
+- logique standalone.
 
-### Module editor
-
-Structure souhaitée :
+### Editor
 
 ```text
 Source/GrimrockPrototypeEditor/
@@ -187,10 +289,9 @@ Responsabilités :
 - mode éditeur Unreal ;
 - toolkit Slate ;
 - acteur d'édition ;
-- logique de preview si elle reste strictement editor-only ;
-- fonctions utilisant `GEditor`, `FEditorModeRegistry`, `FModeToolkit`, `Slate`, `UnrealEd`.
+- logique utilisant `GEditor`, `FEditorModeRegistry`, `FModeToolkit`, `Slate`, `UnrealEd`.
 
-## 4. Dépendances attendues
+## 5. Dépendances attendues
 
 ### Module runtime `GrimrockPrototype`
 
@@ -204,7 +305,7 @@ InputCore
 EnhancedInput
 ```
 
-Dépendances à éviter dans le runtime :
+Dépendances interdites ou à éviter dans le runtime :
 
 ```text
 UnrealEd
@@ -213,7 +314,7 @@ Slate
 SlateCore
 LevelEditor
 EditorStyle
-UnrealEd-only APIs
+ToolMenus
 ```
 
 ### Module editor `GrimrockPrototypeEditor`
@@ -224,15 +325,15 @@ Dépendances attendues :
 Core
 CoreUObject
 Engine
+InputCore
 UnrealEd
 EditorFramework
 Slate
 SlateCore
-InputCore
 GrimrockPrototype
 ```
 
-Dépendances possiblement necessaires selon les includes exacts du toolkit :
+Dépendances additionnelles possibles selon l'évolution du toolkit :
 
 ```text
 LevelEditor
@@ -242,275 +343,127 @@ ApplicationCore
 ToolMenus
 ```
 
-Ces dépendances optionnelles doivent être ajoutées seulement si la compilation les exige.
+Elles doivent rester dans `GrimrockPrototypeEditor`, pas dans `GrimrockPrototype`.
 
-## 5. Plan de migration en petites étapes
+## 6. Checklist restante
 
-### Étape 1 : documentation
+### Validation immédiate
 
-Créer et maintenir ce document.
+- Compiler `GrimrockPrototypeEditor`.
+- Ouvrir le projet dans Unreal Editor.
+- Vérifier que le mode `Grimrock Grid Editor` apparaît toujours.
+- Ouvrir `L_GrimrockEditor`.
+- Vérifier que `BP_GridLevelEditorActor` garde sa classe parent.
+- Vérifier que le `CoreRedirect` ne produit pas d'erreur au chargement.
+- Ouvrir `L_GrimrockRuntime`.
+- Vérifier le déplacement, `Use`, portes, boutons, leviers, plaques, triggers et réceptacles.
+- Lancer un build standalone/development pour confirmer l'absence de dépendance runtime à `UnrealEd`.
 
-Objectif :
+### Traitement des preview classes
 
-- clarifier la cible ;
-- classer les fichiers ;
-- éviter de déplacer du code sans vision stable.
-
-Validation :
-
-- aucun changement de comportement ;
-- aucun changement C++.
-
-### Étape 2 : création du module editor vide
-
-Créer :
+Classes concernées :
 
 ```text
-Source/GrimrockPrototypeEditor/
-Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.Build.cs
-Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp
+GridEditorPreviewComponent
+GridEditorPreviewObjectActor
 ```
 
-Mettre à jour `GrimrockPrototype.uproject` pour déclarer le module editor.
+Options possibles :
 
-Validation :
+1. les migrer vers `GrimrockPrototypeEditor` ;
+2. les garder dans runtime mais les renommer pour clarifier leur rôle ;
+3. les garder temporairement dans runtime avec garde-fous `WITH_EDITOR` plus stricts ;
+4. extraire une interface minimale runtime et déplacer seulement le comportement editor.
 
-- le projet ouvre encore dans Unreal Editor ;
-- la compilation Editor passe ;
-- aucun fichier editor n'a encore été déplacé.
+Recommandation actuelle :
 
-### Étape 3 : déplacement du EdMode et Toolkit
+- ne pas les déplacer encore ;
+- inventorier d'abord les références Blueprint et map ;
+- vérifier `BP_GridEditorPreviewObjectActor` et `L_GrimrockEditor` ;
+- déplacer dans un commit séparé avec `CoreRedirects` si nécessaire.
 
-Déplacer :
+### Nettoyage futur
 
-```text
-GridLevelEdMode.h/.cpp
-GridLevelEdModeToolkit.h/.cpp
-```
+- Vérifier si le `CoreRedirect` de `GridLevelEditorActor` peut rester permanent ou être retiré après resauvegarde des assets.
+- Réduire les références preview dans `AGridLevelRuntimeActor`.
+- Séparer clairement la génération jouable de la prévisualisation editor.
+- Continuer à garder les commits petits et validables dans Unreal Editor.
 
-vers :
+## 7. Risques Unreal
 
-```text
-Source/GrimrockPrototypeEditor/Public/EditorTools/
-Source/GrimrockPrototypeEditor/Private/EditorTools/
-```
-
-Déplacer aussi l'enregistrement du mode éditeur depuis `GrimrockPrototype.cpp` vers `GrimrockPrototypeEditor.cpp`.
-
-Validation :
-
-- le mode `Grimrock Grid Editor` apparait encore dans l'éditeur ;
-- le toolkit s'affiche ;
-- aucune erreur d'include.
-
-### Étape 4 : déplacement de GridLevelEditorActor
-
-Déplacer :
-
-```text
-GridLevelEditorActor.h/.cpp
-```
-
-vers le module editor.
-
-Validation :
-
-- `BP_GridLevelEditorActor` reste valide ;
-- l'acteur peut toujours modifier `UGridLevelAsset` ;
-- la sélection, la peinture et les liens fonctionnent encore.
-
-### Étape 5 : traitement des preview components
-
-Décider le destin de :
-
-```text
-GridEditorPreviewComponent.h/.cpp
-GridEditorPreviewObjectActor.h/.cpp
-```
-
-Options :
-
-1. les migrer vers le module editor ;
-2. les garder dans runtime mais les renommer pour clarifier leur role ;
-3. les garder temporairement dans runtime avec garde-fous `WITH_EDITOR` plus stricts.
-
-Recommandation initiale :
-
-- commencer par les garder en place ;
-- retirer d'abord les dépendances editor du module principal ;
-- les migrer ensuite si les références Blueprint sont bien comprises.
-
-Validation :
-
-- `BP_GridEditorPreviewObjectActor` reste valide ;
-- la preview d'objets fonctionne dans `L_GrimrockEditor` ;
-- aucun acteur preview n'apparait en build runtime.
-
-### Étape 6 : nettoyage du Build.cs runtime
-
-Nettoyer `GrimrockPrototype.Build.cs`.
-
-Objectif final :
-
-- retirer `UnrealEd`, `EditorFramework`, `Slate`, `SlateCore` du module runtime ;
-- garder seulement les dépendances runtime ;
-- retirer `UnrealEd` des `AdditionalDependencies` runtime dans `.uproject`.
-
-Validation :
-
-- compilation runtime ;
-- compilation editor ;
-- pas de reference editor dans le module runtime.
-
-### Étape 7 : validation en Editor
-
-Valider dans Unreal Editor :
-
-- ouverture du projet ;
-- chargement des maps `L_GrimrockEditor` et `L_GrimrockRuntime` ;
-- presence du mode `Grimrock Grid Editor` ;
-- édition d'une cellule ;
-- peinture d'un mur ;
-- placement d'un objet ;
-- création d'un lien ;
-- rebuild preview.
-
-### Étape 8 : validation en build standalone
-
-Valider un build non-editor :
-
-- aucune dépendance a `UnrealEd` ;
-- aucun include editor dans runtime ;
-- lancement standalone ;
-- chargement du niveau runtime ;
-- déplacement du joueur ;
-- interactions de base : porte, bouton, levier, plaque, trigger, receptacle.
-
-## 6. Risques Unreal
-
-### References Blueprint cassees
+### Références Blueprint cassées
 
 Déplacer une `UCLASS` vers un autre module change son chemin script Unreal.
 
 Risque :
 
-- Blueprints derives invalides ;
-- variables de type classe perdues ;
-- references d'assets cassees.
+- Blueprints dérivés invalides ;
+- variables de classe perdues ;
+- références d'assets cassées.
 
 Mitigation :
 
 - déplacer peu de classes à la fois ;
-- ouvrir l'éditeur après chaque étape ;
-- sauvegarder les assets concernés ;
-- prévoir éventuellement des redirecteurs `CoreRedirects`.
+- utiliser `CoreRedirects` ;
+- ouvrir et resauvegarder les assets concernés ;
+- tester les maps immédiatement après chaque déplacement.
 
 ### Includes incorrects
 
-Le split de module peut casser des includes qui fonctionnaient par proximité.
-
-Risque :
-
-- erreurs de compilation ;
-- includes publics trop larges ;
-- dépendances implicites revelées.
+La séparation de modules révèle les includes implicites.
 
 Mitigation :
 
-- préférer forward déclarations dans les headers ;
+- préférer les forward declarations dans les headers ;
 - inclure les headers complets dans les `.cpp` ;
-- garder les API runtime publiques minimales.
+- garder l'API publique runtime minimale.
 
 ### Dépendances circulaires
 
-Le module editor dependra du runtime. Le runtime ne doit jamais dependre du module editor.
+Le module editor dépend du runtime. Le runtime ne doit jamais dépendre du module editor.
 
-Risque :
-
-- `GrimrockPrototype` inclut un header de `GrimrockPrototypeEditor` ;
-- reference directe du runtime vers `GridLevelEdMode` ou `GridLevelEditorActor`.
-
-Mitigation :
-
-- supprimer l'enregistrement EdMode du module runtime ;
-- garder les types de donnees partages dans `Core` runtime ;
-- faire appeler le runtime par l'editor, jamais l'inverse.
-
-### UCLASS deplacees
-
-Les classes Unreal exposees aux Blueprints sont sensibles au module d'origine.
-
-Risque :
-
-- `/Script/GrimrockPrototype.GridLevelEditorActor` devient `/Script/GrimrockPrototypeEditor.GridLevelEditorActor` ;
-- les assets existants doivent etre re-sauvegardes ou rediriges.
-
-Mitigation :
-
-- commencer par les classes non référencées par assets si possible ;
-- identifier les Blueprints derivés avant déplacer ;
-- utiliser `CoreRedirects` si necessaire.
-
-### Module non charge dans l'éditeur
-
-Le nouveau module editor devra etre declare et charge correctement.
-
-Risque :
-
-- le mode éditeur n'apparait plus ;
-- le toolkit ne s'initialise pas ;
-- classes editor indisponibles dans les assets.
-
-Mitigation :
-
-- déclarer le module editor dans `.uproject` avec `Type: Editor` ;
-- utiliser une phase de chargement appropriee ;
-- verifier l'enregistrement du `FGridLevelEdMode`.
-
-### Assets pointant vers des classes deplacees
-
-Les assets suivants sont particulierement sensibles :
+Règle :
 
 ```text
-Content/GrimrockPrototype/Blueprints/Editor/BP_GridLevelEditorActor.uasset
-Content/GrimrockPrototype/Blueprints/Editor/BP_GridEditorPreviewObjectActor.uasset
-Content/GrimrockPrototype/Maps/L_GrimrockEditor.umap
+GrimrockPrototypeEditor -> GrimrockPrototype
+GrimrockPrototype -> GrimrockPrototypeEditor interdit
 ```
 
-Risque :
+### Module editor non chargé
 
-- classes parent introuvables ;
-- references nulles ;
-- composants perdus.
+Si `GrimrockPrototypeEditor` n'est pas chargé assez tôt, le mode éditeur peut ne pas apparaître.
 
-Mitigation :
+Mitigation actuelle :
 
-- tester ces assets immédiatement après chaque étape ;
-- éviter de déplacer les preview classes avant d'avoir stabilisé le module editor ;
-- garder des commits petits et faciles à revert.
+- module déclaré `Type = Editor` ;
+- `LoadingPhase = PreDefault`.
 
-### Differenciation preview editor / runtime gameplay
+### Classes preview
 
-`GridEditorPreviewComponent` et `GridEditorPreviewObjectActor` sont actuellement dans `Runtime`, mais leur rôle est editor.
+`GridEditorPreviewComponent` et `GridEditorPreviewObjectActor` restent le principal point ambigu.
 
 Risque :
 
-- confusion de responsabilités ;
-- code editor-only embarque dans le runtime ;
-- preview visible ou référencee dans des builds non-editor.
+- responsabilités editor dans le runtime ;
+- confusion entre preview et gameplay ;
+- références Blueprint fragiles en cas de déplacement.
 
 Mitigation :
 
-- traiter ces classes dans une étape séparée ;
-- verifier les références Blueprint ;
-- envisager une abstraction runtime minimale pour le placement d'objets, appelée par un composant editor-only.
+- migration séparée ;
+- analyse des assets avant déplacement ;
+- `CoreRedirects` si les classes changent de module.
 
 ## Conclusion
 
-La séparation la plus sûre consiste a commencer par créer un module editor vide, puis à migrer d'abord le `GridLevelEdMode` et son toolkit. Le déplacement de `GridLevelEditorActor` et des classes de preview doit venir ensuite, car ces classes sont plus susceptibles d'être référencées par des Blueprints et des maps.
+La séparation `Runtime / Editor` a nettement avancé :
 
-La règle directrice est simple :
+- le module editor existe ;
+- le EdMode et son Toolkit sont migrés ;
+- `AGridLevelEditorActor` est migré ;
+- l'enregistrement editor n'est plus dans le runtime ;
+- les dépendances editor explicites ont été retirées du runtime ;
+- `GrimrockPrototypeEditor` est chargé en `PreDefault` ;
+- un `CoreRedirect` protège `GridLevelEditorActor`.
 
-- le module runtime contient le jeu et les donnees jouables ;
-- le module editor dépend du runtime pour modifier ces données ;
-- le runtime ne depend jamais du module editor.
+La prochaine décision d'architecture concerne les classes preview. Elles restent volontairement dans le runtime pour l'instant, afin de préserver les références Blueprint et map pendant que le gameplay runtime continue de se stabiliser.
