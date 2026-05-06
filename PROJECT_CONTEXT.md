@@ -32,7 +32,7 @@ Les principes qui doivent guider les choix.
 ## 4. Technical Stack
 Le développement se fait en C++ sous Unreal Engine 5.5.4, avec Visual Studio 2026, en privilégiant une architecture simple, modulaire et orientée données.
 - Unreal Engine 5.5.4
-- C++ (Visual Studio 2026)
+- C++ (Visual Studio 2026). A noter que UE5.5.4 génère une solution au format VS2022, mais elle est ouverte et compilée avec VS2026.
 - FAB UE5
 - Le jeu devra à terme pouvoir être lancé en mode standalone. Question ouverte : Comment rendre l'éditeur de niveau standalone ?
 
