@@ -16,7 +16,7 @@
 		{
 			"Name": "GrimrockPrototypeEditor",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PreDefault"
 		}
 	],
 	"Plugins": [
