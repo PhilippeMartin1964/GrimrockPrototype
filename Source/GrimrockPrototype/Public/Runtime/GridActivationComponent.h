@@ -47,6 +47,11 @@ private:
 
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
+    bool ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action);
+    bool ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action);
+    bool SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive);
+    bool IsTargetActive (FGuid ObjectId) const;
+    void LogLinkResult (const FGridLevelLinkData& LinkData, EGridLinkAction ResolvedAction, bool bSuccess, const TCHAR* FailureReason) const;
 
     bool ActivatePressurePlateAtCell (int32 X, int32 Y);
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);

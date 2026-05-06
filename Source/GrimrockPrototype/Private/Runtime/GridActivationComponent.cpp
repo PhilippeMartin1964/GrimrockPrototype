@@ -3,10 +3,32 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridButtonActor.h"
 #include "Runtime/GridLeverActor.h"
+#include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Core/GridLevelAsset.h"
+
+namespace
+{
+    FString GridLinkActionToString (EGridLinkAction Action)
+    {
+        if (const UEnum* Enum = StaticEnum<EGridLinkAction> ())
+        {
+            return Enum->GetNameStringByValue (static_cast<int64> (Action));
+        }
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Action));
+    }
+
+    FString GridObjectTypeToString (EGridLevelObjectType Type)
+    {
+        if (const UEnum* Enum = StaticEnum<EGridLevelObjectType> ())
+        {
+            return Enum->GetNameStringByValue (static_cast<int64> (Type));
+        }
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Type));
+    }
+}
 
 UGridActivationComponent::UGridActivationComponent ()
 {
@@ -175,42 +197,53 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridLevelLinkData& LinkDa
 {
     if (!RuntimeActor)
     {
+        LogLinkResult (LinkData, GetResolvedLinkAction (LinkData.Action, bInvert), false, TEXT ("missing runtime actor"));
         return false;
     }
 
     const FGridLevelObjectData* TargetObject = FindObjectById (LinkData.TargetObjectId);
     if (!TargetObject)
     {
+        LogLinkResult (LinkData, GetResolvedLinkAction (LinkData.Action, bInvert), false, TEXT ("target object not found"));
         return false;
     }
 
     const EGridLinkAction ResolvedAction = GetResolvedLinkAction (LinkData.Action, bInvert);
+    bool bSuccess = false;
+    const TCHAR* FailureReason = TEXT ("unsupported target type or action");
 
     switch (TargetObject->Type)
     {
         case EGridLevelObjectType::Door:
         {
-            switch (ResolvedAction)
-            {
-                case EGridLinkAction::Toggle:
-                return RuntimeActor->ToggleDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
-
-                case EGridLinkAction::Open:
-                case EGridLinkAction::Activate:
-                return RuntimeActor->OpenDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
-
-                case EGridLinkAction::Close:
-                case EGridLinkAction::Deactivate:
-                return RuntimeActor->CloseDoorOnEdge (TargetObject->CellX, TargetObject->CellY, TargetObject->Edge);
-
-                default:
-                return false;
-            }
+            bSuccess = ApplyDoorLinkAction (*TargetObject, ResolvedAction);
+            FailureReason = bSuccess ? nullptr : TEXT ("door action failed");
+            break;
         }
 
+        case EGridLevelObjectType::Button:
+        case EGridLevelObjectType::PressurePlate:
+        case EGridLevelObjectType::Lever:
+        case EGridLevelObjectType::Decoration:
+        case EGridLevelObjectType::MonsterSpawn:
+        case EGridLevelObjectType::ItemSpawn:
+        case EGridLevelObjectType::Light:
+        case EGridLevelObjectType::Teleporter:
+        case EGridLevelObjectType::Trigger:
+        case EGridLevelObjectType::Receptacle:
+        {
+            bSuccess = ApplyStatefulLinkAction (*TargetObject, ResolvedAction);
+            FailureReason = bSuccess ? nullptr : TEXT ("stateful action failed");
+            break;
+        }
+
+        case EGridLevelObjectType::None:
         default:
-        return false;
+        break;
     }
+
+    LogLinkResult (LinkData, ResolvedAction, bSuccess, FailureReason);
+    return bSuccess;
 }
 
 EGridLinkAction UGridActivationComponent::GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const
@@ -238,6 +271,131 @@ EGridLinkAction UGridActivationComponent::GetResolvedLinkAction (EGridLinkAction
         default:
         return EGridLinkAction::Toggle;
     }
+}
+
+bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action)
+{
+    if (!RuntimeActor)
+    {
+        return false;
+    }
+
+    switch (Action)
+    {
+        case EGridLinkAction::Toggle:
+        return RuntimeActor->ToggleDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
+
+        case EGridLinkAction::Open:
+        case EGridLinkAction::Activate:
+        return RuntimeActor->OpenDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
+
+        case EGridLinkAction::Close:
+        case EGridLinkAction::Deactivate:
+        return RuntimeActor->CloseDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
+
+        default:
+        return false;
+    }
+}
+
+bool UGridActivationComponent::ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action)
+{
+    switch (Action)
+    {
+        case EGridLinkAction::Open:
+        case EGridLinkAction::Activate:
+        return SetTargetActiveState (TargetObject, true);
+
+        case EGridLinkAction::Close:
+        case EGridLinkAction::Deactivate:
+        return SetTargetActiveState (TargetObject, false);
+
+        case EGridLinkAction::Toggle:
+        return SetTargetActiveState (TargetObject, !IsTargetActive (TargetObject.ObjectId));
+
+        default:
+        return false;
+    }
+}
+
+bool UGridActivationComponent::SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive)
+{
+    if (!TargetObject.ObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    if (bActive)
+    {
+        ActiveObjectIds.Add (TargetObject.ObjectId);
+    } else
+    {
+        ActiveObjectIds.Remove (TargetObject.ObjectId);
+    }
+
+    if (RuntimeActor)
+    {
+        if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (TargetObject.ObjectId))
+        {
+            LeverActor->SetLeverState (bActive);
+            return true;
+        }
+        if (AGridPressurePlateActor* PlateActor = RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (TargetObject.ObjectId))
+        {
+            PlateActor->SetPressed (bActive);
+            return true;
+        }
+        if (bActive)
+        {
+            if (AGridButtonActor* ButtonActor = RuntimeActor->FindRuntimeObjectActor<AGridButtonActor> (TargetObject.ObjectId))
+            {
+                ButtonActor->TriggerPress ();
+                return true;
+            }
+        }
+        if (AGridMechanismActor* MechanismActor = RuntimeActor->FindRuntimeObjectActor<AGridMechanismActor> (TargetObject.ObjectId))
+        {
+            UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is generic mechanism %s; state stored but no visual activation handler exists yet."),
+                *TargetObject.ObjectId.ToString (), *MechanismActor->GetName ());
+            return true;
+        }
+    }
+
+    if (TargetObject.Type == EGridLevelObjectType::MonsterSpawn ||
+        TargetObject.Type == EGridLevelObjectType::ItemSpawn)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is %s; state stored, spawn behavior TODO."),
+            *TargetObject.ObjectId.ToString (), *GridObjectTypeToString (TargetObject.Type));
+    } else if (TargetObject.Type == EGridLevelObjectType::Teleporter)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is Teleporter; state stored, teleport behavior TODO."),
+            *TargetObject.ObjectId.ToString ());
+    }
+
+    return true;
+}
+
+bool UGridActivationComponent::IsTargetActive (FGuid ObjectId) const
+{
+    return ObjectId.IsValid () && ActiveObjectIds.Contains (ObjectId);
+}
+
+void UGridActivationComponent::LogLinkResult (const FGridLevelLinkData& LinkData, EGridLinkAction ResolvedAction, bool bSuccess, const TCHAR* FailureReason) const
+{
+    if (bSuccess)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid link executed: Source=%s Target=%s Action=%s Success=true"),
+            *LinkData.SourceObjectId.ToString (),
+            *LinkData.TargetObjectId.ToString (),
+            *GridLinkActionToString (ResolvedAction));
+        return;
+    }
+
+    UE_LOG (LogTemp, Warning, TEXT ("Grid link failed: Source=%s Target=%s Action=%s Reason=%s"),
+        *LinkData.SourceObjectId.ToString (),
+        *LinkData.TargetObjectId.ToString (),
+        *GridLinkActionToString (ResolvedAction),
+        FailureReason ? FailureReason : TEXT ("unknown"));
 }
 
 void UGridActivationComponent::ActivateTriggersAtCell (int32 X, int32 Y)
