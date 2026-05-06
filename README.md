@@ -42,3 +42,7 @@ Source/
         ├── Core/
         ├── Runtime/
         └── EditorTools/
+
+## Documentation technique
+
+- [Architecture Runtime / Editor Split](docs/Architecture_Runtime_Editor_Split.md)
