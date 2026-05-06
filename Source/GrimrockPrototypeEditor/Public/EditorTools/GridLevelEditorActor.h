@@ -30,7 +30,7 @@ enum class EGridEditorObjectPlacementPolicy : uint8
 };
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridLevelEditorActor : public AActor
+class GRIMROCKPROTOTYPEEDITOR_API AGridLevelEditorActor : public AActor
 {
     GENERATED_BODY ()
 
