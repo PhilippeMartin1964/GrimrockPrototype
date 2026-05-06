@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Core/GridTypes.h"
+#include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridActivationComponent.h"
@@ -442,32 +443,142 @@ void AGridLevelRuntimeActor::GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge,
 
 bool AGridLevelRuntimeActor::HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    return DoorSystemComponent ? DoorSystemComponent->HasDoorOnEdge (X, Y, Edge) : false;
+    int32 ResolvedX = INDEX_NONE;
+    int32 ResolvedY = INDEX_NONE;
+    EGridEdge ResolvedEdge = EGridEdge::None;
+    bool bResolvedOpposite = false;
+    return TryResolveDoorEdge (X, Y, Edge, ResolvedX, ResolvedY, ResolvedEdge, bResolvedOpposite);
+}
+
+bool AGridLevelRuntimeActor::TryGetOppositeEdge (int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge) const
+{
+    OutX = X;
+    OutY = Y;
+    OutEdge = EGridEdge::None;
+
+    if (Edge == EGridEdge::None)
+    {
+        return false;
+    }
+    if (!TryGetNeighborCell (X, Y, Edge, OutX, OutY))
+    {
+        return false;
+    }
+    OutEdge = GridDirectionUtils::GetBackward (Edge);
+    return OutEdge != EGridEdge::None;
+}
+
+bool AGridLevelRuntimeActor::TryResolveDoorEdge (int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge, bool& bOutResolvedOpposite) const
+{
+    OutX = X;
+    OutY = Y;
+    OutEdge = Edge;
+    bOutResolvedOpposite = false;
+
+    if (!DoorSystemComponent)
+    {
+        return false;
+    }
+    if (DoorSystemComponent->HasDoorOnEdge (X, Y, Edge))
+    {
+        return true;
+    }
+    if (!TryGetOppositeEdge (X, Y, Edge, OutX, OutY, OutEdge))
+    {
+        return false;
+    }
+    bOutResolvedOpposite = DoorSystemComponent->HasDoorOnEdge (OutX, OutY, OutEdge);
+    return bOutResolvedOpposite;
 }
 
 bool AGridLevelRuntimeActor::IsDoorOpenOnEdge (int32 X, int32 Y, EGridEdge Edge) const
 {
-    return DoorSystemComponent ? DoorSystemComponent->IsDoorOpenOnEdge (X, Y, Edge) : false;
+    int32 ResolvedX = INDEX_NONE;
+    int32 ResolvedY = INDEX_NONE;
+    EGridEdge ResolvedEdge = EGridEdge::None;
+    bool bResolvedOpposite = false;
+    return TryResolveDoorEdge (X, Y, Edge, ResolvedX, ResolvedY, ResolvedEdge, bResolvedOpposite) &&
+        DoorSystemComponent->IsDoorOpenOnEdge (ResolvedX, ResolvedY, ResolvedEdge);
 }
 
 bool AGridLevelRuntimeActor::ToggleDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    return DoorSystemComponent ? DoorSystemComponent->ToggleDoorOnEdge (X, Y, Edge) : false;
+    int32 ResolvedX = INDEX_NONE;
+    int32 ResolvedY = INDEX_NONE;
+    EGridEdge ResolvedEdge = EGridEdge::None;
+    bool bResolvedOpposite = false;
+    if (TryResolveDoorEdge (X, Y, Edge, ResolvedX, ResolvedY, ResolvedEdge, bResolvedOpposite) &&
+        DoorSystemComponent->ToggleDoorOnEdge (ResolvedX, ResolvedY, ResolvedEdge))
+    {
+        if (bResolvedOpposite)
+        {
+            UE_LOG (LogTemp, Log, TEXT ("Grid Use: toggled door on opposite edge (%d,%d,%d)."),
+                ResolvedX, ResolvedY, static_cast<int32> (ResolvedEdge));
+        }
+        return true;
+    }
+    return false;
 }
 
 bool AGridLevelRuntimeActor::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    return DoorSystemComponent ? DoorSystemComponent->OpenDoorOnEdge (X, Y, Edge) : false;
+    int32 ResolvedX = INDEX_NONE;
+    int32 ResolvedY = INDEX_NONE;
+    EGridEdge ResolvedEdge = EGridEdge::None;
+    bool bResolvedOpposite = false;
+    if (TryResolveDoorEdge (X, Y, Edge, ResolvedX, ResolvedY, ResolvedEdge, bResolvedOpposite) &&
+        DoorSystemComponent->OpenDoorOnEdge (ResolvedX, ResolvedY, ResolvedEdge))
+    {
+        if (bResolvedOpposite)
+        {
+            UE_LOG (LogTemp, Log, TEXT ("Grid Use: opened door on opposite edge (%d,%d,%d)."),
+                ResolvedX, ResolvedY, static_cast<int32> (ResolvedEdge));
+        }
+        return true;
+    }
+    return false;
 }
 
 bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 {
-    return DoorSystemComponent ? DoorSystemComponent->CloseDoorOnEdge (X, Y, Edge) : false;
+    int32 ResolvedX = INDEX_NONE;
+    int32 ResolvedY = INDEX_NONE;
+    EGridEdge ResolvedEdge = EGridEdge::None;
+    bool bResolvedOpposite = false;
+    if (TryResolveDoorEdge (X, Y, Edge, ResolvedX, ResolvedY, ResolvedEdge, bResolvedOpposite) &&
+        DoorSystemComponent->CloseDoorOnEdge (ResolvedX, ResolvedY, ResolvedEdge))
+    {
+        if (bResolvedOpposite)
+        {
+            UE_LOG (LogTemp, Log, TEXT ("Grid Use: closed door on opposite edge (%d,%d,%d)."),
+                ResolvedX, ResolvedY, static_cast<int32> (ResolvedEdge));
+        }
+        return true;
+    }
+    return false;
 }
 
 bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
 {
-    return ActivationComponent ? ActivationComponent->TryInteractAtEdge (FromCellX, FromCellY, Edge, PartyPawn) : false;
+    if (!ActivationComponent)
+    {
+        return false;
+    }
+    if (ActivationComponent->TryInteractAtEdge (FromCellX, FromCellY, Edge, PartyPawn))
+    {
+        return true;
+    }
+    int32 OppositeX = INDEX_NONE;
+    int32 OppositeY = INDEX_NONE;
+    EGridEdge OppositeEdge = EGridEdge::None;
+    if (TryGetOppositeEdge (FromCellX, FromCellY, Edge, OppositeX, OppositeY, OppositeEdge) &&
+        ActivationComponent->TryInteractAtEdge (OppositeX, OppositeY, OppositeEdge, PartyPawn))
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid Use: interacted with object on opposite edge (%d,%d,%d)."),
+            OppositeX, OppositeY, static_cast<int32> (OppositeEdge));
+        return true;
+    }
+    return false;
 }
 
 bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, bool bInvert)
