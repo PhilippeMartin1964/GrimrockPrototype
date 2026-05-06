@@ -17,18 +17,6 @@ public class GrimrockPrototype : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
-        if (Target.bBuildEditor)
-        {
-            PrivateDependencyModuleNames.AddRange(
-                new string[]
-                {
-                    "UnrealEd",
-                    "EditorFramework",
-                    "Slate",
-                    "SlateCore"
-                });
-        }
-
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
