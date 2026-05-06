@@ -146,16 +146,27 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "FreeLook")
     bool bIsFreeLooking = false;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+    TMap<FName, int32> InventoryItems;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+    FName DefaultInteractionItemId = TEXT ("Torch");
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    bool HasInventoryItem (FName ItemId) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    bool AddInventoryItem (FName ItemId, int32 Count = 1);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    bool RemoveInventoryItem (FName ItemId, int32 Count = 1);
+
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void SnapToCurrentCell ();
 
     UFUNCTION (BlueprintCallable, Category = "Grid")
-    void SetGridStart (
-        AGridLevelRuntimeActor* InLevelRuntimeActor,
-        int32 StartX,
-        int32 StartY,
-        EGridEdge StartFacing);
+    void SetGridStart (AGridLevelRuntimeActor* InLevelRuntimeActor, int32 StartX, int32 StartY, EGridEdge StartFacing);
 
 protected:
     void HandleMoveForward (const FInputActionValue& Value);

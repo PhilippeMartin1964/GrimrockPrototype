@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Core/GridLevelAsset.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "GridLevelRuntimeActor.generated.h"
 
@@ -155,7 +156,11 @@ public:
     bool CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge);
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
-    bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
+    bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
+
+    // Allows runtime objects such as Receptacles to trigger their outgoing links.
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    bool ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, bool bInvert = false);
     
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);

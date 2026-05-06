@@ -81,6 +81,7 @@ bool AGridLevelEditorActor::RequiresEdge (EGridLevelObjectType ObjectType) const
         case EGridLevelObjectType::Door:
         case EGridLevelObjectType::Button:
         case EGridLevelObjectType::Lever:
+		case EGridLevelObjectType::Receptacle:
             return true;
         default:
             return false;

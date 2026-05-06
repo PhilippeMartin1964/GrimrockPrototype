@@ -6,6 +6,7 @@
 #include "GridActivationComponent.generated.h"
 
 class AGridLevelRuntimeActor;
+class AGrimrockPartyPawn;
 
 UCLASS (ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridActivationComponent : public UActorComponent
@@ -18,8 +19,10 @@ public:
     void Initialize (AGridLevelRuntimeActor* InRuntime);
     void ResetRuntimeState ();
 
-    bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
+    //bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
+    bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
+    bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
 
     void RegisterInitialObjectState (const FGridLevelObjectData& ObjectData);
 
@@ -40,9 +43,8 @@ private:
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
 
-    bool ActivateObject (const FGridLevelObjectData& ObjectData);
+    bool ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 
-    bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
 
@@ -73,4 +75,5 @@ private:
     {
         return ActiveObjectIds.Num ();
     }
+    bool ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 };

@@ -464,9 +464,14 @@ bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
     return DoorSystemComponent ? DoorSystemComponent->CloseDoorOnEdge (X, Y, Edge) : false;
 }
 
-bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge)
+bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
 {
-    return ActivationComponent ? ActivationComponent->TryInteractAtEdge (FromCellX, FromCellY, Edge) : false;
+    return ActivationComponent ? ActivationComponent->TryInteractAtEdge (FromCellX, FromCellY, Edge, PartyPawn) : false;
+}
+
+bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, bool bInvert)
+{
+    return ActivationComponent ? ActivationComponent->ExecuteLinksFromObject (SourceObjectId, bInvert) : false;
 }
 
 void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
@@ -709,6 +714,7 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
         case EGridLevelObjectType::Door:
         case EGridLevelObjectType::Button:
         case EGridLevelObjectType::Lever:
+        case EGridLevelObjectType::Receptacle:
         return ObjectData.Edge != EGridEdge::None;
 
         case EGridLevelObjectType::PressurePlate:
@@ -729,6 +735,11 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     FTransform Transform;
 
     AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
+    UE_LOG (LogTemp, Warning, TEXT ("Runtime object: Type=%d Archetype=%s Tag=%s Id=%s"),
+        static_cast<int32>(ObjectData.Type),
+        *ObjectData.ArchetypeId.ToString (),
+        *ObjectData.Tag.ToString (),
+        *ObjectData.ObjectId.ToString ());
 
     if (!Actor)
     {

@@ -695,5 +695,45 @@ void AGrimrockPartyPawn::ApplyFreeLookRotation ()
 
 bool AGrimrockPartyPawn::TryInteractOnLevel (int32 X, int32 Y, EGridEdge Edge)
 {
-    return LevelRuntimeActor && LevelRuntimeActor->TryInteractAtEdge (X, Y, Edge);
+    return LevelRuntimeActor && LevelRuntimeActor->TryInteractAtEdge (X, Y, Edge, this);
+}
+
+bool AGrimrockPartyPawn::HasInventoryItem (FName ItemId) const
+{
+    const int32* Count = InventoryItems.Find (ItemId);
+    return Count && *Count > 0;
+}
+
+bool AGrimrockPartyPawn::AddInventoryItem (FName ItemId, int32 Count)
+{
+    if (ItemId.IsNone () || Count <= 0)
+    {
+        return false;
+    }
+
+    int32& CurrentCount = InventoryItems.FindOrAdd (ItemId);
+    CurrentCount += Count;
+    return true;
+}
+
+bool AGrimrockPartyPawn::RemoveInventoryItem (FName ItemId, int32 Count)
+{
+    if (ItemId.IsNone () || Count <= 0)
+    {
+        return false;
+    }
+
+    int32* CurrentCount = InventoryItems.Find (ItemId);
+    if (!CurrentCount || *CurrentCount < Count)
+    {
+        return false;
+    }
+
+    *CurrentCount -= Count;
+    if (*CurrentCount <= 0)
+    {
+        InventoryItems.Remove (ItemId);
+    }
+
+    return true;
 }

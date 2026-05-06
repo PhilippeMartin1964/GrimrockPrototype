@@ -46,7 +46,8 @@ enum class EGridLevelObjectType : uint8
     ItemSpawn       UMETA (DisplayName = "Item Spawn"),
     Light           UMETA (DisplayName = "Light"),
     Teleporter      UMETA (DisplayName = "Teleporter"),
-    Trigger         UMETA (DisplayName = "Trigger")
+    Trigger         UMETA (DisplayName = "Trigger"),
+    Receptacle      UMETA (DisplayName = "Receptacle")
 };
 
 UENUM (BlueprintType)
@@ -57,6 +58,16 @@ enum class EGridLinkAction : uint8
     Close       UMETA (DisplayName = "Close"),
     Activate    UMETA (DisplayName = "Activate"),
     Deactivate  UMETA (DisplayName = "Deactivate")
+};
+
+UENUM (BlueprintType)
+enum class EGridObjectEventType : uint8
+{
+    Activated    UMETA (DisplayName = "Activated"),
+    Deactivated  UMETA (DisplayName = "Deactivated"),
+    ItemInserted UMETA (DisplayName = "Item Inserted"),
+    ItemRemoved  UMETA (DisplayName = "Item Removed"),
+    ItemChanged  UMETA (DisplayName = "Item Changed")
 };
 
 USTRUCT (BlueprintType)
@@ -141,6 +152,9 @@ struct FGridLevelLinkData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGuid TargetObjectId;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    EGridObjectEventType SourceEvent = EGridObjectEventType::Activated;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     EGridLinkAction Action = EGridLinkAction::Toggle;

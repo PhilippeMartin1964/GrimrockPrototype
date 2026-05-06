@@ -4,6 +4,8 @@
 #include "Runtime/GridButtonActor.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridPressurePlateActor.h"
+#include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Core/GridLevelAsset.h"
 
 UGridActivationComponent::UGridActivationComponent ()
@@ -21,10 +23,10 @@ void UGridActivationComponent::ResetRuntimeState ()
     ActiveObjectIds.Reset ();
 }
 
-bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge)
+bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
 {
     const FGridLevelObjectData* ObjectData = FindInteractableObjectOnEdge (FromCellX, FromCellY, Edge);
-    return ObjectData ? ActivateObject (*ObjectData) : false;
+    return ObjectData ? ActivateObject (*ObjectData, PartyPawn) : false;
 }
 
 void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
@@ -54,46 +56,47 @@ const FGridLevelObjectData* UGridActivationComponent::FindInteractableObjectOnEd
     return ObjectIndex ? GetObjectByIndex (*ObjectIndex) : nullptr;
 }
 
-bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& ObjectData)
+bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn)
 {
     if (!RuntimeActor)
     {
         return false;
     }
-
     switch (ObjectData.Type)
     {
         case EGridLevelObjectType::Button:
-        {
-            if (AGridButtonActor* ButtonActor = RuntimeActor->FindRuntimeObjectActor<AGridButtonActor> (ObjectData.ObjectId))
             {
-                ButtonActor->TriggerPress ();
+                if (AGridButtonActor* ButtonActor = RuntimeActor->FindRuntimeObjectActor<AGridButtonActor> (ObjectData.ObjectId))
+                {
+                    ButtonActor->TriggerPress ();
+                }
+
+                return ExecuteLinksFromObject (ObjectData.ObjectId, false);
             }
-
-            return ExecuteLinksFromObject (ObjectData.ObjectId, false);
-        }
-
         case EGridLevelObjectType::Lever:
-        {
-            const bool bWasActive = ActiveObjectIds.Contains (ObjectData.ObjectId);
-            const bool bNewActive = !bWasActive;
+            {
+                const bool bWasActive = ActiveObjectIds.Contains (ObjectData.ObjectId);
+                const bool bNewActive = !bWasActive;
 
-            if (bNewActive)
-            {
-                ActiveObjectIds.Add (ObjectData.ObjectId);
-            } else
-            {
-                ActiveObjectIds.Remove (ObjectData.ObjectId);
+                if (bNewActive)
+                {
+                    ActiveObjectIds.Add (ObjectData.ObjectId);
+                } else
+                {
+                    ActiveObjectIds.Remove (ObjectData.ObjectId);
+                }
+
+                if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (ObjectData.ObjectId))
+                {
+                    LeverActor->SetLeverState (bNewActive);
+                }
+
+                return ExecuteLinksFromObject (ObjectData.ObjectId, bWasActive);
             }
-
-            if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (ObjectData.ObjectId))
+        case EGridLevelObjectType::Receptacle:
             {
-                LeverActor->SetLeverState (bNewActive);
+				return ActivateReceptacle (ObjectData, PartyPawn);
             }
-
-            return ExecuteLinksFromObject (ObjectData.ObjectId, bWasActive);
-        }
-
         default:
         return false;
     }
@@ -302,7 +305,8 @@ void UGridActivationComponent::RebuildIndexes ()
         }
 
         if (ObjectData.Type == EGridLevelObjectType::Button ||
-            ObjectData.Type == EGridLevelObjectType::Lever)
+            ObjectData.Type == EGridLevelObjectType::Lever ||
+            ObjectData.Type == EGridLevelObjectType::Receptacle)
         {
             InteractableObjectIndexByEdge.Add (FGridEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
         } else if (ObjectData.Type == EGridLevelObjectType::PressurePlate)
@@ -335,6 +339,57 @@ const FGridLevelObjectData* UGridActivationComponent::GetObjectByIndex (int32 Ob
     return RuntimeActor->LevelAsset->Objects.IsValidIndex (ObjectIndex)
         ? &RuntimeActor->LevelAsset->Objects[ObjectIndex]
         : nullptr;
+}
+
+bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn)
+{
+    if (!RuntimeActor || !PartyPawn)
+    {
+        return false;
+    }
+    AGridReceptacleActor* ReceptacleActor =
+        RuntimeActor->FindRuntimeObjectActor<AGridReceptacleActor> (ObjectData.ObjectId);
+
+    if (!ReceptacleActor)
+    {
+        return false;
+    }
+    // Cas 1 : le support contient déjà un item.
+    // On le retire, on le rend au groupe, et on inverse les liens.
+    if (ReceptacleActor->HasItem ())
+    {
+        FName RemovedItemId = NAME_None;
+
+        if (!ReceptacleActor->TryRemoveItem (RemovedItemId))
+        {
+            return false;
+        }
+        PartyPawn->AddInventoryItem (RemovedItemId);
+        ActiveObjectIds.Remove (ObjectData.ObjectId);
+        UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: removed item %s"), *ObjectData.ObjectId.ToString (), *RemovedItemId.ToString ());
+        return ExecuteLinksFromObject (ObjectData.ObjectId, true);
+    }
+    // Cas 2 : le support est vide.
+    // On tente d’insérer l’item accepté.
+    FName ItemToInsert = ReceptacleActor->AcceptedItemId;
+
+    if (ItemToInsert == NAME_None)
+    {
+        ItemToInsert = PartyPawn->DefaultInteractionItemId;
+    }
+    if (!PartyPawn->HasInventoryItem (ItemToInsert))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: party has no item %s"), *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
+        return false;
+    }
+    if (!ReceptacleActor->TryInsertItem (ItemToInsert))
+    {
+        return false;
+    }
+    PartyPawn->RemoveInventoryItem (ItemToInsert);
+    ActiveObjectIds.Add (ObjectData.ObjectId);
+    UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: inserted item %s"), *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
+    return ExecuteLinksFromObject (ObjectData.ObjectId, false);
 }
 
 FString UGridActivationComponent::GetDebugSummary () const
