@@ -12,6 +12,11 @@
 				"Engine",
 				"UnrealEd"
 			]
+		},
+		{
+			"Name": "GrimrockPrototypeEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
