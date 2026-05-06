@@ -1,12 +1,11 @@
 # Project Context - GrimrockPrototype
 
 ## 1. Vision
-Développer un clone de Legend of Grimrock 2 sous Unreal Engine 5.5.4 et Visual Studio 2026.
+Développer un dungeon crawler inspiré de Legend of Grimrock 2 sous Unreal Engine 5.5.4 et Visual Studio 2026.
 
 Développer un jeu de type dungeon crawler en vue subjective, à déplacement case par case, inspiré de Legend of Grimrock 2, avec une architecture reposant sur un asset de niveau unique.
 
 Edition de niveaux, ajout de mécanismes pour la résolution de puzzles, inventaires des fonctionnalités de Legend og Grimrock 2 comprenant toutes améliorations possibles.
-
 
 Source GitHub : https://github.com/PhilippeMartin1964/GrimrockPrototype
 
@@ -44,80 +43,249 @@ Source/
 └── GrimrockPrototype/
     ├── GrimrockPrototype.Build.cs
     ├── GrimrockPrototype.cpp
-    ├── GrimrockPrototype.h
     ├── Public/
     │   ├── Core/
-    │   │   ├── GridTypes.h
-    │   │   └── GridLevelAsset.h
+    │   │   ├── GridDirectionUtils.h
+    │   │   ├── GridLevelAsset.h
+    │   │   ├── GridObjectArchetypeAsset.h
+    │   │   ├── GridObjectBehavior.h
+    │   │   ├── GridObjectPaletteAsset.h
+    │   │   └── GridTypes.h	
     │   ├── Runtime/
-    │   │   ├── GridLevelRuntimeActor.h
-    │   │   ├── GridDoorActor.h
+    │   │   ├── GridActivationComponent.h
     │   │   ├── GridButtonActor.h
+    │   │   ├── GridDoorActor.h
+    │   │   ├── GridDoorSystemComponent.h
+    │   │   ├── GridEditorPreviewComponent.h
+    │   │   ├── GridEditorPreviewObjectActor.h
+    │   │   ├── GridLevelRuntimeActor.h
     │   │   ├── GridLeverActor.h
+    │   │   ├── GridMechanismActor.h
     │   │   ├── GridPressurePlateActor.h
-    │   │   └── GrimrockPartyPawn.h
+    │   │   ├── GridReceptacleActor.h
+    │   │   ├── GridRuntimeObjectActor.h
+    │   │   ├── GridSecretDoorActor.h
+    │   │   ├── GridTriggerActor.h
+    │   │   └── GrimrockPartyPawn.h	
     │   └── EditorTools/
-    │       └── GridLevelEditorActor.h
-    │
+    │       ├── GridLevelEditorActor.h
+	│		├── GridLevelEditorActor.h
+	│		├── GridLevelEdMode.h
+	│		└── GridLevelEdModeToolkit.h	
     └── Private/
         ├── Core/
         │   └── GridLevelAsset.cpp
         ├── Runtime/
-        │   ├── GridLevelRuntimeActor.cpp
-        │   ├── GridDoorActor.cpp
-        │   ├── GridButtonActor.h
-        │   ├── GridLeverActor.h
-        │   ├── GridPressurePlateActor.h
-        │   └── GrimrockPartyPawn.cpp
+		│   ├── GridActivationComponent.cpp
+		│   ├── GridButtonActor.cpp
+		│   ├── GridDoorActor.cpp
+		│   ├── GridDoorSystemComponent.cpp
+		│   ├── GridEditorPreviewComponent.cpp
+		│   ├── GridEditorPreviewObjectActor.cpp
+		│   ├── GridLevelRuntimeActor.cpp
+		│   ├── GridLeverActor.cpp
+		│   ├── GridMechanismActor.cpp
+		│   ├── GridPressurePlateActor.cpp
+		│   ├── GridReceptacleActor.cpp
+		│   ├── GridRuntimeObjectActor.cpp
+		│   ├── GridSecretDoorActor.cpp
+		│   ├── GridTriggerActor.cpp
+		│   └── GrimrockPartyPawn.cpp		
         └── EditorTools/
-            └── GridLevelEditorActor.cpp
+            ├── GridLevelEditorActor.cpp
+			├── GridLevelEdMode.cpp
+			└── GridLevelEdModeToolkit.cpp
 
 UE5 :
-Content/
-└── Grimrock/
-    ├── Core/
-    │   ├── DataAssets/
-    │   │   └── DA_GridLevelAsset
-    │   └── Input/
-    │       ├── IA_MoveForward
-    │       ├── IA_MoveBackward
-    │       ├── IA_TurnLeft
-    │       ├── IA_TurnRight
-    │       ├── IA_StrafeLeft
-    │       ├── IA_StrafeRight
-    │       ├── IA_Use
-    │       └── IMC_Grimrock
+Content/GrimrockPrototype/
+├───Blueprints
+│   ├───Editor
+│   │       BP_GridEditorPreviewObjectActor.uasset
+│   │       BP_GridLevelEditorActor.uasset
+│   │
+│   └───Runtime
+│           BP_GridButtonActor.uasset
+│           BP_GridDoorActor.uasset
+│           BP_GridLevelRuntimeActor.uasset
+│           BP_GridLeverActor.uasset
+│           BP_GridPressurePlateActor.uasset
+│           BP_GridSecretDoor.uasset
+│           BP_GridTriggerActor.uasset
+│           BP_GrimrockPartyPawn.uasset
+│           BP_TorchHolder.uasset
+│
+├───Core
+│   ├───DataAssets
+│   │       DA_Arch_Button_ToggleDoor.uasset
+│   │       DA_Arch_Lever_OpenSecret.uasset
+│   │       DA_Arch_Plate_HoldDoor.uasset
+│   │       DA_Button_Secret_Stone.uasset
+│   │       DA_Door_Stone.uasset
+│   │       DA_GridLevelAsset.uasset
+│   │       DA_ObjectPalette_Default.uasset
+│   │       DA_SecretDoor_Stone1.uasset
+│   │       DA_TorchHolder.uasset
+│   │       DA_Trigger_Cell.uasset
+│   │
+│   └───Input
+│           IA_MoveBackward.uasset
+│           IA_MoveForward.uasset
+│           IA_StrafeLeft.uasset
+│           IA_StrafeRight.uasset
+│           IA_TurnLeft.uasset
+│           IA_TurnRight.uasset
+│           IA_Use.uasset
+│           IMC_Grimrock.uasset
+│
+├───Icons
+│       T_Tool_Erase.uasset
+│       T_Tool_Link.uasset
+│       T_Tool_PaintCell.uasset
+│       T_Tool_PaintObject.uasset
+│       T_Tool_PaintWall.uasset
+│       T_Tool_Select.uasset
+│
+├───Maps
+│       L_GrimrockEditor.umap
+│       L_GrimrockRuntime.umap
+│
+├───Materials
+│   │   M_Ceiling_Editor.uasset
+│   │   M_EditorGrid.uasset
+│   │   M_GridInteractable_Master.uasset
+│   │   M_Master_Floor.uasset
+│   │   M_Master_Metalic.uasset
+│   │   M_Master_Wood.uasset
+│   │   M_Object_Hover.uasset
+│   │   M_PP_EditorOutline.uasset
+│   │
+│   └───Textures
+│       ├───Button
+│       │   │   MI_Button_01.uasset
+│       │   │   MI_Button_02.uasset
+│       │   │   MI_Button_Static_01.uasset
+│       │   │
+│       │   ├───Generated_01
+│       │   │       T_ButtonSigil_BaseColor.uasset
+│       │   │       T_ButtonSigil_Height.uasset
+│       │   │       T_ButtonSigil_Normal_DirectX_UE.uasset
+│       │   │       T_ButtonSigil_Opacity.uasset
+│       │   │       T_ButtonSigil_ORM_UE_R_AO_G_Roughness_B_Metallic.uasset
+│       │   │       T_Button_BaseColor.uasset
+│       │   │       T_Button_Height.uasset
+│       │   │       T_Button_Normal_DirectX_UE.uasset
+│       │   │       T_Button_Opacity.uasset
+│       │   │       T_Button_ORM_UE_R_AO_G_Roughness_B_Metallic.uasset
+│       │   │
+│       │   ├───Metallic_01
+│       │   │       Metal053B_4K-PNG_Color.uasset
+│       │   │       Metal053B_4K-PNG_Metalness.uasset
+│       │   │       Metal053B_4K-PNG_NormalDX.uasset
+│       │   │       Metal053B_4K-PNG_Roughness.uasset
+│       │   │
+│       │   └───Mettalic_02
+│       │           Metal047B_4K-PNG_Color.uasset
+│       │           Metal047B_4K-PNG_Metalness.uasset
+│       │           Metal047B_4K-PNG_NormalDX.uasset
+│       │           Metal047B_4K-PNG_Roughness.uasset
+│       │
+│       ├───Ceil
+│       │   │   MI_CeilEditing.uasset
+│       │   │   MI_CeilVault_Stone_01.uasset
+│       │   │   MI_CeilVault_Stone_02.uasset
+│       │   │   MI_CeilVault_Wood_01.uasset
+│       │   │
+│       │   ├───StoneCeil-01
+│       │   │       Tiles089_4K-PNG_AmbientOcclusion.uasset
+│       │   │       Tiles089_4K-PNG_Color.uasset
+│       │   │       Tiles089_4K-PNG_NormalDX.uasset
+│       │   │       Tiles089_4K-PNG_Roughness.uasset
+│       │   │
+│       │   └───WoodBeamCeil_01
+│       │           wooden_rough_planks_ao_4k.uasset
+│       │           wooden_rough_planks_diff_4k.uasset
+│       │           wooden_rough_planks_nor_dx_4k.uasset
+│       │           wooden_rough_planks_rough_4k.uasset
+│       │
+│       ├───Door
+│       │   │   MI_WoodenDoor_01.uasset
+│       │   │
+│       │   └───Wood
+│       │           wooden_garage_door_ao_4k.uasset
+│       │           wooden_garage_door_arm_4k.uasset
+│       │           wooden_garage_door_diff_4k.uasset
+│       │           wooden_garage_door_disp_4k.uasset
+│       │           wooden_garage_door_nor_dx_4k.uasset
+│       │           wooden_garage_door_rough_4k.uasset
+│       │
+│       ├───Floor
+│       │   │   MI_Floor_Stone_01.uasset
+│       │   │
+│       │   └───Stone_01
+│       │           Tiles090_4K-PNG_AmbientOcclusion.uasset
+│       │           Tiles090_4K-PNG_Color.uasset
+│       │           Tiles090_4K-PNG_NormalDX.uasset
+│       │           Tiles090_4K-PNG_Roughness.uasset
+│       │           T_Floor_Stone_01_AO.uasset
+│       │           T_Floor_Stone_01_BaseColor.uasset
+│       │           T_Floor_Stone_01_Normal.uasset
+│       │           T_Floor_Stone_01_Roughness.uasset
+│       │
+│       └───Wall
+│           │   MI_Wall_Stone_01.uasset
+│           │   MI_Wall_Stone_02.uasset
+│           │   MI_Wall_Stone_03.uasset
+│           │   MI_Wall_Stone_04.uasset
+│           │
+│           ├───Stone_01
+│           │       T_Wall_Stone_01_AO.uasset
+│           │       T_Wall_Stone_01_BaseColor.uasset
+│           │       T_Wall_Stone_01_Normal.uasset
+│           │       T_Wall_Stone_01_Roughness.uasset
+│           │
+│           ├───Stone_02
+│           │       T_Wall_Stone_02_AO.uasset
+│           │       T_Wall_Stone_02_BaseColor.uasset
+│           │       T_Wall_Stone_02_Normal.uasset
+│           │       T_Wall_Stone_02_Roughness.uasset
+│           │
+│           └───Stone_03
+│                   T_Wall_Stone_03_AO.uasset
+│                   T_Wall_Stone_03_BaseColor.uasset
+│                   T_Wall_Stone_03_Normal.uasset
+│                   T_Wall_Stone_03_Roughness.uasset
+│
+└───Meshes
+    │   SM_Button.uasset
+    │   SM_EditorGridPlane.uasset
+    │   SM_Grid_Lever.uasset
+    │   SM_Grid_PressurePlate.uasset
+    │   SM_Grid_SecretWall.uasset
+    │   SM_SecretButton_03.uasset
+    │   SM_TorchHolder.uasset
     │
-    ├── Blueprints/
-    │   ├── Runtime/
-    │   │   ├── BP_GridLevelRuntimeActor
-    │   │   ├── BP_GridDoorActor
-    │   │   └── BP_GrimrockPartyPawn
-    │   │
-    │   └── Editor/
-    │       └── BP_GridLevelEditorActor
+    ├───Button
+    │       SM_Button_Mettalic_Mobile.uasset
+    │       SM_Button_Mettalic_Static.uasset
     │
-    ├── Maps/
-    │   ├── L_EditorTest
-    │   └── L_RuntimeTest
+    ├───Ceil
+    │       SM_CeilVault_01.uasset
     │
-    ├── Meshes/
-    │   ├── SM_Floor
-    │   ├── SM_Wall
-    │   ├── SM_Door
-    │   └── SM_Ceiling
+    ├───Door
+    │       SM_Door_Stone_static_01.uasset
+    │       SM_Door_Wood_Mobile_01.uasset
     │
-    ├── Materials/
-    │   ├── M_Floor
-    │   ├── M_Wall
-    │   ├── M_Door
-    │   └── M_Ceiling
+    ├───Floor
+    │       SM_Floor_Stone_01.uasset
     │
-    ├── Icons/
-    │   └── éventuellement plus tard
+    ├───Object
+    │       SM_Torch.uasset
+    │       SM_Torch_Support.uasset
     │
-    └── Dev/
-        └── Tests/
+    └───Wall
+            SM_Wall_Stone_03.uasset
+            SM_Wall_Stone_SecretDoor-01.uasset
+            SM_Wall_Stone_SecretDoorStatic-01.uasset
 
 ## 6. Current State
 Ce qui fonctionne déjà.
@@ -132,7 +300,7 @@ Ce qui fonctionne déjà.
 
 ## 7. Known Issues
 Bugs ou limites connues.
-- 
+- ...
 - ...
 
 ## 8. Next Tasks
@@ -140,7 +308,7 @@ Liste courte et priorisée.
 - [ ] Validation de l'architecture
 - [ ] Implémenter toutes les mécaniques fondamentales de Legend of Grimrock 2
 - [ ] Inventaire de tous les objets possibles et leur utilisation ou non utlisation (éléments de décor ou d'ambiance)
-- [ ] Ajouter un inventaire de groupe ou de personnage
+- [ ] Système d'inventaire de groupe ou de personnage séparé de GrimrockPartyPawn.
 - [ ] Elaboration de mécaniques JdR (Race, Classe, ...)
 - [ ] Tester ...
 
@@ -153,10 +321,10 @@ Décisions déjà prises, pour éviter de les rediscuter.
 
 ## 10. Open Questions
 Questions encore non tranchées.
-- Combat temps réel ou tour par tour ? Tour par tour
+- Combat temps réel ou tour par tour ? 
 - Format des niveaux ? 
-- Style graphique ? Réaliste
-- Plateforme cible ? Windows 11
+- Style graphique ? 
+- Plateforme cible ? 
 
 ## 11. ChatGPT Notes
 Résumé des idées importantes produites dans le projet ChatGPT.
