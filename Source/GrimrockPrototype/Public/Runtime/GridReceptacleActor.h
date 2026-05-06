@@ -69,6 +69,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryToggleTorchForParty (AGrimrockPartyPawn* PartyPawn);
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    void ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial);
+
 protected:
     virtual void BeginPlay () override;
 
@@ -77,4 +80,11 @@ protected:
 
     void ExecuteInsertionLinks ();
     void ExecuteRemovalLinks ();
+
+private:
+    UPROPERTY (Transient)
+    TObjectPtr<UStaticMesh> RuntimeContainedItemMesh = nullptr;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UMaterialInterface> RuntimeContainedItemMaterial = nullptr;
 };

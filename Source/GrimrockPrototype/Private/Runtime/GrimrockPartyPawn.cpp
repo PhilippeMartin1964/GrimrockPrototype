@@ -713,6 +713,15 @@ bool AGrimrockPartyPawn::AddInventoryItem (FName ItemId, int32 Count)
 
     int32& CurrentCount = InventoryItems.FindOrAdd (ItemId);
     CurrentCount += Count;
+
+    UE_LOG (
+        LogTemp,
+        Warning,
+        TEXT ("Inventory Add: %s x%d -> now %d"),
+        *ItemId.ToString (),
+        Count,
+        InventoryItems.FindRef (ItemId)
+    );
     return true;
 }
 
@@ -734,6 +743,13 @@ bool AGrimrockPartyPawn::RemoveInventoryItem (FName ItemId, int32 Count)
     {
         InventoryItems.Remove (ItemId);
     }
-
+    UE_LOG (
+        LogTemp,
+        Warning,
+        TEXT ("Inventory Remove: %s x%d -> now %d"),
+        *ItemId.ToString (),
+        Count,
+        InventoryItems.FindRef (ItemId)
+    );
     return true;
 }

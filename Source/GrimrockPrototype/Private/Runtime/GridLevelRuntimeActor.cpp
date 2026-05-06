@@ -6,6 +6,7 @@
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GridMechanismActor.h"
+#include "Runtime/GridReceptacleActor.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -758,6 +759,16 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
         MechanismActor->InitializeMechanismVisuals (RuntimeObjectData, Archetype, Transform);
     }
     Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
+    if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Actor))
+    {
+        if (Archetype)
+        {
+            ReceptacleActor->ConfigureContainedItemVisual (
+                Archetype->MovingMesh,
+                Archetype->MovingMaterial
+            );
+        }
+    }    
     if (ActivationComponent)
     {
         ActivationComponent->RegisterInitialObjectState (ObjectData);

@@ -73,24 +73,19 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemId)
     {
         return false;
     }
-
     SetContainedItem (ItemId);
-    ExecuteInsertionLinks ();
     return true;
 }
 
 bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
 {
     OutRemovedItemId = NAME_None;
-
     if (!bCanRemoveItem || !HasItem ())
     {
         return false;
     }
-
     OutRemovedItemId = ContainedItemId;
     SetContainedItem (NAME_None);
-    ExecuteRemovalLinks ();
     return true;
 }
 
@@ -134,15 +129,45 @@ bool AGridReceptacleActor::TryToggleTorchForParty (AGrimrockPartyPawn* PartyPawn
     return true;
 }
 
+void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial)
+{
+    RuntimeContainedItemMesh = InMesh;
+    RuntimeContainedItemMaterial = InMaterial;
+    if (!ContainedItemMesh)
+    {
+        return;
+    }
+    ContainedItemMesh->SetStaticMesh (RuntimeContainedItemMesh);
+
+    if (RuntimeContainedItemMaterial)
+    {
+        ContainedItemMesh->SetMaterial (0, RuntimeContainedItemMaterial);
+    }
+    ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    ContainedItemMesh->SetHiddenInGame (!HasItem (), true);
+    ContainedItemMesh->SetVisibility (HasItem (), true);
+}
+
 void AGridReceptacleActor::SetContainedItem (FName NewItemId)
 {
     ContainedItemId = NewItemId;
-
     const bool bVisible = HasItem ();
-    if (ContainedItemMesh)
+    if (!ContainedItemMesh)
     {
-        ContainedItemMesh->SetVisibility (bVisible, true);
+        return;
     }
+    if (bVisible && RuntimeContainedItemMesh)
+    {
+        ContainedItemMesh->SetStaticMesh (RuntimeContainedItemMesh);
+
+        if (RuntimeContainedItemMaterial)
+        {
+            ContainedItemMesh->SetMaterial (0, RuntimeContainedItemMaterial);
+        }
+    }
+    ContainedItemMesh->SetHiddenInGame (!bVisible, true);
+    ContainedItemMesh->SetVisibility (bVisible, true);
+    ContainedItemMesh->MarkRenderStateDirty ();
 }
 
 void AGridReceptacleActor::ExecuteInsertionLinks ()
