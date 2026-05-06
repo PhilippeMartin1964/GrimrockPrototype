@@ -5,7 +5,7 @@ Développer un dungeon crawler inspiré de Legend of Grimrock 2 sous Unreal Engi
 
 Développer un jeu de type dungeon crawler en vue subjective, à déplacement case par case, inspiré de Legend of Grimrock 2, avec une architecture reposant sur un asset de niveau unique.
 
-Edition de niveaux, ajout de mécanismes pour la résolution de puzzles, inventaires des fonctionnalités de Legend og Grimrock 2 comprenant toutes améliorations possibles.
+Edition de niveaux, ajout de mécanismes pour la résolution de puzzles, inventaires des fonctionnalités de Legend of Grimrock 2 comprenant toutes améliorations possibles.
 
 Source GitHub : https://github.com/PhilippeMartin1964/GrimrockPrototype
 
@@ -37,7 +37,7 @@ Le développement se fait en C++ sous Unreal Engine 5.5.4, avec Visual Studio 20
 - Le jeu devra à terme pouvoir être lancé en mode standalone. Question ouverte : Comment rendre l'éditeur de niveau standalone ?
 
 ## 5. Repository Map
-Vue rapide des dossiers/fichiers importants. Structure de projet (sujet à évolution et améioration) :
+Vue rapide des dossiers/fichiers importants. Structure de projet (sujet à évolution et amélioration) :
 C++ :
 Source/
 └── GrimrockPrototype/
@@ -69,7 +69,6 @@ Source/
     │   │   └── GrimrockPartyPawn.h	
     │   └── EditorTools/
     │       ├── GridLevelEditorActor.h
-	│		├── GridLevelEditorActor.h
 	│		├── GridLevelEdMode.h
 	│		└── GridLevelEdModeToolkit.h	
     └── Private/
