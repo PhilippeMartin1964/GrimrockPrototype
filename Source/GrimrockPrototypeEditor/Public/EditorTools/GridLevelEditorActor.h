@@ -105,6 +105,9 @@ public:
     EGridEditorTool ActiveTool = EGridEditorTool::Select;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
+    EGridObjectEventType LinkSourceEvent = EGridObjectEventType::Activated;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
     EGridLinkAction LinkAction = EGridLinkAction::Toggle;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link")
@@ -226,7 +229,7 @@ public:
     bool RemoveAllLinksForSelectedObject ();
 
     UFUNCTION (BlueprintCallable, Category = "Link")
-    bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
+    bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEventType SourceEvent, EGridLinkAction Action);
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
     bool TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const;

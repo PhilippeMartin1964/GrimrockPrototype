@@ -99,6 +99,7 @@ namespace
 void FGridLevelEdModeToolkit::Init (const TSharedPtr<IToolkitHost>& InitToolkitHost)
 {
     BuildTriggerModeOptions ();
+    BuildLinkOptions ();
     ToolkitWidget = BuildToolkitWidget ();
     FModeToolkit::Init (InitToolkitHost);
 }
@@ -555,12 +556,13 @@ FReply FGridLevelEdModeToolkit::OnApplyBehaviorClicked ()
 FReply FGridLevelEdModeToolkit::OnRemoveExactLinkClicked (
     FGuid SourceObjectId,
     FGuid TargetObjectId,
+    EGridObjectEventType SourceEvent,
     EGridLinkAction Action)
 {
     if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
     {
         EditorActor->Modify ();
-        EditorActor->RemoveExactLink (SourceObjectId, TargetObjectId, Action);
+        EditorActor->RemoveExactLink (SourceObjectId, TargetObjectId, SourceEvent, Action);
 		RefreshPalette ();
     }
 
@@ -612,6 +614,15 @@ FText FGridLevelEdModeToolkit::GetObjectSummaryText (const FGuid& ObjectId) cons
                 *EdgeText));
     }
     return FText::FromString (TEXT ("Missing object"));
+}
+
+FText FGridLevelEdModeToolkit::GetLinkSourceEventText (EGridObjectEventType SourceEvent) const
+{
+    const UEnum* Enum = StaticEnum<EGridObjectEventType> ();
+
+    return Enum
+        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (SourceEvent))
+        : FText::FromString (TEXT ("Unknown"));
 }
 
 FText FGridLevelEdModeToolkit::GetLinkActionText (EGridLinkAction Action) const
@@ -754,6 +765,11 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildLinksSection (const FGridLevel
 {
     return SNew (SVerticalBox)
 
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 8.f)
+        [
+            BuildLinkCreationSection ()
+        ]
+
         + SVerticalBox::Slot ().AutoHeight ()
         [
             SNew (SHorizontalBox)
@@ -808,6 +824,56 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildLinksSection (const FGridLevel
             SNew (SButton)
                 .Text (FText::FromString (TEXT ("Clear All Links For Selected Object")))
                 .OnClicked (this, &FGridLevelEdModeToolkit::OnClearSelectedObjectLinksClicked)
+        ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildLinkCreationSection ()
+{
+    return SNew (SBorder)
+        .Padding (6.f)
+        .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
+        [
+            SNew (SHorizontalBox)
+
+                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
+                [
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("New Link Event")))
+                ]
+
+                + SHorizontalBox::Slot ().FillWidth (0.5f).Padding (0.f, 0.f, 12.f, 0.f)
+                [
+                    SNew (SComboBox<TSharedPtr<EGridObjectEventType>>)
+                        .OptionsSource (&LinkSourceEventOptions)
+                        .OnGenerateWidget (this, &FGridLevelEdModeToolkit::MakeLinkSourceEventComboWidget)
+                        .OnSelectionChanged (this, &FGridLevelEdModeToolkit::OnLinkSourceEventSelectionChanged)
+                        [
+                            SNew (STextBlock)
+                                .Text_Lambda ([this] ()
+                            {
+                                return GetSelectedLinkSourceEventText ();
+                            })
+                        ]
+                ]
+
+                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
+                [
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("Action")))
+                ]
+
+                + SHorizontalBox::Slot ().FillWidth (0.5f)
+                [
+                    SNew (SComboBox<TSharedPtr<EGridLinkAction>>)
+                        .OptionsSource (&LinkActionOptions)
+                        .OnGenerateWidget (this, &FGridLevelEdModeToolkit::MakeLinkActionComboWidget)
+                        .OnSelectionChanged (this, &FGridLevelEdModeToolkit::OnLinkActionSelectionChanged)
+                        [
+                            SNew (STextBlock)
+                                .Text_Lambda ([this] ()
+                            {
+                                return GetSelectedLinkActionText ();
+                            })
+                        ]
+                ]
         ];
 }
 
@@ -867,9 +933,10 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildObjectLinksList (
                     [
                         SNew (STextBlock)
                             .Text (FText::Format (
-                                FText::FromString (TEXT ("{0}   [{1}]")),
-                                GetObjectSummaryText (OtherId),
-                                GetLinkActionText (Link.Action)))
+                                FText::FromString (TEXT ("{0} -> {1} -> {2}")),
+                                GetLinkSourceEventText (Link.SourceEvent),
+                                GetLinkActionText (Link.Action),
+                                GetObjectSummaryText (OtherId)))
                             .ColorAndOpacity (GetActionSlateColor (Link.Action))
                     ]
 
@@ -898,6 +965,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildObjectLinksList (
                             return const_cast<FGridLevelEdModeToolkit*>(this)->OnRemoveExactLinkClicked (
                                 Link.SourceObjectId,
                                 Link.TargetObjectId,
+                                Link.SourceEvent,
                                 Link.Action);
                         })
                     ]
@@ -1002,6 +1070,23 @@ void FGridLevelEdModeToolkit::BuildTriggerModeOptions ()
     TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Hold));
     TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Toggle));
     TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::OneShot));
+}
+
+void FGridLevelEdModeToolkit::BuildLinkOptions ()
+{
+    LinkSourceEventOptions.Reset ();
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::Activated));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::Deactivated));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::ItemInserted));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::ItemRemoved));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::ItemChanged));
+
+    LinkActionOptions.Reset ();
+    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Toggle));
+    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Open));
+    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Close));
+    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Activate));
+    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Deactivate));
 }
 
 void FGridLevelEdModeToolkit::SyncEditedBehaviorFromSelection ()
@@ -1233,6 +1318,78 @@ FText FGridLevelEdModeToolkit::GetSelectedTriggerModeText () const
     return Enum
         ? Enum->GetDisplayNameTextByValue (static_cast<int64> (EditedBehavior.TriggerMode))
         : FText::FromString (TEXT ("Unknown"));
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::MakeLinkSourceEventComboWidget (
+    TSharedPtr<EGridObjectEventType> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (GetLinkSourceEventText (*Item));
+}
+
+void FGridLevelEdModeToolkit::OnLinkSourceEventSelectionChanged (
+    TSharedPtr<EGridObjectEventType> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    if (NewValue.IsValid ())
+    {
+        if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+        {
+            EditorActor->Modify ();
+            EditorActor->LinkSourceEvent = *NewValue;
+            RefreshPalette ();
+        }
+    }
+}
+
+FText FGridLevelEdModeToolkit::GetSelectedLinkSourceEventText () const
+{
+    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        return GetLinkSourceEventText (EditorActor->LinkSourceEvent);
+    }
+
+    return FText::FromString (TEXT ("Unknown"));
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::MakeLinkActionComboWidget (
+    TSharedPtr<EGridLinkAction> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (GetLinkActionText (*Item));
+}
+
+void FGridLevelEdModeToolkit::OnLinkActionSelectionChanged (
+    TSharedPtr<EGridLinkAction> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    if (NewValue.IsValid ())
+    {
+        if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+        {
+            EditorActor->Modify ();
+            EditorActor->LinkAction = *NewValue;
+            RefreshPalette ();
+        }
+    }
+}
+
+FText FGridLevelEdModeToolkit::GetSelectedLinkActionText () const
+{
+    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        return GetLinkActionText (EditorActor->LinkAction);
+    }
+
+    return FText::FromString (TEXT ("Unknown"));
 }
 
 

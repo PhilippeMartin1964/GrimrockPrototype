@@ -52,13 +52,14 @@ private:
     TSharedRef<SWidget> BuildBehaviorEditorSection ();
 
     TSharedRef<SWidget> BuildLinksSection (const FGridLevelObjectData& SelectedObject);
+    TSharedRef<SWidget> BuildLinkCreationSection ();
     TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
 
     FReply OnToolClicked (int32 ToolValue);
     FReply OnPaletteEntryClicked (FName EntryId);
     FReply OnApplySelectedObjectClicked ();
 
-    FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action);
+    FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEventType SourceEvent, EGridLinkAction Action);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
     FReply OnFocusSelectedObjectClicked ();
@@ -67,10 +68,12 @@ private:
     FText GetActiveToolText () const;
     FText GetSelectedObjectDetailsText () const;
     FText GetObjectSummaryText (const FGuid& ObjectId) const;
+    FText GetLinkSourceEventText (EGridObjectEventType SourceEvent) const;
     FText GetLinkActionText (EGridLinkAction Action) const;
 
 private:
     void BuildTriggerModeOptions ();
+    void BuildLinkOptions ();
     void SyncEditedBehaviorFromSelection ();
 
     FReply OnApplyBehaviorClicked ();
@@ -92,6 +95,14 @@ private:
     void OnTriggerModeSelectionChanged (TSharedPtr<EGridObjectTriggerMode> NewValue, ESelectInfo::Type SelectInfo);
     FText GetSelectedTriggerModeText () const;
 
+    TSharedRef<SWidget> MakeLinkSourceEventComboWidget (TSharedPtr<EGridObjectEventType> Item) const;
+    void OnLinkSourceEventSelectionChanged (TSharedPtr<EGridObjectEventType> NewValue, ESelectInfo::Type SelectInfo);
+    FText GetSelectedLinkSourceEventText () const;
+
+    TSharedRef<SWidget> MakeLinkActionComboWidget (TSharedPtr<EGridLinkAction> Item) const;
+    void OnLinkActionSelectionChanged (TSharedPtr<EGridLinkAction> NewValue, ESelectInfo::Type SelectInfo);
+    FText GetSelectedLinkActionText () const;
+
     const FSlateBrush* GetOrCreateBrush (UTexture2D* Texture, float Size);
 
 private:
@@ -102,6 +113,8 @@ private:
     FGridObjectBehaviorParams EditedBehavior;
 
     TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
+    TArray<TSharedPtr<EGridObjectEventType>> LinkSourceEventOptions;
+    TArray<TSharedPtr<EGridLinkAction>> LinkActionOptions;
     TMap<UTexture2D*, TSharedPtr<FSlateBrush>> CachedIconBrushes;
 };
 
