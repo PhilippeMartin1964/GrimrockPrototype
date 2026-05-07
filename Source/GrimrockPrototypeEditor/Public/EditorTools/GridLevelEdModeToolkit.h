@@ -38,6 +38,9 @@ private:
     TSharedRef<SWidget> BuildHeaderSection ();
     TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content);
 
+    TSharedRef<SWidget> BuildOverviewMapSection ();
+    TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
+
     TSharedRef<SWidget> BuildToolSection ();
     TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
     UTexture2D* GetToolIcon (EGridEditorTool Tool) const;
@@ -60,6 +63,7 @@ private:
     TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
 
     FReply OnToolClicked (int32 ToolValue);
+    FReply OnOverviewCellClicked (int32 CellX, int32 CellY);
     FReply OnPaletteEntryClicked (FName EntryId);
     FReply OnApplySelectedObjectClicked ();
     FReply OnMoveSelectedObjectToCurrentCellClicked ();

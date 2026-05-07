@@ -96,7 +96,7 @@ bool AGridLevelEditorActor::RequiresEdge (EGridLevelObjectType ObjectType) const
         case EGridLevelObjectType::Door:
         case EGridLevelObjectType::Button:
         case EGridLevelObjectType::Lever:
-		case EGridLevelObjectType::Receptacle:
+        case EGridLevelObjectType::Receptacle:
             return true;
         default:
             return false;
@@ -205,7 +205,7 @@ void AGridLevelEditorActor::ClearSelectedCell ()
 #if WITH_EDITOR
     LevelAsset->Modify ();
 #endif
-    *CellData = FGridLevelCellData ();
+    * CellData = FGridLevelCellData ();
     RemoveObjectsAtSelectionInternal (false);
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
@@ -239,7 +239,7 @@ void AGridLevelEditorActor::PaintSelectedWall ()
     }
     LevelAsset->Modify ();
 #endif
-    *WallPtr = PaintWallType;
+    * WallPtr = PaintWallType;
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
 #endif
@@ -466,7 +466,7 @@ bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldH
     const float LocalInCellX = Local.X - (static_cast<float> (NewCellX) * CellSize);
     const float LocalInCellY = Local.Y - (static_cast<float> (NewCellY) * CellSize);
 
-    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY),CellSize);
+    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
     return true;
 }
 
@@ -478,6 +478,27 @@ bool AGridLevelEditorActor::ApplyViewportHitSelection (const FVector& WorldHitLo
 bool AGridLevelEditorActor::IsSelectionValidForEditing () const
 {
     return HasValidLevelAsset () && IsValidSelectedCell ();
+}
+
+bool AGridLevelEditorActor::SelectCellFromOverview (int32 CellX, int32 CellY)
+{
+    if (!HasValidLevelAsset () || !LevelAsset->IsValidCoord (CellX, CellY))
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("GridLevelEditorActor: overview cell selection is outside grid bounds X=%d Y=%d."),
+            CellX,
+            CellY);
+        return false;
+    }
+
+    Modify ();
+    SelectedCellX = CellX;
+    SelectedCellY = CellY;
+    SelectedEdge = EGridEdge::None;
+    UpdateCoordinateHoverLabel ();
+    return true;
 }
 
 EGridEdge AGridLevelEditorActor::GetEdgeFromPointInCell (const FVector2D& LocalInCell, float CellSize) const
@@ -563,11 +584,11 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
     switch (ActiveTool)
     {
         case EGridEditorTool::Select:
-        if (!SelectHoveredObject ())
-        {
-            SelectObjectAtSelection ();
-        }
-        break;
+            if (!SelectHoveredObject ())
+            {
+                SelectObjectAtSelection ();
+            }
+            break;
 
         case EGridEditorTool::PaintCell:
             PaintSelectedCellAndWall ();
@@ -1454,15 +1475,13 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     TEXT ("Object at X=%d Y=%d has an invalid ObjectId."),
                     Obj.CellX,
                     Obj.CellY));
-        }
-        else if (SeenObjectIds.Contains (Obj.ObjectId))
+        } else if (SeenObjectIds.Contains (Obj.ObjectId))
         {
             AddMessage (
                 EGridLevelValidationSeverity::Error,
                 TEXT ("Duplicate ObjectId found."),
                 Obj.ObjectId);
-        }
-        else
+        } else
         {
             SeenObjectIds.Add (Obj.ObjectId);
             ObjectIds.Add (Obj.ObjectId);
@@ -1529,8 +1548,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 EGridLevelValidationSeverity::Error,
                 TEXT ("Link SourceObjectId was not found."),
                 Link.SourceObjectId);
-        }
-        else
+        } else
         {
             int32& OutgoingCount = OutgoingLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
             ++OutgoingCount;
@@ -1804,7 +1822,7 @@ void AGridLevelEditorActor::UpdateCoordinateHoverLabel ()
     CoordinateHoverLabel->SetWorldSize (CoordinateLabelWorldSize);
     CoordinateHoverLabel->SetText (
         FText::FromString (
-            FString::Printf (TEXT ("X:%d   Y:%d  %s"), 
+            FString::Printf (TEXT ("X:%d   Y:%d  %s"),
                 SelectedCellX, SelectedCellY, EdgeText)));
     CoordinateHoverLabel->SetRelativeLocation (
         FVector ((SelectedCellX + 0.5f) * CellSize, (SelectedCellY + 0.5f) * CellSize, CoordinateGridZOffset + 4.f));

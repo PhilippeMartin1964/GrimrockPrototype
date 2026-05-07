@@ -47,15 +47,15 @@ namespace
         {
             case EGridLinkAction::Open:
             case EGridLinkAction::Activate:
-            return FSlateColor (FLinearColor (0.25f, 0.85f, 0.35f, 1.f));
+                return FSlateColor (FLinearColor (0.25f, 0.85f, 0.35f, 1.f));
 
             case EGridLinkAction::Close:
             case EGridLinkAction::Deactivate:
-            return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
+                return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
 
             case EGridLinkAction::Toggle:
             default:
-            return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
+                return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
         }
     }
 
@@ -114,14 +114,99 @@ namespace
         switch (Severity)
         {
             case EGridLevelValidationSeverity::Error:
-            return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
+                return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
 
             case EGridLevelValidationSeverity::Warning:
-            return FSlateColor (FLinearColor (1.0f, 0.72f, 0.20f, 1.f));
+                return FSlateColor (FLinearColor (1.0f, 0.72f, 0.20f, 1.f));
 
             case EGridLevelValidationSeverity::Info:
             default:
-            return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
+                return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
+        }
+    }
+
+    FSlateColor GetOverviewCellColor (const FGridLevelCellData* CellData)
+    {
+        if (!CellData)
+        {
+            return FSlateColor (FLinearColor (0.025f, 0.025f, 0.025f, 1.f));
+        }
+
+        if (CellData->bBlocksOccupancy)
+        {
+            return FSlateColor (FLinearColor (0.18f, 0.18f, 0.18f, 1.f));
+        }
+
+        const bool bHasWall = CellData->NorthWall != EGridWallType::None ||
+            CellData->EastWall != EGridWallType::None ||
+            CellData->SouthWall != EGridWallType::None ||
+            CellData->WestWall != EGridWallType::None;
+
+        if (bHasWall)
+        {
+            return FSlateColor (FLinearColor (0.30f, 0.30f, 0.30f, 1.f));
+        }
+
+        switch (CellData->CellType)
+        {
+            case EGridCellType::Floor:
+                return FSlateColor (FLinearColor (0.18f, 0.21f, 0.23f, 1.f));
+
+            case EGridCellType::Pit:
+                return FSlateColor (FLinearColor (0.08f, 0.07f, 0.09f, 1.f));
+
+            case EGridCellType::StairsUp:
+            case EGridCellType::StairsDown:
+                return FSlateColor (FLinearColor (0.22f, 0.18f, 0.12f, 1.f));
+
+            case EGridCellType::Teleporter:
+                return FSlateColor (FLinearColor (0.12f, 0.20f, 0.28f, 1.f));
+
+            case EGridCellType::Empty:
+            default:
+                return FSlateColor (FLinearColor (0.05f, 0.055f, 0.06f, 1.f));
+        }
+    }
+
+    int32 GetOverviewObjectPriority (EGridLevelObjectType Type)
+    {
+        switch (Type)
+        {
+            case EGridLevelObjectType::Door:          return 100;
+            case EGridLevelObjectType::Receptacle:    return 90;
+            case EGridLevelObjectType::Trigger:       return 80;
+            case EGridLevelObjectType::Button:        return 70;
+            case EGridLevelObjectType::Lever:         return 65;
+            case EGridLevelObjectType::PressurePlate: return 60;
+            case EGridLevelObjectType::Teleporter:    return 55;
+            case EGridLevelObjectType::MonsterSpawn:  return 50;
+            case EGridLevelObjectType::ItemSpawn:     return 45;
+            case EGridLevelObjectType::Light:         return 40;
+            case EGridLevelObjectType::Decoration:    return 30;
+            default:                                  return 0;
+        }
+    }
+
+    FText GetOverviewObjectGlyph (EGridLevelObjectType Type, FName Tag)
+    {
+        switch (Type)
+        {
+            case EGridLevelObjectType::Door:
+                return Tag == FName (TEXT ("Secret")) || Tag == FName (TEXT ("SecretDoor"))
+                    ? FText::FromString (TEXT ("S"))
+                    : FText::FromString (TEXT ("D"));
+
+            case EGridLevelObjectType::Button:        return FText::FromString (TEXT ("B"));
+            case EGridLevelObjectType::Lever:         return FText::FromString (TEXT ("L"));
+            case EGridLevelObjectType::PressurePlate: return FText::FromString (TEXT ("P"));
+            case EGridLevelObjectType::Trigger:       return FText::FromString (TEXT ("T"));
+            case EGridLevelObjectType::Receptacle:    return FText::FromString (TEXT ("R"));
+            case EGridLevelObjectType::Teleporter:    return FText::FromString (TEXT ("X"));
+            case EGridLevelObjectType::MonsterSpawn:  return FText::FromString (TEXT ("M"));
+            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("I"));
+            case EGridLevelObjectType::Light:         return FText::FromString (TEXT ("*"));
+            case EGridLevelObjectType::Decoration:    return FText::FromString (TEXT ("o"));
+            default:                                  return FText::GetEmpty ();
         }
     }
 
@@ -235,6 +320,13 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
 
     const AGridLevelEditorActor* EditorActor = GetEditorActor ();
 
+    ToolkitRoot->AddSlot ()
+        .AutoHeight ()
+        .Padding (0.f, 0.f, 0.f, 8.f)
+        [
+            BuildPanelSection (FText::FromString (TEXT ("OVERVIEW MAP")), BuildOverviewMapSection ())
+        ];
+
     if (EditorActor && EditorActor->ActiveTool == EGridEditorTool::PaintObject)
     {
         ToolkitRoot->AddSlot ()
@@ -311,30 +403,151 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolSection ()
         [BuildToolTile (FText::FromString (TEXT ("Link")), GetToolGlyph (EGridEditorTool::Link), EGridEditorTool::Link)];
 }
 
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewMapSection ()
+{
+    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+    if (!EditorActor || !EditorActor->LevelAsset)
+    {
+        return SNew (STextBlock)
+            .Text (FText::FromString (TEXT ("No editor actor or level asset.")));
+    }
+
+    const UGridLevelAsset* LevelAsset = EditorActor->LevelAsset;
+    const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
+
+    TSharedRef<SUniformGridPanel> GridPanel = SNew (SUniformGridPanel)
+        .SlotPadding (FMargin (1.f));
+
+    for (int32 Y = LevelAsset->Height - 1; Y >= 0; --Y)
+    {
+        const int32 DisplayRow = LevelAsset->Height - 1 - Y;
+        for (int32 X = LevelAsset->Width - 1; X >= 0; --X)
+        {
+            const int32 DisplayColumn = LevelAsset->Width - 1 - X;
+            GridPanel->AddSlot (DisplayColumn, DisplayRow)
+                [
+                    BuildOverviewCell (X, Y, SelectedObject)
+                ];
+        }
+    }
+
+    return SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .WidthOverride (512.f)
+                [
+                    GridPanel
+                ]
+        ]
+
+    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Legend: D Door, S Secret Door, B Button, L Lever, P Plate, T Trigger, R Receptacle, X Teleporter, M/I Spawn.")))
+                .AutoWrapText (true)
+        ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewCell (
+    int32 CellX,
+    int32 CellY,
+    const FGridLevelObjectData* SelectedObject)
+{
+    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+    const UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset : nullptr;
+    const bool bValidCell = LevelAsset && LevelAsset->IsValidCoord (CellX, CellY);
+    const FGridLevelCellData* CellData = bValidCell ? &LevelAsset->GetCell (CellX, CellY) : nullptr;
+
+    const FGridLevelObjectData* DisplayObject = nullptr;
+    int32 BestPriority = INDEX_NONE;
+    int32 ObjectCount = 0;
+    if (LevelAsset)
+    {
+        for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+        {
+            if (Obj.CellX != CellX || Obj.CellY != CellY)
+            {
+                continue;
+            }
+
+            ++ObjectCount;
+            const int32 Priority = GetOverviewObjectPriority (Obj.Type);
+            if (!DisplayObject || Priority > BestPriority)
+            {
+                DisplayObject = &Obj;
+                BestPriority = Priority;
+            }
+        }
+    }
+
+    const bool bSelectedCell = EditorActor &&
+        EditorActor->SelectedCellX == CellX &&
+        EditorActor->SelectedCellY == CellY;
+    const bool bSelectedObjectCell = SelectedObject &&
+        SelectedObject->CellX == CellX &&
+        SelectedObject->CellY == CellY;
+
+    FText GlyphText = DisplayObject
+        ? GetOverviewObjectGlyph (DisplayObject->Type, DisplayObject->Tag)
+        : FText::GetEmpty ();
+    if (ObjectCount > 1 && !GlyphText.IsEmpty ())
+    {
+        GlyphText = FText::FromString (FString::Printf (TEXT ("%s+"), *GlyphText.ToString ()));
+    }
+
+    FSlateColor BorderColor = bSelectedCell
+        ? FSlateColor (FLinearColor (1.f, 0.86f, 0.18f, 1.f))
+        : bSelectedObjectCell
+        ? FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f))
+        : GetOverviewCellColor (CellData);
+
+    return SNew (SButton)
+        .ButtonColorAndOpacity (BorderColor)
+        .ContentPadding (FMargin (0.f))
+        .OnClicked_Lambda ([this, CellX, CellY] () -> FReply
+    {
+        return OnOverviewCellClicked (CellX, CellY);
+    })
+        [
+            SNew (SBox)
+                .WidthOverride (14.f)
+                .HeightOverride (14.f)
+                [
+                    SNew (STextBlock)
+                        .Text (GlyphText)
+                        .Justification (ETextJustify::Center)
+                        .ColorAndOpacity (FSlateColor (FLinearColor::White))
+                        .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
+                ]
+        ];
+}
+
 UTexture2D* FGridLevelEdModeToolkit::GetToolIcon (EGridEditorTool Tool) const
 {
     switch (Tool)
     {
         case EGridEditorTool::Select:
-        return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_Select.T_Tool_Select"));
+            return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_Select.T_Tool_Select"));
 
         case EGridEditorTool::PaintCell:
-        return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_PaintCell.T_Tool_PaintCell"));
+            return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_PaintCell.T_Tool_PaintCell"));
 
         case EGridEditorTool::PaintWall:
-        return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_PaintWall.T_Tool_PaintWall"));
+            return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_PaintWall.T_Tool_PaintWall"));
 
         case EGridEditorTool::PaintObject:
-        return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_PaintObject.T_Tool_PaintObject"));
+            return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_PaintObject.T_Tool_PaintObject"));
 
         case EGridEditorTool::Erase:
-        return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_Erase.T_Tool_Erase"));
+            return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_Erase.T_Tool_Erase"));
 
         case EGridEditorTool::Link:
-        return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_Link.T_Tool_Link"));
+            return LoadObject<UTexture2D> (nullptr, TEXT ("/Game/GrimrockPrototype/Icons/T_Tool_Link.T_Tool_Link"));
 
         default:
-        return nullptr;
+            return nullptr;
     }
 }
 
@@ -365,13 +578,13 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolTile (const FText& Label, 
         .FillHeight (1.f)
         .HAlign (HAlign_Center)
         .VAlign (VAlign_Center)
-        [IconTexture 
+        [IconTexture
         ? StaticCastSharedRef<SWidget> (SNew (SImage)
             .Image (GetOrCreateBrush (IconTexture, IconSize)))
         : StaticCastSharedRef<SWidget> (SNew (STextBlock).Text (Glyph)
             .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 34))
         )]
-    + SVerticalBox::Slot ()
+        + SVerticalBox::Slot ()
         .AutoHeight ()
         .HAlign (HAlign_Center)
         .Padding (0.f, 2.f, 0.f, 2.f)
@@ -445,7 +658,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPaletteSection ()
         Grid->AddSlot (Column, Row)[BuildPaletteTile (Entry)];
         ++Index;
     }
-    Root->AddSlot ().AutoHeight () [Grid];
+    Root->AddSlot ().AutoHeight ()[Grid];
     Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
         [SNew (STextBlock).Text_Lambda ([this] ()
     {
@@ -578,6 +791,19 @@ FReply FGridLevelEdModeToolkit::OnToolClicked (int32 ToolValue)
     return FReply::Handled ();
 }
 
+FReply FGridLevelEdModeToolkit::OnOverviewCellClicked (int32 CellX, int32 CellY)
+{
+    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        if (EditorActor->SelectCellFromOverview (CellX, CellY))
+        {
+            RefreshPalette ();
+        }
+    }
+
+    return FReply::Handled ();
+}
+
 FReply FGridLevelEdModeToolkit::OnPaletteEntryClicked (FName EntryId)
 {
     if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
@@ -661,7 +887,7 @@ FReply FGridLevelEdModeToolkit::OnRemoveExactLinkClicked (
     {
         EditorActor->Modify ();
         EditorActor->RemoveExactLink (SourceObjectId, TargetObjectId, SourceEvent, Action);
-		RefreshPalette ();
+        RefreshPalette ();
     }
 
     return FReply::Handled ();
@@ -673,7 +899,7 @@ FReply FGridLevelEdModeToolkit::OnClearSelectedObjectLinksClicked ()
     {
         EditorActor->Modify ();
         EditorActor->RemoveAllLinksForSelectedObject ();
-		RefreshPalette ();
+        RefreshPalette ();
     }
 
     return FReply::Handled ();
@@ -785,7 +1011,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildObjectInspectorSection ()
                         .OnClicked (this, &FGridLevelEdModeToolkit::OnApplySelectedObjectClicked)
                 ]
 
-            + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
+                + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
                 [
                     SNew (SButton)
                         .Text (FText::FromString (TEXT ("Move To Current Cell")))
@@ -890,12 +1116,12 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
                     MakeReadOnlyRow (FText::FromString (TEXT ("ObjectId")), FText::FromString (ShortObjectId))
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ()
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
                     MakeReadOnlyRow (FText::FromString (TEXT ("Type")), TypeText)
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ()
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
                     MakeReadOnlyRow (
                         FText::FromString (TEXT ("Cell / Edge")),
@@ -909,45 +1135,45 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
                 [
                     SNew (SHorizontalBox)
-                    + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-                    [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("ArchetypeId")))
-                    ]
-                    + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-                    [
-                        SNew (SEditableTextBox)
-                            .Text (FText::FromName (Obj.ArchetypeId))
-                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                        {
-                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                        + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("ArchetypeId")))
+                        ]
+                        + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
+                        [
+                            SNew (SEditableTextBox)
+                                .Text (FText::FromName (Obj.ArchetypeId))
+                                .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
                             {
-                                EditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
-                                RefreshPalette ();
-                            }
-                        })
-                    ]
+                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                {
+                                    EditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
+                                    RefreshPalette ();
+                                }
+                            })
+                        ]
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ()
                 [
                     SNew (SHorizontalBox)
-                    + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-                    [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Tag")))
-                    ]
-                    + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-                    [
-                        SNew (SEditableTextBox)
-                            .Text (FText::FromName (Obj.Tag))
-                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                        {
-                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                        + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Tag")))
+                        ]
+                        + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
+                        [
+                            SNew (SEditableTextBox)
+                                .Text (FText::FromName (Obj.Tag))
+                                .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
                             {
-                                EditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
-                                RefreshPalette ();
-                            }
-                        })
-                    ]
+                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                {
+                                    EditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
+                                    RefreshPalette ();
+                                }
+                            })
+                        ]
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
@@ -955,7 +1181,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
                     SNew (STextBlock).Text (FText::FromString (TEXT ("Notes")))
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ()
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
                     SNew (SMultiLineEditableTextBox)
                         .Text (FText::FromString (Obj.Notes))
@@ -973,54 +1199,54 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
                 [
                     SNew (SHorizontalBox)
-                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                    [
-                        SNew (SCheckBox)
-                            .IsChecked (Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                        {
-                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-                            {
-                                EditorActor->SetSelectedObjectInitiallyEnabled (NewState == ECheckBoxState::Checked);
-                                RefreshPalette ();
-                            }
-                        })
+                        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
                         [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Enabled")))
-                        ]
-                    ]
-                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                    [
-                        SNew (SCheckBox)
-                            .IsChecked (Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                        {
-                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                            SNew (SCheckBox)
+                                .IsChecked (Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
                             {
-                                EditorActor->SetSelectedObjectInitiallyActive (NewState == ECheckBoxState::Checked);
-                                RefreshPalette ();
-                            }
-                        })
-                        [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
+                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                {
+                                    EditorActor->SetSelectedObjectInitiallyEnabled (NewState == ECheckBoxState::Checked);
+                                    RefreshPalette ();
+                                }
+                            })
+                                [
+                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Enabled")))
+                                ]
                         ]
-                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
+                        [
+                            SNew (SCheckBox)
+                                .IsChecked (Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                            {
+                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                {
+                                    EditorActor->SetSelectedObjectInitiallyActive (NewState == ECheckBoxState::Checked);
+                                    RefreshPalette ();
+                                }
+                            })
+                                [
+                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
+                                ]
+                        ]
                     + SHorizontalBox::Slot ().AutoWidth ()
-                    [
-                        SNew (SCheckBox)
-                            .IsChecked (Obj.bOverrideBehavior ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                        {
-                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-                            {
-                                EditorActor->SetSelectedObjectOverrideBehavior (NewState == ECheckBoxState::Checked);
-                                RefreshPalette ();
-                            }
-                        })
                         [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Override Behavior")))
+                            SNew (SCheckBox)
+                                .IsChecked (Obj.bOverrideBehavior ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                            {
+                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                {
+                                    EditorActor->SetSelectedObjectOverrideBehavior (NewState == ECheckBoxState::Checked);
+                                    RefreshPalette ();
+                                }
+                            })
+                                [
+                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Override Behavior")))
+                                ]
                         ]
-                    ]
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (
@@ -1029,8 +1255,8 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
                     BuildOptionalReceptacleBehavior ()
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (
-                Obj.Type == EGridLevelObjectType::Trigger ? FMargin (0.f, 8.f, 0.f, 0.f) : FMargin (0.f))
+                + SVerticalBox::Slot ().AutoHeight ().Padding (
+                    Obj.Type == EGridLevelObjectType::Trigger ? FMargin (0.f, 8.f, 0.f, 0.f) : FMargin (0.f))
                 [
                     BuildOptionalTriggerBehavior ()
                 ]
@@ -1064,9 +1290,9 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildTriggerBehaviorSection (const 
             Mutator (NewBehavior, NewState == ECheckBoxState::Checked);
             ApplyBehavior (NewBehavior);
         })
-        [
-            SNew (STextBlock).Text (Label)
-        ];
+            [
+                SNew (STextBlock).Text (Label)
+            ];
     };
 
     auto MakeNumberRow = [Obj, ApplyBehavior] (
@@ -1102,52 +1328,52 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildTriggerBehaviorSection (const 
         [
             SNew (SVerticalBox)
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
                 [
                     SNew (STextBlock)
                         .Text (FText::FromString (TEXT ("Trigger Behavior")))
                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
                 [
                     SNew (STextBlock)
                         .Text (FText::FromString (TEXT ("Use SourceEvent = Enter or Exit in links to react to trigger events.")))
                         .AutoWrapText (true)
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
                 [
                     SNew (SHorizontalBox)
 
-                    + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-                    [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Trigger Mode")))
-                    ]
-
-                    + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-                    [
-                        SNew (SComboBox<TSharedPtr<EGridObjectTriggerMode>>)
-                            .OptionsSource (&TriggerModeOptions)
-                            .OnGenerateWidget (this, &FGridLevelEdModeToolkit::MakeTriggerModeComboWidget)
-                            .OnSelectionChanged_Lambda ([Obj, ApplyBehavior] (
-                                TSharedPtr<EGridObjectTriggerMode> NewValue,
-                                ESelectInfo::Type SelectInfo)
-                        {
-                            if (NewValue.IsValid ())
-                            {
-                                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                                NewBehavior.TriggerMode = *NewValue;
-                                ApplyBehavior (NewBehavior);
-                            }
-                        })
+                        + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
                         [
-                            SNew (STextBlock)
-                                .Text (TriggerModeEnum
-                                    ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (Behavior.TriggerMode))
-                                    : FText::FromString (TEXT ("Unknown")))
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Trigger Mode")))
                         ]
-                    ]
+
+                        + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
+                        [
+                            SNew (SComboBox<TSharedPtr<EGridObjectTriggerMode>>)
+                                .OptionsSource (&TriggerModeOptions)
+                                .OnGenerateWidget (this, &FGridLevelEdModeToolkit::MakeTriggerModeComboWidget)
+                                .OnSelectionChanged_Lambda ([Obj, ApplyBehavior] (
+                                    TSharedPtr<EGridObjectTriggerMode> NewValue,
+                                    ESelectInfo::Type SelectInfo)
+                            {
+                                if (NewValue.IsValid ())
+                                {
+                                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                                    NewBehavior.TriggerMode = *NewValue;
+                                    ApplyBehavior (NewBehavior);
+                                }
+                            })
+                                [
+                                    SNew (STextBlock)
+                                        .Text (TriggerModeEnum
+                                            ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (Behavior.TriggerMode))
+                                            : FText::FromString (TEXT ("Unknown")))
+                                ]
+                        ]
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ()
@@ -1176,38 +1402,38 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildTriggerBehaviorSection (const 
                 [
                     SNew (SHorizontalBox)
 
-                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                    [
-                        MakeCheckRow (
-                            FText::FromString (TEXT ("Fire On Enter")),
-                            Behavior.bFireOnEnter,
-                            [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
-                        {
-                            NewBehavior.bFireOnEnter = bNewValue;
-                        })
-                    ]
+                        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
+                        [
+                            MakeCheckRow (
+                                FText::FromString (TEXT ("Fire On Enter")),
+                                Behavior.bFireOnEnter,
+                                [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
+                            {
+                                NewBehavior.bFireOnEnter = bNewValue;
+                            })
+                        ]
 
                     + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                    [
-                        MakeCheckRow (
-                            FText::FromString (TEXT ("Fire On Exit")),
-                            Behavior.bFireOnExit,
-                            [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
-                        {
-                            NewBehavior.bFireOnExit = bNewValue;
-                        })
-                    ]
+                        [
+                            MakeCheckRow (
+                                FText::FromString (TEXT ("Fire On Exit")),
+                                Behavior.bFireOnExit,
+                                [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
+                            {
+                                NewBehavior.bFireOnExit = bNewValue;
+                            })
+                        ]
 
                     + SHorizontalBox::Slot ().AutoWidth ()
-                    [
-                        MakeCheckRow (
-                            FText::FromString (TEXT ("Invert Links")),
-                            Behavior.bInvertLinks,
-                            [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
-                        {
-                            NewBehavior.bInvertLinks = bNewValue;
-                        })
-                    ]
+                        [
+                            MakeCheckRow (
+                                FText::FromString (TEXT ("Invert Links")),
+                                Behavior.bInvertLinks,
+                                [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
+                            {
+                                NewBehavior.bInvertLinks = bNewValue;
+                            })
+                        ]
                 ]
         ];
 }
@@ -1257,14 +1483,14 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildReceptacleBehaviorSection (con
         [
             SNew (SVerticalBox)
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
                 [
                     SNew (STextBlock)
                         .Text (FText::FromString (TEXT ("Receptacle Behavior")))
                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                 ]
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
                 [
                     SNew (SCheckBox)
                         .IsChecked (Behavior.bAcceptAnyItem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
@@ -1282,9 +1508,9 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildReceptacleBehaviorSection (con
                             }
                         }
                     })
-                    [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Accept Any Item")))
-                    ]
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Accept Any Item")))
+                        ]
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ()
@@ -1368,34 +1594,34 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
                     [
                         SNew (SVerticalBox)
 
-                        + SVerticalBox::Slot ().AutoHeight ()
-                        [
-                            SNew (SHorizontalBox)
-
-                            + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 8.f, 0.f)
+                            + SVerticalBox::Slot ().AutoHeight ()
                             [
-                                SNew (STextBlock)
-                                    .Text (GetValidationSeverityText (ValidationMessage.Severity))
-                                    .ColorAndOpacity (GetValidationSeverityColor (ValidationMessage.Severity))
-                                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
-                            ]
+                                SNew (SHorizontalBox)
 
-                            + SHorizontalBox::Slot ().FillWidth (1.f)
-                            [
-                                SNew (STextBlock)
-                                    .Text (FText::FromString (ValidationMessage.Message))
-                                    .AutoWrapText (true)
+                                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 8.f, 0.f)
+                                    [
+                                        SNew (STextBlock)
+                                            .Text (GetValidationSeverityText (ValidationMessage.Severity))
+                                            .ColorAndOpacity (GetValidationSeverityColor (ValidationMessage.Severity))
+                                            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
+                                    ]
+
+                                    + SHorizontalBox::Slot ().FillWidth (1.f)
+                                    [
+                                        SNew (STextBlock)
+                                            .Text (FText::FromString (ValidationMessage.Message))
+                                            .AutoWrapText (true)
+                                    ]
                             ]
-                        ]
 
                         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, ShortObjectId.IsEmpty () ? 0.f : 4.f, 0.f, 0.f)
-                        [
-                            SNew (STextBlock)
-                                .Visibility (ShortObjectId.IsEmpty () ? EVisibility::Collapsed : EVisibility::Visible)
-                                .Text (FText::Format (
-                                    FText::FromString (TEXT ("Object: {0}")),
-                                    FText::FromString (ShortObjectId)))
-                        ]
+                            [
+                                SNew (STextBlock)
+                                    .Visibility (ShortObjectId.IsEmpty () ? EVisibility::Collapsed : EVisibility::Visible)
+                                    .Text (FText::Format (
+                                        FText::FromString (TEXT ("Object: {0}")),
+                                        FText::FromString (ShortObjectId)))
+                            ]
                     ]
             ];
     }
@@ -1497,7 +1723,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildLinkCreationSection ()
                         ]
                 ]
 
-                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
+            + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
                 [
                     SNew (STextBlock).Text (FText::FromString (TEXT ("Action")))
                 ]

@@ -210,6 +210,9 @@ public:
     bool IsSelectionValidForEditing () const;
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool SelectCellFromOverview (int32 CellX, int32 CellY);
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
     bool ApplyGridHoverFromWorldPoint (const FVector& WorldPoint);
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
