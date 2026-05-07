@@ -12,7 +12,6 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 class AGridLevelRuntimeActor;
-class UPointLightComponent;
 class AGridItemActor;
 
 UCLASS ()
@@ -39,26 +38,6 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USceneComponent> HeldItemRoot;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    TObjectPtr<UPointLightComponent> TorchLight;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
-    bool bEnableTorchLight = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (ClampMin = "0.0"))
-    float TorchIntensity = 850.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch", meta = (ClampMin = "0.0"))
-    float TorchRadius = 325.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
-    float TorchFlickerSpeed = 1.7f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
-    float TorchFlickerAmount = 35.f;
-
-    float TorchTime = 0.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
     TObjectPtr<AGridLevelRuntimeActor> LevelRuntimeActor;

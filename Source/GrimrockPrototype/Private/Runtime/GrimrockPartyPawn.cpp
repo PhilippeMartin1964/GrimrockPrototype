@@ -12,7 +12,6 @@
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
-#include "Components/PointLightComponent.h"
 
 AGrimrockPartyPawn::AGrimrockPartyPawn ()
 {
@@ -39,18 +38,6 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
 
     HeldItemRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("HeldItemRoot"));
     HeldItemRoot->SetupAttachment (Camera ? Cast<USceneComponent> (Camera) : SceneRoot);
-
-    TorchLight = CreateDefaultSubobject<UPointLightComponent> (TEXT ("TorchLight"));
-    TorchLight->SetupAttachment (Camera);
-    TorchLight->SetRelativeLocation (FVector (20.f, 0.f, -10.f));
-
-    TorchLight->Intensity = TorchIntensity;
-    TorchLight->AttenuationRadius = TorchRadius;
-    TorchLight->bUseInverseSquaredFalloff = false;
-	TorchLight->LightFalloffExponent = 4.f;
-    TorchLight->CastShadows = true;
-    TorchLight->SetVisibility (bEnableTorchLight);
-    TorchLight->SetLightColor (FColor (255, 180, 90));
 
     AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
@@ -92,12 +79,6 @@ void AGrimrockPartyPawn::BeginPlay ()
             }
         }
     }
-    if (TorchLight)
-    {
-        TorchLight->SetVisibility (bEnableTorchLight);
-        TorchLight->SetIntensity (TorchIntensity);
-        TorchLight->SetAttenuationRadius (TorchRadius);
-    }
 }
 
 void AGrimrockPartyPawn::Tick (float DeltaSeconds)
@@ -130,14 +111,6 @@ void AGrimrockPartyPawn::Tick (float DeltaSeconds)
     if (!IsBusy ())
     {
         TryConsumeBufferedCommand ();
-    }
-    TorchTime += DeltaSeconds;
-    if (TorchLight && bEnableTorchLight)
-    {
-        const float Flicker =
-            FMath::Sin (TorchTime * TorchFlickerSpeed) * TorchFlickerAmount +
-            FMath::Sin (TorchTime * TorchFlickerSpeed * 2.37f) * (TorchFlickerAmount * 0.35f);
-        TorchLight->SetIntensity (FMath::Max (0.f, TorchIntensity + Flicker));
     }
 }
 
