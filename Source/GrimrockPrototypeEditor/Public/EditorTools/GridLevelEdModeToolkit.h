@@ -48,6 +48,7 @@ private:
 
     TSharedRef<SWidget> BuildObjectInspectorSection ();
     TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
 
     TSharedRef<SWidget> BuildBehaviorEditorSection ();
 

@@ -17,6 +17,7 @@
 
 #include "Widgets/SWidget.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 
 #include "Widgets/Input/SButton.h"
@@ -95,6 +96,42 @@ namespace
         return Enum
             ? Enum->GetDisplayNameTextByValue (Value)
             : FText::FromString (TEXT ("Unknown"));
+    }
+
+    FString NameArrayToCommaSeparatedText (const TArray<FName>& Names)
+    {
+        TArray<FString> Parts;
+        Parts.Reserve (Names.Num ());
+
+        for (const FName& Name : Names)
+        {
+            if (!Name.IsNone ())
+            {
+                Parts.Add (Name.ToString ());
+            }
+        }
+
+        return FString::Join (Parts, TEXT (", "));
+    }
+
+    TArray<FName> ParseCommaSeparatedNames (const FString& Text)
+    {
+        TArray<FString> Parts;
+        Text.ParseIntoArray (Parts, TEXT (","), true);
+
+        TArray<FName> Names;
+        Names.Reserve (Parts.Num ());
+
+        for (FString& Part : Parts)
+        {
+            Part.TrimStartAndEndInline ();
+            if (!Part.IsEmpty ())
+            {
+                Names.Add (FName (*Part));
+            }
+        }
+
+        return Names;
     }
 }
 
@@ -715,6 +752,16 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
             ];
     };
 
+    auto BuildOptionalReceptacleBehavior = [this, &Obj] () -> TSharedRef<SWidget>
+    {
+        if (Obj.Type == EGridLevelObjectType::Receptacle)
+        {
+            return BuildReceptacleBehaviorSection (Obj);
+        }
+
+        return SNullWidget::NullWidget;
+    };
+
     return SNew (SBorder)
         .Padding (8.f)
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
@@ -898,6 +945,126 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
                             SNew (STextBlock).Text (FText::FromString (TEXT ("Override Behavior")))
                         ]
                     ]
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (
+                Obj.Type == EGridLevelObjectType::Receptacle ? FMargin (0.f, 8.f, 0.f, 0.f) : FMargin (0.f))
+                [
+                    BuildOptionalReceptacleBehavior ()
+                ]
+        ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj)
+{
+    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    {
+        if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+        {
+            if (EditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            {
+                CachedBehaviorObjectId.Invalidate ();
+                RefreshPalette ();
+            }
+        }
+    };
+
+    auto MakeTextRow = [Obj, ApplyBehavior] (
+        const FText& Label,
+        const FText& Value,
+        TFunction<void (FGridObjectBehaviorParams&, const FString&)> Mutator) -> TSharedRef<SWidget>
+    {
+        return SNew (SHorizontalBox)
+            + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
+            [
+                SNew (STextBlock).Text (Label)
+            ]
+            + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
+            [
+                SNew (SEditableTextBox)
+                    .Text (Value)
+                    .OnTextCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (const FText& NewText, ETextCommit::Type CommitType)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    Mutator (NewBehavior, NewText.ToString ());
+                    ApplyBehavior (NewBehavior);
+                })
+            ];
+    };
+
+    const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
+
+    return SNew (SBorder)
+        .Padding (6.f)
+        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+        [
+            SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Receptacle Behavior")))
+                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
+                [
+                    SNew (SCheckBox)
+                        .IsChecked (Behavior.bAcceptAnyItem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([this, Obj] (ECheckBoxState NewState)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.bAcceptAnyItem = NewState == ECheckBoxState::Checked;
+
+                        if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                        {
+                            if (EditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+                            {
+                                CachedBehaviorObjectId.Invalidate ();
+                                RefreshPalette ();
+                            }
+                        }
+                    })
+                    [
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("Accept Any Item")))
+                    ]
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    MakeTextRow (
+                        FText::FromString (TEXT ("Accepted Archetype Ids")),
+                        FText::FromString (NameArrayToCommaSeparatedText (Behavior.AcceptedArchetypeIds)),
+                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
+                    {
+                        NewBehavior.AcceptedArchetypeIds = ParseCommaSeparatedNames (Text);
+                    })
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    MakeTextRow (
+                        FText::FromString (TEXT ("Accepted Item Tags")),
+                        FText::FromString (NameArrayToCommaSeparatedText (Behavior.AcceptedItemTags)),
+                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
+                    {
+                        NewBehavior.AcceptedItemTags = ParseCommaSeparatedNames (Text);
+                    })
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    MakeTextRow (
+                        FText::FromString (TEXT ("Initial Contained Item")),
+                        FText::FromName (Behavior.InitialContainedItemArchetypeId),
+                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
+                    {
+                        FString TrimmedText = Text;
+                        TrimmedText.TrimStartAndEndInline ();
+                        NewBehavior.InitialContainedItemArchetypeId = TrimmedText.IsEmpty ()
+                            ? NAME_None
+                            : FName (*TrimmedText);
+                    })
                 ]
         ];
 }
