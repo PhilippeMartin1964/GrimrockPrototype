@@ -189,6 +189,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     void ClearHeldItem ();
 
+    UFUNCTION (BlueprintCallable, Category = "Held Item")
+    FName GetHeldItemArchetypeId () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Held Item")
+    bool IsHoldingItem (FName ItemArchetypeId) const;
+
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void SnapToCurrentCell ();

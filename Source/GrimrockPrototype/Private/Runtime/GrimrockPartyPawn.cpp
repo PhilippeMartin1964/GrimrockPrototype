@@ -814,3 +814,13 @@ void AGrimrockPartyPawn::ClearHeldItem ()
     HeldItemActor->Destroy ();
     HeldItemActor = nullptr;
 }
+
+FName AGrimrockPartyPawn::GetHeldItemArchetypeId () const
+{
+    return HeldItemActor ? HeldItemActor->ArchetypeId : NAME_None;
+}
+
+bool AGrimrockPartyPawn::IsHoldingItem (FName ItemArchetypeId) const
+{
+    return !ItemArchetypeId.IsNone () && GetHeldItemArchetypeId () == ItemArchetypeId;
+}

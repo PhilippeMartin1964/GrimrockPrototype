@@ -777,16 +777,29 @@ bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& O
     }
     if (!PartyPawn->HasInventoryItem (ItemToInsert))
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: party has no item %s"), *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: cannot insert %s because the party does not have it"),
+            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
         return false;
+    }
+    if (!PartyPawn->RemoveInventoryItem (ItemToInsert))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: failed to remove item %s from party inventory"),
+            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
+        return false;
+    }
+    if (PartyPawn->IsHoldingItem (ItemToInsert))
+    {
+        PartyPawn->ClearHeldItem ();
+        UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: cleared held item %s before insertion"),
+            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
     }
     if (!ReceptacleActor->TryInsertItem (ItemToInsert))
     {
+        PartyPawn->AddInventoryItem (ItemToInsert);
         UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: item %s is not accepted or could not be inserted"),
             *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
         return false;
     }
-    PartyPawn->RemoveInventoryItem (ItemToInsert);
     ActiveObjectIds.Add (ObjectData.ObjectId);
     UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: inserted item %s"), *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
     return ExecuteLinksFromObject (ObjectData.ObjectId, false);
