@@ -13,6 +13,7 @@ class UInputAction;
 struct FInputActionValue;
 class AGridLevelRuntimeActor;
 class UPointLightComponent;
+class AGridItemActor;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
@@ -35,6 +36,9 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UCameraComponent* Camera;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<USceneComponent> HeldItemRoot;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UPointLightComponent> TorchLight;
@@ -152,6 +156,24 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
     FName DefaultInteractionItemId = TEXT ("Torch");
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
+    FName DefaultHeldItemArchetypeId = TEXT ("Item_Torch");
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
+    FVector HeldItemRelativeLocation = FVector (45.f, 22.f, -24.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
+    FRotator HeldItemRelativeRotation = FRotator::ZeroRotator;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
+    FVector HeldItemRelativeScale = FVector::OneVector;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
+    bool bAutoEquipTorchOnPickup = true;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
+    TObjectPtr<AGridItemActor> HeldItemActor;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool HasInventoryItem (FName ItemId) const;
 
@@ -160,6 +182,12 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool RemoveInventoryItem (FName ItemId, int32 Count = 1);
+
+    UFUNCTION (BlueprintCallable, Category = "Held Item")
+    bool EquipHeldItem (FName ItemArchetypeId);
+
+    UFUNCTION (BlueprintCallable, Category = "Held Item")
+    void ClearHeldItem ();
 
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")

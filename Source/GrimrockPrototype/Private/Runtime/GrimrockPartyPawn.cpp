@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Components/PointLightComponent.h"
 
@@ -35,6 +36,9 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
     Camera = CreateDefaultSubobject<UCameraComponent> (TEXT ("Camera"));
     Camera->SetupAttachment (SpringArm);
     Camera->bUsePawnControlRotation = false;
+
+    HeldItemRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("HeldItemRoot"));
+    HeldItemRoot->SetupAttachment (Camera ? Cast<USceneComponent> (Camera) : SceneRoot);
 
     TorchLight = CreateDefaultSubobject<UPointLightComponent> (TEXT ("TorchLight"));
     TorchLight->SetupAttachment (Camera);
@@ -722,6 +726,10 @@ bool AGrimrockPartyPawn::AddInventoryItem (FName ItemId, int32 Count)
         Count,
         InventoryItems.FindRef (ItemId)
     );
+    if (bAutoEquipTorchOnPickup && ItemId == DefaultHeldItemArchetypeId)
+    {
+        EquipHeldItem (ItemId);
+    }
     return true;
 }
 
@@ -752,4 +760,57 @@ bool AGrimrockPartyPawn::RemoveInventoryItem (FName ItemId, int32 Count)
         InventoryItems.FindRef (ItemId)
     );
     return true;
+}
+
+bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
+{
+    if (ItemArchetypeId.IsNone ())
+    {
+        return false;
+    }
+
+    if (!LevelRuntimeActor)
+    {
+        LevelRuntimeActor = Cast<AGridLevelRuntimeActor> (
+            UGameplayStatics::GetActorOfClass (GetWorld (), AGridLevelRuntimeActor::StaticClass ())
+        );
+    }
+
+    if (!LevelRuntimeActor)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: no AGridLevelRuntimeActor found for %s."), *ItemArchetypeId.ToString ());
+        return false;
+    }
+
+    ClearHeldItem ();
+
+    USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get () : GetRootComponent ();
+    HeldItemActor = LevelRuntimeActor->SpawnItemActorForArchetype (ItemArchetypeId, this, AttachParent);
+
+    if (!HeldItemActor)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: could not spawn item archetype %s."), *ItemArchetypeId.ToString ());
+        return false;
+    }
+
+    HeldItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    HeldItemActor->SetActorRelativeLocation (HeldItemRelativeLocation);
+    HeldItemActor->SetActorRelativeRotation (HeldItemRelativeRotation);
+    HeldItemActor->SetActorRelativeScale3D (HeldItemRelativeScale);
+    HeldItemActor->OnPlacedInWorld ();
+
+    UE_LOG (LogTemp, Log, TEXT ("Held item equipped: %s"), *ItemArchetypeId.ToString ());
+    return true;
+}
+
+void AGrimrockPartyPawn::ClearHeldItem ()
+{
+    if (!HeldItemActor)
+    {
+        return;
+    }
+
+    HeldItemActor->OnRemovedFromWorld ();
+    HeldItemActor->Destroy ();
+    HeldItemActor = nullptr;
 }
