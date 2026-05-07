@@ -640,6 +640,17 @@ FReply FGridLevelEdModeToolkit::OnValidateLevelClicked ()
     return FReply::Handled ();
 }
 
+FReply FGridLevelEdModeToolkit::OnMoveSelectedObjectToCurrentCellClicked ()
+{
+    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        EditorActor->MoveSelectedObjectToCurrentSelection ();
+        RefreshPalette ();
+    }
+
+    return FReply::Handled ();
+}
+
 FReply FGridLevelEdModeToolkit::OnRemoveExactLinkClicked (
     FGuid SourceObjectId,
     FGuid TargetObjectId,
@@ -772,6 +783,13 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildObjectInspectorSection ()
                     SNew (SButton)
                         .Text (FText::FromString (TEXT ("Apply Selected Object")))
                         .OnClicked (this, &FGridLevelEdModeToolkit::OnApplySelectedObjectClicked)
+                ]
+
+            + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
+                [
+                    SNew (SButton)
+                        .Text (FText::FromString (TEXT ("Move To Current Cell")))
+                        .OnClicked (this, &FGridLevelEdModeToolkit::OnMoveSelectedObjectToCurrentCellClicked)
                 ]
         ];
 

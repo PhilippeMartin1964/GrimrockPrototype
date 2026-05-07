@@ -300,6 +300,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectOverrideBehavior (bool bNewOverrideBehavior);
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    bool MoveSelectedObjectToCurrentSelection ();
+
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Validation")
     TArray<FGridLevelValidationMessage> ValidateCurrentLevel ();
 

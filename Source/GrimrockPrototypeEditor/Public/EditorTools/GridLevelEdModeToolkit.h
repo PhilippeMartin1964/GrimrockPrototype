@@ -62,6 +62,7 @@ private:
     FReply OnToolClicked (int32 ToolValue);
     FReply OnPaletteEntryClicked (FName EntryId);
     FReply OnApplySelectedObjectClicked ();
+    FReply OnMoveSelectedObjectToCurrentCellClicked ();
     FReply OnValidateLevelClicked ();
 
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEventType SourceEvent, EGridLinkAction Action);
