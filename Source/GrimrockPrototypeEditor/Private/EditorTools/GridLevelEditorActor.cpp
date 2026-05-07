@@ -769,6 +769,7 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
     {
         return Link.SourceObjectId == PendingLinkSourceObjectId &&
             Link.TargetObjectId == SelectedObject->ObjectId &&
+            Link.SourceEvent == LinkSourceEvent &&
             Link.Action == LinkAction;
     });
 
@@ -777,6 +778,7 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
         FGridLevelLinkData NewLink;
         NewLink.SourceObjectId = PendingLinkSourceObjectId;
         NewLink.TargetObjectId = SelectedObject->ObjectId;
+        NewLink.SourceEvent = LinkSourceEvent;
         NewLink.Action = LinkAction;
         LevelAsset->Links.Add (NewLink);
 
@@ -1004,7 +1006,11 @@ void AGridLevelEditorActor::ClearSelectedObjectState ()
     }
 }
 
-bool AGridLevelEditorActor::RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridLinkAction Action)
+bool AGridLevelEditorActor::RemoveExactLink (
+    FGuid SourceObjectId,
+    FGuid TargetObjectId,
+    EGridObjectEventType SourceEvent,
+    EGridLinkAction Action)
 {
     if (!HasValidLevelAsset () || !SourceObjectId.IsValid () || !TargetObjectId.IsValid ())
     {
@@ -1020,6 +1026,7 @@ bool AGridLevelEditorActor::RemoveExactLink (FGuid SourceObjectId, FGuid TargetO
     {
         return Link.SourceObjectId == SourceObjectId &&
             Link.TargetObjectId == TargetObjectId &&
+            Link.SourceEvent == SourceEvent &&
             Link.Action == Action;
     });
 

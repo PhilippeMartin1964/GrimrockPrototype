@@ -133,7 +133,7 @@ public:
     TMap<FName, int32> InventoryItems;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-    FName DefaultInteractionItemId = TEXT ("Torch");
+    FName DefaultInteractionItemId = TEXT ("Item_Torch");
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
     FName DefaultHeldItemArchetypeId = TEXT ("Item_Torch");
