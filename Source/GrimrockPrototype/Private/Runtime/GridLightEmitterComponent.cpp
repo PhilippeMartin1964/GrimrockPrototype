@@ -22,9 +22,13 @@ void UGridLightEmitterComponent::TickComponent (float DeltaTime, ELevelTick Tick
 {
     Super::TickComponent (DeltaTime, TickType, ThisTickFunction);
 
-    if (bLightEnabled && bUsePointLight && bEnableLightFlicker && PointLightComponent)
+    if (bLightEnabled && bUsePointLight && PointLightComponent)
     {
-        UpdatePointLightOutput ();
+        if (bEnableLightFlicker)
+        {
+            UpdatePointLightOutput ();
+        }
+        UpdatePointLightFlickerPosition ();
     }
 }
 
@@ -134,6 +138,40 @@ void UGridLightEmitterComponent::UpdatePointLightOutput ()
 
     PointLightComponent->SetIntensity (FMath::Max (0.f, Intensity));
     PointLightComponent->SetAttenuationRadius (FMath::Max (0.f, Radius));
+}
+
+void UGridLightEmitterComponent::UpdatePointLightFlickerPosition ()
+{
+    if (!PointLightComponent)
+    {
+        return;
+    }
+
+    if (!bLightEnabled || !bEnableLightPositionFlicker)
+    {
+        PointLightComponent->SetRelativeLocation (PointLightRelativeLocation);
+        return;
+    }
+
+    const UWorld* World = GetWorld ();
+    const float TimeSeconds = World ? World->GetTimeSeconds () : 0.f;
+    const float Time = TimeSeconds + FlickerPhase;
+
+    const float XNoise = FMath::PerlinNoise1D ((Time * PositionFlickerSpeed) + 11.17f);
+    const float YNoise = FMath::PerlinNoise1D ((Time * (PositionFlickerSpeed * 0.83f)) + 37.91f);
+    const float ZNoise = FMath::PerlinNoise1D ((Time * (PositionFlickerSecondarySpeed * 0.55f)) + 73.43f);
+
+    const float SoftX = XNoise + (FMath::Sin ((Time * PositionFlickerSecondarySpeed) + 0.4f) * 0.2f);
+    const float SoftY = YNoise + (FMath::Sin ((Time * (PositionFlickerSecondarySpeed * 0.77f)) + 1.9f) * 0.2f);
+    const float SoftZ = ZNoise + (FMath::Sin ((Time * (PositionFlickerSpeed * 1.41f)) + 2.7f) * 0.15f);
+
+    const FVector Offset (
+        FMath::Clamp (SoftX, -1.f, 1.f) * PointLightFlickerPositionAmplitude.X,
+        FMath::Clamp (SoftY, -1.f, 1.f) * PointLightFlickerPositionAmplitude.Y,
+        FMath::Clamp (SoftZ, -1.f, 1.f) * PointLightFlickerPositionAmplitude.Z
+    );
+
+    PointLightComponent->SetRelativeLocation (PointLightRelativeLocation + Offset);
 }
 
 bool UGridLightEmitterComponent::IsLightEnabled () const

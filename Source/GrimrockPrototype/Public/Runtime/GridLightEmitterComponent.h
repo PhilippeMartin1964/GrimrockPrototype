@@ -67,6 +67,18 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
     float FlickerRadiusAmount = 18.f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    bool bEnableLightPositionFlicker = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    FVector PointLightFlickerPositionAmplitude = FVector (2.f, 2.f, 4.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float PositionFlickerSpeed = 2.5f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float PositionFlickerSecondarySpeed = 7.f;
+
     UFUNCTION (BlueprintCallable, Category = "Light")
     void SetLightEnabled (bool bEnabled);
 
@@ -93,4 +105,5 @@ private:
     float GetEffectiveBaseIntensity () const;
     float GetEffectiveBaseRadius () const;
     void UpdatePointLightOutput ();
+    void UpdatePointLightFlickerPosition ();
 };
