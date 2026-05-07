@@ -46,6 +46,27 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Point Light", meta = (EditCondition = "bUsePointLight"))
     FLinearColor LightColor = FLinearColor (1.f, 0.55f, 0.22f, 1.f);
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    bool bEnableLightFlicker = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float BaseLightIntensity = 0.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float FlickerIntensityAmount = 90.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float FlickerSpeed = 2.4f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float FlickerSecondarySpeed = 6.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float BaseAttenuationRadius = 0.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float FlickerRadiusAmount = 18.f;
+
     UFUNCTION (BlueprintCallable, Category = "Light")
     void SetLightEnabled (bool bEnabled);
 
@@ -57,6 +78,7 @@ public:
 
 protected:
     virtual void BeginPlay () override;
+    virtual void TickComponent (float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
     UPROPERTY (Transient)
@@ -66,4 +88,9 @@ private:
     TObjectPtr<UPointLightComponent> PointLightComponent;
 
     bool bLightEnabled = false;
+    float FlickerPhase = 0.f;
+
+    float GetEffectiveBaseIntensity () const;
+    float GetEffectiveBaseRadius () const;
+    void UpdatePointLightOutput ();
 };
