@@ -53,6 +53,8 @@ private:
 
     TSharedRef<SWidget> BuildBehaviorEditorSection ();
 
+    TSharedRef<SWidget> BuildValidationSection ();
+
     TSharedRef<SWidget> BuildLinksSection (const FGridLevelObjectData& SelectedObject);
     TSharedRef<SWidget> BuildLinkCreationSection ();
     TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
@@ -60,6 +62,7 @@ private:
     FReply OnToolClicked (int32 ToolValue);
     FReply OnPaletteEntryClicked (FName EntryId);
     FReply OnApplySelectedObjectClicked ();
+    FReply OnValidateLevelClicked ();
 
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEventType SourceEvent, EGridLinkAction Action);
     FReply OnClearSelectedObjectLinksClicked ();
@@ -113,6 +116,7 @@ private:
 
     FGuid CachedBehaviorObjectId;
     FGridObjectBehaviorParams EditedBehavior;
+    TArray<FGridLevelValidationMessage> ValidationMessages;
 
     TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
     TArray<TSharedPtr<EGridObjectEventType>> LinkSourceEventOptions;

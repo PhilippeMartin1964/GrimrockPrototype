@@ -29,6 +29,29 @@ enum class EGridEditorObjectPlacementPolicy : uint8
     RemoveAllAtSlot     UMETA (DisplayName = "Remove All At Slot")
 };
 
+UENUM (BlueprintType)
+enum class EGridLevelValidationSeverity : uint8
+{
+    Info    UMETA (DisplayName = "Info"),
+    Warning UMETA (DisplayName = "Warning"),
+    Error   UMETA (DisplayName = "Error")
+};
+
+USTRUCT (BlueprintType)
+struct FGridLevelValidationMessage
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    EGridLevelValidationSeverity Severity = EGridLevelValidationSeverity::Info;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    FString Message;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    FGuid OptionalObjectId;
+};
+
 UCLASS ()
 class GRIMROCKPROTOTYPEEDITOR_API AGridLevelEditorActor : public AActor
 {
@@ -127,6 +150,9 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
     FGridObjectBehaviorParams ObjectBehavior;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    TArray<FGridLevelValidationMessage> LastValidationMessages;
 
     UPROPERTY (VisibleAnywhere, Category = "Editor Grid")
     TObjectPtr<UStaticMeshComponent> CoordinateGridPlane;
@@ -273,6 +299,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectOverrideBehavior (bool bNewOverrideBehavior);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Validation")
+    TArray<FGridLevelValidationMessage> ValidateCurrentLevel ();
 
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;

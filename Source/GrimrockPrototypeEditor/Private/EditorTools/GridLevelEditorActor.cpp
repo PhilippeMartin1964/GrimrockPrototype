@@ -10,6 +10,21 @@
 #include "Editor.h"
 #endif
 
+namespace
+{
+    EGridWallType GetWallTypeForEdge (const FGridLevelCellData& CellData, EGridEdge Edge)
+    {
+        switch (Edge)
+        {
+            case EGridEdge::North: return CellData.NorthWall;
+            case EGridEdge::East:  return CellData.EastWall;
+            case EGridEdge::South: return CellData.SouthWall;
+            case EGridEdge::West:  return CellData.WestWall;
+            default:               return EGridWallType::None;
+        }
+    }
+}
+
 AGridLevelEditorActor::AGridLevelEditorActor ()
 {
     PrimaryActorTick.bCanEverTick = false;
@@ -1312,6 +1327,156 @@ bool AGridLevelEditorActor::SetSelectedObjectOverrideBehavior (bool bNewOverride
 
     RebuildPreview ();
     return true;
+}
+
+TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel ()
+{
+    LastValidationMessages.Reset ();
+
+    auto AddMessage = [this] (
+        EGridLevelValidationSeverity Severity,
+        const FString& Message,
+        const FGuid& OptionalObjectId = FGuid ())
+    {
+        FGridLevelValidationMessage ValidationMessage;
+        ValidationMessage.Severity = Severity;
+        ValidationMessage.Message = Message;
+        ValidationMessage.OptionalObjectId = OptionalObjectId;
+        LastValidationMessages.Add (ValidationMessage);
+    };
+
+    if (!LevelAsset)
+    {
+        AddMessage (
+            EGridLevelValidationSeverity::Error,
+            TEXT ("LevelAsset is missing."));
+        return LastValidationMessages;
+    }
+
+    TSet<FGuid> SeenObjectIds;
+    TSet<FGuid> ObjectIds;
+    TMap<FGuid, int32> OutgoingLinkCountBySourceId;
+
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (!Obj.ObjectId.IsValid ())
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (
+                    TEXT ("Object at X=%d Y=%d has an invalid ObjectId."),
+                    Obj.CellX,
+                    Obj.CellY));
+        }
+        else if (SeenObjectIds.Contains (Obj.ObjectId))
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                TEXT ("Duplicate ObjectId found."),
+                Obj.ObjectId);
+        }
+        else
+        {
+            SeenObjectIds.Add (Obj.ObjectId);
+            ObjectIds.Add (Obj.ObjectId);
+        }
+
+        if (!LevelAsset->IsValidCoord (Obj.CellX, Obj.CellY))
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (
+                    TEXT ("Object is outside grid bounds at X=%d Y=%d."),
+                    Obj.CellX,
+                    Obj.CellY),
+                Obj.ObjectId);
+            continue;
+        }
+
+        if (Obj.Type == EGridLevelObjectType::Door)
+        {
+            const FGridLevelCellData& CellData = LevelAsset->GetCell (Obj.CellX, Obj.CellY);
+            const EGridWallType WallType = GetWallTypeForEdge (CellData, Obj.Edge);
+            if (WallType == EGridWallType::Solid || WallType == EGridWallType::Secret)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Door is placed on an edge whose wall is %s."),
+                        WallType == EGridWallType::Solid ? TEXT ("Solid") : TEXT ("Secret")),
+                    Obj.ObjectId);
+            }
+        }
+
+        if (Obj.Type == EGridLevelObjectType::Receptacle)
+        {
+            const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
+            if (!Behavior.InitialContainedItemArchetypeId.IsNone ()
+                && !Behavior.AcceptedArchetypeIds.Contains (Behavior.InitialContainedItemArchetypeId))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Receptacle starts with '%s' but AcceptedArchetypeIds does not include it."),
+                        *Behavior.InitialContainedItemArchetypeId.ToString ()),
+                    Obj.ObjectId);
+            }
+
+            if (!Behavior.bAcceptAnyItem
+                && Behavior.AcceptedItemTags.Num () == 0
+                && Behavior.AcceptedArchetypeIds.Num () == 0)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("Receptacle accepts no item: bAcceptAnyItem=false and accepted lists are empty."),
+                    Obj.ObjectId);
+            }
+        }
+    }
+
+    for (const FGridLevelLinkData& Link : LevelAsset->Links)
+    {
+        if (!ObjectIds.Contains (Link.SourceObjectId))
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                TEXT ("Link SourceObjectId was not found."),
+                Link.SourceObjectId);
+        }
+        else
+        {
+            int32& OutgoingCount = OutgoingLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
+            ++OutgoingCount;
+        }
+
+        if (!ObjectIds.Contains (Link.TargetObjectId))
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                TEXT ("Link TargetObjectId was not found."),
+                Link.TargetObjectId);
+        }
+    }
+
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (Obj.Type == EGridLevelObjectType::Trigger && !OutgoingLinkCountBySourceId.Contains (Obj.ObjectId))
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Warning,
+                TEXT ("Trigger has no outgoing links."),
+                Obj.ObjectId);
+        }
+    }
+
+    if (LastValidationMessages.Num () == 0)
+    {
+        AddMessage (
+            EGridLevelValidationSeverity::Info,
+            TEXT ("Validation complete: no issues found."));
+    }
+
+    return LastValidationMessages;
 }
 
 bool AGridLevelEditorActor::HasAnyObjectInSelectedCell () const
