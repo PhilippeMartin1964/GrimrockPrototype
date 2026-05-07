@@ -79,6 +79,24 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
     float PositionFlickerSecondarySpeed = 7.f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    bool bEnableLightColorFlicker = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    FLinearColor BaseLightColor = FLinearColor::Black;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    FLinearColor FlickerWarmColor = FLinearColor (1.f, 0.42f, 0.12f, 1.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker")
+    FLinearColor FlickerHotColor = FLinearColor (1.f, 0.78f, 0.32f, 1.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float ColorFlickerAmount = 0.15f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Light|Flicker", meta = (ClampMin = "0.0"))
+    float ColorFlickerSpeed = 2.f;
+
     UFUNCTION (BlueprintCallable, Category = "Light")
     void SetLightEnabled (bool bEnabled);
 
@@ -104,6 +122,8 @@ private:
 
     float GetEffectiveBaseIntensity () const;
     float GetEffectiveBaseRadius () const;
+    FLinearColor GetEffectiveBaseColor () const;
     void UpdatePointLightOutput ();
     void UpdatePointLightFlickerPosition ();
+    void UpdatePointLightColor ();
 };

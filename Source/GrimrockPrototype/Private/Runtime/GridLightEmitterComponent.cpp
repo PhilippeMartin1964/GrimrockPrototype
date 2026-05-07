@@ -29,6 +29,7 @@ void UGridLightEmitterComponent::TickComponent (float DeltaTime, ELevelTick Tick
             UpdatePointLightOutput ();
         }
         UpdatePointLightFlickerPosition ();
+        UpdatePointLightColor ();
     }
 }
 
@@ -77,8 +78,8 @@ void UGridLightEmitterComponent::SetLightEnabled (bool bEnabled)
     if (PointLightComponent)
     {
         RefreshEmitterTransforms ();
-        PointLightComponent->SetLightColor (LightColor);
         UpdatePointLightOutput ();
+        UpdatePointLightColor ();
         PointLightComponent->SetVisibility (bEnabled && bUsePointLight);
     }
 }
@@ -106,6 +107,11 @@ float UGridLightEmitterComponent::GetEffectiveBaseIntensity () const
 float UGridLightEmitterComponent::GetEffectiveBaseRadius () const
 {
     return FMath::Max (0.f, BaseAttenuationRadius > 0.f ? BaseAttenuationRadius : LightRadius);
+}
+
+FLinearColor UGridLightEmitterComponent::GetEffectiveBaseColor () const
+{
+    return BaseLightColor == FLinearColor::Black ? LightColor : BaseLightColor;
 }
 
 void UGridLightEmitterComponent::UpdatePointLightOutput ()
@@ -172,6 +178,36 @@ void UGridLightEmitterComponent::UpdatePointLightFlickerPosition ()
     );
 
     PointLightComponent->SetRelativeLocation (PointLightRelativeLocation + Offset);
+}
+
+void UGridLightEmitterComponent::UpdatePointLightColor ()
+{
+    if (!PointLightComponent)
+    {
+        return;
+    }
+
+    const FLinearColor EffectiveBaseColor = GetEffectiveBaseColor ();
+
+    if (!bLightEnabled || !bEnableLightColorFlicker)
+    {
+        PointLightComponent->SetLightColor (EffectiveBaseColor);
+        return;
+    }
+
+    const UWorld* World = GetWorld ();
+    const float TimeSeconds = World ? World->GetTimeSeconds () : 0.f;
+    const float Time = TimeSeconds + FlickerPhase;
+
+    const float Noise = FMath::PerlinNoise1D ((Time * ColorFlickerSpeed) + 149.37f);
+    const float Wave = FMath::Sin ((Time * (ColorFlickerSpeed * 1.7f)) + 0.8f) * 0.25f;
+    const float FlickerAlpha = FMath::Clamp ((Noise + Wave + 1.f) * 0.5f, 0.f, 1.f);
+
+    const FLinearColor FlameColor = FLinearColor::LerpUsingHSV (FlickerWarmColor, FlickerHotColor, FlickerAlpha);
+    const float BlendAmount = FMath::Clamp (ColorFlickerAmount, 0.f, 1.f);
+    const FLinearColor ResultColor = FLinearColor::LerpUsingHSV (EffectiveBaseColor, FlameColor, BlendAmount);
+
+    PointLightComponent->SetLightColor (ResultColor);
 }
 
 bool UGridLightEmitterComponent::IsLightEnabled () const
