@@ -22,6 +22,8 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 
 #include "Widgets/Layout/SBorder.h"
@@ -698,65 +700,204 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
 
     const FText TypeText = GetEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type));
     const FText EdgeText = GetEnumDisplayText (EdgeEnum, static_cast<int64>(Obj.Edge));
+    const FString ShortObjectId = Obj.ObjectId.ToString ().Left (8);
+
+    auto MakeReadOnlyRow = [] (const FText& Label, const FText& Value) -> TSharedRef<SWidget>
+    {
+        return SNew (SHorizontalBox)
+            + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
+            [
+                SNew (STextBlock).Text (Label)
+            ]
+            + SHorizontalBox::Slot ().FillWidth (0.65f).VAlign (VAlign_Center).Padding (0.f, 2.f)
+            [
+                SNew (STextBlock).Text (Value)
+            ];
+    };
 
     return SNew (SBorder)
         .Padding (8.f)
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
         [
-            SNew (SHorizontalBox)
+            SNew (SVerticalBox)
 
-                + SHorizontalBox::Slot ()
-                .AutoWidth ()
-                .VAlign (VAlign_Center)
-                .Padding (0.f, 0.f, 12.f, 0.f)
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (SBox)
-                        .WidthOverride (112.f)
-                        .HeightOverride (88.f)
+                    SNew (SHorizontalBox)
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .VAlign (VAlign_Center)
+                        .Padding (0.f, 0.f, 12.f, 0.f)
                         [
-                            SNew (SBorder)
-                                .Padding (4.f)
-                                .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+                            SNew (SBox)
+                                .WidthOverride (88.f)
+                                .HeightOverride (72.f)
                                 [
-                                    SNew (STextBlock)
-                                        .Text (GetObjectGlyph (Obj.Type))
-                                        .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 42))
-                                        .Justification (ETextJustify::Center)
+                                    SNew (SBorder)
+                                        .Padding (4.f)
+                                        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+                                        [
+                                            SNew (STextBlock)
+                                                .Text (GetObjectGlyph (Obj.Type))
+                                                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 36))
+                                                .Justification (ETextJustify::Center)
+                                        ]
                                 ]
                         ]
-                ]
 
-            + SHorizontalBox::Slot ()
-                .FillWidth (1.f)
-                .VAlign (VAlign_Center)
-                [
-                    SNew (SVerticalBox)
-
-                        + SVerticalBox::Slot ().AutoHeight ()
+                    + SHorizontalBox::Slot ()
+                        .FillWidth (1.f)
+                        .VAlign (VAlign_Center)
                         [
                             SNew (STextBlock)
                                 .Text (FText::Format (
-                                    FText::FromString (TEXT ("{0} @ ({1},{2}) {3}")),
-                                    TypeText,
-                                    FText::AsNumber (Obj.CellX),
-                                    FText::AsNumber (Obj.CellY),
-                                    EdgeText))
-                                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 20))
-                        ]
-
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
-                        [
-                            SNew (STextBlock)
-                                .Text (FText::Format (
-                                    FText::FromString (
-                                        TEXT ("Type: {0}\nPosition: ({1},{2})\nFacing: {3}\nTag: {4}\nArchetype: {5}")),
+                                    FText::FromString (TEXT ("{0} @ ({1},{2}) {3}  [{4}]")),
                                     TypeText,
                                     FText::AsNumber (Obj.CellX),
                                     FText::AsNumber (Obj.CellY),
                                     EdgeText,
-                                    FText::FromName (Obj.Tag),
-                                    FText::FromName (Obj.ArchetypeId)))
+                                    FText::FromString (ShortObjectId)))
+                                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 20))
                         ]
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
+                [
+                    MakeReadOnlyRow (FText::FromString (TEXT ("ObjectId")), FText::FromString (ShortObjectId))
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    MakeReadOnlyRow (FText::FromString (TEXT ("Type")), TypeText)
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    MakeReadOnlyRow (
+                        FText::FromString (TEXT ("Cell / Edge")),
+                        FText::Format (
+                            FText::FromString (TEXT ("X={0} Y={1} Edge={2}")),
+                            FText::AsNumber (Obj.CellX),
+                            FText::AsNumber (Obj.CellY),
+                            EdgeText))
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+                [
+                    SNew (SHorizontalBox)
+                    + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
+                    [
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("ArchetypeId")))
+                    ]
+                    + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
+                    [
+                        SNew (SEditableTextBox)
+                            .Text (FText::FromName (Obj.ArchetypeId))
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                            {
+                                EditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
+                                RefreshPalette ();
+                            }
+                        })
+                    ]
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    SNew (SHorizontalBox)
+                    + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
+                    [
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("Tag")))
+                    ]
+                    + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
+                    [
+                        SNew (SEditableTextBox)
+                            .Text (FText::FromName (Obj.Tag))
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                            {
+                                EditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
+                                RefreshPalette ();
+                            }
+                        })
+                    ]
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+                [
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("Notes")))
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    SNew (SMultiLineEditableTextBox)
+                        .Text (FText::FromString (Obj.Notes))
+                        .AutoWrapText (true)
+                        .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                    {
+                        if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                        {
+                            EditorActor->SetSelectedObjectNotes (NewText.ToString ());
+                            RefreshPalette ();
+                        }
+                    })
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+                [
+                    SNew (SHorizontalBox)
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
+                    [
+                        SNew (SCheckBox)
+                            .IsChecked (Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                            {
+                                EditorActor->SetSelectedObjectInitiallyEnabled (NewState == ECheckBoxState::Checked);
+                                RefreshPalette ();
+                            }
+                        })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Enabled")))
+                        ]
+                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
+                    [
+                        SNew (SCheckBox)
+                            .IsChecked (Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                            {
+                                EditorActor->SetSelectedObjectInitiallyActive (NewState == ECheckBoxState::Checked);
+                                RefreshPalette ();
+                            }
+                        })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
+                        ]
+                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ()
+                    [
+                        SNew (SCheckBox)
+                            .IsChecked (Obj.bOverrideBehavior ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                            {
+                                EditorActor->SetSelectedObjectOverrideBehavior (NewState == ECheckBoxState::Checked);
+                                RefreshPalette ();
+                            }
+                        })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Override Behavior")))
+                        ]
+                    ]
                 ]
         ];
 }

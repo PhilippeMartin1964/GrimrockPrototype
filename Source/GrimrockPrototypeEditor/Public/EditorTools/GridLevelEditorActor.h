@@ -256,6 +256,24 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool ApplyBehaviorToSelectedObject (const FGridObjectBehaviorParams& NewBehavior);
 
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectArchetypeId (FName NewArchetypeId);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectTag (FName NewTag);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectNotes (const FString& NewNotes);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectInitiallyEnabled (bool bNewInitiallyEnabled);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectInitiallyActive (bool bNewInitiallyActive);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectOverrideBehavior (bool bNewOverrideBehavior);
+
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
 
@@ -281,6 +299,7 @@ private:
 
     const FGridLevelObjectData* FindObjectAtSelection () const;
     const FGridLevelObjectData* FindObjectById (const FGuid& ObjectId) const;
+    FGridLevelObjectData* FindSelectedObjectMutable ();
     bool TryGetObjectWorldLocation (const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const;
 
     void ClearSelectedObjectState ();

@@ -648,6 +648,20 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectById (const FGuid& 
     return nullptr;
 }
 
+FGridLevelObjectData* AGridLevelEditorActor::FindSelectedObjectMutable ()
+{
+    if (!HasValidLevelAsset () || !LastSelectedObjectId.IsValid ())
+    {
+        return nullptr;
+    }
+
+    return LevelAsset->Objects.FindByPredicate (
+        [this] (const FGridLevelObjectData& Obj)
+    {
+        return Obj.ObjectId == LastSelectedObjectId;
+    });
+}
+
 bool AGridLevelEditorActor::TryGetObjectWorldLocation (
     const FGridLevelObjectData& ObjectData,
     FVector& OutWorldLocation) const
@@ -1160,6 +1174,144 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject (
     }
 
     return false;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectArchetypeId (FName NewArchetypeId)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->ArchetypeId = NewArchetypeId;
+    ObjectArchetypeId = NewArchetypeId;
+    SelectedArchetypeId = NewArchetypeId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectTag (FName NewTag)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->Tag = NewTag;
+    ObjectTag = NewTag;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectNotes (const FString& NewNotes)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->Notes = NewNotes;
+    ObjectNotes = NewNotes;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectInitiallyEnabled (bool bNewInitiallyEnabled)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->bInitiallyEnabled = bNewInitiallyEnabled;
+    bObjectInitiallyEnabled = bNewInitiallyEnabled;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectInitiallyActive (bool bNewInitiallyActive)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->bInitiallyActive = bNewInitiallyActive;
+    bObjectInitiallyActive = bNewInitiallyActive;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectOverrideBehavior (bool bNewOverrideBehavior)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->bOverrideBehavior = bNewOverrideBehavior;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
 }
 
 bool AGridLevelEditorActor::HasAnyObjectInSelectedCell () const
