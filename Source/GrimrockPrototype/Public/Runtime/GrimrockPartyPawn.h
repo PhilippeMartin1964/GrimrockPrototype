@@ -139,6 +139,9 @@ public:
     FName DefaultHeldItemArchetypeId = TEXT ("Item_Torch");
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
+    TSubclassOf<AGridItemActor> HeldTorchActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
     FVector HeldItemRelativeLocation = FVector (45.f, 22.f, -24.f);
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")

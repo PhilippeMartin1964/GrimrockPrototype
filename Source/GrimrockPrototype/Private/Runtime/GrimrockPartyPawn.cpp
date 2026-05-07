@@ -742,14 +742,16 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
         return false;
     }
 
-    if (!LevelRuntimeActor)
+    const bool bUseHeldTorchClass = ItemArchetypeId == DefaultHeldItemArchetypeId && HeldTorchActorClass;
+
+    if (!bUseHeldTorchClass && !LevelRuntimeActor)
     {
         LevelRuntimeActor = Cast<AGridLevelRuntimeActor> (
             UGameplayStatics::GetActorOfClass (GetWorld (), AGridLevelRuntimeActor::StaticClass ())
         );
     }
 
-    if (!LevelRuntimeActor)
+    if (!bUseHeldTorchClass && !LevelRuntimeActor)
     {
         UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: no AGridLevelRuntimeActor found for %s."), *ItemArchetypeId.ToString ());
         return false;
@@ -758,7 +760,22 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
     ClearHeldItem ();
 
     USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get () : GetRootComponent ();
-    HeldItemActor = LevelRuntimeActor->SpawnItemActorForArchetype (ItemArchetypeId, this, AttachParent);
+    if (bUseHeldTorchClass)
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Owner = this;
+        SpawnParams.Instigator = GetInstigator ();
+
+        HeldItemActor = GetWorld ()->SpawnActor<AGridItemActor> (HeldTorchActorClass, FTransform::Identity, SpawnParams);
+        if (HeldItemActor)
+        {
+            HeldItemActor->ArchetypeId = ItemArchetypeId;
+        }
+    }
+    else
+    {
+        HeldItemActor = LevelRuntimeActor->SpawnItemActorForArchetype (ItemArchetypeId, this, AttachParent);
+    }
 
     if (!HeldItemActor)
     {
