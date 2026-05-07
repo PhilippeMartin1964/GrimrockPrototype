@@ -22,6 +22,8 @@ public:
     //bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
     bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
+    void NotifyPawnEnteredCell (int32 CellX, int32 CellY);
+    void NotifyPawnExitedCell (int32 CellX, int32 CellY);
     bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
 
     void RegisterInitialObjectState (const FGridLevelObjectData& ObjectData);
@@ -39,6 +41,9 @@ private:
     UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
 
+    UPROPERTY (Transient)
+    TSet<FGuid> ConsumedOneShotTriggerIds;
+
 private:
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
@@ -46,6 +51,8 @@ private:
     bool ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 
     bool ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert);
+    bool ExecuteLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEventType SourceEvent, bool bInvert, bool bAllowActivatedFallback);
+    int32 CountLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEventType SourceEvent) const;
     EGridLinkAction GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const;
     bool ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action);
     bool ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action);
@@ -56,8 +63,8 @@ private:
     bool ActivatePressurePlateAtCell (int32 X, int32 Y);
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
 
-    void ActivateTriggersAtCell (int32 X, int32 Y);
-    void DeactivateTriggersAtCell (int32 X, int32 Y);
+    bool ProcessTriggersAtCell (int32 X, int32 Y, bool bEntering);
+    bool ProcessTriggerEvent (const FGridLevelObjectData& TriggerData, bool bEntering);
 
 private:
     TMap<FGuid, int32> ObjectIndexById;
@@ -65,8 +72,10 @@ private:
     TMap<FGridEdgeKey, int32> InteractableObjectIndexByEdge;
     TMultiMap<FIntPoint, int32> PressurePlateIndexesByCell;
     TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
+    TMap<FGuid, FGridObjectBehaviorParams> RuntimeBehaviorByObjectId;
 
     const FGridLevelObjectData* GetObjectByIndex (int32 ObjectIndex) const;
+    const FGridObjectBehaviorParams& GetRuntimeBehavior (const FGridLevelObjectData& ObjectData) const;
 
     int32 GetIndexedObjectCount () const
     {

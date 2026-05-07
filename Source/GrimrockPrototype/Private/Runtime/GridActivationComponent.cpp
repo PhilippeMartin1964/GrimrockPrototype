@@ -28,6 +28,24 @@ namespace
         }
         return FString::Printf (TEXT ("%d"), static_cast<int32> (Type));
     }
+
+    FString GridObjectEventToString (EGridObjectEventType EventType)
+    {
+        if (const UEnum* Enum = StaticEnum<EGridObjectEventType> ())
+        {
+            return Enum->GetNameStringByValue (static_cast<int64> (EventType));
+        }
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (EventType));
+    }
+
+    FString GridTriggerModeToString (EGridObjectTriggerMode TriggerMode)
+    {
+        if (const UEnum* Enum = StaticEnum<EGridObjectTriggerMode> ())
+        {
+            return Enum->GetNameStringByValue (static_cast<int64> (TriggerMode));
+        }
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (TriggerMode));
+    }
 }
 
 UGridActivationComponent::UGridActivationComponent ()
@@ -43,6 +61,7 @@ void UGridActivationComponent::Initialize (AGridLevelRuntimeActor* InRuntime)
 void UGridActivationComponent::ResetRuntimeState ()
 {
     ActiveObjectIds.Reset ();
+    ConsumedOneShotTriggerIds.Reset ();
 }
 
 bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
@@ -56,14 +75,25 @@ void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 Old
     if (OldCellX == NewCellX && OldCellY == NewCellY)
     {
         ActivatePressurePlateAtCell (NewCellX, NewCellY);
+        NotifyPawnEnteredCell (NewCellX, NewCellY);
         return;
     }
 
     DeactivatePressurePlateAtCell (OldCellX, OldCellY);
     ActivatePressurePlateAtCell (NewCellX, NewCellY);
 
-    DeactivateTriggersAtCell (OldCellX, OldCellY);
-    ActivateTriggersAtCell (NewCellX, NewCellY);
+    NotifyPawnExitedCell (OldCellX, OldCellY);
+    NotifyPawnEnteredCell (NewCellX, NewCellY);
+}
+
+void UGridActivationComponent::NotifyPawnEnteredCell (int32 CellX, int32 CellY)
+{
+    ProcessTriggersAtCell (CellX, CellY, true);
+}
+
+void UGridActivationComponent::NotifyPawnExitedCell (int32 CellX, int32 CellY)
+{
+    ProcessTriggersAtCell (CellX, CellY, false);
 }
 
 const FGridLevelObjectData* UGridActivationComponent::FindObjectById (FGuid ObjectId) const
@@ -246,6 +276,89 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridLevelLinkData& LinkDa
     return bSuccess;
 }
 
+bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
+    FGuid SourceObjectId,
+    EGridObjectEventType SourceEvent,
+    bool bInvert,
+    bool bAllowActivatedFallback)
+{
+    if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    const int32 MatchingEventLinkCount = CountLinksFromObjectForEvent (SourceObjectId, SourceEvent);
+    const bool bUseActivatedFallback =
+        bAllowActivatedFallback &&
+        SourceEvent != EGridObjectEventType::Activated &&
+        MatchingEventLinkCount == 0;
+
+    const EGridObjectEventType EffectiveEvent =
+        bUseActivatedFallback ? EGridObjectEventType::Activated : SourceEvent;
+
+    if (bUseActivatedFallback)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid trigger %s: no %s links, falling back to Activated links."),
+            *SourceObjectId.ToString (),
+            *GridObjectEventToString (SourceEvent));
+    }
+
+    bool bAnyApplied = false;
+    int32 ExecutedLinkCount = 0;
+
+    TArray<int32> LinkIndexes;
+    LinkIndexesBySource.MultiFind (SourceObjectId, LinkIndexes);
+
+    for (const int32 LinkIndex : LinkIndexes)
+    {
+        if (!RuntimeActor->LevelAsset->Links.IsValidIndex (LinkIndex))
+        {
+            continue;
+        }
+
+        const FGridLevelLinkData& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
+        if (LinkData.SourceEvent != EffectiveEvent)
+        {
+            continue;
+        }
+
+        ++ExecutedLinkCount;
+        bAnyApplied |= ApplyLinkAction (LinkData, bInvert);
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("Grid trigger %s: Event=%s LinksExecuted=%d AnyApplied=%s"),
+        *SourceObjectId.ToString (),
+        *GridObjectEventToString (EffectiveEvent),
+        ExecutedLinkCount,
+        bAnyApplied ? TEXT ("true") : TEXT ("false"));
+
+    return bAnyApplied;
+}
+
+int32 UGridActivationComponent::CountLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEventType SourceEvent) const
+{
+    if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
+    {
+        return 0;
+    }
+
+    int32 Result = 0;
+
+    TArray<int32> LinkIndexes;
+    LinkIndexesBySource.MultiFind (SourceObjectId, LinkIndexes);
+
+    for (const int32 LinkIndex : LinkIndexes)
+    {
+        if (RuntimeActor->LevelAsset->Links.IsValidIndex (LinkIndex) &&
+            RuntimeActor->LevelAsset->Links[LinkIndex].SourceEvent == SourceEvent)
+        {
+            ++Result;
+        }
+    }
+
+    return Result;
+}
+
 EGridLinkAction UGridActivationComponent::GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const
 {
     if (!bInvert)
@@ -398,40 +511,154 @@ void UGridActivationComponent::LogLinkResult (const FGridLevelLinkData& LinkData
         FailureReason ? FailureReason : TEXT ("unknown"));
 }
 
-void UGridActivationComponent::ActivateTriggersAtCell (int32 X, int32 Y)
+bool UGridActivationComponent::ProcessTriggersAtCell (int32 X, int32 Y, bool bEntering)
 {
     TArray<int32> TriggerIndexes;
     TriggerIndexesByCell.MultiFind (FIntPoint (X, Y), TriggerIndexes);
+    bool bAnyTriggered = false;
+
     for (const int32 TriggerIndex : TriggerIndexes)
     {
         const FGridLevelObjectData* TriggerData = GetObjectByIndex (TriggerIndex);
-        if (!TriggerData || ActiveObjectIds.Contains (TriggerData->ObjectId))
+        if (!TriggerData)
         {
             continue;
         }
-        ActiveObjectIds.Add (TriggerData->ObjectId);
-        ExecuteLinksFromObject (TriggerData->ObjectId, false);
+
+        bAnyTriggered |= ProcessTriggerEvent (*TriggerData, bEntering);
     }
+
+    return bAnyTriggered;
 }
 
-void UGridActivationComponent::DeactivateTriggersAtCell (int32 X, int32 Y)
+bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& TriggerData, bool bEntering)
 {
-    TArray<int32> TriggerIndexes;
-    TriggerIndexesByCell.MultiFind (FIntPoint (X, Y), TriggerIndexes);
-    for (const int32 TriggerIndex : TriggerIndexes)
+    if (TriggerData.Type != EGridLevelObjectType::Trigger || !TriggerData.ObjectId.IsValid ())
     {
-        const FGridLevelObjectData* TriggerData = GetObjectByIndex (TriggerIndex);
-        if (!TriggerData || !ActiveObjectIds.Contains (TriggerData->ObjectId))
-        {
-            continue;
-        }
-        ActiveObjectIds.Remove (TriggerData->ObjectId);
-        ExecuteLinksFromObject (TriggerData->ObjectId, true);
+        return false;
     }
+
+    const FGridObjectBehaviorParams& Behavior = GetRuntimeBehavior (TriggerData);
+    const bool bWantsEvent = bEntering ? Behavior.bFireOnEnter : Behavior.bFireOnExit;
+    const TCHAR* EventLabel = bEntering ? TEXT ("Enter") : TEXT ("Exit");
+
+    if (!bWantsEvent)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s ignored by behavior."),
+            *TriggerData.ObjectId.ToString (),
+            TriggerData.CellX,
+            TriggerData.CellY,
+            EventLabel);
+        return false;
+    }
+
+    const bool bOneShot =
+        Behavior.TriggerMode == EGridObjectTriggerMode::OneShot ||
+        Behavior.bOneShotConsumed;
+
+    if (bOneShot && (Behavior.bOneShotConsumed || ConsumedOneShotTriggerIds.Contains (TriggerData.ObjectId)))
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s one-shot already consumed."),
+            *TriggerData.ObjectId.ToString (),
+            TriggerData.CellX,
+            TriggerData.CellY,
+            EventLabel);
+        return false;
+    }
+
+    EGridObjectEventType SourceEvent = bEntering
+        ? EGridObjectEventType::Activated
+        : EGridObjectEventType::Deactivated;
+
+    bool bInvertLinks = Behavior.bInvertLinks;
+    bool bAllowActivatedFallback = !bEntering;
+
+    switch (Behavior.TriggerMode)
+    {
+        case EGridObjectTriggerMode::Hold:
+        {
+            if (bEntering)
+            {
+                ActiveObjectIds.Add (TriggerData.ObjectId);
+            } else if (ActiveObjectIds.Contains (TriggerData.ObjectId))
+            {
+                ActiveObjectIds.Remove (TriggerData.ObjectId);
+            } else
+            {
+                UE_LOG (LogTemp, Log, TEXT ("Grid trigger detected: Id=%s Cell=(%d,%d) Event=Exit ignored because hold trigger is not active."),
+                    *TriggerData.ObjectId.ToString (),
+                    TriggerData.CellX,
+                    TriggerData.CellY);
+                return false;
+            }
+            break;
+        }
+
+        case EGridObjectTriggerMode::Toggle:
+        {
+            const bool bWasActive = ActiveObjectIds.Contains (TriggerData.ObjectId);
+            const bool bNewActive = !bWasActive;
+
+            if (bNewActive)
+            {
+                ActiveObjectIds.Add (TriggerData.ObjectId);
+                SourceEvent = EGridObjectEventType::Activated;
+                bInvertLinks = Behavior.bInvertLinks;
+            } else
+            {
+                ActiveObjectIds.Remove (TriggerData.ObjectId);
+                SourceEvent = EGridObjectEventType::Deactivated;
+                bInvertLinks = !Behavior.bInvertLinks;
+                bAllowActivatedFallback = true;
+            }
+            break;
+        }
+
+        case EGridObjectTriggerMode::Instant:
+        case EGridObjectTriggerMode::OneShot:
+        default:
+            break;
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s Mode=%s SourceEvent=%s"),
+        *TriggerData.ObjectId.ToString (),
+        TriggerData.CellX,
+        TriggerData.CellY,
+        EventLabel,
+        *GridTriggerModeToString (Behavior.TriggerMode),
+        *GridObjectEventToString (SourceEvent));
+
+    if (!bEntering &&
+        SourceEvent == EGridObjectEventType::Deactivated &&
+        CountLinksFromObjectForEvent (TriggerData.ObjectId, SourceEvent) == 0)
+    {
+        bInvertLinks = !Behavior.bInvertLinks;
+    }
+
+    const bool bApplied = ExecuteLinksFromObjectForEvent (
+        TriggerData.ObjectId,
+        SourceEvent,
+        bInvertLinks,
+        bAllowActivatedFallback);
+
+    if (bOneShot)
+    {
+        ConsumedOneShotTriggerIds.Add (TriggerData.ObjectId);
+        UE_LOG (LogTemp, Log, TEXT ("Grid trigger %s: one-shot consumed after %s."),
+            *TriggerData.ObjectId.ToString (),
+            EventLabel);
+    }
+
+    return bApplied;
 }
 
 void UGridActivationComponent::RegisterInitialObjectState (const FGridLevelObjectData& ObjectData)
 {
+    if (ObjectData.ObjectId.IsValid ())
+    {
+        RuntimeBehaviorByObjectId.Add (ObjectData.ObjectId, ObjectData.Behavior);
+    }
+
     if (ObjectData.bInitiallyActive)
     {
         ActiveObjectIds.Add (ObjectData.ObjectId);
@@ -445,6 +672,7 @@ void UGridActivationComponent::RebuildIndexes ()
     InteractableObjectIndexByEdge.Reset ();
     PressurePlateIndexesByCell.Reset ();
     TriggerIndexesByCell.Reset ();
+    RuntimeBehaviorByObjectId.Reset ();
 
     if (!RuntimeActor || !RuntimeActor->LevelAsset)
     {
@@ -460,6 +688,7 @@ void UGridActivationComponent::RebuildIndexes ()
         if (ObjectData.ObjectId.IsValid ())
         {
             ObjectIndexById.Add (ObjectData.ObjectId, Index);
+            RuntimeBehaviorByObjectId.Add (ObjectData.ObjectId, ObjectData.Behavior);
         }
 
         if (ObjectData.Type == EGridLevelObjectType::Button ||
@@ -497,6 +726,16 @@ const FGridLevelObjectData* UGridActivationComponent::GetObjectByIndex (int32 Ob
     return RuntimeActor->LevelAsset->Objects.IsValidIndex (ObjectIndex)
         ? &RuntimeActor->LevelAsset->Objects[ObjectIndex]
         : nullptr;
+}
+
+const FGridObjectBehaviorParams& UGridActivationComponent::GetRuntimeBehavior (const FGridLevelObjectData& ObjectData) const
+{
+    if (const FGridObjectBehaviorParams* RuntimeBehavior = RuntimeBehaviorByObjectId.Find (ObjectData.ObjectId))
+    {
+        return *RuntimeBehavior;
+    }
+
+    return ObjectData.Behavior;
 }
 
 bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn)

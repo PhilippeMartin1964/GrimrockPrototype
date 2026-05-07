@@ -594,6 +594,22 @@ void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCe
     }
 }
 
+void AGridLevelRuntimeActor::NotifyPawnEnteredCell (int32 CellX, int32 CellY)
+{
+    if (ActivationComponent)
+    {
+        ActivationComponent->NotifyPawnEnteredCell (CellX, CellY);
+    }
+}
+
+void AGridLevelRuntimeActor::NotifyPawnExitedCell (int32 CellX, int32 CellY)
+{
+    if (ActivationComponent)
+    {
+        ActivationComponent->NotifyPawnExitedCell (CellX, CellY);
+    }
+}
+
 void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
 {
     if (EditorPreviewComponent)
@@ -882,7 +898,7 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     }    
     if (ActivationComponent)
     {
-        ActivationComponent->RegisterInitialObjectState (ObjectData);
+        ActivationComponent->RegisterInitialObjectState (RuntimeObjectData);
     }
 
     if (ObjectData.Type == EGridLevelObjectType::Door && DoorSystemComponent)

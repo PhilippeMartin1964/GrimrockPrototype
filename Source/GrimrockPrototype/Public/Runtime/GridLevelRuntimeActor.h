@@ -165,6 +165,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
 
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    void NotifyPawnEnteredCell (int32 CellX, int32 CellY);
+
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    void NotifyPawnExitedCell (int32 CellX, int32 CellY);
+
     void RebuildRuntimeObjects ();
     void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);
     bool IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const;
