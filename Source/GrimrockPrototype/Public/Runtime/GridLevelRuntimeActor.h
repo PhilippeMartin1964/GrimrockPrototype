@@ -10,6 +10,7 @@
 class AGridEditorPreviewObjectActor;
 class UGridObjectArchetypeAsset;
 class AGridRuntimeObjectActor;
+class AGridItemActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
@@ -192,6 +193,8 @@ public:
     UStaticMesh* GetObjectMesh (const FGridLevelObjectData& ObjectData) const;
     UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const;
     bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
+    const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
+    AGridItemActor* SpawnItemActorForArchetype (FName ItemArchetypeId, AActor* OwnerActor, USceneComponent* AttachParent) const;
 
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
@@ -212,8 +215,6 @@ private:
     bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
         float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform) const;
     bool GetCenteredObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const;
-
-    const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
 
     UPROPERTY (Transient)
     TMap<FGuid, TObjectPtr<AGridRuntimeObjectActor>> SpawnedRuntimeObjectActors;

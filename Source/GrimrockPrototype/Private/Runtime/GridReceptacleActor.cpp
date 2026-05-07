@@ -2,6 +2,8 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Core/GridObjectArchetypeAsset.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -13,6 +15,9 @@ AGridReceptacleActor::AGridReceptacleActor ()
     ItemSocketRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("ItemSocketRoot"));
     ItemSocketRoot->SetupAttachment (RootComponent);
 
+    ItemAttachPoint = CreateDefaultSubobject<USceneComponent> (TEXT ("ItemAttachPoint"));
+    ItemAttachPoint->SetupAttachment (ItemSocketRoot);
+
     ContainedItemMesh = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("ContainedItemMesh"));
     ContainedItemMesh->SetupAttachment (ItemSocketRoot);
     ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
@@ -23,12 +28,10 @@ void AGridReceptacleActor::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (bStartsFilled)
+    if (ContainedItemActor)
     {
-        SetContainedItem (AcceptedItemId.IsNone () ? FName (TEXT ("Torch")) : AcceptedItemId);
-    } else
-    {
-        SetContainedItem (NAME_None);
+        AttachContainedItemActor ();
+        SetContainedItem (ContainedItemActor->ArchetypeId);
     }
 }
 
@@ -37,43 +40,106 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 {
     AGridRuntimeObjectActor::InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
 
-    // First data-driven convention: Tag defines the accepted item.
-    // Example: Tag = Torch for a torch holder.
-    AcceptedItemId = ObjectData.Tag;
+    bAcceptAnyItem = ObjectData.Behavior.bAcceptAnyItem;
+    AcceptedItemTags = ObjectData.Behavior.AcceptedItemTags;
+    AcceptedArchetypeIds = ObjectData.Behavior.AcceptedArchetypeIds;
+    InitialContainedItemArchetypeId = ObjectData.Behavior.InitialContainedItemArchetypeId;
     bStartsFilled = ObjectData.bInitiallyActive;
 
-    if (bStartsFilled)
+    if (!ObjectData.Tag.IsNone () && AcceptedItemTags.Num () == 0 && AcceptedArchetypeIds.Num () == 0)
     {
-        SetContainedItem (AcceptedItemId.IsNone () ? FName (TEXT ("Torch")) : AcceptedItemId);
-    } else
-    {
-        SetContainedItem (NAME_None);
+        AcceptedItemTags.Add (ObjectData.Tag);
+        bAcceptAnyItem = false;
     }
+
+    if (!bStartsFilled)
+    {
+        InitialContainedItemArchetypeId = NAME_None;
+    }
+
+    SetContainedItem (NAME_None);
 }
 
 bool AGridReceptacleActor::HasItem () const
 {
-    return !ContainedItemId.IsNone ();
+    return !ContainedItemArchetypeId.IsNone () || IsValid (ContainedItemActor);
 }
 
 bool AGridReceptacleActor::CanAcceptItem (FName ItemId) const
 {
-    if (!bCanInsertItem || HasItem () || ItemId.IsNone ())
+    return CanAcceptItemArchetype (ItemId, TArray<FName> ());
+}
+
+bool AGridReceptacleActor::CanAcceptItemArchetype (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
+{
+    if (!bCanInsertItem || HasItem () || ItemArchetypeId.IsNone ())
     {
         return false;
     }
 
-    // Empty AcceptedItemId = accepts any item.
-    return AcceptedItemId.IsNone () || AcceptedItemId == ItemId;
+    if (bAcceptAnyItem)
+    {
+        return true;
+    }
+
+    if (AcceptedArchetypeIds.Contains (ItemArchetypeId))
+    {
+        return true;
+    }
+
+    for (const FName& AcceptedTag : AcceptedItemTags)
+    {
+        if (!AcceptedTag.IsNone () && ItemTags.Contains (AcceptedTag))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool AGridReceptacleActor::TryInsertItem (FName ItemId)
 {
-    if (!CanAcceptItem (ItemId))
+    TArray<FName> ItemTags;
+    AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ());
+    if (RuntimeActor)
+    {
+        if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (ItemId))
+        {
+            ItemTags = ItemArchetype->ItemTags;
+        }
+    }
+
+    if (!CanAcceptItemArchetype (ItemId, ItemTags))
     {
         return false;
     }
+
+    if (RuntimeActor)
+    {
+        if (AGridItemActor* ItemActor = RuntimeActor->SpawnItemActorForArchetype (ItemId, this, ItemAttachPoint))
+        {
+            return TryInsertItemActor (ItemActor);
+        }
+
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: item actor spawn failed for %s; storing inventory id only."),
+            *ObjectId.ToString (), *ItemId.ToString ());
+    }
+
     SetContainedItem (ItemId);
+    return true;
+}
+
+bool AGridReceptacleActor::TryInsertItemActor (AGridItemActor* ItemActor)
+{
+    if (!ItemActor || !CanAcceptItemArchetype (ItemActor->ArchetypeId, ItemActor->ItemTags))
+    {
+        return false;
+    }
+
+    ContainedItemActor = ItemActor;
+    AttachContainedItemActor ();
+    SetContainedItem (ItemActor->ArchetypeId);
     return true;
 }
 
@@ -84,49 +150,35 @@ bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
     {
         return false;
     }
-    OutRemovedItemId = ContainedItemId;
+
+    OutRemovedItemId = ContainedItemArchetypeId;
+    ClearContainedItemActor ();
     SetContainedItem (NAME_None);
     return true;
 }
 
-bool AGridReceptacleActor::TryToggleTorchForParty (AGrimrockPartyPawn* PartyPawn)
+bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId)
 {
+    OutRemovedItemId = NAME_None;
     if (!PartyPawn)
     {
         return false;
     }
 
-    static const FName TorchItemId (TEXT ("Torch"));
-
-    if (HasItem ())
-    {
-        FName RemovedItemId = NAME_None;
-        if (!TryRemoveItem (RemovedItemId))
-        {
-            return false;
-        }
-
-        return PartyPawn->AddInventoryItem (RemovedItemId);
-    }
-
-    if (!CanAcceptItem (TorchItemId) || !PartyPawn->HasInventoryItem (TorchItemId))
+    if (!TryRemoveItem (OutRemovedItemId))
     {
         return false;
     }
 
-    if (!PartyPawn->RemoveInventoryItem (TorchItemId))
+    if (!OutRemovedItemId.IsNone ())
     {
-        return false;
+        PartyPawn->AddInventoryItem (OutRemovedItemId);
+        return true;
     }
 
-    if (!TryInsertItem (TorchItemId))
-    {
-        // Rollback to avoid losing the item if insertion fails unexpectedly.
-        PartyPawn->AddInventoryItem (TorchItemId);
-        return false;
-    }
-
-    return true;
+    UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: removed item has no archetype id; inventory handoff TODO."),
+        *ObjectId.ToString ());
+    return false;
 }
 
 void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial)
@@ -150,6 +202,7 @@ void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UM
 
 void AGridReceptacleActor::SetContainedItem (FName NewItemId)
 {
+    ContainedItemArchetypeId = NewItemId;
     ContainedItemId = NewItemId;
     const bool bVisible = HasItem ();
     if (!ContainedItemMesh)
@@ -168,6 +221,51 @@ void AGridReceptacleActor::SetContainedItem (FName NewItemId)
     ContainedItemMesh->SetHiddenInGame (!bVisible, true);
     ContainedItemMesh->SetVisibility (bVisible, true);
     ContainedItemMesh->MarkRenderStateDirty ();
+}
+
+void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemActor)
+{
+    ContainedItemActor = ItemActor;
+    if (ContainedItemActor)
+    {
+        ContainedItemTags = ContainedItemActor->ItemTags;
+        SetContainedItem (ContainedItemActor->ArchetypeId);
+        AttachContainedItemActor ();
+    }
+}
+
+void AGridReceptacleActor::AttachContainedItemActor ()
+{
+    if (!ContainedItemActor)
+    {
+        return;
+    }
+
+    USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
+    ContainedItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+    ContainedItemActor->SetActorRelativeTransform (FTransform::Identity);
+    ContainedItemTags = ContainedItemActor->ItemTags;
+    ContainedItemActor->OnPlacedInWorld ();
+
+    if (ContainedItemMesh)
+    {
+        ContainedItemMesh->SetHiddenInGame (true, true);
+        ContainedItemMesh->SetVisibility (false, true);
+    }
+}
+
+void AGridReceptacleActor::ClearContainedItemActor ()
+{
+    if (!ContainedItemActor)
+    {
+        ContainedItemTags.Reset ();
+        return;
+    }
+
+    ContainedItemActor->OnRemovedFromWorld ();
+    ContainedItemActor->Destroy ();
+    ContainedItemActor = nullptr;
+    ContainedItemTags.Reset ();
 }
 
 void AGridReceptacleActor::ExecuteInsertionLinks ()

@@ -6,16 +6,10 @@
 
 class UStaticMeshComponent;
 class AGrimrockPartyPawn;
+class AGridItemActor;
 
 /**
  * Generic runtime receptacle: torch holder, wall niche, pedestal, statue slot, altar, etc.
- *
- * Data convention for the first implementation:
- * - ObjectData.Type              = EGridLevelObjectType::Receptacle
- * - ObjectData.Tag               = AcceptedItemId, e.g. "Torch"
- * - ObjectData.bInitiallyActive  = starts filled
- * - ObjectData.bInitiallyEnabled = can exist/spawn
- * - ObjectData.Behavior later can override fine behavior when the scripting layer grows.
  */
 UCLASS (Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor
@@ -30,15 +24,31 @@ public:
     TObjectPtr<USceneComponent> ItemSocketRoot;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    TObjectPtr<USceneComponent> ItemAttachPoint;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     TObjectPtr<UStaticMeshComponent> ContainedItemMesh;
 
-    /** Empty means: accepts any item. For a torch holder, use "Torch". */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    FName AcceptedItemId = TEXT ("Torch");
+    bool bAcceptAnyItem = true;
 
-    /** Empty means no item is currently inserted. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    TArray<FName> AcceptedItemTags;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    TArray<FName> AcceptedArchetypeIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    FName InitialContainedItemArchetypeId = NAME_None;
+
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    FName ContainedItemId = NAME_None;
+    FName ContainedItemArchetypeId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    TArray<FName> ContainedItemTags;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    TObjectPtr<AGridItemActor> ContainedItemActor;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bCanInsertItem = true;
@@ -48,6 +58,12 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bStartsFilled = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Receptacle")
+    FName AcceptedItemId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Receptacle")
+    FName ContainedItemId = NAME_None;
 
 public:
     virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
@@ -60,17 +76,25 @@ public:
     bool CanAcceptItem (FName ItemId) const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool CanAcceptItemArchetype (FName ItemArchetypeId, const TArray<FName>& ItemTags) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInsertItem (FName ItemId);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool TryInsertItemActor (AGridItemActor* ItemActor);
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryRemoveItem (FName& OutRemovedItemId);
 
-    /** Convenience method for the current prototype: toggles Torch in/out. */
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool TryToggleTorchForParty (AGrimrockPartyPawn* PartyPawn);
+    bool TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId);
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    void SetInitialContainedItemActor (AGridItemActor* ItemActor);
 
 protected:
     virtual void BeginPlay () override;
@@ -80,6 +104,8 @@ protected:
 
     void ExecuteInsertionLinks ();
     void ExecuteRemovalLinks ();
+    void AttachContainedItemActor ();
+    void ClearContainedItemActor ();
 
 private:
     UPROPERTY (Transient)

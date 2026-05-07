@@ -6,6 +6,7 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridEditorPreviewComponent.h"
+#include "Runtime/GridItemActor.h"
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridReceptacleActor.h"
 
@@ -706,6 +707,65 @@ UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelO
     return nullptr;
 }
 
+AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemArchetypeId, AActor* OwnerActor, USceneComponent* AttachParent) const
+{
+    const UGridObjectArchetypeAsset* ItemArchetype = FindObjectArchetype (ItemArchetypeId);
+    if (!ItemArchetype)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Grid item spawn failed: archetype %s not found."), *ItemArchetypeId.ToString ());
+        return nullptr;
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return nullptr;
+    }
+
+    TSubclassOf<AGridItemActor> ItemClass = ItemArchetype->ItemActorClass;
+    if (!ItemClass)
+    {
+        ItemClass = AGridItemActor::StaticClass ();
+    }
+
+    FActorSpawnParameters Params;
+    Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*> (this);
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor> (
+        ItemClass,
+        AttachParent ? AttachParent->GetComponentLocation () : GetActorLocation (),
+        AttachParent ? AttachParent->GetComponentRotation () : FRotator::ZeroRotator,
+        Params);
+
+    if (!ItemActor)
+    {
+        return nullptr;
+    }
+
+    UStaticMesh* ItemMesh = ItemArchetype->MovingMesh ? ItemArchetype->MovingMesh.Get () : ItemArchetype->PreviewMesh.Get ();
+    if (!ItemMesh)
+    {
+        ItemMesh = ItemArchetype->FixedMesh.Get ();
+    }
+
+    UMaterialInterface* ItemMaterial = ItemArchetype->MovingMaterial ? ItemArchetype->MovingMaterial.Get () : ItemArchetype->PreviewMaterial.Get ();
+    if (!ItemMaterial)
+    {
+        ItemMaterial = ItemArchetype->FixedMaterial.Get ();
+    }
+
+    ItemActor->InitializeItem (ItemArchetype->ArchetypeId, ItemArchetype->ItemTags, ItemMesh, ItemMaterial);
+
+    if (AttachParent)
+    {
+        ItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+        ItemActor->SetActorRelativeTransform (FTransform::Identity);
+    }
+
+    return ItemActor;
+}
+
 bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
     float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform) const
 {
@@ -894,6 +954,16 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
                 Archetype->MovingMesh,
                 Archetype->MovingMaterial
             );
+        }
+        if (!RuntimeObjectData.Behavior.InitialContainedItemArchetypeId.IsNone ())
+        {
+            if (AGridItemActor* ItemActor = SpawnItemActorForArchetype (
+                RuntimeObjectData.Behavior.InitialContainedItemArchetypeId,
+                ReceptacleActor,
+                ReceptacleActor->ItemAttachPoint))
+            {
+                ReceptacleActor->SetInitialContainedItemActor (ItemActor);
+            }
         }
     }    
     if (ActivationComponent)

@@ -757,18 +757,19 @@ bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& O
     {
         FName RemovedItemId = NAME_None;
 
-        if (!ReceptacleActor->TryRemoveItem (RemovedItemId))
+        if (!ReceptacleActor->TryTakeContainedItem (PartyPawn, RemovedItemId))
         {
             return false;
         }
-        PartyPawn->AddInventoryItem (RemovedItemId);
         ActiveObjectIds.Remove (ObjectData.ObjectId);
         UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: removed item %s"), *ObjectData.ObjectId.ToString (), *RemovedItemId.ToString ());
         return ExecuteLinksFromObject (ObjectData.ObjectId, true);
     }
     // Cas 2 : le support est vide.
     // On tente d’insérer l’item accepté.
-    FName ItemToInsert = ReceptacleActor->AcceptedItemId;
+    FName ItemToInsert = ReceptacleActor->AcceptedArchetypeIds.Num () > 0
+        ? ReceptacleActor->AcceptedArchetypeIds[0]
+        : NAME_None;
 
     if (ItemToInsert == NAME_None)
     {
@@ -781,6 +782,8 @@ bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& O
     }
     if (!ReceptacleActor->TryInsertItem (ItemToInsert))
     {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: item %s is not accepted or could not be inserted"),
+            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
         return false;
     }
     PartyPawn->RemoveInventoryItem (ItemToInsert);

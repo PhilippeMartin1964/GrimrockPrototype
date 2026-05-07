@@ -44,6 +44,18 @@ struct FGridObjectBehaviorParams
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
     int32 TargetCellY = INDEX_NONE;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    bool bAcceptAnyItem = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    TArray<FName> AcceptedItemTags;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    TArray<FName> AcceptedArchetypeIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    FName InitialContainedItemArchetypeId = NAME_None;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
     float ButtonPressDistance = 6.f;
 

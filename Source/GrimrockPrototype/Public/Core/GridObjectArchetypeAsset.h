@@ -7,6 +7,7 @@
 #include "GridObjectArchetypeAsset.generated.h"
 
 class AGridRuntimeObjectActor;
+class AGridItemActor;
 
 UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridObjectArchetypeAsset : public UDataAsset
@@ -38,6 +39,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
     FGridObjectBehaviorParams DefaultBehavior;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item")
+    TArray<FName> ItemTags;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
     FName Category = NAME_None;
 
@@ -67,6 +71,9 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")
     TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")
+    TSubclassOf<AGridItemActor> ItemActorClass;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
     float PlacementZOffset = 12.f;
