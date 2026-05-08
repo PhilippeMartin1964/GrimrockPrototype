@@ -91,7 +91,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel ()
 
     Root->AddSlot ()
         .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, bShowPalette ? 8.f : 0.f)
+        .Padding (0.f, 0.f, 0.f, bShowPalette ? 6.f : 0.f)
         [
             GridEditorWidgetHelpers::BuildGridPanelSection (FText::FromString (TEXT ("TOOLS")), BuildToolSection ())
         ];

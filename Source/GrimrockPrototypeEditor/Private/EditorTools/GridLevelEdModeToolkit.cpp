@@ -87,130 +87,113 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
 
     ToolkitRoot->ClearChildren ();
 
-    ToolkitRoot->AddSlot ()
-        .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, 8.f)
-        [
-            BuildHeaderSection ()
-        ];
+    const FMargin PanelSpacing (0.f, 0.f, 0.f, 6.f);
+    const auto AddToolkitPanel = [this, PanelSpacing] (TSharedRef<SWidget> Panel)
+    {
+        ToolkitRoot->AddSlot ()
+            .AutoHeight ()
+            .Padding (PanelSpacing)
+            [
+                Panel
+            ];
+    };
 
-    ToolkitRoot->AddSlot ()
-        .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, 8.f)
-        [
-            SNew (SGridEditorToolPalettePanel)
-                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                .ToolPaletteState (ToolPaletteState)
-                .OnGetEditorActor (FOnGetGridEditorToolPaletteActor::CreateLambda ([this] ()
-                {
-                    return GetEditorActor ();
-                }))
-                .OnRequestRefresh (FOnGridEditorToolPaletteRequestRefresh::CreateLambda ([this] ()
-                {
-                    RefreshPalette ();
-                }))
-        ];
+    AddToolkitPanel (
+        BuildHeaderSection ());
+
+    AddToolkitPanel (
+        SNew (SGridEditorToolPalettePanel)
+            .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+            .ToolPaletteState (ToolPaletteState)
+            .OnGetEditorActor (FOnGetGridEditorToolPaletteActor::CreateLambda ([this] ()
+            {
+                return GetEditorActor ();
+            }))
+            .OnRequestRefresh (FOnGridEditorToolPaletteRequestRefresh::CreateLambda ([this] ()
+            {
+                RefreshPalette ();
+            })));
 
     const AGridLevelEditorActor* EditorActor = GetEditorActor ();
 
-    ToolkitRoot->AddSlot ()
-        .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, 8.f)
-        [
-            BuildPanelSection (
-                FText::FromString (TEXT ("OVERVIEW MAP")),
-                SNew (SGridEditorOverviewMapPanel)
-                    .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                    .OnGetEditorActor (FOnGetGridEditorActor::CreateLambda ([this] ()
-                    {
-                        return GetEditorActor ();
-                    }))
-                    .OnRequestRefresh (FOnGridEditorOverviewRequestRefresh::CreateLambda ([this] ()
-                    {
-                        RefreshPalette ();
-                    })))
-        ];
+    AddToolkitPanel (
+        BuildPanelSection (
+            FText::FromString (TEXT ("OVERVIEW MAP")),
+            SNew (SGridEditorOverviewMapPanel)
+                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                .OnGetEditorActor (FOnGetGridEditorActor::CreateLambda ([this] ()
+                {
+                    return GetEditorActor ();
+                }))
+                .OnRequestRefresh (FOnGridEditorOverviewRequestRefresh::CreateLambda ([this] ()
+                {
+                    RefreshPalette ();
+                }))));
 
     const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData () : nullptr;
 
-    ToolkitRoot->AddSlot ()
-        .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, 8.f)
-        [
-            BuildPanelSection (
-                FText::FromString (TEXT ("SELECTED OBJECT")),
-                SNew (SGridEditorObjectInspectorPanel)
-                    .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                    .OnGetEditorActor (FOnGetGridEditorObjectInspectorActor::CreateLambda ([this] ()
-                    {
-                        return GetEditorActor ();
-                    }))
-                    .OnRequestRefresh (FOnGridEditorObjectInspectorRequestRefresh::CreateLambda ([this] ()
-                    {
-                        RefreshPalette ();
-                    })))
-        ];
-
-    ToolkitRoot->AddSlot ()
-        .AutoHeight ()
-        .Padding (0.f, 0.f, 0.f, 8.f)
-        [
-            BuildPanelSection (
-                FText::FromString (TEXT ("VALIDATION")),
-                SNew (SGridEditorValidationPanel)
-                    .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                    .ValidationState (ValidationState)
-                    .OnGetEditorActor (FOnGetGridEditorValidationActor::CreateLambda ([this] ()
-                    {
-                        return GetEditorActor ();
-                    }))
-                    .OnRequestRefresh (FOnGridEditorValidationRequestRefresh::CreateLambda ([this] ()
-                    {
-                        RefreshPalette ();
-                    })))
-        ];
+    AddToolkitPanel (
+        BuildPanelSection (
+            FText::FromString (TEXT ("SELECTED OBJECT")),
+            SNew (SGridEditorObjectInspectorPanel)
+                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                .OnGetEditorActor (FOnGetGridEditorObjectInspectorActor::CreateLambda ([this] ()
+                {
+                    return GetEditorActor ();
+                }))
+                .OnRequestRefresh (FOnGridEditorObjectInspectorRequestRefresh::CreateLambda ([this] ()
+                {
+                    RefreshPalette ();
+                }))));
 
     if (Obj)
     {
+        AddToolkitPanel (
+            BuildPanelSection (
+                FText::FromString (TEXT ("LINKS")),
+                SNew (SGridEditorLinksPanel)
+                    .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                    .OnGetEditorActor (FOnGetGridEditorLinksActor::CreateLambda ([this] ()
+                    {
+                        return GetEditorActor ();
+                    }))
+                    .OnRequestRefresh (FOnGridEditorLinksRequestRefresh::CreateLambda ([this] ()
+                    {
+                        RefreshPalette ();
+                    }))));
+
         if (Obj->Type != EGridLevelObjectType::Trigger)
         {
-            ToolkitRoot->AddSlot ()
-                .AutoHeight ()
-                .Padding (0.f, 0.f, 0.f, 8.f)
-                [
-                    BuildPanelSection (
-                        FText::FromString (TEXT ("BEHAVIOR EDITOR")),
-                        SNew (SGridEditorBehaviorPanel)
-                            .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                            .OnGetEditorActor (FOnGetGridEditorBehaviorActor::CreateLambda ([this] ()
-                            {
-                                return GetEditorActor ();
-                            }))
-                            .OnRequestRefresh (FOnGridEditorBehaviorRequestRefresh::CreateLambda ([this] ()
-                            {
-                                RefreshPalette ();
-                            })))
-                ];
-        }
-
-        ToolkitRoot->AddSlot ()
-            .AutoHeight ()
-            .Padding (0.f, 0.f, 0.f, 8.f)
-            [
+            AddToolkitPanel (
                 BuildPanelSection (
-                    FText::FromString (TEXT ("LINKS")),
-                    SNew (SGridEditorLinksPanel)
+                    FText::FromString (TEXT ("BEHAVIOR EDITOR")),
+                    SNew (SGridEditorBehaviorPanel)
                         .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                        .OnGetEditorActor (FOnGetGridEditorLinksActor::CreateLambda ([this] ()
+                        .OnGetEditorActor (FOnGetGridEditorBehaviorActor::CreateLambda ([this] ()
                         {
                             return GetEditorActor ();
                         }))
-                        .OnRequestRefresh (FOnGridEditorLinksRequestRefresh::CreateLambda ([this] ()
+                        .OnRequestRefresh (FOnGridEditorBehaviorRequestRefresh::CreateLambda ([this] ()
                         {
                             RefreshPalette ();
-                        })))
-            ];
+                        }))));
+        }
     }
+
+    AddToolkitPanel (
+        BuildPanelSection (
+            FText::FromString (TEXT ("VALIDATION")),
+            SNew (SGridEditorValidationPanel)
+                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                .ValidationState (ValidationState)
+                .OnGetEditorActor (FOnGetGridEditorValidationActor::CreateLambda ([this] ()
+                {
+                    return GetEditorActor ();
+                }))
+                .OnRequestRefresh (FOnGridEditorValidationRequestRefresh::CreateLambda ([this] ()
+                {
+                    RefreshPalette ();
+                }))));
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget ()
@@ -228,58 +211,68 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget ()
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 {
     return SNew (SBorder)
-        .Padding (FMargin (6.f, 4.f))
+        .Padding (FMargin (6.f, 3.f))
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
         [
-            SNew (SWrapBox)
+            SNew (SHorizontalBox)
 
-            + SWrapBox::Slot ().Padding (0.f, 0.f, 8.f, 3.f)
+            + SHorizontalBox::Slot ()
+            .AutoWidth ()
+            .VAlign (VAlign_Center)
+            .Padding (0.f, 0.f, 10.f, 1.f)
             [
                 SNew (STextBlock)
                     .Text (FText::FromString (TEXT ("DUNGEON EDITOR")))
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 13))
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 14))
             ]
 
-            + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
+            + SHorizontalBox::Slot ()
+            .FillWidth (1.f)
+            .VAlign (VAlign_Center)
             [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Tool")),
-                    GetActiveToolText (),
-                    FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
-            ]
+                SNew (SWrapBox)
 
-            + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Cell")),
-                    GetSelectedCellStatusText (),
-                    FSlateColor (FLinearColor (0.40f, 0.85f, 0.45f, 1.f)))
-            ]
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                        FText::FromString (TEXT ("Tool")),
+                        GetActiveToolText (),
+                        FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+                ]
 
-            + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Edge/Facing")),
-                    GetSelectedEdgeStatusText (),
-                    FSlateColor (FLinearColor (1.f, 0.72f, 0.20f, 1.f)))
-            ]
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                        FText::FromString (TEXT ("Cell")),
+                        GetSelectedCellStatusText (),
+                        FSlateColor (FLinearColor (0.40f, 0.85f, 0.45f, 1.f)))
+                ]
 
-            + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Object")),
-                    GetSelectedObjectStatusText (),
-                    FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
-            ]
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                        FText::FromString (TEXT ("Edge/Facing")),
+                        GetSelectedEdgeStatusText (),
+                        FSlateColor (FLinearColor (1.f, 0.72f, 0.20f, 1.f)))
+                ]
 
-            + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Validation")),
-                    GetValidationStatusText (),
-                    FSlateColor (ValidationState.IsValid () && ValidationState->bValidationHasRun
-                        ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
-                        : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                        FText::FromString (TEXT ("Object")),
+                        GetSelectedObjectStatusText (),
+                        FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+                ]
+
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                        FText::FromString (TEXT ("Validation")),
+                        GetValidationStatusText (),
+                        FSlateColor (ValidationState.IsValid () && ValidationState->bValidationHasRun
+                            ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
+                            : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
+                ]
             ]
         ];
 }
