@@ -9,6 +9,7 @@
 
 class AGridLevelEditorActor;
 class UTexture2D;
+enum class EGridEditorTool : uint8;
 struct FGridObjectPaletteEntry;
 
 struct FGridEditorToolPalettePanelState
