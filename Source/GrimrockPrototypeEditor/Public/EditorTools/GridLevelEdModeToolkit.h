@@ -47,6 +47,10 @@ private:
 
     TSharedRef<SWidget> BuildOverviewMapSection ();
     TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
+    TSharedRef<SWidget> BuildOverviewCellTooltip (int32 CellX, int32 CellY) const;
+    FText GetOverviewCellTooltipText (int32 CellX, int32 CellY) const;
+    FText GetCellWallSummaryText (const FGridLevelCellData& CellData) const;
+    FText GetCellObjectSummaryText (int32 CellX, int32 CellY) const;
 
     TSharedRef<SWidget> BuildToolSection ();
     TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);

@@ -210,6 +210,13 @@ namespace
         }
     }
 
+    FText GetBooleanText (bool bValue)
+    {
+        return bValue
+            ? FText::FromString (TEXT ("Yes"))
+            : FText::FromString (TEXT ("No"));
+    }
+
     FString NameArrayToCommaSeparatedText (const TArray<FName>& Names)
     {
         TArray<FString> Parts;
@@ -497,31 +504,152 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewCell (
         GlyphText = FText::FromString (FString::Printf (TEXT ("%s+"), *GlyphText.ToString ()));
     }
 
-    FSlateColor BorderColor = bSelectedCell
+    FLinearColor CellFillColor = GetOverviewCellColor (CellData).GetSpecifiedColor ();
+    if (ObjectCount > 1 && !bSelectedCell && !bSelectedObjectCell)
+    {
+        CellFillColor = FLinearColor::LerpUsingHSV (
+            CellFillColor,
+            FLinearColor (0.35f, 0.85f, 0.45f, 1.f),
+            0.28f);
+    }
+
+    const FSlateColor OutlineColor = bSelectedCell
         ? FSlateColor (FLinearColor (1.f, 0.86f, 0.18f, 1.f))
         : bSelectedObjectCell
         ? FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f))
-        : GetOverviewCellColor (CellData);
+        : ObjectCount > 1
+        ? FSlateColor (FLinearColor (0.35f, 0.85f, 0.45f, 1.f))
+        : FSlateColor (FLinearColor (0.08f, 0.08f, 0.08f, 1.f));
 
-    return SNew (SButton)
-        .ButtonColorAndOpacity (BorderColor)
-        .ContentPadding (FMargin (0.f))
-        .OnClicked_Lambda ([this, CellX, CellY] () -> FReply
-    {
-        return OnOverviewCellClicked (CellX, CellY);
-    })
+    const FSlateColor FillColor = bSelectedCell
+        ? FSlateColor (FLinearColor (0.62f, 0.50f, 0.10f, 1.f))
+        : bSelectedObjectCell
+        ? FSlateColor (FLinearColor (0.08f, 0.35f, 0.48f, 1.f))
+        : FSlateColor (CellFillColor);
+
+    return SNew (SBox)
+        .WidthOverride (18.f)
+        .HeightOverride (18.f)
         [
-            SNew (SBox)
-                .WidthOverride (14.f)
-                .HeightOverride (14.f)
+            SNew (SBorder)
+            .Padding (bSelectedCell || bSelectedObjectCell ? 2.f : 1.f)
+            .BorderImage (FAppStyle::GetBrush ("WhiteBrush"))
+            .BorderBackgroundColor (OutlineColor)
+            [
+                SNew (SButton)
+                    .ButtonColorAndOpacity (FillColor)
+                    .ContentPadding (FMargin (0.f))
+                    .ToolTipText (GetOverviewCellTooltipText (CellX, CellY))
+                    .OnClicked_Lambda ([this, CellX, CellY] () -> FReply
+                {
+                    return OnOverviewCellClicked (CellX, CellY);
+                })
                 [
-                    SNew (STextBlock)
-                        .Text (GlyphText)
-                        .Justification (ETextJustify::Center)
-                        .ColorAndOpacity (FSlateColor (FLinearColor::White))
-                        .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
+                    SNew (SBox)
+                        .WidthOverride (14.f)
+                        .HeightOverride (14.f)
+                        [
+                            SNew (STextBlock)
+                                .Text (GlyphText)
+                                .Justification (ETextJustify::Center)
+                                .ColorAndOpacity (FSlateColor (FLinearColor::White))
+                                .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
+                        ]
                 ]
+            ]
         ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewCellTooltip (int32 CellX, int32 CellY) const
+{
+    return SNew (STextBlock)
+        .Text (GetOverviewCellTooltipText (CellX, CellY))
+        .AutoWrapText (true);
+}
+
+FText FGridLevelEdModeToolkit::GetOverviewCellTooltipText (int32 CellX, int32 CellY) const
+{
+    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+    const UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset : nullptr;
+    if (!LevelAsset || !LevelAsset->IsValidCoord (CellX, CellY))
+    {
+        return FText::Format (
+            FText::FromString (TEXT ("Cell X={0} Y={1}\nInvalid cell")),
+            FText::AsNumber (CellX),
+            FText::AsNumber (CellY));
+    }
+
+    const FGridLevelCellData& CellData = LevelAsset->GetCell (CellX, CellY);
+    const UEnum* CellTypeEnum = StaticEnum<EGridCellType> ();
+
+    return FText::Format (
+        FText::FromString (TEXT ("Cell X={0} Y={1}\nType: {2}\nCeiling: {3}\nBlocks Occupancy: {4}\nWalls: {5}\nObjects: {6}")),
+        FText::AsNumber (CellX),
+        FText::AsNumber (CellY),
+        GetEnumDisplayText (CellTypeEnum, static_cast<int64> (CellData.CellType)),
+        GetBooleanText (CellData.bHasCeiling),
+        GetBooleanText (CellData.bBlocksOccupancy),
+        GetCellWallSummaryText (CellData),
+        GetCellObjectSummaryText (CellX, CellY));
+}
+
+FText FGridLevelEdModeToolkit::GetCellWallSummaryText (const FGridLevelCellData& CellData) const
+{
+    const UEnum* WallTypeEnum = StaticEnum<EGridWallType> ();
+    const FText NorthText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.NorthWall));
+    const FText EastText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.EastWall));
+    const FText SouthText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.SouthWall));
+    const FText WestText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.WestWall));
+
+    return FText::Format (
+        FText::FromString (TEXT ("N={0}, E={1}, S={2}, W={3}")),
+        NorthText,
+        EastText,
+        SouthText,
+        WestText);
+}
+
+FText FGridLevelEdModeToolkit::GetCellObjectSummaryText (int32 CellX, int32 CellY) const
+{
+    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+    const UGridLevelAsset* LevelAsset = EditorActor ? EditorActor->LevelAsset : nullptr;
+    if (!LevelAsset)
+    {
+        return FText::FromString (TEXT ("None"));
+    }
+
+    const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
+    TArray<FString> ObjectSummaries;
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        if (Obj.CellX != CellX || Obj.CellY != CellY)
+        {
+            continue;
+        }
+
+        FString Details;
+        if (!Obj.Tag.IsNone ())
+        {
+            Details = FString::Printf (TEXT (" tag=%s"), *Obj.Tag.ToString ());
+        }
+        else if (!Obj.ArchetypeId.IsNone ())
+        {
+            Details = FString::Printf (TEXT (" archetype=%s"), *Obj.ArchetypeId.ToString ());
+        }
+        else if (!Obj.PaletteEntryId.IsNone ())
+        {
+            Details = FString::Printf (TEXT (" palette=%s"), *Obj.PaletteEntryId.ToString ());
+        }
+
+        ObjectSummaries.Add (FString::Printf (
+            TEXT ("%s%s"),
+            *GetEnumDisplayText (TypeEnum, static_cast<int64> (Obj.Type)).ToString (),
+            *Details));
+    }
+
+    return ObjectSummaries.Num () > 0
+        ? FText::FromString (FString::Join (ObjectSummaries, TEXT ("; ")))
+        : FText::FromString (TEXT ("None"));
 }
 
 UTexture2D* FGridLevelEdModeToolkit::GetToolIcon (EGridEditorTool Tool) const
