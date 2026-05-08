@@ -32,37 +32,32 @@ namespace
 
     FLinearColor GetOverviewEmptyColor ()
     {
-        return FLinearColor (0.006f, 0.006f, 0.008f, 1.f);
+        return FLinearColor (0.019f, 0.019f, 0.019f, 1.f);
     }
 
     FLinearColor GetOverviewExistingCellColor ()
     {
-        return FLinearColor (0.96f, 0.96f, 0.94f, 1.f);
+        return FLinearColor (0.957f, 0.957f, 0.957f, 1.f);
     }
 
     FLinearColor GetOverviewSelectedCellOutlineColor ()
     {
-        return FLinearColor (1.f, 0.86f, 0.18f, 1.f);
+        return FLinearColor (1.f, 0.847f, 0.29f, 1.f);
     }
 
     FLinearColor GetOverviewSelectedObjectOutlineColor ()
     {
-        return FLinearColor (0.25f, 0.78f, 1.f, 1.f);
+        return FLinearColor (0.263f, 0.812f, 1.f, 1.f);
     }
 
     FLinearColor GetOverviewMultiObjectOutlineColor ()
     {
-        return FLinearColor (0.35f, 0.85f, 0.45f, 1.f);
-    }
-
-    FLinearColor GetOverviewDefaultOutlineColor ()
-    {
-        return FLinearColor (0.08f, 0.08f, 0.08f, 1.f);
+        return FLinearColor (0.318f, 0.847f, 0.416f, 1.f);
     }
 
     FLinearColor GetOverviewObjectMarkerColor ()
     {
-        return FLinearColor (0.02f, 0.02f, 0.02f, 1.f);
+        return FLinearColor (0.125f, 0.125f, 0.125f, 1.f);
     }
 
     FSlateColor GetOverviewCellColor (const FGridLevelCellData* CellData)
@@ -92,52 +87,102 @@ namespace
         }
     }
 
-    EHorizontalAlignment GetOverviewMarkerHorizontalAlignment (const FGridLevelObjectData& Obj)
+    enum class EOverviewMarkerAnchor : uint8
+    {
+        North,
+        East,
+        South,
+        West,
+        Center
+    };
+
+    EOverviewMarkerAnchor GetOverviewMarkerAnchor (const FGridLevelObjectData& Obj)
     {
         if (!IsOverviewEdgeObject (Obj.Type))
         {
-            return HAlign_Center;
+            return EOverviewMarkerAnchor::Center;
         }
 
         switch (Obj.Edge)
         {
-            case EGridEdge::East: return HAlign_Right;
-            case EGridEdge::West: return HAlign_Left;
-            default:              return HAlign_Center;
+            case EGridEdge::North: return EOverviewMarkerAnchor::North;
+            case EGridEdge::East:  return EOverviewMarkerAnchor::East;
+            case EGridEdge::South: return EOverviewMarkerAnchor::South;
+            case EGridEdge::West:  return EOverviewMarkerAnchor::West;
+            default:               return EOverviewMarkerAnchor::Center;
         }
     }
 
-    EVerticalAlignment GetOverviewMarkerVerticalAlignment (const FGridLevelObjectData& Obj)
+    bool IsDoorMarker (const FGridLevelObjectData& Obj)
     {
-        if (!IsOverviewEdgeObject (Obj.Type))
-        {
-            return VAlign_Center;
-        }
-
-        switch (Obj.Edge)
-        {
-            case EGridEdge::North: return VAlign_Top;
-            case EGridEdge::South: return VAlign_Bottom;
-            default:               return VAlign_Center;
-        }
+        return Obj.Type == EGridLevelObjectType::Door;
     }
 
-    FVector2D GetOverviewMarkerSize (const FGridLevelObjectData& Obj)
+    FMargin GetOverviewMarkerPadding (EOverviewMarkerAnchor Anchor, bool bDoorMarker)
     {
-        if (!IsOverviewEdgeObject (Obj.Type))
+        switch (Anchor)
         {
-            return FVector2D (4.f, 4.f);
-        }
+            case EOverviewMarkerAnchor::North:
+                return bDoorMarker ? FMargin (3.f, 2.f, 0.f, 0.f) : FMargin (6.f, 2.f, 0.f, 0.f);
 
-        switch (Obj.Edge)
-        {
-            case EGridEdge::East:
-            case EGridEdge::West:
-                return FVector2D (3.f, 8.f);
+            case EOverviewMarkerAnchor::East:
+                return bDoorMarker ? FMargin (14.f, 3.f, 0.f, 0.f) : FMargin (14.f, 6.f, 0.f, 0.f);
 
+            case EOverviewMarkerAnchor::South:
+                return bDoorMarker ? FMargin (3.f, 14.f, 0.f, 0.f) : FMargin (6.f, 14.f, 0.f, 0.f);
+
+            case EOverviewMarkerAnchor::West:
+                return bDoorMarker ? FMargin (2.f, 3.f, 0.f, 0.f) : FMargin (2.f, 6.f, 0.f, 0.f);
+
+            case EOverviewMarkerAnchor::Center:
             default:
-                return FVector2D (8.f, 3.f);
+                return FMargin (7.f, 7.f, 0.f, 0.f);
         }
+    }
+
+    FVector2D GetOverviewMarkerSize (EOverviewMarkerAnchor Anchor, bool bDoorMarker)
+    {
+        switch (Anchor)
+        {
+            case EOverviewMarkerAnchor::North:
+            case EOverviewMarkerAnchor::South:
+                return bDoorMarker ? FVector2D (12.f, 2.f) : FVector2D (6.f, 2.f);
+
+            case EOverviewMarkerAnchor::East:
+            case EOverviewMarkerAnchor::West:
+                return bDoorMarker ? FVector2D (2.f, 12.f) : FVector2D (2.f, 6.f);
+
+            case EOverviewMarkerAnchor::Center:
+            default:
+                return FVector2D (4.f, 4.f);
+        }
+    }
+
+    void AddOverviewOutline (const TSharedRef<SOverlay>& CellOverlay, const FSlateColor& OutlineColor)
+    {
+        auto AddOutlineStrip = [&CellOverlay, &OutlineColor] (float X, float Y, float Width, float Height)
+        {
+            CellOverlay->AddSlot ()
+            .HAlign (HAlign_Left)
+            .VAlign (VAlign_Top)
+            .Padding (FMargin (X, Y, 0.f, 0.f))
+            [
+                SNew (SBox)
+                    .WidthOverride (Width)
+                    .HeightOverride (Height)
+                    [
+                        SNew (SBorder)
+                            .Padding (0.f)
+                            .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+                            .BorderBackgroundColor (OutlineColor)
+                    ]
+            ];
+        };
+
+        AddOutlineStrip (0.f, 0.f, 18.f, 1.f);
+        AddOutlineStrip (0.f, 17.f, 18.f, 1.f);
+        AddOutlineStrip (0.f, 0.f, 1.f, 18.f);
+        AddOutlineStrip (17.f, 0.f, 1.f, 18.f);
     }
 }
 
@@ -254,53 +299,61 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
     const bool bSelectedObjectCell = SelectedObject &&
         SelectedObject->CellX == CellX &&
         SelectedObject->CellY == CellY;
+    const bool bExistingCell = CellData && CellData->CellType != EGridCellType::Empty;
 
-    const bool bHasSpecialOutline = bSelectedCell || bSelectedObjectCell || ObjectCount > 1;
-
+    const bool bHasSpecialOutline = bExistingCell && (bSelectedCell || bSelectedObjectCell || ObjectCount > 1);
+    const FSlateColor FillColor = GetOverviewCellColor (CellData);
     const FSlateColor OutlineColor = bSelectedCell
         ? FSlateColor (GetOverviewSelectedCellOutlineColor ())
         : bSelectedObjectCell
         ? FSlateColor (GetOverviewSelectedObjectOutlineColor ())
         : ObjectCount > 1
         ? FSlateColor (GetOverviewMultiObjectOutlineColor ())
-        : FSlateColor (GetOverviewDefaultOutlineColor ());
+        : FillColor;
 
-    const FSlateColor FillColor = GetOverviewCellColor (CellData);
-    const float OutlinePadding = bHasSpecialOutline ? 2.f : 0.f;
-    const float InnerCellSize = bHasSpecialOutline ? 14.f : 18.f;
+    TSharedRef<SOverlay> CellOverlay = SNew (SOverlay);
+
+    CellOverlay->AddSlot ()
+    [
+        SNew (SBorder)
+            .Padding (0.f)
+            .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+            .BorderBackgroundColor (FillColor)
+    ];
+
+    if (bExistingCell)
+    {
+        CellOverlay->AddSlot ()
+        [
+            BuildCellObjectMarkers (CellObjects)
+        ];
+    }
+
+    if (bHasSpecialOutline)
+    {
+        AddOverviewOutline (CellOverlay, OutlineColor);
+    }
 
     return SNew (SBox)
         .WidthOverride (18.f)
         .HeightOverride (18.f)
         [
-            SNew (SBorder)
-            .Padding (OutlinePadding)
-            .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
-            .BorderBackgroundColor (bHasSpecialOutline ? OutlineColor : FillColor)
+            SNew (SButton)
+            .ButtonStyle (&FCoreStyle::Get ().GetWidgetStyle<FButtonStyle> ("NoBorder"))
+            .ButtonColorAndOpacity (FLinearColor::White)
+            .ContentPadding (FMargin (0.f))
+            .ToolTipText (GetOverviewCellTooltipText (CellX, CellY))
+            .OnClicked_Lambda ([this, CellX, CellY] () -> FReply
+            {
+                return OnOverviewCellClicked (CellX, CellY);
+            })
             [
-                SNew (SButton)
-                    .ButtonStyle (&FCoreStyle::Get ().GetWidgetStyle<FButtonStyle> ("NoBorder"))
-                    .ButtonColorAndOpacity (FillColor)
-                    .ContentPadding (FMargin (0.f))
-                    .ToolTipText (GetOverviewCellTooltipText (CellX, CellY))
-                    .OnClicked_Lambda ([this, CellX, CellY] () -> FReply
-                {
-                    return OnOverviewCellClicked (CellX, CellY);
-                })
-                [
-                    SNew (SBorder)
-                        .Padding (0.f)
-                        .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
-                        .BorderBackgroundColor (FillColor)
-                        [
-                            SNew (SBox)
-                                .WidthOverride (InnerCellSize)
-                                .HeightOverride (InnerCellSize)
-                                [
-                                    BuildCellObjectMarkers (CellObjects)
-                                ]
-                        ]
-                ]
+                SNew (SBox)
+                    .WidthOverride (18.f)
+                    .HeightOverride (18.f)
+                    [
+                        CellOverlay
+                    ]
             ]
         ];
 }
@@ -309,20 +362,69 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
 {
     TSharedRef<SOverlay> MarkerOverlay = SNew (SOverlay);
 
-    const int32 MaxMarkerCount = FMath::Min (CellObjects.Num (), 3);
-    for (int32 MarkerIndex = 0; MarkerIndex < MaxMarkerCount; ++MarkerIndex)
+    bool bHasNorthMarker = false;
+    bool bHasEastMarker = false;
+    bool bHasSouthMarker = false;
+    bool bHasWestMarker = false;
+    bool bHasCenterMarker = false;
+    bool bNorthMarkerIsDoor = false;
+    bool bEastMarkerIsDoor = false;
+    bool bSouthMarkerIsDoor = false;
+    bool bWestMarkerIsDoor = false;
+
+    for (const FGridLevelObjectData* Obj : CellObjects)
     {
-        const FGridLevelObjectData* Obj = CellObjects[MarkerIndex];
         if (!Obj)
         {
             continue;
         }
 
-        const FVector2D MarkerSize = GetOverviewMarkerSize (*Obj);
+        const EOverviewMarkerAnchor MarkerAnchor = GetOverviewMarkerAnchor (*Obj);
+        bool* bAnchorAlreadyUsed = nullptr;
+        bool* bAnchorUsesDoorGeometry = nullptr;
+        switch (MarkerAnchor)
+        {
+            case EOverviewMarkerAnchor::North:
+                bAnchorAlreadyUsed = &bHasNorthMarker;
+                bAnchorUsesDoorGeometry = &bNorthMarkerIsDoor;
+                break;
+
+            case EOverviewMarkerAnchor::East:
+                bAnchorAlreadyUsed = &bHasEastMarker;
+                bAnchorUsesDoorGeometry = &bEastMarkerIsDoor;
+                break;
+
+            case EOverviewMarkerAnchor::South:
+                bAnchorAlreadyUsed = &bHasSouthMarker;
+                bAnchorUsesDoorGeometry = &bSouthMarkerIsDoor;
+                break;
+
+            case EOverviewMarkerAnchor::West:
+                bAnchorAlreadyUsed = &bHasWestMarker;
+                bAnchorUsesDoorGeometry = &bWestMarkerIsDoor;
+                break;
+
+            case EOverviewMarkerAnchor::Center:
+            default:
+                bAnchorAlreadyUsed = &bHasCenterMarker;
+                break;
+        }
+
+        *bAnchorAlreadyUsed = true;
+        if (bAnchorUsesDoorGeometry && IsDoorMarker (*Obj))
+        {
+            *bAnchorUsesDoorGeometry = true;
+        }
+    }
+
+    auto AddMarker = [&MarkerOverlay] (EOverviewMarkerAnchor MarkerAnchor, bool bDoorMarker)
+    {
+        const FVector2D MarkerSize = GetOverviewMarkerSize (MarkerAnchor, bDoorMarker);
 
         MarkerOverlay->AddSlot ()
-        .HAlign (GetOverviewMarkerHorizontalAlignment (*Obj))
-        .VAlign (GetOverviewMarkerVerticalAlignment (*Obj))
+        .HAlign (HAlign_Left)
+        .VAlign (VAlign_Top)
+        .Padding (GetOverviewMarkerPadding (MarkerAnchor, bDoorMarker))
         [
             SNew (SBox)
                 .WidthOverride (MarkerSize.X)
@@ -334,19 +436,31 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
                         .BorderBackgroundColor (FSlateColor (GetOverviewObjectMarkerColor ()))
                 ]
         ];
+    };
+
+    if (bHasNorthMarker)
+    {
+        AddMarker (EOverviewMarkerAnchor::North, bNorthMarkerIsDoor);
     }
 
-    if (CellObjects.Num () > MaxMarkerCount)
+    if (bHasEastMarker)
     {
-        MarkerOverlay->AddSlot ()
-        .HAlign (HAlign_Right)
-        .VAlign (VAlign_Bottom)
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("+")))
-                .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
-                .ColorAndOpacity (FSlateColor (GetOverviewObjectMarkerColor ()))
-        ];
+        AddMarker (EOverviewMarkerAnchor::East, bEastMarkerIsDoor);
+    }
+
+    if (bHasSouthMarker)
+    {
+        AddMarker (EOverviewMarkerAnchor::South, bSouthMarkerIsDoor);
+    }
+
+    if (bHasWestMarker)
+    {
+        AddMarker (EOverviewMarkerAnchor::West, bWestMarkerIsDoor);
+    }
+
+    if (bHasCenterMarker)
+    {
+        AddMarker (EOverviewMarkerAnchor::Center, false);
     }
 
     return MarkerOverlay;
@@ -426,8 +540,11 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewLegendSwatch (cons
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMarkerLegendSwatch (const FText& Label, bool bEdgeMarker) const
 {
     const FVector2D MarkerSize = bEdgeMarker
-        ? FVector2D (8.f, 3.f)
+        ? GetOverviewMarkerSize (EOverviewMarkerAnchor::North, false)
         : FVector2D (4.f, 4.f);
+    const FMargin MarkerPadding = bEdgeMarker
+        ? GetOverviewMarkerPadding (EOverviewMarkerAnchor::North, false)
+        : GetOverviewMarkerPadding (EOverviewMarkerAnchor::Center, false);
 
     return SNew (SHorizontalBox)
 
@@ -442,14 +559,15 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMarkerLegendSwatch
                 .BorderBackgroundColor (FSlateColor (GetOverviewExistingCellColor ()))
                 [
                     SNew (SBox)
-                        .WidthOverride (10.f)
-                        .HeightOverride (10.f)
+                        .WidthOverride (18.f)
+                        .HeightOverride (18.f)
                         [
                             SNew (SOverlay)
 
                             + SOverlay::Slot ()
-                            .HAlign (HAlign_Center)
-                            .VAlign (bEdgeMarker ? VAlign_Top : VAlign_Center)
+                            .HAlign (HAlign_Left)
+                            .VAlign (VAlign_Top)
+                            .Padding (MarkerPadding)
                             [
                                 SNew (SBox)
                                     .WidthOverride (MarkerSize.X)
