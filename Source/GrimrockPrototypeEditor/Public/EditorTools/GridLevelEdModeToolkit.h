@@ -3,14 +3,9 @@
 #include "CoreMinimal.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridTypes.h"
-#include "Core/GridObjectBehavior.h"
 
 #include "Styling/SlateBrush.h"
-#include "Styling/SlateColor.h"
 #include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SNumericEntryBox.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SComboBox.h"
 
 #if WITH_EDITOR
 
@@ -51,8 +46,6 @@ private:
     TSharedRef<SWidget> BuildPaletteSection ();
     TSharedRef<SWidget> BuildPaletteTile (const FGridObjectPaletteEntry& Entry);
 
-    TSharedRef<SWidget> BuildBehaviorEditorSection ();
-
     TSharedRef<SWidget> BuildValidationSection ();
 
     FReply OnToolClicked (int32 ToolValue);
@@ -66,41 +59,15 @@ private:
     FText GetSelectedObjectStatusText () const;
     FText GetValidationStatusText () const;
 
-private:
-    void BuildTriggerModeOptions ();
-    void SyncEditedBehaviorFromSelection ();
-
-    FReply OnApplyBehaviorClicked ();
-
-    TOptional<float> GetEditedDelay () const;
-    TOptional<float> GetEditedDuration () const;
-
-    ECheckBoxState GetEditedInvertLinksCheckState () const;
-    ECheckBoxState GetEditedFireOnEnterCheckState () const;
-    ECheckBoxState GetEditedFireOnExitCheckState () const;
-
-    void OnEditedDelayChanged (float NewValue);
-    void OnEditedDurationChanged (float NewValue);
-    void OnEditedInvertLinksChanged (ECheckBoxState NewState);
-    void OnEditedFireOnEnterChanged (ECheckBoxState NewState);
-    void OnEditedFireOnExitChanged (ECheckBoxState NewState);
-
-    TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
-    void OnTriggerModeSelectionChanged (TSharedPtr<EGridObjectTriggerMode> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedTriggerModeText () const;
-
     const FSlateBrush* GetOrCreateBrush (UTexture2D* Texture, float Size);
 
 private:
     TSharedPtr<SVerticalBox> ToolkitRoot;
     TSharedPtr<SWidget> ToolkitWidget;
 
-    FGuid CachedBehaviorObjectId;
-    FGridObjectBehaviorParams EditedBehavior;
     TArray<FGridLevelValidationMessage> ValidationMessages;
     bool bValidationHasRun = false;
 
-    TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
     TMap<FString, TSharedPtr<FSlateBrush>> CachedIconBrushes;
 };
 

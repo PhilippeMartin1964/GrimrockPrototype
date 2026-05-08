@@ -5,6 +5,7 @@
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/Widgets/SGridEditorBehaviorPanel.h"
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
@@ -24,9 +25,6 @@
 #include "Widgets/Text/STextBlock.h"
 
 #include "Widgets/Input/SButton.h"
-#include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SComboBox.h"
-#include "Widgets/Input/SNumericEntryBox.h"
 
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -87,7 +85,6 @@ namespace
 
 void FGridLevelEdModeToolkit::Init (const TSharedPtr<IToolkitHost>& InitToolkitHost)
 {
-    BuildTriggerModeOptions ();
     ToolkitWidget = BuildToolkitWidget ();
     FModeToolkit::Init (InitToolkitHost);
 }
@@ -201,7 +198,6 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                     }))
                     .OnRequestRefresh (FOnGridEditorObjectInspectorRequestRefresh::CreateLambda ([this] ()
                     {
-                        CachedBehaviorObjectId.Invalidate ();
                         RefreshPalette ();
                     })))
         ];
@@ -221,7 +217,18 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                 .AutoHeight ()
                 .Padding (0.f, 0.f, 0.f, 8.f)
                 [
-                    BuildPanelSection (FText::FromString (TEXT ("BEHAVIOR EDITOR")), BuildBehaviorEditorSection ())
+                    BuildPanelSection (
+                        FText::FromString (TEXT ("BEHAVIOR EDITOR")),
+                        SNew (SGridEditorBehaviorPanel)
+                            .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                            .OnGetEditorActor (FOnGetGridEditorBehaviorActor::CreateLambda ([this] ()
+                            {
+                                return GetEditorActor ();
+                            }))
+                            .OnRequestRefresh (FOnGridEditorBehaviorRequestRefresh::CreateLambda ([this] ()
+                            {
+                                RefreshPalette ();
+                            })))
                 ];
         }
 
@@ -686,20 +693,6 @@ void FGridLevelEdModeToolkit::CountValidationErrorsWarnings (int32& OutErrorCoun
     }
 }
 
-FReply FGridLevelEdModeToolkit::OnApplyBehaviorClicked ()
-{
-    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-    {
-        EditorActor->Modify ();
-
-        if (EditorActor->ApplyBehaviorToSelectedObject (EditedBehavior))
-        {
-            RefreshPalette ();
-        }
-    }
-
-    return FReply::Handled ();
-}
 
 FReply FGridLevelEdModeToolkit::OnValidateLevelClicked ()
 {
@@ -805,246 +798,6 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
 }
 
 
-void FGridLevelEdModeToolkit::BuildTriggerModeOptions ()
-{
-    TriggerModeOptions.Reset ();
-
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Instant));
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Hold));
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Toggle));
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::OneShot));
-}
-
-void FGridLevelEdModeToolkit::SyncEditedBehaviorFromSelection ()
-{
-    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
-    if (!EditorActor)
-    {
-        CachedBehaviorObjectId.Invalidate ();
-        EditedBehavior = FGridObjectBehaviorParams ();
-        return;
-    }
-
-    const FGridLevelObjectData* Obj = EditorActor->GetSelectedObjectData ();
-    if (!Obj)
-    {
-        CachedBehaviorObjectId.Invalidate ();
-        EditedBehavior = FGridObjectBehaviorParams ();
-        return;
-    }
-
-    if (CachedBehaviorObjectId != Obj->ObjectId)
-    {
-        CachedBehaviorObjectId = Obj->ObjectId;
-        EditedBehavior = Obj->Behavior;
-    }
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildBehaviorEditorSection ()
-{
-    SyncEditedBehaviorFromSelection ();
-
-    return SNew (SVerticalBox)
-
-        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-        [
-            SNew (SHorizontalBox)
-
-                + SHorizontalBox::Slot ().FillWidth (0.55f).Padding (0.f, 0.f, 12.f, 0.f)
-                [
-                    SNew (SVerticalBox)
-
-                        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-                        [
-                            SNew (SHorizontalBox)
-
-                                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Trigger Mode")))
-                                ]
-
-                                + SHorizontalBox::Slot ().FillWidth (1.f)
-                                [
-                                    SNew (SComboBox<TSharedPtr<EGridObjectTriggerMode>>)
-                                        .OptionsSource (&TriggerModeOptions)
-                                        .OnGenerateWidget (this, &FGridLevelEdModeToolkit::MakeTriggerModeComboWidget)
-                                        .OnSelectionChanged (this, &FGridLevelEdModeToolkit::OnTriggerModeSelectionChanged)
-                                        [
-                                            SNew (STextBlock)
-                                                .Text_Lambda ([this] ()
-                                            {
-                                                return GetSelectedTriggerModeText ();
-                                            })
-                                        ]
-                                ]
-                        ]
-
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-                        [
-                            SNew (SHorizontalBox)
-
-                                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Delay (s)")))
-                                ]
-
-                                + SHorizontalBox::Slot ().FillWidth (1.f)
-                                [
-                                    SNew (SNumericEntryBox<float>)
-                                        .MinValue (0.f)
-                                        .Value (this, &FGridLevelEdModeToolkit::GetEditedDelay)
-                                        .OnValueChanged (this, &FGridLevelEdModeToolkit::OnEditedDelayChanged)
-                                ]
-                        ]
-
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-                        [
-                            SNew (SHorizontalBox)
-
-                                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Duration (s)")))
-                                ]
-
-                                + SHorizontalBox::Slot ().FillWidth (1.f)
-                                [
-                                    SNew (SNumericEntryBox<float>)
-                                        .MinValue (0.f)
-                                        .Value (this, &FGridLevelEdModeToolkit::GetEditedDuration)
-                                        .OnValueChanged (this, &FGridLevelEdModeToolkit::OnEditedDurationChanged)
-                                ]
-                        ]
-
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
-                        [
-                            SNew (SButton)
-                                .Text (FText::FromString (TEXT ("APPLY BEHAVIOR")))
-                                .HAlign (HAlign_Center)
-                                .OnClicked (this, &FGridLevelEdModeToolkit::OnApplyBehaviorClicked)
-                        ]
-                ]
-
-            + SHorizontalBox::Slot ().FillWidth (0.45f)
-                [
-                    SNew (SVerticalBox)
-
-                        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-                        [
-                            SNew (SCheckBox)
-                                .IsChecked (this, &FGridLevelEdModeToolkit::GetEditedInvertLinksCheckState)
-                                .OnCheckStateChanged (this, &FGridLevelEdModeToolkit::OnEditedInvertLinksChanged)
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Invert Links")))
-                                ]
-                        ]
-
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-                        [
-                            SNew (SCheckBox)
-                                .IsChecked (this, &FGridLevelEdModeToolkit::GetEditedFireOnEnterCheckState)
-                                .OnCheckStateChanged (this, &FGridLevelEdModeToolkit::OnEditedFireOnEnterChanged)
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Fire On Enter")))
-                                ]
-                        ]
-
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
-                        [
-                            SNew (SCheckBox)
-                                .IsChecked (this, &FGridLevelEdModeToolkit::GetEditedFireOnExitCheckState)
-                                .OnCheckStateChanged (this, &FGridLevelEdModeToolkit::OnEditedFireOnExitChanged)
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Fire On Exit")))
-                                ]
-                        ]
-                ]
-        ];
-}
-
-TOptional<float> FGridLevelEdModeToolkit::GetEditedDelay () const
-{
-    return EditedBehavior.Delay;
-}
-
-TOptional<float> FGridLevelEdModeToolkit::GetEditedDuration () const
-{
-    return EditedBehavior.Duration;
-}
-
-void FGridLevelEdModeToolkit::OnEditedDelayChanged (float NewValue)
-{
-    EditedBehavior.Delay = FMath::Max (0.f, NewValue);
-}
-
-void FGridLevelEdModeToolkit::OnEditedDurationChanged (float NewValue)
-{
-    EditedBehavior.Duration = FMath::Max (0.f, NewValue);
-}
-
-ECheckBoxState FGridLevelEdModeToolkit::GetEditedInvertLinksCheckState () const
-{
-    return EditedBehavior.bInvertLinks ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-ECheckBoxState FGridLevelEdModeToolkit::GetEditedFireOnEnterCheckState () const
-{
-    return EditedBehavior.bFireOnEnter ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-ECheckBoxState FGridLevelEdModeToolkit::GetEditedFireOnExitCheckState () const
-{
-    return EditedBehavior.bFireOnExit ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void FGridLevelEdModeToolkit::OnEditedInvertLinksChanged (ECheckBoxState NewState)
-{
-    EditedBehavior.bInvertLinks = NewState == ECheckBoxState::Checked;
-}
-
-void FGridLevelEdModeToolkit::OnEditedFireOnEnterChanged (ECheckBoxState NewState)
-{
-    EditedBehavior.bFireOnEnter = NewState == ECheckBoxState::Checked;
-}
-
-void FGridLevelEdModeToolkit::OnEditedFireOnExitChanged (ECheckBoxState NewState)
-{
-    EditedBehavior.bFireOnExit = NewState == ECheckBoxState::Checked;
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::MakeTriggerModeComboWidget (
-    TSharedPtr<EGridObjectTriggerMode> Item) const
-{
-    if (!Item.IsValid ())
-    {
-        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
-    }
-
-    const UEnum* Enum = StaticEnum<EGridObjectTriggerMode> ();
-    const FText Text = Enum
-        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (*Item))
-        : FText::FromString (TEXT ("Unknown"));
-
-    return SNew (STextBlock).Text (Text);
-}
-
-void FGridLevelEdModeToolkit::OnTriggerModeSelectionChanged (
-    TSharedPtr<EGridObjectTriggerMode> NewValue,
-    ESelectInfo::Type SelectInfo)
-{
-    if (NewValue.IsValid ())
-    {
-        EditedBehavior.TriggerMode = *NewValue;
-    }
-}
-
-FText FGridLevelEdModeToolkit::GetSelectedTriggerModeText () const
-{
-    const UEnum* Enum = StaticEnum<EGridObjectTriggerMode> ();
-
-    return Enum
-        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (EditedBehavior.TriggerMode))
-        : FText::FromString (TEXT ("Unknown"));
-}
 
 const FSlateBrush* FGridLevelEdModeToolkit::GetOrCreateBrush (UTexture2D* Texture, float Size)
 {
