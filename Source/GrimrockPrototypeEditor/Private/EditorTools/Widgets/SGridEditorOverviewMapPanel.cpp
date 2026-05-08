@@ -17,6 +17,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
+#include "Widgets/SOverlay.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/Layout/SWrapBox.h"
 
@@ -36,7 +37,7 @@ namespace
 
     FLinearColor GetOverviewExistingCellColor ()
     {
-        return FLinearColor (0.82f, 0.84f, 0.86f, 1.f);
+        return FLinearColor (0.96f, 0.96f, 0.94f, 1.f);
     }
 
     FLinearColor GetOverviewSelectedCellOutlineColor ()
@@ -59,6 +60,11 @@ namespace
         return FLinearColor (0.08f, 0.08f, 0.08f, 1.f);
     }
 
+    FLinearColor GetOverviewObjectMarkerColor ()
+    {
+        return FLinearColor (0.02f, 0.02f, 0.02f, 1.f);
+    }
+
     FSlateColor GetOverviewCellColor (const FGridLevelCellData* CellData)
     {
         if (!CellData)
@@ -71,45 +77,66 @@ namespace
             : FSlateColor (GetOverviewExistingCellColor ());
     }
 
-    int32 GetOverviewObjectPriority (EGridLevelObjectType Type)
-    {
-        switch (Type)
-        {
-            case EGridLevelObjectType::Door:          return 100;
-            case EGridLevelObjectType::Receptacle:    return 90;
-            case EGridLevelObjectType::Trigger:       return 80;
-            case EGridLevelObjectType::Button:        return 70;
-            case EGridLevelObjectType::Lever:         return 65;
-            case EGridLevelObjectType::PressurePlate: return 60;
-            case EGridLevelObjectType::Teleporter:    return 55;
-            case EGridLevelObjectType::MonsterSpawn:  return 50;
-            case EGridLevelObjectType::ItemSpawn:     return 45;
-            case EGridLevelObjectType::Light:         return 40;
-            case EGridLevelObjectType::Decoration:    return 30;
-            default:                                  return 0;
-        }
-    }
-
-    FText GetOverviewObjectGlyph (EGridLevelObjectType Type, FName Tag)
+    bool IsOverviewEdgeObject (EGridLevelObjectType Type)
     {
         switch (Type)
         {
             case EGridLevelObjectType::Door:
-                return Tag == FName (TEXT ("Secret")) || Tag == FName (TEXT ("SecretDoor"))
-                    ? FText::FromString (TEXT ("S"))
-                    : FText::FromString (TEXT ("D"));
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::Receptacle:
+                return true;
 
-            case EGridLevelObjectType::Button:        return FText::FromString (TEXT ("B"));
-            case EGridLevelObjectType::Lever:         return FText::FromString (TEXT ("L"));
-            case EGridLevelObjectType::PressurePlate: return FText::FromString (TEXT ("P"));
-            case EGridLevelObjectType::Trigger:       return FText::FromString (TEXT ("T"));
-            case EGridLevelObjectType::Receptacle:    return FText::FromString (TEXT ("R"));
-            case EGridLevelObjectType::Teleporter:    return FText::FromString (TEXT ("X"));
-            case EGridLevelObjectType::MonsterSpawn:  return FText::FromString (TEXT ("M"));
-            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("I"));
-            case EGridLevelObjectType::Light:         return FText::FromString (TEXT ("*"));
-            case EGridLevelObjectType::Decoration:    return FText::FromString (TEXT ("o"));
-            default:                                  return FText::GetEmpty ();
+            default:
+                return false;
+        }
+    }
+
+    EHorizontalAlignment GetOverviewMarkerHorizontalAlignment (const FGridLevelObjectData& Obj)
+    {
+        if (!IsOverviewEdgeObject (Obj.Type))
+        {
+            return HAlign_Center;
+        }
+
+        switch (Obj.Edge)
+        {
+            case EGridEdge::East: return HAlign_Right;
+            case EGridEdge::West: return HAlign_Left;
+            default:              return HAlign_Center;
+        }
+    }
+
+    EVerticalAlignment GetOverviewMarkerVerticalAlignment (const FGridLevelObjectData& Obj)
+    {
+        if (!IsOverviewEdgeObject (Obj.Type))
+        {
+            return VAlign_Center;
+        }
+
+        switch (Obj.Edge)
+        {
+            case EGridEdge::North: return VAlign_Top;
+            case EGridEdge::South: return VAlign_Bottom;
+            default:               return VAlign_Center;
+        }
+    }
+
+    FVector2D GetOverviewMarkerSize (const FGridLevelObjectData& Obj)
+    {
+        if (!IsOverviewEdgeObject (Obj.Type))
+        {
+            return FVector2D (4.f, 4.f);
+        }
+
+        switch (Obj.Edge)
+        {
+            case EGridEdge::East:
+            case EGridEdge::West:
+                return FVector2D (3.f, 8.f);
+
+            default:
+                return FVector2D (8.f, 3.f);
         }
     }
 }
@@ -190,13 +217,6 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection ()
             BuildOverviewColorLegend ()
         ]
 
-        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("Legend: D Door, S Secret Door, B Button, L Lever, P Plate, T Trigger, R Receptacle, X Teleporter, M/I Spawn.")))
-                .AutoWrapText (true)
-        ]
-
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
         [
             BuildSelectedCellSection ()
@@ -213,9 +233,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
     const bool bValidCell = LevelAsset && LevelAsset->IsValidCoord (CellX, CellY);
     const FGridLevelCellData* CellData = bValidCell ? &LevelAsset->GetCell (CellX, CellY) : nullptr;
 
-    const FGridLevelObjectData* DisplayObject = nullptr;
-    int32 BestPriority = INDEX_NONE;
-    int32 ObjectCount = 0;
+    TArray<const FGridLevelObjectData*> CellObjects;
     if (LevelAsset)
     {
         for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
@@ -225,16 +243,11 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
                 continue;
             }
 
-            ++ObjectCount;
-            const int32 Priority = GetOverviewObjectPriority (Obj.Type);
-            if (!DisplayObject || Priority > BestPriority)
-            {
-                DisplayObject = &Obj;
-                BestPriority = Priority;
-            }
+            CellObjects.Add (&Obj);
         }
     }
 
+    const int32 ObjectCount = CellObjects.Num ();
     const bool bSelectedCell = CurrentEditorActor &&
         CurrentEditorActor->SelectedCellX == CellX &&
         CurrentEditorActor->SelectedCellY == CellY;
@@ -242,13 +255,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
         SelectedObject->CellX == CellX &&
         SelectedObject->CellY == CellY;
 
-    FText GlyphText = DisplayObject
-        ? GetOverviewObjectGlyph (DisplayObject->Type, DisplayObject->Tag)
-        : FText::GetEmpty ();
-    if (ObjectCount > 1 && !GlyphText.IsEmpty ())
-    {
-        GlyphText = FText::FromString (FString::Printf (TEXT ("%s+"), *GlyphText.ToString ()));
-    }
+    const bool bHasSpecialOutline = bSelectedCell || bSelectedObjectCell || ObjectCount > 1;
 
     const FSlateColor OutlineColor = bSelectedCell
         ? FSlateColor (GetOverviewSelectedCellOutlineColor ())
@@ -259,17 +266,20 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
         : FSlateColor (GetOverviewDefaultOutlineColor ());
 
     const FSlateColor FillColor = GetOverviewCellColor (CellData);
+    const float OutlinePadding = bHasSpecialOutline ? 2.f : 0.f;
+    const float InnerCellSize = bHasSpecialOutline ? 14.f : 18.f;
 
     return SNew (SBox)
         .WidthOverride (18.f)
         .HeightOverride (18.f)
         [
             SNew (SBorder)
-            .Padding (bSelectedCell || bSelectedObjectCell ? 2.f : 1.f)
+            .Padding (OutlinePadding)
             .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
-            .BorderBackgroundColor (OutlineColor)
+            .BorderBackgroundColor (bHasSpecialOutline ? OutlineColor : FillColor)
             [
                 SNew (SButton)
+                    .ButtonStyle (&FCoreStyle::Get ().GetWidgetStyle<FButtonStyle> ("NoBorder"))
                     .ButtonColorAndOpacity (FillColor)
                     .ContentPadding (FMargin (0.f))
                     .ToolTipText (GetOverviewCellTooltipText (CellX, CellY))
@@ -278,19 +288,68 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
                     return OnOverviewCellClicked (CellX, CellY);
                 })
                 [
-                    SNew (SBox)
-                        .WidthOverride (14.f)
-                        .HeightOverride (14.f)
+                    SNew (SBorder)
+                        .Padding (0.f)
+                        .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+                        .BorderBackgroundColor (FillColor)
                         [
-                            SNew (STextBlock)
-                                .Text (GlyphText)
-                                .Justification (ETextJustify::Center)
-                                .ColorAndOpacity (FSlateColor (FLinearColor::White))
-                                .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
+                            SNew (SBox)
+                                .WidthOverride (InnerCellSize)
+                                .HeightOverride (InnerCellSize)
+                                [
+                                    BuildCellObjectMarkers (CellObjects)
+                                ]
                         ]
                 ]
             ]
         ];
+}
+
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const TArray<const FGridLevelObjectData*>& CellObjects) const
+{
+    TSharedRef<SOverlay> MarkerOverlay = SNew (SOverlay);
+
+    const int32 MaxMarkerCount = FMath::Min (CellObjects.Num (), 3);
+    for (int32 MarkerIndex = 0; MarkerIndex < MaxMarkerCount; ++MarkerIndex)
+    {
+        const FGridLevelObjectData* Obj = CellObjects[MarkerIndex];
+        if (!Obj)
+        {
+            continue;
+        }
+
+        const FVector2D MarkerSize = GetOverviewMarkerSize (*Obj);
+
+        MarkerOverlay->AddSlot ()
+        .HAlign (GetOverviewMarkerHorizontalAlignment (*Obj))
+        .VAlign (GetOverviewMarkerVerticalAlignment (*Obj))
+        [
+            SNew (SBox)
+                .WidthOverride (MarkerSize.X)
+                .HeightOverride (MarkerSize.Y)
+                [
+                    SNew (SBorder)
+                        .Padding (0.f)
+                        .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+                        .BorderBackgroundColor (FSlateColor (GetOverviewObjectMarkerColor ()))
+                ]
+        ];
+    }
+
+    if (CellObjects.Num () > MaxMarkerCount)
+    {
+        MarkerOverlay->AddSlot ()
+        .HAlign (HAlign_Right)
+        .VAlign (VAlign_Bottom)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("+")))
+                .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
+                .ColorAndOpacity (FSlateColor (GetOverviewObjectMarkerColor ()))
+        ];
+    }
+
+    return MarkerOverlay;
 }
 
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewColorLegend () const
@@ -320,6 +379,16 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewColorLegend () con
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
         [
             BuildOverviewLegendSwatch (FText::FromString (TEXT ("Multiple Objects")), GetOverviewMultiObjectOutlineColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewMarkerLegendSwatch (FText::FromString (TEXT ("Edge marker")), true)
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewMarkerLegendSwatch (FText::FromString (TEXT ("Center marker")), false)
         ];
 }
 
@@ -340,6 +409,59 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewLegendSwatch (cons
                     SNew (SBox)
                         .WidthOverride (10.f)
                         .HeightOverride (10.f)
+                ]
+        ]
+
+        + SHorizontalBox::Slot ()
+        .AutoWidth ()
+        .VAlign (VAlign_Center)
+        [
+            SNew (STextBlock)
+                .Text (Label)
+                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 7))
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+        ];
+}
+
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMarkerLegendSwatch (const FText& Label, bool bEdgeMarker) const
+{
+    const FVector2D MarkerSize = bEdgeMarker
+        ? FVector2D (8.f, 3.f)
+        : FVector2D (4.f, 4.f);
+
+    return SNew (SHorizontalBox)
+
+        + SHorizontalBox::Slot ()
+        .AutoWidth ()
+        .VAlign (VAlign_Center)
+        .Padding (0.f, 0.f, 3.f, 0.f)
+        [
+            SNew (SBorder)
+                .Padding (1.f)
+                .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+                .BorderBackgroundColor (FSlateColor (GetOverviewExistingCellColor ()))
+                [
+                    SNew (SBox)
+                        .WidthOverride (10.f)
+                        .HeightOverride (10.f)
+                        [
+                            SNew (SOverlay)
+
+                            + SOverlay::Slot ()
+                            .HAlign (HAlign_Center)
+                            .VAlign (bEdgeMarker ? VAlign_Top : VAlign_Center)
+                            [
+                                SNew (SBox)
+                                    .WidthOverride (MarkerSize.X)
+                                    .HeightOverride (MarkerSize.Y)
+                                    [
+                                        SNew (SBorder)
+                                            .Padding (0.f)
+                                            .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+                                            .BorderBackgroundColor (FSlateColor (GetOverviewObjectMarkerColor ()))
+                                    ]
+                            ]
+                        ]
                 ]
         ]
 
