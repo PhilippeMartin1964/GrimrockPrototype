@@ -177,10 +177,7 @@ bool FGridLevelEdMode::UpdateHoverFromMouse (
         EditorActor->UpdateHoveredObjectFromWorldPoint (HitPoint);
     }
 
-    if (bGridHoverOk)
-    {
-        RefreshToolkitIfSelectionChanged (EditorActor);
-    }
+    RefreshToolkitIfObservedSelectionChanged (EditorActor);
 
     return bGridHoverOk;
 }
@@ -398,10 +395,10 @@ void FGridLevelEdMode::Enter ()
 {
     FEdMode::Enter ();
 
-    LastToolkitRefreshCellX = INDEX_NONE;
-    LastToolkitRefreshCellY = INDEX_NONE;
-    LastToolkitRefreshEdge = EGridEdge::None;
-    LastToolkitRefreshObjectId.Invalidate ();
+    LastObservedSelectedCellX = INDEX_NONE;
+    LastObservedSelectedCellY = INDEX_NONE;
+    LastObservedSelectedEdge = EGridEdge::None;
+    LastObservedSelectedObjectId.Invalidate ();
 
     if (!Toolkit.IsValid () && UsesToolkits ())
     {
@@ -452,7 +449,7 @@ bool FGridLevelEdMode::ShouldApplyPaintForCurrentSelection (const AGridLevelEdit
     return true;
 }
 
-void FGridLevelEdMode::RefreshToolkitIfSelectionChanged (const AGridLevelEditorActor* EditorActor) const
+void FGridLevelEdMode::RefreshToolkitIfObservedSelectionChanged (const AGridLevelEditorActor* EditorActor) const
 {
     if (!EditorActor || !Toolkit.IsValid ())
     {
@@ -460,20 +457,20 @@ void FGridLevelEdMode::RefreshToolkitIfSelectionChanged (const AGridLevelEditorA
     }
 
     const bool bSelectionChanged =
-        LastToolkitRefreshCellX != EditorActor->SelectedCellX ||
-        LastToolkitRefreshCellY != EditorActor->SelectedCellY ||
-        LastToolkitRefreshEdge != EditorActor->SelectedEdge ||
-        LastToolkitRefreshObjectId != EditorActor->LastSelectedObjectId;
+        LastObservedSelectedCellX != EditorActor->SelectedCellX ||
+        LastObservedSelectedCellY != EditorActor->SelectedCellY ||
+        LastObservedSelectedEdge != EditorActor->SelectedEdge ||
+        LastObservedSelectedObjectId != EditorActor->LastSelectedObjectId;
 
     if (!bSelectionChanged)
     {
         return;
     }
 
-    LastToolkitRefreshCellX = EditorActor->SelectedCellX;
-    LastToolkitRefreshCellY = EditorActor->SelectedCellY;
-    LastToolkitRefreshEdge = EditorActor->SelectedEdge;
-    LastToolkitRefreshObjectId = EditorActor->LastSelectedObjectId;
+    LastObservedSelectedCellX = EditorActor->SelectedCellX;
+    LastObservedSelectedCellY = EditorActor->SelectedCellY;
+    LastObservedSelectedEdge = EditorActor->SelectedEdge;
+    LastObservedSelectedObjectId = EditorActor->LastSelectedObjectId;
 
     Toolkit->RefreshPalette ();
 }
