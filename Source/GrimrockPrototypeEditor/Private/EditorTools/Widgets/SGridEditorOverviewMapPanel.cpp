@@ -2,6 +2,7 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 
@@ -21,13 +22,6 @@
 
 namespace
 {
-    FText GetEnumDisplayText (const UEnum* Enum, int64 Value)
-    {
-        return Enum
-            ? Enum->GetDisplayNameTextByValue (Value)
-            : FText::FromString (TEXT ("Unknown"));
-    }
-
     FText GetBooleanText (bool bValue)
     {
         return bValue
@@ -634,7 +628,7 @@ FText SGridEditorOverviewMapPanel::GetOverviewCellTooltipText (int32 CellX, int3
         FText::FromString (TEXT ("Cell X={0} Y={1}\nType: {2}\nCeiling: {3}\nBlocks Occupancy: {4}\nWalls: {5}\nObjects: {6}")),
         FText::AsNumber (CellX),
         FText::AsNumber (CellY),
-        GetEnumDisplayText (CellTypeEnum, static_cast<int64> (CellData.CellType)),
+        GridEditorWidgetHelpers::GetGridEnumDisplayText (CellTypeEnum, static_cast<int64> (CellData.CellType)),
         GetBooleanText (CellData.bHasCeiling),
         GetBooleanText (CellData.bBlocksOccupancy),
         GetCellWallSummaryText (CellData),
@@ -657,7 +651,7 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellSummaryText () const
         FText::FromString (TEXT ("X={0} Y={1} | Type: {2} | Walls: {3} | Objects: {4}")),
         FText::AsNumber (CurrentEditorActor->SelectedCellX),
         FText::AsNumber (CurrentEditorActor->SelectedCellY),
-        GetEnumDisplayText (CellTypeEnum, static_cast<int64> (CellData.CellType)),
+        GridEditorWidgetHelpers::GetGridEnumDisplayText (CellTypeEnum, static_cast<int64> (CellData.CellType)),
         GetCellWallSummaryText (CellData),
         GetCellObjectSummaryText (CurrentEditorActor->SelectedCellX, CurrentEditorActor->SelectedCellY));
 }
@@ -665,10 +659,10 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellSummaryText () const
 FText SGridEditorOverviewMapPanel::GetCellWallSummaryText (const FGridLevelCellData& CellData) const
 {
     const UEnum* WallTypeEnum = StaticEnum<EGridWallType> ();
-    const FText NorthText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.NorthWall));
-    const FText EastText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.EastWall));
-    const FText SouthText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.SouthWall));
-    const FText WestText = GetEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.WestWall));
+    const FText NorthText = GridEditorWidgetHelpers::GetGridEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.NorthWall));
+    const FText EastText = GridEditorWidgetHelpers::GetGridEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.EastWall));
+    const FText SouthText = GridEditorWidgetHelpers::GetGridEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.SouthWall));
+    const FText WestText = GridEditorWidgetHelpers::GetGridEnumDisplayText (WallTypeEnum, static_cast<int64> (CellData.WestWall));
 
     return FText::Format (
         FText::FromString (TEXT ("N={0}, E={1}, S={2}, W={3}")),
@@ -712,7 +706,7 @@ FText SGridEditorOverviewMapPanel::GetCellObjectSummaryText (int32 CellX, int32 
 
         ObjectSummaries.Add (FString::Printf (
             TEXT ("%s%s"),
-            *GetEnumDisplayText (TypeEnum, static_cast<int64> (Obj.Type)).ToString (),
+            *GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64> (Obj.Type)).ToString (),
             *Details));
     }
 

@@ -4,6 +4,7 @@
 
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
 #include "Core/GridObjectPaletteAsset.h"
@@ -70,31 +71,6 @@ namespace
             case EGridEditorTool::Link:        return FText::FromString (TEXT ("⛓"));
             default:                           return FText::FromString (TEXT ("?"));
         }
-    }
-
-    FText GetObjectGlyph (EGridLevelObjectType Type)
-    {
-        switch (Type)
-        {
-            case EGridLevelObjectType::Door:          return FText::FromString (TEXT ("▥"));
-            case EGridLevelObjectType::Button:        return FText::FromString (TEXT ("●"));
-            case EGridLevelObjectType::Lever:         return FText::FromString (TEXT ("◒"));
-            case EGridLevelObjectType::PressurePlate: return FText::FromString (TEXT ("▧"));
-            case EGridLevelObjectType::Teleporter:    return FText::FromString (TEXT ("◎"));
-            case EGridLevelObjectType::Trigger:       return FText::FromString (TEXT ("⌖"));
-            case EGridLevelObjectType::MonsterSpawn:  return FText::FromString (TEXT ("☠"));
-            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("◈"));
-            case EGridLevelObjectType::Decoration:    return FText::FromString (TEXT ("◉"));
-            case EGridLevelObjectType::Light:         return FText::FromString (TEXT ("♨"));
-            default:                                  return FText::FromString (TEXT ("?"));
-        }
-    }
-
-    FText GetEnumDisplayText (const UEnum* Enum, int64 Value)
-    {
-        return Enum
-            ? Enum->GetDisplayNameTextByValue (Value)
-            : FText::FromString (TEXT ("Unknown"));
     }
 
     FText GetValidationSeverityText (EGridLevelValidationSeverity Severity)
@@ -405,7 +381,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIconOrFallback (UTexture2D* Ic
 
     return SNew (SBox).WidthOverride (Size).HeightOverride (Size)
         .HAlign (HAlign_Center).VAlign (VAlign_Center)
-        [SNew (STextBlock).Text (GetObjectGlyph (FallbackType))
+        [SNew (STextBlock).Text (GridEditorWidgetHelpers::GetGridObjectGlyph (FallbackType))
         .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 30))
         ];
 }
@@ -519,7 +495,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 
             + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
             [
-                BuildCompactStatusBadge (
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
                     FText::FromString (TEXT ("Tool")),
                     GetActiveToolText (),
                     FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
@@ -527,7 +503,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 
             + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
             [
-                BuildCompactStatusBadge (
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
                     FText::FromString (TEXT ("Cell")),
                     GetSelectedCellStatusText (),
                     FSlateColor (FLinearColor (0.40f, 0.85f, 0.45f, 1.f)))
@@ -535,7 +511,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 
             + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
             [
-                BuildCompactStatusBadge (
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
                     FText::FromString (TEXT ("Edge/Facing")),
                     GetSelectedEdgeStatusText (),
                     FSlateColor (FLinearColor (1.f, 0.72f, 0.20f, 1.f)))
@@ -543,7 +519,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 
             + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
             [
-                BuildCompactStatusBadge (
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
                     FText::FromString (TEXT ("Object")),
                     GetSelectedObjectStatusText (),
                     FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
@@ -551,7 +527,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 
             + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
             [
-                BuildCompactStatusBadge (
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
                     FText::FromString (TEXT ("Validation")),
                     GetValidationStatusText (),
                     FSlateColor (bValidationHasRun
@@ -585,111 +561,6 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPanelSection (
                 [
                     Content
                 ]
-        ];
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPropertyRow (const FText& Label, TSharedRef<SWidget> ValueWidget) const
-{
-    return SNew (SHorizontalBox)
-        + SHorizontalBox::Slot ()
-        .FillWidth (0.35f)
-        .VAlign (VAlign_Center)
-        .Padding (0.f, 2.f, 8.f, 2.f)
-        [
-            SNew (STextBlock)
-                .Text (Label)
-                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
-        ]
-        + SHorizontalBox::Slot ()
-        .FillWidth (0.65f)
-        .VAlign (VAlign_Center)
-        .Padding (0.f, 2.f)
-        [
-            ValueWidget
-        ];
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const
-{
-    return BuildPropertyRow (
-        Label,
-        SNew (STextBlock)
-            .Text (Value)
-            .AutoWrapText (true));
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const
-{
-    return SNew (SButton)
-        .Text (Label)
-        .HAlign (HAlign_Center)
-        .ContentPadding (FMargin (8.f, 3.f))
-        .OnClicked (OnClicked);
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildStatusBadge (
-    const FText& Label,
-    const FText& Value,
-    const FSlateColor& AccentColor) const
-{
-    return SNew (SBorder)
-        .Padding (FMargin (7.f, 4.f))
-        .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
-        [
-            SNew (SHorizontalBox)
-
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .VAlign (VAlign_Center)
-            .Padding (0.f, 0.f, 5.f, 0.f)
-            [
-                SNew (STextBlock)
-                    .Text (Label)
-                    .ColorAndOpacity (AccentColor)
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 8))
-            ]
-
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .VAlign (VAlign_Center)
-            [
-                SNew (STextBlock)
-                    .Text (Value)
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
-            ]
-        ];
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCompactStatusBadge (
-    const FText& Label,
-    const FText& Value,
-    const FSlateColor& AccentColor) const
-{
-    return SNew (SBorder)
-        .Padding (FMargin (5.f, 2.f))
-        .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
-        [
-            SNew (SHorizontalBox)
-
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .VAlign (VAlign_Center)
-            .Padding (0.f, 0.f, 4.f, 0.f)
-            [
-                SNew (STextBlock)
-                    .Text (Label)
-                    .ColorAndOpacity (AccentColor)
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 8))
-            ]
-
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .VAlign (VAlign_Center)
-            [
-                SNew (STextBlock)
-                    .Text (Value)
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
-            ]
         ];
 }
 
@@ -777,7 +648,7 @@ FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText () const
     }
 
     const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
-    const FText TypeText = GetEnumDisplayText (TypeEnum, static_cast<int64> (Obj->Type));
+    const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64> (Obj->Type));
 
     return FText::Format (
         FText::FromString (TEXT ("{0} ({1},{2})")),
@@ -937,7 +808,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
     Root->AddSlot ()
         .AutoHeight ()
         [
-            BuildActionButton (
+            GridEditorWidgetHelpers::BuildGridActionButton (
                 FText::FromString (TEXT ("Validate Level")),
                 FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnValidateLevelClicked))
         ];
@@ -1081,7 +952,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildLinksSection (const FGridLevel
 
     + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
         [
-            BuildActionButton (
+            GridEditorWidgetHelpers::BuildGridActionButton (
                 FText::FromString (TEXT ("Clear All Links For Selected Object")),
                 FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnClearSelectedObjectLinksClicked))
         ];

@@ -40,11 +40,6 @@ private:
 
     TSharedRef<SWidget> BuildHeaderSection ();
     TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content);
-    TSharedRef<SWidget> BuildPropertyRow (const FText& Label, TSharedRef<SWidget> ValueWidget) const;
-    TSharedRef<SWidget> BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const;
-    TSharedRef<SWidget> BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const;
-    TSharedRef<SWidget> BuildStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
-    TSharedRef<SWidget> BuildCompactStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
 
     void CountValidationErrorsWarnings (int32& OutErrorCount, int32& OutWarningCount) const;
 

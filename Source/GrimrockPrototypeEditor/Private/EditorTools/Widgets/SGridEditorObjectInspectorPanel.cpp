@@ -2,13 +2,13 @@
 
 #if WITH_EDITOR
 
+#include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
-#include "Styling/SlateColor.h"
 
 #include "Templates/Function.h"
 
@@ -22,70 +22,6 @@
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
-
-namespace
-{
-    FText GetEnumDisplayText (const UEnum* Enum, int64 Value)
-    {
-        return Enum
-            ? Enum->GetDisplayNameTextByValue (Value)
-            : FText::FromString (TEXT ("Unknown"));
-    }
-
-    FText GetObjectGlyph (EGridLevelObjectType Type)
-    {
-        switch (Type)
-        {
-            case EGridLevelObjectType::Door:          return FText::FromString (TEXT ("â–¥"));
-            case EGridLevelObjectType::Button:        return FText::FromString (TEXT ("â—"));
-            case EGridLevelObjectType::Lever:         return FText::FromString (TEXT ("â—’"));
-            case EGridLevelObjectType::PressurePlate: return FText::FromString (TEXT ("â–§"));
-            case EGridLevelObjectType::Teleporter:    return FText::FromString (TEXT ("â—Ž"));
-            case EGridLevelObjectType::Trigger:       return FText::FromString (TEXT ("âŒ–"));
-            case EGridLevelObjectType::MonsterSpawn:  return FText::FromString (TEXT ("â˜ "));
-            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("â—ˆ"));
-            case EGridLevelObjectType::Decoration:    return FText::FromString (TEXT ("â—‰"));
-            case EGridLevelObjectType::Light:         return FText::FromString (TEXT ("â™¨"));
-            default:                                  return FText::FromString (TEXT ("?"));
-        }
-    }
-
-    FString NameArrayToCommaSeparatedText (const TArray<FName>& Names)
-    {
-        TArray<FString> Parts;
-        Parts.Reserve (Names.Num ());
-
-        for (const FName& Name : Names)
-        {
-            if (!Name.IsNone ())
-            {
-                Parts.Add (Name.ToString ());
-            }
-        }
-
-        return FString::Join (Parts, TEXT (", "));
-    }
-
-    TArray<FName> ParseCommaSeparatedNames (const FString& Text)
-    {
-        TArray<FString> Parts;
-        Text.ParseIntoArray (Parts, TEXT (","), true);
-
-        TArray<FName> Names;
-        Names.Reserve (Parts.Num ());
-
-        for (FString& Part : Parts)
-        {
-            Part.TrimStartAndEndInline ();
-            if (!Part.IsEmpty ())
-            {
-                Names.Add (FName (*Part));
-            }
-        }
-
-        return Names;
-    }
-}
 
 void SGridEditorObjectInspectorPanel::Construct (const FArguments& InArgs)
 {
@@ -118,45 +54,6 @@ void SGridEditorObjectInspectorPanel::RequestRefresh () const
     {
         OnRequestRefresh.Execute ();
     }
-}
-
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPropertyRow (const FText& Label, TSharedRef<SWidget> ValueWidget) const
-{
-    return SNew (SHorizontalBox)
-        + SHorizontalBox::Slot ()
-        .FillWidth (0.35f)
-        .VAlign (VAlign_Center)
-        .Padding (0.f, 2.f, 8.f, 2.f)
-        [
-            SNew (STextBlock)
-                .Text (Label)
-                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
-        ]
-        + SHorizontalBox::Slot ()
-        .FillWidth (0.65f)
-        .VAlign (VAlign_Center)
-        .Padding (0.f, 2.f)
-        [
-            ValueWidget
-        ];
-}
-
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const
-{
-    return BuildPropertyRow (
-        Label,
-        SNew (STextBlock)
-            .Text (Value)
-            .AutoWrapText (true));
-}
-
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const
-{
-    return SNew (SButton)
-        .Text (Label)
-        .HAlign (HAlign_Center)
-        .ContentPadding (FMargin (8.f, 3.f))
-        .OnClicked (OnClicked);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection ()
@@ -195,21 +92,21 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
 
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 4.f, 0.f)
                 [
-                    BuildActionButton (
+                    GridEditorWidgetHelpers::BuildGridActionButton (
                         FText::FromString (TEXT ("Focus Selected Object")),
                         FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnFocusSelectedObjectClicked))
                 ]
 
             + SHorizontalBox::Slot ().AutoWidth ()
                 [
-                    BuildActionButton (
+                    GridEditorWidgetHelpers::BuildGridActionButton (
                         FText::FromString (TEXT ("Apply Selected Object")),
                         FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnApplySelectedObjectClicked))
                 ]
 
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
                 [
-                    BuildActionButton (
+                    GridEditorWidgetHelpers::BuildGridActionButton (
                         FText::FromString (TEXT ("Move To Current Cell")),
                         FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked))
                 ]
@@ -223,8 +120,8 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
     const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
     const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
 
-    const FText TypeText = GetEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type));
-    const FText EdgeText = GetEnumDisplayText (EdgeEnum, static_cast<int64>(Obj.Edge));
+    const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type));
+    const FText EdgeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (EdgeEnum, static_cast<int64>(Obj.Edge));
     const FString ShortObjectId = Obj.ObjectId.ToString ().Left (8);
 
     auto BuildOptionalReceptacleBehavior = [this, &Obj] () -> TSharedRef<SWidget>
@@ -271,7 +168,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
                                         .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
                                         [
                                             SNew (STextBlock)
-                                                .Text (GetObjectGlyph (Obj.Type))
+                                                .Text (GridEditorWidgetHelpers::GetGridObjectGlyph (Obj.Type))
                                                 .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 36))
                                                 .Justification (ETextJustify::Center)
                                         ]
@@ -296,17 +193,17 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
                 [
-                    BuildReadOnlyPropertyRow (FText::FromString (TEXT ("ObjectId")), FText::FromString (ShortObjectId))
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (FText::FromString (TEXT ("ObjectId")), FText::FromString (ShortObjectId))
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    BuildReadOnlyPropertyRow (FText::FromString (TEXT ("Type")), TypeText)
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (FText::FromString (TEXT ("Type")), TypeText)
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    BuildReadOnlyPropertyRow (
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                         FText::FromString (TEXT ("Cell / Edge")),
                         FText::Format (
                             FText::FromString (TEXT ("X={0} Y={1} Edge={2}")),
@@ -317,7 +214,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
                 [
-                    BuildPropertyRow (
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
                         FText::FromString (TEXT ("ArchetypeId")),
                         SNew (SEditableTextBox)
                             .Text (FText::FromName (Obj.ArchetypeId))
@@ -333,7 +230,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 
             + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    BuildPropertyRow (
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
                         FText::FromString (TEXT ("Tag")),
                         SNew (SEditableTextBox)
                             .Text (FText::FromName (Obj.Tag))
@@ -470,7 +367,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
         float Value,
         TFunction<void (FGridObjectBehaviorParams&, float)> Mutator) -> TSharedRef<SWidget>
     {
-        return BuildPropertyRow (
+        return GridEditorWidgetHelpers::BuildGridPropertyRow (
             Label,
             SNew (SNumericEntryBox<float>)
                 .MinValue (0.f)
@@ -620,7 +517,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         const FText& Value,
         TFunction<void (FGridObjectBehaviorParams&, const FString&)> Mutator) -> TSharedRef<SWidget>
     {
-        return BuildPropertyRow (
+        return GridEditorWidgetHelpers::BuildGridPropertyRow (
             Label,
             SNew (SEditableTextBox)
                 .Text (Value)
@@ -673,10 +570,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 [
                     MakeTextRow (
                         FText::FromString (TEXT ("Accepted Archetype Ids")),
-                        FText::FromString (NameArrayToCommaSeparatedText (Behavior.AcceptedArchetypeIds)),
+                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.AcceptedArchetypeIds)),
                         [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
                     {
-                        NewBehavior.AcceptedArchetypeIds = ParseCommaSeparatedNames (Text);
+                        NewBehavior.AcceptedArchetypeIds = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
                     })
                 ]
 
@@ -684,10 +581,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 [
                     MakeTextRow (
                         FText::FromString (TEXT ("Accepted Item Tags")),
-                        FText::FromString (NameArrayToCommaSeparatedText (Behavior.AcceptedItemTags)),
+                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.AcceptedItemTags)),
                         [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
                     {
-                        NewBehavior.AcceptedItemTags = ParseCommaSeparatedNames (Text);
+                        NewBehavior.AcceptedItemTags = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
                     })
                 ]
 

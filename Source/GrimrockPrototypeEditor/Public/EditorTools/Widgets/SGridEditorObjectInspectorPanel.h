@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Widgets/Input/SButton.h"
 #include "Widgets/SCompoundWidget.h"
 
 #if WITH_EDITOR
@@ -35,9 +34,6 @@ private:
     TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
 
-    TSharedRef<SWidget> BuildPropertyRow (const FText& Label, TSharedRef<SWidget> ValueWidget) const;
-    TSharedRef<SWidget> BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const;
-    TSharedRef<SWidget> BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const;
     TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
 
     FReply OnApplySelectedObjectClicked ();
