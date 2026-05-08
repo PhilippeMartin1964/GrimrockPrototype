@@ -9,6 +9,7 @@
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
+#include "EditorTools/Widgets/SGridEditorValidationPanel.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
 
@@ -54,37 +55,11 @@ namespace
         }
     }
 
-    FText GetValidationSeverityText (EGridLevelValidationSeverity Severity)
-    {
-        switch (Severity)
-        {
-            case EGridLevelValidationSeverity::Error:   return FText::FromString (TEXT ("Error"));
-            case EGridLevelValidationSeverity::Warning: return FText::FromString (TEXT ("Warning"));
-            case EGridLevelValidationSeverity::Info:
-            default:                                   return FText::FromString (TEXT ("Info"));
-        }
-    }
-
-    FSlateColor GetValidationSeverityColor (EGridLevelValidationSeverity Severity)
-    {
-        switch (Severity)
-        {
-            case EGridLevelValidationSeverity::Error:
-                return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
-
-            case EGridLevelValidationSeverity::Warning:
-                return FSlateColor (FLinearColor (1.0f, 0.72f, 0.20f, 1.f));
-
-            case EGridLevelValidationSeverity::Info:
-            default:
-                return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
-        }
-    }
-
 }
 
 void FGridLevelEdModeToolkit::Init (const TSharedPtr<IToolkitHost>& InitToolkitHost)
 {
+    ValidationState = MakeShared<FGridEditorValidationPanelState> ();
     ToolkitWidget = BuildToolkitWidget ();
     FModeToolkit::Init (InitToolkitHost);
 }
@@ -206,7 +181,19 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
         .AutoHeight ()
         .Padding (0.f, 0.f, 0.f, 8.f)
         [
-            BuildPanelSection (FText::FromString (TEXT ("VALIDATION")), BuildValidationSection ())
+            BuildPanelSection (
+                FText::FromString (TEXT ("VALIDATION")),
+                SNew (SGridEditorValidationPanel)
+                    .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                    .ValidationState (ValidationState)
+                    .OnGetEditorActor (FOnGetGridEditorValidationActor::CreateLambda ([this] ()
+                    {
+                        return GetEditorActor ();
+                    }))
+                    .OnRequestRefresh (FOnGridEditorValidationRequestRefresh::CreateLambda ([this] ()
+                    {
+                        RefreshPalette ();
+                    })))
         ];
 
     if (Obj)
@@ -530,7 +517,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
                 GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
                     FText::FromString (TEXT ("Validation")),
                     GetValidationStatusText (),
-                    FSlateColor (bValidationHasRun
+                    FSlateColor (ValidationState.IsValid () && ValidationState->bValidationHasRun
                         ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
                         : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
             ]
@@ -659,142 +646,12 @@ FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText () const
 
 FText FGridLevelEdModeToolkit::GetValidationStatusText () const
 {
-    if (!bValidationHasRun)
+    if (!ValidationState.IsValid ())
     {
         return FText::FromString (TEXT ("Not run"));
     }
 
-    int32 ErrorCount = 0;
-    int32 WarningCount = 0;
-    CountValidationErrorsWarnings (ErrorCount, WarningCount);
-
-    return FText::Format (
-        FText::FromString (TEXT ("{0} total, {1} errors, {2} warnings")),
-        FText::AsNumber (ValidationMessages.Num ()),
-        FText::AsNumber (ErrorCount),
-        FText::AsNumber (WarningCount));
-}
-
-void FGridLevelEdModeToolkit::CountValidationErrorsWarnings (int32& OutErrorCount, int32& OutWarningCount) const
-{
-    OutErrorCount = 0;
-    OutWarningCount = 0;
-
-    for (const FGridLevelValidationMessage& ValidationMessage : ValidationMessages)
-    {
-        if (ValidationMessage.Severity == EGridLevelValidationSeverity::Error)
-        {
-            ++OutErrorCount;
-        }
-        else if (ValidationMessage.Severity == EGridLevelValidationSeverity::Warning)
-        {
-            ++OutWarningCount;
-        }
-    }
-}
-
-
-FReply FGridLevelEdModeToolkit::OnValidateLevelClicked ()
-{
-    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-    {
-        bValidationHasRun = true;
-        ValidationMessages = EditorActor->ValidateCurrentLevel ();
-        RefreshPalette ();
-    }
-
-    return FReply::Handled ();
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
-{
-    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox);
-
-    Root->AddSlot ()
-        .AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridActionButton (
-                FText::FromString (TEXT ("Validate Level")),
-                FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnValidateLevelClicked))
-        ];
-
-    if (!bValidationHasRun)
-    {
-        Root->AddSlot ()
-            .AutoHeight ()
-            .Padding (0.f, 6.f, 0.f, 0.f)
-            [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("No validation run yet.")))
-                    .AutoWrapText (true)
-            ];
-
-        return Root;
-    }
-
-    if (ValidationMessages.Num () == 0)
-    {
-        Root->AddSlot ()
-            .AutoHeight ()
-            .Padding (0.f, 6.f, 0.f, 0.f)
-            [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("No validation messages.")))
-                    .AutoWrapText (true)
-            ];
-
-        return Root;
-    }
-
-    for (const FGridLevelValidationMessage& ValidationMessage : ValidationMessages)
-    {
-        const FString ShortObjectId = ValidationMessage.OptionalObjectId.IsValid ()
-            ? ValidationMessage.OptionalObjectId.ToString ().Left (8)
-            : FString ();
-
-        Root->AddSlot ()
-            .AutoHeight ()
-            .Padding (0.f, 6.f, 0.f, 0.f)
-            [
-                SNew (SBorder)
-                    .Padding (6.f)
-                    .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
-                    [
-                        SNew (SVerticalBox)
-
-                            + SVerticalBox::Slot ().AutoHeight ()
-                            [
-                                SNew (SHorizontalBox)
-
-                                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 8.f, 0.f)
-                                    [
-                                        SNew (STextBlock)
-                                            .Text (GetValidationSeverityText (ValidationMessage.Severity))
-                                            .ColorAndOpacity (GetValidationSeverityColor (ValidationMessage.Severity))
-                                            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
-                                    ]
-
-                                    + SHorizontalBox::Slot ().FillWidth (1.f)
-                                    [
-                                        SNew (STextBlock)
-                                            .Text (FText::FromString (ValidationMessage.Message))
-                                            .AutoWrapText (true)
-                                    ]
-                            ]
-
-                        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, ShortObjectId.IsEmpty () ? 0.f : 4.f, 0.f, 0.f)
-                            [
-                                SNew (STextBlock)
-                                    .Visibility (ShortObjectId.IsEmpty () ? EVisibility::Collapsed : EVisibility::Visible)
-                                    .Text (FText::Format (
-                                        FText::FromString (TEXT ("Object: {0}")),
-                                        FText::FromString (ShortObjectId)))
-                            ]
-                    ]
-            ];
-    }
-
-    return Root;
+    return ValidationState->GetValidationStatusText ();
 }
 
 

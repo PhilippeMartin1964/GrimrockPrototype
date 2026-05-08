@@ -14,6 +14,7 @@
 class SWidget;
 class AGridLevelEditorActor;
 class UGridObjectPaletteAsset;
+struct FGridEditorValidationPanelState;
 struct FGridObjectPaletteEntry;
 
 class FGridLevelEdModeToolkit : public FModeToolkit
@@ -36,8 +37,6 @@ private:
     TSharedRef<SWidget> BuildHeaderSection ();
     TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content);
 
-    void CountValidationErrorsWarnings (int32& OutErrorCount, int32& OutWarningCount) const;
-
     TSharedRef<SWidget> BuildToolSection ();
     TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
     UTexture2D* GetToolIcon (EGridEditorTool Tool) const;
@@ -46,11 +45,8 @@ private:
     TSharedRef<SWidget> BuildPaletteSection ();
     TSharedRef<SWidget> BuildPaletteTile (const FGridObjectPaletteEntry& Entry);
 
-    TSharedRef<SWidget> BuildValidationSection ();
-
     FReply OnToolClicked (int32 ToolValue);
     FReply OnPaletteEntryClicked (FName EntryId);
-    FReply OnValidateLevelClicked ();
 
     FText GetSelectedPaletteEntryText () const;
     FText GetActiveToolText () const;
@@ -65,8 +61,7 @@ private:
     TSharedPtr<SVerticalBox> ToolkitRoot;
     TSharedPtr<SWidget> ToolkitWidget;
 
-    TArray<FGridLevelValidationMessage> ValidationMessages;
-    bool bValidationHasRun = false;
+    TSharedPtr<FGridEditorValidationPanelState> ValidationState;
 
     TMap<FString, TSharedPtr<FSlateBrush>> CachedIconBrushes;
 };
