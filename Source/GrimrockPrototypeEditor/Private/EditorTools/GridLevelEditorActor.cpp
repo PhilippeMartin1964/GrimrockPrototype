@@ -430,44 +430,9 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
     UE_LOG (LogTemp, Log, TEXT ("GridLevelEditorActor: no object found at current selection."));
 }
 
-bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal)
+bool AGridLevelEditorActor::TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& /*HitNormal*/)
 {
-    if (!HasValidLevelAsset ())
-    {
-        return false;
-    }
-
-    ResolvePreviewRuntimeActor ();
-
-    const float CellSize = LevelAsset->CellSize;
-    if (CellSize <= KINDA_SMALL_NUMBER)
-    {
-        return false;
-    }
-
-    FVector GridWorldOrigin = FVector::ZeroVector;
-    if (PreviewRuntimeActor)
-    {
-        GridWorldOrigin = PreviewRuntimeActor->GetActorLocation () + PreviewRuntimeActor->GridOrigin;
-    }
-
-    const FVector Local = WorldHitLocation - GridWorldOrigin;
-
-    const int32 NewCellX = FMath::FloorToInt (Local.X / CellSize);
-    const int32 NewCellY = FMath::FloorToInt (Local.Y / CellSize);
-
-    if (!LevelAsset->IsValidCoord (NewCellX, NewCellY))
-    {
-        return false;
-    }
-
-    SelectedCellX = NewCellX;
-    SelectedCellY = NewCellY;
-    const float LocalInCellX = Local.X - (static_cast<float> (NewCellX) * CellSize);
-    const float LocalInCellY = Local.Y - (static_cast<float> (NewCellY) * CellSize);
-
-    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
-    return true;
+    return ApplyGridHoverFromWorldPoint (WorldHitLocation) && CommitHoveredCellSelection ();
 }
 
 bool AGridLevelEditorActor::ApplyViewportHitSelection (const FVector& WorldHitLocation, const FVector& HitNormal)
@@ -497,6 +462,9 @@ bool AGridLevelEditorActor::SelectCellFromOverview (int32 CellX, int32 CellY)
     SelectedCellX = CellX;
     SelectedCellY = CellY;
     SelectedEdge = EGridEdge::None;
+    HoveredCellX = CellX;
+    HoveredCellY = CellY;
+    HoveredEdge = EGridEdge::None;
     UpdateCoordinateHoverLabel ();
     return true;
 }
@@ -536,6 +504,10 @@ bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPo
 {
     if (!HasValidLevelAsset ())
     {
+        HoveredCellX = INDEX_NONE;
+        HoveredCellY = INDEX_NONE;
+        HoveredEdge = EGridEdge::None;
+        UpdateCoordinateHoverLabel ();
         return false;
     }
 
@@ -544,6 +516,10 @@ bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPo
     const float CellSize = LevelAsset->CellSize;
     if (CellSize <= KINDA_SMALL_NUMBER)
     {
+        HoveredCellX = INDEX_NONE;
+        HoveredCellY = INDEX_NONE;
+        HoveredEdge = EGridEdge::None;
+        UpdateCoordinateHoverLabel ();
         return false;
     }
 
@@ -560,17 +536,43 @@ bool AGridLevelEditorActor::ApplyGridHoverFromWorldPoint (const FVector& WorldPo
 
     if (!LevelAsset->IsValidCoord (NewCellX, NewCellY))
     {
+        HoveredCellX = INDEX_NONE;
+        HoveredCellY = INDEX_NONE;
+        HoveredEdge = EGridEdge::None;
+        UpdateCoordinateHoverLabel ();
         return false;
     }
-
-    SelectedCellX = NewCellX;
-    SelectedCellY = NewCellY;
-    UpdateCoordinateHoverLabel ();
 
     const float LocalInCellX = Local.X - (static_cast<float>(NewCellX) * CellSize);
     const float LocalInCellY = Local.Y - (static_cast<float>(NewCellY) * CellSize);
 
-    SelectedEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
+    HoveredCellX = NewCellX;
+    HoveredCellY = NewCellY;
+    HoveredEdge = GetEdgeFromPointInCell (FVector2D (LocalInCellX, LocalInCellY), CellSize);
+    UpdateCoordinateHoverLabel ();
+    return true;
+}
+
+bool AGridLevelEditorActor::CommitHoveredCellSelection ()
+{
+    if (!HasValidLevelAsset () || !LevelAsset->IsValidCoord (HoveredCellX, HoveredCellY))
+    {
+        return false;
+    }
+
+    const bool bSelectionChanged =
+        SelectedCellX != HoveredCellX ||
+        SelectedCellY != HoveredCellY ||
+        SelectedEdge != HoveredEdge;
+
+    if (bSelectionChanged)
+    {
+        Modify ();
+        SelectedCellX = HoveredCellX;
+        SelectedCellY = HoveredCellY;
+        SelectedEdge = HoveredEdge;
+    }
+
     return true;
 }
 
@@ -607,6 +609,7 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
             break;
 
         case EGridEditorTool::Link:
+            SelectHoveredObject ();
             BeginOrCompleteLinkAtSelection ();
             break;
 
@@ -1696,9 +1699,6 @@ bool AGridLevelEditorActor::UpdateHoveredObjectFromWorldPoint (const FVector& Wo
         return false;
     }
     HoveredObjectId = BestObject->ObjectId;
-    SelectedCellX = BestObject->CellX;
-    SelectedCellY = BestObject->CellY;
-    SelectedEdge = BestObject->Edge;
 
     if (PreviewRuntimeActor)
     {
@@ -1795,7 +1795,7 @@ void AGridLevelEditorActor::EnsureCoordinateHoverLabel ()
 
 void AGridLevelEditorActor::UpdateCoordinateHoverLabel ()
 {
-    if (!bShowCoordinateGrid || !bShowCoordinateLabels || !LevelAsset || !LevelAsset->IsValidCoord (SelectedCellX, SelectedCellY))
+    if (!bShowCoordinateGrid || !bShowCoordinateLabels || !LevelAsset || !LevelAsset->IsValidCoord (HoveredCellX, HoveredCellY))
     {
         if (CoordinateHoverLabel)
         {
@@ -1810,7 +1810,7 @@ void AGridLevelEditorActor::UpdateCoordinateHoverLabel ()
     }
     const TCHAR* EdgeText = TEXT (" ");
 
-    switch (SelectedEdge)
+    switch (HoveredEdge)
     {
         case EGridEdge::North: EdgeText = TEXT ("N"); break;
         case EGridEdge::East:  EdgeText = TEXT ("E"); break;
@@ -1823,9 +1823,9 @@ void AGridLevelEditorActor::UpdateCoordinateHoverLabel ()
     CoordinateHoverLabel->SetText (
         FText::FromString (
             FString::Printf (TEXT ("X:%d   Y:%d  %s"),
-                SelectedCellX, SelectedCellY, EdgeText)));
+                HoveredCellX, HoveredCellY, EdgeText)));
     CoordinateHoverLabel->SetRelativeLocation (
-        FVector ((SelectedCellX + 0.5f) * CellSize, (SelectedCellY + 0.5f) * CellSize, CoordinateGridZOffset + 4.f));
+        FVector ((HoveredCellX + 0.5f) * CellSize, (HoveredCellY + 0.5f) * CellSize, CoordinateGridZOffset + 4.f));
     CoordinateHoverLabel->SetVisibility (true, true);
     CoordinateHoverLabel->MarkRenderStateDirty ();
 }

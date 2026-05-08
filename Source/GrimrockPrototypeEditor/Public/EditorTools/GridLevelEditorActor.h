@@ -80,6 +80,15 @@ public:
     EGridEdge SelectedEdge = EGridEdge::North;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    int32 HoveredCellX = INDEX_NONE;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    int32 HoveredCellY = INDEX_NONE;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    EGridEdge HoveredEdge = EGridEdge::None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
     FGuid HoveredObjectId;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "1.0"))
@@ -214,6 +223,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
     bool ApplyGridHoverFromWorldPoint (const FVector& WorldPoint);
+
+    UFUNCTION (BlueprintCallable, Category = "Selection")
+    bool CommitHoveredCellSelection ();
 
     UFUNCTION (BlueprintCallable, Category = "Selection")
     FVector GetSelectionPreviewCenter (float ZOffset = 4.f) const;

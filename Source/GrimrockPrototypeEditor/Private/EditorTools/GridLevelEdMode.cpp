@@ -177,8 +177,6 @@ bool FGridLevelEdMode::UpdateHoverFromMouse (
         EditorActor->UpdateHoveredObjectFromWorldPoint (HitPoint);
     }
 
-    RefreshToolkitIfObservedSelectionChanged (EditorActor);
-
     return bGridHoverOk;
 }
 
@@ -238,7 +236,7 @@ bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewpor
             {
                 if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
                 {
-                    if (ShouldApplyPaintForCurrentSelection (EditorActor))
+                    if (CommitHoveredSelection (EditorActor) && ShouldApplyPaintForCurrentSelection (EditorActor))
                     {
                         ApplyPaint ();
                     }
@@ -284,7 +282,7 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (FEditorViewportClient* InViewp
     {
         if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
         {
-            if (ShouldApplyPaintForCurrentSelection (EditorActor))
+            if (CommitHoveredSelection (EditorActor) && ShouldApplyPaintForCurrentSelection (EditorActor))
             {
                 ApplyPaint ();
             }
@@ -447,6 +445,22 @@ bool FGridLevelEdMode::ShouldApplyPaintForCurrentSelection (const AGridLevelEdit
     LastPaintTool = EditorActor->ActiveTool;
 
     return true;
+}
+
+bool FGridLevelEdMode::CommitHoveredSelection (AGridLevelEditorActor* EditorActor) const
+{
+    if (!EditorActor)
+    {
+        return false;
+    }
+
+    const bool bCommitted = EditorActor->CommitHoveredCellSelection ();
+    if (bCommitted)
+    {
+        RefreshToolkitIfObservedSelectionChanged (EditorActor);
+    }
+
+    return bCommitted;
 }
 
 void FGridLevelEdMode::RefreshToolkitIfObservedSelectionChanged (const AGridLevelEditorActor* EditorActor) const

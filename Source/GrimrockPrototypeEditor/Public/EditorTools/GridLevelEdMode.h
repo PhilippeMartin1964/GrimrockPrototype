@@ -65,6 +65,7 @@ private:
 
     void ResetPaintCache () const;
     bool ShouldApplyPaintForCurrentSelection (const AGridLevelEditorActor* EditorActor) const;
+    bool CommitHoveredSelection (AGridLevelEditorActor* EditorActor) const;
     void RefreshToolkitIfObservedSelectionChanged (const AGridLevelEditorActor* EditorActor) const;
 
     mutable int32 LastObservedSelectedCellX = INDEX_NONE;
