@@ -44,13 +44,18 @@ private:
     TSharedRef<SWidget> BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const;
     TSharedRef<SWidget> BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const;
     TSharedRef<SWidget> BuildStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
+    TSharedRef<SWidget> BuildCompactStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
 
     TSharedRef<SWidget> BuildOverviewMapSection ();
     TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
+    TSharedRef<SWidget> BuildSelectedCellSection ();
     TSharedRef<SWidget> BuildOverviewCellTooltip (int32 CellX, int32 CellY) const;
     FText GetOverviewCellTooltipText (int32 CellX, int32 CellY) const;
+    FText GetSelectedCellSummaryText () const;
     FText GetCellWallSummaryText (const FGridLevelCellData& CellData) const;
     FText GetCellObjectSummaryText (int32 CellX, int32 CellY) const;
+    bool HasObjectAtCell (int32 CellX, int32 CellY) const;
+    void CountValidationErrorsWarnings (int32& OutErrorCount, int32& OutWarningCount) const;
 
     TSharedRef<SWidget> BuildToolSection ();
     TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
