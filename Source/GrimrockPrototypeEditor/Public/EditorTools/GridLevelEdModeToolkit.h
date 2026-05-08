@@ -5,6 +5,8 @@
 #include "Core/GridTypes.h"
 #include "Core/GridObjectBehavior.h"
 
+#include "Styling/SlateColor.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
@@ -37,6 +39,13 @@ private:
 
     TSharedRef<SWidget> BuildHeaderSection ();
     TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content);
+    TSharedRef<SWidget> BuildPropertyRow (const FText& Label, TSharedRef<SWidget> ValueWidget) const;
+    TSharedRef<SWidget> BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const;
+    TSharedRef<SWidget> BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const;
+    TSharedRef<SWidget> BuildStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
+
+    TSharedRef<SWidget> BuildOverviewMapSection ();
+    TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
 
     TSharedRef<SWidget> BuildOverviewMapSection ();
     TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
@@ -44,7 +53,7 @@ private:
     TSharedRef<SWidget> BuildToolSection ();
     TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
     UTexture2D* GetToolIcon (EGridEditorTool Tool) const;
-    TSharedRef<SWidget> BuildIconOrFallback (UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size) const;
+    TSharedRef<SWidget> BuildIconOrFallback (UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size);
 
     TSharedRef<SWidget> BuildPaletteSection ();
     TSharedRef<SWidget> BuildPaletteTile (const FGridObjectPaletteEntry& Entry);
@@ -76,6 +85,10 @@ private:
 
     FText GetSelectedPaletteEntryText () const;
     FText GetActiveToolText () const;
+    FText GetSelectedCellStatusText () const;
+    FText GetSelectedEdgeStatusText () const;
+    FText GetSelectedObjectStatusText () const;
+    FText GetValidationStatusText () const;
     FText GetSelectedObjectDetailsText () const;
     FText GetObjectSummaryText (const FGuid& ObjectId) const;
     FText GetLinkSourceEventText (EGridObjectEventType SourceEvent) const;
@@ -122,11 +135,12 @@ private:
     FGuid CachedBehaviorObjectId;
     FGridObjectBehaviorParams EditedBehavior;
     TArray<FGridLevelValidationMessage> ValidationMessages;
+    bool bValidationHasRun = false;
 
     TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
     TArray<TSharedPtr<EGridObjectEventType>> LinkSourceEventOptions;
     TArray<TSharedPtr<EGridLinkAction>> LinkActionOptions;
-    TMap<UTexture2D*, TSharedPtr<FSlateBrush>> CachedIconBrushes;
+    TMap<FString, TSharedPtr<FSlateBrush>> CachedIconBrushes;
 };
 
 #endif

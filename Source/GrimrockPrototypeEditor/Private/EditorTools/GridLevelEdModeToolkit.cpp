@@ -210,6 +210,91 @@ namespace
         }
     }
 
+    FSlateColor GetOverviewCellColor (const FGridLevelCellData* CellData)
+    {
+        if (!CellData)
+        {
+            return FSlateColor (FLinearColor (0.025f, 0.025f, 0.025f, 1.f));
+        }
+
+        if (CellData->bBlocksOccupancy)
+        {
+            return FSlateColor (FLinearColor (0.18f, 0.18f, 0.18f, 1.f));
+        }
+
+        const bool bHasWall = CellData->NorthWall != EGridWallType::None ||
+            CellData->EastWall != EGridWallType::None ||
+            CellData->SouthWall != EGridWallType::None ||
+            CellData->WestWall != EGridWallType::None;
+
+        if (bHasWall)
+        {
+            return FSlateColor (FLinearColor (0.30f, 0.30f, 0.30f, 1.f));
+        }
+
+        switch (CellData->CellType)
+        {
+            case EGridCellType::Floor:
+            return FSlateColor (FLinearColor (0.18f, 0.21f, 0.23f, 1.f));
+
+            case EGridCellType::Pit:
+            return FSlateColor (FLinearColor (0.08f, 0.07f, 0.09f, 1.f));
+
+            case EGridCellType::StairsUp:
+            case EGridCellType::StairsDown:
+            return FSlateColor (FLinearColor (0.22f, 0.18f, 0.12f, 1.f));
+
+            case EGridCellType::Teleporter:
+            return FSlateColor (FLinearColor (0.12f, 0.20f, 0.28f, 1.f));
+
+            case EGridCellType::Empty:
+            default:
+            return FSlateColor (FLinearColor (0.05f, 0.055f, 0.06f, 1.f));
+        }
+    }
+
+    int32 GetOverviewObjectPriority (EGridLevelObjectType Type)
+    {
+        switch (Type)
+        {
+            case EGridLevelObjectType::Door:          return 100;
+            case EGridLevelObjectType::Receptacle:    return 90;
+            case EGridLevelObjectType::Trigger:       return 80;
+            case EGridLevelObjectType::Button:        return 70;
+            case EGridLevelObjectType::Lever:         return 65;
+            case EGridLevelObjectType::PressurePlate: return 60;
+            case EGridLevelObjectType::Teleporter:    return 55;
+            case EGridLevelObjectType::MonsterSpawn:  return 50;
+            case EGridLevelObjectType::ItemSpawn:     return 45;
+            case EGridLevelObjectType::Light:         return 40;
+            case EGridLevelObjectType::Decoration:    return 30;
+            default:                                  return 0;
+        }
+    }
+
+    FText GetOverviewObjectGlyph (EGridLevelObjectType Type, FName Tag)
+    {
+        switch (Type)
+        {
+            case EGridLevelObjectType::Door:
+            return Tag == FName (TEXT ("Secret")) || Tag == FName (TEXT ("SecretDoor"))
+                ? FText::FromString (TEXT ("S"))
+                : FText::FromString (TEXT ("D"));
+
+            case EGridLevelObjectType::Button:        return FText::FromString (TEXT ("B"));
+            case EGridLevelObjectType::Lever:         return FText::FromString (TEXT ("L"));
+            case EGridLevelObjectType::PressurePlate: return FText::FromString (TEXT ("P"));
+            case EGridLevelObjectType::Trigger:       return FText::FromString (TEXT ("T"));
+            case EGridLevelObjectType::Receptacle:    return FText::FromString (TEXT ("R"));
+            case EGridLevelObjectType::Teleporter:    return FText::FromString (TEXT ("X"));
+            case EGridLevelObjectType::MonsterSpawn:  return FText::FromString (TEXT ("M"));
+            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("I"));
+            case EGridLevelObjectType::Light:         return FText::FromString (TEXT ("*"));
+            case EGridLevelObjectType::Decoration:    return FText::FromString (TEXT ("o"));
+            default:                                  return FText::GetEmpty ();
+        }
+    }
+
     FString NameArrayToCommaSeparatedText (const TArray<FName>& Names)
     {
         TArray<FString> Parts;
@@ -612,13 +697,13 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolTile (const FText& Label, 
         [ButtonContent];
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIconOrFallback (UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size) const
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildIconOrFallback (UTexture2D* Icon, EGridLevelObjectType FallbackType, float Size)
 {
     if (Icon)
     {
         return SNew (SBox).WidthOverride (Size).HeightOverride (Size)
             [SNew (SImage)
-            .Image (new FSlateImageBrush (Icon, FVector2D (Size, Size)))
+            .Image (GetOrCreateBrush (Icon, Size))
             ];
     }
 
@@ -727,29 +812,66 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
         .Padding (8.f)
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
         [
-            SNew (SHorizontalBox)
+            SNew (SVerticalBox)
 
-                + SHorizontalBox::Slot ()
-                .FillWidth (1.f)
-                .VAlign (VAlign_Center)
+                + SVerticalBox::Slot ()
+                .AutoHeight ()
                 [
                     SNew (STextBlock)
                         .Text (FText::FromString (TEXT ("DUNGEON EDITOR")))
                         .Font (FAppStyle::GetFontStyle ("HeadingMedium"))
                 ]
 
-                + SHorizontalBox::Slot ()
-                .AutoWidth ()
-                .VAlign (VAlign_Center)
+                + SVerticalBox::Slot ()
+                .AutoHeight ()
+                .Padding (0.f, 6.f, 0.f, 0.f)
                 [
-                    SNew (STextBlock)
-                        .Text_Lambda ([this] ()
-                    {
-                        return FText::Format (
-                            FText::FromString (TEXT ("Active Tool: {0}")),
-                            GetActiveToolText ());
-                    })
-                ]];
+                    SNew (SWrapBox)
+                        .UseAllottedWidth (true)
+
+                    + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 4.f)
+                    [
+                        BuildStatusBadge (
+                            FText::FromString (TEXT ("Tool")),
+                            GetActiveToolText (),
+                            FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+                    ]
+
+                    + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 4.f)
+                    [
+                        BuildStatusBadge (
+                            FText::FromString (TEXT ("Cell")),
+                            GetSelectedCellStatusText (),
+                            FSlateColor (FLinearColor (0.40f, 0.85f, 0.45f, 1.f)))
+                    ]
+
+                    + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 4.f)
+                    [
+                        BuildStatusBadge (
+                            FText::FromString (TEXT ("Edge/Facing")),
+                            GetSelectedEdgeStatusText (),
+                            FSlateColor (FLinearColor (1.f, 0.72f, 0.20f, 1.f)))
+                    ]
+
+                    + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 4.f)
+                    [
+                        BuildStatusBadge (
+                            FText::FromString (TEXT ("Object")),
+                            GetSelectedObjectStatusText (),
+                            FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+                    ]
+
+                    + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 4.f)
+                    [
+                        BuildStatusBadge (
+                            FText::FromString (TEXT ("Validation")),
+                            GetValidationStatusText (),
+                            FSlateColor (bValidationHasRun
+                                ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
+                                : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
+                    ]
+                ]
+        ];
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPanelSection (
@@ -776,6 +898,78 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPanelSection (
                 [
                     Content
                 ]
+        ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPropertyRow (const FText& Label, TSharedRef<SWidget> ValueWidget) const
+{
+    return SNew (SHorizontalBox)
+        + SHorizontalBox::Slot ()
+        .FillWidth (0.35f)
+        .VAlign (VAlign_Center)
+        .Padding (0.f, 2.f, 8.f, 2.f)
+        [
+            SNew (STextBlock)
+                .Text (Label)
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+        ]
+        + SHorizontalBox::Slot ()
+        .FillWidth (0.65f)
+        .VAlign (VAlign_Center)
+        .Padding (0.f, 2.f)
+        [
+            ValueWidget
+        ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const
+{
+    return BuildPropertyRow (
+        Label,
+        SNew (STextBlock)
+            .Text (Value)
+            .AutoWrapText (true));
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const
+{
+    return SNew (SButton)
+        .Text (Label)
+        .HAlign (HAlign_Center)
+        .ContentPadding (FMargin (8.f, 3.f))
+        .OnClicked (OnClicked);
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildStatusBadge (
+    const FText& Label,
+    const FText& Value,
+    const FSlateColor& AccentColor) const
+{
+    return SNew (SBorder)
+        .Padding (FMargin (7.f, 4.f))
+        .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
+        [
+            SNew (SHorizontalBox)
+
+            + SHorizontalBox::Slot ()
+            .AutoWidth ()
+            .VAlign (VAlign_Center)
+            .Padding (0.f, 0.f, 5.f, 0.f)
+            [
+                SNew (STextBlock)
+                    .Text (Label)
+                    .ColorAndOpacity (AccentColor)
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 8))
+            ]
+
+            + SHorizontalBox::Slot ()
+            .AutoWidth ()
+            .VAlign (VAlign_Center)
+            [
+                SNew (STextBlock)
+                    .Text (Value)
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
+            ]
         ];
 }
 
@@ -840,6 +1034,79 @@ FText FGridLevelEdModeToolkit::GetActiveToolText () const
     return FText::FromString (TEXT ("Unknown"));
 }
 
+FText FGridLevelEdModeToolkit::GetSelectedCellStatusText () const
+{
+    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        return FText::Format (
+            FText::FromString (TEXT ("X={0} Y={1}")),
+            FText::AsNumber (EditorActor->SelectedCellX),
+            FText::AsNumber (EditorActor->SelectedCellY));
+    }
+
+    return FText::FromString (TEXT ("None"));
+}
+
+FText FGridLevelEdModeToolkit::GetSelectedEdgeStatusText () const
+{
+    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
+        return EdgeEnum
+            ? EdgeEnum->GetDisplayNameTextByValue (static_cast<int64> (EditorActor->SelectedEdge))
+            : FText::FromString (TEXT ("Unknown"));
+    }
+
+    return FText::FromString (TEXT ("None"));
+}
+
+FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText () const
+{
+    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+    const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData () : nullptr;
+    if (!Obj)
+    {
+        return FText::FromString (TEXT ("None"));
+    }
+
+    const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
+    const FText TypeText = GetEnumDisplayText (TypeEnum, static_cast<int64> (Obj->Type));
+
+    return FText::Format (
+        FText::FromString (TEXT ("{0} ({1},{2})")),
+        TypeText,
+        FText::AsNumber (Obj->CellX),
+        FText::AsNumber (Obj->CellY));
+}
+
+FText FGridLevelEdModeToolkit::GetValidationStatusText () const
+{
+    if (!bValidationHasRun)
+    {
+        return FText::FromString (TEXT ("Not run"));
+    }
+
+    int32 ErrorCount = 0;
+    int32 WarningCount = 0;
+    for (const FGridLevelValidationMessage& ValidationMessage : ValidationMessages)
+    {
+        if (ValidationMessage.Severity == EGridLevelValidationSeverity::Error)
+        {
+            ++ErrorCount;
+        }
+        else if (ValidationMessage.Severity == EGridLevelValidationSeverity::Warning)
+        {
+            ++WarningCount;
+        }
+    }
+
+    return FText::Format (
+        FText::FromString (TEXT ("{0} total, {1} errors, {2} warnings")),
+        FText::AsNumber (ValidationMessages.Num ()),
+        FText::AsNumber (ErrorCount),
+        FText::AsNumber (WarningCount));
+}
+
 FReply FGridLevelEdModeToolkit::OnApplyBehaviorClicked ()
 {
     if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
@@ -859,6 +1126,7 @@ FReply FGridLevelEdModeToolkit::OnValidateLevelClicked ()
 {
     if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
     {
+        bValidationHasRun = true;
         ValidationMessages = EditorActor->ValidateCurrentLevel ();
         RefreshPalette ();
     }
@@ -996,26 +1264,26 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildObjectInspectorSection ()
 
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 4.f, 0.f)
                 [
-                    SNew (SButton)
-                        .Text (FText::FromString (TEXT ("Focus Selected Object")))
-                        .OnClicked_Lambda ([this] () -> FReply
+                    BuildActionButton (
+                        FText::FromString (TEXT ("Focus Selected Object")),
+                        FOnClicked::CreateLambda ([this] () -> FReply
                     {
                         return OnFocusSelectedObjectClicked ();
-                    })
+                    }))
                 ]
 
             + SHorizontalBox::Slot ().AutoWidth ()
                 [
-                    SNew (SButton)
-                        .Text (FText::FromString (TEXT ("Apply Selected Object")))
-                        .OnClicked (this, &FGridLevelEdModeToolkit::OnApplySelectedObjectClicked)
+                    BuildActionButton (
+                        FText::FromString (TEXT ("Apply Selected Object")),
+                        FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnApplySelectedObjectClicked))
                 ]
 
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
                 [
-                    SNew (SButton)
-                        .Text (FText::FromString (TEXT ("Move To Current Cell")))
-                        .OnClicked (this, &FGridLevelEdModeToolkit::OnMoveSelectedObjectToCurrentCellClicked)
+                    BuildActionButton (
+                        FText::FromString (TEXT ("Move To Current Cell")),
+                        FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnMoveSelectedObjectToCurrentCellClicked))
                 ]
         ];
 
@@ -1030,19 +1298,6 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
     const FText TypeText = GetEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type));
     const FText EdgeText = GetEnumDisplayText (EdgeEnum, static_cast<int64>(Obj.Edge));
     const FString ShortObjectId = Obj.ObjectId.ToString ().Left (8);
-
-    auto MakeReadOnlyRow = [] (const FText& Label, const FText& Value) -> TSharedRef<SWidget>
-    {
-        return SNew (SHorizontalBox)
-            + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-            [
-                SNew (STextBlock).Text (Label)
-            ]
-            + SHorizontalBox::Slot ().FillWidth (0.65f).VAlign (VAlign_Center).Padding (0.f, 2.f)
-            [
-                SNew (STextBlock).Text (Value)
-            ];
-    };
 
     auto BuildOptionalReceptacleBehavior = [this, &Obj] () -> TSharedRef<SWidget>
     {
@@ -1113,17 +1368,17 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
                 [
-                    MakeReadOnlyRow (FText::FromString (TEXT ("ObjectId")), FText::FromString (ShortObjectId))
+                    BuildReadOnlyPropertyRow (FText::FromString (TEXT ("ObjectId")), FText::FromString (ShortObjectId))
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    MakeReadOnlyRow (FText::FromString (TEXT ("Type")), TypeText)
+                    BuildReadOnlyPropertyRow (FText::FromString (TEXT ("Type")), TypeText)
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    MakeReadOnlyRow (
+                    BuildReadOnlyPropertyRow (
                         FText::FromString (TEXT ("Cell / Edge")),
                         FText::Format (
                             FText::FromString (TEXT ("X={0} Y={1} Edge={2}")),
@@ -1134,46 +1389,34 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedObjectCard (const FGri
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
                 [
-                    SNew (SHorizontalBox)
-                        + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-                        [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("ArchetypeId")))
-                        ]
-                        + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-                        [
-                            SNew (SEditableTextBox)
-                                .Text (FText::FromName (Obj.ArchetypeId))
-                                .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                    BuildPropertyRow (
+                        FText::FromString (TEXT ("ArchetypeId")),
+                        SNew (SEditableTextBox)
+                            .Text (FText::FromName (Obj.ArchetypeId))
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
                             {
-                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-                                {
-                                    EditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
-                                    RefreshPalette ();
-                                }
-                            })
-                        ]
+                                EditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
+                                RefreshPalette ();
+                            }
+                        }))
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (SHorizontalBox)
-                        + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-                        [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Tag")))
-                        ]
-                        + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-                        [
-                            SNew (SEditableTextBox)
-                                .Text (FText::FromName (Obj.Tag))
-                                .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                    BuildPropertyRow (
+                        FText::FromString (TEXT ("Tag")),
+                        SNew (SEditableTextBox)
+                            .Text (FText::FromName (Obj.Tag))
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
                             {
-                                if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-                                {
-                                    EditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
-                                    RefreshPalette ();
-                                }
-                            })
-                        ]
+                                EditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
+                                RefreshPalette ();
+                            }
+                        }))
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
@@ -1295,28 +1538,22 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildTriggerBehaviorSection (const 
             ];
     };
 
-    auto MakeNumberRow = [Obj, ApplyBehavior] (
+    auto MakeNumberRow = [this, Obj, ApplyBehavior] (
         const FText& Label,
         float Value,
         TFunction<void (FGridObjectBehaviorParams&, float)> Mutator) -> TSharedRef<SWidget>
     {
-        return SNew (SHorizontalBox)
-            + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-            [
-                SNew (STextBlock).Text (Label)
-            ]
-            + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-            [
-                SNew (SNumericEntryBox<float>)
-                    .MinValue (0.f)
-                    .Value (TOptional<float> (Value))
-                    .OnValueCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (float NewValue, ETextCommit::Type CommitType)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    Mutator (NewBehavior, FMath::Max (0.f, NewValue));
-                    ApplyBehavior (NewBehavior);
-                })
-            ];
+        return BuildPropertyRow (
+            Label,
+            SNew (SNumericEntryBox<float>)
+                .MinValue (0.f)
+                .Value (TOptional<float> (Value))
+                .OnValueCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (float NewValue, ETextCommit::Type CommitType)
+            {
+                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                Mutator (NewBehavior, FMath::Max (0.f, NewValue));
+                ApplyBehavior (NewBehavior);
+            }));
     };
 
     const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
@@ -1452,27 +1689,21 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildReceptacleBehaviorSection (con
         }
     };
 
-    auto MakeTextRow = [Obj, ApplyBehavior] (
+    auto MakeTextRow = [this, Obj, ApplyBehavior] (
         const FText& Label,
         const FText& Value,
         TFunction<void (FGridObjectBehaviorParams&, const FString&)> Mutator) -> TSharedRef<SWidget>
     {
-        return SNew (SHorizontalBox)
-            + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-            [
-                SNew (STextBlock).Text (Label)
-            ]
-            + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-            [
-                SNew (SEditableTextBox)
-                    .Text (Value)
-                    .OnTextCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (const FText& NewText, ETextCommit::Type CommitType)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    Mutator (NewBehavior, NewText.ToString ());
-                    ApplyBehavior (NewBehavior);
-                })
-            ];
+        return BuildPropertyRow (
+            Label,
+            SNew (SEditableTextBox)
+                .Text (Value)
+                .OnTextCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (const FText& NewText, ETextCommit::Type CommitType)
+            {
+                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                Mutator (NewBehavior, NewText.ToString ());
+                ApplyBehavior (NewBehavior);
+            }));
     };
 
     const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
@@ -1559,10 +1790,24 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
     Root->AddSlot ()
         .AutoHeight ()
         [
-            SNew (SButton)
-                .Text (FText::FromString (TEXT ("Validate Level")))
-                .OnClicked (this, &FGridLevelEdModeToolkit::OnValidateLevelClicked)
+            BuildActionButton (
+                FText::FromString (TEXT ("Validate Level")),
+                FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnValidateLevelClicked))
         ];
+
+    if (!bValidationHasRun)
+    {
+        Root->AddSlot ()
+            .AutoHeight ()
+            .Padding (0.f, 6.f, 0.f, 0.f)
+            [
+                SNew (STextBlock)
+                    .Text (FText::FromString (TEXT ("No validation run yet.")))
+                    .AutoWrapText (true)
+            ];
+
+        return Root;
+    }
 
     if (ValidationMessages.Num () == 0)
     {
@@ -1571,7 +1816,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
             .Padding (0.f, 6.f, 0.f, 0.f)
             [
                 SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("No validation run yet.")))
+                    .Text (FText::FromString (TEXT ("No validation messages.")))
                     .AutoWrapText (true)
             ];
 
@@ -1689,9 +1934,9 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildLinksSection (const FGridLevel
 
     + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
         [
-            SNew (SButton)
-                .Text (FText::FromString (TEXT ("Clear All Links For Selected Object")))
-                .OnClicked (this, &FGridLevelEdModeToolkit::OnClearSelectedObjectLinksClicked)
+            BuildActionButton (
+                FText::FromString (TEXT ("Clear All Links For Selected Object")),
+                FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::OnClearSelectedObjectLinksClicked))
         ];
 }
 
@@ -2282,12 +2527,19 @@ const FSlateBrush* FGridLevelEdModeToolkit::GetOrCreateBrush (UTexture2D* Textur
     {
         return nullptr;
     }
-    if (TSharedPtr<FSlateBrush>* Existing = CachedIconBrushes.Find (Texture))
+
+    const FString CacheKey = FString::Printf (
+        TEXT ("%s@%.2f"),
+        *Texture->GetPathName (),
+        Size);
+
+    if (TSharedPtr<FSlateBrush>* Existing = CachedIconBrushes.Find (CacheKey))
     {
         return Existing->Get ();
     }
+
     TSharedPtr<FSlateBrush> NewBrush = MakeShared<FSlateImageBrush> (Texture, FVector2D (Size, Size));
-    CachedIconBrushes.Add (Texture, NewBrush);
+    CachedIconBrushes.Add (CacheKey, NewBrush);
     return NewBrush.Get ();
 }
 
