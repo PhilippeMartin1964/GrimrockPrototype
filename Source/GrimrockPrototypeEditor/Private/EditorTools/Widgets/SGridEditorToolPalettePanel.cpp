@@ -5,6 +5,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "Core/GridObjectPaletteAsset.h"
+#include "Core/GridTypes.h"
 
 #include "Brushes/SlateImageBrush.h"
 #include "Engine/Texture2D.h"
@@ -92,7 +93,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel ()
         .AutoHeight ()
         .Padding (0.f, 0.f, 0.f, bShowPalette ? 8.f : 0.f)
         [
-            BuildPanelSection (FText::FromString (TEXT ("TOOLS")), BuildToolSection ())
+            GridEditorWidgetHelpers::BuildGridPanelSection (FText::FromString (TEXT ("TOOLS")), BuildToolSection ())
         ];
 
     if (bShowPalette)
@@ -101,36 +102,11 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel ()
             .AutoHeight ()
             .Padding (0.f)
             [
-                BuildPanelSection (FText::FromString (TEXT ("PALETTE")), BuildPaletteSection ())
+                GridEditorWidgetHelpers::BuildGridPanelSection (FText::FromString (TEXT ("PALETTE")), BuildPaletteSection ())
             ];
     }
 
     return Root;
-}
-
-TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content) const
-{
-    return SNew (SBorder)
-        .Padding (6.f)
-        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
-        [
-            SNew (SVerticalBox)
-
-                + SVerticalBox::Slot ()
-                .AutoHeight ()
-                .Padding (0.f, 0.f, 0.f, 6.f)
-                [
-                    SNew (STextBlock)
-                        .Text (Title)
-                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
-                ]
-
-                + SVerticalBox::Slot ()
-                .AutoHeight ()
-                [
-                    Content
-                ]
-        ];
 }
 
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection ()

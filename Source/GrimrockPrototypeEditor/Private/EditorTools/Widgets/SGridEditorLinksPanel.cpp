@@ -5,6 +5,7 @@
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridTypes.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"

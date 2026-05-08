@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Core/GridTypes.h"
 #include "Styling/SlateBrush.h"
 #include "Widgets/SCompoundWidget.h"
 
@@ -10,6 +9,7 @@
 class AGridLevelEditorActor;
 class UTexture2D;
 enum class EGridEditorTool : uint8;
+enum class EGridLevelObjectType : uint8;
 struct FGridObjectPaletteEntry;
 
 struct FGridEditorToolPalettePanelState
@@ -40,7 +40,6 @@ private:
     void RequestRefresh () const;
 
     TSharedRef<SWidget> BuildToolPalettePanel ();
-    TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content) const;
     TSharedRef<SWidget> BuildToolSection ();
     TSharedRef<SWidget> BuildToolTile (const FText& Label, const FText& Glyph, EGridEditorTool ToolValue);
     UTexture2D* GetToolIcon (EGridEditorTool Tool) const;

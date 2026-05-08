@@ -1,13 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Core/GridTypes.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Input/SComboBox.h"
 
 #if WITH_EDITOR
 
 class AGridLevelEditorActor;
+enum class EGridLinkAction : uint8;
+enum class EGridObjectEventType : uint8;
 struct FGridLevelObjectData;
 
 DECLARE_DELEGATE_RetVal (AGridLevelEditorActor*, FOnGetGridEditorLinksActor);

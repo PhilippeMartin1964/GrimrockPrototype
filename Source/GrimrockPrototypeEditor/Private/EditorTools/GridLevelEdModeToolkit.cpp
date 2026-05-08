@@ -288,27 +288,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPanelSection (
     const FText& Title,
     TSharedRef<SWidget> Content)
 {
-    return SNew (SBorder)
-        .Padding (6.f)
-        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
-        [
-            SNew (SVerticalBox)
-
-                + SVerticalBox::Slot ()
-                .AutoHeight ()
-                .Padding (0.f, 0.f, 0.f, 6.f)
-                [
-                    SNew (STextBlock)
-                        .Text (Title)
-                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
-                ]
-
-                + SVerticalBox::Slot ()
-                .AutoHeight ()
-                [
-                    Content
-                ]
-        ];
+    return GridEditorWidgetHelpers::BuildGridPanelSection (Title, Content);
 }
 
 FText FGridLevelEdModeToolkit::GetActiveToolText () const

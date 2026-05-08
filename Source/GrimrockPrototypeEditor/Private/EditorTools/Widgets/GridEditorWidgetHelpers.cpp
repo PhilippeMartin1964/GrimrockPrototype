@@ -2,6 +2,8 @@
 
 #if WITH_EDITOR
 
+#include "Core/GridTypes.h"
+
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/SBoxPanel.h"
@@ -74,6 +76,31 @@ namespace GridEditorWidgetHelpers
             .HAlign (HAlign_Center)
             .ContentPadding (FMargin (8.f, 3.f))
             .OnClicked (OnClicked);
+    }
+
+    TSharedRef<SWidget> BuildGridPanelSection (const FText& Title, TSharedRef<SWidget> Content)
+    {
+        return SNew (SBorder)
+            .Padding (6.f)
+            .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+            [
+                SNew (SVerticalBox)
+
+                    + SVerticalBox::Slot ()
+                    .AutoHeight ()
+                    .Padding (0.f, 0.f, 0.f, 6.f)
+                    [
+                        SNew (STextBlock)
+                            .Text (Title)
+                            .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                    ]
+
+                    + SVerticalBox::Slot ()
+                    .AutoHeight ()
+                    [
+                        Content
+                    ]
+            ];
     }
 
     TSharedRef<SWidget> BuildGridStatusBadge (
