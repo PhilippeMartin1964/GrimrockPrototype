@@ -46,16 +46,6 @@ private:
     TSharedRef<SWidget> BuildStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
     TSharedRef<SWidget> BuildCompactStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
 
-    TSharedRef<SWidget> BuildOverviewMapSection ();
-    TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
-    TSharedRef<SWidget> BuildOverviewColorLegend () const;
-    TSharedRef<SWidget> BuildOverviewLegendSwatch (const FText& Label, const FLinearColor& Color) const;
-    TSharedRef<SWidget> BuildSelectedCellSection ();
-    FText GetOverviewCellTooltipText (int32 CellX, int32 CellY) const;
-    FText GetSelectedCellSummaryText () const;
-    FText GetCellWallSummaryText (const FGridLevelCellData& CellData) const;
-    FText GetCellObjectSummaryText (int32 CellX, int32 CellY) const;
-    bool HasObjectAtCell (int32 CellX, int32 CellY) const;
     void CountValidationErrorsWarnings (int32& OutErrorCount, int32& OutWarningCount) const;
 
     TSharedRef<SWidget> BuildToolSection ();
@@ -80,7 +70,6 @@ private:
     TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing) const;
 
     FReply OnToolClicked (int32 ToolValue);
-    FReply OnOverviewCellClicked (int32 CellX, int32 CellY);
     FReply OnPaletteEntryClicked (FName EntryId);
     FReply OnApplySelectedObjectClicked ();
     FReply OnMoveSelectedObjectToCurrentCellClicked ();
