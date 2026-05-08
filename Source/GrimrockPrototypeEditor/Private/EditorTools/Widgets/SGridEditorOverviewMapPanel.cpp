@@ -42,12 +42,22 @@ namespace
 
     FLinearColor GetOverviewSelectedCellOutlineColor ()
     {
+        return FLinearColor (0.125f, 0.125f, 0.125f, 1.f);
+    }
+
+    FLinearColor GetOverviewSelectedCellFillColor ()
+    {
         return FLinearColor (1.f, 0.847f, 0.29f, 1.f);
     }
 
     FLinearColor GetOverviewSelectedObjectOutlineColor ()
     {
         return FLinearColor (0.263f, 0.812f, 1.f, 1.f);
+    }
+
+    FLinearColor GetOverviewSelectedObjectFillColor ()
+    {
+        return FLinearColor (0.333f, 0.839f, 1.f, 1.f);
     }
 
     FLinearColor GetOverviewMultiObjectOutlineColor ()
@@ -60,16 +70,32 @@ namespace
         return FLinearColor (0.125f, 0.125f, 0.125f, 1.f);
     }
 
-    FSlateColor GetOverviewCellColor (const FGridLevelCellData* CellData)
+    FSlateColor GetOverviewCellColor (
+        const FGridLevelCellData* CellData,
+        bool bSelectedCell,
+        bool bSelectedObjectCell)
     {
         if (!CellData)
         {
             return FSlateColor (GetOverviewEmptyColor ());
         }
 
-        return CellData->CellType == EGridCellType::Empty
-            ? FSlateColor (GetOverviewEmptyColor ())
-            : FSlateColor (GetOverviewExistingCellColor ());
+        if (bSelectedCell)
+        {
+            return FSlateColor (GetOverviewSelectedCellFillColor ());
+        }
+
+        if (CellData->CellType == EGridCellType::Empty)
+        {
+            return FSlateColor (GetOverviewEmptyColor ());
+        }
+
+        if (bSelectedObjectCell)
+        {
+            return FSlateColor (GetOverviewSelectedObjectFillColor ());
+        }
+
+        return FSlateColor (GetOverviewExistingCellColor ());
     }
 
     bool IsOverviewEdgeObject (EGridLevelObjectType Type)
@@ -301,8 +327,8 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewCell (
         SelectedObject->CellY == CellY;
     const bool bExistingCell = CellData && CellData->CellType != EGridCellType::Empty;
 
-    const bool bHasSpecialOutline = bExistingCell && (bSelectedCell || bSelectedObjectCell || ObjectCount > 1);
-    const FSlateColor FillColor = GetOverviewCellColor (CellData);
+    const bool bHasSpecialOutline = CellData && (bSelectedCell || (bExistingCell && (bSelectedObjectCell || ObjectCount > 1)));
+    const FSlateColor FillColor = GetOverviewCellColor (CellData, bSelectedCell, bSelectedObjectCell);
     const FSlateColor OutlineColor = bSelectedCell
         ? FSlateColor (GetOverviewSelectedCellOutlineColor ())
         : bSelectedObjectCell
@@ -482,12 +508,12 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewColorLegend () con
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
         [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected")), GetOverviewSelectedCellOutlineColor ())
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected")), GetOverviewSelectedCellFillColor ())
         ]
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
         [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected Object")), GetOverviewSelectedObjectOutlineColor ())
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected Object")), GetOverviewSelectedObjectFillColor ())
         ]
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)

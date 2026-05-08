@@ -8,16 +8,32 @@
 #include "Core/GridTypes.h"
 
 #include "Styling/AppStyle.h"
-#include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
 
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
 
 namespace
 {
+    int32 CountLinksForObject (const UGridLevelAsset& LevelAsset, const FGuid& ObjectId, bool bOutgoing)
+    {
+        int32 Count = 0;
+        for (const FGridLevelLinkData& Link : LevelAsset.Links)
+        {
+            const bool bMatches = bOutgoing
+                ? Link.SourceObjectId == ObjectId
+                : Link.TargetObjectId == ObjectId;
+
+            if (bMatches)
+            {
+                ++Count;
+            }
+        }
+
+        return Count;
+    }
+
     FSlateColor GetLinkActionSlateColor (EGridLinkAction Action)
     {
         switch (Action)
@@ -91,6 +107,30 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
 
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 8.f)
         [
+            SNew (SHorizontalBox)
+
+            + SHorizontalBox::Slot ()
+            .AutoWidth ()
+            .Padding (0.f, 0.f, 6.f, 0.f)
+            [
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                    FText::FromString (TEXT ("Outgoing")),
+                    FText::AsNumber (CountLinksForObject (*CurrentEditorActor->LevelAsset, SelectedObject->ObjectId, true)),
+                    FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+            ]
+
+            + SHorizontalBox::Slot ()
+            .AutoWidth ()
+            [
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                    FText::FromString (TEXT ("Incoming")),
+                    FText::AsNumber (CountLinksForObject (*CurrentEditorActor->LevelAsset, SelectedObject->ObjectId, false)),
+                    FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+            ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 8.f)
+        [
             BuildLinkCreationSection ()
         ]
 
@@ -110,6 +150,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                 [
                                     SNew (STextBlock)
                                         .Text (FText::FromString (TEXT ("OUTGOING LINKS")))
+                                        .ColorAndOpacity (FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
                                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                                 ]
 
@@ -132,6 +173,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                 [
                                     SNew (STextBlock)
                                         .Text (FText::FromString (TEXT ("INCOMING LINKS")))
+                                        .ColorAndOpacity (FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
                                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                                 ]
 
@@ -145,9 +187,29 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
 
     + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
         [
-            GridEditorWidgetHelpers::BuildGridActionButton (
-                FText::FromString (TEXT ("Clear All Links For Selected Object")),
-                FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnClearSelectedObjectLinksClicked))
+            SNew (SBorder)
+                .Padding (6.f)
+                .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
+                [
+                    SNew (SHorizontalBox)
+
+                    + SHorizontalBox::Slot ()
+                    .FillWidth (1.f)
+                    .VAlign (VAlign_Center)
+                    [
+                        SNew (STextBlock)
+                            .Text (FText::FromString (TEXT ("Clear all links connected to the selected object")))
+                            .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+                    ]
+
+                    + SHorizontalBox::Slot ()
+                    .AutoWidth ()
+                    [
+                        GridEditorWidgetHelpers::BuildGridActionButton (
+                            FText::FromString (TEXT ("Clear Links")),
+                            FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnClearSelectedObjectLinksClicked))
+                    ]
+                ]
         ];
 }
 
@@ -231,67 +293,77 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
             continue;
         }
 
-        const FGuid OtherId = bOutgoing ? Link.TargetObjectId : Link.SourceObjectId;
-        const FString ArrowText = bOutgoing ? TEXT ("->") : TEXT ("<-");
+        const FGuid SourceId = Link.SourceObjectId;
+        const FGuid TargetId = Link.TargetObjectId;
+        const FGuid OtherId = bOutgoing ? TargetId : SourceId;
+        const FText FlowText = bOutgoing
+            ? FText::Format (
+                FText::FromString (TEXT ("{0} -> {1} -> {2}")),
+                GetLinkSourceEventText (Link.SourceEvent),
+                GetLinkActionText (Link.Action),
+                GetObjectSummaryText (TargetId))
+            : FText::Format (
+                FText::FromString (TEXT ("{0} -> {1} -> {2} -> {3}")),
+                GetObjectSummaryText (SourceId),
+                GetLinkSourceEventText (Link.SourceEvent),
+                GetLinkActionText (Link.Action),
+                GetObjectSummaryText (TargetId));
 
         Root->AddSlot ()
             .AutoHeight ()
-            .Padding (0.f, 2.f)
+            .Padding (0.f, 2.f, 0.f, 4.f)
             [
-                SNew (SHorizontalBox)
-
-                    + SHorizontalBox::Slot ()
-                    .AutoWidth ()
-                    .VAlign (VAlign_Center)
-                    .Padding (0.f, 0.f, 6.f, 0.f)
+                SNew (SBorder)
+                    .Padding (5.f)
+                    .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
                     [
-                        SNew (STextBlock)
-                            .Text (FText::FromString (ArrowText))
-                            .ColorAndOpacity (GetLinkActionSlateColor (Link.Action))
-                            .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 20))
-                    ]
+                        SNew (SVerticalBox)
 
-                    + SHorizontalBox::Slot ()
-                    .FillWidth (1.f)
-                    .VAlign (VAlign_Center)
-                    [
-                        SNew (STextBlock)
-                            .Text (FText::Format (
-                                FText::FromString (TEXT ("{0} -> {1} -> {2}")),
-                                GetLinkSourceEventText (Link.SourceEvent),
-                                GetLinkActionText (Link.Action),
-                                GetObjectSummaryText (OtherId)))
-                            .ColorAndOpacity (GetLinkActionSlateColor (Link.Action))
-                    ]
+                        + SVerticalBox::Slot ()
+                        .AutoHeight ()
+                        .Padding (0.f, 0.f, 0.f, 4.f)
+                        [
+                            SNew (STextBlock)
+                                .Text (FlowText)
+                                .ColorAndOpacity (GetLinkActionSlateColor (Link.Action))
+                                .AutoWrapText (true)
+                        ]
 
-                + SHorizontalBox::Slot ()
-                    .AutoWidth ()
-                    .Padding (4.f, 0.f)
-                    [
-                        SNew (SButton)
-                            .Text (bOutgoing
-                                ? FText::FromString (TEXT ("Target"))
-                                : FText::FromString (TEXT ("Source")))
-                            .OnClicked_Lambda ([this, OtherId] () -> FReply
-                        {
-                            return OnSelectObjectFromLinkClicked (OtherId);
-                        })
-                    ]
+                        + SVerticalBox::Slot ()
+                        .AutoHeight ()
+                        [
+                            SNew (SHorizontalBox)
 
-                + SHorizontalBox::Slot ()
-                    .AutoWidth ()
-                    .Padding (4.f, 0.f)
-                    [
-                        SNew (SButton)
-                            .Text (FText::FromString (TEXT ("X")))
-                            .OnClicked_Lambda ([this, Link] () -> FReply
-                        {
-                            return OnRemoveExactLinkClicked (
-                                Link.SourceObjectId,
-                                Link.TargetObjectId,
-                                Link.SourceEvent,
-                                Link.Action);
-                        })
+                            + SHorizontalBox::Slot ()
+                            .AutoWidth ()
+                            .Padding (0.f, 0.f, 4.f, 0.f)
+                            [
+                                GridEditorWidgetHelpers::BuildGridActionButton (
+                                    bOutgoing
+                                        ? FText::FromString (TEXT ("Select Target"))
+                                        : FText::FromString (TEXT ("Select Source")),
+                                    FOnClicked::CreateLambda ([this, OtherId] () -> FReply
+                                    {
+                                        return OnSelectObjectFromLinkClicked (OtherId);
+                                    }))
+                            ]
+
+                            + SHorizontalBox::Slot ()
+                            .AutoWidth ()
+                            .Padding (0.f, 0.f, 4.f, 0.f)
+                            [
+                                GridEditorWidgetHelpers::BuildGridActionButton (
+                                    FText::FromString (TEXT ("Remove")),
+                                    FOnClicked::CreateLambda ([this, Link] () -> FReply
+                                    {
+                                        return OnRemoveExactLinkClicked (
+                                            Link.SourceObjectId,
+                                            Link.TargetObjectId,
+                                            Link.SourceEvent,
+                                            Link.Action);
+                                    }))
+                            ]
+                        ]
                     ]
             ];
 
