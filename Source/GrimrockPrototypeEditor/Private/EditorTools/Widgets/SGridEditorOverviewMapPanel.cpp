@@ -34,34 +34,9 @@ namespace
         return FLinearColor (0.006f, 0.006f, 0.008f, 1.f);
     }
 
-    FLinearColor GetOverviewFloorColor ()
+    FLinearColor GetOverviewExistingCellColor ()
     {
-        return FLinearColor (0.22f, 0.30f, 0.36f, 1.f);
-    }
-
-    FLinearColor GetOverviewWalledFloorColor ()
-    {
-        return FLinearColor (0.38f, 0.40f, 0.42f, 1.f);
-    }
-
-    FLinearColor GetOverviewBlockColor ()
-    {
-        return FLinearColor (0.26f, 0.16f, 0.12f, 1.f);
-    }
-
-    FLinearColor GetOverviewPitColor ()
-    {
-        return FLinearColor (0.08f, 0.05f, 0.12f, 1.f);
-    }
-
-    FLinearColor GetOverviewStairsColor ()
-    {
-        return FLinearColor (0.36f, 0.28f, 0.14f, 1.f);
-    }
-
-    FLinearColor GetOverviewTeleporterColor ()
-    {
-        return FLinearColor (0.10f, 0.30f, 0.45f, 1.f);
+        return FLinearColor (0.82f, 0.84f, 0.86f, 1.f);
     }
 
     FLinearColor GetOverviewSelectedCellOutlineColor ()
@@ -91,35 +66,9 @@ namespace
             return FSlateColor (GetOverviewEmptyColor ());
         }
 
-        if (CellData->bBlocksOccupancy)
-        {
-            return FSlateColor (GetOverviewBlockColor ());
-        }
-
-        const bool bHasWall = CellData->NorthWall != EGridWallType::None ||
-            CellData->EastWall != EGridWallType::None ||
-            CellData->SouthWall != EGridWallType::None ||
-            CellData->WestWall != EGridWallType::None;
-
-        switch (CellData->CellType)
-        {
-            case EGridCellType::Floor:
-                return FSlateColor (bHasWall ? GetOverviewWalledFloorColor () : GetOverviewFloorColor ());
-
-            case EGridCellType::Pit:
-                return FSlateColor (GetOverviewPitColor ());
-
-            case EGridCellType::StairsUp:
-            case EGridCellType::StairsDown:
-                return FSlateColor (GetOverviewStairsColor ());
-
-            case EGridCellType::Teleporter:
-                return FSlateColor (GetOverviewTeleporterColor ());
-
-            case EGridCellType::Empty:
-            default:
-                return FSlateColor (GetOverviewEmptyColor ());
-        }
+        return CellData->CellType == EGridCellType::Empty
+            ? FSlateColor (GetOverviewEmptyColor ())
+            : FSlateColor (GetOverviewExistingCellColor ());
     }
 
     int32 GetOverviewObjectPriority (EGridLevelObjectType Type)
@@ -355,32 +304,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewColorLegend () con
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
         [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Floor")), GetOverviewFloorColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Wall")), GetOverviewWalledFloorColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Block")), GetOverviewBlockColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Pit")), GetOverviewPitColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Stairs")), GetOverviewStairsColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Teleporter")), GetOverviewTeleporterColor ())
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Cell")), GetOverviewExistingCellColor ())
         ]
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
@@ -390,12 +314,12 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewColorLegend () con
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
         [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Object")), GetOverviewSelectedObjectOutlineColor ())
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected Object")), GetOverviewSelectedObjectOutlineColor ())
         ]
 
         + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
         [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Multi")), GetOverviewMultiObjectOutlineColor ())
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Multiple Objects")), GetOverviewMultiObjectOutlineColor ())
         ];
 }
 
