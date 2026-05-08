@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EditorTools/GridLevelEditorActor.h"
 #include "Widgets/SCompoundWidget.h"
 
 #if WITH_EDITOR
 
+class AGridLevelEditorActor;
 struct FGridLevelCellData;
 struct FGridLevelObjectData;
 

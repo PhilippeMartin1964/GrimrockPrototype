@@ -56,11 +56,6 @@ private:
     TSharedRef<SWidget> BuildPaletteSection ();
     TSharedRef<SWidget> BuildPaletteTile (const FGridObjectPaletteEntry& Entry);
 
-    TSharedRef<SWidget> BuildObjectInspectorSection ();
-    TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
-    TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
-    TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
-
     TSharedRef<SWidget> BuildBehaviorEditorSection ();
 
     TSharedRef<SWidget> BuildValidationSection ();
@@ -71,14 +66,11 @@ private:
 
     FReply OnToolClicked (int32 ToolValue);
     FReply OnPaletteEntryClicked (FName EntryId);
-    FReply OnApplySelectedObjectClicked ();
-    FReply OnMoveSelectedObjectToCurrentCellClicked ();
     FReply OnValidateLevelClicked ();
 
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEventType SourceEvent, EGridLinkAction Action);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
-    FReply OnFocusSelectedObjectClicked ();
 
     FText GetSelectedPaletteEntryText () const;
     FText GetActiveToolText () const;
@@ -86,7 +78,6 @@ private:
     FText GetSelectedEdgeStatusText () const;
     FText GetSelectedObjectStatusText () const;
     FText GetValidationStatusText () const;
-    FText GetSelectedObjectDetailsText () const;
     FText GetObjectSummaryText (const FGuid& ObjectId) const;
     FText GetLinkSourceEventText (EGridObjectEventType SourceEvent) const;
     FText GetLinkActionText (EGridLinkAction Action) const;
