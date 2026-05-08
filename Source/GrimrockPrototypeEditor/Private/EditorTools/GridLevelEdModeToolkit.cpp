@@ -125,16 +125,71 @@ namespace
         }
     }
 
+    FLinearColor GetOverviewEmptyColor ()
+    {
+        return FLinearColor (0.006f, 0.006f, 0.008f, 1.f);
+    }
+
+    FLinearColor GetOverviewFloorColor ()
+    {
+        return FLinearColor (0.22f, 0.30f, 0.36f, 1.f);
+    }
+
+    FLinearColor GetOverviewWalledFloorColor ()
+    {
+        return FLinearColor (0.38f, 0.40f, 0.42f, 1.f);
+    }
+
+    FLinearColor GetOverviewBlockColor ()
+    {
+        return FLinearColor (0.26f, 0.16f, 0.12f, 1.f);
+    }
+
+    FLinearColor GetOverviewPitColor ()
+    {
+        return FLinearColor (0.08f, 0.05f, 0.12f, 1.f);
+    }
+
+    FLinearColor GetOverviewStairsColor ()
+    {
+        return FLinearColor (0.36f, 0.28f, 0.14f, 1.f);
+    }
+
+    FLinearColor GetOverviewTeleporterColor ()
+    {
+        return FLinearColor (0.10f, 0.30f, 0.45f, 1.f);
+    }
+
+    FLinearColor GetOverviewSelectedCellOutlineColor ()
+    {
+        return FLinearColor (1.f, 0.86f, 0.18f, 1.f);
+    }
+
+    FLinearColor GetOverviewSelectedObjectOutlineColor ()
+    {
+        return FLinearColor (0.25f, 0.78f, 1.f, 1.f);
+    }
+
+    FLinearColor GetOverviewMultiObjectOutlineColor ()
+    {
+        return FLinearColor (0.35f, 0.85f, 0.45f, 1.f);
+    }
+
+    FLinearColor GetOverviewDefaultOutlineColor ()
+    {
+        return FLinearColor (0.08f, 0.08f, 0.08f, 1.f);
+    }
+
     FSlateColor GetOverviewCellColor (const FGridLevelCellData* CellData)
     {
         if (!CellData)
         {
-            return FSlateColor (FLinearColor (0.006f, 0.006f, 0.008f, 1.f));
+            return FSlateColor (GetOverviewEmptyColor ());
         }
 
         if (CellData->bBlocksOccupancy)
         {
-            return FSlateColor (FLinearColor (0.26f, 0.16f, 0.12f, 1.f));
+            return FSlateColor (GetOverviewBlockColor ());
         }
 
         const bool bHasWall = CellData->NorthWall != EGridWallType::None ||
@@ -142,29 +197,24 @@ namespace
             CellData->SouthWall != EGridWallType::None ||
             CellData->WestWall != EGridWallType::None;
 
-        if (bHasWall)
-        {
-            return FSlateColor (FLinearColor (0.38f, 0.40f, 0.42f, 1.f));
-        }
-
         switch (CellData->CellType)
         {
             case EGridCellType::Floor:
-                return FSlateColor (FLinearColor (0.22f, 0.30f, 0.36f, 1.f));
+                return FSlateColor (bHasWall ? GetOverviewWalledFloorColor () : GetOverviewFloorColor ());
 
             case EGridCellType::Pit:
-                return FSlateColor (FLinearColor (0.08f, 0.05f, 0.12f, 1.f));
+                return FSlateColor (GetOverviewPitColor ());
 
             case EGridCellType::StairsUp:
             case EGridCellType::StairsDown:
-                return FSlateColor (FLinearColor (0.36f, 0.28f, 0.14f, 1.f));
+                return FSlateColor (GetOverviewStairsColor ());
 
             case EGridCellType::Teleporter:
-                return FSlateColor (FLinearColor (0.10f, 0.30f, 0.45f, 1.f));
+                return FSlateColor (GetOverviewTeleporterColor ());
 
             case EGridCellType::Empty:
             default:
-                return FSlateColor (FLinearColor (0.015f, 0.016f, 0.018f, 1.f));
+                return FSlateColor (GetOverviewEmptyColor ());
         }
     }
 
@@ -451,6 +501,11 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewMapSection ()
 
     + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
         [
+            BuildOverviewColorLegend ()
+        ]
+
+    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
+        [
             SNew (STextBlock)
                 .Text (FText::FromString (TEXT ("Legend: D Door, S Secret Door, B Button, L Lever, P Plate, T Trigger, R Receptacle, X Teleporter, M/I Spawn.")))
                 .AutoWrapText (true)
@@ -509,28 +564,15 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewCell (
         GlyphText = FText::FromString (FString::Printf (TEXT ("%s+"), *GlyphText.ToString ()));
     }
 
-    FLinearColor CellFillColor = GetOverviewCellColor (CellData).GetSpecifiedColor ();
-    if (ObjectCount > 1 && !bSelectedCell && !bSelectedObjectCell)
-    {
-        CellFillColor = FLinearColor::LerpUsingHSV (
-            CellFillColor,
-            FLinearColor (0.35f, 0.85f, 0.45f, 1.f),
-            0.28f);
-    }
-
     const FSlateColor OutlineColor = bSelectedCell
-        ? FSlateColor (FLinearColor (1.f, 0.86f, 0.18f, 1.f))
+        ? FSlateColor (GetOverviewSelectedCellOutlineColor ())
         : bSelectedObjectCell
-        ? FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f))
+        ? FSlateColor (GetOverviewSelectedObjectOutlineColor ())
         : ObjectCount > 1
-        ? FSlateColor (FLinearColor (0.35f, 0.85f, 0.45f, 1.f))
-        : FSlateColor (FLinearColor (0.08f, 0.08f, 0.08f, 1.f));
+        ? FSlateColor (GetOverviewMultiObjectOutlineColor ())
+        : FSlateColor (GetOverviewDefaultOutlineColor ());
 
-    const FSlateColor FillColor = bSelectedCell
-        ? FSlateColor (FLinearColor (0.62f, 0.50f, 0.10f, 1.f))
-        : bSelectedObjectCell
-        ? FSlateColor (FLinearColor (0.08f, 0.35f, 0.48f, 1.f))
-        : FSlateColor (CellFillColor);
+    const FSlateColor FillColor = GetOverviewCellColor (CellData);
 
     return SNew (SBox)
         .WidthOverride (18.f)
@@ -565,11 +607,90 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewCell (
         ];
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewCellTooltip (int32 CellX, int32 CellY) const
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewColorLegend () const
 {
-    return SNew (STextBlock)
-        .Text (GetOverviewCellTooltipText (CellX, CellY))
-        .AutoWrapText (true);
+    return SNew (SWrapBox)
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Empty")), GetOverviewEmptyColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Floor")), GetOverviewFloorColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Wall")), GetOverviewWalledFloorColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Block")), GetOverviewBlockColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Pit")), GetOverviewPitColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Stairs")), GetOverviewStairsColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Teleporter")), GetOverviewTeleporterColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected")), GetOverviewSelectedCellOutlineColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Object")), GetOverviewSelectedObjectOutlineColor ())
+        ]
+
+        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        [
+            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Multi")), GetOverviewMultiObjectOutlineColor ())
+        ];
+}
+
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildOverviewLegendSwatch (const FText& Label, const FLinearColor& Color) const
+{
+    return SNew (SHorizontalBox)
+
+        + SHorizontalBox::Slot ()
+        .AutoWidth ()
+        .VAlign (VAlign_Center)
+        .Padding (0.f, 0.f, 3.f, 0.f)
+        [
+            SNew (SBorder)
+                .Padding (0.f)
+                .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
+                .BorderBackgroundColor (FSlateColor (Color))
+                [
+                    SNew (SBox)
+                        .WidthOverride (10.f)
+                        .HeightOverride (10.f)
+                ]
+        ]
+
+        + SHorizontalBox::Slot ()
+        .AutoWidth ()
+        .VAlign (VAlign_Center)
+        [
+            SNew (STextBlock)
+                .Text (Label)
+                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 7))
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+        ];
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
@@ -583,6 +704,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
     auto MakeCellAction = [this] (
         const FText& Label,
         bool bEnabled,
+        const FText& DisabledTooltip,
         TFunction<void (AGridLevelEditorActor&)> Action) -> TSharedRef<SWidget>
     {
         return SNew (SButton)
@@ -590,6 +712,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
             .HAlign (HAlign_Center)
             .ContentPadding (FMargin (7.f, 2.f))
             .IsEnabled (bEnabled)
+            .ToolTipText (bEnabled ? FText::GetEmpty () : DisabledTooltip)
             .OnClicked_Lambda ([this, Action] () -> FReply
         {
             if (AGridLevelEditorActor* MutableEditorActor = GetEditorActor ())
@@ -603,23 +726,30 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
     };
 
     return SNew (SBorder)
-        .Padding (6.f)
+        .Padding (FMargin (6.f, 5.f))
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
         [
             SNew (SVerticalBox)
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 5.f)
             [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("SELECTED CELL")))
-                    .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
-            ]
+                SNew (SWrapBox)
 
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
-            [
-                SNew (STextBlock)
-                    .Text (GetSelectedCellSummaryText ())
-                    .AutoWrapText (true)
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 2.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("SELECTED CELL")))
+                        .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
+                        .ColorAndOpacity (FSlateColor (FLinearColor (0.80f, 0.80f, 0.80f, 1.f)))
+                ]
+
+                + SWrapBox::Slot ().Padding (0.f, 0.f, 0.f, 2.f)
+                [
+                    SNew (STextBlock)
+                        .Text (GetSelectedCellSummaryText ())
+                        .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
+                        .AutoWrapText (true)
+                ]
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
@@ -631,6 +761,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
                     MakeCellAction (
                         FText::FromString (TEXT ("Focus")),
                         bHasSelectedObject || bHasObjectInCell,
+                        FText::FromString (TEXT ("Focus requires a selected object or an object on the selected cell.")),
                         [] (AGridLevelEditorActor& MutableEditorActor)
                     {
                         if (!MutableEditorActor.GetSelectedObjectData () && MutableEditorActor.LevelAsset)
@@ -655,6 +786,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
                     MakeCellAction (
                         FText::FromString (TEXT ("Select Object")),
                         bHasObjectInCell,
+                        FText::FromString (TEXT ("No object exists on the selected cell.")),
                         [] (AGridLevelEditorActor& MutableEditorActor)
                     {
                         if (!MutableEditorActor.LevelAsset)
@@ -679,6 +811,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
                     MakeCellAction (
                         FText::FromString (TEXT ("Paint Cell")),
                         bHasValidSelection,
+                        FText::FromString (TEXT ("Paint Cell requires a valid selected cell.")),
                         [] (AGridLevelEditorActor& MutableEditorActor)
                     {
                         MutableEditorActor.Modify ();
@@ -692,6 +825,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
                     MakeCellAction (
                         FText::FromString (TEXT ("Paint Wall")),
                         bHasValidSelection && bHasSelectedEdge,
+                        FText::FromString (TEXT ("Paint Wall is disabled when Edge/Facing is None.")),
                         [] (AGridLevelEditorActor& MutableEditorActor)
                     {
                         MutableEditorActor.PaintSelectedWall ();
@@ -703,6 +837,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
                     MakeCellAction (
                         FText::FromString (TEXT ("Place Object")),
                         bHasValidSelection,
+                        FText::FromString (TEXT ("Place Object requires a valid selected cell.")),
                         [] (AGridLevelEditorActor& MutableEditorActor)
                     {
                         MutableEditorActor.PlaceSelectedObject ();
@@ -714,6 +849,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildSelectedCellSection ()
                     MakeCellAction (
                         FText::FromString (TEXT ("Erase")),
                         bHasValidSelection,
+                        FText::FromString (TEXT ("Erase requires a valid selected cell.")),
                         [] (AGridLevelEditorActor& MutableEditorActor)
                     {
                         MutableEditorActor.EraseAtSelection ();
@@ -1058,7 +1194,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
             [
                 SNew (STextBlock)
                     .Text (FText::FromString (TEXT ("DUNGEON EDITOR")))
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 10))
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 13))
             ]
 
             + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 3.f)
@@ -1223,7 +1359,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCompactStatusBadge (
                 SNew (STextBlock)
                     .Text (Label)
                     .ColorAndOpacity (AccentColor)
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 7))
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 8))
             ]
 
             + SHorizontalBox::Slot ()
@@ -1232,7 +1368,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCompactStatusBadge (
             [
                 SNew (STextBlock)
                     .Text (Value)
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 7))
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
             ]
         ];
 }

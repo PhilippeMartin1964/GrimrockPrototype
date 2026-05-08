@@ -65,5 +65,11 @@ private:
 
     void ResetPaintCache () const;
     bool ShouldApplyPaintForCurrentSelection (const AGridLevelEditorActor* EditorActor) const;
+    void RefreshToolkitIfSelectionChanged (const AGridLevelEditorActor* EditorActor) const;
+
+    mutable int32 LastToolkitRefreshCellX = INDEX_NONE;
+    mutable int32 LastToolkitRefreshCellY = INDEX_NONE;
+    mutable EGridEdge LastToolkitRefreshEdge = EGridEdge::None;
+    mutable FGuid LastToolkitRefreshObjectId;
 };
 #endif

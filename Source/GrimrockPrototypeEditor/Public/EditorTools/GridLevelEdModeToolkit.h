@@ -48,8 +48,9 @@ private:
 
     TSharedRef<SWidget> BuildOverviewMapSection ();
     TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
+    TSharedRef<SWidget> BuildOverviewColorLegend () const;
+    TSharedRef<SWidget> BuildOverviewLegendSwatch (const FText& Label, const FLinearColor& Color) const;
     TSharedRef<SWidget> BuildSelectedCellSection ();
-    TSharedRef<SWidget> BuildOverviewCellTooltip (int32 CellX, int32 CellY) const;
     FText GetOverviewCellTooltipText (int32 CellX, int32 CellY) const;
     FText GetSelectedCellSummaryText () const;
     FText GetCellWallSummaryText (const FGridLevelCellData& CellData) const;

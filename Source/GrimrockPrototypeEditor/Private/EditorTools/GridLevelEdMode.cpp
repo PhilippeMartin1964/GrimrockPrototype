@@ -177,6 +177,11 @@ bool FGridLevelEdMode::UpdateHoverFromMouse (
         EditorActor->UpdateHoveredObjectFromWorldPoint (HitPoint);
     }
 
+    if (bGridHoverOk)
+    {
+        RefreshToolkitIfSelectionChanged (EditorActor);
+    }
+
     return bGridHoverOk;
 }
 
@@ -393,6 +398,11 @@ void FGridLevelEdMode::Enter ()
 {
     FEdMode::Enter ();
 
+    LastToolkitRefreshCellX = INDEX_NONE;
+    LastToolkitRefreshCellY = INDEX_NONE;
+    LastToolkitRefreshEdge = EGridEdge::None;
+    LastToolkitRefreshObjectId.Invalidate ();
+
     if (!Toolkit.IsValid () && UsesToolkits ())
     {
         Toolkit = MakeShareable (new FGridLevelEdModeToolkit);
@@ -440,6 +450,32 @@ bool FGridLevelEdMode::ShouldApplyPaintForCurrentSelection (const AGridLevelEdit
     LastPaintTool = EditorActor->ActiveTool;
 
     return true;
+}
+
+void FGridLevelEdMode::RefreshToolkitIfSelectionChanged (const AGridLevelEditorActor* EditorActor) const
+{
+    if (!EditorActor || !Toolkit.IsValid ())
+    {
+        return;
+    }
+
+    const bool bSelectionChanged =
+        LastToolkitRefreshCellX != EditorActor->SelectedCellX ||
+        LastToolkitRefreshCellY != EditorActor->SelectedCellY ||
+        LastToolkitRefreshEdge != EditorActor->SelectedEdge ||
+        LastToolkitRefreshObjectId != EditorActor->LastSelectedObjectId;
+
+    if (!bSelectionChanged)
+    {
+        return;
+    }
+
+    LastToolkitRefreshCellX = EditorActor->SelectedCellX;
+    LastToolkitRefreshCellY = EditorActor->SelectedCellY;
+    LastToolkitRefreshEdge = EditorActor->SelectedEdge;
+    LastToolkitRefreshObjectId = EditorActor->LastSelectedObjectId;
+
+    Toolkit->RefreshPalette ();
 }
 
 #endif
