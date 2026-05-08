@@ -5,6 +5,7 @@
 #include "Core/GridTypes.h"
 #include "Core/GridObjectBehavior.h"
 
+#include "Styling/SlateBrush.h"
 #include "Styling/SlateColor.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SNumericEntryBox.h"
@@ -43,9 +44,6 @@ private:
     TSharedRef<SWidget> BuildReadOnlyPropertyRow (const FText& Label, const FText& Value) const;
     TSharedRef<SWidget> BuildActionButton (const FText& Label, const FOnClicked& OnClicked) const;
     TSharedRef<SWidget> BuildStatusBadge (const FText& Label, const FText& Value, const FSlateColor& AccentColor) const;
-
-    TSharedRef<SWidget> BuildOverviewMapSection ();
-    TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
 
     TSharedRef<SWidget> BuildOverviewMapSection ();
     TSharedRef<SWidget> BuildOverviewCell (int32 CellX, int32 CellY, const FGridLevelObjectData* SelectedObject);
