@@ -805,6 +805,16 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildValidationSection ()
 }
 
 
+void FGridLevelEdModeToolkit::BuildTriggerModeOptions ()
+{
+    TriggerModeOptions.Reset ();
+
+    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Instant));
+    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Hold));
+    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Toggle));
+    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::OneShot));
+}
+
 void FGridLevelEdModeToolkit::SyncEditedBehaviorFromSelection ()
 {
     const AGridLevelEditorActor* EditorActor = GetEditorActor ();
