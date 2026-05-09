@@ -11,8 +11,10 @@ class UPointLightComponent;
  * Generic runtime actor for data-driven decorative objects, props, readable objects
  * and simple light sources.
  *
- * The level runtime actor still computes placement. This actor only applies the
- * archetype-driven visual/runtime options once spawned.
+ * The level runtime actor still computes placement. This actor applies generic
+ * archetype-driven options when InitializeGenericObject is used. If it is spawned
+ * through the base InitializeGridObject path, it still behaves as a safe static
+ * visual actor.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridGenericObjectActor : public AGridRuntimeObjectActor
@@ -27,7 +29,7 @@ public:
     TObjectPtr<UPointLightComponent> PointLightComponent;
 
     UPROPERTY (BlueprintReadOnly, Category = "Grid|Archetype")
-    TObjectPtr<const UGridObjectArchetypeAsset> SourceArchetype;
+    TObjectPtr<UGridObjectArchetypeAsset> SourceArchetype;
 
     UPROPERTY (BlueprintReadOnly, Category = "Grid|Readable")
     FText RuntimeReadableText;
@@ -42,7 +44,7 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void InitializeGenericObject (
         const FGridLevelObjectData& ObjectData,
-        const UGridObjectArchetypeAsset* Archetype,
+        UGridObjectArchetypeAsset* Archetype,
         UStaticMesh* Mesh,
         UMaterialInterface* Material,
         const FTransform& WorldTransform);
