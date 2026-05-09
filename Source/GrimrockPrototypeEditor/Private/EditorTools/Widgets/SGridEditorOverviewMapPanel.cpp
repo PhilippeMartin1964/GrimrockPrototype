@@ -5,6 +5,7 @@
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -902,6 +903,10 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText (const FGrid
     const FString TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (
         TypeEnum,
         static_cast<int64> (Object.Type)).ToString ();
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Object.ArchetypeId)
+        : nullptr;
 
     FString IdentifierText;
     if (!Object.Tag.IsNone ())
@@ -921,12 +926,58 @@ FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText (const FGrid
         IdentifierText = FString::Printf (TEXT ("Id=%s"), *Object.ObjectId.ToString ().Left (8));
     }
 
-    return FText::FromString (FString::Printf (TEXT ("%s | %s"), *TypeText, *IdentifierText));
+    FString ArchetypeDetails;
+    if (Archetype)
+    {
+        const UEnum* CategoryEnum = StaticEnum<EGridObjectCategory> ();
+        const UEnum* PlacementEnum = StaticEnum<EGridObjectPlacementKind> ();
+        ArchetypeDetails = FString::Printf (
+            TEXT (" | %s/%s"),
+            *GridEditorWidgetHelpers::GetGridEnumDisplayText (
+                CategoryEnum,
+                static_cast<int64> (Archetype->ObjectCategory)).ToString (),
+            *GridEditorWidgetHelpers::GetGridEnumDisplayText (
+                PlacementEnum,
+                static_cast<int64> (Archetype->PlacementKind)).ToString ());
+    }
+
+    return FText::FromString (FString::Printf (TEXT ("%s | %s%s"), *TypeText, *IdentifierText, *ArchetypeDetails));
 }
 
 EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor (
     const FGridLevelObjectData& Object) const
 {
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Object.ArchetypeId)
+        : nullptr;
+    if (Archetype)
+    {
+        if (!Archetype->IsEdgePlaced ())
+        {
+            return EGridEditorOverviewObjectAnchor::Center;
+        }
+
+        switch (Object.Edge)
+        {
+            case EGridEdge::North:
+                return EGridEditorOverviewObjectAnchor::North;
+
+            case EGridEdge::East:
+                return EGridEditorOverviewObjectAnchor::East;
+
+            case EGridEdge::South:
+                return EGridEditorOverviewObjectAnchor::South;
+
+            case EGridEdge::West:
+                return EGridEditorOverviewObjectAnchor::West;
+
+            case EGridEdge::None:
+            default:
+                return EGridEditorOverviewObjectAnchor::Center;
+        }
+    }
+
     if (!IsOverviewEdgeObject (Object.Type))
     {
         return EGridEditorOverviewObjectAnchor::Center;

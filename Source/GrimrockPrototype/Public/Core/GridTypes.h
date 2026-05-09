@@ -51,6 +51,29 @@ enum class EGridLevelObjectType : uint8
 };
 
 UENUM (BlueprintType)
+enum class EGridObjectPlacementKind : uint8
+{
+    Center  UMETA (DisplayName = "Center"),
+    Edge    UMETA (DisplayName = "Edge"),
+    Floor   UMETA (DisplayName = "Floor"),
+    Wall    UMETA (DisplayName = "Wall"),
+    Ceiling UMETA (DisplayName = "Ceiling")
+};
+
+UENUM (BlueprintType)
+enum class EGridObjectCategory : uint8
+{
+    Mechanism  UMETA (DisplayName = "Mechanism"),
+    Decoration UMETA (DisplayName = "Decoration"),
+    Prop       UMETA (DisplayName = "Prop"),
+    Receptacle UMETA (DisplayName = "Receptacle"),
+    Light      UMETA (DisplayName = "Light"),
+    Readable   UMETA (DisplayName = "Readable"),
+    Spawn      UMETA (DisplayName = "Spawn"),
+    Teleporter UMETA (DisplayName = "Teleporter")
+};
+
+UENUM (BlueprintType)
 enum class EGridLinkAction : uint8
 {
     Toggle      UMETA (DisplayName = "Toggle"),

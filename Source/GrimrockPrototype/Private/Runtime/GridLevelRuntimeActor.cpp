@@ -841,12 +841,12 @@ bool AGridLevelRuntimeActor::GetObjectPlacementTransform (const FGridLevelObject
         OutTransform = FTransform (Rot, Pos, FVector::OneVector);
         return true;
     }
-    if (Archetype->bPlaceOnEdge)
+    if (Archetype->IsEdgePlaced ())
     {
         return GetWallMountedObjectTransform (ObjectData, Archetype->PlacementZOffset, Archetype->WallInset,
             Archetype->LocalOffsetAlongWall, Archetype->LocalOffsetVertical, OutTransform);
     }
-    if (Archetype->bPlaceAtCellCenter)
+    if (Archetype->IsCenterPlaced ())
     {
         return GetCenteredObjectTransform (ObjectData, Archetype->PlacementZOffset, OutTransform);
     }

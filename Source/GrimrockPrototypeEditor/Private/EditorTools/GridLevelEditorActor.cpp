@@ -120,6 +120,24 @@ bool AGridLevelEditorActor::IsCellCenteredObject (EGridLevelObjectType ObjectTyp
     }
 }
 
+const UGridObjectArchetypeAsset* AGridLevelEditorActor::FindObjectArchetypeById (FName ArchetypeId) const
+{
+    if (ArchetypeId.IsNone () || !ObjectPalette)
+    {
+        return nullptr;
+    }
+
+    for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
+    {
+        if (Entry.DefaultArchetype && Entry.DefaultArchetype->ArchetypeId == ArchetypeId)
+        {
+            return Entry.DefaultArchetype;
+        }
+    }
+
+    return nullptr;
+}
+
 FGridLevelCellData* AGridLevelEditorActor::GetSelectedCellMutable ()
 {
     if (!IsValidSelectedCell ())
@@ -1468,6 +1486,43 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
     TSet<FGuid> ObjectIds;
     TMap<FGuid, int32> OutgoingLinkCountBySourceId;
 
+    auto IsEdgeOrWallPlacedObject = [this] (const FGridLevelObjectData& ObjectData) -> bool
+    {
+        if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (ObjectData.ArchetypeId))
+        {
+            return Archetype->IsEdgePlaced () || Archetype->IsWallPlaced ();
+        }
+
+        return RequiresEdge (ObjectData.Type);
+    };
+
+    auto GetValidationAnchorKey = [&IsEdgeOrWallPlacedObject] (const FGridLevelObjectData& ObjectData) -> FString
+    {
+        if (!IsEdgeOrWallPlacedObject (ObjectData))
+        {
+            return TEXT ("Center");
+        }
+
+        switch (ObjectData.Edge)
+        {
+            case EGridEdge::North:
+                return TEXT ("North");
+
+            case EGridEdge::East:
+                return TEXT ("East");
+
+            case EGridEdge::South:
+                return TEXT ("South");
+
+            case EGridEdge::West:
+                return TEXT ("West");
+
+            case EGridEdge::None:
+            default:
+                return TEXT ("Center");
+        }
+    };
+
     for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
     {
         if (!Obj.ObjectId.IsValid ())
@@ -1500,6 +1555,27 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     Obj.CellY),
                 Obj.ObjectId);
             continue;
+        }
+
+        const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (Obj.ArchetypeId);
+        if (IsEdgeOrWallPlacedObject (Obj) && Obj.Edge == EGridEdge::None)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Warning,
+                TEXT ("Edge or wall placed object has Edge=None."),
+                Obj.ObjectId);
+        }
+
+        if (Archetype && Archetype->bBlocksMovement)
+        {
+            const FGridLevelCellData& CellData = LevelAsset->GetCell (Obj.CellX, Obj.CellY);
+            if (CellData.bBlocksOccupancy)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Object blocks movement on a cell that already blocks occupancy."),
+                    Obj.ObjectId);
+            }
         }
 
         if (Obj.Type == EGridLevelObjectType::Door)
@@ -1539,6 +1615,49 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     EGridLevelValidationSeverity::Error,
                     TEXT ("Receptacle accepts no item: bAcceptAnyItem=false and accepted lists are empty."),
                     Obj.ObjectId);
+            }
+        }
+    }
+
+    for (int32 ObjectIndex = 0; ObjectIndex < LevelAsset->Objects.Num (); ++ObjectIndex)
+    {
+        const FGridLevelObjectData& ObjectA = LevelAsset->Objects[ObjectIndex];
+        const UGridObjectArchetypeAsset* ArchetypeA = FindObjectArchetypeById (ObjectA.ArchetypeId);
+        if (!ArchetypeA || !LevelAsset->IsValidCoord (ObjectA.CellX, ObjectA.CellY))
+        {
+            continue;
+        }
+
+        const FString AnchorA = GetValidationAnchorKey (ObjectA);
+        for (int32 OtherIndex = 0; OtherIndex < LevelAsset->Objects.Num (); ++OtherIndex)
+        {
+            if (ObjectIndex == OtherIndex)
+            {
+                continue;
+            }
+
+            const FGridLevelObjectData& ObjectB = LevelAsset->Objects[OtherIndex];
+            if (ObjectA.CellX != ObjectB.CellX || ObjectA.CellY != ObjectB.CellY)
+            {
+                continue;
+            }
+
+            if (!ArchetypeA->bCanShareCell)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Object does not allow sharing its cell but another object is placed there."),
+                    ObjectA.ObjectId);
+                break;
+            }
+
+            if (!ArchetypeA->bCanShareAnchor && AnchorA == GetValidationAnchorKey (ObjectB))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (TEXT ("Object does not allow sharing anchor '%s' but another object uses it."), *AnchorA),
+                    ObjectA.ObjectId);
+                break;
             }
         }
     }

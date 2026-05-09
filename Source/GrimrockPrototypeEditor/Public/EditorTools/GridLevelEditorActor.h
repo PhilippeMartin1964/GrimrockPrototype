@@ -321,6 +321,8 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Validation")
     TArray<FGridLevelValidationMessage> ValidateCurrentLevel ();
 
+    const UGridObjectArchetypeAsset* FindObjectArchetypeById (FName ArchetypeId) const;
+
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
 
