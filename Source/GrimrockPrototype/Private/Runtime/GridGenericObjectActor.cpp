@@ -17,7 +17,7 @@ AGridGenericObjectActor::AGridGenericObjectActor ()
 
 void AGridGenericObjectActor::InitializeGenericObject (
     const FGridLevelObjectData& ObjectData,
-    const UGridObjectArchetypeAsset* Archetype,
+    UGridObjectArchetypeAsset* Archetype,
     UStaticMesh* Mesh,
     UMaterialInterface* Material,
     const FTransform& WorldTransform)
