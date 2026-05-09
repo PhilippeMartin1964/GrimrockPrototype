@@ -103,6 +103,66 @@ namespace GridEditorWidgetHelpers
             ];
     }
 
+    TSharedRef<SWidget> BuildGridCollapsiblePanelSection (
+        const FText& Title,
+        const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
+        bool bExpanded,
+        const FOnClicked& OnToggleClicked)
+    {
+        TSharedRef<SVerticalBox> SectionBox = SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ()
+            .AutoHeight ()
+            .Padding (0.f, 0.f, 0.f, bExpanded ? 6.f : 0.f)
+            [
+                SNew (SButton)
+                    .ButtonStyle (&FCoreStyle::Get ().GetWidgetStyle<FButtonStyle> ("NoBorder"))
+                    .ContentPadding (FMargin (2.f, 1.f))
+                    .HAlign (HAlign_Fill)
+                    .OnClicked (OnToggleClicked)
+                    [
+                        SNew (SHorizontalBox)
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .VAlign (VAlign_Center)
+                        .Padding (0.f, 0.f, 5.f, 0.f)
+                        [
+                            SNew (STextBlock)
+                                .Text (bExpanded
+                                    ? FText::FromString (FString::Chr (0x25BC))
+                                    : FText::FromString (FString::Chr (0x25B6)))
+                                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
+                        ]
+
+                        + SHorizontalBox::Slot ()
+                        .FillWidth (1.f)
+                        .VAlign (VAlign_Center)
+                        [
+                            SNew (STextBlock)
+                                .Text (Title)
+                                .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                        ]
+                    ]
+            ];
+
+        if (bExpanded)
+        {
+            SectionBox->AddSlot ()
+                .AutoHeight ()
+                [
+                    BuildContent ()
+                ];
+        }
+
+        return SNew (SBorder)
+            .Padding (6.f)
+            .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+            [
+                SectionBox
+            ];
+    }
+
     TSharedRef<SWidget> BuildGridStatusBadge (
         const FText& Label,
         const FText& Value,

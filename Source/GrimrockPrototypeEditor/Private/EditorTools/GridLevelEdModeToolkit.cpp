@@ -102,24 +102,32 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
         BuildHeaderSection ());
 
     AddToolkitPanel (
-        SNew (SGridEditorToolPalettePanel)
-            .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-            .ToolPaletteState (ToolPaletteState)
-            .OnGetEditorActor (FOnGetGridEditorToolPaletteActor::CreateLambda ([this] ()
+        BuildCollapsiblePanelSection (
+            FText::FromString (TEXT ("TOOLS / PALETTE")),
+            [this] () -> TSharedRef<SWidget>
             {
-                return GetEditorActor ();
-            }))
-            .OnRequestRefresh (FOnGridEditorToolPaletteRequestRefresh::CreateLambda ([this] ()
-            {
-                RefreshPalette ();
-            })));
+                return SNew (SGridEditorToolPalettePanel)
+                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
+                .ToolPaletteState (ToolPaletteState)
+                .OnGetEditorActor (FOnGetGridEditorToolPaletteActor::CreateLambda ([this] ()
+                {
+                    return GetEditorActor ();
+                }))
+                .OnRequestRefresh (FOnGridEditorToolPaletteRequestRefresh::CreateLambda ([this] ()
+                {
+                    RefreshPalette ();
+                }));
+            },
+            PanelExpansionState.bToolsExpanded));
 
     const AGridLevelEditorActor* EditorActor = GetEditorActor ();
 
     AddToolkitPanel (
-        BuildPanelSection (
+        BuildCollapsiblePanelSection (
             FText::FromString (TEXT ("OVERVIEW MAP")),
-            SNew (SGridEditorOverviewMapPanel)
+            [this] () -> TSharedRef<SWidget>
+            {
+                return SNew (SGridEditorOverviewMapPanel)
                 .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
                 .OnGetEditorActor (FOnGetGridEditorActor::CreateLambda ([this] ()
                 {
@@ -128,14 +136,18 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                 .OnRequestRefresh (FOnGridEditorOverviewRequestRefresh::CreateLambda ([this] ()
                 {
                     RefreshPalette ();
-                }))));
+                }));
+            },
+            PanelExpansionState.bOverviewExpanded));
 
     const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData () : nullptr;
 
     AddToolkitPanel (
-        BuildPanelSection (
+        BuildCollapsiblePanelSection (
             FText::FromString (TEXT ("SELECTED OBJECT")),
-            SNew (SGridEditorObjectInspectorPanel)
+            [this] () -> TSharedRef<SWidget>
+            {
+                return SNew (SGridEditorObjectInspectorPanel)
                 .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
                 .OnGetEditorActor (FOnGetGridEditorObjectInspectorActor::CreateLambda ([this] ()
                 {
@@ -144,14 +156,18 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                 .OnRequestRefresh (FOnGridEditorObjectInspectorRequestRefresh::CreateLambda ([this] ()
                 {
                     RefreshPalette ();
-                }))));
+                }));
+            },
+            PanelExpansionState.bSelectedObjectExpanded));
 
     if (Obj)
     {
         AddToolkitPanel (
-            BuildPanelSection (
+            BuildCollapsiblePanelSection (
                 FText::FromString (TEXT ("LINKS")),
-                SNew (SGridEditorLinksPanel)
+                [this] () -> TSharedRef<SWidget>
+                {
+                    return SNew (SGridEditorLinksPanel)
                     .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
                     .OnGetEditorActor (FOnGetGridEditorLinksActor::CreateLambda ([this] ()
                     {
@@ -160,14 +176,18 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                     .OnRequestRefresh (FOnGridEditorLinksRequestRefresh::CreateLambda ([this] ()
                     {
                         RefreshPalette ();
-                    }))));
+                    }));
+                },
+                PanelExpansionState.bLinksExpanded));
 
         if (Obj->Type != EGridLevelObjectType::Trigger)
         {
             AddToolkitPanel (
-                BuildPanelSection (
+                BuildCollapsiblePanelSection (
                     FText::FromString (TEXT ("BEHAVIOR EDITOR")),
-                    SNew (SGridEditorBehaviorPanel)
+                    [this] () -> TSharedRef<SWidget>
+                    {
+                        return SNew (SGridEditorBehaviorPanel)
                         .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
                         .OnGetEditorActor (FOnGetGridEditorBehaviorActor::CreateLambda ([this] ()
                         {
@@ -176,14 +196,18 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                         .OnRequestRefresh (FOnGridEditorBehaviorRequestRefresh::CreateLambda ([this] ()
                         {
                             RefreshPalette ();
-                        }))));
+                        }));
+                    },
+                    PanelExpansionState.bBehaviorExpanded));
         }
     }
 
     AddToolkitPanel (
-        BuildPanelSection (
+        BuildCollapsiblePanelSection (
             FText::FromString (TEXT ("VALIDATION")),
-            SNew (SGridEditorValidationPanel)
+            [this] () -> TSharedRef<SWidget>
+            {
+                return SNew (SGridEditorValidationPanel)
                 .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
                 .ValidationState (ValidationState)
                 .OnGetEditorActor (FOnGetGridEditorValidationActor::CreateLambda ([this] ()
@@ -192,8 +216,11 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                 }))
                 .OnRequestRefresh (FOnGridEditorValidationRequestRefresh::CreateLambda ([this] ()
                 {
+                    ExpandValidationIfMessagesNeedAttention ();
                     RefreshPalette ();
-                }))));
+                }));
+            },
+            PanelExpansionState.bValidationExpanded));
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget ()
@@ -277,11 +304,44 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
         ];
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPanelSection (
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection (
     const FText& Title,
-    TSharedRef<SWidget> Content)
+    const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
+    bool& bExpanded)
 {
-    return GridEditorWidgetHelpers::BuildGridPanelSection (Title, Content);
+    return GridEditorWidgetHelpers::BuildGridCollapsiblePanelSection (
+        Title,
+        BuildContent,
+        bExpanded,
+        FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::TogglePanelExpansion, &bExpanded));
+}
+
+FReply FGridLevelEdModeToolkit::TogglePanelExpansion (bool* bExpanded)
+{
+    if (bExpanded)
+    {
+        *bExpanded = !*bExpanded;
+        RefreshPalette ();
+    }
+
+    return FReply::Handled ();
+}
+
+void FGridLevelEdModeToolkit::ExpandValidationIfMessagesNeedAttention ()
+{
+    if (!ValidationState.IsValid ())
+    {
+        return;
+    }
+
+    int32 ErrorCount = 0;
+    int32 WarningCount = 0;
+    ValidationState->CountValidationErrorsWarnings (ErrorCount, WarningCount);
+
+    if (ErrorCount > 0 || WarningCount > 0)
+    {
+        PanelExpansionState.bValidationExpanded = true;
+    }
 }
 
 FText FGridLevelEdModeToolkit::GetActiveToolText () const

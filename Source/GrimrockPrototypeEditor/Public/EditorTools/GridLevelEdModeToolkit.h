@@ -1,6 +1,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Input/Reply.h"
+#include "Templates/Function.h"
 
 #if WITH_EDITOR
 
@@ -11,6 +13,16 @@ class SVerticalBox;
 class AGridLevelEditorActor;
 struct FGridEditorToolPalettePanelState;
 struct FGridEditorValidationPanelState;
+
+struct FGridEditorPanelExpansionState
+{
+    bool bToolsExpanded = true;
+    bool bOverviewExpanded = true;
+    bool bSelectedObjectExpanded = true;
+    bool bLinksExpanded = false;
+    bool bBehaviorExpanded = false;
+    bool bValidationExpanded = false;
+};
 
 class FGridLevelEdModeToolkit : public FModeToolkit
 {
@@ -30,7 +42,12 @@ private:
     TSharedRef<SWidget> BuildToolkitWidget ();
 
     TSharedRef<SWidget> BuildHeaderSection ();
-    TSharedRef<SWidget> BuildPanelSection (const FText& Title, TSharedRef<SWidget> Content);
+    TSharedRef<SWidget> BuildCollapsiblePanelSection (
+        const FText& Title,
+        const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
+        bool& bExpanded);
+    FReply TogglePanelExpansion (bool* bExpanded);
+    void ExpandValidationIfMessagesNeedAttention ();
 
     FText GetActiveToolText () const;
     FText GetSelectedCellStatusText () const;
@@ -44,6 +61,7 @@ private:
 
     TSharedPtr<FGridEditorToolPalettePanelState> ToolPaletteState;
     TSharedPtr<FGridEditorValidationPanelState> ValidationState;
+    FGridEditorPanelExpansionState PanelExpansionState;
 };
 
 #endif
