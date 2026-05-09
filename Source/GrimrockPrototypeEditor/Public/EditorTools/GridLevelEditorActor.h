@@ -334,6 +334,8 @@ private:
     bool HasValidLevelAsset () const;
     bool IsValidSelectedCell () const;
     bool RequiresEdge (EGridLevelObjectType ObjectType) const;
+    bool IsEdgePlacedObject (const FGridLevelObjectData& ObjectData) const;
+    bool IsEdgePlacedObject (EGridLevelObjectType ObjectType, FName ArchetypeId) const;
     bool IsCellCenteredObject (EGridLevelObjectType ObjectType) const;
 
     FGridLevelCellData* GetSelectedCellMutable ();

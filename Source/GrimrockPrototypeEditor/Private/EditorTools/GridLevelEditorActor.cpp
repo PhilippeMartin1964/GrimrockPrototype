@@ -103,6 +103,21 @@ bool AGridLevelEditorActor::RequiresEdge (EGridLevelObjectType ObjectType) const
     }
 }
 
+bool AGridLevelEditorActor::IsEdgePlacedObject (const FGridLevelObjectData& ObjectData) const
+{
+    return IsEdgePlacedObject (ObjectData.Type, ObjectData.ArchetypeId);
+}
+
+bool AGridLevelEditorActor::IsEdgePlacedObject (EGridLevelObjectType ObjectType, FName ArchetypeId) const
+{
+    if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (ArchetypeId))
+    {
+        return Archetype->IsEdgePlaced () || Archetype->IsWallPlaced ();
+    }
+
+    return RequiresEdge (ObjectType);
+}
+
 bool AGridLevelEditorActor::IsCellCenteredObject (EGridLevelObjectType ObjectType) const
 {
     switch (ObjectType)
@@ -320,7 +335,7 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
             continue;
         }
         bool bRemove = false;
-        if (RequiresEdge (Obj.Type))
+        if (IsEdgePlacedObject (Obj))
         {
             bRemove = (Obj.Edge == SelectedEdge);
         } else
@@ -362,7 +377,8 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
         return;
     }
 
-    if (RequiresEdge (PaintObjectType) && SelectedEdge == EGridEdge::None)
+    const bool bPlaceObjectOnEdge = IsEdgePlacedObject (PaintObjectType, ObjectArchetypeId);
+    if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: this object type requires a valid edge."));
         return;
@@ -380,7 +396,7 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.Type = PaintObjectType;
     NewObject.CellX = SelectedCellX;
     NewObject.CellY = SelectedCellY;
-    NewObject.Edge = RequiresEdge (PaintObjectType) ? SelectedEdge : EGridEdge::None;
+    NewObject.Edge = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
     NewObject.ArchetypeId = ObjectArchetypeId;
     NewObject.bInitiallyEnabled = bObjectInitiallyEnabled;
     NewObject.bInitiallyActive = bObjectInitiallyActive;
@@ -427,7 +443,7 @@ void AGridLevelEditorActor::SelectObjectAtSelection ()
             continue;
         }
 
-        if (RequiresEdge (Obj.Type) && Obj.Edge != SelectedEdge)
+        if (IsEdgePlacedObject (Obj) && Obj.Edge != SelectedEdge)
         {
             continue;
         }
@@ -678,7 +694,7 @@ const FGridLevelObjectData* AGridLevelEditorActor::FindObjectAtSelection () cons
             continue;
         }
 
-        if (RequiresEdge (Obj.Type) && Obj.Edge != SelectedEdge)
+        if (IsEdgePlacedObject (Obj) && Obj.Edge != SelectedEdge)
         {
             continue;
         }
@@ -739,7 +755,7 @@ bool AGridLevelEditorActor::TryGetObjectWorldLocation (
         (ObjectData.CellY * CellSize) + (CellSize * 0.5f),
         12.f);
 
-    if (RequiresEdge (ObjectData.Type))
+    if (IsEdgePlacedObject (ObjectData))
     {
         switch (ObjectData.Edge)
         {
@@ -963,7 +979,7 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject ()
         }
 
         Obj.Type = PaintObjectType;
-        Obj.Edge = RequiresEdge (PaintObjectType) ? SelectedEdge : EGridEdge::None;
+        Obj.Edge = IsEdgePlacedObject (PaintObjectType, ObjectArchetypeId) ? SelectedEdge : EGridEdge::None;
         Obj.ArchetypeId = ObjectArchetypeId;
         Obj.PaletteEntryId = SelectedPaletteEntryId;
         Obj.bInitiallyEnabled = bObjectInitiallyEnabled;
@@ -1386,7 +1402,7 @@ bool AGridLevelEditorActor::MoveSelectedObjectToCurrentSelection ()
         return false;
     }
 
-    const bool bRequiresEdge = RequiresEdge (SelectedObject->Type);
+    const bool bRequiresEdge = IsEdgePlacedObject (*SelectedObject);
     if (bRequiresEdge && SelectedEdge == EGridEdge::None)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: cannot move selected edge-based object to Edge=None."));

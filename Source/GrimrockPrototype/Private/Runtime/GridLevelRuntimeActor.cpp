@@ -897,6 +897,12 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
         return false;
     }
 
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    if (Archetype && Archetype->RuntimeActorClass)
+    {
+        return !Archetype->IsEdgePlaced () || ObjectData.Edge != EGridEdge::None;
+    }
+
     switch (ObjectData.Type)
     {
         case EGridLevelObjectType::Door:
@@ -988,6 +994,18 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
     {
         if (!IsRuntimeSpawnableObject (ObjectData))
         {
+            if (ObjectData.bInitiallyEnabled)
+            {
+                const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+                if (Archetype && !Archetype->RuntimeActorClass)
+                {
+                    UE_LOG (
+                        LogTemp,
+                        Warning,
+                        TEXT ("Runtime object skipped: archetype %s has no RuntimeActorClass."),
+                        *ObjectData.ArchetypeId.ToString ());
+                }
+            }
             continue;
         }
         AddRuntimeObjectActor (ObjectData);
