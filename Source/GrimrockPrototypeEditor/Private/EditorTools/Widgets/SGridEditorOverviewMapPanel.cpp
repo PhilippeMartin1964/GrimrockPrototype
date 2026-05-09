@@ -113,72 +113,46 @@ namespace
         }
     }
 
-    enum class EOverviewMarkerAnchor : uint8
-    {
-        North,
-        East,
-        South,
-        West,
-        Center
-    };
-
-    EOverviewMarkerAnchor GetOverviewMarkerAnchor (const FGridLevelObjectData& Obj)
-    {
-        if (!IsOverviewEdgeObject (Obj.Type))
-        {
-            return EOverviewMarkerAnchor::Center;
-        }
-
-        switch (Obj.Edge)
-        {
-            case EGridEdge::North: return EOverviewMarkerAnchor::North;
-            case EGridEdge::East:  return EOverviewMarkerAnchor::East;
-            case EGridEdge::South: return EOverviewMarkerAnchor::South;
-            case EGridEdge::West:  return EOverviewMarkerAnchor::West;
-            default:               return EOverviewMarkerAnchor::Center;
-        }
-    }
-
     bool IsDoorMarker (const FGridLevelObjectData& Obj)
     {
         return Obj.Type == EGridLevelObjectType::Door;
     }
 
-    FMargin GetOverviewMarkerPadding (EOverviewMarkerAnchor Anchor, bool bDoorMarker)
+    FMargin GetOverviewMarkerPadding (EGridEditorOverviewObjectAnchor Anchor, bool bDoorMarker)
     {
         switch (Anchor)
         {
-            case EOverviewMarkerAnchor::North:
+            case EGridEditorOverviewObjectAnchor::North:
                 return bDoorMarker ? FMargin (3.f, 2.f, 0.f, 0.f) : FMargin (6.f, 2.f, 0.f, 0.f);
 
-            case EOverviewMarkerAnchor::East:
+            case EGridEditorOverviewObjectAnchor::East:
                 return bDoorMarker ? FMargin (14.f, 3.f, 0.f, 0.f) : FMargin (14.f, 6.f, 0.f, 0.f);
 
-            case EOverviewMarkerAnchor::South:
+            case EGridEditorOverviewObjectAnchor::South:
                 return bDoorMarker ? FMargin (3.f, 14.f, 0.f, 0.f) : FMargin (6.f, 14.f, 0.f, 0.f);
 
-            case EOverviewMarkerAnchor::West:
+            case EGridEditorOverviewObjectAnchor::West:
                 return bDoorMarker ? FMargin (2.f, 3.f, 0.f, 0.f) : FMargin (2.f, 6.f, 0.f, 0.f);
 
-            case EOverviewMarkerAnchor::Center:
+            case EGridEditorOverviewObjectAnchor::Center:
             default:
                 return FMargin (7.f, 7.f, 0.f, 0.f);
         }
     }
 
-    FVector2D GetOverviewMarkerSize (EOverviewMarkerAnchor Anchor, bool bDoorMarker)
+    FVector2D GetOverviewMarkerSize (EGridEditorOverviewObjectAnchor Anchor, bool bDoorMarker)
     {
         switch (Anchor)
         {
-            case EOverviewMarkerAnchor::North:
-            case EOverviewMarkerAnchor::South:
+            case EGridEditorOverviewObjectAnchor::North:
+            case EGridEditorOverviewObjectAnchor::South:
                 return bDoorMarker ? FVector2D (12.f, 2.f) : FVector2D (6.f, 2.f);
 
-            case EOverviewMarkerAnchor::East:
-            case EOverviewMarkerAnchor::West:
+            case EGridEditorOverviewObjectAnchor::East:
+            case EGridEditorOverviewObjectAnchor::West:
                 return bDoorMarker ? FVector2D (2.f, 12.f) : FVector2D (2.f, 6.f);
 
-            case EOverviewMarkerAnchor::Center:
+            case EGridEditorOverviewObjectAnchor::Center:
             default:
                 return FVector2D (4.f, 4.f);
         }
@@ -405,32 +379,32 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
             continue;
         }
 
-        const EOverviewMarkerAnchor MarkerAnchor = GetOverviewMarkerAnchor (*Obj);
+        const EGridEditorOverviewObjectAnchor MarkerAnchor = GetObjectAnchor (*Obj);
         bool* bAnchorAlreadyUsed = nullptr;
         bool* bAnchorUsesDoorGeometry = nullptr;
         switch (MarkerAnchor)
         {
-            case EOverviewMarkerAnchor::North:
+            case EGridEditorOverviewObjectAnchor::North:
                 bAnchorAlreadyUsed = &bHasNorthMarker;
                 bAnchorUsesDoorGeometry = &bNorthMarkerIsDoor;
                 break;
 
-            case EOverviewMarkerAnchor::East:
+            case EGridEditorOverviewObjectAnchor::East:
                 bAnchorAlreadyUsed = &bHasEastMarker;
                 bAnchorUsesDoorGeometry = &bEastMarkerIsDoor;
                 break;
 
-            case EOverviewMarkerAnchor::South:
+            case EGridEditorOverviewObjectAnchor::South:
                 bAnchorAlreadyUsed = &bHasSouthMarker;
                 bAnchorUsesDoorGeometry = &bSouthMarkerIsDoor;
                 break;
 
-            case EOverviewMarkerAnchor::West:
+            case EGridEditorOverviewObjectAnchor::West:
                 bAnchorAlreadyUsed = &bHasWestMarker;
                 bAnchorUsesDoorGeometry = &bWestMarkerIsDoor;
                 break;
 
-            case EOverviewMarkerAnchor::Center:
+            case EGridEditorOverviewObjectAnchor::Center:
             default:
                 bAnchorAlreadyUsed = &bHasCenterMarker;
                 break;
@@ -443,7 +417,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
         }
     }
 
-    auto AddMarker = [&MarkerOverlay] (EOverviewMarkerAnchor MarkerAnchor, bool bDoorMarker)
+    auto AddMarker = [&MarkerOverlay] (EGridEditorOverviewObjectAnchor MarkerAnchor, bool bDoorMarker)
     {
         const FVector2D MarkerSize = GetOverviewMarkerSize (MarkerAnchor, bDoorMarker);
 
@@ -466,27 +440,27 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
 
     if (bHasNorthMarker)
     {
-        AddMarker (EOverviewMarkerAnchor::North, bNorthMarkerIsDoor);
+        AddMarker (EGridEditorOverviewObjectAnchor::North, bNorthMarkerIsDoor);
     }
 
     if (bHasEastMarker)
     {
-        AddMarker (EOverviewMarkerAnchor::East, bEastMarkerIsDoor);
+        AddMarker (EGridEditorOverviewObjectAnchor::East, bEastMarkerIsDoor);
     }
 
     if (bHasSouthMarker)
     {
-        AddMarker (EOverviewMarkerAnchor::South, bSouthMarkerIsDoor);
+        AddMarker (EGridEditorOverviewObjectAnchor::South, bSouthMarkerIsDoor);
     }
 
     if (bHasWestMarker)
     {
-        AddMarker (EOverviewMarkerAnchor::West, bWestMarkerIsDoor);
+        AddMarker (EGridEditorOverviewObjectAnchor::West, bWestMarkerIsDoor);
     }
 
     if (bHasCenterMarker)
     {
-        AddMarker (EOverviewMarkerAnchor::Center, false);
+        AddMarker (EGridEditorOverviewObjectAnchor::Center, false);
     }
 
     return MarkerOverlay;
@@ -566,11 +540,11 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewLegendSwatch (cons
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMarkerLegendSwatch (const FText& Label, bool bEdgeMarker) const
 {
     const FVector2D MarkerSize = bEdgeMarker
-        ? GetOverviewMarkerSize (EOverviewMarkerAnchor::North, false)
+        ? GetOverviewMarkerSize (EGridEditorOverviewObjectAnchor::North, false)
         : FVector2D (4.f, 4.f);
     const FMargin MarkerPadding = bEdgeMarker
-        ? GetOverviewMarkerPadding (EOverviewMarkerAnchor::North, false)
-        : GetOverviewMarkerPadding (EOverviewMarkerAnchor::Center, false);
+        ? GetOverviewMarkerPadding (EGridEditorOverviewObjectAnchor::North, false)
+        : GetOverviewMarkerPadding (EGridEditorOverviewObjectAnchor::Center, false);
 
     return SNew (SHorizontalBox)
 
@@ -783,7 +757,121 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildSelectedCellSection ()
                     })
                 ]
             ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+            [
+                BuildObjectsOnSelectedCellSection ()
+            ]
         ];
+}
+
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectsOnSelectedCellSection ()
+{
+    const TArray<FGridEditorOverviewAnchorObjectGroup> ObjectGroups = GetObjectsAtSelectedCellGroupedByAnchor ();
+
+    TSharedRef<SVerticalBox> ObjectsBox = SNew (SVerticalBox);
+
+    ObjectsBox->AddSlot ()
+    .AutoHeight ()
+    .Padding (0.f, 0.f, 0.f, 4.f)
+    [
+        SNew (STextBlock)
+            .Text (FText::FromString (TEXT ("OBJECTS ON CELL")))
+            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 8))
+            .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+    ];
+
+    bool bHasObjects = false;
+    for (const FGridEditorOverviewAnchorObjectGroup& Group : ObjectGroups)
+    {
+        if (Group.Objects.Num () == 0)
+        {
+            continue;
+        }
+
+        bHasObjects = true;
+        ObjectsBox->AddSlot ()
+        .AutoHeight ()
+        .Padding (0.f, 0.f, 0.f, 4.f)
+        [
+            BuildObjectAnchorGroup (Group)
+        ];
+    }
+
+    if (!bHasObjects)
+    {
+        ObjectsBox->AddSlot ()
+        .AutoHeight ()
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("No objects on selected cell.")))
+                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.62f, 0.62f, 0.62f, 1.f)))
+        ];
+    }
+
+    return ObjectsBox;
+}
+
+TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildObjectAnchorGroup (
+    const FGridEditorOverviewAnchorObjectGroup& Group)
+{
+    TSharedRef<SVerticalBox> GroupBox = SNew (SVerticalBox);
+
+    GroupBox->AddSlot ()
+    .AutoHeight ()
+    .Padding (0.f, 0.f, 0.f, 2.f)
+    [
+        SNew (STextBlock)
+            .Text (GetObjectAnchorLabel (Group.Anchor))
+            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 8))
+            .ColorAndOpacity (FSlateColor (FLinearColor (0.86f, 0.86f, 0.86f, 1.f)))
+    ];
+
+    for (const FGridLevelObjectData* Object : Group.Objects)
+    {
+        if (!Object)
+        {
+            continue;
+        }
+
+        const FGuid ObjectId = Object->ObjectId;
+
+        GroupBox->AddSlot ()
+        .AutoHeight ()
+        .Padding (0.f, 1.f, 0.f, 1.f)
+        [
+            SNew (SHorizontalBox)
+
+            + SHorizontalBox::Slot ()
+            .FillWidth (1.f)
+            .VAlign (VAlign_Center)
+            .Padding (0.f, 0.f, 5.f, 0.f)
+            [
+                SNew (STextBlock)
+                    .Text (GetSelectedCellObjectSummaryText (*Object))
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8))
+                    .AutoWrapText (true)
+            ]
+
+            + SHorizontalBox::Slot ()
+            .AutoWidth ()
+            .VAlign (VAlign_Center)
+            [
+                SNew (SButton)
+                    .Text (FText::FromString (TEXT ("Select")))
+                    .HAlign (HAlign_Center)
+                    .ContentPadding (FMargin (6.f, 1.f))
+                    .ToolTipText (FText::FromString (TEXT ("Select this object.")))
+                    .OnClicked_Lambda ([this, ObjectId] () -> FReply
+                    {
+                        return OnSelectObjectFromSelectedCellClicked (ObjectId);
+                    })
+            ]
+        ];
+    }
+
+    return GroupBox;
 }
 
 FReply SGridEditorOverviewMapPanel::OnOverviewCellClicked (int32 CellX, int32 CellY)
@@ -791,6 +879,19 @@ FReply SGridEditorOverviewMapPanel::OnOverviewCellClicked (int32 CellX, int32 Ce
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
     {
         if (CurrentEditorActor->SelectCellFromOverview (CellX, CellY))
+        {
+            RequestRefresh ();
+        }
+    }
+
+    return FReply::Handled ();
+}
+
+FReply SGridEditorOverviewMapPanel::OnSelectObjectFromSelectedCellClicked (FGuid ObjectId)
+{
+    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+    {
+        if (CurrentEditorActor->SelectObjectById (ObjectId))
         {
             RequestRefresh ();
         }
@@ -903,6 +1004,133 @@ FText SGridEditorOverviewMapPanel::GetCellObjectSummaryText (int32 CellX, int32 
     return ObjectSummaries.Num () > 0
         ? FText::FromString (FString::Join (ObjectSummaries, TEXT ("; ")))
         : FText::FromString (TEXT ("None"));
+}
+
+FText SGridEditorOverviewMapPanel::GetObjectAnchorLabel (EGridEditorOverviewObjectAnchor Anchor) const
+{
+    switch (Anchor)
+    {
+        case EGridEditorOverviewObjectAnchor::North:
+            return FText::FromString (TEXT ("North"));
+
+        case EGridEditorOverviewObjectAnchor::East:
+            return FText::FromString (TEXT ("East"));
+
+        case EGridEditorOverviewObjectAnchor::South:
+            return FText::FromString (TEXT ("South"));
+
+        case EGridEditorOverviewObjectAnchor::West:
+            return FText::FromString (TEXT ("West"));
+
+        case EGridEditorOverviewObjectAnchor::Center:
+            return FText::FromString (TEXT ("Center"));
+
+        case EGridEditorOverviewObjectAnchor::None:
+        default:
+            return FText::FromString (TEXT ("Unknown"));
+    }
+}
+
+FText SGridEditorOverviewMapPanel::GetSelectedCellObjectSummaryText (const FGridLevelObjectData& Object) const
+{
+    const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
+    const FString TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (
+        TypeEnum,
+        static_cast<int64> (Object.Type)).ToString ();
+
+    FString IdentifierText;
+    if (!Object.Tag.IsNone ())
+    {
+        IdentifierText = FString::Printf (TEXT ("Tag=%s"), *Object.Tag.ToString ());
+    }
+    else if (!Object.ArchetypeId.IsNone ())
+    {
+        IdentifierText = FString::Printf (TEXT ("Archetype=%s"), *Object.ArchetypeId.ToString ());
+    }
+    else if (!Object.PaletteEntryId.IsNone ())
+    {
+        IdentifierText = FString::Printf (TEXT ("Palette=%s"), *Object.PaletteEntryId.ToString ());
+    }
+    else
+    {
+        IdentifierText = FString::Printf (TEXT ("Id=%s"), *Object.ObjectId.ToString ().Left (8));
+    }
+
+    return FText::FromString (FString::Printf (TEXT ("%s | %s"), *TypeText, *IdentifierText));
+}
+
+EGridEditorOverviewObjectAnchor SGridEditorOverviewMapPanel::GetObjectAnchor (
+    const FGridLevelObjectData& Object) const
+{
+    if (!IsOverviewEdgeObject (Object.Type))
+    {
+        return EGridEditorOverviewObjectAnchor::Center;
+    }
+
+    switch (Object.Edge)
+    {
+        case EGridEdge::North:
+            return EGridEditorOverviewObjectAnchor::North;
+
+        case EGridEdge::East:
+            return EGridEditorOverviewObjectAnchor::East;
+
+        case EGridEdge::South:
+            return EGridEditorOverviewObjectAnchor::South;
+
+        case EGridEdge::West:
+            return EGridEditorOverviewObjectAnchor::West;
+
+        case EGridEdge::None:
+        default:
+            return EGridEditorOverviewObjectAnchor::Center;
+    }
+}
+
+TArray<FGridEditorOverviewAnchorObjectGroup> SGridEditorOverviewMapPanel::GetObjectsAtSelectedCellGroupedByAnchor () const
+{
+    TArray<FGridEditorOverviewAnchorObjectGroup> Groups;
+    Groups.Reserve (5);
+
+    auto AddGroup = [&Groups] (EGridEditorOverviewObjectAnchor Anchor)
+    {
+        FGridEditorOverviewAnchorObjectGroup& Group = Groups.AddDefaulted_GetRef ();
+        Group.Anchor = Anchor;
+    };
+
+    AddGroup (EGridEditorOverviewObjectAnchor::North);
+    AddGroup (EGridEditorOverviewObjectAnchor::East);
+    AddGroup (EGridEditorOverviewObjectAnchor::South);
+    AddGroup (EGridEditorOverviewObjectAnchor::West);
+    AddGroup (EGridEditorOverviewObjectAnchor::Center);
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
+    if (!CurrentEditorActor || !LevelAsset || !CurrentEditorActor->IsSelectionValidForEditing ())
+    {
+        return Groups;
+    }
+
+    for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+    {
+        if (Object.CellX != CurrentEditorActor->SelectedCellX ||
+            Object.CellY != CurrentEditorActor->SelectedCellY)
+        {
+            continue;
+        }
+
+        const EGridEditorOverviewObjectAnchor Anchor = GetObjectAnchor (Object);
+        for (FGridEditorOverviewAnchorObjectGroup& Group : Groups)
+        {
+            if (Group.Anchor == Anchor)
+            {
+                Group.Objects.Add (&Object);
+                break;
+            }
+        }
+    }
+
+    return Groups;
 }
 
 bool SGridEditorOverviewMapPanel::HasObjectAtCell (int32 CellX, int32 CellY) const

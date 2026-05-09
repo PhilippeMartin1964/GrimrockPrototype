@@ -12,6 +12,22 @@ struct FGridLevelObjectData;
 DECLARE_DELEGATE_RetVal (AGridLevelEditorActor*, FOnGetGridEditorActor);
 DECLARE_DELEGATE (FOnGridEditorOverviewRequestRefresh);
 
+enum class EGridEditorOverviewObjectAnchor : uint8
+{
+    None,
+    North,
+    East,
+    South,
+    West,
+    Center
+};
+
+struct FGridEditorOverviewAnchorObjectGroup
+{
+    EGridEditorOverviewObjectAnchor Anchor = EGridEditorOverviewObjectAnchor::None;
+    TArray<const FGridLevelObjectData*> Objects;
+};
+
 class SGridEditorOverviewMapPanel : public SCompoundWidget
 {
 public:
@@ -36,13 +52,20 @@ private:
     TSharedRef<SWidget> BuildOverviewLegendSwatch (const FText& Label, const FLinearColor& Color) const;
     TSharedRef<SWidget> BuildOverviewMarkerLegendSwatch (const FText& Label, bool bEdgeMarker) const;
     TSharedRef<SWidget> BuildSelectedCellSection ();
+    TSharedRef<SWidget> BuildObjectsOnSelectedCellSection ();
+    TSharedRef<SWidget> BuildObjectAnchorGroup (const FGridEditorOverviewAnchorObjectGroup& Group);
 
     FReply OnOverviewCellClicked (int32 CellX, int32 CellY);
+    FReply OnSelectObjectFromSelectedCellClicked (FGuid ObjectId);
 
     FText GetOverviewCellTooltipText (int32 CellX, int32 CellY) const;
     FText GetSelectedCellSummaryText () const;
     FText GetCellWallSummaryText (const FGridLevelCellData& CellData) const;
     FText GetCellObjectSummaryText (int32 CellX, int32 CellY) const;
+    FText GetObjectAnchorLabel (EGridEditorOverviewObjectAnchor Anchor) const;
+    FText GetSelectedCellObjectSummaryText (const FGridLevelObjectData& Object) const;
+    EGridEditorOverviewObjectAnchor GetObjectAnchor (const FGridLevelObjectData& Object) const;
+    TArray<FGridEditorOverviewAnchorObjectGroup> GetObjectsAtSelectedCellGroupedByAnchor () const;
     bool HasObjectAtCell (int32 CellX, int32 CellY) const;
 
 private:
