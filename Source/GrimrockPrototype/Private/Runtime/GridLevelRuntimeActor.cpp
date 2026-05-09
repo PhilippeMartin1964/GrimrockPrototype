@@ -816,7 +816,10 @@ bool AGridLevelRuntimeActor::GetCenteredObjectTransform (const FGridLevelObjectD
         CellToWorld (ObjectData.CellX, ObjectData.CellY, ZOffset) +
         FVector (LevelAsset->CellSize * 0.5f, LevelAsset->CellSize * 0.5f, 0.f);
 
-    OutTransform = FTransform (FRotator::ZeroRotator, Pos, FVector::OneVector);
+    FRotator Rotation = FRotator::ZeroRotator;
+    Rotation.Yaw = ObjectData.LocalYaw;
+
+    OutTransform = FTransform (Rotation, Pos, FVector::OneVector);
     return true;
 }
 

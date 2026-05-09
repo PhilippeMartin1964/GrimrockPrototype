@@ -141,6 +141,9 @@ struct FGridLevelObjectData
     EGridEdge Edge = EGridEdge::None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    float LocalYaw = 0.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FName ArchetypeId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)

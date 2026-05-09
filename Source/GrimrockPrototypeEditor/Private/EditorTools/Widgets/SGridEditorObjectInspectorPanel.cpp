@@ -110,6 +110,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
                         FText::FromString (TEXT ("Move To Current Cell")),
                         FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked))
                 ]
+                + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridActionButton (
+                        FText::FromString (TEXT ("Rotate 90°")),
+                        FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnRotateSelectedObjectYawClicked))
+                ]
         ];
 
     return Root;
@@ -639,6 +645,18 @@ FReply SGridEditorObjectInspectorPanel::OnFocusSelectedObjectClicked ()
         RequestRefresh ();
     }
 
+    return FReply::Handled ();
+}
+
+FReply SGridEditorObjectInspectorPanel::OnRotateSelectedObjectYawClicked ()
+{
+    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+    {
+        if (CurrentEditorActor->RotateSelectedObjectYawStep ())
+        {
+            RequestRefresh ();
+        }
+    }
     return FReply::Handled ();
 }
 

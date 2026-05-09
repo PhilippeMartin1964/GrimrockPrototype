@@ -129,6 +129,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (EditCondition = "bPlaceOnEdge"))
     float LocalOffsetVertical = 0.f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Rotation", meta = (ClampMin = "0.0"))
+    float RotationStepYaw = 90.f;
+
     bool IsEdgePlaced () const
     {
         return PlacementKind == EGridObjectPlacementKind::Edge ||

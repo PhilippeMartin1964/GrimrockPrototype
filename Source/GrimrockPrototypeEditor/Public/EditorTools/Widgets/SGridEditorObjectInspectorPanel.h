@@ -39,6 +39,7 @@ private:
     FReply OnApplySelectedObjectClicked ();
     FReply OnMoveSelectedObjectToCurrentCellClicked ();
     FReply OnFocusSelectedObjectClicked ();
+    FReply OnRotateSelectedObjectYawClicked ();
 
     void BuildTriggerModeOptions ();
 
