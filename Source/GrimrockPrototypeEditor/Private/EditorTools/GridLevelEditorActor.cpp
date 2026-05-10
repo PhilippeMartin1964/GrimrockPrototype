@@ -400,6 +400,67 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
     return RemovedIds.Num ();
 }
 
+int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal (
+    EGridLevelObjectType NewObjectType,
+    FName NewArchetypeId,
+    bool bNewObjectOnEdge)
+{
+    if (!HasValidLevelAsset () || !IsValidSelectedCell ())
+    {
+        return 0;
+    }
+    const UGridObjectArchetypeAsset* NewArchetype = FindObjectArchetypeById (NewArchetypeId);
+    const bool bNewCanShareCell = NewArchetype ? NewArchetype->bCanShareCell : true;
+    const bool bNewCanShareAnchor = NewArchetype ? NewArchetype->bCanShareAnchor : true;
+    TArray<int32> IndicesToRemove;
+    TArray<FGuid> RemovedIds;
+    for (int32 Index = LevelAsset->Objects.Num () - 1; Index >= 0; --Index)
+    {
+        const FGridLevelObjectData& ExistingObject = LevelAsset->Objects[Index];
+        if (ExistingObject.CellX != SelectedCellX || ExistingObject.CellY != SelectedCellY)
+        {
+            continue;
+        }
+        const UGridObjectArchetypeAsset* ExistingArchetype = FindObjectArchetypeById (ExistingObject.ArchetypeId);
+        const bool bExistingCanShareCell = ExistingArchetype ? ExistingArchetype->bCanShareCell : true;
+        const bool bExistingCanShareAnchor = ExistingArchetype ? ExistingArchetype->bCanShareAnchor : true;
+        const bool bExistingObjectOnEdge = IsEdgePlacedObject (ExistingObject);
+        const bool bSameAnchor = bNewObjectOnEdge && bExistingObjectOnEdge ? ExistingObject.Edge == SelectedEdge : !bNewObjectOnEdge && !bExistingObjectOnEdge;
+        bool bShouldRemove = false;
+        if (!bNewCanShareCell || !bExistingCanShareCell)
+        {
+            bShouldRemove = true;
+        } else if (bSameAnchor && (!bNewCanShareAnchor || !bExistingCanShareAnchor))
+        {
+            bShouldRemove = true;
+        }
+        if (bShouldRemove)
+        {
+            RemovedIds.Add (ExistingObject.ObjectId);
+            IndicesToRemove.Add (Index);
+        }
+    }
+    if (IndicesToRemove.Num () == 0)
+    {
+        return 0;
+    }
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+    for (int32 IndexToRemove : IndicesToRemove)
+    {
+        LevelAsset->Objects.RemoveAt (IndexToRemove);
+    }
+    LevelAsset->Links.RemoveAll ([&] (const FGridLevelLinkData& Link)
+    {
+        return RemovedIds.Contains (Link.SourceObjectId) || RemovedIds.Contains (Link.TargetObjectId);
+    });
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+    return RemovedIds.Num ();
+}
+
 void AGridLevelEditorActor::PlaceSelectedObject ()
 {
     if (!HasValidLevelAsset () || !IsValidSelectedCell ())
@@ -407,28 +468,30 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: invalid LevelAsset or selected cell."));
         return;
     }
-
     if (PaintObjectType == EGridLevelObjectType::None)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: PaintObjectType is None."));
         return;
     }
-
     const bool bPlaceObjectOnEdge = IsEdgePlacedObject (PaintObjectType, ObjectArchetypeId);
     if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: this object type requires a valid edge."));
         return;
     }
-
-    if (PlacementPolicy == EGridEditorObjectPlacementPolicy::ReplaceSameSlotOnly)
+    if (FindObjectArchetypeById (ObjectArchetypeId))
     {
-        RemoveObjectsAtSelectionInternal (true);
+        RemoveObjectsConflictingWithPlacementInternal (PaintObjectType, ObjectArchetypeId, bPlaceObjectOnEdge);
     } else
     {
-        RemoveObjectsAtSelectionInternal (false);
+        if (PlacementPolicy == EGridEditorObjectPlacementPolicy::ReplaceSameSlotOnly)
+        {
+            RemoveObjectsAtSelectionInternal (true);
+        } else
+        {
+            RemoveObjectsAtSelectionInternal (false);
+        }
     }
-
     FGridLevelObjectData NewObject;
     NewObject.Type = PaintObjectType;
     NewObject.CellX = SelectedCellX;
@@ -441,10 +504,8 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.Notes = ObjectNotes;
     NewObject.PaletteEntryId = SelectedPaletteEntryId;
     NewObject.Behavior = ObjectBehavior;
-
     const FGuid NewId = LevelAsset->AddObject (NewObject);
     LastSelectedObjectId = NewId;
-
     RebuildPreview ();
 }
 

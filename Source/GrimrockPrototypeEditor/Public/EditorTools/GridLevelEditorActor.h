@@ -345,6 +345,7 @@ private:
     EGridWallType* GetSelectedWallMutable (FGridLevelCellData& CellData);
 
     int32 RemoveObjectsAtSelectionInternal (bool bSameTypeOnly);
+    int32 RemoveObjectsConflictingWithPlacementInternal (EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge);
 
     FVector GetSelectedCellWorldCenter (float ZOffset = 0.f) const;
     bool TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
