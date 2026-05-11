@@ -58,7 +58,7 @@ public:
     float TurnDuration = 0.12f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Movement")
-    float EyeHeight = 90.f;
+    float EyeHeight = 110.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;

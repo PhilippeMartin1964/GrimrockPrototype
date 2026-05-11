@@ -5,6 +5,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Runtime/GridGenericObjectActor.h"
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;

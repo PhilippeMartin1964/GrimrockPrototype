@@ -949,12 +949,17 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     {
         RuntimeObjectData.Behavior = Archetype->DefaultBehavior;
     }
-
     if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor> (Actor))
     {
         MechanismActor->InitializeMechanismVisuals (RuntimeObjectData, Archetype, Transform);
+        Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
+    } else if (AGridGenericObjectActor* GenericActor = Cast<AGridGenericObjectActor> (Actor))
+    {
+        GenericActor->InitializeGenericObject (RuntimeObjectData, Archetype, Mesh, Material, Transform);
+    } else
+    {
+        Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
     }
-    Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
     if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Actor))
     {
         if (Archetype)

@@ -29,7 +29,7 @@ public:
     TObjectPtr<UPointLightComponent> PointLightComponent;
 
     UPROPERTY (BlueprintReadOnly, Category = "Grid|Archetype")
-    TObjectPtr<UGridObjectArchetypeAsset> SourceArchetype;
+    TObjectPtr<const UGridObjectArchetypeAsset> SourceArchetype;
 
     UPROPERTY (BlueprintReadOnly, Category = "Grid|Readable")
     FText RuntimeReadableText;
@@ -42,12 +42,8 @@ public:
 
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
-    void InitializeGenericObject (
-        const FGridLevelObjectData& ObjectData,
-        UGridObjectArchetypeAsset* Archetype,
-        UStaticMesh* Mesh,
-        UMaterialInterface* Material,
-        const FTransform& WorldTransform);
+    void InitializeGenericObject (const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, UStaticMesh* Mesh, 
+        UMaterialInterface* Material, const FTransform& WorldTransform);
 
     UFUNCTION (BlueprintCallable, Category = "Grid|Readable")
     bool HasReadableText () const;

@@ -15,12 +15,8 @@ AGridGenericObjectActor::AGridGenericObjectActor ()
     PointLightComponent->SetAttenuationRadius (250.f);
 }
 
-void AGridGenericObjectActor::InitializeGenericObject (
-    const FGridLevelObjectData& ObjectData,
-    UGridObjectArchetypeAsset* Archetype,
-    UStaticMesh* Mesh,
-    UMaterialInterface* Material,
-    const FTransform& WorldTransform)
+void AGridGenericObjectActor::InitializeGenericObject (const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype,
+    UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
 {
     SourceArchetype = Archetype;
     InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
