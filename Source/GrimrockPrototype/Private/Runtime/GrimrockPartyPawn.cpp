@@ -40,6 +40,7 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
     HeldItemRoot->SetupAttachment (Camera ? Cast<USceneComponent> (Camera) : SceneRoot);
 
     AutoPossessPlayer = EAutoReceiveInput::Player0;
+    Camera->SetRelativeLocation (CameraLocalOffset);
 }
 
 void AGrimrockPartyPawn::BeginPlay ()
@@ -79,6 +80,7 @@ void AGrimrockPartyPawn::BeginPlay ()
             }
         }
     }
+    ApplyCameraLocalViewOffset ();
 }
 
 void AGrimrockPartyPawn::Tick (float DeltaSeconds)
@@ -161,6 +163,16 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
     }
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
+}
+
+void AGrimrockPartyPawn::ApplyCameraLocalViewOffset ()
+{
+    if (!Camera)
+    {
+        return;
+    }
+    Camera->SetRelativeLocation (CameraLocalOffset);
+    Camera->SetRelativeRotation (CameraLocalRotationOffset);
 }
 
 void AGrimrockPartyPawn::SetGridStart (

@@ -60,6 +60,13 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Movement")
     float EyeHeight = 110.f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|View")
+    FVector CameraLocalOffset = FVector (-40.f, 0.f, 0.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|View")
+
+    FRotator CameraLocalRotationOffset = FRotator (-4.f, 0.f, 0.f);
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
     TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
@@ -90,43 +97,43 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer", meta = (ClampMin = "0.0"))
     float InputBufferMaxAge = 0.25f;
     // Head Bob
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Head Bob")
     bool bEnableHeadBob = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Head Bob", meta = (ClampMin = "0.0"))
     float HeadBobVerticalAmplitude = 6.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Head Bob", meta = (ClampMin = "0.0"))
     float HeadBobHorizontalAmplitude = 1.5f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Head Bob", meta = (ClampMin = "0.0"))
     float HeadBobReturnSpeed = 10.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Head Bob")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Head Bob")
     bool bHeadBobStrafeSway = true;
     // Free look
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
     float FreeLookYawLimit = 60.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
     float FreeLookPitchUpLimit = 35.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
     float FreeLookPitchDownLimit = 45.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
     float FreeLookSensitivityYaw = 0.20f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
     float FreeLookSensitivityPitch = 0.20f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look")
     bool bEnableFreeLookRecentering = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "FreeLook", meta = (EditCondition = "bEnableFreeLookRecentering", ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Camera|Free Look", meta = (EditCondition = "bEnableFreeLookRecentering", ClampMin = "0.0"))
     float FreeLookRecenteringSpeed = 6.f;
 
-    UPROPERTY (BlueprintReadOnly, Category = "FreeLook")
+    UPROPERTY (BlueprintReadOnly, Category = "Camera|Free Look")
     bool bIsFreeLooking = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
@@ -213,6 +220,7 @@ protected:
     void EndFreeLook ();
     void UpdateFreeLook (float DeltaSeconds);
     void ApplyFreeLookRotation ();
+    void ApplyCameraLocalViewOffset ();
 
     bool TryInteractOnLevel (int32 X, int32 Y, EGridEdge Edge);
 
