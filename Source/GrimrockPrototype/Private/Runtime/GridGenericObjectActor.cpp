@@ -21,6 +21,10 @@ void AGridGenericObjectActor::InitializeGenericObject (const FGridLevelObjectDat
     SourceArchetype = Archetype;
     InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
     ApplyArchetypeOptions (Archetype);
+    if (!ObjectData.OverrideReadableText.IsEmpty ())
+    {
+        RuntimeReadableText = ObjectData.OverrideReadableText;
+    }
 }
 
 bool AGridGenericObjectActor::HasReadableText () const

@@ -307,6 +307,9 @@ public:
     bool SetSelectedObjectNotes (const FString& NewNotes);
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool SetSelectedObjectReadableText (const FText& NewReadableText);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectInitiallyEnabled (bool bNewInitiallyEnabled);
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")

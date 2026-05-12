@@ -15,6 +15,8 @@ class AGridItemActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
+class UReadableMessageWidget;
+class UUserWidget;
 
 UENUM ()
 enum class EGridRuntimeRebuildMode : uint8
@@ -111,6 +113,18 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "UI")
+    TSubclassOf<UReadableMessageWidget> ReadableMessageWidgetClass;
+
+    UFUNCTION (BlueprintCallable, Category = "UI")
+    void ShowReadableMessage (const FText& MessageText);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (ClampMin = "0.1"))
+    float ReadableMessageDuration = 4.0f;
+
+    UFUNCTION (BlueprintCallable, Category = "UI")
+    void HideReadableMessage ();
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -219,6 +233,11 @@ private:
 
     UPROPERTY (Transient)
     TMap<FGuid, TObjectPtr<AGridRuntimeObjectActor>> SpawnedRuntimeObjectActors;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UReadableMessageWidget> ActiveReadableMessageWidget;
+
+    FTimerHandle ReadableMessageTimerHandle;
 
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();

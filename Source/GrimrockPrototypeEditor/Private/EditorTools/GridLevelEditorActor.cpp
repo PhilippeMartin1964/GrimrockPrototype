@@ -1417,6 +1417,29 @@ bool AGridLevelEditorActor::SetSelectedObjectNotes (const FString& NewNotes)
     return true;
 }
 
+bool AGridLevelEditorActor::SetSelectedObjectReadableText (const FText& NewReadableText)
+{
+    FGridLevelObjectData* SelectedObject = FindSelectedObjectMutable ();
+    if (!SelectedObject || !LevelAsset)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    Modify ();
+    LevelAsset->Modify ();
+#endif
+
+    SelectedObject->OverrideReadableText = NewReadableText;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
 bool AGridLevelEditorActor::SetSelectedObjectInitiallyEnabled (bool bNewInitiallyEnabled)
 {
     FGridLevelObjectData* Obj = FindSelectedObjectMutable ();

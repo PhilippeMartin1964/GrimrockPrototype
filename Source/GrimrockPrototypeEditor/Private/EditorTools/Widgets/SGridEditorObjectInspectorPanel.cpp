@@ -4,8 +4,8 @@
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
-#include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
+#include "Core/GridObjectArchetypeAsset.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -150,6 +150,44 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
         return SNullWidget::NullWidget;
     };
 
+    auto BuildOptionalReadableTextSection = [this, &Obj] () -> TSharedRef<SWidget>
+    {
+        const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+        const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+            ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
+            : nullptr;
+
+        const bool bLooksReadable = Archetype && Archetype->IsReadable ();
+        if (!bLooksReadable)
+        {
+            return SNullWidget::NullWidget;
+        }
+
+        return SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
+            [
+                SNew (STextBlock)
+                    .Text (FText::FromString (TEXT ("Readable Text")))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                SNew (SMultiLineEditableTextBox)
+                    .Text (Obj.OverrideReadableText)
+                    .AutoWrapText (true)
+                    .HintText (FText::FromString (TEXT ("Text displayed when the player presses Use.")))
+                    .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                {
+                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                    {
+                        CurrentEditorActor->SetSelectedObjectReadableText (NewText);
+                        RequestRefresh ();
+                    }
+                })
+            ];
+    };
+
     return SNew (SBorder)
         .Padding (8.f)
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
@@ -269,7 +307,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
                         }
                     })
                 ]
-
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    BuildOptionalReadableTextSection ()
+                ]
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
                 [
                     SNew (SHorizontalBox)

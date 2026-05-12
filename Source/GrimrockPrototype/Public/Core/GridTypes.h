@@ -158,6 +158,9 @@ struct FGridLevelObjectData
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FString Notes;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Readable", meta = (MultiLine = "true"))
+    FText OverrideReadableText;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FName PaletteEntryId = NAME_None;
 

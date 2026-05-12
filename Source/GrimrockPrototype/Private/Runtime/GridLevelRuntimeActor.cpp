@@ -9,6 +9,8 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "UI/ReadableMessageWidget.h"
+#include "Blueprint/UserWidget.h"
 
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
@@ -34,6 +36,55 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     DoorSystemComponent = CreateDefaultSubobject<UGridDoorSystemComponent> (TEXT ("DoorSystemComponent"));
 
     EditorPreviewComponent = CreateDefaultSubobject<UGridEditorPreviewComponent> (TEXT ("EditorPreviewComponent"));
+}
+
+void AGridLevelRuntimeActor::ShowReadableMessage (const FText& MessageText)
+{
+    if (MessageText.IsEmpty ())
+    {
+        return;
+    }
+    UWorld* World = GetWorld ();
+    if (!World || !ReadableMessageWidgetClass)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ShowReadableMessage failed: missing world or widget class."));
+        return;
+    }
+    APlayerController* PlayerController = World->GetFirstPlayerController ();
+    if (!PlayerController)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ShowReadableMessage failed: missing player controller."));
+        return;
+    }
+    if (!ActiveReadableMessageWidget)
+    {
+        ActiveReadableMessageWidget = CreateWidget<UReadableMessageWidget> (PlayerController, ReadableMessageWidgetClass);
+
+        if (!ActiveReadableMessageWidget)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("ShowReadableMessage failed: widget creation failed."));
+            return;
+        }
+        ActiveReadableMessageWidget->AddToViewport (50);
+    }
+    ActiveReadableMessageWidget->SetReadableText (MessageText);
+    GetWorldTimerManager ().ClearTimer (ReadableMessageTimerHandle);
+    GetWorldTimerManager ().SetTimer (ReadableMessageTimerHandle, this, &AGridLevelRuntimeActor::HideReadableMessage, ReadableMessageDuration, false);
+    if (!ActiveReadableMessageWidget->IsInViewport ())
+    {
+        ActiveReadableMessageWidget->AddToViewport (50);
+    }
+}
+
+void AGridLevelRuntimeActor::HideReadableMessage ()
+{
+    GetWorldTimerManager ().ClearTimer (ReadableMessageTimerHandle);
+
+    if (ActiveReadableMessageWidget)
+    {
+        ActiveReadableMessageWidget->RemoveFromParent ();
+        ActiveReadableMessageWidget = nullptr;
+    }
 }
 
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)

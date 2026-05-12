@@ -14,6 +14,7 @@ public class GrimrockPrototype : ModuleRules
 			"Engine", 
 			"InputCore", 
 			"EnhancedInput",
+			"UMG",
 			"Niagara" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

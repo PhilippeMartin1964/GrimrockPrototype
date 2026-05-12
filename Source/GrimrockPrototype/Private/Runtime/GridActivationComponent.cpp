@@ -764,11 +764,13 @@ bool UGridActivationComponent::ActivateReadableObject (const FGridLevelObjectDat
     {
         return true;
     }
-    const FText ReadableText = GenericActor->GetReadableText ();
-    UE_LOG (LogTemp, Log, TEXT ("Readable object %s: %s"), *ObjectData.ObjectId.ToString (), *ReadableText.ToString ());
     if (GEngine)
     {
-        GEngine->AddOnScreenDebugMessage (-1, 4.0f, FColor::Cyan, ReadableText.ToString ());
+        const FText ReadableText = GenericActor->GetReadableText ();
+        UE_LOG (LogTemp, Log, TEXT ("Readable object %s: %s"), *ObjectData.ObjectId.ToString (), *ReadableText.ToString ());
+        RuntimeActor->ShowReadableMessage (ReadableText);
+        GenericActor->MarkAsRead ();
+        return true;
     }
     GenericActor->MarkAsRead ();
     return true;
