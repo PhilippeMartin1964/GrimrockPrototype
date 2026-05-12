@@ -89,5 +89,6 @@ private:
     {
         return ActiveObjectIds.Num ();
     }
+    bool ActivateReadableObject (const FGridLevelObjectData& ObjectData);
     bool ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 };

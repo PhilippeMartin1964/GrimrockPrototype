@@ -7,6 +7,7 @@
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridGenericObjectActor.h"
 #include "Core/GridLevelAsset.h"
 
 namespace
@@ -45,6 +46,12 @@ namespace
             return Enum->GetNameStringByValue (static_cast<int64> (TriggerMode));
         }
         return FString::Printf (TEXT ("%d"), static_cast<int32> (TriggerMode));
+    }
+
+    bool IsReadableGenericObject (const FGridLevelObjectData& ObjectData)
+    {
+        return ObjectData.Type == EGridLevelObjectType::Decoration
+            || ObjectData.Type == EGridLevelObjectType::Light;
     }
 }
 
@@ -122,14 +129,12 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
                 {
                     ButtonActor->TriggerPress ();
                 }
-
                 return ExecuteLinksFromObject (ObjectData.ObjectId, false);
             }
         case EGridLevelObjectType::Lever:
             {
                 const bool bWasActive = ActiveObjectIds.Contains (ObjectData.ObjectId);
                 const bool bNewActive = !bWasActive;
-
                 if (bNewActive)
                 {
                     ActiveObjectIds.Add (ObjectData.ObjectId);
@@ -137,20 +142,23 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
                 {
                     ActiveObjectIds.Remove (ObjectData.ObjectId);
                 }
-
                 if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (ObjectData.ObjectId))
                 {
                     LeverActor->SetLeverState (bNewActive);
                 }
-
                 return ExecuteLinksFromObject (ObjectData.ObjectId, bWasActive);
             }
         case EGridLevelObjectType::Receptacle:
             {
 				return ActivateReceptacle (ObjectData, PartyPawn);
             }
+        case EGridLevelObjectType::Decoration:
+        case EGridLevelObjectType::Light:
+            {
+                return ActivateReadableObject (ObjectData);
+            }
         default:
-        return false;
+            return false;
     }
 }
 
@@ -690,12 +698,15 @@ void UGridActivationComponent::RebuildIndexes ()
             ObjectIndexById.Add (ObjectData.ObjectId, Index);
             RuntimeBehaviorByObjectId.Add (ObjectData.ObjectId, ObjectData.Behavior);
         }
-
         if (ObjectData.Type == EGridLevelObjectType::Button ||
             ObjectData.Type == EGridLevelObjectType::Lever ||
-            ObjectData.Type == EGridLevelObjectType::Receptacle)
+            ObjectData.Type == EGridLevelObjectType::Receptacle ||
+            IsReadableGenericObject (ObjectData))
         {
-            InteractableObjectIndexByEdge.Add (FGridEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
+            if (ObjectData.Edge != EGridEdge::None)
+            {
+                InteractableObjectIndexByEdge.Add (FGridEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
+            }
         } else if (ObjectData.Type == EGridLevelObjectType::PressurePlate)
         {
             PressurePlateIndexesByCell.Add (FIntPoint (ObjectData.CellX, ObjectData.CellY), Index);
@@ -736,6 +747,31 @@ const FGridObjectBehaviorParams& UGridActivationComponent::GetRuntimeBehavior (c
     }
 
     return ObjectData.Behavior;
+}
+
+bool UGridActivationComponent::ActivateReadableObject (const FGridLevelObjectData& ObjectData)
+{
+    if (!RuntimeActor)
+    {
+        return false;
+    }
+    AGridGenericObjectActor* GenericActor = RuntimeActor->FindRuntimeObjectActor<AGridGenericObjectActor> (ObjectData.ObjectId);
+    if (!GenericActor || !GenericActor->HasReadableText ())
+    {
+        return false;
+    }
+    if (GenericActor->bRuntimeReadableOnlyOnce && GenericActor->bRuntimeHasBeenRead)
+    {
+        return true;
+    }
+    const FText ReadableText = GenericActor->GetReadableText ();
+    UE_LOG (LogTemp, Log, TEXT ("Readable object %s: %s"), *ObjectData.ObjectId.ToString (), *ReadableText.ToString ());
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage (-1, 4.0f, FColor::Cyan, ReadableText.ToString ());
+    }
+    GenericActor->MarkAsRead ();
+    return true;
 }
 
 bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn)
