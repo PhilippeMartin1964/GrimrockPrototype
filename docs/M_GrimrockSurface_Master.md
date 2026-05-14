@@ -692,635 +692,241 @@ EmissivePulseSpeed    = 0.5
 
 ---
 
----
+## 9. Workflow d’import texture compatible avec ce master
 
-## 9. Synthèse du pipeline textures GrimrockPrototype
-
-Cette section résume les décisions prises pour le pipeline graphique du projet. Le principe général est de conserver dans Unreal uniquement les textures finales utiles au jeu, et de sortir les sources lourdes 4K du dépôt Git.
-
-### 9.1 Standard final des textures
-
-Le standard principal du projet est :
+Pour chaque nouveau matériau téléchargé, produire idéalement :
 
 ```text
-T_xxx_BC   = BaseColor / Albedo
-T_xxx_N    = Normal Map DirectX
-T_xxx_ORM  = Occlusion / Roughness / Metallic packés
+T_Name_BC
+T_Name_N
+T_Name_ORM
 ```
-
-Convention ORM officielle :
-
-```text
-ORM.R = Ambient Occlusion
-ORM.G = Roughness
-ORM.B = Metallic
-```
-
-Textures additionnelles uniquement si nécessaire :
-
-```text
-T_xxx_RGBA = couleur + alpha réellement utilisé
-T_xxx_E    = Emissive dédié
-T_xxx_M    = Mask séparé, si le RGBA n'est pas adapté
-T_xxx_H    = Height, uniquement pour un cas justifié
-```
-
-Par défaut, éviter :
-
-```text
-Displacement
-Height
-AO / Roughness / Metallic séparés si une ORM existe
-RGBA lorsqu'aucun alpha n'est utile
-textures finales 16 bpc inutiles dans Content/
-```
-
----
-
-## 10. Réglages importants des textures dans Unreal Engine 5
-
-### 10.1 `T_xxx_BC` — BaseColor
-
-```text
-Source finale recommandée : 8 bpc RGB
-Alpha                   : non, sauf besoin réel
-sRGB                    : true
-Compression Settings    : Default
-Texture Group           : World
-Mip Gen Settings        : FromTextureGroup
-```
-
-À utiliser pour : pierre, bois, métal, os, sol, mur, plafond, porte, objet opaque.
-
-### 10.2 `T_xxx_N` — Normal Map
-
-```text
-Source finale recommandée : 8 bpc RGB
-Alpha                   : non
-sRGB                    : false
-Compression Settings    : Normalmap
-Texture Group           : WorldNormalMap
-Mip Gen Settings        : FromTextureGroup
-```
-
-Important : une normal map est une texture de données. Ne pas appliquer de correction colorimétrique ou d'ajustement de luminosité/contraste.
-
-### 10.3 `T_xxx_ORM` — AO / Roughness / Metallic
-
-```text
-Source finale recommandée : 8 bpc RGB
-Alpha                   : non
-sRGB                    : false
-Compression Settings    : Masks
-Texture Group           : World
-Mip Gen Settings        : FromTextureGroup
-```
-
-Canaux :
-
-```text
-R = AO
-G = Roughness
-B = Metallic
-```
-
-Valeurs par défaut si une map manque :
-
-```text
-AO absent        -> canal R blanc
-Roughness absent -> gris moyen ou RoughnessOverride dans l'instance
-Metallic absent  -> canal B noir pour pierre / bois / tissu / os
-Metal uniforme   -> MetallicOverride dans l'instance, ou canal B blanc si nécessaire
-```
-
-### 10.4 `T_xxx_RGBA` — Texture avec alpha
-
-```text
-Source finale recommandée : 8 bpc RGBA
-sRGB                    : true si RGB = couleur
-Compression Settings    : Default
-Usage                   : uniquement si l'alpha est réellement utilisé
-```
-
-Exemples : rune, mousse détourée, racines, sang, glyphe, icône UI.
-
-### 10.5 Tableau récapitulatif
-
-| Type | Fichier | Source finale | sRGB UE5 | Compression UE5 | Remarque |
-|---|---|---:|---:|---|---|
-| BaseColor | `T_xxx_BC` | 8 bpc RGB | true | Default | Couleur visible |
-| Normal | `T_xxx_N` | 8 bpc RGB | false | Normalmap | Texture de données |
-| ORM | `T_xxx_ORM` | 8 bpc RGB | false | Masks | R=AO, G=Roughness, B=Metallic |
-| Emissive | `T_xxx_E` | 8 bpc RGB | true | Default | Optionnel |
-| RGBA | `T_xxx_RGBA` | 8 bpc RGBA | true | Default | Seulement si alpha utile |
-| Height | `T_xxx_H` | 8/16 bpc gris | false | Masks | Exception uniquement |
-| Displacement | `T_xxx_D` | variable | false | Masks | Hors Content par défaut |
-
----
-
-## 11. Règle d'export GIMP / Photoshop
-
-Le problème rencontré avec une texture 2048 beaucoup plus claire que la 4096 venait d'un export GIMP en :
-
-```text
-16 bpc RGBA
-```
-
-alors que la source était une image classique :
-
-```text
-8 bpc RGB / 24 bits
-```
-
-Règle officielle du projet :
-
-```text
-T_xxx_BC   -> 8 bpc RGB, sRGB, sans alpha inutile
-T_xxx_N    -> 8 bpc RGB, pas de conversion colorimétrique, sans alpha inutile
-T_xxx_ORM  -> 8 bpc RGB, pas de conversion colorimétrique, sans alpha inutile
-T_xxx_RGBA -> 8 bpc RGBA uniquement si l'alpha est réellement utilisé
-```
-
-### 11.1 Export correct dans GIMP pour une BaseColor
-
-1. Ouvrir l'image source 4K.
-2. `Image > Mode > RGB`.
-3. Supprimer le canal alpha si présent et inutile.
-4. `Image > Precision > 8-bit integer`.
-5. `Image > Color Management > Convert to sRGB`.
-6. `Image > Scale Image`, puis 2048 ou 1024.
-7. Export PNG ou TGA en vérifiant :
-
-```text
-Pixel format = 8 bpc RGB
-```
-
-Éviter pour une BaseColor opaque :
-
-```text
-16 bpc RGB
-16 bpc RGBA
-8 bpc RGBA si l'alpha ne sert pas
-```
-
-### 11.2 Ouverture d'une Normal Map dans GIMP
-
-Si GIMP affiche une popup du type :
-
-```text
-Keep the Embedded Working Space?
-Convert the image to the built-in sRGB color profile?
-```
-
-Pour une normal map ou une ORM, choisir :
-
-```text
-Keep
-```
-
-Raison : une normal map et une ORM sont des textures de données. Il ne faut pas modifier leurs valeurs RGB par une conversion colorimétrique.
-
-### 11.3 Résolutions recommandées
-
-```text
-Sources téléchargées       : 4096, stockées hors Content
-Murs / sols principaux     : 2048
-Plafonds                   : 1024 ou 2048
-Portes proches caméra      : 1024 ou 2048
-Boutons / leviers / plaques: 1024
-Décorations planes         : 1024
-Runes / glyphes            : 1024
-Icônes UI                  : 256 ou 512
-```
-
----
-
-## 12. Générer une texture ORM avec GIMP
-
-Une ORM regroupe trois images en une seule texture RGB :
-
-```text
-R = Ambient Occlusion
-G = Roughness
-B = Metallic
-```
-
-### 12.1 Préparation
-
-Toutes les images sources doivent avoir la même résolution, par exemple :
-
-```text
-2048 x 2048
-```
-
-Pour AO, Roughness et Metallic, éviter les conversions colorimétriques. Ces images sont des données, pas des couleurs visibles.
-
-### 12.2 Cas idéal : AO + Roughness + Metallic disponibles
-
-Dans GIMP :
-
-1. Ouvrir les trois images.
-2. Vérifier `Image > Precision > 8-bit integer`.
-3. `Colors > Components > Compose`.
-4. Mode : `RGB`.
-5. Assigner :
-
-```text
-Red   = AO
-Green = Roughness
-Blue  = Metallic
-```
-
-6. Exporter sous :
-
-```text
-T_xxx_ORM.png
-```
-
-7. Vérifier :
-
-```text
-Pixel format = 8 bpc RGB
-```
-
-### 12.3 Cas courant : Metallic absent
-
-Pour pierre, bois, tissu, os :
-
-```text
-R = AO
-G = Roughness
-B = noir
-```
-
-Le canal bleu noir signifie :
-
-```text
-Metallic = 0.0
-```
-
-### 12.4 Cas courant : AO absent
-
-```text
-R = blanc
-G = Roughness
-B = Metallic ou noir
-```
-
-Le canal rouge blanc signifie :
-
-```text
-AO = 1.0, donc pas d'occlusion spécifique
-```
-
-### 12.5 Cas avec seulement Roughness
-
-```text
-R = blanc
-G = Roughness
-B = noir
-```
-
-C'est suffisant pour beaucoup de matériaux simples non métalliques.
-
-### 12.6 Import UE5 de l'ORM
-
-```text
-sRGB                 = false
-Compression Settings = Masks
-Texture Group        = World
-```
-
----
-
-## 13. Pourquoi Height / Displacement est exclu par défaut
-
-Pour GrimrockPrototype, le vrai volume doit venir prioritairement des meshes : murs, colonnes, alcôves, portes, cadres, décorations murales, etc.
-
-La Normal Map suffit pour simuler :
-
-```text
-joints de pierre
-fissures
-aspérités
-bois usé
-métal marqué
-```
-
-Height / Displacement est exclu du master principal parce que cela ajoute :
-
-```text
-fichiers supplémentaires
-poids disque et Git
-complexité shader
-risques d'artefacts visuels
-coût GPU supplémentaire
-maintenance plus lourde
-```
-
-Règle du projet :
-
-```text
-Height / Displacement restent dans _ExternalArtSource/
-Ils ne sont pas importés dans Content/ par défaut.
-```
-
-Exceptions possibles :
-
-```text
-gravure importante
-glyphe sculpté
-bouton très proche caméra
-relief spécifique justifié
-matériau spécialisé ultérieur
-```
-
----
-
-## 14. Structure finale réaliste du dossier Content
-
-Structure cible :
-
-```text
-Content/GrimrockPrototype/
-├── Blueprints/
-│   ├── Editor/
-│   ├── Runtime/
-│   └── UI/
-│
-├── Core/
-│   ├── DataAssets/
-│   │   ├── Levels/
-│   │   ├── Palettes/
-│   │   └── Archetypes/
-│   │       ├── Doors/
-│   │       ├── Interactables/
-│   │       ├── Items/
-│   │       ├── Receptacles/
-│   │       ├── Triggers/
-│   │       └── Decorations/
-│   └── Input/
-│
-├── Maps/
-│   ├── L_GrimrockEditor.umap
-│   └── L_GrimrockRuntime.umap
-│
-└── Art/
-    ├── Materials/
-    │   ├── Masters/
-    │   ├── Instances/
-    │   └── Editor/
-    │
-    ├── Textures/
-    │   ├── Final/
-    │   │   ├── Floor/
-    │   │   ├── Wall/
-    │   │   ├── Ceiling/
-    │   │   ├── Doors/
-    │   │   ├── Interactables/
-    │   │   ├── Items/
-    │   │   └── Decorations/
-    │   └── Generated/
-    │       ├── Icons/
-    │       ├── UI/
-    │       └── Runes/
-    │
-    ├── Meshes/
-    │   ├── Editor/
-    │   ├── Floor/
-    │   ├── Wall/
-    │   ├── Ceiling/
-    │   ├── Doors/
-    │   ├── Interactables/
-    │   ├── Items/
-    │   └── Decorations/
-    │
-    └── Icons/
-```
-
----
-
-## 15. Exemple de fichiers finaux par catégorie
-
-### 15.1 Murs
-
-```text
-Art/Textures/Final/Wall/Stone_02/
-├── T_Wall_Stone_02_BC.uasset
-├── T_Wall_Stone_02_N.uasset
-└── T_Wall_Stone_02_ORM.uasset
-
-Art/Materials/Instances/Wall/
-└── MI_Wall_Stone_02.uasset
-```
-
-### 15.2 Sols
-
-```text
-Art/Textures/Final/Floor/Stone_01/
-├── T_Floor_Stone_01_BC.uasset
-├── T_Floor_Stone_01_N.uasset
-└── T_Floor_Stone_01_ORM.uasset
-
-Art/Materials/Instances/Floor/
-└── MI_Floor_Stone_01.uasset
-```
-
-### 15.3 Plafonds
-
-```text
-Art/Textures/Final/Ceiling/StoneVault_01/
-├── T_Ceil_StoneVault_01_BC.uasset
-├── T_Ceil_StoneVault_01_N.uasset
-└── T_Ceil_StoneVault_01_ORM.uasset
-
-Art/Materials/Instances/Ceiling/
-└── MI_Ceil_Stone_01.uasset
-```
-
-### 15.4 Portes
-
-```text
-Art/Textures/Final/Doors/Wood_01/
-├── T_Door_Wood_01_BC.uasset
-├── T_Door_Wood_01_N.uasset
-└── T_Door_Wood_01_ORM.uasset
-
-Art/Materials/Instances/Doors/
-└── MI_Door_Wood_01.uasset
-```
-
-### 15.5 Objets interactifs
-
-```text
-Art/Textures/Final/Interactables/Button_Metal_01/
-├── T_Button_Metal_01_BC.uasset
-├── T_Button_Metal_01_N.uasset
-└── T_Button_Metal_01_ORM.uasset
-
-Art/Textures/Final/Interactables/Lever_Metal_01/
-├── T_Lever_Metal_01_BC.uasset
-├── T_Lever_Metal_01_N.uasset
-└── T_Lever_Metal_01_ORM.uasset
-```
-
-### 15.6 Décorations
-
-```text
-Art/Textures/Final/Decorations/Floor/RuneCircle_01/
-├── T_Deco_FloorRuneCircle_Blue_RGBA.uasset
-└── T_Deco_FloorRuneCircle_Blue_E.uasset        // optionnel
-
-Art/Textures/Final/Decorations/Floor/Roots_01/
-└── T_Deco_FloorRoots_01_RGBA.uasset
-```
-
----
-
-## 16. Sources externes hors Unreal et hors Git
-
-Les textures téléchargées en 4K, les fichiers Blender et les images sources doivent être conservés hors `Content/` :
-
-```text
-GrimrockPrototype/
-└── _ExternalArtSource/
-    ├── Textures/
-    │   ├── Floor/
-    │   ├── Wall/
-    │   ├── Ceiling/
-    │   ├── Doors/
-    │   ├── Interactables/
-    │   └── Decorations/
-    ├── Blender/
-    ├── Exports/
-    │   ├── FBX/
-    │   └── PNG_Final_PreUE/
-    └── References/
-```
-
-Ce dossier doit être ignoré par Git.
 
 Exemple :
 
 ```text
-_ExternalArtSource/Textures/Wall/Tiles083_4K/
-├── Tiles083_4K-PNG_Color.png
-├── Tiles083_4K-PNG_NormalDX.png
-├── Tiles083_4K-PNG_AmbientOcclusion.png
-├── Tiles083_4K-PNG_Roughness.png
-└── Tiles083_4K-PNG_Displacement.png
+T_Wall_Stone_01_BC
+T_Wall_Stone_01_N
+T_Wall_Stone_01_ORM
 ```
 
-Dans Unreal, seules les versions finales sont importées :
+Avec :
 
 ```text
-T_Wall_Stone_02_BC
-T_Wall_Stone_02_N
-T_Wall_Stone_02_ORM
+T_Name_BC  = BaseColor / Albedo
+T_Name_N   = Normal DirectX
+T_Name_ORM = R: AO / G: Roughness / B: Metallic
+```
+
+Si une map est absente :
+
+```text
+AO absent        -> canal R blanc
+Roughness absent -> utiliser RoughnessOverride
+Metallic absent  -> canal B noir pour pierre/bois, blanc pour métal uniforme
 ```
 
 ---
 
-## 17. Git, Git LFS et fichiers ignorés
+## 10. Pourquoi Height / Displacement est exclu
 
-### 17.1 `.gitignore`
+Ce master est volontairement limité à :
 
-```gitignore
-Binaries/
-DerivedDataCache/
-Intermediate/
-Saved/
-.vs/
-*.sln.DotSettings.user
+```text
+BaseColor + Normal + ORM
+```
 
+Raisons :
+
+- la Normal Map donne déjà l’essentiel du relief visuel ;
+- les murs, sols et plafonds du projet sont modulaires et relativement simples ;
+- le vrai volume doit venir des Static Meshes ;
+- Height / Displacement ajoute des fichiers lourds ;
+- cela complique inutilement les matériaux ;
+- cela augmente le coût shader ;
+- cela peut produire des artefacts à proximité des murs ;
+- cela alourdit Git sans bénéfice suffisant pour le prototype actuel.
+
+Les Height / Displacement peuvent rester dans :
+
+```text
 _ExternalArtSource/
-_LocalExports/
-_Temp/
 ```
 
-### 17.2 `.gitattributes` recommandé
+mais ne doivent pas être importés dans `Content/GrimrockPrototype` par défaut.
 
-```gitattributes
-*.uasset filter=lfs diff=lfs merge=lfs -text
-*.umap filter=lfs diff=lfs merge=lfs -text
-*.ubulk filter=lfs diff=lfs merge=lfs -text
-*.uexp filter=lfs diff=lfs merge=lfs -text
+---
 
-*.fbx filter=lfs diff=lfs merge=lfs -text
-*.blend filter=lfs diff=lfs merge=lfs -text
-*.png filter=lfs diff=lfs merge=lfs -text
-*.tga filter=lfs diff=lfs merge=lfs -text
-*.exr filter=lfs diff=lfs merge=lfs -text
+## 11. Contrôle qualité après création
+
+Tester au minimum :
+
+### Test pierre avec ORM
+
+```text
+MI_Test_Wall_Stone
+```
+
+Vérifier :
+
+```text
+BaseColor visible
+Normal visible sous lumière rasante
+Roughness correcte
+Metallic = 0
+AO pas trop noir
+```
+
+### Test bois sans metallic
+
+```text
+MI_Test_Door_Wood
+UseMetallicOverride = true
+MetallicOverride = 0.0
+```
+
+Vérifier que le bois ne ressemble pas à du plastique brillant.
+
+### Test métal
+
+```text
+MI_Test_Button_Metal
+```
+
+Vérifier :
+
+```text
+Metallic proche de 1
+Roughness contrôlable
+Normal pas trop forte
+```
+
+### Test sans ORM
+
+```text
+UseORMTexture = false
+RoughnessOverride = 0.7
+MetallicOverride  = 0.0
+```
+
+Le matériau doit compiler et rester visuellement correct.
+
+### Test emissive discret
+
+```text
+UseEmissive           = true
+EmissiveStrength      = 0.5
+EmissivePulseStrength = 0.05
+EmissivePulseSpeed    = 0.5
+```
+
+Vérifier que le pulse reste subtil.
+
+---
+
+## 12. Checklist de validation
+
+Avant de considérer `M_GrimrockSurface_Master` comme terminé :
+
+```text
+[ ] Le matériau est Opaque.
+[ ] Les paramètres sont groupés correctement.
+[ ] Les UV utilisent U et V séparés.
+[ ] BaseColorTint fonctionne.
+[ ] BaseColorStrength fonctionne.
+[ ] DesaturationAmount fonctionne.
+[ ] NormalStrength fonctionne.
+[ ] UseNormalTexture fonctionne.
+[ ] UseORMTexture fonctionne.
+[ ] AO_Strength fonctionne.
+[ ] RoughnessMultiplier fonctionne.
+[ ] RoughnessOverride fonctionne.
+[ ] MetallicMultiplier fonctionne.
+[ ] MetallicOverride fonctionne.
+[ ] UseEmissive fonctionne.
+[ ] UseEmissiveTexture fonctionne.
+[ ] EmissiveStrength fonctionne.
+[ ] EmissivePulseStrength fonctionne.
+[ ] EmissivePulseSpeed fonctionne.
+[ ] Aucune entrée Opacity / Opacity Mask n’est branchée.
+[ ] Aucun Height / Displacement / Parallax n’est présent.
+[ ] Les textures ORM sont importées avec sRGB=false et Compression=Masks.
+[ ] Les textures Normal sont importées avec Compression=Normalmap.
 ```
 
 ---
 
-## 18. Checklist d'import d'une nouvelle texture
+## 13. Évolution prévue
 
-Pour chaque nouveau matériau téléchargé :
+Après validation de ce master, créer un second master pour les matériaux découpés :
 
 ```text
-1. Stocker les sources 4K dans _ExternalArtSource/.
-2. Choisir la résolution finale : 2048 ou 1024.
-3. Exporter BC en 8 bpc RGB sRGB.
-4. Exporter N en 8 bpc RGB sans conversion colorimétrique.
-5. Générer ORM en 8 bpc RGB : R=AO, G=Roughness, B=Metallic.
-6. Ne pas importer Height / Displacement sauf exception.
-7. Importer uniquement BC / N / ORM dans Content/GrimrockPrototype/Art/Textures/Final/.
-8. Vérifier les réglages UE5 : sRGB, Compression, Texture Group.
-9. Créer ou mettre à jour la Material Instance.
-10. Tester dans la scène avec le vrai éclairage du donjon.
-11. Documenter la source dans Docs/Assets/AssetManifest.csv.
+M_GrimrockSurface_Masked_Master
+```
+
+Il reprendra la même logique générale, mais avec :
+
+```text
+Blend Mode = Masked
+Opacity Mask
+Opacity Mask Clip Value
+```
+
+Il servira pour :
+
+```text
+FloorRoots
+FloorMoss
+FloorBloodStain
+FloorCarpet détouré
+WallGlyphe
+WallInscription avec masque
+petites décorations planes
+```
+
+Pour les runes magiques fortement emissive/additive, conserver éventuellement un master spécialisé :
+
+```text
+M_FloorRuneCircle_Additive
 ```
 
 ---
 
-## 19. Diagnostic rapide si une texture paraît trop claire dans UE5
+## 14. Résumé court
 
-Si une texture 2048 paraît plus claire que la 4096 alors qu'elle semble identique dans GIMP :
+`M_GrimrockSurface_Master` est le master opaque général du projet.
 
-```text
-1. Vérifier le format d'export GIMP : éviter 16 bpc RGBA.
-2. Réexporter en 8 bpc RGB.
-3. Vérifier que l'alpha est absent si inutile.
-4. Tester un import sous nouveau nom, pas seulement Reimport.
-5. Vérifier sRGB et Compression Settings.
-6. Vérifier Mip Gen Settings et Texture Group.
-7. Tester temporairement NoMipmaps si nécessaire.
-```
-
-Cause déjà rencontrée dans le projet :
+Il couvre :
 
 ```text
-Export GIMP en 16 bpc RGBA -> texture lavée / éclaircie dans UE5.
+pierre
+bois
+métal
+sol
+mur
+plafond
+porte
+bouton
+levier
+plaque
+support de torche
+objets opaques
 ```
 
-Solution :
+Il repose sur :
 
 ```text
-Export final BaseColor = 8 bpc RGB.
+BaseColor + Normal + ORM
 ```
 
----
-
-## 20. Résumé opérationnel
-
-Le pipeline final GrimrockPrototype est :
+Il exclut volontairement :
 
 ```text
-Sources 4K téléchargées     -> _ExternalArtSource/, hors Git
-Textures finales UE5        -> Content/GrimrockPrototype/Art/Textures/Final/
-Matériaux maîtres           -> Art/Materials/Masters/
-Instances                   -> Art/Materials/Instances/
-Standard opaque             -> BC + N + ORM
-Master opaque principal     -> M_GrimrockSurface_Master
-Height / Displacement       -> exclus par défaut
-Git                         -> projet jouable + textures finales, pas bibliothèque source 4K
+Opacity Mask
+Translucency
+Height
+Displacement
+Parallax
 ```
 
-Règle principale :
-
-```text
-Le dépôt Git doit contenir le jeu, pas toute la bibliothèque de textures source.
-```
-
+Il devient la base officielle des Material Instances opaques du projet GrimrockPrototype.
