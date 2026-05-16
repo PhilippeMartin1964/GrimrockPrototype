@@ -725,7 +725,7 @@ void AGridLevelEditorActor::ApplyPrimaryToolAction ()
             break;
 
         case EGridEditorTool::PaintCell:
-            PaintSelectedCellAndWall ();
+            PaintSelectedCell ();
             break;
 
         case EGridEditorTool::PaintWall:
@@ -1982,7 +1982,7 @@ bool AGridLevelEditorActor::TryGetHoveredObjectWorldLocation (FVector& OutWorldL
     return TryGetObjectWorldLocationById (HoveredObjectId, OutWorldLocation);
 }
 
-void AGridLevelEditorActor::PaintSelectedCellAndWall ()
+void AGridLevelEditorActor::PaintSelectedCell ()
 {
     FGridLevelCellData* CellData = GetSelectedCellMutable ();
     if (!CellData)
@@ -1997,11 +1997,6 @@ void AGridLevelEditorActor::PaintSelectedCellAndWall ()
     CellData->CellType = PaintCellType;
     CellData->bHasCeiling = bPaintCellHasCeiling;
     CellData->bBlocksOccupancy = bPaintCellBlocksOccupancy;
-
-    if (EGridWallType* WallPtr = GetSelectedWallMutable (*CellData))
-    {
-        *WallPtr = PaintWallType;
-    }
 
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
