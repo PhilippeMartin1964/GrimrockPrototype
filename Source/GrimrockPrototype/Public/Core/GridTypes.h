@@ -19,8 +19,7 @@ UENUM (BlueprintType)
 enum class EGridWallType : uint8
 {
     None        UMETA (DisplayName = "None"),
-    Solid       UMETA (DisplayName = "Solid"),
-    Secret      UMETA (DisplayName = "Secret")
+    Solid       UMETA (DisplayName = "Solid")
 };
 
 UENUM (BlueprintType)

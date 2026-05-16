@@ -25,9 +25,6 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     WallISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("WallISM"));
     WallISM->SetupAttachment (SceneRoot);
 
-    SecretWallISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("SecretWallISM"));
-    SecretWallISM->SetupAttachment (SceneRoot);
-
     CeilingISM = CreateDefaultSubobject<UInstancedStaticMeshComponent> (TEXT ("CeilingISM"));
     CeilingISM->SetupAttachment (SceneRoot);
 
@@ -126,7 +123,6 @@ void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
 {
     if (FloorISM) FloorISM->ClearInstances ();
     if (WallISM) WallISM->ClearInstances ();
-    if (SecretWallISM) SecretWallISM->ClearInstances ();
     if (CeilingISM)
     {
         CeilingISM->ClearInstances ();
@@ -234,7 +230,7 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
 {
     ClearVisuals (RebuildMode);
 
-    if (!LevelAsset || !FloorISM || !WallISM || !SecretWallISM || !CeilingISM)
+    if (!LevelAsset || !FloorISM || !WallISM || !CeilingISM)
     {
         return;
     }
@@ -257,7 +253,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     }
     FloorISM->SetStaticMesh (FloorMesh);
     WallISM->SetStaticMesh (WallMesh);
-    SecretWallISM->SetStaticMesh (SecretWallMesh);
     CeilingISM->SetStaticMesh (CeilingMesh);
 
     const bool bIsGameWorld = GetWorld () && GetWorld ()->IsGameWorld ();
@@ -298,10 +293,6 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
                 {
                     case EGridWallType::Solid:
                     AddEdgeInstance (WallISM, X, Y, Edge, CellSize);
-                    break;
-
-                    case EGridWallType::Secret:
-                    AddEdgeInstance (SecretWallISM, X, Y, Edge, CellSize);
                     break;
 
                     default:
@@ -454,7 +445,6 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
             return true;
 
         case EGridWallType::Solid:
-        case EGridWallType::Secret:
         default:
             return false;
     }

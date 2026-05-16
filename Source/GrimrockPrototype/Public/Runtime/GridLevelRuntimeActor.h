@@ -45,9 +45,6 @@ protected:
     UInstancedStaticMeshComponent* WallISM;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UInstancedStaticMeshComponent* SecretWallISM;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInstancedStaticMeshComponent* CeilingISM;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -68,9 +65,6 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> WallMesh;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
-    TObjectPtr<UStaticMesh> SecretWallMesh;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> CeilingMesh;

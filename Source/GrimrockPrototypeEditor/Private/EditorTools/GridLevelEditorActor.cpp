@@ -1719,13 +1719,11 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         {
             const FGridLevelCellData& CellData = LevelAsset->GetCell (Obj.CellX, Obj.CellY);
             const EGridWallType WallType = GetWallTypeForEdge (CellData, Obj.Edge);
-            if (WallType == EGridWallType::Solid || WallType == EGridWallType::Secret)
+            if (WallType == EGridWallType::Solid)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
-                    FString::Printf (
-                        TEXT ("Door is placed on an edge whose wall is %s."),
-                        WallType == EGridWallType::Solid ? TEXT ("Solid") : TEXT ("Secret")),
+                    TEXT ("Door is placed on an edge whose wall is Solid. A door edge must use WallType=None."),
                     Obj.ObjectId);
             }
         }
