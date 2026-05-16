@@ -365,7 +365,7 @@ private:
     bool HasAnyObjectInSelectedCell () const;
     bool HasAnyWallInSelectedCell () const;
 
-    void PaintSelectedCellAndWall ();
+    void PaintSelectedCell ();
 
     void RebuildGeometryPreview ();
 
