@@ -159,6 +159,21 @@ namespace
         }
     }
 
+    EGridEditorOverviewObjectAnchor GetMirroredOverviewCellAnchor (EGridEditorOverviewObjectAnchor Anchor)
+    {
+        switch (Anchor)
+        {
+            case EGridEditorOverviewObjectAnchor::East:
+                return EGridEditorOverviewObjectAnchor::West;
+
+            case EGridEditorOverviewObjectAnchor::West:
+                return EGridEditorOverviewObjectAnchor::East;
+
+            default:
+                return Anchor;
+        }
+    }
+
     void AddOverviewOutline (const TSharedRef<SOverlay>& CellOverlay, const FSlateColor& OutlineColor)
     {
         auto AddOutlineStrip = [&CellOverlay, &OutlineColor] (float X, float Y, float Width, float Height)
@@ -380,7 +395,7 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
             continue;
         }
 
-        const EGridEditorOverviewObjectAnchor MarkerAnchor = GetObjectAnchor (*Obj);
+        const EGridEditorOverviewObjectAnchor MarkerAnchor = GetMirroredOverviewCellAnchor (GetObjectAnchor (*Obj));
         bool* bAnchorAlreadyUsed = nullptr;
         bool* bAnchorUsesDoorGeometry = nullptr;
         switch (MarkerAnchor)
