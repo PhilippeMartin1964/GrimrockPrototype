@@ -237,9 +237,9 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMapSection ()
     for (int32 Y = LevelAsset->Height - 1; Y >= 0; --Y)
     {
         const int32 DisplayRow = LevelAsset->Height - 1 - Y;
-        for (int32 X = LevelAsset->Width - 1; X >= 0; --X)
+        for (int32 X = 0; X < LevelAsset->Width; ++X)
         {
-            const int32 DisplayColumn = LevelAsset->Width - 1 - X;
+            const int32 DisplayColumn = X;
             GridPanel->AddSlot (DisplayColumn, DisplayRow)
                 [
                     BuildOverviewCell (X, Y, SelectedObject)
