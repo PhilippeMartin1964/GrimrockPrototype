@@ -319,19 +319,30 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
     }
     DrawWireBox (PDI, FBox (Center - FVector (Half, Half, 4.f), Center + FVector (Half, Half, 300.f)), MainColor, SDPG_Foreground);
 
-    const FVector EdgeCenter = [&] ()
-    {
-        switch (EditorActor->SelectedEdge)
-        {
-            case EGridEdge::North: return Center + FVector (0.f, Half, 0.f);
-            case EGridEdge::East:  return Center + FVector (Half, 0.f, 0.f);
-            case EGridEdge::South: return Center + FVector (0.f, -Half, 0.f);
-            case EGridEdge::West:  return Center + FVector (-Half, 0.f, 0.f);
-            default:               return Center;
-        }
-    }();
+    const FVector GridWorldOrigin = EditorActor->PreviewRuntimeActor
+        ? EditorActor->PreviewRuntimeActor->GetActorLocation () + EditorActor->PreviewRuntimeActor->GridOrigin
+        : EditorActor->GetActorLocation ();
 
-    DrawWireBox (PDI, FBox (EdgeCenter - FVector (12.f, 12.f, 12.f), EdgeCenter + FVector (12.f, 12.f, 12.f)), FColor::Orange, SDPG_Foreground);
+    FVector HoverEdgeCenter = Center;
+    if (EditorActor->LevelAsset->IsValidCoord (EditorActor->HoveredCellX, EditorActor->HoveredCellY))
+    {
+        const float CellSize = EditorActor->LevelAsset->CellSize;
+        const FVector HoverCenter = GridWorldOrigin + FVector (
+            (EditorActor->HoveredCellX * CellSize) + Half,
+            (EditorActor->HoveredCellY * CellSize) + Half,
+            4.f);
+
+        switch (EditorActor->HoveredEdge)
+        {
+            case EGridEdge::North: HoverEdgeCenter = HoverCenter + FVector (0.f, Half, 0.f); break;
+            case EGridEdge::East:  HoverEdgeCenter = HoverCenter + FVector (Half, 0.f, 0.f); break;
+            case EGridEdge::South: HoverEdgeCenter = HoverCenter + FVector (0.f, -Half, 0.f); break;
+            case EGridEdge::West:  HoverEdgeCenter = HoverCenter + FVector (-Half, 0.f, 0.f); break;
+            default:               HoverEdgeCenter = HoverCenter; break;
+        }
+    }
+
+    DrawWireBox (PDI, FBox (HoverEdgeCenter - FVector (12.f, 12.f, 12.f), HoverEdgeCenter + FVector (12.f, 12.f, 12.f)), FColor::Orange, SDPG_Foreground);
 
     FVector SourceLocation = FVector::ZeroVector;
     if (EditorActor->HasPendingLinkSource () && EditorActor->TryGetPendingLinkSourceLocation (SourceLocation))
