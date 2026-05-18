@@ -43,12 +43,14 @@ private:
     ECheckBoxState GetEditedInvertLinksCheckState () const;
     ECheckBoxState GetEditedFireOnEnterCheckState () const;
     ECheckBoxState GetEditedFireOnExitCheckState () const;
+    FText GetEditedSpawnedItemArchetypeIdText () const;
 
     void OnEditedDelayChanged (float NewValue);
     void OnEditedDurationChanged (float NewValue);
     void OnEditedInvertLinksChanged (ECheckBoxState NewState);
     void OnEditedFireOnEnterChanged (ECheckBoxState NewState);
     void OnEditedFireOnExitChanged (ECheckBoxState NewState);
+    void OnEditedSpawnedItemArchetypeIdCommitted (const FText& NewText, ETextCommit::Type CommitType);
 
     TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
     void OnTriggerModeSelectionChanged (TSharedPtr<EGridObjectTriggerMode> NewValue, ESelectInfo::Type SelectInfo);

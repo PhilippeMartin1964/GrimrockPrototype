@@ -1822,6 +1822,18 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 AddMessage (
                     EGridLevelValidationSeverity::Error,
                     TEXT ("Receptacle accepts no item: bAcceptAnyItem=false and accepted lists are empty."),
+                Obj.ObjectId);
+            }
+        }
+
+        if (Obj.Type == EGridLevelObjectType::ItemSpawn)
+        {
+            const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
+            if (Behavior.ItemSpawn.SpawnedItemArchetypeId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("ItemSpawn should define Behavior.ItemSpawn.SpawnedItemArchetypeId."),
                     Obj.ObjectId);
             }
         }

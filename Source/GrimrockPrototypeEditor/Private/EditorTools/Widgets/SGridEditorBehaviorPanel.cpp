@@ -13,6 +13,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 
 void SGridEditorBehaviorPanel::Construct (const FArguments& InArgs)
@@ -200,6 +201,21 @@ TSharedRef<SWidget> SGridEditorBehaviorPanel::BuildBehaviorEditorSection ()
                                     SNew (STextBlock).Text (FText::FromString (TEXT ("Fire On Exit")))
                                 ]
                         ]
+
+                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
+                        [
+                            SNew (STextBlock)
+                                .Text (FText::FromString (TEXT ("Item Spawn")))
+                        ]
+
+                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
+                        [
+                            SNew (SEditableTextBox)
+                                .Text (this, &SGridEditorBehaviorPanel::GetEditedSpawnedItemArchetypeIdText)
+                                .HintText (FText::FromString (TEXT ("Spawned Item Archetype Id")))
+                                .ToolTipText (FText::FromString (TEXT ("Item archetype spawned or represented by this ItemSpawn. Runtime spawning is planned but may not be implemented yet.")))
+                                .OnTextCommitted (this, &SGridEditorBehaviorPanel::OnEditedSpawnedItemArchetypeIdCommitted)
+                        ]
                 ]
         ];
 }
@@ -254,6 +270,11 @@ ECheckBoxState SGridEditorBehaviorPanel::GetEditedFireOnExitCheckState () const
     return EditedBehavior.Trigger.bFireOnExit ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+FText SGridEditorBehaviorPanel::GetEditedSpawnedItemArchetypeIdText () const
+{
+    return FText::FromName (EditedBehavior.ItemSpawn.SpawnedItemArchetypeId);
+}
+
 void SGridEditorBehaviorPanel::OnEditedInvertLinksChanged (ECheckBoxState NewState)
 {
     EditedBehavior.Activation.bInvertLinks = NewState == ECheckBoxState::Checked;
@@ -267,6 +288,15 @@ void SGridEditorBehaviorPanel::OnEditedFireOnEnterChanged (ECheckBoxState NewSta
 void SGridEditorBehaviorPanel::OnEditedFireOnExitChanged (ECheckBoxState NewState)
 {
     EditedBehavior.Trigger.bFireOnExit = NewState == ECheckBoxState::Checked;
+}
+
+void SGridEditorBehaviorPanel::OnEditedSpawnedItemArchetypeIdCommitted (const FText& NewText, ETextCommit::Type CommitType)
+{
+    FString TrimmedText = NewText.ToString ();
+    TrimmedText.TrimStartAndEndInline ();
+    EditedBehavior.ItemSpawn.SpawnedItemArchetypeId = TrimmedText.IsEmpty ()
+        ? NAME_None
+        : FName (*TrimmedText);
 }
 
 TSharedRef<SWidget> SGridEditorBehaviorPanel::MakeTriggerModeComboWidget (

@@ -33,6 +33,7 @@ private:
     TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildItemSpawnBehaviorSection (const FGridLevelObjectData& Obj);
 
     TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
 

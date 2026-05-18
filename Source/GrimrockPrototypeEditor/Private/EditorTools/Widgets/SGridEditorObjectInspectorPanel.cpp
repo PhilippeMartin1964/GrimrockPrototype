@@ -150,6 +150,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
         return SNullWidget::NullWidget;
     };
 
+    auto BuildOptionalItemSpawnBehavior = [this, &Obj] () -> TSharedRef<SWidget>
+    {
+        if (Obj.Type == EGridLevelObjectType::ItemSpawn)
+        {
+            return BuildItemSpawnBehaviorSection (Obj);
+        }
+
+        return SNullWidget::NullWidget;
+    };
+
     auto BuildOptionalReadableTextSection = [this, &Obj] () -> TSharedRef<SWidget>
     {
         const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
@@ -374,6 +384,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
                     Obj.Type == EGridLevelObjectType::Trigger ? FMargin (0.f, 8.f, 0.f, 0.f) : FMargin (0.f))
                 [
                     BuildOptionalTriggerBehavior ()
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (
+                    Obj.Type == EGridLevelObjectType::ItemSpawn ? FMargin (0.f, 8.f, 0.f, 0.f) : FMargin (0.f))
+                [
+                    BuildOptionalItemSpawnBehavior ()
                 ]
         ];
 }
@@ -648,6 +664,63 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                             ? NAME_None
                             : FName (*TrimmedText);
                     })
+                ]
+        ];
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemSpawnBehaviorSection (const FGridLevelObjectData& Obj)
+{
+    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            {
+                RequestRefresh ();
+            }
+        }
+    };
+
+    const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
+
+    return SNew (SBorder)
+        .Padding (6.f)
+        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+        [
+            SNew (SVerticalBox)
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Item Spawn Behavior")))
+                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Runtime item spawning is planned but may not be implemented yet.")))
+                        .AutoWrapText (true)
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Spawned Item Archetype Id")),
+                        SNew (SEditableTextBox)
+                            .Text (FText::FromName (Behavior.ItemSpawn.SpawnedItemArchetypeId))
+                            .ToolTipText (FText::FromString (TEXT ("Item archetype spawned or represented by this ItemSpawn. Runtime spawning is planned but may not be implemented yet.")))
+                            .OnTextCommitted_Lambda ([Obj, ApplyBehavior] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            FString TrimmedText = NewText.ToString ();
+                            TrimmedText.TrimStartAndEndInline ();
+
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.ItemSpawn.SpawnedItemArchetypeId = TrimmedText.IsEmpty ()
+                                ? NAME_None
+                                : FName (*TrimmedText);
+                            ApplyBehavior (NewBehavior);
+                        }))
                 ]
         ];
 }
