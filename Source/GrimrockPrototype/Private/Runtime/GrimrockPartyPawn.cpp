@@ -317,6 +317,14 @@ bool AGrimrockPartyPawn::TryUseFrontInteraction ()
         return true;
     }
 
+    int32 FrontX = CurrentCellX;
+    int32 FrontY = CurrentCellY;
+    if (TryGetNeighborOnLevel (CurrentCellX, CurrentCellY, FrontEdge, FrontX, FrontY)
+        && LevelRuntimeActor->TryPickupItemAtCell (FrontX, FrontY, this))
+    {
+        return true;
+    }
+
     return TryToggleDoorOnLevel (CurrentCellX, CurrentCellY, FrontEdge);
 }
 

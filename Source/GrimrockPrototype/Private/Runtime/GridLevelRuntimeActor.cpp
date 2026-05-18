@@ -945,6 +945,7 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
         }
     }
     SpawnedItemActors.Reset ();
+    SpawnedItemEntries.Reset ();
 
     for (TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
     {
@@ -954,6 +955,67 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
         }
     }
     SpawnedRuntimeObjectActors.Empty ();
+}
+
+bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
+{
+    if (!PartyPawn)
+    {
+        return false;
+    }
+
+    const FIntPoint TargetCell (CellX, CellY);
+    for (int32 EntryIndex = 0; EntryIndex < SpawnedItemEntries.Num (); ++EntryIndex)
+    {
+        FGridSpawnedItemRuntimeEntry& Entry = SpawnedItemEntries[EntryIndex];
+        if (Entry.Cell != TargetCell)
+        {
+            continue;
+        }
+
+        AGridItemActor* ItemActor = Entry.ItemActor.Get ();
+        if (!IsValid (ItemActor))
+        {
+            SpawnedItemEntries.RemoveAtSwap (EntryIndex);
+            SpawnedItemActors.RemoveAllSwap ([] (const TObjectPtr<AGridItemActor>& SpawnedItemActor)
+            {
+                return !IsValid (SpawnedItemActor.Get ());
+            });
+            return false;
+        }
+
+        const FName ItemArchetypeId = Entry.ItemArchetypeId.IsNone ()
+            ? ItemActor->GetItemArchetypeId ()
+            : Entry.ItemArchetypeId;
+        if (ItemArchetypeId.IsNone ())
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed at cell %d,%d: missing item archetype id."), CellX, CellY);
+            return false;
+        }
+
+        if (!PartyPawn->AddInventoryItem (ItemArchetypeId, 1))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed at cell %d,%d for item %s."), CellX, CellY, *ItemArchetypeId.ToString ());
+            return false;
+        }
+
+        if (IsValid (ItemActor))
+        {
+            ItemActor->OnRemovedFromWorld ();
+            ItemActor->Destroy ();
+        }
+        SpawnedItemActors.RemoveAllSwap ([ItemActor] (const TObjectPtr<AGridItemActor>& SpawnedItemActor)
+        {
+            return SpawnedItemActor.Get () == ItemActor;
+        });
+
+        SpawnedItemEntries.RemoveAtSwap (EntryIndex);
+
+        UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from cell %d,%d."), *ItemArchetypeId.ToString (), CellX, CellY);
+        return true;
+    }
+
+    return false;
 }
 
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
@@ -1043,6 +1105,12 @@ void AGridLevelRuntimeActor::AddRuntimeItemSpawnActor (const FGridLevelObjectDat
     ItemActor->SetActorTransform (SpawnTransform);
     ItemActor->OnPlacedInWorld ();
     SpawnedItemActors.Add (ItemActor);
+
+    FGridSpawnedItemRuntimeEntry Entry;
+    Entry.Cell = FIntPoint (ObjectData.CellX, ObjectData.CellY);
+    Entry.ItemActor = ItemActor;
+    Entry.ItemArchetypeId = SpawnedItemArchetypeId;
+    SpawnedItemEntries.Add (Entry);
 
     UE_LOG (LogTemp, Log, TEXT ("ItemSpawn spawned item %s at object %s."), *SpawnedItemArchetypeId.ToString (), *ObjectData.ObjectId.ToString ());
 }

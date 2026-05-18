@@ -26,6 +26,21 @@ enum class EGridRuntimeRebuildMode : uint8
     ObjectsOnly
 };
 
+USTRUCT ()
+struct FGridSpawnedItemRuntimeEntry
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (Transient)
+    FIntPoint Cell = FIntPoint::ZeroValue;
+
+    UPROPERTY (Transient)
+    TObjectPtr<AGridItemActor> ItemActor;
+
+    UPROPERTY (Transient)
+    FName ItemArchetypeId = NAME_None;
+};
+
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor : public AActor
 {
@@ -168,6 +183,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
 
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    bool TryPickupItemAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);
+
     // Allows runtime objects such as Receptacles to trigger their outgoing links.
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, bool bInvert = false);
@@ -231,6 +249,9 @@ private:
 
     UPROPERTY (Transient)
     TArray<TObjectPtr<AGridItemActor>> SpawnedItemActors;
+
+    UPROPERTY (Transient)
+    TArray<FGridSpawnedItemRuntimeEntry> SpawnedItemEntries;
 
     UPROPERTY (Transient)
     TObjectPtr<UReadableMessageWidget> ActiveReadableMessageWidget;

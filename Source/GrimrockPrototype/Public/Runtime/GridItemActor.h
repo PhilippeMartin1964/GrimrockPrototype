@@ -36,5 +36,8 @@ public:
     virtual void OnRemovedFromWorld ();
 
     UFUNCTION (BlueprintCallable, Category = "Item")
+    FName GetItemArchetypeId () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
     bool HasItemTag (FName Tag) const;
 };

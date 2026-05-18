@@ -59,6 +59,11 @@ void AGridItemActor::OnRemovedFromWorld ()
     }
 }
 
+FName AGridItemActor::GetItemArchetypeId () const
+{
+    return ArchetypeId;
+}
+
 bool AGridItemActor::HasItemTag (FName Tag) const
 {
     return !Tag.IsNone () && ItemTags.Contains (Tag);
