@@ -23,6 +23,22 @@ namespace
             default:               return EGridWallType::None;
         }
     }
+
+    EGridLevelValidationSeverity ConvertArchetypeValidationSeverity (EGridArchetypeValidationSeverity Severity)
+    {
+        switch (Severity)
+        {
+            case EGridArchetypeValidationSeverity::Error:
+                return EGridLevelValidationSeverity::Error;
+
+            case EGridArchetypeValidationSeverity::Warning:
+                return EGridLevelValidationSeverity::Warning;
+
+            case EGridArchetypeValidationSeverity::Info:
+            default:
+                return EGridLevelValidationSeverity::Info;
+        }
+    }
 }
 
 AGridLevelEditorActor::AGridLevelEditorActor ()
@@ -1610,6 +1626,46 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         ValidationMessage.OptionalObjectId = OptionalObjectId;
         LastValidationMessages.Add (ValidationMessage);
     };
+
+    auto AddArchetypeValidationMessages = [this, &AddMessage] ()
+    {
+        if (!ObjectPalette)
+        {
+            return;
+        }
+
+        TSet<const UGridObjectArchetypeAsset*> ValidatedArchetypes;
+
+        for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
+        {
+            const UGridObjectArchetypeAsset* Archetype = Entry.DefaultArchetype.Get ();
+            if (!Archetype || ValidatedArchetypes.Contains (Archetype))
+            {
+                continue;
+            }
+
+            ValidatedArchetypes.Add (Archetype);
+
+            TArray<FGridArchetypeValidationMessage> ArchetypeMessages;
+            Archetype->ValidateArchetype (ArchetypeMessages);
+
+            const FString ArchetypeName = Archetype->ArchetypeId.IsNone ()
+                ? Archetype->GetName ()
+                : Archetype->ArchetypeId.ToString ();
+
+            for (const FGridArchetypeValidationMessage& ArchetypeMessage : ArchetypeMessages)
+            {
+                AddMessage (
+                    ConvertArchetypeValidationSeverity (ArchetypeMessage.Severity),
+                    FString::Printf (
+                        TEXT ("Archetype %s: %s"),
+                        *ArchetypeName,
+                        *ArchetypeMessage.Message));
+            }
+        }
+    };
+
+    AddArchetypeValidationMessages ();
 
     if (!LevelAsset)
     {
