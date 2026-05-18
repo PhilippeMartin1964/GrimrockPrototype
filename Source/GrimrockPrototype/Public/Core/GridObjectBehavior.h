@@ -20,10 +20,12 @@ struct FGridActivationBehaviorParams
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation")
     EGridObjectTriggerMode TriggerMode = EGridObjectTriggerMode::Instant;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation",
+        meta = (ClampMin = "0.0", ToolTip = "Currently planned for delayed/timed activation. Not fully used by runtime yet."))
     float Delay = 0.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation",
+        meta = (ClampMin = "0.0", ToolTip = "Currently planned for delayed/timed activation. Not fully used by runtime yet."))
     float Duration = 0.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation")
@@ -47,10 +49,12 @@ struct FGridTeleporterBehaviorParams
 {
     GENERATED_BODY ()
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter",
+        meta = (ToolTip = "Target cell X used only by SupportedType=Teleporter."))
     int32 TargetCellX = INDEX_NONE;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter",
+        meta = (ToolTip = "Target cell Y used only by SupportedType=Teleporter."))
     int32 TargetCellY = INDEX_NONE;
 };
 
@@ -62,10 +66,12 @@ struct FGridReceptacleBehaviorParams
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bAcceptAnyItem = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (EditCondition = "!bAcceptAnyItem", EditConditionHides))
     TArray<FName> AcceptedItemTags;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (EditCondition = "!bAcceptAnyItem", EditConditionHides))
     TArray<FName> AcceptedArchetypeIds;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")

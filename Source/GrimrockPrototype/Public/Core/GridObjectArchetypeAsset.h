@@ -110,26 +110,32 @@ public:
         meta = (ToolTip = "Runtime readable flag. ObjectCategory=Readable is editor classification only."))
     bool bIsReadable = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction", meta = (MultiLine = "true"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction",
+        meta = (MultiLine = "true", EditCondition = "bIsReadable", EditConditionHides))
     FText ReadableText;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction",
+        meta = (EditCondition = "bIsReadable", EditConditionHides))
     bool bShowReadableOnlyOnce = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light",
         meta = (ToolTip = "Runtime light flag. SupportedType=Light is classification; this flag controls whether generic light settings are used."))
     bool bIsLightSource = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light",
+        meta = (EditCondition = "bIsLightSource", EditConditionHides))
     FLinearColor LightColor = FLinearColor::White;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light",
+        meta = (ClampMin = "0.0", EditCondition = "bIsLightSource", EditConditionHides))
     float LightIntensity = 500.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light",
+        meta = (ClampMin = "0.0", EditCondition = "bIsLightSource", EditConditionHides))
     float LightRadius = 500.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light",
+        meta = (EditCondition = "bIsLightSource", EditConditionHides))
     bool bUseLightFlicker = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
@@ -142,19 +148,19 @@ public:
             ToolTip = "Primary mesh used for simple visible objects and editor preview. For composite/animated objects, use FixedMesh and/or MovingMesh."))
     TObjectPtr<UMaterialInterface> PreviewMaterial = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
         meta = (ToolTip = "Static fixed part of a composite object, typically secret doors or multi-part mechanisms. Do not use for simple decorations; use Main Mesh / Preview Mesh instead."))
     TObjectPtr<UStaticMesh> FixedMesh = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
         meta = (ToolTip = "Moving or animated part of a composite object, such as doors, buttons, levers, or item visuals used by receptacles/items."))
     TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
         meta = (ToolTip = "Static fixed part of a composite object, typically secret doors or multi-part mechanisms. Do not use for simple decorations; use Main Mesh / Preview Mesh instead."))
     TObjectPtr<UMaterialInterface> FixedMaterial = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Visual",
         meta = (ToolTip = "Moving or animated part of a composite object, such as doors, buttons, levers, or item visuals used by receptacles/items."))
     TObjectPtr<UMaterialInterface> MovingMaterial = nullptr;
 
@@ -169,15 +175,18 @@ public:
     float PlacementZOffset = 12.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-        meta = (ClampMin = "0.0", ToolTip = "Used only when PlacementKind is Wall or Edge."))
+        meta = (ClampMin = "0.0", EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge",
+            EditConditionHides, ToolTip = "Used only when PlacementKind is Wall or Edge."))
     float WallInset = 6.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-        meta = (ToolTip = "Used only when PlacementKind is Wall or Edge."))
+        meta = (EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge",
+            EditConditionHides, ToolTip = "Used only when PlacementKind is Wall or Edge."))
     float LocalOffsetAlongWall = 0.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
-        meta = (ToolTip = "Used only when PlacementKind is Wall or Edge."))
+        meta = (EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge",
+            EditConditionHides, ToolTip = "Used only when PlacementKind is Wall or Edge."))
     float LocalOffsetVertical = 0.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Rotation", meta = (ClampMin = "0.0"))
