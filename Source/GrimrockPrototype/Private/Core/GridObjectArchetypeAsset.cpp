@@ -304,16 +304,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Light flicker is enabled but bIsLightSource=false."));
     }
 
-    if (SupportedType != EGridLevelObjectType::ItemSpawn && ItemTags.Num () > 0)
-    {
-        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemTags are set but this archetype is not item-related."));
-    }
-
-    if (SupportedType != EGridLevelObjectType::ItemSpawn && ItemActorClass != nullptr)
-    {
-        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemActorClass is set but this archetype is not item-related."));
-    }
-
     if (!UsesReceptacleParams () && HasReceptacleBehaviorParams (DefaultBehavior))
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Receptacle behavior parameters are set but SupportedType is not Receptacle."));
@@ -339,11 +329,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("FixedMesh or FixedMaterial is set but this archetype type does not normally use fixed mesh."));
     }
 
-    if (!RequiresRuntimeActorClass () && RuntimeActorClass != nullptr)
-    {
-        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("RuntimeActorClass is set even though this type does not normally require one. This may be valid for custom runtime behavior."));
-    }
-
     switch (SupportedType)
     {
         case EGridLevelObjectType::Door:
@@ -359,10 +344,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             if (bCanShareAnchor)
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Door should generally have bCanShareAnchor set to false."));
-            }
-            if (!bBlocksMovement)
-            {
-                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Door has bBlocksMovement=false; this is acceptable when blocking is handled by GridDoorSystemComponent."));
             }
             break;
         }
@@ -698,6 +679,11 @@ bool UGridObjectArchetypeAsset::UsesTriggerParams () const
 
 bool UGridObjectArchetypeAsset::UsesMovingMeshParams () const
 {
+    if (UsesItemParams ())
+    {
+        return true;
+    }
+
     switch (SupportedType)
     {
         case EGridLevelObjectType::Door:
@@ -713,7 +699,8 @@ bool UGridObjectArchetypeAsset::UsesMovingMeshParams () const
 
 bool UGridObjectArchetypeAsset::UsesFixedMeshParams () const
 {
-    return SupportedType == EGridLevelObjectType::Door;
+    return SupportedType == EGridLevelObjectType::Door ||
+        UsesItemParams ();
 }
 
 bool UGridObjectArchetypeAsset::UsesRuntimeActorClass () const
