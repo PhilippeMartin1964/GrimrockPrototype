@@ -812,7 +812,19 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemAr
         return nullptr;
     }
 
-    ItemActor->InitializeItemFromArchetype (ItemArchetype);
+    UStaticMesh* ItemMesh = ItemArchetype->MovingMesh ? ItemArchetype->MovingMesh.Get () : ItemArchetype->PreviewMesh.Get ();
+    if (!ItemMesh)
+    {
+        ItemMesh = ItemArchetype->FixedMesh.Get ();
+    }
+
+    UMaterialInterface* ItemMaterial = ItemArchetype->MovingMaterial ? ItemArchetype->MovingMaterial.Get () : ItemArchetype->PreviewMaterial.Get ();
+    if (!ItemMaterial)
+    {
+        ItemMaterial = ItemArchetype->FixedMaterial.Get ();
+    }
+
+    ItemActor->InitializeItem (ItemArchetype->ArchetypeId, ItemArchetype->ItemTags, ItemMesh, ItemMaterial);
 
     if (AttachParent)
     {
