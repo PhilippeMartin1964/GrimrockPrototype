@@ -9,6 +9,33 @@
 class AGridRuntimeObjectActor;
 class AGridItemActor;
 
+UENUM (BlueprintType)
+enum class EGridArchetypeValidationSeverity : uint8
+{
+    Info    UMETA (DisplayName = "Info"),
+    Warning UMETA (DisplayName = "Warning"),
+    Error   UMETA (DisplayName = "Error")
+};
+
+USTRUCT (BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridArchetypeValidationMessage
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    EGridArchetypeValidationSeverity Severity = EGridArchetypeValidationSeverity::Info;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    FString Message;
+
+    FGridArchetypeValidationMessage () = default;
+
+    FGridArchetypeValidationMessage (EGridArchetypeValidationSeverity InSeverity, const FString& InMessage)
+        : Severity (InSeverity)
+        , Message (InMessage)
+    {}
+};
+
 UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridObjectArchetypeAsset : public UDataAsset
 {
@@ -167,4 +194,13 @@ public:
     {
         return bIsLightSource;
     }
+
+    bool ValidateArchetype (TArray<FGridArchetypeValidationMessage>& OutMessages) const;
+    bool IsValidArchetype () const;
+    FString GetValidationSummary () const;
+    bool RequiresEdgePlacement () const;
+    bool SupportsCenterPlacement () const;
+    bool SupportsWallPlacement () const;
+    bool RequiresRuntimeActorClass () const;
+    bool AllowsInvisibleRuntimeObject () const;
 };

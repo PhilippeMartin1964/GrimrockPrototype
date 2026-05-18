@@ -236,6 +236,34 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     }
 
     LevelAsset->EnsureCellCount ();
+#if WITH_EDITOR
+    for (const UGridObjectArchetypeAsset* Archetype : ObjectArchetypes)
+    {
+        if (!Archetype)
+        {
+            continue;
+        }
+
+        TArray<FGridArchetypeValidationMessage> ValidationMessages;
+        Archetype->ValidateArchetype (ValidationMessages);
+
+        bool bHasWarningOrError = false;
+        for (const FGridArchetypeValidationMessage& Message : ValidationMessages)
+        {
+            if (Message.Severity == EGridArchetypeValidationSeverity::Warning ||
+                Message.Severity == EGridArchetypeValidationSeverity::Error)
+            {
+                bHasWarningOrError = true;
+                break;
+            }
+        }
+
+        if (bHasWarningOrError)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("%s"), *Archetype->GetValidationSummary ());
+        }
+    }
+#endif
     if (ActivationComponent)
     {
         ActivationComponent->Initialize (this);
