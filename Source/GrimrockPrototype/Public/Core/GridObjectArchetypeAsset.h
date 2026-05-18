@@ -4,6 +4,8 @@
 #include "Engine/DataAsset.h"
 #include "GridTypes.h"
 #include "GridObjectBehavior.h"
+#include "Runtime/GridItemActor.h"
+#include "Runtime/GridRuntimeObjectActor.h"
 #include "GridObjectArchetypeAsset.generated.h"
 
 class AGridRuntimeObjectActor;
@@ -81,14 +83,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
     EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Center;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Placement|Legacy",
-        meta = (DisplayName = "Legacy Place On Edge", ToolTip = "Use PlacementKind instead. PlacementKind is now the source of truth.",
-            DeprecatedProperty, DeprecationMessage = "Use PlacementKind instead. PlacementKind is now the source of truth."))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
+        meta = (AdvancedDisplay,DisplayName = "Legacy Place On Edge", ToolTip = "Legacy compatibility flag only. PlacementKind is now the source of truth. Clear this value on migrated assets."))
     bool bPlaceOnEdge = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Placement|Legacy",
-        meta = (DisplayName = "Legacy Place At Cell Center", ToolTip = "Use PlacementKind instead. PlacementKind is now the source of truth.",
-            DeprecatedProperty, DeprecationMessage = "Use PlacementKind instead. PlacementKind is now the source of truth."))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
+        meta = (AdvancedDisplay, DisplayName = "Legacy Place At Cell Center", ToolTip = "Legacy compatibility flag only. PlacementKind is now the source of truth. Clear this value on migrated assets."))
     bool bPlaceAtCellCenter = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement",
