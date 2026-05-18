@@ -208,6 +208,11 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("RuntimeActorClass is required for this SupportedType."));
     }
 
+    if (Category.IsNone ())
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Palette Category is not set. This does not affect runtime, but the object may be harder to organize in the editor palette."));
+    }
+
     if (bPlaceOnEdge && !IsWallOrEdgePlacement (PlacementKind))
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Legacy bPlaceOnEdge=true but PlacementKind is not Wall or Edge. PlacementKind is now the source of truth."));

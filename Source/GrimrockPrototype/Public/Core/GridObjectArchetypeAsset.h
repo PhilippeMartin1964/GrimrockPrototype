@@ -69,7 +69,8 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item")
     TArray<FName> ItemTags;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
+        meta = (DisplayName = "Palette Category", ToolTip = "Editor palette grouping only. Does not affect gameplay. Examples: Doors, Mechanisms, Wall Decorations, Floor Decorations, Receptacles, Lights, Spawns."))
     FName Category = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype")
