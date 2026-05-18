@@ -206,4 +206,16 @@ public:
     bool SupportsWallPlacement () const;
     bool RequiresRuntimeActorClass () const;
     bool AllowsInvisibleRuntimeObject () const;
+    bool UsesWallPlacementParams () const;
+    bool UsesCenterPlacementParams () const;
+    bool UsesReadableParams () const;
+    bool UsesLightParams () const;
+    bool UsesItemParams () const;
+    bool UsesReceptacleParams () const;
+    bool UsesTeleporterParams () const;
+    bool UsesButtonAnimationParams () const;
+    bool UsesTriggerParams () const;
+    bool UsesMovingMeshParams () const;
+    bool UsesFixedMeshParams () const;
+    bool UsesRuntimeActorClass () const;
 };

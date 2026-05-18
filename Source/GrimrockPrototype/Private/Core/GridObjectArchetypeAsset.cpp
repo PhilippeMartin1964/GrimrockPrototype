@@ -187,6 +187,43 @@ namespace
 
         return ObjectCategory == GetRecommendedObjectCategory (SupportedType, bIsReadable);
     }
+
+    bool IsDefaultWallPlacementParams (const UGridObjectArchetypeAsset& Archetype)
+    {
+        return FMath::IsNearlyEqual (Archetype.WallInset, 6.f) &&
+            FMath::IsNearlyZero (Archetype.LocalOffsetAlongWall) &&
+            FMath::IsNearlyZero (Archetype.LocalOffsetVertical);
+    }
+
+    bool IsDefaultLightParams (const UGridObjectArchetypeAsset& Archetype)
+    {
+        return Archetype.LightColor.Equals (FLinearColor::White) &&
+            FMath::IsNearlyEqual (Archetype.LightIntensity, 500.f) &&
+            FMath::IsNearlyEqual (Archetype.LightRadius, 500.f) &&
+            !Archetype.bUseLightFlicker;
+    }
+
+    bool HasReceptacleBehaviorParams (const FGridObjectBehaviorParams& Behavior)
+    {
+        return !Behavior.bAcceptAnyItem ||
+            Behavior.AcceptedItemTags.Num () > 0 ||
+            Behavior.AcceptedArchetypeIds.Num () > 0 ||
+            !Behavior.InitialContainedItemArchetypeId.IsNone ();
+    }
+
+    bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)
+    {
+        return Behavior.TargetCellX != INDEX_NONE ||
+            Behavior.TargetCellY != INDEX_NONE;
+    }
+
+    bool HasCustomButtonAnimationParams (const FGridObjectBehaviorParams& Behavior)
+    {
+        return !FMath::IsNearlyEqual (Behavior.ButtonPressDistance, 6.f) ||
+            !FMath::IsNearlyEqual (Behavior.ButtonPressDuration, 0.08f) ||
+            !FMath::IsNearlyEqual (Behavior.ButtonReleaseDuration, 0.10f) ||
+            !FMath::IsNearlyEqual (Behavior.ButtonHoldTime, 0.15f);
+    }
 }
 
 bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidationMessage>& OutMessages) const
@@ -240,6 +277,71 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
                     ToObjectCategoryText (RecommendedCategory),
                     ToObjectCategoryText (ObjectCategory)));
         }
+    }
+
+    if (!UsesWallPlacementParams () && !IsDefaultWallPlacementParams (*this))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Wall placement parameters are set but this archetype is not wall/edge placed."));
+    }
+
+    if (!bIsReadable && !ReadableText.IsEmpty ())
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("ReadableText is set but bIsReadable=false."));
+    }
+
+    if (!bIsReadable && bShowReadableOnlyOnce)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("bShowReadableOnlyOnce is enabled but bIsReadable=false."));
+    }
+
+    if (!UsesLightParams () && !bIsLightSource && !IsDefaultLightParams (*this))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Light parameters are customized but this archetype is not a light source."));
+    }
+
+    if (bUseLightFlicker && !bIsLightSource)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Light flicker is enabled but bIsLightSource=false."));
+    }
+
+    if (SupportedType != EGridLevelObjectType::ItemSpawn && ItemTags.Num () > 0)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemTags are set but this archetype is not item-related."));
+    }
+
+    if (SupportedType != EGridLevelObjectType::ItemSpawn && ItemActorClass != nullptr)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemActorClass is set but this archetype is not item-related."));
+    }
+
+    if (!UsesReceptacleParams () && HasReceptacleBehaviorParams (DefaultBehavior))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Receptacle behavior parameters are set but SupportedType is not Receptacle."));
+    }
+
+    if (!UsesTeleporterParams () && HasTeleporterBehaviorParams (DefaultBehavior))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Teleporter target cell is set but SupportedType is not Teleporter."));
+    }
+
+    if (!UsesButtonAnimationParams () && HasCustomButtonAnimationParams (DefaultBehavior))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Button animation parameters are customized but SupportedType is not Button."));
+    }
+
+    if (!UsesMovingMeshParams () && (MovingMesh || MovingMaterial))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("MovingMesh or MovingMaterial is set but this archetype type does not normally use moving mesh."));
+    }
+
+    if (!UsesFixedMeshParams () && (FixedMesh || FixedMaterial))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("FixedMesh or FixedMaterial is set but this archetype type does not normally use fixed mesh."));
+    }
+
+    if (!RequiresRuntimeActorClass () && RuntimeActorClass != nullptr)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("RuntimeActorClass is set even though this type does not normally require one. This may be valid for custom runtime behavior."));
     }
 
     switch (SupportedType)
@@ -526,4 +628,96 @@ bool UGridObjectArchetypeAsset::AllowsInvisibleRuntimeObject () const
         default:
             return false;
     }
+}
+
+bool UGridObjectArchetypeAsset::UsesWallPlacementParams () const
+{
+    return PlacementKind == EGridObjectPlacementKind::Wall ||
+        PlacementKind == EGridObjectPlacementKind::Edge;
+}
+
+bool UGridObjectArchetypeAsset::UsesCenterPlacementParams () const
+{
+    return PlacementKind == EGridObjectPlacementKind::Center ||
+        PlacementKind == EGridObjectPlacementKind::Floor ||
+        PlacementKind == EGridObjectPlacementKind::Ceiling;
+}
+
+bool UGridObjectArchetypeAsset::UsesReadableParams () const
+{
+    return bIsReadable ||
+        ObjectCategory == EGridObjectCategory::Readable ||
+        (SupportedType == EGridLevelObjectType::Decoration && bIsReadable);
+}
+
+bool UGridObjectArchetypeAsset::UsesLightParams () const
+{
+    return bIsLightSource ||
+        SupportedType == EGridLevelObjectType::Light ||
+        ObjectCategory == EGridObjectCategory::Light;
+}
+
+bool UGridObjectArchetypeAsset::UsesItemParams () const
+{
+    return SupportedType == EGridLevelObjectType::ItemSpawn ||
+        ItemActorClass != nullptr ||
+        ItemTags.Num () > 0;
+}
+
+bool UGridObjectArchetypeAsset::UsesReceptacleParams () const
+{
+    return SupportedType == EGridLevelObjectType::Receptacle;
+}
+
+bool UGridObjectArchetypeAsset::UsesTeleporterParams () const
+{
+    return SupportedType == EGridLevelObjectType::Teleporter;
+}
+
+bool UGridObjectArchetypeAsset::UsesButtonAnimationParams () const
+{
+    return SupportedType == EGridLevelObjectType::Button;
+}
+
+bool UGridObjectArchetypeAsset::UsesTriggerParams () const
+{
+    switch (SupportedType)
+    {
+        case EGridLevelObjectType::Trigger:
+        case EGridLevelObjectType::PressurePlate:
+        case EGridLevelObjectType::Button:
+        case EGridLevelObjectType::Lever:
+        case EGridLevelObjectType::Receptacle:
+        case EGridLevelObjectType::Teleporter:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool UGridObjectArchetypeAsset::UsesMovingMeshParams () const
+{
+    switch (SupportedType)
+    {
+        case EGridLevelObjectType::Door:
+        case EGridLevelObjectType::Button:
+        case EGridLevelObjectType::Lever:
+        case EGridLevelObjectType::Receptacle:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool UGridObjectArchetypeAsset::UsesFixedMeshParams () const
+{
+    return SupportedType == EGridLevelObjectType::Door;
+}
+
+bool UGridObjectArchetypeAsset::UsesRuntimeActorClass () const
+{
+    return RequiresRuntimeActorClass () ||
+        RuntimeActorClass != nullptr;
 }
