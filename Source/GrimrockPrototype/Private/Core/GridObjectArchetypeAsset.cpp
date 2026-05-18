@@ -56,6 +56,137 @@ namespace
         return PlacementKind == EGridObjectPlacementKind::Wall ||
             PlacementKind == EGridObjectPlacementKind::Edge;
     }
+
+    const TCHAR* ToSupportedTypeText (EGridLevelObjectType SupportedType)
+    {
+        switch (SupportedType)
+        {
+            case EGridLevelObjectType::Door:
+                return TEXT ("Door");
+
+            case EGridLevelObjectType::Button:
+                return TEXT ("Button");
+
+            case EGridLevelObjectType::PressurePlate:
+                return TEXT ("PressurePlate");
+
+            case EGridLevelObjectType::Lever:
+                return TEXT ("Lever");
+
+            case EGridLevelObjectType::Decoration:
+                return TEXT ("Decoration");
+
+            case EGridLevelObjectType::MonsterSpawn:
+                return TEXT ("MonsterSpawn");
+
+            case EGridLevelObjectType::ItemSpawn:
+                return TEXT ("ItemSpawn");
+
+            case EGridLevelObjectType::Light:
+                return TEXT ("Light");
+
+            case EGridLevelObjectType::Teleporter:
+                return TEXT ("Teleporter");
+
+            case EGridLevelObjectType::Trigger:
+                return TEXT ("Trigger");
+
+            case EGridLevelObjectType::Receptacle:
+                return TEXT ("Receptacle");
+
+            case EGridLevelObjectType::None:
+            default:
+                return TEXT ("None");
+        }
+    }
+
+    const TCHAR* ToObjectCategoryText (EGridObjectCategory Category)
+    {
+        switch (Category)
+        {
+            case EGridObjectCategory::Mechanism:
+                return TEXT ("Mechanism");
+
+            case EGridObjectCategory::Decoration:
+                return TEXT ("Decoration");
+
+            case EGridObjectCategory::Prop:
+                return TEXT ("Prop");
+
+            case EGridObjectCategory::Receptacle:
+                return TEXT ("Receptacle");
+
+            case EGridObjectCategory::Light:
+                return TEXT ("Light");
+
+            case EGridObjectCategory::Readable:
+                return TEXT ("Readable");
+
+            case EGridObjectCategory::Spawn:
+                return TEXT ("Spawn");
+
+            case EGridObjectCategory::Teleporter:
+                return TEXT ("Teleporter");
+
+            default:
+                return TEXT ("Unknown");
+        }
+    }
+
+    EGridObjectCategory GetRecommendedObjectCategory (EGridLevelObjectType SupportedType, bool bIsReadable)
+    {
+        switch (SupportedType)
+        {
+            case EGridLevelObjectType::Door:
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::PressurePlate:
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::Trigger:
+                return EGridObjectCategory::Mechanism;
+
+            case EGridLevelObjectType::Receptacle:
+                return EGridObjectCategory::Receptacle;
+
+            case EGridLevelObjectType::Decoration:
+                return bIsReadable ? EGridObjectCategory::Readable : EGridObjectCategory::Decoration;
+
+            case EGridLevelObjectType::Light:
+                return EGridObjectCategory::Light;
+
+            case EGridLevelObjectType::Teleporter:
+                return EGridObjectCategory::Teleporter;
+
+            case EGridLevelObjectType::MonsterSpawn:
+            case EGridLevelObjectType::ItemSpawn:
+                return EGridObjectCategory::Spawn;
+
+            case EGridLevelObjectType::None:
+            default:
+                return EGridObjectCategory::Decoration;
+        }
+    }
+
+    bool IsObjectCategoryCompatible (EGridLevelObjectType SupportedType, EGridObjectCategory ObjectCategory, bool bIsReadable)
+    {
+        if (SupportedType == EGridLevelObjectType::None)
+        {
+            return true;
+        }
+
+        if (SupportedType == EGridLevelObjectType::Decoration)
+        {
+            if (bIsReadable)
+            {
+                return ObjectCategory == EGridObjectCategory::Readable;
+            }
+
+            return ObjectCategory == EGridObjectCategory::Decoration ||
+                ObjectCategory == EGridObjectCategory::Readable ||
+                ObjectCategory == EGridObjectCategory::Prop;
+        }
+
+        return ObjectCategory == GetRecommendedObjectCategory (SupportedType, bIsReadable);
+    }
 }
 
 bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidationMessage>& OutMessages) const
@@ -85,6 +216,25 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
     if (bPlaceAtCellCenter && !IsCenterFloorOrCeilingPlacement (PlacementKind))
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Legacy bPlaceAtCellCenter=true but PlacementKind is not Center, Floor, or Ceiling. PlacementKind is now the source of truth."));
+    }
+
+    if (!IsObjectCategoryCompatible (SupportedType, ObjectCategory, bIsReadable))
+    {
+        if (SupportedType == EGridLevelObjectType::Decoration && bIsReadable)
+        {
+            AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Readable Decoration should generally use ObjectCategory=Readable."));
+        }
+        else
+        {
+            const EGridObjectCategory RecommendedCategory = GetRecommendedObjectCategory (SupportedType, bIsReadable);
+            OutMessages.Emplace (
+                EGridArchetypeValidationSeverity::Warning,
+                FString::Printf (
+                    TEXT ("%s should generally use ObjectCategory=%s, but currently uses %s."),
+                    ToSupportedTypeText (SupportedType),
+                    ToObjectCategoryText (RecommendedCategory),
+                    ToObjectCategoryText (ObjectCategory)));
+        }
     }
 
     switch (SupportedType)
