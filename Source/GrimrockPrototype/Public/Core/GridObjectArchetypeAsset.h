@@ -78,10 +78,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
     EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Center;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
+        meta = (DisplayName = "Legacy Place On Edge", ToolTip = "Legacy compatibility flag only. PlacementKind is now the source of truth for edge and wall placement."))
     bool bPlaceOnEdge = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
+        meta = (DisplayName = "Legacy Place At Cell Center", ToolTip = "Legacy compatibility flag only. PlacementKind is now the source of truth for center, floor, and ceiling placement."))
     bool bPlaceAtCellCenter = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
@@ -147,13 +149,16 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
     float PlacementZOffset = 12.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
+        meta = (ClampMin = "0.0", ToolTip = "Used only when PlacementKind is Wall or Edge."))
     float WallInset = 6.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (EditCondition = "bPlaceOnEdge"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
+        meta = (ToolTip = "Used only when PlacementKind is Wall or Edge."))
     float LocalOffsetAlongWall = 0.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement", meta = (EditCondition = "bPlaceOnEdge"))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
+        meta = (ToolTip = "Used only when PlacementKind is Wall or Edge."))
     float LocalOffsetVertical = 0.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Rotation", meta = (ClampMin = "0.0"))
@@ -162,22 +167,19 @@ public:
     bool IsEdgePlaced () const
     {
         return PlacementKind == EGridObjectPlacementKind::Edge ||
-            PlacementKind == EGridObjectPlacementKind::Wall ||
-            bPlaceOnEdge;
+            PlacementKind == EGridObjectPlacementKind::Wall;
     }
 
     bool IsCenterPlaced () const
     {
         return PlacementKind == EGridObjectPlacementKind::Center ||
             PlacementKind == EGridObjectPlacementKind::Floor ||
-            PlacementKind == EGridObjectPlacementKind::Ceiling ||
-            bPlaceAtCellCenter;
+            PlacementKind == EGridObjectPlacementKind::Ceiling;
     }
 
     bool IsWallPlaced () const
     {
-        return PlacementKind == EGridObjectPlacementKind::Wall ||
-            bPlaceOnEdge;
+        return PlacementKind == EGridObjectPlacementKind::Wall;
     }
 
     bool IsCeilingPlaced () const

@@ -44,6 +44,13 @@ namespace
             PlacementKind == EGridObjectPlacementKind::Center;
     }
 
+    bool IsCenterFloorOrCeilingPlacement (EGridObjectPlacementKind PlacementKind)
+    {
+        return PlacementKind == EGridObjectPlacementKind::Center ||
+            PlacementKind == EGridObjectPlacementKind::Floor ||
+            PlacementKind == EGridObjectPlacementKind::Ceiling;
+    }
+
     bool IsWallOrEdgePlacement (EGridObjectPlacementKind PlacementKind)
     {
         return PlacementKind == EGridObjectPlacementKind::Wall ||
@@ -68,6 +75,16 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("RuntimeActorClass is required for this SupportedType."));
+    }
+
+    if (bPlaceOnEdge && !IsWallOrEdgePlacement (PlacementKind))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Legacy bPlaceOnEdge=true but PlacementKind is not Wall or Edge. PlacementKind is now the source of truth."));
+    }
+
+    if (bPlaceAtCellCenter && !IsCenterFloorOrCeilingPlacement (PlacementKind))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Legacy bPlaceAtCellCenter=true but PlacementKind is not Center, Floor, or Ceiling. PlacementKind is now the source of truth."));
     }
 
     switch (SupportedType)
