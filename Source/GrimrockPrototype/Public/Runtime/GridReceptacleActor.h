@@ -91,6 +91,9 @@ public:
     bool TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId);
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial);
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")

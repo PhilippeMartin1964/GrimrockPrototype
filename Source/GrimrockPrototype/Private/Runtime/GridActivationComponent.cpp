@@ -788,57 +788,20 @@ bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& O
     {
         return false;
     }
-    // Cas 1 : le support contient déjà un item.
-    // On le retire, on le rend au groupe, et on inverse les liens.
-    if (ReceptacleActor->HasItem ())
-    {
-        FName RemovedItemId = NAME_None;
 
-        if (!ReceptacleActor->TryTakeContainedItem (PartyPawn, RemovedItemId))
-        {
-            return false;
-        }
+    const bool bHadItem = ReceptacleActor->HasItem ();
+    if (!ReceptacleActor->TryInteractWithParty (PartyPawn))
+    {
+        return false;
+    }
+
+    if (bHadItem)
+    {
         ActiveObjectIds.Remove (ObjectData.ObjectId);
-        UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: removed item %s"), *ObjectData.ObjectId.ToString (), *RemovedItemId.ToString ());
         return ExecuteLinksFromObject (ObjectData.ObjectId, true);
     }
-    // Cas 2 : le support est vide.
-    // On tente d’insérer l’item accepté.
-    FName ItemToInsert = ReceptacleActor->AcceptedArchetypeIds.Num () > 0
-        ? ReceptacleActor->AcceptedArchetypeIds[0]
-        : NAME_None;
 
-    if (ItemToInsert == NAME_None)
-    {
-        ItemToInsert = PartyPawn->DefaultInteractionItemId;
-    }
-    if (!PartyPawn->HasInventoryItem (ItemToInsert))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: cannot insert %s because the party does not have it"),
-            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
-        return false;
-    }
-    if (!PartyPawn->RemoveInventoryItem (ItemToInsert))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: failed to remove item %s from party inventory"),
-            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
-        return false;
-    }
-    if (PartyPawn->IsHoldingItem (ItemToInsert))
-    {
-        PartyPawn->ClearHeldItem ();
-        UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: cleared held item %s before insertion"),
-            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
-    }
-    if (!ReceptacleActor->TryInsertItem (ItemToInsert))
-    {
-        PartyPawn->AddInventoryItem (ItemToInsert);
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: item %s is not accepted or could not be inserted"),
-            *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
-        return false;
-    }
     ActiveObjectIds.Add (ObjectData.ObjectId);
-    UE_LOG (LogTemp, Log, TEXT ("Receptacle %s: inserted item %s"), *ObjectData.ObjectId.ToString (), *ItemToInsert.ToString ());
     return ExecuteLinksFromObject (ObjectData.ObjectId, false);
 }
 

@@ -181,6 +181,65 @@ bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, 
     return false;
 }
 
+bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
+{
+    if (!PartyPawn)
+    {
+        return false;
+    }
+
+    if (HasItem ())
+    {
+        FName RemovedItemId = NAME_None;
+        if (!TryTakeContainedItem (PartyPawn, RemovedItemId))
+        {
+            return false;
+        }
+
+        UE_LOG (LogTemp, Log, TEXT ("Receptacle returned item %s"), *RemovedItemId.ToString ());
+        return true;
+    }
+
+    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
+    if (HeldItemId.IsNone ())
+    {
+        return false;
+    }
+
+    TArray<FName> HeldItemTags;
+    if (AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ()))
+    {
+        if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (HeldItemId))
+        {
+            HeldItemTags = ItemArchetype->ItemTags;
+        }
+    }
+
+    if (!CanAcceptItemArchetype (HeldItemId, HeldItemTags))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle rejected item %s"), *HeldItemId.ToString ());
+        return false;
+    }
+
+    if (!PartyPawn->RemoveInventoryItem (HeldItemId, 1))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle failed to remove held item %s from inventory"), *HeldItemId.ToString ());
+        return false;
+    }
+
+    PartyPawn->ClearHeldItem ();
+
+    if (!TryInsertItem (HeldItemId))
+    {
+        PartyPawn->AddInventoryItem (HeldItemId, 1);
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle failed to insert item %s"), *HeldItemId.ToString ());
+        return false;
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("Receptacle accepted item %s"), *HeldItemId.ToString ());
+    return true;
+}
+
 void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial)
 {
     RuntimeContainedItemMesh = InMesh;
