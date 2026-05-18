@@ -50,7 +50,6 @@ private:
     TSharedRef<SWidget> BuildCellObjectMarkers (const TArray<const FGridLevelObjectData*>& CellObjects) const;
     TSharedRef<SWidget> BuildOverviewColorLegend () const;
     TSharedRef<SWidget> BuildOverviewLegendSwatch (const FText& Label, const FLinearColor& Color) const;
-    TSharedRef<SWidget> BuildOverviewMarkerLegendSwatch (const FText& Label, bool bEdgeMarker) const;
     TSharedRef<SWidget> BuildSelectedCellSection ();
     TSharedRef<SWidget> BuildObjectsOnSelectedCellSection ();
     TSharedRef<SWidget> BuildObjectAnchorGroup (const FGridEditorOverviewAnchorObjectGroup& Group);

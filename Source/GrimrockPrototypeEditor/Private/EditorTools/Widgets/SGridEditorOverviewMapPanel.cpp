@@ -484,41 +484,16 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildCellObjectMarkers (const T
 
 TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewColorLegend () const
 {
-    return SNew (SWrapBox)
+    return SNew (SHorizontalBox)
 
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Empty")), GetOverviewEmptyColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Cell")), GetOverviewExistingCellColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 6.f, 0.f)
         [
             BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected")), GetOverviewSelectedCellFillColor ())
         ]
 
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 6.f, 0.f)
         [
             BuildOverviewLegendSwatch (FText::FromString (TEXT ("Selected Object")), GetOverviewSelectedObjectFillColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewLegendSwatch (FText::FromString (TEXT ("Multiple Objects")), GetOverviewMultiObjectOutlineColor ())
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewMarkerLegendSwatch (FText::FromString (TEXT ("Edge marker")), true)
-        ]
-
-        + SWrapBox::Slot ().Padding (0.f, 0.f, 6.f, 4.f)
-        [
-            BuildOverviewMarkerLegendSwatch (FText::FromString (TEXT ("Center marker")), false)
         ];
 }
 
@@ -539,63 +514,6 @@ TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewLegendSwatch (cons
                     SNew (SBox)
                         .WidthOverride (10.f)
                         .HeightOverride (10.f)
-                ]
-        ]
-
-        + SHorizontalBox::Slot ()
-        .AutoWidth ()
-        .VAlign (VAlign_Center)
-        [
-            SNew (STextBlock)
-                .Text (Label)
-                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 7))
-                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
-        ];
-}
-
-TSharedRef<SWidget> SGridEditorOverviewMapPanel::BuildOverviewMarkerLegendSwatch (const FText& Label, bool bEdgeMarker) const
-{
-    const FVector2D MarkerSize = bEdgeMarker
-        ? GetOverviewMarkerSize (EGridEditorOverviewObjectAnchor::North, false)
-        : FVector2D (4.f, 4.f);
-    const FMargin MarkerPadding = bEdgeMarker
-        ? GetOverviewMarkerPadding (EGridEditorOverviewObjectAnchor::North, false)
-        : GetOverviewMarkerPadding (EGridEditorOverviewObjectAnchor::Center, false);
-
-    return SNew (SHorizontalBox)
-
-        + SHorizontalBox::Slot ()
-        .AutoWidth ()
-        .VAlign (VAlign_Center)
-        .Padding (0.f, 0.f, 3.f, 0.f)
-        [
-            SNew (SBorder)
-                .Padding (1.f)
-                .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
-                .BorderBackgroundColor (FSlateColor (GetOverviewExistingCellColor ()))
-                [
-                    SNew (SBox)
-                        .WidthOverride (18.f)
-                        .HeightOverride (18.f)
-                        [
-                            SNew (SOverlay)
-
-                            + SOverlay::Slot ()
-                            .HAlign (HAlign_Left)
-                            .VAlign (VAlign_Top)
-                            .Padding (MarkerPadding)
-                            [
-                                SNew (SBox)
-                                    .WidthOverride (MarkerSize.X)
-                                    .HeightOverride (MarkerSize.Y)
-                                    [
-                                        SNew (SBorder)
-                                            .Padding (0.f)
-                                            .BorderImage (FCoreStyle::Get ().GetBrush ("WhiteBrush"))
-                                            .BorderBackgroundColor (FSlateColor (GetOverviewObjectMarkerColor ()))
-                                    ]
-                            ]
-                        ]
                 ]
         ]
 
