@@ -936,6 +936,16 @@ void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, 
 
 void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
 {
+    for (AGridItemActor* ItemActor : SpawnedItemActors)
+    {
+        if (IsValid (ItemActor))
+        {
+            ItemActor->OnRemovedFromWorld ();
+            ItemActor->Destroy ();
+        }
+    }
+    SpawnedItemActors.Reset ();
+
     for (TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
     {
         if (IsValid (Pair.Value))
@@ -992,6 +1002,49 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
         default:
         return false;
     }
+}
+
+void AGridLevelRuntimeActor::AddRuntimeItemSpawnActor (const FGridLevelObjectData& ObjectData)
+{
+    const UGridObjectArchetypeAsset* ItemSpawnArchetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    if (!ItemSpawnArchetype)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: archetype %s not found."), *ObjectData.ArchetypeId.ToString ());
+        return;
+    }
+
+    FGridObjectBehaviorParams RuntimeBehavior = ObjectData.Behavior;
+    if (!ObjectData.bOverrideBehavior)
+    {
+        RuntimeBehavior = ItemSpawnArchetype->DefaultBehavior;
+    }
+
+    const FName SpawnedItemArchetypeId = RuntimeBehavior.ItemSpawn.SpawnedItemArchetypeId;
+    if (SpawnedItemArchetypeId.IsNone ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: object %s has no SpawnedItemArchetypeId."), *ObjectData.ObjectId.ToString ());
+        return;
+    }
+
+    FTransform SpawnTransform;
+    if (!GetObjectPlacementTransform (ObjectData, SpawnTransform))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: could not compute placement transform for object %s."), *ObjectData.ObjectId.ToString ());
+        return;
+    }
+
+    AGridItemActor* ItemActor = SpawnItemActorForArchetype (SpawnedItemArchetypeId, this, nullptr);
+    if (!ItemActor)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: failed to spawn item archetype %s."), *SpawnedItemArchetypeId.ToString ());
+        return;
+    }
+
+    ItemActor->SetActorTransform (SpawnTransform);
+    ItemActor->OnPlacedInWorld ();
+    SpawnedItemActors.Add (ItemActor);
+
+    UE_LOG (LogTemp, Log, TEXT ("ItemSpawn spawned item %s at object %s."), *SpawnedItemArchetypeId.ToString (), *ObjectData.ObjectId.ToString ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
@@ -1069,6 +1122,15 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
     LevelAsset->EnsureCellCount ();
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
+        if (ObjectData.Type == EGridLevelObjectType::ItemSpawn)
+        {
+            if (ObjectData.bInitiallyEnabled)
+            {
+                AddRuntimeItemSpawnActor (ObjectData);
+            }
+            continue;
+        }
+
         if (!IsRuntimeSpawnableObject (ObjectData))
         {
             if (ObjectData.bInitiallyEnabled)
@@ -1095,6 +1157,7 @@ FString AGridLevelRuntimeActor::GetRuntimeDebugSummary () const
 
     Result += FString::Printf (TEXT ("Grid Runtime | Level=%s\n"), LevelAsset ? *LevelAsset->GetName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Runtime Actors=%d\n"), SpawnedRuntimeObjectActors.Num ());
+    Result += FString::Printf (TEXT ("Spawned Items=%d\n"), SpawnedItemActors.Num ());
     Result += ActivationComponent ? ActivationComponent->GetDebugSummary () : TEXT ("Activation | Missing");
     Result += TEXT ("\n");
     Result += DoorSystemComponent ? DoorSystemComponent->GetDebugSummary () : TEXT ("Doors | Missing");

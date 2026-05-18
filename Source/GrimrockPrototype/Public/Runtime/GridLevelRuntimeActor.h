@@ -183,6 +183,7 @@ public:
 
     void RebuildRuntimeObjects ();
     void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);
+    void AddRuntimeItemSpawnActor (const FGridLevelObjectData& ObjectData);
     bool IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const;
 
     template<typename T>
@@ -227,6 +228,9 @@ private:
 
     UPROPERTY (Transient)
     TMap<FGuid, TObjectPtr<AGridRuntimeObjectActor>> SpawnedRuntimeObjectActors;
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<AGridItemActor>> SpawnedItemActors;
 
     UPROPERTY (Transient)
     TObjectPtr<UReadableMessageWidget> ActiveReadableMessageWidget;
