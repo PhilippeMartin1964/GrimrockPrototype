@@ -238,6 +238,7 @@ public:
     bool UsesReadableParams () const;
     bool UsesLightParams () const;
     bool UsesItemParams () const;
+    bool UsesItemSpawnParams () const;
     bool UsesReceptacleParams () const;
     bool UsesTeleporterParams () const;
     bool UsesButtonAnimationParams () const;

@@ -97,6 +97,16 @@ struct FGridButtonAnimationParams
 };
 
 USTRUCT (BlueprintType)
+struct FGridItemSpawnBehaviorParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item Spawn",
+        meta = (ToolTip = "Item archetype spawned or represented by this ItemSpawn. Runtime spawning is planned but may not be implemented yet."))
+    FName SpawnedItemArchetypeId = NAME_None;
+};
+
+USTRUCT (BlueprintType)
 struct FGridObjectBehaviorParams
 {
     GENERATED_BODY ()
@@ -115,4 +125,7 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
     FGridButtonAnimationParams ButtonAnimation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item Spawn")
+    FGridItemSpawnBehaviorParams ItemSpawn;
 };
