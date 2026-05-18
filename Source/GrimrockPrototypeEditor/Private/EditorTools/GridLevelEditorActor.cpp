@@ -141,6 +141,7 @@ bool AGridLevelEditorActor::IsCellCenteredObject (EGridLevelObjectType ObjectTyp
         case EGridLevelObjectType::PressurePlate:
         case EGridLevelObjectType::MonsterSpawn:
         case EGridLevelObjectType::ItemSpawn:
+        case EGridLevelObjectType::Item:
         case EGridLevelObjectType::Light:
         case EGridLevelObjectType::Teleporter:
         case EGridLevelObjectType::Trigger:

@@ -94,6 +94,9 @@ namespace
             case EGridLevelObjectType::Receptacle:
                 return TEXT ("Receptacle");
 
+            case EGridLevelObjectType::Item:
+                return TEXT ("Item");
+
             case EGridLevelObjectType::None:
             default:
                 return TEXT ("None");
@@ -128,6 +131,9 @@ namespace
             case EGridObjectCategory::Teleporter:
                 return TEXT ("Teleporter");
 
+            case EGridObjectCategory::Item:
+                return TEXT ("Item");
+
             default:
                 return TEXT ("Unknown");
         }
@@ -159,6 +165,9 @@ namespace
             case EGridLevelObjectType::MonsterSpawn:
             case EGridLevelObjectType::ItemSpawn:
                 return EGridObjectCategory::Spawn;
+
+            case EGridLevelObjectType::Item:
+                return EGridObjectCategory::Item;
 
             case EGridLevelObjectType::None:
             default:
@@ -464,6 +473,19 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             break;
         }
 
+        case EGridLevelObjectType::Item:
+        {
+            if (!IsFloorOrCenterPlacement (PlacementKind))
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item PlacementKind should generally be Floor or Center when placed in the level."));
+            }
+            if (!ItemActorClass && ItemTags.Num () == 0)
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item should generally define ItemActorClass or ItemTags."));
+            }
+            break;
+        }
+
         case EGridLevelObjectType::None:
         default:
             break;
@@ -556,6 +578,7 @@ bool UGridObjectArchetypeAsset::SupportsCenterPlacement () const
         case EGridLevelObjectType::Teleporter:
         case EGridLevelObjectType::MonsterSpawn:
         case EGridLevelObjectType::ItemSpawn:
+        case EGridLevelObjectType::Item:
             return true;
 
         default:
@@ -640,7 +663,8 @@ bool UGridObjectArchetypeAsset::UsesLightParams () const
 
 bool UGridObjectArchetypeAsset::UsesItemParams () const
 {
-    return SupportedType == EGridLevelObjectType::ItemSpawn ||
+    return SupportedType == EGridLevelObjectType::Item ||
+        SupportedType == EGridLevelObjectType::ItemSpawn ||
         ItemActorClass != nullptr ||
         ItemTags.Num () > 0;
 }

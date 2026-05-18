@@ -46,7 +46,8 @@ enum class EGridLevelObjectType : uint8
     Light           UMETA (DisplayName = "Light"),
     Teleporter      UMETA (DisplayName = "Teleporter"),
     Trigger         UMETA (DisplayName = "Trigger"),
-    Receptacle      UMETA (DisplayName = "Receptacle")
+    Receptacle      UMETA (DisplayName = "Receptacle"),
+    Item            UMETA (DisplayName = "Item")
 };
 
 UENUM (BlueprintType)
@@ -69,7 +70,8 @@ enum class EGridObjectCategory : uint8
     Light      UMETA (DisplayName = "Light"),
     Readable   UMETA (DisplayName = "Readable"),
     Spawn      UMETA (DisplayName = "Spawn"),
-    Teleporter UMETA (DisplayName = "Teleporter")
+    Teleporter UMETA (DisplayName = "Teleporter"),
+    Item       UMETA (DisplayName = "Item")
 };
 
 UENUM (BlueprintType)

@@ -265,6 +265,7 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridLevelLinkData& LinkDa
         case EGridLevelObjectType::Decoration:
         case EGridLevelObjectType::MonsterSpawn:
         case EGridLevelObjectType::ItemSpawn:
+        case EGridLevelObjectType::Item:
         case EGridLevelObjectType::Light:
         case EGridLevelObjectType::Teleporter:
         case EGridLevelObjectType::Trigger:

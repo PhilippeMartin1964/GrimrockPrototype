@@ -65,11 +65,14 @@ namespace
         if (Category == FName (TEXT ("Doors"))) return 0;
         if (Category == FName (TEXT ("Mechanisms"))) return 1;
         if (Category == FName (TEXT ("Receptacles"))) return 2;
-        if (Category == FName (TEXT ("Wall Decorations"))) return 3;
-        if (Category == FName (TEXT ("Floor Decorations"))) return 4;
-        if (Category == FName (TEXT ("Lights"))) return 5;
-        if (Category == FName (TEXT ("Spawns"))) return 6;
-        if (Category == FName (TEXT ("Uncategorized"))) return 7;
+        if (Category == FName (TEXT ("Items"))) return 3;
+        if (Category == FName (TEXT ("Logic"))) return 4;
+        if (Category == FName (TEXT ("Readable"))) return 5;
+        if (Category == FName (TEXT ("Wall Decorations"))) return 6;
+        if (Category == FName (TEXT ("Floor Decorations"))) return 7;
+        if (Category == FName (TEXT ("Lights"))) return 8;
+        if (Category == FName (TEXT ("Spawns"))) return 9;
+        if (Category == FName (TEXT ("Uncategorized"))) return 10;
         return 100;
     }
 }
