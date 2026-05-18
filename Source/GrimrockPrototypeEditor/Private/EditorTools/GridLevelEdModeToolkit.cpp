@@ -238,69 +238,78 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget ()
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 {
     return SNew (SBorder)
-        .Padding (FMargin (6.f, 3.f))
+        .Padding (FMargin (6.f, 4.f))
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
         [
-            SNew (SHorizontalBox)
+            SNew (SVerticalBox)
 
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .VAlign (VAlign_Center)
-            .Padding (0.f, 0.f, 10.f, 1.f)
-            [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("DUNGEON EDITOR")))
-                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 14))
-            ]
-
-            + SHorizontalBox::Slot ()
-            .FillWidth (1.f)
-            .VAlign (VAlign_Center)
-            [
-                SNew (SWrapBox)
-
-                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                + SVerticalBox::Slot ()
+                .AutoHeight ()
+                .HAlign (HAlign_Left)
+                .Padding (0.f, 0.f, 0.f, 4.f)
                 [
-                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                        FText::FromString (TEXT ("Tool")),
-                        GetActiveToolText (),
-                        FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("DUNGEON EDITOR")))
+                        .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 18))
                 ]
 
-                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
+                + SVerticalBox::Slot ()
+                .AutoHeight ()
                 [
-                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                        FText::FromString (TEXT ("Cell")),
-                        GetSelectedCellStatusText (),
-                        FSlateColor (FLinearColor (0.40f, 0.85f, 0.45f, 1.f)))
-                ]
+                    SNew (SHorizontalBox)
 
-                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
-                [
-                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                        FText::FromString (TEXT ("Edge/Facing")),
-                        GetSelectedEdgeStatusText (),
-                        FSlateColor (FLinearColor (1.f, 0.72f, 0.20f, 1.f)))
-                ]
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .Padding (0.f, 0.f, 4.f, 0.f)
+                        [
+                            GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                                FText::FromString (TEXT ("Tool :")),
+                                GetActiveToolText (),
+                                FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+                        ]
 
-                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
-                [
-                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                        FText::FromString (TEXT ("Object")),
-                        GetSelectedObjectStatusText (),
-                        FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
-                ]
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .Padding (0.f, 0.f, 4.f, 0.f)
+                        [
+                            GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                                FText::FromString (TEXT ("Cell :")),
+                                GetSelectedCellStatusText (),
+                                FSlateColor (FLinearColor (0.40f, 0.85f, 0.45f, 1.f)))
+                        ]
 
-                + SWrapBox::Slot ().Padding (0.f, 0.f, 4.f, 2.f)
-                [
-                    GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                        FText::FromString (TEXT ("Validation")),
-                        GetValidationStatusText (),
-                        FSlateColor (ValidationState.IsValid () && ValidationState->bValidationHasRun
-                            ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
-                            : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
-                ]
-            ]
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .Padding (0.f, 0.f, 4.f, 0.f)
+                        [
+                            GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                                FText::FromString (TEXT ("Edge/Facing :")),
+                                GetSelectedEdgeStatusText (),
+                                FSlateColor (FLinearColor (1.f, 0.72f, 0.20f, 1.f)))
+                        ]
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .Padding (0.f, 0.f, 4.f, 0.f)
+                        [
+                            GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                                FText::FromString (TEXT ("Object :")),
+                                GetSelectedObjectStatusText (),
+                                FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+                        ]
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .Padding (0.f, 0.f, 0.f, 0.f)
+                        [
+                            GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                                FText::FromString (TEXT ("Validation :")),
+                                GetValidationStatusText (),
+                                FSlateColor (ValidationState.IsValid () && ValidationState->bValidationHasRun
+                                    ? FLinearColor (1.f, 0.72f, 0.20f, 1.f)
+                                    : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
+                        ]
+                    ]
         ];
 }
 
