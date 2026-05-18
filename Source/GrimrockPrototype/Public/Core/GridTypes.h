@@ -168,7 +168,7 @@ struct FGridLevelObjectData
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGridObjectBehaviorParams Behavior;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite)
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, meta = (DisplayName = "Legacy Override Behavior", ToolTip = "Legacy. Instance Behavior is now always used at runtime."))
     bool bOverrideBehavior = false;
 };
 

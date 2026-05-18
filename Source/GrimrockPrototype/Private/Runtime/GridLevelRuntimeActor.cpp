@@ -1075,11 +1075,7 @@ void AGridLevelRuntimeActor::AddRuntimeItemSpawnActor (const FGridLevelObjectDat
         return;
     }
 
-    FGridObjectBehaviorParams RuntimeBehavior = ObjectData.Behavior;
-    if (!ObjectData.bOverrideBehavior)
-    {
-        RuntimeBehavior = ItemSpawnArchetype->DefaultBehavior;
-    }
+    const FGridObjectBehaviorParams& RuntimeBehavior = ObjectData.Behavior;
 
     const FName SpawnedItemArchetypeId = RuntimeBehavior.ItemSpawn.SpawnedItemArchetypeId;
     if (SpawnedItemArchetypeId.IsNone ())
@@ -1135,10 +1131,6 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     FGridLevelObjectData RuntimeObjectData = ObjectData;
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
 
-    if (Archetype && !ObjectData.bOverrideBehavior)
-    {
-        RuntimeObjectData.Behavior = Archetype->DefaultBehavior;
-    }
     if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor> (Actor))
     {
         MechanismActor->InitializeMechanismVisuals (RuntimeObjectData, Archetype, Transform);

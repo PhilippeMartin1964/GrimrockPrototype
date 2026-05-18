@@ -356,22 +356,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
                                     SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
                                 ]
                         ]
-                    + SHorizontalBox::Slot ().AutoWidth ()
-                        [
-                            SNew (SCheckBox)
-                                .IsChecked (Obj.bOverrideBehavior ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                            {
-                                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                                {
-                                    CurrentEditorActor->SetSelectedObjectOverrideBehavior (NewState == ECheckBoxState::Checked);
-                                    RequestRefresh ();
-                                }
-                            })
-                                [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Override Behavior")))
-                                ]
-                        ]
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (

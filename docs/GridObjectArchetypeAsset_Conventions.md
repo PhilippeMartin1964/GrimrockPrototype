@@ -378,6 +378,22 @@ ItemSpawn = instance placée qui fait apparaître cette définition.
 
 Il est structuré en sous-blocs.
 
+### Instance vs Archetype authority
+
+`UGridObjectArchetypeAsset` est un template initial.
+
+`FGridLevelObjectData` est la vérité finale pour une instance placée.
+
+Règles :
+
+```text
+DefaultBehavior est copié dans ObjectData.Behavior à la création.
+Au runtime, ObjectData.Behavior est toujours utilisé.
+bOverrideBehavior est legacy et ne doit plus contrôler le runtime.
+```
+
+Une instance placée peut donc vider ou modifier un champ de behavior sans devoir cocher un override.
+
 ---
 
 ### 9.1 Activation
