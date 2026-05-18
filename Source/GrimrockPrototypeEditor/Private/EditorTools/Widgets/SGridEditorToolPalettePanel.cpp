@@ -4,6 +4,7 @@
 
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
 
@@ -35,6 +36,41 @@ namespace
             case EGridEditorTool::Link:        return FText::FromString (TEXT ("L"));
             default:                           return FText::FromString (TEXT ("?"));
         }
+    }
+
+    FName GetPaletteCategoryForEntry (const FGridObjectPaletteEntry& Entry)
+    {
+        if (!Entry.Category.IsNone ())
+        {
+            return Entry.Category;
+        }
+
+        if (Entry.DefaultArchetype && !Entry.DefaultArchetype->Category.IsNone ())
+        {
+            return Entry.DefaultArchetype->Category;
+        }
+
+        return FName (TEXT ("Uncategorized"));
+    }
+
+    FText GetPaletteCategoryDisplayText (FName Category)
+    {
+        return Category.IsNone ()
+            ? FText::FromString (TEXT ("Uncategorized"))
+            : FText::FromName (Category);
+    }
+
+    int32 GetPaletteCategorySortOrder (FName Category)
+    {
+        if (Category == FName (TEXT ("Doors"))) return 0;
+        if (Category == FName (TEXT ("Mechanisms"))) return 1;
+        if (Category == FName (TEXT ("Receptacles"))) return 2;
+        if (Category == FName (TEXT ("Wall Decorations"))) return 3;
+        if (Category == FName (TEXT ("Floor Decorations"))) return 4;
+        if (Category == FName (TEXT ("Lights"))) return 5;
+        if (Category == FName (TEXT ("Spawns"))) return 6;
+        if (Category == FName (TEXT ("Uncategorized"))) return 7;
+        return 100;
     }
 }
 
@@ -249,18 +285,59 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection ()
             [SNew (STextBlock).Text (FText::FromString (TEXT ("No ObjectPalette assigned.")))];
         return Root;
     }
-    TSharedRef<SUniformGridPanel> Grid = SNew (SUniformGridPanel).SlotPadding (FMargin (4.f));
-    int32 Index = 0;
+    TMap<FName, TArray<const FGridObjectPaletteEntry*>> EntriesByCategory;
 
     for (const FGridObjectPaletteEntry& Entry : CurrentEditorActor->ObjectPalette->Entries)
     {
-        const int32 Row = Index / 5;
-        const int32 Column = Index % 5;
-
-        Grid->AddSlot (Column, Row)[BuildPaletteTile (Entry)];
-        ++Index;
+        EntriesByCategory.FindOrAdd (GetPaletteCategoryForEntry (Entry)).Add (&Entry);
     }
-    Root->AddSlot ().AutoHeight ()[Grid];
+
+    TArray<FName> SortedCategories;
+    EntriesByCategory.GetKeys (SortedCategories);
+    SortedCategories.Sort ([] (const FName& CategoryA, const FName& CategoryB)
+    {
+        const int32 SortOrderA = GetPaletteCategorySortOrder (CategoryA);
+        const int32 SortOrderB = GetPaletteCategorySortOrder (CategoryB);
+
+        if (SortOrderA != SortOrderB)
+        {
+            return SortOrderA < SortOrderB;
+        }
+
+        return CategoryA.ToString () < CategoryB.ToString ();
+    });
+
+    for (const FName& Category : SortedCategories)
+    {
+        const TArray<const FGridObjectPaletteEntry*>* CategoryEntries = EntriesByCategory.Find (Category);
+        if (!CategoryEntries || CategoryEntries->Num () == 0)
+        {
+            continue;
+        }
+
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 2.f)
+            [
+                SNew (STextBlock)
+                    .Text (GetPaletteCategoryDisplayText (Category))
+                    .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 10))
+            ];
+
+        TSharedRef<SUniformGridPanel> Grid = SNew (SUniformGridPanel).SlotPadding (FMargin (4.f));
+
+        for (int32 Index = 0; Index < CategoryEntries->Num (); ++Index)
+        {
+            const int32 Row = Index / 5;
+            const int32 Column = Index % 5;
+            const FGridObjectPaletteEntry* Entry = (*CategoryEntries)[Index];
+
+            if (Entry)
+            {
+                Grid->AddSlot (Column, Row)[BuildPaletteTile (*Entry)];
+            }
+        }
+
+        Root->AddSlot ().AutoHeight ()[Grid];
+    }
     Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
         [SNew (STextBlock).Text_Lambda ([this] ()
     {
