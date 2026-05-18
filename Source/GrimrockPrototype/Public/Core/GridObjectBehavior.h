@@ -13,36 +13,51 @@ enum class EGridObjectTriggerMode : uint8
 };
 
 USTRUCT (BlueprintType)
-struct FGridObjectBehaviorParams
+struct FGridActivationBehaviorParams
 {
     GENERATED_BODY ()
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation")
     EGridObjectTriggerMode TriggerMode = EGridObjectTriggerMode::Instant;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation", meta = (ClampMin = "0.0"))
     float Delay = 0.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior", meta = (ClampMin = "0.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation", meta = (ClampMin = "0.0"))
     float Duration = 0.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation")
     bool bInvertLinks = false;
+};
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
+USTRUCT (BlueprintType)
+struct FGridTriggerBehaviorParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Trigger")
     bool bFireOnEnter = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Trigger")
     bool bFireOnExit = false;
+};
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
-    bool bOneShotConsumed = false;
+USTRUCT (BlueprintType)
+struct FGridTeleporterBehaviorParams
+{
+    GENERATED_BODY ()
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
     int32 TargetCellX = INDEX_NONE;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Behavior")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
     int32 TargetCellY = INDEX_NONE;
+};
+
+USTRUCT (BlueprintType)
+struct FGridReceptacleBehaviorParams
+{
+    GENERATED_BODY ()
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bAcceptAnyItem = true;
@@ -55,6 +70,12 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
+};
+
+USTRUCT (BlueprintType)
+struct FGridButtonAnimationParams
+{
+    GENERATED_BODY ()
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
     float ButtonPressDistance = 6.f;
@@ -67,4 +88,25 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
     float ButtonHoldTime = 0.15f;
+};
+
+USTRUCT (BlueprintType)
+struct FGridObjectBehaviorParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Activation")
+    FGridActivationBehaviorParams Activation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Trigger")
+    FGridTriggerBehaviorParams Trigger;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
+    FGridTeleporterBehaviorParams Teleporter;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    FGridReceptacleBehaviorParams Receptacle;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
+    FGridButtonAnimationParams ButtonAnimation;
 };

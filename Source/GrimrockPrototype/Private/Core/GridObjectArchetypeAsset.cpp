@@ -205,24 +205,24 @@ namespace
 
     bool HasReceptacleBehaviorParams (const FGridObjectBehaviorParams& Behavior)
     {
-        return !Behavior.bAcceptAnyItem ||
-            Behavior.AcceptedItemTags.Num () > 0 ||
-            Behavior.AcceptedArchetypeIds.Num () > 0 ||
-            !Behavior.InitialContainedItemArchetypeId.IsNone ();
+        return !Behavior.Receptacle.bAcceptAnyItem ||
+            Behavior.Receptacle.AcceptedItemTags.Num () > 0 ||
+            Behavior.Receptacle.AcceptedArchetypeIds.Num () > 0 ||
+            !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
     }
 
     bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)
     {
-        return Behavior.TargetCellX != INDEX_NONE ||
-            Behavior.TargetCellY != INDEX_NONE;
+        return Behavior.Teleporter.TargetCellX != INDEX_NONE ||
+            Behavior.Teleporter.TargetCellY != INDEX_NONE;
     }
 
     bool HasCustomButtonAnimationParams (const FGridObjectBehaviorParams& Behavior)
     {
-        return !FMath::IsNearlyEqual (Behavior.ButtonPressDistance, 6.f) ||
-            !FMath::IsNearlyEqual (Behavior.ButtonPressDuration, 0.08f) ||
-            !FMath::IsNearlyEqual (Behavior.ButtonReleaseDuration, 0.10f) ||
-            !FMath::IsNearlyEqual (Behavior.ButtonHoldTime, 0.15f);
+        return !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonPressDistance, 6.f) ||
+            !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonPressDuration, 0.08f) ||
+            !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonReleaseDuration, 0.10f) ||
+            !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonHoldTime, 0.15f);
     }
 }
 
@@ -432,7 +432,7 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Teleporter PlacementKind must be Floor or Center."));
             }
-            if (DefaultBehavior.TargetCellX == INDEX_NONE || DefaultBehavior.TargetCellY == INDEX_NONE)
+            if (DefaultBehavior.Teleporter.TargetCellX == INDEX_NONE || DefaultBehavior.Teleporter.TargetCellY == INDEX_NONE)
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Teleporter should define DefaultBehavior TargetCellX and TargetCellY."));
             }
@@ -445,9 +445,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Receptacle should generally be interactable."));
             }
-            if (!DefaultBehavior.bAcceptAnyItem &&
-                DefaultBehavior.AcceptedItemTags.Num () == 0 &&
-                DefaultBehavior.AcceptedArchetypeIds.Num () == 0)
+            if (!DefaultBehavior.Receptacle.bAcceptAnyItem &&
+                DefaultBehavior.Receptacle.AcceptedItemTags.Num () == 0 &&
+                DefaultBehavior.Receptacle.AcceptedArchetypeIds.Num () == 0)
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle with bAcceptAnyItem=false must define AcceptedItemTags or AcceptedArchetypeIds."));
             }

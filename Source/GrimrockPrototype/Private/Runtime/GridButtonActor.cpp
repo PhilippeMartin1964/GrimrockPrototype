@@ -16,10 +16,10 @@ void AGridButtonActor::InitializeButton (const FGridLevelObjectData& ObjectData,
     const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
     AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (InWorldRotation, InWorldLocation));
-    PressDistance = ObjectData.Behavior.ButtonPressDistance;
-    PressDuration = ObjectData.Behavior.ButtonPressDuration;
-    ReleaseDuration = ObjectData.Behavior.ButtonReleaseDuration;
-    HoldTime = ObjectData.Behavior.ButtonHoldTime;
+    PressDistance = ObjectData.Behavior.ButtonAnimation.ButtonPressDistance;
+    PressDuration = ObjectData.Behavior.ButtonAnimation.ButtonPressDuration;
+    ReleaseDuration = ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration;
+    HoldTime = ObjectData.Behavior.ButtonAnimation.ButtonHoldTime;
     
     ReleasedLocation = FVector::ZeroVector;
     PressedLocation = FVector (PressDistance, 0.f, 0.f);

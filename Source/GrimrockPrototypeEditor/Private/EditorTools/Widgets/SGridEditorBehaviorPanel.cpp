@@ -221,52 +221,52 @@ FReply SGridEditorBehaviorPanel::OnApplyBehaviorClicked ()
 
 TOptional<float> SGridEditorBehaviorPanel::GetEditedDelay () const
 {
-    return EditedBehavior.Delay;
+    return EditedBehavior.Activation.Delay;
 }
 
 TOptional<float> SGridEditorBehaviorPanel::GetEditedDuration () const
 {
-    return EditedBehavior.Duration;
+    return EditedBehavior.Activation.Duration;
 }
 
 void SGridEditorBehaviorPanel::OnEditedDelayChanged (float NewValue)
 {
-    EditedBehavior.Delay = FMath::Max (0.f, NewValue);
+    EditedBehavior.Activation.Delay = FMath::Max (0.f, NewValue);
 }
 
 void SGridEditorBehaviorPanel::OnEditedDurationChanged (float NewValue)
 {
-    EditedBehavior.Duration = FMath::Max (0.f, NewValue);
+    EditedBehavior.Activation.Duration = FMath::Max (0.f, NewValue);
 }
 
 ECheckBoxState SGridEditorBehaviorPanel::GetEditedInvertLinksCheckState () const
 {
-    return EditedBehavior.bInvertLinks ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+    return EditedBehavior.Activation.bInvertLinks ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 ECheckBoxState SGridEditorBehaviorPanel::GetEditedFireOnEnterCheckState () const
 {
-    return EditedBehavior.bFireOnEnter ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+    return EditedBehavior.Trigger.bFireOnEnter ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 ECheckBoxState SGridEditorBehaviorPanel::GetEditedFireOnExitCheckState () const
 {
-    return EditedBehavior.bFireOnExit ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+    return EditedBehavior.Trigger.bFireOnExit ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SGridEditorBehaviorPanel::OnEditedInvertLinksChanged (ECheckBoxState NewState)
 {
-    EditedBehavior.bInvertLinks = NewState == ECheckBoxState::Checked;
+    EditedBehavior.Activation.bInvertLinks = NewState == ECheckBoxState::Checked;
 }
 
 void SGridEditorBehaviorPanel::OnEditedFireOnEnterChanged (ECheckBoxState NewState)
 {
-    EditedBehavior.bFireOnEnter = NewState == ECheckBoxState::Checked;
+    EditedBehavior.Trigger.bFireOnEnter = NewState == ECheckBoxState::Checked;
 }
 
 void SGridEditorBehaviorPanel::OnEditedFireOnExitChanged (ECheckBoxState NewState)
 {
-    EditedBehavior.bFireOnExit = NewState == ECheckBoxState::Checked;
+    EditedBehavior.Trigger.bFireOnExit = NewState == ECheckBoxState::Checked;
 }
 
 TSharedRef<SWidget> SGridEditorBehaviorPanel::MakeTriggerModeComboWidget (
@@ -291,7 +291,7 @@ void SGridEditorBehaviorPanel::OnTriggerModeSelectionChanged (
 {
     if (NewValue.IsValid ())
     {
-        EditedBehavior.TriggerMode = *NewValue;
+        EditedBehavior.Activation.TriggerMode = *NewValue;
     }
 }
 
@@ -300,7 +300,7 @@ FText SGridEditorBehaviorPanel::GetSelectedTriggerModeText () const
     const UEnum* Enum = StaticEnum<EGridObjectTriggerMode> ();
 
     return Enum
-        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (EditedBehavior.TriggerMode))
+        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (EditedBehavior.Activation.TriggerMode))
         : FText::FromString (TEXT ("Unknown"));
 }
 

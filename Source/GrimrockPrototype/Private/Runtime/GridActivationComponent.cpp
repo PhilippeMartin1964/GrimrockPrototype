@@ -547,7 +547,7 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
     }
 
     const FGridObjectBehaviorParams& Behavior = GetRuntimeBehavior (TriggerData);
-    const bool bWantsEvent = bEntering ? Behavior.bFireOnEnter : Behavior.bFireOnExit;
+    const bool bWantsEvent = bEntering ? Behavior.Trigger.bFireOnEnter : Behavior.Trigger.bFireOnExit;
     const TCHAR* EventLabel = bEntering ? TEXT ("Enter") : TEXT ("Exit");
 
     if (!bWantsEvent)
@@ -560,11 +560,9 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         return false;
     }
 
-    const bool bOneShot =
-        Behavior.TriggerMode == EGridObjectTriggerMode::OneShot ||
-        Behavior.bOneShotConsumed;
+    const bool bOneShot = Behavior.Activation.TriggerMode == EGridObjectTriggerMode::OneShot;
 
-    if (bOneShot && (Behavior.bOneShotConsumed || ConsumedOneShotTriggerIds.Contains (TriggerData.ObjectId)))
+    if (bOneShot && ConsumedOneShotTriggerIds.Contains (TriggerData.ObjectId))
     {
         UE_LOG (LogTemp, Log, TEXT ("Grid trigger detected: Id=%s Cell=(%d,%d) Event=%s one-shot already consumed."),
             *TriggerData.ObjectId.ToString (),
@@ -578,10 +576,10 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         ? EGridObjectEventType::Activated
         : EGridObjectEventType::Deactivated;
 
-    bool bInvertLinks = Behavior.bInvertLinks;
+    bool bInvertLinks = Behavior.Activation.bInvertLinks;
     bool bAllowActivatedFallback = !bEntering;
 
-    switch (Behavior.TriggerMode)
+    switch (Behavior.Activation.TriggerMode)
     {
         case EGridObjectTriggerMode::Hold:
         {
@@ -611,12 +609,12 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
             {
                 ActiveObjectIds.Add (TriggerData.ObjectId);
                 SourceEvent = EGridObjectEventType::Activated;
-                bInvertLinks = Behavior.bInvertLinks;
+                bInvertLinks = Behavior.Activation.bInvertLinks;
             } else
             {
                 ActiveObjectIds.Remove (TriggerData.ObjectId);
                 SourceEvent = EGridObjectEventType::Deactivated;
-                bInvertLinks = !Behavior.bInvertLinks;
+                bInvertLinks = !Behavior.Activation.bInvertLinks;
                 bAllowActivatedFallback = true;
             }
             break;
@@ -633,14 +631,14 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         TriggerData.CellX,
         TriggerData.CellY,
         EventLabel,
-        *GridTriggerModeToString (Behavior.TriggerMode),
+        *GridTriggerModeToString (Behavior.Activation.TriggerMode),
         *GridObjectEventToString (SourceEvent));
 
     if (!bEntering &&
         SourceEvent == EGridObjectEventType::Deactivated &&
         CountLinksFromObjectForEvent (TriggerData.ObjectId, SourceEvent) == 0)
     {
-        bInvertLinks = !Behavior.bInvertLinks;
+        bInvertLinks = !Behavior.Activation.bInvertLinks;
     }
 
     const bool bApplied = ExecuteLinksFromObjectForEvent (

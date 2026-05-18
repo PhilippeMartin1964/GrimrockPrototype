@@ -471,14 +471,14 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                                 if (NewValue.IsValid ())
                                 {
                                     FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                                    NewBehavior.TriggerMode = *NewValue;
+                                    NewBehavior.Activation.TriggerMode = *NewValue;
                                     ApplyBehavior (NewBehavior);
                                 }
                             })
                                 [
                                     SNew (STextBlock)
                                         .Text (TriggerModeEnum
-                                            ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (Behavior.TriggerMode))
+                                            ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (Behavior.Activation.TriggerMode))
                                             : FText::FromString (TEXT ("Unknown")))
                                 ]
                         ]
@@ -488,10 +488,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                 [
                     MakeNumberRow (
                         FText::FromString (TEXT ("Delay (s)")),
-                        Behavior.Delay,
+                        Behavior.Activation.Delay,
                         [] (FGridObjectBehaviorParams& NewBehavior, float NewValue)
                     {
-                        NewBehavior.Delay = NewValue;
+                        NewBehavior.Activation.Delay = NewValue;
                     })
                 ]
 
@@ -499,10 +499,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                 [
                     MakeNumberRow (
                         FText::FromString (TEXT ("Duration (s)")),
-                        Behavior.Duration,
+                        Behavior.Activation.Duration,
                         [] (FGridObjectBehaviorParams& NewBehavior, float NewValue)
                     {
-                        NewBehavior.Duration = NewValue;
+                        NewBehavior.Activation.Duration = NewValue;
                     })
                 ]
 
@@ -514,10 +514,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                         [
                             MakeCheckRow (
                                 FText::FromString (TEXT ("Fire On Enter")),
-                                Behavior.bFireOnEnter,
+                                Behavior.Trigger.bFireOnEnter,
                                 [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
                             {
-                                NewBehavior.bFireOnEnter = bNewValue;
+                                NewBehavior.Trigger.bFireOnEnter = bNewValue;
                             })
                         ]
 
@@ -525,10 +525,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                         [
                             MakeCheckRow (
                                 FText::FromString (TEXT ("Fire On Exit")),
-                                Behavior.bFireOnExit,
+                                Behavior.Trigger.bFireOnExit,
                                 [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
                             {
-                                NewBehavior.bFireOnExit = bNewValue;
+                                NewBehavior.Trigger.bFireOnExit = bNewValue;
                             })
                         ]
 
@@ -536,10 +536,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                         [
                             MakeCheckRow (
                                 FText::FromString (TEXT ("Invert Links")),
-                                Behavior.bInvertLinks,
+                                Behavior.Activation.bInvertLinks,
                                 [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
                             {
-                                NewBehavior.bInvertLinks = bNewValue;
+                                NewBehavior.Activation.bInvertLinks = bNewValue;
                             })
                         ]
                 ]
@@ -594,11 +594,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
                 [
                     SNew (SCheckBox)
-                        .IsChecked (Behavior.bAcceptAnyItem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .IsChecked (Behavior.Receptacle.bAcceptAnyItem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
                         .OnCheckStateChanged_Lambda ([this, Obj] (ECheckBoxState NewState)
                     {
                         FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                        NewBehavior.bAcceptAnyItem = NewState == ECheckBoxState::Checked;
+                        NewBehavior.Receptacle.bAcceptAnyItem = NewState == ECheckBoxState::Checked;
 
                         if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
                         {
@@ -617,10 +617,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 [
                     MakeTextRow (
                         FText::FromString (TEXT ("Accepted Archetype Ids")),
-                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.AcceptedArchetypeIds)),
+                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.AcceptedArchetypeIds)),
                         [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
                     {
-                        NewBehavior.AcceptedArchetypeIds = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
+                        NewBehavior.Receptacle.AcceptedArchetypeIds = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
                     })
                 ]
 
@@ -628,10 +628,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 [
                     MakeTextRow (
                         FText::FromString (TEXT ("Accepted Item Tags")),
-                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.AcceptedItemTags)),
+                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.AcceptedItemTags)),
                         [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
                     {
-                        NewBehavior.AcceptedItemTags = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
+                        NewBehavior.Receptacle.AcceptedItemTags = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
                     })
                 ]
 
@@ -639,12 +639,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 [
                     MakeTextRow (
                         FText::FromString (TEXT ("Initial Contained Item")),
-                        FText::FromName (Behavior.InitialContainedItemArchetypeId),
+                        FText::FromName (Behavior.Receptacle.InitialContainedItemArchetypeId),
                         [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
                     {
                         FString TrimmedText = Text;
                         TrimmedText.TrimStartAndEndInline ();
-                        NewBehavior.InitialContainedItemArchetypeId = TrimmedText.IsEmpty ()
+                        NewBehavior.Receptacle.InitialContainedItemArchetypeId = TrimmedText.IsEmpty ()
                             ? NAME_None
                             : FName (*TrimmedText);
                     })

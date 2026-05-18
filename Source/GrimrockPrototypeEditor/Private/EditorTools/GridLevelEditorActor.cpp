@@ -1787,20 +1787,20 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         if (Obj.Type == EGridLevelObjectType::Receptacle)
         {
             const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
-            if (!Behavior.InitialContainedItemArchetypeId.IsNone ()
-                && !Behavior.AcceptedArchetypeIds.Contains (Behavior.InitialContainedItemArchetypeId))
+            if (!Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ()
+                && !Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId))
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
                     FString::Printf (
                         TEXT ("Receptacle starts with '%s' but AcceptedArchetypeIds does not include it."),
-                        *Behavior.InitialContainedItemArchetypeId.ToString ()),
+                        *Behavior.Receptacle.InitialContainedItemArchetypeId.ToString ()),
                     Obj.ObjectId);
             }
 
-            if (!Behavior.bAcceptAnyItem
-                && Behavior.AcceptedItemTags.Num () == 0
-                && Behavior.AcceptedArchetypeIds.Num () == 0)
+            if (!Behavior.Receptacle.bAcceptAnyItem
+                && Behavior.Receptacle.AcceptedItemTags.Num () == 0
+                && Behavior.Receptacle.AcceptedArchetypeIds.Num () == 0)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Error,

@@ -1038,10 +1038,10 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
                 Archetype->MovingMaterial
             );
         }
-        if (!RuntimeObjectData.Behavior.InitialContainedItemArchetypeId.IsNone ())
+        if (!RuntimeObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ())
         {
             if (AGridItemActor* ItemActor = SpawnItemActorForArchetype (
-                RuntimeObjectData.Behavior.InitialContainedItemArchetypeId,
+                RuntimeObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId,
                 ReceptacleActor,
                 ReceptacleActor->ItemAttachPoint))
             {

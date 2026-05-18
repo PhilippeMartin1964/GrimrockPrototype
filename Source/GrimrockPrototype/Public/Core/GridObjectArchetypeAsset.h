@@ -63,7 +63,8 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
     FName DefaultTag = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults",
+        meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains trigger/link, teleporter, receptacle and button parameters."))
     FGridObjectBehaviorParams DefaultBehavior;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item")
@@ -73,33 +74,40 @@ public:
         meta = (DisplayName = "Palette Category", ToolTip = "Editor palette grouping only. Does not affect gameplay. Examples: Doors, Mechanisms, Wall Decorations, Floor Decorations, Receptacles, Lights, Spawns."))
     FName Category = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Archetype",
+        meta = (ToolTip = "Editor/validation functional category. Does not directly drive runtime gameplay. SupportedType remains the gameplay type."))
     EGridObjectCategory ObjectCategory = EGridObjectCategory::Decoration;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
     EGridObjectPlacementKind PlacementKind = EGridObjectPlacementKind::Center;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
-        meta = (DisplayName = "Legacy Place On Edge", ToolTip = "Legacy compatibility flag only. PlacementKind is now the source of truth for edge and wall placement."))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Placement|Legacy",
+        meta = (DisplayName = "Legacy Place On Edge", ToolTip = "Use PlacementKind instead. PlacementKind is now the source of truth.",
+            DeprecatedProperty, DeprecationMessage = "Use PlacementKind instead. PlacementKind is now the source of truth."))
     bool bPlaceOnEdge = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Legacy",
-        meta = (DisplayName = "Legacy Place At Cell Center", ToolTip = "Legacy compatibility flag only. PlacementKind is now the source of truth for center, floor, and ceiling placement."))
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Placement|Legacy",
+        meta = (DisplayName = "Legacy Place At Cell Center", ToolTip = "Use PlacementKind instead. PlacementKind is now the source of truth.",
+            DeprecatedProperty, DeprecationMessage = "Use PlacementKind instead. PlacementKind is now the source of truth."))
     bool bPlaceAtCellCenter = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement",
+        meta = (ToolTip = "Editor placement rule: allows this object to share a cell with other objects."))
     bool bCanShareCell = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement",
+        meta = (ToolTip = "Editor placement rule: allows this object to share the same edge/anchor with another object."))
     bool bCanShareAnchor = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement",
+        meta = (ToolTip = "Generic movement blocking flag for non-door objects. Door passage blocking is handled by GridDoorSystemComponent."))
     bool bBlocksMovement = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction")
     bool bIsInteractable = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction",
+        meta = (ToolTip = "Runtime readable flag. ObjectCategory=Readable is editor classification only."))
     bool bIsReadable = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction", meta = (MultiLine = "true"))
@@ -108,7 +116,8 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction")
     bool bShowReadableOnlyOnce = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light",
+        meta = (ToolTip = "Runtime light flag. SupportedType=Light is classification; this flag controls whether generic light settings are used."))
     bool bIsLightSource = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light")
@@ -123,25 +132,34 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Light")
     bool bUseLightFlicker = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+        meta = (DisplayName = "Main Mesh / Preview Mesh",
+            ToolTip = "Primary mesh used for simple visible objects and editor preview. For composite/animated objects, use FixedMesh and/or MovingMesh."))
     TObjectPtr<UStaticMesh> PreviewMesh = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+        meta = (DisplayName = "Main Material / Preview Material",
+            ToolTip = "Primary mesh used for simple visible objects and editor preview. For composite/animated objects, use FixedMesh and/or MovingMesh."))
     TObjectPtr<UMaterialInterface> PreviewMaterial = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+        meta = (ToolTip = "Static fixed part of a composite object, typically secret doors or multi-part mechanisms. Do not use for simple decorations; use Main Mesh / Preview Mesh instead."))
     TObjectPtr<UStaticMesh> FixedMesh = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+        meta = (ToolTip = "Moving or animated part of a composite object, such as doors, buttons, levers, or item visuals used by receptacles/items."))
     TObjectPtr<UStaticMesh> MovingMesh = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+        meta = (ToolTip = "Static fixed part of a composite object, typically secret doors or multi-part mechanisms. Do not use for simple decorations; use Main Mesh / Preview Mesh instead."))
     TObjectPtr<UMaterialInterface> FixedMaterial = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual",
+        meta = (ToolTip = "Moving or animated part of a composite object, such as doors, buttons, levers, or item visuals used by receptacles/items."))
     TObjectPtr<UMaterialInterface> MovingMaterial = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime",
+        meta = (ToolTip = "Runtime actor class used to spawn this archetype. SupportedType defines what the object is; RuntimeActorClass defines how it is instantiated."))
     TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Runtime")

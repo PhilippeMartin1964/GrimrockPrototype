@@ -40,10 +40,10 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 {
     AGridRuntimeObjectActor::InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
 
-    bAcceptAnyItem = ObjectData.Behavior.bAcceptAnyItem;
-    AcceptedItemTags = ObjectData.Behavior.AcceptedItemTags;
-    AcceptedArchetypeIds = ObjectData.Behavior.AcceptedArchetypeIds;
-    InitialContainedItemArchetypeId = ObjectData.Behavior.InitialContainedItemArchetypeId;
+    bAcceptAnyItem = ObjectData.Behavior.Receptacle.bAcceptAnyItem;
+    AcceptedItemTags = ObjectData.Behavior.Receptacle.AcceptedItemTags;
+    AcceptedArchetypeIds = ObjectData.Behavior.Receptacle.AcceptedArchetypeIds;
+    InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
     bStartsFilled = ObjectData.bInitiallyActive;
 
     if (!ObjectData.Tag.IsNone () && AcceptedItemTags.Num () == 0 && AcceptedArchetypeIds.Num () == 0)
