@@ -775,7 +775,9 @@ bool UGridActivationComponent::ActivateReadableObject (const FGridLevelObjectDat
     return true;
 }
 
-bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn)
+bool UGridActivationComponent::ActivateReceptacle (
+    const FGridLevelObjectData& ObjectData,
+    AGrimrockPartyPawn* PartyPawn)
 {
     if (!RuntimeActor || !PartyPawn)
     {
@@ -783,26 +785,37 @@ bool UGridActivationComponent::ActivateReceptacle (const FGridLevelObjectData& O
     }
     AGridReceptacleActor* ReceptacleActor =
         RuntimeActor->FindRuntimeObjectActor<AGridReceptacleActor> (ObjectData.ObjectId);
-
     if (!ReceptacleActor)
     {
         return false;
     }
-
     const bool bHadItem = ReceptacleActor->HasItem ();
     if (!ReceptacleActor->TryInteractWithParty (PartyPawn))
     {
         return false;
     }
-
-    if (bHadItem)
+    const bool bHasItemNow = ReceptacleActor->HasItem ();
+    if (bHasItemNow)
+    {
+        ActiveObjectIds.Add (ObjectData.ObjectId);
+    } else
     {
         ActiveObjectIds.Remove (ObjectData.ObjectId);
-        return ExecuteLinksFromObject (ObjectData.ObjectId, true);
     }
 
-    ActiveObjectIds.Add (ObjectData.ObjectId);
-    return ExecuteLinksFromObject (ObjectData.ObjectId, false);
+    if (!bHadItem && bHasItemNow)
+    {
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemInserted, false, false);
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemChanged, false, false);
+        return true;
+    }
+    if (bHadItem && !bHasItemNow)
+    {
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemRemoved, false, false);
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemChanged, false, false);
+        return true;
+    }
+    return false;
 }
 
 FString UGridActivationComponent::GetDebugSummary () const
