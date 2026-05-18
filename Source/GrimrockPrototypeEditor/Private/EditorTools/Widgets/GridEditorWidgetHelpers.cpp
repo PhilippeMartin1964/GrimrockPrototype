@@ -31,7 +31,7 @@ namespace GridEditorWidgetHelpers
             case EGridLevelObjectType::Teleporter:    return FText::FromString (TEXT ("X"));
             case EGridLevelObjectType::Trigger:       return FText::FromString (TEXT ("T"));
             case EGridLevelObjectType::MonsterSpawn:  return FText::FromString (TEXT ("M"));
-            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("I"));
+            case EGridLevelObjectType::ItemSpawn:     return FText::FromString (TEXT ("S"));
             case EGridLevelObjectType::Item:          return FText::FromString (TEXT ("I"));
             case EGridLevelObjectType::Decoration:    return FText::FromString (TEXT ("O"));
             case EGridLevelObjectType::Light:         return FText::FromString (TEXT ("*"));

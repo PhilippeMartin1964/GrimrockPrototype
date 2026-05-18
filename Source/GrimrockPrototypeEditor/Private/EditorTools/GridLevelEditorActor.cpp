@@ -1636,11 +1636,31 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         }
 
         TSet<const UGridObjectArchetypeAsset*> ValidatedArchetypes;
+        TSet<const UGridObjectArchetypeAsset*> DirectPaintItemArchetypes;
 
         for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
         {
             const UGridObjectArchetypeAsset* Archetype = Entry.DefaultArchetype.Get ();
-            if (!Archetype || ValidatedArchetypes.Contains (Archetype))
+            if (!Archetype)
+            {
+                continue;
+            }
+
+            const FString ArchetypeName = Archetype->ArchetypeId.IsNone ()
+                ? Archetype->GetName ()
+                : Archetype->ArchetypeId.ToString ();
+
+            if (Archetype->SupportedType == EGridLevelObjectType::Item && !DirectPaintItemArchetypes.Contains (Archetype))
+            {
+                DirectPaintItemArchetypes.Add (Archetype);
+                AddMessage (
+                    EGridLevelValidationSeverity::Info,
+                    FString::Printf (
+                        TEXT ("Archetype %s: Item archetype is directly available in the paint palette. This is valid for testing, but long-term placed items should probably use ItemSpawn."),
+                        *ArchetypeName));
+            }
+
+            if (ValidatedArchetypes.Contains (Archetype))
             {
                 continue;
             }
@@ -1649,10 +1669,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
 
             TArray<FGridArchetypeValidationMessage> ArchetypeMessages;
             Archetype->ValidateArchetype (ArchetypeMessages);
-
-            const FString ArchetypeName = Archetype->ArchetypeId.IsNone ()
-                ? Archetype->GetName ()
-                : Archetype->ArchetypeId.ToString ();
 
             for (const FGridArchetypeValidationMessage& ArchetypeMessage : ArchetypeMessages)
             {

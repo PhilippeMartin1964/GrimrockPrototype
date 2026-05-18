@@ -233,6 +233,11 @@ namespace
             !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonReleaseDuration, 0.10f) ||
             !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonHoldTime, 0.15f);
     }
+
+    bool IsPaletteCategory (const UGridObjectArchetypeAsset& Archetype, const TCHAR* ExpectedCategory)
+    {
+        return Archetype.Category == FName (ExpectedCategory);
+    }
 }
 
 bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidationMessage>& OutMessages) const
@@ -470,11 +475,23 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("MonsterSpawn and ItemSpawn PlacementKind must be Floor or Center."));
             }
+            if (SupportedType == EGridLevelObjectType::ItemSpawn)
+            {
+                if (!Category.IsNone () && !IsPaletteCategory (*this, TEXT ("Spawns")))
+                {
+                    AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemSpawn palette category should generally be Spawns."));
+                }
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemSpawn does not yet define which item archetype to spawn. This is planned."));
+            }
             break;
         }
 
         case EGridLevelObjectType::Item:
         {
+            if (!Category.IsNone () && !IsPaletteCategory (*this, TEXT ("Items")))
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Item palette category should generally be Items."));
+            }
             if (!IsFloorOrCenterPlacement (PlacementKind))
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item PlacementKind should generally be Floor or Center when placed in the level."));
