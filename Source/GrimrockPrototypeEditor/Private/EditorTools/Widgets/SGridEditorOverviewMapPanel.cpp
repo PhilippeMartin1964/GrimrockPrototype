@@ -11,8 +11,6 @@
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
 
-#include "Templates/Function.h"
-
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
@@ -26,7 +24,7 @@ namespace
 {
     FText GetBooleanText (bool bValue)
     {
-        return bValue
+        return bValue 
             ? FText::FromString (TEXT ("Yes"))
             : FText::FromString (TEXT ("No"));
     }
