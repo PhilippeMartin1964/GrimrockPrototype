@@ -107,6 +107,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
                 [
                     GridEditorWidgetHelpers::BuildGridActionButton (
+                        FText::FromString (TEXT ("Reset Behavior From Archetype")),
+                        FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnResetBehaviorFromArchetypeClicked))
+                ]
+
+                + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridActionButton (
                         FText::FromString (TEXT ("Move To Current Cell")),
                         FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked))
                 ]
@@ -716,6 +723,21 @@ FReply SGridEditorObjectInspectorPanel::OnApplySelectedObjectClicked ()
         CurrentEditorActor->Modify ();
 
         if (CurrentEditorActor->ApplyEditedSelectedObject ())
+        {
+            RequestRefresh ();
+        }
+    }
+
+    return FReply::Handled ();
+}
+
+FReply SGridEditorObjectInspectorPanel::OnResetBehaviorFromArchetypeClicked ()
+{
+    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+    {
+        CurrentEditorActor->Modify ();
+
+        if (CurrentEditorActor->ResetSelectedObjectBehaviorFromArchetype ())
         {
             RequestRefresh ();
         }

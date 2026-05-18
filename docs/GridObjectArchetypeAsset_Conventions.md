@@ -394,6 +394,14 @@ bOverrideBehavior est legacy et ne doit plus contrôler le runtime.
 
 Une instance placée peut donc vider ou modifier un champ de behavior sans devoir cocher un override.
 
+L'inspecteur d'objet fournit une action explicite :
+
+```text
+Reset Behavior From Archetype
+```
+
+Cette action recopie volontairement `Archetype.DefaultBehavior` vers `ObjectData.Behavior` pour l'instance sélectionnée. Elle ne modifie pas `InitiallyEnabled`, `InitiallyActive`, `Tag`, `Notes` ou `OverrideReadableText`.
+
 ---
 
 ### 9.1 Activation

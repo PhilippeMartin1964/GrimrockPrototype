@@ -514,6 +514,7 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.CellX = SelectedCellX;
     NewObject.CellY = SelectedCellY;
     NewObject.Edge = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
+    NewObject.LocalYaw = 0.f;
     NewObject.ArchetypeId = ObjectArchetypeId;
     NewObject.bInitiallyEnabled = bObjectInitiallyEnabled;
     NewObject.bInitiallyActive = bObjectInitiallyActive;
@@ -1365,6 +1366,41 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject (
     }
 
     return false;
+}
+
+bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype ()
+{
+    if (!HasValidLevelAsset () || !LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj)
+    {
+        return false;
+    }
+
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (Obj->ArchetypeId);
+    if (!Archetype)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->Behavior = Archetype->DefaultBehavior;
+    Obj->bOverrideBehavior = true;
+    ObjectBehavior = Obj->Behavior;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
 }
 
 bool AGridLevelEditorActor::SetSelectedObjectArchetypeId (FName NewArchetypeId)

@@ -38,6 +38,7 @@ private:
     TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
 
     FReply OnApplySelectedObjectClicked ();
+    FReply OnResetBehaviorFromArchetypeClicked ();
     FReply OnMoveSelectedObjectToCurrentCellClicked ();
     FReply OnFocusSelectedObjectClicked ();
     FReply OnRotateSelectedObjectYawClicked ();

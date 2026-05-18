@@ -298,6 +298,9 @@ public:
     bool ApplyBehaviorToSelectedObject (const FGridObjectBehaviorParams& NewBehavior);
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
+    bool ResetSelectedObjectBehaviorFromArchetype ();
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectArchetypeId (FName NewArchetypeId);
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
