@@ -217,17 +217,31 @@ PlaySound
 
 ---
 
-## Prochaine étape
+## 2026-05-19 — Clôture du chantier Event -> Command / Archétypes
 
-Créer les fichiers Markdown dans :
+### Synthèse des patchs réalisés
 
-```text
-Docs/Design/
-```
+- Patch A : `EGridObjectEvent`, `EGridObjectCommand` et `FGridObjectLink` ont été finalisés.
+- Patch B : la palette éditeur est compatible avec plusieurs `ArchetypeId` pour un même type conceptuel.
+- Patch C : les archétypes concrets attendus ont été normalisés.
+- Patch D : `Door_Secret` a été validée comme archétype `Door`.
+- Patch E : `Receptacle_Alcove`, `Receptacle_TorchHolder`, `Receptacle_Altar` et `Receptacle_OfferingBowl` ont été validés comme archétypes `Receptacle`.
+- Patch F : les règles génériques d’acceptation/refus des items par réceptacle ont été ajoutées.
+- Patch G : la validation éditeur signale les liens incomplets de réceptacle.
 
-Puis commencer par une tâche Codex courte :
+### Décision
 
-```text
-Tâche Codex 01 — Ajouter EGridObjectEvent et EGridObjectCommand
-```
+Le chantier Event -> Command / Archétypes est clos.
+
+Les variantes visuelles passent par `ArchetypeId` et par les assets d’archétype, pas par multiplication de `EGridLevelObjectType`.
+
+---
+
+## Suites possibles, hors chantier clos
+
+- Améliorer le preview éditeur composite des portes secrètes.
+- Ajouter la logique `TorchHolder` -> lumière / effet visuel.
+- Implémenter les commandes avancées `Teleport`, `Spawn`, `ShowMessage`, `Lock` et `Unlock`.
+- Créer une carte de test dédiée aux mécanismes.
+- Nettoyer les anciens comportements legacy après sauvegarde/migration des assets.
 
