@@ -96,6 +96,8 @@ enum class EGridObjectCommand : uint8
 };
 ```
 
+Note d’état 2026-05-19 : les commandes `Lock`, `Unlock`, `Spawn`, `Despawn`, `Teleport` et `ShowMessage` sont déclarées côté C++, mais leur exécution runtime reste partielle et dépend du type de cible. Les cibles qui ne supportent pas encore une commande doivent la refuser avec un log clair plutôt que modifier le gameplay silencieusement.
+
 ---
 
 ## Structure des liens

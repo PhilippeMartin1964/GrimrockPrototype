@@ -307,7 +307,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
 
     if (bUseActivatedFallback)
     {
-        UE_LOG (LogTemp, Log, TEXT ("Grid trigger %s: no %s links, falling back to Activated links."),
+        UE_LOG (LogTemp, Log, TEXT ("Grid object event %s: no %s links, falling back to Activated links."),
             *SourceObjectId.ToString (),
             *GridObjectEventToString (SourceEvent));
     }
@@ -335,7 +335,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
         bAnyApplied |= ApplyLinkCommand (LinkData, bInvert);
     }
 
-    UE_LOG (LogTemp, Log, TEXT ("Grid trigger %s: Event=%s LinksExecuted=%d AnyApplied=%s"),
+    UE_LOG (LogTemp, Log, TEXT ("Grid object event %s: Event=%s LinksExecuted=%d AnyApplied=%s"),
         *SourceObjectId.ToString (),
         *GridObjectEventToString (EffectiveEvent),
         ExecutedLinkCount,

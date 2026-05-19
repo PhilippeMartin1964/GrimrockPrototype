@@ -36,10 +36,12 @@ struct FGridObjectPaletteEntry
         meta = (ToolTip = "Optional explicit archetype id for entries backed by an archetype referenced elsewhere. DefaultArchetype takes precedence when set."))
     FName ArchetypeId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
+        meta = (AdvancedDisplay, ToolTip = "Legacy compatibility flag only. Archetype PlacementKind is now the source of truth."))
     bool bPlaceOnEdge = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
+        meta = (AdvancedDisplay, ToolTip = "Legacy compatibility flag only. Archetype PlacementKind is now the source of truth."))
     bool bPlaceAtCellCenter = true;
 
     FName GetEffectiveArchetypeId () const

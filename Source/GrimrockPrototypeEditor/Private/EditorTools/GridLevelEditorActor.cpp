@@ -1715,6 +1715,35 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 continue;
             }
 
+            if (!Entry.ArchetypeId.IsNone () && Entry.ArchetypeId != Archetype->ArchetypeId)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Palette entry %s defines ArchetypeId=%s but DefaultArchetype uses ArchetypeId=%s. DefaultArchetype takes precedence."),
+                        *Entry.EntryId.ToString (),
+                        *Entry.ArchetypeId.ToString (),
+                        *Archetype->ArchetypeId.ToString ()));
+            }
+
+            if (Entry.bPlaceOnEdge && !Archetype->IsEdgePlaced ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Palette entry %s has legacy bPlaceOnEdge=true but DefaultArchetype PlacementKind is not edge/wall placed. PlacementKind is now the source of truth."),
+                        *Entry.EntryId.ToString ()));
+            }
+
+            if (Entry.bPlaceAtCellCenter && !Archetype->IsCenterPlaced ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Palette entry %s has legacy bPlaceAtCellCenter=true but DefaultArchetype PlacementKind is not center/floor/ceiling placed. PlacementKind is now the source of truth."),
+                        *Entry.EntryId.ToString ()));
+            }
+
             const FString ArchetypeName = Archetype->ArchetypeId.IsNone ()
                 ? Archetype->GetName ()
                 : Archetype->ArchetypeId.ToString ();
