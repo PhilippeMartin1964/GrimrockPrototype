@@ -1,5 +1,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 
+#include "Runtime/GridDoorActor.h"
+
 namespace
 {
     const TCHAR* ToValidationSeverityText (EGridArchetypeValidationSeverity Severity)
@@ -259,6 +261,11 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("SupportedType must not be None."));
     }
 
+    if (ArchetypeId == FName (TEXT ("Door_Secret")) && SupportedType != EGridLevelObjectType::Door)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Door_Secret must use SupportedType=Door. Visual variants must stay archetypes, not EGridLevelObjectType values."));
+    }
+
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("RuntimeActorClass is required for this SupportedType."));
@@ -364,6 +371,10 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             if (!HasPreviewOrMovingMesh (*this))
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Door requires PreviewMesh or MovingMesh."));
+            }
+            if (RuntimeActorClass && !RuntimeActorClass->IsChildOf (AGridDoorActor::StaticClass ()))
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Door RuntimeActorClass must derive from AGridDoorActor. Door_Secret can use AGridSecretDoorActor or a Blueprint derived from AGridDoorActor."));
             }
             if (bCanShareAnchor)
             {

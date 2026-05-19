@@ -191,6 +191,8 @@ mesh fixe + mesh mobile
 
 La partie fixe doit être visible en édition et en runtime.
 
+Note Patch D : `Door_Secret` reste un archétype `Door`. La logique runtime utilise `EGridLevelObjectType::Door` et accepte une `RuntimeActorClass` dérivée de `AGridDoorActor`, par exemple `AGridSecretDoorActor` ou un Blueprint dérivé. Le preview éditeur actuel affiche un mesh principal unique (`PreviewMesh`, puis `MovingMesh`, puis `FixedMesh`) et ne rend pas encore un composite fixe + mobile complet.
+
 ---
 
 ## Règle d’évolution
