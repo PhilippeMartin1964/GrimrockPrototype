@@ -92,6 +92,8 @@ Selon l’existant, ces noms doivent être adaptés sans casser la compilation.
 | `Receptacle_CoinSlot` | Fente à pièce | `Receptacle` | `AGridReceptacleActor` | accepte `Coin` |
 | `Lock_Keyhole` | Serrure | `Receptacle` | `AGridReceptacleActor` ou `AGridLockActor` | accepte clé |
 
+Note Patch E : les réceptacles concrets sont des archétypes. `Receptacle_Alcove`, `Receptacle_TorchHolder`, `Receptacle_Altar` et `Receptacle_OfferingBowl` restent tous `SupportedType = Receptacle` et utilisent une `RuntimeActorClass` dérivée de `AGridReceptacleActor`. Les comportements spécifiques seront ajoutés plus tard via `Behavior` et les commandes, pas par multiplication de `EGridLevelObjectType`.
+
 ---
 
 ## Archétypes de passages

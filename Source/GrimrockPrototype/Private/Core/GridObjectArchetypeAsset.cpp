@@ -1,6 +1,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 
 #include "Runtime/GridDoorActor.h"
+#include "Runtime/GridReceptacleActor.h"
 
 namespace
 {
@@ -245,6 +246,19 @@ namespace
     {
         return Archetype.Category == FName (ExpectedCategory);
     }
+
+    bool IsExpectedConcreteReceptacleArchetype (FName ArchetypeId)
+    {
+        static const FName ReceptacleAlcoveId (TEXT ("Receptacle_Alcove"));
+        static const FName ReceptacleTorchHolderId (TEXT ("Receptacle_TorchHolder"));
+        static const FName ReceptacleAltarId (TEXT ("Receptacle_Altar"));
+        static const FName ReceptacleOfferingBowlId (TEXT ("Receptacle_OfferingBowl"));
+
+        return ArchetypeId == ReceptacleAlcoveId ||
+            ArchetypeId == ReceptacleTorchHolderId ||
+            ArchetypeId == ReceptacleAltarId ||
+            ArchetypeId == ReceptacleOfferingBowlId;
+    }
 }
 
 bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidationMessage>& OutMessages) const
@@ -264,6 +278,11 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
     if (ArchetypeId == FName (TEXT ("Door_Secret")) && SupportedType != EGridLevelObjectType::Door)
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Door_Secret must use SupportedType=Door. Visual variants must stay archetypes, not EGridLevelObjectType values."));
+    }
+
+    if (IsExpectedConcreteReceptacleArchetype (ArchetypeId) && SupportedType != EGridLevelObjectType::Receptacle)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle_Alcove, Receptacle_TorchHolder, Receptacle_Altar and Receptacle_OfferingBowl must use SupportedType=Receptacle. Visual variants must stay archetypes, not EGridLevelObjectType values."));
     }
 
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)
@@ -479,6 +498,10 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             if (!bIsInteractable)
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Receptacle should generally be interactable."));
+            }
+            if (RuntimeActorClass && !RuntimeActorClass->IsChildOf (AGridReceptacleActor::StaticClass ()))
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle RuntimeActorClass must derive from AGridReceptacleActor. Concrete Receptacle_* variants can use AGridReceptacleActor or a Blueprint derived from it."));
             }
             if (!DefaultBehavior.Receptacle.bAcceptAnyItem &&
                 DefaultBehavior.Receptacle.AcceptedItemTags.Num () == 0 &&
