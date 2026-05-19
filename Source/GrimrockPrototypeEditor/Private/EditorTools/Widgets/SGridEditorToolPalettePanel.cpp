@@ -40,17 +40,10 @@ namespace
 
     FName GetPaletteCategoryForEntry (const FGridObjectPaletteEntry& Entry)
     {
-        if (!Entry.Category.IsNone ())
-        {
-            return Entry.Category;
-        }
-
-        if (Entry.DefaultArchetype && !Entry.DefaultArchetype->Category.IsNone ())
-        {
-            return Entry.DefaultArchetype->Category;
-        }
-
-        return FName (TEXT ("Uncategorized"));
+        const FName EffectiveCategory = Entry.GetEffectiveCategory ();
+        return EffectiveCategory.IsNone ()
+            ? FName (TEXT ("Uncategorized"))
+            : EffectiveCategory;
     }
 
     FText GetPaletteCategoryDisplayText (FName Category)
@@ -359,9 +352,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile (const FGridOb
         CurrentEditorActor &&
         CurrentEditorActor->SelectedPaletteEntryId == Entry.EntryId;
 
-    const FText Label = Entry.DisplayName.IsEmpty ()
-        ? FText::FromName (Entry.EntryId)
-        : Entry.DisplayName;
+    const FText Label = Entry.GetEffectiveDisplayName ();
 
     const FName EntryId = Entry.EntryId;
     UTexture2D* IconTexture = Entry.Icon.Get ();
@@ -387,7 +378,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile (const FGridOb
                         .HAlign (HAlign_Center)
                         .VAlign (VAlign_Center)
                         [
-                            BuildIconOrFallback (IconTexture, Entry.ObjectType, 52.f)
+                            BuildIconOrFallback (IconTexture, Entry.GetEffectiveObjectType (), 52.f)
                         ]
 
                         + SVerticalBox::Slot ()

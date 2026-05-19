@@ -1052,7 +1052,7 @@ bool AGridLevelEditorActor::ApplyPaletteEntry (FName EntryId)
         return false;
     }
     SelectedPaletteEntryId = Entry->EntryId;
-    PaintObjectType = Entry->ObjectType;
+    PaintObjectType = Entry->GetEffectiveObjectType ();
 
     if (Entry->DefaultArchetype)
     {
@@ -1064,8 +1064,8 @@ bool AGridLevelEditorActor::ApplyPaletteEntry (FName EntryId)
         ObjectBehavior = Entry->DefaultArchetype->DefaultBehavior;
     } else
     {
-        ObjectArchetypeId = NAME_None;
-        SelectedArchetypeId = NAME_None;
+        ObjectArchetypeId = Entry->ArchetypeId;
+        SelectedArchetypeId = Entry->ArchetypeId;
         ObjectBehavior = FGridObjectBehaviorParams ();
     }
 
