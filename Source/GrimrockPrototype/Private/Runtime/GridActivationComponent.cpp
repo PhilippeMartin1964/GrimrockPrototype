@@ -12,9 +12,9 @@
 
 namespace
 {
-    FString GridLinkActionToString (EGridLinkAction Action)
+    FString GridObjectCommandToString (EGridObjectCommand Action)
     {
-        if (const UEnum* Enum = StaticEnum<EGridLinkAction> ())
+        if (const UEnum* Enum = StaticEnum<EGridObjectCommand> ())
         {
             return Enum->GetNameStringByValue (static_cast<int64> (Action));
         }
@@ -30,9 +30,9 @@ namespace
         return FString::Printf (TEXT ("%d"), static_cast<int32> (Type));
     }
 
-    FString GridObjectEventToString (EGridObjectEventType EventType)
+    FString GridObjectEventToString (EGridObjectEvent EventType)
     {
-        if (const UEnum* Enum = StaticEnum<EGridObjectEventType> ())
+        if (const UEnum* Enum = StaticEnum<EGridObjectEvent> ())
         {
             return Enum->GetNameStringByValue (static_cast<int64> (EventType));
         }
@@ -231,7 +231,7 @@ bool UGridActivationComponent::ExecuteLinksFromObject (FGuid SourceObjectId, boo
     return bAnyApplied;
 }
 
-bool UGridActivationComponent::ApplyLinkAction (const FGridLevelLinkData& LinkData, bool bInvert)
+bool UGridActivationComponent::ApplyLinkAction (const FGridObjectLink& LinkData, bool bInvert)
 {
     if (!RuntimeActor)
     {
@@ -246,7 +246,7 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridLevelLinkData& LinkDa
         return false;
     }
 
-    const EGridLinkAction ResolvedAction = GetResolvedLinkAction (LinkData.Action, bInvert);
+    const EGridObjectCommand ResolvedAction = GetResolvedLinkAction (LinkData.Action, bInvert);
     bool bSuccess = false;
     const TCHAR* FailureReason = TEXT ("unsupported target type or action");
 
@@ -287,7 +287,7 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridLevelLinkData& LinkDa
 
 bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     FGuid SourceObjectId,
-    EGridObjectEventType SourceEvent,
+    EGridObjectEvent SourceEvent,
     bool bInvert,
     bool bAllowActivatedFallback)
 {
@@ -299,11 +299,11 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     const int32 MatchingEventLinkCount = CountLinksFromObjectForEvent (SourceObjectId, SourceEvent);
     const bool bUseActivatedFallback =
         bAllowActivatedFallback &&
-        SourceEvent != EGridObjectEventType::Activated &&
+        SourceEvent != EGridObjectEvent::Activated &&
         MatchingEventLinkCount == 0;
 
-    const EGridObjectEventType EffectiveEvent =
-        bUseActivatedFallback ? EGridObjectEventType::Activated : SourceEvent;
+    const EGridObjectEvent EffectiveEvent =
+        bUseActivatedFallback ? EGridObjectEvent::Activated : SourceEvent;
 
     if (bUseActivatedFallback)
     {
@@ -325,7 +325,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
             continue;
         }
 
-        const FGridLevelLinkData& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
+        const FGridObjectLink& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
         if (LinkData.SourceEvent != EffectiveEvent)
         {
             continue;
@@ -344,7 +344,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     return bAnyApplied;
 }
 
-int32 UGridActivationComponent::CountLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEventType SourceEvent) const
+int32 UGridActivationComponent::CountLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent) const
 {
     if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
     {
@@ -368,7 +368,7 @@ int32 UGridActivationComponent::CountLinksFromObjectForEvent (FGuid SourceObject
     return Result;
 }
 
-EGridLinkAction UGridActivationComponent::GetResolvedLinkAction (EGridLinkAction Action, bool bInvert) const
+EGridObjectCommand UGridActivationComponent::GetResolvedLinkAction (EGridObjectCommand Action, bool bInvert) const
 {
     if (!bInvert)
     {
@@ -377,25 +377,25 @@ EGridLinkAction UGridActivationComponent::GetResolvedLinkAction (EGridLinkAction
 
     switch (Action)
     {
-        case EGridLinkAction::Open:
-        return EGridLinkAction::Close;
+        case EGridObjectCommand::Open:
+        return EGridObjectCommand::Close;
 
-        case EGridLinkAction::Close:
-        return EGridLinkAction::Open;
+        case EGridObjectCommand::Close:
+        return EGridObjectCommand::Open;
 
-        case EGridLinkAction::Activate:
-        return EGridLinkAction::Deactivate;
+        case EGridObjectCommand::Activate:
+        return EGridObjectCommand::Deactivate;
 
-        case EGridLinkAction::Deactivate:
-        return EGridLinkAction::Activate;
+        case EGridObjectCommand::Deactivate:
+        return EGridObjectCommand::Activate;
 
-        case EGridLinkAction::Toggle:
+        case EGridObjectCommand::Toggle:
         default:
-        return EGridLinkAction::Toggle;
+        return EGridObjectCommand::Toggle;
     }
 }
 
-bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action)
+bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridObjectCommand Action)
 {
     if (!RuntimeActor)
     {
@@ -404,15 +404,15 @@ bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& 
 
     switch (Action)
     {
-        case EGridLinkAction::Toggle:
+        case EGridObjectCommand::Toggle:
         return RuntimeActor->ToggleDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
 
-        case EGridLinkAction::Open:
-        case EGridLinkAction::Activate:
+        case EGridObjectCommand::Open:
+        case EGridObjectCommand::Activate:
         return RuntimeActor->OpenDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
 
-        case EGridLinkAction::Close:
-        case EGridLinkAction::Deactivate:
+        case EGridObjectCommand::Close:
+        case EGridObjectCommand::Deactivate:
         return RuntimeActor->CloseDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
 
         default:
@@ -420,19 +420,19 @@ bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& 
     }
 }
 
-bool UGridActivationComponent::ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridLinkAction Action)
+bool UGridActivationComponent::ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridObjectCommand Action)
 {
     switch (Action)
     {
-        case EGridLinkAction::Open:
-        case EGridLinkAction::Activate:
+        case EGridObjectCommand::Open:
+        case EGridObjectCommand::Activate:
         return SetTargetActiveState (TargetObject, true);
 
-        case EGridLinkAction::Close:
-        case EGridLinkAction::Deactivate:
+        case EGridObjectCommand::Close:
+        case EGridObjectCommand::Deactivate:
         return SetTargetActiveState (TargetObject, false);
 
-        case EGridLinkAction::Toggle:
+        case EGridObjectCommand::Toggle:
         return SetTargetActiveState (TargetObject, !IsTargetActive (TargetObject.ObjectId));
 
         default:
@@ -502,21 +502,21 @@ bool UGridActivationComponent::IsTargetActive (FGuid ObjectId) const
     return ObjectId.IsValid () && ActiveObjectIds.Contains (ObjectId);
 }
 
-void UGridActivationComponent::LogLinkResult (const FGridLevelLinkData& LinkData, EGridLinkAction ResolvedAction, bool bSuccess, const TCHAR* FailureReason) const
+void UGridActivationComponent::LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedAction, bool bSuccess, const TCHAR* FailureReason) const
 {
     if (bSuccess)
     {
         UE_LOG (LogTemp, Log, TEXT ("Grid link executed: Source=%s Target=%s Action=%s Success=true"),
             *LinkData.SourceObjectId.ToString (),
             *LinkData.TargetObjectId.ToString (),
-            *GridLinkActionToString (ResolvedAction));
+            *GridObjectCommandToString (ResolvedAction));
         return;
     }
 
     UE_LOG (LogTemp, Warning, TEXT ("Grid link failed: Source=%s Target=%s Action=%s Reason=%s"),
         *LinkData.SourceObjectId.ToString (),
         *LinkData.TargetObjectId.ToString (),
-        *GridLinkActionToString (ResolvedAction),
+        *GridObjectCommandToString (ResolvedAction),
         FailureReason ? FailureReason : TEXT ("unknown"));
 }
 
@@ -573,9 +573,9 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         return false;
     }
 
-    EGridObjectEventType SourceEvent = bEntering
-        ? EGridObjectEventType::Activated
-        : EGridObjectEventType::Deactivated;
+    EGridObjectEvent SourceEvent = bEntering
+        ? EGridObjectEvent::Activated
+        : EGridObjectEvent::Deactivated;
 
     bool bInvertLinks = Behavior.Activation.bInvertLinks;
     bool bAllowActivatedFallback = !bEntering;
@@ -609,12 +609,12 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
             if (bNewActive)
             {
                 ActiveObjectIds.Add (TriggerData.ObjectId);
-                SourceEvent = EGridObjectEventType::Activated;
+                SourceEvent = EGridObjectEvent::Activated;
                 bInvertLinks = Behavior.Activation.bInvertLinks;
             } else
             {
                 ActiveObjectIds.Remove (TriggerData.ObjectId);
-                SourceEvent = EGridObjectEventType::Deactivated;
+                SourceEvent = EGridObjectEvent::Deactivated;
                 bInvertLinks = !Behavior.Activation.bInvertLinks;
                 bAllowActivatedFallback = true;
             }
@@ -636,7 +636,7 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         *GridObjectEventToString (SourceEvent));
 
     if (!bEntering &&
-        SourceEvent == EGridObjectEventType::Deactivated &&
+        SourceEvent == EGridObjectEvent::Deactivated &&
         CountLinksFromObjectForEvent (TriggerData.ObjectId, SourceEvent) == 0)
     {
         bInvertLinks = !Behavior.Activation.bInvertLinks;
@@ -715,7 +715,7 @@ void UGridActivationComponent::RebuildIndexes ()
         }
     }
 
-    const TArray<FGridLevelLinkData>& Links = RuntimeActor->LevelAsset->Links;
+    const TArray<FGridObjectLink>& Links = RuntimeActor->LevelAsset->Links;
 
     for (int32 Index = 0; Index < Links.Num (); ++Index)
     {
@@ -805,14 +805,14 @@ bool UGridActivationComponent::ActivateReceptacle (
 
     if (!bHadItem && bHasItemNow)
     {
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemInserted, false, false);
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemChanged, false, false);
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemInserted, false, false);
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemChanged, false, false);
         return true;
     }
     if (bHadItem && !bHasItemNow)
     {
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemRemoved, false, false);
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEventType::ItemChanged, false, false);
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemRemoved, false, false);
+        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemChanged, false, false);
         return true;
     }
     return false;

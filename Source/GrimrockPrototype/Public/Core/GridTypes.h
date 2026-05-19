@@ -75,7 +75,7 @@ enum class EGridObjectCategory : uint8
 };
 
 UENUM (BlueprintType)
-enum class EGridLinkAction : uint8
+enum class EGridObjectCommand : uint8
 {
     Toggle      UMETA (DisplayName = "Toggle"),
     Open        UMETA (DisplayName = "Open"),
@@ -85,7 +85,7 @@ enum class EGridLinkAction : uint8
 };
 
 UENUM (BlueprintType)
-enum class EGridObjectEventType : uint8
+enum class EGridObjectEvent : uint8
 {
     Activated    UMETA (DisplayName = "Activated"),
     Deactivated  UMETA (DisplayName = "Deactivated"),
@@ -173,7 +173,7 @@ struct FGridLevelObjectData
 };
 
 USTRUCT (BlueprintType)
-struct FGridLevelLinkData
+struct FGridObjectLink
 {
     GENERATED_BODY ()
 
@@ -184,10 +184,10 @@ struct FGridLevelLinkData
     FGuid TargetObjectId;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
-    EGridObjectEventType SourceEvent = EGridObjectEventType::Activated;
+    EGridObjectEvent SourceEvent = EGridObjectEvent::Activated;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
-    EGridLinkAction Action = EGridLinkAction::Toggle;
+    EGridObjectCommand Action = EGridObjectCommand::Toggle;
 };
 
 USTRUCT (BlueprintType)

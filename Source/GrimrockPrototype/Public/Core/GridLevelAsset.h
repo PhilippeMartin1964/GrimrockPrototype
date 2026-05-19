@@ -31,7 +31,7 @@ public:
     TArray<FGridLevelObjectData> Objects;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
-    TArray<FGridLevelLinkData> Links;
+    TArray<FGridObjectLink> Links;
 
 public:
 

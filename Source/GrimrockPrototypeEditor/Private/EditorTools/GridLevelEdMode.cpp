@@ -15,7 +15,7 @@
 
 namespace
 {
-    FLinearColor GetDebugLinkColor (EGridLinkAction Action, bool bIncoming)
+    FLinearColor GetDebugLinkColor (EGridObjectCommand Action, bool bIncoming)
     {
         if (bIncoming)
         {
@@ -24,15 +24,15 @@ namespace
 
         switch (Action)
         {
-            case EGridLinkAction::Open:
-            case EGridLinkAction::Activate:
+            case EGridObjectCommand::Open:
+            case EGridObjectCommand::Activate:
                 return FLinearColor (0.1f, 1.f, 0.25f, 1.f); // Vert
 
-            case EGridLinkAction::Close:
-            case EGridLinkAction::Deactivate:
+            case EGridObjectCommand::Close:
+            case EGridObjectCommand::Deactivate:
                 return FLinearColor (1.f, 0.1f, 0.1f, 1.f); // Rouge
 
-            case EGridLinkAction::Toggle:
+            case EGridObjectCommand::Toggle:
             default:
                 return FLinearColor (0.f, 0.85f, 1.f, 1.f); // Cyan
         }
@@ -365,7 +365,7 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
 
         if (EditorActor->TryGetObjectWorldLocationById (SelectedObject->ObjectId, SelectedLocation))
         {
-            for (const FGridLevelLinkData& Link : EditorActor->LevelAsset->Links)
+            for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
             {
                 const bool bOutgoing = Link.SourceObjectId == SelectedObject->ObjectId;
                 const bool bIncoming = Link.TargetObjectId == SelectedObject->ObjectId;

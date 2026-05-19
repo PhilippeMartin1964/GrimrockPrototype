@@ -404,7 +404,7 @@ int32 AGridLevelEditorActor::RemoveObjectsAtSelectionInternal (bool bSameTypeOnl
     }
     if (RemovedIds.Num () > 0)
     {
-        LevelAsset->Links.RemoveAll ([&] (const FGridLevelLinkData& Link)
+        LevelAsset->Links.RemoveAll ([&] (const FGridObjectLink& Link)
         {
             return RemovedIds.Contains (Link.SourceObjectId) || RemovedIds.Contains (Link.TargetObjectId);
         });
@@ -468,7 +468,7 @@ int32 AGridLevelEditorActor::RemoveObjectsConflictingWithPlacementInternal (
     {
         LevelAsset->Objects.RemoveAt (IndexToRemove);
     }
-    LevelAsset->Links.RemoveAll ([&] (const FGridLevelLinkData& Link)
+    LevelAsset->Links.RemoveAll ([&] (const FGridObjectLink& Link)
     {
         return RemovedIds.Contains (Link.SourceObjectId) || RemovedIds.Contains (Link.TargetObjectId);
     });
@@ -969,7 +969,7 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
 #endif
 
     const bool bAlreadyExists = LevelAsset->Links.ContainsByPredicate (
-        [&] (const FGridLevelLinkData& Link)
+        [&] (const FGridObjectLink& Link)
     {
         return Link.SourceObjectId == PendingLinkSourceObjectId &&
             Link.TargetObjectId == SelectedObject->ObjectId &&
@@ -979,7 +979,7 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
 
     if (!bAlreadyExists)
     {
-        FGridLevelLinkData NewLink;
+        FGridObjectLink NewLink;
         NewLink.SourceObjectId = PendingLinkSourceObjectId;
         NewLink.TargetObjectId = SelectedObject->ObjectId;
         NewLink.SourceEvent = LinkSourceEvent;
@@ -1022,7 +1022,7 @@ bool AGridLevelEditorActor::RemoveLinksAtSelection ()
 #endif
 
     const int32 RemovedCount = LevelAsset->Links.RemoveAll (
-        [&] (const FGridLevelLinkData& Link)
+        [&] (const FGridObjectLink& Link)
     {
         return Link.SourceObjectId == SelectedObject->ObjectId ||
             Link.TargetObjectId == SelectedObject->ObjectId;
@@ -1132,7 +1132,7 @@ bool AGridLevelEditorActor::RemoveLinkByIndexForSelectedObject (int32 LinkIndex)
 
     for (int32 Index = 0; Index < LevelAsset->Links.Num (); ++Index)
     {
-        const FGridLevelLinkData& Link = LevelAsset->Links[Index];
+        const FGridObjectLink& Link = LevelAsset->Links[Index];
 
         if (Link.SourceObjectId != LastSelectedObjectId &&
             Link.TargetObjectId != LastSelectedObjectId)
@@ -1169,7 +1169,7 @@ bool AGridLevelEditorActor::RemoveAllLinksForSelectedObject ()
 #endif
 
     const int32 RemovedCount = LevelAsset->Links.RemoveAll (
-        [this] (const FGridLevelLinkData& Link)
+        [this] (const FGridObjectLink& Link)
     {
         return Link.SourceObjectId == LastSelectedObjectId ||
             Link.TargetObjectId == LastSelectedObjectId;
@@ -1214,8 +1214,8 @@ void AGridLevelEditorActor::ClearSelectedObjectState ()
 bool AGridLevelEditorActor::RemoveExactLink (
     FGuid SourceObjectId,
     FGuid TargetObjectId,
-    EGridObjectEventType SourceEvent,
-    EGridLinkAction Action)
+    EGridObjectEvent SourceEvent,
+    EGridObjectCommand Action)
 {
     if (!HasValidLevelAsset () || !SourceObjectId.IsValid () || !TargetObjectId.IsValid ())
     {
@@ -1227,7 +1227,7 @@ bool AGridLevelEditorActor::RemoveExactLink (
 #endif
 
     const int32 RemovedCount = LevelAsset->Links.RemoveAll (
-        [&] (const FGridLevelLinkData& Link)
+        [&] (const FGridObjectLink& Link)
     {
         return Link.SourceObjectId == SourceObjectId &&
             Link.TargetObjectId == TargetObjectId &&
@@ -1921,7 +1921,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         }
     }
 
-    for (const FGridLevelLinkData& Link : LevelAsset->Links)
+    for (const FGridObjectLink& Link : LevelAsset->Links)
     {
         if (!ObjectIds.Contains (Link.SourceObjectId))
         {

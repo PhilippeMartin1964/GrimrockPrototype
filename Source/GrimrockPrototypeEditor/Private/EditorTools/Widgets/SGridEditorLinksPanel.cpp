@@ -19,7 +19,7 @@ namespace
     int32 CountLinksForObject (const UGridLevelAsset& LevelAsset, const FGuid& ObjectId, bool bOutgoing)
     {
         int32 Count = 0;
-        for (const FGridLevelLinkData& Link : LevelAsset.Links)
+        for (const FGridObjectLink& Link : LevelAsset.Links)
         {
             const bool bMatches = bOutgoing
                 ? Link.SourceObjectId == ObjectId
@@ -34,19 +34,19 @@ namespace
         return Count;
     }
 
-    FSlateColor GetLinkActionSlateColor (EGridLinkAction Action)
+    FSlateColor GetLinkActionSlateColor (EGridObjectCommand Action)
     {
         switch (Action)
         {
-            case EGridLinkAction::Open:
-            case EGridLinkAction::Activate:
+            case EGridObjectCommand::Open:
+            case EGridObjectCommand::Activate:
                 return FSlateColor (FLinearColor (0.25f, 0.85f, 0.35f, 1.f));
 
-            case EGridLinkAction::Close:
-            case EGridLinkAction::Deactivate:
+            case EGridObjectCommand::Close:
+            case EGridObjectCommand::Deactivate:
                 return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
 
-            case EGridLinkAction::Toggle:
+            case EGridObjectCommand::Toggle:
             default:
                 return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
         }
@@ -228,7 +228,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinkCreationSection ()
 
                 + SHorizontalBox::Slot ().FillWidth (0.5f).Padding (0.f, 0.f, 12.f, 0.f)
                 [
-                    SNew (SComboBox<TSharedPtr<EGridObjectEventType>>)
+                    SNew (SComboBox<TSharedPtr<EGridObjectEvent>>)
                         .OptionsSource (&LinkSourceEventOptions)
                         .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkSourceEventComboWidget)
                         .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkSourceEventSelectionChanged)
@@ -248,7 +248,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinkCreationSection ()
 
                 + SHorizontalBox::Slot ().FillWidth (0.5f)
                 [
-                    SNew (SComboBox<TSharedPtr<EGridLinkAction>>)
+                    SNew (SComboBox<TSharedPtr<EGridObjectCommand>>)
                         .OptionsSource (&LinkActionOptions)
                         .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkActionComboWidget)
                         .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkActionSelectionChanged)
@@ -282,7 +282,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
 
     int32 Count = 0;
 
-    for (const FGridLevelLinkData& Link : CurrentEditorActor->LevelAsset->Links)
+    for (const FGridObjectLink& Link : CurrentEditorActor->LevelAsset->Links)
     {
         const bool bMatches = bOutgoing
             ? Link.SourceObjectId == SelectedObject.ObjectId
@@ -384,8 +384,8 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
 FReply SGridEditorLinksPanel::OnRemoveExactLinkClicked (
     FGuid SourceObjectId,
     FGuid TargetObjectId,
-    EGridObjectEventType SourceEvent,
-    EGridLinkAction Action)
+    EGridObjectEvent SourceEvent,
+    EGridObjectCommand Action)
 {
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
     {
@@ -462,18 +462,18 @@ FText SGridEditorLinksPanel::GetObjectSummaryText (const FGuid& ObjectId) const
     return FText::FromString (TEXT ("Missing object"));
 }
 
-FText SGridEditorLinksPanel::GetLinkSourceEventText (EGridObjectEventType SourceEvent) const
+FText SGridEditorLinksPanel::GetLinkSourceEventText (EGridObjectEvent SourceEvent) const
 {
-    const UEnum* Enum = StaticEnum<EGridObjectEventType> ();
+    const UEnum* Enum = StaticEnum<EGridObjectEvent> ();
 
     return Enum
         ? Enum->GetDisplayNameTextByValue (static_cast<int64> (SourceEvent))
         : FText::FromString (TEXT ("Unknown"));
 }
 
-FText SGridEditorLinksPanel::GetLinkActionText (EGridLinkAction Action) const
+FText SGridEditorLinksPanel::GetLinkActionText (EGridObjectCommand Action) const
 {
-    const UEnum* Enum = StaticEnum<EGridLinkAction> ();
+    const UEnum* Enum = StaticEnum<EGridObjectCommand> ();
 
     return Enum
         ? Enum->GetDisplayNameTextByValue (static_cast<int64> (Action))
@@ -483,22 +483,22 @@ FText SGridEditorLinksPanel::GetLinkActionText (EGridLinkAction Action) const
 void SGridEditorLinksPanel::BuildLinkOptions ()
 {
     LinkSourceEventOptions.Reset ();
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::Activated));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::Deactivated));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::ItemInserted));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::ItemRemoved));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEventType> (EGridObjectEventType::ItemChanged));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Activated));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Deactivated));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::ItemInserted));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::ItemRemoved));
+    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::ItemChanged));
 
     LinkActionOptions.Reset ();
-    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Toggle));
-    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Open));
-    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Close));
-    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Activate));
-    LinkActionOptions.Add (MakeShared<EGridLinkAction> (EGridLinkAction::Deactivate));
+    LinkActionOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Toggle));
+    LinkActionOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Open));
+    LinkActionOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Close));
+    LinkActionOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Activate));
+    LinkActionOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Deactivate));
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkSourceEventComboWidget (
-    TSharedPtr<EGridObjectEventType> Item) const
+    TSharedPtr<EGridObjectEvent> Item) const
 {
     if (!Item.IsValid ())
     {
@@ -509,7 +509,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkSourceEventComboWidget (
 }
 
 void SGridEditorLinksPanel::OnLinkSourceEventSelectionChanged (
-    TSharedPtr<EGridObjectEventType> NewValue,
+    TSharedPtr<EGridObjectEvent> NewValue,
     ESelectInfo::Type SelectInfo)
 {
     if (NewValue.IsValid ())
@@ -534,7 +534,7 @@ FText SGridEditorLinksPanel::GetSelectedLinkSourceEventText () const
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkActionComboWidget (
-    TSharedPtr<EGridLinkAction> Item) const
+    TSharedPtr<EGridObjectCommand> Item) const
 {
     if (!Item.IsValid ())
     {
@@ -545,7 +545,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkActionComboWidget (
 }
 
 void SGridEditorLinksPanel::OnLinkActionSelectionChanged (
-    TSharedPtr<EGridLinkAction> NewValue,
+    TSharedPtr<EGridObjectCommand> NewValue,
     ESelectInfo::Type SelectInfo)
 {
     if (NewValue.IsValid ())

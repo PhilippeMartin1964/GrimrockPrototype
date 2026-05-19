@@ -106,7 +106,7 @@ bool UGridLevelAsset::RemoveObjectById (const FGuid& ObjectId)
 void UGridLevelAsset::RemoveLinksForObject (const FGuid& ObjectId)
 {
     Links.RemoveAll (
-        [&] (const FGridLevelLinkData& Link)
+        [&] (const FGridObjectLink& Link)
     {
         return Link.SourceObjectId == ObjectId ||
             Link.TargetObjectId == ObjectId;
