@@ -15,14 +15,14 @@
 
 namespace
 {
-    FLinearColor GetDebugLinkColor (EGridObjectCommand Action, bool bIncoming)
+    FLinearColor GetDebugLinkColor (EGridObjectCommand Command, bool bIncoming)
     {
         if (bIncoming)
         {
             return FLinearColor (1.f, 0.55f, 0.f, 1.f); // Orange
         }
 
-        switch (Action)
+        switch (Command)
         {
             case EGridObjectCommand::Open:
             case EGridObjectCommand::Activate:
@@ -386,7 +386,7 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
                     continue;
                 }
 
-                const FLinearColor LinkColor = GetDebugLinkColor (Link.Action, bIncoming);
+                const FLinearColor LinkColor = GetDebugLinkColor (Link.Command, bIncoming);
 
                 if (bOutgoing)
                 {

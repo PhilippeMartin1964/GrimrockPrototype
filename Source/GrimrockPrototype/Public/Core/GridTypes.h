@@ -81,7 +81,15 @@ enum class EGridObjectCommand : uint8
     Open        UMETA (DisplayName = "Open"),
     Close       UMETA (DisplayName = "Close"),
     Activate    UMETA (DisplayName = "Activate"),
-    Deactivate  UMETA (DisplayName = "Deactivate")
+    Deactivate  UMETA (DisplayName = "Deactivate"),
+    Enable      UMETA (DisplayName = "Enable"),
+    Disable     UMETA (DisplayName = "Disable"),
+    Lock        UMETA (DisplayName = "Lock"),
+    Unlock      UMETA (DisplayName = "Unlock"),
+    Spawn       UMETA (DisplayName = "Spawn"),
+    Despawn     UMETA (DisplayName = "Despawn"),
+    Teleport    UMETA (DisplayName = "Teleport"),
+    ShowMessage UMETA (DisplayName = "Show Message")
 };
 
 UENUM (BlueprintType)
@@ -91,7 +99,14 @@ enum class EGridObjectEvent : uint8
     Deactivated  UMETA (DisplayName = "Deactivated"),
     ItemInserted UMETA (DisplayName = "Item Inserted"),
     ItemRemoved  UMETA (DisplayName = "Item Removed"),
-    ItemChanged  UMETA (DisplayName = "Item Changed")
+    ItemChanged  UMETA (DisplayName = "Item Changed"),
+    Used         UMETA (DisplayName = "Used"),
+    Entered      UMETA (DisplayName = "Entered"),
+    Exited       UMETA (DisplayName = "Exited"),
+    Opened       UMETA (DisplayName = "Opened"),
+    Closed       UMETA (DisplayName = "Closed"),
+    Enabled      UMETA (DisplayName = "Enabled"),
+    Disabled     UMETA (DisplayName = "Disabled")
 };
 
 USTRUCT (BlueprintType)
@@ -187,7 +202,7 @@ struct FGridObjectLink
     EGridObjectEvent SourceEvent = EGridObjectEvent::Activated;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
-    EGridObjectCommand Action = EGridObjectCommand::Toggle;
+    EGridObjectCommand Command = EGridObjectCommand::Toggle;
 };
 
 USTRUCT (BlueprintType)

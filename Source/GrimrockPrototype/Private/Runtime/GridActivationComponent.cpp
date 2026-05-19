@@ -12,13 +12,13 @@
 
 namespace
 {
-    FString GridObjectCommandToString (EGridObjectCommand Action)
+    FString GridObjectCommandToString (EGridObjectCommand Command)
     {
         if (const UEnum* Enum = StaticEnum<EGridObjectCommand> ())
         {
-            return Enum->GetNameStringByValue (static_cast<int64> (Action));
+            return Enum->GetNameStringByValue (static_cast<int64> (Command));
         }
-        return FString::Printf (TEXT ("%d"), static_cast<int32> (Action));
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Command));
     }
 
     FString GridObjectTypeToString (EGridLevelObjectType Type)
@@ -224,38 +224,38 @@ bool UGridActivationComponent::ExecuteLinksFromObject (FGuid SourceObjectId, boo
     {
         if (RuntimeActor->LevelAsset->Links.IsValidIndex (LinkIndex))
         {
-            bAnyApplied |= ApplyLinkAction (RuntimeActor->LevelAsset->Links[LinkIndex], bInvert);
+            bAnyApplied |= ApplyLinkCommand (RuntimeActor->LevelAsset->Links[LinkIndex], bInvert);
         }
     }
 
     return bAnyApplied;
 }
 
-bool UGridActivationComponent::ApplyLinkAction (const FGridObjectLink& LinkData, bool bInvert)
+bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData, bool bInvert)
 {
     if (!RuntimeActor)
     {
-        LogLinkResult (LinkData, GetResolvedLinkAction (LinkData.Action, bInvert), false, TEXT ("missing runtime actor"));
+        LogLinkResult (LinkData, GetResolvedLinkCommand (LinkData.Command, bInvert), false, TEXT ("missing runtime actor"));
         return false;
     }
 
     const FGridLevelObjectData* TargetObject = FindObjectById (LinkData.TargetObjectId);
     if (!TargetObject)
     {
-        LogLinkResult (LinkData, GetResolvedLinkAction (LinkData.Action, bInvert), false, TEXT ("target object not found"));
+        LogLinkResult (LinkData, GetResolvedLinkCommand (LinkData.Command, bInvert), false, TEXT ("target object not found"));
         return false;
     }
 
-    const EGridObjectCommand ResolvedAction = GetResolvedLinkAction (LinkData.Action, bInvert);
+    const EGridObjectCommand ResolvedCommand = GetResolvedLinkCommand (LinkData.Command, bInvert);
     bool bSuccess = false;
-    const TCHAR* FailureReason = TEXT ("unsupported target type or action");
+    const TCHAR* FailureReason = TEXT ("unsupported target type or command");
 
     switch (TargetObject->Type)
     {
         case EGridLevelObjectType::Door:
         {
-            bSuccess = ApplyDoorLinkAction (*TargetObject, ResolvedAction);
-            FailureReason = bSuccess ? nullptr : TEXT ("door action failed");
+            bSuccess = ApplyDoorLinkCommand (*TargetObject, ResolvedCommand);
+            FailureReason = bSuccess ? nullptr : TEXT ("door command failed");
             break;
         }
 
@@ -271,8 +271,8 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridObjectLink& LinkData,
         case EGridLevelObjectType::Trigger:
         case EGridLevelObjectType::Receptacle:
         {
-            bSuccess = ApplyStatefulLinkAction (*TargetObject, ResolvedAction);
-            FailureReason = bSuccess ? nullptr : TEXT ("stateful action failed");
+            bSuccess = ApplyStatefulLinkCommand (*TargetObject, ResolvedCommand);
+            FailureReason = bSuccess ? nullptr : TEXT ("stateful command failed");
             break;
         }
 
@@ -281,7 +281,7 @@ bool UGridActivationComponent::ApplyLinkAction (const FGridObjectLink& LinkData,
         break;
     }
 
-    LogLinkResult (LinkData, ResolvedAction, bSuccess, FailureReason);
+    LogLinkResult (LinkData, ResolvedCommand, bSuccess, FailureReason);
     return bSuccess;
 }
 
@@ -332,7 +332,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
         }
 
         ++ExecutedLinkCount;
-        bAnyApplied |= ApplyLinkAction (LinkData, bInvert);
+        bAnyApplied |= ApplyLinkCommand (LinkData, bInvert);
     }
 
     UE_LOG (LogTemp, Log, TEXT ("Grid trigger %s: Event=%s LinksExecuted=%d AnyApplied=%s"),
@@ -368,14 +368,14 @@ int32 UGridActivationComponent::CountLinksFromObjectForEvent (FGuid SourceObject
     return Result;
 }
 
-EGridObjectCommand UGridActivationComponent::GetResolvedLinkAction (EGridObjectCommand Action, bool bInvert) const
+EGridObjectCommand UGridActivationComponent::GetResolvedLinkCommand (EGridObjectCommand Command, bool bInvert) const
 {
     if (!bInvert)
     {
-        return Action;
+        return Command;
     }
 
-    switch (Action)
+    switch (Command)
     {
         case EGridObjectCommand::Open:
         return EGridObjectCommand::Close;
@@ -389,20 +389,44 @@ EGridObjectCommand UGridActivationComponent::GetResolvedLinkAction (EGridObjectC
         case EGridObjectCommand::Deactivate:
         return EGridObjectCommand::Activate;
 
+        case EGridObjectCommand::Enable:
+        return EGridObjectCommand::Disable;
+
+        case EGridObjectCommand::Disable:
+        return EGridObjectCommand::Enable;
+
+        case EGridObjectCommand::Lock:
+        return EGridObjectCommand::Unlock;
+
+        case EGridObjectCommand::Unlock:
+        return EGridObjectCommand::Lock;
+
+        case EGridObjectCommand::Spawn:
+        return EGridObjectCommand::Despawn;
+
+        case EGridObjectCommand::Despawn:
+        return EGridObjectCommand::Spawn;
+
+        case EGridObjectCommand::Teleport:
+        return EGridObjectCommand::Teleport;
+
+        case EGridObjectCommand::ShowMessage:
+        return EGridObjectCommand::ShowMessage;
+
         case EGridObjectCommand::Toggle:
         default:
         return EGridObjectCommand::Toggle;
     }
 }
 
-bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridObjectCommand Action)
+bool UGridActivationComponent::ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command)
 {
     if (!RuntimeActor)
     {
         return false;
     }
 
-    switch (Action)
+    switch (Command)
     {
         case EGridObjectCommand::Toggle:
         return RuntimeActor->ToggleDoorOnEdge (TargetObject.CellX, TargetObject.CellY, TargetObject.Edge);
@@ -420,9 +444,9 @@ bool UGridActivationComponent::ApplyDoorLinkAction (const FGridLevelObjectData& 
     }
 }
 
-bool UGridActivationComponent::ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridObjectCommand Action)
+bool UGridActivationComponent::ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command)
 {
-    switch (Action)
+    switch (Command)
     {
         case EGridObjectCommand::Open:
         case EGridObjectCommand::Activate:
@@ -502,21 +526,21 @@ bool UGridActivationComponent::IsTargetActive (FGuid ObjectId) const
     return ObjectId.IsValid () && ActiveObjectIds.Contains (ObjectId);
 }
 
-void UGridActivationComponent::LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedAction, bool bSuccess, const TCHAR* FailureReason) const
+void UGridActivationComponent::LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedCommand, bool bSuccess, const TCHAR* FailureReason) const
 {
     if (bSuccess)
     {
-        UE_LOG (LogTemp, Log, TEXT ("Grid link executed: Source=%s Target=%s Action=%s Success=true"),
+        UE_LOG (LogTemp, Log, TEXT ("Grid link executed: Source=%s Target=%s Command=%s Success=true"),
             *LinkData.SourceObjectId.ToString (),
             *LinkData.TargetObjectId.ToString (),
-            *GridObjectCommandToString (ResolvedAction));
+            *GridObjectCommandToString (ResolvedCommand));
         return;
     }
 
-    UE_LOG (LogTemp, Warning, TEXT ("Grid link failed: Source=%s Target=%s Action=%s Reason=%s"),
+    UE_LOG (LogTemp, Warning, TEXT ("Grid link failed: Source=%s Target=%s Command=%s Reason=%s"),
         *LinkData.SourceObjectId.ToString (),
         *LinkData.TargetObjectId.ToString (),
-        *GridObjectCommandToString (ResolvedAction),
+        *GridObjectCommandToString (ResolvedCommand),
         FailureReason ? FailureReason : TEXT ("unknown"));
 }
 

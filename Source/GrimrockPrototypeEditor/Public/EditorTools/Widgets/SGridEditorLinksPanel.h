@@ -35,13 +35,13 @@ private:
     TSharedRef<SWidget> BuildLinkCreationSection ();
     TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing);
 
-    FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Action);
+    FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
 
     FText GetObjectSummaryText (const FGuid& ObjectId) const;
     FText GetLinkSourceEventText (EGridObjectEvent SourceEvent) const;
-    FText GetLinkActionText (EGridObjectCommand Action) const;
+    FText GetLinkCommandText (EGridObjectCommand Command) const;
 
     void BuildLinkOptions ();
 
@@ -49,9 +49,9 @@ private:
     void OnLinkSourceEventSelectionChanged (TSharedPtr<EGridObjectEvent> NewValue, ESelectInfo::Type SelectInfo);
     FText GetSelectedLinkSourceEventText () const;
 
-    TSharedRef<SWidget> MakeLinkActionComboWidget (TSharedPtr<EGridObjectCommand> Item) const;
-    void OnLinkActionSelectionChanged (TSharedPtr<EGridObjectCommand> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedLinkActionText () const;
+    TSharedRef<SWidget> MakeLinkCommandComboWidget (TSharedPtr<EGridObjectCommand> Item) const;
+    void OnLinkCommandSelectionChanged (TSharedPtr<EGridObjectCommand> NewValue, ESelectInfo::Type SelectInfo);
+    FText GetSelectedLinkCommandText () const;
 
 private:
     TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
@@ -59,7 +59,7 @@ private:
     FOnGridEditorLinksRequestRefresh OnRequestRefresh;
 
     TArray<TSharedPtr<EGridObjectEvent>> LinkSourceEventOptions;
-    TArray<TSharedPtr<EGridObjectCommand>> LinkActionOptions;
+    TArray<TSharedPtr<EGridObjectCommand>> LinkCommandOptions;
 };
 
 #endif

@@ -50,15 +50,15 @@ private:
 
     bool ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 
-    bool ApplyLinkAction (const FGridObjectLink& LinkData, bool bInvert);
+    bool ApplyLinkCommand (const FGridObjectLink& LinkData, bool bInvert);
     bool ExecuteLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent, bool bInvert, bool bAllowActivatedFallback);
     int32 CountLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent) const;
-    EGridObjectCommand GetResolvedLinkAction (EGridObjectCommand Action, bool bInvert) const;
-    bool ApplyDoorLinkAction (const FGridLevelObjectData& TargetObject, EGridObjectCommand Action);
-    bool ApplyStatefulLinkAction (const FGridLevelObjectData& TargetObject, EGridObjectCommand Action);
+    EGridObjectCommand GetResolvedLinkCommand (EGridObjectCommand Command, bool bInvert) const;
+    bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
+    bool ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive);
     bool IsTargetActive (FGuid ObjectId) const;
-    void LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedAction, bool bSuccess, const TCHAR* FailureReason) const;
+    void LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedCommand, bool bSuccess, const TCHAR* FailureReason) const;
 
     bool ActivatePressurePlateAtCell (int32 X, int32 Y);
     bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
