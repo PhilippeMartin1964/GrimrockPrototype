@@ -12,6 +12,26 @@
 
 namespace
 {
+    struct FExpectedConcreteArchetypeSpec
+    {
+        const TCHAR* ArchetypeId;
+        EGridLevelObjectType ExpectedType;
+    };
+
+    // Visual variants are concrete archetypes/palette entries, not EGridLevelObjectType values.
+    static const FExpectedConcreteArchetypeSpec ExpectedConcreteArchetypes[] =
+    {
+        {TEXT ("Button_Normal"), EGridLevelObjectType::Button},
+        {TEXT ("Button_Secret"), EGridLevelObjectType::Button},
+        {TEXT ("Button_Wall"), EGridLevelObjectType::Button},
+        {TEXT ("Door_Stone"), EGridLevelObjectType::Door},
+        {TEXT ("Door_Secret"), EGridLevelObjectType::Door},
+        {TEXT ("Receptacle_Alcove"), EGridLevelObjectType::Receptacle},
+        {TEXT ("Receptacle_TorchHolder"), EGridLevelObjectType::Receptacle},
+        {TEXT ("Receptacle_Altar"), EGridLevelObjectType::Receptacle},
+        {TEXT ("Receptacle_OfferingBowl"), EGridLevelObjectType::Receptacle}
+    };
+
     EGridWallType GetWallTypeForEdge (const FGridLevelCellData& CellData, EGridEdge Edge)
     {
         switch (Edge)
@@ -38,6 +58,16 @@ namespace
             default:
                 return EGridLevelValidationSeverity::Info;
         }
+    }
+
+    FString ToGridObjectTypeText (EGridLevelObjectType ObjectType)
+    {
+        if (const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ())
+        {
+            return TypeEnum->GetNameStringByValue (static_cast<int64> (ObjectType));
+        }
+
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (ObjectType));
     }
 }
 
@@ -1721,7 +1751,53 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         }
     };
 
+    auto AddExpectedConcreteArchetypeMessages = [this, &AddMessage] ()
+    {
+        if (!ObjectPalette)
+        {
+            return;
+        }
+
+        for (const FExpectedConcreteArchetypeSpec& ExpectedSpec : ExpectedConcreteArchetypes)
+        {
+            const FName ExpectedArchetypeId (ExpectedSpec.ArchetypeId);
+            const FGridObjectPaletteEntry* MatchingEntry = nullptr;
+
+            for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
+            {
+                if (Entry.GetEffectiveArchetypeId () == ExpectedArchetypeId)
+                {
+                    MatchingEntry = &Entry;
+                    break;
+                }
+            }
+
+            if (!MatchingEntry)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("ObjectPalette should expose concrete archetype '%s'. Variants must be palette entries/archetypes, not new EGridLevelObjectType values."),
+                        ExpectedSpec.ArchetypeId));
+                continue;
+            }
+
+            const EGridLevelObjectType EffectiveType = MatchingEntry->GetEffectiveObjectType ();
+            if (EffectiveType != ExpectedSpec.ExpectedType)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("ObjectPalette archetype '%s' should use Type=%s, but currently uses Type=%s."),
+                        ExpectedSpec.ArchetypeId,
+                        *ToGridObjectTypeText (ExpectedSpec.ExpectedType),
+                        *ToGridObjectTypeText (EffectiveType)));
+            }
+        }
+    };
+
     AddArchetypeValidationMessages ();
+    AddExpectedConcreteArchetypeMessages ();
 
     if (!LevelAsset)
     {
