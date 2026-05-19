@@ -1810,6 +1810,9 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
     TSet<FGuid> SeenObjectIds;
     TSet<FGuid> ObjectIds;
     TMap<FGuid, int32> OutgoingLinkCountBySourceId;
+    TMap<FGuid, int32> ReceptacleItemInsertedLinkCountBySourceId;
+    TMap<FGuid, int32> ReceptacleItemRemovedLinkCountBySourceId;
+    TMap<FGuid, int32> ReceptacleItemChangedLinkCountBySourceId;
 
     auto IsEdgeOrWallPlacedObject = [this] (const FGridLevelObjectData& ObjectData) -> bool
     {
@@ -1846,6 +1849,23 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
             default:
                 return TEXT ("Center");
         }
+    };
+
+    auto GetObjectValidationName = [] (const FGridLevelObjectData& ObjectData) -> FString
+    {
+        if (!ObjectData.Tag.IsNone ())
+        {
+            return ObjectData.Tag.ToString ();
+        }
+
+        if (!ObjectData.ArchetypeId.IsNone ())
+        {
+            return ObjectData.ArchetypeId.ToString ();
+        }
+
+        return ObjectData.ObjectId.IsValid ()
+            ? ObjectData.ObjectId.ToString ().Left (8)
+            : FString (TEXT ("InvalidObjectId"));
     };
 
     for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
@@ -2021,6 +2041,33 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         {
             int32& OutgoingCount = OutgoingLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
             ++OutgoingCount;
+
+            switch (Link.SourceEvent)
+            {
+                case EGridObjectEvent::ItemInserted:
+                {
+                    int32& EventCount = ReceptacleItemInsertedLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
+                    ++EventCount;
+                    break;
+                }
+
+                case EGridObjectEvent::ItemRemoved:
+                {
+                    int32& EventCount = ReceptacleItemRemovedLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
+                    ++EventCount;
+                    break;
+                }
+
+                case EGridObjectEvent::ItemChanged:
+                {
+                    int32& EventCount = ReceptacleItemChangedLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
+                    ++EventCount;
+                    break;
+                }
+
+                default:
+                break;
+            }
         }
 
         if (!ObjectIds.Contains (Link.TargetObjectId))
@@ -2040,6 +2087,38 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 EGridLevelValidationSeverity::Warning,
                 TEXT ("Trigger has no outgoing links."),
                 Obj.ObjectId);
+        }
+
+        if (Obj.Type == EGridLevelObjectType::Receptacle)
+        {
+            const int32 ItemInsertedCount = ReceptacleItemInsertedLinkCountBySourceId.FindRef (Obj.ObjectId);
+            const int32 ItemRemovedCount = ReceptacleItemRemovedLinkCountBySourceId.FindRef (Obj.ObjectId);
+            const int32 ItemChangedCount = ReceptacleItemChangedLinkCountBySourceId.FindRef (Obj.ObjectId);
+
+            if (ItemInsertedCount == 0 && ItemRemovedCount == 0 && ItemChangedCount > 0)
+            {
+                continue;
+            }
+
+            if (ItemRemovedCount > 0 && ItemInsertedCount == 0)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Receptacle '%s' has ItemRemoved links but no ItemInserted links. This may be intentional, but the puzzle will not reset when an item is inserted again."),
+                        *GetObjectValidationName (Obj)),
+                    Obj.ObjectId);
+            }
+
+            if (ItemInsertedCount > 0 && ItemRemovedCount == 0)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Receptacle '%s' has ItemInserted links but no ItemRemoved links. This may be intentional, but the puzzle will not react when the item is removed."),
+                        *GetObjectValidationName (Obj)),
+                    Obj.ObjectId);
+            }
         }
     }
 
