@@ -220,6 +220,7 @@ namespace
         return !Behavior.Receptacle.bAcceptAnyItem ||
             Behavior.Receptacle.AcceptedItemTags.Num () > 0 ||
             Behavior.Receptacle.AcceptedArchetypeIds.Num () > 0 ||
+            Behavior.Receptacle.RejectedItemArchetypeIds.Num () > 0 ||
             !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
     }
 
@@ -508,6 +509,11 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
                 DefaultBehavior.Receptacle.AcceptedArchetypeIds.Num () == 0)
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle with bAcceptAnyItem=false must define AcceptedItemTags or AcceptedArchetypeIds."));
+            }
+            if (!DefaultBehavior.Receptacle.InitialContainedItemArchetypeId.IsNone () &&
+                DefaultBehavior.Receptacle.RejectedItemArchetypeIds.Contains (DefaultBehavior.Receptacle.InitialContainedItemArchetypeId))
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle InitialContainedItemArchetypeId must not be listed in RejectedItemArchetypeIds."));
             }
             break;
         }

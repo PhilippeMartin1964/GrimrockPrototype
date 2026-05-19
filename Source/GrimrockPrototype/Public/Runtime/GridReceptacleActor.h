@@ -39,6 +39,9 @@ public:
     TArray<FName> AcceptedArchetypeIds;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    TArray<FName> RejectedItemArchetypeIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
@@ -109,6 +112,7 @@ protected:
     void ExecuteRemovalLinks ();
     void AttachContainedItemActor ();
     void ClearContainedItemActor ();
+    FString GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const;
 
 private:
     UPROPERTY (Transient)

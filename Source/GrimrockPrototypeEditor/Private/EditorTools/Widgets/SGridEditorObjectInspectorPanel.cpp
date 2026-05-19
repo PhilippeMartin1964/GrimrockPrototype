@@ -634,6 +634,17 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
             + SVerticalBox::Slot ().AutoHeight ()
                 [
                     MakeTextRow (
+                        FText::FromString (TEXT ("Rejected Archetype Ids")),
+                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.RejectedItemArchetypeIds)),
+                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
+                    {
+                        NewBehavior.Receptacle.RejectedItemArchetypeIds = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
+                    })
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    MakeTextRow (
                         FText::FromString (TEXT ("Accepted Item Tags")),
                         FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.AcceptedItemTags)),
                         [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)

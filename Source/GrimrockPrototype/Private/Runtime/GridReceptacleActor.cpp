@@ -43,6 +43,7 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bAcceptAnyItem = ObjectData.Behavior.Receptacle.bAcceptAnyItem;
     AcceptedItemTags = ObjectData.Behavior.Receptacle.AcceptedItemTags;
     AcceptedArchetypeIds = ObjectData.Behavior.Receptacle.AcceptedArchetypeIds;
+    RejectedItemArchetypeIds = ObjectData.Behavior.Receptacle.RejectedItemArchetypeIds;
     InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
     bStartsFilled = ObjectData.bInitiallyActive;
 
@@ -72,30 +73,7 @@ bool AGridReceptacleActor::CanAcceptItem (FName ItemId) const
 
 bool AGridReceptacleActor::CanAcceptItemArchetype (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
 {
-    if (!bCanInsertItem || HasItem () || ItemArchetypeId.IsNone ())
-    {
-        return false;
-    }
-
-    if (bAcceptAnyItem)
-    {
-        return true;
-    }
-
-    if (AcceptedArchetypeIds.Contains (ItemArchetypeId))
-    {
-        return true;
-    }
-
-    for (const FName& AcceptedTag : AcceptedItemTags)
-    {
-        if (!AcceptedTag.IsNone () && ItemTags.Contains (AcceptedTag))
-        {
-            return true;
-        }
-    }
-
-    return false;
+    return GetItemAcceptanceFailureReason (ItemArchetypeId, ItemTags).IsEmpty ();
 }
 
 bool AGridReceptacleActor::TryInsertItem (FName ItemId)
@@ -112,6 +90,17 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemId)
 
     if (!CanAcceptItemArchetype (ItemId, ItemTags))
     {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item %s: %s"),
+            *ObjectId.ToString (),
+            *ItemId.ToString (),
+            *GetItemAcceptanceFailureReason (ItemId, ItemTags));
+        return false;
+    }
+
+    if (ItemId.IsNone ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s cannot insert an inventory item without an ArchetypeId."),
+            *ObjectId.ToString ());
         return false;
     }
 
@@ -132,8 +121,19 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemId)
 
 bool AGridReceptacleActor::TryInsertItemActor (AGridItemActor* ItemActor)
 {
-    if (!ItemActor || !CanAcceptItemArchetype (ItemActor->ArchetypeId, ItemActor->ItemTags))
+    if (!ItemActor)
     {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item actor: item actor is null."),
+            *ObjectId.ToString ());
+        return false;
+    }
+
+    if (!CanAcceptItemArchetype (ItemActor->ArchetypeId, ItemActor->ItemTags))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item actor %s: %s"),
+            *ObjectId.ToString (),
+            *ItemActor->ArchetypeId.ToString (),
+            *GetItemAcceptanceFailureReason (ItemActor->ArchetypeId, ItemActor->ItemTags));
         return false;
     }
 
@@ -217,7 +217,10 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 
     if (!CanAcceptItemArchetype (HeldItemId, HeldItemTags))
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle rejected item %s"), *HeldItemId.ToString ());
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected held item %s: %s"),
+            *ObjectId.ToString (),
+            *HeldItemId.ToString (),
+            *GetItemAcceptanceFailureReason (HeldItemId, HeldItemTags));
         return false;
     }
 
@@ -325,6 +328,51 @@ void AGridReceptacleActor::ClearContainedItemActor ()
     ContainedItemActor->Destroy ();
     ContainedItemActor = nullptr;
     ContainedItemTags.Reset ();
+}
+
+FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
+{
+    if (!bCanInsertItem)
+    {
+        return TEXT ("insertion is disabled");
+    }
+
+    if (HasItem ())
+    {
+        return TEXT ("receptacle already contains an item");
+    }
+
+    if (ItemArchetypeId.IsNone ())
+    {
+        return bAcceptAnyItem
+            ? FString ()
+            : FString (TEXT ("item has no ArchetypeId and the receptacle uses strict acceptance rules"));
+    }
+
+    if (RejectedItemArchetypeIds.Contains (ItemArchetypeId))
+    {
+        return FString::Printf (TEXT ("item ArchetypeId '%s' is explicitly rejected"), *ItemArchetypeId.ToString ());
+    }
+
+    if (bAcceptAnyItem)
+    {
+        return FString ();
+    }
+
+    if (AcceptedArchetypeIds.Contains (ItemArchetypeId))
+    {
+        return FString ();
+    }
+
+    for (const FName& AcceptedTag : AcceptedItemTags)
+    {
+        if (!AcceptedTag.IsNone () && ItemTags.Contains (AcceptedTag))
+        {
+            return FString ();
+        }
+    }
+
+    return FString::Printf (TEXT ("item ArchetypeId '%s' and tags are not accepted"), *ItemArchetypeId.ToString ());
 }
 
 void AGridReceptacleActor::ExecuteInsertionLinks ()

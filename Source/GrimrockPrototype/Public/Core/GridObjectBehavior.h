@@ -75,6 +75,9 @@ struct FGridReceptacleBehaviorParams
     TArray<FName> AcceptedArchetypeIds;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    TArray<FName> RejectedItemArchetypeIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
 };
 

@@ -1920,12 +1920,24 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         {
             const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
             if (!Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ()
+                && !Behavior.Receptacle.bAcceptAnyItem
                 && !Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId))
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
                     FString::Printf (
                         TEXT ("Receptacle starts with '%s' but AcceptedArchetypeIds does not include it."),
+                        *Behavior.Receptacle.InitialContainedItemArchetypeId.ToString ()),
+                    Obj.ObjectId);
+            }
+
+            if (!Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ()
+                && Behavior.Receptacle.RejectedItemArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Receptacle starts with '%s' but RejectedItemArchetypeIds includes it."),
                         *Behavior.Receptacle.InitialContainedItemArchetypeId.ToString ()),
                     Obj.ObjectId);
             }
