@@ -245,3 +245,12 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Créer une carte de test dédiée aux mécanismes.
 - Nettoyer les anciens comportements legacy après sauvegarde/migration des assets.
 
+## 2026-05-20 — Phase 1 UX Grid Editor
+
+- Suppression des boutons d’action inutiles de l’inspecteur.
+- Remplacement visuel de Links par Connectors.
+- Suppression du bouton APPLY BEHAVIOR.
+- Application automatique des changements de comportement.
+- Suppression du bloc danger Clear Links.
+- Conservation de Move To Current Cell et Rotate 90°.
+- Aucun changement apporté à EGridObjectEvent ni EGridObjectCommand.
