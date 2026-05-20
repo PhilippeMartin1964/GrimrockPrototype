@@ -6,6 +6,7 @@
 #if WITH_EDITOR
 
 class AGridLevelEditorActor;
+class UGridObjectArchetypeAsset;
 enum class EGridObjectTriggerMode : uint8;
 struct FGridLevelObjectData;
 
@@ -38,6 +39,8 @@ private:
     TSharedRef<SWidget> BuildLeverDetailsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildButtonDetailsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildPressurePlateDetailsSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildTeleporterDetailsSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildLightDetailsSection (const UGridObjectArchetypeAsset& Archetype);
     TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildItemSpawnBehaviorSection (const FGridLevelObjectData& Obj);

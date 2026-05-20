@@ -9,10 +9,12 @@
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
+#include "Styling/SlateColor.h"
 
 #include "Templates/Function.h"
 
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
@@ -27,6 +29,40 @@ namespace
     FText GetInitialActiveStateText (const FGridLevelObjectData& Obj, const TCHAR* ActiveText, const TCHAR* InactiveText)
     {
         return FText::FromString (Obj.bInitiallyActive ? FString (ActiveText) : FString (InactiveText));
+    }
+
+    FText GetBoolText (bool bValue)
+    {
+        return FText::FromString (bValue ? TEXT ("Yes") : TEXT ("No"));
+    }
+
+    FText GetNameText (const FName& Name)
+    {
+        return Name.IsNone ()
+            ? FText::FromString (TEXT ("None"))
+            : FText::FromName (Name);
+    }
+
+    FText GetObjectNameText (const UObject* Object)
+    {
+        return Object
+            ? FText::FromString (Object->GetName ())
+            : FText::FromString (TEXT ("None"));
+    }
+
+    FText GetClassNameText (const UClass* Class)
+    {
+        return Class
+            ? FText::FromString (Class->GetName ())
+            : FText::FromString (TEXT ("None"));
+    }
+
+    FText GetTriggerModeText (EGridObjectTriggerMode TriggerMode)
+    {
+        const UEnum* TriggerModeEnum = StaticEnum<EGridObjectTriggerMode> ();
+        return TriggerModeEnum
+            ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (TriggerMode))
+            : FText::FromString (TEXT ("Unknown"));
     }
 
     FText GetEdgeOrFacingText (const FGridLevelObjectData& Obj)
@@ -66,6 +102,58 @@ namespace
             FText::FromString (TEXT ("@ ({0},{1})")),
             FText::AsNumber (Obj.CellX),
             FText::AsNumber (Obj.CellY));
+    }
+
+    TSharedRef<SWidget> BuildReadOnlyTriggerSummary (const FGridObjectBehaviorParams& Behavior, bool bIncludeFireFlags)
+    {
+        TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Trigger Mode")),
+                    GetTriggerModeText (Behavior.Activation.TriggerMode))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Delay")),
+                    FText::AsNumber (Behavior.Activation.Delay))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Duration")),
+                    FText::AsNumber (Behavior.Activation.Duration))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Invert Connectors")),
+                    GetBoolText (Behavior.Activation.bInvertLinks))
+            ];
+
+        if (bIncludeFireFlags)
+        {
+            Root->AddSlot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Fire on Enter")),
+                    GetBoolText (Behavior.Trigger.bFireOnEnter))
+            ];
+
+            Root->AddSlot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Fire on Exit")),
+                    GetBoolText (Behavior.Trigger.bFireOnExit))
+            ];
+        }
+
+        return Root;
     }
 }
 
@@ -157,6 +245,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 {
     const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
     const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type));
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
+        : nullptr;
+    const FText TitleText = Archetype && !Archetype->DisplayName.IsEmpty ()
+        ? Archetype->DisplayName
+        : TypeText;
 
     return SNew (SBorder)
         .Padding (8.f)
@@ -193,12 +288,24 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
                         .FillWidth (1.f)
                         .VAlign (VAlign_Center)
                         [
-                            SNew (STextBlock)
-                                .Text (FText::Format (
-                                    FText::FromString (TEXT ("{0} {1}")),
-                                    TypeText,
-                                    GetHeaderPlacementText (Obj)))
-                                .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 20))
+                            SNew (SVerticalBox)
+
+                                + SVerticalBox::Slot ().AutoHeight ()
+                                [
+                                    SNew (STextBlock)
+                                        .Text (TitleText)
+                                        .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 20))
+                                ]
+
+                                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 0.f)
+                                [
+                                    SNew (STextBlock)
+                                        .Text (FText::Format (
+                                            FText::FromString (TEXT ("{0} {1}")),
+                                            TypeText,
+                                            GetHeaderPlacementText (Obj)))
+                                        .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+                                ]
                         ]
                 ]
 
@@ -222,71 +329,121 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (const FGridLevelObjectData& Obj)
 {
     const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
+    const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind> ();
+    const UEnum* ObjectCategoryEnum = StaticEnum<EGridObjectCategory> ();
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
+        : nullptr;
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Type")),
+                GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type)))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Cell X")),
+                FText::AsNumber (Obj.CellX))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Cell Y")),
+                FText::AsNumber (Obj.CellY))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Edge / Facing")),
+                GetEdgeOrFacingText (Obj))
+        ];
+
+    if (Archetype)
+    {
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Placement Kind")),
+                GridEditorWidgetHelpers::GetGridEnumDisplayText (PlacementKindEnum, static_cast<int64>(Archetype->PlacementKind)))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Category")),
+                GetNameText (Archetype->Category))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Object Category")),
+                GridEditorWidgetHelpers::GetGridEnumDisplayText (ObjectCategoryEnum, static_cast<int64>(Archetype->ObjectCategory)))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Interactable")),
+                GetBoolText (Archetype->bIsInteractable))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Blocks Movement")),
+                GetBoolText (Archetype->bBlocksMovement))
+        ];
+    }
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+    [
+        SNew (SHorizontalBox)
+            + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
+            [
+                SNew (SCheckBox)
+                    .IsChecked (Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                    .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                {
+                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                    {
+                        CurrentEditorActor->SetSelectedObjectInitiallyEnabled (NewState == ECheckBoxState::Checked);
+                        RequestRefresh ();
+                    }
+                })
+                    [
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Enabled")))
+                    ]
+            ]
+            + SHorizontalBox::Slot ().AutoWidth ()
+            [
+                SNew (SCheckBox)
+                    .IsChecked (Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                    .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                {
+                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                    {
+                        CurrentEditorActor->SetSelectedObjectInitiallyActive (NewState == ECheckBoxState::Checked);
+                        RequestRefresh ();
+                    }
+                })
+                    [
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
+                    ]
+            ]
+    ];
 
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Game Object")),
-        SNew (SVerticalBox)
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Type")),
-                    GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type)))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Cell X / Y")),
-                    FText::Format (
-                        FText::FromString (TEXT ("{0}, {1}")),
-                        FText::AsNumber (Obj.CellX),
-                        FText::AsNumber (Obj.CellY)))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Edge or Facing")),
-                    GetEdgeOrFacingText (Obj))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-            [
-                SNew (SHorizontalBox)
-                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                    [
-                        SNew (SCheckBox)
-                            .IsChecked (Obj.bInitiallyEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                        {
-                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                            {
-                                CurrentEditorActor->SetSelectedObjectInitiallyEnabled (NewState == ECheckBoxState::Checked);
-                                RequestRefresh ();
-                            }
-                        })
-                            [
-                                SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Enabled")))
-                            ]
-                    ]
-                    + SHorizontalBox::Slot ().AutoWidth ()
-                    [
-                        SNew (SCheckBox)
-                            .IsChecked (Obj.bInitiallyActive ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                        {
-                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                            {
-                                CurrentEditorActor->SetSelectedObjectInitiallyActive (NewState == ECheckBoxState::Checked);
-                                RequestRefresh ();
-                            }
-                        })
-                            [
-                                SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
-                            ]
-                    ]
-            ]);
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSection (const FGridLevelObjectData& Obj)
@@ -296,135 +453,230 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
         ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
         : nullptr;
 
+    TSharedPtr<SWidget> PrimarySection;
     if (Archetype && Archetype->IsReadable ())
     {
-        return BuildReadableTextSection (Obj);
+        PrimarySection = BuildReadableTextSection (Obj);
     }
-
-    switch (Obj.Type)
+    else
     {
-        case EGridLevelObjectType::Door:
-            return BuildDoorDetailsSection (Obj);
+        switch (Obj.Type)
+        {
+            case EGridLevelObjectType::Door:
+                PrimarySection = BuildDoorDetailsSection (Obj);
+                break;
 
-        case EGridLevelObjectType::Lever:
-            return BuildLeverDetailsSection (Obj);
+            case EGridLevelObjectType::Lever:
+                PrimarySection = BuildLeverDetailsSection (Obj);
+                break;
 
-        case EGridLevelObjectType::Button:
-            return BuildButtonDetailsSection (Obj);
+            case EGridLevelObjectType::Button:
+                PrimarySection = BuildButtonDetailsSection (Obj);
+                break;
 
-        case EGridLevelObjectType::PressurePlate:
-            return BuildPressurePlateDetailsSection (Obj);
+            case EGridLevelObjectType::PressurePlate:
+                PrimarySection = BuildPressurePlateDetailsSection (Obj);
+                break;
 
-        case EGridLevelObjectType::Trigger:
-            return BuildTriggerBehaviorSection (Obj);
+            case EGridLevelObjectType::Trigger:
+                PrimarySection = BuildTriggerBehaviorSection (Obj);
+                break;
 
-        case EGridLevelObjectType::Receptacle:
-            return BuildReceptacleBehaviorSection (Obj);
+            case EGridLevelObjectType::Receptacle:
+                PrimarySection = BuildReceptacleBehaviorSection (Obj);
+                break;
 
-        case EGridLevelObjectType::ItemSpawn:
-            return BuildItemSpawnBehaviorSection (Obj);
+            case EGridLevelObjectType::ItemSpawn:
+                PrimarySection = BuildItemSpawnBehaviorSection (Obj);
+                break;
 
-        default:
-            return GridEditorWidgetHelpers::BuildGridPanelSection (
-                FText::FromString (TEXT ("Component")),
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("No contextual component fields are exposed for this object type yet.")))
-                    .AutoWrapText (true));
+            case EGridLevelObjectType::Teleporter:
+                PrimarySection = BuildTeleporterDetailsSection (Obj);
+                break;
+
+            default:
+                PrimarySection = GridEditorWidgetHelpers::BuildGridPanelSection (
+                    FText::FromString (TEXT ("Component")),
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("No contextual component fields are exposed for this object type yet.")))
+                        .AutoWrapText (true));
+                break;
+        }
     }
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            PrimarySection.ToSharedRef ()
+        ];
+
+    if (Archetype && Archetype->bIsLightSource)
+    {
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
+        [
+            BuildLightDetailsSection (*Archetype)
+        ];
+    }
+
+    return Root;
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection (const FGridLevelObjectData& Obj)
 {
-    return GridEditorWidgetHelpers::BuildGridPanelSection (
-        FText::FromString (TEXT ("Advanced / Debug")),
-        SNew (SVerticalBox)
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
+        : nullptr;
 
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("ObjectId")),
-                    FText::FromString (Obj.ObjectId.ToString ()))
-            ]
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
 
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridPropertyRow (
-                    FText::FromString (TEXT ("ArchetypeId")),
-                    SNew (SEditableTextBox)
-                        .Text (FText::FromName (Obj.ArchetypeId))
-                        .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                        {
-                            CurrentEditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
-                            RequestRefresh ();
-                        }
-                    }))
-            ]
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("ObjectId")),
+                FText::FromString (Obj.ObjectId.ToString ()))
+        ]
 
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridPropertyRow (
-                    FText::FromString (TEXT ("Tag")),
-                    SNew (SEditableTextBox)
-                        .Text (FText::FromName (Obj.Tag))
-                        .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                    {
-                        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                        {
-                            CurrentEditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
-                            RequestRefresh ();
-                        }
-                    }))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-            [
-                SNew (STextBlock).Text (FText::FromString (TEXT ("Notes")))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                SNew (SMultiLineEditableTextBox)
-                    .Text (FText::FromString (Obj.Notes))
-                    .AutoWrapText (true)
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("ArchetypeId")),
+                SNew (SEditableTextBox)
+                    .Text (FText::FromName (Obj.ArchetypeId))
                     .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
                 {
                     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
                     {
-                        CurrentEditorActor->SetSelectedObjectNotes (NewText.ToString ());
+                        CurrentEditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
                         RequestRefresh ();
                     }
-                })
-            ]);
+                }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Tag")),
+                SNew (SEditableTextBox)
+                    .Text (FText::FromName (Obj.Tag))
+                    .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                {
+                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                    {
+                        CurrentEditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
+                        RequestRefresh ();
+                    }
+                }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+        [
+            SNew (STextBlock).Text (FText::FromString (TEXT ("Notes")))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SMultiLineEditableTextBox)
+                .Text (FText::FromString (Obj.Notes))
+                .AutoWrapText (true)
+                .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+            {
+                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                {
+                    CurrentEditorActor->SetSelectedObjectNotes (NewText.ToString ());
+                    RequestRefresh ();
+                }
+            })
+        ];
+
+    if (Archetype)
+    {
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("RuntimeActorClass")),
+                GetClassNameText (Archetype->RuntimeActorClass.Get ()))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("PreviewMesh")),
+                GetObjectNameText (Archetype->PreviewMesh.Get ()))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("FixedMesh")),
+                GetObjectNameText (Archetype->FixedMesh.Get ()))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("MovingMesh")),
+                GetObjectNameText (Archetype->MovingMesh.Get ()))
+        ];
+    }
+
+    return GridEditorWidgetHelpers::BuildGridPanelSection (
+        FText::FromString (TEXT ("Advanced / Debug")),
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection (const FGridLevelObjectData& Obj)
 {
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
+        : nullptr;
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Initial State")),
+                GetInitialActiveStateText (Obj, TEXT ("Open / Active"), TEXT ("Closed / Inactive")))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Blocks Movement")),
+                Archetype
+                    ? GetBoolText (Archetype->bBlocksMovement)
+                    : FText::FromString (TEXT ("Runtime door blocking handled by door system")))
+        ];
+
+    if (Archetype)
+    {
+        Root->AddSlot ().AutoHeight ()
+        [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Moving Mesh")),
+                    GetBoolText (Archetype->MovingMesh.Get () != nullptr))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Fixed Mesh")),
+                    GetBoolText (Archetype->FixedMesh.Get () != nullptr))
+        ];
+    }
+
+    Root->AddSlot ().AutoHeight ()
+    [
+        GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+            FText::FromString (TEXT ("Supported Commands")),
+            FText::FromString (TEXT ("Open, Close, Toggle, Lock, Unlock")))
+    ];
+
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Door")),
-        SNew (SVerticalBox)
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Initial State")),
-                    GetInitialActiveStateText (Obj, TEXT ("Open / Active"), TEXT ("Closed / Deactivated")))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Blocking")),
-                    FText::FromString (TEXT ("Runtime door blocks movement when closed")))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Supported Commands")),
-                    FText::FromString (TEXT ("Open, Close, Toggle, Lock, Unlock")))
-            ]);
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection (const FGridLevelObjectData& Obj)
@@ -437,7 +689,12 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection (c
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                     FText::FromString (TEXT ("Initial State")),
-                    GetInitialActiveStateText (Obj, TEXT ("Active"), TEXT ("Deactivated")))
+                    GetInitialActiveStateText (Obj, TEXT ("Activated"), TEXT ("Deactivated")))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildReadOnlyTriggerSummary (Obj.Behavior, false)
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
@@ -450,7 +707,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection (c
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection (const FGridLevelObjectData& Obj)
 {
-    FString ButtonType = TEXT ("Unknown");
+    FString ButtonType = TEXT ("Generic");
     const FString ArchetypeIdText = Obj.ArchetypeId.ToString ();
     if (ArchetypeIdText.Contains (TEXT ("Button_Secret"), ESearchCase::IgnoreCase))
     {
@@ -486,6 +743,34 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection (
             + SVerticalBox::Slot ().AutoHeight ()
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("ButtonPressDistance")),
+                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonPressDistance))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("ButtonPressDuration")),
+                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonPressDuration))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("ButtonReleaseDuration")),
+                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonReleaseDuration))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("ButtonHoldTime")),
+                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonHoldTime))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                     FText::FromString (TEXT ("Emits")),
                     FText::FromString (TEXT ("Activated, Used")))
             ]);
@@ -501,14 +786,19 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                     FText::FromString (TEXT ("Initial State")),
-                    GetInitialActiveStateText (Obj, TEXT ("Active"), TEXT ("Deactivated")))
+                    GetInitialActiveStateText (Obj, TEXT ("Activated"), TEXT ("Deactivated")))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildReadOnlyTriggerSummary (Obj.Behavior, true)
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                     FText::FromString (TEXT ("Emits")),
-                    FText::FromString (TEXT ("Activated, Deactivated")))
+                    FText::FromString (TEXT ("Activated, Deactivated, Entered, Exited")))
             ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
@@ -516,6 +806,62 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
                 SNew (STextBlock)
                     .Text (FText::FromString (TEXT ("Detailed trigger filters are not exposed yet.")))
                     .AutoWrapText (true)
+            ]);
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSection (const FGridLevelObjectData& Obj)
+{
+    return GridEditorWidgetHelpers::BuildGridPanelSection (
+        FText::FromString (TEXT ("Teleporter")),
+        SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Target Cell X")),
+                    FText::AsNumber (Obj.Behavior.Teleporter.TargetCellX))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Target Cell Y")),
+                    FText::AsNumber (Obj.Behavior.Teleporter.TargetCellY))
+            ]);
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLightDetailsSection (const UGridObjectArchetypeAsset& Archetype)
+{
+    return GridEditorWidgetHelpers::BuildGridPanelSection (
+        FText::FromString (TEXT ("Light")),
+        SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Light Color")),
+                    FText::FromString (Archetype.LightColor.ToString ()))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Intensity")),
+                    FText::AsNumber (Archetype.LightIntensity))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Radius")),
+                    FText::AsNumber (Archetype.LightRadius))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                    FText::FromString (TEXT ("Flicker")),
+                    GetBoolText (Archetype.bUseLightFlicker))
             ]);
 }
 
@@ -736,6 +1082,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
     };
 
     const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
+        ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
+        : nullptr;
+    const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind> ();
 
     return SNew (SBorder)
         .Padding (6.f)
@@ -748,6 +1099,33 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                     SNew (STextBlock)
                         .Text (FText::FromString (TEXT ("Receptacle")))
                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    Archetype
+                        ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                            FText::FromString (TEXT ("Interactable")),
+                            GetBoolText (Archetype->bIsInteractable))
+                        : SNullWidget::NullWidget
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    Archetype
+                        ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                            FText::FromString (TEXT ("Placement Kind")),
+                            GridEditorWidgetHelpers::GetGridEnumDisplayText (PlacementKindEnum, static_cast<int64>(Archetype->PlacementKind)))
+                        : SNullWidget::NullWidget
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    Archetype && Archetype->bIsLightSource
+                        ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                            FText::FromString (TEXT ("Is Light Source")),
+                            GetBoolText (Archetype->bIsLightSource))
+                        : SNullWidget::NullWidget
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
