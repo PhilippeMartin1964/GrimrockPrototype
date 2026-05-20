@@ -31,9 +31,17 @@ private:
 
     TSharedRef<SWidget> BuildObjectInspectorSection ();
     TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildGameObjectSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildContextualComponentSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildAdvancedDebugSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildDoorDetailsSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildLeverDetailsSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildButtonDetailsSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildPressurePlateDetailsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildItemSpawnBehaviorSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildReadableTextSection (const FGridLevelObjectData& Obj);
 
     TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
 
