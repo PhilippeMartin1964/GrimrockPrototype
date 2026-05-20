@@ -93,27 +93,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 4.f, 0.f)
                 [
                     GridEditorWidgetHelpers::BuildGridActionButton (
-                        FText::FromString (TEXT ("Focus Selected Object")),
-                        FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnFocusSelectedObjectClicked))
-                ]
-
-            + SHorizontalBox::Slot ().AutoWidth ()
-                [
-                    GridEditorWidgetHelpers::BuildGridActionButton (
-                        FText::FromString (TEXT ("Apply Selected Object")),
-                        FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnApplySelectedObjectClicked))
-                ]
-
-                + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
-                [
-                    GridEditorWidgetHelpers::BuildGridActionButton (
-                        FText::FromString (TEXT ("Reset Behavior From Archetype")),
-                        FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnResetBehaviorFromArchetypeClicked))
-                ]
-
-                + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
-                [
-                    GridEditorWidgetHelpers::BuildGridActionButton (
                         FText::FromString (TEXT ("Move To Current Cell")),
                         FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnMoveSelectedObjectToCurrentCellClicked))
                 ]
@@ -542,7 +521,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                     + SHorizontalBox::Slot ().AutoWidth ()
                         [
                             MakeCheckRow (
-                                FText::FromString (TEXT ("Invert Links")),
+                                FText::FromString (TEXT ("Invert Connectors")),
                                 Behavior.Activation.bInvertLinks,
                                 [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
                             {

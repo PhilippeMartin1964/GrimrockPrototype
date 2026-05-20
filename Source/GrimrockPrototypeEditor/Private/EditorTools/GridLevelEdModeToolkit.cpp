@@ -164,7 +164,7 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
     {
         AddToolkitPanel (
             BuildCollapsiblePanelSection (
-                FText::FromString (TEXT ("LINKS")),
+                FText::FromString (TEXT ("CONNECTORS")),
                 [this] () -> TSharedRef<SWidget>
                 {
                     return SNew (SGridEditorLinksPanel)

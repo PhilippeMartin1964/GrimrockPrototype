@@ -10,7 +10,6 @@
 
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -159,13 +158,6 @@ TSharedRef<SWidget> SGridEditorBehaviorPanel::BuildBehaviorEditorSection ()
                                 ]
                         ]
 
-                    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
-                        [
-                            SNew (SButton)
-                                .Text (FText::FromString (TEXT ("APPLY BEHAVIOR")))
-                                .HAlign (HAlign_Center)
-                                .OnClicked (this, &SGridEditorBehaviorPanel::OnApplyBehaviorClicked)
-                        ]
                 ]
 
             + SHorizontalBox::Slot ().FillWidth (0.45f)
@@ -178,7 +170,7 @@ TSharedRef<SWidget> SGridEditorBehaviorPanel::BuildBehaviorEditorSection ()
                                 .IsChecked (this, &SGridEditorBehaviorPanel::GetEditedInvertLinksCheckState)
                                 .OnCheckStateChanged (this, &SGridEditorBehaviorPanel::OnEditedInvertLinksChanged)
                                 [
-                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Invert Links")))
+                                    SNew (STextBlock).Text (FText::FromString (TEXT ("Invert Connectors")))
                                 ]
                         ]
 
@@ -220,7 +212,7 @@ TSharedRef<SWidget> SGridEditorBehaviorPanel::BuildBehaviorEditorSection ()
         ];
 }
 
-FReply SGridEditorBehaviorPanel::OnApplyBehaviorClicked ()
+void SGridEditorBehaviorPanel::ApplyEditedBehaviorToSelection ()
 {
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
     {
@@ -231,8 +223,6 @@ FReply SGridEditorBehaviorPanel::OnApplyBehaviorClicked ()
             RequestRefresh ();
         }
     }
-
-    return FReply::Handled ();
 }
 
 TOptional<float> SGridEditorBehaviorPanel::GetEditedDelay () const
@@ -248,11 +238,13 @@ TOptional<float> SGridEditorBehaviorPanel::GetEditedDuration () const
 void SGridEditorBehaviorPanel::OnEditedDelayChanged (float NewValue)
 {
     EditedBehavior.Activation.Delay = FMath::Max (0.f, NewValue);
+    ApplyEditedBehaviorToSelection ();
 }
 
 void SGridEditorBehaviorPanel::OnEditedDurationChanged (float NewValue)
 {
     EditedBehavior.Activation.Duration = FMath::Max (0.f, NewValue);
+    ApplyEditedBehaviorToSelection ();
 }
 
 ECheckBoxState SGridEditorBehaviorPanel::GetEditedInvertLinksCheckState () const
@@ -278,16 +270,19 @@ FText SGridEditorBehaviorPanel::GetEditedSpawnedItemArchetypeIdText () const
 void SGridEditorBehaviorPanel::OnEditedInvertLinksChanged (ECheckBoxState NewState)
 {
     EditedBehavior.Activation.bInvertLinks = NewState == ECheckBoxState::Checked;
+    ApplyEditedBehaviorToSelection ();
 }
 
 void SGridEditorBehaviorPanel::OnEditedFireOnEnterChanged (ECheckBoxState NewState)
 {
     EditedBehavior.Trigger.bFireOnEnter = NewState == ECheckBoxState::Checked;
+    ApplyEditedBehaviorToSelection ();
 }
 
 void SGridEditorBehaviorPanel::OnEditedFireOnExitChanged (ECheckBoxState NewState)
 {
     EditedBehavior.Trigger.bFireOnExit = NewState == ECheckBoxState::Checked;
+    ApplyEditedBehaviorToSelection ();
 }
 
 void SGridEditorBehaviorPanel::OnEditedSpawnedItemArchetypeIdCommitted (const FText& NewText, ETextCommit::Type CommitType)
@@ -297,6 +292,7 @@ void SGridEditorBehaviorPanel::OnEditedSpawnedItemArchetypeIdCommitted (const FT
     EditedBehavior.ItemSpawn.SpawnedItemArchetypeId = TrimmedText.IsEmpty ()
         ? NAME_None
         : FName (*TrimmedText);
+    ApplyEditedBehaviorToSelection ();
 }
 
 TSharedRef<SWidget> SGridEditorBehaviorPanel::MakeTriggerModeComboWidget (
@@ -322,6 +318,7 @@ void SGridEditorBehaviorPanel::OnTriggerModeSelectionChanged (
     if (NewValue.IsValid ())
     {
         EditedBehavior.Activation.TriggerMode = *NewValue;
+        ApplyEditedBehaviorToSelection ();
     }
 }
 

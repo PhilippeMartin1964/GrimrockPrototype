@@ -34,8 +34,7 @@ private:
     TSharedRef<SWidget> BuildBehaviorEditorSection ();
     void BuildTriggerModeOptions ();
     void SyncEditedBehaviorFromSelection ();
-
-    FReply OnApplyBehaviorClicked ();
+    void ApplyEditedBehaviorToSelection ();
 
     TOptional<float> GetEditedDelay () const;
     TOptional<float> GetEditedDuration () const;

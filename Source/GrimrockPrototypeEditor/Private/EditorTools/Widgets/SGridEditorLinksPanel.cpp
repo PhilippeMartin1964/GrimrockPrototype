@@ -149,7 +149,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
                                 [
                                     SNew (STextBlock)
-                                        .Text (FText::FromString (TEXT ("OUTGOING LINKS")))
+                                        .Text (FText::FromString (TEXT ("OUTGOING CONNECTORS")))
                                         .ColorAndOpacity (FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
                                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                                 ]
@@ -172,7 +172,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
                                 [
                                     SNew (STextBlock)
-                                        .Text (FText::FromString (TEXT ("INCOMING LINKS")))
+                                        .Text (FText::FromString (TEXT ("INCOMING CONNECTORS")))
                                         .ColorAndOpacity (FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
                                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                                 ]
@@ -182,33 +182,6 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                     BuildObjectLinksList (*SelectedObject, false)
                                 ]
                         ]
-                ]
-        ]
-
-    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
-        [
-            SNew (SBorder)
-                .Padding (6.f)
-                .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
-                [
-                    SNew (SHorizontalBox)
-
-                    + SHorizontalBox::Slot ()
-                    .FillWidth (1.f)
-                    .VAlign (VAlign_Center)
-                    [
-                        SNew (STextBlock)
-                            .Text (FText::FromString (TEXT ("Clear all links connected to the selected object")))
-                            .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
-                    ]
-
-                    + SHorizontalBox::Slot ()
-                    .AutoWidth ()
-                    [
-                        GridEditorWidgetHelpers::BuildGridActionButton (
-                            FText::FromString (TEXT ("Clear Links")),
-                            FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnClearSelectedObjectLinksClicked))
-                    ]
                 ]
         ];
 }
@@ -223,7 +196,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinkCreationSection ()
 
                 + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
                 [
-                    SNew (STextBlock).Text (FText::FromString (TEXT ("New Link Event")))
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("New Connector Event")))
                 ]
 
                 + SHorizontalBox::Slot ().FillWidth (0.5f).Padding (0.f, 0.f, 12.f, 0.f)
@@ -340,8 +313,8 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
                             [
                                 GridEditorWidgetHelpers::BuildGridActionButton (
                                     bOutgoing
-                                        ? FText::FromString (TEXT ("Select Target"))
-                                        : FText::FromString (TEXT ("Select Source")),
+                                        ? FText::FromString (TEXT ("Go To Target"))
+                                        : FText::FromString (TEXT ("Go To Source")),
                                     FOnClicked::CreateLambda ([this, OtherId] () -> FReply
                                     {
                                         return OnSelectObjectFromLinkClicked (OtherId);
