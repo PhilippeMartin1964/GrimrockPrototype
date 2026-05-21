@@ -23,6 +23,7 @@
 
 #include "Widgets/SWidget.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Text/STextBlock.h"
 
 #include "Widgets/Layout/SBorder.h"
@@ -310,6 +311,70 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
                                     : FLinearColor (0.50f, 0.50f, 0.50f, 1.f)))
                         ]
                     ]
+
+                + SVerticalBox::Slot ()
+                .AutoHeight ()
+                .Padding (0.f, 6.f, 0.f, 0.f)
+                [
+                    SNew (SHorizontalBox)
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        .Padding (0.f, 0.f, 12.f, 0.f)
+                        [
+                            SNew (SCheckBox)
+                                .IsChecked_Lambda ([this] ()
+                                {
+                                    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+                                    return EditorActor && EditorActor->bShowOutgoingConnectors
+                                        ? ECheckBoxState::Checked
+                                        : ECheckBoxState::Unchecked;
+                                })
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                                {
+                                    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                    {
+                                        EditorActor->bShowOutgoingConnectors = NewState == ECheckBoxState::Checked;
+                                        if (GEditor)
+                                        {
+                                            GEditor->RedrawAllViewports ();
+                                        }
+                                    }
+                                })
+                                [
+                                    SNew (STextBlock)
+                                        .Text (FText::FromString (TEXT ("Show Outgoing Connectors")))
+                                ]
+                        ]
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        [
+                            SNew (SCheckBox)
+                                .IsChecked_Lambda ([this] ()
+                                {
+                                    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+                                    return EditorActor && EditorActor->bShowIncomingConnectors
+                                        ? ECheckBoxState::Checked
+                                        : ECheckBoxState::Unchecked;
+                                })
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                                {
+                                    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                    {
+                                        EditorActor->bShowIncomingConnectors = NewState == ECheckBoxState::Checked;
+                                        if (GEditor)
+                                        {
+                                            GEditor->RedrawAllViewports ();
+                                        }
+                                    }
+                                })
+                                [
+                                    SNew (STextBlock)
+                                        .Text (FText::FromString (TEXT ("Show Incoming Connectors")))
+                                ]
+                        ]
+                ]
         ];
 }
 

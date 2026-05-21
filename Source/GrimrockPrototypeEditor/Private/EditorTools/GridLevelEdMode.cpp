@@ -15,8 +15,13 @@
 
 namespace
 {
-    FLinearColor GetDebugLinkColor (EGridObjectCommand Command)
+    FLinearColor GetDebugLinkColor (EGridObjectCommand Command, bool bIncoming)
     {
+        if (bIncoming)
+        {
+            return FLinearColor (0.65f, 0.55f, 1.f, 0.85f);
+        }
+
         switch (Command)
         {
             case EGridObjectCommand::Open:
@@ -112,6 +117,52 @@ namespace
         PDI->DrawLine (Bottom, Top, Color, SDPG_Foreground, Thickness);
 
         DrawWireBox (PDI, FBox (Top - FVector (Radius, Radius, Radius), Top + FVector (Radius, Radius, Radius)), Color.ToFColor (true), SDPG_Foreground);
+    }
+
+    void DrawConnectorArrow (
+        FPrimitiveDrawInterface* PDI,
+        AGridLevelEditorActor* EditorActor,
+        const FGridLevelObjectData& SourceObject,
+        const FGridLevelObjectData& TargetObject,
+        EGridObjectCommand Command,
+        bool bIncoming)
+    {
+        FVector SourceCenter = FVector::ZeroVector;
+        FVector TargetCenter = FVector::ZeroVector;
+        if (!EditorActor->GetObjectEditorWorldCenter (SourceObject, SourceCenter) ||
+            !EditorActor->GetObjectEditorWorldCenter (TargetObject, TargetCenter))
+        {
+            return;
+        }
+
+        const FVector Delta = TargetCenter - SourceCenter;
+        const float Distance = Delta.Size ();
+        if (Distance < 10.f)
+        {
+            return;
+        }
+
+        const FVector Direction = Delta / Distance;
+        const FVector ArrowEnd = TargetCenter - Direction * 12.f;
+        const FLinearColor LinkColor = GetDebugLinkColor (Command, bIncoming);
+
+        DrawDashedLine (
+            PDI,
+            SourceCenter,
+            ArrowEnd,
+            LinkColor,
+            16.f,
+            9.f,
+            1.f,
+            SDPG_Foreground);
+        DrawArrowHead (
+            PDI,
+            ArrowEnd,
+            Direction,
+            LinkColor,
+            22.f,
+            1.f,
+            SDPG_Foreground);
     }
 }
 
@@ -381,61 +432,40 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
     const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
     if (SelectedObject && EditorActor->LevelAsset)
     {
-        FVector SourceCenter = FVector::ZeroVector;
-        if (EditorActor->GetObjectEditorWorldCenter (*SelectedObject, SourceCenter))
+        for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
         {
-            for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
+            const bool bOutgoing = Link.SourceObjectId == SelectedObject->ObjectId;
+            const bool bIncoming = Link.TargetObjectId == SelectedObject->ObjectId;
+
+            if ((!EditorActor->bShowOutgoingConnectors || !bOutgoing) &&
+                (!EditorActor->bShowIncomingConnectors || !bIncoming))
             {
-                if (Link.SourceObjectId != SelectedObject->ObjectId)
-                {
-                    continue;
-                }
-
-                const FGridLevelObjectData* TargetObject = EditorActor->LevelAsset->Objects.FindByPredicate (
-                    [&Link] (const FGridLevelObjectData& Obj)
-                {
-                    return Obj.ObjectId == Link.TargetObjectId;
-                });
-                if (!TargetObject)
-                {
-                    continue;
-                }
-
-                FVector TargetCenter = FVector::ZeroVector;
-                if (!EditorActor->GetObjectEditorWorldCenter (*TargetObject, TargetCenter))
-                {
-                    continue;
-                }
-
-                const FVector Delta = TargetCenter - SourceCenter;
-                const float Distance = Delta.Size ();
-                if (Distance < 10.f)
-                {
-                    continue;
-                }
-
-                const FLinearColor LinkColor = GetDebugLinkColor (Link.Command);
-                const FVector Direction = Delta / Distance;
-                const FVector ArrowEnd = TargetCenter - Direction * 12.f;
-
-                DrawDashedLine (
-                    PDI,
-                    SourceCenter,
-                    ArrowEnd,
-                    LinkColor,
-                    16.f,
-                    9.f,
-                    1.f,
-                    SDPG_Foreground);
-                DrawArrowHead (
-                    PDI,
-                    ArrowEnd,
-                    Direction,
-                    LinkColor,
-                    22.f,
-                    1.f,
-                    SDPG_Foreground);
+                continue;
             }
+
+            const FGridLevelObjectData* SourceObject = EditorActor->LevelAsset->Objects.FindByPredicate (
+                [&Link] (const FGridLevelObjectData& Obj)
+            {
+                return Obj.ObjectId == Link.SourceObjectId;
+            });
+            const FGridLevelObjectData* TargetObject = EditorActor->LevelAsset->Objects.FindByPredicate (
+                [&Link] (const FGridLevelObjectData& Obj)
+            {
+                return Obj.ObjectId == Link.TargetObjectId;
+            });
+
+            if (!SourceObject || !TargetObject)
+            {
+                continue;
+            }
+
+            DrawConnectorArrow (
+                PDI,
+                EditorActor,
+                *SourceObject,
+                *TargetObject,
+                Link.Command,
+                bIncoming && !bOutgoing);
         }
     }
 }
