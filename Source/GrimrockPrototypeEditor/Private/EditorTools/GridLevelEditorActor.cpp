@@ -1349,38 +1349,60 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter (
     }
 
     constexpr float FallbackCellHeight = 300.f;
-    constexpr float FloorObjectHeight = 36.f;
-    constexpr float WallObjectHeight = 140.f;
+    constexpr float DoorCenterHeight = FallbackCellHeight * 0.5f;
     constexpr float CeilingObjectInset = 32.f;
 
-    FVector GridWorldOrigin = GetActorLocation ();
+    auto ApplyDoorCenterHeight = [DoorCenterHeight] (const FGridLevelObjectData& ObjectData, FVector& InOutLocation)
+    {
+        if (ObjectData.Type == EGridLevelObjectType::Door)
+        {
+            InOutLocation.Z += DoorCenterHeight;
+        }
+    };
+
     if (PreviewRuntimeActor)
     {
-        GridWorldOrigin = PreviewRuntimeActor->GetActorLocation () + PreviewRuntimeActor->GridOrigin;
+        FTransform PlacementTransform = FTransform::Identity;
+        if (PreviewRuntimeActor->GetObjectPlacementTransform (Obj, PlacementTransform))
+        {
+            OutWorldCenter = PlacementTransform.GetLocation ();
+            ApplyDoorCenterHeight (Obj, OutWorldCenter);
+            return true;
+        }
     }
 
-    const FVector CellCenter = GridWorldOrigin + FVector (
-        (Obj.CellX * CellSize) + (CellSize * 0.5f),
-        (Obj.CellY * CellSize) + (CellSize * 0.5f),
-        0.f);
+    FVector GridWorldOrigin = GetActorLocation ();
+    const FVector CellBase = GridWorldOrigin + FVector (Obj.CellX * CellSize, Obj.CellY * CellSize, 0.f);
 
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (Obj.ArchetypeId);
     const EGridObjectPlacementKind PlacementKind = Archetype
         ? Archetype->PlacementKind
         : (IsEdgePlacedObject (Obj) ? EGridObjectPlacementKind::Edge : EGridObjectPlacementKind::Center);
 
-    auto ApplyEdgeOffset = [CellSize] (const FVector& InCellCenter, EGridEdge Edge, float Height) -> FVector
+    if (Obj.Type == EGridLevelObjectType::Door)
     {
-        const float Half = CellSize * 0.5f;
-        switch (Edge)
+        switch (Obj.Edge)
         {
-            case EGridEdge::North: return InCellCenter + FVector (0.f, Half, Height);
-            case EGridEdge::East:  return InCellCenter + FVector (Half, 0.f, Height);
-            case EGridEdge::South: return InCellCenter + FVector (0.f, -Half, Height);
-            case EGridEdge::West:  return InCellCenter + FVector (-Half, 0.f, Height);
-            default:               return InCellCenter + FVector (0.f, 0.f, Height);
+            case EGridEdge::North:
+                OutWorldCenter = CellBase + FVector (CellSize * 0.5f, CellSize, DoorCenterHeight);
+                return true;
+
+            case EGridEdge::East:
+                OutWorldCenter = CellBase + FVector (CellSize, CellSize * 0.5f, DoorCenterHeight);
+                return true;
+
+            case EGridEdge::South:
+                OutWorldCenter = CellBase + FVector (CellSize * 0.5f, 0.f, DoorCenterHeight);
+                return true;
+
+            case EGridEdge::West:
+                OutWorldCenter = CellBase + FVector (0.f, CellSize * 0.5f, DoorCenterHeight);
+                return true;
+
+            default:
+                return false;
         }
-    };
+    }
 
     switch (PlacementKind)
     {
@@ -1390,18 +1412,51 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter (
             {
                 return false;
             }
-            OutWorldCenter = ApplyEdgeOffset (CellCenter, Obj.Edge, WallObjectHeight);
-            return true;
+        {
+            const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : 12.f;
+            const float WallInset = Archetype ? Archetype->WallInset : 6.f;
+            const float LocalOffsetAlongWall = Archetype ? Archetype->LocalOffsetAlongWall : 0.f;
+            const float LocalOffsetVertical = Archetype ? Archetype->LocalOffsetVertical : 0.f;
+            const float FinalZ = PlacementZOffset + LocalOffsetVertical;
+
+            switch (Obj.Edge)
+            {
+                case EGridEdge::North:
+                    OutWorldCenter = CellBase + FVector ((CellSize * 0.5f) + LocalOffsetAlongWall, CellSize - WallInset, FinalZ);
+                    return true;
+
+                case EGridEdge::South:
+                    OutWorldCenter = CellBase + FVector ((CellSize * 0.5f) - LocalOffsetAlongWall, WallInset, FinalZ);
+                    return true;
+
+                case EGridEdge::East:
+                    OutWorldCenter = CellBase + FVector (CellSize - WallInset, (CellSize * 0.5f) - LocalOffsetAlongWall, FinalZ);
+                    return true;
+
+                case EGridEdge::West:
+                    OutWorldCenter = CellBase + FVector (WallInset, (CellSize * 0.5f) + LocalOffsetAlongWall, FinalZ);
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
 
         case EGridObjectPlacementKind::Ceiling:
-            OutWorldCenter = CellCenter + FVector (0.f, 0.f, FallbackCellHeight - CeilingObjectInset);
+        {
+            const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : FallbackCellHeight - CeilingObjectInset;
+            OutWorldCenter = CellBase + FVector (CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
             return true;
+        }
 
         case EGridObjectPlacementKind::Center:
         case EGridObjectPlacementKind::Floor:
         default:
-            OutWorldCenter = CellCenter + FVector (0.f, 0.f, FloorObjectHeight);
+        {
+            const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : 12.f;
+            OutWorldCenter = CellBase + FVector (CellSize * 0.5f, CellSize * 0.5f, PlacementZOffset);
             return true;
+        }
     }
 }
 

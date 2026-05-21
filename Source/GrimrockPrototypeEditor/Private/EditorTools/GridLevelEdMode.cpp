@@ -21,15 +21,15 @@ namespace
         {
             case EGridObjectCommand::Open:
             case EGridObjectCommand::Activate:
-                return FLinearColor (0.1f, 1.f, 0.25f, 1.f); // Vert
+                return FLinearColor (0.28f, 0.8f, 0.38f, 0.85f);
 
             case EGridObjectCommand::Close:
             case EGridObjectCommand::Deactivate:
-                return FLinearColor (1.f, 0.1f, 0.1f, 1.f); // Rouge
+                return FLinearColor (0.9f, 0.32f, 0.28f, 0.85f);
 
             case EGridObjectCommand::Toggle:
             default:
-                return FLinearColor (0.f, 0.85f, 1.f, 1.f); // Cyan
+                return FLinearColor (0.25f, 0.85f, 1.f, 0.85f);
         }
     }
 
@@ -40,6 +40,7 @@ namespace
         const FLinearColor& Color,
         float DashLength,
         float GapLength,
+        float Thickness,
         uint8 DepthPriority)
     {
         const FVector Delta = End - Start;
@@ -65,7 +66,7 @@ namespace
                 Start + Dir * SegmentEndDistance,
                 Color,
                 DepthPriority,
-                2.5f);
+                Thickness);
         }
     }
 
@@ -75,6 +76,7 @@ namespace
         const FVector& Direction,
         const FLinearColor& Color,
         float Size,
+        float Thickness,
         uint8 DepthPriority)
     {
         const FVector Dir = Direction.GetSafeNormal ();
@@ -93,8 +95,8 @@ namespace
         const FVector LeftWing = Tip - Dir * Size + Right * WingWidth;
         const FVector RightWing = Tip - Dir * Size - Right * WingWidth;
 
-        PDI->DrawLine (Tip, LeftWing, Color, DepthPriority, 2.75f);
-        PDI->DrawLine (Tip, RightWing, Color, DepthPriority, 2.75f);
+        PDI->DrawLine (Tip, LeftWing, Color, DepthPriority, Thickness);
+        PDI->DrawLine (Tip, RightWing, Color, DepthPriority, Thickness);
     }
 
     void DrawDebugObjectBox (FPrimitiveDrawInterface* PDI, const FVector& Center, const FColor& Color, float Size)
@@ -421,15 +423,17 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
                     SourceCenter,
                     ArrowEnd,
                     LinkColor,
-                    28.f,
-                    14.f,
+                    16.f,
+                    9.f,
+                    1.f,
                     SDPG_Foreground);
                 DrawArrowHead (
                     PDI,
                     ArrowEnd,
                     Direction,
                     LinkColor,
-                    34.f,
+                    22.f,
+                    1.f,
                     SDPG_Foreground);
             }
         }
