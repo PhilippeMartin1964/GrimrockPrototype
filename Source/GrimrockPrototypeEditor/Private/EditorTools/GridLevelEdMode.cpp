@@ -15,13 +15,8 @@
 
 namespace
 {
-    FLinearColor GetDebugLinkColor (EGridObjectCommand Command, bool bIncoming)
+    FLinearColor GetDebugLinkColor (EGridObjectCommand Command)
     {
-        if (bIncoming)
-        {
-            return FLinearColor (1.f, 0.55f, 0.f, 1.f); // Orange
-        }
-
         switch (Command)
         {
             case EGridObjectCommand::Open:
@@ -38,29 +33,55 @@ namespace
         }
     }
 
-    void DrawDebugArrowLine (
+    void DrawDashedLine (
         FPrimitiveDrawInterface* PDI,
         const FVector& Start,
         const FVector& End,
         const FLinearColor& Color,
-        float Thickness)
+        float DashLength,
+        float GapLength,
+        uint8 DepthPriority)
     {
         const FVector Delta = End - Start;
         const float Length = Delta.Size ();
-
         if (Length <= KINDA_SMALL_NUMBER)
         {
             return;
         }
 
         const FVector Dir = Delta / Length;
+        const float StepLength = FMath::Max (DashLength + GapLength, 1.f);
 
-        const FVector LineStart = Start + FVector (0.f, 0.f, 24.f);
-        const FVector LineEnd = End + FVector (0.f, 0.f, 24.f);
+        for (float Distance = 0.f; Distance < Length; Distance += StepLength)
+        {
+            const float SegmentEndDistance = FMath::Min (Distance + DashLength, Length);
+            if (SegmentEndDistance <= Distance)
+            {
+                continue;
+            }
 
-        PDI->DrawLine (LineStart, LineEnd, Color, SDPG_Foreground, Thickness);
+            PDI->DrawLine (
+                Start + Dir * Distance,
+                Start + Dir * SegmentEndDistance,
+                Color,
+                DepthPriority,
+                2.5f);
+        }
+    }
 
-        const FVector ArrowBase = FMath::Lerp (LineStart, LineEnd, 0.82f);
+    void DrawArrowHead (
+        FPrimitiveDrawInterface* PDI,
+        const FVector& Tip,
+        const FVector& Direction,
+        const FLinearColor& Color,
+        float Size,
+        uint8 DepthPriority)
+    {
+        const FVector Dir = Direction.GetSafeNormal ();
+        if (Dir.IsNearlyZero ())
+        {
+            return;
+        }
 
         FVector Right = FVector::CrossProduct (Dir, FVector::UpVector).GetSafeNormal ();
         if (Right.IsNearlyZero ())
@@ -68,15 +89,12 @@ namespace
             Right = FVector::RightVector;
         }
 
-        const float ArrowLength = 28.f;
-        const float ArrowWidth = 14.f;
+        const float WingWidth = Size * 0.45f;
+        const FVector LeftWing = Tip - Dir * Size + Right * WingWidth;
+        const FVector RightWing = Tip - Dir * Size - Right * WingWidth;
 
-        const FVector ArrowTip = LineEnd;
-        const FVector LeftWing = ArrowBase - Dir * ArrowLength + Right * ArrowWidth;
-        const FVector RightWing = ArrowBase - Dir * ArrowLength - Right * ArrowWidth;
-
-        PDI->DrawLine (ArrowTip, LeftWing, Color, SDPG_Foreground, Thickness);
-        PDI->DrawLine (ArrowTip, RightWing, Color, SDPG_Foreground, Thickness);
+        PDI->DrawLine (Tip, LeftWing, Color, DepthPriority, 2.75f);
+        PDI->DrawLine (Tip, RightWing, Color, DepthPriority, 2.75f);
     }
 
     void DrawDebugObjectBox (FPrimitiveDrawInterface* PDI, const FVector& Center, const FColor& Color, float Size)
@@ -361,40 +379,58 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
     const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
     if (SelectedObject && EditorActor->LevelAsset)
     {
-        FVector SelectedLocation = FVector::ZeroVector;
-
-        if (EditorActor->TryGetObjectWorldLocationById (SelectedObject->ObjectId, SelectedLocation))
+        FVector SourceCenter = FVector::ZeroVector;
+        if (EditorActor->GetObjectEditorWorldCenter (*SelectedObject, SourceCenter))
         {
             for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
             {
-                const bool bOutgoing = Link.SourceObjectId == SelectedObject->ObjectId;
-                const bool bIncoming = Link.TargetObjectId == SelectedObject->ObjectId;
-
-                if (!bOutgoing && !bIncoming)
+                if (Link.SourceObjectId != SelectedObject->ObjectId)
                 {
                     continue;
                 }
 
-                FVector OtherLocation = FVector::ZeroVector;
-
-                const FGuid OtherId = bOutgoing
-                    ? Link.TargetObjectId
-                    : Link.SourceObjectId;
-
-                if (!EditorActor->TryGetObjectWorldLocationById (OtherId, OtherLocation))
+                const FGridLevelObjectData* TargetObject = EditorActor->LevelAsset->Objects.FindByPredicate (
+                    [&Link] (const FGridLevelObjectData& Obj)
+                {
+                    return Obj.ObjectId == Link.TargetObjectId;
+                });
+                if (!TargetObject)
                 {
                     continue;
                 }
 
-                const FLinearColor LinkColor = GetDebugLinkColor (Link.Command, bIncoming);
-
-                if (bOutgoing)
+                FVector TargetCenter = FVector::ZeroVector;
+                if (!EditorActor->GetObjectEditorWorldCenter (*TargetObject, TargetCenter))
                 {
-                    DrawDebugArrowLine (PDI, SelectedLocation, OtherLocation, LinkColor, 3.f);
-                } else
-                {
-                    DrawDebugArrowLine (PDI, OtherLocation, SelectedLocation, LinkColor, 2.25f);
+                    continue;
                 }
+
+                const FVector Delta = TargetCenter - SourceCenter;
+                const float Distance = Delta.Size ();
+                if (Distance < 10.f)
+                {
+                    continue;
+                }
+
+                const FLinearColor LinkColor = GetDebugLinkColor (Link.Command);
+                const FVector Direction = Delta / Distance;
+                const FVector ArrowEnd = TargetCenter - Direction * 12.f;
+
+                DrawDashedLine (
+                    PDI,
+                    SourceCenter,
+                    ArrowEnd,
+                    LinkColor,
+                    28.f,
+                    14.f,
+                    SDPG_Foreground);
+                DrawArrowHead (
+                    PDI,
+                    ArrowEnd,
+                    Direction,
+                    LinkColor,
+                    34.f,
+                    SDPG_Foreground);
             }
         }
     }

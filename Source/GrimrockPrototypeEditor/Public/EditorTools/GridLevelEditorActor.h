@@ -291,6 +291,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Selection")
     bool TryGetObjectWorldLocationById (FGuid ObjectId, FVector& OutWorldLocation) const;
 
+    bool GetObjectEditorWorldCenter (const FGridLevelObjectData& Obj, FVector& OutWorldCenter) const;
+
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
     bool FocusSelectedObject ();
 

@@ -1333,6 +1333,78 @@ bool AGridLevelEditorActor::TryGetObjectWorldLocationById (
     return Obj ? TryGetObjectWorldLocation (*Obj, OutWorldLocation) : false;
 }
 
+bool AGridLevelEditorActor::GetObjectEditorWorldCenter (
+    const FGridLevelObjectData& Obj,
+    FVector& OutWorldCenter) const
+{
+    if (!HasValidLevelAsset ())
+    {
+        return false;
+    }
+
+    const float CellSize = LevelAsset ? LevelAsset->CellSize : 200.f;
+    if (CellSize <= KINDA_SMALL_NUMBER)
+    {
+        return false;
+    }
+
+    constexpr float FallbackCellHeight = 300.f;
+    constexpr float FloorObjectHeight = 36.f;
+    constexpr float WallObjectHeight = 140.f;
+    constexpr float CeilingObjectInset = 32.f;
+
+    FVector GridWorldOrigin = GetActorLocation ();
+    if (PreviewRuntimeActor)
+    {
+        GridWorldOrigin = PreviewRuntimeActor->GetActorLocation () + PreviewRuntimeActor->GridOrigin;
+    }
+
+    const FVector CellCenter = GridWorldOrigin + FVector (
+        (Obj.CellX * CellSize) + (CellSize * 0.5f),
+        (Obj.CellY * CellSize) + (CellSize * 0.5f),
+        0.f);
+
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (Obj.ArchetypeId);
+    const EGridObjectPlacementKind PlacementKind = Archetype
+        ? Archetype->PlacementKind
+        : (IsEdgePlacedObject (Obj) ? EGridObjectPlacementKind::Edge : EGridObjectPlacementKind::Center);
+
+    auto ApplyEdgeOffset = [CellSize] (const FVector& InCellCenter, EGridEdge Edge, float Height) -> FVector
+    {
+        const float Half = CellSize * 0.5f;
+        switch (Edge)
+        {
+            case EGridEdge::North: return InCellCenter + FVector (0.f, Half, Height);
+            case EGridEdge::East:  return InCellCenter + FVector (Half, 0.f, Height);
+            case EGridEdge::South: return InCellCenter + FVector (0.f, -Half, Height);
+            case EGridEdge::West:  return InCellCenter + FVector (-Half, 0.f, Height);
+            default:               return InCellCenter + FVector (0.f, 0.f, Height);
+        }
+    };
+
+    switch (PlacementKind)
+    {
+        case EGridObjectPlacementKind::Wall:
+        case EGridObjectPlacementKind::Edge:
+            if (Obj.Edge == EGridEdge::None)
+            {
+                return false;
+            }
+            OutWorldCenter = ApplyEdgeOffset (CellCenter, Obj.Edge, WallObjectHeight);
+            return true;
+
+        case EGridObjectPlacementKind::Ceiling:
+            OutWorldCenter = CellCenter + FVector (0.f, 0.f, FallbackCellHeight - CeilingObjectInset);
+            return true;
+
+        case EGridObjectPlacementKind::Center:
+        case EGridObjectPlacementKind::Floor:
+        default:
+            OutWorldCenter = CellCenter + FVector (0.f, 0.f, FloorObjectHeight);
+            return true;
+    }
+}
+
 bool AGridLevelEditorActor::FocusSelectedObject ()
 {
     if (!LastSelectedObjectId.IsValid ())
