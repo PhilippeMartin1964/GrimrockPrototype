@@ -1,110 +1,110 @@
-# Grid Object Archetype Asset Audit
+# Audit de GridObjectArchetypeAsset
 
-Phase 4A audit for `UGridObjectArchetypeAsset`.
+Audit Phase 4A de `UGridObjectArchetypeAsset`.
 
-This document is documentation only. It does not propose an immediate code refactor and does not require changes to enums, runtime logic, editor logic, DataAssets, or serialization.
+Ce document est uniquement documentaire. Il ne propose pas de refactor C++ immédiat et ne demande aucun changement d'enum, de logique runtime, de logique éditeur, de DataAsset ou de sérialisation.
 
-## 1. Purpose of GridObjectArchetypeAsset
+## 1. Rôle de GridObjectArchetypeAsset
 
-`UGridObjectArchetypeAsset` defines the default identity, classification, placement, visual, runtime actor, light, interaction, and behavior data for a concrete grid object archetype.
+`UGridObjectArchetypeAsset` définit les données par défaut d'identité, de classification, de placement, de visuel, d'acteur runtime, de lumière, d'interaction et de comportement pour un archétype concret d'objet de grille.
 
-An archetype is not the same thing as an object type. `EGridLevelObjectType` describes broad gameplay behavior such as Door, Button, Lever, Receptacle, Trigger, or Item. A concrete archetype describes a usable authored variant such as `Button_Secret`, `Door_Stone`, `Receptacle_TorchHolder`, or an item archetype.
+Un archétype n'est pas la même chose qu'un type d'objet. `EGridLevelObjectType` décrit une grande famille de gameplay, par exemple Door, Button, Lever, Receptacle, Trigger ou Item. Un archétype concret décrit une variante utilisable et authorée, par exemple `Button_Secret`, `Door_Stone`, `Receptacle_TorchHolder` ou un archétype d'objet d'inventaire.
 
-Placed objects store instance data in `FGridLevelObjectData`, including `ArchetypeId`, placement cell/edge, enabled/active state, tag, notes, readable override text, palette entry id, and `FGridObjectBehaviorParams`. At placement time, selected editor values are copied into the placed object. Runtime then resolves `ArchetypeId` back to `UGridObjectArchetypeAsset` to choose meshes, materials, placement transform, actor class, light/readable options, and item metadata.
+Les objets placés stockent leurs données d'instance dans `FGridLevelObjectData` : `ArchetypeId`, cellule, edge, état enabled/active, tag, notes, texte lisible surchargé, identifiant d'entrée palette et `FGridObjectBehaviorParams`. Au moment du placement, les valeurs sélectionnées dans l'éditeur sont copiées dans l'objet placé. Au runtime, `ArchetypeId` est résolu vers `UGridObjectArchetypeAsset` pour choisir les meshes, matériaux, transforms de placement, classes d'acteur, options de lumière/texte lisible et métadonnées d'item.
 
-## 2. Field Audit Table
+## 2. Tableau d'audit des champs
 
-Recommendations use the following vocabulary:
+Les recommandations utilisent le vocabulaire suivant :
 
-- `Essential`: core data required by the current editor or runtime.
-- `Advanced`: valid data, but should generally be hidden or displayed only in expert/debug contexts.
-- `Archetype Only`: should be authored in DataAssets and not edited per placed instance.
-- `Legacy`: retained for compatibility or migration.
-- `Remove Later`: candidate for removal after migration and verification.
-- `Needs Clarification`: current role is valid but naming, usage, or ownership is ambiguous.
+- `Essential` : donnée centrale requise par l'éditeur ou le runtime actuel.
+- `Advanced` : donnée valide, mais à cacher ou afficher surtout dans des contextes expert/debug.
+- `Archetype Only` : donnée à éditer dans les DataAssets, pas par instance placée.
+- `Legacy` : conservée pour compatibilité ou migration.
+- `Remove Later` : candidate à la suppression après migration et vérification.
+- `Needs Clarification` : rôle valide, mais nommage, usage ou propriété fonctionnelle ambigus.
 
-### Identity
+### Identité
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `ArchetypeId` | Archetype | `FName` | Palette validation, object placement, inspector display/edit via placed `FGridLevelObjectData::ArchetypeId`, overview labels. | Runtime archetype lookup, item spawning, readable/item/receptacle lookup. | All archetyped objects and items. | Placed objects store `ArchetypeId`; the archetype field itself is DataAsset-only. | Essential | Stable identifier. Renaming breaks placed objects and references unless migrated. |
-| `DisplayName` | Archetype | `FText` | Inspector header and connector/object summaries prefer this when available. | Not directly used by runtime behavior. | All displayable archetypes. | No. | Archetype Only | Designer-facing name. Safe to improve without serialization risk beyond asset text changes. |
-| `SupportedType` | Archetype | `EGridLevelObjectType` | Validation, palette/object type assignment, contextual inspector expectations. | Validation and runtime spawn requirements are derived from object type, but placed object also stores `Type`. | All archetypes. | Placed object stores `Type`; archetype remains source of intended type. | Essential | Potentially confusing beside placed object `Type`, `Category`, and `ObjectCategory`. |
-| `Description` | Archetype | `FText` | Currently mostly authoring documentation. | Not used by runtime behavior. | All archetypes. | No. | Archetype Only | Useful for DataAsset authoring, not currently surfaced strongly in inspector. |
+| `ArchetypeId` | Archetype | `FName` | Validation palette, placement d'objet, affichage/édition via `FGridLevelObjectData::ArchetypeId`, labels overview. | Lookup d'archétype, spawn d'items, lookup readable/item/receptacle. | Tous les objets et items avec archétype. | Les objets placés stockent `ArchetypeId`; le champ du DataAsset reste archetype-only. | Essential | Identifiant stable. Le renommer casse les objets placés et références sans migration. |
+| `DisplayName` | Archetype | `FText` | L'inspector et les résumés de connecteurs/objets le préfèrent quand il existe. | Pas utilisé directement par le comportement runtime. | Tous les archétypes affichables. | Non. | Archetype Only | Nom destiné aux designers. Peut être amélioré sans risque lourd de sérialisation. |
+| `SupportedType` | Archetype | `EGridLevelObjectType` | Validation, affectation type/palette, attentes de l'inspector contextuel. | Les exigences de spawn/runtime et validation en dépendent, même si l'objet placé stocke aussi `Type`. | Tous les archétypes. | L'objet placé stocke `Type`; l'archétype reste la source du type attendu. | Essential | Confus avec `Type` placé, `Category` et `ObjectCategory`. |
+| `Description` | Archetype | `FText` | Principalement documentation d'authoring. | Pas utilisé par le comportement runtime. | Tous les archétypes. | Non. | Archetype Only | Utile dans les DataAssets, encore peu exposé dans l'inspector. |
 
-### Defaults
+### Valeurs par défaut
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `bDefaultInitiallyEnabled` | Defaults | `bool` | Intended default copied into editor paint/placed object state; inspector edits instance `bInitiallyEnabled`. | Runtime checks placed `ObjectData.bInitiallyEnabled` for spawn/activation. | All placed objects. | Yes, through `FGridLevelObjectData::bInitiallyEnabled`. | Essential | Should remain an archetype default, not a live runtime source after placement. |
-| `bDefaultInitiallyActive` | Defaults | `bool` | Intended default copied into editor paint/placed object state; inspector edits instance `bInitiallyActive`. | Runtime objects and door/receptacle initial state read placed `ObjectData.bInitiallyActive`. | Doors, receptacles, mechanisms, triggers where active state matters. | Yes, through `FGridLevelObjectData::bInitiallyActive`. | Essential | Meaning varies by type: open, pressed, filled, activated, etc. Needs clear UI labels per type. |
-| `DefaultTag` | Defaults | `FName` | Intended default for placed object tag. Inspector edits instance `Tag`. | Receptacle runtime can use placed `ObjectData.Tag` as fallback accepted item tag when acceptance arrays are empty. | Mostly receptacles and tagged interaction objects. | Yes, through `FGridLevelObjectData::Tag`. | Advanced | Useful but technical. Should stay out of primary inspector except advanced/debug or contextual rules. |
-| `DefaultBehavior` | Defaults | `FGridObjectBehaviorParams` | Copied to placed objects and reset behavior helper; inspector edits placed `Obj.Behavior`. | Runtime reads placed `ObjectData.Behavior`, not the archetype directly, for activation, trigger, teleporter, receptacle, button, item spawn. | Trigger, pressure plate, button, lever, receptacle, teleporter, item spawn. | Yes, through `FGridLevelObjectData::Behavior`. | Essential | This is the main archetype-to-instance default bridge. It contains several behavior groups that are only relevant to certain types. |
-| `ItemTags` | Item | `TArray<FName>` | Validation and item/receptacle authoring context. | Item actors are initialized with tags; receptacles inspect item archetype tags for acceptance. | Items and item-like archetypes. | No placed-object override currently. | Essential | Runtime-relevant for inventory/receptacle matching. |
+| `bDefaultInitiallyEnabled` | Defaults | `bool` | Défaut destiné à être copié dans l'état placé; l'inspector édite `bInitiallyEnabled`. | Le runtime vérifie `ObjectData.bInitiallyEnabled` pour spawn/activation. | Tous les objets placés. | Oui, via `FGridLevelObjectData::bInitiallyEnabled`. | Essential | Doit rester un défaut d'archétype, pas une source runtime vivante après placement. |
+| `bDefaultInitiallyActive` | Defaults | `bool` | Défaut destiné à être copié dans l'état placé; l'inspector édite `bInitiallyActive`. | Les objets runtime, portes et receptacles lisent `ObjectData.bInitiallyActive`. | Doors, receptacles, mécanismes, triggers. | Oui, via `FGridLevelObjectData::bInitiallyActive`. | Essential | Le sens varie selon le type : ouvert, pressé, rempli, activé, etc. Labels UI contextuels nécessaires. |
+| `DefaultTag` | Defaults | `FName` | Défaut prévu pour le tag de l'objet placé; l'inspector édite l'instance `Tag`. | Le receptacle peut utiliser `ObjectData.Tag` comme fallback de tag accepté si les listes sont vides. | Surtout receptacles et objets d'interaction taggés. | Oui, via `FGridLevelObjectData::Tag`. | Advanced | Utile mais technique. À garder hors UI primaire sauf advanced/debug/contextuel. |
+| `DefaultBehavior` | Defaults | `FGridObjectBehaviorParams` | Copié vers les objets placés et utilisé par le helper de reset; l'inspector édite `Obj.Behavior`. | Le runtime lit `ObjectData.Behavior`, pas l'archétype directement, pour activation, trigger, teleporter, receptacle, button, item spawn. | Trigger, pressure plate, button, lever, receptacle, teleporter, item spawn. | Oui, via `FGridLevelObjectData::Behavior`. | Essential | Pont principal entre archétype et instance. Contient plusieurs groupes utiles seulement à certains types. |
+| `ItemTags` | Item | `TArray<FName>` | Validation et authoring item/receptacle. | Les acteurs item sont initialisés avec ces tags; les receptacles inspectent les tags de l'archétype item. | Items et archétypes apparentés. | Pas d'override placé actuellement. | Essential | Runtime-relevant pour inventaire et matching receptacle. |
 
 ### Palette / Classification
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `Category` | Palette | `FName` | Palette grouping and validation hints. Inspector displays as read-only archetype info. | Not used for gameplay. | All palette entries/archetypes. | No. | Archetype Only | Confusing with `ObjectCategory`; this is UI grouping only. |
-| `ObjectCategory` | Archetype | `EGridObjectCategory` | Validation, overview/inspector classification, contextual readability/light expectations. | Not directly used for runtime behavior, except helper methods use it to decide whether params are relevant. | All archetypes. | No. | Needs Clarification | Functional/editor classification, not the same as `SupportedType` or palette `Category`. |
+| `Category` | Palette | `FName` | Groupement de palette et hints de validation; affiché read-only dans l'inspector. | Pas utilisé en gameplay. | Tous les archétypes/palette entries. | Non. | Archetype Only | Confus avec `ObjectCategory`; celui-ci sert uniquement à l'organisation UI. |
+| `ObjectCategory` | Archetype | `EGridObjectCategory` | Validation, overview/inspector, attentes readable/light contextuelles. | Pas directement gameplay, mais les helpers l'utilisent pour déterminer la pertinence de certains paramètres. | Tous les archétypes. | Non. | Needs Clarification | Classification fonctionnelle/éditeur, différente de `SupportedType` et `Category`. |
 
 ### Placement
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `PlacementKind` | Placement | `EGridObjectPlacementKind` | Determines edge/cell placement, validation, inspector display, conflict logic, viewport connector center fallback. | Runtime placement transform chooses wall/edge/center/ceiling path through helpers. | All placed archetypes. | No direct instance override; placed object stores cell/edge and `LocalYaw`. | Essential | Source of truth for placement. Supersedes legacy placement booleans. |
-| `bPlaceOnEdge` | Placement\|Legacy | `bool` | Validation warns when inconsistent; palette validation also warns on legacy use. | Not a runtime source of truth. | Legacy assets only. | No. | Legacy | Already marked legacy/advanced. Remove only after asset migration. |
-| `bPlaceAtCellCenter` | Placement\|Legacy | `bool` | Validation warns when inconsistent. | Not a runtime source of truth. | Legacy assets only. | No. | Legacy | Candidate to remove later after migration. |
-| `bCanShareCell` | Placement | `bool` | Placement conflict removal checks new and existing archetypes. | Not used by runtime. | Objects that may share a cell, decorations, floor objects, triggers. | No. | Essential | Editor placement rule only, but important for authoring safety. |
-| `bCanShareAnchor` | Placement | `bool` | Placement conflict removal checks same anchor/edge; validation warns for doors. | Not used by runtime. | Edge/wall objects, especially doors, buttons, levers, receptacles. | No. | Essential | Editor placement rule. Prevents overlapping anchors where needed. |
-| `bBlocksMovement` | Placement | `bool` | Inspector displays read-only; validation/tooltips clarify non-door usage. | `AGridGenericObjectActor` sets mesh collision from this. Door blocking is handled by door system. | Generic non-door blocking props/decorations. | No. | Needs Clarification | Confusing for doors because door blocking is separate. UI should call this "Generic Blocks Movement" or contextualize it. |
-| `PlacementZOffset` | Placement | `float` | Used by preview placement and viewport connector center. | Runtime placement transform for wall/center objects. | All placed visual archetypes except doors use special edge transform. | No. | Essential | Important visual placement offset. For doors, runtime currently uses edge transform instead. |
-| `WallInset` | Placement\|Wall | `float` | Used by preview placement and connector center for wall/edge objects; validation checks relevance. | Runtime wall-mounted transform. | Wall/edge objects: buttons, levers, wall decor, receptacles, lights. | No. | Essential | Only meaningful when `PlacementKind` is Wall or Edge. |
-| `LocalOffsetAlongWall` | Placement\|Wall | `float` | Used by preview placement and connector center; validation checks relevance. | Runtime wall-mounted transform. | Wall/edge objects. | No. | Essential | Defines lateral offset along wall face. |
-| `LocalOffsetVertical` | Placement\|Wall | `float` | Used by preview placement and connector center; validation checks relevance. | Runtime wall-mounted transform. | Wall/edge objects. | No. | Essential | Added to `PlacementZOffset`. |
-| `RotationStepYaw` | Placement\|Rotation | `float` | Selected object rotation step uses archetype if available. | Runtime transform uses placed object `LocalYaw`, not this field directly. | Center/floor/ceiling objects or any object that supports local yaw editing. | No; influences editor operation that changes instance `LocalYaw`. | Advanced | Useful as authoring/tool behavior, but not direct gameplay data. |
+| `PlacementKind` | Placement | `EGridObjectPlacementKind` | Détermine placement edge/cell, validation, inspector, conflits, fallback de centre viewport. | La transform runtime choisit wall/edge/center/ceiling via helpers. | Tous les archétypes placés. | Pas d'override direct; l'objet placé stocke cell/edge et `LocalYaw`. | Essential | Source de vérité du placement. Remplace les booléens legacy. |
+| `bPlaceOnEdge` | Placement\|Legacy | `bool` | Validation si incohérent; validation palette aussi. | Pas source runtime. | Assets legacy. | Non. | Legacy | Déjà legacy/advanced. À supprimer seulement après migration. |
+| `bPlaceAtCellCenter` | Placement\|Legacy | `bool` | Validation si incohérent. | Pas source runtime. | Assets legacy. | Non. | Legacy | Candidat à suppression après migration. |
+| `bCanShareCell` | Placement | `bool` | Le placement vérifie les conflits entre archétypes nouveau/existant. | Pas utilisé au runtime. | Objets partageables en cellule, decorations, floor objects, triggers. | Non. | Essential | Règle d'éditeur importante pour éviter les placements dangereux. |
+| `bCanShareAnchor` | Placement | `bool` | Le placement vérifie les conflits sur même edge/ancre; validation warning pour doors. | Pas utilisé au runtime. | Objets edge/wall : doors, buttons, levers, receptacles. | Non. | Essential | Empêche les chevauchements d'ancre si nécessaire. |
+| `bBlocksMovement` | Placement | `bool` | Affiché read-only; validation/tooltips précisent le cas non-door. | `AGridGenericObjectActor` règle la collision mesh avec ce champ. Les portes bloquent ailleurs. | Props/decorations génériques bloquants. | Non. | Needs Clarification | Confus pour les portes. UI à contextualiser comme blocage générique/non-door. |
+| `PlacementZOffset` | Placement | `float` | Preview placement et centre de connecteur viewport. | Transform runtime pour objets wall/center. | Objets visuels placés, sauf doors qui ont transform edge spéciale. | Non. | Essential | Offset vertical visuel important. |
+| `WallInset` | Placement\|Wall | `float` | Preview placement, centre de connecteur pour wall/edge, validation. | Transform runtime wall-mounted. | Wall/edge objects : buttons, levers, wall decor, receptacles, lights. | Non. | Essential | Pertinent seulement si `PlacementKind` est Wall ou Edge. |
+| `LocalOffsetAlongWall` | Placement\|Wall | `float` | Preview placement, centre connecteur, validation. | Transform runtime wall-mounted. | Wall/edge objects. | Non. | Essential | Offset latéral le long du mur. |
+| `LocalOffsetVertical` | Placement\|Wall | `float` | Preview placement, centre connecteur, validation. | Transform runtime wall-mounted. | Wall/edge objects. | Non. | Essential | Ajouté à `PlacementZOffset`. |
+| `RotationStepYaw` | Placement\|Rotation | `float` | Le rotate selected utilise le step d'archétype si disponible. | La transform runtime utilise `LocalYaw` placé, pas ce champ directement. | Objets center/floor/ceiling ou supportant le yaw local. | Non; influence une action éditeur qui modifie `LocalYaw`. | Advanced | Paramètre d'outil/authoring, pas donnée gameplay directe. |
 
 ### Interaction
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `bIsInteractable` | Interaction | `bool` | Inspector and validation display/verify interactable expectations. | Runtime interaction is mostly actor/component driven; this is not currently the only source of interaction behavior. | Buttons, levers, receptacles, readable decorations. | No. | Needs Clarification | Useful classification, but runtime authority should be documented more clearly. |
-| `bIsReadable` | Interaction | `bool` | Inspector selects readable text section when true; validation checks readable consistency. | Generic object actor copies archetype `ReadableText` and readable-only-once flag when true. | Readable decorations/props. | No, but placed object can override text. | Essential | Runtime readable flag. Confusing beside `ObjectCategory == Readable`. |
-| `ReadableText` | Interaction | `FText` | DataAsset text; inspector uses placed `OverrideReadableText` for instance editing. | Generic object actor uses this unless placed object override exists. | Readable objects. | Yes, via `FGridLevelObjectData::OverrideReadableText`. | Essential | Archetype default text. Instance override should be the inspector edit path. |
-| `bShowReadableOnlyOnce` | Interaction | `bool` | Validation checks it only matters when readable. | Generic object actor stores it as runtime readable-only-once behavior. | Readable objects. | No instance override currently. | Advanced | Runtime handling should be documented with activation/readable flow. |
+| `bIsInteractable` | Interaction | `bool` | L'inspector et la validation affichent/vérifient les attentes d'interaction. | L'interaction runtime est surtout pilotée par acteurs/composants; ce champ n'est pas l'unique source d'autorité. | Buttons, levers, receptacles, decorations lisibles. | Non. | Needs Clarification | Classification utile, mais l'autorité runtime doit être mieux documentée. |
+| `bIsReadable` | Interaction | `bool` | L'inspector affiche la section readable si true; validation de cohérence. | Generic object actor copie `ReadableText` et le flag only-once si true. | Decorations/props lisibles. | Non, mais le texte placé peut override. | Essential | Flag runtime readable. Confus avec `ObjectCategory == Readable`. |
+| `ReadableText` | Interaction | `FText` | Texte DataAsset; l'inspector édite plutôt `OverrideReadableText` de l'instance. | Generic object actor l'utilise sauf override placé. | Objets lisibles. | Oui, via `FGridLevelObjectData::OverrideReadableText`. | Essential | Texte par défaut d'archétype. L'override instance doit rester le chemin inspector. |
+| `bShowReadableOnlyOnce` | Interaction | `bool` | Validation seulement si readable. | Generic object actor le stocke comme comportement runtime. | Objets lisibles. | Pas d'override instance actuellement. | Advanced | Le flow activation/readable doit être documenté. |
 
-### Light
+### Lumière
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `bIsLightSource` | Light | `bool` | Inspector shows Light section when true; validation checks consistency. | Generic object actor enables point light when true. | Light archetypes and lit props/receptacles. | No. | Essential | Runtime light flag. Confusing beside `SupportedType == Light` and `ObjectCategory == Light`. |
-| `LightColor` | Light | `FLinearColor` | Inspector displays read-only light info. | Generic object actor applies point light color. | Light source archetypes. | No. | Essential | Archetype-only visual/runtime light setting. |
-| `LightIntensity` | Light | `float` | Inspector displays read-only light info; validation checks positive values for lights. | Generic object actor applies point light intensity. | Light source archetypes. | No. | Essential | May overlap with `GridLightEmitterComponent` defaults in other runtime systems. |
-| `LightRadius` | Light | `float` | Inspector displays read-only light info; validation checks positive values for lights. | Generic object actor applies attenuation radius. | Light source archetypes. | No. | Essential | Keep archetype-only for now. |
-| `bUseLightFlicker` | Light | `bool` | Inspector displays read-only "Flicker"; validation checks consistency. | Not currently applied by `AGridGenericObjectActor`; flicker exists in `GridLightEmitterComponent` but is not wired here. | Light source archetypes. | No. | Needs Clarification | Field exists and is validated/displayed, but generic runtime light path does not use flicker yet. |
+| `bIsLightSource` | Light | `bool` | L'inspector affiche une section Light si true; validation de cohérence. | Generic object actor active une point light si true. | Archétypes Light et props/receptacles lumineux. | Non. | Essential | Flag runtime light. Confus avec `SupportedType == Light` et `ObjectCategory == Light`. |
+| `LightColor` | Light | `FLinearColor` | Affiché read-only dans l'inspector. | Generic object actor applique la couleur. | Light sources. | Non. | Essential | Réglage archetype-only visuel/runtime. |
+| `LightIntensity` | Light | `float` | Affiché read-only; validation > 0 pour lights. | Generic object actor applique l'intensité. | Light sources. | Non. | Essential | Peut chevaucher les defaults de `GridLightEmitterComponent`. |
+| `LightRadius` | Light | `float` | Affiché read-only; validation > 0 pour lights. | Generic object actor applique le radius. | Light sources. | Non. | Essential | À garder archetype-only pour l'instant. |
+| `bUseLightFlicker` | Light | `bool` | Affiché read-only "Flicker"; validation de cohérence. | Pas appliqué par `AGridGenericObjectActor`; le flicker existe dans `GridLightEmitterComponent`. | Light sources. | Non. | Needs Clarification | Champ validé/affiché, mais pas câblé dans le chemin generic light. |
 
-### Visual
+### Visuel
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `PreviewMesh` | Visual | `TObjectPtr<UStaticMesh>` | Editor preview object mesh preference; inspector advanced/debug display. | Runtime mesh preference before `MovingMesh` and `FixedMesh` in generic spawn path; validation checks required mesh presence. | Most visible objects. | No. | Essential | Name can confuse: it is not editor-only. It is the main/simple mesh. |
-| `PreviewMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Editor preview material preference; inspector advanced/debug display indirectly by mesh fields only today. | Runtime material preference before moving/fixed material. | Most visible objects. | No. | Essential | Name can confuse for the same reason as `PreviewMesh`. |
-| `FixedMesh` | Visual | `TObjectPtr<UStaticMesh>` | Advanced/debug display; validation checks relevance. | Runtime fallback mesh; mechanism/door fixed part; receptacle contained-item visual uses moving mesh separately. | Doors, composite mechanisms, items. | No. | Advanced | Should stay advanced for simple objects. |
-| `MovingMesh` | Visual | `TObjectPtr<UStaticMesh>` | Advanced/debug display; validation checks relevance. | Runtime fallback mesh; mechanism/door moving part; item/receptacle visuals. | Doors, buttons, levers, receptacles, items. | No. | Advanced | Important for composite/animated actors. Needs clearer UI distinction from `PreviewMesh`. |
-| `FixedMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Validation checks relevance. | Runtime fallback material; mechanism/door fixed material. | Doors, composite mechanisms, items. | No. | Advanced | Pair with `FixedMesh`. |
-| `MovingMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Validation checks relevance. | Runtime fallback material; mechanism/door moving material; item/receptacle visuals. | Doors, buttons, levers, receptacles, items. | No. | Advanced | Pair with `MovingMesh`. |
+| `PreviewMesh` | Visual | `TObjectPtr<UStaticMesh>` | Mesh préféré pour preview éditeur; affichage advanced/debug. | Mesh préféré avant `MovingMesh` et `FixedMesh` dans le spawn runtime générique; validation de présence. | La plupart des objets visibles. | Non. | Essential | Le nom prête à confusion : ce n'est pas editor-only, c'est le mesh principal/simple. |
+| `PreviewMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Matériau préféré de preview; peu exposé dans l'inspector. | Matériau préféré avant moving/fixed. | La plupart des objets visibles. | Non. | Essential | Même confusion que `PreviewMesh`. |
+| `FixedMesh` | Visual | `TObjectPtr<UStaticMesh>` | Affichage advanced/debug; validation de pertinence. | Fallback mesh; partie fixe mechanism/door; items composites. | Doors, mécanismes composites, items. | Non. | Advanced | À garder advanced pour les objets simples. |
+| `MovingMesh` | Visual | `TObjectPtr<UStaticMesh>` | Affichage advanced/debug; validation de pertinence. | Fallback mesh; partie mobile mechanism/door; visuels item/receptacle. | Doors, buttons, levers, receptacles, items. | Non. | Advanced | Important pour acteurs composites/animés. Distinction à clarifier face à `PreviewMesh`. |
+| `FixedMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Validation de pertinence. | Matériau fallback; matériau fixed mechanism/door. | Doors, mécanismes composites, items. | Non. | Advanced | À associer à `FixedMesh`. |
+| `MovingMaterial` | Visual | `TObjectPtr<UMaterialInterface>` | Validation de pertinence. | Matériau fallback; matériau moving mechanism/door; visuels item/receptacle. | Doors, buttons, levers, receptacles, items. | Non. | Advanced | À associer à `MovingMesh`. |
 
 ### Runtime
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `RuntimeActorClass` | Runtime | `TSubclassOf<AGridRuntimeObjectActor>` | Validation and inspector advanced/debug display. | Runtime spawn class for objects; required for several types; class-specific initialization follows casts. | Doors, buttons, levers, pressure plates, teleporters, receptacles, runtime objects. | No. | Essential | Defines how the archetype is instantiated. Confusing beside `SupportedType`, which defines what it is. |
-| `ItemActorClass` | Runtime | `TSubclassOf<AGridItemActor>` | Validation for item archetypes. | Item spawn helper uses it, falling back to `AGridItemActor`. | Item archetypes and item spawns. | No. | Essential | Separate from `RuntimeActorClass`; used for inventory/world item actors. |
+| `RuntimeActorClass` | Runtime | `TSubclassOf<AGridRuntimeObjectActor>` | Validation et affichage advanced/debug. | Classe de spawn pour objets runtime; requise pour plusieurs types; initialisation spécifique via casts. | Doors, buttons, levers, pressure plates, teleporters, receptacles, runtime objects. | Non. | Essential | Définit comment l'archétype est instancié. Confus avec `SupportedType`, qui définit ce qu'il est. |
+| `ItemActorClass` | Runtime | `TSubclassOf<AGridItemActor>` | Validation des archétypes item. | Le helper de spawn item l'utilise avec fallback vers `AGridItemActor`. | Archétypes item et item spawns. | Non. | Essential | Séparé de `RuntimeActorClass`; utilisé pour les items monde/inventaire. |
 
 ### Validation / Helpers
 
-`UGridObjectArchetypeAsset` also exposes helper functions, not UPROPERTY fields:
+`UGridObjectArchetypeAsset` expose aussi des helpers qui ne sont pas des UPROPERTY :
 
 - `IsEdgePlaced`, `IsCenterPlaced`, `IsWallPlaced`, `IsCeilingPlaced`
 - `IsReadable`, `IsLightSource`
@@ -115,25 +115,25 @@ Recommendations use the following vocabulary:
 - `UsesItemParams`, `UsesItemSpawnParams`, `UsesReceptacleParams`, `UsesTeleporterParams`
 - `UsesButtonAnimationParams`, `UsesTriggerParams`, `UsesMovingMeshParams`, `UsesFixedMeshParams`, `UsesRuntimeActorClass`
 
-These helpers are important because they encode current design intent. Future editor cleanup should reuse them instead of duplicating object-type rules in UI code.
+Ces helpers sont importants parce qu'ils encodent l'intention de design actuelle. Les nettoyages futurs de l'éditeur devraient les réutiliser au lieu de dupliquer des règles par type dans l'UI.
 
-### Legacy Fields
+### Champs legacy
 
-| Field | Category | Type | Used In Editor | Used In Runtime | Object Types Concerned | Instance Override? | Recommendation | Notes |
+| Champ | Catégorie | Type | Utilisé dans l'éditeur | Utilisé au runtime | Types d'objets concernés | Override d'instance ? | Recommandation | Notes |
 |---|---|---|---|---|---|---|---|---|
-| `bPlaceOnEdge` | Placement\|Legacy | `bool` | Validation and compatibility warnings. | No. | Migrated legacy archetypes. | No. | Legacy | Keep until all assets/palette entries are migrated and warnings are clean. |
-| `bPlaceAtCellCenter` | Placement\|Legacy | `bool` | Validation and compatibility warnings. | No. | Migrated legacy archetypes. | No. | Legacy | Same migration path as `bPlaceOnEdge`. |
+| `bPlaceOnEdge` | Placement\|Legacy | `bool` | Validation et warnings de compatibilité. | Non. | Archétypes legacy migrés. | Non. | Legacy | À conserver jusqu'à migration complète des assets et palette entries. |
+| `bPlaceAtCellCenter` | Placement\|Legacy | `bool` | Validation et warnings de compatibilité. | Non. | Archétypes legacy migrés. | Non. | Legacy | Même stratégie de migration que `bPlaceOnEdge`. |
 
-## 3. Fields Grouped By Responsibility
+## 3. Champs groupés par responsabilité
 
-### Identity
+### Identité
 
 - `ArchetypeId`
 - `DisplayName`
 - `SupportedType`
 - `Description`
 
-### Defaults
+### Valeurs par défaut
 
 - `bDefaultInitiallyEnabled`
 - `bDefaultInitiallyActive`
@@ -165,7 +165,7 @@ These helpers are important because they encode current design intent. Future ed
 - `ReadableText`
 - `bShowReadableOnlyOnce`
 
-### Light
+### Lumière
 
 - `bIsLightSource`
 - `LightColor`
@@ -173,7 +173,7 @@ These helpers are important because they encode current design intent. Future ed
 - `LightRadius`
 - `bUseLightFlicker`
 
-### Visual
+### Visuel
 
 - `PreviewMesh`
 - `PreviewMaterial`
@@ -189,87 +189,87 @@ These helpers are important because they encode current design intent. Future ed
 
 ### Validation / Helpers
 
-- Helper methods listed in the previous section.
-- Validation messages use the archetype state to identify inconsistent type/category/placement/visual/runtime setups.
+- Les helpers listés plus haut.
+- Les messages de validation utilisent l'état de l'archétype pour détecter les configurations incohérentes de type, catégorie, placement, visuel ou runtime.
 
-### Legacy Fields
+### Champs legacy
 
 - `bPlaceOnEdge`
 - `bPlaceAtCellCenter`
 
-## 4. Confusing Fields
+## 4. Champs pouvant prêter à confusion
 
 ### `SupportedType` vs `ObjectCategory` vs `Category`
 
-- `SupportedType` is the broad gameplay type. It should answer "what behavior family is this?"
-- `ObjectCategory` is an editor/validation functional category. It helps group semantic roles, but does not directly drive runtime behavior.
-- `Category` is palette organization only and does not affect runtime.
+- `SupportedType` est le type gameplay large. Il répond à la question : "quelle famille de comportement ?"
+- `ObjectCategory` est une catégorie fonctionnelle d'éditeur/validation. Elle aide à grouper les rôles sémantiques, mais ne pilote pas directement le runtime.
+- `Category` sert uniquement à l'organisation de la palette et n'affecte pas le runtime.
 
-The editor should avoid showing all three as equal concepts in primary object UI. `SupportedType` is essential. `ObjectCategory` and `Category` are useful read-only metadata or DataAsset authoring fields.
+L'éditeur devrait éviter de présenter ces trois champs comme équivalents dans l'UI principale. `SupportedType` est essentiel. `ObjectCategory` et `Category` sont surtout des métadonnées read-only ou des champs d'authoring DataAsset.
 
 ### `PlacementKind` vs `bPlaceOnEdge` vs `bPlaceAtCellCenter`
 
-`PlacementKind` is the current source of truth. The two booleans are legacy compatibility fields. Showing all three together in normal UI would imply competing placement rules.
+`PlacementKind` est la source de vérité actuelle. Les deux booléens sont des champs de compatibilité legacy. Les afficher ensemble dans l'UI normale donne l'impression de règles concurrentes.
 
 ### `PreviewMesh` vs `FixedMesh` vs `MovingMesh`
 
-`PreviewMesh` is not only an editor preview mesh. It is currently the primary/simple mesh used by runtime mesh selection before falling back to moving/fixed meshes. `FixedMesh` and `MovingMesh` are for composite or animated actors. The naming can mislead designers into thinking `PreviewMesh` is editor-only.
+`PreviewMesh` n'est pas seulement un mesh de preview éditeur. C'est actuellement le mesh principal/simple utilisé par la sélection runtime avant fallback vers moving/fixed. `FixedMesh` et `MovingMesh` servent aux acteurs composites ou animés. Le nom `PreviewMesh` peut faire croire à tort qu'il est editor-only.
 
 ### `PreviewMaterial` vs `FixedMaterial` vs `MovingMaterial`
 
-Same issue as meshes. `PreviewMaterial` is the primary/simple material, not purely preview-only.
+Même problème que pour les meshes. `PreviewMaterial` est le matériau principal/simple, pas seulement un matériau de preview.
 
 ### `RuntimeActorClass` vs `ItemActorClass`
 
-`RuntimeActorClass` spawns grid runtime objects such as doors, buttons, pressure plates, receptacles, and generic objects. `ItemActorClass` spawns carried/world item actors. Item-related archetypes may need one, the other, or neither depending on whether they are placed as grid objects or spawned as inventory/world items.
+`RuntimeActorClass` spawne les objets runtime de grille : doors, buttons, pressure plates, receptacles, generic objects. `ItemActorClass` spawne les items portés ou présents dans le monde. Selon le cas, un archétype item peut avoir besoin de l'un, de l'autre ou d'aucun.
 
 ### `bIsReadable` vs `ObjectCategory == Readable`
 
-`bIsReadable` is the runtime readable flag. `ObjectCategory == Readable` is classification. Validation tries to keep them aligned for readable decorations, but runtime behavior depends on `bIsReadable`.
+`bIsReadable` est le flag runtime readable. `ObjectCategory == Readable` est une classification. La validation tente de les garder cohérents pour les decorations lisibles, mais le runtime dépend de `bIsReadable`.
 
 ### `bIsLightSource` vs `SupportedType == Light`
 
-`bIsLightSource` controls runtime point light setup on generic objects. `SupportedType == Light` is broad object type/classification. A non-Light supported type can still be a light source, such as a torch holder or lit decoration.
+`bIsLightSource` contrôle la point light runtime sur les objets génériques. `SupportedType == Light` est un type/classification large. Un objet non-Light peut quand même être source de lumière, par exemple un torch holder ou une decoration lumineuse.
 
-### `bBlocksMovement` vs door blocking
+### `bBlocksMovement` vs blocage des portes
 
-`bBlocksMovement` controls generic object mesh collision in `AGridGenericObjectActor`. Door passage blocking is handled elsewhere by the door system. For doors, this field can confuse designers if displayed without context.
+`bBlocksMovement` contrôle la collision mesh d'un `AGridGenericObjectActor`. Le blocage de passage des portes est géré ailleurs par le door system. Pour les doors, ce champ peut induire les designers en erreur s'il est affiché sans contexte.
 
 ### `bUseLightFlicker`
 
-The field is validated and displayed, but the generic object light setup currently applies color/intensity/radius only. Flicker appears to belong to `GridLightEmitterComponent`, not the archetype-driven generic light path yet. This needs clarification before exposing it as an important gameplay setting.
+Le champ est validé et affiché, mais le setup light générique applique actuellement couleur/intensité/radius seulement. Le flicker semble appartenir à `GridLightEmitterComponent`, pas encore au chemin generic light piloté par l'archétype. Il faut clarifier avant de l'exposer comme réglage gameplay important.
 
 ## 5. Archetype Only vs Instance Override
 
 ### Archetype Only
 
-These should generally be edited only in DataAssets:
+Ces champs devraient généralement être édités uniquement dans les DataAssets :
 
-- Identity and classification: `ArchetypeId`, `DisplayName`, `SupportedType`, `Description`, `Category`, `ObjectCategory`
-- Placement rules and offsets: `PlacementKind`, `bCanShareCell`, `bCanShareAnchor`, `bBlocksMovement`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical`, `RotationStepYaw`
-- Interaction capabilities: `bIsInteractable`, `bIsReadable`, `bShowReadableOnlyOnce`
-- Light defaults: `bIsLightSource`, `LightColor`, `LightIntensity`, `LightRadius`, `bUseLightFlicker`
-- Visuals: `PreviewMesh`, `PreviewMaterial`, `FixedMesh`, `MovingMesh`, `FixedMaterial`, `MovingMaterial`
-- Runtime classes: `RuntimeActorClass`, `ItemActorClass`
-- Item metadata: `ItemTags`
-- Legacy placement flags: `bPlaceOnEdge`, `bPlaceAtCellCenter`
+- Identité et classification : `ArchetypeId`, `DisplayName`, `SupportedType`, `Description`, `Category`, `ObjectCategory`
+- Règles et offsets de placement : `PlacementKind`, `bCanShareCell`, `bCanShareAnchor`, `bBlocksMovement`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical`, `RotationStepYaw`
+- Capacités d'interaction : `bIsInteractable`, `bIsReadable`, `bShowReadableOnlyOnce`
+- Defaults lumière : `bIsLightSource`, `LightColor`, `LightIntensity`, `LightRadius`, `bUseLightFlicker`
+- Visuels : `PreviewMesh`, `PreviewMaterial`, `FixedMesh`, `MovingMesh`, `FixedMaterial`, `MovingMaterial`
+- Classes runtime : `RuntimeActorClass`, `ItemActorClass`
+- Métadonnées item : `ItemTags`
+- Flags legacy de placement : `bPlaceOnEdge`, `bPlaceAtCellCenter`
 
 ### Instance Override
 
-These archetype fields are defaults that are copied to or mirrored by placed object data:
+Ces champs d'archétype sont des defaults copiés ou reflétés dans les données d'objet placé :
 
 - `bDefaultInitiallyEnabled` -> `FGridLevelObjectData::bInitiallyEnabled`
 - `bDefaultInitiallyActive` -> `FGridLevelObjectData::bInitiallyActive`
 - `DefaultTag` -> `FGridLevelObjectData::Tag`
 - `DefaultBehavior` -> `FGridLevelObjectData::Behavior`
-- `ReadableText` -> can be overridden by `FGridLevelObjectData::OverrideReadableText`
-- `ArchetypeId` -> placed object stores the selected `ArchetypeId`, but should not mutate the DataAsset field
+- `ReadableText` -> peut être surchargé par `FGridLevelObjectData::OverrideReadableText`
+- `ArchetypeId` -> l'objet placé stocke l'`ArchetypeId` sélectionné, mais ne doit pas modifier le champ du DataAsset
 
-Instance-owned fields that are not archetype fields include object id, cell, edge, local yaw, notes, palette entry id, and links.
+Les champs d'instance qui ne sont pas des champs d'archétype incluent l'object id, la cellule, l'edge, le yaw local, les notes, l'id d'entrée palette et les connecteurs.
 
-### Read-only in Inspector
+### Read-only dans l'inspector
 
-These are useful to display in object inspector context but should not be edited there in the near term:
+Ces champs sont utiles à afficher dans le contexte de l'inspector d'objet, mais ne devraient pas être édités là à court terme :
 
 - `DisplayName`
 - `SupportedType`
@@ -288,44 +288,44 @@ These are useful to display in object inspector context but should not be edited
 - `FixedMesh`
 - `MovingMesh`
 
-Editable inspector fields should remain focused on placed-instance data: initially enabled/active, behavior params, readable override text, tag/notes/debug fields, and connector editing.
+Les champs éditables de l'inspector doivent rester centrés sur les données d'instance : initially enabled/active, behavior params, override readable text, tag/notes/debug fields et édition des connecteurs.
 
-## 6. Immediate Cleanup Opportunities
+## 6. Opportunités de nettoyage immédiates
 
-Safe future improvements, without changing runtime or serialization:
+Améliorations futures sûres, sans changer runtime ni sérialisation :
 
-- Keep `bPlaceOnEdge` and `bPlaceAtCellCenter` in `AdvancedDisplay`; remove only after a migration pass confirms no assets or palette entries depend on them.
-- Improve tooltips for `SupportedType`, `Category`, and `ObjectCategory` so designers understand gameplay type vs palette grouping vs editor classification.
-- Rename display labels, not property names, for `PreviewMesh` and `PreviewMaterial` to "Main Mesh" and "Main Material" in editor-facing UI.
-- Clarify `bBlocksMovement` label as generic/non-door blocking where shown.
-- Clarify that `bIsReadable` and `bIsLightSource` are runtime capability flags, while `ObjectCategory` is classification.
-- Document which object types use each `DefaultBehavior` group:
-  - Activation: buttons, levers, pressure plates, triggers, receptacles, teleporters where links are emitted.
-  - Trigger: triggers and pressure plates.
-  - Teleporter: teleporters.
-  - Receptacle: receptacles.
-  - ButtonAnimation: buttons.
-  - ItemSpawn: item spawns.
-- Avoid displaying irrelevant fields per object type in the inspector. Prefer contextual read-only summaries.
-- Clarify or wire `bUseLightFlicker` before presenting it as active runtime behavior.
-- Consider a future DataAsset editor layout that groups "Designer Basics", "Placement", "Visuals", "Runtime Class", and "Advanced/Validation".
+- Garder `bPlaceOnEdge` et `bPlaceAtCellCenter` en `AdvancedDisplay`; ne les supprimer qu'après une migration confirmant qu'aucun asset ou palette entry n'en dépend.
+- Améliorer les tooltips de `SupportedType`, `Category` et `ObjectCategory` pour distinguer type gameplay, groupement palette et classification éditeur.
+- Renommer les labels affichés, pas les propriétés C++, de `PreviewMesh` et `PreviewMaterial` vers "Main Mesh" et "Main Material" dans l'UI éditeur.
+- Clarifier le label de `bBlocksMovement` comme blocage générique/non-door lorsqu'il est affiché.
+- Clarifier que `bIsReadable` et `bIsLightSource` sont des flags de capacité runtime, alors que `ObjectCategory` est une classification.
+- Documenter quels types d'objet utilisent chaque groupe de `DefaultBehavior` :
+  - Activation : buttons, levers, pressure plates, triggers, receptacles, teleporters qui émettent des links.
+  - Trigger : triggers et pressure plates.
+  - Teleporter : teleporters.
+  - Receptacle : receptacles.
+  - ButtonAnimation : buttons.
+  - ItemSpawn : item spawns.
+- Éviter d'afficher les champs non pertinents par type dans l'inspector. Préférer des résumés contextuels read-only.
+- Clarifier ou câbler `bUseLightFlicker` avant de le présenter comme comportement runtime actif.
+- Envisager plus tard un layout DataAsset séparant "Bases designer", "Placement", "Visuels", "Classe runtime" et "Advanced/Validation".
 
-## 7. Risks
+## 7. Risques
 
-Renaming or removing fields has high risk because these are UPROPERTY fields on DataAssets and several are referenced by Blueprint/editor/runtime systems.
+Renommer ou supprimer ces champs est risqué, car ce sont des UPROPERTY de DataAssets et plusieurs sont référencés par Blueprint, l'éditeur et le runtime.
 
-- Existing DataAssets may break or silently lose values if UPROPERTY names change without redirects/migration.
-- Blueprint references may break for `RuntimeActorClass`, `ItemActorClass`, meshes, materials, placement settings, or helper-exposed fields.
-- Serialized level assets may lose data if placed object defaults or copied behavior assumptions change.
-- Runtime actor spawning may fail if `RuntimeActorClass`, mesh selection, placement, or `ArchetypeId` lookup changes.
-- Receptacle and item behavior may regress if `ItemTags`, `DefaultBehavior.Receptacle`, `MovingMesh`, or `MovingMaterial` semantics change.
-- Door behavior may regress if `SupportedType`, `RuntimeActorClass`, or edge placement semantics change.
-- Editor placement may regress if `PlacementKind`, sharing flags, or wall offset fields are renamed/removed.
+- Les DataAssets existants peuvent casser ou perdre des valeurs silencieusement si des noms UPROPERTY changent sans redirects/migration.
+- Les références Blueprint peuvent casser pour `RuntimeActorClass`, `ItemActorClass`, meshes, matériaux, réglages de placement ou helpers exposés.
+- Les level assets sérialisés peuvent perdre des données si les defaults copiés ou hypothèses de behavior changent.
+- Le spawn runtime peut échouer si `RuntimeActorClass`, la sélection de mesh, le placement ou le lookup `ArchetypeId` changent.
+- Le comportement receptacle/item peut régresser si `ItemTags`, `DefaultBehavior.Receptacle`, `MovingMesh` ou `MovingMaterial` changent de sémantique.
+- Le comportement door peut régresser si `SupportedType`, `RuntimeActorClass` ou la sémantique de placement edge changent.
+- Le placement éditeur peut régresser si `PlacementKind`, les flags de partage ou les offsets muraux sont renommés/supprimés.
 
-## 8. Final Recommendation
+## 8. Recommandation finale
 
-Do not refactor `UGridObjectArchetypeAsset` immediately.
+Ne pas refactorer `UGridObjectArchetypeAsset` immédiatement.
 
-First document the asset and current usage boundaries. Then clean up only display labels, tooltips, categories, and contextual inspector presentation. Treat `PlacementKind`, `ArchetypeId`, runtime classes, visual fields, and behavior defaults as stable serialized API until a deliberate migration plan exists.
+D'abord documenter l'asset et ses frontières d'usage actuelles. Ensuite nettoyer seulement les labels affichés, tooltips, catégories et la présentation contextuelle de l'inspector. Traiter `PlacementKind`, `ArchetypeId`, les classes runtime, les champs visuels et les defaults de behavior comme une API sérialisée stable tant qu'un plan de migration explicite n'existe pas.
 
-Only remove legacy placement fields after migration has been completed and validated across DataAssets, palette entries, placed level objects, Blueprint references, and runtime/editor validation.
+Ne supprimer les champs legacy de placement qu'après migration complète et validation des DataAssets, palette entries, objets placés, références Blueprint et validations runtime/éditeur.
