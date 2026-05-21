@@ -274,3 +274,32 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Les liens cassés affichent `Missing object` en warning.
 - Aucun workflow de création de connecteur n’a été ajouté à ce stade.
 - Aucun changement apporté à `EGridObjectEvent`, `EGridObjectCommand`, `FGridObjectLink`, au runtime dispatcher ou à la sérialisation.
+
+## 2026-05-20 — Phase 3A Fix UX Grid Editor
+
+- Les flèches de connecteurs utilisent désormais le même calcul de placement que les previews éditeur via `GetObjectPlacementTransform()` lorsque disponible.
+- Le fallback tient compte de `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical`, `PlacementKind` et `Edge`.
+- Les portes sont ciblées au milieu vertical du passage plutôt qu’au sol.
+- Les flèches sont plus fines, plus discrètes, avec des dashes et une tête de flèche réduits.
+- Aucun changement apporté au runtime, à la sérialisation, aux enums ou au modèle de liens.
+
+## 2026-05-20 — Phase 3B UX Grid Editor
+
+- Le viewport affiche désormais les connecteurs sortants et entrants de l’objet sélectionné.
+- Les connecteurs conservent toujours leur direction logique réelle `Source -> Target`.
+- Deux options éditeur ont été ajoutées : `bShowOutgoingConnectors` et `bShowIncomingConnectors`.
+- Deux checkboxes ont été ajoutées dans le toolkit : `Show Outgoing Connectors` et `Show Incoming Connectors`.
+- Les connecteurs entrants utilisent une couleur distincte, violet/bleu, plus discrète.
+- Le rendu réutilise `GetObjectEditorWorldCenter()` pour garantir un départ et une arrivée cohérents avec les previews.
+- Aucun changement apporté au runtime, à la sérialisation, aux enums ou au modèle de liens.
+
+## 2026-05-20 — Phase 3C UX Grid Editor
+
+- Le viewport affiche désormais des labels légers sur les flèches de connecteurs.
+- Les labels utilisent les display names des enums au format `Event / Command`.
+- Les labels sont dessinés via `FCanvas`, sans actor, composant ni `UTextRenderComponent`.
+- Les labels ne sont affichés que pour les connecteurs dont la flèche est visible.
+- Une option `bShowConnectorLabels` a été ajoutée à l’acteur éditeur.
+- Une checkbox `Show Connector Labels` a été ajoutée au toolkit.
+- Aucun changement apporté au runtime, à la sérialisation, aux enums ou au modèle de liens.
+
