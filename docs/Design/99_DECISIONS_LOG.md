@@ -303,3 +303,12 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Une checkbox `Show Connector Labels` a été ajoutée au toolkit.
 - Aucun changement apporté au runtime, à la sérialisation, aux enums ou au modèle de liens.
 
+## 2026-05-20 — Phase 4B Clarifications UX GridObjectArchetypeAsset
+
+- Clarification des labels et tooltips éditeur pour les champs ambigus d'archétype.
+- `PreviewMesh` / `PreviewMaterial` sont affichés comme mesh/matériau principaux ainsi que mesh/matériau de preview.
+- `SupportedType`, `Category` et `ObjectCategory` sont présentés comme type gameplay, catégorie de palette et catégorie fonctionnelle.
+- Les flags legacy de placement restent advanced et documentés comme champs de compatibilité.
+- `bBlocksMovement`, `bIsReadable`, `bIsLightSource` et `bUseLightFlicker` ont un wording éditeur plus clair.
+- Aucun nom de champ sérialisé, comportement runtime, enum, DataAsset ou modèle de liens n'a été modifié.
+

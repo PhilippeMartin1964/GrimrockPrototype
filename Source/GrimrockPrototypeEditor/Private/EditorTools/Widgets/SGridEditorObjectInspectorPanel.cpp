@@ -414,7 +414,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (con
         + SVerticalBox::Slot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Type")),
+                FText::FromString (TEXT ("Gameplay Type")),
                 GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type)))
         ]
 
@@ -451,29 +451,51 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (con
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Category")),
+                FText::FromString (TEXT ("Palette Category")),
                 GetNameText (Archetype->Category))
         ];
 
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Object Category")),
+                FText::FromString (TEXT ("Functional Category")),
                 GridEditorWidgetHelpers::GetGridEnumDisplayText (ObjectCategoryEnum, static_cast<int64>(Archetype->ObjectCategory)))
         ];
 
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Interactable")),
+                FText::FromString (TEXT ("Runtime Interactable")),
                 GetBoolText (Archetype->bIsInteractable))
         ];
 
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Blocks Movement")),
+                FText::FromString (TEXT ("Blocks Movement (Generic Object)")),
                 GetBoolText (Archetype->bBlocksMovement))
+        ];
+
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Door passage blocking is handled by the door system. This flag is mainly for generic non-door objects.")))
+                .AutoWrapText (true)
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Runtime Readable")),
+                GetBoolText (Archetype->bIsReadable))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Runtime Light Source")),
+                GetBoolText (Archetype->bIsLightSource))
         ];
     }
 
@@ -845,28 +867,35 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection (
         Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("RuntimeActorClass")),
+                FText::FromString (TEXT ("Runtime Actor Class")),
                 GetClassNameText (Archetype->RuntimeActorClass.Get ()))
         ];
 
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("PreviewMesh")),
+                FText::FromString (TEXT ("Item Actor Class")),
+                GetClassNameText (Archetype->ItemActorClass.Get ()))
+        ];
+
+        Root->AddSlot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Main Mesh / Preview Mesh")),
                 GetObjectNameText (Archetype->PreviewMesh.Get ()))
         ];
 
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("FixedMesh")),
+                FText::FromString (TEXT ("Fixed Mesh")),
                 GetObjectNameText (Archetype->FixedMesh.Get ()))
         ];
 
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("MovingMesh")),
+                FText::FromString (TEXT ("Moving Mesh")),
                 GetObjectNameText (Archetype->MovingMesh.Get ()))
         ];
     }
@@ -895,11 +924,19 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection (co
         + SVerticalBox::Slot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Blocks Movement")),
+                FText::FromString (TEXT ("Blocks Movement (Generic Object)")),
                 Archetype
                     ? GetBoolText (Archetype->bBlocksMovement)
                     : FText::FromString (TEXT ("Runtime door blocking handled by door system")))
         ];
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
+    [
+        SNew (STextBlock)
+            .Text (FText::FromString (TEXT ("Door passage blocking is handled by the door system. This archetype flag is mainly for generic non-door blocking.")))
+            .AutoWrapText (true)
+            .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
+    ];
 
     if (Archetype)
     {
@@ -1111,8 +1148,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLightDetailsSection (c
             + SVerticalBox::Slot ().AutoHeight ()
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Flicker")),
+                    FText::FromString (TEXT ("Use Light Flicker (if supported)")),
                     GetBoolText (Archetype.bUseLightFlicker))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 0.f)
+            [
+                SNew (STextBlock)
+                    .Text (FText::FromString (TEXT ("Actual flicker support depends on the runtime light component path.")))
+                    .AutoWrapText (true)
+                    .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
             ]);
 }
 
@@ -1374,7 +1419,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 [
                     Archetype && Archetype->bIsLightSource
                         ? GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                            FText::FromString (TEXT ("Is Light Source")),
+                            FText::FromString (TEXT ("Runtime Light Source")),
                             GetBoolText (Archetype->bIsLightSource))
                         : SNullWidget::NullWidget
                 ]
