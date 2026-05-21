@@ -264,3 +264,13 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `Advanced / Debug` conserve les champs techniques : `ObjectId`, `ArchetypeId`, `Tag`, `Notes`, `RuntimeActorClass`, `PreviewMesh`, `FixedMesh`, `MovingMesh`.
 - Aucun champ sérialisé n’a été ajouté.
 - Aucun changement apporté à `EGridObjectEvent`, `EGridObjectCommand`, `FGridObjectLink`, au runtime dispatcher ou aux assets.
+
+## 2026-05-20 — Phase 2C UX Grid Editor
+
+- L’inspecteur affiche désormais une section `Connectors` directement dans l’objet sélectionné.
+- Les connecteurs sortants sont regroupés par événement source.
+- Les connecteurs entrants sont affichés séparément avec la source, l’événement et la commande.
+- Les objets liés utilisent `Archetype->DisplayName` lorsque disponible.
+- Les liens cassés affichent `Missing object` en warning.
+- Aucun workflow de création de connecteur n’a été ajouté à ce stade.
+- Aucun changement apporté à `EGridObjectEvent`, `EGridObjectCommand`, `FGridObjectLink`, au runtime dispatcher ou à la sérialisation.
