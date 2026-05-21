@@ -349,6 +349,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
 
                         + SHorizontalBox::Slot ()
                         .AutoWidth ()
+                        .Padding (0.f, 0.f, 12.f, 0.f)
                         [
                             SNew (SCheckBox)
                                 .IsChecked_Lambda ([this] ()
@@ -372,6 +373,34 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
                                 [
                                     SNew (STextBlock)
                                         .Text (FText::FromString (TEXT ("Show Incoming Connectors")))
+                                ]
+                        ]
+
+                        + SHorizontalBox::Slot ()
+                        .AutoWidth ()
+                        [
+                            SNew (SCheckBox)
+                                .IsChecked_Lambda ([this] ()
+                                {
+                                    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+                                    return EditorActor && EditorActor->bShowConnectorLabels
+                                        ? ECheckBoxState::Checked
+                                        : ECheckBoxState::Unchecked;
+                                })
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                                {
+                                    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+                                    {
+                                        EditorActor->bShowConnectorLabels = NewState == ECheckBoxState::Checked;
+                                        if (GEditor)
+                                        {
+                                            GEditor->RedrawAllViewports ();
+                                        }
+                                    }
+                                })
+                                [
+                                    SNew (STextBlock)
+                                        .Text (FText::FromString (TEXT ("Show Connector Labels")))
                                 ]
                         ]
                 ]

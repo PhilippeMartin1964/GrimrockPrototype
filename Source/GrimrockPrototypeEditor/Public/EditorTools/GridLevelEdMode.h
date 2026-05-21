@@ -9,6 +9,7 @@
 
 class AGridLevelEditorActor;
 class FGridLevelEdModeToolkit;
+class FCanvas;
 
 class FGridLevelEdMode : public FEdMode
 {
@@ -41,6 +42,12 @@ public:
         const FSceneView* View,
         FViewport* Viewport,
         FPrimitiveDrawInterface* PDI) override;
+
+    virtual void DrawHUD (
+        FEditorViewportClient* ViewportClient,
+        FViewport* Viewport,
+        const FSceneView* View,
+        FCanvas* Canvas) override;
 
 private:
     AGridLevelEditorActor* FindEditorActor () const;

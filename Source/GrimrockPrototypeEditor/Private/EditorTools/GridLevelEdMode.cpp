@@ -4,6 +4,8 @@
 
 #include "Editor.h"
 #include "EditorViewportClient.h"
+#include "Engine/Canvas.h"
+#include "Engine/Engine.h"
 #include "EngineUtils.h"
 #include "SceneManagement.h"
 
@@ -15,6 +17,14 @@
 
 namespace
 {
+    struct FConnectorDrawData
+    {
+        FVector SourceCenter = FVector::ZeroVector;
+        FVector TargetCenter = FVector::ZeroVector;
+        FVector ArrowEnd = FVector::ZeroVector;
+        FVector Direction = FVector::ForwardVector;
+    };
+
     FLinearColor GetDebugLinkColor (EGridObjectCommand Command, bool bIncoming)
     {
         if (bIncoming)
@@ -119,37 +129,47 @@ namespace
         DrawWireBox (PDI, FBox (Top - FVector (Radius, Radius, Radius), Top + FVector (Radius, Radius, Radius)), Color.ToFColor (true), SDPG_Foreground);
     }
 
-    void DrawConnectorArrow (
-        FPrimitiveDrawInterface* PDI,
+    bool BuildConnectorDrawData (
         AGridLevelEditorActor* EditorActor,
         const FGridLevelObjectData& SourceObject,
         const FGridLevelObjectData& TargetObject,
-        EGridObjectCommand Command,
-        bool bIncoming)
+        FConnectorDrawData& OutDrawData)
     {
         FVector SourceCenter = FVector::ZeroVector;
         FVector TargetCenter = FVector::ZeroVector;
         if (!EditorActor->GetObjectEditorWorldCenter (SourceObject, SourceCenter) ||
             !EditorActor->GetObjectEditorWorldCenter (TargetObject, TargetCenter))
         {
-            return;
+            return false;
         }
 
         const FVector Delta = TargetCenter - SourceCenter;
         const float Distance = Delta.Size ();
         if (Distance < 10.f)
         {
-            return;
+            return false;
         }
 
         const FVector Direction = Delta / Distance;
-        const FVector ArrowEnd = TargetCenter - Direction * 12.f;
+        OutDrawData.SourceCenter = SourceCenter;
+        OutDrawData.TargetCenter = TargetCenter;
+        OutDrawData.Direction = Direction;
+        OutDrawData.ArrowEnd = TargetCenter - Direction * 12.f;
+        return true;
+    }
+
+    void DrawConnectorArrow (
+        FPrimitiveDrawInterface* PDI,
+        const FConnectorDrawData& DrawData,
+        EGridObjectCommand Command,
+        bool bIncoming)
+    {
         const FLinearColor LinkColor = GetDebugLinkColor (Command, bIncoming);
 
         DrawDashedLine (
             PDI,
-            SourceCenter,
-            ArrowEnd,
+            DrawData.SourceCenter,
+            DrawData.ArrowEnd,
             LinkColor,
             16.f,
             9.f,
@@ -157,12 +177,48 @@ namespace
             SDPG_Foreground);
         DrawArrowHead (
             PDI,
-            ArrowEnd,
-            Direction,
+            DrawData.ArrowEnd,
+            DrawData.Direction,
             LinkColor,
             22.f,
             1.f,
             SDPG_Foreground);
+    }
+
+    FText GetConnectorLabelText (EGridObjectEvent SourceEvent, EGridObjectCommand Command)
+    {
+        const UEnum* EventEnum = StaticEnum<EGridObjectEvent> ();
+        const UEnum* CommandEnum = StaticEnum<EGridObjectCommand> ();
+        const FText EventText = EventEnum
+            ? EventEnum->GetDisplayNameTextByValue (static_cast<int64> (SourceEvent))
+            : FText::FromString (TEXT ("Event"));
+        const FText CommandText = CommandEnum
+            ? CommandEnum->GetDisplayNameTextByValue (static_cast<int64> (Command))
+            : FText::FromString (TEXT ("Command"));
+
+        return FText::Format (
+            FText::FromString (TEXT ("{0} / {1}")),
+            EventText,
+            CommandText);
+    }
+
+    bool ShouldDrawConnectorForSelection (
+        const AGridLevelEditorActor* EditorActor,
+        const FGridObjectLink& Link,
+        const FGridLevelObjectData& SelectedObject,
+        bool& bOutIncoming)
+    {
+        const bool bOutgoing = Link.SourceObjectId == SelectedObject.ObjectId;
+        const bool bIncoming = Link.TargetObjectId == SelectedObject.ObjectId;
+
+        if ((!EditorActor->bShowOutgoingConnectors || !bOutgoing) &&
+            (!EditorActor->bShowIncomingConnectors || !bIncoming))
+        {
+            return false;
+        }
+
+        bOutIncoming = bIncoming && !bOutgoing;
+        return true;
     }
 }
 
@@ -434,11 +490,8 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
     {
         for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
         {
-            const bool bOutgoing = Link.SourceObjectId == SelectedObject->ObjectId;
-            const bool bIncoming = Link.TargetObjectId == SelectedObject->ObjectId;
-
-            if ((!EditorActor->bShowOutgoingConnectors || !bOutgoing) &&
-                (!EditorActor->bShowIncomingConnectors || !bIncoming))
+            bool bIncoming = false;
+            if (!ShouldDrawConnectorForSelection (EditorActor, Link, *SelectedObject, bIncoming))
             {
                 continue;
             }
@@ -459,14 +512,96 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
                 continue;
             }
 
-            DrawConnectorArrow (
-                PDI,
-                EditorActor,
-                *SourceObject,
-                *TargetObject,
-                Link.Command,
-                bIncoming && !bOutgoing);
+            FConnectorDrawData DrawData;
+            if (BuildConnectorDrawData (EditorActor, *SourceObject, *TargetObject, DrawData))
+            {
+                DrawConnectorArrow (PDI, DrawData, Link.Command, bIncoming);
+            }
         }
+    }
+}
+
+void FGridLevelEdMode::DrawHUD (
+    FEditorViewportClient* ViewportClient,
+    FViewport* Viewport,
+    const FSceneView* View,
+    FCanvas* Canvas)
+{
+    FEdMode::DrawHUD (ViewportClient, Viewport, View, Canvas);
+
+    AGridLevelEditorActor* EditorActor = FindEditorActor ();
+    if (!EditorActor ||
+        !EditorActor->bShowConnectorLabels ||
+        !EditorActor->IsSelectionValidForEditing () ||
+        !EditorActor->LevelAsset ||
+        !View ||
+        !Canvas ||
+        !GEngine)
+    {
+        return;
+    }
+
+    const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
+    if (!SelectedObject)
+    {
+        return;
+    }
+
+    TMap<FString, int32> PairLabelCounts;
+    for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
+    {
+        bool bIncoming = false;
+        if (!ShouldDrawConnectorForSelection (EditorActor, Link, *SelectedObject, bIncoming))
+        {
+            continue;
+        }
+
+        const FGridLevelObjectData* SourceObject = EditorActor->LevelAsset->Objects.FindByPredicate (
+            [&Link] (const FGridLevelObjectData& Obj)
+        {
+            return Obj.ObjectId == Link.SourceObjectId;
+        });
+        const FGridLevelObjectData* TargetObject = EditorActor->LevelAsset->Objects.FindByPredicate (
+            [&Link] (const FGridLevelObjectData& Obj)
+        {
+            return Obj.ObjectId == Link.TargetObjectId;
+        });
+
+        if (!SourceObject || !TargetObject)
+        {
+            continue;
+        }
+
+        FConnectorDrawData DrawData;
+        if (!BuildConnectorDrawData (EditorActor, *SourceObject, *TargetObject, DrawData))
+        {
+            continue;
+        }
+
+        const FString PairKey = FString::Printf (
+            TEXT ("%s:%s"),
+            *Link.SourceObjectId.ToString (EGuidFormats::Digits),
+            *Link.TargetObjectId.ToString (EGuidFormats::Digits));
+        int32& PairLabelIndex = PairLabelCounts.FindOrAdd (PairKey);
+
+        const FVector LabelWorldPosition =
+            ((DrawData.SourceCenter + DrawData.TargetCenter) * 0.5f) +
+            FVector (0.f, 0.f, 20.f + (10.f * PairLabelIndex));
+        PairLabelIndex++;
+
+        FVector2D PixelLocation = FVector2D::ZeroVector;
+        if (!View->WorldToPixel (LabelWorldPosition, PixelLocation))
+        {
+            continue;
+        }
+
+        const FText LabelText = GetConnectorLabelText (Link.SourceEvent, Link.Command);
+        Canvas->DrawShadowedString (
+            PixelLocation.X,
+            PixelLocation.Y,
+            *LabelText.ToString (),
+            GEngine->GetSmallFont (),
+            FLinearColor (0.86f, 0.88f, 0.9f, 0.9f));
     }
 }
 

@@ -187,6 +187,9 @@ public:
     UPROPERTY (EditAnywhere, Category = "Editor|Connectors")
     bool bShowIncomingConnectors = true;
 
+    UPROPERTY (EditAnywhere, Category = "Editor|Connectors")
+    bool bShowConnectorLabels = true;
+
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateLabelWorldSize = 28.f;
 
