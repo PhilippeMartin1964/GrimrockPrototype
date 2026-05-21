@@ -254,3 +254,13 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Suppression du bloc danger Clear Links.
 - Conservation de Move To Current Cell et Rotate 90°.
 - Aucun changement apporté à EGridObjectEvent ni EGridObjectCommand.
+
+## 2026-05-20 — Phase 2B UX Grid Editor
+
+- L’inspecteur contextualisé affiche désormais les informations utiles selon le type d’objet sélectionné.
+- Le header utilise `Archetype->DisplayName` lorsque disponible.
+- La section `Game Object` affiche les informations essentielles de placement, catégorie, interaction et blocage.
+- Les sections `Door`, `Lever`, `Button`, `Pressure Plate`, `Teleporter`, `Light` et `Receptacle` exposent les champs déjà existants.
+- `Advanced / Debug` conserve les champs techniques : `ObjectId`, `ArchetypeId`, `Tag`, `Notes`, `RuntimeActorClass`, `PreviewMesh`, `FixedMesh`, `MovingMesh`.
+- Aucun champ sérialisé n’a été ajouté.
+- Aucun changement apporté à `EGridObjectEvent`, `EGridObjectCommand`, `FGridObjectLink`, au runtime dispatcher ou aux assets.
