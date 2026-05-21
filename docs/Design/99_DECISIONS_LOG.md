@@ -312,3 +312,23 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `bBlocksMovement`, `bIsReadable`, `bIsLightSource` et `bUseLightFlicker` ont un wording éditeur plus clair.
 - Aucun nom de champ sérialisé, comportement runtime, enum, DataAsset ou modèle de liens n'a été modifié.
 
+## 2026-05-20 — Phase 5A DataAsset Naming Normalization
+
+- Les DataAssets principaux ont été renommés directement dans UE5, testés et validés.
+- Les anciens noms orientés puzzle/test ont été remplacés par des noms génériques.
+- Les noms canoniques actuels sont :
+  - `Button_Normal`
+  - `Button_Secret`
+  - `Button_Wall` à créer
+  - `Lever`
+  - `PressurePlate`
+  - `Trigger`
+  - `Door_Stone`
+  - `Door_Secret`
+  - `Receptacle_TorchHolder`
+  - `Item_Torch`
+  - `ItemSpawn_Torch`
+  - `WallInscription`
+- Le choix a été fait de préférer `Lever`, `PressurePlate` et `Trigger` aux formes longues tant qu’il n’existe pas plusieurs variantes.
+- Aucun changement C++ ou runtime n’a été nécessaire.
+

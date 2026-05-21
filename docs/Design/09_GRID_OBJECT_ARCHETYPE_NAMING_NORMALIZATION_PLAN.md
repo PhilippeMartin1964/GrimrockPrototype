@@ -1,19 +1,34 @@
 # Plan de normalisation des noms d'archétypes GridObject
 
-Plan Phase 4D pour normaliser les noms de DataAssets `UGridObjectArchetypeAsset` et leurs `ArchetypeId`.
+Plan de migration des noms de DataAssets `UGridObjectArchetypeAsset` et de leurs `ArchetypeId`, mis à jour après validation UE5 de la Phase 5A.
 
-Ce document est un plan de migration uniquement. Il ne modifie pas le code C++, les `.uasset`, les Blueprints, les enums, les liens, les niveaux ou la sérialisation.
+Ce document est un plan de documentation. Il ne modifie pas le code C++, les `.uasset`, les Blueprints, les enums, les liens, les niveaux ou la sérialisation.
 
 ## 1. Objectif
 
-Le projet contient actuellement un mélange de :
+Le projet contenait un mélange de :
 
-- archétypes génériques utilisables comme blocs de base (`Door_Stone`, `Item_Torch`) ;
-- variantes visuelles concrètes (`Button_Secret_Stone`, décorations de sol) ;
-- archétypes orientés puzzle/test (`Button_ToggleDoor`, `Lever_OpenSecret`, `DA_Arch_Plate_HoldDoor`) ;
-- objets historiques à préserver (`WallInscription`).
+- archétypes génériques ;
+- variantes visuelles ;
+- archétypes orientés puzzle/test ;
+- objets historiques à préserver.
 
-L'objectif de cette phase est de définir un schéma canonique avant toute modification dans Unreal. Le renommage des assets et des `ArchetypeId` doit être fait ensuite dans des lots contrôlés, avec migration explicite des références.
+La Phase 5A a validé une première normalisation directe dans UE5. Les anciens noms orientés puzzle/test ont été remplacés par des noms génériques pour les objets principaux.
+
+Les noms canoniques actuels sont :
+
+- `Button_Normal`
+- `Button_Secret`
+- `Button_Wall` à créer
+- `Lever`
+- `PressurePlate`
+- `Trigger`
+- `Door_Stone`
+- `Door_Secret`
+- `Receptacle_TorchHolder`
+- `Item_Torch`
+- `ItemSpawn_Torch`
+- `WallInscription`
 
 ## 2. Règles de nommage
 
@@ -23,76 +38,68 @@ L'objectif de cette phase est de définir un schéma canonique avant toute modif
 - Les archétypes génériques ne doivent pas décrire une énigme précise.
 - Les archétypes puzzle/test conservés doivent être clairement préfixés avec `Test_` ou `Example_`.
 - Ne jamais renommer un `ArchetypeId` sans migrer toutes ses références.
-- Les variantes visuelles peuvent être explicites quand c'est utile : `Button_Secret_Stone`, `Door_Secret_Stone`, etc.
-- Un `ArchetypeId` doit rester un identifiant de contenu, pas une description de lien logique. Exemple : préférer `Lever_Standard` à `Lever_OpenSecret` pour un levier générique.
-- `DisplayName` peut être plus court que `ArchetypeId`. Exemple : `Receptacle_TorchHolder` -> `Torch Holder`.
+- Les formes courtes sont autorisées quand il n'existe pas encore plusieurs variantes : `Lever`, `PressurePlate`, `Trigger`.
+- Si plusieurs variantes apparaissent plus tard, créer des archétypes explicites sans casser les IDs existants. Exemple : conserver `Lever`, puis ajouter `Lever_WallRusty` seulement si nécessaire.
 
 ## 3. Table canonique des archétypes
 
 | Canonical ArchetypeId | DataAsset Name | DisplayName | SupportedType | ObjectCategory | PlacementKind | Runtime Class | Status |
 |---|---|---|---|---|---|---|---|
-| `Button_Normal` | `DA_Button_Normal` | `Button` | Button | Mechanism | Wall | `AGridButtonActor` / BP dérivé | À créer |
-| `Button_Secret` | `DA_Button_Secret` | `Secret Button` | Button | Mechanism | Wall | `AGridButtonActor` / BP dérivé | À créer ou migrer depuis `Button_Secret_Stone` |
+| `Button_Normal` | `DA_Button_Normal` | `Button` | Button | Mechanism | Wall | `AGridButtonActor` / BP dérivé | Présent / validé UE5 |
+| `Button_Secret` | `DA_Button_Secret` | `Secret Button` | Button | Mechanism | Wall | `AGridButtonActor` / BP dérivé | Présent / validé UE5 |
 | `Button_Wall` | `DA_Button_Wall` | `Wall Button` | Button | Mechanism | Wall | `AGridButtonActor` / BP dérivé | À créer |
-| `Lever_Standard` | `DA_Lever_Standard` | `Lever` | Lever | Mechanism | Wall | `AGridLeverActor` / `BP_GridLeverActor_C` | À créer ou migrer depuis `Lever_OpenSecret` |
-| `PressurePlate_Stone` | `DA_PressurePlate_Stone` | `Stone Pressure Plate` | PressurePlate | Mechanism | Floor ou Center | `AGridPressurePlateActor` / `BP_GridPressurePlateActor_C` | À créer ou migrer depuis `DA_Arch_Plate_HoldDoor` |
-| `Door_Stone` | `DA_Door_Stone` | `Stone Door` | Door | Mechanism | Edge | `AGridDoorActor` / BP dérivé | Déjà présent |
-| `Door_Secret` | `DA_Door_Secret` | `Secret Door` | Door | Mechanism | Edge ou Wall | `AGridSecretDoorActor` / BP dérivé de `AGridDoorActor` | À créer ou migrer depuis `Secret_Door_Stone` |
-| `Receptacle_TorchHolder` | `DA_Receptacle_TorchHolder` | `Torch Holder` | Receptacle | Receptacle | Wall | `AGridReceptacleActor` / `BP_Receptacle_WallTorchHolder_C` | À migrer depuis `Receptacle_WallTorchHolder` |
+| `Lever` | `DA_Lever` | `Lever` | Lever | Mechanism | Wall | `AGridLeverActor` / `BP_GridLeverActor_C` | Présent / validé UE5 |
+| `PressurePlate` | `DA_PressurePlate` | `Pressure Plate` | PressurePlate | Mechanism | Floor ou Center | `AGridPressurePlateActor` / `BP_GridPressurePlateActor_C` | Présent / validé UE5 |
+| `Trigger` | `DA_Trigger` | `Trigger` | Trigger | Mechanism | Floor ou Center | `AGridTriggerActor` / `BP_GridTriggerActor_C` | Présent / validé UE5 |
+| `Door_Stone` | `DA_Door_Stone` | `Stone Door` | Door | Mechanism | Edge | `AGridDoorActor` / BP dérivé | Présent / déjà canonique |
+| `Door_Secret` | `DA_Door_Secret` | `Secret Door` | Door | Mechanism | Edge ou Wall | `AGridSecretDoorActor` / BP dérivé de `AGridDoorActor` | Présent / validé UE5 |
+| `Receptacle_TorchHolder` | `DA_Receptacle_TorchHolder` | `Torch Holder` | Receptacle | Receptacle | Wall | `AGridReceptacleActor` / BP dérivé | Présent / validé UE5 |
 | `Receptacle_Alcove` | `DA_Receptacle_Alcove` | `Alcove` | Receptacle | Receptacle | Wall | `AGridReceptacleActor` / BP dérivé | À créer |
 | `Receptacle_Altar` | `DA_Receptacle_Altar` | `Altar` | Receptacle | Receptacle | Floor ou Center | `AGridReceptacleActor` / BP dérivé | À créer |
 | `Receptacle_OfferingBowl` | `DA_Receptacle_OfferingBowl` | `Offering Bowl` | Receptacle | Receptacle | Floor ou Center | `AGridReceptacleActor` / BP dérivé | À créer |
 | `Lock_Keyhole` | `DA_Lock_Keyhole` | `Keyhole` | Receptacle | Receptacle | Wall | `AGridReceptacleActor` ou futur `AGridLockActor` | À créer |
 | `Teleporter_Rune` | `DA_Teleporter_Rune` | `Rune Teleporter` | Teleporter | Teleporter | Floor ou Center | `AGridTeleporterActor` / BP dérivé | À créer |
-| `Item_Torch` | `DA_Item_Torch` | `Torch` | Item | Item | Floor | `AGridItemActor` / `BP_Item_Torch_C` via `ItemActorClass` | Déjà présent |
+| `Item_Torch` | `DA_Item_Torch` | `Torch` | Item | Item | Floor ou Center | `AGridItemActor` / BP dérivé via `ItemActorClass` | Présent / déjà canonique |
 | `Item_Key` | `DA_Item_Key` | `Key` | Item | Item | Floor ou Center | `AGridItemActor` / BP dérivé | À créer |
 | `Item_Coin` | `DA_Item_Coin` | `Coin` | Item | Item | Floor ou Center | `AGridItemActor` / BP dérivé | À créer |
-| `ItemSpawn_Torch` | `DA_ItemSpawn_Torch` | `Torch Spawn` | ItemSpawn | Spawn | Floor ou Center | Optionnel ; spawn via behavior | Déjà présent |
-| `WallInscription` | `DA_WallInscription` | `Wall Inscription` | Decoration | Readable | Wall | Système readable existant | À conserver pour l'instant |
-| `Readable_WallInscription` | `DA_Readable_WallInscription` | `Wall Inscription` | Decoration | Readable | Wall | Système readable existant | Alias canonique possible plus tard, migration non prioritaire |
-| `Spawn_Player` | `DA_Spawn_Player` | `Player Spawn` | MonsterSpawn ou futur type dédié à confirmer | Spawn | Floor ou Center | Marker/donnée, pas forcément actor runtime | À créer |
+| `ItemSpawn_Torch` | `DA_ItemSpawn_Torch` | `Torch Spawn` | ItemSpawn | Spawn | Floor ou Center | Optionnel ; spawn via behavior | Présent / déjà canonique |
+| `WallInscription` | `DA_WallInscription` | `Wall Inscription` | Decoration | Readable | Wall | Système readable existant | Présent / conservé |
+| `Spawn_Player` | `DA_Spawn_Player` | `Player Spawn` | MonsterSpawn ou futur type dédié à confirmer | Spawn | Floor ou Center | Marker/donnée | À créer |
 
-Notes :
+## 4. Mapping des anciens noms vers les noms validés
 
-- `ObjectCategory=Mechanism` pour les portes reste cohérent avec l'enum actuelle, même si la documentation de design parle de `Passage`.
-- `FloorRuneCircle` reste une décoration jusqu'à la création explicite de `Teleporter_Rune`.
-- Les décorations de sol existantes peuvent conserver leurs IDs actuels.
+| Ancien asset / ID | Nom validé | Action Phase 5A | Risque résiduel | Notes |
+|---|---|---|---|---|
+| `DA_Arch_Button_ToggleDoor` / `Button_ToggleDoor` | `DA_Button_Normal` / `Button_Normal` | Renommé dans UE5 | Faible si les niveaux ont été sauvegardés après migration | L'ancien nom décrivait une énigme. |
+| `DA_Button_Secret_Stone` / `Button_Secret_Stone` | `DA_Button_Secret` / `Button_Secret` | Renommé dans UE5 | Faible à moyen | La variante pierre n'est pas distinguée tant qu'il n'existe pas plusieurs variantes. |
+| `DA_Arch_Lever_OpenSecret` / `Lever_OpenSecret` | `DA_Lever` / `Lever` | Renommé dans UE5 | Faible si les références ont été resauvegardées | Forme courte validée. |
+| `DA_Arch_Plate_HoldDoor` | `DA_PressurePlate` / `PressurePlate` | Renommé dans UE5 | Faible si les références ont été resauvegardées | Forme courte validée. |
+| `DA_Trigger_Cell` / `Trigger_Cell` | `DA_Trigger` / `Trigger` | Renommé dans UE5 | Faible si les références ont été resauvegardées | Corrige aussi le DisplayName temporaire. |
+| `DA_Door_Stone` / `Door_Stone` | `DA_Door_Stone` / `Door_Stone` | Inchangé | Faible | Déjà canonique. |
+| `DA_SecretDoor_Stone1` / `Secret_Door_Stone` | `DA_Door_Secret` / `Door_Secret` | Renommé dans UE5 | Moyen | Vérifier les niveaux et connecteurs qui ciblaient la porte secrète. |
+| `DA_Receptacle_WallTorchHolder` / `Receptacle_WallTorchHolder` | `DA_Receptacle_TorchHolder` / `Receptacle_TorchHolder` | Renommé dans UE5 | Moyen | Vérifier l'acceptation de `Item_Torch`. |
+| `DA_Item_Torch` / `Item_Torch` | `DA_Item_Torch` / `Item_Torch` | Inchangé | Faible | Déjà canonique. |
+| `DA_ItemSpawn_Torch` / `ItemSpawn_Torch` | `DA_ItemSpawn_Torch` / `ItemSpawn_Torch` | Inchangé | Faible | Déjà canonique. |
+| `DA_WallInscription` / `WallInscription` | `DA_WallInscription` / `WallInscription` | Inchangé | Faible | Objet historique explicitement conservé. |
 
-## 4. Mapping des assets existants
+## 5. Stratégie post-normalisation
 
-| Current Asset | Current ArchetypeId | Proposed Asset | Proposed ArchetypeId | Action | Migration Risk | Notes |
-|---|---|---|---|---|---|---|
-| `DA_Arch_Button_ToggleDoor` | `Button_ToggleDoor` | `DA_Button_Normal` ou `DA_Button_Wall` pour le générique ; `DA_Example_Button_ToggleDoor` si conservé | `Button_Normal` / `Button_Wall` / `Example_Button_ToggleDoor` | Créer un bouton générique, puis migrer les placements test si approprié. Conserver l'asset puzzle seulement s'il sert d'exemple. | Élevé | ID utilisé dans niveaux/palette. Ne pas renommer directement sans migration. |
-| `DA_Button_Secret_Stone` | `Button_Secret_Stone` | `DA_Button_Secret` ou `DA_Button_Secret_Stone` | `Button_Secret` ou `Button_Secret_Stone` | Choisir si la variante pierre doit rester explicite. Migrer les références si l'ID change. | Moyen | La variante existe et semble cohérente ; le sujet principal est le naming canonique. |
-| `DA_Arch_Lever_OpenSecret` | `Lever_OpenSecret` | `DA_Lever_Standard` pour le générique ; `DA_Example_Lever_OpenSecret` si conservé | `Lever_Standard` / `Example_Lever_OpenSecret` | Créer un levier générique. Migrer les objets non spécifiques. | Élevé | `Lever_OpenSecret` décrit une logique d'énigme, pas un composant générique. |
-| `DA_Arch_Plate_HoldDoor` | `PressurePlate` ou à vérifier | `DA_PressurePlate_Stone` pour le générique ; `DA_Example_PressurePlate_HoldDoor` si conservé | `PressurePlate_Stone` / `Example_PressurePlate_HoldDoor` | Vérifier l'ID réel dans Unreal, puis créer/migrer la plaque générique. | Élevé | Asset orienté puzzle avec `TriggerMode=Hold`. |
-| `DA_Door_Stone` | `Door_Stone` | `DA_Door_Stone` | `Door_Stone` | Conserver. Vérifier seulement `DisplayName`, runtime class, meshes et catégorie palette. | Faible | Déjà canonique. |
-| `DA_SecretDoor_Stone1` | `Secret_Door_Stone` | `DA_Door_Secret` ou `DA_Door_Secret_Stone` | `Door_Secret` ou `Door_Secret_Stone` | Migrer vers un ID commençant par `Door_`. Ne pas faire de rename aveugle. | Élevé | ID inversé ; peut déjà être référencé par les niveaux. |
-| `DA_Receptacle_WallTorchHolder` | `Receptacle_WallTorchHolder` | `DA_Receptacle_TorchHolder` | `Receptacle_TorchHolder` | Migrer après vérification des références et des règles d'acceptation `Item_Torch`. | Élevé | Le comportement est bon, le nom doit devenir canonique. |
-| `DA_Item_Torch` | `Item_Torch` | `DA_Item_Torch` | `Item_Torch` | Conserver. Vérifier `ItemActorClass` et behavior inutile éventuel. | Faible | Déjà canonique. |
-| `DA_ItemSpawn_Torch` | `ItemSpawn_Torch` | `DA_ItemSpawn_Torch` | `ItemSpawn_Torch` | Conserver. Vérifier `SpawnedItemArchetypeId=Item_Torch`. | Faible | Déjà conforme au schéma `DA_<ArchetypeId>`. |
-| `DA_WallInscription` | `WallInscription` | `DA_WallInscription` maintenant ; `DA_Readable_WallInscription` plus tard si migration décidée | `WallInscription` maintenant ; `Readable_WallInscription` plus tard | Ne pas renommer immédiatement. Améliorer seulement DisplayName/classification si nécessaire. | Élevé | Les documents disent explicitement de préserver `WallInscription`. |
-| `DA_Trigger_Cell` | `Trigger_Cell` | `DA_Trigger_Floor` ou `DA_Example_Trigger_Cell` | `Trigger_Floor` / `Example_Trigger_Cell` | Décider si c'est un trigger générique ou un test. Corriger aussi le DisplayName `TriggerCelle`. | Moyen | Pas dans la liste minimale demandée, mais présent dans la palette. |
-| `DA_A_FloorRuneCircle` | `FloorRuneCircle` | `DA_A_FloorRuneCircle` | `FloorRuneCircle` | Conserver comme décoration. Créer `DA_Teleporter_Rune` séparément. | Faible | Ne pas convertir implicitement en téléporteur. |
-| `DA_A_FloorBloodStain` | `FloorBloodStain` | `DA_A_FloorBloodStain` ou `DA_FloorBloodStain` plus tard | `FloorBloodStain` | Conserver pour l'instant. | Faible | Décoration de sol hors migration prioritaire. |
-| `DA_A_FloorBones` | `FloorBones` à vérifier | `DA_A_FloorBones` ou `DA_FloorBones` plus tard | `FloorBones` | Vérifier l'ID exact car `FloorBone` et `FloorBones` apparaissent dans l'audit. | Faible | Décoration de sol. |
-| `DA_A_FloorCarpet` | `FloorCarpet` | `DA_A_FloorCarpet` ou `DA_FloorCarpet` plus tard | `FloorCarpet` | Conserver pour l'instant. | Faible | Décoration de sol. |
-| `DA_A_FloorDebris` | `FloorDebris` | `DA_A_FloorDebris` ou `DA_FloorDebris` plus tard | `FloorDebris` | Conserver pour l'instant. | Faible | Décoration de sol. |
-| `DA_A_FloorDust` | `FloorDust` | `DA_A_FloorDust` ou `DA_FloorDust` plus tard | `FloorDust` | Conserver pour l'instant. | Faible | Décoration de sol. |
-| `DA_A_FloorMoss` | `FloorMoss` | `DA_A_FloorMoss` ou `DA_FloorMoss` plus tard | `FloorMoss` | Conserver pour l'instant. | Faible | Décoration de sol. |
-| `DA_A_FloorRoots` | `FloorRoots` | `DA_A_FloorRoots` ou `DA_FloorRoots` plus tard | `FloorRoots` | Conserver pour l'instant. Corriger éventuellement la description. | Faible | Décoration de sol. |
-| `DA_A_FloorRubble` | `FloorRubble` | `DA_A_FloorRubble` ou `DA_FloorRubble` plus tard | `FloorRubble` | Conserver pour l'instant. | Faible | Décoration de sol. |
+### Étape 1 : vérifier les références migrées
 
-## 5. Stratégie de migration
+Après renommage dans UE5 :
 
-### Étape 1 : créer les archétypes génériques manquants
+- ouvrir la palette ;
+- ouvrir les niveaux de test ;
+- vérifier les objets placés ;
+- vérifier les connecteurs ;
+- sauvegarder les packages concernés ;
+- exécuter `Fix Up Redirectors`.
 
-Créer les archétypes canoniques sans supprimer ni renommer les anciens :
+### Étape 2 : créer les archétypes manquants
 
-- `DA_Button_Normal`
+Créer ensuite, sans renommer les archétypes validés :
+
 - `DA_Button_Wall`
-- `DA_Lever_Standard`
-- `DA_PressurePlate_Stone`
 - `DA_Receptacle_Alcove`
 - `DA_Receptacle_Altar`
 - `DA_Receptacle_OfferingBowl`
@@ -102,114 +109,37 @@ Créer les archétypes canoniques sans supprimer ni renommer les anciens :
 - `DA_Item_Coin`
 - `DA_Spawn_Player`
 
-Cette étape permet de rendre la palette conforme sans casser les niveaux existants.
+### Étape 3 : ne conserver les exemples que s'ils servent vraiment
 
-### Étape 2 : mettre à jour la palette
+Si un ancien puzzle/test doit rester comme exemple, créer un asset dédié avec préfixe `Example_`.
 
-Mettre à jour `DA_ObjectPalette_Default` pour exposer les archétypes génériques canoniques en priorité.
-
-Les assets puzzle/test peuvent rester dans une catégorie séparée ou être retirés de la palette principale.
-
-### Étape 3 : migrer les objets des niveaux de test
-
-Migrer les objets placés vers les nouveaux `ArchetypeId` quand ils représentent un objet générique :
-
-- `Button_ToggleDoor` -> `Button_Normal` ou `Button_Wall`
-- `Lever_OpenSecret` -> `Lever_Standard`
-- plaque de `DA_Arch_Plate_HoldDoor` -> `PressurePlate_Stone`
-- `Receptacle_WallTorchHolder` -> `Receptacle_TorchHolder`
-- `Secret_Door_Stone` -> `Door_Secret` ou `Door_Secret_Stone`
-
-Les objets qui servent à documenter une énigme exemple peuvent conserver un archétype `Example_`.
-
-### Étape 4 : renommer les archétypes puzzle/test conservés
-
-Si les assets orientés puzzle restent utiles, les renommer explicitement :
-
-- `DA_Arch_Button_ToggleDoor` -> `DA_Example_Button_ToggleDoor`
-- `Button_ToggleDoor` -> `Example_Button_ToggleDoor`
-- `DA_Arch_Lever_OpenSecret` -> `DA_Example_Lever_OpenSecret`
-- `Lever_OpenSecret` -> `Example_Lever_OpenSecret`
-- `DA_Arch_Plate_HoldDoor` -> `DA_Example_PressurePlate_HoldDoor`
-- ID correspondant -> `Example_PressurePlate_HoldDoor`
-
-Cette étape doit être faite après migration des niveaux qui ne doivent pas rester liés aux exemples.
-
-### Étape 5 : corriger les redirectors Unreal
-
-Après les renommages d'assets dans Unreal :
-
-- utiliser `Fix Up Redirectors`;
-- sauvegarder les packages concernés ;
-- vérifier que les palettes, niveaux et Blueprints ne pointent plus vers des redirectors temporaires ;
-- committer les `.uasset` modifiés ensemble par famille.
-
-### Étape 6 : supprimer seulement après validation
-
-Ne supprimer les anciens assets qu'après :
-
-- validation palette ;
-- validation chargement niveau ;
-- validation PIE ;
-- recherche de références restantes ;
-- commit de migration déjà stable.
+Ne pas réutiliser les archétypes génériques pour encoder une énigme spécifique.
 
 ## 6. Cas particuliers
 
 ### `WallInscription`
 
-`WallInscription` ne doit pas être renommé immédiatement. Les documents de design indiquent explicitement de préserver cet objet existant.
-
-La forme `Readable_WallInscription` peut rester un objectif de normalisation plus tard, mais seulement avec une migration explicite des niveaux et références.
+`WallInscription` reste sous son nom historique. Ne pas le renommer en `Readable_WallInscription` sans migration explicite.
 
 ### `Door_Stone`
 
-`Door_Stone` est déjà canonique. Le DataAsset `DA_Door_Stone` respecte déjà la règle `DA_<ArchetypeId>`.
-
-Les corrections éventuelles doivent se limiter à `DisplayName`, meshes, classe runtime ou paramètres, pas au nom.
+`Door_Stone` est déjà canonique et ne doit pas être modifié côté nom.
 
 ### `Item_Torch`
 
-`Item_Torch` est déjà canonique. Le DataAsset `DA_Item_Torch` respecte déjà la règle `DA_<ArchetypeId>`.
-
-Avant tout changement, vérifier seulement que `ItemActorClass` est correct et que le behavior ItemSpawn n'est pas configuré inutilement.
+`Item_Torch` est déjà canonique et ne doit pas être modifié côté nom.
 
 ### Décorations de sol
 
-Les décorations de sol peuvent conserver leurs IDs actuels :
-
-- `FloorBloodStain`
-- `FloorBones`
-- `FloorCarpet`
-- `FloorDebris`
-- `FloorDust`
-- `FloorMoss`
-- `FloorRoots`
-- `FloorRubble`
-- `FloorRuneCircle`
-
-Le préfixe de fichier `DA_A_` est moins strict que la règle canonique, mais ces assets ne bloquent pas la normalisation des objets de gameplay. Les traiter plus tard si nécessaire.
+Les décorations de sol peuvent conserver leurs IDs actuels et leur préfixe de fichier `DA_A_` pour l'instant. Elles ne sont pas prioritaires dans la normalisation gameplay.
 
 ### `FloorRuneCircle`
 
-`FloorRuneCircle` reste une `Decoration` tant qu'un archétype séparé `Teleporter_Rune` n'existe pas.
-
-Ne pas convertir l'asset existant en téléporteur sans décision explicite, car cela changerait son rôle dans les niveaux et la palette.
-
-### `Secret_Door_Stone`
-
-`Secret_Door_Stone` doit migrer vers `Door_Secret` ou `Door_Secret_Stone`, mais pas par renommage direct aveugle.
-
-Avant migration :
-
-- vérifier les références dans les niveaux ;
-- vérifier la classe runtime ;
-- vérifier les meshes fixe/mobile ;
-- décider si le canon doit être générique (`Door_Secret`) ou variante pierre (`Door_Secret_Stone`).
+`FloorRuneCircle` reste une `Decoration`. Créer `Teleporter_Rune` séparément quand le téléporteur sera authoré.
 
 ## 7. Checklist de validation
 
-Pour chaque archétype renommé ou nouvellement créé :
+Pour chaque archétype renommé ou créé :
 
 - apparaît dans la palette ;
 - peut être placé dans la grille ;
@@ -219,23 +149,19 @@ Pour chaque archétype renommé ou nouvellement créé :
 - les connecteurs existants se résolvent toujours ;
 - le niveau charge sans warnings d'archétype manquant ;
 - le comportement PIE est inchangé ou corrigé volontairement ;
-- les `ArchetypeId` référencés dans les behaviors restent valides ;
 - les redirectors Unreal ont été corrigés ;
 - le commit ne contient que la famille d'assets concernée.
 
 ## 8. Recommandation finale
 
-Ne pas renommer tous les assets d'un coup.
+La normalisation de base est validée. Ne pas réintroduire les anciens noms orientés puzzle/test dans la documentation ou la palette.
 
-Commencer par les boutons, puis les leviers/plaques, puis les portes, puis les réceptacles.
+Pour la suite, créer les manquants en petits lots :
 
-Ordre recommandé :
+1. `Button_Wall`
+2. réceptacles manquants ;
+3. items manquants ;
+4. téléporteur ;
+5. spawn joueur.
 
-1. Boutons : créer `Button_Normal`, `Button_Wall`, décider `Button_Secret` vs `Button_Secret_Stone`.
-2. Leviers et plaques : créer `Lever_Standard` et `PressurePlate_Stone`.
-3. Portes : conserver `Door_Stone`, migrer prudemment `Secret_Door_Stone`.
-4. Réceptacles : migrer `Receptacle_WallTorchHolder` vers `Receptacle_TorchHolder`, puis créer les autres réceptacles.
-5. Items/spawns : conserver `Item_Torch` et `ItemSpawn_Torch`, créer `Item_Key` et `Item_Coin`.
-6. Readable/lumières : préserver `WallInscription`, créer `Teleporter_Rune` séparément de `FloorRuneCircle`.
-
-Faire un commit séparé par famille d'assets, avec validation éditeur et runtime après chaque lot.
+Committer chaque famille séparément après validation UE5.
