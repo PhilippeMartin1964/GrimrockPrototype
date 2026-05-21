@@ -4,6 +4,7 @@
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridObjectArchetypeAsset.h"
 
@@ -154,6 +155,73 @@ namespace
         }
 
         return Root;
+    }
+
+    FText GetConnectorEventText (EGridObjectEvent Event)
+    {
+        const UEnum* EventEnum = StaticEnum<EGridObjectEvent> ();
+        const FText EventText = EventEnum
+            ? EventEnum->GetDisplayNameTextByValue (static_cast<int64> (Event))
+            : FText::FromString (TEXT ("Unknown"));
+
+        return FText::Format (
+            FText::FromString (TEXT ("On {0}")),
+            EventText);
+    }
+
+    FText GetConnectorCommandText (EGridObjectCommand Command)
+    {
+        const UEnum* CommandEnum = StaticEnum<EGridObjectCommand> ();
+        return CommandEnum
+            ? CommandEnum->GetDisplayNameTextByValue (static_cast<int64> (Command))
+            : FText::FromString (TEXT ("Unknown"));
+    }
+
+    const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
+    {
+        if (!LevelAsset || !ObjectId.IsValid ())
+        {
+            return nullptr;
+        }
+
+        for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+        {
+            if (Object.ObjectId == ObjectId)
+            {
+                return &Object;
+            }
+        }
+
+        return nullptr;
+    }
+
+    FText GetConnectorObjectSummaryText (
+        const AGridLevelEditorActor* EditorActor,
+        const FGridLevelObjectData& Object)
+    {
+        const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
+        const UGridObjectArchetypeAsset* Archetype = EditorActor
+            ? EditorActor->FindObjectArchetypeById (Object.ArchetypeId)
+            : nullptr;
+
+        const FText NameText = Archetype && !Archetype->DisplayName.IsEmpty ()
+            ? Archetype->DisplayName
+            : GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Object.Type));
+
+        return FText::Format (
+            FText::FromString (TEXT ("{0} {1}")),
+            NameText,
+            GetHeaderPlacementText (Object));
+    }
+
+    TSharedRef<SWidget> BuildConnectorTextRow (const FText& Text, bool bWarning)
+    {
+        return SNew (STextBlock)
+            .Text (Text)
+            .AutoWrapText (true)
+            .ColorAndOpacity (bWarning
+                ? FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))
+                : FSlateColor::UseForeground ());
     }
 }
 
@@ -317,6 +385,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
                 [
                     BuildContextualComponentSection (Obj)
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
+                [
+                    BuildConnectorsSection (Obj)
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
@@ -519,6 +592,184 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
     }
 
     return Root;
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildConnectorsSection (const FGridLevelObjectData& Obj)
+{
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox);
+    if (!CurrentEditorActor || !LevelAsset)
+    {
+        Root->AddSlot ().AutoHeight ()
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("No level asset.")))
+                .AutoWrapText (true)
+        ];
+
+        return GridEditorWidgetHelpers::BuildGridPanelSection (
+            FText::FromString (TEXT ("Connectors")),
+            Root);
+    }
+
+    int32 OutgoingCount = 0;
+    int32 IncomingCount = 0;
+    for (const FGridObjectLink& Link : LevelAsset->Links)
+    {
+        if (Link.SourceObjectId == Obj.ObjectId)
+        {
+            ++OutgoingCount;
+        }
+
+        if (Link.TargetObjectId == Obj.ObjectId)
+        {
+            ++IncomingCount;
+        }
+    }
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+    [
+        SNew (SHorizontalBox)
+
+            + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 6.f, 0.f)
+            [
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                    FText::FromString (TEXT ("Outgoing")),
+                    FText::AsNumber (OutgoingCount),
+                    FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+            ]
+
+            + SHorizontalBox::Slot ().AutoWidth ()
+            [
+                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
+                    FText::FromString (TEXT ("Incoming")),
+                    FText::AsNumber (IncomingCount),
+                    FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+            ]
+    ];
+
+    static const EGridObjectEvent EventOrder[] =
+    {
+        EGridObjectEvent::Activated,
+        EGridObjectEvent::Deactivated,
+        EGridObjectEvent::ItemInserted,
+        EGridObjectEvent::ItemRemoved,
+        EGridObjectEvent::ItemChanged,
+        EGridObjectEvent::Used,
+        EGridObjectEvent::Entered,
+        EGridObjectEvent::Exited,
+        EGridObjectEvent::Opened,
+        EGridObjectEvent::Closed,
+        EGridObjectEvent::Enabled,
+        EGridObjectEvent::Disabled
+    };
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 4.f)
+    [
+        SNew (STextBlock)
+            .Text (FText::FromString (TEXT ("Outgoing Connectors")))
+            .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+            .ColorAndOpacity (FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+    ];
+
+    if (OutgoingCount == 0)
+    {
+        Root->AddSlot ().AutoHeight ()
+        [
+            SNew (STextBlock).Text (FText::FromString (TEXT ("None")))
+        ];
+    }
+    else
+    {
+        for (const EGridObjectEvent Event : EventOrder)
+        {
+            bool bEventHeaderAdded = false;
+
+            for (const FGridObjectLink& Link : LevelAsset->Links)
+            {
+                if (Link.SourceObjectId != Obj.ObjectId || Link.SourceEvent != Event)
+                {
+                    continue;
+                }
+
+                if (!bEventHeaderAdded)
+                {
+                    Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 1.f)
+                    [
+                        SNew (STextBlock)
+                            .Text (GetConnectorEventText (Event))
+                            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
+                    ];
+                    bEventHeaderAdded = true;
+                }
+
+                const FGridLevelObjectData* TargetObject = FindObjectById (LevelAsset, Link.TargetObjectId);
+                const bool bMissingTarget = TargetObject == nullptr;
+                const FText TargetText = TargetObject
+                    ? GetConnectorObjectSummaryText (CurrentEditorActor, *TargetObject)
+                    : FText::FromString (TEXT ("Missing object"));
+
+                Root->AddSlot ().AutoHeight ().Padding (12.f, 1.f, 0.f, 1.f)
+                [
+                    BuildConnectorTextRow (
+                        FText::Format (
+                            FText::FromString (TEXT ("-> {0} : {1}")),
+                            TargetText,
+                            GetConnectorCommandText (Link.Command)),
+                        bMissingTarget)
+                ];
+            }
+        }
+    }
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 4.f)
+    [
+        SNew (STextBlock)
+            .Text (FText::FromString (TEXT ("Incoming Connectors")))
+            .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+            .ColorAndOpacity (FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+    ];
+
+    if (IncomingCount == 0)
+    {
+        Root->AddSlot ().AutoHeight ()
+        [
+            SNew (STextBlock).Text (FText::FromString (TEXT ("None")))
+        ];
+    }
+    else
+    {
+        for (const FGridObjectLink& Link : LevelAsset->Links)
+        {
+            if (Link.TargetObjectId != Obj.ObjectId)
+            {
+                continue;
+            }
+
+            const FGridLevelObjectData* SourceObject = FindObjectById (LevelAsset, Link.SourceObjectId);
+            const bool bMissingSource = SourceObject == nullptr;
+            const FText SourceText = SourceObject
+                ? GetConnectorObjectSummaryText (CurrentEditorActor, *SourceObject)
+                : FText::FromString (TEXT ("Missing object"));
+
+            Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 1.f)
+            [
+                BuildConnectorTextRow (
+                    FText::Format (
+                        FText::FromString (TEXT ("{0} : {1} -> {2}")),
+                        SourceText,
+                        GetConnectorEventText (Link.SourceEvent),
+                        GetConnectorCommandText (Link.Command)),
+                    bMissingSource)
+            ];
+        }
+    }
+
+    return GridEditorWidgetHelpers::BuildGridPanelSection (
+        FText::FromString (TEXT ("Connectors")),
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection (const FGridLevelObjectData& Obj)

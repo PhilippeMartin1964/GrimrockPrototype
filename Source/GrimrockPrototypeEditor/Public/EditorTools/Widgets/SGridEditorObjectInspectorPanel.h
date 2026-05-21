@@ -34,6 +34,7 @@ private:
     TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildGameObjectSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildContextualComponentSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildConnectorsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildAdvancedDebugSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildDoorDetailsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildLeverDetailsSection (const FGridLevelObjectData& Obj);
