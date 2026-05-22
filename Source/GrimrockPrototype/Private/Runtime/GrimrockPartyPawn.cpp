@@ -310,17 +310,14 @@ bool AGrimrockPartyPawn::TryUseFrontInteraction ()
         return false;
     }
 
-    const EGridEdge FrontEdge = GridDirectionUtils::GetForward (Facing);
-
-    if (TryInteractOnLevel (CurrentCellX, CurrentCellY, FrontEdge))
+    if (LevelRuntimeActor->TryPickupItemAtCell (CurrentCellX, CurrentCellY, this))
     {
         return true;
     }
 
-    int32 FrontX = CurrentCellX;
-    int32 FrontY = CurrentCellY;
-    if (TryGetNeighborOnLevel (CurrentCellX, CurrentCellY, FrontEdge, FrontX, FrontY)
-        && LevelRuntimeActor->TryPickupItemAtCell (FrontX, FrontY, this))
+    const EGridEdge FrontEdge = GridDirectionUtils::GetForward (Facing);
+
+    if (TryInteractOnLevel (CurrentCellX, CurrentCellY, FrontEdge))
     {
         return true;
     }
@@ -808,6 +805,8 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
     HeldItemActor->SetActorRelativeRotation (HeldItemRelativeRotation);
     HeldItemActor->SetActorRelativeScale3D (HeldItemRelativeScale);
     HeldItemActor->OnPlacedInWorld ();
+    HeldItemArchetypeId = ItemArchetypeId;
+    bHasTorchInHand = ItemArchetypeId == DefaultHeldItemArchetypeId;
 
     UE_LOG (LogTemp, Log, TEXT ("Held item equipped: %s"), *ItemArchetypeId.ToString ());
     return true;
@@ -823,11 +822,13 @@ void AGrimrockPartyPawn::ClearHeldItem ()
     HeldItemActor->OnRemovedFromWorld ();
     HeldItemActor->Destroy ();
     HeldItemActor = nullptr;
+    HeldItemArchetypeId = NAME_None;
+    bHasTorchInHand = false;
 }
 
 FName AGrimrockPartyPawn::GetHeldItemArchetypeId () const
 {
-    return HeldItemActor ? HeldItemActor->ArchetypeId : NAME_None;
+    return HeldItemActor ? HeldItemArchetypeId : NAME_None;
 }
 
 bool AGrimrockPartyPawn::IsHoldingItem (FName ItemArchetypeId) const

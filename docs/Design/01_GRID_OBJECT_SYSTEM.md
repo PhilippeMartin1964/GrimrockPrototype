@@ -136,7 +136,9 @@ Remarque : `Light` et `Hazard` peuvent être ajoutés plus tard si l’on veut r
 |---|---|---|---|---|
 | Clé | `Item` | futur `AGridItemActor` | N/A | serrure |
 | Pièce | `Item` | futur `AGridItemActor` | N/A | fente à pièce / offrande |
-| Torche | `Item` ou `Light` | futur `AGridItemActor` | allumée / éteinte si nécessaire | inventaire / support de torche |
+| Torche | `Item` | `AGridItemActor` | éteinte au sol, allumée en main | pickup manuel / support de torche |
+
+Décision actuelle : `Item_Torch` représente une vraie torche placée dans le niveau et récupérable. Elle est posée au sol sans flamme ni lumière, puis s'allume automatiquement quand le joueur la tient en main.
 
 ---
 
@@ -147,7 +149,7 @@ Remarque : `Light` et `Hazard` peuvent être ajoutés plus tard si l’on veut r
 | WallInscription | `Readable` | système existant WallInscription | `OnUse` | ne pas renommer |
 | Spawn joueur | `Spawn` | marker / données de niveau | aucun | position initiale |
 | Spawn monstre | `Spawn` | futur système spawn | `OnSpawn` optionnel | génération future |
-| Spawn item | `Spawn` | futur système spawn | optionnel | énigmes / scripts |
+| Spawn item | `Spawn` | futur système spawn | optionnel | énigmes / scripts, pas pour les items posés manuellement |
 
 ---
 

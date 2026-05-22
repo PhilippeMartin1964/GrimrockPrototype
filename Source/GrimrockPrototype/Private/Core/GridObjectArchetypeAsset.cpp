@@ -531,7 +531,7 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Item palette category should generally be Items."));
             }
-            if (!IsFloorOrCenterPlacement (PlacementKind))
+            if (!IsFloorOrCenterPlacement (PlacementKind) && ArchetypeId != FName (TEXT ("Item_Torch")))
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item PlacementKind should generally be Floor or Center when placed in the level."));
             }

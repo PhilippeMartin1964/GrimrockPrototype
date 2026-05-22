@@ -115,7 +115,11 @@ Note Patch F : les réceptacles utilisent des règles d’acceptation configurab
 |---|---|---|---|---|
 | `Item_Key` | Clé | `Item` | `AGridItemActor` | clé générique |
 | `Item_Coin` | Pièce | `Item` | `AGridItemActor` | fente / offrande |
-| `Item_Torch` | Torche | `Item` ou `Light` | `AGridItemActor` | peut être placée dans un support |
+| `Item_Torch` | Torch | `Item` | `AGridItemActor` | torche placée manuellement, récupérable, éteinte au sol et allumée en main |
+
+`DA_Item_Torch` représente l'item réel placé dans le niveau. Il doit utiliser `SupportedType = Item`, être interactable comme pickup, utiliser un mesh de torche éteinte au sol, et ne doit pas porter de flamme Niagara ou de lumière active au sol.
+
+`DA_ItemSpawn_Torch` ne doit pas servir à représenter une torche posée manuellement. Les spawners restent un futur système séparé pour du spawn commandé.
 
 ---
 
@@ -126,7 +130,7 @@ Note Patch F : les réceptacles utilisent des règles d’acceptation configurab
 | `Readable_WallInscription` | WallInscription | `Readable` | système existant | ne pas renommer |
 | `Spawn_Player` | Spawn joueur | `Spawn` | marker ou donnée | position initiale |
 | `Spawn_Monster` | Spawn monstre | `Spawn` | futur système | plus tard |
-| `Spawn_Item` | Spawn item | `Spawn` | futur système | plus tard |
+| `Spawn_Item` | Spawn item | `Spawn` | futur système | plus tard, pas pour les pickups placés à la main |
 
 ---
 

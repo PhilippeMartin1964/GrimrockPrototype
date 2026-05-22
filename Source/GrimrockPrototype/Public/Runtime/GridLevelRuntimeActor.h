@@ -201,6 +201,7 @@ public:
 
     void RebuildRuntimeObjects ();
     void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);
+    void AddPlacedItemActor (const FGridLevelObjectData& ObjectData);
     bool IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const;
 
     template<typename T>
@@ -241,6 +242,8 @@ private:
 
     bool GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
         float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform) const;
+    bool GetFloorEdgeObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float EdgeInset,
+        FTransform& OutTransform) const;
     bool GetCenteredObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, FTransform& OutTransform) const;
 
     UPROPERTY (Transient)

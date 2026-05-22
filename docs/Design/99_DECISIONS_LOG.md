@@ -351,3 +351,13 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `FGridObjectBehaviorParams` conserve uniquement les comportements encore utiles : `Teleporter`, `Receptacle`, `ButtonAnimation`.
 - Le runtime reste basé sur l’exécution explicite des connecteurs par `SourceEvent`.
 - Aucun fallback implicite ni inversion automatique n’est conservé.
+
+## 2026-05-21 — Item_Torch placé et récupérable
+
+- `Item_Torch` est un item placé manuellement dans le niveau, pas un spawner.
+- `ItemSpawn_Torch` n’est pas utilisé pour représenter les torches posées à la main.
+- Une torche placée au sol est éteinte : mesh uniquement, sans flamme Niagara ni lumière active.
+- La torche peut être placée près d’un edge de cellule pour rester lisible dans le donjon.
+- Le joueur peut la ramasser depuis la même cellule avec l’action `Use`.
+- Quand `Item_Torch` est ramassée, elle est ajoutée à l’état d’inventaire léger du Pawn et équipée automatiquement en main.
+- La torche tenue en main utilise le chemin d’item tenu existant et active sa flamme/lumière via `OnPlacedInWorld`.

@@ -283,6 +283,11 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection ()
 
     for (const FGridObjectPaletteEntry& Entry : CurrentEditorActor->ObjectPalette->Entries)
     {
+        if (Entry.GetEffectiveObjectType () == EGridLevelObjectType::ItemSpawn)
+        {
+            continue;
+        }
+
         EntriesByCategory.FindOrAdd (GetPaletteCategoryForEntry (Entry)).Add (&Entry);
     }
 

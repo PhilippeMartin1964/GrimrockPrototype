@@ -67,7 +67,7 @@ public:
     FName DefaultTag = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Defaults",
-        meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains trigger/link, teleporter, receptacle and button parameters."))
+        meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and button parameters."))
     FGridObjectBehaviorParams DefaultBehavior;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item")

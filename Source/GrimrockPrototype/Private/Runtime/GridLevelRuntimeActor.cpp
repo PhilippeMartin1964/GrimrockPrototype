@@ -835,6 +835,50 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemAr
     return ItemActor;
 }
 
+bool AGridLevelRuntimeActor::GetFloorEdgeObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float EdgeInset,
+    FTransform& OutTransform) const
+{
+    if (!LevelAsset || ObjectData.Edge == EGridEdge::None)
+    {
+        return false;
+    }
+
+    const float CellSize = LevelAsset->CellSize;
+    const FVector Base = GetActorLocation () + CellToWorld (ObjectData.CellX, ObjectData.CellY, ZOffset);
+    FVector Pos = Base + FVector (CellSize * 0.5f, CellSize * 0.5f, 0.f);
+    FRotator Rot = FRotator::ZeroRotator;
+
+    switch (ObjectData.Edge)
+    {
+        case EGridEdge::North:
+            Pos = Base + FVector (CellSize * 0.5f, CellSize - EdgeInset, 0.f);
+            Rot = FRotator (0.f, 0.f, 0.f);
+            break;
+
+        case EGridEdge::South:
+            Pos = Base + FVector (CellSize * 0.5f, EdgeInset, 0.f);
+            Rot = FRotator (0.f, 180.f, 0.f);
+            break;
+
+        case EGridEdge::East:
+            Pos = Base + FVector (CellSize - EdgeInset, CellSize * 0.5f, 0.f);
+            Rot = FRotator (0.f, 90.f, 0.f);
+            break;
+
+        case EGridEdge::West:
+            Pos = Base + FVector (EdgeInset, CellSize * 0.5f, 0.f);
+            Rot = FRotator (0.f, -90.f, 0.f);
+            break;
+
+        default:
+            return false;
+    }
+
+    Rot.Yaw += ObjectData.LocalYaw;
+    OutTransform = FTransform (Rot, Pos, FVector::OneVector);
+    return true;
+}
+
 bool AGridLevelRuntimeActor::GetWallMountedObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float WallInset,
     float LocalOffsetAlongWall, float LocalOffsetVertical, FTransform& OutTransform) const
 {
@@ -912,6 +956,11 @@ bool AGridLevelRuntimeActor::GetObjectPlacementTransform (const FGridLevelObject
 
         OutTransform = FTransform (Rot, Pos, FVector::OneVector);
         return true;
+    }
+    if (ObjectData.Type == EGridLevelObjectType::Item && ObjectData.Edge != EGridEdge::None)
+    {
+        const float EdgeInset = FMath::Max (Archetype->WallInset, 18.f);
+        return GetFloorEdgeObjectTransform (ObjectData, Archetype->PlacementZOffset, EdgeInset, OutTransform);
     }
     if (Archetype->IsEdgePlaced ())
     {
@@ -1041,6 +1090,11 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
         return false;
     }
 
+    if (ObjectData.Type == EGridLevelObjectType::Item)
+    {
+        return !ObjectData.ArchetypeId.IsNone ();
+    }
+
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
     if (Archetype && Archetype->RuntimeActorClass)
     {
@@ -1064,6 +1118,35 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
         default:
         return false;
     }
+}
+
+void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& ObjectData)
+{
+    FTransform Transform;
+    if (!GetObjectPlacementTransform (ObjectData, Transform))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: could not compute placement transform for object %s."), *ObjectData.ObjectId.ToString ());
+        return;
+    }
+
+    AGridItemActor* ItemActor = SpawnItemActorForArchetype (ObjectData.ArchetypeId, this, nullptr);
+    if (!ItemActor)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: failed to spawn item archetype %s."), *ObjectData.ArchetypeId.ToString ());
+        return;
+    }
+
+    ItemActor->SetActorTransform (Transform);
+    ItemActor->OnRemovedFromWorld ();
+    SpawnedItemActors.Add (ItemActor);
+
+    FGridSpawnedItemRuntimeEntry Entry;
+    Entry.Cell = FIntPoint (ObjectData.CellX, ObjectData.CellY);
+    Entry.ItemActor = ItemActor;
+    Entry.ItemArchetypeId = ObjectData.ArchetypeId;
+    SpawnedItemEntries.Add (Entry);
+
+    UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."), *ObjectData.ArchetypeId.ToString (), *ObjectData.ObjectId.ToString ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
@@ -1137,6 +1220,15 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
     LevelAsset->EnsureCellCount ();
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
+        if (ObjectData.Type == EGridLevelObjectType::Item)
+        {
+            if (ObjectData.bInitiallyEnabled)
+            {
+                AddPlacedItemActor (ObjectData);
+            }
+            continue;
+        }
+
         if (!IsRuntimeSpawnableObject (ObjectData))
         {
             if (ObjectData.bInitiallyEnabled)

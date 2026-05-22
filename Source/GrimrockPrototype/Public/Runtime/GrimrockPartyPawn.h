@@ -163,6 +163,12 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
     TObjectPtr<AGridItemActor> HeldItemActor;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
+    bool bHasTorchInHand = false;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
+    FName HeldItemArchetypeId = NAME_None;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool HasInventoryItem (FName ItemId) const;
 

@@ -156,6 +156,11 @@ bool AGridLevelEditorActor::IsEdgePlacedObject (const FGridLevelObjectData& Obje
 
 bool AGridLevelEditorActor::IsEdgePlacedObject (EGridLevelObjectType ObjectType, FName ArchetypeId) const
 {
+    if (ObjectType == EGridLevelObjectType::Item && ArchetypeId == FName (TEXT ("Item_Torch")))
+    {
+        return true;
+    }
+
     if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (ArchetypeId))
     {
         return Archetype->IsEdgePlaced () || Archetype->IsWallPlaced ();
@@ -1453,6 +1458,33 @@ bool AGridLevelEditorActor::GetObjectEditorWorldCenter (
                 return false;
         }
     }
+    if (Obj.Type == EGridLevelObjectType::Item && Obj.Edge != EGridEdge::None)
+    {
+        const float PlacementZOffset = Archetype ? Archetype->PlacementZOffset : 12.f;
+        const float EdgeInset = Archetype ? FMath::Max (Archetype->WallInset, 18.f) : 18.f;
+
+        switch (Obj.Edge)
+        {
+            case EGridEdge::North:
+                OutWorldCenter = CellBase + FVector (CellSize * 0.5f, CellSize - EdgeInset, PlacementZOffset);
+                return true;
+
+            case EGridEdge::South:
+                OutWorldCenter = CellBase + FVector (CellSize * 0.5f, EdgeInset, PlacementZOffset);
+                return true;
+
+            case EGridEdge::East:
+                OutWorldCenter = CellBase + FVector (CellSize - EdgeInset, CellSize * 0.5f, PlacementZOffset);
+                return true;
+
+            case EGridEdge::West:
+                OutWorldCenter = CellBase + FVector (EdgeInset, CellSize * 0.5f, PlacementZOffset);
+                return true;
+
+            default:
+                return false;
+        }
+    }
 
     switch (PlacementKind)
     {
@@ -1931,7 +1963,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 AddMessage (
                     EGridLevelValidationSeverity::Info,
                     FString::Printf (
-                        TEXT ("Archetype %s: Item archetype is directly available in the paint palette. This is valid for testing, but long-term placed items should probably use ItemSpawn."),
+                        TEXT ("Archetype %s: Item archetype is directly available in the paint palette as a placed pickup item."),
                         *ArchetypeName));
             }
 
@@ -2022,12 +2054,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
 
     auto IsEdgeOrWallPlacedObject = [this] (const FGridLevelObjectData& ObjectData) -> bool
     {
-        if (const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (ObjectData.ArchetypeId))
-        {
-            return Archetype->IsEdgePlaced () || Archetype->IsWallPlaced ();
-        }
-
-        return RequiresEdge (ObjectData.Type);
+        return IsEdgePlacedObject (ObjectData);
     };
 
     auto GetValidationAnchorKey = [&IsEdgeOrWallPlacedObject] (const FGridLevelObjectData& ObjectData) -> FString
