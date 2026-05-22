@@ -143,44 +143,15 @@ namespace
             case EGridLevelObjectType::Door:
                 return {EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Lock, EGridObjectCommand::Unlock};
 
-            case EGridLevelObjectType::Lever:
-            case EGridLevelObjectType::Button:
-                return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
-
-            case EGridLevelObjectType::PressurePlate:
-            case EGridLevelObjectType::Trigger:
             case EGridLevelObjectType::Teleporter:
                 return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
 
             case EGridLevelObjectType::Light:
                 return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
 
-            case EGridLevelObjectType::Receptacle:
-                return IsLockLikeObject (Obj, Archetype)
-                    ? TArray<EGridObjectCommand> {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle, EGridObjectCommand::Lock, EGridObjectCommand::Unlock}
-                    : TArray<EGridObjectCommand> {EGridObjectCommand::Enable, EGridObjectCommand::Disable};
-
             case EGridLevelObjectType::MonsterSpawn:
             case EGridLevelObjectType::ItemSpawn:
                 return {EGridObjectCommand::Spawn, EGridObjectCommand::Despawn};
-
-            case EGridLevelObjectType::Decoration:
-            case EGridLevelObjectType::Item:
-                if (Archetype && Archetype->bIsLightSource)
-                {
-                    return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
-                }
-
-                if (Archetype && Archetype->bIsReadable)
-                {
-                    return {EGridObjectCommand::ShowMessage};
-                }
-
-                if (Archetype && Archetype->bIsInteractable)
-                {
-                    return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
-                }
-                break;
 
             default:
                 break;
