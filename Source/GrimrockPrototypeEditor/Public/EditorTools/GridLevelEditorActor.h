@@ -279,6 +279,9 @@ public:
     bool RemoveAllLinksForSelectedObject ();
 
     UFUNCTION (BlueprintCallable, Category = "Link")
+    bool CreateLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
+
+    UFUNCTION (BlueprintCallable, Category = "Link")
     bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
 
     UFUNCTION (BlueprintCallable, Category = "Selection")

@@ -153,9 +153,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection ()
         + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f)
         [BuildToolTile (FText::FromString (TEXT ("Paint Object")), GetToolGlyph (EGridEditorTool::PaintObject), EGridEditorTool::PaintObject)]
         + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f)
-        [BuildToolTile (FText::FromString (TEXT ("Erase")), GetToolGlyph (EGridEditorTool::Erase), EGridEditorTool::Erase)]
-        + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f)
-        [BuildToolTile (FText::FromString (TEXT ("Link")), GetToolGlyph (EGridEditorTool::Link), EGridEditorTool::Link)];
+        [BuildToolTile (FText::FromString (TEXT ("Erase")), GetToolGlyph (EGridEditorTool::Erase), EGridEditorTool::Erase)];
 }
 
 UTexture2D* SGridEditorToolPalettePanel::GetToolIcon (EGridEditorTool Tool) const

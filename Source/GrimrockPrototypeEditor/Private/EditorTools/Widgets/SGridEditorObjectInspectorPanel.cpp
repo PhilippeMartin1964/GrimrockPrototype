@@ -651,27 +651,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildConnectorsSection (con
         }
     }
 
-    Root->AddSlot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
-    [
-        SNew (SHorizontalBox)
-
-            + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 6.f, 0.f)
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Outgoing")),
-                    FText::AsNumber (OutgoingCount),
-                    FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
-            ]
-
-            + SHorizontalBox::Slot ().AutoWidth ()
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Incoming")),
-                    FText::AsNumber (IncomingCount),
-                    FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
-            ]
-    ];
-
     static const EGridObjectEvent EventOrder[] =
     {
         EGridObjectEvent::Activated,

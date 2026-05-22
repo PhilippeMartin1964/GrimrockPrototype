@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Input/SComboBox.h"
 
@@ -32,18 +33,33 @@ private:
     void RequestRefresh () const;
 
     TSharedRef<SWidget> BuildLinksSection ();
+    TSharedRef<SWidget> BuildConnectorsHeader ();
+    TSharedRef<SWidget> BuildConnectorLegend ();
+    TSharedRef<SWidget> BuildConnectorLegendItem (const FText& Label, const FSlateColor& Color) const;
     TSharedRef<SWidget> BuildLinkCreationSection ();
     TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing);
+    TSharedRef<SWidget> BuildObjectCombo (const FText& EmptyText, bool bSourceObject);
 
+    void RebuildLinksSection ();
+    void BuildObjectOptions ();
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
+    FReply OnToggleAddConnectorClicked ();
+    FReply OnCreateConnectorClicked ();
+    FReply OnCancelAddConnectorClicked ();
 
     FText GetObjectSummaryText (const FGuid& ObjectId) const;
     FText GetLinkSourceEventText (EGridObjectEvent SourceEvent) const;
     FText GetLinkCommandText (EGridObjectCommand Command) const;
+    FText GetSelectedObjectOptionText (const TSharedPtr<FGuid>& ObjectId, const FText& EmptyText) const;
+    bool CanCreateConnector () const;
 
     void BuildLinkOptions ();
+
+    TSharedRef<SWidget> MakeObjectComboWidget (TSharedPtr<FGuid> Item) const;
+    void OnSourceObjectSelectionChanged (TSharedPtr<FGuid> NewValue, ESelectInfo::Type SelectInfo);
+    void OnTargetObjectSelectionChanged (TSharedPtr<FGuid> NewValue, ESelectInfo::Type SelectInfo);
 
     TSharedRef<SWidget> MakeLinkSourceEventComboWidget (TSharedPtr<EGridObjectEvent> Item) const;
     void OnLinkSourceEventSelectionChanged (TSharedPtr<EGridObjectEvent> NewValue, ESelectInfo::Type SelectInfo);
@@ -60,6 +76,13 @@ private:
 
     TArray<TSharedPtr<EGridObjectEvent>> LinkSourceEventOptions;
     TArray<TSharedPtr<EGridObjectCommand>> LinkCommandOptions;
+    TArray<TSharedPtr<FGuid>> ObjectOptions;
+
+    bool bAddConnectorVisible = false;
+    TSharedPtr<FGuid> SelectedSourceObjectId;
+    TSharedPtr<FGuid> SelectedTargetObjectId;
+    TSharedPtr<EGridObjectEvent> SelectedSourceEvent;
+    TSharedPtr<EGridObjectCommand> SelectedCommand;
 };
 
 #endif

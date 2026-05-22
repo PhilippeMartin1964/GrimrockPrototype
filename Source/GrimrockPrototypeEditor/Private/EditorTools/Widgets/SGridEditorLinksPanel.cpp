@@ -5,34 +5,24 @@
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridTypes.h"
 
 #include "Styling/AppStyle.h"
+#include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
 
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Layout/SBorder.h"
 
 namespace
 {
-    int32 CountLinksForObject (const UGridLevelAsset& LevelAsset, const FGuid& ObjectId, bool bOutgoing)
-    {
-        int32 Count = 0;
-        for (const FGridObjectLink& Link : LevelAsset.Links)
-        {
-            const bool bMatches = bOutgoing
-                ? Link.SourceObjectId == ObjectId
-                : Link.TargetObjectId == ObjectId;
-
-            if (bMatches)
-            {
-                ++Count;
-            }
-        }
-
-        return Count;
-    }
+    const FLinearColor OutgoingConnectorColor (0.25f, 0.75f, 1.f, 1.f);
+    const FLinearColor IncomingConnectorColor (0.70f, 0.55f, 1.f, 1.f);
+    const FLinearColor BrokenConnectorColor (1.f, 0.18f, 0.16f, 1.f);
 
     FSlateColor GetLinkCommandSlateColor (EGridObjectCommand Command)
     {
@@ -51,6 +41,24 @@ namespace
                 return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
         }
     }
+
+    const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
+    {
+        if (!LevelAsset || !ObjectId.IsValid ())
+        {
+            return nullptr;
+        }
+
+        for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+        {
+            if (Object.ObjectId == ObjectId)
+            {
+                return &Object;
+            }
+        }
+
+        return nullptr;
+    }
 }
 
 void SGridEditorLinksPanel::Construct (const FArguments& InArgs)
@@ -59,11 +67,9 @@ void SGridEditorLinksPanel::Construct (const FArguments& InArgs)
     OnGetEditorActor = InArgs._OnGetEditorActor;
     OnRequestRefresh = InArgs._OnRequestRefresh;
     BuildLinkOptions ();
+    BuildObjectOptions ();
 
-    ChildSlot
-    [
-        BuildLinksSection ()
-    ];
+    RebuildLinksSection ();
 }
 
 AGridLevelEditorActor* SGridEditorLinksPanel::GetEditorActor () const
@@ -86,6 +92,16 @@ void SGridEditorLinksPanel::RequestRefresh () const
     }
 }
 
+void SGridEditorLinksPanel::RebuildLinksSection ()
+{
+    BuildObjectOptions ();
+
+    ChildSlot
+    [
+        BuildLinksSection ()
+    ];
+}
+
 TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
 {
     const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
@@ -105,33 +121,16 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
 
     return SNew (SVerticalBox)
 
-        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 8.f)
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
         [
-            SNew (SHorizontalBox)
-
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .Padding (0.f, 0.f, 6.f, 0.f)
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Outgoing")),
-                    FText::AsNumber (CountLinksForObject (*CurrentEditorActor->LevelAsset, SelectedObject->ObjectId, true)),
-                    FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
-            ]
-
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            [
-                GridEditorWidgetHelpers::BuildGridCompactStatusBadge (
-                    FText::FromString (TEXT ("Incoming")),
-                    FText::AsNumber (CountLinksForObject (*CurrentEditorActor->LevelAsset, SelectedObject->ObjectId, false)),
-                    FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
-            ]
+            BuildConnectorsHeader ()
         ]
 
-        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 8.f)
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, bAddConnectorVisible ? 8.f : 0.f)
         [
-            BuildLinkCreationSection ()
+            bAddConnectorVisible
+                ? BuildLinkCreationSection ()
+                : SNullWidget::NullWidget
         ]
 
         + SVerticalBox::Slot ().AutoHeight ()
@@ -186,53 +185,174 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
         ];
 }
 
+TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorsHeader ()
+{
+    return SNew (SHorizontalBox)
+
+        + SHorizontalBox::Slot ()
+        .FillWidth (1.f)
+        .VAlign (VAlign_Center)
+        [
+            BuildConnectorLegend ()
+        ]
+
+        + SHorizontalBox::Slot ()
+        .AutoWidth ()
+        .VAlign (VAlign_Center)
+        [
+            GridEditorWidgetHelpers::BuildGridActionButton (
+                FText::FromString (TEXT ("+")),
+                FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnToggleAddConnectorClicked))
+        ];
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorLegend ()
+{
+    return SNew (SHorizontalBox)
+
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 8.f, 0.f)
+        [
+            BuildConnectorLegendItem (
+                FText::FromString (TEXT ("Cyan = Outgoing")),
+                FSlateColor (OutgoingConnectorColor))
+        ]
+
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 8.f, 0.f)
+        [
+            BuildConnectorLegendItem (
+                FText::FromString (TEXT ("Purple = Incoming")),
+                FSlateColor (IncomingConnectorColor))
+        ]
+
+        + SHorizontalBox::Slot ().AutoWidth ()
+        [
+            BuildConnectorLegendItem (
+                FText::FromString (TEXT ("Red = Broken")),
+                FSlateColor (BrokenConnectorColor))
+        ];
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorLegendItem (
+    const FText& Label,
+    const FSlateColor& Color) const
+{
+    return SNew (STextBlock)
+        .Text (Label)
+        .ColorAndOpacity (Color)
+        .Font (FCoreStyle::GetDefaultFontStyle ("Regular", 8));
+}
+
 TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinkCreationSection ()
 {
     return SNew (SBorder)
         .Padding (6.f)
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.DarkGroupBorder"))
         [
-            SNew (SHorizontalBox)
+            SNew (SVerticalBox)
 
-                + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (STextBlock).Text (FText::FromString (TEXT ("New Connector Event")))
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Source Object")),
+                        BuildObjectCombo (
+                            FText::FromString (TEXT ("Select source")),
+                            true))
                 ]
 
-                + SHorizontalBox::Slot ().FillWidth (0.5f).Padding (0.f, 0.f, 12.f, 0.f)
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (SComboBox<TSharedPtr<EGridObjectEvent>>)
-                        .OptionsSource (&LinkSourceEventOptions)
-                        .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkSourceEventComboWidget)
-                        .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkSourceEventSelectionChanged)
-                        [
-                            SNew (STextBlock)
-                                .Text_Lambda ([this] ()
-                            {
-                                return GetSelectedLinkSourceEventText ();
-                            })
-                        ]
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Event")),
+                        SNew (SComboBox<TSharedPtr<EGridObjectEvent>>)
+                            .OptionsSource (&LinkSourceEventOptions)
+                            .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkSourceEventComboWidget)
+                            .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkSourceEventSelectionChanged)
+                            [
+                                SNew (STextBlock)
+                                    .Text_Lambda ([this] ()
+                                {
+                                    return GetSelectedLinkSourceEventText ();
+                                })
+                            ])
                 ]
 
-            + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (STextBlock).Text (FText::FromString (TEXT ("Command")))
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Target Object")),
+                        BuildObjectCombo (
+                            FText::FromString (TEXT ("Select target")),
+                            false))
                 ]
 
-                + SHorizontalBox::Slot ().FillWidth (0.5f)
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (SComboBox<TSharedPtr<EGridObjectCommand>>)
-                        .OptionsSource (&LinkCommandOptions)
-                        .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkCommandComboWidget)
-                        .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkCommandSelectionChanged)
-                        [
-                            SNew (STextBlock)
-                                .Text_Lambda ([this] ()
-                            {
-                                return GetSelectedLinkCommandText ();
-                            })
-                        ]
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Command")),
+                        SNew (SComboBox<TSharedPtr<EGridObjectCommand>>)
+                            .OptionsSource (&LinkCommandOptions)
+                            .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkCommandComboWidget)
+                            .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkCommandSelectionChanged)
+                            [
+                                SNew (STextBlock)
+                                    .Text_Lambda ([this] ()
+                                {
+                                    return GetSelectedLinkCommandText ();
+                                })
+                            ])
                 ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+                [
+                    SNew (SHorizontalBox)
+
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 4.f, 0.f)
+                    [
+                        SNew (SButton)
+                            .Text (FText::FromString (TEXT ("Create")))
+                            .HAlign (HAlign_Center)
+                            .ContentPadding (FMargin (8.f, 3.f))
+                            .IsEnabled (this, &SGridEditorLinksPanel::CanCreateConnector)
+                            .OnClicked (this, &SGridEditorLinksPanel::OnCreateConnectorClicked)
+                    ]
+
+                    + SHorizontalBox::Slot ().AutoWidth ()
+                    [
+                        GridEditorWidgetHelpers::BuildGridActionButton (
+                            FText::FromString (TEXT ("Cancel")),
+                            FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnCancelAddConnectorClicked))
+                    ]
+                ]
+        ];
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectCombo (const FText& EmptyText, bool bSourceObject)
+{
+    if (bSourceObject)
+    {
+        return SNew (SComboBox<TSharedPtr<FGuid>>)
+            .OptionsSource (&ObjectOptions)
+            .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeObjectComboWidget)
+            .OnSelectionChanged (this, &SGridEditorLinksPanel::OnSourceObjectSelectionChanged)
+            [
+                SNew (STextBlock)
+                    .Text_Lambda ([this, EmptyText] ()
+                {
+                    return GetSelectedObjectOptionText (SelectedSourceObjectId, EmptyText);
+                })
+            ];
+    }
+
+    return SNew (SComboBox<TSharedPtr<FGuid>>)
+        .OptionsSource (&ObjectOptions)
+        .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeObjectComboWidget)
+        .OnSelectionChanged (this, &SGridEditorLinksPanel::OnTargetObjectSelectionChanged)
+        [
+            SNew (STextBlock)
+                .Text_Lambda ([this, EmptyText] ()
+            {
+                return GetSelectedObjectOptionText (SelectedTargetObjectId, EmptyText);
+            })
         ];
 }
 
@@ -255,36 +375,42 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
 
     int32 Count = 0;
 
-    for (const FGridObjectLink& Link : CurrentEditorActor->LevelAsset->Links)
+    static const EGridObjectEvent EventOrder[] =
     {
-        const bool bMatches = bOutgoing
-            ? Link.SourceObjectId == SelectedObject.ObjectId
-            : Link.TargetObjectId == SelectedObject.ObjectId;
+        EGridObjectEvent::Activated,
+        EGridObjectEvent::Deactivated,
+        EGridObjectEvent::ItemInserted,
+        EGridObjectEvent::ItemRemoved,
+        EGridObjectEvent::ItemChanged,
+        EGridObjectEvent::Used,
+        EGridObjectEvent::Entered,
+        EGridObjectEvent::Exited,
+        EGridObjectEvent::Opened,
+        EGridObjectEvent::Closed,
+        EGridObjectEvent::Enabled,
+        EGridObjectEvent::Disabled
+    };
 
-        if (!bMatches)
-        {
-            continue;
-        }
-
+    const auto AddLinkRow = [this, CurrentEditorActor, &Root, &Count, bOutgoing] (const FGridObjectLink& Link)
+    {
         const FGuid SourceId = Link.SourceObjectId;
         const FGuid TargetId = Link.TargetObjectId;
         const FGuid OtherId = bOutgoing ? TargetId : SourceId;
+        const bool bBroken = !FindObjectById (CurrentEditorActor->LevelAsset, OtherId);
         const FText FlowText = bOutgoing
             ? FText::Format (
-                FText::FromString (TEXT ("{0} -> {1} -> {2}")),
-                GetLinkSourceEventText (Link.SourceEvent),
-                GetLinkCommandText (Link.Command),
-                GetObjectSummaryText (TargetId))
+                FText::FromString (TEXT ("-> {0} : {1}")),
+                bBroken ? FText::FromString (TEXT ("Missing object")) : GetObjectSummaryText (TargetId),
+                GetLinkCommandText (Link.Command))
             : FText::Format (
-                FText::FromString (TEXT ("{0} -> {1} -> {2} -> {3}")),
-                GetObjectSummaryText (SourceId),
+                FText::FromString (TEXT ("{0} : {1} -> {2}")),
+                bBroken ? FText::FromString (TEXT ("Missing object")) : GetObjectSummaryText (SourceId),
                 GetLinkSourceEventText (Link.SourceEvent),
-                GetLinkCommandText (Link.Command),
-                GetObjectSummaryText (TargetId));
+                GetLinkCommandText (Link.Command));
 
         Root->AddSlot ()
             .AutoHeight ()
-            .Padding (0.f, 2.f, 0.f, 4.f)
+            .Padding (bOutgoing ? FMargin (12.f, 2.f, 0.f, 4.f) : FMargin (0.f, 2.f, 0.f, 4.f))
             [
                 SNew (SBorder)
                     .Padding (5.f)
@@ -298,7 +424,9 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
                         [
                             SNew (STextBlock)
                                 .Text (FlowText)
-                                .ColorAndOpacity (GetLinkCommandSlateColor (Link.Command))
+                                .ColorAndOpacity (bBroken
+                                    ? FSlateColor (BrokenConnectorColor)
+                                    : GetLinkCommandSlateColor (Link.Command))
                                 .AutoWrapText (true)
                         ]
 
@@ -341,6 +469,44 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
             ];
 
         ++Count;
+    };
+
+    if (bOutgoing)
+    {
+        for (const EGridObjectEvent Event : EventOrder)
+        {
+            bool bEventHeaderAdded = false;
+            for (const FGridObjectLink& Link : CurrentEditorActor->LevelAsset->Links)
+            {
+                if (Link.SourceObjectId != SelectedObject.ObjectId || Link.SourceEvent != Event)
+                {
+                    continue;
+                }
+
+                if (!bEventHeaderAdded)
+                {
+                    Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 1.f)
+                    [
+                        SNew (STextBlock)
+                            .Text (GetLinkSourceEventText (Event))
+                            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
+                    ];
+                    bEventHeaderAdded = true;
+                }
+
+                AddLinkRow (Link);
+            }
+        }
+    }
+    else
+    {
+        for (const FGridObjectLink& Link : CurrentEditorActor->LevelAsset->Links)
+        {
+            if (Link.TargetObjectId == SelectedObject.ObjectId)
+            {
+                AddLinkRow (Link);
+            }
+        }
     }
 
     if (Count == 0)
@@ -397,6 +563,53 @@ FReply SGridEditorLinksPanel::OnSelectObjectFromLinkClicked (FGuid ObjectId)
     return FReply::Handled ();
 }
 
+FReply SGridEditorLinksPanel::OnToggleAddConnectorClicked ()
+{
+    bAddConnectorVisible = !bAddConnectorVisible;
+
+    if (bAddConnectorVisible)
+    {
+        BuildObjectOptions ();
+    }
+
+    RebuildLinksSection ();
+    return FReply::Handled ();
+}
+
+FReply SGridEditorLinksPanel::OnCreateConnectorClicked ()
+{
+    if (!CanCreateConnector ())
+    {
+        return FReply::Handled ();
+    }
+
+    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+    {
+        CurrentEditorActor->Modify ();
+
+        if (CurrentEditorActor->CreateLink (
+            *SelectedSourceObjectId,
+            *SelectedTargetObjectId,
+            *SelectedSourceEvent,
+            *SelectedCommand))
+        {
+            SelectedTargetObjectId.Reset ();
+            bAddConnectorVisible = false;
+            RequestRefresh ();
+        }
+    }
+
+    return FReply::Handled ();
+}
+
+FReply SGridEditorLinksPanel::OnCancelAddConnectorClicked ()
+{
+    SelectedTargetObjectId.Reset ();
+    bAddConnectorVisible = false;
+    RebuildLinksSection ();
+    return FReply::Handled ();
+}
+
 FText SGridEditorLinksPanel::GetObjectSummaryText (const FGuid& ObjectId) const
 {
     const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
@@ -417,6 +630,10 @@ FText SGridEditorLinksPanel::GetObjectSummaryText (const FGuid& ObjectId) const
         const FString TypeText = TypeEnum
             ? TypeEnum->GetDisplayNameTextByValue (static_cast<int64> (Obj.Type)).ToString ()
             : TEXT ("Object");
+        const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId);
+        const FString NameText = Archetype && !Archetype->DisplayName.IsEmpty ()
+            ? Archetype->DisplayName.ToString ()
+            : TypeText;
 
         const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
         const FString EdgeText = EdgeEnum
@@ -425,8 +642,8 @@ FText SGridEditorLinksPanel::GetObjectSummaryText (const FGuid& ObjectId) const
 
         return FText::FromString (
             FString::Printf (
-                TEXT ("%s (%d,%d Edge=%s)"),
-                *TypeText,
+                TEXT ("%s @ (%d,%d) %s"),
+                *NameText,
                 Obj.CellX,
                 Obj.CellY,
                 *EdgeText));
@@ -451,6 +668,25 @@ FText SGridEditorLinksPanel::GetLinkCommandText (EGridObjectCommand Command) con
     return Enum
         ? Enum->GetDisplayNameTextByValue (static_cast<int64> (Command))
         : FText::FromString (TEXT ("Unknown"));
+}
+
+FText SGridEditorLinksPanel::GetSelectedObjectOptionText (
+    const TSharedPtr<FGuid>& ObjectId,
+    const FText& EmptyText) const
+{
+    return ObjectId.IsValid ()
+        ? GetObjectSummaryText (*ObjectId)
+        : EmptyText;
+}
+
+bool SGridEditorLinksPanel::CanCreateConnector () const
+{
+    return SelectedSourceObjectId.IsValid () &&
+        SelectedSourceObjectId->IsValid () &&
+        SelectedSourceEvent.IsValid () &&
+        SelectedTargetObjectId.IsValid () &&
+        SelectedTargetObjectId->IsValid () &&
+        SelectedCommand.IsValid ();
 }
 
 void SGridEditorLinksPanel::BuildLinkOptions ()
@@ -483,6 +719,86 @@ void SGridEditorLinksPanel::BuildLinkOptions ()
     LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Despawn));
     LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Teleport));
     LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::ShowMessage));
+
+    if (!SelectedSourceEvent.IsValid () && LinkSourceEventOptions.Num () > 0)
+    {
+        SelectedSourceEvent = LinkSourceEventOptions[0];
+    }
+
+    if (!SelectedCommand.IsValid () && LinkCommandOptions.Num () > 0)
+    {
+        SelectedCommand = LinkCommandOptions[0];
+    }
+}
+
+void SGridEditorLinksPanel::BuildObjectOptions ()
+{
+    ObjectOptions.Reset ();
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset)
+    {
+        SelectedSourceObjectId.Reset ();
+        SelectedTargetObjectId.Reset ();
+        return;
+    }
+
+    for (const FGridLevelObjectData& Object : CurrentEditorActor->LevelAsset->Objects)
+    {
+        ObjectOptions.Add (MakeShared<FGuid> (Object.ObjectId));
+    }
+
+    const auto FindOption = [this] (const FGuid& ObjectId) -> TSharedPtr<FGuid>
+    {
+        for (const TSharedPtr<FGuid>& Option : ObjectOptions)
+        {
+            if (Option.IsValid () && *Option == ObjectId)
+            {
+                return Option;
+            }
+        }
+
+        return nullptr;
+    };
+
+    const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ();
+    if (!SelectedSourceObjectId.IsValid () && SelectedObject)
+    {
+        SelectedSourceObjectId = FindOption (SelectedObject->ObjectId);
+    }
+    else if (SelectedSourceObjectId.IsValid ())
+    {
+        SelectedSourceObjectId = FindOption (*SelectedSourceObjectId);
+    }
+
+    if (SelectedTargetObjectId.IsValid ())
+    {
+        SelectedTargetObjectId = FindOption (*SelectedTargetObjectId);
+    }
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::MakeObjectComboWidget (TSharedPtr<FGuid> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (GetObjectSummaryText (*Item));
+}
+
+void SGridEditorLinksPanel::OnSourceObjectSelectionChanged (
+    TSharedPtr<FGuid> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    SelectedSourceObjectId = NewValue;
+}
+
+void SGridEditorLinksPanel::OnTargetObjectSelectionChanged (
+    TSharedPtr<FGuid> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    SelectedTargetObjectId = NewValue;
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkSourceEventComboWidget (
@@ -502,23 +818,15 @@ void SGridEditorLinksPanel::OnLinkSourceEventSelectionChanged (
 {
     if (NewValue.IsValid ())
     {
-        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-        {
-            CurrentEditorActor->Modify ();
-            CurrentEditorActor->LinkSourceEvent = *NewValue;
-            RequestRefresh ();
-        }
+        SelectedSourceEvent = NewValue;
     }
 }
 
 FText SGridEditorLinksPanel::GetSelectedLinkSourceEventText () const
 {
-    if (const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-    {
-        return GetLinkSourceEventText (CurrentEditorActor->LinkSourceEvent);
-    }
-
-    return FText::FromString (TEXT ("Unknown"));
+    return SelectedSourceEvent.IsValid ()
+        ? GetLinkSourceEventText (*SelectedSourceEvent)
+        : FText::FromString (TEXT ("Select event"));
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkCommandComboWidget (
@@ -538,23 +846,15 @@ void SGridEditorLinksPanel::OnLinkCommandSelectionChanged (
 {
     if (NewValue.IsValid ())
     {
-        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-        {
-            CurrentEditorActor->Modify ();
-            CurrentEditorActor->LinkCommand = *NewValue;
-            RequestRefresh ();
-        }
+        SelectedCommand = NewValue;
     }
 }
 
 FText SGridEditorLinksPanel::GetSelectedLinkCommandText () const
 {
-    if (const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-    {
-        return GetLinkCommandText (CurrentEditorActor->LinkCommand);
-    }
-
-    return FText::FromString (TEXT ("Unknown"));
+    return SelectedCommand.IsValid ()
+        ? GetLinkCommandText (*SelectedCommand)
+        : FText::FromString (TEXT ("Select command"));
 }
 
 #endif

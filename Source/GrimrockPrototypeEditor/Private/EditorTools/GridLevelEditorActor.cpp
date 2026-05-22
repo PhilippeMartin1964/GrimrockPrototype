@@ -1218,6 +1218,56 @@ bool AGridLevelEditorActor::RemoveAllLinksForSelectedObject ()
     return true;
 }
 
+bool AGridLevelEditorActor::CreateLink (
+    FGuid SourceObjectId,
+    FGuid TargetObjectId,
+    EGridObjectEvent SourceEvent,
+    EGridObjectCommand Command)
+{
+    if (!HasValidLevelAsset () || !SourceObjectId.IsValid () || !TargetObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    if (!FindObjectById (SourceObjectId) || !FindObjectById (TargetObjectId))
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    const bool bAlreadyExists = LevelAsset->Links.ContainsByPredicate (
+        [&] (const FGridObjectLink& Link)
+    {
+        return Link.SourceObjectId == SourceObjectId &&
+            Link.TargetObjectId == TargetObjectId &&
+            Link.SourceEvent == SourceEvent &&
+            Link.Command == Command;
+    });
+
+    if (bAlreadyExists)
+    {
+        return false;
+    }
+
+    FGridObjectLink NewLink;
+    NewLink.SourceObjectId = SourceObjectId;
+    NewLink.TargetObjectId = TargetObjectId;
+    NewLink.SourceEvent = SourceEvent;
+    NewLink.Command = Command;
+    LevelAsset->Links.Add (NewLink);
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    LastSelectedObjectId = SourceObjectId;
+    RebuildPreview ();
+    return true;
+}
+
 void AGridLevelEditorActor::ClearSelectedObjectState ()
 {
     LastSelectedObjectId.Invalidate ();
