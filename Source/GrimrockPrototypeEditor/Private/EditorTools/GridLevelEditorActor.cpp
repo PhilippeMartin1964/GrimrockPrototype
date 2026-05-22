@@ -44,6 +44,18 @@ namespace
         }
     }
 
+    float GetYawForOrientation (EGridEdge Orientation)
+    {
+        switch (Orientation)
+        {
+            case EGridEdge::North: return 0.f;
+            case EGridEdge::East:  return 90.f;
+            case EGridEdge::South: return 180.f;
+            case EGridEdge::West:  return 270.f;
+            default:               return 0.f;
+        }
+    }
+
     EGridLevelValidationSeverity ConvertArchetypeValidationSeverity (EGridArchetypeValidationSeverity Severity)
     {
         switch (Severity)
@@ -239,6 +251,63 @@ bool AGridLevelEditorActor::RotateSelectedObjectYawStep ()
         SelectedObject->LocalYaw += 360.f;
     }
 	RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectOrientation (EGridEdge Orientation)
+{
+    if (Orientation == EGridEdge::None || !LevelAsset || !LastSelectedObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    FGridLevelObjectData* SelectedObject = FindSelectedObjectMutable ();
+    if (!SelectedObject)
+    {
+        return false;
+    }
+
+    const bool bUsesEdge = IsEdgePlacedObject (*SelectedObject);
+    if (bUsesEdge)
+    {
+        const FGuid SelectedObjectId = SelectedObject->ObjectId;
+        const EGridLevelObjectType SelectedObjectType = SelectedObject->Type;
+        const bool bDestinationOccupied = LevelAsset->Objects.ContainsByPredicate (
+            [SelectedObjectId, SelectedObjectType, SelectedObject, Orientation] (const FGridLevelObjectData& Obj)
+        {
+            return Obj.ObjectId != SelectedObjectId &&
+                Obj.CellX == SelectedObject->CellX &&
+                Obj.CellY == SelectedObject->CellY &&
+                Obj.Type == SelectedObjectType &&
+                Obj.Edge == Orientation;
+        });
+
+        if (bDestinationOccupied)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: cannot orient selected object, destination edge is occupied."));
+            return false;
+        }
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    if (bUsesEdge)
+    {
+        SelectedObject->Edge = Orientation;
+        SelectedEdge = Orientation;
+    }
+    else
+    {
+        SelectedObject->LocalYaw = GetYawForOrientation (Orientation);
+    }
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
     return true;
 }
 

@@ -991,3 +991,35 @@ Outgoing Links
 Les anciens champs `Trigger Mode`, `Fire On Enter`, `Fire On Exit`, `Delay`, `Duration`, `Invert Connectors` et `Item Spawn` ne sont plus des données disponibles dans l'inspector.
 
 Ces données techniques restantes restent disponibles, mais elles ne doivent plus dominer l’interface.
+---
+
+## 2026-05-22 - Selected Object Layout Update
+
+The current `Selected Object` inspector must avoid duplicating information already shown in its header.
+
+`Game Object` shows only:
+
+- `Placement Kind`
+- `Palette Category`
+- `Functional Category`
+- `Runtime Interactable`
+- `Runtime Readable`
+- `Runtime Light Source`
+- `Enabled at Start`
+- `Active at Start`
+
+`Gameplay Type`, `Cell X`, `Cell Y`, and `Edge / Facing` are not repeated in `Game Object`; they remain visible in the object header as `DisplayName` and `Type @ (X,Y) Edge/Facing`.
+
+The duplicated `Connectors` section is removed from `Selected Object`. Connectors are shown only in the dedicated `CONNECTORS` panel.
+
+The `Rotate 90 deg` action is replaced by a `North / East / South / West` orientation widget. For edge-placed objects it changes the placement edge. For center/floor objects it changes the facing yaw.
+
+`Advanced / Debug` is primarily read-only: `ObjectId`, `ArchetypeId`, and `Tag` are read-only, while `Notes` remains editable.
+
+Receptacles use safe item selectors:
+
+- `Accept Any Item`
+- `Accepted Items`, as a selectable list of `Item` archetypes
+- `Initial Content`, as a `None + Item archetypes` dropdown
+
+Advanced receptacle rules such as rejected archetypes and accepted item tags are not exposed by default. If `Initial Content` is not compatible with `Accepted Items`, the inspector shows a warning without blocking save.

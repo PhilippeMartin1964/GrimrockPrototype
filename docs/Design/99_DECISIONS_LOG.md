@@ -361,3 +361,14 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le joueur peut la ramasser depuis la même cellule avec l’action `Use`.
 - Quand `Item_Torch` est ramassée, elle est ajoutée à l’état d’inventaire léger du Pawn et équipée automatiquement en main.
 - La torche tenue en main utilise le chemin d’item tenu existant et active sa flamme/lumière via `OnPlacedInWorld`.
+---
+
+## 2026-05-22 - Simplification du panneau Selected Object
+
+- La section `Connectors` dupliquee dans `Selected Object` est supprimee. Les connecteurs restent visibles uniquement dans le panneau dedie `CONNECTORS`.
+- `Game Object` ne repete plus `Gameplay Type`, `Cell X`, `Cell Y` ni `Edge / Facing`; ces informations restent dans le header de l'objet selectionne.
+- `Initially Enabled` et `Initially Active` sont renommes `Enabled at Start` et `Active at Start`.
+- `Advanced / Debug` devient principalement read-only : `ObjectId`, `ArchetypeId` et `Tag` sont en lecture seule ; `Notes` reste editable.
+- Le bouton `Rotate 90 deg` est remplace par un widget d'orientation `North / East / South / West`.
+- L'edition des receptacles utilise des listes d'items pour `Accepted Items` et un dropdown `None + Item archetypes` pour `Initial Content`.
+- Les regles avancees de receptacle, comme rejected archetypes et accepted item tags, ne sont pas exposees par defaut.

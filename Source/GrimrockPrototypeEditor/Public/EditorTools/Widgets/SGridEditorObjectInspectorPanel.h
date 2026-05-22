@@ -8,6 +8,7 @@
 class AGridLevelEditorActor;
 class UGridObjectArchetypeAsset;
 struct FGridLevelObjectData;
+enum class EGridEdge : uint8;
 
 DECLARE_DELEGATE_RetVal (AGridLevelEditorActor*, FOnGetGridEditorObjectInspectorActor);
 DECLARE_DELEGATE (FOnGridEditorObjectInspectorRequestRefresh);
@@ -33,7 +34,7 @@ private:
     TSharedRef<SWidget> BuildSelectedObjectCard (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildGameObjectSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildContextualComponentSection (const FGridLevelObjectData& Obj);
-    TSharedRef<SWidget> BuildConnectorsSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildOrientationWidget (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildAdvancedDebugSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildDoorDetailsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildLeverDetailsSection (const FGridLevelObjectData& Obj);
@@ -49,7 +50,7 @@ private:
     FReply OnResetBehaviorFromArchetypeClicked ();
     FReply OnMoveSelectedObjectToCurrentCellClicked ();
     FReply OnFocusSelectedObjectClicked ();
-    FReply OnRotateSelectedObjectYawClicked ();
+    FReply OnSetSelectedObjectOrientationClicked (EGridEdge Orientation);
 
 private:
     TWeakObjectPtr<AGridLevelEditorActor> EditorActor;

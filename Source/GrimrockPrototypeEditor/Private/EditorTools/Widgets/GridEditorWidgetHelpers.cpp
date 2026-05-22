@@ -2,6 +2,8 @@
 
 #if WITH_EDITOR
 
+#include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridTypes.h"
 
 #include "Styling/AppStyle.h"
@@ -264,6 +266,43 @@ namespace GridEditorWidgetHelpers
         }
 
         return Names;
+    }
+
+    TArray<FGridArchetypeOption> GetItemArchetypeOptions (const UGridObjectPaletteAsset* ObjectPalette)
+    {
+        TArray<FGridArchetypeOption> Options;
+        if (!ObjectPalette)
+        {
+            return Options;
+        }
+
+        TSet<FName> SeenIds;
+        for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
+        {
+            const UGridObjectArchetypeAsset* Archetype = Entry.DefaultArchetype;
+            if (!Archetype ||
+                Archetype->ArchetypeId.IsNone () ||
+                Archetype->SupportedType != EGridLevelObjectType::Item ||
+                SeenIds.Contains (Archetype->ArchetypeId))
+            {
+                continue;
+            }
+
+            FGridArchetypeOption Option;
+            Option.ArchetypeId = Archetype->ArchetypeId;
+            Option.Label = !Archetype->DisplayName.IsEmpty ()
+                ? Archetype->DisplayName
+                : FText::FromName (Archetype->ArchetypeId);
+            Options.Add (Option);
+            SeenIds.Add (Option.ArchetypeId);
+        }
+
+        Options.Sort ([] (const FGridArchetypeOption& A, const FGridArchetypeOption& B)
+        {
+            return A.Label.ToString () < B.Label.ToString ();
+        });
+
+        return Options;
     }
 }
 

@@ -7,6 +7,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Core/GridObjectPaletteAsset.h"
 
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
@@ -18,6 +19,7 @@
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Layout/SBorder.h"
@@ -258,13 +260,57 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
                 ]
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
                 [
-                    GridEditorWidgetHelpers::BuildGridActionButton (
-                        FText::FromString (TEXT ("Rotate 90°")),
-                        FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnRotateSelectedObjectYawClicked))
+                    BuildOrientationWidget (*Obj)
                 ]
         ];
 
     return Root;
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildOrientationWidget (const FGridLevelObjectData& Obj)
+{
+    const bool bUsesEdge = Obj.Edge != EGridEdge::None;
+    const EGridEdge CurrentOrientation = bUsesEdge
+        ? Obj.Edge
+        : (FMath::IsNearlyEqual (Obj.LocalYaw, 90.f) ? EGridEdge::East
+            : FMath::IsNearlyEqual (Obj.LocalYaw, 180.f) ? EGridEdge::South
+            : FMath::IsNearlyEqual (Obj.LocalYaw, 270.f) ? EGridEdge::West
+            : EGridEdge::North);
+
+    auto MakeButton = [this, CurrentOrientation] (const TCHAR* Label, EGridEdge Orientation) -> TSharedRef<SWidget>
+    {
+        return SNew (SButton)
+            .Text (FText::FromString (Label))
+            .ContentPadding (FMargin (6.f, 3.f))
+            .ButtonColorAndOpacity (CurrentOrientation == Orientation
+                ? FLinearColor (0.25f, 0.45f, 0.75f, 1.f)
+                : FLinearColor::White)
+            .OnClicked (FOnClicked::CreateSP (this, &SGridEditorObjectInspectorPanel::OnSetSelectedObjectOrientationClicked, Orientation));
+    };
+
+    return SNew (SHorizontalBox)
+        + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 6.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Orientation")))
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+        ]
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 2.f, 0.f)
+        [
+            MakeButton (TEXT ("North"), EGridEdge::North)
+        ]
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f)
+        [
+            MakeButton (TEXT ("East"), EGridEdge::East)
+        ]
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f)
+        [
+            MakeButton (TEXT ("South"), EGridEdge::South)
+        ]
+        + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f, 0.f, 0.f)
+        [
+            MakeButton (TEXT ("West"), EGridEdge::West)
+        ];
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (const FGridLevelObjectData& Obj)
@@ -347,11 +393,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
                 [
-                    BuildConnectorsSection (Obj)
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
-                [
                     BuildAdvancedDebugSection (Obj)
                 ]
         ];
@@ -359,7 +400,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (const FGridLevelObjectData& Obj)
 {
-    const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
     const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind> ();
     const UEnum* ObjectCategoryEnum = StaticEnum<EGridObjectCategory> ();
     const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
@@ -367,35 +407,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (con
         ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
         : nullptr;
 
-    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Gameplay Type")),
-                GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64>(Obj.Type)))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Cell X")),
-                FText::AsNumber (Obj.CellX))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Cell Y")),
-                FText::AsNumber (Obj.CellY))
-        ]
-
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Edge / Facing")),
-                GetEdgeOrFacingText (Obj))
-        ];
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox);
 
     if (Archetype)
     {
@@ -430,21 +442,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (con
         Root->AddSlot ().AutoHeight ()
         [
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Blocks Movement (Generic Object)")),
-                GetBoolText (Archetype->bBlocksMovement))
-        ];
-
-        Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("Door passage blocking is handled by the door system. This flag is mainly for generic non-door objects.")))
-                .AutoWrapText (true)
-                .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
-        ];
-
-        Root->AddSlot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                 FText::FromString (TEXT ("Runtime Readable")),
                 GetBoolText (Archetype->bIsReadable))
         ];
@@ -473,7 +470,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (con
                     }
                 })
                     [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Enabled")))
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("Enabled at Start")))
                     ]
             ]
             + SHorizontalBox::Slot ().AutoWidth ()
@@ -489,7 +486,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildGameObjectSection (con
                     }
                 })
                     [
-                        SNew (STextBlock).Text (FText::FromString (TEXT ("Initially Active")))
+                        SNew (STextBlock).Text (FText::FromString (TEXT ("Active at Start")))
                     ]
             ]
     ];
@@ -570,163 +567,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
     return Root;
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildConnectorsSection (const FGridLevelObjectData& Obj)
-{
-    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
-    const UGridLevelAsset* LevelAsset = CurrentEditorActor ? CurrentEditorActor->LevelAsset : nullptr;
-
-    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox);
-    if (!CurrentEditorActor || !LevelAsset)
-    {
-        Root->AddSlot ().AutoHeight ()
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("No level asset.")))
-                .AutoWrapText (true)
-        ];
-
-        return GridEditorWidgetHelpers::BuildGridPanelSection (
-            FText::FromString (TEXT ("Connectors")),
-            Root);
-    }
-
-    int32 OutgoingCount = 0;
-    int32 IncomingCount = 0;
-    for (const FGridObjectLink& Link : LevelAsset->Links)
-    {
-        if (Link.SourceObjectId == Obj.ObjectId)
-        {
-            ++OutgoingCount;
-        }
-
-        if (Link.TargetObjectId == Obj.ObjectId)
-        {
-            ++IncomingCount;
-        }
-    }
-
-    static const EGridObjectEvent EventOrder[] =
-    {
-        EGridObjectEvent::Activated,
-        EGridObjectEvent::Deactivated,
-        EGridObjectEvent::ItemInserted,
-        EGridObjectEvent::ItemRemoved,
-        EGridObjectEvent::ItemChanged,
-        EGridObjectEvent::Used,
-        EGridObjectEvent::Entered,
-        EGridObjectEvent::Exited,
-        EGridObjectEvent::Opened,
-        EGridObjectEvent::Closed,
-        EGridObjectEvent::Enabled,
-        EGridObjectEvent::Disabled
-    };
-
-    Root->AddSlot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 4.f)
-    [
-        SNew (STextBlock)
-            .Text (FText::FromString (TEXT ("Outgoing Connectors")))
-            .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
-            .ColorAndOpacity (FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
-    ];
-
-    if (OutgoingCount == 0)
-    {
-        Root->AddSlot ().AutoHeight ()
-        [
-            SNew (STextBlock).Text (FText::FromString (TEXT ("None")))
-        ];
-    }
-    else
-    {
-        for (const EGridObjectEvent Event : EventOrder)
-        {
-            bool bEventHeaderAdded = false;
-
-            for (const FGridObjectLink& Link : LevelAsset->Links)
-            {
-                if (Link.SourceObjectId != Obj.ObjectId || Link.SourceEvent != Event)
-                {
-                    continue;
-                }
-
-                if (!bEventHeaderAdded)
-                {
-                    Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 1.f)
-                    [
-                        SNew (STextBlock)
-                            .Text (GetConnectorEventText (Event))
-                            .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
-                    ];
-                    bEventHeaderAdded = true;
-                }
-
-                const FGridLevelObjectData* TargetObject = FindObjectById (LevelAsset, Link.TargetObjectId);
-                const bool bMissingTarget = TargetObject == nullptr;
-                const FText TargetText = TargetObject
-                    ? GetConnectorObjectSummaryText (CurrentEditorActor, *TargetObject)
-                    : FText::FromString (TEXT ("Missing object"));
-
-                Root->AddSlot ().AutoHeight ().Padding (12.f, 1.f, 0.f, 1.f)
-                [
-                    BuildConnectorTextRow (
-                        FText::Format (
-                            FText::FromString (TEXT ("-> {0} : {1}")),
-                            TargetText,
-                            GetConnectorCommandText (Link.Command)),
-                        bMissingTarget)
-                ];
-            }
-        }
-    }
-
-    Root->AddSlot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 4.f)
-    [
-        SNew (STextBlock)
-            .Text (FText::FromString (TEXT ("Incoming Connectors")))
-            .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
-            .ColorAndOpacity (FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
-    ];
-
-    if (IncomingCount == 0)
-    {
-        Root->AddSlot ().AutoHeight ()
-        [
-            SNew (STextBlock).Text (FText::FromString (TEXT ("None")))
-        ];
-    }
-    else
-    {
-        for (const FGridObjectLink& Link : LevelAsset->Links)
-        {
-            if (Link.TargetObjectId != Obj.ObjectId)
-            {
-                continue;
-            }
-
-            const FGridLevelObjectData* SourceObject = FindObjectById (LevelAsset, Link.SourceObjectId);
-            const bool bMissingSource = SourceObject == nullptr;
-            const FText SourceText = SourceObject
-                ? GetConnectorObjectSummaryText (CurrentEditorActor, *SourceObject)
-                : FText::FromString (TEXT ("Missing object"));
-
-            Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 1.f)
-            [
-                BuildConnectorTextRow (
-                    FText::Format (
-                        FText::FromString (TEXT ("{0} : {1} -> {2}")),
-                        SourceText,
-                        GetConnectorEventText (Link.SourceEvent),
-                        GetConnectorCommandText (Link.Command)),
-                    bMissingSource)
-            ];
-        }
-    }
-
-    return GridEditorWidgetHelpers::BuildGridPanelSection (
-        FText::FromString (TEXT ("Connectors")),
-        Root);
-}
-
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection (const FGridLevelObjectData& Obj)
 {
     const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
@@ -745,34 +585,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildAdvancedDebugSection (
 
         + SVerticalBox::Slot ().AutoHeight ()
         [
-            GridEditorWidgetHelpers::BuildGridPropertyRow (
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                 FText::FromString (TEXT ("ArchetypeId")),
-                SNew (SEditableTextBox)
-                    .Text (FText::FromName (Obj.ArchetypeId))
-                    .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                    {
-                        CurrentEditorActor->SetSelectedObjectArchetypeId (FName (*NewText.ToString ()));
-                        RequestRefresh ();
-                    }
-                }))
+                FText::FromName (Obj.ArchetypeId))
         ]
 
         + SVerticalBox::Slot ().AutoHeight ()
         [
-            GridEditorWidgetHelpers::BuildGridPropertyRow (
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                 FText::FromString (TEXT ("Tag")),
-                SNew (SEditableTextBox)
-                    .Text (FText::FromName (Obj.Tag))
-                    .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                    {
-                        CurrentEditorActor->SetSelectedObjectTag (FName (*NewText.ToString ()));
-                        RequestRefresh ();
-                    }
-                }))
+                FText::FromName (Obj.Tag))
         ]
 
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
@@ -1140,29 +962,114 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         }
     };
 
-    auto MakeTextRow = [this, Obj, ApplyBehavior] (
-        const FText& Label,
-        const FText& Value,
-        TFunction<void (FGridObjectBehaviorParams&, const FString&)> Mutator) -> TSharedRef<SWidget>
-    {
-        return GridEditorWidgetHelpers::BuildGridPropertyRow (
-            Label,
-            SNew (SEditableTextBox)
-                .Text (Value)
-                .OnTextCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (const FText& NewText, ETextCommit::Type CommitType)
-            {
-                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                Mutator (NewBehavior, NewText.ToString ());
-                ApplyBehavior (NewBehavior);
-            }));
-    };
-
     const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
     const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
     const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
         ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
         : nullptr;
     const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind> ();
+    const TArray<GridEditorWidgetHelpers::FGridArchetypeOption> ItemOptions =
+        GridEditorWidgetHelpers::GetItemArchetypeOptions (CurrentEditorActor ? CurrentEditorActor->ObjectPalette : nullptr);
+
+    auto FindItemLabel = [&ItemOptions] (FName ArchetypeId) -> FText
+    {
+        if (ArchetypeId.IsNone ())
+        {
+            return FText::FromString (TEXT ("None"));
+        }
+
+        for (const GridEditorWidgetHelpers::FGridArchetypeOption& Option : ItemOptions)
+        {
+            if (Option.ArchetypeId == ArchetypeId)
+            {
+                return Option.Label;
+            }
+        }
+
+        return FText::FromName (ArchetypeId);
+    };
+
+    const bool bInitialContentCompatible =
+        Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
+        Behavior.Receptacle.bAcceptAnyItem ||
+        Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId);
+
+    TSharedRef<SVerticalBox> AcceptedItemsList = SNew (SVerticalBox);
+    if (ItemOptions.Num () == 0)
+    {
+        AcceptedItemsList->AddSlot ().AutoHeight ()
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("No item archetypes are available in the palette.")))
+                .AutoWrapText (true)
+        ];
+    }
+    else
+    {
+        for (const GridEditorWidgetHelpers::FGridArchetypeOption& Option : ItemOptions)
+        {
+            AcceptedItemsList->AddSlot ().AutoHeight ().Padding (0.f, 1.f)
+            [
+                SNew (SCheckBox)
+                    .IsChecked (Behavior.Receptacle.AcceptedArchetypeIds.Contains (Option.ArchetypeId)
+                        ? ECheckBoxState::Checked
+                        : ECheckBoxState::Unchecked)
+                    .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior, Option] (ECheckBoxState NewState)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    if (NewState == ECheckBoxState::Checked)
+                    {
+                        NewBehavior.Receptacle.AcceptedArchetypeIds.AddUnique (Option.ArchetypeId);
+                    }
+                    else
+                    {
+                        NewBehavior.Receptacle.AcceptedArchetypeIds.Remove (Option.ArchetypeId);
+                    }
+                    ApplyBehavior (NewBehavior);
+                })
+                    [
+                        SNew (STextBlock)
+                            .Text (Option.Label)
+                    ]
+            ];
+        }
+    }
+
+    auto BuildInitialContentMenu = [Obj, ApplyBehavior, ItemOptions] () -> TSharedRef<SWidget>
+    {
+        TSharedRef<SVerticalBox> Menu = SNew (SVerticalBox);
+
+        Menu->AddSlot ().AutoHeight ()
+        [
+            SNew (SButton)
+                .Text (FText::FromString (TEXT ("None")))
+                .OnClicked_Lambda ([Obj, ApplyBehavior] ()
+            {
+                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                NewBehavior.Receptacle.InitialContainedItemArchetypeId = NAME_None;
+                ApplyBehavior (NewBehavior);
+                return FReply::Handled ();
+            })
+        ];
+
+        for (const GridEditorWidgetHelpers::FGridArchetypeOption& Option : ItemOptions)
+        {
+            Menu->AddSlot ().AutoHeight ()
+            [
+                SNew (SButton)
+                    .Text (Option.Label)
+                    .OnClicked_Lambda ([Obj, ApplyBehavior, Option] ()
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.Receptacle.InitialContainedItemArchetypeId = Option.ArchetypeId;
+                    ApplyBehavior (NewBehavior);
+                    return FReply::Handled ();
+                })
+            ];
+        }
+
+        return Menu;
+    };
 
     return SNew (SBorder)
         .Padding (6.f)
@@ -1228,50 +1135,35 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 
             + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    MakeTextRow (
-                        FText::FromString (TEXT ("Accepted Item Archetypes")),
-                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.AcceptedArchetypeIds)),
-                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
-                    {
-                        NewBehavior.Receptacle.AcceptedArchetypeIds = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
-                    })
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Accepted Items")),
+                        AcceptedItemsList)
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    MakeTextRow (
-                        FText::FromString (TEXT ("Rejected Item Archetypes")),
-                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.RejectedItemArchetypeIds)),
-                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
-                    {
-                        NewBehavior.Receptacle.RejectedItemArchetypeIds = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
-                    })
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-                [
-                    MakeTextRow (
-                        FText::FromString (TEXT ("Accepted Item Tags")),
-                        FText::FromString (GridEditorWidgetHelpers::NameArrayToCommaSeparatedText (Behavior.Receptacle.AcceptedItemTags)),
-                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
-                    {
-                        NewBehavior.Receptacle.AcceptedItemTags = GridEditorWidgetHelpers::ParseCommaSeparatedNames (Text);
-                    })
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-                [
-                    MakeTextRow (
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
                         FText::FromString (TEXT ("Initial Content")),
-                        FText::FromName (Behavior.Receptacle.InitialContainedItemArchetypeId),
-                        [] (FGridObjectBehaviorParams& NewBehavior, const FString& Text)
-                    {
-                        FString TrimmedText = Text;
-                        TrimmedText.TrimStartAndEndInline ();
-                        NewBehavior.Receptacle.InitialContainedItemArchetypeId = TrimmedText.IsEmpty ()
-                            ? NAME_None
-                            : FName (*TrimmedText);
-                    })
+                        SNew (SComboButton)
+                            .ButtonContent ()
+                            [
+                                SNew (STextBlock)
+                                    .Text (FindItemLabel (Behavior.Receptacle.InitialContainedItemArchetypeId))
+                            ]
+                            .MenuContent ()
+                            [
+                                BuildInitialContentMenu ()
+                            ])
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+                [
+                    bInitialContentCompatible
+                        ? SNullWidget::NullWidget
+                        : StaticCastSharedRef<SWidget> (SNew (STextBlock)
+                            .Text (FText::FromString (TEXT ("Warning: Initial Content is not included in Accepted Items.")))
+                            .AutoWrapText (true)
+                            .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
                 ]
         ];
 }
@@ -1328,11 +1220,11 @@ FReply SGridEditorObjectInspectorPanel::OnFocusSelectedObjectClicked ()
     return FReply::Handled ();
 }
 
-FReply SGridEditorObjectInspectorPanel::OnRotateSelectedObjectYawClicked ()
+FReply SGridEditorObjectInspectorPanel::OnSetSelectedObjectOrientationClicked (EGridEdge Orientation)
 {
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
     {
-        if (CurrentEditorActor->RotateSelectedObjectYawStep ())
+        if (CurrentEditorActor->SetSelectedObjectOrientation (Orientation))
         {
             RequestRefresh ();
         }

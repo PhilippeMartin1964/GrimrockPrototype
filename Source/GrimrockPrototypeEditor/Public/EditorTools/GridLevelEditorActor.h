@@ -346,6 +346,8 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Grid Editor|Objects")
     bool RotateSelectedObjectYawStep ();
 
+    bool SetSelectedObjectOrientation (EGridEdge Orientation);
+
 protected:
     virtual void OnConstruction (const FTransform& Transform) override;
 
