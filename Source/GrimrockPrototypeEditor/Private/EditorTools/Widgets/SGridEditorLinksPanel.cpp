@@ -24,22 +24,185 @@ namespace
     const FLinearColor IncomingConnectorColor (0.70f, 0.55f, 1.f, 1.f);
     const FLinearColor BrokenConnectorColor (1.f, 0.18f, 0.16f, 1.f);
 
-    FSlateColor GetLinkCommandSlateColor (EGridObjectCommand Command)
+    const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId);
+    TArray<EGridObjectCommand> GetSupportedCommandsForTarget (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype);
+
+    bool ArchetypeTextContains (const UGridObjectArchetypeAsset* Archetype, const TCHAR* Needle)
     {
-        switch (Command)
+        if (!Archetype)
         {
-            case EGridObjectCommand::Open:
-            case EGridObjectCommand::Activate:
-                return FSlateColor (FLinearColor (0.25f, 0.85f, 0.35f, 1.f));
-
-            case EGridObjectCommand::Close:
-            case EGridObjectCommand::Deactivate:
-                return FSlateColor (FLinearColor (0.95f, 0.25f, 0.20f, 1.f));
-
-            case EGridObjectCommand::Toggle:
-            default:
-                return FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f));
+            return false;
         }
+
+        return Archetype->ArchetypeId.ToString ().Contains (Needle, ESearchCase::IgnoreCase) ||
+            Archetype->DisplayName.ToString ().Contains (Needle, ESearchCase::IgnoreCase) ||
+            Archetype->Category.ToString ().Contains (Needle, ESearchCase::IgnoreCase);
+    }
+
+    bool IsLockLikeObject (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+    {
+        return Obj.Type == EGridLevelObjectType::Receptacle &&
+            (ArchetypeTextContains (Archetype, TEXT ("Lock")) ||
+                ArchetypeTextContains (Archetype, TEXT ("Keyhole")));
+    }
+
+    bool CanObjectEmitEvents (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+    {
+        switch (Obj.Type)
+        {
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::PressurePlate:
+            case EGridLevelObjectType::Trigger:
+            case EGridLevelObjectType::Receptacle:
+                return true;
+
+            case EGridLevelObjectType::Door:
+                return Archetype && Archetype->bIsInteractable;
+
+            case EGridLevelObjectType::ItemSpawn:
+            case EGridLevelObjectType::Item:
+            case EGridLevelObjectType::Teleporter:
+                return Archetype && Archetype->bIsInteractable;
+
+            case EGridLevelObjectType::Decoration:
+                return Archetype && (Archetype->bIsInteractable || Archetype->bIsReadable);
+
+            default:
+                return false;
+        }
+    }
+
+    TArray<EGridObjectEvent> GetSupportedEventsForSource (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+    {
+        TArray<EGridObjectEvent> Events;
+
+        switch (Obj.Type)
+        {
+            case EGridLevelObjectType::Button:
+                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
+                break;
+
+            case EGridLevelObjectType::Lever:
+                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
+                break;
+
+            case EGridLevelObjectType::PressurePlate:
+                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated, EGridObjectEvent::Entered, EGridObjectEvent::Exited};
+                break;
+
+            case EGridLevelObjectType::Trigger:
+                Events = {EGridObjectEvent::Entered, EGridObjectEvent::Exited, EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
+                break;
+
+            case EGridLevelObjectType::Receptacle:
+                Events = IsLockLikeObject (Obj, Archetype)
+                    ? TArray<EGridObjectEvent> {EGridObjectEvent::Activated, EGridObjectEvent::Used}
+                    : TArray<EGridObjectEvent> {EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved};
+                break;
+
+            case EGridLevelObjectType::Door:
+                Events = {EGridObjectEvent::Opened, EGridObjectEvent::Closed};
+                break;
+
+            case EGridLevelObjectType::Teleporter:
+                Events = {EGridObjectEvent::Entered, EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
+                break;
+
+            case EGridLevelObjectType::ItemSpawn:
+            case EGridLevelObjectType::Item:
+                if (Archetype && Archetype->bIsInteractable)
+                {
+                    Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
+                }
+                break;
+
+            case EGridLevelObjectType::Decoration:
+                if (Archetype && Archetype->bIsReadable)
+                {
+                    Events = {EGridObjectEvent::Used};
+                }
+                else if (Archetype && Archetype->bIsInteractable)
+                {
+                    Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        return Events;
+    }
+
+    bool CanObjectReceiveCommands (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+    {
+        return GetSupportedCommandsForTarget (Obj, Archetype).Num () > 0;
+    }
+
+    TArray<EGridObjectCommand> GetSupportedCommandsForTarget (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+    {
+        switch (Obj.Type)
+        {
+            case EGridLevelObjectType::Door:
+                return {EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Lock, EGridObjectCommand::Unlock};
+
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::Button:
+                return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
+
+            case EGridLevelObjectType::PressurePlate:
+            case EGridLevelObjectType::Trigger:
+            case EGridLevelObjectType::Teleporter:
+                return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
+
+            case EGridLevelObjectType::Light:
+                return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
+
+            case EGridLevelObjectType::Receptacle:
+                return IsLockLikeObject (Obj, Archetype)
+                    ? TArray<EGridObjectCommand> {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle, EGridObjectCommand::Lock, EGridObjectCommand::Unlock}
+                    : TArray<EGridObjectCommand> {EGridObjectCommand::Enable, EGridObjectCommand::Disable};
+
+            case EGridLevelObjectType::MonsterSpawn:
+            case EGridLevelObjectType::ItemSpawn:
+                return {EGridObjectCommand::Spawn, EGridObjectCommand::Despawn};
+
+            case EGridLevelObjectType::Decoration:
+            case EGridLevelObjectType::Item:
+                if (Archetype && Archetype->bIsLightSource)
+                {
+                    return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
+                }
+
+                if (Archetype && Archetype->bIsReadable)
+                {
+                    return {EGridObjectCommand::ShowMessage};
+                }
+
+                if (Archetype && Archetype->bIsInteractable)
+                {
+                    return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
+                }
+                break;
+
+            default:
+                break;
+        }
+
+        return {};
+    }
+
+    bool IsConnectorBroken (const FGridObjectLink& Link)
+    {
+        return !Link.SourceObjectId.IsValid () || !Link.TargetObjectId.IsValid ();
+    }
+
+    bool IsConnectorBroken (const FGridObjectLink& Link, const UGridLevelAsset* LevelAsset)
+    {
+        return IsConnectorBroken (Link) ||
+            !FindObjectById (LevelAsset, Link.SourceObjectId) ||
+            !FindObjectById (LevelAsset, Link.TargetObjectId);
     }
 
     const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
@@ -67,7 +230,7 @@ void SGridEditorLinksPanel::Construct (const FArguments& InArgs)
     OnGetEditorActor = InArgs._OnGetEditorActor;
     OnRequestRefresh = InArgs._OnRequestRefresh;
     BuildLinkOptions ();
-    BuildObjectOptions ();
+    RefreshConnectorFormOptions ();
 
     RebuildLinksSection ();
 }
@@ -94,7 +257,7 @@ void SGridEditorLinksPanel::RequestRefresh () const
 
 void SGridEditorLinksPanel::RebuildLinksSection ()
 {
-    BuildObjectOptions ();
+    RefreshConnectorFormOptions ();
 
     ChildSlot
     [
@@ -331,7 +494,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectCombo (const FText& EmptyT
     if (bSourceObject)
     {
         return SNew (SComboBox<TSharedPtr<FGuid>>)
-            .OptionsSource (&ObjectOptions)
+            .OptionsSource (&SourceObjectOptions)
             .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeObjectComboWidget)
             .OnSelectionChanged (this, &SGridEditorLinksPanel::OnSourceObjectSelectionChanged)
             [
@@ -344,7 +507,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectCombo (const FText& EmptyT
     }
 
     return SNew (SComboBox<TSharedPtr<FGuid>>)
-        .OptionsSource (&ObjectOptions)
+        .OptionsSource (&TargetObjectOptions)
         .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeObjectComboWidget)
         .OnSelectionChanged (this, &SGridEditorLinksPanel::OnTargetObjectSelectionChanged)
         [
@@ -396,15 +559,15 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
         const FGuid SourceId = Link.SourceObjectId;
         const FGuid TargetId = Link.TargetObjectId;
         const FGuid OtherId = bOutgoing ? TargetId : SourceId;
-        const bool bBroken = !FindObjectById (CurrentEditorActor->LevelAsset, OtherId);
+        const bool bBroken = IsConnectorBroken (Link, CurrentEditorActor->LevelAsset);
         const FText FlowText = bOutgoing
             ? FText::Format (
                 FText::FromString (TEXT ("-> {0} : {1}")),
-                bBroken ? FText::FromString (TEXT ("Missing object")) : GetObjectSummaryText (TargetId),
+                FindObjectById (CurrentEditorActor->LevelAsset, TargetId) ? GetObjectSummaryText (TargetId) : FText::FromString (TEXT ("Missing object")),
                 GetLinkCommandText (Link.Command))
             : FText::Format (
                 FText::FromString (TEXT ("{0} : {1} -> {2}")),
-                bBroken ? FText::FromString (TEXT ("Missing object")) : GetObjectSummaryText (SourceId),
+                FindObjectById (CurrentEditorActor->LevelAsset, SourceId) ? GetObjectSummaryText (SourceId) : FText::FromString (TEXT ("Missing object")),
                 GetLinkSourceEventText (Link.SourceEvent),
                 GetLinkCommandText (Link.Command));
 
@@ -426,7 +589,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
                                 .Text (FlowText)
                                 .ColorAndOpacity (bBroken
                                     ? FSlateColor (BrokenConnectorColor)
-                                    : GetLinkCommandSlateColor (Link.Command))
+                                    : FSlateColor (bOutgoing ? OutgoingConnectorColor : IncomingConnectorColor))
                                 .AutoWrapText (true)
                         ]
 
@@ -681,59 +844,78 @@ FText SGridEditorLinksPanel::GetSelectedObjectOptionText (
 
 bool SGridEditorLinksPanel::CanCreateConnector () const
 {
-    return SelectedSourceObjectId.IsValid () &&
+    const auto ContainsGuid = [] (const TArray<TSharedPtr<FGuid>>& Options, const TSharedPtr<FGuid>& Value)
+    {
+        if (!Value.IsValid ())
+        {
+            return false;
+        }
+
+        for (const TSharedPtr<FGuid>& Option : Options)
+        {
+            if (Option.IsValid () && *Option == *Value)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    const auto ContainsEvent = [] (const TArray<TSharedPtr<EGridObjectEvent>>& Options, const TSharedPtr<EGridObjectEvent>& Value)
+    {
+        if (!Value.IsValid ())
+        {
+            return false;
+        }
+
+        for (const TSharedPtr<EGridObjectEvent>& Option : Options)
+        {
+            if (Option.IsValid () && *Option == *Value)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    const auto ContainsCommand = [] (const TArray<TSharedPtr<EGridObjectCommand>>& Options, const TSharedPtr<EGridObjectCommand>& Value)
+    {
+        if (!Value.IsValid ())
+        {
+            return false;
+        }
+
+        for (const TSharedPtr<EGridObjectCommand>& Option : Options)
+        {
+            if (Option.IsValid () && *Option == *Value)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    return ContainsGuid (SourceObjectOptions, SelectedSourceObjectId) &&
         SelectedSourceObjectId->IsValid () &&
-        SelectedSourceEvent.IsValid () &&
-        SelectedTargetObjectId.IsValid () &&
+        ContainsEvent (LinkSourceEventOptions, SelectedSourceEvent) &&
+        ContainsGuid (TargetObjectOptions, SelectedTargetObjectId) &&
         SelectedTargetObjectId->IsValid () &&
-        SelectedCommand.IsValid ();
+        ContainsCommand (LinkCommandOptions, SelectedCommand);
 }
 
 void SGridEditorLinksPanel::BuildLinkOptions ()
 {
-    LinkSourceEventOptions.Reset ();
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Activated));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Deactivated));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::ItemInserted));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::ItemRemoved));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::ItemChanged));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Used));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Entered));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Exited));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Opened));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Closed));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Enabled));
-    LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (EGridObjectEvent::Disabled));
-
-    LinkCommandOptions.Reset ();
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Toggle));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Open));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Close));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Activate));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Deactivate));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Enable));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Disable));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Lock));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Unlock));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Spawn));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Despawn));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::Teleport));
-    LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (EGridObjectCommand::ShowMessage));
-
-    if (!SelectedSourceEvent.IsValid () && LinkSourceEventOptions.Num () > 0)
-    {
-        SelectedSourceEvent = LinkSourceEventOptions[0];
-    }
-
-    if (!SelectedCommand.IsValid () && LinkCommandOptions.Num () > 0)
-    {
-        SelectedCommand = LinkCommandOptions[0];
-    }
+    BuildEventOptions ();
+    BuildCommandOptions ();
 }
 
 void SGridEditorLinksPanel::BuildObjectOptions ()
 {
-    ObjectOptions.Reset ();
+    SourceObjectOptions.Reset ();
+    TargetObjectOptions.Reset ();
 
     const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
     if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset)
@@ -745,12 +927,21 @@ void SGridEditorLinksPanel::BuildObjectOptions ()
 
     for (const FGridLevelObjectData& Object : CurrentEditorActor->LevelAsset->Objects)
     {
-        ObjectOptions.Add (MakeShared<FGuid> (Object.ObjectId));
+        const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor->FindObjectArchetypeById (Object.ArchetypeId);
+        if (CanObjectEmitEvents (Object, Archetype))
+        {
+            SourceObjectOptions.Add (MakeShared<FGuid> (Object.ObjectId));
+        }
+
+        if (CanObjectReceiveCommands (Object, Archetype))
+        {
+            TargetObjectOptions.Add (MakeShared<FGuid> (Object.ObjectId));
+        }
     }
 
-    const auto FindOption = [this] (const FGuid& ObjectId) -> TSharedPtr<FGuid>
+    const auto FindOption = [] (const TArray<TSharedPtr<FGuid>>& Options, const FGuid& ObjectId) -> TSharedPtr<FGuid>
     {
-        for (const TSharedPtr<FGuid>& Option : ObjectOptions)
+        for (const TSharedPtr<FGuid>& Option : Options)
         {
             if (Option.IsValid () && *Option == ObjectId)
             {
@@ -764,17 +955,94 @@ void SGridEditorLinksPanel::BuildObjectOptions ()
     const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ();
     if (!SelectedSourceObjectId.IsValid () && SelectedObject)
     {
-        SelectedSourceObjectId = FindOption (SelectedObject->ObjectId);
+        SelectedSourceObjectId = FindOption (SourceObjectOptions, SelectedObject->ObjectId);
     }
     else if (SelectedSourceObjectId.IsValid ())
     {
-        SelectedSourceObjectId = FindOption (*SelectedSourceObjectId);
+        SelectedSourceObjectId = FindOption (SourceObjectOptions, *SelectedSourceObjectId);
     }
 
     if (SelectedTargetObjectId.IsValid ())
     {
-        SelectedTargetObjectId = FindOption (*SelectedTargetObjectId);
+        SelectedTargetObjectId = FindOption (TargetObjectOptions, *SelectedTargetObjectId);
     }
+}
+
+void SGridEditorLinksPanel::BuildEventOptions ()
+{
+    LinkSourceEventOptions.Reset ();
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const FGridLevelObjectData* SourceObject = CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedSourceObjectId.IsValid ()
+        ? FindObjectById (CurrentEditorActor->LevelAsset, *SelectedSourceObjectId)
+        : nullptr;
+
+    if (SourceObject)
+    {
+        const UGridObjectArchetypeAsset* SourceArchetype = CurrentEditorActor->FindObjectArchetypeById (SourceObject->ArchetypeId);
+        for (const EGridObjectEvent Event : GetSupportedEventsForSource (*SourceObject, SourceArchetype))
+        {
+            LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (Event));
+        }
+    }
+
+    bool bCurrentEventStillValid = false;
+    for (const TSharedPtr<EGridObjectEvent>& Option : LinkSourceEventOptions)
+    {
+        if (Option.IsValid () && SelectedSourceEvent.IsValid () && *Option == *SelectedSourceEvent)
+        {
+            SelectedSourceEvent = Option;
+            bCurrentEventStillValid = true;
+            break;
+        }
+    }
+
+    if (!bCurrentEventStillValid)
+    {
+        SelectedSourceEvent = LinkSourceEventOptions.Num () > 0 ? LinkSourceEventOptions[0] : nullptr;
+    }
+}
+
+void SGridEditorLinksPanel::BuildCommandOptions ()
+{
+    LinkCommandOptions.Reset ();
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const FGridLevelObjectData* TargetObject = CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedTargetObjectId.IsValid ()
+        ? FindObjectById (CurrentEditorActor->LevelAsset, *SelectedTargetObjectId)
+        : nullptr;
+
+    if (TargetObject)
+    {
+        const UGridObjectArchetypeAsset* TargetArchetype = CurrentEditorActor->FindObjectArchetypeById (TargetObject->ArchetypeId);
+        for (const EGridObjectCommand Command : GetSupportedCommandsForTarget (*TargetObject, TargetArchetype))
+        {
+            LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (Command));
+        }
+    }
+
+    bool bCurrentCommandStillValid = false;
+    for (const TSharedPtr<EGridObjectCommand>& Option : LinkCommandOptions)
+    {
+        if (Option.IsValid () && SelectedCommand.IsValid () && *Option == *SelectedCommand)
+        {
+            SelectedCommand = Option;
+            bCurrentCommandStillValid = true;
+            break;
+        }
+    }
+
+    if (!bCurrentCommandStillValid)
+    {
+        SelectedCommand = LinkCommandOptions.Num () > 0 ? LinkCommandOptions[0] : nullptr;
+    }
+}
+
+void SGridEditorLinksPanel::RefreshConnectorFormOptions ()
+{
+    BuildObjectOptions ();
+    BuildEventOptions ();
+    BuildCommandOptions ();
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeObjectComboWidget (TSharedPtr<FGuid> Item) const
@@ -792,6 +1060,7 @@ void SGridEditorLinksPanel::OnSourceObjectSelectionChanged (
     ESelectInfo::Type SelectInfo)
 {
     SelectedSourceObjectId = NewValue;
+    BuildEventOptions ();
 }
 
 void SGridEditorLinksPanel::OnTargetObjectSelectionChanged (
@@ -799,6 +1068,7 @@ void SGridEditorLinksPanel::OnTargetObjectSelectionChanged (
     ESelectInfo::Type SelectInfo)
 {
     SelectedTargetObjectId = NewValue;
+    BuildCommandOptions ();
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkSourceEventComboWidget (

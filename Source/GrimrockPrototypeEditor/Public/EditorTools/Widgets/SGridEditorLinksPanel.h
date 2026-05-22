@@ -42,6 +42,9 @@ private:
 
     void RebuildLinksSection ();
     void BuildObjectOptions ();
+    void BuildEventOptions ();
+    void BuildCommandOptions ();
+    void RefreshConnectorFormOptions ();
     FReply OnRemoveExactLinkClicked (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
     FReply OnClearSelectedObjectLinksClicked ();
     FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
@@ -76,7 +79,8 @@ private:
 
     TArray<TSharedPtr<EGridObjectEvent>> LinkSourceEventOptions;
     TArray<TSharedPtr<EGridObjectCommand>> LinkCommandOptions;
-    TArray<TSharedPtr<FGuid>> ObjectOptions;
+    TArray<TSharedPtr<FGuid>> SourceObjectOptions;
+    TArray<TSharedPtr<FGuid>> TargetObjectOptions;
 
     bool bAddConnectorVisible = false;
     TSharedPtr<FGuid> SelectedSourceObjectId;

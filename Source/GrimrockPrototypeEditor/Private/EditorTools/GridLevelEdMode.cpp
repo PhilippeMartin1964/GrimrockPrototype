@@ -25,27 +25,14 @@ namespace
         FVector Direction = FVector::ForwardVector;
     };
 
-    FLinearColor GetDebugLinkColor (EGridObjectCommand Command, bool bIncoming)
+    FLinearColor GetDebugLinkColor (EGridObjectCommand /*Command*/, bool bIncoming)
     {
         if (bIncoming)
         {
             return FLinearColor (0.65f, 0.55f, 1.f, 0.85f);
         }
 
-        switch (Command)
-        {
-            case EGridObjectCommand::Open:
-            case EGridObjectCommand::Activate:
-                return FLinearColor (0.28f, 0.8f, 0.38f, 0.85f);
-
-            case EGridObjectCommand::Close:
-            case EGridObjectCommand::Deactivate:
-                return FLinearColor (0.9f, 0.32f, 0.28f, 0.85f);
-
-            case EGridObjectCommand::Toggle:
-            default:
-                return FLinearColor (0.25f, 0.85f, 1.f, 0.85f);
-        }
+        return FLinearColor (0.25f, 0.85f, 1.f, 0.85f);
     }
 
     void DrawDashedLine (
