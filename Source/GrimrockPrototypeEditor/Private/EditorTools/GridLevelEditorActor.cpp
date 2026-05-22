@@ -2178,18 +2178,6 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 Obj.ObjectId);
             }
         }
-
-        if (Obj.Type == EGridLevelObjectType::ItemSpawn)
-        {
-            const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
-            if (Behavior.ItemSpawn.SpawnedItemArchetypeId.IsNone ())
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Warning,
-                    TEXT ("ItemSpawn should define Behavior.ItemSpawn.SpawnedItemArchetypeId."),
-                    Obj.ObjectId);
-            }
-        }
     }
 
     for (int32 ObjectIndex = 0; ObjectIndex < LevelAsset->Objects.Num (); ++ObjectIndex)

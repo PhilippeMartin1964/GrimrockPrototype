@@ -16,7 +16,7 @@ Ce fichier conserve les décisions validées afin de ne pas perdre la connaissan
 - Le modèle cible est :
 
 ```text
-SourceObjectId + SourceEvent -> TargetObjectId + TargetCommand + Delay + bOneShot
+SourceObjectId + SourceEvent -> TargetObjectId + TargetCommand
 ```
 
 - Les objets ne doivent pas se connaître directement.
@@ -342,3 +342,12 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `ItemSpawn` et `MonsterSpawn` sont exclus temporairement des targets tant que le spawn commandé reste TODO runtime.
 - Le rouge est réservé aux connecteurs cassés.
 - Décision de design : un connecteur doit s’exécuter uniquement pour son événement explicite ; aucune inversion implicite ne doit être déduite par le runtime.
+
+## 2026-05-21 — Suppression de l’ancien Behavior Editor générique
+
+- Le panneau global `BEHAVIOR EDITOR` a été supprimé.
+- Les champs génériques `TriggerMode`, `Delay`, `Duration`, `Invert Connectors`, `Fire On Enter`, `Fire On Exit` et `Item Spawn` ont été supprimés.
+- Les structs `FGridActivationBehaviorParams`, `FGridTriggerBehaviorParams` et `FGridItemSpawnBehaviorParams` ont été supprimées.
+- `FGridObjectBehaviorParams` conserve uniquement les comportements encore utiles : `Teleporter`, `Receptacle`, `ButtonAnimation`.
+- Le runtime reste basé sur l’exécution explicite des connecteurs par `SourceEvent`.
+- Aucun fallback implicite ni inversion automatique n’est conservé.

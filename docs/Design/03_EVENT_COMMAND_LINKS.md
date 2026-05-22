@@ -127,22 +127,16 @@ struct FGridObjectLink
     GENERATED_BODY()
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Link")
-    FName SourceObjectId;
+    FGuid SourceObjectId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Link")
     EGridObjectEvent SourceEvent = EGridObjectEvent::None;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Link")
-    FName TargetObjectId;
+    FGuid TargetObjectId;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Link")
     EGridObjectCommand TargetCommand = EGridObjectCommand::None;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Link")
-    float Delay = 0.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Link")
-    bool bOneShot = false;
 };
 ```
 
@@ -210,11 +204,9 @@ Note d'état : `WallInscription` reste readable et inspectable, mais elle n'est 
 2. Les objets émettent uniquement des événements.
 3. Le système central de liens reçoit l’événement.
 4. Le système central exécute les commandes sur les cibles.
-5. Les délais sont gérés par le système central.
-6. Les liens `bOneShot` sont désactivés après leur première exécution.
-7. Les objets cibles ignorent les commandes qu’ils ne supportent pas, mais doivent produire un log de debug utile.
-8. Un lien s'exécute uniquement pour son `SourceEvent` exact.
-9. Le runtime ne doit pas déduire automatiquement une commande inverse sur désactivation.
+5. Les objets cibles ignorent les commandes qu’ils ne supportent pas, mais doivent produire un log de debug utile.
+6. Un lien s'exécute uniquement pour son `SourceEvent` exact.
+7. Le runtime ne doit pas déduire automatiquement une commande inverse sur désactivation.
 
 ---
 
@@ -396,8 +388,6 @@ Source Object: Button_Normal_01
 Source Event: OnActivate
 Target Object: Door_Stone_01
 Target Command: ToggleOpen
-Delay: 0.0
-One Shot: false
 ```
 
 ### Filtrage Source Object
@@ -486,7 +476,7 @@ Exemple de log :
 
 ```text
 [GridActivation] Event Button_01.OnActivate
-[GridActivation] -> Door_Stone_01.ToggleOpen Delay=0.00 OneShot=false
+[GridActivation] -> Door_Stone_01.ToggleOpen
 [GridDoor] Door_Stone_01 ToggleOpen accepted
 ```
 

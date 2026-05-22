@@ -379,7 +379,7 @@ void AGridReceptacleActor::ExecuteInsertionLinks ()
 {
     if (AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ()))
     {
-        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, false);
+        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemInserted);
     }
 }
 
@@ -387,6 +387,6 @@ void AGridReceptacleActor::ExecuteRemovalLinks ()
 {
     if (AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ()))
     {
-        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, true);
+        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemRemoved);
     }
 }

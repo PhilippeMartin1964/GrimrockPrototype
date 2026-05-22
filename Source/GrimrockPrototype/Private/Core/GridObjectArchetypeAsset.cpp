@@ -230,11 +230,6 @@ namespace
             Behavior.Teleporter.TargetCellY != INDEX_NONE;
     }
 
-    bool HasItemSpawnBehaviorParams (const FGridObjectBehaviorParams& Behavior)
-    {
-        return !Behavior.ItemSpawn.SpawnedItemArchetypeId.IsNone ();
-    }
-
     bool HasCustomButtonAnimationParams (const FGridObjectBehaviorParams& Behavior)
     {
         return !FMath::IsNearlyEqual (Behavior.ButtonAnimation.ButtonPressDistance, 6.f) ||
@@ -358,11 +353,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
     if (!UsesTeleporterParams () && HasTeleporterBehaviorParams (DefaultBehavior))
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("Teleporter target cell is set but SupportedType is not Teleporter."));
-    }
-
-    if (!UsesItemSpawnParams () && HasItemSpawnBehaviorParams (DefaultBehavior))
-    {
-        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemSpawn behavior is set but SupportedType is not ItemSpawn."));
     }
 
     if (!UsesButtonAnimationParams () && HasCustomButtonAnimationParams (DefaultBehavior))
@@ -530,10 +520,6 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
                 if (!Category.IsNone () && !IsPaletteCategory (*this, TEXT ("Spawns")))
                 {
                     AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("ItemSpawn palette category should generally be Spawns."));
-                }
-                if (DefaultBehavior.ItemSpawn.SpawnedItemArchetypeId.IsNone ())
-                {
-                    AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("ItemSpawn should define DefaultBehavior.ItemSpawn.SpawnedItemArchetypeId."));
                 }
             }
             break;
@@ -737,11 +723,6 @@ bool UGridObjectArchetypeAsset::UsesItemParams () const
         SupportedType == EGridLevelObjectType::ItemSpawn ||
         ItemActorClass != nullptr ||
         ItemTags.Num () > 0;
-}
-
-bool UGridObjectArchetypeAsset::UsesItemSpawnParams () const
-{
-    return SupportedType == EGridLevelObjectType::ItemSpawn;
 }
 
 bool UGridObjectArchetypeAsset::UsesReceptacleParams () const

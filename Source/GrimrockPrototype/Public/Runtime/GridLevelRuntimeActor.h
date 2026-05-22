@@ -188,7 +188,7 @@ public:
 
     // Allows runtime objects such as Receptacles to trigger their outgoing links.
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
-    bool ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, bool bInvert = false);
+    bool ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
     
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
@@ -201,7 +201,6 @@ public:
 
     void RebuildRuntimeObjects ();
     void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);
-    void AddRuntimeItemSpawnActor (const FGridLevelObjectData& ObjectData);
     bool IsRuntimeSpawnableObject (const FGridLevelObjectData& ObjectData) const;
 
     template<typename T>

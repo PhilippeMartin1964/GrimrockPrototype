@@ -7,7 +7,6 @@
 
 class AGridLevelEditorActor;
 class UGridObjectArchetypeAsset;
-enum class EGridObjectTriggerMode : uint8;
 struct FGridLevelObjectData;
 
 DECLARE_DELEGATE_RetVal (AGridLevelEditorActor*, FOnGetGridEditorObjectInspectorActor);
@@ -44,10 +43,7 @@ private:
     TSharedRef<SWidget> BuildLightDetailsSection (const UGridObjectArchetypeAsset& Archetype);
     TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
-    TSharedRef<SWidget> BuildItemSpawnBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReadableTextSection (const FGridLevelObjectData& Obj);
-
-    TSharedRef<SWidget> MakeTriggerModeComboWidget (TSharedPtr<EGridObjectTriggerMode> Item) const;
 
     FReply OnApplySelectedObjectClicked ();
     FReply OnResetBehaviorFromArchetypeClicked ();
@@ -55,13 +51,10 @@ private:
     FReply OnFocusSelectedObjectClicked ();
     FReply OnRotateSelectedObjectYawClicked ();
 
-    void BuildTriggerModeOptions ();
-
 private:
     TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
     FOnGetGridEditorObjectInspectorActor OnGetEditorActor;
     FOnGridEditorObjectInspectorRequestRefresh OnRequestRefresh;
-    TArray<TSharedPtr<EGridObjectTriggerMode>> TriggerModeOptions;
 };
 
 #endif

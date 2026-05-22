@@ -18,10 +18,8 @@
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
-#include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 
@@ -56,14 +54,6 @@ namespace
         return Class
             ? FText::FromString (Class->GetName ())
             : FText::FromString (TEXT ("None"));
-    }
-
-    FText GetTriggerModeText (EGridObjectTriggerMode TriggerMode)
-    {
-        const UEnum* TriggerModeEnum = StaticEnum<EGridObjectTriggerMode> ();
-        return TriggerModeEnum
-            ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (TriggerMode))
-            : FText::FromString (TEXT ("Unknown"));
     }
 
     FText GetEdgeOrFacingText (const FGridLevelObjectData& Obj)
@@ -105,54 +95,23 @@ namespace
             FText::AsNumber (Obj.CellY));
     }
 
-    TSharedRef<SWidget> BuildReadOnlyTriggerSummary (const FGridObjectBehaviorParams& Behavior, bool bIncludeFireFlags)
+    TSharedRef<SWidget> BuildExplicitConnectorSummary (const FText& EmitsText)
     {
         TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Trigger Mode")),
-                    GetTriggerModeText (Behavior.Activation.TriggerMode))
+                    FText::FromString (TEXT ("Emits")),
+                    EmitsText)
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Delay")),
-                    FText::AsNumber (Behavior.Activation.Delay))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Duration")),
-                    FText::AsNumber (Behavior.Activation.Duration))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Invert Connectors")),
-                    GetBoolText (Behavior.Activation.bInvertLinks))
+                    FText::FromString (TEXT ("Connector Rule")),
+                    FText::FromString (TEXT ("Only explicit SourceEvent links execute.")))
             ];
-
-        if (bIncludeFireFlags)
-        {
-            Root->AddSlot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Fire on Enter")),
-                    GetBoolText (Behavior.Trigger.bFireOnEnter))
-            ];
-
-            Root->AddSlot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Fire on Exit")),
-                    GetBoolText (Behavior.Trigger.bFireOnExit))
-            ];
-        }
 
         return Root;
     }
@@ -230,7 +189,6 @@ void SGridEditorObjectInspectorPanel::Construct (const FArguments& InArgs)
     EditorActor = InArgs._EditorActor;
     OnGetEditorActor = InArgs._OnGetEditorActor;
     OnRequestRefresh = InArgs._OnRequestRefresh;
-    BuildTriggerModeOptions ();
 
     ChildSlot
     [
@@ -579,10 +537,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 
             case EGridLevelObjectType::Receptacle:
                 PrimarySection = BuildReceptacleBehaviorSection (Obj);
-                break;
-
-            case EGridLevelObjectType::ItemSpawn:
-                PrimarySection = BuildItemSpawnBehaviorSection (Obj);
                 break;
 
             case EGridLevelObjectType::Teleporter:
@@ -961,14 +915,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection (c
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
-                BuildReadOnlyTriggerSummary (Obj.Behavior, false)
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Emits")),
-                    FText::FromString (TEXT ("Activated, Deactivated, Toggled")))
+                BuildExplicitConnectorSummary (FText::FromString (TEXT ("Activated, Deactivated, Toggled")))
             ]);
 }
 
@@ -1058,20 +1005,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
-                BuildReadOnlyTriggerSummary (Obj.Behavior, true)
+                BuildExplicitConnectorSummary (FText::FromString (TEXT ("Activated, Deactivated, Entered, Exited")))
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Emits")),
-                    FText::FromString (TEXT ("Activated, Deactivated, Entered, Exited")))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-            [
                 SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("Detailed trigger filters are not exposed yet.")))
+                    .Text (FText::FromString (TEXT ("Use explicit Activated and Deactivated connectors to control what happens on press and release.")))
                     .AutoWrapText (true)
             ]);
 }
@@ -1160,56 +1100,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadableTextSection (c
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj)
 {
-    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
-    {
-        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-        {
-            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
-            {
-                RequestRefresh ();
-            }
-        }
-    };
-
-    auto MakeCheckRow = [Obj, ApplyBehavior] (
-        const FText& Label,
-        bool bValue,
-        TFunction<void (FGridObjectBehaviorParams&, bool)> Mutator) -> TSharedRef<SWidget>
-    {
-        return SNew (SCheckBox)
-            .IsChecked (bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-            .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior, Mutator] (ECheckBoxState NewState)
-        {
-            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-            Mutator (NewBehavior, NewState == ECheckBoxState::Checked);
-            ApplyBehavior (NewBehavior);
-        })
-            [
-                SNew (STextBlock).Text (Label)
-            ];
-    };
-
-    auto MakeNumberRow = [this, Obj, ApplyBehavior] (
-        const FText& Label,
-        float Value,
-        TFunction<void (FGridObjectBehaviorParams&, float)> Mutator) -> TSharedRef<SWidget>
-    {
-        return GridEditorWidgetHelpers::BuildGridPropertyRow (
-            Label,
-            SNew (SNumericEntryBox<float>)
-                .MinValue (0.f)
-                .Value (TOptional<float> (Value))
-                .OnValueCommitted_Lambda ([Obj, ApplyBehavior, Mutator] (float NewValue, ETextCommit::Type CommitType)
-            {
-                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                Mutator (NewBehavior, FMath::Max (0.f, NewValue));
-                ApplyBehavior (NewBehavior);
-            }));
-    };
-
-    const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
-    const UEnum* TriggerModeEnum = StaticEnum<EGridObjectTriggerMode> ();
-
     return SNew (SBorder)
         .Padding (6.f)
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
@@ -1226,102 +1116,13 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
                 [
                     SNew (STextBlock)
-                        .Text (FText::FromString (TEXT ("Use SourceEvent = Enter or Exit in links to react to trigger events.")))
+                        .Text (FText::FromString (TEXT ("Triggers emit explicit connector events. Add connectors for Activated or Deactivated to control enter and exit behavior.")))
                         .AutoWrapText (true)
                 ]
 
-                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f)
+                + SVerticalBox::Slot ().AutoHeight ()
                 [
-                    SNew (SHorizontalBox)
-
-                        + SHorizontalBox::Slot ().FillWidth (0.35f).VAlign (VAlign_Center).Padding (0.f, 2.f, 8.f, 2.f)
-                        [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Trigger Mode")))
-                        ]
-
-                        + SHorizontalBox::Slot ().FillWidth (0.65f).Padding (0.f, 2.f)
-                        [
-                            SNew (SComboBox<TSharedPtr<EGridObjectTriggerMode>>)
-                                .OptionsSource (&TriggerModeOptions)
-                                .OnGenerateWidget (this, &SGridEditorObjectInspectorPanel::MakeTriggerModeComboWidget)
-                                .OnSelectionChanged_Lambda ([Obj, ApplyBehavior] (
-                                    TSharedPtr<EGridObjectTriggerMode> NewValue,
-                                    ESelectInfo::Type SelectInfo)
-                            {
-                                if (NewValue.IsValid ())
-                                {
-                                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                                    NewBehavior.Activation.TriggerMode = *NewValue;
-                                    ApplyBehavior (NewBehavior);
-                                }
-                            })
-                                [
-                                    SNew (STextBlock)
-                                        .Text (TriggerModeEnum
-                                            ? TriggerModeEnum->GetDisplayNameTextByValue (static_cast<int64> (Behavior.Activation.TriggerMode))
-                                            : FText::FromString (TEXT ("Unknown")))
-                                ]
-                        ]
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-                [
-                    MakeNumberRow (
-                        FText::FromString (TEXT ("Delay (s)")),
-                        Behavior.Activation.Delay,
-                        [] (FGridObjectBehaviorParams& NewBehavior, float NewValue)
-                    {
-                        NewBehavior.Activation.Delay = NewValue;
-                    })
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-                [
-                    MakeNumberRow (
-                        FText::FromString (TEXT ("Duration (s)")),
-                        Behavior.Activation.Duration,
-                        [] (FGridObjectBehaviorParams& NewBehavior, float NewValue)
-                    {
-                        NewBehavior.Activation.Duration = NewValue;
-                    })
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-                [
-                    SNew (SHorizontalBox)
-
-                        + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                        [
-                            MakeCheckRow (
-                                FText::FromString (TEXT ("Fire on Enter")),
-                                Behavior.Trigger.bFireOnEnter,
-                                [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
-                            {
-                                NewBehavior.Trigger.bFireOnEnter = bNewValue;
-                            })
-                        ]
-
-                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 12.f, 0.f)
-                        [
-                            MakeCheckRow (
-                                FText::FromString (TEXT ("Fire on Exit")),
-                                Behavior.Trigger.bFireOnExit,
-                                [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
-                            {
-                                NewBehavior.Trigger.bFireOnExit = bNewValue;
-                            })
-                        ]
-
-                    + SHorizontalBox::Slot ().AutoWidth ()
-                        [
-                            MakeCheckRow (
-                                FText::FromString (TEXT ("Invert Connectors")),
-                                Behavior.Activation.bInvertLinks,
-                                [] (FGridObjectBehaviorParams& NewBehavior, bool bNewValue)
-                            {
-                                NewBehavior.Activation.bInvertLinks = bNewValue;
-                            })
-                        ]
+                    BuildExplicitConnectorSummary (FText::FromString (TEXT ("Activated, Deactivated")))
                 ]
         ];
 }
@@ -1475,63 +1276,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         ];
 }
 
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemSpawnBehaviorSection (const FGridLevelObjectData& Obj)
-{
-    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
-    {
-        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-        {
-            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
-            {
-                RequestRefresh ();
-            }
-        }
-    };
-
-    const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
-
-    return SNew (SBorder)
-        .Padding (6.f)
-        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
-        [
-            SNew (SVerticalBox)
-
-                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
-                [
-                    SNew (STextBlock)
-                        .Text (FText::FromString (TEXT ("Item Spawn")))
-                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
-                ]
-
-                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
-                [
-                    SNew (STextBlock)
-                        .Text (FText::FromString (TEXT ("Runtime item spawning is planned but may not be implemented yet.")))
-                        .AutoWrapText (true)
-                ]
-
-                + SVerticalBox::Slot ().AutoHeight ()
-                [
-                    GridEditorWidgetHelpers::BuildGridPropertyRow (
-                        FText::FromString (TEXT ("Spawned Item Archetype Id")),
-                        SNew (SEditableTextBox)
-                            .Text (FText::FromName (Behavior.ItemSpawn.SpawnedItemArchetypeId))
-                            .ToolTipText (FText::FromString (TEXT ("Item archetype spawned or represented by this ItemSpawn. Runtime spawning is planned but may not be implemented yet.")))
-                            .OnTextCommitted_Lambda ([Obj, ApplyBehavior] (const FText& NewText, ETextCommit::Type CommitType)
-                        {
-                            FString TrimmedText = NewText.ToString ();
-                            TrimmedText.TrimStartAndEndInline ();
-
-                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                            NewBehavior.ItemSpawn.SpawnedItemArchetypeId = TrimmedText.IsEmpty ()
-                                ? NAME_None
-                                : FName (*TrimmedText);
-                            ApplyBehavior (NewBehavior);
-                        }))
-                ]
-        ];
-}
-
 FReply SGridEditorObjectInspectorPanel::OnApplySelectedObjectClicked ()
 {
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
@@ -1594,28 +1338,6 @@ FReply SGridEditorObjectInspectorPanel::OnRotateSelectedObjectYawClicked ()
         }
     }
     return FReply::Handled ();
-}
-
-void SGridEditorObjectInspectorPanel::BuildTriggerModeOptions ()
-{
-    TriggerModeOptions.Reset ();
-
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Instant));
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Hold));
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::Toggle));
-    TriggerModeOptions.Add (MakeShared<EGridObjectTriggerMode> (EGridObjectTriggerMode::OneShot));
-}
-
-TSharedRef<SWidget> SGridEditorObjectInspectorPanel::MakeTriggerModeComboWidget (
-    TSharedPtr<EGridObjectTriggerMode> Item) const
-{
-    const UEnum* Enum = StaticEnum<EGridObjectTriggerMode> ();
-    const FText Label = Item.IsValid () && Enum
-        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (*Item))
-        : FText::FromString (TEXT ("Unknown"));
-
-    return SNew (STextBlock)
-        .Text (Label);
 }
 
 #endif

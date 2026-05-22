@@ -5,7 +5,6 @@
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
-#include "EditorTools/Widgets/SGridEditorBehaviorPanel.h"
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
@@ -181,26 +180,6 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
                 },
                 PanelExpansionState.bLinksExpanded));
 
-        if (Obj->Type != EGridLevelObjectType::Trigger)
-        {
-            AddToolkitPanel (
-                BuildCollapsiblePanelSection (
-                    FText::FromString (TEXT ("BEHAVIOR EDITOR")),
-                    [this] () -> TSharedRef<SWidget>
-                    {
-                        return SNew (SGridEditorBehaviorPanel)
-                        .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                        .OnGetEditorActor (FOnGetGridEditorBehaviorActor::CreateLambda ([this] ()
-                        {
-                            return GetEditorActor ();
-                        }))
-                        .OnRequestRefresh (FOnGridEditorBehaviorRequestRefresh::CreateLambda ([this] ()
-                        {
-                            RefreshPalette ();
-                        }));
-                    },
-                    PanelExpansionState.bBehaviorExpanded));
-        }
     }
 
     AddToolkitPanel (

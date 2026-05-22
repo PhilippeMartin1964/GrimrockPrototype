@@ -518,6 +518,28 @@ La torche ne doit pas être codée en dur dans le support.
 
 ---
 
+## Comportements contextuels
+
+Les comportements doivent être édités uniquement dans les sections contextuelles de l'objet sélectionné : `Door`, `Lever`, `Button`, `Pressure Plate`, `Trigger`, `Receptacle`, `Teleporter`, `Light`, `Readable Text` ou `Connectors`.
+
+Il ne doit plus exister de panneau global `BEHAVIOR EDITOR`.
+
+Les anciens champs génériques suivants ne doivent plus apparaître :
+
+```text
+Trigger Mode
+Delay
+Duration
+Invert Connectors
+Fire On Enter
+Fire On Exit
+Item Spawn / SpawnedItemArchetypeId
+```
+
+Le comportement gameplay doit être exprimé par des connecteurs explicites `Source Object / Event / Target Object / Command`.
+
+---
+
 ## Connectors
 
 Le terme `Links` peut rester en interne, mais l’interface doit privilégier le terme `Connectors`, plus proche de l’éditeur de *Legend of Grimrock 2*.
@@ -964,9 +986,8 @@ ObjectId
 ArchetypeId
 Raw Tags
 Outgoing Links
-Trigger Mode
-Fire On Enter
-Apply Behavior
 ```
 
-Ces données restent disponibles, mais elles ne doivent plus dominer l’interface.
+Les anciens champs `Trigger Mode`, `Fire On Enter`, `Fire On Exit`, `Delay`, `Duration`, `Invert Connectors` et `Item Spawn` ne sont plus des données disponibles dans l'inspector.
+
+Ces données techniques restantes restent disponibles, mais elles ne doivent plus dominer l’interface.

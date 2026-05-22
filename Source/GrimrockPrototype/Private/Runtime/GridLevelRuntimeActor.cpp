@@ -651,9 +651,9 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY
     return false;
 }
 
-bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, bool bInvert)
+bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, EGridObjectEvent SourceEvent)
 {
-    return ActivationComponent ? ActivationComponent->ExecuteLinksFromObject (SourceObjectId, bInvert) : false;
+    return ActivationComponent ? ActivationComponent->ExecuteLinksFromObjectForEvent (SourceObjectId, SourceEvent) : false;
 }
 
 void AGridLevelRuntimeActor::HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
@@ -1066,51 +1066,6 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
     }
 }
 
-void AGridLevelRuntimeActor::AddRuntimeItemSpawnActor (const FGridLevelObjectData& ObjectData)
-{
-    const UGridObjectArchetypeAsset* ItemSpawnArchetype = FindObjectArchetype (ObjectData.ArchetypeId);
-    if (!ItemSpawnArchetype)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: archetype %s not found."), *ObjectData.ArchetypeId.ToString ());
-        return;
-    }
-
-    const FGridObjectBehaviorParams& RuntimeBehavior = ObjectData.Behavior;
-
-    const FName SpawnedItemArchetypeId = RuntimeBehavior.ItemSpawn.SpawnedItemArchetypeId;
-    if (SpawnedItemArchetypeId.IsNone ())
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: object %s has no SpawnedItemArchetypeId."), *ObjectData.ObjectId.ToString ());
-        return;
-    }
-
-    FTransform SpawnTransform;
-    if (!GetObjectPlacementTransform (ObjectData, SpawnTransform))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: could not compute placement transform for object %s."), *ObjectData.ObjectId.ToString ());
-        return;
-    }
-
-    AGridItemActor* ItemActor = SpawnItemActorForArchetype (SpawnedItemArchetypeId, this, nullptr);
-    if (!ItemActor)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("ItemSpawn skipped: failed to spawn item archetype %s."), *SpawnedItemArchetypeId.ToString ());
-        return;
-    }
-
-    ItemActor->SetActorTransform (SpawnTransform);
-    ItemActor->OnPlacedInWorld ();
-    SpawnedItemActors.Add (ItemActor);
-
-    FGridSpawnedItemRuntimeEntry Entry;
-    Entry.Cell = FIntPoint (ObjectData.CellX, ObjectData.CellY);
-    Entry.ItemActor = ItemActor;
-    Entry.ItemArchetypeId = SpawnedItemArchetypeId;
-    SpawnedItemEntries.Add (Entry);
-
-    UE_LOG (LogTemp, Log, TEXT ("ItemSpawn spawned item %s at object %s."), *SpawnedItemArchetypeId.ToString (), *ObjectData.ObjectId.ToString ());
-}
-
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
 {
     UStaticMesh* Mesh = nullptr;
@@ -1182,15 +1137,6 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
     LevelAsset->EnsureCellCount ();
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
-        if (ObjectData.Type == EGridLevelObjectType::ItemSpawn)
-        {
-            if (ObjectData.bInitiallyEnabled)
-            {
-                AddRuntimeItemSpawnActor (ObjectData);
-            }
-            continue;
-        }
-
         if (!IsRuntimeSpawnableObject (ObjectData))
         {
             if (ObjectData.bInitiallyEnabled)

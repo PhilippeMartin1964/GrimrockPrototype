@@ -20,7 +20,6 @@ struct FGridEditorPanelExpansionState
     bool bOverviewExpanded = true;
     bool bSelectedObjectExpanded = true;
     bool bLinksExpanded = false;
-    bool bBehaviorExpanded = false;
     bool bValidationExpanded = false;
 };
 

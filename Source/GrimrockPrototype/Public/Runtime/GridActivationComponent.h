@@ -24,7 +24,7 @@ public:
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
     void NotifyPawnEnteredCell (int32 CellX, int32 CellY);
     void NotifyPawnExitedCell (int32 CellX, int32 CellY);
-    bool ExecuteLinksFromObject (FGuid SourceObjectId, bool bInvert);
+    bool ExecuteLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
 
     void RegisterInitialObjectState (const FGridLevelObjectData& ObjectData);
 
@@ -41,19 +41,13 @@ private:
     UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
 
-    UPROPERTY (Transient)
-    TSet<FGuid> ConsumedOneShotTriggerIds;
-
 private:
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
 
     bool ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 
-    bool ApplyLinkCommand (const FGridObjectLink& LinkData, bool bInvert);
-    bool ExecuteLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent, bool bInvert, bool bAllowActivatedFallback);
-    int32 CountLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent) const;
-    EGridObjectCommand GetResolvedLinkCommand (EGridObjectCommand Command, bool bInvert) const;
+    bool ApplyLinkCommand (const FGridObjectLink& LinkData);
     bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive);
@@ -72,10 +66,7 @@ private:
     TMap<FGridEdgeKey, int32> InteractableObjectIndexByEdge;
     TMultiMap<FIntPoint, int32> PressurePlateIndexesByCell;
     TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
-    TMap<FGuid, FGridObjectBehaviorParams> RuntimeBehaviorByObjectId;
-
     const FGridLevelObjectData* GetObjectByIndex (int32 ObjectIndex) const;
-    const FGridObjectBehaviorParams& GetRuntimeBehavior (const FGridLevelObjectData& ObjectData) const;
 
     int32 GetIndexedObjectCount () const
     {

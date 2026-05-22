@@ -39,7 +39,7 @@ Les recommandations utilisent le vocabulaire suivant :
 | `bDefaultInitiallyEnabled` | Defaults | `bool` | Défaut destiné à être copié dans l'état placé; l'inspector édite `bInitiallyEnabled`. | Le runtime vérifie `ObjectData.bInitiallyEnabled` pour spawn/activation. | Tous les objets placés. | Oui, via `FGridLevelObjectData::bInitiallyEnabled`. | Essential | Doit rester un défaut d'archétype, pas une source runtime vivante après placement. |
 | `bDefaultInitiallyActive` | Defaults | `bool` | Défaut destiné à être copié dans l'état placé; l'inspector édite `bInitiallyActive`. | Les objets runtime, portes et receptacles lisent `ObjectData.bInitiallyActive`. | Doors, receptacles, mécanismes, triggers. | Oui, via `FGridLevelObjectData::bInitiallyActive`. | Essential | Le sens varie selon le type : ouvert, pressé, rempli, activé, etc. Labels UI contextuels nécessaires. |
 | `DefaultTag` | Defaults | `FName` | Défaut prévu pour le tag de l'objet placé; l'inspector édite l'instance `Tag`. | Le receptacle peut utiliser `ObjectData.Tag` comme fallback de tag accepté si les listes sont vides. | Surtout receptacles et objets d'interaction taggés. | Oui, via `FGridLevelObjectData::Tag`. | Advanced | Utile mais technique. À garder hors UI primaire sauf advanced/debug/contextuel. |
-| `DefaultBehavior` | Defaults | `FGridObjectBehaviorParams` | Copié vers les objets placés et utilisé par le helper de reset; l'inspector édite `Obj.Behavior`. | Le runtime lit `ObjectData.Behavior`, pas l'archétype directement, pour activation, trigger, teleporter, receptacle, button, item spawn. | Trigger, pressure plate, button, lever, receptacle, teleporter, item spawn. | Oui, via `FGridLevelObjectData::Behavior`. | Essential | Pont principal entre archétype et instance. Contient plusieurs groupes utiles seulement à certains types. |
+| `DefaultBehavior` | Defaults | `FGridObjectBehaviorParams` | Copié vers les objets placés et utilisé par le helper de reset; l'inspector édite uniquement les sous-groupes contextuels encore utiles. | Le runtime lit `ObjectData.Behavior`, pas l'archétype directement, pour teleporter, receptacle et button animation. | Button, receptacle, teleporter. | Oui, via `FGridLevelObjectData::Behavior`. | Essential | Ne contient plus les anciens groupes génériques Activation, Trigger ou ItemSpawn. |
 | `ItemTags` | Item | `TArray<FName>` | Validation et authoring item/receptacle. | Les acteurs item sont initialisés avec ces tags; les receptacles inspectent les tags de l'archétype item. | Items et archétypes apparentés. | Pas d'override placé actuellement. | Essential | Runtime-relevant pour inventaire et matching receptacle. |
 
 ### Palette / Classification
@@ -112,7 +112,7 @@ Les recommandations utilisent le vocabulaire suivant :
 - `RequiresEdgePlacement`, `SupportsCenterPlacement`, `SupportsWallPlacement`
 - `RequiresRuntimeActorClass`, `AllowsInvisibleRuntimeObject`
 - `UsesWallPlacementParams`, `UsesCenterPlacementParams`, `UsesReadableParams`, `UsesLightParams`
-- `UsesItemParams`, `UsesItemSpawnParams`, `UsesReceptacleParams`, `UsesTeleporterParams`
+- `UsesItemParams`, `UsesReceptacleParams`, `UsesTeleporterParams`
 - `UsesButtonAnimationParams`, `UsesTriggerParams`, `UsesMovingMeshParams`, `UsesFixedMeshParams`, `UsesRuntimeActorClass`
 
 Ces helpers sont importants parce qu'ils encodent l'intention de design actuelle. Les nettoyages futurs de l'éditeur devraient les réutiliser au lieu de dupliquer des règles par type dans l'UI.
@@ -123,6 +123,18 @@ Ces helpers sont importants parce qu'ils encodent l'intention de design actuelle
 |---|---|---|---|---|---|---|---|---|
 | `bPlaceOnEdge` | Placement\|Legacy | `bool` | Validation et warnings de compatibilité. | Non. | Archétypes legacy migrés. | Non. | Legacy | À conserver jusqu'à migration complète des assets et palette entries. |
 | `bPlaceAtCellCenter` | Placement\|Legacy | `bool` | Validation et warnings de compatibilité. | Non. | Archétypes legacy migrés. | Non. | Legacy | Même stratégie de migration que `bPlaceOnEdge`. |
+
+### Champs supprimés / obsolètes
+
+| Champ | Ancien groupe | Statut | Notes |
+|---|---|---|---|
+| `TriggerMode` | `FGridActivationBehaviorParams` | Supprimé | Remplacé par des connecteurs explicites par `SourceEvent`. |
+| `Delay` | `FGridActivationBehaviorParams` | Supprimé | Aucun comportement runtime actif. |
+| `Duration` | `FGridActivationBehaviorParams` | Supprimé | Aucun comportement runtime actif. |
+| `bInvertLinks` | `FGridActivationBehaviorParams` | Supprimé | L'inversion implicite des commandes est interdite. |
+| `bFireOnEnter` | `FGridTriggerBehaviorParams` | Supprimé | Les triggers émettent des événements explicites. |
+| `bFireOnExit` | `FGridTriggerBehaviorParams` | Supprimé | Les triggers émettent des événements explicites. |
+| `SpawnedItemArchetypeId` | `FGridItemSpawnBehaviorParams` | Supprimé | Le spawn commandé devra être redéfini plus tard avec des champs explicites. |
 
 ## 3. Champs groupés par responsabilité
 
@@ -300,12 +312,9 @@ Améliorations futures sûres, sans changer runtime ni sérialisation :
 - Clarifier le label de `bBlocksMovement` comme blocage générique/non-door lorsqu'il est affiché.
 - Clarifier que `bIsReadable` et `bIsLightSource` sont des flags de capacité runtime, alors que `ObjectCategory` est une classification.
 - Documenter quels types d'objet utilisent chaque groupe de `DefaultBehavior` :
-  - Activation : buttons, levers, pressure plates, triggers, receptacles, teleporters qui émettent des links.
-  - Trigger : triggers et pressure plates.
   - Teleporter : teleporters.
   - Receptacle : receptacles.
   - ButtonAnimation : buttons.
-  - ItemSpawn : item spawns.
 - Éviter d'afficher les champs non pertinents par type dans l'inspector. Préférer des résumés contextuels read-only.
 - Clarifier ou câbler `bUseLightFlicker` avant de le présenter comme comportement runtime actif.
 - Envisager plus tard un layout DataAsset séparant "Bases designer", "Placement", "Visuels", "Classe runtime" et "Advanced/Validation".
