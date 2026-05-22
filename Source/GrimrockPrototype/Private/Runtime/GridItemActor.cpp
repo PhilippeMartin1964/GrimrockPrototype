@@ -59,6 +59,32 @@ void AGridItemActor::OnRemovedFromWorld ()
     }
 }
 
+void AGridItemActor::ConfigureAsWorldPickup ()
+{
+    if (!MeshComponent)
+    {
+        return;
+    }
+
+    MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+    MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+    MeshComponent->SetEnableGravity (true);
+    MeshComponent->SetSimulatePhysics (true);
+    MeshComponent->WakeRigidBody ();
+}
+
+void AGridItemActor::ConfigureAsAttachedItem ()
+{
+    if (!MeshComponent)
+    {
+        return;
+    }
+
+    MeshComponent->SetSimulatePhysics (false);
+    MeshComponent->SetEnableGravity (false);
+    MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+}
+
 FName AGridItemActor::GetItemArchetypeId () const
 {
     return ArchetypeId;

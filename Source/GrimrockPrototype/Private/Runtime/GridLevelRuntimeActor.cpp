@@ -828,6 +828,7 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemAr
 
     if (AttachParent)
     {
+        ItemActor->ConfigureAsAttachedItem ();
         ItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
         ItemActor->SetActorRelativeTransform (FTransform::Identity);
     }
@@ -1137,6 +1138,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     }
 
     ItemActor->SetActorTransform (Transform);
+    ItemActor->ConfigureAsWorldPickup ();
     ItemActor->OnRemovedFromWorld ();
     SpawnedItemActors.Add (ItemActor);
 

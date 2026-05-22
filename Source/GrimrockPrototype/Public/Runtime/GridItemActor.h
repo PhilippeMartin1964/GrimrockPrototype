@@ -36,6 +36,12 @@ public:
     virtual void OnRemovedFromWorld ();
 
     UFUNCTION (BlueprintCallable, Category = "Item")
+    void ConfigureAsWorldPickup ();
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    void ConfigureAsAttachedItem ();
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
     FName GetItemArchetypeId () const;
 
     UFUNCTION (BlueprintCallable, Category = "Item")
