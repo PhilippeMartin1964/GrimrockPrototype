@@ -149,10 +149,6 @@ namespace
             case EGridLevelObjectType::Light:
                 return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
 
-            case EGridLevelObjectType::MonsterSpawn:
-            case EGridLevelObjectType::ItemSpawn:
-                return {EGridObjectCommand::Spawn, EGridObjectCommand::Despawn};
-
             default:
                 break;
         }
@@ -764,6 +760,14 @@ FText SGridEditorLinksPanel::GetObjectSummaryText (const FGuid& ObjectId) const
         const FString NameText = Archetype && !Archetype->DisplayName.IsEmpty ()
             ? Archetype->DisplayName.ToString ()
             : TypeText;
+        const FString SummaryNameText = Obj.Type == EGridLevelObjectType::ItemSpawn
+            ? FString::Printf (TEXT ("%s Spawner"), *NameText.Replace (TEXT (" Spawn"), TEXT ("")))
+            : Obj.Type == EGridLevelObjectType::MonsterSpawn
+                ? FString::Printf (TEXT ("%s Spawner"), *NameText.Replace (TEXT (" Spawn"), TEXT ("")))
+                : NameText;
+        const FString SuffixText = (Obj.Type == EGridLevelObjectType::ItemSpawn || Obj.Type == EGridLevelObjectType::MonsterSpawn)
+            ? TEXT (" [Spawner]")
+            : TEXT ("");
 
         const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
         const FString EdgeText = EdgeEnum
@@ -772,11 +776,12 @@ FText SGridEditorLinksPanel::GetObjectSummaryText (const FGuid& ObjectId) const
 
         return FText::FromString (
             FString::Printf (
-                TEXT ("%s @ (%d,%d) %s"),
-                *NameText,
+                TEXT ("%s @ (%d,%d) %s%s"),
+                *SummaryNameText,
                 Obj.CellX,
                 Obj.CellY,
-                *EdgeText));
+                *EdgeText,
+                *SuffixText));
     }
 
     return FText::FromString (TEXT ("Missing object"));
