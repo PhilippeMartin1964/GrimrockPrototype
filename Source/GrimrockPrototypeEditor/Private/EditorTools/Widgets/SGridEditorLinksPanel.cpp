@@ -66,7 +66,7 @@ namespace
                 return Archetype && Archetype->bIsInteractable;
 
             case EGridLevelObjectType::Decoration:
-                return Archetype && (Archetype->bIsInteractable || Archetype->bIsReadable);
+                return Archetype && Archetype->bIsInteractable && !Archetype->bIsReadable;
 
             default:
                 return false;
@@ -118,11 +118,7 @@ namespace
                 break;
 
             case EGridLevelObjectType::Decoration:
-                if (Archetype && Archetype->bIsReadable)
-                {
-                    Events = {EGridObjectEvent::Used};
-                }
-                else if (Archetype && Archetype->bIsInteractable)
+                if (Archetype && Archetype->bIsInteractable && !Archetype->bIsReadable)
                 {
                     Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
                 }
