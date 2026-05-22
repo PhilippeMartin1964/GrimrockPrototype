@@ -187,9 +187,33 @@ namespace
 
     bool IsObjectOrientationEditable (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
     {
-        return Archetype &&
-            (Archetype->PlacementKind == EGridObjectPlacementKind::Edge ||
-                Archetype->PlacementKind == EGridObjectPlacementKind::Wall);
+        if (!Archetype)
+        {
+            return false;
+        }
+
+        const bool bPlacementCanFace =
+            Archetype->PlacementKind == EGridObjectPlacementKind::Edge ||
+            Archetype->PlacementKind == EGridObjectPlacementKind::Wall ||
+            Archetype->PlacementKind == EGridObjectPlacementKind::Floor ||
+            Archetype->PlacementKind == EGridObjectPlacementKind::Center;
+        if (!bPlacementCanFace)
+        {
+            return false;
+        }
+
+        if (Obj.Type == EGridLevelObjectType::Trigger ||
+            Obj.Type == EGridLevelObjectType::ItemSpawn ||
+            Obj.Type == EGridLevelObjectType::MonsterSpawn)
+        {
+            return Archetype->PreviewMesh || Archetype->FixedMesh || Archetype->MovingMesh;
+        }
+
+        return Archetype->PreviewMesh ||
+            Archetype->FixedMesh ||
+            Archetype->MovingMesh ||
+            Archetype->RuntimeActorClass ||
+            Archetype->ItemActorClass;
     }
 }
 

@@ -382,3 +382,4 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le widget d'orientation n'apparait que pour les objets orientables.
 - Le panneau `CONNECTORS` n'affiche plus le bouton `+` pour les objets qui ne peuvent ni emettre d'evenements ni recevoir de commandes.
 - Les items au sol comme `Item_Torch` sont physiques et recuperables, mais ne participent pas au systeme de connecteurs.
+- Correction : les objets visibles au sol, notamment les decorations `Floor`, affichent aussi le widget d'orientation. `RotationStepYaw` reste supprime.
