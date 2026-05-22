@@ -16,7 +16,13 @@ SourceObjectId + SourceEvent -> TargetObjectId + TargetCommand
 
 Un objet source émet un événement.
 
-Le système de liens cherche les liens correspondants.
+Un connector est toujours défini par les quatre champs suivants :
+
+```text
+Source Object + Source Event + Target Object + Command
+```
+
+Le système de liens cherche uniquement les liens correspondant à l'objet source et au `SourceEvent` exact.
 
 Chaque lien exécute une commande sur un objet cible.
 
@@ -25,6 +31,16 @@ Exemple :
 ```text
 Button_Normal_01.OnActivate -> Door_Stone_01.ToggleOpen
 ```
+
+Un connector `Activated -> Door Open` ouvre la porte uniquement lorsque l'événement `Activated` est émis.
+
+Pour refermer la porte, il faut un connector explicite :
+
+```text
+Deactivated -> Door Close
+```
+
+Le runtime ne doit pas inverser implicitement une commande lors d'une désactivation.
 
 ---
 
@@ -136,29 +152,33 @@ Selon l’existant, cette structure peut être ajoutée dans `GridTypes.h` ou da
 
 ## Exemples de liens
 
-### Bouton vers porte
+### Button
 
 ```text
 Button_Normal_01.OnActivate -> Door_Stone_01.ToggleOpen
 ```
 
-### Bouton secret vers porte secrète
+### Lever
 
 ```text
-Button_Secret_01.OnActivate -> Door_Secret_01.Open
+Lever_01.OnActivate -> Door_Stone_01.Open
+Lever_01.OnDeactivate -> Door_Stone_01.Close
 ```
 
-### Levier vers téléporteur
+### PressurePlate
 
 ```text
-Lever_01.OnToggle -> Teleporter_Rune_01.Toggle
+PressurePlate_01.OnActivate -> Door_Stone_01.Open
+PressurePlate_01.OnDeactivate -> Door_Stone_01.Close
 ```
 
-### Support de torche vers porte
+Le connector `OnDeactivate -> Close` est à ajouter uniquement si l'on veut refermer la porte quand le joueur ou l'objet quitte la plaque.
+
+### Receptacle
 
 ```text
-Receptacle_TorchHolder_01.OnInsertItem -> Door_Stone_01.Open
-Receptacle_TorchHolder_01.OnRemoveItem -> Door_Stone_01.Close
+Receptacle_TorchHolder_01.OnRemoveItem -> Door_Stone_01.Open
+Receptacle_TorchHolder_01.OnInsertItem -> Door_Stone_01.Close
 ```
 
 ### Fente à pièce vers porte secrète
@@ -180,6 +200,8 @@ Timer_Default_01.OnTimer -> Door_Stone_01.Close
 Readable_WallInscription_01.OnUse -> Message_01.ShowText
 ```
 
+Note d'état : `WallInscription` reste readable et inspectable, mais elle n'est pas une source de connector gameplay dans le formulaire CONNECTORS actuel.
+
 ---
 
 ## Règles runtime
@@ -191,6 +213,8 @@ Readable_WallInscription_01.OnUse -> Message_01.ShowText
 5. Les délais sont gérés par le système central.
 6. Les liens `bOneShot` sont désactivés après leur première exécution.
 7. Les objets cibles ignorent les commandes qu’ils ne supportent pas, mais doivent produire un log de debug utile.
+8. Un lien s'exécute uniquement pour son `SourceEvent` exact.
+9. Le runtime ne doit pas déduire automatiquement une commande inverse sur désactivation.
 
 ---
 
@@ -365,7 +389,7 @@ Outgoing Links
 Incoming Links
 ```
 
-Création d’un lien :
+Création d’un connector :
 
 ```text
 Source Object: Button_Normal_01
@@ -375,6 +399,71 @@ Target Command: ToggleOpen
 Delay: 0.0
 One Shot: false
 ```
+
+### Filtrage Source Object
+
+Le dropdown `Source Object` doit afficher uniquement les objets capables d'émettre des événements de gameplay.
+
+Sources actuellement autorisées :
+
+```text
+Button
+Lever
+PressurePlate
+Trigger
+Receptacle
+```
+
+Sources exclues :
+
+```text
+WallInscription
+readable-only
+decorations
+items simples
+objets purement visuels
+```
+
+Règle : `Readable` ne signifie pas `Event Source`.
+
+### Filtrage Target Object
+
+Le dropdown `Target Object` doit afficher uniquement les objets capables de recevoir une commande significative.
+
+Targets actuellement autorisées :
+
+```text
+Door
+Secret Door
+```
+
+Targets futures possibles :
+
+```text
+Teleporter
+Light
+ItemSpawner
+MonsterSpawner
+LogicRelay
+```
+
+Targets actuellement exclues :
+
+```text
+Button
+Lever
+PressurePlate
+Receptacle
+WallInscription
+Decoration
+Item
+ItemSpawn
+MonsterSpawn
+```
+
+`ItemSpawn` et `MonsterSpawn` restent exclus tant que leur comportement de spawn commandé est TODO runtime.
+
+Règle : `Interactable` ne signifie pas `Command Target`.
 
 ---
 

@@ -550,25 +550,88 @@ Connectors
 
 ### Création d’un connector
 
-Remplacer `Select Target` par un flux clair :
+Le header `CONNECTORS` doit proposer un petit bouton `+`.
+
+Ce bouton ouvre ou ferme un formulaire inline :
 
 ```text
-[+ Add Connector]
+Source Object: [filtered dropdown]
+Event:         [context dropdown]
+Target Object: [filtered dropdown]
+Command:       [context dropdown]
 
-1. Choose Event
-2. Pick Target in Viewport
-3. Choose Command
-4. Create Connector
+[Create] [Cancel]
 ```
 
-L’éditeur doit filtrer autant que possible :
+Le formulaire remplace l'ancien workflow :
 
-- les événements disponibles selon l’objet source ;
-- les commandes disponibles selon l’objet cible.
+```text
+New Connector Event
+Link
+```
+
+Ces contrôles ne doivent plus apparaître.
+
+Le compteur résumé `Outgoing N Incoming M` sous le titre `CONNECTORS` ne doit plus apparaître non plus. Les groupes `Outgoing` et `Incoming` restent la source de vérité visuelle.
+
+L’éditeur doit filtrer les choix :
+
+- `Source Object` affiche uniquement les objets capables d'émettre des événements de gameplay ;
+- `Event` affiche uniquement les événements pertinents pour la source sélectionnée ;
+- `Target Object` affiche uniquement les objets capables de recevoir une commande significative ;
+- `Command` affiche uniquement les commandes pertinentes pour la cible sélectionnée.
+
+Sources actuellement attendues :
+
+```text
+Button
+Lever
+PressurePlate
+Trigger
+Receptacle
+```
+
+Targets actuellement attendues :
+
+```text
+Door
+Secret Door
+```
+
+Objets exclus des sources ou des targets selon leur rôle actuel :
+
+```text
+WallInscription
+readable-only
+decorations
+items simples
+objets purement visuels
+Button / Lever / PressurePlate / Receptacle comme targets
+ItemSpawn / MonsterSpawn comme targets tant que le spawn commandé reste TODO runtime
+```
+
+Règles de lecture :
+
+- `Readable` ne signifie pas `Event Source` ;
+- `Interactable` ne signifie pas `Command Target`.
 
 Ce filtrage est uniquement UI.
 
 Il ne modifie pas les enums.
+
+### Légende couleur
+
+La section `CONNECTORS` doit afficher une légende compacte :
+
+```text
+Cyan = Outgoing
+Purple = Incoming
+Red = Broken
+```
+
+Le rouge signifie uniquement `broken connector` : objet manquant, cible introuvable ou lien invalide.
+
+Le rouge ne doit jamais signifier `Close`, `Item Inserted` ou tout autre événement / commande valide.
 
 ---
 

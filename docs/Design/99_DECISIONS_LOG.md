@@ -332,3 +332,13 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le choix a été fait de préférer `Lever`, `PressurePlate` et `Trigger` aux formes longues tant qu’il n’existe pas plusieurs variantes.
 - Aucun changement C++ ou runtime n’a été nécessaire.
 
+## 2026-05-21 — CONNECTORS UI Filtering and Explicit Event Semantics
+
+- Le panneau CONNECTORS utilise désormais un formulaire `Source / Event / Target / Command`.
+- Les sources sont filtrées pour n’afficher que les objets capables d’émettre des événements.
+- Les targets sont filtrées pour n’afficher que les objets capables de recevoir des commandes.
+- Les readable-only, décorations et objets purement visuels sont exclus des sources.
+- Les boutons, leviers, plaques, réceptacles et inscriptions sont exclus des targets pour l’instant.
+- `ItemSpawn` et `MonsterSpawn` sont exclus temporairement des targets tant que le spawn commandé reste TODO runtime.
+- Le rouge est réservé aux connecteurs cassés.
+- Décision de design : un connecteur doit s’exécuter uniquement pour son événement explicite ; aucune inversion implicite ne doit être déduite par le runtime.
