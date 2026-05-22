@@ -343,9 +343,6 @@ public:
 
     const UGridObjectArchetypeAsset* FindObjectArchetypeById (FName ArchetypeId) const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Grid Editor|Objects")
-    bool RotateSelectedObjectYawStep ();
-
     bool SetSelectedObjectOrientation (EGridEdge Orientation);
 
 protected:

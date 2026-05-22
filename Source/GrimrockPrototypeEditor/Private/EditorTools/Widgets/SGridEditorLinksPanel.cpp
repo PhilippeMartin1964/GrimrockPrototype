@@ -60,8 +60,11 @@ namespace
             case EGridLevelObjectType::Door:
                 return Archetype && Archetype->bIsInteractable;
 
-            case EGridLevelObjectType::ItemSpawn:
             case EGridLevelObjectType::Item:
+            case EGridLevelObjectType::ItemSpawn:
+            case EGridLevelObjectType::MonsterSpawn:
+                return false;
+
             case EGridLevelObjectType::Teleporter:
                 return Archetype && Archetype->bIsInteractable;
 
@@ -109,12 +112,9 @@ namespace
                 Events = {EGridObjectEvent::Entered, EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
                 break;
 
-            case EGridLevelObjectType::ItemSpawn:
             case EGridLevelObjectType::Item:
-                if (Archetype && Archetype->bIsInteractable)
-                {
-                    Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
-                }
+            case EGridLevelObjectType::ItemSpawn:
+            case EGridLevelObjectType::MonsterSpawn:
                 break;
 
             case EGridLevelObjectType::Decoration:
@@ -245,11 +245,39 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
             .Text (FText::FromString (TEXT ("No selected object.")));
     }
 
+    const UGridObjectArchetypeAsset* SelectedArchetype = CurrentEditorActor->FindObjectArchetypeById (SelectedObject->ArchetypeId);
+    const bool bSelectedObjectSupportsConnectors =
+        CanObjectEmitEvents (*SelectedObject, SelectedArchetype) ||
+        CanObjectReceiveCommands (*SelectedObject, SelectedArchetype);
+
+    if (!bSelectedObjectSupportsConnectors)
+    {
+        bAddConnectorVisible = false;
+    }
+
+    if (!bSelectedObjectSupportsConnectors)
+    {
+        return SNew (SVerticalBox)
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+            [
+                BuildConnectorsHeader (false)
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                SNew (STextBlock)
+                    .Text (FText::FromString (TEXT ("This object has no connector behavior.")))
+                    .AutoWrapText (true)
+                    .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+            ];
+    }
+
     return SNew (SVerticalBox)
 
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
         [
-            BuildConnectorsHeader ()
+            BuildConnectorsHeader (true)
         ]
 
         + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, bAddConnectorVisible ? 8.f : 0.f)
@@ -311,7 +339,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
         ];
 }
 
-TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorsHeader ()
+TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorsHeader (bool bAllowAddConnector)
 {
     return SNew (SHorizontalBox)
 
@@ -326,9 +354,11 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildConnectorsHeader ()
         .AutoWidth ()
         .VAlign (VAlign_Center)
         [
-            GridEditorWidgetHelpers::BuildGridActionButton (
-                FText::FromString (TEXT ("+")),
-                FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnToggleAddConnectorClicked))
+            bAllowAddConnector
+                ? GridEditorWidgetHelpers::BuildGridActionButton (
+                    FText::FromString (TEXT ("+")),
+                    FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnToggleAddConnectorClicked))
+                : SNullWidget::NullWidget
         ];
 }
 

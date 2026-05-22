@@ -217,43 +217,6 @@ const UGridObjectArchetypeAsset* AGridLevelEditorActor::FindObjectArchetypeById 
     return nullptr;
 }
 
-bool AGridLevelEditorActor::RotateSelectedObjectYawStep ()
-{
-    if (!LevelAsset || !LastSelectedObjectId.IsValid ())
-    {
-        return false;
-    }
-    FGridLevelObjectData* SelectedObject = nullptr;
-    for (FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.ObjectId == LastSelectedObjectId)
-        {
-            SelectedObject = &ObjectData;
-            break;
-        }
-    }
-    if (!SelectedObject)
-    {
-        return false;
-    }
-    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (SelectedObject->ArchetypeId);
-    if (!Archetype)
-    {
-        return false;
-    }
-    const float Step = Archetype->RotationStepYaw > 0.f ? Archetype->RotationStepYaw : -90.f;
-    Modify ();
-    LevelAsset->Modify ();
-    SelectedObject->LocalYaw = FMath::Fmod (SelectedObject->LocalYaw + Step, 360.f);
-
-    if (SelectedObject->LocalYaw < 0.f)
-    {
-        SelectedObject->LocalYaw += 360.f;
-    }
-	RebuildPreview ();
-    return true;
-}
-
 bool AGridLevelEditorActor::SetSelectedObjectOrientation (EGridEdge Orientation)
 {
     if (Orientation == EGridEdge::None || !LevelAsset || !LastSelectedObjectId.IsValid ())

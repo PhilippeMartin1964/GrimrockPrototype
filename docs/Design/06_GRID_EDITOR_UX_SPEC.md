@@ -1014,6 +1014,10 @@ The duplicated `Connectors` section is removed from `Selected Object`. Connector
 
 The `Rotate 90 deg` action is replaced by a `North / East / South / West` orientation widget. For edge-placed objects it changes the placement edge. For center/floor objects it changes the facing yaw.
 
+The orientation widget is shown only for orientable objects, currently archetypes using `PlacementKind = Edge` or `PlacementKind = Wall`. Floor, center, ceiling, trigger, pressure plate, floor decoration and non-edge item archetypes do not show it.
+
+The `CONNECTORS` panel hides the `+` action for selected objects that can neither emit events nor receive commands. Ground items such as `Item_Torch` are placeable, physical and pickupable, but they are not connector sources or connector targets.
+
 `Advanced / Debug` is primarily read-only: `ObjectId`, `ArchetypeId`, and `Tag` are read-only, while `Notes` remains editable.
 
 Receptacles use safe item selectors:

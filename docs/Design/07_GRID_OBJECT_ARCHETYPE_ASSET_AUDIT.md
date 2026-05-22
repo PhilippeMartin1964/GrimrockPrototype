@@ -63,7 +63,7 @@ Les recommandations utilisent le vocabulaire suivant :
 | `WallInset` | Placement\|Wall | `float` | Preview placement, centre de connecteur pour wall/edge, validation. | Transform runtime wall-mounted. | Wall/edge objects : buttons, levers, wall decor, receptacles, lights. | Non. | Essential | Pertinent seulement si `PlacementKind` est Wall ou Edge. |
 | `LocalOffsetAlongWall` | Placement\|Wall | `float` | Preview placement, centre connecteur, validation. | Transform runtime wall-mounted. | Wall/edge objects. | Non. | Essential | Offset latéral le long du mur. |
 | `LocalOffsetVertical` | Placement\|Wall | `float` | Preview placement, centre connecteur, validation. | Transform runtime wall-mounted. | Wall/edge objects. | Non. | Essential | Ajouté à `PlacementZOffset`. |
-| `RotationStepYaw` | Placement\|Rotation | `float` | Le rotate selected utilise le step d'archétype si disponible. | La transform runtime utilise `LocalYaw` placé, pas ce champ directement. | Objets center/floor/ceiling ou supportant le yaw local. | Non; influence une action éditeur qui modifie `LocalYaw`. | Advanced | Paramètre d'outil/authoring, pas donnée gameplay directe. |
+| `RotationStepYaw` | Placement\|Rotation | `float` | Supprime. | Remplace par le widget d'orientation `North / East / South / West` basé sur `Edge / Facing`. | Aucun. | Non. | Supprime | L'orientation ne doit plus dépendre d'un step configurable par archetype. |
 
 ### Interaction
 
@@ -168,7 +168,7 @@ Ces helpers sont importants parce qu'ils encodent l'intention de design actuelle
 - `WallInset`
 - `LocalOffsetAlongWall`
 - `LocalOffsetVertical`
-- `RotationStepYaw`
+- `RotationStepYaw` (supprime)
 
 ### Interaction
 
@@ -258,7 +258,7 @@ Le champ est validé et affiché, mais le setup light générique applique actue
 Ces champs devraient généralement être édités uniquement dans les DataAssets :
 
 - Identité et classification : `ArchetypeId`, `DisplayName`, `SupportedType`, `Description`, `Category`, `ObjectCategory`
-- Règles et offsets de placement : `PlacementKind`, `bCanShareCell`, `bCanShareAnchor`, `bBlocksMovement`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical`, `RotationStepYaw`
+- Règles et offsets de placement : `PlacementKind`, `bCanShareCell`, `bCanShareAnchor`, `bBlocksMovement`, `PlacementZOffset`, `WallInset`, `LocalOffsetAlongWall`, `LocalOffsetVertical`
 - Capacités d'interaction : `bIsInteractable`, `bIsReadable`, `bShowReadableOnlyOnce`
 - Defaults lumière : `bIsLightSource`, `LightColor`, `LightIntensity`, `LightRadius`, `bUseLightFlicker`
 - Visuels : `PreviewMesh`, `PreviewMaterial`, `FixedMesh`, `MovingMesh`, `FixedMaterial`, `MovingMaterial`

@@ -33,7 +33,7 @@ private:
     void RequestRefresh () const;
 
     TSharedRef<SWidget> BuildLinksSection ();
-    TSharedRef<SWidget> BuildConnectorsHeader ();
+    TSharedRef<SWidget> BuildConnectorsHeader (bool bAllowAddConnector);
     TSharedRef<SWidget> BuildConnectorLegend ();
     TSharedRef<SWidget> BuildConnectorLegendItem (const FText& Label, const FSlateColor& Color) const;
     TSharedRef<SWidget> BuildLinkCreationSection ();

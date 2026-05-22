@@ -372,3 +372,13 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le bouton `Rotate 90 deg` est remplace par un widget d'orientation `North / East / South / West`.
 - L'edition des receptacles utilise des listes d'items pour `Accepted Items` et un dropdown `None + Item archetypes` pour `Initial Content`.
 - Les regles avancees de receptacle, comme rejected archetypes et accepted item tags, ne sont pas exposees par defaut.
+
+---
+
+## 2026-05-22 - Orientation et connecteurs non logiques
+
+- `RotationStepYaw` a ete supprime.
+- L'orientation est desormais pilotee uniquement par `Edge / Facing` via le widget `North / East / South / West`.
+- Le widget d'orientation n'apparait que pour les objets orientables.
+- Le panneau `CONNECTORS` n'affiche plus le bouton `+` pour les objets qui ne peuvent ni emettre d'evenements ni recevoir de commandes.
+- Les items au sol comme `Item_Torch` sont physiques et recuperables, mais ne participent pas au systeme de connecteurs.

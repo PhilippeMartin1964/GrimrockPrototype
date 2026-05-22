@@ -184,6 +184,13 @@ namespace
                 ? FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))
                 : FSlateColor::UseForeground ());
     }
+
+    bool IsObjectOrientationEditable (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
+    {
+        return Archetype &&
+            (Archetype->PlacementKind == EGridObjectPlacementKind::Edge ||
+                Archetype->PlacementKind == EGridObjectPlacementKind::Wall);
+    }
 }
 
 void SGridEditorObjectInspectorPanel::Construct (const FArguments& InArgs)
@@ -248,6 +255,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
             BuildSelectedObjectCard (*Obj)
         ];
 
+    const UGridObjectArchetypeAsset* SelectedArchetype = CurrentEditorActor->FindObjectArchetypeById (Obj->ArchetypeId);
+    const bool bShowOrientationWidget = IsObjectOrientationEditable (*Obj, SelectedArchetype);
+
     Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
         [
             SNew (SHorizontalBox)
@@ -260,7 +270,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
                 ]
                 + SHorizontalBox::Slot ().AutoWidth ().Padding (4.f, 0.f, 0.f, 0.f)
                 [
-                    BuildOrientationWidget (*Obj)
+                    bShowOrientationWidget
+                        ? BuildOrientationWidget (*Obj)
+                        : SNullWidget::NullWidget
                 ]
         ];
 
