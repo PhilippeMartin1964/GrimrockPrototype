@@ -129,7 +129,7 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
                 {
                     ButtonActor->TriggerPress ();
                 }
-                return ExecuteLinksFromObject (ObjectData.ObjectId, false);
+                return ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::Activated, false, false);
             }
         case EGridLevelObjectType::Lever:
             {
@@ -146,7 +146,11 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
                 {
                     LeverActor->SetLeverState (bNewActive);
                 }
-                return ExecuteLinksFromObject (ObjectData.ObjectId, bWasActive);
+                return ExecuteLinksFromObjectForEvent (
+                    ObjectData.ObjectId,
+                    bNewActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated,
+                    false,
+                    false);
             }
         case EGridLevelObjectType::Receptacle:
             {
@@ -180,7 +184,11 @@ bool UGridActivationComponent::ActivatePressurePlateAtCell (int32 X, int32 Y)
         {
             PlateActor->SetPressed (true);
         }
-        bAnyActivated |= ExecuteLinksFromObject (PlateData->ObjectId, false);
+        bAnyActivated |= ExecuteLinksFromObjectForEvent (
+            PlateData->ObjectId,
+            EGridObjectEvent::Activated,
+            false,
+            false);
     }
     return bAnyActivated;
 }
@@ -203,7 +211,11 @@ bool UGridActivationComponent::DeactivatePressurePlateAtCell (int32 X, int32 Y)
         {
             PlateActor->SetPressed (false);
         }
-        bAnyDeactivated |= ExecuteLinksFromObject (PlateData->ObjectId, true);
+        bAnyDeactivated |= ExecuteLinksFromObjectForEvent (
+            PlateData->ObjectId,
+            EGridObjectEvent::Deactivated,
+            false,
+            false);
     }
     return bAnyDeactivated;
 }
@@ -601,9 +613,6 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         ? EGridObjectEvent::Activated
         : EGridObjectEvent::Deactivated;
 
-    bool bInvertLinks = Behavior.Activation.bInvertLinks;
-    bool bAllowActivatedFallback = !bEntering;
-
     switch (Behavior.Activation.TriggerMode)
     {
         case EGridObjectTriggerMode::Hold:
@@ -634,13 +643,10 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
             {
                 ActiveObjectIds.Add (TriggerData.ObjectId);
                 SourceEvent = EGridObjectEvent::Activated;
-                bInvertLinks = Behavior.Activation.bInvertLinks;
             } else
             {
                 ActiveObjectIds.Remove (TriggerData.ObjectId);
                 SourceEvent = EGridObjectEvent::Deactivated;
-                bInvertLinks = !Behavior.Activation.bInvertLinks;
-                bAllowActivatedFallback = true;
             }
             break;
         }
@@ -659,18 +665,11 @@ bool UGridActivationComponent::ProcessTriggerEvent (const FGridLevelObjectData& 
         *GridTriggerModeToString (Behavior.Activation.TriggerMode),
         *GridObjectEventToString (SourceEvent));
 
-    if (!bEntering &&
-        SourceEvent == EGridObjectEvent::Deactivated &&
-        CountLinksFromObjectForEvent (TriggerData.ObjectId, SourceEvent) == 0)
-    {
-        bInvertLinks = !Behavior.Activation.bInvertLinks;
-    }
-
     const bool bApplied = ExecuteLinksFromObjectForEvent (
         TriggerData.ObjectId,
         SourceEvent,
-        bInvertLinks,
-        bAllowActivatedFallback);
+        false,
+        false);
 
     if (bOneShot)
     {
