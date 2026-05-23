@@ -6,6 +6,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridReceptacleActor.h"
 
 AGridItemActor::AGridItemActor ()
 {
@@ -107,10 +108,15 @@ void AGridItemActor::SetRuntimeCell (int32 InCellX, int32 InCellY)
 
 bool AGridItemActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    return InstigatorPawn &&
-        HitComponent &&
-        HitComponent == MeshComponent &&
-        !ArchetypeId.IsNone ();
+    if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent || ArchetypeId.IsNone ())
+    {
+        return false;
+    }
+    if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
+    {
+        return OwnerReceptacle->CanInteract_Implementation (const_cast<APawn*>(InstigatorPawn), MeshComponent);
+    }
+    return true;
 }
 
 void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -119,13 +125,16 @@ void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveC
     {
         return;
     }
-
     AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
     if (!PartyPawn)
     {
         return;
     }
-
+    if (AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
+    {
+        OwnerReceptacle->Interact_Implementation (PartyPawn, MeshComponent);
+        return;
+    }
     AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
     if (!RuntimeActor)
     {
@@ -139,7 +148,6 @@ void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveC
             }
         }
     }
-
     if (RuntimeActor)
     {
         RuntimeActor->TryPickupItemActor (this, PartyPawn);
@@ -148,20 +156,26 @@ void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveC
 
 EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent == MeshComponent && !ArchetypeId.IsNone ())
+    if (HitComponent != MeshComponent || ArchetypeId.IsNone ())
     {
-        return EGridInteractionCursor::Take;
+        return EGridInteractionCursor::Default;
     }
-
-    return EGridInteractionCursor::Default;
+    if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
+    {
+        return OwnerReceptacle->GetInteractionCursor_Implementation (MeshComponent);
+    }
+    return EGridInteractionCursor::Take;
 }
 
 FText AGridItemActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent == MeshComponent && !ArchetypeId.IsNone ())
+    if (HitComponent != MeshComponent || ArchetypeId.IsNone ())
     {
-        return FText::FromString (TEXT ("Take"));
+        return FText::GetEmpty ();
     }
-
-    return FText::GetEmpty ();
+    if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
+    {
+        return OwnerReceptacle->GetInteractionText_Implementation (MeshComponent);
+    }
+    return FText::FromString (TEXT ("Take"));
 }
