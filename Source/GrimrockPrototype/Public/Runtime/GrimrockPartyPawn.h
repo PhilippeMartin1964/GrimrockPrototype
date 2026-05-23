@@ -91,6 +91,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input")
     TObjectPtr<UInputAction> UseAction;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input|Legacy")
+    bool bEnableLegacyKeyboardUseAction = false;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer")
     bool bEnableInputBuffer = true;
 

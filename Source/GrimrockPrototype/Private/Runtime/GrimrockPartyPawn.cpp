@@ -156,7 +156,7 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
             EIC->BindAction (StrafeRightAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleStrafeRight);
         }
         
-        if (UseAction)
+        if (bEnableLegacyKeyboardUseAction && UseAction)
         {
             EIC->BindAction (UseAction, ETriggerEvent::Started, this, &AGrimrockPartyPawn::HandleUse);
         }
