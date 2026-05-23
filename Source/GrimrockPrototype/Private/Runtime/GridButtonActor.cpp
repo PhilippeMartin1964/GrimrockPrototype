@@ -1,7 +1,7 @@
 #include "Runtime/GridButtonActor.h"
 
 #include "Components/StaticMeshComponent.h"
-#include "EngineUtils.h"
+#include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -152,26 +152,13 @@ void AGridButtonActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiv
         return;
     }
 
-    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
     if (!PartyPawn)
     {
         return;
     }
 
-    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
-    if (!RuntimeActor)
-    {
-        UWorld* World = GetWorld ();
-        if (World)
-        {
-            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
-            {
-                RuntimeActor = *It;
-                break;
-            }
-        }
-    }
-
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
     if (RuntimeActor)
     {
         RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);

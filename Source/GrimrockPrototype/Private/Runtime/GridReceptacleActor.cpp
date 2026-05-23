@@ -3,7 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridObjectArchetypeAsset.h"
-#include "EngineUtils.h"
+#include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -70,7 +70,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return false;
     }
 
-    const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
     if (!PartyPawn)
     {
         return false;
@@ -83,12 +83,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     }
 
     TArray<FName> HeldItemTags;
-    const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ());
-    if (!RuntimeActor)
-    {
-        RuntimeActor = PartyPawn->LevelRuntimeActor;
-    }
-
+    const AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
     if (RuntimeActor)
     {
         if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (HeldItemId))
@@ -107,30 +102,13 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
         return;
     }
 
-    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
     if (!PartyPawn)
     {
         return;
     }
 
-    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
-    if (!RuntimeActor)
-    {
-        RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ());
-    }
-    if (!RuntimeActor)
-    {
-        UWorld* World = GetWorld ();
-        if (World)
-        {
-            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
-            {
-                RuntimeActor = *It;
-                break;
-            }
-        }
-    }
-
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
     if (RuntimeActor)
     {
         RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);

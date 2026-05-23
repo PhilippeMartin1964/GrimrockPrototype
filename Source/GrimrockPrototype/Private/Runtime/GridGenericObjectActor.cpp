@@ -3,7 +3,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "EngineUtils.h"
+#include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -133,26 +133,13 @@ void AGridGenericObjectActor::Interact_Implementation (APawn* InstigatorPawn, UP
         return;
     }
 
-    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
     if (!PartyPawn)
     {
         return;
     }
 
-    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
-    if (!RuntimeActor)
-    {
-        UWorld* World = GetWorld ();
-        if (World)
-        {
-            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
-            {
-                RuntimeActor = *It;
-                break;
-            }
-        }
-    }
-
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
     if (RuntimeActor)
     {
         RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
