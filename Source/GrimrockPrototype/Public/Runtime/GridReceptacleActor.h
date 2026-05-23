@@ -118,6 +118,8 @@ protected:
     void ExecuteRemovalLinks ();
     void AttachContainedItemActor ();
     void ClearContainedItemActor ();
+    void UpdateContainedItemInteractionCollision ();
+    bool IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const;
     FString GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const;
 
 private:

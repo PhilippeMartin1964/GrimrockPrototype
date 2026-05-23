@@ -31,6 +31,9 @@ AGridReceptacleActor::AGridReceptacleActor ()
     ContainedItemMesh = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("ContainedItemMesh"));
     ContainedItemMesh->SetupAttachment (ItemSocketRoot);
     ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    ContainedItemMesh->SetCollisionResponseToAllChannels (ECR_Ignore);
+    ContainedItemMesh->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+    ContainedItemMesh->SetGenerateOverlapEvents (false);
     ContainedItemMesh->SetVisibility (false, true);
 }
 
@@ -50,6 +53,11 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     if (!InstigatorPawn || !HitComponent)
     {
         return false;
+    }
+
+    if (IsContainedItemHitComponent (HitComponent))
+    {
+        return HasItem () && bCanRemoveItem;
     }
 
     if (HitComponent != MeshComponent)
@@ -131,6 +139,11 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
 
 EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
+    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
+    {
+        return EGridInteractionCursor::Take;
+    }
+
     if (HitComponent == MeshComponent && !HasItem () && bCanInsertItem)
     {
         return EGridInteractionCursor::Use;
@@ -141,6 +154,11 @@ EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation
 
 FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
 {
+    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
+    {
+        return FText::FromString (TEXT ("Take"));
+    }
+
     if (HitComponent == MeshComponent && !HasItem () && bCanInsertItem)
     {
         return FText::FromString (TEXT ("Place item"));
@@ -363,6 +381,7 @@ void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UM
     RuntimeContainedItemMaterial = InMaterial;
     if (!ContainedItemMesh)
     {
+        UpdateContainedItemInteractionCollision ();
         return;
     }
     ContainedItemMesh->SetStaticMesh (RuntimeContainedItemMesh);
@@ -374,6 +393,7 @@ void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UM
     ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
     ContainedItemMesh->SetHiddenInGame (!HasItem (), true);
     ContainedItemMesh->SetVisibility (HasItem (), true);
+    UpdateContainedItemInteractionCollision ();
 }
 
 void AGridReceptacleActor::SetContainedItem (FName NewItemId)
@@ -383,6 +403,7 @@ void AGridReceptacleActor::SetContainedItem (FName NewItemId)
     const bool bVisible = HasItem ();
     if (!ContainedItemMesh)
     {
+        UpdateContainedItemInteractionCollision ();
         return;
     }
     if (bVisible && RuntimeContainedItemMesh)
@@ -397,6 +418,7 @@ void AGridReceptacleActor::SetContainedItem (FName NewItemId)
     ContainedItemMesh->SetHiddenInGame (!bVisible, true);
     ContainedItemMesh->SetVisibility (bVisible, true);
     ContainedItemMesh->MarkRenderStateDirty ();
+    UpdateContainedItemInteractionCollision ();
 }
 
 void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemActor)
@@ -408,12 +430,14 @@ void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemAct
         SetContainedItem (ContainedItemActor->ArchetypeId);
         AttachContainedItemActor ();
     }
+    UpdateContainedItemInteractionCollision ();
 }
 
 void AGridReceptacleActor::AttachContainedItemActor ()
 {
     if (!ContainedItemActor)
     {
+        UpdateContainedItemInteractionCollision ();
         return;
     }
 
@@ -428,6 +452,7 @@ void AGridReceptacleActor::AttachContainedItemActor ()
         ContainedItemMesh->SetHiddenInGame (true, true);
         ContainedItemMesh->SetVisibility (false, true);
     }
+    UpdateContainedItemInteractionCollision ();
 }
 
 void AGridReceptacleActor::ClearContainedItemActor ()
@@ -435,6 +460,7 @@ void AGridReceptacleActor::ClearContainedItemActor ()
     if (!ContainedItemActor)
     {
         ContainedItemTags.Reset ();
+        UpdateContainedItemInteractionCollision ();
         return;
     }
 
@@ -442,6 +468,44 @@ void AGridReceptacleActor::ClearContainedItemActor ()
     ContainedItemActor->Destroy ();
     ContainedItemActor = nullptr;
     ContainedItemTags.Reset ();
+    UpdateContainedItemInteractionCollision ();
+}
+
+void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
+{
+    const bool bCanTake = HasItem () && bCanRemoveItem;
+
+    if (ContainedItemMesh)
+    {
+        const bool bEnableContainedMeshTrace = bCanTake && ContainedItemMesh->IsVisible ();
+        ContainedItemMesh->SetCollisionEnabled (bEnableContainedMeshTrace ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+        ContainedItemMesh->SetCollisionResponseToAllChannels (ECR_Ignore);
+        ContainedItemMesh->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        ContainedItemMesh->SetGenerateOverlapEvents (false);
+    }
+
+    if (ContainedItemActor && ContainedItemActor->MeshComponent)
+    {
+        ContainedItemActor->MeshComponent->SetCollisionEnabled (bCanTake ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+        ContainedItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+        ContainedItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        ContainedItemActor->MeshComponent->SetGenerateOverlapEvents (false);
+    }
+}
+
+bool AGridReceptacleActor::IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const
+{
+    if (!HitComponent)
+    {
+        return false;
+    }
+
+    if (HitComponent == ContainedItemMesh)
+    {
+        return true;
+    }
+
+    return ContainedItemActor && HitComponent == ContainedItemActor->MeshComponent;
 }
 
 FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
