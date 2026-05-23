@@ -1,9 +1,28 @@
 #include "Runtime/GridButtonActor.h"
 
+#include "Components/StaticMeshComponent.h"
+#include "EngineUtils.h"
+#include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
+
 AGridButtonActor::AGridButtonActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
     SetActorTickEnabled (false);
+
+    if (FixedMeshComponent)
+    {
+        FixedMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+        FixedMeshComponent->SetGenerateOverlapEvents (false);
+    }
+
+    if (MovingMeshComponent)
+    {
+        MovingMeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+        MovingMeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+        MovingMeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        MovingMeshComponent->SetGenerateOverlapEvents (false);
+    }
 }
 
 void AGridButtonActor::Tick (float DeltaSeconds)
@@ -109,4 +128,72 @@ void AGridButtonActor::InitializeGridObject (const FGridLevelObjectData& ObjectD
     const FTransform& WorldTransform)
 {
     InitializeButton (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
+}
+
+bool AGridButtonActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+{
+    if (!InstigatorPawn || !HitComponent)
+    {
+        return false;
+    }
+
+    if (HitComponent != MovingMeshComponent)
+    {
+        return false;
+    }
+
+    return AnimState == EButtonAnimState::Idle;
+}
+
+void AGridButtonActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+{
+    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
+    {
+        return;
+    }
+
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return;
+    }
+
+    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
+    if (!RuntimeActor)
+    {
+        UWorld* World = GetWorld ();
+        if (World)
+        {
+            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+            {
+                RuntimeActor = *It;
+                break;
+            }
+        }
+    }
+
+    if (RuntimeActor)
+    {
+        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
+    }
+}
+
+EGridInteractionCursor AGridButtonActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MovingMeshComponent && AnimState == EButtonAnimState::Idle)
+    {
+        return EGridInteractionCursor::Push;
+    }
+
+    return EGridInteractionCursor::Default;
+}
+
+FText AGridButtonActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MovingMeshComponent)
+    {
+        return FText::FromString (TEXT ("Push button"));
+    }
+
+    return FText::GetEmpty ();
 }

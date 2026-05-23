@@ -17,119 +17,119 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{577136
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnrealBuildTool.Plugins", "UnrealBuildTool.Plugins", "{7B5CFB44-F0FB-31DF-AE62-C3C096A29A7B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GrimrockPrototype", "Intermediate\ProjectFiles\GrimrockPrototype.vcxproj", "{94716BE6-692C-390E-9B7C-0C15805846CC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GrimrockPrototype", "Intermediate\ProjectFiles\GrimrockPrototype.vcxproj", "{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}"
 	ProjectSection(ProjectDependencies) = postProject
 		{57517259-1348-39A8-BB26-23C8759BF69E} = {57517259-1348-39A8-BB26-23C8759BF69E}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UE5", "Intermediate\ProjectFiles\UE5.vcxproj", "{7A1A443C-4B0E-386A-9492-2B50E3501DEB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UE5", "Intermediate\ProjectFiles\UE5.vcxproj", "{8E073752-48A6-3FB6-98F2-41704BBD3754}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnrealBuildTool", "..\..\UE_5.5\Engine\Source\Programs\UnrealBuildTool\UnrealBuildTool.csproj", "{57517259-1348-39A8-BB26-23C8759BF69E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnrealBuildTool", "D:\UE_5.5\Engine\Source\Programs\UnrealBuildTool\UnrealBuildTool.csproj", "{57517259-1348-39A8-BB26-23C8759BF69E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomationTool", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationTool.csproj", "{257D4124-4DDE-3E56-8025-39EF75DF05BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomationTool", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationTool.csproj", "{257D4124-4DDE-3E56-8025-39EF75DF05BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Android.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Android\Android.Automation.csproj", "{9F1E574D-F6AC-3AC2-B658-6BEC2F87937C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Android.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Android\Android.Automation.csproj", "{9F1E574D-F6AC-3AC2-B658-6BEC2F87937C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Apple.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Apple\Apple.Automation.csproj", "{19086BAA-1A3A-3744-B25F-BDD53EE9C9C2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Apple.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Apple\Apple.Automation.csproj", "{19086BAA-1A3A-3744-B25F-BDD53EE9C9C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomationUtils.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationUtils\AutomationUtils.Automation.csproj", "{DE3E86F5-1FD9-377D-86C3-9E5A3D14CE9A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomationUtils.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationUtils\AutomationUtils.Automation.csproj", "{DE3E86F5-1FD9-377D-86C3-9E5A3D14CE9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildGraph.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\BuildGraph\BuildGraph.Automation.csproj", "{DDCF0F53-686C-3BE3-9D0A-03C3675F965B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildGraph.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\BuildGraph\BuildGraph.Automation.csproj", "{DDCF0F53-686C-3BE3-9D0A-03C3675F965B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookedEditor.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\CookedEditor\CookedEditor.Automation.csproj", "{18618FBB-2FF0-36CD-8453-A737A3082312}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CookedEditor.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\CookedEditor\CookedEditor.Automation.csproj", "{18618FBB-2FF0-36CD-8453-A737A3082312}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrowdinLocalization.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\CrowdinLocalization\CrowdinLocalization.Automation.csproj", "{7945E373-5C35-38E1-8558-F3D1F03403C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrowdinLocalization.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\CrowdinLocalization\CrowdinLocalization.Automation.csproj", "{7945E373-5C35-38E1-8558-F3D1F03403C0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gauntlet.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Gauntlet\Gauntlet.Automation.csproj", "{D9D382F6-BE7E-3495-A8DC-3683563C7BDA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gauntlet.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Gauntlet\Gauntlet.Automation.csproj", "{D9D382F6-BE7E-3495-A8DC-3683563C7BDA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IOS.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\IOS\IOS.Automation.csproj", "{2955A626-BFCA-36D5-B254-7D9BD27F9529}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IOS.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\IOS\IOS.Automation.csproj", "{2955A626-BFCA-36D5-B254-7D9BD27F9529}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Linux.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Linux\Linux.Automation.csproj", "{1C04EE08-E880-3E0A-88F9-7D8149623BD8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Linux.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Linux\Linux.Automation.csproj", "{1C04EE08-E880-3E0A-88F9-7D8149623BD8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveLinkHub.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\LiveLinkHub\LiveLinkHub.Automation.csproj", "{D29FCAA8-819D-308F-9FEA-CD2DE6BE8233}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveLinkHub.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\LiveLinkHub\LiveLinkHub.Automation.csproj", "{D29FCAA8-819D-308F-9FEA-CD2DE6BE8233}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Localization.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Localization\Localization.Automation.csproj", "{EE1FC47E-C289-345B-972B-19383A4E6330}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Localization.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Localization\Localization.Automation.csproj", "{EE1FC47E-C289-345B-972B-19383A4E6330}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LowLevelTests.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\LowLevelTests\LowLevelTests.Automation.csproj", "{DD24A1B9-01A8-3F98-AD44-A6C0A93ABA20}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LowLevelTests.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\LowLevelTests\LowLevelTests.Automation.csproj", "{DD24A1B9-01A8-3F98-AD44-A6C0A93ABA20}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mac.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Mac\Mac.Automation.csproj", "{113076BD-2AB7-35BB-AD67-DCFBF052B080}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mac.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Mac\Mac.Automation.csproj", "{113076BD-2AB7-35BB-AD67-DCFBF052B080}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RunMutableCommandlet.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Mutable\RunMutableCommandlet\RunMutableCommandlet.Automation.csproj", "{6DF1FE00-7C38-34EE-BB84-B1D3D53BAAED}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RunMutableCommandlet.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Mutable\RunMutableCommandlet\RunMutableCommandlet.Automation.csproj", "{6DF1FE00-7C38-34EE-BB84-B1D3D53BAAED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OneSkyLocalization.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\OneSkyLocalization\OneSkyLocalization.Automation.csproj", "{7830BEC8-F8A3-32E4-B270-AE2EFD8F334A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OneSkyLocalization.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\OneSkyLocalization\OneSkyLocalization.Automation.csproj", "{7830BEC8-F8A3-32E4-B270-AE2EFD8F334A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomationScripts.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Scripts\AutomationScripts.Automation.csproj", "{EEE049BE-170E-3129-836F-64F21014009B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomationScripts.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Scripts\AutomationScripts.Automation.csproj", "{EEE049BE-170E-3129-836F-64F21014009B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartlingLocalization.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\SmartlingLocalization\SmartlingLocalization.Automation.csproj", "{65A19804-35AE-3EE2-BAE1-233A2D268B60}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartlingLocalization.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\SmartlingLocalization\SmartlingLocalization.Automation.csproj", "{65A19804-35AE-3EE2-BAE1-233A2D268B60}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamDeck.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\SteamDeck\SteamDeck.Automation.csproj", "{2B8607D3-A0E4-3F14-AE0D-AA7FF8A66F74}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteamDeck.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\SteamDeck\SteamDeck.Automation.csproj", "{2B8607D3-A0E4-3F14-AE0D-AA7FF8A66F74}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TVOS.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\TVOS\TVOS.Automation.csproj", "{C27C89B4-840C-3480-BFF5-35EBA9998581}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TVOS.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\TVOS\TVOS.Automation.csproj", "{C27C89B4-840C-3480-BFF5-35EBA9998581}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Turnkey.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Turnkey\Turnkey.Automation.csproj", "{8DD0E657-2E97-3C56-840B-9AEC1FA81D64}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Turnkey.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Turnkey\Turnkey.Automation.csproj", "{8DD0E657-2E97-3C56-840B-9AEC1FA81D64}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Win.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\Win\Win.Automation.csproj", "{CD92213F-1003-3D24-AEE1-586243C01546}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Win.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\Win\Win.Automation.csproj", "{CD92213F-1003-3D24-AEE1-586243C01546}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XLocLocalization.Automation", "..\..\UE_5.5\Engine\Source\Programs\AutomationTool\XLocLocalization\XLocLocalization.Automation.csproj", "{BAE604C0-6C0A-359D-A6DC-E8D9C9F87AF8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XLocLocalization.Automation", "D:\UE_5.5\Engine\Source\Programs\AutomationTool\XLocLocalization\XLocLocalization.Automation.csproj", "{BAE604C0-6C0A-359D-A6DC-E8D9C9F87AF8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisionOS.Automation", "..\..\UE_5.5\Engine\Platforms\VisionOS\Source\Programs\AutomationTool\VisionOS.Automation.csproj", "{B8622F2C-D506-3FA3-B999-C09B4EB3BDA5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisionOS.Automation", "D:\UE_5.5\Engine\Platforms\VisionOS\Source\Programs\AutomationTool\VisionOS.Automation.csproj", "{B8622F2C-D506-3FA3-B999-C09B4EB3BDA5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptGeneratorUbtPlugin.ubtplugin", "..\..\UE_5.5\Engine\Plugins\ScriptPlugin\Source\ScriptGeneratorUbtPlugin\ScriptGeneratorUbtPlugin.ubtplugin.csproj", "{8EF3A42D-F492-373A-A1FD-1DB7BAF83DA1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptGeneratorUbtPlugin.ubtplugin", "D:\UE_5.5\Engine\Plugins\ScriptPlugin\Source\ScriptGeneratorUbtPlugin\ScriptGeneratorUbtPlugin.ubtplugin.csproj", "{8EF3A42D-F492-373A-A1FD-1DB7BAF83DA1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.AspNet", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.AspNet\EpicGames.AspNet.csproj", "{F33FF9BD-24D6-34B0-91FF-F76ED48D7772}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.AspNet", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.AspNet\EpicGames.AspNet.csproj", "{F33FF9BD-24D6-34B0-91FF-F76ED48D7772}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Build", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Build\EpicGames.Build.csproj", "{E97FEE3B-6F59-3C55-BC69-A642192150F1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Build", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Build\EpicGames.Build.csproj", "{E97FEE3B-6F59-3C55-BC69-A642192150F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.BuildGraph", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.BuildGraph\EpicGames.BuildGraph.csproj", "{B48ED66C-A603-32F8-A62F-B6868A9D70C4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.BuildGraph", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.BuildGraph\EpicGames.BuildGraph.csproj", "{B48ED66C-A603-32F8-A62F-B6868A9D70C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Core", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Core\EpicGames.Core.csproj", "{26E6CACB-EB3F-3F72-9825-724CA4E25B5A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Core", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Core\EpicGames.Core.csproj", "{26E6CACB-EB3F-3F72-9825-724CA4E25B5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Horde", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Horde\EpicGames.Horde.csproj", "{CD0946BF-CF0E-373C-926C-60C711B0D44C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Horde", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Horde\EpicGames.Horde.csproj", "{CD0946BF-CF0E-373C-926C-60C711B0D44C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.IoHash", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.IoHash\EpicGames.IoHash.csproj", "{604755BC-0DA7-35B5-9037-9887A99E7652}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.IoHash", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.IoHash\EpicGames.IoHash.csproj", "{604755BC-0DA7-35B5-9037-9887A99E7652}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Jupiter", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Jupiter\EpicGames.Jupiter.csproj", "{243D2BB4-4E9E-303B-91BC-3100508943D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Jupiter", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Jupiter\EpicGames.Jupiter.csproj", "{243D2BB4-4E9E-303B-91BC-3100508943D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.MongoDB", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MongoDB\EpicGames.MongoDB.csproj", "{CC725910-8ABB-3EAF-907E-66B18C303C2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.MongoDB", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MongoDB\EpicGames.MongoDB.csproj", "{CC725910-8ABB-3EAF-907E-66B18C303C2E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.MsBuild", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MsBuild\EpicGames.MsBuild.csproj", "{7F51C4C1-1234-3534-A0B5-DA55E3C11A37}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.MsBuild", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MsBuild\EpicGames.MsBuild.csproj", "{7F51C4C1-1234-3534-A0B5-DA55E3C11A37}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.OIDC", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.OIDC\EpicGames.OIDC.csproj", "{27CAEA68-BBC2-3A9C-9138-96BEDAAC5055}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.OIDC", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.OIDC\EpicGames.OIDC.csproj", "{27CAEA68-BBC2-3A9C-9138-96BEDAAC5055}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Oodle", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Oodle\EpicGames.Oodle.csproj", "{4A6E391F-83D8-3342-A4AE-BAECD855BC08}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Oodle", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Oodle\EpicGames.Oodle.csproj", "{4A6E391F-83D8-3342-A4AE-BAECD855BC08}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Perforce", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce\EpicGames.Perforce.csproj", "{83D550D3-9B6D-31CA-A7BD-B0099AA07DC0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Perforce", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce\EpicGames.Perforce.csproj", "{83D550D3-9B6D-31CA-A7BD-B0099AA07DC0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Perforce.Fixture", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Fixture\EpicGames.Perforce.Fixture.csproj", "{09A44EE5-952A-3977-868D-1BD3CE3831FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Perforce.Fixture", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Fixture\EpicGames.Perforce.Fixture.csproj", "{09A44EE5-952A-3977-868D-1BD3CE3831FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Perforce.Managed", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Managed\EpicGames.Perforce.Managed.csproj", "{68C36BD1-510C-3767-87C0-5F9B1724459B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Perforce.Managed", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Managed\EpicGames.Perforce.Managed.csproj", "{68C36BD1-510C-3767-87C0-5F9B1724459B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.ProjectStore", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.ProjectStore\EpicGames.ProjectStore.csproj", "{F2A3BBB5-FC55-39F9-9D2D-5955A54771C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.ProjectStore", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.ProjectStore\EpicGames.ProjectStore.csproj", "{F2A3BBB5-FC55-39F9-9D2D-5955A54771C1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Redis", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Redis\EpicGames.Redis.csproj", "{0A4A4582-A118-3C0D-9812-A644BFED889E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Redis", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Redis\EpicGames.Redis.csproj", "{0A4A4582-A118-3C0D-9812-A644BFED889E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Serialization", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Serialization\EpicGames.Serialization.csproj", "{FD10E7D6-6843-3B63-B596-D3F61BBE163E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Serialization", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Serialization\EpicGames.Serialization.csproj", "{FD10E7D6-6843-3B63-B596-D3F61BBE163E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Slack", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Slack\EpicGames.Slack.csproj", "{2889ED21-9201-3363-B7CB-EF9FD96FF90F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Slack", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Slack\EpicGames.Slack.csproj", "{2889ED21-9201-3363-B7CB-EF9FD96FF90F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Tracing", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Tracing\EpicGames.Tracing.csproj", "{D2D479FE-91C2-341C-A367-86A0C290F386}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.Tracing", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Tracing\EpicGames.Tracing.csproj", "{D2D479FE-91C2-341C-A367-86A0C290F386}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.UBA", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UBA\EpicGames.UBA.csproj", "{233D5B11-BF3B-341D-B837-A9F3B64EA040}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.UBA", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UBA\EpicGames.UBA.csproj", "{233D5B11-BF3B-341D-B837-A9F3B64EA040}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.UHT", "..\..\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UHT\EpicGames.UHT.csproj", "{BD6662CC-CB5B-31CB-83BF-EF2634CD84FA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EpicGames.UHT", "D:\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UHT\EpicGames.UHT.csproj", "{BD6662CC-CB5B-31CB-83BF-EF2634CD84FA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrimrockPrototypeModuleRules", "Intermediate\Build\BuildRulesProjects\GrimrockPrototypeModuleRules\GrimrockPrototypeModuleRules.csproj", "{8B8BC66F-1721-350C-BA4A-98432B0F75BC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrimrockPrototypeModuleRules", "Intermediate\Build\BuildRulesProjects\GrimrockPrototypeModuleRules\GrimrockPrototypeModuleRules.csproj", "{83874BDF-863C-305F-B46E-3DF2F6225A92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarketplaceRules", "..\..\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\MarketplaceRules\MarketplaceRules.csproj", "{D3816C84-1DA8-32A8-8B1D-393E6E8617D3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MarketplaceRules", "D:\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\MarketplaceRules\MarketplaceRules.csproj", "{D3816C84-1DA8-32A8-8B1D-393E6E8617D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UE5ProgramRules", "..\..\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5ProgramRules\UE5ProgramRules.csproj", "{84FD74F5-BF85-331A-BB80-0C6401E663FB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UE5ProgramRules", "D:\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5ProgramRules\UE5ProgramRules.csproj", "{84FD74F5-BF85-331A-BB80-0C6401E663FB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UE5Rules", "..\..\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5Rules\UE5Rules.csproj", "{171D527B-8B1B-37C5-946F-E417693E498A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UE5Rules", "D:\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5Rules\UE5Rules.csproj", "{171D527B-8B1B-37C5-946F-E417693E498A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Visualizers", "Visualizers", "{1CCEC849-CC72-4C59-8C36-2F7C38706D4C}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natvis = ..\..\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natvis
-		..\..\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natstepfilter = ..\..\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natstepfilter
+		D:\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natvis = D:\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natvis
+		D:\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natstepfilter = D:\UE_5.5\Engine\Extras\VisualStudioDebugging\Unreal.natstepfilter
 	EndProjectSection
 EndProject
 Global
@@ -155,51 +155,51 @@ Global
 		AvailablePlatforms=Win64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame Editor|Win64.ActiveCfg = DebugGame_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame Editor|Win64.Build.0 = DebugGame_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame Editor|Win64-arm64.ActiveCfg = Win64_arm64_DebugGame_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame Editor|Win64-arm64.Build.0 = Win64_arm64_DebugGame_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame Editor|Win64-arm64ec.ActiveCfg = Win64_arm64ec_DebugGame_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame Editor|Win64-arm64ec.Build.0 = Win64_arm64ec_DebugGame_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame|Win64.ActiveCfg = DebugGame|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame|Win64.Build.0 = DebugGame|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame|Win64-arm64.ActiveCfg = Win64_arm64_DebugGame|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame|Win64-arm64.Build.0 = Win64_arm64_DebugGame|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame|Win64-arm64ec.ActiveCfg = Win64_arm64ec_DebugGame|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.DebugGame|Win64-arm64ec.Build.0 = Win64_arm64ec_DebugGame|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development Editor|Win64.ActiveCfg = Development_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development Editor|Win64.Build.0 = Development_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development Editor|Win64-arm64.ActiveCfg = Win64_arm64_Development_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development Editor|Win64-arm64.Build.0 = Win64_arm64_Development_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development Editor|Win64-arm64ec.ActiveCfg = Win64_arm64ec_Development_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development Editor|Win64-arm64ec.Build.0 = Win64_arm64ec_Development_Editor|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development|Win64.ActiveCfg = Development|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development|Win64.Build.0 = Development|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development|Win64-arm64.ActiveCfg = Win64_arm64_Development|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development|Win64-arm64.Build.0 = Win64_arm64_Development|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development|Win64-arm64ec.ActiveCfg = Win64_arm64ec_Development|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Development|Win64-arm64ec.Build.0 = Win64_arm64ec_Development|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Shipping|Win64.ActiveCfg = Shipping|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Shipping|Win64.Build.0 = Shipping|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Shipping|Win64-arm64.ActiveCfg = Win64_arm64_Shipping|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Shipping|Win64-arm64.Build.0 = Win64_arm64_Shipping|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Shipping|Win64-arm64ec.ActiveCfg = Win64_arm64ec_Shipping|x64
-		{94716BE6-692C-390E-9B7C-0C15805846CC}.Shipping|Win64-arm64ec.Build.0 = Win64_arm64ec_Shipping|x64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.DebugGame Editor|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.DebugGame Editor|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.DebugGame Editor|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.DebugGame|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.DebugGame|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.DebugGame|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Development Editor|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Development Editor|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Development Editor|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Development|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Development|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Development|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Shipping|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Shipping|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB}.Shipping|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame Editor|Win64.ActiveCfg = DebugGame_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame Editor|Win64.Build.0 = DebugGame_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame Editor|Win64-arm64.ActiveCfg = Win64_arm64_DebugGame_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame Editor|Win64-arm64.Build.0 = Win64_arm64_DebugGame_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame Editor|Win64-arm64ec.ActiveCfg = Win64_arm64ec_DebugGame_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame Editor|Win64-arm64ec.Build.0 = Win64_arm64ec_DebugGame_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame|Win64.ActiveCfg = DebugGame|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame|Win64.Build.0 = DebugGame|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame|Win64-arm64.ActiveCfg = Win64_arm64_DebugGame|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame|Win64-arm64.Build.0 = Win64_arm64_DebugGame|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame|Win64-arm64ec.ActiveCfg = Win64_arm64ec_DebugGame|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.DebugGame|Win64-arm64ec.Build.0 = Win64_arm64ec_DebugGame|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development Editor|Win64.ActiveCfg = Development_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development Editor|Win64.Build.0 = Development_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development Editor|Win64-arm64.ActiveCfg = Win64_arm64_Development_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development Editor|Win64-arm64.Build.0 = Win64_arm64_Development_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development Editor|Win64-arm64ec.ActiveCfg = Win64_arm64ec_Development_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development Editor|Win64-arm64ec.Build.0 = Win64_arm64ec_Development_Editor|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development|Win64.ActiveCfg = Development|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development|Win64.Build.0 = Development|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development|Win64-arm64.ActiveCfg = Win64_arm64_Development|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development|Win64-arm64.Build.0 = Win64_arm64_Development|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development|Win64-arm64ec.ActiveCfg = Win64_arm64ec_Development|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Development|Win64-arm64ec.Build.0 = Win64_arm64ec_Development|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Shipping|Win64.ActiveCfg = Shipping|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Shipping|Win64.Build.0 = Shipping|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Shipping|Win64-arm64.ActiveCfg = Win64_arm64_Shipping|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Shipping|Win64-arm64.Build.0 = Win64_arm64_Shipping|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Shipping|Win64-arm64ec.ActiveCfg = Win64_arm64ec_Shipping|x64
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF}.Shipping|Win64-arm64ec.Build.0 = Win64_arm64ec_Shipping|x64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.DebugGame Editor|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.DebugGame Editor|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.DebugGame Editor|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.DebugGame|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.DebugGame|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.DebugGame|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Development Editor|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Development Editor|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Development Editor|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Development|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Development|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Development|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Shipping|Win64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Shipping|Win64-arm64.ActiveCfg = BuiltWithUnrealBuildTool|Win64
+		{8E073752-48A6-3FB6-98F2-41704BBD3754}.Shipping|Win64-arm64ec.ActiveCfg = BuiltWithUnrealBuildTool|Win64
 		{57517259-1348-39A8-BB26-23C8759BF69E}.DebugGame Editor|Win64.ActiveCfg = Development|Any CPU
 		{57517259-1348-39A8-BB26-23C8759BF69E}.DebugGame Editor|Win64.Build.0 = Development|Any CPU
 		{57517259-1348-39A8-BB26-23C8759BF69E}.DebugGame Editor|Win64-arm64.ActiveCfg = Development|Any CPU
@@ -1610,36 +1610,36 @@ Global
 		{BD6662CC-CB5B-31CB-83BF-EF2634CD84FA}.Shipping|Win64-arm64.Build.0 = Development|Any CPU
 		{BD6662CC-CB5B-31CB-83BF-EF2634CD84FA}.Shipping|Win64-arm64ec.ActiveCfg = Development|Any CPU
 		{BD6662CC-CB5B-31CB-83BF-EF2634CD84FA}.Shipping|Win64-arm64ec.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame Editor|Win64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame Editor|Win64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame Editor|Win64-arm64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame Editor|Win64-arm64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame Editor|Win64-arm64ec.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame Editor|Win64-arm64ec.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame|Win64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame|Win64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame|Win64-arm64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame|Win64-arm64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame|Win64-arm64ec.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.DebugGame|Win64-arm64ec.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development Editor|Win64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development Editor|Win64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development Editor|Win64-arm64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development Editor|Win64-arm64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development Editor|Win64-arm64ec.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development Editor|Win64-arm64ec.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development|Win64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development|Win64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development|Win64-arm64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development|Win64-arm64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development|Win64-arm64ec.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Development|Win64-arm64ec.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Shipping|Win64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Shipping|Win64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Shipping|Win64-arm64.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Shipping|Win64-arm64.Build.0 = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Shipping|Win64-arm64ec.ActiveCfg = Development|Any CPU
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC}.Shipping|Win64-arm64ec.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame Editor|Win64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame Editor|Win64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame Editor|Win64-arm64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame Editor|Win64-arm64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame Editor|Win64-arm64ec.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame Editor|Win64-arm64ec.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame|Win64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame|Win64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame|Win64-arm64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame|Win64-arm64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame|Win64-arm64ec.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.DebugGame|Win64-arm64ec.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development Editor|Win64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development Editor|Win64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development Editor|Win64-arm64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development Editor|Win64-arm64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development Editor|Win64-arm64ec.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development Editor|Win64-arm64ec.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development|Win64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development|Win64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development|Win64-arm64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development|Win64-arm64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development|Win64-arm64ec.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Development|Win64-arm64ec.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Shipping|Win64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Shipping|Win64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Shipping|Win64-arm64.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Shipping|Win64-arm64.Build.0 = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Shipping|Win64-arm64ec.ActiveCfg = Development|Any CPU
+		{83874BDF-863C-305F-B46E-3DF2F6225A92}.Shipping|Win64-arm64ec.Build.0 = Development|Any CPU
 		{D3816C84-1DA8-32A8-8B1D-393E6E8617D3}.DebugGame Editor|Win64.ActiveCfg = Development|Any CPU
 		{D3816C84-1DA8-32A8-8B1D-393E6E8617D3}.DebugGame Editor|Win64.Build.0 = Development|Any CPU
 		{D3816C84-1DA8-32A8-8B1D-393E6E8617D3}.DebugGame Editor|Win64-arm64.ActiveCfg = Development|Any CPU
@@ -1735,8 +1735,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{7A1A443C-4B0E-386A-9492-2B50E3501DEB} = {233774A8-CC9D-3FA9-86D1-90573E92B704}
-		{94716BE6-692C-390E-9B7C-0C15805846CC} = {DE1F8B53-6C02-3C13-9101-A7C8D96F3FF6}
+		{8E073752-48A6-3FB6-98F2-41704BBD3754} = {233774A8-CC9D-3FA9-86D1-90573E92B704}
+		{EC8A3D2D-C70A-34FD-9796-D9D675EFEFDF} = {DE1F8B53-6C02-3C13-9101-A7C8D96F3FF6}
 		{57517259-1348-39A8-BB26-23C8759BF69E} = {A338B9E2-A559-34BE-A46D-F789DD488FAD}
 		{257D4124-4DDE-3E56-8025-39EF75DF05BE} = {A338B9E2-A559-34BE-A46D-F789DD488FAD}
 		{0BFBE63A-B98A-3411-8EEB-8918FEC737B3} = {A338B9E2-A559-34BE-A46D-F789DD488FAD}
@@ -1787,7 +1787,7 @@ Global
 		{D2D479FE-91C2-341C-A367-86A0C290F386} = {57713676-9DBE-331C-AD10-26632AC9EE0C}
 		{233D5B11-BF3B-341D-B837-A9F3B64EA040} = {57713676-9DBE-331C-AD10-26632AC9EE0C}
 		{BD6662CC-CB5B-31CB-83BF-EF2634CD84FA} = {57713676-9DBE-331C-AD10-26632AC9EE0C}
-		{8B8BC66F-1721-350C-BA4A-98432B0F75BC} = {C2F57ECE-B26F-39D8-BDA7-C1D40BD8F180}
+		{83874BDF-863C-305F-B46E-3DF2F6225A92} = {C2F57ECE-B26F-39D8-BDA7-C1D40BD8F180}
 		{D3816C84-1DA8-32A8-8B1D-393E6E8617D3} = {C2F57ECE-B26F-39D8-BDA7-C1D40BD8F180}
 		{84FD74F5-BF85-331A-BB80-0C6401E663FB} = {C2F57ECE-B26F-39D8-BDA7-C1D40BD8F180}
 		{171D527B-8B1B-37C5-946F-E417693E498A} = {C2F57ECE-B26F-39D8-BDA7-C1D40BD8F180}
