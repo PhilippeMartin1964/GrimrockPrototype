@@ -10,11 +10,13 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 4. `03_EVENT_COMMAND_LINKS.md` - current connector semantics.
 5. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
 6. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
-7. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
-8. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
-9. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
-10. `05_CODEX_TASKS.md` - historical Codex task templates.
-11. `99_DECISIONS_LOG.md` - chronological decision log.
+7. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
+8. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
+9. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
+10. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
+11. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
+12. `05_CODEX_TASKS.md` - historical Codex task templates.
+13. `99_DECISIONS_LOG.md` - chronological decision log.
 
 ## Document Status
 
@@ -30,6 +32,8 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` | Audit | Phase 4A archetype field audit, updated after cleanup. |
 | `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` | Audit / Checklist | DataAsset review checklist. |
 | `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` | Checklist | Naming normalization plan. |
+| `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` | Checklist | UI/runtime consistency checklist for Selected Object, CONNECTORS, orientation, DataAssets and runtime. |
+| `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` | Current / Reference | Practical table explaining every current `UGridObjectArchetypeAsset` and `DefaultBehavior` parameter. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Priority Rule
