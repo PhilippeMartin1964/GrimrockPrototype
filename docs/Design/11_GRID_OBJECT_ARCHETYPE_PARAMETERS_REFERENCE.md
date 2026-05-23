@@ -85,46 +85,48 @@ Source Object + Source Event + Target Object + Command
 
 ## 3. Tableau complet des paramètres UGridObjectArchetypeAsset
 
-| Groupe UI | Champ C++ | Type | Rôle | À régler quand | Exemple / valeur typique | Remarques |
-|---|---|---|---|---|---|---|
-| Archetype | `ArchetypeId` | `FName` | Identifiant stable de l’archétype. | Toujours. | `Door_Stone`, `Item_Torch` | Ne pas renommer sans migration des niveaux et références. |
-| Archetype | `DisplayName` | `FText` | Nom lisible dans l’éditeur. | Toujours. | `Stone Door`, `Torch` | Utilisé dans l’inspecteur, la palette et les connecteurs. |
-| Archetype | `SupportedType` | `EGridLevelObjectType` | Type gameplay réel. | Toujours. | `Door`, `Button`, `Item` | Source principale pour le runtime et l’éditeur. |
-| Archetype | `Description` | `FText` | Description humaine de l’archétype. | Recommandé. | `Pickable torch item.` | Documentation d’authoring. |
-| Defaults | `bDefaultInitiallyEnabled` | `bool` | Définit si les nouvelles instances sont activées au départ. | Toujours. | `true` | Copié dans l’objet placé comme `Enabled at Start`. |
-| Defaults | `bDefaultInitiallyActive` | `bool` | Définit si les nouvelles instances commencent dans leur état actif. | Selon type. | Door fermée = `false`, levier actif = `true` | Copié dans l’objet placé comme `Active at Start`. Le sens dépend du type. |
-| Defaults | `DefaultTag` | `FName` | Tag par défaut d’instance. | Rare / avancé. | `Torch`, `Key`, `Offering` | À garder technique ; ne pas utiliser pour remplacer les archetypes. |
-| Defaults | `DefaultBehavior` | `FGridObjectBehaviorParams` | Paramètres par défaut spécifiques encore utiles. | Button, Receptacle, Teleporter. | Voir section 4. | Ne contient plus Activation/Trigger/ItemSpawn génériques. |
-| Item | `ItemTags` | `TArray<FName>` | Tags d’item utilisés par les réceptacles et futurs inventaires. | Pour `SupportedType=Item`. | `Torch`, `Key`, `Coin` | Sert au matching par tag dans les réceptacles. |
-| Palette | `Category` | `FName` | Catégorie de palette. | Toujours pour objets plaçables. | `Doors`, `Mechanisms`, `Items` | N’a pas d’impact gameplay. |
-| Archetype | `ObjectCategory` | `EGridObjectCategory` | Catégorie fonctionnelle éditeur/validation. | Toujours. | `Mechanism`, `Item`, `Decoration` | Ne remplace pas `SupportedType`. |
-| Placement | `PlacementKind` | `EGridObjectPlacementKind` | Source de vérité du placement. | Toujours. | `Edge`, `Wall`, `Floor`, `Center` | Détermine preview, placement, orientation et transform runtime. |
-| Placement / Legacy | `bPlaceOnEdge` | `bool` | Ancien flag de placement edge. | Ne plus utiliser. | `false` | Legacy seulement. `PlacementKind` prime. |
-| Placement / Legacy | `bPlaceAtCellCenter` | `bool` | Ancien flag de placement au centre. | Ne plus utiliser. | `true` ou legacy | Legacy seulement. `PlacementKind` prime. |
-| Placement | `bCanShareCell` | `bool` | Autorise le partage de cellule avec d’autres objets. | Décorations, triggers, items. | Floor decoration = `true` | Empêche ou autorise les conflits de placement. |
-| Placement | `bCanShareAnchor` | `bool` | Autorise le partage du même edge/ancre. | Objets edge/wall. | Door = souvent `false`, deco = selon besoin | Évite les chevauchements sur le même edge. |
-| Placement | `bBlocksMovement` | `bool` | Blocage générique de mouvement. | Props bloquants non-door. | Généralement `false` | Les portes sont bloquées par le système de portes, pas par ce flag. |
-| Interaction | `bIsInteractable` | `bool` | Indique que l’objet peut répondre à une interaction runtime directe si l’acteur le supporte. | Buttons, levers, receptacles, items pickup. | `Item_Torch=true` | Champ indicatif/runtime selon chemin d’acteur. |
-| Interaction | `bIsReadable` | `bool` | Active le comportement readable. | Inscriptions ou objets lisibles. | `WallInscription=true` | Différent de `ObjectCategory=Readable`. |
-| Interaction | `ReadableText` | `FText` | Texte par défaut de lecture. | Si `bIsReadable=true`. | Texte d’inscription. | Peut être surchargé par l’objet placé. |
-| Interaction | `bShowReadableOnlyOnce` | `bool` | Affiche le texte une seule fois. | Readable avancé. | `false` | À utiliser seulement si le gameplay le demande. |
-| Light | `bIsLightSource` | `bool` | Indique que l’objet crée/configure une lumière runtime. | Torches murales, lumières, runes lumineuses. | Torche au sol = `false` | Ne pas confondre torche au sol et torche en main/support. |
-| Light | `LightColor` | `FLinearColor` | Couleur de la lumière runtime. | Si `bIsLightSource=true`. | Chaud/orangé pour torche. | Réglage archetype-only. |
-| Light | `LightIntensity` | `float` | Intensité de la lumière. | Si `bIsLightSource=true`. | Faible pour torche dungeon. | Trop fort détruit l’ambiance sombre. |
-| Light | `LightRadius` | `float` | Rayon de lumière. | Si `bIsLightSource=true`. | Quelques cellules maximum. | À régler avec la taille cellule 200 cm. |
-| Light | `bUseLightFlicker` | `bool` | Demande un flicker si le chemin runtime le supporte. | Torches / flammes. | `true` pour support de torche | Le support réel dépend des composants runtime. |
-| Visual | `PreviewMesh` | `UStaticMesh*` | Mesh principal/simple et mesh de preview. | Objet visible simple ou item. | `SM_Torch`, `SM_Door` | Malgré le nom, ce n’est pas seulement editor-preview. |
-| Visual | `PreviewMaterial` | `UMaterialInterface*` | Matériau principal/simple et preview. | Si besoin d’override matériel. | `MI_StoneDoor` | Optionnel si le mesh porte déjà ses matériaux. |
-| Visual | `FixedMesh` | `UStaticMesh*` | Partie fixe d’un objet composite. | Portes secrètes, supports, mécanismes composites. | partie fixe de porte secrète | Advanced. |
-| Visual | `MovingMesh` | `UStaticMesh*` | Partie animée/mobile d’un objet composite. | Porte, bouton, levier, secret door. | panneau mobile de porte | Advanced. |
-| Visual | `FixedMaterial` | `UMaterialInterface*` | Matériau de la partie fixe. | Si `FixedMesh` a besoin d’override. | `MI_WallStone` | Advanced. |
-| Visual | `MovingMaterial` | `UMaterialInterface*` | Matériau de la partie mobile. | Si `MovingMesh` a besoin d’override. | `MI_DoorStone` | Advanced. |
-| Runtime | `RuntimeActorClass` | `TSubclassOf<AGridRuntimeObjectActor>` | Classe runtime des objets non-item. | Door, Button, Lever, Receptacle, PressurePlate, etc. | `BP_GridDoorActor` | Non utilisé pour les items pickup. |
-| Runtime | `ItemActorClass` | `TSubclassOf<AGridItemActor>` | Classe runtime des items manipulables. | `SupportedType=Item`. | `BP_Item_Torch` | Pour item au sol / inventaire futur. Fallback C++ possible. |
-| Placement | `PlacementZOffset` | `float` | Offset vertical de placement. | Tous objets visibles. | `10` pour item sol, plus haut pour wall. | Influence aussi les centres logiques de connecteurs. |
-| Placement / Wall | `WallInset` | `float` | Distance depuis le mur/edge pour objets Wall/Edge. | Wall/Edge, items sur edge. | `30` pour Item_Torch edge. | Sert aussi au placement floor-edge des items. |
-| Placement / Wall | `LocalOffsetAlongWall` | `float` | Décalage latéral le long du mur. | Wall/Edge. | `0` par défaut | Utile pour ajuster bouton/support. |
-| Placement / Wall | `LocalOffsetVertical` | `float` | Décalage vertical additionnel. | Wall/Edge. | `0` par défaut | S’ajoute à `PlacementZOffset`. |
+La colonne `Libellé UE5` correspond au nom affiché dans la fenêtre d’édition du DataAsset. Quand un champ possède un `DisplayName` explicite dans le C++, ce libellé prime sur le nom brut de la propriété.
+
+| Groupe UI | Libellé UE5 | Champ C++ | Type | Rôle | À régler quand | Exemple / valeur typique | Remarques |
+|---|---|---|---|---|---|---|---|
+| Archetype | `Archetype Id` | `ArchetypeId` | `FName` | Identifiant stable de l’archétype. | Toujours. | `Door_Stone`, `Item_Torch` | Ne pas renommer sans migration des niveaux et références. |
+| Archetype | `Display Name` | `DisplayName` | `FText` | Nom lisible dans l’éditeur. | Toujours. | `Stone Door`, `Torch` | Utilisé dans l’inspecteur, la palette et les connecteurs. |
+| Archetype | `Gameplay Type` | `SupportedType` | `EGridLevelObjectType` | Type gameplay réel. | Toujours. | `Door`, `Button`, `Item` | Source principale pour le runtime et l’éditeur. |
+| Archetype | `Description` | `Description` | `FText` | Description humaine de l’archétype. | Recommandé. | `Pickable torch item.` | Documentation d’authoring. |
+| Defaults | `Default Initially Enabled` | `bDefaultInitiallyEnabled` | `bool` | Définit si les nouvelles instances sont activées au départ. | Toujours. | `true` | Copié dans l’objet placé comme `Enabled at Start`. |
+| Defaults | `Default Initially Active` | `bDefaultInitiallyActive` | `bool` | Définit si les nouvelles instances commencent dans leur état actif. | Selon type. | Door fermée = `false`, levier actif = `true` | Copié dans l’objet placé comme `Active at Start`. Le sens dépend du type. |
+| Defaults | `Default Tag` | `DefaultTag` | `FName` | Tag par défaut d’instance. | Rare / avancé. | `Torch`, `Key`, `Offering` | À garder technique ; ne pas utiliser pour remplacer les archetypes. |
+| Defaults | `Default Behavior` | `DefaultBehavior` | `FGridObjectBehaviorParams` | Paramètres par défaut spécifiques encore utiles. | Button, Receptacle, Teleporter. | Voir section 4. | Ne contient plus Activation/Trigger/ItemSpawn génériques. |
+| Item | `Item Tags` | `ItemTags` | `TArray<FName>` | Tags d’item utilisés par les réceptacles et futurs inventaires. | Pour `SupportedType=Item`. | `Torch`, `Key`, `Coin` | Sert au matching par tag dans les réceptacles. |
+| Palette | `Palette Category` | `Category` | `FName` | Catégorie de palette. | Toujours pour objets plaçables. | `Doors`, `Mechanisms`, `Items` | N’a pas d’impact gameplay. |
+| Archetype | `Functional Category` | `ObjectCategory` | `EGridObjectCategory` | Catégorie fonctionnelle éditeur/validation. | Toujours. | `Mechanism`, `Item`, `Decoration` | Ne remplace pas `SupportedType`. |
+| Placement | `Placement Kind` | `PlacementKind` | `EGridObjectPlacementKind` | Source de vérité du placement. | Toujours. | `Edge`, `Wall`, `Floor`, `Center` | Détermine preview, placement, orientation et transform runtime. |
+| Placement / Legacy | `Legacy Place On Edge` | `bPlaceOnEdge` | `bool` | Ancien flag de placement edge. | Ne plus utiliser. | `false` | Legacy seulement. `PlacementKind` prime. |
+| Placement / Legacy | `Legacy Place At Cell Center` | `bPlaceAtCellCenter` | `bool` | Ancien flag de placement au centre. | Ne plus utiliser. | `true` ou legacy | Legacy seulement. `PlacementKind` prime. |
+| Placement | `Can Share Cell` | `bCanShareCell` | `bool` | Autorise le partage de cellule avec d’autres objets. | Décorations, triggers, items. | Floor decoration = `true` | Empêche ou autorise les conflits de placement. |
+| Placement | `Can Share Anchor` | `bCanShareAnchor` | `bool` | Autorise le partage du même edge/ancre. | Objets edge/wall. | Door = souvent `false`, deco = selon besoin | Évite les chevauchements sur le même edge. |
+| Placement | `Blocks Movement (Generic Object)` | `bBlocksMovement` | `bool` | Blocage générique de mouvement. | Props bloquants non-door. | Généralement `false` | Les portes sont bloquées par le système de portes, pas par ce flag. |
+| Interaction | `Runtime Interactable` | `bIsInteractable` | `bool` | Indique que l’objet peut répondre à une interaction runtime directe si l’acteur le supporte. | Buttons, levers, receptacles, items pickup. | `Item_Torch=true` | Champ indicatif/runtime selon chemin d’acteur. |
+| Interaction | `Runtime Readable` | `bIsReadable` | `bool` | Active le comportement readable. | Inscriptions ou objets lisibles. | `WallInscription=true` | Différent de `ObjectCategory=Readable`. |
+| Interaction | `Readable Text` | `ReadableText` | `FText` | Texte par défaut de lecture. | Si `bIsReadable=true`. | Texte d’inscription. | Peut être surchargé par l’objet placé. |
+| Interaction | `Show Readable Only Once` | `bShowReadableOnlyOnce` | `bool` | Affiche le texte une seule fois. | Readable avancé. | `false` | À utiliser seulement si le gameplay le demande. |
+| Light | `Runtime Light Source` | `bIsLightSource` | `bool` | Indique que l’objet crée/configure une lumière runtime. | Torches murales, lumières, runes lumineuses. | Torche au sol = `false` | Ne pas confondre torche au sol et torche en main/support. |
+| Light | `Light Color` | `LightColor` | `FLinearColor` | Couleur de la lumière runtime. | Si `bIsLightSource=true`. | Chaud/orangé pour torche. | Réglage archetype-only. |
+| Light | `Light Intensity` | `LightIntensity` | `float` | Intensité de la lumière. | Si `bIsLightSource=true`. | Faible pour torche dungeon. | Trop fort détruit l’ambiance sombre. |
+| Light | `Light Radius` | `LightRadius` | `float` | Rayon de lumière. | Si `bIsLightSource=true`. | Quelques cellules maximum. | À régler avec la taille cellule 200 cm. |
+| Light | `Use Light Flicker (if supported)` | `bUseLightFlicker` | `bool` | Demande un flicker si le chemin runtime le supporte. | Torches / flammes. | `true` pour support de torche | Le support réel dépend des composants runtime. |
+| Visual | `Main Mesh / Preview Mesh` | `PreviewMesh` | `UStaticMesh*` | Mesh principal/simple et mesh de preview. | Objet visible simple ou item. | `SM_Torch`, `SM_Door` | Malgré le nom, ce n’est pas seulement editor-preview. |
+| Visual | `Main Material / Preview Material` | `PreviewMaterial` | `UMaterialInterface*` | Matériau principal/simple et preview. | Si besoin d’override matériel. | `MI_StoneDoor` | Optionnel si le mesh porte déjà ses matériaux. |
+| Visual | `Fixed Mesh` | `FixedMesh` | `UStaticMesh*` | Partie fixe d’un objet composite. | Portes secrètes, supports, mécanismes composites. | partie fixe de porte secrète | Advanced. |
+| Visual | `Moving Mesh` | `MovingMesh` | `UStaticMesh*` | Partie animée/mobile d’un objet composite. | Porte, bouton, levier, secret door. | panneau mobile de porte | Advanced. |
+| Visual | `Fixed Material` | `FixedMaterial` | `UMaterialInterface*` | Matériau de la partie fixe. | Si `FixedMesh` a besoin d’override. | `MI_WallStone` | Advanced. |
+| Visual | `Moving Material` | `MovingMaterial` | `UMaterialInterface*` | Matériau de la partie mobile. | Si `MovingMesh` a besoin d’override. | `MI_DoorStone` | Advanced. |
+| Runtime | `Runtime Actor Class` | `RuntimeActorClass` | `TSubclassOf<AGridRuntimeObjectActor>` | Classe runtime des objets non-item. | Door, Button, Lever, Receptacle, PressurePlate, etc. | `BP_GridDoorActor` | Non utilisé pour les items pickup. |
+| Runtime | `Item Actor Class` | `ItemActorClass` | `TSubclassOf<AGridItemActor>` | Classe runtime des items manipulables. | `SupportedType=Item`. | `BP_Item_Torch` | Pour item au sol / inventaire futur. Fallback C++ possible. |
+| Placement | `Placement Z Offset` | `PlacementZOffset` | `float` | Offset vertical de placement. | Tous objets visibles. | `10` pour item sol, plus haut pour wall. | Influence aussi les centres logiques de connecteurs. |
+| Placement / Wall | `Wall Inset` | `WallInset` | `float` | Distance depuis le mur/edge pour objets Wall/Edge. | Wall/Edge, items sur edge. | `30` pour Item_Torch edge. | Sert aussi au placement floor-edge des items. |
+| Placement / Wall | `Local Offset Along Wall` | `LocalOffsetAlongWall` | `float` | Décalage latéral le long du mur. | Wall/Edge. | `0` par défaut | Utile pour ajuster bouton/support. |
+| Placement / Wall | `Local Offset Vertical` | `LocalOffsetVertical` | `float` | Décalage vertical additionnel. | Wall/Edge. | `0` par défaut | S’ajoute à `PlacementZOffset`. |
 
 ---
 
@@ -142,22 +144,22 @@ Les anciens groupes génériques `Activation`, `Trigger` et `ItemSpawn` ont ét�
 
 ### 4.1 Teleporter
 
-| Champ | Type | Rôle | À utiliser quand | Exemple |
-|---|---|---|---|---|
-| `Teleporter.TargetCellX` | `int32` | Cellule X cible. | `SupportedType=Teleporter`. | `12` |
-| `Teleporter.TargetCellY` | `int32` | Cellule Y cible. | `SupportedType=Teleporter`. | `8` |
+| Libellé UE5 | Champ | Type | Rôle | À utiliser quand | Exemple |
+|---|---|---|---|---|---|
+| `Target Cell X` | `Teleporter.TargetCellX` | `int32` | Cellule X cible. | `SupportedType=Teleporter`. | `12` |
+| `Target Cell Y` | `Teleporter.TargetCellY` | `int32` | Cellule Y cible. | `SupportedType=Teleporter`. | `8` |
 
 Statut : prévu / partiel selon état du runtime Teleporter.
 
 ### 4.2 Receptacle
 
-| Champ | Type | Rôle | UI recommandée | Remarques |
-|---|---|---|---|---|
-| `Receptacle.bAcceptAnyItem` | `bool` | Accepte tout item si vrai. | Checkbox `Accept Any Item`. | Par défaut `true`. |
-| `Receptacle.AcceptedItemTags` | `TArray<FName>` | Accepte les items portant au moins un tag. | Advanced / masqué dans l’UI normale. | Utile pour variantes futures. |
-| `Receptacle.AcceptedArchetypeIds` | `TArray<FName>` | Liste stricte des items acceptés. | Dropdown `Accepted Items`. | Ne pas taper à la main dans l’inspecteur. |
-| `Receptacle.RejectedItemArchetypeIds` | `TArray<FName>` | Exclusions explicites. | Advanced / masqué. | Rare ; utile avec `Accept Any Item`. |
-| `Receptacle.InitialContainedItemArchetypeId` | `FName` | Item présent au démarrage. | Dropdown `Initial Content`. | `None + items`. |
+| Libellé UE5 | Champ | Type | Rôle | UI recommandée | Remarques |
+|---|---|---|---|---|---|
+| `Accept Any Item` | `Receptacle.bAcceptAnyItem` | `bool` | Accepte tout item si vrai. | Checkbox `Accept Any Item`. | Par défaut `true`. |
+| `Accepted Item Tags` | `Receptacle.AcceptedItemTags` | `TArray<FName>` | Accepte les items portant au moins un tag. | Advanced / masqué dans l’UI normale. | Utile pour variantes futures. |
+| `Accepted Archetype Ids` | `Receptacle.AcceptedArchetypeIds` | `TArray<FName>` | Liste stricte des items acceptés. | Dropdown `Accepted Items`. | Ne pas taper à la main dans l’inspecteur. |
+| `Rejected Item Archetype Ids` | `Receptacle.RejectedItemArchetypeIds` | `TArray<FName>` | Exclusions explicites. | Advanced / masqué. | Rare ; utile avec `Accept Any Item`. |
+| `Initial Contained Item Archetype Id` | `Receptacle.InitialContainedItemArchetypeId` | `FName` | Item présent au démarrage. | Dropdown `Initial Content`. | `None + items`. |
 
 Règle UX :
 
@@ -175,12 +177,12 @@ Initial Content = Item_Torch ou None selon le niveau
 
 ### 4.3 ButtonAnimation
 
-| Champ | Type | Rôle | Exemple | Remarques |
-|---|---|---|---|---|
-| `ButtonAnimation.ButtonPressDistance` | `float` | Distance d’enfoncement du bouton. | `6.0` | Visuel/animation. |
-| `ButtonAnimation.ButtonPressDuration` | `float` | Durée d’enfoncement. | `0.08` | Court et réactif. |
-| `ButtonAnimation.ButtonReleaseDuration` | `float` | Durée de relâchement. | `0.10` | Peut être légèrement plus long. |
-| `ButtonAnimation.ButtonHoldTime` | `float` | Temps de maintien avant relâchement. | `0.15` | Ne remplace pas un système de connecteur. |
+| Libellé UE5 | Champ | Type | Rôle | Exemple | Remarques |
+|---|---|---|---|---|---|
+| `Button Press Distance` | `ButtonAnimation.ButtonPressDistance` | `float` | Distance d’enfoncement du bouton. | `6.0` | Visuel/animation. |
+| `Button Press Duration` | `ButtonAnimation.ButtonPressDuration` | `float` | Durée d’enfoncement. | `0.08` | Court et réactif. |
+| `Button Release Duration` | `ButtonAnimation.ButtonReleaseDuration` | `float` | Durée de relâchement. | `0.10` | Peut être légèrement plus long. |
+| `Button Hold Time` | `ButtonAnimation.ButtonHoldTime` | `float` | Temps de maintien avant relâchement. | `0.15` | Ne remplace pas un système de connecteur. |
 
 ---
 
@@ -188,62 +190,62 @@ Initial Content = Item_Torch ou None selon le niveau
 
 ## 5.1 Door / Door_Stone / Door_Secret
 
-| Paramètre | Valeur recommandée |
-|---|---|
-| `SupportedType` | `Door` |
-| `ObjectCategory` | `Mechanism` ou `Passage` selon enum disponible |
-| `Category` | `Doors` |
-| `PlacementKind` | `Edge` |
-| `bDefaultInitiallyEnabled` | `true` |
-| `bDefaultInitiallyActive` | `false` pour porte fermée au départ |
-| `bBlocksMovement` | `false` sauf cas générique ; le blocage de porte est géré par le système de portes |
-| `RuntimeActorClass` | BP ou classe dérivée de `AGridDoorActor` |
-| `ItemActorClass` | `None` |
+| Paramètre | Libellé UE5 | Valeur recommandée |
+|---|---|---|
+| `SupportedType` | `Gameplay Type` | `Door` |
+| `ObjectCategory` | `Functional Category` | `Mechanism` ou `Passage` selon enum disponible |
+| `Category` | `Palette Category` | `Doors` |
+| `PlacementKind` | `Placement Kind` | `Edge` |
+| `bDefaultInitiallyEnabled` | `Default Initially Enabled` | `true` |
+| `bDefaultInitiallyActive` | `Default Initially Active` | `false` pour porte fermée au départ |
+| `bBlocksMovement` | `Blocks Movement (Generic Object)` | `false` sauf cas générique ; le blocage de porte est géré par le système de portes |
+| `RuntimeActorClass` | `Runtime Actor Class` | BP ou classe dérivée de `AGridDoorActor` |
+| `ItemActorClass` | `Item Actor Class` | `None` |
 
 ## 5.2 Button / Lever / PressurePlate
 
-| Paramètre | Button | Lever | PressurePlate |
-|---|---|---|---|
-| `SupportedType` | `Button` | `Lever` | `PressurePlate` |
-| `ObjectCategory` | `Mechanism` | `Mechanism` | `Mechanism` |
-| `Category` | `Mechanisms` | `Mechanisms` | `Mechanisms` |
-| `PlacementKind` | `Wall` ou `Edge` | `Wall` ou `Edge` | `Floor` ou `Center` |
-| `bIsInteractable` | `true` | `true` | selon runtime |
-| `RuntimeActorClass` | Button actor | Lever actor | PressurePlate actor |
-| `DefaultBehavior` | ButtonAnimation utile | généralement vide | généralement vide |
+| Paramètre | Libellé UE5 | Button | Lever | PressurePlate |
+|---|---|---|---|---|
+| `SupportedType` | `Gameplay Type` | `Button` | `Lever` | `PressurePlate` |
+| `ObjectCategory` | `Functional Category` | `Mechanism` | `Mechanism` | `Mechanism` |
+| `Category` | `Palette Category` | `Mechanisms` | `Mechanisms` | `Mechanisms` |
+| `PlacementKind` | `Placement Kind` | `Wall` ou `Edge` | `Wall` ou `Edge` | `Floor` ou `Center` |
+| `bIsInteractable` | `Runtime Interactable` | `true` | `true` | selon runtime |
+| `RuntimeActorClass` | `Runtime Actor Class` | Button actor | Lever actor | PressurePlate actor |
+| `DefaultBehavior` | `Default Behavior` | ButtonAnimation utile | généralement vide | généralement vide |
 
 ## 5.3 Receptacle_TorchHolder
 
-| Paramètre | Valeur recommandée |
-|---|---|
-| `SupportedType` | `Receptacle` |
-| `ObjectCategory` | `Receptacle` |
-| `Category` | `Receptacles` |
-| `PlacementKind` | `Wall` ou `Edge` |
-| `bIsInteractable` | `true` |
-| `RuntimeActorClass` | BP/classe dérivée de `AGridReceptacleActor` |
-| `DefaultBehavior.Receptacle.bAcceptAnyItem` | `false` pour support dédié |
-| `DefaultBehavior.Receptacle.AcceptedArchetypeIds` | `Item_Torch` |
-| `DefaultBehavior.Receptacle.InitialContainedItemArchetypeId` | `Item_Torch` ou `None` selon niveau |
+| Paramètre | Libellé UE5 | Valeur recommandée |
+|---|---|---|
+| `SupportedType` | `Gameplay Type` | `Receptacle` |
+| `ObjectCategory` | `Functional Category` | `Receptacle` |
+| `Category` | `Palette Category` | `Receptacles` |
+| `PlacementKind` | `Placement Kind` | `Wall` ou `Edge` |
+| `bIsInteractable` | `Runtime Interactable` | `true` |
+| `RuntimeActorClass` | `Runtime Actor Class` | BP/classe dérivée de `AGridReceptacleActor` |
+| `DefaultBehavior.Receptacle.bAcceptAnyItem` | `Accept Any Item` | `false` pour support dédié |
+| `DefaultBehavior.Receptacle.AcceptedArchetypeIds` | `Accepted Archetype Ids` / UI `Accepted Items` | `Item_Torch` |
+| `DefaultBehavior.Receptacle.InitialContainedItemArchetypeId` | `Initial Contained Item Archetype Id` / UI `Initial Content` | `Item_Torch` ou `None` selon niveau |
 
 ## 5.4 Item_Torch
 
-| Paramètre | Valeur recommandée |
-|---|---|
-| `SupportedType` | `Item` |
-| `ObjectCategory` | `Item` |
-| `Category` | `Items` |
-| `PlacementKind` | `Edge` si posé près d’un bord, sinon `Floor` |
-| `bCanShareCell` | `true` |
-| `bCanShareAnchor` | `true` |
-| `bBlocksMovement` | `false` |
-| `bIsInteractable` | `true` |
-| `bIsLightSource` | `false` pour l’item au sol |
-| `PreviewMesh` | mesh de torche éteinte |
-| `RuntimeActorClass` | `None` |
-| `ItemActorClass` | `BP_Item_Torch` ou fallback `AGridItemActor` |
-| `PlacementZOffset` | environ `8` à `12` |
-| `WallInset` | environ `24` à `35` si `PlacementKind=Edge` |
+| Paramètre | Libellé UE5 | Valeur recommandée |
+|---|---|---|
+| `SupportedType` | `Gameplay Type` | `Item` |
+| `ObjectCategory` | `Functional Category` | `Item` |
+| `Category` | `Palette Category` | `Items` |
+| `PlacementKind` | `Placement Kind` | `Edge` si posé près d’un bord, sinon `Floor` |
+| `bCanShareCell` | `Can Share Cell` | `true` |
+| `bCanShareAnchor` | `Can Share Anchor` | `true` |
+| `bBlocksMovement` | `Blocks Movement (Generic Object)` | `false` |
+| `bIsInteractable` | `Runtime Interactable` | `true` |
+| `bIsLightSource` | `Runtime Light Source` | `false` pour l’item au sol |
+| `PreviewMesh` | `Main Mesh / Preview Mesh` | mesh de torche éteinte |
+| `RuntimeActorClass` | `Runtime Actor Class` | `None` |
+| `ItemActorClass` | `Item Actor Class` | `BP_Item_Torch` ou fallback `AGridItemActor` |
+| `PlacementZOffset` | `Placement Z Offset` | environ `8` à `12` |
+| `WallInset` | `Wall Inset` | environ `24` à `35` si `PlacementKind=Edge` |
 
 Règle :
 
@@ -254,20 +256,20 @@ Torche en main/support = état porté/attaché, pas item libre au sol.
 
 ## 5.5 Floor Decorations
 
-| Paramètre | Valeur recommandée |
-|---|---|
-| `SupportedType` | `Decoration` |
-| `ObjectCategory` | `Decoration` |
-| `Category` | `Floor Decorations` |
-| `PlacementKind` | `Floor` ou `Center` |
-| `bCanShareCell` | `true` |
-| `bCanShareAnchor` | `true` |
-| `bBlocksMovement` | `false` |
-| `bIsInteractable` | `false` |
-| `bIsReadable` | `false` sauf décoration lisible spécifique |
-| `bIsLightSource` | `false`, sauf rune lumineuse volontaire |
-| `RuntimeActorClass` | actor générique si nécessaire |
-| `ItemActorClass` | `None` |
+| Paramètre | Libellé UE5 | Valeur recommandée |
+|---|---|---|
+| `SupportedType` | `Gameplay Type` | `Decoration` |
+| `ObjectCategory` | `Functional Category` | `Decoration` |
+| `Category` | `Palette Category` | `Floor Decorations` |
+| `PlacementKind` | `Placement Kind` | `Floor` ou `Center` |
+| `bCanShareCell` | `Can Share Cell` | `true` |
+| `bCanShareAnchor` | `Can Share Anchor` | `true` |
+| `bBlocksMovement` | `Blocks Movement (Generic Object)` | `false` |
+| `bIsInteractable` | `Runtime Interactable` | `false` |
+| `bIsReadable` | `Runtime Readable` | `false` sauf décoration lisible spécifique |
+| `bIsLightSource` | `Runtime Light Source` | `false`, sauf rune lumineuse volontaire |
+| `RuntimeActorClass` | `Runtime Actor Class` | actor générique si nécessaire |
+| `ItemActorClass` | `Item Actor Class` | `None` |
 
 Les décorations visibles au sol sont orientables via le widget `North / East / South / West`.
 
