@@ -3,6 +3,8 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "EngineUtils.h"
+#include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -11,6 +13,14 @@
 AGridReceptacleActor::AGridReceptacleActor ()
 {
     PrimaryActorTick.bCanEverTick = false;
+
+    if (MeshComponent)
+    {
+        MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+        MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+        MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        MeshComponent->SetGenerateOverlapEvents (false);
+    }
 
     ItemSocketRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("ItemSocketRoot"));
     ItemSocketRoot->SetupAttachment (RootComponent);
@@ -33,6 +43,110 @@ void AGridReceptacleActor::BeginPlay ()
         AttachContainedItemActor ();
         SetContainedItem (ContainedItemActor->ArchetypeId);
     }
+}
+
+bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+{
+    if (!InstigatorPawn || !HitComponent)
+    {
+        return false;
+    }
+
+    if (HitComponent != MeshComponent)
+    {
+        return false;
+    }
+
+    if (HasItem () || !bCanInsertItem)
+    {
+        return false;
+    }
+
+    const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return false;
+    }
+
+    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
+    if (HeldItemId.IsNone ())
+    {
+        return false;
+    }
+
+    TArray<FName> HeldItemTags;
+    const AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ());
+    if (!RuntimeActor)
+    {
+        RuntimeActor = PartyPawn->LevelRuntimeActor;
+    }
+
+    if (RuntimeActor)
+    {
+        if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (HeldItemId))
+        {
+            HeldItemTags = ItemArchetype->ItemTags;
+        }
+    }
+
+    return CanAcceptItemArchetype (HeldItemId, HeldItemTags);
+}
+
+void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+{
+    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
+    {
+        return;
+    }
+
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return;
+    }
+
+    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
+    if (!RuntimeActor)
+    {
+        RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ());
+    }
+    if (!RuntimeActor)
+    {
+        UWorld* World = GetWorld ();
+        if (World)
+        {
+            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+            {
+                RuntimeActor = *It;
+                break;
+            }
+        }
+    }
+
+    if (RuntimeActor)
+    {
+        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
+    }
+}
+
+EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MeshComponent && !HasItem () && bCanInsertItem)
+    {
+        return EGridInteractionCursor::Use;
+    }
+
+    return EGridInteractionCursor::Default;
+}
+
+FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MeshComponent && !HasItem () && bCanInsertItem)
+    {
+        return FText::FromString (TEXT ("Place item"));
+    }
+
+    return FText::GetEmpty ();
 }
 
 void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,

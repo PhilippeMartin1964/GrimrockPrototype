@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridInteractableInterface.h"
 #include "GridReceptacleActor.generated.h"
 
 class UStaticMeshComponent;
@@ -12,7 +13,7 @@ class AGridItemActor;
  * Generic runtime receptacle: torch holder, wall niche, pedestal, statue slot, altar, etc.
  */
 UCLASS (Blueprintable)
-class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor
+class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor, public IGridInteractableInterface
 {
     GENERATED_BODY ()
 
@@ -101,6 +102,11 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void SetInitialContainedItemActor (AGridItemActor* ItemActor);
+
+    virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
+    virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+    virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
+    virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
 
 protected:
     virtual void BeginPlay () override;
