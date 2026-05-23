@@ -1,5 +1,6 @@
 #include "Runtime/GrimrockPlayerController.h"
 
+#include "Blueprint/UserWidget.h"
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
@@ -25,6 +26,9 @@ void AGrimrockPlayerController::BeginPlay ()
     FInputModeGameAndUI InputMode;
     InputMode.SetHideCursorDuringCapture (false);
     SetInputMode (InputMode);
+
+    InitializeCustomCursor ();
+    bShowMouseCursor = !(bUseCustomMouseCursor && CustomCursorWidgetClass);
 }
 
 void AGrimrockPlayerController::PlayerTick (float DeltaTime)
@@ -108,13 +112,13 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
     AActor* InteractableActor = nullptr;
     if (!TryGetInteractableUnderCursor (HitResult, InteractableActor))
     {
-        CurrentMouseCursor = EMouseCursor::Default;
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
         return;
     }
 
     if (!IsHitWithinInteractionDistance (HitResult))
     {
-        CurrentMouseCursor = EMouseCursor::SlashedCircle;
+        SetGridInteractionCursor (EGridInteractionCursor::Forbidden);
         return;
     }
 
@@ -122,19 +126,72 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
     UPrimitiveComponent* HitComponent = HitResult.GetComponent ();
     if (!ControlledPawn || !HitComponent)
     {
-        CurrentMouseCursor = EMouseCursor::Default;
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
         return;
     }
 
     if (!IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
     {
-        CurrentMouseCursor = EMouseCursor::Default;
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
         return;
     }
 
     const EGridInteractionCursor InteractionCursor =
         IGridInteractableInterface::Execute_GetInteractionCursor (InteractableActor, HitComponent);
-    CurrentMouseCursor = ToMouseCursor (InteractionCursor);
+    SetGridInteractionCursor (InteractionCursor);
+}
+
+void AGrimrockPlayerController::InitializeCustomCursor ()
+{
+    if (!bUseCustomMouseCursor || !CustomCursorWidgetClass)
+    {
+        return;
+    }
+
+    if (CustomCursorWidget)
+    {
+        return;
+    }
+
+    CustomCursorWidget = CreateWidget<UUserWidget> (this, CustomCursorWidgetClass);
+    if (CustomCursorWidget)
+    {
+        CustomCursorWidget->AddToViewport (9999);
+    }
+}
+
+void AGrimrockPlayerController::SetGridInteractionCursor (EGridInteractionCursor NewCursor)
+{
+    CurrentGridInteractionCursor = NewCursor;
+
+    if (!bUseCustomMouseCursor)
+    {
+        CurrentMouseCursor = ToMouseCursor (NewCursor);
+        return;
+    }
+
+    CurrentMouseCursor = EMouseCursor::None;
+
+    if (!CustomCursorWidget)
+    {
+        return;
+    }
+
+    static const FName SetCursorStateFunctionName = TEXT ("SetCursorState");
+    UFunction* SetCursorStateFunction = CustomCursorWidget->FindFunction (SetCursorStateFunctionName);
+    if (!SetCursorStateFunction)
+    {
+        return;
+    }
+
+    struct FSetCursorStateParams
+    {
+        EGridInteractionCursor Cursor;
+    };
+
+    FSetCursorStateParams Params;
+    Params.Cursor = NewCursor;
+    CustomCursorWidget->ProcessEvent (SetCursorStateFunction, &Params);
 }
 
 bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const

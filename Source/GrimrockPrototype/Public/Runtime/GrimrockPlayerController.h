@@ -6,6 +6,7 @@
 #include "GrimrockPlayerController.generated.h"
 
 class UPrimitiveComponent;
+class UUserWidget;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPlayerController : public APlayerController
@@ -26,8 +27,22 @@ protected:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
     bool bDebugMouseInteraction = false;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+    bool bUseCustomMouseCursor = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+    TSubclassOf<UUserWidget> CustomCursorWidgetClass;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+    TObjectPtr<UUserWidget> CustomCursorWidget;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+    EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
+
     void HandleLeftMousePressed ();
     void UpdateHoveredInteractable ();
+    void InitializeCustomCursor ();
+    void SetGridInteractionCursor (EGridInteractionCursor NewCursor);
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
     bool IsHitWithinInteractionDistance (const FHitResult& HitResult) const;
     EMouseCursor::Type ToMouseCursor (EGridInteractionCursor InteractionCursor) const;
