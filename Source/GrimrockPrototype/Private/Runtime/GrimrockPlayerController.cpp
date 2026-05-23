@@ -81,19 +81,49 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
 bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const
 {
     OutInteractableActor = nullptr;
-    if (!GetHitResultUnderCursorByChannel (UEngineTypes::ConvertToTraceType (ECC_Visibility), false, OutHitResult))
+    OutHitResult = FHitResult ();
+    FVector WorldOrigin = FVector::ZeroVector;
+    FVector WorldDirection = FVector::ZeroVector;
+    if (!DeprojectMousePositionToWorld (WorldOrigin, WorldDirection))
     {
         return false;
     }
-
-    AActor* HitActor = OutHitResult.GetActor ();
-    if (!HitActor || !HitActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
+    UWorld* World = GetWorld ();
+    if (!World)
     {
         return false;
     }
+    const FVector Start = WorldOrigin;
+    const FVector End = Start + WorldDirection * 10000.f;
+    FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridMouseInteractionTrace), true);
 
-    OutInteractableActor = HitActor;
-    return true;
+    if (APawn* ControlledPawn = GetPawn ())
+    {
+        QueryParams.AddIgnoredActor (ControlledPawn);
+    }
+    TArray<FHitResult> Hits;
+    if (!World->LineTraceMultiByChannel (Hits, Start, End, ECC_Visibility, QueryParams))
+    {
+        return false;
+    }
+    for (const FHitResult& Hit : Hits)
+    {
+        AActor* HitActor = Hit.GetActor ();
+        if (!HitActor)
+        {
+            continue;
+        }
+
+        if (!HitActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
+        {
+            continue;
+        }
+
+        OutHitResult = Hit;
+        OutInteractableActor = HitActor;
+        return true;
+    }
+    return false;
 }
 
 bool AGrimrockPlayerController::IsHitWithinInteractionDistance (const FHitResult& HitResult) const
