@@ -1,5 +1,7 @@
 # GrimrockPrototype — Migration des Material Instances et checklist
 
+Statut : guide de migration / audit. À utiliser seulement lors de migrations de Material Instances.
+
 Ce document décrit la migration des Material Instances vers les nouveaux masters :
 
 ```text

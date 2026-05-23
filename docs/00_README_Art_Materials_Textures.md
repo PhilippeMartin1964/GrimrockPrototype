@@ -1,5 +1,9 @@
 # GrimrockPrototype — Documentation Art, Textures et Materials
 
+Statut : document actif.
+
+Ce document est le README spécialisé du pipeline Art / Materials / Textures. Il ne couvre pas le design gameplay/editor, documenté dans `docs/Design`.
+
 Ce dossier regroupe la documentation issue du travail de restructuration du pipeline **Art / Textures / Materials** de GrimrockPrototype.
 
 L’objectif est de garder un projet Unreal Engine 5.5 lisible, maintenable et raisonnable en taille Git, tout en conservant une base de matériaux robuste pour un dungeon crawler à déplacement case par case.

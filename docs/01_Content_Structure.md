@@ -1,5 +1,9 @@
 # GrimrockPrototype — Structure finale Content / Art / Textures
 
+Statut : document actif.
+
+Ce document décrit `Content/GrimrockPrototype`. Il ne décrit pas `Source/` ni les règles du système d'objets, qui sont documentées dans `docs/Design`.
+
 Ce document décrit l’arborescence cible retenue pour le contenu Unreal Engine du projet **GrimrockPrototype**.
 
 Le choix principal est de séparer les éléments de rendu (`Art`) des éléments de géométrie (`Meshes`) et des éléments gameplay (`Core`, `Blueprints`, `Maps`).

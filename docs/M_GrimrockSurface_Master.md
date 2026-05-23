@@ -1,5 +1,7 @@
 # M_GrimrockSurface_Master
 
+Statut : document actif / technique material.
+
 Documentation technique du Master Material générique principal du projet **GrimrockPrototype**.
 
 Ce matériau maître sert de base commune pour les surfaces opaques classiques du jeu : murs, sols, plafonds, portes, objets interactifs, bois, pierre, métal, os, etc.

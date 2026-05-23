@@ -1,5 +1,7 @@
 # M_GrimrockSurface_Masked_Master
 
+Statut : document actif / technique material masked.
+
 Documentation technique du Master Material **masked** du projet GrimrockPrototype.
 
 Ce matériau maître sert aux surfaces découpées par alpha mais encore rendues comme des surfaces PBR éclairées : mousse, racines, sang, tapis, glyphes non additifs, décorations planes, panneaux découpés, etc.

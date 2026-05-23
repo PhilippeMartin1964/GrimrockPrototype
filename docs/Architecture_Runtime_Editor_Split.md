@@ -1,5 +1,7 @@
 # Architecture Runtime / Editor Split
 
+Statut : document technique vivant. Ce document décrit la séparation C++ Runtime / Editor. Il complète `docs/Design` mais ne remplace pas la documentation gameplay/editor.
+
 ## Objectif
 
 Ce document suit la séparation progressive du projet Unreal Engine 5.5.4 `GrimrockPrototype` en deux modules :

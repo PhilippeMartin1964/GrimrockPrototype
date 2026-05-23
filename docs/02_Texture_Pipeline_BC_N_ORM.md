@@ -1,5 +1,9 @@
 # GrimrockPrototype — Pipeline textures BC / N / ORM / RGBA
 
+Statut : document actif.
+
+Ce document est la référence technique pour les textures finales du projet.
+
 Ce document décrit le pipeline texture standard du projet **GrimrockPrototype**.
 
 Il sert à produire des textures finales propres, légères et cohérentes pour Unreal Engine 5.5.

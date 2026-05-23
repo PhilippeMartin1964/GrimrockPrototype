@@ -1,5 +1,7 @@
 # Test runtime manuel : Button -> Door
 
+Statut : test manuel de non-régression runtime.
+
 ## Objectif du test
 
 Valider la chaîne gameplay complète `Button -> Door` dans `GrimrockPrototype` :
@@ -7,7 +9,7 @@ Valider la chaîne gameplay complète `Button -> Door` dans `GrimrockPrototype` 
 - placement d'une porte sur un edge de grille ;
 - placement d'un bouton mural ;
 - lien logique du bouton vers la porte ;
-- action `Open` ou `Toggle` ;
+- commande `Open` ou `Toggle` ;
 - blocage du déplacement avant activation ;
 - déblocage du passage après activation et animation complète de la porte.
 
@@ -34,14 +36,14 @@ Assets d'archetypes utiles :
 
 ```text
 /Game/GrimrockPrototype/Core/DataAssets/DA_Door_Stone
-/Game/GrimrockPrototype/Core/DataAssets/DA_Arch_Button_ToggleDoor
+/Game/GrimrockPrototype/Core/DataAssets/DA_Button_Normal
 ```
 
 Archetype IDs attendus :
 
 ```text
 Door_Stone
-Button_ToggleDoor
+Button_Normal
 ```
 
 ## Map concernée
@@ -125,7 +127,7 @@ Type = Button
 CellX = 10
 CellY = 10
 Edge = West
-ArchetypeId = Button_ToggleDoor
+ArchetypeId = Button_Normal
 bInitiallyEnabled = true
 bInitiallyActive = false
 Tag = None
@@ -149,7 +151,7 @@ Version recommandée pour un premier test :
 SourceObjectId = ButtonGuid
 TargetObjectId = DoorGuid
 SourceEvent = Activated
-Action = Open
+Command = Open
 ```
 
 Version utile pour tester une bascule :
@@ -158,15 +160,15 @@ Version utile pour tester une bascule :
 SourceObjectId = ButtonGuid
 TargetObjectId = DoorGuid
 SourceEvent = Activated
-Action = Toggle
+Command = Toggle
 ```
 
 Notes :
 
 - `SourceObjectId` doit correspondre exactement au `ObjectId` du bouton.
 - `TargetObjectId` doit correspondre exactement au `ObjectId` de la porte.
-- Le code runtime actuel exécute les liens sortants du bouton quand celui-ci est activé.
-- `SourceEvent` existe dans les données, mais le test principal valide surtout l'exécution du lien et l'action appliquée à la porte.
+- Le connecteur est défini par `Source Object = Button_Normal`, `Source Event = Activated`, `Target Object = Door_Stone`, puis `Command = Open` ou `Toggle`.
+- Le runtime exécute uniquement les connecteurs correspondant au `SourceEvent` exact.
 
 ## Vérification des archetypes dans BP_GridLevelRuntimeActor
 
@@ -177,7 +179,7 @@ Vérifier :
 ```text
 LevelAsset = DA_GridLevelAsset
 ObjectArchetypes contient DA_Door_Stone
-ObjectArchetypes contient DA_Arch_Button_ToggleDoor
+ObjectArchetypes contient DA_Button_Normal
 ```
 
 Sans ces archetypes :
@@ -226,7 +228,7 @@ Le pawn peut aussi commencer face au bouton si l'objectif est de valider d'abord
 13. Avancer.
 14. Vérifier que le pawn passe de `(10,10)` à `(10,11)`.
 
-Pour `Action = Toggle` :
+Pour `Command = Toggle` :
 
 1. Revenir ou rester dans une position permettant de regarder le bouton.
 2. Appuyer une deuxième fois sur `Use`.
@@ -256,7 +258,7 @@ Après animation complète :
 - `UGridDoorSystemComponent` ne bloque plus l'edge ;
 - le pawn peut traverser vers la cellule voisine.
 
-Avec `Action = Toggle` :
+Avec `Command = Toggle` :
 
 - une nouvelle activation referme la porte ;
 - le passage redevient bloqué après l'animation de fermeture.
@@ -269,10 +271,10 @@ Vérifier :
 
 ```text
 Object Type = Button
-ArchetypeId = Button_ToggleDoor
+ArchetypeId = Button_Normal
 bInitiallyEnabled = true
 Edge != None
-BP_GridLevelRuntimeActor.ObjectArchetypes contient DA_Arch_Button_ToggleDoor
+BP_GridLevelRuntimeActor.ObjectArchetypes contient DA_Button_Normal
 ```
 
 ### La porte n'apparaît pas
@@ -295,7 +297,8 @@ Vérifier :
 Links contient une entrée ButtonGuid -> DoorGuid
 SourceObjectId = ObjectId exact du bouton
 TargetObjectId = ObjectId exact de la porte
-Action = Open ou Toggle
+SourceEvent = Activated
+Command = Open ou Toggle
 DoorGuid est valide
 ButtonGuid est valide
 ```
@@ -390,3 +393,5 @@ Bouton placé sur cellule voisine + edge opposé
 ```
 
 La priorité reste la cellule courante. Le fallback voisin n'est utilisé que si rien n'est trouvé sur l'edge direct.
+
+Pour les tests plus larges de cohérence UI/runtime, voir `docs/Design/10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md`.
