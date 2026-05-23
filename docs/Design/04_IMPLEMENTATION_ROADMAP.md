@@ -1,5 +1,7 @@
 # GrimrockPrototype — Feuille de route d’implémentation
 
+Statut : roadmap historique initiale. Plusieurs phases sont déjà réalisées ou remplacées par les décisions du `99_DECISIONS_LOG.md`.
+
 ## Objectif
 
 Ce document propose une feuille de route progressive pour implémenter le nouveau système d’objets, d’événements, de commandes et de liens sans casser le projet existant.

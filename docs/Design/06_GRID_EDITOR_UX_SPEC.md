@@ -110,7 +110,6 @@ Components
   Surface
   Light
   Sound
-  Connectors
 Advanced / Debug
 ```
 
@@ -130,9 +129,10 @@ Object Kind @ Cell / Edge / Facing
 
 ▾ Game Object
 ▾ Components
-▾ Connectors
 ▸ Advanced / Debug
 ```
+
+Le panneau `CONNECTORS` est un panneau dédié séparé. Il ne doit pas être dupliqué dans `Selected Object`.
 
 L’en-tête doit afficher en priorité :
 
@@ -141,6 +141,8 @@ L’en-tête doit afficher en priorité :
 - cellule ;
 - edge ou facing ;
 - état principal si pertinent.
+
+`Selected Object` ne doit pas répéter dans `Game Object` les champs déjà présents dans l’en-tête, notamment `Cell X`, `Cell Y`, `Edge` ou `Facing`.
 
 Exemple :
 
@@ -279,18 +281,12 @@ Door @ (3,4) North
 
 ▾ Game Object
 Name: dungeon_door_portcullis
-Position: X 3  Y 4  H 0
-Facing: North
 
 ▾ Door
 Initial State: [Closed ▼]
 Pull Chain: [ ]
 Blocking: Yes
 Opening Mode: Vertical Slide
-
-▾ Incoming Connectors
-On Activate from Lever @ (...) -> Open
-On Deactivate from Lever @ (...) -> Close
 
 ▸ Advanced / Debug
 ObjectId
@@ -301,7 +297,7 @@ Raw Door Params
 
 Une porte est principalement une cible de commandes.
 
-Elle doit donc afficher surtout ses connecteurs entrants.
+Ses connecteurs entrants sont affichés dans le panneau dédié `CONNECTORS`.
 
 ---
 
@@ -316,7 +312,6 @@ Floor Trigger @ (12,6)
 
 ▾ Game Object
 Name: dungeon_pressure_plate
-Position: X 12  Y 6  H 0
 
 ▾ Floor Trigger
 Triggered By Party:   [x]
@@ -324,12 +319,6 @@ Triggered By Monster: [x]
 Triggered By Item:    [x]
 Triggered By Digging: [ ]
 Disable Self:         [ ]
-
-▾ Connectors
-On Activate   -> Door @ (...) : Open
-On Deactivate -> Door @ (...) : Close
-
-[+ Add Connector]
 
 ▸ Advanced / Debug
 ObjectId
@@ -354,18 +343,10 @@ Wall Mechanism @ (11,3) East
 
 ▾ Game Object
 Name: lever
-Position: X 11  Y 3  H 0
-Facing: East
 
 ▾ Lever
 Initial State: [Deactivated ▼]
 Disable Self: [ ]
-
-▾ Connectors
-On Activate   -> Door @ (...) : Open
-On Deactivate -> Door @ (...) : Close
-
-[+ Add Connector]
 
 ▸ Advanced / Debug
 ObjectId
@@ -373,7 +354,7 @@ ArchetypeId
 Raw Lever Params
 ```
 
-Le levier doit afficher son état initial et ses connecteurs.
+Le levier doit afficher son état initial. Ses connecteurs sont affichés dans le panneau dédié `CONNECTORS`.
 
 ---
 
@@ -388,18 +369,11 @@ Wall Button @ (23,5) East
 
 ▾ Game Object
 Name: dungeon_secret_button_small
-Position: X 23  Y 5  H 0
-Facing: East
 
 ▾ Button
 Button Type: Secret
 Initial State: Released
 Disable Self: [ ]
-
-▾ Connectors
-On Activate -> Secret Door @ (...) : Open
-
-[+ Add Connector]
 
 ▸ Advanced / Debug
 ObjectId
@@ -422,17 +396,10 @@ Lock @ (20,7) South
 
 ▾ Game Object
 Name: lock
-Position: X 20  Y 7  H 0
-Facing: South
 
 ▾ Lock
 Opened By: [brass_key ▼]
 Consumes Key: [ ]
-
-▾ Connectors
-On Activate -> Wooden Door @ (...) : Open
-
-[+ Add Connector]
 
 ▸ Advanced / Debug
 ObjectId
@@ -455,17 +422,12 @@ Wall Surface @ (15,11) West
 
 ▾ Game Object
 Name: dungeon_alcove
-Position: X 15  Y 11  H 0
-Facing: West
 
 ▾ Surface / Container
 Initial Items:
 - iron_key
 
 [+ Add Item]
-
-▾ Connectors
-No connectors
 
 ▸ Advanced / Debug
 ObjectId
@@ -489,8 +451,6 @@ SELECTED OBJECT
 Receptacle @ (28,27) East
 
 ▾ Game Object
-Position: X 28  Y 27  H 0
-Facing: East
 
 ▾ Receptacle
 Accepted Item: [Torch ▼]
@@ -498,12 +458,6 @@ Initial Content: [Torch ▼]
 Accept Any Item: [ ]
 Lock After Insert: [ ]
 Consume Inserted Item: [ ]
-
-▾ Connectors
-On Item Removed  -> Door @ (28,27) North : Open
-On Item Inserted -> Door @ (28,27) North : Close
-
-[+ Add Connector]
 
 ▸ Advanced / Debug
 ObjectId
@@ -520,7 +474,7 @@ La torche ne doit pas être codée en dur dans le support.
 
 ## Comportements contextuels
 
-Les comportements doivent être édités uniquement dans les sections contextuelles de l'objet sélectionné : `Door`, `Lever`, `Button`, `Pressure Plate`, `Trigger`, `Receptacle`, `Teleporter`, `Light`, `Readable Text` ou `Connectors`.
+Les comportements doivent être édités uniquement dans les sections contextuelles de l'objet sélectionné : `Door`, `Lever`, `Button`, `Pressure Plate`, `Trigger`, `Receptacle`, `Teleporter`, `Light` ou `Readable Text`. Les connecteurs sont édités dans le panneau dédié `CONNECTORS`.
 
 Il ne doit plus exister de panneau global `BEHAVIOR EDITOR`.
 

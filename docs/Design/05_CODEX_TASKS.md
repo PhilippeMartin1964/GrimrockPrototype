@@ -1,5 +1,7 @@
 # GrimrockPrototype — Tâches Codex
 
+Statut : prompts historiques / modèles de tâches Codex. À utiliser comme référence de méthode, pas comme backlog actuel.
+
 ## Objectif
 
 Ce document contient des prompts prêts à donner à Codex.

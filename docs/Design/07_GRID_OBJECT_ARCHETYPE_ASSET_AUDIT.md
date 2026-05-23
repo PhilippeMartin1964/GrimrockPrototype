@@ -1,5 +1,7 @@
 # Audit de GridObjectArchetypeAsset
 
+Statut : audit initial Phase 4A, mis à jour après les nettoyages UI/runtime.
+
 Audit Phase 4A de `UGridObjectArchetypeAsset`.
 
 Ce document est uniquement documentaire. Il ne propose pas de refactor C++ immédiat et ne demande aucun changement d'enum, de logique runtime, de logique éditeur, de DataAsset ou de sérialisation.

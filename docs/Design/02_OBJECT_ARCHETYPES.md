@@ -36,7 +36,9 @@ L’archétype permet de séparer :
 
 ## Champs recommandés pour `UGridObjectArchetypeAsset`
 
-Champs à viser progressivement :
+Cette section est historique et donne une intention de structuration. La source actuelle pour les champs de `UGridObjectArchetypeAsset` est `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md`, qui reflète les nettoyages UI/runtime récents.
+
+Les noms actuels à privilégier sont notamment :
 
 ```cpp
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid Object")
@@ -46,22 +48,22 @@ UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid Object")
 FText DisplayName;
 
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Grid Object")
-EGridObjectCategory Category;
+EGridLevelObjectType SupportedType;
+
+UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Palette")
+FName Category;
+
+UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Archetype")
+EGridObjectCategory ObjectCategory;
+
+UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Placement")
+EGridObjectPlacementKind PlacementKind;
 
 UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Runtime")
-TSubclassOf<AActor> ActorClass;
-
-UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="State")
-EGridObjectInitialState InitialState;
-
-UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Events")
-TArray<EGridObjectEvent> EmittedEvents;
-
-UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Commands")
-TArray<EGridObjectCommand> AcceptedCommands;
+TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass;
 ```
 
-Selon l’existant, ces noms doivent être adaptés sans casser la compilation.
+Les événements et commandes supportés sont filtrés par les helpers éditeur CONNECTORS à partir du type/archetype. Ils ne sont pas stockés sous forme de listes `EmittedEvents` / `AcceptedCommands` dans le DataAsset actuel.
 
 ---
 
@@ -72,11 +74,13 @@ Selon l’existant, ces noms doivent être adaptés sans casser la compilation.
 | `Button_Normal` | Bouton | `Mechanism` | `AGridButtonActor` | bouton standard |
 | `Button_Secret` | Bouton secret | `Mechanism` | `AGridButtonActor` | mesh discret, objet distinct |
 | `Button_Wall` | Bouton mural | `Mechanism` | `AGridButtonActor` | variante murale visible |
-| `Lever_Standard` | Levier | `Mechanism` | `AGridLeverActor` | deux états |
-| `PressurePlate_Stone` | Plaque de pression | `Mechanism` | `AGridPressurePlateActor` | présence joueur ou item |
-| `Trigger_Floor` | Trigger de sol | `Trigger` | `AGridTriggerActor` | invisible ou discret |
+| `Lever` | Levier | `Mechanism` | `AGridLeverActor` | deux états |
+| `PressurePlate` | Plaque de pression | `Mechanism` | `AGridPressurePlateActor` | présence joueur ou item |
+| `Trigger` | Trigger de sol | `Trigger` | `AGridTriggerActor` | invisible ou discret |
 | `Rune_Magic` | Rune magique | `Mechanism` / `Light` / `Decoration` | à déterminer | dépend de l’usage |
 | `Timer_Default` | Timer | `Mechanism` | `AGridTimerActor` | logique sans mesh obligatoire |
+
+Les formes longues comme `Lever_Standard`, `PressurePlate_Stone` ou `Trigger_Floor` ne doivent être réintroduites que si plusieurs variantes concrètes existent et doivent être distinguées dans la palette.
 
 ---
 
