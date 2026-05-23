@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/GridInteractableInterface.h"
 #include "GridGenericObjectActor.generated.h"
 
 class UGridObjectArchetypeAsset;
@@ -17,7 +18,7 @@ class UPointLightComponent;
  * visual actor.
  */
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridGenericObjectActor : public AGridRuntimeObjectActor
+class GRIMROCKPROTOTYPE_API AGridGenericObjectActor : public AGridRuntimeObjectActor, public IGridInteractableInterface
 {
     GENERATED_BODY ()
 
@@ -53,6 +54,11 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Grid|Readable")
     void MarkAsRead ();
+
+    virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
+    virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+    virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
+    virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
 
 protected:
     void ApplyArchetypeOptions (const UGridObjectArchetypeAsset* Archetype);

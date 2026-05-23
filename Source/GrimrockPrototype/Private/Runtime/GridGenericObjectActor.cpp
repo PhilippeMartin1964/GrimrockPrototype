@@ -3,6 +3,9 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "EngineUtils.h"
+#include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 
 AGridGenericObjectActor::AGridGenericObjectActor ()
 {
@@ -60,10 +63,16 @@ void AGridGenericObjectActor::ApplyArchetypeOptions (const UGridObjectArchetypeA
 
     if (MeshComponent)
     {
-        const ECollisionEnabled::Type CollisionMode = Archetype->bBlocksMovement
+        const bool bIsReadable = Archetype->IsReadable ();
+        const ECollisionEnabled::Type CollisionMode = Archetype->bBlocksMovement || bIsReadable
             ? ECollisionEnabled::QueryAndPhysics
             : ECollisionEnabled::NoCollision;
         MeshComponent->SetCollisionEnabled (CollisionMode);
+
+        if (bIsReadable)
+        {
+            MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        }
     }
 
     if (Archetype->IsReadable ())
@@ -90,4 +99,84 @@ void AGridGenericObjectActor::ApplyArchetypeOptions (const UGridObjectArchetypeA
     {
         PointLightComponent->SetIntensity (0.f);
     }
+}
+
+bool AGridGenericObjectActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+{
+    if (!InstigatorPawn || !HitComponent)
+    {
+        return false;
+    }
+
+    if (HitComponent != MeshComponent)
+    {
+        return false;
+    }
+
+    if (!HasReadableText ())
+    {
+        return false;
+    }
+
+    if (bRuntimeReadableOnlyOnce && bRuntimeHasBeenRead)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+void AGridGenericObjectActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+{
+    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
+    {
+        return;
+    }
+
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return;
+    }
+
+    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
+    if (!RuntimeActor)
+    {
+        UWorld* World = GetWorld ();
+        if (World)
+        {
+            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+            {
+                RuntimeActor = *It;
+                break;
+            }
+        }
+    }
+
+    if (RuntimeActor)
+    {
+        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
+    }
+}
+
+EGridInteractionCursor AGridGenericObjectActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MeshComponent &&
+        HasReadableText () &&
+        !(bRuntimeReadableOnlyOnce && bRuntimeHasBeenRead))
+    {
+        return EGridInteractionCursor::Read;
+    }
+
+    return EGridInteractionCursor::Default;
+}
+
+FText AGridGenericObjectActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MeshComponent && HasReadableText ())
+    {
+        return FText::FromString (TEXT ("Read"));
+    }
+
+    return FText::GetEmpty ();
 }
