@@ -106,7 +106,6 @@ bInitiallyEnabled = true
 bInitiallyActive = false
 Tag = None
 PaletteEntryId = None
-bOverrideBehavior = false
 ```
 
 Interprétation :
@@ -132,7 +131,6 @@ bInitiallyEnabled = true
 bInitiallyActive = false
 Tag = None
 PaletteEntryId = None
-bOverrideBehavior = false
 ```
 
 Interprétation :

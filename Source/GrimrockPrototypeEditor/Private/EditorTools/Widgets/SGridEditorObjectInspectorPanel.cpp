@@ -23,6 +23,7 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 
@@ -215,6 +216,22 @@ namespace
             Archetype->MovingMesh ||
             Archetype->RuntimeActorClass ||
             Archetype->ItemActorClass;
+    }
+
+    TSharedRef<SWidget> BuildBehaviorFloatSpinBoxRow (
+        const FText& Label,
+        float Value,
+        TFunction<void(float)> ApplyValue)
+    {
+        return GridEditorWidgetHelpers::BuildGridPropertyRow (
+            Label,
+            SNew (SSpinBox<float>)
+                .Value (Value)
+                .MinDesiredWidth (90.f)
+                .OnValueCommitted_Lambda ([ApplyValue] (float NewValue, ETextCommit::Type CommitType)
+            {
+                ApplyValue (NewValue);
+            }));
     }
 }
 
@@ -703,6 +720,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection (co
     const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor
         ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
         : nullptr;
+    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            {
+                RequestRefresh ();
+            }
+        }
+    };
 
     TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
 
@@ -721,6 +748,32 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection (co
                     ? GetBoolText (Archetype->bBlocksMovement)
                     : FText::FromString (TEXT ("Runtime door blocking handled by door system")))
         ];
+
+    Root->AddSlot ().AutoHeight ()
+    [
+        BuildBehaviorFloatSpinBoxRow (
+            FText::FromString (TEXT ("Open Height")),
+            Obj.Behavior.DoorAnimation.OpenHeight,
+            [Obj, ApplyBehavior] (float NewValue)
+        {
+            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+            NewBehavior.DoorAnimation.OpenHeight = NewValue;
+            ApplyBehavior (NewBehavior);
+        })
+    ];
+
+    Root->AddSlot ().AutoHeight ()
+    [
+        BuildBehaviorFloatSpinBoxRow (
+            FText::FromString (TEXT ("Move Duration")),
+            Obj.Behavior.DoorAnimation.MoveDuration,
+            [Obj, ApplyBehavior] (float NewValue)
+        {
+            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+            NewBehavior.DoorAnimation.MoveDuration = NewValue;
+            ApplyBehavior (NewBehavior);
+        })
+    ];
 
     Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
     [
@@ -761,6 +814,17 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection (co
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection (const FGridLevelObjectData& Obj)
 {
+    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            {
+                RequestRefresh ();
+            }
+        }
+    };
+
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Lever")),
         SNew (SVerticalBox)
@@ -770,6 +834,45 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLeverDetailsSection (c
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                     FText::FromString (TEXT ("Initial State")),
                     GetInitialActiveStateText (Obj, TEXT ("Activated"), TEXT ("Deactivated")))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildBehaviorFloatSpinBoxRow (
+                    FText::FromString (TEXT ("Off Pitch")),
+                    Obj.Behavior.LeverAnimation.LeverOffPitch,
+                    [Obj, ApplyBehavior] (float NewValue)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.LeverAnimation.LeverOffPitch = NewValue;
+                    ApplyBehavior (NewBehavior);
+                })
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildBehaviorFloatSpinBoxRow (
+                    FText::FromString (TEXT ("On Pitch")),
+                    Obj.Behavior.LeverAnimation.LeverOnPitch,
+                    [Obj, ApplyBehavior] (float NewValue)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.LeverAnimation.LeverOnPitch = NewValue;
+                    ApplyBehavior (NewBehavior);
+                })
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildBehaviorFloatSpinBoxRow (
+                    FText::FromString (TEXT ("Toggle Duration")),
+                    Obj.Behavior.LeverAnimation.ToggleDuration,
+                    [Obj, ApplyBehavior] (float NewValue)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.LeverAnimation.ToggleDuration = NewValue;
+                    ApplyBehavior (NewBehavior);
+                })
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
@@ -926,6 +1029,17 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection (
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSection (const FGridLevelObjectData& Obj)
 {
+    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            {
+                RequestRefresh ();
+            }
+        }
+    };
+
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Pressure Plate / Floor Trigger")),
         SNew (SVerticalBox)
@@ -935,6 +1049,45 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
                 GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                     FText::FromString (TEXT ("Initial State")),
                     GetInitialActiveStateText (Obj, TEXT ("Activated"), TEXT ("Deactivated")))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildBehaviorFloatSpinBoxRow (
+                    FText::FromString (TEXT ("Released Height")),
+                    Obj.Behavior.PressurePlateAnimation.ReleasedHeightAboveFloor,
+                    [Obj, ApplyBehavior] (float NewValue)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.PressurePlateAnimation.ReleasedHeightAboveFloor = NewValue;
+                    ApplyBehavior (NewBehavior);
+                })
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildBehaviorFloatSpinBoxRow (
+                    FText::FromString (TEXT ("Pressed Height")),
+                    Obj.Behavior.PressurePlateAnimation.PressedHeightAboveFloor,
+                    [Obj, ApplyBehavior] (float NewValue)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.PressurePlateAnimation.PressedHeightAboveFloor = NewValue;
+                    ApplyBehavior (NewBehavior);
+                })
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                BuildBehaviorFloatSpinBoxRow (
+                    FText::FromString (TEXT ("Move Duration")),
+                    Obj.Behavior.PressurePlateAnimation.MoveDuration,
+                    [Obj, ApplyBehavior] (float NewValue)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.PressurePlateAnimation.MoveDuration = NewValue;
+                    ApplyBehavior (NewBehavior);
+                })
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()

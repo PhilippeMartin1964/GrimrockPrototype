@@ -34,6 +34,9 @@ void AGridDoorActor::InitializeDoor (const FGridLevelObjectData& ObjectData, USt
     SetFixedMesh (InFixedMesh, InFixedMaterial);
     SetMovingMesh (InMovingMesh, InMovingMaterial);
 
+    OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
+    MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
+
     MovingClosedRelativeLocation = FVector::ZeroVector;
     MovingOpenRelativeLocation = FVector (0.f, 0.f, OpenHeight);
 
@@ -148,6 +151,9 @@ void AGridDoorActor::InitializeGridObject (const FGridLevelObjectData& ObjectDat
     UMaterialInterface* Material, const FTransform& WorldTransform)
 {
     Super::InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
+
+    OpenHeight = ObjectData.Behavior.DoorAnimation.OpenHeight;
+    MoveDuration = ObjectData.Behavior.DoorAnimation.MoveDuration;
 
     MovingClosedRelativeLocation = FVector::ZeroVector;
     MovingOpenRelativeLocation = FVector (0.f, 0.f, OpenHeight);

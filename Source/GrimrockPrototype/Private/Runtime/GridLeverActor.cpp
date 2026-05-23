@@ -41,6 +41,10 @@ void AGridLeverActor::InitializeLever (const FGridLevelObjectData& ObjectData, U
 {
     AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (InWorldRotation, InWorldLocation));
 
+    LeverOffPitch = ObjectData.Behavior.LeverAnimation.LeverOffPitch;
+    LeverOnPitch = ObjectData.Behavior.LeverAnimation.LeverOnPitch;
+    ToggleDuration = ObjectData.Behavior.LeverAnimation.ToggleDuration;
+
     OffRelativeRotation = FRotator (LeverOffPitch, 0.f, 0.f);
     OnRelativeRotation = FRotator (LeverOnPitch, 0.f, 0.f);
 

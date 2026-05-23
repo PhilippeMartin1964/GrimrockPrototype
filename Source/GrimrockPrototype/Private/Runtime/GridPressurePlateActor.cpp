@@ -21,6 +21,10 @@ void AGridPressurePlateActor::InitializePlate (const FGridLevelObjectData& Objec
 {
     AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (FRotator::ZeroRotator, InWorldLocation));
 
+    ReleasedHeightAboveFloor = ObjectData.Behavior.PressurePlateAnimation.ReleasedHeightAboveFloor;
+    PressedHeightAboveFloor = ObjectData.Behavior.PressurePlateAnimation.PressedHeightAboveFloor;
+    MoveDuration = ObjectData.Behavior.PressurePlateAnimation.MoveDuration;
+
     ReleasedLocation = FVector (0.f, 0.f, ReleasedHeightAboveFloor);
     PressedLocation = FVector (0.f, 0.f, PressedHeightAboveFloor);
 

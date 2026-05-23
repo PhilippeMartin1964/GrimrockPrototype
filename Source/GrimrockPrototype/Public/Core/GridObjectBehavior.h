@@ -59,6 +59,48 @@ struct FGridButtonAnimationParams
 };
 
 USTRUCT (BlueprintType)
+struct FGridLeverAnimationParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lever")
+    float LeverOffPitch = 45.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lever")
+    float LeverOnPitch = 135.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lever")
+    float ToggleDuration = 0.10f;
+};
+
+USTRUCT (BlueprintType)
+struct FGridPressurePlateAnimationParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
+    float ReleasedHeightAboveFloor = 4.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
+    float PressedHeightAboveFloor = 1.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
+    float MoveDuration = 0.08f;
+};
+
+USTRUCT (BlueprintType)
+struct FGridDoorAnimationParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door")
+    float OpenHeight = 180.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door")
+    float MoveDuration = 2.5f;
+};
+
+USTRUCT (BlueprintType)
 struct FGridObjectBehaviorParams
 {
     GENERATED_BODY ()
@@ -71,4 +113,13 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
     FGridButtonAnimationParams ButtonAnimation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lever")
+    FGridLeverAnimationParams LeverAnimation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
+    FGridPressurePlateAnimationParams PressurePlateAnimation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door")
+    FGridDoorAnimationParams DoorAnimation;
 };
