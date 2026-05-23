@@ -1068,6 +1068,54 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
     return false;
 }
 
+bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn)
+{
+    if (!IsValid (ItemActor) || !PartyPawn)
+    {
+        return false;
+    }
+
+    for (int32 EntryIndex = 0; EntryIndex < SpawnedItemEntries.Num (); ++EntryIndex)
+    {
+        FGridSpawnedItemRuntimeEntry& Entry = SpawnedItemEntries[EntryIndex];
+        if (Entry.ItemActor.Get () != ItemActor)
+        {
+            continue;
+        }
+
+        const FName ItemArchetypeId = Entry.ItemArchetypeId.IsNone ()
+            ? ItemActor->GetItemArchetypeId ()
+            : Entry.ItemArchetypeId;
+        if (ItemArchetypeId.IsNone ())
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed for actor %s: missing item archetype id."), *ItemActor->GetName ());
+            return false;
+        }
+
+        if (!PartyPawn->AddInventoryItem (ItemArchetypeId, 1))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed for actor %s and item %s."), *ItemActor->GetName (), *ItemArchetypeId.ToString ());
+            return false;
+        }
+
+        ItemActor->OnRemovedFromWorld ();
+        ItemActor->Destroy ();
+
+        SpawnedItemActors.RemoveAllSwap ([ItemActor] (const TObjectPtr<AGridItemActor>& SpawnedItemActor)
+        {
+            return SpawnedItemActor.Get () == ItemActor;
+        });
+
+        const FIntPoint PickedCell = Entry.Cell;
+        SpawnedItemEntries.RemoveAtSwap (EntryIndex);
+
+        UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from clicked actor at cell %d,%d."), *ItemArchetypeId.ToString (), PickedCell.X, PickedCell.Y);
+        return true;
+    }
+
+    return false;
+}
+
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
@@ -1138,6 +1186,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     }
 
     ItemActor->SetActorTransform (Transform);
+    ItemActor->SetRuntimeCell (ObjectData.CellX, ObjectData.CellY);
     ItemActor->ConfigureAsWorldPickup ();
     ItemActor->OnRemovedFromWorld ();
     SpawnedItemActors.Add (ItemActor);

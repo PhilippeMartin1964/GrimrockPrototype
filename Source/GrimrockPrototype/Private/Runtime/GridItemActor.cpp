@@ -2,7 +2,10 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "EngineUtils.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 
 AGridItemActor::AGridItemActor ()
 {
@@ -68,6 +71,7 @@ void AGridItemActor::ConfigureAsWorldPickup ()
 
     MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
     MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+    MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
     MeshComponent->SetEnableGravity (true);
     MeshComponent->SetSimulatePhysics (true);
     MeshComponent->WakeRigidBody ();
@@ -93,4 +97,71 @@ FName AGridItemActor::GetItemArchetypeId () const
 bool AGridItemActor::HasItemTag (FName Tag) const
 {
     return !Tag.IsNone () && ItemTags.Contains (Tag);
+}
+
+void AGridItemActor::SetRuntimeCell (int32 InCellX, int32 InCellY)
+{
+    RuntimeCellX = InCellX;
+    RuntimeCellY = InCellY;
+}
+
+bool AGridItemActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+{
+    return InstigatorPawn &&
+        HitComponent &&
+        HitComponent == MeshComponent &&
+        !ArchetypeId.IsNone ();
+}
+
+void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+{
+    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
+    {
+        return;
+    }
+
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return;
+    }
+
+    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
+    if (!RuntimeActor)
+    {
+        UWorld* World = GetWorld ();
+        if (World)
+        {
+            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+            {
+                RuntimeActor = *It;
+                break;
+            }
+        }
+    }
+
+    if (RuntimeActor)
+    {
+        RuntimeActor->TryPickupItemActor (this, PartyPawn);
+    }
+}
+
+EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MeshComponent && !ArchetypeId.IsNone ())
+    {
+        return EGridInteractionCursor::Take;
+    }
+
+    return EGridInteractionCursor::Default;
+}
+
+FText AGridItemActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MeshComponent && !ArchetypeId.IsNone ())
+    {
+        return FText::FromString (TEXT ("Take"));
+    }
+
+    return FText::GetEmpty ();
 }

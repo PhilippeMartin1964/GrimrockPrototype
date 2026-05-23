@@ -186,6 +186,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryPickupItemAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);
 
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    bool TryPickupItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn);
+
     // Allows runtime objects such as Receptacles to trigger their outgoing links.
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
