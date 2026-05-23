@@ -20,6 +20,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboButton.h"
+#include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Layout/SBorder.h"
@@ -781,71 +782,146 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection (
 {
     FString ButtonType = TEXT ("Generic");
     const FString ArchetypeIdText = Obj.ArchetypeId.ToString ();
+
     if (ArchetypeIdText.Contains (TEXT ("Button_Secret"), ESearchCase::IgnoreCase))
     {
         ButtonType = TEXT ("Secret");
-    }
-    else if (ArchetypeIdText.Contains (TEXT ("Button_Wall"), ESearchCase::IgnoreCase))
+    } else if (ArchetypeIdText.Contains (TEXT ("Button_Wall"), ESearchCase::IgnoreCase))
     {
         ButtonType = TEXT ("Wall");
-    }
-    else if (ArchetypeIdText.Contains (TEXT ("Button_Normal"), ESearchCase::IgnoreCase))
+    } else if (ArchetypeIdText.Contains (TEXT ("Button_Normal"), ESearchCase::IgnoreCase))
     {
         ButtonType = TEXT ("Normal");
     }
 
+    auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
+        {
+            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+            {
+                if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+                {
+                    RequestRefresh ();
+                }
+            }
+        };
+
+    auto BuildFloatBehaviorRow =
+        [this, Obj, ApplyBehavior] (
+            const FText& Label,
+            float CurrentValue,
+            float MinValue,
+            float MaxValue,
+            float Delta,
+            TFunction<void (FGridObjectBehaviorParams&, float)> AssignValue) -> TSharedRef<SWidget>
+        {
+            return GridEditorWidgetHelpers::BuildGridPropertyRow (
+                Label,
+                SNew (SSpinBox<float>)
+                .Value (CurrentValue)
+                .MinValue (MinValue)
+                .MaxValue (MaxValue)
+                .Delta (Delta)
+                .MinSliderValue (MinValue)
+                .MaxSliderValue (MaxValue)
+                .OnValueCommitted_Lambda (
+                    [Obj, ApplyBehavior, AssignValue](float NewValue, ETextCommit::Type CommitType)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        AssignValue (NewBehavior, NewValue);
+                        ApplyBehavior (NewBehavior);
+                    }));
+        };
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Button Type")),
+                FText::FromString (ButtonType))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Initial State")),
+                GetInitialActiveStateText (Obj, TEXT ("Pressed"), TEXT ("Released")))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 2.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Animation")))
+                .Font (FCoreStyle::GetDefaultFontStyle ("Bold", 9))
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.72f, 0.72f, 0.72f, 1.f)))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildFloatBehaviorRow (
+                FText::FromString (TEXT ("Press Distance")),
+                Obj.Behavior.ButtonAnimation.ButtonPressDistance,
+                0.f,
+                50.f,
+                0.5f,
+                [](FGridObjectBehaviorParams& Behavior, float NewValue)
+                {
+                    Behavior.ButtonAnimation.ButtonPressDistance = NewValue;
+                })
+        ]
+
+    + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildFloatBehaviorRow (
+                FText::FromString (TEXT ("Press Duration")),
+                Obj.Behavior.ButtonAnimation.ButtonPressDuration,
+                0.01f,
+                5.f,
+                0.01f,
+                [](FGridObjectBehaviorParams& Behavior, float NewValue)
+                {
+                    Behavior.ButtonAnimation.ButtonPressDuration = NewValue;
+                })
+        ]
+
+    + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildFloatBehaviorRow (
+                FText::FromString (TEXT ("Release Duration")),
+                Obj.Behavior.ButtonAnimation.ButtonReleaseDuration,
+                0.01f,
+                5.f,
+                0.01f,
+                [](FGridObjectBehaviorParams& Behavior, float NewValue)
+                {
+                    Behavior.ButtonAnimation.ButtonReleaseDuration = NewValue;
+                })
+        ]
+
+    + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildFloatBehaviorRow (
+                FText::FromString (TEXT ("Hold Time")),
+                Obj.Behavior.ButtonAnimation.ButtonHoldTime,
+                0.f,
+                10.f,
+                0.05f,
+                [](FGridObjectBehaviorParams& Behavior, float NewValue)
+                {
+                    Behavior.ButtonAnimation.ButtonHoldTime = NewValue;
+                })
+        ]
+
+    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Emits")),
+                FText::FromString (TEXT ("Activated, Used")))
+        ];
+
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Button")),
-        SNew (SVerticalBox)
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Button Type")),
-                    FText::FromString (ButtonType))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Initial State")),
-                    GetInitialActiveStateText (Obj, TEXT ("Pressed"), TEXT ("Released")))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("ButtonPressDistance")),
-                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonPressDistance))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("ButtonPressDuration")),
-                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonPressDuration))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("ButtonReleaseDuration")),
-                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonReleaseDuration))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("ButtonHoldTime")),
-                    FText::AsNumber (Obj.Behavior.ButtonAnimation.ButtonHoldTime))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Emits")),
-                    FText::FromString (TEXT ("Activated, Used")))
-            ]);
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSection (const FGridLevelObjectData& Obj)
@@ -876,23 +952,65 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSection (const FGridLevelObjectData& Obj)
 {
+    auto ApplyBehavior = [this](const FGridObjectBehaviorParams& NewBehavior)
+        {
+            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+            {
+                if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+                {
+                    RequestRefresh ();
+                }
+            }
+        };
+    auto BuildIntBehaviorRow =
+        [Obj, ApplyBehavior] (const FText& Label, int32 CurrentValue, int32 MinValue, int32 MaxValue,
+            TFunction<void (FGridObjectBehaviorParams&, int32)> AssignValue) -> TSharedRef<SWidget>
+        {
+            return GridEditorWidgetHelpers::BuildGridPropertyRow (
+                Label,
+                SNew (SSpinBox<int32>).Value (CurrentValue).MinValue (MinValue)
+                .MaxValue (MaxValue).MinSliderValue (MinValue).MaxSliderValue (MaxValue)
+                .Delta (1).OnValueCommitted_Lambda (
+                    [Obj, ApplyBehavior, AssignValue](int32 NewValue, ETextCommit::Type CommitType)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        AssignValue (NewBehavior, NewValue);
+                        ApplyBehavior (NewBehavior);
+                    }));
+        };
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildIntBehaviorRow (
+                FText::FromString (TEXT ("Target Cell X")),
+                Obj.Behavior.Teleporter.TargetCellX, -1, 31,
+                [](FGridObjectBehaviorParams& Behavior, int32 NewValue)
+                {
+                    Behavior.Teleporter.TargetCellX = NewValue;
+                })
+        ]
+    + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildIntBehaviorRow (
+                FText::FromString (TEXT ("Target Cell Y")),
+                Obj.Behavior.Teleporter.TargetCellY, -1, 31,
+                [](FGridObjectBehaviorParams& Behavior, int32 NewValue)
+                {
+                    Behavior.Teleporter.TargetCellY = NewValue;
+                })
+        ]
+    + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Use -1 / -1 to mark an unset destination.")))
+                .AutoWrapText (true)
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
+        ];
+
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Teleporter")),
-        SNew (SVerticalBox)
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Target Cell X")),
-                    FText::AsNumber (Obj.Behavior.Teleporter.TargetCellX))
-            ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                    FText::FromString (TEXT ("Target Cell Y")),
-                    FText::AsNumber (Obj.Behavior.Teleporter.TargetCellY))
-            ]);
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildLightDetailsSection (const UGridObjectArchetypeAsset& Archetype)
