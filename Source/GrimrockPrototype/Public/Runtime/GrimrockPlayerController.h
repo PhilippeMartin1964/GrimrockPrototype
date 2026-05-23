@@ -23,6 +23,9 @@ protected:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
     float MaxInteractionDistance = 300.f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
+    bool bDebugMouseInteraction = false;
+
     void HandleLeftMousePressed ();
     void UpdateHoveredInteractable ();
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;

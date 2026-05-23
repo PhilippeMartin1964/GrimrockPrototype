@@ -50,17 +50,56 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 {
     FHitResult HitResult;
     AActor* InteractableActor = nullptr;
-    if (!TryGetInteractableUnderCursor (HitResult, InteractableActor) || !IsHitWithinInteractionDistance (HitResult))
+    if (!TryGetInteractableUnderCursor (HitResult, InteractableActor))
     {
+        if (bDebugMouseInteraction)
+        {
+            UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: no interactable under cursor."));
+        }
+        return;
+    }
+
+    if (!IsHitWithinInteractionDistance (HitResult))
+    {
+        if (bDebugMouseInteraction)
+        {
+            UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: %s is outside interaction distance."),
+                *GetNameSafe (InteractableActor));
+        }
         return;
     }
 
     APawn* ControlledPawn = GetPawn ();
     UPrimitiveComponent* HitComponent = HitResult.GetComponent ();
-    if (IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
+    if (!ControlledPawn || !HitComponent)
     {
-        IGridInteractableInterface::Execute_Interact (InteractableActor, ControlledPawn, HitComponent);
+        if (bDebugMouseInteraction)
+        {
+            UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: invalid pawn or hit component for %s."),
+                *GetNameSafe (InteractableActor));
+        }
+        return;
     }
+
+    if (!IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
+    {
+        if (bDebugMouseInteraction)
+        {
+            UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: CanInteract rejected %s on component %s."),
+                *GetNameSafe (InteractableActor),
+                *GetNameSafe (HitComponent));
+        }
+        return;
+    }
+
+    if (bDebugMouseInteraction)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("Mouse interaction: Interact %s on component %s."),
+            *GetNameSafe (InteractableActor),
+            *GetNameSafe (HitComponent));
+    }
+
+    IGridInteractableInterface::Execute_Interact (InteractableActor, ControlledPawn, HitComponent);
 }
 
 void AGrimrockPlayerController::UpdateHoveredInteractable ()
@@ -73,8 +112,28 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
         return;
     }
 
+    if (!IsHitWithinInteractionDistance (HitResult))
+    {
+        CurrentMouseCursor = EMouseCursor::SlashedCircle;
+        return;
+    }
+
+    APawn* ControlledPawn = GetPawn ();
+    UPrimitiveComponent* HitComponent = HitResult.GetComponent ();
+    if (!ControlledPawn || !HitComponent)
+    {
+        CurrentMouseCursor = EMouseCursor::Default;
+        return;
+    }
+
+    if (!IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
+    {
+        CurrentMouseCursor = EMouseCursor::Default;
+        return;
+    }
+
     const EGridInteractionCursor InteractionCursor =
-        IGridInteractableInterface::Execute_GetInteractionCursor (InteractableActor, HitResult.GetComponent ());
+        IGridInteractableInterface::Execute_GetInteractionCursor (InteractableActor, HitComponent);
     CurrentMouseCursor = ToMouseCursor (InteractionCursor);
 }
 
