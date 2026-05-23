@@ -2,11 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/GridMechanismActor.h"
+#include "Runtime/GridInteractableInterface.h"
 #include "Core/GridTypes.h"
 #include "GridLeverActor.generated.h"
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API AGridLeverActor : public AGridMechanismActor
+class GRIMROCKPROTOTYPE_API AGridLeverActor : public AGridMechanismActor, public IGridInteractableInterface
 {
     GENERATED_BODY ()
 
@@ -40,6 +41,11 @@ public:
 
     virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
         const FTransform& WorldTransform) override;
+
+    virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
+    virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+    virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
+    virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
 
 protected:
     void UpdateAnimation (float DeltaSeconds);

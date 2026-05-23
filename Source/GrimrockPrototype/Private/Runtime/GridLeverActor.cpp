@@ -1,11 +1,29 @@
 #include "Runtime/GridLeverActor.h"
 
 #include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "EngineUtils.h"
+#include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
 
 AGridLeverActor::AGridLeverActor ()
 {
     PrimaryActorTick.bCanEverTick = true;
     SetActorTickEnabled (false);
+
+    if (FixedMeshComponent)
+    {
+        FixedMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+        FixedMeshComponent->SetGenerateOverlapEvents (false);
+    }
+
+    if (MovingMeshComponent)
+    {
+        MovingMeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+        MovingMeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+        MovingMeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        MovingMeshComponent->SetGenerateOverlapEvents (false);
+    }
 }
 
 void AGridLeverActor::Tick (float DeltaSeconds)
@@ -76,4 +94,72 @@ void AGridLeverActor::InitializeGridObject (const FGridLevelObjectData& ObjectDa
     const FTransform& WorldTransform)
 {
     InitializeLever (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.Rotator (), ObjectData.bInitiallyActive);
+}
+
+bool AGridLeverActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+{
+    if (!InstigatorPawn || !HitComponent)
+    {
+        return false;
+    }
+
+    if (HitComponent != MovingMeshComponent)
+    {
+        return false;
+    }
+
+    return !bIsAnimating;
+}
+
+void AGridLeverActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+{
+    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
+    {
+        return;
+    }
+
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return;
+    }
+
+    AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor;
+    if (!RuntimeActor)
+    {
+        UWorld* World = GetWorld ();
+        if (World)
+        {
+            for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+            {
+                RuntimeActor = *It;
+                break;
+            }
+        }
+    }
+
+    if (RuntimeActor)
+    {
+        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
+    }
+}
+
+EGridInteractionCursor AGridLeverActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MovingMeshComponent && !bIsAnimating)
+    {
+        return EGridInteractionCursor::Pull;
+    }
+
+    return EGridInteractionCursor::Default;
+}
+
+FText AGridLeverActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent == MovingMeshComponent)
+    {
+        return FText::FromString (bIsOn ? TEXT ("Push lever") : TEXT ("Pull lever"));
+    }
+
+    return FText::GetEmpty ();
 }
