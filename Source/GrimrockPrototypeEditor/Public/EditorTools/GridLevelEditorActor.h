@@ -332,9 +332,6 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectInitiallyActive (bool bNewInitiallyActive);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectOverrideBehavior (bool bNewOverrideBehavior);
-
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
     bool MoveSelectedObjectToCurrentSelection ();
 

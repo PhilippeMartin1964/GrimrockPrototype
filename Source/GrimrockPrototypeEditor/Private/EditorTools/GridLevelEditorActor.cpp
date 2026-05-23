@@ -589,7 +589,6 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.Notes = ObjectNotes;
     NewObject.PaletteEntryId = SelectedPaletteEntryId;
     NewObject.Behavior = ObjectBehavior;
-    NewObject.bOverrideBehavior = true;
     const FGuid NewId = LevelAsset->AddObject (NewObject);
     LastSelectedObjectId = NewId;
     RebuildPreview ();
@@ -1171,7 +1170,6 @@ bool AGridLevelEditorActor::ApplyEditedSelectedObject ()
         Obj.Tag = ObjectTag;
         Obj.Notes = ObjectNotes;
         Obj.Behavior = ObjectBehavior;
-        Obj.bOverrideBehavior = true;
 
 #if WITH_EDITOR
         LevelAsset->MarkPackageDirty ();
@@ -1625,7 +1623,6 @@ bool AGridLevelEditorActor::ApplyBehaviorToSelectedObject (
         }
 
         Obj.Behavior = NewBehavior;
-        Obj.bOverrideBehavior = true;
         ObjectBehavior = NewBehavior;
 
 #if WITH_EDITOR
@@ -1663,7 +1660,6 @@ bool AGridLevelEditorActor::ResetSelectedObjectBehaviorFromArchetype ()
 #endif
 
     Obj->Behavior = Archetype->DefaultBehavior;
-    Obj->bOverrideBehavior = true;
     ObjectBehavior = Obj->Behavior;
 
 #if WITH_EDITOR
@@ -1804,28 +1800,6 @@ bool AGridLevelEditorActor::SetSelectedObjectInitiallyActive (bool bNewInitially
 
     Obj->bInitiallyActive = bNewInitiallyActive;
     bObjectInitiallyActive = bNewInitiallyActive;
-
-#if WITH_EDITOR
-    LevelAsset->MarkPackageDirty ();
-#endif
-
-    RebuildPreview ();
-    return true;
-}
-
-bool AGridLevelEditorActor::SetSelectedObjectOverrideBehavior (bool bNewOverrideBehavior)
-{
-    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
-    if (!Obj)
-    {
-        return false;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
-
-    Obj->bOverrideBehavior = bNewOverrideBehavior;
 
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
