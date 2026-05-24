@@ -17,8 +17,7 @@ namespace
     bool IsWallReplacingAlcoveArchetype (FName ArchetypeId)
     {
         static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
-        static const FName LegacyStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
-        return ArchetypeId == StoneAlcoveId || ArchetypeId == LegacyStoneAlcoveId;
+        return ArchetypeId == StoneAlcoveId;
     }
 }
 

@@ -28,7 +28,6 @@ namespace
         {TEXT ("Door_Secret"), EGridLevelObjectType::Door},
         {TEXT ("Receptacle_Alcove"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Alcove_Stone"), EGridLevelObjectType::Receptacle},
-        {TEXT ("Receptacle_Alcove_Stone_01"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_TorchHolder"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Altar"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_OfferingBowl"), EGridLevelObjectType::Receptacle}
@@ -37,8 +36,7 @@ namespace
     bool IsStoneAlcoveReceptacleArchetype (FName ArchetypeId)
     {
         static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
-        static const FName LegacyStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
-        return ArchetypeId == StoneAlcoveId || ArchetypeId == LegacyStoneAlcoveId;
+        return ArchetypeId == StoneAlcoveId;
     }
 
     EGridWallType GetWallTypeForEdge (const FGridLevelCellData& CellData, EGridEdge Edge)
