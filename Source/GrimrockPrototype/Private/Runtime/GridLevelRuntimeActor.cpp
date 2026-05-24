@@ -12,6 +12,16 @@
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
 
+namespace
+{
+    bool IsWallReplacingAlcoveArchetype (FName ArchetypeId)
+    {
+        static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
+        static const FName LegacyStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
+        return ArchetypeId == StoneAlcoveId || ArchetypeId == LegacyStoneAlcoveId;
+    }
+}
+
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
     PrimaryActorTick.bCanEverTick = false;
@@ -182,6 +192,28 @@ void AGridLevelRuntimeActor::AddCeiling (int32 X, int32 Y, float CellSize)
     CeilingISM->AddInstance (T);
 }
 
+bool AGridLevelRuntimeActor::ShouldSuppressStandardWallForEdge (int32 X, int32 Y, EGridEdge Edge) const
+{
+    if (!LevelAsset || Edge == EGridEdge::None)
+    {
+        return false;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.CellX == X &&
+            ObjectData.CellY == Y &&
+            ObjectData.Edge == Edge &&
+            ObjectData.Type == EGridLevelObjectType::Receptacle &&
+            IsWallReplacingAlcoveArchetype (ObjectData.ArchetypeId))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void AGridLevelRuntimeActor::AddEdgeInstance (UInstancedStaticMeshComponent* TargetISM, int32 X, int32 Y, EGridEdge Edge, float CellSize)
 {
     if (!TargetISM)
@@ -313,7 +345,7 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
             auto DrawEdgeIfNeeded =
                 [&] (EGridEdge Edge, EGridWallType WallType, bool bShouldDraw)
             {
-                if (!bShouldDraw)
+                if (!bShouldDraw || ShouldSuppressStandardWallForEdge (X, Y, Edge))
                 {
                     return;
                 }

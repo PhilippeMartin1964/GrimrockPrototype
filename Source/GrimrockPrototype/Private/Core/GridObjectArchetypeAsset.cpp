@@ -246,11 +246,13 @@ namespace
     bool IsExpectedConcreteReceptacleArchetype (FName ArchetypeId)
     {
         static const FName ReceptacleAlcoveId (TEXT ("Receptacle_Alcove"));
+        static const FName ReceptacleStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
         static const FName ReceptacleTorchHolderId (TEXT ("Receptacle_TorchHolder"));
         static const FName ReceptacleAltarId (TEXT ("Receptacle_Altar"));
         static const FName ReceptacleOfferingBowlId (TEXT ("Receptacle_OfferingBowl"));
 
         return ArchetypeId == ReceptacleAlcoveId ||
+            ArchetypeId == ReceptacleStoneAlcoveId ||
             ArchetypeId == ReceptacleTorchHolderId ||
             ArchetypeId == ReceptacleAltarId ||
             ArchetypeId == ReceptacleOfferingBowlId;
@@ -278,7 +280,7 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
 
     if (IsExpectedConcreteReceptacleArchetype (ArchetypeId) && SupportedType != EGridLevelObjectType::Receptacle)
     {
-        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle_Alcove, Receptacle_TorchHolder, Receptacle_Altar and Receptacle_OfferingBowl must use SupportedType=Receptacle. Visual variants must stay archetypes, not EGridLevelObjectType values."));
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Concrete receptacle archetypes must use SupportedType=Receptacle. Visual variants must stay archetypes, not EGridLevelObjectType values."));
     }
 
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)
