@@ -246,13 +246,15 @@ namespace
     bool IsExpectedConcreteReceptacleArchetype (FName ArchetypeId)
     {
         static const FName ReceptacleAlcoveId (TEXT ("Receptacle_Alcove"));
-        static const FName ReceptacleStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
+        static const FName ReceptacleStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
+        static const FName LegacyReceptacleStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
         static const FName ReceptacleTorchHolderId (TEXT ("Receptacle_TorchHolder"));
         static const FName ReceptacleAltarId (TEXT ("Receptacle_Altar"));
         static const FName ReceptacleOfferingBowlId (TEXT ("Receptacle_OfferingBowl"));
 
         return ArchetypeId == ReceptacleAlcoveId ||
             ArchetypeId == ReceptacleStoneAlcoveId ||
+            ArchetypeId == LegacyReceptacleStoneAlcoveId ||
             ArchetypeId == ReceptacleTorchHolderId ||
             ArchetypeId == ReceptacleAltarId ||
             ArchetypeId == ReceptacleOfferingBowlId;

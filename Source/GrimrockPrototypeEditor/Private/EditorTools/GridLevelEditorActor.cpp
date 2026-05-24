@@ -27,6 +27,7 @@ namespace
         {TEXT ("Door_Stone"), EGridLevelObjectType::Door},
         {TEXT ("Door_Secret"), EGridLevelObjectType::Door},
         {TEXT ("Receptacle_Alcove"), EGridLevelObjectType::Receptacle},
+        {TEXT ("Receptacle_Alcove_Stone"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Alcove_Stone_01"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_TorchHolder"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Altar"), EGridLevelObjectType::Receptacle},
@@ -35,8 +36,8 @@ namespace
 
     bool IsStoneAlcoveReceptacleArchetype (FName ArchetypeId)
     {
-        static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
-        static const FName LegacyStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
+        static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
+        static const FName LegacyStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
         return ArchetypeId == StoneAlcoveId || ArchetypeId == LegacyStoneAlcoveId;
     }
 
