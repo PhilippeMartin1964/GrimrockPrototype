@@ -27,10 +27,18 @@ namespace
         {TEXT ("Door_Stone"), EGridLevelObjectType::Door},
         {TEXT ("Door_Secret"), EGridLevelObjectType::Door},
         {TEXT ("Receptacle_Alcove"), EGridLevelObjectType::Receptacle},
+        {TEXT ("Receptacle_Alcove_Stone_01"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_TorchHolder"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Altar"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_OfferingBowl"), EGridLevelObjectType::Receptacle}
     };
+
+    bool IsStoneAlcoveReceptacleArchetype (FName ArchetypeId)
+    {
+        static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone_01"));
+        static const FName LegacyStoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
+        return ArchetypeId == StoneAlcoveId || ArchetypeId == LegacyStoneAlcoveId;
+    }
 
     EGridWallType GetWallTypeForEdge (const FGridLevelCellData& CellData, EGridEdge Edge)
     {
@@ -557,7 +565,8 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: PaintObjectType is None."));
         return;
     }
-    const bool bPlaceObjectOnEdge = IsEdgePlacedObject (PaintObjectType, ObjectArchetypeId);
+    const bool bIsStoneAlcoveReceptacle = IsStoneAlcoveReceptacleArchetype (ObjectArchetypeId);
+    const bool bPlaceObjectOnEdge = bIsStoneAlcoveReceptacle || IsEdgePlacedObject (PaintObjectType, ObjectArchetypeId);
     if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: this object type requires a valid edge."));
@@ -589,6 +598,28 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.Notes = ObjectNotes;
     NewObject.PaletteEntryId = SelectedPaletteEntryId;
     NewObject.Behavior = ObjectBehavior;
+
+    if (bIsStoneAlcoveReceptacle)
+    {
+        NewObject.Type = EGridLevelObjectType::Receptacle;
+        NewObject.bInitiallyEnabled = true;
+        NewObject.bInitiallyActive = !NewObject.Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
+
+        if (FGridLevelCellData* CellData = GetSelectedCellMutable ())
+        {
+            if (EGridWallType* WallPtr = GetSelectedWallMutable (*CellData))
+            {
+#if WITH_EDITOR
+                LevelAsset->Modify ();
+#endif
+                *WallPtr = EGridWallType::Solid;
+#if WITH_EDITOR
+                LevelAsset->MarkPackageDirty ();
+#endif
+            }
+        }
+    }
+
     const FGuid NewId = LevelAsset->AddObject (NewObject);
     LastSelectedObjectId = NewId;
     RebuildPreview ();

@@ -233,6 +233,7 @@ protected:
     void AddFloor (int32 X, int32 Y, float CellSize);
     void AddCeiling (int32 X, int32 Y, float CellSize);
     void AddEdgeInstance (UInstancedStaticMeshComponent* TargetISM, int32 X, int32 Y, EGridEdge Edge, float CellSize);
+    bool ShouldSuppressStandardWallForEdge (int32 X, int32 Y, EGridEdge Edge) const;
 
     virtual void BeginPlay () override;
 
