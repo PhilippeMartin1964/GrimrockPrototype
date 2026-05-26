@@ -21,6 +21,69 @@ namespace
     }
 }
 
+bool AGridLevelRuntimeActor::IsSafeRuntimeRenderTransform (const FTransform& Transform)
+{
+    constexpr float MinAbsScale = 0.001f;
+    const FVector Scale = Transform.GetScale3D ();
+
+    return Transform.IsValid () &&
+        !Transform.GetLocation ().ContainsNaN () &&
+        !Scale.ContainsNaN () &&
+        Transform.GetRotation ().IsNormalized () &&
+        FMath::Abs (Scale.X) >= MinAbsScale &&
+        FMath::Abs (Scale.Y) >= MinAbsScale &&
+        FMath::Abs (Scale.Z) >= MinAbsScale;
+}
+
+void AGridLevelRuntimeActor::LogUnsafeInstanceTransform (const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component,
+    int32 X, int32 Y, EGridEdge Edge, const FTransform& Transform) const
+{
+    UE_LOG (LogTemp, Error,
+        TEXT ("Unsafe runtime render transform skipped: Function=%s Component=%s StaticMesh=%s Cell=(%d,%d) Edge=%d Location=%s Rotation=%s Scale=%s"),
+        FunctionName,
+        *GetNameSafe (Component),
+        *GetNameSafe (Component ? Component->GetStaticMesh () : nullptr),
+        X,
+        Y,
+        static_cast<int32> (Edge),
+        *Transform.GetLocation ().ToCompactString (),
+        *Transform.GetRotation ().ToString (),
+        *Transform.GetScale3D ().ToCompactString ());
+}
+
+void AGridLevelRuntimeActor::LogUnsafeObjectTransform (const TCHAR* FunctionName, const FGridLevelObjectData& ObjectData,
+    const UStaticMesh* StaticMesh, const FTransform& Transform) const
+{
+    UE_LOG (LogTemp, Error,
+        TEXT ("Unsafe runtime render transform skipped: Function=%s ObjectId=%s ArchetypeId=%s Tag=%s Cell=(%d,%d) Edge=%d StaticMesh=%s Location=%s Rotation=%s Scale=%s"),
+        FunctionName,
+        *ObjectData.ObjectId.ToString (),
+        *ObjectData.ArchetypeId.ToString (),
+        *ObjectData.Tag.ToString (),
+        ObjectData.CellX,
+        ObjectData.CellY,
+        static_cast<int32> (ObjectData.Edge),
+        *GetNameSafe (StaticMesh),
+        *Transform.GetLocation ().ToCompactString (),
+        *Transform.GetRotation ().ToString (),
+        *Transform.GetScale3D ().ToCompactString ());
+}
+
+void AGridLevelRuntimeActor::LogUnsafeItemTransform (const TCHAR* FunctionName, FName ArchetypeId, const AActor* OwnerActor,
+    const USceneComponent* AttachParent, const UStaticMesh* StaticMesh, const FTransform& Transform) const
+{
+    UE_LOG (LogTemp, Error,
+        TEXT ("Unsafe runtime item transform skipped: Function=%s ArchetypeId=%s Owner=%s AttachParent=%s StaticMesh=%s Location=%s Rotation=%s Scale=%s"),
+        FunctionName,
+        *ArchetypeId.ToString (),
+        *GetNameSafe (OwnerActor),
+        *GetNameSafe (AttachParent),
+        *GetNameSafe (StaticMesh),
+        *Transform.GetLocation ().ToCompactString (),
+        *Transform.GetRotation ().ToString (),
+        *Transform.GetScale3D ().ToCompactString ());
+}
+
 AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
 {
     PrimaryActorTick.bCanEverTick = false;
@@ -180,6 +243,11 @@ void AGridLevelRuntimeActor::AddFloor (int32 X, int32 Y, float CellSize)
     const FVector Base = CellToWorld (X, Y, 0.f);
     const FVector CenterOffset (CellSize * 0.5f, CellSize * 0.5f, 0.f);
     const FTransform T (FRotator::ZeroRotator, Base + CenterOffset, FVector::OneVector);
+    if (!IsSafeRuntimeRenderTransform (T))
+    {
+        LogUnsafeInstanceTransform (TEXT ("AddFloor"), FloorISM, X, Y, EGridEdge::None, T);
+        return;
+    }
     FloorISM->AddInstance (T);
 }
 
@@ -188,6 +256,11 @@ void AGridLevelRuntimeActor::AddCeiling (int32 X, int32 Y, float CellSize)
     const FVector Base = CellToWorld (X, Y, 200.f);
     const FVector CenterOffset (CellSize * 0.5f, CellSize * 0.5f, 0.f);
     const FTransform T (FRotator::ZeroRotator, Base + CenterOffset, FVector (1.f, 1.f, 1.f));
+    if (!IsSafeRuntimeRenderTransform (T))
+    {
+        LogUnsafeInstanceTransform (TEXT ("AddCeiling"), CeilingISM, X, Y, EGridEdge::None, T);
+        return;
+    }
     CeilingISM->AddInstance (T);
 }
 
@@ -254,6 +327,11 @@ void AGridLevelRuntimeActor::AddEdgeInstance (UInstancedStaticMeshComponent* Tar
         }
     }
     const FTransform T (Rot, Pos, FVector::OneVector); 
+    if (!IsSafeRuntimeRenderTransform (T))
+    {
+        LogUnsafeInstanceTransform (TEXT ("AddEdgeInstance"), TargetISM, X, Y, Edge, T);
+        return;
+    }
     TargetISM->AddInstance (T);
 }
 
@@ -828,25 +906,35 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemAr
         ItemClass = AGridItemActor::StaticClass ();
     }
 
+    UStaticMesh* ItemMesh = ItemArchetype->MovingMesh ? ItemArchetype->MovingMesh.Get () : ItemArchetype->PreviewMesh.Get ();
+    if (!ItemMesh)
+    {
+        ItemMesh = ItemArchetype->FixedMesh.Get ();
+    }
+
+    const FTransform SpawnTransform (
+        AttachParent ? AttachParent->GetComponentRotation () : FRotator::ZeroRotator,
+        AttachParent ? AttachParent->GetComponentLocation () : GetActorLocation (),
+        FVector::OneVector);
+    if (!IsSafeRuntimeRenderTransform (SpawnTransform))
+    {
+        LogUnsafeItemTransform (TEXT ("SpawnItemActorForArchetype"), ItemArchetypeId, OwnerActor, AttachParent, ItemMesh, SpawnTransform);
+        return nullptr;
+    }
+
     FActorSpawnParameters Params;
     Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*> (this);
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor> (
         ItemClass,
-        AttachParent ? AttachParent->GetComponentLocation () : GetActorLocation (),
-        AttachParent ? AttachParent->GetComponentRotation () : FRotator::ZeroRotator,
+        SpawnTransform.GetLocation (),
+        SpawnTransform.GetRotation ().Rotator (),
         Params);
 
     if (!ItemActor)
     {
         return nullptr;
-    }
-
-    UStaticMesh* ItemMesh = ItemArchetype->MovingMesh ? ItemArchetype->MovingMesh.Get () : ItemArchetype->PreviewMesh.Get ();
-    if (!ItemMesh)
-    {
-        ItemMesh = ItemArchetype->FixedMesh.Get ();
     }
 
     UMaterialInterface* ItemMaterial = ItemArchetype->MovingMaterial ? ItemArchetype->MovingMaterial.Get () : ItemArchetype->PreviewMaterial.Get ();
@@ -1206,6 +1294,11 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     if (!GetObjectPlacementTransform (ObjectData, Transform))
     {
         UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: could not compute placement transform for object %s."), *ObjectData.ObjectId.ToString ());
+        return;
+    }
+    if (!IsSafeRuntimeRenderTransform (Transform))
+    {
+        LogUnsafeObjectTransform (TEXT ("AddPlacedItemActor"), ObjectData, GetObjectMesh (ObjectData), Transform);
         return;
     }
 

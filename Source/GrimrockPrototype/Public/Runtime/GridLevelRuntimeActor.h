@@ -264,6 +264,14 @@ private:
 
     FTimerHandle ReadableMessageTimerHandle;
 
+    static bool IsSafeRuntimeRenderTransform (const FTransform& Transform);
+    void LogUnsafeInstanceTransform (const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component,
+        int32 X, int32 Y, EGridEdge Edge, const FTransform& Transform) const;
+    void LogUnsafeObjectTransform (const TCHAR* FunctionName, const FGridLevelObjectData& ObjectData,
+        const UStaticMesh* StaticMesh, const FTransform& Transform) const;
+    void LogUnsafeItemTransform (const TCHAR* FunctionName, FName ArchetypeId, const AActor* OwnerActor,
+        const USceneComponent* AttachParent, const UStaticMesh* StaticMesh, const FTransform& Transform) const;
+
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();
 
@@ -294,6 +302,11 @@ private:
         }
         if (!GetObjectPlacementTransform (ObjectData, OutTransform))
         {
+            return nullptr;
+        }
+        if (!IsSafeRuntimeRenderTransform (OutTransform))
+        {
+            LogUnsafeObjectTransform (TEXT ("SpawnRuntimeObjectActor"), ObjectData, OutMesh, OutTransform);
             return nullptr;
         }
         FActorSpawnParameters Params;
