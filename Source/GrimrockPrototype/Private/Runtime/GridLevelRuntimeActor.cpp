@@ -14,10 +14,11 @@
 
 namespace
 {
-    bool IsWallReplacingAlcoveArchetype (FName ArchetypeId)
+    bool IsWallReplacingObjectArchetype (FName ArchetypeId)
     {
         static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
-        return ArchetypeId == StoneAlcoveId;
+        static const FName CrackedStoneWallId (TEXT ("Decoration_Wall_Stone_Cracked"));
+        return ArchetypeId == StoneAlcoveId || ArchetypeId == CrackedStoneWallId;
     }
 }
 
@@ -276,8 +277,7 @@ bool AGridLevelRuntimeActor::ShouldSuppressStandardWallForEdge (int32 X, int32 Y
         if (ObjectData.CellX == X &&
             ObjectData.CellY == Y &&
             ObjectData.Edge == Edge &&
-            ObjectData.Type == EGridLevelObjectType::Receptacle &&
-            IsWallReplacingAlcoveArchetype (ObjectData.ArchetypeId))
+            IsWallReplacingObjectArchetype (ObjectData.ArchetypeId))
         {
             return true;
         }
