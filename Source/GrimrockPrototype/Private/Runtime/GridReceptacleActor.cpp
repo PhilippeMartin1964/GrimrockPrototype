@@ -580,7 +580,8 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
 
     if (MeshComponent)
     {
-        const bool bExposePhysicalItemToCursor = bUsePhysicalPlacement && GetContainedItemCount () > 0;
+        const bool bCanPlaceMorePhysicalItems = bUsePhysicalPlacement && bCanInsertItem && !IsFull ();
+        const bool bExposePhysicalItemToCursor = bUsePhysicalPlacement && !bCanPlaceMorePhysicalItems;
         MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, bExposePhysicalItemToCursor ? ECR_Ignore : ECR_Block);
     }
 
