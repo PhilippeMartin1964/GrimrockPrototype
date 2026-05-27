@@ -1,0 +1,61 @@
+#include "Core/GridObjectPaletteAsset.h"
+
+bool UGridObjectPaletteAsset::ValidatePalette (TArray<FGridArchetypeValidationMessage>& OutMessages) const
+{
+    OutMessages.Reset ();
+
+    TSet<FName> SeenEntryIds;
+    for (const FGridObjectPaletteEntry& Entry : Entries)
+    {
+        const FString EntryName = Entry.EntryId.IsNone ()
+            ? TEXT ("<unset>")
+            : Entry.EntryId.ToString ();
+
+        if (Entry.EntryId.IsNone ())
+        {
+            OutMessages.Emplace (EGridArchetypeValidationSeverity::Error, TEXT ("Palette entry requires EntryId."));
+        }
+        else if (SeenEntryIds.Contains (Entry.EntryId))
+        {
+            OutMessages.Emplace (
+                EGridArchetypeValidationSeverity::Error,
+                FString::Printf (TEXT ("Palette entry id '%s' is duplicated."), *EntryName));
+        }
+        else
+        {
+            SeenEntryIds.Add (Entry.EntryId);
+        }
+
+        if (!Entry.DefaultArchetype)
+        {
+            OutMessages.Emplace (
+                EGridArchetypeValidationSeverity::Error,
+                FString::Printf (TEXT ("Palette entry '%s' requires DefaultArchetype."), *EntryName));
+            continue;
+        }
+
+        if (Entry.DefaultArchetype->ArchetypeId.IsNone ())
+        {
+            OutMessages.Emplace (
+                EGridArchetypeValidationSeverity::Error,
+                FString::Printf (TEXT ("Palette entry '%s' DefaultArchetype requires ArchetypeId."), *EntryName));
+        }
+
+        if (Entry.DefaultArchetype->SupportedType == EGridLevelObjectType::None)
+        {
+            OutMessages.Emplace (
+                EGridArchetypeValidationSeverity::Error,
+                FString::Printf (TEXT ("Palette entry '%s' DefaultArchetype SupportedType must not be None."), *EntryName));
+        }
+    }
+
+    for (const FGridArchetypeValidationMessage& Message : OutMessages)
+    {
+        if (Message.Severity == EGridArchetypeValidationSeverity::Error)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}

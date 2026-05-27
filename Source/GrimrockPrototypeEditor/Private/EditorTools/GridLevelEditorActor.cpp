@@ -1144,27 +1144,19 @@ bool AGridLevelEditorActor::ApplyPaletteEntry (FName EntryId)
     }
 
     const FGridObjectPaletteEntry* Entry = ObjectPalette->FindEntryById (EntryId);
-    if (!Entry)
+    if (!Entry || !Entry->DefaultArchetype)
     {
         return false;
     }
-    SelectedPaletteEntryId = Entry->EntryId;
-    PaintObjectType = Entry->GetEffectiveObjectType ();
 
-    if (Entry->DefaultArchetype)
-    {
-        ObjectArchetypeId = Entry->DefaultArchetype->ArchetypeId;
-        SelectedArchetypeId = Entry->DefaultArchetype->ArchetypeId;
-        bObjectInitiallyEnabled = Entry->DefaultArchetype->bDefaultInitiallyEnabled;
-        bObjectInitiallyActive = Entry->DefaultArchetype->bDefaultInitiallyActive;
-        ObjectTag = Entry->DefaultArchetype->DefaultTag;
-        ObjectBehavior = Entry->DefaultArchetype->DefaultBehavior;
-    } else
-    {
-        ObjectArchetypeId = Entry->ArchetypeId;
-        SelectedArchetypeId = Entry->ArchetypeId;
-        ObjectBehavior = FGridObjectBehaviorParams ();
-    }
+    SelectedPaletteEntryId = Entry->EntryId;
+    PaintObjectType = Entry->DefaultArchetype->SupportedType;
+    ObjectArchetypeId = Entry->DefaultArchetype->ArchetypeId;
+    SelectedArchetypeId = Entry->DefaultArchetype->ArchetypeId;
+    bObjectInitiallyEnabled = Entry->DefaultArchetype->bDefaultInitiallyEnabled;
+    bObjectInitiallyActive = Entry->DefaultArchetype->bDefaultInitiallyActive;
+    ObjectTag = Entry->DefaultArchetype->DefaultTag;
+    ObjectBehavior = Entry->DefaultArchetype->DefaultBehavior;
 
     return true;
 }
@@ -1953,41 +1945,21 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         TSet<const UGridObjectArchetypeAsset*> ValidatedArchetypes;
         TSet<const UGridObjectArchetypeAsset*> DirectPaintItemArchetypes;
 
+        TArray<FGridArchetypeValidationMessage> PaletteMessages;
+        ObjectPalette->ValidatePalette (PaletteMessages);
+        for (const FGridArchetypeValidationMessage& PaletteMessage : PaletteMessages)
+        {
+            AddMessage (
+                ConvertArchetypeValidationSeverity (PaletteMessage.Severity),
+                FString::Printf (TEXT ("ObjectPalette: %s"), *PaletteMessage.Message));
+        }
+
         for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
         {
             const UGridObjectArchetypeAsset* Archetype = Entry.DefaultArchetype.Get ();
             if (!Archetype)
             {
                 continue;
-            }
-
-            if (!Entry.ArchetypeId.IsNone () && Entry.ArchetypeId != Archetype->ArchetypeId)
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Warning,
-                    FString::Printf (
-                        TEXT ("Palette entry %s defines ArchetypeId=%s but DefaultArchetype uses ArchetypeId=%s. DefaultArchetype takes precedence."),
-                        *Entry.EntryId.ToString (),
-                        *Entry.ArchetypeId.ToString (),
-                        *Archetype->ArchetypeId.ToString ()));
-            }
-
-            if (Entry.bPlaceOnEdge && !Archetype->IsEdgePlaced ())
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Warning,
-                    FString::Printf (
-                        TEXT ("Palette entry %s has legacy bPlaceOnEdge=true but DefaultArchetype PlacementKind is not edge/wall placed. PlacementKind is now the source of truth."),
-                        *Entry.EntryId.ToString ()));
-            }
-
-            if (Entry.bPlaceAtCellCenter && !Archetype->IsCenterPlaced ())
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Warning,
-                    FString::Printf (
-                        TEXT ("Palette entry %s has legacy bPlaceAtCellCenter=true but DefaultArchetype PlacementKind is not center/floor/ceiling placed. PlacementKind is now the source of truth."),
-                        *Entry.EntryId.ToString ()));
             }
 
             const FString ArchetypeName = Archetype->ArchetypeId.IsNone ()

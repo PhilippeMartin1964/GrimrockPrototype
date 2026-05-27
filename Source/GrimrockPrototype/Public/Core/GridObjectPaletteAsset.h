@@ -17,14 +17,13 @@ struct FGridObjectPaletteEntry
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
     FName EntryId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    FText DisplayName;
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
+        meta = (ToolTip = "Optional label override for this palette tile. Leave empty to use the archetype display name."))
+    FText DisplayNameOverride;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    FName Category = NAME_None;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    EGridLevelObjectType ObjectType = EGridLevelObjectType::None;
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
+        meta = (ToolTip = "Optional grouping override for this palette tile. Leave empty to use the archetype category."))
+    FName CategoryOverride = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
     TObjectPtr<UTexture2D> Icon = nullptr;
@@ -32,42 +31,38 @@ struct FGridObjectPaletteEntry
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
     TObjectPtr<UGridObjectArchetypeAsset> DefaultArchetype = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
-        meta = (ToolTip = "Optional explicit archetype id for entries backed by an archetype referenced elsewhere. DefaultArchetype takes precedence when set."))
-    FName ArchetypeId = NAME_None;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
-        meta = (AdvancedDisplay, ToolTip = "Legacy compatibility flag only. Archetype PlacementKind is now the source of truth."))
-    bool bPlaceOnEdge = false;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
-        meta = (AdvancedDisplay, ToolTip = "Legacy compatibility flag only. Archetype PlacementKind is now the source of truth."))
-    bool bPlaceAtCellCenter = true;
-
     FName GetEffectiveArchetypeId () const
     {
-        return DefaultArchetype ? DefaultArchetype->ArchetypeId : ArchetypeId;
+        return DefaultArchetype ? DefaultArchetype->ArchetypeId : NAME_None;
     }
 
     EGridLevelObjectType GetEffectiveObjectType () const
     {
-        return DefaultArchetype && DefaultArchetype->SupportedType != EGridLevelObjectType::None
+        return DefaultArchetype
             ? DefaultArchetype->SupportedType
-            : ObjectType;
+            : EGridLevelObjectType::None;
     }
 
     FName GetEffectiveCategory () const
     {
-        return DefaultArchetype && !DefaultArchetype->Category.IsNone ()
-            ? DefaultArchetype->Category
-            : Category;
+        if (!CategoryOverride.IsNone ())
+        {
+            return CategoryOverride;
+        }
+
+        if (DefaultArchetype && !DefaultArchetype->Category.IsNone ())
+        {
+            return DefaultArchetype->Category;
+        }
+
+        return FName (TEXT ("Uncategorized"));
     }
 
     FText GetEffectiveDisplayName () const
     {
-        if (!DisplayName.IsEmpty ())
+        if (!DisplayNameOverride.IsEmpty ())
         {
-            return DisplayName;
+            return DisplayNameOverride;
         }
 
         if (DefaultArchetype && !DefaultArchetype->DisplayName.IsEmpty ())
@@ -79,6 +74,14 @@ struct FGridObjectPaletteEntry
         return !EffectiveArchetypeId.IsNone ()
             ? FText::FromName (EffectiveArchetypeId)
             : FText::FromName (EntryId);
+    }
+
+    bool IsValidEntry () const
+    {
+        return !EntryId.IsNone () &&
+            DefaultArchetype &&
+            !DefaultArchetype->ArchetypeId.IsNone () &&
+            DefaultArchetype->SupportedType != EGridLevelObjectType::None;
     }
 };
 
@@ -99,4 +102,6 @@ public:
             return Entry.EntryId == EntryId;
         });
     }
+
+    bool ValidatePalette (TArray<FGridArchetypeValidationMessage>& OutMessages) const;
 };
