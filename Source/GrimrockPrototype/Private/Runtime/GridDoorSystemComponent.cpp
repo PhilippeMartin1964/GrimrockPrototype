@@ -76,7 +76,6 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
     {
         return false;
     }
-    SetDoorPassageBlocked (X, Y, Edge, true);
     DoorActor->OpenDoor ();
 
     return true;
