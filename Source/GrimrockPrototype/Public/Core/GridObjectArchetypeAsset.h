@@ -101,6 +101,12 @@ public:
         meta = (ToolTip = "Editor placement rule: allows this object to share the same edge/anchor with another object."))
     bool bCanShareAnchor = true;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement|Wall",
+        meta = (DisplayName = "Replaces Standard Wall",
+            EditCondition = "PlacementKind == EGridObjectPlacementKind::Wall || PlacementKind == EGridObjectPlacementKind::Edge",
+            EditConditionHides, ToolTip = "Hides the standard wall mesh on this object's solid wall edge."))
+    bool bReplacesStandardWall = false;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Placement",
         meta = (DisplayName = "Blocks Movement (Generic Object)", ToolTip = "Door passage blocking is handled by the door system. This flag is mainly for generic non-door objects."))
     bool bBlocksMovement = false;

@@ -12,19 +12,6 @@
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
 
-namespace
-{
-    bool IsWallReplacingObjectArchetype (FName ArchetypeId)
-    {
-        static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
-        static const FName CrackedStoneWallId (TEXT ("Decoration_Wall_Stone_Cracked"));
-        static const FName SewerDrainWallId (TEXT ("Decoration_Wall_Stone_SewerDrain"));
-        return ArchetypeId == StoneAlcoveId ||
-            ArchetypeId == CrackedStoneWallId ||
-            ArchetypeId == SewerDrainWallId;
-    }
-}
-
 bool AGridLevelRuntimeActor::IsSafeRuntimeRenderTransform (const FTransform& Transform)
 {
     constexpr float MinAbsScale = 0.001f;
@@ -279,10 +266,13 @@ bool AGridLevelRuntimeActor::ShouldSuppressStandardWallForEdge (int32 X, int32 Y
     {
         if (ObjectData.CellX == X &&
             ObjectData.CellY == Y &&
-            ObjectData.Edge == Edge &&
-            IsWallReplacingObjectArchetype (ObjectData.ArchetypeId))
+            ObjectData.Edge == Edge)
         {
-            return true;
+            const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+            if (Archetype && Archetype->bReplacesStandardWall)
+            {
+                return true;
+            }
         }
     }
 

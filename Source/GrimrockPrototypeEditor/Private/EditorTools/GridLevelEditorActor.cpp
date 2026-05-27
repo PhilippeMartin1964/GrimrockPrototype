@@ -35,16 +35,6 @@ namespace
         {TEXT ("Receptacle_OfferingBowl"), EGridLevelObjectType::Receptacle}
     };
 
-    bool IsWallReplacingObjectArchetype (FName ArchetypeId)
-    {
-        static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
-        static const FName CrackedStoneWallId (TEXT ("Decoration_Wall_Stone_Cracked"));
-        static const FName SewerDrainWallId (TEXT ("Decoration_Wall_Stone_SewerDrain"));
-        return ArchetypeId == StoneAlcoveId ||
-            ArchetypeId == CrackedStoneWallId ||
-            ArchetypeId == SewerDrainWallId;
-    }
-
     EGridWallType GetWallTypeForEdge (const FGridLevelCellData& CellData, EGridEdge Edge)
     {
         switch (Edge)
@@ -570,7 +560,8 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: PaintObjectType is None."));
         return;
     }
-    const bool bIsWallReplacingObject = IsWallReplacingObjectArchetype (ObjectArchetypeId);
+    const UGridObjectArchetypeAsset* ObjectArchetype = FindObjectArchetypeById (ObjectArchetypeId);
+    const bool bIsWallReplacingObject = ObjectArchetype && ObjectArchetype->bReplacesStandardWall;
     const bool bIsStoneAlcoveReceptacle = ObjectArchetypeId == FName (TEXT ("Receptacle_Alcove_Stone"));
     const bool bPlaceObjectOnEdge = bIsWallReplacingObject || IsEdgePlacedObject (PaintObjectType, ObjectArchetypeId);
     if (bPlaceObjectOnEdge && SelectedEdge == EGridEdge::None)
@@ -578,7 +569,7 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
         UE_LOG (LogTemp, Warning, TEXT ("GridLevelEditorActor: this object type requires a valid edge."));
         return;
     }
-    if (FindObjectArchetypeById (ObjectArchetypeId))
+    if (ObjectArchetype)
     {
         RemoveObjectsConflictingWithPlacementInternal (PaintObjectType, ObjectArchetypeId, bPlaceObjectOnEdge);
     } else

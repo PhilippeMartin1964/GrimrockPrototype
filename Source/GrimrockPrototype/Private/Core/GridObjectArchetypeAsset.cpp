@@ -303,6 +303,16 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Legacy bPlaceAtCellCenter=true but PlacementKind is not Center, Floor, or Ceiling. PlacementKind is now the source of truth."));
     }
 
+    if (bReplacesStandardWall && !IsWallOrEdgePlacement (PlacementKind))
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Replaces Standard Wall is enabled but PlacementKind is not Wall or Edge."));
+    }
+
+    if (bReplacesStandardWall && bCanShareAnchor)
+    {
+        AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Replaces Standard Wall is enabled while bCanShareAnchor=true. Multiple wall replacements can overlap on the same edge."));
+    }
+
     if (!IsObjectCategoryCompatible (SupportedType, ObjectCategory, bIsReadable))
     {
         if (SupportedType == EGridLevelObjectType::Decoration && bIsReadable)
