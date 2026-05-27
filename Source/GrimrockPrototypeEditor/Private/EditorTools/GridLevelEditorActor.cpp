@@ -29,6 +29,7 @@ namespace
         {TEXT ("Receptacle_Alcove"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Alcove_Stone"), EGridLevelObjectType::Receptacle},
         {TEXT ("Decoration_Wall_Stone_Cracked"), EGridLevelObjectType::Decoration},
+        {TEXT ("Decoration_Wall_Stone_SewerDrain"), EGridLevelObjectType::Decoration},
         {TEXT ("Receptacle_TorchHolder"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_Altar"), EGridLevelObjectType::Receptacle},
         {TEXT ("Receptacle_OfferingBowl"), EGridLevelObjectType::Receptacle}
@@ -38,7 +39,10 @@ namespace
     {
         static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
         static const FName CrackedStoneWallId (TEXT ("Decoration_Wall_Stone_Cracked"));
-        return ArchetypeId == StoneAlcoveId || ArchetypeId == CrackedStoneWallId;
+        static const FName SewerDrainWallId (TEXT ("Decoration_Wall_Stone_SewerDrain"));
+        return ArchetypeId == StoneAlcoveId ||
+            ArchetypeId == CrackedStoneWallId ||
+            ArchetypeId == SewerDrainWallId;
     }
 
     EGridWallType GetWallTypeForEdge (const FGridLevelCellData& CellData, EGridEdge Edge)

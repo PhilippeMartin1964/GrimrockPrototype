@@ -18,7 +18,10 @@ namespace
     {
         static const FName StoneAlcoveId (TEXT ("Receptacle_Alcove_Stone"));
         static const FName CrackedStoneWallId (TEXT ("Decoration_Wall_Stone_Cracked"));
-        return ArchetypeId == StoneAlcoveId || ArchetypeId == CrackedStoneWallId;
+        static const FName SewerDrainWallId (TEXT ("Decoration_Wall_Stone_SewerDrain"));
+        return ArchetypeId == StoneAlcoveId ||
+            ArchetypeId == CrackedStoneWallId ||
+            ArchetypeId == SewerDrainWallId;
     }
 }
 
