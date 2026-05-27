@@ -209,14 +209,16 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHi
     {
         return false;
     }
+    APawn* ControlledPawn = GetPawn ();
+    if (!ControlledPawn)
+    {
+        return false;
+    }
     const FVector Start = WorldOrigin;
     const FVector End = Start + WorldDirection * 10000.f;
     FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridMouseInteractionTrace), true);
 
-    if (APawn* ControlledPawn = GetPawn ())
-    {
-        QueryParams.AddIgnoredActor (ControlledPawn);
-    }
+    QueryParams.AddIgnoredActor (ControlledPawn);
     TArray<FHitResult> Hits;
     if (!World->LineTraceMultiByChannel (Hits, Start, End, ECC_Visibility, QueryParams))
     {
@@ -231,6 +233,13 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHi
         }
 
         if (!HitActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
+        {
+            continue;
+        }
+
+        UPrimitiveComponent* HitComponent = Hit.GetComponent ();
+        if (!HitComponent ||
+            !IGridInteractableInterface::Execute_CanInteract (HitActor, ControlledPawn, HitComponent))
         {
             continue;
         }

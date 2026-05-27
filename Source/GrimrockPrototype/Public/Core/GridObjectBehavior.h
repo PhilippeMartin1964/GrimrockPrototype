@@ -43,6 +43,24 @@ struct FGridReceptacleBehaviorParams
         meta = (DisplayName = "Physical Placement",
             ToolTip = "Place inserted items at the clicked surface point with gravity and physics instead of attaching them to the fixed socket."))
     bool bUsePhysicalPlacement = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (DisplayName = "Extinguish Item On Physical Placement",
+            EditCondition = "bUsePhysicalPlacement", EditConditionHides,
+            ToolTip = "Disable an item's runtime light when it is inserted using physical placement."))
+    bool bExtinguishItemOnPhysicalPlacement = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (DisplayName = "Physical Placement Surface Offset",
+            ClampMin = "0.0", EditCondition = "bUsePhysicalPlacement", EditConditionHides,
+            ToolTip = "Distance in centimeters added along the clicked surface normal before physics starts."))
+    float PhysicalPlacementSurfaceOffset = 10.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (DisplayName = "Physical Placement Initial Rotation Offset",
+            EditCondition = "bUsePhysicalPlacement", EditConditionHides,
+            ToolTip = "Rotation offset applied relative to the receptacle attach-point orientation before physics starts."))
+    FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
 };
 
 USTRUCT (BlueprintType)

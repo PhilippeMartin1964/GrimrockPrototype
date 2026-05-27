@@ -43,6 +43,9 @@ public:
     virtual void OnRemovedFromWorld ();
 
     UFUNCTION (BlueprintCallable, Category = "Item")
+    void SetItemLightsEnabled (bool bEnabled);
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
     void ConfigureAsWorldPickup ();
 
     UFUNCTION (BlueprintCallable, Category = "Item")

@@ -37,19 +37,15 @@ void AGridItemActor::InitializeItem (FName InArchetypeId, const TArray<FName>& I
 
 void AGridItemActor::OnPlacedInWorld ()
 {
-    TArray<UGridLightEmitterComponent*> LightEmitters;
-    GetComponents<UGridLightEmitterComponent> (LightEmitters);
-
-    for (UGridLightEmitterComponent* LightEmitter : LightEmitters)
-    {
-        if (LightEmitter)
-        {
-            LightEmitter->SetLightEnabled (true);
-        }
-    }
+    SetItemLightsEnabled (true);
 }
 
 void AGridItemActor::OnRemovedFromWorld ()
+{
+    SetItemLightsEnabled (false);
+}
+
+void AGridItemActor::SetItemLightsEnabled (bool bEnabled)
 {
     TArray<UGridLightEmitterComponent*> LightEmitters;
     GetComponents<UGridLightEmitterComponent> (LightEmitters);
@@ -58,7 +54,7 @@ void AGridItemActor::OnRemovedFromWorld ()
     {
         if (LightEmitter)
         {
-            LightEmitter->SetLightEnabled (false);
+            LightEmitter->SetLightEnabled (bEnabled);
         }
     }
 }

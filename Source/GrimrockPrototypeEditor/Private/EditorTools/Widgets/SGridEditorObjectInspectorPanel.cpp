@@ -1455,6 +1455,73 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                         ]
                 ]
 
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
+                [
+                    SNew (SCheckBox)
+                        .IsChecked (Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.Receptacle.bExtinguishItemOnPhysicalPlacement = NewState == ECheckBoxState::Checked;
+                        ApplyBehavior (NewBehavior);
+                    })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Extinguish Item On Physical Placement")))
+                        ]
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    BuildBehaviorFloatSpinBoxRow (
+                        FText::FromString (TEXT ("Physical Placement Surface Offset")),
+                        Behavior.Receptacle.PhysicalPlacementSurfaceOffset,
+                        [Obj, ApplyBehavior] (float NewValue)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.Receptacle.PhysicalPlacementSurfaceOffset = FMath::Max (0.f, NewValue);
+                            ApplyBehavior (NewBehavior);
+                        })
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    BuildBehaviorFloatSpinBoxRow (
+                        FText::FromString (TEXT ("Physical Rotation Pitch")),
+                        Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.Pitch,
+                        [Obj, ApplyBehavior] (float NewValue)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.Receptacle.PhysicalPlacementInitialRotationOffset.Pitch = NewValue;
+                            ApplyBehavior (NewBehavior);
+                        })
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    BuildBehaviorFloatSpinBoxRow (
+                        FText::FromString (TEXT ("Physical Rotation Yaw")),
+                        Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.Yaw,
+                        [Obj, ApplyBehavior] (float NewValue)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.Receptacle.PhysicalPlacementInitialRotationOffset.Yaw = NewValue;
+                            ApplyBehavior (NewBehavior);
+                        })
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    BuildBehaviorFloatSpinBoxRow (
+                        FText::FromString (TEXT ("Physical Rotation Roll")),
+                        Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.Roll,
+                        [Obj, ApplyBehavior] (float NewValue)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.Receptacle.PhysicalPlacementInitialRotationOffset.Roll = NewValue;
+                            ApplyBehavior (NewBehavior);
+                        })
+                ]
+
             + SVerticalBox::Slot ().AutoHeight ()
                 [
                     GridEditorWidgetHelpers::BuildGridPropertyRow (

@@ -222,7 +222,10 @@ namespace
             Behavior.Receptacle.AcceptedArchetypeIds.Num () > 0 ||
             Behavior.Receptacle.RejectedItemArchetypeIds.Num () > 0 ||
             !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
-            Behavior.Receptacle.bUsePhysicalPlacement;
+            Behavior.Receptacle.bUsePhysicalPlacement ||
+            !Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement ||
+            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPlacementSurfaceOffset, 10.f) ||
+            !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero ();
     }
 
     bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)

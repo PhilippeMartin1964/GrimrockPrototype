@@ -48,6 +48,15 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bUsePhysicalPlacement = false;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    bool bExtinguishItemOnPhysicalPlacement = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (ClampMin = "0.0"))
+    float PhysicalPlacementSurfaceOffset = 10.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
+
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     FName ContainedItemArchetypeId = NAME_None;
 

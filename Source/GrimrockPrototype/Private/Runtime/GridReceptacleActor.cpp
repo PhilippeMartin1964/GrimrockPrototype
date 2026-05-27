@@ -167,6 +167,9 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     RejectedItemArchetypeIds = ObjectData.Behavior.Receptacle.RejectedItemArchetypeIds;
     InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
     bUsePhysicalPlacement = ObjectData.Behavior.Receptacle.bUsePhysicalPlacement;
+    bExtinguishItemOnPhysicalPlacement = ObjectData.Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement;
+    PhysicalPlacementSurfaceOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementSurfaceOffset;
+    PhysicalPlacementInitialRotationOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementInitialRotationOffset;
     bStartsFilled = ObjectData.bInitiallyActive;
 
     if (MeshComponent && bUsePhysicalPlacement)
@@ -444,11 +447,13 @@ void AGridReceptacleActor::AttachContainedItemActor (const FHitResult* Placement
     {
         ContainedItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
         const FVector PlacementLocation = PlacementHitResult && PlacementHitResult->bBlockingHit
-            ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * 2.f
+            ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * PhysicalPlacementSurfaceOffset
             : (ItemAttachPoint ? ItemAttachPoint->GetComponentLocation () : GetActorLocation ());
-        ContainedItemActor->SetActorLocation (PlacementLocation, false, nullptr, ETeleportType::TeleportPhysics);
+        const FQuat BaseRotation = ItemAttachPoint ? ItemAttachPoint->GetComponentQuat () : GetActorQuat ();
+        const FQuat PlacementRotation = BaseRotation * PhysicalPlacementInitialRotationOffset.Quaternion ();
+        ContainedItemActor->SetActorLocationAndRotation (PlacementLocation, PlacementRotation, false, nullptr, ETeleportType::TeleportPhysics);
         ContainedItemActor->ConfigureAsWorldPickup ();
-        ContainedItemActor->OnRemovedFromWorld ();
+        ContainedItemActor->SetItemLightsEnabled (!bExtinguishItemOnPhysicalPlacement);
     }
     else
     {
@@ -486,6 +491,12 @@ void AGridReceptacleActor::ClearContainedItemActor ()
 void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
 {
     const bool bCanTake = HasItem () && bCanRemoveItem;
+
+    if (MeshComponent)
+    {
+        const bool bExposePhysicalItemToCursor = bUsePhysicalPlacement && IsValid (ContainedItemActor);
+        MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, bExposePhysicalItemToCursor ? ECR_Ignore : ECR_Block);
+    }
 
     if (ContainedItemMesh)
     {
