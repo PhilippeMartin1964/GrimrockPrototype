@@ -40,6 +40,10 @@ struct FGridReceptacleBehaviorParams
     FName InitialContainedItemArchetypeId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (DisplayName = "Max Contained Items", ClampMin = "1"))
+    int32 MaxContainedItems = 1;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Physical Placement",
             ToolTip = "Place inserted items at the clicked surface point with gravity and physics instead of attaching them to the fixed socket."))
     bool bUsePhysicalPlacement = false;

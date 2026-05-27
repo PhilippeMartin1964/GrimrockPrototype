@@ -66,20 +66,36 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return false;
     }
 
-    if ((!bUsePhysicalPlacement && HasItem ()) || !bCanInsertItem)
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    const FName HeldItemId = PartyPawn ? PartyPawn->GetHeldItemArchetypeId () : NAME_None;
+    auto LogInsertionRefusal = [this, HeldItemId] (const TCHAR* Reason)
     {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle insertion refused: ObjectId=%s Reason=%s bUsePhysicalPlacement=%s ContainedItemCount=%d MaxContainedItems=%d bCanInsertItem=%s HeldItemId=%s"),
+            *ObjectId.ToString (),
+            Reason,
+            bUsePhysicalPlacement ? TEXT ("true") : TEXT ("false"),
+            GetContainedItemCount (),
+            MaxContainedItems,
+            bCanInsertItem ? TEXT ("true") : TEXT ("false"),
+            *HeldItemId.ToString ());
+    };
+
+    if (!bCanInsertItem || IsFull ())
+    {
+        LogInsertionRefusal (TEXT ("not insertable or full"));
         return false;
     }
 
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
     if (!PartyPawn)
     {
+        LogInsertionRefusal (TEXT ("no party pawn"));
         return false;
     }
 
-    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
     if (HeldItemId.IsNone ())
     {
+        LogInsertionRefusal (TEXT ("no held item"));
         return false;
     }
 
@@ -93,7 +109,12 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         }
     }
 
-    return CanAcceptItemArchetype (HeldItemId, HeldItemTags);
+    const bool bCanAcceptHeldItem = CanAcceptItemArchetype (HeldItemId, HeldItemTags);
+    if (!bCanAcceptHeldItem)
+    {
+        LogInsertionRefusal (TEXT ("held item not accepted"));
+    }
+    return bCanAcceptHeldItem;
 }
 
 void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -141,7 +162,7 @@ EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation
         return EGridInteractionCursor::Take;
     }
 
-    if (HitComponent == MeshComponent && (bUsePhysicalPlacement || !HasItem ()) && bCanInsertItem)
+    if (HitComponent == MeshComponent && !IsFull () && bCanInsertItem)
     {
         return EGridInteractionCursor::Use;
     }
@@ -156,7 +177,7 @@ FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveCompone
         return FText::FromString (TEXT ("Take"));
     }
 
-    if (HitComponent == MeshComponent && (bUsePhysicalPlacement || !HasItem ()) && bCanInsertItem)
+    if (HitComponent == MeshComponent && !IsFull () && bCanInsertItem)
     {
         return FText::FromString (TEXT ("Place item"));
     }
@@ -174,6 +195,7 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     AcceptedArchetypeIds = ObjectData.Behavior.Receptacle.AcceptedArchetypeIds;
     RejectedItemArchetypeIds = ObjectData.Behavior.Receptacle.RejectedItemArchetypeIds;
     InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
+    MaxContainedItems = FMath::Max (1, ObjectData.Behavior.Receptacle.MaxContainedItems);
     bUsePhysicalPlacement = ObjectData.Behavior.Receptacle.bUsePhysicalPlacement;
     bExtinguishItemOnPhysicalPlacement = ObjectData.Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement;
     PhysicalPlacementSurfaceOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementSurfaceOffset;
@@ -234,6 +256,13 @@ int32 AGridReceptacleActor::GetContainedItemCount () const
         return Count;
     }
     return HasItem () ? 1 : 0;
+}
+
+bool AGridReceptacleActor::IsFull () const
+{
+    return bUsePhysicalPlacement
+        ? GetContainedItemCount () >= FMath::Max (1, MaxContainedItems)
+        : HasItem ();
 }
 
 bool AGridReceptacleActor::CanAcceptItem (FName ItemId) const
@@ -717,9 +746,9 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemArchetyp
         return TEXT ("insertion is disabled");
     }
 
-    if (!bUsePhysicalPlacement && HasItem ())
+    if (IsFull ())
     {
-        return TEXT ("receptacle already contains an item");
+        return FString::Printf (TEXT ("receptacle is full (%d/%d)"), GetContainedItemCount (), FMath::Max (1, MaxContainedItems));
     }
 
     if (ItemArchetypeId.IsNone ())

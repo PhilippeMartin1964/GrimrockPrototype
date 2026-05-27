@@ -45,6 +45,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (ClampMin = "1"))
+    int32 MaxContainedItems = 1;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bUsePhysicalPlacement = false;
 
@@ -93,6 +96,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     int32 GetContainedItemCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool IsFull () const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool CanAcceptItem (FName ItemId) const;

@@ -1455,6 +1455,24 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                         ]
                 ]
 
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Max Contained Items")),
+                        SNew (SSpinBox<int32>)
+                            .Value (Behavior.Receptacle.MaxContainedItems)
+                            .MinValue (1)
+                            .MinSliderValue (1)
+                            .Delta (1)
+                            .MinDesiredWidth (90.f)
+                            .OnValueCommitted_Lambda ([Obj, ApplyBehavior] (int32 NewValue, ETextCommit::Type CommitType)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            NewBehavior.Receptacle.MaxContainedItems = FMath::Max (1, NewValue);
+                            ApplyBehavior (NewBehavior);
+                        }))
+                ]
+
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
                 [
                     SNew (SCheckBox)
