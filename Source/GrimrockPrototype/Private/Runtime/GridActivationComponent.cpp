@@ -581,13 +581,13 @@ bool UGridActivationComponent::ActivateReceptacle (
     {
         return false;
     }
-    const bool bHadItem = ReceptacleActor->HasItem ();
+    const int32 PreviousItemCount = ReceptacleActor->GetContainedItemCount ();
     if (!ReceptacleActor->TryInteractWithParty (PartyPawn))
     {
         return false;
     }
-    const bool bHasItemNow = ReceptacleActor->HasItem ();
-    if (bHasItemNow)
+    const int32 CurrentItemCount = ReceptacleActor->GetContainedItemCount ();
+    if (CurrentItemCount > 0)
     {
         ActiveObjectIds.Add (ObjectData.ObjectId);
     } else
@@ -595,13 +595,13 @@ bool UGridActivationComponent::ActivateReceptacle (
         ActiveObjectIds.Remove (ObjectData.ObjectId);
     }
 
-    if (!bHadItem && bHasItemNow)
+    if (CurrentItemCount > PreviousItemCount)
     {
         ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemInserted);
         ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemChanged);
         return true;
     }
-    if (bHadItem && !bHasItemNow)
+    if (CurrentItemCount < PreviousItemCount)
     {
         ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemRemoved);
         ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemChanged);

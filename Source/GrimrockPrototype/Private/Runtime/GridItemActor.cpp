@@ -141,6 +141,12 @@ void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveC
     }
 }
 
+void AGridItemActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
+{
+    (void)HitResult;
+    Interact_Implementation (InstigatorPawn, HitComponent);
+}
+
 EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
     if (HitComponent != MeshComponent || ArchetypeId.IsNone ())

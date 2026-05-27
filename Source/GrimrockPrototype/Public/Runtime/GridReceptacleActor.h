@@ -66,6 +66,9 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     TObjectPtr<AGridItemActor> ContainedItemActor;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    TArray<TObjectPtr<AGridItemActor>> ContainedItemActors;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bCanInsertItem = true;
 
@@ -89,6 +92,9 @@ public:
     bool HasItem () const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    int32 GetContainedItemCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool CanAcceptItem (FName ItemId) const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
@@ -105,6 +111,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool TryTakeContainedItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId);
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
@@ -129,10 +138,14 @@ protected:
 
     void ExecuteInsertionLinks ();
     void ExecuteRemovalLinks ();
+    void AttachContainedItemActor (AGridItemActor* ItemActor, const FHitResult* PlacementHitResult = nullptr);
     void AttachContainedItemActor (const FHitResult* PlacementHitResult = nullptr);
-    void ClearContainedItemActor ();
+    void ClearContainedItemActor (AGridItemActor* ItemActor = nullptr);
     void UpdateContainedItemInteractionCollision ();
     bool IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const;
+    AGridItemActor* FindContainedItemActorForComponent (UPrimitiveComponent* HitComponent) const;
+    AGridItemActor* GetDefaultContainedItemActor () const;
+    void RebuildContainedItemState ();
     FString GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const;
 
 private:
@@ -143,4 +156,7 @@ private:
     TObjectPtr<UMaterialInterface> RuntimeContainedItemMaterial = nullptr;
 
     TOptional<FHitResult> PendingPlacementHitResult;
+
+    UPROPERTY (Transient)
+    TObjectPtr<AGridItemActor> PendingRemovalItemActor = nullptr;
 };

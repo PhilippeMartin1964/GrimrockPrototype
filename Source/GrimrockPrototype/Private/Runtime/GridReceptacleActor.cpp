@@ -43,6 +43,7 @@ void AGridReceptacleActor::BeginPlay ()
 
     if (ContainedItemActor)
     {
+        ContainedItemActors.AddUnique (ContainedItemActor);
         AttachContainedItemActor ();
         SetContainedItem (ContainedItemActor->ArchetypeId);
     }
@@ -65,7 +66,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return false;
     }
 
-    if (HasItem () || !bCanInsertItem)
+    if ((!bUsePhysicalPlacement && HasItem ()) || !bCanInsertItem)
     {
         return false;
     }
@@ -108,16 +109,23 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
         return;
     }
 
+    AGridItemActor* PreviousPendingRemovalItemActor = PendingRemovalItemActor;
+    if (!PreviousPendingRemovalItemActor && IsContainedItemHitComponent (HitComponent))
+    {
+        PendingRemovalItemActor = FindContainedItemActorForComponent (HitComponent);
+    }
+
     AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
     if (RuntimeActor)
     {
         RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
     }
+    PendingRemovalItemActor = PreviousPendingRemovalItemActor;
 }
 
 void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
 {
-    if (bUsePhysicalPlacement && HitComponent == MeshComponent && !HasItem ())
+    if (bUsePhysicalPlacement && HitComponent == MeshComponent)
     {
         PendingPlacementHitResult = HitResult;
     }
@@ -133,7 +141,7 @@ EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation
         return EGridInteractionCursor::Take;
     }
 
-    if (HitComponent == MeshComponent && !HasItem () && bCanInsertItem)
+    if (HitComponent == MeshComponent && (bUsePhysicalPlacement || !HasItem ()) && bCanInsertItem)
     {
         return EGridInteractionCursor::Use;
     }
@@ -148,7 +156,7 @@ FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveCompone
         return FText::FromString (TEXT ("Take"));
     }
 
-    if (HitComponent == MeshComponent && !HasItem () && bCanInsertItem)
+    if (HitComponent == MeshComponent && (bUsePhysicalPlacement || !HasItem ()) && bCanInsertItem)
     {
         return FText::FromString (TEXT ("Place item"));
     }
@@ -194,7 +202,38 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 
 bool AGridReceptacleActor::HasItem () const
 {
+    if (bUsePhysicalPlacement)
+    {
+        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        {
+            if (IsValid (ItemActor))
+            {
+                return true;
+            }
+        }
+    }
     return !ContainedItemArchetypeId.IsNone () || IsValid (ContainedItemActor);
+}
+
+int32 AGridReceptacleActor::GetContainedItemCount () const
+{
+    if (bUsePhysicalPlacement)
+    {
+        int32 Count = 0;
+        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        {
+            if (IsValid (ItemActor))
+            {
+                ++Count;
+            }
+        }
+        if (Count == 0 && !ContainedItemArchetypeId.IsNone ())
+        {
+            return 1;
+        }
+        return Count;
+    }
+    return HasItem () ? 1 : 0;
 }
 
 bool AGridReceptacleActor::CanAcceptItem (FName ItemId) const
@@ -270,8 +309,9 @@ bool AGridReceptacleActor::TryInsertItemActor (AGridItemActor* ItemActor)
     }
 
     ContainedItemActor = ItemActor;
-    AttachContainedItemActor (PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
-    SetContainedItem (ItemActor->ArchetypeId);
+    ContainedItemActors.AddUnique (ItemActor);
+    AttachContainedItemActor (ItemActor, PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
+    RebuildContainedItemState ();
     return true;
 }
 
@@ -283,9 +323,10 @@ bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
         return false;
     }
 
-    OutRemovedItemId = ContainedItemArchetypeId;
-    ClearContainedItemActor ();
-    SetContainedItem (NAME_None);
+    AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
+    OutRemovedItemId = ItemActorToRemove ? ItemActorToRemove->ArchetypeId : ContainedItemArchetypeId;
+    ClearContainedItemActor (ItemActorToRemove);
+    RebuildContainedItemState ();
     return true;
 }
 
@@ -313,6 +354,14 @@ bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, 
     return false;
 }
 
+bool AGridReceptacleActor::TryTakeContainedItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId)
+{
+    PendingRemovalItemActor = ItemActor;
+    const bool bTaken = TryTakeContainedItem (PartyPawn, OutRemovedItemId);
+    PendingRemovalItemActor = nullptr;
+    return bTaken;
+}
+
 bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 {
     if (!PartyPawn)
@@ -320,7 +369,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return false;
     }
 
-    if (HasItem ())
+    if (IsValid (PendingRemovalItemActor) || (!bUsePhysicalPlacement && HasItem ()))
     {
         FName RemovedItemId = NAME_None;
         if (!TryTakeContainedItem (PartyPawn, RemovedItemId))
@@ -400,7 +449,7 @@ void AGridReceptacleActor::SetContainedItem (FName NewItemId)
 {
     ContainedItemArchetypeId = NewItemId;
     ContainedItemId = NewItemId;
-    const bool bVisible = HasItem () && !ContainedItemActor;
+    const bool bVisible = HasItem () && !IsValid (ContainedItemActor);
     if (!ContainedItemMesh)
     {
         UpdateContainedItemInteractionCollision ();
@@ -426,42 +475,45 @@ void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemAct
     ContainedItemActor = ItemActor;
     if (ContainedItemActor)
     {
-        ContainedItemTags = ContainedItemActor->ItemTags;
-        SetContainedItem (ContainedItemActor->ArchetypeId);
-        AttachContainedItemActor ();
+        ContainedItemActors.AddUnique (ContainedItemActor);
+        AttachContainedItemActor (ContainedItemActor);
+        RebuildContainedItemState ();
     }
     UpdateContainedItemInteractionCollision ();
 }
 
 void AGridReceptacleActor::AttachContainedItemActor (const FHitResult* PlacementHitResult)
 {
-    if (!ContainedItemActor)
+    AttachContainedItemActor (ContainedItemActor, PlacementHitResult);
+}
+
+void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, const FHitResult* PlacementHitResult)
+{
+    if (!ItemActor)
     {
         UpdateContainedItemInteractionCollision ();
         return;
     }
 
-    ContainedItemTags = ContainedItemActor->ItemTags;
-
     if (bUsePhysicalPlacement)
     {
-        ContainedItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
         const FVector PlacementLocation = PlacementHitResult && PlacementHitResult->bBlockingHit
             ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * PhysicalPlacementSurfaceOffset
             : (ItemAttachPoint ? ItemAttachPoint->GetComponentLocation () : GetActorLocation ());
         const FQuat BaseRotation = ItemAttachPoint ? ItemAttachPoint->GetComponentQuat () : GetActorQuat ();
         const FQuat PlacementRotation = BaseRotation * PhysicalPlacementInitialRotationOffset.Quaternion ();
-        ContainedItemActor->SetActorLocationAndRotation (PlacementLocation, PlacementRotation, false, nullptr, ETeleportType::TeleportPhysics);
-        ContainedItemActor->ConfigureAsWorldPickup ();
-        ContainedItemActor->SetItemLightsEnabled (!bExtinguishItemOnPhysicalPlacement);
+        ItemActor->SetActorLocationAndRotation (PlacementLocation, PlacementRotation, false, nullptr, ETeleportType::TeleportPhysics);
+        ItemActor->ConfigureAsWorldPickup ();
+        ItemActor->SetItemLightsEnabled (!bExtinguishItemOnPhysicalPlacement);
     }
     else
     {
         USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
-        ContainedItemActor->ConfigureAsAttachedItem ();
-        ContainedItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-        ContainedItemActor->SetActorRelativeTransform (FTransform::Identity);
-        ContainedItemActor->OnPlacedInWorld ();
+        ItemActor->ConfigureAsAttachedItem ();
+        ItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+        ItemActor->SetActorRelativeTransform (FTransform::Identity);
+        ItemActor->OnPlacedInWorld ();
     }
 
     if (ContainedItemMesh)
@@ -472,19 +524,24 @@ void AGridReceptacleActor::AttachContainedItemActor (const FHitResult* Placement
     UpdateContainedItemInteractionCollision ();
 }
 
-void AGridReceptacleActor::ClearContainedItemActor ()
+void AGridReceptacleActor::ClearContainedItemActor (AGridItemActor* ItemActor)
 {
-    if (!ContainedItemActor)
+    AGridItemActor* ItemActorToClear = ItemActor ? ItemActor : ContainedItemActor.Get ();
+    if (!ItemActorToClear)
     {
         ContainedItemTags.Reset ();
         UpdateContainedItemInteractionCollision ();
         return;
     }
 
-    ContainedItemActor->OnRemovedFromWorld ();
-    ContainedItemActor->Destroy ();
-    ContainedItemActor = nullptr;
-    ContainedItemTags.Reset ();
+    ContainedItemActors.Remove (ItemActorToClear);
+    if (ContainedItemActor == ItemActorToClear)
+    {
+        ContainedItemActor = nullptr;
+    }
+    ItemActorToClear->OnRemovedFromWorld ();
+    ItemActorToClear->Destroy ();
+    RebuildContainedItemState ();
     UpdateContainedItemInteractionCollision ();
 }
 
@@ -494,7 +551,7 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
 
     if (MeshComponent)
     {
-        const bool bExposePhysicalItemToCursor = bUsePhysicalPlacement && IsValid (ContainedItemActor);
+        const bool bExposePhysicalItemToCursor = bUsePhysicalPlacement && GetContainedItemCount () > 0;
         MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, bExposePhysicalItemToCursor ? ECR_Ignore : ECR_Block);
     }
 
@@ -507,21 +564,41 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
         ContainedItemMesh->SetGenerateOverlapEvents (false);
     }
 
-    if (ContainedItemActor && ContainedItemActor->MeshComponent)
+    TArray<AGridItemActor*> ItemActorsToUpdate;
+    if (bUsePhysicalPlacement)
     {
+        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        {
+            if (IsValid (ItemActor))
+            {
+                ItemActorsToUpdate.Add (ItemActor.Get ());
+            }
+        }
+    }
+    else if (ContainedItemActor)
+    {
+        ItemActorsToUpdate.Add (ContainedItemActor.Get ());
+    }
+
+    for (AGridItemActor* ItemActor : ItemActorsToUpdate)
+    {
+        if (!ItemActor || !ItemActor->MeshComponent)
+        {
+            continue;
+        }
         if (bUsePhysicalPlacement)
         {
-            ContainedItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
-            ContainedItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
-            ContainedItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+            ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+            ItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+            ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
         }
         else
         {
-            ContainedItemActor->MeshComponent->SetCollisionEnabled (bCanTake ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-            ContainedItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
-            ContainedItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+            ItemActor->MeshComponent->SetCollisionEnabled (bCanTake ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+            ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+            ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
         }
-        ContainedItemActor->MeshComponent->SetGenerateOverlapEvents (false);
+        ItemActor->MeshComponent->SetGenerateOverlapEvents (false);
     }
 }
 
@@ -537,7 +614,100 @@ bool AGridReceptacleActor::IsContainedItemHitComponent (UPrimitiveComponent* Hit
         return true;
     }
 
-    return ContainedItemActor && HitComponent == ContainedItemActor->MeshComponent;
+    return FindContainedItemActorForComponent (HitComponent) != nullptr;
+}
+
+AGridItemActor* AGridReceptacleActor::FindContainedItemActorForComponent (UPrimitiveComponent* HitComponent) const
+{
+    if (!HitComponent)
+    {
+        return nullptr;
+    }
+    if (bUsePhysicalPlacement)
+    {
+        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        {
+            if (IsValid (ItemActor) && HitComponent == ItemActor->MeshComponent)
+            {
+                return ItemActor.Get ();
+            }
+        }
+        return nullptr;
+    }
+    return ContainedItemActor && HitComponent == ContainedItemActor->MeshComponent
+        ? ContainedItemActor.Get ()
+        : nullptr;
+}
+
+AGridItemActor* AGridReceptacleActor::GetDefaultContainedItemActor () const
+{
+    if (IsValid (PendingRemovalItemActor))
+    {
+        return PendingRemovalItemActor.Get ();
+    }
+    if (bUsePhysicalPlacement)
+    {
+        for (int32 Index = ContainedItemActors.Num () - 1; Index >= 0; --Index)
+        {
+            if (IsValid (ContainedItemActors[Index]))
+            {
+                return ContainedItemActors[Index].Get ();
+            }
+        }
+        return nullptr;
+    }
+    return ContainedItemActor.Get ();
+}
+
+void AGridReceptacleActor::RebuildContainedItemState ()
+{
+    ContainedItemActors.RemoveAll ([] (const TObjectPtr<AGridItemActor>& ItemActor)
+    {
+        return !IsValid (ItemActor);
+    });
+
+    if (bUsePhysicalPlacement)
+    {
+        ContainedItemActor = GetDefaultContainedItemActor ();
+    }
+
+    ContainedItemTags.Reset ();
+    ContainedItemArchetypeId = NAME_None;
+    ContainedItemId = NAME_None;
+
+    if (bUsePhysicalPlacement)
+    {
+        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        {
+            if (!IsValid (ItemActor))
+            {
+                continue;
+            }
+            if (ContainedItemArchetypeId.IsNone ())
+            {
+                ContainedItemArchetypeId = ItemActor->ArchetypeId;
+                ContainedItemId = ItemActor->ArchetypeId;
+            }
+            for (const FName& ItemTag : ItemActor->ItemTags)
+            {
+                ContainedItemTags.AddUnique (ItemTag);
+            }
+        }
+    }
+    else if (ContainedItemActor)
+    {
+        ContainedItemArchetypeId = ContainedItemActor->ArchetypeId;
+        ContainedItemId = ContainedItemActor->ArchetypeId;
+        ContainedItemTags = ContainedItemActor->ItemTags;
+    }
+
+    const bool bVisible = HasItem () && !IsValid (ContainedItemActor);
+    if (ContainedItemMesh)
+    {
+        ContainedItemMesh->SetHiddenInGame (!bVisible, true);
+        ContainedItemMesh->SetVisibility (bVisible, true);
+        ContainedItemMesh->MarkRenderStateDirty ();
+    }
 }
 
 FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
@@ -547,7 +717,7 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemArchetyp
         return TEXT ("insertion is disabled");
     }
 
-    if (HasItem ())
+    if (!bUsePhysicalPlacement && HasItem ())
     {
         return TEXT ("receptacle already contains an item");
     }
