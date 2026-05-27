@@ -1440,6 +1440,21 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                         ]
                 ]
 
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
+                [
+                    SNew (SCheckBox)
+                        .IsChecked (Behavior.Receptacle.bUsePhysicalPlacement ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.Receptacle.bUsePhysicalPlacement = NewState == ECheckBoxState::Checked;
+                        ApplyBehavior (NewBehavior);
+                    })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Physical Placement")))
+                        ]
+                ]
+
             + SVerticalBox::Slot ().AutoHeight ()
                 [
                     GridEditorWidgetHelpers::BuildGridPropertyRow (

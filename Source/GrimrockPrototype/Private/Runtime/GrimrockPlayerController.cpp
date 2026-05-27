@@ -103,7 +103,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
             *GetNameSafe (HitComponent));
     }
 
-    IGridInteractableInterface::Execute_Interact (InteractableActor, ControlledPawn, HitComponent);
+    IGridInteractableInterface::Execute_InteractWithHit (InteractableActor, ControlledPawn, HitComponent, HitResult);
 }
 
 void AGrimrockPlayerController::UpdateHoveredInteractable ()

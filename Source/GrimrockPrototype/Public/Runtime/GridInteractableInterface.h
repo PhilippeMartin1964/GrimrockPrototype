@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
 #include "UObject/Interface.h"
 #include "GridInteractableInterface.generated.h"
 
@@ -47,6 +48,14 @@ public:
     {
         (void)InstigatorPawn;
         (void)HitComponent;
+    }
+
+    UFUNCTION (BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")
+    void InteractWithHit (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult);
+    virtual void InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
+    {
+        (void)HitResult;
+        Interact_Implementation (InstigatorPawn, HitComponent);
     }
 
     UFUNCTION (BlueprintNativeEvent, BlueprintCallable, Category = "Grid Interaction")

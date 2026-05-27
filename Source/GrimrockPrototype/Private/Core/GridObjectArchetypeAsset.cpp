@@ -221,7 +221,8 @@ namespace
             Behavior.Receptacle.AcceptedItemTags.Num () > 0 ||
             Behavior.Receptacle.AcceptedArchetypeIds.Num () > 0 ||
             Behavior.Receptacle.RejectedItemArchetypeIds.Num () > 0 ||
-            !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
+            !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
+            Behavior.Receptacle.bUsePhysicalPlacement;
     }
 
     bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)

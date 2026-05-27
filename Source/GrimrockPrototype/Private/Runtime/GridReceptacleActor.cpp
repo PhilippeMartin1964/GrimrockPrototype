@@ -115,6 +115,17 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
     }
 }
 
+void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
+{
+    if (bUsePhysicalPlacement && HitComponent == MeshComponent && !HasItem ())
+    {
+        PendingPlacementHitResult = HitResult;
+    }
+
+    Interact_Implementation (InstigatorPawn, HitComponent);
+    PendingPlacementHitResult.Reset ();
+}
+
 EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
     if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
@@ -155,7 +166,14 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     AcceptedArchetypeIds = ObjectData.Behavior.Receptacle.AcceptedArchetypeIds;
     RejectedItemArchetypeIds = ObjectData.Behavior.Receptacle.RejectedItemArchetypeIds;
     InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
+    bUsePhysicalPlacement = ObjectData.Behavior.Receptacle.bUsePhysicalPlacement;
     bStartsFilled = ObjectData.bInitiallyActive;
+
+    if (MeshComponent && bUsePhysicalPlacement)
+    {
+        MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+        MeshComponent->SetCollisionResponseToChannel (ECC_PhysicsBody, ECR_Block);
+    }
 
     if (!ObjectData.Tag.IsNone () && AcceptedItemTags.Num () == 0 && AcceptedArchetypeIds.Num () == 0)
     {
@@ -216,7 +234,8 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemId)
 
     if (RuntimeActor)
     {
-        if (AGridItemActor* ItemActor = RuntimeActor->SpawnItemActorForArchetype (ItemId, this, ItemAttachPoint))
+        USceneComponent* AttachParent = bUsePhysicalPlacement ? nullptr : ItemAttachPoint.Get ();
+        if (AGridItemActor* ItemActor = RuntimeActor->SpawnItemActorForArchetype (ItemId, this, AttachParent))
         {
             return TryInsertItemActor (ItemActor);
         }
@@ -248,7 +267,7 @@ bool AGridReceptacleActor::TryInsertItemActor (AGridItemActor* ItemActor)
     }
 
     ContainedItemActor = ItemActor;
-    AttachContainedItemActor ();
+    AttachContainedItemActor (PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
     SetContainedItem (ItemActor->ArchetypeId);
     return true;
 }
@@ -378,7 +397,7 @@ void AGridReceptacleActor::SetContainedItem (FName NewItemId)
 {
     ContainedItemArchetypeId = NewItemId;
     ContainedItemId = NewItemId;
-    const bool bVisible = HasItem ();
+    const bool bVisible = HasItem () && !ContainedItemActor;
     if (!ContainedItemMesh)
     {
         UpdateContainedItemInteractionCollision ();
@@ -411,7 +430,7 @@ void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemAct
     UpdateContainedItemInteractionCollision ();
 }
 
-void AGridReceptacleActor::AttachContainedItemActor ()
+void AGridReceptacleActor::AttachContainedItemActor (const FHitResult* PlacementHitResult)
 {
     if (!ContainedItemActor)
     {
@@ -419,11 +438,26 @@ void AGridReceptacleActor::AttachContainedItemActor ()
         return;
     }
 
-    USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
-    ContainedItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-    ContainedItemActor->SetActorRelativeTransform (FTransform::Identity);
     ContainedItemTags = ContainedItemActor->ItemTags;
-    ContainedItemActor->OnPlacedInWorld ();
+
+    if (bUsePhysicalPlacement)
+    {
+        ContainedItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        const FVector PlacementLocation = PlacementHitResult && PlacementHitResult->bBlockingHit
+            ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * 2.f
+            : (ItemAttachPoint ? ItemAttachPoint->GetComponentLocation () : GetActorLocation ());
+        ContainedItemActor->SetActorLocation (PlacementLocation, false, nullptr, ETeleportType::TeleportPhysics);
+        ContainedItemActor->ConfigureAsWorldPickup ();
+        ContainedItemActor->OnRemovedFromWorld ();
+    }
+    else
+    {
+        USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
+        ContainedItemActor->ConfigureAsAttachedItem ();
+        ContainedItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+        ContainedItemActor->SetActorRelativeTransform (FTransform::Identity);
+        ContainedItemActor->OnPlacedInWorld ();
+    }
 
     if (ContainedItemMesh)
     {
@@ -464,9 +498,18 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
 
     if (ContainedItemActor && ContainedItemActor->MeshComponent)
     {
-        ContainedItemActor->MeshComponent->SetCollisionEnabled (bCanTake ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-        ContainedItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
-        ContainedItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        if (bUsePhysicalPlacement)
+        {
+            ContainedItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+            ContainedItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+            ContainedItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        }
+        else
+        {
+            ContainedItemActor->MeshComponent->SetCollisionEnabled (bCanTake ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+            ContainedItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+            ContainedItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        }
         ContainedItemActor->MeshComponent->SetGenerateOverlapEvents (false);
     }
 }

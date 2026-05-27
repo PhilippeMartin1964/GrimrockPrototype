@@ -45,6 +45,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    bool bUsePhysicalPlacement = false;
+
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     FName ContainedItemArchetypeId = NAME_None;
 
@@ -105,6 +108,7 @@ public:
 
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
     virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+    virtual void InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult) override;
     virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
     virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
 
@@ -116,7 +120,7 @@ protected:
 
     void ExecuteInsertionLinks ();
     void ExecuteRemovalLinks ();
-    void AttachContainedItemActor ();
+    void AttachContainedItemActor (const FHitResult* PlacementHitResult = nullptr);
     void ClearContainedItemActor ();
     void UpdateContainedItemInteractionCollision ();
     bool IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const;
@@ -128,4 +132,6 @@ private:
 
     UPROPERTY (Transient)
     TObjectPtr<UMaterialInterface> RuntimeContainedItemMaterial = nullptr;
+
+    TOptional<FHitResult> PendingPlacementHitResult;
 };
