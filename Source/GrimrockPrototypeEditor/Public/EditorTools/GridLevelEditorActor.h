@@ -62,16 +62,16 @@ public:
     AGridLevelEditorActor ();
 
 public:
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
     TObjectPtr<UGridLevelAsset> LevelAsset;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Dungeon")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
     TObjectPtr<UGridDungeonAsset> DungeonAsset;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Dungeon")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Core")
     FName CurrentDungeonLevelId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
     TObjectPtr<AGridLevelRuntimeActor> PreviewRuntimeActor;
 
     UPROPERTY (VisibleAnywhere, Category = "Editor")
@@ -86,22 +86,22 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
     EGridEdge SelectedEdge = EGridEdge::North;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
     int32 HoveredCellX = INDEX_NONE;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
     int32 HoveredCellY = INDEX_NONE;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
     EGridEdge HoveredEdge = EGridEdge::None;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
     FGuid HoveredObjectId;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "1.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "1.0", AdvancedDisplay))
     float ObjectHoverPickRadius = 48.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking", meta = (ClampMin = "100.0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking", meta = (ClampMin = "100.0", AdvancedDisplay))
     float ViewportPickTraceDistance = 50000.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
@@ -149,13 +149,13 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
     EGridObjectCommand LinkCommand = EGridObjectCommand::Toggle;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link", meta = (AdvancedDisplay))
     FGuid PendingLinkSourceObjectId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link", meta = (AdvancedDisplay))
     bool bHasPendingLinkSource = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
     TObjectPtr<UGridObjectPaletteAsset> ObjectPalette;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Palette")
@@ -167,34 +167,34 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
     FGridObjectBehaviorParams ObjectBehavior;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation", meta = (AdvancedDisplay))
     TArray<FGridLevelValidationMessage> LastValidationMessages;
 
-    UPROPERTY (VisibleAnywhere, Category = "Editor Grid")
+    UPROPERTY (VisibleAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
     TObjectPtr<UStaticMeshComponent> CoordinateGridPlane;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
     TObjectPtr<UStaticMesh> CoordinateGridPlaneMesh;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
     TObjectPtr<UMaterialInterface> CoordinateGridMaterial;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    UPROPERTY (EditAnywhere, Category = "Editor|Display")
     bool bShowCoordinateGrid = false;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
     float CoordinateGridZOffset = 2.f;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    UPROPERTY (EditAnywhere, Category = "Editor|Display")
     bool bShowCoordinateLabels = false;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Connectors")
+    UPROPERTY (EditAnywhere, Category = "Editor|Display")
     bool bShowOutgoingConnectors = true;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Connectors")
+    UPROPERTY (EditAnywhere, Category = "Editor|Display")
     bool bShowIncomingConnectors = true;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Connectors")
+    UPROPERTY (EditAnywhere, Category = "Editor|Display")
     bool bShowConnectorLabels = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
@@ -206,14 +206,14 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
     bool bAbortPIEOnPreparationError = true;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid")
+    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
     float CoordinateLabelWorldSize = 28.f;
 
 public:
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void EnsureLevelReady ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void RebuildPreview ();
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
@@ -234,16 +234,16 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
     FString GetDungeonDiagnostics () const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void LogEditorRuntimeAssetConsistency () const;
 
     UFUNCTION (BlueprintCallable, Category = "Editor|Diagnostics")
     FString GetEditorRuntimeAssetConsistencyDiagnostics () const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void SyncPreviewRuntimeLevelAsset ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|PIE")
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void PreparePIETestFromStart ();
 
     UFUNCTION (BlueprintCallable, Category = "Editor|PIE")

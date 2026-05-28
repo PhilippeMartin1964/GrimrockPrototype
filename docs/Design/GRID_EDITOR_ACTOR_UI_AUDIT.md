@@ -337,3 +337,15 @@ Implement Step 1 only:
 - keep every existing function and property intact.
 
 This gives immediate UI cleanup while preserving recovery paths and avoiding behavior regressions before StairsUp/StairsDown are added.
+
+## Step 1 Applied
+
+Step 1 has been applied non-destructively:
+
+- `PLAYTEST` panel added to Grimrock Grid Editor Mode.
+- `SetStartFromSelection` is available from `PLAYTEST`.
+- Auto PIE prepare and abort-on-error state are visible and toggleable from `PLAYTEST`.
+- `BP_GridLevelEditorActor` Details categories are partially regrouped into clearer core/display/PIE/debug areas.
+- Technical state fields are marked advanced where safe.
+- No property, function, button, or behavior was removed.
+- `PreparePIETestFromStart` remains available as a debug fallback.

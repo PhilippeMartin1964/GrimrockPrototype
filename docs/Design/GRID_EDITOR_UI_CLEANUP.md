@@ -51,3 +51,15 @@ The existing `CallInEditor` buttons on `BP_GridLevelEditorActor` are kept for no
 - `PreparePIETestFromStart`
 
 A later audit can decide which technical controls should remain visible on the actor.
+
+## Step 1 Applied
+
+The first cleanup step has been applied:
+
+- `PLAYTEST` panel added to Grimrock Grid Editor Mode.
+- `Set Start From Selection` is now available from `PLAYTEST`.
+- `Auto Prepare PIE` and `Abort PIE On Error` can be toggled from `PLAYTEST`.
+- Editor actor Details are partially regrouped.
+- Technical fields are advanced where safe.
+- No behavior was removed.
+- `PreparePIETestFromStart` remains a debug fallback.

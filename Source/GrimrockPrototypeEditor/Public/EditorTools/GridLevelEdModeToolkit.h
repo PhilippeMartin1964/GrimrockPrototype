@@ -17,6 +17,7 @@ struct FGridEditorValidationPanelState;
 struct FGridEditorPanelExpansionState
 {
     bool bDungeonLevelsExpanded = true;
+    bool bPlaytestExpanded = true;
     bool bToolsExpanded = true;
     bool bOverviewExpanded = true;
     bool bSelectedObjectExpanded = true;
@@ -43,6 +44,7 @@ private:
 
     TSharedRef<SWidget> BuildHeaderSection ();
     TSharedRef<SWidget> BuildDungeonLevelsPanel ();
+    TSharedRef<SWidget> BuildPlaytestPanel ();
     TSharedRef<SWidget> BuildCollapsiblePanelSection (
         const FText& Title,
         const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
