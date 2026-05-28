@@ -12,7 +12,8 @@ The editor map can be used to edit the dungeon, preview the dungeon, start a pla
 
 - `BP_GridLevelEditorActor`
 - `BP_GridLevelRuntimeActor`
-- `BP_GrimrockPartyPawn`, or a GameMode that spawns a compatible pawn
+- `AGrimrockGameMode`, or a map override that spawns a compatible pawn
+- `BP_GrimrockPartyPawn` only if the map intentionally uses a placed pawn instead of GameMode spawning
 - a valid `UGridLevelAsset`
 
 `BP_GridLevelEditorActor.LevelAsset` and `BP_GridLevelRuntimeActor.LevelAsset` should point to the same `UGridLevelAsset`.
