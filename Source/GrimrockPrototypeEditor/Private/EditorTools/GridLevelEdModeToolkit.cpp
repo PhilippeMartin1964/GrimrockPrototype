@@ -22,6 +22,7 @@
 
 #include "Widgets/SWidget.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Text/STextBlock.h"
 
@@ -100,6 +101,15 @@ void FGridLevelEdModeToolkit::RefreshPalette ()
 
     AddToolkitPanel (
         BuildHeaderSection ());
+
+    AddToolkitPanel (
+        BuildCollapsiblePanelSection (
+            FText::FromString (TEXT ("DUNGEON LEVELS")),
+            [this] () -> TSharedRef<SWidget>
+            {
+                return BuildDungeonLevelsPanel ();
+            },
+            PanelExpansionState.bDungeonLevelsExpanded));
 
     AddToolkitPanel (
         BuildCollapsiblePanelSection (
@@ -386,6 +396,198 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
         ];
 }
 
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildDungeonLevelsPanel ()
+{
+    AGridLevelEditorActor* EditorActor = GetEditorActor ();
+    if (!EditorActor)
+    {
+        return SNew (STextBlock)
+            .Text (FText::FromString (TEXT ("No GridLevelEditorActor found.")))
+            .AutoWrapText (true);
+    }
+
+    UGridDungeonAsset* DungeonAsset = EditorActor->DungeonAsset.Get ();
+    if (!DungeonAsset)
+    {
+        return SNew (SVerticalBox)
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                SNew (STextBlock)
+                    .Text (FText::FromString (TEXT ("No DungeonAsset assigned on BP_GridLevelEditorActor.")))
+                    .AutoWrapText (true)
+            ]
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 3.f, 0.f, 0.f)
+            [
+                SNew (STextBlock)
+                    .Text (FText::FromString (TEXT ("Mono-LevelAsset editing remains available.")))
+                    .AutoWrapText (true)
+                    .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
+            ];
+    }
+
+    const FText DungeonName = DungeonAsset->DungeonName.IsEmpty ()
+        ? FText::FromString (DungeonAsset->GetName ())
+        : DungeonAsset->DungeonName;
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Dungeon")),
+                DungeonName)
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Default Level Id")),
+                FText::FromName (DungeonAsset->DefaultLevelId))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Current Level Id")),
+                FText::FromName (EditorActor->CurrentDungeonLevelId))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Current LevelAsset")),
+                EditorActor->LevelAsset
+                    ? FText::FromString (EditorActor->LevelAsset->GetPathName ())
+                    : FText::FromString (TEXT ("None")))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Levels")),
+                FText::AsNumber (DungeonAsset->Levels.Num ()))
+        ];
+
+    TSharedRef<SWrapBox> ActionButtons = SNew (SWrapBox);
+    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
+    [
+        GridEditorWidgetHelpers::BuildGridActionButton (
+            FText::FromString (TEXT ("Load Default")),
+            FOnClicked::CreateLambda ([this] ()
+            {
+                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                {
+                    CurrentEditorActor->LoadDefaultDungeonLevelInEditor ();
+                    RefreshPalette ();
+                    if (GEditor)
+                    {
+                        GEditor->RedrawAllViewports ();
+                    }
+                }
+                return FReply::Handled ();
+            }))
+    ];
+
+    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
+    [
+        GridEditorWidgetHelpers::BuildGridActionButton (
+            FText::FromString (TEXT ("Reload Current")),
+            FOnClicked::CreateLambda ([this] ()
+            {
+                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                {
+                    CurrentEditorActor->ApplyCurrentDungeonLevel ();
+                    RefreshPalette ();
+                    if (GEditor)
+                    {
+                        GEditor->RedrawAllViewports ();
+                    }
+                }
+                return FReply::Handled ();
+            }))
+    ];
+
+    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
+    [
+        GridEditorWidgetHelpers::BuildGridActionButton (
+            FText::FromString (TEXT ("Log Dungeon")),
+            FOnClicked::CreateLambda ([this] ()
+            {
+                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                {
+                    CurrentEditorActor->LogDungeonDiagnostics ();
+                }
+                return FReply::Handled ();
+            }))
+    ];
+
+    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
+    [
+        GridEditorWidgetHelpers::BuildGridActionButton (
+            FText::FromString (TEXT ("Log Transitions")),
+            FOnClicked::CreateLambda ([this] ()
+            {
+                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                {
+                    CurrentEditorActor->LogDungeonTransitionDiagnostics ();
+                }
+                return FReply::Handled ();
+            }))
+    ];
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 5.f)
+    [
+        ActionButtons
+    ];
+
+    TSharedRef<SVerticalBox> LevelList = SNew (SVerticalBox);
+    for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+    {
+        const bool bSelected = Entry.LevelId == EditorActor->CurrentDungeonLevelId;
+        const bool bHasLevelAsset = Entry.LevelAsset != nullptr;
+        const bool bCanSelect = Entry.bEnabled && bHasLevelAsset;
+        const FText DisplayName = Entry.DisplayName.IsEmpty ()
+            ? FText::FromName (Entry.LevelId)
+            : Entry.DisplayName;
+        const FText ButtonText = FText::Format (
+            FText::FromString (TEXT ("({0},{1},{2}) {3}")),
+            FText::AsNumber (Entry.LogicalPosition.X),
+            FText::AsNumber (Entry.LogicalPosition.Y),
+            FText::AsNumber (Entry.LogicalPosition.Z),
+            DisplayName);
+
+        const FLinearColor ButtonColor = bSelected
+            ? FLinearColor (0.30f, 0.50f, 0.90f, 1.f)
+            : (!Entry.bEnabled
+                ? FLinearColor (0.35f, 0.35f, 0.35f, 1.f)
+                : (!bHasLevelAsset
+                    ? FLinearColor (0.90f, 0.55f, 0.16f, 1.f)
+                    : FLinearColor::White));
+
+        LevelList->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
+        [
+            SNew (SButton)
+                .IsEnabled (bCanSelect)
+                .ButtonColorAndOpacity (ButtonColor)
+                .HAlign (HAlign_Left)
+                .ContentPadding (FMargin (7.f, 4.f))
+                .OnClicked (FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::HandleSelectDungeonLevel, Entry.LevelId))
+                [
+                    SNew (STextBlock)
+                        .Text (ButtonText)
+                        .AutoWrapText (true)
+                ]
+        ];
+    }
+
+    Root->AddSlot ().AutoHeight ()
+    [
+        LevelList
+    ];
+
+    return Root;
+}
+
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection (
     const FText& Title,
     const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
@@ -396,6 +598,24 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection (
         BuildContent,
         bExpanded,
         FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::TogglePanelExpansion, &bExpanded));
+}
+
+FReply FGridLevelEdModeToolkit::HandleSelectDungeonLevel (FName LevelId)
+{
+    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
+    {
+        EditorActor->Modify ();
+        EditorActor->CurrentDungeonLevelId = LevelId;
+        EditorActor->ApplyCurrentDungeonLevel ();
+        RefreshPalette ();
+
+        if (GEditor)
+        {
+            GEditor->RedrawAllViewports ();
+        }
+    }
+
+    return FReply::Handled ();
 }
 
 FReply FGridLevelEdModeToolkit::TogglePanelExpansion (bool* bExpanded)
