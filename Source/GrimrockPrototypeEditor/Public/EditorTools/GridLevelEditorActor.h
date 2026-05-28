@@ -222,6 +222,9 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
     void LogDungeonDiagnostics () const;
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Transition Diagnostics"))
+    void LogDungeonTransitionDiagnostics () const;
+
     UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
     FString GetDungeonDiagnostics () const;
 

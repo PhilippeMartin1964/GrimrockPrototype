@@ -470,6 +470,17 @@ void AGridLevelEditorActor::LogDungeonDiagnostics () const
     UE_LOG (LogTemp, Log, TEXT ("%s"), *GetDungeonDiagnostics ());
 }
 
+void AGridLevelEditorActor::LogDungeonTransitionDiagnostics () const
+{
+    if (!DungeonAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("LogDungeonTransitionDiagnostics failed: DungeonAsset is null."));
+        return;
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *DungeonAsset->GetTransitionDiagnostics ());
+}
+
 bool AGridLevelEditorActor::ApplyCurrentDungeonLevel ()
 {
     if (!DungeonAsset)

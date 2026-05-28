@@ -61,5 +61,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Dungeon|Diagnostics")
     FString GetDungeonDiagnostics () const;
 
+    UFUNCTION (BlueprintCallable, Category = "Dungeon|Diagnostics")
+    FString GetTransitionDiagnostics () const;
+
     const FGridDungeonLevelEntry* FindLevelEntry (FName LevelId) const;
 };
