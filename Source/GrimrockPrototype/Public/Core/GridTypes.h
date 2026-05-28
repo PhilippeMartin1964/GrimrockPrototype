@@ -23,16 +23,6 @@ enum class EGridWallType : uint8
 };
 
 UENUM (BlueprintType)
-enum class EGridEdge : uint8
-{
-    None    UMETA (DisplayName = "None"),
-    North   UMETA (DisplayName = "North"),
-    East    UMETA (DisplayName = "East"),
-    South   UMETA (DisplayName = "South"),
-    West    UMETA (DisplayName = "West")
-};
-
-UENUM (BlueprintType)
 enum class EGridLevelObjectType : uint8
 {
     None            UMETA (DisplayName = "None"),

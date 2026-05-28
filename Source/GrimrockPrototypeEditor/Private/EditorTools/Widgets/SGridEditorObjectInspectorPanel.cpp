@@ -18,6 +18,7 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboButton.h"
 #include "Widgets/Input/SSpinBox.h"
@@ -443,6 +444,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
                 [
                     BuildContextualComponentSection (Obj)
+                ]
+
+            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
+                [
+                    BuildTransitionDetailsSection (Obj)
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
@@ -1163,6 +1169,166 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTeleporterDetailsSecti
 
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Teleporter")),
+        Root);
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTransitionDetailsSection (const FGridLevelObjectData& Obj)
+{
+    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            {
+                RequestRefresh ();
+            }
+        }
+    };
+
+    auto BuildIntTransitionRow =
+        [Obj, ApplyBehavior] (
+            const FText& Label,
+            int32 CurrentValue,
+            TFunction<void (FGridObjectBehaviorParams&, int32)> AssignValue) -> TSharedRef<SWidget>
+        {
+            return GridEditorWidgetHelpers::BuildGridPropertyRow (
+                Label,
+                SNew (SSpinBox<int32>)
+                    .Value (CurrentValue)
+                    .MinValue (0)
+                    .MaxValue (31)
+                    .MinSliderValue (0)
+                    .MaxSliderValue (31)
+                    .Delta (1)
+                    .IsEnabled (Obj.Behavior.Transition.bIsTransition)
+                    .OnValueCommitted_Lambda (
+                        [Obj, ApplyBehavior, AssignValue] (int32 NewValue, ETextCommit::Type CommitType)
+                        {
+                            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                            AssignValue (NewBehavior, NewValue);
+                            ApplyBehavior (NewBehavior);
+                        }));
+        };
+
+    auto BuildFacingButton = [Obj, ApplyBehavior] (const TCHAR* Label, EGridEdge Facing) -> TSharedRef<SWidget>
+    {
+        const bool bSelected = Obj.Behavior.Transition.TargetFacing == Facing;
+        return SNew (SButton)
+            .Text (FText::FromString (Label))
+            .IsEnabled (Obj.Behavior.Transition.bIsTransition)
+            .ButtonColorAndOpacity (bSelected ? FLinearColor (0.32f, 0.46f, 0.72f, 1.f) : FLinearColor::White)
+            .OnClicked_Lambda ([Obj, ApplyBehavior, Facing] ()
+            {
+                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                NewBehavior.Transition.TargetFacing = Facing;
+                ApplyBehavior (NewBehavior);
+                return FReply::Handled ();
+            });
+    };
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SCheckBox)
+                .IsChecked (Obj.Behavior.Transition.bIsTransition ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.Transition.bIsTransition = NewState == ECheckBoxState::Checked;
+                    ApplyBehavior (NewBehavior);
+                })
+                [
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("Is Transition")))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Target Level Id")),
+                SNew (SEditableTextBox)
+                    .Text (GetNameText (Obj.Behavior.Transition.TargetLevelId))
+                    .IsEnabled (Obj.Behavior.Transition.bIsTransition)
+                    .OnTextCommitted_Lambda ([Obj, ApplyBehavior] (const FText& NewText, ETextCommit::Type CommitType)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.Transition.TargetLevelId = FName (*NewText.ToString ());
+                        ApplyBehavior (NewBehavior);
+                    }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildIntTransitionRow (
+                FText::FromString (TEXT ("Target Cell X")),
+                Obj.Behavior.Transition.TargetCellX,
+                [] (FGridObjectBehaviorParams& Behavior, int32 NewValue)
+                {
+                    Behavior.Transition.TargetCellX = NewValue;
+                })
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            BuildIntTransitionRow (
+                FText::FromString (TEXT ("Target Cell Y")),
+                Obj.Behavior.Transition.TargetCellY,
+                [] (FGridObjectBehaviorParams& Behavior, int32 NewValue)
+                {
+                    Behavior.Transition.TargetCellY = NewValue;
+                })
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Target Facing")),
+                SNew (SHorizontalBox)
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 2.f, 0.f)
+                    [
+                        BuildFacingButton (TEXT ("North"), EGridEdge::North)
+                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f)
+                    [
+                        BuildFacingButton (TEXT ("East"), EGridEdge::East)
+                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f)
+                    [
+                        BuildFacingButton (TEXT ("South"), EGridEdge::South)
+                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f, 0.f, 0.f)
+                    [
+                        BuildFacingButton (TEXT ("West"), EGridEdge::West)
+                    ])
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SCheckBox)
+                .IsEnabled (Obj.Behavior.Transition.bIsTransition)
+                .IsChecked (Obj.Behavior.Transition.bRequireUseAction ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.Transition.bRequireUseAction = NewState == ECheckBoxState::Checked;
+                    ApplyBehavior (NewBehavior);
+                })
+                [
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("Require Use Action")))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Transition data is validated and saved in the LevelAsset. Runtime travel is not executed yet.")))
+                .AutoWrapText (true)
+                .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
+        ];
+
+    return GridEditorWidgetHelpers::BuildGridPanelSection (
+        FText::FromString (TEXT ("Transition")),
         Root);
 }
 

@@ -1561,6 +1561,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     int32 NonEmptyCellCount = 0;
     int32 BlockingCellCount = 0;
     int32 CeilingCellCount = 0;
+    int32 TransitionObjectCount = 0;
 
     for (const FGridLevelCellData& Cell : LevelAsset->Cells)
     {
@@ -1578,6 +1579,14 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
         }
     }
 
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Behavior.Transition.bIsTransition)
+        {
+            ++TransitionObjectCount;
+        }
+    }
+
     Result += FString::Printf (TEXT ("AssetPackage=%s\n"), *GetNameSafe (LevelAsset->GetOutermost ()));
     Result += FString::Printf (TEXT ("GridSize=%dx%d\n"), LevelAsset->Width, LevelAsset->Height);
     Result += FString::Printf (TEXT ("CellSize=%.2f\n"), LevelAsset->CellSize);
@@ -1591,7 +1600,11 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
         NonEmptyCellCount,
         BlockingCellCount,
         CeilingCellCount);
-    Result += FString::Printf (TEXT ("Objects=%d Links=%d\n"), LevelAsset->Objects.Num (), LevelAsset->Links.Num ());
+    Result += FString::Printf (
+        TEXT ("Objects=%d Links=%d TransitionObjects=%d\n"),
+        LevelAsset->Objects.Num (),
+        LevelAsset->Links.Num (),
+        TransitionObjectCount);
     Result += FString::Printf (TEXT ("ObjectArchetypesOnRuntimeActor=%d\n"), ObjectArchetypes.Num ());
     Result += FString::Printf (TEXT ("FloorMesh=%s WallMesh=%s CeilingMesh=%s\n"),
         *GetNameSafe (FloorMesh),

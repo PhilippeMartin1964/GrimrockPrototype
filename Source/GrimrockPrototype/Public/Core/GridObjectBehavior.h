@@ -3,6 +3,16 @@
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.generated.h"
 
+UENUM (BlueprintType)
+enum class EGridEdge : uint8
+{
+    None    UMETA (DisplayName = "None"),
+    North   UMETA (DisplayName = "North"),
+    East    UMETA (DisplayName = "East"),
+    South   UMETA (DisplayName = "South"),
+    West    UMETA (DisplayName = "West")
+};
+
 USTRUCT (BlueprintType)
 struct FGridTeleporterBehaviorParams
 {
@@ -15,6 +25,35 @@ struct FGridTeleporterBehaviorParams
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter",
         meta = (ToolTip = "Target cell Y used only by SupportedType=Teleporter."))
     int32 TargetCellY = INDEX_NONE;
+};
+
+USTRUCT (BlueprintType)
+struct FGridObjectTransitionParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition")
+    bool bIsTransition = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition",
+        meta = (EditCondition = "bIsTransition"))
+    FName TargetLevelId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition",
+        meta = (EditCondition = "bIsTransition"))
+    int32 TargetCellX = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition",
+        meta = (EditCondition = "bIsTransition"))
+    int32 TargetCellY = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition",
+        meta = (EditCondition = "bIsTransition"))
+    EGridEdge TargetFacing = EGridEdge::North;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition",
+        meta = (EditCondition = "bIsTransition"))
+    bool bRequireUseAction = false;
 };
 
 USTRUCT (BlueprintType)
@@ -134,6 +173,9 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
     FGridTeleporterBehaviorParams Teleporter;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Transition")
+    FGridObjectTransitionParams Transition;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FGridReceptacleBehaviorParams Receptacle;

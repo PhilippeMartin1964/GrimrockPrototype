@@ -2577,6 +2577,72 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
                     TEXT ("Door is placed on an edge whose wall is Solid. A door edge must use WallType=None."),
+                Obj.ObjectId);
+            }
+        }
+
+        if (Obj.Behavior.Transition.bIsTransition)
+        {
+            const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
+            if (Transition.TargetLevelId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("Transition has no TargetLevelId."),
+                    Obj.ObjectId);
+            }
+
+            if (Transition.TargetFacing == EGridEdge::None)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("Transition TargetFacing cannot be None."),
+                    Obj.ObjectId);
+            }
+
+            const UGridLevelAsset* TargetLevelAsset = nullptr;
+            if (DungeonAsset)
+            {
+                TargetLevelAsset = DungeonAsset->GetLevelAssetById (Transition.TargetLevelId);
+                if (!Transition.TargetLevelId.IsNone () && !TargetLevelAsset)
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("Transition target LevelId '%s' was not found as an enabled level with a LevelAsset in the DungeonAsset."),
+                            *Transition.TargetLevelId.ToString ()),
+                        Obj.ObjectId);
+                }
+            }
+            else
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Transition cannot validate TargetLevelId because DungeonAsset is null."),
+                    Obj.ObjectId);
+            }
+
+            if (TargetLevelAsset)
+            {
+                if (!TargetLevelAsset->IsValidCoord (Transition.TargetCellX, Transition.TargetCellY))
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("Transition target cell X=%d Y=%d is outside target level bounds."),
+                            Transition.TargetCellX,
+                            Transition.TargetCellY),
+                        Obj.ObjectId);
+                }
+            }
+            else if (!LevelAsset->IsValidCoord (Transition.TargetCellX, Transition.TargetCellY))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Transition target cell X=%d Y=%d is outside the current level bounds; target level bounds could not be validated."),
+                        Transition.TargetCellX,
+                        Transition.TargetCellY),
                     Obj.ObjectId);
             }
         }
