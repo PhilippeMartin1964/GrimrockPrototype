@@ -1444,6 +1444,120 @@ void AGridLevelRuntimeActor::LogRuntimeDebugSummary () const
     }
 }
 
+FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
+{
+    const UWorld* World = GetWorld ();
+    FString WorldType = TEXT ("None");
+    FString MapName = TEXT ("None");
+
+    if (World)
+    {
+        MapName = World->GetMapName ();
+        switch (World->WorldType)
+        {
+            case EWorldType::Game:
+                WorldType = TEXT ("Game");
+                break;
+
+            case EWorldType::PIE:
+                WorldType = TEXT ("PIE");
+                break;
+
+            case EWorldType::Editor:
+                WorldType = TEXT ("Editor");
+                break;
+
+            case EWorldType::EditorPreview:
+                WorldType = TEXT ("EditorPreview");
+                break;
+
+            case EWorldType::GamePreview:
+                WorldType = TEXT ("GamePreview");
+                break;
+
+            case EWorldType::Inactive:
+                WorldType = TEXT ("Inactive");
+                break;
+
+            default:
+                WorldType = FString::Printf (TEXT ("Unknown(%d)"), static_cast<int32> (World->WorldType));
+                break;
+        }
+    }
+
+    FString Result;
+    Result += TEXT ("Grid LevelAsset Diagnostics\n");
+    Result += FString::Printf (TEXT ("RuntimeActor=%s\n"), *GetPathName ());
+#if WITH_EDITOR
+    Result += FString::Printf (TEXT ("ActorLabel=%s\n"), *GetActorLabel ());
+#else
+    Result += FString::Printf (TEXT ("ActorName=%s\n"), *GetName ());
+#endif
+    Result += FString::Printf (TEXT ("World=%s\n"), *GetNameSafe (World));
+    Result += FString::Printf (TEXT ("WorldType=%s\n"), *WorldType);
+    Result += FString::Printf (TEXT ("Map=%s\n"), *MapName);
+    Result += FString::Printf (TEXT ("LevelAsset=%s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+
+    if (!LevelAsset)
+    {
+        Result += TEXT ("Status=ERROR: missing LevelAsset reference.\n");
+        return Result;
+    }
+
+    const int32 ExpectedCellCount = LevelAsset->Width * LevelAsset->Height;
+    int32 NonEmptyCellCount = 0;
+    int32 BlockingCellCount = 0;
+    int32 CeilingCellCount = 0;
+
+    for (const FGridLevelCellData& Cell : LevelAsset->Cells)
+    {
+        if (Cell.CellType != EGridCellType::Empty)
+        {
+            ++NonEmptyCellCount;
+        }
+        if (Cell.bBlocksOccupancy)
+        {
+            ++BlockingCellCount;
+        }
+        if (Cell.bHasCeiling)
+        {
+            ++CeilingCellCount;
+        }
+    }
+
+    Result += FString::Printf (TEXT ("AssetPackage=%s\n"), *GetNameSafe (LevelAsset->GetOutermost ()));
+    Result += FString::Printf (TEXT ("GridSize=%dx%d\n"), LevelAsset->Width, LevelAsset->Height);
+    Result += FString::Printf (TEXT ("CellSize=%.2f\n"), LevelAsset->CellSize);
+    Result += FString::Printf (TEXT ("Cells=%d ExpectedCells=%d\n"), LevelAsset->Cells.Num (), ExpectedCellCount);
+    Result += FString::Printf (TEXT ("NonEmptyCells=%d BlockingCells=%d CeilingCells=%d\n"),
+        NonEmptyCellCount,
+        BlockingCellCount,
+        CeilingCellCount);
+    Result += FString::Printf (TEXT ("Objects=%d Links=%d\n"), LevelAsset->Objects.Num (), LevelAsset->Links.Num ());
+    Result += FString::Printf (TEXT ("ObjectArchetypesOnRuntimeActor=%d\n"), ObjectArchetypes.Num ());
+    Result += FString::Printf (TEXT ("FloorMesh=%s WallMesh=%s CeilingMesh=%s\n"),
+        *GetNameSafe (FloorMesh),
+        *GetNameSafe (WallMesh),
+        *GetNameSafe (CeilingMesh));
+
+    if (LevelAsset->Cells.Num () != ExpectedCellCount)
+    {
+        Result += TEXT ("Status=WARNING: Cells.Num does not match Width*Height. Run EnsureLevelReady from the editor actor.\n");
+    }
+    else
+    {
+        Result += TEXT ("Status=OK\n");
+    }
+
+    return Result;
+}
+
+void AGridLevelRuntimeActor::LogLevelAssetDiagnostics () const
+{
+    const FString Diagnostics = GetLevelAssetDiagnostics ();
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *Diagnostics);
+}
+
 void AGridLevelRuntimeActor::ShowRuntimeDebugSummary (float Duration) const
 {
     if (!GEngine)

@@ -120,6 +120,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Debug")
     void ShowRuntimeDebugSummary (float Duration = 3.f) const;
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Level|Diagnostics")
+    void LogLevelAssetDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Level|Diagnostics")
+    FString GetLevelAssetDiagnostics () const;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
 

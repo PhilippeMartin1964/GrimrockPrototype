@@ -28,8 +28,9 @@ Lire dans cet ordre :
 ### C. Architecture C++
 
 - `docs/Architecture_Runtime_Editor_Split.md`
+- `docs/Architecture_LevelAsset_Editor_Runtime.md`
 
-Ce document complète `docs/Design` pour la séparation C++ entre le module runtime et le module editor.
+Ces documents complètent `docs/Design` pour la séparation C++ entre le module runtime et le module editor, et pour la responsabilité DataAsset / map / acteur avant le multi-niveaux.
 
 ### D. Tests manuels
 
