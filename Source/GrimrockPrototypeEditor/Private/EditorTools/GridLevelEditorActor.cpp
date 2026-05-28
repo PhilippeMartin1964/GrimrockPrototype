@@ -388,6 +388,8 @@ FString AGridLevelEditorActor::GetEditorRuntimeAssetConsistencyDiagnostics () co
     Result += TEXT ("GridLevelEditorActor Asset Consistency\n");
     Result += FString::Printf (TEXT ("EditorActor: %s\n"), *GetName ());
     Result += FString::Printf (TEXT ("World: %s\n"), World ? *World->GetMapName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("DungeonAsset: %s\n"), DungeonAsset ? *DungeonAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("CurrentDungeonLevelId: %s\n"), *CurrentDungeonLevelId.ToString ());
     Result += FString::Printf (TEXT ("Editor LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Editor Asset Stats: %s\n"), *GetLevelAssetStatsText (LevelAsset));
     Result += FString::Printf (TEXT ("Editor Start: %s\n"), *GetLevelStartText (LevelAsset));
@@ -423,6 +425,98 @@ FString AGridLevelEditorActor::GetEditorRuntimeAssetConsistencyDiagnostics () co
 void AGridLevelEditorActor::LogEditorRuntimeAssetConsistency () const
 {
     UE_LOG (LogTemp, Log, TEXT ("%s"), *GetEditorRuntimeAssetConsistencyDiagnostics ());
+}
+
+FString AGridLevelEditorActor::GetDungeonDiagnostics () const
+{
+    FString Result;
+    Result += TEXT ("GridLevelEditorActor Dungeon Diagnostics\n");
+    Result += FString::Printf (TEXT ("EditorActor: %s\n"), *GetName ());
+    Result += FString::Printf (TEXT ("DungeonAsset: %s\n"), DungeonAsset ? *DungeonAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("CurrentDungeonLevelId: %s\n"), *CurrentDungeonLevelId.ToString ());
+    Result += FString::Printf (TEXT ("Current LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+
+    if (!DungeonAsset)
+    {
+        Result += TEXT ("Status: WARNING - DungeonAsset is null. Editor is using LevelAsset directly.");
+        return Result;
+    }
+
+    Result += DungeonAsset->GetDungeonDiagnostics ();
+
+    const FGridDungeonLevelEntry* CurrentEntry = DungeonAsset->FindLevelEntry (CurrentDungeonLevelId);
+    if (!CurrentEntry)
+    {
+        Result += TEXT ("\nCurrentSelectionStatus: WARNING - CurrentDungeonLevelId was not found.");
+    }
+    else if (!CurrentEntry->bEnabled)
+    {
+        Result += TEXT ("\nCurrentSelectionStatus: WARNING - Current dungeon level is disabled.");
+    }
+    else if (!CurrentEntry->LevelAsset)
+    {
+        Result += TEXT ("\nCurrentSelectionStatus: ERROR - Current dungeon level has no LevelAsset.");
+    }
+    else
+    {
+        Result += TEXT ("\nCurrentSelectionStatus: OK");
+    }
+
+    return Result;
+}
+
+void AGridLevelEditorActor::LogDungeonDiagnostics () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetDungeonDiagnostics ());
+}
+
+bool AGridLevelEditorActor::ApplyCurrentDungeonLevel ()
+{
+    if (!DungeonAsset)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("ApplyCurrentDungeonLevel failed: DungeonAsset is null."));
+        return false;
+    }
+
+    const FName RequestedLevelId = CurrentDungeonLevelId.IsNone ()
+        ? DungeonAsset->DefaultLevelId
+        : CurrentDungeonLevelId;
+
+    const FGridDungeonLevelEntry* Entry = DungeonAsset->FindLevelEntry (RequestedLevelId);
+    if (!Entry)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("ApplyCurrentDungeonLevel failed: LevelId %s was not found."), *RequestedLevelId.ToString ());
+        return false;
+    }
+
+    if (!Entry->bEnabled)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("ApplyCurrentDungeonLevel failed: LevelId %s is disabled."), *RequestedLevelId.ToString ());
+        return false;
+    }
+
+    if (!Entry->LevelAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("ApplyCurrentDungeonLevel failed: LevelId %s has no LevelAsset."), *RequestedLevelId.ToString ());
+        return false;
+    }
+
+#if WITH_EDITOR
+    Modify ();
+#endif
+
+    CurrentDungeonLevelId = RequestedLevelId;
+    LevelAsset = Entry->LevelAsset;
+
+    SyncPreviewRuntimeLevelAsset ();
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("ApplyCurrentDungeonLevel OK: LevelId=%s LevelAsset=%s."),
+        *CurrentDungeonLevelId.ToString (),
+        *GetNameSafe (LevelAsset));
+    return true;
 }
 
 void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()

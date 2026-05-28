@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectBehavior.h"
 #include "Components/TextRenderComponent.h"
@@ -63,6 +64,12 @@ public:
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor")
     TObjectPtr<UGridLevelAsset> LevelAsset;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Dungeon")
+    TObjectPtr<UGridDungeonAsset> DungeonAsset;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Dungeon")
+    FName CurrentDungeonLevelId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor")
     TObjectPtr<AGridLevelRuntimeActor> PreviewRuntimeActor;
@@ -202,6 +209,15 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void RebuildPreview ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
+    bool ApplyCurrentDungeonLevel ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
+    void LogDungeonDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
+    FString GetDungeonDiagnostics () const;
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
     void LogEditorRuntimeAssetConsistency () const;

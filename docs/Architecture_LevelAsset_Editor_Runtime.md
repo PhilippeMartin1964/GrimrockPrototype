@@ -143,14 +143,22 @@ Si ces references divergent, le DataAsset reste la verite, mais les maps ne rega
 
 ## Direction multi-niveaux
 
-Le futur `UGridDungeonAsset` devra devenir l'asset racine du donjon.
+`UGridDungeonAsset` est l'asset racine minimal du donjon.
 
-Role cible probable :
+Role actuel :
 
 - lister les `UGridLevelAsset` qui composent le donjon ;
-- definir l'ordre ou les identifiants de niveaux ;
-- stocker les transitions entre niveaux ;
-- porter les metadonnees globales du donjon.
+- associer chaque niveau a un `LevelId`, un nom affichable et une position logique ;
+- permettre au `AGridLevelEditorActor` de choisir le niveau courant et de pousser son `LevelAsset` vers le runtime preview ;
+- fournir des diagnostics de structure.
+
+Ce que `UGridDungeonAsset` ne fait pas encore :
+
+- escaliers ;
+- passages entre niveaux ;
+- teleportation ;
+- sauvegarde multi-niveaux ;
+- streaming ou chargement runtime complexe.
 
 Relation cible :
 
