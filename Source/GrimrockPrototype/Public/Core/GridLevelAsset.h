@@ -27,6 +27,15 @@ public:
     TArray<FGridLevelCellData> Cells;
 
     // --- Gameplay ---
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Start")
+    int32 StartCellX = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Start")
+    int32 StartCellY = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Start")
+    EGridEdge StartFacing = EGridEdge::North;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
     TArray<FGridLevelObjectData> Objects;
 
