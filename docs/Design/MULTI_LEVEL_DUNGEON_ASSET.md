@@ -56,3 +56,32 @@ In `BP_GridLevelEditorActor`:
 - Use `Log Dungeon Diagnostics` to verify the selected dungeon, level ids, enabled states, and missing assets.
 
 `ApplyCurrentDungeonLevel()` remains available for Blueprint/C++ logic. The editor-facing `Apply Current Dungeon Level` button calls the same function without changing the existing behavior.
+
+## Creating a new level from the editor
+
+Le panneau `DUNGEON LEVELS` permet maintenant de créer un niveau directement depuis le Grimrock Grid Editor Mode.
+
+Workflow :
+
+1. Ouvrir Grimrock Grid Editor Mode.
+2. Dans `DUNGEON LEVELS`, cliquer `New Level`.
+3. Renseigner `Level Id`, `Display Name` et `Logical Position`.
+4. Cliquer `Create`.
+5. Le nouvel `UGridLevelAsset` est créé, ajouté au `DungeonAsset`, sélectionné et affiché automatiquement.
+
+La création ne génère aucun Blueprint et ne nécessite aucune action manuelle dans le Content Browser.
+
+Le nouvel asset est créé dans :
+
+```text
+/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/
+```
+
+Le nom recommandé est généré automatiquement à partir du `Level Id` :
+
+```text
+Level Id = Test_Level_02
+Asset = DA_GridLevel_Test_Level_02
+```
+
+Le niveau créé est un `UGridLevelAsset` neuf. Il contient une grille 32x32 et une cellule de départ jouable à `(1,1)` orientée `North`, afin de pouvoir tester rapidement le niveau. L'utilisateur peut ensuite peindre les cellules, les murs, les objets et les transitions.

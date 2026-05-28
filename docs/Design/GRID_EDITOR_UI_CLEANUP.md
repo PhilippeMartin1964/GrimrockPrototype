@@ -29,6 +29,28 @@ Example entries:
 
 Clicking a valid level sets `CurrentDungeonLevelId`, calls `ApplyCurrentDungeonLevel()`, rebuilds the preview, and redraws editor viewports.
 
+`New Level` opens a simple creation popup for adding a new `UGridLevelAsset` to the current `DungeonAsset`.
+
+## Creating a new level from the editor
+
+Workflow :
+
+1. Ouvrir Grimrock Grid Editor Mode.
+2. Dans `DUNGEON LEVELS`, cliquer `New Level`.
+3. Renseigner `Level Id`, `Display Name` et `Logical Position`.
+4. Cliquer `Create`.
+5. Le nouvel `UGridLevelAsset` est créé, ajouté au `DungeonAsset`, sélectionné et affiché automatiquement.
+
+La création ne génère aucun Blueprint. Aucun asset manuel n'est nécessaire dans le Content Browser.
+
+Le niveau créé est un `UGridLevelAsset` sauvegardé dans :
+
+```text
+/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels/
+```
+
+Après création, l'utilisateur peut peindre les cellules, les murs, les objets et les transitions comme pour les niveaux existants.
+
 ## Workflow
 
 1. Assign `DungeonAsset` once on `BP_GridLevelEditorActor`.

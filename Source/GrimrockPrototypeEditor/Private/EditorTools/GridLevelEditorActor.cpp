@@ -8,7 +8,10 @@
 #include "Components/PrimitiveComponent.h"
 
 #if WITH_EDITOR
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Editor.h"
+#include "FileHelpers.h"
+#include "Misc/PackageName.h"
 #endif
 
 namespace
@@ -124,6 +127,60 @@ namespace
             *GetGridEdgeText (Asset->StartFacing),
             Asset->IsStartCellValid () ? TEXT ("true") : TEXT ("false"));
     }
+
+#if WITH_EDITOR
+    FString SanitizeAssetNameToken (const FString& RawName)
+    {
+        FString Sanitized;
+        Sanitized.Reserve (RawName.Len ());
+
+        for (const TCHAR Character : RawName)
+        {
+            if (FChar::IsAlnum (Character) || Character == TEXT ('_'))
+            {
+                Sanitized.AppendChar (Character);
+            }
+            else if (FChar::IsWhitespace (Character) || Character == TEXT ('-'))
+            {
+                Sanitized.AppendChar (TEXT ('_'));
+            }
+        }
+
+        while (Sanitized.Contains (TEXT ("__")))
+        {
+            Sanitized.ReplaceInline (TEXT ("__"), TEXT ("_"));
+        }
+
+        Sanitized.TrimStartAndEndInline ();
+        while (Sanitized.StartsWith (TEXT ("_")))
+        {
+            Sanitized.RightChopInline (1);
+        }
+        while (Sanitized.EndsWith (TEXT ("_")))
+        {
+            Sanitized.LeftChopInline (1);
+        }
+
+        return Sanitized.IsEmpty () ? FString (TEXT ("New_Level")) : Sanitized;
+    }
+
+    FString MakeUniqueGridLevelPackageName (const FString& FolderPath, const FString& BaseAssetName, FString& OutAssetName)
+    {
+        FString CandidateAssetName = BaseAssetName;
+        FString CandidatePackageName = FolderPath / CandidateAssetName;
+        int32 Suffix = 1;
+
+        while (FPackageName::DoesPackageExist (CandidatePackageName) || FindPackage (nullptr, *CandidatePackageName))
+        {
+            CandidateAssetName = FString::Printf (TEXT ("%s_%02d"), *BaseAssetName, Suffix);
+            CandidatePackageName = FolderPath / CandidateAssetName;
+            ++Suffix;
+        }
+
+        OutAssetName = CandidateAssetName;
+        return CandidatePackageName;
+    }
+#endif
 }
 
 AGridLevelEditorActor::AGridLevelEditorActor ()
@@ -479,6 +536,140 @@ void AGridLevelEditorActor::LogDungeonTransitionDiagnostics () const
     }
 
     UE_LOG (LogTemp, Log, TEXT ("%s"), *DungeonAsset->GetTransitionDiagnostics ());
+}
+
+bool AGridLevelEditorActor::CreateAndAddDungeonLevel (
+    FName NewLevelId,
+    FText DisplayName,
+    FIntVector LogicalPosition,
+    FString& OutError)
+{
+    OutError.Reset ();
+
+    if (!DungeonAsset)
+    {
+        OutError = TEXT ("DungeonAsset is null.");
+        return false;
+    }
+
+    if (NewLevelId.IsNone ())
+    {
+        OutError = TEXT ("Level Id is empty.");
+        return false;
+    }
+
+    for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+    {
+        if (Entry.LevelId == NewLevelId)
+        {
+            OutError = FString::Printf (TEXT ("Level Id '%s' already exists."), *NewLevelId.ToString ());
+            return false;
+        }
+
+        if (Entry.LogicalPosition == LogicalPosition)
+        {
+            OutError = FString::Printf (
+                TEXT ("Logical Position (%d,%d,%d) is already used by LevelId '%s'."),
+                LogicalPosition.X,
+                LogicalPosition.Y,
+                LogicalPosition.Z,
+                *Entry.LevelId.ToString ());
+            return false;
+        }
+    }
+
+#if WITH_EDITOR
+    const FString LevelAssetFolderPath = TEXT ("/Game/GrimrockPrototype/Core/DataAssets/GrimrockLevels");
+    const FString SanitizedLevelId = SanitizeAssetNameToken (NewLevelId.ToString ());
+    const FString BaseAssetName = FString::Printf (TEXT ("DA_GridLevel_%s"), *SanitizedLevelId);
+
+    FString AssetName;
+    const FString PackageName = MakeUniqueGridLevelPackageName (LevelAssetFolderPath, BaseAssetName, AssetName);
+
+    UPackage* Package = CreatePackage (*PackageName);
+    if (!Package)
+    {
+        OutError = FString::Printf (TEXT ("Failed to create package '%s'."), *PackageName);
+        return false;
+    }
+
+    UGridLevelAsset* NewLevelAsset = NewObject<UGridLevelAsset> (
+        Package,
+        UGridLevelAsset::StaticClass (),
+        *AssetName,
+        RF_Public | RF_Standalone | RF_Transactional);
+
+    if (!NewLevelAsset)
+    {
+        OutError = FString::Printf (TEXT ("Failed to create UGridLevelAsset '%s'."), *AssetName);
+        return false;
+    }
+
+    NewLevelAsset->Modify ();
+    NewLevelAsset->Width = 32;
+    NewLevelAsset->Height = 32;
+    NewLevelAsset->CellSize = 200.f;
+    NewLevelAsset->EnsureCellCount ();
+    NewLevelAsset->Objects.Reset ();
+    NewLevelAsset->Links.Reset ();
+    NewLevelAsset->StartCellX = 1;
+    NewLevelAsset->StartCellY = 1;
+    NewLevelAsset->StartFacing = EGridEdge::North;
+
+    if (NewLevelAsset->IsValidCoord (NewLevelAsset->StartCellX, NewLevelAsset->StartCellY))
+    {
+        FGridLevelCellData& StartCell = NewLevelAsset->GetCellMutable (NewLevelAsset->StartCellX, NewLevelAsset->StartCellY);
+        StartCell.CellType = EGridCellType::Floor;
+        StartCell.bHasCeiling = true;
+        StartCell.bBlocksOccupancy = false;
+    }
+
+    FAssetRegistryModule::AssetCreated (NewLevelAsset);
+    Package->MarkPackageDirty ();
+
+    DungeonAsset->Modify ();
+
+    FGridDungeonLevelEntry NewEntry;
+    NewEntry.LevelId = NewLevelId;
+    NewEntry.DisplayName = DisplayName.IsEmpty () ? FText::FromName (NewLevelId) : DisplayName;
+    NewEntry.LevelAsset = NewLevelAsset;
+    NewEntry.LogicalPosition = LogicalPosition;
+    NewEntry.bEnabled = true;
+    DungeonAsset->Levels.Add (NewEntry);
+
+    if (DungeonAsset->DefaultLevelId.IsNone ())
+    {
+        DungeonAsset->DefaultLevelId = NewLevelId;
+    }
+
+    DungeonAsset->MarkPackageDirty ();
+
+    Modify ();
+    CurrentDungeonLevelId = NewLevelId;
+    LevelAsset = NewLevelAsset;
+    ApplyCurrentDungeonLevel ();
+    SyncPreviewRuntimeLevelAsset ();
+
+    TArray<UPackage*> PackagesToSave;
+    PackagesToSave.Add (Package);
+    PackagesToSave.Add (DungeonAsset->GetOutermost ());
+    UEditorLoadingAndSavingUtils::SavePackages (PackagesToSave, false);
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("Created dungeon level %s at LogicalPosition=(%d,%d,%d), Asset=%s."),
+        *NewLevelId.ToString (),
+        LogicalPosition.X,
+        LogicalPosition.Y,
+        LogicalPosition.Z,
+        *NewLevelAsset->GetPathName ());
+
+    return true;
+#else
+    OutError = TEXT ("CreateAndAddDungeonLevel is editor-only.");
+    return false;
+#endif
 }
 
 bool AGridLevelEditorActor::ApplyCurrentDungeonLevel ()

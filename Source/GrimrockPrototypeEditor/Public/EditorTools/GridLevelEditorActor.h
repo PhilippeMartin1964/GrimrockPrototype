@@ -234,6 +234,13 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
     FString GetDungeonDiagnostics () const;
 
+    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
+    bool CreateAndAddDungeonLevel (
+        FName NewLevelId,
+        FText DisplayName,
+        FIntVector LogicalPosition,
+        FString& OutError);
+
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void LogEditorRuntimeAssetConsistency () const;
 

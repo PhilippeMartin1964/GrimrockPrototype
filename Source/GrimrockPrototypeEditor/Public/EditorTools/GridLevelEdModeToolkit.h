@@ -50,6 +50,7 @@ private:
         const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
         bool& bExpanded);
     FReply HandleSelectDungeonLevel (FName LevelId);
+    FReply HandleCreateDungeonLevelClicked ();
     FReply TogglePanelExpansion (bool* bExpanded);
     void ExpandValidationIfMessagesNeedAttention ();
 
