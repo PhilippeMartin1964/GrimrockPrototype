@@ -11,6 +11,57 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
+#include "EngineUtils.h"
+
+namespace
+{
+    FString GetRuntimeWorldTypeText (const UWorld* World)
+    {
+        if (!World)
+        {
+            return TEXT ("None");
+        }
+
+        switch (World->WorldType)
+        {
+            case EWorldType::Game:
+                return TEXT ("Game");
+
+            case EWorldType::PIE:
+                return TEXT ("PIE");
+
+            case EWorldType::Editor:
+                return TEXT ("Editor");
+
+            case EWorldType::EditorPreview:
+                return TEXT ("EditorPreview");
+
+            case EWorldType::GamePreview:
+                return TEXT ("GamePreview");
+
+            case EWorldType::Inactive:
+                return TEXT ("Inactive");
+
+            default:
+                return FString::Printf (TEXT ("Unknown(%d)"), static_cast<int32> (World->WorldType));
+        }
+    }
+
+    FString GetRuntimeEdgeText (EGridEdge Edge)
+    {
+        if (const UEnum* EdgeEnum = StaticEnum<EGridEdge> ())
+        {
+            return EdgeEnum->GetNameStringByValue (static_cast<int64> (Edge));
+        }
+
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Edge));
+    }
+
+    FString GetRuntimeBoolText (bool bValue)
+    {
+        return bValue ? TEXT ("true") : TEXT ("false");
+    }
+}
 
 bool AGridLevelRuntimeActor::IsSafeRuntimeRenderTransform (const FTransform& Transform)
 {
@@ -1561,6 +1612,116 @@ void AGridLevelRuntimeActor::LogLevelAssetDiagnostics () const
 {
     const FString Diagnostics = GetLevelAssetDiagnostics ();
     UE_LOG (LogTemp, Log, TEXT ("%s"), *Diagnostics);
+}
+
+FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics () const
+{
+    const UWorld* World = GetWorld ();
+    const bool bHasGameWorld = World && World->IsGameWorld ();
+    const bool bHasRequiredMeshes = FloorMesh && WallMesh && CeilingMesh;
+    const bool bHasValidStart = LevelAsset && LevelAsset->IsStartCellValid ();
+
+    int32 NullArchetypeCount = 0;
+    for (const TObjectPtr<UGridObjectArchetypeAsset>& Archetype : ObjectArchetypes)
+    {
+        if (!Archetype)
+        {
+            ++NullArchetypeCount;
+        }
+    }
+
+    AGrimrockPartyPawn* FoundPartyPawn = nullptr;
+    if (World)
+    {
+        for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
+        {
+            FoundPartyPawn = *It;
+            break;
+        }
+    }
+
+    FString Result;
+    Result += TEXT ("GridLevelRuntimeActor PIE Readiness\n");
+    Result += FString::Printf (TEXT ("RuntimeActor: %s\n"), *GetName ());
+    Result += FString::Printf (TEXT ("World: %s\n"), World ? *World->GetMapName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("WorldType: %s\n"), *GetRuntimeWorldTypeText (World));
+    Result += FString::Printf (TEXT ("IsGameWorld: %s\n"), *GetRuntimeBoolText (bHasGameWorld));
+    Result += FString::Printf (TEXT ("LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+
+    if (LevelAsset)
+    {
+        Result += FString::Printf (
+            TEXT ("Start: Cell=(%d,%d) Facing=%s Valid=%s\n"),
+            LevelAsset->StartCellX,
+            LevelAsset->StartCellY,
+            *GetRuntimeEdgeText (LevelAsset->StartFacing),
+            *GetRuntimeBoolText (bHasValidStart));
+        Result += FString::Printf (
+            TEXT ("Asset Stats: Cells=%d Objects=%d Links=%d\n"),
+            LevelAsset->Cells.Num (),
+            LevelAsset->Objects.Num (),
+            LevelAsset->Links.Num ());
+    }
+    else
+    {
+        Result += TEXT ("Start: Cell=None Facing=None Valid=false\n");
+        Result += TEXT ("Asset Stats: Cells=0 Objects=0 Links=0\n");
+    }
+
+    Result += FString::Printf (
+        TEXT ("Meshes: Floor=%s Wall=%s Ceiling=%s\n"),
+        *GetNameSafe (FloorMesh),
+        *GetNameSafe (WallMesh),
+        *GetNameSafe (CeilingMesh));
+    Result += FString::Printf (
+        TEXT ("ObjectArchetypes: Count=%d NullEntries=%d\n"),
+        ObjectArchetypes.Num (),
+        NullArchetypeCount);
+    Result += FString::Printf (
+        TEXT ("Components: Activation=%s Doors=%s EditorPreview=%s\n"),
+        *GetRuntimeBoolText (ActivationComponent != nullptr),
+        *GetRuntimeBoolText (DoorSystemComponent != nullptr),
+        *GetRuntimeBoolText (EditorPreviewComponent != nullptr));
+    Result += FString::Printf (
+        TEXT ("EditorPreviewInGameWorld: %s\n"),
+        bHasGameWorld
+            ? TEXT ("Runtime objects are used; editor preview rebuild is skipped.")
+            : TEXT ("Editor preview may be used outside PIE/game world."));
+    Result += FString::Printf (
+        TEXT ("PartyPawnInCurrentWorld: %s\n"),
+        FoundPartyPawn ? *FoundPartyPawn->GetName () : TEXT ("None"));
+
+    if (!LevelAsset)
+    {
+        Result += TEXT ("Status: ERROR - LevelAsset is null.");
+    }
+    else if (!bHasValidStart)
+    {
+        Result += TEXT ("Status: ERROR - LevelAsset start cell is invalid.");
+    }
+    else if (!bHasRequiredMeshes)
+    {
+        Result += TEXT ("Status: ERROR - FloorMesh, WallMesh or CeilingMesh is missing.");
+    }
+    else if (!ActivationComponent || !DoorSystemComponent)
+    {
+        Result += TEXT ("Status: ERROR - Runtime activation or door component is missing.");
+    }
+    else if (!FoundPartyPawn)
+    {
+        Result += TEXT ("Status: WARNING - No AGrimrockPartyPawn exists in the current world. PIE can still work if GameMode spawns one.");
+    }
+    else
+    {
+        Result += TEXT ("Status: OK - Runtime actor is ready for PIE with this LevelAsset.");
+    }
+
+    return Result;
+}
+
+void AGridLevelRuntimeActor::LogPIEReadinessDiagnostics () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetPIEReadinessDiagnostics ());
 }
 
 void AGridLevelRuntimeActor::ShowRuntimeDebugSummary (float Duration) const

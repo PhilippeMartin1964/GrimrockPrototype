@@ -126,6 +126,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Level|Diagnostics")
     FString GetLevelAssetDiagnostics () const;
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Runtime|Diagnostics")
+    void LogPIEReadinessDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Diagnostics")
+    FString GetPIEReadinessDiagnostics () const;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Object Archetypes")
     TArray<TObjectPtr<UGridObjectArchetypeAsset>> ObjectArchetypes;
 
