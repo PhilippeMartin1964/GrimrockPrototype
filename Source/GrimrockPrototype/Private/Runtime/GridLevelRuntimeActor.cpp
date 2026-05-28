@@ -6,12 +6,14 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridDoorSystemComponent.h"
 #include "Runtime/GridEditorPreviewComponent.h"
+#include "Runtime/GrimrockGameMode.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
+#include "GameFramework/GameModeBase.h"
 
 namespace
 {
@@ -1631,8 +1633,10 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics () const
     }
 
     AGrimrockPartyPawn* FoundPartyPawn = nullptr;
+    AGameModeBase* ActiveGameMode = nullptr;
     if (World)
     {
+        ActiveGameMode = World->GetAuthGameMode ();
         for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
         {
             FoundPartyPawn = *It;
@@ -1691,6 +1695,32 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics () const
     Result += FString::Printf (
         TEXT ("PartyPawnInCurrentWorld: %s\n"),
         FoundPartyPawn ? *FoundPartyPawn->GetName () : TEXT ("None"));
+    Result += FString::Printf (
+        TEXT ("ActiveGameMode: %s\n"),
+        ActiveGameMode ? *ActiveGameMode->GetClass ()->GetName () : TEXT ("None"));
+    Result += FString::Printf (
+        TEXT ("GameModeDefaultPawnClass: %s\n"),
+        ActiveGameMode && ActiveGameMode->DefaultPawnClass ? *ActiveGameMode->DefaultPawnClass->GetName () : TEXT ("None"));
+    Result += FString::Printf (
+        TEXT ("GameModePlayerControllerClass: %s\n"),
+        ActiveGameMode && ActiveGameMode->PlayerControllerClass ? *ActiveGameMode->PlayerControllerClass->GetName () : TEXT ("None"));
+
+    if (ActiveGameMode && ActiveGameMode->GetClass () == AGrimrockGameMode::StaticClass ())
+    {
+        Result += TEXT ("GameModeNote: Native AGrimrockGameMode spawns the native C++ pawn unless a Blueprint override is used.\n");
+    }
+    else if (ActiveGameMode && ActiveGameMode->GetClass ()->IsChildOf (AGrimrockGameMode::StaticClass ()))
+    {
+        Result += TEXT ("GameModeNote: Blueprint GameMode is active; its Default Pawn Class and Player Controller Class overrides are used.\n");
+    }
+    else if (ActiveGameMode)
+    {
+        Result += TEXT ("GameModeNote: Active GameMode is not derived from AGrimrockGameMode.\n");
+    }
+    else
+    {
+        Result += TEXT ("GameModeNote: No active GameMode in this world yet. Run PIE to inspect the spawned GameMode.\n");
+    }
 
     if (!LevelAsset)
     {
