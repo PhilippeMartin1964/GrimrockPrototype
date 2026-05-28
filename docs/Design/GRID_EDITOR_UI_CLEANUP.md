@@ -42,13 +42,7 @@ PIE preparation is automatic when `bAutoPreparePIE` is enabled on `BP_GridLevelE
 
 ## Compatibility
 
-The existing `CallInEditor` buttons on `BP_GridLevelEditorActor` are kept for now for debugging and compatibility:
-
-- `Apply Current Dungeon Level`
-- `Load Default Dungeon Level`
-- `Log Dungeon Diagnostics`
-- `Log Dungeon Transition Diagnostics`
-- `PreparePIETestFromStart`
+The remaining `CallInEditor` buttons on `BP_GridLevelEditorActor` are kept for now for debugging and compatibility.
 
 A later audit can decide which technical controls should remain visible on the actor.
 
@@ -63,3 +57,14 @@ The first cleanup step has been applied:
 - Technical fields are advanced where safe.
 - No behavior was removed.
 - `PreparePIETestFromStart` remains a debug fallback.
+
+## Step 2 Applied
+
+La deuxième étape de nettoyage a été appliquée :
+
+- Les boutons Details redondants ont été retirés par suppression de `CallInEditor`.
+- Les fonctions existent toujours, restent publiques et conservent `BlueprintCallable`.
+- Le Grimrock Grid Editor Mode est maintenant l'interface quotidienne pour les actions de donjon, de playtest, de palette et d'objet retirées du panneau Details.
+- Les boutons `Editor|Advanced Debug` restent temporairement visibles pour les cas de récupération ou d'incohérence.
+- `SetStartFromSelection` et `ValidateCurrentLevel` restent visibles temporairement dans le panneau Details.
+- Aucun comportement runtime, transition, GameMode ou panneau Slate n'a été modifié.

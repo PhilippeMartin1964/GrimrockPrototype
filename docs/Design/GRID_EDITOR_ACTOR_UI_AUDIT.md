@@ -349,3 +349,14 @@ Step 1 has been applied non-destructively:
 - Technical state fields are marked advanced where safe.
 - No property, function, button, or behavior was removed.
 - `PreparePIETestFromStart` remains available as a debug fallback.
+
+## Step 2 Applied
+
+Step 2 a été appliquée de manière non destructive :
+
+- Les boutons Details redondants ont été retirés en supprimant uniquement `CallInEditor`.
+- Les fonctions existent toujours, restent publiques et conservent `BlueprintCallable`.
+- Le Grimrock Grid Editor Mode est maintenant l'interface quotidienne pour les actions retirées du panneau Details.
+- Les boutons `Editor|Advanced Debug` restent temporairement visibles pour les cas de récupération.
+- `SetStartFromSelection` et `ValidateCurrentLevel` restent temporairement visibles dans le panneau Details.
+- Aucun comportement runtime, transition, GameMode ou panneau Slate n'a été modifié.

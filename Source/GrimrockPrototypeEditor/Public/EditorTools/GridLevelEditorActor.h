@@ -219,16 +219,16 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
     bool ApplyCurrentDungeonLevel ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Apply Current Dungeon Level"))
+    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Apply Current Dungeon Level"))
     void ApplyCurrentDungeonLevelInEditor ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Load Default Dungeon Level"))
+    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Load Default Dungeon Level"))
     void LoadDefaultDungeonLevelInEditor ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
+    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
     void LogDungeonDiagnostics () const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Transition Diagnostics"))
+    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Transition Diagnostics"))
     void LogDungeonTransitionDiagnostics () const;
 
     UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
@@ -243,7 +243,7 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void SyncPreviewRuntimeLevelAsset ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
+    UFUNCTION (BlueprintCallable, Category = "Editor|Advanced Debug")
     void PreparePIETestFromStart ();
 
     UFUNCTION (BlueprintCallable, Category = "Editor|PIE")
@@ -261,16 +261,16 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Wall Paint")
     void ClearSelectedWall ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     void PlaceSelectedObject ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     void RemoveObjectsAtSelection ();
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     void SelectObjectAtSelection ();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
+    UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool ApplyEditedSelectedObject ();
 
     UFUNCTION (BlueprintCallable, Category = "Viewport Picking")
@@ -347,7 +347,7 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Palette")
     bool ApplyPaletteEntry (FName EntryId);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Palette")
+    UFUNCTION (BlueprintCallable, Category = "Palette")
     void ApplySelectedPaletteEntry ();
 
     const FGridLevelObjectData* GetSelectedObjectData () const;
