@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/GridDungeonAsset.h"
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
@@ -74,6 +75,15 @@ protected:
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
     TObjectPtr<UGridLevelAsset> LevelAsset;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon")
+    TObjectPtr<UGridDungeonAsset> DungeonAsset;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon")
+    FName CurrentDungeonLevelId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Dungeon|Runtime")
+    bool bIsExecutingDungeonTransition = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> FloorMesh;
@@ -216,6 +226,15 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     void NotifyPawnExitedCell (int32 CellX, int32 CellY);
+
+    UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
+    bool TravelToDungeonLevel (FName TargetLevelId, int32 TargetCellX, int32 TargetCellY, EGridEdge TargetFacing, AGrimrockPartyPawn* PartyPawn);
+
+    UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
+    bool TryExecuteTransitionAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn, bool bTriggeredByUseAction);
+
+    UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
+    bool FindTransitionAtCell (int32 CellX, int32 CellY, bool bTriggeredByUseAction, FGridObjectTransitionParams& OutTransition) const;
 
     void RebuildRuntimeObjects ();
     void AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData);

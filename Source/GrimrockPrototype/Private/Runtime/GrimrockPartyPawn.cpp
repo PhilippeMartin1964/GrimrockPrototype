@@ -430,6 +430,7 @@ void AGrimrockPartyPawn::UpdateMove (float DeltaSeconds)
                 MoveStartCellY,
                 CurrentCellX,
                 CurrentCellY);
+            LevelRuntimeActor->TryExecuteTransitionAtCell (CurrentCellX, CurrentCellY, this, false);
         }
     }
 }

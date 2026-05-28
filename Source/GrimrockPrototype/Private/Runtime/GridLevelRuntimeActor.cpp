@@ -63,6 +63,25 @@ namespace
     {
         return bValue ? TEXT ("true") : TEXT ("false");
     }
+
+    int32 CountRuntimeTransitionObjects (const UGridLevelAsset* InLevelAsset)
+    {
+        if (!InLevelAsset)
+        {
+            return 0;
+        }
+
+        int32 TransitionCount = 0;
+        for (const FGridLevelObjectData& ObjectData : InLevelAsset->Objects)
+        {
+            if (ObjectData.Behavior.Transition.bIsTransition)
+            {
+                ++TransitionCount;
+            }
+        }
+
+        return TransitionCount;
+    }
 }
 
 bool AGridLevelRuntimeActor::IsSafeRuntimeRenderTransform (const FTransform& Transform)
@@ -218,6 +237,62 @@ void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
 void AGridLevelRuntimeActor::BeginPlay ()
 {
     Super::BeginPlay ();
+
+    if (DungeonAsset)
+    {
+        if (!CurrentDungeonLevelId.IsNone ())
+        {
+            if (UGridLevelAsset* ConfiguredDungeonLevel = DungeonAsset->GetLevelAssetById (CurrentDungeonLevelId))
+            {
+                LevelAsset = ConfiguredDungeonLevel;
+            }
+            else
+            {
+                UE_LOG (
+                    LogTemp,
+                    Warning,
+                    TEXT ("GridLevelRuntimeActor: CurrentDungeonLevelId %s is not valid in DungeonAsset %s; keeping configured LevelAsset."),
+                    *CurrentDungeonLevelId.ToString (),
+                    *DungeonAsset->GetPathName ());
+            }
+        }
+
+        if (CurrentDungeonLevelId.IsNone ())
+        {
+            for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+            {
+                if (Entry.bEnabled && Entry.LevelAsset == LevelAsset)
+                {
+                    CurrentDungeonLevelId = Entry.LevelId;
+                    break;
+                }
+            }
+
+            if (CurrentDungeonLevelId.IsNone ())
+            {
+                if (DungeonAsset->IsValidLevelId (DungeonAsset->DefaultLevelId))
+                {
+                    CurrentDungeonLevelId = DungeonAsset->DefaultLevelId;
+                    LevelAsset = DungeonAsset->GetLevelAssetById (DungeonAsset->DefaultLevelId);
+                    UE_LOG (
+                        LogTemp,
+                        Log,
+                        TEXT ("GridLevelRuntimeActor: using DungeonAsset DefaultLevelId %s at BeginPlay."),
+                        *CurrentDungeonLevelId.ToString ());
+                }
+                else
+                {
+                    UE_LOG (
+                        LogTemp,
+                        Warning,
+                        TEXT ("GridLevelRuntimeActor: could not resolve CurrentDungeonLevelId from DungeonAsset %s; keeping configured LevelAsset %s."),
+                        *DungeonAsset->GetPathName (),
+                        LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+                }
+            }
+        }
+    }
+
     if (ActivationComponent)
     {
         ActivationComponent->Initialize (this);
@@ -833,6 +908,236 @@ void AGridLevelRuntimeActor::NotifyPawnExitedCell (int32 CellX, int32 CellY)
     {
         ActivationComponent->NotifyPawnExitedCell (CellX, CellY);
     }
+}
+
+bool AGridLevelRuntimeActor::FindTransitionAtCell (
+    int32 CellX,
+    int32 CellY,
+    bool bTriggeredByUseAction,
+    FGridObjectTransitionParams& OutTransition) const
+{
+    if (!LevelAsset)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Dungeon transition lookup failed: LevelAsset is null."));
+        return false;
+    }
+
+    int32 TransitionCountAtCell = 0;
+    bool bFoundUsableTransition = false;
+
+    for (const FGridLevelObjectData& Obj : LevelAsset->Objects)
+    {
+        const FGridObjectTransitionParams& Transition = Obj.Behavior.Transition;
+        if (Obj.CellX != CellX || Obj.CellY != CellY || !Transition.bIsTransition)
+        {
+            continue;
+        }
+
+        ++TransitionCountAtCell;
+
+        if (!bTriggeredByUseAction && Transition.bRequireUseAction)
+        {
+            UE_LOG (
+                LogTemp,
+                Log,
+                TEXT ("Dungeon transition ignored at Cell=(%d,%d): object %s requires Use action."),
+                CellX,
+                CellY,
+                *Obj.ObjectId.ToString ());
+            continue;
+        }
+
+        if (!bFoundUsableTransition)
+        {
+            OutTransition = Transition;
+            bFoundUsableTransition = true;
+            UE_LOG (
+                LogTemp,
+                Log,
+                TEXT ("Dungeon transition found at Cell=(%d,%d): TargetLevelId=%s TargetCell=(%d,%d) Facing=%s."),
+                CellX,
+                CellY,
+                *Transition.TargetLevelId.ToString (),
+                Transition.TargetCellX,
+                Transition.TargetCellY,
+                *GetRuntimeEdgeText (Transition.TargetFacing));
+        }
+    }
+
+    if (TransitionCountAtCell > 1)
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("Dungeon transition: multiple transition objects found at Cell=(%d,%d); using the first valid transition."),
+            CellX,
+            CellY);
+    }
+
+    return bFoundUsableTransition;
+}
+
+bool AGridLevelRuntimeActor::TryExecuteTransitionAtCell (
+    int32 CellX,
+    int32 CellY,
+    AGrimrockPartyPawn* PartyPawn,
+    bool bTriggeredByUseAction)
+{
+    FGridObjectTransitionParams Transition;
+    if (!FindTransitionAtCell (CellX, CellY, bTriggeredByUseAction, Transition))
+    {
+        return false;
+    }
+
+    return TravelToDungeonLevel (
+        Transition.TargetLevelId,
+        Transition.TargetCellX,
+        Transition.TargetCellY,
+        Transition.TargetFacing,
+        PartyPawn);
+}
+
+bool AGridLevelRuntimeActor::TravelToDungeonLevel (
+    FName TargetLevelId,
+    int32 TargetCellX,
+    int32 TargetCellY,
+    EGridEdge TargetFacing,
+    AGrimrockPartyPawn* PartyPawn)
+{
+    if (bIsExecutingDungeonTransition)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Dungeon transition ignored: another transition is already executing."));
+        return false;
+    }
+
+    struct FScopedDungeonTransitionGuard
+    {
+        bool& bGuard;
+
+        explicit FScopedDungeonTransitionGuard (bool& InGuard)
+            : bGuard (InGuard)
+        {
+            bGuard = true;
+        }
+
+        ~FScopedDungeonTransitionGuard ()
+        {
+            bGuard = false;
+        }
+    };
+
+    FScopedDungeonTransitionGuard TransitionGuard (bIsExecutingDungeonTransition);
+
+    if (!DungeonAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("Dungeon transition failed: DungeonAsset is null."));
+        return false;
+    }
+
+    if (TargetLevelId.IsNone ())
+    {
+        UE_LOG (LogTemp, Error, TEXT ("Dungeon transition failed: TargetLevelId is None."));
+        return false;
+    }
+
+    const FGridDungeonLevelEntry* TargetEntry = DungeonAsset->FindLevelEntry (TargetLevelId);
+    if (!TargetEntry)
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("Dungeon transition failed: TargetLevelId %s was not found in DungeonAsset %s."),
+            *TargetLevelId.ToString (),
+            *DungeonAsset->GetPathName ());
+        return false;
+    }
+
+    if (!TargetEntry->bEnabled)
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("Dungeon transition failed: TargetLevelId %s is disabled."),
+            *TargetLevelId.ToString ());
+        return false;
+    }
+
+    UGridLevelAsset* TargetLevelAsset = TargetEntry->LevelAsset.Get ();
+    if (!TargetLevelAsset)
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("Dungeon transition failed: TargetLevelId %s has no LevelAsset."),
+            *TargetLevelId.ToString ());
+        return false;
+    }
+
+    if (!TargetLevelAsset->IsValidCoord (TargetCellX, TargetCellY))
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("Dungeon transition failed: Target cell (%d,%d) is outside LevelAsset %s."),
+            TargetCellX,
+            TargetCellY,
+            *TargetLevelAsset->GetPathName ());
+        return false;
+    }
+
+    const FGridLevelCellData& TargetCell = TargetLevelAsset->GetCell (TargetCellX, TargetCellY);
+    if (TargetCell.CellType == EGridCellType::Empty || TargetCell.bBlocksOccupancy)
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("Dungeon transition failed: Target cell (%d,%d) is not walkable in LevelAsset %s. CellType=%d BlocksOccupancy=%s."),
+            TargetCellX,
+            TargetCellY,
+            *TargetLevelAsset->GetPathName (),
+            static_cast<int32> (TargetCell.CellType),
+            *GetRuntimeBoolText (TargetCell.bBlocksOccupancy));
+        return false;
+    }
+
+    if (TargetFacing == EGridEdge::None)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("Dungeon transition failed: TargetFacing is None."));
+        return false;
+    }
+
+    if (!PartyPawn)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("Dungeon transition failed: PartyPawn is null."));
+        return false;
+    }
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("Dungeon transition: %s -> %s, Cell=(%d,%d), Facing=%s."),
+        *CurrentDungeonLevelId.ToString (),
+        *TargetLevelId.ToString (),
+        TargetCellX,
+        TargetCellY,
+        *GetRuntimeEdgeText (TargetFacing));
+
+    CurrentDungeonLevelId = TargetLevelId;
+    LevelAsset = TargetLevelAsset;
+
+    RebuildLevel ();
+    PartyPawn->SetGridStart (this, TargetCellX, TargetCellY, TargetFacing);
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("Dungeon transition complete: CurrentDungeonLevelId=%s LevelAsset=%s PartyCell=(%d,%d) Facing=%s."),
+        *CurrentDungeonLevelId.ToString (),
+        LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"),
+        TargetCellX,
+        TargetCellY,
+        *GetRuntimeEdgeText (TargetFacing));
+    return true;
 }
 
 void AGridLevelRuntimeActor::SetEditorHoveredObject (FGuid ObjectId)
@@ -1549,6 +1854,8 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     Result += FString::Printf (TEXT ("World=%s\n"), *GetNameSafe (World));
     Result += FString::Printf (TEXT ("WorldType=%s\n"), *WorldType);
     Result += FString::Printf (TEXT ("Map=%s\n"), *MapName);
+    Result += FString::Printf (TEXT ("DungeonAsset=%s\n"), DungeonAsset ? *DungeonAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("CurrentDungeonLevelId=%s\n"), *CurrentDungeonLevelId.ToString ());
     Result += FString::Printf (TEXT ("LevelAsset=%s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
 
     if (!LevelAsset)
@@ -1561,7 +1868,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     int32 NonEmptyCellCount = 0;
     int32 BlockingCellCount = 0;
     int32 CeilingCellCount = 0;
-    int32 TransitionObjectCount = 0;
+    const int32 TransitionObjectCount = CountRuntimeTransitionObjects (LevelAsset);
 
     for (const FGridLevelCellData& Cell : LevelAsset->Cells)
     {
@@ -1576,14 +1883,6 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
         if (Cell.bHasCeiling)
         {
             ++CeilingCellCount;
-        }
-    }
-
-    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-    {
-        if (ObjectData.Behavior.Transition.bIsTransition)
-        {
-            ++TransitionObjectCount;
         }
     }
 
@@ -1663,6 +1962,8 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics () const
     Result += FString::Printf (TEXT ("World: %s\n"), World ? *World->GetMapName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("WorldType: %s\n"), *GetRuntimeWorldTypeText (World));
     Result += FString::Printf (TEXT ("IsGameWorld: %s\n"), *GetRuntimeBoolText (bHasGameWorld));
+    Result += FString::Printf (TEXT ("DungeonAsset: %s\n"), DungeonAsset ? *DungeonAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("CurrentDungeonLevelId: %s\n"), *CurrentDungeonLevelId.ToString ());
     Result += FString::Printf (TEXT ("LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("ApplyLevelStartOnBeginPlay: %s\n"), *GetRuntimeBoolText (bApplyLevelStartOnBeginPlay));
 
@@ -1675,15 +1976,16 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics () const
             *GetRuntimeEdgeText (LevelAsset->StartFacing),
             *GetRuntimeBoolText (bHasValidStart));
         Result += FString::Printf (
-            TEXT ("Asset Stats: Cells=%d Objects=%d Links=%d\n"),
+            TEXT ("Asset Stats: Cells=%d Objects=%d Links=%d TransitionObjects=%d\n"),
             LevelAsset->Cells.Num (),
             LevelAsset->Objects.Num (),
-            LevelAsset->Links.Num ());
+            LevelAsset->Links.Num (),
+            CountRuntimeTransitionObjects (LevelAsset));
     }
     else
     {
         Result += TEXT ("Start: Cell=None Facing=None Valid=false\n");
-        Result += TEXT ("Asset Stats: Cells=0 Objects=0 Links=0\n");
+        Result += TEXT ("Asset Stats: Cells=0 Objects=0 Links=0 TransitionObjects=0\n");
     }
 
     Result += FString::Printf (

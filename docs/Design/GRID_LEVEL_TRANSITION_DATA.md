@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Grid transitions are stored as object behavior data in `UGridLevelAsset`. This step only records and validates transition intent; it does not execute travel at runtime.
+Grid transitions are stored as object behavior data in `UGridLevelAsset`. Editor diagnostics validate transition intent, and runtime execution can switch the active `LevelAsset` inside one `AGridLevelRuntimeActor`.
 
 ## Supported Uses
 
@@ -65,4 +65,29 @@ TransitionObjects=1
 Status=OK
 ```
 
-Runtime travel is intentionally not implemented yet. Runtime diagnostics only report how many transition objects exist in the loaded `LevelAsset`.
+Runtime diagnostics report how many transition objects exist in the loaded `LevelAsset`.
+
+## Runtime Transition Execution
+
+`AGridLevelRuntimeActor` can execute automatic dungeon transitions at runtime.
+
+The runtime actor keeps:
+
+- `DungeonAsset`: used to resolve `TargetLevelId` into a target `UGridLevelAsset`.
+- `CurrentDungeonLevelId`: the dungeon level id currently loaded.
+- `LevelAsset`: the immediate level data currently reconstructed in the runtime actor.
+
+When `AGrimrockPartyPawn` finishes a successful grid move, it asks the runtime actor to execute a transition on the destination cell. The transition is checked only after the movement interpolation has completed.
+
+Automatic transitions execute only when `bRequireUseAction == false`. Transitions that require Use are ignored by movement for now; Use-triggered transitions will be handled later.
+
+Execution flow:
+
+1. `TryExecuteTransitionAtCell` looks for a transition object on the pawn cell.
+2. `TravelToDungeonLevel` validates `DungeonAsset`, `TargetLevelId`, the target level asset, target cell, target facing, and the pawn.
+3. `CurrentDungeonLevelId` is set to the target level id.
+4. `LevelAsset` is replaced by the target level asset.
+5. `RebuildLevel()` reconstructs the runtime level.
+6. The pawn is placed on `TargetCellX`, `TargetCellY`, `TargetFacing`.
+
+No UE map change, streaming, save game, menu flow, or visual transition is involved in this step.
