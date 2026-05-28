@@ -200,6 +200,15 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor")
     void RebuildPreview ();
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
+    void LogEditorRuntimeAssetConsistency () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Diagnostics")
+    FString GetEditorRuntimeAssetConsistencyDiagnostics () const;
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
+    void SyncPreviewRuntimeLevelAsset ();
+
     UFUNCTION (BlueprintCallable, Category = "Cell Paint")
     void ClearSelectedCell ();
 

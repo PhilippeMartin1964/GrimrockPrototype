@@ -84,6 +84,20 @@ namespace
 
         return FString::Printf (TEXT ("%d"), static_cast<int32> (ObjectType));
     }
+
+    FString GetLevelAssetStatsText (const UGridLevelAsset* Asset)
+    {
+        if (!Asset)
+        {
+            return TEXT ("Cells=0 Objects=0 Links=0");
+        }
+
+        return FString::Printf (
+            TEXT ("Cells=%d Objects=%d Links=%d"),
+            Asset->Cells.Num (),
+            Asset->Objects.Num (),
+            Asset->Links.Num ());
+    }
 }
 
 AGridLevelEditorActor::AGridLevelEditorActor ()
@@ -306,6 +320,75 @@ void AGridLevelEditorActor::ResolvePreviewRuntimeActor ()
         PreviewRuntimeActor = Cast<AGridLevelRuntimeActor> (
             UGameplayStatics::GetActorOfClass (GetWorld (), AGridLevelRuntimeActor::StaticClass ()));
     }
+}
+
+FString AGridLevelEditorActor::GetEditorRuntimeAssetConsistencyDiagnostics () const
+{
+    const UWorld* World = GetWorld ();
+    const UGridLevelAsset* PreviewLevelAsset = PreviewRuntimeActor ? PreviewRuntimeActor->LevelAsset.Get () : nullptr;
+
+    FString Result;
+    Result += TEXT ("GridLevelEditorActor Asset Consistency\n");
+    Result += FString::Printf (TEXT ("EditorActor: %s\n"), *GetName ());
+    Result += FString::Printf (TEXT ("World: %s\n"), World ? *World->GetMapName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("Editor LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("Editor Asset Stats: %s\n"), *GetLevelAssetStatsText (LevelAsset));
+    Result += FString::Printf (TEXT ("PreviewRuntimeActor: %s\n"), PreviewRuntimeActor ? *PreviewRuntimeActor->GetName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("Preview Runtime LevelAsset: %s\n"), PreviewLevelAsset ? *PreviewLevelAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("Preview Asset Stats: %s\n"), *GetLevelAssetStatsText (PreviewLevelAsset));
+
+    if (!LevelAsset)
+    {
+        Result += TEXT ("Status: ERROR - EditorActor LevelAsset is null.");
+    }
+    else if (!PreviewRuntimeActor)
+    {
+        Result += TEXT ("Status: ERROR - PreviewRuntimeActor is null.");
+    }
+    else if (!PreviewLevelAsset)
+    {
+        Result += TEXT ("Status: ERROR - PreviewRuntimeActor LevelAsset is null.");
+    }
+    else if (LevelAsset == PreviewLevelAsset)
+    {
+        Result += TEXT ("Status: OK - Editor and PreviewRuntimeActor use the same LevelAsset.");
+    }
+    else
+    {
+        Result += TEXT ("Status: WARNING - Editor and PreviewRuntimeActor use different LevelAssets.");
+    }
+
+    return Result;
+}
+
+void AGridLevelEditorActor::LogEditorRuntimeAssetConsistency () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetEditorRuntimeAssetConsistencyDiagnostics ());
+}
+
+void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
+{
+    ResolvePreviewRuntimeActor ();
+
+    if (!LevelAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("GridLevelEditorActor: cannot sync PreviewRuntimeActor because LevelAsset is null."));
+        return;
+    }
+
+    if (!PreviewRuntimeActor)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("GridLevelEditorActor: cannot sync LevelAsset because PreviewRuntimeActor is null."));
+        return;
+    }
+
+#if WITH_EDITOR
+    PreviewRuntimeActor->Modify ();
+#endif
+    PreviewRuntimeActor->LevelAsset = LevelAsset;
+    PreviewRuntimeActor->RebuildLevel ();
+
+    LogEditorRuntimeAssetConsistency ();
 }
 
 FVector AGridLevelEditorActor::GetSelectedCellWorldCenter (float ZOffset) const
