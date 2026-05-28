@@ -604,6 +604,8 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
     PreviewRuntimeActor->Modify ();
 #endif
     PreviewRuntimeActor->LevelAsset = LevelAsset;
+    PreviewRuntimeActor->DungeonAsset = DungeonAsset;
+    PreviewRuntimeActor->CurrentDungeonLevelId = CurrentDungeonLevelId;
     PreviewRuntimeActor->RebuildLevel ();
 
     LogEditorRuntimeAssetConsistency ();
@@ -611,31 +613,68 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
 
 void AGridLevelEditorActor::PreparePIETestFromStart ()
 {
+    FString Error;
+    if (!PreparePIETestFromStartInternal (Error))
+    {
+        UE_LOG (LogTemp, Error, TEXT ("PreparePIETestFromStart failed: %s"), *Error);
+    }
+}
+
+bool AGridLevelEditorActor::PreparePIETestFromStartInternal (FString& OutError)
+{
+    OutError.Reset ();
+
     if (!LevelAsset)
     {
-        UE_LOG (LogTemp, Error, TEXT ("PreparePIETestFromStart failed: LevelAsset is null."));
-        return;
+        OutError = TEXT ("LevelAsset is null.");
+        return false;
     }
 
     if (!LevelAsset->IsStartCellValid ())
     {
-        UE_LOG (
-            LogTemp,
-            Error,
-            TEXT ("PreparePIETestFromStart failed: invalid StartCell X=%d Y=%d Facing=%s."),
+        OutError = FString::Printf (
+            TEXT ("Start cell is invalid: X=%d Y=%d Facing=%s."),
             LevelAsset->StartCellX,
             LevelAsset->StartCellY,
             *GetGridEdgeText (LevelAsset->StartFacing));
-        return;
+        return false;
     }
 
-    SyncPreviewRuntimeLevelAsset ();
+    if (DungeonAsset)
+    {
+        if (CurrentDungeonLevelId.IsNone ())
+        {
+            OutError = TEXT ("CurrentDungeonLevelId is None while DungeonAsset is assigned.");
+            return false;
+        }
+
+        if (!DungeonAsset->IsValidLevelId (CurrentDungeonLevelId))
+        {
+            OutError = FString::Printf (
+                TEXT ("CurrentDungeonLevelId '%s' is not an enabled level with a LevelAsset in DungeonAsset %s."),
+                *CurrentDungeonLevelId.ToString (),
+                *DungeonAsset->GetPathName ());
+            return false;
+        }
+
+        UGridLevelAsset* DungeonLevelAsset = DungeonAsset->GetLevelAssetById (CurrentDungeonLevelId);
+        if (DungeonLevelAsset != LevelAsset)
+        {
+            OutError = FString::Printf (
+                TEXT ("CurrentDungeonLevelId '%s' resolves to %s but EditorActor.LevelAsset is %s. Apply Current Dungeon Level before PIE."),
+                *CurrentDungeonLevelId.ToString (),
+                DungeonLevelAsset ? *DungeonLevelAsset->GetPathName () : TEXT ("None"),
+                *LevelAsset->GetPathName ());
+            return false;
+        }
+    }
+
     ResolvePreviewRuntimeActor ();
 
     if (!PreviewRuntimeActor)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("PreparePIETestFromStart: PreviewRuntimeActor is missing. PIE may still work if the map has another runtime actor or GameMode setup."));
-        return;
+        OutError = TEXT ("PreviewRuntimeActor is missing.");
+        return false;
     }
 
 #if WITH_EDITOR
@@ -643,6 +682,8 @@ void AGridLevelEditorActor::PreparePIETestFromStart ()
 #endif
     PreviewRuntimeActor->bApplyLevelStartOnBeginPlay = true;
     PreviewRuntimeActor->LevelAsset = LevelAsset;
+    PreviewRuntimeActor->DungeonAsset = DungeonAsset;
+    PreviewRuntimeActor->CurrentDungeonLevelId = CurrentDungeonLevelId;
     PreviewRuntimeActor->RebuildLevel ();
     PreviewRuntimeActor->LogPIEReadinessDiagnostics ();
 
@@ -655,6 +696,8 @@ void AGridLevelEditorActor::PreparePIETestFromStart ()
         LevelAsset->StartCellX,
         LevelAsset->StartCellY,
         *GetGridEdgeText (LevelAsset->StartFacing));
+
+    return true;
 }
 
 void AGridLevelEditorActor::SetStartFromSelection ()

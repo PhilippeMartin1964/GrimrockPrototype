@@ -200,6 +200,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
     bool bHideEditorActorDuringPIE = true;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
+    bool bAutoPreparePIE = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
+    bool bAbortPIEOnPreparationError = true;
+
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateLabelWorldSize = 28.f;
 
@@ -239,6 +245,9 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|PIE")
     void PreparePIETestFromStart ();
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|PIE")
+    bool PreparePIETestFromStartInternal (FString& OutError);
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Gameplay|Start")
     void SetStartFromSelection ();

@@ -466,6 +466,15 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildDungeonLevelsPanel ()
             GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
                 FText::FromString (TEXT ("Levels")),
                 FText::AsNumber (DungeonAsset->Levels.Num ()))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Auto PIE Prepare")),
+                EditorActor->bAutoPreparePIE
+                    ? FText::FromString (TEXT ("On"))
+                    : FText::FromString (TEXT ("Off")))
         ];
 
     TSharedRef<SWrapBox> ActionButtons = SNew (SWrapBox);

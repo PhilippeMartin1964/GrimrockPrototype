@@ -34,11 +34,13 @@ Open the existing `BP_GrimrockGameMode` and configure it as follows:
 2. Select a playable cell.
 3. Run `SetStartFromSelection` on `BP_GridLevelEditorActor`.
 4. Save the `UGridLevelAsset`.
-5. Run `PreparePIETestFromStart` on `BP_GridLevelEditorActor`.
-6. Run `LogPIEReadinessDiagnostics` on `BP_GridLevelRuntimeActor` if more detail is needed.
-7. Click Play.
+5. Click Play.
 
-`PreparePIETestFromStart` does not start PIE automatically. It only synchronizes the preview runtime actor, enables LevelAsset start application on begin play, rebuilds the runtime preview, and logs readiness diagnostics.
+`PreparePIETestFromStart` is still available as a manual debug tool, but it is no longer part of the normal workflow. The editor module automatically runs the same preparation logic when PIE starts from a map containing `BP_GridLevelEditorActor`.
+
+Automatic PIE preparation synchronizes the preview runtime actor, copies `LevelAsset`, `DungeonAsset`, and `CurrentDungeonLevelId`, enables LevelAsset start application on begin play, rebuilds the runtime preview, and logs readiness diagnostics.
+
+If automatic preparation fails and `bAbortPIEOnPreparationError` is true, the editor requests PIE to stop immediately. Unreal's PIE delegate does not provide a clean veto in this path, so failure may appear as PIE starting and then immediately ending. Check the log for the exact error.
 
 ## 4. Diagnostics
 

@@ -17,6 +17,7 @@ The panel shows:
 - current dungeon level id;
 - current `LevelAsset`;
 - level count;
+- `Auto PIE Prepare` status;
 - a clickable list of levels from the assigned `DungeonAsset`.
 
 Example entries:
@@ -34,8 +35,10 @@ Clicking a valid level sets `CurrentDungeonLevelId`, calls `ApplyCurrentDungeonL
 2. Open Grimrock Grid Editor Mode.
 3. Click a level in `DUNGEON LEVELS`.
 4. Edit the selected level.
-5. Use `PreparePIETestFromStart`.
+5. Use `SetStartFromSelection` if the player start should move.
 6. Click Play.
+
+PIE preparation is automatic when `bAutoPreparePIE` is enabled on `BP_GridLevelEditorActor`. `PreparePIETestFromStart` remains available as a debug command, but it is not a normal daily editing step.
 
 ## Compatibility
 
@@ -45,5 +48,6 @@ The existing `CallInEditor` buttons on `BP_GridLevelEditorActor` are kept for no
 - `Load Default Dungeon Level`
 - `Log Dungeon Diagnostics`
 - `Log Dungeon Transition Diagnostics`
+- `PreparePIETestFromStart`
 
 A later audit can decide which technical controls should remain visible on the actor.
