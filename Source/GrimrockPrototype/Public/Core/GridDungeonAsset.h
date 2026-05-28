@@ -34,11 +34,20 @@ class GRIMROCKPROTOTYPE_API UGridDungeonAsset : public UDataAsset
     GENERATED_BODY ()
 
 public:
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon")
-    TArray<FGridDungeonLevelEntry> Levels;
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon", meta = (DisplayName = "Dungeon Name"))
+    FText DungeonName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon", meta = (DisplayName = "Author"))
+    FText Author;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon", meta = (DisplayName = "Version"))
+    FString Version = TEXT ("0.1");
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon|Start", meta = (DisplayName = "Default Level Id"))
+    FName DefaultLevelId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Dungeon")
-    FName DefaultLevelId = NAME_None;
+    TArray<FGridDungeonLevelEntry> Levels;
 
     UFUNCTION (BlueprintCallable, Category = "Dungeon")
     bool IsValidLevelId (FName LevelId) const;

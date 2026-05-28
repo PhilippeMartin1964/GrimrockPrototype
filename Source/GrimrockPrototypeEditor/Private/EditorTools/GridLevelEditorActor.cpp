@@ -519,6 +519,60 @@ bool AGridLevelEditorActor::ApplyCurrentDungeonLevel ()
     return true;
 }
 
+void AGridLevelEditorActor::ApplyCurrentDungeonLevelInEditor ()
+{
+    ApplyCurrentDungeonLevel ();
+}
+
+void AGridLevelEditorActor::LoadDefaultDungeonLevelInEditor ()
+{
+    if (!DungeonAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("LoadDefaultDungeonLevel failed: DungeonAsset is null."));
+        return;
+    }
+
+    if (DungeonAsset->IsValidLevelId (DungeonAsset->DefaultLevelId))
+    {
+#if WITH_EDITOR
+        Modify ();
+#endif
+        CurrentDungeonLevelId = DungeonAsset->DefaultLevelId;
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("LoadDefaultDungeonLevel: loading DefaultLevelId %s."),
+            *CurrentDungeonLevelId.ToString ());
+        ApplyCurrentDungeonLevel ();
+        return;
+    }
+
+    for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+    {
+        if (Entry.bEnabled && Entry.LevelAsset)
+        {
+#if WITH_EDITOR
+            Modify ();
+#endif
+            CurrentDungeonLevelId = Entry.LevelId;
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("LoadDefaultDungeonLevel: DefaultLevelId %s is not valid; loading first enabled level %s."),
+                *DungeonAsset->DefaultLevelId.ToString (),
+                *CurrentDungeonLevelId.ToString ());
+            ApplyCurrentDungeonLevel ();
+            return;
+        }
+    }
+
+    UE_LOG (
+        LogTemp,
+        Error,
+        TEXT ("LoadDefaultDungeonLevel failed: DungeonAsset %s has no enabled level with a LevelAsset."),
+        *DungeonAsset->GetPathName ());
+}
+
 void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
 {
     ResolvePreviewRuntimeActor ();

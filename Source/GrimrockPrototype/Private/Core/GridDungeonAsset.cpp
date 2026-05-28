@@ -51,17 +51,23 @@ UGridLevelAsset* UGridDungeonAsset::GetDefaultLevelAsset () const
 FString UGridDungeonAsset::GetDungeonDiagnostics () const
 {
     FString Result;
-    Result += FString::Printf (TEXT ("GridDungeonAsset: %s\n"), *GetPathName ());
+    Result += TEXT ("GridDungeonAsset Diagnostics\n");
+    Result += FString::Printf (TEXT ("Asset: %s\n"), *GetPathName ());
+    Result += FString::Printf (TEXT ("DungeonName: %s\n"), *DungeonName.ToString ());
+    Result += FString::Printf (TEXT ("Author: %s\n"), *Author.ToString ());
+    Result += FString::Printf (TEXT ("Version: %s\n"), *Version);
     Result += FString::Printf (TEXT ("DefaultLevelId: %s\n"), *DefaultLevelId.ToString ());
-    Result += FString::Printf (TEXT ("LevelCount: %d\n"), Levels.Num ());
+    Result += FString::Printf (TEXT ("Levels: %d\n"), Levels.Num ());
 
     int32 EnabledCount = 0;
     int32 MissingAssetCount = 0;
     TSet<FName> SeenIds;
     TSet<FName> DuplicateIds;
 
-    for (const FGridDungeonLevelEntry& Entry : Levels)
+    for (int32 LevelIndex = 0; LevelIndex < Levels.Num (); ++LevelIndex)
     {
+        const FGridDungeonLevelEntry& Entry = Levels[LevelIndex];
+
         if (Entry.bEnabled)
         {
             ++EnabledCount;
@@ -80,7 +86,8 @@ FString UGridDungeonAsset::GetDungeonDiagnostics () const
         }
 
         Result += FString::Printf (
-            TEXT ("- LevelId=%s DisplayName=%s Enabled=%s LogicalPosition=(%d,%d,%d) LevelAsset=%s\n"),
+            TEXT ("[%d] LevelId=%s DisplayName=%s Enabled=%s LogicalPosition=(%d,%d,%d) LevelAsset=%s\n"),
+            LevelIndex,
             *Entry.LevelId.ToString (),
             *Entry.DisplayName.ToString (),
             Entry.bEnabled ? TEXT ("true") : TEXT ("false"),

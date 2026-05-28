@@ -213,6 +213,12 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
     bool ApplyCurrentDungeonLevel ();
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Apply Current Dungeon Level"))
+    void ApplyCurrentDungeonLevelInEditor ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Load Default Dungeon Level"))
+    void LoadDefaultDungeonLevelInEditor ();
+
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
     void LogDungeonDiagnostics () const;
 
