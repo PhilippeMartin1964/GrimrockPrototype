@@ -487,7 +487,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildDungeonLevelsPanel ()
                     : FText::FromString (TEXT ("Off")))
         ];
 
-    TSharedRef<SWrapBox> ActionButtons = SNew (SWrapBox);
+    TSharedRef<SHorizontalBox> ActionButtons = SNew (SHorizontalBox);
     ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
     [
         GridEditorWidgetHelpers::BuildGridActionButton (
@@ -706,7 +706,7 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPlaytestPanel ()
         }
     }
 
-    TSharedRef<SWrapBox> ActionButtons = SNew (SWrapBox);
+    TSharedRef<SHorizontalBox> ActionButtons = SNew (SHorizontalBox);
     ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
     [
         GridEditorWidgetHelpers::BuildGridActionButton (
