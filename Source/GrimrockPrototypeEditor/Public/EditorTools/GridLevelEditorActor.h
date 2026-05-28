@@ -209,6 +209,9 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
     void SyncPreviewRuntimeLevelAsset ();
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Gameplay|Start")
+    void SetStartFromSelection ();
+
     UFUNCTION (BlueprintCallable, Category = "Cell Paint")
     void ClearSelectedCell ();
 

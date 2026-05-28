@@ -36,6 +36,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Start")
     EGridEdge StartFacing = EGridEdge::North;
 
+    UFUNCTION (BlueprintCallable, Category = "Gameplay|Start")
+    bool IsStartCellValid () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Gameplay|Start")
+    FIntPoint GetStartCell () const;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
     TArray<FGridLevelObjectData> Objects;
 

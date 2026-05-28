@@ -98,6 +98,31 @@ namespace
             Asset->Objects.Num (),
             Asset->Links.Num ());
     }
+
+    FString GetGridEdgeText (EGridEdge Edge)
+    {
+        if (const UEnum* EdgeEnum = StaticEnum<EGridEdge> ())
+        {
+            return EdgeEnum->GetNameStringByValue (static_cast<int64> (Edge));
+        }
+
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Edge));
+    }
+
+    FString GetLevelStartText (const UGridLevelAsset* Asset)
+    {
+        if (!Asset)
+        {
+            return TEXT ("Cell=None Facing=None Valid=false");
+        }
+
+        return FString::Printf (
+            TEXT ("Cell=(%d,%d) Facing=%s Valid=%s"),
+            Asset->StartCellX,
+            Asset->StartCellY,
+            *GetGridEdgeText (Asset->StartFacing),
+            Asset->IsStartCellValid () ? TEXT ("true") : TEXT ("false"));
+    }
 }
 
 AGridLevelEditorActor::AGridLevelEditorActor ()
@@ -333,9 +358,11 @@ FString AGridLevelEditorActor::GetEditorRuntimeAssetConsistencyDiagnostics () co
     Result += FString::Printf (TEXT ("World: %s\n"), World ? *World->GetMapName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Editor LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Editor Asset Stats: %s\n"), *GetLevelAssetStatsText (LevelAsset));
+    Result += FString::Printf (TEXT ("Editor Start: %s\n"), *GetLevelStartText (LevelAsset));
     Result += FString::Printf (TEXT ("PreviewRuntimeActor: %s\n"), PreviewRuntimeActor ? *PreviewRuntimeActor->GetName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Preview Runtime LevelAsset: %s\n"), PreviewLevelAsset ? *PreviewLevelAsset->GetPathName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Preview Asset Stats: %s\n"), *GetLevelAssetStatsText (PreviewLevelAsset));
+    Result += FString::Printf (TEXT ("Preview Start: %s\n"), *GetLevelStartText (PreviewLevelAsset));
 
     if (!LevelAsset)
     {
@@ -387,6 +414,60 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
 #endif
     PreviewRuntimeActor->LevelAsset = LevelAsset;
     PreviewRuntimeActor->RebuildLevel ();
+
+    LogEditorRuntimeAssetConsistency ();
+}
+
+void AGridLevelEditorActor::SetStartFromSelection ()
+{
+    if (!LevelAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("GridLevelEditorActor: cannot set start from selection because LevelAsset is null."));
+        return;
+    }
+
+    if (!LevelAsset->IsValidCoord (SelectedCellX, SelectedCellY))
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("GridLevelEditorActor: cannot set start from invalid selection X=%d Y=%d."),
+            SelectedCellX,
+            SelectedCellY);
+        return;
+    }
+
+    const FGridLevelCellData& SelectedCell = LevelAsset->GetCell (SelectedCellX, SelectedCellY);
+    if (SelectedCell.CellType == EGridCellType::Empty || SelectedCell.bBlocksOccupancy)
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("GridLevelEditorActor: cannot set start from non-walkable selection X=%d Y=%d."),
+            SelectedCellX,
+            SelectedCellY);
+        return;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    LevelAsset->StartCellX = SelectedCellX;
+    LevelAsset->StartCellY = SelectedCellY;
+    LevelAsset->StartFacing = SelectedEdge == EGridEdge::None ? EGridEdge::North : SelectedEdge;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("GridLevelEditorActor: level start set to X=%d Y=%d Facing=%s."),
+        LevelAsset->StartCellX,
+        LevelAsset->StartCellY,
+        *GetGridEdgeText (LevelAsset->StartFacing));
 
     LogEditorRuntimeAssetConsistency ();
 }
@@ -2135,6 +2216,17 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
             EGridLevelValidationSeverity::Error,
             TEXT ("LevelAsset is missing."));
         return LastValidationMessages;
+    }
+
+    if (!LevelAsset->IsStartCellValid ())
+    {
+        AddMessage (
+            EGridLevelValidationSeverity::Error,
+            FString::Printf (
+                TEXT ("Start cell X=%d Y=%d Facing=%s is invalid. It must be inside the grid, non-empty and not block occupancy."),
+                LevelAsset->StartCellX,
+                LevelAsset->StartCellY,
+                *GetGridEdgeText (LevelAsset->StartFacing)));
     }
 
     TSet<FGuid> SeenObjectIds;

@@ -1528,6 +1528,11 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     Result += FString::Printf (TEXT ("AssetPackage=%s\n"), *GetNameSafe (LevelAsset->GetOutermost ()));
     Result += FString::Printf (TEXT ("GridSize=%dx%d\n"), LevelAsset->Width, LevelAsset->Height);
     Result += FString::Printf (TEXT ("CellSize=%.2f\n"), LevelAsset->CellSize);
+    Result += FString::Printf (TEXT ("StartCell=(%d,%d) StartFacing=%s StartCellValid=%s\n"),
+        LevelAsset->StartCellX,
+        LevelAsset->StartCellY,
+        StaticEnum<EGridEdge> () ? *StaticEnum<EGridEdge> ()->GetNameStringByValue (static_cast<int64> (LevelAsset->StartFacing)) : TEXT ("Unknown"),
+        LevelAsset->IsStartCellValid () ? TEXT ("true") : TEXT ("false"));
     Result += FString::Printf (TEXT ("Cells=%d ExpectedCells=%d\n"), LevelAsset->Cells.Num (), ExpectedCellCount);
     Result += FString::Printf (TEXT ("NonEmptyCells=%d BlockingCells=%d CeilingCells=%d\n"),
         NonEmptyCellCount,

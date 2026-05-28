@@ -58,6 +58,30 @@ void AGrimrockPartyPawn::BeginPlay ()
     {
         UE_LOG (LogTemp, Warning, TEXT ("GrimrockPartyPawn: no AGridLevelRuntimeActor found."));
     }
+    else if (LevelRuntimeActor->LevelAsset)
+    {
+        if (LevelRuntimeActor->LevelAsset->IsStartCellValid ())
+        {
+            CurrentCellX = LevelRuntimeActor->LevelAsset->StartCellX;
+            CurrentCellY = LevelRuntimeActor->LevelAsset->StartCellY;
+            Facing = LevelRuntimeActor->LevelAsset->StartFacing == EGridEdge::None
+                ? EGridEdge::North
+                : LevelRuntimeActor->LevelAsset->StartFacing;
+        }
+        else
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("GrimrockPartyPawn: LevelAsset start cell is invalid, keeping configured pawn cell (%d,%d)."),
+                CurrentCellX,
+                CurrentCellY);
+        }
+    }
+    else
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GrimrockPartyPawn: LevelRuntimeActor has no LevelAsset, keeping configured pawn start."));
+    }
 
     SnapToCurrentCell ();
 

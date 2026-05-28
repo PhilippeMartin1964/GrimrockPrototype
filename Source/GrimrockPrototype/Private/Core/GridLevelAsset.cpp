@@ -32,6 +32,28 @@ FGridLevelCellData& UGridLevelAsset::GetCellMutable (int32 X, int32 Y)
     return Cells[GetIndex (X, Y)];
 }
 
+bool UGridLevelAsset::IsStartCellValid () const
+{
+    if (!IsValidCoord (StartCellX, StartCellY))
+    {
+        return false;
+    }
+
+    const int32 CellIndex = GetIndex (StartCellX, StartCellY);
+    if (!Cells.IsValidIndex (CellIndex))
+    {
+        return false;
+    }
+
+    const FGridLevelCellData& StartCell = Cells[CellIndex];
+    return StartCell.CellType != EGridCellType::Empty && !StartCell.bBlocksOccupancy;
+}
+
+FIntPoint UGridLevelAsset::GetStartCell () const
+{
+    return FIntPoint (StartCellX, StartCellY);
+}
+
 void UGridLevelAsset::ClearLevel ()
 {
 #if WITH_EDITOR
