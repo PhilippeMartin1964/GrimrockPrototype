@@ -1647,6 +1647,7 @@ FString AGridLevelRuntimeActor::GetPIEReadinessDiagnostics () const
     Result += FString::Printf (TEXT ("WorldType: %s\n"), *GetRuntimeWorldTypeText (World));
     Result += FString::Printf (TEXT ("IsGameWorld: %s\n"), *GetRuntimeBoolText (bHasGameWorld));
     Result += FString::Printf (TEXT ("LevelAsset: %s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("ApplyLevelStartOnBeginPlay: %s\n"), *GetRuntimeBoolText (bApplyLevelStartOnBeginPlay));
 
     if (LevelAsset)
     {

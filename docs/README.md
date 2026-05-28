@@ -34,6 +34,7 @@ Ces documents complètent `docs/Design` pour la séparation C++ entre le module 
 
 ### D. Tests manuels
 
+- `docs/Design/PIE_TEST_FROM_EDITOR.md`
 - `docs/Runtime_Test_Button_Door.md`
 - `docs/Design/10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md`
 

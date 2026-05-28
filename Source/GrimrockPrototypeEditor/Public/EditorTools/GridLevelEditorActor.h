@@ -190,6 +190,9 @@ public:
     UPROPERTY (EditAnywhere, Category = "Editor|Connectors")
     bool bShowConnectorLabels = true;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
+    bool bHideEditorActorDuringPIE = true;
+
     UPROPERTY (EditAnywhere, Category = "Editor Grid")
     float CoordinateLabelWorldSize = 28.f;
 
@@ -208,6 +211,9 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
     void SyncPreviewRuntimeLevelAsset ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|PIE")
+    void PreparePIETestFromStart ();
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Gameplay|Start")
     void SetStartFromSelection ();
@@ -355,6 +361,8 @@ public:
     bool SetSelectedObjectOrientation (EGridEdge Orientation);
 
 protected:
+    virtual void BeginPlay () override;
+
     virtual void OnConstruction (const FTransform& Transform) override;
 
 #if WITH_EDITOR

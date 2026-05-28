@@ -58,7 +58,7 @@ void AGrimrockPartyPawn::BeginPlay ()
     {
         UE_LOG (LogTemp, Warning, TEXT ("GrimrockPartyPawn: no AGridLevelRuntimeActor found."));
     }
-    else if (LevelRuntimeActor->LevelAsset)
+    else if (LevelRuntimeActor->bApplyLevelStartOnBeginPlay && LevelRuntimeActor->LevelAsset)
     {
         if (LevelRuntimeActor->LevelAsset->IsStartCellValid ())
         {
@@ -77,6 +77,10 @@ void AGrimrockPartyPawn::BeginPlay ()
                 CurrentCellX,
                 CurrentCellY);
         }
+    }
+    else if (!LevelRuntimeActor->bApplyLevelStartOnBeginPlay)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("GrimrockPartyPawn: LevelAsset start application is disabled, keeping configured pawn start."));
     }
     else
     {

@@ -5,6 +5,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Components/TextRenderComponent.h"
+#include "Components/PrimitiveComponent.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -153,6 +154,37 @@ void AGridLevelEditorActor::OnConstruction (const FTransform& Transform)
     }
     UpdateCoordinateGridPlane ();
     UpdateCoordinateHoverLabel ();
+}
+
+void AGridLevelEditorActor::BeginPlay ()
+{
+    Super::BeginPlay ();
+
+    UWorld* World = GetWorld ();
+    if (!World || !World->IsGameWorld () || !bHideEditorActorDuringPIE)
+    {
+        return;
+    }
+
+    SetActorHiddenInGame (true);
+    SetActorEnableCollision (false);
+
+    TArray<UPrimitiveComponent*> PrimitiveComponents;
+    GetComponents<UPrimitiveComponent> (PrimitiveComponents);
+    for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+    {
+        if (PrimitiveComponent)
+        {
+            PrimitiveComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+            PrimitiveComponent->SetVisibility (false, true);
+        }
+    }
+
+    if (CoordinateGridPlane)
+    {
+        CoordinateGridPlane->SetHiddenInGame (true, true);
+        CoordinateGridPlane->SetVisibility (false, true);
+    }
 }
 
 #if WITH_EDITOR
@@ -416,6 +448,54 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
     PreviewRuntimeActor->RebuildLevel ();
 
     LogEditorRuntimeAssetConsistency ();
+}
+
+void AGridLevelEditorActor::PreparePIETestFromStart ()
+{
+    if (!LevelAsset)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("PreparePIETestFromStart failed: LevelAsset is null."));
+        return;
+    }
+
+    if (!LevelAsset->IsStartCellValid ())
+    {
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("PreparePIETestFromStart failed: invalid StartCell X=%d Y=%d Facing=%s."),
+            LevelAsset->StartCellX,
+            LevelAsset->StartCellY,
+            *GetGridEdgeText (LevelAsset->StartFacing));
+        return;
+    }
+
+    SyncPreviewRuntimeLevelAsset ();
+    ResolvePreviewRuntimeActor ();
+
+    if (!PreviewRuntimeActor)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("PreparePIETestFromStart: PreviewRuntimeActor is missing. PIE may still work if the map has another runtime actor or GameMode setup."));
+        return;
+    }
+
+#if WITH_EDITOR
+    PreviewRuntimeActor->Modify ();
+#endif
+    PreviewRuntimeActor->bApplyLevelStartOnBeginPlay = true;
+    PreviewRuntimeActor->LevelAsset = LevelAsset;
+    PreviewRuntimeActor->RebuildLevel ();
+    PreviewRuntimeActor->LogPIEReadinessDiagnostics ();
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("PreparePIETestFromStart OK: %s is ready to test LevelAsset %s from StartCell X=%d Y=%d Facing=%s."),
+        *GetNameSafe (PreviewRuntimeActor),
+        *GetNameSafe (LevelAsset),
+        LevelAsset->StartCellX,
+        LevelAsset->StartCellY,
+        *GetGridEdgeText (LevelAsset->StartFacing));
 }
 
 void AGridLevelEditorActor::SetStartFromSelection ()

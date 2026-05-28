@@ -102,6 +102,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
     FVector GridOrigin = FVector::ZeroVector;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Runtime|Start")
+    bool bApplyLevelStartOnBeginPlay = true;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
     bool bRebuildInConstruction = false;
 
