@@ -190,6 +190,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime")
     bool CanMove (int32 FromX, int32 FromY, EGridEdge Direction) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Rendering")
+    bool ShouldHideCellFloor (int32 CellX, int32 CellY) const;
+
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
 

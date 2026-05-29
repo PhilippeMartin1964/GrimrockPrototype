@@ -62,6 +62,22 @@ Workflow recommandé :
 
 Si `bRequireUseAction = false`, la transition se déclenche en entrant sur la cellule. Si `bRequireUseAction = true`, la transition par action `Use` sera traitée dans une étape ultérieure.
 
+### Stairs_Down rendering behavior
+
+`Stairs_Down` masque le mesh de sol standard de sa cellule via `UGridObjectArchetypeAsset::bHideCellFloor = true`.
+
+Ce comportement est un override de rendu porté par l'archétype :
+
+- la cellule reste inchangée dans le `UGridLevelAsset`;
+- la cellule ne devient pas `Empty`;
+- la cellule reste franchissable si ses données de cellule le permettent;
+- la logique de transition runtime ne change pas;
+- seul le floor standard, par exemple `SM_Floor_Stone_01`, n'est pas généré sous l'escalier.
+
+`Stairs_Up` conserve le floor standard pour l'instant.
+
+Le traitement du mur ou d'une face sombre devant la descente est prévu séparément. Une option future pourra utiliser un flag du type `bHideForwardWall` ou `bSpawnDarkForwardPlane`, basé sur une orientation fiable de l'objet de sol. Ce comportement n'est pas activé automatiquement dans cette étape.
+
 ## Fields
 
 `FGridObjectTransitionParams` is part of `FGridObjectBehaviorParams`:

@@ -248,7 +248,8 @@ namespace
         UGridObjectArchetypeAsset& Archetype,
         FName ArchetypeId,
         const TCHAR* DisplayName,
-        UStaticMesh* Mesh)
+        UStaticMesh* Mesh,
+        bool bHideCellFloor)
     {
         Archetype.Modify ();
         Archetype.ArchetypeId = ArchetypeId;
@@ -274,6 +275,9 @@ namespace
         Archetype.bCanShareAnchor = true;
         Archetype.bReplacesStandardWall = false;
         Archetype.bBlocksMovement = false;
+        Archetype.bHideCellFloor = bHideCellFloor;
+        Archetype.bHideCellCeiling = false;
+        Archetype.bHideForwardWall = false;
         Archetype.bIsInteractable = false;
         Archetype.bIsReadable = false;
         Archetype.bIsLightSource = false;
@@ -824,8 +828,8 @@ bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes (FString& OutError)
         return false;
     }
 
-    ConfigureStairsTransitionArchetype (*StairsUpArchetype, FName (TEXT ("Stairs_Up")), TEXT ("Stairs Up"), StairsUpMesh);
-    ConfigureStairsTransitionArchetype (*StairsDownArchetype, FName (TEXT ("Stairs_Down")), TEXT ("Stairs Down"), StairsDownMesh);
+    ConfigureStairsTransitionArchetype (*StairsUpArchetype, FName (TEXT ("Stairs_Up")), TEXT ("Stairs Up"), StairsUpMesh, false);
+    ConfigureStairsTransitionArchetype (*StairsDownArchetype, FName (TEXT ("Stairs_Down")), TEXT ("Stairs Down"), StairsDownMesh, true);
 
     ObjectPalette->Modify ();
 

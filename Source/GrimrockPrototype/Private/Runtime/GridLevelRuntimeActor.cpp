@@ -82,6 +82,28 @@ namespace
 
         return TransitionCount;
     }
+
+    int32 CountHiddenFloorCells (const UGridLevelAsset* InLevelAsset, const AGridLevelRuntimeActor* RuntimeActor)
+    {
+        if (!InLevelAsset || !RuntimeActor)
+        {
+            return 0;
+        }
+
+        int32 HiddenFloorCells = 0;
+        for (int32 Y = 0; Y < InLevelAsset->Height; ++Y)
+        {
+            for (int32 X = 0; X < InLevelAsset->Width; ++X)
+            {
+                if (RuntimeActor->ShouldHideCellFloor (X, Y))
+                {
+                    ++HiddenFloorCells;
+                }
+            }
+        }
+
+        return HiddenFloorCells;
+    }
 }
 
 bool AGridLevelRuntimeActor::IsSafeRuntimeRenderTransform (const FTransform& Transform)
@@ -407,6 +429,30 @@ bool AGridLevelRuntimeActor::ShouldSuppressStandardWallForEdge (int32 X, int32 Y
     return false;
 }
 
+bool AGridLevelRuntimeActor::ShouldHideCellFloor (int32 CellX, int32 CellY) const
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.CellX != CellX || ObjectData.CellY != CellY)
+        {
+            continue;
+        }
+
+        const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+        if (Archetype && Archetype->bHideCellFloor)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void AGridLevelRuntimeActor::AddEdgeInstance (UInstancedStaticMeshComponent* TargetISM, int32 X, int32 Y, EGridEdge Edge, float CellSize)
 {
     if (!TargetISM)
@@ -534,7 +580,10 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
             {
                 continue;
             }
-            AddFloor (X, Y, CellSize);
+            if (!ShouldHideCellFloor (X, Y))
+            {
+                AddFloor (X, Y, CellSize);
+            }
 
             if (Cell.bHasCeiling)
             {
@@ -1869,6 +1918,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     int32 BlockingCellCount = 0;
     int32 CeilingCellCount = 0;
     const int32 TransitionObjectCount = CountRuntimeTransitionObjects (LevelAsset);
+    const int32 HiddenFloorCellCount = CountHiddenFloorCells (LevelAsset, this);
 
     for (const FGridLevelCellData& Cell : LevelAsset->Cells)
     {
@@ -1900,10 +1950,11 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
         BlockingCellCount,
         CeilingCellCount);
     Result += FString::Printf (
-        TEXT ("Objects=%d Links=%d TransitionObjects=%d\n"),
+        TEXT ("Objects=%d Links=%d TransitionObjects=%d HiddenFloorCells=%d\n"),
         LevelAsset->Objects.Num (),
         LevelAsset->Links.Num (),
-        TransitionObjectCount);
+        TransitionObjectCount,
+        HiddenFloorCellCount);
     Result += FString::Printf (TEXT ("ObjectArchetypesOnRuntimeActor=%d\n"), ObjectArchetypes.Num ());
     Result += FString::Printf (TEXT ("FloorMesh=%s WallMesh=%s CeilingMesh=%s\n"),
         *GetNameSafe (FloorMesh),

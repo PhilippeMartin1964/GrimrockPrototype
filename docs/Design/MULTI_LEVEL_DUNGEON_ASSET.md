@@ -104,6 +104,14 @@ Chaque escalier doit ensuite être configuré dans l'inspecteur :
 
 `bRequireUseAction = false` déclenche la transition en marchant sur l'escalier. `bRequireUseAction = true` est réservé aux transitions nécessitant l'action `Use`, qui seront traitées plus tard.
 
+Comportement de rendu de `Stairs_Down` :
+
+- `Stairs_Down` masque le floor standard de sa cellule avec `bHideCellFloor = true`;
+- la cellule reste walkable si ses données de cellule le permettent;
+- ce n'est pas un changement de type de cellule;
+- `Stairs_Up` conserve le floor standard pour l'instant;
+- le mur ou la face sombre devant la descente sera traité dans une étape séparée.
+
 Workflow :
 
 1. Créer ou sélectionner un niveau cible dans `DUNGEON LEVELS`.
