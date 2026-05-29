@@ -8,6 +8,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "EngineUtils.h"
 
 
 AGridReceptacleActor::AGridReceptacleActor ()
@@ -525,7 +526,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         }
 
         FGridRuntimeItemState ItemState;
-        ItemState.ObjectId = FGuid::NewGuid ();
+        ItemState.ObjectId = ItemActor->GetRuntimeObjectId ().IsValid () ? ItemActor->GetRuntimeObjectId () : FGuid::NewGuid ();
         ItemState.ArchetypeId = ItemActor->ArchetypeId;
         ItemState.Transform = ItemActor->GetActorTransform ();
         ItemState.bIsContainedInReceptacle = true;
@@ -552,7 +553,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
     if (OutState.ContainedItems.Num () == 0 && !ContainedItemArchetypeId.IsNone ())
     {
         FGridRuntimeItemState ItemState;
-        ItemState.ObjectId = FGuid::NewGuid ();
+        ItemState.ObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
         ItemState.ArchetypeId = ContainedItemArchetypeId;
         ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
         ItemState.bIsContainedInReceptacle = true;
@@ -563,19 +564,47 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         OutState.ContainedItemObjectIds.Add (ItemState.ObjectId);
         OutState.ContainedItems.Add (ItemState);
     }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridRuntimeState Capture Receptacle ObjectId=%s Items=%d"),
+        *ObjectId.ToString (),
+        OutState.ContainedItems.Num ());
 }
 
-void AGridReceptacleActor::ClearRuntimeContainedItems ()
+int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
 {
+    int32 ClearedItemCount = 0;
+
     TArray<TObjectPtr<AGridItemActor>> ItemActors = ContainedItemActors;
     for (const TObjectPtr<AGridItemActor>& ItemActor : ItemActors)
     {
-        ClearContainedItemActor (ItemActor.Get ());
+        if (IsValid (ItemActor))
+        {
+            ++ClearedItemCount;
+            ClearContainedItemActor (ItemActor.Get ());
+        }
     }
 
-    if (ContainedItemActor)
+    if (IsValid (ContainedItemActor))
     {
+        ++ClearedItemCount;
         ClearContainedItemActor (ContainedItemActor.Get ());
+    }
+
+    if (UWorld* World = GetWorld ())
+    {
+        for (TActorIterator<AGridItemActor> It (World); It; ++It)
+        {
+            AGridItemActor* ItemActor = *It;
+            if (!IsValid (ItemActor) || ItemActor->GetOwner () != this)
+            {
+                continue;
+            }
+
+            ++ClearedItemCount;
+            ItemActor->OnRemovedFromWorld ();
+            ItemActor->Destroy ();
+        }
     }
 
     ContainedItemActors.Reset ();
@@ -583,6 +612,8 @@ void AGridReceptacleActor::ClearRuntimeContainedItems ()
     SetContainedItem (NAME_None);
     RebuildContainedItemState ();
     UpdateContainedItemInteractionCollision ();
+
+    return ClearedItemCount;
 }
 
 bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor)
@@ -592,6 +623,7 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
         return false;
     }
 
+    ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
     ContainedItemActor = ItemActor;
     ContainedItemActors.AddUnique (ItemActor);
 

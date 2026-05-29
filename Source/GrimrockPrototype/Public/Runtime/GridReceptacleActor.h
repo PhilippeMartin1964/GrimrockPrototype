@@ -132,7 +132,7 @@ public:
     void SetInitialContainedItemActor (AGridItemActor* ItemActor);
 
     void CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const;
-    void ClearRuntimeContainedItems ();
+    int32 ClearRuntimeContainedItems ();
     bool RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
 
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;

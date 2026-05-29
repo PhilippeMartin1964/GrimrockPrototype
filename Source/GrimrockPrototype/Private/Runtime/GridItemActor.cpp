@@ -24,6 +24,10 @@ void AGridItemActor::InitializeItem (FName InArchetypeId, const TArray<FName>& I
 {
     ArchetypeId = InArchetypeId;
     ItemTags = InItemTags;
+    if (!RuntimeObjectId.IsValid ())
+    {
+        RuntimeObjectId = FGuid::NewGuid ();
+    }
 
     if (MeshComponent)
     {
@@ -73,6 +77,19 @@ bool AGridItemActor::AreItemLightsEnabled () const
     }
 
     return false;
+}
+
+void AGridItemActor::SetRuntimeObjectId (FGuid InRuntimeObjectId)
+{
+    if (InRuntimeObjectId.IsValid ())
+    {
+        RuntimeObjectId = InRuntimeObjectId;
+    }
+}
+
+FGuid AGridItemActor::GetRuntimeObjectId () const
+{
+    return RuntimeObjectId;
 }
 
 void AGridItemActor::ConfigureAsWorldPickup ()

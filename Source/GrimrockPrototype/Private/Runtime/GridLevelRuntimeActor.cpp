@@ -471,6 +471,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
 
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = Entry.ObjectId.IsValid () ? Entry.ObjectId : FGuid::NewGuid ();
+        ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
         ItemState.ArchetypeId = Entry.ItemArchetypeId.IsNone () ? ItemActor->GetItemArchetypeId () : Entry.ItemArchetypeId;
         ItemState.Transform = ItemActor->GetActorTransform ();
         ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics ();
@@ -505,6 +506,33 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         FGridRuntimeReceptacleState ReceptacleState;
         ReceptacleActor->CaptureRuntimeReceptacleState (ReceptacleState);
         State->Receptacles.Add (Pair.Key, ReceptacleState);
+
+        const FGridLevelObjectData* ReceptacleObjectData = nullptr;
+        for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+        {
+            if (ObjectData.ObjectId == Pair.Key)
+            {
+                ReceptacleObjectData = &ObjectData;
+                break;
+            }
+        }
+
+        if (ReceptacleObjectData &&
+            !ReceptacleObjectData->Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () &&
+            ReceptacleState.ContainedItems.Num () == 0)
+        {
+            FGridRuntimeObjectPresenceState PresenceState;
+            PresenceState.ObjectId = Pair.Key;
+            PresenceState.bExistsInWorld = false;
+            PresenceState.bWasPickedUp = true;
+            PresenceState.bWasRemovedFromInitialPlacement = true;
+            State->ObjectPresence.Add (Pair.Key, PresenceState);
+
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridRuntimeState Capture RemovedInitialItem ObjectId=%s SourceReceptacle=%s"),
+                *Pair.Key.ToString (),
+                *Pair.Key.ToString ());
+        }
     }
 
     UE_LOG (LogTemp, Log,
@@ -594,6 +622,10 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             continue;
         }
 
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridRuntimeState Apply RemovedInitialObject ObjectId=%s"),
+            *PresenceState.ObjectId.ToString ());
+
         for (int32 EntryIndex = SpawnedItemEntries.Num () - 1; EntryIndex >= 0; --EntryIndex)
         {
             if (SpawnedItemEntries[EntryIndex].ObjectId == PresenceState.ObjectId)
@@ -622,6 +654,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             if (AGridItemActor* ItemActor = Entry.ItemActor.Get ())
             {
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+                ItemActor->SetRuntimeObjectId (Pair.Key);
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
                 bFoundExistingItem = true;
             }
@@ -634,6 +667,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             if (ItemActor)
             {
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+                ItemActor->SetRuntimeObjectId (Pair.Key);
                 ItemActor->ConfigureAsWorldPickup ();
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
                 SpawnedItemActors.Add (ItemActor);
@@ -656,7 +690,12 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             continue;
         }
 
-        ReceptacleActor->ClearRuntimeContainedItems ();
+        const int32 ClearedItemCount = ReceptacleActor->ClearRuntimeContainedItems ();
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridRuntimeState Apply Receptacle ObjectId=%s ClearExistingItems=%d RestoreItems=%d"),
+            *Pair.Key.ToString (),
+            ClearedItemCount,
+            Pair.Value.ContainedItems.Num ());
         for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
         {
             if (ItemState.ArchetypeId.IsNone ())
@@ -670,6 +709,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 ReceptacleActor->bUsePhysicalPlacement ? nullptr : ReceptacleActor->ItemAttachPoint.Get ());
             if (ItemActor)
             {
+                ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
                 ReceptacleActor->RestoreRuntimeContainedItem (ItemState, ItemActor);
             }
         }
@@ -2068,6 +2108,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     }
 
     ItemActor->SetActorTransform (Transform);
+    ItemActor->SetRuntimeObjectId (ObjectData.ObjectId);
     ItemActor->SetRuntimeCell (ObjectData.CellX, ObjectData.CellY);
     ItemActor->ConfigureAsWorldPickup ();
     ItemActor->OnRemovedFromWorld ();
@@ -2130,6 +2171,7 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
                 ReceptacleActor,
                 ReceptacleActor->ItemAttachPoint))
             {
+                ItemActor->SetRuntimeObjectId (RuntimeObjectData.ObjectId);
                 ReceptacleActor->SetInitialContainedItemActor (ItemActor);
             }
         }

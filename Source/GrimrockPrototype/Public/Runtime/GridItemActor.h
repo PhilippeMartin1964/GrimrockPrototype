@@ -27,6 +27,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     TArray<FName> ItemTags;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+    FGuid RuntimeObjectId;
+
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
     int32 RuntimeCellX = INDEX_NONE;
 
@@ -47,6 +50,12 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     bool AreItemLightsEnabled () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    void SetRuntimeObjectId (FGuid InRuntimeObjectId);
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    FGuid GetRuntimeObjectId () const;
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     void ConfigureAsWorldPickup ();
