@@ -115,14 +115,6 @@ public:
         meta = (DisplayName = "Hide Cell Floor", ToolTip = "Prevents the standard floor mesh from being generated for the cell containing this object. This does not change cell walkability."))
     bool bHideCellFloor = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Rendering|Cell Override",
-        meta = (DisplayName = "Hide Cell Ceiling", ToolTip = "Reserved for future cell ceiling render overrides. This does not change cell data."))
-    bool bHideCellCeiling = false;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Rendering|Cell Override",
-        meta = (DisplayName = "Hide Forward Wall", ToolTip = "Reserved for future forward-wall render overrides once floor object orientation is validated. Disabled by default."))
-    bool bHideForwardWall = false;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction",
         meta = (DisplayName = "Runtime Interactable", ToolTip = "Controls whether the runtime object can respond to direct player interaction when the runtime actor path supports it."))
     bool bIsInteractable = false;

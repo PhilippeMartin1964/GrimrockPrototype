@@ -276,8 +276,6 @@ namespace
         Archetype.bReplacesStandardWall = false;
         Archetype.bBlocksMovement = false;
         Archetype.bHideCellFloor = bHideCellFloor;
-        Archetype.bHideCellCeiling = false;
-        Archetype.bHideForwardWall = false;
         Archetype.bIsInteractable = false;
         Archetype.bIsReadable = false;
         Archetype.bIsLightSource = false;
