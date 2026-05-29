@@ -6,6 +6,8 @@
 
 The individual `UGridLevelAsset` remains the source of truth for one grid level. The dungeon asset only selects and organizes those levels.
 
+Voir également : `docs/Design/JALON_RUNTIME_DUNGEON_STATE.md` pour la validation de la conservation d’état runtime entre niveaux.
+
 ## DA_Dungeon_01 Fields
 
 `DA_Dungeon_01` should expose these fields:
@@ -85,6 +87,7 @@ Asset = DA_GridLevel_Test_Level_02
 ```
 
 Le niveau créé est un `UGridLevelAsset` neuf. Il contient une grille 32x32 et une cellule de départ jouable à `(1,1)` orientée `North`, afin de pouvoir tester rapidement le niveau. L'utilisateur peut ensuite peindre les cellules, les murs, les objets et les transitions.
+
 ## StairsUp / StairsDown
 
 Les transitions multi-niveaux doivent maintenant être représentées par des objets dédiés de palette :
