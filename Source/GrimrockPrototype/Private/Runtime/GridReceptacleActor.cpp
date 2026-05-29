@@ -67,36 +67,20 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return false;
     }
 
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    const FName HeldItemId = PartyPawn ? PartyPawn->GetHeldItemArchetypeId () : NAME_None;
-    auto LogInsertionRefusal = [this, HeldItemId] (const TCHAR* Reason)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Receptacle insertion refused: ObjectId=%s Reason=%s bUsePhysicalPlacement=%s ContainedItemCount=%d MaxContainedItems=%d bCanInsertItem=%s HeldItemId=%s"),
-            *ObjectId.ToString (),
-            Reason,
-            bUsePhysicalPlacement ? TEXT ("true") : TEXT ("false"),
-            GetContainedItemCount (),
-            MaxContainedItems,
-            bCanInsertItem ? TEXT ("true") : TEXT ("false"),
-            *HeldItemId.ToString ());
-    };
-
     if (!bCanInsertItem || IsFull ())
     {
-        LogInsertionRefusal (TEXT ("not insertable or full"));
         return false;
     }
 
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
     if (!PartyPawn)
     {
-        LogInsertionRefusal (TEXT ("no party pawn"));
         return false;
     }
 
+    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
     if (HeldItemId.IsNone ())
     {
-        LogInsertionRefusal (TEXT ("no held item"));
         return false;
     }
 
@@ -110,12 +94,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         }
     }
 
-    const bool bCanAcceptHeldItem = CanAcceptItemArchetype (HeldItemId, HeldItemTags);
-    if (!bCanAcceptHeldItem)
-    {
-        LogInsertionRefusal (TEXT ("held item not accepted"));
-    }
-    return bCanAcceptHeldItem;
+    return CanAcceptItemArchetype (HeldItemId, HeldItemTags);
 }
 
 void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -365,6 +344,10 @@ bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
         ((RemovedRuntimeObjectId.IsValid () && RemovedRuntimeObjectId == InitialItemRuntimeObjectId) ||
             (!RemovedRuntimeObjectId.IsValid () && OutRemovedItemId == InitialItemArchetypeIdAtSpawn));
     ClearContainedItemActor (ItemActorToRemove);
+    if (!ItemActorToRemove)
+    {
+        SetContainedItem (NAME_None);
+    }
     RebuildContainedItemState ();
     if (bRemovingInitialItem)
     {

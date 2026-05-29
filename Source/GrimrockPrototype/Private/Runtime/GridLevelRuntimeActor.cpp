@@ -115,6 +115,11 @@ namespace
         return RemovedCount;
     }
 
+    int32 CountRemovedInitialReceptacleItems (const FGridLevelRuntimeState* RuntimeState)
+    {
+        return RuntimeState ? RuntimeState->RemovedInitialReceptacleItems.Num () : 0;
+    }
+
     int32 CountHiddenFloorCells (const UGridLevelAsset* InLevelAsset, const AGridLevelRuntimeActor* RuntimeActor)
     {
         if (!InLevelAsset || !RuntimeActor)
@@ -396,6 +401,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
     State->ObjectPresence.Reset ();
     State->Items.Reset ();
     State->Receptacles.Reset ();
+    State->RemovedInitialReceptacleItems.Reset ();
     State->bHasBeenVisited = true;
 
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
@@ -508,18 +514,17 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         State->Receptacles.Add (Pair.Key, ReceptacleState);
 
         if (ReceptacleActor->HadInitialItemAtSpawn () &&
-            ReceptacleActor->WasInitialItemRemoved () &&
-            ReceptacleState.ContainedItems.Num () == 0)
+            ReceptacleActor->WasInitialItemRemoved ())
         {
-            FGridRuntimeObjectPresenceState PresenceState;
-            PresenceState.ObjectId = Pair.Key;
-            PresenceState.bExistsInWorld = false;
-            PresenceState.bWasPickedUp = true;
-            PresenceState.bWasRemovedFromInitialPlacement = true;
-            State->ObjectPresence.Add (Pair.Key, PresenceState);
+            FGridRuntimeRemovedInitialReceptacleItemState RemovedInitialItemState;
+            RemovedInitialItemState.ReceptacleObjectId = Pair.Key;
+            RemovedInitialItemState.InitialItemObjectId = ReceptacleActor->GetInitialItemRuntimeObjectId ();
+            RemovedInitialItemState.InitialItemArchetypeId = ReceptacleActor->GetInitialItemArchetypeId ();
+            State->RemovedInitialReceptacleItems.Add (Pair.Key, RemovedInitialItemState);
 
             UE_LOG (LogTemp, Log,
-                TEXT ("GridRuntimeState Capture ReceptacleInitialItemRemoved ReceptacleId=%s InitialItemId=%s Archetype=%s"),
+                TEXT ("GridRuntimeState Capture ReceptacleInitialItemRemoved Level=%s ReceptacleId=%s InitialItemId=%s Archetype=%s"),
+                *State->LevelId.ToString (),
                 *Pair.Key.ToString (),
                 *ReceptacleActor->GetInitialItemRuntimeObjectId ().ToString (),
                 *ReceptacleActor->GetInitialItemArchetypeId ().ToString ());
@@ -527,10 +532,11 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
     }
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
+        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d RemovedInitialItems=%d Items=%d Receptacles=%d Interactives=%d"),
         *State->LevelId.ToString (),
         State->Doors.Num (),
         CountRemovedRuntimeObjects (State),
+        CountRemovedInitialReceptacleItems (State),
         State->Items.Num (),
         State->Receptacles.Num (),
         State->InteractiveObjects.Num ());
@@ -605,6 +611,27 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         SpawnedItemEntries.RemoveAtSwap (EntryIndex);
     };
 
+    for (const TPair<FGuid, FGridRuntimeRemovedInitialReceptacleItemState>& Pair : State->RemovedInitialReceptacleItems)
+    {
+        AGridReceptacleActor* ReceptacleActor = FindRuntimeObjectActor<AGridReceptacleActor> (Pair.Key);
+        if (!ReceptacleActor)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem failed: Level=%s ReceptacleId=%s not found."),
+                *State->LevelId.ToString (),
+                *Pair.Key.ToString ());
+            continue;
+        }
+
+        const int32 ClearedItemCount = ReceptacleActor->ClearRuntimeContainedItems ();
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem Level=%s ReceptacleId=%s InitialItemId=%s ClearedItems=%d"),
+            *State->LevelId.ToString (),
+            *Pair.Key.ToString (),
+            *Pair.Value.InitialItemObjectId.ToString (),
+            ClearedItemCount);
+    }
+
     for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : State->ObjectPresence)
     {
         const FGridRuntimeObjectPresenceState& PresenceState = Pair.Value;
@@ -616,15 +643,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         UE_LOG (LogTemp, Log,
             TEXT ("GridRuntimeState Apply RemovedInitialObject ObjectId=%s"),
             *PresenceState.ObjectId.ToString ());
-
-        if (AGridReceptacleActor* ReceptacleActor = FindRuntimeObjectActor<AGridReceptacleActor> (PresenceState.ObjectId))
-        {
-            ReceptacleActor->ClearRuntimeContainedItems ();
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem ReceptacleId=%s InitialItemId=%s"),
-                *PresenceState.ObjectId.ToString (),
-                *ReceptacleActor->GetInitialItemRuntimeObjectId ().ToString ());
-        }
 
         for (int32 EntryIndex = SpawnedItemEntries.Num () - 1; EntryIndex >= 0; --EntryIndex)
         {
@@ -716,10 +734,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
     }
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
+        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d RemovedInitialItems=%d Items=%d Receptacles=%d Interactives=%d"),
         *State->LevelId.ToString (),
         State->Doors.Num (),
         CountRemovedRuntimeObjects (State),
+        CountRemovedInitialReceptacleItems (State),
         State->Items.Num (),
         State->Receptacles.Num (),
         State->InteractiveObjects.Num ());
@@ -1566,7 +1585,18 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel (
         TargetCellY,
         *GetRuntimeEdgeText (TargetFacing));
 
+    const FName OldLevelId = ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
     CaptureCurrentLevelRuntimeState ();
+    if (const FGridLevelRuntimeState* StoredState = DungeonRuntimeState.LevelStates.Find (OldLevelId))
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridRuntimeState Stored Level=%s RemovedInitialItems=%d Receptacles=%d Items=%d Doors=%d"),
+            *OldLevelId.ToString (),
+            CountRemovedInitialReceptacleItems (StoredState),
+            StoredState->Receptacles.Num (),
+            StoredState->Items.Num (),
+            StoredState->Doors.Num ());
+    }
 
     CurrentDungeonLevelId = TargetLevelId;
     LevelAsset = TargetLevelAsset;
@@ -2314,6 +2344,7 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     Result += FString::Printf (TEXT ("RuntimeDoors=%d\n"), RuntimeState ? RuntimeState->Doors.Num () : 0);
     Result += FString::Printf (TEXT ("RuntimeItems=%d\n"), RuntimeState ? RuntimeState->Items.Num () : 0);
     Result += FString::Printf (TEXT ("RuntimeReceptacles=%d\n"), RuntimeState ? RuntimeState->Receptacles.Num () : 0);
+    Result += FString::Printf (TEXT ("RuntimeRemovedInitialReceptacleItems=%d\n"), CountRemovedInitialReceptacleItems (RuntimeState));
 
     if (!LevelAsset)
     {

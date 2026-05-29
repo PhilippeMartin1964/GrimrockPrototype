@@ -103,6 +103,21 @@ struct FGridRuntimeReceptacleState
 };
 
 USTRUCT (BlueprintType)
+struct FGridRuntimeRemovedInitialReceptacleItemState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    FGuid ReceptacleObjectId;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    FGuid InitialItemObjectId;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    FName InitialItemArchetypeId = NAME_None;
+};
+
+USTRUCT (BlueprintType)
 struct FGridLevelRuntimeState
 {
     GENERATED_BODY ()
@@ -124,6 +139,9 @@ struct FGridLevelRuntimeState
 
     UPROPERTY (Transient, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    TMap<FGuid, FGridRuntimeRemovedInitialReceptacleItemState> RemovedInitialReceptacleItems;
 
     UPROPERTY (Transient, BlueprintReadWrite)
     bool bHasBeenVisited = false;
