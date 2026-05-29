@@ -46,6 +46,9 @@ public:
     void SetItemLightsEnabled (bool bEnabled);
 
     UFUNCTION (BlueprintCallable, Category = "Item")
+    bool AreItemLightsEnabled () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
     void ConfigureAsWorldPickup ();
 
     UFUNCTION (BlueprintCallable, Category = "Item")

@@ -7,6 +7,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Runtime/GridGenericObjectActor.h"
+#include "Runtime/GridDungeonRuntimeState.h"
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;
@@ -37,6 +38,9 @@ struct FGridSpawnedItemRuntimeEntry
 
     UPROPERTY (Transient)
     TObjectPtr<AGridItemActor> ItemActor;
+
+    UPROPERTY (Transient)
+    FGuid ObjectId;
 
     UPROPERTY (Transient)
     FName ItemArchetypeId = NAME_None;
@@ -84,6 +88,9 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Dungeon|Runtime")
     bool bIsExecutingDungeonTransition = false;
+
+    UPROPERTY (Transient)
+    FGridDungeonRuntimeState DungeonRuntimeState;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Meshes")
     TObjectPtr<UStaticMesh> FloorMesh;
@@ -232,6 +239,15 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
     bool TravelToDungeonLevel (FName TargetLevelId, int32 TargetCellX, int32 TargetCellY, EGridEdge TargetFacing, AGrimrockPartyPawn* PartyPawn);
+
+    UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
+    bool CaptureCurrentLevelRuntimeState ();
+
+    UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
+    bool ApplyCurrentLevelRuntimeState ();
+
+    FGridLevelRuntimeState* GetOrCreateRuntimeStateForCurrentLevel ();
+    const FGridLevelRuntimeState* FindRuntimeStateForCurrentLevel () const;
 
     UFUNCTION (BlueprintCallable, Category = "Dungeon|Runtime")
     bool TryExecuteTransitionAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn, bool bTriggeredByUseAction);

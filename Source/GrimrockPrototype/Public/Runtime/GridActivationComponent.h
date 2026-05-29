@@ -30,6 +30,9 @@ public:
 
     void RebuildIndexes ();
 
+    const TSet<FGuid>& GetActiveObjectIds () const { return ActiveObjectIds; }
+    void SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds);
+
 	// Debugging
     FString GetDebugSummary () const;
     void LogDebugSummary () const;

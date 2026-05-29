@@ -127,6 +127,62 @@ void UGridDoorSystemComponent::SetDoorPassageBlocked (int32 X, int32 Y, EGridEdg
     }
 }
 
+bool UGridDoorSystemComponent::GetDoorState (FGuid ObjectId, bool& bOutOpen, bool& bOutMoving, bool& bOutBlocked) const
+{
+    bOutOpen = false;
+    bOutMoving = false;
+    bOutBlocked = true;
+
+    if (!RuntimeActor || !RuntimeActor->LevelAsset || !ObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+    {
+        if (ObjectData.ObjectId != ObjectId || ObjectData.Type != EGridLevelObjectType::Door)
+        {
+            continue;
+        }
+
+        bOutBlocked = IsDoorPassageBlocked (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge);
+        bOutOpen = !bOutBlocked;
+        if (const AGridDoorActor* DoorActor = FindDoorActorAtEdge (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+        {
+            bOutMoving = DoorActor->IsAnimating ();
+            bOutOpen = DoorActor->IsFullyOpen () || (!bOutBlocked && !DoorActor->IsFullyClosed ());
+        }
+        return true;
+    }
+
+    return false;
+}
+
+bool UGridDoorSystemComponent::ApplyDoorState (FGuid ObjectId, bool bOpen, bool bBlocked)
+{
+    if (!RuntimeActor || !RuntimeActor->LevelAsset || !ObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    for (const FGridLevelObjectData& ObjectData : RuntimeActor->LevelAsset->Objects)
+    {
+        if (ObjectData.ObjectId != ObjectId || ObjectData.Type != EGridLevelObjectType::Door)
+        {
+            continue;
+        }
+
+        if (AGridDoorActor* DoorActor = FindDoorActorAtEdge (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge))
+        {
+            DoorActor->SnapDoorOpenState (bOpen);
+        }
+        SetDoorPassageBlocked (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge, bBlocked);
+        return true;
+    }
+
+    return false;
+}
+
 void UGridDoorSystemComponent::HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge)
 {
     AGridDoorActor* DoorActor = FindDoorActorAtEdge (X, Y, Edge);

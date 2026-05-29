@@ -511,6 +511,111 @@ void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemAct
     UpdateContainedItemInteractionCollision ();
 }
 
+void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const
+{
+    OutState.ObjectId = ObjectId;
+    OutState.ContainedItemObjectIds.Reset ();
+    OutState.ContainedItems.Reset ();
+
+    auto AddItemState = [this, &OutState] (const AGridItemActor* ItemActor)
+    {
+        if (!IsValid (ItemActor) || ItemActor->ArchetypeId.IsNone ())
+        {
+            return;
+        }
+
+        FGridRuntimeItemState ItemState;
+        ItemState.ObjectId = FGuid::NewGuid ();
+        ItemState.ArchetypeId = ItemActor->ArchetypeId;
+        ItemState.Transform = ItemActor->GetActorTransform ();
+        ItemState.bIsContainedInReceptacle = true;
+        ItemState.ReceptacleObjectId = ObjectId;
+        ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics ();
+
+        OutState.ContainedItemObjectIds.Add (ItemState.ObjectId);
+        OutState.ContainedItems.Add (ItemState);
+    };
+
+    if (bUsePhysicalPlacement)
+    {
+        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        {
+            AddItemState (ItemActor.Get ());
+        }
+    }
+    else
+    {
+        AddItemState (ContainedItemActor.Get ());
+    }
+
+    if (OutState.ContainedItems.Num () == 0 && !ContainedItemArchetypeId.IsNone ())
+    {
+        FGridRuntimeItemState ItemState;
+        ItemState.ObjectId = FGuid::NewGuid ();
+        ItemState.ArchetypeId = ContainedItemArchetypeId;
+        ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
+        ItemState.bIsContainedInReceptacle = true;
+        ItemState.ReceptacleObjectId = ObjectId;
+        ItemState.bLightsEnabled = !bUsePhysicalPlacement || !bExtinguishItemOnPhysicalPlacement;
+        ItemState.bIsSimulatingPhysics = bUsePhysicalPlacement;
+
+        OutState.ContainedItemObjectIds.Add (ItemState.ObjectId);
+        OutState.ContainedItems.Add (ItemState);
+    }
+}
+
+void AGridReceptacleActor::ClearRuntimeContainedItems ()
+{
+    TArray<TObjectPtr<AGridItemActor>> ItemActors = ContainedItemActors;
+    for (const TObjectPtr<AGridItemActor>& ItemActor : ItemActors)
+    {
+        ClearContainedItemActor (ItemActor.Get ());
+    }
+
+    if (ContainedItemActor)
+    {
+        ClearContainedItemActor (ContainedItemActor.Get ());
+    }
+
+    ContainedItemActors.Reset ();
+    ContainedItemActor = nullptr;
+    SetContainedItem (NAME_None);
+    RebuildContainedItemState ();
+    UpdateContainedItemInteractionCollision ();
+}
+
+bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor)
+{
+    if (!ItemActor || ItemState.ArchetypeId.IsNone ())
+    {
+        return false;
+    }
+
+    ContainedItemActor = ItemActor;
+    ContainedItemActors.AddUnique (ItemActor);
+
+    if (bUsePhysicalPlacement)
+    {
+        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+        ItemActor->ConfigureAsWorldPickup ();
+        ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+    }
+    else
+    {
+        USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
+        ItemActor->ConfigureAsAttachedItem ();
+        ItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+        ItemActor->SetActorRelativeTransform (FTransform::Identity);
+        ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+    }
+
+    RebuildContainedItemState ();
+    UpdateContainedItemInteractionCollision ();
+    return true;
+}
+
 void AGridReceptacleActor::AttachContainedItemActor (const FHitResult* PlacementHitResult)
 {
     AttachContainedItemActor (ContainedItemActor, PlacementHitResult);

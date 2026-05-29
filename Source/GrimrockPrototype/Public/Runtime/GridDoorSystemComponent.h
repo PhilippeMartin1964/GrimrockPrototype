@@ -31,6 +31,8 @@ public:
 
     bool IsDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge) const;
     void SetDoorPassageBlocked (int32 X, int32 Y, EGridEdge Edge, bool bBlocked);
+    bool GetDoorState (FGuid ObjectId, bool& bOutOpen, bool& bOutMoving, bool& bOutBlocked) const;
+    bool ApplyDoorState (FGuid ObjectId, bool bOpen, bool bBlocked);
 
     UFUNCTION ()
     void HandleDoorAnimationFinished (int32 X, int32 Y, EGridEdge Edge);

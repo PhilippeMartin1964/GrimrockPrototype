@@ -8,7 +8,9 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GrimrockGameMode.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridLeverActor.h"
 #include "Runtime/GridMechanismActor.h"
+#include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
@@ -17,6 +19,18 @@
 
 namespace
 {
+    const FName SingleLevelRuntimeStateId (TEXT ("SingleLevel"));
+
+    FName ResolveRuntimeStateLevelId (const UGridDungeonAsset* DungeonAsset, FName CurrentDungeonLevelId)
+    {
+        if (DungeonAsset && !CurrentDungeonLevelId.IsNone ())
+        {
+            return CurrentDungeonLevelId;
+        }
+
+        return SingleLevelRuntimeStateId;
+    }
+
     FString GetRuntimeWorldTypeText (const UWorld* World)
     {
         if (!World)
@@ -81,6 +95,24 @@ namespace
         }
 
         return TransitionCount;
+    }
+
+    int32 CountRemovedRuntimeObjects (const FGridLevelRuntimeState* RuntimeState)
+    {
+        if (!RuntimeState)
+        {
+            return 0;
+        }
+
+        int32 RemovedCount = 0;
+        for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : RuntimeState->ObjectPresence)
+        {
+            if (!Pair.Value.bExistsInWorld || Pair.Value.bWasPickedUp || Pair.Value.bWasRemovedFromInitialPlacement)
+            {
+                ++RemovedCount;
+            }
+        }
+        return RemovedCount;
     }
 
     int32 CountHiddenFloorCells (const UGridLevelAsset* InLevelAsset, const AGridLevelRuntimeActor* RuntimeActor)
@@ -330,6 +362,329 @@ void AGridLevelRuntimeActor::BeginPlay ()
         EditorPreviewComponent->Initialize (this);
     }
     RebuildLevel ();
+}
+
+FGridLevelRuntimeState* AGridLevelRuntimeActor::GetOrCreateRuntimeStateForCurrentLevel ()
+{
+    const FName RuntimeLevelId = ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
+    FGridLevelRuntimeState& State = DungeonRuntimeState.LevelStates.FindOrAdd (RuntimeLevelId);
+    State.LevelId = RuntimeLevelId;
+    return &State;
+}
+
+const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrentLevel () const
+{
+    const FName RuntimeLevelId = ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
+    return DungeonRuntimeState.LevelStates.Find (RuntimeLevelId);
+}
+
+bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
+    FGridLevelRuntimeState* State = GetOrCreateRuntimeStateForCurrentLevel ();
+    if (!State)
+    {
+        return false;
+    }
+
+    State->Doors.Reset ();
+    State->InteractiveObjects.Reset ();
+    State->ObjectPresence.Reset ();
+    State->Items.Reset ();
+    State->Receptacles.Reset ();
+    State->bHasBeenVisited = true;
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (!ObjectData.ObjectId.IsValid ())
+        {
+            continue;
+        }
+
+        if (ObjectData.Type == EGridLevelObjectType::Door && DoorSystemComponent)
+        {
+            bool bDoorOpen = false;
+            bool bDoorMoving = false;
+            bool bDoorBlocked = true;
+            if (DoorSystemComponent->GetDoorState (ObjectData.ObjectId, bDoorOpen, bDoorMoving, bDoorBlocked))
+            {
+                FGridRuntimeDoorState DoorState;
+                DoorState.ObjectId = ObjectData.ObjectId;
+                DoorState.bIsOpen = bDoorOpen;
+                DoorState.bIsMoving = bDoorMoving;
+                DoorState.OpenAlpha = bDoorOpen ? 1.f : 0.f;
+                DoorState.bBlocksMovement = bDoorBlocked;
+                State->Doors.Add (DoorState.ObjectId, DoorState);
+            }
+        }
+    }
+
+    TSet<FGuid> ActiveObjectIds;
+    if (ActivationComponent)
+    {
+        ActiveObjectIds = ActivationComponent->GetActiveObjectIds ();
+        for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+        {
+            if (!ObjectData.ObjectId.IsValid ())
+            {
+                continue;
+            }
+
+            const bool bIsInteractiveObject =
+                ObjectData.Type == EGridLevelObjectType::Button ||
+                ObjectData.Type == EGridLevelObjectType::Lever ||
+                ObjectData.Type == EGridLevelObjectType::PressurePlate ||
+                ObjectData.Type == EGridLevelObjectType::Receptacle ||
+                ObjectData.Type == EGridLevelObjectType::Trigger;
+            if (!bIsInteractiveObject)
+            {
+                continue;
+            }
+
+            const bool bIsActive = ActiveObjectIds.Contains (ObjectData.ObjectId);
+            FGridRuntimeInteractiveState InteractiveState;
+            InteractiveState.ObjectId = ObjectData.ObjectId;
+            InteractiveState.bIsActivated = bIsActive;
+            InteractiveState.bIsPressed = bIsActive;
+            InteractiveState.bIsOn = bIsActive;
+            State->InteractiveObjects.Add (ObjectData.ObjectId, InteractiveState);
+        }
+    }
+
+    TSet<FGuid> ExistingPlacedItemObjectIds;
+    for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+    {
+        AGridItemActor* ItemActor = Entry.ItemActor.Get ();
+        if (!IsValid (ItemActor))
+        {
+            continue;
+        }
+
+        if (Entry.ObjectId.IsValid ())
+        {
+            ExistingPlacedItemObjectIds.Add (Entry.ObjectId);
+        }
+
+        FGridRuntimeItemState ItemState;
+        ItemState.ObjectId = Entry.ObjectId.IsValid () ? Entry.ObjectId : FGuid::NewGuid ();
+        ItemState.ArchetypeId = Entry.ItemArchetypeId.IsNone () ? ItemActor->GetItemArchetypeId () : Entry.ItemArchetypeId;
+        ItemState.Transform = ItemActor->GetActorTransform ();
+        ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics ();
+        ItemState.bIsContainedInReceptacle = false;
+        ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        State->Items.Add (ItemState.ObjectId, ItemState);
+    }
+
+    for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+    {
+        if (ObjectData.Type != EGridLevelObjectType::Item || !ObjectData.ObjectId.IsValid ())
+        {
+            continue;
+        }
+
+        FGridRuntimeObjectPresenceState PresenceState;
+        PresenceState.ObjectId = ObjectData.ObjectId;
+        PresenceState.bExistsInWorld = ExistingPlacedItemObjectIds.Contains (ObjectData.ObjectId);
+        PresenceState.bWasPickedUp = !PresenceState.bExistsInWorld;
+        PresenceState.bWasRemovedFromInitialPlacement = !PresenceState.bExistsInWorld;
+        State->ObjectPresence.Add (ObjectData.ObjectId, PresenceState);
+    }
+
+    for (const TPair<FGuid, TObjectPtr<AGridRuntimeObjectActor>>& Pair : SpawnedRuntimeObjectActors)
+    {
+        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Pair.Value.Get ());
+        if (!IsValid (ReceptacleActor))
+        {
+            continue;
+        }
+
+        FGridRuntimeReceptacleState ReceptacleState;
+        ReceptacleActor->CaptureRuntimeReceptacleState (ReceptacleState);
+        State->Receptacles.Add (Pair.Key, ReceptacleState);
+    }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
+        *State->LevelId.ToString (),
+        State->Doors.Num (),
+        CountRemovedRuntimeObjects (State),
+        State->Items.Num (),
+        State->Receptacles.Num (),
+        State->InteractiveObjects.Num ());
+
+    return true;
+}
+
+bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
+{
+    if (!LevelAsset)
+    {
+        return false;
+    }
+
+    const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel ();
+    if (!State || !State->bHasBeenVisited)
+    {
+        return false;
+    }
+
+    if (DoorSystemComponent)
+    {
+        for (const TPair<FGuid, FGridRuntimeDoorState>& Pair : State->Doors)
+        {
+            DoorSystemComponent->ApplyDoorState (Pair.Key, Pair.Value.bIsOpen, Pair.Value.bBlocksMovement);
+        }
+    }
+
+    if (ActivationComponent)
+    {
+        TSet<FGuid> ActiveObjectIds;
+        for (const TPair<FGuid, FGridRuntimeInteractiveState>& Pair : State->InteractiveObjects)
+        {
+            if (Pair.Value.bIsActivated || Pair.Value.bIsOn || Pair.Value.bIsPressed)
+            {
+                ActiveObjectIds.Add (Pair.Key);
+            }
+        }
+        ActivationComponent->SetActiveObjectIds (ActiveObjectIds);
+
+        for (const TPair<FGuid, FGridRuntimeInteractiveState>& Pair : State->InteractiveObjects)
+        {
+            const bool bIsActive = Pair.Value.bIsActivated || Pair.Value.bIsOn || Pair.Value.bIsPressed;
+            if (AGridLeverActor* LeverActor = FindRuntimeObjectActor<AGridLeverActor> (Pair.Key))
+            {
+                LeverActor->SetLeverState (bIsActive);
+            }
+            if (AGridPressurePlateActor* PlateActor = FindRuntimeObjectActor<AGridPressurePlateActor> (Pair.Key))
+            {
+                PlateActor->SetPressed (bIsActive);
+            }
+        }
+    }
+
+    auto RemoveSpawnedItemEntry = [this] (int32 EntryIndex)
+    {
+        if (!SpawnedItemEntries.IsValidIndex (EntryIndex))
+        {
+            return;
+        }
+
+        AGridItemActor* ItemActor = SpawnedItemEntries[EntryIndex].ItemActor.Get ();
+        if (IsValid (ItemActor))
+        {
+            ItemActor->OnRemovedFromWorld ();
+            ItemActor->Destroy ();
+        }
+        SpawnedItemActors.RemoveAllSwap ([ItemActor] (const TObjectPtr<AGridItemActor>& SpawnedItemActor)
+        {
+            return SpawnedItemActor.Get () == ItemActor;
+        });
+        SpawnedItemEntries.RemoveAtSwap (EntryIndex);
+    };
+
+    for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : State->ObjectPresence)
+    {
+        const FGridRuntimeObjectPresenceState& PresenceState = Pair.Value;
+        if (PresenceState.bExistsInWorld)
+        {
+            continue;
+        }
+
+        for (int32 EntryIndex = SpawnedItemEntries.Num () - 1; EntryIndex >= 0; --EntryIndex)
+        {
+            if (SpawnedItemEntries[EntryIndex].ObjectId == PresenceState.ObjectId)
+            {
+                RemoveSpawnedItemEntry (EntryIndex);
+            }
+        }
+    }
+
+    for (const TPair<FGuid, FGridRuntimeItemState>& Pair : State->Items)
+    {
+        const FGridRuntimeItemState& ItemState = Pair.Value;
+        if (ItemState.bIsContainedInReceptacle)
+        {
+            continue;
+        }
+
+        bool bFoundExistingItem = false;
+        for (FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+        {
+            if (Entry.ObjectId != Pair.Key)
+            {
+                continue;
+            }
+
+            if (AGridItemActor* ItemActor = Entry.ItemActor.Get ())
+            {
+                ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+                ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+                bFoundExistingItem = true;
+            }
+            break;
+        }
+
+        if (!bFoundExistingItem && !ItemState.ArchetypeId.IsNone ())
+        {
+            AGridItemActor* ItemActor = SpawnItemActorForArchetype (ItemState.ArchetypeId, this, nullptr);
+            if (ItemActor)
+            {
+                ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
+                ItemActor->ConfigureAsWorldPickup ();
+                ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+                SpawnedItemActors.Add (ItemActor);
+
+                FGridSpawnedItemRuntimeEntry Entry;
+                Entry.Cell = FIntPoint (ItemActor->RuntimeCellX, ItemActor->RuntimeCellY);
+                Entry.ItemActor = ItemActor;
+                Entry.ObjectId = Pair.Key;
+                Entry.ItemArchetypeId = ItemState.ArchetypeId;
+                SpawnedItemEntries.Add (Entry);
+            }
+        }
+    }
+
+    for (const TPair<FGuid, FGridRuntimeReceptacleState>& Pair : State->Receptacles)
+    {
+        AGridReceptacleActor* ReceptacleActor = FindRuntimeObjectActor<AGridReceptacleActor> (Pair.Key);
+        if (!ReceptacleActor)
+        {
+            continue;
+        }
+
+        ReceptacleActor->ClearRuntimeContainedItems ();
+        for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
+        {
+            if (ItemState.ArchetypeId.IsNone ())
+            {
+                continue;
+            }
+
+            AGridItemActor* ItemActor = SpawnItemActorForArchetype (
+                ItemState.ArchetypeId,
+                ReceptacleActor,
+                ReceptacleActor->bUsePhysicalPlacement ? nullptr : ReceptacleActor->ItemAttachPoint.Get ());
+            if (ItemActor)
+            {
+                ReceptacleActor->RestoreRuntimeContainedItem (ItemState, ItemActor);
+            }
+        }
+    }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
+        *State->LevelId.ToString (),
+        State->Doors.Num (),
+        CountRemovedRuntimeObjects (State),
+        State->Items.Num (),
+        State->Receptacles.Num (),
+        State->InteractiveObjects.Num ());
+
+    return true;
 }
 
 void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
@@ -1171,10 +1526,13 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel (
         TargetCellY,
         *GetRuntimeEdgeText (TargetFacing));
 
+    CaptureCurrentLevelRuntimeState ();
+
     CurrentDungeonLevelId = TargetLevelId;
     LevelAsset = TargetLevelAsset;
 
     RebuildLevel ();
+    ApplyCurrentLevelRuntimeState ();
     PartyPawn->SetGridStart (this, TargetCellX, TargetCellY, TargetFacing);
 
     UE_LOG (
@@ -1718,6 +2076,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     FGridSpawnedItemRuntimeEntry Entry;
     Entry.Cell = FIntPoint (ObjectData.CellX, ObjectData.CellY);
     Entry.ItemActor = ItemActor;
+    Entry.ObjectId = ObjectData.ObjectId;
     Entry.ItemArchetypeId = ObjectData.ArchetypeId;
     SpawnedItemEntries.Add (Entry);
 
@@ -1906,6 +2265,13 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     Result += FString::Printf (TEXT ("DungeonAsset=%s\n"), DungeonAsset ? *DungeonAsset->GetPathName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("CurrentDungeonLevelId=%s\n"), *CurrentDungeonLevelId.ToString ());
     Result += FString::Printf (TEXT ("LevelAsset=%s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+
+    const FGridLevelRuntimeState* RuntimeState = FindRuntimeStateForCurrentLevel ();
+    Result += FString::Printf (TEXT ("HasRuntimeState=%s\n"), RuntimeState && RuntimeState->bHasBeenVisited ? TEXT ("true") : TEXT ("false"));
+    Result += FString::Printf (TEXT ("RuntimeRemovedObjects=%d\n"), CountRemovedRuntimeObjects (RuntimeState));
+    Result += FString::Printf (TEXT ("RuntimeDoors=%d\n"), RuntimeState ? RuntimeState->Doors.Num () : 0);
+    Result += FString::Printf (TEXT ("RuntimeItems=%d\n"), RuntimeState ? RuntimeState->Items.Num () : 0);
+    Result += FString::Printf (TEXT ("RuntimeReceptacles=%d\n"), RuntimeState ? RuntimeState->Receptacles.Num () : 0);
 
     if (!LevelAsset)
     {

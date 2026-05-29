@@ -41,6 +41,9 @@ public:
     virtual void SetDoorOpenState (bool bOpen);
 
     UFUNCTION (BlueprintCallable, Category = "Door")
+    virtual void SnapDoorOpenState (bool bOpen);
+
+    UFUNCTION (BlueprintCallable, Category = "Door")
     virtual void OpenDoor ();
 
     UFUNCTION (BlueprintCallable, Category = "Door")

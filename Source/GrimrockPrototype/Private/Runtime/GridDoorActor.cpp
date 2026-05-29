@@ -107,6 +107,16 @@ void AGridDoorActor::SetDoorOpenState (bool bOpen)
     SetActorTickEnabled (true);
 }
 
+void AGridDoorActor::SnapDoorOpenState (bool bOpen)
+{
+    bIsOpen = bOpen;
+    bIsAnimating = false;
+    MoveElapsed = 0.f;
+    CurrentMoveDuration = 0.f;
+    SetMovingRelativeLocation (bIsOpen ? MovingOpenRelativeLocation : MovingClosedRelativeLocation);
+    SetActorTickEnabled (false);
+}
+
 void AGridDoorActor::OpenDoor ()
 {
     SetDoorOpenState (true);

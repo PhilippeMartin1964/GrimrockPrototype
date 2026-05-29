@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
+#include "Runtime/GridDungeonRuntimeState.h"
 #include "GridReceptacleActor.generated.h"
 
 class UStaticMeshComponent;
@@ -129,6 +130,10 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void SetInitialContainedItemActor (AGridItemActor* ItemActor);
+
+    void CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const;
+    void ClearRuntimeContainedItems ();
+    bool RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
 
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
     virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;

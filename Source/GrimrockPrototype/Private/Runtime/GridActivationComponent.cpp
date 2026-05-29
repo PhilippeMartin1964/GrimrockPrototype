@@ -61,6 +61,11 @@ void UGridActivationComponent::ResetRuntimeState ()
     ActiveObjectIds.Reset ();
 }
 
+void UGridActivationComponent::SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds)
+{
+    ActiveObjectIds = InActiveObjectIds;
+}
+
 bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
 {
     const FGridLevelObjectData* ObjectData = FindInteractableObjectOnEdge (FromCellX, FromCellY, Edge);

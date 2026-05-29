@@ -59,6 +59,22 @@ void AGridItemActor::SetItemLightsEnabled (bool bEnabled)
     }
 }
 
+bool AGridItemActor::AreItemLightsEnabled () const
+{
+    TArray<UGridLightEmitterComponent*> LightEmitters;
+    GetComponents<UGridLightEmitterComponent> (LightEmitters);
+
+    for (const UGridLightEmitterComponent* LightEmitter : LightEmitters)
+    {
+        if (LightEmitter)
+        {
+            return LightEmitter->IsLightEnabled ();
+        }
+    }
+
+    return false;
+}
+
 void AGridItemActor::ConfigureAsWorldPickup ()
 {
     if (!MeshComponent)
