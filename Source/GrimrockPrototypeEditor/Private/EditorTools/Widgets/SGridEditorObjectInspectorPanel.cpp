@@ -379,6 +379,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
     const FText TitleText = Archetype && !Archetype->DisplayName.IsEmpty ()
         ? Archetype->DisplayName
         : TypeText;
+    const bool bShowTransitionSection = Archetype && Archetype->bExposeTransitionSettingsInInspector;
 
     return SNew (SBorder)
         .Padding (8.f)
@@ -448,7 +449,9 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)
                 [
-                    BuildTransitionDetailsSection (Obj)
+                    bShowTransitionSection
+                        ? BuildTransitionDetailsSection (Obj)
+                        : SNullWidget::NullWidget
                 ]
 
             + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 8.f, 0.f, 0.f)

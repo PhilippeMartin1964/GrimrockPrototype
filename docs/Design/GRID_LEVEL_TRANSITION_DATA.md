@@ -105,6 +105,20 @@ The transition inspector saves values directly into the selected object's `Behav
 
 Text fields such as `Target Level Id` use `OnTextCommitted`, so press Enter or leave the field to commit the value.
 
+## Contextual Inspector
+
+La section `Transition` de l'inspecteur d'objet n'est plus globale.
+
+Elle apparaît uniquement si l'archétype de l'objet sélectionné active :
+
+```text
+bExposeTransitionSettingsInInspector = true
+```
+
+À ce stade, seuls les archétypes `Stairs_Up` et `Stairs_Down` activent ce flag. Les objets ordinaires comme `FloorBones`, les runes, les alcôves, les torches, les boutons, les leviers, les plaques et les décorations ne montrent plus les champs `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
+
+Masquer cette UI ne modifie pas les données. Si un ancien objet contient déjà `Behavior.Transition.bIsTransition = true`, la donnée reste dans le `UGridLevelAsset`, les diagnostics peuvent encore la lister et le runtime peut encore l'exécuter. Elle n'est simplement plus éditable depuis l'inspecteur tant que son archétype n'autorise pas explicitement la section `Transition`.
+
 ## Diagnostic Workflow
 
 1. Select the transition object.

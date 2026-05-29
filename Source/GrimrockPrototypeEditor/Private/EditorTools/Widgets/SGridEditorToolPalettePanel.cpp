@@ -284,7 +284,9 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteSection ()
     const FGridObjectPaletteEntry* StairsUpEntry = CurrentEditorActor->ObjectPalette->FindEntryById (FName (TEXT ("Stairs_Up")));
     const FGridObjectPaletteEntry* StairsDownEntry = CurrentEditorActor->ObjectPalette->FindEntryById (FName (TEXT ("Stairs_Down")));
     if (!StairsUpEntry || !StairsUpEntry->DefaultArchetype ||
-        !StairsDownEntry || !StairsDownEntry->DefaultArchetype)
+        !StairsDownEntry || !StairsDownEntry->DefaultArchetype ||
+        !StairsUpEntry->DefaultArchetype->bExposeTransitionSettingsInInspector ||
+        !StairsDownEntry->DefaultArchetype->bExposeTransitionSettingsInInspector)
     {
         FString Error;
         if (!CurrentEditorActor->EnsureStairsTransitionArchetypes (Error))
