@@ -379,7 +379,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildSelectedObjectCard (co
     const FText TitleText = Archetype && !Archetype->DisplayName.IsEmpty ()
         ? Archetype->DisplayName
         : TypeText;
-    const bool bShowTransitionSection = Archetype && Archetype->bExposeTransitionSettingsInInspector;
+    const bool bShowTransitionSection = Obj.Behavior.Transition.bIsTransition;
 
     return SNew (SBorder)
         .Padding (8.f)

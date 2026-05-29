@@ -115,10 +115,6 @@ public:
         meta = (DisplayName = "Hide Cell Floor", ToolTip = "Prevents the standard floor mesh from being generated for the cell containing this object. This does not change cell walkability."))
     bool bHideCellFloor = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Inspector",
-        meta = (DisplayName = "Expose Transition Settings In Inspector", ToolTip = "Controls whether the Grid Editor object inspector shows transition editing fields for this archetype."))
-    bool bExposeTransitionSettingsInInspector = false;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Interaction",
         meta = (DisplayName = "Runtime Interactable", ToolTip = "Controls whether the runtime object can respond to direct player interaction when the runtime actor path supports it."))
     bool bIsInteractable = false;
