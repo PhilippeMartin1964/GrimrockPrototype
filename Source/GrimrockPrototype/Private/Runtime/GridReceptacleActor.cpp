@@ -202,6 +202,10 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     PhysicalPlacementSurfaceOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementSurfaceOffset;
     PhysicalPlacementInitialRotationOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementInitialRotationOffset;
     bStartsFilled = ObjectData.bInitiallyActive;
+    bHadInitialItemAtSpawn = false;
+    bInitialItemRemovedFromSpawn = false;
+    InitialItemRuntimeObjectId.Invalidate ();
+    InitialItemArchetypeIdAtSpawn = NAME_None;
 
     if (MeshComponent && bUsePhysicalPlacement)
     {
@@ -355,8 +359,21 @@ bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
 
     AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
     OutRemovedItemId = ItemActorToRemove ? ItemActorToRemove->ArchetypeId : ContainedItemArchetypeId;
+    const FGuid RemovedRuntimeObjectId = ItemActorToRemove ? ItemActorToRemove->GetRuntimeObjectId () : FGuid ();
+    const bool bRemovingInitialItem =
+        bHadInitialItemAtSpawn &&
+        ((RemovedRuntimeObjectId.IsValid () && RemovedRuntimeObjectId == InitialItemRuntimeObjectId) ||
+            (!RemovedRuntimeObjectId.IsValid () && OutRemovedItemId == InitialItemArchetypeIdAtSpawn));
     ClearContainedItemActor (ItemActorToRemove);
     RebuildContainedItemState ();
+    if (bRemovingInitialItem)
+    {
+        bInitialItemRemovedFromSpawn = true;
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridReceptacle Pickup InitialItem Removed ReceptacleId=%s ItemId=%s"),
+            *ObjectId.ToString (),
+            *InitialItemRuntimeObjectId.ToString ());
+    }
     return true;
 }
 
@@ -505,6 +522,10 @@ void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemAct
     ContainedItemActor = ItemActor;
     if (ContainedItemActor)
     {
+        bHadInitialItemAtSpawn = true;
+        bInitialItemRemovedFromSpawn = false;
+        InitialItemRuntimeObjectId = ContainedItemActor->GetRuntimeObjectId ();
+        InitialItemArchetypeIdAtSpawn = ContainedItemActor->ArchetypeId;
         ContainedItemActors.AddUnique (ContainedItemActor);
         AttachContainedItemActor (ContainedItemActor);
         RebuildContainedItemState ();
@@ -550,7 +571,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         AddItemState (ContainedItemActor.Get ());
     }
 
-    if (OutState.ContainedItems.Num () == 0 && !ContainedItemArchetypeId.IsNone ())
+    if (OutState.ContainedItems.Num () == 0 && !ContainedItemArchetypeId.IsNone () && !bInitialItemRemovedFromSpawn)
     {
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
@@ -580,6 +601,10 @@ int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
     {
         if (IsValid (ItemActor))
         {
+            if (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId)
+            {
+                bInitialItemRemovedFromSpawn = true;
+            }
             ++ClearedItemCount;
             ClearContainedItemActor (ItemActor.Get ());
         }
@@ -587,6 +612,10 @@ int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
 
     if (IsValid (ContainedItemActor))
     {
+        if (bHadInitialItemAtSpawn && ContainedItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId)
+        {
+            bInitialItemRemovedFromSpawn = true;
+        }
         ++ClearedItemCount;
         ClearContainedItemActor (ContainedItemActor.Get ());
     }
@@ -601,10 +630,19 @@ int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
                 continue;
             }
 
+            if (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId)
+            {
+                bInitialItemRemovedFromSpawn = true;
+            }
             ++ClearedItemCount;
             ItemActor->OnRemovedFromWorld ();
             ItemActor->Destroy ();
         }
+    }
+
+    if (bHadInitialItemAtSpawn && !ContainedItemArchetypeId.IsNone () && ContainedItemArchetypeId == InitialItemArchetypeIdAtSpawn)
+    {
+        bInitialItemRemovedFromSpawn = true;
     }
 
     ContainedItemActors.Reset ();

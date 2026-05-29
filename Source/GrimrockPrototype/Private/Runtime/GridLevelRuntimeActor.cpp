@@ -507,18 +507,8 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         ReceptacleActor->CaptureRuntimeReceptacleState (ReceptacleState);
         State->Receptacles.Add (Pair.Key, ReceptacleState);
 
-        const FGridLevelObjectData* ReceptacleObjectData = nullptr;
-        for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
-        {
-            if (ObjectData.ObjectId == Pair.Key)
-            {
-                ReceptacleObjectData = &ObjectData;
-                break;
-            }
-        }
-
-        if (ReceptacleObjectData &&
-            !ReceptacleObjectData->Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () &&
+        if (ReceptacleActor->HadInitialItemAtSpawn () &&
+            ReceptacleActor->WasInitialItemRemoved () &&
             ReceptacleState.ContainedItems.Num () == 0)
         {
             FGridRuntimeObjectPresenceState PresenceState;
@@ -529,9 +519,10 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
             State->ObjectPresence.Add (Pair.Key, PresenceState);
 
             UE_LOG (LogTemp, Log,
-                TEXT ("GridRuntimeState Capture RemovedInitialItem ObjectId=%s SourceReceptacle=%s"),
+                TEXT ("GridRuntimeState Capture ReceptacleInitialItemRemoved ReceptacleId=%s InitialItemId=%s Archetype=%s"),
                 *Pair.Key.ToString (),
-                *Pair.Key.ToString ());
+                *ReceptacleActor->GetInitialItemRuntimeObjectId ().ToString (),
+                *ReceptacleActor->GetInitialItemArchetypeId ().ToString ());
         }
     }
 
@@ -625,6 +616,15 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         UE_LOG (LogTemp, Log,
             TEXT ("GridRuntimeState Apply RemovedInitialObject ObjectId=%s"),
             *PresenceState.ObjectId.ToString ());
+
+        if (AGridReceptacleActor* ReceptacleActor = FindRuntimeObjectActor<AGridReceptacleActor> (PresenceState.ObjectId))
+        {
+            ReceptacleActor->ClearRuntimeContainedItems ();
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem ReceptacleId=%s InitialItemId=%s"),
+                *PresenceState.ObjectId.ToString (),
+                *ReceptacleActor->GetInitialItemRuntimeObjectId ().ToString ());
+        }
 
         for (int32 EntryIndex = SpawnedItemEntries.Num () - 1; EntryIndex >= 0; --EntryIndex)
         {

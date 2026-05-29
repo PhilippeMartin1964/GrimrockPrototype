@@ -131,6 +131,18 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void SetInitialContainedItemActor (AGridItemActor* ItemActor);
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool HadInitialItemAtSpawn () const { return bHadInitialItemAtSpawn; }
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool WasInitialItemRemoved () const { return bInitialItemRemovedFromSpawn; }
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    FGuid GetInitialItemRuntimeObjectId () const { return InitialItemRuntimeObjectId; }
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    FName GetInitialItemArchetypeId () const { return InitialItemArchetypeIdAtSpawn; }
+
     void CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const;
     int32 ClearRuntimeContainedItems ();
     bool RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
@@ -170,4 +182,16 @@ private:
 
     UPROPERTY (Transient)
     TObjectPtr<AGridItemActor> PendingRemovalItemActor = nullptr;
+
+    UPROPERTY (Transient)
+    bool bHadInitialItemAtSpawn = false;
+
+    UPROPERTY (Transient)
+    bool bInitialItemRemovedFromSpawn = false;
+
+    UPROPERTY (Transient)
+    FGuid InitialItemRuntimeObjectId;
+
+    UPROPERTY (Transient)
+    FName InitialItemArchetypeIdAtSpawn = NAME_None;
 };
