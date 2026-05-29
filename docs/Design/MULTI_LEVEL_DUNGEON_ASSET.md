@@ -85,3 +85,31 @@ Asset = DA_GridLevel_Test_Level_02
 ```
 
 Le niveau créé est un `UGridLevelAsset` neuf. Il contient une grille 32x32 et une cellule de départ jouable à `(1,1)` orientée `North`, afin de pouvoir tester rapidement le niveau. L'utilisateur peut ensuite peindre les cellules, les murs, les objets et les transitions.
+## StairsUp / StairsDown
+
+Les transitions multi-niveaux doivent maintenant être représentées par des objets dédiés de palette :
+
+- `Stairs Up`
+- `Stairs Down`
+
+Ces objets sont des archétypes `UGridObjectArchetypeAsset` configurés comme décorations de sol non bloquantes. Ils utilisent les meshes `SM_Stairs_Up_01` et `SM_Stairs_Down_01`, se placent au centre d'une cellule et portent `Behavior.Transition.bIsTransition = true` par défaut.
+
+Chaque escalier doit ensuite être configuré dans l'inspecteur :
+
+- `TargetLevelId`
+- `TargetCellX`
+- `TargetCellY`
+- `TargetFacing`
+- `bRequireUseAction`
+
+`bRequireUseAction = false` déclenche la transition en marchant sur l'escalier. `bRequireUseAction = true` est réservé aux transitions nécessitant l'action `Use`, qui seront traitées plus tard.
+
+Workflow :
+
+1. Créer ou sélectionner un niveau cible dans `DUNGEON LEVELS`.
+2. Dans le niveau source, placer `Stairs Down`.
+3. Configurer `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
+4. Dans le niveau cible, placer `Stairs Up`.
+5. Configurer la transition retour.
+6. Lancer PIE.
+7. Marcher sur l'escalier.

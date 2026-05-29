@@ -241,6 +241,9 @@ public:
         FIntVector LogicalPosition,
         FString& OutError);
 
+    UFUNCTION (BlueprintCallable, Category = "Editor|Palette")
+    bool EnsureStairsTransitionArchetypes (FString& OutError);
+
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void LogEditorRuntimeAssetConsistency () const;
 
@@ -442,6 +445,7 @@ private:
     void PaintSelectedCell ();
 
     void RebuildGeometryPreview ();
+    void SyncPreviewRuntimeObjectArchetypesFromPalette ();
 
     UPROPERTY (Transient)
     TObjectPtr<UTextRenderComponent> CoordinateHoverLabel;

@@ -2,12 +2,15 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridGenericObjectActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Engine/StaticMesh.h"
 
 #if WITH_EDITOR
+#include "AssetRegistry/AssetData.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Editor.h"
 #include "FileHelpers.h"
@@ -179,6 +182,114 @@ namespace
 
         OutAssetName = CandidateAssetName;
         return CandidatePackageName;
+    }
+
+    UStaticMesh* FindStaticMeshByAssetName (FName AssetName)
+    {
+        if (AssetName.IsNone ())
+        {
+            return nullptr;
+        }
+
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule> (TEXT ("AssetRegistry"));
+
+        FARFilter Filter;
+        Filter.PackagePaths.Add (FName (TEXT ("/Game")));
+        Filter.ClassPaths.Add (UStaticMesh::StaticClass ()->GetClassPathName ());
+        Filter.bRecursivePaths = true;
+
+        TArray<FAssetData> MeshAssets;
+        AssetRegistryModule.Get ().GetAssets (Filter, MeshAssets);
+
+        for (const FAssetData& MeshAsset : MeshAssets)
+        {
+            if (MeshAsset.AssetName == AssetName)
+            {
+                return Cast<UStaticMesh> (MeshAsset.GetAsset ());
+            }
+        }
+
+        return nullptr;
+    }
+
+    UGridObjectArchetypeAsset* LoadOrCreateObjectArchetypeAsset (const TCHAR* PackageName, const TCHAR* AssetName, bool& bOutCreated)
+    {
+        bOutCreated = false;
+
+        const FString ObjectPath = FString::Printf (TEXT ("%s.%s"), PackageName, AssetName);
+        if (UGridObjectArchetypeAsset* ExistingArchetype = LoadObject<UGridObjectArchetypeAsset> (nullptr, *ObjectPath))
+        {
+            return ExistingArchetype;
+        }
+
+        UPackage* Package = CreatePackage (PackageName);
+        if (!Package)
+        {
+            return nullptr;
+        }
+
+        UGridObjectArchetypeAsset* NewArchetype = NewObject<UGridObjectArchetypeAsset> (
+            Package,
+            UGridObjectArchetypeAsset::StaticClass (),
+            AssetName,
+            RF_Public | RF_Standalone | RF_Transactional);
+
+        if (NewArchetype)
+        {
+            FAssetRegistryModule::AssetCreated (NewArchetype);
+            Package->MarkPackageDirty ();
+            bOutCreated = true;
+        }
+
+        return NewArchetype;
+    }
+
+    void ConfigureStairsTransitionArchetype (
+        UGridObjectArchetypeAsset& Archetype,
+        FName ArchetypeId,
+        const TCHAR* DisplayName,
+        UStaticMesh* Mesh)
+    {
+        Archetype.Modify ();
+        Archetype.ArchetypeId = ArchetypeId;
+        Archetype.DisplayName = FText::FromString (DisplayName);
+        Archetype.SupportedType = EGridLevelObjectType::Decoration;
+        Archetype.Description = FText::FromString (TEXT ("Dungeon transition stair object."));
+        Archetype.bDefaultInitiallyEnabled = true;
+        Archetype.bDefaultInitiallyActive = false;
+        Archetype.DefaultTag = NAME_None;
+        Archetype.DefaultBehavior = FGridObjectBehaviorParams ();
+        Archetype.DefaultBehavior.Transition.bIsTransition = true;
+        Archetype.DefaultBehavior.Transition.TargetLevelId = NAME_None;
+        Archetype.DefaultBehavior.Transition.TargetCellX = 0;
+        Archetype.DefaultBehavior.Transition.TargetCellY = 0;
+        Archetype.DefaultBehavior.Transition.TargetFacing = EGridEdge::North;
+        Archetype.DefaultBehavior.Transition.bRequireUseAction = false;
+        Archetype.Category = FName (TEXT ("Transitions"));
+        Archetype.ObjectCategory = EGridObjectCategory::Decoration;
+        Archetype.PlacementKind = EGridObjectPlacementKind::Floor;
+        Archetype.bPlaceOnEdge = false;
+        Archetype.bPlaceAtCellCenter = true;
+        Archetype.bCanShareCell = true;
+        Archetype.bCanShareAnchor = true;
+        Archetype.bReplacesStandardWall = false;
+        Archetype.bBlocksMovement = false;
+        Archetype.bIsInteractable = false;
+        Archetype.bIsReadable = false;
+        Archetype.bIsLightSource = false;
+        Archetype.PreviewMesh = Mesh;
+        Archetype.PreviewMaterial = nullptr;
+        Archetype.FixedMesh = nullptr;
+        Archetype.MovingMesh = nullptr;
+        Archetype.FixedMaterial = nullptr;
+        Archetype.MovingMaterial = nullptr;
+        Archetype.RuntimeActorClass = AGridGenericObjectActor::StaticClass ();
+        Archetype.ItemActorClass = nullptr;
+        Archetype.PlacementZOffset = 0.f;
+        Archetype.WallInset = 6.f;
+        Archetype.LocalOffsetAlongWall = 0.f;
+        Archetype.LocalOffsetVertical = 0.f;
+        Archetype.MarkPackageDirty ();
     }
 #endif
 }
@@ -672,6 +783,106 @@ bool AGridLevelEditorActor::CreateAndAddDungeonLevel (
 #endif
 }
 
+bool AGridLevelEditorActor::EnsureStairsTransitionArchetypes (FString& OutError)
+{
+    OutError.Reset ();
+
+    if (!ObjectPalette)
+    {
+        OutError = TEXT ("ObjectPalette is null.");
+        return false;
+    }
+
+#if WITH_EDITOR
+    UStaticMesh* StairsUpMesh = FindStaticMeshByAssetName (FName (TEXT ("SM_Stairs_Up_01")));
+    UStaticMesh* StairsDownMesh = FindStaticMeshByAssetName (FName (TEXT ("SM_Stairs_Down_01")));
+
+    if (!StairsUpMesh || !StairsDownMesh)
+    {
+        OutError = FString::Printf (
+            TEXT ("Missing stair mesh asset(s): SM_Stairs_Up_01=%s SM_Stairs_Down_01=%s."),
+            StairsUpMesh ? TEXT ("OK") : TEXT ("Missing"),
+            StairsDownMesh ? TEXT ("OK") : TEXT ("Missing"));
+        UE_LOG (LogTemp, Error, TEXT ("%s"), *OutError);
+        return false;
+    }
+
+    bool bCreatedUp = false;
+    bool bCreatedDown = false;
+    UGridObjectArchetypeAsset* StairsUpArchetype = LoadOrCreateObjectArchetypeAsset (
+        TEXT ("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Stairs_Up"),
+        TEXT ("DA_Stairs_Up"),
+        bCreatedUp);
+    UGridObjectArchetypeAsset* StairsDownArchetype = LoadOrCreateObjectArchetypeAsset (
+        TEXT ("/Game/GrimrockPrototype/Core/DataAssets/GridObjectArchetypeAsset/DA_Stairs_Down"),
+        TEXT ("DA_Stairs_Down"),
+        bCreatedDown);
+
+    if (!StairsUpArchetype || !StairsDownArchetype)
+    {
+        OutError = TEXT ("Failed to load or create Stairs_Up / Stairs_Down archetype assets.");
+        return false;
+    }
+
+    ConfigureStairsTransitionArchetype (*StairsUpArchetype, FName (TEXT ("Stairs_Up")), TEXT ("Stairs Up"), StairsUpMesh);
+    ConfigureStairsTransitionArchetype (*StairsDownArchetype, FName (TEXT ("Stairs_Down")), TEXT ("Stairs Down"), StairsDownMesh);
+
+    ObjectPalette->Modify ();
+
+    const auto AddOrUpdatePaletteEntry = [this] (FName EntryId, const FText& DisplayName, UGridObjectArchetypeAsset* Archetype)
+    {
+        FGridObjectPaletteEntry* ExistingEntry = ObjectPalette->Entries.FindByPredicate (
+            [EntryId] (const FGridObjectPaletteEntry& Entry)
+        {
+            return Entry.EntryId == EntryId;
+        });
+
+        if (!ExistingEntry)
+        {
+            ExistingEntry = &ObjectPalette->Entries.AddDefaulted_GetRef ();
+        }
+
+        ExistingEntry->EntryId = EntryId;
+        ExistingEntry->DisplayNameOverride = DisplayName;
+        ExistingEntry->CategoryOverride = FName (TEXT ("Transitions"));
+        ExistingEntry->DefaultArchetype = Archetype;
+    };
+
+    AddOrUpdatePaletteEntry (FName (TEXT ("Stairs_Up")), FText::FromString (TEXT ("Stairs Up")), StairsUpArchetype);
+    AddOrUpdatePaletteEntry (FName (TEXT ("Stairs_Down")), FText::FromString (TEXT ("Stairs Down")), StairsDownArchetype);
+    ObjectPalette->MarkPackageDirty ();
+
+    ResolvePreviewRuntimeActor ();
+    if (PreviewRuntimeActor)
+    {
+        PreviewRuntimeActor->Modify ();
+        PreviewRuntimeActor->ObjectArchetypes.AddUnique (StairsUpArchetype);
+        PreviewRuntimeActor->ObjectArchetypes.AddUnique (StairsDownArchetype);
+    }
+
+    TArray<UPackage*> PackagesToSave;
+    PackagesToSave.AddUnique (StairsUpArchetype->GetOutermost ());
+    PackagesToSave.AddUnique (StairsDownArchetype->GetOutermost ());
+    PackagesToSave.AddUnique (ObjectPalette->GetOutermost ());
+    UEditorLoadingAndSavingUtils::SavePackages (PackagesToSave, false);
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("Stairs transition archetypes ensured: Stairs_Up=%s Stairs_Down=%s Palette=%s CreatedUp=%s CreatedDown=%s."),
+        *StairsUpArchetype->GetPathName (),
+        *StairsDownArchetype->GetPathName (),
+        *ObjectPalette->GetPathName (),
+        bCreatedUp ? TEXT ("true") : TEXT ("false"),
+        bCreatedDown ? TEXT ("true") : TEXT ("false"));
+
+    return true;
+#else
+    OutError = TEXT ("EnsureStairsTransitionArchetypes is editor-only.");
+    return false;
+#endif
+}
+
 bool AGridLevelEditorActor::ApplyCurrentDungeonLevel ()
 {
     if (!DungeonAsset)
@@ -797,6 +1008,7 @@ void AGridLevelEditorActor::SyncPreviewRuntimeLevelAsset ()
     PreviewRuntimeActor->LevelAsset = LevelAsset;
     PreviewRuntimeActor->DungeonAsset = DungeonAsset;
     PreviewRuntimeActor->CurrentDungeonLevelId = CurrentDungeonLevelId;
+    SyncPreviewRuntimeObjectArchetypesFromPalette ();
     PreviewRuntimeActor->RebuildLevel ();
 
     LogEditorRuntimeAssetConsistency ();
@@ -984,7 +1196,28 @@ void AGridLevelEditorActor::RebuildPreview ()
     if (PreviewRuntimeActor)
     {
         PreviewRuntimeActor->LevelAsset = LevelAsset;
+        SyncPreviewRuntimeObjectArchetypesFromPalette ();
         PreviewRuntimeActor->RebuildLevel ();
+    }
+}
+
+void AGridLevelEditorActor::SyncPreviewRuntimeObjectArchetypesFromPalette ()
+{
+    if (!PreviewRuntimeActor || !ObjectPalette)
+    {
+        return;
+    }
+
+#if WITH_EDITOR
+    PreviewRuntimeActor->Modify ();
+#endif
+
+    for (const FGridObjectPaletteEntry& Entry : ObjectPalette->Entries)
+    {
+        if (Entry.DefaultArchetype)
+        {
+            PreviewRuntimeActor->ObjectArchetypes.AddUnique (Entry.DefaultArchetype);
+        }
     }
 }
 

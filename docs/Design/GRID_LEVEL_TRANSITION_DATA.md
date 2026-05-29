@@ -18,6 +18,50 @@ A placed grid object can be marked as a transition and configured as:
 
 These names should be represented by archetypes or palette entries. They should not become new `EGridLevelObjectType` values unless a later runtime requirement proves that necessary.
 
+## StairsUp / StairsDown
+
+`Stairs Up` et `Stairs Down` sont des objets de palette dédiés aux transitions entre niveaux.
+
+Ils utilisent le système existant d'archétypes :
+
+- `ArchetypeId = Stairs_Up`
+- `ArchetypeId = Stairs_Down`
+- `SupportedType = Decoration`
+- `PlacementKind = Floor`
+- `Category = Transitions`
+- `RuntimeActorClass = AGridGenericObjectActor`
+- `bBlocksMovement = false`
+
+Meshes attendus :
+
+- `Stairs_Up` utilise `SM_Stairs_Up_01`.
+- `Stairs_Down` utilise `SM_Stairs_Down_01`.
+
+Les escaliers sont placés au centre d'une cellule et ne bloquent pas le déplacement. Ils portent par défaut :
+
+```text
+Behavior.Transition.bIsTransition = true
+Behavior.Transition.TargetLevelId = None
+Behavior.Transition.TargetCellX = 0
+Behavior.Transition.TargetCellY = 0
+Behavior.Transition.TargetFacing = North
+Behavior.Transition.bRequireUseAction = false
+```
+
+`TargetLevelId` reste vide par défaut. Le diagnostic de transitions doit donc afficher une erreur tant que la destination n'est pas configurée. C'est attendu.
+
+Workflow recommandé :
+
+1. Créer ou sélectionner un niveau cible dans `DUNGEON LEVELS`.
+2. Dans le niveau source, placer `Stairs Down`.
+3. Configurer `TargetLevelId`, `TargetCellX`, `TargetCellY` et `TargetFacing`.
+4. Dans le niveau cible, placer `Stairs Up`.
+5. Configurer la transition retour.
+6. Lancer PIE.
+7. Marcher sur l'escalier.
+
+Si `bRequireUseAction = false`, la transition se déclenche en entrant sur la cellule. Si `bRequireUseAction = true`, la transition par action `Use` sera traitée dans une étape ultérieure.
+
 ## Fields
 
 `FGridObjectTransitionParams` is part of `FGridObjectBehaviorParams`:
