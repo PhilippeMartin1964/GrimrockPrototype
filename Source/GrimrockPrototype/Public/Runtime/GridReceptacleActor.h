@@ -145,6 +145,7 @@ public:
 
     void CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const;
     int32 ClearRuntimeContainedItems ();
+    int32 ForceClearRuntimeContents (bool bMarkInitialItemRemoved);
     bool RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
 
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;

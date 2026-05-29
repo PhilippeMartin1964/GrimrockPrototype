@@ -577,30 +577,44 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
 
 int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
 {
+    return ForceClearRuntimeContents (false);
+}
+
+int32 AGridReceptacleActor::ForceClearRuntimeContents (bool bMarkInitialItemRemoved)
+{
     int32 ClearedItemCount = 0;
+    TSet<AGridItemActor*> ItemsToDestroy;
 
     TArray<TObjectPtr<AGridItemActor>> ItemActors = ContainedItemActors;
     for (const TObjectPtr<AGridItemActor>& ItemActor : ItemActors)
     {
         if (IsValid (ItemActor))
         {
-            if (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId)
+            if (bMarkInitialItemRemoved || (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId))
             {
                 bInitialItemRemovedFromSpawn = true;
             }
-            ++ClearedItemCount;
-            ClearContainedItemActor (ItemActor.Get ());
+            ItemsToDestroy.Add (ItemActor.Get ());
         }
     }
 
     if (IsValid (ContainedItemActor))
     {
-        if (bHadInitialItemAtSpawn && ContainedItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId)
+        if (bMarkInitialItemRemoved || (bHadInitialItemAtSpawn && ContainedItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId))
         {
             bInitialItemRemovedFromSpawn = true;
         }
-        ++ClearedItemCount;
-        ClearContainedItemActor (ContainedItemActor.Get ());
+        ItemsToDestroy.Add (ContainedItemActor.Get ());
+    }
+
+    TArray<AActor*> AttachedActors;
+    GetAttachedActors (AttachedActors, true, true);
+    for (AActor* AttachedActor : AttachedActors)
+    {
+        if (AGridItemActor* ItemActor = Cast<AGridItemActor> (AttachedActor))
+        {
+            ItemsToDestroy.Add (ItemActor);
+        }
     }
 
     if (UWorld* World = GetWorld ())
@@ -613,25 +627,53 @@ int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
                 continue;
             }
 
-            if (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId)
+            if (bMarkInitialItemRemoved || (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId))
             {
                 bInitialItemRemovedFromSpawn = true;
             }
-            ++ClearedItemCount;
-            ItemActor->OnRemovedFromWorld ();
-            ItemActor->Destroy ();
+            ItemsToDestroy.Add (ItemActor);
         }
     }
 
-    if (bHadInitialItemAtSpawn && !ContainedItemArchetypeId.IsNone () && ContainedItemArchetypeId == InitialItemArchetypeIdAtSpawn)
+    if (bMarkInitialItemRemoved ||
+        (bHadInitialItemAtSpawn && !ContainedItemArchetypeId.IsNone () && ContainedItemArchetypeId == InitialItemArchetypeIdAtSpawn))
     {
         bInitialItemRemovedFromSpawn = true;
     }
 
+    for (AGridItemActor* ItemActor : ItemsToDestroy)
+    {
+        if (!IsValid (ItemActor))
+        {
+            continue;
+        }
+        ++ClearedItemCount;
+        ContainedItemActors.Remove (ItemActor);
+        if (ContainedItemActor == ItemActor)
+        {
+            ContainedItemActor = nullptr;
+        }
+        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        ItemActor->OnRemovedFromWorld ();
+        ItemActor->Destroy ();
+    }
+
     ContainedItemActors.Reset ();
     ContainedItemActor = nullptr;
+    ContainedItemArchetypeId = NAME_None;
+    ContainedItemId = NAME_None;
+    ContainedItemTags.Reset ();
     SetContainedItem (NAME_None);
-    RebuildContainedItemState ();
+
+    if (ContainedItemMesh)
+    {
+        ContainedItemMesh->SetStaticMesh (nullptr);
+        ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+        ContainedItemMesh->SetHiddenInGame (true, true);
+        ContainedItemMesh->SetVisibility (false, true);
+        ContainedItemMesh->MarkRenderStateDirty ();
+    }
+
     UpdateContainedItemInteractionCollision ();
 
     return ClearedItemCount;

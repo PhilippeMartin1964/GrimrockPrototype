@@ -623,13 +623,15 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             continue;
         }
 
-        const int32 ClearedItemCount = ReceptacleActor->ClearRuntimeContainedItems ();
+        const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents (true);
         UE_LOG (LogTemp, Log,
-            TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem Level=%s ReceptacleId=%s InitialItemId=%s ClearedItems=%d"),
+            TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem Level=%s ReceptacleId=%s InitialItemId=%s ClearedItems=%d HasItemAfter=%s ContainedItemCountAfter=%d"),
             *State->LevelId.ToString (),
             *Pair.Key.ToString (),
             *Pair.Value.InitialItemObjectId.ToString (),
-            ClearedItemCount);
+            ClearedItemCount,
+            ReceptacleActor->HasItem () ? TEXT ("true") : TEXT ("false"),
+            ReceptacleActor->GetContainedItemCount ());
     }
 
     for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : State->ObjectPresence)
@@ -731,6 +733,13 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 ReceptacleActor->RestoreRuntimeContainedItem (ItemState, ItemActor);
             }
         }
+
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d ContainedItem=%s"),
+            *Pair.Key.ToString (),
+            ReceptacleActor->HasItem () ? TEXT ("true") : TEXT ("false"),
+            ReceptacleActor->GetContainedItemCount (),
+            *ReceptacleActor->ContainedItemArchetypeId.ToString ());
     }
 
     UE_LOG (LogTemp, Log,
