@@ -29,8 +29,9 @@ Lire dans cet ordre :
 
 - `docs/Architecture_Runtime_Editor_Split.md`
 - `docs/Architecture_LevelAsset_Editor_Runtime.md`
+- `docs/Design/JALON_RUNTIME_DUNGEON_STATE.md`
 
-Ces documents complètent `docs/Design` pour la séparation C++ entre le module runtime et le module editor, et pour la responsabilité DataAsset / map / acteur avant le multi-niveaux.
+Ces documents complètent `docs/Design` pour la séparation C++ entre le module runtime et le module editor, pour la responsabilité DataAsset / map / acteur avant le multi-niveaux, et pour la validation de la couche d'état runtime en mémoire du donjon multi-niveaux.
 
 ### D. Tests manuels
 
