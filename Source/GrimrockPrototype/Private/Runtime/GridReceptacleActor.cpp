@@ -569,7 +569,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         OutState.ContainedItems.Add (ItemState);
     }
 
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogTemp, Verbose,
         TEXT ("GridRuntimeState Capture Receptacle ObjectId=%s Items=%d"),
         *ObjectId.ToString (),
         OutState.ContainedItems.Num ());

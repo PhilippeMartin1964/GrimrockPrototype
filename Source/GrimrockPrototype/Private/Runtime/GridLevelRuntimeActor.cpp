@@ -107,7 +107,7 @@ namespace
         int32 RemovedCount = 0;
         for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : RuntimeState->ObjectPresence)
         {
-            if (!Pair.Value.bExistsInWorld || Pair.Value.bWasPickedUp || Pair.Value.bWasRemovedFromInitialPlacement)
+            if (Pair.Value.bRemovedFromInitialPlacement)
             {
                 ++RemovedCount;
             }
@@ -421,8 +421,6 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
                 FGridRuntimeDoorState DoorState;
                 DoorState.ObjectId = ObjectData.ObjectId;
                 DoorState.bIsOpen = bDoorOpen;
-                DoorState.bIsMoving = bDoorMoving;
-                DoorState.OpenAlpha = bDoorOpen ? 1.f : 0.f;
                 DoorState.bBlocksMovement = bDoorBlocked;
                 State->Doors.Add (DoorState.ObjectId, DoorState);
             }
@@ -495,9 +493,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
 
         FGridRuntimeObjectPresenceState PresenceState;
         PresenceState.ObjectId = ObjectData.ObjectId;
-        PresenceState.bExistsInWorld = ExistingPlacedItemObjectIds.Contains (ObjectData.ObjectId);
-        PresenceState.bWasPickedUp = !PresenceState.bExistsInWorld;
-        PresenceState.bWasRemovedFromInitialPlacement = !PresenceState.bExistsInWorld;
+        PresenceState.bRemovedFromInitialPlacement = !ExistingPlacedItemObjectIds.Contains (ObjectData.ObjectId);
         State->ObjectPresence.Add (ObjectData.ObjectId, PresenceState);
     }
 
@@ -637,7 +633,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
     for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : State->ObjectPresence)
     {
         const FGridRuntimeObjectPresenceState& PresenceState = Pair.Value;
-        if (PresenceState.bExistsInWorld)
+        if (!PresenceState.bRemovedFromInitialPlacement)
         {
             continue;
         }
@@ -711,7 +707,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         }
 
         const int32 ClearedItemCount = ReceptacleActor->ClearRuntimeContainedItems ();
-        UE_LOG (LogTemp, Log,
+        UE_LOG (LogTemp, Verbose,
             TEXT ("GridRuntimeState Apply Receptacle ObjectId=%s ClearExistingItems=%d RestoreItems=%d"),
             *Pair.Key.ToString (),
             ClearedItemCount,
@@ -734,7 +730,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             }
         }
 
-        UE_LOG (LogTemp, Log,
+        UE_LOG (LogTemp, Verbose,
             TEXT ("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d ContainedItem=%s"),
             *Pair.Key.ToString (),
             ReceptacleActor->HasItem () ? TEXT ("true") : TEXT ("false"),
@@ -2170,7 +2166,7 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     FTransform Transform;
 
     AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
-    UE_LOG (LogTemp, Warning, TEXT ("Runtime object: Type=%d Archetype=%s Tag=%s Id=%s"),
+    UE_LOG (LogTemp, Verbose, TEXT ("Runtime object: Type=%d Archetype=%s Tag=%s Id=%s"),
         static_cast<int32>(ObjectData.Type),
         *ObjectData.ArchetypeId.ToString (),
         *ObjectData.Tag.ToString (),

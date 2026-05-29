@@ -145,6 +145,7 @@ public:
 
     void CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const;
     int32 ClearRuntimeContainedItems ();
+    // Authoritative runtime clear: destroys item actors and resets logical, visual, and interaction state.
     int32 ForceClearRuntimeContents (bool bMarkInitialItemRemoved);
     bool RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
 

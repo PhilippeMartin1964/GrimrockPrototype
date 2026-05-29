@@ -15,12 +15,6 @@ struct FGridRuntimeDoorState
     bool bIsOpen = false;
 
     UPROPERTY (Transient, BlueprintReadWrite)
-    bool bIsMoving = false;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
-    float OpenAlpha = 0.f;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
     bool bBlocksMovement = true;
 };
 
@@ -51,13 +45,7 @@ struct FGridRuntimeObjectPresenceState
     FGuid ObjectId;
 
     UPROPERTY (Transient, BlueprintReadWrite)
-    bool bExistsInWorld = true;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
-    bool bWasPickedUp = false;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
-    bool bWasRemovedFromInitialPlacement = false;
+    bool bRemovedFromInitialPlacement = false;
 };
 
 USTRUCT (BlueprintType)
@@ -140,6 +128,7 @@ struct FGridLevelRuntimeState
     UPROPERTY (Transient, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
 
+    // Initial contents removed from a receptacle/support, tracked separately from loose floor item pickups.
     UPROPERTY (Transient, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeRemovedInitialReceptacleItemState> RemovedInitialReceptacleItems;
 
@@ -152,6 +141,7 @@ struct FGridDungeonRuntimeState
 {
     GENERATED_BODY ()
 
+    // Live in-memory dungeon state for the current PIE/gameplay session only.
     UPROPERTY (Transient, BlueprintReadWrite)
     TMap<FName, FGridLevelRuntimeState> LevelStates;
 };
