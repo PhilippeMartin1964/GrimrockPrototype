@@ -809,13 +809,23 @@ Tranche 2 appliquee :
 - `CursorItem` toujours disponible dans le modele, mais pas encore utilise comme destination gameplay principale ;
 - poids des items encore provisoire a `0.0` tant qu'aucune definition item dediee ne porte cette donnee.
 
+Tranche 3 appliquee :
+
+- equipement minimal `MainHand` / `OffHand` ajoute ;
+- fonctions `EquipItemFromInventorySlot` et `UnequipItemToInventory` ajoutees ;
+- relais BlueprintCallable ajoutes sur `AGrimrockPartyPawn` pour equiper/des-equiper le personnage selectionne ;
+- diagnostics enrichis avec `Equipment: MainHand=... OffHand=...` ;
+- compatibilite item/slot encore provisoire et permissive sur les mains.
+
 Non implemente a ce stade :
 
 - UI finale d'inventaire ;
 - drag & drop ;
 - SaveGame ;
 - migration complete des torches, depots et receptacles ;
-- equipement gameplay complet.
+- equipement gameplay complet ;
+- branchement visuel torche / arme / bouclier ;
+- compatibilite definitive des items.
 
 ---
 

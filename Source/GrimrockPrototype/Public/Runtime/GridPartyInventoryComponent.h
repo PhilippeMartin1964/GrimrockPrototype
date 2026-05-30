@@ -55,6 +55,24 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     bool RemoveItemFromCharacterInventoryByRuntimeId (int32 CharacterIndex, FGuid RuntimeObjectId, FGridItemInstance& OutRemovedItem);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool CanEquipItemToSlot (int32 CharacterIndex, const FGridItemInstance& Item, EGridEquipmentSlot TargetSlot) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool EquipItemFromInventorySlot (int32 CharacterIndex, int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool UnequipItemToInventory (int32 CharacterIndex, EGridEquipmentSlot SourceSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool GetEquippedItem (int32 CharacterIndex, EGridEquipmentSlot Slot, FGridItemInstance& OutItem) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool IsEquipmentSlotOccupied (int32 CharacterIndex, EGridEquipmentSlot Slot) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
+    FString GetEquipmentDiagnosticsForCharacter (int32 CharacterIndex) const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
     bool SetCursorItem (const FGridItemInstance& Item);
 

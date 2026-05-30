@@ -862,6 +862,35 @@ void AGrimrockPartyPawn::LogPartyInventoryDiagnostics () const
     UE_LOG (LogTemp, Warning, TEXT ("PartyInventoryComponent is null on %s"), *GetName ());
 }
 
+bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (
+    int32 InventorySlotIndex,
+    EGridEquipmentSlot TargetSlot)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Equip Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName ());
+        return false;
+    }
+
+    return PartyInventoryComponent->EquipItemFromInventorySlot (
+        PartyInventoryComponent->GetSelectedCharacterIndex (),
+        InventorySlotIndex,
+        TargetSlot);
+}
+
+bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipmentSlot SourceSlot)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Unequip Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName ());
+        return false;
+    }
+
+    return PartyInventoryComponent->UnequipItemToInventory (
+        PartyInventoryComponent->GetSelectedCharacterIndex (),
+        SourceSlot);
+}
+
 bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
 {
     if (ItemArchetypeId.IsNone ())

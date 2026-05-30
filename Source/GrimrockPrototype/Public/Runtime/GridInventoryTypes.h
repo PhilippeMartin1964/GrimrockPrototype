@@ -162,6 +162,52 @@ struct FGridCharacterEquipmentState
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
     FGridItemInstance Ring2;
+
+    FGridItemInstance* GetMutableSlot (EGridEquipmentSlot Slot)
+    {
+        switch (Slot)
+        {
+        case EGridEquipmentSlot::MainHand:
+            return &MainHand;
+        case EGridEquipmentSlot::OffHand:
+            return &OffHand;
+        case EGridEquipmentSlot::Head:
+            return &Head;
+        case EGridEquipmentSlot::Chest:
+            return &Chest;
+        case EGridEquipmentSlot::Legs:
+            return &Legs;
+        case EGridEquipmentSlot::Feet:
+            return &Feet;
+        case EGridEquipmentSlot::Amulet:
+            return &Amulet;
+        case EGridEquipmentSlot::Ring1:
+            return &Ring1;
+        case EGridEquipmentSlot::Ring2:
+            return &Ring2;
+        default:
+            return nullptr;
+        }
+    }
+
+    const FGridItemInstance* GetSlot (EGridEquipmentSlot Slot) const
+    {
+        return const_cast<FGridCharacterEquipmentState*> (this)->GetMutableSlot (Slot);
+    }
+
+    bool IsSlotOccupied (EGridEquipmentSlot Slot) const
+    {
+        const FGridItemInstance* Item = GetSlot (Slot);
+        return Item && Item->IsValid ();
+    }
+
+    void ClearSlot (EGridEquipmentSlot Slot)
+    {
+        if (FGridItemInstance* Item = GetMutableSlot (Slot))
+        {
+            *Item = FGridItemInstance ();
+        }
+    }
 };
 
 USTRUCT (BlueprintType)

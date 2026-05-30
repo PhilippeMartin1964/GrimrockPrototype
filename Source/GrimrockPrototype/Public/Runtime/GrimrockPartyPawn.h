@@ -203,6 +203,12 @@ public:
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Debug")
     void LogPartyInventoryDiagnostics () const;
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool EquipSelectedCharacterItemFromInventorySlot (int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool UnequipSelectedCharacterItemToInventory (EGridEquipmentSlot SourceSlot);
+
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     bool EquipHeldItem (FName ItemArchetypeId);
 
