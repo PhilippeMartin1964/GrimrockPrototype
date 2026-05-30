@@ -5,6 +5,8 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridPartyInventoryComponent.generated.h"
 
+class UGridItemDefinitionAsset;
+
 UCLASS (ClassGroup = (Grimrock), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridPartyInventoryComponent : public UActorComponent
 {
@@ -21,6 +23,9 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Party")
     int32 DefaultMaxActiveCharacters = 6;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Items")
+    TArray<TObjectPtr<UGridItemDefinitionAsset>> ItemDefinitions;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void InitializeDefaultPartyIfNeeded ();
@@ -54,6 +59,12 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     bool RemoveItemFromCharacterInventoryByRuntimeId (int32 CharacterIndex, FGuid RuntimeObjectId, FGridItemInstance& OutRemovedItem);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    UGridItemDefinitionAsset* FindItemDefinition (FName ItemDefinitionId) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool ApplyItemDefinitionToInstance (FGridItemInstance& ItemInstance) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool CanEquipItemToSlot (int32 CharacterIndex, const FGridItemInstance& Item, EGridEquipmentSlot TargetSlot) const;

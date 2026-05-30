@@ -1,5 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
+#include "Runtime/GridItemDefinitionAsset.h"
+
 namespace
 {
     constexpr float CarryWeightPerStrength = 5.0f;
@@ -37,6 +39,29 @@ namespace
             return TEXT ("OffHand");
         default:
             return TEXT ("Unsupported");
+        }
+    }
+
+    const TCHAR* GetOwnerTypeName (EGridItemOwnerType OwnerType)
+    {
+        switch (OwnerType)
+        {
+        case EGridItemOwnerType::World:
+            return TEXT ("World");
+        case EGridItemOwnerType::Receptacle:
+            return TEXT ("Receptacle");
+        case EGridItemOwnerType::CharacterInventory:
+            return TEXT ("CharacterInventory");
+        case EGridItemOwnerType::EquipmentSlot:
+            return TEXT ("EquipmentSlot");
+        case EGridItemOwnerType::Cursor:
+            return TEXT ("Cursor");
+        case EGridItemOwnerType::HeldBySelectedCharacter:
+            return TEXT ("HeldBySelectedCharacter");
+        case EGridItemOwnerType::Removed:
+            return TEXT ("Removed");
+        default:
+            return TEXT ("None");
         }
     }
 
@@ -143,7 +168,10 @@ bool UGridPartyInventoryComponent::CanAddItemToSelectedCharacterInventory (const
 
 bool UGridPartyInventoryComponent::AddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item)
 {
-    if (!CanAddItemToCharacterInventory (CharacterIndex, Item))
+    FGridItemInstance ItemToAdd = Item;
+    ApplyItemDefinitionToInstance (ItemToAdd);
+
+    if (!CanAddItemToCharacterInventory (CharacterIndex, ItemToAdd))
     {
         return false;
     }
@@ -157,7 +185,7 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory (int32 CharacterI
         }
 
         Slot.bOccupied = true;
-        Slot.Item = Item;
+        Slot.Item = ItemToAdd;
         Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
         Slot.Item.OwnerGuid = CharacterState.CharacterId;
         Slot.Item.OwnerCharacterIndex = CharacterIndex;
@@ -202,6 +230,59 @@ bool UGridPartyInventoryComponent::RemoveItemFromCharacterInventoryByRuntimeId (
     return false;
 }
 
+UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition (FName ItemDefinitionId) const
+{
+    if (ItemDefinitionId.IsNone ())
+    {
+        return nullptr;
+    }
+
+    for (const TObjectPtr<UGridItemDefinitionAsset>& Definition : ItemDefinitions)
+    {
+        if (Definition && Definition->ItemDefinitionId == ItemDefinitionId)
+        {
+            return Definition.Get ();
+        }
+    }
+
+    return nullptr;
+}
+
+bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance (FGridItemInstance& ItemInstance) const
+{
+    UGridItemDefinitionAsset* Definition = FindItemDefinition (ItemInstance.ItemDefinitionId);
+    if (!Definition)
+    {
+        UE_LOG (LogTemp, Verbose, TEXT ("GridInventory ItemDefinition Missing ItemDefinitionId=%s"),
+            *ItemInstance.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    ItemInstance.Weight = Definition->Weight;
+    if (ItemInstance.DisplayName.IsEmpty ())
+    {
+        ItemInstance.DisplayName = Definition->DisplayName;
+    }
+    if (Definition->bCanEmitLight)
+    {
+        ItemInstance.bLightsEnabled = Definition->bDefaultLightEnabled;
+    }
+    if (!Definition->bStackable)
+    {
+        ItemInstance.Quantity = 1;
+    }
+    else
+    {
+        ItemInstance.Quantity = FMath::Clamp (ItemInstance.Quantity, 1, FMath::Max (1, Definition->MaxStackSize));
+    }
+
+    UE_LOG (LogTemp, Verbose, TEXT ("GridInventory ItemDefinition Applied Item=%s Weight=%.2f Type=%d"),
+        *ItemInstance.ItemDefinitionId.ToString (),
+        ItemInstance.Weight,
+        static_cast<int32> (Definition->ItemType));
+    return true;
+}
+
 bool UGridPartyInventoryComponent::CanEquipItemToSlot (
     int32 CharacterIndex,
     const FGridItemInstance& Item,
@@ -212,10 +293,24 @@ bool UGridPartyInventoryComponent::CanEquipItemToSlot (
         return false;
     }
 
-    if (!Item.IsValid () || !IsSupportedEquipmentSlot (TargetSlot))
+    if (!Item.IsValid ())
     {
         return false;
     }
+
+    if (const UGridItemDefinitionAsset* Definition = FindItemDefinition (Item.ItemDefinitionId))
+    {
+        return Definition->CanEquipToSlot (TargetSlot);
+    }
+
+    if (!IsSupportedEquipmentSlot (TargetSlot))
+    {
+        return false;
+    }
+
+    UE_LOG (LogTemp, Verbose, TEXT ("GridInventory Equip Compatibility Fallback Item=%s Slot=%s"),
+        *Item.ItemDefinitionId.ToString (),
+        GetEquipmentSlotName (TargetSlot));
 
     return true;
 }
@@ -491,6 +586,30 @@ FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics () const
             CharacterState.IsOverloaded () ? TEXT ("true") : TEXT ("false"));
         Result += GetEquipmentDiagnosticsForCharacter (CharacterIndex);
         Result += TEXT ("\n");
+
+        bool bWroteInventoryHeader = false;
+        for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num (); ++SlotIndex)
+        {
+            const FGridInventorySlot& Slot = CharacterState.InventorySlots[SlotIndex];
+            if (Slot.IsEmpty ())
+            {
+                continue;
+            }
+
+            if (!bWroteInventoryHeader)
+            {
+                Result += TEXT ("    Inventory:\n");
+                bWroteInventoryHeader = true;
+            }
+
+            Result += FString::Printf (
+                TEXT ("      [%d] Item=%s Qty=%d Weight=%.1f Owner=%s\n"),
+                SlotIndex,
+                *Slot.Item.ItemDefinitionId.ToString (),
+                Slot.Item.Quantity,
+                Slot.Item.Weight,
+                GetOwnerTypeName (Slot.Item.OwnerType));
+        }
     }
 
     return Result;

@@ -817,6 +817,28 @@ Tranche 3 appliquee :
 - diagnostics enrichis avec `Equipment: MainHand=... OffHand=...` ;
 - compatibilite item/slot encore provisoire et permissive sur les mains.
 
+Tranche 4 appliquee :
+
+- `UGridItemDefinitionAsset` ajoute ;
+- definitions item minimales prevues avec type, poids, nom affiche, icone future, meshes futurs, stack et slots compatibles ;
+- `UGridPartyInventoryComponent` resout `ItemDefinitionId` vers une definition via `ItemDefinitions` ;
+- le poids et les proprietes simples d'item sont appliques aux instances si une definition existe ;
+- compatibilite d'equipement basee sur `CompatibleEquipmentSlots` si definition presente ;
+- fallback permissif `MainHand` / `OffHand` conserve si definition absente.
+
+## Definitions d'items minimales
+
+Assets recommandes a creer manuellement dans UE :
+
+`Content/GrimrockPrototype/Core/DataAssets/Items/`
+
+- `DA_Item_Torch` : `ItemDefinitionId=Item_Torch`, `DisplayName=Torche`, `ItemType=Torch`, `Weight=1.0`, `bStackable=false`, `CompatibleEquipmentSlots=MainHand,OffHand`, `bCanEmitLight=true`, `bDefaultLightEnabled=true`.
+- `DA_Item_ShortSword` : `ItemDefinitionId=Item_ShortSword`, `DisplayName=Epee courte`, `ItemType=Weapon`, `Weight=2.5`, `CompatibleEquipmentSlots=MainHand`.
+- `DA_Item_WoodenShield` : `ItemDefinitionId=Item_WoodenShield`, `DisplayName=Bouclier en bois`, `ItemType=Shield`, `Weight=3.0`, `CompatibleEquipmentSlots=OffHand`.
+- `DA_Item_IronKey` : `ItemDefinitionId=Item_IronKey`, `DisplayName=Cle en fer`, `ItemType=Key`, `Weight=0.1`, `CompatibleEquipmentSlots` vide.
+- `DA_Item_RubyGem` : `ItemDefinitionId=Item_RubyGem`, `DisplayName=Gemme rubis`, `ItemType=Gem`, `Weight=0.2`, `CompatibleEquipmentSlots` vide.
+- `DA_Item_HealthPotion` : `ItemDefinitionId=Item_HealthPotion`, `DisplayName=Potion de soin`, `ItemType=Potion`, `Weight=0.5`, `bStackable=true`, `MaxStackSize=10`, `CompatibleEquipmentSlots` vide.
+
 Non implemente a ce stade :
 
 - UI finale d'inventaire ;
@@ -825,7 +847,8 @@ Non implemente a ce stade :
 - migration complete des torches, depots et receptacles ;
 - equipement gameplay complet ;
 - branchement visuel torche / arme / bouclier ;
-- compatibilite definitive des items.
+- compatibilite definitive des items ;
+- migration complete des anciens archetypes vers definitions dediees.
 
 ---
 

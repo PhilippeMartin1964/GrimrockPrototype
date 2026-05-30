@@ -796,7 +796,9 @@ bool AGrimrockPartyPawn::CanAddItemInstanceToSelectedCharacterInventory (const F
         return false;
     }
 
-    return PartyInventoryComponent->CanAddItemToSelectedCharacterInventory (ItemInstance);
+    FGridItemInstance InventoryItem = ItemInstance;
+    PartyInventoryComponent->ApplyItemDefinitionToInstance (InventoryItem);
+    return PartyInventoryComponent->CanAddItemToSelectedCharacterInventory (InventoryItem);
 }
 
 bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance)
@@ -812,6 +814,7 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGri
     PartyInventoryComponent->InitializeDefaultPartyIfNeeded ();
 
     FGridItemInstance InventoryItem = ItemInstance;
+    PartyInventoryComponent->ApplyItemDefinitionToInstance (InventoryItem);
     InventoryItem.OwnerType = EGridItemOwnerType::CharacterInventory;
     InventoryItem.OwnerCharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex ();
     InventoryItem.EquipmentSlot = EGridEquipmentSlot::None;

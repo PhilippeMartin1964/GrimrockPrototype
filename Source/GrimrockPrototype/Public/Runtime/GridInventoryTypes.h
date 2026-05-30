@@ -50,6 +50,9 @@ struct FGridItemInstance
     FName ItemDefinitionId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FText DisplayName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     int32 Quantity = 1;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
