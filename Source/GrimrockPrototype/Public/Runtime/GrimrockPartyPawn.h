@@ -13,6 +13,7 @@ class UInputAction;
 struct FInputActionValue;
 class AGridLevelRuntimeActor;
 class AGridItemActor;
+class UGridPartyInventoryComponent;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
@@ -38,6 +39,9 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USceneComponent> HeldItemRoot;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+    TObjectPtr<UGridPartyInventoryComponent> PartyInventoryComponent;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
     TObjectPtr<AGridLevelRuntimeActor> LevelRuntimeActor;

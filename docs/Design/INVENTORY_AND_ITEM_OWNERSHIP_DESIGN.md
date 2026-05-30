@@ -789,6 +789,28 @@ Il fixe uniquement la vision de l’inventaire, de la possession d’objets, du 
 
 ---
 
+## Etat d'implementation
+
+Tranche 1 appliquee :
+
+- types de base d'inventaire et de possession ajoutes ;
+- composant `UGridPartyInventoryComponent` ajoute ;
+- groupe actif initial = 1 personnage ;
+- `MaxActiveCharacters = 6` ;
+- personnage selectionne et `CursorItem` minimal prevus ;
+- `CharacterPool` prevu mais non utilise ;
+- diagnostics runtime disponibles.
+
+Non implemente a ce stade :
+
+- UI finale d'inventaire ;
+- drag & drop ;
+- SaveGame ;
+- migration complete des pickups, torches et receptacles ;
+- equipement gameplay complet.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

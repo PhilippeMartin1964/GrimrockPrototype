@@ -12,6 +12,7 @@
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 
 AGrimrockPartyPawn::AGrimrockPartyPawn ()
 {
@@ -39,6 +40,8 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
     HeldItemRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("HeldItemRoot"));
     HeldItemRoot->SetupAttachment (Camera ? Cast<USceneComponent> (Camera) : SceneRoot);
 
+    PartyInventoryComponent = CreateDefaultSubobject<UGridPartyInventoryComponent> (TEXT ("PartyInventoryComponent"));
+
     AutoPossessPlayer = EAutoReceiveInput::Player0;
     Camera->SetRelativeLocation (CameraLocalOffset);
 }
@@ -46,6 +49,11 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
 void AGrimrockPartyPawn::BeginPlay ()
 {
     Super::BeginPlay ();
+
+    if (PartyInventoryComponent)
+    {
+        PartyInventoryComponent->InitializeDefaultPartyIfNeeded ();
+    }
 
     if (!LevelRuntimeActor)
     {
