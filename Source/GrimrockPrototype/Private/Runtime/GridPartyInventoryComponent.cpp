@@ -86,9 +86,33 @@ bool UGridPartyInventoryComponent::IsValidCharacterIndex (int32 Index) const
     return PartyInventoryState.IsValidActiveCharacterIndex (Index);
 }
 
-bool UGridPartyInventoryComponent::AddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item)
+bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item) const
 {
     if (!IsValidCharacterIndex (CharacterIndex) || !Item.IsValid ())
+    {
+        return false;
+    }
+
+    const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
+    {
+        if (Slot.IsEmpty ())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool UGridPartyInventoryComponent::CanAddItemToSelectedCharacterInventory (const FGridItemInstance& Item) const
+{
+    return CanAddItemToCharacterInventory (PartyInventoryState.SelectedCharacterIndex, Item);
+}
+
+bool UGridPartyInventoryComponent::AddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item)
+{
+    if (!CanAddItemToCharacterInventory (CharacterIndex, Item))
     {
         return false;
     }

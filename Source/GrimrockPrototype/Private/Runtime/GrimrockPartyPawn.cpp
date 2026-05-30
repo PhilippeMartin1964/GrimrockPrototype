@@ -789,6 +789,79 @@ bool AGrimrockPartyPawn::RemoveInventoryItem (FName ItemId, int32 Count)
     return true;
 }
 
+bool AGrimrockPartyPawn::CanAddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance) const
+{
+    if (!PartyInventoryComponent)
+    {
+        return false;
+    }
+
+    return PartyInventoryComponent->CanAddItemToSelectedCharacterInventory (ItemInstance);
+}
+
+bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed NoPartyInventoryComponent Item=%s RuntimeId=%s"),
+            *ItemInstance.ItemDefinitionId.ToString (),
+            *ItemInstance.RuntimeObjectId.ToString ());
+        return false;
+    }
+
+    PartyInventoryComponent->InitializeDefaultPartyIfNeeded ();
+
+    FGridItemInstance InventoryItem = ItemInstance;
+    InventoryItem.OwnerType = EGridItemOwnerType::CharacterInventory;
+    InventoryItem.OwnerCharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex ();
+    InventoryItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    const bool bAdded = PartyInventoryComponent->AddItemToSelectedCharacterInventory (InventoryItem);
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Pickup AddedToSelectedCharacter Item=%s RuntimeId=%s CharacterIndex=%d Result=%s"),
+        *InventoryItem.ItemDefinitionId.ToString (),
+        *InventoryItem.RuntimeObjectId.ToString (),
+        PartyInventoryComponent->GetSelectedCharacterIndex (),
+        bAdded ? TEXT ("true") : TEXT ("false"));
+
+    if (!bAdded)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
+            *InventoryItem.ItemDefinitionId.ToString (),
+            *InventoryItem.RuntimeObjectId.ToString ());
+        return false;
+    }
+
+    AddInventoryItem (InventoryItem.ItemDefinitionId, InventoryItem.Quantity);
+    return true;
+}
+
+bool AGrimrockPartyPawn::AddRuntimeItemToSelectedCharacterInventory (
+    const FGuid& RuntimeObjectId,
+    FName ItemDefinitionId,
+    float Weight,
+    int32 Quantity,
+    bool bLightsEnabled)
+{
+    FGridItemInstance ItemInstance;
+    ItemInstance.RuntimeObjectId = RuntimeObjectId;
+    ItemInstance.ItemDefinitionId = ItemDefinitionId;
+    ItemInstance.Quantity = Quantity;
+    ItemInstance.Weight = Weight;
+    ItemInstance.bLightsEnabled = bLightsEnabled;
+    return AddItemInstanceToSelectedCharacterInventory (ItemInstance);
+}
+
+void AGrimrockPartyPawn::LogPartyInventoryDiagnostics () const
+{
+    if (PartyInventoryComponent)
+    {
+        PartyInventoryComponent->LogPartyInventoryDiagnostics ();
+        return;
+    }
+
+    UE_LOG (LogTemp, Warning, TEXT ("PartyInventoryComponent is null on %s"), *GetName ());
+}
+
 bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
 {
     if (ItemArchetypeId.IsNone ())

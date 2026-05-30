@@ -41,6 +41,12 @@ public:
     bool IsValidCharacterIndex (int32 Index) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool CanAddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool CanAddItemToSelectedCharacterInventory (const FGridItemInstance& Item) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     bool AddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")

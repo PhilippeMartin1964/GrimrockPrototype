@@ -4,6 +4,7 @@
 #include "GameFramework/Pawn.h"
 #include "Core/GridTypes.h"
 #include "Core/GridDirectionUtils.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPartyPawn.generated.h"
 
 class UCameraComponent;
@@ -184,6 +185,23 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool RemoveInventoryItem (FName ItemId, int32 Count = 1);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    bool CanAddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    bool AddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    bool AddRuntimeItemToSelectedCharacterInventory (
+        const FGuid& RuntimeObjectId,
+        FName ItemDefinitionId,
+        float Weight,
+        int32 Quantity,
+        bool bLightsEnabled);
+
+    UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Debug")
+    void LogPartyInventoryDiagnostics () const;
 
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     bool EquipHeldItem (FName ItemArchetypeId);

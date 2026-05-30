@@ -368,19 +368,48 @@ bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, 
         return false;
     }
 
+    AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
+    const FName ItemIdToRemove = ItemActorToRemove ? ItemActorToRemove->ArchetypeId : ContainedItemArchetypeId;
+    if (ItemIdToRemove.IsNone ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: contained item has no archetype id; inventory handoff failed."),
+            *ObjectId.ToString ());
+        return false;
+    }
+
+    FGridItemInstance ItemInstance;
+    ItemInstance.RuntimeObjectId = ItemActorToRemove ? ItemActorToRemove->GetRuntimeObjectId () : InitialItemRuntimeObjectId;
+    if (!ItemInstance.RuntimeObjectId.IsValid ())
+    {
+        ItemInstance.RuntimeObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
+    }
+    ItemInstance.ItemDefinitionId = ItemIdToRemove;
+    ItemInstance.Quantity = 1;
+    ItemInstance.Weight = 0.0f;
+    ItemInstance.bLightsEnabled = ItemActorToRemove ? ItemActorToRemove->AreItemLightsEnabled () : false;
+    ItemInstance.LastWorldTransform = ItemActorToRemove ? ItemActorToRemove->GetActorTransform () : GetActorTransform ();
+
+    if (!PartyPawn->CanAddItemInstanceToSelectedCharacterInventory (ItemInstance))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
+            *ItemIdToRemove.ToString (),
+            *ItemInstance.RuntimeObjectId.ToString ());
+        return false;
+    }
+
     if (!TryRemoveItem (OutRemovedItemId))
     {
         return false;
     }
 
-    if (!OutRemovedItemId.IsNone ())
+    if (!OutRemovedItemId.IsNone () && PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
     {
-        PartyPawn->AddInventoryItem (OutRemovedItemId);
         return true;
     }
 
-    UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: removed item has no archetype id; inventory handoff TODO."),
-        *ObjectId.ToString ());
+    UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed ReceptacleHandoff Item=%s RuntimeId=%s"),
+        *ItemIdToRemove.ToString (),
+        *ItemInstance.RuntimeObjectId.ToString ());
     return false;
 }
 

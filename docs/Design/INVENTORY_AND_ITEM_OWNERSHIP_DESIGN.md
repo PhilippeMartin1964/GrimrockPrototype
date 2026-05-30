@@ -801,12 +801,20 @@ Tranche 1 appliquee :
 - `CharacterPool` prevu mais non utilise ;
 - diagnostics runtime disponibles.
 
+Tranche 2 appliquee :
+
+- `LogPartyInventoryDiagnostics` expose directement sur `AGrimrockPartyPawn` ;
+- pickup d'item au sol branche vers l'inventaire du personnage selectionne ;
+- pickup depuis receptacle/support branche progressivement vers l'inventaire du personnage selectionne ;
+- `CursorItem` toujours disponible dans le modele, mais pas encore utilise comme destination gameplay principale ;
+- poids des items encore provisoire a `0.0` tant qu'aucune definition item dediee ne porte cette donnee.
+
 Non implemente a ce stade :
 
 - UI finale d'inventaire ;
 - drag & drop ;
 - SaveGame ;
-- migration complete des pickups, torches et receptacles ;
+- migration complete des torches, depots et receptacles ;
 - equipement gameplay complet.
 
 ---

@@ -1995,9 +1995,23 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
             return false;
         }
 
-        if (!PartyPawn->AddInventoryItem (ItemArchetypeId, 1))
+        FGridItemInstance ItemInstance;
+        ItemInstance.RuntimeObjectId = ItemActor->GetRuntimeObjectId ();
+        if (!ItemInstance.RuntimeObjectId.IsValid ())
         {
-            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed at cell %d,%d for item %s."), CellX, CellY, *ItemArchetypeId.ToString ());
+            ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
+        }
+        ItemInstance.ItemDefinitionId = ItemArchetypeId;
+        ItemInstance.Quantity = 1;
+        ItemInstance.Weight = 0.0f;
+        ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        ItemInstance.LastWorldTransform = ItemActor->GetActorTransform ();
+
+        if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
+                *ItemArchetypeId.ToString (),
+                *ItemInstance.RuntimeObjectId.ToString ());
             return false;
         }
 
@@ -2044,9 +2058,23 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
             return false;
         }
 
-        if (!PartyPawn->AddInventoryItem (ItemArchetypeId, 1))
+        FGridItemInstance ItemInstance;
+        ItemInstance.RuntimeObjectId = ItemActor->GetRuntimeObjectId ();
+        if (!ItemInstance.RuntimeObjectId.IsValid ())
         {
-            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed for actor %s and item %s."), *ItemActor->GetName (), *ItemArchetypeId.ToString ());
+            ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
+        }
+        ItemInstance.ItemDefinitionId = ItemArchetypeId;
+        ItemInstance.Quantity = 1;
+        ItemInstance.Weight = 0.0f;
+        ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        ItemInstance.LastWorldTransform = ItemActor->GetActorTransform ();
+
+        if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
+                *ItemArchetypeId.ToString (),
+                *ItemInstance.RuntimeObjectId.ToString ());
             return false;
         }
 
