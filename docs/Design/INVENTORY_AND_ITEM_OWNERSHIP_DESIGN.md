@@ -15,7 +15,7 @@ Ce document décrit le design fonctionnel et architectural de l’onglet **Inven
 La maquette validée pour l’onglet **Inventaire** est organisée en trois grandes zones :
 
 1. **Colonne gauche — Personnages**  
-   Liste verticale des 6 personnages du groupe.
+   Liste verticale des personnages du groupe actif, jusqu’à 6 personnages.
 
 2. **Zone centrale — Personnage sélectionné**  
    Fiche détaillée du personnage actif : portrait ou rendu, classe, niveau, expérience, équipement et attributs.
@@ -57,7 +57,10 @@ Les autres onglets seront décrits ultérieurement dans des documents dédiés.
 
 Les décisions suivantes sont validées :
 
-- le groupe peut contenir **6 personnages** ;
+- le jeu commence avec **1 personnage actif** ;
+- le groupe actif peut contenir de **1 à 6 personnages** ;
+- le groupe actif ne peut pas dépasser **6 personnages** ;
+- plus tard, les personnages supplémentaires seront placés dans une réserve ou un pool, par exemple à l’auberge ;
 - chaque personnage possède son propre inventaire ;
 - il n’y a **pas d’inventaire de groupe principal** ;
 - le personnage sélectionné est le **récepteur par défaut** des objets ramassés ;
@@ -71,7 +74,47 @@ Les décisions suivantes sont validées :
 
 ---
 
-## 5. Principe fondamental : un seul propriétaire à la fois
+## 5. Groupe actif et réserve de personnages
+
+Le jeu commence avec un seul personnage actif.
+
+Le groupe actif représente les personnages actuellement présents dans le donjon. Ce sont les personnages qui :
+
+- explorent ;
+- combattent ;
+- portent des objets ;
+- apparaissent dans l’interface principale ;
+- peuvent être sélectionnés dans l’onglet **Inventaire** ;
+- possèdent chacun leur inventaire personnel et leur équipement.
+
+Le groupe actif peut évoluer au cours de l’aventure :
+
+- le joueur commence seul ;
+- il peut rencontrer de nouveaux compagnons ;
+- il peut créer ou recruter d’autres personnages ;
+- le groupe actif peut atteindre jusqu’à 6 personnages.
+
+La limite du groupe actif est fixée à 6 personnages.
+
+Plus tard, le joueur pourra posséder plus de personnages au total. Les personnages qui ne sont pas dans le groupe actif seront placés dans un **pool de personnages**, une **réserve** ou une **auberge**.
+
+La réserve de personnages permettra à terme :
+
+- de stocker les compagnons non actifs ;
+- de recomposer le groupe ;
+- de gérer les personnages excédentaires ;
+- éventuellement de conserver leurs inventaires personnels et équipements.
+
+Le système doit donc être conçu pour ne jamais supposer que le groupe actif contient toujours exactement 6 personnages.
+
+Règle cible :
+
+> Groupe actif : 1 à 6 personnages.  
+> Réserve / auberge : personnages supplémentaires, hors groupe actif.
+
+---
+
+## 6. Principe fondamental : un seul propriétaire à la fois
 
 Règle centrale :
 
@@ -91,7 +134,7 @@ Ce principe doit guider toute l’architecture C++.
 
 ---
 
-## 6. Absence d’inventaire de groupe principal
+## 7. Absence d’inventaire de groupe principal
 
 Le jeu ne doit pas utiliser de grand inventaire commun comme stockage principal.
 
@@ -111,13 +154,13 @@ Cette règle rend le groupe plus tactique et plus crédible :
 - le mage peut porter les parchemins et objets magiques ;
 - le personnage le plus fort peut devenir porteur principal.
 
-Il peut exister plus tard des contenants particuliers, comme des coffres, sacs, réserves ou banques, mais ils ne doivent pas remplacer le principe de base : **6 personnages = 6 inventaires personnels**.
+Il peut exister plus tard des contenants particuliers, comme des coffres, sacs, réserves ou banques, mais ils ne doivent pas remplacer le principe de base : **chaque personnage possède son propre inventaire personnel**.
 
 ---
 
-## 7. Structure de l’écran Inventaire
+## 8. Structure de l’écran Inventaire
 
-### 7.1 Bandeau supérieur
+### 8.1 Bandeau supérieur
 
 Le bandeau supérieur affiche les onglets du menu :
 
@@ -130,9 +173,15 @@ Le bandeau supérieur affiche les onglets du menu :
 
 L’onglet actif est clairement mis en évidence.
 
-### 7.2 Colonne gauche : personnages
+### 8.2 Colonne gauche : personnages actifs
 
-La colonne gauche affiche les 6 personnages du groupe.
+La colonne gauche affiche les personnages du groupe actif.
+
+Elle doit supporter :
+
+- 1 personnage au début du jeu ;
+- 2 à 5 personnages pendant la progression ;
+- 6 personnages lorsque le groupe est complet.
 
 Chaque entrée doit pouvoir afficher :
 
@@ -150,7 +199,14 @@ Interaction :
 - le personnage sélectionné devient le récepteur par défaut ;
 - le personnage sélectionné est celui dont la fiche centrale est affichée.
 
-### 7.3 Zone centrale : personnage sélectionné
+Les emplacements non occupés pourront rester vides dans une première version. Plus tard, ils pourront afficher :
+
+- emplacement libre ;
+- recruter ;
+- créer un personnage ;
+- gérer le groupe.
+
+### 8.3 Zone centrale : personnage sélectionné
 
 La zone centrale affiche la fiche détaillée du personnage sélectionné.
 
@@ -188,18 +244,16 @@ Des emplacements supplémentaires pourront être ajoutés plus tard :
 - munitions ;
 - objet rapide.
 
-### 7.4 Zone droite : inventaires personnels multiples
+### 8.4 Zone droite : inventaires personnels multiples
 
 La zone droite affiche plusieurs inventaires personnels en même temps.
 
-Elle est organisée comme une liste verticale défilante :
+Elle est organisée comme une liste verticale défilante des personnages actifs :
 
 - Inventaire personnage 1 ;
 - Inventaire personnage 2 ;
 - Inventaire personnage 3 ;
-- Inventaire personnage 4 ;
-- Inventaire personnage 5 ;
-- Inventaire personnage 6.
+- etc., jusqu’à 6 personnages actifs.
 
 Chaque bloc contient :
 
@@ -218,9 +272,11 @@ L’objectif est d’avoir une vue d’ensemble pour :
 - vérifier la charge de chacun ;
 - organiser le groupe avant ou après un combat.
 
+Si le groupe actif ne contient qu’un seul personnage, la zone droite affiche uniquement son inventaire personnel. Elle s’enrichit naturellement au fur et à mesure que de nouveaux personnages rejoignent le groupe actif.
+
 ---
 
-## 8. Grille d’inventaire
+## 9. Grille d’inventaire
 
 L’inventaire utilise une grille à slots simples.
 
@@ -242,7 +298,7 @@ Cette décision privilégie :
 
 ---
 
-## 9. Personnage sélectionné
+## 10. Personnage sélectionné
 
 Le personnage sélectionné joue un rôle central.
 
@@ -256,13 +312,14 @@ Il est :
 
 Exemples :
 
-- si le personnage 4 est sélectionné et que le joueur ramasse une torche, la torche appartient au personnage 4 ;
+- si le personnage 1 est sélectionné au début du jeu et que le joueur ramasse une torche, la torche appartient au personnage 1 ;
+- si le personnage 4 est sélectionné plus tard et que le joueur ramasse une clé, la clé appartient au personnage 4 ;
 - si le joueur prend une épée dans l’inventaire du personnage 2 puis la dépose sur la main droite du personnage sélectionné, l’épée est transférée et équipée sur le personnage sélectionné ;
 - si le joueur double-clique sur une potion, l’action par défaut concerne le personnage sélectionné, sauf règle contraire.
 
 ---
 
-## 10. Objet au curseur
+## 11. Objet au curseur
 
 Le système doit prévoir un objet actuellement manipulé par le joueur.
 
@@ -297,7 +354,7 @@ La première version peut rester simple, mais le modèle doit prévoir ce cas.
 
 ---
 
-## 11. États de possession d’un item
+## 12. États de possession d’un item
 
 Un item peut se trouver dans un seul des états suivants :
 
@@ -313,9 +370,9 @@ Ces états doivent être exclusifs.
 
 ---
 
-## 12. Flux d’objet principaux
+## 13. Flux d’objet principaux
 
-### 12.1 Monde vers personnage sélectionné
+### 13.1 Monde vers personnage sélectionné
 
 Quand un objet est ramassé dans le monde :
 
@@ -324,7 +381,7 @@ Quand un objet est ramassé dans le monde :
 3. l’objet peut être placé au curseur, équipé ou rangé ;
 4. le Runtime Dungeon State doit savoir que l’objet n’est plus dans le niveau.
 
-### 12.2 Réceptacle vers personnage sélectionné
+### 13.2 Réceptacle vers personnage sélectionné
 
 Quand un objet est pris depuis un support, une alcôve ou un réceptacle :
 
@@ -333,7 +390,7 @@ Quand un objet est pris depuis un support, une alcôve ou un réceptacle :
 3. le réceptacle déclenche les événements nécessaires ;
 4. le niveau conserve son état runtime.
 
-### 12.3 Inventaire personnel vers équipement
+### 13.3 Inventaire personnel vers équipement
 
 Quand un objet est pris depuis l’inventaire d’un personnage et déposé sur l’équipement du personnage sélectionné :
 
@@ -342,7 +399,7 @@ Quand un objet est pris depuis l’inventaire d’un personnage et déposé sur 
 3. si l’objet est compatible, il est équipé ;
 4. si un objet était déjà équipé, il doit être échangé ou déplacé selon les règles UX retenues.
 
-### 12.4 Inventaire personnel vers inventaire personnel
+### 13.4 Inventaire personnel vers inventaire personnel
 
 Quand un objet est transféré entre deux personnages :
 
@@ -351,7 +408,7 @@ Quand un objet est transféré entre deux personnages :
 3. l’objet rejoint l’inventaire cible ;
 4. la charge des deux personnages est recalculée.
 
-### 12.5 Équipement vers inventaire
+### 13.5 Équipement vers inventaire
 
 Quand un objet équipé est retiré :
 
@@ -359,7 +416,7 @@ Quand un objet équipé est retiré :
 2. l’objet retourne au curseur ou dans l’inventaire personnel ;
 3. les statistiques du personnage sont recalculées.
 
-### 12.6 Personnage vers réceptacle
+### 13.6 Personnage vers réceptacle
 
 Quand un objet est déposé dans un réceptacle :
 
@@ -368,9 +425,29 @@ Quand un objet est déposé dans un réceptacle :
 3. l’objet devient propriété du réceptacle ;
 4. le réceptacle déclenche ses événements éventuels.
 
+### 13.7 Réserve vers groupe actif
+
+Plus tard, lorsqu’un personnage est transféré depuis la réserve ou l’auberge vers le groupe actif :
+
+1. vérifier que le groupe actif contient moins de 6 personnages ;
+2. retirer le personnage du pool ;
+3. l’ajouter au groupe actif ;
+4. afficher son entrée dans la colonne gauche ;
+5. afficher son inventaire personnel dans la zone droite.
+
+### 13.8 Groupe actif vers réserve
+
+Plus tard, lorsqu’un personnage quitte le groupe actif pour rejoindre la réserve :
+
+1. vérifier qu’il n’est pas nécessaire au minimum de groupe actif ;
+2. retirer le personnage du groupe actif ;
+3. le placer dans le pool ;
+4. conserver son inventaire personnel et son équipement selon les règles retenues ;
+5. mettre à jour l’interface.
+
 ---
 
-## 13. Charge, poids et Force
+## 14. Charge, poids et Force
 
 Chaque objet possède un poids.
 
@@ -400,7 +477,7 @@ Plus tard, le malus pourra être progressif :
 
 ---
 
-## 14. Types d’objets prévus
+## 15. Types d’objets prévus
 
 Le système doit pouvoir gérer au minimum :
 
@@ -424,7 +501,7 @@ Tous ces objets partagent une logique commune de possession, mais certains auron
 
 ---
 
-## 15. Torche comme cas de référence
+## 16. Torche comme cas de référence
 
 La torche est le cas test principal du système.
 
@@ -451,7 +528,7 @@ La torche permet de tester :
 
 ---
 
-## 16. Relations avec le Runtime Dungeon State
+## 17. Relations avec le Runtime Dungeon State
 
 Le **Runtime Dungeon State** gère l’état vivant des niveaux.
 
@@ -460,7 +537,7 @@ Le futur système d’inventaire doit gérer l’état vivant du groupe et des p
 La séparation cible est :
 
 - **DungeonRuntimeState** : portes, objets de niveau, réceptacles, items au sol, transitions, états interactifs ;
-- **PartyRuntimeState** : personnages, inventaires, équipements, personnage sélectionné, CursorItem, charge, objets possédés.
+- **PartyRuntimeState** : personnages actifs, réserve de personnages, inventaires, équipements, personnage sélectionné, CursorItem, charge, objets possédés.
 
 Un objet porté par un personnage ne doit plus être considéré comme appartenant au niveau.
 
@@ -468,11 +545,11 @@ Un objet déposé dans un réceptacle redevient un élément du niveau courant.
 
 ---
 
-## 17. Architecture conceptuelle cible
+## 18. Architecture conceptuelle cible
 
 Le modèle final devrait prévoir les concepts suivants.
 
-### 17.1 Item Definition
+### 18.1 Item Definition
 
 Données statiques d’un type d’objet.
 
@@ -500,7 +577,7 @@ Contenu possible :
 - effets ;
 - comportement d’usage.
 
-### 17.2 Item Instance
+### 18.2 Item Instance
 
 Objet réel dans une partie.
 
@@ -517,7 +594,7 @@ Contenu possible :
 - transform si dans le monde ;
 - données nécessaires à la sauvegarde.
 
-### 17.3 Character Inventory State
+### 18.3 Character Inventory State
 
 État de l’inventaire d’un personnage.
 
@@ -529,7 +606,7 @@ Contenu possible :
 - capacité maximale ;
 - état de surcharge.
 
-### 17.4 Character Equipment State
+### 18.4 Character Equipment State
 
 État d’équipement d’un personnage.
 
@@ -546,23 +623,48 @@ Contenu possible :
 - anneau 2 ;
 - autres slots futurs.
 
-### 17.5 Party State
+### 18.5 Active Party State
 
-État global du groupe.
+État du groupe actif.
 
 Contenu possible :
 
-- personnages ;
+- personnages actifs ;
+- maximum de personnages actifs = 6 ;
 - personnage sélectionné ;
 - CursorItem ;
 - formation ;
 - niveau courant ;
 - position et orientation du groupe ;
-- inventaires et équipements des personnages.
+- inventaires et équipements des personnages actifs.
+
+### 18.6 Character Pool State
+
+État de la réserve de personnages.
+
+Contenu possible :
+
+- personnages hors groupe actif ;
+- lieu de réserve, par exemple auberge ;
+- inventaires personnels conservés ou transférés selon règle future ;
+- équipement conservé ou transféré selon règle future ;
+- disponibilité du personnage.
+
+### 18.7 Party State global
+
+État global du groupe et de sa réserve.
+
+Contenu possible :
+
+- ActivePartyState ;
+- CharacterPoolState ;
+- personnage sélectionné actif ;
+- CursorItem ;
+- règles de transfert entre groupe actif et réserve.
 
 ---
 
-## 18. Interaction souris prévue
+## 19. Interaction souris prévue
 
 L’interface doit être pensée pour la souris.
 
@@ -581,14 +683,15 @@ Le comportement exact sera précisé dans un document ou une section UX dédiée
 
 ---
 
-## 19. Sauvegarde future
+## 20. Sauvegarde future
 
 Le système doit être conçu pour être sérialisable.
 
 À terme, le SaveGame devra contenir :
 
 - l’état du donjon ;
-- l’état du groupe ;
+- l’état du groupe actif ;
+- l’état de la réserve de personnages ;
 - l’état des personnages ;
 - les inventaires ;
 - l’équipement ;
@@ -600,7 +703,7 @@ La sauvegarde n’est pas l’objectif immédiat, mais le modèle doit être com
 
 ---
 
-## 20. Ce que ce document exclut pour l’instant
+## 21. Ce que ce document exclut pour l’instant
 
 Ce document ne fixe pas encore :
 
@@ -613,25 +716,31 @@ Ce document ne fixe pas encore :
 - le détail du codex ;
 - l’équilibrage complet des poids ;
 - les règles complètes de surcharge ;
-- les règles finales de SaveGame.
+- les règles finales de SaveGame ;
+- les règles finales de recrutement ;
+- les règles finales de création de personnages ;
+- le fonctionnement complet de l’auberge ou de la réserve.
 
-Il fixe uniquement la vision de l’inventaire, de la possession d’objets et de l’écran Inventaire.
+Il fixe uniquement la vision de l’inventaire, de la possession d’objets, du groupe actif et de l’écran Inventaire.
 
 ---
 
-## 21. Plan d’implémentation recommandé
+## 22. Plan d’implémentation recommandé
 
-### Phase 1 — Modèle de possession d’objets
+### Phase 1 — Modèle de possession d’objets et groupe actif minimal
 
 - définir les états de possession ;
 - définir l’Item Instance ;
 - gérer le propriétaire actuel ;
 - gérer le personnage sélectionné ;
-- gérer le CursorItem.
+- gérer le CursorItem ;
+- initialiser un groupe actif de 1 personnage ;
+- prévoir MaxActiveCharacters = 6 ;
+- ne pas supposer que le groupe contient toujours 6 personnages.
 
 ### Phase 2 — Inventaires personnels
 
-- ajouter un inventaire par personnage ;
+- ajouter un inventaire par personnage actif ;
 - gérer les slots homogènes ;
 - gérer la charge ;
 - gérer l’ajout, le retrait et le transfert.
@@ -646,9 +755,10 @@ Il fixe uniquement la vision de l’inventaire, de la possession d’objets et d
 ### Phase 4 — UI de l’onglet Inventaire
 
 - construire le menu supérieur ;
-- construire la colonne personnages ;
+- construire la colonne personnages actifs ;
 - construire la fiche centrale ;
 - construire la zone droite défilante d’inventaires personnels ;
+- adapter l’UI au nombre réel de personnages actifs ;
 - ajouter drag & drop.
 
 ### Phase 5 — Intégration gameplay
@@ -660,21 +770,35 @@ Il fixe uniquement la vision de l’inventaire, de la possession d’objets et d
 - effets de surcharge ;
 - intégration avec le Runtime Dungeon State.
 
-### Phase 6 — Sauvegarde
+### Phase 6 — Recrutement et réserve
+
+- recruter ou créer de nouveaux personnages ;
+- ajouter des personnages au groupe actif ;
+- limiter le groupe actif à 6 ;
+- placer les personnages excédentaires dans une réserve ou une auberge ;
+- gérer le transfert entre groupe actif et réserve.
+
+### Phase 7 — Sauvegarde
 
 - sérialiser le Party State ;
+- sérialiser les personnages actifs ;
+- sérialiser la réserve de personnages ;
 - sérialiser les inventaires ;
 - sérialiser l’équipement ;
 - relier avec le SaveGame du donjon.
 
 ---
 
-## 22. Conclusion
+## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
 
-Le jeu ne repose pas sur un inventaire commun, mais sur une compagnie de 6 personnages possédant chacun leur propre équipement, leur propre inventaire et leur propre charge.
+Le jeu ne repose pas sur un inventaire commun, mais sur un groupe actif de 1 à 6 personnages possédant chacun leur propre équipement, leur propre inventaire et leur propre charge.
 
-L’écran Inventaire doit permettre une gestion globale et fluide du groupe : sélectionner un personnage, consulter son équipement, voir les inventaires de tous les membres, transférer des objets, équiper, organiser, et préparer l’exploration ou le combat.
+Le joueur commence avec un seul personnage, puis compose progressivement son groupe jusqu’à un maximum de 6 personnages actifs.
+
+Les personnages supplémentaires seront à terme gérés dans une réserve ou une auberge.
+
+L’écran Inventaire doit permettre une gestion globale et fluide du groupe : sélectionner un personnage, consulter son équipement, voir les inventaires de tous les membres actifs, transférer des objets, équiper, organiser, et préparer l’exploration ou le combat.
 
 Ce document doit rester la référence de conception avant toute implémentation Codex liée à l’inventaire.
