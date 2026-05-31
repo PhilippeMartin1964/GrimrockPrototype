@@ -117,6 +117,23 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
     bool HasCursorItem () const;
 
+    const FGridItemInstance& GetCursorItem () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryPlaceCursorItemInCharacterInventory (int32 CharacterIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryPlaceCursorItemInSelectedCharacterInventory ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryClearCursorToSelectedCharacterInventory ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryDropCursorItem ();
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Weight")
     void RecalculateCharacterWeight (int32 CharacterIndex);
 
@@ -134,6 +151,12 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     void LogItemDefinitionDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
+    void LogInventoryOwnershipDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
+    bool ValidateInventoryOwnership (UPARAM (ref) FString& OutError) const;
 
 private:
     void EnsureEquipmentCountMatchesActiveCharacters ();

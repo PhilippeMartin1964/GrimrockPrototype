@@ -782,6 +782,7 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGri
 
     if (bAutoEquipTorchOnPickup && InventoryItem.ItemDefinitionId == DefaultHeldItemDefinitionId)
     {
+        // Auto equip torch currently means held visual, not equipment slot ownership.
         EquipHeldItem (InventoryItem.ItemDefinitionId);
     }
     return true;

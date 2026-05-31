@@ -1009,6 +1009,19 @@ Etat applique :
 
 ---
 
+## Tranche 5A appliquee
+
+Etat applique :
+
+- `CursorItem` devient un vrai etat temporaire exclusif de possession ;
+- prendre un item depuis l'inventaire vers `CursorItem` retire l'item de l'inventaire source ;
+- deposer `CursorItem` dans un inventaire transfere l'item au personnage cible ;
+- `HeldItemActor` reste une representation visuelle et ne porte pas l'ownership reelle de l'item ;
+- la torche tenue en main reste un held visual, pas un `EquipmentSlot` ;
+- les diagnostics anti-doublons `ValidateInventoryOwnership` et `LogInventoryOwnershipDiagnostics` sont disponibles.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

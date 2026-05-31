@@ -33,10 +33,40 @@ namespace
     {
         switch (Slot)
         {
+        case EGridEquipmentSlot::None:
+            return TEXT ("None");
         case EGridEquipmentSlot::MainHand:
             return TEXT ("MainHand");
         case EGridEquipmentSlot::OffHand:
             return TEXT ("OffHand");
+        case EGridEquipmentSlot::Head:
+            return TEXT ("Head");
+        case EGridEquipmentSlot::Chest:
+            return TEXT ("Chest");
+        case EGridEquipmentSlot::Legs:
+            return TEXT ("Legs");
+        case EGridEquipmentSlot::Feet:
+            return TEXT ("Feet");
+        case EGridEquipmentSlot::Amulet:
+            return TEXT ("Amulet");
+        case EGridEquipmentSlot::Ring1:
+            return TEXT ("Ring1");
+        case EGridEquipmentSlot::Ring2:
+            return TEXT ("Ring2");
+        case EGridEquipmentSlot::Shoulders:
+            return TEXT ("Shoulders");
+        case EGridEquipmentSlot::Gloves:
+            return TEXT ("Gloves");
+        case EGridEquipmentSlot::Belt:
+            return TEXT ("Belt");
+        case EGridEquipmentSlot::Cloak:
+            return TEXT ("Cloak");
+        case EGridEquipmentSlot::Talisman:
+            return TEXT ("Talisman");
+        case EGridEquipmentSlot::QuickSlot1:
+            return TEXT ("QuickSlot1");
+        case EGridEquipmentSlot::QuickSlot2:
+            return TEXT ("QuickSlot2");
         default:
             return TEXT ("Unsupported");
         }
@@ -132,6 +162,31 @@ namespace
         }
 
         return INDEX_NONE;
+    }
+
+    void ForEachEquipmentItem (
+        const FGridCharacterEquipmentState& EquipmentState,
+        TFunctionRef<void (EGridEquipmentSlot, const FGridItemInstance&)> Visitor)
+    {
+        const EGridEquipmentSlot Slots[] = {
+            EGridEquipmentSlot::MainHand,
+            EGridEquipmentSlot::OffHand,
+            EGridEquipmentSlot::Head,
+            EGridEquipmentSlot::Chest,
+            EGridEquipmentSlot::Legs,
+            EGridEquipmentSlot::Feet,
+            EGridEquipmentSlot::Amulet,
+            EGridEquipmentSlot::Ring1,
+            EGridEquipmentSlot::Ring2
+        };
+
+        for (const EGridEquipmentSlot Slot : Slots)
+        {
+            if (const FGridItemInstance* Item = EquipmentState.GetSlot (Slot))
+            {
+                Visitor (Slot, *Item);
+            }
+        }
     }
 }
 
@@ -676,7 +731,9 @@ bool UGridPartyInventoryComponent::SetCursorItem (const FGridItemInstance& Item)
 
     PartyInventoryState.CursorItem = Item;
     PartyInventoryState.CursorItem.OwnerType = EGridItemOwnerType::Cursor;
+    PartyInventoryState.CursorItem.OwnerGuid = FGuid ();
     PartyInventoryState.CursorItem.OwnerCharacterIndex = INDEX_NONE;
+    PartyInventoryState.CursorItem.EquipmentSlot = EGridEquipmentSlot::None;
     PartyInventoryState.bHasCursorItem = true;
     return true;
 }
@@ -696,6 +753,130 @@ bool UGridPartyInventoryComponent::ClearCursorItem ()
 bool UGridPartyInventoryComponent::HasCursorItem () const
 {
     return PartyInventoryState.bHasCursorItem && PartyInventoryState.CursorItem.IsValid ();
+}
+
+const FGridItemInstance& UGridPartyInventoryComponent::GetCursorItem () const
+{
+    return PartyInventoryState.CursorItem;
+}
+
+bool UGridPartyInventoryComponent::TryTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex)
+{
+    if (HasCursorItem ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=CursorOccupied"),
+            CharacterIndex,
+            InventorySlotIndex);
+        return false;
+    }
+
+    if (!IsValidCharacterIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidCharacter"),
+            CharacterIndex,
+            InventorySlotIndex);
+        return false;
+    }
+
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!CharacterState.InventorySlots.IsValidIndex (InventorySlotIndex) || CharacterState.InventorySlots[InventorySlotIndex].IsEmpty ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidInventorySlot"),
+            CharacterIndex,
+            InventorySlotIndex);
+        return false;
+    }
+
+    FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[InventorySlotIndex];
+    FGridItemInstance ItemToCursor = InventorySlot.Item;
+    ItemToCursor.OwnerType = EGridItemOwnerType::Cursor;
+    ItemToCursor.OwnerGuid = FGuid ();
+    ItemToCursor.OwnerCharacterIndex = INDEX_NONE;
+    ItemToCursor.EquipmentSlot = EGridEquipmentSlot::None;
+
+    InventorySlot = FGridInventorySlot ();
+    PartyInventoryState.CursorItem = ItemToCursor;
+    PartyInventoryState.bHasCursorItem = true;
+    RecalculateCharacterWeight (CharacterIndex);
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Take FromInventory Character=%d Slot=%d Item=%s RuntimeId=%s"),
+        CharacterIndex,
+        InventorySlotIndex,
+        *ItemToCursor.ItemDefinitionId.ToString (),
+        *ItemToCursor.RuntimeObjectId.ToString ());
+    return true;
+}
+
+bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory (int32 CharacterIndex)
+{
+    if (!HasCursorItem ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place Failed Character=%d Reason=NoCursorItem"),
+            CharacterIndex);
+        return false;
+    }
+
+    if (!IsValidCharacterIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place Failed Character=%d Reason=InvalidCharacter"),
+            CharacterIndex);
+        return false;
+    }
+
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    const int32 FreeSlotIndex = FindFreeInventorySlotIndex (CharacterState);
+    if (FreeSlotIndex == INDEX_NONE)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place Failed Character=%d Item=%s RuntimeId=%s Reason=InventoryFull"),
+            CharacterIndex,
+            *PartyInventoryState.CursorItem.ItemDefinitionId.ToString (),
+            *PartyInventoryState.CursorItem.RuntimeObjectId.ToString ());
+        return false;
+    }
+
+    FGridItemInstance ItemToInventory = PartyInventoryState.CursorItem;
+    ApplyItemDefinitionToInstance (ItemToInventory);
+    ItemToInventory.OwnerType = EGridItemOwnerType::CharacterInventory;
+    ItemToInventory.OwnerGuid = CharacterState.CharacterId;
+    ItemToInventory.OwnerCharacterIndex = CharacterIndex;
+    ItemToInventory.EquipmentSlot = EGridEquipmentSlot::None;
+
+    CharacterState.InventorySlots[FreeSlotIndex].bOccupied = true;
+    CharacterState.InventorySlots[FreeSlotIndex].Item = ItemToInventory;
+    PartyInventoryState.CursorItem = FGridItemInstance ();
+    PartyInventoryState.bHasCursorItem = false;
+    RecalculateCharacterWeight (CharacterIndex);
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Place ToInventory Character=%d Slot=%d Item=%s RuntimeId=%s"),
+        CharacterIndex,
+        FreeSlotIndex,
+        *ItemToInventory.ItemDefinitionId.ToString (),
+        *ItemToInventory.RuntimeObjectId.ToString ());
+    return true;
+}
+
+bool UGridPartyInventoryComponent::TryPlaceCursorItemInSelectedCharacterInventory ()
+{
+    return TryPlaceCursorItemInCharacterInventory (PartyInventoryState.SelectedCharacterIndex);
+}
+
+bool UGridPartyInventoryComponent::TryClearCursorToSelectedCharacterInventory ()
+{
+    return TryPlaceCursorItemInSelectedCharacterInventory ();
+}
+
+bool UGridPartyInventoryComponent::TryDropCursorItem ()
+{
+    if (!HasCursorItem ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Drop Failed Reason=NoCursorItem"));
+        return false;
+    }
+
+    UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Drop Failed Item=%s RuntimeId=%s Reason=NotImplemented"),
+        *PartyInventoryState.CursorItem.ItemDefinitionId.ToString (),
+        *PartyInventoryState.CursorItem.RuntimeObjectId.ToString ());
+    return false;
 }
 
 void UGridPartyInventoryComponent::RecalculateCharacterWeight (int32 CharacterIndex)
@@ -855,6 +1036,151 @@ FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics () const
 void UGridPartyInventoryComponent::LogItemDefinitionDiagnostics () const
 {
     UE_LOG (LogTemp, Log, TEXT ("%s"), *GetItemDefinitionDiagnostics ());
+}
+
+void UGridPartyInventoryComponent::LogInventoryOwnershipDiagnostics () const
+{
+    FString Error;
+    if (ValidateInventoryOwnership (Error))
+    {
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory Ownership OK"));
+        return;
+    }
+
+    UE_LOG (LogTemp, Error, TEXT ("GridInventory Ownership ERROR %s"), *Error);
+}
+
+bool UGridPartyInventoryComponent::ValidateInventoryOwnership (FString& OutError) const
+{
+    OutError.Empty ();
+
+    TMap<FGuid, FString> RuntimeOwners;
+    auto RegisterRuntimeOwner = [&RuntimeOwners, &OutError] (const FGridItemInstance& Item, const FString& Location) -> bool
+    {
+        if (!Item.IsValid ())
+        {
+            return true;
+        }
+
+        if (const FString* ExistingOwner = RuntimeOwners.Find (Item.RuntimeObjectId))
+        {
+            OutError = FString::Printf (
+                TEXT ("Duplicate RuntimeObjectId=%s Existing=%s Duplicate=%s"),
+                *Item.RuntimeObjectId.ToString (),
+                **ExistingOwner,
+                *Location);
+            return false;
+        }
+
+        RuntimeOwners.Add (Item.RuntimeObjectId, Location);
+        return true;
+    };
+
+    if (PartyInventoryState.bHasCursorItem)
+    {
+        if (!PartyInventoryState.CursorItem.IsValid ())
+        {
+            OutError = TEXT ("CursorItem flag is set but CursorItem is invalid");
+            return false;
+        }
+
+        if (PartyInventoryState.CursorItem.OwnerType != EGridItemOwnerType::Cursor ||
+            PartyInventoryState.CursorItem.OwnerCharacterIndex != INDEX_NONE ||
+            PartyInventoryState.CursorItem.EquipmentSlot != EGridEquipmentSlot::None)
+        {
+            OutError = FString::Printf (
+                TEXT ("CursorItem has invalid ownership Owner=%s Character=%d Slot=%s"),
+                GetOwnerTypeName (PartyInventoryState.CursorItem.OwnerType),
+                PartyInventoryState.CursorItem.OwnerCharacterIndex,
+                GetEquipmentSlotName (PartyInventoryState.CursorItem.EquipmentSlot));
+            return false;
+        }
+
+        if (!RegisterRuntimeOwner (PartyInventoryState.CursorItem, TEXT ("CursorItem")))
+        {
+            return false;
+        }
+    }
+    else if (PartyInventoryState.CursorItem.IsValid ())
+    {
+        OutError = TEXT ("CursorItem is valid while cursor flag is false");
+        return false;
+    }
+
+    for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num (); ++CharacterIndex)
+    {
+        const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+        for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num (); ++SlotIndex)
+        {
+            const FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[SlotIndex];
+            if (InventorySlot.IsEmpty ())
+            {
+                continue;
+            }
+
+            const FGridItemInstance& Item = InventorySlot.Item;
+            if (Item.OwnerType != EGridItemOwnerType::CharacterInventory ||
+                Item.OwnerCharacterIndex != CharacterIndex ||
+                Item.EquipmentSlot != EGridEquipmentSlot::None)
+            {
+                OutError = FString::Printf (
+                    TEXT ("Inventory item has invalid ownership Character=%d Slot=%d Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
+                    CharacterIndex,
+                    SlotIndex,
+                    *Item.ItemDefinitionId.ToString (),
+                    GetOwnerTypeName (Item.OwnerType),
+                    Item.OwnerCharacterIndex,
+                    GetEquipmentSlotName (Item.EquipmentSlot));
+                return false;
+            }
+
+            const FString Location = FString::Printf (TEXT ("Inventory Character=%d Slot=%d"), CharacterIndex, SlotIndex);
+            if (!RegisterRuntimeOwner (Item, Location))
+            {
+                return false;
+            }
+        }
+
+        if (!PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+        {
+            continue;
+        }
+
+        ForEachEquipmentItem (
+            PartyInventoryState.ActiveEquipment[CharacterIndex],
+            [CharacterIndex, &RegisterRuntimeOwner, &OutError] (EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+            {
+                if (!Item.IsValid ())
+                {
+                    return;
+                }
+
+                if (Item.OwnerType != EGridItemOwnerType::EquipmentSlot ||
+                    Item.OwnerCharacterIndex != CharacterIndex ||
+                    Item.EquipmentSlot != Slot)
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Equipment item has invalid ownership Character=%d Slot=%s Item=%s Owner=%s OwnerCharacter=%d EquipmentSlot=%s"),
+                        CharacterIndex,
+                        GetEquipmentSlotName (Slot),
+                        *Item.ItemDefinitionId.ToString (),
+                        GetOwnerTypeName (Item.OwnerType),
+                        Item.OwnerCharacterIndex,
+                        GetEquipmentSlotName (Item.EquipmentSlot));
+                    return;
+                }
+
+                const FString Location = FString::Printf (TEXT ("Equipment Character=%d Slot=%s"), CharacterIndex, GetEquipmentSlotName (Slot));
+                RegisterRuntimeOwner (Item, Location);
+            });
+
+        if (!OutError.IsEmpty ())
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void UGridPartyInventoryComponent::EnsureEquipmentCountMatchesActiveCharacters ()
