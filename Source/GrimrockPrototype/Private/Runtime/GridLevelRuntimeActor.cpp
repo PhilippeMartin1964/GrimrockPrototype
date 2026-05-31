@@ -578,7 +578,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
             continue;
         }
         ItemState.Transform = ItemActor->GetActorTransform ();
-        ItemState.bIsSimulatingPhysics = ItemActor->IsSimulatingPhysics ();
+        ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent ? ItemActor->MeshComponent->IsSimulatingPhysics () : false;
         ItemState.bIsContainedInReceptacle = false;
         ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
         State->Items.Add (Entry.ObjectId, ItemState);
@@ -2334,10 +2334,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     Entry.ItemDefinitionAsset = ItemDefinition;
     Entry.ItemDefinitionId = ItemDefinitionId;
     SpawnedItemEntries.Add (Entry);
-
-    UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."),
-        *ItemDefinitionId.ToString (),
-        *ObjectData.ObjectId.ToString (),
+        UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."), *ItemDefinitionId.ToString (), *ObjectData.ObjectId.ToString ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
