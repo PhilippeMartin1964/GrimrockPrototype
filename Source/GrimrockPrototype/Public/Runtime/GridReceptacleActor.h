@@ -29,6 +29,9 @@ struct FGridInitialReceptacleItem
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     FName ItemDefinitionId = NAME_None;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FName ItemArchetypeId = NAME_None;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
     int32 Quantity = 1;
 };
@@ -49,6 +52,9 @@ struct FGridContainedReceptacleItem
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    FName ItemArchetypeId = NAME_None;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
@@ -134,6 +140,12 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Items")
     TArray<FGridInitialReceptacleItem> InitialContainedItems;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Legacy")
+    FName InitialContainedItemArchetypeId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Legacy")
+    FName ContainedItemArchetypeId = NAME_None;
 
 public:
     // ============================================================
