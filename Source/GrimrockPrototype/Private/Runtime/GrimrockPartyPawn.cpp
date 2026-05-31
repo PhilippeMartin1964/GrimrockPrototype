@@ -14,6 +14,27 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
+namespace
+{
+    bool IsHandEquipmentSlot (EGridEquipmentSlot Slot)
+    {
+        return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
+    }
+
+    const TCHAR* GetPawnEquipmentSlotName (EGridEquipmentSlot Slot)
+    {
+        switch (Slot)
+        {
+        case EGridEquipmentSlot::MainHand:
+            return TEXT ("MainHand");
+        case EGridEquipmentSlot::OffHand:
+            return TEXT ("OffHand");
+        default:
+            return TEXT ("Unsupported");
+        }
+    }
+}
+
 AGrimrockPartyPawn::AGrimrockPartyPawn ()
 {
     PrimaryActorTick.bCanEverTick = true;
@@ -101,6 +122,8 @@ void AGrimrockPartyPawn::BeginPlay ()
     {
         LevelRuntimeActor->HandlePartyCellChanged (CurrentCellX, CurrentCellY, CurrentCellX, CurrentCellY);
     }
+
+    SyncHeldVisualFromSelectedCharacterEquipment ();
 
     if (APlayerController* PC = Cast<APlayerController> (GetController ()))
     {
@@ -836,7 +859,10 @@ bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (
         InventorySlotIndex,
         TargetSlot);
 
-    // TODO 5C: when an equipped MainHand/OffHand item should drive the held visual, call EquipHeldItem from this explicit equipment path.
+    if (bEquipped && IsHandEquipmentSlot (TargetSlot))
+    {
+        SyncHeldVisualFromSelectedCharacterEquipment ();
+    }
     return bEquipped;
 }
 
@@ -848,9 +874,27 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipment
         return false;
     }
 
-    return PartyInventoryComponent->UnequipItemToInventory (
-        PartyInventoryComponent->GetSelectedCharacterIndex (),
-        SourceSlot);
+    const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex ();
+    FGridItemInstance PreviouslyEquippedItem;
+    const bool bHadHandItem = IsHandEquipmentSlot (SourceSlot) &&
+        PartyInventoryComponent->GetEquippedItem (CharacterIndex, SourceSlot, PreviouslyEquippedItem);
+
+    const bool bUnequipped = PartyInventoryComponent->UnequipItemToInventory (CharacterIndex, SourceSlot);
+    if (bUnequipped && IsHandEquipmentSlot (SourceSlot))
+    {
+        if (bHadHandItem && PreviouslyEquippedItem.ItemDefinitionId == GetHeldItemDefinitionId ())
+        {
+            ClearHeldItem ();
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory HeldVisual Clear Unequipped Character=%d Slot=%s Item=%s"),
+                CharacterIndex,
+                GetPawnEquipmentSlotName (SourceSlot),
+                *PreviouslyEquippedItem.ItemDefinitionId.ToString ());
+        }
+
+        SyncHeldVisualFromSelectedCharacterEquipment ();
+    }
+
+    return bUnequipped;
 }
 
 bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
@@ -915,14 +959,13 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
 
 void AGrimrockPartyPawn::ClearHeldItem ()
 {
-    if (!HeldItemActor)
+    if (HeldItemActor)
     {
-        return;
+        HeldItemActor->OnRemovedFromWorld ();
+        HeldItemActor->Destroy ();
+        HeldItemActor = nullptr;
     }
 
-    HeldItemActor->OnRemovedFromWorld ();
-    HeldItemActor->Destroy ();
-    HeldItemActor = nullptr;
     HeldItemDefinitionId = NAME_None;
     bHasTorchInHand = false;
 }
@@ -935,4 +978,44 @@ FName AGrimrockPartyPawn::GetHeldItemDefinitionId () const
 bool AGrimrockPartyPawn::IsHoldingItem (FName ItemDefinitionId) const
 {
     return !ItemDefinitionId.IsNone () && GetHeldItemDefinitionId () == ItemDefinitionId;
+}
+
+void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment ()
+{
+    // TODO 5C: call this after any direct PartyInventoryComponent::SetSelectedCharacterIndex usage outside the pawn.
+    if (!PartyInventoryComponent)
+    {
+        ClearHeldItem ();
+        return;
+    }
+
+    const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex ();
+    FGridItemInstance EquippedItem;
+    EGridEquipmentSlot EquippedSlot = EGridEquipmentSlot::None;
+
+    if (PartyInventoryComponent->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem))
+    {
+        EquippedSlot = EGridEquipmentSlot::MainHand;
+    }
+    else if (PartyInventoryComponent->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::OffHand, EquippedItem))
+    {
+        EquippedSlot = EGridEquipmentSlot::OffHand;
+    }
+
+    if (EquippedSlot == EGridEquipmentSlot::None)
+    {
+        ClearHeldItem ();
+        return;
+    }
+
+    if (GetHeldItemDefinitionId () != EquippedItem.ItemDefinitionId &&
+        !EquipHeldItem (EquippedItem.ItemDefinitionId))
+    {
+        return;
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"),
+        CharacterIndex,
+        GetPawnEquipmentSlotName (EquippedSlot),
+        *EquippedItem.ItemDefinitionId.ToString ());
 }

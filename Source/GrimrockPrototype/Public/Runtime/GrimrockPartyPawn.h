@@ -213,6 +213,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     bool IsHoldingItem (FName ItemDefinitionId) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Held Item")
+    void SyncHeldVisualFromSelectedCharacterEquipment ();
+
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void SnapToCurrentCell ();

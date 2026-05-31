@@ -1034,6 +1034,18 @@ Etat applique :
 
 ---
 
+## Tranche 5C appliquee
+
+Etat applique :
+
+- l'equipement explicite `MainHand` ou `OffHand` synchronise `HeldItemActor` depuis l'equipement du personnage selectionne ;
+- le pickup ne declenche toujours pas `HeldItemActor` ;
+- `HeldItemActor` represente l'equipement reel en main, pas un item simplement possede ;
+- la torche eclaire uniquement lorsqu'elle est equipee dans une main ;
+- le slot `MainHand` est prioritaire pour le visuel tenu, puis `OffHand`.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
