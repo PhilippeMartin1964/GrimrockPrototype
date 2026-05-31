@@ -402,17 +402,25 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         {
             Definition = PartyPawn->PartyInventoryComponent->FindItemDefinition (HeldItemId);
         }
+        if (!PartyPawn->PartyInventoryComponent ||
+            !PartyPawn->PartyInventoryComponent->HasItemDefinitionInSelectedCharacterInventory (HeldItemId))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Receptacle insert failed: ObjectId=%s Item=%s Reason=selected character inventory does not contain item"),
+                *ObjectId.ToString (),
+                *HeldItemId.ToString ());
+            return false;
+        }
 
         if (TryInsertItem (HeldItemId, Definition, PartyPawn))
         {
-            FGridItemInstance RemovedItem;
-
-            if (PartyPawn->PartyInventoryComponent)
+            if (!PartyPawn->PartyInventoryComponent->RemoveItemDefinitionFromSelectedCharacterInventory (HeldItemId, 1))
             {
-                PartyPawn->PartyInventoryComponent->RemoveFirstItemFromSelectedCharacterInventoryByDefinitionId (HeldItemId, RemovedItem);
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("Receptacle insert warning: ObjectId=%s Item=%s Reason=selected character inventory did not contain item"),
+                    *ObjectId.ToString (),
+                    *HeldItemId.ToString ());
             }
-
-            PartyPawn->RemoveInventoryItem (HeldItemId, 1);
 
             if (PartyPawn->IsHoldingItem (HeldItemId))
             {

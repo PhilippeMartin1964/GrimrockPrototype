@@ -970,6 +970,34 @@ Cette tranche ne supprime pas automatiquement les assets, ne renomme pas automat
 
 ---
 
+## Tranche 4D appliquee
+
+Objectif :
+
+- supprimer l'ancien inventaire legacy porte par `AGrimrockPartyPawn` ;
+- faire de `UGridPartyInventoryComponent` l'unique source de verite de l'inventaire du groupe ;
+- eviter les doubles ajouts lors des pickups monde et receptacle ;
+- garder l'auto-equipement de la torche apres validation de l'ajout au nouvel inventaire.
+
+Etat applique :
+
+- `InventoryItems` legacy est supprime de `AGrimrockPartyPawn` ;
+- `AddInventoryItem` et `RemoveInventoryItem` legacy sont supprimes ;
+- `HasInventoryItem` reste uniquement comme facade vers l'inventaire du personnage selectionne ;
+- `UGridPartyInventoryComponent` expose les helpers de presence, comptage et retrait par `ItemDefinitionId` ;
+- les pickups monde alimentent directement l'inventaire du personnage selectionne ;
+- les pickups depuis receptacle alimentent directement l'inventaire du personnage selectionne ;
+- le depot dans un receptacle retire l'item depuis l'inventaire du personnage selectionne ;
+- l'auto-equipement de la torche est declenche apres ajout reussi dans `UGridPartyInventoryComponent`.
+
+Resultat attendu :
+
+- une prise de torche produit une seule ligne `GridInventory Pickup AddedToSelectedCharacter` ;
+- une prise de torche produit une seule ligne `Held item equipped: Item_Torch` ;
+- aucune ligne `Inventory Add` legacy ne doit apparaitre.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

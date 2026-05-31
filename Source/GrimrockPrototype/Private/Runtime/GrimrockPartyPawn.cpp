@@ -729,64 +729,10 @@ bool AGrimrockPartyPawn::TryInteractOnLevel (int32 X, int32 Y, EGridEdge Edge)
     return LevelRuntimeActor && LevelRuntimeActor->TryInteractAtEdge (X, Y, Edge, this);
 }
 
-bool AGrimrockPartyPawn::HasInventoryItem (FName ItemId) const
+bool AGrimrockPartyPawn::HasInventoryItem (FName ItemDefinitionId) const
 {
-    const int32* Count = InventoryItems.Find (ItemId);
-    return Count && *Count > 0;
-}
-
-bool AGrimrockPartyPawn::AddInventoryItem (FName ItemId, int32 Count)
-{
-    if (ItemId.IsNone () || Count <= 0)
-    {
-        return false;
-    }
-
-    int32& CurrentCount = InventoryItems.FindOrAdd (ItemId);
-    CurrentCount += Count;
-
-    UE_LOG (
-        LogTemp,
-        Warning,
-        TEXT ("Inventory Add: %s x%d -> now %d"),
-        *ItemId.ToString (),
-        Count,
-        InventoryItems.FindRef (ItemId)
-    );
-    if (bAutoEquipTorchOnPickup && ItemId == DefaultHeldItemArchetypeId)
-    {
-        EquipHeldItem (ItemId);
-    }
-    return true;
-}
-
-bool AGrimrockPartyPawn::RemoveInventoryItem (FName ItemId, int32 Count)
-{
-    if (ItemId.IsNone () || Count <= 0)
-    {
-        return false;
-    }
-
-    int32* CurrentCount = InventoryItems.Find (ItemId);
-    if (!CurrentCount || *CurrentCount < Count)
-    {
-        return false;
-    }
-
-    *CurrentCount -= Count;
-    if (*CurrentCount <= 0)
-    {
-        InventoryItems.Remove (ItemId);
-    }
-    UE_LOG (
-        LogTemp,
-        Warning,
-        TEXT ("Inventory Remove: %s x%d -> now %d"),
-        *ItemId.ToString (),
-        Count,
-        InventoryItems.FindRef (ItemId)
-    );
-    return true;
+    return PartyInventoryComponent &&
+        PartyInventoryComponent->HasItemDefinitionInSelectedCharacterInventory (ItemDefinitionId);
 }
 
 bool AGrimrockPartyPawn::CanAddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance) const
@@ -834,7 +780,10 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGri
         return false;
     }
 
-    AddInventoryItem (InventoryItem.ItemDefinitionId, InventoryItem.Quantity);
+    if (bAutoEquipTorchOnPickup && InventoryItem.ItemDefinitionId == DefaultHeldItemArchetypeId)
+    {
+        EquipHeldItem (InventoryItem.ItemDefinitionId);
+    }
     return true;
 }
 

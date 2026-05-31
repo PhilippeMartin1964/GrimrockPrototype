@@ -324,6 +324,87 @@ bool UGridPartyInventoryComponent::RemoveFirstItemFromSelectedCharacterInventory
         OutRemovedItem);
 }
 
+bool UGridPartyInventoryComponent::HasItemDefinitionInCharacterInventory (int32 CharacterIndex, FName ItemDefinitionId) const
+{
+    return CountItemDefinitionInCharacterInventory (CharacterIndex, ItemDefinitionId) > 0;
+}
+
+bool UGridPartyInventoryComponent::HasItemDefinitionInSelectedCharacterInventory (FName ItemDefinitionId) const
+{
+    return HasItemDefinitionInCharacterInventory (PartyInventoryState.SelectedCharacterIndex, ItemDefinitionId);
+}
+
+int32 UGridPartyInventoryComponent::CountItemDefinitionInCharacterInventory (int32 CharacterIndex, FName ItemDefinitionId) const
+{
+    if (!IsValidCharacterIndex (CharacterIndex) || ItemDefinitionId.IsNone ())
+    {
+        return 0;
+    }
+
+    int32 Count = 0;
+    const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
+    {
+        if (!Slot.IsEmpty () && Slot.Item.ItemDefinitionId == ItemDefinitionId)
+        {
+            Count += FMath::Max (1, Slot.Item.Quantity);
+        }
+    }
+    return Count;
+}
+
+int32 UGridPartyInventoryComponent::CountItemDefinitionInSelectedCharacterInventory (FName ItemDefinitionId) const
+{
+    return CountItemDefinitionInCharacterInventory (PartyInventoryState.SelectedCharacterIndex, ItemDefinitionId);
+}
+
+bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory (int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity)
+{
+    if (!IsValidCharacterIndex (CharacterIndex) || ItemDefinitionId.IsNone () || Quantity <= 0)
+    {
+        return false;
+    }
+
+    if (CountItemDefinitionInCharacterInventory (CharacterIndex, ItemDefinitionId) < Quantity)
+    {
+        return false;
+    }
+
+    int32 RemainingToRemove = Quantity;
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    for (FGridInventorySlot& Slot : CharacterState.InventorySlots)
+    {
+        if (RemainingToRemove <= 0)
+        {
+            break;
+        }
+        if (Slot.IsEmpty () || Slot.Item.ItemDefinitionId != ItemDefinitionId)
+        {
+            continue;
+        }
+
+        const int32 SlotQuantity = FMath::Max (1, Slot.Item.Quantity);
+        if (SlotQuantity > RemainingToRemove)
+        {
+            Slot.Item.Quantity = SlotQuantity - RemainingToRemove;
+            RemainingToRemove = 0;
+        }
+        else
+        {
+            RemainingToRemove -= SlotQuantity;
+            Slot = FGridInventorySlot ();
+        }
+    }
+
+    RecalculateCharacterWeight (CharacterIndex);
+    return RemainingToRemove == 0;
+}
+
+bool UGridPartyInventoryComponent::RemoveItemDefinitionFromSelectedCharacterInventory (FName ItemDefinitionId, int32 Quantity)
+{
+    return RemoveItemDefinitionFromCharacterInventory (PartyInventoryState.SelectedCharacterIndex, ItemDefinitionId, Quantity);
+}
+
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition (FName ItemDefinitionId) const
 {
     if (ItemDefinitionId.IsNone ())

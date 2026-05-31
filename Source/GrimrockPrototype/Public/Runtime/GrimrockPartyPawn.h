@@ -145,9 +145,6 @@ public:
     bool bIsFreeLooking = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-    TMap<FName, int32> InventoryItems;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
     FName DefaultInteractionItemId = TEXT ("Item_Torch");
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
@@ -178,13 +175,7 @@ public:
     FName HeldItemArchetypeId = NAME_None;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
-    bool HasInventoryItem (FName ItemId) const;
-
-    UFUNCTION (BlueprintCallable, Category = "Inventory")
-    bool AddInventoryItem (FName ItemId, int32 Count = 1);
-
-    UFUNCTION (BlueprintCallable, Category = "Inventory")
-    bool RemoveInventoryItem (FName ItemId, int32 Count = 1);
+    bool HasInventoryItem (FName ItemDefinitionId) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool CanAddItemInstanceToSelectedCharacterInventory (const FGridItemInstance& ItemInstance) const;

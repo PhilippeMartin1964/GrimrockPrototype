@@ -67,6 +67,24 @@ public:
     bool RemoveFirstItemFromSelectedCharacterInventoryByDefinitionId (FName ItemDefinitionId, FGridItemInstance& OutRemovedItem);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool HasItemDefinitionInCharacterInventory (int32 CharacterIndex, FName ItemDefinitionId) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool HasItemDefinitionInSelectedCharacterInventory (FName ItemDefinitionId) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    int32 CountItemDefinitionInCharacterInventory (int32 CharacterIndex, FName ItemDefinitionId) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    int32 CountItemDefinitionInSelectedCharacterInventory (FName ItemDefinitionId) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool RemoveItemDefinitionFromCharacterInventory (int32 CharacterIndex, FName ItemDefinitionId, int32 Quantity);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool RemoveItemDefinitionFromSelectedCharacterInventory (FName ItemDefinitionId, int32 Quantity);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     UGridItemDefinitionAsset* FindItemDefinition (FName ItemDefinitionId) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
