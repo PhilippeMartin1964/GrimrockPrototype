@@ -215,11 +215,6 @@ namespace
         return RemovedCount;
     }
 
-    int32 CountRemovedInitialReceptacleItems (const FGridLevelRuntimeState* RuntimeState)
-    {
-        return RuntimeState ? RuntimeState->RemovedInitialReceptacleItems.Num () : 0;
-    }
-
     int32 CountHiddenFloorCells (const UGridLevelAsset* InLevelAsset, const AGridLevelRuntimeActor* RuntimeActor)
     {
         if (!InLevelAsset || !RuntimeActor)
@@ -501,7 +496,6 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
     State->ObjectPresence.Reset ();
     State->Items.Reset ();
     State->Receptacles.Reset ();
-    State->RemovedInitialReceptacleItems.Reset ();
     State->bHasBeenVisited = true;
 
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
@@ -567,23 +561,23 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         {
             continue;
         }
-
-        if (Entry.ObjectId.IsValid ())
-        {
-            ExistingPlacedItemObjectIds.Add (Entry.ObjectId);
-        }
-
         FGridRuntimeItemState ItemState;
-        ItemState.ObjectId = Entry.ObjectId.IsValid () ? Entry.ObjectId : FGuid::NewGuid ();
-        ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
-        ItemState.ArchetypeId = Entry.ItemArchetypeId.IsNone () ? ItemActor->GetItemArchetypeId () : Entry.ItemArchetypeId;
+        ItemState.ObjectId = Entry.ObjectId;
+        ItemState.ItemDefinitionId = !Entry.ItemDefinitionId.IsNone ()
+            ? Entry.ItemDefinitionId
+            : ItemActor->GetItemDefinitionId ();
+
+        if (ItemState.ItemDefinitionId.IsNone ())
+        {
+            continue;
+        }
         ItemState.Transform = ItemActor->GetActorTransform ();
-        ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics ();
+        ItemState.bIsSimulatingPhysics = ItemActor->IsSimulatingPhysics ();
         ItemState.bIsContainedInReceptacle = false;
         ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
-        State->Items.Add (ItemState.ObjectId, ItemState);
-    }
 
+        State->Items.Add (Entry.ObjectId, ItemState);
+    }
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
         if (ObjectData.Type != EGridLevelObjectType::Item || !ObjectData.ObjectId.IsValid ())
@@ -604,35 +598,16 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         {
             continue;
         }
-
         FGridRuntimeReceptacleState ReceptacleState;
         ReceptacleActor->CaptureRuntimeReceptacleState (ReceptacleState);
         State->Receptacles.Add (Pair.Key, ReceptacleState);
-
-        if (ReceptacleActor->HadInitialItemAtSpawn () &&
-            ReceptacleActor->WasInitialItemRemoved ())
-        {
-            FGridRuntimeRemovedInitialReceptacleItemState RemovedInitialItemState;
-            RemovedInitialItemState.ReceptacleObjectId = Pair.Key;
-            RemovedInitialItemState.InitialItemObjectId = ReceptacleActor->GetInitialItemRuntimeObjectId ();
-            RemovedInitialItemState.InitialItemArchetypeId = ReceptacleActor->GetInitialItemArchetypeId ();
-            State->RemovedInitialReceptacleItems.Add (Pair.Key, RemovedInitialItemState);
-
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridRuntimeState Capture ReceptacleInitialItemRemoved Level=%s ReceptacleId=%s InitialItemId=%s Archetype=%s"),
-                *State->LevelId.ToString (),
-                *Pair.Key.ToString (),
-                *ReceptacleActor->GetInitialItemRuntimeObjectId ().ToString (),
-                *ReceptacleActor->GetInitialItemArchetypeId ().ToString ());
-        }
     }
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d RemovedInitialItems=%d Items=%d Receptacles=%d Interactives=%d"),
+        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
         *State->LevelId.ToString (),
         State->Doors.Num (),
         CountRemovedRuntimeObjects (State),
-        CountRemovedInitialReceptacleItems (State),
         State->Items.Num (),
         State->Receptacles.Num (),
         State->InteractiveObjects.Num ());
@@ -707,29 +682,6 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         SpawnedItemEntries.RemoveAtSwap (EntryIndex);
     };
 
-    for (const TPair<FGuid, FGridRuntimeRemovedInitialReceptacleItemState>& Pair : State->RemovedInitialReceptacleItems)
-    {
-        AGridReceptacleActor* ReceptacleActor = FindRuntimeObjectActor<AGridReceptacleActor> (Pair.Key);
-        if (!ReceptacleActor)
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem failed: Level=%s ReceptacleId=%s not found."),
-                *State->LevelId.ToString (),
-                *Pair.Key.ToString ());
-            continue;
-        }
-
-        const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents (true);
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridRuntimeState Apply RemoveInitialReceptacleItem Level=%s ReceptacleId=%s InitialItemId=%s ClearedItems=%d HasItemAfter=%s ContainedItemCountAfter=%d"),
-            *State->LevelId.ToString (),
-            *Pair.Key.ToString (),
-            *Pair.Value.InitialItemObjectId.ToString (),
-            ClearedItemCount,
-            ReceptacleActor->HasItem () ? TEXT ("true") : TEXT ("false"),
-            ReceptacleActor->GetContainedItemCount ());
-    }
-
     for (const TPair<FGuid, FGridRuntimeObjectPresenceState>& Pair : State->ObjectPresence)
     {
         const FGridRuntimeObjectPresenceState& PresenceState = Pair.Value;
@@ -777,9 +729,9 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             break;
         }
 
-        if (!bFoundExistingItem && !ItemState.ArchetypeId.IsNone ())
+        if (!bFoundExistingItem && !ItemState.ItemDefinitionId.IsNone ())
         {
-            AGridItemActor* ItemActor = SpawnItemActorForArchetype (ItemState.ArchetypeId, this, nullptr);
+            AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemState.ItemDefinitionId, this, nullptr);
             if (ItemActor)
             {
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
@@ -792,12 +744,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 Entry.Cell = FIntPoint (ItemActor->RuntimeCellX, ItemActor->RuntimeCellY);
                 Entry.ItemActor = ItemActor;
                 Entry.ObjectId = Pair.Key;
-                Entry.ItemArchetypeId = ItemState.ArchetypeId;
+                Entry.ItemArchetypeId = ItemState.ItemDefinitionId;
                 SpawnedItemEntries.Add (Entry);
             }
         }
     }
-
     for (const TPair<FGuid, FGridRuntimeReceptacleState>& Pair : State->Receptacles)
     {
         AGridReceptacleActor* ReceptacleActor = FindRuntimeObjectActor<AGridReceptacleActor> (Pair.Key);
@@ -805,73 +756,49 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         {
             continue;
         }
-
-        const int32 ClearedItemCount = ReceptacleActor->ClearRuntimeContainedItems ();
-        UE_LOG (LogTemp, Verbose,
-            TEXT ("GridRuntimeState Apply Receptacle ObjectId=%s ClearExistingItems=%d RestoreItems=%d"),
-            *Pair.Key.ToString (),
-            ClearedItemCount,
-            Pair.Value.ContainedItems.Num ());
+        const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents (false);
+        const FGridLevelObjectData* ReceptacleObjectData = FindLevelObjectDataById (LevelAsset, Pair.Key);
+        const UGridObjectArchetypeAsset* ReceptacleArchetype = ReceptacleObjectData
+            ? FindObjectArchetype (ReceptacleObjectData->ArchetypeId)
+            : nullptr;
+        const TSubclassOf<AGridItemActor> PreferredItemActorClass =
+            ReceptacleActor->ContainedItemActorClass
+            ? ReceptacleActor->ContainedItemActorClass
+            : (ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
         for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
         {
-            if (ItemState.ArchetypeId.IsNone () && ItemState.ItemDefinitionId.IsNone ())
+            if (ItemState.ItemDefinitionId.IsNone ())
             {
                 continue;
             }
-
-            const FGridLevelObjectData* ReceptacleObjectData = FindLevelObjectDataById (LevelAsset, Pair.Key);
-            const UGridObjectArchetypeAsset* ReceptacleArchetype = ReceptacleObjectData
-                ? FindObjectArchetype (ReceptacleObjectData->ArchetypeId)
-                : nullptr;
-            UGridItemDefinitionAsset* InitialItemDefinition =
-                ReceptacleObjectData ? ResolveReceptacleInitialItemDefinition (ReceptacleObjectData->Behavior.Receptacle) : nullptr;
-            const FName InitialItemDefinitionId =
-                ReceptacleObjectData ? ResolveReceptacleInitialItemDefinitionId (ReceptacleObjectData->Behavior.Receptacle) : NAME_None;
-            const FName RuntimeItemDefinitionId = !ItemState.ItemDefinitionId.IsNone ()
-                ? ItemState.ItemDefinitionId
-                : InitialItemDefinitionId;
-            if (InitialItemDefinition && !RuntimeItemDefinitionId.IsNone () &&
-                InitialItemDefinition->ItemDefinitionId != RuntimeItemDefinitionId)
-            {
-                InitialItemDefinition = nullptr;
-            }
-
-            AGridItemActor* ItemActor = SpawnItemActorForDefinition (
-                InitialItemDefinition,
-                RuntimeItemDefinitionId,
-                ItemState.ArchetypeId,
-                ReceptacleActor,
-                ReceptacleActor->bUsePhysicalPlacement ? nullptr : ReceptacleActor->ItemAttachPoint.Get (),
-                ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
+            UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemState.ItemDefinitionId);
+            AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, ItemState.ItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get (), PreferredItemActorClass);
             if (ItemActor)
             {
                 ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
-                if (InitialItemDefinition)
-                {
-                    ItemActor->InitializeFromItemDefinition (InitialItemDefinition, ItemState.ObjectId);
-                }
-                else if (!RuntimeItemDefinitionId.IsNone ())
-                {
-                    ItemActor->InitializeFromItemDefinitionId (RuntimeItemDefinitionId, ItemState.ObjectId);
-                }
-                ReceptacleActor->RestoreRuntimeContainedItem (ItemState, ItemActor);
-            }
-        }
 
+                if (ItemDefinition)
+                {
+                    ItemActor->InitializeFromItemDefinition (ItemDefinition, ItemState.ObjectId);
+                } else
+                {
+                    ItemActor->InitializeFromItemDefinitionId (ItemState.ItemDefinitionId, ItemState.ObjectId);
+                }
+                ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+            }
+            ReceptacleActor->RestoreRuntimeContainedItem (ItemState, ItemActor);
+        }
         UE_LOG (LogTemp, Verbose,
-            TEXT ("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d ContainedItem=%s"),
+            TEXT ("GridRuntimeState Apply Receptacle Final ObjectId=%s HasItem=%s Count=%d"),
             *Pair.Key.ToString (),
             ReceptacleActor->HasItem () ? TEXT ("true") : TEXT ("false"),
-            ReceptacleActor->GetContainedItemCount (),
-            *ReceptacleActor->ContainedItemArchetypeId.ToString ());
+            ReceptacleActor->GetContainedItemCount ());
     }
-
     UE_LOG (LogTemp, Log,
-        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d RemovedInitialItems=%d Items=%d Receptacles=%d Interactives=%d"),
+        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
         *State->LevelId.ToString (),
         State->Doors.Num (),
         CountRemovedRuntimeObjects (State),
-        CountRemovedInitialReceptacleItems (State),
         State->Items.Num (),
         State->Receptacles.Num (),
         State->InteractiveObjects.Num ());
@@ -1723,9 +1650,8 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel (
     if (const FGridLevelRuntimeState* StoredState = DungeonRuntimeState.LevelStates.Find (OldLevelId))
     {
         UE_LOG (LogTemp, Log,
-            TEXT ("GridRuntimeState Stored Level=%s RemovedInitialItems=%d Receptacles=%d Items=%d Doors=%d"),
+            TEXT ("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d"),
             *OldLevelId.ToString (),
-            CountRemovedInitialReceptacleItems (StoredState),
             StoredState->Receptacles.Num (),
             StoredState->Items.Num (),
             StoredState->Doors.Num ());
@@ -1846,168 +1772,65 @@ UMaterialInterface* AGridLevelRuntimeActor::GetObjectMaterial (const FGridLevelO
     return nullptr;
 }
 
-AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemArchetypeId, AActor* OwnerActor, USceneComponent* AttachParent) const
+AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition (UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId,
+    AActor* OwnerActor, USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass) const
 {
-    const UGridObjectArchetypeAsset* ItemArchetype = FindObjectArchetype (ItemArchetypeId);
-    if (!ItemArchetype)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Grid item spawn failed: archetype %s not found."), *ItemArchetypeId.ToString ());
-        return nullptr;
-    }
-
-    UWorld* World = GetWorld ();
-    if (!World)
-    {
-        return nullptr;
-    }
-
-    TSubclassOf<AGridItemActor> ItemClass = ItemArchetype->ItemActorClass;
-    if (!ItemClass)
-    {
-        ItemClass = AGridItemActor::StaticClass ();
-    }
-
-    UStaticMesh* ItemMesh = ItemArchetype->MovingMesh ? ItemArchetype->MovingMesh.Get () : ItemArchetype->PreviewMesh.Get ();
-    if (!ItemMesh)
-    {
-        ItemMesh = ItemArchetype->FixedMesh.Get ();
-    }
-
-    const FTransform SpawnTransform (
-        AttachParent ? AttachParent->GetComponentRotation () : FRotator::ZeroRotator,
-        AttachParent ? AttachParent->GetComponentLocation () : GetActorLocation (),
-        FVector::OneVector);
-    if (!IsSafeRuntimeRenderTransform (SpawnTransform))
-    {
-        LogUnsafeItemTransform (TEXT ("SpawnItemActorForArchetype"), ItemArchetypeId, OwnerActor, AttachParent, ItemMesh, SpawnTransform);
-        return nullptr;
-    }
-
-    FActorSpawnParameters Params;
-    Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*> (this);
-    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor> (
-        ItemClass,
-        SpawnTransform.GetLocation (),
-        SpawnTransform.GetRotation ().Rotator (),
-        Params);
-
-    if (!ItemActor)
-    {
-        return nullptr;
-    }
-
-    UMaterialInterface* ItemMaterial = ItemArchetype->MovingMaterial ? ItemArchetype->MovingMaterial.Get () : ItemArchetype->PreviewMaterial.Get ();
-    if (!ItemMaterial)
-    {
-        ItemMaterial = ItemArchetype->FixedMaterial.Get ();
-    }
-
-    ItemActor->InitializeItem (ItemArchetype->ArchetypeId, ItemArchetype->ItemTags, ItemMesh, ItemMaterial);
-
-    if (AttachParent)
-    {
-        ItemActor->ConfigureAsAttachedItem ();
-        ItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-        ItemActor->SetActorRelativeTransform (FTransform::Identity);
-    }
-
-    return ItemActor;
-}
-
-AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition (
-    UGridItemDefinitionAsset* ItemDefinition,
-    FName ItemDefinitionId,
-    FName FallbackItemArchetypeId,
-    AActor* OwnerActor,
-    USceneComponent* AttachParent,
-    TSubclassOf<AGridItemActor> PreferredItemActorClass) const
-{
-    const UGridObjectArchetypeAsset* FallbackArchetype = FindObjectArchetype (FallbackItemArchetypeId);
+    ItemDefinitionId = ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone ()
+        ? ItemDefinition->ItemDefinitionId : ItemDefinitionId;
     if (!ItemDefinition && ItemDefinitionId.IsNone ())
     {
-        return SpawnItemActorForArchetype (FallbackItemArchetypeId, OwnerActor, AttachParent);
+        UE_LOG (LogTemp, Warning, TEXT ("Grid item spawn failed: missing ItemDefinition and ItemDefinitionId."));
+        return nullptr;
     }
-
     UWorld* World = GetWorld ();
     if (!World)
     {
         return nullptr;
     }
-
     TSubclassOf<AGridItemActor> ItemClass = PreferredItemActorClass;
-    if (!ItemClass && FallbackArchetype)
-    {
-        ItemClass = FallbackArchetype->ItemActorClass;
-    }
     if (!ItemClass)
     {
         ItemClass = AGridItemActor::StaticClass ();
     }
-
     UStaticMesh* ItemMesh = ItemDefinition ? ItemDefinition->WorldMesh.LoadSynchronous () : nullptr;
-    if (!ItemMesh && FallbackArchetype)
-    {
-        ItemMesh = FallbackArchetype->MovingMesh ? FallbackArchetype->MovingMesh.Get () : FallbackArchetype->PreviewMesh.Get ();
-        if (!ItemMesh)
-        {
-            ItemMesh = FallbackArchetype->FixedMesh.Get ();
-        }
-    }
-
-    UMaterialInterface* ItemMaterial = nullptr;
-    if (FallbackArchetype)
-    {
-        ItemMaterial = FallbackArchetype->MovingMaterial ? FallbackArchetype->MovingMaterial.Get () : FallbackArchetype->PreviewMaterial.Get ();
-        if (!ItemMaterial)
-        {
-            ItemMaterial = FallbackArchetype->FixedMaterial.Get ();
-        }
-    }
-
     const FTransform SpawnTransform (
         AttachParent ? AttachParent->GetComponentRotation () : FRotator::ZeroRotator,
         AttachParent ? AttachParent->GetComponentLocation () : GetActorLocation (),
         FVector::OneVector);
     if (!IsSafeRuntimeRenderTransform (SpawnTransform))
     {
-        LogUnsafeItemTransform (TEXT ("SpawnItemActorForDefinition"), FallbackItemArchetypeId, OwnerActor, AttachParent, ItemMesh, SpawnTransform);
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid item spawn failed: unsafe transform Item=%s Owner=%s AttachParent=%s."),
+            *ItemDefinitionId.ToString (),
+            OwnerActor ? *OwnerActor->GetName () : TEXT ("None"),
+            AttachParent ? *AttachParent->GetName () : TEXT ("None"));
         return nullptr;
     }
-
     FActorSpawnParameters Params;
-    Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*> (this);
+    Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*>(this);
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor> (ItemClass, SpawnTransform.GetLocation (), SpawnTransform.GetRotation ().Rotator (), Params);
 
-    AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor> (
-        ItemClass,
-        SpawnTransform.GetLocation (),
-        SpawnTransform.GetRotation ().Rotator (),
-        Params);
     if (!ItemActor)
     {
         return nullptr;
     }
-
-    const TArray<FName> FallbackTags = FallbackArchetype ? FallbackArchetype->ItemTags : TArray<FName> ();
-    ItemActor->InitializeItem (FallbackItemArchetypeId, FallbackTags, ItemMesh, ItemMaterial);
+    // Mesh optionnel. Important : InitializeItem ne doit pas écraser les composants BP
+    // si ItemMesh est nullptr.
+    ItemActor->InitializeItem (ItemDefinitionId, TArray<FName> (), ItemMesh, nullptr);
     if (ItemDefinition)
     {
         ItemActor->InitializeFromItemDefinition (ItemDefinition, FGuid ());
-    }
-    else
+    } else
     {
         ItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, FGuid ());
     }
-
     if (AttachParent)
     {
         ItemActor->ConfigureAsAttachedItem ();
         ItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
         ItemActor->SetActorRelativeTransform (FTransform::Identity);
     }
-
     return ItemActor;
 }
 
@@ -2402,7 +2225,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
     UGridItemDefinitionAsset* ItemDefinition = ResolveObjectItemDefinitionAsset (ObjectData, Archetype);
     const FName ItemDefinitionId = ResolveObjectItemDefinitionId (ObjectData, Archetype);
-    AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, ItemDefinitionId, ObjectData.ArchetypeId, this, nullptr);
+    AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, ItemDefinitionId, this, nullptr);
     if (!ItemActor)
     {
         UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: failed to spawn item definition %s fallback archetype %s."),
@@ -2454,13 +2277,9 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
         *ObjectData.Tag.ToString (),
         *ObjectData.ObjectId.ToString ());
 
-    if (!Actor)
-    {
-        return;
-    }
+    if (!Actor) return;
     FGridLevelObjectData RuntimeObjectData = ObjectData;
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
-
     if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor> (Actor))
     {
         MechanismActor->InitializeMechanismVisuals (RuntimeObjectData, Archetype, Transform);
@@ -2474,38 +2293,8 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     }
     if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Actor))
     {
-        if (Archetype)
-        {
-            ReceptacleActor->ConfigureContainedItemVisual (
-                Archetype->MovingMesh,
-                Archetype->MovingMaterial
-            );
-        }
-        UGridItemDefinitionAsset* InitialItemDefinition = ResolveReceptacleInitialItemDefinition (RuntimeObjectData.Behavior.Receptacle);
-        const FName InitialItemDefinitionId = ResolveReceptacleInitialItemDefinitionId (RuntimeObjectData.Behavior.Receptacle);
-        if (InitialItemDefinition || !InitialItemDefinitionId.IsNone ())
-        {
-            if (AGridItemActor* ItemActor = SpawnItemActorForDefinition (
-                InitialItemDefinition,
-                InitialItemDefinitionId,
-                RuntimeObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId,
-                ReceptacleActor,
-                ReceptacleActor->ItemAttachPoint,
-                Archetype ? Archetype->ItemActorClass : nullptr))
-            {
-                ItemActor->SetRuntimeObjectId (RuntimeObjectData.ObjectId);
-                if (InitialItemDefinition)
-                {
-                    ItemActor->InitializeFromItemDefinition (InitialItemDefinition, RuntimeObjectData.ObjectId);
-                }
-                else
-                {
-                    ItemActor->InitializeFromItemDefinitionId (InitialItemDefinitionId, RuntimeObjectData.ObjectId);
-                }
-                ReceptacleActor->SetInitialContainedItemActor (ItemActor);
-            }
-        }
-    }    
+        ReceptacleActor->ContainedItemActorClass = Archetype ? Archetype->ItemActorClass : nullptr;
+    }
     if (ActivationComponent)
     {
         ActivationComponent->RegisterInitialObjectState (RuntimeObjectData);
@@ -2534,7 +2323,6 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
             }
             continue;
         }
-
         if (!IsRuntimeSpawnableObject (ObjectData))
         {
             if (ObjectData.bInitiallyEnabled)
@@ -2644,7 +2432,6 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     Result += FString::Printf (TEXT ("RuntimeDoors=%d\n"), RuntimeState ? RuntimeState->Doors.Num () : 0);
     Result += FString::Printf (TEXT ("RuntimeItems=%d\n"), RuntimeState ? RuntimeState->Items.Num () : 0);
     Result += FString::Printf (TEXT ("RuntimeReceptacles=%d\n"), RuntimeState ? RuntimeState->Receptacles.Num () : 0);
-    Result += FString::Printf (TEXT ("RuntimeRemovedInitialReceptacleItems=%d\n"), CountRemovedInitialReceptacleItems (RuntimeState));
 
     if (!LevelAsset)
     {

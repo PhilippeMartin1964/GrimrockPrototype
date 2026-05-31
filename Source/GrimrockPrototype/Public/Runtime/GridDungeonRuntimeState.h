@@ -57,9 +57,6 @@ struct FGridRuntimeItemState
     FGuid ObjectId;
 
     UPROPERTY (Transient, BlueprintReadWrite)
-    FName ArchetypeId = NAME_None;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
     FName ItemDefinitionId = NAME_None;
 
     UPROPERTY (Transient, BlueprintReadWrite)
@@ -87,25 +84,7 @@ struct FGridRuntimeReceptacleState
     FGuid ObjectId;
 
     UPROPERTY (Transient, BlueprintReadWrite)
-    TArray<FGuid> ContainedItemObjectIds;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
     TArray<FGridRuntimeItemState> ContainedItems;
-};
-
-USTRUCT (BlueprintType)
-struct FGridRuntimeRemovedInitialReceptacleItemState
-{
-    GENERATED_BODY ()
-
-    UPROPERTY (Transient, BlueprintReadWrite)
-    FGuid ReceptacleObjectId;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
-    FGuid InitialItemObjectId;
-
-    UPROPERTY (Transient, BlueprintReadWrite)
-    FName InitialItemArchetypeId = NAME_None;
 };
 
 USTRUCT (BlueprintType)
@@ -130,10 +109,6 @@ struct FGridLevelRuntimeState
 
     UPROPERTY (Transient, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
-
-    // Initial contents removed from a receptacle/support, tracked separately from loose floor item pickups.
-    UPROPERTY (Transient, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeRemovedInitialReceptacleItemState> RemovedInitialReceptacleItems;
 
     UPROPERTY (Transient, BlueprintReadWrite)
     bool bHasBeenVisited = false;

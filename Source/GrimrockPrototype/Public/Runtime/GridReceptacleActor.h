@@ -6,13 +6,72 @@
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "GridReceptacleActor.generated.h"
 
+class USceneComponent;
 class UStaticMeshComponent;
 class AGrimrockPartyPawn;
 class AGridItemActor;
 class UGridItemDefinitionAsset;
 
 /**
- * Generic runtime receptacle: torch holder, wall niche, pedestal, statue slot, altar, etc.
+ * Item initially contained in a receptacle.
+ *
+ * Used by TorchHolder, alcoves, niches, altars, offering bowls, chests, etc.
+ * The official item identity is ItemDefinitionId / ItemDefinition.
+ */
+USTRUCT (BlueprintType)
+struct FGridInitialReceptacleItem
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
+    int32 Quantity = 1;
+};
+
+/**
+ * Runtime item contained by a receptacle.
+ *
+ * Single source of truth for contained items.
+ * No separate ContainedItemId / ContainedItemArchetypeId / ContainedItemActors.
+ */
+USTRUCT (BlueprintType)
+struct FGridContainedReceptacleItem
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    FGuid RuntimeObjectId;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    TObjectPtr<AGridItemActor> ItemActor = nullptr;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    bool bWasInitialItem = false;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    int32 Quantity = 1;
+};
+
+/**
+ * Generic runtime receptacle:
+ * torch holder, wall niche, alcove, pedestal, altar, offering bowl, chest, etc.
+ *
+ * Design:
+ * - supports 0..N contained items;
+ * - ItemDefinitionId is the official runtime identity;
+ * - ItemActor is only an optional visual/runtime representation;
+ * - legacy ArchetypeId-based item content is intentionally removed.
  */
 UCLASS (Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor, public IGridInteractableInterface
@@ -23,62 +82,27 @@ public:
     AGridReceptacleActor ();
 
 public:
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    // ============================================================
+    // Components
+    // ============================================================
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USceneComponent> ItemSocketRoot;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<USceneComponent> ItemAttachPoint;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    /**
+     * Optional fallback static mesh preview for very simple receptacles.
+     * Prefer spawned AGridItemActor visuals for real items such as torches.
+     */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UStaticMeshComponent> ContainedItemMesh;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    bool bAcceptAnyItem = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    TArray<FName> AcceptedItemTags;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    TArray<FName> AcceptedArchetypeIds;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    TArray<FName> RejectedItemArchetypeIds;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    FName InitialContainedItemArchetypeId = NAME_None;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
-    TObjectPtr<UGridItemDefinitionAsset> InitialContainedItemDefinition = nullptr;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
-    FName InitialContainedItemDefinitionId = NAME_None;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (ClampMin = "1"))
-    int32 MaxContainedItems = 1;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    bool bUsePhysicalPlacement = false;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    bool bExtinguishItemOnPhysicalPlacement = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (ClampMin = "0.0"))
-    float PhysicalPlacementSurfaceOffset = 10.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    FName ContainedItemArchetypeId = NAME_None;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    TArray<FName> ContainedItemTags;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    TObjectPtr<AGridItemActor> ContainedItemActor;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    TArray<TObjectPtr<AGridItemActor>> ContainedItemActors;
+public:
+    // ============================================================
+    // Configuration
+    // ============================================================
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bCanInsertItem = true;
@@ -87,17 +111,52 @@ public:
     bool bCanRemoveItem = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    bool bStartsFilled = false;
+    bool bAcceptAnyItem = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Receptacle")
-    FName AcceptedItemId = NAME_None;
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Visual")
+    TSubclassOf<AGridItemActor> ContainedItemActorClass;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "Receptacle")
-    FName ContainedItemId = NAME_None;
+    /**
+     * Maximum number of items this receptacle can contain.
+     *
+     * 1  = torch holder / single-slot receptacle.
+     * >1 = alcove / niche / altar / chest.
+     * <=0 = unlimited capacity.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    int32 MaxContainedItems = 1;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
+    TArray<FName> AcceptedItemDefinitionIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
+    TArray<FName> RejectedItemDefinitionIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Items")
+    TArray<FGridInitialReceptacleItem> InitialContainedItems;
 
 public:
-    virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-        const FTransform& WorldTransform) override;
+    // ============================================================
+    // Runtime State
+    // ============================================================
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Runtime")
+    TArray<FGridContainedReceptacleItem> ContainedItems;
+
+public:
+    // ============================================================
+    // AGridRuntimeObjectActor
+    // ============================================================
+    virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
+
+protected:
+    virtual void BeginPlay () override;
+    virtual void EndPlay (const EEndPlayReason::Type EndPlayReason) override;
+
+public:
+    // ============================================================
+    // Queries
+    // ============================================================
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool HasItem () const;
@@ -109,103 +168,145 @@ public:
     bool IsFull () const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool CanAcceptItem (FName ItemId) const;
+    bool IsEmpty () const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool CanAcceptItemArchetype (FName ItemArchetypeId, const TArray<FName>& ItemTags) const;
+    bool IsValidContainedItemIndex (int32 ItemIndex) const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool TryInsertItem (FName ItemId);
-
-    bool TryInsertItemWithDefinition (FName ItemId, UGridItemDefinitionAsset* ItemDefinition);
+    FName GetContainedItemDefinitionId (int32 ItemIndex = 0) const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool TryInsertItemActor (AGridItemActor* ItemActor);
+    AGridItemActor* GetContainedItemActor (int32 ItemIndex = 0) const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool TryRemoveItem (FName& OutRemovedItemId);
+    bool CanAcceptItem (FName ItemDefinitionId) const;
 
+public:
+    // ============================================================
+    // Item Insertion / Removal
+    // ============================================================
+
+    /**
+     * Inserts an item into the receptacle.
+     *
+     * This is the single official insertion path.
+     * ItemDefinitionId is the source of truth.
+     * ItemDefinition is optional but preferred when available.
+     */
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId);
+    bool TryInsertItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn);
 
+    /**
+     * Takes the first contained item.
+     *
+     * Used by simple receptacles such as TorchHolder.
+     */
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool TryTakeContainedItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId);
+    bool TryTakeFirstItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemDefinitionId);
 
+    /**
+     * Takes a specific contained item.
+     *
+     * Used by alcoves / niches / multi-item receptacles.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemDefinitionId);
+
+    /**
+     * Main interaction entry point used by mouse / runtime interaction.
+     *
+     * Behavior:
+     * - if party has a held item and insertion is possible -> insert it;
+     * - otherwise, if receptacle contains item and removal is possible -> take item;
+     * - otherwise do nothing.
+     */
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    void ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial);
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    void SetInitialContainedItemActor (AGridItemActor* ItemActor);
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool HadInitialItemAtSpawn () const { return bHadInitialItemAtSpawn; }
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    bool WasInitialItemRemoved () const { return bInitialItemRemovedFromSpawn; }
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    FGuid GetInitialItemRuntimeObjectId () const { return InitialItemRuntimeObjectId; }
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    FName GetInitialItemArchetypeId () const { return InitialItemArchetypeIdAtSpawn; }
+public:
+    // ============================================================
+    // Runtime State Capture / Restore
+    // ============================================================
 
     void CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const;
-    int32 ClearRuntimeContainedItems ();
-    // Authoritative runtime clear: destroys item actors and resets logical, visual, and interaction state.
-    int32 ForceClearRuntimeContents (bool bMarkInitialItemRemoved);
+
+    /**
+     * Authoritative runtime clear:
+     * destroys item actors and resets logical + visual state.
+     */
+    int32 ForceClearRuntimeContents (bool bMarkInitialItemsRemoved);
+
+    /**
+     * Restores one runtime-contained item.
+     *
+     * Runtime actor is responsible for resolving/spawning ItemActor if needed.
+     */
     bool RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor);
 
+public:
+    // ============================================================
+    // Interaction Interface
+    // ============================================================
+
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
+
     virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+
     virtual void InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult) override;
+
     virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
+
     virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
 
 protected:
-    virtual void BeginPlay () override;
-    virtual void EndPlay (const EEndPlayReason::Type EndPlayReason) override;
+    // ============================================================
+    // Internal Item Handling
+    // ============================================================
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    void SetContainedItem (FName NewItemId);
+    int32 AddContainedItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity);
+
+    bool RemoveContainedItemAtIndex (int32 ItemIndex, FGridContainedReceptacleItem& OutRemovedItem);
+
+    void ClearContainedActor (FGridContainedReceptacleItem& Item);
+
+    void ClearAllContainedActors ();
+
+    void AttachContainedItemActor (AGridItemActor* ItemActor, int32 ItemIndex, const FHitResult* PlacementHitResult = nullptr);
+
+    void UpdateContainedItemInteractionCollision ();
+
+    bool IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const;
+
+    int32 FindContainedItemIndexForComponent (UPrimitiveComponent* HitComponent) const;
+
+    FString GetItemAcceptanceFailureReason (FName ItemDefinitionId) const;
 
     void ExecuteInsertionLinks ();
+
     void ExecuteRemovalLinks ();
-    void AttachContainedItemActor (AGridItemActor* ItemActor, const FHitResult* PlacementHitResult = nullptr);
-    void AttachContainedItemActor (const FHitResult* PlacementHitResult = nullptr);
-    void ClearContainedItemActor (AGridItemActor* ItemActor = nullptr);
-    void UpdateContainedItemInteractionCollision ();
-    bool IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const;
-    AGridItemActor* FindContainedItemActorForComponent (UPrimitiveComponent* HitComponent) const;
-    AGridItemActor* GetDefaultContainedItemActor () const;
-    void RebuildContainedItemState ();
-    FString GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const;
+
+protected:
+    // ============================================================
+    // Initial Item Handling
+    // ============================================================
+
+    void InitializeInitialContainedItems ();
+
+    FName ResolveInitialItemDefinitionId (const FGridInitialReceptacleItem& InitialItem) const;
+
+    bool WasInitialItemRemoved (FName ItemDefinitionId) const;
 
 private:
-    UPROPERTY (Transient)
-    TObjectPtr<UStaticMesh> RuntimeContainedItemMesh = nullptr;
+    // ============================================================
+    // Runtime Initial-Item Tracking
+    // ============================================================
 
     UPROPERTY (Transient)
-    TObjectPtr<UMaterialInterface> RuntimeContainedItemMaterial = nullptr;
-
-    TOptional<FHitResult> PendingPlacementHitResult;
+    TSet<FName> RemovedInitialItemDefinitionIds;
 
     UPROPERTY (Transient)
-    TObjectPtr<AGridItemActor> PendingRemovalItemActor = nullptr;
-
-    UPROPERTY (Transient)
-    bool bHadInitialItemAtSpawn = false;
-
-    UPROPERTY (Transient)
-    bool bInitialItemRemovedFromSpawn = false;
-
-    UPROPERTY (Transient)
-    FGuid InitialItemRuntimeObjectId;
-
-    UPROPERTY (Transient)
-    FName InitialItemArchetypeIdAtSpawn = NAME_None;
+    bool bInitialItemsInitialized = false;
 
     UPROPERTY (Transient)
     FName RuntimeReceptacleArchetypeId = NAME_None;

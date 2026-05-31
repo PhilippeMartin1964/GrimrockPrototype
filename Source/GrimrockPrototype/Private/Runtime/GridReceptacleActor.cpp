@@ -2,24 +2,36 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridInteractionUtils.h"
-#include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 
 namespace
 {
-    FName GetItemActorInventoryId (const AGridItemActor* ItemActor)
+    static constexpr float MultiItemVisualSpacing = 18.0f;
+
+    FName ResolveDefinitionId (const UGridItemDefinitionAsset* Definition, FName FallbackId)
+    {
+        if (Definition && !Definition->ItemDefinitionId.IsNone ())
+        {
+            return Definition->ItemDefinitionId;
+        }
+
+        return FallbackId;
+    }
+
+    FName ResolveActorItemDefinitionId (const AGridItemActor* ItemActor)
     {
         if (!ItemActor)
         {
             return NAME_None;
         }
+
         if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset ())
         {
             if (!Definition->ItemDefinitionId.IsNone ())
@@ -27,85 +39,43 @@ namespace
                 return Definition->ItemDefinitionId;
             }
         }
+
         if (!ItemActor->GetItemDefinitionId ().IsNone ())
         {
             return ItemActor->GetItemDefinitionId ();
         }
-        return ItemActor->ArchetypeId;
+
+        return ItemActor->GetItemArchetypeId ();
     }
 
-    FName ResolveContainedItemDefinitionId (const AGridReceptacleActor* ReceptacleActor, const AGridItemActor* ItemActor)
+    UGridItemDefinitionAsset* ResolveItemDefinition (UGridPartyInventoryComponent* PartyInventoryComponent, UGridItemDefinitionAsset* DirectDefinition, FName ItemDefinitionId)
     {
-        if (const FName ItemActorId = GetItemActorInventoryId (ItemActor); !ItemActorId.IsNone ())
+        if (DirectDefinition)
         {
-            return ItemActorId;
+            return DirectDefinition;
         }
-        if (!ReceptacleActor)
-        {
-            return NAME_None;
-        }
-        if (const UGridItemDefinitionAsset* InitialDefinition = ReceptacleActor->InitialContainedItemDefinition)
-        {
-            if (!InitialDefinition->ItemDefinitionId.IsNone ())
-            {
-                return InitialDefinition->ItemDefinitionId;
-            }
-        }
-        if (!ReceptacleActor->InitialContainedItemDefinitionId.IsNone ())
-        {
-            return ReceptacleActor->InitialContainedItemDefinitionId;
-        }
-        if (!ReceptacleActor->InitialContainedItemArchetypeId.IsNone ())
-        {
-            return ReceptacleActor->InitialContainedItemArchetypeId;
-        }
-        return ReceptacleActor->ContainedItemArchetypeId;
-    }
 
-    UGridItemDefinitionAsset* ResolveItemDefinitionForId (
-        const AGridReceptacleActor* ReceptacleActor,
-        UGridPartyInventoryComponent* PartyInventoryComponent,
-        FName ItemDefinitionId)
-    {
-        if (ItemDefinitionId.IsNone ())
+        if (PartyInventoryComponent && !ItemDefinitionId.IsNone ())
         {
-            return nullptr;
+            return PartyInventoryComponent->FindItemDefinition (ItemDefinitionId);
         }
-        if (PartyInventoryComponent)
-        {
-            if (UGridItemDefinitionAsset* Definition = PartyInventoryComponent->FindItemDefinition (ItemDefinitionId))
-            {
-                return Definition;
-            }
-        }
-        if (ReceptacleActor && ReceptacleActor->InitialContainedItemDefinition &&
-            ReceptacleActor->InitialContainedItemDefinition->ItemDefinitionId == ItemDefinitionId)
-        {
-            return ReceptacleActor->InitialContainedItemDefinition;
-        }
+
         return nullptr;
     }
 
-    void ApplyItemDefinitionAssetToInstance (const UGridItemDefinitionAsset* Definition, FGridItemInstance& ItemInstance)
+    AGridLevelRuntimeActor* FindRuntimeActor (UWorld* World)
     {
-        if (!Definition)
+        if (!World)
         {
-            return;
+            return nullptr;
         }
 
-        ItemInstance.ItemDefinitionId = Definition->ItemDefinitionId;
-        ItemInstance.Weight = Definition->Weight;
-        if (ItemInstance.DisplayName.IsEmpty ())
+        for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
         {
-            ItemInstance.DisplayName = Definition->DisplayName;
+            return *It;
         }
-        if (Definition->bCanEmitLight)
-        {
-            ItemInstance.bLightsEnabled = Definition->bDefaultLightEnabled;
-        }
-        ItemInstance.Quantity = Definition->bStackable
-            ? FMath::Clamp (ItemInstance.Quantity, 1, FMath::Max (1, Definition->MaxStackSize))
-            : 1;
+
+        return nullptr;
     }
 }
 
@@ -140,12 +110,12 @@ void AGridReceptacleActor::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (ContainedItemActor)
+    if (!bInitialItemsInitialized)
     {
-        ContainedItemActors.AddUnique (ContainedItemActor);
-        AttachContainedItemActor ();
-        SetContainedItem (GetItemActorInventoryId (ContainedItemActor));
+        InitializeInitialContainedItems ();
     }
+
+    UpdateContainedItemInteractionCollision ();
 }
 
 void AGridReceptacleActor::EndPlay (const EEndPlayReason::Type EndPlayReason)
@@ -154,431 +124,258 @@ void AGridReceptacleActor::EndPlay (const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay (EndPlayReason);
 }
 
-bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
-{
-    if (!InstigatorPawn || !HitComponent)
-    {
-        return false;
-    }
-
-    if (IsContainedItemHitComponent (HitComponent))
-    {
-        return HasItem () && bCanRemoveItem;
-    }
-
-    if (HitComponent != MeshComponent)
-    {
-        return false;
-    }
-
-    if (!bCanInsertItem || IsFull ())
-    {
-        return false;
-    }
-
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    if (!PartyPawn)
-    {
-        return false;
-    }
-
-    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
-    if (HeldItemId.IsNone ())
-    {
-        return false;
-    }
-
-    TArray<FName> HeldItemTags;
-    if (UGridItemDefinitionAsset* HeldItemDefinition = ResolveItemDefinitionForId (this, PartyPawn->PartyInventoryComponent, HeldItemId))
-    {
-        HeldItemTags = HeldItemDefinition->ItemTags;
-    }
-    const AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    if (RuntimeActor && HeldItemTags.Num () == 0)
-    {
-        if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (HeldItemId))
-        {
-            HeldItemTags = ItemArchetype->ItemTags;
-        }
-    }
-
-    return CanAcceptItemArchetype (HeldItemId, HeldItemTags);
-}
-
-void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
-{
-    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
-    {
-        return;
-    }
-
-    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    if (!PartyPawn)
-    {
-        return;
-    }
-
-    AGridItemActor* PreviousPendingRemovalItemActor = PendingRemovalItemActor;
-    if (!PreviousPendingRemovalItemActor && IsContainedItemHitComponent (HitComponent))
-    {
-        PendingRemovalItemActor = FindContainedItemActorForComponent (HitComponent);
-    }
-
-    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    if (RuntimeActor)
-    {
-        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
-    }
-    PendingRemovalItemActor = PreviousPendingRemovalItemActor;
-}
-
-void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
-{
-    if (bUsePhysicalPlacement && HitComponent == MeshComponent)
-    {
-        PendingPlacementHitResult = HitResult;
-    }
-
-    Interact_Implementation (InstigatorPawn, HitComponent);
-    PendingPlacementHitResult.Reset ();
-}
-
-EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
-{
-    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
-    {
-        return EGridInteractionCursor::Take;
-    }
-
-    if (HitComponent == MeshComponent && !IsFull () && bCanInsertItem)
-    {
-        return EGridInteractionCursor::Use;
-    }
-
-    return EGridInteractionCursor::Default;
-}
-
-FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
-{
-    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
-    {
-        return FText::FromString (TEXT ("Take"));
-    }
-
-    if (HitComponent == MeshComponent && !IsFull () && bCanInsertItem)
-    {
-        return FText::FromString (TEXT ("Place item"));
-    }
-
-    return FText::GetEmpty ();
-}
-
-void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-    const FTransform& WorldTransform)
+void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
 {
     AGridRuntimeObjectActor::InitializeGridObject (ObjectData, Mesh, Material, WorldTransform);
 
-    bAcceptAnyItem = ObjectData.Behavior.Receptacle.bAcceptAnyItem;
-    AcceptedItemTags = ObjectData.Behavior.Receptacle.AcceptedItemTags;
-    AcceptedArchetypeIds = ObjectData.Behavior.Receptacle.AcceptedArchetypeIds;
-    RejectedItemArchetypeIds = ObjectData.Behavior.Receptacle.RejectedItemArchetypeIds;
-    InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
-    InitialContainedItemDefinition = ObjectData.Behavior.Receptacle.InitialContainedItemDefinition;
-    InitialContainedItemDefinitionId = ObjectData.Behavior.Receptacle.InitialContainedItemDefinitionId;
-    MaxContainedItems = FMath::Max (1, ObjectData.Behavior.Receptacle.MaxContainedItems);
-    bUsePhysicalPlacement = ObjectData.Behavior.Receptacle.bUsePhysicalPlacement;
-    bExtinguishItemOnPhysicalPlacement = ObjectData.Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement;
-    PhysicalPlacementSurfaceOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementSurfaceOffset;
-    PhysicalPlacementInitialRotationOffset = ObjectData.Behavior.Receptacle.PhysicalPlacementInitialRotationOffset;
-    bStartsFilled = ObjectData.bInitiallyActive;
+    const FGridReceptacleBehaviorParams& Params = ObjectData.Behavior.Receptacle;
+
+    bCanInsertItem = true;
+    bCanRemoveItem = true;
+
+    bAcceptAnyItem = Params.bAcceptAnyItem;
+    MaxContainedItems = Params.MaxContainedItems;
+
+    AcceptedItemDefinitionIds.Reset ();
+    RejectedItemDefinitionIds.Reset ();
+    InitialContainedItems.Reset ();
+    ContainedItems.Reset ();
+    RemovedInitialItemDefinitionIds.Reset ();
+
     RuntimeReceptacleArchetypeId = ObjectData.ArchetypeId;
-    bHadInitialItemAtSpawn = false;
-    bInitialItemRemovedFromSpawn = false;
-    InitialItemRuntimeObjectId.Invalidate ();
-    InitialItemArchetypeIdAtSpawn = NAME_None;
+    bInitialItemsInitialized = false;
 
-    if (MeshComponent && bUsePhysicalPlacement)
-    {
-        MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
-        MeshComponent->SetCollisionResponseToChannel (ECC_PhysicsBody, ECR_Block);
-    }
+    // Nouveau modèle : on raisonne en ItemDefinitionId.
+    // Les anciens AcceptedArchetypeIds / RejectedItemArchetypeIds sont considérés comme des IDs d'items tant qu'ils existent encore dans GridObjectBehavior.
+    AcceptedItemDefinitionIds = Params.AcceptedArchetypeIds;
+    RejectedItemDefinitionIds = Params.RejectedItemArchetypeIds;
 
-    if (!ObjectData.Tag.IsNone () && AcceptedItemTags.Num () == 0 && AcceptedArchetypeIds.Num () == 0)
+    if (!ObjectData.Tag.IsNone () && AcceptedItemDefinitionIds.Num () == 0)
     {
-        AcceptedItemTags.Add (ObjectData.Tag);
+        AcceptedItemDefinitionIds.Add (ObjectData.Tag);
         bAcceptAnyItem = false;
     }
 
-    if (!bStartsFilled)
+    if (ObjectData.bInitiallyActive)
     {
-        InitialContainedItemArchetypeId = NAME_None;
-        InitialContainedItemDefinition = nullptr;
-        InitialContainedItemDefinitionId = NAME_None;
+        FGridInitialReceptacleItem InitialItem;
+        InitialItem.ItemDefinition = Params.InitialContainedItemDefinition;
+        InitialItem.ItemDefinitionId = ResolveDefinitionId (Params.InitialContainedItemDefinition, Params.InitialContainedItemDefinitionId);
+        InitialItem.Quantity = 1;
+
+        if (!InitialItem.ItemDefinitionId.IsNone () || InitialItem.ItemDefinition)
+        {
+            InitialContainedItems.Add (InitialItem);
+        }
     }
 
-    SetContainedItem (NAME_None);
+    if (ContainedItemMesh)
+    {
+        ContainedItemMesh->SetStaticMesh (nullptr);
+        ContainedItemMesh->SetVisibility (false, true);
+        ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    }
 }
 
 bool AGridReceptacleActor::HasItem () const
 {
-    if (bUsePhysicalPlacement)
-    {
-        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
-        {
-            if (IsValid (ItemActor))
-            {
-                return true;
-            }
-        }
-    }
-    return !ContainedItemArchetypeId.IsNone () || IsValid (ContainedItemActor);
+    return ContainedItems.Num () > 0;
 }
 
 int32 AGridReceptacleActor::GetContainedItemCount () const
 {
-    if (bUsePhysicalPlacement)
-    {
-        int32 Count = 0;
-        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
-        {
-            if (IsValid (ItemActor))
-            {
-                ++Count;
-            }
-        }
-        if (Count == 0 && !ContainedItemArchetypeId.IsNone ())
-        {
-            return 1;
-        }
-        return Count;
-    }
-    return HasItem () ? 1 : 0;
+    return ContainedItems.Num ();
 }
 
 bool AGridReceptacleActor::IsFull () const
 {
-    return bUsePhysicalPlacement
-        ? GetContainedItemCount () >= FMath::Max (1, MaxContainedItems)
-        : HasItem ();
+    return MaxContainedItems > 0 && ContainedItems.Num () >= MaxContainedItems;
 }
 
-bool AGridReceptacleActor::CanAcceptItem (FName ItemId) const
+bool AGridReceptacleActor::IsEmpty () const
 {
-    return CanAcceptItemArchetype (ItemId, TArray<FName> ());
+    return ContainedItems.Num () <= 0;
 }
 
-bool AGridReceptacleActor::CanAcceptItemArchetype (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
+bool AGridReceptacleActor::IsValidContainedItemIndex (int32 ItemIndex) const
 {
-    return GetItemAcceptanceFailureReason (ItemArchetypeId, ItemTags).IsEmpty ();
+    return ContainedItems.IsValidIndex (ItemIndex);
 }
 
-bool AGridReceptacleActor::TryInsertItem (FName ItemId)
+FName AGridReceptacleActor::GetContainedItemDefinitionId (int32 ItemIndex) const
 {
-    return TryInsertItemWithDefinition (ItemId, ResolveItemDefinitionForId (this, nullptr, ItemId));
+    if (!ContainedItems.IsValidIndex (ItemIndex))
+    {
+        return NAME_None;
+    }
+
+    return ContainedItems[ItemIndex].ItemDefinitionId;
 }
 
-bool AGridReceptacleActor::TryInsertItemWithDefinition (FName ItemId, UGridItemDefinitionAsset* ItemDefinition)
+AGridItemActor* AGridReceptacleActor::GetContainedItemActor (int32 ItemIndex) const
 {
-    TArray<FName> ItemTags;
-    AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ());
-    const UGridObjectArchetypeAsset* ReceptacleArchetype = RuntimeActor ? RuntimeActor->FindObjectArchetype (RuntimeReceptacleArchetypeId) : nullptr;
-    if (RuntimeActor)
+    if (!ContainedItems.IsValidIndex (ItemIndex))
     {
-        if (ItemDefinition)
-        {
-            ItemTags = ItemDefinition->ItemTags;
-        }
-        else if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (ItemId))
-        {
-            ItemTags = ItemArchetype->ItemTags;
-        }
+        return nullptr;
     }
 
-    if (!CanAcceptItemArchetype (ItemId, ItemTags))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item %s: %s"),
-            *ObjectId.ToString (),
-            *ItemId.ToString (),
-            *GetItemAcceptanceFailureReason (ItemId, ItemTags));
-        return false;
-    }
-
-    if (ItemId.IsNone ())
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s cannot insert an inventory item without an ArchetypeId."),
-            *ObjectId.ToString ());
-        return false;
-    }
-
-    if (RuntimeActor)
-    {
-        USceneComponent* AttachParent = bUsePhysicalPlacement ? nullptr : ItemAttachPoint.Get ();
-        AGridItemActor* ItemActor = nullptr;
-        if (ItemDefinition)
-        {
-            ItemActor = RuntimeActor->SpawnItemActorForDefinition (
-                ItemDefinition,
-                ItemId,
-                NAME_None,
-                this,
-                AttachParent,
-                ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
-        }
-        else
-        {
-            ItemActor = RuntimeActor->SpawnItemActorForArchetype (ItemId, this, AttachParent);
-        }
-
-        if (ItemActor)
-        {
-            return TryInsertItemActor (ItemActor);
-        }
-
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: item actor spawn failed for %s; storing inventory id only."),
-            *ObjectId.ToString (), *ItemId.ToString ());
-    }
-
-    SetContainedItem (ItemDefinition && !ItemDefinition->ItemDefinitionId.IsNone () ? ItemDefinition->ItemDefinitionId : ItemId);
-    return true;
+    return ContainedItems[ItemIndex].ItemActor.Get ();
 }
 
-bool AGridReceptacleActor::TryInsertItemActor (AGridItemActor* ItemActor)
+bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
 {
-    if (!ItemActor)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item actor: item actor is null."),
-            *ObjectId.ToString ());
-        return false;
-    }
-
-    const FName ItemInventoryId = GetItemActorInventoryId (ItemActor);
-    if (!CanAcceptItemArchetype (ItemInventoryId, ItemActor->ItemTags))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item actor %s: %s"),
-            *ObjectId.ToString (),
-            *ItemInventoryId.ToString (),
-            *GetItemAcceptanceFailureReason (ItemInventoryId, ItemActor->ItemTags));
-        return false;
-    }
-
-    ContainedItemActor = ItemActor;
-    ContainedItemActors.AddUnique (ItemActor);
-    AttachContainedItemActor (ItemActor, PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
-    RebuildContainedItemState ();
-    return true;
-}
-
-bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
-{
-    OutRemovedItemId = NAME_None;
-    if (!bCanRemoveItem || !HasItem ())
+    if (ItemDefinitionId.IsNone ())
     {
         return false;
     }
 
-    AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
-    OutRemovedItemId = ResolveContainedItemDefinitionId (this, ItemActorToRemove);
-    const FGuid RemovedRuntimeObjectId = ItemActorToRemove ? ItemActorToRemove->GetRuntimeObjectId () : FGuid ();
-    const bool bRemovingInitialItem =
-        bHadInitialItemAtSpawn &&
-        ((RemovedRuntimeObjectId.IsValid () && RemovedRuntimeObjectId == InitialItemRuntimeObjectId) ||
-            (!RemovedRuntimeObjectId.IsValid () && OutRemovedItemId == InitialItemArchetypeIdAtSpawn));
-    ClearContainedItemActor (ItemActorToRemove);
-    if (!ItemActorToRemove)
-    {
-        SetContainedItem (NAME_None);
-    }
-    RebuildContainedItemState ();
-    if (bRemovingInitialItem)
-    {
-        bInitialItemRemovedFromSpawn = true;
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridReceptacle Pickup InitialItem Removed ReceptacleId=%s ItemId=%s"),
-            *ObjectId.ToString (),
-            *InitialItemRuntimeObjectId.ToString ());
-    }
-    return true;
-}
-
-bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId)
-{
-    OutRemovedItemId = NAME_None;
-    if (!PartyPawn)
+    if (RejectedItemDefinitionIds.Contains (ItemDefinitionId))
     {
         return false;
     }
 
-    AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
-    const FName ItemIdToRemove = ResolveContainedItemDefinitionId (this, ItemActorToRemove);
-    if (ItemIdToRemove.IsNone ())
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: contained item has no archetype id; inventory handoff failed."),
-            *ObjectId.ToString ());
-        return false;
-    }
-
-    FGridItemInstance ItemInstance;
-    ItemInstance.RuntimeObjectId = ItemActorToRemove ? ItemActorToRemove->GetRuntimeObjectId () : InitialItemRuntimeObjectId;
-    if (!ItemInstance.RuntimeObjectId.IsValid ())
-    {
-        ItemInstance.RuntimeObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
-    }
-    ItemInstance.ItemDefinitionId = ItemIdToRemove;
-    ItemInstance.Quantity = 1;
-    ItemInstance.Weight = 0.0f;
-    ItemInstance.bLightsEnabled = ItemActorToRemove ? ItemActorToRemove->AreItemLightsEnabled () : false;
-    ItemInstance.LastWorldTransform = ItemActorToRemove ? ItemActorToRemove->GetActorTransform () : GetActorTransform ();
-
-    bool bDefinitionApplied = false;
-    if (PartyPawn->PartyInventoryComponent)
-    {
-        bDefinitionApplied = PartyPawn->PartyInventoryComponent->ApplyItemDefinitionToInstance (ItemInstance);
-    }
-    if (!bDefinitionApplied)
-    {
-        if (const UGridItemDefinitionAsset* Definition = ResolveItemDefinitionForId (this, PartyPawn->PartyInventoryComponent, ItemIdToRemove))
-        {
-            ApplyItemDefinitionAssetToInstance (Definition, ItemInstance);
-            bDefinitionApplied = true;
-        }
-    }
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridInventory Pickup %s Item=%s Found=%s Weight=%.1f Source=ReceptacleActor"),
-        bDefinitionApplied ? TEXT ("DefinitionApplied") : TEXT ("DefinitionMissing"),
-        *ItemInstance.ItemDefinitionId.ToString (),
-        bDefinitionApplied ? TEXT ("true") : TEXT ("false"),
-        ItemInstance.Weight);
-
-    if (!PartyPawn->CanAddItemInstanceToSelectedCharacterInventory (ItemInstance))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
-            *ItemIdToRemove.ToString (),
-            *ItemInstance.RuntimeObjectId.ToString ());
-        return false;
-    }
-
-    if (!TryRemoveItem (OutRemovedItemId))
-    {
-        return false;
-    }
-
-    if (!OutRemovedItemId.IsNone () && PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
+    if (bAcceptAnyItem)
     {
         return true;
     }
 
-    UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed ReceptacleHandoff Item=%s RuntimeId=%s"),
-        *ItemIdToRemove.ToString (),
-        *ItemInstance.RuntimeObjectId.ToString ());
-    return false;
+    return AcceptedItemDefinitionIds.Contains (ItemDefinitionId);
 }
 
-bool AGridReceptacleActor::TryTakeContainedItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemId)
+bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn)
 {
-    PendingRemovalItemActor = ItemActor;
-    const bool bTaken = TryTakeContainedItem (PartyPawn, OutRemovedItemId);
-    PendingRemovalItemActor = nullptr;
-    return bTaken;
+    ItemDefinitionId = ResolveDefinitionId (ItemDefinition, ItemDefinitionId);
+
+    if (!bCanInsertItem)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=insert disabled"),
+            *ObjectId.ToString (),
+            *ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    if (IsFull ())
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=full Count=%d Max=%d"),
+            *ObjectId.ToString (),
+            *ItemDefinitionId.ToString (),
+            ContainedItems.Num (),
+            MaxContainedItems);
+        return false;
+    }
+
+    if (!CanAcceptItem (ItemDefinitionId))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=%s"),
+            *ObjectId.ToString (),
+            *ItemDefinitionId.ToString (),
+            *GetItemAcceptanceFailureReason (ItemDefinitionId));
+        return false;
+    }
+
+    UGridPartyInventoryComponent* PartyInventoryComponent = PartyPawn ? PartyPawn->PartyInventoryComponent : nullptr;
+    ItemDefinition = ResolveItemDefinition (PartyInventoryComponent, ItemDefinition, ItemDefinitionId);
+
+    const int32 NewIndex = AddContainedItem (
+        ItemDefinitionId,
+        ItemDefinition,
+        nullptr,
+        false,
+        1
+    );
+
+    if (NewIndex == INDEX_NONE)
+    {
+        return false;
+    }
+
+    ExecuteInsertionLinks ();
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("Receptacle accepted item %s ObjectId=%s Count=%d"),
+        *ItemDefinitionId.ToString (),
+        *ObjectId.ToString (),
+        ContainedItems.Num ());
+
+    return true;
+}
+
+bool AGridReceptacleActor::TryTakeFirstItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemDefinitionId)
+{
+    return TryTakeItemAtIndex (0, PartyPawn, OutRemovedItemDefinitionId);
+}
+
+bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemDefinitionId)
+{
+    OutRemovedItemDefinitionId = NAME_None;
+
+    if (!PartyPawn || !bCanRemoveItem || !ContainedItems.IsValidIndex (ItemIndex))
+    {
+        return false;
+    }
+
+    const FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
+
+    if (Item.ItemDefinitionId.IsNone ())
+    {
+        return false;
+    }
+
+    FGridItemInstance ItemInstance;
+    ItemInstance.RuntimeObjectId = Item.RuntimeObjectId.IsValid () ? Item.RuntimeObjectId : FGuid::NewGuid ();
+    ItemInstance.ItemDefinitionId = Item.ItemDefinitionId;
+    ItemInstance.Quantity = FMath::Max (1, Item.Quantity);
+    ItemInstance.OwnerType = EGridItemOwnerType::CharacterInventory;
+    ItemInstance.OwnerCharacterIndex = PartyPawn->PartyInventoryComponent ? PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex () : INDEX_NONE;
+
+    if (Item.ItemDefinition)
+    {
+        ItemInstance.Weight = Item.ItemDefinition->Weight;
+        ItemInstance.DisplayName = Item.ItemDefinition->DisplayName;
+
+        if (Item.ItemDefinition->bCanEmitLight)
+        {
+            ItemInstance.bLightsEnabled = Item.ItemDefinition->bDefaultLightEnabled;
+        }
+    }
+
+    if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle take failed: ObjectId=%s Item=%s Reason=party inventory rejected"),
+            *ObjectId.ToString (),
+            *Item.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    FGridContainedReceptacleItem RemovedItem;
+    if (!RemoveContainedItemAtIndex (ItemIndex, RemovedItem))
+    {
+        return false;
+    }
+
+    OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
+
+    // Ancien inventaire temporaire conservé tant qu'il existe.
+    PartyPawn->AddInventoryItem (RemovedItem.ItemDefinitionId, FMath::Max (1, RemovedItem.Quantity));
+
+    if (PartyPawn->bAutoEquipTorchOnPickup && RemovedItem.ItemDefinitionId == PartyPawn->DefaultHeldItemArchetypeId)
+    {
+        PartyPawn->EquipHeldItem (RemovedItem.ItemDefinitionId);
+    }
+
+    ExecuteRemovalLinks ();
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("Receptacle returned item %s ObjectId=%s Count=%d"),
+        *RemovedItem.ItemDefinitionId.ToString (),
+        *ObjectId.ToString (),
+        ContainedItems.Num ());
+
+    return true;
 }
 
 bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
@@ -588,138 +385,44 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return false;
     }
 
-    if (IsValid (PendingRemovalItemActor) || (!bUsePhysicalPlacement && HasItem ()))
+    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
+
+    if (!HeldItemId.IsNone () && bCanInsertItem && !IsFull ())
+    {
+        UGridItemDefinitionAsset* Definition = nullptr;
+
+        if (PartyPawn->PartyInventoryComponent)
+        {
+            Definition = PartyPawn->PartyInventoryComponent->FindItemDefinition (HeldItemId);
+        }
+
+        if (TryInsertItem (HeldItemId, Definition, PartyPawn))
+        {
+            FGridItemInstance RemovedItem;
+
+            if (PartyPawn->PartyInventoryComponent)
+            {
+                PartyPawn->PartyInventoryComponent->RemoveFirstItemFromSelectedCharacterInventoryByDefinitionId (HeldItemId, RemovedItem);
+            }
+
+            PartyPawn->RemoveInventoryItem (HeldItemId, 1);
+
+            if (PartyPawn->IsHoldingItem (HeldItemId))
+            {
+                PartyPawn->ClearHeldItem ();
+            }
+
+            return true;
+        }
+    }
+
+    if (HasItem () && bCanRemoveItem)
     {
         FName RemovedItemId = NAME_None;
-        if (!TryTakeContainedItem (PartyPawn, RemovedItemId))
-        {
-            return false;
-        }
-
-        UE_LOG (LogTemp, Log, TEXT ("Receptacle returned item %s"), *RemovedItemId.ToString ());
-        return true;
+        return TryTakeFirstItem (PartyPawn, RemovedItemId);
     }
 
-    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
-    if (HeldItemId.IsNone ())
-    {
-        return false;
-    }
-
-    UGridPartyInventoryComponent* PartyInventory = PartyPawn->PartyInventoryComponent;
-    UGridItemDefinitionAsset* HeldItemDefinition = ResolveItemDefinitionForId (this, PartyInventory, HeldItemId);
-    TArray<FName> HeldItemTags;
-    if (AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ()))
-    {
-        if (HeldItemDefinition)
-        {
-            HeldItemTags = HeldItemDefinition->ItemTags;
-        }
-        else if (const UGridObjectArchetypeAsset* ItemArchetype = RuntimeActor->FindObjectArchetype (HeldItemId))
-        {
-            HeldItemTags = ItemArchetype->ItemTags;
-        }
-    }
-
-    if (!CanAcceptItemArchetype (HeldItemId, HeldItemTags))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected held item %s: %s"),
-            *ObjectId.ToString (),
-            *HeldItemId.ToString (),
-            *GetItemAcceptanceFailureReason (HeldItemId, HeldItemTags));
-        return false;
-    }
-
-    if (!PartyPawn->RemoveInventoryItem (HeldItemId, 1))
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle failed to remove held item %s from inventory"), *HeldItemId.ToString ());
-        return false;
-    }
-
-    PartyPawn->ClearHeldItem ();
-
-    if (!TryInsertItemWithDefinition (HeldItemId, HeldItemDefinition))
-    {
-        PartyPawn->AddInventoryItem (HeldItemId, 1);
-        UE_LOG (LogTemp, Warning, TEXT ("Receptacle failed to insert item %s"), *HeldItemId.ToString ());
-        return false;
-    }
-
-    bool bRemovedPartyInventoryItem = false;
-    if (PartyInventory)
-    {
-        FGridItemInstance RemovedItem;
-        bRemovedPartyInventoryItem = PartyInventory->RemoveFirstItemFromSelectedCharacterInventoryByDefinitionId (HeldItemId, RemovedItem);
-    }
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridInventory RemoveFromSelectedCharacter Item=%s Reason=InsertedIntoReceptacle Result=%s"),
-        *HeldItemId.ToString (),
-        bRemovedPartyInventoryItem ? TEXT ("true") : TEXT ("false"));
-
-    UE_LOG (LogTemp, Log, TEXT ("Receptacle accepted item %s"), *HeldItemId.ToString ());
-    return true;
-}
-
-void AGridReceptacleActor::ConfigureContainedItemVisual (UStaticMesh* InMesh, UMaterialInterface* InMaterial)
-{
-    RuntimeContainedItemMesh = InMesh;
-    RuntimeContainedItemMaterial = InMaterial;
-    if (!ContainedItemMesh)
-    {
-        UpdateContainedItemInteractionCollision ();
-        return;
-    }
-    ContainedItemMesh->SetStaticMesh (RuntimeContainedItemMesh);
-
-    if (RuntimeContainedItemMaterial)
-    {
-        ContainedItemMesh->SetMaterial (0, RuntimeContainedItemMaterial);
-    }
-    ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-    ContainedItemMesh->SetHiddenInGame (!HasItem (), true);
-    ContainedItemMesh->SetVisibility (HasItem (), true);
-    UpdateContainedItemInteractionCollision ();
-}
-
-void AGridReceptacleActor::SetContainedItem (FName NewItemId)
-{
-    ContainedItemArchetypeId = NewItemId;
-    ContainedItemId = NewItemId;
-    const bool bVisible = HasItem () && !IsValid (ContainedItemActor);
-    if (!ContainedItemMesh)
-    {
-        UpdateContainedItemInteractionCollision ();
-        return;
-    }
-    if (bVisible && RuntimeContainedItemMesh)
-    {
-        ContainedItemMesh->SetStaticMesh (RuntimeContainedItemMesh);
-
-        if (RuntimeContainedItemMaterial)
-        {
-            ContainedItemMesh->SetMaterial (0, RuntimeContainedItemMaterial);
-        }
-    }
-    ContainedItemMesh->SetHiddenInGame (!bVisible, true);
-    ContainedItemMesh->SetVisibility (bVisible, true);
-    ContainedItemMesh->MarkRenderStateDirty ();
-    UpdateContainedItemInteractionCollision ();
-}
-
-void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemActor)
-{
-    ContainedItemActor = ItemActor;
-    if (ContainedItemActor)
-    {
-        bHadInitialItemAtSpawn = true;
-        bInitialItemRemovedFromSpawn = false;
-        InitialItemRuntimeObjectId = ContainedItemActor->GetRuntimeObjectId ();
-        InitialItemArchetypeIdAtSpawn = GetItemActorInventoryId (ContainedItemActor);
-        ContainedItemActors.AddUnique (ContainedItemActor);
-        AttachContainedItemActor (ContainedItemActor);
-        RebuildContainedItemState ();
-    }
-    UpdateContainedItemInteractionCollision ();
+    return false;
 }
 
 void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const
@@ -728,496 +431,386 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
     OutState.ContainedItemObjectIds.Reset ();
     OutState.ContainedItems.Reset ();
 
-    auto AddItemState = [this, &OutState] (const AGridItemActor* ItemActor)
+    for (const FGridContainedReceptacleItem& Item : ContainedItems)
     {
-        const FName ItemDefinitionId = ResolveContainedItemDefinitionId (this, ItemActor);
-        if (!IsValid (ItemActor) || ItemDefinitionId.IsNone ())
-        {
-            return;
-        }
-
         FGridRuntimeItemState ItemState;
-        ItemState.ObjectId = ItemActor->GetRuntimeObjectId ().IsValid () ? ItemActor->GetRuntimeObjectId () : FGuid::NewGuid ();
-        ItemState.ArchetypeId = !ItemActor->ArchetypeId.IsNone () ? ItemActor->ArchetypeId : ItemDefinitionId;
-        ItemState.ItemDefinitionId = ItemDefinitionId;
-        ItemState.Transform = ItemActor->GetActorTransform ();
+        ItemState.ObjectId = Item.RuntimeObjectId.IsValid () ? Item.RuntimeObjectId : FGuid::NewGuid ();
+        ItemState.ArchetypeId = Item.ItemDefinitionId;
+        ItemState.ItemDefinitionId = Item.ItemDefinitionId;
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
-        ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
-        ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics ();
+        ItemState.bLightsEnabled = true;
 
-        OutState.ContainedItemObjectIds.Add (ItemState.ObjectId);
-        OutState.ContainedItems.Add (ItemState);
-    };
-
-    if (bUsePhysicalPlacement)
-    {
-        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        if (IsValid (Item.ItemActor.Get ()))
         {
-            AddItemState (ItemActor.Get ());
+            ItemState.Transform = Item.ItemActor->GetActorTransform ();
+            ItemState.bLightsEnabled = Item.ItemActor->AreItemLightsEnabled ();
+        } else
+        {
+            ItemState.Transform = ItemAttachPoint
+                ? ItemAttachPoint->GetComponentTransform ()
+                : GetActorTransform ();
         }
-    }
-    else
-    {
-        AddItemState (ContainedItemActor.Get ());
-    }
-
-    if (OutState.ContainedItems.Num () == 0 && !ContainedItemArchetypeId.IsNone () && !bInitialItemRemovedFromSpawn)
-    {
-        const FName ItemDefinitionId = ResolveContainedItemDefinitionId (this, nullptr);
-        FGridRuntimeItemState ItemState;
-        ItemState.ObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
-        ItemState.ArchetypeId = ContainedItemArchetypeId;
-        ItemState.ItemDefinitionId = !ItemDefinitionId.IsNone () ? ItemDefinitionId : ContainedItemArchetypeId;
-        ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
-        ItemState.bIsContainedInReceptacle = true;
-        ItemState.ReceptacleObjectId = ObjectId;
-        ItemState.bLightsEnabled = !bUsePhysicalPlacement || !bExtinguishItemOnPhysicalPlacement;
-        ItemState.bIsSimulatingPhysics = bUsePhysicalPlacement;
 
         OutState.ContainedItemObjectIds.Add (ItemState.ObjectId);
         OutState.ContainedItems.Add (ItemState);
     }
-
-    UE_LOG (LogTemp, Verbose,
-        TEXT ("GridRuntimeState Capture Receptacle ObjectId=%s Items=%d"),
-        *ObjectId.ToString (),
-        OutState.ContainedItems.Num ());
 }
 
-int32 AGridReceptacleActor::ClearRuntimeContainedItems ()
+int32 AGridReceptacleActor::ForceClearRuntimeContents (bool bMarkInitialItemsRemoved)
 {
-    return ForceClearRuntimeContents (false);
-}
+    const int32 RemovedCount = ContainedItems.Num ();
 
-int32 AGridReceptacleActor::ForceClearRuntimeContents (bool bMarkInitialItemRemoved)
-{
-    int32 ClearedItemCount = 0;
-    TSet<AGridItemActor*> ItemsToDestroy;
-
-    TArray<TObjectPtr<AGridItemActor>> ItemActors = ContainedItemActors;
-    for (const TObjectPtr<AGridItemActor>& ItemActor : ItemActors)
+    if (bMarkInitialItemsRemoved)
     {
-        if (IsValid (ItemActor))
+        for (const FGridContainedReceptacleItem& Item : ContainedItems)
         {
-            if (bMarkInitialItemRemoved || (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId))
+            if (Item.bWasInitialItem && !Item.ItemDefinitionId.IsNone ())
             {
-                bInitialItemRemovedFromSpawn = true;
+                RemovedInitialItemDefinitionIds.Add (Item.ItemDefinitionId);
             }
-            ItemsToDestroy.Add (ItemActor.Get ());
         }
     }
 
-    if (IsValid (ContainedItemActor))
-    {
-        if (bMarkInitialItemRemoved || (bHadInitialItemAtSpawn && ContainedItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId))
-        {
-            bInitialItemRemovedFromSpawn = true;
-        }
-        ItemsToDestroy.Add (ContainedItemActor.Get ());
-    }
-
-    TArray<AActor*> AttachedActors;
-    GetAttachedActors (AttachedActors, true, true);
-    for (AActor* AttachedActor : AttachedActors)
-    {
-        if (AGridItemActor* ItemActor = Cast<AGridItemActor> (AttachedActor))
-        {
-            ItemsToDestroy.Add (ItemActor);
-        }
-    }
-
-    if (UWorld* World = GetWorld ())
-    {
-        for (TActorIterator<AGridItemActor> It (World); It; ++It)
-        {
-            AGridItemActor* ItemActor = *It;
-            if (!IsValid (ItemActor) || ItemActor->GetOwner () != this)
-            {
-                continue;
-            }
-
-            if (bMarkInitialItemRemoved || (bHadInitialItemAtSpawn && ItemActor->GetRuntimeObjectId () == InitialItemRuntimeObjectId))
-            {
-                bInitialItemRemovedFromSpawn = true;
-            }
-            ItemsToDestroy.Add (ItemActor);
-        }
-    }
-
-    if (bMarkInitialItemRemoved ||
-        (bHadInitialItemAtSpawn && !ContainedItemArchetypeId.IsNone () && ContainedItemArchetypeId == InitialItemArchetypeIdAtSpawn))
-    {
-        bInitialItemRemovedFromSpawn = true;
-    }
-
-    for (AGridItemActor* ItemActor : ItemsToDestroy)
-    {
-        if (!IsValid (ItemActor))
-        {
-            continue;
-        }
-        ++ClearedItemCount;
-        ContainedItemActors.Remove (ItemActor);
-        if (ContainedItemActor == ItemActor)
-        {
-            ContainedItemActor = nullptr;
-        }
-        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
-        ItemActor->OnRemovedFromWorld ();
-        ItemActor->Destroy ();
-    }
-
-    ContainedItemActors.Reset ();
-    ContainedItemActor = nullptr;
-    ContainedItemArchetypeId = NAME_None;
-    ContainedItemId = NAME_None;
-    ContainedItemTags.Reset ();
-    SetContainedItem (NAME_None);
+    ClearAllContainedActors ();
+    ContainedItems.Reset ();
 
     if (ContainedItemMesh)
     {
         ContainedItemMesh->SetStaticMesh (nullptr);
-        ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-        ContainedItemMesh->SetHiddenInGame (true, true);
         ContainedItemMesh->SetVisibility (false, true);
-        ContainedItemMesh->MarkRenderStateDirty ();
+        ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
     }
 
     UpdateContainedItemInteractionCollision ();
 
-    UE_LOG (LogTemp, Verbose,
-        TEXT ("GridReceptacle Runtime ClearContainedActors ReceptacleId=%s Count=%d"),
-        *ObjectId.ToString (),
-        ClearedItemCount);
-
-    return ClearedItemCount;
+    return RemovedCount;
 }
 
 bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemState& ItemState, AGridItemActor* ItemActor)
 {
-    if (!ItemActor || ItemState.ArchetypeId.IsNone ())
+    const FName ItemDefinitionId = !ItemState.ItemDefinitionId.IsNone ()
+        ? ItemState.ItemDefinitionId
+        : ItemState.ArchetypeId;
+    if (ItemDefinitionId.IsNone ())
     {
         return false;
     }
+    const int32 ItemIndex = AddContainedItem (ItemDefinitionId, nullptr, ItemActor, false, 1);
 
-    ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
-    ContainedItemActor = ItemActor;
-    ContainedItemActors.AddUnique (ItemActor);
-
-    if (bUsePhysicalPlacement)
+    if (ItemIndex == INDEX_NONE)
     {
-        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
-        ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
-        ItemActor->ConfigureAsWorldPickup ();
-        ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+        return false;
     }
-    else
+    FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
+    Item.RuntimeObjectId = ItemState.ObjectId.IsValid () ? ItemState.ObjectId : FGuid::NewGuid ();
+    if (IsValid (Item.ItemActor.Get ()))
     {
-        USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
-        ItemActor->ConfigureAsAttachedItem ();
-        ItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-        ItemActor->SetActorRelativeTransform (FTransform::Identity);
-        ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+        Item.ItemActor->SetRuntimeObjectId (Item.RuntimeObjectId);
+        Item.ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
     }
-
-    RebuildContainedItemState ();
-    UpdateContainedItemInteractionCollision ();
-    UE_LOG (LogTemp, Verbose,
-        TEXT ("GridReceptacle Restore ContainedItem Item=%s ActorClass=%s"),
-        *ResolveContainedItemDefinitionId (this, ItemActor).ToString (),
-        *GetNameSafe (ItemActor->GetClass ()));
     return true;
 }
 
-void AGridReceptacleActor::AttachContainedItemActor (const FHitResult* PlacementHitResult)
+bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    AttachContainedItemActor (ContainedItemActor, PlacementHitResult);
+    if (!InstigatorPawn || !HitComponent)
+    {
+        return false;
+    }
+    if (IsContainedItemHitComponent (HitComponent))
+    {
+        return HasItem () && bCanRemoveItem;
+    }
+    if (HitComponent != MeshComponent)
+    {
+        return false;
+    }
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    if (!PartyPawn)
+    {
+        return false;
+    }
+    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
+    if (!HeldItemId.IsNone ())
+    {
+        return bCanInsertItem && !IsFull () && CanAcceptItem (HeldItemId);
+    }
+    return HasItem () && bCanRemoveItem;
 }
 
-void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, const FHitResult* PlacementHitResult)
+void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
 {
-    if (!ItemActor)
+    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
     {
-        UpdateContainedItemInteractionCollision ();
         return;
     }
-
-    if (bUsePhysicalPlacement)
+    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    if (!PartyPawn)
     {
-        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
-        const FVector PlacementLocation = PlacementHitResult && PlacementHitResult->bBlockingHit
-            ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * PhysicalPlacementSurfaceOffset
-            : (ItemAttachPoint ? ItemAttachPoint->GetComponentLocation () : GetActorLocation ());
-        const FQuat BaseRotation = ItemAttachPoint ? ItemAttachPoint->GetComponentQuat () : GetActorQuat ();
-        const FQuat PlacementRotation = BaseRotation * PhysicalPlacementInitialRotationOffset.Quaternion ();
-        ItemActor->SetActorLocationAndRotation (PlacementLocation, PlacementRotation, false, nullptr, ETeleportType::TeleportPhysics);
-        ItemActor->ConfigureAsWorldPickup ();
-        ItemActor->SetItemLightsEnabled (!bExtinguishItemOnPhysicalPlacement);
+        return;
     }
-    else
+    if (IsContainedItemHitComponent (HitComponent))
     {
-        USceneComponent* AttachTarget = ItemAttachPoint ? ItemAttachPoint.Get () : ItemSocketRoot.Get ();
-        ItemActor->ConfigureAsAttachedItem ();
-        ItemActor->AttachToComponent (AttachTarget, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-        ItemActor->SetActorRelativeTransform (FTransform::Identity);
-        ItemActor->OnPlacedInWorld ();
+        const int32 ItemIndex = FindContainedItemIndexForComponent (HitComponent);
+        if (ItemIndex != INDEX_NONE)
+        {
+            FName RemovedItemId = NAME_None;
+            TryTakeItemAtIndex (ItemIndex, PartyPawn, RemovedItemId);
+            return;
+        }
     }
-
-    if (ContainedItemMesh)
-    {
-        ContainedItemMesh->SetHiddenInGame (true, true);
-        ContainedItemMesh->SetVisibility (false, true);
-    }
-    UpdateContainedItemInteractionCollision ();
+    TryInteractWithParty (PartyPawn);
 }
 
-void AGridReceptacleActor::ClearContainedItemActor (AGridItemActor* ItemActor)
+void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
 {
-    AGridItemActor* ItemActorToClear = ItemActor ? ItemActor : ContainedItemActor.Get ();
-    if (!ItemActorToClear)
+    (void)HitResult;
+    Interact_Implementation (InstigatorPawn, HitComponent);
+}
+
+EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
     {
-        ContainedItemTags.Reset ();
-        UpdateContainedItemInteractionCollision ();
+        return EGridInteractionCursor::Take;
+    }
+    if (HitComponent == MeshComponent && bCanInsertItem && !IsFull ())
+    {
+        return EGridInteractionCursor::Use;
+    }
+    return EGridInteractionCursor::Default;
+}
+
+FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
+    {
+        return FText::FromString (TEXT ("Take"));
+    }
+    if (HitComponent == MeshComponent && bCanInsertItem && !IsFull ())
+    {
+        return FText::FromString (TEXT ("Place item"));
+    }
+    return FText::GetEmpty ();
+}
+
+int32 AGridReceptacleActor::AddContainedItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity)
+{
+    ItemDefinitionId = ResolveDefinitionId (ItemDefinition, ItemDefinitionId);
+    if (ItemDefinitionId.IsNone ())
+    {
+        return INDEX_NONE;
+    }
+    if (IsFull ())
+    {
+        return INDEX_NONE;
+    }
+    FGridContainedReceptacleItem NewItem;
+    NewItem.RuntimeObjectId = FGuid::NewGuid ();
+    NewItem.ItemDefinitionId = ItemDefinitionId;
+    NewItem.ItemDefinition = ItemDefinition;
+    NewItem.ItemActor = ItemActor;
+    NewItem.bWasInitialItem = bWasInitialItem;
+    NewItem.Quantity = FMath::Max (1, Quantity);
+
+    const int32 NewIndex = ContainedItems.Add (NewItem);
+
+    if (!IsValid (ItemActor) && ContainedItemActorClass)
+    {
+        UWorld* World = GetWorld ();
+        if (World)
+        {
+            const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
+            AGridItemActor* SpawnedItemActor = World->SpawnActorDeferred<AGridItemActor> (ContainedItemActorClass, SpawnTransform, this);
+            if (SpawnedItemActor)
+            {
+                if (ItemDefinition)
+                {
+                    SpawnedItemActor->InitializeFromItemDefinition (ItemDefinition, NewItem.RuntimeObjectId);
+                } else
+                {
+                    SpawnedItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, NewItem.RuntimeObjectId);
+                }
+                UGameplayStatics::FinishSpawningActor (SpawnedItemActor, SpawnTransform);
+                SpawnedItemActor->ConfigureAsAttachedItem ();
+                ContainedItems[NewIndex].ItemActor = SpawnedItemActor;
+            }
+        }
+    }
+    if (IsValid (ContainedItems[NewIndex].ItemActor.Get ()))
+    {
+        AttachContainedItemActor (ContainedItems[NewIndex].ItemActor.Get (), NewIndex);
+        ContainedItems[NewIndex].ItemActor->OnPlacedInWorld ();
+    }
+    UpdateContainedItemInteractionCollision ();
+    return NewIndex;
+}
+
+bool AGridReceptacleActor::RemoveContainedItemAtIndex (int32 ItemIndex, FGridContainedReceptacleItem& OutRemovedItem)
+{
+    if (!ContainedItems.IsValidIndex (ItemIndex))
+    {
+        return false;
+    }
+    OutRemovedItem = ContainedItems[ItemIndex];
+    if (OutRemovedItem.bWasInitialItem && !OutRemovedItem.ItemDefinitionId.IsNone ())
+    {
+        RemovedInitialItemDefinitionIds.Add (OutRemovedItem.ItemDefinitionId);
+    }
+    ClearContainedActor (ContainedItems[ItemIndex]);
+    ContainedItems.RemoveAt (ItemIndex);
+    UpdateContainedItemInteractionCollision ();
+    return true;
+}
+
+void AGridReceptacleActor::ClearContainedActor (FGridContainedReceptacleItem& Item)
+{
+    if (IsValid (Item.ItemActor.Get ()))
+    {
+        Item.ItemActor->OnRemovedFromWorld ();
+        Item.ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        Item.ItemActor->Destroy ();
+    }
+    Item.ItemActor = nullptr;
+}
+
+void AGridReceptacleActor::ClearAllContainedActors ()
+{
+    for (FGridContainedReceptacleItem& Item : ContainedItems)
+    {
+        ClearContainedActor (Item);
+    }
+}
+
+void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, int32 ItemIndex, const FHitResult* PlacementHitResult)
+{
+    (void)PlacementHitResult;
+    if (!IsValid (ItemActor) || !ItemAttachPoint)
+    {
         return;
     }
+    ItemActor->AttachToComponent (ItemAttachPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-    ContainedItemActors.Remove (ItemActorToClear);
-    if (ContainedItemActor == ItemActorToClear)
-    {
-        ContainedItemActor = nullptr;
-    }
-    ItemActorToClear->OnRemovedFromWorld ();
-    ItemActorToClear->Destroy ();
-    RebuildContainedItemState ();
-    UpdateContainedItemInteractionCollision ();
+    const FVector LocalOffset (0.f, MultiItemVisualSpacing * ItemIndex, 0.f);
+    ItemActor->SetActorRelativeLocation (LocalOffset);
+    ItemActor->SetActorRelativeRotation (FRotator::ZeroRotator);
+    ItemActor->SetActorRelativeScale3D (FVector::OneVector);
+
+    ItemActor->SetOwner (this);
+    ItemActor->ConfigureAsAttachedItem ();
 }
 
 void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
 {
-    const bool bCanTake = HasItem () && bCanRemoveItem;
-
-    if (MeshComponent)
+    for (FGridContainedReceptacleItem& Item : ContainedItems)
     {
-        const bool bCanPlaceMorePhysicalItems = bUsePhysicalPlacement && bCanInsertItem && !IsFull ();
-        const bool bExposePhysicalItemToCursor = bUsePhysicalPlacement && !bCanPlaceMorePhysicalItems;
-        MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, bExposePhysicalItemToCursor ? ECR_Ignore : ECR_Block);
-    }
-
-    if (ContainedItemMesh)
-    {
-        const bool bEnableContainedMeshTrace = bCanTake && ContainedItemMesh->IsVisible ();
-        ContainedItemMesh->SetCollisionEnabled (bEnableContainedMeshTrace ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-        ContainedItemMesh->SetCollisionResponseToAllChannels (ECR_Ignore);
-        ContainedItemMesh->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-        ContainedItemMesh->SetGenerateOverlapEvents (false);
-    }
-
-    TArray<AGridItemActor*> ItemActorsToUpdate;
-    if (bUsePhysicalPlacement)
-    {
-        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        if (IsValid (Item.ItemActor.Get ()) && Item.ItemActor->MeshComponent)
         {
-            if (IsValid (ItemActor))
-            {
-                ItemActorsToUpdate.Add (ItemActor.Get ());
-            }
+            Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+            Item.ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+            Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
         }
-    }
-    else if (ContainedItemActor)
-    {
-        ItemActorsToUpdate.Add (ContainedItemActor.Get ());
-    }
-
-    for (AGridItemActor* ItemActor : ItemActorsToUpdate)
-    {
-        if (!ItemActor || !ItemActor->MeshComponent)
-        {
-            continue;
-        }
-        if (bUsePhysicalPlacement)
-        {
-            ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
-            ItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
-            ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-        }
-        else
-        {
-            ItemActor->MeshComponent->SetCollisionEnabled (bCanTake ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-            ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
-            ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-        }
-        ItemActor->MeshComponent->SetGenerateOverlapEvents (false);
     }
 }
 
 bool AGridReceptacleActor::IsContainedItemHitComponent (UPrimitiveComponent* HitComponent) const
 {
-    if (!HitComponent)
-    {
-        return false;
-    }
-
-    if (HitComponent == ContainedItemMesh)
-    {
-        return true;
-    }
-
-    return FindContainedItemActorForComponent (HitComponent) != nullptr;
+    return FindContainedItemIndexForComponent (HitComponent) != INDEX_NONE;
 }
 
-AGridItemActor* AGridReceptacleActor::FindContainedItemActorForComponent (UPrimitiveComponent* HitComponent) const
+int32 AGridReceptacleActor::FindContainedItemIndexForComponent (UPrimitiveComponent* HitComponent) const
 {
     if (!HitComponent)
     {
-        return nullptr;
+        return INDEX_NONE;
     }
-    if (bUsePhysicalPlacement)
+    for (int32 Index = 0; Index < ContainedItems.Num (); ++Index)
     {
-        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        const AGridItemActor* ItemActor = ContainedItems[Index].ItemActor.Get ();
+        if (!IsValid (ItemActor))
         {
-            if (IsValid (ItemActor) && HitComponent == ItemActor->MeshComponent)
-            {
-                return ItemActor.Get ();
-            }
+            continue;
         }
-        return nullptr;
-    }
-    return ContainedItemActor && HitComponent == ContainedItemActor->MeshComponent
-        ? ContainedItemActor.Get ()
-        : nullptr;
-}
-
-AGridItemActor* AGridReceptacleActor::GetDefaultContainedItemActor () const
-{
-    if (IsValid (PendingRemovalItemActor))
-    {
-        return PendingRemovalItemActor.Get ();
-    }
-    if (bUsePhysicalPlacement)
-    {
-        for (int32 Index = ContainedItemActors.Num () - 1; Index >= 0; --Index)
+        if (HitComponent == ItemActor->MeshComponent)
         {
-            if (IsValid (ContainedItemActors[Index]))
-            {
-                return ContainedItemActors[Index].Get ();
-            }
+            return Index;
         }
-        return nullptr;
-    }
-    return ContainedItemActor.Get ();
-}
-
-void AGridReceptacleActor::RebuildContainedItemState ()
-{
-    ContainedItemActors.RemoveAll ([] (const TObjectPtr<AGridItemActor>& ItemActor)
-    {
-        return !IsValid (ItemActor);
-    });
-
-    if (bUsePhysicalPlacement)
-    {
-        ContainedItemActor = GetDefaultContainedItemActor ();
-    }
-
-    ContainedItemTags.Reset ();
-    ContainedItemArchetypeId = NAME_None;
-    ContainedItemId = NAME_None;
-
-    if (bUsePhysicalPlacement)
-    {
-        for (const TObjectPtr<AGridItemActor>& ItemActor : ContainedItemActors)
+        if (HitComponent->GetOwner () == ItemActor)
         {
-            if (!IsValid (ItemActor))
-            {
-                continue;
-            }
-            const FName ItemInventoryId = GetItemActorInventoryId (ItemActor);
-            if (ContainedItemArchetypeId.IsNone ())
-            {
-                ContainedItemArchetypeId = ItemInventoryId;
-                ContainedItemId = ItemInventoryId;
-            }
-            for (const FName& ItemTag : ItemActor->ItemTags)
-            {
-                ContainedItemTags.AddUnique (ItemTag);
-            }
+            return Index;
         }
     }
-    else if (ContainedItemActor)
-    {
-        const FName ItemInventoryId = GetItemActorInventoryId (ContainedItemActor);
-        ContainedItemArchetypeId = ItemInventoryId;
-        ContainedItemId = ItemInventoryId;
-        ContainedItemTags = ContainedItemActor->ItemTags;
-    }
-
-    const bool bVisible = HasItem () && !IsValid (ContainedItemActor);
-    if (ContainedItemMesh)
-    {
-        ContainedItemMesh->SetHiddenInGame (!bVisible, true);
-        ContainedItemMesh->SetVisibility (bVisible, true);
-        ContainedItemMesh->MarkRenderStateDirty ();
-    }
+    return INDEX_NONE;
 }
 
-FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemArchetypeId, const TArray<FName>& ItemTags) const
+FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemDefinitionId) const
 {
-    if (!bCanInsertItem)
+    if (ItemDefinitionId.IsNone ())
     {
-        return TEXT ("insertion is disabled");
+        return TEXT ("empty item id");
     }
-
+    if (RejectedItemDefinitionIds.Contains (ItemDefinitionId))
+    {
+        return TEXT ("item is rejected");
+    }
+    if (!bAcceptAnyItem && !AcceptedItemDefinitionIds.Contains (ItemDefinitionId))
+    {
+        return TEXT ("item not in accepted ids");
+    }
     if (IsFull ())
     {
-        return FString::Printf (TEXT ("receptacle is full (%d/%d)"), GetContainedItemCount (), FMath::Max (1, MaxContainedItems));
+        return TEXT ("receptacle is full");
     }
-
-    if (ItemArchetypeId.IsNone ())
+    if (!bCanInsertItem)
     {
-        return bAcceptAnyItem
-            ? FString ()
-            : FString (TEXT ("item has no ArchetypeId and the receptacle uses strict acceptance rules"));
+        return TEXT ("insertion disabled");
     }
-
-    if (RejectedItemArchetypeIds.Contains (ItemArchetypeId))
-    {
-        return FString::Printf (TEXT ("item ArchetypeId '%s' is explicitly rejected"), *ItemArchetypeId.ToString ());
-    }
-
-    if (bAcceptAnyItem)
-    {
-        return FString ();
-    }
-
-    if (AcceptedArchetypeIds.Contains (ItemArchetypeId))
-    {
-        return FString ();
-    }
-
-    for (const FName& AcceptedTag : AcceptedItemTags)
-    {
-        if (!AcceptedTag.IsNone () && ItemTags.Contains (AcceptedTag))
-        {
-            return FString ();
-        }
-    }
-
-    return FString::Printf (TEXT ("item ArchetypeId '%s' and tags are not accepted"), *ItemArchetypeId.ToString ());
+    return TEXT ("unknown");
 }
 
 void AGridReceptacleActor::ExecuteInsertionLinks ()
 {
-    if (AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ()))
+    if (AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ()))
     {
         RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemInserted);
+        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemChanged);
     }
 }
 
 void AGridReceptacleActor::ExecuteRemovalLinks ()
 {
-    if (AGridLevelRuntimeActor* RuntimeActor = Cast<AGridLevelRuntimeActor> (GetOwner ()))
+    if (AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ()))
     {
         RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemRemoved);
+        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemChanged);
     }
+}
+
+void AGridReceptacleActor::InitializeInitialContainedItems ()
+{
+    bInitialItemsInitialized = true;
+    for (const FGridInitialReceptacleItem& InitialItem : InitialContainedItems)
+    {
+        const FName ItemDefinitionId = ResolveInitialItemDefinitionId (InitialItem);
+        if (ItemDefinitionId.IsNone ())
+        {
+            continue;
+        }
+        if (WasInitialItemRemoved (ItemDefinitionId))
+        {
+            continue;
+        }
+        AddContainedItem (ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true, InitialItem.Quantity);
+    }
+}
+
+FName AGridReceptacleActor::ResolveInitialItemDefinitionId (const FGridInitialReceptacleItem& InitialItem) const
+{
+    return ResolveDefinitionId (InitialItem.ItemDefinition, InitialItem.ItemDefinitionId);
+}
+
+bool AGridReceptacleActor::WasInitialItemRemoved (FName ItemDefinitionId) const
+{
+    return RemovedInitialItemDefinitionIds.Contains (ItemDefinitionId);
 }

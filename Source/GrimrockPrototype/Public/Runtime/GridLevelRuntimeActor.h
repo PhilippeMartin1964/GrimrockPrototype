@@ -285,10 +285,8 @@ public:
     UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const;
     bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
     const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
-    AGridItemActor* SpawnItemActorForArchetype (FName ItemArchetypeId, AActor* OwnerActor, USceneComponent* AttachParent) const;
     AGridItemActor* SpawnItemActorForDefinition (UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId,
-        FName FallbackItemArchetypeId, AActor* OwnerActor, USceneComponent* AttachParent,
-        TSubclassOf<AGridItemActor> PreferredItemActorClass = nullptr) const;
+        AActor* OwnerActor, USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass = nullptr) const;
 
 protected:
     FVector CellToWorld (int32 X, int32 Y, float ZOffset = 0.f) const;
