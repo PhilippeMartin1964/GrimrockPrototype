@@ -160,6 +160,24 @@ namespace
         return ItemActor->GetItemArchetypeId ();
     }
 
+    const FGridLevelObjectData* FindLevelObjectDataById (const UGridLevelAsset* LevelAsset, FGuid ObjectId)
+    {
+        if (!LevelAsset || !ObjectId.IsValid ())
+        {
+            return nullptr;
+        }
+
+        for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+        {
+            if (ObjectData.ObjectId == ObjectId)
+            {
+                return &ObjectData;
+            }
+        }
+
+        return nullptr;
+    }
+
     int32 CountRuntimeTransitionObjects (const UGridLevelAsset* InLevelAsset)
     {
         if (!InLevelAsset)
@@ -796,18 +814,46 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             Pair.Value.ContainedItems.Num ());
         for (const FGridRuntimeItemState& ItemState : Pair.Value.ContainedItems)
         {
-            if (ItemState.ArchetypeId.IsNone ())
+            if (ItemState.ArchetypeId.IsNone () && ItemState.ItemDefinitionId.IsNone ())
             {
                 continue;
             }
 
-            AGridItemActor* ItemActor = SpawnItemActorForArchetype (
+            const FGridLevelObjectData* ReceptacleObjectData = FindLevelObjectDataById (LevelAsset, Pair.Key);
+            const UGridObjectArchetypeAsset* ReceptacleArchetype = ReceptacleObjectData
+                ? FindObjectArchetype (ReceptacleObjectData->ArchetypeId)
+                : nullptr;
+            UGridItemDefinitionAsset* InitialItemDefinition =
+                ReceptacleObjectData ? ResolveReceptacleInitialItemDefinition (ReceptacleObjectData->Behavior.Receptacle) : nullptr;
+            const FName InitialItemDefinitionId =
+                ReceptacleObjectData ? ResolveReceptacleInitialItemDefinitionId (ReceptacleObjectData->Behavior.Receptacle) : NAME_None;
+            const FName RuntimeItemDefinitionId = !ItemState.ItemDefinitionId.IsNone ()
+                ? ItemState.ItemDefinitionId
+                : InitialItemDefinitionId;
+            if (InitialItemDefinition && !RuntimeItemDefinitionId.IsNone () &&
+                InitialItemDefinition->ItemDefinitionId != RuntimeItemDefinitionId)
+            {
+                InitialItemDefinition = nullptr;
+            }
+
+            AGridItemActor* ItemActor = SpawnItemActorForDefinition (
+                InitialItemDefinition,
+                RuntimeItemDefinitionId,
                 ItemState.ArchetypeId,
                 ReceptacleActor,
-                ReceptacleActor->bUsePhysicalPlacement ? nullptr : ReceptacleActor->ItemAttachPoint.Get ());
+                ReceptacleActor->bUsePhysicalPlacement ? nullptr : ReceptacleActor->ItemAttachPoint.Get (),
+                ReceptacleArchetype ? ReceptacleArchetype->ItemActorClass : nullptr);
             if (ItemActor)
             {
                 ItemActor->SetRuntimeObjectId (ItemState.ObjectId);
+                if (InitialItemDefinition)
+                {
+                    ItemActor->InitializeFromItemDefinition (InitialItemDefinition, ItemState.ObjectId);
+                }
+                else if (!RuntimeItemDefinitionId.IsNone ())
+                {
+                    ItemActor->InitializeFromItemDefinitionId (RuntimeItemDefinitionId, ItemState.ObjectId);
+                }
                 ReceptacleActor->RestoreRuntimeContainedItem (ItemState, ItemActor);
             }
         }
@@ -1875,7 +1921,8 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition (
     FName ItemDefinitionId,
     FName FallbackItemArchetypeId,
     AActor* OwnerActor,
-    USceneComponent* AttachParent) const
+    USceneComponent* AttachParent,
+    TSubclassOf<AGridItemActor> PreferredItemActorClass) const
 {
     const UGridObjectArchetypeAsset* FallbackArchetype = FindObjectArchetype (FallbackItemArchetypeId);
     if (!ItemDefinition && ItemDefinitionId.IsNone ())
@@ -1889,7 +1936,11 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition (
         return nullptr;
     }
 
-    TSubclassOf<AGridItemActor> ItemClass = FallbackArchetype ? FallbackArchetype->ItemActorClass : nullptr;
+    TSubclassOf<AGridItemActor> ItemClass = PreferredItemActorClass;
+    if (!ItemClass && FallbackArchetype)
+    {
+        ItemClass = FallbackArchetype->ItemActorClass;
+    }
     if (!ItemClass)
     {
         ItemClass = AGridItemActor::StaticClass ();
@@ -2435,7 +2486,8 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
                 InitialItemDefinitionId,
                 RuntimeObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId,
                 ReceptacleActor,
-                ReceptacleActor->ItemAttachPoint))
+                ReceptacleActor->ItemAttachPoint,
+                Archetype ? Archetype->ItemActorClass : nullptr))
             {
                 ItemActor->SetRuntimeObjectId (RuntimeObjectData.ObjectId);
                 if (InitialItemDefinition)

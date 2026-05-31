@@ -60,6 +60,9 @@ struct FGridRuntimeItemState
     FName ArchetypeId = NAME_None;
 
     UPROPERTY (Transient, BlueprintReadWrite)
+    FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
     FTransform Transform = FTransform::Identity;
 
     UPROPERTY (Transient, BlueprintReadWrite)

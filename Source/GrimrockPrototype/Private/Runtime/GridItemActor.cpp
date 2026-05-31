@@ -36,7 +36,10 @@ void AGridItemActor::InitializeItem (FName InArchetypeId, const TArray<FName>& I
 
     if (MeshComponent)
     {
-        MeshComponent->SetStaticMesh (Mesh);
+        if (Mesh)
+        {
+            MeshComponent->SetStaticMesh (Mesh);
+        }
         if (Material)
         {
             MeshComponent->SetMaterial (0, Material);

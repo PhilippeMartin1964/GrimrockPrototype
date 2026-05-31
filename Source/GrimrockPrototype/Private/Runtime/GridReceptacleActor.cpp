@@ -589,6 +589,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = ItemActor->GetRuntimeObjectId ().IsValid () ? ItemActor->GetRuntimeObjectId () : FGuid::NewGuid ();
         ItemState.ArchetypeId = ItemActor->ArchetypeId;
+        ItemState.ItemDefinitionId = ItemActor->GetItemDefinitionId ();
         ItemState.Transform = ItemActor->GetActorTransform ();
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
@@ -616,6 +617,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
         ItemState.ArchetypeId = ContainedItemArchetypeId;
+        ItemState.ItemDefinitionId = ContainedItemArchetypeId;
         ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
