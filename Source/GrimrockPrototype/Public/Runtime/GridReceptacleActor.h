@@ -77,7 +77,7 @@ struct FGridContainedReceptacleItem
  * - supports 0..N contained items;
  * - ItemDefinitionId is the official runtime identity;
  * - ItemActor is only an optional visual/runtime representation;
- * - legacy ArchetypeId-based item content is intentionally removed.
+ * - legacy ArchetypeId-based item content is retained as a compatibility fallback.
  */
 UCLASS (Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor, public IGridInteractableInterface

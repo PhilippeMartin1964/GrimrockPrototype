@@ -567,7 +567,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         ItemState.ArchetypeId = Entry.ItemArchetypeId;
         ItemState.ItemDefinitionId = !Entry.ItemDefinitionId.IsNone ()
             ? Entry.ItemDefinitionId
-            : ItemActor->GetItemDefinitionId ();
+            : ResolvePickupItemDefinitionId (ItemActor, Entry.ItemArchetypeId);
 
         if (ItemState.ItemDefinitionId.IsNone ())
         {
@@ -789,11 +789,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                     *ItemState.ObjectId.ToString ());
                 continue;
             }
-            UGridItemDefinitionAsset* ItemDefinition =
-                (ReceptacleObjectData && ReceptacleObjectData->Behavior.Receptacle.InitialContainedItemDefinition &&
-                    ReceptacleObjectData->Behavior.Receptacle.InitialContainedItemDefinition->ItemDefinitionId == RuntimeItemDefinitionId)
-                ? ReceptacleObjectData->Behavior.Receptacle.InitialContainedItemDefinition.Get ()
-                : nullptr;
+            UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (RuntimeItemDefinitionId);
             AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, RuntimeItemDefinitionId, ReceptacleActor, ReceptacleActor->ItemAttachPoint.Get (), PreferredItemActorClass);
             if (ItemActor)
             {
