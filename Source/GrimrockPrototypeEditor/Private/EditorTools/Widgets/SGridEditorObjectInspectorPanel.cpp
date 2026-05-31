@@ -8,7 +8,10 @@
 #include "Core/GridObjectBehavior.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 
+#include "AssetRegistry/AssetData.h"
+#include "PropertyCustomizationHelpers.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
@@ -45,6 +48,14 @@ namespace
         return Name.IsNone ()
             ? FText::FromString (TEXT ("None"))
             : FText::FromName (Name);
+    }
+
+    FName GetNameFromEditorText (const FText& Text)
+    {
+        const FString Value = Text.ToString ().TrimStartAndEnd ();
+        return Value.IsEmpty () || Value.Equals (TEXT ("None"), ESearchCase::IgnoreCase)
+            ? NAME_None
+            : FName (*Value);
     }
 
     FText GetObjectNameText (const UObject* Object)
@@ -233,6 +244,19 @@ namespace
             {
                 ApplyValue (NewValue);
             }));
+    }
+
+    TSharedRef<SWidget> BuildItemDefinitionAssetPicker (
+        UGridItemDefinitionAsset* CurrentAsset,
+        TFunction<void(UGridItemDefinitionAsset*)> ApplyAsset)
+    {
+        return SNew (SObjectPropertyEntryBox)
+            .AllowedClass (UGridItemDefinitionAsset::StaticClass ())
+            .ObjectPath (CurrentAsset ? CurrentAsset->GetPathName () : FString ())
+            .OnObjectChanged_Lambda ([ApplyAsset] (const FAssetData& AssetData)
+            {
+                ApplyAsset (Cast<UGridItemDefinitionAsset> (AssetData.GetAsset ()));
+            });
     }
 }
 
@@ -597,6 +621,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 
             case EGridLevelObjectType::Receptacle:
                 PrimarySection = BuildReceptacleBehaviorSection (Obj);
+                break;
+
+            case EGridLevelObjectType::Item:
+                PrimarySection = BuildItemDefinitionSection (Obj);
                 break;
 
             case EGridLevelObjectType::Teleporter:
@@ -1425,6 +1453,119 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildTriggerBehaviorSection
         ];
 }
 
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection (const FGridLevelObjectData& Obj)
+{
+    const bool bHasDefinitionAsset = Obj.ItemDefinitionAsset != nullptr;
+    const bool bHasDefinitionId = !Obj.ItemDefinitionId.IsNone ();
+    const bool bUsingLegacyFallback = !bHasDefinitionAsset && !bHasDefinitionId && !Obj.ArchetypeId.IsNone ();
+    const bool bConflictingDefinitionId =
+        bHasDefinitionAsset &&
+        bHasDefinitionId &&
+        Obj.ItemDefinitionAsset->ItemDefinitionId != Obj.ItemDefinitionId;
+
+    return SNew (SBorder)
+        .Padding (6.f)
+        .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
+        [
+            SNew (SVerticalBox)
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 4.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Item Definition")))
+                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Transportable items should use a UGridItemDefinitionAsset. ArchetypeId is kept only for legacy compatibility.")))
+                        .AutoWrapText (true)
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("ItemDefinitionAsset")),
+                        BuildItemDefinitionAssetPicker (
+                            Obj.ItemDefinitionAsset,
+                            [this] (UGridItemDefinitionAsset* NewAsset)
+                            {
+                                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                                {
+                                    if (CurrentEditorActor->SetSelectedObjectItemDefinitionAsset (NewAsset))
+                                    {
+                                        RequestRefresh ();
+                                    }
+                                }
+                            }))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("ItemDefinitionId")),
+                        SNew (SEditableTextBox)
+                            .Text (GetNameText (Obj.ItemDefinitionId))
+                            .MinDesiredWidth (160.f)
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                            {
+                            if (CurrentEditorActor->SetSelectedObjectItemDefinitionId (GetNameFromEditorText (NewText)))
+                                {
+                                    RequestRefresh ();
+                                }
+                            }
+                        }))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                        FText::FromString (TEXT ("Legacy ArchetypeId")),
+                        GetNameText (Obj.ArchetypeId))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+                [
+                    SNew (SButton)
+                        .Text (FText::FromString (TEXT ("Sync Id From Asset")))
+                        .OnClicked_Lambda ([this] ()
+                    {
+                        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                        {
+                            if (CurrentEditorActor->SyncSelectedItemDefinitionIdFromAsset ())
+                            {
+                                RequestRefresh ();
+                            }
+                        }
+                        return FReply::Handled ();
+                    })
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+                [
+                    bUsingLegacyFallback
+                        ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
+                            .Text (FText::FromString (TEXT ("Warning: Item without ItemDefinition. Falling back to ArchetypeId.")))
+                            .AutoWrapText (true)
+                            .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
+                        : SNullWidget::NullWidget
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 0.f)
+                [
+                    bConflictingDefinitionId
+                        ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
+                            .Text (FText::FromString (TEXT ("Warning: ItemDefinitionId differs from the selected asset id.")))
+                            .AutoWrapText (true)
+                            .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
+                        : SNullWidget::NullWidget
+                ]
+        ];
+}
+
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj)
 {
     auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
@@ -1469,6 +1610,16 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
         Behavior.Receptacle.bAcceptAnyItem ||
         Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId);
+    const bool bHasInitialDefinitionAsset = Behavior.Receptacle.InitialContainedItemDefinition != nullptr;
+    const bool bHasInitialDefinitionId = !Behavior.Receptacle.InitialContainedItemDefinitionId.IsNone ();
+    const bool bUsesLegacyContainedFallback =
+        !bHasInitialDefinitionAsset &&
+        !bHasInitialDefinitionId &&
+        !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
+    const bool bConflictingInitialDefinition =
+        bHasInitialDefinitionAsset &&
+        bHasInitialDefinitionId &&
+        Behavior.Receptacle.InitialContainedItemDefinition->ItemDefinitionId != Behavior.Receptacle.InitialContainedItemDefinitionId;
 
     TSharedRef<SVerticalBox> AcceptedItemsList = SNew (SVerticalBox);
     if (ItemOptions.Num () == 0)
@@ -1585,6 +1736,101 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                             FText::FromString (TEXT ("Runtime Light Source")),
                             GetBoolText (Archetype->bIsLightSource))
                         : SNullWidget::NullWidget
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
+                [
+                    GridEditorWidgetHelpers::BuildGridPanelSection (
+                        FText::FromString (TEXT ("Initial Contained Item")),
+                        SNew (SVerticalBox)
+
+                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+                            [
+                                SNew (STextBlock)
+                                    .Text (FText::FromString (TEXT ("Initial receptacle content should reference a UGridItemDefinitionAsset. Legacy archetype content remains supported for compatibility.")))
+                                    .AutoWrapText (true)
+                            ]
+
+                            + SVerticalBox::Slot ().AutoHeight ()
+                            [
+                                GridEditorWidgetHelpers::BuildGridPropertyRow (
+                                    FText::FromString (TEXT ("InitialContainedItemDefinition")),
+                                    BuildItemDefinitionAssetPicker (
+                                        Behavior.Receptacle.InitialContainedItemDefinition,
+                                        [this] (UGridItemDefinitionAsset* NewAsset)
+                                        {
+                                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                                            {
+                                                if (CurrentEditorActor->SetSelectedReceptacleInitialContainedItemDefinition (NewAsset))
+                                                {
+                                                    RequestRefresh ();
+                                                }
+                                            }
+                                        }))
+                            ]
+
+                            + SVerticalBox::Slot ().AutoHeight ()
+                            [
+                                GridEditorWidgetHelpers::BuildGridPropertyRow (
+                                    FText::FromString (TEXT ("InitialContainedItemDefinitionId")),
+                                    SNew (SEditableTextBox)
+                                        .Text (GetNameText (Behavior.Receptacle.InitialContainedItemDefinitionId))
+                                        .MinDesiredWidth (160.f)
+                                        .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                                    {
+                                        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                                        {
+                                            if (CurrentEditorActor->SetSelectedReceptacleInitialContainedItemDefinitionId (GetNameFromEditorText (NewText)))
+                                            {
+                                                RequestRefresh ();
+                                            }
+                                        }
+                                    }))
+                            ]
+
+                            + SVerticalBox::Slot ().AutoHeight ()
+                            [
+                                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                                    FText::FromString (TEXT ("Legacy InitialContent")),
+                                    FindItemLabel (Behavior.Receptacle.InitialContainedItemArchetypeId))
+                            ]
+
+                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+                            [
+                                SNew (SButton)
+                                    .Text (FText::FromString (TEXT ("Sync Id From Asset")))
+                                    .OnClicked_Lambda ([this] ()
+                                {
+                                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                                    {
+                                        if (CurrentEditorActor->SyncSelectedReceptacleInitialItemDefinitionIdFromAsset ())
+                                        {
+                                            RequestRefresh ();
+                                        }
+                                    }
+                                    return FReply::Handled ();
+                                })
+                            ]
+
+                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+                            [
+                                bUsesLegacyContainedFallback
+                                    ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
+                                        .Text (FText::FromString (TEXT ("Warning: Legacy contained item fallback used.")))
+                                        .AutoWrapText (true)
+                                        .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
+                                    : SNullWidget::NullWidget
+                            ]
+
+                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 0.f)
+                            [
+                                bConflictingInitialDefinition
+                                    ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
+                                        .Text (FText::FromString (TEXT ("Warning: InitialContainedItemDefinitionId differs from the selected asset id.")))
+                                        .AutoWrapText (true)
+                                        .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
+                                    : SNullWidget::NullWidget
+                            ])
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)

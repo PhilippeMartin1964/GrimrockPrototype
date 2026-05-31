@@ -11,6 +11,7 @@
 class AGridLevelRuntimeActor;
 class UGridObjectPaletteAsset;
 class UGridObjectArchetypeAsset;
+class UGridItemDefinitionAsset;
 
 UENUM (BlueprintType)
 enum class EGridEditorTool : uint8
@@ -247,8 +248,14 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void LogEditorRuntimeAssetConsistency () const;
 
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
+    void LogItemWorkflowDiagnostics () const;
+
     UFUNCTION (BlueprintCallable, Category = "Editor|Diagnostics")
     FString GetEditorRuntimeAssetConsistencyDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Diagnostics")
+    FString GetItemWorkflowDiagnostics () const;
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
     void SyncPreviewRuntimeLevelAsset ();
@@ -378,6 +385,24 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectArchetypeId (FName NewArchetypeId);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
+    bool SetSelectedObjectItemDefinitionAsset (UGridItemDefinitionAsset* NewItemDefinitionAsset);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
+    bool SetSelectedObjectItemDefinitionId (FName NewItemDefinitionId);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
+    bool SyncSelectedItemDefinitionIdFromAsset ();
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
+    bool SetSelectedReceptacleInitialContainedItemDefinition (UGridItemDefinitionAsset* NewItemDefinitionAsset);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
+    bool SetSelectedReceptacleInitialContainedItemDefinitionId (FName NewItemDefinitionId);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
+    bool SyncSelectedReceptacleInitialItemDefinitionIdFromAsset ();
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectTag (FName NewTag);

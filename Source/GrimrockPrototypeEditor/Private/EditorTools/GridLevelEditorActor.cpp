@@ -5,6 +5,7 @@
 #include "Runtime/GridGenericObjectActor.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/StaticMesh.h"
@@ -129,6 +130,162 @@ namespace
             Asset->StartCellY,
             *GetGridEdgeText (Asset->StartFacing),
             Asset->IsStartCellValid () ? TEXT ("true") : TEXT ("false"));
+    }
+
+    FString GetObjectWorkflowAssetName (const UObject* Object)
+    {
+        return Object ? Object->GetName () : TEXT ("None");
+    }
+
+    FString GetItemPlacementWorkflowStatus (const FGridLevelObjectData& Object)
+    {
+        if (Object.ItemDefinitionAsset)
+        {
+            const FName AssetId = Object.ItemDefinitionAsset->ItemDefinitionId;
+            if (!Object.ItemDefinitionId.IsNone () && Object.ItemDefinitionId != AssetId)
+            {
+                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
+            }
+            if (!Object.ArchetypeId.IsNone () && !AssetId.IsNone () && Object.ArchetypeId != AssetId)
+            {
+                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
+            }
+            return TEXT ("OK_ITEM_DEFINITION_ASSET");
+        }
+
+        if (!Object.ItemDefinitionId.IsNone ())
+        {
+            if (!Object.ArchetypeId.IsNone () && Object.ArchetypeId != Object.ItemDefinitionId)
+            {
+                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
+            }
+            return TEXT ("OK_ITEM_DEFINITION_ID");
+        }
+
+        if (!Object.ArchetypeId.IsNone ())
+        {
+            return TEXT ("LEGACY_ARCHETYPE_FALLBACK");
+        }
+
+        return TEXT ("ERROR_NO_ITEM_DEFINITION");
+    }
+
+    FString GetReceptacleWorkflowStatus (const FGridReceptacleBehaviorParams& Receptacle)
+    {
+        const bool bHasDefinitionAsset = Receptacle.InitialContainedItemDefinition != nullptr;
+        const bool bHasDefinitionId = !Receptacle.InitialContainedItemDefinitionId.IsNone ();
+        const bool bHasLegacyArchetype = !Receptacle.InitialContainedItemArchetypeId.IsNone ();
+
+        if (bHasDefinitionAsset)
+        {
+            const FName AssetId = Receptacle.InitialContainedItemDefinition->ItemDefinitionId;
+            if ((bHasDefinitionId && Receptacle.InitialContainedItemDefinitionId != AssetId) ||
+                (bHasLegacyArchetype && !AssetId.IsNone () && Receptacle.InitialContainedItemArchetypeId != AssetId))
+            {
+                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
+            }
+            return TEXT ("OK_INITIAL_ITEM_DEFINITION_ASSET");
+        }
+
+        if (bHasDefinitionId)
+        {
+            if (bHasLegacyArchetype && Receptacle.InitialContainedItemArchetypeId != Receptacle.InitialContainedItemDefinitionId)
+            {
+                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
+            }
+            return TEXT ("OK_INITIAL_ITEM_DEFINITION_ID");
+        }
+
+        if (bHasLegacyArchetype)
+        {
+            return TEXT ("LEGACY_CONTAINED_ARCHETYPE_FALLBACK");
+        }
+
+        return TEXT ("EMPTY_RECEPTACLE");
+    }
+
+    void AppendItemWorkflowDiagnosticsForLevel (FString& Result, const UGridLevelAsset* Asset, const FString& LevelLabel)
+    {
+        if (!Asset)
+        {
+            Result += FString::Printf (TEXT ("Level=%s Status=ERROR_MISSING_LEVEL_ASSET\n"), *LevelLabel);
+            return;
+        }
+
+        int32 ItemPlacements = 0;
+        int32 ItemPlacementsUsingDefinitionAsset = 0;
+        int32 ItemPlacementsUsingDefinitionId = 0;
+        int32 ItemPlacementsUsingLegacyFallback = 0;
+        int32 Receptacles = 0;
+        int32 ReceptaclesUsingInitialDefinition = 0;
+        int32 ReceptaclesUsingLegacyContainedItem = 0;
+
+        Result += FString::Printf (TEXT ("Level=%s Asset=%s\n"), *LevelLabel, *Asset->GetName ());
+
+        for (const FGridLevelObjectData& Object : Asset->Objects)
+        {
+            if (Object.Type == EGridLevelObjectType::Item)
+            {
+                ++ItemPlacements;
+                const FString Status = GetItemPlacementWorkflowStatus (Object);
+                if (Status == TEXT ("OK_ITEM_DEFINITION_ASSET"))
+                {
+                    ++ItemPlacementsUsingDefinitionAsset;
+                }
+                else if (Status == TEXT ("OK_ITEM_DEFINITION_ID"))
+                {
+                    ++ItemPlacementsUsingDefinitionId;
+                }
+                else if (Status == TEXT ("LEGACY_ARCHETYPE_FALLBACK"))
+                {
+                    ++ItemPlacementsUsingLegacyFallback;
+                }
+
+                Result += FString::Printf (
+                    TEXT ("  Item ObjectId=%s Cell=(%d,%d) ArchetypeId=%s ItemDefinitionAsset=%s ItemDefinitionId=%s Status=%s\n"),
+                    *Object.ObjectId.ToString (),
+                    Object.CellX,
+                    Object.CellY,
+                    *Object.ArchetypeId.ToString (),
+                    *GetObjectWorkflowAssetName (Object.ItemDefinitionAsset),
+                    *Object.ItemDefinitionId.ToString (),
+                    *Status);
+            }
+
+            if (Object.Type == EGridLevelObjectType::Receptacle)
+            {
+                ++Receptacles;
+                const FGridReceptacleBehaviorParams& Receptacle = Object.Behavior.Receptacle;
+                const FString Status = GetReceptacleWorkflowStatus (Receptacle);
+                if (Status == TEXT ("OK_INITIAL_ITEM_DEFINITION_ASSET") || Status == TEXT ("OK_INITIAL_ITEM_DEFINITION_ID"))
+                {
+                    ++ReceptaclesUsingInitialDefinition;
+                }
+                else if (Status == TEXT ("LEGACY_CONTAINED_ARCHETYPE_FALLBACK"))
+                {
+                    ++ReceptaclesUsingLegacyContainedItem;
+                }
+
+                Result += FString::Printf (
+                    TEXT ("  Receptacle ObjectId=%s ArchetypeId=%s InitialContainedItemDefinition=%s InitialContainedItemDefinitionId=%s LegacyInitialContainedItemArchetypeId=%s Status=%s\n"),
+                    *Object.ObjectId.ToString (),
+                    *Object.ArchetypeId.ToString (),
+                    *GetObjectWorkflowAssetName (Receptacle.InitialContainedItemDefinition),
+                    *Receptacle.InitialContainedItemDefinitionId.ToString (),
+                    *Receptacle.InitialContainedItemArchetypeId.ToString (),
+                    *Status);
+            }
+        }
+
+        Result += FString::Printf (
+            TEXT ("  ItemDefinitionWorkflow: ItemPlacements=%d ItemPlacementsUsingDefinitionAsset=%d ItemPlacementsUsingDefinitionId=%d ItemPlacementsUsingLegacyFallback=%d Receptacles=%d ReceptaclesUsingInitialDefinition=%d ReceptaclesUsingLegacyContainedItem=%d\n"),
+            ItemPlacements,
+            ItemPlacementsUsingDefinitionAsset,
+            ItemPlacementsUsingDefinitionId,
+            ItemPlacementsUsingLegacyFallback,
+            Receptacles,
+            ReceptaclesUsingInitialDefinition,
+            ReceptaclesUsingLegacyContainedItem);
     }
 
 #if WITH_EDITOR
@@ -595,6 +752,39 @@ FString AGridLevelEditorActor::GetEditorRuntimeAssetConsistencyDiagnostics () co
 void AGridLevelEditorActor::LogEditorRuntimeAssetConsistency () const
 {
     UE_LOG (LogTemp, Log, TEXT ("%s"), *GetEditorRuntimeAssetConsistencyDiagnostics ());
+}
+
+FString AGridLevelEditorActor::GetItemWorkflowDiagnostics () const
+{
+    FString Result;
+    Result += TEXT ("Grid ItemDefinition Workflow Diagnostics\n");
+    Result += FString::Printf (TEXT ("EditorActor=%s\n"), *GetName ());
+    Result += FString::Printf (TEXT ("DungeonAsset=%s\n"), DungeonAsset ? *DungeonAsset->GetPathName () : TEXT ("None"));
+    Result += FString::Printf (TEXT ("LevelAsset=%s\n"), LevelAsset ? *LevelAsset->GetPathName () : TEXT ("None"));
+
+    if (DungeonAsset && DungeonAsset->Levels.Num () > 0)
+    {
+        for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+        {
+            if (!Entry.bEnabled)
+            {
+                continue;
+            }
+            const FString LevelLabel = Entry.LevelId.IsNone ()
+                ? FString (TEXT ("None"))
+                : Entry.LevelId.ToString ();
+            AppendItemWorkflowDiagnosticsForLevel (Result, Entry.LevelAsset, LevelLabel);
+        }
+        return Result;
+    }
+
+    AppendItemWorkflowDiagnosticsForLevel (Result, LevelAsset, TEXT ("CurrentLevel"));
+    return Result;
+}
+
+void AGridLevelEditorActor::LogItemWorkflowDiagnostics () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetItemWorkflowDiagnostics ());
 }
 
 FString AGridLevelEditorActor::GetDungeonDiagnostics () const
@@ -2580,6 +2770,142 @@ bool AGridLevelEditorActor::SetSelectedObjectArchetypeId (FName NewArchetypeId)
     Obj->ArchetypeId = NewArchetypeId;
     ObjectArchetypeId = NewArchetypeId;
     SelectedArchetypeId = NewArchetypeId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionAsset (UGridItemDefinitionAsset* NewItemDefinitionAsset)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->ItemDefinitionAsset = NewItemDefinitionAsset;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectItemDefinitionId (FName NewItemDefinitionId)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->ItemDefinitionId = NewItemDefinitionId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset ()
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item || !Obj->ItemDefinitionAsset)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->ItemDefinitionId = Obj->ItemDefinitionAsset->ItemDefinitionId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedReceptacleInitialContainedItemDefinition (UGridItemDefinitionAsset* NewItemDefinitionAsset)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Receptacle)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->Behavior.Receptacle.InitialContainedItemDefinition = NewItemDefinitionAsset;
+    ObjectBehavior = Obj->Behavior;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedReceptacleInitialContainedItemDefinitionId (FName NewItemDefinitionId)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Receptacle)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->Behavior.Receptacle.InitialContainedItemDefinitionId = NewItemDefinitionId;
+    ObjectBehavior = Obj->Behavior;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SyncSelectedReceptacleInitialItemDefinitionIdFromAsset ()
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Receptacle || !Obj->Behavior.Receptacle.InitialContainedItemDefinition)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->Behavior.Receptacle.InitialContainedItemDefinitionId =
+        Obj->Behavior.Receptacle.InitialContainedItemDefinition->ItemDefinitionId;
+    ObjectBehavior = Obj->Behavior;
 
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();

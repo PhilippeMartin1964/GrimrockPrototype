@@ -895,6 +895,81 @@ Prochaines etapes :
 
 ---
 
+## Tranche 4C - Nettoyage du workflow editeur des ItemDefinitions
+
+Objectif :
+
+- clarifier le workflow editeur des items transportables ;
+- rendre visible la separation officielle entre `UGridItemDefinitionAsset` et `UGridObjectArchetypeAsset` ;
+- diagnostiquer les anciens placements et receptacles qui utilisent encore les fallbacks legacy ;
+- preparer la suppression progressive des anciens doublons sans modifier ni supprimer automatiquement les assets UE.
+
+Nomenclature officielle :
+
+- les nouveaux items transportables sont des `UGridItemDefinitionAsset` ;
+- leur nom d'asset suit `DA_Item_[NomItem]` ;
+- exemples : `DA_Item_Torch`, `DA_Item_IronKey`, `DA_Item_RubyGem`, `DA_Item_HealthPotion`, `DA_Item_ShortSword`, `DA_Item_WoodenShield` ;
+- ne pas recommander `DA_ItemDef_*`, `DA_Object_Item_*` ou `DA_Archetype_Item_*`.
+
+Separation officielle :
+
+- `UGridItemDefinitionAsset` est la source de verite des items transportables : torches, cles, gemmes, armes, boucliers, potions, parchemins, nourriture, composants ;
+- `UGridObjectArchetypeAsset` reste reserve aux objets de niveau fixes/interactifs : portes, boutons, leviers, plaques, escaliers, receptacles, supports, alcoves, decorations ;
+- les anciens archetypes qui representent uniquement un item transportable sont legacy ;
+- `ArchetypeId` reste temporairement supporte comme fallback pour ne pas casser les niveaux existants.
+
+Workflow recommande pour creer un item :
+
+1. Creer un DataAsset de classe `UGridItemDefinitionAsset`.
+2. Le nommer `DA_Item_[NomItem]`.
+3. Renseigner `ItemDefinitionId`.
+4. Renseigner `DisplayName`, `Weight`, `ItemType`, `WorldMesh`, `Icon` et les slots compatibles.
+5. Ajouter l'asset dans `PartyInventoryComponent.ItemDefinitions` si l'item doit appliquer poids, type et compatibilites d'equipement.
+6. Utiliser cet asset dans les placements `Type=Item` ou les receptacles.
+
+Workflow recommande pour placer un item au sol :
+
+1. Creer ou selectionner un objet de niveau `Type=Item`.
+2. Renseigner `ItemDefinitionAsset`.
+3. Synchroniser `ItemDefinitionId` depuis l'asset si necessaire.
+4. Garder `ArchetypeId` seulement comme fallback legacy ou comme aide temporaire de placement/visualisation.
+
+Workflow recommande pour mettre un item dans un receptacle :
+
+1. Selectionner le receptacle dans le Grid Editor.
+2. Renseigner `InitialContainedItemDefinition`.
+3. Synchroniser `InitialContainedItemDefinitionId` depuis l'asset si necessaire.
+4. Garder `InitialContainedItemArchetypeId` seulement comme fallback legacy.
+
+Diagnostics et helpers editeur :
+
+- l'inspecteur affiche une section `Item Definition` pour les objets `Type=Item` ;
+- l'inspecteur affiche une section `Initial Contained Item` pour les receptacles ;
+- `LogItemWorkflowDiagnostics` liste les placements et receptacles avec un statut `OK_*`, `LEGACY_*` ou `ERROR_*` ;
+- les helpers `SyncSelectedItemDefinitionIdFromAsset` et `SyncSelectedReceptacleInitialItemDefinitionIdFromAsset` recopient uniquement les ids depuis les assets ; ils ne suppriment aucun champ legacy.
+
+## Nettoyage progressif des anciens items doublons
+
+Les anciens assets de type `UGridObjectArchetypeAsset` utilises uniquement pour representer un item transportable deviennent obsoletes. Ils ne doivent plus etre utilises pour creer de nouveaux items.
+
+| Cas | Statut |
+| --- | --- |
+| `DA_Item_Torch` comme `UGridObjectArchetypeAsset` | obsolete |
+| `DA_Item_Torch` comme `UGridItemDefinitionAsset` | officiel |
+
+Procedure de nettoyage d'un ancien doublon :
+
+1. Identifier l'ancien asset item base sur `UGridObjectArchetypeAsset`.
+2. Verifier ses references avec Reference Viewer.
+3. Migrer les placements au sol vers `DA_Item_[NomItem]` de type `UGridItemDefinitionAsset`.
+4. Migrer les receptacles vers `InitialContainedItemDefinition`.
+5. Si un conflit de nom existe, renommer temporairement l'ancien asset en `Legacy_Item_[NomItem]` ou `Archetype_Legacy_Item_[NomItem]`.
+6. Supprimer manuellement l'ancien asset legacy seulement quand plus aucune reference ne subsiste.
+
+Cette tranche ne supprime pas automatiquement les assets, ne renomme pas automatiquement les assets, et ne bloque pas le gameplay legacy. Les diagnostics encouragent la migration progressive.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
