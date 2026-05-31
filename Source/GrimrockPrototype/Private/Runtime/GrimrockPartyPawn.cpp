@@ -944,7 +944,7 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
     }
     else
     {
-        HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition (nullptr, ItemDefinitionId, this, HeldItemRoot, HeldTorchActorClass);
+        HeldItemActor = LevelRuntimeActor->SpawnItemActorForArchetype (ItemArchetypeId, this, AttachParent);
     }
 
     if (!HeldItemActor)

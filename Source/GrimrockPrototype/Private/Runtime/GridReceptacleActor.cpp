@@ -25,6 +25,26 @@ namespace
         return FallbackId;
     }
 
+    FName ResolveItemActorDefinitionOrArchetypeId (const AGridItemActor* ItemActor)
+    {
+        if (!ItemActor)
+        {
+            return NAME_None;
+        }
+        if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset ())
+        {
+            if (!Definition->ItemDefinitionId.IsNone ())
+            {
+                return Definition->ItemDefinitionId;
+            }
+        }
+        if (!ItemActor->GetItemDefinitionId ().IsNone ())
+        {
+            return ItemActor->GetItemDefinitionId ();
+        }
+        return ItemActor->GetItemArchetypeId ();
+    }
+
     UGridItemDefinitionAsset* ResolveItemDefinition (UGridPartyInventoryComponent* PartyInventoryComponent, UGridItemDefinitionAsset* DirectDefinition, FName ItemDefinitionId)
     {
         if (DirectDefinition)
@@ -119,9 +139,11 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     ContainedItems.Reset ();
     RemovedInitialItemDefinitionIds.Reset ();
     bInitialItemsInitialized = false;
+    InitialContainedItemArchetypeId = Params.InitialContainedItemArchetypeId;
+    ContainedItemArchetypeId = NAME_None;
 
-    // Nouveau modèle : on raisonne en ItemDefinitionId.
-    // Les anciens AcceptedArchetypeIds / RejectedItemArchetypeIds sont considérés comme des IDs d'items tant qu'ils existent encore dans GridObjectBehavior.
+    // ItemDefinitionId remains the primary runtime identity.
+    // Legacy AcceptedArchetypeIds / RejectedItemArchetypeIds remain valid item ids while GridObjectBehavior still exposes them.
     AcceptedItemDefinitionIds = Params.AcceptedArchetypeIds;
     RejectedItemDefinitionIds = Params.RejectedItemArchetypeIds;
 
@@ -136,9 +158,10 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
         FGridInitialReceptacleItem InitialItem;
         InitialItem.ItemDefinition = Params.InitialContainedItemDefinition;
         InitialItem.ItemDefinitionId = ResolveDefinitionId (Params.InitialContainedItemDefinition, Params.InitialContainedItemDefinitionId);
+        InitialItem.ItemArchetypeId = Params.InitialContainedItemArchetypeId;
         InitialItem.Quantity = 1;
 
-        if (!InitialItem.ItemDefinitionId.IsNone () || InitialItem.ItemDefinition)
+        if (!InitialItem.ItemDefinitionId.IsNone () || !InitialItem.ItemArchetypeId.IsNone () || InitialItem.ItemDefinition)
         {
             InitialContainedItems.Add (InitialItem);
         }
@@ -334,7 +357,7 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
 
     OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
 
-    // Ancien inventaire temporaire conservé tant qu'il existe.
+    // Legacy temporary inventory kept while it still exists.
     PartyPawn->AddInventoryItem (RemovedItem.ItemDefinitionId, FMath::Max (1, RemovedItem.Quantity));
 
     if (PartyPawn->bAutoEquipTorchOnPickup && RemovedItem.ItemDefinitionId == PartyPawn->DefaultHeldItemArchetypeId)
@@ -407,10 +430,32 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
 
     for (const FGridContainedReceptacleItem& Item : ContainedItems)
     {
-        if (Item.ItemDefinitionId.IsNone ()) continue;
+        FName ResolvedItemId = Item.ItemDefinitionId;
+        if (ResolvedItemId.IsNone ())
+        {
+            ResolvedItemId = ResolveItemActorDefinitionOrArchetypeId (Item.ItemActor.Get ());
+        }
+        if (ResolvedItemId.IsNone () && Item.bWasInitialItem)
+        {
+            ResolvedItemId = ResolveDefinitionId (Item.ItemDefinition, Item.ItemArchetypeId.IsNone () ? InitialContainedItemArchetypeId : Item.ItemArchetypeId);
+        }
+        if (ResolvedItemId.IsNone ())
+        {
+            ResolvedItemId = ContainedItemArchetypeId;
+        }
+        if (ResolvedItemId.IsNone ())
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle Capture skipped contained item: ReceptacleId=%s RuntimeId=%s Actor=%s no ItemDefinitionId or legacy ArchetypeId resolved."),
+                *ObjectId.ToString (),
+                *Item.RuntimeObjectId.ToString (),
+                *GetNameSafe (Item.ItemActor.Get ()));
+            continue;
+        }
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = Item.RuntimeObjectId.IsValid () ? Item.RuntimeObjectId : FGuid::NewGuid ();
-        ItemState.ItemDefinitionId = Item.ItemDefinitionId;
+        ItemState.ArchetypeId = !Item.ItemArchetypeId.IsNone () ? Item.ItemArchetypeId : ResolvedItemId;
+        ItemState.ItemDefinitionId = ResolvedItemId;
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
         ItemState.bLightsEnabled = true;
@@ -443,6 +488,7 @@ int32 AGridReceptacleActor::ForceClearRuntimeContents (bool bMarkInitialItemsRem
 
     ClearAllContainedActors ();
     ContainedItems.Reset ();
+    ContainedItemArchetypeId = NAME_None;
 
     if (ContainedItemMesh)
     {
@@ -460,6 +506,10 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
 {
     if (ItemState.ItemDefinitionId.IsNone ())
     {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle Restore skipped contained item: ReceptacleId=%s RuntimeId=%s no ItemDefinitionId or legacy ArchetypeId resolved."),
+            *ObjectId.ToString (),
+            *ItemState.ObjectId.ToString ());
         return false;
     }
     const int32 ItemIndex = AddContainedItem (ItemState.ItemDefinitionId, nullptr, ItemActor, false, 1);
@@ -470,6 +520,7 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
     }
     FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
     Item.RuntimeObjectId = ItemState.ObjectId.IsValid () ? ItemState.ObjectId : FGuid::NewGuid ();
+    Item.ItemArchetypeId = ItemState.ArchetypeId;
     if (IsValid (Item.ItemActor.Get ()))
     {
         Item.ItemActor->SetRuntimeObjectId (Item.RuntimeObjectId);
@@ -575,12 +626,17 @@ int32 AGridReceptacleActor::AddContainedItem (FName ItemDefinitionId, UGridItemD
     FGridContainedReceptacleItem NewItem;
     NewItem.RuntimeObjectId = FGuid::NewGuid ();
     NewItem.ItemDefinitionId = ItemDefinitionId;
+    NewItem.ItemArchetypeId = IsValid (ItemActor) ? ItemActor->GetItemArchetypeId () : ItemDefinitionId;
     NewItem.ItemDefinition = ItemDefinition;
     NewItem.ItemActor = ItemActor;
     NewItem.bWasInitialItem = bWasInitialItem;
     NewItem.Quantity = FMath::Max (1, Quantity);
 
     const int32 NewIndex = ContainedItems.Add (NewItem);
+    if (ContainedItemArchetypeId.IsNone ())
+    {
+        ContainedItemArchetypeId = NewItem.ItemArchetypeId;
+    }
 
     if (!IsValid (ItemActor) && ContainedItemActorClass)
     {
@@ -626,6 +682,7 @@ bool AGridReceptacleActor::RemoveContainedItemAtIndex (int32 ItemIndex, FGridCon
     }
     ClearContainedActor (ContainedItems[ItemIndex]);
     ContainedItems.RemoveAt (ItemIndex);
+    ContainedItemArchetypeId = ContainedItems.Num () > 0 ? ContainedItems[0].ItemArchetypeId : NAME_None;
     UpdateContainedItemInteractionCollision ();
     return true;
 }
@@ -773,7 +830,8 @@ void AGridReceptacleActor::InitializeInitialContainedItems ()
 
 FName AGridReceptacleActor::ResolveInitialItemDefinitionId (const FGridInitialReceptacleItem& InitialItem) const
 {
-    return ResolveDefinitionId (InitialItem.ItemDefinition, InitialItem.ItemDefinitionId);
+    return ResolveDefinitionId (InitialItem.ItemDefinition,
+        InitialItem.ItemDefinitionId.IsNone () ? InitialItem.ItemArchetypeId : InitialItem.ItemDefinitionId);
 }
 
 bool AGridReceptacleActor::WasInitialItemRemoved (FName ItemDefinitionId) const
