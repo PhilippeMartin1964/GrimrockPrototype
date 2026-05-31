@@ -162,9 +162,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
     FVector HeldItemRelativeScale = FVector::OneVector;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
-    bool bAutoEquipTorchOnPickup = true;
-
     // Visual-only actor attached to the party view. Real item ownership stays in inventory, equipment, cursor, receptacle, or world state.
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
     TObjectPtr<AGridItemActor> HeldItemActor;

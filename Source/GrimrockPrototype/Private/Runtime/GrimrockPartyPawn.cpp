@@ -780,11 +780,6 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGri
         return false;
     }
 
-    if (bAutoEquipTorchOnPickup && InventoryItem.ItemDefinitionId == DefaultHeldItemDefinitionId)
-    {
-        // Auto equip torch currently means held visual, not equipment slot ownership.
-        EquipHeldItem (InventoryItem.ItemDefinitionId);
-    }
     return true;
 }
 
@@ -836,10 +831,13 @@ bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (
         return false;
     }
 
-    return PartyInventoryComponent->EquipItemFromInventorySlot (
+    const bool bEquipped = PartyInventoryComponent->EquipItemFromInventorySlot (
         PartyInventoryComponent->GetSelectedCharacterIndex (),
         InventorySlotIndex,
         TargetSlot);
+
+    // TODO 5C: when an equipped MainHand/OffHand item should drive the held visual, call EquipHeldItem from this explicit equipment path.
+    return bEquipped;
 }
 
 bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipmentSlot SourceSlot)

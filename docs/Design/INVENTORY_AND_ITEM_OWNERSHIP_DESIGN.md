@@ -993,7 +993,7 @@ Etat applique :
 Resultat attendu :
 
 - une prise de torche produit une seule ligne `GridInventory Pickup AddedToSelectedCharacter` ;
-- une prise de torche produit une seule ligne `Held item equipped: Item_Torch` ;
+- une prise de torche ne produit aucune ligne `Held item equipped: Item_Torch` ;
 - aucune ligne `Inventory Add` legacy ne doit apparaitre.
 
 ---
@@ -1019,6 +1019,18 @@ Etat applique :
 - `HeldItemActor` reste une representation visuelle et ne porte pas l'ownership reelle de l'item ;
 - la torche tenue en main reste un held visual, pas un `EquipmentSlot` ;
 - les diagnostics anti-doublons `ValidateInventoryOwnership` et `LogInventoryOwnershipDiagnostics` sont disponibles.
+
+---
+
+## Tranche 5B appliquee
+
+Etat applique :
+
+- pickup monde et receptacle = transfert vers l'inventaire du personnage actif uniquement ;
+- une torche dans l'inventaire ne declenche pas la lumiere du groupe ;
+- la lumiere de torche depend uniquement d'un item equipe/tenu explicitement ;
+- l'ancien auto-held-on-pickup est supprime ;
+- le pickup torche attend une seule ligne `GridInventory Pickup AddedToSelectedCharacter` et aucune ligne `Held item equipped`.
 
 ---
 
