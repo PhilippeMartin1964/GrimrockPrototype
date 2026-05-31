@@ -8,6 +8,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "EngineUtils.h"
 
@@ -31,6 +32,34 @@ namespace
             return ItemActor->GetItemDefinitionId ();
         }
         return ItemActor->ArchetypeId;
+    }
+
+    FName ResolveContainedItemDefinitionId (const AGridReceptacleActor* ReceptacleActor, const AGridItemActor* ItemActor)
+    {
+        if (const FName ItemActorId = GetItemActorInventoryId (ItemActor); !ItemActorId.IsNone ())
+        {
+            return ItemActorId;
+        }
+        if (!ReceptacleActor)
+        {
+            return NAME_None;
+        }
+        if (const UGridItemDefinitionAsset* InitialDefinition = ReceptacleActor->InitialContainedItemDefinition)
+        {
+            if (!InitialDefinition->ItemDefinitionId.IsNone ())
+            {
+                return InitialDefinition->ItemDefinitionId;
+            }
+        }
+        if (!ReceptacleActor->InitialContainedItemDefinitionId.IsNone ())
+        {
+            return ReceptacleActor->InitialContainedItemDefinitionId;
+        }
+        if (!ReceptacleActor->InitialContainedItemArchetypeId.IsNone ())
+        {
+            return ReceptacleActor->InitialContainedItemArchetypeId;
+        }
+        return ReceptacleActor->ContainedItemArchetypeId;
     }
 }
 
@@ -71,6 +100,12 @@ void AGridReceptacleActor::BeginPlay ()
         AttachContainedItemActor ();
         SetContainedItem (GetItemActorInventoryId (ContainedItemActor));
     }
+}
+
+void AGridReceptacleActor::EndPlay (const EEndPlayReason::Type EndPlayReason)
+{
+    ForceClearRuntimeContents (false);
+    Super::EndPlay (EndPlayReason);
 }
 
 bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
@@ -365,7 +400,7 @@ bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
     }
 
     AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
-    OutRemovedItemId = ItemActorToRemove ? GetItemActorInventoryId (ItemActorToRemove) : ContainedItemArchetypeId;
+    OutRemovedItemId = ResolveContainedItemDefinitionId (this, ItemActorToRemove);
     const FGuid RemovedRuntimeObjectId = ItemActorToRemove ? ItemActorToRemove->GetRuntimeObjectId () : FGuid ();
     const bool bRemovingInitialItem =
         bHadInitialItemAtSpawn &&
@@ -397,7 +432,7 @@ bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, 
     }
 
     AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
-    const FName ItemIdToRemove = ItemActorToRemove ? GetItemActorInventoryId (ItemActorToRemove) : ContainedItemArchetypeId;
+    const FName ItemIdToRemove = ResolveContainedItemDefinitionId (this, ItemActorToRemove);
     if (ItemIdToRemove.IsNone ())
     {
         UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: contained item has no archetype id; inventory handoff failed."),
@@ -416,6 +451,18 @@ bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, 
     ItemInstance.Weight = 0.0f;
     ItemInstance.bLightsEnabled = ItemActorToRemove ? ItemActorToRemove->AreItemLightsEnabled () : false;
     ItemInstance.LastWorldTransform = ItemActorToRemove ? ItemActorToRemove->GetActorTransform () : GetActorTransform ();
+
+    bool bDefinitionApplied = false;
+    if (PartyPawn->PartyInventoryComponent)
+    {
+        bDefinitionApplied = PartyPawn->PartyInventoryComponent->ApplyItemDefinitionToInstance (ItemInstance);
+    }
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory Pickup %s Item=%s Found=%s Weight=%.1f Source=ReceptacleActor"),
+        bDefinitionApplied ? TEXT ("DefinitionApplied") : TEXT ("DefinitionMissing"),
+        *ItemInstance.ItemDefinitionId.ToString (),
+        bDefinitionApplied ? TEXT ("true") : TEXT ("false"),
+        ItemInstance.Weight);
 
     if (!PartyPawn->CanAddItemInstanceToSelectedCharacterInventory (ItemInstance))
     {
@@ -581,15 +628,16 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
 
     auto AddItemState = [this, &OutState] (const AGridItemActor* ItemActor)
     {
-        if (!IsValid (ItemActor) || ItemActor->ArchetypeId.IsNone ())
+        const FName ItemDefinitionId = ResolveContainedItemDefinitionId (this, ItemActor);
+        if (!IsValid (ItemActor) || ItemDefinitionId.IsNone ())
         {
             return;
         }
 
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = ItemActor->GetRuntimeObjectId ().IsValid () ? ItemActor->GetRuntimeObjectId () : FGuid::NewGuid ();
-        ItemState.ArchetypeId = ItemActor->ArchetypeId;
-        ItemState.ItemDefinitionId = ItemActor->GetItemDefinitionId ();
+        ItemState.ArchetypeId = !ItemActor->ArchetypeId.IsNone () ? ItemActor->ArchetypeId : ItemDefinitionId;
+        ItemState.ItemDefinitionId = ItemDefinitionId;
         ItemState.Transform = ItemActor->GetActorTransform ();
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
@@ -614,10 +662,11 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
 
     if (OutState.ContainedItems.Num () == 0 && !ContainedItemArchetypeId.IsNone () && !bInitialItemRemovedFromSpawn)
     {
+        const FName ItemDefinitionId = ResolveContainedItemDefinitionId (this, nullptr);
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = ObjectId.IsValid () ? ObjectId : FGuid::NewGuid ();
         ItemState.ArchetypeId = ContainedItemArchetypeId;
-        ItemState.ItemDefinitionId = ContainedItemArchetypeId;
+        ItemState.ItemDefinitionId = !ItemDefinitionId.IsNone () ? ItemDefinitionId : ContainedItemArchetypeId;
         ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
@@ -735,6 +784,11 @@ int32 AGridReceptacleActor::ForceClearRuntimeContents (bool bMarkInitialItemRemo
 
     UpdateContainedItemInteractionCollision ();
 
+    UE_LOG (LogTemp, Verbose,
+        TEXT ("GridReceptacle Runtime ClearContainedActors ReceptacleId=%s Count=%d"),
+        *ObjectId.ToString (),
+        ClearedItemCount);
+
     return ClearedItemCount;
 }
 
@@ -767,6 +821,10 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
 
     RebuildContainedItemState ();
     UpdateContainedItemInteractionCollision ();
+    UE_LOG (LogTemp, Verbose,
+        TEXT ("GridReceptacle Restore ContainedItem Item=%s ActorClass=%s"),
+        *ResolveContainedItemDefinitionId (this, ItemActor).ToString (),
+        *GetNameSafe (ItemActor->GetClass ()));
     return true;
 }
 

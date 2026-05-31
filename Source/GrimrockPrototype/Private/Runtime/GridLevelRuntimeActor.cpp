@@ -2184,6 +2184,10 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
     {
         if (IsValid (Pair.Value))
         {
+            if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Pair.Value.Get ()))
+            {
+                ReceptacleActor->ForceClearRuntimeContents (false);
+            }
             Pair.Value->Destroy ();
         }
     }
