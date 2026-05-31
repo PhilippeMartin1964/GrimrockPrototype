@@ -134,6 +134,15 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
     bool TryDropCursorItem ();
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool CanEquipCursorItemToCharacterSlot (int32 CharacterIndex, EGridEquipmentSlot TargetSlot) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryEquipCursorItemToCharacterSlot (int32 CharacterIndex, EGridEquipmentSlot TargetSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot TargetSlot);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Weight")
     void RecalculateCharacterWeight (int32 CharacterIndex);
 

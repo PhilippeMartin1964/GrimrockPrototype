@@ -1046,6 +1046,18 @@ Etat applique :
 
 ---
 
+## Tranche 5D appliquee
+
+Etat applique :
+
+- `CursorItem` peut etre equipe vers `MainHand` ou `OffHand` ;
+- deposer `CursorItem` sur un slot vide transfere l'ownership vers `EquipmentSlot` ;
+- deposer `CursorItem` sur un slot occupe effectue un swap simple avec l'ancien item equipe ;
+- `HeldItemActor` est synchronise depuis l'equipement apres equipement depuis `CursorItem` ;
+- le pickup reste inventaire uniquement.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

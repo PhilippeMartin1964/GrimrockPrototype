@@ -201,6 +201,21 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool UnequipSelectedCharacterItemToInventory (EGridEquipmentSlot SourceSlot);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot TargetSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool TryEquipCursorItemToSelectedCharacterMainHand ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool TryEquipCursorItemToSelectedCharacterOffHand ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Debug")
+    bool DebugTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Debug")
+    bool DebugPlaceCursorItemInSelectedInventory ();
+
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     bool EquipHeldItem (FName ItemDefinitionId);
 

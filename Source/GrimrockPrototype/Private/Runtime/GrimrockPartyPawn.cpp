@@ -25,10 +25,40 @@ namespace
     {
         switch (Slot)
         {
+        case EGridEquipmentSlot::None:
+            return TEXT ("None");
         case EGridEquipmentSlot::MainHand:
             return TEXT ("MainHand");
         case EGridEquipmentSlot::OffHand:
             return TEXT ("OffHand");
+        case EGridEquipmentSlot::Head:
+            return TEXT ("Head");
+        case EGridEquipmentSlot::Chest:
+            return TEXT ("Chest");
+        case EGridEquipmentSlot::Legs:
+            return TEXT ("Legs");
+        case EGridEquipmentSlot::Feet:
+            return TEXT ("Feet");
+        case EGridEquipmentSlot::Amulet:
+            return TEXT ("Amulet");
+        case EGridEquipmentSlot::Ring1:
+            return TEXT ("Ring1");
+        case EGridEquipmentSlot::Ring2:
+            return TEXT ("Ring2");
+        case EGridEquipmentSlot::Shoulders:
+            return TEXT ("Shoulders");
+        case EGridEquipmentSlot::Gloves:
+            return TEXT ("Gloves");
+        case EGridEquipmentSlot::Belt:
+            return TEXT ("Belt");
+        case EGridEquipmentSlot::Cloak:
+            return TEXT ("Cloak");
+        case EGridEquipmentSlot::Talisman:
+            return TEXT ("Talisman");
+        case EGridEquipmentSlot::QuickSlot1:
+            return TEXT ("QuickSlot1");
+        case EGridEquipmentSlot::QuickSlot2:
+            return TEXT ("QuickSlot2");
         default:
             return TEXT ("Unsupported");
         }
@@ -895,6 +925,71 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipment
     }
 
     return bUnequipped;
+}
+
+bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot TargetSlot)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Equip Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"),
+            *GetName (),
+            GetPawnEquipmentSlotName (TargetSlot));
+        return false;
+    }
+
+    const bool bEquipped = PartyInventoryComponent->TryEquipCursorItemToSelectedCharacterSlot (TargetSlot);
+    if (bEquipped && IsHandEquipmentSlot (TargetSlot))
+    {
+        SyncHeldVisualFromSelectedCharacterEquipment ();
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"),
+        *GetName (),
+        GetPawnEquipmentSlotName (TargetSlot),
+        bEquipped ? TEXT ("true") : TEXT ("false"));
+    return bEquipped;
+}
+
+bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterMainHand ()
+{
+    return TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot::MainHand);
+}
+
+bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterOffHand ()
+{
+    return TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot::OffHand);
+}
+
+bool AGrimrockPartyPawn::DebugTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Relay Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName ());
+        return false;
+    }
+
+    const bool bTaken = PartyInventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, InventorySlotIndex);
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Take Relay Pawn=%s Character=%d Slot=%d Result=%s"),
+        *GetName (),
+        CharacterIndex,
+        InventorySlotIndex,
+        bTaken ? TEXT ("true") : TEXT ("false"));
+    return bTaken;
+}
+
+bool AGrimrockPartyPawn::DebugPlaceCursorItemInSelectedInventory ()
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place Relay Failed Pawn=%s Reason=NoPartyInventoryComponent"), *GetName ());
+        return false;
+    }
+
+    const bool bPlaced = PartyInventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Place Relay Pawn=%s Result=%s"),
+        *GetName (),
+        bPlaced ? TEXT ("true") : TEXT ("false"));
+    return bPlaced;
 }
 
 bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)

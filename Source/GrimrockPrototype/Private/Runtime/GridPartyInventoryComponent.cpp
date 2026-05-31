@@ -879,6 +879,94 @@ bool UGridPartyInventoryComponent::TryDropCursorItem ()
     return false;
 }
 
+bool UGridPartyInventoryComponent::CanEquipCursorItemToCharacterSlot (
+    int32 CharacterIndex,
+    EGridEquipmentSlot TargetSlot) const
+{
+    if (!HasCursorItem () || !IsValidCharacterIndex (CharacterIndex) || TargetSlot == EGridEquipmentSlot::None)
+    {
+        return false;
+    }
+
+    return CanEquipItemToSlot (CharacterIndex, PartyInventoryState.CursorItem, TargetSlot);
+}
+
+bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot (
+    int32 CharacterIndex,
+    EGridEquipmentSlot TargetSlot)
+{
+    EnsureEquipmentCountMatchesActiveCharacters ();
+
+    if (!CanEquipCursorItemToCharacterSlot (CharacterIndex, TargetSlot) ||
+        !PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidOrIncompatible"),
+            CharacterIndex,
+            GetEquipmentSlotName (TargetSlot));
+        return false;
+    }
+
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
+    FGridItemInstance* TargetItem = EquipmentState.GetMutableSlot (TargetSlot);
+    if (!TargetItem)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Equip Failed Character=%d Slot=%s Reason=InvalidEquipmentSlot"),
+            CharacterIndex,
+            GetEquipmentSlotName (TargetSlot));
+        return false;
+    }
+
+    FGridItemInstance ItemToEquip = PartyInventoryState.CursorItem;
+    ItemToEquip.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    ItemToEquip.OwnerGuid = CharacterState.CharacterId;
+    ItemToEquip.OwnerCharacterIndex = CharacterIndex;
+    ItemToEquip.EquipmentSlot = TargetSlot;
+
+    FGridItemInstance PreviouslyEquippedItem = *TargetItem;
+    const bool bWasOccupied = PreviouslyEquippedItem.IsValid ();
+    if (bWasOccupied)
+    {
+        PreviouslyEquippedItem.OwnerType = EGridItemOwnerType::Cursor;
+        PreviouslyEquippedItem.OwnerGuid = FGuid ();
+        PreviouslyEquippedItem.OwnerCharacterIndex = INDEX_NONE;
+        PreviouslyEquippedItem.EquipmentSlot = EGridEquipmentSlot::None;
+        PartyInventoryState.CursorItem = PreviouslyEquippedItem;
+    }
+    else
+    {
+        PartyInventoryState.CursorItem = FGridItemInstance ();
+        PartyInventoryState.bHasCursorItem = false;
+    }
+
+    *TargetItem = ItemToEquip;
+    RecalculateCharacterWeight (CharacterIndex);
+
+    if (bWasOccupied)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Equip Swap Character=%d Slot=%s NewItem=%s OldItem=%s Result=true"),
+            CharacterIndex,
+            GetEquipmentSlotName (TargetSlot),
+            *ItemToEquip.ItemDefinitionId.ToString (),
+            *PreviouslyEquippedItem.ItemDefinitionId.ToString ());
+    }
+    else
+    {
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"),
+            CharacterIndex,
+            GetEquipmentSlotName (TargetSlot),
+            *ItemToEquip.ItemDefinitionId.ToString (),
+            *ItemToEquip.RuntimeObjectId.ToString ());
+    }
+
+    return true;
+}
+
+bool UGridPartyInventoryComponent::TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot TargetSlot)
+{
+    return TryEquipCursorItemToCharacterSlot (PartyInventoryState.SelectedCharacterIndex, TargetSlot);
+}
+
 void UGridPartyInventoryComponent::RecalculateCharacterWeight (int32 CharacterIndex)
 {
     if (!IsValidCharacterIndex (CharacterIndex))
