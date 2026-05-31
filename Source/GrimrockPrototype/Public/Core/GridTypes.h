@@ -4,6 +4,8 @@
 #include "GridObjectBehavior.h"
 #include "GridTypes.generated.h"
 
+class UGridItemDefinitionAsset;
+
 UENUM (BlueprintType)
 enum class EGridCellType : uint8
 {
@@ -151,6 +153,12 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FName ArchetypeId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FName ItemDefinitionId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     bool bInitiallyEnabled = true;

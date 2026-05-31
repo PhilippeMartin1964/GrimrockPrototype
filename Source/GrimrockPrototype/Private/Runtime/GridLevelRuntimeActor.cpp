@@ -8,6 +8,7 @@
 #include "Runtime/GridEditorPreviewComponent.h"
 #include "Runtime/GrimrockGameMode.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridPressurePlateActor.h"
@@ -76,6 +77,87 @@ namespace
     FString GetRuntimeBoolText (bool bValue)
     {
         return bValue ? TEXT ("true") : TEXT ("false");
+    }
+
+    UGridItemDefinitionAsset* ResolveObjectItemDefinitionAsset (
+        const FGridLevelObjectData& ObjectData,
+        const UGridObjectArchetypeAsset* Archetype)
+    {
+        if (ObjectData.ItemDefinitionAsset)
+        {
+            return ObjectData.ItemDefinitionAsset;
+        }
+        if (Archetype && Archetype->DefaultBehavior.Item.ItemDefinitionAsset)
+        {
+            return Archetype->DefaultBehavior.Item.ItemDefinitionAsset;
+        }
+        return nullptr;
+    }
+
+    FName ResolveObjectItemDefinitionId (
+        const FGridLevelObjectData& ObjectData,
+        const UGridObjectArchetypeAsset* Archetype)
+    {
+        if (ObjectData.ItemDefinitionAsset && !ObjectData.ItemDefinitionAsset->ItemDefinitionId.IsNone ())
+        {
+            return ObjectData.ItemDefinitionAsset->ItemDefinitionId;
+        }
+        if (!ObjectData.ItemDefinitionId.IsNone ())
+        {
+            return ObjectData.ItemDefinitionId;
+        }
+        if (Archetype && Archetype->DefaultBehavior.Item.ItemDefinitionAsset &&
+            !Archetype->DefaultBehavior.Item.ItemDefinitionAsset->ItemDefinitionId.IsNone ())
+        {
+            return Archetype->DefaultBehavior.Item.ItemDefinitionAsset->ItemDefinitionId;
+        }
+        if (Archetype && !Archetype->DefaultBehavior.Item.ItemDefinitionId.IsNone ())
+        {
+            return Archetype->DefaultBehavior.Item.ItemDefinitionId;
+        }
+        return ObjectData.ArchetypeId;
+    }
+
+    UGridItemDefinitionAsset* ResolveReceptacleInitialItemDefinition (const FGridReceptacleBehaviorParams& Receptacle)
+    {
+        return Receptacle.InitialContainedItemDefinition;
+    }
+
+    FName ResolveReceptacleInitialItemDefinitionId (const FGridReceptacleBehaviorParams& Receptacle)
+    {
+        if (Receptacle.InitialContainedItemDefinition && !Receptacle.InitialContainedItemDefinition->ItemDefinitionId.IsNone ())
+        {
+            return Receptacle.InitialContainedItemDefinition->ItemDefinitionId;
+        }
+        if (!Receptacle.InitialContainedItemDefinitionId.IsNone ())
+        {
+            return Receptacle.InitialContainedItemDefinitionId;
+        }
+        return Receptacle.InitialContainedItemArchetypeId;
+    }
+
+    FName ResolvePickupItemDefinitionId (const AGridItemActor* ItemActor, FName FallbackArchetypeId)
+    {
+        if (!ItemActor)
+        {
+            return FallbackArchetypeId;
+        }
+        if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset ())
+        {
+            if (!Definition->ItemDefinitionId.IsNone ())
+            {
+                return Definition->ItemDefinitionId;
+            }
+        }
+        if (!ItemActor->GetItemDefinitionId ().IsNone ())
+        {
+            return ItemActor->GetItemDefinitionId ();
+        }
+        if (!FallbackArchetypeId.IsNone ())
+        {
+            return FallbackArchetypeId;
+        }
+        return ItemActor->GetItemArchetypeId ();
     }
 
     int32 CountRuntimeTransitionObjects (const UGridLevelAsset* InLevelAsset)
@@ -1788,6 +1870,96 @@ AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForArchetype (FName ItemAr
     return ItemActor;
 }
 
+AGridItemActor* AGridLevelRuntimeActor::SpawnItemActorForDefinition (
+    UGridItemDefinitionAsset* ItemDefinition,
+    FName ItemDefinitionId,
+    FName FallbackItemArchetypeId,
+    AActor* OwnerActor,
+    USceneComponent* AttachParent) const
+{
+    const UGridObjectArchetypeAsset* FallbackArchetype = FindObjectArchetype (FallbackItemArchetypeId);
+    if (!ItemDefinition && ItemDefinitionId.IsNone ())
+    {
+        return SpawnItemActorForArchetype (FallbackItemArchetypeId, OwnerActor, AttachParent);
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return nullptr;
+    }
+
+    TSubclassOf<AGridItemActor> ItemClass = FallbackArchetype ? FallbackArchetype->ItemActorClass : nullptr;
+    if (!ItemClass)
+    {
+        ItemClass = AGridItemActor::StaticClass ();
+    }
+
+    UStaticMesh* ItemMesh = ItemDefinition ? ItemDefinition->WorldMesh.LoadSynchronous () : nullptr;
+    if (!ItemMesh && FallbackArchetype)
+    {
+        ItemMesh = FallbackArchetype->MovingMesh ? FallbackArchetype->MovingMesh.Get () : FallbackArchetype->PreviewMesh.Get ();
+        if (!ItemMesh)
+        {
+            ItemMesh = FallbackArchetype->FixedMesh.Get ();
+        }
+    }
+
+    UMaterialInterface* ItemMaterial = nullptr;
+    if (FallbackArchetype)
+    {
+        ItemMaterial = FallbackArchetype->MovingMaterial ? FallbackArchetype->MovingMaterial.Get () : FallbackArchetype->PreviewMaterial.Get ();
+        if (!ItemMaterial)
+        {
+            ItemMaterial = FallbackArchetype->FixedMaterial.Get ();
+        }
+    }
+
+    const FTransform SpawnTransform (
+        AttachParent ? AttachParent->GetComponentRotation () : FRotator::ZeroRotator,
+        AttachParent ? AttachParent->GetComponentLocation () : GetActorLocation (),
+        FVector::OneVector);
+    if (!IsSafeRuntimeRenderTransform (SpawnTransform))
+    {
+        LogUnsafeItemTransform (TEXT ("SpawnItemActorForDefinition"), FallbackItemArchetypeId, OwnerActor, AttachParent, ItemMesh, SpawnTransform);
+        return nullptr;
+    }
+
+    FActorSpawnParameters Params;
+    Params.Owner = OwnerActor ? OwnerActor : const_cast<AGridLevelRuntimeActor*> (this);
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AGridItemActor* ItemActor = World->SpawnActor<AGridItemActor> (
+        ItemClass,
+        SpawnTransform.GetLocation (),
+        SpawnTransform.GetRotation ().Rotator (),
+        Params);
+    if (!ItemActor)
+    {
+        return nullptr;
+    }
+
+    const TArray<FName> FallbackTags = FallbackArchetype ? FallbackArchetype->ItemTags : TArray<FName> ();
+    ItemActor->InitializeItem (FallbackItemArchetypeId, FallbackTags, ItemMesh, ItemMaterial);
+    if (ItemDefinition)
+    {
+        ItemActor->InitializeFromItemDefinition (ItemDefinition, FGuid ());
+    }
+    else
+    {
+        ItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, FGuid ());
+    }
+
+    if (AttachParent)
+    {
+        ItemActor->ConfigureAsAttachedItem ();
+        ItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+        ItemActor->SetActorRelativeTransform (FTransform::Identity);
+    }
+
+    return ItemActor;
+}
+
 bool AGridLevelRuntimeActor::GetFloorEdgeObjectTransform (const FGridLevelObjectData& ObjectData, float ZOffset, float EdgeInset,
     FTransform& OutTransform) const
 {
@@ -1898,6 +2070,14 @@ bool AGridLevelRuntimeActor::GetObjectPlacementTransform (const FGridLevelObject
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
     if (!Archetype)
     {
+        if (ObjectData.Type == EGridLevelObjectType::Item)
+        {
+            if (ObjectData.Edge != EGridEdge::None)
+            {
+                return GetFloorEdgeObjectTransform (ObjectData, 12.f, 18.f, OutTransform);
+            }
+            return GetCenteredObjectTransform (ObjectData, 12.f, OutTransform);
+        }
         return false;
     }
     if (ObjectData.Type == EGridLevelObjectType::Door)
@@ -1986,12 +2166,10 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
             return false;
         }
 
-        const FName ItemArchetypeId = Entry.ItemArchetypeId.IsNone ()
-            ? ItemActor->GetItemArchetypeId ()
-            : Entry.ItemArchetypeId;
-        if (ItemArchetypeId.IsNone ())
+        const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+        if (ItemDefinitionId.IsNone ())
         {
-            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed at cell %d,%d: missing item archetype id."), CellX, CellY);
+            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
             return false;
         }
 
@@ -2001,7 +2179,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
         {
             ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
         }
-        ItemInstance.ItemDefinitionId = ItemArchetypeId;
+        ItemInstance.ItemDefinitionId = ItemDefinitionId;
         ItemInstance.Quantity = 1;
         ItemInstance.Weight = 0.0f;
         ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
@@ -2010,7 +2188,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
         if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
-                *ItemArchetypeId.ToString (),
+                *ItemDefinitionId.ToString (),
                 *ItemInstance.RuntimeObjectId.ToString ());
             return false;
         }
@@ -2027,7 +2205,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
 
         SpawnedItemEntries.RemoveAtSwap (EntryIndex);
 
-        UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from cell %d,%d."), *ItemArchetypeId.ToString (), CellX, CellY);
+        UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from cell %d,%d."), *ItemDefinitionId.ToString (), CellX, CellY);
         return true;
     }
 
@@ -2049,12 +2227,10 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
             continue;
         }
 
-        const FName ItemArchetypeId = Entry.ItemArchetypeId.IsNone ()
-            ? ItemActor->GetItemArchetypeId ()
-            : Entry.ItemArchetypeId;
-        if (ItemArchetypeId.IsNone ())
+        const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+        if (ItemDefinitionId.IsNone ())
         {
-            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed for actor %s: missing item archetype id."), *ItemActor->GetName ());
+            UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName ());
             return false;
         }
 
@@ -2064,7 +2240,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
         {
             ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
         }
-        ItemInstance.ItemDefinitionId = ItemArchetypeId;
+        ItemInstance.ItemDefinitionId = ItemDefinitionId;
         ItemInstance.Quantity = 1;
         ItemInstance.Weight = 0.0f;
         ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
@@ -2073,7 +2249,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
         if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
-                *ItemArchetypeId.ToString (),
+                *ItemDefinitionId.ToString (),
                 *ItemInstance.RuntimeObjectId.ToString ());
             return false;
         }
@@ -2089,7 +2265,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
         const FIntPoint PickedCell = Entry.Cell;
         SpawnedItemEntries.RemoveAtSwap (EntryIndex);
 
-        UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from clicked actor at cell %d,%d."), *ItemArchetypeId.ToString (), PickedCell.X, PickedCell.Y);
+        UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from clicked actor at cell %d,%d."), *ItemDefinitionId.ToString (), PickedCell.X, PickedCell.Y);
         return true;
     }
 
@@ -2121,7 +2297,12 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
 
     if (ObjectData.Type == EGridLevelObjectType::Item)
     {
-        return !ObjectData.ArchetypeId.IsNone ();
+        const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+        return ObjectData.ItemDefinitionAsset ||
+            !ObjectData.ItemDefinitionId.IsNone () ||
+            (Archetype && (Archetype->DefaultBehavior.Item.ItemDefinitionAsset ||
+                !Archetype->DefaultBehavior.Item.ItemDefinitionId.IsNone ())) ||
+            !ObjectData.ArchetypeId.IsNone ();
     }
 
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
@@ -2163,15 +2344,28 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
         return;
     }
 
-    AGridItemActor* ItemActor = SpawnItemActorForArchetype (ObjectData.ArchetypeId, this, nullptr);
+    const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    UGridItemDefinitionAsset* ItemDefinition = ResolveObjectItemDefinitionAsset (ObjectData, Archetype);
+    const FName ItemDefinitionId = ResolveObjectItemDefinitionId (ObjectData, Archetype);
+    AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, ItemDefinitionId, ObjectData.ArchetypeId, this, nullptr);
     if (!ItemActor)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: failed to spawn item archetype %s."), *ObjectData.ArchetypeId.ToString ());
+        UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: failed to spawn item definition %s fallback archetype %s."),
+            *ItemDefinitionId.ToString (),
+            *ObjectData.ArchetypeId.ToString ());
         return;
     }
 
     ItemActor->SetActorTransform (Transform);
     ItemActor->SetRuntimeObjectId (ObjectData.ObjectId);
+    if (ItemDefinition)
+    {
+        ItemActor->InitializeFromItemDefinition (ItemDefinition, ObjectData.ObjectId);
+    }
+    else if (!ItemDefinitionId.IsNone ())
+    {
+        ItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, ObjectData.ObjectId);
+    }
     ItemActor->SetRuntimeCell (ObjectData.CellX, ObjectData.CellY);
     ItemActor->ConfigureAsWorldPickup ();
     ItemActor->OnRemovedFromWorld ();
@@ -2182,9 +2376,14 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     Entry.ItemActor = ItemActor;
     Entry.ObjectId = ObjectData.ObjectId;
     Entry.ItemArchetypeId = ObjectData.ArchetypeId;
+    Entry.ItemDefinitionAsset = ItemDefinition;
+    Entry.ItemDefinitionId = ItemDefinitionId;
     SpawnedItemEntries.Add (Entry);
 
-    UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."), *ObjectData.ArchetypeId.ToString (), *ObjectData.ObjectId.ToString ());
+    UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s fallback archetype %s."),
+        *ItemDefinitionId.ToString (),
+        *ObjectData.ObjectId.ToString (),
+        *ObjectData.ArchetypeId.ToString ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
@@ -2227,14 +2426,26 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
                 Archetype->MovingMaterial
             );
         }
-        if (!RuntimeObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ())
+        UGridItemDefinitionAsset* InitialItemDefinition = ResolveReceptacleInitialItemDefinition (RuntimeObjectData.Behavior.Receptacle);
+        const FName InitialItemDefinitionId = ResolveReceptacleInitialItemDefinitionId (RuntimeObjectData.Behavior.Receptacle);
+        if (InitialItemDefinition || !InitialItemDefinitionId.IsNone ())
         {
-            if (AGridItemActor* ItemActor = SpawnItemActorForArchetype (
+            if (AGridItemActor* ItemActor = SpawnItemActorForDefinition (
+                InitialItemDefinition,
+                InitialItemDefinitionId,
                 RuntimeObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId,
                 ReceptacleActor,
                 ReceptacleActor->ItemAttachPoint))
             {
                 ItemActor->SetRuntimeObjectId (RuntimeObjectData.ObjectId);
+                if (InitialItemDefinition)
+                {
+                    ItemActor->InitializeFromItemDefinition (InitialItemDefinition, RuntimeObjectData.ObjectId);
+                }
+                else
+                {
+                    ItemActor->InitializeFromItemDefinitionId (InitialItemDefinitionId, RuntimeObjectData.ObjectId);
+                }
                 ReceptacleActor->SetInitialContainedItemActor (ItemActor);
             }
         }

@@ -852,6 +852,49 @@ Non implemente a ce stade :
 
 ---
 
+## Tranche 4B - Placements d'items bases sur ItemDefinition
+
+Objectif :
+
+- les items transportables sont definis par `UGridItemDefinitionAsset` ;
+- un item transportable ne doit plus necessiter un `UGridObjectArchetypeAsset` dedie ;
+- un placement d'item au sol reference une ItemDefinition ;
+- le contenu initial d'un receptacle reference une ItemDefinition ;
+- `UGridObjectArchetypeAsset` reste reserve aux objets de niveau fixes/interactifs : portes, boutons, leviers, plaques, escaliers, receptacles, supports, alcoves et decorations.
+
+Etat applique :
+
+- `FGridLevelObjectData` expose `ItemDefinitionAsset` et `ItemDefinitionId` pour les objets `Type=Item` ;
+- `FGridObjectBehaviorParams.Item` expose aussi `ItemDefinitionAsset` et `ItemDefinitionId` pour les valeurs par defaut d'archetype ;
+- `FGridReceptacleBehaviorParams` expose `InitialContainedItemDefinition` et `InitialContainedItemDefinitionId` ;
+- `AGridItemActor` peut etre initialise directement depuis un `UGridItemDefinitionAsset` ou depuis un `ItemDefinitionId` ;
+- le spawn runtime d'un item au sol resout la definition dans l'ordre : placement asset, placement id, archetype/default behavior asset, archetype/default behavior id, fallback `ArchetypeId` ;
+- le retrait d'un item depuis le monde ou un receptacle cree une instance avec le vrai `ItemDefinitionId` quand il est disponible ;
+- `ArchetypeId` reste supporte temporairement comme fallback pour les anciens niveaux et assets.
+
+Compatibilite :
+
+- les anciens objets `Item` bases sur `ArchetypeId=Item_Torch` restent ramassables ;
+- les anciens supports et receptacles avec `InitialContainedItemArchetypeId=Item_Torch` restent fonctionnels ;
+- les anciens assets qui doublonnent des items ne sont pas supprimes automatiquement ;
+- si un conflit de nom existe dans UE, renommer progressivement l'ancien asset ou placer le nouvel asset dans le dossier approprie, sans migration destructive.
+
+Nomenclature officielle :
+
+- `UGridItemDefinitionAsset` : `DA_Item_[NomItem]`.
+- Exemples : `DA_Item_Torch`, `DA_Item_IronKey`, `DA_Item_RubyGem`, `DA_Item_HealthPotion`, `DA_Item_ShortSword`, `DA_Item_WoodenShield`.
+- Ne pas utiliser `DA_ItemDef_*`.
+- Ne pas utiliser `DA_Object_Item_*` comme modele final.
+- `UGridObjectArchetypeAsset` reste pour les objets fixes/interactifs, par exemple `DA_Object_TorchHolder`, `Receptacle_TorchHolder`, `Door_Stone`, `Button_Normal`, `Lever`, `PressurePlate`, `Stairs_Down`, `Stairs_Up`.
+
+Prochaines etapes :
+
+- exposer proprement les nouveaux champs dans l'inspecteur du Grid Editor Mode ;
+- nettoyer progressivement les anciens archetypes d'items en double apres validation des ItemDefinitions ;
+- ne pas faire de migration automatique destructive.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

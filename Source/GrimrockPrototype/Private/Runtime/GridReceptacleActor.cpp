@@ -6,10 +6,33 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "EngineUtils.h"
 
+namespace
+{
+    FName GetItemActorInventoryId (const AGridItemActor* ItemActor)
+    {
+        if (!ItemActor)
+        {
+            return NAME_None;
+        }
+        if (const UGridItemDefinitionAsset* Definition = ItemActor->GetItemDefinitionAsset ())
+        {
+            if (!Definition->ItemDefinitionId.IsNone ())
+            {
+                return Definition->ItemDefinitionId;
+            }
+        }
+        if (!ItemActor->GetItemDefinitionId ().IsNone ())
+        {
+            return ItemActor->GetItemDefinitionId ();
+        }
+        return ItemActor->ArchetypeId;
+    }
+}
 
 AGridReceptacleActor::AGridReceptacleActor ()
 {
@@ -46,7 +69,7 @@ void AGridReceptacleActor::BeginPlay ()
     {
         ContainedItemActors.AddUnique (ContainedItemActor);
         AttachContainedItemActor ();
-        SetContainedItem (ContainedItemActor->ArchetypeId);
+        SetContainedItem (GetItemActorInventoryId (ContainedItemActor));
     }
 }
 
@@ -175,6 +198,8 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     AcceptedArchetypeIds = ObjectData.Behavior.Receptacle.AcceptedArchetypeIds;
     RejectedItemArchetypeIds = ObjectData.Behavior.Receptacle.RejectedItemArchetypeIds;
     InitialContainedItemArchetypeId = ObjectData.Behavior.Receptacle.InitialContainedItemArchetypeId;
+    InitialContainedItemDefinition = ObjectData.Behavior.Receptacle.InitialContainedItemDefinition;
+    InitialContainedItemDefinitionId = ObjectData.Behavior.Receptacle.InitialContainedItemDefinitionId;
     MaxContainedItems = FMath::Max (1, ObjectData.Behavior.Receptacle.MaxContainedItems);
     bUsePhysicalPlacement = ObjectData.Behavior.Receptacle.bUsePhysicalPlacement;
     bExtinguishItemOnPhysicalPlacement = ObjectData.Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement;
@@ -201,6 +226,8 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     if (!bStartsFilled)
     {
         InitialContainedItemArchetypeId = NAME_None;
+        InitialContainedItemDefinition = nullptr;
+        InitialContainedItemDefinitionId = NAME_None;
     }
 
     SetContainedItem (NAME_None);
@@ -312,12 +339,13 @@ bool AGridReceptacleActor::TryInsertItemActor (AGridItemActor* ItemActor)
         return false;
     }
 
-    if (!CanAcceptItemArchetype (ItemActor->ArchetypeId, ItemActor->ItemTags))
+    const FName ItemInventoryId = GetItemActorInventoryId (ItemActor);
+    if (!CanAcceptItemArchetype (ItemInventoryId, ItemActor->ItemTags))
     {
         UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s rejected item actor %s: %s"),
             *ObjectId.ToString (),
-            *ItemActor->ArchetypeId.ToString (),
-            *GetItemAcceptanceFailureReason (ItemActor->ArchetypeId, ItemActor->ItemTags));
+            *ItemInventoryId.ToString (),
+            *GetItemAcceptanceFailureReason (ItemInventoryId, ItemActor->ItemTags));
         return false;
     }
 
@@ -337,7 +365,7 @@ bool AGridReceptacleActor::TryRemoveItem (FName& OutRemovedItemId)
     }
 
     AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
-    OutRemovedItemId = ItemActorToRemove ? ItemActorToRemove->ArchetypeId : ContainedItemArchetypeId;
+    OutRemovedItemId = ItemActorToRemove ? GetItemActorInventoryId (ItemActorToRemove) : ContainedItemArchetypeId;
     const FGuid RemovedRuntimeObjectId = ItemActorToRemove ? ItemActorToRemove->GetRuntimeObjectId () : FGuid ();
     const bool bRemovingInitialItem =
         bHadInitialItemAtSpawn &&
@@ -369,7 +397,7 @@ bool AGridReceptacleActor::TryTakeContainedItem (AGrimrockPartyPawn* PartyPawn, 
     }
 
     AGridItemActor* ItemActorToRemove = IsValid (PendingRemovalItemActor) ? PendingRemovalItemActor.Get () : GetDefaultContainedItemActor ();
-    const FName ItemIdToRemove = ItemActorToRemove ? ItemActorToRemove->ArchetypeId : ContainedItemArchetypeId;
+    const FName ItemIdToRemove = ItemActorToRemove ? GetItemActorInventoryId (ItemActorToRemove) : ContainedItemArchetypeId;
     if (ItemIdToRemove.IsNone ())
     {
         UE_LOG (LogTemp, Warning, TEXT ("Receptacle %s: contained item has no archetype id; inventory handoff failed."),
@@ -537,7 +565,7 @@ void AGridReceptacleActor::SetInitialContainedItemActor (AGridItemActor* ItemAct
         bHadInitialItemAtSpawn = true;
         bInitialItemRemovedFromSpawn = false;
         InitialItemRuntimeObjectId = ContainedItemActor->GetRuntimeObjectId ();
-        InitialItemArchetypeIdAtSpawn = ContainedItemActor->ArchetypeId;
+        InitialItemArchetypeIdAtSpawn = GetItemActorInventoryId (ContainedItemActor);
         ContainedItemActors.AddUnique (ContainedItemActor);
         AttachContainedItemActor (ContainedItemActor);
         RebuildContainedItemState ();
@@ -942,10 +970,11 @@ void AGridReceptacleActor::RebuildContainedItemState ()
             {
                 continue;
             }
+            const FName ItemInventoryId = GetItemActorInventoryId (ItemActor);
             if (ContainedItemArchetypeId.IsNone ())
             {
-                ContainedItemArchetypeId = ItemActor->ArchetypeId;
-                ContainedItemId = ItemActor->ArchetypeId;
+                ContainedItemArchetypeId = ItemInventoryId;
+                ContainedItemId = ItemInventoryId;
             }
             for (const FName& ItemTag : ItemActor->ItemTags)
             {
@@ -955,8 +984,9 @@ void AGridReceptacleActor::RebuildContainedItemState ()
     }
     else if (ContainedItemActor)
     {
-        ContainedItemArchetypeId = ContainedItemActor->ArchetypeId;
-        ContainedItemId = ContainedItemActor->ArchetypeId;
+        const FName ItemInventoryId = GetItemActorInventoryId (ContainedItemActor);
+        ContainedItemArchetypeId = ItemInventoryId;
+        ContainedItemId = ItemInventoryId;
         ContainedItemTags = ContainedItemActor->ItemTags;
     }
 

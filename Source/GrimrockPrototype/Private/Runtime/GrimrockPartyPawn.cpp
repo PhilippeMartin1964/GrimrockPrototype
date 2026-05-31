@@ -865,6 +865,17 @@ void AGrimrockPartyPawn::LogPartyInventoryDiagnostics () const
     UE_LOG (LogTemp, Warning, TEXT ("PartyInventoryComponent is null on %s"), *GetName ());
 }
 
+void AGrimrockPartyPawn::LogItemDefinitionDiagnostics () const
+{
+    if (PartyInventoryComponent)
+    {
+        PartyInventoryComponent->LogItemDefinitionDiagnostics ();
+        return;
+    }
+
+    UE_LOG (LogTemp, Warning, TEXT ("PartyInventoryComponent is null on %s"), *GetName ());
+}
+
 bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (
     int32 InventorySlotIndex,
     EGridEquipmentSlot TargetSlot)

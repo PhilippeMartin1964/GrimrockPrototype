@@ -105,6 +105,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     void LogPartyInventoryDiagnostics () const;
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
+    FString GetItemDefinitionDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
+    void LogItemDefinitionDiagnostics () const;
+
 private:
     void EnsureEquipmentCountMatchesActiveCharacters ();
     void InitializeCharacterDefaults (FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;

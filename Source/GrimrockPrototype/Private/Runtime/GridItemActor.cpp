@@ -3,6 +3,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Runtime/GridInteractionUtils.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -24,6 +25,10 @@ void AGridItemActor::InitializeItem (FName InArchetypeId, const TArray<FName>& I
 {
     ArchetypeId = InArchetypeId;
     ItemTags = InItemTags;
+    if (ItemDefinitionId.IsNone ())
+    {
+        ItemDefinitionId = InArchetypeId;
+    }
     if (!RuntimeObjectId.IsValid ())
     {
         RuntimeObjectId = FGuid::NewGuid ();
@@ -60,6 +65,55 @@ void AGridItemActor::SetItemLightsEnabled (bool bEnabled)
         {
             LightEmitter->SetLightEnabled (bEnabled);
         }
+    }
+}
+
+void AGridItemActor::InitializeFromItemDefinition (UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId)
+{
+    if (!InDefinition)
+    {
+        return;
+    }
+
+    ItemDefinitionAsset = InDefinition;
+    ItemDefinitionId = InDefinition->ItemDefinitionId;
+    if (ArchetypeId.IsNone ())
+    {
+        ArchetypeId = ItemDefinitionId;
+    }
+    ItemTags = InDefinition->ItemTags;
+    SetRuntimeObjectId (InRuntimeObjectId);
+    if (!RuntimeObjectId.IsValid ())
+    {
+        RuntimeObjectId = FGuid::NewGuid ();
+    }
+
+    if (MeshComponent)
+    {
+        if (UStaticMesh* WorldMesh = InDefinition->WorldMesh.LoadSynchronous ())
+        {
+            MeshComponent->SetStaticMesh (WorldMesh);
+        }
+    }
+}
+
+void AGridItemActor::InitializeFromItemDefinitionId (FName InItemDefinitionId, const FGuid& InRuntimeObjectId)
+{
+    if (InItemDefinitionId.IsNone ())
+    {
+        return;
+    }
+
+    ItemDefinitionAsset = nullptr;
+    ItemDefinitionId = InItemDefinitionId;
+    if (ArchetypeId.IsNone ())
+    {
+        ArchetypeId = InItemDefinitionId;
+    }
+    SetRuntimeObjectId (InRuntimeObjectId);
+    if (!RuntimeObjectId.IsValid ())
+    {
+        RuntimeObjectId = FGuid::NewGuid ();
     }
 }
 
@@ -124,6 +178,20 @@ FName AGridItemActor::GetItemArchetypeId () const
     return ArchetypeId;
 }
 
+UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset () const
+{
+    return ItemDefinitionAsset;
+}
+
+FName AGridItemActor::GetItemDefinitionId () const
+{
+    if (ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone ())
+    {
+        return ItemDefinitionAsset->ItemDefinitionId;
+    }
+    return ItemDefinitionId;
+}
+
 bool AGridItemActor::HasItemTag (FName Tag) const
 {
     return !Tag.IsNone () && ItemTags.Contains (Tag);
@@ -137,7 +205,8 @@ void AGridItemActor::SetRuntimeCell (int32 InCellX, int32 InCellY)
 
 bool AGridItemActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent || ArchetypeId.IsNone ())
+    if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent ||
+        (ArchetypeId.IsNone () && GetItemDefinitionId ().IsNone ()))
     {
         return false;
     }
@@ -182,7 +251,7 @@ void AGridItemActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPri
 
 EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent != MeshComponent || ArchetypeId.IsNone ())
+    if (HitComponent != MeshComponent || (ArchetypeId.IsNone () && GetItemDefinitionId ().IsNone ()))
     {
         return EGridInteractionCursor::Default;
     }
@@ -195,7 +264,7 @@ EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation (UPri
 
 FText AGridItemActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent != MeshComponent || ArchetypeId.IsNone ())
+    if (HitComponent != MeshComponent || (ArchetypeId.IsNone () && GetItemDefinitionId ().IsNone ()))
     {
         return FText::GetEmpty ();
     }

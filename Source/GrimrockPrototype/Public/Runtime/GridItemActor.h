@@ -6,6 +6,7 @@
 #include "GridItemActor.generated.h"
 
 class UStaticMeshComponent;
+class UGridItemDefinitionAsset;
 
 UCLASS (Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridItemActor : public AActor, public IGridInteractableInterface
@@ -24,6 +25,12 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     FName ArchetypeId = NAME_None;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+    FName ItemDefinitionId = NAME_None;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     TArray<FName> ItemTags;
 
@@ -38,6 +45,12 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     virtual void InitializeItem (FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh, UMaterialInterface* Material);
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    void InitializeFromItemDefinition (UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId);
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    void InitializeFromItemDefinitionId (FName InItemDefinitionId, const FGuid& InRuntimeObjectId);
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     virtual void OnPlacedInWorld ();
@@ -65,6 +78,12 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     FName GetItemArchetypeId () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    UGridItemDefinitionAsset* GetItemDefinitionAsset () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Item")
+    FName GetItemDefinitionId () const;
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     bool HasItemTag (FName Tag) const;

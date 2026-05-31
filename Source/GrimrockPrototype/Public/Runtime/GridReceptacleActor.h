@@ -9,6 +9,7 @@
 class UStaticMeshComponent;
 class AGrimrockPartyPawn;
 class AGridItemActor;
+class UGridItemDefinitionAsset;
 
 /**
  * Generic runtime receptacle: torch holder, wall niche, pedestal, statue slot, altar, etc.
@@ -45,6 +46,12 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
+    TObjectPtr<UGridItemDefinitionAsset> InitialContainedItemDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
+    FName InitialContainedItemDefinitionId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (ClampMin = "1"))
     int32 MaxContainedItems = 1;

@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.generated.h"
 
+class UGridItemDefinitionAsset;
+
 UENUM (BlueprintType)
 enum class EGridEdge : uint8
 {
@@ -11,6 +13,18 @@ enum class EGridEdge : uint8
     East    UMETA (DisplayName = "East"),
     South   UMETA (DisplayName = "South"),
     West    UMETA (DisplayName = "West")
+};
+
+USTRUCT (BlueprintType)
+struct FGridItemBehaviorParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FName ItemDefinitionId = NAME_None;
 };
 
 USTRUCT (BlueprintType)
@@ -77,6 +91,12 @@ struct FGridReceptacleBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FName InitialContainedItemArchetypeId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
+    TObjectPtr<UGridItemDefinitionAsset> InitialContainedItemDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
+    FName InitialContainedItemDefinitionId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Max Contained Items", ClampMin = "1"))
@@ -170,6 +190,9 @@ USTRUCT (BlueprintType)
 struct FGridObjectBehaviorParams
 {
     GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FGridItemBehaviorParams Item;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Teleporter")
     FGridTeleporterBehaviorParams Teleporter;

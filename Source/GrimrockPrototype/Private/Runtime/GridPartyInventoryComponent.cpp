@@ -65,6 +65,62 @@ namespace
         }
     }
 
+    const TCHAR* GetItemTypeName (EGridItemType ItemType)
+    {
+        switch (ItemType)
+        {
+        case EGridItemType::Torch:
+            return TEXT ("Torch");
+        case EGridItemType::Weapon:
+            return TEXT ("Weapon");
+        case EGridItemType::Shield:
+            return TEXT ("Shield");
+        case EGridItemType::Armor:
+            return TEXT ("Armor");
+        case EGridItemType::Jewelry:
+            return TEXT ("Jewelry");
+        case EGridItemType::Key:
+            return TEXT ("Key");
+        case EGridItemType::Gem:
+            return TEXT ("Gem");
+        case EGridItemType::Potion:
+            return TEXT ("Potion");
+        case EGridItemType::Scroll:
+            return TEXT ("Scroll");
+        case EGridItemType::Book:
+            return TEXT ("Book");
+        case EGridItemType::Food:
+            return TEXT ("Food");
+        case EGridItemType::Component:
+            return TEXT ("Component");
+        case EGridItemType::Quest:
+            return TEXT ("Quest");
+        case EGridItemType::Misc:
+            return TEXT ("Misc");
+        default:
+            return TEXT ("None");
+        }
+    }
+
+    FString GetEquipmentSlotsText (const TArray<EGridEquipmentSlot>& Slots)
+    {
+        if (Slots.Num () == 0)
+        {
+            return TEXT ("None");
+        }
+
+        FString Result;
+        for (int32 Index = 0; Index < Slots.Num (); ++Index)
+        {
+            if (Index > 0)
+            {
+                Result += TEXT (",");
+            }
+            Result += GetEquipmentSlotName (Slots[Index]);
+        }
+        return Result;
+    }
+
     int32 FindFreeInventorySlotIndex (const FGridCharacterInventoryState& CharacterState)
     {
         for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num (); ++SlotIndex)
@@ -618,6 +674,68 @@ FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics () const
 void UGridPartyInventoryComponent::LogPartyInventoryDiagnostics () const
 {
     UE_LOG (LogTemp, Log, TEXT ("%s"), *GetPartyInventoryDiagnostics ());
+}
+
+FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics () const
+{
+    FString Result;
+    Result += TEXT ("GridItemDefinition Diagnostics\n");
+    Result += FString::Printf (TEXT ("Definitions=%d\n"), ItemDefinitions.Num ());
+
+    TMap<FName, int32> DefinitionIdCounts;
+    int32 DuplicateCount = 0;
+    for (const TObjectPtr<UGridItemDefinitionAsset>& Definition : ItemDefinitions)
+    {
+        if (!Definition || Definition->ItemDefinitionId.IsNone ())
+        {
+            continue;
+        }
+        int32& Count = DefinitionIdCounts.FindOrAdd (Definition->ItemDefinitionId);
+        ++Count;
+        if (Count == 2)
+        {
+            ++DuplicateCount;
+        }
+    }
+
+    for (int32 Index = 0; Index < ItemDefinitions.Num (); ++Index)
+    {
+        const UGridItemDefinitionAsset* Definition = ItemDefinitions[Index];
+        if (!Definition)
+        {
+            Result += FString::Printf (TEXT ("[%d] Asset=None Warning=NullDefinition\n"), Index);
+            continue;
+        }
+
+        Result += FString::Printf (
+            TEXT ("[%d] Asset=%s Id=%s Type=%s Weight=%.1f Slots=%s\n"),
+            Index,
+            *Definition->GetName (),
+            *Definition->ItemDefinitionId.ToString (),
+            GetItemTypeName (Definition->ItemType),
+            Definition->Weight,
+            *GetEquipmentSlotsText (Definition->CompatibleEquipmentSlots));
+
+        if (Definition->ItemDefinitionId.IsNone ())
+        {
+            Result += FString::Printf (TEXT ("Warning Asset=%s ItemDefinitionId=None\n"), *Definition->GetName ());
+        }
+        else if (DefinitionIdCounts.FindRef (Definition->ItemDefinitionId) > 1)
+        {
+            Result += FString::Printf (
+                TEXT ("Warning Duplicate ItemDefinitionId=%s Asset=%s\n"),
+                *Definition->ItemDefinitionId.ToString (),
+                *Definition->GetName ());
+        }
+    }
+
+    Result += FString::Printf (TEXT ("Duplicates=%d\n"), DuplicateCount);
+    return Result;
+}
+
+void UGridPartyInventoryComponent::LogItemDefinitionDiagnostics () const
+{
+    UE_LOG (LogTemp, Log, TEXT ("%s"), *GetItemDefinitionDiagnostics ());
 }
 
 void UGridPartyInventoryComponent::EnsureEquipmentCountMatchesActiveCharacters ()
