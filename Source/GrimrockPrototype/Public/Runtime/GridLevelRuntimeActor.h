@@ -282,6 +282,7 @@ public:
     UMaterialInterface* GetObjectMaterial (const FGridLevelObjectData& ObjectData) const;
     bool GetObjectPlacementTransform (const FGridLevelObjectData& ObjectData, FTransform& OutTransform) const;
     const UGridObjectArchetypeAsset* FindObjectArchetype (FName ArchetypeId) const;
+    UGridItemDefinitionAsset* ResolveRuntimeItemDefinition (FName ItemDefinitionId) const;
     AGridItemActor* SpawnItemActorForDefinition (UGridItemDefinitionAsset* ItemDefinition, FName ItemDefinitionId,
         AActor* OwnerActor, USceneComponent* AttachParent, TSubclassOf<AGridItemActor> PreferredItemActorClass = nullptr) const;
 

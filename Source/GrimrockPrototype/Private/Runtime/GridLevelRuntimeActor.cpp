@@ -561,21 +561,20 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         {
             continue;
         }
+        ExistingPlacedItemObjectIds.Add (Entry.ObjectId);
         FGridRuntimeItemState ItemState;
         ItemState.ObjectId = Entry.ObjectId;
         ItemState.ItemDefinitionId = !Entry.ItemDefinitionId.IsNone ()
             ? Entry.ItemDefinitionId
             : ItemActor->GetItemDefinitionId ();
-
         if (ItemState.ItemDefinitionId.IsNone ())
         {
             continue;
         }
         ItemState.Transform = ItemActor->GetActorTransform ();
-        ItemState.bIsSimulatingPhysics = ItemActor->IsSimulatingPhysics ();
+        ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent ? ItemActor->MeshComponent->IsSimulatingPhysics () : false;
         ItemState.bIsContainedInReceptacle = false;
         ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
-
         State->Items.Add (Entry.ObjectId, ItemState);
     }
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
@@ -1722,6 +1721,57 @@ const UGridObjectArchetypeAsset* AGridLevelRuntimeActor::FindObjectArchetype (FN
     return nullptr;
 }
 
+UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition (FName ItemDefinitionId) const
+{
+    if (ItemDefinitionId.IsNone ())
+    {
+        return nullptr;
+    }
+
+    if (LevelAsset)
+    {
+        for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+        {
+            if (ObjectData.ItemDefinitionAsset &&
+                ObjectData.ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId)
+            {
+                return ObjectData.ItemDefinitionAsset;
+            }
+
+            const FGridReceptacleBehaviorParams& Receptacle = ObjectData.Behavior.Receptacle;
+            if (Receptacle.InitialContainedItemDefinition &&
+                Receptacle.InitialContainedItemDefinition->ItemDefinitionId == ItemDefinitionId)
+            {
+                return Receptacle.InitialContainedItemDefinition;
+            }
+        }
+    }
+
+    for (const UGridObjectArchetypeAsset* Archetype : ObjectArchetypes)
+    {
+        if (!Archetype)
+        {
+            continue;
+        }
+
+        const auto& ItemParams = Archetype->DefaultBehavior.Item;
+        if (ItemParams.ItemDefinitionAsset &&
+            ItemParams.ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId)
+        {
+            return ItemParams.ItemDefinitionAsset;
+        }
+
+        const FGridReceptacleBehaviorParams& ReceptacleParams = Archetype->DefaultBehavior.Receptacle;
+        if (ReceptacleParams.InitialContainedItemDefinition &&
+            ReceptacleParams.InitialContainedItemDefinition->ItemDefinitionId == ItemDefinitionId)
+        {
+            return ReceptacleParams.InitialContainedItemDefinition;
+        }
+    }
+
+    return nullptr;
+}
+
 UStaticMesh* AGridLevelRuntimeActor::GetObjectMesh (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
@@ -2258,8 +2308,8 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     SpawnedItemEntries.Add (Entry);
 
     UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."),
-        *ItemDefinitionId.ToString (),
-        *ObjectData.ObjectId.ToString (),
+        *Entry.ItemDefinitionId.ToString (),
+        *ObjectData.ObjectId.ToString ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
@@ -2267,14 +2317,12 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     UStaticMesh* Mesh = nullptr;
     UMaterialInterface* Material = nullptr;
     FTransform Transform;
-
     AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
     UE_LOG (LogTemp, Verbose, TEXT ("Runtime object: Type=%d Archetype=%s Tag=%s Id=%s"),
         static_cast<int32>(ObjectData.Type),
         *ObjectData.ArchetypeId.ToString (),
         *ObjectData.Tag.ToString (),
         *ObjectData.ObjectId.ToString ());
-
     if (!Actor) return;
     FGridLevelObjectData RuntimeObjectData = ObjectData;
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);

@@ -905,14 +905,14 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipment
         SourceSlot);
 }
 
-bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
+bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
 {
-    if (ItemArchetypeId.IsNone ())
+    if (ItemDefinitionId.IsNone ())
     {
         return false;
     }
 
-    const bool bUseHeldTorchClass = ItemArchetypeId == DefaultHeldItemArchetypeId && HeldTorchActorClass;
+    const bool bUseHeldTorchClass = ItemDefinitionId == DefaultHeldItemArchetypeId && HeldTorchActorClass;
 
     if (!bUseHeldTorchClass && !LevelRuntimeActor)
     {
@@ -923,7 +923,7 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
 
     if (!bUseHeldTorchClass && !LevelRuntimeActor)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: no AGridLevelRuntimeActor found for %s."), *ItemArchetypeId.ToString ());
+        UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: no AGridLevelRuntimeActor found for %s."), *ItemDefinitionId.ToString ());
         return false;
     }
 
@@ -939,17 +939,17 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
         HeldItemActor = GetWorld ()->SpawnActor<AGridItemActor> (HeldTorchActorClass, FTransform::Identity, SpawnParams);
         if (HeldItemActor)
         {
-            HeldItemActor->ArchetypeId = ItemArchetypeId;
+            HeldItemActor->ArchetypeId = ItemDefinitionId;
         }
     }
     else
     {
-        HeldItemActor = LevelRuntimeActor->SpawnItemActorForArchetype (ItemArchetypeId, this, AttachParent);
+        HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition (nullptr, ItemDefinitionId, this, HeldItemRoot, HeldTorchActorClass);
     }
 
     if (!HeldItemActor)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: could not spawn item archetype %s."), *ItemArchetypeId.ToString ());
+        UE_LOG (LogTemp, Warning, TEXT ("Held item equip failed: could not spawn item archetype %s."), *ItemDefinitionId.ToString ());
         return false;
     }
 
@@ -958,10 +958,10 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemArchetypeId)
     HeldItemActor->SetActorRelativeRotation (HeldItemRelativeRotation);
     HeldItemActor->SetActorRelativeScale3D (HeldItemRelativeScale);
     HeldItemActor->OnPlacedInWorld ();
-    HeldItemArchetypeId = ItemArchetypeId;
-    bHasTorchInHand = ItemArchetypeId == DefaultHeldItemArchetypeId;
+    HeldItemArchetypeId = ItemDefinitionId;
+    bHasTorchInHand = ItemDefinitionId == DefaultHeldItemArchetypeId;
 
-    UE_LOG (LogTemp, Log, TEXT ("Held item equipped: %s"), *ItemArchetypeId.ToString ());
+    UE_LOG (LogTemp, Log, TEXT ("Held item equipped: %s"), *ItemDefinitionId.ToString ());
     return true;
 }
 
