@@ -374,19 +374,8 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     {
         return false;
     }
-
     OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
-
-    // Legacy temporary inventory kept while it still exists.
-    PartyPawn->AddInventoryItem (RemovedItem.ItemDefinitionId, FMath::Max (1, RemovedItem.Quantity));
-
-    if (PartyPawn->bAutoEquipTorchOnPickup && RemovedItem.ItemDefinitionId == PartyPawn->DefaultHeldItemArchetypeId)
-    {
-        PartyPawn->EquipHeldItem (RemovedItem.ItemDefinitionId);
-    }
-
     ExecuteRemovalLinks ();
-
     UE_LOG (LogTemp, Log,
         TEXT ("Receptacle returned item %s ObjectId=%s Count=%d"),
         *RemovedItem.ItemDefinitionId.ToString (),
