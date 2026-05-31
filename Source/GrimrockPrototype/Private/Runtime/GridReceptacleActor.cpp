@@ -109,6 +109,13 @@ void AGridReceptacleActor::BeginPlay ()
 
     if (!bInitialItemsInitialized)
     {
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridReceptacle BeginPlay InitialItems ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
+            *ObjectId.ToString (),
+            InitialContainedItems.Num (),
+            ContainedItems.Num (),
+            InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
+            *InitialContainedItemArchetypeId.ToString ());
         InitializeInitialContainedItems ();
     }
 
@@ -172,6 +179,19 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
         ContainedItemMesh->SetStaticMesh (nullptr);
         ContainedItemMesh->SetVisibility (false, true);
         ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle InitializeGridObject InitialItems ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
+        *ObjectId.ToString (),
+        InitialContainedItems.Num (),
+        ContainedItems.Num (),
+        InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
+        *InitialContainedItemArchetypeId.ToString ());
+
+    if (!bInitialItemsInitialized)
+    {
+        InitializeInitialContainedItems ();
     }
 }
 
@@ -813,11 +833,26 @@ void AGridReceptacleActor::ExecuteRemovalLinks ()
 void AGridReceptacleActor::InitializeInitialContainedItems ()
 {
     bInitialItemsInitialized = true;
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle InitializeInitialContainedItems Start ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
+        *ObjectId.ToString (),
+        InitialContainedItems.Num (),
+        ContainedItems.Num (),
+        InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
+        *InitialContainedItemArchetypeId.ToString ());
+
     for (const FGridInitialReceptacleItem& InitialItem : InitialContainedItems)
     {
         const FName ItemDefinitionId = ResolveInitialItemDefinitionId (InitialItem);
         if (ItemDefinitionId.IsNone ())
         {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle InitialItem skipped: ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
+                *ObjectId.ToString (),
+                InitialContainedItems.Num (),
+                ContainedItems.Num (),
+                *InitialItem.ItemDefinitionId.ToString (),
+                *InitialContainedItemArchetypeId.ToString ());
             continue;
         }
         if (WasInitialItemRemoved (ItemDefinitionId))
@@ -826,6 +861,14 @@ void AGridReceptacleActor::InitializeInitialContainedItems ()
         }
         AddContainedItem (ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true, InitialItem.Quantity);
     }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle InitializeInitialContainedItems Finish ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
+        *ObjectId.ToString (),
+        InitialContainedItems.Num (),
+        ContainedItems.Num (),
+        InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
+        *InitialContainedItemArchetypeId.ToString ());
 }
 
 FName AGridReceptacleActor::ResolveInitialItemDefinitionId (const FGridInitialReceptacleItem& InitialItem) const
