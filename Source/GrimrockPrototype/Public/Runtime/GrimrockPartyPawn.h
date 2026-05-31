@@ -148,7 +148,7 @@ public:
     FName DefaultInteractionItemId = TEXT ("Item_Torch");
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
-    FName DefaultHeldItemArchetypeId = TEXT ("Item_Torch");
+    FName DefaultHeldItemDefinitionId = TEXT ("Item_Torch");
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Held Item")
     TSubclassOf<AGridItemActor> HeldTorchActorClass;
@@ -172,7 +172,7 @@ public:
     bool bHasTorchInHand = false;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Held Item")
-    FName HeldItemArchetypeId = NAME_None;
+    FName HeldItemDefinitionId = NAME_None;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool HasInventoryItem (FName ItemDefinitionId) const;
@@ -204,16 +204,16 @@ public:
     bool UnequipSelectedCharacterItemToInventory (EGridEquipmentSlot SourceSlot);
 
     UFUNCTION (BlueprintCallable, Category = "Held Item")
-    bool EquipHeldItem (FName ItemArchetypeId);
+    bool EquipHeldItem (FName ItemDefinitionId);
 
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     void ClearHeldItem ();
 
     UFUNCTION (BlueprintCallable, Category = "Held Item")
-    FName GetHeldItemArchetypeId () const;
+    FName GetHeldItemDefinitionId () const;
 
     UFUNCTION (BlueprintCallable, Category = "Held Item")
-    bool IsHoldingItem (FName ItemArchetypeId) const;
+    bool IsHoldingItem (FName ItemDefinitionId) const;
 
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")

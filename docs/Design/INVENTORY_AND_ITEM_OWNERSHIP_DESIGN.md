@@ -998,6 +998,17 @@ Resultat attendu :
 
 ---
 
+## Tranche 4E appliquee
+
+Etat applique :
+
+- le vocabulaire held item utilise desormais `ItemDefinitionId` ;
+- `DefaultHeldItemDefinitionId`, `HeldItemDefinitionId` et `GetHeldItemDefinitionId` remplacent les anciens noms historiques bases sur `ArchetypeId` ;
+- les noms `ArchetypeId` restent reserves aux objets de niveau fixes/interactifs et aux fallbacks legacy explicites ;
+- la torche en main reste le cas de reference `Item_Torch`.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

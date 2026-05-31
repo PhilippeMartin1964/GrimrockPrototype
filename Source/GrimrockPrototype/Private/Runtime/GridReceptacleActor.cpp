@@ -392,7 +392,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return false;
     }
 
-    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
+    const FName HeldItemId = PartyPawn->GetHeldItemDefinitionId ();
 
     if (!HeldItemId.IsNone () && bCanInsertItem && !IsFull ())
     {
@@ -565,7 +565,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     {
         return false;
     }
-    const FName HeldItemId = PartyPawn->GetHeldItemArchetypeId ();
+    const FName HeldItemId = PartyPawn->GetHeldItemDefinitionId ();
     if (!HeldItemId.IsNone ())
     {
         return bCanInsertItem && !IsFull () && CanAcceptItem (HeldItemId);
