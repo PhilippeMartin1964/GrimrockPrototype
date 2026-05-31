@@ -117,6 +117,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInsertItem (FName ItemId);
 
+    bool TryInsertItemWithDefinition (FName ItemId, UGridItemDefinitionAsset* ItemDefinition);
+
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInsertItemActor (AGridItemActor* ItemActor);
 
@@ -204,4 +206,7 @@ private:
 
     UPROPERTY (Transient)
     FName InitialItemArchetypeIdAtSpawn = NAME_None;
+
+    UPROPERTY (Transient)
+    FName RuntimeReceptacleArchetypeId = NAME_None;
 };

@@ -286,6 +286,44 @@ bool UGridPartyInventoryComponent::RemoveItemFromCharacterInventoryByRuntimeId (
     return false;
 }
 
+bool UGridPartyInventoryComponent::RemoveFirstItemFromCharacterInventoryByDefinitionId (
+    int32 CharacterIndex,
+    FName ItemDefinitionId,
+    FGridItemInstance& OutRemovedItem)
+{
+    OutRemovedItem = FGridItemInstance ();
+    if (!IsValidCharacterIndex (CharacterIndex) || ItemDefinitionId.IsNone ())
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    for (FGridInventorySlot& Slot : CharacterState.InventorySlots)
+    {
+        if (Slot.IsEmpty () || Slot.Item.ItemDefinitionId != ItemDefinitionId)
+        {
+            continue;
+        }
+
+        OutRemovedItem = Slot.Item;
+        Slot = FGridInventorySlot ();
+        RecalculateCharacterWeight (CharacterIndex);
+        return true;
+    }
+
+    return false;
+}
+
+bool UGridPartyInventoryComponent::RemoveFirstItemFromSelectedCharacterInventoryByDefinitionId (
+    FName ItemDefinitionId,
+    FGridItemInstance& OutRemovedItem)
+{
+    return RemoveFirstItemFromCharacterInventoryByDefinitionId (
+        PartyInventoryState.SelectedCharacterIndex,
+        ItemDefinitionId,
+        OutRemovedItem);
+}
+
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition (FName ItemDefinitionId) const
 {
     if (ItemDefinitionId.IsNone ())
