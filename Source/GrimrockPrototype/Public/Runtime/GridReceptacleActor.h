@@ -307,7 +307,4 @@ private:
 
     UPROPERTY (Transient)
     bool bInitialItemsInitialized = false;
-
-    UPROPERTY (Transient)
-    FName RuntimeReceptacleArchetypeId = NAME_None;
 };

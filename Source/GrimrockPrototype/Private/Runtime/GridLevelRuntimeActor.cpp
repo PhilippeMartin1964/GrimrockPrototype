@@ -731,7 +731,8 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
 
         if (!bFoundExistingItem && !ItemState.ItemDefinitionId.IsNone ())
         {
-            AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemState.ItemDefinitionId, this, nullptr);
+            UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemState.ItemDefinitionId);
+            AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, ItemState.ItemDefinitionId, this, nullptr);
             if (ItemActor)
             {
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
@@ -744,7 +745,8 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 Entry.Cell = FIntPoint (ItemActor->RuntimeCellX, ItemActor->RuntimeCellY);
                 Entry.ItemActor = ItemActor;
                 Entry.ObjectId = Pair.Key;
-                Entry.ItemArchetypeId = ItemState.ItemDefinitionId;
+                Entry.ItemDefinitionAsset = ItemDefinition;
+                Entry.ItemDefinitionId = ItemState.ItemDefinitionId;
                 SpawnedItemEntries.Add (Entry);
             }
         }
@@ -2044,7 +2046,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
             return false;
         }
 
-        const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+        const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId);
         if (ItemDefinitionId.IsNone ())
         {
             UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
@@ -2105,7 +2107,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
             continue;
         }
 
-        const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+        const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemDefinitionId : Entry.ItemDefinitionId);
         if (ItemDefinitionId.IsNone ())
         {
             UE_LOG (LogTemp, Warning, TEXT ("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName ());
@@ -2228,9 +2230,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, ItemDefinitionId, this, nullptr);
     if (!ItemActor)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: failed to spawn item definition %s fallback archetype %s."),
-            *ItemDefinitionId.ToString (),
-            *ObjectData.ArchetypeId.ToString ());
+        UE_LOG (LogTemp, Warning, TEXT ("Placed item skipped: failed to spawn item definition %s."), *ItemDefinitionId.ToString ());
         return;
     }
 
@@ -2253,15 +2253,13 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     Entry.Cell = FIntPoint (ObjectData.CellX, ObjectData.CellY);
     Entry.ItemActor = ItemActor;
     Entry.ObjectId = ObjectData.ObjectId;
-    Entry.ItemArchetypeId = ObjectData.ArchetypeId;
     Entry.ItemDefinitionAsset = ItemDefinition;
     Entry.ItemDefinitionId = ItemDefinitionId;
     SpawnedItemEntries.Add (Entry);
 
-    UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s fallback archetype %s."),
+    UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."),
         *ItemDefinitionId.ToString (),
         *ObjectData.ObjectId.ToString (),
-        *ObjectData.ArchetypeId.ToString ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)
@@ -2280,6 +2278,10 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     if (!Actor) return;
     FGridLevelObjectData RuntimeObjectData = ObjectData;
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
+    if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Actor))
+    {
+        ReceptacleActor->ContainedItemActorClass = Archetype ? Archetype->ItemActorClass : nullptr;
+    }
     if (AGridMechanismActor* MechanismActor = Cast<AGridMechanismActor> (Actor))
     {
         MechanismActor->InitializeMechanismVisuals (RuntimeObjectData, Archetype, Transform);
@@ -2290,10 +2292,6 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     } else
     {
         Actor->InitializeGridObject (RuntimeObjectData, Mesh, Material, Transform);
-    }
-    if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (Actor))
-    {
-        ReceptacleActor->ContainedItemActorClass = Archetype ? Archetype->ItemActorClass : nullptr;
     }
     if (ActivationComponent)
     {
