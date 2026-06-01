@@ -13,6 +13,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "UI/GridInventoryWidget.h"
 
@@ -927,9 +928,18 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
     bInventoryWidgetVisible = true;
 
     PlayerController->bShowMouseCursor = true;
+    PlayerController->bEnableClickEvents = true;
+    PlayerController->bEnableMouseOverEvents = true;
     FInputModeGameAndUI InputMode;
+    InputMode.SetWidgetToFocus (InventoryWidgetInstance->TakeWidget ());
+    InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
     InputMode.SetHideCursorDuringCapture (false);
     PlayerController->SetInputMode (InputMode);
+
+    if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
+    {
+        GrimrockPlayerController->SetInventoryUiOpen (true);
+    }
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Shown Pawn=%s"), *GetName ());
 }
@@ -944,6 +954,11 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
 
     if (APlayerController* PlayerController = Cast<APlayerController> (GetController ()))
     {
+        if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
+        {
+            GrimrockPlayerController->SetInventoryUiOpen (false);
+        }
+
         PlayerController->bShowMouseCursor = false;
         FInputModeGameOnly InputMode;
         PlayerController->SetInputMode (InputMode);

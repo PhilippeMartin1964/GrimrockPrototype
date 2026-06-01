@@ -50,8 +50,29 @@ void AGrimrockPlayerController::SetupInputComponent ()
     InputComponent->BindKey (EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
 }
 
+void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
+{
+    bInventoryUiOpen = bOpen;
+
+    if (bInventoryUiOpen)
+    {
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT ("true") : TEXT ("false"));
+}
+
 void AGrimrockPlayerController::HandleLeftMousePressed ()
 {
+    if (bInventoryUiOpen)
+    {
+        if (bDebugMouseInteraction)
+        {
+            UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction ignored: inventory UI open."));
+        }
+        return;
+    }
+
     FHitResult HitResult;
     AActor* InteractableActor = nullptr;
     if (!TryGetInteractableUnderCursor (HitResult, InteractableActor))
@@ -108,6 +129,12 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
 void AGrimrockPlayerController::UpdateHoveredInteractable ()
 {
+    if (bInventoryUiOpen)
+    {
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
+        return;
+    }
+
     FHitResult HitResult;
     AActor* InteractableActor = nullptr;
     if (!TryGetInteractableUnderCursor (HitResult, InteractableActor))

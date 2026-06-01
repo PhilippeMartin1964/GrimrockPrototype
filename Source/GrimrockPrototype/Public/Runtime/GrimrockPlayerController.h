@@ -20,6 +20,12 @@ public:
     virtual void PlayerTick (float DeltaTime) override;
     virtual void SetupInputComponent () override;
 
+    UPROPERTY (BlueprintReadOnly, Category = "UI")
+    bool bInventoryUiOpen = false;
+
+    UFUNCTION (BlueprintCallable, Category = "UI")
+    void SetInventoryUiOpen (bool bOpen);
+
 protected:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
     float MaxInteractionDistance = 300.f;
