@@ -11,6 +11,7 @@ AGrimrockPlayerController::AGrimrockPlayerController ()
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
     CurrentMouseCursor = EMouseCursor::None;
+    DefaultMouseCursor = EMouseCursor::None;
     bShowMouseCursor = false;
 }
 
@@ -20,6 +21,9 @@ void AGrimrockPlayerController::BeginPlay ()
     bShowMouseCursor = false;
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
+    bShowMouseCursor = false;
+    DefaultMouseCursor = EMouseCursor::None;
+    CurrentMouseCursor = EMouseCursor::None;
     FInputModeGameAndUI InputMode;
     InputMode.SetHideCursorDuringCapture (false);
     SetInputMode (InputMode);
