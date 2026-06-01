@@ -1086,6 +1086,22 @@ Etat applique :
 
 ---
 
+## Tranche 6A appliquee
+
+Etat applique :
+
+- premiere UI runtime UMG minimale via `UGridInventoryWidget` ;
+- affichage possible de l'inventaire du personnage selectionne ;
+- affichage possible de `MainHand`, `OffHand` et `CursorItem` ;
+- clic slot inventaire : inventaire vers `CursorItem`, ou `CursorItem` vers premier slot libre ;
+- clic main : main vers `CursorItem`, ou `CursorItem` vers `EquipmentSlot` ;
+- retour `CursorItem` vers inventaire expose ;
+- pas encore de drag and drop UMG final ;
+- pas encore d'UI multi-personnage complete ;
+- pas encore de style final.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

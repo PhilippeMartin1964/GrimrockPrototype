@@ -14,6 +14,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "UI/GridInventoryWidget.h"
 
 namespace
 {
@@ -253,6 +254,7 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
     }
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
+    PlayerInputComponent->BindKey (EKeys::I, IE_Pressed, this, &AGrimrockPartyPawn::ToggleInventoryWidget);
 }
 
 void AGrimrockPartyPawn::ApplyCameraLocalViewOffset ()
@@ -873,6 +875,86 @@ void AGrimrockPartyPawn::LogItemDefinitionDiagnostics () const
     }
 
     UE_LOG (LogTemp, Warning, TEXT ("PartyInventoryComponent is null on %s"), *GetName ());
+}
+
+void AGrimrockPartyPawn::ToggleInventoryWidget ()
+{
+    if (bInventoryWidgetVisible)
+    {
+        HideInventoryWidget ();
+    }
+    else
+    {
+        ShowInventoryWidget ();
+    }
+}
+
+void AGrimrockPartyPawn::ShowInventoryWidget ()
+{
+    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
+    if (!PlayerController)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName ());
+        return;
+    }
+
+    if (!InventoryWidgetClass)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Show Failed Pawn=%s Reason=NoInventoryWidgetClass"), *GetName ());
+        return;
+    }
+
+    if (!InventoryWidgetInstance)
+    {
+        InventoryWidgetInstance = CreateWidget<UGridInventoryWidget> (PlayerController, InventoryWidgetClass);
+        if (InventoryWidgetInstance)
+        {
+            InventoryWidgetInstance->InitializeInventoryWidget (this);
+        }
+    }
+
+    if (!InventoryWidgetInstance)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName ());
+        return;
+    }
+
+    if (!InventoryWidgetInstance->IsInViewport ())
+    {
+        InventoryWidgetInstance->AddToViewport (100);
+    }
+    InventoryWidgetInstance->RefreshInventory ();
+    bInventoryWidgetVisible = true;
+
+    PlayerController->bShowMouseCursor = true;
+    FInputModeGameAndUI InputMode;
+    InputMode.SetHideCursorDuringCapture (false);
+    PlayerController->SetInputMode (InputMode);
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Shown Pawn=%s"), *GetName ());
+}
+
+void AGrimrockPartyPawn::HideInventoryWidget ()
+{
+    if (InventoryWidgetInstance)
+    {
+        InventoryWidgetInstance->RemoveFromParent ();
+    }
+    bInventoryWidgetVisible = false;
+
+    if (APlayerController* PlayerController = Cast<APlayerController> (GetController ()))
+    {
+        PlayerController->bShowMouseCursor = false;
+        FInputModeGameOnly InputMode;
+        PlayerController->SetInputMode (InputMode);
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Hidden Pawn=%s"), *GetName ());
+}
+
+UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
+{
+    return InventoryWidgetInstance.Get ();
 }
 
 bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (

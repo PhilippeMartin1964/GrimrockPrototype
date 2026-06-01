@@ -16,6 +16,7 @@ class AGridLevelRuntimeActor;
 class AGridItemActor;
 class AGridReceptacleActor;
 class UGridPartyInventoryComponent;
+class UGridInventoryWidget;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
@@ -99,6 +100,15 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input|Legacy")
     bool bEnableLegacyKeyboardUseAction = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
+    TSubclassOf<UGridInventoryWidget> InventoryWidgetClass;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
+    TObjectPtr<UGridInventoryWidget> InventoryWidgetInstance;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
+    bool bInventoryWidgetVisible = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer")
     bool bEnableInputBuffer = true;
@@ -195,6 +205,18 @@ public:
 
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Debug")
     void LogItemDefinitionDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|UI")
+    void ToggleInventoryWidget ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|UI")
+    void ShowInventoryWidget ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|UI")
+    void HideInventoryWidget ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|UI")
+    UGridInventoryWidget* GetInventoryWidget () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool EquipSelectedCharacterItemFromInventorySlot (int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
