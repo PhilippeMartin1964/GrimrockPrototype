@@ -10,6 +10,8 @@ AGrimrockPlayerController::AGrimrockPlayerController ()
 {
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
+    CurrentMouseCursor = EMouseCursor::None;
+    bShowMouseCursor = false;
 }
 
 void AGrimrockPlayerController::BeginPlay ()
@@ -46,16 +48,12 @@ void AGrimrockPlayerController::SetupInputComponent ()
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 {
     bInventoryUiOpen = bOpen;
-
-    if (bInventoryUiOpen)
+    if (CustomCursorWidget)
     {
-       // SetGridInteractionCursor (EGridInteractionCursor::Default);
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
     }
-    else if (CustomCursorWidget)
-    {
-        //CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
-    }
-
+    CurrentMouseCursor = EMouseCursor::None;
+    bShowMouseCursor = false;
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT ("true") : TEXT ("false"));
 }
 
