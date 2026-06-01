@@ -4,6 +4,7 @@
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridDungeonRuntimeState.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "GridReceptacleActor.generated.h"
 
 class USceneComponent;
@@ -67,6 +68,15 @@ struct FGridContainedReceptacleItem
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     int32 Quantity = 1;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    float Weight = 0.0f;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    FText DisplayName;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+    bool bLightsEnabled = true;
 };
 
 /**
@@ -209,6 +219,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInsertItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn);
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool TryInsertItemInstanceFromCursor (const FGridItemInstance& CursorItem, FGridItemInstance& OutAcceptedItem);
+
     /**
      * Takes the first contained item.
      *
@@ -276,7 +289,13 @@ protected:
     // Internal Item Handling
     // ============================================================
 
-    int32 AddContainedItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity);
+    int32 AddContainedItem (
+        FName ItemDefinitionId,
+        UGridItemDefinitionAsset* ItemDefinition,
+        AGridItemActor* ItemActor,
+        bool bWasInitialItem,
+        int32 Quantity,
+        FGuid RuntimeObjectId = FGuid ());
 
     bool RemoveContainedItemAtIndex (int32 ItemIndex, FGridContainedReceptacleItem& OutRemovedItem);
 

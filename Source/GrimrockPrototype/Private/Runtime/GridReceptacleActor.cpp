@@ -321,6 +321,95 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
     return true;
 }
 
+bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
+    const FGridItemInstance& CursorItem,
+    FGridItemInstance& OutAcceptedItem)
+{
+    OutAcceptedItem = FGridItemInstance ();
+
+    if (!CursorItem.IsValid () || CursorItem.ItemDefinitionId.IsNone ())
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=invalid cursor item"),
+            *ObjectId.ToString (),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *CursorItem.RuntimeObjectId.ToString ());
+        return false;
+    }
+
+    if (!bCanInsertItem)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=insert disabled"),
+            *ObjectId.ToString (),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *CursorItem.RuntimeObjectId.ToString ());
+        return false;
+    }
+
+    if (IsFull ())
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=full Count=%d Max=%d"),
+            *ObjectId.ToString (),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *CursorItem.RuntimeObjectId.ToString (),
+            ContainedItems.Num (),
+            MaxContainedItems);
+        return false;
+    }
+
+    if (!CanAcceptItem (CursorItem.ItemDefinitionId))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=%s"),
+            *ObjectId.ToString (),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *CursorItem.RuntimeObjectId.ToString (),
+            *GetItemAcceptanceFailureReason (CursorItem.ItemDefinitionId));
+        return false;
+    }
+
+    const int32 NewIndex = AddContainedItem (
+        CursorItem.ItemDefinitionId,
+        nullptr,
+        nullptr,
+        false,
+        CursorItem.Quantity,
+        CursorItem.RuntimeObjectId);
+
+    if (!ContainedItems.IsValidIndex (NewIndex))
+    {
+        return false;
+    }
+
+    FGridContainedReceptacleItem& AcceptedReceptacleItem = ContainedItems[NewIndex];
+    AcceptedReceptacleItem.Weight = CursorItem.Weight;
+    AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
+    AcceptedReceptacleItem.bLightsEnabled = CursorItem.bLightsEnabled;
+    if (AcceptedReceptacleItem.ItemActor)
+    {
+        AcceptedReceptacleItem.ItemActor->SetItemLightsEnabled (CursorItem.bLightsEnabled);
+    }
+
+    OutAcceptedItem = CursorItem;
+    OutAcceptedItem.OwnerType = EGridItemOwnerType::Receptacle;
+    OutAcceptedItem.OwnerGuid = ObjectId;
+    OutAcceptedItem.OwnerCharacterIndex = INDEX_NONE;
+    OutAcceptedItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    ExecuteInsertionLinks ();
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("Receptacle accepted cursor item %s ObjectId=%s RuntimeId=%s Count=%d"),
+        *CursorItem.ItemDefinitionId.ToString (),
+        *ObjectId.ToString (),
+        *CursorItem.RuntimeObjectId.ToString (),
+        ContainedItems.Num ());
+
+    return true;
+}
+
 bool AGridReceptacleActor::TryTakeFirstItem (AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemDefinitionId)
 {
     return TryTakeItemAtIndex (0, PartyPawn, OutRemovedItemDefinitionId);
@@ -346,6 +435,9 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     ItemInstance.RuntimeObjectId = Item.RuntimeObjectId.IsValid () ? Item.RuntimeObjectId : FGuid::NewGuid ();
     ItemInstance.ItemDefinitionId = Item.ItemDefinitionId;
     ItemInstance.Quantity = FMath::Max (1, Item.Quantity);
+    ItemInstance.Weight = Item.Weight;
+    ItemInstance.DisplayName = Item.DisplayName;
+    ItemInstance.bLightsEnabled = Item.bLightsEnabled;
     ItemInstance.OwnerType = EGridItemOwnerType::CharacterInventory;
     ItemInstance.OwnerCharacterIndex = PartyPawn->PartyInventoryComponent ? PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex () : INDEX_NONE;
 
@@ -390,6 +482,11 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     if (!PartyPawn)
     {
         return false;
+    }
+
+    if (PartyPawn->PartyInventoryComponent && PartyPawn->PartyInventoryComponent->HasCursorItem ())
+    {
+        return PartyPawn->TryPlaceCursorItemInReceptacle (this);
     }
 
     const FName HeldItemId = PartyPawn->GetHeldItemDefinitionId ();
@@ -629,7 +726,13 @@ FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveCompone
     return FText::GetEmpty ();
 }
 
-int32 AGridReceptacleActor::AddContainedItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGridItemActor* ItemActor, bool bWasInitialItem, int32 Quantity)
+int32 AGridReceptacleActor::AddContainedItem (
+    FName ItemDefinitionId,
+    UGridItemDefinitionAsset* ItemDefinition,
+    AGridItemActor* ItemActor,
+    bool bWasInitialItem,
+    int32 Quantity,
+    FGuid RuntimeObjectId)
 {
     ItemDefinitionId = ResolveDefinitionId (ItemDefinition, ItemDefinitionId);
     if (ItemDefinitionId.IsNone ())
@@ -641,13 +744,19 @@ int32 AGridReceptacleActor::AddContainedItem (FName ItemDefinitionId, UGridItemD
         return INDEX_NONE;
     }
     FGridContainedReceptacleItem NewItem;
-    NewItem.RuntimeObjectId = FGuid::NewGuid ();
+    NewItem.RuntimeObjectId = RuntimeObjectId.IsValid () ? RuntimeObjectId : FGuid::NewGuid ();
     NewItem.ItemDefinitionId = ItemDefinitionId;
     NewItem.ItemArchetypeId = IsValid (ItemActor) ? ItemActor->GetItemArchetypeId () : ItemDefinitionId;
     NewItem.ItemDefinition = ItemDefinition;
     NewItem.ItemActor = ItemActor;
     NewItem.bWasInitialItem = bWasInitialItem;
     NewItem.Quantity = FMath::Max (1, Quantity);
+    if (ItemDefinition)
+    {
+        NewItem.Weight = ItemDefinition->Weight;
+        NewItem.DisplayName = ItemDefinition->DisplayName;
+        NewItem.bLightsEnabled = ItemDefinition->bCanEmitLight ? ItemDefinition->bDefaultLightEnabled : true;
+    }
 
     const int32 NewIndex = ContainedItems.Add (NewItem);
     if (ContainedItemArchetypeId.IsNone ())
@@ -680,6 +789,7 @@ int32 AGridReceptacleActor::AddContainedItem (FName ItemDefinitionId, UGridItemD
     if (IsValid (ContainedItems[NewIndex].ItemActor.Get ()))
     {
         AttachContainedItemActor (ContainedItems[NewIndex].ItemActor.Get (), NewIndex);
+        ContainedItems[NewIndex].ItemActor->SetItemLightsEnabled (ContainedItems[NewIndex].bLightsEnabled);
         ContainedItems[NewIndex].ItemActor->OnPlacedInWorld ();
     }
     UpdateContainedItemInteractionCollision ();

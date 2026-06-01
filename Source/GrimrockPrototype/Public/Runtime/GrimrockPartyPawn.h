@@ -14,6 +14,7 @@ class UInputAction;
 struct FInputActionValue;
 class AGridLevelRuntimeActor;
 class AGridItemActor;
+class AGridReceptacleActor;
 class UGridPartyInventoryComponent;
 
 UCLASS ()
@@ -215,6 +216,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Debug")
     bool DebugPlaceCursorItemInSelectedInventory ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle")
+    bool TryPlaceCursorItemInReceptacle (AGridReceptacleActor* ReceptacleActor);
 
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     bool EquipHeldItem (FName ItemDefinitionId);

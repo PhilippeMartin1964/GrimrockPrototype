@@ -1058,6 +1058,20 @@ Etat applique :
 
 ---
 
+## Tranche 5E appliquee
+
+Etat applique :
+
+- `CursorItem` peut etre depose dans un receptacle ;
+- l'insertion reussie transfere l'ownership vers le receptacle ;
+- `CursorItem` est vide uniquement apres acceptation par le receptacle ;
+- en cas de refus, `CursorItem` reste intact ;
+- support de torche : inventaire -> `CursorItem` -> support est le cas de reference ;
+- le pickup reste inventaire uniquement ;
+- `HeldItemActor` n'est pas concerne par le depot receptacle.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

@@ -13,6 +13,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridReceptacleActor.h"
 
 namespace
 {
@@ -990,6 +991,54 @@ bool AGrimrockPartyPawn::DebugPlaceCursorItemInSelectedInventory ()
         *GetName (),
         bPlaced ? TEXT ("true") : TEXT ("false"));
     return bPlaced;
+}
+
+bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle (AGridReceptacleActor* ReceptacleActor)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToReceptacle Failed Item=None Receptacle=%s Reason=NoPartyInventoryComponent"),
+            ReceptacleActor ? *ReceptacleActor->GetName () : TEXT ("None"));
+        return false;
+    }
+
+    if (!ReceptacleActor)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToReceptacle Failed Item=%s Receptacle=None Reason=NoReceptacle"),
+            PartyInventoryComponent->HasCursorItem () ? *PartyInventoryComponent->GetCursorItem ().ItemDefinitionId.ToString () : TEXT ("None"));
+        return false;
+    }
+
+    if (!PartyInventoryComponent->HasCursorItem ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToReceptacle Failed Item=None Receptacle=%s Reason=NoCursorItem"),
+            *ReceptacleActor->GetName ());
+        return false;
+    }
+
+    const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
+    FGridItemInstance AcceptedItem;
+    if (!ReceptacleActor->TryInsertItemInstanceFromCursor (CursorItem, AcceptedItem))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=ReceptacleRejected"),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *CursorItem.RuntimeObjectId.ToString (),
+            *ReceptacleActor->GetName ());
+        return false;
+    }
+
+    PartyInventoryComponent->ClearCursorItem ();
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Cleared AfterReceptacle Item=%s RuntimeId=%s Receptacle=%s"),
+        *AcceptedItem.ItemDefinitionId.ToString (),
+        *AcceptedItem.RuntimeObjectId.ToString (),
+        *ReceptacleActor->GetName ());
+    PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Place ToReceptacle Item=%s RuntimeId=%s Receptacle=%s Result=true"),
+        *AcceptedItem.ItemDefinitionId.ToString (),
+        *AcceptedItem.RuntimeObjectId.ToString (),
+        *ReceptacleActor->GetName ());
+    return true;
 }
 
 bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
