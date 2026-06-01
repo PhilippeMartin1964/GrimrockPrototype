@@ -8,7 +8,6 @@
 
 AGrimrockPlayerController::AGrimrockPlayerController ()
 {
-    bShowMouseCursor = true;
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
     DefaultMouseCursor = EMouseCursor::Default;
@@ -18,17 +17,13 @@ AGrimrockPlayerController::AGrimrockPlayerController ()
 void AGrimrockPlayerController::BeginPlay ()
 {
     Super::BeginPlay ();
-
-    bShowMouseCursor = true;
+    bShowMouseCursor = false;
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
-
     FInputModeGameAndUI InputMode;
     InputMode.SetHideCursorDuringCapture (false);
     SetInputMode (InputMode);
-
     InitializeCustomCursor ();
-    bShowMouseCursor = !(bUseCustomMouseCursor && CustomCursorWidgetClass);
 }
 
 void AGrimrockPlayerController::PlayerTick (float DeltaTime)
@@ -57,10 +52,6 @@ void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
     if (bInventoryUiOpen)
     {
         SetGridInteractionCursor (EGridInteractionCursor::Default);
-        if (CustomCursorWidget)
-        {
-            CustomCursorWidget->SetVisibility (ESlateVisibility::Collapsed);
-        }
     }
     else if (bUseCustomMouseCursor && CustomCursorWidget)
     {
@@ -192,8 +183,8 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
     if (CustomCursorWidget)
     {
         CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
-        CustomCursorWidget->SetIsEnabled (false);
         CustomCursorWidget->AddToViewport (9999);
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
     }
 }
 
@@ -206,14 +197,11 @@ void AGrimrockPlayerController::SetGridInteractionCursor (EGridInteractionCursor
         CurrentMouseCursor = ToMouseCursor (NewCursor);
         return;
     }
-
     CurrentMouseCursor = EMouseCursor::None;
-
-    if (!CustomCursorWidget)
+    if (CustomCursorWidget)
     {
-        return;
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
     }
-
     static const FName SetCursorStateFunctionName = TEXT ("SetCursorState");
     UFunction* SetCursorStateFunction = CustomCursorWidget->FindFunction (SetCursorStateFunctionName);
     if (!SetCursorStateFunction)

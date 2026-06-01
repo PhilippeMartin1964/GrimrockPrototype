@@ -927,7 +927,6 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
     InventoryWidgetInstance->RefreshInventory ();
     bInventoryWidgetVisible = true;
 
-    PlayerController->bShowMouseCursor = true;
     PlayerController->bEnableClickEvents = true;
     PlayerController->bEnableMouseOverEvents = true;
     FInputModeGameAndUI InputMode;
@@ -958,8 +957,6 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
         {
             GrimrockPlayerController->SetInventoryUiOpen (false);
         }
-
-        PlayerController->bShowMouseCursor = false;
         FInputModeGameOnly InputMode;
         PlayerController->SetInputMode (InputMode);
     }
