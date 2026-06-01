@@ -1073,6 +1073,19 @@ Etat applique :
 
 ---
 
+## Tranche 5F appliquee
+
+Etat applique :
+
+- un item equipe peut etre pris au `CursorItem` ;
+- le slot source est vide immediatement apres prise ;
+- le held visual est resynchronise apres retrait d'equipement ;
+- une torche au `CursorItem` n'eclaire pas le groupe ;
+- une torche peut maintenant suivre le flux `MainHand` -> `CursorItem` -> receptacle ;
+- l'ownership exclusif est conserve.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

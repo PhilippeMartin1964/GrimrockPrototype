@@ -100,6 +100,12 @@ public:
     bool UnequipItemToInventory (int32 CharacterIndex, EGridEquipmentSlot SourceSlot);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool TryTakeEquipmentSlotToCursor (int32 CharacterIndex, EGridEquipmentSlot SourceSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    bool TryTakeSelectedCharacterEquipmentSlotToCursor (EGridEquipmentSlot SourceSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool GetEquippedItem (int32 CharacterIndex, EGridEquipmentSlot Slot, FGridItemInstance& OutItem) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")

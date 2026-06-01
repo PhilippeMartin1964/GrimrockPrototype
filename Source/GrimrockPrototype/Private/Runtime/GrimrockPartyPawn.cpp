@@ -928,6 +928,39 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipment
     return bUnequipped;
 }
 
+bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor (EGridEquipmentSlot SourceSlot)
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Equipment Relay Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"),
+            *GetName (),
+            GetPawnEquipmentSlotName (SourceSlot));
+        return false;
+    }
+
+    const bool bTaken = PartyInventoryComponent->TryTakeSelectedCharacterEquipmentSlotToCursor (SourceSlot);
+    if (bTaken)
+    {
+        SyncHeldVisualFromSelectedCharacterEquipment ();
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"),
+        *GetName (),
+        GetPawnEquipmentSlotName (SourceSlot),
+        bTaken ? TEXT ("true") : TEXT ("false"));
+    return bTaken;
+}
+
+bool AGrimrockPartyPawn::TryTakeSelectedCharacterMainHandToCursor ()
+{
+    return TryTakeSelectedCharacterEquipmentSlotToCursor (EGridEquipmentSlot::MainHand);
+}
+
+bool AGrimrockPartyPawn::TryTakeSelectedCharacterOffHandToCursor ()
+{
+    return TryTakeSelectedCharacterEquipmentSlotToCursor (EGridEquipmentSlot::OffHand);
+}
+
 bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot TargetSlot)
 {
     if (!PartyInventoryComponent)
