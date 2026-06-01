@@ -57,6 +57,14 @@ void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
     if (bInventoryUiOpen)
     {
         SetGridInteractionCursor (EGridInteractionCursor::Default);
+        if (CustomCursorWidget)
+        {
+            CustomCursorWidget->SetVisibility (ESlateVisibility::Collapsed);
+        }
+    }
+    else if (bUseCustomMouseCursor && CustomCursorWidget)
+    {
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
     }
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT ("true") : TEXT ("false"));
@@ -183,6 +191,8 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
     CustomCursorWidget = CreateWidget<UUserWidget> (this, CustomCursorWidgetClass);
     if (CustomCursorWidget)
     {
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
+        CustomCursorWidget->SetIsEnabled (false);
         CustomCursorWidget->AddToViewport (9999);
     }
 }
