@@ -33,8 +33,8 @@ protected:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
     bool bDebugMouseInteraction = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
-    bool bUseCustomMouseCursor = true;
+    //UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+    //bool bUseCustomMouseCursor = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
     TSubclassOf<UUserWidget> CustomCursorWidgetClass;
@@ -51,5 +51,4 @@ protected:
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor);
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
     bool IsHitWithinInteractionDistance (const FHitResult& HitResult) const;
-    EMouseCursor::Type ToMouseCursor (EGridInteractionCursor InteractionCursor) const;
 };

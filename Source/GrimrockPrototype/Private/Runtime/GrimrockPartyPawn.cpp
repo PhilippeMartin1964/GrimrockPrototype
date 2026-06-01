@@ -928,11 +928,11 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
     bInventoryWidgetVisible = true;
 
     PlayerController->bEnableClickEvents = true;
-    PlayerController->bEnableMouseOverEvents = true;
+    //PlayerController->bEnableMouseOverEvents = true;
     FInputModeGameAndUI InputMode;
     InputMode.SetWidgetToFocus (InventoryWidgetInstance->TakeWidget ());
     InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
-    InputMode.SetHideCursorDuringCapture (false);
+    InputMode.SetHideCursorDuringCapture (true);
     PlayerController->SetInputMode (InputMode);
 
     if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))

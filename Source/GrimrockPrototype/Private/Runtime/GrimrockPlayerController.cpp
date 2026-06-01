@@ -10,8 +10,6 @@ AGrimrockPlayerController::AGrimrockPlayerController ()
 {
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
-    DefaultMouseCursor = EMouseCursor::Default;
-    CurrentMouseCursor = EMouseCursor::Default;
 }
 
 void AGrimrockPlayerController::BeginPlay ()
@@ -51,11 +49,11 @@ void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 
     if (bInventoryUiOpen)
     {
-        SetGridInteractionCursor (EGridInteractionCursor::Default);
+       // SetGridInteractionCursor (EGridInteractionCursor::Default);
     }
-    else if (bUseCustomMouseCursor && CustomCursorWidget)
+    else if (CustomCursorWidget)
     {
-        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
+        //CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
     }
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT ("true") : TEXT ("false"));
@@ -169,7 +167,7 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
 
 void AGrimrockPlayerController::InitializeCustomCursor ()
 {
-    if (!bUseCustomMouseCursor || !CustomCursorWidgetClass)
+    if (!CustomCursorWidgetClass)
     {
         return;
     }
@@ -191,12 +189,6 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
 void AGrimrockPlayerController::SetGridInteractionCursor (EGridInteractionCursor NewCursor)
 {
     CurrentGridInteractionCursor = NewCursor;
-
-    if (!bUseCustomMouseCursor)
-    {
-        CurrentMouseCursor = ToMouseCursor (NewCursor);
-        return;
-    }
     CurrentMouseCursor = EMouseCursor::None;
     if (CustomCursorWidget)
     {
@@ -286,26 +278,4 @@ bool AGrimrockPlayerController::IsHitWithinInteractionDistance (const FHitResult
 
     return FVector::DistSquared (ControlledPawn->GetActorLocation (), HitResult.ImpactPoint) <=
         FMath::Square (MaxInteractionDistance);
-}
-
-EMouseCursor::Type AGrimrockPlayerController::ToMouseCursor (EGridInteractionCursor InteractionCursor) const
-{
-    switch (InteractionCursor)
-    {
-        case EGridInteractionCursor::Use:
-        case EGridInteractionCursor::Push:
-        case EGridInteractionCursor::Pull:
-        case EGridInteractionCursor::Take:
-        case EGridInteractionCursor::Read:
-            return EMouseCursor::Hand;
-
-        case EGridInteractionCursor::Locked:
-        case EGridInteractionCursor::Forbidden:
-            return EMouseCursor::SlashedCircle;
-
-        case EGridInteractionCursor::None:
-        case EGridInteractionCursor::Default:
-        default:
-            return EMouseCursor::Default;
-    }
 }
