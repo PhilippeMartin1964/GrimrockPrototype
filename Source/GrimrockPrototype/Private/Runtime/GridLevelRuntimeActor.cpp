@@ -1428,6 +1428,29 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY
     return false;
 }
 
+AGridReceptacleActor* AGridLevelRuntimeActor::FindReceptacleAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const
+{
+    if (!ActivationComponent)
+    {
+        return nullptr;
+    }
+
+    if (AGridReceptacleActor* ReceptacleActor = ActivationComponent->FindReceptacleAtEdge (FromCellX, FromCellY, Edge))
+    {
+        return ReceptacleActor;
+    }
+
+    int32 OppositeX = INDEX_NONE;
+    int32 OppositeY = INDEX_NONE;
+    EGridEdge OppositeEdge = EGridEdge::None;
+    if (TryGetOppositeEdge (FromCellX, FromCellY, Edge, OppositeX, OppositeY, OppositeEdge))
+    {
+        return ActivationComponent->FindReceptacleAtEdge (OppositeX, OppositeY, OppositeEdge);
+    }
+
+    return nullptr;
+}
+
 bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, EGridObjectEvent SourceEvent)
 {
     return ActivationComponent ? ActivationComponent->ExecuteLinksFromObjectForEvent (SourceObjectId, SourceEvent) : false;

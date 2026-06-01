@@ -220,6 +220,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle")
     bool TryPlaceCursorItemInReceptacle (AGridReceptacleActor* ReceptacleActor);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle|Debug")
+    bool DebugPlaceCursorItemInFrontReceptacle ();
+
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     bool EquipHeldItem (FName ItemDefinitionId);
 

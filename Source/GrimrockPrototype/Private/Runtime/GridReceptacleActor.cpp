@@ -486,46 +486,13 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 
     if (PartyPawn->PartyInventoryComponent && PartyPawn->PartyInventoryComponent->HasCursorItem ())
     {
+        const FGridItemInstance& CursorItem = PartyPawn->PartyInventoryComponent->GetCursorItem ();
+        UE_LOG (LogTemp, Log,
+            TEXT ("Receptacle interact cursor item attempt ObjectId=%s Item=%s RuntimeId=%s"),
+            *ObjectId.ToString (),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *CursorItem.RuntimeObjectId.ToString ());
         return PartyPawn->TryPlaceCursorItemInReceptacle (this);
-    }
-
-    const FName HeldItemId = PartyPawn->GetHeldItemDefinitionId ();
-
-    if (!HeldItemId.IsNone () && bCanInsertItem && !IsFull ())
-    {
-        UGridItemDefinitionAsset* Definition = nullptr;
-
-        if (PartyPawn->PartyInventoryComponent)
-        {
-            Definition = PartyPawn->PartyInventoryComponent->FindItemDefinition (HeldItemId);
-        }
-        if (!PartyPawn->PartyInventoryComponent ||
-            !PartyPawn->PartyInventoryComponent->HasItemDefinitionInSelectedCharacterInventory (HeldItemId))
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("Receptacle insert failed: ObjectId=%s Item=%s Reason=selected character inventory does not contain item"),
-                *ObjectId.ToString (),
-                *HeldItemId.ToString ());
-            return false;
-        }
-
-        if (TryInsertItem (HeldItemId, Definition, PartyPawn))
-        {
-            if (!PartyPawn->PartyInventoryComponent->RemoveItemDefinitionFromSelectedCharacterInventory (HeldItemId, 1))
-            {
-                UE_LOG (LogTemp, Warning,
-                    TEXT ("Receptacle insert warning: ObjectId=%s Item=%s Reason=selected character inventory did not contain item"),
-                    *ObjectId.ToString (),
-                    *HeldItemId.ToString ());
-            }
-
-            if (PartyPawn->IsHoldingItem (HeldItemId))
-            {
-                PartyPawn->ClearHeldItem ();
-            }
-
-            return true;
-        }
     }
 
     if (HasItem () && bCanRemoveItem)
@@ -534,6 +501,9 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return TryTakeFirstItem (PartyPawn, RemovedItemId);
     }
 
+    UE_LOG (LogTemp, Verbose,
+        TEXT ("Receptacle interact ignored: ObjectId=%s no CursorItem and no contained item."),
+        *ObjectId.ToString ());
     return false;
 }
 
@@ -662,10 +632,10 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     {
         return false;
     }
-    const FName HeldItemId = PartyPawn->GetHeldItemDefinitionId ();
-    if (!HeldItemId.IsNone ())
+    if (PartyPawn->PartyInventoryComponent && PartyPawn->PartyInventoryComponent->HasCursorItem ())
     {
-        return bCanInsertItem && !IsFull () && CanAcceptItem (HeldItemId);
+        const FGridItemInstance& CursorItem = PartyPawn->PartyInventoryComponent->GetCursorItem ();
+        return bCanInsertItem && !IsFull () && CanAcceptItem (CursorItem.ItemDefinitionId);
     }
     return HasItem () && bCanRemoveItem;
 }

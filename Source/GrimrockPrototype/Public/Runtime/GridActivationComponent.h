@@ -7,6 +7,7 @@
 
 class AGridLevelRuntimeActor;
 class AGrimrockPartyPawn;
+class AGridReceptacleActor;
 
 UCLASS (ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridActivationComponent : public UActorComponent
@@ -21,6 +22,7 @@ public:
 
     //bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
     bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
+    AGridReceptacleActor* FindReceptacleAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
     void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
     void NotifyPawnEnteredCell (int32 CellX, int32 CellY);
     void NotifyPawnExitedCell (int32 CellX, int32 CellY);

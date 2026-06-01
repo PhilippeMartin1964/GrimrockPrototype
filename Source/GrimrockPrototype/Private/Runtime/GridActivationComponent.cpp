@@ -72,6 +72,17 @@ bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCel
     return ObjectData ? ActivateObject (*ObjectData, PartyPawn) : false;
 }
 
+AGridReceptacleActor* UGridActivationComponent::FindReceptacleAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const
+{
+    const FGridLevelObjectData* ObjectData = FindInteractableObjectOnEdge (FromCellX, FromCellY, Edge);
+    if (!RuntimeActor || !ObjectData || ObjectData->Type != EGridLevelObjectType::Receptacle)
+    {
+        return nullptr;
+    }
+
+    return RuntimeActor->FindRuntimeObjectActor<AGridReceptacleActor> (ObjectData->ObjectId);
+}
+
 void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY)
 {
     if (OldCellX == NewCellX && OldCellY == NewCellY)

@@ -1067,6 +1067,7 @@ Etat applique :
 - `CursorItem` est vide uniquement apres acceptation par le receptacle ;
 - en cas de refus, `CursorItem` reste intact ;
 - support de torche : inventaire -> `CursorItem` -> support est le cas de reference ;
+- le depot direct depuis inventaire selectionne ou item equipe n'est plus autorise ;
 - le pickup reste inventaire uniquement ;
 - `HeldItemActor` n'est pas concerne par le depot receptacle.
 

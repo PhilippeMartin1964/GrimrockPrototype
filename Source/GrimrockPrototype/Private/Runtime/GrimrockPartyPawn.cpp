@@ -1041,6 +1041,57 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle (AGridReceptacleActor* R
     return true;
 }
 
+bool AGrimrockPartyPawn::DebugPlaceCursorItemInFrontReceptacle ()
+{
+    if (!PartyInventoryComponent)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory Cursor DebugPlaceInFront Failed Cell=(%d,%d) Edge=%d Item=None Receptacle=None Reason=NoPartyInventoryComponent"),
+            CurrentCellX,
+            CurrentCellY,
+            static_cast<int32> (Facing));
+        return false;
+    }
+
+    if (!LevelRuntimeActor)
+    {
+        LevelRuntimeActor = Cast<AGridLevelRuntimeActor> (
+            UGameplayStatics::GetActorOfClass (GetWorld (), AGridLevelRuntimeActor::StaticClass ())
+        );
+    }
+
+    const FString CursorItemText = PartyInventoryComponent->HasCursorItem ()
+        ? PartyInventoryComponent->GetCursorItem ().ItemDefinitionId.ToString ()
+        : FString (TEXT ("None"));
+
+    if (!LevelRuntimeActor)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory Cursor DebugPlaceInFront Failed Cell=(%d,%d) Edge=%d Item=%s Receptacle=None Reason=NoLevelRuntimeActor"),
+            CurrentCellX,
+            CurrentCellY,
+            static_cast<int32> (Facing),
+            *CursorItemText);
+        return false;
+    }
+
+    AGridReceptacleActor* ReceptacleActor = LevelRuntimeActor->FindReceptacleAtEdge (CurrentCellX, CurrentCellY, Facing);
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory Cursor DebugPlaceInFront Cell=(%d,%d) Edge=%d Item=%s Receptacle=%s"),
+        CurrentCellX,
+        CurrentCellY,
+        static_cast<int32> (Facing),
+        *CursorItemText,
+        *GetNameSafe (ReceptacleActor));
+
+    if (!ReceptacleActor)
+    {
+        return false;
+    }
+
+    return TryPlaceCursorItemInReceptacle (ReceptacleActor);
+}
+
 bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
 {
     if (ItemDefinitionId.IsNone ())
