@@ -5,6 +5,7 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "UI/GridPartyMemberWidget.h"
 #include "UI/GridInventorySlotWidget.h"
+#include "UI/GridInventoryUiTypes.h"
 #include "GridInventoryWidget.generated.h"
 
 class AGrimrockPartyPawn;

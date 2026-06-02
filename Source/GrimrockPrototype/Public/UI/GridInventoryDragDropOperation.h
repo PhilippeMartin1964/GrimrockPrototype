@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "UI/GridInventorySlotWidget.h"
+#include "UI/GridInventoryUiTypes.h"
 #include "GridInventoryDragDropOperation.generated.h"
 
 UCLASS ()

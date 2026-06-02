@@ -3,21 +3,13 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "UI/GridInventoryDragDropOperation.h"
+#include "UI/GridInventoryUiTypes.h"
 #include "GridInventorySlotWidget.generated.h"
 
 class UTexture2D;
 class UGridInventoryWidget;
-class UGridInventoryDragDropOperation;
 class UDragDropOperation;
-
-UENUM (BlueprintType)
-enum class EGridInventoryUiSlotType : uint8
-{
-    Inventory,
-    MainHand,
-    OffHand,
-    Cursor
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     FOnGridInventorySlotClicked,
