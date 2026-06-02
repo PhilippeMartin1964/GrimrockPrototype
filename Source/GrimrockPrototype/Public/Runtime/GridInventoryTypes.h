@@ -135,6 +135,45 @@ struct FGridCharacterInventoryState
 };
 
 USTRUCT (BlueprintType)
+struct FGridInventoryCharacterSummary
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    int32 CharacterIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FName CharacterId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FText DisplayName;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FName ClassId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    int32 Level = 1;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory")
+    int32 UsedInventorySlots = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory")
+    int32 MaxInventorySlots = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory")
+    float CurrentWeight = 0.0f;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory")
+    float MaxWeight = 0.0f;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory")
+    bool bOverloaded = false;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    bool bIsSelected = false;
+};
+
+USTRUCT (BlueprintType)
 struct FGridCharacterEquipmentState
 {
     GENERATED_BODY ()

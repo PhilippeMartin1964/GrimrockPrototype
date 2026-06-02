@@ -15,6 +15,7 @@ void UGridInventoryWidget::RefreshInventory_Implementation ()
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
         *GetNameSafe (OwningPartyPawn),
         *GetNameSafe (InventoryComponent));
+    RefreshRegisteredPartyMemberWidgets ();
     RefreshRegisteredSlotWidgets ();
 }
 
@@ -137,6 +138,112 @@ FString UGridInventoryWidget::GetInventorySlotDisplayText (int32 SlotIndex) cons
     FGridItemInstance Item;
     GetInventoryItemAtSlot (SlotIndex, Item);
     return FString::Printf (TEXT ("Slot %d: %s"), SlotIndex, *GetItemDisplayString (Item));
+}
+
+int32 UGridInventoryWidget::GetActiveCharacterCount () const
+{
+    return InventoryComponent ? InventoryComponent->GetActiveCharacterCount () : 0;
+}
+
+int32 UGridInventoryWidget::GetMaxActiveCharacterCount () const
+{
+    return InventoryComponent ? InventoryComponent->GetMaxActiveCharacterCount () : 0;
+}
+
+bool UGridInventoryWidget::GetCharacterSummary (
+    int32 CharacterIndex,
+    FGridInventoryCharacterSummary& OutSummary) const
+{
+    OutSummary = FGridInventoryCharacterSummary ();
+    return InventoryComponent && InventoryComponent->GetCharacterSummary (CharacterIndex, OutSummary);
+}
+
+bool UGridInventoryWidget::SelectCharacter (int32 CharacterIndex)
+{
+    const bool bResult = InventoryComponent && InventoryComponent->SetSelectedCharacterIndex (CharacterIndex);
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI SelectCharacter Index=%d Result=%s"),
+        CharacterIndex,
+        bResult ? TEXT ("true") : TEXT ("false"));
+    RefreshInventory ();
+    return bResult;
+}
+
+FString UGridInventoryWidget::GetCharacterDisplayText (int32 CharacterIndex) const
+{
+    FGridInventoryCharacterSummary Summary;
+    if (!GetCharacterSummary (CharacterIndex, Summary))
+    {
+        return FString::Printf (TEXT ("%d Empty"), CharacterIndex);
+    }
+
+    const FString NameText = Summary.DisplayName.IsEmpty ()
+        ? FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1)
+        : Summary.DisplayName.ToString ();
+    return FString::Printf (TEXT ("%d %s"), CharacterIndex, *NameText);
+}
+
+FString UGridInventoryWidget::GetSelectedCharacterDisplayText () const
+{
+    const int32 CharacterIndex = GetSelectedCharacterIndex ();
+    FGridInventoryCharacterSummary Summary;
+    if (!GetCharacterSummary (CharacterIndex, Summary))
+    {
+        return TEXT ("SelectedCharacter: None");
+    }
+
+    const FString NameText = Summary.DisplayName.IsEmpty ()
+        ? FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1)
+        : Summary.DisplayName.ToString ();
+    const FString ClassText = Summary.ClassId.IsNone () ? FString (TEXT ("Unknown")) : Summary.ClassId.ToString ();
+    return FString::Printf (
+        TEXT ("SelectedCharacter: %d %s %s Lv%d"),
+        CharacterIndex,
+        *NameText,
+        *ClassText,
+        Summary.Level);
+}
+
+void UGridInventoryWidget::RegisterPartyMemberWidget (
+    UGridPartyMemberWidget* MemberWidget,
+    int32 CharacterIndex)
+{
+    if (!MemberWidget)
+    {
+        return;
+    }
+
+    MemberWidget->InitializePartyMember (CharacterIndex);
+    MemberWidget->OnPartyMemberClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
+    MemberWidget->OnPartyMemberClicked.AddDynamic (this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
+    RegisteredPartyMemberWidgets.AddUnique (MemberWidget);
+    RefreshRegisteredPartyMemberWidgets ();
+}
+
+void UGridInventoryWidget::RefreshRegisteredPartyMemberWidgets ()
+{
+    for (UGridPartyMemberWidget* MemberWidget : RegisteredPartyMemberWidgets)
+    {
+        if (!MemberWidget)
+        {
+            continue;
+        }
+
+        FGridInventoryCharacterSummary Summary;
+        if (GetCharacterSummary (MemberWidget->CharacterIndex, Summary))
+        {
+            MemberWidget->SetVisibility (ESlateVisibility::Visible);
+            MemberWidget->SetCharacterSummary (Summary);
+        }
+        else
+        {
+            MemberWidget->SetVisibility (ESlateVisibility::Collapsed);
+        }
+    }
+}
+
+void UGridInventoryWidget::HandleRegisteredPartyMemberClicked (int32 CharacterIndex)
+{
+    SelectCharacter (CharacterIndex);
 }
 
 void UGridInventoryWidget::RegisterInventorySlotWidget (

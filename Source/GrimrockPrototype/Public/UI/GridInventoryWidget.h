@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "UI/GridPartyMemberWidget.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "GridInventoryWidget.generated.h"
 
 class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
+class UGridPartyMemberWidget;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridInventoryWidget : public UUserWidget
@@ -33,6 +35,9 @@ public:
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
     TObjectPtr<UGridInventorySlotWidget> CursorSlotWidget;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Party")
+    TArray<TObjectPtr<UGridPartyMemberWidget>> RegisteredPartyMemberWidgets;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     void InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn);
@@ -75,6 +80,33 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
     FString GetInventorySlotDisplayText (int32 SlotIndex) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    int32 GetActiveCharacterCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    int32 GetMaxActiveCharacterCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    bool GetCharacterSummary (int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    bool SelectCharacter (int32 CharacterIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    FString GetCharacterDisplayText (int32 CharacterIndex) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    FString GetSelectedCharacterDisplayText () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    void RegisterPartyMemberWidget (UGridPartyMemberWidget* MemberWidget, int32 CharacterIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    void RefreshRegisteredPartyMemberWidgets ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    void HandleRegisteredPartyMemberClicked (int32 CharacterIndex);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void RegisterInventorySlotWidget (UGridInventorySlotWidget* SlotWidget, EGridInventoryUiSlotType SlotType, int32 SlotIndex);

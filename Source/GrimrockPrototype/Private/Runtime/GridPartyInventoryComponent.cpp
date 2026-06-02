@@ -232,6 +232,11 @@ int32 UGridPartyInventoryComponent::GetMaxActiveCharacters () const
     return PartyInventoryState.MaxActiveCharacters;
 }
 
+int32 UGridPartyInventoryComponent::GetMaxActiveCharacterCount () const
+{
+    return GetMaxActiveCharacters ();
+}
+
 int32 UGridPartyInventoryComponent::GetSelectedCharacterIndex () const
 {
     return PartyInventoryState.SelectedCharacterIndex;
@@ -239,12 +244,48 @@ int32 UGridPartyInventoryComponent::GetSelectedCharacterIndex () const
 
 bool UGridPartyInventoryComponent::SetSelectedCharacterIndex (int32 NewIndex)
 {
+    const int32 OldIndex = PartyInventoryState.SelectedCharacterIndex;
     if (!IsValidCharacterIndex (NewIndex))
     {
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory SelectedCharacter Changed Old=%d New=%d Result=false"),
+            OldIndex,
+            NewIndex);
         return false;
     }
 
     PartyInventoryState.SelectedCharacterIndex = NewIndex;
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory SelectedCharacter Changed Old=%d New=%d Result=true"),
+        OldIndex,
+        NewIndex);
+    return true;
+}
+
+bool UGridPartyInventoryComponent::GetCharacterSummary (
+    int32 CharacterIndex,
+    FGridInventoryCharacterSummary& OutSummary) const
+{
+    OutSummary = FGridInventoryCharacterSummary ();
+    if (!IsValidCharacterIndex (CharacterIndex))
+    {
+        return false;
+    }
+
+    const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    OutSummary.CharacterIndex = CharacterIndex;
+    OutSummary.CharacterId = CharacterState.CharacterId.IsValid ()
+        ? FName (*CharacterState.CharacterId.ToString (EGuidFormats::DigitsWithHyphens))
+        : NAME_None;
+    OutSummary.DisplayName = CharacterState.DisplayName.IsEmpty ()
+        ? FText::FromString (CharacterIndex == 0 ? TEXT ("Hero_01") : FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1))
+        : CharacterState.DisplayName;
+    OutSummary.ClassId = CharacterState.ClassId;
+    OutSummary.Level = CharacterState.Level;
+    OutSummary.UsedInventorySlots = CountOccupiedSlots (CharacterState);
+    OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num ();
+    OutSummary.CurrentWeight = CharacterState.CurrentWeight;
+    OutSummary.MaxWeight = CharacterState.MaxCarryWeight;
+    OutSummary.bOverloaded = CharacterState.IsOverloaded ();
+    OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
     return true;
 }
 

@@ -1130,6 +1130,21 @@ Etat applique :
 - pas encore UI multi-personnages complete ;
 - ownership inchange.
 
+## Tranche 6D appliquee
+
+Etat applique :
+
+- UI multi-personnages visible exposee au Blueprint ;
+- affichage des personnages actifs via un resume personnage ;
+- selection du personnage actif depuis l'UI ;
+- `RefreshInventory` affiche l'inventaire et l'equipement du personnage selectionne ;
+- `CursorItem` reste global ;
+- le changement de personnage ne deplace pas automatiquement `CursorItem` ;
+- depot `CursorItem` vers inventaire utilise le personnage selectionne ;
+- pas encore de drag and drop ;
+- pas encore fiche personnage complete ;
+- curseur dore custom reste seul curseur autorise.
+
 ---
 
 ## 23. Conclusion

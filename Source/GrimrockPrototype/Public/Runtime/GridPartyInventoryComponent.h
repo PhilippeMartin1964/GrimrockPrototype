@@ -37,10 +37,16 @@ public:
     int32 GetMaxActiveCharacters () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    int32 GetMaxActiveCharacterCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     int32 GetSelectedCharacterIndex () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     bool SetSelectedCharacterIndex (int32 NewIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    bool GetCharacterSummary (int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     bool IsValidCharacterIndex (int32 Index) const;
