@@ -7,26 +7,6 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 
-namespace
-{
-    const TCHAR* GetUiSlotTypeName (EGridInventoryUiSlotType SlotType)
-    {
-        switch (SlotType)
-        {
-        case EGridInventoryUiSlotType::Inventory:
-            return TEXT ("Inventory");
-        case EGridInventoryUiSlotType::MainHand:
-            return TEXT ("MainHand");
-        case EGridInventoryUiSlotType::OffHand:
-            return TEXT ("OffHand");
-        case EGridInventoryUiSlotType::Cursor:
-            return TEXT ("Cursor");
-        default:
-            return TEXT ("Unknown");
-        }
-    }
-}
-
 void UGridInventorySlotWidget::InitializeInventorySlot (
     EGridInventoryUiSlotType InSlotType,
     int32 InInventorySlotIndex)
@@ -176,7 +156,7 @@ void UGridInventorySlotWidget::NativeOnDragDetected (
 
     OutOperation = Operation;
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"),
-        GetUiSlotTypeName (SlotType),
+        GetGridInventoryUiSlotTypeName (SlotType),
         InventorySlotIndex,
         *CachedItem.ItemDefinitionId.ToString (),
         *CachedItem.RuntimeObjectId.ToString ());
