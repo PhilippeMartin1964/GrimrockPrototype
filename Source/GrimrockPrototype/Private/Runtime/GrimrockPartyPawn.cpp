@@ -924,16 +924,23 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
     {
         InventoryWidgetInstance->AddToViewport (100);
     }
+    InventoryWidgetInstance->SetVisibility (ESlateVisibility::Visible);
     InventoryWidgetInstance->RefreshInventory ();
     bInventoryWidgetVisible = true;
 
     PlayerController->bEnableClickEvents = true;
     PlayerController->bEnableMouseOverEvents = true;
+    PlayerController->bShowMouseCursor = false;
+    PlayerController->DefaultMouseCursor = EMouseCursor::None;
+    PlayerController->CurrentMouseCursor = EMouseCursor::None;
     FInputModeGameAndUI InputMode;
     InputMode.SetWidgetToFocus (InventoryWidgetInstance->TakeWidget ());
     InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
     InputMode.SetHideCursorDuringCapture (false);
     PlayerController->SetInputMode (InputMode);
+    PlayerController->bShowMouseCursor = false;
+    PlayerController->DefaultMouseCursor = EMouseCursor::None;
+    PlayerController->CurrentMouseCursor = EMouseCursor::None;
 
     if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
     {
@@ -947,7 +954,7 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
 {
     if (InventoryWidgetInstance)
     {
-        InventoryWidgetInstance->RemoveFromParent ();
+        InventoryWidgetInstance->SetVisibility (ESlateVisibility::Collapsed);
     }
     bInventoryWidgetVisible = false;
 
@@ -959,6 +966,9 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
         }
         FInputModeGameOnly InputMode;
         PlayerController->SetInputMode (InputMode);
+        PlayerController->bShowMouseCursor = false;
+        PlayerController->DefaultMouseCursor = EMouseCursor::None;
+        PlayerController->CurrentMouseCursor = EMouseCursor::None;
     }
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Hidden Pawn=%s"), *GetName ());

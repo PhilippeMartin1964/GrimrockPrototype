@@ -47,6 +47,21 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool HasCursorItem () const;
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
+    FString GetItemDisplayString (const FGridItemInstance& Item) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
+    FString GetCursorItemDisplayText () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
+    FString GetMainHandDisplayText () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
+    FString GetOffHandDisplayText () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
+    FString GetInventorySlotDisplayText (int32 SlotIndex) const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleInventorySlotClicked (int32 SlotIndex);
 

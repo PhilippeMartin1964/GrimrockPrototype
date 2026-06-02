@@ -52,13 +52,21 @@ void AGrimrockPlayerController::SetupInputComponent ()
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 {
     bInventoryUiOpen = bOpen;
-    if (CustomCursorWidget)
-    {
-        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
-    }
+    DefaultMouseCursor = EMouseCursor::None;
     CurrentMouseCursor = EMouseCursor::None;
     bShowMouseCursor = false;
+    if (CustomCursorWidget)
+    {
+        CustomCursorWidget->SetIsEnabled (true);
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
+    }
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT ("true") : TEXT ("false"));
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI CustomCursor Widget=%s Visibility=%s Enabled=%s"),
+        *GetNameSafe (CustomCursorWidget),
+        CustomCursorWidget && CustomCursorWidget->GetVisibility () == ESlateVisibility::HitTestInvisible
+            ? TEXT ("HitTestInvisible")
+            : TEXT ("Other"),
+        CustomCursorWidget && CustomCursorWidget->GetIsEnabled () ? TEXT ("true") : TEXT ("false"));
 }
 
 void AGrimrockPlayerController::HandleLeftMousePressed ()
@@ -182,6 +190,7 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
     CustomCursorWidget = CreateWidget<UUserWidget> (this, CustomCursorWidgetClass);
     if (CustomCursorWidget)
     {
+        CustomCursorWidget->SetIsEnabled (true);
         CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
         CustomCursorWidget->AddToViewport (9999);
         CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);

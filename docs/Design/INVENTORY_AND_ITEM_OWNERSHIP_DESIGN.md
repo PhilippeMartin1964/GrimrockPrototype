@@ -1100,6 +1100,23 @@ Etat applique :
 - pas encore d'UI multi-personnage complete ;
 - pas encore de style final.
 
+## Tranche 6B appliquee
+
+Etat applique :
+
+- stabilisation UI minimale ;
+- curseur dore custom = seul curseur autorise ;
+- curseur Windows interdit ;
+- `WBP_GridInventory` root Canvas Panel doit avoir `Cursor=None` ;
+- `CustomCursorWidget` visible et `HitTestInvisible` ;
+- boutons UMG cliquables ;
+- `RefreshInventory` fiable ;
+- `Slot 0`, `MainHand`, `OffHand` et `Return Cursor` valides ;
+- pas encore de slot widget dedie ;
+- pas encore icones ;
+- pas encore drag and drop UMG ;
+- pas encore UI multi-personnages complete.
+
 ---
 
 ## 23. Conclusion
