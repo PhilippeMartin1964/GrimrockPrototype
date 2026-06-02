@@ -3,10 +3,12 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "UI/GridInventorySlotWidget.h"
 #include "GridInventoryWidget.generated.h"
 
 class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
+class UGridInventorySlotWidget;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridInventoryWidget : public UUserWidget
@@ -19,6 +21,18 @@ public:
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
+    TArray<TObjectPtr<UGridInventorySlotWidget>> RegisteredInventorySlots;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
+    TObjectPtr<UGridInventorySlotWidget> MainHandSlotWidget;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
+    TObjectPtr<UGridInventorySlotWidget> OffHandSlotWidget;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
+    TObjectPtr<UGridInventorySlotWidget> CursorSlotWidget;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     void InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn);
@@ -61,6 +75,15 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
     FString GetInventorySlotDisplayText (int32 SlotIndex) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
+    void RegisterInventorySlotWidget (UGridInventorySlotWidget* SlotWidget, EGridInventoryUiSlotType SlotType, int32 SlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
+    void RefreshRegisteredSlotWidgets ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
+    void HandleRegisteredSlotClicked (EGridInventoryUiSlotType SlotType, int32 SlotIndex);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleInventorySlotClicked (int32 SlotIndex);

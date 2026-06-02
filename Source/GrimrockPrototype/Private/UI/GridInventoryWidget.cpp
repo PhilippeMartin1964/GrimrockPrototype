@@ -15,6 +15,7 @@ void UGridInventoryWidget::RefreshInventory_Implementation ()
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
         *GetNameSafe (OwningPartyPawn),
         *GetNameSafe (InventoryComponent));
+    RefreshRegisteredSlotWidgets ();
 }
 
 int32 UGridInventoryWidget::GetSelectedCharacterIndex () const
@@ -136,6 +137,123 @@ FString UGridInventoryWidget::GetInventorySlotDisplayText (int32 SlotIndex) cons
     FGridItemInstance Item;
     GetInventoryItemAtSlot (SlotIndex, Item);
     return FString::Printf (TEXT ("Slot %d: %s"), SlotIndex, *GetItemDisplayString (Item));
+}
+
+void UGridInventoryWidget::RegisterInventorySlotWidget (
+    UGridInventorySlotWidget* SlotWidget,
+    EGridInventoryUiSlotType SlotType,
+    int32 SlotIndex)
+{
+    if (!SlotWidget)
+    {
+        return;
+    }
+
+    SlotWidget->InitializeInventorySlot (SlotType, SlotIndex);
+    SlotWidget->OwningInventoryWidget = this;
+    SlotWidget->OnSlotClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
+    SlotWidget->OnSlotClicked.AddDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
+
+    switch (SlotType)
+    {
+    case EGridInventoryUiSlotType::Inventory:
+        RegisteredInventorySlots.AddUnique (SlotWidget);
+        break;
+    case EGridInventoryUiSlotType::MainHand:
+        MainHandSlotWidget = SlotWidget;
+        break;
+    case EGridInventoryUiSlotType::OffHand:
+        OffHandSlotWidget = SlotWidget;
+        break;
+    case EGridInventoryUiSlotType::Cursor:
+        CursorSlotWidget = SlotWidget;
+        break;
+    default:
+        break;
+    }
+
+    RefreshRegisteredSlotWidgets ();
+}
+
+void UGridInventoryWidget::RefreshRegisteredSlotWidgets ()
+{
+    for (UGridInventorySlotWidget* SlotWidget : RegisteredInventorySlots)
+    {
+        if (!SlotWidget)
+        {
+            continue;
+        }
+
+        FGridItemInstance Item;
+        if (GetInventoryItemAtSlot (SlotWidget->InventorySlotIndex, Item))
+        {
+            SlotWidget->SetItem (Item);
+        }
+        else
+        {
+            SlotWidget->ClearItem ();
+        }
+    }
+
+    if (MainHandSlotWidget)
+    {
+        FGridItemInstance Item;
+        if (GetMainHandItem (Item))
+        {
+            MainHandSlotWidget->SetItem (Item);
+        }
+        else
+        {
+            MainHandSlotWidget->ClearItem ();
+        }
+    }
+
+    if (OffHandSlotWidget)
+    {
+        FGridItemInstance Item;
+        if (GetOffHandItem (Item))
+        {
+            OffHandSlotWidget->SetItem (Item);
+        }
+        else
+        {
+            OffHandSlotWidget->ClearItem ();
+        }
+    }
+
+    if (CursorSlotWidget)
+    {
+        FGridItemInstance Item;
+        if (GetCursorItem (Item))
+        {
+            CursorSlotWidget->SetItem (Item);
+        }
+        else
+        {
+            CursorSlotWidget->ClearItem ();
+        }
+    }
+}
+
+void UGridInventoryWidget::HandleRegisteredSlotClicked (EGridInventoryUiSlotType SlotType, int32 SlotIndex)
+{
+    switch (SlotType)
+    {
+    case EGridInventoryUiSlotType::Inventory:
+        HandleInventorySlotClicked (SlotIndex);
+        break;
+    case EGridInventoryUiSlotType::MainHand:
+        HandleMainHandClicked ();
+        break;
+    case EGridInventoryUiSlotType::OffHand:
+        HandleOffHandClicked ();
+        break;
+    case EGridInventoryUiSlotType::Cursor:
+        HandleCursorReturnToInventoryClicked ();
+        break;
+    default:
+        break;
+    }
 }
 
 bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex)

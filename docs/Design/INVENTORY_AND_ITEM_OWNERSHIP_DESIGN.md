@@ -1117,6 +1117,19 @@ Etat applique :
 - pas encore drag and drop UMG ;
 - pas encore UI multi-personnages complete.
 
+## Tranche 6C appliquee
+
+Etat applique :
+
+- creation d'un widget de slot dedie ;
+- slots `Inventory`, `MainHand`, `OffHand` et `Cursor` ;
+- affichage nom, quantite et icone optionnelle ;
+- tooltip simple ;
+- root `Cursor=None` a appliquer dans le Blueprint pour eviter le curseur Windows ;
+- pas encore de vrai drag and drop ;
+- pas encore UI multi-personnages complete ;
+- ownership inchange.
+
 ---
 
 ## 23. Conclusion
