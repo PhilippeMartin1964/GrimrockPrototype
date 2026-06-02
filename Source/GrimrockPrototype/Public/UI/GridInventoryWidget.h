@@ -117,6 +117,13 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void HandleRegisteredSlotClicked (EGridInventoryUiSlotType SlotType, int32 SlotIndex);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
+    bool HandleSlotDrop (
+        EGridInventoryUiSlotType SourceType,
+        int32 SourceIndex,
+        EGridInventoryUiSlotType TargetType,
+        int32 TargetIndex);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleInventorySlotClicked (int32 SlotIndex);
 

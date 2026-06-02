@@ -1,8 +1,31 @@
 #include "UI/GridInventorySlotWidget.h"
 
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "InputCoreTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
+
+namespace
+{
+    const TCHAR* GetUiSlotTypeName (EGridInventoryUiSlotType SlotType)
+    {
+        switch (SlotType)
+        {
+        case EGridInventoryUiSlotType::Inventory:
+            return TEXT ("Inventory");
+        case EGridInventoryUiSlotType::MainHand:
+            return TEXT ("MainHand");
+        case EGridInventoryUiSlotType::OffHand:
+            return TEXT ("OffHand");
+        case EGridInventoryUiSlotType::Cursor:
+            return TEXT ("Cursor");
+        default:
+            return TEXT ("Unknown");
+        }
+    }
+}
 
 void UGridInventorySlotWidget::InitializeInventorySlot (
     EGridInventoryUiSlotType InSlotType,
@@ -90,6 +113,89 @@ void UGridInventorySlotWidget::HandleClicked ()
     OnSlotClicked.Broadcast (SlotType, InventorySlotIndex);
 }
 
+void UGridInventorySlotWidget::SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget)
+{
+    OwningInventoryWidget = InOwnerInventoryWidget;
+}
+
+bool UGridInventorySlotWidget::CanStartDrag () const
+{
+    return bDragEnabled && bHasItem && CachedItem.IsValid ();
+}
+
+UGridInventoryDragDropOperation* UGridInventorySlotWidget::CreateDragDropOperation () const
+{
+    if (!CanStartDrag ())
+    {
+        return nullptr;
+    }
+
+    UGridInventoryDragDropOperation* Operation = NewObject<UGridInventoryDragDropOperation> ();
+    if (!Operation)
+    {
+        return nullptr;
+    }
+
+    Operation->InitializeFromSlot (SlotType, InventorySlotIndex, CachedItem);
+    Operation->DefaultDragVisual = nullptr;
+    Operation->Pivot = EDragPivot::MouseDown;
+    return Operation;
+}
+
 void UGridInventorySlotWidget::RefreshSlotVisual_Implementation ()
 {
+}
+
+FReply UGridInventorySlotWidget::NativeOnMouseButtonDown (
+    const FGeometry& InGeometry,
+    const FPointerEvent& InMouseEvent)
+{
+    if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton && CanStartDrag ())
+    {
+        return UWidgetBlueprintLibrary::DetectDragIfPressed (
+            InMouseEvent,
+            this,
+            EKeys::LeftMouseButton).NativeReply;
+    }
+
+    return Super::NativeOnMouseButtonDown (InGeometry, InMouseEvent);
+}
+
+void UGridInventorySlotWidget::NativeOnDragDetected (
+    const FGeometry& InGeometry,
+    const FPointerEvent& InMouseEvent,
+    UDragDropOperation*& OutOperation)
+{
+    Super::NativeOnDragDetected (InGeometry, InMouseEvent, OutOperation);
+
+    UGridInventoryDragDropOperation* Operation = CreateDragDropOperation ();
+    if (!Operation)
+    {
+        return;
+    }
+
+    OutOperation = Operation;
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"),
+        GetUiSlotTypeName (SlotType),
+        InventorySlotIndex,
+        *CachedItem.ItemDefinitionId.ToString (),
+        *CachedItem.RuntimeObjectId.ToString ());
+}
+
+bool UGridInventorySlotWidget::NativeOnDrop (
+    const FGeometry& InGeometry,
+    const FDragDropEvent& InDragDropEvent,
+    UDragDropOperation* InOperation)
+{
+    UGridInventoryDragDropOperation* Operation = Cast<UGridInventoryDragDropOperation> (InOperation);
+    if (!Operation || !OwningInventoryWidget)
+    {
+        return Super::NativeOnDrop (InGeometry, InDragDropEvent, InOperation);
+    }
+
+    return OwningInventoryWidget->HandleSlotDrop (
+        Operation->SourceSlotType,
+        Operation->SourceSlotIndex,
+        SlotType,
+        InventorySlotIndex);
 }

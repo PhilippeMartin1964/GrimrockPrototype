@@ -3,6 +3,26 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
+namespace
+{
+    const TCHAR* GetUiSlotTypeName (EGridInventoryUiSlotType SlotType)
+    {
+        switch (SlotType)
+        {
+        case EGridInventoryUiSlotType::Inventory:
+            return TEXT ("Inventory");
+        case EGridInventoryUiSlotType::MainHand:
+            return TEXT ("MainHand");
+        case EGridInventoryUiSlotType::OffHand:
+            return TEXT ("OffHand");
+        case EGridInventoryUiSlotType::Cursor:
+            return TEXT ("Cursor");
+        default:
+            return TEXT ("Unknown");
+        }
+    }
+}
+
 void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn)
 {
     OwningPartyPawn = InPartyPawn;
@@ -257,7 +277,7 @@ void UGridInventoryWidget::RegisterInventorySlotWidget (
     }
 
     SlotWidget->InitializeInventorySlot (SlotType, SlotIndex);
-    SlotWidget->OwningInventoryWidget = this;
+    SlotWidget->SetOwnerInventoryWidget (this);
     SlotWidget->OnSlotClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
     SlotWidget->OnSlotClicked.AddDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
 
@@ -361,6 +381,147 @@ void UGridInventoryWidget::HandleRegisteredSlotClicked (EGridInventoryUiSlotType
     default:
         break;
     }
+}
+
+bool UGridInventoryWidget::HandleSlotDrop (
+    EGridInventoryUiSlotType SourceType,
+    int32 SourceIndex,
+    EGridInventoryUiSlotType TargetType,
+    int32 TargetIndex)
+{
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"),
+        GetUiSlotTypeName (SourceType),
+        SourceIndex,
+        GetUiSlotTypeName (TargetType),
+        TargetIndex);
+
+    if (!InventoryComponent || !OwningPartyPawn)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=MissingPawnOrInventoryComponent"));
+        RefreshInventory ();
+        return false;
+    }
+
+    if (SourceType == TargetType && SourceIndex == TargetIndex)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Result=true Reason=SameSlot"));
+        RefreshInventory ();
+        return true;
+    }
+
+    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
+    auto HasCurrentSourceItem = [&] () -> bool
+    {
+        FGridItemInstance Item;
+        switch (SourceType)
+        {
+        case EGridInventoryUiSlotType::Inventory:
+            return GetInventoryItemAtSlot (SourceIndex, Item);
+        case EGridInventoryUiSlotType::MainHand:
+            return GetMainHandItem (Item);
+        case EGridInventoryUiSlotType::OffHand:
+            return GetOffHandItem (Item);
+        case EGridInventoryUiSlotType::Cursor:
+            return GetCursorItem (Item);
+        default:
+            return false;
+        }
+    };
+
+    auto TakeSourceToCursor = [&] () -> bool
+    {
+        switch (SourceType)
+        {
+        case EGridInventoryUiSlotType::Inventory:
+            return InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SourceIndex);
+        case EGridInventoryUiSlotType::MainHand:
+            return OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor ();
+        case EGridInventoryUiSlotType::OffHand:
+            return OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor ();
+        case EGridInventoryUiSlotType::Cursor:
+            return InventoryComponent->HasCursorItem ();
+        default:
+            return false;
+        }
+    };
+
+    auto PlaceCursorToTarget = [&] () -> bool
+    {
+        switch (TargetType)
+        {
+        case EGridInventoryUiSlotType::Inventory:
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop InventoryTargetIndex Informative TargetIndex=%d"), TargetIndex);
+            return InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
+        case EGridInventoryUiSlotType::MainHand:
+            return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterMainHand ();
+        case EGridInventoryUiSlotType::OffHand:
+            return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterOffHand ();
+        case EGridInventoryUiSlotType::Cursor:
+            return InventoryComponent->HasCursorItem ();
+        default:
+            return false;
+        }
+    };
+
+    auto ValidateOwnership = [&] ()
+    {
+        FString OwnershipError;
+        if (!InventoryComponent->ValidateInventoryOwnership (OwnershipError))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
+        }
+        else
+        {
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Ownership OK"));
+        }
+    };
+
+    if (!HasCurrentSourceItem ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=SourceEmpty"));
+        RefreshInventory ();
+        return false;
+    }
+
+    bool bResult = false;
+    bool bTookSourceToCursor = false;
+
+    if (SourceType == EGridInventoryUiSlotType::Cursor)
+    {
+        bResult = PlaceCursorToTarget ();
+    }
+    else
+    {
+        if (InventoryComponent->HasCursorItem ())
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=CursorOccupied"));
+            RefreshInventory ();
+            return false;
+        }
+
+        bTookSourceToCursor = TakeSourceToCursor ();
+        if (!bTookSourceToCursor)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=TakeSourceFailed"));
+            RefreshInventory ();
+            return false;
+        }
+
+        bResult = TargetType == EGridInventoryUiSlotType::Cursor ? true : PlaceCursorToTarget ();
+    }
+
+    if (!bResult && bTookSourceToCursor && InventoryComponent->HasCursorItem ())
+    {
+        const bool bRecoveryResult = InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Recovery Result=%s"),
+            bRecoveryResult ? TEXT ("true") : TEXT ("false"));
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Result=%s"),
+        bResult ? TEXT ("true") : TEXT ("false"));
+    ValidateOwnership ();
+    RefreshInventory ();
+    return bResult;
 }
 
 bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex)

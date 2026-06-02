@@ -1145,6 +1145,20 @@ Etat applique :
 - pas encore fiche personnage complete ;
 - curseur dore custom reste seul curseur autorise.
 
+## Tranche 6E appliquee
+
+Etat applique :
+
+- ajout du drag and drop UMG entre slots d'inventaire, d'equipement et `CursorItem` ;
+- l'operation de drag transporte le slot source et des donnees item de debug ;
+- l'ownership reel reste dans `CursorItem` et `UGridPartyInventoryComponent` ;
+- le clic simple est conserve pour debug et accessibilite ;
+- curseur dore custom = seul curseur autorise ;
+- curseur Windows interdit ;
+- pas encore de drop monde ou receptacle ;
+- pas encore de drag visual final ;
+- `TargetIndex` inventaire est informatif tant que le placement precis dans un slot cible n'est pas supporte.
+
 ---
 
 ## 23. Conclusion

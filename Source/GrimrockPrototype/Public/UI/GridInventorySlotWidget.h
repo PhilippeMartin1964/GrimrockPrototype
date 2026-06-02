@@ -7,6 +7,8 @@
 
 class UTexture2D;
 class UGridInventoryWidget;
+class UGridInventoryDragDropOperation;
+class UDragDropOperation;
 
 UENUM (BlueprintType)
 enum class EGridInventoryUiSlotType : uint8
@@ -43,6 +45,12 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slot")
     TObjectPtr<UGridInventoryWidget> OwningInventoryWidget;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory|Drag")
+    bool bDragEnabled = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory|Drag", meta = (ClampMin = "0.0"))
+    float DragDetectionDistance = 5.0f;
+
     UPROPERTY (BlueprintAssignable, Category = "Inventory|Slot")
     FOnGridInventorySlotClicked OnSlotClicked;
 
@@ -76,6 +84,30 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void HandleClicked ();
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
+    void SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
+    bool CanStartDrag () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
+    UGridInventoryDragDropOperation* CreateDragDropOperation () const;
+
     UFUNCTION (BlueprintCallable, BlueprintNativeEvent, Category = "Inventory|Slot")
     void RefreshSlotVisual ();
+
+protected:
+    virtual FReply NativeOnMouseButtonDown (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent) override;
+
+    virtual void NativeOnDragDetected (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent,
+        UDragDropOperation*& OutOperation) override;
+
+    virtual bool NativeOnDrop (
+        const FGeometry& InGeometry,
+        const FDragDropEvent& InDragDropEvent,
+        UDragDropOperation* InOperation) override;
 };
