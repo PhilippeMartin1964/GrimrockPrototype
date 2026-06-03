@@ -12,6 +12,7 @@ class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
+class UUniformGridPanel;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridInventoryWidget : public UUserWidget
@@ -24,6 +25,21 @@ public:
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
+    TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "1"))
+    int32 InventorySlotColumnCount = 6;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "0"))
+    int32 InventorySlotCountOverride = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory UI|Slots")
+    TArray<TObjectPtr<UGridInventorySlotWidget>> GeneratedInventorySlotWidgets;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Slots")
+    TObjectPtr<UUniformGridPanel> InventorySlotsGridPanel;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
     TArray<TObjectPtr<UGridInventorySlotWidget>> RegisteredInventorySlots;
@@ -112,6 +128,21 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void RegisterInventorySlotWidget (UGridInventorySlotWidget* SlotWidget, EGridInventoryUiSlotType SlotType, int32 SlotIndex);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
+    void RebuildInventorySlotWidgets ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
+    void ClearGeneratedInventorySlotWidgets ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
+    int32 ResolveInventorySlotWidgetCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
+    void SetInventorySlotWidgetClass (TSubclassOf<UGridInventorySlotWidget> InClass);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
+    void SetInventorySlotsGridPanel (UUniformGridPanel* InGridPanel);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void RefreshRegisteredSlotWidgets ();
 
@@ -136,4 +167,10 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleCursorReturnToInventoryClicked ();
+
+protected:
+    virtual void NativeConstruct () override;
+
+private:
+    void RemoveGeneratedInventorySlotsFromRegistry ();
 };

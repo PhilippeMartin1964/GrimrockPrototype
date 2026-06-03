@@ -1,12 +1,22 @@
 #include "UI/GridInventoryWidget.h"
 
+#include "Components/PanelWidget.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+
+void UGridInventoryWidget::NativeConstruct ()
+{
+    Super::NativeConstruct ();
+    RebuildInventorySlotWidgets ();
+}
 
 void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn)
 {
     OwningPartyPawn = InPartyPawn;
     InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
+    RebuildInventorySlotWidgets ();
     RefreshInventory ();
 }
 
@@ -280,6 +290,116 @@ void UGridInventoryWidget::RegisterInventorySlotWidget (
     }
 
     RefreshRegisteredSlotWidgets ();
+}
+
+void UGridInventoryWidget::RebuildInventorySlotWidgets ()
+{
+    if (!InventorySlotsGridPanel)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI RebuildSlots Failed Reason=NoGridPanel"));
+        return;
+    }
+
+    if (!InventorySlotWidgetClass)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI RebuildSlots Failed Reason=NoSlotWidgetClass"));
+        return;
+    }
+
+    ClearGeneratedInventorySlotWidgets ();
+
+    const int32 SlotCount = FMath::Max (1, ResolveInventorySlotWidgetCount ());
+    const int32 ColumnCount = FMath::Max (1, InventorySlotColumnCount);
+
+    for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
+    {
+        UGridInventorySlotWidget* NewSlot = CreateWidget<UGridInventorySlotWidget> (this, InventorySlotWidgetClass);
+        if (!NewSlot)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed Index=%d"), SlotIndex);
+            continue;
+        }
+
+        NewSlot->InitializeInventorySlot (EGridInventoryUiSlotType::Inventory, SlotIndex);
+        RegisterInventorySlotWidget (NewSlot, EGridInventoryUiSlotType::Inventory, SlotIndex);
+
+        const int32 Row = SlotIndex / ColumnCount;
+        const int32 Column = SlotIndex % ColumnCount;
+        if (UUniformGridSlot* GridSlot = InventorySlotsGridPanel->AddChildToUniformGrid (NewSlot, Row, Column))
+        {
+            GridSlot->SetHorizontalAlignment (HAlign_Fill);
+            GridSlot->SetVerticalAlignment (VAlign_Fill);
+        }
+
+        GeneratedInventorySlotWidgets.Add (NewSlot);
+    }
+
+    RefreshRegisteredSlotWidgets ();
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
+}
+
+void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets ()
+{
+    RemoveGeneratedInventorySlotsFromRegistry ();
+
+    for (UGridInventorySlotWidget* SlotWidget : GeneratedInventorySlotWidgets)
+    {
+        if (SlotWidget)
+        {
+            SlotWidget->RemoveFromParent ();
+        }
+    }
+
+    if (InventorySlotsGridPanel)
+    {
+        InventorySlotsGridPanel->ClearChildren ();
+    }
+
+    GeneratedInventorySlotWidgets.Empty ();
+}
+
+int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount () const
+{
+    if (InventorySlotCountOverride > 0)
+    {
+        return InventorySlotCountOverride;
+    }
+
+    if (InventoryComponent)
+    {
+        FGridInventoryCharacterSummary Summary;
+        if (InventoryComponent->GetCharacterSummary (InventoryComponent->GetSelectedCharacterIndex (), Summary) &&
+            Summary.MaxInventorySlots > 0)
+        {
+            return Summary.MaxInventorySlots;
+        }
+    }
+
+    return 24;
+}
+
+void UGridInventoryWidget::SetInventorySlotWidgetClass (TSubclassOf<UGridInventorySlotWidget> InClass)
+{
+    InventorySlotWidgetClass = InClass;
+}
+
+void UGridInventoryWidget::SetInventorySlotsGridPanel (UUniformGridPanel* InGridPanel)
+{
+    InventorySlotsGridPanel = InGridPanel;
+}
+
+void UGridInventoryWidget::RemoveGeneratedInventorySlotsFromRegistry ()
+{
+    RegisteredInventorySlots.RemoveAll ([this] (const TObjectPtr<UGridInventorySlotWidget>& SlotWidget)
+    {
+        if (!SlotWidget || SlotWidget->SlotType != EGridInventoryUiSlotType::Inventory)
+        {
+            return false;
+        }
+
+        return GeneratedInventorySlotWidgets.Contains (SlotWidget) ||
+            (InventorySlotsGridPanel && SlotWidget->GetParent () == InventorySlotsGridPanel);
+    });
 }
 
 void UGridInventoryWidget::RefreshRegisteredSlotWidgets ()

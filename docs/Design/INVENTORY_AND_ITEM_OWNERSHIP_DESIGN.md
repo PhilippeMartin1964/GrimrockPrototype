@@ -1167,6 +1167,37 @@ Sinon les slots dédiés peuvent afficher du texte correct via bindings, mais le
 
 ---
 
+## Tranche 6E.1 appliquee
+
+Etat applique :
+
+- generation automatique des `InventorySlot` widgets depuis `UGridInventoryWidget` ;
+- `InventorySlotWidgetClass` definit la classe de widget a instancier, typiquement `WBP_InventorySlot` ;
+- `InventorySlotsGridPanel` est le `UniformGridPanel` UMG cible pour les slots generes ;
+- `InventorySlotColumnCount` controle le nombre de colonnes de la grille ;
+- `InventorySlotCountOverride` permet de forcer un nombre de slots, avec resolution automatique depuis `MaxInventorySlots` du personnage selectionne quand il vaut `0` ;
+- les slots speciaux `MainHand`, `OffHand` et `Cursor` restent explicites et ne sont pas supprimes par la generation ;
+- les inventory slots n'ont plus besoin d'etre enregistres un par un dans le Blueprint ;
+- `RefreshInventory` ne doit pas lire manuellement chaque slot, il doit continuer a appeler `RefreshRegisteredPartyMemberWidgets` et `RefreshRegisteredSlotWidgets` ;
+- `RefreshRegisteredSlotWidgets` reste le point central de rafraichissement des slots ;
+- le drag and drop de la Tranche 6E est conserve ;
+- le modele d'ownership reste inchange ;
+- pas encore de multi-inventaires simultanes pour les 6 personnages ;
+- pas encore de placement precis par `TargetIndex` dans un slot d'inventaire cible.
+
+Configuration Blueprint attendue :
+
+- dans `WBP_GridInventory`, le `UniformGridPanel` d'inventaire doit s'appeler `InventorySlotsGridPanel`, ou etre assigne via `SetInventorySlotsGridPanel` ;
+- `InventorySlotWidgetClass` doit pointer vers `WBP_InventorySlot` ;
+- `InventorySlotColumnCount = 6` pour la grille actuelle ;
+- `InventorySlotCountOverride = 24` pour la validation initiale ;
+- les anciens `RegisterInventorySlotWidget` pour `SlotWidget_0`, `SlotWidget_1`, etc. doivent etre supprimes ou ignores ;
+- les registrations Blueprint pour `SlotWidget_MainHand`, `SlotWidget_OffHand` et `SlotWidget_Cursor` restent necessaires ;
+- `WBP_GridInventory` root Canvas Panel doit rester `Cursor=None` ;
+- `WBP_InventorySlot` root doit rester `Cursor=None`.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
