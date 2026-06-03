@@ -260,6 +260,50 @@ bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
     return AcceptedItemDefinitionIds.Contains (ItemDefinitionId);
 }
 
+bool AGridReceptacleActor::CanAcceptItemInstance (const FGridItemInstance& Item) const
+{
+    const bool bResult = Item.IsValid () &&
+        bCanInsertItem &&
+        !IsFull () &&
+        CanAcceptItem (Item.ItemDefinitionId);
+
+    const TCHAR* Reason = TEXT ("AcceptedDefinition");
+    if (!Item.IsValid () || Item.ItemDefinitionId.IsNone ())
+    {
+        Reason = TEXT ("Invalid");
+    }
+    else if (!bCanInsertItem)
+    {
+        Reason = TEXT ("InsertDisabled");
+    }
+    else if (IsFull ())
+    {
+        Reason = TEXT ("Full");
+    }
+    else if (!CanAcceptItem (Item.ItemDefinitionId))
+    {
+        Reason = TEXT ("Incompatible");
+    }
+    else if (bAcceptAnyItem)
+    {
+        Reason = TEXT ("AcceptAnyItem");
+    }
+
+    UE_LOG (LogTemp, Verbose,
+        TEXT ("GridReceptacle CanAccept CursorItem Item=%s ObjectId=%s Result=%s Reason=%s"),
+        *Item.ItemDefinitionId.ToString (),
+        *Item.RuntimeObjectId.ToString (),
+        bResult ? TEXT ("true") : TEXT ("false"),
+        Reason);
+    return bResult;
+}
+
+bool AGridReceptacleActor::CanAcceptCursorItemFromParty (const AGrimrockPartyPawn* PartyPawn) const
+{
+    FGridItemInstance CursorItem;
+    return PartyPawn && PartyPawn->GetCursorItem (CursorItem) && CanAcceptItemInstance (CursorItem);
+}
+
 bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn)
 {
     ItemDefinitionId = ResolveDefinitionId (ItemDefinition, ItemDefinitionId);
@@ -634,8 +678,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     }
     if (PartyPawn->PartyInventoryComponent && PartyPawn->PartyInventoryComponent->HasCursorItem ())
     {
-        const FGridItemInstance& CursorItem = PartyPawn->PartyInventoryComponent->GetCursorItem ();
-        return bCanInsertItem && !IsFull () && CanAcceptItem (CursorItem.ItemDefinitionId);
+        return CanAcceptCursorItemFromParty (PartyPawn);
     }
     return HasItem () && bCanRemoveItem;
 }

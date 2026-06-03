@@ -7,6 +7,8 @@
 
 class UPrimitiveComponent;
 class UUserWidget;
+class AGridReceptacleActor;
+class AGrimrockPartyPawn;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPlayerController : public APlayerController
@@ -50,5 +52,6 @@ protected:
     void InitializeCustomCursor ();
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor);
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
+    bool TryGetReceptacleUnderCursor (FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
     bool IsHitWithinInteractionDistance (const FHitResult& HitResult) const;
 };

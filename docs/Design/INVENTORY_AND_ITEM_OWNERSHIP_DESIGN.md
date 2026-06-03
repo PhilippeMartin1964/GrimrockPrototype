@@ -1198,6 +1198,34 @@ Configuration Blueprint attendue :
 
 ---
 
+## Tranche 6F appliquee
+
+Etat applique :
+
+- `CursorItem` peut etre depose dans un receptacle monde compatible ;
+- le depot monde est prioritaire sur l'interaction normale quand `CursorItem` est occupe ;
+- `CanAcceptItemInstance` et `CanAcceptCursorItemFromParty` separent le test de compatibilite de la mutation ;
+- le curseur visuel expose les etats `PlaceItem` et `CannotPlaceItem` ;
+- le curseur dore custom reste le seul curseur autorise ;
+- le curseur Windows reste interdit ;
+- le modele d'ownership reste inchange ;
+- pas de depot direct depuis `MainHand` ou `OffHand` vers le monde ;
+- pas encore de drag direct UI -> monde sans passer par `CursorItem` ;
+- `RefreshInventory` reste centralise apres les mutations d'inventaire.
+
+Flux valide :
+
+1. L'objet est pris vers `CursorItem` depuis l'inventaire ou l'equipement.
+2. L'inventaire peut etre ferme sans afficher le curseur Windows.
+3. Le survol d'un receptacle compatible affiche `PlaceItem`.
+4. Le survol d'une cible incompatible ou vide affiche `CannotPlaceItem`.
+5. Le clic monde tente `TryPlaceCursorItemInReceptacle`.
+6. Le receptacle accepte uniquement si le test de compatibilite est valide.
+7. `CursorItem` est vide uniquement apres insertion acceptee.
+8. Les diagnostics d'ownership restent le controle central apres mutation.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

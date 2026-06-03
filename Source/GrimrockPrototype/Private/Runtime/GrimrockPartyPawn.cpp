@@ -1098,6 +1098,23 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterOffHand ()
     return TryEquipCursorItemToSelectedCharacterSlot (EGridEquipmentSlot::OffHand);
 }
 
+bool AGrimrockPartyPawn::HasCursorItem () const
+{
+    return PartyInventoryComponent && PartyInventoryComponent->HasCursorItem ();
+}
+
+bool AGrimrockPartyPawn::GetCursorItem (FGridItemInstance& OutItem) const
+{
+    OutItem = FGridItemInstance ();
+    if (!PartyInventoryComponent || !PartyInventoryComponent->HasCursorItem ())
+    {
+        return false;
+    }
+
+    OutItem = PartyInventoryComponent->GetCursorItem ();
+    return true;
+}
+
 bool AGrimrockPartyPawn::DebugTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex)
 {
     if (!PartyInventoryComponent)

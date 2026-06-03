@@ -204,6 +204,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool CanAcceptItem (FName ItemDefinitionId) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool CanAcceptItemInstance (const FGridItemInstance& Item) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Grid|Receptacle")
+    bool CanAcceptCursorItemFromParty (const AGrimrockPartyPawn* PartyPawn) const;
+
 public:
     // ============================================================
     // Item Insertion / Removal

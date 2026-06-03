@@ -242,6 +242,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool TryEquipCursorItemToSelectedCharacterOffHand ();
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool HasCursorItem () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool GetCursorItem (FGridItemInstance& OutItem) const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Debug")
     bool DebugTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex);
 

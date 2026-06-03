@@ -5,6 +5,9 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
 #include "InputCoreTypes.h"
+#include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "UI/GridInventoryWidget.h"
 
 AGrimrockPlayerController::AGrimrockPlayerController ()
 {
@@ -80,6 +83,51 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         return;
     }
 
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
+    FGridItemInstance CursorItem;
+    if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
+    {
+        FHitResult ReceptacleHitResult;
+        AGridReceptacleActor* ReceptacleActor = nullptr;
+        if (!TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=NoTarget"));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        if (!IsHitWithinInteractionDistance (ReceptacleHitResult))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=TargetOutOfRange Target=%s"),
+                *GetNameSafe (ReceptacleActor));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Attempt Item=%s Target=%s"),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *GetNameSafe (ReceptacleActor));
+
+        if (!ReceptacleActor || !ReceptacleActor->CanAcceptItemInstance (CursorItem))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=IncompatibleTarget"));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        const bool bPlaced = PartyPawn->TryPlaceCursorItemInReceptacle (ReceptacleActor);
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
+            bPlaced ? TEXT ("true") : TEXT ("false"));
+
+        if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+        {
+            InventoryWidget->RefreshInventory ();
+        }
+
+        SetGridInteractionCursor (bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
+        return;
+    }
+
     FHitResult HitResult;
     AActor* InteractableActor = nullptr;
     if (!TryGetInteractableUnderCursor (HitResult, InteractableActor))
@@ -142,6 +190,30 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
         return;
     }
 
+    const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
+    FGridItemInstance CursorItem;
+    if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
+    {
+        FHitResult ReceptacleHitResult;
+        AGridReceptacleActor* ReceptacleActor = nullptr;
+        const bool bHasReceptacle = TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor);
+        const bool bCanPlace = bHasReceptacle &&
+            IsHitWithinInteractionDistance (ReceptacleHitResult) &&
+            ReceptacleActor &&
+            ReceptacleActor->CanAcceptItemInstance (CursorItem);
+
+        SetGridInteractionCursor (bCanPlace
+            ? EGridInteractionCursor::PlaceItem
+            : EGridInteractionCursor::CannotPlaceItem);
+
+        UE_LOG (LogTemp, Verbose, TEXT ("GridInventory CursorHover Item=%s Target=%s CanPlace=%s Cursor=%s"),
+            *CursorItem.ItemDefinitionId.ToString (),
+            *GetNameSafe (ReceptacleActor),
+            bCanPlace ? TEXT ("true") : TEXT ("false"),
+            bCanPlace ? TEXT ("PlaceItem") : TEXT ("CannotPlaceItem"));
+        return;
+    }
+
     FHitResult HitResult;
     AActor* InteractableActor = nullptr;
     if (!TryGetInteractableUnderCursor (HitResult, InteractableActor))
@@ -200,11 +272,19 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
 void AGrimrockPlayerController::SetGridInteractionCursor (EGridInteractionCursor NewCursor)
 {
     CurrentGridInteractionCursor = NewCursor;
+    DefaultMouseCursor = EMouseCursor::None;
     CurrentMouseCursor = EMouseCursor::None;
+    bShowMouseCursor = false;
     if (CustomCursorWidget)
     {
+        CustomCursorWidget->SetIsEnabled (true);
         CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
     }
+    else
+    {
+        return;
+    }
+
     static const FName SetCursorStateFunctionName = TEXT ("SetCursorState");
     UFunction* SetCursorStateFunction = CustomCursorWidget->FindFunction (SetCursorStateFunctionName);
     if (!SetCursorStateFunction)
@@ -276,6 +356,65 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHi
         OutInteractableActor = HitActor;
         return true;
     }
+    return false;
+}
+
+bool AGrimrockPlayerController::TryGetReceptacleUnderCursor (
+    FHitResult& OutHitResult,
+    AGridReceptacleActor*& OutReceptacleActor) const
+{
+    OutReceptacleActor = nullptr;
+    OutHitResult = FHitResult ();
+
+    FVector WorldOrigin = FVector::ZeroVector;
+    FVector WorldDirection = FVector::ZeroVector;
+    if (!DeprojectMousePositionToWorld (WorldOrigin, WorldDirection))
+    {
+        return false;
+    }
+
+    UWorld* World = GetWorld ();
+    APawn* ControlledPawn = GetPawn ();
+    if (!World || !ControlledPawn)
+    {
+        return false;
+    }
+
+    const FVector Start = WorldOrigin;
+    const FVector End = Start + WorldDirection * 10000.f;
+    FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridMouseReceptacleTrace), true);
+    QueryParams.AddIgnoredActor (ControlledPawn);
+
+    TArray<FHitResult> Hits;
+    if (!World->LineTraceMultiByChannel (Hits, Start, End, ECC_Visibility, QueryParams))
+    {
+        return false;
+    }
+
+    for (const FHitResult& Hit : Hits)
+    {
+        AActor* HitActor = Hit.GetActor ();
+        if (!HitActor)
+        {
+            continue;
+        }
+
+        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
+        if (!ReceptacleActor)
+        {
+            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
+        }
+
+        if (!ReceptacleActor)
+        {
+            continue;
+        }
+
+        OutHitResult = Hit;
+        OutReceptacleActor = ReceptacleActor;
+        return true;
+    }
+
     return false;
 }
 

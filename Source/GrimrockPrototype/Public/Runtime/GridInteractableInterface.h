@@ -19,7 +19,9 @@ enum class EGridInteractionCursor : uint8
     Take,
     Read,
     Locked,
-    Forbidden
+    Forbidden,
+    PlaceItem,
+    CannotPlaceItem
 };
 
 UINTERFACE (BlueprintType)
