@@ -1159,6 +1159,12 @@ Etat applique :
 - pas encore de drag visual final ;
 - `TargetIndex` inventaire est informatif tant que le placement precis dans un slot cible n'est pas supporte.
 
+Dans WBP_GridInventory, l’override Blueprint RefreshInventory doit appeler :
+- RefreshRegisteredPartyMemberWidgets
+- RefreshRegisteredSlotWidgets
+
+Sinon les slots dédiés peuvent afficher du texte correct via bindings, mais leur état interne CachedItem/bHasItem ne sera pas mis à jour, ce qui bloque CanStartDrag.
+
 ---
 
 ## 23. Conclusion

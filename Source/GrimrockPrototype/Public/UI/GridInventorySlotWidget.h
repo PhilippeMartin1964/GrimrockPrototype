@@ -40,9 +40,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory|Drag")
     bool bDragEnabled = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory|Drag", meta = (ClampMin = "0.0"))
-    float DragDetectionDistance = 5.0f;
-
     UPROPERTY (BlueprintAssignable, Category = "Inventory|Slot")
     FOnGridInventorySlotClicked OnSlotClicked;
 
