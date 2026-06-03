@@ -1226,6 +1226,30 @@ Flux valide :
 
 ---
 
+## Tranche 6G appliquee
+
+Etat applique :
+
+- `TargetIndex` d'inventaire devient effectif pendant les drops UMG ;
+- `Inventory -> Inventory` deplace precisement vers le slot cible quand il est vide ;
+- `Inventory -> Inventory` swap les deux slots quand la cible est occupee ;
+- `Cursor -> InventorySlot` place l'objet au slot cible exact ;
+- `Cursor -> InventorySlot` swap avec l'ancien item du slot cible et conserve cet ancien item dans `CursorItem` ;
+- `MainHand -> InventorySlot` et `OffHand -> InventorySlot` passent par `CursorItem` puis utilisent le slot cible exact ;
+- si le slot cible est occupe pendant un depot depuis l'equipement, l'ancien item cible reste dans `CursorItem` ;
+- `RefreshInventory` reste centralise apres les drops ;
+- `RebuildInventorySlotWidgets` n'est pas appele pendant les drops ;
+- le modele d'ownership reste inchange ;
+- aucun systeme d'inventaire Blueprint parallele n'est ajoute.
+
+Limites conservees :
+
+- le placement precis concerne le personnage selectionne ;
+- le drop direct UI -> monde passe toujours par `CursorItem` ;
+- `FGridItemInstance` ne porte pas d'index de slot persistant, donc seul l'array `InventorySlots` definit la position.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

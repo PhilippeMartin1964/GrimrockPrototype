@@ -920,6 +920,173 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotToCursor (int32 Character
     return true;
 }
 
+bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot (
+    int32 CharacterIndex,
+    int32 TargetSlotIndex)
+{
+    if (!HasCursorItem ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=NoCursorItem"),
+            CharacterIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    if (!IsValidCharacterIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=InvalidCharacter"),
+            CharacterIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!CharacterState.InventorySlots.IsValidIndex (TargetSlotIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToInventorySlot Failed Character=%d Slot=%d Reason=InvalidTargetSlot"),
+            CharacterIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    FGridInventorySlot& TargetSlot = CharacterState.InventorySlots[TargetSlotIndex];
+    FGridItemInstance CursorItem = PartyInventoryState.CursorItem;
+    ApplyItemDefinitionToInstance (CursorItem);
+    CursorItem.OwnerType = EGridItemOwnerType::CharacterInventory;
+    CursorItem.OwnerGuid = CharacterState.CharacterId;
+    CursorItem.OwnerCharacterIndex = CharacterIndex;
+    CursorItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    if (TargetSlot.IsEmpty ())
+    {
+        TargetSlot.bOccupied = true;
+        TargetSlot.Item = CursorItem;
+        PartyInventoryState.CursorItem = FGridItemInstance ();
+        PartyInventoryState.bHasCursorItem = false;
+        RecalculateCharacterWeight (CharacterIndex);
+
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Place ToInventorySlot Character=%d Slot=%d Item=%s Result=true"),
+            CharacterIndex,
+            TargetSlotIndex,
+            *CursorItem.ItemDefinitionId.ToString ());
+        return true;
+    }
+
+    FGridItemInstance SlotItem = TargetSlot.Item;
+    SlotItem.OwnerType = EGridItemOwnerType::Cursor;
+    SlotItem.OwnerGuid = FGuid ();
+    SlotItem.OwnerCharacterIndex = INDEX_NONE;
+    SlotItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    TargetSlot.Item = CursorItem;
+    TargetSlot.bOccupied = true;
+    PartyInventoryState.CursorItem = SlotItem;
+    PartyInventoryState.bHasCursorItem = true;
+    RecalculateCharacterWeight (CharacterIndex);
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Swap WithInventorySlot Character=%d Slot=%d CursorItem=%s SlotItem=%s Result=true"),
+        CharacterIndex,
+        TargetSlotIndex,
+        *CursorItem.ItemDefinitionId.ToString (),
+        *SlotItem.ItemDefinitionId.ToString ());
+    return true;
+}
+
+bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot (
+    int32 CharacterIndex,
+    int32 SourceSlotIndex,
+    int32 TargetSlotIndex)
+{
+    if (!IsValidCharacterIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidCharacter"),
+            CharacterIndex,
+            SourceSlotIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!CharacterState.InventorySlots.IsValidIndex (SourceSlotIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidSourceSlot"),
+            CharacterIndex,
+            SourceSlotIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    if (!CharacterState.InventorySlots.IsValidIndex (TargetSlotIndex))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=InvalidTargetSlot"),
+            CharacterIndex,
+            SourceSlotIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    if (SourceSlotIndex == TargetSlotIndex)
+    {
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Result=true Reason=SameSlot"),
+            CharacterIndex,
+            SourceSlotIndex,
+            TargetSlotIndex);
+        return true;
+    }
+
+    FGridInventorySlot& SourceSlot = CharacterState.InventorySlots[SourceSlotIndex];
+    FGridInventorySlot& TargetSlot = CharacterState.InventorySlots[TargetSlotIndex];
+    if (SourceSlot.IsEmpty ())
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Move InventorySlot Failed Character=%d Source=%d Target=%d Reason=SourceEmpty"),
+            CharacterIndex,
+            SourceSlotIndex,
+            TargetSlotIndex);
+        return false;
+    }
+
+    FGridItemInstance SourceItem = SourceSlot.Item;
+    SourceItem.OwnerType = EGridItemOwnerType::CharacterInventory;
+    SourceItem.OwnerGuid = CharacterState.CharacterId;
+    SourceItem.OwnerCharacterIndex = CharacterIndex;
+    SourceItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    if (TargetSlot.IsEmpty ())
+    {
+        TargetSlot.bOccupied = true;
+        TargetSlot.Item = SourceItem;
+        SourceSlot = FGridInventorySlot ();
+        RecalculateCharacterWeight (CharacterIndex);
+
+        UE_LOG (LogTemp, Log, TEXT ("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Item=%s Result=true"),
+            CharacterIndex,
+            SourceSlotIndex,
+            TargetSlotIndex,
+            *SourceItem.ItemDefinitionId.ToString ());
+        return true;
+    }
+
+    FGridItemInstance TargetItem = TargetSlot.Item;
+    TargetItem.OwnerType = EGridItemOwnerType::CharacterInventory;
+    TargetItem.OwnerGuid = CharacterState.CharacterId;
+    TargetItem.OwnerCharacterIndex = CharacterIndex;
+    TargetItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    SourceSlot.bOccupied = true;
+    SourceSlot.Item = TargetItem;
+    TargetSlot.bOccupied = true;
+    TargetSlot.Item = SourceItem;
+    RecalculateCharacterWeight (CharacterIndex);
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Swap InventorySlots Character=%d A=%d B=%d ItemA=%s ItemB=%s Result=true"),
+        CharacterIndex,
+        SourceSlotIndex,
+        TargetSlotIndex,
+        *SourceItem.ItemDefinitionId.ToString (),
+        *TargetItem.ItemDefinitionId.ToString ());
+    return true;
+}
+
 bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory (int32 CharacterIndex)
 {
     if (!HasCursorItem ())

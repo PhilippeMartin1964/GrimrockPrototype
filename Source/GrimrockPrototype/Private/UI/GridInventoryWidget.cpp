@@ -508,6 +508,79 @@ bool UGridInventoryWidget::HandleSlotDrop (
     }
 
     const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
+    auto ValidateOwnership = [&] ()
+    {
+        FString OwnershipError;
+        if (!InventoryComponent->ValidateInventoryOwnership (OwnershipError))
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
+        }
+        else
+        {
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Ownership OK"));
+        }
+    };
+
+    if (TargetType == EGridInventoryUiSlotType::Inventory)
+    {
+        if (TargetIndex < 0 || TargetIndex >= GetInventorySlotCount ())
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=InvalidTargetIndex Target=%d"),
+                TargetIndex);
+            RefreshInventory ();
+            return false;
+        }
+
+        bool bInventoryTargetResult = false;
+        switch (SourceType)
+        {
+        case EGridInventoryUiSlotType::Inventory:
+            bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot (
+                CharacterIndex,
+                SourceIndex,
+                TargetIndex);
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"),
+                SourceIndex,
+                TargetIndex,
+                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
+            break;
+
+        case EGridInventoryUiSlotType::Cursor:
+            bInventoryTargetResult = InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (
+                CharacterIndex,
+                TargetIndex);
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop CursorToInventory Target=%d Result=%s"),
+                TargetIndex,
+                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
+            break;
+
+        case EGridInventoryUiSlotType::MainHand:
+            bInventoryTargetResult =
+                OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor () &&
+                InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop MainHandToInventory Target=%d Result=%s"),
+                TargetIndex,
+                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
+            break;
+
+        case EGridInventoryUiSlotType::OffHand:
+            bInventoryTargetResult =
+                OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor () &&
+                InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop OffHandToInventory Target=%d Result=%s"),
+                TargetIndex,
+                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
+            break;
+
+        default:
+            break;
+        }
+
+        ValidateOwnership ();
+        RefreshInventory ();
+        return bInventoryTargetResult;
+    }
+
     auto HasCurrentSourceItem = [&] () -> bool
     {
         FGridItemInstance Item;
@@ -558,19 +631,6 @@ bool UGridInventoryWidget::HandleSlotDrop (
             return InventoryComponent->HasCursorItem ();
         default:
             return false;
-        }
-    };
-
-    auto ValidateOwnership = [&] ()
-    {
-        FString OwnershipError;
-        if (!InventoryComponent->ValidateInventoryOwnership (OwnershipError))
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
-        }
-        else
-        {
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Ownership OK"));
         }
     };
 
