@@ -9,14 +9,12 @@
 void UGridInventoryWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
-    RebuildInventorySlotWidgets ();
 }
 
 void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn)
 {
     OwningPartyPawn = InPartyPawn;
     InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
-    RebuildInventorySlotWidgets ();
     RefreshInventory ();
 }
 
