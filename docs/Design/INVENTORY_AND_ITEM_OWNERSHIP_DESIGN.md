@@ -1250,6 +1250,63 @@ Limites conservees :
 
 ---
 
+## Tranche 6H appliquee
+
+Etat applique :
+
+- `RefreshInventory_Implementation` reste limite a `RefreshRegisteredPartyMemberWidgets` et `RefreshRegisteredSlotWidgets` ;
+- le log C++ de `RefreshInventory` passe en `Verbose` pour eviter le spam ;
+- `RebuildInventorySlotWidgets` possede un guard C++ contre les reconstructions identiques ;
+- le guard compare le nombre de slots, le nombre de colonnes, la classe de slot et le grid panel cible ;
+- `ClearGeneratedInventorySlotWidgets` remet le guard de rebuild a zero ;
+- `RebuildInventorySlotWidgets` n'est pas appele pendant les drops ;
+- les slots vides ne renvoient plus de nom affiche C++ ;
+- `GetQuantityText` affiche maintenant `1` quand un item est present avec quantite 1 ;
+- le log `DragStarted` passe en `Verbose` ;
+- le curseur Windows reste interdit et le curseur custom reste `HitTestInvisible` ;
+- le modele d'ownership reste inchange ;
+- aucun systeme d'inventaire Blueprint parallele n'est ajoute.
+
+### Reglages Blueprint obligatoires
+
+`WBP_GridInventory` :
+
+- Canvas Panel root `Cursor=None` ;
+- `InventorySlotsGridPanel` doit etre nomme exactement ainsi si `BindWidgetOptional` est utilise ;
+- `InventorySlotWidgetClass = WBP_InventorySlot` ;
+- `InventorySlotColumnCount = 6` ;
+- `InventorySlotCountOverride = 24` pour les tests actuels ;
+- `Event Construct` doit enregistrer `MainHand`, `OffHand`, `Cursor` et les `PartyMember` widgets ;
+- `Event Construct` peut appeler `RebuildInventorySlotWidgets`, le guard C++ evite les reconstructions identiques ;
+- `Event RefreshInventory` doit appeler `RefreshRegisteredPartyMemberWidgets` et `RefreshRegisteredSlotWidgets` ;
+- `Event RefreshInventory` ne doit pas faire de `GetInventoryAtSlot` manuel slot par slot.
+
+`WBP_InventorySlot` :
+
+- root `Cursor=None` ;
+- surface dragable hit-testable ;
+- enfants texte/image `Not Hit-Testable` ;
+- `OnMouseButtonDown` doit mener a `DetectDragIfPressed` ou laisser le chemin C++ natif le faire ;
+- `OnDragDetected` doit creer une operation compatible ou laisser le chemin C++ natif le faire ;
+- `OnDrop` doit transmettre le `TargetIndex` reel, ou laisser `NativeOnDrop` C++ le faire ;
+- `RefreshSlotVisual` doit mettre a jour `Text_Name`, `Text_Quantity`, tooltip et icone ;
+- `Image_Icon` doit rester dans la hierarchie et etre cachee si aucune icone n'est disponible.
+
+`WBP_PartyMember` :
+
+- root `Cursor=None` ;
+- bouton ou surface hit-testable ;
+- enfants `Not Hit-Testable` ;
+- `RefreshMemberVisual` doit mettre a jour nom, classe, poids et selection.
+
+`WBP_GridMouseCursor` :
+
+- doit gerer `Default`, `Use`, `Take`, `Push`, `Pull`, `Read`, `PlaceItem` et `CannotPlaceItem` ;
+- doit rester visible, enabled et `HitTestInvisible` ;
+- ne doit jamais reintroduire le curseur Windows.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.

@@ -20,7 +20,7 @@ void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPart
 
 void UGridInventoryWidget::RefreshInventory_Implementation ()
 {
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
+    UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
         *GetNameSafe (OwningPartyPawn),
         *GetNameSafe (InventoryComponent));
     RefreshRegisteredPartyMemberWidgets ();
@@ -304,10 +304,22 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
         return;
     }
 
-    ClearGeneratedInventorySlotWidgets ();
-
     const int32 SlotCount = FMath::Max (1, ResolveInventorySlotWidgetCount ());
     const int32 ColumnCount = FMath::Max (1, InventorySlotColumnCount);
+    if (bInventorySlotsBuilt &&
+        LastBuiltSlotCount == SlotCount &&
+        LastBuiltColumnCount == ColumnCount &&
+        LastBuiltSlotWidgetClass == InventorySlotWidgetClass &&
+        LastBuiltGridPanel == InventorySlotsGridPanel &&
+        GeneratedInventorySlotWidgets.Num () == SlotCount)
+    {
+        UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI RebuildSlots Skipped Reason=AlreadyBuilt Count=%d Columns=%d"),
+            SlotCount,
+            ColumnCount);
+        return;
+    }
+
+    ClearGeneratedInventorySlotWidgets ();
 
     for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
     {
@@ -333,6 +345,11 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
     }
 
     RefreshRegisteredSlotWidgets ();
+    bInventorySlotsBuilt = true;
+    LastBuiltSlotCount = SlotCount;
+    LastBuiltColumnCount = ColumnCount;
+    LastBuiltSlotWidgetClass = InventorySlotWidgetClass;
+    LastBuiltGridPanel = InventorySlotsGridPanel;
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
 }
 
@@ -354,6 +371,11 @@ void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets ()
     }
 
     GeneratedInventorySlotWidgets.Empty ();
+    bInventorySlotsBuilt = false;
+    LastBuiltSlotCount = 0;
+    LastBuiltColumnCount = 0;
+    LastBuiltSlotWidgetClass = nullptr;
+    LastBuiltGridPanel = nullptr;
 }
 
 int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount () const
@@ -379,11 +401,13 @@ int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount () const
 void UGridInventoryWidget::SetInventorySlotWidgetClass (TSubclassOf<UGridInventorySlotWidget> InClass)
 {
     InventorySlotWidgetClass = InClass;
+    bInventorySlotsBuilt = false;
 }
 
 void UGridInventoryWidget::SetInventorySlotsGridPanel (UUniformGridPanel* InGridPanel)
 {
     InventorySlotsGridPanel = InGridPanel;
+    bInventorySlotsBuilt = false;
 }
 
 void UGridInventoryWidget::RemoveGeneratedInventorySlotsFromRegistry ()

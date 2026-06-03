@@ -173,4 +173,19 @@ protected:
 
 private:
     void RemoveGeneratedInventorySlotsFromRegistry ();
+
+    UPROPERTY (Transient)
+    bool bInventorySlotsBuilt = false;
+
+    UPROPERTY (Transient)
+    int32 LastBuiltSlotCount = 0;
+
+    UPROPERTY (Transient)
+    int32 LastBuiltColumnCount = 0;
+
+    UPROPERTY (Transient)
+    TSubclassOf<UGridInventorySlotWidget> LastBuiltSlotWidgetClass;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UUniformGridPanel> LastBuiltGridPanel;
 };

@@ -43,7 +43,7 @@ FString UGridInventorySlotWidget::GetDisplayNameText () const
 {
     if (!bHasItem || CachedItem.ItemDefinitionId.IsNone ())
     {
-        return TEXT ("Empty");
+        return FString ();
     }
 
     return CachedItem.ItemDefinitionId.ToString ();
@@ -51,12 +51,12 @@ FString UGridInventorySlotWidget::GetDisplayNameText () const
 
 FString UGridInventorySlotWidget::GetQuantityText () const
 {
-    if (!bHasItem || CachedItem.Quantity <= 1)
+    if (!bHasItem)
     {
         return FString ();
     }
 
-    return FString::Printf (TEXT ("%d"), CachedItem.Quantity);
+    return FString::Printf (TEXT ("%d"), FMath::Max (1, CachedItem.Quantity));
 }
 
 FText UGridInventorySlotWidget::GetTooltipText () const
@@ -155,7 +155,7 @@ void UGridInventorySlotWidget::NativeOnDragDetected (
     }
 
     OutOperation = Operation;
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"),
+    UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"),
         GetGridInventoryUiSlotTypeName (SlotType),
         InventorySlotIndex,
         *CachedItem.ItemDefinitionId.ToString (),
