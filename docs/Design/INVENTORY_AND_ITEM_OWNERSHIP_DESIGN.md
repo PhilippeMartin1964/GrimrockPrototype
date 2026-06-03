@@ -1307,6 +1307,80 @@ Etat applique :
 
 ---
 
+## Tranche 7A - intervention Blueprint requise
+
+Objectif :
+
+- ameliorer visuellement `WBP_GridInventory` selon la maquette inventaire ;
+- conserver l'ownership existant ;
+- conserver les slots generes automatiquement ;
+- conserver le drag and drop C++ existant ;
+- conserver le curseur custom comme seul curseur autorise.
+
+Etat verifie cote depot :
+
+- `WBP_GridInventory` contient deja des elements de structure attendus : onglets superieurs, colonne party, panneau personnage, panneau inventaire, `InventorySlotsGridPanel`, `SlotWidget_MainHand`, `SlotWidget_OffHand`, `SlotWidget_Cursor` et `PartyMember_0..5` ;
+- `InventorySlotsGridPanel` reste le nom obligatoire pour le bind C++ ;
+- `WBP_InventorySlot` contient encore des traces Blueprint de debug visibles dans l'asset binaire : `PrintString`, `SLOT MOUSE DOWN`, `SLOT CAN DRAG`, `SLOT CANNOT DRAG`, `Hello`, ainsi que des libelles de variables `Drag Enabled` et `Has Item` ;
+- ces traces doivent etre supprimees dans l'editeur UE, pas par edition binaire directe du `.uasset`.
+
+### Reglages Blueprint 7A a appliquer
+
+`WBP_GridInventory` :
+
+- root Canvas Panel `Cursor=None` ;
+- `Border_RootFrame` ancre plein ecran ou quasi plein ecran ;
+- fond sombre bleu/noir avec alpha eleve ;
+- `VerticalBox_Root` avec onglets en haut et contenu principal dessous ;
+- onglets visibles : Inventaire, Competences, Journal, Carte, Recettes, Codex ;
+- seul l'onglet Inventaire est actif en 7A ;
+- colonne party a gauche avec `PartyMember_0..5` ;
+- panneau personnage selectionne au centre avec titre, resume, portrait placeholder, stats placeholder et slots `MainHand`, `OffHand`, `Cursor` ;
+- panneau inventaire a droite avec titre et `InventorySlotsGridPanel` ;
+- `InventorySlotsGridPanel` doit rester vide dans le Designer ;
+- ne pas ajouter de slots inventaire manuels ;
+- `InventorySlotWidgetClass = WBP_InventorySlot` ;
+- `InventorySlotColumnCount = 6` ;
+- `InventorySlotCountOverride = 24` pour les tests actuels.
+
+`WBP_InventorySlot` :
+
+- root Canvas Panel `Cursor=None` ;
+- surface principale hit-testable ;
+- enfants texte/image `Not Hit-Testable` ;
+- taille cible 64x64 ;
+- `Text_Name` centre avec police 9-10 ;
+- `Text_Quantity` en bas a droite avec police 10-11 ;
+- `Image_Icon` conservee dans la hierarchie ;
+- `RefreshSlotVisual` doit mettre a jour `Text_Name`, `Text_Quantity`, tooltip et icone ;
+- cacher `Image_Icon` si `GetIconTexture` retourne null ;
+- supprimer tous les `PrintString` debug : `SLOT MOUSE DOWN`, `SLOT CAN DRAG`, `SLOT CANNOT DRAG`, `Hello`.
+
+`WBP_PartyMember` :
+
+- root `Cursor=None` ;
+- surface principale hit-testable ;
+- textes enfants `Not Hit-Testable` ;
+- largeur cible 145-160 et hauteur 80-90 ;
+- afficher nom, classe/niveau, poids ;
+- afficher visuellement l'etat selectionne.
+
+`WBP_GridMouseCursor` :
+
+- rester visible, enabled et `HitTestInvisible` ;
+- gerer `Default`, `Use`, `Take`, `Push`, `Pull`, `Read`, `PlaceItem` et `CannotPlaceItem` ;
+- ne jamais reintroduire le curseur Windows.
+
+Contraintes 7A :
+
+- pas de changement d'ownership ;
+- pas de changement de `UGridPartyInventoryComponent` ;
+- pas de nouveau systeme d'inventaire Blueprint ;
+- pas de drop direct UI -> monde sans `CursorItem` ;
+- pas de multi-inventaires simultanes dans cette tranche.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
