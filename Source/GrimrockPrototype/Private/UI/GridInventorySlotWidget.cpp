@@ -49,11 +49,33 @@ FGridItemInstance UGridInventorySlotWidget::GetCachedItem () const
     return CachedItem;
 }
 
+const UGridItemDefinitionAsset* UGridInventorySlotWidget::GetItemDefinition () const
+{
+    if (!bHasItem || CachedItem.ItemDefinitionId.IsNone ())
+    {
+        return nullptr;
+    }
+
+    const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get ();
+    const UGridPartyInventoryComponent* InventoryComponent =
+        InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
+
+    return InventoryComponent
+        ? InventoryComponent->FindItemDefinition (CachedItem.ItemDefinitionId)
+        : nullptr;
+}
+
 FString UGridInventorySlotWidget::GetDisplayNameText () const
 {
     if (!bHasItem || CachedItem.ItemDefinitionId.IsNone ())
     {
         return FString ();
+    }
+
+    const UGridItemDefinitionAsset* Definition = GetItemDefinition ();
+    if (Definition && !Definition->DisplayName.IsEmpty ())
+    {
+        return Definition->DisplayName.ToString ();
     }
 
     return CachedItem.ItemDefinitionId.ToString ();
@@ -67,6 +89,85 @@ FString UGridInventorySlotWidget::GetQuantityText () const
     }
 
     return FString::Printf (TEXT ("%d"), FMath::Max (1, CachedItem.Quantity));
+}
+
+FText UGridInventorySlotWidget::GetItemTypeDisplayText () const
+{
+    const UGridItemDefinitionAsset* Definition = GetItemDefinition ();
+    if (!Definition)
+    {
+        return FText::GetEmpty ();
+    }
+
+    switch (Definition->ItemType)
+    {
+    case EGridItemType::Torch:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeTorch", "Source de lumière");
+    case EGridItemType::Weapon:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeWeapon", "Arme");
+    case EGridItemType::Shield:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeShield", "Bouclier");
+    case EGridItemType::Armor:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeArmor", "Armure");
+    case EGridItemType::Key:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeKey", "Clé");
+    case EGridItemType::Potion:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypePotion", "Potion");
+    case EGridItemType::Scroll:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeScroll", "Parchemin");
+    case EGridItemType::Book:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeBook", "Livre");
+    case EGridItemType::Food:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeFood", "Nourriture");
+    case EGridItemType::Quest:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeQuest", "Objet de quête");
+    case EGridItemType::None:
+    case EGridItemType::Misc:
+    default:
+        return NSLOCTEXT ("GridInventoryTooltip", "ItemTypeGeneric", "Objet");
+    }
+}
+
+FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText () const
+{
+    const UGridItemDefinitionAsset* Definition = GetItemDefinition ();
+    if (!Definition)
+    {
+        return FText::GetEmpty ();
+    }
+
+    const bool bSupportsMainHand =
+        Definition->CompatibleEquipmentSlots.Contains (EGridEquipmentSlot::MainHand);
+    const bool bSupportsOffHand =
+        Definition->CompatibleEquipmentSlots.Contains (EGridEquipmentSlot::OffHand);
+
+    if (bSupportsMainHand && bSupportsOffHand)
+    {
+        return NSLOCTEXT (
+            "GridInventoryTooltip",
+            "EquipmentSlotsBothHands",
+            "Main directrice / main secondaire");
+    }
+
+    if (bSupportsMainHand)
+    {
+        return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotMainHand", "Main directrice");
+    }
+
+    if (bSupportsOffHand)
+    {
+        return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotOffHand", "Main secondaire");
+    }
+
+    return FText::GetEmpty ();
+}
+
+FText UGridInventorySlotWidget::GetLightTooltipText () const
+{
+    const UGridItemDefinitionAsset* Definition = GetItemDefinition ();
+    return Definition && Definition->bCanEmitLight
+        ? NSLOCTEXT ("GridInventoryTooltip", "EmitsLight", "Lumière : oui")
+        : FText::GetEmpty ();
 }
 
 FText UGridInventorySlotWidget::GetTooltipText () const

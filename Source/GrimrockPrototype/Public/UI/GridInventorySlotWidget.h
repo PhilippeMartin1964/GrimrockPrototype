@@ -8,6 +8,7 @@
 #include "GridInventorySlotWidget.generated.h"
 
 class UTexture2D;
+class UGridItemDefinitionAsset;
 class UGridInventoryWidget;
 class UDragDropOperation;
 
@@ -62,10 +63,22 @@ public:
     FGridItemInstance GetCachedItem () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
+    const UGridItemDefinitionAsset* GetItemDefinition () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     FString GetDisplayNameText () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     FString GetQuantityText () const;
+
+    UFUNCTION (BlueprintPure, Category = "Inventory|Tooltip")
+    FText GetItemTypeDisplayText () const;
+
+    UFUNCTION (BlueprintPure, Category = "Inventory|Tooltip")
+    FText GetCompatibleEquipmentSlotsText () const;
+
+    UFUNCTION (BlueprintPure, Category = "Inventory|Tooltip")
+    FText GetLightTooltipText () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     FText GetTooltipText () const;
