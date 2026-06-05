@@ -16,6 +16,7 @@ class UButton;
 class UHorizontalBox;
 class UTexture2D;
 class UUniformGridPanel;
+class UWidget;
 class UWidgetSwitcher;
 
 UCLASS ()
@@ -209,7 +210,8 @@ protected:
     virtual void NativeConstruct () override;
 
 private:
-    void BuildMainContentSwitcher ();
+    bool BuildMainContentSwitcher ();
+    bool CacheTopTabPages ();
     void BindTopTabButtons ();
     void ApplyTopTabButtonStyle (UButton* Button, EInventoryTopTab Tab);
 
@@ -238,6 +240,12 @@ private:
 
     UPROPERTY (Transient)
     TObjectPtr<UTexture2D> SelectedTopTabTexture;
+
+    UPROPERTY (Transient)
+    TMap<EInventoryTopTab, TObjectPtr<UWidget>> TopTabPages;
+
+    UPROPERTY (Transient)
+    bool bTopTabsInitialized = false;
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;

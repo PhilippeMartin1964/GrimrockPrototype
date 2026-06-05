@@ -17,23 +17,55 @@ void UGridInventoryWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
 
-    BuildMainContentSwitcher ();
+    if (!bTopTabsInitialized)
+    {
+        bTopTabsInitialized = BuildMainContentSwitcher () && CacheTopTabPages ();
+        if (!bTopTabsInitialized)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory TopTabs initialization failed for %s"),
+                *GetNameSafe (this));
+            return;
+        }
+
+        BindTopTabButtons ();
+        SetActiveTopTab (EInventoryTopTab::Inventory);
+        UE_LOG (LogTemp, VeryVerbose, TEXT ("GridInventory TopTabs initialized for %s"),
+            *GetNameSafe (this));
+        return;
+    }
+
+    // NativeConstruct may run again when the same widget instance returns to the viewport.
     BindTopTabButtons ();
-    SetActiveTopTab (EInventoryTopTab::Inventory);
+    SetActiveTopTab (CurrentTopTab);
+    UE_LOG (LogTemp, VeryVerbose, TEXT ("GridInventory TopTabs reused for %s"),
+        *GetNameSafe (this));
 }
 
-void UGridInventoryWidget::BuildMainContentSwitcher ()
+bool UGridInventoryWidget::BuildMainContentSwitcher ()
 {
     if (!WidgetTree || !HorizontalBox_MainContent)
     {
-        return;
+        return false;
     }
 
     WidgetSwitcher_MainContent = Cast<UWidgetSwitcher> (
         WidgetTree->FindWidget (TEXT ("WidgetSwitcher_MainContent")));
     if (WidgetSwitcher_MainContent)
     {
-        return;
+        const bool bHasExpectedParent =
+            HorizontalBox_MainContent->GetChildrenCount () == 1 &&
+            HorizontalBox_MainContent->GetChildAt (0) == WidgetSwitcher_MainContent;
+        const bool bHasExpectedPageCount = WidgetSwitcher_MainContent->GetNumWidgets () == 6;
+        if (!bHasExpectedParent || !bHasExpectedPageCount)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory existing WidgetSwitcher_MainContent has invalid structure Parent=%s Pages=%d"),
+                bHasExpectedParent ? TEXT ("Valid") : TEXT ("Invalid"),
+                WidgetSwitcher_MainContent->GetNumWidgets ());
+            return false;
+        }
+
+        return true;
     }
 
     struct FExistingMainContentChild
@@ -101,6 +133,50 @@ void UGridInventoryWidget::BuildMainContentSwitcher ()
         SwitcherSlot->SetHorizontalAlignment (HAlign_Fill);
         SwitcherSlot->SetVerticalAlignment (VAlign_Fill);
     }
+
+    return HorizontalBox_MainContent->GetChildrenCount () == 1 &&
+        HorizontalBox_MainContent->GetChildAt (0) == WidgetSwitcher_MainContent &&
+        WidgetSwitcher_MainContent->GetNumWidgets () == 6;
+}
+
+bool UGridInventoryWidget::CacheTopTabPages ()
+{
+    if (!WidgetTree || !WidgetSwitcher_MainContent)
+    {
+        return false;
+    }
+
+    TopTabPages.Reset ();
+
+    const auto CachePage = [this] (EInventoryTopTab Tab, const TCHAR* WidgetName)
+    {
+        UWidget* Page = WidgetTree->FindWidget (FName (WidgetName));
+        if (!Page || Page->GetParent () != WidgetSwitcher_MainContent)
+        {
+            return false;
+        }
+
+        TopTabPages.Add (Tab, Page);
+        return true;
+    };
+
+    const bool bAllPagesFound =
+        CachePage (EInventoryTopTab::Inventory, TEXT ("Page_Inventory")) &&
+        CachePage (EInventoryTopTab::Skills, TEXT ("Page_Skills")) &&
+        CachePage (EInventoryTopTab::Journal, TEXT ("Page_Journal")) &&
+        CachePage (EInventoryTopTab::Map, TEXT ("Page_Map")) &&
+        CachePage (EInventoryTopTab::Recipes, TEXT ("Page_Recipes")) &&
+        CachePage (EInventoryTopTab::Codex, TEXT ("Page_Codex"));
+
+    if (!bAllPagesFound || TopTabPages.Num () != 6)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory TopTabs page cache is incomplete Pages=%d"),
+            TopTabPages.Num ());
+        TopTabPages.Reset ();
+        return false;
+    }
+
+    return true;
 }
 
 void UGridInventoryWidget::BindTopTabButtons ()
@@ -164,12 +240,24 @@ void UGridInventoryWidget::BindTopTabButtons ()
 
 void UGridInventoryWidget::SetActiveTopTab (EInventoryTopTab NewTab)
 {
+    const TObjectPtr<UWidget>* TargetPage = TopTabPages.Find (NewTab);
+    if (!TargetPage || !IsValid (TargetPage->Get ()))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory cannot activate unknown TopTab value %d"),
+            static_cast<int32> (NewTab));
+        return;
+    }
+
     CurrentTopTab = NewTab;
     if (WidgetSwitcher_MainContent)
     {
-        WidgetSwitcher_MainContent->SetActiveWidgetIndex (static_cast<int32> (NewTab));
+        WidgetSwitcher_MainContent->SetActiveWidget (TargetPage->Get ());
     }
     UpdateTopTabButtonStyles ();
+
+    UE_LOG (LogTemp, VeryVerbose, TEXT ("GridInventory active TopTab=%d Page=%s"),
+        static_cast<int32> (NewTab),
+        *GetNameSafe (TargetPage->Get ()));
 }
 
 void UGridInventoryWidget::UpdateTopTabButtonStyles ()

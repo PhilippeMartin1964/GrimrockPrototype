@@ -1420,6 +1420,41 @@ Contraintes :
 
 ---
 
+## Tranche 7A.2 - TopTabs consolides
+
+Objectif :
+
+- fournir la navigation entre les six pages principales avant l'ajout de leur contenu ;
+- conserver la structure responsive 1600 x 900 ;
+- laisser la logique d'inventaire, l'ownership et le drag and drop inchanges.
+
+Fonctionnement :
+
+- `EInventoryTopTab` contient `Inventory`, `Skills`, `Journal`, `Map`, `Recipes` et `Codex` ;
+- `WidgetSwitcher_MainContent` est l'enfant unique de `HorizontalBox_MainContent` ;
+- le switcher contient exactement six widgets nommes `Page_Inventory`, `Page_Skills`, `Page_Journal`, `Page_Map`, `Page_Recipes` et `Page_Codex` ;
+- le contenu d'inventaire existant reste dans `Page_Inventory` sans modification de sa logique ;
+- `SetActiveTopTab` utilise une association explicite entre chaque valeur de `EInventoryTopTab` et son widget nomme, sans dependre de la valeur numerique de l'enum ;
+- `CurrentTopTab` conserve la page active lorsque `NativeConstruct` est appele de nouveau sur la meme instance ;
+- `bTopTabsInitialized` empeche la recreation du switcher et des pages apres une initialisation valide ;
+- `Inventory` est la page active lors de la premiere initialisation.
+
+Styles des boutons :
+
+- chaque bouton conserve ses styles `Normal`, `Hovered` et `Pressed` configures dans `WBP_GridInventory` ;
+- le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ses etats `Normal`, `Hovered` et `Pressed` ;
+- les boutons inactifs recuperent leur style d'origine ;
+- les bindings `OnClicked` sont reposes de maniere idempotente avec `RemoveDynamic` puis `AddDynamic`.
+
+Contraintes conservees :
+
+- aucun changement d'ownership ;
+- aucun changement du drag and drop ;
+- `InventorySlotsGridPanel` conserve son nom et son fonctionnement ;
+- aucun slot inventaire manuel n'est ajoute.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
