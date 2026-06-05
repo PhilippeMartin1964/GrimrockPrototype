@@ -1381,6 +1381,45 @@ Contraintes 7A :
 
 ---
 
+## Tranche 7A.1 — Cadre responsive 1600x900
+
+Objectif :
+
+- rendre `WBP_GridInventory` adaptable aux resolutions ecran ;
+- eviter un inventaire etire en 4K ou trop grand en Full HD ;
+- poser une base commune pour Inventaire, Competences, Journal, Carte, Recettes, Codex.
+
+Hierarchie Blueprint cible :
+
+```text
+Canvas Panel
+└── SafeZone_Inventory
+    └── ScaleBox_InventoryRoot
+        └── SizeBox_InventoryDesign
+            └── Border_RootFrame
+                └── VerticalBox_Root
+```
+
+Reglages :
+
+- Canvas root `Cursor=None` ;
+- SafeZone ancre plein ecran ;
+- ScaleBox `Stretch=Scale To Fit` ;
+- `SizeBox_InventoryDesign = 1600 x 900` ;
+- `Border_RootFrame` Fill + Padding 12/16 ;
+- `SizeBox_TopTabs` en Auto ;
+- `HorizontalBox_MainContent` en Fill.
+
+Contraintes :
+
+- ne pas modifier ownership ;
+- ne pas modifier drag/drop ;
+- ne pas renommer `InventorySlotsGridPanel` ;
+- ne pas ajouter de slots inventaire manuels ;
+- conserver le curseur custom.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
