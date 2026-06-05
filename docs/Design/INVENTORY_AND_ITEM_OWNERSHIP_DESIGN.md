@@ -38,7 +38,9 @@ La maquette cible doit être comprise comme une référence de structure, d’er
 
 ## 3. Onglets du menu général
 
-Le menu général du jeu comporte les onglets suivants :
+Le menu général du jeu est porté par `WBP_GrimrockMenu`, et non par `WBP_GridInventory`.
+
+`WBP_GrimrockMenu` affiche les onglets suivants :
 
 - **Inventaire** ;
 - **Compétences** ;
@@ -47,9 +49,24 @@ Le menu général du jeu comporte les onglets suivants :
 - **Recettes** ;
 - **Codex**.
 
-Ce document ne couvre que l’onglet **Inventaire**.
+Ces six boutons appartiennent à `HorizontalBox_TopTabs` dans `WBP_GrimrockMenu`. Ils pilotent `WidgetSwitcher_MainContent`, également détenu par `WBP_GrimrockMenu`.
 
-Les autres onglets seront décrits ultérieurement dans des documents dédiés.
+`WBP_GridInventory` est uniquement le contenu fonctionnel de `Page_Inventory`. Il ne doit contenir ni le cadre global du menu, ni les TopTabs, ni `WidgetSwitcher_MainContent`.
+
+Ce document ne couvre fonctionnellement que l’onglet **Inventaire**. Les autres onglets seront décrits ultérieurement dans des documents dédiés.
+
+### 3.1 Architecture actuelle validée
+
+La séparation des responsabilités est la suivante :
+
+- `WBP_GrimrockMenu` porte le cadre global responsive, `Border_RootFrame`, `VerticalBox_Root`, `HorizontalBox_TopTabs`, les six boutons TopTabs et `WidgetSwitcher_MainContent` ;
+- `EInventoryTopTab` définit les six destinations `Inventory`, `Skills`, `Journal`, `Map`, `Recipes` et `Codex` ;
+- `UGrimrockMenuWidget` porte `CurrentTopTab`, `SetActiveTopTab`, `UpdateTopTabButtonStyles`, les bindings `OnClicked`, `GetInventoryWidget` et `RefreshInventory` ;
+- `WBP_GridInventory` porte uniquement la Party, le personnage sélectionné, l’équipement, l’inventaire, `InventorySlotsGridPanel` et les interactions d’inventaire existantes ;
+- `WBP_GridSkills`, `WBP_GridJournal`, `WBP_GridMap`, `WBP_GridRecipes` et `WBP_GridCodex` sont les cinq pages hors Inventaire ; elles restent des placeholders ou des pages visuelles sans logique métier complète ;
+- `UGridPartyInventoryComponent` reste l’unique source de vérité de l’inventaire et de l’ownership.
+
+La section **Tranche 7A.3 - Séparation menu global et contenu Inventaire** est la référence détaillée de cette architecture. Les sections 7A, 7A.1 et 7A.2 décrivent des étapes historiques et ne doivent pas être utilisées comme instructions d’architecture actuelle.
 
 ---
 
@@ -160,18 +177,21 @@ Il peut exister plus tard des contenants particuliers, comme des coffres, sacs, 
 
 ## 8. Structure de l’écran Inventaire
 
-### 8.1 Bandeau supérieur
+Cette section décrit uniquement le contenu de l’onglet Inventaire, c’est-à-dire la hiérarchie fonctionnelle portée par `WBP_GridInventory`.
 
-Le bandeau supérieur affiche les onglets du menu :
+Le cadre responsive global, le bandeau TopTabs et le changement de page sont extérieurs à `WBP_GridInventory`. Ils appartiennent à `WBP_GrimrockMenu`.
 
-- Inventaire ;
-- Compétences ;
-- Journal ;
-- Carte ;
-- Recettes ;
-- Codex.
+### 8.1 Limite du contenu Inventaire
 
-L’onglet actif est clairement mis en évidence.
+`WBP_GridInventory` commence au contenu de `Page_Inventory`. Sa structure fonctionnelle comprend :
+
+- la colonne des personnages actifs ;
+- la zone du personnage sélectionné ;
+- l’équipement ;
+- la zone d’inventaire ;
+- `InventorySlotsGridPanel`.
+
+Il ne comprend pas `Border_RootFrame`, `VerticalBox_Root`, `HorizontalBox_TopTabs`, les six boutons TopTabs ou `WidgetSwitcher_MainContent`, qui relèvent tous de `WBP_GrimrockMenu`.
 
 ### 8.2 Colonne gauche : personnages actifs
 
@@ -754,7 +774,7 @@ Il fixe uniquement la vision de l’inventaire, de la possession d’objets, du 
 
 ### Phase 4 — UI de l’onglet Inventaire
 
-- construire le menu supérieur ;
+- intégrer le contenu Inventaire sous le menu global `WBP_GrimrockMenu` ;
 - construire la colonne personnages actifs ;
 - construire la fiche centrale ;
 - construire la zone droite défilante d’inventaires personnels ;
@@ -1307,161 +1327,68 @@ Etat applique :
 
 ---
 
-## Tranche 7A - intervention Blueprint requise
+## Tranche 7A - intervention Blueprint requise (historique)
 
-Objectif :
+Cette tranche décrit l’étape visuelle initiale pendant laquelle `WBP_GridInventory` réunissait encore le cadre global, les onglets et le contenu Inventaire. Cette organisation a été remplacée par la séparation décrite en 7A.3.
 
-- ameliorer visuellement `WBP_GridInventory` selon la maquette inventaire ;
-- conserver l'ownership existant ;
-- conserver les slots generes automatiquement ;
-- conserver le drag and drop C++ existant ;
-- conserver le curseur custom comme seul curseur autorise.
+Les éléments encore valides de cette tranche concernent uniquement le contenu Inventaire :
 
-Etat verifie cote depot :
+- la colonne Party avec `PartyMember_0..5` ;
+- le panneau du personnage sélectionné avec `MainHand`, `OffHand` et `Cursor` ;
+- le panneau inventaire avec `InventorySlotsGridPanel` ;
+- la génération automatique des slots par `InventorySlotWidgetClass` ;
+- le maintien du drag and drop C++ et du modèle d’ownership existants ;
+- le curseur custom comme seul curseur affiché.
 
-- `WBP_GridInventory` contient deja des elements de structure attendus : onglets superieurs, colonne party, panneau personnage, panneau inventaire, `InventorySlotsGridPanel`, `SlotWidget_MainHand`, `SlotWidget_OffHand`, `SlotWidget_Cursor` et `PartyMember_0..5` ;
-- `InventorySlotsGridPanel` reste le nom obligatoire pour le bind C++ ;
-- `WBP_InventorySlot` contient encore des traces Blueprint de debug visibles dans l'asset binaire : `PrintString`, `SLOT MOUSE DOWN`, `SLOT CAN DRAG`, `SLOT CANNOT DRAG`, `Hello`, ainsi que des libelles de variables `Drag Enabled` et `Has Item` ;
-- ces traces doivent etre supprimees dans l'editeur UE, pas par edition binaire directe du `.uasset`.
-
-### Reglages Blueprint 7A a appliquer
-
-`WBP_GridInventory` :
-
-- root Canvas Panel `Cursor=None` ;
-- `Border_RootFrame` ancre plein ecran ou quasi plein ecran ;
-- fond sombre bleu/noir avec alpha eleve ;
-- `VerticalBox_Root` avec onglets en haut et contenu principal dessous ;
-- onglets visibles : Inventaire, Competences, Journal, Carte, Recettes, Codex ;
-- seul l'onglet Inventaire est actif en 7A ;
-- colonne party a gauche avec `PartyMember_0..5` ;
-- panneau personnage selectionne au centre avec titre, resume, portrait placeholder, stats placeholder et slots `MainHand`, `OffHand`, `Cursor` ;
-- panneau inventaire a droite avec titre et `InventorySlotsGridPanel` ;
-- `InventorySlotsGridPanel` doit rester vide dans le Designer ;
-- ne pas ajouter de slots inventaire manuels ;
-- `InventorySlotWidgetClass = WBP_InventorySlot` ;
-- `InventorySlotColumnCount = 6` ;
-- `InventorySlotCountOverride = 24` pour les tests actuels.
-
-`WBP_InventorySlot` :
-
-- root Canvas Panel `Cursor=None` ;
-- surface principale hit-testable ;
-- enfants texte/image `Not Hit-Testable` ;
-- taille cible 64x64 ;
-- `Text_Name` centre avec police 9-10 ;
-- `Text_Quantity` en bas a droite avec police 10-11 ;
-- `Image_Icon` conservee dans la hierarchie ;
-- `RefreshSlotVisual` doit mettre a jour `Text_Name`, `Text_Quantity`, tooltip et icone ;
-- cacher `Image_Icon` si `GetIconTexture` retourne null ;
-- supprimer tous les `PrintString` debug : `SLOT MOUSE DOWN`, `SLOT CAN DRAG`, `SLOT CANNOT DRAG`, `Hello`.
-
-`WBP_PartyMember` :
-
-- root `Cursor=None` ;
-- surface principale hit-testable ;
-- textes enfants `Not Hit-Testable` ;
-- largeur cible 145-160 et hauteur 80-90 ;
-- afficher nom, classe/niveau, poids ;
-- afficher visuellement l'etat selectionne.
-
-`WBP_GridMouseCursor` :
-
-- rester visible, enabled et `HitTestInvisible` ;
-- gerer `Default`, `Use`, `Take`, `Push`, `Pull`, `Read`, `PlaceItem` et `CannotPlaceItem` ;
-- ne jamais reintroduire le curseur Windows.
-
-Contraintes 7A :
-
-- pas de changement d'ownership ;
-- pas de changement de `UGridPartyInventoryComponent` ;
-- pas de nouveau systeme d'inventaire Blueprint ;
-- pas de drop direct UI -> monde sans `CursorItem` ;
-- pas de multi-inventaires simultanes dans cette tranche.
+Les anciennes instructions plaçant `Border_RootFrame`, `VerticalBox_Root` ou les TopTabs dans `WBP_GridInventory` sont obsolètes. Ces éléments appartiennent désormais à `WBP_GrimrockMenu`.
 
 ---
 
-## Tranche 7A.1 — Cadre responsive 1600x900
+## Tranche 7A.1 — Cadre responsive 1600x900 (historique)
 
-Objectif :
+Cette tranche a introduit le cadre responsive commun en `1600 x 900`. Son intention reste valide, mais son propriétaire a changé.
 
-- rendre `WBP_GridInventory` adaptable aux resolutions ecran ;
-- eviter un inventaire etire en 4K ou trop grand en Full HD ;
-- poser une base commune pour Inventaire, Competences, Journal, Carte, Recettes, Codex.
-
-Hierarchie Blueprint cible :
+La hiérarchie responsive actuelle appartient à `WBP_GrimrockMenu` :
 
 ```text
 Canvas Panel
-└── SafeZone_Inventory
-    └── ScaleBox_InventoryRoot
-        └── SizeBox_InventoryDesign
+└── SafeZone
+    └── ScaleBox
+        └── SizeBox 1600 x 900
             └── Border_RootFrame
                 └── VerticalBox_Root
 ```
 
-Reglages :
-
-- Canvas root `Cursor=None` ;
-- SafeZone ancre plein ecran ;
-- ScaleBox `Stretch=Scale To Fit` ;
-- `SizeBox_InventoryDesign = 1600 x 900` ;
-- `Border_RootFrame` Fill + Padding 12/16 ;
-- `SizeBox_TopTabs` en Auto ;
-- `HorizontalBox_MainContent` en Fill.
-
-Contraintes :
-
-- ne pas modifier ownership ;
-- ne pas modifier drag/drop ;
-- ne pas renommer `InventorySlotsGridPanel` ;
-- ne pas ajouter de slots inventaire manuels ;
-- conserver le curseur custom.
+`WBP_GridInventory` ne doit pas recréer cette hiérarchie globale. Il est instancié comme contenu de `Page_Inventory` dans le switcher du menu.
 
 ---
 
-## Tranche 7A.2 - TopTabs consolides
+## Tranche 7A.2 - TopTabs consolidés (historique)
 
-Objectif :
+Cette tranche a validé le comportement des six TopTabs, dont la logique était initialement placée dans `WBP_GridInventory`. Cette localisation est historique et a été remplacée par la tranche 7A.3.
 
-- fournir la navigation entre les six pages principales avant l'ajout de leur contenu ;
-- conserver la structure responsive 1600 x 900 ;
-- laisser la logique d'inventaire, l'ownership et le drag and drop inchanges.
-
-Fonctionnement :
+Les décisions fonctionnelles conservées sont :
 
 - `EInventoryTopTab` contient `Inventory`, `Skills`, `Journal`, `Map`, `Recipes` et `Codex` ;
-- `WidgetSwitcher_MainContent` est l'enfant unique de `HorizontalBox_MainContent` ;
-- le switcher contient exactement six widgets nommes `Page_Inventory`, `Page_Skills`, `Page_Journal`, `Page_Map`, `Page_Recipes` et `Page_Codex` ;
-- le contenu d'inventaire existant reste dans `Page_Inventory` sans modification de sa logique ;
-- `SetActiveTopTab` utilise une association explicite entre chaque valeur de `EInventoryTopTab` et son widget nomme, sans dependre de la valeur numerique de l'enum ;
-- `CurrentTopTab` conserve la page active lorsque `NativeConstruct` est appele de nouveau sur la meme instance ;
-- `bTopTabsInitialized` empeche la recreation du switcher et des pages apres une initialisation valide ;
-- `Inventory` est la page active lors de la premiere initialisation.
+- `Inventory` est l’onglet actif par défaut ;
+- `SetActiveTopTab` utilise une association explicite entre chaque valeur de l’enum et sa page, sans dépendre d’indices magiques ;
+- le bouton actif utilise `T_ButtonTab_Selected_480x100` pour `Normal`, `Hovered` et `Pressed` ;
+- les boutons inactifs récupèrent leurs styles `Normal`, `Hovered` et `Pressed` d’origine ;
+- les bindings `OnClicked` sont idempotents.
 
-Styles des boutons :
-
-- chaque bouton conserve ses styles `Normal`, `Hovered` et `Pressed` configures dans `WBP_GridInventory` ;
-- le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ses etats `Normal`, `Hovered` et `Pressed` ;
-- les boutons inactifs recuperent leur style d'origine ;
-- les bindings `OnClicked` sont reposes de maniere idempotente avec `RemoveDynamic` puis `AddDynamic`.
-
-Contraintes conservees :
-
-- aucun changement d'ownership ;
-- aucun changement du drag and drop ;
-- `InventorySlotsGridPanel` conserve son nom et son fonctionnement ;
-- aucun slot inventaire manuel n'est ajoute.
+Dans l’architecture actuelle, cette logique, les boutons et `WidgetSwitcher_MainContent` appartiennent exclusivement à `WBP_GrimrockMenu` et `UGrimrockMenuWidget`. Ils ne doivent pas être réintroduits dans `WBP_GridInventory`.
 
 ---
 
-## Tranche 7A.3 - Separation menu global et contenu Inventaire
+## Tranche 7A.3 - Séparation menu global et contenu Inventaire
+
+**Référence actuelle :** cette section remplace les recommandations d’architecture UI des tranches historiques 7A, 7A.1 et 7A.2.
 
 Objectif :
 
-- separer la navigation globale du jeu du contenu fonctionnel de l'onglet Inventaire ;
-- permettre l'ajout progressif des contenus Competences, Journal, Carte, Recettes et Codex ;
-- conserver sans modification le modele d'ownership, le drag and drop et les slots generes.
+- séparer la navigation globale du jeu du contenu fonctionnel de l’onglet Inventaire ;
+- permettre l’ajout progressif des contenus Compétences, Journal, Carte, Recettes et Codex ;
+- conserver sans modification le modèle d’ownership, le drag and drop et les slots générés.
 
 ### WBP_GrimrockMenu
 
@@ -1478,14 +1405,17 @@ Il contient :
 
 La classe native `UGrimrockMenuWidget` porte :
 
+- l’enum `EInventoryTopTab` ;
 - `CurrentTopTab` ;
 - `SetActiveTopTab` ;
 - `UpdateTopTabButtonStyles` ;
 - les bindings `OnClicked` des six boutons ;
-- l'initialisation de l'onglet `Inventory` par defaut.
+- `GetInventoryWidget` ;
+- `RefreshInventory` ;
+- l’initialisation de l’onglet `Inventory` par défaut.
 
 Les boutons inactifs conservent leurs textures `Normal`, `Hovered` et `Pressed`.
-Le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ces trois etats.
+Le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ces trois états.
 
 ### Pages du WidgetSwitcher
 
@@ -1498,7 +1428,7 @@ Le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ces trois etats.
 5. `Page_Recipes` de classe `WBP_GridRecipes` ;
 6. `Page_Codex` de classe `WBP_GridCodex`.
 
-Les cinq widgets hors Inventaire sont des placeholders independants en attente de leurs contenus fonctionnels.
+Les cinq widgets hors Inventaire sont des placeholders indépendants ou des pages visuelles sans logique métier complète.
 
 ### WBP_GridInventory
 
@@ -1507,22 +1437,40 @@ Les cinq widgets hors Inventaire sont des placeholders independants en attente d
 Il reste responsable uniquement de :
 
 - la liste Party ;
-- le personnage selectionne ;
-- l'equipement ;
-- l'inventaire ;
+- le personnage sélectionné ;
+- l’équipement ;
+- l’inventaire ;
 - `InventorySlotsGridPanel` ;
-- les widgets de slots generes automatiquement ;
-- les rafraichissements et interactions d'inventaire existants.
+- les widgets de slots générés automatiquement ;
+- les rafraîchissements et interactions d’inventaire existants.
 
-`AGrimrockPartyPawn::GetInventoryWidget` continue de retourner le widget `WBP_GridInventory` enfant du menu. Les appels existants du controleur et du drag and drop restent donc inchanges.
+`AGrimrockPartyPawn::GetInventoryWidget` continue de retourner le widget `WBP_GridInventory` enfant du menu. Les appels existants du contrôleur et du drag and drop restent donc inchangés.
 
-Contraintes conservees :
+### Contraintes permanentes
 
-- aucun changement d'ownership ;
-- aucun changement du drag and drop ;
-- `InventorySlotsGridPanel` conserve exactement son nom ;
-- aucun slot inventaire manuel n'est ajoute ;
-- le curseur custom reste le seul curseur affiche.
+Toute évolution de cette UI doit respecter les règles suivantes :
+
+- ne pas renommer `InventorySlotsGridPanel` ;
+- ne pas ajouter de slots inventaire manuels dans le Designer ; les slots d’inventaire restent générés automatiquement ;
+- ne pas modifier le modèle d’ownership ;
+- ne pas modifier `UGridPartyInventoryComponent` pour contourner la séparation UI ;
+- ne pas créer de système d’inventaire Blueprint parallèle ;
+- ne pas modifier le drag and drop existant sans tâche dédiée ;
+- conserver `CursorItem` comme état temporaire exclusif de possession ;
+- conserver le curseur custom comme seul curseur affiché et ne jamais réintroduire le curseur Windows.
+
+### État actuel au commit 2bfae18f
+
+Au commit `2bfae18f` :
+
+- `WBP_GrimrockMenu` est fonctionnel et porte le cadre global responsive ;
+- les six TopTabs sont fonctionnels ;
+- `Inventory` reste l’onglet actif par défaut ;
+- le bouton actif reste visuellement sélectionné avec `T_ButtonTab_Selected_480x100` ;
+- `WBP_GridInventory` est séparé du menu global et reste le contenu fonctionnel de `Page_Inventory` ;
+- `WBP_GridSkills`, `WBP_GridJournal`, `WBP_GridMap`, `WBP_GridRecipes` et `WBP_GridCodex` sont créés ;
+- les cinq pages non-inventaire restent des placeholders ou des pages visuelles sans logique métier complète ;
+- l’ownership, le drag and drop, `CursorItem`, `InventorySlotsGridPanel` et `UGridPartyInventoryComponent` restent inchangés par cette séparation.
 
 ---
 
