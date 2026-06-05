@@ -4,6 +4,17 @@
 #include "GridInventoryUiTypes.generated.h"
 
 UENUM (BlueprintType)
+enum class EInventoryTopTab : uint8
+{
+    Inventory = 0,
+    Skills = 1,
+    Journal = 2,
+    Map = 3,
+    Recipes = 4,
+    Codex = 5
+};
+
+UENUM (BlueprintType)
 enum class EGridInventoryUiSlotType : uint8
 {
     Inventory,

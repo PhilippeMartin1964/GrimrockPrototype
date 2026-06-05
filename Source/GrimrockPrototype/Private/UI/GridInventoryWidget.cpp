@@ -1,14 +1,238 @@
 #include "UI/GridInventoryWidget.h"
 
+#include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Overlay.h"
 #include "Components/PanelWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "Components/WidgetSwitcher.h"
+#include "Engine/Texture2D.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
 void UGridInventoryWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
+
+    BuildMainContentSwitcher ();
+    BindTopTabButtons ();
+    SetActiveTopTab (EInventoryTopTab::Inventory);
+}
+
+void UGridInventoryWidget::BuildMainContentSwitcher ()
+{
+    if (!WidgetTree || !HorizontalBox_MainContent)
+    {
+        return;
+    }
+
+    WidgetSwitcher_MainContent = Cast<UWidgetSwitcher> (
+        WidgetTree->FindWidget (TEXT ("WidgetSwitcher_MainContent")));
+    if (WidgetSwitcher_MainContent)
+    {
+        return;
+    }
+
+    struct FExistingMainContentChild
+    {
+        TObjectPtr<UWidget> Widget;
+        FMargin Padding;
+        EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
+        EVerticalAlignment VerticalAlignment = VAlign_Fill;
+        FSlateChildSize Size;
+    };
+
+    TArray<FExistingMainContentChild> ExistingChildren;
+    while (HorizontalBox_MainContent->GetChildrenCount () > 0)
+    {
+        UWidget* Child = HorizontalBox_MainContent->GetChildAt (0);
+        UHorizontalBoxSlot* ExistingSlot = Cast<UHorizontalBoxSlot> (Child->Slot);
+
+        FExistingMainContentChild& ExistingChild = ExistingChildren.AddDefaulted_GetRef ();
+        ExistingChild.Widget = Child;
+        if (ExistingSlot)
+        {
+            ExistingChild.Padding = ExistingSlot->GetPadding ();
+            ExistingChild.HorizontalAlignment = ExistingSlot->GetHorizontalAlignment ();
+            ExistingChild.VerticalAlignment = ExistingSlot->GetVerticalAlignment ();
+            ExistingChild.Size = ExistingSlot->GetSize ();
+        }
+
+        HorizontalBox_MainContent->RemoveChildAt (0);
+    }
+
+    WidgetSwitcher_MainContent = WidgetTree->ConstructWidget<UWidgetSwitcher> (
+        UWidgetSwitcher::StaticClass (),
+        TEXT ("WidgetSwitcher_MainContent"));
+    UHorizontalBox* InventoryPage = WidgetTree->ConstructWidget<UHorizontalBox> (
+        UHorizontalBox::StaticClass (),
+        TEXT ("Page_Inventory"));
+
+    for (const FExistingMainContentChild& ExistingChild : ExistingChildren)
+    {
+        if (UHorizontalBoxSlot* NewSlot = InventoryPage->AddChildToHorizontalBox (ExistingChild.Widget))
+        {
+            NewSlot->SetPadding (ExistingChild.Padding);
+            NewSlot->SetHorizontalAlignment (ExistingChild.HorizontalAlignment);
+            NewSlot->SetVerticalAlignment (ExistingChild.VerticalAlignment);
+            NewSlot->SetSize (ExistingChild.Size);
+        }
+    }
+
+    WidgetSwitcher_MainContent->AddChild (InventoryPage);
+    WidgetSwitcher_MainContent->AddChild (
+        WidgetTree->ConstructWidget<UOverlay> (UOverlay::StaticClass (), TEXT ("Page_Skills")));
+    WidgetSwitcher_MainContent->AddChild (
+        WidgetTree->ConstructWidget<UOverlay> (UOverlay::StaticClass (), TEXT ("Page_Journal")));
+    WidgetSwitcher_MainContent->AddChild (
+        WidgetTree->ConstructWidget<UOverlay> (UOverlay::StaticClass (), TEXT ("Page_Map")));
+    WidgetSwitcher_MainContent->AddChild (
+        WidgetTree->ConstructWidget<UOverlay> (UOverlay::StaticClass (), TEXT ("Page_Recipes")));
+    WidgetSwitcher_MainContent->AddChild (
+        WidgetTree->ConstructWidget<UOverlay> (UOverlay::StaticClass (), TEXT ("Page_Codex")));
+
+    if (UHorizontalBoxSlot* SwitcherSlot =
+        HorizontalBox_MainContent->AddChildToHorizontalBox (WidgetSwitcher_MainContent))
+    {
+        SwitcherSlot->SetSize (FSlateChildSize (ESlateSizeRule::Fill));
+        SwitcherSlot->SetHorizontalAlignment (HAlign_Fill);
+        SwitcherSlot->SetVerticalAlignment (VAlign_Fill);
+    }
+}
+
+void UGridInventoryWidget::BindTopTabButtons ()
+{
+    const TArray<UButton*> Buttons = {
+        Button_TabInventory,
+        Button_TabSkills,
+        Button_TabJournal,
+        Button_TabMap,
+        Button_TabRecipes,
+        Button_TabCodex
+    };
+
+    for (UButton* Button : Buttons)
+    {
+        if (Button && !DefaultTopTabButtonStyles.Contains (Button))
+        {
+            DefaultTopTabButtonStyles.Add (Button, Button->GetStyle ());
+        }
+    }
+
+    if (!SelectedTopTabTexture)
+    {
+        SelectedTopTabTexture = LoadObject<UTexture2D> (
+            nullptr,
+            TEXT ("/Game/GrimrockPrototype/Blueprints/UI/TopTabs/TopTabs/"
+                  "T_ButtonTab_Selected_480x100.T_ButtonTab_Selected_480x100"));
+    }
+
+    if (Button_TabInventory)
+    {
+        Button_TabInventory->OnClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleInventoryTopTabClicked);
+        Button_TabInventory->OnClicked.AddDynamic (this, &UGridInventoryWidget::HandleInventoryTopTabClicked);
+    }
+    if (Button_TabSkills)
+    {
+        Button_TabSkills->OnClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleSkillsTopTabClicked);
+        Button_TabSkills->OnClicked.AddDynamic (this, &UGridInventoryWidget::HandleSkillsTopTabClicked);
+    }
+    if (Button_TabJournal)
+    {
+        Button_TabJournal->OnClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleJournalTopTabClicked);
+        Button_TabJournal->OnClicked.AddDynamic (this, &UGridInventoryWidget::HandleJournalTopTabClicked);
+    }
+    if (Button_TabMap)
+    {
+        Button_TabMap->OnClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleMapTopTabClicked);
+        Button_TabMap->OnClicked.AddDynamic (this, &UGridInventoryWidget::HandleMapTopTabClicked);
+    }
+    if (Button_TabRecipes)
+    {
+        Button_TabRecipes->OnClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRecipesTopTabClicked);
+        Button_TabRecipes->OnClicked.AddDynamic (this, &UGridInventoryWidget::HandleRecipesTopTabClicked);
+    }
+    if (Button_TabCodex)
+    {
+        Button_TabCodex->OnClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleCodexTopTabClicked);
+        Button_TabCodex->OnClicked.AddDynamic (this, &UGridInventoryWidget::HandleCodexTopTabClicked);
+    }
+}
+
+void UGridInventoryWidget::SetActiveTopTab (EInventoryTopTab NewTab)
+{
+    CurrentTopTab = NewTab;
+    if (WidgetSwitcher_MainContent)
+    {
+        WidgetSwitcher_MainContent->SetActiveWidgetIndex (static_cast<int32> (NewTab));
+    }
+    UpdateTopTabButtonStyles ();
+}
+
+void UGridInventoryWidget::UpdateTopTabButtonStyles ()
+{
+    ApplyTopTabButtonStyle (Button_TabInventory, EInventoryTopTab::Inventory);
+    ApplyTopTabButtonStyle (Button_TabSkills, EInventoryTopTab::Skills);
+    ApplyTopTabButtonStyle (Button_TabJournal, EInventoryTopTab::Journal);
+    ApplyTopTabButtonStyle (Button_TabMap, EInventoryTopTab::Map);
+    ApplyTopTabButtonStyle (Button_TabRecipes, EInventoryTopTab::Recipes);
+    ApplyTopTabButtonStyle (Button_TabCodex, EInventoryTopTab::Codex);
+}
+
+void UGridInventoryWidget::ApplyTopTabButtonStyle (UButton* Button, EInventoryTopTab Tab)
+{
+    if (!Button)
+    {
+        return;
+    }
+
+    const FButtonStyle* DefaultStyle = DefaultTopTabButtonStyles.Find (Button);
+    if (!DefaultStyle)
+    {
+        return;
+    }
+
+    FButtonStyle Style = *DefaultStyle;
+    if (Tab == CurrentTopTab && SelectedTopTabTexture)
+    {
+        Style.Normal.SetResourceObject (SelectedTopTabTexture);
+        Style.Hovered.SetResourceObject (SelectedTopTabTexture);
+        Style.Pressed.SetResourceObject (SelectedTopTabTexture);
+    }
+    Button->SetStyle (Style);
+}
+
+void UGridInventoryWidget::HandleInventoryTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Inventory);
+}
+
+void UGridInventoryWidget::HandleSkillsTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Skills);
+}
+
+void UGridInventoryWidget::HandleJournalTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Journal);
+}
+
+void UGridInventoryWidget::HandleMapTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Map);
+}
+
+void UGridInventoryWidget::HandleRecipesTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Recipes);
+}
+
+void UGridInventoryWidget::HandleCodexTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Codex);
 }
 
 void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn)

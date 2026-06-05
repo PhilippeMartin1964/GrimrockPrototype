@@ -12,7 +12,11 @@ class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
+class UButton;
+class UHorizontalBox;
+class UTexture2D;
 class UUniformGridPanel;
+class UWidgetSwitcher;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridInventoryWidget : public UUserWidget
@@ -40,6 +44,33 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Slots")
     TObjectPtr<UUniformGridPanel> InventorySlotsGridPanel;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UHorizontalBox> HorizontalBox_MainContent;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UWidgetSwitcher> WidgetSwitcher_MainContent;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UButton> Button_TabInventory;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UButton> Button_TabSkills;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UButton> Button_TabJournal;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UButton> Button_TabMap;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UButton> Button_TabRecipes;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    TObjectPtr<UButton> Button_TabCodex;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory UI|Top Tabs")
+    EInventoryTopTab CurrentTopTab = EInventoryTopTab::Inventory;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
     TArray<TObjectPtr<UGridInventorySlotWidget>> RegisteredInventorySlots;
@@ -168,11 +199,45 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleCursorReturnToInventoryClicked ();
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Top Tabs")
+    void SetActiveTopTab (EInventoryTopTab NewTab);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Top Tabs")
+    void UpdateTopTabButtonStyles ();
+
 protected:
     virtual void NativeConstruct () override;
 
 private:
+    void BuildMainContentSwitcher ();
+    void BindTopTabButtons ();
+    void ApplyTopTabButtonStyle (UButton* Button, EInventoryTopTab Tab);
+
+    UFUNCTION ()
+    void HandleInventoryTopTabClicked ();
+
+    UFUNCTION ()
+    void HandleSkillsTopTabClicked ();
+
+    UFUNCTION ()
+    void HandleJournalTopTabClicked ();
+
+    UFUNCTION ()
+    void HandleMapTopTabClicked ();
+
+    UFUNCTION ()
+    void HandleRecipesTopTabClicked ();
+
+    UFUNCTION ()
+    void HandleCodexTopTabClicked ();
+
     void RemoveGeneratedInventorySlotsFromRegistry ();
+
+    UPROPERTY (Transient)
+    TMap<TObjectPtr<UButton>, FButtonStyle> DefaultTopTabButtonStyles;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UTexture2D> SelectedTopTabTexture;
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;
