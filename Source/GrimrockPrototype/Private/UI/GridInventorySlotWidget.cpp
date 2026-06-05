@@ -18,7 +18,16 @@ void UGridInventorySlotWidget::InitializeInventorySlot (
 void UGridInventorySlotWidget::SetItem (const FGridItemInstance& InItem)
 {
     CachedItem = InItem;
-    bHasItem = InItem.IsValid ();
+    bHasItem = true;
+    CachedIconTexture = nullptr;
+    if (OwningInventoryWidget && OwningInventoryWidget->InventoryComponent)
+    {
+        if (const UGridItemDefinitionAsset* Definition = OwningInventoryWidget->InventoryComponent->FindItemDefinition (CachedItem.ItemDefinitionId))
+        {
+            CachedIconTexture = Definition->Icon.LoadSynchronous ();
+        }
+    }
+
     RefreshSlotVisual ();
 }
 
@@ -26,6 +35,7 @@ void UGridInventorySlotWidget::ClearItem ()
 {
     CachedItem = FGridItemInstance ();
     bHasItem = false;
+    CachedIconTexture = nullptr;
     RefreshSlotVisual ();
 }
 
@@ -75,17 +85,7 @@ FText UGridInventorySlotWidget::GetTooltipText () const
 
 UTexture2D* UGridInventorySlotWidget::GetIconTexture () const
 {
-    if (!bHasItem || CachedItem.ItemDefinitionId.IsNone ())
-    {
-        return nullptr;
-    }
-
-    const UGridInventoryWidget* InventoryWidget = OwningInventoryWidget.Get ();
-    const UGridPartyInventoryComponent* InventoryComponent = InventoryWidget ? InventoryWidget->InventoryComponent : nullptr;
-    const UGridItemDefinitionAsset* Definition = InventoryComponent
-        ? InventoryComponent->FindItemDefinition (CachedItem.ItemDefinitionId)
-        : nullptr;
-    return Definition ? Definition->Icon.LoadSynchronous () : nullptr;
+    return CachedIconTexture.Get ();
 }
 
 void UGridInventorySlotWidget::HandleClicked ()

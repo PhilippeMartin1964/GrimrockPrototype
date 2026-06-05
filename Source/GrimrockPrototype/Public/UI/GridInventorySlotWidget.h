@@ -43,6 +43,9 @@ public:
     UPROPERTY (BlueprintAssignable, Category = "Inventory|Slot")
     FOnGridInventorySlotClicked OnSlotClicked;
 
+    UPROPERTY (Transient)
+    TObjectPtr<UTexture2D> CachedIconTexture = nullptr;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void InitializeInventorySlot (EGridInventoryUiSlotType InSlotType, int32 InInventorySlotIndex);
 
