@@ -1420,6 +1420,112 @@ Contraintes :
 
 ---
 
+## Tranche 7A.2 - TopTabs consolides
+
+Objectif :
+
+- fournir la navigation entre les six pages principales avant l'ajout de leur contenu ;
+- conserver la structure responsive 1600 x 900 ;
+- laisser la logique d'inventaire, l'ownership et le drag and drop inchanges.
+
+Fonctionnement :
+
+- `EInventoryTopTab` contient `Inventory`, `Skills`, `Journal`, `Map`, `Recipes` et `Codex` ;
+- `WidgetSwitcher_MainContent` est l'enfant unique de `HorizontalBox_MainContent` ;
+- le switcher contient exactement six widgets nommes `Page_Inventory`, `Page_Skills`, `Page_Journal`, `Page_Map`, `Page_Recipes` et `Page_Codex` ;
+- le contenu d'inventaire existant reste dans `Page_Inventory` sans modification de sa logique ;
+- `SetActiveTopTab` utilise une association explicite entre chaque valeur de `EInventoryTopTab` et son widget nomme, sans dependre de la valeur numerique de l'enum ;
+- `CurrentTopTab` conserve la page active lorsque `NativeConstruct` est appele de nouveau sur la meme instance ;
+- `bTopTabsInitialized` empeche la recreation du switcher et des pages apres une initialisation valide ;
+- `Inventory` est la page active lors de la premiere initialisation.
+
+Styles des boutons :
+
+- chaque bouton conserve ses styles `Normal`, `Hovered` et `Pressed` configures dans `WBP_GridInventory` ;
+- le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ses etats `Normal`, `Hovered` et `Pressed` ;
+- les boutons inactifs recuperent leur style d'origine ;
+- les bindings `OnClicked` sont reposes de maniere idempotente avec `RemoveDynamic` puis `AddDynamic`.
+
+Contraintes conservees :
+
+- aucun changement d'ownership ;
+- aucun changement du drag and drop ;
+- `InventorySlotsGridPanel` conserve son nom et son fonctionnement ;
+- aucun slot inventaire manuel n'est ajoute.
+
+---
+
+## Tranche 7A.3 - Separation menu global et contenu Inventaire
+
+Objectif :
+
+- separer la navigation globale du jeu du contenu fonctionnel de l'onglet Inventaire ;
+- permettre l'ajout progressif des contenus Competences, Journal, Carte, Recettes et Codex ;
+- conserver sans modification le modele d'ownership, le drag and drop et les slots generes.
+
+### WBP_GrimrockMenu
+
+`WBP_GrimrockMenu` est le widget global ouvert par `AGrimrockPartyPawn`.
+
+Il contient :
+
+- le cadre responsive `SafeZone -> ScaleBox -> SizeBox 1600 x 900` ;
+- `Border_RootFrame` ;
+- `VerticalBox_Root` ;
+- `HorizontalBox_TopTabs` ;
+- les boutons `Button_TabInventory`, `Button_TabSkills`, `Button_TabJournal`, `Button_TabMap`, `Button_TabRecipes` et `Button_TabCodex` ;
+- `WidgetSwitcher_MainContent`.
+
+La classe native `UGrimrockMenuWidget` porte :
+
+- `CurrentTopTab` ;
+- `SetActiveTopTab` ;
+- `UpdateTopTabButtonStyles` ;
+- les bindings `OnClicked` des six boutons ;
+- l'initialisation de l'onglet `Inventory` par defaut.
+
+Les boutons inactifs conservent leurs textures `Normal`, `Hovered` et `Pressed`.
+Le bouton actif utilise `T_ButtonTab_Selected_480x100` pour ces trois etats.
+
+### Pages du WidgetSwitcher
+
+`WidgetSwitcher_MainContent` contient exactement :
+
+1. `Page_Inventory` de classe `WBP_GridInventory` ;
+2. `Page_Skills` de classe `WBP_GridSkills` ;
+3. `Page_Journal` de classe `WBP_GridJournal` ;
+4. `Page_Map` de classe `WBP_GridMap` ;
+5. `Page_Recipes` de classe `WBP_GridRecipes` ;
+6. `Page_Codex` de classe `WBP_GridCodex`.
+
+Les cinq widgets hors Inventaire sont des placeholders independants en attente de leurs contenus fonctionnels.
+
+### WBP_GridInventory
+
+`WBP_GridInventory` ne porte plus le cadre global, les boutons TopTabs ni le `WidgetSwitcher_MainContent`.
+
+Il reste responsable uniquement de :
+
+- la liste Party ;
+- le personnage selectionne ;
+- l'equipement ;
+- l'inventaire ;
+- `InventorySlotsGridPanel` ;
+- les widgets de slots generes automatiquement ;
+- les rafraichissements et interactions d'inventaire existants.
+
+`AGrimrockPartyPawn::GetInventoryWidget` continue de retourner le widget `WBP_GridInventory` enfant du menu. Les appels existants du controleur et du drag and drop restent donc inchanges.
+
+Contraintes conservees :
+
+- aucun changement d'ownership ;
+- aucun changement du drag and drop ;
+- `InventorySlotsGridPanel` conserve exactement son nom ;
+- aucun slot inventaire manuel n'est ajoute ;
+- le curseur custom reste le seul curseur affiche.
+
+---
+
 ## 23. Conclusion
 
 La vision retenue est celle d’un système d’inventaire RPG complet, centré sur les personnages.
