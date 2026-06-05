@@ -337,8 +337,8 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
         const int32 Column = SlotIndex % ColumnCount;
         if (UUniformGridSlot* GridSlot = InventorySlotsGridPanel->AddChildToUniformGrid (NewSlot, Row, Column))
         {
-            GridSlot->SetHorizontalAlignment (HAlign_Fill);
-            GridSlot->SetVerticalAlignment (VAlign_Fill);
+            GridSlot->SetHorizontalAlignment (HAlign_Left);
+            GridSlot->SetVerticalAlignment (VAlign_Top);
         }
 
         GeneratedInventorySlotWidgets.Add (NewSlot);
