@@ -16,6 +16,7 @@
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "UI/GridInventoryWidget.h"
+#include "UI/GrimrockMenuWidget.h"
 
 namespace
 {
@@ -899,33 +900,33 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
         return;
     }
 
-    if (!InventoryWidgetClass)
+    if (!MenuWidgetClass)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Show Failed Pawn=%s Reason=NoInventoryWidgetClass"), *GetName ());
+        UE_LOG (LogTemp, Warning, TEXT ("GrimrockMenu UI Show Failed Pawn=%s Reason=NoMenuWidgetClass"), *GetName ());
         return;
     }
 
-    if (!InventoryWidgetInstance)
+    if (!MenuWidgetInstance)
     {
-        InventoryWidgetInstance = CreateWidget<UGridInventoryWidget> (PlayerController, InventoryWidgetClass);
-        if (InventoryWidgetInstance)
+        MenuWidgetInstance = CreateWidget<UGrimrockMenuWidget> (PlayerController, MenuWidgetClass);
+        if (MenuWidgetInstance)
         {
-            InventoryWidgetInstance->InitializeInventoryWidget (this);
+            MenuWidgetInstance->InitializeMenuWidget (this);
         }
     }
 
-    if (!InventoryWidgetInstance)
+    if (!MenuWidgetInstance)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName ());
+        UE_LOG (LogTemp, Warning, TEXT ("GrimrockMenu UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName ());
         return;
     }
 
-    if (!InventoryWidgetInstance->IsInViewport ())
+    if (!MenuWidgetInstance->IsInViewport ())
     {
-        InventoryWidgetInstance->AddToViewport (100);
+        MenuWidgetInstance->AddToViewport (100);
     }
-    InventoryWidgetInstance->SetVisibility (ESlateVisibility::Visible);
-    InventoryWidgetInstance->RefreshInventory ();
+    MenuWidgetInstance->SetVisibility (ESlateVisibility::Visible);
+    MenuWidgetInstance->RefreshInventory ();
     bInventoryWidgetVisible = true;
 
     PlayerController->bEnableClickEvents = true;
@@ -934,7 +935,7 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
     PlayerController->DefaultMouseCursor = EMouseCursor::None;
     PlayerController->CurrentMouseCursor = EMouseCursor::None;
     FInputModeGameAndUI InputMode;
-    InputMode.SetWidgetToFocus (InventoryWidgetInstance->TakeWidget ());
+    InputMode.SetWidgetToFocus (MenuWidgetInstance->TakeWidget ());
     InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
     InputMode.SetHideCursorDuringCapture (false);
     PlayerController->SetInputMode (InputMode);
@@ -947,14 +948,14 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
         GrimrockPlayerController->SetInventoryUiOpen (true);
     }
 
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Shown Pawn=%s"), *GetName ());
+    UE_LOG (LogTemp, Log, TEXT ("GrimrockMenu UI Shown Pawn=%s"), *GetName ());
 }
 
 void AGrimrockPartyPawn::HideInventoryWidget ()
 {
-    if (InventoryWidgetInstance)
+    if (MenuWidgetInstance)
     {
-        InventoryWidgetInstance->SetVisibility (ESlateVisibility::Collapsed);
+        MenuWidgetInstance->SetVisibility (ESlateVisibility::Collapsed);
     }
     bInventoryWidgetVisible = false;
 
@@ -971,12 +972,12 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
         PlayerController->CurrentMouseCursor = EMouseCursor::None;
     }
 
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Hidden Pawn=%s"), *GetName ());
+    UE_LOG (LogTemp, Log, TEXT ("GrimrockMenu UI Hidden Pawn=%s"), *GetName ());
 }
 
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
 {
-    return InventoryWidgetInstance.Get ();
+    return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget () : nullptr;
 }
 
 bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (

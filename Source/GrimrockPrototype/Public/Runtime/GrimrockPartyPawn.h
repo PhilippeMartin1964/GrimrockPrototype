@@ -17,6 +17,7 @@ class AGridItemActor;
 class AGridReceptacleActor;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
+class UGrimrockMenuWidget;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
@@ -102,10 +103,10 @@ public:
     bool bEnableLegacyKeyboardUseAction = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory|UI")
-    TSubclassOf<UGridInventoryWidget> InventoryWidgetClass;
+    TSubclassOf<UGrimrockMenuWidget> MenuWidgetClass;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
-    TObjectPtr<UGridInventoryWidget> InventoryWidgetInstance;
+    TObjectPtr<UGrimrockMenuWidget> MenuWidgetInstance;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
     bool bInventoryWidgetVisible = false;
