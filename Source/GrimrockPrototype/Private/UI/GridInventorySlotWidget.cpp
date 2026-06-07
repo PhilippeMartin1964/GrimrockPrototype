@@ -146,7 +146,7 @@ FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText () const
         return NSLOCTEXT (
             "GridInventoryTooltip",
             "EquipmentSlotsBothHands",
-            "Main directrice / main secondaire");
+            "Main directrice, Main secondaire");
     }
 
     if (bSupportsMainHand)

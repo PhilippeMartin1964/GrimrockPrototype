@@ -19,7 +19,7 @@ public:
     FGridPartyInventoryState PartyInventoryState;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory")
-    int32 DefaultInventorySlotCountPerCharacter = 24;
+    int32 DefaultInventorySlotCountPerCharacter = 40;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Party")
     int32 DefaultMaxActiveCharacters = 6;
