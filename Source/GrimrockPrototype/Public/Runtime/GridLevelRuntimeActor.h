@@ -39,6 +39,9 @@ struct FGridSpawnedItemRuntimeEntry
     FIntPoint Cell = FIntPoint::ZeroValue;
 
     UPROPERTY (Transient)
+    EGridEdge Edge = EGridEdge::None;
+
+    UPROPERTY (Transient)
     TObjectPtr<AGridItemActor> ItemActor;
 
     UPROPERTY (Transient)
@@ -234,6 +237,8 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryPickupItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn);
+
+    bool CanPartyPickupItemEntry (const FGridSpawnedItemRuntimeEntry& Entry, const AGrimrockPartyPawn* PartyPawn) const;
 
     // Allows runtime objects such as Receptacles to trigger their outgoing links.
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")

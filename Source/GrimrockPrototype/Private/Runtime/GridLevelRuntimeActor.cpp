@@ -741,14 +741,22 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
             if (ItemActor)
             {
+                const FGridLevelObjectData* ItemObjectData = FindLevelObjectDataById (LevelAsset, Pair.Key);
+                const FIntPoint RuntimeCell = ItemObjectData
+                    ? FIntPoint (ItemObjectData->CellX, ItemObjectData->CellY)
+                    : FIntPoint (ItemActor->RuntimeCellX, ItemActor->RuntimeCellY);
+                const EGridEdge RuntimeEdge = ItemObjectData ? ItemObjectData->Edge : EGridEdge::None;
+
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
                 ItemActor->SetRuntimeObjectId (Pair.Key);
+                ItemActor->SetRuntimeCell (RuntimeCell.X, RuntimeCell.Y);
                 ItemActor->ConfigureAsWorldPickup ();
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
                 SpawnedItemActors.Add (ItemActor);
 
                 FGridSpawnedItemRuntimeEntry Entry;
-                Entry.Cell = FIntPoint (ItemActor->RuntimeCellX, ItemActor->RuntimeCellY);
+                Entry.Cell = RuntimeCell;
+                Entry.Edge = RuntimeEdge;
                 Entry.ItemActor = ItemActor;
                 Entry.ObjectId = Pair.Key;
                 Entry.ItemArchetypeId = !ItemState.ArchetypeId.IsNone () ? ItemState.ArchetypeId : RuntimeItemDefinitionId;
@@ -2115,6 +2123,77 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
     SpawnedRuntimeObjectActors.Empty ();
 }
 
+bool AGridLevelRuntimeActor::CanPartyPickupItemEntry (
+    const FGridSpawnedItemRuntimeEntry& Entry,
+    const AGrimrockPartyPawn* PartyPawn) const
+{
+    if (!PartyPawn)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("Grid item pickup rejected: missing party pawn."));
+        return false;
+    }
+
+    if (PartyPawn->LevelRuntimeActor != this)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid item pickup rejected: party runtime actor does not match item runtime actor. ItemCell=(%d,%d)."),
+            Entry.Cell.X,
+            Entry.Cell.Y);
+        return false;
+    }
+
+    const FIntPoint PartyCell (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+    if (Entry.Cell == PartyCell)
+    {
+        return true;
+    }
+
+    if (PartyPawn->Facing == EGridEdge::None)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid item pickup rejected: party facing is None. PartyCell=(%d,%d) ItemCell=(%d,%d) ItemEdge=%s."),
+            PartyCell.X,
+            PartyCell.Y,
+            Entry.Cell.X,
+            Entry.Cell.Y,
+            *GetRuntimeEdgeText (Entry.Edge));
+        return false;
+    }
+
+    int32 FrontCellX = PartyCell.X;
+    int32 FrontCellY = PartyCell.Y;
+    if (!TryGetNeighborCell (PartyCell.X, PartyCell.Y, PartyPawn->Facing, FrontCellX, FrontCellY) ||
+        Entry.Cell != FIntPoint (FrontCellX, FrontCellY))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid item pickup rejected: item is not in the party cell or the cell directly ahead. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s."),
+            PartyCell.X,
+            PartyCell.Y,
+            *GetRuntimeEdgeText (PartyPawn->Facing),
+            Entry.Cell.X,
+            Entry.Cell.Y,
+            *GetRuntimeEdgeText (Entry.Edge));
+        return false;
+    }
+
+    const EGridEdge RequiredItemEdge = GridDirectionUtils::GetBackward (PartyPawn->Facing);
+    if (Entry.Edge != RequiredItemEdge)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid item pickup rejected: item in front cell is not on the edge facing the party. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s RequiredEdge=%s."),
+            PartyCell.X,
+            PartyCell.Y,
+            *GetRuntimeEdgeText (PartyPawn->Facing),
+            Entry.Cell.X,
+            Entry.Cell.Y,
+            *GetRuntimeEdgeText (Entry.Edge),
+            *GetRuntimeEdgeText (RequiredItemEdge));
+        return false;
+    }
+
+    return true;
+}
+
 bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
 {
     if (!PartyPawn)
@@ -2140,6 +2219,11 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
                 return !IsValid (SpawnedItemActor.Get ());
             });
             return false;
+        }
+
+        if (!CanPartyPickupItemEntry (Entry, PartyPawn))
+        {
+            continue;
         }
 
         const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
@@ -2201,6 +2285,11 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
         if (Entry.ItemActor.Get () != ItemActor)
         {
             continue;
+        }
+
+        if (!CanPartyPickupItemEntry (Entry, PartyPawn))
+        {
+            return false;
         }
 
         const FName ItemDefinitionId = ResolvePickupItemDefinitionId (ItemActor, Entry.ItemDefinitionId.IsNone () ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
@@ -2347,6 +2436,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
 
     FGridSpawnedItemRuntimeEntry Entry;
     Entry.Cell = FIntPoint (ObjectData.CellX, ObjectData.CellY);
+    Entry.Edge = ObjectData.Edge;
     Entry.ItemActor = ItemActor;
     Entry.ObjectId = ObjectData.ObjectId;
     Entry.ItemArchetypeId = ObjectData.ArchetypeId;
