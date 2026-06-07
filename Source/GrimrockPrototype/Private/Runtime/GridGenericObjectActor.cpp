@@ -123,6 +123,14 @@ bool AGridGenericObjectActor::CanInteract_Implementation (APawn* InstigatorPawn,
         return false;
     }
 
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
+    if (Edge != EGridEdge::None &&
+        (!PartyPawn || !RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn)))
+    {
+        return false;
+    }
+
     return true;
 }
 
@@ -140,7 +148,8 @@ void AGridGenericObjectActor::Interact_Implementation (APawn* InstigatorPawn, UP
     }
 
     AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    if (RuntimeActor)
+    if (RuntimeActor &&
+        (Edge == EGridEdge::None || RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn)))
     {
         RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
     }

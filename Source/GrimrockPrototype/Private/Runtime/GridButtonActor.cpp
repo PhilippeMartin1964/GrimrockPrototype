@@ -142,7 +142,12 @@ bool AGridButtonActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimi
         return false;
     }
 
-    return AnimState == EButtonAnimState::Idle;
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
+    return AnimState == EButtonAnimState::Idle &&
+        PartyPawn &&
+        RuntimeActor &&
+        RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn);
 }
 
 void AGridButtonActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)

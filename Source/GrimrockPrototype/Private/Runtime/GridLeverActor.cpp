@@ -112,7 +112,12 @@ bool AGridLeverActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimit
         return false;
     }
 
-    return !bIsAnimating;
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
+    return !bIsAnimating &&
+        PartyPawn &&
+        RuntimeActor &&
+        RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn);
 }
 
 void AGridLeverActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)

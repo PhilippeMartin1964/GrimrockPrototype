@@ -468,6 +468,12 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
         return false;
     }
 
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (PartyPawn, this);
+    if (!RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn))
+    {
+        return false;
+    }
+
     const FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
 
     if (Item.ItemDefinitionId.IsNone ())
@@ -524,6 +530,12 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
 bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 {
     if (!PartyPawn)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (PartyPawn, this);
+    if (!RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn))
     {
         return false;
     }
@@ -663,16 +675,20 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     {
         return false;
     }
+
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
+    if (!PartyPawn || !RuntimeActor ||
+        !RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn))
+    {
+        return false;
+    }
+
     if (IsContainedItemHitComponent (HitComponent))
     {
         return HasItem () && bCanRemoveItem;
     }
     if (HitComponent != MeshComponent)
-    {
-        return false;
-    }
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    if (!PartyPawn)
     {
         return false;
     }

@@ -5,6 +5,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
 #include "InputCoreTypes.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
@@ -99,6 +100,20 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         if (!IsHitWithinInteractionDistance (ReceptacleHitResult))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=TargetOutOfRange Target=%s"),
+                *GetNameSafe (ReceptacleActor));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
+        if (!ReceptacleActor || !RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (
+            ReceptacleActor->CellX,
+            ReceptacleActor->CellY,
+            ReceptacleActor->Edge,
+            PartyPawn))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory WorldDrop Failed Reason=EdgeNotFacingParty Target=%s"),
                 *GetNameSafe (ReceptacleActor));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
@@ -200,6 +215,12 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
         const bool bCanPlace = bHasReceptacle &&
             IsHitWithinInteractionDistance (ReceptacleHitResult) &&
             ReceptacleActor &&
+            PartyPawn->LevelRuntimeActor &&
+            PartyPawn->LevelRuntimeActor->CanPartyInteractWithEdgeObject (
+                ReceptacleActor->CellX,
+                ReceptacleActor->CellY,
+                ReceptacleActor->Edge,
+                PartyPawn) &&
             ReceptacleActor->CanAcceptItemInstance (CursorItem);
 
         SetGridInteractionCursor (bCanPlace

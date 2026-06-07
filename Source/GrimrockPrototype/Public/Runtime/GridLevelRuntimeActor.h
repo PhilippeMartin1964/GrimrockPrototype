@@ -229,6 +229,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
 
+    bool CanPartyInteractWithEdgeObject (
+        int32 ObjectCellX,
+        int32 ObjectCellY,
+        EGridEdge ObjectEdge,
+        const AGrimrockPartyPawn* PartyPawn) const;
+
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     AGridReceptacleActor* FindReceptacleAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
 

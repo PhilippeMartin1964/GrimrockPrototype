@@ -51,6 +51,18 @@ namespace GridDirectionUtils
         return RotateRight(RotateRight(Facing));
     }
 
+    FORCEINLINE EGridEdge GetOpposite(EGridEdge Direction)
+    {
+        switch (Direction)
+        {
+        case EGridEdge::North: return EGridEdge::South;
+        case EGridEdge::East:  return EGridEdge::West;
+        case EGridEdge::South: return EGridEdge::North;
+        case EGridEdge::West:  return EGridEdge::East;
+        default:               return EGridEdge::None;
+        }
+    }
+
     FORCEINLINE EGridEdge GetLeft(EGridEdge Facing)
     {
         return RotateLeft (Facing);

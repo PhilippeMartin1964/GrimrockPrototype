@@ -1415,7 +1415,7 @@ bool AGridLevelRuntimeActor::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
 
 bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
 {
-    if (!ActivationComponent)
+    if (!ActivationComponent || !CanPartyInteractWithEdgeObject (FromCellX, FromCellY, Edge, PartyPawn))
     {
         return false;
     }
@@ -1433,6 +1433,55 @@ bool AGridLevelRuntimeActor::TryInteractAtEdge (int32 FromCellX, int32 FromCellY
             OppositeX, OppositeY, static_cast<int32> (OppositeEdge));
         return true;
     }
+    return false;
+}
+
+bool AGridLevelRuntimeActor::CanPartyInteractWithEdgeObject (
+    int32 ObjectCellX,
+    int32 ObjectCellY,
+    EGridEdge ObjectEdge,
+    const AGrimrockPartyPawn* PartyPawn) const
+{
+    if (!PartyPawn || PartyPawn->LevelRuntimeActor != this || ObjectEdge == EGridEdge::None ||
+        PartyPawn->Facing == EGridEdge::None)
+    {
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("Grid edge interaction refused Reason=EdgeNotFacingParty PartyCell=(%d,%d) PartyFacing=%s ObjectCell=(%d,%d) ObjectEdge=%s"),
+            PartyPawn ? PartyPawn->CurrentCellX : INDEX_NONE,
+            PartyPawn ? PartyPawn->CurrentCellY : INDEX_NONE,
+            *GetRuntimeEdgeText (PartyPawn ? PartyPawn->Facing : EGridEdge::None),
+            ObjectCellX,
+            ObjectCellY,
+            *GetRuntimeEdgeText (ObjectEdge));
+        return false;
+    }
+
+    const FIntPoint PartyCell (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+    if (FIntPoint (ObjectCellX, ObjectCellY) == PartyCell && ObjectEdge == PartyPawn->Facing)
+    {
+        return true;
+    }
+
+    int32 FrontCellX = PartyCell.X;
+    int32 FrontCellY = PartyCell.Y;
+    const bool bIsFrontOppositeEdge =
+        TryGetNeighborCell (PartyCell.X, PartyCell.Y, PartyPawn->Facing, FrontCellX, FrontCellY) &&
+        ObjectCellX == FrontCellX &&
+        ObjectCellY == FrontCellY &&
+        ObjectEdge == GridDirectionUtils::GetOpposite (PartyPawn->Facing);
+    if (bIsFrontOppositeEdge)
+    {
+        return true;
+    }
+
+    UE_LOG (LogTemp, Verbose,
+        TEXT ("Grid edge interaction refused Reason=EdgeNotFacingParty PartyCell=(%d,%d) PartyFacing=%s ObjectCell=(%d,%d) ObjectEdge=%s"),
+        PartyCell.X,
+        PartyCell.Y,
+        *GetRuntimeEdgeText (PartyPawn->Facing),
+        ObjectCellX,
+        ObjectCellY,
+        *GetRuntimeEdgeText (ObjectEdge));
     return false;
 }
 
@@ -2176,7 +2225,7 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry (
         return false;
     }
 
-    const EGridEdge RequiredItemEdge = GridDirectionUtils::GetBackward (PartyPawn->Facing);
+    const EGridEdge RequiredItemEdge = GridDirectionUtils::GetOpposite (PartyPawn->Facing);
     if (Entry.Edge != RequiredItemEdge)
     {
         UE_LOG (LogTemp, Warning,

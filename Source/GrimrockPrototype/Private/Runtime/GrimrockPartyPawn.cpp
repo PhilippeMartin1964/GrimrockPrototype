@@ -1171,6 +1171,19 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle (AGridReceptacleActor* R
         return false;
     }
 
+    if (!LevelRuntimeActor || !LevelRuntimeActor->CanPartyInteractWithEdgeObject (
+        ReceptacleActor->CellX,
+        ReceptacleActor->CellY,
+        ReceptacleActor->Edge,
+        this))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory Cursor Place ToReceptacle Failed Item=%s Receptacle=%s Reason=EdgeNotFacingParty"),
+            *PartyInventoryComponent->GetCursorItem ().ItemDefinitionId.ToString (),
+            *ReceptacleActor->GetName ());
+        return false;
+    }
+
     const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
     FGridItemInstance AcceptedItem;
     if (!ReceptacleActor->TryInsertItemInstanceFromCursor (CursorItem, AcceptedItem))
