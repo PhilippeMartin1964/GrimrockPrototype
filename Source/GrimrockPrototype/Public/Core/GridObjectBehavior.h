@@ -174,6 +174,13 @@ struct FGridPressurePlateAnimationParams
     float MoveDuration = 0.08f;
 };
 
+UENUM (BlueprintType)
+enum class EGridDoorChainSide : uint8
+{
+    Left,
+    Right
+};
+
 USTRUCT (BlueprintType)
 struct FGridDoorAnimationParams
 {
@@ -184,6 +191,27 @@ struct FGridDoorAnimationParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door")
     float MoveDuration = 2.5f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain")
+    bool bHasChainMechanism = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain", meta = (EditCondition = "bHasChainMechanism"))
+    EGridDoorChainSide ChainSide = EGridDoorChainSide::Left;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain", meta = (EditCondition = "bHasChainMechanism"))
+    FVector ChainLeftRelativeLocation = FVector (0.f, -80.f, 80.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain", meta = (EditCondition = "bHasChainMechanism"))
+    FVector ChainRightRelativeLocation = FVector (0.f, 80.f, 80.f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain", meta = (EditCondition = "bHasChainMechanism"))
+    FRotator ChainRelativeRotation = FRotator::ZeroRotator;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain", meta = (EditCondition = "bHasChainMechanism", ClampMin = "0.0"))
+    float ChainPullDistance = 20.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door|Chain", meta = (EditCondition = "bHasChainMechanism", ClampMin = "0.01"))
+    float ChainPullDuration = 0.25f;
 };
 
 USTRUCT (BlueprintType)

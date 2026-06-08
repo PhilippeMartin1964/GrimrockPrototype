@@ -276,6 +276,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Held Item")
     void SyncHeldVisualFromSelectedCharacterEquipment ();
 
+    UFUNCTION (BlueprintCallable, Category = "Grid|Interaction")
+    bool TryPullChainFromCameraTrace ();
+
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void SnapToCurrentCell ();
@@ -291,6 +294,7 @@ protected:
     void HandleStrafeLeft (const FInputActionValue& Value);
     void HandleStrafeRight (const FInputActionValue& Value);
     void HandleUse (const FInputActionValue& Value);
+    void HandleLeftMousePressed ();
 
     bool TryUseFrontInteraction ();
     bool TryStartMove (EGridEdge MoveDirection);

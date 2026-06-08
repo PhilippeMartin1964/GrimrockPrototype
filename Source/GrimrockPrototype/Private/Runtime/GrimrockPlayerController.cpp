@@ -85,6 +85,11 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
     }
 
     AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
+    if (PartyPawn && PartyPawn->TryPullChainFromCameraTrace ())
+    {
+        return;
+    }
+
     FGridItemInstance CursorItem;
     if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
     {
