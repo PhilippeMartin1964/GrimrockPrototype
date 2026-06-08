@@ -812,6 +812,103 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildDoorDetailsSection (co
         })
     ];
 
+    auto BuildChainSideButton = [Obj, ApplyBehavior] (
+        const TCHAR* Label,
+        EGridDoorChainSide ChainSide) -> TSharedRef<SWidget>
+    {
+        const bool bSelected = Obj.Behavior.DoorAnimation.ChainSide == ChainSide;
+        return SNew (SButton)
+            .Text (FText::FromString (Label))
+            .IsEnabled (Obj.Behavior.DoorAnimation.bHasChainMechanism)
+            .ButtonColorAndOpacity (bSelected
+                ? FLinearColor (0.32f, 0.46f, 0.72f, 1.f)
+                : FLinearColor::White)
+            .OnClicked_Lambda ([Obj, ApplyBehavior, ChainSide] ()
+            {
+                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                NewBehavior.DoorAnimation.ChainSide = ChainSide;
+                ApplyBehavior (NewBehavior);
+                return FReply::Handled ();
+            });
+    };
+
+    TSharedRef<SVerticalBox> ChainRoot = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SCheckBox)
+                .IsChecked (Obj.Behavior.DoorAnimation.bHasChainMechanism
+                    ? ECheckBoxState::Checked
+                    : ECheckBoxState::Unchecked)
+                .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    NewBehavior.DoorAnimation.bHasChainMechanism = NewState == ECheckBoxState::Checked;
+                    ApplyBehavior (NewBehavior);
+                })
+                [
+                    SNew (STextBlock).Text (FText::FromString (TEXT ("Has Chain Mechanism")))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Chain Side")),
+                SNew (SHorizontalBox)
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 2.f, 0.f)
+                    [
+                        BuildChainSideButton (TEXT ("Left"), EGridDoorChainSide::Left)
+                    ]
+                    + SHorizontalBox::Slot ().AutoWidth ().Padding (2.f, 0.f, 0.f, 0.f)
+                    [
+                        BuildChainSideButton (TEXT ("Right"), EGridDoorChainSide::Right)
+                    ])
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Chain Pull Distance")),
+                SNew (SSpinBox<float>)
+                    .Value (Obj.Behavior.DoorAnimation.ChainPullDistance)
+                    .MinValue (0.f)
+                    .MinSliderValue (0.f)
+                    .MinDesiredWidth (90.f)
+                    .IsEnabled (Obj.Behavior.DoorAnimation.bHasChainMechanism)
+                    .OnValueCommitted_Lambda ([Obj, ApplyBehavior] (float NewValue, ETextCommit::Type CommitType)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.DoorAnimation.ChainPullDistance = NewValue;
+                        ApplyBehavior (NewBehavior);
+                    }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Chain Pull Duration")),
+                SNew (SSpinBox<float>)
+                    .Value (Obj.Behavior.DoorAnimation.ChainPullDuration)
+                    .MinValue (0.01f)
+                    .MinSliderValue (0.01f)
+                    .MinDesiredWidth (90.f)
+                    .IsEnabled (Obj.Behavior.DoorAnimation.bHasChainMechanism)
+                    .OnValueCommitted_Lambda ([Obj, ApplyBehavior] (float NewValue, ETextCommit::Type CommitType)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.DoorAnimation.ChainPullDuration = NewValue;
+                        ApplyBehavior (NewBehavior);
+                    }))
+        ];
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 3.f)
+    [
+        GridEditorWidgetHelpers::BuildGridPanelSection (
+            FText::FromString (TEXT ("Door Chain")),
+            ChainRoot)
+    ];
+
     Root->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
     [
         SNew (STextBlock)
