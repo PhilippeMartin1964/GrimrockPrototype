@@ -212,15 +212,15 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
         ChainMovingMeshComponent->SetMaterial (0, ChainMaterial);
     }
 
-    ChainRootComponent->SetRelativeLocation (
-        ChainParams.ChainSide == EGridDoorChainSide::Left
-            ? ChainParams.ChainLeftRelativeLocation
-            : ChainParams.ChainRightRelativeLocation);
-    ChainRootComponent->SetRelativeRotation (ChainParams.ChainRelativeRotation);
-
     ChainRestRelativeLocation = FVector::ZeroVector;
     ChainPulledRelativeLocation = FVector (0.f, 0.f, -FMath::Max (0.f, ChainParams.ChainPullDistance));
+
+    ChainRootComponent->SetRelativeLocation (FVector::ZeroVector);
+    ChainRootComponent->SetRelativeRotation (FRotator::ZeroRotator);
+    ChainSupportMeshComponent->SetRelativeLocation (FVector::ZeroVector);
+    ChainSupportMeshComponent->SetRelativeRotation (FRotator::ZeroRotator);
     ChainMovingMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
+    ChainMovingMeshComponent->SetRelativeRotation (FRotator::ZeroRotator);
 
     ChainSupportMeshComponent->SetVisibility (bShowChain, true);
     ChainMovingMeshComponent->SetVisibility (bShowChain, true);
