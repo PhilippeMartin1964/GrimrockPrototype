@@ -14,24 +14,22 @@ AGrimrockPlayerController::AGrimrockPlayerController ()
 {
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
-    CurrentMouseCursor = EMouseCursor::None;
-    DefaultMouseCursor = EMouseCursor::None;
-    bShowMouseCursor = false;
+    CurrentMouseCursor = EMouseCursor::Default;
+    DefaultMouseCursor = EMouseCursor::Default;
+    bShowMouseCursor = true;
 }
 
 void AGrimrockPlayerController::BeginPlay ()
 {
     Super::BeginPlay ();
-    bShowMouseCursor = false;
+    bShowMouseCursor = true;
     bEnableClickEvents = true;
     bEnableMouseOverEvents = true;
-    bShowMouseCursor = false;
-    DefaultMouseCursor = EMouseCursor::None;
-    CurrentMouseCursor = EMouseCursor::None;
+    DefaultMouseCursor = EMouseCursor::Default;
+    CurrentMouseCursor = EMouseCursor::Default;
     FInputModeGameAndUI InputMode;
     InputMode.SetHideCursorDuringCapture (false);
     SetInputMode (InputMode);
-    InitializeCustomCursor ();
 }
 
 void AGrimrockPlayerController::PlayerTick (float DeltaTime)
@@ -39,6 +37,10 @@ void AGrimrockPlayerController::PlayerTick (float DeltaTime)
     Super::PlayerTick (DeltaTime);
 
     UpdateHoveredInteractable ();
+    if (AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ()))
+    {
+        PartyPawn->UpdateMouseInteractionCursor ();
+    }
 }
 
 void AGrimrockPlayerController::SetupInputComponent ()
@@ -56,13 +58,12 @@ void AGrimrockPlayerController::SetupInputComponent ()
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 {
     bInventoryUiOpen = bOpen;
-    DefaultMouseCursor = EMouseCursor::None;
-    CurrentMouseCursor = EMouseCursor::None;
-    bShowMouseCursor = false;
+    DefaultMouseCursor = EMouseCursor::Default;
+    CurrentMouseCursor = EMouseCursor::Default;
+    bShowMouseCursor = true;
     if (CustomCursorWidget)
     {
-        CustomCursorWidget->SetIsEnabled (true);
-        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
+        CustomCursorWidget->SetVisibility (ESlateVisibility::Collapsed);
     }
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI State Open=%s"), bInventoryUiOpen ? TEXT ("true") : TEXT ("false"));
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI CustomCursor Widget=%s Visibility=%s Enabled=%s"),
@@ -298,34 +299,13 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
 void AGrimrockPlayerController::SetGridInteractionCursor (EGridInteractionCursor NewCursor)
 {
     CurrentGridInteractionCursor = NewCursor;
-    DefaultMouseCursor = EMouseCursor::None;
-    CurrentMouseCursor = EMouseCursor::None;
-    bShowMouseCursor = false;
+    DefaultMouseCursor = EMouseCursor::Default;
+    CurrentMouseCursor = EMouseCursor::Default;
+    bShowMouseCursor = true;
     if (CustomCursorWidget)
     {
-        CustomCursorWidget->SetIsEnabled (true);
-        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
+        CustomCursorWidget->SetVisibility (ESlateVisibility::Collapsed);
     }
-    else
-    {
-        return;
-    }
-
-    static const FName SetCursorStateFunctionName = TEXT ("SetCursorState");
-    UFunction* SetCursorStateFunction = CustomCursorWidget->FindFunction (SetCursorStateFunctionName);
-    if (!SetCursorStateFunction)
-    {
-        return;
-    }
-
-    struct FSetCursorStateParams
-    {
-        EGridInteractionCursor Cursor;
-    };
-
-    FSetCursorStateParams Params;
-    Params.Cursor = NewCursor;
-    CustomCursorWidget->ProcessEvent (SetCursorStateFunction, &Params);
 }
 
 bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const

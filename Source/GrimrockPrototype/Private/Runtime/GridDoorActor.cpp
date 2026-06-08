@@ -25,7 +25,7 @@ AGridDoorActor::AGridDoorActor ()
 
     ChainInteractionBox = CreateDefaultSubobject<UBoxComponent> (TEXT ("ChainInteractionBox"));
     ChainInteractionBox->SetupAttachment (ChainMovingMeshComponent);
-    ChainInteractionBox->SetBoxExtent (FVector (20.f, 20.f, 60.f));
+    ChainInteractionBox->SetBoxExtent (FVector (35.f, 35.f, 90.f));
     ChainInteractionBox->SetCollisionEnabled (ECollisionEnabled::NoCollision);
     ChainInteractionBox->SetCollisionResponseToAllChannels (ECR_Ignore);
     ChainInteractionBox->SetGenerateOverlapEvents (false);
@@ -174,7 +174,8 @@ void AGridDoorActor::CloseDoor ()
 void AGridDoorActor::PullChain ()
 {
     if (!ChainSupportMeshComponent || !ChainMovingMeshComponent || !ChainInteractionBox ||
-        !ChainSupportMeshComponent->IsVisible () || !ChainMovingMeshComponent->IsVisible () || bIsChainAnimating)
+        !ChainSupportMeshComponent->IsVisible () || !ChainMovingMeshComponent->IsVisible () ||
+        bIsAnimating || bIsChainAnimating)
     {
         return;
     }
@@ -253,7 +254,7 @@ void AGridDoorActor::UpdateChainAnimation (float DeltaSeconds)
         ChainAnimationElapsed = 0.f;
         bIsChainAnimating = false;
         ChainInteractionBox->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
-        OpenDoor ();
+        SetDoorOpenState (!bIsOpen);
         RefreshTickEnabled ();
     }
 }

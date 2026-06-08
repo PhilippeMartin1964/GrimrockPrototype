@@ -279,6 +279,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Grid|Interaction")
     bool TryPullChainFromCameraTrace ();
 
+    UFUNCTION (BlueprintCallable, Category = "Grid|Interaction")
+    void UpdateMouseInteractionCursor ();
+
 public:
     UFUNCTION (BlueprintCallable, Category = "Grid")
     void SnapToCurrentCell ();

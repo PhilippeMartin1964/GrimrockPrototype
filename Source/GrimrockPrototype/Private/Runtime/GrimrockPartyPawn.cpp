@@ -194,6 +194,7 @@ void AGrimrockPartyPawn::Tick (float DeltaSeconds)
 
     UpdateHeadBob (DeltaSeconds);
 	UpdateFreeLook (DeltaSeconds);
+    UpdateMouseInteractionCursor ();
 
     if (BufferedCommandType != EBufferedCommandType::None)
     {
@@ -407,33 +408,48 @@ void AGrimrockPartyPawn::HandleLeftMousePressed ()
 
 bool AGrimrockPartyPawn::TryPullChainFromCameraTrace ()
 {
-    if (!Camera || !GetWorld ())
+    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
+    if (!PlayerController)
     {
         return false;
     }
 
-    const FVector Start = Camera->GetComponentLocation ();
-    const FVector End = Start + Camera->GetForwardVector () * 300.f;
-    FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridDoorChainTrace), true);
-    QueryParams.AddIgnoredActor (this);
-
-    TArray<FHitResult> Hits;
-    if (!GetWorld ()->LineTraceMultiByChannel (Hits, Start, End, ECC_Visibility, QueryParams))
+    FHitResult Hit;
+    if (!PlayerController->GetHitResultUnderCursor (ECC_Visibility, true, Hit))
     {
         return false;
     }
 
-    for (const FHitResult& Hit : Hits)
+    AGridDoorActor* DoorActor = Cast<AGridDoorActor> (Hit.GetActor ());
+    if (DoorActor && Hit.GetComponent () == DoorActor->GetChainInteractionComponent ())
     {
-        AGridDoorActor* DoorActor = Cast<AGridDoorActor> (Hit.GetActor ());
-        if (DoorActor && Hit.GetComponent () == DoorActor->GetChainInteractionComponent ())
-        {
-            DoorActor->PullChain ();
-            return true;
-        }
+        DoorActor->PullChain ();
+        return true;
     }
 
     return false;
+}
+
+void AGrimrockPartyPawn::UpdateMouseInteractionCursor ()
+{
+    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
+    if (!PlayerController)
+    {
+        return;
+    }
+
+    FHitResult Hit;
+    AGridDoorActor* DoorActor = nullptr;
+    if (PlayerController->GetHitResultUnderCursor (ECC_Visibility, true, Hit))
+    {
+        DoorActor = Cast<AGridDoorActor> (Hit.GetActor ());
+    }
+
+    const bool bHoveringChain =
+        DoorActor &&
+        Hit.GetComponent () == DoorActor->GetChainInteractionComponent ();
+    PlayerController->CurrentMouseCursor =
+        bHoveringChain ? EMouseCursor::Hand : EMouseCursor::Default;
 }
 
 bool AGrimrockPartyPawn::TryUseFrontInteraction ()
@@ -970,17 +986,17 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
 
     PlayerController->bEnableClickEvents = true;
     PlayerController->bEnableMouseOverEvents = true;
-    PlayerController->bShowMouseCursor = false;
-    PlayerController->DefaultMouseCursor = EMouseCursor::None;
-    PlayerController->CurrentMouseCursor = EMouseCursor::None;
+    PlayerController->bShowMouseCursor = true;
+    PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+    PlayerController->CurrentMouseCursor = EMouseCursor::Default;
     FInputModeGameAndUI InputMode;
     InputMode.SetWidgetToFocus (MenuWidgetInstance->TakeWidget ());
     InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
     InputMode.SetHideCursorDuringCapture (false);
     PlayerController->SetInputMode (InputMode);
-    PlayerController->bShowMouseCursor = false;
-    PlayerController->DefaultMouseCursor = EMouseCursor::None;
-    PlayerController->CurrentMouseCursor = EMouseCursor::None;
+    PlayerController->bShowMouseCursor = true;
+    PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+    PlayerController->CurrentMouseCursor = EMouseCursor::Default;
 
     if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
     {
@@ -1004,11 +1020,12 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
         {
             GrimrockPlayerController->SetInventoryUiOpen (false);
         }
-        FInputModeGameOnly InputMode;
+        FInputModeGameAndUI InputMode;
+        InputMode.SetHideCursorDuringCapture (false);
         PlayerController->SetInputMode (InputMode);
-        PlayerController->bShowMouseCursor = false;
-        PlayerController->DefaultMouseCursor = EMouseCursor::None;
-        PlayerController->CurrentMouseCursor = EMouseCursor::None;
+        PlayerController->bShowMouseCursor = true;
+        PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+        PlayerController->CurrentMouseCursor = EMouseCursor::Default;
     }
 
     UE_LOG (LogTemp, Log, TEXT ("GrimrockMenu UI Hidden Pawn=%s"), *GetName ());
