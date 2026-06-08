@@ -38,13 +38,19 @@ public:
     TObjectPtr<USceneComponent> ChainRootComponent;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Door|Chain")
-    TObjectPtr<UStaticMeshComponent> ChainMeshComponent;
+    TObjectPtr<UStaticMeshComponent> ChainSupportMeshComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Door|Chain")
+    TObjectPtr<UStaticMeshComponent> ChainMovingMeshComponent;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Door|Chain")
     TObjectPtr<UBoxComponent> ChainInteractionBox;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
-    TObjectPtr<UStaticMesh> ChainMesh;
+    TObjectPtr<UStaticMesh> ChainSupportMesh;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
+    TObjectPtr<UStaticMesh> ChainMovingMesh;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Door|Chain")
     TObjectPtr<UMaterialInterface> ChainMaterial;

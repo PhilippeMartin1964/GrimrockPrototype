@@ -13,23 +13,35 @@ AGridDoorActor::AGridDoorActor ()
     ChainRootComponent = CreateDefaultSubobject<USceneComponent> (TEXT ("ChainRoot"));
     ChainRootComponent->SetupAttachment (RootComponent);
 
-    ChainMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("ChainMesh"));
-    ChainMeshComponent->SetupAttachment (ChainRootComponent);
-    ChainMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-    ChainMeshComponent->SetGenerateOverlapEvents (false);
+    ChainSupportMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("ChainSupportMesh"));
+    ChainSupportMeshComponent->SetupAttachment (ChainRootComponent);
+    ChainSupportMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    ChainSupportMeshComponent->SetGenerateOverlapEvents (false);
+
+    ChainMovingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("ChainMovingMesh"));
+    ChainMovingMeshComponent->SetupAttachment (ChainRootComponent);
+    ChainMovingMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+    ChainMovingMeshComponent->SetGenerateOverlapEvents (false);
 
     ChainInteractionBox = CreateDefaultSubobject<UBoxComponent> (TEXT ("ChainInteractionBox"));
-    ChainInteractionBox->SetupAttachment (ChainRootComponent);
+    ChainInteractionBox->SetupAttachment (ChainMovingMeshComponent);
     ChainInteractionBox->SetBoxExtent (FVector (20.f, 20.f, 60.f));
     ChainInteractionBox->SetCollisionEnabled (ECollisionEnabled::NoCollision);
     ChainInteractionBox->SetCollisionResponseToAllChannels (ECR_Ignore);
     ChainInteractionBox->SetGenerateOverlapEvents (false);
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultChainMesh (
-        TEXT ("/Game/GrimrockPrototype/Meshes/Door/SM_Door_Chain_01.SM_Door_Chain_01"));
-    if (DefaultChainMesh.Succeeded ())
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultChainSupportMesh (
+        TEXT ("/Game/GrimrockPrototype/Meshes/Door/SM_Door_Chain_Support_01.SM_Door_Chain_Support_01"));
+    if (DefaultChainSupportMesh.Succeeded ())
     {
-        ChainMesh = DefaultChainMesh.Object;
+        ChainSupportMesh = DefaultChainSupportMesh.Object;
+    }
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> DefaultChainMovingMesh (
+        TEXT ("/Game/GrimrockPrototype/Meshes/Door/SM_Door_Chain_Moving_01.SM_Door_Chain_Moving_01"));
+    if (DefaultChainMovingMesh.Succeeded ())
+    {
+        ChainMovingMesh = DefaultChainMovingMesh.Object;
     }
 }
 
@@ -161,7 +173,8 @@ void AGridDoorActor::CloseDoor ()
 
 void AGridDoorActor::PullChain ()
 {
-    if (!ChainMeshComponent || !ChainInteractionBox || !ChainMeshComponent->IsVisible () || bIsChainAnimating)
+    if (!ChainSupportMeshComponent || !ChainMovingMeshComponent || !ChainInteractionBox ||
+        !ChainSupportMeshComponent->IsVisible () || !ChainMovingMeshComponent->IsVisible () || bIsChainAnimating)
     {
         return;
     }
@@ -179,7 +192,7 @@ UBoxComponent* AGridDoorActor::GetChainInteractionComponent () const
 
 void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& ChainParams)
 {
-    if (!ChainRootComponent || !ChainMeshComponent || !ChainInteractionBox)
+    if (!ChainRootComponent || !ChainSupportMeshComponent || !ChainMovingMeshComponent || !ChainInteractionBox)
     {
         return;
     }
@@ -187,11 +200,16 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
     bIsChainAnimating = false;
     ChainAnimationElapsed = 0.f;
 
-    const bool bShowChain = ChainParams.bHasChainMechanism && ChainMesh != nullptr;
-    ChainMeshComponent->SetStaticMesh (bShowChain ? ChainMesh.Get () : nullptr);
+    const bool bShowChain =
+        ChainParams.bHasChainMechanism &&
+        ChainSupportMesh != nullptr &&
+        ChainMovingMesh != nullptr;
+    ChainSupportMeshComponent->SetStaticMesh (bShowChain ? ChainSupportMesh.Get () : nullptr);
+    ChainMovingMeshComponent->SetStaticMesh (bShowChain ? ChainMovingMesh.Get () : nullptr);
     if (bShowChain && ChainMaterial)
     {
-        ChainMeshComponent->SetMaterial (0, ChainMaterial);
+        ChainSupportMeshComponent->SetMaterial (0, ChainMaterial);
+        ChainMovingMeshComponent->SetMaterial (0, ChainMaterial);
     }
 
     ChainRootComponent->SetRelativeLocation (
@@ -202,9 +220,10 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
 
     ChainRestRelativeLocation = FVector::ZeroVector;
     ChainPulledRelativeLocation = FVector (0.f, 0.f, -FMath::Max (0.f, ChainParams.ChainPullDistance));
-    ChainMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
+    ChainMovingMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
 
-    ChainMeshComponent->SetVisibility (bShowChain, true);
+    ChainSupportMeshComponent->SetVisibility (bShowChain, true);
+    ChainMovingMeshComponent->SetVisibility (bShowChain, true);
     ChainInteractionBox->SetVisibility (bShowChain, true);
     ChainInteractionBox->SetCollisionEnabled (bShowChain ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
     ChainInteractionBox->SetCollisionResponseToAllChannels (ECR_Ignore);
@@ -215,7 +234,7 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
 
 void AGridDoorActor::UpdateChainAnimation (float DeltaSeconds)
 {
-    if (!ChainMeshComponent || !ChainInteractionBox)
+    if (!ChainMovingMeshComponent || !ChainInteractionBox)
     {
         bIsChainAnimating = false;
         RefreshTickEnabled ();
@@ -225,12 +244,12 @@ void AGridDoorActor::UpdateChainAnimation (float DeltaSeconds)
     ChainAnimationElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (ChainAnimationElapsed / CurrentChainPullDuration, 0.f, 1.f);
     const float PullAlpha = Alpha <= 0.5f ? Alpha * 2.f : (1.f - Alpha) * 2.f;
-    ChainMeshComponent->SetRelativeLocation (
+    ChainMovingMeshComponent->SetRelativeLocation (
         FMath::Lerp (ChainRestRelativeLocation, ChainPulledRelativeLocation, PullAlpha));
 
     if (Alpha >= 1.f)
     {
-        ChainMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
+        ChainMovingMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
         ChainAnimationElapsed = 0.f;
         bIsChainAnimating = false;
         ChainInteractionBox->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
