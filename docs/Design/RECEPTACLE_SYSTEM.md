@@ -6,4 +6,6 @@ Ce document définit le concept de **réceptacle** dans GrimrockPrototype.
 
 Le système de réceptacle doit permettre au joueur de placer, retirer, exposer, stocker ou utiliser des objets dans des éléments du niveau tels que des alcôves, supports de torche, coffres, socles, niches, autels ou conteneurs.
 
-L'objectif
+L'objectif est de consolider une architecture claire, robuste et extensible, compatible avec :
+
+- l
