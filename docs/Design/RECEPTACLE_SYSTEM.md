@@ -6,6 +6,8 @@ Ce document constitue la référence de conception du système de réceptacles d
 
 Cette référence doit éviter l'accumulation de corrections ponctuelles contradictoires. Toute évolution concernant les alcôves, supports, coffres, objets équipés, transferts d'inventaire ou mécanismes consommant des items doit respecter les principes décrits ici.
 
+Le document décrit à la fois les invariants à préserver et une architecture cible. Les types, enums et services présentés comme des recommandations ne doivent pas être considérés comme déjà disponibles dans le runtime. Leur introduction éventuelle doit être progressive, compatible avec les données existantes et accompagnée de tests de migration.
+
 ## 2. Définition générale
 
 Un réceptacle est un objet du niveau capable de recevoir, contenir, exposer et éventuellement restituer un ou plusieurs items. Il représente une destination ou une source d'items avec des règles explicites de capacité, de compatibilité, de placement et d'interaction.
@@ -52,7 +54,7 @@ Le réceptacle représente un emplacement de réception dans le monde ou dans un
 
 ## 5. Typologie des réceptacles
 
-### Receptacle de présentation
+### Réceptacle de présentation
 
 Il expose visuellement un nombre limité d'items dans le monde.
 
@@ -66,7 +68,7 @@ Comportement attendu :
 - capacité généralement faible ;
 - absence d'interface d'inventaire complexe.
 
-### Receptacle de stockage
+### Réceptacle de stockage
 
 Il conserve plusieurs items et les organise comme le contenu d'un conteneur.
 
@@ -80,7 +82,7 @@ Comportement attendu :
 - capacité exprimée en emplacements, poids ou volume ;
 - verrouillage et persistance possibles.
 
-### Receptacle de mécanisme
+### Réceptacle de mécanisme
 
 Il reçoit un item pour produire un effet de gameplay.
 
@@ -137,13 +139,15 @@ Les motifs de refus doivent être distinguables dans les logs et, lorsque néces
 Les modes recommandés sont :
 
 - `AttachedSocket` : acteur attaché à un socket ou un point fixe ;
-- `PhysicalAtHit` : acteur placé au point d'impact puis soumis à la physique ;
+- `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface ;
 - `ContainerOnly` : contenu logique ou visible uniquement dans une UI ;
 - `DisplaySlots` : acteur attaché à un emplacement d'affichage déterminé.
 
 Le mode visuel ne doit pas modifier l'identité logique de l'item.
 
 Une alcôve configurée en `PhysicalAtHit` doit placer l'objet dans la niche visée, en utilisant le point d'impact, la normale de surface et un léger offset. Elle ne doit pas déposer l'objet au sol ni le placer au centre arbitraire du réceptacle.
+
+`PhysicalAtHit` n'implique pas obligatoirement une simulation physique. L'acteur peut rester immobile tout en conservant un transform dans le monde, une collision permettant de le reprendre et son identité logique dans le réceptacle. Le mode de collision et l'activation éventuelle de la physique relèvent du type d'item et du comportement recherché.
 
 Un support de torche utilise normalement `AttachedSocket` afin de garantir une position, une orientation et un comportement lumineux stables.
 
@@ -158,6 +162,8 @@ Les transferts possibles comprennent :
 - `WorldItem -> Inventory`.
 
 Le réceptacle valide sa capacité, sa compatibilité et son mode de placement. Il ne devrait pas gérer seul toute la logique de transfert, car la source doit aussi mettre à jour sa propriété, son poids, son équipement, son curseur et son UI.
+
+`Receptacle -> ContainerUI` désigne l'exposition du contenu par une interface dédiée, pas un changement de propriétaire vers l'UI. L'interface ne doit conserver que des références ou des identifiants nécessaires à l'affichage ; le réceptacle ou son inventaire de conteneur reste la source de vérité.
 
 Une instance transférée doit conserver son `RuntimeObjectId`, son `ItemDefinitionId`, sa quantité et ses états persistants lorsque le gameplay l'exige.
 
@@ -201,6 +207,8 @@ Le ramassage retire l'acteur du monde seulement après confirmation que l'invent
 
 Tous les transferts doivent être atomiques : si l'insertion échoue, l'objet reste ou revient à sa source avec son identité et son état intacts.
 
+Une transaction doit donc valider les deux extrémités, capturer suffisamment d'informations pour restaurer la source, effectuer le retrait et l'insertion comme une seule opération logique, puis publier les changements d'UI et les événements uniquement après le succès. Un échec intermédiaire doit déclencher un rollback sans créer de copie, perdre l'instance ni provoquer un dépôt implicite dans le monde.
+
 ## 12. Service de transfert recommandé
 
 Une couche dédiée, par exemple `UGridItemTransferService`, doit progressivement centraliser les transactions.
@@ -216,7 +224,7 @@ Responsabilités :
 - rafraîchir les UI ;
 - émettre les événements.
 
-Signatures indicatives :
+Signatures indicatives, proposées comme direction d'API et non comme contrat déjà implémenté :
 
 ```cpp
 bool TransferInventoryItemToReceptacle(
@@ -280,7 +288,9 @@ Le système peut exposer les événements suivants :
 - `Locked` ;
 - `Unlocked`.
 
-`ItemInserted`, `ItemRemoved` et `ItemChanged` conviennent aux liens génériques existants. Les autres événements permettent des mécanismes plus expressifs et ne doivent être ajoutés au runtime que lorsqu'un cas concret les nécessite.
+`ItemAccepted` et `ItemRejected` décrivent le résultat d'une tentative. `ItemInserted` et `ItemRemoved` décrivent une modification effective du contenu. `ItemChanged` représente une modification d'instance qui ne change pas nécessairement le nombre d'items. `BecameFull` et `BecameEmpty` ne sont émis que lors du franchissement de l'état correspondant.
+
+`ItemInserted`, `ItemRemoved` et `ItemChanged` conviennent aux liens génériques existants. Les autres événements permettent des mécanismes plus expressifs et ne doivent être ajoutés au runtime que lorsqu'un cas concret les nécessite. Les événements de succès ne doivent être publiés qu'après validation complète de la transaction.
 
 ## 15. Sauvegarde et restauration
 
@@ -295,6 +305,8 @@ L'état persistant d'un réceptacle doit pouvoir inclure :
 - état lumineux ;
 - état verrouillé ;
 - état consommé ou retiré.
+
+Dans les structures de sauvegarde existantes, le champ persistant peut être nommé `ObjectId` tout en représentant l'identité runtime de l'item. Quel que soit le nom concret du champ, cette identité doit rester stable pendant les transferts, la sauvegarde et la restauration.
 
 La restauration doit recréer la représentation visuelle adaptée au mode de placement. Elle doit privilégier une classe d'acteur spécifique lorsqu'elle existe, puis utiliser un acteur générique initialisé depuis `WorldMesh`.
 
