@@ -5,6 +5,7 @@
 #include "Runtime/GridInteractionUtils.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -677,7 +678,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     {
         const FGridItemInstance& CursorItem = PartyPawn->PartyInventoryComponent->GetCursorItem ();
         UE_LOG (LogTemp, Log,
-            TEXT ("Receptacle interact cursor item attempt ObjectId=%s Item=%s RuntimeId=%s"),
+            TEXT ("GridReceptacle Interaction Route=\"fallback legacy cursor -> receptacle\" ObjectId=%s Item=%s RuntimeId=%s"),
             *ObjectId.ToString (),
             *CursorItem.ItemDefinitionId.ToString (),
             *CursorItem.RuntimeObjectId.ToString ());
@@ -687,40 +688,59 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     if (GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
         HasItem () && bCanRemoveItem)
     {
-        FName RemovedItemId = NAME_None;
-        return TryTakeFirstItem (PartyPawn, RemovedItemId);
+        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+        const int32 CharacterIndex = Inventory ? Inventory->GetSelectedCharacterIndex () : INDEX_NONE;
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridReceptacle Interaction Route=\"service transfer receptacle -> inventory\" ObjectId=%s ItemIndex=0 Character=%d"),
+            *ObjectId.ToString (),
+            CharacterIndex);
+
+        const FGridItemTransferResult TransferResult =
+            UGridItemTransferService::TransferReceptacleItemToInventory (
+                this,
+                0,
+                Inventory,
+                CharacterIndex);
+        if (!TransferResult.bSuccess)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle Interaction ServiceFailed Route=\"receptacle -> inventory\" ObjectId=%s Result=%s Message=%s"),
+                *ObjectId.ToString (),
+                *UEnum::GetValueAsString (TransferResult.Result),
+                *TransferResult.Message.ToString ());
+        }
+        return TransferResult.bSuccess;
     }
 
     FGridItemInstance HeldItem;
     EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
     if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
     {
-        if (!bCanInsertItem || IsFull () || !CanAcceptItem (HeldItem.ItemDefinitionId))
-        {
-            return false;
-        }
-
         UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
         const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
-        if (!Inventory->TryTakeEquipmentSlotToCursor (CharacterIndex, HeldSlot))
-        {
-            return false;
-        }
-
-        PartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-        if (PartyPawn->TryPlaceCursorItemInReceptacle (this))
-        {
-            return true;
-        }
-
-        const bool bRestored = Inventory->TryEquipCursorItemToCharacterSlot (CharacterIndex, HeldSlot);
-        PartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Receptacle held item insertion failed: ObjectId=%s Item=%s Restored=%s"),
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridReceptacle Interaction Route=\"service transfer equipment -> receptacle\" ObjectId=%s Character=%d Slot=%d Item=%s RuntimeId=%s"),
             *ObjectId.ToString (),
+            CharacterIndex,
+            static_cast<int32> (HeldSlot),
             *HeldItem.ItemDefinitionId.ToString (),
-            bRestored ? TEXT ("true") : TEXT ("false"));
-        return false;
+            *HeldItem.RuntimeObjectId.ToString ());
+
+        const FGridItemTransferResult TransferResult =
+            UGridItemTransferService::TransferEquipmentSlotToReceptacle (
+                Inventory,
+                CharacterIndex,
+                HeldSlot,
+                this);
+        if (!TransferResult.bSuccess)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle Interaction ServiceFailed Route=\"equipment -> receptacle\" ObjectId=%s Result=%s Message=%s"),
+                *ObjectId.ToString (),
+                *UEnum::GetValueAsString (TransferResult.Result),
+                *TransferResult.Message.ToString ());
+        }
+        return TransferResult.bSuccess;
     }
 
     UE_LOG (LogTemp, Verbose,
