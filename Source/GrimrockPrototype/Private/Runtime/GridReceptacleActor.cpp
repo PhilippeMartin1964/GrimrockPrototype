@@ -114,19 +114,19 @@ namespace
         switch (Reason)
         {
         case EGridReceptacleRejectReason::None:
-            return TEXT ("None");
+            return TEXT ("none");
         case EGridReceptacleRejectReason::InvalidItem:
-            return TEXT ("InvalidItem");
+            return TEXT ("invalid item");
         case EGridReceptacleRejectReason::Full:
-            return TEXT ("Full");
+            return TEXT ("receptacle full");
         case EGridReceptacleRejectReason::InsertDisabled:
-            return TEXT ("InsertDisabled");
+            return TEXT ("insert disabled");
         case EGridReceptacleRejectReason::ExplicitlyRejected:
-            return TEXT ("ExplicitlyRejected");
+            return TEXT ("rejected explicitly");
         case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
-            return TEXT ("NoMatchingAcceptanceRule");
+            return TEXT ("rejected because no rule matched");
         default:
-            return TEXT ("Unknown");
+            return TEXT ("unknown");
         }
     }
 }
@@ -214,8 +214,6 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 
     AcceptedItemDefinitionIds.Reset ();
     RejectedItemDefinitionIds.Reset ();
-    AcceptedItemTags.Reset ();
-    AcceptedItemTypes.Reset ();
     InitialContainedItems.Reset ();
     ContainedItems.Reset ();
     RemovedInitialItemDefinitionIds.Reset ();
@@ -227,7 +225,10 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     // Legacy AcceptedArchetypeIds / RejectedItemArchetypeIds remain valid item ids while GridObjectBehavior still exposes them.
     AcceptedItemDefinitionIds = Params.AcceptedArchetypeIds;
     RejectedItemDefinitionIds = Params.RejectedItemArchetypeIds;
-    AcceptedItemTags = Params.AcceptedItemTags;
+    for (const FName AcceptedTag : Params.AcceptedItemTags)
+    {
+        AcceptedItemTags.AddUnique (AcceptedTag);
+    }
 
     if (!ObjectData.Tag.IsNone () && AcceptedItemDefinitionIds.Num () == 0)
     {
@@ -363,18 +364,19 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
         return false;
     };
 
-    auto Accept = [this, &Item, &OutResult] (FName MatchedRule)
+    auto Accept = [this, &Item, &OutResult] (FName MatchedRule, const FString& MatchedValue)
     {
         OutResult.bAccepted = true;
         OutResult.RejectReason = EGridReceptacleRejectReason::None;
         OutResult.MatchedRule = MatchedRule;
         UE_LOG (LogTemp, Verbose,
-            TEXT ("GridReceptacle ItemAccepted Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s Rule=%s"),
+            TEXT ("GridReceptacle ItemAccepted Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s Rule=\"%s\" MatchedValue=%s"),
             *GetName (),
             *ObjectId.ToString (),
             *Item.ItemDefinitionId.ToString (),
             *Item.RuntimeObjectId.ToString (),
-            *MatchedRule.ToString ());
+            *MatchedRule.ToString (),
+            *MatchedValue);
         return true;
     };
 
@@ -400,29 +402,37 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
         (ItemPolicy == EGridReceptacleItemPolicy::Legacy && bAcceptAnyItem);
     if (bEffectiveAcceptAny)
     {
-        return Accept (TEXT ("AcceptAny"));
+        return Accept (TEXT ("accepted by accept any"), TEXT ("true"));
     }
     if (AcceptedItemDefinitionIds.Contains (Item.ItemDefinitionId))
     {
-        return Accept (TEXT ("AcceptedItemDefinitionId"));
+        return Accept (TEXT ("accepted by definition id"), Item.ItemDefinitionId.ToString ());
     }
 
     const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ());
     const UGridItemDefinitionAsset* ItemDefinition = RuntimeActor
         ? RuntimeActor->ResolveRuntimeItemDefinition (Item.ItemDefinitionId)
         : nullptr;
+    if (!ItemDefinition)
+    {
+        const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (UGameplayStatics::GetPlayerPawn (this, 0));
+        if (PartyPawn && PartyPawn->PartyInventoryComponent)
+        {
+            ItemDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition (Item.ItemDefinitionId);
+        }
+    }
     if (ItemDefinition)
     {
         for (const FName AcceptedTag : AcceptedItemTags)
         {
             if (!AcceptedTag.IsNone () && ItemDefinition->ItemTags.Contains (AcceptedTag))
             {
-                return Accept (TEXT ("AcceptedItemTag"));
+                return Accept (TEXT ("accepted by tag"), AcceptedTag.ToString ());
             }
         }
         if (AcceptedItemTypes.Contains (ItemDefinition->ItemType))
         {
-            return Accept (TEXT ("AcceptedItemType"));
+            return Accept (TEXT ("accepted by type"), UEnum::GetValueAsString (ItemDefinition->ItemType));
         }
     }
 
