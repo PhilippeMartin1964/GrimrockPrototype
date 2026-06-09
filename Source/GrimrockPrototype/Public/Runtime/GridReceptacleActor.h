@@ -132,8 +132,8 @@ public:
     EGridReceptacleVisualPlacementMode VisualPlacementMode = EGridReceptacleVisualPlacementMode::AttachedSocket;
 
     /**
-     * Legacy keeps bAcceptAnyItem authoritative for existing assets.
-     * New assets can select AcceptAny or Filtered explicitly.
+     * Content behavior after insertion.
+     * Legacy, AcceptAny and Filtered are retained for existing assets.
      */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
     EGridReceptacleItemPolicy ItemPolicy = EGridReceptacleItemPolicy::Legacy;
@@ -288,6 +288,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPawn* PartyPawn, FName& OutRemovedItemDefinitionId);
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool ConsumeItemAtIndex (int32 ItemIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool ConsumeAllItems ();
+
     /**
      * Main interaction entry point used by mouse / runtime interaction.
      *
@@ -361,6 +367,8 @@ protected:
     void ClearAllContainedActors ();
 
     EGridReceptacleVisualPlacementMode GetEffectiveVisualPlacementMode () const;
+
+    bool IsItemRemovalAllowed () const;
 
     void UpdateContainedItemInteractionCollision ();
 

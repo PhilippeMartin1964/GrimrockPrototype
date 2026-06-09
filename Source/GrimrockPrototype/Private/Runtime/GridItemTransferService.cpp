@@ -254,13 +254,22 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
 {
     static const TCHAR* Operation = TEXT ("ReceptacleItemToInventory");
     if (!IsValid (Receptacle) ||
-        !Receptacle->bCanRemoveItem ||
         !Receptacle->IsValidContainedItemIndex (ContainedItemIndex))
     {
         return LogTransferFailure (
             Operation,
             EGridItemTransferResult::InvalidSource,
             TEXT ("Receptacle source or contained item index is invalid."));
+    }
+    if (!Receptacle->IsItemRemovalAllowed ())
+    {
+        return LogTransferFailure (
+            Operation,
+            EGridItemTransferResult::InvalidSource,
+            FString::Printf (
+                TEXT ("Receptacle item removal is disabled. Policy=%s CanRemove=%s."),
+                *UEnum::GetValueAsString (Receptacle->ItemPolicy),
+                Receptacle->bCanRemoveItem ? TEXT ("true") : TEXT ("false")));
     }
     if (!Inventory || !Inventory->IsValidCharacterIndex (CharacterIndex))
     {

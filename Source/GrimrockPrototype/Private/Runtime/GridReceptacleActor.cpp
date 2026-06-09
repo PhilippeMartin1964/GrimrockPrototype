@@ -194,7 +194,6 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bCanRemoveItem = true;
 
     bAcceptAnyItem = Params.bAcceptAnyItem;
-    ItemPolicy = EGridReceptacleItemPolicy::Legacy;
     MaxContainedItems = Params.MaxContainedItems;
     bUsePhysicalPlacement = Params.bUsePhysicalPlacement;
     if (VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket)
@@ -404,7 +403,7 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
 
     const bool bEffectiveAcceptAny =
         ItemPolicy == EGridReceptacleItemPolicy::AcceptAny ||
-        (ItemPolicy == EGridReceptacleItemPolicy::Legacy && bAcceptAnyItem);
+        (ItemPolicy != EGridReceptacleItemPolicy::Filtered && bAcceptAnyItem);
     if (bEffectiveAcceptAny)
     {
         return Accept (TEXT ("accepted by accept any"), TEXT ("true"));
@@ -501,6 +500,10 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
     }
 
     ExecuteInsertionLinks ();
+    if (ItemPolicy == EGridReceptacleItemPolicy::ConsumeOnInsert)
+    {
+        ConsumeItemAtIndex (NewIndex);
+    }
 
     UE_LOG (LogTemp, Log,
         TEXT ("Receptacle accepted item %s ObjectId=%s Count=%d"),
@@ -578,6 +581,10 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     OutAcceptedItem.EquipmentSlot = EGridEquipmentSlot::None;
 
     ExecuteInsertionLinks ();
+    if (ItemPolicy == EGridReceptacleItemPolicy::ConsumeOnInsert)
+    {
+        ConsumeItemAtIndex (NewIndex);
+    }
 
     UE_LOG (LogTemp, Log,
         TEXT ("Receptacle accepted cursor item %s ObjectId=%s RuntimeId=%s Count=%d"),
@@ -598,8 +605,18 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
 {
     OutRemovedItemDefinitionId = NAME_None;
 
-    if (!PartyPawn || !bCanRemoveItem || !ContainedItems.IsValidIndex (ItemIndex))
+    if (!PartyPawn || !ContainedItems.IsValidIndex (ItemIndex))
     {
+        return false;
+    }
+    if (!IsItemRemovalAllowed ())
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle RemoveRejected ObjectId=%s ItemIndex=%d Policy=%s CanRemove=%s"),
+            *ObjectId.ToString (),
+            ItemIndex,
+            *UEnum::GetValueAsString (ItemPolicy),
+            bCanRemoveItem ? TEXT ("true") : TEXT ("false"));
         return false;
     }
 
@@ -661,6 +678,59 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     return true;
 }
 
+bool AGridReceptacleActor::ConsumeItemAtIndex (int32 ItemIndex)
+{
+    if (!ContainedItems.IsValidIndex (ItemIndex))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle ConsumeFailed ObjectId=%s ItemIndex=%d Reason=InvalidIndex Count=%d"),
+            *ObjectId.ToString (),
+            ItemIndex,
+            ContainedItems.Num ());
+        return false;
+    }
+
+    const FName ItemDefinitionId = ContainedItems[ItemIndex].ItemDefinitionId;
+    const FGuid RuntimeObjectId = ContainedItems[ItemIndex].RuntimeObjectId;
+    FGridContainedReceptacleItem ConsumedItem;
+    if (!RemoveContainedItemAtIndex (ItemIndex, ConsumedItem))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle ConsumeFailed ObjectId=%s Item=%s RuntimeId=%s Reason=RemoveFailed"),
+            *ObjectId.ToString (),
+            *ItemDefinitionId.ToString (),
+            *RuntimeObjectId.ToString ());
+        return false;
+    }
+
+    if (AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ()))
+    {
+        RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemChanged);
+    }
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle ItemConsumed ObjectId=%s Item=%s RuntimeId=%s Remaining=%d Policy=%s"),
+        *ObjectId.ToString (),
+        *ItemDefinitionId.ToString (),
+        *RuntimeObjectId.ToString (),
+        ContainedItems.Num (),
+        *UEnum::GetValueAsString (ItemPolicy));
+    return true;
+}
+
+bool AGridReceptacleActor::ConsumeAllItems ()
+{
+    bool bConsumedAny = false;
+    while (ContainedItems.Num () > 0)
+    {
+        if (!ConsumeItemAtIndex (ContainedItems.Num () - 1))
+        {
+            return false;
+        }
+        bConsumedAny = true;
+    }
+    return bConsumedAny;
+}
+
 bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 {
     if (!PartyPawn)
@@ -686,8 +756,17 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     }
 
     if (GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
-        HasItem () && bCanRemoveItem)
+        HasItem ())
     {
+        if (!IsItemRemovalAllowed ())
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle Interaction RemoveRejected ObjectId=%s Policy=%s CanRemove=%s"),
+                *ObjectId.ToString (),
+                *UEnum::GetValueAsString (ItemPolicy),
+                bCanRemoveItem ? TEXT ("true") : TEXT ("false"));
+            return false;
+        }
         UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
         const int32 CharacterIndex = Inventory ? Inventory->GetSelectedCharacterIndex () : INDEX_NONE;
         UE_LOG (LogTemp, Log,
@@ -886,7 +965,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
 
     if (IsContainedItemHitComponent (HitComponent))
     {
-        return HasItem () && bCanRemoveItem;
+        return HasItem () && IsItemRemovalAllowed ();
     }
     if (HitComponent != MeshComponent)
     {
@@ -905,7 +984,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     }
 
     return GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
-        HasItem () && bCanRemoveItem;
+        HasItem () && IsItemRemovalAllowed ();
 }
 
 void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -945,7 +1024,7 @@ void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn
 
 EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
-    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
+    if (IsContainedItemHitComponent (HitComponent) && HasItem () && IsItemRemovalAllowed ())
     {
         return EGridInteractionCursor::Take;
     }
@@ -958,7 +1037,7 @@ EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation
 
 FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
 {
-    if (IsContainedItemHitComponent (HitComponent) && HasItem () && bCanRemoveItem)
+    if (IsContainedItemHitComponent (HitComponent) && HasItem () && IsItemRemovalAllowed ())
     {
         return FText::FromString (TEXT ("Take"));
     }
@@ -1140,6 +1219,11 @@ EGridReceptacleVisualPlacementMode AGridReceptacleActor::GetEffectiveVisualPlace
     }
 
     return VisualPlacementMode;
+}
+
+bool AGridReceptacleActor::IsItemRemovalAllowed () const
+{
+    return bCanRemoveItem && ItemPolicy != EGridReceptacleItemPolicy::Locked;
 }
 
 void AGridReceptacleActor::ApplyVisualPlacement (

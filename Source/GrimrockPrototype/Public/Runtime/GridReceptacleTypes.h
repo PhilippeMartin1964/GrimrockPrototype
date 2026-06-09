@@ -36,7 +36,12 @@ enum class EGridReceptacleItemPolicy : uint8
 {
     Legacy,
     AcceptAny,
-    Filtered
+    Filtered,
+    Returnable,
+    Keep,
+    Locked,
+    ConsumeOnInsert,
+    ConsumeOnTrigger
 };
 
 UENUM (BlueprintType)
