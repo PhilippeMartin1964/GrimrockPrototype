@@ -4,6 +4,8 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Runtime/GridInteractionUtils.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "UObject/ConstructorHelpers.h"
 
 AGridDoorActor::AGridDoorActor ()
@@ -253,14 +255,20 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
 
 bool AGridDoorActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    (void)InstigatorPawn;
-    return HitComponent == ChainInteractionBox &&
-        ChainSupportMeshComponent &&
-        ChainMovingMeshComponent &&
-        ChainSupportMeshComponent->IsVisible () &&
-        ChainMovingMeshComponent->IsVisible () &&
-        !bIsAnimating &&
-        !bIsChainAnimating;
+    if (HitComponent != ChainInteractionBox ||
+        !ChainSupportMeshComponent ||
+        !ChainMovingMeshComponent ||
+        !ChainSupportMeshComponent->IsVisible () ||
+        !ChainMovingMeshComponent->IsVisible () ||
+        bIsAnimating ||
+        bIsChainAnimating)
+    {
+        return false;
+    }
+
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    return PartyPawn &&
+        MatchesCell (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
 }
 
 void AGridDoorActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
