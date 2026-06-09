@@ -280,6 +280,11 @@ bool AGridReceptacleActor::HasItem () const
     return ContainedItems.Num () > 0;
 }
 
+bool AGridReceptacleActor::HasAnyItem () const
+{
+    return HasItem ();
+}
+
 int32 AGridReceptacleActor::GetContainedItemCount () const
 {
     return ContainedItems.Num ();
@@ -318,6 +323,53 @@ AGridItemActor* AGridReceptacleActor::GetContainedItemActor (int32 ItemIndex) co
     }
 
     return ContainedItems[ItemIndex].ItemActor.Get ();
+}
+
+bool AGridReceptacleActor::ContainsItemDefinition (FName ItemDefinitionId) const
+{
+    if (ItemDefinitionId.IsNone ())
+    {
+        return false;
+    }
+
+    return ContainedItems.ContainsByPredicate (
+        [ItemDefinitionId] (const FGridContainedReceptacleItem& Item)
+        {
+            return Item.ItemDefinitionId == ItemDefinitionId;
+        });
+}
+
+bool AGridReceptacleActor::ContainsItemTag (FName ItemTag) const
+{
+    if (ItemTag.IsNone ())
+    {
+        return false;
+    }
+
+    return ContainedItems.ContainsByPredicate (
+        [ItemTag] (const FGridContainedReceptacleItem& Item)
+        {
+            return Item.ItemDefinition && Item.ItemDefinition->ItemTags.Contains (ItemTag);
+        });
+}
+
+bool AGridReceptacleActor::ContainsItemType (EGridItemType ItemType) const
+{
+    return ContainedItems.ContainsByPredicate (
+        [ItemType] (const FGridContainedReceptacleItem& Item)
+        {
+            return Item.ItemDefinition && Item.ItemDefinition->ItemType == ItemType;
+        });
+}
+
+float AGridReceptacleActor::GetContainedTotalWeight () const
+{
+    float TotalWeight = 0.0f;
+    for (const FGridContainedReceptacleItem& Item : ContainedItems)
+    {
+        TotalWeight += Item.Weight * FMath::Max (1, Item.Quantity);
+    }
+    return TotalWeight;
 }
 
 bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const

@@ -219,26 +219,41 @@ public:
     // Queries
     // ============================================================
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     bool HasItem () const;
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
+    bool HasAnyItem () const;
+
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     int32 GetContainedItemCount () const;
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     bool IsFull () const;
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     bool IsEmpty () const;
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     bool IsValidContainedItemIndex (int32 ItemIndex) const;
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     FName GetContainedItemDefinitionId (int32 ItemIndex = 0) const;
 
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
     AGridItemActor* GetContainedItemActor (int32 ItemIndex = 0) const;
+
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
+    bool ContainsItemDefinition (FName ItemDefinitionId) const;
+
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
+    bool ContainsItemTag (FName ItemTag) const;
+
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
+    bool ContainsItemType (EGridItemType ItemType) const;
+
+    UFUNCTION (BlueprintPure, Category = "Receptacle")
+    float GetContainedTotalWeight () const;
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool CanAcceptItem (FName ItemDefinitionId) const;
