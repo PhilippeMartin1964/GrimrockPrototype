@@ -13,6 +13,7 @@ class UStaticMeshComponent;
 class AGrimrockPartyPawn;
 class AGridItemActor;
 class UGridItemDefinitionAsset;
+class UGridItemTransferService;
 
 /**
  * Item initially contained in a receptacle.
@@ -385,6 +386,8 @@ protected:
     bool WasInitialItemRemoved (FName ItemDefinitionId) const;
 
 private:
+    friend class UGridItemTransferService;
+
     // ============================================================
     // Runtime Initial-Item Tracking
     // ============================================================
