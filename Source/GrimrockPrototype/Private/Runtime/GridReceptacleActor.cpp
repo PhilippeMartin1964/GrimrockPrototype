@@ -74,6 +74,40 @@ namespace
 
         return nullptr;
     }
+
+    bool ResolveHeldEquipmentItem (
+        const AGrimrockPartyPawn* PartyPawn,
+        FGridItemInstance& OutItem,
+        EGridEquipmentSlot& OutSlot)
+    {
+        OutItem = FGridItemInstance ();
+        OutSlot = EGridEquipmentSlot::None;
+        if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
+        {
+            return false;
+        }
+
+        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
+        const FName HeldItemDefinitionId = PartyPawn->GetHeldItemDefinitionId ();
+
+        FGridItemInstance EquippedItem;
+        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem) &&
+            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
+        {
+            OutItem = EquippedItem;
+            OutSlot = EGridEquipmentSlot::MainHand;
+            return true;
+        }
+        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::OffHand, EquippedItem) &&
+            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
+        {
+            OutItem = EquippedItem;
+            OutSlot = EGridEquipmentSlot::OffHand;
+            return true;
+        }
+        return false;
+    }
 }
 
 AGridReceptacleActor::AGridReceptacleActor ()
@@ -139,6 +173,16 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 
     bAcceptAnyItem = Params.bAcceptAnyItem;
     MaxContainedItems = Params.MaxContainedItems;
+    bUsePhysicalPlacement = Params.bUsePhysicalPlacement;
+    bExtinguishItemOnPhysicalPlacement = Params.bExtinguishItemOnPhysicalPlacement;
+    PhysicalPlacementSurfaceOffset = Params.PhysicalPlacementSurfaceOffset;
+    PhysicalPlacementInitialRotationOffset = Params.PhysicalPlacementInitialRotationOffset;
+
+    if (MeshComponent && bUsePhysicalPlacement)
+    {
+        MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+        MeshComponent->SetCollisionResponseToChannel (ECC_PhysicsBody, ECR_Block);
+    }
 
     AcceptedItemDefinitionIds.Reset ();
     RejectedItemDefinitionIds.Reset ();
@@ -446,10 +490,13 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     FGridContainedReceptacleItem& AcceptedReceptacleItem = ContainedItems[NewIndex];
     AcceptedReceptacleItem.Weight = CursorItem.Weight;
     AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
-    AcceptedReceptacleItem.bLightsEnabled = CursorItem.bLightsEnabled;
+    AcceptedReceptacleItem.bLightsEnabled =
+        bUsePhysicalPlacement && bExtinguishItemOnPhysicalPlacement
+            ? false
+            : CursorItem.bLightsEnabled;
     if (AcceptedReceptacleItem.ItemActor)
     {
-        AcceptedReceptacleItem.ItemActor->SetItemLightsEnabled (CursorItem.bLightsEnabled);
+        AcceptedReceptacleItem.ItemActor->SetItemLightsEnabled (AcceptedReceptacleItem.bLightsEnabled);
     }
 
     OutAcceptedItem = CursorItem;
@@ -566,16 +613,61 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return PartyPawn->TryPlaceCursorItemInReceptacle (this);
     }
 
-    if (HasItem () && bCanRemoveItem)
+    if (!bUsePhysicalPlacement && HasItem () && bCanRemoveItem)
     {
         FName RemovedItemId = NAME_None;
         return TryTakeFirstItem (PartyPawn, RemovedItemId);
+    }
+
+    FGridItemInstance HeldItem;
+    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
+    if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
+    {
+        if (!bCanInsertItem || IsFull () || !CanAcceptItem (HeldItem.ItemDefinitionId))
+        {
+            return false;
+        }
+
+        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
+        if (!Inventory->TryTakeEquipmentSlotToCursor (CharacterIndex, HeldSlot))
+        {
+            return false;
+        }
+
+        PartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+        if (PartyPawn->TryPlaceCursorItemInReceptacle (this))
+        {
+            return true;
+        }
+
+        const bool bRestored = Inventory->TryEquipCursorItemToCharacterSlot (CharacterIndex, HeldSlot);
+        PartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Receptacle held item insertion failed: ObjectId=%s Item=%s Restored=%s"),
+            *ObjectId.ToString (),
+            *HeldItem.ItemDefinitionId.ToString (),
+            bRestored ? TEXT ("true") : TEXT ("false"));
+        return false;
     }
 
     UE_LOG (LogTemp, Verbose,
         TEXT ("Receptacle interact ignored: ObjectId=%s no CursorItem and no contained item."),
         *ObjectId.ToString ());
     return false;
+}
+
+bool AGridReceptacleActor::TryPlaceCursorItemFromHit (
+    AGrimrockPartyPawn* PartyPawn,
+    const FHitResult& HitResult)
+{
+    if (bUsePhysicalPlacement)
+    {
+        PendingPlacementHitResult = HitResult;
+    }
+    const bool bPlaced = PartyPawn && PartyPawn->TryPlaceCursorItemInReceptacle (this);
+    PendingPlacementHitResult.Reset ();
+    return bPlaced;
 }
 
 void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacleState& OutState) const
@@ -712,7 +804,15 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     {
         return CanAcceptCursorItemFromParty (PartyPawn);
     }
-    return HasItem () && bCanRemoveItem;
+
+    FGridItemInstance HeldItem;
+    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
+    if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
+    {
+        return bCanInsertItem && !IsFull () && CanAcceptItem (HeldItem.ItemDefinitionId);
+    }
+
+    return !bUsePhysicalPlacement && HasItem () && bCanRemoveItem;
 }
 
 void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -741,8 +841,12 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
 
 void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
 {
-    (void)HitResult;
+    if (bUsePhysicalPlacement && HitComponent == MeshComponent)
+    {
+        PendingPlacementHitResult = HitResult;
+    }
     Interact_Implementation (InstigatorPawn, HitComponent);
+    PendingPlacementHitResult.Reset ();
 }
 
 EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
@@ -864,8 +968,19 @@ int32 AGridReceptacleActor::AddContainedItem (
     }
     if (IsValid (ContainedItems[NewIndex].ItemActor.Get ()))
     {
-        AttachContainedItemActor (ContainedItems[NewIndex].ItemActor.Get (), NewIndex);
-        ContainedItems[NewIndex].ItemActor->OnPlacedInWorld ();
+        AttachContainedItemActor (
+            ContainedItems[NewIndex].ItemActor.Get (),
+            NewIndex,
+            PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
+        if (bUsePhysicalPlacement)
+        {
+            ContainedItems[NewIndex].bLightsEnabled =
+                !bExtinguishItemOnPhysicalPlacement && ContainedItems[NewIndex].bLightsEnabled;
+        }
+        else
+        {
+            ContainedItems[NewIndex].ItemActor->OnPlacedInWorld ();
+        }
         ContainedItems[NewIndex].ItemActor->SetItemLightsEnabled (ContainedItems[NewIndex].bLightsEnabled);
     }
     UpdateContainedItemInteractionCollision ();
@@ -911,11 +1026,30 @@ void AGridReceptacleActor::ClearAllContainedActors ()
 
 void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, int32 ItemIndex, const FHitResult* PlacementHitResult)
 {
-    (void)PlacementHitResult;
     if (!IsValid (ItemActor) || !ItemAttachPoint)
     {
         return;
     }
+
+    ItemActor->SetOwner (this);
+    if (bUsePhysicalPlacement)
+    {
+        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        const FVector PlacementLocation = PlacementHitResult && PlacementHitResult->bBlockingHit
+            ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * PhysicalPlacementSurfaceOffset
+            : ItemAttachPoint->GetComponentLocation ();
+        const FQuat PlacementRotation =
+            ItemAttachPoint->GetComponentQuat () * PhysicalPlacementInitialRotationOffset.Quaternion ();
+        ItemActor->SetActorLocationAndRotation (
+            PlacementLocation,
+            PlacementRotation,
+            false,
+            nullptr,
+            ETeleportType::TeleportPhysics);
+        ItemActor->ConfigureAsWorldPickup ();
+        return;
+    }
+
     ItemActor->AttachToComponent (ItemAttachPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
     const FVector LocalOffset (0.f, MultiItemVisualSpacing * ItemIndex, 0.f);
@@ -923,7 +1057,6 @@ void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, 
     ItemActor->SetActorRelativeRotation (FRotator::ZeroRotator);
     ItemActor->SetActorRelativeScale3D (FVector::OneVector);
 
-    ItemActor->SetOwner (this);
     ItemActor->ConfigureAsAttachedItem ();
 }
 
@@ -933,9 +1066,18 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
     {
         if (IsValid (Item.ItemActor.Get ()) && Item.ItemActor->MeshComponent)
         {
-            Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
-            Item.ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
-            Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+            if (bUsePhysicalPlacement)
+            {
+                Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+                Item.ItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+                Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+            }
+            else
+            {
+                Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+                Item.ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+                Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+            }
         }
     }
 }

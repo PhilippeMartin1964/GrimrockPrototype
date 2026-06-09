@@ -142,6 +142,18 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     int32 MaxContainedItems = 1;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    bool bUsePhysicalPlacement = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    bool bExtinguishItemOnPhysicalPlacement = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle", meta = (ClampMin = "0.0"))
+    float PhysicalPlacementSurfaceOffset = 10.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
     TArray<FName> AcceptedItemDefinitionIds;
 
@@ -255,6 +267,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
 
+    bool TryPlaceCursorItemFromHit (AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult);
+
 public:
     // ============================================================
     // Runtime State Capture / Restore
@@ -344,4 +358,6 @@ private:
 
     UPROPERTY (Transient)
     bool bInitialItemsInitialized = false;
+
+    TOptional<FHitResult> PendingPlacementHitResult;
 };

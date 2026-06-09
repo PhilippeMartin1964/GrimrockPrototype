@@ -81,7 +81,9 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         return;
     }
 
-    if (bInventoryUiOpen)
+    FGridItemInstance CursorItem;
+    const bool bHasCursorItem = PartyPawn && PartyPawn->GetCursorItem (CursorItem);
+    if (bInventoryUiOpen && !bHasCursorItem)
     {
         if (bDebugMouseInteraction)
         {
@@ -90,8 +92,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         return;
     }
 
-    FGridItemInstance CursorItem;
-    if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
+    if (bHasCursorItem)
     {
         if (PartyPawn->LevelRuntimeActor)
         {
@@ -121,7 +122,14 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                     return;
                 }
 
-                const bool bPlaced = PartyPawn->TryPlaceCursorItemInReceptacle (FacingReceptacle);
+                FHitResult PlacementHitResult;
+                AGridReceptacleActor* HitReceptacle = nullptr;
+                const bool bHasPlacementHit =
+                    TryGetReceptacleUnderCursor (PlacementHitResult, HitReceptacle) &&
+                    HitReceptacle == FacingReceptacle;
+                const bool bPlaced = bHasPlacementHit
+                    ? FacingReceptacle->TryPlaceCursorItemFromHit (PartyPawn, PlacementHitResult)
+                    : PartyPawn->TryPlaceCursorItemInReceptacle (FacingReceptacle);
                 UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop GridFacingReceptacle Result=%s"),
                     bPlaced ? TEXT ("true") : TEXT ("false"));
 
@@ -185,7 +193,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
             return;
         }
 
-        const bool bPlaced = PartyPawn->TryPlaceCursorItemInReceptacle (ReceptacleActor);
+        const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit (PartyPawn, ReceptacleHitResult);
         UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
             bPlaced ? TEXT ("true") : TEXT ("false"));
 
