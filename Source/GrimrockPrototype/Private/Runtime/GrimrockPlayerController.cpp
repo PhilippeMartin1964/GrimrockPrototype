@@ -3,70 +3,12 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
-#include "Components/SceneComponent.h"
 #include "Engine/EngineTypes.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
-
-namespace
-{
-    AGridReceptacleActor* ResolveReceptacleFromActorHierarchy (AActor* Actor)
-    {
-        TArray<AActor*> ActorsToVisit;
-        TSet<AActor*> VisitedActors;
-        if (Actor)
-        {
-            ActorsToVisit.Add (Actor);
-        }
-
-        while (ActorsToVisit.Num () > 0)
-        {
-            AActor* CurrentActor = ActorsToVisit.Pop (EAllowShrinking::No);
-            if (!IsValid (CurrentActor) || VisitedActors.Contains (CurrentActor))
-            {
-                continue;
-            }
-            VisitedActors.Add (CurrentActor);
-
-            if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (CurrentActor))
-            {
-                return ReceptacleActor;
-            }
-
-            ActorsToVisit.Add (CurrentActor->GetOwner ());
-            ActorsToVisit.Add (CurrentActor->GetAttachParentActor ());
-            ActorsToVisit.Add (CurrentActor->GetParentActor ());
-        }
-
-        return nullptr;
-    }
-
-    AGridReceptacleActor* ResolveReceptacleFromHit (const FHitResult& Hit)
-    {
-        if (AGridReceptacleActor* ReceptacleActor = ResolveReceptacleFromActorHierarchy (Hit.GetActor ()))
-        {
-            return ReceptacleActor;
-        }
-
-        const USceneComponent* CurrentComponent = Hit.GetComponent ();
-        TSet<const USceneComponent*> VisitedComponents;
-        while (IsValid (CurrentComponent) && !VisitedComponents.Contains (CurrentComponent))
-        {
-            VisitedComponents.Add (CurrentComponent);
-            if (AGridReceptacleActor* ReceptacleActor =
-                ResolveReceptacleFromActorHierarchy (CurrentComponent->GetOwner ()))
-            {
-                return ReceptacleActor;
-            }
-            CurrentComponent = CurrentComponent->GetAttachParent ();
-        }
-
-        return nullptr;
-    }
-}
 
 AGrimrockPlayerController::AGrimrockPlayerController ()
 {
@@ -151,6 +93,49 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
     FGridItemInstance CursorItem;
     if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
     {
+        if (PartyPawn->LevelRuntimeActor)
+        {
+            AGridReceptacleActor* FacingReceptacle =
+                PartyPawn->LevelRuntimeActor->FindReceptacleAtEdge (
+                    PartyPawn->CurrentCellX,
+                    PartyPawn->CurrentCellY,
+                    PartyPawn->Facing);
+            if (FacingReceptacle)
+            {
+                UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop GridFacingReceptacle Target=%s"),
+                    *GetNameSafe (FacingReceptacle));
+
+                if (FacingReceptacle->IsFull ())
+                {
+                    UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=ReceptacleFull Target=%s"),
+                        *GetNameSafe (FacingReceptacle));
+                    SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+                    return;
+                }
+
+                if (!FacingReceptacle->CanAcceptItemInstance (CursorItem))
+                {
+                    UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=IncompatibleTarget Target=%s"),
+                        *GetNameSafe (FacingReceptacle));
+                    SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+                    return;
+                }
+
+                const bool bPlaced = PartyPawn->TryPlaceCursorItemInReceptacle (FacingReceptacle);
+                UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop GridFacingReceptacle Result=%s"),
+                    bPlaced ? TEXT ("true") : TEXT ("false"));
+
+                if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+                {
+                    InventoryWidget->RefreshInventory ();
+                }
+
+                SetGridInteractionCursor (
+                    bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
+                return;
+            }
+        }
+
         FHitResult ReceptacleHitResult;
         AGridReceptacleActor* ReceptacleActor = nullptr;
         if (!TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor))
@@ -488,19 +473,16 @@ bool AGrimrockPlayerController::TryGetReceptacleUnderCursor (
     for (const FHitResult& Hit : Hits)
     {
         AActor* HitActor = Hit.GetActor ();
-        UPrimitiveComponent* HitComponent = Hit.GetComponent ();
-        AActor* ComponentOwner = HitComponent ? HitComponent->GetOwner () : nullptr;
-        AActor* AttachParentActor = HitActor ? HitActor->GetAttachParentActor () : nullptr;
-        AGridReceptacleActor* ReceptacleActor = ResolveReceptacleFromHit (Hit);
+        if (!HitActor)
+        {
+            continue;
+        }
 
-        UE_LOG (LogTemp, Verbose,
-            TEXT ("GridInventory ReceptacleTrace Hit Actor=%s Component=%s ActorOwner=%s ComponentOwner=%s AttachParentActor=%s ResolvedReceptacle=%s"),
-            *GetNameSafe (HitActor),
-            *GetNameSafe (HitComponent),
-            *GetNameSafe (HitActor ? HitActor->GetOwner () : nullptr),
-            *GetNameSafe (ComponentOwner),
-            *GetNameSafe (AttachParentActor),
-            *GetNameSafe (ReceptacleActor));
+        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
+        if (!ReceptacleActor)
+        {
+            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
+        }
 
         if (!ReceptacleActor)
         {
