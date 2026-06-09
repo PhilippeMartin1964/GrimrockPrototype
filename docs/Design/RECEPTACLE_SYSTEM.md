@@ -48,11 +48,15 @@ Cette liste décrit des usages, pas nécessairement des classes C++ distinctes.
 
 Tous les réceptacles sont interactifs, mais tous les objets interactifs ne sont pas des réceptacles. Une porte, un levier ou un panneau lisible peut être interactif sans recevoir d'item.
 
+![Interactive Object, Inventory and Receptacle](Images/Receptacle/receptacle_04_interactive_inventory_receptacle.jpg)
+
 L'inventaire organise les objets possédés par un personnage ou un conteneur. Il fournit des emplacements, des règles de poids, des équipements et une interface de manipulation.
 
 Le réceptacle représente un emplacement de réception dans le monde ou dans un conteneur. Il définit pourquoi, où et comment un item peut être inséré ou retiré. Un réceptacle de stockage peut déléguer son organisation interne à un inventaire, mais cette délégation n'est pas obligatoire.
 
 ## 5. Typologie des réceptacles
+
+![Receptacle Typology](Images/Receptacle/receptacle_05_typology.jpg)
 
 ### Réceptacle de présentation
 
@@ -138,6 +142,8 @@ Les motifs de refus doivent être distinguables dans les logs et, lorsque néces
 
 Les modes recommandés sont :
 
+![Visual Placement Modes](Images/Receptacle/receptacle_08_visual_placement_modes.jpg)
+
 - `AttachedSocket` : acteur attaché à un socket ou un point fixe ;
 - `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface ;
 - `ContainerOnly` : contenu logique ou visible uniquement dans une UI ;
@@ -171,6 +177,8 @@ Une instance transférée doit conserver son `RuntimeObjectId`, son `ItemDefinit
 
 `CursorItem` ou `CursorSlot` ne doit pas être une étape obligatoire du gameplay. Il peut exister comme état technique temporaire pendant un drag, un échange ou une transaction, mais il ne doit pas devenir un emplacement permanent imposé au joueur.
 
+![CursorSlot Problem](Images/Receptacle/receptacle_10_cursor_problem.jpg)
+
 Flux à éviter :
 
 `Inventory -> CursorSlot -> fermeture UI -> clic monde -> Receptacle`
@@ -184,6 +192,8 @@ Flux recommandé :
 Le curseur peut transporter techniquement l'instance pendant le drag, mais cette étape doit rester invisible dans le modèle conceptuel et être annulée atomiquement en cas d'échec.
 
 ## 11. Transferts recommandés
+
+![Recommended Item Transfer Patterns](Images/Receptacle/receptacle_11_transfer_patterns.jpg)
 
 ### InventorySlot -> Receptacle
 
@@ -252,6 +262,8 @@ Le service ne remplace pas les règles propres au réceptacle. Il orchestre les 
 
 ## 13. Interaction souris recommandée
 
+![Recommended Mouse Interactions](Images/Receptacle/receptacle_13_mouse_interactions.jpg)
+
 ### Clic sur un réceptacle vide
 
 Si le personnage tient un item compatible, le clic tente un transfert direct depuis l'équipement. Sans item tenu, le clic peut ouvrir une UI de conteneur ou ne produire aucune action selon le type.
@@ -313,6 +325,8 @@ La restauration doit recréer la représentation visuelle adaptée au mode de pl
 Un item physique restauré conserve son transform. Un item attaché revient sur son socket. Un contenu `ContainerOnly` ne doit pas créer inutilement d'acteur dans le monde.
 
 ## 16. Cas concrets
+
+![Concrete Receptacle Cases](Images/Receptacle/receptacle_16_concrete_cases.jpg)
 
 ### Support de torche
 
