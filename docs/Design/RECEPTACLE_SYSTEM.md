@@ -118,6 +118,8 @@ Capacité et organisation sont deux notions différentes. Un `PhysicalPile` peut
 
 Un réceptacle peut définir les règles suivantes :
 
+![Item Compatibility](Images/Receptacle/receptacle_07_item_compatibility.jpg)
+
 - `AcceptAnyItem` : accepte tout item valide qui n'est pas rejeté ;
 - `AcceptedItemDefinitionIds` : liste d'identifiants explicitement acceptés ;
 - `RejectedItemDefinitionIds` : liste d'identifiants explicitement rejetés ;
@@ -160,6 +162,8 @@ Un support de torche utilise normalement `AttachedSocket` afin de garantir une p
 ## 9. Relation avec l'inventaire
 
 Les transferts possibles comprennent :
+
+![Inventory Relationships](Images/Receptacle/receptacle_09_inventory_relationships.jpg)
 
 - `Inventory -> Receptacle` ;
 - `Equipment -> Receptacle` ;
@@ -222,6 +226,8 @@ Une transaction doit donc valider les deux extrémités, capturer suffisamment d
 ## 12. Service de transfert recommandé
 
 Une couche dédiée, par exemple `UGridItemTransferService`, doit progressivement centraliser les transactions.
+
+![Transfer Service Architecture](Images/Receptacle/receptacle_12_transfer_service_architecture.jpg)
 
 Responsabilités :
 
@@ -287,6 +293,8 @@ Le transfert retire l'item de l'emplacement équipé et l'attache au socket du s
 ## 14. Événements liés aux réceptacles
 
 Le système peut exposer les événements suivants :
+
+![Receptacle Events](Images/Receptacle/receptacle_14_events.jpg)
 
 - `ItemInserted` ;
 - `ItemRemoved` ;
@@ -375,6 +383,8 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ## 17. Règles de conception à respecter
 
+![Receptacle Design Rules](Images/Receptacle/receptacle_17_design_rules.jpg)
+
 - Un réceptacle ne doit jamais dépendre d'un seul mode de manipulation.
 - `CursorItem` ne doit pas être une étape obligatoire de gameplay.
 - Tout transfert doit être atomique.
@@ -436,3 +446,93 @@ Le drag & drop direct `Inventory -> Receptacle` doit devenir le flux principal p
 Les coffres et autres conteneurs de stockage doivent utiliser une interface de conteneur dédiée, fondée sur des transferts entre inventaires plutôt que sur le comportement visuel d'une alcôve.
 
 La direction retenue est donc un système unifié de transfert d'items, transactionnel et indépendant du mode d'affichage, dans lequel chaque réceptacle conserve une responsabilité claire et adaptée à son usage.
+
+## 20. Cas de test et critères d’acceptation
+
+Les tests suivants définissent le comportement minimal attendu du système. Ils doivent être exécutés avec les différents modes de manipulation disponibles afin de vérifier que la logique métier ne dépend ni du curseur, ni d'une UI particulière, ni d'un acteur visuel spécifique.
+
+### Compatibilité et capacité
+
+1. Un item invalide est refusé sans modifier la source ni le contenu du réceptacle.
+2. Un réceptacle plein refuse toute insertion supplémentaire avec un motif distinct d'un refus de compatibilité.
+3. Un item présent dans `RejectedItemDefinitionIds` est refusé même si `AcceptAnyItem` est actif.
+4. Un item est accepté lorsqu'il correspond à une définition, un tag ou un type autorisé.
+5. Un item sans règle d'acceptation correspondante est refusé de manière déterministe.
+
+Critères d'acceptation :
+
+- le motif de refus correspond à la première règle applicable dans l'ordre défini en section 7 ;
+- aucun refus ne supprime, duplique, déplace ou dépose implicitement l'item ;
+- `MaxContainedItems` est respecté indépendamment du mode de placement visuel.
+
+### Transferts et atomicité
+
+1. Transférer un item d'inventaire vers un réceptacle compatible retire exactement une instance de la source et crée exactement une entrée dans la destination.
+2. Transférer un item équipé vers un réceptacle synchronise l'emplacement d'équipement et le visuel tenu après le succès.
+3. Retirer un item d'un réceptacle vers un inventaire plein échoue sans modifier le réceptacle.
+4. Une erreur après le retrait de la source déclenche un rollback complet.
+5. Un transfert conserve le `RuntimeObjectId`, le `ItemDefinitionId`, la quantité et les états persistants de l'instance.
+
+Critères d'acceptation :
+
+- une instance ne possède qu'un seul propriétaire logique à la fin de la transaction ;
+- les UI et les événements ne sont rafraîchis qu'après validation du succès ;
+- un échec laisse les deux extrémités dans leur état initial.
+
+### Placement et représentation visuelle
+
+1. Un support de torche en `AttachedSocket` place la torche au point prévu, conserve son orientation et restaure correctement son état lumineux.
+2. Une alcôve en `PhysicalAtHit` place l'item dans la niche au point visé, avec l'offset de surface, sans le déposer au sol.
+3. Un réceptacle en `DisplaySlots` utilise un emplacement libre déterministe.
+4. Un coffre en `ContainerOnly` ne crée pas d'acteur visuel inutile dans le monde.
+5. La sauvegarde puis la restauration recréent le mode visuel approprié sans changer l'identité logique de l'item.
+
+Critères d'acceptation :
+
+- un item visible reste cliquable et peut être repris ;
+- la classe d'acteur spécifique est prioritaire lorsqu'elle existe, avec `WorldMesh` comme représentation générique de repli ;
+- le support fixe, le transform physique et les slots d'affichage sont restaurés conformément au mode choisi.
+
+### Interactions joueur
+
+1. Le drag & drop direct d'un inventaire vers une alcôve compatible insère l'item sans imposer la fermeture de l'UI.
+2. Le drag d'un emplacement d'équipement vers un support transfère l'item sans passage conceptuel obligatoire par `CursorItem`.
+3. Le clic direct avec un item tenu permet l'insertion dans un réceptacle simple compatible.
+4. Le clic sur un item contenu visible tente son retrait vers l'inventaire.
+5. Le clic ou le drop sur un réceptacle plein ou incompatible laisse l'item à sa source.
+
+Critères d'acceptation :
+
+- les différents chemins d'interaction appellent les mêmes règles de capacité et de compatibilité ;
+- `CursorItem` reste un état technique temporaire et récupérable, jamais une étape obligatoire du gameplay ;
+- aucun refus de réceptacle ne se transforme en dépôt au sol involontaire.
+
+### Événements et mécanismes
+
+1. Une insertion réussie émet `ItemAccepted`, puis `ItemInserted`, après la validation de la transaction.
+2. Une tentative refusée émet `ItemRejected` sans émettre `ItemInserted`.
+3. `BecameFull` et `BecameEmpty` ne sont émis que lors du franchissement effectif de ces états.
+4. Un socle d'énigme distingue `CorrectItemInserted` de `WrongItemInserted`.
+5. Un mécanisme consommant un objet ne détruit l'instance qu'après la réussite complète de son action.
+
+Critères d'acceptation :
+
+- un événement de succès n'est jamais publié pour une transaction annulée ;
+- chaque événement est émis une seule fois par changement logique ;
+- les liens de gameplay observent le même état final que l'inventaire et le réceptacle.
+
+### Sauvegarde et restauration
+
+1. Sauvegarder puis restaurer un réceptacle vide conserve son état vide.
+2. Sauvegarder puis restaurer un réceptacle rempli conserve l'ordre, les quantités et les identités runtime.
+3. Les transforms des items en `PhysicalAtHit` sont restaurés.
+4. Les états lumineux, verrouillés, consommés ou retirés sont restaurés lorsqu'ils sont persistants.
+5. Un contenu `ContainerOnly` est restauré logiquement sans apparition d'un acteur monde parasite.
+
+Critères d'acceptation :
+
+- aucune instance n'est perdue ou dupliquée après restauration ;
+- le contenu logique et sa représentation visuelle sont cohérents ;
+- une sauvegarde restaurée permet les mêmes interactions et produit les mêmes règles de compatibilité qu'avant la sauvegarde.
+
+Le système est accepté lorsque ces scénarios passent pour les réceptacles de présentation, de stockage et de mécanisme, sans régression du support de torche, des alcôves, des coffres ni des objets d'énigme.
