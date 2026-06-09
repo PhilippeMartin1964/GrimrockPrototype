@@ -351,9 +351,9 @@ void AGridDoorActor::UpdateChainSwingAnimation (float DeltaSeconds)
         return;
     }
 
-    constexpr float SwingDuration = 0.35f;
-    constexpr float SwingAmplitudeDegrees = 6.f;
-    constexpr float SwingFrequency = 28.f;
+    constexpr float SwingDuration = 3.5f;
+    constexpr float SwingAmplitudeDegrees = 1.5f;
+    constexpr float SwingFrequency = 2.8f;
 
     ChainSwingElapsed += DeltaSeconds;
     const float Alpha = FMath::Clamp (ChainSwingElapsed / SwingDuration, 0.f, 1.f);
