@@ -152,9 +152,15 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
                 {
                     LeverActor->SetLeverState (bNewActive);
                 }
-                return ExecuteLinksFromObjectForEvent (
+
+                const EGridObjectEvent LeverEvent =
+                    bNewActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
+                bool bAnyApplied = ExecuteLinksFromObjectForEventInternal (
                     ObjectData.ObjectId,
-                    bNewActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated);
+                    LeverEvent,
+                    false);
+                bAnyApplied |= ExecuteToggleLinksFromObject (ObjectData.ObjectId);
+                return bAnyApplied;
             }
         case EGridLevelObjectType::Receptacle:
             {
@@ -278,6 +284,14 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     FGuid SourceObjectId,
     EGridObjectEvent SourceEvent)
 {
+    return ExecuteLinksFromObjectForEventInternal (SourceObjectId, SourceEvent, true);
+}
+
+bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
+    FGuid SourceObjectId,
+    EGridObjectEvent SourceEvent,
+    bool bIncludeToggleCommands)
+{
     if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
     {
         return false;
@@ -297,7 +311,8 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
         }
 
         const FGridObjectLink& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
-        if (LinkData.SourceEvent != SourceEvent)
+        if (LinkData.SourceEvent != SourceEvent ||
+            (!bIncludeToggleCommands && LinkData.Command == EGridObjectCommand::Toggle))
         {
             continue;
         }
@@ -309,6 +324,44 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     UE_LOG (LogTemp, Log, TEXT ("Grid object event %s: Event=%s LinksExecuted=%d AnyApplied=%s"),
         *SourceObjectId.ToString (),
         *GridObjectEventToString (SourceEvent),
+        ExecutedLinkCount,
+        bAnyApplied ? TEXT ("true") : TEXT ("false"));
+
+    return bAnyApplied;
+}
+
+bool UGridActivationComponent::ExecuteToggleLinksFromObject (FGuid SourceObjectId)
+{
+    if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
+    {
+        return false;
+    }
+
+    bool bAnyApplied = false;
+    int32 ExecutedLinkCount = 0;
+
+    TArray<int32> LinkIndexes;
+    LinkIndexesBySource.MultiFind (SourceObjectId, LinkIndexes);
+
+    for (const int32 LinkIndex : LinkIndexes)
+    {
+        if (!RuntimeActor->LevelAsset->Links.IsValidIndex (LinkIndex))
+        {
+            continue;
+        }
+
+        const FGridObjectLink& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
+        if (LinkData.Command != EGridObjectCommand::Toggle)
+        {
+            continue;
+        }
+
+        ++ExecutedLinkCount;
+        bAnyApplied |= ApplyLinkCommand (LinkData);
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("Grid lever toggle links: Source=%s LinksExecuted=%d AnyApplied=%s"),
+        *SourceObjectId.ToString (),
         ExecutedLinkCount,
         bAnyApplied ? TEXT ("true") : TEXT ("false"));
 

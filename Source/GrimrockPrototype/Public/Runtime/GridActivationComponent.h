@@ -52,6 +52,8 @@ private:
 
     bool ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
 
+    bool ExecuteLinksFromObjectForEventInternal (FGuid SourceObjectId, EGridObjectEvent SourceEvent, bool bIncludeToggleCommands);
+    bool ExecuteToggleLinksFromObject (FGuid SourceObjectId);
     bool ApplyLinkCommand (const FGridObjectLink& LinkData);
     bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
