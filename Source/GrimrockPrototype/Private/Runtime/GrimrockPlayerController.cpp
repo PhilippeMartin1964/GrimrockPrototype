@@ -130,7 +130,14 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
         if (!ReceptacleActor || !ReceptacleActor->CanAcceptItemInstance (CursorItem))
         {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=IncompatibleTarget"));
+            const TCHAR* FailureReason = !ReceptacleActor
+                ? TEXT ("NoTarget")
+                : (ReceptacleActor->IsFull ()
+                    ? TEXT ("ReceptacleFull")
+                    : (!CursorItem.IsValid ()
+                        ? TEXT ("InvalidItem")
+                        : TEXT ("IncompatibleTarget")));
+            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=%s"), FailureReason);
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }

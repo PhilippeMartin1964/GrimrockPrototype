@@ -414,9 +414,25 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
         return false;
     }
 
+    UGridItemDefinitionAsset* ItemDefinition = nullptr;
+    if (const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (UGameplayStatics::GetPlayerPawn (this, 0)))
+    {
+        ItemDefinition = ResolveItemDefinition (
+            PartyPawn->PartyInventoryComponent,
+            nullptr,
+            CursorItem.ItemDefinitionId);
+    }
+    if (!ItemDefinition)
+    {
+        if (const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ()))
+        {
+            ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId);
+        }
+    }
+
     const int32 NewIndex = AddContainedItem (
         CursorItem.ItemDefinitionId,
-        nullptr,
+        ItemDefinition,
         nullptr,
         false,
         CursorItem.Quantity,
@@ -495,11 +511,10 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     {
         ItemInstance.Weight = Item.ItemDefinition->Weight;
         ItemInstance.DisplayName = Item.ItemDefinition->DisplayName;
-
-        if (Item.ItemDefinition->bCanEmitLight)
-        {
-            ItemInstance.bLightsEnabled = Item.ItemDefinition->bDefaultLightEnabled;
-        }
+    }
+    if (IsValid (Item.ItemActor.Get ()))
+    {
+        ItemInstance.bLightsEnabled = Item.ItemActor->AreItemLightsEnabled ();
     }
 
     if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
@@ -661,6 +676,7 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
     FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
     Item.RuntimeObjectId = ItemState.ObjectId.IsValid () ? ItemState.ObjectId : FGuid::NewGuid ();
     Item.ItemArchetypeId = ItemState.ArchetypeId;
+    Item.bLightsEnabled = ItemState.bLightsEnabled;
     if (IsValid (Item.ItemActor.Get ()))
     {
         Item.ItemActor->SetRuntimeObjectId (Item.RuntimeObjectId);
@@ -763,6 +779,12 @@ int32 AGridReceptacleActor::AddContainedItem (
     int32 Quantity,
     FGuid RuntimeObjectId)
 {
+    AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ());
+    if (!ItemDefinition && RuntimeActor)
+    {
+        ItemDefinition = RuntimeActor->ResolveRuntimeItemDefinition (ItemDefinitionId);
+    }
+
     ItemDefinitionId = ResolveDefinitionId (ItemDefinition, ItemDefinitionId);
     if (ItemDefinitionId.IsNone ())
     {
@@ -793,13 +815,38 @@ int32 AGridReceptacleActor::AddContainedItem (
         ContainedItemArchetypeId = NewItem.ItemArchetypeId;
     }
 
-    if (!IsValid (ItemActor) && ContainedItemActorClass)
+    if (!IsValid (ItemActor) && RuntimeActor)
+    {
+            ItemActor = RuntimeActor->SpawnItemActorForDefinition (
+                ItemDefinition,
+                ItemDefinitionId,
+            this,
+            ItemAttachPoint,
+            ContainedItemActorClass);
+        if (ItemActor)
+        {
+            if (ItemDefinition)
+            {
+                ItemActor->InitializeFromItemDefinition (ItemDefinition, NewItem.RuntimeObjectId);
+            } else
+            {
+                ItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, NewItem.RuntimeObjectId);
+            }
+            ContainedItems[NewIndex].ItemActor = ItemActor;
+        }
+    }
+    if (!IsValid (ItemActor))
     {
         UWorld* World = GetWorld ();
         if (World)
         {
             const FTransform SpawnTransform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
-            AGridItemActor* SpawnedItemActor = World->SpawnActorDeferred<AGridItemActor> (ContainedItemActorClass, SpawnTransform, this);
+            TSubclassOf<AGridItemActor> ItemActorClass = ContainedItemActorClass;
+            if (!ItemActorClass)
+            {
+                ItemActorClass = AGridItemActor::StaticClass ();
+            }
+            AGridItemActor* SpawnedItemActor = World->SpawnActorDeferred<AGridItemActor> (ItemActorClass, SpawnTransform, this);
             if (SpawnedItemActor)
             {
                 if (ItemDefinition)
@@ -818,8 +865,8 @@ int32 AGridReceptacleActor::AddContainedItem (
     if (IsValid (ContainedItems[NewIndex].ItemActor.Get ()))
     {
         AttachContainedItemActor (ContainedItems[NewIndex].ItemActor.Get (), NewIndex);
-        ContainedItems[NewIndex].ItemActor->SetItemLightsEnabled (ContainedItems[NewIndex].bLightsEnabled);
         ContainedItems[NewIndex].ItemActor->OnPlacedInWorld ();
+        ContainedItems[NewIndex].ItemActor->SetItemLightsEnabled (ContainedItems[NewIndex].bLightsEnabled);
     }
     UpdateContainedItemInteractionCollision ();
     return NewIndex;
