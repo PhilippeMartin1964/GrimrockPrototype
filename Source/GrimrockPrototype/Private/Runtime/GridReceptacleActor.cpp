@@ -108,6 +108,27 @@ namespace
         }
         return false;
     }
+
+    const TCHAR* GetRejectReasonName (EGridReceptacleRejectReason Reason)
+    {
+        switch (Reason)
+        {
+        case EGridReceptacleRejectReason::None:
+            return TEXT ("None");
+        case EGridReceptacleRejectReason::InvalidItem:
+            return TEXT ("InvalidItem");
+        case EGridReceptacleRejectReason::Full:
+            return TEXT ("Full");
+        case EGridReceptacleRejectReason::InsertDisabled:
+            return TEXT ("InsertDisabled");
+        case EGridReceptacleRejectReason::ExplicitlyRejected:
+            return TEXT ("ExplicitlyRejected");
+        case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
+            return TEXT ("NoMatchingAcceptanceRule");
+        default:
+            return TEXT ("Unknown");
+        }
+    }
 }
 
 AGridReceptacleActor::AGridReceptacleActor ()
@@ -172,8 +193,15 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bCanRemoveItem = true;
 
     bAcceptAnyItem = Params.bAcceptAnyItem;
+    ItemPolicy = EGridReceptacleItemPolicy::Legacy;
     MaxContainedItems = Params.MaxContainedItems;
     bUsePhysicalPlacement = Params.bUsePhysicalPlacement;
+    VisualPlacementMode = bUsePhysicalPlacement
+        ? EGridReceptacleVisualPlacementMode::PhysicalAtHit
+        : EGridReceptacleVisualPlacementMode::AttachedSocket;
+    StorageMode = MaxContainedItems == 1
+        ? EGridReceptacleStorageMode::SingleSlot
+        : EGridReceptacleStorageMode::MultiSlot;
     bExtinguishItemOnPhysicalPlacement = Params.bExtinguishItemOnPhysicalPlacement;
     PhysicalPlacementSurfaceOffset = Params.PhysicalPlacementSurfaceOffset;
     PhysicalPlacementInitialRotationOffset = Params.PhysicalPlacementInitialRotationOffset;
@@ -186,6 +214,8 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 
     AcceptedItemDefinitionIds.Reset ();
     RejectedItemDefinitionIds.Reset ();
+    AcceptedItemTags.Reset ();
+    AcceptedItemTypes.Reset ();
     InitialContainedItems.Reset ();
     ContainedItems.Reset ();
     RemovedInitialItemDefinitionIds.Reset ();
@@ -197,6 +227,7 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     // Legacy AcceptedArchetypeIds / RejectedItemArchetypeIds remain valid item ids while GridObjectBehavior still exposes them.
     AcceptedItemDefinitionIds = Params.AcceptedArchetypeIds;
     RejectedItemDefinitionIds = Params.RejectedItemArchetypeIds;
+    AcceptedItemTags = Params.AcceptedItemTags;
 
     if (!ObjectData.Tag.IsNone () && AcceptedItemDefinitionIds.Num () == 0)
     {
@@ -306,40 +337,96 @@ bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
 
 bool AGridReceptacleActor::CanAcceptItemInstance (const FGridItemInstance& Item) const
 {
-    const bool bResult = Item.IsValid () &&
-        bCanInsertItem &&
-        !IsFull () &&
-        CanAcceptItem (Item.ItemDefinitionId);
+    FGridReceptacleAcceptanceResult Result;
+    return EvaluateItemAcceptance (Item, Result);
+}
 
-    const TCHAR* Reason = TEXT ("AcceptedDefinition");
-    if (!Item.IsValid () || Item.ItemDefinitionId.IsNone ())
+bool AGridReceptacleActor::EvaluateItemAcceptance (
+    const FGridItemInstance& Item,
+    FGridReceptacleAcceptanceResult& OutResult) const
+{
+    OutResult = FGridReceptacleAcceptanceResult ();
+
+    auto Reject = [this, &Item, &OutResult] (EGridReceptacleRejectReason Reason)
     {
-        Reason = TEXT ("Invalid");
+        OutResult.bAccepted = false;
+        OutResult.RejectReason = Reason;
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("GridReceptacle ItemRejected Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s Reason=%s Count=%d Max=%d"),
+            *GetName (),
+            *ObjectId.ToString (),
+            *Item.ItemDefinitionId.ToString (),
+            *Item.RuntimeObjectId.ToString (),
+            GetRejectReasonName (Reason),
+            ContainedItems.Num (),
+            MaxContainedItems);
+        return false;
+    };
+
+    auto Accept = [this, &Item, &OutResult] (FName MatchedRule)
+    {
+        OutResult.bAccepted = true;
+        OutResult.RejectReason = EGridReceptacleRejectReason::None;
+        OutResult.MatchedRule = MatchedRule;
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("GridReceptacle ItemAccepted Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s Rule=%s"),
+            *GetName (),
+            *ObjectId.ToString (),
+            *Item.ItemDefinitionId.ToString (),
+            *Item.RuntimeObjectId.ToString (),
+            *MatchedRule.ToString ());
+        return true;
+    };
+
+    if (!Item.IsValid ())
+    {
+        return Reject (EGridReceptacleRejectReason::InvalidItem);
     }
-    else if (!bCanInsertItem)
+    if (IsFull ())
     {
-        Reason = TEXT ("InsertDisabled");
+        return Reject (EGridReceptacleRejectReason::Full);
     }
-    else if (IsFull ())
+    if (!bCanInsertItem)
     {
-        Reason = TEXT ("Full");
+        return Reject (EGridReceptacleRejectReason::InsertDisabled);
     }
-    else if (!CanAcceptItem (Item.ItemDefinitionId))
+    if (RejectedItemDefinitionIds.Contains (Item.ItemDefinitionId))
     {
-        Reason = TEXT ("Incompatible");
-    }
-    else if (bAcceptAnyItem)
-    {
-        Reason = TEXT ("AcceptAnyItem");
+        return Reject (EGridReceptacleRejectReason::ExplicitlyRejected);
     }
 
-    UE_LOG (LogTemp, Verbose,
-        TEXT ("GridReceptacle CanAccept CursorItem Item=%s ObjectId=%s Result=%s Reason=%s"),
-        *Item.ItemDefinitionId.ToString (),
-        *Item.RuntimeObjectId.ToString (),
-        bResult ? TEXT ("true") : TEXT ("false"),
-        Reason);
-    return bResult;
+    const bool bEffectiveAcceptAny =
+        ItemPolicy == EGridReceptacleItemPolicy::AcceptAny ||
+        (ItemPolicy == EGridReceptacleItemPolicy::Legacy && bAcceptAnyItem);
+    if (bEffectiveAcceptAny)
+    {
+        return Accept (TEXT ("AcceptAny"));
+    }
+    if (AcceptedItemDefinitionIds.Contains (Item.ItemDefinitionId))
+    {
+        return Accept (TEXT ("AcceptedItemDefinitionId"));
+    }
+
+    const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ());
+    const UGridItemDefinitionAsset* ItemDefinition = RuntimeActor
+        ? RuntimeActor->ResolveRuntimeItemDefinition (Item.ItemDefinitionId)
+        : nullptr;
+    if (ItemDefinition)
+    {
+        for (const FName AcceptedTag : AcceptedItemTags)
+        {
+            if (!AcceptedTag.IsNone () && ItemDefinition->ItemTags.Contains (AcceptedTag))
+            {
+                return Accept (TEXT ("AcceptedItemTag"));
+            }
+        }
+        if (AcceptedItemTypes.Contains (ItemDefinition->ItemType))
+        {
+            return Accept (TEXT ("AcceptedItemType"));
+        }
+    }
+
+    return Reject (EGridReceptacleRejectReason::NoMatchingAcceptanceRule);
 }
 
 bool AGridReceptacleActor::CanAcceptCursorItemFromParty (const AGrimrockPartyPawn* PartyPawn) const
@@ -415,46 +502,15 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
 {
     OutAcceptedItem = FGridItemInstance ();
 
-    if (!CursorItem.IsValid () || CursorItem.ItemDefinitionId.IsNone ())
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=invalid cursor item"),
-            *ObjectId.ToString (),
-            *CursorItem.ItemDefinitionId.ToString (),
-            *CursorItem.RuntimeObjectId.ToString ());
-        return false;
-    }
-
-    if (!bCanInsertItem)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=insert disabled"),
-            *ObjectId.ToString (),
-            *CursorItem.ItemDefinitionId.ToString (),
-            *CursorItem.RuntimeObjectId.ToString ());
-        return false;
-    }
-
-    if (IsFull ())
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=full Count=%d Max=%d"),
-            *ObjectId.ToString (),
-            *CursorItem.ItemDefinitionId.ToString (),
-            *CursorItem.RuntimeObjectId.ToString (),
-            ContainedItems.Num (),
-            MaxContainedItems);
-        return false;
-    }
-
-    if (!CanAcceptItem (CursorItem.ItemDefinitionId))
+    FGridReceptacleAcceptanceResult AcceptanceResult;
+    if (!EvaluateItemAcceptance (CursorItem, AcceptanceResult))
     {
         UE_LOG (LogTemp, Warning,
             TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=%s"),
             *ObjectId.ToString (),
             *CursorItem.ItemDefinitionId.ToString (),
             *CursorItem.RuntimeObjectId.ToString (),
-            *GetItemAcceptanceFailureReason (CursorItem.ItemDefinitionId));
+            GetRejectReasonName (AcceptanceResult.RejectReason));
         return false;
     }
 

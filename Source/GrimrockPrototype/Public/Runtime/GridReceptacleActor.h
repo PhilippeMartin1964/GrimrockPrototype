@@ -5,6 +5,7 @@
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridReceptacleTypes.h"
 #include "GridReceptacleActor.generated.h"
 
 class USceneComponent;
@@ -120,6 +121,22 @@ public:
     // Configuration
     // ============================================================
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
+    EGridReceptacleKind ReceptacleKind = EGridReceptacleKind::Presentation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
+    EGridReceptacleStorageMode StorageMode = EGridReceptacleStorageMode::SingleSlot;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
+    EGridReceptacleVisualPlacementMode VisualPlacementMode = EGridReceptacleVisualPlacementMode::AttachedSocket;
+
+    /**
+     * Legacy keeps bAcceptAnyItem authoritative for existing assets.
+     * New assets can select AcceptAny or Filtered explicitly.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
+    EGridReceptacleItemPolicy ItemPolicy = EGridReceptacleItemPolicy::Legacy;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bCanInsertItem = true;
 
@@ -159,6 +176,12 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
     TArray<FName> RejectedItemDefinitionIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
+    TArray<FName> AcceptedItemTags;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
+    TArray<EGridItemType> AcceptedItemTypes;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Items")
     TArray<FGridInitialReceptacleItem> InitialContainedItems;
@@ -218,6 +241,11 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool CanAcceptItemInstance (const FGridItemInstance& Item) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool EvaluateItemAcceptance (
+        const FGridItemInstance& Item,
+        FGridReceptacleAcceptanceResult& OutResult) const;
 
     UFUNCTION (BlueprintCallable, Category = "Grid|Receptacle")
     bool CanAcceptCursorItemFromParty (const AGrimrockPartyPawn* PartyPawn) const;
