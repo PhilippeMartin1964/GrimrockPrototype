@@ -149,6 +149,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Visual")
     TSubclassOf<AGridItemActor> ContainedItemActorClass;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Visual")
+    bool bSimulatePhysicsWhenPlaced = false;
+
     /**
      * Maximum number of items this receptacle can contain.
      *
@@ -297,6 +300,11 @@ public:
 
     bool TryPlaceCursorItemFromHit (AGrimrockPartyPawn* PartyPawn, const FHitResult& HitResult);
 
+    void ApplyVisualPlacement (
+        AGridItemActor* ItemActor,
+        const FGridItemInstance& Item,
+        const FHitResult* OptionalHit);
+
 public:
     // ============================================================
     // Runtime State Capture / Restore
@@ -351,7 +359,7 @@ protected:
 
     void ClearAllContainedActors ();
 
-    void AttachContainedItemActor (AGridItemActor* ItemActor, int32 ItemIndex, const FHitResult* PlacementHitResult = nullptr);
+    EGridReceptacleVisualPlacementMode GetEffectiveVisualPlacementMode () const;
 
     void UpdateContainedItemInteractionCollision ();
 

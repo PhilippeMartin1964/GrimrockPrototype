@@ -196,9 +196,13 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     ItemPolicy = EGridReceptacleItemPolicy::Legacy;
     MaxContainedItems = Params.MaxContainedItems;
     bUsePhysicalPlacement = Params.bUsePhysicalPlacement;
-    VisualPlacementMode = bUsePhysicalPlacement
-        ? EGridReceptacleVisualPlacementMode::PhysicalAtHit
-        : EGridReceptacleVisualPlacementMode::AttachedSocket;
+    if (VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket)
+    {
+        VisualPlacementMode = bUsePhysicalPlacement
+            ? EGridReceptacleVisualPlacementMode::PhysicalAtHit
+            : EGridReceptacleVisualPlacementMode::AttachedSocket;
+    }
+    bUsePhysicalPlacement = VisualPlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit;
     StorageMode = MaxContainedItems == 1
         ? EGridReceptacleStorageMode::SingleSlot
         : EGridReceptacleStorageMode::MultiSlot;
@@ -206,7 +210,7 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     PhysicalPlacementSurfaceOffset = Params.PhysicalPlacementSurfaceOffset;
     PhysicalPlacementInitialRotationOffset = Params.PhysicalPlacementInitialRotationOffset;
 
-    if (MeshComponent && bUsePhysicalPlacement)
+    if (MeshComponent && GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
     {
         MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
         MeshComponent->SetCollisionResponseToChannel (ECC_PhysicsBody, ECR_Block);
@@ -557,7 +561,8 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     AcceptedReceptacleItem.Weight = CursorItem.Weight;
     AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
     AcceptedReceptacleItem.bLightsEnabled =
-        bUsePhysicalPlacement && bExtinguishItemOnPhysicalPlacement
+        GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+        bExtinguishItemOnPhysicalPlacement
             ? false
             : CursorItem.bLightsEnabled;
     if (AcceptedReceptacleItem.ItemActor)
@@ -679,7 +684,8 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return PartyPawn->TryPlaceCursorItemInReceptacle (this);
     }
 
-    if (!bUsePhysicalPlacement && HasItem () && bCanRemoveItem)
+    if (GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+        HasItem () && bCanRemoveItem)
     {
         FName RemovedItemId = NAME_None;
         return TryTakeFirstItem (PartyPawn, RemovedItemId);
@@ -727,7 +733,7 @@ bool AGridReceptacleActor::TryPlaceCursorItemFromHit (
     AGrimrockPartyPawn* PartyPawn,
     const FHitResult& HitResult)
 {
-    if (bUsePhysicalPlacement)
+    if (GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
     {
         PendingPlacementHitResult = HitResult;
     }
@@ -878,7 +884,8 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return bCanInsertItem && !IsFull () && CanAcceptItem (HeldItem.ItemDefinitionId);
     }
 
-    return !bUsePhysicalPlacement && HasItem () && bCanRemoveItem;
+    return GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+        HasItem () && bCanRemoveItem;
 }
 
 void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
@@ -907,7 +914,8 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
 
 void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
 {
-    if (bUsePhysicalPlacement && HitComponent == MeshComponent)
+    if (GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+        HitComponent == MeshComponent)
     {
         PendingPlacementHitResult = HitResult;
     }
@@ -985,7 +993,17 @@ int32 AGridReceptacleActor::AddContainedItem (
         ContainedItemArchetypeId = NewItem.ItemArchetypeId;
     }
 
-    if (!IsValid (ItemActor) && RuntimeActor)
+    const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
+    if (PlacementMode == EGridReceptacleVisualPlacementMode::ContainerOnly)
+    {
+        if (IsValid (ItemActor))
+        {
+            ItemActor->Destroy ();
+        }
+        ItemActor = nullptr;
+        ContainedItems[NewIndex].ItemActor = nullptr;
+    }
+    else if (!IsValid (ItemActor) && RuntimeActor)
     {
             ItemActor = RuntimeActor->SpawnItemActorForDefinition (
                 ItemDefinition,
@@ -1005,7 +1023,7 @@ int32 AGridReceptacleActor::AddContainedItem (
             ContainedItems[NewIndex].ItemActor = ItemActor;
         }
     }
-    if (!IsValid (ItemActor))
+    if (PlacementMode != EGridReceptacleVisualPlacementMode::ContainerOnly && !IsValid (ItemActor))
     {
         UWorld* World = GetWorld ();
         if (World)
@@ -1034,11 +1052,15 @@ int32 AGridReceptacleActor::AddContainedItem (
     }
     if (IsValid (ContainedItems[NewIndex].ItemActor.Get ()))
     {
-        AttachContainedItemActor (
+        FGridItemInstance PlacementItem;
+        PlacementItem.RuntimeObjectId = ContainedItems[NewIndex].RuntimeObjectId;
+        PlacementItem.ItemDefinitionId = ContainedItems[NewIndex].ItemDefinitionId;
+        PlacementItem.Quantity = ContainedItems[NewIndex].Quantity;
+        ApplyVisualPlacement (
             ContainedItems[NewIndex].ItemActor.Get (),
-            NewIndex,
+            PlacementItem,
             PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
-        if (bUsePhysicalPlacement)
+        if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
         {
             ContainedItems[NewIndex].bLightsEnabled =
                 !bExtinguishItemOnPhysicalPlacement && ContainedItems[NewIndex].bLightsEnabled;
@@ -1090,19 +1112,44 @@ void AGridReceptacleActor::ClearAllContainedActors ()
     }
 }
 
-void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, int32 ItemIndex, const FHitResult* PlacementHitResult)
+EGridReceptacleVisualPlacementMode AGridReceptacleActor::GetEffectiveVisualPlacementMode () const
+{
+    if (VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket && bUsePhysicalPlacement)
+    {
+        return EGridReceptacleVisualPlacementMode::PhysicalAtHit;
+    }
+
+    return VisualPlacementMode;
+}
+
+void AGridReceptacleActor::ApplyVisualPlacement (
+    AGridItemActor* ItemActor,
+    const FGridItemInstance& Item,
+    const FHitResult* OptionalHit)
 {
     if (!IsValid (ItemActor) || !ItemAttachPoint)
     {
         return;
     }
 
+    const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
     ItemActor->SetOwner (this);
-    if (bUsePhysicalPlacement)
+    if (PlacementMode == EGridReceptacleVisualPlacementMode::ContainerOnly)
+    {
+        ItemActor->SetActorHiddenInGame (true);
+        ItemActor->SetActorEnableCollision (false);
+        ItemActor->ConfigureAsAttachedItem ();
+        return;
+    }
+
+    ItemActor->SetActorHiddenInGame (false);
+    ItemActor->SetActorEnableCollision (true);
+
+    if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
     {
         ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
-        const FVector PlacementLocation = PlacementHitResult && PlacementHitResult->bBlockingHit
-            ? PlacementHitResult->ImpactPoint + PlacementHitResult->ImpactNormal * PhysicalPlacementSurfaceOffset
+        const FVector PlacementLocation = OptionalHit && OptionalHit->bBlockingHit
+            ? OptionalHit->ImpactPoint + OptionalHit->ImpactNormal * PhysicalPlacementSurfaceOffset
             : ItemAttachPoint->GetComponentLocation ();
         const FQuat PlacementRotation =
             ItemAttachPoint->GetComponentQuat () * PhysicalPlacementInitialRotationOffset.Quaternion ();
@@ -1113,11 +1160,34 @@ void AGridReceptacleActor::AttachContainedItemActor (AGridItemActor* ItemActor, 
             nullptr,
             ETeleportType::TeleportPhysics);
         ItemActor->ConfigureAsWorldPickup ();
+        if (ItemActor->MeshComponent && !bSimulatePhysicsWhenPlaced)
+        {
+            ItemActor->MeshComponent->SetSimulatePhysics (false);
+            ItemActor->MeshComponent->SetEnableGravity (false);
+            ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+            ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+            ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        }
         return;
+    }
+
+    if (PlacementMode == EGridReceptacleVisualPlacementMode::DisplaySlots)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle DisplaySlots fallback to AttachedSocket Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s"),
+            *GetName (),
+            *ObjectId.ToString (),
+            *Item.ItemDefinitionId.ToString (),
+            *Item.RuntimeObjectId.ToString ());
     }
 
     ItemActor->AttachToComponent (ItemAttachPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
+    const int32 ItemIndex = FMath::Max (0, ContainedItems.IndexOfByPredicate (
+        [&Item] (const FGridContainedReceptacleItem& ContainedItem)
+        {
+            return ContainedItem.RuntimeObjectId == Item.RuntimeObjectId;
+        }));
     const FVector LocalOffset (0.f, MultiItemVisualSpacing * ItemIndex, 0.f);
     ItemActor->SetActorRelativeLocation (LocalOffset);
     ItemActor->SetActorRelativeRotation (FRotator::ZeroRotator);
@@ -1132,11 +1202,23 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
     {
         if (IsValid (Item.ItemActor.Get ()) && Item.ItemActor->MeshComponent)
         {
-            if (bUsePhysicalPlacement)
+            const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
+            if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
             {
-                Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
-                Item.ItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+                Item.ItemActor->MeshComponent->SetCollisionEnabled (
+                    bSimulatePhysicsWhenPlaced
+                        ? ECollisionEnabled::QueryAndPhysics
+                        : ECollisionEnabled::QueryOnly);
+                if (bSimulatePhysicsWhenPlaced)
+                {
+                    Item.ItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+                }
                 Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+            }
+            else if (PlacementMode == EGridReceptacleVisualPlacementMode::ContainerOnly)
+            {
+                Item.ItemActor->SetActorHiddenInGame (true);
+                Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
             }
             else
             {
