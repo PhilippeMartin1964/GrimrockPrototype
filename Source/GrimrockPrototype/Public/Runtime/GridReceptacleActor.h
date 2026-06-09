@@ -294,6 +294,15 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool ConsumeAllItems ();
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    void SetReceptacleItemPolicy (EGridReceptacleItemPolicy NewPolicy);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    void SetCanRemoveItem (bool bNewCanRemoveItem);
+
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    void SetCanInsertItem (bool bNewCanInsertItem);
+
     /**
      * Main interaction entry point used by mouse / runtime interaction.
      *

@@ -149,6 +149,16 @@ namespace
             case EGridLevelObjectType::Light:
                 return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
 
+            case EGridLevelObjectType::Receptacle:
+                return {
+                    EGridObjectCommand::ReceptacleConsumeItem,
+                    EGridObjectCommand::ReceptacleConsumeAllItems,
+                    EGridObjectCommand::ReceptacleLock,
+                    EGridObjectCommand::ReceptacleUnlock,
+                    EGridObjectCommand::ReceptacleEnableRemoval,
+                    EGridObjectCommand::ReceptacleDisableRemoval
+                };
+
             default:
                 break;
         }

@@ -56,6 +56,7 @@ private:
     bool ExecuteToggleLinksFromObject (FGuid SourceObjectId);
     bool ApplyLinkCommand (const FGridObjectLink& LinkData);
     bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
+    bool ApplyReceptacleLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive);
     bool IsTargetActive (FGuid ObjectId) const;

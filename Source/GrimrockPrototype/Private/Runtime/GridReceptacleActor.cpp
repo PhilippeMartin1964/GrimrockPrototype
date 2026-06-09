@@ -731,6 +731,39 @@ bool AGridReceptacleActor::ConsumeAllItems ()
     return bConsumedAny;
 }
 
+void AGridReceptacleActor::SetReceptacleItemPolicy (EGridReceptacleItemPolicy NewPolicy)
+{
+    const EGridReceptacleItemPolicy PreviousPolicy = ItemPolicy;
+    ItemPolicy = NewPolicy;
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle PolicyChanged ObjectId=%s Previous=%s New=%s"),
+        *ObjectId.ToString (),
+        *UEnum::GetValueAsString (PreviousPolicy),
+        *UEnum::GetValueAsString (ItemPolicy));
+}
+
+void AGridReceptacleActor::SetCanRemoveItem (bool bNewCanRemoveItem)
+{
+    const bool bPreviousCanRemoveItem = bCanRemoveItem;
+    bCanRemoveItem = bNewCanRemoveItem;
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle RemovalChanged ObjectId=%s Previous=%s New=%s"),
+        *ObjectId.ToString (),
+        bPreviousCanRemoveItem ? TEXT ("true") : TEXT ("false"),
+        bCanRemoveItem ? TEXT ("true") : TEXT ("false"));
+}
+
+void AGridReceptacleActor::SetCanInsertItem (bool bNewCanInsertItem)
+{
+    const bool bPreviousCanInsertItem = bCanInsertItem;
+    bCanInsertItem = bNewCanInsertItem;
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle InsertionChanged ObjectId=%s Previous=%s New=%s"),
+        *ObjectId.ToString (),
+        bPreviousCanInsertItem ? TEXT ("true") : TEXT ("false"),
+        bCanInsertItem ? TEXT ("true") : TEXT ("false"));
+}
+
 bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 {
     if (!PartyPawn)

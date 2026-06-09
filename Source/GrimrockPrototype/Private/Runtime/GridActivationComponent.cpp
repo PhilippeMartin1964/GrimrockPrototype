@@ -39,6 +39,23 @@ namespace
         return FString::Printf (TEXT ("%d"), static_cast<int32> (EventType));
     }
 
+    bool IsReceptacleCommand (EGridObjectCommand Command)
+    {
+        switch (Command)
+        {
+            case EGridObjectCommand::ReceptacleConsumeItem:
+            case EGridObjectCommand::ReceptacleConsumeAllItems:
+            case EGridObjectCommand::ReceptacleLock:
+            case EGridObjectCommand::ReceptacleUnlock:
+            case EGridObjectCommand::ReceptacleEnableRemoval:
+            case EGridObjectCommand::ReceptacleDisableRemoval:
+            return true;
+
+            default:
+            return false;
+        }
+    }
+
     bool IsReadableGenericObject (const FGridLevelObjectData& ObjectData)
     {
         return ObjectData.Type == EGridLevelObjectType::Decoration
@@ -245,6 +262,14 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
     bool bSuccess = false;
     const TCHAR* FailureReason = TEXT ("unsupported target type or command");
 
+    if (IsReceptacleCommand (ResolvedCommand))
+    {
+        bSuccess = ApplyReceptacleLinkCommand (*TargetObject, ResolvedCommand);
+        FailureReason = bSuccess ? nullptr : TEXT ("receptacle command failed");
+        LogLinkResult (LinkData, ResolvedCommand, bSuccess, FailureReason);
+        return bSuccess;
+    }
+
     switch (TargetObject->Type)
     {
         case EGridLevelObjectType::Door:
@@ -391,6 +416,96 @@ bool UGridActivationComponent::ApplyDoorLinkCommand (const FGridLevelObjectData&
         default:
         return false;
     }
+}
+
+bool UGridActivationComponent::ApplyReceptacleLinkCommand (
+    const FGridLevelObjectData& TargetObject,
+    EGridObjectCommand Command)
+{
+    UE_LOG (LogTemp, Log,
+        TEXT ("Grid receptacle command received: Command=%s Target=%s TargetType=%s"),
+        *GridObjectCommandToString (Command),
+        *TargetObject.ObjectId.ToString (),
+        *GridObjectTypeToString (TargetObject.Type));
+
+    AGridReceptacleActor* ReceptacleActor = RuntimeActor
+        ? RuntimeActor->FindRuntimeObjectActor<AGridReceptacleActor> (TargetObject.ObjectId)
+        : nullptr;
+    if (!ReceptacleActor)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid receptacle command failed: Command=%s Target=%s Reason=target is not a receptacle"),
+            *GridObjectCommandToString (Command),
+            *TargetObject.ObjectId.ToString ());
+        return false;
+    }
+
+    bool bSuccess = true;
+    switch (Command)
+    {
+        case EGridObjectCommand::ReceptacleConsumeItem:
+            if (!ReceptacleActor->HasItem ())
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("Grid receptacle command failed: Command=%s Target=%s Actor=%s Reason=no item present"),
+                    *GridObjectCommandToString (Command),
+                    *TargetObject.ObjectId.ToString (),
+                    *GetNameSafe (ReceptacleActor));
+                return false;
+            }
+            bSuccess = ReceptacleActor->ConsumeItemAtIndex (0);
+            break;
+
+        case EGridObjectCommand::ReceptacleConsumeAllItems:
+            if (!ReceptacleActor->HasItem ())
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("Grid receptacle command failed: Command=%s Target=%s Actor=%s Reason=no item present"),
+                    *GridObjectCommandToString (Command),
+                    *TargetObject.ObjectId.ToString (),
+                    *GetNameSafe (ReceptacleActor));
+                return false;
+            }
+            bSuccess = ReceptacleActor->ConsumeAllItems ();
+            break;
+
+        case EGridObjectCommand::ReceptacleLock:
+            ReceptacleActor->SetReceptacleItemPolicy (EGridReceptacleItemPolicy::Locked);
+            break;
+
+        case EGridObjectCommand::ReceptacleUnlock:
+            ReceptacleActor->SetReceptacleItemPolicy (EGridReceptacleItemPolicy::Returnable);
+            break;
+
+        case EGridObjectCommand::ReceptacleEnableRemoval:
+            ReceptacleActor->SetCanRemoveItem (true);
+            break;
+
+        case EGridObjectCommand::ReceptacleDisableRemoval:
+            ReceptacleActor->SetCanRemoveItem (false);
+            break;
+
+        default:
+            bSuccess = false;
+            break;
+    }
+
+    if (bSuccess)
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=true"),
+            *GridObjectCommandToString (Command),
+            *TargetObject.ObjectId.ToString (),
+            *GetNameSafe (ReceptacleActor));
+    } else
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid receptacle command result: Command=%s Target=%s Actor=%s Success=false"),
+            *GridObjectCommandToString (Command),
+            *TargetObject.ObjectId.ToString (),
+            *GetNameSafe (ReceptacleActor));
+    }
+    return bSuccess;
 }
 
 bool UGridActivationComponent::ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command)

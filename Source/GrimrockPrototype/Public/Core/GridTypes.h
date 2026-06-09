@@ -81,7 +81,13 @@ enum class EGridObjectCommand : uint8
     Spawn       UMETA (DisplayName = "Spawn"),
     Despawn     UMETA (DisplayName = "Despawn"),
     Teleport    UMETA (DisplayName = "Teleport"),
-    ShowMessage UMETA (DisplayName = "Show Message")
+    ShowMessage                    UMETA (DisplayName = "Show Message"),
+    ReceptacleConsumeItem          UMETA (DisplayName = "Receptacle Consume Item"),
+    ReceptacleConsumeAllItems      UMETA (DisplayName = "Receptacle Consume All Items"),
+    ReceptacleLock                 UMETA (DisplayName = "Receptacle Lock"),
+    ReceptacleUnlock               UMETA (DisplayName = "Receptacle Unlock"),
+    ReceptacleEnableRemoval        UMETA (DisplayName = "Receptacle Enable Removal"),
+    ReceptacleDisableRemoval       UMETA (DisplayName = "Receptacle Disable Removal")
 };
 
 UENUM (BlueprintType)
