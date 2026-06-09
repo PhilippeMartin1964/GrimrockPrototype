@@ -73,6 +73,14 @@ void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 
 void AGrimrockPlayerController::HandleLeftMousePressed ()
 {
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
+    if (PartyPawn &&
+        PartyPawn->LevelRuntimeActor &&
+        PartyPawn->LevelRuntimeActor->DismissReadableMessage ())
+    {
+        return;
+    }
+
     if (bInventoryUiOpen)
     {
         if (bDebugMouseInteraction)
@@ -82,7 +90,6 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         return;
     }
 
-    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
     FGridItemInstance CursorItem;
     if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
     {

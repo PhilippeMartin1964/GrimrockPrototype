@@ -330,6 +330,7 @@ private:
     void ClearBufferedCommand ();
     bool TryConsumeBufferedCommand ();
     bool IsBusy () const;
+    bool DismissReadableMessageIfVisible ();
 
 private:
     FVector MoveStartLocation = FVector::ZeroVector;

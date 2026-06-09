@@ -172,6 +172,15 @@ public:
     UFUNCTION (BlueprintCallable, Category = "UI")
     void ShowReadableMessage (const FText& MessageText);
 
+    UFUNCTION (BlueprintPure, Category = "UI")
+    bool HasActiveReadableMessage () const;
+
+    UFUNCTION (BlueprintCallable, Category = "UI")
+    bool DismissReadableMessage ();
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "UI")
+    bool bReadableMessageAutoHide = false;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (ClampMin = "0.1"))
     float ReadableMessageDuration = 4.0f;
 

@@ -301,6 +301,7 @@ void AGrimrockPartyPawn::SnapToCurrentCell ()
 void AGrimrockPartyPawn::HandleMoveForward (const FInputActionValue& Value)
 {
     (void)Value;
+    DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetForward (Facing);
 
@@ -316,6 +317,7 @@ void AGrimrockPartyPawn::HandleMoveForward (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleMoveBackward (const FInputActionValue& Value)
 {
     (void)Value;
+    DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetBackward (Facing);
 
@@ -331,6 +333,7 @@ void AGrimrockPartyPawn::HandleMoveBackward (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleTurnLeft (const FInputActionValue& Value)
 {
     (void)Value;
+    DismissReadableMessageIfVisible ();
 
     if (IsBusy ())
     {
@@ -344,6 +347,7 @@ void AGrimrockPartyPawn::HandleTurnLeft (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleTurnRight (const FInputActionValue& Value)
 {
     (void)Value;
+    DismissReadableMessageIfVisible ();
 
     if (IsBusy ())
     {
@@ -357,6 +361,7 @@ void AGrimrockPartyPawn::HandleTurnRight (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleStrafeLeft (const FInputActionValue& Value)
 {
     (void)Value;
+    DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetLeft (Facing);
 
@@ -372,6 +377,7 @@ void AGrimrockPartyPawn::HandleStrafeLeft (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleStrafeRight (const FInputActionValue& Value)
 {
     (void)Value;
+    DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetRight (Facing);
 
@@ -647,6 +653,13 @@ bool AGrimrockPartyPawn::IsBusy () const
 {
     return bIsMoving || bIsTurning;
 }
+
+bool AGrimrockPartyPawn::DismissReadableMessageIfVisible ()
+{
+    return LevelRuntimeActor &&
+        LevelRuntimeActor->DismissReadableMessage ();
+}
+
 void AGrimrockPartyPawn::UpdateHeadBob (float DeltaSeconds)
 {
     if (!bEnableHeadBob)

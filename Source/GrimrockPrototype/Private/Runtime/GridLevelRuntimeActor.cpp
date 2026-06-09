@@ -355,11 +355,36 @@ void AGridLevelRuntimeActor::ShowReadableMessage (const FText& MessageText)
     }
     ActiveReadableMessageWidget->SetReadableText (MessageText);
     GetWorldTimerManager ().ClearTimer (ReadableMessageTimerHandle);
-    GetWorldTimerManager ().SetTimer (ReadableMessageTimerHandle, this, &AGridLevelRuntimeActor::HideReadableMessage, ReadableMessageDuration, false);
+    if (bReadableMessageAutoHide)
+    {
+        GetWorldTimerManager ().SetTimer (
+            ReadableMessageTimerHandle,
+            this,
+            &AGridLevelRuntimeActor::HideReadableMessage,
+            ReadableMessageDuration,
+            false);
+    }
     if (!ActiveReadableMessageWidget->IsInViewport ())
     {
         ActiveReadableMessageWidget->AddToViewport (50);
     }
+}
+
+bool AGridLevelRuntimeActor::HasActiveReadableMessage () const
+{
+    return ActiveReadableMessageWidget &&
+        ActiveReadableMessageWidget->IsInViewport ();
+}
+
+bool AGridLevelRuntimeActor::DismissReadableMessage ()
+{
+    if (!HasActiveReadableMessage ())
+    {
+        return false;
+    }
+
+    HideReadableMessage ();
+    return true;
 }
 
 void AGridLevelRuntimeActor::HideReadableMessage ()
