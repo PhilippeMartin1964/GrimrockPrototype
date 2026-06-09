@@ -108,6 +108,7 @@ protected:
     virtual void UpdateAnimation (float DeltaSeconds);
     void InitializeChainMechanism (const FGridDoorAnimationParams& ChainParams);
     void UpdateChainAnimation (float DeltaSeconds);
+    void UpdateChainSwingAnimation (float DeltaSeconds);
     void RefreshTickEnabled ();
 
     FVector MovingClosedRelativeLocation = FVector::ZeroVector;
@@ -125,4 +126,7 @@ private:
     float ChainAnimationElapsed = 0.f;
     float CurrentChainPullDuration = 0.25f;
     bool bIsChainAnimating = false;
+    bool bIsChainSwinging = false;
+    float ChainSwingElapsed = 0.f;
+    FRotator ChainMovingRestRelativeRotation = FRotator::ZeroRotator;
 };

@@ -61,6 +61,11 @@ void AGridDoorActor::Tick (float DeltaSeconds)
     {
         UpdateChainAnimation (DeltaSeconds);
     }
+
+    if (bIsChainSwinging)
+    {
+        UpdateChainSwingAnimation (DeltaSeconds);
+    }
 }
 
 void AGridDoorActor::InitializeDoor (const FGridLevelObjectData& ObjectData, UStaticMesh* InMovingMesh, UMaterialInterface* InMovingMaterial,
@@ -178,7 +183,7 @@ void AGridDoorActor::PullChain ()
 {
     if (!ChainSupportMeshComponent || !ChainMovingMeshComponent || !ChainInteractionBox ||
         !ChainSupportMeshComponent->IsVisible () || !ChainMovingMeshComponent->IsVisible () ||
-        bIsAnimating || bIsChainAnimating)
+        bIsAnimating || bIsChainAnimating || bIsChainSwinging)
     {
         return;
     }
@@ -202,7 +207,9 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
     }
 
     bIsChainAnimating = false;
+    bIsChainSwinging = false;
     ChainAnimationElapsed = 0.f;
+    ChainSwingElapsed = 0.f;
 
     const bool bShowChain =
         ChainParams.bHasChainMechanism &&
@@ -224,7 +231,8 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
     ChainSupportMeshComponent->SetRelativeLocation (FVector::ZeroVector);
     ChainSupportMeshComponent->SetRelativeRotation (FRotator::ZeroRotator);
     ChainMovingMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
-    ChainMovingMeshComponent->SetRelativeRotation (FRotator::ZeroRotator);
+    ChainMovingRestRelativeRotation = FRotator::ZeroRotator;
+    ChainMovingMeshComponent->SetRelativeRotation (ChainMovingRestRelativeRotation);
 
     if (bShowChain)
     {
@@ -261,7 +269,8 @@ bool AGridDoorActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimiti
         !ChainSupportMeshComponent->IsVisible () ||
         !ChainMovingMeshComponent->IsVisible () ||
         bIsAnimating ||
-        bIsChainAnimating)
+        bIsChainAnimating ||
+        bIsChainSwinging)
     {
         return false;
     }
@@ -327,13 +336,48 @@ void AGridDoorActor::UpdateChainAnimation (float DeltaSeconds)
         bIsChainAnimating = false;
         ChainInteractionBox->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
         SetDoorOpenState (!bIsOpen);
+        bIsChainSwinging = true;
+        ChainSwingElapsed = 0.f;
+        RefreshTickEnabled ();
+    }
+}
+
+void AGridDoorActor::UpdateChainSwingAnimation (float DeltaSeconds)
+{
+    if (!ChainMovingMeshComponent)
+    {
+        bIsChainSwinging = false;
+        RefreshTickEnabled ();
+        return;
+    }
+
+    constexpr float SwingDuration = 0.35f;
+    constexpr float SwingAmplitudeDegrees = 6.f;
+    constexpr float SwingFrequency = 28.f;
+
+    ChainSwingElapsed += DeltaSeconds;
+    const float Alpha = FMath::Clamp (ChainSwingElapsed / SwingDuration, 0.f, 1.f);
+    const float Damping = 1.f - Alpha;
+    const float Angle =
+        FMath::Sin (ChainSwingElapsed * SwingFrequency) *
+        SwingAmplitudeDegrees *
+        Damping;
+
+    ChainMovingMeshComponent->SetRelativeRotation (
+        ChainMovingRestRelativeRotation + FRotator (0.f, 0.f, Angle));
+
+    if (Alpha >= 1.f)
+    {
+        ChainMovingMeshComponent->SetRelativeRotation (ChainMovingRestRelativeRotation);
+        bIsChainSwinging = false;
+        ChainSwingElapsed = 0.f;
         RefreshTickEnabled ();
     }
 }
 
 void AGridDoorActor::RefreshTickEnabled ()
 {
-    SetActorTickEnabled (bIsAnimating || bIsChainAnimating);
+    SetActorTickEnabled (bIsAnimating || bIsChainAnimating || bIsChainSwinging);
 }
 
 void AGridDoorActor::UpdateAnimation (float DeltaSeconds)
