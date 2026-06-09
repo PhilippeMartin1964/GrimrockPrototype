@@ -30,6 +30,7 @@ void AGrimrockPlayerController::BeginPlay ()
     FInputModeGameAndUI InputMode;
     InputMode.SetHideCursorDuringCapture (false);
     SetInputMode (InputMode);
+    InitializeCustomCursor ();
 }
 
 void AGrimrockPlayerController::PlayerTick (float DeltaTime)
@@ -37,10 +38,6 @@ void AGrimrockPlayerController::PlayerTick (float DeltaTime)
     Super::PlayerTick (DeltaTime);
 
     UpdateHoveredInteractable ();
-    if (AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ()))
-    {
-        PartyPawn->UpdateMouseInteractionCursor ();
-    }
 }
 
 void AGrimrockPlayerController::SetupInputComponent ()
@@ -86,11 +83,6 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
     }
 
     AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
-    if (PartyPawn && PartyPawn->TryPullChainFromCameraTrace ())
-    {
-        return;
-    }
-
     FGridItemInstance CursorItem;
     if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
     {
@@ -299,13 +291,37 @@ void AGrimrockPlayerController::InitializeCustomCursor ()
 void AGrimrockPlayerController::SetGridInteractionCursor (EGridInteractionCursor NewCursor)
 {
     CurrentGridInteractionCursor = NewCursor;
-    DefaultMouseCursor = EMouseCursor::Default;
-    CurrentMouseCursor = EMouseCursor::Default;
-    bShowMouseCursor = true;
     if (CustomCursorWidget)
     {
-        CustomCursorWidget->SetVisibility (ESlateVisibility::Collapsed);
+        DefaultMouseCursor = EMouseCursor::None;
+        CurrentMouseCursor = EMouseCursor::None;
+        bShowMouseCursor = false;
+        CustomCursorWidget->SetIsEnabled (true);
+        CustomCursorWidget->SetVisibility (ESlateVisibility::HitTestInvisible);
+
+        static const FName SetCursorStateFunctionName = TEXT ("SetCursorState");
+        UFunction* SetCursorStateFunction = CustomCursorWidget->FindFunction (SetCursorStateFunctionName);
+        if (!SetCursorStateFunction)
+        {
+            return;
+        }
+
+        struct FSetCursorStateParams
+        {
+            EGridInteractionCursor Cursor;
+        };
+
+        FSetCursorStateParams Params;
+        Params.Cursor = NewCursor;
+        CustomCursorWidget->ProcessEvent (SetCursorStateFunction, &Params);
+        return;
     }
+
+    DefaultMouseCursor = EMouseCursor::Default;
+    CurrentMouseCursor = NewCursor == EGridInteractionCursor::Take
+        ? EMouseCursor::Hand
+        : EMouseCursor::Default;
+    bShowMouseCursor = true;
 }
 
 bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const

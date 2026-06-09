@@ -1,7 +1,6 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
 #include "Camera/CameraComponent.h"
-#include "Components/BoxComponent.h"
 #include "Components/InputComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -11,7 +10,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
-#include "Runtime/GridDoorActor.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -194,7 +192,6 @@ void AGrimrockPartyPawn::Tick (float DeltaSeconds)
 
     UpdateHeadBob (DeltaSeconds);
 	UpdateFreeLook (DeltaSeconds);
-    UpdateMouseInteractionCursor ();
 
     if (BufferedCommandType != EBufferedCommandType::None)
     {
@@ -259,7 +256,6 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
     }
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
-    PlayerInputComponent->BindKey (EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::HandleLeftMousePressed);
     PlayerInputComponent->BindKey (EKeys::I, IE_Pressed, this, &AGrimrockPartyPawn::ToggleInventoryWidget);
 }
 
@@ -399,57 +395,6 @@ void AGrimrockPartyPawn::HandleUse (const FInputActionValue& Value)
     }
 
     TryUseFrontInteraction ();
-}
-
-void AGrimrockPartyPawn::HandleLeftMousePressed ()
-{
-    TryPullChainFromCameraTrace ();
-}
-
-bool AGrimrockPartyPawn::TryPullChainFromCameraTrace ()
-{
-    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
-    if (!PlayerController)
-    {
-        return false;
-    }
-
-    FHitResult Hit;
-    if (!PlayerController->GetHitResultUnderCursor (ECC_Visibility, true, Hit))
-    {
-        return false;
-    }
-
-    AGridDoorActor* DoorActor = Cast<AGridDoorActor> (Hit.GetActor ());
-    if (DoorActor && Hit.GetComponent () == DoorActor->GetChainInteractionComponent ())
-    {
-        DoorActor->PullChain ();
-        return true;
-    }
-
-    return false;
-}
-
-void AGrimrockPartyPawn::UpdateMouseInteractionCursor ()
-{
-    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
-    if (!PlayerController)
-    {
-        return;
-    }
-
-    FHitResult Hit;
-    AGridDoorActor* DoorActor = nullptr;
-    if (PlayerController->GetHitResultUnderCursor (ECC_Visibility, true, Hit))
-    {
-        DoorActor = Cast<AGridDoorActor> (Hit.GetActor ());
-    }
-
-    const bool bHoveringChain =
-        DoorActor &&
-        Hit.GetComponent () == DoorActor->GetChainInteractionComponent ();
-    PlayerController->CurrentMouseCursor =
-        bHoveringChain ? EMouseCursor::Hand : EMouseCursor::Default;
 }
 
 bool AGrimrockPartyPawn::TryUseFrontInteraction ()

@@ -3,6 +3,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "UObject/ConstructorHelpers.h"
 
 AGridDoorActor::AGridDoorActor ()
@@ -223,6 +224,23 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
     ChainMovingMeshComponent->SetRelativeLocation (ChainRestRelativeLocation);
     ChainMovingMeshComponent->SetRelativeRotation (FRotator::ZeroRotator);
 
+    if (bShowChain)
+    {
+        const FBox MovingMeshBounds = ChainMovingMesh->GetBoundingBox ();
+        if (MovingMeshBounds.IsValid)
+        {
+            constexpr float InteractionMargin = 10.f;
+            ChainInteractionBox->SetRelativeLocation (MovingMeshBounds.GetCenter ());
+            ChainInteractionBox->SetBoxExtent (
+                MovingMeshBounds.GetExtent () + FVector (InteractionMargin),
+                false);
+        }
+    }
+    else
+    {
+        ChainInteractionBox->SetRelativeLocation (FVector::ZeroVector);
+    }
+
     ChainSupportMeshComponent->SetVisibility (bShowChain, true);
     ChainMovingMeshComponent->SetVisibility (bShowChain, true);
     ChainInteractionBox->SetVisibility (bShowChain, true);
@@ -231,6 +249,52 @@ void AGridDoorActor::InitializeChainMechanism (const FGridDoorAnimationParams& C
     ChainInteractionBox->SetCollisionResponseToChannel (ECC_Visibility, bShowChain ? ECR_Block : ECR_Ignore);
 
     CurrentChainPullDuration = FMath::Max (0.01f, ChainParams.ChainPullDuration);
+}
+
+bool AGridDoorActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+{
+    (void)InstigatorPawn;
+    return HitComponent == ChainInteractionBox &&
+        ChainSupportMeshComponent &&
+        ChainMovingMeshComponent &&
+        ChainSupportMeshComponent->IsVisible () &&
+        ChainMovingMeshComponent->IsVisible () &&
+        !bIsAnimating &&
+        !bIsChainAnimating;
+}
+
+void AGridDoorActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+{
+    if (CanInteract_Implementation (InstigatorPawn, HitComponent))
+    {
+        PullChain ();
+    }
+}
+
+void AGridDoorActor::InteractWithHit_Implementation (
+    APawn* InstigatorPawn,
+    UPrimitiveComponent* HitComponent,
+    const FHitResult& HitResult)
+{
+    (void)HitResult;
+    Interact_Implementation (InstigatorPawn, HitComponent);
+}
+
+EGridInteractionCursor AGridDoorActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    return HitComponent == ChainInteractionBox
+        ? EGridInteractionCursor::Take
+        : EGridInteractionCursor::Default;
+}
+
+FText AGridDoorActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+{
+    if (HitComponent != ChainInteractionBox)
+    {
+        return FText::GetEmpty ();
+    }
+
+    return FText::FromString (bIsOpen ? TEXT ("Close door") : TEXT ("Open door"));
 }
 
 void AGridDoorActor::UpdateChainAnimation (float DeltaSeconds)
