@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flux runtime du noyau</title>
+  <desc id="desc">Illustration du flux runtime : GridLevelAsset, GridLevelRuntimeActor, composants ISM et niveau jouable.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.actor{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.ism{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.play{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 23px Arial,sans-serif;fill:#2c1e18}.small{font:17px Arial,sans-serif;fill:#2c1e18}.code{font:700 18px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}.grid{stroke:#8aa37d;stroke-width:1}.wall{stroke:#3a211b;stroke-width:7}.floor{fill:#d7e8cf}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Flux runtime</text>
+  <text class="note" x="60" y="105">Le runtime lit le LevelAsset, reconstruit la géométrie et prépare le niveau jouable.</text>
+
+  <g transform="translate(70,250)">
+    <rect class="data" x="0" y="0" width="245" height="170" rx="18"/>
+    <text class="label" x="36" y="45">UGridLevelAsset</text>
+    <text class="small" x="38" y="82">Cells[]</text>
+    <text class="small" x="38" y="112">Objects[]</text>
+    <text class="small" x="38" y="142">Links[]</text>
+  </g>
+  <path class="arrow" d="M330 335 H425"/>
+
+  <g transform="translate(440,225)">
+    <rect class="actor" x="0" y="0" width="285" height="220" rx="18"/>
+    <text class="label" x="32" y="48">AGridLevelRuntimeActor</text>
+    <text class="code" x="42" y="90">RebuildLevel()</text>
+    <text class="small" x="42" y="125">lit les cellules</text>
+    <text class="small" x="42" y="155">calcule les transforms</text>
+    <text class="small" x="42" y="185">spawne les objets runtime</text>
+  </g>
+
+  <path class="arrow" d="M735 275 H835"/>
+  <path class="arrow" d="M735 335 H835"/>
+  <path class="arrow" d="M735 395 H835"/>
+
+  <g transform="translate(850,170)">
+    <rect class="ism" x="0" y="0" width="245" height="70" rx="14"/>
+    <text class="label" x="55" y="44">FloorISM</text>
+  </g>
+  <g transform="translate(850,300)">
+    <rect class="ism" x="0" y="0" width="245" height="70" rx="14"/>
+    <text class="label" x="62" y="44">WallISM</text>
+  </g>
+  <g transform="translate(850,430)">
+    <rect class="ism" x="0" y="0" width="245" height="70" rx="14"/>
+    <text class="label" x="45" y="44">CeilingISM</text>
+  </g>
+
+  <path class="arrow" d="M970 520 V575 H650"/>
+  <g transform="translate(330,550)">
+    <rect class="play" x="0" y="0" width="320" height="120" rx="18"/>
+    <text class="label" x="72" y="42">Niveau jouable</text>
+    <g transform="translate(40,62)">
+      <rect class="floor" x="0" y="0" width="160" height="42" stroke="#4e6848" stroke-width="2"/>
+      <path class="grid" d="M40 0 V42 M80 0 V42 M120 0 V42"/>
+      <path class="wall" d="M0 0 H160 M0 0 V42 M160 0 V42"/>
+    </g>
+  </g>
+
+  <text class="small" x="85" y="220">1. Donnée persistante</text>
+  <text class="small" x="475" y="195">2. Lecture et génération</text>
+  <text class="small" x="870" y="140">3. Géométrie instanciée</text>
+  <text class="small" x="390" y="690">4. Monde jouable en PIE / runtime</text>
+</svg>
