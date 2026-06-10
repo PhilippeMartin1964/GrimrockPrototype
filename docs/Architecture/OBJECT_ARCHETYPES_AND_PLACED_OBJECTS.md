@@ -25,15 +25,7 @@ Les règles de sélection et de clic runtime sont documentées séparément dans
 
 **Acteur runtime** : instance transitoire d'`AGridRuntimeObjectActor` ou, pour un item placé, d'`AGridItemActor`.
 
-```mermaid
-flowchart LR
-    A["UGridObjectArchetypeAsset<br/>modèle réutilisable"] --> B["UGridObjectPaletteAsset<br/>exposition éditeur"]
-    B --> C["FGridLevelObjectData<br/>instance persistante"]
-    C --> D["UGridLevelAsset::Objects"]
-    D --> E["AGridLevelRuntimeActor"]
-    A --> E
-    E --> F["Acteur runtime transitoire"]
-```
+![Chaîne de l'archétype à l'acteur runtime](../Images/object_10_1_archetype_palette_placed_runtime.svg)
 
 Ce schéma correspond au code, avec une précision importante : la palette ne reste pas une dépendance runtime directe. L'acteur éditeur copie ses archétypes dans `AGridLevelRuntimeActor::ObjectArchetypes`.
 
@@ -107,6 +99,10 @@ L'archétype est la source partagée utilisée à la fois par l'éditeur et le r
 - `RuntimeActorClass` et `ItemActorClass` ;
 - `ItemTags`.
 
+![Différence entre copies locales et références d'archétype](../Images/object_10_2_copy_vs_reference.svg)
+
+Les copies persistées dans l'objet placé ne sont pas resynchronisées automatiquement lorsque l'archétype évolue.
+
 `PlacementKind` est la source de vérité actuelle. `bPlaceOnEdge` et `bPlaceAtCellCenter` sont conservés pour compatibilité et seulement contrôlés par la validation.
 
 `ValidateArchetype()` vérifie notamment l'identité, le type, la classe runtime requise, le placement, les meshes attendus et plusieurs cohérences de catégorie ou de paramètres.
@@ -127,18 +123,7 @@ Le panneau `SGridEditorToolPalettePanel` groupe les entrées par catégorie et i
 
 ## 7. Placement et suppression dans l'éditeur
 
-```mermaid
-flowchart TD
-    A["Clic sur une entrée de palette"] --> B["ApplyPaletteEntry()"]
-    B --> C["État de peinture de AGridLevelEditorActor"]
-    D["Clic viewport"] --> E["FGridLevelEdMode"]
-    E --> F["CommitHoveredCellSelection()"]
-    F --> G["ApplyPrimaryToolAction()"]
-    G --> H["PlaceSelectedObject()"]
-    H --> I["UGridLevelAsset::AddObject()"]
-    I --> J["Objects[] + ObjectId"]
-    J --> K["RebuildPreview()"]
-```
+![Flux de l'éditeur vers l'aperçu et le runtime](../Images/object_10_3_editor_to_runtime_object_flow.svg)
 
 `PlaceSelectedObject()` :
 

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Le premier obstacle Visibility possède le clic</title>
+  <desc id="desc">Un rayon part de la caméra et s’arrête au premier obstacle bloquant ECC Visibility, sans rechercher un objet interactif derrière.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.panel{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.camera{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.wall{fill:#7d3f2f;stroke:#3a211b;stroke-width:4}.target{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.label{font:700 21px Arial,sans-serif;fill:#2c1e18}.small{font:17px Arial,sans-serif;fill:#2c1e18}.code{font:700 17px Consolas,monospace;fill:#2c1e18}.ray{stroke:#3d5f7a;stroke-width:6;fill:none;marker-end:url(#arrow)}.blocked{stroke:#8b493f;stroke-width:5;stroke-dasharray:10 9}.cross{stroke:#8b493f;stroke-width:7}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Le premier obstacle Visibility possède le clic</text>
+  <text class="note" x="60" y="105">Le contrôleur utilise LineTraceSingleByChannel : aucune cible plus profonde n’est recherchée.</text>
+
+  <rect class="panel" x="60" y="150" width="1080" height="470" rx="22"/>
+
+  <g transform="translate(105,310)">
+    <rect class="camera" width="190" height="130" rx="18"/>
+    <circle cx="62" cy="65" r="28" fill="#fffaf0" stroke="#3d5f7a" stroke-width="3"/>
+    <path d="M100 45 L150 20 V110 L100 85 Z" fill="#3d5f7a"/>
+    <text class="label" x="30" y="165">Caméra / souris</text>
+  </g>
+
+  <path class="ray" d="M300 375 H585"/>
+  <text class="code" x="350" y="345">rayon ECC_Visibility</text>
+
+  <g transform="translate(600,205)">
+    <rect class="wall" width="120" height="350" rx="8"/>
+    <path d="M0 70 H120 M0 140 H120 M0 210 H120 M0 280 H120 M60 0 V70 M30 70 V140 M85 140 V210 M40 210 V280 M80 280 V350" stroke="#d9b36c" stroke-width="4"/>
+    <text class="label" x="-45" y="390">premier bloqueur</text>
+    <text class="code" x="-8" y="420">Visibility</text>
+  </g>
+
+  <circle cx="600" cy="375" r="15" fill="#e8c27a" stroke="#3a211b" stroke-width="4"/>
+  <text class="label" x="545" y="180">Impact retenu</text>
+
+  <path class="blocked" d="M720 375 H935"/>
+  <line class="cross" x1="790" y1="330" x2="850" y2="420"/>
+  <line class="cross" x1="850" y1="330" x2="790" y2="420"/>
+
+  <g transform="translate(950,285)">
+    <rect class="target" width="145" height="180" rx="18"/>
+    <circle cx="72" cy="58" r="24" fill="#e8c27a" stroke="#4e6848" stroke-width="3"/>
+    <rect x="42" y="92" width="60" height="45" rx="8" fill="#fffaf0" stroke="#4e6848" stroke-width="3"/>
+    <text class="label" x="19" y="165">Interactif</text>
+    <text class="small" x="4" y="205">non sélectionné</text>
+  </g>
+
+  <text class="small" x="380" y="580">Le premier composant bloquant est autoritaire, qu’il soit interactif ou non.</text>
+</svg>

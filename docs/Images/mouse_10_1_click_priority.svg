@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Priorité de traitement d’un clic gauche</title>
+  <desc id="desc">Arbre de décision du clic gauche : fermeture du message, dépôt direct d’un item ou interaction directe validée.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.start{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.decision{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.action{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.success{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.stop{fill:#f0d4cf;stroke:#8b493f;stroke-width:3}.label{font:700 20px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.code{font:700 15px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}.yes{font:700 16px Arial,sans-serif;fill:#4e6848}.no{font:700 16px Arial,sans-serif;fill:#8b493f}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Priorité d’un clic gauche</text>
+  <text class="note" x="60" y="105">Chaque branche consomme le clic ou s’arrête : une seule interaction peut être exécutée.</text>
+
+  <rect class="start" x="55" y="170" width="150" height="74" rx="18"/>
+  <text class="label" x="82" y="216">Clic gauche</text>
+  <path class="arrow" d="M205 207 H270"/>
+
+  <rect class="decision" x="280" y="145" width="230" height="124" rx="18"/>
+  <text class="label" x="315" y="188">Message lisible</text>
+  <text class="label" x="345" y="220">ouvert ?</text>
+  <path class="arrow" d="M395 269 V340"/>
+  <text class="yes" x="408" y="312">oui</text>
+  <rect class="action" x="275" y="350" width="240" height="90" rx="18"/>
+  <text class="label" x="320" y="387">Fermer le message</text>
+  <text class="small" x="325" y="416">clic consommé</text>
+
+  <path class="arrow" d="M510 207 H585"/>
+  <text class="no" x="535" y="193">non</text>
+  <rect class="decision" x="595" y="145" width="220" height="124" rx="18"/>
+  <text class="label" x="635" y="188">Item porté</text>
+  <text class="label" x="630" y="220">au curseur ?</text>
+
+  <path class="arrow" d="M705 269 V340"/>
+  <text class="yes" x="718" y="312">oui</text>
+  <rect class="action" x="575" y="350" width="260" height="115" rx="18"/>
+  <text class="label" x="613" y="387">Réceptacle touché</text>
+  <text class="small" x="615" y="418">portée · bord · compatibilité</text>
+  <text class="small" x="650" y="444">sinon : arrêt</text>
+
+  <path class="arrow" d="M815 207 H890"/>
+  <text class="no" x="840" y="193">non</text>
+  <rect class="decision" x="900" y="145" width="245" height="124" rx="18"/>
+  <text class="label" x="927" y="188">Acteur interactif</text>
+  <text class="label" x="947" y="220">directement touché ?</text>
+
+  <path class="arrow" d="M1022 269 V340"/>
+  <text class="yes" x="1035" y="312">oui</text>
+  <rect class="action" x="895" y="350" width="255" height="115" rx="18"/>
+  <text class="label" x="940" y="387">Valider la cible</text>
+  <text class="small" x="930" y="418">portée · CanInteract()</text>
+  <text class="small" x="930" y="444">règles cellule / bord</text>
+
+  <path class="arrow" d="M1022 465 V535"/>
+  <rect class="success" x="840" y="545" width="330" height="95" rx="18"/>
+  <text class="label" x="918" y="578">Exécuter l’action</text>
+  <text class="code" x="864" y="610">placement direct / InteractWithHit()</text>
+  <text class="small" x="947" y="633">une seule fois</text>
+
+  <path class="arrow" d="M835 407 H865 V592 H840"/>
+  <text class="yes" x="840" y="390">valide</text>
+  <text class="yes" x="1035" y="510">valide</text>
+  <text class="small" x="640" y="510">placement avec le FHitResult direct</text>
+
+  <rect class="stop" x="65" y="545" width="330" height="95" rx="18"/>
+  <text class="label" x="130" y="584">Aucune cible ou condition refusée</text>
+  <text class="small" x="132" y="615">aucune interaction supplémentaire</text>
+  <path class="arrow" d="M1145 207 H1180 V505 H395 V592"/>
+  <text class="no" x="1150" y="193">non</text>
+  <path class="arrow" d="M705 465 V500 H395 V565"/>
+  <text class="no" x="715" y="490">refusé</text>
+  <path class="arrow" d="M895 407 H860 V520 H395 V580"/>
+  <text class="no" x="812" y="397">refusé</text>
+</svg>

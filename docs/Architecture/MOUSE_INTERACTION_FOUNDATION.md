@@ -23,6 +23,10 @@ Les acteurs interactifs actuels sont `AGridButtonActor`, `AGridLeverActor`, `AGr
 
 La sélection suit un rayon obtenu par déprojection de la position de la souris sur `ECC_Visibility`. Seul le premier impact bloquant est considéré. Un mur, une porte fermée ou tout autre composant bloquant `Visibility` interdit donc la sélection d'un acteur situé derrière. Le système ne recherche pas en profondeur une autre cible valide pour le gameplay.
 
+![Trace de visibilité et premier obstacle bloquant](../Images/mouse_10_2_visibility_trace.svg)
+
+Le premier composant bloquant possède le clic, qu'il implémente ou non l'interface d'interaction.
+
 Le composant touché est conservé dans `FHitResult`, puis transmis à :
 
 - `CanInteract()` pour valider la cible et le sous-composant ;
@@ -43,6 +47,10 @@ L'ordre réel est :
 6. exécuter une seule fois `InteractWithHit()` ;
 7. ne rien faire si une étape échoue.
 
+![Priorité de traitement d'un clic gauche](../Images/mouse_10_1_click_priority.svg)
+
+Chaque branche est exclusive : la fermeture d'un message, le dépôt d'un item ou l'interaction directe consomme le clic.
+
 Il n'existe pas de solution de repli à la souris vers la cellule ou le bord situé en face. `AGrimrockPartyPawn::TryUseFrontInteraction()` reste une solution de repli historique au clavier, désactivée par défaut avec `bEnableLegacyKeyboardUseAction=false`.
 
 ## 5. Règles de grille
@@ -53,6 +61,10 @@ Une interaction de bord est autorisée uniquement si l'objet se trouve :
 
 - sur la cellule du groupe et sur le bord regardé ;
 - ou dans la cellule située devant le groupe et sur son bord opposé.
+
+![Règles spatiales des interactions sur un bord](../Images/mouse_10_3_edge_interaction_rules.svg)
+
+Ces deux positions couvrent notamment les boutons, leviers, chaînes de porte et réceptacles muraux.
 
 Les boutons, leviers et objets lisibles placés sur un bord font ensuite transiter l'action par `TryInteractAtEdge()`, afin de conserver l'activation et les liens runtime. Les items utilisent les règles propres à `CanPartyPickupItemEntry()` et au service de transfert.
 

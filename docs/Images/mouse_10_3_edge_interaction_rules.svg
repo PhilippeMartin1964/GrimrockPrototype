@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Règles d’interaction avec un objet de bord</title>
+  <desc id="desc">Deux cellules montrent les deux positions autorisées : bord regardé de la cellule du joueur ou bord opposé de la cellule située devant.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.panel{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.playerCell{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:4}.frontCell{fill:#d7e8cf;stroke:#4e6848;stroke-width:4}.edge{stroke:#7d3f2f;stroke-width:18}.valid{fill:#e8c27a;stroke:#5b4636;stroke-width:4}.label{font:700 22px Arial,sans-serif;fill:#2c1e18}.small{font:17px Arial,sans-serif;fill:#2c1e18}.code{font:700 16px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}.callout{stroke:#6d855f;stroke-width:3;fill:none;stroke-dasharray:8 7}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Deux positions de bord autorisées</text>
+  <text class="note" x="60" y="105">Le groupe interagit avec le bord regardé de sa cellule ou avec le bord opposé de la cellule située devant.</text>
+
+  <rect class="panel" x="75" y="145" width="1050" height="500" rx="22"/>
+
+  <g transform="translate(250,300)">
+    <rect class="playerCell" x="0" y="0" width="300" height="240" rx="10"/>
+    <text class="label" x="65" y="210">Cellule du joueur</text>
+    <circle cx="150" cy="130" r="46" fill="#fffaf0" stroke="#3d5f7a" stroke-width="4"/>
+    <path d="M150 50 L120 100 H180 Z" fill="#3d5f7a"/>
+    <text class="small" x="112" y="138">groupe</text>
+    <path class="arrow" d="M150 105 V30"/>
+  </g>
+
+  <g transform="translate(250,160)">
+    <rect class="frontCell" x="0" y="0" width="300" height="140" rx="10"/>
+    <text class="label" x="62" y="76">Cellule devant</text>
+    <text class="small" x="102" y="108">frontale</text>
+  </g>
+
+  <line class="edge" x1="260" y1="300" x2="540" y2="300"/>
+  <text class="code" x="340" y="285">bord regardé</text>
+
+  <g transform="translate(300,275)">
+    <rect class="valid" width="68" height="50" rx="10"/>
+    <circle cx="34" cy="25" r="11" fill="#7d3f2f"/>
+  </g>
+  <g transform="translate(430,275)">
+    <rect class="valid" width="68" height="50" rx="10"/>
+    <path d="M18 33 L34 13 L50 33" fill="none" stroke="#7d3f2f" stroke-width="6"/>
+  </g>
+
+  <path class="callout" d="M300 300 C180 300,180 240,125 240"/>
+  <text class="label" x="105" y="205">Cas A</text>
+  <text class="small" x="105" y="232">objet sur le bord de</text>
+  <text class="small" x="105" y="255">la cellule du joueur</text>
+
+  <path class="callout" d="M498 300 C650 300,650 220,725 220"/>
+  <text class="label" x="735" y="185">Cas B</text>
+  <text class="small" x="735" y="212">objet sur le bord opposé</text>
+  <text class="small" x="735" y="235">de la cellule devant</text>
+
+  <g transform="translate(680,300)">
+    <rect class="panel" width="365" height="245" rx="18"/>
+    <text class="label" x="72" y="43">Interactions concernées</text>
+    <rect class="valid" x="30" y="72" width="140" height="58" rx="12"/>
+    <text class="small" x="68" y="108">bouton</text>
+    <rect class="valid" x="195" y="72" width="140" height="58" rx="12"/>
+    <text class="small" x="237" y="108">levier</text>
+    <rect class="valid" x="30" y="150" width="140" height="58" rx="12"/>
+    <text class="small" x="48" y="186">chaîne de porte</text>
+    <rect class="valid" x="195" y="150" width="140" height="58" rx="12"/>
+    <text class="small" x="211" y="186">réceptacle mural</text>
+  </g>
+
+  <text class="small" x="240" y="600">Toute autre cellule ou tout autre bord est refusé par CanPartyInteractWithEdgeObject().</text>
+</svg>

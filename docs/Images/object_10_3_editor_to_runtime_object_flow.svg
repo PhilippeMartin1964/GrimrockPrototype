@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flux éditeur vers runtime des objets placés</title>
+  <desc id="desc">Flux allant du clic dans la palette à l’acteur éditeur, au stockage persistant, à l’aperçu et à la génération runtime.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.tool{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.actor{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.preview{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 21px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.code{font:700 15px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}.branch{stroke:#6d855f;stroke-width:4;fill:none;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+    <marker id="arrow2" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#6d855f"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Édition → donnée persistante → aperçu → runtime</text>
+  <text class="note" x="60" y="105">L’aperçu et le runtime relisent la même source persistante, mais ne génèrent pas les mêmes acteurs.</text>
+
+  <g transform="translate(55,210)">
+    <rect class="box" width="170" height="130" rx="18"/>
+    <text class="label" x="38" y="43">Utilisateur</text>
+    <text class="small" x="28" y="78">clic palette</text>
+    <text class="small" x="28" y="104">puis viewport</text>
+  </g>
+  <path class="arrow" d="M235 275 H290"/>
+
+  <g transform="translate(300,190)">
+    <rect class="tool" width="200" height="170" rx="18"/>
+    <text class="label" x="55" y="42">Palette</text>
+    <text class="code" x="27" y="78">ApplyPaletteEntry()</text>
+    <text class="small" x="30" y="111">sélectionne l’archétype</text>
+    <text class="small" x="30" y="139">et l’outil PaintObject</text>
+  </g>
+  <path class="arrow" d="M510 275 H565"/>
+
+  <g transform="translate(575,190)">
+    <rect class="actor" width="250" height="170" rx="18"/>
+    <text class="label" x="26" y="42">AGridLevelEditorActor</text>
+    <text class="code" x="35" y="78">PlaceSelectedObject()</text>
+    <text class="small" x="34" y="111">construit la donnée</text>
+    <text class="small" x="34" y="139">et demande son ajout</text>
+  </g>
+  <path class="arrow" d="M835 275 H890"/>
+
+  <g transform="translate(900,190)">
+    <rect class="data" width="245" height="170" rx="18"/>
+    <text class="label" x="35" y="42">UGridLevelAsset</text>
+    <text class="code" x="38" y="78">AddObject()</text>
+    <text class="code" x="38" y="108">Objects[]</text>
+    <text class="small" x="38" y="139">ObjectId persistant</text>
+  </g>
+
+  <path class="branch" d="M1020 370 V440 H735"/>
+  <g transform="translate(585,460)">
+    <rect class="preview" width="300" height="150" rx="18"/>
+    <text class="label" x="62" y="42">Aperçu éditeur</text>
+    <text class="code" x="55" y="78">RebuildPreview()</text>
+    <text class="small" x="40" y="112">acteur transitoire simplifié</text>
+  </g>
+
+  <path class="arrow" d="M1020 370 V625 H565"/>
+  <g transform="translate(85,560)">
+    <rect class="actor" width="470" height="130" rx="18"/>
+    <text class="label" x="108" y="40">AGridLevelRuntimeActor</text>
+    <text class="code" x="115" y="76">RebuildRuntimeObjects()</text>
+    <text class="small" x="85" y="106">génère AGridRuntimeObjectActor ou AGridItemActor</text>
+  </g>
+
+  <text class="small" x="925" y="155">source persistante commune</text>
+</svg>

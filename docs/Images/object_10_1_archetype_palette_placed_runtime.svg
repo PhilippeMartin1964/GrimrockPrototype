@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">De l’archétype à l’acteur runtime</title>
+  <desc id="desc">Chaîne reliant l’archétype réutilisable, la palette éditeur, la donnée placée persistante, le niveau et l’acteur généré au runtime.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{stroke-width:3}.model{fill:#e8c27a;stroke:#5b4636}.palette{fill:#ead8ef;stroke:#745080}.data{fill:#d7e8cf;stroke:#4e6848}.runtime{fill:#d7e1ef;stroke:#3d5f7a}.label{font:700 21px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.code{font:700 16px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}.ref{stroke:#6d855f;stroke-width:3;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+    <marker id="arrow2" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#6d855f"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">De l’archétype à l’acteur runtime</text>
+  <text class="note" x="60" y="105">L’éditeur persiste une instance dans le niveau ; le runtime résout son modèle et génère un acteur transitoire.</text>
+
+  <g transform="translate(55,245)">
+    <rect class="box model" width="190" height="170" rx="18"/>
+    <text class="label" x="24" y="42">Archétype</text>
+    <text class="code" x="18" y="78">UGridObject</text>
+    <text class="code" x="18" y="101">ArchetypeAsset</text>
+    <text class="small" x="22" y="135">modèle réutilisable</text>
+  </g>
+  <path class="arrow" d="M255 330 H325"/>
+
+  <g transform="translate(335,245)">
+    <rect class="box palette" width="180" height="170" rx="18"/>
+    <text class="label" x="45" y="42">Palette</text>
+    <text class="code" x="18" y="78">UGridObject</text>
+    <text class="code" x="18" y="101">PaletteAsset</text>
+    <text class="small" x="25" y="135">exposition éditeur</text>
+  </g>
+  <path class="arrow" d="M525 330 H595"/>
+
+  <g transform="translate(605,245)">
+    <rect class="box data" width="210" height="170" rx="18"/>
+    <text class="label" x="38" y="42">Objet placé</text>
+    <text class="code" x="22" y="82">FGridLevel</text>
+    <text class="code" x="22" y="105">ObjectData</text>
+    <text class="small" x="26" y="139">instance persistante</text>
+  </g>
+  <path class="arrow" d="M825 330 H895"/>
+
+  <g transform="translate(905,245)">
+    <rect class="box data" width="235" height="170" rx="18"/>
+    <text class="label" x="38" y="42">Niveau</text>
+    <text class="code" x="22" y="82">UGridLevelAsset</text>
+    <text class="code" x="22" y="110">::Objects</text>
+    <text class="small" x="24" y="141">source persistante</text>
+  </g>
+
+  <path class="arrow" d="M1020 425 V505 H720"/>
+  <g transform="translate(505,515)">
+    <rect class="box runtime" width="430" height="130" rx="18"/>
+    <text class="label" x="92" y="42">AGridLevelRuntimeActor</text>
+    <text class="small" x="66" y="76">lit Objects[] · résout ArchetypeId · instancie</text>
+    <text class="code" x="55" y="108">AGridRuntimeObjectActor / AGridItemActor</text>
+  </g>
+
+  <path class="ref" d="M150 425 C180 580,330 605,490 580"/>
+  <text class="small" x="120" y="510">résolution par ArchetypeId</text>
+
+  <text class="small" x="85" y="205">1. modèle partagé</text>
+  <text class="small" x="350" y="205">2. catalogue éditeur</text>
+  <text class="small" x="620" y="205">3. copie locale</text>
+  <text class="small" x="920" y="205">4. stockage niveau</text>
+</svg>
