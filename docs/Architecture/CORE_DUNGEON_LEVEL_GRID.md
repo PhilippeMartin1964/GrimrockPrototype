@@ -113,6 +113,8 @@ Lecture du schéma :
 
 `UGridDungeonAsset` représente un donjon complet. Il ne stocke pas directement la grille. Il stocke les métadonnées du donjon et les références vers les niveaux.
 
+![Le donjon comme classeur](../Images/core_20_1_dungeon_binder.svg)
+
 ```text
 UGridDungeonAsset = un classeur contenant plusieurs niveaux de donjon.
 ```
@@ -190,6 +192,8 @@ Il ne doit pas stocker directement les cellules ou les murs, générer la géom�
 ### 6.1. Rôle
 
 `UGridLevelAsset` représente un niveau individuel du donjon. C’est l’asset central pour un étage ou une zone de type Grimrock.
+
+![Le niveau comme carte quadrillée](../Images/core_20_2_level_grid_map.svg)
 
 Il stocke :
 
@@ -275,6 +279,8 @@ Ces fonctions constituent l’API minimale de manipulation d’un niveau.
 ### 7.1. Rôle
 
 Une cellule représente une case de la grille. Elle stocke à la fois la nature intérieure de la case et l’état des murs sur ses quatre côtés.
+
+![Une cellule et ses quatre murs](../Images/core_20_3_cell_four_walls.svg)
 
 ### 7.2. Structure
 
@@ -663,6 +669,8 @@ ValidateCurrentLevel()
 
 Il doit appeler `AGridLevelEditorActor` plutôt que dupliquer la logique de modification du niveau.
 
+![Flux éditeur](../Images/core_20_4_editor_flow.svg)
+
 ```mermaid
 flowchart TD
     A[Utilisateur] --> B[Grimrock Grid Editor Mode]
@@ -681,6 +689,8 @@ L’Editor Mode doit être considéré comme une couche d’interface et d’out
 ### 16.1. Rôle
 
 `AGridLevelRuntimeActor` lit un `UGridLevelAsset` et construit le niveau jouable.
+
+![Flux runtime](../Images/core_20_5_runtime_flow.svg)
 
 Il est responsable de la géométrie runtime, des sols, murs, plafonds, du spawn des objets runtime, des fonctions d’aide runtime, des vérifications de déplacement et du routage d’interaction de base.
 
@@ -920,39 +930,17 @@ classDiagram
 
 ---
 
-## 20. Illustrations du noyau
+## 20. Index des illustrations
 
-Les illustrations suivantes accompagnent le noyau Donjon / Niveau / Grille. Elles sont stockées dans `docs/Images/` au format SVG afin de rester lisibles, légères et modifiables.
+Les illustrations principales sont volontairement placées dans les sections où elles sont utiles. Cette section sert uniquement d’index.
 
-### 20.1. Le donjon comme classeur
-
-![Le donjon comme classeur](../Images/core_20_1_dungeon_binder.svg)
-
-Cette illustration montre que `UGridDungeonAsset` organise les niveaux du donjon, mais ne stocke pas directement la grille.
-
-### 20.2. Le niveau comme carte quadrillée
-
-![Le niveau comme carte quadrillée](../Images/core_20_2_level_grid_map.svg)
-
-Cette illustration montre que `UGridLevelAsset` stocke les cellules, les murs, la position de départ, les objets et les liens.
-
-### 20.3. Une cellule et ses quatre murs
-
-![Une cellule et ses quatre murs](../Images/core_20_3_cell_four_walls.svg)
-
-Cette illustration montre qu’une cellule `FGridLevelCellData` contient `CellType`, `NorthWall`, `EastWall`, `SouthWall`, `WestWall`, `bHasCeiling` et `bBlocksOccupancy`.
-
-### 20.4. Flux éditeur
-
-![Flux éditeur](../Images/core_20_4_editor_flow.svg)
-
-Cette illustration montre le chemin de l’action utilisateur : `Grimrock Grid Editor Mode` pilote `AGridLevelEditorActor`, qui modifie le `UGridLevelAsset` puis reconstruit l’aperçu.
-
-### 20.5. Flux runtime
-
-![Flux runtime](../Images/core_20_5_runtime_flow.svg)
-
-Cette illustration montre que le runtime lit le `UGridLevelAsset`, génère les composants `FloorISM`, `WallISM`, `CeilingISM`, puis produit le niveau jouable.
+| Illustration | Emplacement principal | Fichier |
+|---|---|---|
+| Le donjon comme classeur | Section 5 — `UGridDungeonAsset` | `../Images/core_20_1_dungeon_binder.svg` |
+| Le niveau comme carte quadrillée | Section 6 — `UGridLevelAsset` | `../Images/core_20_2_level_grid_map.svg` |
+| Une cellule et ses quatre murs | Section 7 — `FGridLevelCellData` | `../Images/core_20_3_cell_four_walls.svg` |
+| Flux éditeur | Section 15 — Grimrock Grid Editor Mode | `../Images/core_20_4_editor_flow.svg` |
+| Flux runtime | Section 16 — `AGridLevelRuntimeActor` | `../Images/core_20_5_runtime_flow.svg` |
 
 ---
 
