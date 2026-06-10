@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flux éditeur du noyau</title>
+  <desc id="desc">Illustration du flux éditeur : utilisateur, Grimrock Grid Editor Mode, AGridLevelEditorActor, GridLevelAsset et Preview Runtime Actor.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.tool{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.actor{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.preview{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 23px Arial,sans-serif;fill:#2c1e18}.small{font:17px Arial,sans-serif;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}.back{stroke:#6d855f;stroke-width:4;fill:none;stroke-dasharray:8 8;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+    <marker id="arrow2" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#6d855f"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Flux éditeur</text>
+  <text class="note" x="60" y="105">L’utilisateur agit sur l’outil ; l’acteur éditeur modifie le LevelAsset puis reconstruit l’aperçu.</text>
+
+  <g transform="translate(70,240)">
+    <rect class="box" x="0" y="0" width="170" height="120" rx="18"/>
+    <text class="label" x="36" y="48">Utilisateur</text>
+    <text class="small" x="28" y="82">clic viewport</text>
+  </g>
+  <path class="arrow" d="M250 300 H350"/>
+
+  <g transform="translate(360,220)">
+    <rect class="tool" x="0" y="0" width="220" height="160" rx="18"/>
+    <text class="label" x="26" y="45">Grimrock Grid</text>
+    <text class="label" x="50" y="77">Editor Mode</text>
+    <text class="small" x="35" y="115">UI + outils</text>
+    <text class="small" x="35" y="140">Paint Cell / Wall</text>
+  </g>
+  <path class="arrow" d="M590 300 H695"/>
+
+  <g transform="translate(705,220)">
+    <rect class="actor" x="0" y="0" width="230" height="160" rx="18"/>
+    <text class="label" x="28" y="45">AGridLevel</text>
+    <text class="label" x="38" y="77">EditorActor</text>
+    <text class="small" x="30" y="115">sélection</text>
+    <text class="small" x="30" y="140">modifie les données</text>
+  </g>
+
+  <path class="arrow" d="M820 390 V470"/>
+  <g transform="translate(655,485)">
+    <rect class="data" x="0" y="0" width="330" height="120" rx="18"/>
+    <text class="label" x="62" y="48">UGridLevelAsset</text>
+    <text class="small" x="70" y="82">Cells · Walls · Objects · Links</text>
+  </g>
+
+  <path class="back" d="M710 485 C560 455,520 405,520 385"/>
+
+  <path class="arrow" d="M945 300 H1020"/>
+  <g transform="translate(1028,220)">
+    <rect class="preview" x="0" y="0" width="140" height="160" rx="18"/>
+    <text class="label" x="25" y="45">Preview</text>
+    <text class="label" x="28" y="77">Runtime</text>
+    <text class="small" x="25" y="115">aperçu</text>
+    <text class="small" x="25" y="140">visuel</text>
+  </g>
+
+  <text class="small" x="390" y="185">1. L’outil reçoit l’action</text>
+  <text class="small" x="710" y="185">2. L’acteur éditeur applique</text>
+  <text class="small" x="670" y="645">3. Le LevelAsset est la donnée persistante</text>
+  <text class="small" x="985" y="185">4. L’aperçu est reconstruit</text>
+</svg>
