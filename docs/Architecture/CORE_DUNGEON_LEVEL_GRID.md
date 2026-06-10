@@ -1,84 +1,84 @@
-# Grimrock Prototype — Core Dungeon / Level / Grid Architecture
+# Grimrock Prototype — Architecture noyau Donjon / Niveau / Grille
 
-## 1. Purpose of this document
+## 1. Objet du document
 
-This document defines the foundational architecture of the Grimrock Prototype dungeon system.
+Ce document définit l’architecture de base du système de donjon du prototype **Grimrock Prototype**.
 
-It intentionally focuses only on the core structural layer:
+Il couvre uniquement le socle structurel suivant :
 
-- `UGridDungeonAsset`
-- `UGridLevelAsset`
-- grid cells
-- cell walls
-- level objects as structural data
-- level links as structural data
-- `AGridLevelEditorActor`
-- Grimrock Grid Editor Mode
-- Paint Cell
-- Paint Wall
-- `AGridLevelRuntimeActor`
+- `UGridDungeonAsset` ;
+- `UGridLevelAsset` ;
+- les cellules de grille ;
+- les murs de cellule ;
+- les objets de niveau en tant que données structurelles ;
+- les liens de niveau en tant que données structurelles ;
+- `AGridLevelEditorActor` ;
+- le mode d’édition `Grimrock Grid Editor Mode` ;
+- l’outil **Paint Cell** ;
+- l’outil **Paint Wall** ;
+- `AGridLevelRuntimeActor`.
 
-This document does **not** cover the detailed gameplay systems yet:
+Ce document ne traite pas encore les systèmes de gameplay détaillés :
 
-- items
-- doors
-- receptacles
-- secret passages
-- pits as gameplay hazards
-- teleporters
-- triggers
-- buttons / levers / plates
-- inventory
-- runtime puzzles
+- items ;
+- portes ;
+- réceptacles ;
+- passages secrets ;
+- pits en tant que pièges ou mécanismes ;
+- téléporteurs ;
+- triggers ;
+- boutons, leviers, plaques de pression ;
+- inventaire ;
+- énigmes runtime.
 
-Those systems must be documented separately after this core is stable.
+Ces systèmes devront être documentés séparément une fois le noyau stabilisé.
 
-The goal is to clearly identify:
+L’objectif est d’établir clairement :
 
-- where persistent data lives;
-- which C++ classes own each responsibility;
-- how dungeon data flows into editor tools;
-- how level data flows into runtime actors;
-- how cells and walls are painted;
-- what rules must remain stable before adding advanced gameplay.
-
----
-
-## 2. Core principle
-
-The prototype is built around four distinct layers:
-
-```text
-1. Persistent data
-   DataAssets stored in the project.
-
-2. Level placement data
-   Objects, cells, walls, links and start position stored inside a level asset.
-
-3. Editor layer
-   Tools and actors that modify the level asset.
-
-4. Runtime layer
-   Actors and components that read the level asset and generate the playable world.
-```
-
-The most important rule is:
-
-```text
-DataAssets describe the dungeon.
-Editor actors modify those assets.
-Runtime actors execute those assets.
-```
-
-A common source of bugs is confusing these concepts:
-
-```text
-Source data != placed data != editor actor != runtime actor
-```
+- où vivent les données persistantes ;
+- quelles classes C++ sont responsables de quoi ;
+- comment les données du donjon arrivent dans l’éditeur ;
+- comment les données du niveau arrivent dans le runtime ;
+- comment les cellules et les murs sont peints ;
+- quelles règles doivent rester stables avant d’ajouter des mécaniques avancées.
 
 ---
 
-## 3. High-level architecture
+## 2. Principe général
+
+Le prototype repose sur quatre couches distinctes :
+
+```text
+1. Données persistantes
+   DataAssets stockés dans le projet Unreal.
+
+2. Données placées dans le niveau
+   Cellules, murs, objets, liens et position de départ stockés dans un LevelAsset.
+
+3. Couche d’édition
+   Outils et acteurs qui modifient le LevelAsset.
+
+4. Couche runtime
+   Acteurs et composants qui lisent le LevelAsset et génèrent le monde jouable.
+```
+
+La règle principale est :
+
+```text
+Les DataAssets décrivent le donjon.
+Les acteurs éditeur modifient ces assets.
+Les acteurs runtime exécutent ces assets.
+```
+
+Une source fréquente de bugs consiste à confondre ces notions :
+
+```text
+Donnée source ≠ donnée placée ≠ acteur d’édition ≠ acteur runtime
+```
+
+---
+
+## 3. Architecture générale
 
 ```mermaid
 flowchart TD
@@ -97,57 +97,57 @@ flowchart TD
     J --> K[FloorISM]
     J --> L[WallISM]
     J --> M[CeilingISM]
-    J --> N[Runtime Objects]
+    J --> N[Objets runtime]
 ```
 
-Interpretation:
+Lecture du schéma :
 
-- `UGridDungeonAsset` organizes dungeon levels.
-- `FGridDungeonLevelEntry` links a logical dungeon level id to a `UGridLevelAsset`.
-- `UGridLevelAsset` stores the actual level data.
-- `AGridLevelEditorActor` edits a level asset.
-- `AGridLevelRuntimeActor` reads a level asset and generates runtime geometry.
+- `UGridDungeonAsset` organise les niveaux du donjon.
+- `FGridDungeonLevelEntry` relie un identifiant logique de niveau à un `UGridLevelAsset`.
+- `UGridLevelAsset` stocke les données réelles du niveau.
+- `AGridLevelEditorActor` modifie un `UGridLevelAsset`.
+- `AGridLevelRuntimeActor` lit un `UGridLevelAsset` et génère la géométrie jouable.
 
 ---
 
-## 4. Main C++ classes and responsibility map
+## 4. Cartographie des classes C++ responsables
 
-| Area | Class / Struct | File | Responsibility |
+| Domaine | Classe / structure | Fichier | Responsabilité |
 |---|---|---|---|
-| Dungeon data | `UGridDungeonAsset` | `Source/GrimrockPrototype/Public/Core/GridDungeonAsset.h` | Stores dungeon metadata and level entries. |
-| Dungeon level entry | `FGridDungeonLevelEntry` | `GridDungeonAsset.h` | Connects a `LevelId` to a `UGridLevelAsset`. |
-| Level data | `UGridLevelAsset` | `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h` | Stores grid dimensions, cells, objects, links and start position. |
-| Cell data | `FGridLevelCellData` | `Source/GrimrockPrototype/Public/Core/GridTypes.h` | Stores cell type, four walls, ceiling and occupancy blocking. |
-| Placed object data | `FGridLevelObjectData` | `GridTypes.h` | Stores one object placed in a level. |
-| Link data | `FGridObjectLink` | `GridTypes.h` | Stores a logical relation between two placed objects. |
-| Editor actor | `AGridLevelEditorActor` | `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h` | Edits a level asset and rebuilds preview. |
-| Editor tool enum | `EGridEditorTool` | `GridLevelEditorActor.h` | Defines Select, PaintCell, PaintWall, PaintObject, Erase, Link. |
-| Runtime actor | `AGridLevelRuntimeActor` | `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h` | Reads a level asset and builds playable geometry/runtime objects. |
-| Runtime rendering | `FloorISM`, `WallISM`, `CeilingISM` | `GridLevelRuntimeActor.h` | Instanced mesh components for generated geometry. |
+| Donjon | `UGridDungeonAsset` | `Source/GrimrockPrototype/Public/Core/GridDungeonAsset.h` | Stocke les métadonnées du donjon et la liste des niveaux. |
+| Entrée de niveau | `FGridDungeonLevelEntry` | `GridDungeonAsset.h` | Relie un `LevelId` à un `UGridLevelAsset`. |
+| Niveau | `UGridLevelAsset` | `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h` | Stocke dimensions, cellules, objets, liens et position de départ. |
+| Cellule | `FGridLevelCellData` | `Source/GrimrockPrototype/Public/Core/GridTypes.h` | Stocke type de cellule, quatre murs, plafond et blocage d’occupation. |
+| Objet placé | `FGridLevelObjectData` | `GridTypes.h` | Stocke un objet placé dans le niveau. |
+| Lien logique | `FGridObjectLink` | `GridTypes.h` | Stocke une relation logique entre deux objets placés. |
+| Acteur éditeur | `AGridLevelEditorActor` | `Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h` | Modifie un LevelAsset et reconstruit l’aperçu. |
+| Outils éditeur | `EGridEditorTool` | `GridLevelEditorActor.h` | Définit Select, PaintCell, PaintWall, PaintObject, Erase, Link. |
+| Acteur runtime | `AGridLevelRuntimeActor` | `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h` | Lit un LevelAsset et génère le niveau jouable. |
+| Rendu runtime | `FloorISM`, `WallISM`, `CeilingISM` | `GridLevelRuntimeActor.h` | Composants d’instances pour sols, murs et plafonds. |
 
 ---
 
 ## 5. `UGridDungeonAsset`
 
-### 5.1. Role
+### 5.1. Rôle
 
-`UGridDungeonAsset` represents a complete dungeon.
+`UGridDungeonAsset` représente un donjon complet.
 
-It does not store the grid itself. It stores metadata and references to level assets.
+Il ne stocke pas directement la grille. Il stocke les métadonnées du donjon et les références vers les niveaux.
 
-Conceptually:
+On peut le comprendre ainsi :
 
 ```text
-UGridDungeonAsset = a binder containing several dungeon levels.
+UGridDungeonAsset = un classeur contenant plusieurs niveaux de donjon.
 ```
 
-### 5.2. Class
+### 5.2. Classe
 
 ```cpp
 UGridDungeonAsset
 ```
 
-Defined in:
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Public/Core/GridDungeonAsset.h
@@ -155,7 +155,7 @@ Source/GrimrockPrototype/Public/Core/GridDungeonAsset.h
 
 ### 5.3. Structure
 
-`UGridDungeonAsset` contains:
+`UGridDungeonAsset` contient :
 
 ```text
 DungeonName
@@ -165,11 +165,15 @@ DefaultLevelId
 Levels[]
 ```
 
-Each `Levels[]` entry is an `FGridDungeonLevelEntry`.
+Chaque élément de `Levels[]` est une structure :
+
+```cpp
+FGridDungeonLevelEntry
+```
 
 ### 5.4. `FGridDungeonLevelEntry`
 
-A dungeon level entry contains:
+Une entrée de niveau contient :
 
 ```text
 LevelId
@@ -179,17 +183,17 @@ LogicalPosition
 bEnabled
 ```
 
-Example:
+Exemple :
 
 ```text
 LevelId         = Floor_00
-DisplayName     = Entrance
+DisplayName     = Entrée
 LevelAsset      = DA_Level_Dungeon01_Floor00
 LogicalPosition = X=0, Y=0, Z=0
 bEnabled        = true
 ```
 
-### 5.5. Diagram
+### 5.5. Diagramme
 
 ```mermaid
 classDiagram
@@ -213,57 +217,57 @@ classDiagram
         bool bEnabled
     }
 
-    UGridDungeonAsset "1" o-- "many" FGridDungeonLevelEntry
+    UGridDungeonAsset "1" o-- "plusieurs" FGridDungeonLevelEntry
     FGridDungeonLevelEntry --> UGridLevelAsset
 ```
 
-### 5.6. What it should do
+### 5.6. Ce que `UGridDungeonAsset` doit faire
 
-`UGridDungeonAsset` should:
+`UGridDungeonAsset` doit :
 
-- identify the dungeon;
-- list the available levels;
-- define the default level;
-- allow lookup by `LevelId`;
-- provide diagnostics.
+- identifier le donjon ;
+- lister les niveaux disponibles ;
+- définir le niveau par défaut ;
+- permettre la recherche d’un niveau par `LevelId` ;
+- fournir des diagnostics.
 
-### 5.7. What it should not do
+### 5.7. Ce que `UGridDungeonAsset` ne doit pas faire
 
-`UGridDungeonAsset` should not:
+`UGridDungeonAsset` ne doit pas :
 
-- store cell data directly;
-- store walls directly;
-- generate runtime geometry;
-- edit levels;
-- spawn gameplay actors.
+- stocker directement les cellules ;
+- stocker directement les murs ;
+- générer la géométrie runtime ;
+- éditer les niveaux ;
+- spawner des acteurs de gameplay.
 
 ---
 
 ## 6. `UGridLevelAsset`
 
-### 6.1. Role
+### 6.1. Rôle
 
-`UGridLevelAsset` represents one individual level of the dungeon.
+`UGridLevelAsset` représente un niveau individuel du donjon.
 
-It is the core asset for a Grimrock-style floor or area.
+C’est l’asset central pour un étage ou une zone de type Grimrock.
 
-It stores:
+Il stocke :
 
 ```text
-Grid size
-Cells
-Start position
-Objects
-Links
+la taille de la grille
+les cellules
+la position de départ
+les objets placés
+les liens logiques
 ```
 
-### 6.2. Class
+### 6.2. Classe
 
 ```cpp
 UGridLevelAsset
 ```
 
-Defined in:
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Public/Core/GridLevelAsset.h
@@ -284,7 +288,7 @@ UGridLevelAsset
   └─ Links[]
 ```
 
-### 6.4. Diagram
+### 6.4. Diagramme
 
 ```mermaid
 classDiagram
@@ -314,14 +318,14 @@ classDiagram
     class FGridLevelObjectData
     class FGridObjectLink
 
-    UGridLevelAsset "1" o-- "many" FGridLevelCellData
-    UGridLevelAsset "1" o-- "many" FGridLevelObjectData
-    UGridLevelAsset "1" o-- "many" FGridObjectLink
+    UGridLevelAsset "1" o-- "plusieurs" FGridLevelCellData
+    UGridLevelAsset "1" o-- "plusieurs" FGridLevelObjectData
+    UGridLevelAsset "1" o-- "plusieurs" FGridObjectLink
 ```
 
-### 6.5. Core functions
+### 6.5. Fonctions importantes
 
-Important functions:
+Fonctions de base :
 
 ```cpp
 EnsureCellCount()
@@ -336,20 +340,20 @@ RemoveLinksForObject()
 EnsureObjectIds()
 ```
 
-These functions form the basic API for level data manipulation.
+Ces fonctions constituent l’API minimale de manipulation d’un niveau.
 
 ---
 
-## 7. Cells: `FGridLevelCellData`
+## 7. Cellules : `FGridLevelCellData`
 
-### 7.1. Role
+### 7.1. Rôle
 
-A cell represents one square of the level grid.
+Une cellule représente une case de la grille.
 
-It stores both:
+Elle stocke à la fois :
 
-- the inner type of the cell;
-- the wall state on each of its four edges.
+- la nature intérieure de la case ;
+- l’état des murs sur ses quatre côtés.
 
 ### 7.2. Structure
 
@@ -357,7 +361,7 @@ It stores both:
 FGridLevelCellData
 ```
 
-Contains:
+Contenu :
 
 ```text
 CellType
@@ -369,7 +373,7 @@ bHasCeiling
 bBlocksOccupancy
 ```
 
-### 7.3. Cell diagram
+### 7.3. Schéma d’une cellule
 
 ```text
                   NorthWall
@@ -381,11 +385,11 @@ bBlocksOccupancy
                   SouthWall
 ```
 
-### 7.4. Cell type
+### 7.4. Type de cellule
 
-`CellType` defines the main nature of the cell.
+`CellType` définit la nature principale de la cellule.
 
-Current enum values include:
+Valeurs actuelles :
 
 ```text
 Empty
@@ -396,54 +400,54 @@ StairsDown
 Teleporter
 ```
 
-For the core documentation, the important base distinction is:
+Dans le cadre du noyau, la distinction importante est :
 
 ```text
-Empty = no playable cell / empty space
-Floor = standard playable cell
+Empty = absence de case jouable / espace vide
+Floor = case jouable standard
 ```
 
-Advanced cell types must be documented later.
+Les types avancés seront documentés plus tard.
 
-### 7.5. Wall type
+### 7.5. Type de mur
 
-Each wall field uses `EGridWallType`:
+Chaque mur utilise `EGridWallType` :
 
 ```text
 None
 Solid
 ```
 
-### 7.6. Ceiling
+### 7.6. Plafond
 
 ```text
 bHasCeiling
 ```
 
-Defines whether the runtime should generate a ceiling for the cell.
+Détermine si le runtime doit générer un plafond pour la cellule.
 
-### 7.7. Occupancy blocking
+### 7.7. Blocage d’occupation
 
 ```text
 bBlocksOccupancy
 ```
 
-Defines whether the cell blocks occupation. This is useful for movement and future gameplay systems.
+Détermine si la cellule bloque l’occupation. Cette information sert au déplacement et à de futures mécaniques.
 
 ---
 
-## 8. Grid coordinate conventions
+## 8. Convention de coordonnées
 
-### 8.1. Logical coordinates
+### 8.1. Coordonnées logiques
 
-The grid uses integer coordinates:
+La grille utilise des coordonnées entières :
 
 ```text
-X = horizontal grid coordinate
-Y = vertical grid coordinate
+X = coordonnée horizontale de grille
+Y = coordonnée verticale de grille
 ```
 
-Example 4x4 grid:
+Exemple de grille 4x4 :
 
 ```text
 Y=3   [0,3] [1,3] [2,3] [3,3]
@@ -454,38 +458,38 @@ Y=0   [0,0] [1,0] [2,0] [3,0]
        X=0   X=1   X=2   X=3
 ```
 
-### 8.2. World scale
+### 8.2. Échelle monde
 
-`CellSize` converts grid coordinates into Unreal world units.
+`CellSize` convertit les coordonnées de grille en unités Unreal.
 
-Example:
+Exemple :
 
 ```text
 CellSize = 200.0
 ```
 
-means each logical grid cell covers a 200 x 200 Unreal unit square.
+signifie qu’une cellule logique occupe un carré de 200 x 200 unités Unreal.
 
-### 8.3. Runtime conversion
+### 8.3. Conversion runtime
 
-The runtime actor owns helper functions such as:
+Le runtime possède des fonctions d’aide telles que :
 
 ```cpp
 GetCellCenterWorld()
 CellToWorld()
 ```
 
-Those functions should be used instead of duplicating conversion logic elsewhere.
+Ces fonctions doivent être utilisées plutôt que de dupliquer les formules de conversion dans plusieurs systèmes.
 
 ---
 
 ## 9. Paint Cell
 
-### 9.1. Role
+### 9.1. Rôle
 
-Paint Cell modifies the inside of a selected cell.
+Paint Cell modifie l’intérieur d’une cellule sélectionnée.
 
-It acts on:
+Il agit sur :
 
 ```text
 CellType
@@ -493,13 +497,13 @@ bHasCeiling
 bBlocksOccupancy
 ```
 
-### 9.2. Responsible editor class
+### 9.2. Classe éditrice responsable
 
 ```cpp
 AGridLevelEditorActor
 ```
 
-Relevant fields:
+Champs concernés :
 
 ```text
 PaintCellType
@@ -510,54 +514,54 @@ SelectedCellY
 ActiveTool
 ```
 
-Relevant tool enum:
+Outil concerné :
 
 ```cpp
 EGridEditorTool::PaintCell
 ```
 
-### 9.3. Conceptual flow
+### 9.3. Flux conceptuel
 
 ```mermaid
 sequenceDiagram
-    participant User as User
+    participant User as Utilisateur
     participant Mode as Grimrock Grid Editor Mode
     participant Editor as AGridLevelEditorActor
     participant Level as UGridLevelAsset
     participant Cell as FGridLevelCellData
 
-    User->>Mode: Paint Cell action
+    User->>Mode: Action Paint Cell
     Mode->>Editor: ApplyPrimaryToolAction()
-    Editor->>Editor: Check ActiveTool == PaintCell
+    Editor->>Editor: Vérifie ActiveTool == PaintCell
     Editor->>Level: GetCellMutable(X,Y)
-    Level-->>Editor: mutable cell
-    Editor->>Cell: Set CellType / Ceiling / BlocksOccupancy
+    Level-->>Editor: Cellule modifiable
+    Editor->>Cell: Applique CellType / Ceiling / BlocksOccupancy
     Editor->>Editor: RebuildPreview()
 ```
 
-### 9.4. Design rule
+### 9.4. Règle de conception
 
-Paint Cell must remain simple.
+Paint Cell doit rester simple.
 
-It should not contain logic for:
+Il ne doit pas contenir de logique liée :
 
-- items;
-- doors;
-- receptacles;
-- triggers;
-- runtime puzzles.
+- aux items ;
+- aux portes ;
+- aux réceptacles ;
+- aux triggers ;
+- aux énigmes runtime.
 
-It only writes cell data into `UGridLevelAsset`.
+Il écrit uniquement les données de cellule dans `UGridLevelAsset`.
 
 ---
 
 ## 10. Paint Wall
 
-### 10.1. Role
+### 10.1. Rôle
 
-Paint Wall modifies one edge of one selected cell.
+Paint Wall modifie un côté d’une cellule sélectionnée.
 
-It acts on:
+Il agit sur :
 
 ```text
 NorthWall
@@ -566,13 +570,13 @@ SouthWall
 WestWall
 ```
 
-### 10.2. Responsible editor class
+### 10.2. Classe éditrice responsable
 
 ```cpp
 AGridLevelEditorActor
 ```
 
-Relevant fields:
+Champs concernés :
 
 ```text
 PaintWallType
@@ -582,32 +586,32 @@ SelectedEdge
 ActiveTool
 ```
 
-Relevant tool enum:
+Outil concerné :
 
 ```cpp
 EGridEditorTool::PaintWall
 ```
 
-### 10.3. Conceptual flow
+### 10.3. Flux conceptuel
 
 ```mermaid
 sequenceDiagram
-    participant User as User
+    participant User as Utilisateur
     participant Mode as Grimrock Grid Editor Mode
     participant Editor as AGridLevelEditorActor
     participant Level as UGridLevelAsset
     participant Cell as FGridLevelCellData
 
-    User->>Mode: Paint Wall action
+    User->>Mode: Action Paint Wall
     Mode->>Editor: PaintSelectedWall()
-    Editor->>Editor: Read SelectedCellX/Y and SelectedEdge
+    Editor->>Editor: Lit SelectedCellX/Y et SelectedEdge
     Editor->>Level: GetCellMutable(X,Y)
-    Level-->>Editor: mutable cell
-    Editor->>Cell: Set North/East/South/West wall
+    Level-->>Editor: Cellule modifiable
+    Editor->>Cell: Modifie North/East/South/WestWall
     Editor->>Editor: RebuildPreview()
 ```
 
-### 10.4. Cell wall drawing
+### 10.4. Schéma d’un mur de cellule
 
 ```text
                   NorthWall
@@ -619,55 +623,55 @@ sequenceDiagram
                   SouthWall
 ```
 
-Legend:
+Légende :
 
 ```text
-█ = wall edge
+█ = bord muré
 ```
 
-### 10.5. Shared wall rule
+### 10.5. Règle des murs partagés
 
-A wall edge may be geometrically shared between two cells.
+Un mur peut être géométriquement partagé entre deux cellules.
 
-Example:
+Exemple :
 
 ```text
 Cell(X,Y).EastWall
 ```
 
-is the same physical boundary as:
+correspond physiquement à :
 
 ```text
 Cell(X+1,Y).WestWall
 ```
 
-The project must define and consistently apply one official rule:
+Le projet doit définir officiellement une seule règle :
 
 ```text
-Option A: Paint Wall modifies only the selected cell edge.
-Option B: Paint Wall also synchronizes the opposite edge of the neighboring cell.
+Option A : Paint Wall modifie uniquement le bord de la cellule sélectionnée.
+Option B : Paint Wall synchronise aussi le bord opposé de la cellule voisine.
 ```
 
-This rule must be enforced in:
+Cette règle doit être appliquée partout :
 
-- editor painting;
-- runtime wall lookup;
-- validation;
-- diagnostics;
-- future import/export systems.
+- peinture dans l’éditeur ;
+- lecture runtime des murs ;
+- validation ;
+- diagnostics ;
+- futurs systèmes d’import/export.
 
 ---
 
-## 11. Paint Cell vs Paint Wall
+## 11. Différence entre Paint Cell et Paint Wall
 
-### 11.1. Conceptual difference
+### 11.1. Différence conceptuelle
 
 ```text
-Paint Cell = modifies the square.
-Paint Wall = modifies one side of the square.
+Paint Cell = modifie la case.
+Paint Wall = modifie un côté de la case.
 ```
 
-### 11.2. Drawing
+### 11.2. Dessin
 
 ```text
 Paint Cell
@@ -675,7 +679,7 @@ Paint Cell
 
       ┌───────┐
       │███████│
-      │███████│   The cell interior changes.
+      │███████│   L’intérieur de la cellule change.
       │███████│
       └───────┘
 
@@ -685,34 +689,34 @@ Paint Wall
 
       ┌███████┐
       │       │
-      │       │   Only one edge changes.
+      │       │   Un seul bord change.
       │       │
       └───────┘
 ```
 
 ---
 
-## 12. `FGridLevelObjectData` in the core
+## 12. `FGridLevelObjectData` dans le noyau
 
-### 12.1. Role
+### 12.1. Rôle
 
-Objects are not documented in detail here, but their storage location must be clear.
+Les objets ne sont pas détaillés dans ce document, mais leur lieu de stockage doit être clair.
 
-A placed object is stored as data:
+Un objet placé est stocké comme donnée :
 
 ```cpp
 FGridLevelObjectData
 ```
 
-inside:
+dans :
 
 ```cpp
 UGridLevelAsset::Objects
 ```
 
-### 12.2. Important fields
+### 12.2. Champs importants
 
-Conceptually:
+Conceptuellement :
 
 ```text
 ObjectId
@@ -732,30 +736,30 @@ PaletteEntryId
 Behavior
 ```
 
-### 12.3. Core rule
+### 12.3. Règle du noyau
 
-A level does not directly store Blueprint actors.
+Un niveau ne stocke pas directement des acteurs Blueprint.
 
-It stores placed object data. Runtime actors are spawned later from those data.
+Il stocke des données d’objets placés. Les acteurs runtime sont générés plus tard à partir de ces données.
 
 ```text
-FGridLevelObjectData = persistent level data
-Runtime actor = generated execution object
+FGridLevelObjectData = donnée persistante du niveau
+Acteur runtime = objet d’exécution généré
 ```
 
 ---
 
-## 13. `FGridObjectLink` in the core
+## 13. `FGridObjectLink` dans le noyau
 
-### 13.1. Role
+### 13.1. Rôle
 
-Links are stored as level data.
+Les liens sont stockés comme données de niveau.
 
-They represent logical relations between placed objects.
+Ils représentent des relations logiques entre objets placés.
 
 ### 13.2. Structure
 
-Conceptually:
+Conceptuellement :
 
 ```text
 SourceObjectId
@@ -763,43 +767,43 @@ TargetObjectId
 SourceEvent
 Command
 Condition
-Condition parameters
+Paramètres de condition
 bInvertCondition
 ```
 
-### 13.3. Core rule
+### 13.3. Règle du noyau
 
-Links belong to the `UGridLevelAsset`.
+Les liens appartiennent au `UGridLevelAsset`.
 
-They should not be stored only inside Blueprint actors.
+Ils ne doivent pas être stockés uniquement dans des acteurs Blueprint.
 
-Detailed link behavior must be documented separately.
+Le comportement détaillé des liens doit être documenté dans un document séparé.
 
 ---
 
 ## 14. `AGridLevelEditorActor`
 
-### 14.1. Role
+### 14.1. Rôle
 
-`AGridLevelEditorActor` is the editor-side actor used to manipulate a `UGridLevelAsset`.
+`AGridLevelEditorActor` est l’acteur côté éditeur utilisé pour manipuler un `UGridLevelAsset`.
 
-It is not the source of truth.
+Il n’est pas la source de vérité.
 
-The source of truth is the `UGridLevelAsset`.
+La source de vérité reste le `UGridLevelAsset`.
 
-### 14.2. Class
+### 14.2. Classe
 
 ```cpp
 AGridLevelEditorActor
 ```
 
-Defined in:
+Fichier :
 
 ```text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridLevelEditorActor.h
 ```
 
-### 14.3. Main references
+### 14.3. Références principales
 
 ```text
 LevelAsset
@@ -808,7 +812,7 @@ CurrentDungeonLevelId
 PreviewRuntimeActor
 ```
 
-### 14.4. Selection state
+### 14.4. État de sélection
 
 ```text
 SelectedCellX
@@ -820,13 +824,13 @@ HoveredEdge
 HoveredObjectId
 ```
 
-### 14.5. Editor tools
+### 14.5. Outils d’édition
 
 ```cpp
 EGridEditorTool
 ```
 
-Contains:
+Contient :
 
 ```text
 Select
@@ -837,9 +841,9 @@ Erase
 Link
 ```
 
-### 14.6. Core editor functions
+### 14.6. Fonctions importantes du noyau
 
-Relevant functions include:
+Fonctions concernées :
 
 ```cpp
 EnsureLevelReady()
@@ -863,63 +867,63 @@ ValidateCurrentLevel()
 
 ## 15. Grimrock Grid Editor Mode
 
-### 15.1. Role
+### 15.1. Rôle
 
-Grimrock Grid Editor Mode is the Unreal Editor tool layer.
+`Grimrock Grid Editor Mode` est la couche outil dans l’éditeur Unreal.
 
-It provides the user interface and viewport interaction for editing the level.
+Il fournit l’interface utilisateur et les interactions de viewport pour éditer le niveau.
 
-It should call into `AGridLevelEditorActor` instead of duplicating level-editing logic.
+Il doit appeler `AGridLevelEditorActor` plutôt que dupliquer la logique de modification du niveau.
 
-### 15.2. Editor flow
+### 15.2. Flux éditeur
 
 ```mermaid
 flowchart TD
-    A[User] --> B[Grimrock Grid Editor Mode]
+    A[Utilisateur] --> B[Grimrock Grid Editor Mode]
     B --> C[AGridLevelEditorActor]
     C --> D[UGridLevelAsset]
     C --> E[Preview Runtime Actor]
-    E --> F[Editor visual preview]
+    E --> F[Aperçu visuel éditeur]
 ```
 
-### 15.3. Design rule
+### 15.3. Règle de conception
 
-The Editor Mode should be treated as UI/tooling.
+L’Editor Mode doit être considéré comme une couche d’interface et d’outillage.
 
-It should not become a second storage layer for level data.
+Il ne doit pas devenir une seconde couche de stockage des données du niveau.
 
 ---
 
 ## 16. `AGridLevelRuntimeActor`
 
-### 16.1. Role
+### 16.1. Rôle
 
-`AGridLevelRuntimeActor` reads a `UGridLevelAsset` and builds the playable level.
+`AGridLevelRuntimeActor` lit un `UGridLevelAsset` et construit le niveau jouable.
 
-It is responsible for:
+Il est responsable :
 
-- runtime geometry;
-- floors;
-- walls;
-- ceilings;
-- object spawning;
-- runtime lookup helpers;
-- movement checks;
-- interaction routing.
+- de la géométrie runtime ;
+- des sols ;
+- des murs ;
+- des plafonds ;
+- du spawn des objets runtime ;
+- des fonctions d’aide runtime ;
+- des vérifications de déplacement ;
+- du routage d’interaction de base.
 
-### 16.2. Class
+### 16.2. Classe
 
 ```cpp
 AGridLevelRuntimeActor
 ```
 
-Defined in:
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h
 ```
 
-### 16.3. Main references
+### 16.3. Références principales
 
 ```text
 LevelAsset
@@ -931,7 +935,7 @@ WallMesh
 CeilingMesh
 ```
 
-### 16.4. Runtime geometry components
+### 16.4. Composants de géométrie runtime
 
 ```text
 FloorISM
@@ -939,11 +943,11 @@ WallISM
 CeilingISM
 ```
 
-These are instanced static mesh components used to render repeated geometry efficiently.
+Ce sont des composants d’instances statiques utilisés pour rendre efficacement la géométrie répétée.
 
-### 16.5. Core functions
+### 16.5. Fonctions importantes
 
-Relevant functions include:
+Fonctions concernées :
 
 ```cpp
 RebuildLevel()
@@ -962,7 +966,7 @@ AddRuntimeObjectActor()
 FindObjectArchetype()
 ```
 
-### 16.6. Runtime generation flow
+### 16.6. Flux de génération runtime
 
 ```mermaid
 flowchart TD
@@ -970,35 +974,35 @@ flowchart TD
     B --> C[ClearVisuals]
     B --> D[RebuildLevel]
 
-    D --> E[Iterate Cells]
+    D --> E[Parcours des Cells]
     E --> F[AddFloor]
     E --> G[AddCeiling]
-    E --> H[AddEdgeInstance for walls]
+    E --> H[AddEdgeInstance pour les murs]
 
-    D --> I[Iterate Objects]
-    I --> J[Spawn Runtime Object Actors]
+    D --> I[Parcours des Objects]
+    I --> J[Spawn des acteurs runtime]
 ```
 
 ---
 
-## 17. Complete lifecycle of a level
+## 17. Cycle de vie complet d’un niveau
 
 ```mermaid
 flowchart TD
-    A[Create UGridDungeonAsset] --> B[Create UGridLevelAsset]
-    B --> C[Add level entry to DungeonAsset]
-    C --> D[Open level in Grid Editor Mode]
+    A[Créer UGridDungeonAsset] --> B[Créer UGridLevelAsset]
+    B --> C[Ajouter une entrée de niveau au DungeonAsset]
+    C --> D[Ouvrir le niveau dans Grimrock Grid Editor Mode]
     D --> E[Paint Cell]
     E --> F[Paint Wall]
-    F --> G[Save LevelAsset]
-    G --> H[Load LevelAsset in RuntimeActor]
+    F --> G[Sauvegarder le LevelAsset]
+    G --> H[Charger le LevelAsset dans le RuntimeActor]
     H --> I[RebuildLevel]
-    I --> J[Playable level]
+    I --> J[Niveau jouable]
 ```
 
 ---
 
-## 18. Full class diagram
+## 18. Diagramme de classes complet
 
 ```mermaid
 classDiagram
@@ -1094,11 +1098,11 @@ classDiagram
         CanMove()
     }
 
-    UGridDungeonAsset "1" o-- "many" FGridDungeonLevelEntry
-    FGridDungeonLevelEntry "many" --> "1" UGridLevelAsset
-    UGridLevelAsset "1" o-- "many" FGridLevelCellData
-    UGridLevelAsset "1" o-- "many" FGridLevelObjectData
-    UGridLevelAsset "1" o-- "many" FGridObjectLink
+    UGridDungeonAsset "1" o-- "plusieurs" FGridDungeonLevelEntry
+    FGridDungeonLevelEntry "plusieurs" --> "1" UGridLevelAsset
+    UGridLevelAsset "1" o-- "plusieurs" FGridLevelCellData
+    UGridLevelAsset "1" o-- "plusieurs" FGridLevelObjectData
+    UGridLevelAsset "1" o-- "plusieurs" FGridObjectLink
     AGridLevelEditorActor --> UGridLevelAsset
     AGridLevelEditorActor --> UGridDungeonAsset
     AGridLevelRuntimeActor --> UGridLevelAsset
@@ -1107,14 +1111,14 @@ classDiagram
 
 ---
 
-## 19. Responsibility diagram
+## 19. Diagramme des responsabilités
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                         DATA                                │
+│                         DONNÉES                             │
 │                                                             │
 │  UGridDungeonAsset                                          │
-│    └─ lists dungeon levels                                  │
+│    └─ liste les niveaux du donjon                           │
 │                                                             │
 │  UGridLevelAsset                                            │
 │    ├─ Cells                                                 │
@@ -1123,227 +1127,227 @@ classDiagram
 └─────────────────────────────────────────────────────────────┘
 
                          │
-                         │ edited by
+                         │ édité par
                          ▼
 
 ┌─────────────────────────────────────────────────────────────┐
-│                         EDITOR                              │
+│                         ÉDITEUR                             │
 │                                                             │
 │  AGridLevelEditorActor                                      │
-│    ├─ selected cell / selected edge                         │
+│    ├─ cellule sélectionnée / edge sélectionné               │
 │    ├─ Paint Cell                                            │
 │    ├─ Paint Wall                                            │
 │    └─ Rebuild Preview                                       │
 │                                                             │
 │  Grimrock Grid Editor Mode                                  │
-│    └─ user interface / viewport tools                       │
+│    └─ interface utilisateur / outils viewport               │
 └─────────────────────────────────────────────────────────────┘
 
                          │
-                         │ read by
+                         │ lu par
                          ▼
 
 ┌─────────────────────────────────────────────────────────────┐
 │                         RUNTIME                             │
 │                                                             │
 │  AGridLevelRuntimeActor                                     │
-│    ├─ reads Cells                                           │
-│    ├─ generates FloorISM                                    │
-│    ├─ generates WallISM                                     │
-│    ├─ generates CeilingISM                                  │
-│    └─ prepares movement / interactions                      │
+│    ├─ lit Cells                                             │
+│    ├─ génère FloorISM                                       │
+│    ├─ génère WallISM                                        │
+│    ├─ génère CeilingISM                                     │
+│    └─ prépare déplacement / interactions                    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 20. Recommended illustrations
+## 20. Illustrations recommandées
 
-The following illustrations should be produced and stored in `docs/Images/` later.
+Les illustrations suivantes devraient ensuite être produites et stockées dans `docs/Images/`.
 
-### 20.1. Illustration: Dungeon as a binder
+### 20.1. Illustration : le donjon comme classeur
 
-Description:
+Description :
 
 ```text
-A large binder labeled GridDungeonAsset.
-Inside it, several tabs:
+Un grand classeur intitulé GridDungeonAsset.
+À l’intérieur, plusieurs intercalaires :
 - Floor_00
 - Floor_01
 - Floor_02
-Each tab points to a GridLevelAsset map.
+Chaque intercalaire pointe vers une carte GridLevelAsset.
 ```
 
-Purpose:
+But :
 
 ```text
-Show that DungeonAsset organizes levels but does not store the grid directly.
+Montrer que DungeonAsset organise les niveaux mais ne stocke pas directement la grille.
 ```
 
-### 20.2. Illustration: Level as a grid map
+### 20.2. Illustration : le niveau comme carte quadrillée
 
-Description:
+Description :
 
 ```text
-A top-down 32x32 grid map.
-Some cells are painted as floor.
-Some edges are painted as walls.
-A start marker indicates StartCell and StartFacing.
+Une carte vue du dessus en grille 32x32.
+Certaines cellules sont peintes comme sol.
+Certains bords sont peints comme murs.
+Un marqueur indique StartCell et StartFacing.
 ```
 
-Purpose:
+But :
 
 ```text
-Show that GridLevelAsset stores cells, walls, start position, objects and links.
+Montrer que GridLevelAsset stocke cellules, murs, position de départ, objets et liens.
 ```
 
-### 20.3. Illustration: One cell with four walls
+### 20.3. Illustration : une cellule et ses quatre murs
 
-Description:
+Description :
 
 ```text
-A single square cell.
-Center label: CellType.
-Four side labels: NorthWall, EastWall, SouthWall, WestWall.
-Top label: bHasCeiling.
-Bottom label: bBlocksOccupancy.
+Une case carrée isolée.
+Au centre : CellType.
+Sur les quatre côtés : NorthWall, EastWall, SouthWall, WestWall.
+Au-dessus : bHasCeiling.
+En dessous : bBlocksOccupancy.
 ```
 
-Purpose:
+But :
 
 ```text
-Explain the difference between Paint Cell and Paint Wall.
+Expliquer la différence entre Paint Cell et Paint Wall.
 ```
 
-### 20.4. Illustration: Editor flow
+### 20.4. Illustration : flux éditeur
 
-Description:
+Description :
 
 ```text
-User -> Grimrock Grid Editor Mode -> AGridLevelEditorActor -> GridLevelAsset -> Preview Runtime Actor
+Utilisateur -> Grimrock Grid Editor Mode -> AGridLevelEditorActor -> GridLevelAsset -> Preview Runtime Actor
 ```
 
-Purpose:
+But :
 
 ```text
-Show that the editor modifies level data and then rebuilds a visual preview.
+Montrer que l’éditeur modifie les données du niveau puis reconstruit un aperçu.
 ```
 
-### 20.5. Illustration: Runtime flow
+### 20.5. Illustration : flux runtime
 
-Description:
+Description :
 
 ```text
-GridLevelAsset -> AGridLevelRuntimeActor -> FloorISM / WallISM / CeilingISM -> Playable Level
+GridLevelAsset -> AGridLevelRuntimeActor -> FloorISM / WallISM / CeilingISM -> Niveau jouable
 ```
 
-Purpose:
+But :
 
 ```text
-Show that runtime reads level data and generates playable geometry.
+Montrer que le runtime lit les données du niveau et génère la géométrie jouable.
 ```
 
 ---
 
-## 21. Core architecture rules
+## 21. Règles d’architecture du noyau
 
-### Rule 1 — DataAssets are the persistent source of truth
+### Règle 1 — Les DataAssets sont la source persistante
 
-Persistent dungeon data should live in:
+Les données durables du donjon doivent vivre dans :
 
 ```text
 UGridDungeonAsset
 UGridLevelAsset
 ```
 
-not in arbitrary map actors, unless explicitly documented.
+et non dans des acteurs arbitraires placés dans une map Unreal, sauf cas explicitement documenté.
 
-### Rule 2 — Editor actors edit assets
+### Règle 2 — Les acteurs éditeur modifient les assets
 
-`AGridLevelEditorActor` modifies `UGridLevelAsset` data.
+`AGridLevelEditorActor` modifie les données de `UGridLevelAsset`.
 
-It must not become a second source of truth.
+Il ne doit pas devenir une deuxième source de vérité.
 
-### Rule 3 — Runtime actors read assets
+### Règle 3 — Les acteurs runtime lisent les assets
 
-`AGridLevelRuntimeActor` reads `UGridLevelAsset` and generates runtime geometry.
+`AGridLevelRuntimeActor` lit `UGridLevelAsset` et génère la géométrie runtime.
 
-It should not be treated as the main persistent editor of level data.
+Il ne doit pas être traité comme l’éditeur principal des données persistantes.
 
-### Rule 4 — Paint Cell and Paint Wall must remain simple
+### Règle 4 — Paint Cell et Paint Wall doivent rester simples
 
-Paint Cell writes cell data.
+Paint Cell écrit des données de cellule.
 
-Paint Wall writes wall data.
+Paint Wall écrit des données de mur.
 
-They must not contain gameplay object logic.
+Ils ne doivent pas contenir de logique d’objets de gameplay.
 
-### Rule 5 — Coordinate conversion must be centralized
+### Règle 5 — La conversion de coordonnées doit être centralisée
 
-Grid-to-world conversion should use runtime/editor helper functions.
+La conversion grille -> monde doit passer par les fonctions d’aide prévues.
 
-Do not duplicate conversion formulas in many systems.
+Il ne faut pas dupliquer des formules de conversion dans plusieurs systèmes.
 
-### Rule 6 — Shared wall behavior must be official
+### Règle 6 — Le comportement des murs partagés doit être officiel
 
-The project must decide whether painting one wall also updates the opposite wall of the neighboring cell.
+Le projet doit décider si peindre un mur met aussi à jour le mur opposé de la cellule voisine.
 
-This rule must be implemented consistently everywhere.
+Cette règle doit être appliquée partout.
 
-### Rule 7 — Data copy vs data reference must be explicit
+### Règle 7 — Copie de donnée et référence doivent être explicites
 
-Whenever editor code copies data from a source asset into placed level data, this must be documented.
+Quand le code éditeur copie des données depuis un asset source vers des données placées dans le niveau, cela doit être documenté.
 
-If data is an override, the editor should eventually expose it as such.
+Si une donnée est un override local, l’éditeur devrait à terme l’afficher comme tel.
 
 ---
 
-## 22. Core validation checklist
+## 22. Checklist de validation du noyau
 
-A core level validation tool should eventually verify:
+Un outil de validation du noyau devrait vérifier :
 
 ```text
-Dungeon:
-- DefaultLevelId is valid.
-- All enabled level entries have a valid LevelAsset.
-- LevelIds are unique.
+Donjon :
+- DefaultLevelId est valide.
+- Tous les niveaux activés ont un LevelAsset valide.
+- Les LevelId sont uniques.
 
-Level:
+Niveau :
 - Width > 0.
 - Height > 0.
 - CellSize > 0.
 - Cells.Num == Width * Height.
-- StartCell is inside bounds.
-- StartCell is walkable.
+- StartCell est dans les limites.
+- StartCell est jouable.
 
-Cells:
-- Cell data is valid.
-- Wall data uses known enum values.
-- Shared walls are coherent if synchronization is required.
+Cellules :
+- Les données de cellule sont valides.
+- Les murs utilisent des valeurs d’énumération connues.
+- Les murs partagés sont cohérents si la synchronisation est requise.
 
-Objects:
-- ObjectIds are valid.
-- Object coordinates are inside bounds.
-- Object edge placement is coherent.
+Objets :
+- Les ObjectId sont valides.
+- Les coordonnées d’objet sont dans les limites.
+- Le placement sur edge est cohérent.
 
-Links:
-- SourceObjectId exists.
-- TargetObjectId exists.
+Liens :
+- SourceObjectId existe.
+- TargetObjectId existe.
 ```
 
 ---
 
-## 23. Workflow: create a new dungeon
+## 23. Workflow : créer un nouveau donjon
 
-### Step 1 — Create the dungeon asset
+### Étape 1 — Créer le DungeonAsset
 
-Create:
+Créer :
 
 ```text
-DA_Dungeon_MyDungeon
+DA_Dungeon_MonDonjon
 ```
 
-Configure:
+Configurer :
 
 ```text
 DungeonName
@@ -1352,15 +1356,15 @@ Version
 DefaultLevelId
 ```
 
-### Step 2 — Create the first level asset
+### Étape 2 — Créer le premier LevelAsset
 
-Create:
+Créer :
 
 ```text
-DA_Level_MyDungeon_00
+DA_Level_MonDonjon_00
 ```
 
-Configure:
+Configurer :
 
 ```text
 Width = 32
@@ -1371,124 +1375,124 @@ StartCellY
 StartFacing
 ```
 
-### Step 3 — Add the level to the dungeon
+### Étape 3 — Ajouter le niveau au donjon
 
-Add an entry to `DA_Dungeon_MyDungeon`:
+Ajouter une entrée dans `DA_Dungeon_MonDonjon` :
 
 ```text
 LevelId = Floor_00
-DisplayName = Entrance
-LevelAsset = DA_Level_MyDungeon_00
+DisplayName = Entrée
+LevelAsset = DA_Level_MonDonjon_00
 LogicalPosition = 0,0,0
 bEnabled = true
 ```
 
-Set:
+Définir :
 
 ```text
 DefaultLevelId = Floor_00
 ```
 
-### Step 4 — Open the level in the editor
+### Étape 4 — Ouvrir le niveau dans l’éditeur
 
-In the editor map, configure:
+Dans la map d’édition, configurer :
 
 ```text
 BP_GridLevelEditorActor
-  DungeonAsset = DA_Dungeon_MyDungeon
+  DungeonAsset = DA_Dungeon_MonDonjon
   CurrentDungeonLevelId = Floor_00
 ```
 
-Then apply the current dungeon level.
+Puis appliquer le niveau courant.
 
-### Step 5 — Paint cells
+### Étape 5 — Peindre les cellules
 
-Use Paint Cell to create floor areas.
+Utiliser Paint Cell pour créer les zones de sol.
 
-### Step 6 — Paint walls
+### Étape 6 — Peindre les murs
 
-Use Paint Wall to define boundaries and room separation.
+Utiliser Paint Wall pour définir les limites et les séparations de pièces.
 
-### Step 7 — Save
+### Étape 7 — Sauvegarder
 
-Save:
+Sauvegarder :
 
 ```text
 GridDungeonAsset
 GridLevelAsset
-Editor map, if needed
+Map d’édition, si nécessaire
 ```
 
 ---
 
-## 24. Workflow: add a level to an existing dungeon
+## 24. Workflow : ajouter un niveau à un donjon existant
 
-1. Create a new `UGridLevelAsset`.
-2. Add a new `FGridDungeonLevelEntry` to the dungeon asset.
-3. Assign a unique `LevelId`.
-4. Assign the new level asset.
-5. Apply the new level in `AGridLevelEditorActor`.
-6. Paint cells and walls.
-7. Save the dungeon and level assets.
-
----
-
-## 25. Workflow: remove a level from a dungeon
-
-1. Open the `UGridDungeonAsset`.
-2. Remove the corresponding `FGridDungeonLevelEntry`.
-3. If it was the default level, update `DefaultLevelId`.
-4. Save the dungeon asset.
-5. Delete the `UGridLevelAsset` only if the level must be permanently removed from the project.
-6. Check editor and runtime maps for stale references.
+1. Créer un nouveau `UGridLevelAsset`.
+2. Ajouter un nouveau `FGridDungeonLevelEntry` dans le DungeonAsset.
+3. Choisir un `LevelId` unique.
+4. Assigner le nouveau LevelAsset.
+5. Appliquer ce niveau dans `AGridLevelEditorActor`.
+6. Peindre cellules et murs.
+7. Sauvegarder le DungeonAsset et le LevelAsset.
 
 ---
 
-## 26. Core summary
+## 25. Workflow : supprimer un niveau d’un donjon
 
-The foundational architecture is:
+1. Ouvrir le `UGridDungeonAsset`.
+2. Supprimer l’entrée `FGridDungeonLevelEntry` correspondante.
+3. Si ce niveau était le niveau par défaut, modifier `DefaultLevelId`.
+4. Sauvegarder le DungeonAsset.
+5. Supprimer le `UGridLevelAsset` uniquement si le niveau doit vraiment disparaître du projet.
+6. Vérifier les maps éditeur et runtime afin d’éliminer les références obsolètes.
+
+---
+
+## 26. Résumé du noyau
+
+L’architecture de base est :
 
 ```text
 UGridDungeonAsset
-  organizes dungeon levels.
+  organise les niveaux du donjon.
 
 UGridLevelAsset
-  stores a level grid, cells, objects, links and start position.
+  stocke la grille, les cellules, les objets, les liens et le départ du niveau.
 
 FGridLevelCellData
-  stores one cell and its four walls.
+  stocke une cellule et ses quatre murs.
 
 FGridLevelObjectData
-  stores one placed object as data.
+  stocke un objet placé sous forme de donnée.
 
 FGridObjectLink
-  stores a logical relation between two placed objects.
+  stocke une relation logique entre deux objets placés.
 
 AGridLevelEditorActor
-  edits the level asset.
+  édite le LevelAsset.
 
 Grimrock Grid Editor Mode
-  provides the editor UI/tooling.
+  fournit l’interface et les outils d’édition.
 
 AGridLevelRuntimeActor
-  reads the level asset and generates the playable level.
+  lit le LevelAsset et génère le niveau jouable.
 ```
 
-The core rule is:
+La règle centrale est :
 
 ```text
-Clear persistent data
-→ controlled editor modifications
-→ generated runtime world
+Donnée persistante claire
+→ modification contrôlée par l’éditeur
+→ monde runtime généré
 ```
 
-All future systems must respect this separation.
+Tous les futurs systèmes doivent respecter cette séparation.
 
 ---
 
-## 27. Next documentation steps
+## 27. Prochaines documentations à rédiger
 
-After this core document, the following documents should be created:
+Après ce document noyau, les documents suivants devraient être créés :
 
 ```text
 OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md
@@ -1499,12 +1503,12 @@ ITEM_AND_INVENTORY_ARCHITECTURE.md
 LINKS_EVENTS_COMMANDS_CONDITIONS.md
 ```
 
-Each new gameplay system must explicitly state:
+Chaque nouveau système de gameplay devra répondre explicitement aux questions suivantes :
 
 ```text
-What is stored in DataAssets?
-What is copied into LevelAsset?
-What is provided by Blueprint actors?
-What is generated at runtime?
-What is edited by Grimrock Grid Editor Mode?
+Qu’est-ce qui est stocké dans les DataAssets ?
+Qu’est-ce qui est copié dans le LevelAsset ?
+Qu’est-ce qui est fourni par les Blueprints ?
+Qu’est-ce qui est généré au runtime ?
+Qu’est-ce qui est modifié par Grimrock Grid Editor Mode ?
 ```
