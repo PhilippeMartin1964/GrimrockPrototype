@@ -16,6 +16,28 @@ namespace
 {
     static constexpr float MultiItemVisualSpacing = 18.0f;
 
+    FString JoinNames (const TArray<FName>& Names)
+    {
+        TArray<FString> Values;
+        Values.Reserve (Names.Num ());
+        for (const FName Name : Names)
+        {
+            Values.Add (Name.ToString ());
+        }
+        return FString::Join (Values, TEXT (","));
+    }
+
+    FString JoinItemTypes (const TArray<EGridItemType>& ItemTypes)
+    {
+        TArray<FString> Values;
+        Values.Reserve (ItemTypes.Num ());
+        for (const EGridItemType ItemType : ItemTypes)
+        {
+            Values.Add (UEnum::GetValueAsString (ItemType));
+        }
+        return FString::Join (Values, TEXT (","));
+    }
+
     FName ResolveDefinitionId (const UGridItemDefinitionAsset* Definition, FName FallbackId)
     {
         if (Definition && !Definition->ItemDefinitionId.IsNone ())
@@ -268,6 +290,24 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
         ContainedItems.Num (),
         InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
         *InitialContainedItemArchetypeId.ToString ());
+    UE_LOG (LogTemp, Warning,
+        TEXT ("GridReceptacle Diagnostic Initialize ObjectId=%s ActorClass=%s ArchetypeId=%s ObjectData.Type=%s ObjectData.Tag=%s "
+            "AcceptAny=%s AcceptedItemTags=[%s] AcceptedArchetypeIds=[%s] RejectedItemArchetypeIds=[%s] "
+            "MaxContainedItems=%d UsePhysicalPlacement=%s VisualPlacementMode=%s ItemPolicy=%s ContainedItemActorClass=%s"),
+        *ObjectId.ToString (),
+        *GetClass ()->GetPathName (),
+        *ObjectData.ArchetypeId.ToString (),
+        *UEnum::GetValueAsString (ObjectData.Type),
+        *ObjectData.Tag.ToString (),
+        bAcceptAnyItem ? TEXT ("true") : TEXT ("false"),
+        *JoinNames (AcceptedItemTags),
+        *JoinNames (Params.AcceptedArchetypeIds),
+        *JoinNames (Params.RejectedItemArchetypeIds),
+        MaxContainedItems,
+        bUsePhysicalPlacement ? TEXT ("true") : TEXT ("false"),
+        *UEnum::GetValueAsString (VisualPlacementMode),
+        *UEnum::GetValueAsString (ItemPolicy),
+        ContainedItemActorClass ? *ContainedItemActorClass->GetPathName () : TEXT ("None"));
 
     if (!bInitialItemsInitialized)
     {
@@ -404,35 +444,70 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
 {
     OutResult = FGridReceptacleAcceptanceResult ();
 
-    auto Reject = [this, &Item, &OutResult] (EGridReceptacleRejectReason Reason)
+    const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ());
+    const UGridItemDefinitionAsset* ItemDefinition = RuntimeActor
+        ? RuntimeActor->ResolveRuntimeItemDefinition (Item.ItemDefinitionId)
+        : nullptr;
+    if (!ItemDefinition)
+    {
+        const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (UGameplayStatics::GetPlayerPawn (this, 0));
+        if (PartyPawn && PartyPawn->PartyInventoryComponent)
+        {
+            ItemDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition (Item.ItemDefinitionId);
+        }
+    }
+
+    auto LogDiagnostic = [this, &Item, ItemDefinition] (const TCHAR* Outcome, const FString& Decision)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
+                "AcceptAny=%s CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
+                "ItemDefinitionId=%s RuntimeObjectId=%s ItemDefinitionResolved=%s ItemDefinition=%s "
+                "ItemTags=[%s] ItemType=%s AcceptedItemTags=[%s] AcceptedItemTypes=[%s] "
+                "AcceptedItemDefinitionIds=[%s] RejectedItemDefinitionIds=[%s] %s"),
+            Outcome,
+            *GetName (),
+            *ObjectId.ToString (),
+            *GetClass ()->GetPathName (),
+            bAcceptAnyItem ? TEXT ("true") : TEXT ("false"),
+            bCanInsertItem ? TEXT ("true") : TEXT ("false"),
+            ContainedItems.Num (),
+            MaxContainedItems,
+            *UEnum::GetValueAsString (ItemPolicy),
+            *Item.ItemDefinitionId.ToString (),
+            *Item.RuntimeObjectId.ToString (),
+            ItemDefinition ? TEXT ("true") : TEXT ("false"),
+            ItemDefinition ? *ItemDefinition->GetPathName () : TEXT ("None"),
+            ItemDefinition ? *JoinNames (ItemDefinition->ItemTags) : TEXT (""),
+            ItemDefinition ? *UEnum::GetValueAsString (ItemDefinition->ItemType) : TEXT ("Unresolved"),
+            *JoinNames (AcceptedItemTags),
+            *JoinItemTypes (AcceptedItemTypes),
+            *JoinNames (AcceptedItemDefinitionIds),
+            *JoinNames (RejectedItemDefinitionIds),
+            *Decision);
+    };
+
+    auto Reject = [this, &Item, &OutResult, &LogDiagnostic] (EGridReceptacleRejectReason Reason)
     {
         OutResult.bAccepted = false;
         OutResult.RejectReason = Reason;
-        UE_LOG (LogTemp, Verbose,
-            TEXT ("GridReceptacle ItemRejected Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s Reason=%s Count=%d Max=%d"),
-            *GetName (),
-            *ObjectId.ToString (),
-            *Item.ItemDefinitionId.ToString (),
-            *Item.RuntimeObjectId.ToString (),
-            GetRejectReasonName (Reason),
-            ContainedItems.Num (),
-            MaxContainedItems);
+        LogDiagnostic (
+            TEXT ("Rejected"),
+            FString::Printf (TEXT ("RejectReason=%s"), GetRejectReasonName (Reason)));
         return false;
     };
 
-    auto Accept = [this, &Item, &OutResult] (FName MatchedRule, const FString& MatchedValue)
+    auto Accept = [&OutResult, &LogDiagnostic] (FName MatchedRule, const FString& MatchedValue)
     {
         OutResult.bAccepted = true;
         OutResult.RejectReason = EGridReceptacleRejectReason::None;
         OutResult.MatchedRule = MatchedRule;
-        UE_LOG (LogTemp, Verbose,
-            TEXT ("GridReceptacle ItemAccepted Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s Rule=\"%s\" MatchedValue=%s"),
-            *GetName (),
-            *ObjectId.ToString (),
-            *Item.ItemDefinitionId.ToString (),
-            *Item.RuntimeObjectId.ToString (),
-            *MatchedRule.ToString (),
-            *MatchedValue);
+        LogDiagnostic (
+            TEXT ("Accepted"),
+            FString::Printf (
+                TEXT ("MatchedRule=\"%s\" MatchedValue=%s"),
+                *MatchedRule.ToString (),
+                *MatchedValue));
         return true;
     };
 
@@ -465,18 +540,6 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
         return Accept (TEXT ("accepted by definition id"), Item.ItemDefinitionId.ToString ());
     }
 
-    const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ());
-    const UGridItemDefinitionAsset* ItemDefinition = RuntimeActor
-        ? RuntimeActor->ResolveRuntimeItemDefinition (Item.ItemDefinitionId)
-        : nullptr;
-    if (!ItemDefinition)
-    {
-        const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (UGameplayStatics::GetPlayerPawn (this, 0));
-        if (PartyPawn && PartyPawn->PartyInventoryComponent)
-        {
-            ItemDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition (Item.ItemDefinitionId);
-        }
-    }
     if (ItemDefinition)
     {
         for (const FName AcceptedTag : AcceptedItemTags)

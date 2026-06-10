@@ -2525,12 +2525,18 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     UStaticMesh* Mesh = nullptr;
     UMaterialInterface* Material = nullptr;
     FTransform Transform;
+    const TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass = GetObjectRuntimeActorClass (ObjectData);
     AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
-    UE_LOG (LogTemp, Verbose, TEXT ("Runtime object: Type=%d Archetype=%s Tag=%s Id=%s"),
-        static_cast<int32>(ObjectData.Type),
+    UE_LOG (LogTemp, Warning,
+        TEXT ("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s ArchetypeId=%s ObjectData.Type=%s "
+            "RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
+        *ObjectData.ObjectId.ToString (),
         *ObjectData.ArchetypeId.ToString (),
-        *ObjectData.Tag.ToString (),
-        *ObjectData.ObjectId.ToString ());
+        *UEnum::GetValueAsString (ObjectData.Type),
+        RuntimeActorClass ? *RuntimeActorClass->GetPathName () : TEXT ("None"),
+        Actor ? *Actor->GetClass ()->GetPathName () : TEXT ("None"),
+        Mesh ? *Mesh->GetPathName () : TEXT ("None"),
+        *Transform.ToHumanReadableString ());
     if (!Actor) return;
     FGridLevelObjectData RuntimeObjectData = ObjectData;
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
