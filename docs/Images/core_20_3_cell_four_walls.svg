@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Une cellule et ses quatre murs</title>
+  <desc id="desc">Illustration d’une cellule FGridLevelCellData avec CellType, quatre murs, plafond et blocage d’occupation.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.label{font:700 24px Arial,sans-serif;fill:#2c1e18}.small{font:18px Arial,sans-serif;fill:#2c1e18}.code{font:700 19px Consolas,monospace;fill:#2c1e18}.cell{fill:#d7e8cf;stroke:#6d855f;stroke-width:3}.wall{stroke:#3a211b;stroke-width:18;stroke-linecap:square}.dash{stroke:#5b4636;stroke-width:3;stroke-dasharray:8 8}.panel{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.badge{fill:#e8c27a;stroke:#5b4636;stroke-width:2}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Une cellule et ses quatre murs</text>
+  <text class="note" x="60" y="105">FGridLevelCellData stocke l’intérieur de la case et l’état de ses quatre bords.</text>
+
+  <rect class="panel" x="95" y="145" width="650" height="500" rx="22"/>
+  <g transform="translate(285,255)">
+    <rect class="cell" x="0" y="0" width="270" height="220" rx="10"/>
+    <line class="wall" x1="0" y1="0" x2="270" y2="0"/>
+    <line class="wall" x1="270" y1="0" x2="270" y2="220"/>
+    <line class="wall" x1="0" y1="220" x2="270" y2="220"/>
+    <line class="wall" x1="0" y1="0" x2="0" y2="220"/>
+    <text class="label" x="65" y="102">Cell X,Y</text>
+    <text class="code" x="74" y="138">CellType</text>
+  </g>
+
+  <text class="code" x="360" y="220">NorthWall</text>
+  <path class="arrow" d="M420 230 L420 255"/>
+  <text class="code" x="590" y="370">EastWall</text>
+  <path class="arrow" d="M585 370 L555 370"/>
+  <text class="code" x="356" y="520">SouthWall</text>
+  <path class="arrow" d="M420 500 L420 475"/>
+  <text class="code" x="145" y="370">WestWall</text>
+  <path class="arrow" d="M255 370 L285 370"/>
+
+  <rect class="badge" x="300" y="150" width="240" height="46" rx="10"/>
+  <text class="code" x="326" y="180">bHasCeiling</text>
+  <path class="dash" d="M420 196 V245"/>
+
+  <rect class="badge" x="280" y="570" width="280" height="46" rx="10"/>
+  <text class="code" x="302" y="600">bBlocksOccupancy</text>
+  <path class="dash" d="M420 570 V485"/>
+
+  <rect class="panel" x="790" y="175" width="330" height="390" rx="18"/>
+  <text class="label" x="820" y="220">Données stockées</text>
+  <text class="code" x="825" y="270">CellType</text>
+  <text class="code" x="825" y="310">NorthWall</text>
+  <text class="code" x="825" y="350">EastWall</text>
+  <text class="code" x="825" y="390">SouthWall</text>
+  <text class="code" x="825" y="430">WestWall</text>
+  <text class="code" x="825" y="470">bHasCeiling</text>
+  <text class="code" x="825" y="510">bBlocksOccupancy</text>
+</svg>
