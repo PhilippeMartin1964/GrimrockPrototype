@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Runtime/GridInteractionUtils.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -276,8 +277,11 @@ bool AGridDoorActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimiti
     }
 
     const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    const AGridLevelRuntimeActor* RuntimeActor =
+        GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
     return PartyPawn &&
-        MatchesCell (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+        RuntimeActor &&
+        RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn);
 }
 
 void AGridDoorActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)

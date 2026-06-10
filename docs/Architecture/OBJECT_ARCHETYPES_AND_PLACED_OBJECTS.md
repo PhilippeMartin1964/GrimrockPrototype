@@ -12,6 +12,9 @@ Ce document décrit le système existant qui relie :
 
 Il ne définit pas de nouvelle mécanique de gameplay. Les items, réceptacles, portes et liens ne sont cités que pour expliquer le contrat commun des objets placés.
 
+Les règles de sélection et de clic runtime sont documentées séparément dans
+`docs/Architecture/MOUSE_INTERACTION_FOUNDATION.md`.
+
 ## 2. Vocabulaire
 
 **Archétype** : `UGridObjectArchetypeAsset`, modèle partagé qui décrit identité, type fonctionnel, placement, visuels, classe runtime et valeurs par défaut.

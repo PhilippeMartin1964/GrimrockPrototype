@@ -94,56 +94,6 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
     if (bHasCursorItem)
     {
-        if (PartyPawn->LevelRuntimeActor)
-        {
-            AGridReceptacleActor* FacingReceptacle =
-                PartyPawn->LevelRuntimeActor->FindReceptacleAtEdge (
-                    PartyPawn->CurrentCellX,
-                    PartyPawn->CurrentCellY,
-                    PartyPawn->Facing);
-            if (FacingReceptacle)
-            {
-                UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop GridFacingReceptacle Target=%s"),
-                    *GetNameSafe (FacingReceptacle));
-
-                if (FacingReceptacle->IsFull ())
-                {
-                    UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=ReceptacleFull Target=%s"),
-                        *GetNameSafe (FacingReceptacle));
-                    SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-                    return;
-                }
-
-                if (!FacingReceptacle->CanAcceptItemInstance (CursorItem))
-                {
-                    UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=IncompatibleTarget Target=%s"),
-                        *GetNameSafe (FacingReceptacle));
-                    SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-                    return;
-                }
-
-                FHitResult PlacementHitResult;
-                AGridReceptacleActor* HitReceptacle = nullptr;
-                const bool bHasPlacementHit =
-                    TryGetReceptacleUnderCursor (PlacementHitResult, HitReceptacle) &&
-                    HitReceptacle == FacingReceptacle;
-                const bool bPlaced = bHasPlacementHit
-                    ? FacingReceptacle->TryPlaceCursorItemFromHit (PartyPawn, PlacementHitResult)
-                    : PartyPawn->TryPlaceCursorItemInReceptacle (FacingReceptacle);
-                UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop GridFacingReceptacle Result=%s"),
-                    bPlaced ? TEXT ("true") : TEXT ("false"));
-
-                if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
-                {
-                    InventoryWidget->RefreshInventory ();
-                }
-
-                SetGridInteractionCursor (
-                    bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
-                return;
-            }
-        }
-
         FHitResult ReceptacleHitResult;
         AGridReceptacleActor* ReceptacleActor = nullptr;
         if (!TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor))
@@ -414,36 +364,24 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHi
     FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridMouseInteractionTrace), true);
 
     QueryParams.AddIgnoredActor (ControlledPawn);
-    TArray<FHitResult> Hits;
-    if (!World->LineTraceMultiByChannel (Hits, Start, End, ECC_Visibility, QueryParams))
+    FHitResult Hit;
+    if (!World->LineTraceSingleByChannel (Hit, Start, End, ECC_Visibility, QueryParams))
     {
         return false;
     }
-    for (const FHitResult& Hit : Hits)
+
+    // The first visibility blocker owns the click. Never search through geometry
+    // or a rejected component for a deeper interactable.
+    AActor* HitActor = Hit.GetActor ();
+    if (!HitActor ||
+        !HitActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
     {
-        AActor* HitActor = Hit.GetActor ();
-        if (!HitActor)
-        {
-            continue;
-        }
-
-        if (!HitActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
-        {
-            continue;
-        }
-
-        UPrimitiveComponent* HitComponent = Hit.GetComponent ();
-        if (!HitComponent ||
-            !IGridInteractableInterface::Execute_CanInteract (HitActor, ControlledPawn, HitComponent))
-        {
-            continue;
-        }
-
-        OutHitResult = Hit;
-        OutInteractableActor = HitActor;
-        return true;
+        return false;
     }
-    return false;
+
+    OutHitResult = Hit;
+    OutInteractableActor = HitActor;
+    return true;
 }
 
 bool AGrimrockPlayerController::TryGetReceptacleUnderCursor (
@@ -472,37 +410,32 @@ bool AGrimrockPlayerController::TryGetReceptacleUnderCursor (
     FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridMouseReceptacleTrace), true);
     QueryParams.AddIgnoredActor (ControlledPawn);
 
-    TArray<FHitResult> Hits;
-    if (!World->LineTraceMultiByChannel (Hits, Start, End, ECC_Visibility, QueryParams))
+    FHitResult Hit;
+    if (!World->LineTraceSingleByChannel (Hit, Start, End, ECC_Visibility, QueryParams))
     {
         return false;
     }
 
-    for (const FHitResult& Hit : Hits)
+    // Item placement follows the same direct-hit rule as ordinary interaction.
+    AActor* HitActor = Hit.GetActor ();
+    if (!HitActor)
     {
-        AActor* HitActor = Hit.GetActor ();
-        if (!HitActor)
-        {
-            continue;
-        }
-
-        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
-        if (!ReceptacleActor)
-        {
-            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
-        }
-
-        if (!ReceptacleActor)
-        {
-            continue;
-        }
-
-        OutHitResult = Hit;
-        OutReceptacleActor = ReceptacleActor;
-        return true;
+        return false;
     }
 
-    return false;
+    AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
+    if (!ReceptacleActor)
+    {
+        ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
+    }
+    if (!ReceptacleActor)
+    {
+        return false;
+    }
+
+    OutHitResult = Hit;
+    OutReceptacleActor = ReceptacleActor;
+    return true;
 }
 
 bool AGrimrockPlayerController::IsHitWithinInteractionDistance (const FHitResult& HitResult) const
