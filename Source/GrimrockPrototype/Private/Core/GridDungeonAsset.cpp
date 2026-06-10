@@ -81,7 +81,7 @@ UGridLevelAsset* UGridDungeonAsset::GetDefaultLevelAsset () const
 
     for (const FGridDungeonLevelEntry& Entry : Levels)
     {
-        if (Entry.bEnabled && Entry.LevelAsset)
+        if (Entry.bEnabled && !Entry.LevelId.IsNone () && Entry.LevelAsset)
         {
             return Entry.LevelAsset.Get ();
         }
@@ -103,9 +103,12 @@ FString UGridDungeonAsset::GetDungeonDiagnostics () const
 
     int32 EnabledCount = 0;
     int32 MissingAssetCount = 0;
+    int32 EmptyLevelIdCount = 0;
     int32 TransitionObjectCount = 0;
     TSet<FName> SeenIds;
     TSet<FName> DuplicateIds;
+    TSet<FIntVector> SeenLogicalPositions;
+    TSet<FIntVector> DuplicateLogicalPositions;
 
     for (int32 LevelIndex = 0; LevelIndex < Levels.Num (); ++LevelIndex)
     {
@@ -119,6 +122,10 @@ FString UGridDungeonAsset::GetDungeonDiagnostics () const
         {
             ++MissingAssetCount;
         }
+        if (Entry.LevelId.IsNone ())
+        {
+            ++EmptyLevelIdCount;
+        }
         if (Entry.bEnabled)
         {
             TransitionObjectCount += CountTransitionObjects (Entry.LevelAsset);
@@ -131,6 +138,11 @@ FString UGridDungeonAsset::GetDungeonDiagnostics () const
             }
             SeenIds.Add (Entry.LevelId);
         }
+        if (SeenLogicalPositions.Contains (Entry.LogicalPosition))
+        {
+            DuplicateLogicalPositions.Add (Entry.LogicalPosition);
+        }
+        SeenLogicalPositions.Add (Entry.LogicalPosition);
 
         Result += FString::Printf (
             TEXT ("[%d] LevelId=%s DisplayName=%s Enabled=%s LogicalPosition=(%d,%d,%d) LevelAsset=%s\n"),
@@ -146,12 +158,18 @@ FString UGridDungeonAsset::GetDungeonDiagnostics () const
 
     Result += FString::Printf (TEXT ("EnabledLevels: %d\n"), EnabledCount);
     Result += FString::Printf (TEXT ("MissingLevelAssets: %d\n"), MissingAssetCount);
+    Result += FString::Printf (TEXT ("EmptyLevelIds: %d\n"), EmptyLevelIdCount);
     Result += FString::Printf (TEXT ("DuplicateLevelIds: %d\n"), DuplicateIds.Num ());
+    Result += FString::Printf (TEXT ("DuplicateLogicalPositions: %d\n"), DuplicateLogicalPositions.Num ());
     Result += FString::Printf (TEXT ("TransitionObjects=%d\n"), TransitionObjectCount);
 
     if (Levels.Num () == 0)
     {
         Result += TEXT ("Status: WARNING - Dungeon has no levels.");
+    }
+    else if (EmptyLevelIdCount > 0)
+    {
+        Result += TEXT ("Status: WARNING - One or more level entries have an empty LevelId.");
     }
     else if (MissingAssetCount > 0)
     {
@@ -161,7 +179,15 @@ FString UGridDungeonAsset::GetDungeonDiagnostics () const
     {
         Result += TEXT ("Status: WARNING - Duplicate LevelId values found.");
     }
-    else if (!DefaultLevelId.IsNone () && !IsValidLevelId (DefaultLevelId))
+    else if (DuplicateLogicalPositions.Num () > 0)
+    {
+        Result += TEXT ("Status: WARNING - Duplicate LogicalPosition values found.");
+    }
+    else if (DefaultLevelId.IsNone ())
+    {
+        Result += TEXT ("Status: WARNING - DefaultLevelId is None; the first enabled level with a LevelAsset will be used as fallback.");
+    }
+    else if (!IsValidLevelId (DefaultLevelId))
     {
         Result += TEXT ("Status: WARNING - DefaultLevelId does not reference an enabled level with a LevelAsset.");
     }

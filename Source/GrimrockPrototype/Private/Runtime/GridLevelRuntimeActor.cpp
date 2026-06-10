@@ -872,16 +872,12 @@ void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
         CeilingISM->ClearInstances ();
         CeilingISM->EmptyOverrideMaterials ();
     }
-    if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
+
+    const bool bClearObjects = RebuildMode != EGridRuntimeRebuildMode::GeometryOnly;
+    if (bClearObjects)
     {
         ClearRuntimeObjectActors ();
-        if (EditorPreviewComponent)
-        {
-            EditorPreviewComponent->ClearPreviewObjects ();
-        }
-    }
-    if (RebuildMode != EGridRuntimeRebuildMode::GeometryOnly)
-    {
+        if (EditorPreviewComponent) EditorPreviewComponent->ClearPreviewObjects ();
         if (DoorSystemComponent) DoorSystemComponent->ResetRuntimeState ();
         if (ActivationComponent) ActivationComponent->ResetRuntimeState ();
     }
@@ -1137,6 +1133,7 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
                     break;
                 }
             };
+            // Each stored cell edge is rendered independently. Opposite neighbor edges are not merged.
             DrawEdgeIfNeeded (EGridEdge::North, Cell.NorthWall, Cell.NorthWall != EGridWallType::None);
             DrawEdgeIfNeeded (EGridEdge::East, Cell.EastWall, Cell.EastWall != EGridWallType::None);
             DrawEdgeIfNeeded (EGridEdge::South, Cell.SouthWall, Cell.SouthWall != EGridWallType::None);
@@ -1233,6 +1230,8 @@ EGridWallType AGridLevelRuntimeActor::GetWallOnEdge (int32 X, int32 Y, EGridEdge
 
     const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
 
+    // Shared edges are intentionally directional: only the requested cell edge is authoritative.
+    // The editor does not mirror this value to the neighboring cell.
     switch (Edge)
     {
         case EGridEdge::North:
@@ -1275,6 +1274,7 @@ bool AGridLevelRuntimeActor::CanMove (int32 FromX, int32 FromY, EGridEdge Direct
     {
         return false;
     }
+    // Movement follows the same directional wall convention as painting and rendering.
     const EGridWallType Wall = GetWallOnEdge (FromX, FromY, Direction);
 
     switch (Wall)

@@ -118,8 +118,8 @@ Comportements importants :
 
 - `IsValidLevelId()` exige une entrée existante, activée et associée à un `LevelAsset`.
 - `GetLevelAssetById()` refuse les entrées désactivées.
-- `GetDefaultLevelAsset()` utilise `DefaultLevelId`, puis se rabat sur le premier niveau activé possédant un asset.
-- `GetDungeonDiagnostics()` détecte notamment les assets manquants, les identifiants dupliqués et un niveau par défaut invalide.
+- `GetDefaultLevelAsset()` utilise `DefaultLevelId`, puis se rabat sur le premier niveau activé possédant un identifiant non vide et un asset.
+- `GetDungeonDiagnostics()` détecte notamment les assets manquants, les identifiants vides ou dupliqués, les positions logiques dupliquées et un niveau par défaut absent ou invalide.
 
 Références : `GridDungeonAsset.h`, `GridDungeonAsset.cpp`.
 
@@ -220,6 +220,8 @@ Les quatre murs sont stockés indépendamment dans chaque cellule. Actuellement 
 - `CanMove()` consulte le mur de la cellule source, pas le bord opposé de la cellule cible.
 
 La cohérence des murs partagés est donc une convention de contenu, pas une invariance imposée par le code. L'illustration montre correctement les quatre champs d'une cellule, mais ne doit pas être interprétée comme une synchronisation bidirectionnelle.
+
+`ValidateCurrentLevel()` agrège deux avertissements dédiés : nombre de bords renseignés des deux côtés, susceptibles de produire des instances superposées, et nombre de bords asymétriques dont le résultat de déplacement dépend de la cellule source.
 
 ---
 
@@ -408,6 +410,8 @@ RebuildGeometryPreview()
 
 En monde non jeu, un rebuild complet peut reconstruire les objets d'aperçu via `UGridEditorPreviewComponent`. Un rebuild `GeometryOnly` conserve les acteurs/objets d'aperçu et ne reconstruit que `FloorISM`, `WallISM` et `CeilingISM`.
 
+`EGridRuntimeRebuildMode::ObjectsOnly` est une valeur héritée conservée pour compatibilité sérialisée. Aucun appel C++ actuel ne l'utilise; son comportement ne doit pas être considéré comme une API stabilisée.
+
 L'illustration de flux éditeur reste valable si « Preview Runtime » est compris comme un véritable `AGridLevelRuntimeActor` utilisé en monde éditeur.
 
 ---
@@ -513,7 +517,8 @@ Elle :
 - place le départ en `(1,1)`, orienté au nord, et initialise cette cellule en `Floor` praticable avec plafond ;
 - ajoute une entrée activée au `DungeonAsset` ;
 - définit le niveau par défaut si nécessaire ;
-- applique le nouveau niveau, synchronise l'aperçu et sauvegarde les packages.
+- applique le nouveau niveau, synchronise l'aperçu et sauvegarde les packages ;
+- restaure l'état précédent et n'enregistre pas le nouvel asset si l'application échoue.
 
 ### 13.3. Supprimer un niveau
 
@@ -634,7 +639,7 @@ classDiagram
 - [ ] les objets nécessitant un bord ont un `Edge` cardinal.
 - [ ] chaque `SourceObjectId` et `TargetObjectId` référence un objet existant.
 
-`ValidateCurrentLevel()` réalise déjà une partie importante des contrôles de départ, d'objets, d'archétypes et de liens. `GetDungeonDiagnostics()` couvre les entrées de donjon. La checklist reste plus large que chacune de ces fonctions prise isolément.
+`ValidateCurrentLevel()` contrôle les entrées du donjon, les dimensions, la cardinalité de `Cells`, le départ, les murs partagés, les objets, les archétypes et les liens. `GetDungeonDiagnostics()` fournit une synthèse textuelle complémentaire des entrées de donjon.
 
 ---
 

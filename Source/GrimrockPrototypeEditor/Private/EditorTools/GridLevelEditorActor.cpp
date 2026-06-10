@@ -927,10 +927,10 @@ bool AGridLevelEditorActor::CreateAndAddDungeonLevel (
         StartCell.bBlocksOccupancy = false;
     }
 
-    FAssetRegistryModule::AssetCreated (NewLevelAsset);
-    Package->MarkPackageDirty ();
-
     DungeonAsset->Modify ();
+    const FName PreviousDefaultLevelId = DungeonAsset->DefaultLevelId;
+    const FName PreviousCurrentDungeonLevelId = CurrentDungeonLevelId;
+    UGridLevelAsset* PreviousLevelAsset = LevelAsset;
 
     FGridDungeonLevelEntry NewEntry;
     NewEntry.LevelId = NewLevelId;
@@ -945,13 +945,30 @@ bool AGridLevelEditorActor::CreateAndAddDungeonLevel (
         DungeonAsset->DefaultLevelId = NewLevelId;
     }
 
-    DungeonAsset->MarkPackageDirty ();
-
     Modify ();
     CurrentDungeonLevelId = NewLevelId;
     LevelAsset = NewLevelAsset;
-    ApplyCurrentDungeonLevel ();
-    SyncPreviewRuntimeLevelAsset ();
+    if (!ApplyCurrentDungeonLevel ())
+    {
+        DungeonAsset->Levels.RemoveAll ([NewLevelId] (const FGridDungeonLevelEntry& Entry)
+        {
+            return Entry.LevelId == NewLevelId;
+        });
+        DungeonAsset->DefaultLevelId = PreviousDefaultLevelId;
+        CurrentDungeonLevelId = PreviousCurrentDungeonLevelId;
+        LevelAsset = PreviousLevelAsset;
+        NewLevelAsset->ClearFlags (RF_Public | RF_Standalone);
+
+        OutError = FString::Printf (
+            TEXT ("Level '%s' was created but could not be applied to the editor actor."),
+            *NewLevelId.ToString ());
+        UE_LOG (LogTemp, Error, TEXT ("%s"), *OutError);
+        return false;
+    }
+
+    FAssetRegistryModule::AssetCreated (NewLevelAsset);
+    Package->MarkPackageDirty ();
+    DungeonAsset->MarkPackageDirty ();
 
     TArray<UPackage*> PackagesToSave;
     PackagesToSave.Add (Package);
@@ -1086,6 +1103,12 @@ bool AGridLevelEditorActor::ApplyCurrentDungeonLevel ()
     const FName RequestedLevelId = CurrentDungeonLevelId.IsNone ()
         ? DungeonAsset->DefaultLevelId
         : CurrentDungeonLevelId;
+    if (RequestedLevelId.IsNone ())
+    {
+        UE_LOG (LogTemp, Error,
+            TEXT ("ApplyCurrentDungeonLevel failed: CurrentDungeonLevelId and DefaultLevelId are both None."));
+        return false;
+    }
 
     const FGridDungeonLevelEntry* Entry = DungeonAsset->FindLevelEntry (RequestedLevelId);
     if (!Entry)
@@ -1154,7 +1177,7 @@ void AGridLevelEditorActor::LoadDefaultDungeonLevelInEditor ()
 
     for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
     {
-        if (Entry.bEnabled && Entry.LevelAsset)
+        if (Entry.bEnabled && !Entry.LevelId.IsNone () && Entry.LevelAsset)
         {
 #if WITH_EDITOR
             Modify ();
@@ -1458,6 +1481,7 @@ void AGridLevelEditorActor::PaintSelectedWall ()
     }
     LevelAsset->Modify ();
 #endif
+    // Shared walls are stored per cell. Do not mirror to the neighboring opposite edge.
     * WallPtr = PaintWallType;
 #if WITH_EDITOR
     LevelAsset->MarkPackageDirty ();
@@ -1489,6 +1513,7 @@ void AGridLevelEditorActor::ClearSelectedWall ()
     LevelAsset->Modify ();
 #endif
 
+    // Keep the directional wall rule consistent with painting, rendering and movement.
     * WallPtr = EGridWallType::None;
 
 #if WITH_EDITOR
@@ -3241,6 +3266,77 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         }
     };
 
+    if (!DungeonAsset)
+    {
+        AddMessage (
+            EGridLevelValidationSeverity::Warning,
+            TEXT ("DungeonAsset is missing. The editor can use LevelAsset directly, but dungeon level ids and transitions cannot be fully validated."));
+    }
+    else
+    {
+        TSet<FName> SeenLevelIds;
+        TSet<FIntVector> SeenLogicalPositions;
+        bool bHasEnabledFallbackLevel = false;
+
+        if (DungeonAsset->Levels.Num () == 0)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                TEXT ("DungeonAsset contains no level entries."));
+        }
+
+        for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+        {
+            if (Entry.LevelId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("DungeonAsset contains a level entry with an empty LevelId."));
+            }
+            else if (SeenLevelIds.Contains (Entry.LevelId))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (TEXT ("DungeonAsset contains duplicate LevelId '%s'."), *Entry.LevelId.ToString ()));
+            }
+            SeenLevelIds.Add (Entry.LevelId);
+
+            if (SeenLogicalPositions.Contains (Entry.LogicalPosition))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("DungeonAsset contains duplicate LogicalPosition (%d,%d,%d)."),
+                        Entry.LogicalPosition.X,
+                        Entry.LogicalPosition.Y,
+                        Entry.LogicalPosition.Z));
+            }
+            SeenLogicalPositions.Add (Entry.LogicalPosition);
+
+            if (!Entry.LevelAsset)
+            {
+                AddMessage (
+                    Entry.bEnabled ? EGridLevelValidationSeverity::Error : EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Dungeon level '%s' has no LevelAsset."),
+                        Entry.LevelId.IsNone () ? TEXT ("None") : *Entry.LevelId.ToString ()));
+            }
+            else if (Entry.bEnabled && !Entry.LevelId.IsNone ())
+            {
+                bHasEnabledFallbackLevel = true;
+            }
+        }
+
+        if (!DungeonAsset->IsValidLevelId (DungeonAsset->DefaultLevelId))
+        {
+            AddMessage (
+                bHasEnabledFallbackLevel ? EGridLevelValidationSeverity::Warning : EGridLevelValidationSeverity::Error,
+                bHasEnabledFallbackLevel
+                    ? TEXT ("DefaultLevelId is invalid; runtime/editor fallback will use the first enabled level with a LevelAsset.")
+                    : TEXT ("DefaultLevelId is invalid and no enabled fallback level with a LevelAsset exists."));
+        }
+    }
+
     AddArchetypeValidationMessages ();
     AddExpectedConcreteArchetypeMessages ();
 
@@ -3252,6 +3348,32 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         return LastValidationMessages;
     }
 
+    if (LevelAsset->Width <= 0)
+    {
+        AddMessage (EGridLevelValidationSeverity::Error, TEXT ("LevelAsset Width must be greater than zero."));
+    }
+    if (LevelAsset->Height <= 0)
+    {
+        AddMessage (EGridLevelValidationSeverity::Error, TEXT ("LevelAsset Height must be greater than zero."));
+    }
+    if (LevelAsset->CellSize <= 0.f)
+    {
+        AddMessage (EGridLevelValidationSeverity::Error, TEXT ("LevelAsset CellSize must be greater than zero."));
+    }
+
+    const int32 ExpectedCellCount = FMath::Max (1, LevelAsset->Width) * FMath::Max (1, LevelAsset->Height);
+    if (LevelAsset->Cells.Num () != ExpectedCellCount)
+    {
+        AddMessage (
+            EGridLevelValidationSeverity::Error,
+            FString::Printf (
+                TEXT ("LevelAsset Cells.Num()=%d but expected %d for Width=%d Height=%d."),
+                LevelAsset->Cells.Num (),
+                ExpectedCellCount,
+                LevelAsset->Width,
+                LevelAsset->Height));
+    }
+
     if (!LevelAsset->IsStartCellValid ())
     {
         AddMessage (
@@ -3261,6 +3383,101 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 LevelAsset->StartCellX,
                 LevelAsset->StartCellY,
                 *GetGridEdgeText (LevelAsset->StartFacing)));
+    }
+
+    if (LevelAsset->Width > 0 && LevelAsset->Height > 0 && LevelAsset->Cells.Num () == ExpectedCellCount)
+    {
+        int32 OverlappingSharedWallCount = 0;
+        int32 DirectionalSharedWallCount = 0;
+        FString FirstOverlappingSharedWall;
+        FString FirstDirectionalSharedWall;
+
+        for (int32 Y = 0; Y < LevelAsset->Height; ++Y)
+        {
+            for (int32 X = 0; X < LevelAsset->Width; ++X)
+            {
+                const FGridLevelCellData& Cell = LevelAsset->GetCell (X, Y);
+
+                auto ValidateSharedEdge = [
+                    &OverlappingSharedWallCount,
+                    &DirectionalSharedWallCount,
+                    &FirstOverlappingSharedWall,
+                    &FirstDirectionalSharedWall,
+                    X,
+                    Y] (
+                    const TCHAR* EdgeName,
+                    EGridWallType LocalWall,
+                    EGridWallType OppositeWall,
+                    int32 NeighborX,
+                    int32 NeighborY)
+                {
+                    if (LocalWall != EGridWallType::None && OppositeWall != EGridWallType::None)
+                    {
+                        ++OverlappingSharedWallCount;
+                        if (FirstOverlappingSharedWall.IsEmpty ())
+                        {
+                            FirstOverlappingSharedWall = FString::Printf (
+                                TEXT ("%s between (%d,%d) and (%d,%d)"),
+                                EdgeName, X, Y, NeighborX, NeighborY);
+                        }
+                    }
+                    else if (LocalWall != OppositeWall)
+                    {
+                        ++DirectionalSharedWallCount;
+                        if (FirstDirectionalSharedWall.IsEmpty ())
+                        {
+                            FirstDirectionalSharedWall = FString::Printf (
+                                TEXT ("%s between (%d,%d) and (%d,%d), %s vs %s"),
+                                EdgeName,
+                                X,
+                                Y,
+                                NeighborX,
+                                NeighborY,
+                                *UEnum::GetValueAsString (LocalWall),
+                                *UEnum::GetValueAsString (OppositeWall));
+                        }
+                    }
+                };
+
+                if (X + 1 < LevelAsset->Width)
+                {
+                    ValidateSharedEdge (
+                        TEXT ("East/West"),
+                        Cell.EastWall,
+                        LevelAsset->GetCell (X + 1, Y).WestWall,
+                        X + 1,
+                        Y);
+                }
+                if (Y + 1 < LevelAsset->Height)
+                {
+                    ValidateSharedEdge (
+                        TEXT ("North/South"),
+                        Cell.NorthWall,
+                        LevelAsset->GetCell (X, Y + 1).SouthWall,
+                        X,
+                        Y + 1);
+                }
+            }
+        }
+
+        if (OverlappingSharedWallCount > 0)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Warning,
+                FString::Printf (
+                    TEXT ("%d shared edges have walls on both sides; runtime rendering may create overlapping wall instances. First: %s."),
+                    OverlappingSharedWallCount,
+                    *FirstOverlappingSharedWall));
+        }
+        if (DirectionalSharedWallCount > 0)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Warning,
+                FString::Printf (
+                    TEXT ("%d shared edges are directional; movement depends on the source cell. First: %s."),
+                    DirectionalSharedWallCount,
+                    *FirstDirectionalSharedWall));
+        }
     }
 
     TSet<FGuid> SeenObjectIds;

@@ -27,6 +27,7 @@ enum class EGridRuntimeRebuildMode : uint8
 {
     Full,
     GeometryOnly,
+    // Reserved legacy mode. No current call site uses it; keep the value for serialized compatibility.
     ObjectsOnly
 };
 
