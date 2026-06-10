@@ -712,4 +712,4 @@ AGridLevelRuntimeActor
   les objets d'aperçu ou runtime.
 ```
 
-Le document est volontairement limité au noyau Donjon / Niveau / Grille. Les comportements spécialisés des objets et des liens doivent rester dans des documents séparés.
+Le document est volontairement limité au noyau Donjon / Niveau / Grille. L'architecture des archétypes, de la palette et des objets placés est détaillée dans [`OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md`](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md). Les comportements spécialisés des objets et des liens restent dans des documents séparés.

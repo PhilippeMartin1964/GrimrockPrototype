@@ -3571,6 +3571,73 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         }
 
         const UGridObjectArchetypeAsset* Archetype = FindObjectArchetypeById (Obj.ArchetypeId);
+        if (Obj.ArchetypeId.IsNone ())
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                TEXT ("Placed object has no ArchetypeId. Preview and runtime archetype lookup cannot resolve it."),
+                Obj.ObjectId);
+        }
+        else if (ObjectPalette && !Archetype)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (
+                    TEXT ("Placed object ArchetypeId '%s' is not exposed by the assigned ObjectPalette."),
+                    *Obj.ArchetypeId.ToString ()),
+                Obj.ObjectId);
+        }
+
+        if (Archetype && Obj.Type != Archetype->SupportedType)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (
+                    TEXT ("Placed object Type=%s does not match archetype '%s' SupportedType=%s."),
+                    *ToGridObjectTypeText (Obj.Type),
+                    *Obj.ArchetypeId.ToString (),
+                    *ToGridObjectTypeText (Archetype->SupportedType)),
+                Obj.ObjectId);
+        }
+
+        if (Archetype &&
+            Obj.Type != EGridLevelObjectType::Item &&
+            Archetype->IsCenterPlaced () &&
+            Obj.Edge != EGridEdge::None)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Warning,
+                FString::Printf (
+                    TEXT ("Center-placed object has a cardinal Edge=%s; runtime center placement ignores this edge."),
+                    *GetGridEdgeText (Obj.Edge)),
+                Obj.ObjectId);
+        }
+
+        if (ObjectPalette && !Obj.PaletteEntryId.IsNone ())
+        {
+            const FGridObjectPaletteEntry* PaletteEntry = ObjectPalette->FindEntryById (Obj.PaletteEntryId);
+            if (!PaletteEntry)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Placed object PaletteEntryId '%s' no longer exists in the assigned ObjectPalette."),
+                        *Obj.PaletteEntryId.ToString ()),
+                    Obj.ObjectId);
+            }
+            else if (PaletteEntry->GetEffectiveArchetypeId () != Obj.ArchetypeId)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Placed object PaletteEntryId '%s' now resolves to archetype '%s', but the object stores ArchetypeId '%s'."),
+                        *Obj.PaletteEntryId.ToString (),
+                        *PaletteEntry->GetEffectiveArchetypeId ().ToString (),
+                        *Obj.ArchetypeId.ToString ()),
+                    Obj.ObjectId);
+            }
+        }
+
         if (IsEdgeOrWallPlacedObject (Obj) && Obj.Edge == EGridEdge::None)
         {
             AddMessage (
