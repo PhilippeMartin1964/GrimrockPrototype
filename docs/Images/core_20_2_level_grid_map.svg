@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">GridLevelAsset comme carte quadrillée</title>
+  <desc id="desc">Illustration montrant un GridLevelAsset comme une carte de niveau avec cellules, murs, position de départ, objets et liens.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.label{font:700 22px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.gridline{stroke:#b8a98d;stroke-width:1}.floor{fill:#d7e8cf}.empty{fill:#fffaf0}.wall{stroke:#3a211b;stroke-width:8;stroke-linecap:square}.start{fill:#d9573b;stroke:#71291f;stroke-width:3}.object{fill:#4c75a3;stroke:#213b5b;stroke-width:3}.link{stroke:#8b4f9f;stroke-width:4;stroke-dasharray:8 8;fill:none;marker-end:url(#arrow)}.panel{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.legendbox{fill:#ffffff;stroke:#8b7b60;stroke-width:2}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#8b4f9f"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Le niveau comme carte quadrillée</text>
+  <text class="note" x="60" y="105">Le GridLevelAsset stocke la grille, les cellules, les murs, le départ, les objets et les liens.</text>
+
+  <rect class="panel" x="70" y="135" width="720" height="520" rx="18"/>
+  <text class="label" x="100" y="175">UGridLevelAsset</text>
+  <text class="small" x="100" y="205">Width=8 · Height=6 · CellSize=200</text>
+
+  <g transform="translate(110,235)">
+    <rect x="0" y="0" width="560" height="360" fill="#fffaf0" stroke="#5b4636" stroke-width="3"/>
+    <g>
+      <rect class="floor" x="70" y="60" width="70" height="60"/>
+      <rect class="floor" x="140" y="60" width="70" height="60"/>
+      <rect class="floor" x="210" y="60" width="70" height="60"/>
+      <rect class="floor" x="280" y="60" width="70" height="60"/>
+      <rect class="floor" x="140" y="120" width="70" height="60"/>
+      <rect class="floor" x="210" y="120" width="70" height="60"/>
+      <rect class="floor" x="280" y="120" width="70" height="60"/>
+      <rect class="floor" x="350" y="120" width="70" height="60"/>
+      <rect class="floor" x="140" y="180" width="70" height="60"/>
+      <rect class="floor" x="210" y="180" width="70" height="60"/>
+      <rect class="floor" x="280" y="180" width="70" height="60"/>
+      <rect class="floor" x="350" y="180" width="70" height="60"/>
+      <rect class="floor" x="420" y="180" width="70" height="60"/>
+      <rect class="floor" x="210" y="240" width="70" height="60"/>
+      <rect class="floor" x="280" y="240" width="70" height="60"/>
+      <rect class="floor" x="350" y="240" width="70" height="60"/>
+    </g>
+    <g>
+      <path class="gridline" d="M70 0 V360 M140 0 V360 M210 0 V360 M280 0 V360 M350 0 V360 M420 0 V360 M490 0 V360"/>
+      <path class="gridline" d="M0 60 H560 M0 120 H560 M0 180 H560 M0 240 H560 M0 300 H560"/>
+    </g>
+    <path class="wall" d="M70 60 H350 M70 60 V120 M350 60 V120 M140 240 V300 M210 300 H420 M420 180 H490 M490 180 V240 M140 120 H140 M140 120 V240 M350 120 H420"/>
+    <circle class="start" cx="175" cy="150" r="22"/>
+    <path d="M175 137 L190 150 L175 163 Z" fill="#fffaf0"/>
+    <circle class="object" cx="315" cy="150" r="18"/>
+    <circle class="object" cx="385" cy="210" r="18"/>
+    <path class="link" d="M315 150 C345 155,360 180,385 210"/>
+  </g>
+
+  <rect class="panel" x="835" y="160" width="300" height="420" rx="18"/>
+  <text class="label" x="865" y="205">Contenu du niveau</text>
+  <g transform="translate(865,245)">
+    <rect class="legendbox" x="0" y="0" width="240" height="42" rx="8"/><rect class="floor" x="12" y="10" width="24" height="22"/><text class="small" x="52" y="27">Cells[] / Floor</text>
+    <rect class="legendbox" x="0" y="60" width="240" height="42" rx="8"/><line class="wall" x1="14" y1="81" x2="40" y2="81"/><text class="small" x="52" y="87">Walls par edge</text>
+    <rect class="legendbox" x="0" y="120" width="240" height="42" rx="8"/><circle class="start" cx="26" cy="141" r="12"/><text class="small" x="52" y="147">StartCell + Facing</text>
+    <rect class="legendbox" x="0" y="180" width="240" height="42" rx="8"/><circle class="object" cx="26" cy="201" r="11"/><text class="small" x="52" y="207">Objects[]</text>
+    <rect class="legendbox" x="0" y="240" width="240" height="42" rx="8"/><path class="link" d="M14 261 C24 249,33 273,43 261"/><text class="small" x="52" y="267">Links[]</text>
+  </g>
+</svg>
