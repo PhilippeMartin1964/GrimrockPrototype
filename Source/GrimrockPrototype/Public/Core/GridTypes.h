@@ -2,9 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "GridTypes.generated.h"
-
-class UGridItemDefinitionAsset;
 
 UENUM (BlueprintType)
 enum class EGridCellType : uint8
@@ -88,6 +87,19 @@ enum class EGridObjectCommand : uint8
     ReceptacleUnlock               UMETA (DisplayName = "Receptacle Unlock"),
     ReceptacleEnableRemoval        UMETA (DisplayName = "Receptacle Enable Removal"),
     ReceptacleDisableRemoval       UMETA (DisplayName = "Receptacle Disable Removal")
+};
+
+UENUM (BlueprintType)
+enum class EGridObjectCondition : uint8
+{
+    None                              UMETA (DisplayName = "None"),
+    ReceptacleIsEmpty                 UMETA (DisplayName = "Receptacle Is Empty"),
+    ReceptacleHasAnyItem              UMETA (DisplayName = "Receptacle Has Any Item"),
+    ReceptacleContainsItemDefinition  UMETA (DisplayName = "Receptacle Contains Item Definition"),
+    ReceptacleContainsItemTag         UMETA (DisplayName = "Receptacle Contains Item Tag"),
+    ReceptacleContainsItemType        UMETA (DisplayName = "Receptacle Contains Item Type"),
+    ReceptacleItemCountAtLeast        UMETA (DisplayName = "Receptacle Item Count At Least"),
+    ReceptacleWeightAtLeast           UMETA (DisplayName = "Receptacle Weight At Least")
 };
 
 UENUM (BlueprintType)
@@ -204,6 +216,27 @@ struct FGridObjectLink
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     EGridObjectCommand Command = EGridObjectCommand::Toggle;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
+    EGridObjectCondition Condition = EGridObjectCondition::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
+    FName ConditionItemDefinitionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
+    FName ConditionItemTag = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
+    EGridItemType ConditionItemType = EGridItemType::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition", meta = (ClampMin = "0"))
+    int32 ConditionCount = 1;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition", meta = (ClampMin = "0.0"))
+    float ConditionWeight = 0.0f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
+    bool bInvertCondition = false;
 };
 
 USTRUCT (BlueprintType)

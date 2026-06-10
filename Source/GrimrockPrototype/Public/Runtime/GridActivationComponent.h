@@ -55,6 +55,7 @@ private:
     bool ExecuteLinksFromObjectForEventInternal (FGuid SourceObjectId, EGridObjectEvent SourceEvent, bool bIncludeToggleCommands);
     bool ExecuteToggleLinksFromObject (FGuid SourceObjectId);
     bool ApplyLinkCommand (const FGridObjectLink& LinkData);
+    bool EvaluateGridObjectLinkCondition (const FGridObjectLink& LinkData, AActor* SourceActor, AActor* TargetActor) const;
     bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool ApplyReceptacleLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);

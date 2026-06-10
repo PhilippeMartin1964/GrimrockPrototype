@@ -39,6 +39,15 @@ namespace
         return FString::Printf (TEXT ("%d"), static_cast<int32> (EventType));
     }
 
+    FString GridObjectConditionToString (EGridObjectCondition Condition)
+    {
+        if (const UEnum* Enum = StaticEnum<EGridObjectCondition> ())
+        {
+            return Enum->GetNameStringByValue (static_cast<int64> (Condition));
+        }
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Condition));
+    }
+
     bool IsReceptacleCommand (EGridObjectCommand Command)
     {
         switch (Command)
@@ -258,6 +267,13 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
         return false;
     }
 
+    AActor* SourceActor = RuntimeActor->FindRuntimeObjectActor<AActor> (LinkData.SourceObjectId);
+    AActor* TargetActor = RuntimeActor->FindRuntimeObjectActor<AActor> (LinkData.TargetObjectId);
+    if (!EvaluateGridObjectLinkCondition (LinkData, SourceActor, TargetActor))
+    {
+        return false;
+    }
+
     const EGridObjectCommand ResolvedCommand = LinkData.Command;
     bool bSuccess = false;
     const TCHAR* FailureReason = TEXT ("unsupported target type or command");
@@ -303,6 +319,72 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
 
     LogLinkResult (LinkData, ResolvedCommand, bSuccess, FailureReason);
     return bSuccess;
+}
+
+bool UGridActivationComponent::EvaluateGridObjectLinkCondition (
+    const FGridObjectLink& LinkData,
+    AActor* SourceActor,
+    AActor* TargetActor) const
+{
+    if (LinkData.Condition == EGridObjectCondition::None)
+    {
+        return true;
+    }
+
+    const AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (TargetActor);
+    bool bConditionResult = false;
+
+    if (ReceptacleActor)
+    {
+        switch (LinkData.Condition)
+        {
+            case EGridObjectCondition::ReceptacleIsEmpty:
+                bConditionResult = ReceptacleActor->IsEmpty ();
+                break;
+
+            case EGridObjectCondition::ReceptacleHasAnyItem:
+                bConditionResult = ReceptacleActor->HasAnyItem ();
+                break;
+
+            case EGridObjectCondition::ReceptacleContainsItemDefinition:
+                bConditionResult = ReceptacleActor->ContainsItemDefinition (LinkData.ConditionItemDefinitionId);
+                break;
+
+            case EGridObjectCondition::ReceptacleContainsItemTag:
+                bConditionResult = ReceptacleActor->ContainsItemTag (LinkData.ConditionItemTag);
+                break;
+
+            case EGridObjectCondition::ReceptacleContainsItemType:
+                bConditionResult = ReceptacleActor->ContainsItemType (LinkData.ConditionItemType);
+                break;
+
+            case EGridObjectCondition::ReceptacleItemCountAtLeast:
+                bConditionResult = ReceptacleActor->GetContainedItemCount () >= LinkData.ConditionCount;
+                break;
+
+            case EGridObjectCondition::ReceptacleWeightAtLeast:
+                bConditionResult = ReceptacleActor->GetContainedTotalWeight () >= LinkData.ConditionWeight;
+                break;
+
+            case EGridObjectCondition::None:
+            default:
+                break;
+        }
+    }
+
+    const bool bFinalResult = LinkData.bInvertCondition ? !bConditionResult : bConditionResult;
+    if (!bFinalResult)
+    {
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("Grid link condition failed: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Inverted=%s"),
+            *LinkData.SourceObjectId.ToString (),
+            *GetNameSafe (SourceActor),
+            *LinkData.TargetObjectId.ToString (),
+            *GetNameSafe (TargetActor),
+            *GridObjectConditionToString (LinkData.Condition),
+            LinkData.bInvertCondition ? TEXT ("true") : TEXT ("false"));
+    }
+    return bFinalResult;
 }
 
 bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
