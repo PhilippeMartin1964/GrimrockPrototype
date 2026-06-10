@@ -15,6 +15,9 @@ Il ne définit pas de nouvelle mécanique de gameplay. Les items, réceptacles, 
 Les règles de sélection et de clic runtime sont documentées séparément dans
 `docs/Architecture/MOUSE_INTERACTION_FOUNDATION.md`.
 
+Le contrat des liens entre objets, des événements, des conditions et des commandes est documenté dans
+`docs/Architecture/LINK_EVENT_COMMAND_FOUNDATION.md`.
+
 ## 2. Vocabulaire
 
 **Archétype** : `UGridObjectArchetypeAsset`, modèle partagé qui décrit identité, type fonctionnel, placement, visuels, classe runtime et valeurs par défaut.
@@ -234,7 +237,6 @@ Ces points sont documentés, mais volontairement non refondus dans cette passe.
 
 ## 14. À documenter plus tard
 
-- le contrat complet `FGridObjectLink` événement vers commande ;
 - les comportements détaillés des items, réceptacles et portes ;
 - la sauvegarde et restauration des états runtime ;
 - une éventuelle politique de migration des objets placés après évolution d'un archétype.

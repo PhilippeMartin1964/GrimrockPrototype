@@ -93,6 +93,115 @@ namespace
         return FString::Printf (TEXT ("%d"), static_cast<int32> (ObjectType));
     }
 
+    FString ToGridObjectEventText (EGridObjectEvent Event)
+    {
+        if (const UEnum* EventEnum = StaticEnum<EGridObjectEvent> ())
+        {
+            return EventEnum->GetNameStringByValue (static_cast<int64> (Event));
+        }
+
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Event));
+    }
+
+    FString ToGridObjectCommandText (EGridObjectCommand Command)
+    {
+        if (const UEnum* CommandEnum = StaticEnum<EGridObjectCommand> ())
+        {
+            return CommandEnum->GetNameStringByValue (static_cast<int64> (Command));
+        }
+
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Command));
+    }
+
+    FString ToGridObjectConditionText (EGridObjectCondition Condition)
+    {
+        if (const UEnum* ConditionEnum = StaticEnum<EGridObjectCondition> ())
+        {
+            return ConditionEnum->GetNameStringByValue (static_cast<int64> (Condition));
+        }
+
+        return FString::Printf (TEXT ("%d"), static_cast<int32> (Condition));
+    }
+
+    bool IsReceptacleCommand (EGridObjectCommand Command)
+    {
+        switch (Command)
+        {
+            case EGridObjectCommand::ReceptacleConsumeItem:
+            case EGridObjectCommand::ReceptacleConsumeAllItems:
+            case EGridObjectCommand::ReceptacleLock:
+            case EGridObjectCommand::ReceptacleUnlock:
+            case EGridObjectCommand::ReceptacleEnableRemoval:
+            case EGridObjectCommand::ReceptacleDisableRemoval:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    bool IsEventEmittedByCurrentRuntime (EGridLevelObjectType SourceType, EGridObjectEvent Event)
+    {
+        switch (SourceType)
+        {
+            case EGridLevelObjectType::Button:
+                return Event == EGridObjectEvent::Activated;
+
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::PressurePlate:
+            case EGridLevelObjectType::Trigger:
+                return Event == EGridObjectEvent::Activated || Event == EGridObjectEvent::Deactivated;
+
+            case EGridLevelObjectType::Receptacle:
+                return Event == EGridObjectEvent::ItemInserted ||
+                    Event == EGridObjectEvent::ItemRemoved ||
+                    Event == EGridObjectEvent::ItemChanged;
+
+            default:
+                return false;
+        }
+    }
+
+    bool IsCommandSupportedByCurrentRuntime (EGridLevelObjectType TargetType, EGridObjectCommand Command)
+    {
+        if (IsReceptacleCommand (Command))
+        {
+            return TargetType == EGridLevelObjectType::Receptacle;
+        }
+
+        const bool bStateCommand =
+            Command == EGridObjectCommand::Toggle ||
+            Command == EGridObjectCommand::Open ||
+            Command == EGridObjectCommand::Close ||
+            Command == EGridObjectCommand::Activate ||
+            Command == EGridObjectCommand::Deactivate;
+        if (!bStateCommand)
+        {
+            return false;
+        }
+
+        switch (TargetType)
+        {
+            case EGridLevelObjectType::Door:
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::PressurePlate:
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::Decoration:
+            case EGridLevelObjectType::MonsterSpawn:
+            case EGridLevelObjectType::ItemSpawn:
+            case EGridLevelObjectType::Item:
+            case EGridLevelObjectType::Light:
+            case EGridLevelObjectType::Teleporter:
+            case EGridLevelObjectType::Trigger:
+            case EGridLevelObjectType::Receptacle:
+                return true;
+
+            case EGridLevelObjectType::None:
+            default:
+                return false;
+        }
+    }
+
     FString GetLevelAssetStatsText (const UGridLevelAsset* Asset)
     {
         if (!Asset)
@@ -3481,7 +3590,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
     }
 
     TSet<FGuid> SeenObjectIds;
-    TSet<FGuid> ObjectIds;
+    TMap<FGuid, const FGridLevelObjectData*> ObjectsById;
     TMap<FGuid, int32> OutgoingLinkCountBySourceId;
     TMap<FGuid, int32> ReceptacleItemInsertedLinkCountBySourceId;
     TMap<FGuid, int32> ReceptacleItemRemovedLinkCountBySourceId;
@@ -3555,7 +3664,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         } else
         {
             SeenObjectIds.Add (Obj.ObjectId);
-            ObjectIds.Add (Obj.ObjectId);
+            ObjectsById.Add (Obj.ObjectId, &Obj);
         }
 
         if (!LevelAsset->IsValidCoord (Obj.CellX, Obj.CellY))
@@ -3818,18 +3927,76 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         }
     }
 
-    for (const FGridObjectLink& Link : LevelAsset->Links)
+    TSet<FString> SeenLinkKeys;
+    for (int32 LinkIndex = 0; LinkIndex < LevelAsset->Links.Num (); ++LinkIndex)
     {
-        if (!ObjectIds.Contains (Link.SourceObjectId))
+        const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
+        const FGridLevelObjectData* const* SourceObjectPtr = ObjectsById.Find (Link.SourceObjectId);
+        const FGridLevelObjectData* const* TargetObjectPtr = ObjectsById.Find (Link.TargetObjectId);
+        const FGridLevelObjectData* SourceObject = SourceObjectPtr ? *SourceObjectPtr : nullptr;
+        const FGridLevelObjectData* TargetObject = TargetObjectPtr ? *TargetObjectPtr : nullptr;
+
+        const FString LinkKey = FString::Printf (
+            TEXT ("%s|%s|%d|%d|%d|%s|%s|%d|%d|%.9g|%d"),
+            *Link.SourceObjectId.ToString (EGuidFormats::Digits),
+            *Link.TargetObjectId.ToString (EGuidFormats::Digits),
+            static_cast<int32> (Link.SourceEvent),
+            static_cast<int32> (Link.Command),
+            static_cast<int32> (Link.Condition),
+            *Link.ConditionItemDefinitionId.ToString (),
+            *Link.ConditionItemTag.ToString (),
+            static_cast<int32> (Link.ConditionItemType),
+            Link.ConditionCount,
+            Link.ConditionWeight,
+            Link.bInvertCondition ? 1 : 0);
+        if (SeenLinkKeys.Contains (LinkKey))
         {
             AddMessage (
                 EGridLevelValidationSeverity::Error,
-                TEXT ("Link SourceObjectId was not found."),
+                FString::Printf (TEXT ("Link %d duplicates an identical link."), LinkIndex),
                 Link.SourceObjectId);
-        } else
+        }
+        else
+        {
+            SeenLinkKeys.Add (LinkKey);
+        }
+
+        if (!Link.SourceObjectId.IsValid ())
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (TEXT ("Link %d has an invalid SourceObjectId."), LinkIndex));
+        }
+        else if (!SourceObject)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (TEXT ("Link %d SourceObjectId was not found."), LinkIndex),
+                Link.SourceObjectId);
+        }
+        else
         {
             int32& OutgoingCount = OutgoingLinkCountBySourceId.FindOrAdd (Link.SourceObjectId);
             ++OutgoingCount;
+
+            if (!IsEventEmittedByCurrentRuntime (SourceObject->Type, Link.SourceEvent))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (
+                        TEXT ("Link %d uses SourceEvent=%s, which is not emitted by the current C++ runtime for source type %s."),
+                        LinkIndex,
+                        *ToGridObjectEventText (Link.SourceEvent),
+                        *ToGridObjectTypeText (SourceObject->Type)),
+                    Link.SourceObjectId);
+            }
+            if (!SourceObject->bInitiallyEnabled)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (TEXT ("Link %d source object is initially disabled."), LinkIndex),
+                    Link.SourceObjectId);
+            }
 
             switch (Link.SourceEvent)
             {
@@ -3855,16 +4022,124 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 }
 
                 default:
-                break;
+                    break;
             }
         }
 
-        if (!ObjectIds.Contains (Link.TargetObjectId))
+        if (!Link.TargetObjectId.IsValid ())
         {
             AddMessage (
                 EGridLevelValidationSeverity::Error,
-                TEXT ("Link TargetObjectId was not found."),
+                FString::Printf (TEXT ("Link %d has an invalid TargetObjectId."), LinkIndex));
+        }
+        else if (!TargetObject)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Error,
+                FString::Printf (TEXT ("Link %d TargetObjectId was not found."), LinkIndex),
                 Link.TargetObjectId);
+        }
+        else
+        {
+            if (!IsCommandSupportedByCurrentRuntime (TargetObject->Type, Link.Command))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Link %d command %s is not supported by the current runtime for target type %s."),
+                        LinkIndex,
+                        *ToGridObjectCommandText (Link.Command),
+                        *ToGridObjectTypeText (TargetObject->Type)),
+                    Link.TargetObjectId);
+            }
+            if (!TargetObject->bInitiallyEnabled)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    FString::Printf (TEXT ("Link %d target object is initially disabled and may have no spawned runtime actor."), LinkIndex),
+                    Link.TargetObjectId);
+            }
+        }
+
+        if (Link.SourceObjectId.IsValid () && Link.SourceObjectId == Link.TargetObjectId)
+        {
+            AddMessage (
+                EGridLevelValidationSeverity::Warning,
+                FString::Printf (TEXT ("Link %d targets its own source object."), LinkIndex),
+                Link.SourceObjectId);
+        }
+
+        if (Link.Condition != EGridObjectCondition::None)
+        {
+            if (!TargetObject || TargetObject->Type != EGridLevelObjectType::Receptacle)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Link %d condition %s requires a receptacle target."),
+                        LinkIndex,
+                        *ToGridObjectConditionText (Link.Condition)),
+                    Link.TargetObjectId);
+            }
+
+            switch (Link.Condition)
+            {
+                case EGridObjectCondition::ReceptacleContainsItemDefinition:
+                    if (Link.ConditionItemDefinitionId.IsNone ())
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Error,
+                            FString::Printf (TEXT ("Link %d condition requires ConditionItemDefinitionId."), LinkIndex),
+                            Link.SourceObjectId);
+                    }
+                    break;
+
+                case EGridObjectCondition::ReceptacleContainsItemTag:
+                    if (Link.ConditionItemTag.IsNone ())
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Error,
+                            FString::Printf (TEXT ("Link %d condition requires ConditionItemTag."), LinkIndex),
+                            Link.SourceObjectId);
+                    }
+                    break;
+
+                case EGridObjectCondition::ReceptacleContainsItemType:
+                    if (Link.ConditionItemType == EGridItemType::None)
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Error,
+                            FString::Printf (TEXT ("Link %d condition requires a non-None ConditionItemType."), LinkIndex),
+                            Link.SourceObjectId);
+                    }
+                    break;
+
+                case EGridObjectCondition::ReceptacleItemCountAtLeast:
+                    if (Link.ConditionCount <= 0)
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Error,
+                            FString::Printf (TEXT ("Link %d condition requires ConditionCount > 0."), LinkIndex),
+                            Link.SourceObjectId);
+                    }
+                    break;
+
+                case EGridObjectCondition::ReceptacleWeightAtLeast:
+                    if (Link.ConditionWeight <= 0.0f)
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Error,
+                            FString::Printf (TEXT ("Link %d condition requires ConditionWeight > 0."), LinkIndex),
+                            Link.SourceObjectId);
+                    }
+                    break;
+
+                case EGridObjectCondition::ReceptacleIsEmpty:
+                case EGridObjectCondition::ReceptacleHasAnyItem:
+                case EGridObjectCondition::None:
+                default:
+                    break;
+            }
         }
     }
 

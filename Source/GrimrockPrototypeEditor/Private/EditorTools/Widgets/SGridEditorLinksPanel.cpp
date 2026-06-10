@@ -27,27 +27,9 @@ namespace
     const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId);
     TArray<EGridObjectCommand> GetSupportedCommandsForTarget (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype);
 
-    bool ArchetypeTextContains (const UGridObjectArchetypeAsset* Archetype, const TCHAR* Needle)
-    {
-        if (!Archetype)
-        {
-            return false;
-        }
-
-        return Archetype->ArchetypeId.ToString ().Contains (Needle, ESearchCase::IgnoreCase) ||
-            Archetype->DisplayName.ToString ().Contains (Needle, ESearchCase::IgnoreCase) ||
-            Archetype->Category.ToString ().Contains (Needle, ESearchCase::IgnoreCase);
-    }
-
-    bool IsLockLikeObject (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
-    {
-        return Obj.Type == EGridLevelObjectType::Receptacle &&
-            (ArchetypeTextContains (Archetype, TEXT ("Lock")) ||
-                ArchetypeTextContains (Archetype, TEXT ("Keyhole")));
-    }
-
     bool CanObjectEmitEvents (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
     {
+        (void)Archetype;
         switch (Obj.Type)
         {
             case EGridLevelObjectType::Button:
@@ -57,20 +39,13 @@ namespace
             case EGridLevelObjectType::Receptacle:
                 return true;
 
-            case EGridLevelObjectType::Door:
-                return Archetype && Archetype->bIsInteractable;
-
             case EGridLevelObjectType::Item:
             case EGridLevelObjectType::ItemSpawn:
             case EGridLevelObjectType::MonsterSpawn:
-                return false;
-
+            case EGridLevelObjectType::Door:
             case EGridLevelObjectType::Teleporter:
-                return Archetype && Archetype->bIsInteractable;
-
             case EGridLevelObjectType::Decoration:
-                return Archetype && Archetype->bIsInteractable && !Archetype->bIsReadable;
-
+            case EGridLevelObjectType::Light:
             default:
                 return false;
         }
@@ -78,12 +53,13 @@ namespace
 
     TArray<EGridObjectEvent> GetSupportedEventsForSource (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
     {
+        (void)Archetype;
         TArray<EGridObjectEvent> Events;
 
         switch (Obj.Type)
         {
             case EGridLevelObjectType::Button:
-                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
+                Events = {EGridObjectEvent::Activated};
                 break;
 
             case EGridLevelObjectType::Lever:
@@ -91,39 +67,28 @@ namespace
                 break;
 
             case EGridLevelObjectType::PressurePlate:
-                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated, EGridObjectEvent::Entered, EGridObjectEvent::Exited};
+                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
                 break;
 
             case EGridLevelObjectType::Trigger:
-                Events = {EGridObjectEvent::Entered, EGridObjectEvent::Exited, EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
+                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
                 break;
 
             case EGridLevelObjectType::Receptacle:
-                Events = IsLockLikeObject (Obj, Archetype)
-                    ? TArray<EGridObjectEvent> {EGridObjectEvent::Activated, EGridObjectEvent::Used}
-                    : TArray<EGridObjectEvent> {EGridObjectEvent::ItemInserted, EGridObjectEvent::ItemRemoved};
-                break;
-
-            case EGridLevelObjectType::Door:
-                Events = {EGridObjectEvent::Opened, EGridObjectEvent::Closed};
-                break;
-
-            case EGridLevelObjectType::Teleporter:
-                Events = {EGridObjectEvent::Entered, EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
+                Events = {
+                    EGridObjectEvent::ItemInserted,
+                    EGridObjectEvent::ItemRemoved,
+                    EGridObjectEvent::ItemChanged
+                };
                 break;
 
             case EGridLevelObjectType::Item:
             case EGridLevelObjectType::ItemSpawn:
             case EGridLevelObjectType::MonsterSpawn:
-                break;
-
+            case EGridLevelObjectType::Door:
+            case EGridLevelObjectType::Teleporter:
             case EGridLevelObjectType::Decoration:
-                if (Archetype && Archetype->bIsInteractable && !Archetype->bIsReadable)
-                {
-                    Events = {EGridObjectEvent::Activated, EGridObjectEvent::Used};
-                }
-                break;
-
+            case EGridLevelObjectType::Light:
             default:
                 break;
         }
@@ -141,7 +106,13 @@ namespace
         switch (Obj.Type)
         {
             case EGridLevelObjectType::Door:
-                return {EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Lock, EGridObjectCommand::Unlock};
+                return {
+                    EGridObjectCommand::Open,
+                    EGridObjectCommand::Close,
+                    EGridObjectCommand::Toggle,
+                    EGridObjectCommand::Activate,
+                    EGridObjectCommand::Deactivate
+                };
 
             case EGridLevelObjectType::Teleporter:
                 return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};

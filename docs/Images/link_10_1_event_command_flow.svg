@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flux événement, condition et commande</title>
+  <desc id="desc">Le runtime coordonne un événement source, un lien persistant, une condition, une cible et une commande.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.runtime{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.effect{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 22px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Événement → condition → commande</text>
+  <text class="note" x="60" y="105">UGridActivationComponent coordonne le flux ; UGridLevelAsset conserve les liens.</text>
+
+  <g transform="translate(55,235)">
+    <rect class="box" width="180" height="130" rx="18"/>
+    <text class="label" x="31" y="48">Objet source</text>
+    <text class="small" x="28" y="82">ObjectId</text>
+    <text class="small" x="28" y="106">émet SourceEvent</text>
+  </g>
+  <path class="arrow" d="M245 300 H325"/>
+  <text class="small" x="255" y="280">événement</text>
+
+  <g transform="translate(335,205)">
+    <rect class="data" width="220" height="190" rx="18"/>
+    <text class="label" x="30" y="45">FGridObjectLink</text>
+    <text class="small" x="28" y="82">SourceObjectId</text>
+    <text class="small" x="28" y="108">TargetObjectId</text>
+    <text class="small" x="28" y="134">SourceEvent</text>
+    <text class="small" x="28" y="160">Condition + Command</text>
+  </g>
+  <path class="arrow" d="M565 300 H645"/>
+
+  <g transform="translate(655,235)">
+    <rect class="runtime" width="190" height="130" rx="18"/>
+    <text class="label" x="43" y="45">Condition</text>
+    <text class="small" x="26" y="82">lit la cible</text>
+    <text class="small" x="26" y="106">accepte ou rejette</text>
+  </g>
+  <path class="arrow" d="M855 300 H925"/>
+
+  <g transform="translate(935,235)">
+    <rect class="box" width="205" height="130" rx="18"/>
+    <text class="label" x="42" y="45">Objet cible</text>
+    <text class="small" x="27" y="82">résolu par ObjectId</text>
+    <text class="small" x="27" y="106">reçoit Command</text>
+  </g>
+
+  <path class="arrow" d="M1038 375 V470"/>
+  <g transform="translate(870,485)">
+    <rect class="effect" width="335" height="120" rx="18"/>
+    <text class="label" x="84" y="48">Effet gameplay</text>
+    <text class="small" x="47" y="82">porte, état ou action de réceptacle</text>
+  </g>
+
+  <g transform="translate(245,500)">
+    <rect class="runtime" width="440" height="110" rx="18"/>
+    <text class="label" x="52" y="43">UGridActivationComponent</text>
+    <text class="small" x="41" y="76">indexe · filtre · évalue · dispatche · journalise</text>
+  </g>
+  <path class="arrow" d="M465 500 C465 450,610 435,750 375"/>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flux d’édition d’un lien</title>
+  <desc id="desc">L’éditeur sélectionne source et cible, crée un lien persistant puis dessine une visualisation transitoire.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.tool{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.view{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.label{font:700 21px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}.read{stroke:#6d855f;stroke-width:4;fill:none;stroke-dasharray:8 8;marker-end:url(#arrow2)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+    <marker id="arrow2" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#6d855f"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Édition et visualisation des liens</text>
+  <text class="note" x="60" y="105">Le niveau conserve les données ; le mode éditeur ne conserve que la sélection et le dessin.</text>
+
+  <g transform="translate(55,235)"><rect class="box" width="180" height="130" rx="18"/><text class="label" x="27" y="45">Objet source</text><text class="small" x="25" y="79">outil viewport</text><text class="small" x="25" y="105">ou panneau Links</text></g>
+  <path class="arrow" d="M245 300 H315"/>
+  <g transform="translate(325,235)"><rect class="box" width="180" height="130" rx="18"/><text class="label" x="32" y="45">Objet cible</text><text class="small" x="26" y="79">événement</text><text class="small" x="26" y="105">et commande</text></g>
+  <path class="arrow" d="M515 300 H585"/>
+  <g transform="translate(595,210)"><rect class="tool" width="230" height="180" rx="18"/><text class="label" x="55" y="45">CreateLink</text><text class="small" x="30" y="80">vérifie les identités</text><text class="small" x="30" y="106">refuse le doublon simple</text><text class="small" x="30" y="132">modifie le LevelAsset</text><text class="small" x="30" y="158">marque le package</text></g>
+  <path class="arrow" d="M835 300 H905"/>
+  <g transform="translate(915,220)"><rect class="data" width="235" height="160" rx="18"/><text class="label" x="31" y="46">UGridLevelAsset</text><text class="label" x="64" y="77">::Links</text><text class="small" x="36" y="113">donnée persistante</text><text class="small" x="36" y="138">FGridObjectLink</text></g>
+
+  <path class="read" d="M1032 390 V480 H735"/>
+  <g transform="translate(460,490)"><rect class="view" width="285" height="125" rx="18"/><text class="label" x="49" y="45">FGridLevelEdMode</text><text class="small" x="37" y="80">flèches, traits et libellés</text><text class="small" x="37" y="104">visualisation transitoire</text></g>
+  <path class="read" d="M460 552 H300"/>
+  <g transform="translate(75,500)"><rect class="view" width="215" height="110" rx="18"/><text class="label" x="35" y="44">Viewport</text><text class="small" x="31" y="77">aperçu des liens</text></g>
+</svg>

@@ -181,12 +181,7 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
 
                 const EGridObjectEvent LeverEvent =
                     bNewActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
-                bool bAnyApplied = ExecuteLinksFromObjectForEventInternal (
-                    ObjectData.ObjectId,
-                    LeverEvent,
-                    false);
-                bAnyApplied |= ExecuteToggleLinksFromObject (ObjectData.ObjectId);
-                return bAnyApplied;
+                return ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, LeverEvent);
             }
         case EGridLevelObjectType::Receptacle:
             {
@@ -332,44 +327,86 @@ bool UGridActivationComponent::EvaluateGridObjectLinkCondition (
     }
 
     const AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (TargetActor);
+    if (!ReceptacleActor)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid link condition rejected: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Reason=target is not a spawned receptacle"),
+            *LinkData.SourceObjectId.ToString (),
+            *GetNameSafe (SourceActor),
+            *LinkData.TargetObjectId.ToString (),
+            *GetNameSafe (TargetActor),
+            *GridObjectConditionToString (LinkData.Condition));
+        return false;
+    }
+
+    const auto RejectMissingConditionParameter = [&LinkData, SourceActor, TargetActor] (const TCHAR* ParameterName)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid link condition rejected: Source=%s SourceActor=%s Target=%s TargetActor=%s Condition=%s Reason=missing or invalid %s"),
+            *LinkData.SourceObjectId.ToString (),
+            *GetNameSafe (SourceActor),
+            *LinkData.TargetObjectId.ToString (),
+            *GetNameSafe (TargetActor),
+            *GridObjectConditionToString (LinkData.Condition),
+            ParameterName);
+        return false;
+    };
+
     bool bConditionResult = false;
 
-    if (ReceptacleActor)
+    switch (LinkData.Condition)
     {
-        switch (LinkData.Condition)
-        {
-            case EGridObjectCondition::ReceptacleIsEmpty:
-                bConditionResult = ReceptacleActor->IsEmpty ();
-                break;
+        case EGridObjectCondition::ReceptacleIsEmpty:
+            bConditionResult = ReceptacleActor->IsEmpty ();
+            break;
 
-            case EGridObjectCondition::ReceptacleHasAnyItem:
-                bConditionResult = ReceptacleActor->HasAnyItem ();
-                break;
+        case EGridObjectCondition::ReceptacleHasAnyItem:
+            bConditionResult = ReceptacleActor->HasAnyItem ();
+            break;
 
-            case EGridObjectCondition::ReceptacleContainsItemDefinition:
-                bConditionResult = ReceptacleActor->ContainsItemDefinition (LinkData.ConditionItemDefinitionId);
-                break;
+        case EGridObjectCondition::ReceptacleContainsItemDefinition:
+            if (LinkData.ConditionItemDefinitionId.IsNone ())
+            {
+                return RejectMissingConditionParameter (TEXT ("ConditionItemDefinitionId"));
+            }
+            bConditionResult = ReceptacleActor->ContainsItemDefinition (LinkData.ConditionItemDefinitionId);
+            break;
 
-            case EGridObjectCondition::ReceptacleContainsItemTag:
-                bConditionResult = ReceptacleActor->ContainsItemTag (LinkData.ConditionItemTag);
-                break;
+        case EGridObjectCondition::ReceptacleContainsItemTag:
+            if (LinkData.ConditionItemTag.IsNone ())
+            {
+                return RejectMissingConditionParameter (TEXT ("ConditionItemTag"));
+            }
+            bConditionResult = ReceptacleActor->ContainsItemTag (LinkData.ConditionItemTag);
+            break;
 
-            case EGridObjectCondition::ReceptacleContainsItemType:
-                bConditionResult = ReceptacleActor->ContainsItemType (LinkData.ConditionItemType);
-                break;
+        case EGridObjectCondition::ReceptacleContainsItemType:
+            if (LinkData.ConditionItemType == EGridItemType::None)
+            {
+                return RejectMissingConditionParameter (TEXT ("ConditionItemType"));
+            }
+            bConditionResult = ReceptacleActor->ContainsItemType (LinkData.ConditionItemType);
+            break;
 
-            case EGridObjectCondition::ReceptacleItemCountAtLeast:
-                bConditionResult = ReceptacleActor->GetContainedItemCount () >= LinkData.ConditionCount;
-                break;
+        case EGridObjectCondition::ReceptacleItemCountAtLeast:
+            if (LinkData.ConditionCount <= 0)
+            {
+                return RejectMissingConditionParameter (TEXT ("ConditionCount"));
+            }
+            bConditionResult = ReceptacleActor->GetContainedItemCount () >= LinkData.ConditionCount;
+            break;
 
-            case EGridObjectCondition::ReceptacleWeightAtLeast:
-                bConditionResult = ReceptacleActor->GetContainedTotalWeight () >= LinkData.ConditionWeight;
-                break;
+        case EGridObjectCondition::ReceptacleWeightAtLeast:
+            if (LinkData.ConditionWeight <= 0.0f)
+            {
+                return RejectMissingConditionParameter (TEXT ("ConditionWeight"));
+            }
+            bConditionResult = ReceptacleActor->GetContainedTotalWeight () >= LinkData.ConditionWeight;
+            break;
 
-            case EGridObjectCondition::None:
-            default:
-                break;
-        }
+        case EGridObjectCondition::None:
+        default:
+            return false;
     }
 
     const bool bFinalResult = LinkData.bInvertCondition ? !bConditionResult : bConditionResult;
@@ -391,16 +428,23 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     FGuid SourceObjectId,
     EGridObjectEvent SourceEvent)
 {
-    return ExecuteLinksFromObjectForEventInternal (SourceObjectId, SourceEvent, true);
+    return ExecuteLinksFromObjectForEventInternal (SourceObjectId, SourceEvent);
 }
 
 bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
     FGuid SourceObjectId,
-    EGridObjectEvent SourceEvent,
-    bool bIncludeToggleCommands)
+    EGridObjectEvent SourceEvent)
 {
     if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
     {
+        return false;
+    }
+    if (!FindObjectById (SourceObjectId))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid object event rejected: Source=%s Event=%s Reason=source object not found"),
+            *SourceObjectId.ToString (),
+            *GridObjectEventToString (SourceEvent));
         return false;
     }
 
@@ -418,8 +462,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
         }
 
         const FGridObjectLink& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
-        if (LinkData.SourceEvent != SourceEvent ||
-            (!bIncludeToggleCommands && LinkData.Command == EGridObjectCommand::Toggle))
+        if (LinkData.SourceEvent != SourceEvent)
         {
             continue;
         }
@@ -431,44 +474,6 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
     UE_LOG (LogTemp, Log, TEXT ("Grid object event %s: Event=%s LinksExecuted=%d AnyApplied=%s"),
         *SourceObjectId.ToString (),
         *GridObjectEventToString (SourceEvent),
-        ExecutedLinkCount,
-        bAnyApplied ? TEXT ("true") : TEXT ("false"));
-
-    return bAnyApplied;
-}
-
-bool UGridActivationComponent::ExecuteToggleLinksFromObject (FGuid SourceObjectId)
-{
-    if (!RuntimeActor || !RuntimeActor->LevelAsset || !SourceObjectId.IsValid ())
-    {
-        return false;
-    }
-
-    bool bAnyApplied = false;
-    int32 ExecutedLinkCount = 0;
-
-    TArray<int32> LinkIndexes;
-    LinkIndexesBySource.MultiFind (SourceObjectId, LinkIndexes);
-
-    for (const int32 LinkIndex : LinkIndexes)
-    {
-        if (!RuntimeActor->LevelAsset->Links.IsValidIndex (LinkIndex))
-        {
-            continue;
-        }
-
-        const FGridObjectLink& LinkData = RuntimeActor->LevelAsset->Links[LinkIndex];
-        if (LinkData.Command != EGridObjectCommand::Toggle)
-        {
-            continue;
-        }
-
-        ++ExecutedLinkCount;
-        bAnyApplied |= ApplyLinkCommand (LinkData);
-    }
-
-    UE_LOG (LogTemp, Log, TEXT ("Grid lever toggle links: Source=%s LinksExecuted=%d AnyApplied=%s"),
-        *SourceObjectId.ToString (),
         ExecutedLinkCount,
         bAnyApplied ? TEXT ("true") : TEXT ("false"));
 
@@ -861,19 +866,8 @@ bool UGridActivationComponent::ActivateReceptacle (
         ActiveObjectIds.Remove (ObjectData.ObjectId);
     }
 
-    if (CurrentItemCount > PreviousItemCount)
-    {
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemInserted);
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemChanged);
-        return true;
-    }
-    if (CurrentItemCount < PreviousItemCount)
-    {
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemRemoved);
-        ExecuteLinksFromObjectForEvent (ObjectData.ObjectId, EGridObjectEvent::ItemChanged);
-        return true;
-    }
-    return false;
+    // The receptacle actor emits insertion and removal events when the transfer succeeds.
+    return CurrentItemCount != PreviousItemCount;
 }
 
 FString UGridActivationComponent::GetDebugSummary () const

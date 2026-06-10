@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Évaluation des conditions de lien</title>
+  <desc id="desc">Une condition absente autorise la commande ; une condition de réceptacle exige une cible et des paramètres valides avant inversion.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.decision{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.ok{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.no{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 21px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Évaluation d’une condition</text>
+  <text class="note" x="60" y="105">L’inversion s’applique uniquement à un résultat valide.</text>
+
+  <g transform="translate(70,255)"><rect class="box" width="180" height="110" rx="18"/><text class="label" x="29" y="46">Lien filtré</text><text class="small" x="24" y="78">SourceEvent reconnu</text></g>
+  <path class="arrow" d="M260 310 H335"/>
+  <g transform="translate(345,235)"><rect class="decision" width="210" height="150" rx="18"/><text class="label" x="27" y="48">Condition=None ?</text><text class="small" x="39" y="86">oui : autoriser</text><text class="small" x="39" y="115">non : évaluer</text></g>
+
+  <path class="arrow" d="M450 395 V485"/>
+  <text class="small" x="462" y="445">oui</text>
+  <g transform="translate(335,500)"><rect class="ok" width="230" height="110" rx="18"/><text class="label" x="39" y="47">Exécuter</text><text class="small" x="37" y="78">la commande</text></g>
+
+  <path class="arrow" d="M565 310 H650"/>
+  <text class="small" x="590" y="290">non</text>
+  <g transform="translate(660,210)"><rect class="decision" width="245" height="200" rx="18"/><text class="label" x="26" y="46">Contexte valide ?</text><text class="small" x="28" y="82">cible réceptacle</text><text class="small" x="28" y="108">acteur généré</text><text class="small" x="28" y="134">paramètre requis</text><text class="small" x="28" y="166">lire l’état cible</text></g>
+
+  <path class="arrow" d="M782 420 V495"/>
+  <text class="small" x="795" y="460">oui</text>
+  <g transform="translate(650,510)"><rect class="ok" width="265" height="110" rx="18"/><text class="label" x="31" y="44">Appliquer inversion</text><text class="small" x="35" y="76">puis résultat vrai ou faux</text></g>
+
+  <path class="arrow" d="M915 310 H985"/>
+  <text class="small" x="932" y="290">non</text>
+  <g transform="translate(995,245)"><rect class="no" width="170" height="130" rx="18"/><text class="label" x="33" y="44">Rejeter</text><text class="small" x="24" y="77">avertissement</text><text class="small" x="24" y="102">aucune inversion</text></g>
+</svg>
