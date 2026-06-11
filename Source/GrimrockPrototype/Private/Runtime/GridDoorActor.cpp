@@ -339,7 +339,27 @@ void AGridDoorActor::UpdateChainAnimation (float DeltaSeconds)
         ChainAnimationElapsed = 0.f;
         bIsChainAnimating = false;
         ChainInteractionBox->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
-        SetDoorOpenState (!bIsOpen);
+        if (AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (nullptr, this))
+        {
+            if (!RuntimeActor->ToggleDoorOnEdge (CellX, CellY, Edge))
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("Grid door chain failed: ObjectId=%s Cell=(%d,%d) Edge=%d Reason=central toggle rejected"),
+                    *ObjectId.ToString (),
+                    CellX,
+                    CellY,
+                    static_cast<int32> (Edge));
+            }
+        }
+        else
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid door chain failed: ObjectId=%s Cell=(%d,%d) Edge=%d Reason=runtime actor not found"),
+                *ObjectId.ToString (),
+                CellX,
+                CellY,
+                static_cast<int32> (Edge));
+        }
         bIsChainSwinging = true;
         ChainSwingElapsed = 0.f;
         RefreshTickEnabled ();

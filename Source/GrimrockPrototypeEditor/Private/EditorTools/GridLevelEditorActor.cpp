@@ -3778,6 +3778,26 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     TEXT ("Door is placed on an edge whose wall is Solid. A door edge must use WallType=None."),
                 Obj.ObjectId);
             }
+
+            int32 NeighborX = Obj.CellX;
+            int32 NeighborY = Obj.CellY;
+            switch (Obj.Edge)
+            {
+                case EGridEdge::North: ++NeighborY; break;
+                case EGridEdge::East:  ++NeighborX; break;
+                case EGridEdge::South: --NeighborY; break;
+                case EGridEdge::West:  --NeighborX; break;
+                case EGridEdge::None:
+                default:
+                    break;
+            }
+            if (Obj.Edge != EGridEdge::None && !LevelAsset->IsValidCoord (NeighborX, NeighborY))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Door is placed on an outer grid edge with no neighboring cell to cross."),
+                    Obj.ObjectId);
+            }
         }
 
         if (Obj.Behavior.Transition.bIsTransition)
@@ -3928,6 +3948,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
     }
 
     TSet<FString> SeenLinkKeys;
+    TMap<FString, uint8> DoorCommandDirectionsBySourceEvent;
     for (int32 LinkIndex = 0; LinkIndex < LevelAsset->Links.Num (); ++LinkIndex)
     {
         const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
@@ -4058,6 +4079,35 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     EGridLevelValidationSeverity::Warning,
                     FString::Printf (TEXT ("Link %d target object is initially disabled and may have no spawned runtime actor."), LinkIndex),
                     Link.TargetObjectId);
+            }
+
+            if (TargetObject->Type == EGridLevelObjectType::Door)
+            {
+                const bool bOpensDoor =
+                    Link.Command == EGridObjectCommand::Open ||
+                    Link.Command == EGridObjectCommand::Activate;
+                const bool bClosesDoor =
+                    Link.Command == EGridObjectCommand::Close ||
+                    Link.Command == EGridObjectCommand::Deactivate;
+                if (bOpensDoor || bClosesDoor)
+                {
+                    const FString DoorCommandKey = FString::Printf (
+                        TEXT ("%s|%s|%d"),
+                        *Link.SourceObjectId.ToString (EGuidFormats::Digits),
+                        *Link.TargetObjectId.ToString (EGuidFormats::Digits),
+                        static_cast<int32> (Link.SourceEvent));
+                    uint8& DirectionMask = DoorCommandDirectionsBySourceEvent.FindOrAdd (DoorCommandKey);
+                    DirectionMask |= bOpensDoor ? 1 : 2;
+                    if (DirectionMask == 3)
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Warning,
+                            FString::Printf (
+                                TEXT ("Link %d conflicts with another link: the same source event both opens and closes this door."),
+                                LinkIndex),
+                            Link.TargetObjectId);
+                    }
+                }
             }
         }
 

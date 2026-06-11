@@ -6,6 +6,9 @@ Ce document décrit le système existant qui relie un événement émis par un o
 
 Il ne définit ni langage de script, ni nouveau mécanisme de gameplay. Les valeurs d’enum non exécutées par le code actuel sont documentées comme réservées ou inactives.
 
+Le contrat spécialisé des portes, de leur animation et de `CanMove()` est documenté dans
+`docs/Architecture/DOOR_MECHANISM_FOUNDATION.md`.
+
 ## 2. Vocabulaire
 
 **Source** : objet placé identifié par `SourceObjectId`, dont un événement déclenche la recherche de liens.

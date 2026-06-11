@@ -74,10 +74,23 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
     AGridDoorActor* DoorActor = FindDoorActorAtEdge (X, Y, Edge);
     if (!DoorActor)
     {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid door open failed: Cell=(%d,%d) Edge=%d Reason=runtime actor not found"),
+            X,
+            Y,
+            static_cast<int32> (Edge));
         return false;
     }
+
+    SetDoorPassageBlocked (X, Y, Edge, false);
     DoorActor->OpenDoor ();
 
+    UE_LOG (LogTemp, Log,
+        TEXT ("Grid door command: Cell=(%d,%d) Edge=%d Command=Open Blocked=false Animating=%s"),
+        X,
+        Y,
+        static_cast<int32> (Edge),
+        DoorActor->IsAnimating () ? TEXT ("true") : TEXT ("false"));
     return true;
 }
 
@@ -86,10 +99,22 @@ bool UGridDoorSystemComponent::CloseDoorOnEdge (int32 X, int32 Y, EGridEdge Edge
     AGridDoorActor* DoorActor = FindDoorActorAtEdge (X, Y, Edge);
     if (!DoorActor)
     {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid door close failed: Cell=(%d,%d) Edge=%d Reason=runtime actor not found"),
+            X,
+            Y,
+            static_cast<int32> (Edge));
         return false;
     }
     SetDoorPassageBlocked (X, Y, Edge, true);
     DoorActor->CloseDoor ();
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("Grid door command: Cell=(%d,%d) Edge=%d Command=Close Blocked=true Animating=%s"),
+        X,
+        Y,
+        static_cast<int32> (Edge),
+        DoorActor->IsAnimating () ? TEXT ("true") : TEXT ("false"));
     return true;
 }
 
@@ -191,6 +216,13 @@ void UGridDoorSystemComponent::HandleDoorAnimationFinished (int32 X, int32 Y, EG
         return;
     }
     SetDoorPassageBlocked (X, Y, Edge, !DoorActor->IsFullyOpen ());
+    UE_LOG (LogTemp, Log,
+        TEXT ("Grid door animation finished: Cell=(%d,%d) Edge=%d FullyOpen=%s Blocked=%s"),
+        X,
+        Y,
+        static_cast<int32> (Edge),
+        DoorActor->IsFullyOpen () ? TEXT ("true") : TEXT ("false"),
+        IsDoorPassageBlocked (X, Y, Edge) ? TEXT ("true") : TEXT ("false"));
 }
 
 AGridDoorActor* UGridDoorSystemComponent::FindDoorActorAtEdge (int32 X, int32 Y, EGridEdge Edge) const

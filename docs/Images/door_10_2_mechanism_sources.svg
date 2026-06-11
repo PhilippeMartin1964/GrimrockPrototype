@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Sources de commande d’une porte</title>
+  <desc id="desc">Bouton, levier, plaque, chaîne, réceptacle et trigger convergent vers une commande claire appliquée à la porte.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.source{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.runtime{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.door{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 20px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Sources de commande d’une porte</text>
+  <text class="note" x="60" y="105">Chaque source fournit un événement ; la cible reçoit une commande explicite.</text>
+
+  <g transform="translate(70,170)"><rect class="source" width="170" height="90" rx="16"/><text class="label" x="51" y="54">Bouton</text></g>
+  <g transform="translate(70,285)"><rect class="source" width="170" height="90" rx="16"/><text class="label" x="52" y="54">Levier</text></g>
+  <g transform="translate(70,400)"><rect class="source" width="170" height="90" rx="16"/><text class="label" x="44" y="54">Plaque</text></g>
+  <g transform="translate(70,515)"><rect class="source" width="170" height="90" rx="16"/><text class="label" x="50" y="54">Chaîne</text></g>
+
+  <g transform="translate(300,230)"><rect class="source" width="190" height="90" rx="16"/><text class="label" x="38" y="54">Réceptacle</text></g>
+  <g transform="translate(300,400)"><rect class="source" width="190" height="90" rx="16"/><text class="label" x="58" y="54">Trigger</text></g>
+
+  <path class="arrow" d="M250 215 C430 215,470 275,565 330"/>
+  <path class="arrow" d="M250 330 H565"/>
+  <path class="arrow" d="M250 445 C410 445,470 385,565 350"/>
+  <path class="arrow" d="M250 560 C430 560,500 430,585 375"/>
+  <path class="arrow" d="M500 275 C530 285,550 300,575 320"/>
+  <path class="arrow" d="M500 445 C535 420,560 395,585 375"/>
+
+  <g transform="translate(595,260)"><rect class="runtime" width="260" height="180" rx="18"/><text class="label" x="44" y="44">Commande centrale</text><text class="small" x="64" y="84">Open · Close</text><text class="small" x="84" y="112">Toggle</text><text class="small" x="47" y="142">Activate · Deactivate</text></g>
+  <path class="arrow" d="M865 350 H950"/>
+  <g transform="translate(960,275)"><rect class="door" width="180" height="150" rx="18"/><text class="label" x="59" y="50">Porte</text><text class="small" x="30" y="88">état · animation</text><text class="small" x="30" y="116">passabilité</text></g>
+</svg>

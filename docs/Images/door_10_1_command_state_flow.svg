@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Flux de commande et état d’une porte</title>
+  <desc id="desc">Un mécanisme produit un événement, un lien sélectionne une commande, puis le système de porte synchronise animation et passabilité.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.runtime{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.visual{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 20px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:5;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Commande de porte et état central</text>
+  <text class="note" x="60" y="105">Toutes les commandes convergent vers UGridDoorSystemComponent.</text>
+
+  <g transform="translate(45,235)"><rect class="box" width="170" height="130" rx="18"/><text class="label" x="23" y="45">Mécanisme</text><text class="small" x="23" y="80">bouton · levier</text><text class="small" x="23" y="105">plaque · chaîne</text></g>
+  <path class="arrow" d="M225 300 H285"/>
+  <g transform="translate(295,220)"><rect class="data" width="190" height="160" rx="18"/><text class="label" x="25" y="44">FGridObjectLink</text><text class="small" x="26" y="82">SourceEvent</text><text class="small" x="26" y="108">Open · Close</text><text class="small" x="26" y="134">Toggle</text></g>
+  <path class="arrow" d="M495 300 H555"/>
+  <g transform="translate(565,215)"><rect class="runtime" width="250" height="170" rx="18"/><text class="label" x="25" y="43">UGridActivationComponent</text><text class="small" x="34" y="80">ApplyDoorLinkCommand</text><text class="small" x="34" y="108">résout cellule et bord</text><text class="small" x="34" y="136">appelle le système central</text></g>
+  <path class="arrow" d="M825 300 H885"/>
+  <g transform="translate(895,205)"><rect class="runtime" width="260" height="190" rx="18"/><text class="label" x="24" y="43">UGridDoorSystemComponent</text><text class="small" x="30" y="80">RuntimeBlockedDoorEdges</text><text class="small" x="30" y="108">Open / Close / Toggle</text><text class="small" x="30" y="136">source de vérité</text><text class="small" x="30" y="164">du passage</text></g>
+
+  <path class="arrow" d="M1025 405 V485 H835"/>
+  <g transform="translate(585,500)"><rect class="visual" width="250" height="120" rx="18"/><text class="label" x="49" y="45">AGridDoorActor</text><text class="small" x="48" y="79">position et animation</text></g>
+  <path class="arrow" d="M895 350 C770 430,520 440,390 500"/>
+  <g transform="translate(165,500)"><rect class="data" width="225" height="120" rx="18"/><text class="label" x="61" y="45">CanMove</text><text class="small" x="39" y="79">autorise ou bloque</text></g>
+</svg>

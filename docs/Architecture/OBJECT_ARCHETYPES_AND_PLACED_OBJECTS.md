@@ -18,6 +18,9 @@ Les règles de sélection et de clic runtime sont documentées séparément dans
 Le contrat des liens entre objets, des événements, des conditions et des commandes est documenté dans
 `docs/Architecture/LINK_EVENT_COMMAND_FOUNDATION.md`.
 
+Le système runtime des portes et leur interaction avec la passabilité est documenté dans
+`docs/Architecture/DOOR_MECHANISM_FOUNDATION.md`.
+
 ## 2. Vocabulaire
 
 **Archétype** : `UGridObjectArchetypeAsset`, modèle partagé qui décrit identité, type fonctionnel, placement, visuels, classe runtime et valeurs par défaut.

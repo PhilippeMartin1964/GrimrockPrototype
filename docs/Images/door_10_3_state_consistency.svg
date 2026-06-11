@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Cohérence des états de porte</title>
+  <desc id="desc">Une porte ouverte associe passage libre et animation d’ouverture ; une porte fermée associe passage bloqué et animation de fermeture.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.open{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.closed{fill:#ead8ef;stroke:#745080;stroke-width:3}.item{fill:#fffaf0;stroke:#5b4636;stroke-width:2}.label{font:700 24px Arial,sans-serif;fill:#2c1e18}.small{font:17px Arial,sans-serif;fill:#2c1e18}.equal{font:700 28px Arial,sans-serif;fill:#3d5f7a}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="60" y="70">Cohérence logique, visuelle et grille</text>
+  <text class="note" x="60" y="105">La passabilité centrale change avec la commande et reste cohérente avec la cible visuelle.</text>
+
+  <g transform="translate(70,165)">
+    <rect class="open" width="500" height="440" rx="24"/>
+    <text class="label" x="166" y="55">Porte ouverte</text>
+    <g transform="translate(55,95)"><rect class="item" width="390" height="75" rx="14"/><text class="small" x="73" y="45">Arête absente des blocages</text></g>
+    <text class="equal" x="237" y="205">=</text>
+    <g transform="translate(55,225)"><rect class="item" width="390" height="75" rx="14"/><text class="small" x="90" y="45">Visuel ouvert ou en ouverture</text></g>
+    <text class="equal" x="237" y="335">=</text>
+    <g transform="translate(55,355)"><rect class="item" width="390" height="60" rx="14"/><text class="small" x="92" y="38">CanMove autorise le passage</text></g>
+  </g>
+
+  <g transform="translate(630,165)">
+    <rect class="closed" width="500" height="440" rx="24"/>
+    <text class="label" x="158" y="55">Porte fermée</text>
+    <g transform="translate(55,95)"><rect class="item" width="390" height="75" rx="14"/><text class="small" x="72" y="45">Arête présente dans les blocages</text></g>
+    <text class="equal" x="237" y="205">=</text>
+    <g transform="translate(55,225)"><rect class="item" width="390" height="75" rx="14"/><text class="small" x="82" y="45">Visuel fermé ou en fermeture</text></g>
+    <text class="equal" x="237" y="335">=</text>
+    <g transform="translate(55,355)"><rect class="item" width="390" height="60" rx="14"/><text class="small" x="88" y="38">CanMove bloque le passage</text></g>
+  </g>
+</svg>
