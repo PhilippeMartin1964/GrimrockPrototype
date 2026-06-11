@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="410" viewBox="0 0 980 410">
+  <style>.t{font:18px Arial;fill:#18212b}.s{font:15px Arial;fill:#425466}.b{fill:#eef3f7;stroke:#57606a;stroke-width:2}.v{fill:#fff1c2;stroke:#bf8700;stroke-width:2}.a{stroke:#0969da;stroke-width:3;fill:none;marker-end:url(#m)}</style>
+  <defs><marker id="m" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0969da"/></marker></defs>
+  <text class="t" x="30" y="34">Une définition, trois représentations runtime</text>
+  <rect class="b" x="360" y="65" width="260" height="70"/><text class="t" x="395" y="107">Définition Item_Torch</text>
+  <rect class="b" x="55" y="245" width="240" height="90"/><text class="t" x="95" y="285">Torche placée</text><text class="s" x="89" y="312">acteur monde autonome</text>
+  <rect class="b" x="370" y="245" width="240" height="90"/><text class="t" x="400" y="285">Torche contenue</text><text class="s" x="397" y="312">propriété du réceptacle</text>
+  <rect class="v" x="685" y="245" width="240" height="90"/><text class="t" x="730" y="285">Torche tenue</text><text class="s" x="717" y="312">acteur visuel seulement</text>
+  <path class="a" d="M420 135L205 245"/><path class="a" d="M490 135V245"/><path class="a" d="M560 135L795 245"/>
+</svg>

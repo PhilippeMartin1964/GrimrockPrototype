@@ -254,7 +254,11 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryPickupItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn);
 
-    bool CanPartyPickupItemEntry (const FGridSpawnedItemRuntimeEntry& Entry, const AGrimrockPartyPawn* PartyPawn) const;
+    bool CanPartyPickupItemActor (const AGridItemActor* ItemActor, const AGrimrockPartyPawn* PartyPawn) const;
+    bool CanPartyPickupItemEntry (
+        const FGridSpawnedItemRuntimeEntry& Entry,
+        const AGrimrockPartyPawn* PartyPawn,
+        bool bLogRejection = true) const;
 
     // Allows runtime objects such as Receptacles to trigger their outgoing links.
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")

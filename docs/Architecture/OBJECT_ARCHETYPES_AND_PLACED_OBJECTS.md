@@ -1,5 +1,7 @@
 # Architecture des archétypes et objets placés
 
+Pour le cas spécialisé des objets `Item`, voir [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
+
 ## 1. Objet du document
 
 Ce document décrit le système existant qui relie :

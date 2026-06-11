@@ -1,5 +1,7 @@
 # Architecture des portes et mécanismes
 
+Les items, le curseur et leur transfert vers les réceptacles sont documentés dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
+
 ## 1. Objet du document
 
 Ce document décrit la fondation existante qui relie une porte placée, son acteur runtime, les commandes issues des mécanismes, son animation et la passabilité de la grille.

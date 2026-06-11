@@ -4,6 +4,8 @@
 
 Ce document décrit le socle runtime existant pour les interactions directes à la souris. Il couvre la sélection sous le curseur, la portée, les règles de grille, les curseurs, les messages lisibles et les interactions déjà raccordées. Il ne définit pas de nouveau système de gameplay.
 
+Le détail du ramassage, du curseur d'item et des propriétaires logiques est décrit dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
+
 ## 2. Cartographie du code
 
 | Domaine | Déclaration | Implémentation |

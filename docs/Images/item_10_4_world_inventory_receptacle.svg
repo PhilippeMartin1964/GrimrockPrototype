@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="380" viewBox="0 0 980 380">
+  <style>.t{font:18px Arial;fill:#18212b}.s{font:15px Arial;fill:#425466}.b{fill:#eef3f7;stroke:#57606a;stroke-width:2}.i{fill:#dbeafe;stroke:#0969da;stroke-width:3}.a{stroke:#0969da;stroke-width:3;fill:none;marker-end:url(#m)}</style>
+  <defs><marker id="m" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#0969da"/></marker></defs>
+  <text class="t" x="30" y="34">Une instance change de propriétaire sans être dupliquée</text>
+  <rect class="b" x="30" y="140" width="175" height="80"/><text class="t" x="83" y="186">Monde</text>
+  <rect class="b" x="275" y="140" width="175" height="80"/><text class="t" x="318" y="186">Inventaire</text>
+  <rect class="b" x="530" y="140" width="175" height="80"/><text class="t" x="578" y="186">Curseur</text>
+  <rect class="b" x="775" y="140" width="175" height="80"/><text class="t" x="810" y="186">Réceptacle</text>
+  <path class="a" d="M205 180H275"/><path class="a" d="M450 180H530"/><path class="a" d="M705 180H775"/>
+  <rect class="i" x="350" y="280" width="280" height="60"/><text class="t" x="390" y="317">Même RuntimeObjectId</text>
+  <text class="s" x="282" y="105">Le ramassage monde va directement à l'inventaire.</text>
+</svg>

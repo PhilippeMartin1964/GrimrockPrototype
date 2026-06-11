@@ -217,7 +217,10 @@ bool AGridItemActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimiti
     {
         return OwnerReceptacle->CanInteract_Implementation (const_cast<APawn*>(InstigatorPawn), MeshComponent);
     }
-    return true;
+
+    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
+    const AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
+    return PartyPawn && RuntimeActor && RuntimeActor->CanPartyPickupItemActor (this, PartyPawn);
 }
 
 void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)

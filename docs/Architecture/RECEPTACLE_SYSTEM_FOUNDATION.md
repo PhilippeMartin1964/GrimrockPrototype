@@ -4,6 +4,8 @@
 
 Ce document décrit le système de réceptacles réellement implémenté : données placées, acteur runtime, transferts d'items, interaction souris, événements, commandes, conditions et validation éditeur.
 
+Le cycle général des items avant et après leur passage dans un réceptacle est décrit dans [`ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md).
+
 [`docs/Design/RECEPTACLE_SYSTEM.md`](../Design/RECEPTACLE_SYSTEM.md) reste une spécification historique et prospective. Elle contient des intentions utiles, mais aussi des variantes de coffre, d'interface, de sauvegarde et d'événements qui ne constituent pas le contrat actuel.
 
 ## 2. Vocabulaire

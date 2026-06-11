@@ -20,7 +20,8 @@ pas être ramassé à distance, même s'il est visible et à portée du clic.
 
 ## Item placé sur un edge
 
-Un item placé sur un edge peut toujours être ramassé depuis sa propre cellule.
+Un item placé sur un edge dans la cellule du groupe peut être ramassé
+uniquement lorsque le groupe regarde cet edge.
 
 Il peut aussi être ramassé depuis la cellule adjacente seulement lorsque toutes
 les conditions suivantes sont satisfaites :
@@ -53,16 +54,22 @@ notamment pour les supports de torche, alcôves et autels.
 
 Préparer un item au sol et plusieurs placements sur edge, puis vérifier :
 
-1. Item sur la même cellule que le groupe : ramassage autorisé.
-2. Item sur une cellule non adjacente : clic refusé.
-3. Item au centre de la cellule devant le groupe : clic refusé.
-4. Item dans la cellule devant le groupe, sur l'edge faisant face au groupe :
+1. Item central sur la même cellule que le groupe : ramassage autorisé.
+2. Item sur un edge de la même cellule : autorisé uniquement si le groupe
+   regarde cet edge.
+3. Item sur une cellule non adjacente : clic refusé.
+4. Item au centre de la cellule devant le groupe : clic refusé.
+5. Item dans la cellule devant le groupe, sur l'edge faisant face au groupe :
    ramassage autorisé.
-5. Item dans la cellule devant le groupe, sur un autre edge : clic refusé.
-6. Tourner le groupe sans le déplacer : le cas autorisé précédent doit être
+6. Item dans la cellule devant le groupe, sur un autre edge : clic refusé.
+7. Tourner le groupe sans le déplacer : le cas autorisé précédent doit être
    refusé tant que le groupe ne regarde plus l'item.
-7. Item contenu dans un réceptacle ou support de torche : l'interaction est
+8. Item contenu dans un réceptacle ou support de torche : l'interaction est
    toujours traitée par le réceptacle, sans ramassage direct par le niveau.
 
 Les refus de ramassage liés à la grille sont consignés dans les logs avec la
 cellule du groupe, son orientation, la cellule de l'item et son edge.
+
+Voir aussi
+[`docs/Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`](Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
+pour le cycle complet monde, inventaire, curseur, réceptacle et équipement.

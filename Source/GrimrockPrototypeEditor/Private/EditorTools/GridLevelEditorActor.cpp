@@ -3767,6 +3767,60 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
             }
         }
 
+        if (Obj.Type == EGridLevelObjectType::Item)
+        {
+            const UGridItemDefinitionAsset* ArchetypeItemDefinition =
+                Archetype ? Archetype->DefaultBehavior.Item.ItemDefinitionAsset.Get () : nullptr;
+            const FName ArchetypeItemDefinitionId =
+                ArchetypeItemDefinition && !ArchetypeItemDefinition->ItemDefinitionId.IsNone ()
+                    ? ArchetypeItemDefinition->ItemDefinitionId
+                    : (Archetype ? Archetype->DefaultBehavior.Item.ItemDefinitionId : NAME_None);
+            const FName LocalAssetDefinitionId =
+                Obj.ItemDefinitionAsset ? Obj.ItemDefinitionAsset->ItemDefinitionId : NAME_None;
+            const FName EffectiveItemDefinitionId =
+                !LocalAssetDefinitionId.IsNone ()
+                    ? LocalAssetDefinitionId
+                    : (!Obj.ItemDefinitionId.IsNone () ? Obj.ItemDefinitionId : ArchetypeItemDefinitionId);
+
+            if (EffectiveItemDefinitionId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("Placed item has no resolvable item definition in the object instance or its archetype defaults."),
+                    Obj.ObjectId);
+            }
+
+            if (Obj.ItemDefinitionAsset && LocalAssetDefinitionId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("Placed item references an item definition asset whose ItemDefinitionId is empty."),
+                    Obj.ObjectId);
+            }
+
+            if (Obj.ItemDefinitionAsset &&
+                !Obj.ItemDefinitionId.IsNone () &&
+                Obj.ItemDefinitionId != LocalAssetDefinitionId)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Placed item stores ItemDefinitionId '%s' but its definition asset resolves to '%s'."),
+                        *Obj.ItemDefinitionId.ToString (),
+                        *LocalAssetDefinitionId.ToString ()),
+                    Obj.ObjectId);
+            }
+
+            const FGridLevelCellData& ItemCell = LevelAsset->GetCell (Obj.CellX, Obj.CellY);
+            if (ItemCell.CellType == EGridCellType::Empty || ItemCell.bBlocksOccupancy)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Placed item is on a non-walkable cell; normal party pickup cannot reach this cell."),
+                    Obj.ObjectId);
+            }
+        }
+
         if (Obj.Type == EGridLevelObjectType::Door)
         {
             const FGridLevelCellData& CellData = LevelAsset->GetCell (Obj.CellX, Obj.CellY);

@@ -2199,38 +2199,65 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
 
 bool AGridLevelRuntimeActor::CanPartyPickupItemEntry (
     const FGridSpawnedItemRuntimeEntry& Entry,
-    const AGrimrockPartyPawn* PartyPawn) const
+    const AGrimrockPartyPawn* PartyPawn,
+    bool bLogRejection) const
 {
     if (!PartyPawn)
     {
-        UE_LOG (LogTemp, Warning, TEXT ("Grid item pickup rejected: missing party pawn."));
+        if (bLogRejection)
+        {
+            UE_LOG (LogTemp, Warning, TEXT ("Grid item pickup rejected: missing party pawn."));
+        }
         return false;
     }
 
     if (PartyPawn->LevelRuntimeActor != this)
     {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Grid item pickup rejected: party runtime actor does not match item runtime actor. ItemCell=(%d,%d)."),
-            Entry.Cell.X,
-            Entry.Cell.Y);
+        if (bLogRejection)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid item pickup rejected: party runtime actor does not match item runtime actor. ItemCell=(%d,%d)."),
+                Entry.Cell.X,
+                Entry.Cell.Y);
+        }
         return false;
     }
 
     const FIntPoint PartyCell (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
     if (Entry.Cell == PartyCell)
     {
-        return true;
+        if (Entry.Edge == EGridEdge::None)
+        {
+            return true;
+        }
+
+        const bool bFacesItemEdge =
+            PartyPawn->Facing != EGridEdge::None &&
+            Entry.Edge == PartyPawn->Facing;
+        if (!bFacesItemEdge && bLogRejection)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid item pickup rejected: item in party cell is not on the edge currently faced by the party. PartyCell=(%d,%d) Facing=%s ItemEdge=%s."),
+                PartyCell.X,
+                PartyCell.Y,
+                *GetRuntimeEdgeText (PartyPawn->Facing),
+                *GetRuntimeEdgeText (Entry.Edge));
+        }
+        return bFacesItemEdge;
     }
 
     if (PartyPawn->Facing == EGridEdge::None)
     {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Grid item pickup rejected: party facing is None. PartyCell=(%d,%d) ItemCell=(%d,%d) ItemEdge=%s."),
-            PartyCell.X,
-            PartyCell.Y,
-            Entry.Cell.X,
-            Entry.Cell.Y,
-            *GetRuntimeEdgeText (Entry.Edge));
+        if (bLogRejection)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid item pickup rejected: party facing is None. PartyCell=(%d,%d) ItemCell=(%d,%d) ItemEdge=%s."),
+                PartyCell.X,
+                PartyCell.Y,
+                Entry.Cell.X,
+                Entry.Cell.Y,
+                *GetRuntimeEdgeText (Entry.Edge));
+        }
         return false;
     }
 
@@ -2239,33 +2266,59 @@ bool AGridLevelRuntimeActor::CanPartyPickupItemEntry (
     if (!TryGetNeighborCell (PartyCell.X, PartyCell.Y, PartyPawn->Facing, FrontCellX, FrontCellY) ||
         Entry.Cell != FIntPoint (FrontCellX, FrontCellY))
     {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Grid item pickup rejected: item is not in the party cell or the cell directly ahead. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s."),
-            PartyCell.X,
-            PartyCell.Y,
-            *GetRuntimeEdgeText (PartyPawn->Facing),
-            Entry.Cell.X,
-            Entry.Cell.Y,
-            *GetRuntimeEdgeText (Entry.Edge));
+        if (bLogRejection)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid item pickup rejected: item is not in the party cell or the cell directly ahead. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s."),
+                PartyCell.X,
+                PartyCell.Y,
+                *GetRuntimeEdgeText (PartyPawn->Facing),
+                Entry.Cell.X,
+                Entry.Cell.Y,
+                *GetRuntimeEdgeText (Entry.Edge));
+        }
         return false;
     }
 
     const EGridEdge RequiredItemEdge = GridDirectionUtils::GetOpposite (PartyPawn->Facing);
     if (Entry.Edge != RequiredItemEdge)
     {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("Grid item pickup rejected: item in front cell is not on the edge facing the party. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s RequiredEdge=%s."),
-            PartyCell.X,
-            PartyCell.Y,
-            *GetRuntimeEdgeText (PartyPawn->Facing),
-            Entry.Cell.X,
-            Entry.Cell.Y,
-            *GetRuntimeEdgeText (Entry.Edge),
-            *GetRuntimeEdgeText (RequiredItemEdge));
+        if (bLogRejection)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid item pickup rejected: item in front cell is not on the edge facing the party. PartyCell=(%d,%d) Facing=%s ItemCell=(%d,%d) ItemEdge=%s RequiredEdge=%s."),
+                PartyCell.X,
+                PartyCell.Y,
+                *GetRuntimeEdgeText (PartyPawn->Facing),
+                Entry.Cell.X,
+                Entry.Cell.Y,
+                *GetRuntimeEdgeText (Entry.Edge),
+                *GetRuntimeEdgeText (RequiredItemEdge));
+        }
         return false;
     }
 
     return true;
+}
+
+bool AGridLevelRuntimeActor::CanPartyPickupItemActor (
+    const AGridItemActor* ItemActor,
+    const AGrimrockPartyPawn* PartyPawn) const
+{
+    if (!IsValid (ItemActor) || !PartyPawn)
+    {
+        return false;
+    }
+
+    for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+    {
+        if (Entry.ItemActor.Get () == ItemActor)
+        {
+            return CanPartyPickupItemEntry (Entry, PartyPawn, false);
+        }
+    }
+
+    return false;
 }
 
 bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn)
