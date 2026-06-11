@@ -85,6 +85,7 @@ void UGridActivationComponent::Initialize (AGridLevelRuntimeActor* InRuntime)
 void UGridActivationComponent::ResetRuntimeState ()
 {
     ActiveObjectIds.Reset ();
+    DispatchingSourceObjectIds.Reset ();
 }
 
 void UGridActivationComponent::SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds)
@@ -447,7 +448,16 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
             *GridObjectEventToString (SourceEvent));
         return false;
     }
+    if (DispatchingSourceObjectIds.Contains (SourceObjectId))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid object event rejected: Source=%s Event=%s Reason=cyclic link dispatch"),
+            *SourceObjectId.ToString (),
+            *GridObjectEventToString (SourceEvent));
+        return false;
+    }
 
+    DispatchingSourceObjectIds.Add (SourceObjectId);
     bool bAnyApplied = false;
     int32 ExecutedLinkCount = 0;
 
@@ -477,6 +487,7 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
         ExecutedLinkCount,
         bAnyApplied ? TEXT ("true") : TEXT ("false"));
 
+    DispatchingSourceObjectIds.Remove (SourceObjectId);
     return bAnyApplied;
 }
 
@@ -622,6 +633,9 @@ bool UGridActivationComponent::SetTargetActiveState (const FGridLevelObjectData&
         return false;
     }
 
+    const bool bWasActive = IsTargetActive (TargetObject.ObjectId);
+    const bool bStateChanged = bWasActive != bActive;
+
     if (bActive)
     {
         ActiveObjectIds.Add (TargetObject.ObjectId);
@@ -630,43 +644,65 @@ bool UGridActivationComponent::SetTargetActiveState (const FGridLevelObjectData&
         ActiveObjectIds.Remove (TargetObject.ObjectId);
     }
 
+    bool bHandledByRuntimeActor = false;
     if (RuntimeActor)
     {
         if (AGridLeverActor* LeverActor = RuntimeActor->FindRuntimeObjectActor<AGridLeverActor> (TargetObject.ObjectId))
         {
             LeverActor->SetLeverState (bActive);
-            return true;
+            bHandledByRuntimeActor = true;
         }
-        if (AGridPressurePlateActor* PlateActor = RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (TargetObject.ObjectId))
+        else if (AGridPressurePlateActor* PlateActor = RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (TargetObject.ObjectId))
         {
             PlateActor->SetPressed (bActive);
-            return true;
+            bHandledByRuntimeActor = true;
         }
-        if (bActive)
+        else if (bActive)
         {
             if (AGridButtonActor* ButtonActor = RuntimeActor->FindRuntimeObjectActor<AGridButtonActor> (TargetObject.ObjectId))
             {
                 ButtonActor->TriggerPress ();
-                return true;
+                bHandledByRuntimeActor = true;
             }
         }
-        if (AGridMechanismActor* MechanismActor = RuntimeActor->FindRuntimeObjectActor<AGridMechanismActor> (TargetObject.ObjectId))
+        if (!bHandledByRuntimeActor)
         {
-            UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is generic mechanism %s; state stored but no visual activation handler exists yet."),
-                *TargetObject.ObjectId.ToString (), *MechanismActor->GetName ());
-            return true;
+            if (AGridMechanismActor* MechanismActor = RuntimeActor->FindRuntimeObjectActor<AGridMechanismActor> (TargetObject.ObjectId))
+            {
+                UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is generic mechanism %s; state stored but no visual activation handler exists yet."),
+                    *TargetObject.ObjectId.ToString (), *MechanismActor->GetName ());
+                bHandledByRuntimeActor = true;
+            }
         }
     }
 
-    if (TargetObject.Type == EGridLevelObjectType::MonsterSpawn ||
-        TargetObject.Type == EGridLevelObjectType::ItemSpawn)
+    if (!bHandledByRuntimeActor &&
+        (TargetObject.Type == EGridLevelObjectType::MonsterSpawn ||
+            TargetObject.Type == EGridLevelObjectType::ItemSpawn))
     {
         UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is %s; state stored, spawn behavior TODO."),
             *TargetObject.ObjectId.ToString (), *GridObjectTypeToString (TargetObject.Type));
-    } else if (TargetObject.Type == EGridLevelObjectType::Teleporter)
+    }
+    else if (!bHandledByRuntimeActor && TargetObject.Type == EGridLevelObjectType::Teleporter)
     {
         UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is Teleporter; state stored, teleport behavior TODO."),
             *TargetObject.ObjectId.ToString ());
+    }
+
+    if (bStateChanged &&
+        (TargetObject.Type == EGridLevelObjectType::Lever ||
+            TargetObject.Type == EGridLevelObjectType::PressurePlate))
+    {
+        const EGridObjectEvent StateEvent =
+            bActive ? EGridObjectEvent::Activated : EGridObjectEvent::Deactivated;
+        UE_LOG (LogTemp, Log,
+            TEXT ("Grid mechanism state changed by link command: Target=%s Type=%s PreviousActive=%s NewActive=%s Event=%s"),
+            *TargetObject.ObjectId.ToString (),
+            *GridObjectTypeToString (TargetObject.Type),
+            bWasActive ? TEXT ("true") : TEXT ("false"),
+            bActive ? TEXT ("true") : TEXT ("false"),
+            *GridObjectEventToString (StateEvent));
+        ExecuteLinksFromObjectForEvent (TargetObject.ObjectId, StateEvent);
     }
 
     return true;

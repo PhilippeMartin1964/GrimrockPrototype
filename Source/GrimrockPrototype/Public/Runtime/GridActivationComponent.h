@@ -46,6 +46,8 @@ private:
     UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
 
+    TSet<FGuid> DispatchingSourceObjectIds;
+
 private:
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;

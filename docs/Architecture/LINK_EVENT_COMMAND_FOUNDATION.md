@@ -66,6 +66,22 @@ Le trigger traduit actuellement entrée et sortie en `Activated` et `Deactivated
 
 Le levier exécute désormais uniquement les liens dont `SourceEvent` correspond à son nouvel état. Une commande `Toggle` n’est plus un chemin parallèle indépendant de l’événement.
 
+### Leviers et plaques de pression
+
+Le levier est bidirectionnel :
+
+- le passage de l’état inactif à l’état actif émet `Activated` ;
+- le retour de l’état actif à l’état inactif émet `Deactivated`.
+
+La plaque de pression suit le même contrat :
+
+- l’appui, lors de l’entrée sur sa cellule, émet `Activated` ;
+- le relâchement, lors de la sortie de sa cellule, émet `Deactivated`.
+
+`ActiveObjectIds` protège les plaques contre la répétition : un nouvel événement est émis uniquement lorsque l’état change. La même règle s’applique lorsqu’une commande de lien modifie l’état d’un levier ou d’une plaque. Le visuel est mis à jour par `SetLeverState()` ou `SetPressed()`, puis les liens du nouvel événement peuvent poursuivre la chaîne.
+
+`Toggle` n’est pas un événement. C’est une commande envoyée à la cible après sélection du lien par `SourceEvent`. Elle peut donc être utilisée avec `Activated` comme avec `Deactivated`. Une protection de réentrée rejette une chaîne cyclique qui tente de redispatcher le même objet source avant la fin de son événement courant.
+
 ## 6. Commandes
 
 `EGridObjectCommand` contient :
@@ -158,6 +174,7 @@ Le runtime journalise les événements, les conditions rejetées, les paramètre
 5. Une nouvelle valeur d’enum n’est pas fonctionnelle tant qu’un émetteur ou un dispatch explicite n’existe pas.
 6. Une condition invalide échoue avant toute inversion.
 7. Un événement ne doit suivre qu’un seul chemin d’émission pour une même action.
+8. Un changement d’état commandé sur un levier ou une plaque émet l’événement correspondant une seule fois.
 
 ## 12. Limites actuelles
 

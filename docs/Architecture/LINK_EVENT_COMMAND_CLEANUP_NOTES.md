@@ -60,3 +60,34 @@ Ces éléments n’ont pas été supprimés afin de préserver les données et A
 - définir le contrat des valeurs d’enum actuellement inactives avant de les exposer ;
 - détecter les cycles indirects si les chaînes de liens deviennent récursives ;
 - ajouter une édition structurée des conditions sans dupliquer leur logique runtime.
+
+## Correctif bidirectionnel des mécanismes
+
+### Cause
+
+Les interactions directes des leviers et les entrées/sorties de plaques émettaient déjà les bons événements. En revanche, `SetTargetActiveState()` mettait à jour `ActiveObjectIds` et le visuel lorsqu’un lien commandait un levier ou une plaque, sans émettre `Activated` ou `Deactivated`. Une chaîne de mécanismes s’arrêtait donc sur cette cible.
+
+### Comportement restauré
+
+- un levier commandé émet `Activated` en devenant actif et `Deactivated` en redevenant inactif ;
+- une plaque commandée suit le même contrat ;
+- une commande qui demande l’état déjà présent ne réémet aucun événement ;
+- `Toggle` reste une commande cible utilisable avec tout `SourceEvent` valide ;
+- une protection de réentrée bloque le redispatch cyclique du même objet source pendant la chaîne courante.
+
+La validation et le panneau de liens acceptaient déjà `Activated` et `Deactivated` pour les leviers et plaques. Ils acceptaient aussi `Toggle`, `Open`, `Close`, `Activate` et `Deactivate` selon le type cible ; aucune correction éditeur supplémentaire n’était nécessaire.
+
+### Tests manuels minimaux
+
+- levier `Activated -> Open` ;
+- levier `Deactivated -> Close` ;
+- levier `Activated -> Toggle` ;
+- levier `Deactivated -> Toggle` ;
+- plaque `Activated -> Open` ;
+- plaque `Deactivated -> Close` ;
+- plaque `Activated -> Toggle` ;
+- plaque `Deactivated -> Toggle` ;
+- vérifier un seul événement par mouvement de levier ;
+- vérifier qu’une plaque ne répète pas l’événement tant que le groupe reste sur sa cellule ;
+- vérifier qu’une commande répétant l’état courant ne produit pas de second événement ;
+- vérifier qu’une boucle de liens est rejetée avec le diagnostic `cyclic link dispatch`.
