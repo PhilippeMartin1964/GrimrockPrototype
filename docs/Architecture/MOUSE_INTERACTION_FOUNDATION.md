@@ -53,6 +53,8 @@ L'ordre réel est :
 
 Chaque branche est exclusive : la fermeture d'un message, le dépôt d'un item ou l'interaction directe consomme le clic.
 
+Si l'interface d'inventaire est ouverte et qu'aucun item n'est porté par le curseur, le clic de gameplay est ignoré. Si un item est porté, le chemin de dépôt direct vers un réceptacle reste disponible.
+
 Il n'existe pas de solution de repli à la souris vers la cellule ou le bord situé en face. `AGrimrockPartyPawn::TryUseFrontInteraction()` reste une solution de repli historique au clavier, désactivée par défaut avec `bEnableLegacyKeyboardUseAction=false`.
 
 ## 5. Règles de grille

@@ -101,7 +101,7 @@ Les listes positives sont alternatives : une seule correspondance suffit. La lis
 
 Il n'existe actuellement ni capacité par poids ni seuil de quantité à l'insertion. Le poids et le nombre d'entrées servent aux conditions de liens. La politique `Locked` interdit le retrait mais n'interdit pas l'insertion. `bCanRemoveItem` n'intervient pas dans l'acceptation.
 
-Les évaluations journalisent temporairement l'état complet du réceptacle, l'identité de l'instance, la résolution de définition, les tags, le type et la règle ou le motif de refus.
+Les évaluations d'acceptation sont silencieuses par défaut, notamment pendant le survol souris. Le diagnostic complet de l'état du réceptacle, de l'item candidat et de la règle d'acceptation n'est produit qu'avec `bLogDiagnostics=true`, au niveau `VeryVerbose`.
 
 ## 8. Transferts, retrait et consommation
 
