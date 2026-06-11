@@ -1,65 +1,313 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
-  <title id="title">Copies locales et références d’archétype</title>
-  <desc id="desc">Différence entre les valeurs copiées dans l’objet placé, les valeurs restant dans l’archétype et leur résolution au runtime.</desc>
-  <defs>
-    <style>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1200"
+   height="720"
+   viewBox="0 0 1200 720"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg34"
+   sodipodi:docname="object_10_2_copy_vs_reference.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview34"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.6208333"
+     inkscape:cx="599.80922"
+     inkscape:cy="360"
+     inkscape:window-width="3840"
+     inkscape:window-height="2089"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg34" />
+  <title
+     id="title">Copies locales et références d’archétype</title>
+  <desc
+     id="desc">Différence entre les valeurs copiées dans l’objet placé, les valeurs restant dans l’archétype et leur résolution au runtime.</desc>
+  <defs
+     id="defs3">
+    <style
+       id="style1">
       .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.panel{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.model{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.runtime{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.warn{fill:#f0d4cf;stroke:#8b493f;stroke-width:3}.label{font:700 22px Arial,sans-serif;fill:#2c1e18}.small{font:17px Arial,sans-serif;fill:#2c1e18}.code{font:700 16px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}.copy{stroke:#8b493f;stroke-width:4;fill:none;marker-end:url(#arrowRed)}.ref{stroke:#6d855f;stroke-width:4;fill:none;stroke-dasharray:9 7;marker-end:url(#arrowGreen)}
     </style>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
-    <marker id="arrowRed" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#8b493f"/></marker>
-    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#6d855f"/></marker>
+    <marker
+       id="arrow"
+       markerWidth="12"
+       markerHeight="12"
+       refX="10"
+       refY="6"
+       orient="auto">
+      <path
+         d="M2,2 L10,6 L2,10 Z"
+         fill="#3d5f7a"
+         id="path1" />
+    </marker>
+    <marker
+       id="arrowRed"
+       markerWidth="12"
+       markerHeight="12"
+       refX="10"
+       refY="6"
+       orient="auto">
+      <path
+         d="M2,2 L10,6 L2,10 Z"
+         fill="#8b493f"
+         id="path2" />
+    </marker>
+    <marker
+       id="arrowGreen"
+       markerWidth="12"
+       markerHeight="12"
+       refX="10"
+       refY="6"
+       orient="auto">
+      <path
+         d="M2,2 L10,6 L2,10 Z"
+         fill="#6d855f"
+         id="path3" />
+    </marker>
   </defs>
-  <rect class="bg" width="1200" height="720"/>
-  <text class="title" x="60" y="70">Copié au placement ou résolu au runtime ?</text>
-  <text class="note" x="60" y="105">Une instance combine des copies persistantes, une clé d’archétype et ses propres overrides.</text>
-
-  <g transform="translate(60,160)">
-    <rect class="model" width="310" height="390" rx="20"/>
-    <text class="label" x="42" y="45">UGridObjectArchetypeAsset</text>
-    <text class="small" x="30" y="88">Valeurs copiées au placement</text>
-    <text class="code" x="36" y="120">SupportedType</text>
-    <text class="code" x="36" y="148">bDefaultInitiallyEnabled</text>
-    <text class="code" x="36" y="176">bDefaultInitiallyActive</text>
-    <text class="code" x="36" y="204">DefaultTag · DefaultBehavior</text>
-    <line x1="28" y1="228" x2="282" y2="228" stroke="#5b4636" stroke-width="2"/>
-    <text class="small" x="30" y="263">Données conservées ici</text>
-    <text class="code" x="36" y="295">meshes · matériaux</text>
-    <text class="code" x="36" y="323">PlacementKind · offsets</text>
-    <text class="code" x="36" y="351">RuntimeActorClass</text>
+  <rect
+     class="bg"
+     width="1200"
+     height="720"
+     id="rect3" />
+  <text
+     class="title"
+     x="60"
+     y="70"
+     id="text3">Copié au placement ou résolu au runtime ?</text>
+  <text
+     class="note"
+     x="60"
+     y="105"
+     id="text4">Une instance combine des copies persistantes, une clé d’archétype et ses propres overrides.</text>
+  <g
+     transform="translate(60,160)"
+     id="g14">
+    <rect
+       class="model"
+       width="310"
+       height="390"
+       rx="20"
+       id="rect4" />
+    <text
+       class="label"
+       x="6.5151033"
+       y="48.052464"
+       id="text5"
+       style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:22px;line-height:normal;font-family:Arial, sans-serif">UGridObjectArchetypeAsset</text>
+    <text
+       class="small"
+       x="30"
+       y="88"
+       id="text6">Valeurs copiées au placement</text>
+    <text
+       class="code"
+       x="36"
+       y="120"
+       id="text7">SupportedType</text>
+    <text
+       class="code"
+       x="36"
+       y="148"
+       id="text8">bDefaultInitiallyEnabled</text>
+    <text
+       class="code"
+       x="36"
+       y="176"
+       id="text9">bDefaultInitiallyActive</text>
+    <text
+       class="code"
+       x="36"
+       y="204"
+       id="text10">DefaultTag · DefaultBehavior</text>
+    <line
+       x1="28"
+       y1="228"
+       x2="282"
+       y2="228"
+       stroke="#5b4636"
+       stroke-width="2"
+       id="line10" />
+    <text
+       class="small"
+       x="30"
+       y="263"
+       id="text11">Données conservées ici</text>
+    <text
+       class="code"
+       x="36"
+       y="295"
+       id="text12">meshes · matériaux</text>
+    <text
+       class="code"
+       x="36"
+       y="323"
+       id="text13">PlacementKind · offsets</text>
+    <text
+       class="code"
+       x="36"
+       y="351"
+       id="text14">RuntimeActorClass</text>
   </g>
-
-  <g transform="translate(455,160)">
-    <rect class="data" width="330" height="390" rx="20"/>
-    <text class="label" x="42" y="45">FGridLevelObjectData</text>
-    <text class="small" x="30" y="88">Copies persistées localement</text>
-    <text class="code" x="36" y="120">Type</text>
-    <text class="code" x="36" y="148">bInitiallyEnabled</text>
-    <text class="code" x="36" y="176">bInitiallyActive</text>
-    <text class="code" x="36" y="204">Tag · Behavior</text>
-    <line x1="28" y1="228" x2="302" y2="228" stroke="#4e6848" stroke-width="2"/>
-    <text class="small" x="30" y="263">Clé de résolution</text>
-    <text class="code" x="36" y="295">ArchetypeId</text>
-    <text class="small" x="30" y="332">Overrides propres à l’instance</text>
-    <text class="code" x="36" y="364">position · Notes · texte</text>
+  <g
+     transform="translate(455,160)"
+     id="g24">
+    <rect
+       class="data"
+       width="330"
+       height="390"
+       rx="20"
+       id="rect14" />
+    <text
+       class="label"
+       x="42"
+       y="45"
+       id="text15">FGridLevelObjectData</text>
+    <text
+       class="small"
+       x="30"
+       y="88"
+       id="text16">Copies persistées localement</text>
+    <text
+       class="code"
+       x="36"
+       y="120"
+       id="text17">Type</text>
+    <text
+       class="code"
+       x="36"
+       y="148"
+       id="text18">bInitiallyEnabled</text>
+    <text
+       class="code"
+       x="36"
+       y="176"
+       id="text19">bInitiallyActive</text>
+    <text
+       class="code"
+       x="36"
+       y="204"
+       id="text20">Tag · Behavior</text>
+    <line
+       x1="28"
+       y1="228"
+       x2="302"
+       y2="228"
+       stroke="#4e6848"
+       stroke-width="2"
+       id="line20" />
+    <text
+       class="small"
+       x="30"
+       y="263"
+       id="text21">Clé de résolution</text>
+    <text
+       class="code"
+       x="36"
+       y="295"
+       id="text22">ArchetypeId</text>
+    <text
+       class="small"
+       x="30"
+       y="332"
+       id="text23">Overrides propres à l’instance</text>
+    <text
+       class="code"
+       x="36"
+       y="364"
+       id="text24">position · Notes · texte</text>
   </g>
-
-  <g transform="translate(870,205)">
-    <rect class="runtime" width="270" height="220" rx="20"/>
-    <text class="label" x="45" y="45">Runtime</text>
-    <text class="code" x="30" y="86">FindObjectArchetype</text>
-    <text class="small" x="30" y="122">résout la classe,</text>
-    <text class="small" x="30" y="150">les visuels et le placement</text>
-    <text class="small" x="30" y="185">puis applique les valeurs</text>
-    <text class="small" x="30" y="210">locales de l’instance</text>
+  <g
+     transform="translate(870,205)"
+     id="g30">
+    <rect
+       class="runtime"
+       width="270"
+       height="220"
+       rx="20"
+       id="rect24" />
+    <text
+       class="label"
+       x="45"
+       y="45"
+       id="text25">Runtime</text>
+    <text
+       class="code"
+       x="30"
+       y="86"
+       id="text26">FindObjectArchetype</text>
+    <text
+       class="small"
+       x="30"
+       y="122"
+       id="text27">résout la classe,</text>
+    <text
+       class="small"
+       x="30"
+       y="150"
+       id="text28">les visuels et le placement</text>
+    <text
+       class="small"
+       x="30"
+       y="185"
+       id="text29">puis applique les valeurs</text>
+    <text
+       class="small"
+       x="30"
+       y="210"
+       id="text30">locales de l’instance</text>
   </g>
-
-  <path class="copy" d="M370 315 H445"/>
-  <text class="small" x="380" y="292">copie</text>
-  <path class="ref" d="M785 310 H860"/>
-  <text class="small" x="790" y="286">résolution</text>
-  <path class="ref" d="M370 450 C600 650,900 570,990 435"/>
-
-  <rect class="warn" x="225" y="600" width="750" height="70" rx="16"/>
-  <text class="label" x="280" y="630">Modifier l’archétype ne resynchronise pas les copies locales.</text>
-  <text class="small" x="330" y="657">Les objets déjà placés conservent Type, états initiaux, Tag et Behavior.</text>
+  <path
+     class="copy"
+     d="M370 315 H445"
+     id="path30" />
+  <text
+     class="small"
+     x="380"
+     y="292"
+     id="text31">copie</text>
+  <path
+     class="ref"
+     d="M785 310 H860"
+     id="path31" />
+  <text
+     class="small"
+     x="790"
+     y="286"
+     id="text32">résolution</text>
+  <path
+     class="ref"
+     d="M370 450 C600 650,900 570,990 435"
+     id="path32" />
+  <rect
+     class="warn"
+     x="225"
+     y="600"
+     width="750"
+     height="70"
+     rx="16"
+     id="rect32" />
+  <text
+     class="label"
+     x="280"
+     y="630"
+     id="text33">Modifier l’archétype ne resynchronise pas les copies locales.</text>
+  <text
+     class="small"
+     x="330"
+     y="657"
+     id="text34">Les objets déjà placés conservent Type, états initiaux, Tag et Behavior.</text>
 </svg>

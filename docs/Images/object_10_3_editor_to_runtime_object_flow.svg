@@ -1,66 +1,274 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
-  <title id="title">Flux éditeur vers runtime des objets placés</title>
-  <desc id="desc">Flux allant du clic dans la palette à l’acteur éditeur, au stockage persistant, à l’aperçu et à la génération runtime.</desc>
-  <defs>
-    <style>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1200"
+   height="720"
+   viewBox="0 0 1200 720"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg25"
+   sodipodi:docname="object_10_3_editor_to_runtime_object_flow.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview25"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.6208333"
+     inkscape:cx="599.80922"
+     inkscape:cy="360"
+     inkscape:window-width="3840"
+     inkscape:window-height="2089"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg25" />
+  <title
+     id="title">Flux éditeur vers runtime des objets placés</title>
+  <desc
+     id="desc">Flux allant du clic dans la palette à l’acteur éditeur, au stockage persistant, à l’aperçu et à la génération runtime.</desc>
+  <defs
+     id="defs2">
+    <style
+       id="style1">
       .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.box{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.tool{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.actor{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.data{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.preview{fill:#ead8ef;stroke:#745080;stroke-width:3}.label{font:700 21px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.code{font:700 15px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}.branch{stroke:#6d855f;stroke-width:4;fill:none;marker-end:url(#arrow2)}
     </style>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
-    <marker id="arrow2" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#6d855f"/></marker>
+    <marker
+       id="arrow"
+       markerWidth="12"
+       markerHeight="12"
+       refX="10"
+       refY="6"
+       orient="auto">
+      <path
+         d="M2,2 L10,6 L2,10 Z"
+         fill="#3d5f7a"
+         id="path1" />
+    </marker>
+    <marker
+       id="arrow2"
+       markerWidth="12"
+       markerHeight="12"
+       refX="10"
+       refY="6"
+       orient="auto">
+      <path
+         d="M2,2 L10,6 L2,10 Z"
+         fill="#6d855f"
+         id="path2" />
+    </marker>
   </defs>
-  <rect class="bg" width="1200" height="720"/>
-  <text class="title" x="60" y="70">Édition → donnée persistante → aperçu → runtime</text>
-  <text class="note" x="60" y="105">L’aperçu et le runtime relisent la même source persistante, mais ne génèrent pas les mêmes acteurs.</text>
-
-  <g transform="translate(55,210)">
-    <rect class="box" width="170" height="130" rx="18"/>
-    <text class="label" x="38" y="43">Utilisateur</text>
-    <text class="small" x="28" y="78">clic palette</text>
-    <text class="small" x="28" y="104">puis viewport</text>
+  <rect
+     class="bg"
+     width="1200"
+     height="720"
+     id="rect2" />
+  <text
+     class="title"
+     x="60"
+     y="70"
+     id="text2">Édition → donnée persistante → aperçu → runtime</text>
+  <text
+     class="note"
+     x="60"
+     y="105"
+     id="text3">L’aperçu et le runtime relisent la même source persistante, mais ne génèrent pas les mêmes acteurs.</text>
+  <g
+     transform="translate(55,210)"
+     id="g6">
+    <rect
+       class="box"
+       width="170"
+       height="130"
+       rx="18"
+       id="rect3" />
+    <text
+       class="label"
+       x="38"
+       y="43"
+       id="text4">Utilisateur</text>
+    <text
+       class="small"
+       x="28"
+       y="78"
+       id="text5">clic palette</text>
+    <text
+       class="small"
+       x="28"
+       y="104"
+       id="text6">puis viewport</text>
   </g>
-  <path class="arrow" d="M235 275 H290"/>
-
-  <g transform="translate(300,190)">
-    <rect class="tool" width="200" height="170" rx="18"/>
-    <text class="label" x="55" y="42">Palette</text>
-    <text class="code" x="27" y="78">ApplyPaletteEntry()</text>
-    <text class="small" x="30" y="111">sélectionne l’archétype</text>
-    <text class="small" x="30" y="139">et l’outil PaintObject</text>
+  <path
+     class="arrow"
+     d="M235 275 H290"
+     id="path6" />
+  <g
+     transform="translate(300,190)"
+     id="g10">
+    <rect
+       class="tool"
+       width="200"
+       height="170"
+       rx="18"
+       id="rect6" />
+    <text
+       class="label"
+       x="55"
+       y="42"
+       id="text7">Palette</text>
+    <text
+       class="code"
+       x="27"
+       y="78"
+       id="text8">ApplyPaletteEntry()</text>
+    <text
+       class="small"
+       x="30"
+       y="111"
+       id="text9">sélectionne l’archétype</text>
+    <text
+       class="small"
+       x="30"
+       y="139"
+       id="text10">et l’outil PaintObject</text>
   </g>
-  <path class="arrow" d="M510 275 H565"/>
-
-  <g transform="translate(575,190)">
-    <rect class="actor" width="250" height="170" rx="18"/>
-    <text class="label" x="26" y="42">AGridLevelEditorActor</text>
-    <text class="code" x="35" y="78">PlaceSelectedObject()</text>
-    <text class="small" x="34" y="111">construit la donnée</text>
-    <text class="small" x="34" y="139">et demande son ajout</text>
+  <path
+     class="arrow"
+     d="M510 275 H565"
+     id="path10" />
+  <g
+     transform="translate(575,190)"
+     id="g14">
+    <rect
+       class="actor"
+       width="250"
+       height="170"
+       rx="18"
+       id="rect10" />
+    <text
+       class="label"
+       x="26"
+       y="42"
+       id="text11">AGridLevelEditorActor</text>
+    <text
+       class="code"
+       x="35"
+       y="78"
+       id="text12">PlaceSelectedObject()</text>
+    <text
+       class="small"
+       x="34"
+       y="111"
+       id="text13">construit la donnée</text>
+    <text
+       class="small"
+       x="34"
+       y="139"
+       id="text14">et demande son ajout</text>
   </g>
-  <path class="arrow" d="M835 275 H890"/>
-
-  <g transform="translate(900,190)">
-    <rect class="data" width="245" height="170" rx="18"/>
-    <text class="label" x="35" y="42">UGridLevelAsset</text>
-    <text class="code" x="38" y="78">AddObject()</text>
-    <text class="code" x="38" y="108">Objects[]</text>
-    <text class="small" x="38" y="139">ObjectId persistant</text>
+  <path
+     class="arrow"
+     d="M835 275 H890"
+     id="path14" />
+  <g
+     transform="translate(900,190)"
+     id="g18">
+    <rect
+       class="data"
+       width="245"
+       height="170"
+       rx="18"
+       id="rect14" />
+    <text
+       class="label"
+       x="35"
+       y="42"
+       id="text15">UGridLevelAsset</text>
+    <text
+       class="code"
+       x="38"
+       y="78"
+       id="text16">AddObject()</text>
+    <text
+       class="code"
+       x="38"
+       y="108"
+       id="text17">Objects[]</text>
+    <text
+       class="small"
+       x="38"
+       y="139"
+       id="text18">ObjectId persistant</text>
   </g>
-
-  <path class="branch" d="M1020 370 V440 H735"/>
-  <g transform="translate(585,460)">
-    <rect class="preview" width="300" height="150" rx="18"/>
-    <text class="label" x="62" y="42">Aperçu éditeur</text>
-    <text class="code" x="55" y="78">RebuildPreview()</text>
-    <text class="small" x="40" y="112">acteur transitoire simplifié</text>
+  <path
+     class="branch"
+     d="M 1003.0578,360.63416 V 523.76885 H 883.72681"
+     id="path18" />
+  <g
+     transform="translate(585,460)"
+     id="g21">
+    <rect
+       class="preview"
+       width="300"
+       height="150"
+       rx="18"
+       id="rect18" />
+    <text
+       class="label"
+       x="62"
+       y="42"
+       id="text19">Aperçu éditeur</text>
+    <text
+       class="code"
+       x="55"
+       y="78"
+       id="text20">RebuildPreview()</text>
+    <text
+       class="small"
+       x="40"
+       y="112"
+       id="text21">acteur transitoire simplifié</text>
   </g>
-
-  <path class="arrow" d="M1020 370 V625 H565"/>
-  <g transform="translate(85,560)">
-    <rect class="actor" width="470" height="130" rx="18"/>
-    <text class="label" x="108" y="40">AGridLevelRuntimeActor</text>
-    <text class="code" x="115" y="76">RebuildRuntimeObjects()</text>
-    <text class="small" x="85" y="106">génère AGridRuntimeObjectActor ou AGridItemActor</text>
+  <path
+     class="arrow"
+     d="M 1020.0203,360.61902 V 636.16865 H 553.86546"
+     id="path21" />
+  <g
+     transform="translate(85,560)"
+     id="g24">
+    <rect
+       class="actor"
+       width="470"
+       height="130"
+       rx="18"
+       id="rect21" />
+    <text
+       class="label"
+       x="108"
+       y="40"
+       id="text22">AGridLevelRuntimeActor</text>
+    <text
+       class="code"
+       x="115"
+       y="76"
+       id="text23">RebuildRuntimeObjects()</text>
+    <text
+       class="small"
+       x="85"
+       y="106"
+       id="text24">génère AGridRuntimeObjectActor ou AGridItemActor</text>
   </g>
-
-  <text class="small" x="925" y="155">source persistante commune</text>
+  <text
+     class="small"
+     x="925"
+     y="155"
+     id="text25">source persistante commune</text>
 </svg>

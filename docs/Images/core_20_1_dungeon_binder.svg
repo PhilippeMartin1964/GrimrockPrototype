@@ -33,28 +33,28 @@
   <path class="arrow" d="M610 450 C670 470,710 485,760 490"/>
 
   <g transform="translate(770,165)">
-    <rect class="map" x="0" y="0" width="300" height="150" rx="14"/>
+    <rect class="map" x="0" y="0" width="350" height="150" rx="14"/>
     <text class="label" x="26" y="42">GridLevelAsset</text>
     <text class="small" x="26" y="78">DA_Level_Floor_00</text>
-    <g transform="translate(170,35)">
+    <g transform="translate(220,35)">
       <rect x="0" y="0" width="90" height="90" fill="#eff7ec" stroke="#4e6848" stroke-width="2"/>
       <path class="grid" d="M30 0 V90 M60 0 V90 M0 30 H90 M0 60 H90"/>
     </g>
   </g>
   <g transform="translate(770,330)">
-    <rect class="map" x="0" y="0" width="300" height="150" rx="14"/>
+    <rect class="map" x="0" y="0" width="350" height="150" rx="14"/>
     <text class="label" x="26" y="42">GridLevelAsset</text>
     <text class="small" x="26" y="78">DA_Level_Floor_01</text>
-    <g transform="translate(170,35)">
+    <g transform="translate(220,35)">
       <rect x="0" y="0" width="90" height="90" fill="#eff7ec" stroke="#4e6848" stroke-width="2"/>
       <path class="grid" d="M30 0 V90 M60 0 V90 M0 30 H90 M0 60 H90"/>
     </g>
   </g>
   <g transform="translate(770,495)">
-    <rect class="map" x="0" y="0" width="300" height="150" rx="14"/>
+    <rect class="map" x="0" y="0" width="350" height="150" rx="14"/>
     <text class="label" x="26" y="42">GridLevelAsset</text>
     <text class="small" x="26" y="78">DA_Level_Floor_02</text>
-    <g transform="translate(170,35)">
+    <g transform="translate(220,35)">
       <rect x="0" y="0" width="90" height="90" fill="#eff7ec" stroke="#4e6848" stroke-width="2"/>
       <path class="grid" d="M30 0 V90 M60 0 V90 M0 30 H90 M0 60 H90"/>
     </g>

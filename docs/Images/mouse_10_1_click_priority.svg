@@ -1,73 +1,371 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
-  <title id="title">Priorité de traitement d’un clic gauche</title>
-  <desc id="desc">Arbre de décision du clic gauche : fermeture du message, dépôt direct d’un item ou interaction directe validée.</desc>
-  <defs>
-    <style>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1200"
+   height="720"
+   viewBox="0 0 1200 720"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg33"
+   sodipodi:docname="mouse_10_1_click_priority.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview33"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.853209"
+     inkscape:cx="506.14906"
+     inkscape:cy="366.12168"
+     inkscape:window-width="3840"
+     inkscape:window-height="2089"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg33" />
+  <title
+     id="title">Priorité de traitement d’un clic gauche</title>
+  <desc
+     id="desc">Arbre de décision du clic gauche : fermeture du message, dépôt direct d’un item ou interaction directe validée.</desc>
+  <defs
+     id="defs1">
+    <style
+       id="style1">
       .bg{fill:#f7f1e6}.title{font:700 34px Georgia,serif;fill:#2c1e18}.note{font:16px Arial,sans-serif;fill:#5b4636}.start{fill:#e8c27a;stroke:#5b4636;stroke-width:3}.decision{fill:#fffaf0;stroke:#5b4636;stroke-width:3}.action{fill:#d7e1ef;stroke:#3d5f7a;stroke-width:3}.success{fill:#d7e8cf;stroke:#4e6848;stroke-width:3}.stop{fill:#f0d4cf;stroke:#8b493f;stroke-width:3}.label{font:700 20px Arial,sans-serif;fill:#2c1e18}.small{font:16px Arial,sans-serif;fill:#2c1e18}.code{font:700 15px Consolas,monospace;fill:#2c1e18}.arrow{stroke:#3d5f7a;stroke-width:4;fill:none;marker-end:url(#arrow)}.yes{font:700 16px Arial,sans-serif;fill:#4e6848}.no{font:700 16px Arial,sans-serif;fill:#8b493f}
     </style>
-    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#3d5f7a"/></marker>
+    <marker
+       id="arrow"
+       markerWidth="12"
+       markerHeight="12"
+       refX="10"
+       refY="6"
+       orient="auto">
+      <path
+         d="M2,2 L10,6 L2,10 Z"
+         fill="#3d5f7a"
+         id="path1" />
+    </marker>
   </defs>
-  <rect class="bg" width="1200" height="720"/>
-  <text class="title" x="60" y="70">Priorité d’un clic gauche</text>
-  <text class="note" x="60" y="105">Chaque branche consomme le clic ou s’arrête : une seule interaction peut être exécutée.</text>
-
-  <rect class="start" x="55" y="170" width="150" height="74" rx="18"/>
-  <text class="label" x="82" y="216">Clic gauche</text>
-  <path class="arrow" d="M205 207 H270"/>
-
-  <rect class="decision" x="280" y="145" width="230" height="124" rx="18"/>
-  <text class="label" x="315" y="188">Message lisible</text>
-  <text class="label" x="345" y="220">ouvert ?</text>
-  <path class="arrow" d="M395 269 V340"/>
-  <text class="yes" x="408" y="312">oui</text>
-  <rect class="action" x="275" y="350" width="240" height="90" rx="18"/>
-  <text class="label" x="320" y="387">Fermer le message</text>
-  <text class="small" x="325" y="416">clic consommé</text>
-
-  <path class="arrow" d="M510 207 H585"/>
-  <text class="no" x="535" y="193">non</text>
-  <rect class="decision" x="595" y="145" width="220" height="124" rx="18"/>
-  <text class="label" x="635" y="188">Item porté</text>
-  <text class="label" x="630" y="220">au curseur ?</text>
-
-  <path class="arrow" d="M705 269 V340"/>
-  <text class="yes" x="718" y="312">oui</text>
-  <rect class="action" x="575" y="350" width="260" height="115" rx="18"/>
-  <text class="label" x="613" y="387">Réceptacle touché</text>
-  <text class="small" x="615" y="418">portée · bord · compatibilité</text>
-  <text class="small" x="650" y="444">sinon : arrêt</text>
-
-  <path class="arrow" d="M815 207 H890"/>
-  <text class="no" x="840" y="193">non</text>
-  <rect class="decision" x="900" y="145" width="245" height="124" rx="18"/>
-  <text class="label" x="927" y="188">Acteur interactif</text>
-  <text class="label" x="947" y="220">directement touché ?</text>
-
-  <path class="arrow" d="M1022 269 V340"/>
-  <text class="yes" x="1035" y="312">oui</text>
-  <rect class="action" x="895" y="350" width="255" height="115" rx="18"/>
-  <text class="label" x="940" y="387">Valider la cible</text>
-  <text class="small" x="930" y="418">portée · CanInteract()</text>
-  <text class="small" x="930" y="444">règles cellule / bord</text>
-
-  <path class="arrow" d="M1022 465 V535"/>
-  <rect class="success" x="840" y="545" width="330" height="95" rx="18"/>
-  <text class="label" x="918" y="578">Exécuter l’action</text>
-  <text class="code" x="864" y="610">placement direct / InteractWithHit()</text>
-  <text class="small" x="947" y="633">une seule fois</text>
-
-  <path class="arrow" d="M835 407 H865 V592 H840"/>
-  <text class="yes" x="840" y="390">valide</text>
-  <text class="yes" x="1035" y="510">valide</text>
-  <text class="small" x="640" y="510">placement avec le FHitResult direct</text>
-
-  <rect class="stop" x="65" y="545" width="330" height="95" rx="18"/>
-  <text class="label" x="130" y="584">Aucune cible ou condition refusée</text>
-  <text class="small" x="132" y="615">aucune interaction supplémentaire</text>
-  <path class="arrow" d="M1145 207 H1180 V505 H395 V592"/>
-  <text class="no" x="1150" y="193">non</text>
-  <path class="arrow" d="M705 465 V500 H395 V565"/>
-  <text class="no" x="715" y="490">refusé</text>
-  <path class="arrow" d="M895 407 H860 V520 H395 V580"/>
-  <text class="no" x="812" y="397">refusé</text>
+  <rect
+     class="bg"
+     width="1200"
+     height="720"
+     id="rect1" />
+  <text
+     class="title"
+     x="60"
+     y="70"
+     id="text1">Priorité d’un clic gauche</text>
+  <text
+     class="note"
+     x="60"
+     y="105"
+     id="text2">Chaque branche consomme le clic ou s’arrête : une seule interaction peut être exécutée.</text>
+  <rect
+     class="start"
+     x="55"
+     y="170"
+     width="150"
+     height="74"
+     rx="18"
+     id="rect2" />
+  <text
+     class="label"
+     x="82"
+     y="216"
+     id="text3">Clic gauche</text>
+  <path
+     class="arrow"
+     d="m 205,207 h 76.61882"
+     id="path3" />
+  <rect
+     class="decision"
+     x="280"
+     y="145"
+     width="230"
+     height="124"
+     rx="18"
+     id="rect3" />
+  <text
+     class="label"
+     x="315"
+     y="188"
+     id="text4">Message lisible</text>
+  <text
+     class="label"
+     x="315.86136"
+     y="207.04948"
+     id="text5"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:20px;line-height:normal;font-family:Arial, sans-serif">ouvert ?</text>
+  <path
+     class="arrow"
+     d="m 395,269 v 82.8713"
+     id="path5" />
+  <text
+     class="yes"
+     x="402.60394"
+     y="301.74753"
+     id="text6"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">oui</text>
+  <rect
+     class="action"
+     x="275"
+     y="350"
+     width="240"
+     height="90"
+     rx="18"
+     id="rect6" />
+  <text
+     class="label"
+     x="320"
+     y="387"
+     id="text7">Fermer le message</text>
+  <text
+     class="small"
+     x="325"
+     y="416"
+     id="text8">clic consommé</text>
+  <path
+     class="arrow"
+     d="M 510.00001,207 H 596.3317"
+     id="path8"
+     sodipodi:nodetypes="cc" />
+  <text
+     class="no"
+     x="521.50989"
+     y="193.53961"
+     id="text9"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">non</text>
+  <rect
+     class="decision"
+     x="595"
+     y="145"
+     width="220"
+     height="124"
+     rx="18"
+     id="rect9" />
+  <text
+     class="label"
+     x="635"
+     y="188"
+     id="text10">Item porté</text>
+  <text
+     class="label"
+     x="634.31683"
+     y="209.20792"
+     id="text11"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:20px;line-height:normal;font-family:Arial, sans-serif">au curseur ?</text>
+  <path
+     class="arrow"
+     d="m 704.99997,268.99999 v 82.33169"
+     id="path11" />
+  <text
+     class="yes"
+     x="712.60394"
+     y="298.50989"
+     id="text12"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">oui</text>
+  <rect
+     class="action"
+     x="575"
+     y="350"
+     width="260"
+     height="115"
+     rx="18"
+     id="rect12" />
+  <text
+     class="label"
+     x="613"
+     y="387"
+     id="text13">Réceptacle touché</text>
+  <text
+     class="small"
+     x="615"
+     y="418"
+     id="text14">portée · bord · compatibilité</text>
+  <text
+     class="small"
+     x="650"
+     y="444"
+     id="text15">sinon : arrêt</text>
+  <path
+     class="arrow"
+     d="m 814.98383,207 84.74523,1.07921"
+     id="path15"
+     sodipodi:nodetypes="cc" />
+  <text
+     class="no"
+     x="828.12872"
+     y="191.38118"
+     id="text16"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">non</text>
+  <rect
+     class="decision"
+     x="900"
+     y="145"
+     width="245"
+     height="124"
+     rx="18"
+     id="rect16" />
+  <text
+     class="label"
+     x="927"
+     y="188"
+     id="text17">Acteur interactif</text>
+  <text
+     class="label"
+     x="927.57422"
+     y="210.82672"
+     id="text18"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:20px;line-height:normal;font-family:Arial, sans-serif">directement touché ?</text>
+  <path
+     class="arrow"
+     d="m 1022,269 v 81.25248"
+     id="path18" />
+  <text
+     class="yes"
+     x="1027.9851"
+     y="299.0495"
+     id="text19"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">oui</text>
+  <rect
+     class="action"
+     x="895"
+     y="350"
+     width="255"
+     height="115"
+     rx="18"
+     id="rect19" />
+  <text
+     class="label"
+     x="940"
+     y="387"
+     id="text20">Valider la cible</text>
+  <text
+     class="small"
+     x="930"
+     y="418"
+     id="text21">portée · CanInteract()</text>
+  <text
+     class="small"
+     x="930"
+     y="444"
+     id="text22">règles cellule / bord</text>
+  <path
+     class="arrow"
+     d="m 1022,464.97742 -0.5396,80.8373"
+     id="path22"
+     sodipodi:nodetypes="cc" />
+  <rect
+     class="success"
+     x="870.21783"
+     y="545"
+     width="299.78214"
+     height="95"
+     rx="16.351753"
+     id="rect22" />
+  <text
+     class="label"
+     x="918"
+     y="578"
+     id="text23">Exécuter l’action</text>
+  <text
+     class="code"
+     x="871.55444"
+     y="609.46039"
+     id="text24"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:15px;line-height:normal;font-family:Consolas, monospace">placement direct / InteractWithHit()</text>
+  <text
+     class="small"
+     x="947"
+     y="633"
+     id="text25">une seule fois</text>
+  <path
+     class="arrow"
+     d="m 781.2392,465.2659 -0.34201,18.35402 -10e-6,79.23627 90.36458,-1.03534"
+     id="path25"
+     sodipodi:nodetypes="cccc" />
+  <text
+     class="yes"
+     x="786.03955"
+     y="490.90604"
+     id="text26"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">valide</text>
+  <text
+     class="yes"
+     x="1029.0643"
+     y="494.89108"
+     id="text27"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">valide</text>
+  <text
+     class="small"
+     x="640"
+     y="510"
+     id="text28"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif;white-space:pre;inline-size:259.658"
+     transform="translate(-194.25763,48.024804)"
+     xml:space="preserve"><tspan
+       x="640"
+       y="510"
+       id="tspan1">placement avec le FHitResult direct</tspan></text>
+  <rect
+     class="stop"
+     x="50.430679"
+     y="545"
+     width="344.56934"
+     height="95"
+     rx="18.794691"
+     id="rect28" />
+  <text
+     class="label"
+     x="58.772202"
+     y="577.52472"
+     id="text29"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:20px;line-height:normal;font-family:Arial, sans-serif">Aucune cible ou condition refusée</text>
+  <text
+     class="small"
+     x="61.851406"
+     y="604.7475"
+     id="text30"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">aucune interaction supplémentaire</text>
+  <path
+     class="arrow"
+     d="m 1145,207 h 35 V 684.14871 H 297.87118 l -0.5396,-43.0447"
+     id="path30"
+     sodipodi:nodetypes="ccccc" />
+  <text
+     class="no"
+     x="1150"
+     y="193"
+     id="text31">non</text>
+  <path
+     class="arrow"
+     d="m 705,465 0,100.83175 -300.28712,-0.5396 L 395,565"
+     id="path31"
+     sodipodi:nodetypes="cccc" />
+  <text
+     class="no"
+     x="652.9455"
+     y="492.15842"
+     id="text32"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">refusé</text>
+  <path
+     class="arrow"
+     d="m 895,407 -35.53961,1.07921 V 579.3565 l -434.24254,-0.53961 -29.67825,-0.97531"
+     id="path32"
+     sodipodi:nodetypes="ccccc" />
+  <text
+     class="no"
+     x="843.83667"
+     y="401.85645"
+     id="text33"
+     style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:16px;line-height:normal;font-family:Arial, sans-serif">refusé</text>
 </svg>
