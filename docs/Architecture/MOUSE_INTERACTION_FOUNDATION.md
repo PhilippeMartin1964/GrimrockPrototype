@@ -92,6 +92,9 @@ Lorsqu'un item est attaché au curseur, le contrôleur recherche un `AGridRecept
 
 Un clic ailleurs ne dépose plus implicitement l'item dans le réceptacle situé en face.
 
+Les règles d'acceptation et de transfert sont détaillées dans
+[`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).
+
 ## 8. Curseur et interface
 
 `EGridInteractionCursor` contient `None`, `Default`, `Use`, `Push`, `Pull`, `Take`, `Read`, `Locked`, `Forbidden`, `PlaceItem` et `CannotPlaceItem`.

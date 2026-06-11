@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="260" viewBox="0 0 1100 260">
+  <style>
+    .box { fill:#172033; stroke:#63b3ed; stroke-width:2; rx:10; }
+    .ok { fill:#16352b; stroke:#68d391; stroke-width:2; rx:10; }
+    .no { fill:#3b2025; stroke:#fc8181; stroke-width:2; rx:10; }
+    .text { fill:#f7fafc; font:15px sans-serif; text-anchor:middle; }
+    .small { fill:#cbd5e0; font:12px sans-serif; text-anchor:middle; }
+    .arrow { stroke:#a0aec0; stroke-width:2; marker-end:url(#a); }
+  </style>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a0aec0"/></marker></defs>
+  <rect class="box" x="25" y="75" width="145" height="70"/><text class="text" x="98" y="104">Item porté</text><text class="small" x="98" y="126">par le curseur</text>
+  <rect class="box" x="210" y="75" width="145" height="70"/><text class="text" x="283" y="104">Rayon souris</text><text class="small" x="283" y="126">ECC_Visibility</text>
+  <rect class="box" x="395" y="75" width="155" height="70"/><text class="text" x="473" y="102">Premier impact :</text><text class="small" x="473" y="124">réceptacle direct ?</text>
+  <rect class="box" x="590" y="75" width="160" height="70"/><text class="text" x="670" y="102">Portée, cellule,</text><text class="small" x="670" y="124">bord, orientation</text>
+  <rect class="box" x="790" y="75" width="135" height="70"/><text class="text" x="858" y="104">Acceptation</text><text class="small" x="858" y="126">complète</text>
+  <rect class="ok" x="965" y="25" width="115" height="70"/><text class="text" x="1023" y="54">Dépôt</text><text class="small" x="1023" y="76">Inserted + Changed</text>
+  <rect class="no" x="965" y="165" width="115" height="55"/><text class="text" x="1023" y="198">Refus</text>
+  <line class="arrow" x1="170" y1="110" x2="210" y2="110"/><line class="arrow" x1="355" y1="110" x2="395" y2="110"/>
+  <line class="arrow" x1="550" y1="110" x2="590" y2="110"/><line class="arrow" x1="750" y1="110" x2="790" y2="110"/>
+  <line class="arrow" x1="925" y1="100" x2="965" y2="72"/><line class="arrow" x1="925" y1="125" x2="965" y2="182"/>
+  <text class="small" x="943" y="70">oui</text><text class="small" x="943" y="172">non</text>
+  <text class="small" x="473" y="190">Tout obstacle bloquant possède le clic ; aucun fallback vers la cible en face.</text>
+</svg>

@@ -1,5 +1,10 @@
 # Receptacle System
 
+> **Statut : spécification de conception historique et prospective.**
+> Le contrat réellement implémenté est documenté dans
+> [`docs/Architecture/RECEPTACLE_SYSTEM_FOUNDATION.md`](../Architecture/RECEPTACLE_SYSTEM_FOUNDATION.md).
+> Les enums, services et comportements proposés ci-dessous ne sont pas tous disponibles ni configurables dans les données placées actuelles.
+
 ## 1. Objet du document
 
 Ce document constitue la référence de conception du système de réceptacles de GrimrockPrototype. Il définit le rôle d'un réceptacle, ses variantes, ses interactions avec les items et les responsabilités attendues des systèmes runtime et UI.

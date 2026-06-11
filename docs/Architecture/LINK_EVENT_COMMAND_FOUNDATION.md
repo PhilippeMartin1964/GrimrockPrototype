@@ -8,6 +8,8 @@ Il ne définit ni langage de script, ni nouveau mécanisme de gameplay. Les vale
 
 Le contrat spécialisé des portes, de leur animation et de `CanMove()` est documenté dans
 `docs/Architecture/DOOR_MECHANISM_FOUNDATION.md`.
+Le contrat des événements, commandes et conditions de réceptacle est détaillé dans
+`docs/Architecture/RECEPTACLE_SYSTEM_FOUNDATION.md`.
 
 ## 2. Vocabulaire
 

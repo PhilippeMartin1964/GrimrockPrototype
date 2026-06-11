@@ -3869,6 +3869,47 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         if (Obj.Type == EGridLevelObjectType::Receptacle)
         {
             const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
+            const FGridReceptacleBehaviorParams& Receptacle = Behavior.Receptacle;
+            const FName InitialDefinitionId =
+                Receptacle.InitialContainedItemDefinition &&
+                !Receptacle.InitialContainedItemDefinition->ItemDefinitionId.IsNone ()
+                    ? Receptacle.InitialContainedItemDefinition->ItemDefinitionId
+                    : Receptacle.InitialContainedItemDefinitionId;
+
+            for (const FName AcceptedId : Receptacle.AcceptedArchetypeIds)
+            {
+                if (!AcceptedId.IsNone () && Receptacle.RejectedItemArchetypeIds.Contains (AcceptedId))
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("Receptacle item id '%s' is present in both accepted and rejected lists."),
+                            *AcceptedId.ToString ()),
+                        Obj.ObjectId);
+                }
+            }
+
+            if (Obj.bInitiallyActive &&
+                InitialDefinitionId.IsNone () &&
+                Receptacle.InitialContainedItemArchetypeId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Receptacle is initially active but has no initial item definition or legacy item id."),
+                    Obj.ObjectId);
+            }
+
+            if (!InitialDefinitionId.IsNone () &&
+                Receptacle.RejectedItemArchetypeIds.Contains (InitialDefinitionId))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Receptacle starts with item definition '%s' but the rejected list includes it."),
+                        *InitialDefinitionId.ToString ()),
+                    Obj.ObjectId);
+            }
+
             if (!Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ()
                 && !Behavior.Receptacle.bAcceptAnyItem
                 && !Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId))

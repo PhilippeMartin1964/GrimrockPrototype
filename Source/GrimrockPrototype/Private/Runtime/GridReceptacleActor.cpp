@@ -1128,7 +1128,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
     if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
     {
-        return bCanInsertItem && !IsFull () && CanAcceptItem (HeldItem.ItemDefinitionId);
+        return CanAcceptItemInstance (HeldItem);
     }
 
     return GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&

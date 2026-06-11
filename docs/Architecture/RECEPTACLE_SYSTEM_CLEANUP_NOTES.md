@@ -1,0 +1,70 @@
+# Notes d'audit du système de réceptacles
+
+## Fichiers relus
+
+- `docs/Design/RECEPTACLE_SYSTEM.md` et les fondations objet, souris, liens et portes ;
+- types noyau, comportement placé et archétypes ;
+- acteur de réceptacle, acteur et définition d'item ;
+- inventaire du groupe et service de transfert ;
+- niveau runtime, contrôleur, pawn et composant d'activation ;
+- validation, inspecteur d'objet et panneau de liens de l'éditeur.
+
+## Statut du document Design
+
+Le document Design mélange invariants, architecture cible et fonctionnalités futures. Il est conservé comme spécification historique et prospective avec un renvoi vers la fondation actuelle. Le nouveau document d'architecture est la référence pour le code existant.
+
+## Écarts entre design et code
+
+- `UGridItemTransferService`, les enums de typologie, de stockage, de placement et de politique existent désormais, mais tous ne sont pas persistés par l'objet placé.
+- Les coffres avec inventaire dédié, interfaces de conteneur, recettes et sauvegarde complète restent prospectifs.
+- Les événements actifs sont `ItemInserted`, `ItemRemoved` et `ItemChanged`. Les événements d'acceptation, refus, plein, vide, verrouillage et déverrouillage du document Design n'existent pas.
+- `ItemChanged` accompagne actuellement insertion et retrait ; la consommation l'émet seule.
+- Le dépôt runtime utilise un curseur technique et un clic direct, contrairement à la préférence prospective pour un glisser-déposer intégral.
+- Le poids est une donnée d'item et une condition de lien, pas une limite de capacité.
+
+## Corrections appliquées
+
+- le précontrôle d'un item équipé utilise désormais l'acceptation complète par identifiant, tag ou type ;
+- le document Design indique explicitement son statut ;
+- les documents objet, souris, liens et portes renvoient vers la nouvelle fondation ;
+- les comportements réels, limites et diagnostics sont consolidés.
+
+## Validations ajoutées
+
+- identifiant simultanément accepté et rejeté ;
+- réceptacle initialement actif sans item initial ;
+- définition d'item initial explicitement rejetée.
+
+Les validations déjà présentes couvrent le placement, les listes positives vides, les conditions invalides, les commandes incompatibles et les objets désactivés.
+
+## Comportements conservés
+
+- `Locked` interdit le retrait mais autorise l'insertion ;
+- `Unlock` sélectionne `Returnable` sans mémoriser la politique précédente ;
+- `ConsumeAllItems` émet un `ItemChanged` pour chaque entrée consommée ;
+- `MaxContainedItems <= 0` reste interprété comme illimité par le runtime ;
+- `ObjectData.Tag` reste un fallback historique d'identifiant accepté ;
+- les logs de diagnostic temporaires restent actifs pour comparer les deux supports de torche.
+
+## Tests manuels recommandés
+
+- dépôt compatible et incompatible ;
+- dépôt sans viser directement le support, hors portée et derrière un obstacle ;
+- retrait autorisé, interdit, verrouillé et avec inventaire plein ;
+- réceptacle plein et curseur déjà occupé ;
+- `ItemInserted -> Door Open`, `ItemRemoved -> Door Close` ;
+- `ItemChanged` avec condition par définition, tag, type, nombre et poids ;
+- consommation d'une entrée et de toutes les entrées ;
+- verrouillage, déverrouillage, activation et désactivation du retrait ;
+- item équipé accepté uniquement par tag ou type ;
+- comparaison de `DA_Receptacle_TorchHolder` et `DA_Receptacle_TorchHolder_Returnable` dans les logs temporaires.
+
+## Points futurs
+
+- décider si le verrouillage doit aussi bloquer l'insertion ;
+- décider si `Unlock` doit restaurer une politique mémorisée ;
+- décider si une consommation multiple doit agréger `ItemChanged` ;
+- renommer les champs historiques d'archétype sans casser les assets ;
+- persister les changements runtime de politique et de retrait ;
+- ajouter des tests automatisés de transfert et d'émission d'événements ;
+- retirer ou abaisser les logs temporaires après comparaison des assets.

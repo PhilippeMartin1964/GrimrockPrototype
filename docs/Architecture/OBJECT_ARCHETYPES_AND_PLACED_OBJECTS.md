@@ -240,6 +240,9 @@ Ces points sont documentés, mais volontairement non refondus dans cette passe.
 
 ## 14. À documenter plus tard
 
-- les comportements détaillés des items, réceptacles et portes ;
+- les comportements détaillés des items ;
 - la sauvegarde et restauration des états runtime ;
 - une éventuelle politique de migration des objets placés après évolution d'un archétype.
+
+Le contrat actuel des réceptacles est décrit dans
+[`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).

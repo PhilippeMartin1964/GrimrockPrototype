@@ -119,6 +119,7 @@ Les chemins suivants convergent vers le même système :
 - tout autre émetteur runtime explicitement pris en charge.
 
 `SourceEvent` sélectionne le lien. `Command` choisit ensuite `Open`, `Close`, `Toggle`, `Activate` ou `Deactivate`.
+Pour les réceptacles, voir [`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).
 
 ## 9. Chaîne optionnelle
 
