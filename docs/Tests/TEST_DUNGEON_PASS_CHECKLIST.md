@@ -20,8 +20,8 @@ Statuts :
 - [x] **PASS** - La carte, le niveau, la palette, l'acteur runtime et le pawn se chargent.
 - [x] **PASS** - Le niveau mesure `32 x 32`, avec des cellules de `200 uu`.
 - [x] **PASS** - Le départ est configuré en `(28, 23)`, orienté au nord.
-- [x] **PASS** - Le niveau contient `16` objets et `3` liens.
-- [x] **PASS** - La validation complète s'exécute sans erreur : `0` erreur, `11` avertissements, `1` information.
+- [x] **PASS** - Le niveau contient `21` objets et `6` liens depuis le commit `bb9941e`.
+- [x] **PASS** - La validation complète s'exécute sans erreur : `0` erreur, `10` avertissements, `1` information.
 - [x] **PASS** - Le démarrage runtime automatisé atteint le monde de jeu sans plantage.
 - [ ] **NON COUVERT** - Vérifier visuellement la géométrie, les matériaux, les plafonds et les collisions en PIE.
 
@@ -46,7 +46,7 @@ Statuts :
 
 ## Items
 
-- [ ] **BLOQUÉ** - Vérifier l'effet visuel de la torche : la dépendance `/Game/F_FreeFlameFx_Pack/FX/NS_Flame_8_Torch` est absente.
+- [ ] **BLOQUÉ** - Le Blueprint utilise `/Game/GrimrockPrototype/Art/FX/NS_Flame_8_Torch` et ne référence plus l'ancien système absent, mais ce nouvel asset dépend encore de `/Game/F_FreeFlameFx_Pack/Materials/MI_Distortion_1` et `/Game/F_FreeFlameFx_Pack/Materials/MI_Flame_8`, également absents. La validation visuelle PIE reste à effectuer après correction.
 - [ ] **NON COUVERT** - Ramassage d'un item au centre d'une cellule.
 - [ ] **NON COUVERT** - Ramassage d'un item placé sur un bord.
 - [ ] **NON COUVERT** - Dépôt et retrait avec inventaire plein.
