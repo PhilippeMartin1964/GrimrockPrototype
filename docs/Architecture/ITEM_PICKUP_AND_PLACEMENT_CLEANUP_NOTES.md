@@ -54,6 +54,15 @@ Exécuter la liste de tests de `ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`, avec u
 
 Les tests PIE ne sont pas automatisés dans cette passe ; ils sont documentés pour exécution dans l'éditeur.
 
+## Nettoyage des diagnostics runtime
+
+- l'évaluation d'acceptation appelée par le survol est désormais silencieuse ;
+- les diagnostics complets de réceptacle sont optionnels et `VeryVerbose` ;
+- les refus de clic réels conservent un message court sans répéter toutes les règles d'acceptation ;
+- les logs normaux d'initialisation des réceptacles ont été supprimés ;
+- le diagnostic de classe, maillage et transform de génération runtime a été abaissé à `VeryVerbose` ;
+- les helpers soupçonnés de code mort ont été vérifiés et conservés lorsqu'ils participent encore à la capture d'état ou à la résolution runtime.
+
 ## Points futurs
 
 - Décider si une torche placée dans le monde doit être allumée par défaut.

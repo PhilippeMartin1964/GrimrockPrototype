@@ -148,6 +148,8 @@ Les validations existantes continuent de contrôler l'identifiant d'objet, l'arc
 
 Les refus de ramassage journalisent la cellule du groupe, son orientation, la cellule de l'item et son arête. Les échecs d'ajout indiquent `InventoryFull`. Les transferts du service journalisent l'opération, le résultat, `ItemDefinitionId` et `RuntimeObjectId`. Les refus de dépôt souris distinguent notamment l'absence de cible, la portée, l'arête et l'incompatibilité.
 
+Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un clic réellement refusé peut produire un warning court. Le détail complet des règles et de l'item candidat n'est journalisé qu'avec `bLogDiagnostics=true`, au niveau `VeryVerbose`.
+
 ## 11. Invariants
 
 - Une instance valide possède un `RuntimeObjectId`, un `ItemDefinitionId` et une quantité positive.

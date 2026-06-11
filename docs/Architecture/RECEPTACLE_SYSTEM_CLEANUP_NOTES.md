@@ -44,7 +44,16 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 - `ConsumeAllItems` émet un `ItemChanged` pour chaque entrée consommée ;
 - `MaxContainedItems <= 0` reste interprété comme illimité par le runtime ;
 - `ObjectData.Tag` reste un fallback historique d'identifiant accepté ;
-- les logs de diagnostic temporaires restent actifs pour comparer les deux supports de torche.
+- les règles d'acceptation, d'insertion, de retrait et d'émission des liens restent inchangées.
+
+## Nettoyage des diagnostics runtime
+
+- les logs temporaires de `BeginPlay`, d'initialisation et de création du contenu initial ont été supprimés ;
+- `EvaluateItemAcceptance()` est silencieux par défaut, notamment pendant le survol souris ;
+- son diagnostic complet reste disponible avec `bLogDiagnostics=true` et au niveau `VeryVerbose` ;
+- les refus d'insertion réels conservent un warning court avec l'objet, l'item et la raison ;
+- le diagnostic de génération de l'acteur runtime a été abaissé à `VeryVerbose` ;
+- les helpers locaux ont été audités : aucun n'était mort après nettoyage, car ils servent encore au diagnostic optionnel, à la capture d'état ou aux liens.
 
 ## Tests manuels recommandés
 
@@ -57,7 +66,8 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 - consommation d'une entrée et de toutes les entrées ;
 - verrouillage, déverrouillage, activation et désactivation du retrait ;
 - item équipé accepté uniquement par tag ou type ;
-- comparaison de `DA_Receptacle_TorchHolder` et `DA_Receptacle_TorchHolder_Returnable` dans les logs temporaires.
+- survol prolongé d'un support compatible et incompatible sans spam dans l'Output Log ;
+- clic de dépôt refusé avec un diagnostic court, et dépôt accepté sans warning.
 
 ## Points futurs
 
@@ -67,4 +77,4 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 - renommer les champs historiques d'archétype sans casser les assets ;
 - persister les changements runtime de politique et de retrait ;
 - ajouter des tests automatisés de transfert et d'émission d'événements ;
-- retirer ou abaisser les logs temporaires après comparaison des assets.
+- remplacer à terme la recherche mondiale de `FindRuntimeActor()` par une référence directe si le runtime devient propriétaire explicite de tous les réceptacles.

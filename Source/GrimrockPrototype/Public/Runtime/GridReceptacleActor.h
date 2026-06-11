@@ -264,7 +264,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool EvaluateItemAcceptance (
         const FGridItemInstance& Item,
-        FGridReceptacleAcceptanceResult& OutResult) const;
+        FGridReceptacleAcceptanceResult& OutResult,
+        bool bLogDiagnostics = false) const;
 
     UFUNCTION (BlueprintCallable, Category = "Grid|Receptacle")
     bool CanAcceptCursorItemFromParty (const AGrimrockPartyPawn* PartyPawn) const;

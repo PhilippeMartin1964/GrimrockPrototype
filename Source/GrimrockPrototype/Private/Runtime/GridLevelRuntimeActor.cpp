@@ -2580,7 +2580,7 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     FTransform Transform;
     const TSubclassOf<AGridRuntimeObjectActor> RuntimeActorClass = GetObjectRuntimeActorClass (ObjectData);
     AGridRuntimeObjectActor* Actor = SpawnRuntimeObjectActor<AGridRuntimeObjectActor> (ObjectData, Mesh, Material, Transform);
-    UE_LOG (LogTemp, Warning,
+    UE_LOG (LogTemp, VeryVerbose,
         TEXT ("GridRuntime Diagnostic AddRuntimeObjectActor ObjectId=%s ArchetypeId=%s ObjectData.Type=%s "
             "RuntimeActorClass=%s ActorClass=%s Mesh=%s Transform=%s"),
         *ObjectData.ObjectId.ToString (),

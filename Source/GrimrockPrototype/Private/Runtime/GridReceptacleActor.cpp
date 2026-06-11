@@ -187,13 +187,6 @@ void AGridReceptacleActor::BeginPlay ()
 
     if (!bInitialItemsInitialized)
     {
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridReceptacle BeginPlay InitialItems ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
-            *ObjectId.ToString (),
-            InitialContainedItems.Num (),
-            ContainedItems.Num (),
-            InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
-            *InitialContainedItemArchetypeId.ToString ());
         InitializeInitialContainedItems ();
     }
 
@@ -282,32 +275,6 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
         ContainedItemMesh->SetVisibility (false, true);
         ContainedItemMesh->SetCollisionEnabled (ECollisionEnabled::NoCollision);
     }
-
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridReceptacle InitializeGridObject InitialItems ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
-        *ObjectId.ToString (),
-        InitialContainedItems.Num (),
-        ContainedItems.Num (),
-        InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
-        *InitialContainedItemArchetypeId.ToString ());
-    UE_LOG (LogTemp, Warning,
-        TEXT ("GridReceptacle Diagnostic Initialize ObjectId=%s ActorClass=%s ArchetypeId=%s ObjectData.Type=%s ObjectData.Tag=%s "
-            "AcceptAny=%s AcceptedItemTags=[%s] AcceptedArchetypeIds=[%s] RejectedItemArchetypeIds=[%s] "
-            "MaxContainedItems=%d UsePhysicalPlacement=%s VisualPlacementMode=%s ItemPolicy=%s ContainedItemActorClass=%s"),
-        *ObjectId.ToString (),
-        *GetClass ()->GetPathName (),
-        *ObjectData.ArchetypeId.ToString (),
-        *UEnum::GetValueAsString (ObjectData.Type),
-        *ObjectData.Tag.ToString (),
-        bAcceptAnyItem ? TEXT ("true") : TEXT ("false"),
-        *JoinNames (AcceptedItemTags),
-        *JoinNames (Params.AcceptedArchetypeIds),
-        *JoinNames (Params.RejectedItemArchetypeIds),
-        MaxContainedItems,
-        bUsePhysicalPlacement ? TEXT ("true") : TEXT ("false"),
-        *UEnum::GetValueAsString (VisualPlacementMode),
-        *UEnum::GetValueAsString (ItemPolicy),
-        ContainedItemActorClass ? *ContainedItemActorClass->GetPathName () : TEXT ("None"));
 
     if (!bInitialItemsInitialized)
     {
@@ -440,7 +407,8 @@ bool AGridReceptacleActor::CanAcceptItemInstance (const FGridItemInstance& Item)
 
 bool AGridReceptacleActor::EvaluateItemAcceptance (
     const FGridItemInstance& Item,
-    FGridReceptacleAcceptanceResult& OutResult) const
+    FGridReceptacleAcceptanceResult& OutResult,
+    bool bLogDiagnostics) const
 {
     OutResult = FGridReceptacleAcceptanceResult ();
 
@@ -457,9 +425,14 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
         }
     }
 
-    auto LogDiagnostic = [this, &Item, ItemDefinition] (const TCHAR* Outcome, const FString& Decision)
+    auto LogDiagnostic = [this, &Item, ItemDefinition, bLogDiagnostics] (const TCHAR* Outcome, const FString& Decision)
     {
-        UE_LOG (LogTemp, Warning,
+        if (!bLogDiagnostics)
+        {
+            return;
+        }
+
+        UE_LOG (LogTemp, VeryVerbose,
             TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
                 "AcceptAny=%s CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
                 "ItemDefinitionId=%s RuntimeObjectId=%s ItemDefinitionResolved=%s ItemDefinition=%s "
@@ -487,27 +460,33 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
             *Decision);
     };
 
-    auto Reject = [this, &Item, &OutResult, &LogDiagnostic] (EGridReceptacleRejectReason Reason)
+    auto Reject = [&OutResult, &LogDiagnostic, bLogDiagnostics] (EGridReceptacleRejectReason Reason)
     {
         OutResult.bAccepted = false;
         OutResult.RejectReason = Reason;
-        LogDiagnostic (
-            TEXT ("Rejected"),
-            FString::Printf (TEXT ("RejectReason=%s"), GetRejectReasonName (Reason)));
+        if (bLogDiagnostics)
+        {
+            LogDiagnostic (
+                TEXT ("Rejected"),
+                FString::Printf (TEXT ("RejectReason=%s"), GetRejectReasonName (Reason)));
+        }
         return false;
     };
 
-    auto Accept = [&OutResult, &LogDiagnostic] (FName MatchedRule, const FString& MatchedValue)
+    auto Accept = [&OutResult, &LogDiagnostic, bLogDiagnostics] (FName MatchedRule, const FString& MatchedValue)
     {
         OutResult.bAccepted = true;
         OutResult.RejectReason = EGridReceptacleRejectReason::None;
         OutResult.MatchedRule = MatchedRule;
-        LogDiagnostic (
-            TEXT ("Accepted"),
-            FString::Printf (
-                TEXT ("MatchedRule=\"%s\" MatchedValue=%s"),
-                *MatchedRule.ToString (),
-                *MatchedValue));
+        if (bLogDiagnostics)
+        {
+            LogDiagnostic (
+                TEXT ("Accepted"),
+                FString::Printf (
+                    TEXT ("MatchedRule=\"%s\" MatchedValue=%s"),
+                    *MatchedRule.ToString (),
+                    *MatchedValue));
+        }
         return true;
     };
 
@@ -1558,13 +1537,6 @@ void AGridReceptacleActor::ExecuteRemovalLinks ()
 void AGridReceptacleActor::InitializeInitialContainedItems ()
 {
     bInitialItemsInitialized = true;
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridReceptacle InitializeInitialContainedItems Start ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
-        *ObjectId.ToString (),
-        InitialContainedItems.Num (),
-        ContainedItems.Num (),
-        InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
-        *InitialContainedItemArchetypeId.ToString ());
 
     for (const FGridInitialReceptacleItem& InitialItem : InitialContainedItems)
     {
@@ -1586,14 +1558,6 @@ void AGridReceptacleActor::InitializeInitialContainedItems ()
         }
         AddContainedItem (ItemDefinitionId, InitialItem.ItemDefinition, nullptr, true, InitialItem.Quantity);
     }
-
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridReceptacle InitializeInitialContainedItems Finish ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
-        *ObjectId.ToString (),
-        InitialContainedItems.Num (),
-        ContainedItems.Num (),
-        InitialContainedItems.Num () > 0 ? *InitialContainedItems[0].ItemDefinitionId.ToString () : TEXT ("None"),
-        *InitialContainedItemArchetypeId.ToString ());
 }
 
 FName AGridReceptacleActor::ResolveInitialItemDefinitionId (const FGridInitialReceptacleItem& InitialItem) const

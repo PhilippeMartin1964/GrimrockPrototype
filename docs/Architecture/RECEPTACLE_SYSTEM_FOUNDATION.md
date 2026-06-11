@@ -184,7 +184,7 @@ Liens typiques :
 - source ou cible initialement désactivée ;
 - asymétrie éventuelle entre liens `ItemInserted` et `ItemRemoved`.
 
-Le runtime journalise les transferts, refus, changements de politique, commandes, conditions et résolutions d'acteurs. Les logs `GridReceptacle Diagnostic` et `GridRuntime Diagnostic` sont temporaires et volontairement en niveau `Warning` pour comparer les assets de support de torche.
+Le runtime journalise les transferts, refus, changements de politique, commandes, conditions et résolutions d'acteurs. Les évaluations utilisées par le survol souris sont silencieuses. Un refus d'action réelle peut produire un warning court. Le diagnostic complet `GridReceptacle Diagnostic` est disponible uniquement avec `bLogDiagnostics=true` et au niveau `VeryVerbose`; `GridRuntime Diagnostic` est également `VeryVerbose`.
 
 ## 11. Limites actuelles
 
