@@ -1128,13 +1128,39 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildButtonDetailsSection (
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSection (const FGridLevelObjectData& Obj)
 {
-    auto ApplyBehavior = [this] (const FGridObjectBehaviorParams& NewBehavior)
+    auto ApplyReleasedHeight = [this] (float NewValue)
     {
         if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
         {
-            if (CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior))
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
             {
-                RequestRefresh ();
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateAnimation.ReleasedHeightAboveFloor = NewValue;
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
+            }
+        }
+    };
+    auto ApplyPressedHeight = [this] (float NewValue)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
+            {
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateAnimation.PressedHeightAboveFloor = NewValue;
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
+            }
+        }
+    };
+    auto ApplyMoveDuration = [this] (float NewValue)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
+            {
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateAnimation.MoveDuration = NewValue;
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
             }
         }
     };
@@ -1152,41 +1178,55 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
-                BuildBehaviorFloatSpinBoxRow (
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
                     FText::FromString (TEXT ("Released Height")),
-                    Obj.Behavior.PressurePlateAnimation.ReleasedHeightAboveFloor,
-                    [Obj, ApplyBehavior] (float NewValue)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    NewBehavior.PressurePlateAnimation.ReleasedHeightAboveFloor = NewValue;
-                    ApplyBehavior (NewBehavior);
-                })
+                    SNew (SSpinBox<float>)
+                        .Value (Obj.Behavior.PressurePlateAnimation.ReleasedHeightAboveFloor)
+                        .MinDesiredWidth (90.f)
+                        .OnValueChanged_Lambda ([ApplyReleasedHeight] (float NewValue)
+                        {
+                            ApplyReleasedHeight (NewValue);
+                        })
+                        .OnValueCommitted_Lambda ([ApplyReleasedHeight] (float NewValue, ETextCommit::Type CommitType)
+                        {
+                            ApplyReleasedHeight (NewValue);
+                        }))
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
-                BuildBehaviorFloatSpinBoxRow (
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
                     FText::FromString (TEXT ("Pressed Height")),
-                    Obj.Behavior.PressurePlateAnimation.PressedHeightAboveFloor,
-                    [Obj, ApplyBehavior] (float NewValue)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    NewBehavior.PressurePlateAnimation.PressedHeightAboveFloor = NewValue;
-                    ApplyBehavior (NewBehavior);
-                })
+                    SNew (SSpinBox<float>)
+                        .Value (Obj.Behavior.PressurePlateAnimation.PressedHeightAboveFloor)
+                        .MinDesiredWidth (90.f)
+                        .OnValueChanged_Lambda ([ApplyPressedHeight] (float NewValue)
+                        {
+                            ApplyPressedHeight (NewValue);
+                        })
+                        .OnValueCommitted_Lambda ([ApplyPressedHeight] (float NewValue, ETextCommit::Type CommitType)
+                        {
+                            ApplyPressedHeight (NewValue);
+                        }))
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
             [
-                BuildBehaviorFloatSpinBoxRow (
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
                     FText::FromString (TEXT ("Move Duration")),
-                    Obj.Behavior.PressurePlateAnimation.MoveDuration,
-                    [Obj, ApplyBehavior] (float NewValue)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    NewBehavior.PressurePlateAnimation.MoveDuration = NewValue;
-                    ApplyBehavior (NewBehavior);
-                })
+                    SNew (SSpinBox<float>)
+                        .Value (Obj.Behavior.PressurePlateAnimation.MoveDuration)
+                        .MinValue (0.01f)
+                        .MinSliderValue (0.01f)
+                        .MinDesiredWidth (90.f)
+                        .OnValueChanged_Lambda ([ApplyMoveDuration] (float NewValue)
+                        {
+                            ApplyMoveDuration (NewValue);
+                        })
+                        .OnValueCommitted_Lambda ([ApplyMoveDuration] (float NewValue, ETextCommit::Type CommitType)
+                        {
+                            ApplyMoveDuration (NewValue);
+                        }))
             ]
 
             + SVerticalBox::Slot ().AutoHeight ()
