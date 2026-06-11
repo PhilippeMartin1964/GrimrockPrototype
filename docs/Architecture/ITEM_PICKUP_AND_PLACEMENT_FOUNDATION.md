@@ -183,3 +183,6 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 
 Les curseurs d'item et le retour court d'inventaire plein sont décrits dans
 [`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).
+
+Les validations d'item sont présentées dans
+[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

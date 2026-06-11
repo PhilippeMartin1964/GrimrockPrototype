@@ -52,6 +52,24 @@ struct FGridLevelValidationMessage
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
     FGuid OptionalObjectId;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    FGuid SourceObjectId;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    FGuid TargetObjectId;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    int32 CellX = INDEX_NONE;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    int32 CellY = INDEX_NONE;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    EGridEdge Edge = EGridEdge::None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+    FName Category = TEXT ("Core");
 };
 
 UCLASS ()

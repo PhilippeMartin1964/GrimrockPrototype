@@ -251,3 +251,6 @@ Le contrat actuel des réceptacles est décrit dans
 
 Le contrat des textes lisibles placés et de leurs overrides est décrit dans
 [`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).
+
+Le tableau de bord des validations d'objets et d'archétypes est décrit dans
+[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

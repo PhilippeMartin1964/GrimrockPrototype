@@ -135,3 +135,6 @@ Les échecs de clic réels conservent des logs courts. Le survol ne doit pas pro
 4. Un retour court est déclenché par une tentative réelle, jamais par le simple survol.
 5. Le curseur annonce la possibilité d'action ; le runtime reste autoritaire.
 6. Les règles de porte, d'item et de réceptacle ne doivent pas être dupliquées dans l'interface.
+
+Les validations des objets lisibles sont présentées dans
+[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

@@ -198,3 +198,6 @@ Le runtime journalise les événements, les conditions rejetées, les paramètre
 - une éventuelle interface de commande commune ;
 - l’activation future des valeurs d’enum actuellement réservées ;
 - une interface dédiée à l’édition des conditions.
+
+La présentation et la navigation des erreurs de liens sont décrites dans
+[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

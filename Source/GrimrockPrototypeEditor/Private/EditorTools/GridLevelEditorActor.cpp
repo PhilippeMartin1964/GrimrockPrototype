@@ -83,6 +83,58 @@ namespace
         }
     }
 
+    FName InferValidationCategory (const FString& Message)
+    {
+        if (Message.StartsWith (TEXT ("Link ")) || Message.Contains (TEXT (" link")))
+        {
+            return TEXT ("Links");
+        }
+        if (Message.Contains (TEXT ("Readable")) || Message.Contains (TEXT ("readable")))
+        {
+            return TEXT ("Readable");
+        }
+        if (Message.Contains (TEXT ("Receptacle")) || Message.Contains (TEXT ("receptacle")))
+        {
+            return TEXT ("Receptacles");
+        }
+        if (Message.Contains (TEXT ("Door")) || Message.Contains (TEXT ("door")))
+        {
+            return TEXT ("Doors");
+        }
+        if (Message.Contains (TEXT ("Item")) || Message.Contains (TEXT ("item")))
+        {
+            return TEXT ("Items");
+        }
+        if (Message.Contains (TEXT ("ObjectPalette")) || Message.Contains (TEXT ("PaletteEntry")))
+        {
+            return TEXT ("Palette");
+        }
+        if (Message.Contains (TEXT ("Archetype")) || Message.Contains (TEXT ("archetype")))
+        {
+            return TEXT ("Archetypes");
+        }
+        if (Message.Contains (TEXT ("wall")) || Message.Contains (TEXT ("Wall")) ||
+            Message.Contains (TEXT ("shared edge")))
+        {
+            return TEXT ("Walls");
+        }
+        if (Message.Contains (TEXT ("cell")) || Message.Contains (TEXT ("Cell")) ||
+            Message.Contains (TEXT ("Start")))
+        {
+            return TEXT ("Grid");
+        }
+        if (Message.Contains (TEXT ("runtime")) || Message.Contains (TEXT ("Runtime")))
+        {
+            return TEXT ("Runtime");
+        }
+        if (Message.Contains (TEXT ("Object")) || Message.Contains (TEXT ("object")) ||
+            Message.Contains (TEXT ("Trigger")))
+        {
+            return TEXT ("Objects");
+        }
+        return TEXT ("Core");
+    }
+
     FString ToGridObjectTypeText (EGridLevelObjectType ObjectType)
     {
         if (const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ())
@@ -1543,6 +1595,7 @@ void AGridLevelEditorActor::SyncPreviewRuntimeObjectArchetypesFromPalette ()
             PreviewRuntimeActor->ObjectArchetypes.AddUnique (Entry.DefaultArchetype);
         }
     }
+
 }
 
 void AGridLevelEditorActor::ClearSelectedCell ()
@@ -2814,7 +2867,14 @@ bool AGridLevelEditorActor::FocusSelectedObject ()
         FVector WorldLocation = FVector::ZeroVector;
         if (TryGetObjectWorldLocation (*Obj, WorldLocation))
         {
-            GEditor->MoveViewportCamerasToActor (*this, false);
+            const float FocusExtent = LevelAsset
+                ? FMath::Max (50.f, LevelAsset->CellSize * 0.25f)
+                : 50.f;
+            GEditor->MoveViewportCamerasToBox (
+                FBox (
+                    WorldLocation - FVector (FocusExtent),
+                    WorldLocation + FVector (FocusExtent)),
+                false);
         }
     }
 #endif
@@ -4369,6 +4429,37 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         AddMessage (
             EGridLevelValidationSeverity::Info,
             TEXT ("Validation complete: no issues found."));
+    }
+
+    for (FGridLevelValidationMessage& ValidationMessage : LastValidationMessages)
+    {
+        ValidationMessage.Category = InferValidationCategory (ValidationMessage.Message);
+
+        if (ValidationMessage.Message.StartsWith (TEXT ("Link ")))
+        {
+            const int32 LinkIndex = FCString::Atoi (*ValidationMessage.Message.Mid (5));
+            if (LevelAsset->Links.IsValidIndex (LinkIndex))
+            {
+                const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
+                ValidationMessage.SourceObjectId = Link.SourceObjectId;
+                ValidationMessage.TargetObjectId = Link.TargetObjectId;
+            }
+        }
+
+        FGuid LocationObjectId = ValidationMessage.OptionalObjectId;
+        if (!LocationObjectId.IsValid ())
+        {
+            LocationObjectId = ValidationMessage.SourceObjectId.IsValid ()
+                ? ValidationMessage.SourceObjectId
+                : ValidationMessage.TargetObjectId;
+        }
+
+        if (const FGridLevelObjectData* const* ObjectPtr = ObjectsById.Find (LocationObjectId))
+        {
+            ValidationMessage.CellX = (*ObjectPtr)->CellX;
+            ValidationMessage.CellY = (*ObjectPtr)->CellY;
+            ValidationMessage.Edge = (*ObjectPtr)->Edge;
+        }
     }
 
     return LastValidationMessages;

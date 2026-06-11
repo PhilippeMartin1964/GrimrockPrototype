@@ -214,3 +214,6 @@ Le runtime journalise les transferts, refus, changements de politique, commandes
 
 Les curseurs de dépôt et les retours courts de refus sont décrits dans
 [`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).
+
+Les validations de réceptacle sont présentées dans
+[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

@@ -206,3 +206,6 @@ Le runtime journalise :
 
 Le curseur de chaîne et les retours d'interaction associés sont décrits dans
 [`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).
+
+Les validations de porte et leur navigation dans l'éditeur sont décrites dans
+[`LEVEL_VALIDATION_PANEL_FOUNDATION.md`](LEVEL_VALIDATION_PANEL_FOUNDATION.md).

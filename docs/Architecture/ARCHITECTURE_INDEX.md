@@ -10,12 +10,13 @@ Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Il
 
 1. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
 2. [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
-3. [Interaction souris](MOUSE_INTERACTION_FOUNDATION.md)
-4. [Liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md)
-5. [Portes et mécanismes](DOOR_MECHANISM_FOUNDATION.md)
-6. [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
-7. [Ramassage et placement des items](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
-8. [Objets lisibles et retours](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
+3. [Panneau de validation du niveau](LEVEL_VALIDATION_PANEL_FOUNDATION.md)
+4. [Interaction souris](MOUSE_INTERACTION_FOUNDATION.md)
+5. [Liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md)
+6. [Portes et mécanismes](DOOR_MECHANISM_FOUNDATION.md)
+7. [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
+8. [Ramassage et placement des items](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
+9. [Objets lisibles et retours](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
 
 ## Documents de fondation
 
@@ -23,6 +24,7 @@ Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Il
 |---|---|
 | [CORE_DUNGEON_LEVEL_GRID.md](CORE_DUNGEON_LEVEL_GRID.md) | Donjon, niveaux, cellules, murs, édition de base et génération runtime. |
 | [OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md) | Archétypes, palette, données placées, overrides, aperçu et acteurs runtime. |
+| [LEVEL_VALIDATION_PANEL_FOUNDATION.md](LEVEL_VALIDATION_PANEL_FOUNDATION.md) | Messages de validation, catégories, tableau de bord et navigation vers les problèmes. |
 | [MOUSE_INTERACTION_FOUNDATION.md](MOUSE_INTERACTION_FOUNDATION.md) | Trace de visibilité, priorité du clic, portée, interactions de bord et curseurs. |
 | [LINK_EVENT_COMMAND_FOUNDATION.md](LINK_EVENT_COMMAND_FOUNDATION.md) | Identité des liens, événements source, conditions et commandes cible. |
 | [DOOR_MECHANISM_FOUNDATION.md](DOOR_MECHANISM_FOUNDATION.md) | État des portes, passabilité, animation, commandes et chaîne. |
@@ -40,6 +42,7 @@ Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Il
 - [RECEPTACLE_SYSTEM_CLEANUP_NOTES.md](RECEPTACLE_SYSTEM_CLEANUP_NOTES.md)
 - [ITEM_PICKUP_AND_PLACEMENT_CLEANUP_NOTES.md](ITEM_PICKUP_AND_PLACEMENT_CLEANUP_NOTES.md)
 - [READABLE_OBJECTS_AND_FEEDBACK_CLEANUP_NOTES.md](READABLE_OBJECTS_AND_FEEDBACK_CLEANUP_NOTES.md)
+- [LEVEL_VALIDATION_PANEL_CLEANUP_NOTES.md](LEVEL_VALIDATION_PANEL_CLEANUP_NOTES.md)
 
 Une synthèse transversale de la première relecture est disponible dans [ARCHITECTURE_CONSISTENCY_AUDIT.md](ARCHITECTURE_CONSISTENCY_AUDIT.md).
 

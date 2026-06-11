@@ -12,6 +12,7 @@ public class GrimrockPrototypeEditor : ModuleRules
             "CoreUObject",
             "Engine",
             "InputCore",
+            "ApplicationCore",
             "AssetRegistry",
             "UnrealEd",
             "EditorFramework",

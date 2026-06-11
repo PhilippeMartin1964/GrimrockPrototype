@@ -12,8 +12,12 @@ struct FGridEditorValidationPanelState
 {
     TArray<FGridLevelValidationMessage> ValidationMessages;
     bool bValidationHasRun = false;
+    bool bShowErrors = true;
+    bool bShowWarnings = true;
+    bool bShowInfos = true;
 
     void CountValidationErrorsWarnings (int32& OutErrorCount, int32& OutWarningCount) const;
+    void CountValidationMessages (int32& OutErrorCount, int32& OutWarningCount, int32& OutInfoCount) const;
     FText GetValidationStatusText () const;
 };
 
@@ -41,6 +45,10 @@ private:
 
     TSharedRef<SWidget> BuildValidationSection ();
     FReply OnValidateLevelClicked ();
+    FReply OnCopySummaryClicked () const;
+    FReply OnSelectObjectClicked (FGuid ObjectId, bool bFocus);
+    FReply OnSelectCellClicked (int32 CellX, int32 CellY);
+    bool ShouldShowMessage (const FGridLevelValidationMessage& ValidationMessage) const;
 
 private:
     TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
