@@ -203,3 +203,6 @@ Le runtime journalise :
 - la restauration replace la porte sans reprendre une animation interrompue ;
 - `Opened` et `Closed` existent dans l’enum mais ne sont pas émis ;
 - la collision des meshes dépend encore de leurs composants et assets, sans piloter `CanMove()`.
+
+Le curseur de chaîne et les retours d'interaction associés sont décrits dans
+[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

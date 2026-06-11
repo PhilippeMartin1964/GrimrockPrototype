@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="330" viewBox="0 0 960 330">
+  <style>.box{fill:#182230;stroke:#58a6ff;stroke-width:2}.name{fill:#f0f6fc;font:bold 17px Arial,sans-serif;text-anchor:middle}.role{fill:#9da7b3;font:13px Arial,sans-serif;text-anchor:middle}</style>
+  <rect width="960" height="330" rx="16" fill="#0d1117"/>
+  <g transform="translate(25 35)"><rect class="box" width="165" height="100" rx="10"/><text class="name" x="82" y="40">Default</text><text class="role" x="82" y="68">aucune action</text></g>
+  <g transform="translate(210 35)"><rect class="box" width="165" height="100" rx="10"/><text class="name" x="82" y="40">Use</text><text class="role" x="82" y="68">utiliser</text></g>
+  <g transform="translate(395 35)"><rect class="box" width="165" height="100" rx="10"/><text class="name" x="82" y="40">Push / Pull</text><text class="role" x="82" y="68">bouton / levier</text></g>
+  <g transform="translate(580 35)"><rect class="box" width="165" height="100" rx="10"/><text class="name" x="82" y="40">Take / Read</text><text class="role" x="82" y="68">prendre / lire</text></g>
+  <g transform="translate(765 35)"><rect class="box" width="170" height="100" rx="10"/><text class="name" x="85" y="40">Locked</text><text class="role" x="85" y="68">verrouillé</text></g>
+  <g transform="translate(115 185)"><rect class="box" width="200" height="100" rx="10"/><text class="name" x="100" y="40">Forbidden</text><text class="role" x="100" y="68">action inaccessible</text></g>
+  <g transform="translate(380 185)"><rect class="box" width="200" height="100" rx="10"/><text class="name" x="100" y="40">PlaceItem</text><text class="role" x="100" y="68">dépôt compatible</text></g>
+  <g transform="translate(645 185)"><rect class="box" width="200" height="100" rx="10"/><text class="name" x="100" y="40">CannotPlaceItem</text><text class="role" x="100" y="68">dépôt refusé</text></g>
+</svg>

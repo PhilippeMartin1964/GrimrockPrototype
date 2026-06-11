@@ -304,7 +304,7 @@ void AGridDoorActor::InteractWithHit_Implementation (
 EGridInteractionCursor AGridDoorActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
 {
     return HitComponent == ChainInteractionBox
-        ? EGridInteractionCursor::Take
+        ? EGridInteractionCursor::Pull
         : EGridInteractionCursor::Default;
 }
 

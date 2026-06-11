@@ -99,6 +99,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         if (!TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=NoTarget"));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Aucune cible valide.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
@@ -107,6 +108,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=TargetOutOfRange Target=%s"),
                 *GetNameSafe (ReceptacleActor));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Hors de portée.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
@@ -121,6 +123,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
             UE_LOG (LogTemp, Warning,
                 TEXT ("GridInventory WorldDrop Failed Reason=EdgeNotFacingParty Target=%s"),
                 *GetNameSafe (ReceptacleActor));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Cible inaccessible.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
@@ -139,6 +142,10 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                         ? TEXT ("InvalidItem")
                         : TEXT ("IncompatibleTarget")));
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=%s"), FailureReason);
+            ShowInteractionFeedback (FText::FromString (
+                ReceptacleActor && ReceptacleActor->IsFull ()
+                    ? TEXT ("Réceptacle plein.")
+                    : TEXT ("Cet objet n'est pas accepté.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
@@ -152,6 +159,10 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
             InventoryWidget->RefreshInventory ();
         }
 
+        if (!bPlaced)
+        {
+            ShowInteractionFeedback (FText::FromString (TEXT ("Dépôt impossible.")));
+        }
         SetGridInteractionCursor (bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
         return;
     }
@@ -169,6 +180,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
     if (!IsHitWithinInteractionDistance (HitResult))
     {
+        ShowInteractionFeedback (FText::FromString (TEXT ("Hors de portée.")));
         if (bDebugMouseInteraction)
         {
             UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: %s is outside interaction distance."),
@@ -191,6 +203,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
     if (!IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
     {
+        ShowInteractionFeedback (FText::FromString (TEXT ("Action impossible.")));
         if (bDebugMouseInteraction)
         {
             UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: CanInteract rejected %s on component %s."),
@@ -208,6 +221,15 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
     }
 
     IGridInteractableInterface::Execute_InteractWithHit (InteractableActor, ControlledPawn, HitComponent, HitResult);
+}
+
+void AGrimrockPlayerController::ShowInteractionFeedback (const FText& MessageText) const
+{
+    const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
+    if (PartyPawn && PartyPawn->LevelRuntimeActor)
+    {
+        PartyPawn->LevelRuntimeActor->ShowInteractionFeedback (MessageText);
+    }
 }
 
 void AGrimrockPlayerController::UpdateHoveredInteractable ()

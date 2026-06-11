@@ -197,7 +197,7 @@ Le runtime journalise les transferts, refus, changements de politique, commandes
 - `ConsumeAllItems` émet plusieurs `ItemChanged` ;
 - la résolution d'une définition dépend des assets référencés par le niveau, les archétypes ou l'inventaire ;
 - les changements runtime de politique et d'autorisation de retrait ne sont pas capturés dans `FGridRuntimeReceptacleState` ;
-- les retours joueur restent principalement des curseurs et des logs.
+- les refus courants de dépôt ont un retour court, mais les refus spécialisés de retrait ou de verrouillage restent principalement signalés par le curseur et les logs.
 
 ## 12. Règles d'architecture
 
@@ -211,3 +211,6 @@ Le runtime journalise les transferts, refus, changements de politique, commandes
 8. Une condition invalide échoue avant inversion.
 9. Les commandes spécialisées ciblent uniquement un acteur réceptacle généré.
 10. Les variantes de support, alcôve ou autel restent des archétypes ou Blueprints, pas de nouveaux types de niveau.
+
+Les curseurs de dépôt et les retours courts de refus sont décrits dans
+[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

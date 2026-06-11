@@ -248,3 +248,6 @@ Ces points sont documentés, mais volontairement non refondus dans cette passe.
 
 Le contrat actuel des réceptacles est décrit dans
 [`RECEPTACLE_SYSTEM_FOUNDATION.md`](RECEPTACLE_SYSTEM_FOUNDATION.md).
+
+Le contrat des textes lisibles placés et de leurs overrides est décrit dans
+[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

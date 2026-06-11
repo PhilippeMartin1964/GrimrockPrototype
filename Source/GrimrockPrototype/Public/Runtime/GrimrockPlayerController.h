@@ -54,4 +54,5 @@ protected:
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
     bool TryGetReceptacleUnderCursor (FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
     bool IsHitWithinInteractionDistance (const FHitResult& HitResult) const;
+    void ShowInteractionFeedback (const FText& MessageText) const;
 };

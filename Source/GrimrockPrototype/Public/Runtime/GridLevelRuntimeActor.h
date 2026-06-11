@@ -188,6 +188,15 @@ public:
     UFUNCTION (BlueprintCallable, Category = "UI")
     void HideReadableMessage ();
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "UI")
+    TSubclassOf<UReadableMessageWidget> InteractionFeedbackWidgetClass;
+
+    UFUNCTION (BlueprintCallable, Category = "UI", meta = (AdvancedDisplay = "DurationSeconds"))
+    void ShowInteractionFeedback (const FText& MessageText, float DurationSeconds = 1.5f);
+
+    UFUNCTION (BlueprintCallable, Category = "UI")
+    void HideInteractionFeedback ();
+
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
 
@@ -354,6 +363,11 @@ private:
     TObjectPtr<UReadableMessageWidget> ActiveReadableMessageWidget;
 
     FTimerHandle ReadableMessageTimerHandle;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UReadableMessageWidget> ActiveInteractionFeedbackWidget;
+
+    FTimerHandle InteractionFeedbackTimerHandle;
 
     static bool IsSafeRuntimeRenderTransform (const FTransform& Transform);
     void LogUnsafeInstanceTransform (const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component,

@@ -1475,7 +1475,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReadableTextSection (c
         SNew (SMultiLineEditableTextBox)
             .Text (Obj.OverrideReadableText)
             .AutoWrapText (true)
-            .HintText (FText::FromString (TEXT ("Text displayed when the player presses Use.")))
+            .HintText (FText::FromString (TEXT ("Text displayed when the player reads this object.")))
             .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
         {
             if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())

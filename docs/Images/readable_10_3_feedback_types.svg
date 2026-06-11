@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="260" viewBox="0 0 960 260">
+  <style>.box{fill:#182230;stroke-width:2}.t{fill:#f0f6fc;font:bold 18px Arial,sans-serif;text-anchor:middle}.s{fill:#b1bac4;font:14px Arial,sans-serif;text-anchor:middle}</style>
+  <rect width="960" height="260" rx="16" fill="#0d1117"/>
+  <rect class="box" stroke="#58a6ff" x="25" y="55" width="210" height="145" rx="12"/><text class="t" x="130" y="90">Message lisible</text><text class="s" x="130" y="122">texte long</text><text class="s" x="130" y="145">persistant</text><text class="s" x="130" y="168">fermeture explicite</text>
+  <rect class="box" stroke="#3fb950" x="260" y="55" width="210" height="145" rx="12"/><text class="t" x="365" y="90">Retour court</text><text class="s" x="365" y="122">refus ou confirmation</text><text class="s" x="365" y="145">temporaire</text><text class="s" x="365" y="168">non bloquant</text>
+  <rect class="box" stroke="#d29922" x="495" y="55" width="210" height="145" rx="12"/><text class="t" x="600" y="90">Curseur</text><text class="s" x="600" y="122">action proposée</text><text class="s" x="600" y="145">état de survol</text><text class="s" x="600" y="168">sans autorité métier</text>
+  <rect class="box" stroke="#a371f7" x="730" y="55" width="205" height="145" rx="12"/><text class="t" x="832" y="90">Log runtime</text><text class="s" x="832" y="122">diagnostic développeur</text><text class="s" x="832" y="145">tentatives réelles</text><text class="s" x="832" y="168">pas de spam au survol</text>
+</svg>

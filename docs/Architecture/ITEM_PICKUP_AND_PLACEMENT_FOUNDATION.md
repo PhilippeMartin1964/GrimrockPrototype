@@ -180,3 +180,6 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 - Le ramassage monde alimente directement l'inventaire, pas le curseur.
 - Les piles ne sont pas fusionnées par le chemin de ramassage.
 - Les actifs `.uasset` déterminent les variantes concrètes de supports et ne sont pas audités par ce document.
+
+Les curseurs d'item et le retour court d'inventaire plein sont décrits dans
+[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

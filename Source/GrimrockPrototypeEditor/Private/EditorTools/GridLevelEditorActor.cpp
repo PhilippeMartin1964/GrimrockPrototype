@@ -3709,6 +3709,39 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 Obj.ObjectId);
         }
 
+        if (Archetype)
+        {
+            if (Archetype->bIsReadable)
+            {
+                const FText EffectiveReadableText = Obj.OverrideReadableText.IsEmpty ()
+                    ? Archetype->ReadableText
+                    : Obj.OverrideReadableText;
+                if (EffectiveReadableText.IsEmpty ())
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Warning,
+                        Obj.Notes.IsEmpty ()
+                            ? TEXT ("Readable placed object has no text in either its instance override or archetype.")
+                            : TEXT ("Readable placed object has no text. Notes are editor-only and are not displayed at runtime."),
+                        Obj.ObjectId);
+                }
+                if (!Obj.bInitiallyEnabled)
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Warning,
+                        TEXT ("Readable placed object is initially disabled and cannot be read until enabled."),
+                        Obj.ObjectId);
+                }
+            }
+            else if (!Obj.OverrideReadableText.IsEmpty ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("Placed object has a readable-text override, but its archetype is not readable; the override is ignored at runtime."),
+                    Obj.ObjectId);
+            }
+        }
+
         if (Archetype &&
             Obj.Type != EGridLevelObjectType::Item &&
             Archetype->IsCenterPlaced () &&

@@ -79,7 +79,7 @@ Les boutons, leviers et objets lisibles placés sur un bord font ensuite transit
 | `AGridGenericObjectActor` lisible | mesh principal | `Read` | activation du texte via le runtime |
 | `AGridItemActor` | mesh de l'item | `Take` | ramassage ou retrait du réceptacle |
 | `AGridReceptacleActor` | support ou mesh d'un item contenu | `Use` ou `Take` | dépôt ou retrait |
-| `AGridDoorActor` | volume de la chaîne optionnelle | `Take` actuellement | traction directe de la chaîne |
+| `AGridDoorActor` | volume de la chaîne optionnelle | `Pull` | traction directe de la chaîne |
 
 La surface normale d'une porte n'est pas interactive. Les plaques de pression et les triggers ne sont pas des cibles pour la souris.
 
@@ -135,3 +135,6 @@ Les actions de déplacement et de rotation du pawn ferment également le message
 - Vérifier les curseurs hors de portée et sur un sous-composant refusé.
 - Lire un texte, puis confirmer que le clic suivant ferme seulement le message.
 - Tester la chaîne d'une porte depuis le bon bord et depuis un bord incorrect.
+
+Les messages lisibles, retours courts et états de curseur sont détaillés dans
+[`READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md`](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md).

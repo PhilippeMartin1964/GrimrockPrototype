@@ -398,6 +398,63 @@ void AGridLevelRuntimeActor::HideReadableMessage ()
     }
 }
 
+void AGridLevelRuntimeActor::ShowInteractionFeedback (const FText& MessageText, float DurationSeconds)
+{
+    if (MessageText.IsEmpty ())
+    {
+        return;
+    }
+
+    UWorld* World = GetWorld ();
+    const TSubclassOf<UReadableMessageWidget> WidgetClass =
+        InteractionFeedbackWidgetClass ? InteractionFeedbackWidgetClass : ReadableMessageWidgetClass;
+    if (!World || !WidgetClass)
+    {
+        UE_LOG (LogTemp, Verbose, TEXT ("ShowInteractionFeedback skipped: missing world or widget class."));
+        return;
+    }
+
+    APlayerController* PlayerController = World->GetFirstPlayerController ();
+    if (!PlayerController)
+    {
+        return;
+    }
+
+    if (!ActiveInteractionFeedbackWidget)
+    {
+        ActiveInteractionFeedbackWidget = CreateWidget<UReadableMessageWidget> (PlayerController, WidgetClass);
+        if (!ActiveInteractionFeedbackWidget)
+        {
+            return;
+        }
+    }
+
+    ActiveInteractionFeedbackWidget->SetReadableText (MessageText);
+    if (!ActiveInteractionFeedbackWidget->IsInViewport ())
+    {
+        ActiveInteractionFeedbackWidget->AddToViewport (60);
+    }
+
+    GetWorldTimerManager ().ClearTimer (InteractionFeedbackTimerHandle);
+    GetWorldTimerManager ().SetTimer (
+        InteractionFeedbackTimerHandle,
+        this,
+        &AGridLevelRuntimeActor::HideInteractionFeedback,
+        FMath::Max (0.1f, DurationSeconds),
+        false);
+}
+
+void AGridLevelRuntimeActor::HideInteractionFeedback ()
+{
+    GetWorldTimerManager ().ClearTimer (InteractionFeedbackTimerHandle);
+
+    if (ActiveInteractionFeedbackWidget)
+    {
+        ActiveInteractionFeedbackWidget->RemoveFromParent ();
+        ActiveInteractionFeedbackWidget = nullptr;
+    }
+}
+
 void AGridLevelRuntimeActor::OnConstruction (const FTransform& Transform)
 {
     Super::OnConstruction (Transform);
@@ -2377,6 +2434,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
                 *ItemDefinitionId.ToString (),
                 *ItemInstance.RuntimeObjectId.ToString ());
+            ShowInteractionFeedback (FText::FromString (TEXT ("Inventaire plein.")));
             return false;
         }
 
@@ -2443,6 +2501,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory Pickup Failed InventoryFull Item=%s RuntimeId=%s"),
                 *ItemDefinitionId.ToString (),
                 *ItemInstance.RuntimeObjectId.ToString ());
+            ShowInteractionFeedback (FText::FromString (TEXT ("Inventaire plein.")));
             return false;
         }
 
