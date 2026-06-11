@@ -89,6 +89,10 @@ namespace
         {
             return TEXT ("Links");
         }
+        if (Message.Contains (TEXT ("ObjectPalette")) || Message.Contains (TEXT ("PaletteEntry")))
+        {
+            return TEXT ("Palette");
+        }
         if (Message.Contains (TEXT ("Readable")) || Message.Contains (TEXT ("readable")))
         {
             return TEXT ("Readable");
@@ -104,10 +108,6 @@ namespace
         if (Message.Contains (TEXT ("Item")) || Message.Contains (TEXT ("item")))
         {
             return TEXT ("Items");
-        }
-        if (Message.Contains (TEXT ("ObjectPalette")) || Message.Contains (TEXT ("PaletteEntry")))
-        {
-            return TEXT ("Palette");
         }
         if (Message.Contains (TEXT ("Archetype")) || Message.Contains (TEXT ("archetype")))
         {

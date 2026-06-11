@@ -46,6 +46,11 @@ Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Il
 
 Une synthèse transversale de la première relecture est disponible dans [ARCHITECTURE_CONSISTENCY_AUDIT.md](ARCHITECTURE_CONSISTENCY_AUDIT.md).
 
+## Tests
+
+- [Checklist de régression du donjon de test](../Tests/TEST_DUNGEON_PASS_CHECKLIST.md)
+- [Rapport de régression du donjon de test](../Tests/TEST_DUNGEON_PASS_REPORT.md)
+
 ## Règles transversales
 
 1. Les DataAssets restent les sources persistantes.
