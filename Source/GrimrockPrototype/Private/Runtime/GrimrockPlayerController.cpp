@@ -1,11 +1,13 @@
 #include "Runtime/GrimrockPlayerController.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
@@ -50,6 +52,7 @@ void AGrimrockPlayerController::SetupInputComponent ()
     }
 
     InputComponent->BindKey (EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
+    InputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleRightMousePressed);
 }
 
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
@@ -254,6 +257,48 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
     }
 
     IGridInteractableInterface::Execute_InteractWithHit (InteractableActor, ControlledPawn, HitComponent, HitResult);
+}
+
+void AGrimrockPlayerController::HandleRightMousePressed ()
+{
+    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
+    FGridItemInstance CursorItem;
+    if (!PartyPawn || !PartyPawn->GetCursorItem (CursorItem))
+    {
+        return;
+    }
+
+    UGridItemDefinitionAsset* ItemDefinition = PartyPawn->LevelRuntimeActor
+        ? PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId)
+        : nullptr;
+    if (!ItemDefinition || !ItemDefinition->bThrowable)
+    {
+        ShowInteractionFeedback (FText::FromString (TEXT ("Cet objet ne peut pas être lancé.")));
+        return;
+    }
+
+    FVector ViewLocation = PartyPawn->Camera
+        ? PartyPawn->Camera->GetComponentLocation ()
+        : PartyPawn->GetActorLocation ();
+    FVector LaunchDirection = PartyPawn->Camera
+        ? PartyPawn->Camera->GetForwardVector ()
+        : PartyPawn->GetActorForwardVector ();
+
+    FHitResult WorldHitResult;
+    if (TryGetWorldHitUnderCursor (WorldHitResult))
+    {
+        LaunchDirection = (WorldHitResult.ImpactPoint - ViewLocation).GetSafeNormal ();
+    }
+
+    const bool bThrown = PartyPawn->TryThrowOneCursorItem (LaunchDirection);
+    if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+    {
+        InventoryWidget->RefreshInventory ();
+    }
+    if (!bThrown)
+    {
+        ShowInteractionFeedback (FText::FromString (TEXT ("Lancer impossible.")));
+    }
 }
 
 void AGrimrockPlayerController::ShowInteractionFeedback (const FText& MessageText) const

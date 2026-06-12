@@ -175,6 +175,24 @@ Un item déposé est enregistré dans `SpawnedItemActors` et `SpawnedItemEntries
 
 Cette première version accepte les hits qui se résolvent sur la cellule du groupe ou sur la cellule directement devant lui. Le placement utilise le centre de la cellule avec un décalage horizontal limité dérivé du point d'impact.
 
+### Lancer d'item
+
+Les items peuvent être rendus lançables via leur `UGridItemDefinitionAsset`.
+
+La première version utilise :
+
+- `bThrowable` pour autoriser le lancer ;
+- `ThrowSpeed` pour la vitesse initiale ;
+- `ThrowArc` pour une légère composante verticale ;
+- `ThrowLifeSeconds` pour la durée maximale du projectile ;
+- `ThrowImpactDropOffset` pour stabiliser le dépôt après impact.
+
+Le clic gauche avec un item en curseur reste réservé au dépôt libre ou au dépôt dans un réceptacle.
+
+Le clic droit avec un item en curseur lance une seule unité de la pile. Si la pile contient plusieurs unités, le curseur est décrémenté de 1. Si elle ne contient qu'une unité, le curseur est vidé. Si le projectile ne peut pas être créé, le curseur reste inchangé.
+
+`AGridThrownItemActor` est temporaire et utilise une collision sphérique avec `UProjectileMovementComponent`. À l'impact ou à l'expiration, il appelle le dépôt monde standard afin que l'unité lancée redevienne ramassable, empilable, persistante et compatible avec les PressurePlates par poids.
+
 ### PressurePlates et poids des items
 
 Les PressurePlates peuvent être activées par la présence du joueur, par le poids des items déposés sur leur cellule, ou par les deux.
@@ -264,12 +282,19 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 20. Déposer directement une pile de trois pierres : vérifier que la contribution vaut `3.0`, pas `1.0`.
 21. Avec les deux sources actives, laisser trois pierres sur la plaque puis entrer et sortir : vérifier que la plaque reste pressée sans événement supplémentaire.
 22. Relier la plaque à une porte et vérifier que l'activation et la désactivation par poids utilisent les mêmes liens que la présence du groupe.
+23. Configurer une pierre avec `bThrowable=true`, placer une pile de trois dans le curseur et cliquer droit : vérifier un projectile quantité 1 et un curseur quantité 2.
+24. Lancer la dernière unité d'une pile : vérifier que le curseur est vidé seulement après la création du projectile.
+25. Essayer de lancer un item avec `bThrowable=false` : vérifier le feedback et l'absence de mutation du curseur.
+26. Ramasser une pierre après son impact : vérifier qu'elle rejoint une pile compatible.
+27. Lancer une pierre de poids `1.0` sur une PressurePlate dont le seuil vaut `1.0` : vérifier sa conversion en item monde et l'activation de la plaque.
+28. Avec une pierre dans le curseur, vérifier que le clic gauche conserve le dépôt libre et la priorité des réceptacles.
 
 ## 13. Limites actuelles
 
 - Le ramassage monde alimente directement l'inventaire, pas le curseur.
 - Le dépôt libre est limité à la cellule courante ou directement devant le groupe.
 - Le système ne simule pas encore une physique réaliste de contact avec la plaque. Un item compte pour le poids s'il est enregistré comme item runtime sur la cellule de la PressurePlate.
+- Le lancer ne gère pas encore les dégâts, les ennemis, la physique réaliste de rebond, les sons d'impact ou la charge de puissance.
 - Le nombre de cases d'inventaire n'est pas étendu automatiquement.
 - Les actifs `.uasset` déterminent les variantes concrètes de supports et ne sont pas audités par ce document.
 

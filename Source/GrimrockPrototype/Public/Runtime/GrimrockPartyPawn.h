@@ -261,6 +261,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|World")
     bool TryDropCursorItemAtCell (int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Throw")
+    bool TryThrowOneCursorItem (const FVector& LaunchDirection);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle|Debug")
     bool DebugPlaceCursorItemInFrontReceptacle ();
 

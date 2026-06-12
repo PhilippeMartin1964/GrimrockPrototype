@@ -11,6 +11,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemActor.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
@@ -1250,6 +1251,78 @@ bool AGrimrockPartyPawn::TryDropCursorItemAtCell (
     }
 
     PartyInventoryComponent->ClearCursorItem ();
+    PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();
+    return true;
+}
+
+bool AGrimrockPartyPawn::TryThrowOneCursorItem (const FVector& LaunchDirection)
+{
+    if (!PartyInventoryComponent ||
+        !LevelRuntimeActor ||
+        !PartyInventoryComponent->HasCursorItem ())
+    {
+        return false;
+    }
+
+    const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
+    UGridItemDefinitionAsset* ItemDefinition =
+        LevelRuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId);
+    if (!ItemDefinition || !ItemDefinition->bThrowable)
+    {
+        return false;
+    }
+
+    FVector ThrowDirection = LaunchDirection.GetSafeNormal ();
+    if (ThrowDirection.IsNearlyZero ())
+    {
+        ThrowDirection = Camera ? Camera->GetForwardVector () : GetActorForwardVector ();
+    }
+    ThrowDirection = (ThrowDirection + FVector::UpVector * FMath::Max (0.0f, ItemDefinition->ThrowArc)).GetSafeNormal ();
+
+    FGridItemInstance ThrownItem = CursorItem;
+    ThrownItem.RuntimeObjectId = FGuid::NewGuid ();
+    ThrownItem.Quantity = 1;
+    ThrownItem.Weight = ItemDefinition->Weight;
+    ThrownItem.OwnerType = EGridItemOwnerType::World;
+    ThrownItem.OwnerGuid = FGuid ();
+    ThrownItem.OwnerCharacterIndex = INDEX_NONE;
+    ThrownItem.EquipmentSlot = EGridEquipmentSlot::None;
+
+    const FVector StartLocation =
+        (Camera ? Camera->GetComponentLocation () : GetActorLocation ()) +
+        ThrowDirection * 60.0f;
+    const FVector LaunchVelocity = ThrowDirection * FMath::Max (0.0f, ItemDefinition->ThrowSpeed);
+    if (!LevelRuntimeActor->TrySpawnThrownItemProjectile (
+        ThrownItem,
+        StartLocation,
+        LaunchVelocity,
+        CurrentCellX,
+        CurrentCellY))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory Throw Failed Item=%s Quantity=%d Reason=ProjectileSpawnFailed"),
+            *CursorItem.ItemDefinitionId.ToString (),
+            CursorItem.Quantity);
+        return false;
+    }
+
+    if (CursorItem.Quantity > 1)
+    {
+        FGridItemInstance RemainingCursorItem = CursorItem;
+        RemainingCursorItem.Quantity -= 1;
+        PartyInventoryComponent->SetCursorItem (RemainingCursorItem);
+    }
+    else
+    {
+        PartyInventoryComponent->ClearCursorItem ();
+    }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory Throw Item=%s RuntimeId=%s CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
+        *ThrownItem.ItemDefinitionId.ToString (),
+        *ThrownItem.RuntimeObjectId.ToString (),
+        CursorItem.Quantity,
+        FMath::Max (0, CursorItem.Quantity - 1));
     PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();
     return true;
 }

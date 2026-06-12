@@ -15,6 +15,7 @@ class UGridObjectArchetypeAsset;
 class UGridItemDefinitionAsset;
 class AGridRuntimeObjectActor;
 class AGridItemActor;
+class AGridThrownItemActor;
 class AGridReceptacleActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
@@ -273,6 +274,21 @@ public:
         int32 CellY,
         EGridEdge Edge,
         const FVector& LocalOffset);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Throw")
+    bool TrySpawnThrownItemProjectile (
+        const FGridItemInstance& ItemInstance,
+        const FVector& StartWorldLocation,
+        const FVector& LaunchVelocity,
+        int32 SourceCellX,
+        int32 SourceCellY);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Throw")
+    bool TryResolveWorldCellFromImpactPoint (
+        const FVector& WorldPoint,
+        int32& OutCellX,
+        int32& OutCellY,
+        FVector& OutLocalOffset) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|World")
     float GetWorldItemWeightAtCell (int32 CellX, int32 CellY, bool bIncludeEdgeItems = false) const;

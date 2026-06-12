@@ -48,6 +48,7 @@ protected:
     EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
 
     void HandleLeftMousePressed ();
+    void HandleRightMousePressed ();
     void UpdateHoveredInteractable ();
     void InitializeCustomCursor ();
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor);

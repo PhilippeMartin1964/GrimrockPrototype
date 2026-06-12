@@ -13,6 +13,7 @@
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
@@ -2654,6 +2655,103 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
         CellX,
         CellY,
         static_cast<int32> (Edge));
+    return true;
+}
+
+bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile (
+    const FGridItemInstance& ItemInstance,
+    const FVector& StartWorldLocation,
+    const FVector& LaunchVelocity,
+    int32 SourceCellX,
+    int32 SourceCellY)
+{
+    if (!ItemInstance.IsValid () ||
+        LaunchVelocity.IsNearlyZero () ||
+        !IsWalkableCell (SourceCellX, SourceCellY))
+    {
+        return false;
+    }
+
+    UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId);
+    if (!ItemDefinition || !ItemDefinition->bThrowable)
+    {
+        return false;
+    }
+
+    const FTransform SpawnTransform (
+        LaunchVelocity.Rotation (),
+        StartWorldLocation,
+        FVector::OneVector);
+    if (!IsSafeRuntimeRenderTransform (SpawnTransform))
+    {
+        return false;
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return false;
+    }
+
+    FActorSpawnParameters Params;
+    Params.Owner = this;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    AGridThrownItemActor* ThrownActor = World->SpawnActor<AGridThrownItemActor> (
+        AGridThrownItemActor::StaticClass (),
+        SpawnTransform,
+        Params);
+    if (!ThrownActor)
+    {
+        return false;
+    }
+
+    ThrownActor->InitializeThrownItem (
+        this,
+        ItemInstance,
+        ItemDefinition,
+        LaunchVelocity,
+        SourceCellX,
+        SourceCellY);
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory Throw Spawn Item=%s RuntimeId=%s SourceCell=(%d,%d) Speed=%.2f Result=true"),
+        *ItemInstance.ItemDefinitionId.ToString (),
+        *ItemInstance.RuntimeObjectId.ToString (),
+        SourceCellX,
+        SourceCellY,
+        LaunchVelocity.Size ());
+    return true;
+}
+
+bool AGridLevelRuntimeActor::TryResolveWorldCellFromImpactPoint (
+    const FVector& WorldPoint,
+    int32& OutCellX,
+    int32& OutCellY,
+    FVector& OutLocalOffset) const
+{
+    OutCellX = INDEX_NONE;
+    OutCellY = INDEX_NONE;
+    OutLocalOffset = FVector::ZeroVector;
+    if (!LevelAsset || LevelAsset->CellSize <= KINDA_SMALL_NUMBER)
+    {
+        return false;
+    }
+
+    const FVector GridLocalPoint = WorldPoint - GetActorLocation () - GridOrigin;
+    OutCellX = FMath::FloorToInt (GridLocalPoint.X / LevelAsset->CellSize);
+    OutCellY = FMath::FloorToInt (GridLocalPoint.Y / LevelAsset->CellSize);
+    if (!IsWalkableCell (OutCellX, OutCellY))
+    {
+        return false;
+    }
+
+    const FVector CellCenter = GetCellCenterWorld (OutCellX, OutCellY, 12.0f);
+    const FVector RawOffset = WorldPoint - CellCenter;
+    const float MaxOffset = LevelAsset->CellSize * 0.35f;
+    OutLocalOffset = FVector (
+        FMath::Clamp (RawOffset.X, -MaxOffset, MaxOffset),
+        FMath::Clamp (RawOffset.Y, -MaxOffset, MaxOffset),
+        0.0f);
     return true;
 }
 

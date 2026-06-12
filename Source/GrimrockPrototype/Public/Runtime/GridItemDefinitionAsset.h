@@ -67,6 +67,21 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
     TSoftObjectPtr<UStaticMesh> EquippedMesh;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw")
+    bool bThrowable = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+    float ThrowSpeed = 1800.0f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+    float ThrowArc = 0.08f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+    float ThrowLifeSeconds = 5.0f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+    float ThrowImpactDropOffset = 12.0f;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
     bool bCanEmitLight = false;
 
