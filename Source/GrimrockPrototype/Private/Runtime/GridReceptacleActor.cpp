@@ -98,40 +98,6 @@ namespace
         return nullptr;
     }
 
-    bool ResolveHeldEquipmentItem (
-        const AGrimrockPartyPawn* PartyPawn,
-        FGridItemInstance& OutItem,
-        EGridEquipmentSlot& OutSlot)
-    {
-        OutItem = FGridItemInstance ();
-        OutSlot = EGridEquipmentSlot::None;
-        if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
-        {
-            return false;
-        }
-
-        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
-        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
-        const FName HeldItemDefinitionId = PartyPawn->GetHeldItemDefinitionId ();
-
-        FGridItemInstance EquippedItem;
-        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem) &&
-            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
-        {
-            OutItem = EquippedItem;
-            OutSlot = EGridEquipmentSlot::MainHand;
-            return true;
-        }
-        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::OffHand, EquippedItem) &&
-            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
-        {
-            OutItem = EquippedItem;
-            OutSlot = EGridEquipmentSlot::OffHand;
-            return true;
-        }
-        return false;
-    }
-
     const TCHAR* GetRejectReasonName (EGridReceptacleRejectReason Reason)
     {
         switch (Reason)
@@ -882,37 +848,6 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return PartyPawn->TryPlaceCursorItemInReceptacle (this);
     }
 
-    FGridItemInstance HeldItem;
-    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
-    if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
-    {
-        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
-        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridReceptacle Interaction Route=\"service transfer equipment -> receptacle\" ObjectId=%s Character=%d Slot=%d Item=%s RuntimeId=%s"),
-            *ObjectId.ToString (),
-            CharacterIndex,
-            static_cast<int32> (HeldSlot),
-            *HeldItem.ItemDefinitionId.ToString (),
-            *HeldItem.RuntimeObjectId.ToString ());
-
-        const FGridItemTransferResult TransferResult =
-            UGridItemTransferService::TransferEquipmentSlotToReceptacle (
-                Inventory,
-                CharacterIndex,
-                HeldSlot,
-                this);
-        if (!TransferResult.bSuccess)
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridReceptacle Interaction ServiceFailed Route=\"equipment -> receptacle\" ObjectId=%s Result=%s Message=%s"),
-                *ObjectId.ToString (),
-                *UEnum::GetValueAsString (TransferResult.Result),
-                *TransferResult.Message.ToString ());
-        }
-        return TransferResult.bSuccess;
-    }
-
     if (GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
         HasItem ())
     {
@@ -1095,13 +1030,6 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return CanAcceptCursorItemFromParty (PartyPawn);
     }
 
-    FGridItemInstance HeldItem;
-    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
-    if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
-    {
-        return CanAcceptItemInstance (HeldItem);
-    }
-
     if (IsContainedItemHitComponent (HitComponent))
     {
         return HasItem () && IsItemRemovalAllowed ();
@@ -1126,13 +1054,10 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
     {
         return;
     }
-    const bool bHasInsertionItem =
+    const bool bHasCursorItem =
         PartyPawn->PartyInventoryComponent &&
         PartyPawn->PartyInventoryComponent->HasCursorItem ();
-    FGridItemInstance HeldItem;
-    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
-    const bool bHasHeldItem = ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot);
-    if (!bHasInsertionItem && !bHasHeldItem && IsContainedItemHitComponent (HitComponent))
+    if (!bHasCursorItem && IsContainedItemHitComponent (HitComponent))
     {
         const int32 ItemIndex = FindContainedItemIndexForComponent (HitComponent);
         if (ItemIndex != INDEX_NONE)

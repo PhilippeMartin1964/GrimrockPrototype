@@ -249,6 +249,8 @@ Le tableau manuel `Items.ItemDefinitions` n'est plus exposé dans `BP_GrimrockPa
 
 Les alcôves acceptent plusieurs items, tandis que les supports de torche restent single-slot. Lorsqu'un item du curseur vise un réceptacle accessible, le placement ou son refus est traité par le réceptacle et ne retombe pas dans le lancer.
 
+Seul le slot cursor permet cette insertion par clic. Un item équipé en `MainHand` ou `OffHand` reste équipé et ne modifie pas le comportement de retrait d'un item déjà contenu.
+
 ### Jet court et lancer
 
 Le jet court et le lancer utilisent la même fondation de projectile.

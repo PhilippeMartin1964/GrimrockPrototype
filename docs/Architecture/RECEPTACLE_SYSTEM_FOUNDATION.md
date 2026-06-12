@@ -73,7 +73,9 @@ La capacité est comptée par entrée de `ContainedItems`, pas par somme des qua
 
 Les alcôves sont des réceptacles multi-items et utilisent actuellement `MaxContainedItems = 8`. Les supports de torche restent des réceptacles single-slot avec `MaxContainedItems = 1`.
 
-Quand un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
+Quand le slot cursor contient un item et qu'un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
+
+L'insertion par clic souris se fait uniquement depuis le slot cursor. Les objets équipés en `MainHand` ou `OffHand` ne sont jamais insérés automatiquement dans un réceptacle. Quand le cursor est vide, cliquer un item contenu demande son retrait, même si une main est occupée.
 
 ## 6. Dépôt direct à la souris
 

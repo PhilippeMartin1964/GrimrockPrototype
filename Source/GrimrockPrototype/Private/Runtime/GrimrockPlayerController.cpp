@@ -9,7 +9,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
-#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
 
@@ -44,36 +43,6 @@ namespace
         }
     }
 
-    bool ResolveHeldEquipmentItem (
-        const AGrimrockPartyPawn* PartyPawn,
-        FGridItemInstance& OutItem)
-    {
-        OutItem = FGridItemInstance ();
-        if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
-        {
-            return false;
-        }
-
-        const UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
-        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
-        const FName HeldItemDefinitionId = PartyPawn->GetHeldItemDefinitionId ();
-
-        FGridItemInstance EquippedItem;
-        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem) &&
-            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
-        {
-            OutItem = EquippedItem;
-            return true;
-        }
-        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::OffHand, EquippedItem) &&
-            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
-        {
-            OutItem = EquippedItem;
-            return true;
-        }
-
-        return false;
-    }
 }
 
 AGrimrockPlayerController::AGrimrockPlayerController ()
@@ -325,21 +294,7 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
     if (!IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
     {
-        AGridReceptacleActor* ReceptacleActor =
-            ResolveReceptacleFromHitActor (InteractableActor);
-        FGridItemInstance HeldItem;
-        if (ReceptacleActor && ResolveHeldEquipmentItem (PartyPawn, HeldItem))
-        {
-            FGridReceptacleAcceptanceResult AcceptanceResult;
-            ReceptacleActor->EvaluateItemAcceptance (HeldItem, AcceptanceResult, true);
-            ShowInteractionFeedback (
-                GetReceptacleRejectFeedbackText (AcceptanceResult.RejectReason));
-            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-        }
-        else
-        {
-            ShowInteractionFeedback (FText::FromString (TEXT ("Action impossible.")));
-        }
+        ShowInteractionFeedback (FText::FromString (TEXT ("Action impossible.")));
         if (bDebugMouseInteraction)
         {
             UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: CanInteract rejected %s on component %s."),
