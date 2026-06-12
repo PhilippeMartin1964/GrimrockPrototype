@@ -2,7 +2,7 @@
 
 ## 1. Portée
 
-Ce document décrit le socle réellement implémenté pour les items placés dans un niveau, leur ramassage, leur passage par l'inventaire ou le curseur, leur insertion dans un réceptacle et leur représentation visuelle lorsqu'ils sont équipés. Il ne définit ni butin aléatoire, ni empilement avancé, ni dépôt libre dans le monde.
+Ce document décrit le socle réellement implémenté pour les items placés dans un niveau, leur ramassage, leur passage par l'inventaire ou le curseur, leur insertion dans un réceptacle et leur représentation visuelle lorsqu'ils sont équipés. Il ne définit ni butin aléatoire, ni séparation interactive des piles, ni dépôt libre dans le monde.
 
 ## 2. Cartographie du code
 
@@ -88,9 +88,35 @@ Un mur, une porte fermée ou un autre composant bloquant `Visibility` masque don
 
 Le ramassage monde ne place pas l'item sur le curseur. `TryPickupItemActor()` et `TryPickupItemAtCell()` construisent une `FGridItemInstance`, puis appellent `AddItemInstanceToSelectedCharacterInventory()`.
 
-L'acteur monde n'est détruit et retiré de `SpawnedItemEntries` qu'après l'ajout réussi. Si l'inventaire ne possède aucune case libre, l'item reste intact dans le monde.
+L'acteur monde n'est détruit et retiré de `SpawnedItemEntries` qu'après l'ajout réussi. Si l'inventaire ne possède pas la capacité nécessaire dans ses piles existantes et ses cases libres, l'item reste intact dans le monde.
 
-La capacité actuelle dépend des cases libres. Le poids est recalculé, mais ne bloque pas l'ajout.
+Le poids est recalculé après l'ajout, mais ne bloque pas l'opération.
+
+### Empilement des items
+
+Lorsqu'un item rejoint l'inventaire, `UGridPartyInventoryComponent` applique sa `UGridItemDefinitionAsset`.
+
+Si la définition indique `bStackable=true`, l'ajout complète d'abord les piles existantes du même `ItemDefinitionId` jusqu'à `MaxStackSize`, puis crée une nouvelle pile si nécessaire.
+
+L'opération reste atomique : si toute la quantité ne peut pas être ajoutée, l'inventaire n'est pas modifié et l'item source reste intact. Aucun slot supplémentaire n'est créé automatiquement lorsque l'inventaire est plein.
+
+Le ramassage d'un item monde ajoute actuellement une quantité de 1. Les interactions de séparation de pile, notamment CTRL pour prendre ou déposer une seule unité depuis une pile, appartiennent au flux d'interface inventaire et seront traitées plus tard.
+
+### Résolution automatique des définitions
+
+Le composant d'inventaire peut enregistrer automatiquement les définitions d'items rencontrées pendant le runtime.
+
+Quand un item est ramassé depuis le niveau, la définition est résolue via `AGridLevelRuntimeActor::ResolveRuntimeItemDefinition`, puis enregistrée dans `UGridPartyInventoryComponent`.
+
+Cela évite de devoir renseigner manuellement chaque `DA_Item_*` dans le Blueprint du pawn, tant que l'item provient d'un LevelAsset, d'un archétype ou d'un contenu runtime résoluble.
+
+### Tags d'items
+
+Les tags métier d'un item appartiennent à `UGridItemDefinitionAsset.ItemTags`.
+
+Un archétype de placement comme `DA_Object_StonePickup` peut ajouter des tags de placement si nécessaire, mais ne doit pas être obligé de recopier les tags métier de l'item.
+
+La validation des archétypes accepte donc un item si l'archétype définit `ItemActorClass`, `ItemTags`, ou une définition d'item par défaut dans `DefaultBehavior.Item`.
 
 ## 7. Curseur et transferts
 
@@ -155,6 +181,8 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 - Une instance valide possède un `RuntimeObjectId`, un `ItemDefinitionId` et une quantité positive.
 - Une instance ne doit avoir qu'un propriétaire logique à la fois.
 - Un refus de destination ne doit pas supprimer la source.
+- Un ajout d'inventaire doit accepter toute la quantité demandée ou ne modifier aucun slot.
+- Chaque pile nouvellement créée possède son propre `RuntimeObjectId`.
 - Le survol et l'action finale utilisent la même règle d'accessibilité.
 - Un acteur visuel tenu ne constitue pas une nouvelle instance.
 - Un item contenu appartient au réceptacle et ne doit pas être ramassé directement par le niveau.
@@ -166,19 +194,21 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 3. Dans la cellule du groupe, vérifier qu'un item d'arête est accessible uniquement en regardant cette arête.
 4. Dans la cellule devant le groupe, vérifier que seule l'arête faisant face au groupe est accessible.
 5. Placer l'item derrière un mur, une porte fermée puis un autre bloqueur `Visibility` : le premier impact empêche le ramassage.
-6. Remplir l'inventaire, puis tenter un ramassage : l'acteur monde reste présent.
-7. Déplacer un item inventaire vers le curseur, tenter avec un curseur déjà occupé, puis tester une case vide, une case occupée et un inventaire plein.
-8. Cliquer sans réceptacle direct, hors portée, sur un réceptacle incompatible puis compatible : le curseur reste inchangé sur les refus.
-9. Tester le retrait autorisé, interdit et verrouillé d'un réceptacle.
-10. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans un support simple puis retournable.
-11. Vérifier la lumière, le visuel du support et le visuel tenu après retrait et redépôt.
-12. Valider un niveau contenant un item sans définition, sur cellule non jouable et avec identifiants contradictoires.
+6. Ramasser plusieurs exemplaires d'un item stackable : les piles existantes sont complétées jusqu'à `MaxStackSize`, puis une nouvelle pile est créée.
+7. Remplir les piles et les cases libres, puis tenter un ramassage : l'acteur monde reste présent et l'inventaire ne change pas.
+8. Déplacer un item inventaire vers le curseur, tenter avec un curseur déjà occupé, puis tester une case vide, une case occupée et un inventaire plein.
+9. Cliquer sans réceptacle direct, hors portée, sur un réceptacle incompatible puis compatible : le curseur reste inchangé sur les refus.
+10. Tester le retrait autorisé, interdit et verrouillé d'un réceptacle.
+11. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans un support simple puis retournable.
+12. Vérifier la lumière, le visuel du support et le visuel tenu après retrait et redépôt.
+13. Valider un niveau contenant un item sans définition, sur cellule non jouable et avec identifiants contradictoires.
 
 ## 13. Limites actuelles
 
 - Le dépôt libre d'un item du curseur dans le monde n'est pas implémenté.
 - Le ramassage monde alimente directement l'inventaire, pas le curseur.
-- Les piles ne sont pas fusionnées par le chemin de ramassage.
+- La séparation de pile avec CTRL n'est pas implémentée.
+- Le poids des items sur les Pressure Plates n'est pas implémenté.
 - Les actifs `.uasset` déterminent les variantes concrètes de supports et ne sont pas audités par ce document.
 
 Les curseurs d'item et le retour court d'inventaire plein sont décrits dans

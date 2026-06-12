@@ -296,21 +296,40 @@ bool UGridPartyInventoryComponent::IsValidCharacterIndex (int32 Index) const
 
 bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item) const
 {
-    if (!IsValidCharacterIndex (CharacterIndex) || !Item.IsValid ())
+    FGridItemInstance ItemToAdd = Item;
+    const int32 InitialQuantity = ItemToAdd.Quantity;
+    ApplyItemDefinitionToInstance (ItemToAdd);
+    ItemToAdd.Quantity = InitialQuantity;
+
+    if (!IsValidCharacterIndex (CharacterIndex) || !ItemToAdd.IsValid ())
     {
         return false;
     }
 
+    const UGridItemDefinitionAsset* Definition = FindItemDefinition (ItemToAdd.ItemDefinitionId);
+    const bool bStackable = Definition && Definition->bStackable;
+    const int32 MaxStackSize = bStackable ? FMath::Max (1, Definition->MaxStackSize) : 1;
+
+    int64 AvailableCapacity = 0;
     const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
     for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
     {
         if (Slot.IsEmpty ())
         {
+            AvailableCapacity += MaxStackSize;
+        }
+        else if (bStackable && Slot.Item.ItemDefinitionId == ItemToAdd.ItemDefinitionId)
+        {
+            AvailableCapacity += FMath::Max (0, MaxStackSize - FMath::Max (1, Slot.Item.Quantity));
+        }
+
+        if (AvailableCapacity >= InitialQuantity)
+        {
             return true;
         }
     }
 
-    return false;
+    return AvailableCapacity >= InitialQuantity;
 }
 
 bool UGridPartyInventoryComponent::CanAddItemToSelectedCharacterInventory (const FGridItemInstance& Item) const
@@ -321,32 +340,81 @@ bool UGridPartyInventoryComponent::CanAddItemToSelectedCharacterInventory (const
 bool UGridPartyInventoryComponent::AddItemToCharacterInventory (int32 CharacterIndex, const FGridItemInstance& Item)
 {
     FGridItemInstance ItemToAdd = Item;
+    const int32 InitialQuantity = ItemToAdd.Quantity;
     ApplyItemDefinitionToInstance (ItemToAdd);
+    ItemToAdd.Quantity = InitialQuantity;
 
-    if (!CanAddItemToCharacterInventory (CharacterIndex, ItemToAdd))
+    if (!IsValidCharacterIndex (CharacterIndex) || !ItemToAdd.IsValid () ||
+        !CanAddItemToCharacterInventory (CharacterIndex, ItemToAdd))
     {
         return false;
     }
 
+    const UGridItemDefinitionAsset* Definition = FindItemDefinition (ItemToAdd.ItemDefinitionId);
+    const bool bStackable = Definition && Definition->bStackable;
+    const int32 MaxStackSize = bStackable ? FMath::Max (1, Definition->MaxStackSize) : 1;
+
     FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
-    for (FGridInventorySlot& Slot : CharacterState.InventorySlots)
+    ItemToAdd.OwnerType = EGridItemOwnerType::CharacterInventory;
+    ItemToAdd.OwnerGuid = CharacterState.CharacterId;
+    ItemToAdd.OwnerCharacterIndex = CharacterIndex;
+    ItemToAdd.EquipmentSlot = EGridEquipmentSlot::None;
+
+    TArray<FGridInventorySlot> UpdatedInventorySlots = CharacterState.InventorySlots;
+    int32 RemainingQuantity = InitialQuantity;
+    if (bStackable)
     {
+        for (FGridInventorySlot& Slot : UpdatedInventorySlots)
+        {
+            if (RemainingQuantity <= 0)
+            {
+                break;
+            }
+            if (Slot.IsEmpty () || Slot.Item.ItemDefinitionId != ItemToAdd.ItemDefinitionId)
+            {
+                continue;
+            }
+
+            const int32 AvailableInStack = FMath::Max (0, MaxStackSize - FMath::Max (1, Slot.Item.Quantity));
+            const int32 QuantityToStack = FMath::Min (RemainingQuantity, AvailableInStack);
+            Slot.Item.Quantity += QuantityToStack;
+            RemainingQuantity -= QuantityToStack;
+        }
+    }
+
+    bool bUsedIncomingRuntimeObjectId = false;
+    for (FGridInventorySlot& Slot : UpdatedInventorySlots)
+    {
+        if (RemainingQuantity <= 0)
+        {
+            break;
+        }
         if (!Slot.IsEmpty ())
         {
             continue;
         }
 
+        FGridItemInstance NewStack = ItemToAdd;
+        NewStack.Quantity = FMath::Min (RemainingQuantity, MaxStackSize);
+        if (bUsedIncomingRuntimeObjectId)
+        {
+            NewStack.RuntimeObjectId = FGuid::NewGuid ();
+        }
+
         Slot.bOccupied = true;
-        Slot.Item = ItemToAdd;
-        Slot.Item.OwnerType = EGridItemOwnerType::CharacterInventory;
-        Slot.Item.OwnerGuid = CharacterState.CharacterId;
-        Slot.Item.OwnerCharacterIndex = CharacterIndex;
-        Slot.Item.EquipmentSlot = EGridEquipmentSlot::None;
-        RecalculateCharacterWeight (CharacterIndex);
-        return true;
+        Slot.Item = NewStack;
+        RemainingQuantity -= NewStack.Quantity;
+        bUsedIncomingRuntimeObjectId = true;
     }
 
-    return false;
+    if (RemainingQuantity != 0)
+    {
+        return false;
+    }
+
+    CharacterState.InventorySlots = MoveTemp (UpdatedInventorySlots);
+    RecalculateCharacterWeight (CharacterIndex);
+    return true;
 }
 
 bool UGridPartyInventoryComponent::AddItemToSelectedCharacterInventory (const FGridItemInstance& Item)
@@ -499,6 +567,30 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory (i
 bool UGridPartyInventoryComponent::RemoveItemDefinitionFromSelectedCharacterInventory (FName ItemDefinitionId, int32 Quantity)
 {
     return RemoveItemDefinitionFromCharacterInventory (PartyInventoryState.SelectedCharacterIndex, ItemDefinitionId, Quantity);
+}
+
+bool UGridPartyInventoryComponent::RegisterItemDefinition (UGridItemDefinitionAsset* Definition)
+{
+    if (!Definition || Definition->ItemDefinitionId.IsNone ())
+    {
+        return false;
+    }
+
+    for (const TObjectPtr<UGridItemDefinitionAsset>& ExistingDefinition : ItemDefinitions)
+    {
+        if (ExistingDefinition && ExistingDefinition->ItemDefinitionId == Definition->ItemDefinitionId)
+        {
+            return true;
+        }
+    }
+
+    ItemDefinitions.Add (Definition);
+
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Registered ItemDefinition=%s Asset=%s"),
+        *Definition->ItemDefinitionId.ToString (),
+        *Definition->GetPathName ());
+
+    return true;
 }
 
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition (FName ItemDefinitionId) const

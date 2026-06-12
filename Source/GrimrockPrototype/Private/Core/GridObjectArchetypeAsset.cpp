@@ -552,9 +552,12 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item PlacementKind should generally be Floor or Center when placed in the level."));
             }
-            if (!ItemActorClass && ItemTags.Num () == 0)
+            const bool bHasDefaultItemDefinition =
+                DefaultBehavior.Item.ItemDefinitionAsset ||
+                !DefaultBehavior.Item.ItemDefinitionId.IsNone ();
+            if (!ItemActorClass && ItemTags.Num () == 0 && !bHasDefaultItemDefinition)
             {
-                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item should generally define ItemActorClass or ItemTags."));
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item should generally define ItemActorClass, ItemTags, or DefaultBehavior.Item."));
             }
             break;
         }

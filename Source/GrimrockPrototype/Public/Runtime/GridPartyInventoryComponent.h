@@ -91,6 +91,9 @@ public:
     bool RemoveItemDefinitionFromSelectedCharacterInventory (FName ItemDefinitionId, int32 Quantity);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
+    bool RegisterItemDefinition (UGridItemDefinitionAsset* Definition);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     UGridItemDefinitionAsset* FindItemDefinition (FName ItemDefinitionId) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")

@@ -830,6 +830,15 @@ bool AGrimrockPartyPawn::AddItemInstanceToSelectedCharacterInventory (const FGri
 
     PartyInventoryComponent->InitializeDefaultPartyIfNeeded ();
 
+    if (LevelRuntimeActor && !ItemInstance.ItemDefinitionId.IsNone ())
+    {
+        if (UGridItemDefinitionAsset* RuntimeDefinition =
+            LevelRuntimeActor->ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId))
+        {
+            PartyInventoryComponent->RegisterItemDefinition (RuntimeDefinition);
+        }
+    }
+
     FGridItemInstance InventoryItem = ItemInstance;
     PartyInventoryComponent->ApplyItemDefinitionToInstance (InventoryItem);
     InventoryItem.OwnerType = EGridItemOwnerType::CharacterInventory;
