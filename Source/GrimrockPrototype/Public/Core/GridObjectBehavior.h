@@ -122,6 +122,12 @@ struct FGridReceptacleBehaviorParams
     bool bUsePhysicalPlacement = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
+        meta = (DisplayName = "Simulate Physics When Placed",
+            EditCondition = "bUsePhysicalPlacement", EditConditionHides,
+            ToolTip = "If true, an item placed at the clicked surface point keeps physics and gravity enabled. If false, it is placed statically but remains clickable."))
+    bool bSimulatePhysicsWhenPlaced = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Extinguish Item On Physical Placement",
             EditCondition = "bUsePhysicalPlacement", EditConditionHides,
             ToolTip = "Disable an item's runtime light when it is inserted using physical placement."))

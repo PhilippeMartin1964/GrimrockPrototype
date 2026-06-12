@@ -188,6 +188,7 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bAcceptAnyItem = Params.bAcceptAnyItem;
     MaxContainedItems = Params.MaxContainedItems;
     bUsePhysicalPlacement = Params.bUsePhysicalPlacement;
+    bSimulatePhysicsWhenPlaced = Params.bSimulatePhysicsWhenPlaced;
     if (Params.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
         VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket)
     {
@@ -1492,6 +1493,16 @@ void AGridReceptacleActor::ApplyVisualPlacement (
             ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
             ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
         }
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridReceptacle PhysicalAtHit Place Receptacle=%s Item=%s Actor=%s Simulating=%s Gravity=%s Collision=%d Location=%s Hit=%s"),
+            *GetName (),
+            *Item.ItemDefinitionId.ToString (),
+            *GetNameSafe (ItemActor),
+            ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics () ? TEXT ("true") : TEXT ("false"),
+            ItemActor->MeshComponent && ItemActor->MeshComponent->IsGravityEnabled () ? TEXT ("true") : TEXT ("false"),
+            ItemActor->MeshComponent ? static_cast<int32> (ItemActor->MeshComponent->GetCollisionEnabled ()) : -1,
+            *ItemActor->GetActorLocation ().ToCompactString (),
+            OptionalHit && OptionalHit->bBlockingHit ? TEXT ("true") : TEXT ("false"));
         return;
     }
 

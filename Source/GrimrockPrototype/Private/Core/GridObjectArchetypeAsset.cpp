@@ -225,6 +225,7 @@ namespace
             Behavior.Receptacle.MaxContainedItems != 1 ||
             Behavior.Receptacle.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
             Behavior.Receptacle.bUsePhysicalPlacement ||
+            Behavior.Receptacle.bSimulatePhysicsWhenPlaced ||
             !Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement ||
             !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPlacementSurfaceOffset, 10.f) ||
             !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero () ||
