@@ -55,6 +55,8 @@ Un item avec `Edge=None` est placé au centre de la cellule. Un item avec une ar
 
 `AGridItemActor::ConfigureAsWorldPickup()` active la collision, la visibilité et la physique nécessaires au ramassage. L'état lumineux d'un item placé par le niveau est actuellement désactivé après sa création par `OnRemovedFromWorld()`. Une torche contenue ou tenue suit un autre chemin lumineux.
 
+Un item inséré dans un réceptacle `PhysicalPile` est créé sans parent d'attache, positionné au-dessus de la surface de pose, puis configuré comme pickup physique. Son rafraîchissement de collision ne doit pas interrompre la simulation ; seul le settle différé le fige après sa chute.
+
 ## 5. Accessibilité du ramassage
 
 La portée physique du clic ne suffit pas. `CanPartyPickupItemEntry()` impose aussi une règle de grille.

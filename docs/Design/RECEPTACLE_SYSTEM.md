@@ -153,6 +153,7 @@ Les modes recommandés sont :
 
 - `AttachedSocket` : acteur attaché à un socket ou un point fixe ;
 - `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface ;
+- `PhysicalPile` : acteur créé non attaché au-dessus de la surface de pose, rendu physique, puis figé après le délai de stabilisation ;
 - `ContainerOnly` : contenu logique ou visible uniquement dans une UI ;
 - `DisplaySlots` : acteur attaché à un emplacement d'affichage déterminé.
 
@@ -161,6 +162,8 @@ Le mode visuel ne doit pas modifier l'identité logique de l'item.
 Une alcôve configurée en `PhysicalAtHit` doit placer l'objet dans la niche visée, en utilisant le point d'impact, la normale de surface et un léger offset. Elle ne doit pas déposer l'objet au sol ni le placer au centre arbitraire du réceptacle.
 
 `PhysicalAtHit` n'implique pas obligatoirement une simulation physique. L'acteur peut rester immobile tout en conservant un transform dans le monde, une collision permettant de le reprendre et son identité logique dans le réceptacle. Le mode de collision et l'activation éventuelle de la physique relèvent du type d'item et du comportement recherché.
+
+`PhysicalPile` ne doit jamais emprunter le chemin `AttachedSocket`. `UpdateContainedItemInteractionCollision()` ne doit pas figer un item de pile ; le gel appartient exclusivement au mécanisme de settle.
 
 Un support de torche utilise normalement `AttachedSocket` afin de garantir une position, une orientation et un comportement lumineux stables.
 

@@ -74,6 +74,8 @@ La capacité est comptée par entrée de `ContainedItems`, pas par somme des qua
 
 Les alcôves sont des réceptacles multi-items avec `MaxContainedItems = 8` et `VisualPlacementMode = PhysicalPile`. Le transform final de chaque item est capturé dans l'état runtime et restauré directement en état gelé. Les supports de torche restent des réceptacles single-slot avec `MaxContainedItems = 1` et `VisualPlacementMode = AttachedSocket`.
 
+`PhysicalPile` ne passe pas par le chemin `AttachedSocket`. L'acteur est créé sans parent d'attache, rendu physique, puis figé uniquement par le settle différé. `UpdateContainedItemInteractionCollision()` peut maintenir sa réponse `Visibility`, mais ne décide jamais de son gel.
+
 Quand le slot cursor contient un item et qu'un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
 
 L'insertion par clic souris se fait uniquement depuis le slot cursor. Les objets équipés en `MainHand` ou `OffHand` ne sont jamais insérés automatiquement dans un réceptacle. Quand le cursor est vide, cliquer un item contenu demande son retrait, même si une main est occupée.

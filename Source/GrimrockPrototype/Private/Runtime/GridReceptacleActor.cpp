@@ -1201,11 +1201,15 @@ int32 AGridReceptacleActor::AddContainedItem (
     }
     else if (!IsValid (ItemActor) && RuntimeActor)
     {
-            ItemActor = RuntimeActor->SpawnItemActorForDefinition (
-                ItemDefinition,
-                ItemDefinitionId,
+        USceneComponent* SpawnAttachParent =
+            PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalPile
+                ? nullptr
+                : ItemAttachPoint.Get ();
+        ItemActor = RuntimeActor->SpawnItemActorForDefinition (
+            ItemDefinition,
+            ItemDefinitionId,
             this,
-            ItemAttachPoint,
+            SpawnAttachParent,
             ContainedItemActorClass);
         if (ItemActor)
         {
@@ -1241,7 +1245,10 @@ int32 AGridReceptacleActor::AddContainedItem (
                     SpawnedItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, NewItem.RuntimeObjectId);
                 }
                 UGameplayStatics::FinishSpawningActor (SpawnedItemActor, SpawnTransform);
-                SpawnedItemActor->ConfigureAsAttachedItem ();
+                if (PlacementMode != EGridReceptacleVisualPlacementMode::PhysicalPile)
+                {
+                    SpawnedItemActor->ConfigureAsAttachedItem ();
+                }
                 ContainedItems[NewIndex].ItemActor = SpawnedItemActor;
             }
         }
@@ -1396,6 +1403,11 @@ void AGridReceptacleActor::FreezePhysicalPileItemActor (AGridItemActor* ItemActo
     {
         return;
     }
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridReceptacle PhysicalPile Freeze Actor=%s Location=%s SimulatingBeforeFreeze=%s"),
+        *GetNameSafe (ItemActor),
+        *ItemActor->GetActorLocation ().ToCompactString (),
+        ItemActor->MeshComponent->IsSimulatingPhysics () ? TEXT ("true") : TEXT ("false"));
     ItemActor->MeshComponent->SetSimulatePhysics (false);
     ItemActor->MeshComponent->SetEnableGravity (false);
     ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
@@ -1440,6 +1452,19 @@ void AGridReceptacleActor::ApplyVisualPlacement (
             nullptr,
             ETeleportType::TeleportPhysics);
         ItemActor->ConfigureAsWorldPickup ();
+        if (ItemActor->MeshComponent)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle PhysicalPile Start Receptacle=%s Item=%s Actor=%s Mesh=%s Simulating=%s Gravity=%s Collision=%d Location=%s"),
+                *GetName (),
+                *Item.ItemDefinitionId.ToString (),
+                *GetNameSafe (ItemActor),
+                *GetNameSafe (ItemActor->MeshComponent->GetStaticMesh ()),
+                ItemActor->MeshComponent->IsSimulatingPhysics () ? TEXT ("true") : TEXT ("false"),
+                ItemActor->MeshComponent->IsGravityEnabled () ? TEXT ("true") : TEXT ("false"),
+                static_cast<int32> (ItemActor->MeshComponent->GetCollisionEnabled ()),
+                *ItemActor->GetActorLocation ().ToCompactString ());
+        }
         SchedulePhysicalPileSettle (Item.RuntimeObjectId);
         return;
     }
@@ -1504,6 +1529,7 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
             const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
             if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalPile)
             {
+                Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
                 if (Item.ItemActor->MeshComponent->IsSimulatingPhysics ())
                 {
                     Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
@@ -1512,8 +1538,13 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
                 }
                 else
                 {
-                    FreezePhysicalPileItemActor (Item.ItemActor.Get ());
+                    UE_LOG (LogTemp, Warning,
+                        TEXT ("GridReceptacle PhysicalPile item is not simulating during collision refresh: Receptacle=%s Item=%s Actor=%s"),
+                        *GetName (),
+                        *Item.ItemDefinitionId.ToString (),
+                        *GetNameSafe (Item.ItemActor.Get ()));
                 }
+                continue;
             }
             else if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
             {
