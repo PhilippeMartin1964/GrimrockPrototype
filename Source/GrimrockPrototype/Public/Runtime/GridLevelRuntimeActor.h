@@ -274,6 +274,12 @@ public:
         EGridEdge Edge,
         const FVector& LocalOffset);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|World")
+    float GetWorldItemWeightAtCell (int32 CellX, int32 CellY, bool bIncludeEdgeItems = false) const;
+
+    UFUNCTION (BlueprintPure, Category = "Runtime|Interaction")
+    bool IsPartyOnCell (int32 CellX, int32 CellY) const;
+
     bool CanPartyPickupItemActor (const AGridItemActor* ItemActor, const AGrimrockPartyPawn* PartyPawn) const;
     bool CanPartyPickupItemEntry (
         const FGridSpawnedItemRuntimeEntry& Entry,

@@ -114,13 +114,13 @@ void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 Old
 {
     if (OldCellX == NewCellX && OldCellY == NewCellY)
     {
-        ActivatePressurePlateAtCell (NewCellX, NewCellY);
+        RefreshPressurePlatesAtCell (NewCellX, NewCellY);
         NotifyPawnEnteredCell (NewCellX, NewCellY);
         return;
     }
 
-    DeactivatePressurePlateAtCell (OldCellX, OldCellY);
-    ActivatePressurePlateAtCell (NewCellX, NewCellY);
+    RefreshPressurePlatesAtCell (OldCellX, OldCellY);
+    RefreshPressurePlatesAtCell (NewCellX, NewCellY);
 
     NotifyPawnExitedCell (OldCellX, OldCellY);
     NotifyPawnEnteredCell (NewCellX, NewCellY);
@@ -198,54 +198,104 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
     }
 }
 
-bool UGridActivationComponent::ActivatePressurePlateAtCell (int32 X, int32 Y)
+bool UGridActivationComponent::RefreshPressurePlatesAtCell (int32 X, int32 Y)
 {
+    if (!RuntimeActor)
+    {
+        return false;
+    }
+
     TArray<int32> PlateIndexes;
     PressurePlateIndexesByCell.MultiFind (FIntPoint (X, Y), PlateIndexes);
-    bool bAnyActivated = false;
+    bool bAnyStateChanged = false;
+
     for (const int32 PlateIndex : PlateIndexes)
     {
         const FGridLevelObjectData* PlateData = GetObjectByIndex (PlateIndex);
-        if (!PlateData || ActiveObjectIds.Contains (PlateData->ObjectId))
+        if (!PlateData || !PlateData->ObjectId.IsValid ())
         {
             continue;
         }
-        ActiveObjectIds.Add (PlateData->ObjectId);
+
+        const FGridPressurePlateWeightParams& WeightParams = PlateData->Behavior.PressurePlateWeight;
+        const float CurrentItemWeight = RuntimeActor->GetWorldItemWeightAtCell (
+            X,
+            Y,
+            WeightParams.bCountEdgeItems);
+        const bool bPartyActivates =
+            WeightParams.bActivateWhenPartyPresent &&
+            RuntimeActor->IsPartyOnCell (X, Y);
+        const bool bWeightActivates =
+            WeightParams.bUseItemWeight &&
+            CurrentItemWeight >= FMath::Max (0.0f, WeightParams.RequiredItemWeight);
+        const bool bShouldBePressed = bPartyActivates || bWeightActivates;
+        const bool bWasPressed = ActiveObjectIds.Contains (PlateData->ObjectId);
+
         if (AGridPressurePlateActor* PlateActor =
             RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
         {
-            PlateActor->SetPressed (true);
+            PlateActor->SetWeightState (
+                CurrentItemWeight,
+                WeightParams.RequiredItemWeight,
+                WeightParams.bUseItemWeight,
+                WeightParams.bActivateWhenPartyPresent);
         }
-        bAnyActivated |= ExecuteLinksFromObjectForEvent (
+
+        if (bWasPressed == bShouldBePressed)
+        {
+            continue;
+        }
+
+        if (bShouldBePressed)
+        {
+            ActiveObjectIds.Add (PlateData->ObjectId);
+        }
+        else
+        {
+            ActiveObjectIds.Remove (PlateData->ObjectId);
+        }
+
+        if (AGridPressurePlateActor* PlateActor =
+            RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
+        {
+            PlateActor->SetPressed (bShouldBePressed);
+        }
+
+        const EGridObjectEvent StateEvent = bShouldBePressed
+            ? EGridObjectEvent::Activated
+            : EGridObjectEvent::Deactivated;
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridPressurePlate StateChanged Id=%s Cell=(%d,%d) Party=%s ItemWeight=%.2f RequiredWeight=%.2f Pressed=%s"),
+            *PlateData->ObjectId.ToString (),
+            X,
+            Y,
+            bPartyActivates ? TEXT ("true") : TEXT ("false"),
+            CurrentItemWeight,
+            WeightParams.RequiredItemWeight,
+            bShouldBePressed ? TEXT ("true") : TEXT ("false"));
+        ExecuteLinksFromObjectForEvent (
             PlateData->ObjectId,
-            EGridObjectEvent::Activated);
+            StateEvent);
+        bAnyStateChanged = true;
     }
-    return bAnyActivated;
+
+    return bAnyStateChanged;
 }
 
-bool UGridActivationComponent::DeactivatePressurePlateAtCell (int32 X, int32 Y)
+bool UGridActivationComponent::RefreshAllPressurePlates ()
 {
-    TArray<int32> PlateIndexes;
-    PressurePlateIndexesByCell.MultiFind (FIntPoint (X, Y), PlateIndexes);
-    bool bAnyDeactivated = false;
-    for (const int32 PlateIndex : PlateIndexes)
+    TArray<FIntPoint> PlateCells;
+    PressurePlateIndexesByCell.GetKeys (PlateCells);
+
+    TSet<FIntPoint> UniquePlateCells;
+    UniquePlateCells.Append (PlateCells);
+
+    bool bAnyStateChanged = false;
+    for (const FIntPoint& PlateCell : UniquePlateCells)
     {
-        const FGridLevelObjectData* PlateData = GetObjectByIndex (PlateIndex);
-        if (!PlateData || !ActiveObjectIds.Contains (PlateData->ObjectId))
-        {
-            continue;
-        }
-        ActiveObjectIds.Remove (PlateData->ObjectId);
-        if (AGridPressurePlateActor* PlateActor =
-            RuntimeActor->FindRuntimeObjectActor<AGridPressurePlateActor> (PlateData->ObjectId))
-        {
-            PlateActor->SetPressed (false);
-        }
-        bAnyDeactivated |= ExecuteLinksFromObjectForEvent (
-            PlateData->ObjectId,
-            EGridObjectEvent::Deactivated);
+        bAnyStateChanged |= RefreshPressurePlatesAtCell (PlateCell.X, PlateCell.Y);
     }
-    return bAnyDeactivated;
+    return bAnyStateChanged;
 }
 
 bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData)

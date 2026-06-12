@@ -24,6 +24,11 @@ void AGridPressurePlateActor::InitializePlate (const FGridLevelObjectData& Objec
     ReleasedHeightAboveFloor = ObjectData.Behavior.PressurePlateAnimation.ReleasedHeightAboveFloor;
     PressedHeightAboveFloor = ObjectData.Behavior.PressurePlateAnimation.PressedHeightAboveFloor;
     MoveDuration = ObjectData.Behavior.PressurePlateAnimation.MoveDuration;
+    SetWeightState (
+        0.0f,
+        ObjectData.Behavior.PressurePlateWeight.RequiredItemWeight,
+        ObjectData.Behavior.PressurePlateWeight.bUseItemWeight,
+        ObjectData.Behavior.PressurePlateWeight.bActivateWhenPartyPresent);
 
     ReleasedLocation = FVector (0.f, 0.f, ReleasedHeightAboveFloor);
     PressedLocation = FVector (0.f, 0.f, PressedHeightAboveFloor);
@@ -48,6 +53,18 @@ void AGridPressurePlateActor::SetPressed (bool bNewPressed)
     AnimStartLocation = GetMovingRelativeLocation ();
     AnimTargetLocation = bIsPressed ? PressedLocation : ReleasedLocation;
     SetActorTickEnabled (true);
+}
+
+void AGridPressurePlateActor::SetWeightState (
+    float InCurrentItemWeight,
+    float InRequiredItemWeight,
+    bool bInUseItemWeight,
+    bool bInActivateWhenPartyPresent)
+{
+    CurrentItemWeight = FMath::Max (0.0f, InCurrentItemWeight);
+    RequiredItemWeight = FMath::Max (0.0f, InRequiredItemWeight);
+    bUseItemWeight = bInUseItemWeight;
+    bActivateWhenPartyPresent = bInActivateWhenPartyPresent;
 }
 
 void AGridPressurePlateActor::UpdateAnimation (float DeltaSeconds)

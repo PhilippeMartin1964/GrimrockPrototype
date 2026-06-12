@@ -27,12 +27,31 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Plate")
     bool bIsPressed = false;
 
+    UPROPERTY (BlueprintReadOnly, Category = "Plate|Weight")
+    float CurrentItemWeight = 0.0f;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Plate|Weight")
+    float RequiredItemWeight = 1.0f;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Plate|Weight")
+    bool bUseItemWeight = false;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Plate|Weight")
+    bool bActivateWhenPartyPresent = true;
+
     UFUNCTION (BlueprintCallable, Category = "Plate")
     void InitializePlate (const FGridLevelObjectData& ObjectData, UStaticMesh* InPlateMesh, UMaterialInterface* InMaterial,
         const FVector& InWorldLocation, bool bStartPressed);
 
     UFUNCTION (BlueprintCallable, Category = "Plate")
     void SetPressed (bool bNewPressed);
+
+    UFUNCTION (BlueprintCallable, Category = "Plate|Weight")
+    void SetWeightState (
+        float InCurrentItemWeight,
+        float InRequiredItemWeight,
+        bool bInUseItemWeight,
+        bool bInActivateWhenPartyPresent);
 
     virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
         const FTransform& WorldTransform) override;

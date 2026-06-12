@@ -1164,6 +1164,54 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
             }
         }
     };
+    auto ApplyActivateWhenPartyPresent = [this] (ECheckBoxState NewState)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
+            {
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateWeight.bActivateWhenPartyPresent = NewState == ECheckBoxState::Checked;
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
+            }
+        }
+    };
+    auto ApplyUseItemWeight = [this] (ECheckBoxState NewState)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
+            {
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateWeight.bUseItemWeight = NewState == ECheckBoxState::Checked;
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
+            }
+        }
+    };
+    auto ApplyRequiredItemWeight = [this] (float NewValue)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
+            {
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateWeight.RequiredItemWeight = FMath::Max (0.0f, NewValue);
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
+            }
+        }
+    };
+    auto ApplyCountEdgeItems = [this] (ECheckBoxState NewState)
+    {
+        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+        {
+            if (const FGridLevelObjectData* SelectedObject = CurrentEditorActor->GetSelectedObjectData ())
+            {
+                FGridObjectBehaviorParams NewBehavior = SelectedObject->Behavior;
+                NewBehavior.PressurePlateWeight.bCountEdgeItems = NewState == ECheckBoxState::Checked;
+                CurrentEditorActor->ApplyBehaviorToSelectedObject (NewBehavior);
+            }
+        }
+    };
 
     return GridEditorWidgetHelpers::BuildGridPanelSection (
         FText::FromString (TEXT ("Pressure Plate / Floor Trigger")),
@@ -1226,6 +1274,67 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildPressurePlateDetailsSe
                         .OnValueCommitted_Lambda ([ApplyMoveDuration] (float NewValue, ETextCommit::Type CommitType)
                         {
                             ApplyMoveDuration (NewValue);
+                        }))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
+                    FText::FromString (TEXT ("Party Activates")),
+                    SNew (SCheckBox)
+                        .IsChecked (Obj.Behavior.PressurePlateWeight.bActivateWhenPartyPresent
+                            ? ECheckBoxState::Checked
+                            : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([ApplyActivateWhenPartyPresent] (ECheckBoxState NewState)
+                        {
+                            ApplyActivateWhenPartyPresent (NewState);
+                        }))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
+                    FText::FromString (TEXT ("Use Item Weight")),
+                    SNew (SCheckBox)
+                        .IsChecked (Obj.Behavior.PressurePlateWeight.bUseItemWeight
+                            ? ECheckBoxState::Checked
+                            : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([ApplyUseItemWeight] (ECheckBoxState NewState)
+                        {
+                            ApplyUseItemWeight (NewState);
+                        }))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
+                    FText::FromString (TEXT ("Required Item Weight")),
+                    SNew (SSpinBox<float>)
+                        .Value (Obj.Behavior.PressurePlateWeight.RequiredItemWeight)
+                        .MinValue (0.0f)
+                        .MinSliderValue (0.0f)
+                        .MinDesiredWidth (90.f)
+                        .OnValueChanged_Lambda ([ApplyRequiredItemWeight] (float NewValue)
+                        {
+                            ApplyRequiredItemWeight (NewValue);
+                        })
+                        .OnValueCommitted_Lambda ([ApplyRequiredItemWeight] (float NewValue, ETextCommit::Type CommitType)
+                        {
+                            ApplyRequiredItemWeight (NewValue);
+                        }))
+            ]
+
+            + SVerticalBox::Slot ().AutoHeight ()
+            [
+                GridEditorWidgetHelpers::BuildGridPropertyRow (
+                    FText::FromString (TEXT ("Count Edge Items")),
+                    SNew (SCheckBox)
+                        .IsChecked (Obj.Behavior.PressurePlateWeight.bCountEdgeItems
+                            ? ECheckBoxState::Checked
+                            : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([ApplyCountEdgeItems] (ECheckBoxState NewState)
+                        {
+                            ApplyCountEdgeItems (NewState);
                         }))
             ]
 

@@ -27,6 +27,8 @@ public:
     void NotifyPawnEnteredCell (int32 CellX, int32 CellY);
     void NotifyPawnExitedCell (int32 CellX, int32 CellY);
     bool ExecuteLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
+    bool RefreshPressurePlatesAtCell (int32 X, int32 Y);
+    bool RefreshAllPressurePlates ();
 
     void RegisterInitialObjectState (const FGridLevelObjectData& ObjectData);
 
@@ -63,9 +65,6 @@ private:
     bool SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive);
     bool IsTargetActive (FGuid ObjectId) const;
     void LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedCommand, bool bSuccess, const TCHAR* FailureReason) const;
-
-    bool ActivatePressurePlateAtCell (int32 X, int32 Y);
-    bool DeactivatePressurePlateAtCell (int32 X, int32 Y);
 
     bool ProcessTriggersAtCell (int32 X, int32 Y, bool bEntering);
     bool ProcessTriggerEvent (const FGridLevelObjectData& TriggerData, bool bEntering);

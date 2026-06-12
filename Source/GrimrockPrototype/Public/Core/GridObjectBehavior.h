@@ -175,6 +175,24 @@ struct FGridPressurePlateAnimationParams
 };
 
 USTRUCT (BlueprintType)
+struct FGridPressurePlateWeightParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight")
+    bool bActivateWhenPartyPresent = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight")
+    bool bUseItemWeight = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight", meta = (ClampMin = "0.0", EditCondition = "bUseItemWeight"))
+    float RequiredItemWeight = 1.0f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate|Weight", meta = (EditCondition = "bUseItemWeight"))
+    bool bCountEdgeItems = false;
+};
+
+USTRUCT (BlueprintType)
 struct FGridDoorAnimationParams
 {
     GENERATED_BODY ()
@@ -220,6 +238,9 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
     FGridPressurePlateAnimationParams PressurePlateAnimation;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Pressure Plate")
+    FGridPressurePlateWeightParams PressurePlateWeight;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Door")
     FGridDoorAnimationParams DoorAnimation;

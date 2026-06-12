@@ -2,7 +2,7 @@
 
 ## 1. Portée
 
-Ce document décrit le socle réellement implémenté pour les items placés dans un niveau, leur ramassage, leur passage par l'inventaire ou le curseur, leur insertion dans un réceptacle et leur représentation visuelle lorsqu'ils sont équipés. Il ne définit ni butin aléatoire, ni séparation interactive des piles, ni dépôt libre dans le monde.
+Ce document décrit le socle réellement implémenté pour les items placés dans un niveau, leur ramassage, leur passage par l'inventaire ou le curseur, leur insertion dans un réceptacle, leur dépôt libre dans le monde et leur représentation visuelle lorsqu'ils sont équipés. Il ne définit pas de butin aléatoire.
 
 ## 2. Cartographie du code
 
@@ -175,6 +175,27 @@ Un item déposé est enregistré dans `SpawnedItemActors` et `SpawnedItemEntries
 
 Cette première version accepte les hits qui se résolvent sur la cellule du groupe ou sur la cellule directement devant lui. Le placement utilise le centre de la cellule avec un décalage horizontal limité dérivé du point d'impact.
 
+### PressurePlates et poids des items
+
+Les PressurePlates peuvent être activées par la présence du joueur, par le poids des items déposés sur leur cellule, ou par les deux.
+
+La configuration logique est portée par `PressurePlateWeight` :
+
+- `bActivateWhenPartyPresent` conserve le comportement classique : le joueur active la plaque en marchant dessus ;
+- `bUseItemWeight` active le calcul du poids des items déposés ;
+- `RequiredItemWeight` définit le seuil minimal à atteindre ;
+- `bCountEdgeItems` permet de compter aussi les items placés sur un bord de cellule.
+
+Le poids total est calculé à partir des `UGridItemDefinitionAsset` :
+
+```text
+TotalWeight = Somme(ItemDefinition.Weight * Quantity)
+```
+
+Les items déposés dans le monde sont stockés dans l'état runtime. Le `LevelAsset` n'est pas modifié.
+
+L'évaluation est centralisée dans `UGridActivationComponent::RefreshPressurePlatesAtCell`. Elle est relancée quand le groupe change de cellule, quand un item est déposé ou ramassé, et après la restauration d'un niveau. La plaque ne déclenche `Activated` ou `Deactivated` que lorsque son état logique change.
+
 ## 8. Torches
 
 Une torche peut apparaître sous trois formes distinctes :
@@ -238,13 +259,17 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 15. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans un support simple puis retournable.
 16. Vérifier la lumière, le visuel du support et le visuel tenu après retrait et redépôt.
 17. Valider un niveau contenant un item sans définition, sur cellule non jouable et avec identifiants contradictoires.
+18. Avec `bActivateWhenPartyPresent=true` et `bUseItemWeight=false`, entrer puis sortir d'une PressurePlate : vérifier un seul `Activated`, puis un seul `Deactivated`.
+19. Avec une plaque à poids seul et un seuil de `3.0`, déposer trois pierres de poids `1.0`, puis en ramasser une : vérifier l'activation à `3.0` et la désactivation à `2.0`.
+20. Déposer directement une pile de trois pierres : vérifier que la contribution vaut `3.0`, pas `1.0`.
+21. Avec les deux sources actives, laisser trois pierres sur la plaque puis entrer et sortir : vérifier que la plaque reste pressée sans événement supplémentaire.
+22. Relier la plaque à une porte et vérifier que l'activation et la désactivation par poids utilisent les mêmes liens que la présence du groupe.
 
 ## 13. Limites actuelles
 
 - Le ramassage monde alimente directement l'inventaire, pas le curseur.
 - Le dépôt libre est limité à la cellule courante ou directement devant le groupe.
-- Le poids des items sur les Pressure Plates n'est pas implémenté.
-- Le dépôt libre ne déclenche donc pas encore les Pressure Plates par poids. Ce calcul sera traité séparément en sommant les poids des items runtime présents sur la plaque.
+- Le système ne simule pas encore une physique réaliste de contact avec la plaque. Un item compte pour le poids s'il est enregistré comme item runtime sur la cellule de la PressurePlate.
 - Le nombre de cases d'inventaire n'est pas étendu automatiquement.
 - Les actifs `.uasset` déterminent les variantes concrètes de supports et ne sont pas audités par ce document.
 

@@ -544,6 +544,10 @@ void AGridLevelRuntimeActor::BeginPlay ()
         EditorPreviewComponent->Initialize (this);
     }
     RebuildLevel ();
+    if (ActivationComponent)
+    {
+        ActivationComponent->RefreshAllPressurePlates ();
+    }
 }
 
 FGridLevelRuntimeState* AGridLevelRuntimeActor::GetOrCreateRuntimeStateForCurrentLevel ()
@@ -1859,6 +1863,10 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel (
     RebuildLevel ();
     ApplyCurrentLevelRuntimeState ();
     PartyPawn->SetGridStart (this, TargetCellX, TargetCellY, TargetFacing);
+    if (ActivationComponent)
+    {
+        ActivationComponent->RefreshAllPressurePlates ();
+    }
 
     UE_LOG (
         LogTemp,
@@ -2407,11 +2415,16 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
         AGridItemActor* ItemActor = Entry.ItemActor.Get ();
         if (!IsValid (ItemActor))
         {
+            const FIntPoint RemovedCell = Entry.Cell;
             SpawnedItemEntries.RemoveAtSwap (EntryIndex);
             SpawnedItemActors.RemoveAllSwap ([] (const TObjectPtr<AGridItemActor>& SpawnedItemActor)
             {
                 return !IsValid (SpawnedItemActor.Get ());
             });
+            if (ActivationComponent)
+            {
+                ActivationComponent->RefreshPressurePlatesAtCell (RemovedCell.X, RemovedCell.Y);
+            }
             return false;
         }
 
@@ -2458,7 +2471,12 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
             return SpawnedItemActor.Get () == ItemActor;
         });
 
+        const FIntPoint PickedCell = Entry.Cell;
         SpawnedItemEntries.RemoveAtSwap (EntryIndex);
+        if (ActivationComponent)
+        {
+            ActivationComponent->RefreshPressurePlatesAtCell (PickedCell.X, PickedCell.Y);
+        }
 
         UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from cell %d,%d."), *ItemDefinitionId.ToString (), CellX, CellY);
         return true;
@@ -2525,6 +2543,10 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
 
         const FIntPoint PickedCell = Entry.Cell;
         SpawnedItemEntries.RemoveAtSwap (EntryIndex);
+        if (ActivationComponent)
+        {
+            ActivationComponent->RefreshPressurePlatesAtCell (PickedCell.X, PickedCell.Y);
+        }
 
         UE_LOG (LogTemp, Log, TEXT ("Picked up item %s from clicked actor at cell %d,%d."), *ItemDefinitionId.ToString (), PickedCell.X, PickedCell.Y);
         return true;
@@ -2619,6 +2641,10 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
 
     SpawnedItemActors.Add (ItemActor);
     SpawnedItemEntries.Add (Entry);
+    if (ActivationComponent)
+    {
+        ActivationComponent->RefreshPressurePlatesAtCell (CellX, CellY);
+    }
 
     UE_LOG (LogTemp, Log,
         TEXT ("GridInventory WorldDrop Item=%s RuntimeId=%s Quantity=%d Cell=(%d,%d) Edge=%d Result=true"),
@@ -2629,6 +2655,72 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
         CellY,
         static_cast<int32> (Edge));
     return true;
+}
+
+float AGridLevelRuntimeActor::GetWorldItemWeightAtCell (int32 CellX, int32 CellY, bool bIncludeEdgeItems) const
+{
+    const FIntPoint TargetCell (CellX, CellY);
+    float TotalWeight = 0.0f;
+
+    for (const FGridSpawnedItemRuntimeEntry& Entry : SpawnedItemEntries)
+    {
+        if (Entry.Cell != TargetCell ||
+            (!bIncludeEdgeItems && Entry.Edge != EGridEdge::None) ||
+            !IsValid (Entry.ItemActor.Get ()))
+        {
+            continue;
+        }
+
+        UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset.Get ();
+        if (!ItemDefinition)
+        {
+            const FName DefinitionId = !Entry.ItemDefinitionId.IsNone ()
+                ? Entry.ItemDefinitionId
+                : Entry.ItemArchetypeId;
+            ItemDefinition = ResolveRuntimeItemDefinition (DefinitionId);
+        }
+        if (!ItemDefinition)
+        {
+            continue;
+        }
+
+        const int32 Quantity = FMath::Max (1, Entry.Quantity);
+        const float Contribution = ItemDefinition->Weight * Quantity;
+        TotalWeight += Contribution;
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("GridPressurePlate WeightScan Cell=(%d,%d) Item=%s Quantity=%d UnitWeight=%.2f TotalContribution=%.2f"),
+            CellX,
+            CellY,
+            *ItemDefinition->ItemDefinitionId.ToString (),
+            Quantity,
+            ItemDefinition->Weight,
+            Contribution);
+    }
+
+    return TotalWeight;
+}
+
+bool AGridLevelRuntimeActor::IsPartyOnCell (int32 CellX, int32 CellY) const
+{
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        return false;
+    }
+
+    for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
+    {
+        const AGrimrockPartyPawn* PartyPawn = *It;
+        if (PartyPawn &&
+            PartyPawn->LevelRuntimeActor == this &&
+            PartyPawn->CurrentCellX == CellX &&
+            PartyPawn->CurrentCellY == CellY)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
