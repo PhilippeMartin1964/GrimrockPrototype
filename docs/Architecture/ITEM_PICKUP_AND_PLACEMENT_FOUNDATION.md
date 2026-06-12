@@ -187,9 +187,32 @@ La première version utilise :
 - `ThrowLifeSeconds` pour la durée maximale du projectile ;
 - `ThrowImpactDropOffset` pour stabiliser le dépôt après impact.
 
-Le clic gauche avec un item en curseur reste réservé au dépôt libre ou au dépôt dans un réceptacle.
+### Interaction souris avec item en curseur
 
-Le clic droit avec un item en curseur lance une seule unité de la pile. Si la pile contient plusieurs unités, le curseur est décrémenté de 1. Si elle ne contient qu'une unité, le curseur est vidé. Si le projectile ne peut pas être créé, le curseur reste inchangé.
+Le clic droit est réservé au free look / mouvement de tête du groupe. Le système de lancer ne doit jamais détourner `RightMouseButton`.
+
+Le clic gauche est contextuel lorsqu'un item est présent dans le curseur :
+
+1. Si la cible est un réceptacle compatible et accessible, l'item est placé dans le réceptacle.
+2. Sinon, si la cible est une zone proche compatible, l'item est posé librement dans le monde.
+3. Sinon, si l'item est lançable (`bThrowable=true`), une unité de la pile est projetée :
+   - cible à moins de 200 cm : jet court ;
+   - cible à 200 cm ou plus : lancer.
+4. Si l'item n'est pas lançable et ne peut pas être posé, l'action échoue sans modifier le curseur.
+
+Le clic gauche sans item en curseur conserve le comportement d'interaction normal : boutons, leviers, items monde, panneaux, torches, etc.
+
+### Jet court et lancer
+
+Le jet court et le lancer utilisent la même fondation de projectile.
+
+Le jet court applique une vitesse réduite et un arc plus marqué. Le lancer applique la vitesse normale définie par l'item. Dans les deux cas, une seule unité est séparée de la pile. Le curseur n'est décrémenté qu'après la création effective du projectile.
+
+À terme, la portée, la précision et les dégâts devront dépendre :
+
+- du poids de l'objet ;
+- de la force ou caractéristique du personnage ;
+- de la compétence du personnage pour les armes à distance ou le lancer.
 
 `AGridThrownItemActor` est temporaire et utilise une collision sphérique avec `UProjectileMovementComponent`. À l'impact ou à l'expiration, il appelle le dépôt monde standard afin que l'unité lancée redevienne ramassable, empilable, persistante et compatible avec les PressurePlates par poids.
 
@@ -282,12 +305,15 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 20. Déposer directement une pile de trois pierres : vérifier que la contribution vaut `3.0`, pas `1.0`.
 21. Avec les deux sources actives, laisser trois pierres sur la plaque puis entrer et sortir : vérifier que la plaque reste pressée sans événement supplémentaire.
 22. Relier la plaque à une porte et vérifier que l'activation et la désactivation par poids utilisent les mêmes liens que la présence du groupe.
-23. Configurer une pierre avec `bThrowable=true`, placer une pile de trois dans le curseur et cliquer droit : vérifier un projectile quantité 1 et un curseur quantité 2.
-24. Lancer la dernière unité d'une pile : vérifier que le curseur est vidé seulement après la création du projectile.
-25. Essayer de lancer un item avec `bThrowable=false` : vérifier le feedback et l'absence de mutation du curseur.
-26. Ramasser une pierre après son impact : vérifier qu'elle rejoint une pile compatible.
-27. Lancer une pierre de poids `1.0` sur une PressurePlate dont le seuil vaut `1.0` : vérifier sa conversion en item monde et l'activation de la plaque.
-28. Avec une pierre dans le curseur, vérifier que le clic gauche conserve le dépôt libre et la priorité des réceptacles.
+23. Maintenir le clic droit et déplacer la souris : vérifier le free look et l'absence de projectile.
+24. Avec une pierre dans le curseur, cliquer gauche sur un réceptacle compatible proche : vérifier que le réceptacle reste prioritaire.
+25. Cliquer gauche sur une cellule valide proche : vérifier un dépôt libre sans projectile.
+26. Configurer une pierre avec `bThrowable=true`, placer une pile de trois dans le curseur et cliquer gauche sur une cible non posable à moins de 200 cm : vérifier un jet court quantité 1 et un curseur quantité 2.
+27. Cliquer gauche sur une cible à 200 cm ou plus : vérifier un lancer normal quantité 1 et un curseur décrémenté d'une unité.
+28. Lancer la dernière unité d'une pile : vérifier que le curseur est vidé seulement après la création du projectile.
+29. Essayer de lancer un item avec `bThrowable=false` : vérifier le feedback et l'absence de mutation du curseur.
+30. Ramasser une pierre après son impact : vérifier qu'elle rejoint une pile compatible.
+31. Lancer une pierre de poids `1.0` sur une PressurePlate dont le seuil vaut `1.0` : vérifier sa conversion en item monde et l'activation de la plaque.
 
 ## 13. Limites actuelles
 
@@ -295,6 +321,7 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 - Le dépôt libre est limité à la cellule courante ou directement devant le groupe.
 - Le système ne simule pas encore une physique réaliste de contact avec la plaque. Un item compte pour le poids s'il est enregistré comme item runtime sur la cellule de la PressurePlate.
 - Le lancer ne gère pas encore les dégâts, les ennemis, la physique réaliste de rebond, les sons d'impact ou la charge de puissance.
+- Les compétences, la précision, les dégâts et les effets sur les ennemis ne sont pas encore implémentés.
 - Le nombre de cases d'inventaire n'est pas étendu automatiquement.
 - Les actifs `.uasset` déterminent les variantes concrètes de supports et ne sont pas audités par ce document.
 

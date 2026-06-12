@@ -32,6 +32,12 @@ protected:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
     float MaxInteractionDistance = 300.f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
+    float ThrowDistanceThreshold = 200.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
+    float MaxThrowTargetDistance = 2000.f;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
     bool bDebugMouseInteraction = false;
 
@@ -48,7 +54,6 @@ protected:
     EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
 
     void HandleLeftMousePressed ();
-    void HandleRightMousePressed ();
     void UpdateHoveredInteractable ();
     void InitializeCustomCursor ();
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor);

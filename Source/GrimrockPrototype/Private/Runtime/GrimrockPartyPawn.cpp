@@ -1255,7 +1255,9 @@ bool AGrimrockPartyPawn::TryDropCursorItemAtCell (
     return true;
 }
 
-bool AGrimrockPartyPawn::TryThrowOneCursorItem (const FVector& LaunchDirection)
+bool AGrimrockPartyPawn::TryThrowOneCursorItem (
+    const FVector& LaunchDirection,
+    EGridItemThrowMode ThrowMode)
 {
     if (!PartyInventoryComponent ||
         !LevelRuntimeActor ||
@@ -1277,7 +1279,12 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (const FVector& LaunchDirection)
     {
         ThrowDirection = Camera ? Camera->GetForwardVector () : GetActorForwardVector ();
     }
-    ThrowDirection = (ThrowDirection + FVector::UpVector * FMath::Max (0.0f, ItemDefinition->ThrowArc)).GetSafeNormal ();
+    const bool bShortToss = ThrowMode == EGridItemThrowMode::ShortToss;
+    const float SpeedScale = bShortToss ? FMath::Max (0.0f, ShortThrowSpeedScale) : 1.0f;
+    const float ArcScale = bShortToss ? FMath::Max (0.0f, ShortThrowArcScale) : 1.0f;
+    ThrowDirection = (
+        ThrowDirection +
+        FVector::UpVector * FMath::Max (0.0f, ItemDefinition->ThrowArc) * ArcScale).GetSafeNormal ();
 
     FGridItemInstance ThrownItem = CursorItem;
     ThrownItem.RuntimeObjectId = FGuid::NewGuid ();
@@ -1291,7 +1298,9 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (const FVector& LaunchDirection)
     const FVector StartLocation =
         (Camera ? Camera->GetComponentLocation () : GetActorLocation ()) +
         ThrowDirection * 60.0f;
-    const FVector LaunchVelocity = ThrowDirection * FMath::Max (0.0f, ItemDefinition->ThrowSpeed);
+    // TODO: Scale throw speed, accuracy and damage with the selected character's ranged/throwing skill.
+    const FVector LaunchVelocity =
+        ThrowDirection * FMath::Max (0.0f, ItemDefinition->ThrowSpeed) * SpeedScale;
     if (!LevelRuntimeActor->TrySpawnThrownItemProjectile (
         ThrownItem,
         StartLocation,
@@ -1318,9 +1327,10 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (const FVector& LaunchDirection)
     }
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GridInventory Throw Item=%s RuntimeId=%s CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
+        TEXT ("GridInventory Throw Item=%s RuntimeId=%s Mode=%s CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
         *ThrownItem.ItemDefinitionId.ToString (),
         *ThrownItem.RuntimeObjectId.ToString (),
+        bShortToss ? TEXT ("ShortToss") : TEXT ("Throw"),
         CursorItem.Quantity,
         FMath::Max (0, CursorItem.Quantity - 1));
     PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();

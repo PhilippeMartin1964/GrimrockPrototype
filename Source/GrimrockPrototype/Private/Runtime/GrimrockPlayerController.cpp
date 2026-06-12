@@ -52,7 +52,6 @@ void AGrimrockPlayerController::SetupInputComponent ()
     }
 
     InputComponent->BindKey (EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
-    InputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleRightMousePressed);
 }
 
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
@@ -101,19 +100,12 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         if (!TryGetWorldHitUnderCursor (WorldHitResult))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=NoTarget"));
-            ShowInteractionFeedback (FText::FromString (TEXT ("Impossible de déposer ici.")));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Impossible de déposer ou lancer ici.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
 
-        if (!IsHitWithinInteractionDistance (WorldHitResult))
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=TargetOutOfRange Target=%s"),
-                *GetNameSafe (WorldHitResult.GetActor ()));
-            ShowInteractionFeedback (FText::FromString (TEXT ("Hors de portée.")));
-            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-            return;
-        }
+        const bool bWithinInteractionDistance = IsHitWithinInteractionDistance (WorldHitResult);
 
         AActor* HitActor = WorldHitResult.GetActor ();
         AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
@@ -123,83 +115,104 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         }
 
         AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
-        if (ReceptacleActor)
+        if (ReceptacleActor && bWithinInteractionDistance)
         {
-            if (!RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (
+            const bool bAccessible = RuntimeActor && RuntimeActor->CanPartyInteractWithEdgeObject (
                 ReceptacleActor->CellX,
                 ReceptacleActor->CellY,
                 ReceptacleActor->Edge,
-                PartyPawn))
+                PartyPawn);
+            if (bAccessible && ReceptacleActor->CanAcceptItemInstance (CursorItem))
             {
-                UE_LOG (LogTemp, Warning,
-                    TEXT ("GridInventory WorldDrop Failed Reason=EdgeNotFacingParty Target=%s"),
+                UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Attempt Item=%s Target=%s"),
+                    *CursorItem.ItemDefinitionId.ToString (),
                     *GetNameSafe (ReceptacleActor));
-                ShowInteractionFeedback (FText::FromString (TEXT ("Cible inaccessible.")));
-                SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-                return;
+
+                const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit (PartyPawn, WorldHitResult);
+                UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
+                    bPlaced ? TEXT ("true") : TEXT ("false"));
+
+                if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+                {
+                    InventoryWidget->RefreshInventory ();
+                }
+                if (bPlaced)
+                {
+                    SetGridInteractionCursor (EGridInteractionCursor::Default);
+                    return;
+                }
             }
-
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Attempt Item=%s Target=%s"),
-                *CursorItem.ItemDefinitionId.ToString (),
-                *GetNameSafe (ReceptacleActor));
-
-            if (!ReceptacleActor->CanAcceptItemInstance (CursorItem))
-            {
-                const TCHAR* FailureReason = ReceptacleActor->IsFull ()
-                    ? TEXT ("ReceptacleFull")
-                    : (!CursorItem.IsValid ()
-                        ? TEXT ("InvalidItem")
-                        : TEXT ("IncompatibleTarget"));
-                UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=%s"), FailureReason);
-                ShowInteractionFeedback (FText::FromString (
-                    ReceptacleActor->IsFull ()
-                        ? TEXT ("Réceptacle plein.")
-                        : TEXT ("Cet objet n'est pas accepté.")));
-                SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-                return;
-            }
-
-            const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit (PartyPawn, WorldHitResult);
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
-                bPlaced ? TEXT ("true") : TEXT ("false"));
-
-            if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
-            {
-                InventoryWidget->RefreshInventory ();
-            }
-
-            if (!bPlaced)
-            {
-                ShowInteractionFeedback (FText::FromString (TEXT ("Dépôt impossible.")));
-            }
-            SetGridInteractionCursor (bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
-            return;
         }
 
         int32 DropCellX = INDEX_NONE;
         int32 DropCellY = INDEX_NONE;
         FVector DropLocalOffset = FVector::ZeroVector;
-        const bool bPlaced = TryResolveWorldDropFromHit (
-            WorldHitResult,
-            PartyPawn,
-            DropCellX,
-            DropCellY,
-            DropLocalOffset) &&
+        if (bWithinInteractionDistance &&
+            TryResolveWorldDropFromHit (
+                WorldHitResult,
+                PartyPawn,
+                DropCellX,
+                DropCellY,
+                DropLocalOffset) &&
             PartyPawn->TryDropCursorItemAtCell (
                 DropCellX,
                 DropCellY,
                 EGridEdge::None,
-                DropLocalOffset);
+                DropLocalOffset))
+        {
+            if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+            {
+                InventoryWidget->RefreshInventory ();
+            }
+            SetGridInteractionCursor (EGridInteractionCursor::Default);
+            return;
+        }
 
+        UGridItemDefinitionAsset* ItemDefinition = RuntimeActor
+            ? RuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId)
+            : nullptr;
+        if (!ItemDefinition || !ItemDefinition->bThrowable)
+        {
+            ShowInteractionFeedback (FText::FromString (TEXT ("Cet objet ne peut pas être lancé.")));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        const FVector ThrowStartLocation = PartyPawn->Camera
+            ? PartyPawn->Camera->GetComponentLocation ()
+            : PartyPawn->GetActorLocation ();
+        FVector TargetOffset = WorldHitResult.ImpactPoint - ThrowStartLocation;
+        const float TargetDistance = TargetOffset.Size ();
+        if (TargetOffset.IsNearlyZero ())
+        {
+            ShowInteractionFeedback (FText::FromString (TEXT ("Impossible de déposer ou lancer ici.")));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        if (MaxThrowTargetDistance > 0.f && TargetDistance > MaxThrowTargetDistance)
+        {
+            ShowInteractionFeedback (FText::FromString (TEXT ("Cible trop éloignée.")));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        const EGridItemThrowMode ThrowMode = TargetDistance < ThrowDistanceThreshold
+            ? EGridItemThrowMode::ShortToss
+            : EGridItemThrowMode::Throw;
+        const bool bThrown = PartyPawn->TryThrowOneCursorItem (TargetOffset, ThrowMode);
         if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
         {
             InventoryWidget->RefreshInventory ();
         }
-        if (!bPlaced)
+        if (!bThrown)
         {
-            ShowInteractionFeedback (FText::FromString (TEXT ("Impossible de déposer ici.")));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Lancer impossible.")));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+            return;
         }
-        SetGridInteractionCursor (bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
+
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
         return;
     }
 
@@ -257,48 +270,6 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
     }
 
     IGridInteractableInterface::Execute_InteractWithHit (InteractableActor, ControlledPawn, HitComponent, HitResult);
-}
-
-void AGrimrockPlayerController::HandleRightMousePressed ()
-{
-    AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (GetPawn ());
-    FGridItemInstance CursorItem;
-    if (!PartyPawn || !PartyPawn->GetCursorItem (CursorItem))
-    {
-        return;
-    }
-
-    UGridItemDefinitionAsset* ItemDefinition = PartyPawn->LevelRuntimeActor
-        ? PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId)
-        : nullptr;
-    if (!ItemDefinition || !ItemDefinition->bThrowable)
-    {
-        ShowInteractionFeedback (FText::FromString (TEXT ("Cet objet ne peut pas être lancé.")));
-        return;
-    }
-
-    FVector ViewLocation = PartyPawn->Camera
-        ? PartyPawn->Camera->GetComponentLocation ()
-        : PartyPawn->GetActorLocation ();
-    FVector LaunchDirection = PartyPawn->Camera
-        ? PartyPawn->Camera->GetForwardVector ()
-        : PartyPawn->GetActorForwardVector ();
-
-    FHitResult WorldHitResult;
-    if (TryGetWorldHitUnderCursor (WorldHitResult))
-    {
-        LaunchDirection = (WorldHitResult.ImpactPoint - ViewLocation).GetSafeNormal ();
-    }
-
-    const bool bThrown = PartyPawn->TryThrowOneCursorItem (LaunchDirection);
-    if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
-    {
-        InventoryWidget->RefreshInventory ();
-    }
-    if (!bThrown)
-    {
-        ShowInteractionFeedback (FText::FromString (TEXT ("Lancer impossible.")));
-    }
 }
 
 void AGrimrockPlayerController::ShowInteractionFeedback (const FText& MessageText) const
