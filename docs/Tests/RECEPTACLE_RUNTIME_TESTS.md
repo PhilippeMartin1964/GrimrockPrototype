@@ -9,7 +9,7 @@ valider ensemble :
 
 - l'acceptation par définition, tag et type ;
 - les politiques `Returnable`, `Locked`, `ConsumeOnInsert` et `ConsumeOnTrigger` ;
-- le placement `AttachedSocket`, `PhysicalAtHit` et `PhysicalPile` ;
+- le placement `AttachedSocket` et `PhysicalAtHit` ;
 - les commandes de réceptacle ;
 - les conditions de lien, les seuils de poids et l'inversion.
 
@@ -91,7 +91,7 @@ DefaultBehavior.Receptacle.bAcceptAnyItem = false
 DefaultBehavior.Receptacle.AcceptedItemTags = [Torch]
 DefaultBehavior.Receptacle.AcceptedArchetypeIds = [Torch_Test]
 DefaultBehavior.Receptacle.MaxContainedItems = 1
-DefaultBehavior.Receptacle.bUsePhysicalPlacement = false
+DefaultBehavior.Receptacle.VisualPlacementMode = AttachedSocket
 ```
 
 Le mesh, le point d'attache et la classe d'item peuvent reprendre les valeurs de
@@ -111,16 +111,13 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Presentation
-StorageMode = PhysicalPile
-VisualPlacementMode = PhysicalPile
+StorageMode = MultiSlot
+VisualPlacementMode = PhysicalAtHit
 ItemPolicy = Returnable
 bAcceptAnyItem = true
 MaxContainedItems = 4
-bFreezePhysicalPileAfterSettled = true
-PhysicalPileSettleDelay = 1.0
-PhysicalPileSpawnHeight = 45.0
-PhysicalPileSpawnSpacing = 22.0
-PhysicalPileMaxJitter = 8.0
+bSimulatePhysicsWhenPlaced = true
+PhysicalPlacementSurfaceOffset = 5.0
 ```
 
 Archetype :
@@ -130,7 +127,9 @@ PlacementKind = Wall
 Category = Receptacles
 DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 4
-DefaultBehavior.Receptacle.VisualPlacementMode = PhysicalPile
+DefaultBehavior.Receptacle.VisualPlacementMode = PhysicalAtHit
+DefaultBehavior.Receptacle.bSimulatePhysicsWhenPlaced = true
+DefaultBehavior.Receptacle.PhysicalPlacementSurfaceOffset = 5.0
 ```
 
 ### GemSocket_Locked
@@ -229,7 +228,7 @@ Category = Mechanisms
 DefaultBehavior.Receptacle.bAcceptAnyItem = false
 DefaultBehavior.Receptacle.AcceptedItemTags = [Stone]
 DefaultBehavior.Receptacle.MaxContainedItems = 4
-DefaultBehavior.Receptacle.bUsePhysicalPlacement = true
+DefaultBehavior.Receptacle.VisualPlacementMode = PhysicalAtHit
 ```
 
 ### SecretAltar_ConsumeOnTrigger

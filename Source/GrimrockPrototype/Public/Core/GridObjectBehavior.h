@@ -8,11 +8,10 @@ class UGridItemDefinitionAsset;
 UENUM (BlueprintType)
 enum class EGridReceptacleVisualPlacementMode : uint8
 {
-    AttachedSocket,
-    PhysicalAtHit,
-    PhysicalPile,
-    ContainerOnly,
-    DisplaySlots
+    AttachedSocket = 0,
+    PhysicalAtHit = 1,
+    ContainerOnly = 3,
+    DisplaySlots = 4
 };
 
 UENUM (BlueprintType)
@@ -117,51 +116,20 @@ struct FGridReceptacleBehaviorParams
         EGridReceptacleVisualPlacementMode::AttachedSocket;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
-        meta = (DisplayName = "Physical Placement",
-            ToolTip = "Place inserted items at the clicked surface point with gravity and physics instead of attaching them to the fixed socket."))
-    bool bUsePhysicalPlacement = false;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Simulate Physics When Placed",
-            EditCondition = "bUsePhysicalPlacement", EditConditionHides,
             ToolTip = "If true, an item placed at the clicked surface point keeps physics and gravity enabled. If false, it is placed statically but remains clickable."))
     bool bSimulatePhysicsWhenPlaced = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
-        meta = (DisplayName = "Extinguish Item On Physical Placement",
-            EditCondition = "bUsePhysicalPlacement", EditConditionHides,
-            ToolTip = "Disable an item's runtime light when it is inserted using physical placement."))
-    bool bExtinguishItemOnPhysicalPlacement = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Physical Placement Surface Offset",
-            ClampMin = "0.0", EditCondition = "bUsePhysicalPlacement", EditConditionHides,
+            ClampMin = "0.0",
             ToolTip = "Distance in centimeters added along the clicked surface normal before physics starts."))
     float PhysicalPlacementSurfaceOffset = 10.f;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Physical Placement Initial Rotation Offset",
-            EditCondition = "bUsePhysicalPlacement", EditConditionHides,
             ToolTip = "Rotation offset applied relative to the receptacle attach-point orientation before physics starts."))
     FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile")
-    bool bFreezePhysicalPileAfterSettled = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile",
-        meta = (ClampMin = "0.0"))
-    float PhysicalPileSettleDelay = 1.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile")
-    float PhysicalPileSpawnHeight = 45.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile",
-        meta = (ClampMin = "0.0"))
-    float PhysicalPileSpawnSpacing = 22.f;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile",
-        meta = (ClampMin = "0.0"))
-    float PhysicalPileMaxJitter = 8.f;
 };
 
 USTRUCT (BlueprintType)
