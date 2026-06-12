@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/GridObjectBehavior.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridReceptacleTypes.generated.h"
 
@@ -19,15 +20,6 @@ enum class EGridReceptacleStorageMode : uint8
     MultiSlot,
     GridInventory,
     PhysicalPile,
-    DisplaySlots
-};
-
-UENUM (BlueprintType)
-enum class EGridReceptacleVisualPlacementMode : uint8
-{
-    AttachedSocket,
-    PhysicalAtHit,
-    ContainerOnly,
     DisplaySlots
 };
 

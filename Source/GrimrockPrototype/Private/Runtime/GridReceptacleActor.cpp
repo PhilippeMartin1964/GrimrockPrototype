@@ -11,10 +11,17 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 namespace
 {
     static constexpr float MultiItemVisualSpacing = 18.0f;
+
+    bool IsLoosePhysicalPlacementMode (EGridReceptacleVisualPlacementMode PlacementMode)
+    {
+        return PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit ||
+            PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalPile;
+    }
 
     FString JoinNames (const TArray<FName>& Names)
     {
@@ -161,6 +168,10 @@ void AGridReceptacleActor::BeginPlay ()
 
 void AGridReceptacleActor::EndPlay (const EEndPlayReason::Type EndPlayReason)
 {
+    if (UWorld* World = GetWorld ())
+    {
+        World->GetTimerManager ().ClearAllTimersForObject (this);
+    }
     ForceClearRuntimeContents (false);
     Super::EndPlay (EndPlayReason);
 }
@@ -177,24 +188,36 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bAcceptAnyItem = Params.bAcceptAnyItem;
     MaxContainedItems = Params.MaxContainedItems;
     bUsePhysicalPlacement = Params.bUsePhysicalPlacement;
-    if (VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket)
+    if (Params.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
+        VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket)
     {
-        VisualPlacementMode = bUsePhysicalPlacement
-            ? EGridReceptacleVisualPlacementMode::PhysicalAtHit
-            : EGridReceptacleVisualPlacementMode::AttachedSocket;
+        VisualPlacementMode = Params.VisualPlacementMode;
     }
-    bUsePhysicalPlacement = VisualPlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit;
-    StorageMode = MaxContainedItems == 1
-        ? EGridReceptacleStorageMode::SingleSlot
-        : EGridReceptacleStorageMode::MultiSlot;
+    if (VisualPlacementMode == EGridReceptacleVisualPlacementMode::AttachedSocket &&
+        bUsePhysicalPlacement)
+    {
+        VisualPlacementMode = EGridReceptacleVisualPlacementMode::PhysicalAtHit;
+    }
+    bUsePhysicalPlacement = IsLoosePhysicalPlacementMode (VisualPlacementMode);
+    StorageMode = VisualPlacementMode == EGridReceptacleVisualPlacementMode::PhysicalPile
+        ? EGridReceptacleStorageMode::PhysicalPile
+        : MaxContainedItems == 1
+            ? EGridReceptacleStorageMode::SingleSlot
+            : EGridReceptacleStorageMode::MultiSlot;
     bExtinguishItemOnPhysicalPlacement = Params.bExtinguishItemOnPhysicalPlacement;
     PhysicalPlacementSurfaceOffset = Params.PhysicalPlacementSurfaceOffset;
     PhysicalPlacementInitialRotationOffset = Params.PhysicalPlacementInitialRotationOffset;
+    bFreezePhysicalPileAfterSettled = Params.bFreezePhysicalPileAfterSettled;
+    PhysicalPileSettleDelay = Params.PhysicalPileSettleDelay;
+    PhysicalPileSpawnHeight = Params.PhysicalPileSpawnHeight;
+    PhysicalPileSpawnSpacing = Params.PhysicalPileSpawnSpacing;
+    PhysicalPileMaxJitter = Params.PhysicalPileMaxJitter;
 
-    if (MeshComponent && GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
+    if (MeshComponent && IsLoosePhysicalPlacementMode (GetEffectiveVisualPlacementMode ()))
     {
         MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
         MeshComponent->SetCollisionResponseToChannel (ECC_PhysicsBody, ECR_Block);
+        MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
     }
 
     AcceptedItemDefinitionIds.Reset ();
@@ -625,7 +648,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     AcceptedReceptacleItem.Weight = CursorItem.Weight;
     AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
     AcceptedReceptacleItem.bLightsEnabled =
-        GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+        IsLoosePhysicalPlacementMode (GetEffectiveVisualPlacementMode ()) &&
         bExtinguishItemOnPhysicalPlacement
             ? false
             : CursorItem.bLightsEnabled;
@@ -848,7 +871,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return PartyPawn->TryPlaceCursorItemInReceptacle (this);
     }
 
-    if (GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+    if (!IsLoosePhysicalPlacementMode (GetEffectiveVisualPlacementMode ()) &&
         HasItem ())
     {
         if (!IsItemRemovalAllowed ())
@@ -992,7 +1015,13 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
             *ItemState.ObjectId.ToString ());
         return false;
     }
-    const int32 ItemIndex = AddContainedItem (ItemState.ItemDefinitionId, nullptr, ItemActor, false, 1);
+    const int32 ItemIndex = AddContainedItem (
+        ItemState.ItemDefinitionId,
+        nullptr,
+        ItemActor,
+        false,
+        1,
+        ItemState.ObjectId);
 
     if (ItemIndex == INDEX_NONE)
     {
@@ -1005,6 +1034,15 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
     if (IsValid (Item.ItemActor.Get ()))
     {
         Item.ItemActor->SetRuntimeObjectId (Item.RuntimeObjectId);
+        if (GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalPile)
+        {
+            Item.ItemActor->SetActorTransform (
+                ItemState.Transform,
+                false,
+                nullptr,
+                ETeleportType::TeleportPhysics);
+            FreezePhysicalPileItemActor (Item.ItemActor.Get ());
+        }
         Item.ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
     }
     return true;
@@ -1039,7 +1077,7 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return false;
     }
 
-    return GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
+    return !IsLoosePhysicalPlacementMode (GetEffectiveVisualPlacementMode ()) &&
         HasItem () && IsItemRemovalAllowed ();
 }
 
@@ -1218,7 +1256,7 @@ int32 AGridReceptacleActor::AddContainedItem (
             ContainedItems[NewIndex].ItemActor.Get (),
             PlacementItem,
             PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
-        if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
+        if (IsLoosePhysicalPlacementMode (PlacementMode))
         {
             ContainedItems[NewIndex].bLightsEnabled =
                 !bExtinguishItemOnPhysicalPlacement && ContainedItems[NewIndex].bLightsEnabled;
@@ -1280,6 +1318,91 @@ EGridReceptacleVisualPlacementMode AGridReceptacleActor::GetEffectiveVisualPlace
     return VisualPlacementMode;
 }
 
+FTransform AGridReceptacleActor::BuildPhysicalPileSpawnTransform (const FGridItemInstance& Item) const
+{
+    const FTransform SupportTransform = ItemAttachPoint
+        ? ItemAttachPoint->GetComponentTransform ()
+        : GetActorTransform ();
+    const int32 ItemIndex = FMath::Max (0, ContainedItems.IndexOfByPredicate (
+        [&Item] (const FGridContainedReceptacleItem& ContainedItem)
+        {
+            return ContainedItem.RuntimeObjectId == Item.RuntimeObjectId;
+        }));
+
+    static constexpr int32 ColumnOrder[] = {1, 0, 2};
+    const int32 Column = ColumnOrder[ItemIndex % UE_ARRAY_COUNT (ColumnOrder)] - 1;
+    const int32 Row = ItemIndex / UE_ARRAY_COUNT (ColumnOrder);
+    const uint32 Hash = GetTypeHash (Item.RuntimeObjectId);
+    const uint32 SecondaryHash = HashCombineFast (Hash, 0x9e3779b9u);
+    const float JitterX =
+        (static_cast<float> (Hash & 0xffffu) / 32767.5f - 1.f) * PhysicalPileMaxJitter;
+    const float JitterY =
+        (static_cast<float> (SecondaryHash & 0xffffu) / 32767.5f - 1.f) * PhysicalPileMaxJitter;
+    const FVector LocalOffset (
+        Column * PhysicalPileSpawnSpacing + JitterX,
+        Row * PhysicalPileSpawnSpacing + JitterY,
+        PhysicalPileSpawnHeight);
+    const float YawJitter =
+        (static_cast<float> ((SecondaryHash >> 16) & 0xffffu) / 32767.5f - 1.f) * 15.f;
+    const FQuat Rotation =
+        SupportTransform.GetRotation () * FRotator (0.f, YawJitter, 0.f).Quaternion ();
+    return FTransform (
+        Rotation,
+        SupportTransform.TransformPosition (LocalOffset),
+        FVector::OneVector);
+}
+
+void AGridReceptacleActor::SchedulePhysicalPileSettle (FGuid RuntimeObjectId)
+{
+    if (!bFreezePhysicalPileAfterSettled || !RuntimeObjectId.IsValid ())
+    {
+        return;
+    }
+    if (UWorld* World = GetWorld ())
+    {
+        if (PhysicalPileSettleDelay <= 0.f)
+        {
+            FreezePhysicalPileItem (RuntimeObjectId);
+            return;
+        }
+        FTimerHandle TimerHandle;
+        World->GetTimerManager ().SetTimer (
+            TimerHandle,
+            FTimerDelegate::CreateUObject (
+                this,
+                &AGridReceptacleActor::FreezePhysicalPileItem,
+                RuntimeObjectId),
+            PhysicalPileSettleDelay,
+            false);
+    }
+}
+
+void AGridReceptacleActor::FreezePhysicalPileItem (FGuid RuntimeObjectId)
+{
+    const FGridContainedReceptacleItem* Item = ContainedItems.FindByPredicate (
+        [RuntimeObjectId] (const FGridContainedReceptacleItem& ContainedItem)
+        {
+            return ContainedItem.RuntimeObjectId == RuntimeObjectId;
+        });
+    if (Item)
+    {
+        FreezePhysicalPileItemActor (Item->ItemActor.Get ());
+    }
+}
+
+void AGridReceptacleActor::FreezePhysicalPileItemActor (AGridItemActor* ItemActor) const
+{
+    if (!IsValid (ItemActor) || !ItemActor->MeshComponent)
+    {
+        return;
+    }
+    ItemActor->MeshComponent->SetSimulatePhysics (false);
+    ItemActor->MeshComponent->SetEnableGravity (false);
+    ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+    ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+    ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+}
+
 bool AGridReceptacleActor::IsItemRemovalAllowed () const
 {
     return bCanRemoveItem && ItemPolicy != EGridReceptacleItemPolicy::Locked;
@@ -1307,6 +1430,19 @@ void AGridReceptacleActor::ApplyVisualPlacement (
 
     ItemActor->SetActorHiddenInGame (false);
     ItemActor->SetActorEnableCollision (true);
+
+    if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalPile)
+    {
+        ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
+        ItemActor->SetActorTransform (
+            BuildPhysicalPileSpawnTransform (Item),
+            false,
+            nullptr,
+            ETeleportType::TeleportPhysics);
+        ItemActor->ConfigureAsWorldPickup ();
+        SchedulePhysicalPileSettle (Item.RuntimeObjectId);
+        return;
+    }
 
     if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
     {
@@ -1366,7 +1502,20 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
         if (IsValid (Item.ItemActor.Get ()) && Item.ItemActor->MeshComponent)
         {
             const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
-            if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
+            if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalPile)
+            {
+                if (Item.ItemActor->MeshComponent->IsSimulatingPhysics ())
+                {
+                    Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
+                    Item.ItemActor->MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
+                    Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+                }
+                else
+                {
+                    FreezePhysicalPileItemActor (Item.ItemActor.Get ());
+                }
+            }
+            else if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
             {
                 Item.ItemActor->MeshComponent->SetCollisionEnabled (
                     bSimulatePhysicsWhenPlaced

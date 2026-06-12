@@ -223,10 +223,16 @@ namespace
             Behavior.Receptacle.RejectedItemArchetypeIds.Num () > 0 ||
             !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
             Behavior.Receptacle.MaxContainedItems != 1 ||
+            Behavior.Receptacle.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
             Behavior.Receptacle.bUsePhysicalPlacement ||
             !Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement ||
             !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPlacementSurfaceOffset, 10.f) ||
-            !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero ();
+            !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero () ||
+            !Behavior.Receptacle.bFreezePhysicalPileAfterSettled ||
+            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileSettleDelay, 1.f) ||
+            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileSpawnHeight, 45.f) ||
+            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileSpawnSpacing, 22.f) ||
+            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileMaxJitter, 8.f);
     }
 
     bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)
@@ -296,6 +302,17 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             OutMessages,
             EGridArchetypeValidationSeverity::Error,
             TEXT ("Receptacle alcoves must use MaxContainedItems > 1 or <= 0."));
+    }
+
+    if ((ArchetypeId == FName (TEXT ("Receptacle_Alcove")) ||
+            ArchetypeId == FName (TEXT ("Receptacle_Alcove_Stone"))) &&
+        DefaultBehavior.Receptacle.VisualPlacementMode !=
+            EGridReceptacleVisualPlacementMode::PhysicalPile)
+    {
+        AddValidationMessage (
+            OutMessages,
+            EGridArchetypeValidationSeverity::Error,
+            TEXT ("Receptacle alcoves must use VisualPlacementMode=PhysicalPile."));
     }
 
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)

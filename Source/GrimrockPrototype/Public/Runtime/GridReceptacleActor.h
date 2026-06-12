@@ -175,6 +175,21 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile")
+    bool bFreezePhysicalPileAfterSettled = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile", meta = (ClampMin = "0.0"))
+    float PhysicalPileSettleDelay = 1.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile")
+    float PhysicalPileSpawnHeight = 45.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile", meta = (ClampMin = "0.0"))
+    float PhysicalPileSpawnSpacing = 22.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile", meta = (ClampMin = "0.0"))
+    float PhysicalPileMaxJitter = 8.f;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
     TArray<FName> AcceptedItemDefinitionIds;
 
@@ -392,6 +407,14 @@ protected:
     void ClearAllContainedActors ();
 
     EGridReceptacleVisualPlacementMode GetEffectiveVisualPlacementMode () const;
+
+    FTransform BuildPhysicalPileSpawnTransform (const FGridItemInstance& Item) const;
+
+    void SchedulePhysicalPileSettle (FGuid RuntimeObjectId);
+
+    void FreezePhysicalPileItem (FGuid RuntimeObjectId);
+
+    void FreezePhysicalPileItemActor (AGridItemActor* ItemActor) const;
 
     bool IsItemRemovalAllowed () const;
 

@@ -52,7 +52,7 @@ Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `Arch
 
 L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
 
-`ReceptacleKind`, `StorageMode`, `VisualPlacementMode`, `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem`, `AcceptedItemTypes` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `InitializeGridObject()` recalcule notamment le mode de stockage depuis la capacité et peut convertir `AttachedSocket` en `PhysicalAtHit`.
+`ReceptacleKind`, `StorageMode`, `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem`, `AcceptedItemTypes` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de pile physique peuvent être définis par le comportement de l'archétype ; les Class Defaults restent le fallback pour les Blueprints existants. `InitializeGridObject()` recalcule notamment le mode de stockage depuis la capacité et conserve la conversion legacy de `bUsePhysicalPlacement` vers `PhysicalAtHit`.
 
 `ObjectData.Tag` sert de compatibilité historique : si aucune liste d'identifiants acceptés n'est fournie, il devient un identifiant accepté et désactive `AcceptAny`.
 
@@ -66,12 +66,13 @@ Les modes visuels effectifs sont :
 
 - `AttachedSocket` : acteur attaché à `ItemAttachPoint` ;
 - `PhysicalAtHit` : transform issu du point et de la normale du clic, collision et physique optionnelles ;
+- `PhysicalPile` : apparition au-dessus de `ItemAttachPoint` avec décalage et jitter déterministes, simulation physique temporaire, puis gel en collision `QueryOnly` bloquant `Visibility` ;
 - `ContainerOnly` : contenu logique sans acteur visible ;
 - `DisplaySlots` : placement attaché avec décalage par index.
 
 La capacité est comptée par entrée de `ContainedItems`, pas par somme des quantités. `MaxContainedItems <= 0` est interprété comme illimité par le runtime, même si les outils actuels éditent normalement une valeur positive.
 
-Les alcôves sont des réceptacles multi-items et utilisent actuellement `MaxContainedItems = 8`. Les supports de torche restent des réceptacles single-slot avec `MaxContainedItems = 1`.
+Les alcôves sont des réceptacles multi-items avec `MaxContainedItems = 8` et `VisualPlacementMode = PhysicalPile`. Le transform final de chaque item est capturé dans l'état runtime et restauré directement en état gelé. Les supports de torche restent des réceptacles single-slot avec `MaxContainedItems = 1` et `VisualPlacementMode = AttachedSocket`.
 
 Quand le slot cursor contient un item et qu'un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
 

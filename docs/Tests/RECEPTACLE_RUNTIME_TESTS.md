@@ -9,7 +9,7 @@ valider ensemble :
 
 - l'acceptation par définition, tag et type ;
 - les politiques `Returnable`, `Locked`, `ConsumeOnInsert` et `ConsumeOnTrigger` ;
-- le placement `AttachedSocket` et `PhysicalAtHit` ;
+- le placement `AttachedSocket`, `PhysicalAtHit` et `PhysicalPile` ;
 - les commandes de réceptacle ;
 - les conditions de lien, les seuils de poids et l'inversion.
 
@@ -111,13 +111,16 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Presentation
-StorageMode = MultiSlot
-VisualPlacementMode = PhysicalAtHit
+StorageMode = PhysicalPile
+VisualPlacementMode = PhysicalPile
 ItemPolicy = Returnable
 bAcceptAnyItem = true
 MaxContainedItems = 4
-bSimulatePhysicsWhenPlaced = false
-PhysicalPlacementSurfaceOffset = 10.0
+bFreezePhysicalPileAfterSettled = true
+PhysicalPileSettleDelay = 1.0
+PhysicalPileSpawnHeight = 45.0
+PhysicalPileSpawnSpacing = 22.0
+PhysicalPileMaxJitter = 8.0
 ```
 
 Archetype :
@@ -127,7 +130,7 @@ PlacementKind = Wall
 Category = Receptacles
 DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 4
-DefaultBehavior.Receptacle.bUsePhysicalPlacement = true
+DefaultBehavior.Receptacle.VisualPlacementMode = PhysicalPile
 ```
 
 ### GemSocket_Locked

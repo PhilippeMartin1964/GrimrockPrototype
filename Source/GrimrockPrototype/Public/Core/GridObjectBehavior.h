@@ -6,6 +6,16 @@
 class UGridItemDefinitionAsset;
 
 UENUM (BlueprintType)
+enum class EGridReceptacleVisualPlacementMode : uint8
+{
+    AttachedSocket,
+    PhysicalAtHit,
+    PhysicalPile,
+    ContainerOnly,
+    DisplaySlots
+};
+
+UENUM (BlueprintType)
 enum class EGridEdge : uint8
 {
     None    UMETA (DisplayName = "None"),
@@ -102,6 +112,10 @@ struct FGridReceptacleBehaviorParams
         meta = (DisplayName = "Max Contained Items", ClampMin = "1"))
     int32 MaxContainedItems = 1;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
+    EGridReceptacleVisualPlacementMode VisualPlacementMode =
+        EGridReceptacleVisualPlacementMode::AttachedSocket;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Physical Placement",
             ToolTip = "Place inserted items at the clicked surface point with gravity and physics instead of attaching them to the fixed socket."))
@@ -124,6 +138,24 @@ struct FGridReceptacleBehaviorParams
             EditCondition = "bUsePhysicalPlacement", EditConditionHides,
             ToolTip = "Rotation offset applied relative to the receptacle attach-point orientation before physics starts."))
     FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile")
+    bool bFreezePhysicalPileAfterSettled = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile",
+        meta = (ClampMin = "0.0"))
+    float PhysicalPileSettleDelay = 1.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile")
+    float PhysicalPileSpawnHeight = 45.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile",
+        meta = (ClampMin = "0.0"))
+    float PhysicalPileSpawnSpacing = 22.f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Physical Pile",
+        meta = (ClampMin = "0.0"))
+    float PhysicalPileMaxJitter = 8.f;
 };
 
 USTRUCT (BlueprintType)
