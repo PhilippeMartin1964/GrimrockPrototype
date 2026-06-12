@@ -232,6 +232,21 @@ Le Blueprint `WBP_GridMouseCursor` doit associer `AimThrow` à une icône de vis
 
 Le clic droit reste exclusivement réservé au free look / mouvement de tête du groupe.
 
+### Registre runtime des définitions d'items
+
+Les définitions `DA_Item_xxx` ne sont plus ajoutées manuellement dans `BP_GrimrockPartyPawn`.
+
+Le composant d'inventaire maintient un registre runtime interne. Les définitions sont enregistrées automatiquement lorsqu'un item issu du niveau ou du runtime référence un `UGridItemDefinitionAsset`.
+
+Le flux normal est :
+
+1. `DA_Object_xxx` référence `DA_Item_xxx` dans `DefaultBehavior.Item.ItemDefinitionAsset`.
+2. Le runtime résout cette définition au spawn ou au pickup.
+3. L'inventaire enregistre automatiquement cette définition.
+4. Les données d'item sont appliquées depuis `DA_Item_xxx`.
+
+Le tableau manuel `Items.ItemDefinitions` n'est plus exposé dans `BP_GrimrockPartyPawn`.
+
 ### Jet court et lancer
 
 Le jet court et le lancer utilisent la même fondation de projectile.

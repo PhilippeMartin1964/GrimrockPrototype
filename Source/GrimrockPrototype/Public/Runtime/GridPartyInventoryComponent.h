@@ -24,8 +24,8 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Party")
     int32 DefaultMaxActiveCharacters = 6;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Items")
-    TArray<TObjectPtr<UGridItemDefinitionAsset>> ItemDefinitions;
+    UPROPERTY (Transient)
+    TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> RuntimeItemDefinitionsById;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void InitializeDefaultPartyIfNeeded ();

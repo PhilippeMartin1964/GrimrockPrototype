@@ -576,15 +576,12 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition (UGridItemDefinitionAs
         return false;
     }
 
-    for (const TObjectPtr<UGridItemDefinitionAsset>& ExistingDefinition : ItemDefinitions)
+    if (RuntimeItemDefinitionsById.Contains (Definition->ItemDefinitionId))
     {
-        if (ExistingDefinition && ExistingDefinition->ItemDefinitionId == Definition->ItemDefinitionId)
-        {
-            return true;
-        }
+        return true;
     }
 
-    ItemDefinitions.Add (Definition);
+    RuntimeItemDefinitionsById.Add (Definition->ItemDefinitionId, Definition);
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory Registered ItemDefinition=%s Asset=%s"),
         *Definition->ItemDefinitionId.ToString (),
@@ -600,12 +597,10 @@ UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition (FNam
         return nullptr;
     }
 
-    for (const TObjectPtr<UGridItemDefinitionAsset>& Definition : ItemDefinitions)
+    if (const TObjectPtr<UGridItemDefinitionAsset>* Definition =
+        RuntimeItemDefinitionsById.Find (ItemDefinitionId))
     {
-        if (Definition && Definition->ItemDefinitionId == ItemDefinitionId)
-        {
-            return Definition.Get ();
-        }
+        return Definition->Get ();
     }
 
     return nullptr;
@@ -1476,30 +1471,24 @@ FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics () const
 {
     FString Result;
     Result += TEXT ("GridItemDefinition Diagnostics\n");
-    Result += FString::Printf (TEXT ("Definitions=%d\n"), ItemDefinitions.Num ());
+    Result += FString::Printf (TEXT ("RuntimeDefinitions=%d\n"), RuntimeItemDefinitionsById.Num ());
 
-    TMap<FName, int32> DefinitionIdCounts;
-    int32 DuplicateCount = 0;
-    for (const TObjectPtr<UGridItemDefinitionAsset>& Definition : ItemDefinitions)
+    TArray<FName> DefinitionIds;
+    RuntimeItemDefinitionsById.GetKeys (DefinitionIds);
+    DefinitionIds.Sort (FNameLexicalLess ());
+    for (int32 Index = 0; Index < DefinitionIds.Num (); ++Index)
     {
-        if (!Definition || Definition->ItemDefinitionId.IsNone ())
-        {
-            continue;
-        }
-        int32& Count = DefinitionIdCounts.FindOrAdd (Definition->ItemDefinitionId);
-        ++Count;
-        if (Count == 2)
-        {
-            ++DuplicateCount;
-        }
-    }
-
-    for (int32 Index = 0; Index < ItemDefinitions.Num (); ++Index)
-    {
-        const UGridItemDefinitionAsset* Definition = ItemDefinitions[Index];
+        const FName DefinitionId = DefinitionIds[Index];
+        const TObjectPtr<UGridItemDefinitionAsset>* DefinitionEntry =
+            RuntimeItemDefinitionsById.Find (DefinitionId);
+        const UGridItemDefinitionAsset* Definition =
+            DefinitionEntry ? DefinitionEntry->Get () : nullptr;
         if (!Definition)
         {
-            Result += FString::Printf (TEXT ("[%d] Asset=None Warning=NullDefinition\n"), Index);
+            Result += FString::Printf (
+                TEXT ("[%d] Id=%s Asset=None Warning=NullDefinition\n"),
+                Index,
+                *DefinitionId.ToString ());
             continue;
         }
 
@@ -1511,21 +1500,8 @@ FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics () const
             GetItemTypeName (Definition->ItemType),
             Definition->Weight,
             *GetEquipmentSlotsText (Definition->CompatibleEquipmentSlots));
-
-        if (Definition->ItemDefinitionId.IsNone ())
-        {
-            Result += FString::Printf (TEXT ("Warning Asset=%s ItemDefinitionId=None\n"), *Definition->GetName ());
-        }
-        else if (DefinitionIdCounts.FindRef (Definition->ItemDefinitionId) > 1)
-        {
-            Result += FString::Printf (
-                TEXT ("Warning Duplicate ItemDefinitionId=%s Asset=%s\n"),
-                *Definition->ItemDefinitionId.ToString (),
-                *Definition->GetName ());
-        }
     }
 
-    Result += FString::Printf (TEXT ("Duplicates=%d\n"), DuplicateCount);
     return Result;
 }
 

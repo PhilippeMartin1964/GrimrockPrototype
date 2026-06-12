@@ -841,7 +841,7 @@ Tranche 4 appliquee :
 
 - `UGridItemDefinitionAsset` ajoute ;
 - definitions item minimales prevues avec type, poids, nom affiche, icone future, meshes futurs, stack et slots compatibles ;
-- `UGridPartyInventoryComponent` resout `ItemDefinitionId` vers une definition via `ItemDefinitions` ;
+- `UGridPartyInventoryComponent` resout `ItemDefinitionId` via son registre runtime interne ;
 - le poids et les proprietes simples d'item sont appliques aux instances si une definition existe ;
 - compatibilite d'equipement basee sur `CompatibleEquipmentSlots` si definition presente ;
 - fallback permissif `MainHand` / `OffHand` conserve si definition absente.
@@ -944,8 +944,7 @@ Workflow recommande pour creer un item :
 2. Le nommer `DA_Item_[NomItem]`.
 3. Renseigner `ItemDefinitionId`.
 4. Renseigner `DisplayName`, `Weight`, `ItemType`, `WorldMesh`, `Icon` et les slots compatibles.
-5. Ajouter l'asset dans `PartyInventoryComponent.ItemDefinitions` si l'item doit appliquer poids, type et compatibilites d'equipement.
-6. Utiliser cet asset dans les placements `Type=Item` ou les receptacles.
+5. Utiliser cet asset dans les placements `Type=Item` ou les receptacles ; le runtime l'enregistre automatiquement dans l'inventaire.
 
 Workflow recommande pour placer un item au sol :
 
