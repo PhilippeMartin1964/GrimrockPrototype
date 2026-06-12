@@ -202,6 +202,36 @@ Le clic gauche est contextuel lorsqu'un item est présent dans le curseur :
 
 Le clic gauche sans item en curseur conserve le comportement d'interaction normal : boutons, leviers, items monde, panneaux, torches, etc.
 
+### Dépiler depuis le curseur
+
+Lorsqu'un item stackable est porté par le curseur, les actions monde consomment une seule unité par clic.
+
+Exemples :
+
+- `Pierre x5` + clic gauche sol proche : pose `Pierre x1`, le curseur devient `Pierre x4`.
+- `Pierre x4` + clic gauche réceptacle : insère `Pierre x1`, le curseur devient `Pierre x3`.
+- `Pierre x3` + clic gauche lointain : lance `Pierre x1`, le curseur devient `Pierre x2`.
+
+Le système ne dépose pas toute la pile par défaut. Un dépôt complet de pile pourra être ajouté plus tard avec un modificateur dédié. L'unité séparée reçoit son propre `RuntimeObjectId`, tandis que la pile restante conserve le sien. Le curseur n'est décrémenté qu'après la réussite de l'action monde.
+
+### Information donnée par le curseur
+
+Le curseur ne doit pas révéler les objets interactifs situés à plusieurs cellules.
+
+Les états d'interaction (`Use`, `Take`, `Read`, `PlaceItem`, `CannotPlaceItem`, `Forbidden`) sont réservés aux interactions immédiates :
+
+- cellule actuelle ;
+- cellule devant le groupe ;
+- edge adjacent faisant face au groupe.
+
+Un objet visible mais trop éloigné ne doit pas afficher un curseur `Forbidden`. Le curseur reste neutre.
+
+Lorsqu'un item lançable est porté par le curseur, un état de visée (`AimThrow`) peut être affiché pour indiquer que l'objet peut être lancé vers la cible visible. Cet état ne révèle pas une interaction distante ; il indique seulement la possibilité de lancer l'objet tenu.
+
+Le Blueprint `WBP_GridMouseCursor` doit associer `AimThrow` à une icône de visée. Tant que cette branche n'est pas ajoutée à `SetCursorState`, son comportement dépend de la sortie par défaut du switch Blueprint.
+
+Le clic droit reste exclusivement réservé au free look / mouvement de tête du groupe.
+
 ### Jet court et lancer
 
 Le jet court et le lancer utilisent la même fondation de projectile.
@@ -290,7 +320,7 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 5. Placer l'item derrière un mur, une porte fermée puis un autre bloqueur `Visibility` : le premier impact empêche le ramassage.
 6. Ramasser plusieurs exemplaires d'un item stackable : les piles existantes sont complétées jusqu'à `MaxStackSize`, puis une nouvelle pile est créée.
 7. Avec une pile de trois unités, CTRL + clic puis CTRL + drag : le curseur reçoit une unité et la pile source en conserve deux.
-8. Déposer une pile complète puis une unité séparée sur une cellule valide : l'acteur apparaît et le curseur est vidé.
+8. Avec une pile dans le curseur, déposer sur une cellule valide : une seule unité apparaît et la pile du curseur est décrémentée.
 9. Ramasser les items déposés : leurs quantités rejoignent les piles compatibles de l'inventaire.
 10. Tenter un dépôt hors portée, hors des cellules autorisées ou sans définition résoluble : le curseur reste inchangé.
 11. Remplir les piles et les cases libres, puis tenter un ramassage : l'acteur monde reste présent et l'inventaire ne change pas.
@@ -314,6 +344,10 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 29. Essayer de lancer un item avec `bThrowable=false` : vérifier le feedback et l'absence de mutation du curseur.
 30. Ramasser une pierre après son impact : vérifier qu'elle rejoint une pile compatible.
 31. Lancer une pierre de poids `1.0` sur une PressurePlate dont le seuil vaut `1.0` : vérifier sa conversion en item monde et l'activation de la plaque.
+32. Avec `Pierre x3` dans le curseur, déposer au sol puis dans un réceptacle : vérifier que chaque action consomme exactement une unité.
+33. Survoler un bouton, panneau ou item situé à plusieurs cellules sans item dans le curseur : vérifier que le curseur reste `Default`.
+34. Avec une pierre lançable dans le curseur, viser une surface lointaine dans la portée de lancer : vérifier l'état `AimThrow`.
+35. Avec un item non lançable dans le curseur, viser une surface lointaine : vérifier que le curseur reste `Default`.
 
 ## 13. Limites actuelles
 

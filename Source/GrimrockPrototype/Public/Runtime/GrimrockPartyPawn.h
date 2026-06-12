@@ -333,6 +333,8 @@ protected:
     void ApplyCameraLocalViewOffset ();
 
     bool TryInteractOnLevel (int32 X, int32 Y, EGridEdge Edge);
+    bool BuildSingleItemInstanceFromCursor (FGridItemInstance& OutSingleItem) const;
+    void ConsumeOneCursorItemAfterSuccessfulAction ();
 
 private:
     enum class EBufferedCommandType : uint8

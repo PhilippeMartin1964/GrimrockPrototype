@@ -1209,8 +1209,14 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle (AGridReceptacleActor* R
     }
 
     const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
+    FGridItemInstance SingleItem;
+    if (!BuildSingleItemInstanceFromCursor (SingleItem))
+    {
+        return false;
+    }
+
     FGridItemInstance AcceptedItem;
-    if (!ReceptacleActor->TryInsertItemInstanceFromCursor (CursorItem, AcceptedItem))
+    if (!ReceptacleActor->TryInsertItemInstanceFromCursor (SingleItem, AcceptedItem))
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Place ToReceptacle Failed Item=%s RuntimeId=%s Receptacle=%s Reason=ReceptacleRejected"),
             *CursorItem.ItemDefinitionId.ToString (),
@@ -1219,8 +1225,8 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle (AGridReceptacleActor* R
         return false;
     }
 
-    PartyInventoryComponent->ClearCursorItem ();
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Cleared AfterReceptacle Item=%s RuntimeId=%s Receptacle=%s"),
+    ConsumeOneCursorItemAfterSuccessfulAction ();
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor ConsumedOne AfterReceptacle Item=%s RuntimeId=%s Receptacle=%s"),
         *AcceptedItem.ItemDefinitionId.ToString (),
         *AcceptedItem.RuntimeObjectId.ToString (),
         *ReceptacleActor->GetName ());
@@ -1244,13 +1250,14 @@ bool AGrimrockPartyPawn::TryDropCursorItemAtCell (
         return false;
     }
 
-    const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
-    if (!LevelRuntimeActor->TryDropItemInstanceAtCell (CursorItem, CellX, CellY, Edge, LocalOffset))
+    FGridItemInstance DroppedItem;
+    if (!BuildSingleItemInstanceFromCursor (DroppedItem) ||
+        !LevelRuntimeActor->TryDropItemInstanceAtCell (DroppedItem, CellX, CellY, Edge, LocalOffset))
     {
         return false;
     }
 
-    PartyInventoryComponent->ClearCursorItem ();
+    ConsumeOneCursorItemAfterSuccessfulAction ();
     PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();
     return true;
 }
@@ -1286,9 +1293,12 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (
         ThrowDirection +
         FVector::UpVector * FMath::Max (0.0f, ItemDefinition->ThrowArc) * ArcScale).GetSafeNormal ();
 
-    FGridItemInstance ThrownItem = CursorItem;
-    ThrownItem.RuntimeObjectId = FGuid::NewGuid ();
-    ThrownItem.Quantity = 1;
+    FGridItemInstance ThrownItem;
+    if (!BuildSingleItemInstanceFromCursor (ThrownItem))
+    {
+        return false;
+    }
+
     ThrownItem.Weight = ItemDefinition->Weight;
     ThrownItem.OwnerType = EGridItemOwnerType::World;
     ThrownItem.OwnerGuid = FGuid ();
@@ -1315,16 +1325,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (
         return false;
     }
 
-    if (CursorItem.Quantity > 1)
-    {
-        FGridItemInstance RemainingCursorItem = CursorItem;
-        RemainingCursorItem.Quantity -= 1;
-        PartyInventoryComponent->SetCursorItem (RemainingCursorItem);
-    }
-    else
-    {
-        PartyInventoryComponent->ClearCursorItem ();
-    }
+    ConsumeOneCursorItemAfterSuccessfulAction ();
 
     UE_LOG (LogTemp, Log,
         TEXT ("GridInventory Throw Item=%s RuntimeId=%s Mode=%s CursorQuantityBefore=%d CursorQuantityAfter=%d Result=true"),
@@ -1335,6 +1336,45 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (
         FMath::Max (0, CursorItem.Quantity - 1));
     PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();
     return true;
+}
+
+bool AGrimrockPartyPawn::BuildSingleItemInstanceFromCursor (FGridItemInstance& OutSingleItem) const
+{
+    OutSingleItem = FGridItemInstance ();
+    if (!PartyInventoryComponent || !PartyInventoryComponent->HasCursorItem ())
+    {
+        return false;
+    }
+
+    const FGridItemInstance& CursorItem = PartyInventoryComponent->GetCursorItem ();
+    if (!CursorItem.IsValid ())
+    {
+        return false;
+    }
+
+    OutSingleItem = CursorItem;
+    OutSingleItem.RuntimeObjectId = FGuid::NewGuid ();
+    OutSingleItem.Quantity = 1;
+    return true;
+}
+
+void AGrimrockPartyPawn::ConsumeOneCursorItemAfterSuccessfulAction ()
+{
+    if (!PartyInventoryComponent || !PartyInventoryComponent->HasCursorItem ())
+    {
+        return;
+    }
+
+    const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
+    if (CursorItem.Quantity > 1)
+    {
+        FGridItemInstance RemainingCursorItem = CursorItem;
+        RemainingCursorItem.Quantity -= 1;
+        PartyInventoryComponent->SetCursorItem (RemainingCursorItem);
+        return;
+    }
+
+    PartyInventoryComponent->ClearCursorItem ();
 }
 
 bool AGrimrockPartyPawn::DebugPlaceCursorItemInFrontReceptacle ()

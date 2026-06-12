@@ -294,51 +294,70 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
     if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
     {
         FHitResult WorldHitResult;
-        const bool bHasWorldHit = TryGetWorldHitUnderCursor (WorldHitResult);
-        AActor* HitActor = bHasWorldHit ? WorldHitResult.GetActor () : nullptr;
+        if (!TryGetWorldHitUnderCursor (WorldHitResult))
+        {
+            SetGridInteractionCursor (EGridInteractionCursor::Default);
+            return;
+        }
+
+        AActor* HitActor = WorldHitResult.GetActor ();
         AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
         if (!ReceptacleActor && HitActor)
         {
             ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
         }
 
-        bool bCanPlace = false;
-        if (bHasWorldHit && IsHitWithinInteractionDistance (WorldHitResult))
+        const bool bWithinInteractionDistance = IsHitWithinInteractionDistance (WorldHitResult);
+        if (bWithinInteractionDistance && ReceptacleActor)
         {
-            if (ReceptacleActor)
+            const bool bCanPlace =
+                PartyPawn->LevelRuntimeActor &&
+                PartyPawn->LevelRuntimeActor->CanPartyInteractWithEdgeObject (
+                    ReceptacleActor->CellX,
+                    ReceptacleActor->CellY,
+                    ReceptacleActor->Edge,
+                    PartyPawn) &&
+                ReceptacleActor->CanAcceptItemInstance (CursorItem);
+            SetGridInteractionCursor (bCanPlace
+                ? EGridInteractionCursor::PlaceItem
+                : EGridInteractionCursor::CannotPlaceItem);
+            return;
+        }
+
+        if (bWithinInteractionDistance)
+        {
+            int32 DropCellX = INDEX_NONE;
+            int32 DropCellY = INDEX_NONE;
+            FVector DropLocalOffset = FVector::ZeroVector;
+            if (TryResolveWorldDropFromHit (
+                WorldHitResult,
+                PartyPawn,
+                DropCellX,
+                DropCellY,
+                DropLocalOffset))
             {
-                bCanPlace =
-                    PartyPawn->LevelRuntimeActor &&
-                    PartyPawn->LevelRuntimeActor->CanPartyInteractWithEdgeObject (
-                        ReceptacleActor->CellX,
-                        ReceptacleActor->CellY,
-                        ReceptacleActor->Edge,
-                        PartyPawn) &&
-                    ReceptacleActor->CanAcceptItemInstance (CursorItem);
-            }
-            else
-            {
-                int32 DropCellX = INDEX_NONE;
-                int32 DropCellY = INDEX_NONE;
-                FVector DropLocalOffset = FVector::ZeroVector;
-                bCanPlace = TryResolveWorldDropFromHit (
-                    WorldHitResult,
-                    PartyPawn,
-                    DropCellX,
-                    DropCellY,
-                    DropLocalOffset);
+                SetGridInteractionCursor (EGridInteractionCursor::PlaceItem);
+                return;
             }
         }
 
-        SetGridInteractionCursor (bCanPlace
-            ? EGridInteractionCursor::PlaceItem
-            : EGridInteractionCursor::CannotPlaceItem);
-
-        UE_LOG (LogTemp, Verbose, TEXT ("GridInventory CursorHover Item=%s Target=%s CanPlace=%s Cursor=%s"),
-            *CursorItem.ItemDefinitionId.ToString (),
-            *GetNameSafe (ReceptacleActor),
-            bCanPlace ? TEXT ("true") : TEXT ("false"),
-            bCanPlace ? TEXT ("PlaceItem") : TEXT ("CannotPlaceItem"));
+        UGridItemDefinitionAsset* ItemDefinition = PartyPawn->LevelRuntimeActor
+            ? PartyPawn->LevelRuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId)
+            : nullptr;
+        const FVector ThrowStartLocation = PartyPawn->Camera
+            ? PartyPawn->Camera->GetComponentLocation ()
+            : PartyPawn->GetActorLocation ();
+        const float TargetDistance = FVector::Distance (ThrowStartLocation, WorldHitResult.ImpactPoint);
+        const bool bCanAimThrow =
+            ItemDefinition &&
+            ItemDefinition->bThrowable &&
+            TargetDistance > KINDA_SMALL_NUMBER &&
+            (MaxThrowTargetDistance <= 0.f || TargetDistance <= MaxThrowTargetDistance);
+        SetGridInteractionCursor (bCanAimThrow
+            ? EGridInteractionCursor::AimThrow
+            : (bWithinInteractionDistance
+                ? EGridInteractionCursor::CannotPlaceItem
+                : EGridInteractionCursor::Default));
         return;
     }
 
@@ -352,7 +371,7 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
 
     if (!IsHitWithinInteractionDistance (HitResult))
     {
-        SetGridInteractionCursor (EGridInteractionCursor::Forbidden);
+        SetGridInteractionCursor (EGridInteractionCursor::Default);
         return;
     }
 

@@ -21,6 +21,7 @@ enum class EGridInteractionCursor : uint8
     Locked,
     Forbidden,
     PlaceItem,
+    AimThrow,
     CannotPlaceItem
 };
 
