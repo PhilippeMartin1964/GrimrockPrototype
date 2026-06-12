@@ -191,6 +191,13 @@ UTexture2D* UGridInventorySlotWidget::GetIconTexture () const
 
 void UGridInventorySlotWidget::HandleClicked ()
 {
+    if (OwningInventoryWidget && SlotType == EGridInventoryUiSlotType::Inventory)
+    {
+        OwningInventoryWidget->HandleInventorySlotClicked (InventorySlotIndex, bSplitStackRequestedByClick);
+        bSplitStackRequestedByClick = false;
+        return;
+    }
+
     OnSlotClicked.Broadcast (SlotType, InventorySlotIndex);
 }
 
@@ -231,6 +238,10 @@ FReply UGridInventorySlotWidget::NativeOnMouseButtonDown (
     const FGeometry& InGeometry,
     const FPointerEvent& InMouseEvent)
 {
+    bSplitStackRequestedByClick =
+        SlotType == EGridInventoryUiSlotType::Inventory &&
+        InMouseEvent.IsControlDown ();
+
     if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton && CanStartDrag ())
     {
         return UWidgetBlueprintLibrary::DetectDragIfPressed (
@@ -255,6 +266,12 @@ void UGridInventorySlotWidget::NativeOnDragDetected (
         return;
     }
 
+    Operation->bSplitStack =
+        SlotType == EGridInventoryUiSlotType::Inventory &&
+        CachedItem.Quantity > 1 &&
+        InMouseEvent.IsControlDown ();
+    Operation->RequestedQuantity = Operation->bSplitStack ? 1 : 0;
+    bSplitStackRequestedByClick = false;
     OutOperation = Operation;
     UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI DragStarted Type=%s Slot=%d Item=%s RuntimeId=%s"),
         GetGridInventoryUiSlotTypeName (SlotType),
@@ -278,5 +295,7 @@ bool UGridInventorySlotWidget::NativeOnDrop (
         Operation->SourceSlotType,
         Operation->SourceSlotIndex,
         SlotType,
-        InventorySlotIndex);
+        InventorySlotIndex,
+        Operation->bSplitStack,
+        Operation->RequestedQuantity);
 }

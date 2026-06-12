@@ -154,10 +154,12 @@ public:
         EGridInventoryUiSlotType SourceType,
         int32 SourceIndex,
         EGridInventoryUiSlotType TargetType,
-        int32 TargetIndex);
+        int32 TargetIndex,
+        bool bSplitStack = false,
+        int32 RequestedQuantity = 0);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
-    bool HandleInventorySlotClicked (int32 SlotIndex);
+    bool HandleInventorySlotClicked (int32 SlotIndex, bool bSplitStack = false);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleMainHandClicked ();

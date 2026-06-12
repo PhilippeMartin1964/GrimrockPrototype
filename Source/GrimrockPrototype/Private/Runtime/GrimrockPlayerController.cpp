@@ -94,74 +94,107 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
     if (bHasCursorItem)
     {
-        FHitResult ReceptacleHitResult;
-        AGridReceptacleActor* ReceptacleActor = nullptr;
-        if (!TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor))
+        FHitResult WorldHitResult;
+        if (!TryGetWorldHitUnderCursor (WorldHitResult))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=NoTarget"));
-            ShowInteractionFeedback (FText::FromString (TEXT ("Aucune cible valide.")));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Impossible de déposer ici.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
 
-        if (!IsHitWithinInteractionDistance (ReceptacleHitResult))
+        if (!IsHitWithinInteractionDistance (WorldHitResult))
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=TargetOutOfRange Target=%s"),
-                *GetNameSafe (ReceptacleActor));
+                *GetNameSafe (WorldHitResult.GetActor ()));
             ShowInteractionFeedback (FText::FromString (TEXT ("Hors de portée.")));
             SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
             return;
         }
 
-        AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
-        if (!ReceptacleActor || !RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (
-            ReceptacleActor->CellX,
-            ReceptacleActor->CellY,
-            ReceptacleActor->Edge,
-            PartyPawn))
+        AActor* HitActor = WorldHitResult.GetActor ();
+        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
+        if (!ReceptacleActor && HitActor)
         {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory WorldDrop Failed Reason=EdgeNotFacingParty Target=%s"),
-                *GetNameSafe (ReceptacleActor));
-            ShowInteractionFeedback (FText::FromString (TEXT ("Cible inaccessible.")));
-            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
-            return;
+            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
         }
 
-        UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Attempt Item=%s Target=%s"),
-            *CursorItem.ItemDefinitionId.ToString (),
-            *GetNameSafe (ReceptacleActor));
-
-        if (!ReceptacleActor || !ReceptacleActor->CanAcceptItemInstance (CursorItem))
+        AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
+        if (ReceptacleActor)
         {
-            const TCHAR* FailureReason = !ReceptacleActor
-                ? TEXT ("NoTarget")
-                : (ReceptacleActor->IsFull ()
+            if (!RuntimeActor || !RuntimeActor->CanPartyInteractWithEdgeObject (
+                ReceptacleActor->CellX,
+                ReceptacleActor->CellY,
+                ReceptacleActor->Edge,
+                PartyPawn))
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridInventory WorldDrop Failed Reason=EdgeNotFacingParty Target=%s"),
+                    *GetNameSafe (ReceptacleActor));
+                ShowInteractionFeedback (FText::FromString (TEXT ("Cible inaccessible.")));
+                SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+                return;
+            }
+
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Attempt Item=%s Target=%s"),
+                *CursorItem.ItemDefinitionId.ToString (),
+                *GetNameSafe (ReceptacleActor));
+
+            if (!ReceptacleActor->CanAcceptItemInstance (CursorItem))
+            {
+                const TCHAR* FailureReason = ReceptacleActor->IsFull ()
                     ? TEXT ("ReceptacleFull")
                     : (!CursorItem.IsValid ()
                         ? TEXT ("InvalidItem")
-                        : TEXT ("IncompatibleTarget")));
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=%s"), FailureReason);
-            ShowInteractionFeedback (FText::FromString (
-                ReceptacleActor && ReceptacleActor->IsFull ()
-                    ? TEXT ("Réceptacle plein.")
-                    : TEXT ("Cet objet n'est pas accepté.")));
-            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+                        : TEXT ("IncompatibleTarget"));
+                UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Reason=%s"), FailureReason);
+                ShowInteractionFeedback (FText::FromString (
+                    ReceptacleActor->IsFull ()
+                        ? TEXT ("Réceptacle plein.")
+                        : TEXT ("Cet objet n'est pas accepté.")));
+                SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+                return;
+            }
+
+            const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit (PartyPawn, WorldHitResult);
+            UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
+                bPlaced ? TEXT ("true") : TEXT ("false"));
+
+            if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+            {
+                InventoryWidget->RefreshInventory ();
+            }
+
+            if (!bPlaced)
+            {
+                ShowInteractionFeedback (FText::FromString (TEXT ("Dépôt impossible.")));
+            }
+            SetGridInteractionCursor (bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
             return;
         }
 
-        const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit (PartyPawn, ReceptacleHitResult);
-        UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
-            bPlaced ? TEXT ("true") : TEXT ("false"));
+        int32 DropCellX = INDEX_NONE;
+        int32 DropCellY = INDEX_NONE;
+        FVector DropLocalOffset = FVector::ZeroVector;
+        const bool bPlaced = TryResolveWorldDropFromHit (
+            WorldHitResult,
+            PartyPawn,
+            DropCellX,
+            DropCellY,
+            DropLocalOffset) &&
+            PartyPawn->TryDropCursorItemAtCell (
+                DropCellX,
+                DropCellY,
+                EGridEdge::None,
+                DropLocalOffset);
 
         if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
         {
             InventoryWidget->RefreshInventory ();
         }
-
         if (!bPlaced)
         {
-            ShowInteractionFeedback (FText::FromString (TEXT ("Dépôt impossible.")));
+            ShowInteractionFeedback (FText::FromString (TEXT ("Impossible de déposer ici.")));
         }
         SetGridInteractionCursor (bPlaced ? EGridInteractionCursor::Default : EGridInteractionCursor::CannotPlaceItem);
         return;
@@ -244,19 +277,42 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
     FGridItemInstance CursorItem;
     if (PartyPawn && PartyPawn->GetCursorItem (CursorItem))
     {
-        FHitResult ReceptacleHitResult;
-        AGridReceptacleActor* ReceptacleActor = nullptr;
-        const bool bHasReceptacle = TryGetReceptacleUnderCursor (ReceptacleHitResult, ReceptacleActor);
-        const bool bCanPlace = bHasReceptacle &&
-            IsHitWithinInteractionDistance (ReceptacleHitResult) &&
-            ReceptacleActor &&
-            PartyPawn->LevelRuntimeActor &&
-            PartyPawn->LevelRuntimeActor->CanPartyInteractWithEdgeObject (
-                ReceptacleActor->CellX,
-                ReceptacleActor->CellY,
-                ReceptacleActor->Edge,
-                PartyPawn) &&
-            ReceptacleActor->CanAcceptItemInstance (CursorItem);
+        FHitResult WorldHitResult;
+        const bool bHasWorldHit = TryGetWorldHitUnderCursor (WorldHitResult);
+        AActor* HitActor = bHasWorldHit ? WorldHitResult.GetActor () : nullptr;
+        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
+        if (!ReceptacleActor && HitActor)
+        {
+            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
+        }
+
+        bool bCanPlace = false;
+        if (bHasWorldHit && IsHitWithinInteractionDistance (WorldHitResult))
+        {
+            if (ReceptacleActor)
+            {
+                bCanPlace =
+                    PartyPawn->LevelRuntimeActor &&
+                    PartyPawn->LevelRuntimeActor->CanPartyInteractWithEdgeObject (
+                        ReceptacleActor->CellX,
+                        ReceptacleActor->CellY,
+                        ReceptacleActor->Edge,
+                        PartyPawn) &&
+                    ReceptacleActor->CanAcceptItemInstance (CursorItem);
+            }
+            else
+            {
+                int32 DropCellX = INDEX_NONE;
+                int32 DropCellY = INDEX_NONE;
+                FVector DropLocalOffset = FVector::ZeroVector;
+                bCanPlace = TryResolveWorldDropFromHit (
+                    WorldHitResult,
+                    PartyPawn,
+                    DropCellX,
+                    DropCellY,
+                    DropLocalOffset);
+            }
+        }
 
         SetGridInteractionCursor (bCanPlace
             ? EGridInteractionCursor::PlaceItem
@@ -403,6 +459,90 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHi
 
     OutHitResult = Hit;
     OutInteractableActor = HitActor;
+    return true;
+}
+
+bool AGrimrockPlayerController::TryGetWorldHitUnderCursor (FHitResult& OutHitResult) const
+{
+    OutHitResult = FHitResult ();
+    FVector WorldOrigin = FVector::ZeroVector;
+    FVector WorldDirection = FVector::ZeroVector;
+    if (!DeprojectMousePositionToWorld (WorldOrigin, WorldDirection))
+    {
+        return false;
+    }
+
+    UWorld* World = GetWorld ();
+    APawn* ControlledPawn = GetPawn ();
+    if (!World || !ControlledPawn)
+    {
+        return false;
+    }
+
+    FCollisionQueryParams QueryParams (SCENE_QUERY_STAT (GridMouseWorldDropTrace), true);
+    QueryParams.AddIgnoredActor (ControlledPawn);
+    return World->LineTraceSingleByChannel (
+        OutHitResult,
+        WorldOrigin,
+        WorldOrigin + WorldDirection * 10000.f,
+        ECC_Visibility,
+        QueryParams);
+}
+
+bool AGrimrockPlayerController::TryResolveWorldDropFromHit (
+    const FHitResult& HitResult,
+    const AGrimrockPartyPawn* PartyPawn,
+    int32& OutCellX,
+    int32& OutCellY,
+    FVector& OutLocalOffset) const
+{
+    OutCellX = INDEX_NONE;
+    OutCellY = INDEX_NONE;
+    OutLocalOffset = FVector::ZeroVector;
+    const AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
+    if (!RuntimeActor || !RuntimeActor->LevelAsset)
+    {
+        return false;
+    }
+
+    const float CellSize = RuntimeActor->LevelAsset->CellSize;
+    if (CellSize <= KINDA_SMALL_NUMBER)
+    {
+        return false;
+    }
+
+    const FVector GridLocalPoint =
+        HitResult.ImpactPoint - RuntimeActor->GetActorLocation () - RuntimeActor->GridOrigin;
+    OutCellX = FMath::FloorToInt (GridLocalPoint.X / CellSize);
+    OutCellY = FMath::FloorToInt (GridLocalPoint.Y / CellSize);
+    if (!RuntimeActor->IsWalkableCell (OutCellX, OutCellY))
+    {
+        return false;
+    }
+
+    int32 FrontCellX = INDEX_NONE;
+    int32 FrontCellY = INDEX_NONE;
+    const bool bHasFrontCell = RuntimeActor->TryGetNeighborCell (
+        PartyPawn->CurrentCellX,
+        PartyPawn->CurrentCellY,
+        PartyPawn->Facing,
+        FrontCellX,
+        FrontCellY);
+    const bool bAllowedCell =
+        (OutCellX == PartyPawn->CurrentCellX && OutCellY == PartyPawn->CurrentCellY) ||
+        (bHasFrontCell && OutCellX == FrontCellX && OutCellY == FrontCellY);
+    if (!bAllowedCell)
+    {
+        return false;
+    }
+
+    const FVector CellCenter = RuntimeActor->GetCellCenterWorld (OutCellX, OutCellY, 12.f);
+    const FVector RawOffset = HitResult.ImpactPoint - CellCenter;
+    const float MaxOffset = CellSize * 0.35f;
+    OutLocalOffset = FVector (
+        FMath::Clamp (RawOffset.X, -MaxOffset, MaxOffset),
+        FMath::Clamp (RawOffset.Y, -MaxOffset, MaxOffset),
+        0.f);
     return true;
 }
 

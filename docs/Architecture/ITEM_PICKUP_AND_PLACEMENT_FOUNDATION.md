@@ -100,7 +100,20 @@ Si la définition indique `bStackable=true`, l'ajout complète d'abord les piles
 
 L'opération reste atomique : si toute la quantité ne peut pas être ajoutée, l'inventaire n'est pas modifié et l'item source reste intact. Aucun slot supplémentaire n'est créé automatiquement lorsque l'inventaire est plein.
 
-Le ramassage d'un item monde ajoute actuellement une quantité de 1. Les interactions de séparation de pile, notamment CTRL pour prendre ou déposer une seule unité depuis une pile, appartiennent au flux d'interface inventaire et seront traitées plus tard.
+Le ramassage d'un item placé initialement ajoute une quantité de 1. Un item runtime déposé dans le monde conserve la quantité portée par sa pile.
+
+### Séparation de pile
+
+Les items stackables peuvent être séparés depuis l'interface d'inventaire.
+
+La règle UI retenue est :
+
+- clic ou drag normal : prend ou déplace la pile complète ;
+- CTRL + clic ou drag : prend une seule unité de la pile.
+
+Une unité séparée reçoit un nouveau `RuntimeObjectId`. La pile restante conserve son `RuntimeObjectId`.
+
+Cette logique est gérée par `UGridPartyInventoryComponent` afin de rester indépendante des Blueprints UI. Un item non stackable ou une pile d'une seule unité est toujours pris intégralement.
 
 ### Résolution automatique des définitions
 
@@ -129,7 +142,7 @@ La validation des archétypes accepte donc un item si l'archétype définit `Ite
 - curseur vers case occupée : échange ;
 - curseur vers inventaire plein : refus, curseur inchangé ;
 - curseur vers réceptacle : le curseur est vidé seulement après insertion réussie ;
-- dépôt libre du curseur dans le monde : `TryDropCursorItem()` est déclaré mais retourne actuellement `NotImplemented`.
+- dépôt libre du curseur dans le monde : création d'un item runtime, puis vidage du curseur seulement après succès.
 
 `UGridItemTransferService` couvre les transferts inventaire vers réceptacle, équipement vers réceptacle et réceptacle vers inventaire. Il capture la source et la restaure si l'écriture de destination échoue.
 
@@ -143,7 +156,24 @@ La validation des archétypes accepte donc un item si l'archétype définit `Ite
 - `CannotPlaceItem` : curseur occupé sans cible directe valide, hors portée ou refusé ;
 - `Locked` : valeur du contrat d'interface, mais non produite par le chemin générique des items audité ici.
 
-Quand le curseur est occupé, le clic monde ne recherche qu'un réceptacle directement touché. Il n'existe ni dépôt magique dans une cible voisine, ni dépôt libre au sol ou sur une arête.
+Quand le curseur est occupé, un réceptacle directement touché garde la priorité. Si le premier hit `Visibility` n'est pas un réceptacle, le contrôleur tente un dépôt libre sur la cellule résolue depuis le hit. Il n'existe aucun fallback à travers un mur ou une porte fermée.
+
+### Dépôt libre dans le monde
+
+Un item détenu par le curseur peut être déposé librement dans le monde, sans passer par un réceptacle.
+
+Le dépôt crée une instance runtime d'item dans le niveau courant. Le `LevelAsset` n'est pas modifié : il reste la description des placements initiaux du level designer.
+
+L'opération est atomique :
+
+- si le dépôt réussit, le curseur est vidé ;
+- si le dépôt échoue, le curseur conserve l'item.
+
+Un item déposé est enregistré dans `SpawnedItemActors` et `SpawnedItemEntries`, puis redevient ramassable par le système de pickup standard. Sa quantité est conservée, qu'il s'agisse d'une pile complète ou d'une unité séparée.
+
+`FGridLevelRuntimeState::Items` capture son `RuntimeObjectId`, son `ItemDefinitionId`, sa quantité, sa cellule, son arête et sa transform. Le dépôt est donc restauré lors d'une transition de niveau sans créer de placement dans le DataAsset.
+
+Cette première version accepte les hits qui se résolvent sur la cellule du groupe ou sur la cellule directement devant lui. Le placement utilise le centre de la cellule avec un décalage horizontal limité dérivé du point d'impact.
 
 ## 8. Torches
 
@@ -183,6 +213,8 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 - Un refus de destination ne doit pas supprimer la source.
 - Un ajout d'inventaire doit accepter toute la quantité demandée ou ne modifier aucun slot.
 - Chaque pile nouvellement créée possède son propre `RuntimeObjectId`.
+- Une unité séparée possède un nouvel identifiant ; la pile source conserve le sien.
+- Un dépôt monde ne modifie jamais le `LevelAsset`.
 - Le survol et l'action finale utilisent la même règle d'accessibilité.
 - Un acteur visuel tenu ne constitue pas une nouvelle instance.
 - Un item contenu appartient au réceptacle et ne doit pas être ramassé directement par le niveau.
@@ -195,20 +227,25 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 4. Dans la cellule devant le groupe, vérifier que seule l'arête faisant face au groupe est accessible.
 5. Placer l'item derrière un mur, une porte fermée puis un autre bloqueur `Visibility` : le premier impact empêche le ramassage.
 6. Ramasser plusieurs exemplaires d'un item stackable : les piles existantes sont complétées jusqu'à `MaxStackSize`, puis une nouvelle pile est créée.
-7. Remplir les piles et les cases libres, puis tenter un ramassage : l'acteur monde reste présent et l'inventaire ne change pas.
-8. Déplacer un item inventaire vers le curseur, tenter avec un curseur déjà occupé, puis tester une case vide, une case occupée et un inventaire plein.
-9. Cliquer sans réceptacle direct, hors portée, sur un réceptacle incompatible puis compatible : le curseur reste inchangé sur les refus.
-10. Tester le retrait autorisé, interdit et verrouillé d'un réceptacle.
-11. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans un support simple puis retournable.
-12. Vérifier la lumière, le visuel du support et le visuel tenu après retrait et redépôt.
-13. Valider un niveau contenant un item sans définition, sur cellule non jouable et avec identifiants contradictoires.
+7. Avec une pile de trois unités, CTRL + clic puis CTRL + drag : le curseur reçoit une unité et la pile source en conserve deux.
+8. Déposer une pile complète puis une unité séparée sur une cellule valide : l'acteur apparaît et le curseur est vidé.
+9. Ramasser les items déposés : leurs quantités rejoignent les piles compatibles de l'inventaire.
+10. Tenter un dépôt hors portée, hors des cellules autorisées ou sans définition résoluble : le curseur reste inchangé.
+11. Remplir les piles et les cases libres, puis tenter un ramassage : l'acteur monde reste présent et l'inventaire ne change pas.
+12. Déplacer un item inventaire vers le curseur, tenter avec un curseur déjà occupé, puis tester une case vide, une case occupée et un inventaire plein.
+13. Cliquer hors portée, sur un réceptacle incompatible puis compatible : le curseur reste inchangé sur les refus.
+14. Tester le retrait autorisé, interdit et verrouillé d'un réceptacle.
+15. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans un support simple puis retournable.
+16. Vérifier la lumière, le visuel du support et le visuel tenu après retrait et redépôt.
+17. Valider un niveau contenant un item sans définition, sur cellule non jouable et avec identifiants contradictoires.
 
 ## 13. Limites actuelles
 
-- Le dépôt libre d'un item du curseur dans le monde n'est pas implémenté.
 - Le ramassage monde alimente directement l'inventaire, pas le curseur.
-- La séparation de pile avec CTRL n'est pas implémentée.
+- Le dépôt libre est limité à la cellule courante ou directement devant le groupe.
 - Le poids des items sur les Pressure Plates n'est pas implémenté.
+- Le dépôt libre ne déclenche donc pas encore les Pressure Plates par poids. Ce calcul sera traité séparément en sommant les poids des items runtime présents sur la plaque.
+- Le nombre de cases d'inventaire n'est pas étendu automatiquement.
 - Les actifs `.uasset` déterminent les variantes concrètes de supports et ne sont pas audités par ce document.
 
 Les curseurs d'item et le retour court d'inventaire plein sont décrits dans

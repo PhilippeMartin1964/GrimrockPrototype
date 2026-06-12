@@ -650,6 +650,10 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         ItemState.ItemDefinitionId = !Entry.ItemDefinitionId.IsNone ()
             ? Entry.ItemDefinitionId
             : ResolvePickupItemDefinitionId (ItemActor, Entry.ItemArchetypeId);
+        ItemState.Quantity = FMath::Max (1, Entry.Quantity);
+        ItemState.CellX = Entry.Cell.X;
+        ItemState.CellY = Entry.Cell.Y;
+        ItemState.Edge = Entry.Edge;
 
         if (ItemState.ItemDefinitionId.IsNone ())
         {
@@ -810,7 +814,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             {
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
                 ItemActor->SetRuntimeObjectId (Pair.Key);
+                ItemActor->SetRuntimeCell (ItemState.CellX, ItemState.CellY);
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+                Entry.Cell = FIntPoint (ItemState.CellX, ItemState.CellY);
+                Entry.Edge = ItemState.Edge;
+                Entry.Quantity = FMath::Max (1, ItemState.Quantity);
                 bFoundExistingItem = true;
             }
             break;
@@ -819,20 +827,21 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         const FName RuntimeItemDefinitionId = !ItemState.ItemDefinitionId.IsNone () ? ItemState.ItemDefinitionId : ItemState.ArchetypeId;
         if (!bFoundExistingItem && !RuntimeItemDefinitionId.IsNone ())
         {
-            UGridItemDefinitionAsset* ItemDefinition = nullptr;
+            UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (RuntimeItemDefinitionId);
             AGridItemActor* ItemActor = SpawnItemActorForDefinition (ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
             if (ItemActor)
             {
                 const FGridLevelObjectData* ItemObjectData = FindLevelObjectDataById (LevelAsset, Pair.Key);
                 const FIntPoint RuntimeCell = ItemObjectData
                     ? FIntPoint (ItemObjectData->CellX, ItemObjectData->CellY)
-                    : FIntPoint (ItemActor->RuntimeCellX, ItemActor->RuntimeCellY);
-                const EGridEdge RuntimeEdge = ItemObjectData ? ItemObjectData->Edge : EGridEdge::None;
+                    : FIntPoint (ItemState.CellX, ItemState.CellY);
+                const EGridEdge RuntimeEdge = ItemObjectData ? ItemObjectData->Edge : ItemState.Edge;
 
                 ItemActor->SetActorTransform (ItemState.Transform, false, nullptr, ETeleportType::TeleportPhysics);
                 ItemActor->SetRuntimeObjectId (Pair.Key);
                 ItemActor->SetRuntimeCell (RuntimeCell.X, RuntimeCell.Y);
                 ItemActor->ConfigureAsWorldPickup ();
+                ItemActor->OnPlacedInWorld ();
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
                 SpawnedItemActors.Add (ItemActor);
 
@@ -844,6 +853,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 Entry.ItemArchetypeId = !ItemState.ArchetypeId.IsNone () ? ItemState.ArchetypeId : RuntimeItemDefinitionId;
                 Entry.ItemDefinitionAsset = ItemDefinition;
                 Entry.ItemDefinitionId = RuntimeItemDefinitionId;
+                Entry.Quantity = FMath::Max (1, ItemState.Quantity);
                 SpawnedItemEntries.Add (Entry);
             }
         }
@@ -2424,7 +2434,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
             ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
         }
         ItemInstance.ItemDefinitionId = ItemDefinitionId;
-        ItemInstance.Quantity = 1;
+        ItemInstance.Quantity = FMath::Max (1, Entry.Quantity);
         ItemInstance.Weight = 0.0f;
         ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
         ItemInstance.LastWorldTransform = ItemActor->GetActorTransform ();
@@ -2491,7 +2501,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
             ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
         }
         ItemInstance.ItemDefinitionId = ItemDefinitionId;
-        ItemInstance.Quantity = 1;
+        ItemInstance.Quantity = FMath::Max (1, Entry.Quantity);
         ItemInstance.Weight = 0.0f;
         ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
         ItemInstance.LastWorldTransform = ItemActor->GetActorTransform ();
@@ -2521,6 +2531,104 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
     }
 
     return false;
+}
+
+bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
+    const FGridItemInstance& ItemInstance,
+    int32 CellX,
+    int32 CellY,
+    EGridEdge Edge,
+    const FVector& LocalOffset)
+{
+    if (!LevelAsset || !ItemInstance.IsValid () || !LevelAsset->IsValidCoord (CellX, CellY))
+    {
+        return false;
+    }
+
+    const FGridLevelCellData& Cell = LevelAsset->GetCell (CellX, CellY);
+    if (Cell.CellType == EGridCellType::Empty || Cell.bBlocksOccupancy)
+    {
+        return false;
+    }
+
+    UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId);
+    if (!ItemDefinition)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Item=%s Reason=DefinitionNotResolved"),
+            *ItemInstance.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    FTransform DropTransform;
+    if (Edge == EGridEdge::None)
+    {
+        DropTransform = FTransform (
+            FRotator::ZeroRotator,
+            GetCellCenterWorld (CellX, CellY, 12.f) + LocalOffset,
+            FVector::OneVector);
+    }
+    else
+    {
+        FGridLevelObjectData PlacementData;
+        PlacementData.Type = EGridLevelObjectType::Item;
+        PlacementData.CellX = CellX;
+        PlacementData.CellY = CellY;
+        PlacementData.Edge = Edge;
+        if (!GetObjectPlacementTransform (PlacementData, DropTransform))
+        {
+            return false;
+        }
+        DropTransform.AddToTranslation (LocalOffset);
+    }
+
+    if (!IsSafeRuntimeRenderTransform (DropTransform))
+    {
+        return false;
+    }
+
+    AGridItemActor* ItemActor = SpawnItemActorForDefinition (
+        ItemDefinition,
+        ItemInstance.ItemDefinitionId,
+        this,
+        nullptr);
+    if (!ItemActor)
+    {
+        return false;
+    }
+
+    const FGuid RuntimeObjectId = ItemInstance.RuntimeObjectId.IsValid ()
+        ? ItemInstance.RuntimeObjectId
+        : FGuid::NewGuid ();
+    ItemActor->SetActorTransform (DropTransform);
+    ItemActor->InitializeFromItemDefinition (ItemDefinition, RuntimeObjectId);
+    ItemActor->SetRuntimeObjectId (RuntimeObjectId);
+    ItemActor->SetRuntimeCell (CellX, CellY);
+    ItemActor->ConfigureAsWorldPickup ();
+    ItemActor->OnPlacedInWorld ();
+    ItemActor->SetItemLightsEnabled (ItemInstance.bLightsEnabled);
+
+    FGridSpawnedItemRuntimeEntry Entry;
+    Entry.Cell = FIntPoint (CellX, CellY);
+    Entry.Edge = Edge;
+    Entry.ItemActor = ItemActor;
+    Entry.ObjectId = RuntimeObjectId;
+    Entry.ItemArchetypeId = ItemInstance.ItemDefinitionId;
+    Entry.ItemDefinitionAsset = ItemDefinition;
+    Entry.ItemDefinitionId = ItemInstance.ItemDefinitionId;
+    Entry.Quantity = FMath::Max (1, ItemInstance.Quantity);
+
+    SpawnedItemActors.Add (ItemActor);
+    SpawnedItemEntries.Add (Entry);
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory WorldDrop Item=%s RuntimeId=%s Quantity=%d Cell=(%d,%d) Edge=%d Result=true"),
+        *Entry.ItemDefinitionId.ToString (),
+        *Entry.ObjectId.ToString (),
+        Entry.Quantity,
+        CellX,
+        CellY,
+        static_cast<int32> (Edge));
+    return true;
 }
 
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
@@ -2628,6 +2736,7 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     Entry.ItemArchetypeId = ObjectData.ArchetypeId;
     Entry.ItemDefinitionAsset = ItemDefinition;
     Entry.ItemDefinitionId = ItemDefinitionId;
+    Entry.Quantity = 1;
     SpawnedItemEntries.Add (Entry);
         UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."), *ItemDefinitionId.ToString (), *ObjectData.ObjectId.ToString ());
 }

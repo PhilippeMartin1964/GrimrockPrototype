@@ -30,6 +30,12 @@ public:
     UPROPERTY (BlueprintReadWrite, Category = "Inventory|Drag")
     bool bHasItem = false;
 
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Drag")
+    int32 RequestedQuantity = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Drag")
+    bool bSplitStack = false;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
     void InitializeFromSlot (
         EGridInventoryUiSlotType InSlotType,

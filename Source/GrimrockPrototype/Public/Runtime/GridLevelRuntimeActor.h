@@ -56,6 +56,9 @@ struct FGridSpawnedItemRuntimeEntry
 
     UPROPERTY (Transient)
     FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (Transient)
+    int32 Quantity = 1;
 };
 
 UCLASS ()
@@ -262,6 +265,14 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryPickupItemActor (AGridItemActor* ItemActor, AGrimrockPartyPawn* PartyPawn);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|World")
+    bool TryDropItemInstanceAtCell (
+        const FGridItemInstance& ItemInstance,
+        int32 CellX,
+        int32 CellY,
+        EGridEdge Edge,
+        const FVector& LocalOffset);
 
     bool CanPartyPickupItemActor (const AGridItemActor* ItemActor, const AGrimrockPartyPawn* PartyPawn) const;
     bool CanPartyPickupItemEntry (

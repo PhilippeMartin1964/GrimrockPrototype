@@ -138,6 +138,9 @@ public:
     bool TryTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
+    bool TryTakeInventorySlotQuantityToCursor (int32 CharacterIndex, int32 InventorySlotIndex, int32 Quantity);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Cursor")
     bool TryPlaceCursorItemInCharacterInventorySlot (int32 CharacterIndex, int32 TargetSlotIndex);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")

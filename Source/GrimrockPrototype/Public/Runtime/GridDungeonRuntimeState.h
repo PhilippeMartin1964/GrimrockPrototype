@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/GridTypes.h"
 #include "GridDungeonRuntimeState.generated.h"
 
 USTRUCT (BlueprintType)
@@ -61,6 +62,18 @@ struct FGridRuntimeItemState
 
     UPROPERTY (Transient, BlueprintReadWrite)
     FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    int32 Quantity = 1;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    int32 CellX = INDEX_NONE;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    int32 CellY = INDEX_NONE;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    EGridEdge Edge = EGridEdge::None;
 
     UPROPERTY (Transient, BlueprintReadWrite)
     FTransform Transform = FTransform::Identity;

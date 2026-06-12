@@ -967,6 +967,14 @@ const FGridItemInstance& UGridPartyInventoryComponent::GetCursorItem () const
 
 bool UGridPartyInventoryComponent::TryTakeInventorySlotToCursor (int32 CharacterIndex, int32 InventorySlotIndex)
 {
+    return TryTakeInventorySlotQuantityToCursor (CharacterIndex, InventorySlotIndex, MAX_int32);
+}
+
+bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor (
+    int32 CharacterIndex,
+    int32 InventorySlotIndex,
+    int32 Quantity)
+{
     if (HasCursorItem ())
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=CursorOccupied"),
@@ -983,6 +991,15 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotToCursor (int32 Character
         return false;
     }
 
+    if (Quantity <= 0)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory Cursor Take Failed Character=%d Slot=%d Reason=InvalidQuantity Quantity=%d"),
+            CharacterIndex,
+            InventorySlotIndex,
+            Quantity);
+        return false;
+    }
+
     FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
     if (!CharacterState.InventorySlots.IsValidIndex (InventorySlotIndex) || CharacterState.InventorySlots[InventorySlotIndex].IsEmpty ())
     {
@@ -993,22 +1010,41 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotToCursor (int32 Character
     }
 
     FGridInventorySlot& InventorySlot = CharacterState.InventorySlots[InventorySlotIndex];
+    const UGridItemDefinitionAsset* Definition = FindItemDefinition (InventorySlot.Item.ItemDefinitionId);
+    const bool bCanSplitStack =
+        Definition &&
+        Definition->bStackable &&
+        InventorySlot.Item.Quantity > 1 &&
+        Quantity < InventorySlot.Item.Quantity;
+
     FGridItemInstance ItemToCursor = InventorySlot.Item;
+    if (bCanSplitStack)
+    {
+        InventorySlot.Item.Quantity -= Quantity;
+        ItemToCursor.Quantity = Quantity;
+        ItemToCursor.RuntimeObjectId = FGuid::NewGuid ();
+    }
+    else
+    {
+        InventorySlot = FGridInventorySlot ();
+    }
+
     ItemToCursor.OwnerType = EGridItemOwnerType::Cursor;
     ItemToCursor.OwnerGuid = FGuid ();
     ItemToCursor.OwnerCharacterIndex = INDEX_NONE;
     ItemToCursor.EquipmentSlot = EGridEquipmentSlot::None;
 
-    InventorySlot = FGridInventorySlot ();
     PartyInventoryState.CursorItem = ItemToCursor;
     PartyInventoryState.bHasCursorItem = true;
     RecalculateCharacterWeight (CharacterIndex);
 
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Take FromInventory Character=%d Slot=%d Item=%s RuntimeId=%s"),
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory Cursor Take FromInventory Character=%d Slot=%d Item=%s RuntimeId=%s Quantity=%d Split=%s"),
         CharacterIndex,
         InventorySlotIndex,
         *ItemToCursor.ItemDefinitionId.ToString (),
-        *ItemToCursor.RuntimeObjectId.ToString ());
+        *ItemToCursor.RuntimeObjectId.ToString (),
+        ItemToCursor.Quantity,
+        bCanSplitStack ? TEXT ("true") : TEXT ("false"));
     return true;
 }
 

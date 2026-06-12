@@ -1232,6 +1232,28 @@ bool AGrimrockPartyPawn::TryPlaceCursorItemInReceptacle (AGridReceptacleActor* R
     return true;
 }
 
+bool AGrimrockPartyPawn::TryDropCursorItemAtCell (
+    int32 CellX,
+    int32 CellY,
+    EGridEdge Edge,
+    const FVector& LocalOffset)
+{
+    if (!PartyInventoryComponent || !PartyInventoryComponent->HasCursorItem () || !LevelRuntimeActor)
+    {
+        return false;
+    }
+
+    const FGridItemInstance CursorItem = PartyInventoryComponent->GetCursorItem ();
+    if (!LevelRuntimeActor->TryDropItemInstanceAtCell (CursorItem, CellX, CellY, Edge, LocalOffset))
+    {
+        return false;
+    }
+
+    PartyInventoryComponent->ClearCursorItem ();
+    PartyInventoryComponent->LogInventoryOwnershipDiagnostics ();
+    return true;
+}
+
 bool AGrimrockPartyPawn::DebugPlaceCursorItemInFrontReceptacle ()
 {
     if (!PartyInventoryComponent)

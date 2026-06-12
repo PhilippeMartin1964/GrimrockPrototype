@@ -258,6 +258,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle")
     bool TryPlaceCursorItemInReceptacle (AGridReceptacleActor* ReceptacleActor);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|World")
+    bool TryDropCursorItemAtCell (int32 CellX, int32 CellY, EGridEdge Edge, const FVector& LocalOffset);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle|Debug")
     bool DebugPlaceCursorItemInFrontReceptacle ();
 

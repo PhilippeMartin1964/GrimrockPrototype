@@ -509,7 +509,9 @@ bool UGridInventoryWidget::HandleSlotDrop (
     EGridInventoryUiSlotType SourceType,
     int32 SourceIndex,
     EGridInventoryUiSlotType TargetType,
-    int32 TargetIndex)
+    int32 TargetIndex,
+    bool bSplitStack,
+    int32 RequestedQuantity)
 {
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"),
         GetGridInventoryUiSlotTypeName (SourceType),
@@ -559,10 +561,27 @@ bool UGridInventoryWidget::HandleSlotDrop (
         switch (SourceType)
         {
         case EGridInventoryUiSlotType::Inventory:
-            bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot (
-                CharacterIndex,
-                SourceIndex,
-                TargetIndex);
+            if (bSplitStack)
+            {
+                const bool bTookSplitStack = InventoryComponent->TryTakeInventorySlotQuantityToCursor (
+                    CharacterIndex,
+                    SourceIndex,
+                    FMath::Max (1, RequestedQuantity));
+                bInventoryTargetResult =
+                    bTookSplitStack &&
+                    InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
+                if (!bInventoryTargetResult && bTookSplitStack && InventoryComponent->HasCursorItem ())
+                {
+                    InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
+                }
+            }
+            else
+            {
+                bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot (
+                    CharacterIndex,
+                    SourceIndex,
+                    TargetIndex);
+            }
             UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"),
                 SourceIndex,
                 TargetIndex,
@@ -628,7 +647,12 @@ bool UGridInventoryWidget::HandleSlotDrop (
         switch (SourceType)
         {
         case EGridInventoryUiSlotType::Inventory:
-            return InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SourceIndex);
+            return bSplitStack
+                ? InventoryComponent->TryTakeInventorySlotQuantityToCursor (
+                    CharacterIndex,
+                    SourceIndex,
+                    FMath::Max (1, RequestedQuantity))
+                : InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SourceIndex);
         case EGridInventoryUiSlotType::MainHand:
             return OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor ();
         case EGridInventoryUiSlotType::OffHand:
@@ -706,7 +730,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
     return bResult;
 }
 
-bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex)
+bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex, bool bSplitStack)
 {
     if (!InventoryComponent)
     {
@@ -720,7 +744,9 @@ bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex)
     const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
     const bool bResult = bCursorBefore
         ? InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ()
-        : InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SlotIndex);
+        : (bSplitStack
+            ? InventoryComponent->TryTakeInventorySlotQuantityToCursor (CharacterIndex, SlotIndex, 1)
+            : InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SlotIndex));
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"),
         SlotIndex,
