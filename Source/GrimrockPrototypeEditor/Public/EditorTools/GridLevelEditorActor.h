@@ -413,15 +413,6 @@ public:
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
     bool SyncSelectedItemDefinitionIdFromAsset ();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
-    bool SetSelectedReceptacleInitialContainedItemDefinition (UGridItemDefinitionAsset* NewItemDefinitionAsset);
-
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
-    bool SetSelectedReceptacleInitialContainedItemDefinitionId (FName NewItemDefinitionId);
-
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
-    bool SyncSelectedReceptacleInitialItemDefinitionIdFromAsset ();
-
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectTag (FName NewTag);
 

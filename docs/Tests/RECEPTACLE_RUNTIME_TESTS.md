@@ -45,7 +45,7 @@ GO récents. Pour chaque preset :
 
 1. Créer une sous-classe Blueprint de `BP_GridReceptacleActor`.
 2. Régler dans ses Class Defaults `ReceptacleKind`, `VisualPlacementMode`,
-   `ItemPolicy`, `AcceptedItemTypes` et les autres propriétés runtime indiquées.
+   `ItemPolicy` et les autres propriétés runtime indiquées.
 3. Créer un `UGridObjectArchetypeAsset`.
 4. Régler `SupportedType=Receptacle`, `ObjectCategory=Receptacle`,
    `bIsInteractable=true` et `RuntimeActorClass` sur le Blueprint du preset.
@@ -76,8 +76,7 @@ ReceptacleKind = Presentation
 StorageMode = SingleSlot
 VisualPlacementMode = AttachedSocket
 ItemPolicy = Returnable
-bAcceptAnyItem = false
-AcceptedItemTypes = [Torch]
+bAcceptAnyItem = true
 MaxContainedItems = 1
 bSimulatePhysicsWhenPlaced = false
 ```
@@ -87,9 +86,7 @@ Archetype :
 ```text
 PlacementKind = Wall
 Category = Receptacles
-DefaultBehavior.Receptacle.bAcceptAnyItem = false
-DefaultBehavior.Receptacle.AcceptedItemTags = [Torch]
-DefaultBehavior.Receptacle.AcceptedArchetypeIds = [Torch_Test]
+DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 1
 DefaultBehavior.Receptacle.VisualPlacementMode = AttachedSocket
 ```
@@ -149,8 +146,7 @@ ReceptacleKind = Mechanism
 StorageMode = SingleSlot
 VisualPlacementMode = AttachedSocket
 ItemPolicy = Locked
-bAcceptAnyItem = false
-AcceptedItemTypes = [Gem]
+bAcceptAnyItem = true
 MaxContainedItems = 1
 ```
 
@@ -159,13 +155,12 @@ Archetype :
 ```text
 PlacementKind = Wall
 Category = Mechanisms
-DefaultBehavior.Receptacle.bAcceptAnyItem = false
-DefaultBehavior.Receptacle.AcceptedItemTags = [RedGem]
+DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 1
 ```
 
-Ce preset valide à la fois le filtre par tag et le filtre par type. Un item
-explicitement ajouté à `RejectedItemArchetypeIds` doit rester refusé.
+Ce preset valide la politique de retrait verrouillée. Les filtres détaillés ne
+font plus partie du modèle actuel.
 
 ### OfferingBowl_ConsumeOnInsert
 
@@ -193,8 +188,7 @@ Archetype :
 ```text
 PlacementKind = Floor
 Category = Mechanisms
-DefaultBehavior.Receptacle.bAcceptAnyItem = false
-DefaultBehavior.Receptacle.AcceptedItemTags = [Offering]
+DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 4
 ```
 
@@ -225,8 +219,7 @@ Archetype :
 ```text
 PlacementKind = Floor
 Category = Mechanisms
-DefaultBehavior.Receptacle.bAcceptAnyItem = false
-DefaultBehavior.Receptacle.AcceptedItemTags = [Stone]
+DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 4
 DefaultBehavior.Receptacle.VisualPlacementMode = PhysicalAtHit
 ```

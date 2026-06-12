@@ -16,28 +16,6 @@ namespace
 {
     static constexpr float MultiItemVisualSpacing = 18.0f;
 
-    FString JoinNames (const TArray<FName>& Names)
-    {
-        TArray<FString> Values;
-        Values.Reserve (Names.Num ());
-        for (const FName Name : Names)
-        {
-            Values.Add (Name.ToString ());
-        }
-        return FString::Join (Values, TEXT (","));
-    }
-
-    FString JoinItemTypes (const TArray<EGridItemType>& ItemTypes)
-    {
-        TArray<FString> Values;
-        Values.Reserve (ItemTypes.Num ());
-        for (const EGridItemType ItemType : ItemTypes)
-        {
-            Values.Add (UEnum::GetValueAsString (ItemType));
-        }
-        return FString::Join (Values, TEXT (","));
-    }
-
     FName ResolveDefinitionId (const UGridItemDefinitionAsset* Definition, FName FallbackId)
     {
         if (Definition && !Definition->ItemDefinitionId.IsNone ())
@@ -191,41 +169,29 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
         MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
     }
 
-    AcceptedItemDefinitionIds.Reset ();
-    RejectedItemDefinitionIds.Reset ();
     InitialContainedItems.Reset ();
     ContainedItems.Reset ();
     RemovedInitialItemDefinitionIds.Reset ();
     bInitialItemsInitialized = false;
-    InitialContainedItemArchetypeId = Params.InitialContainedItemArchetypeId;
     ContainedItemArchetypeId = NAME_None;
-
-    // ItemDefinitionId remains the primary runtime identity.
-    // Legacy AcceptedArchetypeIds / RejectedItemArchetypeIds remain valid item ids while GridObjectBehavior still exposes them.
-    AcceptedItemDefinitionIds = Params.AcceptedArchetypeIds;
-    RejectedItemDefinitionIds = Params.RejectedItemArchetypeIds;
-    for (const FName AcceptedTag : Params.AcceptedItemTags)
-    {
-        AcceptedItemTags.AddUnique (AcceptedTag);
-    }
-
-    if (!ObjectData.Tag.IsNone () && AcceptedItemDefinitionIds.Num () == 0)
-    {
-        AcceptedItemDefinitionIds.Add (ObjectData.Tag);
-        bAcceptAnyItem = false;
-    }
 
     if (ObjectData.bInitiallyActive)
     {
-        FGridInitialReceptacleItem InitialItem;
-        InitialItem.ItemDefinition = Params.InitialContainedItemDefinition;
-        InitialItem.ItemDefinitionId = ResolveDefinitionId (Params.InitialContainedItemDefinition, Params.InitialContainedItemDefinitionId);
-        InitialItem.ItemArchetypeId = Params.InitialContainedItemArchetypeId;
-        InitialItem.Quantity = 1;
-
-        if (!InitialItem.ItemDefinitionId.IsNone () || !InitialItem.ItemArchetypeId.IsNone () || InitialItem.ItemDefinition)
+        for (const FGridReceptacleInitialItemConfig& ConfigItem : Params.InitialContent)
         {
-            InitialContainedItems.Add (InitialItem);
+            if (!ConfigItem.ItemDefinition)
+            {
+                continue;
+            }
+
+            FGridInitialReceptacleItem InitialItem;
+            InitialItem.ItemDefinition = ConfigItem.ItemDefinition;
+            InitialItem.ItemDefinitionId = ConfigItem.ItemDefinition->ItemDefinitionId;
+            InitialItem.Quantity = FMath::Max (1, ConfigItem.Quantity);
+            if (!InitialItem.ItemDefinitionId.IsNone ())
+            {
+                InitialContainedItems.Add (InitialItem);
+            }
         }
     }
 
@@ -341,22 +307,7 @@ float AGridReceptacleActor::GetContainedTotalWeight () const
 
 bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
 {
-    if (ItemDefinitionId.IsNone ())
-    {
-        return false;
-    }
-
-    if (RejectedItemDefinitionIds.Contains (ItemDefinitionId))
-    {
-        return false;
-    }
-
-    if (bAcceptAnyItem)
-    {
-        return true;
-    }
-
-    return AcceptedItemDefinitionIds.Contains (ItemDefinitionId);
+    return !ItemDefinitionId.IsNone () && !IsFull () && bCanInsertItem && bAcceptAnyItem;
 }
 
 bool AGridReceptacleActor::CanAcceptItemInstance (const FGridItemInstance& Item) const
@@ -372,20 +323,7 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
 {
     OutResult = FGridReceptacleAcceptanceResult ();
 
-    const AGridLevelRuntimeActor* RuntimeActor = FindRuntimeActor (GetWorld ());
-    const UGridItemDefinitionAsset* ItemDefinition = RuntimeActor
-        ? RuntimeActor->ResolveRuntimeItemDefinition (Item.ItemDefinitionId)
-        : nullptr;
-    if (!ItemDefinition)
-    {
-        const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (UGameplayStatics::GetPlayerPawn (this, 0));
-        if (PartyPawn && PartyPawn->PartyInventoryComponent)
-        {
-            ItemDefinition = PartyPawn->PartyInventoryComponent->FindItemDefinition (Item.ItemDefinitionId);
-        }
-    }
-
-    auto LogDiagnostic = [this, &Item, ItemDefinition, bLogDiagnostics] (const TCHAR* Outcome, const FString& Decision)
+    auto LogDiagnostic = [this, &Item, bLogDiagnostics] (const TCHAR* Outcome, const FString& Decision)
     {
         if (!bLogDiagnostics)
         {
@@ -395,9 +333,7 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
         UE_LOG (LogTemp, VeryVerbose,
             TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
                 "AcceptAny=%s CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
-                "ItemDefinitionId=%s RuntimeObjectId=%s ItemDefinitionResolved=%s ItemDefinition=%s "
-                "ItemTags=[%s] ItemType=%s AcceptedItemTags=[%s] AcceptedItemTypes=[%s] "
-                "AcceptedItemDefinitionIds=[%s] RejectedItemDefinitionIds=[%s] %s"),
+                "ItemDefinitionId=%s RuntimeObjectId=%s %s"),
             Outcome,
             *GetName (),
             *ObjectId.ToString (),
@@ -409,14 +345,6 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
             *UEnum::GetValueAsString (ItemPolicy),
             *Item.ItemDefinitionId.ToString (),
             *Item.RuntimeObjectId.ToString (),
-            ItemDefinition ? TEXT ("true") : TEXT ("false"),
-            ItemDefinition ? *ItemDefinition->GetPathName () : TEXT ("None"),
-            ItemDefinition ? *JoinNames (ItemDefinition->ItemTags) : TEXT (""),
-            ItemDefinition ? *UEnum::GetValueAsString (ItemDefinition->ItemType) : TEXT ("Unresolved"),
-            *JoinNames (AcceptedItemTags),
-            *JoinItemTypes (AcceptedItemTypes),
-            *JoinNames (AcceptedItemDefinitionIds),
-            *JoinNames (RejectedItemDefinitionIds),
             *Decision);
     };
 
@@ -462,36 +390,9 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
     {
         return Reject (EGridReceptacleRejectReason::InsertDisabled);
     }
-    if (RejectedItemDefinitionIds.Contains (Item.ItemDefinitionId))
-    {
-        return Reject (EGridReceptacleRejectReason::ExplicitlyRejected);
-    }
-
-    const bool bEffectiveAcceptAny =
-        ItemPolicy == EGridReceptacleItemPolicy::AcceptAny ||
-        (ItemPolicy != EGridReceptacleItemPolicy::Filtered && bAcceptAnyItem);
-    if (bEffectiveAcceptAny)
+    if (bAcceptAnyItem)
     {
         return Accept (TEXT ("accepted by accept any"), TEXT ("true"));
-    }
-    if (AcceptedItemDefinitionIds.Contains (Item.ItemDefinitionId))
-    {
-        return Accept (TEXT ("accepted by definition id"), Item.ItemDefinitionId.ToString ());
-    }
-
-    if (ItemDefinition)
-    {
-        for (const FName AcceptedTag : AcceptedItemTags)
-        {
-            if (!AcceptedTag.IsNone () && ItemDefinition->ItemTags.Contains (AcceptedTag))
-            {
-                return Accept (TEXT ("accepted by tag"), AcceptedTag.ToString ());
-            }
-        }
-        if (AcceptedItemTypes.Contains (ItemDefinition->ItemType))
-        {
-            return Accept (TEXT ("accepted by type"), UEnum::GetValueAsString (ItemDefinition->ItemType));
-        }
     }
 
     return Reject (EGridReceptacleRejectReason::NoMatchingAcceptanceRule);
@@ -907,7 +808,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         }
         if (ResolvedItemId.IsNone () && Item.bWasInitialItem)
         {
-            ResolvedItemId = ResolveDefinitionId (Item.ItemDefinition, Item.ItemArchetypeId.IsNone () ? InitialContainedItemArchetypeId : Item.ItemArchetypeId);
+            ResolvedItemId = ResolveDefinitionId (Item.ItemDefinition, Item.ItemDefinitionId);
         }
         if (ResolvedItemId.IsNone ())
         {
@@ -1446,13 +1347,9 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemDefiniti
     {
         return TEXT ("empty item id");
     }
-    if (RejectedItemDefinitionIds.Contains (ItemDefinitionId))
+    if (!bAcceptAnyItem)
     {
-        return TEXT ("item is rejected");
-    }
-    if (!bAcceptAnyItem && !AcceptedItemDefinitionIds.Contains (ItemDefinitionId))
-    {
-        return TEXT ("item not in accepted ids");
+        return TEXT ("receptacle accepts no items");
     }
     if (IsFull ())
     {
@@ -1493,12 +1390,11 @@ void AGridReceptacleActor::InitializeInitialContainedItems ()
         if (ItemDefinitionId.IsNone ())
         {
             UE_LOG (LogTemp, Warning,
-                TEXT ("GridReceptacle InitialItem skipped: ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s InitialArchetypeId=%s"),
+                TEXT ("GridReceptacle InitialItem skipped: ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s"),
                 *ObjectId.ToString (),
                 InitialContainedItems.Num (),
                 ContainedItems.Num (),
-                *InitialItem.ItemDefinitionId.ToString (),
-                *InitialContainedItemArchetypeId.ToString ());
+                *InitialItem.ItemDefinitionId.ToString ());
             continue;
         }
         if (WasInitialItemRemoved (ItemDefinitionId))
@@ -1511,8 +1407,7 @@ void AGridReceptacleActor::InitializeInitialContainedItems ()
 
 FName AGridReceptacleActor::ResolveInitialItemDefinitionId (const FGridInitialReceptacleItem& InitialItem) const
 {
-    return ResolveDefinitionId (InitialItem.ItemDefinition,
-        InitialItem.ItemDefinitionId.IsNone () ? InitialItem.ItemArchetypeId : InitialItem.ItemDefinitionId);
+    return ResolveDefinitionId (InitialItem.ItemDefinition, InitialItem.ItemDefinitionId);
 }
 
 bool AGridReceptacleActor::WasInitialItemRemoved (FName ItemDefinitionId) const

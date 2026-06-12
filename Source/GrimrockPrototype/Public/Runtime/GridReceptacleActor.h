@@ -32,9 +32,6 @@ struct FGridInitialReceptacleItem
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     FName ItemDefinitionId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
-    FName ItemArchetypeId = NAME_None;
-
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "1"))
     int32 Quantity = 1;
 };
@@ -89,7 +86,7 @@ struct FGridContainedReceptacleItem
  * - supports 0..N contained items;
  * - ItemDefinitionId is the official runtime identity;
  * - ItemActor is only an optional visual/runtime representation;
- * - legacy ArchetypeId-based item content is retained as a compatibility fallback.
+ * - initial content is resolved from item definition assets.
  */
 UCLASS (Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridReceptacleActor : public AGridRuntimeObjectActor, public IGridInteractableInterface
@@ -169,23 +166,8 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FRotator PhysicalPlacementInitialRotationOffset = FRotator::ZeroRotator;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
-    TArray<FName> AcceptedItemDefinitionIds;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
-    TArray<FName> RejectedItemDefinitionIds;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
-    TArray<FName> AcceptedItemTags;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Filter")
-    TArray<EGridItemType> AcceptedItemTypes;
-
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Items")
     TArray<FGridInitialReceptacleItem> InitialContainedItems;
-
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Legacy")
-    FName InitialContainedItemArchetypeId = NAME_None;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle|Legacy")
     FName ContainedItemArchetypeId = NAME_None;

@@ -1796,118 +1796,107 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         ? CurrentEditorActor->FindObjectArchetypeById (Obj.ArchetypeId)
         : nullptr;
     const UEnum* PlacementKindEnum = StaticEnum<EGridObjectPlacementKind> ();
-    const TArray<GridEditorWidgetHelpers::FGridArchetypeOption> ItemOptions =
-        GridEditorWidgetHelpers::GetItemArchetypeOptions (CurrentEditorActor ? CurrentEditorActor->ObjectPalette : nullptr);
-
-    auto FindItemLabel = [&ItemOptions] (FName ArchetypeId) -> FText
-    {
-        if (ArchetypeId.IsNone ())
-        {
-            return FText::FromString (TEXT ("None"));
-        }
-
-        for (const GridEditorWidgetHelpers::FGridArchetypeOption& Option : ItemOptions)
-        {
-            if (Option.ArchetypeId == ArchetypeId)
-            {
-                return Option.Label;
-            }
-        }
-
-        return FText::FromName (ArchetypeId);
-    };
-
-    const bool bInitialContentCompatible =
-        Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
-        Behavior.Receptacle.bAcceptAnyItem ||
-        Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId);
-    const bool bHasInitialDefinitionAsset = Behavior.Receptacle.InitialContainedItemDefinition != nullptr;
-    const bool bHasInitialDefinitionId = !Behavior.Receptacle.InitialContainedItemDefinitionId.IsNone ();
-    const bool bUsesLegacyContainedFallback =
-        !bHasInitialDefinitionAsset &&
-        !bHasInitialDefinitionId &&
-        !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
-    const bool bConflictingInitialDefinition =
-        bHasInitialDefinitionAsset &&
-        bHasInitialDefinitionId &&
-        Behavior.Receptacle.InitialContainedItemDefinition->ItemDefinitionId != Behavior.Receptacle.InitialContainedItemDefinitionId;
-
-    TSharedRef<SVerticalBox> AcceptedItemsList = SNew (SVerticalBox);
-    if (ItemOptions.Num () == 0)
-    {
-        AcceptedItemsList->AddSlot ().AutoHeight ()
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("No item archetypes are available in the palette.")))
-                .AutoWrapText (true)
-        ];
-    }
-    else
-    {
-        for (const GridEditorWidgetHelpers::FGridArchetypeOption& Option : ItemOptions)
-        {
-            AcceptedItemsList->AddSlot ().AutoHeight ().Padding (0.f, 1.f)
-            [
-                SNew (SCheckBox)
-                    .IsChecked (Behavior.Receptacle.AcceptedArchetypeIds.Contains (Option.ArchetypeId)
-                        ? ECheckBoxState::Checked
-                        : ECheckBoxState::Unchecked)
-                    .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior, Option] (ECheckBoxState NewState)
-                {
-                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    if (NewState == ECheckBoxState::Checked)
-                    {
-                        NewBehavior.Receptacle.AcceptedArchetypeIds.AddUnique (Option.ArchetypeId);
-                    }
-                    else
-                    {
-                        NewBehavior.Receptacle.AcceptedArchetypeIds.Remove (Option.ArchetypeId);
-                    }
-                    ApplyBehavior (NewBehavior);
-                })
-                    [
-                        SNew (STextBlock)
-                            .Text (Option.Label)
-                    ]
-            ];
-        }
-    }
-
-    auto BuildInitialContentMenu = [Obj, ApplyBehavior, ItemOptions] () -> TSharedRef<SWidget>
+    const UEnum* VisualPlacementModeEnum = StaticEnum<EGridReceptacleVisualPlacementMode> ();
+    auto BuildVisualPlacementModeMenu = [Obj, ApplyBehavior, VisualPlacementModeEnum] () -> TSharedRef<SWidget>
     {
         TSharedRef<SVerticalBox> Menu = SNew (SVerticalBox);
-
-        Menu->AddSlot ().AutoHeight ()
-        [
-            SNew (SButton)
-                .Text (FText::FromString (TEXT ("None")))
-                .OnClicked_Lambda ([Obj, ApplyBehavior] ()
-            {
-                FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                NewBehavior.Receptacle.InitialContainedItemArchetypeId = NAME_None;
-                ApplyBehavior (NewBehavior);
-                return FReply::Handled ();
-            })
-        ];
-
-        for (const GridEditorWidgetHelpers::FGridArchetypeOption& Option : ItemOptions)
+        const EGridReceptacleVisualPlacementMode Modes[] = {
+            EGridReceptacleVisualPlacementMode::AttachedSocket,
+            EGridReceptacleVisualPlacementMode::PhysicalAtHit,
+            EGridReceptacleVisualPlacementMode::ContainerOnly,
+            EGridReceptacleVisualPlacementMode::DisplaySlots
+        };
+        for (const EGridReceptacleVisualPlacementMode Mode : Modes)
         {
             Menu->AddSlot ().AutoHeight ()
             [
                 SNew (SButton)
-                    .Text (Option.Label)
-                    .OnClicked_Lambda ([Obj, ApplyBehavior, Option] ()
+                    .Text (GridEditorWidgetHelpers::GetGridEnumDisplayText (
+                        VisualPlacementModeEnum,
+                        static_cast<int64> (Mode)))
+                    .OnClicked_Lambda ([Obj, ApplyBehavior, Mode] ()
                 {
                     FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                    NewBehavior.Receptacle.InitialContainedItemArchetypeId = Option.ArchetypeId;
+                    NewBehavior.Receptacle.VisualPlacementMode = Mode;
                     ApplyBehavior (NewBehavior);
                     return FReply::Handled ();
                 })
             ];
         }
-
         return Menu;
     };
+    TSharedRef<SVerticalBox> InitialContentList = SNew (SVerticalBox);
+    for (int32 InitialIndex = 0; InitialIndex < Behavior.Receptacle.InitialContent.Num (); ++InitialIndex)
+    {
+        const FGridReceptacleInitialItemConfig& InitialItem =
+            Behavior.Receptacle.InitialContent[InitialIndex];
+        InitialContentList->AddSlot ().AutoHeight ().Padding (0.f, 2.f)
+        [
+            SNew (SHorizontalBox)
+
+            + SHorizontalBox::Slot ().FillWidth (1.f).Padding (0.f, 0.f, 4.f, 0.f)
+            [
+                BuildItemDefinitionAssetPicker (
+                    InitialItem.ItemDefinition,
+                    [Obj, ApplyBehavior, InitialIndex] (UGridItemDefinitionAsset* NewAsset)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        if (NewBehavior.Receptacle.InitialContent.IsValidIndex (InitialIndex))
+                        {
+                            NewBehavior.Receptacle.InitialContent[InitialIndex].ItemDefinition = NewAsset;
+                            ApplyBehavior (NewBehavior);
+                        }
+                    })
+            ]
+
+            + SHorizontalBox::Slot ().AutoWidth ().Padding (0.f, 0.f, 4.f, 0.f)
+            [
+                SNew (SSpinBox<int32>)
+                    .Value (InitialItem.Quantity)
+                    .MinValue (1)
+                    .MinSliderValue (1)
+                    .Delta (1)
+                    .MinDesiredWidth (70.f)
+                    .OnValueCommitted_Lambda ([Obj, ApplyBehavior, InitialIndex] (int32 NewValue, ETextCommit::Type)
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    if (NewBehavior.Receptacle.InitialContent.IsValidIndex (InitialIndex))
+                    {
+                        NewBehavior.Receptacle.InitialContent[InitialIndex].Quantity = FMath::Max (1, NewValue);
+                        ApplyBehavior (NewBehavior);
+                    }
+                })
+            ]
+
+            + SHorizontalBox::Slot ().AutoWidth ()
+            [
+                SNew (SButton)
+                    .Text (FText::FromString (TEXT ("Remove")))
+                    .OnClicked_Lambda ([Obj, ApplyBehavior, InitialIndex] ()
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    if (NewBehavior.Receptacle.InitialContent.IsValidIndex (InitialIndex))
+                    {
+                        NewBehavior.Receptacle.InitialContent.RemoveAt (InitialIndex);
+                        ApplyBehavior (NewBehavior);
+                    }
+                    return FReply::Handled ();
+                })
+            ]
+        ];
+    }
+    InitialContentList->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+    [
+        SNew (SButton)
+            .Text (FText::FromString (TEXT ("Add Initial Item")))
+            .OnClicked_Lambda ([Obj, ApplyBehavior] ()
+        {
+            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+            NewBehavior.Receptacle.InitialContent.AddDefaulted ();
+            ApplyBehavior (NewBehavior);
+            return FReply::Handled ();
+        })
+    ];
 
     return SNew (SBorder)
         .Padding (6.f)
@@ -1951,101 +1940,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
                 [
-                    GridEditorWidgetHelpers::BuildGridPanelSection (
-                        FText::FromString (TEXT ("Initial Contained Item")),
-                        SNew (SVerticalBox)
-
-                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
-                            [
-                                SNew (STextBlock)
-                                    .Text (FText::FromString (TEXT ("Initial receptacle content should reference a UGridItemDefinitionAsset. Legacy archetype content remains supported for compatibility.")))
-                                    .AutoWrapText (true)
-                            ]
-
-                            + SVerticalBox::Slot ().AutoHeight ()
-                            [
-                                GridEditorWidgetHelpers::BuildGridPropertyRow (
-                                    FText::FromString (TEXT ("InitialContainedItemDefinition")),
-                                    BuildItemDefinitionAssetPicker (
-                                        Behavior.Receptacle.InitialContainedItemDefinition,
-                                        [this] (UGridItemDefinitionAsset* NewAsset)
-                                        {
-                                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                                            {
-                                                if (CurrentEditorActor->SetSelectedReceptacleInitialContainedItemDefinition (NewAsset))
-                                                {
-                                                    RequestRefresh ();
-                                                }
-                                            }
-                                        }))
-                            ]
-
-                            + SVerticalBox::Slot ().AutoHeight ()
-                            [
-                                GridEditorWidgetHelpers::BuildGridPropertyRow (
-                                    FText::FromString (TEXT ("InitialContainedItemDefinitionId")),
-                                    SNew (SEditableTextBox)
-                                        .Text (GetNameText (Behavior.Receptacle.InitialContainedItemDefinitionId))
-                                        .MinDesiredWidth (160.f)
-                                        .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
-                                    {
-                                        if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                                        {
-                                            if (CurrentEditorActor->SetSelectedReceptacleInitialContainedItemDefinitionId (GetNameFromEditorText (NewText)))
-                                            {
-                                                RequestRefresh ();
-                                            }
-                                        }
-                                    }))
-                            ]
-
-                            + SVerticalBox::Slot ().AutoHeight ()
-                            [
-                                GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                                    FText::FromString (TEXT ("Legacy InitialContent")),
-                                    FindItemLabel (Behavior.Receptacle.InitialContainedItemArchetypeId))
-                            ]
-
-                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-                            [
-                                SNew (SButton)
-                                    .Text (FText::FromString (TEXT ("Sync Id From Asset")))
-                                    .OnClicked_Lambda ([this] ()
-                                {
-                                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                                    {
-                                        if (CurrentEditorActor->SyncSelectedReceptacleInitialItemDefinitionIdFromAsset ())
-                                        {
-                                            RequestRefresh ();
-                                        }
-                                    }
-                                    return FReply::Handled ();
-                                })
-                            ]
-
-                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-                            [
-                                bUsesLegacyContainedFallback
-                                    ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
-                                        .Text (FText::FromString (TEXT ("Warning: Legacy contained item fallback used.")))
-                                        .AutoWrapText (true)
-                                        .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
-                                    : SNullWidget::NullWidget
-                            ]
-
-                            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 0.f)
-                            [
-                                bConflictingInitialDefinition
-                                    ? StaticCastSharedRef<SWidget> (SNew (STextBlock)
-                                        .Text (FText::FromString (TEXT ("Warning: InitialContainedItemDefinitionId differs from the selected asset id.")))
-                                        .AutoWrapText (true)
-                                        .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
-                                    : SNullWidget::NullWidget
-                            ])
-                ]
-
-                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
-                [
                     SNew (SCheckBox)
                         .IsChecked (Behavior.Receptacle.bAcceptAnyItem ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
                         .OnCheckStateChanged_Lambda ([this, Obj] (ECheckBoxState NewState)
@@ -2068,21 +1962,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
                 [
-                    SNew (SCheckBox)
-                        .IsChecked (Behavior.Receptacle.bSimulatePhysicsWhenPlaced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                        .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
-                    {
-                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                        NewBehavior.Receptacle.bSimulatePhysicsWhenPlaced = NewState == ECheckBoxState::Checked;
-                        ApplyBehavior (NewBehavior);
-                    })
-                        [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Simulate Physics When Placed")))
-                        ]
-                ]
-
-                + SVerticalBox::Slot ().AutoHeight ()
-                [
                     GridEditorWidgetHelpers::BuildGridPropertyRow (
                         FText::FromString (TEXT ("Max Contained Items")),
                         SNew (SSpinBox<int32>)
@@ -2097,6 +1976,39 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                             NewBehavior.Receptacle.MaxContainedItems = FMath::Max (1, NewValue);
                             ApplyBehavior (NewBehavior);
                         }))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Visual Placement Mode")),
+                        SNew (SComboButton)
+                            .ButtonContent ()
+                            [
+                                SNew (STextBlock)
+                                    .Text (GridEditorWidgetHelpers::GetGridEnumDisplayText (
+                                        VisualPlacementModeEnum,
+                                        static_cast<int64> (Behavior.Receptacle.VisualPlacementMode)))
+                            ]
+                            .MenuContent ()
+                            [
+                                BuildVisualPlacementModeMenu ()
+                            ])
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
+                [
+                    SNew (SCheckBox)
+                        .IsChecked (Behavior.Receptacle.bSimulatePhysicsWhenPlaced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        NewBehavior.Receptacle.bSimulatePhysicsWhenPlaced = NewState == ECheckBoxState::Checked;
+                        ApplyBehavior (NewBehavior);
+                    })
+                        [
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Simulate Physics When Placed")))
+                        ]
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
@@ -2154,34 +2066,8 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
             + SVerticalBox::Slot ().AutoHeight ()
                 [
                     GridEditorWidgetHelpers::BuildGridPropertyRow (
-                        FText::FromString (TEXT ("Accepted Items")),
-                        AcceptedItemsList)
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ()
-                [
-                    GridEditorWidgetHelpers::BuildGridPropertyRow (
                         FText::FromString (TEXT ("Initial Content")),
-                        SNew (SComboButton)
-                            .ButtonContent ()
-                            [
-                                SNew (STextBlock)
-                                    .Text (FindItemLabel (Behavior.Receptacle.InitialContainedItemArchetypeId))
-                            ]
-                            .MenuContent ()
-                            [
-                                BuildInitialContentMenu ()
-                            ])
-                ]
-
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
-                [
-                    bInitialContentCompatible
-                        ? SNullWidget::NullWidget
-                        : StaticCastSharedRef<SWidget> (SNew (STextBlock)
-                            .Text (FText::FromString (TEXT ("Warning: Initial Content is not included in Accepted Items.")))
-                            .AutoWrapText (true)
-                            .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
+                        InitialContentList)
                 ]
         ];
 }

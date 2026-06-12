@@ -333,36 +333,20 @@ namespace
 
     FString GetReceptacleWorkflowStatus (const FGridReceptacleBehaviorParams& Receptacle)
     {
-        const bool bHasDefinitionAsset = Receptacle.InitialContainedItemDefinition != nullptr;
-        const bool bHasDefinitionId = !Receptacle.InitialContainedItemDefinitionId.IsNone ();
-        const bool bHasLegacyArchetype = !Receptacle.InitialContainedItemArchetypeId.IsNone ();
-
-        if (bHasDefinitionAsset)
+        if (Receptacle.InitialContent.Num () == 0)
         {
-            const FName AssetId = Receptacle.InitialContainedItemDefinition->ItemDefinitionId;
-            if ((bHasDefinitionId && Receptacle.InitialContainedItemDefinitionId != AssetId) ||
-                (bHasLegacyArchetype && !AssetId.IsNone () && Receptacle.InitialContainedItemArchetypeId != AssetId))
+            return TEXT ("EMPTY_RECEPTACLE");
+        }
+
+        for (const FGridReceptacleInitialItemConfig& InitialItem : Receptacle.InitialContent)
+        {
+            if (!InitialItem.ItemDefinition || InitialItem.ItemDefinition->ItemDefinitionId.IsNone ())
             {
-                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
+                return TEXT ("ERROR_INVALID_INITIAL_CONTENT");
             }
-            return TEXT ("OK_INITIAL_ITEM_DEFINITION_ASSET");
         }
 
-        if (bHasDefinitionId)
-        {
-            if (bHasLegacyArchetype && Receptacle.InitialContainedItemArchetypeId != Receptacle.InitialContainedItemDefinitionId)
-            {
-                return TEXT ("ERROR_CONFLICTING_DEFINITIONS");
-            }
-            return TEXT ("OK_INITIAL_ITEM_DEFINITION_ID");
-        }
-
-        if (bHasLegacyArchetype)
-        {
-            return TEXT ("LEGACY_CONTAINED_ARCHETYPE_FALLBACK");
-        }
-
-        return TEXT ("EMPTY_RECEPTACLE");
+        return TEXT ("OK_INITIAL_CONTENT");
     }
 
     void AppendItemWorkflowDiagnosticsForLevel (FString& Result, const UGridLevelAsset* Asset, const FString& LevelLabel)
@@ -379,7 +363,6 @@ namespace
         int32 ItemPlacementsUsingLegacyFallback = 0;
         int32 Receptacles = 0;
         int32 ReceptaclesUsingInitialDefinition = 0;
-        int32 ReceptaclesUsingLegacyContainedItem = 0;
 
         Result += FString::Printf (TEXT ("Level=%s Asset=%s\n"), *LevelLabel, *Asset->GetName ());
 
@@ -418,35 +401,28 @@ namespace
                 ++Receptacles;
                 const FGridReceptacleBehaviorParams& Receptacle = Object.Behavior.Receptacle;
                 const FString Status = GetReceptacleWorkflowStatus (Receptacle);
-                if (Status == TEXT ("OK_INITIAL_ITEM_DEFINITION_ASSET") || Status == TEXT ("OK_INITIAL_ITEM_DEFINITION_ID"))
+                if (Status == TEXT ("OK_INITIAL_CONTENT"))
                 {
                     ++ReceptaclesUsingInitialDefinition;
                 }
-                else if (Status == TEXT ("LEGACY_CONTAINED_ARCHETYPE_FALLBACK"))
-                {
-                    ++ReceptaclesUsingLegacyContainedItem;
-                }
 
                 Result += FString::Printf (
-                    TEXT ("  Receptacle ObjectId=%s ArchetypeId=%s InitialContainedItemDefinition=%s InitialContainedItemDefinitionId=%s LegacyInitialContainedItemArchetypeId=%s Status=%s\n"),
+                    TEXT ("  Receptacle ObjectId=%s ArchetypeId=%s InitialContentCount=%d Status=%s\n"),
                     *Object.ObjectId.ToString (),
                     *Object.ArchetypeId.ToString (),
-                    *GetObjectWorkflowAssetName (Receptacle.InitialContainedItemDefinition),
-                    *Receptacle.InitialContainedItemDefinitionId.ToString (),
-                    *Receptacle.InitialContainedItemArchetypeId.ToString (),
+                    Receptacle.InitialContent.Num (),
                     *Status);
             }
         }
 
         Result += FString::Printf (
-            TEXT ("  ItemDefinitionWorkflow: ItemPlacements=%d ItemPlacementsUsingDefinitionAsset=%d ItemPlacementsUsingDefinitionId=%d ItemPlacementsUsingLegacyFallback=%d Receptacles=%d ReceptaclesUsingInitialDefinition=%d ReceptaclesUsingLegacyContainedItem=%d\n"),
+            TEXT ("  ItemDefinitionWorkflow: ItemPlacements=%d ItemPlacementsUsingDefinitionAsset=%d ItemPlacementsUsingDefinitionId=%d ItemPlacementsUsingLegacyFallback=%d Receptacles=%d ReceptaclesUsingInitialDefinition=%d\n"),
             ItemPlacements,
             ItemPlacementsUsingDefinitionAsset,
             ItemPlacementsUsingDefinitionId,
             ItemPlacementsUsingLegacyFallback,
             Receptacles,
-            ReceptaclesUsingInitialDefinition,
-            ReceptaclesUsingLegacyContainedItem);
+            ReceptaclesUsingInitialDefinition);
     }
 
 #if WITH_EDITOR
@@ -1849,7 +1825,7 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     {
         NewObject.Type = EGridLevelObjectType::Receptacle;
         NewObject.bInitiallyEnabled = true;
-        NewObject.bInitiallyActive = !NewObject.Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ();
+        NewObject.bInitiallyActive = NewObject.Behavior.Receptacle.InitialContent.Num () > 0;
     }
 
     if (bIsWallReplacingObject)
@@ -3039,76 +3015,6 @@ bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset ()
     return true;
 }
 
-bool AGridLevelEditorActor::SetSelectedReceptacleInitialContainedItemDefinition (UGridItemDefinitionAsset* NewItemDefinitionAsset)
-{
-    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
-    if (!Obj || Obj->Type != EGridLevelObjectType::Receptacle)
-    {
-        return false;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
-
-    Obj->Behavior.Receptacle.InitialContainedItemDefinition = NewItemDefinitionAsset;
-    ObjectBehavior = Obj->Behavior;
-
-#if WITH_EDITOR
-    LevelAsset->MarkPackageDirty ();
-#endif
-
-    RebuildPreview ();
-    return true;
-}
-
-bool AGridLevelEditorActor::SetSelectedReceptacleInitialContainedItemDefinitionId (FName NewItemDefinitionId)
-{
-    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
-    if (!Obj || Obj->Type != EGridLevelObjectType::Receptacle)
-    {
-        return false;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
-
-    Obj->Behavior.Receptacle.InitialContainedItemDefinitionId = NewItemDefinitionId;
-    ObjectBehavior = Obj->Behavior;
-
-#if WITH_EDITOR
-    LevelAsset->MarkPackageDirty ();
-#endif
-
-    RebuildPreview ();
-    return true;
-}
-
-bool AGridLevelEditorActor::SyncSelectedReceptacleInitialItemDefinitionIdFromAsset ()
-{
-    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
-    if (!Obj || Obj->Type != EGridLevelObjectType::Receptacle || !Obj->Behavior.Receptacle.InitialContainedItemDefinition)
-    {
-        return false;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
-
-    Obj->Behavior.Receptacle.InitialContainedItemDefinitionId =
-        Obj->Behavior.Receptacle.InitialContainedItemDefinition->ItemDefinitionId;
-    ObjectBehavior = Obj->Behavior;
-
-#if WITH_EDITOR
-    LevelAsset->MarkPackageDirty ();
-#endif
-
-    RebuildPreview ();
-    return true;
-}
-
 bool AGridLevelEditorActor::SetSelectedObjectTag (FName NewTag)
 {
     FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
@@ -4015,79 +3921,26 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
 
         if (Obj.Type == EGridLevelObjectType::Receptacle)
         {
-            const FGridObjectBehaviorParams& Behavior = Obj.Behavior;
-            const FGridReceptacleBehaviorParams& Receptacle = Behavior.Receptacle;
-            const FName InitialDefinitionId =
-                Receptacle.InitialContainedItemDefinition &&
-                !Receptacle.InitialContainedItemDefinition->ItemDefinitionId.IsNone ()
-                    ? Receptacle.InitialContainedItemDefinition->ItemDefinitionId
-                    : Receptacle.InitialContainedItemDefinitionId;
-
-            for (const FName AcceptedId : Receptacle.AcceptedArchetypeIds)
-            {
-                if (!AcceptedId.IsNone () && Receptacle.RejectedItemArchetypeIds.Contains (AcceptedId))
-                {
-                    AddMessage (
-                        EGridLevelValidationSeverity::Error,
-                        FString::Printf (
-                            TEXT ("Receptacle item id '%s' is present in both accepted and rejected lists."),
-                            *AcceptedId.ToString ()),
-                        Obj.ObjectId);
-                }
-            }
+            const FGridReceptacleBehaviorParams& Receptacle = Obj.Behavior.Receptacle;
 
             if (Obj.bInitiallyActive &&
-                InitialDefinitionId.IsNone () &&
-                Receptacle.InitialContainedItemArchetypeId.IsNone ())
+                Receptacle.InitialContent.Num () == 0)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
-                    TEXT ("Receptacle is initially active but has no initial item definition or legacy item id."),
+                    TEXT ("Receptacle is initially active but InitialContent is empty."),
                     Obj.ObjectId);
             }
 
-            if (!InitialDefinitionId.IsNone () &&
-                Receptacle.RejectedItemArchetypeIds.Contains (InitialDefinitionId))
+            for (const FGridReceptacleInitialItemConfig& InitialItem : Receptacle.InitialContent)
             {
-                AddMessage (
-                    EGridLevelValidationSeverity::Error,
-                    FString::Printf (
-                        TEXT ("Receptacle starts with item definition '%s' but the rejected list includes it."),
-                        *InitialDefinitionId.ToString ()),
-                    Obj.ObjectId);
-            }
-
-            if (!Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ()
-                && !Behavior.Receptacle.bAcceptAnyItem
-                && !Behavior.Receptacle.AcceptedArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId))
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Warning,
-                    FString::Printf (
-                        TEXT ("Receptacle starts with '%s' but AcceptedArchetypeIds does not include it."),
-                        *Behavior.Receptacle.InitialContainedItemArchetypeId.ToString ()),
-                    Obj.ObjectId);
-            }
-
-            if (!Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone ()
-                && Behavior.Receptacle.RejectedItemArchetypeIds.Contains (Behavior.Receptacle.InitialContainedItemArchetypeId))
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Error,
-                    FString::Printf (
-                        TEXT ("Receptacle starts with '%s' but RejectedItemArchetypeIds includes it."),
-                        *Behavior.Receptacle.InitialContainedItemArchetypeId.ToString ()),
-                    Obj.ObjectId);
-            }
-
-            if (!Behavior.Receptacle.bAcceptAnyItem
-                && Behavior.Receptacle.AcceptedItemTags.Num () == 0
-                && Behavior.Receptacle.AcceptedArchetypeIds.Num () == 0)
-            {
-                AddMessage (
-                    EGridLevelValidationSeverity::Error,
-                    TEXT ("Receptacle accepts no item: bAcceptAnyItem=false and accepted lists are empty."),
-                Obj.ObjectId);
+                if (!InitialItem.ItemDefinition)
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Warning,
+                        TEXT ("Receptacle InitialContent contains an entry without an ItemDefinition."),
+                        Obj.ObjectId);
+                }
             }
         }
     }

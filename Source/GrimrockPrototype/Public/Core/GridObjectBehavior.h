@@ -80,6 +80,18 @@ struct FGridObjectTransitionParams
 };
 
 USTRUCT (BlueprintType)
+struct FGridReceptacleInitialItemConfig
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Initial Content")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Initial Content", meta = (ClampMin = "1"))
+    int32 Quantity = 1;
+};
+
+USTRUCT (BlueprintType)
 struct FGridReceptacleBehaviorParams
 {
     GENERATED_BODY ()
@@ -87,25 +99,8 @@ struct FGridReceptacleBehaviorParams
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bAcceptAnyItem = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
-        meta = (EditCondition = "!bAcceptAnyItem", EditConditionHides))
-    TArray<FName> AcceptedItemTags;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
-        meta = (EditCondition = "!bAcceptAnyItem", EditConditionHides))
-    TArray<FName> AcceptedArchetypeIds;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    TArray<FName> RejectedItemArchetypeIds;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    FName InitialContainedItemArchetypeId = NAME_None;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
-    TObjectPtr<UGridItemDefinitionAsset> InitialContainedItemDefinition = nullptr;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Item")
-    FName InitialContainedItemDefinitionId = NAME_None;
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Content")
+    TArray<FGridReceptacleInitialItemConfig> InitialContent;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle",
         meta = (DisplayName = "Max Contained Items", ClampMin = "1"))

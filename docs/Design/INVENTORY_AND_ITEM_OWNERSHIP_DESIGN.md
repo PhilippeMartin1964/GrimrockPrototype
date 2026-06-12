@@ -886,7 +886,7 @@ Etat applique :
 
 - `FGridLevelObjectData` expose `ItemDefinitionAsset` et `ItemDefinitionId` pour les objets `Type=Item` ;
 - `FGridObjectBehaviorParams.Item` expose aussi `ItemDefinitionAsset` et `ItemDefinitionId` pour les valeurs par defaut d'archetype ;
-- `FGridReceptacleBehaviorParams` expose `InitialContainedItemDefinition` et `InitialContainedItemDefinitionId` ;
+- `FGridReceptacleBehaviorParams` expose un tableau `InitialContent` d'assets de définition et de quantités ;
 - `AGridItemActor` peut etre initialise directement depuis un `UGridItemDefinitionAsset` ou depuis un `ItemDefinitionId` ;
 - le spawn runtime d'un item au sol resout la definition dans l'ordre : placement asset, placement id, archetype/default behavior asset, archetype/default behavior id, fallback `ArchetypeId` ;
 - le retrait d'un item depuis le monde ou un receptacle cree une instance avec le vrai `ItemDefinitionId` quand il est disponible ;
@@ -895,7 +895,7 @@ Etat applique :
 Compatibilite :
 
 - les anciens objets `Item` bases sur `ArchetypeId=Item_Torch` restent ramassables ;
-- les anciens supports et receptacles avec `InitialContainedItemArchetypeId=Item_Torch` restent fonctionnels ;
+- les réceptacles utilisent uniquement des assets `UGridItemDefinitionAsset` dans `InitialContent` ;
 - les anciens assets qui doublonnent des items ne sont pas supprimes automatiquement ;
 - si un conflit de nom existe dans UE, renommer progressivement l'ancien asset ou placer le nouvel asset dans le dossier approprie, sans migration destructive.
 
@@ -956,9 +956,9 @@ Workflow recommande pour placer un item au sol :
 Workflow recommande pour mettre un item dans un receptacle :
 
 1. Selectionner le receptacle dans le Grid Editor.
-2. Renseigner `InitialContainedItemDefinition`.
-3. Synchroniser `InitialContainedItemDefinitionId` depuis l'asset si necessaire.
-4. Garder `InitialContainedItemArchetypeId` seulement comme fallback legacy.
+2. Ajouter une entrée dans `InitialContent`.
+3. Choisir le `UGridItemDefinitionAsset`.
+4. Régler la quantité.
 
 Diagnostics et helpers editeur :
 
@@ -981,7 +981,7 @@ Procedure de nettoyage d'un ancien doublon :
 1. Identifier l'ancien asset item base sur `UGridObjectArchetypeAsset`.
 2. Verifier ses references avec Reference Viewer.
 3. Migrer les placements au sol vers `DA_Item_[NomItem]` de type `UGridItemDefinitionAsset`.
-4. Migrer les receptacles vers `InitialContainedItemDefinition`.
+4. Migrer les réceptacles vers `InitialContent`.
 5. Si un conflit de nom existe, renommer temporairement l'ancien asset en `Legacy_Item_[NomItem]` ou `Archetype_Legacy_Item_[NomItem]`.
 6. Supprimer manuellement l'ancien asset legacy seulement quand plus aucune reference ne subsiste.
 

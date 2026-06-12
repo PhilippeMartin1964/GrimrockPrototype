@@ -44,17 +44,15 @@ Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `Arch
 `Behavior.Receptacle` persiste :
 
 - `bAcceptAnyItem` ;
-- `AcceptedItemTags` ;
-- `AcceptedArchetypeIds` et `RejectedItemArchetypeIds`, dont les noms sont hérités mais que le runtime copie comme identifiants de définition ;
-- la définition et les identifiants de l'item initial ;
+- `InitialContent`, tableau d'assets de définition et de quantités ;
 - `MaxContainedItems` ;
 - les paramètres de placement physique.
 
 L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
 
-`ReceptacleKind`, `StorageMode`, `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem`, `AcceptedItemTypes` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. `InitializeGridObject()` recalcule notamment le mode de stockage depuis la capacité.
+`ReceptacleKind`, `StorageMode`, `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. `InitializeGridObject()` recalcule notamment le mode de stockage depuis la capacité.
 
-`ObjectData.Tag` sert de compatibilité historique : si aucune liste d'identifiants acceptés n'est fournie, il devient un identifiant accepté et désactive `AcceptAny`.
+`ObjectData.Tag` n'intervient plus dans l'acceptation des items.
 
 ## 5. Génération et contenu runtime
 
@@ -96,12 +94,8 @@ Un mur, une porte fermée ou tout composant bloquant `Visibility` empêche donc 
 1. instance invalide : refus `InvalidItem` ;
 2. capacité atteinte : refus `Full` ;
 3. insertion désactivée : refus `InsertDisabled` ;
-4. identifiant explicitement rejeté : refus `ExplicitlyRejected` ;
-5. politique `AcceptAny`, ou `bAcceptAnyItem` hors politique `Filtered` : acceptation ;
-6. identifiant présent dans `AcceptedItemDefinitionIds` : acceptation ;
-7. définition résolue avec au moins un tag accepté : acceptation ;
-8. définition résolue avec un type accepté : acceptation ;
-9. sinon : refus `NoMatchingAcceptanceRule`.
+4. `bAcceptAnyItem=true` : acceptation ;
+5. sinon : refus `NoMatchingAcceptanceRule`.
 
 Les listes positives sont alternatives : une seule correspondance suffit. La liste de rejet est prioritaire. Une définition non résolue peut encore être acceptée par `AcceptAny` ou par identifiant, mais pas par tag ou type.
 
@@ -194,8 +188,7 @@ Le runtime journalise les transferts, refus, changements de politique, commandes
 
 ## 11. Limites actuelles
 
-- les types, tags et définitions acceptés ne sont pas tous persistés dans `FGridReceptacleBehaviorParams` ;
-- les noms `AcceptedArchetypeIds` et `RejectedItemArchetypeIds` ne reflètent plus leur usage comme identifiants de définition ;
+- les filtres par type, tag ou définition ne font pas partie du modèle actuel ;
 - aucun conteneur à grille ni interface de coffre complète ;
 - aucune limite d'acceptation par poids ou quantité ;
 - `Locked` ne bloque que le retrait ;

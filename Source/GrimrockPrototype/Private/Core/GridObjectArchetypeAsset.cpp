@@ -218,10 +218,7 @@ namespace
     bool HasReceptacleBehaviorParams (const FGridObjectBehaviorParams& Behavior)
     {
         return !Behavior.Receptacle.bAcceptAnyItem ||
-            Behavior.Receptacle.AcceptedItemTags.Num () > 0 ||
-            Behavior.Receptacle.AcceptedArchetypeIds.Num () > 0 ||
-            Behavior.Receptacle.RejectedItemArchetypeIds.Num () > 0 ||
-            !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
+            Behavior.Receptacle.InitialContent.Num () > 0 ||
             Behavior.Receptacle.MaxContainedItems != 1 ||
             Behavior.Receptacle.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
             Behavior.Receptacle.bSimulatePhysicsWhenPlaced ||
@@ -532,16 +529,12 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle RuntimeActorClass must derive from AGridReceptacleActor. Concrete Receptacle_* variants can use AGridReceptacleActor or a Blueprint derived from it."));
             }
-            if (!DefaultBehavior.Receptacle.bAcceptAnyItem &&
-                DefaultBehavior.Receptacle.AcceptedItemTags.Num () == 0 &&
-                DefaultBehavior.Receptacle.AcceptedArchetypeIds.Num () == 0)
+            for (const FGridReceptacleInitialItemConfig& InitialItem : DefaultBehavior.Receptacle.InitialContent)
             {
-                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle with bAcceptAnyItem=false must define AcceptedItemTags or AcceptedArchetypeIds."));
-            }
-            if (!DefaultBehavior.Receptacle.InitialContainedItemArchetypeId.IsNone () &&
-                DefaultBehavior.Receptacle.RejectedItemArchetypeIds.Contains (DefaultBehavior.Receptacle.InitialContainedItemArchetypeId))
-            {
-                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle InitialContainedItemArchetypeId must not be listed in RejectedItemArchetypeIds."));
+                if (!InitialItem.ItemDefinition)
+                {
+                    AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Receptacle InitialContent contains an entry without an ItemDefinition."));
+                }
             }
             break;
         }

@@ -124,11 +124,7 @@ Un réceptacle peut définir les règles suivantes :
 
 ![Item Compatibility](Images/Receptacle/receptacle_07_item_compatibility.jpg)
 
-- `AcceptAnyItem` : accepte tout item valide qui n'est pas rejeté ;
-- `AcceptedItemDefinitionIds` : liste d'identifiants explicitement acceptés ;
-- `RejectedItemDefinitionIds` : liste d'identifiants explicitement rejetés ;
-- `AcceptedItemTags` : tags fonctionnels acceptés ;
-- `AcceptedItemTypes` : catégories d'items acceptées.
+- `AcceptAnyItem` : accepte tout item valide lorsque la valeur est vraie.
 
 La validation doit suivre un ordre stable :
 
@@ -458,9 +454,8 @@ Les tests suivants définissent le comportement minimal attendu du système. Ils
 
 1. Un item invalide est refusé sans modifier la source ni le contenu du réceptacle.
 2. Un réceptacle plein refuse toute insertion supplémentaire avec un motif distinct d'un refus de compatibilité.
-3. Un item présent dans `RejectedItemDefinitionIds` est refusé même si `AcceptAnyItem` est actif.
-4. Un item est accepté lorsqu'il correspond à une définition, un tag ou un type autorisé.
-5. Un item sans règle d'acceptation correspondante est refusé de manière déterministe.
+3. Un item est accepté lorsque `AcceptAnyItem` est actif.
+4. Sinon, il est refusé avec `NoMatchingAcceptanceRule`.
 
 Critères d'acceptation :
 

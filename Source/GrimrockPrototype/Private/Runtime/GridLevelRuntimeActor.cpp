@@ -119,24 +119,6 @@ namespace
         return ObjectData.ArchetypeId;
     }
 
-    UGridItemDefinitionAsset* ResolveReceptacleInitialItemDefinition (const FGridReceptacleBehaviorParams& Receptacle)
-    {
-        return Receptacle.InitialContainedItemDefinition;
-    }
-
-    FName ResolveReceptacleInitialItemDefinitionId (const FGridReceptacleBehaviorParams& Receptacle)
-    {
-        if (Receptacle.InitialContainedItemDefinition && !Receptacle.InitialContainedItemDefinition->ItemDefinitionId.IsNone ())
-        {
-            return Receptacle.InitialContainedItemDefinition->ItemDefinitionId;
-        }
-        if (!Receptacle.InitialContainedItemDefinitionId.IsNone ())
-        {
-            return Receptacle.InitialContainedItemDefinitionId;
-        }
-        return Receptacle.InitialContainedItemArchetypeId;
-    }
-
     FName ResolvePickupItemDefinitionId (const AGridItemActor* ItemActor, FName FallbackArchetypeId)
     {
         if (!ItemActor)
@@ -883,9 +865,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
         {
             const FName RuntimeItemDefinitionId = !ItemState.ItemDefinitionId.IsNone ()
                 ? ItemState.ItemDefinitionId
-                : (!ItemState.ArchetypeId.IsNone ()
-                    ? ItemState.ArchetypeId
-                    : (ReceptacleObjectData ? ResolveReceptacleInitialItemDefinitionId (ReceptacleObjectData->Behavior.Receptacle) : NAME_None));
+                : ItemState.ArchetypeId;
             if (RuntimeItemDefinitionId.IsNone ())
             {
                 UE_LOG (LogTemp, Warning,
@@ -1943,10 +1923,13 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition (
             }
 
             const FGridReceptacleBehaviorParams& Receptacle = ObjectData.Behavior.Receptacle;
-            if (Receptacle.InitialContainedItemDefinition &&
-                Receptacle.InitialContainedItemDefinition->ItemDefinitionId == ItemDefinitionId)
+            for (const FGridReceptacleInitialItemConfig& InitialItem : Receptacle.InitialContent)
             {
-                return Receptacle.InitialContainedItemDefinition;
+                if (InitialItem.ItemDefinition &&
+                    InitialItem.ItemDefinition->ItemDefinitionId == ItemDefinitionId)
+                {
+                    return InitialItem.ItemDefinition;
+                }
             }
         }
     }
@@ -1966,10 +1949,13 @@ UGridItemDefinitionAsset* AGridLevelRuntimeActor::ResolveRuntimeItemDefinition (
         }
 
         const FGridReceptacleBehaviorParams& ReceptacleParams = Archetype->DefaultBehavior.Receptacle;
-        if (ReceptacleParams.InitialContainedItemDefinition &&
-            ReceptacleParams.InitialContainedItemDefinition->ItemDefinitionId == ItemDefinitionId)
+        for (const FGridReceptacleInitialItemConfig& InitialItem : ReceptacleParams.InitialContent)
         {
-            return ReceptacleParams.InitialContainedItemDefinition;
+            if (InitialItem.ItemDefinition &&
+                InitialItem.ItemDefinition->ItemDefinitionId == ItemDefinitionId)
+            {
+                return InitialItem.ItemDefinition;
+            }
         }
     }
 

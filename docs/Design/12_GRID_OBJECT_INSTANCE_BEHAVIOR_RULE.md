@@ -189,10 +189,7 @@ Utilisé par les téléporteurs pour définir la cellule de destination.
 
 ```cpp
 Behavior.Receptacle.bAcceptAnyItem
-Behavior.Receptacle.AcceptedItemTags
-Behavior.Receptacle.AcceptedArchetypeIds
-Behavior.Receptacle.RejectedItemArchetypeIds
-Behavior.Receptacle.InitialContainedItemArchetypeId
+Behavior.Receptacle.InitialContent
 ```
 
 Utilisé par les réceptacles : alcôve, support de torche, autel, bol d'offrande, serrure ou assimilés.

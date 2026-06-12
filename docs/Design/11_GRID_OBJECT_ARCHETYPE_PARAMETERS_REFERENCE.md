@@ -156,10 +156,7 @@ Statut : prévu / partiel selon état du runtime Teleporter.
 | Libellé UE5 | Champ | Type | Rôle | UI recommandée | Remarques |
 |---|---|---|---|---|---|
 | `Accept Any Item` | `Receptacle.bAcceptAnyItem` | `bool` | Accepte tout item si vrai. | Checkbox `Accept Any Item`. | Par défaut `true`. |
-| `Accepted Item Tags` | `Receptacle.AcceptedItemTags` | `TArray<FName>` | Accepte les items portant au moins un tag. | Advanced / masqué dans l’UI normale. | Utile pour variantes futures. |
-| `Accepted Archetype Ids` | `Receptacle.AcceptedArchetypeIds` | `TArray<FName>` | Liste stricte des items acceptés. | Dropdown `Accepted Items`. | Ne pas taper à la main dans l’inspecteur. |
-| `Rejected Item Archetype Ids` | `Receptacle.RejectedItemArchetypeIds` | `TArray<FName>` | Exclusions explicites. | Advanced / masqué. | Rare ; utile avec `Accept Any Item`. |
-| `Initial Contained Item Archetype Id` | `Receptacle.InitialContainedItemArchetypeId` | `FName` | Item présent au démarrage. | Dropdown `Initial Content`. | `None + items`. |
+| `Initial Content` | `Receptacle.InitialContent` | `TArray<FGridReceptacleInitialItemConfig>` | Items présents au démarrage. | Tableau asset + quantité. | Aucun identifiant manuel. |
 
 Règle UX :
 
@@ -224,9 +221,8 @@ Initial Content = Item_Torch ou None selon le niveau
 | `PlacementKind` | `Placement Kind` | `Wall` ou `Edge` |
 | `bIsInteractable` | `Runtime Interactable` | `true` |
 | `RuntimeActorClass` | `Runtime Actor Class` | BP/classe dérivée de `AGridReceptacleActor` |
-| `DefaultBehavior.Receptacle.bAcceptAnyItem` | `Accept Any Item` | `false` pour support dédié |
-| `DefaultBehavior.Receptacle.AcceptedArchetypeIds` | `Accepted Archetype Ids` / UI `Accepted Items` | `Item_Torch` |
-| `DefaultBehavior.Receptacle.InitialContainedItemArchetypeId` | `Initial Contained Item Archetype Id` / UI `Initial Content` | `Item_Torch` ou `None` selon niveau |
+| `DefaultBehavior.Receptacle.bAcceptAnyItem` | `Accept Any Item` | `true` dans le modèle actuel |
+| `DefaultBehavior.Receptacle.InitialContent` | `Initial Content` | `DA_Item_Torch` ou tableau vide selon niveau |
 
 ## 5.4 Item_Torch
 
