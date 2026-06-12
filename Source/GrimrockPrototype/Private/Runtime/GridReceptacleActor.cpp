@@ -882,6 +882,37 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return PartyPawn->TryPlaceCursorItemInReceptacle (this);
     }
 
+    FGridItemInstance HeldItem;
+    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
+    if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
+    {
+        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridReceptacle Interaction Route=\"service transfer equipment -> receptacle\" ObjectId=%s Character=%d Slot=%d Item=%s RuntimeId=%s"),
+            *ObjectId.ToString (),
+            CharacterIndex,
+            static_cast<int32> (HeldSlot),
+            *HeldItem.ItemDefinitionId.ToString (),
+            *HeldItem.RuntimeObjectId.ToString ());
+
+        const FGridItemTransferResult TransferResult =
+            UGridItemTransferService::TransferEquipmentSlotToReceptacle (
+                Inventory,
+                CharacterIndex,
+                HeldSlot,
+                this);
+        if (!TransferResult.bSuccess)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle Interaction ServiceFailed Route=\"equipment -> receptacle\" ObjectId=%s Result=%s Message=%s"),
+                *ObjectId.ToString (),
+                *UEnum::GetValueAsString (TransferResult.Result),
+                *TransferResult.Message.ToString ());
+        }
+        return TransferResult.bSuccess;
+    }
+
     if (GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
         HasItem ())
     {
@@ -911,37 +942,6 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         {
             UE_LOG (LogTemp, Warning,
                 TEXT ("GridReceptacle Interaction ServiceFailed Route=\"receptacle -> inventory\" ObjectId=%s Result=%s Message=%s"),
-                *ObjectId.ToString (),
-                *UEnum::GetValueAsString (TransferResult.Result),
-                *TransferResult.Message.ToString ());
-        }
-        return TransferResult.bSuccess;
-    }
-
-    FGridItemInstance HeldItem;
-    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
-    if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
-    {
-        UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
-        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridReceptacle Interaction Route=\"service transfer equipment -> receptacle\" ObjectId=%s Character=%d Slot=%d Item=%s RuntimeId=%s"),
-            *ObjectId.ToString (),
-            CharacterIndex,
-            static_cast<int32> (HeldSlot),
-            *HeldItem.ItemDefinitionId.ToString (),
-            *HeldItem.RuntimeObjectId.ToString ());
-
-        const FGridItemTransferResult TransferResult =
-            UGridItemTransferService::TransferEquipmentSlotToReceptacle (
-                Inventory,
-                CharacterIndex,
-                HeldSlot,
-                this);
-        if (!TransferResult.bSuccess)
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridReceptacle Interaction ServiceFailed Route=\"equipment -> receptacle\" ObjectId=%s Result=%s Message=%s"),
                 *ObjectId.ToString (),
                 *UEnum::GetValueAsString (TransferResult.Result),
                 *TransferResult.Message.ToString ());
@@ -1090,14 +1090,6 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
         return false;
     }
 
-    if (IsContainedItemHitComponent (HitComponent))
-    {
-        return HasItem () && IsItemRemovalAllowed ();
-    }
-    if (HitComponent != MeshComponent)
-    {
-        return false;
-    }
     if (PartyPawn->PartyInventoryComponent && PartyPawn->PartyInventoryComponent->HasCursorItem ())
     {
         return CanAcceptCursorItemFromParty (PartyPawn);
@@ -1108,6 +1100,15 @@ bool AGridReceptacleActor::CanInteract_Implementation (APawn* InstigatorPawn, UP
     if (ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot))
     {
         return CanAcceptItemInstance (HeldItem);
+    }
+
+    if (IsContainedItemHitComponent (HitComponent))
+    {
+        return HasItem () && IsItemRemovalAllowed ();
+    }
+    if (HitComponent != MeshComponent)
+    {
+        return false;
     }
 
     return GetEffectiveVisualPlacementMode () != EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
@@ -1125,7 +1126,13 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
     {
         return;
     }
-    if (IsContainedItemHitComponent (HitComponent))
+    const bool bHasInsertionItem =
+        PartyPawn->PartyInventoryComponent &&
+        PartyPawn->PartyInventoryComponent->HasCursorItem ();
+    FGridItemInstance HeldItem;
+    EGridEquipmentSlot HeldSlot = EGridEquipmentSlot::None;
+    const bool bHasHeldItem = ResolveHeldEquipmentItem (PartyPawn, HeldItem, HeldSlot);
+    if (!bHasInsertionItem && !bHasHeldItem && IsContainedItemHitComponent (HitComponent))
     {
         const int32 ItemIndex = FindContainedItemIndexForComponent (HitComponent);
         if (ItemIndex != INDEX_NONE)
@@ -1141,7 +1148,7 @@ void AGridReceptacleActor::Interact_Implementation (APawn* InstigatorPawn, UPrim
 void AGridReceptacleActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
 {
     if (GetEffectiveVisualPlacementMode () == EGridReceptacleVisualPlacementMode::PhysicalAtHit &&
-        HitComponent == MeshComponent)
+        (HitComponent == MeshComponent || IsContainedItemHitComponent (HitComponent)))
     {
         PendingPlacementHitResult = HitResult;
     }

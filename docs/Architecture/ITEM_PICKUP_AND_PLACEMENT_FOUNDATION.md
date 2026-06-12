@@ -247,6 +247,8 @@ Le flux normal est :
 
 Le tableau manuel `Items.ItemDefinitions` n'est plus exposé dans `BP_GrimrockPartyPawn`.
 
+Les alcôves acceptent plusieurs items, tandis que les supports de torche restent single-slot. Lorsqu'un item du curseur vise un réceptacle accessible, le placement ou son refus est traité par le réceptacle et ne retombe pas dans le lancer.
+
 ### Jet court et lancer
 
 Le jet court et le lancer utilisent la même fondation de projectile.

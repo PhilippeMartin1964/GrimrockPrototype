@@ -71,6 +71,10 @@ Les modes visuels effectifs sont :
 
 La capacité est comptée par entrée de `ContainedItems`, pas par somme des quantités. `MaxContainedItems <= 0` est interprété comme illimité par le runtime, même si les outils actuels éditent normalement une valeur positive.
 
+Les alcôves sont des réceptacles multi-items et utilisent actuellement `MaxContainedItems = 8`. Les supports de torche restent des réceptacles single-slot avec `MaxContainedItems = 1`.
+
+Quand un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
+
 ## 6. Dépôt direct à la souris
 
 ![Flux de dépôt direct](../Images/receptacle_10_1_mouse_drop_flow.svg)

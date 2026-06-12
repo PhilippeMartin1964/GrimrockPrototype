@@ -9,8 +9,72 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
+
+namespace
+{
+    AGridReceptacleActor* ResolveReceptacleFromHitActor (AActor* HitActor)
+    {
+        if (AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor))
+        {
+            return ReceptacleActor;
+        }
+
+        return HitActor ? Cast<AGridReceptacleActor> (HitActor->GetOwner ()) : nullptr;
+    }
+
+    FText GetReceptacleRejectFeedbackText (EGridReceptacleRejectReason Reason)
+    {
+        switch (Reason)
+        {
+        case EGridReceptacleRejectReason::InvalidItem:
+            return FText::FromString (TEXT ("Objet invalide."));
+        case EGridReceptacleRejectReason::Full:
+            return FText::FromString (TEXT ("Ce réceptacle est plein."));
+        case EGridReceptacleRejectReason::InsertDisabled:
+            return FText::FromString (TEXT ("Impossible d'insérer un objet ici."));
+        case EGridReceptacleRejectReason::ExplicitlyRejected:
+        case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
+            return FText::FromString (TEXT ("Cet objet ne convient pas."));
+        case EGridReceptacleRejectReason::None:
+        default:
+            return FText::FromString (TEXT ("Impossible de placer cet objet ici."));
+        }
+    }
+
+    bool ResolveHeldEquipmentItem (
+        const AGrimrockPartyPawn* PartyPawn,
+        FGridItemInstance& OutItem)
+    {
+        OutItem = FGridItemInstance ();
+        if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
+        {
+            return false;
+        }
+
+        const UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
+        const int32 CharacterIndex = Inventory->GetSelectedCharacterIndex ();
+        const FName HeldItemDefinitionId = PartyPawn->GetHeldItemDefinitionId ();
+
+        FGridItemInstance EquippedItem;
+        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem) &&
+            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
+        {
+            OutItem = EquippedItem;
+            return true;
+        }
+        if (Inventory->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::OffHand, EquippedItem) &&
+            (HeldItemDefinitionId.IsNone () || EquippedItem.ItemDefinitionId == HeldItemDefinitionId))
+        {
+            OutItem = EquippedItem;
+            return true;
+        }
+
+        return false;
+    }
+}
 
 AGrimrockPlayerController::AGrimrockPlayerController ()
 {
@@ -107,12 +171,8 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
         const bool bWithinInteractionDistance = IsHitWithinInteractionDistance (WorldHitResult);
 
-        AActor* HitActor = WorldHitResult.GetActor ();
-        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
-        if (!ReceptacleActor && HitActor)
-        {
-            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
-        }
+        AGridReceptacleActor* ReceptacleActor =
+            ResolveReceptacleFromHitActor (WorldHitResult.GetActor ());
 
         AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
         if (ReceptacleActor && bWithinInteractionDistance)
@@ -122,8 +182,17 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                 ReceptacleActor->CellY,
                 ReceptacleActor->Edge,
                 PartyPawn);
-            if (bAccessible && ReceptacleActor->CanAcceptItemInstance (CursorItem))
+            if (bAccessible)
             {
+                FGridReceptacleAcceptanceResult AcceptanceResult;
+                if (!ReceptacleActor->EvaluateItemAcceptance (CursorItem, AcceptanceResult, true))
+                {
+                    ShowInteractionFeedback (
+                        GetReceptacleRejectFeedbackText (AcceptanceResult.RejectReason));
+                    SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+                    return;
+                }
+
                 UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Attempt Item=%s Target=%s"),
                     *CursorItem.ItemDefinitionId.ToString (),
                     *GetNameSafe (ReceptacleActor));
@@ -136,11 +205,15 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                 {
                     InventoryWidget->RefreshInventory ();
                 }
-                if (bPlaced)
+                if (!bPlaced)
                 {
-                    SetGridInteractionCursor (EGridInteractionCursor::Default);
-                    return;
+                    ShowInteractionFeedback (
+                        FText::FromString (TEXT ("Impossible de placer cet objet ici.")));
                 }
+                SetGridInteractionCursor (bPlaced
+                    ? EGridInteractionCursor::Default
+                    : EGridInteractionCursor::CannotPlaceItem);
+                return;
             }
         }
 
@@ -252,7 +325,21 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
     if (!IGridInteractableInterface::Execute_CanInteract (InteractableActor, ControlledPawn, HitComponent))
     {
-        ShowInteractionFeedback (FText::FromString (TEXT ("Action impossible.")));
+        AGridReceptacleActor* ReceptacleActor =
+            ResolveReceptacleFromHitActor (InteractableActor);
+        FGridItemInstance HeldItem;
+        if (ReceptacleActor && ResolveHeldEquipmentItem (PartyPawn, HeldItem))
+        {
+            FGridReceptacleAcceptanceResult AcceptanceResult;
+            ReceptacleActor->EvaluateItemAcceptance (HeldItem, AcceptanceResult, true);
+            ShowInteractionFeedback (
+                GetReceptacleRejectFeedbackText (AcceptanceResult.RejectReason));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem);
+        }
+        else
+        {
+            ShowInteractionFeedback (FText::FromString (TEXT ("Action impossible.")));
+        }
         if (bDebugMouseInteraction)
         {
             UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction: CanInteract rejected %s on component %s."),
@@ -300,12 +387,8 @@ void AGrimrockPlayerController::UpdateHoveredInteractable ()
             return;
         }
 
-        AActor* HitActor = WorldHitResult.GetActor ();
-        AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
-        if (!ReceptacleActor && HitActor)
-        {
-            ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
-        }
+        AGridReceptacleActor* ReceptacleActor =
+            ResolveReceptacleFromHitActor (WorldHitResult.GetActor ());
 
         const bool bWithinInteractionDistance = IsHitWithinInteractionDistance (WorldHitResult);
         if (bWithinInteractionDistance && ReceptacleActor)
@@ -486,14 +569,23 @@ bool AGrimrockPlayerController::TryGetInteractableUnderCursor (FHitResult& OutHi
     // The first visibility blocker owns the click. Never search through geometry
     // or a rejected component for a deeper interactable.
     AActor* HitActor = Hit.GetActor ();
-    if (!HitActor ||
-        !HitActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
+    if (!HitActor)
+    {
+        return false;
+    }
+
+    AActor* InteractableActor = ResolveReceptacleFromHitActor (HitActor);
+    if (!InteractableActor)
+    {
+        InteractableActor = HitActor;
+    }
+    if (!InteractableActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
     {
         return false;
     }
 
     OutHitResult = Hit;
-    OutInteractableActor = HitActor;
+    OutInteractableActor = InteractableActor;
     return true;
 }
 
@@ -620,11 +712,7 @@ bool AGrimrockPlayerController::TryGetReceptacleUnderCursor (
         return false;
     }
 
-    AGridReceptacleActor* ReceptacleActor = Cast<AGridReceptacleActor> (HitActor);
-    if (!ReceptacleActor)
-    {
-        ReceptacleActor = Cast<AGridReceptacleActor> (HitActor->GetOwner ());
-    }
+    AGridReceptacleActor* ReceptacleActor = ResolveReceptacleFromHitActor (HitActor);
     if (!ReceptacleActor)
     {
         return false;

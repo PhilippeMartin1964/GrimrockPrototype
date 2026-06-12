@@ -288,6 +288,16 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Concrete receptacle archetypes must use SupportedType=Receptacle. Visual variants must stay archetypes, not EGridLevelObjectType values."));
     }
 
+    if ((ArchetypeId == FName (TEXT ("Receptacle_Alcove")) ||
+            ArchetypeId == FName (TEXT ("Receptacle_Alcove_Stone"))) &&
+        DefaultBehavior.Receptacle.MaxContainedItems == 1)
+    {
+        AddValidationMessage (
+            OutMessages,
+            EGridArchetypeValidationSeverity::Error,
+            TEXT ("Receptacle alcoves must use MaxContainedItems > 1 or <= 0."));
+    }
+
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("RuntimeActorClass is required for this SupportedType."));
