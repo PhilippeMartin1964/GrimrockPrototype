@@ -555,9 +555,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             const bool bHasDefaultItemDefinition =
                 DefaultBehavior.Item.ItemDefinitionAsset ||
                 !DefaultBehavior.Item.ItemDefinitionId.IsNone ();
-            if (!ItemActorClass && ItemTags.Num () == 0 && !bHasDefaultItemDefinition)
+            if (!ItemActorClass && !bHasDefaultItemDefinition)
             {
-                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item should generally define ItemActorClass, ItemTags, or DefaultBehavior.Item."));
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Item should generally define ItemActorClass or DefaultBehavior.Item."));
             }
             break;
         }
@@ -741,8 +741,7 @@ bool UGridObjectArchetypeAsset::UsesItemParams () const
 {
     return SupportedType == EGridLevelObjectType::Item ||
         SupportedType == EGridLevelObjectType::ItemSpawn ||
-        ItemActorClass != nullptr ||
-        ItemTags.Num () > 0;
+        ItemActorClass != nullptr;
 }
 
 bool UGridObjectArchetypeAsset::UsesReceptacleParams () const

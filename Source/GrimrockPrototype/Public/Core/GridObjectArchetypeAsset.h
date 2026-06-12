@@ -70,9 +70,6 @@ public:
         meta = (ToolTip = "Default behavior copied to placed object instances. Currently contains teleporter, receptacle and button parameters."))
     FGridObjectBehaviorParams DefaultBehavior;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item")
-    TArray<FName> ItemTags;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
         meta = (DisplayName = "Palette Category", ToolTip = "Editor palette grouping only. Does not affect gameplay. Examples: Doors, Mechanisms, Wall Decorations, Floor Decorations, Receptacles, Lights, Spawns."))
     FName Category = NAME_None;
