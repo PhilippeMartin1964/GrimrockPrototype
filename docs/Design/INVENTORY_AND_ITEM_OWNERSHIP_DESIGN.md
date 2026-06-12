@@ -886,7 +886,7 @@ Etat applique :
 
 - `FGridLevelObjectData` expose `ItemDefinitionAsset` et `ItemDefinitionId` pour les objets `Type=Item` ;
 - `FGridObjectBehaviorParams.Item` expose aussi `ItemDefinitionAsset` et `ItemDefinitionId` pour les valeurs par defaut d'archetype ;
-- `FGridReceptacleBehaviorParams` expose un tableau `InitialContent` d'assets de définition et de quantités ;
+- `FGridReceptacleBehaviorParams` expose un tableau `AcceptedItems` d'assets de définition et un tableau `InitialContent` d'assets de définition et de quantités ;
 - `AGridItemActor` peut etre initialise directement depuis un `UGridItemDefinitionAsset` ou depuis un `ItemDefinitionId` ;
 - le spawn runtime d'un item au sol resout la definition dans l'ordre : placement asset, placement id, archetype/default behavior asset, archetype/default behavior id, fallback `ArchetypeId` ;
 - le retrait d'un item depuis le monde ou un receptacle cree une instance avec le vrai `ItemDefinitionId` quand il est disponible ;
@@ -895,7 +895,7 @@ Etat applique :
 Compatibilite :
 
 - les anciens objets `Item` bases sur `ArchetypeId=Item_Torch` restent ramassables ;
-- les réceptacles utilisent uniquement des assets `UGridItemDefinitionAsset` dans `InitialContent` ;
+- les réceptacles utilisent uniquement des assets `UGridItemDefinitionAsset` dans `AcceptedItems` et `InitialContent` ;
 - les anciens assets qui doublonnent des items ne sont pas supprimes automatiquement ;
 - si un conflit de nom existe dans UE, renommer progressivement l'ancien asset ou placer le nouvel asset dans le dossier approprie, sans migration destructive.
 

@@ -189,6 +189,7 @@ Utilisé par les téléporteurs pour définir la cellule de destination.
 
 ```cpp
 Behavior.Receptacle.bAcceptAnyItem
+Behavior.Receptacle.AcceptedItems
 Behavior.Receptacle.InitialContent
 ```
 

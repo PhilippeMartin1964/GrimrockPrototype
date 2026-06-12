@@ -156,6 +156,7 @@ Statut : prévu / partiel selon état du runtime Teleporter.
 | Libellé UE5 | Champ | Type | Rôle | UI recommandée | Remarques |
 |---|---|---|---|---|---|
 | `Accept Any Item` | `Receptacle.bAcceptAnyItem` | `bool` | Accepte tout item si vrai. | Checkbox `Accept Any Item`. | Par défaut `true`. |
+| `Accepted Items` | `Receptacle.AcceptedItems` | `TArray<FGridReceptacleAcceptedItemConfig>` | Définitions d’items acceptées lorsque `Accept Any Item` est faux. | Tableau d’assets. | Aucun identifiant manuel. |
 | `Initial Content` | `Receptacle.InitialContent` | `TArray<FGridReceptacleInitialItemConfig>` | Items présents au démarrage. | Tableau asset + quantité. | Aucun identifiant manuel. |
 
 Règle UX :
@@ -221,7 +222,8 @@ Initial Content = Item_Torch ou None selon le niveau
 | `PlacementKind` | `Placement Kind` | `Wall` ou `Edge` |
 | `bIsInteractable` | `Runtime Interactable` | `true` |
 | `RuntimeActorClass` | `Runtime Actor Class` | BP/classe dérivée de `AGridReceptacleActor` |
-| `DefaultBehavior.Receptacle.bAcceptAnyItem` | `Accept Any Item` | `true` dans le modèle actuel |
+| `DefaultBehavior.Receptacle.bAcceptAnyItem` | `Accept Any Item` | `false` |
+| `DefaultBehavior.Receptacle.AcceptedItems` | `Accepted Items` | `DA_Item_Torch` |
 | `DefaultBehavior.Receptacle.InitialContent` | `Initial Content` | `DA_Item_Torch` ou tableau vide selon niveau |
 
 ## 5.4 Item_Torch

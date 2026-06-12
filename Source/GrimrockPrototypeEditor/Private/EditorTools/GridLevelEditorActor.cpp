@@ -3923,13 +3923,24 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         {
             const FGridReceptacleBehaviorParams& Receptacle = Obj.Behavior.Receptacle;
 
-            if (Obj.bInitiallyActive &&
-                Receptacle.InitialContent.Num () == 0)
+            if (!Receptacle.bAcceptAnyItem &&
+                Receptacle.AcceptedItems.Num () == 0)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
-                    TEXT ("Receptacle is initially active but InitialContent is empty."),
+                    TEXT ("Receptacle does not accept any item because AcceptedItems is empty."),
                     Obj.ObjectId);
+            }
+
+            for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Receptacle.AcceptedItems)
+            {
+                if (!AcceptedItem.ItemDefinition)
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Warning,
+                        TEXT ("Receptacle AcceptedItems contains an entry without an ItemDefinition."),
+                        Obj.ObjectId);
+                }
             }
 
             for (const FGridReceptacleInitialItemConfig& InitialItem : Receptacle.InitialContent)

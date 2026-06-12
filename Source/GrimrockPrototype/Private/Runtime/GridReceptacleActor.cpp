@@ -153,6 +153,15 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bCanRemoveItem = true;
 
     bAcceptAnyItem = Params.bAcceptAnyItem;
+    AcceptedItemDefinitionIds.Reset ();
+    for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : Params.AcceptedItems)
+    {
+        if (AcceptedItem.ItemDefinition && !AcceptedItem.ItemDefinition->ItemDefinitionId.IsNone ())
+        {
+            AcceptedItemDefinitionIds.AddUnique (AcceptedItem.ItemDefinition->ItemDefinitionId);
+        }
+    }
+
     MaxContainedItems = Params.MaxContainedItems;
     bSimulatePhysicsWhenPlaced = Params.bSimulatePhysicsWhenPlaced;
     VisualPlacementMode = Params.VisualPlacementMode;
@@ -175,25 +184,29 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     bInitialItemsInitialized = false;
     ContainedItemArchetypeId = NAME_None;
 
-    if (ObjectData.bInitiallyActive)
+    for (const FGridReceptacleInitialItemConfig& ConfigItem : Params.InitialContent)
     {
-        for (const FGridReceptacleInitialItemConfig& ConfigItem : Params.InitialContent)
+        if (!ConfigItem.ItemDefinition)
         {
-            if (!ConfigItem.ItemDefinition)
-            {
-                continue;
-            }
+            continue;
+        }
 
-            FGridInitialReceptacleItem InitialItem;
-            InitialItem.ItemDefinition = ConfigItem.ItemDefinition;
-            InitialItem.ItemDefinitionId = ConfigItem.ItemDefinition->ItemDefinitionId;
-            InitialItem.Quantity = FMath::Max (1, ConfigItem.Quantity);
-            if (!InitialItem.ItemDefinitionId.IsNone ())
-            {
-                InitialContainedItems.Add (InitialItem);
-            }
+        FGridInitialReceptacleItem InitialItem;
+        InitialItem.ItemDefinition = ConfigItem.ItemDefinition;
+        InitialItem.ItemDefinitionId = ConfigItem.ItemDefinition->ItemDefinitionId;
+        InitialItem.Quantity = FMath::Max (1, ConfigItem.Quantity);
+        if (!InitialItem.ItemDefinitionId.IsNone ())
+        {
+            InitialContainedItems.Add (InitialItem);
         }
     }
+
+    UE_LOG (LogTemp, Warning,
+        TEXT ("GridReceptacle Init InitialContent Receptacle=%s ObjectId=%s ConfigCount=%d RuntimeInitialCount=%d"),
+        *GetName (),
+        *ObjectId.ToString (),
+        Params.InitialContent.Num (),
+        InitialContainedItems.Num ());
 
     if (ContainedItemMesh)
     {
@@ -307,7 +320,19 @@ float AGridReceptacleActor::GetContainedTotalWeight () const
 
 bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
 {
-    return !ItemDefinitionId.IsNone () && !IsFull () && bCanInsertItem && bAcceptAnyItem;
+    if (ItemDefinitionId.IsNone ())
+    {
+        return false;
+    }
+    if (IsFull () || !bCanInsertItem)
+    {
+        return false;
+    }
+    if (bAcceptAnyItem)
+    {
+        return true;
+    }
+    return AcceptedItemDefinitionIds.Contains (ItemDefinitionId);
 }
 
 bool AGridReceptacleActor::CanAcceptItemInstance (const FGridItemInstance& Item) const
@@ -330,15 +355,24 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
             return;
         }
 
-        UE_LOG (LogTemp, VeryVerbose,
+        const FString AcceptedIds = FString::JoinBy (
+            AcceptedItemDefinitionIds,
+            TEXT (","),
+            [] (FName ItemDefinitionId)
+            {
+                return ItemDefinitionId.ToString ();
+            });
+
+        UE_LOG (LogTemp, Warning,
             TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
-                "AcceptAny=%s CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
+                "AcceptAny=%s AcceptedItemDefinitionIds=[%s] CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
                 "ItemDefinitionId=%s RuntimeObjectId=%s %s"),
             Outcome,
             *GetName (),
             *ObjectId.ToString (),
             *GetClass ()->GetPathName (),
             bAcceptAnyItem ? TEXT ("true") : TEXT ("false"),
+            *AcceptedIds,
             bCanInsertItem ? TEXT ("true") : TEXT ("false"),
             ContainedItems.Num (),
             MaxContainedItems,
@@ -393,6 +427,10 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
     if (bAcceptAnyItem)
     {
         return Accept (TEXT ("accepted by accept any"), TEXT ("true"));
+    }
+    if (AcceptedItemDefinitionIds.Contains (Item.ItemDefinitionId))
+    {
+        return Accept (TEXT ("accepted item definition"), Item.ItemDefinitionId.ToString ());
     }
 
     return Reject (EGridReceptacleRejectReason::NoMatchingAcceptanceRule);
@@ -1347,10 +1385,6 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemDefiniti
     {
         return TEXT ("empty item id");
     }
-    if (!bAcceptAnyItem)
-    {
-        return TEXT ("receptacle accepts no items");
-    }
     if (IsFull ())
     {
         return TEXT ("receptacle is full");
@@ -1358,6 +1392,10 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemDefiniti
     if (!bCanInsertItem)
     {
         return TEXT ("insertion disabled");
+    }
+    if (!bAcceptAnyItem && !AcceptedItemDefinitionIds.Contains (ItemDefinitionId))
+    {
+        return TEXT ("item definition is not accepted");
     }
     return TEXT ("unknown");
 }

@@ -1825,6 +1825,60 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         }
         return Menu;
     };
+    TSharedRef<SVerticalBox> AcceptedItemsList = SNew (SVerticalBox);
+    for (int32 AcceptedIndex = 0; AcceptedIndex < Behavior.Receptacle.AcceptedItems.Num (); ++AcceptedIndex)
+    {
+        const FGridReceptacleAcceptedItemConfig& AcceptedItem =
+            Behavior.Receptacle.AcceptedItems[AcceptedIndex];
+        AcceptedItemsList->AddSlot ().AutoHeight ().Padding (0.f, 2.f)
+        [
+            SNew (SHorizontalBox)
+
+            + SHorizontalBox::Slot ().FillWidth (1.f).Padding (0.f, 0.f, 4.f, 0.f)
+            [
+                BuildItemDefinitionAssetPicker (
+                    AcceptedItem.ItemDefinition,
+                    [Obj, ApplyBehavior, AcceptedIndex] (UGridItemDefinitionAsset* NewAsset)
+                    {
+                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                        if (NewBehavior.Receptacle.AcceptedItems.IsValidIndex (AcceptedIndex))
+                        {
+                            NewBehavior.Receptacle.AcceptedItems[AcceptedIndex].ItemDefinition = NewAsset;
+                            ApplyBehavior (NewBehavior);
+                        }
+                    })
+            ]
+
+            + SHorizontalBox::Slot ().AutoWidth ()
+            [
+                SNew (SButton)
+                    .Text (FText::FromString (TEXT ("Remove")))
+                    .OnClicked_Lambda ([Obj, ApplyBehavior, AcceptedIndex] ()
+                {
+                    FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+                    if (NewBehavior.Receptacle.AcceptedItems.IsValidIndex (AcceptedIndex))
+                    {
+                        NewBehavior.Receptacle.AcceptedItems.RemoveAt (AcceptedIndex);
+                        ApplyBehavior (NewBehavior);
+                    }
+                    return FReply::Handled ();
+                })
+            ]
+        ];
+    }
+    AcceptedItemsList->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+    [
+        SNew (SButton)
+            .Text (FText::FromString (TEXT ("Add Accepted Item")))
+            .OnClicked_Lambda ([Obj, ApplyBehavior] ()
+        {
+            FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
+            NewBehavior.Receptacle.AcceptedItems.AddDefaulted ();
+            ApplyBehavior (NewBehavior);
+            return FReply::Handled ();
+        })
+    ];
+
     TSharedRef<SVerticalBox> InitialContentList = SNew (SVerticalBox);
     for (int32 InitialIndex = 0; InitialIndex < Behavior.Receptacle.InitialContent.Num (); ++InitialIndex)
     {
@@ -1958,6 +2012,15 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                         [
                             SNew (STextBlock).Text (FText::FromString (TEXT ("Accept Any Item")))
                         ]
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 4.f)
+                [
+                    !Behavior.Receptacle.bAcceptAnyItem
+                        ? GridEditorWidgetHelpers::BuildGridPropertyRow (
+                            FText::FromString (TEXT ("Accepted Items")),
+                            AcceptedItemsList)
+                        : SNullWidget::NullWidget
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)

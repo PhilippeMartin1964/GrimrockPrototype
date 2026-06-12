@@ -407,5 +407,8 @@ private:
     UPROPERTY (Transient)
     bool bInitialItemsInitialized = false;
 
+    UPROPERTY (Transient)
+    TArray<FName> AcceptedItemDefinitionIds;
+
     TOptional<FHitResult> PendingPlacementHitResult;
 };

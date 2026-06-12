@@ -92,12 +92,25 @@ struct FGridReceptacleInitialItemConfig
 };
 
 USTRUCT (BlueprintType)
+struct FGridReceptacleAcceptedItemConfig
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Accepted Items")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinition = nullptr;
+};
+
+USTRUCT (BlueprintType)
 struct FGridReceptacleBehaviorParams
 {
     GENERATED_BODY ()
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bAcceptAnyItem = true;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Accepted Items",
+        meta = (EditCondition = "!bAcceptAnyItem", EditConditionHides))
+    TArray<FGridReceptacleAcceptedItemConfig> AcceptedItems;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Initial Content")
     TArray<FGridReceptacleInitialItemConfig> InitialContent;

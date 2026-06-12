@@ -98,7 +98,7 @@ Les formes longues comme `Lever_Standard`, `PressurePlate_Stone` ou `Trigger_Flo
 
 Note Patch E : les réceptacles concrets sont des archétypes. `Receptacle_Alcove`, `Receptacle_TorchHolder`, `Receptacle_Altar` et `Receptacle_OfferingBowl` restent tous `SupportedType = Receptacle` et utilisent une `RuntimeActorClass` dérivée de `AGridReceptacleActor`. Les comportements spécifiques seront ajoutés plus tard via `Behavior` et les commandes, pas par multiplication de `EGridLevelObjectType`.
 
-Note Patch F : les réceptacles utilisent `Behavior.Receptacle.bAcceptAnyItem`. Les filtres détaillés ne font plus partie du modèle actuel.
+Note Patch F : les réceptacles utilisent `Behavior.Receptacle.bAcceptAnyItem` ou une liste `AcceptedItems` de `UGridItemDefinitionAsset`. Les anciens filtres par tags, types et identifiants saisis manuellement ne font plus partie du modèle actuel.
 
 ---
 

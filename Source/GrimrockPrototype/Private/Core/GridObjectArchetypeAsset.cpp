@@ -218,6 +218,7 @@ namespace
     bool HasReceptacleBehaviorParams (const FGridObjectBehaviorParams& Behavior)
     {
         return !Behavior.Receptacle.bAcceptAnyItem ||
+            Behavior.Receptacle.AcceptedItems.Num () > 0 ||
             Behavior.Receptacle.InitialContent.Num () > 0 ||
             Behavior.Receptacle.MaxContainedItems != 1 ||
             Behavior.Receptacle.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
@@ -528,6 +529,18 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             if (RuntimeActorClass && !RuntimeActorClass->IsChildOf (AGridReceptacleActor::StaticClass ()))
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle RuntimeActorClass must derive from AGridReceptacleActor. Concrete Receptacle_* variants can use AGridReceptacleActor or a Blueprint derived from it."));
+            }
+            if (!DefaultBehavior.Receptacle.bAcceptAnyItem &&
+                DefaultBehavior.Receptacle.AcceptedItems.Num () == 0)
+            {
+                AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Receptacle does not accept any item because AcceptedItems is empty."));
+            }
+            for (const FGridReceptacleAcceptedItemConfig& AcceptedItem : DefaultBehavior.Receptacle.AcceptedItems)
+            {
+                if (!AcceptedItem.ItemDefinition)
+                {
+                    AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Receptacle AcceptedItems contains an entry without an ItemDefinition."));
+                }
             }
             for (const FGridReceptacleInitialItemConfig& InitialItem : DefaultBehavior.Receptacle.InitialContent)
             {
