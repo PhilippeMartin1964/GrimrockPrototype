@@ -24,9 +24,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Party")
     int32 DefaultMaxActiveCharacters = 6;
 
-    UPROPERTY (Transient)
-    TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> RuntimeItemDefinitionsById;
-
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void InitializeDefaultPartyIfNeeded ();
 
@@ -192,6 +189,9 @@ public:
     bool ValidateInventoryOwnership (UPARAM (ref) FString& OutError) const;
 
 private:
+    UPROPERTY (Transient)
+    TMap<FName, TObjectPtr<UGridItemDefinitionAsset>> RuntimeItemDefinitionsById;
+
     void EnsureEquipmentCountMatchesActiveCharacters ();
     void InitializeCharacterDefaults (FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;
     float CalculateEquipmentWeight (const FGridCharacterEquipmentState& EquipmentState) const;

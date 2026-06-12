@@ -236,7 +236,7 @@ Le clic droit reste exclusivement réservé au free look / mouvement de tête du
 
 Les définitions `DA_Item_xxx` ne sont plus ajoutées manuellement dans `BP_GrimrockPartyPawn`.
 
-Le composant d'inventaire maintient un registre runtime interne. Les définitions sont enregistrées automatiquement lorsqu'un item issu du niveau ou du runtime référence un `UGridItemDefinitionAsset`.
+Le composant d'inventaire maintient un registre runtime interne non éditable. Les définitions sont enregistrées automatiquement lorsqu'un item issu du niveau ou du runtime référence un `UGridItemDefinitionAsset`.
 
 Le flux normal est :
 
