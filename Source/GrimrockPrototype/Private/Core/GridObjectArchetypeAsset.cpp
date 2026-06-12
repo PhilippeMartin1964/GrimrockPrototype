@@ -224,16 +224,9 @@ namespace
             !Behavior.Receptacle.InitialContainedItemArchetypeId.IsNone () ||
             Behavior.Receptacle.MaxContainedItems != 1 ||
             Behavior.Receptacle.VisualPlacementMode != EGridReceptacleVisualPlacementMode::AttachedSocket ||
-            Behavior.Receptacle.bUsePhysicalPlacement ||
             Behavior.Receptacle.bSimulatePhysicsWhenPlaced ||
-            !Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement ||
             !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPlacementSurfaceOffset, 10.f) ||
-            !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero () ||
-            !Behavior.Receptacle.bFreezePhysicalPileAfterSettled ||
-            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileSettleDelay, 1.f) ||
-            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileSpawnHeight, 45.f) ||
-            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileSpawnSpacing, 22.f) ||
-            !FMath::IsNearlyEqual (Behavior.Receptacle.PhysicalPileMaxJitter, 8.f);
+            !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero ();
     }
 
     bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)
@@ -308,12 +301,12 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
     if ((ArchetypeId == FName (TEXT ("Receptacle_Alcove")) ||
             ArchetypeId == FName (TEXT ("Receptacle_Alcove_Stone"))) &&
         DefaultBehavior.Receptacle.VisualPlacementMode !=
-            EGridReceptacleVisualPlacementMode::PhysicalPile)
+            EGridReceptacleVisualPlacementMode::PhysicalAtHit)
     {
         AddValidationMessage (
             OutMessages,
             EGridArchetypeValidationSeverity::Error,
-            TEXT ("Receptacle alcoves must use VisualPlacementMode=PhysicalPile."));
+            TEXT ("Receptacle alcoves must use VisualPlacementMode=PhysicalAtHit."));
     }
 
     if (RequiresRuntimeActorClass () && !RuntimeActorClass)

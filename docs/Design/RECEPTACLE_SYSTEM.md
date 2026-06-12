@@ -114,10 +114,9 @@ Les organisations internes recommandées sont :
 - `SingleSlot` : un seul item ;
 - `MultiSlot` : plusieurs emplacements linéaires ;
 - `GridInventory` : inventaire organisé en grille ;
-- `PhysicalPile` : items présents physiquement dans une zone ;
 - `DisplaySlots` : emplacements visuels nommés ou indexés.
 
-Capacité et organisation sont deux notions différentes. Un `PhysicalPile` peut être limité à cinq items, tandis qu'un `DisplaySlots` peut exposer trois emplacements fixes. `MaxContainedItems` ne décrit pas à lui seul la manière dont les items sont stockés ou affichés.
+Capacité et organisation sont deux notions différentes. Un réceptacle multi-slot peut contenir plusieurs items tout en utilisant un placement visuel au point cliqué. `MaxContainedItems` ne décrit pas à lui seul la manière dont les items sont affichés.
 
 ## 7. Compatibilité des items
 
@@ -153,7 +152,6 @@ Les modes recommandés sont :
 
 - `AttachedSocket` : acteur attaché à un socket ou un point fixe ;
 - `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface ;
-- `PhysicalPile` : acteur créé non attaché au-dessus de la surface de pose, rendu physique, puis figé après le délai de stabilisation ;
 - `ContainerOnly` : contenu logique ou visible uniquement dans une UI ;
 - `DisplaySlots` : acteur attaché à un emplacement d'affichage déterminé.
 
@@ -162,8 +160,6 @@ Le mode visuel ne doit pas modifier l'identité logique de l'item.
 Une alcôve configurée en `PhysicalAtHit` doit placer l'objet dans la niche visée, en utilisant le point d'impact, la normale de surface et un léger offset. Elle ne doit pas déposer l'objet au sol ni le placer au centre arbitraire du réceptacle.
 
 `PhysicalAtHit` n'implique pas obligatoirement une simulation physique. L'acteur peut rester immobile tout en conservant un transform dans le monde, une collision permettant de le reprendre et son identité logique dans le réceptacle. Le mode de collision et l'activation éventuelle de la physique relèvent du type d'item et du comportement recherché.
-
-`PhysicalPile` ne doit jamais emprunter le chemin `AttachedSocket`. `UpdateContainedItemInteractionCollision()` ne doit pas figer un item de pile ; le gel appartient exclusivement au mécanisme de settle.
 
 Un support de torche utilise normalement `AttachedSocket` afin de garantir une position, une orientation et un comportement lumineux stables.
 
@@ -357,7 +353,7 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 - Type : `Presentation`.
 - Capacité : 1 ou plusieurs items.
-- Organisation : `PhysicalPile` ou `DisplaySlots`.
+- Organisation : `MultiSlot` ou `DisplaySlots`.
 - Placement : `PhysicalAtHit` pour une niche libre, éventuellement `DisplaySlots` pour une composition contrôlée.
 - Interaction : dépôt direct depuis inventaire ou équipement, clic sur l'objet visible pour le reprendre.
 - Particularité : l'objet doit apparaître dans la niche visée.
@@ -425,7 +421,6 @@ enum class EGridReceptacleLayout : uint8
     SingleSlot,
     MultiSlot,
     GridInventory,
-    PhysicalPile,
     DisplaySlots
 };
 

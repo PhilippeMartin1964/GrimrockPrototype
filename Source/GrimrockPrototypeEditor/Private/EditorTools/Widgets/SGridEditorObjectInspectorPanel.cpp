@@ -2069,15 +2069,15 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
                 [
                     SNew (SCheckBox)
-                        .IsChecked (Behavior.Receptacle.bUsePhysicalPlacement ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                        .IsChecked (Behavior.Receptacle.bSimulatePhysicsWhenPlaced ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
                         .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
                     {
                         FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                        NewBehavior.Receptacle.bUsePhysicalPlacement = NewState == ECheckBoxState::Checked;
+                        NewBehavior.Receptacle.bSimulatePhysicsWhenPlaced = NewState == ECheckBoxState::Checked;
                         ApplyBehavior (NewBehavior);
                     })
                         [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Physical Placement")))
+                            SNew (STextBlock).Text (FText::FromString (TEXT ("Simulate Physics When Placed")))
                         ]
                 ]
 
@@ -2097,21 +2097,6 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
                             NewBehavior.Receptacle.MaxContainedItems = FMath::Max (1, NewValue);
                             ApplyBehavior (NewBehavior);
                         }))
-                ]
-
-                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 2.f)
-                [
-                    SNew (SCheckBox)
-                        .IsChecked (Behavior.Receptacle.bExtinguishItemOnPhysicalPlacement ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                        .OnCheckStateChanged_Lambda ([Obj, ApplyBehavior] (ECheckBoxState NewState)
-                    {
-                        FGridObjectBehaviorParams NewBehavior = Obj.Behavior;
-                        NewBehavior.Receptacle.bExtinguishItemOnPhysicalPlacement = NewState == ECheckBoxState::Checked;
-                        ApplyBehavior (NewBehavior);
-                    })
-                        [
-                            SNew (STextBlock).Text (FText::FromString (TEXT ("Extinguish Item On Physical Placement")))
-                        ]
                 ]
 
                 + SVerticalBox::Slot ().AutoHeight ()
