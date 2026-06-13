@@ -12,6 +12,8 @@
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 
+DEFINE_LOG_CATEGORY (LogGridReceptacle);
+
 namespace
 {
     static constexpr float MultiItemVisualSpacing = 18.0f;
@@ -214,7 +216,7 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
         }
     }
 
-    UE_LOG (LogTemp, Warning,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("GridReceptacle Init InitialContent Receptacle=%s ObjectId=%s ConfigCount=%d RuntimeInitialCount=%d"),
         *GetName (),
         *ObjectId.ToString (),
@@ -376,7 +378,7 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
                 return ItemDefinitionId.ToString ();
             });
 
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, VeryVerbose,
             TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
                 "AcceptAny=%s AcceptedItemDefinitionIds=[%s] CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
                 "ItemDefinitionId=%s RuntimeObjectId=%s %s"),
@@ -461,7 +463,7 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
 
     if (!bCanInsertItem)
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=insert disabled"),
             *ObjectId.ToString (),
             *ItemDefinitionId.ToString ());
@@ -470,7 +472,7 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
 
     if (IsFull ())
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=full Count=%d Max=%d"),
             *ObjectId.ToString (),
             *ItemDefinitionId.ToString (),
@@ -481,7 +483,7 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
 
     if (!CanAcceptItem (ItemDefinitionId))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=%s"),
             *ObjectId.ToString (),
             *ItemDefinitionId.ToString (),
@@ -511,7 +513,7 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
         ConsumeItemAtIndex (NewIndex);
     }
 
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("Receptacle accepted item %s ObjectId=%s Count=%d"),
         *ItemDefinitionId.ToString (),
         *ObjectId.ToString (),
@@ -529,7 +531,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     FGridReceptacleAcceptanceResult AcceptanceResult;
     if (!EvaluateItemAcceptance (CursorItem, AcceptanceResult))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("Receptacle cursor insert refused: ObjectId=%s Item=%s RuntimeId=%s Reason=%s"),
             *ObjectId.ToString (),
             *CursorItem.ItemDefinitionId.ToString (),
@@ -588,7 +590,7 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
         ConsumeItemAtIndex (NewIndex);
     }
 
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("Receptacle accepted cursor item %s ObjectId=%s RuntimeId=%s Count=%d"),
         *CursorItem.ItemDefinitionId.ToString (),
         *ObjectId.ToString (),
@@ -613,7 +615,7 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     }
     if (!IsItemRemovalAllowed ())
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("GridReceptacle RemoveRejected ObjectId=%s ItemIndex=%d Policy=%s CanRemove=%s"),
             *ObjectId.ToString (),
             ItemIndex,
@@ -657,7 +659,7 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
 
     if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("Receptacle take failed: ObjectId=%s Item=%s Reason=party inventory rejected"),
             *ObjectId.ToString (),
             *Item.ItemDefinitionId.ToString ());
@@ -671,7 +673,7 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     }
     OutRemovedItemDefinitionId = RemovedItem.ItemDefinitionId;
     ExecuteRemovalLinks ();
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("Receptacle returned item %s ObjectId=%s Count=%d"),
         *RemovedItem.ItemDefinitionId.ToString (),
         *ObjectId.ToString (),
@@ -684,7 +686,7 @@ bool AGridReceptacleActor::ConsumeItemAtIndex (int32 ItemIndex)
 {
     if (!ContainedItems.IsValidIndex (ItemIndex))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("GridReceptacle ConsumeFailed ObjectId=%s ItemIndex=%d Reason=InvalidIndex Count=%d"),
             *ObjectId.ToString (),
             ItemIndex,
@@ -697,7 +699,7 @@ bool AGridReceptacleActor::ConsumeItemAtIndex (int32 ItemIndex)
     FGridContainedReceptacleItem ConsumedItem;
     if (!RemoveContainedItemAtIndex (ItemIndex, ConsumedItem))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("GridReceptacle ConsumeFailed ObjectId=%s Item=%s RuntimeId=%s Reason=RemoveFailed"),
             *ObjectId.ToString (),
             *ItemDefinitionId.ToString (),
@@ -709,7 +711,7 @@ bool AGridReceptacleActor::ConsumeItemAtIndex (int32 ItemIndex)
     {
         RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemChanged);
     }
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("GridReceptacle ItemConsumed ObjectId=%s Item=%s RuntimeId=%s Remaining=%d Policy=%s"),
         *ObjectId.ToString (),
         *ItemDefinitionId.ToString (),
@@ -737,7 +739,7 @@ void AGridReceptacleActor::SetReceptacleItemPolicy (EGridReceptacleItemPolicy Ne
 {
     const EGridReceptacleItemPolicy PreviousPolicy = ItemPolicy;
     ItemPolicy = NewPolicy;
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("GridReceptacle PolicyChanged ObjectId=%s Previous=%s New=%s"),
         *ObjectId.ToString (),
         *UEnum::GetValueAsString (PreviousPolicy),
@@ -748,7 +750,7 @@ void AGridReceptacleActor::SetCanRemoveItem (bool bNewCanRemoveItem)
 {
     const bool bPreviousCanRemoveItem = bCanRemoveItem;
     bCanRemoveItem = bNewCanRemoveItem;
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("GridReceptacle RemovalChanged ObjectId=%s Previous=%s New=%s"),
         *ObjectId.ToString (),
         bPreviousCanRemoveItem ? TEXT ("true") : TEXT ("false"),
@@ -759,7 +761,7 @@ void AGridReceptacleActor::SetCanInsertItem (bool bNewCanInsertItem)
 {
     const bool bPreviousCanInsertItem = bCanInsertItem;
     bCanInsertItem = bNewCanInsertItem;
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("GridReceptacle InsertionChanged ObjectId=%s Previous=%s New=%s"),
         *ObjectId.ToString (),
         bPreviousCanInsertItem ? TEXT ("true") : TEXT ("false"),
@@ -782,7 +784,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     if (PartyPawn->PartyInventoryComponent && PartyPawn->PartyInventoryComponent->HasCursorItem ())
     {
         const FGridItemInstance& CursorItem = PartyPawn->PartyInventoryComponent->GetCursorItem ();
-        UE_LOG (LogTemp, Log,
+        UE_LOG (LogGridReceptacle, Verbose,
             TEXT ("GridReceptacle Interaction Route=\"fallback legacy cursor -> receptacle\" ObjectId=%s Item=%s RuntimeId=%s"),
             *ObjectId.ToString (),
             *CursorItem.ItemDefinitionId.ToString (),
@@ -795,7 +797,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     {
         if (!IsItemRemovalAllowed ())
         {
-            UE_LOG (LogTemp, Warning,
+            UE_LOG (LogGridReceptacle, Warning,
                 TEXT ("GridReceptacle Interaction RemoveRejected ObjectId=%s Policy=%s CanRemove=%s"),
                 *ObjectId.ToString (),
                 *UEnum::GetValueAsString (ItemPolicy),
@@ -804,7 +806,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         }
         UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
         const int32 CharacterIndex = Inventory ? Inventory->GetSelectedCharacterIndex () : INDEX_NONE;
-        UE_LOG (LogTemp, Log,
+        UE_LOG (LogGridReceptacle, Verbose,
             TEXT ("GridReceptacle Interaction Route=\"service transfer receptacle -> inventory\" ObjectId=%s ItemIndex=0 Character=%d"),
             *ObjectId.ToString (),
             CharacterIndex);
@@ -817,7 +819,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
                 CharacterIndex);
         if (!TransferResult.bSuccess)
         {
-            UE_LOG (LogTemp, Warning,
+            UE_LOG (LogGridReceptacle, Warning,
                 TEXT ("GridReceptacle Interaction ServiceFailed Route=\"receptacle -> inventory\" ObjectId=%s Result=%s Message=%s"),
                 *ObjectId.ToString (),
                 *UEnum::GetValueAsString (TransferResult.Result),
@@ -826,7 +828,7 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return TransferResult.bSuccess;
     }
 
-    UE_LOG (LogTemp, Verbose,
+    UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("Receptacle interact ignored: ObjectId=%s no CursorItem and no contained item."),
         *ObjectId.ToString ());
     return false;
@@ -867,7 +869,7 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         }
         if (ResolvedItemId.IsNone ())
         {
-            UE_LOG (LogTemp, Warning,
+            UE_LOG (LogGridReceptacle, Warning,
                 TEXT ("GridReceptacle Capture skipped contained item: ReceptacleId=%s RuntimeId=%s Actor=%s no ItemDefinitionId or legacy ArchetypeId resolved."),
                 *ObjectId.ToString (),
                 *Item.RuntimeObjectId.ToString (),
@@ -928,7 +930,7 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
 {
     if (ItemState.ItemDefinitionId.IsNone ())
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Warning,
             TEXT ("GridReceptacle Restore skipped contained item: ReceptacleId=%s RuntimeId=%s no ItemDefinitionId or legacy ArchetypeId resolved."),
             *ObjectId.ToString (),
             *ItemState.ObjectId.ToString ());
@@ -1298,7 +1300,7 @@ void AGridReceptacleActor::ApplyVisualPlacement (
         }
         if (bUseInitialContentOffset)
         {
-            UE_LOG (LogTemp, Warning,
+            UE_LOG (LogGridReceptacle, Verbose,
                 TEXT ("GridReceptacle PhysicalAtHit InitialOffset Place Receptacle=%s Item=%s ItemIndex=%d LocalOffset=%s Location=%s Simulating=%s Gravity=%s Collision=%d Hit=false"),
                 *GetName (),
                 *Item.ItemDefinitionId.ToString (),
@@ -1309,7 +1311,7 @@ void AGridReceptacleActor::ApplyVisualPlacement (
                 ItemActor->MeshComponent && ItemActor->MeshComponent->IsGravityEnabled () ? TEXT ("true") : TEXT ("false"),
                 ItemActor->MeshComponent ? static_cast<int32> (ItemActor->MeshComponent->GetCollisionEnabled ()) : -1);
         }
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Verbose,
             TEXT ("GridReceptacle PhysicalAtHit Place Receptacle=%s Item=%s Actor=%s Simulating=%s Gravity=%s Collision=%d Location=%s Hit=%s"),
             *GetName (),
             *Item.ItemDefinitionId.ToString (),
@@ -1324,7 +1326,7 @@ void AGridReceptacleActor::ApplyVisualPlacement (
 
     if (PlacementMode == EGridReceptacleVisualPlacementMode::DisplaySlots)
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridReceptacle, Verbose,
             TEXT ("GridReceptacle DisplaySlots fallback to AttachedSocket Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s"),
             *GetName (),
             *ObjectId.ToString (),
@@ -1463,7 +1465,7 @@ void AGridReceptacleActor::InitializeInitialContainedItems ()
         const FName ItemDefinitionId = ResolveInitialItemDefinitionId (InitialItem);
         if (ItemDefinitionId.IsNone ())
         {
-            UE_LOG (LogTemp, Warning,
+            UE_LOG (LogGridReceptacle, Warning,
                 TEXT ("GridReceptacle InitialItem skipped: ObjectId=%s InitialItems=%d ContainedItems=%d InitialDefinitionId=%s"),
                 *ObjectId.ToString (),
                 InitialContainedItems.Num (),

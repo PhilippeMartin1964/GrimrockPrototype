@@ -15,6 +15,8 @@ class AGridItemActor;
 class UGridItemDefinitionAsset;
 class UGridItemTransferService;
 
+DECLARE_LOG_CATEGORY_EXTERN (LogGridReceptacle, Log, All);
+
 /**
  * Item initially contained in a receptacle.
  *
