@@ -101,8 +101,6 @@ namespace
             return TEXT ("invalid item");
         case EGridReceptacleRejectReason::Full:
             return TEXT ("receptacle full");
-        case EGridReceptacleRejectReason::InsertDisabled:
-            return TEXT ("insert disabled");
         case EGridReceptacleRejectReason::ExplicitlyRejected:
             return TEXT ("rejected explicitly");
         case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
@@ -164,7 +162,6 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
 
     const FGridReceptacleBehaviorParams& Params = ObjectData.Behavior.Receptacle;
 
-    bCanInsertItem = true;
     bCanRemoveItem = true;
 
     bAcceptAnyItem = Params.bAcceptAnyItem;
@@ -336,7 +333,7 @@ bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
     {
         return false;
     }
-    if (IsFull () || !bCanInsertItem)
+    if (IsFull ())
     {
         return false;
     }
@@ -377,7 +374,7 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
 
         UE_LOG (LogGridReceptacle, VeryVerbose,
             TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
-                "AcceptAny=%s AcceptedItemDefinitionIds=[%s] CanInsert=%s Count=%d Max=%d ItemPolicy=%s "
+                "AcceptAny=%s AcceptedItemDefinitionIds=[%s] Count=%d Max=%d ItemPolicy=%s "
                 "ItemDefinitionId=%s RuntimeObjectId=%s %s"),
             Outcome,
             *GetName (),
@@ -385,7 +382,6 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
             *GetClass ()->GetPathName (),
             bAcceptAnyItem ? TEXT ("true") : TEXT ("false"),
             *AcceptedIds,
-            bCanInsertItem ? TEXT ("true") : TEXT ("false"),
             ContainedItems.Num (),
             MaxContainedItems,
             *UEnum::GetValueAsString (ItemPolicy),
@@ -432,10 +428,6 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
     {
         return Reject (EGridReceptacleRejectReason::Full);
     }
-    if (!bCanInsertItem)
-    {
-        return Reject (EGridReceptacleRejectReason::InsertDisabled);
-    }
     if (bAcceptAnyItem)
     {
         return Accept (TEXT ("accepted by accept any"), TEXT ("true"));
@@ -457,15 +449,6 @@ bool AGridReceptacleActor::CanAcceptCursorItemFromParty (const AGrimrockPartyPaw
 bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefinitionAsset* ItemDefinition, AGrimrockPartyPawn* PartyPawn)
 {
     ItemDefinitionId = ResolveDefinitionId (ItemDefinition, ItemDefinitionId);
-
-    if (!bCanInsertItem)
-    {
-        UE_LOG (LogGridReceptacle, Warning,
-            TEXT ("Receptacle insert refused: ObjectId=%s Item=%s Reason=insert disabled"),
-            *ObjectId.ToString (),
-            *ItemDefinitionId.ToString ());
-        return false;
-    }
 
     if (IsFull ())
     {
@@ -754,17 +737,6 @@ void AGridReceptacleActor::SetCanRemoveItem (bool bNewCanRemoveItem)
         bCanRemoveItem ? TEXT ("true") : TEXT ("false"));
 }
 
-void AGridReceptacleActor::SetCanInsertItem (bool bNewCanInsertItem)
-{
-    const bool bPreviousCanInsertItem = bCanInsertItem;
-    bCanInsertItem = bNewCanInsertItem;
-    UE_LOG (LogGridReceptacle, Verbose,
-        TEXT ("GridReceptacle InsertionChanged ObjectId=%s Previous=%s New=%s"),
-        *ObjectId.ToString (),
-        bPreviousCanInsertItem ? TEXT ("true") : TEXT ("false"),
-        bCanInsertItem ? TEXT ("true") : TEXT ("false"));
-}
-
 bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 {
     if (!PartyPawn)
@@ -1039,7 +1011,7 @@ EGridInteractionCursor AGridReceptacleActor::GetInteractionCursor_Implementation
     {
         return EGridInteractionCursor::Take;
     }
-    if (HitComponent == MeshComponent && bCanInsertItem && !IsFull ())
+    if (HitComponent == MeshComponent && !IsFull ())
     {
         return EGridInteractionCursor::Use;
     }
@@ -1052,7 +1024,7 @@ FText AGridReceptacleActor::GetInteractionText_Implementation (UPrimitiveCompone
     {
         return FText::FromString (TEXT ("Take"));
     }
-    if (HitComponent == MeshComponent && bCanInsertItem && !IsFull ())
+    if (HitComponent == MeshComponent && !IsFull ())
     {
         return FText::FromString (TEXT ("Place item"));
     }
@@ -1391,10 +1363,6 @@ FString AGridReceptacleActor::GetItemAcceptanceFailureReason (FName ItemDefiniti
     if (IsFull ())
     {
         return TEXT ("receptacle is full");
-    }
-    if (!bCanInsertItem)
-    {
-        return TEXT ("insertion disabled");
     }
     if (!bAcceptAnyItem && !AcceptedItemDefinitionIds.Contains (ItemDefinitionId))
     {

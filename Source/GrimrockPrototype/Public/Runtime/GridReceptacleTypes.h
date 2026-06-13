@@ -24,7 +24,6 @@ enum class EGridReceptacleRejectReason : uint8
     None,
     InvalidItem,
     Full,
-    InsertDisabled,
     ExplicitlyRejected,
     NoMatchingAcceptanceRule
 };

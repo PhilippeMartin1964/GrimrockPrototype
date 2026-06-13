@@ -32,8 +32,6 @@ namespace
             return FText::FromString (TEXT ("Objet invalide."));
         case EGridReceptacleRejectReason::Full:
             return FText::FromString (TEXT ("Ce réceptacle est plein."));
-        case EGridReceptacleRejectReason::InsertDisabled:
-            return FText::FromString (TEXT ("Impossible d'insérer un objet ici."));
         case EGridReceptacleRejectReason::ExplicitlyRejected:
         case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
             return FText::FromString (TEXT ("Cet objet ne convient pas."));

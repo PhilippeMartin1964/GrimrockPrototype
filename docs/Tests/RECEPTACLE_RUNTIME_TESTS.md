@@ -53,8 +53,8 @@ GO récents. Pour chaque preset :
 6. Ajouter l'archétype à `DA_ObjectPalette_Default` et au tableau
    `ObjectArchetypes` du `BP_GridLevelRuntimeActor` de la map de test.
 
-Attention : `InitializeGridObject` remet actuellement `bCanInsertItem` et
-`bCanRemoveItem` à `true`. Utiliser `ItemPolicy=Locked` pour garantir le verrouillage
+Attention : `InitializeGridObject` remet actuellement `bCanRemoveItem` à `true`.
+Utiliser `ItemPolicy=Locked` pour garantir le verrouillage
 initial et les commandes du GO 7 pour modifier l'état pendant le test.
 
 ## Presets de réceptacle attendus

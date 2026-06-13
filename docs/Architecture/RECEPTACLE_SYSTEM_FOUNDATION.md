@@ -54,7 +54,7 @@ Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `Arch
 
 L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
 
-`ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
+`ItemPolicy`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
 
 Il n'existe pas d'autre axe runtime de typologie ou d'organisation du stockage.
 Les seuls modes visuels sont ceux listés en section 5.
@@ -87,7 +87,7 @@ de torche utilisent `MaxContainedItems = 1`, `VisualPlacementMode =
 AttachedSocket`, `bAcceptAnyItem = false` et
 `AcceptedItems = [DA_Item_Torch]`.
 
-Quand le slot cursor contient un item et qu'un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
+Quand le slot cursor contient un item et qu'un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full` ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
 
 L'insertion par clic souris se fait uniquement depuis le slot cursor. Les objets équipés en `MainHand` ou `OffHand` ne sont jamais insérés automatiquement dans un réceptacle. Quand le cursor est vide, cliquer un item contenu demande son retrait, même si une main est occupée.
 
@@ -109,11 +109,10 @@ Un mur, une porte fermée ou tout composant bloquant `Visibility` empêche donc 
 
 1. instance invalide : refus `InvalidItem` ;
 2. capacité atteinte : refus `Full` ;
-3. insertion désactivée : refus `InsertDisabled` ;
-4. `bAcceptAnyItem=true` : acceptation ;
-5. `ItemDefinitionId` présent dans les définitions résolues depuis
+3. `bAcceptAnyItem=true` : acceptation ;
+4. `ItemDefinitionId` présent dans les définitions résolues depuis
    `AcceptedItems` : acceptation ;
-6. sinon : refus `NoMatchingAcceptanceRule`.
+5. sinon : refus `NoMatchingAcceptanceRule`.
 
 `AcceptedItems` contient des assets. Lors de l'initialisation, leurs
 `ItemDefinitionId` non vides sont copiés dans la liste runtime utilisée par

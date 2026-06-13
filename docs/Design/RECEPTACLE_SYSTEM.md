@@ -138,10 +138,9 @@ La validation doit suivre un ordre stable :
 
 1. refuser un item invalide ;
 2. refuser si le réceptacle est plein ;
-3. refuser si l'insertion est désactivée ;
-4. accepter si `bAcceptAnyItem` est actif ;
-5. accepter si le `ItemDefinitionId` est présent dans `AcceptedItems` ;
-6. refuser avec `NoMatchingAcceptanceRule`.
+3. accepter si `bAcceptAnyItem` est actif ;
+4. accepter si le `ItemDefinitionId` est présent dans `AcceptedItems` ;
+5. refuser avec `NoMatchingAcceptanceRule`.
 
 Les motifs de refus doivent être distinguables dans les logs et, lorsque nécessaire, dans l'UI.
 

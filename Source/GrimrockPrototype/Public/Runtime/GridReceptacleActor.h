@@ -132,9 +132,6 @@ public:
     EGridReceptacleItemPolicy ItemPolicy = EGridReceptacleItemPolicy::Legacy;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
-    bool bCanInsertItem = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bCanRemoveItem = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
@@ -287,9 +284,6 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void SetCanRemoveItem (bool bNewCanRemoveItem);
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    void SetCanInsertItem (bool bNewCanInsertItem);
 
     /**
      * Main interaction entry point used by mouse / runtime interaction.
