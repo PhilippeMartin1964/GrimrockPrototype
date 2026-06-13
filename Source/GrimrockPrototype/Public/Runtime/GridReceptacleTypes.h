@@ -14,14 +14,6 @@ enum class EGridReceptacleKind : uint8
 };
 
 UENUM (BlueprintType)
-enum class EGridReceptacleStorageMode : uint8
-{
-    SingleSlot = 0,
-    MultiSlot = 1,
-    GridInventory = 2
-};
-
-UENUM (BlueprintType)
 enum class EGridReceptacleItemPolicy : uint8
 {
     Legacy,

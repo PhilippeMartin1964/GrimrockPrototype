@@ -125,9 +125,6 @@ public:
     EGridReceptacleKind ReceptacleKind = EGridReceptacleKind::Presentation;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
-    EGridReceptacleStorageMode StorageMode = EGridReceptacleStorageMode::SingleSlot;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
     EGridReceptacleVisualPlacementMode VisualPlacementMode = EGridReceptacleVisualPlacementMode::AttachedSocket;
 
     /**

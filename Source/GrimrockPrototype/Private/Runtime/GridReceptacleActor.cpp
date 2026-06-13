@@ -180,9 +180,6 @@ void AGridReceptacleActor::InitializeGridObject (const FGridLevelObjectData& Obj
     MaxContainedItems = Params.MaxContainedItems;
     bSimulatePhysicsWhenPlaced = Params.bSimulatePhysicsWhenPlaced;
     VisualPlacementMode = Params.VisualPlacementMode;
-    StorageMode = MaxContainedItems == 1
-        ? EGridReceptacleStorageMode::SingleSlot
-        : EGridReceptacleStorageMode::MultiSlot;
     PhysicalPlacementSurfaceOffset = Params.PhysicalPlacementSurfaceOffset;
     PhysicalPlacementInitialRotationOffset = Params.PhysicalPlacementInitialRotationOffset;
 

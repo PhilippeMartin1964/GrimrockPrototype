@@ -50,7 +50,7 @@ Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `Arch
 
 L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
 
-`ReceptacleKind`, `StorageMode`, `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. `InitializeGridObject()` recalcule notamment le mode de stockage depuis la capacité.
+`ReceptacleKind`, `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée.
 
 `ObjectData.Tag` n'intervient plus dans l'acceptation des items.
 

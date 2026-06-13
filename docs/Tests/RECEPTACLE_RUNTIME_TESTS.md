@@ -73,7 +73,6 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Presentation
-StorageMode = SingleSlot
 VisualPlacementMode = AttachedSocket
 ItemPolicy = Returnable
 bAcceptAnyItem = true
@@ -108,7 +107,6 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Presentation
-StorageMode = MultiSlot
 VisualPlacementMode = PhysicalAtHit
 ItemPolicy = Returnable
 bAcceptAnyItem = true
@@ -143,7 +141,6 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Mechanism
-StorageMode = SingleSlot
 VisualPlacementMode = AttachedSocket
 ItemPolicy = Locked
 bAcceptAnyItem = true
@@ -176,7 +173,6 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Mechanism
-StorageMode = MultiSlot
 VisualPlacementMode = AttachedSocket
 ItemPolicy = ConsumeOnInsert
 bAcceptAnyItem = false
@@ -206,7 +202,6 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Mechanism
-StorageMode = MultiSlot
 VisualPlacementMode = PhysicalAtHit
 ItemPolicy = Returnable
 bAcceptAnyItem = false
@@ -238,7 +233,6 @@ Class Defaults :
 
 ```text
 ReceptacleKind = Mechanism
-StorageMode = MultiSlot
 VisualPlacementMode = AttachedSocket
 ItemPolicy = ConsumeOnTrigger
 bAcceptAnyItem = true
