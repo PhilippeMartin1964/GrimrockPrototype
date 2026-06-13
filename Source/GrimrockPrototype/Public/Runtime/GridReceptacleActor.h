@@ -311,7 +311,9 @@ public:
     void ApplyVisualPlacement (
         AGridItemActor* ItemActor,
         const FGridItemInstance& Item,
-        const FHitResult* OptionalHit);
+        const FHitResult* OptionalHit,
+        int32 ItemIndex,
+        bool bInitialPlacement);
 
 public:
     // ============================================================

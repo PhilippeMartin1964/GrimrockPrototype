@@ -15,6 +15,19 @@
 namespace
 {
     static constexpr float MultiItemVisualSpacing = 18.0f;
+    static constexpr float InitialPhysicalContentSpacing = 25.0f;
+
+    FVector ComputeInitialPhysicalContentOffset (int32 ItemIndex)
+    {
+        if (ItemIndex <= 0)
+        {
+            return FVector::ZeroVector;
+        }
+
+        const int32 PairIndex = (ItemIndex + 1) / 2;
+        const float Direction = ItemIndex % 2 == 1 ? 1.0f : -1.0f;
+        return FVector (0.0f, Direction * PairIndex * InitialPhysicalContentSpacing, 0.0f);
+    }
 
     FName ResolveDefinitionId (const UGridItemDefinitionAsset* Definition, FName FallbackId)
     {
@@ -1157,7 +1170,9 @@ int32 AGridReceptacleActor::AddContainedItem (
         ApplyVisualPlacement (
             ContainedItems[NewIndex].ItemActor.Get (),
             PlacementItem,
-            PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr);
+            PendingPlacementHitResult.IsSet () ? &PendingPlacementHitResult.GetValue () : nullptr,
+            NewIndex,
+            bWasInitialItem);
         if (PlacementMode != EGridReceptacleVisualPlacementMode::PhysicalAtHit)
         {
             ContainedItems[NewIndex].ItemActor->OnPlacedInWorld ();
@@ -1218,7 +1233,9 @@ bool AGridReceptacleActor::IsItemRemovalAllowed () const
 void AGridReceptacleActor::ApplyVisualPlacement (
     AGridItemActor* ItemActor,
     const FGridItemInstance& Item,
-    const FHitResult* OptionalHit)
+    const FHitResult* OptionalHit,
+    int32 ItemIndex,
+    bool bInitialPlacement)
 {
     if (!IsValid (ItemActor) || !ItemAttachPoint)
     {
@@ -1241,9 +1258,15 @@ void AGridReceptacleActor::ApplyVisualPlacement (
     if (PlacementMode == EGridReceptacleVisualPlacementMode::PhysicalAtHit)
     {
         ItemActor->DetachFromActor (FDetachmentTransformRules::KeepWorldTransform);
-        const FVector PlacementLocation = OptionalHit && OptionalHit->bBlockingHit
+        const bool bHasHit = OptionalHit && OptionalHit->bBlockingHit;
+        const bool bUseInitialContentOffset = bInitialPlacement && !bHasHit;
+        const FVector LocalOffset = bUseInitialContentOffset
+            ? ComputeInitialPhysicalContentOffset (ItemIndex)
+            : FVector::ZeroVector;
+        const FVector PlacementLocation = bHasHit
             ? OptionalHit->ImpactPoint + OptionalHit->ImpactNormal * PhysicalPlacementSurfaceOffset
-            : ItemAttachPoint->GetComponentLocation ();
+            : ItemAttachPoint->GetComponentLocation () +
+                ItemAttachPoint->GetComponentTransform ().TransformVectorNoScale (LocalOffset);
         const FQuat PlacementRotation =
             ItemAttachPoint->GetComponentQuat () * PhysicalPlacementInitialRotationOffset.Quaternion ();
         ItemActor->SetActorLocationAndRotation (
@@ -1273,6 +1296,19 @@ void AGridReceptacleActor::ApplyVisualPlacement (
                 ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
             }
         }
+        if (bUseInitialContentOffset)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridReceptacle PhysicalAtHit InitialOffset Place Receptacle=%s Item=%s ItemIndex=%d LocalOffset=%s Location=%s Simulating=%s Gravity=%s Collision=%d Hit=false"),
+                *GetName (),
+                *Item.ItemDefinitionId.ToString (),
+                ItemIndex,
+                *LocalOffset.ToCompactString (),
+                *ItemActor->GetActorLocation ().ToCompactString (),
+                ItemActor->MeshComponent && ItemActor->MeshComponent->IsSimulatingPhysics () ? TEXT ("true") : TEXT ("false"),
+                ItemActor->MeshComponent && ItemActor->MeshComponent->IsGravityEnabled () ? TEXT ("true") : TEXT ("false"),
+                ItemActor->MeshComponent ? static_cast<int32> (ItemActor->MeshComponent->GetCollisionEnabled ()) : -1);
+        }
         UE_LOG (LogTemp, Warning,
             TEXT ("GridReceptacle PhysicalAtHit Place Receptacle=%s Item=%s Actor=%s Simulating=%s Gravity=%s Collision=%d Location=%s Hit=%s"),
             *GetName (),
@@ -1282,7 +1318,7 @@ void AGridReceptacleActor::ApplyVisualPlacement (
             ItemActor->MeshComponent && ItemActor->MeshComponent->IsGravityEnabled () ? TEXT ("true") : TEXT ("false"),
             ItemActor->MeshComponent ? static_cast<int32> (ItemActor->MeshComponent->GetCollisionEnabled ()) : -1,
             *ItemActor->GetActorLocation ().ToCompactString (),
-            OptionalHit && OptionalHit->bBlockingHit ? TEXT ("true") : TEXT ("false"));
+            bHasHit ? TEXT ("true") : TEXT ("false"));
         return;
     }
 
@@ -1298,12 +1334,12 @@ void AGridReceptacleActor::ApplyVisualPlacement (
 
     ItemActor->AttachToComponent (ItemAttachPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-    const int32 ItemIndex = FMath::Max (0, ContainedItems.IndexOfByPredicate (
+    const int32 AttachedItemIndex = FMath::Max (0, ContainedItems.IndexOfByPredicate (
         [&Item] (const FGridContainedReceptacleItem& ContainedItem)
         {
             return ContainedItem.RuntimeObjectId == Item.RuntimeObjectId;
         }));
-    const FVector LocalOffset (0.f, MultiItemVisualSpacing * ItemIndex, 0.f);
+    const FVector LocalOffset (0.f, MultiItemVisualSpacing * AttachedItemIndex, 0.f);
     ItemActor->SetActorRelativeLocation (LocalOffset);
     ItemActor->SetActorRelativeRotation (FRotator::ZeroRotator);
     ItemActor->SetActorRelativeScale3D (FVector::OneVector);
