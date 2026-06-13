@@ -1104,16 +1104,7 @@ int32 AGridReceptacleActor::AddContainedItem (
     }
 
     const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
-    if (PlacementMode == EGridReceptacleVisualPlacementMode::ContainerOnly)
-    {
-        if (IsValid (ItemActor))
-        {
-            ItemActor->Destroy ();
-        }
-        ItemActor = nullptr;
-        ContainedItems[NewIndex].ItemActor = nullptr;
-    }
-    else if (!IsValid (ItemActor) && RuntimeActor)
+    if (!IsValid (ItemActor) && RuntimeActor)
     {
         ItemActor = RuntimeActor->SpawnItemActorForDefinition (
             ItemDefinition,
@@ -1133,7 +1124,7 @@ int32 AGridReceptacleActor::AddContainedItem (
             ContainedItems[NewIndex].ItemActor = ItemActor;
         }
     }
-    if (PlacementMode != EGridReceptacleVisualPlacementMode::ContainerOnly && !IsValid (ItemActor))
+    if (!IsValid (ItemActor))
     {
         UWorld* World = GetWorld ();
         if (World)
@@ -1243,14 +1234,6 @@ void AGridReceptacleActor::ApplyVisualPlacement (
 
     const EGridReceptacleVisualPlacementMode PlacementMode = GetEffectiveVisualPlacementMode ();
     ItemActor->SetOwner (this);
-    if (PlacementMode == EGridReceptacleVisualPlacementMode::ContainerOnly)
-    {
-        ItemActor->SetActorHiddenInGame (true);
-        ItemActor->SetActorEnableCollision (false);
-        ItemActor->ConfigureAsAttachedItem ();
-        return;
-    }
-
     ItemActor->SetActorHiddenInGame (false);
     ItemActor->SetActorEnableCollision (true);
 
@@ -1358,11 +1341,6 @@ void AGridReceptacleActor::UpdateContainedItemInteractionCollision ()
                     Item.ItemActor->MeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
                 }
                 Item.ItemActor->MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-            }
-            else if (PlacementMode == EGridReceptacleVisualPlacementMode::ContainerOnly)
-            {
-                Item.ItemActor->SetActorHiddenInGame (true);
-                Item.ItemActor->MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
             }
             else
             {

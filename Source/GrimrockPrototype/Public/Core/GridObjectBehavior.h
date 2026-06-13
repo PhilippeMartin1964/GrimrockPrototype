@@ -9,8 +9,7 @@ UENUM (BlueprintType)
 enum class EGridReceptacleVisualPlacementMode : uint8
 {
     AttachedSocket = 0,
-    PhysicalAtHit = 1,
-    ContainerOnly = 3
+    PhysicalAtHit = 1
 };
 
 UENUM (BlueprintType)

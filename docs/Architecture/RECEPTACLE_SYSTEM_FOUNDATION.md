@@ -70,8 +70,7 @@ Le réceptacle connaît sa cellule et son bord par la classe de base `AGridRunti
 Les modes visuels effectifs sont :
 
 - `AttachedSocket` : acteur attaché à `ItemAttachPoint` ;
-- `PhysicalAtHit` : transform issu du point et de la normale du clic, collision et physique optionnelles ;
-- `ContainerOnly` : contenu logique sans acteur visible.
+- `PhysicalAtHit` : transform issu du point et de la normale du clic, collision et physique optionnelles.
 
 Pour un dépôt manuel en `PhysicalAtHit`, le transform utilise le point d'impact
 souris, la normale et `PhysicalPlacementSurfaceOffset`. Pour les entrées de

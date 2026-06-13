@@ -152,8 +152,7 @@ Les modes recommandés sont :
 ![Visual Placement Modes](Images/Receptacle/receptacle_08_visual_placement_modes.jpg)
 
 - `AttachedSocket` : acteur attaché à un socket ou un point fixe ;
-- `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface ;
-- `ContainerOnly` : contenu logique ou visible uniquement dans une UI.
+- `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface.
 
 Le mode visuel ne doit pas modifier l'identité logique de l'item.
 
@@ -340,7 +339,7 @@ Dans les structures de sauvegarde existantes, le champ persistant peut être nom
 
 La restauration doit recréer la représentation visuelle adaptée au mode de placement. Elle doit privilégier une classe d'acteur spécifique lorsqu'elle existe, puis utiliser un acteur générique initialisé depuis `WorldMesh`.
 
-Un item physique restauré conserve son transform. Un item attaché revient sur son socket. Un contenu `ContainerOnly` ne doit pas créer inutilement d'acteur dans le monde.
+Un item physique restauré conserve son transform. Un item attaché revient sur son socket.
 
 ## 16. Cas concrets
 
@@ -365,9 +364,8 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 ### Coffre
 
 - Capacité : plusieurs items.
-- Placement : `ContainerOnly`.
-- Interaction : ouverture d'une interface dédiée et transferts entre deux inventaires.
-- Particularité : le coffre ne doit pas réutiliser l'interaction d'une alcôve comme modèle principal.
+- Statut : architecture prospective, sans mode de placement ni interface de conteneur implémentés dans le système de réceptacles actuel.
+- Particularité : un futur coffre ne devra pas réutiliser l'interaction d'une alcôve comme modèle principal.
 
 ### Socle d'énigme
 
@@ -379,7 +377,7 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 ### Autel à composants
 
 - Capacité : plusieurs items.
-- Placement : `AttachedSocket`, `PhysicalAtHit` ou `ContainerOnly` selon l'usage.
+- Placement : `AttachedSocket` ou `PhysicalAtHit` selon l'usage.
 - Interaction : accepte une combinaison de composants, puis les conserve, les transforme ou les consomme.
 - Particularité : la recette et la consommation doivent être transactionnelles.
 
@@ -455,8 +453,7 @@ Critères d'acceptation :
 
 1. Un support de torche en `AttachedSocket` place la torche au point prévu, conserve son orientation et restaure correctement son état lumineux.
 2. Une alcôve en `PhysicalAtHit` place l'item dans la niche au point visé, avec l'offset de surface, sans le déposer au sol.
-3. Un coffre en `ContainerOnly` ne crée pas d'acteur visuel inutile dans le monde.
-4. La sauvegarde puis la restauration recréent le mode visuel approprié sans changer l'identité logique de l'item.
+3. La sauvegarde puis la restauration recréent le mode visuel approprié sans changer l'identité logique de l'item.
 
 Critères d'acceptation :
 
@@ -498,7 +495,6 @@ Critères d'acceptation :
 2. Sauvegarder puis restaurer un réceptacle rempli conserve l'ordre, les quantités et les identités runtime.
 3. Les transforms des items en `PhysicalAtHit` sont restaurés.
 4. Les états lumineux, verrouillés, consommés ou retirés sont restaurés lorsqu'ils sont persistants.
-5. Un contenu `ContainerOnly` est restauré logiquement sans apparition d'un acteur monde parasite.
 
 Critères d'acceptation :
 

@@ -1802,8 +1802,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         TSharedRef<SVerticalBox> Menu = SNew (SVerticalBox);
         const EGridReceptacleVisualPlacementMode Modes[] = {
             EGridReceptacleVisualPlacementMode::AttachedSocket,
-            EGridReceptacleVisualPlacementMode::PhysicalAtHit,
-            EGridReceptacleVisualPlacementMode::ContainerOnly
+            EGridReceptacleVisualPlacementMode::PhysicalAtHit
         };
         for (const EGridReceptacleVisualPlacementMode Mode : Modes)
         {
