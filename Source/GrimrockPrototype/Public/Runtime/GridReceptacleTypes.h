@@ -6,14 +6,6 @@
 #include "GridReceptacleTypes.generated.h"
 
 UENUM (BlueprintType)
-enum class EGridReceptacleKind : uint8
-{
-    Presentation,
-    Storage,
-    Mechanism
-};
-
-UENUM (BlueprintType)
 enum class EGridReceptacleItemPolicy : uint8
 {
     Legacy,

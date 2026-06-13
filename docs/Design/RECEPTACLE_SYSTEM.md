@@ -336,7 +336,6 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ### Support de torche
 
-- Type : `Presentation`.
 - Capacité : 1.
 - Organisation : `SingleSlot`.
 - Placement : `AttachedSocket`.
@@ -345,7 +344,6 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ### Alcôve
 
-- Type : `Presentation`.
 - Capacité : 1 ou plusieurs items.
 - Organisation : `MultiSlot`.
 - Placement : `PhysicalAtHit` pour une niche libre.
@@ -354,7 +352,6 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ### Coffre
 
-- Type : `Storage`.
 - Capacité : plusieurs items.
 - Organisation : `GridInventory`.
 - Placement : `ContainerOnly`.
@@ -363,7 +360,6 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ### Socle d'énigme
 
-- Type : `Mechanism`.
 - Capacité : généralement 1.
 - Organisation : `SingleSlot`.
 - Placement : `AttachedSocket`.
@@ -372,7 +368,6 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ### Autel à composants
 
-- Type : `Mechanism`.
 - Capacité : plusieurs items.
 - Organisation : `MultiSlot`.
 - Placement : emplacements visibles ordonnés.
@@ -398,17 +393,9 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ## 18. Recommandation d'implémentation
 
-Les enums suivants permettraient de rendre les intentions explicites :
+Les paramètres suivants rendent le comportement explicite :
 
 ```cpp
-UENUM(BlueprintType)
-enum class EGridReceptacleKind : uint8
-{
-    Presentation,
-    Storage,
-    Mechanism
-};
-
 UENUM(BlueprintType)
 enum class EGridReceptacleLayout : uint8
 {
@@ -426,7 +413,7 @@ enum class EGridReceptaclePlacementMode : uint8
 };
 ```
 
-`EGridReceptacleKind` décrit l'intention de gameplay. `EGridReceptacleLayout` décrit l'organisation du contenu. `EGridReceptaclePlacementMode` décrit la représentation visuelle. Ces axes doivent rester indépendants.
+La capacité décrit l'organisation du contenu. `EGridReceptaclePlacementMode` décrit la représentation visuelle. L'acceptation est définie séparément par les filtres d'items. Ces axes doivent rester indépendants.
 
 L'introduction de ces enums doit être progressive et accompagnée d'une migration des données existantes. Elle ne doit pas imposer une nouvelle classe d'objet de niveau pour chaque combinaison.
 

@@ -122,9 +122,6 @@ public:
     // ============================================================
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
-    EGridReceptacleKind ReceptacleKind = EGridReceptacleKind::Presentation;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
     EGridReceptacleVisualPlacementMode VisualPlacementMode = EGridReceptacleVisualPlacementMode::AttachedSocket;
 
     /**

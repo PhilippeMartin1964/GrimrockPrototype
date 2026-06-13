@@ -44,8 +44,8 @@ la capacité et le placement physique, mais pas encore toutes les propriétés d
 GO récents. Pour chaque preset :
 
 1. Créer une sous-classe Blueprint de `BP_GridReceptacleActor`.
-2. Régler dans ses Class Defaults `ReceptacleKind`, `VisualPlacementMode`,
-   `ItemPolicy` et les autres propriétés runtime indiquées.
+2. Régler dans ses Class Defaults `VisualPlacementMode`, `ItemPolicy` et les
+   autres propriétés runtime indiquées.
 3. Créer un `UGridObjectArchetypeAsset`.
 4. Régler `SupportedType=Receptacle`, `ObjectCategory=Receptacle`,
    `bIsInteractable=true` et `RuntimeActorClass` sur le Blueprint du preset.
@@ -72,7 +72,6 @@ ArchetypeId = TorchHolder_Returnable
 Class Defaults :
 
 ```text
-ReceptacleKind = Presentation
 VisualPlacementMode = AttachedSocket
 ItemPolicy = Returnable
 bAcceptAnyItem = true
@@ -106,7 +105,6 @@ ArchetypeId = Alcove_AnyItem
 Class Defaults :
 
 ```text
-ReceptacleKind = Presentation
 VisualPlacementMode = PhysicalAtHit
 ItemPolicy = Returnable
 bAcceptAnyItem = true
@@ -140,7 +138,6 @@ ArchetypeId = GemSocket_Locked
 Class Defaults :
 
 ```text
-ReceptacleKind = Mechanism
 VisualPlacementMode = AttachedSocket
 ItemPolicy = Locked
 bAcceptAnyItem = true
@@ -172,7 +169,6 @@ ArchetypeId = OfferingBowl_ConsumeOnInsert
 Class Defaults :
 
 ```text
-ReceptacleKind = Mechanism
 VisualPlacementMode = AttachedSocket
 ItemPolicy = ConsumeOnInsert
 bAcceptAnyItem = false
@@ -201,7 +197,6 @@ ArchetypeId = WeightPlate_Receptacle
 Class Defaults :
 
 ```text
-ReceptacleKind = Mechanism
 VisualPlacementMode = PhysicalAtHit
 ItemPolicy = Returnable
 bAcceptAnyItem = false
@@ -232,7 +227,6 @@ ArchetypeId = SecretAltar_ConsumeOnTrigger
 Class Defaults :
 
 ```text
-ReceptacleKind = Mechanism
 VisualPlacementMode = AttachedSocket
 ItemPolicy = ConsumeOnTrigger
 bAcceptAnyItem = true
