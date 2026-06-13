@@ -113,8 +113,7 @@ Les organisations internes recommandées sont :
 
 - `SingleSlot` : un seul item ;
 - `MultiSlot` : plusieurs emplacements linéaires ;
-- `GridInventory` : inventaire organisé en grille ;
-- `DisplaySlots` : emplacements visuels nommés ou indexés.
+- `GridInventory` : inventaire organisé en grille.
 
 Capacité et organisation sont deux notions différentes. Un réceptacle multi-slot peut contenir plusieurs items tout en utilisant un placement visuel au point cliqué. `MaxContainedItems` ne décrit pas à lui seul la manière dont les items sont affichés.
 
@@ -148,8 +147,7 @@ Les modes recommandés sont :
 
 - `AttachedSocket` : acteur attaché à un socket ou un point fixe ;
 - `PhysicalAtHit` : acteur placé dans le monde à partir du point d'impact et de la normale de surface ;
-- `ContainerOnly` : contenu logique ou visible uniquement dans une UI ;
-- `DisplaySlots` : acteur attaché à un emplacement d'affichage déterminé.
+- `ContainerOnly` : contenu logique ou visible uniquement dans une UI.
 
 Le mode visuel ne doit pas modifier l'identité logique de l'item.
 
@@ -349,8 +347,8 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 - Type : `Presentation`.
 - Capacité : 1 ou plusieurs items.
-- Organisation : `MultiSlot` ou `DisplaySlots`.
-- Placement : `PhysicalAtHit` pour une niche libre, éventuellement `DisplaySlots` pour une composition contrôlée.
+- Organisation : `MultiSlot`.
+- Placement : `PhysicalAtHit` pour une niche libre.
 - Interaction : dépôt direct depuis inventaire ou équipement, clic sur l'objet visible pour le reprendre.
 - Particularité : l'objet doit apparaître dans la niche visée.
 
@@ -368,7 +366,7 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 - Type : `Mechanism`.
 - Capacité : généralement 1.
 - Organisation : `SingleSlot`.
-- Placement : `AttachedSocket` ou `DisplaySlots`.
+- Placement : `AttachedSocket`.
 - Interaction : accepte une définition, un tag ou un type précis et déclenche des événements de réussite ou d'erreur.
 - Particularité : l'item peut être verrouillé jusqu'à la résolution de l'énigme.
 
@@ -376,7 +374,7 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 - Type : `Mechanism`.
 - Capacité : plusieurs items.
-- Organisation : `MultiSlot` ou `DisplaySlots`.
+- Organisation : `MultiSlot`.
 - Placement : emplacements visibles ordonnés.
 - Interaction : accepte une combinaison de composants, puis les conserve, les transforme ou les consomme.
 - Particularité : la recette et la consommation doivent être transactionnelles.
@@ -416,8 +414,7 @@ enum class EGridReceptacleLayout : uint8
 {
     SingleSlot,
     MultiSlot,
-    GridInventory,
-    DisplaySlots
+    GridInventory
 };
 
 UENUM(BlueprintType)
@@ -425,8 +422,7 @@ enum class EGridReceptaclePlacementMode : uint8
 {
     AttachedSocket,
     PhysicalAtHit,
-    ContainerOnly,
-    DisplaySlots
+    ContainerOnly
 };
 ```
 
@@ -481,9 +477,8 @@ Critères d'acceptation :
 
 1. Un support de torche en `AttachedSocket` place la torche au point prévu, conserve son orientation et restaure correctement son état lumineux.
 2. Une alcôve en `PhysicalAtHit` place l'item dans la niche au point visé, avec l'offset de surface, sans le déposer au sol.
-3. Un réceptacle en `DisplaySlots` utilise un emplacement libre déterministe.
-4. Un coffre en `ContainerOnly` ne crée pas d'acteur visuel inutile dans le monde.
-5. La sauvegarde puis la restauration recréent le mode visuel approprié sans changer l'identité logique de l'item.
+3. Un coffre en `ContainerOnly` ne crée pas d'acteur visuel inutile dans le monde.
+4. La sauvegarde puis la restauration recréent le mode visuel approprié sans changer l'identité logique de l'item.
 
 Critères d'acceptation :
 

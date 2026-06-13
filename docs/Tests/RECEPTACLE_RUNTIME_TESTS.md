@@ -474,7 +474,6 @@ Résultat attendu : `bInvertCondition` est appliqué après l'évaluation et
 - Les refus ne suppriment ni ne déposent les items.
 - Le `CursorSlot` n'est pas requis pour les transferts service testés.
 - Aucun coffre ni UI de conteneur n'est utilisé.
-- `DisplaySlots` n'est pas requis.
 - Les liens sans condition (`Condition=None`) continuent de s'exécuter.
 - Les conditions échouées ne déclenchent aucune commande.
 - Les logs de condition restent en `Verbose`.

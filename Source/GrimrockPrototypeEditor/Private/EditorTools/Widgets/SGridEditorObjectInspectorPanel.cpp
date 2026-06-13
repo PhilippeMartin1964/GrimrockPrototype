@@ -1803,8 +1803,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSect
         const EGridReceptacleVisualPlacementMode Modes[] = {
             EGridReceptacleVisualPlacementMode::AttachedSocket,
             EGridReceptacleVisualPlacementMode::PhysicalAtHit,
-            EGridReceptacleVisualPlacementMode::ContainerOnly,
-            EGridReceptacleVisualPlacementMode::DisplaySlots
+            EGridReceptacleVisualPlacementMode::ContainerOnly
         };
         for (const EGridReceptacleVisualPlacementMode Mode : Modes)
         {

@@ -1324,16 +1324,6 @@ void AGridReceptacleActor::ApplyVisualPlacement (
         return;
     }
 
-    if (PlacementMode == EGridReceptacleVisualPlacementMode::DisplaySlots)
-    {
-        UE_LOG (LogGridReceptacle, Verbose,
-            TEXT ("GridReceptacle DisplaySlots fallback to AttachedSocket Receptacle=%s ObjectId=%s Item=%s RuntimeId=%s"),
-            *GetName (),
-            *ObjectId.ToString (),
-            *Item.ItemDefinitionId.ToString (),
-            *Item.RuntimeObjectId.ToString ());
-    }
-
     ItemActor->AttachToComponent (ItemAttachPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
     const int32 AttachedItemIndex = FMath::Max (0, ContainedItems.IndexOfByPredicate (

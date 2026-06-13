@@ -64,8 +64,7 @@ Les modes visuels effectifs sont :
 
 - `AttachedSocket` : acteur attaché à `ItemAttachPoint` ;
 - `PhysicalAtHit` : transform issu du point et de la normale du clic, collision et physique optionnelles ;
-- `ContainerOnly` : contenu logique sans acteur visible ;
-- `DisplaySlots` : placement attaché avec décalage par index.
+- `ContainerOnly` : contenu logique sans acteur visible.
 
 La capacité est comptée par entrée de `ContainedItems`, pas par somme des quantités. `MaxContainedItems <= 0` est interprété comme illimité par le runtime, même si les outils actuels éditent normalement une valeur positive.
 

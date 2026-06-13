@@ -10,8 +10,7 @@ enum class EGridReceptacleVisualPlacementMode : uint8
 {
     AttachedSocket = 0,
     PhysicalAtHit = 1,
-    ContainerOnly = 3,
-    DisplaySlots = 4
+    ContainerOnly = 3
 };
 
 UENUM (BlueprintType)
