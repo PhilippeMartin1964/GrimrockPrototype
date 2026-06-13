@@ -18,7 +18,7 @@ Le cycle général des items avant et après leur passage dans un réceptacle es
 
 **Contenu runtime** : tableau `AGridReceptacleActor::ContainedItems` de `FGridContainedReceptacleItem`.
 
-**Politique** : `EGridReceptacleItemPolicy`, configurée sur la classe runtime ou son Blueprint, et non dans `FGridReceptacleBehaviorParams`.
+**Autorisation de retrait** : `bCanRemoveItem`, état runtime de l'acteur pilotable par commande.
 
 ## 3. Cartographie du code
 
@@ -54,7 +54,7 @@ Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `Arch
 
 L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
 
-`ItemPolicy`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
+`bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
 
 Il n'existe pas d'autre axe runtime de typologie ou d'organisation du stockage.
 Les seuls modes visuels sont ceux listés en section 5.
@@ -119,7 +119,7 @@ Un mur, une porte fermée ou tout composant bloquant `Visibility` empêche donc 
 l'acceptation. Il n'existe pas de filtre d'acceptation par tag, type, identifiant
 manuel ou liste de rejet.
 
-Il n'existe actuellement ni capacité par poids ni seuil de quantité à l'insertion. Le poids et le nombre d'entrées servent aux conditions de liens. La politique `Locked` interdit le retrait mais n'interdit pas l'insertion. `bCanRemoveItem` n'intervient pas dans l'acceptation.
+Il n'existe actuellement ni capacité par poids ni seuil de quantité à l'insertion. Le poids et le nombre d'entrées servent aux conditions de liens. `bCanRemoveItem` contrôle uniquement le retrait joueur et n'intervient pas dans l'acceptation.
 
 Les évaluations d'acceptation sont silencieuses par défaut, notamment pendant le survol souris. Le diagnostic complet de l'état du réceptacle, de l'item candidat et de la règle d'acceptation n'est produit qu'avec `bLogDiagnostics=true`, au niveau `VeryVerbose`.
 
@@ -133,7 +133,6 @@ Le retrait exige :
 
 - un index valide ;
 - `bCanRemoveItem=true` ;
-- une politique différente de `Locked` ;
 - un groupe placé du bon côté ;
 - une place disponible dans l'inventaire sélectionné.
 
@@ -159,8 +158,6 @@ Commandes spécialisées :
 |---|---|---|
 | `ReceptacleConsumeItem` | consomme l'entrée d'index 0 ; échec si vide | `ItemChanged` |
 | `ReceptacleConsumeAllItems` | consomme toutes les entrées ; échec si vide | un `ItemChanged` par entrée |
-| `ReceptacleLock` | passe la politique à `Locked` | aucun |
-| `ReceptacleUnlock` | passe la politique à `Returnable`, sans restaurer la politique précédente | aucun |
 | `ReceptacleEnableRemoval` | active `bCanRemoveItem` | aucun |
 | `ReceptacleDisableRemoval` | désactive `bCanRemoveItem` | aucun |
 
@@ -213,11 +210,9 @@ Le runtime journalise les transferts, refus, changements de politique, commandes
 - les filtres par type, tag ou définition ne font pas partie du modèle actuel ;
 - aucun conteneur à grille ni interface de coffre complète ;
 - aucune limite d'acceptation par poids ou quantité ;
-- `Locked` ne bloque que le retrait ;
-- `Unlock` impose `Returnable` ;
 - `ConsumeAllItems` émet plusieurs `ItemChanged` ;
 - la résolution d'une définition dépend des assets référencés par le niveau, les archétypes ou l'inventaire ;
-- les changements runtime de politique et d'autorisation de retrait ne sont pas capturés dans `FGridRuntimeReceptacleState` ;
+- les changements runtime d'autorisation de retrait ne sont pas capturés dans `FGridRuntimeReceptacleState` ;
 - les refus courants de dépôt ont un retour court, mais les refus spécialisés de retrait ou de verrouillage restent principalement signalés par le curseur et les logs.
 
 ## 12. Règles d'architecture

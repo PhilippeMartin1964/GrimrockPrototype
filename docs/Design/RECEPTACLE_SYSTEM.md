@@ -51,7 +51,7 @@ Cette liste décrit uniquement des usages de design. Support de torche, alcôve,
 niche, socle, piédestal, coffre, conteneur ou mécanisme consommant un objet ne
 sont ni des catégories runtime obligatoires, ni des classes C++ imposées. Le
 comportement est composé à partir de la capacité, de l'acceptation, du contenu
-initial, du mode visuel et de la politique de l'acteur.
+initial, du mode visuel et de l'autorisation runtime de retrait.
 
 ## 4. Distinction entre objet interactif, inventaire et réceptacle
 
@@ -218,6 +218,11 @@ L'item équipé est transféré directement. Le visuel tenu est synchronisé apr
 ### Receptacle -> Inventory
 
 Un clic sur l'objet visible ou une action de retrait transfère l'instance vers l'inventaire sélectionné. Si l'inventaire est plein, le contenu reste dans le réceptacle.
+
+`bCanRemoveItem` est l'unique autorité du retrait joueur. Les commandes
+`ReceptacleDisableRemoval` et `ReceptacleEnableRemoval` modifient cet état.
+Les commandes de consommation restent séparées et peuvent consommer le contenu
+même lorsque le retrait joueur est désactivé.
 
 ### ReceptacleInventory -> PartyInventory
 

@@ -8,7 +8,7 @@ Ce document définit les assets de test attendus et six scénarios PIE permettan
 valider ensemble :
 
 - l'acceptation universelle ou par asset de définition ;
-- les politiques `Returnable`, `Locked`, `ConsumeOnInsert` et `ConsumeOnTrigger` ;
+- l'autorisation runtime de retrait ;
 - le placement `AttachedSocket` et `PhysicalAtHit` ;
 - les commandes de réceptacle ;
 - les conditions de lien, les seuils de poids et l'inversion.
@@ -44,7 +44,7 @@ la capacité et le placement physique, mais pas encore toutes les propriétés d
 GO récents. Pour chaque preset :
 
 1. Créer une sous-classe Blueprint de `BP_GridReceptacleActor`.
-2. Régler dans ses Class Defaults `VisualPlacementMode`, `ItemPolicy` et les
+2. Régler dans ses Class Defaults `VisualPlacementMode` et les
    autres propriétés runtime indiquées.
 3. Créer un `UGridObjectArchetypeAsset`.
 4. Régler `SupportedType=Receptacle`, `ObjectCategory=Receptacle`,
@@ -54,26 +54,25 @@ GO récents. Pour chaque preset :
    `ObjectArchetypes` du `BP_GridLevelRuntimeActor` de la map de test.
 
 Attention : `InitializeGridObject` remet actuellement `bCanRemoveItem` à `true`.
-Utiliser `ItemPolicy=Locked` pour garantir le verrouillage
-initial et les commandes du GO 7 pour modifier l'état pendant le test.
+Utiliser les commandes `ReceptacleDisableRemoval` et `ReceptacleEnableRemoval`
+pour modifier l'état pendant le test.
 
 ## Presets de réceptacle attendus
 
-### TorchHolder_Returnable
+### TorchHolder
 
 Assets :
 
 ```text
-BP_Receptacle_TorchHolder_Returnable
-DA_Receptacle_TorchHolder_Returnable
-ArchetypeId = TorchHolder_Returnable
+BP_Receptacle_TorchHolder
+DA_Receptacle_TorchHolder
+ArchetypeId = TorchHolder
 ```
 
 Class Defaults :
 
 ```text
 VisualPlacementMode = AttachedSocket
-ItemPolicy = Returnable
 bAcceptAnyItem = true
 MaxContainedItems = 1
 bSimulatePhysicsWhenPlaced = false
@@ -106,7 +105,6 @@ Class Defaults :
 
 ```text
 VisualPlacementMode = PhysicalAtHit
-ItemPolicy = Returnable
 bAcceptAnyItem = true
 MaxContainedItems = 4
 bSimulatePhysicsWhenPlaced = true
@@ -125,21 +123,20 @@ DefaultBehavior.Receptacle.bSimulatePhysicsWhenPlaced = true
 DefaultBehavior.Receptacle.PhysicalPlacementSurfaceOffset = 5.0
 ```
 
-### GemSocket_Locked
+### GemSocket_RemovalControlled
 
 Assets :
 
 ```text
-BP_Receptacle_GemSocket_Locked
-DA_Receptacle_GemSocket_Locked
-ArchetypeId = GemSocket_Locked
+BP_Receptacle_GemSocket_RemovalControlled
+DA_Receptacle_GemSocket_RemovalControlled
+ArchetypeId = GemSocket_RemovalControlled
 ```
 
 Class Defaults :
 
 ```text
 VisualPlacementMode = AttachedSocket
-ItemPolicy = Locked
 bAcceptAnyItem = true
 MaxContainedItems = 1
 ```
@@ -153,36 +150,8 @@ DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 1
 ```
 
-Ce preset valide la politique de retrait verrouillée. Les filtres détaillés ne
-font plus partie du modèle actuel.
-
-### OfferingBowl_ConsumeOnInsert
-
-Assets :
-
-```text
-BP_Receptacle_OfferingBowl_ConsumeOnInsert
-DA_Receptacle_OfferingBowl_ConsumeOnInsert
-ArchetypeId = OfferingBowl_ConsumeOnInsert
-```
-
-Class Defaults :
-
-```text
-VisualPlacementMode = AttachedSocket
-ItemPolicy = ConsumeOnInsert
-bAcceptAnyItem = false
-MaxContainedItems = 4
-```
-
-Archetype :
-
-```text
-PlacementKind = Floor
-Category = Mechanisms
-DefaultBehavior.Receptacle.bAcceptAnyItem = true
-DefaultBehavior.Receptacle.MaxContainedItems = 4
-```
+Ce preset valide le contrôle du retrait par les commandes dédiées. Les filtres
+détaillés ne font plus partie du modèle actuel.
 
 ### WeightPlate_Receptacle
 
@@ -198,7 +167,6 @@ Class Defaults :
 
 ```text
 VisualPlacementMode = PhysicalAtHit
-ItemPolicy = Returnable
 bAcceptAnyItem = false
 MaxContainedItems = 4
 bSimulatePhysicsWhenPlaced = false
@@ -214,21 +182,20 @@ DefaultBehavior.Receptacle.MaxContainedItems = 4
 DefaultBehavior.Receptacle.VisualPlacementMode = PhysicalAtHit
 ```
 
-### SecretAltar_ConsumeOnTrigger
+### SecretAltar
 
 Assets :
 
 ```text
 BP_Receptacle_SecretAltar
 DA_Receptacle_SecretAltar
-ArchetypeId = SecretAltar_ConsumeOnTrigger
+ArchetypeId = SecretAltar
 ```
 
 Class Defaults :
 
 ```text
 VisualPlacementMode = AttachedSocket
-ItemPolicy = ConsumeOnTrigger
 bAcceptAnyItem = true
 MaxContainedItems = 4
 ```
@@ -242,8 +209,8 @@ DefaultBehavior.Receptacle.bAcceptAnyItem = true
 DefaultBehavior.Receptacle.MaxContainedItems = 4
 ```
 
-`ConsumeOnTrigger` conserve l'item. La consommation est déclenchée explicitement
-par `ReceptacleConsumeItem` ou `ReceptacleConsumeAllItems`.
+La consommation est déclenchée explicitement par `ReceptacleConsumeItem` ou
+`ReceptacleConsumeAllItems`.
 
 ## Items de test attendus
 
@@ -289,8 +256,8 @@ Ne pas créer le fichier `.umap` hors de l'Unreal Editor.
 4. Ajouter les six archétypes de réceptacle à `ObjectArchetypes`.
 5. Ajouter les définitions d'items aux objets Item placés dans le LevelAsset via
    `ItemDefinitionAsset` et `ItemDefinitionId`.
-6. Placer les six réceptacles dans des cellules séparées et accessibles.
-7. Placer un bouton de test près du `SecretAltar_ConsumeOnTrigger`.
+6. Placer les cinq réceptacles dans des cellules séparées et accessibles.
+7. Placer un bouton de test près du `SecretAltar`.
 8. Placer un bouton `GemSocketUnlock` et un bouton `WeightPlateReset`.
 9. Vérifier que chaque `ObjectId` est un GUID unique.
 
@@ -298,12 +265,11 @@ Disposition conseillée :
 
 | Zone | Cellule | Objet |
 |---|---|---|
-| A | `(2,2)` mur nord | `TorchHolder_Returnable` |
+| A | `(2,2)` mur nord | `TorchHolder` |
 | B | `(4,2)` mur nord | `Alcove_AnyItem` |
-| C | `(6,2)` mur nord | `GemSocket_Locked` |
-| D | `(2,5)` sol | `OfferingBowl_ConsumeOnInsert` |
+| C | `(6,2)` mur nord | `GemSocket_RemovalControlled` |
 | E | `(4,5)` sol | `WeightPlate_Receptacle` |
-| F | `(6,5)` sol | `SecretAltar_ConsumeOnTrigger` |
+| F | `(6,5)` sol | `SecretAltar` |
 | F | `(6,6)` mur | bouton `SecretAltarTrigger` |
 | C | `(7,2)` mur | bouton `GemSocketUnlock` |
 | E | `(5,5)` mur | bouton `WeightPlateReset` |
@@ -326,18 +292,18 @@ Ajouter un auto-lien sur `WeightPlate_Receptacle` :
 SourceObjectId = WeightPlateGuid
 TargetObjectId = WeightPlateGuid
 SourceEvent = ItemInserted
-Command = ReceptacleLock
+Command = ReceptacleDisableRemoval
 Condition = ReceptacleWeightAtLeast
 ConditionWeight = 10.0
 bInvertCondition = false
 ```
 
 La pierre légère ne passe pas le seuil. La pierre lourde passe le seuil et
-verrouille le réceptacle.
+désactive le retrait du réceptacle.
 
 ### Lien de consommation inversée
 
-Ajouter un lien du bouton vers `SecretAltar_ConsumeOnTrigger` :
+Ajouter un lien du bouton vers `SecretAltar` :
 
 ```text
 SourceObjectId = SecretAltarButtonGuid
@@ -360,7 +326,7 @@ Ajouter les deux liens sans condition :
 SourceObjectId = GemSocketUnlockButtonGuid
 TargetObjectId = GemSocketGuid
 SourceEvent = Activated
-Command = ReceptacleUnlock
+Command = ReceptacleEnableRemoval
 Condition = None
 ```
 
@@ -368,7 +334,7 @@ Condition = None
 SourceObjectId = WeightPlateResetButtonGuid
 TargetObjectId = WeightPlateGuid
 SourceEvent = Activated
-Command = ReceptacleUnlock
+Command = ReceptacleEnableRemoval
 Condition = None
 ```
 
@@ -380,10 +346,10 @@ Log LogTemp Verbose
 
 ## Scénarios PIE
 
-### A. Support de torche returnable
+### A. Support de torche
 
 1. Équiper ou ramasser `Torch_Test`.
-2. Interagir avec `TorchHolder_Returnable`.
+2. Interagir avec `TorchHolder`.
 3. Vérifier que la torche est présente dans `AcceptedItems`, acceptée par sa
    définition et attachée au support.
 4. Interagir de nouveau sans item tenu.
@@ -404,29 +370,18 @@ Résultat attendu : insertion et retrait réussis, lumière et identité conserv
 Résultat attendu : tout item valide est accepté jusqu'à la capacité, sans dépôt
 au sol ni duplication.
 
-### C. Gem socket locked
+### C. Gem socket avec retrait contrôlé
 
 1. Essayer `Sword_Test` et vérifier le refus.
 2. Insérer `Gem_Red_Test`.
 3. Vérifier `ContainsItemTag(RedGem)=true` et `ContainsItemType(Gem)=true`.
-4. Tenter de retirer la gemme.
-5. Vérifier que le retrait est refusé même si `bCanRemoveItem=true`.
-6. Appuyer sur `GemSocketUnlock`, puis retirer la gemme.
+4. Déclencher `ReceptacleDisableRemoval`, puis tenter de retirer la gemme.
+5. Vérifier que le retrait est refusé avec `bCanRemoveItem=false`.
+6. Appuyer sur `GemSocketUnlock`, qui exécute `ReceptacleEnableRemoval`, puis
+   retirer la gemme.
 
-Résultat attendu : filtre gemme opérationnel, politique `Locked` prioritaire,
-puis retrait possible après passage à `Returnable`.
-
-### D. Offrande consume on insert
-
-1. Insérer `Stone_Light_Test` dans `OfferingBowl_ConsumeOnInsert`.
-2. Vérifier que l'insertion réussit avant la consommation.
-3. Vérifier que `ContainedItems` revient immédiatement à zéro.
-4. Vérifier que les événements d'insertion sont publiés avant la consommation,
-   puis qu'un nouvel `ItemChanged` signale le contenu vide.
-5. Essayer `Sword_Test` et vérifier le refus par absence de tag `Offering`.
-
-Résultat attendu : l'offrande acceptée est consommée une seule fois ; l'item
-refusé reste à sa source.
+Résultat attendu : filtre gemme opérationnel, retrait bloqué par
+`ReceptacleDisableRemoval`, puis réactivé par `ReceptacleEnableRemoval`.
 
 ### E. Condition de poids
 
@@ -435,7 +390,7 @@ refusé reste à sa source.
    possible.
 3. Retirer la pierre légère.
 4. Insérer `Stone_Heavy_Test`.
-5. Vérifier que le lien exécute `ReceptacleLock`.
+5. Vérifier que le lien exécute `ReceptacleDisableRemoval`.
 6. Tenter le retrait et vérifier qu'il est refusé.
 7. Appuyer sur `WeightPlateReset` pour réinitialiser le preset.
 
@@ -444,7 +399,7 @@ atteint déclenche la commande.
 
 ### F. Condition inversée
 
-1. Insérer `Stone_Light_Test` dans `SecretAltar_ConsumeOnTrigger`.
+1. Insérer `Stone_Light_Test` dans `SecretAltar`.
 2. Appuyer sur `SecretAltarTrigger`.
 3. Vérifier que `ContainsItemTag(RedGem)` vaut faux, puis que l'inversion rend la
    condition vraie et consomme la pierre.
@@ -454,8 +409,8 @@ atteint déclenche la commande.
    que la gemme reste dans l'autel.
 7. Retirer la gemme ou consommer manuellement le contenu pour réinitialiser.
 
-Résultat attendu : `bInvertCondition` est appliqué après l'évaluation et
-`ConsumeOnTrigger` ne consomme rien sans commande explicite.
+Résultat attendu : `bInvertCondition` est appliqué après l'évaluation et la
+consommation ne se produit qu'avec une commande explicite.
 
 ## Checklist de non-régression
 

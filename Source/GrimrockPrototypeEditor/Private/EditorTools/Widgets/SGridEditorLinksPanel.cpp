@@ -124,8 +124,6 @@ namespace
                 return {
                     EGridObjectCommand::ReceptacleConsumeItem,
                     EGridObjectCommand::ReceptacleConsumeAllItems,
-                    EGridObjectCommand::ReceptacleLock,
-                    EGridObjectCommand::ReceptacleUnlock,
                     EGridObjectCommand::ReceptacleEnableRemoval,
                     EGridObjectCommand::ReceptacleDisableRemoval
                 };

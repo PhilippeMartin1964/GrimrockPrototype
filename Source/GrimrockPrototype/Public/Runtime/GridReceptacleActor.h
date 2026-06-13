@@ -124,13 +124,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
     EGridReceptacleVisualPlacementMode VisualPlacementMode = EGridReceptacleVisualPlacementMode::AttachedSocket;
 
-    /**
-     * Content behavior after insertion.
-     * Legacy, AcceptAny and Filtered are retained for existing assets.
-     */
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle|Configuration")
-    EGridReceptacleItemPolicy ItemPolicy = EGridReceptacleItemPolicy::Legacy;
-
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     bool bCanRemoveItem = true;
 
@@ -278,9 +271,6 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     bool ConsumeAllItems ();
-
-    UFUNCTION (BlueprintCallable, Category = "Receptacle")
-    void SetReceptacleItemPolicy (EGridReceptacleItemPolicy NewPolicy);
 
     UFUNCTION (BlueprintCallable, Category = "Receptacle")
     void SetCanRemoveItem (bool bNewCanRemoveItem);

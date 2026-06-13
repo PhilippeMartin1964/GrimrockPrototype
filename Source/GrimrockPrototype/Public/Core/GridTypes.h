@@ -83,10 +83,8 @@ enum class EGridObjectCommand : uint8
     ShowMessage                    UMETA (DisplayName = "Show Message"),
     ReceptacleConsumeItem          UMETA (DisplayName = "Receptacle Consume Item"),
     ReceptacleConsumeAllItems      UMETA (DisplayName = "Receptacle Consume All Items"),
-    ReceptacleLock                 UMETA (DisplayName = "Receptacle Lock"),
-    ReceptacleUnlock               UMETA (DisplayName = "Receptacle Unlock"),
-    ReceptacleEnableRemoval        UMETA (DisplayName = "Receptacle Enable Removal"),
-    ReceptacleDisableRemoval       UMETA (DisplayName = "Receptacle Disable Removal")
+    ReceptacleEnableRemoval = 17   UMETA (DisplayName = "Receptacle Enable Removal"),
+    ReceptacleDisableRemoval = 18  UMETA (DisplayName = "Receptacle Disable Removal")
 };
 
 UENUM (BlueprintType)

@@ -181,8 +181,6 @@ namespace
         {
             case EGridObjectCommand::ReceptacleConsumeItem:
             case EGridObjectCommand::ReceptacleConsumeAllItems:
-            case EGridObjectCommand::ReceptacleLock:
-            case EGridObjectCommand::ReceptacleUnlock:
             case EGridObjectCommand::ReceptacleEnableRemoval:
             case EGridObjectCommand::ReceptacleDisableRemoval:
                 return true;

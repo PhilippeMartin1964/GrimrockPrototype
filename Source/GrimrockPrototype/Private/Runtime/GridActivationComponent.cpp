@@ -54,8 +54,6 @@ namespace
         {
             case EGridObjectCommand::ReceptacleConsumeItem:
             case EGridObjectCommand::ReceptacleConsumeAllItems:
-            case EGridObjectCommand::ReceptacleLock:
-            case EGridObjectCommand::ReceptacleUnlock:
             case EGridObjectCommand::ReceptacleEnableRemoval:
             case EGridObjectCommand::ReceptacleDisableRemoval:
             return true;
@@ -615,14 +613,6 @@ bool UGridActivationComponent::ApplyReceptacleLinkCommand (
                 return false;
             }
             bSuccess = ReceptacleActor->ConsumeAllItems ();
-            break;
-
-        case EGridObjectCommand::ReceptacleLock:
-            ReceptacleActor->SetReceptacleItemPolicy (EGridReceptacleItemPolicy::Locked);
-            break;
-
-        case EGridObjectCommand::ReceptacleUnlock:
-            ReceptacleActor->SetReceptacleItemPolicy (EGridReceptacleItemPolicy::Returnable);
             break;
 
         case EGridObjectCommand::ReceptacleEnableRemoval:

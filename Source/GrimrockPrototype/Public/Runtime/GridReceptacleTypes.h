@@ -6,19 +6,6 @@
 #include "GridReceptacleTypes.generated.h"
 
 UENUM (BlueprintType)
-enum class EGridReceptacleItemPolicy : uint8
-{
-    Legacy,
-    AcceptAny,
-    Filtered,
-    Returnable,
-    Keep,
-    Locked,
-    ConsumeOnInsert,
-    ConsumeOnTrigger
-};
-
-UENUM (BlueprintType)
 enum class EGridReceptacleRejectReason : uint8
 {
     None,

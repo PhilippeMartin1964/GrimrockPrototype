@@ -374,7 +374,7 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
 
         UE_LOG (LogGridReceptacle, VeryVerbose,
             TEXT ("GridReceptacle Diagnostic Evaluate Outcome=%s Receptacle=%s ObjectId=%s ActorClass=%s "
-                "AcceptAny=%s AcceptedItemDefinitionIds=[%s] Count=%d Max=%d ItemPolicy=%s "
+                "AcceptAny=%s AcceptedItemDefinitionIds=[%s] Count=%d Max=%d "
                 "ItemDefinitionId=%s RuntimeObjectId=%s %s"),
             Outcome,
             *GetName (),
@@ -384,7 +384,6 @@ bool AGridReceptacleActor::EvaluateItemAcceptance (
             *AcceptedIds,
             ContainedItems.Num (),
             MaxContainedItems,
-            *UEnum::GetValueAsString (ItemPolicy),
             *Item.ItemDefinitionId.ToString (),
             *Item.RuntimeObjectId.ToString (),
             *Decision);
@@ -488,10 +487,6 @@ bool AGridReceptacleActor::TryInsertItem (FName ItemDefinitionId, UGridItemDefin
     }
 
     ExecuteInsertionLinks ();
-    if (ItemPolicy == EGridReceptacleItemPolicy::ConsumeOnInsert)
-    {
-        ConsumeItemAtIndex (NewIndex);
-    }
 
     UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("Receptacle accepted item %s ObjectId=%s Count=%d"),
@@ -565,10 +560,6 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     OutAcceptedItem.EquipmentSlot = EGridEquipmentSlot::None;
 
     ExecuteInsertionLinks ();
-    if (ItemPolicy == EGridReceptacleItemPolicy::ConsumeOnInsert)
-    {
-        ConsumeItemAtIndex (NewIndex);
-    }
 
     UE_LOG (LogGridReceptacle, Verbose,
         TEXT ("Receptacle accepted cursor item %s ObjectId=%s RuntimeId=%s Count=%d"),
@@ -596,10 +587,9 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     if (!IsItemRemovalAllowed ())
     {
         UE_LOG (LogGridReceptacle, Warning,
-            TEXT ("GridReceptacle RemoveRejected ObjectId=%s ItemIndex=%d Policy=%s CanRemove=%s"),
+            TEXT ("GridReceptacle RemoveRejected ObjectId=%s ItemIndex=%d CanRemove=%s"),
             *ObjectId.ToString (),
             ItemIndex,
-            *UEnum::GetValueAsString (ItemPolicy),
             bCanRemoveItem ? TEXT ("true") : TEXT ("false"));
         return false;
     }
@@ -692,12 +682,11 @@ bool AGridReceptacleActor::ConsumeItemAtIndex (int32 ItemIndex)
         RuntimeActor->ExecuteLinksFromRuntimeObject (ObjectId, EGridObjectEvent::ItemChanged);
     }
     UE_LOG (LogGridReceptacle, Verbose,
-        TEXT ("GridReceptacle ItemConsumed ObjectId=%s Item=%s RuntimeId=%s Remaining=%d Policy=%s"),
+        TEXT ("GridReceptacle ItemConsumed ObjectId=%s Item=%s RuntimeId=%s Remaining=%d"),
         *ObjectId.ToString (),
         *ItemDefinitionId.ToString (),
         *RuntimeObjectId.ToString (),
-        ContainedItems.Num (),
-        *UEnum::GetValueAsString (ItemPolicy));
+        ContainedItems.Num ());
     return true;
 }
 
@@ -713,17 +702,6 @@ bool AGridReceptacleActor::ConsumeAllItems ()
         bConsumedAny = true;
     }
     return bConsumedAny;
-}
-
-void AGridReceptacleActor::SetReceptacleItemPolicy (EGridReceptacleItemPolicy NewPolicy)
-{
-    const EGridReceptacleItemPolicy PreviousPolicy = ItemPolicy;
-    ItemPolicy = NewPolicy;
-    UE_LOG (LogGridReceptacle, Verbose,
-        TEXT ("GridReceptacle PolicyChanged ObjectId=%s Previous=%s New=%s"),
-        *ObjectId.ToString (),
-        *UEnum::GetValueAsString (PreviousPolicy),
-        *UEnum::GetValueAsString (ItemPolicy));
 }
 
 void AGridReceptacleActor::SetCanRemoveItem (bool bNewCanRemoveItem)
@@ -767,9 +745,8 @@ bool AGridReceptacleActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         if (!IsItemRemovalAllowed ())
         {
             UE_LOG (LogGridReceptacle, Warning,
-                TEXT ("GridReceptacle Interaction RemoveRejected ObjectId=%s Policy=%s CanRemove=%s"),
+                TEXT ("GridReceptacle Interaction RemoveRejected ObjectId=%s CanRemove=%s"),
                 *ObjectId.ToString (),
-                *UEnum::GetValueAsString (ItemPolicy),
                 bCanRemoveItem ? TEXT ("true") : TEXT ("false"));
             return false;
         }
@@ -1189,7 +1166,7 @@ EGridReceptacleVisualPlacementMode AGridReceptacleActor::GetEffectiveVisualPlace
 
 bool AGridReceptacleActor::IsItemRemovalAllowed () const
 {
-    return bCanRemoveItem && ItemPolicy != EGridReceptacleItemPolicy::Locked;
+    return bCanRemoveItem;
 }
 
 void AGridReceptacleActor::ApplyVisualPlacement (

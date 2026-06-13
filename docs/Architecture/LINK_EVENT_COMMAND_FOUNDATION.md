@@ -93,7 +93,7 @@ La plaque de pression suit le même contrat :
 
 - commandes d’état : `Toggle`, `Open`, `Close`, `Activate`, `Deactivate` ;
 - valeurs présentes mais non dispatchées : `Enable`, `Disable`, `Lock`, `Unlock`, `Spawn`, `Despawn`, `Teleport`, `ShowMessage` ;
-- commandes de réceptacle : `ReceptacleConsumeItem`, `ReceptacleConsumeAllItems`, `ReceptacleLock`, `ReceptacleUnlock`, `ReceptacleEnableRemoval`, `ReceptacleDisableRemoval`.
+- commandes de réceptacle : `ReceptacleConsumeItem`, `ReceptacleConsumeAllItems`, `ReceptacleEnableRemoval`, `ReceptacleDisableRemoval`.
 
 Le dispatch est centralisé dans `UGridActivationComponent::ApplyLinkCommand()` :
 

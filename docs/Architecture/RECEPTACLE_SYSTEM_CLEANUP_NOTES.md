@@ -41,8 +41,8 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 
 ## Comportements conservés
 
-- `Locked` interdit le retrait mais autorise l'insertion ;
-- `Unlock` sélectionne `Returnable` sans mémoriser la politique précédente ;
+- `bCanRemoveItem` est l'unique autorité du retrait joueur ;
+- les commandes Enable/Disable Removal modifient cet état runtime ;
 - `ConsumeAllItems` émet un `ItemChanged` pour chaque entrée consommée ;
 - `MaxContainedItems <= 0` reste interprété comme illimité par le runtime ;
 - `AcceptedItems` est résolu depuis les assets vers leurs `ItemDefinitionId` ;

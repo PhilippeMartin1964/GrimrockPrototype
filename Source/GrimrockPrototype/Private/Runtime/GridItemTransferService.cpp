@@ -267,8 +267,7 @@ FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInvent
             Operation,
             EGridItemTransferResult::InvalidSource,
             FString::Printf (
-                TEXT ("Receptacle item removal is disabled. Policy=%s CanRemove=%s."),
-                *UEnum::GetValueAsString (Receptacle->ItemPolicy),
+                TEXT ("Receptacle item removal is disabled. CanRemove=%s."),
                 Receptacle->bCanRemoveItem ? TEXT ("true") : TEXT ("false")));
     }
     if (!Inventory || !Inventory->IsValidCharacterIndex (CharacterIndex))
