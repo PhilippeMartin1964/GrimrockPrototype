@@ -15,10 +15,12 @@ Le document Design mélange invariants, architecture cible et fonctionnalités f
 
 ## Écarts entre design et code
 
-- `UGridItemTransferService`, le mode de placement et la politique existent,
-  mais tous les paramètres runtime ne sont pas persistés par l'objet placé.
+- `UGridItemTransferService` et les modes de placement existent, mais tous les
+  paramètres runtime ne sont pas persistés par l'objet placé.
 - Les coffres avec inventaire dédié, interfaces de conteneur, recettes et sauvegarde complète restent prospectifs.
-- Les événements actifs sont `ItemInserted`, `ItemRemoved` et `ItemChanged`. Les événements d'acceptation, refus, plein, vide, verrouillage et déverrouillage du document Design n'existent pas.
+- Les événements actifs sont `ItemInserted`, `ItemRemoved` et `ItemChanged`. Les
+  événements prospectifs d'acceptation, refus, plein ou vide du document Design
+  n'existent pas.
 - `ItemChanged` accompagne actuellement insertion et retrait ; la consommation l'émet seule.
 - Le dépôt runtime utilise un curseur technique et un clic direct, contrairement à la préférence prospective pour un glisser-déposer intégral.
 - Le poids est une donnée d'item et une condition de lien, pas une limite de capacité.
@@ -43,6 +45,7 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 
 - `bCanRemoveItem` est l'unique autorité du retrait joueur ;
 - les commandes Enable/Disable Removal modifient cet état runtime ;
+- les commandes de consommation ignorent `bCanRemoveItem` ;
 - `ConsumeAllItems` émet un `ItemChanged` pour chaque entrée consommée ;
 - `MaxContainedItems <= 0` reste interprété comme illimité par le runtime ;
 - `AcceptedItems` est résolu depuis les assets vers leurs `ItemDefinitionId` ;
@@ -61,22 +64,33 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 
 - dépôt compatible et incompatible ;
 - dépôt sans viser directement le support, hors portée et derrière un obstacle ;
-- retrait autorisé, interdit, verrouillé et avec inventaire plein ;
+- retrait autorisé, désactivé et avec inventaire plein ;
 - réceptacle plein et curseur déjà occupé ;
 - `ItemInserted -> Door Open`, `ItemRemoved -> Door Close` ;
 - `ItemChanged` avec condition par définition, tag, type, nombre et poids ;
 - consommation d'une entrée et de toutes les entrées ;
-- verrouillage, déverrouillage, activation et désactivation du retrait ;
+- activation et désactivation du retrait ;
 - item équipé accepté ou refusé selon sa définition ;
 - survol prolongé d'un support compatible et incompatible sans spam dans l'Output Log ;
 - clic de dépôt refusé avec un diagnostic court, et dépôt accepté sans warning.
 
+## ItemPolicy removed
+
+Cette section est une note historique de cleanup et ne décrit pas le contrat
+runtime actuel.
+
+- anciennes valeurs supprimées : `Legacy`, `AcceptAny`, `Filtered`, `Returnable`,
+  `Keep`, `Locked`, `ConsumeOnInsert`, `ConsumeOnTrigger` ;
+- `ReceptacleLock` et `ReceptacleUnlock` supprimées ;
+- `ReceptacleEnableRemoval` et `ReceptacleDisableRemoval` conservées ;
+- `ReceptacleConsumeItem` et `ReceptacleConsumeAllItems` conservées ;
+- `bCanRemoveItem` devient l'autorité unique du retrait joueur ;
+- la consommation par mécanisme reste indépendante du retrait joueur.
+
 ## Points futurs
 
-- décider si le verrouillage doit aussi bloquer l'insertion ;
-- décider si `Unlock` doit restaurer une politique mémorisée ;
 - décider si une consommation multiple doit agréger `ItemChanged` ;
 - renommer les champs historiques d'archétype sans casser les assets ;
-- persister les changements runtime de politique et de retrait ;
+- persister les changements runtime d'autorisation de retrait ;
 - ajouter des tests automatisés de transfert et d'émission d'événements ;
 - remplacer à terme la recherche mondiale de `FindRuntimeActor()` par une référence directe si le runtime devient propriétaire explicite de tous les réceptacles.

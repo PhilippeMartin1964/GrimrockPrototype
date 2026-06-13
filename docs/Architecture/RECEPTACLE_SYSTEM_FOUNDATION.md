@@ -20,6 +20,10 @@ Le cycle général des items avant et après leur passage dans un réceptacle es
 
 **Autorisation de retrait** : `bCanRemoveItem`, état runtime de l'acteur pilotable par commande.
 
+Il n'existe plus de politique d'item distincte sur les réceptacles. L'acceptation,
+le retrait joueur et la consommation par mécanisme sont trois responsabilités
+séparées.
+
 ## 3. Cartographie du code
 
 | Domaine | Déclaration | Implémentation |
@@ -138,7 +142,7 @@ Le retrait exige :
 
 Un clic sur l'acteur visuel contenu retire cet item. Pour un support attaché, un clic sur le support peut retirer le premier item. En mode `PhysicalAtHit`, le support seul ne retire pas implicitement le contenu : l'item visible doit être touché. Un curseur déjà occupé prend priorité sur le retrait et tente un dépôt.
 
-`ConsumeItemAtIndex()` détruit une entrée sans la transférer et émet `ItemChanged`. `ConsumeAllItems()` répète cette opération pour chaque entrée ; il peut donc émettre plusieurs `ItemChanged`. La consommation ne dépend ni du verrouillage ni de `bCanRemoveItem`, car il s'agit d'une commande de mécanisme.
+`ConsumeItemAtIndex()` détruit une entrée sans la transférer et émet `ItemChanged`. `ConsumeAllItems()` répète cette opération pour chaque entrée ; il peut donc émettre plusieurs `ItemChanged`. La consommation ignore volontairement `bCanRemoveItem`, car il s'agit d'une commande de mécanisme et non d'un retrait joueur vers l'inventaire.
 
 ## 9. Événements, conditions et commandes
 
@@ -182,7 +186,7 @@ Liens typiques :
 - `ItemInserted -> Door Open` ;
 - `ItemRemoved -> Door Close` ;
 - `ItemChanged` avec condition de contenu vers une commande de mécanisme ;
-- événement externe vers une commande de consommation, verrouillage ou retrait.
+- événement externe vers une commande de consommation ou d'autorisation de retrait.
 
 ## 10. Validation éditeur et diagnostics
 
@@ -203,7 +207,7 @@ définition et les entrées invalides de `InitialContent`.
 - source ou cible initialement désactivée ;
 - asymétrie éventuelle entre liens `ItemInserted` et `ItemRemoved`.
 
-Le runtime journalise les transferts, refus, changements de politique, commandes, conditions et résolutions d'acteurs. Les évaluations utilisées par le survol souris sont silencieuses. Un refus d'action réelle peut produire un warning court. Le diagnostic complet `GridReceptacle Diagnostic` est disponible uniquement avec `bLogDiagnostics=true` et au niveau `VeryVerbose`; `GridRuntime Diagnostic` est également `VeryVerbose`.
+Le runtime journalise les transferts, refus, changements d'autorisation de retrait, commandes, conditions et résolutions d'acteurs. Les évaluations utilisées par le survol souris sont silencieuses. Un refus d'action réelle peut produire un warning court. Le diagnostic complet `GridReceptacle Diagnostic` est disponible uniquement avec `bLogDiagnostics=true` et au niveau `VeryVerbose`; `GridRuntime Diagnostic` est également `VeryVerbose`.
 
 ## 11. Limites actuelles
 
@@ -213,7 +217,7 @@ Le runtime journalise les transferts, refus, changements de politique, commandes
 - `ConsumeAllItems` émet plusieurs `ItemChanged` ;
 - la résolution d'une définition dépend des assets référencés par le niveau, les archétypes ou l'inventaire ;
 - les changements runtime d'autorisation de retrait ne sont pas capturés dans `FGridRuntimeReceptacleState` ;
-- les refus courants de dépôt ont un retour court, mais les refus spécialisés de retrait ou de verrouillage restent principalement signalés par le curseur et les logs.
+- les refus courants de dépôt ont un retour court, mais un retrait désactivé reste principalement signalé par le curseur et les logs.
 
 ## 12. Règles d'architecture
 

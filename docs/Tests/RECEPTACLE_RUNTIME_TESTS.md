@@ -1,10 +1,30 @@
 # Tests runtime manuels des réceptacles
 
-Statut : spécification de consolidation et protocole PIE pour les GO 1 à 10.
+Statut : spécification de consolidation, protocole PIE et résultats validés.
+
+## Validation après simplification
+
+Les tests suivants ont été validés en PIE après le commit
+`592170e11a81a06115a6c99a139499f781e28d11` :
+
+1. support de torche vide : torche acceptée ;
+2. support de torche : pierre refusée ;
+3. support de torche rempli : retrait de la torche réussi ;
+4. alcôve vide : pierre acceptée ;
+5. alcôve vide : torche acceptée ;
+6. alcôve avec `InitialContent` Stone + Torch : objets visibles et non superposés ;
+7. alcôve : retrait des objets réussi ;
+8. alcôve pleine : refus `Full` ;
+9. `ReceptacleDisableRemoval` : retrait bloqué ;
+10. `ReceptacleEnableRemoval` : retrait de nouveau possible ;
+11. `ReceptacleConsumeItem` : consommation réussie même lorsque le retrait est bloqué.
+
+Ces résultats confirment que `bCanRemoveItem` est l'unique autorité du retrait
+joueur et que la consommation par mécanisme en est indépendante.
 
 ## Objectif
 
-Ce document définit les assets de test attendus et six scénarios PIE permettant de
+Ce document définit les assets de test attendus et cinq scénarios PIE permettant de
 valider ensemble :
 
 - l'acceptation universelle ou par asset de définition ;
@@ -39,13 +59,11 @@ Assets existants réutilisables :
 
 ## Règle de création des presets
 
-`UGridObjectArchetypeAsset::DefaultBehavior.Receptacle` expose les filtres legacy,
-la capacité et le placement physique, mais pas encore toutes les propriétés des
-GO récents. Pour chaque preset :
+`UGridObjectArchetypeAsset::DefaultBehavior.Receptacle` expose l'acceptation, la
+capacité, le contenu initial et le placement. Pour chaque preset :
 
 1. Créer une sous-classe Blueprint de `BP_GridReceptacleActor`.
-2. Régler dans ses Class Defaults `VisualPlacementMode` et les
-   autres propriétés runtime indiquées.
+2. Régler dans ses Class Defaults les propriétés runtime indiquées.
 3. Créer un `UGridObjectArchetypeAsset`.
 4. Régler `SupportedType=Receptacle`, `ObjectCategory=Receptacle`,
    `bIsInteractable=true` et `RuntimeActorClass` sur le Blueprint du preset.
@@ -73,7 +91,7 @@ Class Defaults :
 
 ```text
 VisualPlacementMode = AttachedSocket
-bAcceptAnyItem = true
+bAcceptAnyItem = false
 MaxContainedItems = 1
 bSimulatePhysicsWhenPlaced = false
 ```
@@ -83,7 +101,8 @@ Archetype :
 ```text
 PlacementKind = Wall
 Category = Receptacles
-DefaultBehavior.Receptacle.bAcceptAnyItem = true
+DefaultBehavior.Receptacle.bAcceptAnyItem = false
+DefaultBehavior.Receptacle.AcceptedItems = [DA_Item_Torch]
 DefaultBehavior.Receptacle.MaxContainedItems = 1
 DefaultBehavior.Receptacle.VisualPlacementMode = AttachedSocket
 ```
@@ -253,12 +272,12 @@ Ne pas créer le fichier `.umap` hors de l'Unreal Editor.
 2. Dupliquer `DA_GridLevelAsset` sous
    `/Game/GrimrockPrototype/Core/DataAssets/Tests/DA_GridLevel_ReceptacleTest`.
 3. Dans le `BP_GridLevelRuntimeActor` de la nouvelle map, assigner ce LevelAsset.
-4. Ajouter les six archétypes de réceptacle à `ObjectArchetypes`.
+4. Ajouter les cinq archétypes de réceptacle à `ObjectArchetypes`.
 5. Ajouter les définitions d'items aux objets Item placés dans le LevelAsset via
    `ItemDefinitionAsset` et `ItemDefinitionId`.
 6. Placer les cinq réceptacles dans des cellules séparées et accessibles.
 7. Placer un bouton de test près du `SecretAltar`.
-8. Placer un bouton `GemSocketUnlock` et un bouton `WeightPlateReset`.
+8. Placer un bouton `GemSocketEnableRemoval` et un bouton `WeightPlateReset`.
 9. Vérifier que chaque `ObjectId` est un GUID unique.
 
 Disposition conseillée :
@@ -271,7 +290,7 @@ Disposition conseillée :
 | E | `(4,5)` sol | `WeightPlate_Receptacle` |
 | F | `(6,5)` sol | `SecretAltar` |
 | F | `(6,6)` mur | bouton `SecretAltarTrigger` |
-| C | `(7,2)` mur | bouton `GemSocketUnlock` |
+| C | `(7,2)` mur | bouton `GemSocketEnableRemoval` |
 | E | `(5,5)` mur | bouton `WeightPlateReset` |
 
 Placer au moins une instance ramassable de chaque item de test. Pour répéter un
@@ -323,7 +342,7 @@ consomme rien si une gemme rouge est présente.
 Ajouter les deux liens sans condition :
 
 ```text
-SourceObjectId = GemSocketUnlockButtonGuid
+SourceObjectId = GemSocketEnableRemovalButtonGuid
 TargetObjectId = GemSocketGuid
 SourceEvent = Activated
 Command = ReceptacleEnableRemoval
@@ -377,7 +396,8 @@ au sol ni duplication.
 3. Vérifier `ContainsItemTag(RedGem)=true` et `ContainsItemType(Gem)=true`.
 4. Déclencher `ReceptacleDisableRemoval`, puis tenter de retirer la gemme.
 5. Vérifier que le retrait est refusé avec `bCanRemoveItem=false`.
-6. Appuyer sur `GemSocketUnlock`, qui exécute `ReceptacleEnableRemoval`, puis
+6. Appuyer sur `GemSocketEnableRemoval`, qui exécute
+   `ReceptacleEnableRemoval`, puis
    retirer la gemme.
 
 Résultat attendu : filtre gemme opérationnel, retrait bloqué par
@@ -438,6 +458,6 @@ consommation ne se produit qu'avec une commande explicite.
 
 ## Validation finale
 
-Le GO 10 est validé lorsque les six scénarios passent dans
+Le GO 10 est validé lorsque les cinq scénarios passent dans
 `L_ReceptacleTest`, que la compilation Editor réussit et que les assets créés
 dans Unreal Editor sont sauvegardés puis ajoutés à Git dans un commit dédié.

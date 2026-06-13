@@ -293,7 +293,8 @@ L'évaluation est centralisée dans `UGridActivationComponent::RefreshPressurePl
 Une torche peut apparaître sous trois formes distinctes :
 
 - item placé dans le niveau : `AGridItemActor` autonome, ramassable selon cellule et arête ;
-- item contenu dans un support : instance possédée par `AGridReceptacleActor`, interaction et retrait gouvernés par sa politique ;
+- item contenu dans un support : instance possédée par `AGridReceptacleActor`,
+  interaction et retrait gouvernés par `bCanRemoveItem` ;
 - item équipé : instance dans l'équipement, représentée par un `HeldItemActor` visuel attaché au groupe.
 
 ![Modèle des torches](../Images/item_10_3_torch_holder_model.svg)
@@ -347,8 +348,8 @@ Les évaluations d'acceptation utilisées par le survol sont silencieuses. Un cl
 11. Remplir les piles et les cases libres, puis tenter un ramassage : l'acteur monde reste présent et l'inventaire ne change pas.
 12. Déplacer un item inventaire vers le curseur, tenter avec un curseur déjà occupé, puis tester une case vide, une case occupée et un inventaire plein.
 13. Cliquer hors portée, sur un réceptacle incompatible puis compatible : le curseur reste inchangé sur les refus.
-14. Tester le retrait autorisé, interdit et verrouillé d'un réceptacle.
-15. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans un support simple puis retournable.
+14. Tester le retrait autorisé, puis désactivé et réactivé par les commandes de réceptacle.
+15. Prendre une torche depuis le bon puis le mauvais côté d'un support ; la redéposer dans le support.
 16. Vérifier la lumière, le visuel du support et le visuel tenu après retrait et redépôt.
 17. Valider un niveau contenant un item sans définition, sur cellule non jouable et avec identifiants contradictoires.
 18. Avec `bActivateWhenPartyPresent=true` et `bUseItemWeight=false`, entrer puis sortir d'une PressurePlate : vérifier un seul `Activated`, puis un seul `Deactivated`.

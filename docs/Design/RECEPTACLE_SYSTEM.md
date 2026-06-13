@@ -93,7 +93,7 @@ Comportement attendu :
 - transferts entre inventaire du groupe et inventaire du conteneur ;
 - contenu potentiellement invisible dans le monde ;
 - capacité exprimée en emplacements, poids ou volume ;
-- verrouillage et persistance possibles.
+- contrôle du retrait et persistance possibles dans une évolution future.
 
 ### Réceptacle de mécanisme
 
@@ -105,7 +105,7 @@ Comportement attendu :
 
 - validation stricte de l'item ;
 - émission d'événements ;
-- item conservé, restitué, verrouillé ou consommé selon le mécanisme ;
+- item conservé, restitué ou consommé selon le mécanisme ;
 - retour visuel clair en cas d'acceptation ou de refus ;
 - possibilité de déclencher des liens sans devenir un nouvel objet logique de niveau.
 
@@ -318,9 +318,6 @@ Le système peut exposer les événements suivants :
 - `BecameEmpty` ;
 - `CorrectItemInserted` ;
 - `WrongItemInserted` ;
-- `Locked` ;
-- `Unlocked`.
-
 `ItemAccepted` et `ItemRejected` décrivent le résultat d'une tentative. `ItemInserted` et `ItemRemoved` décrivent une modification effective du contenu. `ItemChanged` représente une modification d'instance qui ne change pas nécessairement le nombre d'items. `BecameFull` et `BecameEmpty` ne sont émis que lors du franchissement de l'état correspondant.
 
 `ItemInserted`, `ItemRemoved` et `ItemChanged` conviennent aux liens génériques existants. Les autres événements permettent des mécanismes plus expressifs et ne doivent être ajoutés au runtime que lorsqu'un cas concret les nécessite. Les événements de succès ne doivent être publiés qu'après validation complète de la transaction.
@@ -336,7 +333,7 @@ L'état persistant d'un réceptacle doit pouvoir inclure :
 - quantité et données propres à l'instance ;
 - transform du visuel physique ;
 - état lumineux ;
-- état verrouillé ;
+- autorisation de retrait joueur ;
 - état consommé ou retiré.
 
 Dans les structures de sauvegarde existantes, le champ persistant peut être nommé `ObjectId` tout en représentant l'identité runtime de l'item. Quel que soit le nom concret du champ, cette identité doit rester stable pendant les transferts, la sauvegarde et la restauration.
@@ -376,7 +373,8 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 - Capacité : généralement 1.
 - Placement : `AttachedSocket`.
 - Interaction : accepte une définition précise via `AcceptedItems` et déclenche des événements de réussite ou d'erreur.
-- Particularité : l'item peut être verrouillé jusqu'à la résolution de l'énigme.
+- Particularité : le retrait joueur peut être désactivé avec
+  `ReceptacleDisableRemoval`, puis réactivé avec `ReceptacleEnableRemoval`.
 
 ### Autel à composants
 
@@ -498,7 +496,7 @@ Critères d'acceptation :
 1. Sauvegarder puis restaurer un réceptacle vide conserve son état vide.
 2. Sauvegarder puis restaurer un réceptacle rempli conserve l'ordre, les quantités et les identités runtime.
 3. Les transforms des items en `PhysicalAtHit` sont restaurés.
-4. Les états lumineux, verrouillés, consommés ou retirés sont restaurés lorsqu'ils sont persistants.
+4. Les états lumineux, les autorisations de retrait et les contenus consommés ou retirés sont restaurés lorsqu'ils sont persistants.
 
 Critères d'acceptation :
 
