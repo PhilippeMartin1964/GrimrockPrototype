@@ -47,7 +47,11 @@ Le concept couvre notamment :
 - emplacement de cristal ;
 - mécanisme consommant un objet.
 
-Cette liste décrit des usages, pas nécessairement des classes C++ distinctes.
+Cette liste décrit uniquement des usages de design. Support de torche, alcôve,
+niche, socle, piédestal, coffre, conteneur ou mécanisme consommant un objet ne
+sont ni des catégories runtime obligatoires, ni des classes C++ imposées. Le
+comportement est composé à partir de la capacité, de l'acceptation, du contenu
+initial, du mode visuel et de la politique de l'acteur.
 
 ## 4. Distinction entre objet interactif, inventaire et réceptacle
 
@@ -59,7 +63,7 @@ L'inventaire organise les objets possédés par un personnage ou un conteneur. I
 
 Le réceptacle représente un emplacement de réception dans le monde ou dans un conteneur. Il définit pourquoi, où et comment un item peut être inséré ou retiré. Un réceptacle de stockage peut déléguer son organisation interne à un inventaire, mais cette délégation n'est pas obligatoire.
 
-## 5. Typologie des réceptacles
+## 5. Usages de design
 
 ![Receptacle Typology](Images/Receptacle/receptacle_05_typology.jpg)
 
@@ -73,7 +77,7 @@ Comportement attendu :
 
 - insertion et retrait directs ;
 - item visible et cliquable ;
-- placement contrôlé par socket, point d'impact ou emplacements d'affichage ;
+- placement contrôlé par socket, point d'impact ou contenu logique invisible ;
 - capacité généralement faible ;
 - absence d'interface d'inventaire complexe.
 
@@ -107,35 +111,37 @@ Comportement attendu :
 
 ## 6. Capacité et organisation interne
 
-`MaxContainedItems` définit le nombre maximal d'instances contenues. Une valeur de 1 décrit un réceptacle à emplacement unique. Une valeur supérieure autorise plusieurs items. Une capacité illimitée doit être représentée explicitement par la convention choisie par le runtime.
+La capacité runtime est définie uniquement par `MaxContainedItems` :
 
-Les organisations internes recommandées sont :
+- `MaxContainedItems = 1` : comportement single-slot ;
+- `MaxContainedItems > 1` : comportement multi-items ;
+- `MaxContainedItems <= 0` : capacité illimitée dans le runtime.
 
-- `SingleSlot` : un seul item ;
-- `MultiSlot` : plusieurs emplacements linéaires ;
-- `GridInventory` : inventaire organisé en grille.
-
-Capacité et organisation sont deux notions différentes. Un réceptacle multi-slot peut contenir plusieurs items tout en utilisant un placement visuel au point cliqué. `MaxContainedItems` ne décrit pas à lui seul la manière dont les items sont affichés.
+Les termes single-slot, multi-items ou inventaire en grille peuvent rester utiles
+pour décrire une intention de design ou une architecture future. Ils ne
+correspondent pas à une configuration runtime distincte. La représentation des
+items est définie séparément par `VisualPlacementMode`.
 
 ## 7. Compatibilité des items
 
-Un réceptacle peut définir les règles suivantes :
+Le modèle actuel utilise deux éléments :
 
 ![Item Compatibility](Images/Receptacle/receptacle_07_item_compatibility.jpg)
 
-- `AcceptAnyItem` : accepte tout item valide lorsque la valeur est vraie.
+- `bAcceptAnyItem=true` : accepte tout item valide ;
+- `bAcceptAnyItem=false` : accepte uniquement une définition présente dans
+  `AcceptedItems` ;
+- `AcceptedItems` : liste d'assets `UGridItemDefinitionAsset`, comparés au
+  runtime par leur `ItemDefinitionId`.
 
 La validation doit suivre un ordre stable :
 
 1. refuser un item invalide ;
 2. refuser si le réceptacle est plein ;
 3. refuser si l'insertion est désactivée ;
-4. refuser un item explicitement rejeté ;
-5. accepter si `AcceptAnyItem` est actif ;
-6. accepter si le `ItemDefinitionId` est autorisé ;
-7. accepter si au moins un tag est autorisé ;
-8. accepter si le type est autorisé ;
-9. refuser dans tous les autres cas.
+4. accepter si `bAcceptAnyItem` est actif ;
+5. accepter si le `ItemDefinitionId` est présent dans `AcceptedItems` ;
+6. refuser avec `NoMatchingAcceptanceRule`.
 
 Les motifs de refus doivent être distinguables dans les logs et, lorsque nécessaire, dans l'UI.
 
@@ -156,6 +162,12 @@ Une alcôve configurée en `PhysicalAtHit` doit placer l'objet dans la niche vis
 `PhysicalAtHit` n'implique pas obligatoirement une simulation physique. L'acteur peut rester immobile tout en conservant un transform dans le monde, une collision permettant de le reprendre et son identité logique dans le réceptacle. Le mode de collision et l'activation éventuelle de la physique relèvent du type d'item et du comportement recherché.
 
 Un support de torche utilise normalement `AttachedSocket` afin de garantir une position, une orientation et un comportement lumineux stables.
+
+Les items ajoutés par `InitialContent` dans un réceptacle `PhysicalAtHit` sont
+placés autour de `ItemAttachPoint` avec un offset déterministe sur l'axe local Y :
+index 0 au centre, puis alternance positive et négative par pas de 25 cm. Les
+items déposés manuellement utilisent le point d'impact souris et
+`PhysicalPlacementSurfaceOffset`.
 
 ## 9. Relation avec l'inventaire
 
@@ -337,23 +349,22 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 ### Support de torche
 
 - Capacité : 1.
-- Organisation : `SingleSlot`.
 - Placement : `AttachedSocket`.
+- Acceptation : `bAcceptAnyItem=false`, `AcceptedItems=[DA_Item_Torch]`.
 - Interaction : clic pour prendre ou remettre une torche compatible.
 - Particularité : la classe Blueprint spécifique et son état lumineux doivent être préservés.
 
 ### Alcôve
 
 - Capacité : 1 ou plusieurs items.
-- Organisation : `MultiSlot`.
 - Placement : `PhysicalAtHit` pour une niche libre.
+- Acceptation : généralement `bAcceptAnyItem=true`.
 - Interaction : dépôt direct depuis inventaire ou équipement, clic sur l'objet visible pour le reprendre.
 - Particularité : l'objet doit apparaître dans la niche visée.
 
 ### Coffre
 
 - Capacité : plusieurs items.
-- Organisation : `GridInventory`.
 - Placement : `ContainerOnly`.
 - Interaction : ouverture d'une interface dédiée et transferts entre deux inventaires.
 - Particularité : le coffre ne doit pas réutiliser l'interaction d'une alcôve comme modèle principal.
@@ -361,16 +372,14 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 ### Socle d'énigme
 
 - Capacité : généralement 1.
-- Organisation : `SingleSlot`.
 - Placement : `AttachedSocket`.
-- Interaction : accepte une définition, un tag ou un type précis et déclenche des événements de réussite ou d'erreur.
+- Interaction : accepte une définition précise via `AcceptedItems` et déclenche des événements de réussite ou d'erreur.
 - Particularité : l'item peut être verrouillé jusqu'à la résolution de l'énigme.
 
 ### Autel à composants
 
 - Capacité : plusieurs items.
-- Organisation : `MultiSlot`.
-- Placement : emplacements visibles ordonnés.
+- Placement : `AttachedSocket`, `PhysicalAtHit` ou `ContainerOnly` selon l'usage.
 - Interaction : accepte une combinaison de composants, puis les conserve, les transforme ou les consomme.
 - Particularité : la recette et la consommation doivent être transactionnelles.
 
@@ -393,29 +402,10 @@ Un item physique restauré conserve son transform. Un item attaché revient sur 
 
 ## 18. Recommandation d'implémentation
 
-Les paramètres suivants rendent le comportement explicite :
-
-```cpp
-UENUM(BlueprintType)
-enum class EGridReceptacleLayout : uint8
-{
-    SingleSlot,
-    MultiSlot,
-    GridInventory
-};
-
-UENUM(BlueprintType)
-enum class EGridReceptaclePlacementMode : uint8
-{
-    AttachedSocket,
-    PhysicalAtHit,
-    ContainerOnly
-};
-```
-
-La capacité décrit l'organisation du contenu. `EGridReceptaclePlacementMode` décrit la représentation visuelle. L'acceptation est définie séparément par les filtres d'items. Ces axes doivent rester indépendants.
-
-L'introduction de ces enums doit être progressive et accompagnée d'une migration des données existantes. Elle ne doit pas imposer une nouvelle classe d'objet de niveau pour chaque combinaison.
+Le comportement actuel est exprimé par `MaxContainedItems`,
+`VisualPlacementMode`, `bAcceptAnyItem`, `AcceptedItems`, `InitialContent` et les
+paramètres physiques. La capacité, l'acceptation, le contenu initial et la
+représentation visuelle restent des axes indépendants.
 
 ## 19. Décision de conception actuelle
 
@@ -437,8 +427,9 @@ Les tests suivants définissent le comportement minimal attendu du système. Ils
 
 1. Un item invalide est refusé sans modifier la source ni le contenu du réceptacle.
 2. Un réceptacle plein refuse toute insertion supplémentaire avec un motif distinct d'un refus de compatibilité.
-3. Un item est accepté lorsque `AcceptAnyItem` est actif.
-4. Sinon, il est refusé avec `NoMatchingAcceptanceRule`.
+3. Un item est accepté lorsque `bAcceptAnyItem` est actif.
+4. Sinon, il est accepté lorsque sa définition est présente dans `AcceptedItems`.
+5. Sans correspondance, il est refusé avec `NoMatchingAcceptanceRule`.
 
 Critères d'acceptation :
 
@@ -471,7 +462,7 @@ Critères d'acceptation :
 
 - un item visible reste cliquable et peut être repris ;
 - la classe d'acteur spécifique est prioritaire lorsqu'elle existe, avec `WorldMesh` comme représentation générique de repli ;
-- le support fixe, le transform physique et les slots d'affichage sont restaurés conformément au mode choisi.
+- le support fixe et le transform physique sont restaurés conformément au mode choisi.
 
 ### Interactions joueur
 

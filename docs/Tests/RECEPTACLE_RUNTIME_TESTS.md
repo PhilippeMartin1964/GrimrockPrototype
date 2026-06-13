@@ -7,7 +7,7 @@ Statut : spécification de consolidation et protocole PIE pour les GO 1 à 10.
 Ce document définit les assets de test attendus et six scénarios PIE permettant de
 valider ensemble :
 
-- l'acceptation par définition, tag et type ;
+- l'acceptation universelle ou par asset de définition ;
 - les politiques `Returnable`, `Locked`, `ConsumeOnInsert` et `ConsumeOnTrigger` ;
 - le placement `AttachedSocket` et `PhysicalAtHit` ;
 - les commandes de réceptacle ;
@@ -384,7 +384,8 @@ Log LogTemp Verbose
 
 1. Équiper ou ramasser `Torch_Test`.
 2. Interagir avec `TorchHolder_Returnable`.
-3. Vérifier que la torche est acceptée par type ou tag et attachée au support.
+3. Vérifier que la torche est présente dans `AcceptedItems`, acceptée par sa
+   définition et attachée au support.
 4. Interagir de nouveau sans item tenu.
 5. Vérifier que la torche revient dans l'inventaire avec le même
    `RuntimeObjectId`.
@@ -458,7 +459,21 @@ Résultat attendu : `bInvertCondition` est appliqué après l'évaluation et
 
 ## Checklist de non-régression
 
-- Le support de torche existant conserve son comportement `AttachedSocket`.
+- Le support de torche utilise `AttachedSocket`, `MaxContainedItems=1`,
+  `bAcceptAnyItem=false` et `AcceptedItems=[DA_Item_Torch]`.
+- `DA_Item_Torch` est accepté par le support de torche.
+- `DA_Item_Stone` est refusé par le support de torche sans perte ni dépôt au sol.
+- L'alcôve utilise `PhysicalAtHit`, `MaxContainedItems=8` et
+  `bAcceptAnyItem=true`.
+- L'alcôve accepte une torche puis une pierre, dans la limite de sa capacité.
+- Une alcôve avec `InitialContent` contenant une pierre et une torche crée les
+  deux entrées avec leur quantité.
+- Les items initiaux multiples utilisent les offsets déterministes autour de
+  `ItemAttachPoint` et ne sont pas superposés.
+- Un dépôt manuel dans l'alcôve utilise le point cliqué et l'offset de surface,
+  pas l'offset des items initiaux.
+- Une insertion au-delà de `MaxContainedItems` est refusée avec `Full`.
+- Avec le curseur vide, cliquer directement un item contenu le retire.
 - Les refus ne suppriment ni ne déposent les items.
 - Le `CursorSlot` n'est pas requis pour les transferts service testés.
 - Aucun coffre ni UI de conteneur n'est utilisé.

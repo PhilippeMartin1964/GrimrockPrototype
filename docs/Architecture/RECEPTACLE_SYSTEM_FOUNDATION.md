@@ -44,13 +44,20 @@ Le niveau persiste les champs communs `ObjectId`, `Type`, cellule, `Edge`, `Arch
 `Behavior.Receptacle` persiste :
 
 - `bAcceptAnyItem` ;
+- `AcceptedItems`, liste d'assets `UGridItemDefinitionAsset` ;
 - `InitialContent`, tableau d'assets de définition et de quantités ;
 - `MaxContainedItems` ;
-- les paramètres de placement physique.
+- `VisualPlacementMode` ;
+- `bSimulatePhysicsWhenPlaced` ;
+- `PhysicalPlacementSurfaceOffset` ;
+- `PhysicalPlacementInitialRotationOffset`.
 
 L'archétype fournit la classe `RuntimeActorClass`, la classe visuelle `ItemActorClass`, les meshes, le placement et le comportement copié lors du placement. Une modification ultérieure de l'archétype ne resynchronise pas automatiquement `Behavior`.
 
 `ItemPolicy`, `bCanInsertItem`, `bCanRemoveItem` et `ContainedItemActorClass` appartiennent à l'acteur ou à sa classe Blueprint. `VisualPlacementMode` et les paramètres de placement au clic peuvent être définis par le comportement de l'archétype. La capacité est entièrement définie par `MaxContainedItems` : `1` produit un comportement single-slot, une valeur supérieure à `1` autorise plusieurs items et une valeur inférieure ou égale à `0` est illimitée. L'acceptation dépend de `bAcceptAnyItem` et de `AcceptedItems`, tandis que `InitialContent` définit le contenu initial.
+
+Il n'existe pas d'autre axe runtime de typologie ou d'organisation du stockage.
+Les seuls modes visuels sont ceux listés en section 5.
 
 `ObjectData.Tag` n'intervient plus dans l'acceptation des items.
 
@@ -66,9 +73,20 @@ Les modes visuels effectifs sont :
 - `PhysicalAtHit` : transform issu du point et de la normale du clic, collision et physique optionnelles ;
 - `ContainerOnly` : contenu logique sans acteur visible.
 
+Pour un dépôt manuel en `PhysicalAtHit`, le transform utilise le point d'impact
+souris, la normale et `PhysicalPlacementSurfaceOffset`. Pour les entrées de
+`InitialContent`, aucun hit n'est disponible : le runtime part de
+`ItemAttachPoint` et applique un offset déterministe sur son axe local Y, en
+alternant les côtés par pas de 25 cm. La quantité de chaque entrée est conservée.
+
 La capacité est comptée par entrée de `ContainedItems`, pas par somme des quantités. `MaxContainedItems <= 0` est interprété comme illimité par le runtime, même si les outils actuels éditent normalement une valeur positive.
 
-Les alcôves sont des réceptacles multi-items avec `MaxContainedItems = 8`, `VisualPlacementMode = PhysicalAtHit`, `bSimulatePhysicsWhenPlaced = true` et un offset de surface de 5 cm. Les supports de torche restent des réceptacles single-slot avec `MaxContainedItems = 1` et `VisualPlacementMode = AttachedSocket`.
+Les alcôves sont des réceptacles multi-items avec `MaxContainedItems = 8`,
+`VisualPlacementMode = PhysicalAtHit`, `bAcceptAnyItem = true`,
+`bSimulatePhysicsWhenPlaced = true` et un offset de surface de 5 cm. Les supports
+de torche utilisent `MaxContainedItems = 1`, `VisualPlacementMode =
+AttachedSocket`, `bAcceptAnyItem = false` et
+`AcceptedItems = [DA_Item_Torch]`.
 
 Quand le slot cursor contient un item et qu'un clic vise directement un réceptacle ou un item physique dont ce réceptacle est l'owner, l'intention d'insertion est prioritaire. Un refus affiche la raison réelle (`Full`, insertion désactivée ou filtre d'acceptation) et ne bascule jamais vers la logique de lancer.
 
@@ -94,9 +112,14 @@ Un mur, une porte fermée ou tout composant bloquant `Visibility` empêche donc 
 2. capacité atteinte : refus `Full` ;
 3. insertion désactivée : refus `InsertDisabled` ;
 4. `bAcceptAnyItem=true` : acceptation ;
-5. sinon : refus `NoMatchingAcceptanceRule`.
+5. `ItemDefinitionId` présent dans les définitions résolues depuis
+   `AcceptedItems` : acceptation ;
+6. sinon : refus `NoMatchingAcceptanceRule`.
 
-Les listes positives sont alternatives : une seule correspondance suffit. La liste de rejet est prioritaire. Une définition non résolue peut encore être acceptée par `AcceptAny` ou par identifiant, mais pas par tag ou type.
+`AcceptedItems` contient des assets. Lors de l'initialisation, leurs
+`ItemDefinitionId` non vides sont copiés dans la liste runtime utilisée par
+l'acceptation. Il n'existe pas de filtre d'acceptation par tag, type, identifiant
+manuel ou liste de rejet.
 
 Il n'existe actuellement ni capacité par poids ni seuil de quantité à l'insertion. Le poids et le nombre d'entrées servent aux conditions de liens. La politique `Locked` interdit le retrait mais n'interdit pas l'insertion. `bCanRemoveItem` n'intervient pas dans l'acceptation.
 
@@ -168,14 +191,16 @@ Liens typiques :
 
 ## 10. Validation éditeur et diagnostics
 
-`ValidateArchetype()` vérifie notamment le type, la classe dérivée de `AGridReceptacleActor`, l'interactivité et la présence d'une règle positive lorsque `bAcceptAnyItem=false`.
+`ValidateArchetype()` vérifie notamment le type, la classe dérivée de
+`AGridReceptacleActor`, l'interactivité, la présence d'au moins une entrée dans
+`AcceptedItems` lorsque `bAcceptAnyItem=false`, les entrées sans asset de
+définition et les entrées invalides de `InitialContent`.
 
 `ValidateCurrentLevel()` vérifie le placement générique de bord, les identités, l'archétype, les liens et :
 
-- règles positives vides ;
-- item initial historique absent des identifiants acceptés ;
-- item initial présent dans les rejets ;
-- identifiant présent à la fois dans les listes acceptée et rejetée ;
+- `AcceptedItems` vide lorsque `bAcceptAnyItem=false` ;
+- entrée de `AcceptedItems` sans asset de définition ;
+- entrée de `InitialContent` sans asset de définition ;
 - réceptacle initialement actif sans item initial ;
 - condition de réceptacle visant une autre cible ;
 - paramètres de condition vides ou seuils non positifs ;

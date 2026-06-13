@@ -15,7 +15,8 @@ Le document Design mélange invariants, architecture cible et fonctionnalités f
 
 ## Écarts entre design et code
 
-- `UGridItemTransferService`, les enums de typologie, de stockage, de placement et de politique existent désormais, mais tous ne sont pas persistés par l'objet placé.
+- `UGridItemTransferService`, le mode de placement et la politique existent,
+  mais tous les paramètres runtime ne sont pas persistés par l'objet placé.
 - Les coffres avec inventaire dédié, interfaces de conteneur, recettes et sauvegarde complète restent prospectifs.
 - Les événements actifs sont `ItemInserted`, `ItemRemoved` et `ItemChanged`. Les événements d'acceptation, refus, plein, vide, verrouillage et déverrouillage du document Design n'existent pas.
 - `ItemChanged` accompagne actuellement insertion et retrait ; la consommation l'émet seule.
@@ -24,16 +25,17 @@ Le document Design mélange invariants, architecture cible et fonctionnalités f
 
 ## Corrections appliquées
 
-- le précontrôle d'un item équipé utilise désormais l'acceptation complète par identifiant, tag ou type ;
+- le précontrôle d'un item équipé utilise désormais la même acceptation par
+  définition d'item que les autres chemins ;
 - le document Design indique explicitement son statut ;
 - les documents objet, souris, liens et portes renvoient vers la nouvelle fondation ;
 - les comportements réels, limites et diagnostics sont consolidés.
 
 ## Validations ajoutées
 
-- identifiant simultanément accepté et rejeté ;
-- réceptacle initialement actif sans item initial ;
-- définition d'item initial explicitement rejetée.
+- liste `AcceptedItems` vide lorsque l'acceptation universelle est désactivée ;
+- entrée `AcceptedItems` ou `InitialContent` sans asset de définition ;
+- réceptacle initialement actif sans item initial.
 
 Les validations déjà présentes couvrent le placement, les listes positives vides, les conditions invalides, les commandes incompatibles et les objets désactivés.
 
@@ -43,7 +45,7 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 - `Unlock` sélectionne `Returnable` sans mémoriser la politique précédente ;
 - `ConsumeAllItems` émet un `ItemChanged` pour chaque entrée consommée ;
 - `MaxContainedItems <= 0` reste interprété comme illimité par le runtime ;
-- `ObjectData.Tag` reste un fallback historique d'identifiant accepté ;
+- `AcceptedItems` est résolu depuis les assets vers leurs `ItemDefinitionId` ;
 - les règles d'acceptation, d'insertion, de retrait et d'émission des liens restent inchangées.
 
 ## Nettoyage des diagnostics runtime
@@ -65,7 +67,7 @@ Les validations déjà présentes couvrent le placement, les listes positives vi
 - `ItemChanged` avec condition par définition, tag, type, nombre et poids ;
 - consommation d'une entrée et de toutes les entrées ;
 - verrouillage, déverrouillage, activation et désactivation du retrait ;
-- item équipé accepté uniquement par tag ou type ;
+- item équipé accepté ou refusé selon sa définition ;
 - survol prolongé d'un support compatible et incompatible sans spam dans l'Output Log ;
 - clic de dépôt refusé avec un diagnostic court, et dépôt accepté sans warning.
 
