@@ -139,6 +139,33 @@ struct FGridReceptacleBehaviorParams
 };
 
 USTRUCT (BlueprintType)
+struct FGridLockBehaviorParams
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock")
+    bool bStartsUnlocked = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock")
+    bool bConsumeKeyOnUnlock = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock|Accepted Keys")
+    TArray<TObjectPtr<UGridItemDefinitionAsset>> AcceptedKeyItems;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock|Accepted Keys")
+    TArray<FName> AcceptedKeyIds;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock|Messages")
+    FText LockedMessage;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock|Messages")
+    FText UnlockedMessage;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock|Messages")
+    FText MissingKeyMessage;
+};
+
+USTRUCT (BlueprintType)
 struct FGridButtonAnimationParams
 {
     GENERATED_BODY ()
@@ -241,6 +268,9 @@ struct FGridObjectBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Receptacle")
     FGridReceptacleBehaviorParams Receptacle;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lock")
+    FGridLockBehaviorParams Lock;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Button")
     FGridButtonAnimationParams ButtonAnimation;

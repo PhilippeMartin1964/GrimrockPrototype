@@ -6,6 +6,7 @@
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Core/GridLevelAsset.h"
@@ -184,7 +185,12 @@ bool UGridActivationComponent::ActivateObject (const FGridLevelObjectData& Objec
             }
         case EGridLevelObjectType::Receptacle:
             {
-				return ActivateReceptacle (ObjectData, PartyPawn);
+                if (AGridWallLockActor* WallLockActor =
+                    RuntimeActor->FindRuntimeObjectActor<AGridWallLockActor> (ObjectData.ObjectId))
+                {
+                    return WallLockActor->TryInteractWithParty (PartyPawn);
+                }
+                return ActivateReceptacle (ObjectData, PartyPawn);
             }
         case EGridLevelObjectType::Decoration:
         case EGridLevelObjectType::Light:
