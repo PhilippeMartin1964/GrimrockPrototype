@@ -33,6 +33,10 @@ La règle fondamentale est la suivante :
 > **Une porte ne possède pas de serrure. Une porte est un objet passif commandable.**  
 > **Une serrure est un mécanisme séparé qui déclenche des actions sur une porte ou sur un autre objet.**
 
+![Vue d'ensemble du système de locks](../Images/LockSystem/lock_system_overview.png)
+
+*Figure 1 — Vue d'ensemble du chemin entre clé ou outil, serrure, événement, liens logiques et cible commandée.*
+
 Cette règle vaut pour les portes du donjon afin de conserver un même set de portes réutilisable avec des mécanismes d'ouverture variés : levier, chaîne, bouton, serrure murale, plaque de pression, réceptacle, trigger, script, etc.
 
 En revanche, les objets comme les coffres, boîtes, petits conteneurs ou certains réceptacles peuvent porter leur propre serrure interne, car ils sont eux-mêmes l'objet verrouillable.
@@ -71,6 +75,10 @@ Lock_Prison_A.OnUnlocked -> Door_Prison_A.Open
 Chain_Gate_A.OnPulled    -> Door_Gate_A.Open
 Lever_Hall_A.OnActivated -> Door_Secret_A.Toggle
 ```
+
+![Dissociation architecturale entre porte et serrure](../Images/LockSystem/door_vs_lock_architecture.png)
+
+*Figure 2 — Séparation des responsabilités entre la porte commandable et la serrure qui émet des événements.*
 
 ---
 
@@ -305,6 +313,10 @@ Certaines serrures importantes doivent pouvoir refuser les clés maîtresses :
 ```text
 bAllowMasterKey: false
 ```
+
+![Compatibilité entre clés et serrures](../Images/LockSystem/key_compatibility.png)
+
+*Figure 3 — Modes de compatibilité par identifiant exact, profil, tags et clé maîtresse.*
 
 ---
 
@@ -564,6 +576,10 @@ Une serrure piégée peut réagir à :
 - une ouverture sans désamorçage préalable ;
 - une inspection ratée ;
 - une inspection réussie.
+
+![Cycle de détection et de désamorçage des serrures piégées](../Images/LockSystem/trapped_locks.png)
+
+*Figure 4 — États d'un piège de serrure, politiques de déclenchement, détection et désamorçage.*
 
 ---
 
@@ -884,6 +900,10 @@ C'est une règle volontaire.
    - elle déclenche OnUnlockFailed ou OnPickFailed.
    - elle déclenche éventuellement le piège.
 ```
+
+![Séquence runtime de déverrouillage alternatif](../Images/LockSystem/alternative_unlock_runtime_sequence.png)
+
+*Figure 5 — Séquence runtime d'une interaction avec clé compatible ou tentative de crochetage.*
 
 ---
 
