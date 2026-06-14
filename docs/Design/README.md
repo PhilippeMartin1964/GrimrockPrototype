@@ -8,15 +8,16 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 2. `01_GRID_OBJECT_SYSTEM.md` - current grid object model.
 3. `02_OBJECT_ARCHETYPES.md` - current archetype naming and object families.
 4. `03_EVENT_COMMAND_LINKS.md` - current connector semantics.
-5. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
-6. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
-7. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
-8. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
-9. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
-10. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
-11. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
-12. `05_CODEX_TASKS.md` - historical Codex task templates.
-13. `99_DECISIONS_LOG.md` - chronological decision log.
+5. `GRIMROCK_LOCK_SYSTEM.md` - prospective lock, key, lockpicking, trap and lockable container design.
+6. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
+7. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
+8. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
+9. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
+10. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
+11. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
+12. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
+13. `05_CODEX_TASKS.md` - historical Codex task templates.
+14. `99_DECISIONS_LOG.md` - chronological decision log.
 
 ## Document Status
 
@@ -26,6 +27,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `01_GRID_OBJECT_SYSTEM.md` | Current | Grid object model and runtime/editor split. |
 | `02_OBJECT_ARCHETYPES.md` | Current | Concrete archetype families and naming rules. |
 | `03_EVENT_COMMAND_LINKS.md` | Current | Explicit `Source Object + Source Event + Target Object + Command` connector rules. |
+| `GRIMROCK_LOCK_SYSTEM.md` | Design / Prospective | Lock, key, lockpicking, trapped lock and lockable container specification; must stay compatible with the existing Event -> Command model. |
 | `04_IMPLEMENTATION_ROADMAP.md` | Historical | Initial roadmap; several phases are done or superseded. |
 | `05_CODEX_TASKS.md` | Historical | Prompt/task templates, not the active backlog. |
 | `06_GRID_EDITOR_UX_SPEC.md` | Current | Editor UX specification and recent UI cleanup decisions. |

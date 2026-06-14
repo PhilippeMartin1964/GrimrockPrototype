@@ -32,6 +32,12 @@ Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Il
 | [ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md) | Identité des items, accessibilité, inventaire, curseur et transferts. |
 | [READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md) | Textes lisibles, messages persistants, retours courts et états de curseur. |
 
+## Conceptions prospectives liées
+
+| Document | Portée |
+|---|---|
+| [GRIMROCK_LOCK_SYSTEM.md](../Design/GRIMROCK_LOCK_SYSTEM.md) | Spécification de design pour serrures murales, clés, crochetage abstrait, conteneurs verrouillables et serrures piégées. Ce document complète les fondations existantes mais ne remplace pas un futur contrat runtime validé contre le C++. |
+
 ## Notes de cleanup
 
 - [CORE_CLEANUP_NOTES.md](CORE_CLEANUP_NOTES.md)

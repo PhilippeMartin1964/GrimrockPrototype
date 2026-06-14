@@ -383,3 +383,19 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le panneau `CONNECTORS` n'affiche plus le bouton `+` pour les objets qui ne peuvent ni emettre d'evenements ni recevoir de commandes.
 - Les items au sol comme `Item_Torch` sont physiques et recuperables, mais ne participent pas au systeme de connecteurs.
 - Correction : les objets visibles au sol, notamment les decorations `Floor`, affichent aussi le widget d'orientation. `RotationStepYaw` reste supprime.
+
+---
+
+## 2026-06-14 — Système de serrures, clés, crochetage et conteneurs verrouillables
+
+### Décisions validées
+
+- Les portes de donjon ne portent pas de serrure interne.
+- Une porte reste un objet passif commandable par le système de liens.
+- Une clé agit sur une serrure ou un mécanisme séparé, jamais directement sur une porte.
+- Une serrure murale est un objet placé indépendant, généralement classé comme mécanisme ou réceptacle selon son implémentation.
+- Les coffres, boîtes, reliquaires, sarcophages et autres conteneurs peuvent posséder une serrure interne, car ils sont eux-mêmes l'objet verrouillable.
+- Le même modèle de données de lock doit servir aux serrures murales et aux conteneurs verrouillables.
+- Le crochetage doit être abstrait comme une résolution de compétence et d'outil dans le jeu, sans simulation physique réelle.
+- Les serrures piégées doivent prévoir détection, désamorçage, politique de déclenchement et effets par liens ou scripts.
+- Le document de référence est `docs/Design/GRIMROCK_LOCK_SYSTEM.md`.

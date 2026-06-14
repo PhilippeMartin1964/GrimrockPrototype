@@ -11,6 +11,7 @@ Le dossier `docs/Design` contient la mémoire de design gameplay, éditeur, obje
 Lire d'abord :
 
 - `docs/Design/README.md`
+- `docs/Design/GRIMROCK_LOCK_SYSTEM.md` pour le système prospectif de serrures, clés, crochetage, conteneurs verrouillables et serrures piégées.
 
 Ce README oriente vers les documents de design actuels, les audits, les checklists et le journal de décisions.
 
@@ -29,6 +30,7 @@ Lire dans cet ordre :
 
 - `docs/Architecture_Runtime_Editor_Split.md`
 - `docs/Architecture_LevelAsset_Editor_Runtime.md`
+- `docs/Architecture/ARCHITECTURE_INDEX.md`
 - `docs/Design/JALON_RUNTIME_DUNGEON_STATE.md`
 
 Ces documents complètent `docs/Design` pour la séparation C++ entre le module runtime et le module editor, pour la responsabilité DataAsset / map / acteur avant le multi-niveaux, et pour la validation de la couche d'état runtime en mémoire du donjon multi-niveaux.
