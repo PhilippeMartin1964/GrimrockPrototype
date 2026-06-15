@@ -223,6 +223,11 @@ bool AGridWallLockActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     return CompleteUnlock (PartyPawn, MatchingKeyId, TEXT ("Inventory"));
 }
 
+bool AGridWallLockActor::CanAcceptKeyDefinition (FName ItemDefinitionId) const
+{
+    return IsAcceptedKey (ItemDefinitionId);
+}
+
 bool AGridWallLockActor::CanInteract_Implementation (
     APawn* InstigatorPawn,
     UPrimitiveComponent* HitComponent) const

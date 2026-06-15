@@ -822,3 +822,41 @@ Règle à retenir :
 > La torche s'allume automatiquement lorsqu'elle est équipée ou placée sur un support de torche.  
 > Lancer n'est proposé que pour les objets réellement lançables.  
 > Les mutations d'item doivent passer par un service central.
+
+---
+
+## 13. Etat d'implementation du Patch 1
+
+Le premier patch fournit la fondation C++ de consultation des actions contextuelles, sans encore executer les mutations d'inventaire.
+
+### Types et resolution
+
+- `GridItemActionTypes.h` definit `EGridItemActionType`, `EGridFacingTargetType`, `FGridItemContextAction`, `FGridItemActionContext` et `FGridFacingTargetContext`.
+- `UGridItemContextActionLibrary::BuildInventorySlotContextActions` construit les actions disponibles pour un slot.
+- `UGridItemContextActionLibrary::BuildItemContextActions` centralise les regles de disponibilite.
+- `UGridItemContextActionLibrary::ResolveFacingTarget` effectue une trace `ECC_Visibility` depuis la camera dans la direction de grille du groupe et classe le premier acteur pertinent comme serrure murale, receptacle, support de torche, objet lisible, porte ou mecanisme.
+
+Les actions actuellement exposees sont notamment `Utiliser`, `Equiper`, `Desequiper`, `Placer`, `Inserer`, `Lire`, `Boire`, `Manger`, `Lancer`, `Donner` et `Detruire`. Leur disponibilite depend de la definition d'item, de son emplacement et de la cible faisant face au groupe.
+
+### Integration UMG
+
+`UGridInventorySlotWidget` transmet la demande de menu contextuel au widget d'inventaire. `UGridInventoryWidget` expose les proprietes et fonctions Blueprint necessaires pour construire, afficher et fermer ce menu, ainsi qu'un delegate pour la selection d'une action.
+
+L'asset UMG doit :
+
+1. lier le clic droit du slot a la demande de menu contextuel ;
+2. creer les entrees a partir des actions retournees par la bibliotheque ;
+3. afficher le libelle et l'etat active/desactive ;
+4. fermer le menu apres selection ou clic exterieur.
+
+Ce patch ne modifie aucun asset `.uasset` : ce cablage reste donc une operation manuelle dans l'editeur Unreal.
+
+### Compatibilite et limites
+
+- Le drag/drop et le Cursor existants restent inchanges.
+- Les actions sont calculees mais ne sont pas encore executees.
+- Les mutations devront etre raccordees au service central prevu par cette specification.
+- Le scan automatique de l'inventaire par la serrure murale reste un comportement transitoire jusqu'au patch d'execution des actions.
+- Une plaque de pression n'est pas consideree comme une cible d'action directe.
+
+Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` et `GridInventory ContextMenuRequested` permettent de diagnostiquer cette fondation.

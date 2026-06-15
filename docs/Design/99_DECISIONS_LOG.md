@@ -408,3 +408,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le contenu initial d'un réceptacle référence `DA_Item_XXX`, jamais l'archétype `DA_Object_XXXPickup`.
 - Le guide de production est `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md`.
 - Ce guide complète `docs/Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md` et ne le remplace pas.
+
+---
+
+## 2026-06-15 — Fondation des actions contextuelles d'inventaire
+
+- Le clic droit sur un item d'inventaire devient le point d'entrée principal des actions contextuelles.
+- Le drag/drop et le Cursor existants restent disponibles pendant la migration.
+- Le premier patch calcule et expose les actions aux Blueprints sans les exécuter.
+- Le contexte de cible utilise le premier impact `ECC_Visibility` dans la direction du groupe.
+- `Examiner` réutilise les données du tooltip existant.
+- `Lancer` n'est proposé que pour un item explicitement lançable.
+- Une clé compatible peut proposer `Insérer dans la serrure` lorsque la WallLock verrouillée est en face.
+- L'ouverture de porte reste exclusivement `WallLock.Activated -> Door.Open`.
+- La suppression de la recherche automatique de clé par simple clic sur la serrure est reportée au patch d'exécution explicite des actions.
+- Le document de référence est `docs/Design/ITEM_CONTEXT_ACTION_SYSTEM.md`.

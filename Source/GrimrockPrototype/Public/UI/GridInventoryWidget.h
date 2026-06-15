@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Runtime/GridInventoryTypes.h"
+#include "Runtime/GridItemActionTypes.h"
 #include "UI/GridPartyMemberWidget.h"
 #include "UI/GridInventorySlotWidget.h"
 #include "UI/GridInventoryUiTypes.h"
@@ -13,6 +14,11 @@ class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
 class UUniformGridPanel;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
+    FOnGridInventoryContextActionsRequested,
+    EGridInventoryUiSlotType, SlotType,
+    int32, SlotIndex);
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridInventoryWidget : public UUserWidget
@@ -55,6 +61,18 @@ public:
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Party")
     TArray<TObjectPtr<UGridPartyMemberWidget>> RegisteredPartyMemberWidgets;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Context Actions")
+    FGridItemInstance LastContextItem;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Context Actions")
+    FGridFacingTargetContext LastFacingTargetContext;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Context Actions")
+    TArray<FGridItemContextAction> LastContextActions;
+
+    UPROPERTY (BlueprintAssignable, Category = "Inventory|Context Actions")
+    FOnGridInventoryContextActionsRequested OnContextActionsRequested;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     void InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn);
@@ -148,6 +166,16 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void HandleRegisteredSlotClicked (EGridInventoryUiSlotType SlotType, int32 SlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Context Actions")
+    bool HandleItemSlotRightClicked (EGridInventoryUiSlotType SlotType, int32 SlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Context Actions")
+    bool BuildContextActionsForSlot (
+        EGridInventoryUiSlotType SlotType,
+        int32 SlotIndex,
+        FGridFacingTargetContext& OutFacingTarget,
+        TArray<FGridItemContextAction>& OutActions);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
     bool HandleSlotDrop (

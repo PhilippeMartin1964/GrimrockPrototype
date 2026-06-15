@@ -242,6 +242,16 @@ FReply UGridInventorySlotWidget::NativeOnMouseButtonDown (
         SlotType == EGridInventoryUiSlotType::Inventory &&
         InMouseEvent.IsControlDown ();
 
+    if (InMouseEvent.GetEffectingButton () == EKeys::RightMouseButton &&
+        bHasItem &&
+        OwningInventoryWidget)
+    {
+        OwningInventoryWidget->HandleItemSlotRightClicked (
+            SlotType,
+            InventorySlotIndex);
+        return FReply::Handled ();
+    }
+
     if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton && CanStartDrag ())
     {
         return UWidgetBlueprintLibrary::DetectDragIfPressed (

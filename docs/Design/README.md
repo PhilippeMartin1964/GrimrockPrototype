@@ -30,7 +30,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `01_GRID_OBJECT_SYSTEM.md` | Current | Grid object model and runtime/editor split. |
 | `02_OBJECT_ARCHETYPES.md` | Current | Concrete archetype families and naming rules. |
 | `03_EVENT_COMMAND_LINKS.md` | Current | Explicit `Source Object + Source Event + Target Object + Command` connector rules. |
-| `ITEM_CONTEXT_ACTION_SYSTEM.md` | Design Target | Inventory UX target: contextual item actions, drag/drop shortcuts, assisted target inventory, tooltip-as-examine, torch auto-lighting, throw rules and service-oriented action execution. |
+| `ITEM_CONTEXT_ACTION_SYSTEM.md` | Design Target / Partial Implementation | Inventory UX target plus the current Patch 1 C++ foundation for contextual action discovery and UMG integration. |
 | `GRIMROCK_LOCK_SYSTEM.md` | Design / Prospective | Lock, key, lockpicking, trapped lock and lockable container specification; must stay compatible with the existing Event -> Command model. |
 | `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` | Current / MVP | Runtime behavior for wall locks: inventory key auto-use, cursor insertion, visual key attachment and mandatory `Activated -> Door.Open` connector. |
 | `04_IMPLEMENTATION_ROADMAP.md` | Historical | Initial roadmap; several phases are done or superseded. |

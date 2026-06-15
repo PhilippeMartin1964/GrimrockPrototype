@@ -20,6 +20,9 @@ public:
 
     bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
 
+    UFUNCTION (BlueprintPure, Category = "Lock")
+    bool CanAcceptKeyDefinition (FName ItemDefinitionId) const;
+
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
     virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
     virtual void InteractWithHit_Implementation (

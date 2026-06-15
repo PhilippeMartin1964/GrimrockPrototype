@@ -3,6 +3,7 @@
 #include "Components/PanelWidget.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -503,6 +504,106 @@ void UGridInventoryWidget::HandleRegisteredSlotClicked (EGridInventoryUiSlotType
     default:
         break;
     }
+}
+
+bool UGridInventoryWidget::HandleItemSlotRightClicked (
+    EGridInventoryUiSlotType SlotType,
+    int32 SlotIndex)
+{
+    LastContextItem = FGridItemInstance ();
+    LastFacingTargetContext = FGridFacingTargetContext ();
+    LastContextActions.Reset ();
+
+    const bool bBuilt = BuildContextActionsForSlot (
+        SlotType,
+        SlotIndex,
+        LastFacingTargetContext,
+        LastContextActions);
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory RightClick Slot=%d Item=%s Actions=%d Result=%s"),
+        SlotIndex,
+        LastContextItem.ItemDefinitionId.IsNone ()
+            ? TEXT ("None")
+            : *LastContextItem.ItemDefinitionId.ToString (),
+        LastContextActions.Num (),
+        bBuilt ? TEXT ("true") : TEXT ("false"));
+
+    if (bBuilt)
+    {
+        OnContextActionsRequested.Broadcast (SlotType, SlotIndex);
+    }
+    return bBuilt;
+}
+
+bool UGridInventoryWidget::BuildContextActionsForSlot (
+    EGridInventoryUiSlotType SlotType,
+    int32 SlotIndex,
+    FGridFacingTargetContext& OutFacingTarget,
+    TArray<FGridItemContextAction>& OutActions)
+{
+    OutFacingTarget = FGridFacingTargetContext ();
+    OutActions.Reset ();
+    LastContextItem = FGridItemInstance ();
+    if (!OwningPartyPawn || !InventoryComponent)
+    {
+        return false;
+    }
+
+    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
+    if (SlotType == EGridInventoryUiSlotType::Inventory)
+    {
+        if (!GetInventoryItemAtSlot (SlotIndex, LastContextItem))
+        {
+            return false;
+        }
+
+        return UGridItemContextActionLibrary::BuildInventorySlotContextActions (
+            OwningPartyPawn,
+            CharacterIndex,
+            SlotIndex,
+            OutFacingTarget,
+            OutActions);
+    }
+
+    FGridItemActionContext ItemContext;
+    ItemContext.PartyPawn = OwningPartyPawn;
+    ItemContext.CharacterIndex = CharacterIndex;
+    ItemContext.InventorySlotIndex = INDEX_NONE;
+
+    switch (SlotType)
+    {
+    case EGridInventoryUiSlotType::MainHand:
+        if (!GetMainHandItem (LastContextItem))
+        {
+            return false;
+        }
+        ItemContext.EquipmentSlot = EGridEquipmentSlot::MainHand;
+        break;
+    case EGridInventoryUiSlotType::OffHand:
+        if (!GetOffHandItem (LastContextItem))
+        {
+            return false;
+        }
+        ItemContext.EquipmentSlot = EGridEquipmentSlot::OffHand;
+        break;
+    case EGridInventoryUiSlotType::Cursor:
+        if (!GetCursorItem (LastContextItem))
+        {
+            return false;
+        }
+        break;
+    default:
+        return false;
+    }
+
+    ItemContext.Item = LastContextItem;
+    ItemContext.ItemDefinition =
+        InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId);
+    return UGridItemContextActionLibrary::BuildItemContextActions (
+        ItemContext,
+        OutFacingTarget,
+        OutActions);
 }
 
 bool UGridInventoryWidget::HandleSlotDrop (
