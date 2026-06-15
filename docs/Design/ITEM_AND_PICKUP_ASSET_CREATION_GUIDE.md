@@ -1,22 +1,124 @@
 # Guide de création des items ramassables et plaçables
 
 Statut : **guide de production Design / Content**  
-Portée : **assets Unreal et configuration éditeur**  
+Portée : **assets Unreal, configuration éditeur et textes affichés au joueur**  
 Ne remplace pas : `docs/Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`, qui décrit le socle runtime réellement implémenté.
 
 ---
 
 ## 1. Objet du document
 
-Ce document fixe la procédure standard pour créer un objet de jeu pouvant être ramassé au sol, placé dans une alcôve ou un autre réceptacle, affiché dans l'inventaire, manipulé par le curseur, éventuellement équipé, lancé, utilisé comme clé, composant, torche, arme, nourriture ou objet de quête.
+Ce document fixe la procédure standard pour créer un objet de jeu pouvant être ramassé au sol, placé dans une alcôve ou un autre réceptacle, affiché dans l'inventaire, manipulé par le curseur, éventuellement équipé, lancé, utilisé comme clé, composant, torche, arme, nourriture, outil ou objet de quête.
 
-Le but est d'éviter de redécouvrir à chaque nouvel item la différence entre l'item logique, l'objet plaçable dans la grille, son mesh, son acteur Blueprint, son entrée de palette, son comportement dans les réceptacles et son affichage dans le tooltip d'inventaire.
+Le but est d'éviter de redécouvrir à chaque nouvel item la différence entre :
+
+- l'item logique ;
+- l'objet plaçable dans la grille ;
+- son mesh ;
+- son acteur Blueprint ;
+- son entrée de palette ;
+- son comportement dans les réceptacles ;
+- son affichage dans le tooltip d'inventaire ;
+- ses textes visibles par le joueur.
 
 ---
 
-## 2. Deux familles d'objets dans le projet
+## 2. Règle fondamentale de langue
 
-### 2.1 Objets fixes ou structurels
+Règle absolue :
+
+> Tous les textes affichés au joueur doivent être en français.
+
+Cela concerne notamment :
+
+```text
+DisplayName
+Description
+ReadableText
+LockedMessage
+UnlockedMessage
+MissingKeyMessage
+InteractionFeedback
+Text_ItemName
+Text_ItemType
+Text_Description
+Text_Weight
+messages de validation visibles en jeu
+messages d'échec ou de réussite visibles en jeu
+```
+
+Les éléments techniques restent en anglais, car ils servent au code, aux liens, aux assets, aux tags et à la stabilité des données :
+
+```text
+ItemDefinitionId
+ArchetypeId
+AssetName
+ClassName
+Enum value
+ItemTags
+ObjectCategory
+SupportedType
+Parameter name
+Blueprint class name
+Static mesh name
+Material name
+```
+
+Exemple correct :
+
+```text
+AssetName        = DA_Item_CopperKey
+ItemDefinitionId = Key_Copper
+ItemType         = Key
+ItemTags         = Key, Key.Copper, Key.Dungeon
+DisplayName      = Clé en cuivre
+Description      = Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simple à proximité.
+```
+
+Exemple incorrect :
+
+```text
+DisplayName = Copper Key
+Description = A small copper key, worn by age.
+```
+
+### 2.1 Cas particulier de `ItemType`
+
+`ItemType` est une valeur technique d'enum et reste en anglais dans les assets :
+
+```text
+ItemType = Key
+ItemType = Weapon
+ItemType = Gem
+ItemType = Food
+```
+
+Mais l'interface joueur ne doit pas afficher ces valeurs brutes. Le tooltip doit afficher une traduction française :
+
+```text
+Key       -> Clé
+Weapon    -> Arme
+Shield    -> Bouclier
+Armor     -> Armure
+Jewelry   -> Bijou
+Gem       -> Gemme
+Potion    -> Potion
+Scroll    -> Parchemin
+Book      -> Livre
+Food      -> Nourriture
+Component -> Composant
+Quest     -> Objet de quête
+Misc      -> Divers
+Torch     -> Torche
+```
+
+Si le tooltip affiche encore `Key`, `Weapon` ou `Misc`, il faut corriger l'UI, pas renommer l'enum.
+
+---
+
+## 3. Deux familles d'objets dans le projet
+
+### 3.1 Objets fixes ou structurels
 
 Ces objets appartiennent d'abord au niveau. Ils sont généralement commandés par le système de liens ou participent à la géométrie jouable.
 
@@ -37,7 +139,7 @@ SM_XXX
 M_XXX
 ```
 
-### 2.2 Items ramassables, transportables ou plaçables
+### 3.2 Items ramassables, transportables ou plaçables
 
 Ces objets ont une identité d'item et peuvent changer de propriétaire.
 
@@ -57,7 +159,7 @@ Le premier définit **ce qu'est l'item**. Le second définit **comment cet item 
 
 ---
 
-## 3. Chaîne complète d'un item ramassable
+## 4. Chaîne complète d'un item ramassable
 
 Pour un item standard, la chaîne complète est :
 
@@ -89,7 +191,7 @@ Réceptacle.InitialContent
 
 ---
 
-## 4. `DA_Item_XXX` — définition logique de l'item
+## 5. `DA_Item_XXX` — définition logique de l'item
 
 Classe Unreal :
 
@@ -109,23 +211,35 @@ Exemple :
 Content/Grimrock/Core/DataAssets/Items/DA_Item_CopperKey
 ```
 
-### 4.1 Rôle
+### 5.1 Rôle
 
-`DA_Item_XXX` est la source de vérité métier de l'item. Il répond aux questions : quel est l'identifiant stable, le nom, la description, le type, le poids, l'icône, le mesh monde, les slots d'équipement, les paramètres de lancer, la lumière et les tags métier.
+`DA_Item_XXX` est la source de vérité métier de l'item. Il répond aux questions suivantes :
 
-### 4.2 Paramètres obligatoires
+- quel est l'identifiant stable ?
+- quel nom voit le joueur ?
+- quelle description voit le joueur ?
+- quel type d'item est-ce ?
+- quel poids possède-t-il ?
+- quelle icône utilise le tooltip ?
+- quel mesh apparaît dans le monde ?
+- peut-il être équipé ?
+- peut-il être lancé ?
+- peut-il émettre de la lumière ?
+- quels tags métier portent ses compatibilités futures ?
+
+### 5.2 Paramètres obligatoires
 
 | Paramètre | Rôle | Recommandation |
 |---|---|---|
-| `ItemDefinitionId` | Identifiant stable de gameplay | Obligatoire. Ne doit jamais changer une fois utilisé dans un niveau. |
-| `DisplayName` | Nom affiché au joueur | Obligatoire. Sert au tooltip. |
-| `Description` | Texte descriptif | Recommandé. Sert au tooltip. |
-| `ItemType` | Type d'item | Obligatoire. `Key`, `Weapon`, `Gem`, `Torch`, etc. |
+| `ItemDefinitionId` | Identifiant stable de gameplay | Obligatoire. Anglais technique stable. Ne doit jamais changer une fois utilisé dans un niveau. |
+| `DisplayName` | Nom affiché au joueur | Obligatoire. **Toujours en français.** Sert au tooltip. |
+| `Description` | Texte descriptif affiché au joueur | Recommandé. **Toujours en français.** Sert au tooltip. |
+| `ItemType` | Type d'item | Obligatoire. Valeur enum technique en anglais : `Key`, `Weapon`, `Gem`, etc. |
 | `Weight` | Poids unitaire | Obligatoire, même si 0. |
 | `Icon` | Icône UI | Recommandé pour tout item inventoriable. |
-| `WorldMesh` | Mesh dans le monde | Recommandé pour item ramassable. |
+| `WorldMesh` | Mesh dans le monde | Recommandé pour tout item ramassable. |
 
-### 4.3 Identité
+### 5.3 Identité
 
 #### `ItemDefinitionId`
 
@@ -141,11 +255,31 @@ Food_Bread
 Quest_RelicFragment01
 ```
 
-Règles : ne pas mettre `DA_` dans l'identifiant, ne pas utiliser d'espaces, préférer l'anglais technique stable, ne jamais réutiliser un identifiant pour un autre item, ne pas renommer après placement dans un niveau.
+Règles :
+
+- ne pas mettre `DA_` dans l'identifiant ;
+- ne pas utiliser d'espaces ;
+- préférer l'anglais technique stable ;
+- ne jamais réutiliser un identifiant pour un autre item ;
+- ne pas renommer après placement dans un niveau.
 
 #### `DisplayName`
 
-Nom joueur. Exemples :
+Nom joueur, toujours en français.
+
+Exemples corrects :
+
+```text
+Clé en cuivre
+Pierre brute
+Torche en bois
+Gemme bleue
+Dague en fer
+Pain
+Fragment de relique
+```
+
+Exemples incorrects :
 
 ```text
 Copper Key
@@ -153,17 +287,34 @@ Rough Stone
 Wooden Torch
 Blue Gem
 Iron Dagger
+Bread
 ```
 
 #### `Description`
 
-Texte du tooltip. Exemple :
+Texte du tooltip, toujours en français.
+
+Exemples corrects :
 
 ```text
-A small copper key, worn by age. It probably opens a simple lock nearby.
+Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simple à proximité.
+
+Pierre brute assez lourde pour maintenir une plaque de pression enfoncée.
+
+Torche en bois enduite de résine. Elle peut éclairer les couloirs obscurs du donjon.
+
+Gemme bleue soigneusement taillée. Elle semble destinée à un mécanisme ancien.
 ```
 
-### 4.4 Type d'item
+Exemples incorrects :
+
+```text
+A small copper key, worn by age.
+
+A rough stone heavy enough to hold down a pressure plate.
+```
+
+### 5.4 Type d'item
 
 `ItemType` doit être choisi dans `EGridItemType` :
 
@@ -185,9 +336,15 @@ Quest
 Misc
 ```
 
-Règles : une clé doit être `Key`; une pierre simple peut être `Misc` ou `Component`; un objet de quête doit être `Quest` si sa perte peut bloquer une progression; une gemme de mécanisme doit être `Gem` ou `Quest` selon son importance.
+Règles :
 
-### 4.5 Poids
+- une clé doit être `Key` ;
+- une pierre simple peut être `Misc` ou `Component` ;
+- un objet de quête doit être `Quest` si sa perte peut bloquer une progression ;
+- une gemme de mécanisme doit être `Gem` ou `Quest` selon son importance ;
+- l'interface joueur doit traduire le type en français dans le tooltip.
+
+### 5.5 Poids
 
 `Weight` est le poids unitaire.
 
@@ -201,16 +358,16 @@ Règles : une clé doit être `Key`; une pierre simple peut être `Misc` ou `Com
 | Arme lourde | 4.0 à 8.0 |
 | Armure | 5.0 à 25.0 |
 
-### 4.6 Stack
+### 5.6 Stack
 
 | Paramètre | Rôle |
 |---|---|
 | `bStackable` | Autorise plusieurs unités dans une même case d'inventaire. |
 | `MaxStackSize` | Taille maximale d'une pile. |
 
-Règles : clé, arme, armure généralement non stackables; composants, nourriture et ressources souvent stackables; pierre selon usage.
+Règles : clé, arme, armure généralement non stackables ; composants, nourriture et ressources souvent stackables ; pierre selon usage.
 
-### 4.7 Équipement
+### 5.7 Équipement
 
 | Paramètre | Rôle |
 |---|---|
@@ -226,7 +383,7 @@ CompatibleEquipmentSlots = vide
 EquippedMesh = vide
 ```
 
-### 4.8 Visuels
+### 5.8 Visuels
 
 | Paramètre | Rôle |
 |---|---|
@@ -234,9 +391,13 @@ EquippedMesh = vide
 | `WorldMesh` | Mesh utilisé lorsque l'item est dans le monde. |
 | `EquippedMesh` | Mesh utilisé lorsqu'il est équipé ou tenu. |
 
-Règles : `Icon` carré, lisible, idéalement 512x512 avec alpha; `WorldMesh` avec pivot propre et échelle UE correcte; `EquippedMesh` peut rester vide tant que l'item n'est pas visible en main.
+Règles :
 
-### 4.9 Lancer d'objet
+- `Icon` carré, lisible, idéalement 512x512 avec alpha ;
+- `WorldMesh` avec pivot propre et échelle UE correcte ;
+- `EquippedMesh` peut rester vide tant que l'item n'est pas visible en main.
+
+### 5.9 Lancer d'objet
 
 | Paramètre | Rôle |
 |---|---|
@@ -248,7 +409,7 @@ Règles : `Icon` carré, lisible, idéalement 512x512 avec alpha; `WorldMesh` av
 
 Clé : généralement non lançable au début. Pierre : lançable. Objet de quête : éviter le lancer tant que la restauration n'est pas robuste.
 
-### 4.10 Lumière
+### 5.10 Lumière
 
 | Paramètre | Rôle |
 |---|---|
@@ -270,9 +431,9 @@ Clé :
 bCanEmitLight = false
 ```
 
-### 4.11 Tags métier
+### 5.11 Tags métier
 
-`ItemTags` décrit la nature métier de l'item.
+`ItemTags` décrit la nature métier de l'item. Les tags sont techniques et restent en anglais.
 
 Exemples :
 
@@ -291,26 +452,31 @@ Throwable
 WeightObject
 ```
 
-Règles : les tags métier appartiennent à `DA_Item_XXX`; ne pas les recopier inutilement dans `DA_Object_XXXPickup`; utiliser les tags pour les compatibilités futures : serrures, recettes, mécanismes, filtres d'inventaire.
+Règles :
+
+- les tags métier appartiennent à `DA_Item_XXX` ;
+- ne pas les recopier inutilement dans `DA_Object_XXXPickup` ;
+- utiliser les tags pour les compatibilités futures : serrures, recettes, mécanismes, filtres d'inventaire ;
+- les tags ne sont pas affichés au joueur, sauf interface debug.
 
 ---
 
-## 5. Impact sur le tooltip d'inventaire
+## 6. Impact sur le tooltip d'inventaire
 
 Le tooltip doit lire les informations depuis `DA_Item_XXX` et l'instance runtime.
 
-### 5.1 Champs issus de `DA_Item_XXX`
+### 6.1 Champs issus de `DA_Item_XXX`
 
-| Élément tooltip | Source |
-|---|---|
-| `ItemIcon` | `Icon` |
-| `Text_ItemName` | `DisplayName` |
-| `Text_ItemType` | `ItemType` |
-| `Text_Description` | `Description` |
-| `Text_Weight` | `Weight` |
-| Indication lumière | `bCanEmitLight`, `bDefaultLightEnabled`, état runtime |
+| Élément tooltip | Source | Langue joueur |
+|---|---|---|
+| `ItemIcon` | `Icon` | Image |
+| `Text_ItemName` | `DisplayName` | Français obligatoire |
+| `Text_ItemType` | `ItemType` converti en libellé UI | Français obligatoire |
+| `Text_Description` | `Description` | Français obligatoire |
+| `Text_Weight` | `Weight` | Français obligatoire pour le libellé, valeur numérique conservée |
+| Indication lumière | `bCanEmitLight`, `bDefaultLightEnabled`, état runtime | Français obligatoire |
 
-### 5.2 Champs issus de l'instance runtime
+### 6.2 Champs issus de l'instance runtime
 
 | Élément tooltip | Source |
 |---|---|
@@ -321,9 +487,31 @@ Le tooltip doit lire les informations depuis `DA_Item_XXX` et l'instance runtime
 
 Règle importante : le tooltip ne doit pas dépendre de `DA_Object_XXXPickup`. `DA_Object_XXXPickup` sert au placement dans le monde, pas à l'identité d'inventaire.
 
+### 6.3 Libellés recommandés pour le tooltip
+
+Exemple Copper Key :
+
+```text
+Text_ItemName        = Clé en cuivre
+Text_ItemType        = Clé
+Text_Description     = Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simple à proximité.
+Text_Weight          = Poids : 0.1
+Text_Quantity        = Quantité : 1
+```
+
+Exemple pierre :
+
+```text
+Text_ItemName        = Pierre brute
+Text_ItemType        = Divers
+Text_Description     = Pierre brute assez lourde pour maintenir une plaque de pression enfoncée.
+Text_Weight          = Poids : 1.0
+Text_Quantity        = Quantité : 1
+```
+
 ---
 
-## 6. `SM_XXX` — Static Mesh
+## 7. `SM_XXX` — Static Mesh
 
 Emplacement recommandé :
 
@@ -340,7 +528,15 @@ SM_Torch_Wooden
 SM_Gem_Blue
 ```
 
-Paramètres attendus : échelle correcte en centimètres UE, pivot utile, orientation cohérente, matériaux assignés, collision simple suffisante, pas de transform exotique importé depuis Blender, `Apply All Transforms` côté Blender si nécessaire avant export.
+Paramètres attendus :
+
+- échelle correcte en centimètres UE ;
+- pivot utile ;
+- orientation cohérente ;
+- matériaux assignés ;
+- collision simple suffisante ;
+- pas de transform exotique importé depuis Blender ;
+- `Apply All Transforms` côté Blender si nécessaire avant export.
 
 Pour un item ramassable :
 
@@ -360,7 +556,7 @@ PreviewMesh = fallback ou preview éditeur
 
 ---
 
-## 7. `BP_XXXActor` — acteur runtime
+## 8. `BP_XXXActor` — acteur runtime
 
 La majorité des items peut utiliser :
 
@@ -375,7 +571,7 @@ Pour la Copper Key, commencer avec l'acteur item générique.
 
 ---
 
-## 8. `DA_Object_XXXPickup` — objet plaçable dans le niveau
+## 9. `DA_Object_XXXPickup` — objet plaçable dans le niveau
 
 Classe Unreal :
 
@@ -395,16 +591,16 @@ Exemple :
 DA_Object_KeyCopperPickup
 ```
 
-### 8.1 Rôle
+### 9.1 Rôle
 
 `DA_Object_XXXPickup` est l'entrée plaçable dans la grille. Il répond aux questions : comment l'objet apparaît-il dans la palette, quel type de niveau est créé lorsqu'on le place, où peut-il être placé, quel mesh sert à la preview, quel acteur runtime est utilisé, quel `DA_Item_XXX` est injecté dans l'objet placé.
 
-### 8.2 Paramètres principaux
+### 9.2 Paramètres principaux
 
 | Paramètre | Valeur pour un pickup |
 |---|---|
 | `ArchetypeId` | `Item_CopperKey_Pickup`, `Item_Stone_Rough_Pickup`, etc. |
-| `DisplayName` | Nom dans la palette |
+| `DisplayName` | Nom dans la palette. Français recommandé pour cohérence éditeur, même si non affiché au joueur. |
 | `SupportedType` | `Item` |
 | `ObjectCategory` | `Item` |
 | `Category` | `Items`, `Items/Keys`, `Items/Quest`, etc. |
@@ -419,7 +615,7 @@ DA_Object_KeyCopperPickup
 | `DefaultBehavior.Item.ItemDefinitionAsset` | `DA_Item_XXX` |
 | `DefaultBehavior.Item.ItemDefinitionId` | identifiant stable de l'item |
 
-### 8.3 `ArchetypeId`
+### 9.3 `ArchetypeId`
 
 Convention recommandée :
 
@@ -433,7 +629,7 @@ Item_IronDagger_Pickup
 
 Ne pas mettre `DA_` dans `ArchetypeId`; ne pas confondre avec `ItemDefinitionId`.
 
-### 8.4 `SupportedType`
+### 9.4 `SupportedType`
 
 Pour un item ramassable :
 
@@ -441,7 +637,7 @@ Pour un item ramassable :
 SupportedType = Item
 ```
 
-### 8.5 Catégorie palette
+### 9.5 Catégorie palette
 
 Recommandations :
 
@@ -460,7 +656,7 @@ Category = Items/Quest
 ObjectCategory = Item
 ```
 
-### 8.6 Placement
+### 9.6 Placement
 
 Pour un item au sol :
 
@@ -482,7 +678,7 @@ PlacementKind = Edge
 
 Attention : le runtime applique des règles d'accessibilité différentes entre un item central et un item sur arête.
 
-### 8.7 DefaultBehavior.Item
+### 9.7 DefaultBehavior.Item
 
 Lien essentiel entre l'objet plaçable et l'item logique :
 
@@ -495,7 +691,7 @@ Renseigner les deux quand c'est possible.
 
 ---
 
-## 9. Impact de `DA_ObjectPalette_Default`
+## 10. Impact de `DA_ObjectPalette_Default`
 
 `DA_ObjectPalette_Default` contrôle ce que l'éditeur de grille propose dans sa palette.
 
@@ -518,7 +714,7 @@ Effet attendu :
 ```text
 Grimrock Grid Editor Mode
   -> catégorie Items / Keys
-  -> Copper Key
+  -> Clé en cuivre
 ```
 
 Le placement doit créer un objet de niveau :
@@ -534,7 +730,7 @@ ItemDefinitionId = Key_Copper
 
 ---
 
-## 10. Placement direct dans le niveau
+## 11. Placement direct dans le niveau
 
 Un item peut être placé directement dans `DA_GridLevelAsset::Objects`.
 
@@ -549,13 +745,13 @@ ItemDefinitionAsset = DA_Item_XXX
 ItemDefinitionId = XXX
 ```
 
-Règle de résolution : utiliser `ItemDefinitionAsset` si renseigné; sinon `ItemDefinitionId`; sinon `DefaultBehavior.Item` de l'archétype.
+Règle de résolution : utiliser `ItemDefinitionAsset` si renseigné ; sinon `ItemDefinitionId` ; sinon `DefaultBehavior.Item` de l'archétype.
 
 Bonne pratique : renseigner `ArchetypeId` pour le placement et la preview, mais aussi `ItemDefinitionAsset` ou `ItemDefinitionId` pour éviter toute ambiguïté.
 
 ---
 
-## 11. Item placé dans un réceptacle
+## 12. Item placé dans un réceptacle
 
 Pour placer un item dans une alcôve, un support, un autel, un bol, un coffre ou tout autre réceptacle :
 
@@ -566,7 +762,13 @@ Objet réceptacle
       -> Quantity = N
 ```
 
-Règles : le réceptacle contient des items logiques, pas des `DA_Object_XXXPickup`; utiliser `DA_Item_XXX`, pas l'archétype de pickup; le visuel contenu est généré par le réceptacle; le joueur retire ensuite l'item vers l'inventaire.
+Règles :
+
+- le réceptacle contient des items logiques, pas des `DA_Object_XXXPickup` ;
+- utiliser `DA_Item_XXX`, pas l'archétype de pickup ;
+- le visuel contenu est généré par le réceptacle ;
+- le joueur retire ensuite l'item vers l'inventaire ;
+- les textes affichés dans le tooltip viennent toujours de `DA_Item_XXX`.
 
 Exemple :
 
@@ -578,23 +780,23 @@ InitialContent:
 
 ---
 
-## 12. Exemple complet : Copper Key
+## 13. Exemple complet : Copper Key / Clé en cuivre
 
-### 12.1 Static Mesh
+### 13.1 Static Mesh
 
 ```text
 SM_Key_Copper
 Path: Content/Grimrock/Meshes/Items/SM_Key_Copper
 ```
 
-### 12.2 Icône
+### 13.2 Icône
 
 ```text
 Icon_CopperKey
 Path: Content/Grimrock/Icons/Items/Icon_CopperKey
 ```
 
-### 12.3 Définition d'item
+### 13.3 Définition d'item
 
 ```text
 DA_Item_CopperKey
@@ -606,8 +808,8 @@ Paramètres :
 
 ```text
 ItemDefinitionId = Key_Copper
-DisplayName = Copper Key
-Description = A small copper key, worn by age.
+DisplayName = Clé en cuivre
+Description = Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simple à proximité.
 ItemType = Key
 Weight = 0.1
 bStackable = false
@@ -624,7 +826,7 @@ ItemTags:
   - Key.Dungeon
 ```
 
-### 12.4 Acteur item
+### 13.4 Acteur item
 
 ```text
 BP_GridItemActor
@@ -636,7 +838,7 @@ ou, seulement si nécessaire plus tard :
 BP_KeyItemActor
 ```
 
-### 12.5 Archétype plaçable
+### 13.5 Archétype plaçable
 
 ```text
 DA_Object_KeyCopperPickup
@@ -648,7 +850,7 @@ Paramètres :
 
 ```text
 ArchetypeId = Item_CopperKey_Pickup
-DisplayName = Copper Key
+DisplayName = Clé en cuivre
 SupportedType = Item
 ObjectCategory = Item
 Category = Items/Keys
@@ -664,7 +866,7 @@ DefaultBehavior.Item.ItemDefinitionAsset = DA_Item_CopperKey
 DefaultBehavior.Item.ItemDefinitionId = Key_Copper
 ```
 
-### 12.6 Palette
+### 13.6 Palette
 
 Ajouter :
 
@@ -678,7 +880,7 @@ DA_Object_KeyCopperPickup
 DA_ObjectPalette_Default
 ```
 
-### 12.7 Placement au sol
+### 13.7 Placement au sol
 
 Dans `L_GrimrockEditor` / `DA_GridLevelAsset` :
 
@@ -691,7 +893,7 @@ CellX / CellY = position choisie
 Edge = None ou edge si placement bord
 ```
 
-### 12.8 Placement dans une alcôve
+### 13.8 Placement dans une alcôve
 
 Dans l'objet alcôve :
 
@@ -701,7 +903,7 @@ Behavior.Receptacle.InitialContent:
     Quantity = 1
 ```
 
-### 12.9 Serrure compatible
+### 13.9 Serrure compatible
 
 Dans la serrure murale :
 
@@ -713,6 +915,14 @@ Behavior.Lock.AcceptedKeyIds:
   - Key_Copper
 ```
 
+Messages visibles par le joueur, si renseignés dans la serrure :
+
+```text
+LockedMessage = La serrure est verrouillée.
+UnlockedMessage = La serrure s'ouvre avec un déclic métallique.
+MissingKeyMessage = Il vous manque la clé adéquate.
+```
+
 Lien :
 
 ```text
@@ -721,14 +931,15 @@ CopperWallLock.Activated -> Door.Open
 
 ---
 
-## 13. Exemple complet : pierre ramassable
+## 14. Exemple complet : pierre ramassable
 
-### 13.1 Définition d'item
+### 14.1 Définition d'item
 
 ```text
 DA_Item_RoughStone
 ItemDefinitionId = Stone_Rough
-DisplayName = Rough Stone
+DisplayName = Pierre brute
+Description = Pierre brute assez lourde pour maintenir une plaque de pression enfoncée.
 ItemType = Misc
 Weight = 1.0
 bStackable = false
@@ -745,11 +956,12 @@ ItemTags:
   - WeightObject
 ```
 
-### 13.2 Archétype plaçable
+### 14.2 Archétype plaçable
 
 ```text
 DA_Object_StonePickup
 ArchetypeId = Item_RoughStone_Pickup
+DisplayName = Pierre brute
 SupportedType = Item
 ObjectCategory = Item
 Category = Items/Props
@@ -761,27 +973,69 @@ DefaultBehavior.Item.ItemDefinitionId = Stone_Rough
 
 ---
 
-## 14. Erreurs fréquentes
+## 15. Exemple complet : torche ramassable
 
-### 14.1 Créer seulement `DA_Item_XXX`
+### 15.1 Définition d'item
+
+```text
+DA_Item_WoodenTorch
+ItemDefinitionId = Torch_Wooden
+DisplayName = Torche en bois
+Description = Torche en bois enduite de résine. Elle peut éclairer les couloirs obscurs du donjon.
+ItemType = Torch
+Weight = 1.0
+bStackable = false
+WorldMesh = SM_Torch_Wooden
+Icon = Icon_Torch_Wooden
+CompatibleEquipmentSlots:
+  - MainHand
+  - OffHand
+bCanEmitLight = true
+bDefaultLightEnabled = true
+LightRadius = 600
+ItemTags:
+  - Torch
+  - LightSource
+```
+
+### 15.2 Archétype plaçable
+
+```text
+DA_Object_WoodenTorchPickup
+ArchetypeId = Item_WoodenTorch_Pickup
+DisplayName = Torche en bois
+SupportedType = Item
+ObjectCategory = Item
+Category = Items/Light
+PlacementKind = Floor
+PreviewMesh = SM_Torch_Wooden
+DefaultBehavior.Item.ItemDefinitionAsset = DA_Item_WoodenTorch
+DefaultBehavior.Item.ItemDefinitionId = Torch_Wooden
+```
+
+---
+
+## 16. Erreurs fréquentes
+
+### 16.1 Créer seulement `DA_Item_XXX`
 
 Symptôme : l'item existe comme définition, mais il n'apparaît pas dans la palette et n'est pas facilement plaçable.
 
 Correction : créer aussi `DA_Object_XXXPickup` et l'ajouter à `DA_ObjectPalette_Default`.
 
-### 14.2 Créer seulement `DA_Object_XXXPickup`
+### 16.2 Créer seulement `DA_Object_XXXPickup`
 
 Symptôme : l'objet est plaçable, mais l'inventaire ne connaît pas correctement son nom, son type, son icône ou ses tags.
 
 Correction : créer `DA_Item_XXX` et l'assigner dans `DefaultBehavior.Item`.
 
-### 14.3 Mettre les tags métier sur l'archétype au lieu de l'item
+### 16.3 Mettre les tags métier sur l'archétype au lieu de l'item
 
 Symptôme : la compatibilité de serrure, recette ou filtre d'inventaire ne fonctionne pas de manière stable.
 
 Correction : mettre `Key.Copper`, `Tool.LockpickSet`, `Quest`, etc. dans `DA_Item_XXX.ItemTags`.
 
-### 14.4 Utiliser `DA_` dans les identifiants
+### 16.4 Utiliser `DA_` dans les identifiants
 
 Mauvais :
 
@@ -797,7 +1051,7 @@ ItemDefinitionId = Key_Copper
 ArchetypeId = Item_CopperKey_Pickup
 ```
 
-### 14.5 Confondre pickup et contenu de réceptacle
+### 16.5 Confondre pickup et contenu de réceptacle
 
 Mauvais :
 
@@ -811,17 +1065,53 @@ Bon :
 Receptacle.InitialContent = DA_Item_CopperKey
 ```
 
-### 14.6 Oublier `DA_ObjectPalette_Default`
+### 16.6 Oublier `DA_ObjectPalette_Default`
 
 Symptôme : l'asset existe, mais l'éditeur ne le propose pas.
 
 Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 
+### 16.7 Rédiger les textes joueur en anglais
+
+Mauvais :
+
+```text
+DisplayName = Copper Key
+Description = A small copper key, worn by age.
+MissingKeyMessage = You need the right key.
+```
+
+Bon :
+
+```text
+DisplayName = Clé en cuivre
+Description = Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simple à proximité.
+MissingKeyMessage = Il vous manque la clé adéquate.
+```
+
+### 16.8 Afficher les enums brutes dans le tooltip
+
+Mauvais tooltip :
+
+```text
+Copper Key
+Key
+A small copper key, worn by age.
+```
+
+Bon tooltip :
+
+```text
+Clé en cuivre
+Clé
+Petite clé en cuivre usée par le temps. Elle ouvre sans doute une serrure simple à proximité.
+```
+
 ---
 
-## 15. Checklist création d'un nouvel item
+## 17. Checklist création d'un nouvel item
 
-### 15.1 Préparation visuelle
+### 17.1 Préparation visuelle
 
 - [ ] Créer ou importer `SM_XXX`.
 - [ ] Vérifier échelle, pivot, orientation.
@@ -829,13 +1119,14 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 - [ ] Vérifier fond alpha et lisibilité à petite taille.
 - [ ] Créer ou assigner matériaux.
 
-### 15.2 Définition logique
+### 17.2 Définition logique
 
 - [ ] Créer `DA_Item_XXX`.
-- [ ] Renseigner `ItemDefinitionId`.
-- [ ] Renseigner `DisplayName`.
-- [ ] Renseigner `Description`.
+- [ ] Renseigner `ItemDefinitionId` en anglais technique stable.
+- [ ] Renseigner `DisplayName` en français.
+- [ ] Renseigner `Description` en français.
 - [ ] Choisir `ItemType`.
+- [ ] Vérifier que l'UI traduit `ItemType` en français.
 - [ ] Renseigner `Weight`.
 - [ ] Configurer `bStackable` / `MaxStackSize`.
 - [ ] Assigner `Icon`.
@@ -843,13 +1134,13 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 - [ ] Assigner `EquippedMesh` si nécessaire.
 - [ ] Configurer `bThrowable` si nécessaire.
 - [ ] Configurer lumière si nécessaire.
-- [ ] Ajouter les `ItemTags`.
+- [ ] Ajouter les `ItemTags` techniques.
 
-### 15.3 Archétype plaçable
+### 17.3 Archétype plaçable
 
 - [ ] Créer `DA_Object_XXXPickup`.
 - [ ] Renseigner `ArchetypeId`.
-- [ ] Renseigner `DisplayName`.
+- [ ] Renseigner `DisplayName` en français recommandé.
 - [ ] Mettre `SupportedType = Item`.
 - [ ] Mettre `ObjectCategory = Item`.
 - [ ] Choisir `Category`.
@@ -860,13 +1151,14 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 - [ ] Assigner `DefaultBehavior.Item.ItemDefinitionAsset`.
 - [ ] Assigner `DefaultBehavior.Item.ItemDefinitionId`.
 
-### 15.4 Palette
+### 17.4 Palette
 
 - [ ] Ajouter `DA_Object_XXXPickup` à `DA_ObjectPalette_Default`.
 - [ ] Vérifier la catégorie dans l'éditeur.
 - [ ] Vérifier que la preview s'affiche.
+- [ ] Vérifier que le libellé palette est compréhensible.
 
-### 15.5 Placement
+### 17.5 Placement
 
 - [ ] Placer l'item dans `L_GrimrockEditor`.
 - [ ] Vérifier `Type = Item`.
@@ -875,19 +1167,20 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 - [ ] Vérifier `ItemDefinitionId`.
 - [ ] Vérifier position cellule/arête.
 
-### 15.6 Réceptacle optionnel
+### 17.6 Réceptacle optionnel
 
 - [ ] Placer l'item dans `Behavior.Receptacle.InitialContent` si nécessaire.
 - [ ] Vérifier `Quantity`.
 - [ ] Tester retrait vers inventaire.
 
-### 15.7 Test PIE
+### 17.7 Test PIE
 
 - [ ] L'item apparaît dans le monde.
 - [ ] Le curseur d'interaction apparaît.
 - [ ] Le clic ramasse l'item.
 - [ ] L'item est ajouté au personnage sélectionné.
 - [ ] Le tooltip affiche nom, type, icône, description, poids.
+- [ ] Tous les textes visibles dans le tooltip sont en français.
 - [ ] La quantité est correcte.
 - [ ] L'item peut être déposé si le système le permet.
 - [ ] L'item peut être replacé dans un réceptacle compatible.
@@ -895,10 +1188,12 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 
 ---
 
-## 16. Checklist spécifique : clé
+## 18. Checklist spécifique : clé
 
 - [ ] `ItemType = Key`.
 - [ ] `ItemDefinitionId` stable, par exemple `Key_Copper`.
+- [ ] `DisplayName` en français, par exemple `Clé en cuivre`.
+- [ ] `Description` en français.
 - [ ] Tag générique `Key`.
 - [ ] Tag spécifique `Key.Copper`.
 - [ ] Non stackable.
@@ -909,12 +1204,15 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 - [ ] Mesh monde visible.
 - [ ] Archétype pickup présent dans palette.
 - [ ] Serrure compatible configurée avec `AcceptedKeyItems` et/ou `AcceptedKeyIds`.
+- [ ] Messages de serrure visibles en français : `MissingKeyMessage`, `UnlockedMessage`, etc.
 
 ---
 
-## 17. Checklist spécifique : objet de poids / projectile
+## 19. Checklist spécifique : objet de poids / projectile
 
 - [ ] `ItemType = Misc` ou `Component`.
+- [ ] `DisplayName` en français.
+- [ ] `Description` en français.
 - [ ] `bThrowable = true`.
 - [ ] Paramètres de lancer configurés.
 - [ ] Poids cohérent.
@@ -924,13 +1222,41 @@ Correction : ajouter l'archétype dans la palette utilisée par l'éditeur.
 
 ---
 
-## 18. Règle finale
+## 20. Images recommandées pour enrichir cette documentation
+
+Des images seraient utiles, mais il ne faut pas mélanger cette étape avec la création de la Copper Key. La documentation peut être enrichie plus tard avec quatre schémas simples :
+
+```text
+1. Chaîne complète d'un item ramassable
+   SM_XXX -> Icon_XXX -> DA_Item_XXX -> DA_Object_XXXPickup -> Palette -> Niveau -> Inventaire
+
+2. Différence DA_Item_XXX / DA_Object_XXXPickup
+   Identité gameplay vs placement éditeur
+
+3. Sources du tooltip
+   DA_Item_XXX + FGridItemInstance -> WBP_ItemToolTip
+
+4. Placement au sol vs contenu de réceptacle
+   DA_Object_XXXPickup pour le monde, DA_Item_XXX pour InitialContent
+```
+
+Règle pour ces futures images :
+
+- ne pas surcharger le document ;
+- préférer des schémas très lisibles ;
+- conserver les identifiants techniques en anglais ;
+- afficher les exemples joueur en français : `Clé en cuivre`, `Pierre brute`, `Torche en bois`.
+
+---
+
+## 21. Règle finale
 
 Pour tout nouvel item ramassable :
 
 ```text
 DA_Item_XXX
   = identité d'inventaire et gameplay
+  = source des textes joueur en français
 
 DA_Object_XXXPickup
   = manière de placer cette identité dans un niveau
@@ -943,3 +1269,10 @@ Réceptacle.InitialContent
 ```
 
 Ne jamais confondre ces rôles.
+
+Rappel final :
+
+```text
+Identifiants techniques : anglais stable.
+Textes affichés au joueur : français obligatoire.
+```
