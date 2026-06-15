@@ -14,6 +14,7 @@
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Runtime/GridWallLockActor.h"
 #include "UI/ReadableMessageWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
@@ -1583,6 +1584,55 @@ AGridReceptacleActor* AGridLevelRuntimeActor::FindReceptacleAtEdge (int32 FromCe
     }
 
     return nullptr;
+}
+
+AGridWallLockActor* AGridLevelRuntimeActor::FindWallLockAtEdge (
+    int32 FromCellX,
+    int32 FromCellY,
+    EGridEdge Edge) const
+{
+    if (!LevelAsset || Edge == EGridEdge::None)
+    {
+        return nullptr;
+    }
+
+    const auto FindAtExactEdge = [this] (int32 CellX, int32 CellY, EGridEdge CandidateEdge)
+        -> AGridWallLockActor*
+    {
+        for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
+        {
+            if (ObjectData.Type == EGridLevelObjectType::Receptacle &&
+                ObjectData.CellX == CellX &&
+                ObjectData.CellY == CellY &&
+                ObjectData.Edge == CandidateEdge)
+            {
+                if (AGridWallLockActor* WallLockActor =
+                    FindRuntimeObjectActor<AGridWallLockActor> (ObjectData.ObjectId))
+                {
+                    return WallLockActor;
+                }
+            }
+        }
+        return nullptr;
+    };
+
+    if (AGridWallLockActor* WallLockActor = FindAtExactEdge (FromCellX, FromCellY, Edge))
+    {
+        return WallLockActor;
+    }
+
+    int32 OppositeX = INDEX_NONE;
+    int32 OppositeY = INDEX_NONE;
+    EGridEdge OppositeEdge = EGridEdge::None;
+    return TryGetOppositeEdge (
+        FromCellX,
+        FromCellY,
+        Edge,
+        OppositeX,
+        OppositeY,
+        OppositeEdge)
+        ? FindAtExactEdge (OppositeX, OppositeY, OppositeEdge)
+        : nullptr;
 }
 
 bool AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject (FGuid SourceObjectId, EGridObjectEvent SourceEvent)

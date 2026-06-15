@@ -17,6 +17,7 @@ class AGridRuntimeObjectActor;
 class AGridItemActor;
 class AGridThrownItemActor;
 class AGridReceptacleActor;
+class AGridWallLockActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
@@ -260,6 +261,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     AGridReceptacleActor* FindReceptacleAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
+    AGridWallLockActor* FindWallLockAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
 
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool TryPickupItemAtCell (int32 CellX, int32 CellY, AGrimrockPartyPawn* PartyPawn);

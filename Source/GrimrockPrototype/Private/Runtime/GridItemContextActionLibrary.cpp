@@ -6,6 +6,7 @@
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridInteractableInterface.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
@@ -330,31 +331,30 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget (
     }
 
     FHitResult HitResult;
-    if (!PartyPawn->GetWorld ()->LineTraceSingleByChannel (
+    const bool bHasTraceHit = PartyPawn->GetWorld ()->LineTraceSingleByChannel (
         HitResult,
         TraceStart,
         TraceEnd,
         ECC_Visibility,
-        QueryParams))
-    {
-        UE_LOG (LogGridItemActions, Log,
-            TEXT ("GridFacingTarget TargetActor=None ObjectId=None Type=None"));
-        return false;
-    }
+        QueryParams);
+    UE_LOG (LogGridItemActions, Log,
+        TEXT ("GridFacingTarget TraceHit Actor=%s Component=%s"),
+        bHasTraceHit ? *GetNameSafe (HitResult.GetActor ()) : TEXT ("None"),
+        bHasTraceHit ? *GetNameSafe (HitResult.GetComponent ()) : TEXT ("None"));
 
-    AActor* TargetActor = ResolveTargetActor (HitResult.GetActor ());
-    if (!TargetActor)
+    AActor* TargetActor = bHasTraceHit
+        ? ResolveTargetActor (HitResult.GetActor ())
+        : nullptr;
+    if (TargetActor)
     {
-        return false;
-    }
-
-    OutFacingTarget.bIsValid = true;
-    OutFacingTarget.TargetActor = TargetActor;
-    OutFacingTarget.TargetComponent = HitResult.GetComponent ();
-    if (const AGridRuntimeObjectActor* RuntimeObject = Cast<AGridRuntimeObjectActor> (TargetActor))
-    {
-        OutFacingTarget.TargetObjectId = RuntimeObject->ObjectId;
-        OutFacingTarget.LevelObjectType = RuntimeObject->ObjectType;
+        OutFacingTarget.bIsValid = true;
+        OutFacingTarget.TargetActor = TargetActor;
+        OutFacingTarget.TargetComponent = HitResult.GetComponent ();
+        if (const AGridRuntimeObjectActor* RuntimeObject = Cast<AGridRuntimeObjectActor> (TargetActor))
+        {
+            OutFacingTarget.TargetObjectId = RuntimeObject->ObjectId;
+            OutFacingTarget.LevelObjectType = RuntimeObject->ObjectType;
+        }
     }
 
     if (const AGridWallLockActor* WallLockActor = Cast<AGridWallLockActor> (TargetActor))
@@ -397,13 +397,56 @@ bool UGridItemContextActionLibrary::ResolveFacingTarget (
     {
         OutFacingTarget.TargetType = EGridFacingTargetType::Readable;
     }
-    else if (TargetActor->IsA<AGridDoorActor> ())
+    else if (TargetActor && TargetActor->IsA<AGridDoorActor> ())
     {
         OutFacingTarget.TargetType = EGridFacingTargetType::Door;
     }
-    else if (TargetActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
+    else if (TargetActor &&
+             TargetActor->GetClass ()->ImplementsInterface (UGridInteractableInterface::StaticClass ()))
     {
         OutFacingTarget.TargetType = EGridFacingTargetType::Mechanism;
+    }
+
+    if (OutFacingTarget.TargetType == EGridFacingTargetType::None &&
+        PartyPawn->LevelRuntimeActor)
+    {
+        if (AGridWallLockActor* WallLockActor =
+            PartyPawn->LevelRuntimeActor->FindWallLockAtEdge (
+                PartyPawn->CurrentCellX,
+                PartyPawn->CurrentCellY,
+                PartyPawn->Facing))
+        {
+            OutFacingTarget.bIsValid = true;
+            OutFacingTarget.TargetActor = WallLockActor;
+            OutFacingTarget.TargetComponent = WallLockActor->MeshComponent;
+            OutFacingTarget.TargetObjectId = WallLockActor->ObjectId;
+            OutFacingTarget.LevelObjectType = WallLockActor->ObjectType;
+            OutFacingTarget.TargetType = EGridFacingTargetType::WallLock;
+            OutFacingTarget.bAcceptsCurrentItem =
+                !WallLockActor->bIsUnlocked &&
+                WallLockActor->CanAcceptKeyDefinition (CurrentItem.ItemDefinitionId);
+            if (!OutFacingTarget.bAcceptsCurrentItem)
+            {
+                OutFacingTarget.IncompatibilityReason =
+                    NSLOCTEXT ("GridItemActions", "WrongKey", "Cet objet ne peut pas être utilisé ici");
+            }
+
+        }
+        else
+        {
+            UE_LOG (LogGridItemActions, Log,
+                TEXT ("GridFacingTarget NoWallLockFound Cell=(%d,%d) Edge=%d"),
+                PartyPawn->CurrentCellX,
+                PartyPawn->CurrentCellY,
+                static_cast<int32> (PartyPawn->Facing));
+        }
+    }
+
+    if (OutFacingTarget.TargetType == EGridFacingTargetType::WallLock)
+    {
+        UE_LOG (LogGridItemActions, Log,
+            TEXT ("GridFacingTarget Resolved WallLock ObjectId=%s"),
+            *OutFacingTarget.TargetObjectId.ToString ());
     }
 
     if (OutFacingTarget.TargetType == EGridFacingTargetType::None)
