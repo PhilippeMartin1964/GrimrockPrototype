@@ -1,35 +1,28 @@
-# Wall Lock MVP — comportement runtime validé
+# Wall Lock MVP — comportement runtime validé et cible UX
 
-Statut : **documentation MVP actuelle**  
-Portée : **serrure murale, clé en inventaire, clé en curseur, connecteurs**  
-Complète : `GRIMROCK_LOCK_SYSTEM.md`  
+Statut : **documentation MVP actuelle + clarification de transition UX**  
+Portée : **serrure murale, clé en inventaire, clé en curseur, connecteurs, transition vers actions contextuelles**  
+Complète : `GRIMROCK_LOCK_SYSTEM.md` et `ITEM_CONTEXT_ACTION_SYSTEM.md`  
 Ne remplace pas : `docs/Architecture/RECEPTACLE_SYSTEM_FOUNDATION.md` ni `docs/Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md`
 
 ---
 
 ## 1. Objet du document
 
-Ce document décrit le comportement réellement retenu pour le MVP des serrures murales après validation de la **Copper Key** et de la serrure murale **WallLockPit / Copper Wall Lock** dans `L_GrimrockEditor`.
+Ce document décrit le comportement réellement validé pour le MVP des serrures murales après validation de la **Copper Key** et de la serrure murale **WallLockPit / Copper Wall Lock** dans `L_GrimrockEditor`.
 
-Il clarifie en particulier une question de gameplay importante :
+Il clarifie aussi une décision de design plus récente :
 
-> Pourquoi une serrure murale peut-elle être ouverte avec une clé simplement présente dans l'inventaire, alors qu'elle peut aussi être ouverte en plaçant la clé dans le curseur et en l'insérant physiquement dans la serrure ?
+> Le comportement `clé dans inventaire -> auto-unlock` est utile comme MVP technique, mais il ne doit pas devenir la règle UX générale.
 
-Réponse courte :
-
-> Ces deux gestes ne représentent pas exactement la même intention joueur.  
-> Le premier est une **utilisation automatique depuis l'inventaire**.  
-> Le second est une **insertion manuelle et diégétique de la clé dans la serrure**.
-
-Les deux chemins doivent cependant converger vers le même résultat logique :
+La cible UX devient :
 
 ```text
-WallLock.UnlockSuccess
-  -> EGridObjectEvent::Activated
-  -> Door.Open via connecteur
+clic sur serrure verrouillée
+  -> ouvrir l'inventaire en mode assisté
+  -> surligner les clés compatibles
+  -> action explicite : Insérer dans la serrure
 ```
-
-Une serrure murale ne doit jamais ouvrir une porte par `ItemInserted`.
 
 ---
 
@@ -78,17 +71,13 @@ CopperWallLock.ItemInserted -> Door.Open
 
 ---
 
-## 3. Les deux gestes joueur
+## 3. Comportement MVP validé
 
-## 3.1. Utilisation automatique depuis l'inventaire
+## 3.1. Chemin inventaire — transitoire
 
-### Description
+Le MVP sait actuellement chercher une clé compatible dans les inventaires des personnages actifs.
 
-Le joueur possède la clé dans l'inventaire d'un personnage actif et clique directement sur la serrure murale.
-
-Le système cherche alors une clé compatible dans les inventaires des personnages actifs.
-
-Flux :
+Flux technique :
 
 ```text
 Clé dans inventaire
@@ -100,64 +89,33 @@ Clé dans inventaire
   -> Door.Open
 ```
 
-### Pourquoi ce mode existe
+Ce comportement a permis de valider :
 
-Ce mode est un raccourci ergonomique.
+- la recherche multi-personnages ;
+- la compatibilité par `ItemDefinitionId` ;
+- l'événement `Activated` ;
+- le lien `WallLock.Activated -> Door.Open`.
 
-Il évite d'obliger le joueur à :
+Mais il est maintenant considéré comme **transitoire** côté UX.
 
-1. ouvrir l'inventaire ;
-2. prendre la clé ;
-3. la mettre dans le curseur ;
-4. fermer l'inventaire ;
-5. cliquer sur la serrure.
+Raison : le jeu doit éviter de déplacer, consommer, insérer ou utiliser automatiquement un item depuis l'inventaire sans intention explicite du joueur.
 
-Il correspond au comportement fréquent des RPG et dungeon crawlers modernes : si le groupe possède la clé, le jeu peut l'utiliser automatiquement.
-
-### Effet sur la clé
-
-Par défaut MVP :
+Cible future :
 
 ```text
-bConsumeKeyOnUnlock = false
+clic serrure
+  -> inventaire assisté
+  -> clé compatible surlignée
+  -> action explicite Insérer
 ```
-
-Donc la clé reste dans l'inventaire.
-
-C'est logique pour une clé réutilisable, par exemple :
-
-- clé de secteur ;
-- clé de prison ;
-- clé de service ;
-- clé pouvant ouvrir plusieurs serrures.
-
-Si une serrure doit consommer la clé, cela doit être configuré explicitement :
-
-```text
-bConsumeKeyOnUnlock = true
-```
-
-Dans ce cas, la clé doit être retirée de l'inventaire au déverrouillage.
-
-### Visuel de clé dans la serrure
-
-Dans ce mode, la clé n'est pas forcément affichée dans la serrure.
-
-Justification :
-
-- l'action est abstraite ;
-- la clé reste dans l'inventaire si elle n'est pas consommée ;
-- le joueur n'a pas explicitement placé la clé dans le monde.
 
 ---
 
-## 3.2. Insertion manuelle depuis le curseur
+## 3.2. Chemin curseur — MVP physique
 
-### Description
+Le MVP sait aussi ouvrir une serrure lorsque la clé est portée par le mécanisme actuel de Cursor.
 
-Le joueur prend la clé dans l'inventaire, la place dans le curseur, puis clique sur la serrure murale.
-
-Flux :
+Flux technique :
 
 ```text
 Clé dans curseur
@@ -170,153 +128,80 @@ Clé dans curseur
   -> Door.Open
 ```
 
-### Pourquoi ce mode existe
+Ce comportement valide la partie diégétique :
 
-Ce mode est plus diégétique et plus proche d'une interaction physique.
-
-Il est intéressant pour :
-
-- une serrure importante ;
-- un mécanisme ancien ;
-- une clé sacrificielle ;
-- une clé qui reste dans la serrure ;
-- une énigme visuelle où la clé insérée fait partie du décor ;
-- une serrure où l'objet inséré doit rester visible.
-
-Le joueur fait explicitement le geste :
-
-```text
-Je prends cette clé et je l'insère ici.
-```
-
-### Effet sur la clé
-
-Dans le MVP consolidé :
-
-- la clé quitte le curseur ;
-- elle est attachée dans la serrure ;
+- la clé quitte le conteneur de manipulation ;
+- elle est attachée à la serrure ;
 - elle ne simule pas la physique ;
-- elle n'a pas de collision de pickup ;
+- elle n'a plus de collision de pickup ;
 - elle n'est plus récupérable ;
 - elle reste visible dans la serrure.
 
-C'est le comportement voulu pour une clé insérée physiquement.
-
-### Visuel de clé dans la serrure
-
-La clé doit être attachée à :
+Cependant, le Cursor lui-même ne doit pas devenir le modèle UX principal. La cible est de remplacer l'usage visible du Cursor par une action contextuelle :
 
 ```text
-ItemAttachPoint
+clic droit clé
+  -> Insérer dans la serrure
 ```
 
-sur `BP_GridWallLockActor`.
-
-Le réglage fin se fait dans le Blueprint :
-
-- position légèrement enfoncée ;
-- rotation alignée sur la fente ;
-- échelle correcte ;
-- pas de physique ;
-- pas de collision de ramassage.
+Le code pourra temporairement réutiliser certaines fonctions du Cursor en interne pendant la transition.
 
 ---
 
-## 4. Pourquoi conserver les deux modes dans le MVP ?
+## 4. Nouvelle règle de design cible
 
-Les deux modes répondent à deux besoins différents.
+Règle cible :
 
-| Mode | Intention | Effet sur la clé | Usage recommandé |
-|---|---|---|---|
-| Clé dans inventaire | Ergonomie / auto-use | La clé reste si `bConsumeKeyOnUnlock=false` | Serrures ordinaires, clés réutilisables |
-| Clé dans curseur | Insertion volontaire | La clé est insérée et reste dans la serrure | Serrures importantes, clés sacrificielles, mécanismes visuels |
+> Une serrure murale ne doit pas fouiller automatiquement l'inventaire et consommer ou utiliser une clé sans action explicite du joueur.
 
-Le comportement n'est donc pas forcément contradictoire.
-
-Mais il doit être explicite dans le design, car il produit deux résultats visuels différents.
-
----
-
-## 5. Règle MVP retenue
-
-Pour le MVP actuel, une serrure murale peut accepter les deux chemins :
+Le flux final recherché est :
 
 ```text
-Inventory key path
-Cursor key path
-```
-
-mais les deux doivent obligatoirement produire le même événement logique :
-
-```text
-EGridObjectEvent::Activated
-```
-
-et jamais dépendre de :
-
-```text
-EGridObjectEvent::ItemInserted
-```
-
-Règle finale MVP :
-
-```text
-clé en inventaire OU clé en curseur
-  -> WallLock UnlockSuccess
+clic sur serrure verrouillée
+  -> si aucune clé compatible : message
+  -> si clés compatibles : inventaire assisté
+  -> joueur choisit une clé
+  -> joueur confirme Insérer dans la serrure
+  -> clé retirée de l'inventaire
+  -> clé attachée à la serrure
   -> Activated
   -> Door.Open
 ```
 
----
-
-## 6. Limite connue du MVP
-
-Le MVP ne possède pas encore de politique explicite de mode d'utilisation de clé.
-
-Actuellement, le comportement est implicite :
+Cela aligne les serrures sur les autres interactions d'items :
 
 ```text
-- si la clé est dans l'inventaire : auto-use ;
-- si la clé est dans le curseur : insertion physique.
+torche -> placer sur support
+armure -> s'équiper
+potion -> consommer
+livre -> lire
+pierre -> déposer / lancer
+clé -> insérer dans serrure
 ```
-
-À terme, il serait préférable d'ajouter une politique configurable, par exemple :
-
-```cpp
-UENUM(BlueprintType)
-enum class EGridWallLockKeyUsePolicy : uint8
-{
-    AutoUseFromInventoryOnly,
-    InsertFromCursorOnly,
-    AutoUseOrInsert,
-};
-```
-
-Interprétation :
-
-| Policy | Comportement |
-|---|---|
-| `AutoUseFromInventoryOnly` | La clé peut être utilisée depuis l'inventaire. Aucun visuel inséré. |
-| `InsertFromCursorOnly` | Le joueur doit tenir la clé dans le curseur. La clé est insérée dans la serrure. |
-| `AutoUseOrInsert` | Les deux gestes sont acceptés. |
-
-Pour `WallLockPit`, si le design souhaite absolument que la clé reste visible dans la serrure, la meilleure politique future serait :
-
-```text
-InsertFromCursorOnly
-```
-
-ou une variante :
-
-```text
-AutoUseAndInsertVisual
-```
-
-mais cette dernière demande de décider si la clé doit être consommée depuis l'inventaire et visible dans la serrure, ce qui peut surprendre le joueur.
 
 ---
 
-## 7. Messages joueur
+## 5. Pourquoi ne pas garder l'auto-use comme règle générale ?
+
+L'auto-use depuis l'inventaire est confortable, mais il casse la cohérence globale :
+
+```text
+Torche dans support     -> action explicite
+Pierre sur plaque       -> action explicite
+Objet dans alcôve       -> action explicite
+Armure équipée          -> action explicite
+Clé dans serrure        -> devrait aussi être une action explicite
+```
+
+Le jeu doit évoluer vers un système d'actions contextuelles décrit dans :
+
+```text
+docs/Design/ITEM_CONTEXT_ACTION_SYSTEM.md
+```
+
+---
+
+## 6. Messages joueur
 
 Tous les textes visibles doivent être en français.
 
@@ -353,9 +238,9 @@ AlreadyUnlocked -> La serrure est déjà déverrouillée.
 
 ---
 
-## 8. Logs PIE attendus
+## 7. Logs PIE attendus pour le MVP actuel
 
-### 8.1. Sans clé
+### 7.1. Sans clé
 
 ```text
 GridWallLock UnlockFailed MissingKey
@@ -367,7 +252,7 @@ Aucun événement `Activated` ne doit ouvrir la porte.
 
 ---
 
-### 8.2. Clé dans inventaire
+### 7.2. Clé dans inventaire — MVP transitoire
 
 ```text
 GridWallLock InventoryScan ... ItemDefinitionIds=[Key_Copper]
@@ -376,15 +261,11 @@ GridWallLock ActivatedEventEmitted ... LinkExecuted=true
 Grid link executed ... Command=Open Success=true
 ```
 
-La porte doit s'ouvrir via :
-
-```text
-Event=Activated
-```
+Ce chemin est acceptable pour le MVP technique, mais il doit être remplacé par l'inventaire assisté dans la cible UX.
 
 ---
 
-### 8.3. Clé dans curseur
+### 7.3. Clé dans curseur — MVP physique
 
 ```text
 GridInventory WorldDrop RoutedToWallLock Item=Key_Copper Target=...
@@ -402,9 +283,9 @@ Event=ItemInserted
 
 ---
 
-## 9. Configuration attendue des assets
+## 8. Configuration attendue des assets
 
-### 9.1. `DA_Item_CopperKey`
+### 8.1. `DA_Item_CopperKey`
 
 ```text
 ItemDefinitionId = Key_Copper
@@ -414,7 +295,7 @@ ItemType = Key
 
 ---
 
-### 9.2. `DA_LockCopperWallLock` / `WallLockPit`
+### 8.2. `DA_LockCopperWallLock` / `WallLockPit`
 
 ```text
 RuntimeActorClass = BP_GridWallLockActor
@@ -449,7 +330,7 @@ bCanRemoveItem = false
 
 ---
 
-### 9.3. Connecteur
+### 8.3. Connecteur
 
 Le connecteur correct est :
 
@@ -465,23 +346,56 @@ CopperWallLock.ItemInserted -> Door.Open
 
 ---
 
-## 10. Décision de design
+## 9. Décision de design mise à jour
 
-La règle retenue pour le MVP est :
+Ancienne lecture MVP :
 
-> Une serrure murale peut être déverrouillée automatiquement si le groupe possède la clé, ou manuellement si le joueur insère la clé depuis le curseur.  
-> Dans les deux cas, l'ouverture de la porte passe uniquement par `Activated`.  
-> `ItemInserted` reste réservé aux vrais réceptacles.
+```text
+clé en inventaire OU clé en curseur
+  -> WallLock UnlockSuccess
+  -> Activated
+  -> Door.Open
+```
 
-Cette décision permet de garder :
+Lecture mise à jour :
 
-- l'ergonomie du clic direct ;
-- la satisfaction visuelle de l'insertion manuelle ;
-- l'architecture propre `SourceEvent -> TargetCommand` ;
-- la séparation entre serrure murale et porte.
+```text
+MVP technique actuel :
+  inventaire et curseur peuvent encore fonctionner.
 
-Décision future à prendre :
+Cible UX :
+  clic serrure -> inventaire assisté -> action explicite Insérer.
+```
 
-> Certaines serrures devront-elles imposer `InsertFromCursorOnly` pour renforcer le côté énigme / mécanisme physique ?
+Décision :
 
-Pour les serrures importantes ou sacrificielles, la réponse recommandée est oui.
+> L'ouverture de porte par serrure passe uniquement par `Activated`.  
+> `ItemInserted` reste réservé aux vrais réceptacles.  
+> L'auto-use depuis inventaire est transitoire.  
+> La cible long terme est une action explicite d'item, intégrée au système d'actions contextuelles.
+
+---
+
+## 10. Transition recommandée
+
+Étape suivante recommandée :
+
+```text
+1. Ajouter le menu clic droit d'item.
+2. Ajouter le contexte de cible en face du groupe.
+3. Ajouter le mode inventaire assisté depuis WallLock.
+4. Surligner les clés compatibles.
+5. Ajouter l'action Insérer dans la serrure.
+6. Retirer l'auto-unlock direct depuis l'inventaire.
+```
+
+Objectif final :
+
+```text
+clé dans inventaire
+  -> pas d'ouverture automatique silencieuse
+  -> action explicite Insérer
+  -> clé attachée dans la serrure
+  -> Activated
+  -> Door.Open
+```
