@@ -22,6 +22,10 @@ public:
 
     virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
     virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+    virtual void InteractWithHit_Implementation (
+        APawn* InstigatorPawn,
+        UPrimitiveComponent* HitComponent,
+        const FHitResult& HitResult) override;
     virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
     virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
 
@@ -41,5 +45,13 @@ private:
     FText GetEffectiveLockedMessage () const;
     FText GetEffectiveUnlockedMessage () const;
     FText GetEffectiveMissingKeyMessage () const;
+    bool IsAcceptedKey (FName ItemDefinitionId) const;
+    bool AttachInsertedKeyVisual (
+        AGrimrockPartyPawn* PartyPawn,
+        const FGridItemInstance& CursorItem);
+    bool CompleteUnlock (
+        AGrimrockPartyPawn* PartyPawn,
+        FName MatchingKeyId,
+        const TCHAR* Source);
     void ShowFeedback (AGrimrockPartyPawn* PartyPawn, const FText& Message) const;
 };
