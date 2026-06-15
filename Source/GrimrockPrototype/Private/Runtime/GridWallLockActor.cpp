@@ -92,7 +92,7 @@ bool AGridWallLockActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
 
     if (bIsUnlocked)
     {
-        const FText Message = GetEffectiveUnlockedMessage ();
+        const FText Message = GetEffectiveAlreadyUnlockedMessage ();
         ShowFeedback (PartyPawn, Message);
         UE_LOG (LogGridWallLock, Log,
             TEXT ("GridWallLock AlreadyUnlocked ObjectId=%s Message=%s"),
@@ -270,7 +270,7 @@ FText AGridWallLockActor::GetInteractionText_Implementation (
         return FText::GetEmpty ();
     }
 
-    return bIsUnlocked ? GetEffectiveUnlockedMessage () : GetEffectiveLockedMessage ();
+    return bIsUnlocked ? GetEffectiveAlreadyUnlockedMessage () : GetEffectiveLockedMessage ();
 }
 
 FText AGridWallLockActor::GetEffectiveLockedMessage () const
@@ -280,11 +280,16 @@ FText AGridWallLockActor::GetEffectiveLockedMessage () const
         : LockedMessage;
 }
 
-FText AGridWallLockActor::GetEffectiveUnlockedMessage () const
+FText AGridWallLockActor::GetEffectiveUnlockSuccessMessage () const
 {
     return UnlockedMessage.IsEmpty ()
-        ? FText::FromString (TEXT ("La serrure est déjà déverrouillée."))
+        ? FText::FromString (TEXT ("La serrure s'ouvre avec un déclic métallique."))
         : UnlockedMessage;
+}
+
+FText AGridWallLockActor::GetEffectiveAlreadyUnlockedMessage () const
+{
+    return FText::FromString (TEXT ("La serrure est déjà déverrouillée."));
 }
 
 FText AGridWallLockActor::GetEffectiveMissingKeyMessage () const
@@ -368,7 +373,7 @@ bool AGridWallLockActor::CompleteUnlock (
     }
 
     bIsUnlocked = true;
-    const FText Message = GetEffectiveUnlockedMessage ();
+    const FText Message = GetEffectiveUnlockSuccessMessage ();
     ShowFeedback (PartyPawn, Message);
 
     UE_LOG (LogGridWallLock, Log,

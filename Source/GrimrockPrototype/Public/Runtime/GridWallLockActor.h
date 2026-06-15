@@ -43,7 +43,8 @@ private:
     FText MissingKeyMessage;
 
     FText GetEffectiveLockedMessage () const;
-    FText GetEffectiveUnlockedMessage () const;
+    FText GetEffectiveUnlockSuccessMessage () const;
+    FText GetEffectiveAlreadyUnlockedMessage () const;
     FText GetEffectiveMissingKeyMessage () const;
     bool IsAcceptedKey (FName ItemDefinitionId) const;
     bool AttachInsertedKeyVisual (

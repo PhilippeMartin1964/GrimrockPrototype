@@ -2,6 +2,7 @@
 
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridWallLockActor.h"
 
 namespace
 {
@@ -227,6 +228,14 @@ namespace
             !Behavior.Receptacle.PhysicalPlacementInitialRotationOffset.IsNearlyZero ();
     }
 
+    bool IsWallLockArchetype (const UGridObjectArchetypeAsset& Archetype)
+    {
+        return (Archetype.RuntimeActorClass &&
+                Archetype.RuntimeActorClass->IsChildOf (AGridWallLockActor::StaticClass ())) ||
+            Archetype.DefaultBehavior.Lock.AcceptedKeyIds.Num () > 0 ||
+            Archetype.DefaultBehavior.Lock.AcceptedKeyItems.Num () > 0;
+    }
+
     bool HasTeleporterBehaviorParams (const FGridObjectBehaviorParams& Behavior)
     {
         return Behavior.Teleporter.TargetCellX != INDEX_NONE ||
@@ -401,7 +410,9 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("MovingMesh or MovingMaterial is set but this archetype type does not normally use moving mesh."));
     }
 
-    if (!UsesFixedMeshParams () && (FixedMesh || FixedMaterial))
+    if (!IsWallLockArchetype (*this) &&
+        !UsesFixedMeshParams () &&
+        (FixedMesh || FixedMaterial))
     {
         AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Info, TEXT ("FixedMesh or FixedMaterial is set but this archetype type does not normally use fixed mesh."));
     }
@@ -530,7 +541,8 @@ bool UGridObjectArchetypeAsset::ValidateArchetype (TArray<FGridArchetypeValidati
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Error, TEXT ("Receptacle RuntimeActorClass must derive from AGridReceptacleActor. Concrete Receptacle_* variants can use AGridReceptacleActor or a Blueprint derived from it."));
             }
-            if (!DefaultBehavior.Receptacle.bAcceptAnyItem &&
+            if (!IsWallLockArchetype (*this) &&
+                !DefaultBehavior.Receptacle.bAcceptAnyItem &&
                 DefaultBehavior.Receptacle.AcceptedItems.Num () == 0)
             {
                 AddValidationMessage (OutMessages, EGridArchetypeValidationSeverity::Warning, TEXT ("Receptacle does not accept any item because AcceptedItems is empty."));

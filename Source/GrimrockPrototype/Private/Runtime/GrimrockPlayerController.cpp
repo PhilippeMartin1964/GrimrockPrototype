@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
 
@@ -22,6 +23,16 @@ namespace
         }
 
         return HitActor ? Cast<AGridReceptacleActor> (HitActor->GetOwner ()) : nullptr;
+    }
+
+    AGridWallLockActor* ResolveWallLockFromHitActor (AActor* HitActor)
+    {
+        if (AGridWallLockActor* WallLockActor = Cast<AGridWallLockActor> (HitActor))
+        {
+            return WallLockActor;
+        }
+
+        return HitActor ? Cast<AGridWallLockActor> (HitActor->GetOwner ()) : nullptr;
     }
 
     FText GetReceptacleRejectFeedbackText (EGridReceptacleRejectReason Reason)
@@ -140,6 +151,8 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
         AGridReceptacleActor* ReceptacleActor =
             ResolveReceptacleFromHitActor (WorldHitResult.GetActor ());
+        AGridWallLockActor* WallLockActor =
+            ResolveWallLockFromHitActor (WorldHitResult.GetActor ());
 
         AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
         if (ReceptacleActor && bWithinInteractionDistance)
@@ -151,6 +164,26 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                 PartyPawn);
             if (bAccessible)
             {
+                if (WallLockActor)
+                {
+                    UE_LOG (LogTemp, Log,
+                        TEXT ("GridInventory WorldDrop RoutedToWallLock Item=%s Target=%s"),
+                        *CursorItem.ItemDefinitionId.ToString (),
+                        *GetNameSafe (WallLockActor));
+                    IGridInteractableInterface::Execute_InteractWithHit (
+                        WallLockActor,
+                        PartyPawn,
+                        WorldHitResult.GetComponent (),
+                        WorldHitResult);
+
+                    if (UGridInventoryWidget* InventoryWidget = PartyPawn->GetInventoryWidget ())
+                    {
+                        InventoryWidget->RefreshInventory ();
+                    }
+                    SetGridInteractionCursor (EGridInteractionCursor::Default);
+                    return;
+                }
+
                 FGridReceptacleAcceptanceResult AcceptanceResult;
                 if (!ReceptacleActor->EvaluateItemAcceptance (CursorItem, AcceptanceResult, true))
                 {
