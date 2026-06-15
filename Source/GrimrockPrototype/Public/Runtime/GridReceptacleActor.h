@@ -205,6 +205,9 @@ public:
     UFUNCTION (BlueprintPure, Category = "Receptacle")
     AGridItemActor* GetContainedItemActor (int32 ItemIndex = 0) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Receptacle")
+    bool SetContainedItemLightsEnabled (int32 ItemIndex, bool bEnabled);
+
     UFUNCTION (BlueprintPure, Category = "Receptacle")
     bool ContainsItemDefinition (FName ItemDefinitionId) const;
 

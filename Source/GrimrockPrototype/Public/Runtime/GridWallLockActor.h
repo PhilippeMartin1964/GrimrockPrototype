@@ -20,6 +20,10 @@ public:
 
     bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
 
+    bool TryUnlockWithContextItem (
+        AGrimrockPartyPawn* PartyPawn,
+        const FGridItemInstance& KeyItem);
+
     UFUNCTION (BlueprintPure, Category = "Lock")
     bool CanAcceptKeyDefinition (FName ItemDefinitionId) const;
 

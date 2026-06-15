@@ -4,7 +4,10 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "Runtime/GridItemContextActionLibrary.h"
+#include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
 void UGridInventoryWidget::NativeConstruct ()
@@ -606,6 +609,136 @@ bool UGridInventoryWidget::BuildContextActionsForSlot (
         OutActions);
 }
 
+bool UGridInventoryWidget::ExecuteInventoryContextAction (
+    EGridItemActionType ActionType,
+    EGridInventoryUiSlotType SourceSlotType,
+    int32 SourceSlotIndex)
+{
+    FGridFacingTargetContext FacingTarget;
+    TArray<FGridItemContextAction> AvailableActions;
+    if (!BuildContextActionsForSlot (
+        SourceSlotType,
+        SourceSlotIndex,
+        FacingTarget,
+        AvailableActions))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute Failed Action=%s Reason=InvalidSource"),
+            *UEnum::GetValueAsString (ActionType));
+        return false;
+    }
+
+    const FGridItemContextAction* SelectedAction = AvailableActions.FindByPredicate (
+        [ActionType] (const FGridItemContextAction& Action)
+        {
+            return Action.ActionType == ActionType;
+        });
+    if (!SelectedAction || !SelectedAction->bEnabled)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"),
+            *UEnum::GetValueAsString (ActionType),
+            *LastContextItem.ItemDefinitionId.ToString (),
+            SelectedAction
+                ? TEXT ("ActionDisabled")
+                : TEXT ("ActionUnavailable"));
+        return false;
+    }
+
+    const int32 CharacterIndex = InventoryComponent
+        ? InventoryComponent->GetSelectedCharacterIndex ()
+        : INDEX_NONE;
+    bool bExecuted = false;
+    switch (ActionType)
+    {
+    case EGridItemActionType::Examine:
+        {
+            UGridInventorySlotWidget* SourceWidget =
+                FindRegisteredSlotWidget (SourceSlotType, SourceSlotIndex);
+            const FText TooltipText = SourceWidget
+                ? SourceWidget->GetTooltipText ()
+                : LastContextItem.DisplayName;
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemActions Execute Examine Item=%s"),
+                *LastContextItem.ItemDefinitionId.ToString ());
+            PresentItemExamination (LastContextItem, TooltipText);
+            bExecuted = true;
+            break;
+        }
+
+    case EGridItemActionType::InsertIntoTarget:
+        {
+            AGridWallLockActor* WallLock =
+                Cast<AGridWallLockActor> (FacingTarget.TargetActor);
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemActions Execute InsertIntoTarget Item=%s Target=%s"),
+                *LastContextItem.ItemDefinitionId.ToString (),
+                WallLock ? TEXT ("WallLock") : TEXT ("None"));
+            if (SourceSlotType == EGridInventoryUiSlotType::Inventory &&
+                WallLock &&
+                InventoryComponent &&
+                OwningPartyPawn)
+            {
+                bExecuted =
+                    UGridItemTransferService::TransferInventorySlotToWallLock (
+                        InventoryComponent,
+                        CharacterIndex,
+                        SourceSlotIndex,
+                        WallLock,
+                        OwningPartyPawn).bSuccess;
+            }
+            break;
+        }
+
+    case EGridItemActionType::PlaceOnTarget:
+        {
+            AGridReceptacleActor* Receptacle =
+                Cast<AGridReceptacleActor> (FacingTarget.TargetActor);
+            const bool bIsTorchHolder =
+                FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemActions Execute PlaceOnTarget Item=%s Target=%s"),
+                *LastContextItem.ItemDefinitionId.ToString (),
+                bIsTorchHolder ? TEXT ("TorchHolder") : TEXT ("None"));
+            if (SourceSlotType == EGridInventoryUiSlotType::Inventory &&
+                bIsTorchHolder &&
+                Receptacle &&
+                InventoryComponent)
+            {
+                const FGridItemTransferResult TransferResult =
+                    UGridItemTransferService::TransferInventorySlotToReceptacle (
+                        InventoryComponent,
+                        CharacterIndex,
+                        SourceSlotIndex,
+                        Receptacle);
+                bExecuted = TransferResult.bSuccess;
+                if (bExecuted)
+                {
+                    const int32 InsertedItemIndex =
+                        Receptacle->GetContainedItemCount () - 1;
+                    bExecuted = Receptacle->SetContainedItemLightsEnabled (
+                        InsertedItemIndex,
+                        true);
+                }
+            }
+            break;
+        }
+
+    default:
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridItemActions Execute NotImplemented Action=%s Item=%s"),
+            *UEnum::GetValueAsString (ActionType),
+            *LastContextItem.ItemDefinitionId.ToString ());
+        break;
+    }
+
+    if (bExecuted)
+    {
+        RefreshInventory ();
+    }
+    return bExecuted;
+}
+
 bool UGridInventoryWidget::HandleSlotDrop (
     EGridInventoryUiSlotType SourceType,
     int32 SourceIndex,
@@ -829,6 +962,32 @@ bool UGridInventoryWidget::HandleSlotDrop (
     ValidateOwnership ();
     RefreshInventory ();
     return bResult;
+}
+
+UGridInventorySlotWidget* UGridInventoryWidget::FindRegisteredSlotWidget (
+    EGridInventoryUiSlotType SlotType,
+    int32 SlotIndex) const
+{
+    switch (SlotType)
+    {
+    case EGridInventoryUiSlotType::Inventory:
+        for (UGridInventorySlotWidget* SlotWidget : RegisteredInventorySlots)
+        {
+            if (SlotWidget && SlotWidget->InventorySlotIndex == SlotIndex)
+            {
+                return SlotWidget;
+            }
+        }
+        return nullptr;
+    case EGridInventoryUiSlotType::MainHand:
+        return MainHandSlotWidget;
+    case EGridInventoryUiSlotType::OffHand:
+        return OffHandSlotWidget;
+    case EGridInventoryUiSlotType::Cursor:
+        return CursorSlotWidget;
+    default:
+        return nullptr;
+    }
 }
 
 bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex, bool bSplitStack)

@@ -229,7 +229,12 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             NSLOCTEXT ("GridItemActions", "Read", "Lire"));
     }
 
-    if (OutFacingTarget.bIsValid &&
+    const bool bIsInventorySlotSource =
+        ItemContext.InventorySlotIndex != INDEX_NONE &&
+        ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
+
+    if (bIsInventorySlotSource &&
+        OutFacingTarget.bIsValid &&
         OutFacingTarget.bAcceptsCurrentItem &&
         OutFacingTarget.TargetType == EGridFacingTargetType::WallLock)
     {
@@ -239,7 +244,8 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             NSLOCTEXT ("GridItemActions", "InsertIntoLock", "Insérer dans la serrure"),
             &OutFacingTarget);
     }
-    else if (OutFacingTarget.bIsValid &&
+    else if (bIsInventorySlotSource &&
+             OutFacingTarget.bIsValid &&
              OutFacingTarget.bAcceptsCurrentItem &&
              (OutFacingTarget.TargetType == EGridFacingTargetType::Receptacle ||
               OutFacingTarget.TargetType == EGridFacingTargetType::TorchHolder))

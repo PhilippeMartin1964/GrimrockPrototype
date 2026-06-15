@@ -344,6 +344,22 @@ bool AGridReceptacleActor::CanAcceptItem (FName ItemDefinitionId) const
     return AcceptedItemDefinitionIds.Contains (ItemDefinitionId);
 }
 
+bool AGridReceptacleActor::SetContainedItemLightsEnabled (int32 ItemIndex, bool bEnabled)
+{
+    if (!ContainedItems.IsValidIndex (ItemIndex))
+    {
+        return false;
+    }
+
+    FGridContainedReceptacleItem& Item = ContainedItems[ItemIndex];
+    Item.bLightsEnabled = bEnabled;
+    if (Item.ItemActor)
+    {
+        Item.ItemActor->SetItemLightsEnabled (bEnabled);
+    }
+    return true;
+}
+
 bool AGridReceptacleActor::CanAcceptItemInstance (const FGridItemInstance& Item) const
 {
     FGridReceptacleAcceptanceResult Result;

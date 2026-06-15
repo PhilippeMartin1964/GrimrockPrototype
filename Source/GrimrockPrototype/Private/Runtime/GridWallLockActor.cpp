@@ -228,6 +228,24 @@ bool AGridWallLockActor::CanAcceptKeyDefinition (FName ItemDefinitionId) const
     return IsAcceptedKey (ItemDefinitionId);
 }
 
+bool AGridWallLockActor::TryUnlockWithContextItem (
+    AGrimrockPartyPawn* PartyPawn,
+    const FGridItemInstance& KeyItem)
+{
+    if (!PartyPawn || !PartyPawn->LevelRuntimeActor || !KeyItem.IsValid () || bIsUnlocked ||
+        !IsAcceptedKey (KeyItem.ItemDefinitionId))
+    {
+        return false;
+    }
+
+    if (!AttachInsertedKeyVisual (PartyPawn, KeyItem))
+    {
+        return false;
+    }
+
+    return CompleteUnlock (PartyPawn, KeyItem.ItemDefinitionId, TEXT ("ContextAction"));
+}
+
 bool AGridWallLockActor::CanInteract_Implementation (
     APawn* InstigatorPawn,
     UPrimitiveComponent* HitComponent) const

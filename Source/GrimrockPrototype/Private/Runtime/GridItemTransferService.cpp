@@ -3,6 +3,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
 namespace
@@ -244,6 +245,80 @@ FGridItemTransferResult UGridItemTransferService::TransferEquipmentSlotToRecepta
         Operation,
         AcceptedItem,
         TEXT ("Equipped item transferred to receptacle."));
+}
+
+FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToWallLock (
+    UGridPartyInventoryComponent* Inventory,
+    int32 CharacterIndex,
+    int32 InventorySlotIndex,
+    AGridWallLockActor* WallLock,
+    AGrimrockPartyPawn* PartyPawn)
+{
+    static const TCHAR* Operation = TEXT ("InventorySlotToWallLock");
+    if (!Inventory || !Inventory->IsValidCharacterIndex (CharacterIndex))
+    {
+        return LogTransferFailure (
+            Operation,
+            EGridItemTransferResult::InvalidSource,
+            TEXT ("Inventory or character source is invalid."));
+    }
+    if (!IsValid (WallLock) || !PartyPawn)
+    {
+        return LogTransferFailure (
+            Operation,
+            EGridItemTransferResult::InvalidDestination,
+            TEXT ("Wall lock destination or party pawn is invalid."));
+    }
+
+    FGridCharacterInventoryState& CharacterState =
+        Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!CharacterState.InventorySlots.IsValidIndex (InventorySlotIndex) ||
+        CharacterState.InventorySlots[InventorySlotIndex].IsEmpty ())
+    {
+        return LogTransferFailure (
+            Operation,
+            EGridItemTransferResult::InvalidSource,
+            TEXT ("Inventory slot source is invalid or empty."));
+    }
+
+    const FGridInventorySlot SourceSnapshot = CharacterState.InventorySlots[InventorySlotIndex];
+    FGridItemInstance KeyItem = SourceSnapshot.Item;
+    if (!KeyItem.IsValid () || !WallLock->CanAcceptKeyDefinition (KeyItem.ItemDefinitionId))
+    {
+        return LogTransferFailure (
+            Operation,
+            EGridItemTransferResult::DestinationRejectsItem,
+            TEXT ("Wall lock rejected the selected key."),
+            &KeyItem);
+    }
+
+    KeyItem.Quantity = 1;
+    if (SourceSnapshot.Item.Quantity > 1)
+    {
+        KeyItem.RuntimeObjectId = FGuid::NewGuid ();
+        CharacterState.InventorySlots[InventorySlotIndex].Item.Quantity -= 1;
+    }
+    else
+    {
+        CharacterState.InventorySlots[InventorySlotIndex] = FGridInventorySlot ();
+    }
+    Inventory->RecalculateCharacterWeight (CharacterIndex);
+
+    if (!WallLock->TryUnlockWithContextItem (PartyPawn, KeyItem))
+    {
+        CharacterState.InventorySlots[InventorySlotIndex] = SourceSnapshot;
+        Inventory->RecalculateCharacterWeight (CharacterIndex);
+        return LogTransferFailure (
+            Operation,
+            EGridItemTransferResult::DestinationInsertFailed,
+            TEXT ("Wall lock insertion failed; inventory source was restored."),
+            &KeyItem);
+    }
+
+    return LogTransferSuccess (
+        Operation,
+        KeyItem,
+        TEXT ("Inventory key transferred to wall lock."));
 }
 
 FGridItemTransferResult UGridItemTransferService::TransferReceptacleItemToInventory (

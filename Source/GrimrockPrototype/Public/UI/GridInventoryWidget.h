@@ -177,6 +177,17 @@ public:
         FGridFacingTargetContext& OutFacingTarget,
         TArray<FGridItemContextAction>& OutActions);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Context Actions")
+    bool ExecuteInventoryContextAction (
+        EGridItemActionType ActionType,
+        EGridInventoryUiSlotType SourceSlotType,
+        int32 SourceSlotIndex);
+
+    UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
+    void PresentItemExamination (
+        const FGridItemInstance& Item,
+        const FText& ExaminationText);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
     bool HandleSlotDrop (
         EGridInventoryUiSlotType SourceType,
@@ -203,6 +214,9 @@ protected:
 
 private:
     void RemoveGeneratedInventorySlotsFromRegistry ();
+    UGridInventorySlotWidget* FindRegisteredSlotWidget (
+        EGridInventoryUiSlotType SlotType,
+        int32 SlotIndex) const;
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;

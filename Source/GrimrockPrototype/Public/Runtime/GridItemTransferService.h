@@ -6,6 +6,8 @@
 #include "GridItemTransferService.generated.h"
 
 class AGridReceptacleActor;
+class AGridWallLockActor;
+class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 
 UENUM (BlueprintType)
@@ -56,6 +58,14 @@ public:
         int32 CharacterIndex,
         EGridEquipmentSlot EquipmentSlot,
         AGridReceptacleActor* Receptacle);
+
+    UFUNCTION (BlueprintCallable, Category = "Grid|Item Transfer")
+    static FGridItemTransferResult TransferInventorySlotToWallLock (
+        UGridPartyInventoryComponent* Inventory,
+        int32 CharacterIndex,
+        int32 InventorySlotIndex,
+        AGridWallLockActor* WallLock,
+        AGrimrockPartyPawn* PartyPawn);
 
     UFUNCTION (BlueprintCallable, Category = "Grid|Item Transfer")
     static FGridItemTransferResult TransferReceptacleItemToInventory (

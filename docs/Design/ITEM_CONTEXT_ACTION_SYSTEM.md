@@ -860,3 +860,29 @@ Ce patch ne modifie aucun asset `.uasset` : ce cablage reste donc une operation 
 - Une plaque de pression n'est pas consideree comme une cible d'action directe.
 
 Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` et `GridInventory ContextMenuRequested` permettent de diagnostiquer cette fondation.
+
+---
+
+## 14. Execution minimale et cablage UMG
+
+Le Patch 2 execute les actions `Examine`, `InsertIntoTarget` et `PlaceOnTarget`.
+
+- `Examine` reutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'evenement Blueprint `PresentItemExamination`.
+- `InsertIntoTarget` transfere une cle du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et emet uniquement `Activated`.
+- `PlaceOnTarget` utilise `UGridItemTransferService` pour transferer une torche vers un support compatible, puis active sa lumiere.
+
+Les autres actions restent calculees mais leur execution produit le log `GridItemActions Execute NotImplemented`.
+
+### WBP_ItemActionMenu
+
+Le menu UMG doit conserver `SlotType` et `SlotIndex` recus avec `OnContextActionsRequested`, puis :
+
+1. creer un bouton pour chaque entree de `LastContextActions` ;
+2. utiliser `Label` comme texte du bouton ;
+3. appliquer `bEnabled` a l'etat interactif du bouton ;
+4. au clic, appeler `ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` ;
+5. fermer le menu apres un resultat positif.
+
+Dans le Blueprint derive de `UGridInventoryWidget`, implementer `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le meme widget visuel que le tooltip. Aucun second contenu descriptif ne doit etre reconstruit dans le menu.
+
+Ce patch ne modifie aucun asset `.uasset` ; le cablage de `WBP_ItemActionMenu` reste manuel dans l'editeur Unreal.
