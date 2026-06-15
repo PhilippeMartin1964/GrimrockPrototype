@@ -12,12 +12,13 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 6. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
 7. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
 8. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
-9. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
-10. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
-11. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
-12. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
-13. `05_CODEX_TASKS.md` - historical Codex task templates.
-14. `99_DECISIONS_LOG.md` - chronological decision log.
+9. `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` - production guide for item definitions, pickup archetypes, palette entries and receptacle content.
+10. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
+11. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
+12. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
+13. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
+14. `05_CODEX_TASKS.md` - historical Codex task templates.
+15. `99_DECISIONS_LOG.md` - chronological decision log.
 
 ## Document Status
 
@@ -36,6 +37,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` | Checklist | Naming normalization plan. |
 | `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` | Checklist | UI/runtime consistency checklist for Selected Object, CONNECTORS, orientation, DataAssets and runtime. |
 | `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` | Current / Reference | Practical table explaining every current `UGridObjectArchetypeAsset` and `DefaultBehavior` parameter. |
+| `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | Current / Production Guide | Asset creation workflow for inventory item definitions, placeable pickup archetypes, palette entries and receptacle content. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Priority Rule

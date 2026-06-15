@@ -399,3 +399,12 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le crochetage doit être abstrait comme une résolution de compétence et d'outil dans le jeu, sans simulation physique réelle.
 - Les serrures piégées doivent prévoir détection, désamorçage, politique de déclenchement et effets par liens ou scripts.
 - Le document de référence est `docs/Design/GRIMROCK_LOCK_SYSTEM.md`.
+
+---
+
+## 2026-06-15 — Création des assets d'items ramassables
+
+- Un item ramassable nécessite deux assets distincts : `DA_Item_XXX` pour son identité d'inventaire et de gameplay, et `DA_Object_XXXPickup` pour son placement dans le niveau et son exposition dans la palette.
+- Le contenu initial d'un réceptacle référence `DA_Item_XXX`, jamais l'archétype `DA_Object_XXXPickup`.
+- Le guide de production est `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md`.
+- Ce guide complète `docs/Architecture/ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md` et ne le remplace pas.

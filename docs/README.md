@@ -12,6 +12,7 @@ Lire d'abord :
 
 - `docs/Design/README.md`
 - `docs/Design/GRIMROCK_LOCK_SYSTEM.md` pour le système prospectif de serrures, clés, crochetage, conteneurs verrouillables et serrures piégées.
+- `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` pour créer les définitions d'items, les archétypes de pickup et leur entrée de palette.
 
 Ce README oriente vers les documents de design actuels, les audits, les checklists et le journal de décisions.
 
