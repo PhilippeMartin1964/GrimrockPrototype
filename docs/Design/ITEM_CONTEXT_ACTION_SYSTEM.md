@@ -307,7 +307,7 @@ Règle validée :
 Actions typiques :
 
 ```text
-S'équiper en main principale
+S'équiper en main directrice
 S'équiper en main secondaire
 Placer sur le support de torche en face
 Déposer au sol
@@ -695,7 +695,7 @@ clic droit torche
 
 ```text
 clic droit arme
-  -> S'équiper en main principale
+  -> S'équiper en main directrice
   -> S'équiper en main secondaire, si autorisé
 
 clic droit armure
@@ -836,7 +836,7 @@ Le premier patch fournit la fondation C++ de consultation des actions contextuel
 - `UGridItemContextActionLibrary::BuildItemContextActions` centralise les regles de disponibilite.
 - `UGridItemContextActionLibrary::ResolveFacingTarget` effectue une trace `ECC_Visibility` depuis la camera dans la direction de grille du groupe et classe le premier acteur pertinent comme serrure murale, receptacle, support de torche, objet lisible, porte ou mecanisme.
 
-Les actions actuellement exposees sont notamment `Utiliser`, `Equiper`, `Desequiper`, `Placer`, `Inserer`, `Lire`, `Boire`, `Manger`, `Lancer`, `Donner` et `Detruire`. Leur disponibilite depend de la definition d'item, de son emplacement et de la cible faisant face au groupe.
+Les actions actuellement exposees sont notamment `Utiliser`, `Equiper`, `Desequiper`, `Placer`, `Inserer`, `Lire`, `Boire`, `Manger`, `Donner` et `Detruire`. Leur disponibilite depend de la definition d'item, de son emplacement et de la cible faisant face au groupe. `Lancer` n'est pas propose dans le menu contextuel d'inventaire pour le moment.
 
 ### Integration UMG
 
@@ -865,23 +865,29 @@ Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` e
 
 ## 14. Execution minimale et cablage UMG
 
-Le Patch 2 execute les actions `Examine`, `InsertIntoTarget` et `PlaceOnTarget`.
+Le Patch 2 execute les actions `Examine`, `Equip`, `InsertIntoTarget` et `PlaceOnTarget`.
 
 - `Examine` reutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'evenement Blueprint `PresentItemExamination`.
+- `Equip` utilise l'action exacte selectionnee : plusieurs entrees peuvent partager `ActionType=Equip`, et `EquipmentSlot` distingue la main directrice de la main secondaire.
 - `InsertIntoTarget` transfere une cle du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et emet uniquement `Activated`.
 - `PlaceOnTarget` utilise `UGridItemTransferService` pour transferer une torche vers un support compatible, puis active sa lumiere.
 
 Les autres actions restent calculees mais leur execution produit le log `GridItemActions Execute NotImplemented`.
+`Throw` n'est pas genere dans ce menu : le lancer passera par l'equipement en main directrice et le futur systeme d'arme ou projectile.
 
 ### WBP_ItemActionMenu
 
-Le menu UMG doit conserver `SlotType` et `SlotIndex` recus avec `OnContextActionsRequested`, puis :
+Le menu UMG doit conserver `SlotType` et `SlotIndex` recus avec `OnContextActionsRequested`. Chaque bouton doit aussi conserver son `ActionIndex`, l'entree `FGridItemContextAction` correspondante et son `OwnerMenu`, car plusieurs boutons peuvent partager le meme `ActionType`.
+
+Le menu doit :
 
 1. creer un bouton pour chaque entree de `LastContextActions` ;
 2. utiliser `Label` comme texte du bouton ;
 3. appliquer `bEnabled` a l'etat interactif du bouton ;
-4. au clic, appeler `ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` ;
+4. au clic, appeler `OwnerMenu.ExecuteActionByIndex(ActionIndex)`, puis `ExecuteInventoryContextActionByIndex(SlotType, SlotIndex, ActionIndex)` ;
 5. fermer le menu apres un resultat positif.
+
+`ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` reste disponible pour compatibilite, mais le menu doit utiliser l'execution par index pour garantir que le bouton clique execute exactement l'action affichee.
 
 Dans le Blueprint derive de `UGridInventoryWidget`, implementer `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le meme widget visuel que le tooltip. Aucun second contenu descriptif ne doit etre reconstruit dans le menu.
 

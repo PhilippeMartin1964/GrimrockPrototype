@@ -185,7 +185,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             AddAction (
                 OutActions,
                 EGridItemActionType::Equip,
-                NSLOCTEXT ("GridItemActions", "EquipMainHand", "S'équiper en main principale"),
+                NSLOCTEXT ("GridItemActions", "EquipMainHand", "S'équiper en main directrice"),
                 nullptr,
                 EGridEquipmentSlot::MainHand);
         }
@@ -259,15 +259,6 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             EGridItemActionType::PlaceOnTarget,
             Label,
             &OutFacingTarget);
-    }
-
-    if (Definition &&
-        (Definition->bThrowable || HasItemTag (Definition, FName (TEXT ("Throwable")))))
-    {
-        AddAction (
-            OutActions,
-            EGridItemActionType::Throw,
-            NSLOCTEXT ("GridItemActions", "Throw", "Lancer"));
     }
 
     if (Definition && Definition->bStackable && ItemContext.Item.Quantity > 1)

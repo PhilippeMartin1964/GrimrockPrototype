@@ -10,6 +10,75 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
+namespace
+{
+    const TCHAR* GetContextActionName (EGridItemActionType ActionType)
+    {
+        switch (ActionType)
+        {
+        case EGridItemActionType::Equip: return TEXT ("Equip");
+        case EGridItemActionType::Unequip: return TEXT ("Unequip");
+        case EGridItemActionType::Consume: return TEXT ("Consume");
+        case EGridItemActionType::Read: return TEXT ("Read");
+        case EGridItemActionType::Examine: return TEXT ("Examine");
+        case EGridItemActionType::Use: return TEXT ("Use");
+        case EGridItemActionType::UseOnTarget: return TEXT ("UseOnTarget");
+        case EGridItemActionType::InsertIntoTarget: return TEXT ("InsertIntoTarget");
+        case EGridItemActionType::PlaceOnTarget: return TEXT ("PlaceOnTarget");
+        case EGridItemActionType::DropToGround: return TEXT ("DropToGround");
+        case EGridItemActionType::Throw: return TEXT ("Throw");
+        case EGridItemActionType::Combine: return TEXT ("Combine");
+        case EGridItemActionType::SplitStack: return TEXT ("SplitStack");
+        case EGridItemActionType::ToggleLight: return TEXT ("ToggleLight");
+        case EGridItemActionType::None:
+        default:
+            return TEXT ("None");
+        }
+    }
+
+    const TCHAR* GetContextTargetTypeName (EGridFacingTargetType TargetType)
+    {
+        switch (TargetType)
+        {
+        case EGridFacingTargetType::WallLock: return TEXT ("WallLock");
+        case EGridFacingTargetType::Receptacle: return TEXT ("Receptacle");
+        case EGridFacingTargetType::TorchHolder: return TEXT ("TorchHolder");
+        case EGridFacingTargetType::Readable: return TEXT ("Readable");
+        case EGridFacingTargetType::Door: return TEXT ("Door");
+        case EGridFacingTargetType::Mechanism: return TEXT ("Mechanism");
+        case EGridFacingTargetType::None:
+        default:
+            return TEXT ("None");
+        }
+    }
+
+    const TCHAR* GetContextEquipmentSlotName (EGridEquipmentSlot EquipmentSlot)
+    {
+        switch (EquipmentSlot)
+        {
+        case EGridEquipmentSlot::MainHand: return TEXT ("MainHand");
+        case EGridEquipmentSlot::OffHand: return TEXT ("OffHand");
+        case EGridEquipmentSlot::Head: return TEXT ("Head");
+        case EGridEquipmentSlot::Chest: return TEXT ("Chest");
+        case EGridEquipmentSlot::Legs: return TEXT ("Legs");
+        case EGridEquipmentSlot::Feet: return TEXT ("Feet");
+        case EGridEquipmentSlot::Amulet: return TEXT ("Amulet");
+        case EGridEquipmentSlot::Ring1: return TEXT ("Ring1");
+        case EGridEquipmentSlot::Ring2: return TEXT ("Ring2");
+        case EGridEquipmentSlot::Shoulders: return TEXT ("Shoulders");
+        case EGridEquipmentSlot::Gloves: return TEXT ("Gloves");
+        case EGridEquipmentSlot::Belt: return TEXT ("Belt");
+        case EGridEquipmentSlot::Cloak: return TEXT ("Cloak");
+        case EGridEquipmentSlot::Talisman: return TEXT ("Talisman");
+        case EGridEquipmentSlot::QuickSlot1: return TEXT ("QuickSlot1");
+        case EGridEquipmentSlot::QuickSlot2: return TEXT ("QuickSlot2");
+        case EGridEquipmentSlot::None:
+        default:
+            return TEXT ("None");
+        }
+    }
+}
+
 void UGridInventoryWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
@@ -624,7 +693,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction (
     {
         UE_LOG (LogTemp, Warning,
             TEXT ("GridItemActions Execute Failed Action=%s Reason=InvalidSource"),
-            *UEnum::GetValueAsString (ActionType));
+            GetContextActionName (ActionType));
         return false;
     }
 
@@ -637,7 +706,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction (
     {
         UE_LOG (LogTemp, Warning,
             TEXT ("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"),
-            *UEnum::GetValueAsString (ActionType),
+            GetContextActionName (ActionType),
             *LastContextItem.ItemDefinitionId.ToString (),
             SelectedAction
                 ? TEXT ("ActionDisabled")
@@ -645,11 +714,85 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction (
         return false;
     }
 
+    return ExecuteResolvedInventoryContextAction (
+        *SelectedAction,
+        FacingTarget,
+        SourceSlotType,
+        SourceSlotIndex);
+}
+
+bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex (
+    EGridInventoryUiSlotType SourceSlotType,
+    int32 SourceSlotIndex,
+    int32 ActionIndex)
+{
+    FGridFacingTargetContext FacingTarget;
+    TArray<FGridItemContextAction> AvailableActions;
+    if (!BuildContextActionsForSlot (
+        SourceSlotType,
+        SourceSlotIndex,
+        FacingTarget,
+        AvailableActions))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions ExecuteByIndex Failed Reason=InvalidSource Slot=%s:%d ActionIndex=%d"),
+            GetGridInventoryUiSlotTypeName (SourceSlotType),
+            SourceSlotIndex,
+            ActionIndex);
+        return false;
+    }
+
+    if (!AvailableActions.IsValidIndex (ActionIndex))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions ExecuteByIndex Failed Reason=InvalidActionIndex Slot=%s:%d ActionIndex=%d ActionCount=%d"),
+            GetGridInventoryUiSlotTypeName (SourceSlotType),
+            SourceSlotIndex,
+            ActionIndex,
+            AvailableActions.Num ());
+        return false;
+    }
+
+    const FGridItemContextAction& SelectedAction = AvailableActions[ActionIndex];
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridItemActions ExecuteByIndex Slot=%s:%d ActionIndex=%d Action=%s Label=\"%s\" EquipmentSlot=%s TargetType=%s"),
+        GetGridInventoryUiSlotTypeName (SourceSlotType),
+        SourceSlotIndex,
+        ActionIndex,
+        GetContextActionName (SelectedAction.ActionType),
+        *SelectedAction.Label.ToString (),
+        GetContextEquipmentSlotName (SelectedAction.EquipmentSlot),
+        GetContextTargetTypeName (FacingTarget.TargetType));
+
+    if (!SelectedAction.bEnabled)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions ExecuteByIndex Failed Reason=ActionDisabled Slot=%s:%d ActionIndex=%d Action=%s"),
+            GetGridInventoryUiSlotTypeName (SourceSlotType),
+            SourceSlotIndex,
+            ActionIndex,
+            GetContextActionName (SelectedAction.ActionType));
+        return false;
+    }
+
+    return ExecuteResolvedInventoryContextAction (
+        SelectedAction,
+        FacingTarget,
+        SourceSlotType,
+        SourceSlotIndex);
+}
+
+bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
+    const FGridItemContextAction& Action,
+    const FGridFacingTargetContext& FacingTarget,
+    EGridInventoryUiSlotType SourceSlotType,
+    int32 SourceSlotIndex)
+{
     const int32 CharacterIndex = InventoryComponent
         ? InventoryComponent->GetSelectedCharacterIndex ()
         : INDEX_NONE;
     bool bExecuted = false;
-    switch (ActionType)
+    switch (Action.ActionType)
     {
     case EGridItemActionType::Examine:
         {
@@ -663,6 +806,29 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction (
                 *LastContextItem.ItemDefinitionId.ToString ());
             PresentItemExamination (LastContextItem, TooltipText);
             bExecuted = true;
+            break;
+        }
+
+    case EGridItemActionType::Equip:
+        {
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemActions Execute Equip Item=%s EquipmentSlot=%s"),
+                *LastContextItem.ItemDefinitionId.ToString (),
+                GetContextEquipmentSlotName (Action.EquipmentSlot));
+            if (SourceSlotType == EGridInventoryUiSlotType::Inventory &&
+                InventoryComponent &&
+                OwningPartyPawn &&
+                Action.EquipmentSlot != EGridEquipmentSlot::None)
+            {
+                bExecuted = InventoryComponent->EquipItemFromInventorySlot (
+                    CharacterIndex,
+                    SourceSlotIndex,
+                    Action.EquipmentSlot);
+                if (bExecuted)
+                {
+                    OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+                }
+            }
             break;
         }
 
@@ -727,7 +893,7 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction (
     default:
         UE_LOG (LogTemp, Log,
             TEXT ("GridItemActions Execute NotImplemented Action=%s Item=%s"),
-            *UEnum::GetValueAsString (ActionType),
+            GetContextActionName (Action.ActionType),
             *LastContextItem.ItemDefinitionId.ToString ());
         break;
     }

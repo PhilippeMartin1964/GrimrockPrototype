@@ -183,6 +183,12 @@ public:
         EGridInventoryUiSlotType SourceSlotType,
         int32 SourceSlotIndex);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Context Actions")
+    bool ExecuteInventoryContextActionByIndex (
+        EGridInventoryUiSlotType SourceSlotType,
+        int32 SourceSlotIndex,
+        int32 ActionIndex);
+
     UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
     void PresentItemExamination (
         const FGridItemInstance& Item,
@@ -217,6 +223,11 @@ private:
     UGridInventorySlotWidget* FindRegisteredSlotWidget (
         EGridInventoryUiSlotType SlotType,
         int32 SlotIndex) const;
+    bool ExecuteResolvedInventoryContextAction (
+        const FGridItemContextAction& Action,
+        const FGridFacingTargetContext& FacingTarget,
+        EGridInventoryUiSlotType SourceSlotType,
+        int32 SourceSlotIndex);
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;
