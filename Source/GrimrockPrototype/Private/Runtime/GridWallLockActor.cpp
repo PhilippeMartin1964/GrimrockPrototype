@@ -146,81 +146,15 @@ bool AGridWallLockActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
         return CompleteUnlock (PartyPawn, CursorItem.ItemDefinitionId, TEXT ("Cursor"));
     }
 
-    int32 KeyCharacterIndex = INDEX_NONE;
-    FName MatchingKeyId = NAME_None;
-    TArray<FName> ScannedInventoryIds;
-
-    for (int32 CharacterIndex = 0;
-        CharacterIndex < InventoryComponent->GetActiveCharacterCount () && MatchingKeyId.IsNone ();
-        ++CharacterIndex)
-    {
-        TArray<FName> CharacterItemIds;
-        if (InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex (CharacterIndex))
-        {
-            const FGridCharacterInventoryState& CharacterState =
-                InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
-            for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
-            {
-                if (!Slot.IsEmpty ())
-                {
-                    CharacterItemIds.Add (Slot.Item.ItemDefinitionId);
-                    ScannedInventoryIds.Add (Slot.Item.ItemDefinitionId);
-                }
-            }
-        }
-
-        UE_LOG (LogGridWallLock, Log,
-            TEXT ("GridWallLock InventoryScan ObjectId=%s CharacterIndex=%d ItemDefinitionIds=[%s]"),
-            *ObjectId.ToString (),
-            CharacterIndex,
-            *JoinItemDefinitionIds (CharacterItemIds));
-
-        for (const FName AcceptedKeyId : AcceptedKeyDefinitionIds)
-        {
-            if (InventoryComponent->HasItemDefinitionInCharacterInventory (CharacterIndex, AcceptedKeyId))
-            {
-                KeyCharacterIndex = CharacterIndex;
-                MatchingKeyId = AcceptedKeyId;
-                break;
-            }
-        }
-    }
-
-    if (MatchingKeyId.IsNone ())
-    {
-        const FText Message = GetEffectiveMissingKeyMessage ();
-        ShowFeedback (PartyPawn, Message);
-        UE_LOG (LogGridWallLock, Log,
-            TEXT ("GridWallLock UnlockFailed MissingKey ObjectId=%s AcceptedKeys=[%s] Cursor=None Inventory=[%s] Message=%s"),
-            *ObjectId.ToString (),
-            *JoinItemDefinitionIds (AcceptedKeyDefinitionIds),
-            *JoinItemDefinitionIds (ScannedInventoryIds),
-            *Message.ToString ());
-        return false;
-    }
-
-    if (bConsumeKeyOnUnlock)
-    {
-        if (!InventoryComponent->RemoveItemDefinitionFromCharacterInventory (
-            KeyCharacterIndex,
-            MatchingKeyId,
-            1))
-        {
-            UE_LOG (LogGridWallLock, Warning,
-                TEXT ("GridWallLock UnlockFailed MissingKey ObjectId=%s Key=%s Reason=ConsumeFailed"),
-                *ObjectId.ToString (),
-                *MatchingKeyId.ToString ());
-            return false;
-        }
-
-        UE_LOG (LogGridWallLock, Log,
-            TEXT ("GridWallLock ConsumedKey ObjectId=%s Key=%s CharacterIndex=%d"),
-            *ObjectId.ToString (),
-            *MatchingKeyId.ToString (),
-            KeyCharacterIndex);
-    }
-
-    return CompleteUnlock (PartyPawn, MatchingKeyId, TEXT ("Inventory"));
+    const FText Message = FText::FromString (
+        TEXT ("Cette serrure nécessite une clé compatible. Utilisez une clé depuis l'inventaire."));
+    ShowFeedback (PartyPawn, Message);
+    UE_LOG (LogGridWallLock, Log,
+        TEXT ("GridWallLock DirectInteract InventoryAutoUnlockBlocked ObjectId=%s AcceptedKeys=[%s] Message=%s"),
+        *ObjectId.ToString (),
+        *JoinItemDefinitionIds (AcceptedKeyDefinitionIds),
+        *Message.ToString ());
+    return false;
 }
 
 bool AGridWallLockActor::CanAcceptKeyDefinition (FName ItemDefinitionId) const

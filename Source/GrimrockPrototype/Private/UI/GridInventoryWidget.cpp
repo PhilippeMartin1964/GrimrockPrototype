@@ -699,6 +699,19 @@ bool UGridInventoryWidget::ExecuteInventoryContextAction (
         return false;
     }
 
+    const int32 MatchingActionCount = AvailableActions.FilterByPredicate (
+        [ActionType] (const FGridItemContextAction& Action)
+        {
+            return Action.ActionType == ActionType;
+        }).Num ();
+    if (MatchingActionCount > 1)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"),
+            GetContextActionName (ActionType));
+        return false;
+    }
+
     const FGridItemContextAction* SelectedAction = AvailableActions.FindByPredicate (
         [ActionType] (const FGridItemContextAction& Action)
         {

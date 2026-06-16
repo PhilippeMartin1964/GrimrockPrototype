@@ -887,12 +887,15 @@ Le menu UMG doit conserver `SlotType` et `SlotIndex` reçus avec `OnContextActio
 Le menu doit :
 
 1. créer un bouton pour chaque entrée de `LastContextActions` ;
-2. utiliser `Label` comme texte du bouton ;
-3. appliquer `bEnabled` à l'état interactif du bouton ;
-4. au clic, appeler `OwnerMenu.ExecuteActionByIndex(ActionIndex)`, puis `ExecuteInventoryContextActionByIndex(SlotType, SlotIndex, ActionIndex)` ;
-5. fermer le menu après un résultat positif.
+2. transmettre l'`Array Index` de `LastContextActions` au `WBP_ItemActionButton` comme `ActionIndex` ;
+3. utiliser `Label` comme texte du bouton ;
+4. appliquer `bEnabled` à l'état interactif du bouton ;
+5. au clic, appeler `OwnerMenu.ExecuteActionByIndex(ActionIndex)` ;
+6. dans `ExecuteActionByIndex`, appeler `OwnerInventoryWidget.ExecuteInventoryContextActionByIndex(SourceSlotType, SourceSlotIndex, ActionIndex)` ;
+7. ne plus utiliser `ExecuteInventoryContextAction(ActionType, SourceSlotType, SourceSlotIndex)` depuis le menu contextuel visible ;
+8. fermer le menu après un résultat positif.
 
-`ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` reste disponible pour compatibilité, mais le menu doit utiliser l'exécution par index pour garantir que le bouton cliqué exécute exactement l'action affichée.
+`ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` reste disponible pour compatibilité, mais elle refuse les actions ambiguës comme `Equip` lorsque plusieurs entrées partagent le même `ActionType`. Le menu doit utiliser l'exécution par index pour garantir que le bouton cliqué exécute exactement l'action affichée, notamment `EquipmentSlot=MainHand` ou `EquipmentSlot=OffHand`.
 
 Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le même widget visuel que le tooltip. Aucun second contenu descriptif ne doit être reconstruit dans le menu.
 
