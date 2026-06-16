@@ -865,15 +865,19 @@ Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` e
 
 ## 14. Exécution minimale et câblage UMG
 
-Le Patch 2 exécute les actions `Examine`, `Equip`, `InsertIntoTarget` et `PlaceOnTarget`.
+Le Patch 2 exécute les actions `Examine`, `Equip`, `Unequip`, `InsertIntoTarget`, `PlaceOnTarget` et `DropToGround`.
 
 - `Examine` réutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'événement Blueprint `PresentItemExamination`.
 - `Equip` utilise l'action exacte sélectionnée : plusieurs entrées peuvent partager `ActionType=Equip`, et `EquipmentSlot` distingue la main directrice de la main secondaire.
+- `Unequip` retire un item de la main directrice ou secondaire et le replace dans l'inventaire du personnage sélectionné si un slot est disponible.
 - `InsertIntoTarget` transfère une clé du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et émet uniquement `Activated`.
 - `PlaceOnTarget` utilise `UGridItemTransferService` pour transférer une torche vers un support compatible, puis active sa lumière.
+- `DropToGround` dépose l'item sur la cellule actuelle du groupe, puis retire l'item de l'inventaire ou de l'équipement uniquement si le spawn au sol réussit.
 
 Les autres actions restent calculées mais leur exécution produit le log `GridItemActions Execute NotImplemented`.
 `Throw` n'est pas généré dans ce menu : le lancer passera par l'équipement en main directrice et le futur système d'arme ou projectile.
+
+La génération d'équipement suit strictement `CompatibleEquipmentSlots` dans la définition d'item. Une torche ne propose donc `S'équiper en main directrice` que si sa définition ne déclare que `MainHand`, et ne propose pas `S'équiper en main secondaire` sans compatibilité `OffHand`.
 
 ### WBP_ItemActionMenu
 

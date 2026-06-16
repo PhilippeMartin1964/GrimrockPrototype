@@ -228,6 +228,13 @@ private:
         const FGridFacingTargetContext& FacingTarget,
         EGridInventoryUiSlotType SourceSlotType,
         int32 SourceSlotIndex);
+    EGridEquipmentSlot ResolveSourceEquipmentSlot (
+        const FGridItemContextAction& Action,
+        EGridInventoryUiSlotType SourceSlotType) const;
+    bool DropContextItemToGround (
+        const FGridItemContextAction& Action,
+        EGridInventoryUiSlotType SourceSlotType,
+        int32 SourceSlotIndex);
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;

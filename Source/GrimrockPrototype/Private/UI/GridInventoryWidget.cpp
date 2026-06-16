@@ -5,6 +5,7 @@
 #include "Components/UniformGridSlot.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemTransferService.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
@@ -820,6 +821,18 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
                 OwningPartyPawn &&
                 Action.EquipmentSlot != EGridEquipmentSlot::None)
             {
+                if (!InventoryComponent->CanEquipItemToSlot (
+                    CharacterIndex,
+                    LastContextItem,
+                    Action.EquipmentSlot))
+                {
+                    UE_LOG (LogTemp, Warning,
+                        TEXT ("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
+                        *LastContextItem.ItemDefinitionId.ToString (),
+                        GetContextEquipmentSlotName (Action.EquipmentSlot));
+                    break;
+                }
+
                 bExecuted = InventoryComponent->EquipItemFromInventorySlot (
                     CharacterIndex,
                     SourceSlotIndex,
@@ -827,6 +840,45 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
                 if (bExecuted)
                 {
                     OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+                }
+            }
+            break;
+        }
+
+    case EGridItemActionType::Unequip:
+        {
+            const EGridEquipmentSlot SourceEquipmentSlot =
+                ResolveSourceEquipmentSlot (Action, SourceSlotType);
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemActions Execute Unequip Item=%s EquipmentSlot=%s"),
+                *LastContextItem.ItemDefinitionId.ToString (),
+                GetContextEquipmentSlotName (SourceEquipmentSlot));
+            if (InventoryComponent &&
+                OwningPartyPawn &&
+                SourceEquipmentSlot != EGridEquipmentSlot::None)
+            {
+                if (!InventoryComponent->CanAddItemToCharacterInventory (
+                    CharacterIndex,
+                    LastContextItem))
+                {
+                    UE_LOG (LogTemp, Warning,
+                        TEXT ("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
+                        *LastContextItem.ItemDefinitionId.ToString ());
+                    break;
+                }
+
+                bExecuted = InventoryComponent->UnequipItemToInventory (
+                    CharacterIndex,
+                    SourceEquipmentSlot);
+                if (bExecuted)
+                {
+                    OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+                }
+                else
+                {
+                    UE_LOG (LogTemp, Warning,
+                        TEXT ("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
+                        *LastContextItem.ItemDefinitionId.ToString ());
                 }
             }
             break;
@@ -890,6 +942,13 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
             break;
         }
 
+    case EGridItemActionType::DropToGround:
+        bExecuted = DropContextItemToGround (
+            Action,
+            SourceSlotType,
+            SourceSlotIndex);
+        break;
+
     default:
         UE_LOG (LogTemp, Log,
             TEXT ("GridItemActions Execute NotImplemented Action=%s Item=%s"),
@@ -903,6 +962,155 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
         RefreshInventory ();
     }
     return bExecuted;
+}
+
+EGridEquipmentSlot UGridInventoryWidget::ResolveSourceEquipmentSlot (
+    const FGridItemContextAction& Action,
+    EGridInventoryUiSlotType SourceSlotType) const
+{
+    if (Action.EquipmentSlot != EGridEquipmentSlot::None)
+    {
+        return Action.EquipmentSlot;
+    }
+
+    switch (SourceSlotType)
+    {
+    case EGridInventoryUiSlotType::MainHand:
+        return EGridEquipmentSlot::MainHand;
+    case EGridInventoryUiSlotType::OffHand:
+        return EGridEquipmentSlot::OffHand;
+    default:
+        return EGridEquipmentSlot::None;
+    }
+}
+
+bool UGridInventoryWidget::DropContextItemToGround (
+    const FGridItemContextAction& Action,
+    EGridInventoryUiSlotType SourceSlotType,
+    int32 SourceSlotIndex)
+{
+    if (!InventoryComponent || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=MissingRuntime"),
+            *LastContextItem.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
+    if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
+    {
+        const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+        if (!State.ActiveCharacters.IsValidIndex (CharacterIndex) ||
+            !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex (SourceSlotIndex) ||
+            State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty ())
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlot"),
+                *LastContextItem.ItemDefinitionId.ToString ());
+            return false;
+        }
+    }
+    else if (SourceSlotType == EGridInventoryUiSlotType::MainHand ||
+             SourceSlotType == EGridInventoryUiSlotType::OffHand)
+    {
+        const EGridEquipmentSlot SourceEquipmentSlot =
+            ResolveSourceEquipmentSlot (Action, SourceSlotType);
+        if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentState"),
+                *LastContextItem.ItemDefinitionId.ToString ());
+            return false;
+        }
+
+        const FGridCharacterEquipmentState& EquipmentState =
+            InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
+        const FGridItemInstance* EquippedItem = EquipmentState.GetSlot (SourceEquipmentSlot);
+        if (!EquippedItem || !EquippedItem->IsValid ())
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
+                *LastContextItem.ItemDefinitionId.ToString ());
+            return false;
+        }
+    }
+    else
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=UnsupportedSource"),
+            *LastContextItem.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    FGridItemInstance ItemToDrop = LastContextItem;
+    ItemToDrop.OwnerType = EGridItemOwnerType::World;
+    ItemToDrop.OwnerGuid = FGuid ();
+    ItemToDrop.OwnerCharacterIndex = INDEX_NONE;
+    ItemToDrop.EquipmentSlot = EGridEquipmentSlot::None;
+
+    if (!OwningPartyPawn->LevelRuntimeActor->TryDropItemInstanceAtCell (
+        ItemToDrop,
+        OwningPartyPawn->CurrentCellX,
+        OwningPartyPawn->CurrentCellY,
+        EGridEdge::None,
+        FVector::ZeroVector))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=WorldDropFailed"),
+            *LastContextItem.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridItemActions Execute DropToGround Item=%s Source=Inventory Slot=%d"),
+            *LastContextItem.ItemDefinitionId.ToString (),
+            SourceSlotIndex);
+        FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+        if (!State.ActiveCharacters.IsValidIndex (CharacterIndex) ||
+            !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex (SourceSlotIndex))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlotAfterDrop"),
+                *LastContextItem.ItemDefinitionId.ToString ());
+            return false;
+        }
+
+        State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex] = FGridInventorySlot ();
+        InventoryComponent->RecalculateCharacterWeight (CharacterIndex);
+        return true;
+    }
+
+    const EGridEquipmentSlot SourceEquipmentSlot =
+        ResolveSourceEquipmentSlot (Action, SourceSlotType);
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridItemActions Execute DropToGround Item=%s Source=%s"),
+        *LastContextItem.ItemDefinitionId.ToString (),
+        GetContextEquipmentSlotName (SourceEquipmentSlot));
+    if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentStateAfterDrop"),
+            *LastContextItem.ItemDefinitionId.ToString ());
+        return false;
+    }
+
+    FGridCharacterEquipmentState& EquipmentState =
+        InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
+    if (FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot (SourceEquipmentSlot))
+    {
+        *EquippedItem = FGridItemInstance ();
+        InventoryComponent->RecalculateCharacterWeight (CharacterIndex);
+        OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+        return true;
+    }
+
+    UE_LOG (LogTemp, Warning,
+        TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
+        *LastContextItem.ItemDefinitionId.ToString ());
+    return false;
 }
 
 bool UGridInventoryWidget::HandleSlotDrop (

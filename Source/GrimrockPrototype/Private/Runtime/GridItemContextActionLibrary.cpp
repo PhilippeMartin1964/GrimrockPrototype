@@ -171,12 +171,22 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
     if (ItemContext.EquipmentSlot != EGridEquipmentSlot::None ||
         ItemContext.Item.OwnerType == EGridItemOwnerType::EquipmentSlot)
     {
+        const EGridEquipmentSlot SourceEquipmentSlot =
+            ItemContext.EquipmentSlot != EGridEquipmentSlot::None
+                ? ItemContext.EquipmentSlot
+                : ItemContext.Item.EquipmentSlot;
+        const FText UnequipLabel =
+            SourceEquipmentSlot == EGridEquipmentSlot::MainHand
+                ? NSLOCTEXT ("GridItemActions", "UnequipMainHand", "Retirer de la main directrice")
+                : (SourceEquipmentSlot == EGridEquipmentSlot::OffHand
+                    ? NSLOCTEXT ("GridItemActions", "UnequipOffHand", "Retirer de la main secondaire")
+                    : NSLOCTEXT ("GridItemActions", "Unequip", "Déséquiper"));
         AddAction (
             OutActions,
             EGridItemActionType::Unequip,
-            NSLOCTEXT ("GridItemActions", "Unequip", "Déséquiper"),
+            UnequipLabel,
             nullptr,
-            ItemContext.EquipmentSlot);
+            SourceEquipmentSlot);
     }
     else if (Definition)
     {
@@ -197,15 +207,6 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
                 NSLOCTEXT ("GridItemActions", "EquipOffHand", "S'équiper en main secondaire"),
                 nullptr,
                 EGridEquipmentSlot::OffHand);
-        }
-        if (Definition->CompatibleEquipmentSlots.Num () > 0 &&
-            !Definition->CanEquipToSlot (EGridEquipmentSlot::MainHand) &&
-            !Definition->CanEquipToSlot (EGridEquipmentSlot::OffHand))
-        {
-            AddAction (
-                OutActions,
-                EGridItemActionType::Equip,
-                NSLOCTEXT ("GridItemActions", "Equip", "S'équiper"));
         }
     }
 
@@ -232,6 +233,9 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
     const bool bIsInventorySlotSource =
         ItemContext.InventorySlotIndex != INDEX_NONE &&
         ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
+    const bool bIsEquipmentSlotSource =
+        ItemContext.EquipmentSlot == EGridEquipmentSlot::MainHand ||
+        ItemContext.EquipmentSlot == EGridEquipmentSlot::OffHand;
 
     if (bIsInventorySlotSource &&
         OutFacingTarget.bIsValid &&
@@ -269,13 +273,15 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             NSLOCTEXT ("GridItemActions", "SplitStack", "Scinder la pile"));
     }
 
-    const bool bCanDrop = ItemContext.PartyPawn->LevelRuntimeActor != nullptr;
+    const bool bCanDrop =
+        ItemContext.PartyPawn->LevelRuntimeActor != nullptr &&
+        (bIsInventorySlotSource || bIsEquipmentSlotSource);
     AddAction (
         OutActions,
         EGridItemActionType::DropToGround,
         NSLOCTEXT ("GridItemActions", "DropToGround", "Déposer au sol"),
         nullptr,
-        EGridEquipmentSlot::None,
+        ItemContext.EquipmentSlot,
         bCanDrop,
         bCanDrop
             ? FText::GetEmpty ()
