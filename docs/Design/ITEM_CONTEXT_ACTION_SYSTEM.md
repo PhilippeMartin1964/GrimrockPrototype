@@ -825,70 +825,70 @@ Règle à retenir :
 
 ---
 
-## 13. Etat d'implementation du Patch 1
+## 13. État d'implémentation du Patch 1
 
-Le premier patch fournit la fondation C++ de consultation des actions contextuelles, sans encore executer les mutations d'inventaire.
+Le premier patch fournit la fondation C++ de consultation des actions contextuelles, sans encore exécuter les mutations d'inventaire.
 
-### Types et resolution
+### Types et résolution
 
-- `GridItemActionTypes.h` definit `EGridItemActionType`, `EGridFacingTargetType`, `FGridItemContextAction`, `FGridItemActionContext` et `FGridFacingTargetContext`.
+- `GridItemActionTypes.h` définit `EGridItemActionType`, `EGridFacingTargetType`, `FGridItemContextAction`, `FGridItemActionContext` et `FGridFacingTargetContext`.
 - `UGridItemContextActionLibrary::BuildInventorySlotContextActions` construit les actions disponibles pour un slot.
-- `UGridItemContextActionLibrary::BuildItemContextActions` centralise les regles de disponibilite.
-- `UGridItemContextActionLibrary::ResolveFacingTarget` effectue une trace `ECC_Visibility` depuis la camera dans la direction de grille du groupe et classe le premier acteur pertinent comme serrure murale, receptacle, support de torche, objet lisible, porte ou mecanisme.
+- `UGridItemContextActionLibrary::BuildItemContextActions` centralise les règles de disponibilité.
+- `UGridItemContextActionLibrary::ResolveFacingTarget` effectue une trace `ECC_Visibility` depuis la caméra dans la direction de grille du groupe et classe le premier acteur pertinent comme serrure murale, réceptacle, support de torche, objet lisible, porte ou mécanisme.
 
-Les actions actuellement exposees sont notamment `Utiliser`, `Equiper`, `Desequiper`, `Placer`, `Inserer`, `Lire`, `Boire`, `Manger`, `Donner` et `Detruire`. Leur disponibilite depend de la definition d'item, de son emplacement et de la cible faisant face au groupe. `Lancer` n'est pas propose dans le menu contextuel d'inventaire pour le moment.
+Les actions actuellement exposées sont notamment `Utiliser`, `Équiper`, `Déséquiper`, `Placer`, `Insérer`, `Lire`, `Boire`, `Manger`, `Donner` et `Détruire`. Leur disponibilité dépend de la définition d'item, de son emplacement et de la cible faisant face au groupe. `Lancer` n'est pas proposé dans le menu contextuel d'inventaire pour le moment.
 
-### Integration UMG
+### Intégration UMG
 
-`UGridInventorySlotWidget` transmet la demande de menu contextuel au widget d'inventaire. `UGridInventoryWidget` expose les proprietes et fonctions Blueprint necessaires pour construire, afficher et fermer ce menu, ainsi qu'un delegate pour la selection d'une action.
+`UGridInventorySlotWidget` transmet la demande de menu contextuel au widget d'inventaire. `UGridInventoryWidget` expose les propriétés et fonctions Blueprint nécessaires pour construire, afficher et fermer ce menu, ainsi qu'un delegate pour la sélection d'une action.
 
 L'asset UMG doit :
 
-1. lier le clic droit du slot a la demande de menu contextuel ;
-2. creer les entrees a partir des actions retournees par la bibliotheque ;
-3. afficher le libelle et l'etat active/desactive ;
-4. fermer le menu apres selection ou clic exterieur.
+1. lier le clic droit du slot à la demande de menu contextuel ;
+2. créer les entrées à partir des actions retournées par la bibliothèque ;
+3. afficher le libellé et l'état activé/désactivé ;
+4. fermer le menu après sélection ou clic extérieur.
 
-Ce patch ne modifie aucun asset `.uasset` : ce cablage reste donc une operation manuelle dans l'editeur Unreal.
+Ce patch ne modifie aucun asset `.uasset` : ce câblage reste donc une opération manuelle dans l'éditeur Unreal.
 
-### Compatibilite et limites
+### Compatibilité et limites
 
-- Le drag/drop et le Cursor existants restent inchanges.
-- Les actions sont calculees mais ne sont pas encore executees.
-- Les mutations devront etre raccordees au service central prevu par cette specification.
-- Le scan automatique de l'inventaire par la serrure murale reste un comportement transitoire jusqu'au patch d'execution des actions.
-- Une plaque de pression n'est pas consideree comme une cible d'action directe.
+- Le drag/drop et le Cursor existants restent inchangés.
+- Les actions sont calculées mais ne sont pas encore exécutées.
+- Les mutations devront être raccordées au service central prévu par cette spécification.
+- Le scan automatique de l'inventaire par la serrure murale reste un comportement transitoire jusqu'au patch d'exécution des actions.
+- Une plaque de pression n'est pas considérée comme une cible d'action directe.
 
 Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` et `GridInventory ContextMenuRequested` permettent de diagnostiquer cette fondation.
 
 ---
 
-## 14. Execution minimale et cablage UMG
+## 14. Exécution minimale et câblage UMG
 
-Le Patch 2 execute les actions `Examine`, `Equip`, `InsertIntoTarget` et `PlaceOnTarget`.
+Le Patch 2 exécute les actions `Examine`, `Equip`, `InsertIntoTarget` et `PlaceOnTarget`.
 
-- `Examine` reutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'evenement Blueprint `PresentItemExamination`.
-- `Equip` utilise l'action exacte selectionnee : plusieurs entrees peuvent partager `ActionType=Equip`, et `EquipmentSlot` distingue la main directrice de la main secondaire.
-- `InsertIntoTarget` transfere une cle du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et emet uniquement `Activated`.
-- `PlaceOnTarget` utilise `UGridItemTransferService` pour transferer une torche vers un support compatible, puis active sa lumiere.
+- `Examine` réutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'événement Blueprint `PresentItemExamination`.
+- `Equip` utilise l'action exacte sélectionnée : plusieurs entrées peuvent partager `ActionType=Equip`, et `EquipmentSlot` distingue la main directrice de la main secondaire.
+- `InsertIntoTarget` transfère une clé du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et émet uniquement `Activated`.
+- `PlaceOnTarget` utilise `UGridItemTransferService` pour transférer une torche vers un support compatible, puis active sa lumière.
 
-Les autres actions restent calculees mais leur execution produit le log `GridItemActions Execute NotImplemented`.
-`Throw` n'est pas genere dans ce menu : le lancer passera par l'equipement en main directrice et le futur systeme d'arme ou projectile.
+Les autres actions restent calculées mais leur exécution produit le log `GridItemActions Execute NotImplemented`.
+`Throw` n'est pas généré dans ce menu : le lancer passera par l'équipement en main directrice et le futur système d'arme ou projectile.
 
 ### WBP_ItemActionMenu
 
-Le menu UMG doit conserver `SlotType` et `SlotIndex` recus avec `OnContextActionsRequested`. Chaque bouton doit aussi conserver son `ActionIndex`, l'entree `FGridItemContextAction` correspondante et son `OwnerMenu`, car plusieurs boutons peuvent partager le meme `ActionType`.
+Le menu UMG doit conserver `SlotType` et `SlotIndex` reçus avec `OnContextActionsRequested`. Chaque bouton doit aussi conserver son `ActionIndex`, l'entrée `FGridItemContextAction` correspondante et son `OwnerMenu`, car plusieurs boutons peuvent partager le même `ActionType`.
 
 Le menu doit :
 
-1. creer un bouton pour chaque entree de `LastContextActions` ;
+1. créer un bouton pour chaque entrée de `LastContextActions` ;
 2. utiliser `Label` comme texte du bouton ;
-3. appliquer `bEnabled` a l'etat interactif du bouton ;
+3. appliquer `bEnabled` à l'état interactif du bouton ;
 4. au clic, appeler `OwnerMenu.ExecuteActionByIndex(ActionIndex)`, puis `ExecuteInventoryContextActionByIndex(SlotType, SlotIndex, ActionIndex)` ;
-5. fermer le menu apres un resultat positif.
+5. fermer le menu après un résultat positif.
 
-`ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` reste disponible pour compatibilite, mais le menu doit utiliser l'execution par index pour garantir que le bouton clique execute exactement l'action affichee.
+`ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` reste disponible pour compatibilité, mais le menu doit utiliser l'exécution par index pour garantir que le bouton cliqué exécute exactement l'action affichée.
 
-Dans le Blueprint derive de `UGridInventoryWidget`, implementer `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le meme widget visuel que le tooltip. Aucun second contenu descriptif ne doit etre reconstruit dans le menu.
+Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le même widget visuel que le tooltip. Aucun second contenu descriptif ne doit être reconstruit dans le menu.
 
-Ce patch ne modifie aucun asset `.uasset` ; le cablage de `WBP_ItemActionMenu` reste manuel dans l'editeur Unreal.
+Ce patch ne modifie aucun asset `.uasset` ; le câblage de `WBP_ItemActionMenu` reste manuel dans l'éditeur Unreal.
