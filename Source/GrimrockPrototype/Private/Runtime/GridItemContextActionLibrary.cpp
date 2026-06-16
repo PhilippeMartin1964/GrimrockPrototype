@@ -78,6 +78,16 @@ namespace
         return Definition && Definition->ItemTags.Contains (Tag);
     }
 
+    bool IsReadableItemDefinition (const UGridItemDefinitionAsset* Definition)
+    {
+        return Definition &&
+            (Definition->ItemType == EGridItemType::Book ||
+             Definition->ItemType == EGridItemType::Scroll ||
+             HasItemTag (Definition, TEXT ("Readable")) ||
+             HasItemTag (Definition, TEXT ("Lisible")) ||
+             !Definition->ReadText.IsEmpty ());
+    }
+
     void AddAction (
         TArray<FGridItemContextAction>& Actions,
         EGridItemActionType ActionType,
@@ -220,9 +230,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             NSLOCTEXT ("GridItemActions", "Consume", "Consommer"));
     }
 
-    if (Definition &&
-        (Definition->ItemType == EGridItemType::Book ||
-         Definition->ItemType == EGridItemType::Scroll))
+    if (IsReadableItemDefinition (Definition))
     {
         AddAction (
             OutActions,

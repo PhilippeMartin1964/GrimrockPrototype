@@ -865,9 +865,10 @@ Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` e
 
 ## 14. Exécution minimale et câblage UMG
 
-Le Patch 2 exécute les actions `Examine`, `Equip`, `Unequip`, `InsertIntoTarget`, `PlaceOnTarget` et `DropToGround`.
+Le Patch 2 exécute les actions `Examine`, `Read`, `Equip`, `Unequip`, `InsertIntoTarget`, `PlaceOnTarget` et `DropToGround`.
 
 - `Examine` réutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'événement Blueprint `PresentItemExamination`.
+- `Read` affiche le contenu textuel long d'un item lisible via l'événement Blueprint `PresentItemReading`.
 - `Equip` utilise l'action exacte sélectionnée : plusieurs entrées peuvent partager `ActionType=Equip`, et `EquipmentSlot` distingue la main directrice de la main secondaire.
 - `Unequip` retire un item de la main directrice ou secondaire et le replace dans l'inventaire du personnage sélectionné si un slot est disponible.
 - `InsertIntoTarget` transfère une clé du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et émet uniquement `Activated`.
@@ -895,4 +896,24 @@ Le menu doit :
 
 Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le même widget visuel que le tooltip. Aucun second contenu descriptif ne doit être reconstruit dans le menu.
 
-Ce patch ne modifie aucun asset `.uasset` ; le câblage de `WBP_ItemActionMenu` reste manuel dans l'éditeur Unreal.
+### Read / Lire
+
+`Examiner` et `Lire` ont deux rôles distincts :
+
+- `Examiner` affiche la description courte ou le tooltip de l'item.
+- `Lire` affiche le contenu textuel long de l'item.
+
+L'action `Lire` est générée uniquement pour les items lisibles : `ItemType=Book`, `ItemType=Scroll`, tag `Readable` ou `Lisible`, ou définition d'item avec `ReadText` renseigné. Elle ne doit pas apparaître pour les clés, torches, pierres, armes, nourritures ou potions non lisibles.
+
+Dans `UGridItemDefinitionAsset`, `Description` reste le texte court de tooltip/examen, tandis que `ReadText` contient le texte long affiché par `Lire`. Si `ReadText` est vide, l'exécution peut afficher `Description`, puis le message français `Rien de particulier n'est écrit.` en dernier recours.
+
+Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemReading(Item, Title, ReadText)` pour afficher un panneau de lecture persistant. Le widget conseillé est `WBP_ItemReadPanel` avec une structure simple :
+
+1. `Border` ou fond sombre ;
+2. `Text_Title` pour le nom de l'item ;
+3. `ScrollBox` ou `RichTextBlock` pour le contenu ;
+4. indication discrète : `Cliquez ou déplacez-vous pour fermer`.
+
+Le panneau de lecture reste affiché jusqu'à une action volontaire : clic souris, déplacement, rotation, fermeture ou `Escape` si disponible. Ce patch ne fusionne pas les items lisibles d'inventaire avec `DA_WallInscription` ni avec le système de panneaux muraux ; une convergence future peut seulement réutiliser un widget d'affichage commun.
+
+Ce patch ne modifie aucun asset `.uasset` ; le câblage de `WBP_ItemActionMenu` et de `WBP_ItemReadPanel` reste manuel dans l'éditeur Unreal.

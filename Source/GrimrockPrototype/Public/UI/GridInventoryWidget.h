@@ -194,6 +194,12 @@ public:
         const FGridItemInstance& Item,
         const FText& ExaminationText);
 
+    UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
+    void PresentItemReading (
+        const FGridItemInstance& Item,
+        const FText& Title,
+        const FText& ReadText);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
     bool HandleSlotDrop (
         EGridInventoryUiSlotType SourceType,

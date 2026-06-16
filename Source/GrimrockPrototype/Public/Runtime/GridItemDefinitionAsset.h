@@ -43,6 +43,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (MultiLine = "true"))
     FText Description;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Reading", meta = (MultiLine = "true"))
+    FText ReadText;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Item")
     EGridItemType ItemType = EGridItemType::None;
 

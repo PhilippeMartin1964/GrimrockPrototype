@@ -811,6 +811,39 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
             break;
         }
 
+    case EGridItemActionType::Read:
+        {
+            const UGridItemDefinitionAsset* ItemDefinition = InventoryComponent
+                ? InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId)
+                : nullptr;
+            FText Title = LastContextItem.DisplayName;
+            if (ItemDefinition && !ItemDefinition->DisplayName.IsEmpty ())
+            {
+                Title = ItemDefinition->DisplayName;
+            }
+            if (Title.IsEmpty ())
+            {
+                Title = FText::FromName (LastContextItem.ItemDefinitionId);
+            }
+
+            FText ReadText = ItemDefinition
+                ? ItemDefinition->ReadText
+                : FText::GetEmpty ();
+            if (ReadText.IsEmpty ())
+            {
+                ReadText = ItemDefinition && !ItemDefinition->Description.IsEmpty ()
+                    ? ItemDefinition->Description
+                    : NSLOCTEXT ("GridItemActions", "EmptyReadText", "Rien de particulier n'est écrit.");
+            }
+
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemActions Execute Read Item=%s"),
+                *LastContextItem.ItemDefinitionId.ToString ());
+            PresentItemReading (LastContextItem, Title, ReadText);
+            bExecuted = true;
+            break;
+        }
+
     case EGridItemActionType::Equip:
         {
             UE_LOG (LogTemp, Log,
