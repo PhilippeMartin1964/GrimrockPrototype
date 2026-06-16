@@ -4,6 +4,7 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "Runtime/GridItemContextActionLibrary.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemTransferService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -821,6 +822,18 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
                 OwningPartyPawn &&
                 Action.EquipmentSlot != EGridEquipmentSlot::None)
             {
+                const UGridItemDefinitionAsset* ItemDefinition =
+                    InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId);
+                if (!ItemDefinition ||
+                    !ItemDefinition->CanEquipToSlot (Action.EquipmentSlot))
+                {
+                    UE_LOG (LogTemp, Warning,
+                        TEXT ("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
+                        *LastContextItem.ItemDefinitionId.ToString (),
+                        GetContextEquipmentSlotName (Action.EquipmentSlot));
+                    break;
+                }
+
                 if (!InventoryComponent->CanEquipItemToSlot (
                     CharacterIndex,
                     LastContextItem,

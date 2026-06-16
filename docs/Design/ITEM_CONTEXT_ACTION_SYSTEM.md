@@ -877,7 +877,7 @@ Le Patch 2 exécute les actions `Examine`, `Equip`, `Unequip`, `InsertIntoTarget
 Les autres actions restent calculées mais leur exécution produit le log `GridItemActions Execute NotImplemented`.
 `Throw` n'est pas généré dans ce menu : le lancer passera par l'équipement en main directrice et le futur système d'arme ou projectile.
 
-La génération d'équipement suit strictement `CompatibleEquipmentSlots` dans la définition d'item. Une torche ne propose donc `S'équiper en main directrice` que si sa définition ne déclare que `MainHand`, et ne propose pas `S'équiper en main secondaire` sans compatibilité `OffHand`.
+Le menu contextuel propose les mains compatibles selon `CompatibleEquipmentSlots` dans la définition d'item. L'action sélectionnée détermine exactement la main cible. Une torche compatible `MainHand` et `OffHand` peut proposer les deux mains ; si elle ne déclare que `MainHand`, seule l'action `S'équiper en main directrice` apparaît. Le système ne doit jamais rediriger une action `OffHand` vers `MainHand`.
 
 ### WBP_ItemActionMenu
 
