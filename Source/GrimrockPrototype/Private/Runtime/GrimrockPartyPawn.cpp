@@ -1511,6 +1511,63 @@ bool AGrimrockPartyPawn::IsHoldingItem (FName ItemDefinitionId) const
     return !ItemDefinitionId.IsNone () && GetHeldItemDefinitionId () == ItemDefinitionId;
 }
 
+UGridItemDefinitionAsset* AGrimrockPartyPawn::ResolveEquippedItemDefinition (
+    const FGridItemInstance& Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return nullptr;
+    }
+
+    if (PartyInventoryComponent)
+    {
+        if (UGridItemDefinitionAsset* ItemDefinition =
+            PartyInventoryComponent->FindItemDefinition (Item.ItemDefinitionId))
+        {
+            return ItemDefinition;
+        }
+    }
+
+    return LevelRuntimeActor
+        ? LevelRuntimeActor->ResolveRuntimeItemDefinition (Item.ItemDefinitionId)
+        : nullptr;
+}
+
+bool AGrimrockPartyPawn::DoesEquippedItemEmitLight (
+    const FGridItemInstance& Item) const
+{
+    const UGridItemDefinitionAsset* ItemDefinition = ResolveEquippedItemDefinition (Item);
+    return Item.IsValid () &&
+        ((ItemDefinition && ItemDefinition->bCanEmitLight) || Item.bLightsEnabled);
+}
+
+bool AGrimrockPartyPawn::RecomputeEquippedLightState (
+    const FGridItemInstance& MainHandItem,
+    bool bHasMainHandItem,
+    const FGridItemInstance& OffHandItem,
+    bool bHasOffHandItem) const
+{
+    const bool bMainLight =
+        bHasMainHandItem && DoesEquippedItemEmitLight (MainHandItem);
+    const bool bOffLight =
+        bHasOffHandItem && DoesEquippedItemEmitLight (OffHandItem);
+    const bool bResult = bMainLight || bOffLight;
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridEquipmentLight Recompute MainHand=%s MainLight=%s OffHand=%s OffLight=%s Result=%s"),
+        bHasMainHandItem
+            ? *MainHandItem.ItemDefinitionId.ToString ()
+            : TEXT ("None"),
+        bMainLight ? TEXT ("true") : TEXT ("false"),
+        bHasOffHandItem
+            ? *OffHandItem.ItemDefinitionId.ToString ()
+            : TEXT ("None"),
+        bOffLight ? TEXT ("true") : TEXT ("false"),
+        bResult ? TEXT ("true") : TEXT ("false"));
+
+    return bResult;
+}
+
 void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment ()
 {
     // TODO 5C: call this after any direct PartyInventoryComponent::SetSelectedCharacterIndex usage outside the pawn.
@@ -1521,32 +1578,68 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment ()
     }
 
     const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex ();
-    FGridItemInstance EquippedItem;
-    EGridEquipmentSlot EquippedSlot = EGridEquipmentSlot::None;
+    FGridItemInstance MainHandItem;
+    FGridItemInstance OffHandItem;
+    const bool bHasMainHandItem = PartyInventoryComponent->GetEquippedItem (
+        CharacterIndex,
+        EGridEquipmentSlot::MainHand,
+        MainHandItem);
+    const bool bHasOffHandItem = PartyInventoryComponent->GetEquippedItem (
+        CharacterIndex,
+        EGridEquipmentSlot::OffHand,
+        OffHandItem);
 
-    if (PartyInventoryComponent->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::MainHand, EquippedItem))
+    const bool bMainLight = bHasMainHandItem && DoesEquippedItemEmitLight (MainHandItem);
+    const bool bOffLight = bHasOffHandItem && DoesEquippedItemEmitLight (OffHandItem);
+    const bool bAnyEquippedLight = RecomputeEquippedLightState (
+        MainHandItem,
+        bHasMainHandItem,
+        OffHandItem,
+        bHasOffHandItem);
+
+    const FGridItemInstance* VisualItem = nullptr;
+    EGridEquipmentSlot VisualSlot = EGridEquipmentSlot::None;
+    if (bMainLight)
     {
-        EquippedSlot = EGridEquipmentSlot::MainHand;
+        VisualItem = &MainHandItem;
+        VisualSlot = EGridEquipmentSlot::MainHand;
     }
-    else if (PartyInventoryComponent->GetEquippedItem (CharacterIndex, EGridEquipmentSlot::OffHand, EquippedItem))
+    else if (bOffLight)
     {
-        EquippedSlot = EGridEquipmentSlot::OffHand;
+        VisualItem = &OffHandItem;
+        VisualSlot = EGridEquipmentSlot::OffHand;
+    }
+    else if (bHasMainHandItem)
+    {
+        VisualItem = &MainHandItem;
+        VisualSlot = EGridEquipmentSlot::MainHand;
+    }
+    else if (bHasOffHandItem)
+    {
+        VisualItem = &OffHandItem;
+        VisualSlot = EGridEquipmentSlot::OffHand;
     }
 
-    if (EquippedSlot == EGridEquipmentSlot::None)
+    if (!VisualItem || VisualSlot == EGridEquipmentSlot::None)
     {
         ClearHeldItem ();
         return;
     }
 
-    if (GetHeldItemDefinitionId () != EquippedItem.ItemDefinitionId &&
-        !EquipHeldItem (EquippedItem.ItemDefinitionId))
+    if (GetHeldItemDefinitionId () != VisualItem->ItemDefinitionId &&
+        !EquipHeldItem (VisualItem->ItemDefinitionId))
     {
         return;
     }
 
+    if (HeldItemActor)
+    {
+        HeldItemActor->SetItemLightsEnabled (bAnyEquippedLight);
+    }
+    bHasTorchInHand = bAnyEquippedLight;
+
     UE_LOG (LogTemp, Log, TEXT ("GridInventory HeldVisual Sync Equipped Character=%d Slot=%s Item=%s"),
         CharacterIndex,
-        GetPawnEquipmentSlotName (EquippedSlot),
-        *EquippedItem.ItemDefinitionId.ToString ());
+        GetPawnEquipmentSlotName (VisualSlot),
+        *VisualItem->ItemDefinitionId.ToString ());
 }

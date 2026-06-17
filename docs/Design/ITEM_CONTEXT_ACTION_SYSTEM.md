@@ -880,6 +880,8 @@ Les autres actions restent calculées mais leur exécution produit le log `GridI
 
 Le menu contextuel propose les mains compatibles selon `CompatibleEquipmentSlots` dans la définition d'item. L'action sélectionnée détermine exactement la main cible. Une torche compatible `MainHand` et `OffHand` peut proposer les deux mains ; si elle ne déclare que `MainHand`, seule l'action `S'équiper en main directrice` apparaît. Le système ne doit jamais rediriger une action `OffHand` vers `MainHand`.
 
+La lumière équipée est recalculée globalement depuis l'équipement courant du personnage sélectionné. `MainHand` et `OffHand` contribuent toutes les deux : le résultat est actif si au moins une main contient un item lumineux. Équiper ou déposer un item non lumineux dans une main ne doit jamais éteindre une source lumineuse encore équipée dans l'autre main.
+
 ### WBP_ItemActionMenu
 
 Le menu UMG doit conserver `SlotType` et `SlotIndex` reçus avec `OnContextActionsRequested`. Chaque bouton doit aussi conserver son `ActionIndex`, l'entrée `FGridItemContextAction` correspondante et son `OwnerMenu`, car plusieurs boutons peuvent partager le même `ActionType`.

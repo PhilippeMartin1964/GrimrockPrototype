@@ -15,6 +15,7 @@ struct FInputActionValue;
 class AGridLevelRuntimeActor;
 class AGridItemActor;
 class AGridReceptacleActor;
+class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
 class UGrimrockMenuWidget;
@@ -337,6 +338,14 @@ protected:
     void ConsumeOneCursorItemAfterSuccessfulAction ();
 
 private:
+    UGridItemDefinitionAsset* ResolveEquippedItemDefinition (const FGridItemInstance& Item) const;
+    bool DoesEquippedItemEmitLight (const FGridItemInstance& Item) const;
+    bool RecomputeEquippedLightState (
+        const FGridItemInstance& MainHandItem,
+        bool bHasMainHandItem,
+        const FGridItemInstance& OffHandItem,
+        bool bHasOffHandItem) const;
+
     enum class EBufferedCommandType : uint8
     {
         None,
