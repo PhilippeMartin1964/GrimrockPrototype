@@ -316,6 +316,11 @@ bool AGridWallLockActor::AttachInsertedKeyVisual (
     }
 
     SetCanRemoveItem (false);
+    ExecuteInsertionLinks ();
+    UE_LOG (LogGridWallLock, Log,
+        TEXT ("GridWallLock ReceptacleEventsEmitted ObjectId=%s Item=%s Events=ItemInserted,ItemChanged"),
+        *ObjectId.ToString (),
+        *CursorItem.ItemDefinitionId.ToString ());
     return true;
 }
 
