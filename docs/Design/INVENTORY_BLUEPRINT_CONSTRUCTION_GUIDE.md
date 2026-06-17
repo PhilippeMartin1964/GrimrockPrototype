@@ -57,12 +57,15 @@ Variables obligatoires :
 
 - `CurrentItemActionMenu` : référence au menu courant ;
 - `ItemActionMenuClass` : classe du menu ;
+- `CurrentItemReadPanel` : référence au panneau de lecture courant ;
+- `ItemReadPanelClass` : classe `WBP_ItemReadPanel` ;
 - références aux panels de slots si la construction est manuelle.
 
 Événements à implémenter :
 
 - `OnContextActionsRequested(SlotType, SlotIndex)` : créer ou réinitialiser `WBP_ItemActionMenu` ;
 - `OnItemActionMenuCloseRequested(Reason)` : retirer uniquement `CurrentItemActionMenu` ;
+- `OnItemReadPanelCloseRequested(Reason)` : retirer uniquement `CurrentItemReadPanel` ;
 - `PresentItemExamination(Item, ExaminationText)` : afficher un panneau d'inspection stable ou transitoire ;
 - `PresentItemReading(Item, Title, ReadText)` : afficher le panneau de lecture.
 
@@ -256,31 +259,99 @@ Fermeture :
 - bouton fermer ;
 - Escape si disponible.
 
-## Futur WBP_ItemReadPanel
+## WBP_ItemReadPanel
 
-Parent recommandé : `UUserWidget`.
+Parent class recommandé : `UUserWidget`.
 
 Rôle :
 
-- panneau persistant pour `Lire` ;
-- livres, parchemins, notes et textes longs.
+- afficher le contenu textuel long d'un item lisible ;
+- rester visible jusqu'à une fermeture explicite ;
+- ne pas modifier l'inventaire ;
+- ne pas exécuter d'action gameplay ;
+- ne pas remplacer `Examiner`.
 
 Hiérarchie recommandée :
 
-- fond sombre ;
-- `Text_Title` ;
-- `ScrollBox` ou `RichTextBlock` ;
-- indication `Cliquez ou déplacez-vous pour fermer`.
+```text
+CanvasPanel_Root
+├── Border_ClickCatcher
+└── Border_ReadPanel
+    └── VerticalBox_Root
+        ├── Text_Title
+        ├── ScrollBox_Content
+        │   └── Text_ReadText
+        └── Button_Close
+            └── Text_Close
+```
 
-Données :
+```mermaid
+flowchart TD
+    Root["WBP_ItemReadPanel<br/>plein écran"] --> Catcher["Border_ClickCatcher<br/>plein écran"]
+    Root --> Panel["Border_ReadPanel<br/>centré"]
+    Panel --> Title["Text_Title"]
+    Panel --> Scroll["ScrollBox_Content"]
+    Scroll --> Text["Text_ReadText"]
+    Panel --> Close["Button_Close"]
+```
 
+Variables recommandées :
+
+- `OwnerInventoryWidget` : `GridInventoryWidget Object Reference`, `Expose on Spawn = true` ;
+- `Item` : `FGridItemInstance`, `Expose on Spawn = true` ;
 - `Title` ;
 - `ReadText`.
+
+Événement `Construct` :
+
+- `Text_Title.SetText(Title)` ;
+- `Text_ReadText.SetText(ReadText)` ;
+- si `ReadText` est vide, afficher `Rien n'est écrit.`.
+
+Fermeture :
+
+- `Button_Close.OnClicked` appelle `OwnerInventoryWidget.CloseItemReadPanel("CloseButton")` ;
+- `Border_ClickCatcher.OnMouseButtonDown` appelle `OwnerInventoryWidget.CloseItemReadPanel("ClickOutside")`, puis retourne `Handled` ;
+- `OnItemReadPanelCloseRequested(Reason)` dans `WBP_GridInventory` retire uniquement `CurrentItemReadPanel`.
+
+Réglages :
+
+- `WBP_ItemReadPanel` reste plein écran ;
+- `Border_ClickCatcher` couvre tout l'écran ;
+- `Border_ClickCatcher` est derrière `Border_ReadPanel` ;
+- `Border_ReadPanel` est centré ;
+- `RemoveFromParent` ne doit jamais viser `WBP_GridInventory`.
 
 Règle :
 
 - `ReadText` vient de la définition d'item ;
 - `Description` reste le texte court de tooltip/examen.
+
+### Câblage Dans WBP_GridInventory
+
+Variables Blueprint :
+
+- `ItemReadPanelClass` : `Class Reference` vers `WBP_ItemReadPanel` ;
+- `CurrentItemReadPanel` : `WBP_ItemReadPanel Object Reference`.
+
+Implémenter `PresentItemReading(Item, Title, ReadText)` :
+
+1. Appeler `CloseItemActionMenu("ReadOpened")` si le menu contextuel est encore ouvert.
+2. Si `CurrentItemReadPanel` est valide, appeler `RemoveFromParent`, puis remettre la référence à `None`.
+3. Créer `WBP_ItemReadPanel` avec :
+   - `OwnerInventoryWidget = Self` ;
+   - `Item = Item` ;
+   - `Title = Title` ;
+   - `ReadText = ReadText`.
+4. Assigner `CurrentItemReadPanel`.
+5. Appeler `Add To Viewport` avec `ZOrder = 6000`.
+
+Implémenter `OnItemReadPanelCloseRequested(Reason)` :
+
+1. Si `CurrentItemReadPanel` est valide, appeler `RemoveFromParent`.
+2. Remettre `CurrentItemReadPanel` à `None`.
+
+Le C++ ne supprime pas directement le widget : la référence visuelle reste tenue côté Blueprint.
 
 ## Checklist De Construction
 
@@ -292,5 +363,8 @@ Règle :
 - Les boutons appellent `ExecuteInventoryContextActionByIndex`.
 - Le clic extérieur appelle `CloseItemActionMenu("ClickOutside")`.
 - `RemoveFromParent` cible uniquement `WBP_ItemActionMenu`.
+- `PresentItemReading` crée `WBP_ItemReadPanel`.
+- `WBP_ItemReadPanel` se ferme via `CloseItemReadPanel`.
+- `OnItemReadPanelCloseRequested` retire uniquement `CurrentItemReadPanel`.
 - Aucun message de debug Blueprint temporaire.
 - Aucune logique gameplay locale dans les Blueprints.

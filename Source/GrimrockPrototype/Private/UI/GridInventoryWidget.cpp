@@ -805,6 +805,14 @@ void UGridInventoryWidget::CloseItemActionMenu (FName Reason)
     OnItemActionMenuCloseRequested (Reason);
 }
 
+void UGridInventoryWidget::CloseItemReadPanel (FName Reason)
+{
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridItemReadPanel Closed Reason=%s"),
+        Reason.IsNone () ? TEXT ("Unspecified") : *Reason.ToString ());
+    OnItemReadPanelCloseRequested (Reason);
+}
+
 bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
     const FGridItemContextAction& Action,
     const FGridFacingTargetContext& FacingTarget,

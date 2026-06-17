@@ -973,7 +973,7 @@ Ces trois surfaces ne doivent pas être confondues.
 
 - Tooltip : information rapide, passive, affichée au survol. Il sert à identifier l'item et à donner une description courte sans action du joueur.
 - Examiner : action explicite du menu contextuel. À terme, elle doit ouvrir un panneau d'inspection stable et détaillé, par exemple `WBP_ItemInspectPanel`.
-- Lire : action dédiée aux livres, parchemins, notes et textes longs. Elle affiche le contenu principal de lecture dans un panneau persistant, par exemple `WBP_ItemReadPanel`.
+- Lire : action dédiée aux livres, parchemins, notes et textes longs. Elle ouvre `WBP_ItemReadPanel` pour afficher le contenu principal de lecture dans un panneau persistant.
 
 État transitoire actuel : `Examiner` peut encore réutiliser le même contenu que le tooltip via `PresentItemExamination`. Cette réutilisation est acceptable pour le MVP, mais elle ne doit pas définir l'architecture finale. Le futur panneau d'inspection pourra enrichir ce contenu sans empiéter sur `Lire`.
 
@@ -988,13 +988,19 @@ L'action `Lire` est générée uniquement pour les items lisibles : `ItemType=Bo
 
 Dans `UGridItemDefinitionAsset`, `Description` reste le texte court de tooltip/examen, tandis que `ReadText` contient le texte long affiché par `Lire`. Si `ReadText` est vide, l'exécution peut afficher `Description`, puis le message français `Rien de particulier n'est écrit.` en dernier recours.
 
-Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemReading(Item, Title, ReadText)` pour afficher un panneau de lecture persistant. Le widget conseillé est `WBP_ItemReadPanel` avec une structure simple :
+`Lire` ne consomme pas l'item, ne le déplace pas et ne modifie pas l'inventaire. L'exécution C++ appelle `PresentItemReading(Item, Title, ReadText)`, puis le Blueprint dérivé de `UGridInventoryWidget` crée `WBP_ItemReadPanel`.
+
+Le widget conseillé est `WBP_ItemReadPanel` avec une structure simple :
 
 1. `Border` ou fond sombre ;
 2. `Text_Title` pour le nom de l'item ;
 3. `ScrollBox` ou `RichTextBlock` pour le contenu ;
 4. indication discrète : `Cliquez ou déplacez-vous pour fermer`.
 
-Le panneau de lecture reste affiché jusqu'à une action volontaire : clic souris, déplacement, rotation, fermeture ou `Escape` si disponible. Ce patch ne fusionne pas les items lisibles d'inventaire avec `DA_WallInscription` ni avec le système de panneaux muraux ; une convergence future peut seulement réutiliser un widget d'affichage commun.
+Le panneau de lecture reste affiché jusqu'à une action volontaire : clic souris, déplacement, rotation, bouton de fermeture ou `Escape` si disponible. Sa fermeture passe par `CloseItemReadPanel(Reason)`, qui loggue `GridItemReadPanel Closed Reason=...` puis déclenche `OnItemReadPanelCloseRequested(Reason)`.
+
+`Lire` ne remplace pas `Examiner`. `Examiner` reste prévu pour une future fiche détaillée d'objet, tandis que le tooltip reste l'information rapide au survol.
+
+Ce patch ne fusionne pas les items lisibles d'inventaire avec `DA_WallInscription` ni avec le système de panneaux muraux ; une convergence future peut seulement réutiliser un widget d'affichage commun.
 
 Ce patch ne modifie aucun asset `.uasset` ; le câblage de `WBP_ItemActionMenu` et de `WBP_ItemReadPanel` reste manuel dans l'éditeur Unreal.

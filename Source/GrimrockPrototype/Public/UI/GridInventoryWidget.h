@@ -195,6 +195,12 @@ public:
     UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
     void OnItemActionMenuCloseRequested (FName Reason);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Reading")
+    void CloseItemReadPanel (FName Reason);
+
+    UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Reading")
+    void OnItemReadPanelCloseRequested (FName Reason);
+
     UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
     void PresentItemExamination (
         const FGridItemInstance& Item,

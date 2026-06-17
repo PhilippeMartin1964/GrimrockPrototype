@@ -122,6 +122,33 @@ flowchart TD
     Result -->|Non| Log["Log Failed / NotImplemented"]
 ```
 
+## Flux Lire
+
+```text
+Item lisible
+  -> clic droit
+  -> action Lire
+  -> ExecuteInventoryContextActionByIndex
+  -> Execute Read
+  -> PresentItemReading
+  -> WBP_GridInventory crée WBP_ItemReadPanel
+  -> fermeture par bouton ou clic extérieur
+```
+
+```mermaid
+flowchart TD
+    Item["Item lisible"] --> RightClick["Clic droit slot"]
+    RightClick --> Menu["WBP_ItemActionMenu"]
+    Menu --> Read["Bouton Lire<br/>ActionIndex"]
+    Read --> Execute["ExecuteInventoryContextActionByIndex"]
+    Execute --> Cpp["Execute Read<br/>aucune mutation inventaire"]
+    Cpp --> Present["PresentItemReading"]
+    Present --> Panel["WBP_ItemReadPanel"]
+    Panel --> Close["CloseItemReadPanel"]
+    Close --> Event["OnItemReadPanelCloseRequested"]
+    Event --> Remove["RemoveFromParent sur CurrentItemReadPanel"]
+```
+
 ## Flux Fermeture Par Clic Extérieur
 
 1. `WBP_ItemActionMenu` reste plein écran.
