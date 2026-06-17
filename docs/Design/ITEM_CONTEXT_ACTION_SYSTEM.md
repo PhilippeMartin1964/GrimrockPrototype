@@ -909,6 +909,16 @@ Pour fermer le menu au clic extérieur, `WBP_ItemActionMenu` doit contenir un fo
 
 Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le même widget visuel que le tooltip. Aucun second contenu descriptif ne doit être reconstruit dans le menu.
 
+### Tooltip / Examiner / Lire
+
+Ces trois surfaces ne doivent pas être confondues.
+
+- Tooltip : information rapide, passive, affichée au survol. Il sert à identifier l'item et à donner une description courte sans action du joueur.
+- Examiner : action explicite du menu contextuel. À terme, elle doit ouvrir un panneau d'inspection stable et détaillé, par exemple `WBP_ItemInspectPanel`.
+- Lire : action dédiée aux livres, parchemins, notes et textes longs. Elle affiche le contenu principal de lecture dans un panneau persistant, par exemple `WBP_ItemReadPanel`.
+
+État transitoire actuel : `Examiner` peut encore réutiliser le même contenu que le tooltip via `PresentItemExamination`. Cette réutilisation est acceptable pour le MVP, mais elle ne doit pas définir l'architecture finale. Le futur panneau d'inspection pourra enrichir ce contenu sans empiéter sur `Lire`.
+
 ### Read / Lire
 
 `Examiner` et `Lire` ont deux rôles distincts :
