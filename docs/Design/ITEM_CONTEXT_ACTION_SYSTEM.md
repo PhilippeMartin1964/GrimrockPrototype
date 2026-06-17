@@ -872,7 +872,7 @@ Le Patch 2 exécute les actions `Examine`, `Read`, `Equip`, `Unequip`, `InsertIn
 - `Equip` utilise l'action exacte sélectionnée : plusieurs entrées peuvent partager `ActionType=Equip`, et `EquipmentSlot` distingue la main directrice de la main secondaire.
 - `Unequip` affiche le libellé court `Enlever`, conserve `EquipmentSlot`, puis retire l'item de la main concernée et le replace dans l'inventaire du personnage sélectionné si un slot est disponible.
 - `InsertIntoTarget` transfère une clé du slot d'inventaire vers `AGridWallLockActor`, attache son visuel et émet uniquement `Activated`.
-- `PlaceOnTarget` utilise `UGridItemTransferService` pour transférer une torche vers un support compatible, puis active sa lumière.
+- `PlaceOnTarget` utilise `UGridItemTransferService` pour transférer un item depuis l'inventaire, `MainHand` ou `OffHand` vers un réceptacle compatible. Les alcôves sont traitées comme des réceptacles ; les supports de torche activent en plus la lumière de la torche placée.
 - `DropToGround` dépose l'item sur la cellule actuelle du groupe, puis retire l'item de l'inventaire ou de l'équipement uniquement si le spawn au sol réussit.
 
 Les autres actions restent calculées mais leur exécution produit le log `GridItemActions Execute NotImplemented`.
@@ -883,6 +883,8 @@ Le menu contextuel propose les mains compatibles selon `CompatibleEquipmentSlots
 La lumière équipée est recalculée globalement depuis l'équipement courant du personnage sélectionné. `MainHand` et `OffHand` contribuent toutes les deux : le résultat est actif si au moins une main contient un item lumineux. Équiper ou déposer un item non lumineux dans une main ne doit jamais éteindre une source lumineuse encore équipée dans l'autre main.
 
 Le drag/drop entre deux slots occupés effectue un échange atomique sans utiliser le Cursor. Avant l'échange, chaque item est validé contre son slot de destination : un item déplacé vers `MainHand` ou `OffHand` doit être compatible avec cette main, tandis qu'un retour vers un slot d'inventaire valide est toujours accepté. Si une compatibilité échoue, aucun item n'est déplacé.
+
+`PlaceOnTarget` ne doit pas passer par le Cursor : un transfert depuis une main équipée retire l'item de `MainHand` ou `OffHand` seulement après acceptation par la cible. Le transfert échoue sans mutation si le réceptacle rejette l'item.
 
 ### WBP_ItemActionMenu
 
@@ -902,6 +904,8 @@ Le menu doit :
 `ExecuteInventoryContextAction(ActionType, SlotType, SlotIndex)` reste disponible pour compatibilité, mais elle refuse les actions ambiguës comme `Equip` lorsque plusieurs entrées partagent le même `ActionType`. Le menu doit utiliser l'exécution par index pour garantir que le bouton cliqué exécute exactement l'action affichée, notamment `EquipmentSlot=MainHand` ou `EquipmentSlot=OffHand`.
 
 Pour fermer le menu au clic extérieur, `WBP_ItemActionMenu` doit contenir un fond transparent plein écran derrière le panneau, par exemple `Button_CloseArea` ou `Border_ClickCatcher`. Son clic appelle `OwnerInventoryWidget.CloseItemActionMenu("ClickOutside")`, puis le Blueprint gère `OnItemActionMenuCloseRequested` en retirant uniquement `WBP_ItemActionMenu`. `RemoveFromParent` ne doit jamais viser `WBP_GridInventory`, afin de préserver `Page_Inventory` et `TopTabs`.
+
+`WBP_ItemActionMenu` reste plein écran pour capter le clic extérieur. Seul le panneau interne `Border_MenuPanel` doit être repositionné à la souris via son `CanvasSlot`; `SetPositionInViewport` ne doit pas être appelé sur le widget plein écran du menu.
 
 Dans le Blueprint dérivé de `UGridInventoryWidget`, implémenter `PresentItemExamination(Item, ExaminationText)` en affichant `ExaminationText` dans le panneau d'information existant ou dans le même widget visuel que le tooltip. Aucun second contenu descriptif ne doit être reconstruit dans le menu.
 

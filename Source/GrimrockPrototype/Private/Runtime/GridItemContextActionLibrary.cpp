@@ -251,16 +251,20 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             NSLOCTEXT ("GridItemActions", "InsertIntoLock", "Insérer dans la serrure"),
             &OutFacingTarget);
     }
-    else if (bIsInventorySlotSource &&
+    else if ((bIsInventorySlotSource || bIsEquipmentSlotSource) &&
              OutFacingTarget.bIsValid &&
              OutFacingTarget.bAcceptsCurrentItem &&
              (OutFacingTarget.TargetType == EGridFacingTargetType::Receptacle ||
               OutFacingTarget.TargetType == EGridFacingTargetType::TorchHolder))
     {
-        const FText Label =
-            OutFacingTarget.TargetType == EGridFacingTargetType::TorchHolder
-                ? NSLOCTEXT ("GridItemActions", "PlaceOnTorchHolder", "Placer sur le support")
-                : NSLOCTEXT ("GridItemActions", "PlaceOnTarget", "Placer sur la cible");
+        const bool bLooksLikeAlcove =
+            OutFacingTarget.TargetActor &&
+            OutFacingTarget.TargetActor->GetName ().Contains (TEXT ("Alcove"));
+        const FText Label = OutFacingTarget.TargetType == EGridFacingTargetType::TorchHolder
+            ? NSLOCTEXT ("GridItemActions", "PlaceOnTorchHolder", "Placer sur le support")
+            : (bLooksLikeAlcove
+                ? NSLOCTEXT ("GridItemActions", "PlaceInAlcove", "Placer dans l'alcôve")
+                : NSLOCTEXT ("GridItemActions", "PlaceOnTarget", "Placer sur la cible"));
         AddAction (
             OutActions,
             EGridItemActionType::PlaceOnTarget,

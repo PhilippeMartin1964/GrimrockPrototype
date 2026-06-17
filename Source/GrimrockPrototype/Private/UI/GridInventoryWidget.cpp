@@ -981,30 +981,80 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
                 Cast<AGridReceptacleActor> (FacingTarget.TargetActor);
             const bool bIsTorchHolder =
                 FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
+            const bool bIsReceptacleTarget =
+                FacingTarget.TargetType == EGridFacingTargetType::Receptacle ||
+                FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
             UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute PlaceOnTarget Item=%s Target=%s"),
+                TEXT ("GridItemActions Execute PlaceOnTarget Item=%s Source=%s Target=%s"),
                 *LastContextItem.ItemDefinitionId.ToString (),
-                bIsTorchHolder ? TEXT ("TorchHolder") : TEXT ("None"));
-            if (SourceSlotType == EGridInventoryUiSlotType::Inventory &&
-                bIsTorchHolder &&
-                Receptacle &&
-                InventoryComponent)
+                GetGridInventoryUiSlotTypeName (SourceSlotType),
+                bIsTorchHolder ? TEXT ("TorchHolder") : (bIsReceptacleTarget ? TEXT ("Receptacle") : TEXT ("None")));
+            if (!Receptacle || !InventoryComponent || !bIsReceptacleTarget)
             {
-                const FGridItemTransferResult TransferResult =
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=TargetRejected"),
+                    *LastContextItem.ItemDefinitionId.ToString (),
+                    GetGridInventoryUiSlotTypeName (SourceSlotType));
+                break;
+            }
+
+            FGridItemTransferResult TransferResult;
+            if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
+            {
+                TransferResult =
                     UGridItemTransferService::TransferInventorySlotToReceptacle (
                         InventoryComponent,
                         CharacterIndex,
                         SourceSlotIndex,
                         Receptacle);
-                bExecuted = TransferResult.bSuccess;
-                if (bExecuted)
-                {
-                    const int32 InsertedItemIndex =
-                        Receptacle->GetContainedItemCount () - 1;
-                    bExecuted = Receptacle->SetContainedItemLightsEnabled (
+            }
+            else if (SourceSlotType == EGridInventoryUiSlotType::MainHand ||
+                     SourceSlotType == EGridInventoryUiSlotType::OffHand)
+            {
+                const EGridEquipmentSlot SourceEquipmentSlot =
+                    ResolveSourceEquipmentSlot (Action, SourceSlotType);
+                TransferResult =
+                    UGridItemTransferService::TransferEquipmentSlotToReceptacle (
+                        InventoryComponent,
+                        CharacterIndex,
+                        SourceEquipmentSlot,
+                        Receptacle);
+            }
+            else
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=InvalidSource"),
+                    *LastContextItem.ItemDefinitionId.ToString (),
+                    GetGridInventoryUiSlotTypeName (SourceSlotType));
+                break;
+            }
+
+            bExecuted = TransferResult.bSuccess;
+            if (!bExecuted)
+            {
+                const TCHAR* Reason =
+                    TransferResult.Result == EGridItemTransferResult::InvalidSource
+                        ? TEXT ("InvalidSource")
+                        : TEXT ("TargetRejected");
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=%s"),
+                    *LastContextItem.ItemDefinitionId.ToString (),
+                    GetGridInventoryUiSlotTypeName (SourceSlotType),
+                    Reason);
+                break;
+            }
+
+            if (bIsTorchHolder)
+            {
+                const int32 InsertedItemIndex =
+                    Receptacle->GetContainedItemCount () - 1;
+                const bool bTorchLightEnabled =
+                    Receptacle->SetContainedItemLightsEnabled (
                         InsertedItemIndex,
                         true);
-                }
+                UE_LOG (LogTemp, Log,
+                    TEXT ("GridItemActions Execute PlaceOnTarget TorchLightEnabled=%s"),
+                    bTorchLightEnabled ? TEXT ("true") : TEXT ("false"));
             }
             break;
         }
