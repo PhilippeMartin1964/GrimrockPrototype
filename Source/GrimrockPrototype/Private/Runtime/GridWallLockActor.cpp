@@ -147,7 +147,7 @@ bool AGridWallLockActor::TryInteractWithParty (AGrimrockPartyPawn* PartyPawn)
     }
 
     const FText Message = FText::FromString (
-        TEXT ("Cette serrure nécessite une clé compatible. Utilisez une clé depuis l'inventaire."));
+        TEXT ("Cette serrure nécessite une clé compatible."));
     ShowFeedback (PartyPawn, Message);
     UE_LOG (LogGridWallLock, Log,
         TEXT ("GridWallLock DirectInteract InventoryAutoUnlockBlocked ObjectId=%s AcceptedKeys=[%s] Message=%s"),
