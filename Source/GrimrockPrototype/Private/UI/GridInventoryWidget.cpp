@@ -797,6 +797,14 @@ bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex (
         SourceSlotIndex);
 }
 
+void UGridInventoryWidget::CloseItemActionMenu (FName Reason)
+{
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridItemActionMenu Closed Reason=%s"),
+        Reason.IsNone () ? TEXT ("Unspecified") : *Reason.ToString ());
+    OnItemActionMenuCloseRequested (Reason);
+}
+
 bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
     const FGridItemContextAction& Action,
     const FGridFacingTargetContext& FacingTarget,
@@ -1213,6 +1221,163 @@ bool UGridInventoryWidget::HandleSlotDrop (
             UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Ownership OK"));
         }
     };
+
+    auto ResolveEquipmentSlot = [] (EGridInventoryUiSlotType SlotType) -> EGridEquipmentSlot
+    {
+        switch (SlotType)
+        {
+        case EGridInventoryUiSlotType::MainHand:
+            return EGridEquipmentSlot::MainHand;
+        case EGridInventoryUiSlotType::OffHand:
+            return EGridEquipmentSlot::OffHand;
+        default:
+            return EGridEquipmentSlot::None;
+        }
+    };
+
+    auto GetMutableSlotItem = [&] (
+        EGridInventoryUiSlotType SlotType,
+        int32 SlotIndex) -> FGridItemInstance*
+    {
+        if (!InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex (CharacterIndex) ||
+            !InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+        {
+            return nullptr;
+        }
+
+        if (SlotType == EGridInventoryUiSlotType::Inventory)
+        {
+            FGridCharacterInventoryState& CharacterState =
+                InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+            if (!CharacterState.InventorySlots.IsValidIndex (SlotIndex) ||
+                CharacterState.InventorySlots[SlotIndex].IsEmpty ())
+            {
+                return nullptr;
+            }
+            return &CharacterState.InventorySlots[SlotIndex].Item;
+        }
+
+        if (const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot (SlotType);
+            EquipmentSlot != EGridEquipmentSlot::None)
+        {
+            FGridCharacterEquipmentState& EquipmentState =
+                InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
+            FGridItemInstance* Item = EquipmentState.GetMutableSlot (EquipmentSlot);
+            return Item && Item->IsValid () ? Item : nullptr;
+        }
+
+        return nullptr;
+    };
+
+    auto CanPlaceItemInSlot = [&] (
+        const FGridItemInstance& Item,
+        EGridInventoryUiSlotType SlotType) -> bool
+    {
+        if (SlotType == EGridInventoryUiSlotType::Inventory)
+        {
+            return Item.IsValid ();
+        }
+
+        const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot (SlotType);
+        return EquipmentSlot != EGridEquipmentSlot::None &&
+            InventoryComponent->CanEquipItemToSlot (CharacterIndex, Item, EquipmentSlot);
+    };
+
+    auto PrepareItemForSlot = [&] (
+        FGridItemInstance& Item,
+        EGridInventoryUiSlotType SlotType)
+    {
+        if (SlotType == EGridInventoryUiSlotType::Inventory)
+        {
+            Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+            Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+            Item.OwnerCharacterIndex = CharacterIndex;
+            Item.EquipmentSlot = EGridEquipmentSlot::None;
+            return;
+        }
+
+        const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot (SlotType);
+        Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+        Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+        Item.OwnerCharacterIndex = CharacterIndex;
+        Item.EquipmentSlot = EquipmentSlot;
+    };
+
+    bool bSwapOccupiedSlotsAttempted = false;
+    auto TrySwapOccupiedSlots = [&] () -> bool
+    {
+        if (bSplitStack ||
+            SourceType == EGridInventoryUiSlotType::Cursor ||
+            TargetType == EGridInventoryUiSlotType::Cursor)
+        {
+            return false;
+        }
+
+        FGridItemInstance* SourceItemPtr = GetMutableSlotItem (SourceType, SourceIndex);
+        FGridItemInstance* TargetItemPtr = GetMutableSlotItem (TargetType, TargetIndex);
+        if (!SourceItemPtr || !TargetItemPtr)
+        {
+            return false;
+        }
+        bSwapOccupiedSlotsAttempted = true;
+
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridInventory SwapSlots Source=%s SourceIndex=%d Target=%s TargetIndex=%d"),
+            GetGridInventoryUiSlotTypeName (SourceType),
+            SourceIndex,
+            GetGridInventoryUiSlotTypeName (TargetType),
+            TargetIndex);
+
+        FGridItemInstance SourceItem = *SourceItemPtr;
+        FGridItemInstance TargetItem = *TargetItemPtr;
+        if (!CanPlaceItemInSlot (SourceItem, TargetType))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory SwapSlots Failed Reason=IncompatibleSourceToTarget Item=%s"),
+                *SourceItem.ItemDefinitionId.ToString ());
+            return false;
+        }
+
+        if (!CanPlaceItemInSlot (TargetItem, SourceType))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory SwapSlots Failed Reason=IncompatibleTargetToSource Item=%s"),
+                *TargetItem.ItemDefinitionId.ToString ());
+            return false;
+        }
+
+        PrepareItemForSlot (SourceItem, TargetType);
+        PrepareItemForSlot (TargetItem, SourceType);
+        *SourceItemPtr = TargetItem;
+        *TargetItemPtr = SourceItem;
+        InventoryComponent->RecalculateCharacterWeight (CharacterIndex);
+        if (SourceType == EGridInventoryUiSlotType::MainHand ||
+            SourceType == EGridInventoryUiSlotType::OffHand ||
+            TargetType == EGridInventoryUiSlotType::MainHand ||
+            TargetType == EGridInventoryUiSlotType::OffHand)
+        {
+            OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+        }
+
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridInventory SwapSlots Success ItemA=%s ItemB=%s"),
+            *SourceItem.ItemDefinitionId.ToString (),
+            *TargetItem.ItemDefinitionId.ToString ());
+        return true;
+    };
+
+    if (TrySwapOccupiedSlots ())
+    {
+        ValidateOwnership ();
+        RefreshInventory ();
+        return true;
+    }
+    if (bSwapOccupiedSlotsAttempted)
+    {
+        ValidateOwnership ();
+        RefreshInventory ();
+        return false;
+    }
 
     if (TargetType == EGridInventoryUiSlotType::Inventory)
     {

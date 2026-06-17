@@ -185,12 +185,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             ItemContext.EquipmentSlot != EGridEquipmentSlot::None
                 ? ItemContext.EquipmentSlot
                 : ItemContext.Item.EquipmentSlot;
-        const FText UnequipLabel =
-            SourceEquipmentSlot == EGridEquipmentSlot::MainHand
-                ? NSLOCTEXT ("GridItemActions", "UnequipMainHand", "Retirer de la main directrice")
-                : (SourceEquipmentSlot == EGridEquipmentSlot::OffHand
-                    ? NSLOCTEXT ("GridItemActions", "UnequipOffHand", "Retirer de la main secondaire")
-                    : NSLOCTEXT ("GridItemActions", "Unequip", "Déséquiper"));
+        const FText UnequipLabel = NSLOCTEXT ("GridItemActions", "Unequip", "Enlever");
         AddAction (
             OutActions,
             EGridItemActionType::Unequip,

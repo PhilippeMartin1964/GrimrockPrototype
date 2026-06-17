@@ -189,6 +189,12 @@ public:
         int32 SourceSlotIndex,
         int32 ActionIndex);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Context Actions")
+    void CloseItemActionMenu (FName Reason);
+
+    UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
+    void OnItemActionMenuCloseRequested (FName Reason);
+
     UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
     void PresentItemExamination (
         const FGridItemInstance& Item,
