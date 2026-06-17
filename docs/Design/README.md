@@ -50,6 +50,20 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | Current / Production Guide | Asset creation workflow for inventory item definitions, placeable pickup archetypes, palette entries and receptacle content. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
+## Documents With Diagrams
+
+The following current design documents include Mermaid diagrams or visual tables:
+
+| Document | Diagram Focus |
+|---|---|
+| `ITEM_CONTEXT_ACTION_SYSTEM.md` | Context action overview, right-click flow, action execution map, Tooltip / Examiner / Lire distinction. |
+| `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` | MVP scope and compact validation matrix. |
+| `INVENTORY_INTERACTION_ROUTING.md` | C++ / Blueprint responsibility split, mouse routing, drag/drop and menu dismissal. |
+| `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` | `WBP_GridInventory`, `WBP_ItemActionMenu`, fullscreen click catcher and `Border_MenuPanel` positioning. |
+| `GRIMROCK_LOCK_SYSTEM.md` | Key / lock / door separation, key compatibility and `Activated -> Door.Open` flow. |
+| `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` | Current WallLock runtime flow and no inventory auto-unlock rule. |
+| `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | `DA_Item_XXX` versus `DA_Object_XXXPickup`, item creation flow and responsibility table. |
+
 ## Priority Rule
 
 When documents disagree, prefer `99_DECISIONS_LOG.md` and the most recently updated current/audit documents. Historical roadmaps and Codex task templates are useful context, but they do not override later decisions.

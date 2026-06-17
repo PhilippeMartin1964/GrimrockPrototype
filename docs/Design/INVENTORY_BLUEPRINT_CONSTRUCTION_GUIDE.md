@@ -40,6 +40,19 @@ Hiérarchie recommandée :
 - slots `MainHand`, `OffHand`, `Cursor` ;
 - couche UI au-dessus pour `WBP_ItemActionMenu`, `WBP_ItemInspectPanel`, `WBP_ItemReadPanel`.
 
+```mermaid
+flowchart TD
+    Root["WBP_GridInventory<br/>UGridInventoryWidget"] --> Page["Page_Inventory"]
+    Page --> Grid["InventoryGrid"]
+    Page --> Main["Slot MainHand"]
+    Page --> Off["Slot OffHand"]
+    Page --> Cursor["Slot Cursor"]
+    Root --> Overlay["Overlay UI"]
+    Overlay --> Menu["WBP_ItemActionMenu"]
+    Overlay --> Inspect["WBP_ItemInspectPanel futur"]
+    Overlay --> Read["WBP_ItemReadPanel futur"]
+```
+
 Variables obligatoires :
 
 - `CurrentItemActionMenu` : référence au menu courant ;
@@ -77,6 +90,25 @@ Hiérarchie recommandée :
 - `Border_MenuPanel` au-dessus du click catcher ;
 - conteneur vertical pour les `WBP_ItemActionButton`.
 
+```mermaid
+flowchart TD
+    Root["WBP_ItemActionMenu<br/>plein écran"] --> Catcher["Border_ClickCatcher<br/>plein écran"]
+    Root --> Panel["Border_MenuPanel<br/>positionné à la souris"]
+    Panel --> Actions["VerticalBox_Actions"]
+    Actions --> Button["WBP_ItemActionButton"]
+```
+
+Pourquoi le menu reste plein écran :
+
+```mermaid
+flowchart LR
+    Full["Widget plein écran"] --> Outside["Capture clic extérieur"]
+    Full --> Inside["Contient Border_MenuPanel"]
+    Inside --> Position["CanvasSlot positionné à la souris"]
+    Outside --> Close["CloseItemActionMenu"]
+    Position --> Buttons["Boutons par ActionIndex"]
+```
+
 Variables obligatoires :
 
 - `OwnerInventoryWidget` : référence vers `WBP_GridInventory` / `UGridInventoryWidget` ;
@@ -102,6 +134,15 @@ Règles de positionnement :
 - `WBP_ItemActionMenu` reste plein écran ;
 - ne jamais appeler `CurrentItemActionMenu.SetPositionInViewport(MousePosition)` ;
 - seul `Border_MenuPanel` est déplacé à la souris via son `CanvasSlot`.
+
+```text
+À ne jamais faire :
+CurrentItemActionMenu.SetPositionInViewport(MousePosition)
+
+À faire :
+WBP_ItemActionMenu reste plein écran.
+Border_MenuPanel est repositionné via son CanvasSlot.
+```
 
 Erreurs à éviter :
 

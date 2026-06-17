@@ -13,7 +13,7 @@ Ce document décrit le comportement réellement validé pour le MVP des serrures
 
 Il clarifie aussi une décision de design plus récente :
 
-> Le comportement `clé dans inventaire -> auto-unlock` est utile comme MVP technique, mais il ne doit pas devenir la règle UX générale.
+> Le comportement `clé dans inventaire -> auto-unlock` n'est plus le chemin attendu. L'utilisation d'une clé d'inventaire passe par l'action explicite `Insérer dans la serrure`.
 
 La cible UX devient :
 
@@ -45,6 +45,15 @@ La porte ne connaît pas :
 - le curseur ;
 - le crochetage ;
 - les pièges.
+
+```mermaid
+flowchart LR
+    Key["Clé"] --> Lock["AGridWallLockActor"]
+    Lock --> Activated["EGridObjectEvent::Activated"]
+    Activated --> Link["Lien runtime"]
+    Link --> Door["Porte cible<br/>Open"]
+    Key -. "pas de commande directe" .-> Door
+```
 
 Pour le MVP Copper Key :
 
@@ -103,6 +112,18 @@ clic serrure
 ```
 
 La serrure ne fouille plus automatiquement l'inventaire.
+
+```mermaid
+flowchart TD
+    Direct["Clic direct sur WallLock"] --> Cursor{"Cursor contient une clé ?"}
+    Cursor -->|Oui| CursorInsert["Tenter insertion curseur"]
+    Cursor -->|Non| NoScan["Ne pas scanner l'inventaire"]
+    NoScan --> Help["Message d'aide / MissingKey"]
+    Help --> NoEvent["Pas d'Activated"]
+    CursorInsert --> Compatible{"Clé compatible ?"}
+    Compatible -->|Oui| Activated["Émettre Activated"]
+    Compatible -->|Non| Missing["MissingKey sans mutation"]
+```
 
 ---
 
@@ -373,6 +394,24 @@ Décision :
 > `ItemInserted` reste réservé aux vrais réceptacles.  
 > L'auto-use depuis inventaire est supprimé du clic direct.
 > L'action explicite d'item est intégrée au système d'actions contextuelles.
+
+Comparaison de comportement :
+
+```mermaid
+flowchart TD
+    Old["Ancien comportement interdit"] --> OldClick["Clic direct WallLock"]
+    OldClick --> OldScan["Scan automatique inventaire"]
+    OldScan --> OldOpen["UnlockSuccess Source=Inventory"]
+    OldOpen --> OldDoor["Porte ouverte sans action item explicite"]
+
+    New["Comportement actuel"] --> NewMenu["Clic droit clé inventaire"]
+    NewMenu --> NewAction["Insérer dans la serrure"]
+    NewAction --> NewLock["UnlockSuccess Source=ContextAction"]
+    NewLock --> NewEvent["Activated -> Door.Open"]
+
+    NewDirect["Clic direct WallLock sans Cursor"] --> Block["InventoryAutoUnlockBlocked"]
+    Block --> NoDoor["Aucune ouverture"]
+```
 
 ---
 

@@ -189,6 +189,41 @@ Réceptacle.InitialContent
   -> placement initial dans une alcôve, un coffre, un support, etc.
 ```
 
+Schéma de séparation logique / placement :
+
+```mermaid
+flowchart LR
+    Item["DA_Item_XXX<br/>UGridItemDefinitionAsset"] --> Identity["Identité inventaire<br/>DisplayName, Description, ItemType"]
+    Item --> Rules["Règles gameplay<br/>tags, équipement, lumière, lecture"]
+    Pickup["DA_Object_XXXPickup<br/>UGridObjectArchetypeAsset"] --> Placement["Placement grille<br/>palette, cellule, orientation"]
+    Pickup --> Visual["Mesh monde / preview"]
+    Pickup --> Runtime["Objet runtime ramassable"]
+    Runtime --> Inventory["Instance ajoutée à l'inventaire"]
+    Pickup --> Item
+```
+
+Flux de création recommandé :
+
+```mermaid
+flowchart TD
+    Mesh["Créer ou importer SM_XXX"] --> Icon["Créer Icon_XXX"]
+    Icon --> Definition["Créer DA_Item_XXX"]
+    Definition --> Pickup["Créer DA_Object_XXXPickup"]
+    Pickup --> Palette["Ajouter à DA_ObjectPalette_Default"]
+    Palette --> Level["Placer dans DA_GridLevelAsset / L_GrimrockEditor"]
+    Level --> PIE["Tester pickup, inventaire, tooltip, cible éventuelle"]
+```
+
+| Élément | Responsabilité |
+|---|---|
+| `DA_Item_XXX` | Identité d'inventaire, type, textes joueur, tags et règles gameplay. |
+| `DA_Object_XXXPickup` | Objet plaçable, palette, placement initial dans le niveau. |
+| `SM_XXX` | Forme visible dans le monde, en pickup ou attachée si réutilisée. |
+| `Icon_XXX` | Icône d'inventaire, tooltip et menu contextuel. |
+| `DisplayName` / `Description` | Texte joueur court et stable, en français. |
+| Tags | Compatibilités métier : serrure, recette, famille, lisible, etc. |
+| Runtime | Interaction de pickup, transfert vers inventaire, placement dans réceptacle. |
+
 ---
 
 ## 5. `DA_Item_XXX` — définition logique de l'item

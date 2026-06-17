@@ -12,6 +12,18 @@ Le C++ possède l'état d'inventaire, les règles de compatibilité, les transfe
 
 Les Blueprints affichent les slots, tooltips, menus et panneaux. Ils captent les événements UI, puis appellent une fonction C++ explicite. Ils ne doivent pas contenir de logique gameplay durable.
 
+Séparation des responsabilités :
+
+```mermaid
+flowchart LR
+    Mouse["Clic souris / drag"] --> UMG["Blueprint / UMG"]
+    UMG --> Intent["Relai d'intention<br/>SlotType, SlotIndex, ActionIndex"]
+    Intent --> CPP["C++"]
+    CPP --> Validation["Validation gameplay"]
+    Validation --> Execution["Exécution atomique"]
+    Execution --> Refresh["Refresh UI / runtime"]
+```
+
 ## Tableau Des Interactions
 
 | Interaction | Capture | Validation | Exécution | Refresh UI | Logs principaux |
@@ -30,6 +42,15 @@ Les Blueprints affichent les slots, tooltips, menus et panneaux. Ils captent les
 | Enlever | Menu action par index | Slot source équipé et inventaire disponible | `UnequipItemToInventory` | Refresh + sync visuel/lumière | `GridItemActions Execute Unequip` |
 | Drop au sol | Menu action par index | Source valide et runtime actif | `TryDropItemInstanceAtCell`, puis retrait source | Refresh + sync visuel si source équipée | `GridItemActions Execute DropToGround` |
 
+Lecture rapide :
+
+| Question | Réponse |
+|---|---|
+| Qui capte ? | `UGridInventorySlotWidget`, `WBP_ItemActionMenu`, `WBP_ItemActionButton` |
+| Qui valide ? | `UGridInventoryWidget`, `UGridItemContextActionLibrary`, services C++ |
+| Qui exécute ? | `ExecuteInventoryContextActionByIndex`, `ExecuteResolvedInventoryContextAction`, `UGridItemTransferService` |
+| Qui rafraîchit ? | `UGridInventoryWidget::RefreshInventory`, synchronisation visuelle du pawn, recompute lumière |
+
 ## Flux Clic Droit
 
 1. Le slot reçoit `RightMouseButton` dans `UGridInventorySlotWidget::NativeOnMouseButtonDown`.
@@ -40,6 +61,17 @@ Les Blueprints affichent les slots, tooltips, menus et panneaux. Ils captent les
 6. `WBP_GridInventory` crée ou affiche `WBP_ItemActionMenu`.
 7. Le Blueprint positionne seulement `Border_MenuPanel`, pas le widget plein écran.
 
+```mermaid
+flowchart TD
+    RightClick["RightMouseButton"] --> Slot["UGridInventorySlotWidget"]
+    Slot --> Widget["UGridInventoryWidget"]
+    Widget --> Target["Résolution cible face groupe"]
+    Widget --> Build["BuildContextActionsForSlot"]
+    Build --> Actions["LastContextActions"]
+    Actions --> Event["OnContextActionsRequested"]
+    Event --> Menu["WBP_ItemActionMenu"]
+```
+
 ## Flux Drag/Drop
 
 1. `UGridInventorySlotWidget` crée un `UGridInventoryDragDropOperation` avec source, index, item et split éventuel.
@@ -49,6 +81,20 @@ Les Blueprints affichent les slots, tooltips, menus et panneaux. Ils captent les
 5. Si le swap est impossible, rien n'est déplacé.
 6. Les autres flux continuent d'utiliser les fonctions historiques du composant/pawn pour les slots vides ou le Cursor.
 7. Après mutation, l'UI est rafraîchie et les visuels équipés sont resynchronisés si une main est touchée.
+
+```mermaid
+flowchart TD
+    Drag["NativeOnDragDetected"] --> Operation["UGridInventoryDragDropOperation"]
+    Operation --> Drop["NativeOnDrop cible"]
+    Drop --> Handle["HandleSlotDrop"]
+    Handle --> Occupied{"Source et cible occupées ?"}
+    Occupied -->|Oui| Validate["Valider chaque destination"]
+    Validate -->|OK| Swap["SwapSlots atomique"]
+    Validate -->|Refus| NoMove["Aucune mutation"]
+    Occupied -->|Non| Legacy["Flux historique composant / pawn / Cursor"]
+    Swap --> Refresh["Refresh + sync équipement"]
+    Legacy --> Refresh
+```
 
 ## Flux Menu Contextuel
 
@@ -64,6 +110,18 @@ ExecuteInventoryContextActionByIndex(SourceSlotType, SourceSlotIndex, ActionInde
 
 L'ancienne API par `ActionType` reste disponible uniquement pour compatibilité technique. Elle refuse les actions ambiguës, par exemple plusieurs actions `Equip`, avec `Reason=AmbiguousActionType`.
 
+```mermaid
+flowchart TD
+    Menu["WBP_ItemActionMenu"] --> Button["WBP_ItemActionButton"]
+    Button --> Index["ActionIndex exact"]
+    Index --> Execute["ExecuteInventoryContextActionByIndex"]
+    Execute --> Rebuild["Reconstruit et valide l'action"]
+    Rebuild --> Resolve["ExecuteResolvedInventoryContextAction"]
+    Resolve --> Result{"Action réussie ?"}
+    Result -->|Oui| Refresh["RefreshInventory"]
+    Result -->|Non| Log["Log Failed / NotImplemented"]
+```
+
 ## Flux Fermeture Par Clic Extérieur
 
 1. `WBP_ItemActionMenu` reste plein écran.
@@ -73,6 +131,17 @@ L'ancienne API par `ActionType` reste disponible uniquement pour compatibilité 
 5. Le Blueprint reçoit `OnItemActionMenuCloseRequested` et retire uniquement `WBP_ItemActionMenu`.
 
 `RemoveFromParent` ne doit jamais viser `WBP_GridInventory`.
+
+```mermaid
+flowchart TD
+    Root["WBP_ItemActionMenu plein écran"] --> Catcher["Border_ClickCatcher"]
+    Root --> Panel["Border_MenuPanel"]
+    Catcher --> Close["CloseItemActionMenu ClickOutside"]
+    Close --> Log["GridItemActionMenu Closed"]
+    Log --> Event["OnItemActionMenuCloseRequested"]
+    Event --> Remove["RemoveFromParent sur WBP_ItemActionMenu seulement"]
+    Panel -. "clics internes" .-> Buttons["WBP_ItemActionButton"]
+```
 
 ## Règles De Maintenance
 

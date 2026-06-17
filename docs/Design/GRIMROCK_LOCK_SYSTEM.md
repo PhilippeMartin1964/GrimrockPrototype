@@ -37,6 +37,16 @@ La règle fondamentale est la suivante :
 
 *Figure 1 — Vue d'ensemble du chemin entre clé ou outil, serrure, événement, liens logiques et cible commandée.*
 
+```mermaid
+flowchart LR
+    Key["Clé / outil"] --> Lock["Serrure<br/>mécanisme indépendant"]
+    Lock --> Event["Événement logique"]
+    Event --> Link["Lien Event -> Command"]
+    Link --> Door["Porte commandable"]
+    Door --> State["Ouverte / fermée"]
+    Key -. "n'ouvre jamais directement" .-> Door
+```
+
 Cette règle vaut pour les portes du donjon afin de conserver un même set de portes réutilisable avec des mécanismes d'ouverture variés : levier, chaîne, bouton, serrure murale, plaque de pression, réceptacle, trigger, script, etc.
 
 En revanche, les objets comme les coffres, boîtes, petits conteneurs ou certains réceptacles peuvent porter leur propre serrure interne, car ils sont eux-mêmes l'objet verrouillable.
@@ -79,6 +89,16 @@ Lever_Hall_A.OnActivated -> Door_Secret_A.Toggle
 ![Dissociation architecturale entre porte et serrure](../Images/LockSystem/door_vs_lock_architecture.png)
 
 *Figure 2 — Séparation des responsabilités entre la porte commandable et la serrure qui émet des événements.*
+
+```mermaid
+flowchart TD
+    WallLock["AGridWallLockActor"] --> Validate["Valide clé / profil / tags"]
+    WallLock --> Emit["Émet Activated ou futur événement lock"]
+    Emit --> Links["Système Event -> Command"]
+    Links --> Door["AGridDoorActor"]
+    Door --> Command["Open / Close / Toggle"]
+    Door -. "ne connaît ni clé ni serrure" .-> WallLock
+```
 
 ---
 
@@ -285,6 +305,26 @@ AcceptedKeyTags:
 ```
 
 Ce système est utile pour les clés génériques ou les clés maîtresses de zone.
+
+Vue compacte des compatibilités :
+
+```mermaid
+flowchart LR
+    Key["UGridItemDefinitionAsset<br/>ItemDefinitionId"]
+    Key --> Id["KeyId exact"]
+    Key --> Profile["KeyProfile"]
+    Key --> Tags["ItemTags / KeyTags"]
+    Key --> Master["Master key flag"]
+    Lock["FGridLockBehaviorParams"] --> AcceptedIds["AcceptedKeyIds"]
+    Lock --> AcceptedItems["AcceptedKeyItems"]
+    Lock --> AcceptedProfiles["Accepted profiles futurs"]
+    Lock --> AcceptedTags["Accepted tags futurs"]
+    Id --> AcceptedIds
+    Key --> AcceptedItems
+    Profile --> AcceptedProfiles
+    Tags --> AcceptedTags
+    Master --> AcceptedTags
+```
 
 ---
 
@@ -930,6 +970,24 @@ C'est une règle volontaire.
 # 12. Liens logiques
 
 Les serrures doivent s'intégrer au système d'événements du niveau.
+
+Flux MVP clé d'inventaire vers porte :
+
+```mermaid
+sequenceDiagram
+    participant Player
+    participant Inventory as UGridInventoryWidget
+    participant WallLock as AGridWallLockActor
+    participant Links as EventCommand
+    participant Door as AGridDoorActor
+
+    Player->>Inventory: Choisit "Insérer dans la serrure"
+    Inventory->>Inventory: ExecuteInventoryContextActionByIndex
+    Inventory->>WallLock: Transfer key to lock
+    WallLock->>WallLock: Validate key compatibility
+    WallLock->>Links: Emit Activated
+    Links->>Door: Open
+```
 
 Exemples :
 

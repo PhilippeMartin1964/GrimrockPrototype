@@ -20,6 +20,35 @@ Le MVP couvre :
 - swaps atomiques entre slots occupés ;
 - recalcul lumière depuis `MainHand || OffHand`.
 
+Synthèse du périmètre MVP :
+
+```mermaid
+flowchart LR
+    Source["Source<br/>Inventory / MainHand / OffHand"] --> Menu["Menu contextuel<br/>ActionIndex"]
+    Menu --> Equip["Equip / Enlever"]
+    Menu --> Drop["DropToGround"]
+    Menu --> Read["Read / Examine"]
+    Menu --> Target["Cible face groupe"]
+    Target --> WallLock["InsertIntoTarget<br/>WallLock"]
+    Target --> Receptacle["PlaceOnTarget<br/>réceptacle"]
+    Equip --> Refresh["Refresh + visuel + lumière"]
+    Drop --> Refresh
+    Read --> UI["Panneau UI"]
+    WallLock --> Refresh
+    Receptacle --> Refresh
+```
+
+Matrice de test synthétique :
+
+| Source | Cible | Action attendue | Résultat |
+|---|---|---|---|
+| Inventaire | Main compatible | `Equip` | Item équipé, UI rafraîchie. |
+| `MainHand` / `OffHand` | Inventaire | `Enlever` | Item replacé si slot disponible. |
+| Inventaire / main | Sol | `DropToGround` | Spawn au sol puis retrait source. |
+| Inventaire | WallLock | `InsertIntoTarget` | Clé transférée, `Activated` émis. |
+| Inventaire / main | Réceptacle | `PlaceOnTarget` | Item transféré sans Cursor public. |
+| Item lisible | Aucun | `Read` | Texte affiché, item conservé. |
+
 ## Pré requis De Test
 
 - Niveau : `L_GrimrockEditor`.

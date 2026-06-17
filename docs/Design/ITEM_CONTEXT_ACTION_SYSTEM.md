@@ -22,6 +22,21 @@ clic droit sur item
 
 Le drag/drop reste valable. Il ne remplace pas le menu contextuel ; il constitue un raccourci direct pour les actions évidentes.
 
+Vue d'ensemble du système :
+
+```mermaid
+flowchart LR
+    Slot["UGridInventorySlotWidget"] --> Widget["UGridInventoryWidget"]
+    Widget --> Build["BuildContextActionsForSlot"]
+    Build --> Action["FGridItemContextAction"]
+    Build --> Target["FGridFacingTargetContext"]
+    Action --> Menu["WBP_ItemActionMenu"]
+    Menu --> Button["WBP_ItemActionButton"]
+    Button --> Execute["ExecuteInventoryContextActionByIndex"]
+    Execute --> Runtime["Exécution C++ atomique"]
+    Runtime --> Refresh["RefreshInventory / Sync held visual / Recompute light"]
+```
+
 Règle cible :
 
 > Le joueur ne doit pas devoir comprendre un état abstrait de Cursor pour jouer.  
@@ -72,6 +87,19 @@ survol item
 ```
 
 Le menu contextuel peut éventuellement proposer `Examiner`, mais cette action doit réutiliser le même contenu que le tooltip, pas créer un second système d'information divergent.
+
+Différence entre les trois lectures UI :
+
+```mermaid
+flowchart TD
+    Item["Item inventaire"] --> Hover["Survol"]
+    Item --> Examine["Action Examiner"]
+    Item --> Read["Action Lire"]
+    Hover --> Tooltip["Tooltip passif<br/>nom, icône, description courte"]
+    Examine --> Inspect["PresentItemExamination<br/>panneau d'inspection futur"]
+    Read --> Reading["PresentItemReading<br/>texte long persistant"]
+    Tooltip -. "contenu court réutilisable en MVP" .-> Inspect
+```
 
 ---
 
@@ -163,6 +191,23 @@ Exemple : clé devant une serrure incompatible :
 ```text
 Insérer dans la serrure    grisé : Cette clé ne convient pas.
 Déposer au sol             actif
+```
+
+Flux actuel du clic droit par index :
+
+```mermaid
+flowchart TD
+    A["Clic droit sur slot"] --> B["UGridInventorySlotWidget::NativeOnMouseButtonDown"]
+    B --> C["HandleItemSlotRightClicked"]
+    C --> D["BuildContextActionsForSlot"]
+    D --> E["LastContextActions"]
+    D --> F["LastFacingTargetContext"]
+    E --> G["WBP_ItemActionMenu"]
+    G --> H["WBP_ItemActionButton<br/>ActionIndex"]
+    H --> I["ExecuteInventoryContextActionByIndex"]
+    I --> J["ExecuteResolvedInventoryContextAction"]
+    J --> K["Mutation gameplay si succès"]
+    K --> L["Refresh UI / visuel tenu / lumière"]
 ```
 
 ---
@@ -866,6 +911,19 @@ Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` e
 ## 14. Exécution minimale et câblage UMG
 
 Le Patch 2 exécute les actions `Examine`, `Read`, `Equip`, `Unequip`, `InsertIntoTarget`, `PlaceOnTarget` et `DropToGround`.
+
+Carte des actions principales déjà câblées :
+
+```mermaid
+flowchart LR
+    Action["FGridItemContextAction"] --> Equip["Equip<br/>slot exact MainHand ou OffHand"]
+    Action --> Unequip["Unequip / Enlever<br/>main vers inventaire"]
+    Action --> Drop["DropToGround<br/>spawn puis retrait source"]
+    Action --> Insert["InsertIntoTarget<br/>clé vers AGridWallLockActor"]
+    Action --> Place["PlaceOnTarget<br/>UGridItemTransferService"]
+    Action --> Read["Read<br/>PresentItemReading"]
+    Action --> Examine["Examine<br/>PresentItemExamination"]
+```
 
 - `Examine` réutilise le texte de tooltip du `UGridInventorySlotWidget` source et appelle l'événement Blueprint `PresentItemExamination`.
 - `Read` affiche le contenu textuel long d'un item lisible via l'événement Blueprint `PresentItemReading`.
