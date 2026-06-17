@@ -975,18 +975,27 @@ Flux MVP clé d'inventaire vers porte :
 
 ```mermaid
 sequenceDiagram
-    participant Player
+    autonumber
+
+    actor Player as Joueur
     participant Inventory as UGridInventoryWidget
     participant WallLock as AGridWallLockActor
-    participant Links as EventCommand
+    participant EventCmd as EventCommand
     participant Door as AGridDoorActor
 
-    Player->>Inventory: Choisit "Insérer dans la serrure"
-    Inventory->>Inventory: ExecuteInventoryContextActionByIndex
-    Inventory->>WallLock: Transfer key to lock
-    WallLock->>WallLock: Validate key compatibility
-    WallLock->>Links: Emit Activated
-    Links->>Door: Open
+    Player->>Inventory: Choisit « Insérer dans la serrure »
+    Inventory->>Inventory: ExecuteInventoryContextActionByIndex()
+    Inventory->>WallLock: TransferKeyToLock(Key)
+
+    WallLock->>WallLock: ValidateKeyCompatibility(Key)
+
+    alt Clé compatible
+        WallLock->>EventCmd: EmitActivated()
+        EventCmd->>Door: Open()
+    else Clé incompatible
+        WallLock-->>Inventory: RefuseKey()
+        Inventory-->>Player: Affiche un message d'échec
+    end
 ```
 
 Exemples :
