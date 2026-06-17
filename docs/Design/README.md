@@ -9,20 +9,21 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 3. `02_OBJECT_ARCHETYPES.md` - current archetype naming and object families.
 4. `03_EVENT_COMMAND_LINKS.md` - current connector semantics.
 5. `ITEM_CONTEXT_ACTION_SYSTEM.md` - target inventory UX: right-click contextual actions, drag/drop shortcuts, assisted world targets and Cursor deprecation as public model.
-6. `INVENTORY_INTERACTION_ROUTING.md` - C++ / Blueprint responsibility map for inventory interactions and context actions.
-7. `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` - construction guide for inventory UMG widgets, menu, buttons, tooltip, inspect and read panels.
-8. `GRIMROCK_LOCK_SYSTEM.md` - prospective lock, key, lockpicking, trap and lockable container design.
-9. `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` - current MVP wall lock behavior, including explicit inventory key context action, cursor insertion and `Activated -> Door.Open` connector rule.
-10. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
-11. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
-12. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
-13. `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` - production guide for item definitions, pickup archetypes, palette entries and receptacle content.
-14. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
-15. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
-16. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
-17. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
-18. `05_CODEX_TASKS.md` - historical Codex task templates.
-19. `99_DECISIONS_LOG.md` - chronological decision log.
+6. `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` - validation checklist for the current inventory context action MVP.
+7. `INVENTORY_INTERACTION_ROUTING.md` - C++ / Blueprint responsibility map for inventory interactions and context actions.
+8. `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` - construction guide for inventory UMG widgets, menu, buttons, tooltip, inspect and read panels.
+9. `GRIMROCK_LOCK_SYSTEM.md` - prospective lock, key, lockpicking, trap and lockable container design.
+10. `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` - current MVP wall lock behavior, including explicit inventory key context action, cursor insertion and `Activated -> Door.Open` connector rule.
+11. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
+12. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
+13. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
+14. `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` - production guide for item definitions, pickup archetypes, palette entries and receptacle content.
+15. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
+16. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
+17. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
+18. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
+19. `05_CODEX_TASKS.md` - historical Codex task templates.
+20. `99_DECISIONS_LOG.md` - chronological decision log.
 
 ## Document Status
 
@@ -33,6 +34,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `02_OBJECT_ARCHETYPES.md` | Current | Concrete archetype families and naming rules. |
 | `03_EVENT_COMMAND_LINKS.md` | Current | Explicit `Source Object + Source Event + Target Object + Command` connector rules. |
 | `ITEM_CONTEXT_ACTION_SYSTEM.md` | Design Target / Partial Implementation | Inventory UX target plus the current Patch 1 C++ foundation for contextual action discovery and UMG integration. |
+| `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` | Current / Validation | Validation checklist and static audit result for the current context action MVP. |
 | `INVENTORY_INTERACTION_ROUTING.md` | Current / Reference | Blueprint versus C++ responsibility map for inventory clicks, drag/drop, context menu execution and UI dismissal. |
 | `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` | Current / Production Guide | UMG construction guide for inventory slots, context menu, action buttons, tooltip, inspection and reading panels. |
 | `GRIMROCK_LOCK_SYSTEM.md` | Design / Prospective | Lock, key, lockpicking, trapped lock and lockable container specification; must stay compatible with the existing Event -> Command model. |

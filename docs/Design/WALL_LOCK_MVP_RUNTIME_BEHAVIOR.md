@@ -73,41 +73,36 @@ CopperWallLock.ItemInserted -> Door.Open
 
 ## 3. Comportement MVP validé
 
-## 3.1. Chemin inventaire — transitoire
-
-Le MVP sait actuellement chercher une clé compatible dans les inventaires des personnages actifs.
-
-Flux technique :
+## 3.1. Chemin inventaire — action explicite
 
 ```text
 Clé dans inventaire
-  -> clic sur WallLock
-  -> recherche multi-personnages
-  -> clé compatible trouvée
-  -> UnlockSuccess Source=Inventory
+  -> clic droit sur la clé
+  -> Insérer dans la serrure
+  -> clé compatible transférée vers WallLock
+  -> UnlockSuccess Source=ContextAction
   -> Event Activated
   -> Door.Open
 ```
 
-Ce comportement a permis de valider :
+Ce comportement valide :
 
-- la recherche multi-personnages ;
+- l'intention explicite du joueur ;
 - la compatibilité par `ItemDefinitionId` ;
+- le retrait de la clé uniquement après succès ;
 - l'événement `Activated` ;
 - le lien `WallLock.Activated -> Door.Open`.
 
-Mais il est maintenant considéré comme **transitoire** côté UX.
-
-Raison : le jeu doit éviter de déplacer, consommer, insérer ou utiliser automatiquement un item depuis l'inventaire sans intention explicite du joueur.
-
-Cible future :
+Clic direct sur la serrure sans item explicite :
 
 ```text
 clic serrure
-  -> inventaire assisté
-  -> clé compatible surlignée
-  -> action explicite Insérer
+  -> InventoryAutoUnlockBlocked
+  -> message d'aide
+  -> aucun Activated
 ```
+
+La serrure ne fouille plus automatiquement l'inventaire.
 
 ---
 
@@ -252,16 +247,22 @@ Aucun événement `Activated` ne doit ouvrir la porte.
 
 ---
 
-### 7.2. Clé dans inventaire — MVP transitoire
+### 7.2. Clé dans inventaire — action contextuelle
 
 ```text
-GridWallLock InventoryScan ... ItemDefinitionIds=[Key_Copper]
-GridWallLock UnlockSuccess ... Source=Inventory
+GridItemActions Execute InsertIntoTarget Item=Key_Copper Target=WallLock
+GridWallLock UnlockSuccess ... Source=ContextAction
 GridWallLock ActivatedEventEmitted ... LinkExecuted=true
 Grid link executed ... Command=Open Success=true
 ```
 
-Ce chemin est acceptable pour le MVP technique, mais il doit être remplacé par l'inventaire assisté dans la cible UX.
+Un clic direct sur la serrure avec la clé dans l'inventaire doit produire :
+
+```text
+GridWallLock DirectInteract InventoryAutoUnlockBlocked ...
+```
+
+Aucun `UnlockSuccess Source=Inventory` ne doit apparaître dans ce cas.
 
 ---
 
@@ -360,19 +361,18 @@ clé en inventaire OU clé en curseur
 Lecture mise à jour :
 
 ```text
-MVP technique actuel :
-  inventaire et curseur peuvent encore fonctionner.
-
-Cible UX :
-  clic serrure -> inventaire assisté -> action explicite Insérer.
+MVP actuel :
+  clé inventaire -> menu contextuel -> Insérer dans la serrure
+  clé curseur -> insertion explicite
+  clic direct serrure -> aide, pas d'auto-unlock
 ```
 
 Décision :
 
 > L'ouverture de porte par serrure passe uniquement par `Activated`.  
 > `ItemInserted` reste réservé aux vrais réceptacles.  
-> L'auto-use depuis inventaire est transitoire.  
-> La cible long terme est une action explicite d'item, intégrée au système d'actions contextuelles.
+> L'auto-use depuis inventaire est supprimé du clic direct.
+> L'action explicite d'item est intégrée au système d'actions contextuelles.
 
 ---
 

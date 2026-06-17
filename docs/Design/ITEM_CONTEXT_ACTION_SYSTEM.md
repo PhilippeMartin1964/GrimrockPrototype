@@ -853,10 +853,10 @@ Ce patch ne modifie aucun asset `.uasset` : ce câblage reste donc une opératio
 
 ### Compatibilité et limites
 
-- Le drag/drop et le Cursor existants restent inchangés.
-- Les actions sont calculées mais ne sont pas encore exécutées.
-- Les mutations devront être raccordées au service central prévu par cette spécification.
-- Le scan automatique de l'inventaire par la serrure murale reste un comportement transitoire jusqu'au patch d'exécution des actions.
+- Le drag/drop et le Cursor existants restent disponibles, mais les swaps occupés et certains transferts contextuels ne passent plus par le Cursor.
+- Les actions `Examine`, `Read`, `Equip`, `Unequip`, `InsertIntoTarget`, `PlaceOnTarget` et `DropToGround` sont exécutées côté C++.
+- Les mutations passent par `UGridInventoryWidget`, `UGridPartyInventoryComponent`, `UGridItemTransferService` ou le pawn selon le cas.
+- Le clic direct sur une serrure murale ne scanne plus automatiquement l'inventaire : l'insertion de clé depuis l'inventaire passe par l'action explicite `Insérer dans la serrure`.
 - Une plaque de pression n'est pas considérée comme une cible d'action directe.
 
 Les logs `GridItemContextActions Build`, `GridItemContextActions FacingTarget` et `GridInventory ContextMenuRequested` permettent de diagnostiquer cette fondation.
