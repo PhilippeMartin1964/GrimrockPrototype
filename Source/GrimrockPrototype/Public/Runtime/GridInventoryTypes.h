@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "GridInventoryTypes.generated.h"
 
+class UGridReadableContentAsset;
+
 UENUM (BlueprintType)
 enum class EGridItemOwnerType : uint8
 {
@@ -72,6 +74,18 @@ struct FGridItemInstance
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     bool bLightsEnabled = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Reading")
+    TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Reading")
+    FName ReadableContentId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Reading")
+    FText ReadTitleOverride;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Reading", meta = (MultiLine = "true"))
+    FText ReadTextOverride;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "World")
     FTransform LastWorldTransform = FTransform::Identity;

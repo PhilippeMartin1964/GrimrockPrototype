@@ -1284,7 +1284,36 @@ Règle pour ces futures images :
 
 ---
 
-## 21. Règle finale
+## 21. Per-instance readable content
+
+Pour les notes, lettres, parchemins et journaux partageant le même visuel, séparer les assets :
+
+| Asset / donnée | Responsabilité |
+|---|---|
+| `DA_Item_Note_Generic` | Identité d'inventaire, poids, icône, mesh, tags et fallback `ReadText`. |
+| `DA_ReadableContent_XXX` | Titre et corps propres à un document. |
+| `DA_Object_NotePickup_Generic` | Archétype de placement réutilisable. |
+| `FGridLevelObjectData.Item|Reading` | Contenu choisi pour l'instance placée. |
+| `FGridItemInstance.Reading` | Source de vérité après ramassage. |
+
+Workflow recommandé :
+
+1. Créer une seule définition `DA_Item_Note_Generic` pour une famille visuelle de notes.
+2. Créer un `DA_ReadableContent_XXX` par contenu narratif.
+3. Placer `DA_Object_NotePickup_Generic` dans le niveau.
+4. Dans l'inspecteur de l'objet placé, renseigner `ReadableContentAsset` sous `Item Reading / Contenu lisible de l'item ramassé`.
+5. Utiliser `ReadTitleOverride` et `ReadTextOverride` uniquement pour le prototypage ou une exception locale.
+6. Vérifier en PIE que pickup, lecture, drop au sol et passage par un réceptacle conservent le contenu.
+
+Les champs `DefaultReadableContentAsset`, `DefaultReadableContentId`, `DefaultReadTitleOverride` et `DefaultReadTextOverride` peuvent fournir un défaut d'archétype. Ils sont copiés uniquement lors de la création d'un nouvel objet placé ; ils ne remplacent pas le contenu déjà défini sur une instance existante.
+
+`OverrideReadableText` ne fait pas partie de ce flux. Il reste réservé aux inscriptions et objets lus directement dans le monde.
+
+Les assets de test `DA_ReadableContent_Test_A` et `DA_ReadableContent_Test_B` doivent être créés manuellement dans Unreal Editor ; ce patch ne modifie aucun `.uasset`.
+
+---
+
+## 22. Règle finale
 
 Pour tout nouvel item ramassable :
 

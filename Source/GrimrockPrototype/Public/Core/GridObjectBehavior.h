@@ -4,6 +4,7 @@
 #include "GridObjectBehavior.generated.h"
 
 class UGridItemDefinitionAsset;
+class UGridReadableContentAsset;
 
 UENUM (BlueprintType)
 enum class EGridReceptacleVisualPlacementMode : uint8
@@ -32,6 +33,18 @@ struct FGridItemBehaviorParams
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
+    TObjectPtr<UGridReadableContentAsset> DefaultReadableContentAsset = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
+    FName DefaultReadableContentId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
+    FText DefaultReadTitleOverride;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading", meta = (MultiLine = "true"))
+    FText DefaultReadTextOverride;
 };
 
 USTRUCT (BlueprintType)

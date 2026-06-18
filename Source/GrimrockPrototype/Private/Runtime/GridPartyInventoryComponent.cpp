@@ -24,6 +24,16 @@ namespace
         return Item.IsValid () ? Item.Weight * FMath::Max (1, Item.Quantity) : 0.0f;
     }
 
+    bool HaveMatchingReadableContent (
+        const FGridItemInstance& ExistingItem,
+        const FGridItemInstance& IncomingItem)
+    {
+        return ExistingItem.ReadableContentAsset == IncomingItem.ReadableContentAsset &&
+            ExistingItem.ReadableContentId == IncomingItem.ReadableContentId &&
+            ExistingItem.ReadTitleOverride.EqualTo (IncomingItem.ReadTitleOverride) &&
+            ExistingItem.ReadTextOverride.EqualTo (IncomingItem.ReadTextOverride);
+    }
+
     bool IsSupportedEquipmentSlot (EGridEquipmentSlot Slot)
     {
         return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
@@ -318,7 +328,9 @@ bool UGridPartyInventoryComponent::CanAddItemToCharacterInventory (int32 Charact
         {
             AvailableCapacity += MaxStackSize;
         }
-        else if (bStackable && Slot.Item.ItemDefinitionId == ItemToAdd.ItemDefinitionId)
+        else if (bStackable &&
+            Slot.Item.ItemDefinitionId == ItemToAdd.ItemDefinitionId &&
+            HaveMatchingReadableContent (Slot.Item, ItemToAdd))
         {
             AvailableCapacity += FMath::Max (0, MaxStackSize - FMath::Max (1, Slot.Item.Quantity));
         }
@@ -370,7 +382,9 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory (int32 CharacterI
             {
                 break;
             }
-            if (Slot.IsEmpty () || Slot.Item.ItemDefinitionId != ItemToAdd.ItemDefinitionId)
+            if (Slot.IsEmpty () ||
+                Slot.Item.ItemDefinitionId != ItemToAdd.ItemDefinitionId ||
+                !HaveMatchingReadableContent (Slot.Item, ItemToAdd))
             {
                 continue;
             }

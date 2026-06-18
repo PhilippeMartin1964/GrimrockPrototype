@@ -6,6 +6,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridReadableContentAsset.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/StaticMesh.h"
@@ -1818,6 +1819,13 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.Notes = ObjectNotes;
     NewObject.PaletteEntryId = SelectedPaletteEntryId;
     NewObject.Behavior = ObjectBehavior;
+    if (NewObject.Type == EGridLevelObjectType::Item)
+    {
+        NewObject.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
+        NewObject.ReadableContentId = ObjectBehavior.Item.DefaultReadableContentId;
+        NewObject.ReadTitleOverride = ObjectBehavior.Item.DefaultReadTitleOverride;
+        NewObject.ReadTextOverride = ObjectBehavior.Item.DefaultReadTextOverride;
+    }
 
     if (bIsStoneAlcoveReceptacle)
     {
@@ -3009,6 +3017,84 @@ bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset ()
     LevelAsset->MarkPackageDirty ();
 #endif
 
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectReadableContentAsset (
+    UGridReadableContentAsset* NewReadableContentAsset)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+    Obj->ReadableContentAsset = NewReadableContentAsset;
+    if (NewReadableContentAsset && Obj->ReadableContentId.IsNone ())
+    {
+        Obj->ReadableContentId = NewReadableContentAsset->ReadableContentId;
+    }
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectReadableContentId (FName NewReadableContentId)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+    {
+        return false;
+    }
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+    Obj->ReadableContentId = NewReadableContentId;
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectReadTitleOverride (const FText& NewReadTitleOverride)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+    {
+        return false;
+    }
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+    Obj->ReadTitleOverride = NewReadTitleOverride;
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectReadTextOverride (const FText& NewReadTextOverride)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::Item)
+    {
+        return false;
+    }
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+    Obj->ReadTextOverride = NewReadTextOverride;
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
     RebuildPreview ();
     return true;
 }

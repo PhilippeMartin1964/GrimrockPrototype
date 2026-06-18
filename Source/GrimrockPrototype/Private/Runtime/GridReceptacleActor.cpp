@@ -564,9 +564,18 @@ bool AGridReceptacleActor::TryInsertItemInstanceFromCursor (
     AcceptedReceptacleItem.Weight = CursorItem.Weight;
     AcceptedReceptacleItem.DisplayName = CursorItem.DisplayName;
     AcceptedReceptacleItem.bLightsEnabled = CursorItem.bLightsEnabled;
+    AcceptedReceptacleItem.ReadableContentAsset = CursorItem.ReadableContentAsset;
+    AcceptedReceptacleItem.ReadableContentId = CursorItem.ReadableContentId;
+    AcceptedReceptacleItem.ReadTitleOverride = CursorItem.ReadTitleOverride;
+    AcceptedReceptacleItem.ReadTextOverride = CursorItem.ReadTextOverride;
     if (AcceptedReceptacleItem.ItemActor)
     {
         AcceptedReceptacleItem.ItemActor->SetItemLightsEnabled (AcceptedReceptacleItem.bLightsEnabled);
+        AcceptedReceptacleItem.ItemActor->InitializeReadableContent (
+            AcceptedReceptacleItem.ReadableContentAsset,
+            AcceptedReceptacleItem.ReadableContentId,
+            AcceptedReceptacleItem.ReadTitleOverride,
+            AcceptedReceptacleItem.ReadTextOverride);
     }
 
     OutAcceptedItem = CursorItem;
@@ -630,6 +639,10 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     ItemInstance.Weight = Item.Weight;
     ItemInstance.DisplayName = Item.DisplayName;
     ItemInstance.bLightsEnabled = Item.bLightsEnabled;
+    ItemInstance.ReadableContentAsset = Item.ReadableContentAsset;
+    ItemInstance.ReadableContentId = Item.ReadableContentId;
+    ItemInstance.ReadTitleOverride = Item.ReadTitleOverride;
+    ItemInstance.ReadTextOverride = Item.ReadTextOverride;
     ItemInstance.OwnerType = EGridItemOwnerType::CharacterInventory;
     ItemInstance.OwnerCharacterIndex = PartyPawn->PartyInventoryComponent ? PartyPawn->PartyInventoryComponent->GetSelectedCharacterIndex () : INDEX_NONE;
 
@@ -641,6 +654,10 @@ bool AGridReceptacleActor::TryTakeItemAtIndex (int32 ItemIndex, AGrimrockPartyPa
     if (IsValid (Item.ItemActor.Get ()))
     {
         ItemInstance.bLightsEnabled = Item.ItemActor->AreItemLightsEnabled ();
+        ItemInstance.ReadableContentAsset = Item.ItemActor->ReadableContentAsset;
+        ItemInstance.ReadableContentId = Item.ItemActor->ReadableContentId;
+        ItemInstance.ReadTitleOverride = Item.ItemActor->ReadTitleOverride;
+        ItemInstance.ReadTextOverride = Item.ItemActor->ReadTextOverride;
     }
 
     if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
@@ -845,10 +862,18 @@ void AGridReceptacleActor::CaptureRuntimeReceptacleState (FGridRuntimeReceptacle
         ItemState.bIsContainedInReceptacle = true;
         ItemState.ReceptacleObjectId = ObjectId;
         ItemState.bLightsEnabled = true;
+        ItemState.ReadableContentAsset = Item.ReadableContentAsset;
+        ItemState.ReadableContentId = Item.ReadableContentId;
+        ItemState.ReadTitleOverride = Item.ReadTitleOverride;
+        ItemState.ReadTextOverride = Item.ReadTextOverride;
         if (IsValid (Item.ItemActor.Get ()))
         {
             ItemState.Transform = Item.ItemActor->GetActorTransform ();
             ItemState.bLightsEnabled = Item.ItemActor->AreItemLightsEnabled ();
+            ItemState.ReadableContentAsset = Item.ItemActor->ReadableContentAsset;
+            ItemState.ReadableContentId = Item.ItemActor->ReadableContentId;
+            ItemState.ReadTitleOverride = Item.ItemActor->ReadTitleOverride;
+            ItemState.ReadTextOverride = Item.ItemActor->ReadTextOverride;
         } else
         {
             ItemState.Transform = ItemAttachPoint ? ItemAttachPoint->GetComponentTransform () : GetActorTransform ();
@@ -914,6 +939,10 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
     Item.RuntimeObjectId = ItemState.ObjectId.IsValid () ? ItemState.ObjectId : FGuid::NewGuid ();
     Item.ItemArchetypeId = ItemState.ArchetypeId;
     Item.bLightsEnabled = ItemState.bLightsEnabled;
+    Item.ReadableContentAsset = ItemState.ReadableContentAsset;
+    Item.ReadableContentId = ItemState.ReadableContentId;
+    Item.ReadTitleOverride = ItemState.ReadTitleOverride;
+    Item.ReadTextOverride = ItemState.ReadTextOverride;
     if (IsValid (Item.ItemActor.Get ()))
     {
         Item.ItemActor->SetRuntimeObjectId (Item.RuntimeObjectId);
@@ -923,6 +952,11 @@ bool AGridReceptacleActor::RestoreRuntimeContainedItem (const FGridRuntimeItemSt
             nullptr,
             ETeleportType::TeleportPhysics);
         Item.ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+        Item.ItemActor->InitializeReadableContent (
+            ItemState.ReadableContentAsset,
+            ItemState.ReadableContentId,
+            ItemState.ReadTitleOverride,
+            ItemState.ReadTextOverride);
     }
     return true;
 }
@@ -1055,6 +1089,13 @@ int32 AGridReceptacleActor::AddContainedItem (
     NewItem.ItemActor = ItemActor;
     NewItem.bWasInitialItem = bWasInitialItem;
     NewItem.Quantity = FMath::Max (1, Quantity);
+    if (IsValid (ItemActor))
+    {
+        NewItem.ReadableContentAsset = ItemActor->ReadableContentAsset;
+        NewItem.ReadableContentId = ItemActor->ReadableContentId;
+        NewItem.ReadTitleOverride = ItemActor->ReadTitleOverride;
+        NewItem.ReadTextOverride = ItemActor->ReadTextOverride;
+    }
     if (ItemDefinition)
     {
         NewItem.Weight = ItemDefinition->Weight;

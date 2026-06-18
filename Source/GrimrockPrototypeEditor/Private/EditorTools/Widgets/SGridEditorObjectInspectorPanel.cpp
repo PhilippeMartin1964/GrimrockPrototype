@@ -9,6 +9,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/GridReadableContentAsset.h"
 
 #include "AssetRegistry/AssetData.h"
 #include "PropertyCustomizationHelpers.h"
@@ -256,6 +257,19 @@ namespace
             .OnObjectChanged_Lambda ([ApplyAsset] (const FAssetData& AssetData)
             {
                 ApplyAsset (Cast<UGridItemDefinitionAsset> (AssetData.GetAsset ()));
+            });
+    }
+
+    TSharedRef<SWidget> BuildReadableContentAssetPicker (
+        UGridReadableContentAsset* CurrentAsset,
+        TFunction<void(UGridReadableContentAsset*)> ApplyAsset)
+    {
+        return SNew (SObjectPropertyEntryBox)
+            .AllowedClass (UGridReadableContentAsset::StaticClass ())
+            .ObjectPath (CurrentAsset ? CurrentAsset->GetPathName () : FString ())
+            .OnObjectChanged_Lambda ([ApplyAsset] (const FAssetData& AssetData)
+            {
+                ApplyAsset (Cast<UGridReadableContentAsset> (AssetData.GetAsset ()));
             });
     }
 }
@@ -1773,6 +1787,87 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection 
                             .AutoWrapText (true)
                             .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f))))
                         : SNullWidget::NullWidget
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 10.f, 0.f, 4.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Item Reading / Contenu lisible de l'item ramassé")))
+                        .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 0.f, 0.f, 6.f)
+                [
+                    SNew (STextBlock)
+                        .Text (FText::FromString (TEXT ("Distinct from OverrideReadableText, which is reserved for readable world objects.")))
+                        .AutoWrapText (true)
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("ReadableContentAsset")),
+                        BuildReadableContentAssetPicker (
+                            Obj.ReadableContentAsset,
+                            [this] (UGridReadableContentAsset* NewAsset)
+                            {
+                                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                                {
+                                    if (CurrentEditorActor->SetSelectedObjectReadableContentAsset (NewAsset))
+                                    {
+                                        RequestRefresh ();
+                                    }
+                                }
+                            }))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("ReadableContentId")),
+                        SNew (SEditableTextBox)
+                            .Text (GetNameText (Obj.ReadableContentId))
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                            {
+                                CurrentEditorActor->SetSelectedObjectReadableContentId (GetNameFromEditorText (NewText));
+                                RequestRefresh ();
+                            }
+                        }))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("ReadTitleOverride")),
+                        SNew (SEditableTextBox)
+                            .Text (Obj.ReadTitleOverride)
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                            {
+                                CurrentEditorActor->SetSelectedObjectReadTitleOverride (NewText);
+                                RequestRefresh ();
+                            }
+                        }))
+                ]
+
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("ReadTextOverride")),
+                        SNew (SMultiLineEditableTextBox)
+                            .Text (Obj.ReadTextOverride)
+                            .AutoWrapText (true)
+                            .OnTextCommitted_Lambda ([this] (const FText& NewText, ETextCommit::Type CommitType)
+                        {
+                            if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
+                            {
+                                CurrentEditorActor->SetSelectedObjectReadTextOverride (NewText);
+                                RequestRefresh ();
+                            }
+                        }))
                 ]
         ];
 }

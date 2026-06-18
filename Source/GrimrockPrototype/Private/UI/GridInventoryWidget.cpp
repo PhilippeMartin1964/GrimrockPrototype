@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
@@ -845,8 +846,16 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
             const UGridItemDefinitionAsset* ItemDefinition = InventoryComponent
                 ? InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId)
                 : nullptr;
-            FText Title = LastContextItem.DisplayName;
-            if (ItemDefinition && !ItemDefinition->DisplayName.IsEmpty ())
+            FText Title = LastContextItem.ReadTitleOverride;
+            if (Title.IsEmpty () && LastContextItem.ReadableContentAsset)
+            {
+                Title = LastContextItem.ReadableContentAsset->Title;
+            }
+            if (Title.IsEmpty ())
+            {
+                Title = LastContextItem.DisplayName;
+            }
+            if (Title.IsEmpty () && ItemDefinition)
             {
                 Title = ItemDefinition->DisplayName;
             }
@@ -855,16 +864,34 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
                 Title = FText::FromName (LastContextItem.ItemDefinitionId);
             }
 
-            FText ReadText = ItemDefinition
-                ? ItemDefinition->ReadText
-                : FText::GetEmpty ();
+            FText ReadText = LastContextItem.ReadTextOverride;
+            const TCHAR* ReadSource = TEXT ("InstanceOverride");
+            FName ResolvedContentId = LastContextItem.ReadableContentId;
+            if (ReadText.IsEmpty () && LastContextItem.ReadableContentAsset)
+            {
+                ReadText = LastContextItem.ReadableContentAsset->BodyText;
+                ReadSource = TEXT ("ReadableContentAsset");
+                if (ResolvedContentId.IsNone ())
+                {
+                    ResolvedContentId = LastContextItem.ReadableContentAsset->ReadableContentId;
+                }
+            }
+            if (ReadText.IsEmpty () && ItemDefinition && !ItemDefinition->ReadText.IsEmpty ())
+            {
+                ReadText = ItemDefinition->ReadText;
+                ReadSource = TEXT ("DefinitionFallback");
+            }
             if (ReadText.IsEmpty ())
             {
-                ReadText = ItemDefinition && !ItemDefinition->Description.IsEmpty ()
-                    ? ItemDefinition->Description
-                    : NSLOCTEXT ("GridItemActions", "EmptyReadText", "Rien de particulier n'est écrit.");
+                ReadText = NSLOCTEXT ("GridItemActions", "EmptyReadText", "Rien n'est écrit.");
+                ReadSource = TEXT ("EmptyFallback");
             }
 
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridItemReading Resolve Item=%s Source=%s Content=%s"),
+                *LastContextItem.ItemDefinitionId.ToString (),
+                ReadSource,
+                ResolvedContentId.IsNone () ? TEXT ("None") : *ResolvedContentId.ToString ());
             UE_LOG (LogTemp, Log,
                 TEXT ("GridItemActions Execute Read Item=%s"),
                 *LastContextItem.ItemDefinitionId.ToString ());
