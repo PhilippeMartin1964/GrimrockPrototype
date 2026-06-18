@@ -12,6 +12,7 @@ class AGridLevelRuntimeActor;
 class UGridObjectPaletteAsset;
 class UGridObjectArchetypeAsset;
 class UGridItemDefinitionAsset;
+class UGridReadableContentAsset;
 
 UENUM (BlueprintType)
 enum class EGridEditorTool : uint8
@@ -412,6 +413,18 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
     bool SyncSelectedItemDefinitionIdFromAsset ();
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
+    bool SetSelectedObjectReadableContentAsset (UGridReadableContentAsset* NewReadableContentAsset);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
+    bool SetSelectedObjectReadableContentId (FName NewReadableContentId);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
+    bool SetSelectedObjectReadTitleOverride (const FText& NewReadTitleOverride);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
+    bool SetSelectedObjectReadTextOverride (const FText& NewReadTextOverride);
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint")
     bool SetSelectedObjectTag (FName NewTag);

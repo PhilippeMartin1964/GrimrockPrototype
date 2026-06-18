@@ -13,6 +13,7 @@ class UStaticMeshComponent;
 class AGrimrockPartyPawn;
 class AGridItemActor;
 class UGridItemDefinitionAsset;
+class UGridReadableContentAsset;
 class UGridItemTransferService;
 
 DECLARE_LOG_CATEGORY_EXTERN (LogGridReceptacle, Log, All);
@@ -78,6 +79,18 @@ struct FGridContainedReceptacleItem
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
     bool bLightsEnabled = true;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    FName ReadableContentId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    FText ReadTitleOverride;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    FText ReadTextOverride;
 };
 
 /**

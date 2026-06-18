@@ -149,6 +149,26 @@ flowchart TD
     Event --> Remove["RemoveFromParent sur CurrentItemReadPanel"]
 ```
 
+### Per-instance readable content
+
+Le contenu de lecture suit l'instance complète :
+
+```mermaid
+flowchart LR
+    Placed["FGridLevelObjectData<br/>Item Reading"] --> Actor["AGridItemActor"]
+    Actor --> Pickup["FGridItemInstance<br/>inventaire"]
+    Pickup --> Equip["Équipement / Cursor"]
+    Pickup --> Receptacle["AGridReceptacleActor"]
+    Pickup --> Drop["Drop monde"]
+    Equip --> Pickup
+    Receptacle --> Pickup
+    Drop --> Actor
+```
+
+Après ramassage, `FGridItemInstance` est la source de vérité pour `ReadableContentAsset`, `ReadableContentId`, `ReadTitleOverride` et `ReadTextOverride`. Les transferts inventaire/équipement utilisent des copies complètes de la structure. Les chemins réceptacle, pickup, drop et état runtime recopient explicitement les champs de lecture.
+
+`OverrideReadableText` reste indépendant et réservé aux objets lisibles directement dans le monde.
+
 ## Flux Fermeture Par Clic Extérieur
 
 1. `WBP_ItemActionMenu` reste plein écran.

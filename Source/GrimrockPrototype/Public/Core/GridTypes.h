@@ -5,6 +5,8 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridTypes.generated.h"
 
+class UGridReadableContentAsset;
+
 UENUM (BlueprintType)
 enum class EGridCellType : uint8
 {
@@ -175,6 +177,18 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item")
     FName ItemDefinitionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
+    TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
+    FName ReadableContentId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading")
+    FText ReadTitleOverride;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading", meta = (MultiLine = "true"))
+    FText ReadTextOverride;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     bool bInitiallyEnabled = true;

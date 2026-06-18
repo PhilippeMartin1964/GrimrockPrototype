@@ -7,6 +7,7 @@
 
 class UStaticMeshComponent;
 class UGridItemDefinitionAsset;
+class UGridReadableContentAsset;
 
 UCLASS (Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridItemActor : public AActor, public IGridInteractableInterface
@@ -37,6 +38,18 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Item")
     FGuid RuntimeObjectId;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    FName ReadableContentId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    FText ReadTitleOverride;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Reading")
+    FText ReadTextOverride;
+
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid")
     int32 RuntimeCellX = INDEX_NONE;
 
@@ -51,6 +64,13 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     void InitializeFromItemDefinitionId (FName InItemDefinitionId, const FGuid& InRuntimeObjectId);
+
+    UFUNCTION (BlueprintCallable, Category = "Reading")
+    void InitializeReadableContent (
+        UGridReadableContentAsset* InReadableContentAsset,
+        FName InReadableContentId,
+        const FText& InReadTitleOverride,
+        const FText& InReadTextOverride);
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     virtual void OnPlacedInWorld ();

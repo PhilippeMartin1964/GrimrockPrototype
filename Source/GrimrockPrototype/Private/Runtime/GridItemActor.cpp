@@ -6,6 +6,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLightEmitterComponent.h"
+#include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
 
@@ -117,6 +118,23 @@ void AGridItemActor::InitializeFromItemDefinitionId (FName InItemDefinitionId, c
     if (!RuntimeObjectId.IsValid ())
     {
         RuntimeObjectId = FGuid::NewGuid ();
+    }
+}
+
+void AGridItemActor::InitializeReadableContent (
+    UGridReadableContentAsset* InReadableContentAsset,
+    FName InReadableContentId,
+    const FText& InReadTitleOverride,
+    const FText& InReadTextOverride)
+{
+    ReadableContentAsset = InReadableContentAsset;
+    ReadableContentId = InReadableContentId;
+    ReadTitleOverride = InReadTitleOverride;
+    ReadTextOverride = InReadTextOverride;
+
+    if (ReadableContentAsset && ReadableContentId.IsNone ())
+    {
+        ReadableContentId = ReadableContentAsset->ReadableContentId;
     }
 }
 

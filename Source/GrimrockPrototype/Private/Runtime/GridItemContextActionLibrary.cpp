@@ -9,6 +9,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -78,14 +79,18 @@ namespace
         return Definition && Definition->ItemTags.Contains (Tag);
     }
 
-    bool IsReadableItemDefinition (const UGridItemDefinitionAsset* Definition)
+    bool IsReadableItem (
+        const FGridItemInstance& Item,
+        const UGridItemDefinitionAsset* Definition)
     {
-        return Definition &&
-            (Definition->ItemType == EGridItemType::Book ||
+        return !Item.ReadTextOverride.IsEmpty () ||
+            (Item.ReadableContentAsset && !Item.ReadableContentAsset->BodyText.IsEmpty ()) ||
+            (Definition &&
+             (Definition->ItemType == EGridItemType::Book ||
              Definition->ItemType == EGridItemType::Scroll ||
              HasItemTag (Definition, TEXT ("Readable")) ||
              HasItemTag (Definition, TEXT ("Lisible")) ||
-             !Definition->ReadText.IsEmpty ());
+             !Definition->ReadText.IsEmpty ()));
     }
 
     void AddAction (
@@ -225,7 +230,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             NSLOCTEXT ("GridItemActions", "Consume", "Consommer"));
     }
 
-    if (IsReadableItemDefinition (Definition))
+    if (IsReadableItem (ItemContext.Item, Definition))
     {
         AddAction (
             OutActions,

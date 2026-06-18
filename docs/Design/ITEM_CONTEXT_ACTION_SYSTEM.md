@@ -986,7 +986,7 @@ Ces trois surfaces ne doivent pas être confondues.
 
 L'action `Lire` est générée uniquement pour les items lisibles : `ItemType=Book`, `ItemType=Scroll`, tag `Readable` ou `Lisible`, ou définition d'item avec `ReadText` renseigné. Elle ne doit pas apparaître pour les clés, torches, pierres, armes, nourritures ou potions non lisibles.
 
-Dans `UGridItemDefinitionAsset`, `Description` reste le texte court de tooltip/examen, tandis que `ReadText` contient le texte long affiché par `Lire`. Si `ReadText` est vide, l'exécution peut afficher `Description`, puis le message français `Rien de particulier n'est écrit.` en dernier recours.
+Dans `UGridItemDefinitionAsset`, `Description` reste le texte court de tooltip/examen. `ReadText` reste un fallback de compatibilité, mais le contenu propre à une note ou un document doit désormais venir de l'instance. Si aucun contenu n'est résolu, le panneau affiche `Rien n'est écrit.`.
 
 `Lire` ne consomme pas l'item, ne le déplace pas et ne modifie pas l'inventaire. L'exécution C++ appelle `PresentItemReading(Item, Title, ReadText)`, puis le Blueprint dérivé de `UGridInventoryWidget` crée `WBP_ItemReadPanel`.
 
@@ -1004,3 +1004,40 @@ Le panneau de lecture reste affiché jusqu'à une action volontaire : clic souri
 Ce patch ne fusionne pas les items lisibles d'inventaire avec `DA_WallInscription` ni avec le système de panneaux muraux ; une convergence future peut seulement réutiliser un widget d'affichage commun.
 
 Ce patch ne modifie aucun asset `.uasset` ; le câblage de `WBP_ItemActionMenu` et de `WBP_ItemReadPanel` reste manuel dans l'éditeur Unreal.
+
+### Per-instance readable content
+
+Un `DA_Item` décrit le type d'objet transportable. Il ne faut pas créer un `DA_Item` distinct pour chaque note ayant le même poids, la même icône et le même mesh.
+
+```text
+DA_Item_Note_Generic
+  -> identité, type, poids, icône, mesh, tags
+
+DA_ReadableContent_XXX
+  -> ReadableContentId, Title, BodyText, ShortDescription, ContentType
+
+FGridLevelObjectData
+  -> choisit le contenu de l'instance placée
+
+FGridItemInstance
+  -> conserve ce contenu après ramassage et pendant les transferts
+```
+
+Ordre de résolution du titre :
+
+1. `FGridItemInstance::ReadTitleOverride` ;
+2. `ReadableContentAsset->Title` ;
+3. `FGridItemInstance::DisplayName` ;
+4. `UGridItemDefinitionAsset::DisplayName` ;
+5. `ItemDefinitionId`.
+
+Ordre de résolution du texte :
+
+1. `FGridItemInstance::ReadTextOverride` ;
+2. `ReadableContentAsset->BodyText` ;
+3. `UGridItemDefinitionAsset::ReadText` comme fallback compatible ;
+4. `Rien n'est écrit.`.
+
+`ReadableContentId` prépare un resolver futur. Dans l'implémentation actuelle, la lecture autonome d'un contenu externe requiert `ReadableContentAsset` ; un identifiant seul n'est pas résolu globalement.
+
+Les logs `GridItemReading Resolve` indiquent `InstanceOverride`, `ReadableContentAsset`, `DefinitionFallback` ou `EmptyFallback`.

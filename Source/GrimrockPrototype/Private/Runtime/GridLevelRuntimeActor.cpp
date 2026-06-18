@@ -655,6 +655,10 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         ItemState.bIsSimulatingPhysics = ItemActor->MeshComponent ? ItemActor->MeshComponent->IsSimulatingPhysics () : false;
         ItemState.bIsContainedInReceptacle = false;
         ItemState.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        ItemState.ReadableContentAsset = ItemActor->ReadableContentAsset;
+        ItemState.ReadableContentId = ItemActor->ReadableContentId;
+        ItemState.ReadTitleOverride = ItemActor->ReadTitleOverride;
+        ItemState.ReadTextOverride = ItemActor->ReadTextOverride;
         State->Items.Add (Entry.ObjectId, ItemState);
     }
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
@@ -804,6 +808,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 ItemActor->SetRuntimeObjectId (Pair.Key);
                 ItemActor->SetRuntimeCell (ItemState.CellX, ItemState.CellY);
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+                ItemActor->InitializeReadableContent (
+                    ItemState.ReadableContentAsset,
+                    ItemState.ReadableContentId,
+                    ItemState.ReadTitleOverride,
+                    ItemState.ReadTextOverride);
                 Entry.Cell = FIntPoint (ItemState.CellX, ItemState.CellY);
                 Entry.Edge = ItemState.Edge;
                 Entry.Quantity = FMath::Max (1, ItemState.Quantity);
@@ -831,6 +840,11 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
                 ItemActor->ConfigureAsWorldPickup ();
                 ItemActor->OnPlacedInWorld ();
                 ItemActor->SetItemLightsEnabled (ItemState.bLightsEnabled);
+                ItemActor->InitializeReadableContent (
+                    ItemState.ReadableContentAsset,
+                    ItemState.ReadableContentId,
+                    ItemState.ReadTitleOverride,
+                    ItemState.ReadTextOverride);
                 SpawnedItemActors.Add (ItemActor);
 
                 FGridSpawnedItemRuntimeEntry Entry;
@@ -2487,6 +2501,10 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell (int32 CellX, int32 CellY, AGri
         ItemInstance.Quantity = FMath::Max (1, Entry.Quantity);
         ItemInstance.Weight = 0.0f;
         ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
+        ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
+        ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
+        ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
         ItemInstance.LastWorldTransform = ItemActor->GetActorTransform ();
 
         if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
@@ -2559,6 +2577,10 @@ bool AGridLevelRuntimeActor::TryPickupItemActor (AGridItemActor* ItemActor, AGri
         ItemInstance.Quantity = FMath::Max (1, Entry.Quantity);
         ItemInstance.Weight = 0.0f;
         ItemInstance.bLightsEnabled = ItemActor->AreItemLightsEnabled ();
+        ItemInstance.ReadableContentAsset = ItemActor->ReadableContentAsset;
+        ItemInstance.ReadableContentId = ItemActor->ReadableContentId;
+        ItemInstance.ReadTitleOverride = ItemActor->ReadTitleOverride;
+        ItemInstance.ReadTextOverride = ItemActor->ReadTextOverride;
         ItemInstance.LastWorldTransform = ItemActor->GetActorTransform ();
 
         if (!PartyPawn->AddItemInstanceToSelectedCharacterInventory (ItemInstance))
@@ -2665,6 +2687,11 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
     ItemActor->ConfigureAsWorldPickup ();
     ItemActor->OnPlacedInWorld ();
     ItemActor->SetItemLightsEnabled (ItemInstance.bLightsEnabled);
+    ItemActor->InitializeReadableContent (
+        ItemInstance.ReadableContentAsset,
+        ItemInstance.ReadableContentId,
+        ItemInstance.ReadTitleOverride,
+        ItemInstance.ReadTextOverride);
 
     FGridSpawnedItemRuntimeEntry Entry;
     Entry.Cell = FIntPoint (CellX, CellY);
@@ -2949,6 +2976,35 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     {
         ItemActor->InitializeFromItemDefinitionId (ItemDefinitionId, ObjectData.ObjectId);
     }
+    UGridReadableContentAsset* ReadableContentAsset = ObjectData.ReadableContentAsset;
+    FName ReadableContentId = ObjectData.ReadableContentId;
+    FText ReadTitleOverride = ObjectData.ReadTitleOverride;
+    FText ReadTextOverride = ObjectData.ReadTextOverride;
+    if (Archetype)
+    {
+        const FGridItemBehaviorParams& ItemDefaults = Archetype->DefaultBehavior.Item;
+        if (!ReadableContentAsset)
+        {
+            ReadableContentAsset = ItemDefaults.DefaultReadableContentAsset;
+        }
+        if (ReadableContentId.IsNone ())
+        {
+            ReadableContentId = ItemDefaults.DefaultReadableContentId;
+        }
+        if (ReadTitleOverride.IsEmpty ())
+        {
+            ReadTitleOverride = ItemDefaults.DefaultReadTitleOverride;
+        }
+        if (ReadTextOverride.IsEmpty ())
+        {
+            ReadTextOverride = ItemDefaults.DefaultReadTextOverride;
+        }
+    }
+    ItemActor->InitializeReadableContent (
+        ReadableContentAsset,
+        ReadableContentId,
+        ReadTitleOverride,
+        ReadTextOverride);
     ItemActor->SetRuntimeCell (ObjectData.CellX, ObjectData.CellY);
     ItemActor->ConfigureAsWorldPickup ();
     ItemActor->OnRemovedFromWorld ();

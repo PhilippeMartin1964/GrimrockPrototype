@@ -4,6 +4,8 @@
 #include "Core/GridTypes.h"
 #include "GridDungeonRuntimeState.generated.h"
 
+class UGridReadableContentAsset;
+
 USTRUCT (BlueprintType)
 struct FGridRuntimeDoorState
 {
@@ -89,6 +91,18 @@ struct FGridRuntimeItemState
 
     UPROPERTY (Transient, BlueprintReadWrite)
     bool bLightsEnabled = true;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    FName ReadableContentId = NAME_None;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    FText ReadTitleOverride;
+
+    UPROPERTY (Transient, BlueprintReadWrite)
+    FText ReadTextOverride;
 };
 
 USTRUCT (BlueprintType)
