@@ -199,8 +199,9 @@ Les planches visuelles actuellement intégrées à ce volume sont :
 - Gargouille
 - Golem de pierre
 - Gardien de la Crypte
+- Champignon toxique
 
-Champignon toxique reste pour l’instant en version texte et pourra être illustré ultérieurement.
+Le Volume I est désormais entièrement illustré.
 
 # FICHE 01 — Rat géant
 
@@ -1303,3 +1304,84 @@ La prochaine étape naturelle consiste à produire les premières planches visue
 3. Slime vert ;
 4. Mimique ;
 5. Gardien de la Crypte.
+
+
+# FICHE 12 — Champignon toxique
+
+![Planche visuelle — Champignon toxique](Images/bestiaire_champignon_toxique.png)
+
+## Nom technique
+
+`MON_ToxicMushroom`
+
+## Catégorie
+
+Matière vivante
+
+## Description immersive
+
+Le champignon toxique prolifère dans les couloirs les plus humides du donjon. Il s’enracine dans les fissures de la pierre, gonfle de moisissures et libère dans l’air un nuage de spores irritantes qui empoisonne quiconque s’attarde trop près de lui.
+
+## Intention artistique
+
+Le champignon toxique doit paraître organique, humide et malsain. Il ne s’agit pas d’un simple végétal décoratif, mais d’une présence intrusive qui transforme une portion du donjon en zone dangereuse.
+
+### Silhouette
+
+- grand chapeau principal affaissé ;
+- plusieurs excroissances secondaires ;
+- base racinaire large ;
+- masse compacte, enracinée au sol ;
+- nuage de spores visible autour de la créature.
+
+### Matières
+
+- chair fongique visqueuse ;
+- lamelles épaisses ;
+- mycélium humide ;
+- spores poudreuses ;
+- pierre contaminée par la moisissure.
+
+## Gameplay
+
+| Élément | Valeur |
+|---|---|
+| Rôle | Contrôle de zone / poison |
+| Dangerosité | 3 |
+| Taille | 1 case |
+| Comportement IA | SlowPressure |
+| Vitesse | Immobile ou quasi nulle |
+| Attaque | Nuage de spores toxiques |
+| Effet spécial | Réduit la visibilité et empoisonne à proximité |
+| Faiblesse | Feu, lumière intense |
+| Résistance | Poison |
+| Peut activer plaques | Non |
+| Peut ouvrir portes | Non |
+| Loot | Spores toxiques, glande fongique |
+
+## Utilisation en level design
+
+- Bloquer un couloir étroit ;
+- protéger un objet ou une alcôve ;
+- créer une zone à purifier par le feu ;
+- forcer le joueur à bouger vite ou à contourner ;
+- combiner avec portes, torches ou ventilation.
+
+## Animations nécessaires
+
+- pulsation lente ;
+- émission de spores ;
+- légère ondulation des lamelles ;
+- réaction à l’impact ;
+- effondrement de la masse fongique.
+
+## Sons nécessaires
+
+- suintement humide ;
+- craquement organique ;
+- diffusion poudreuse ;
+- crépitement lorsqu’il brûle.
+
+## Prompt concept art
+
+Champignon toxique de donjon dark fantasy, grande masse fongique humide et venimeuse enracinée dans la pierre, chapeau couvert de verrues et de spores, lamelles épaisses, mycélium rampant, nuage toxique jaune-vert, lumière de torche, style réaliste sombre, planche de bestiaire médiéval illustrée.
