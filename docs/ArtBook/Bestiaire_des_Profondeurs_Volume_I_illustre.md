@@ -182,7 +182,24 @@ Utilisé pour : golem, gardien, spectre futur, slime sur plaque.
 
 ---
 
+---
+
+# Planches visuelles intégrées
+
+Les premières planches visuelles intégrées à ce volume sont actuellement :
+
+- Rat géant
+- Squelette guerrier
+- Slime vert
+- Mimique
+- Gardien de la Crypte
+
+Les autres fiches restent en version texte et pourront être illustrées progressivement.
+
 # FICHE 01 — Rat géant
+
+![Planche visuelle — Rat géant](Images/bestiaire_rat_geant.png)
+
 
 ## Nom technique
 
@@ -348,6 +365,9 @@ Araignée de donjon dark fantasy, taille d’un chien, pattes longues anguleuses
 
 # FICHE 03 — Slime vert
 
+![Planche visuelle — Slime vert](Images/bestiaire_slime_vert.png)
+
+
 ## Nom technique
 
 `MON_GreenSlime`
@@ -427,6 +447,9 @@ Slime vert de donjon, masse gélatineuse translucide, noyau sombre interne, frag
 ---
 
 # FICHE 04 — Squelette guerrier
+
+![Planche visuelle — Squelette guerrier](Images/bestiaire_squelette_guerrier.png)
+
 
 ## Nom technique
 
@@ -674,6 +697,9 @@ Zombie de donjon médiéval dark fantasy, corps lourd, peau grisâtre nécrosée
 ---
 
 # FICHE 07 — Mimique
+
+![Planche visuelle — Mimique](Images/bestiaire_mimique.png)
+
 
 ## Nom technique
 
@@ -1009,6 +1035,9 @@ Golem de pierre dark fantasy, construct massif sculpté dans la pierre du donjon
 ---
 
 # FICHE 11 — Gardien de la Crypte
+
+![Planche visuelle — Gardien de la Crypte](Images/bestiaire_gardien_de_la_crypte.png)
+
 
 ## Nom technique
 
