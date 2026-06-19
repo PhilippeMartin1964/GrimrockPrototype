@@ -186,15 +186,21 @@ Utilisé pour : golem, gardien, spectre futur, slime sur plaque.
 
 # Planches visuelles intégrées
 
-Les premières planches visuelles intégrées à ce volume sont actuellement :
+Les planches visuelles actuellement intégrées à ce volume sont :
 
 - Rat géant
-- Squelette guerrier
+- Araignée mineure
 - Slime vert
+- Squelette guerrier
+- Squelette archer
+- Zombie
 - Mimique
+- Ver des cryptes
+- Gargouille
+- Golem de pierre
 - Gardien de la Crypte
 
-Les autres fiches restent en version texte et pourront être illustrées progressivement.
+Champignon toxique reste pour l’instant en version texte et pourra être illustré ultérieurement.
 
 # FICHE 01 — Rat géant
 
@@ -284,6 +290,9 @@ Rat géant de donjon médiéval sombre, corps bas et nerveux, pelage brun noir h
 ---
 
 # FICHE 02 — Araignée mineure
+
+![Planche visuelle — Araignée mineure](Images/bestiaire_araignee_mineure.png)
+
 
 ## Nom technique
 
@@ -533,6 +542,9 @@ Squelette guerrier médiéval dark fantasy, os jaunis, épée rouillée, bouclie
 
 # FICHE 05 — Squelette archer
 
+![Planche visuelle — Squelette archer](Images/bestiaire_squelette_archer.png)
+
+
 ## Nom technique
 
 `MON_SkeletonArcher`
@@ -615,6 +627,9 @@ Squelette archer de crypte médiévale, arc ancien, carquois de flèches rouill�
 ---
 
 # FICHE 06 — Zombie
+
+![Planche visuelle — Zombie](Images/bestiaire_zombie.png)
+
 
 ## Nom technique
 
@@ -784,6 +799,9 @@ Mimique de coffre médiéval dark fantasy, vieux coffre en bois sombre avec ferr
 
 # FICHE 08 — Ver des cryptes
 
+![Planche visuelle — Ver des cryptes](Images/bestiaire_ver_des_cryptes.png)
+
+
 ## Nom technique
 
 `MON_CryptWorm`
@@ -865,6 +883,9 @@ Ver des cryptes dark fantasy, créature souterraine aveugle, corps annelé gris 
 ---
 
 # FICHE 09 — Gargouille
+
+![Planche visuelle — Gargouille](Images/bestiaire_gargouille.png)
+
 
 ## Nom technique
 
@@ -949,6 +970,9 @@ Gargouille de donjon gothique dark fantasy, statue de pierre grise accroupie, ai
 ---
 
 # FICHE 10 — Golem de pierre
+
+![Planche visuelle — Golem de pierre](Images/bestiaire_golem_de_pierre.png)
+
 
 ## Nom technique
 
