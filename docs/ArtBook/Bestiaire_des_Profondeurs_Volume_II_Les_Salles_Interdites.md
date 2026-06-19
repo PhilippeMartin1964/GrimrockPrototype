@@ -4,8 +4,8 @@
 **Projet :** GrimrockPrototype
 **Moteur :** Unreal Engine 5.5.4
 **Genre :** Dungeon crawler en vue subjective, déplacement case par case
-**Document :** Artbook / Bible artistique / Document de conception du bestiaire
-**Version :** 0.1 - Base de travail
+**Document :** Artbook / Bible artistique / Document de conception du bestiaire illustré
+**Version :** 0.2 - Version illustrée
 
 ---
 
@@ -108,9 +108,30 @@ Volume II - Les Salles Interdites
 | 11 | Élémentaire de glace | Ralentissement / gel | SlowPressure / PuzzleLinked | 5 | Contrôle de terrain par le froid. |
 | 12 | Reine Araignée | Boss poison / invocation / contrôle de zone | BossPhases / Summoner | 6 | Boss de synthèse des mécaniques poison, toiles et invocation. |
 
+# Planches visuelles intégrées
+
+Les douze planches du Volume II sont désormais intégrées dans ce document :
+
+1. Gobelin pillard
+2. Gobelin lanceur
+3. Cultiste
+4. Œil flottant
+5. Spectre mineur
+6. Goule
+7. Serpent venimeux
+8. Loup des cavernes
+9. Armure animée
+10. Chien infernal mineur
+11. Élémentaire de glace
+12. Reine Araignée
+
+
 ---
 
 # FICHE 01 - Gobelin pillard
+
+![Planche visuelle - Gobelin pillard](Images/bestiaire_volume_ii_01_gobelin_pillard.png)
+
 
 ## Nom technique
 `MON_GoblinRaider`
@@ -186,6 +207,9 @@ Planche de bestiaire médiéval dark fantasy, gobelin pillard de donjon, petit h
 
 # FICHE 02 - Gobelin lanceur
 
+![Planche visuelle - Gobelin lanceur](Images/bestiaire_volume_ii_02_gobelin_lanceur.png)
+
+
 ## Nom technique
 `MON_GoblinThrower`
 
@@ -258,6 +282,9 @@ Planche de bestiaire dark fantasy, gobelin lanceur, petit humanoide maigre avec 
 ---
 
 # FICHE 03 - Cultiste
+
+![Planche visuelle - Cultiste](Images/bestiaire_volume_ii_03_cultiste.png)
+
 
 ## Nom technique
 `MON_Cultist`
@@ -334,6 +361,9 @@ Planche de bestiaire médiéval dark fantasy, cultiste encapuchonné de donjon, 
 
 # FICHE 04 - Œil flottant
 
+![Planche visuelle - Œil flottant](Images/bestiaire_volume_ii_04_oeil_flottant.png)
+
+
 ## Nom technique
 `MON_FloatingEye`
 
@@ -408,6 +438,9 @@ Planche de bestiaire dark fantasy, œil flottant magique, sentinelle de donjon, 
 
 # FICHE 05 - Spectre mineur
 
+![Planche visuelle - Spectre mineur](Images/bestiaire_volume_ii_05_spectre_mineur.png)
+
+
 ## Nom technique
 `MON_MinorWraith`
 
@@ -480,6 +513,9 @@ Planche de bestiaire dark fantasy, spectre mineur de crypte, silhouette humaine 
 ---
 
 # FICHE 06 - Goule
+
+![Planche visuelle - Goule](Images/bestiaire_volume_ii_06_goule.png)
+
 
 ## Nom technique
 `MON_Ghoul`
@@ -554,6 +590,9 @@ Planche de bestiaire dark fantasy, goule de crypte, mort-vivant maigre et courb�
 
 # FICHE 07 - Serpent venimeux
 
+![Planche visuelle - Serpent venimeux](Images/bestiaire_volume_ii_07_serpent_venimeux.png)
+
+
 ## Nom technique
 `MON_VenomSerpent`
 
@@ -625,6 +664,9 @@ Planche de bestiaire dark fantasy, serpent venimeux de donjon, corps long et som
 ---
 
 # FICHE 08 - Loup des cavernes
+
+![Planche visuelle - Loup des cavernes](Images/bestiaire_volume_ii_08_loup_des_cavernes.png)
+
 
 ## Nom technique
 `MON_CaveWolf`
@@ -699,6 +741,9 @@ Planche de bestiaire dark fantasy, loup des cavernes, prédateur gris sombre, fo
 
 # FICHE 09 - Armure animée
 
+![Planche visuelle - Armure animée](Images/bestiaire_volume_ii_09_armure_animee.png)
+
+
 ## Nom technique
 `MON_AnimatedArmor`
 
@@ -772,6 +817,9 @@ Planche de bestiaire dark fantasy, armure animée médiévale vide, métal noirc
 ---
 
 # FICHE 10 - Chien infernal mineur
+
+![Planche visuelle - Chien infernal mineur](Images/bestiaire_volume_ii_10_chien_infernal_mineur.png)
+
 
 ## Nom technique
 `MON_LesserHellhound`
@@ -848,6 +896,9 @@ Planche de bestiaire dark fantasy, chien infernal mineur, bête quadrupède somb
 
 # FICHE 11 - Élémentaire de glace
 
+![Planche visuelle - Élémentaire de glace](Images/bestiaire_volume_ii_11_elementaire_de_glace.png)
+
+
 ## Nom technique
 `MON_IceElemental`
 
@@ -921,6 +972,9 @@ Planche de bestiaire dark fantasy, élémentaire de glace, corps de glace et roc
 ---
 
 # FICHE 12 - Reine Araignée
+
+![Planche visuelle - Reine Araignée](Images/bestiaire_volume_ii_12_reine_araignee.png)
+
 
 ## Nom technique
 `MON_SpiderQueen`
@@ -1057,7 +1111,7 @@ CanTriggerEvent
 # Checklist de production
 
 - Valider les 12 fiches en design ;
-- Produire les 12 planches visuelles ;
+- Intégrer les 12 planches visuelles ;
 - Définir les DataAssets `UGridMonsterDataAsset` ;
 - Créer les premiers comportements IA : `PatrolSentinel`, `Caster`, `FleeAndCallHelp`, `BossPhases` ;
 - Tester gobelins et cultistes dans une salle de prototype ;
