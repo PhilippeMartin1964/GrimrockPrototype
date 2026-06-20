@@ -5,7 +5,7 @@
 **Moteur :** Unreal Engine 5.5.4
 **Genre :** Dungeon crawler en vue subjective, déplacement case par case
 **Document :** Artbook / Bible artistique / Document de conception du bestiaire
-**Version :** 0.1 - Base de conception
+**Version :** 0.2 - Version illustrée
 
 ---
 # Intention du Volume IV
@@ -65,9 +65,28 @@ Ce volume prépare l’ouverture du prototype vers des zones non souterraines. I
 | 12 | Hydre des marais | Marais / lac noir | boss multi-têtes / poison / eau | MultiHeadBoss | 6 |
 
 ---
+# Index des planches visuelles
+
+01. [Bandit éclaireur](Images/bestiaire_volume_iv_01_bandit_eclaireur.png)
+02. [Harpie des falaises](Images/bestiaire_volume_iv_02_harpie_des_falaises.png)
+03. [Sanglier des landes](Images/bestiaire_volume_iv_03_sanglier_des_landes.png)
+04. [Sylvain épineux](Images/bestiaire_volume_iv_04_sylvain_epineux.png)
+05. [Guêpe géante](Images/bestiaire_volume_iv_05_guepe_geante.png)
+06. [Feu follet](Images/bestiaire_volume_iv_06_feu_follet.png)
+07. [Homme-lézard des marais](Images/bestiaire_volume_iv_07_homme_lezard_des_marais.png)
+08. [Crocodile géant](Images/bestiaire_volume_iv_08_crocodile_geant.png)
+09. [Crabe des récifs](Images/bestiaire_volume_iv_09_crabe_des_recifs.png)
+10. [Sirène des brumes](Images/bestiaire_volume_iv_10_sirene_des_brumes.png)
+11. [Élémentaire d’eau](Images/bestiaire_volume_iv_11_elementaire_eau.png)
+12. [Hydre des marais](Images/bestiaire_volume_iv_12_hydre_des_marais.png)
+
+
+---
 # FICHE 01 - Bandit éclaireur
 
-> **Planche visuelle à produire**
+![Bandit éclaireur — planche visuelle](Images/bestiaire_volume_iv_01_bandit_eclaireur.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_01_bandit_eclaireur.png`
 
 ## Nom technique
 `MON_BanditScout`
@@ -106,7 +125,9 @@ Planche de bestiaire dark fantasy, bandit éclaireur dans des ruines extérieure
 ---
 # FICHE 02 - Harpie des falaises
 
-> **Planche visuelle à produire**
+![Harpie des falaises — planche visuelle](Images/bestiaire_volume_iv_02_harpie_des_falaises.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_02_harpie_des_falaises.png`
 
 ## Nom technique
 `MON_CliffHarpy`
@@ -145,7 +166,9 @@ Planche de bestiaire dark fantasy, harpie des falaises perchée sur ruines battu
 ---
 # FICHE 03 - Sanglier des landes
 
-> **Planche visuelle à produire**
+![Sanglier des landes — planche visuelle](Images/bestiaire_volume_iv_03_sanglier_des_landes.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_03_sanglier_des_landes.png`
 
 ## Nom technique
 `MON_MoorBoar`
@@ -184,7 +207,9 @@ Planche de bestiaire, sanglier des landes massif, charge dans hautes herbes, dé
 ---
 # FICHE 04 - Sylvain épineux
 
-> **Planche visuelle à produire**
+![Sylvain épineux — planche visuelle](Images/bestiaire_volume_iv_04_sylvain_epineux.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_04_sylvain_epineux.png`
 
 ## Nom technique
 `MON_ThornSylvan`
@@ -223,7 +248,9 @@ Planche de bestiaire dark fantasy, sylvain épineux, gardien végétal de forêt
 ---
 # FICHE 05 - Guêpe géante
 
-> **Planche visuelle à produire**
+![Guêpe géante — planche visuelle](Images/bestiaire_volume_iv_05_guepe_geante.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_05_guepe_geante.png`
 
 ## Nom technique
 `MON_GiantWasp`
@@ -262,7 +289,9 @@ Planche de bestiaire, guêpe géante de forêt, dard, ailes translucides, nid su
 ---
 # FICHE 06 - Feu follet
 
-> **Planche visuelle à produire**
+![Feu follet — planche visuelle](Images/bestiaire_volume_iv_06_feu_follet.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_06_feu_follet.png`
 
 ## Nom technique
 `MON_WillOWisp`
@@ -301,7 +330,9 @@ Planche de bestiaire, feu follet de marais, lumière bleue dans la brume, eau so
 ---
 # FICHE 07 - Homme-lézard des marais
 
-> **Planche visuelle à produire**
+![Homme-lézard des marais — planche visuelle](Images/bestiaire_volume_iv_07_homme_lezard_des_marais.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_07_homme_lezard_des_marais.png`
 
 ## Nom technique
 `MON_MarshLizardman`
@@ -340,7 +371,9 @@ Planche de bestiaire, homme-lézard des marais, lance, roseaux, eau peu profonde
 ---
 # FICHE 08 - Crocodile géant
 
-> **Planche visuelle à produire**
+![Crocodile géant — planche visuelle](Images/bestiaire_volume_iv_08_crocodile_geant.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_08_crocodile_geant.png`
 
 ## Nom technique
 `MON_GiantCrocodile`
@@ -379,7 +412,9 @@ Planche de bestiaire, crocodile géant dans marais, yeux au ras de l’eau, remo
 ---
 # FICHE 09 - Crabe des récifs
 
-> **Planche visuelle à produire**
+![Crabe des récifs — planche visuelle](Images/bestiaire_volume_iv_09_crabe_des_recifs.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_09_crabe_des_recifs.png`
 
 ## Nom technique
 `MON_ReefCrab`
@@ -418,7 +453,9 @@ Planche de bestiaire, crabe des récifs, carapace, pinces, littoral rocheux, dé
 ---
 # FICHE 10 - Sirène des brumes
 
-> **Planche visuelle à produire**
+![Sirène des brumes — planche visuelle](Images/bestiaire_volume_iv_10_sirene_des_brumes.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_10_sirene_des_brumes.png`
 
 ## Nom technique
 `MON_MistSiren`
@@ -457,7 +494,9 @@ Planche de bestiaire, sirène des brumes, lagune, brouillard côtier, chant, fan
 ---
 # FICHE 11 - Élémentaire d’eau
 
-> **Planche visuelle à produire**
+![Élémentaire d’eau — planche visuelle](Images/bestiaire_volume_iv_11_elementaire_eau.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_11_elementaire_eau.png`
 
 ## Nom technique
 `MON_WaterElemental`
@@ -496,7 +535,9 @@ Planche de bestiaire, élémentaire d’eau, temple noyé, courants, vague human
 ---
 # FICHE 12 - Hydre des marais
 
-> **Planche visuelle à produire**
+![Hydre des marais — planche visuelle](Images/bestiaire_volume_iv_12_hydre_des_marais.png)
+
+> **Planche visuelle intégrée** : `bestiaire_volume_iv_12_hydre_des_marais.png`
 
 ## Nom technique
 `MON_MarshHydra`
