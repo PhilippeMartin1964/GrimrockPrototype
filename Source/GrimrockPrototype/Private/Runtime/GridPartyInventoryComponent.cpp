@@ -2,6 +2,8 @@
 
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
 
 namespace
 {
@@ -229,6 +231,96 @@ void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded ()
     }
 
     RecalculateAllWeights ();
+}
+
+bool UGridPartyInventoryComponent::HasCompletedInitialCharacterCreation () const
+{
+    return PartyInventoryState.bInitialCharacterCreationCompleted;
+}
+
+bool UGridPartyInventoryComponent::CreateInitialCharacter (
+    const FRPGCharacterCreationRequest& Request,
+    FText& OutError)
+{
+    OutError = FText::GetEmpty ();
+
+    if (HasCompletedInitialCharacterCreation ())
+    {
+        OutError = FText::FromString (TEXT ("Initial character creation has already been completed."));
+        return false;
+    }
+
+    FString NormalizedName = Request.DisplayName.ToString ();
+    NormalizedName.TrimStartAndEndInline ();
+    if (NormalizedName.Len () < 1 || NormalizedName.Len () > 24)
+    {
+        OutError = FText::FromString (TEXT ("Character name must contain between 1 and 24 characters."));
+        return false;
+    }
+
+    if (!Request.RaceDefinition || !Request.RaceDefinition->IsValidDefinition ())
+    {
+        OutError = FText::FromString (TEXT ("A valid race definition is required."));
+        return false;
+    }
+
+    if (!Request.ClassDefinition || !Request.ClassDefinition->IsValidDefinition ())
+    {
+        OutError = FText::FromString (TEXT ("A valid class definition is required."));
+        return false;
+    }
+
+    const FRPGAttributes FinalAttributes = URPGCharacterRulesLibrary::AddAttributes (
+        Request.ClassDefinition->BaseAttributes,
+        Request.RaceDefinition->AttributeBonuses);
+    if (!URPGCharacterRulesLibrary::AreAttributesInRange (FinalAttributes))
+    {
+        OutError = FText::FromString (TEXT ("All starting attributes must be between 6 and 20."));
+        return false;
+    }
+
+    FGridCharacterInventoryState NewCharacter;
+    NewCharacter.CharacterId = FGuid::NewGuid ();
+    NewCharacter.DisplayName = FText::FromString (NormalizedName);
+    NewCharacter.RaceId = Request.RaceDefinition->RaceId;
+    NewCharacter.ClassId = Request.ClassDefinition->ClassId;
+    NewCharacter.Level = 1;
+    NewCharacter.Experience = 0;
+    NewCharacter.Attributes = FinalAttributes;
+    NewCharacter.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats (
+        FinalAttributes,
+        Request.ClassDefinition,
+        NewCharacter.Level);
+    NewCharacter.Portrait = Request.Portrait;
+    NewCharacter.bRPGAttributesInitialized = true;
+    NewCharacter.Strength = static_cast<float> (FinalAttributes.Strength);
+    NewCharacter.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight (FinalAttributes);
+    NewCharacter.CurrentWeight = 0.0f;
+    NewCharacter.InventorySlots.SetNum (FMath::Max (0, DefaultInventorySlotCountPerCharacter));
+
+    FGridPartyInventoryState NewPartyState;
+    NewPartyState.SelectedCharacterIndex = 0;
+    NewPartyState.MaxActiveCharacters = FMath::Max (1, DefaultMaxActiveCharacters);
+    NewPartyState.bInitialCharacterCreationCompleted = true;
+    NewPartyState.ActiveCharacters.Add (MoveTemp (NewCharacter));
+    NewPartyState.ActiveEquipment.SetNum (1);
+    NewPartyState.bHasCursorItem = false;
+    NewPartyState.CursorItem = FGridItemInstance ();
+
+    const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
+    PartyInventoryState = MoveTemp (NewPartyState);
+    RecalculateAllWeights ();
+
+    FString OwnershipError;
+    if (!ValidateInventoryOwnership (OwnershipError))
+    {
+        PartyInventoryState = PreviousPartyState;
+        OutError = FText::FromString (
+            FString::Printf (TEXT ("Character creation failed ownership validation: %s"), *OwnershipError));
+        return false;
+    }
+
+    return true;
 }
 
 int32 UGridPartyInventoryComponent::GetActiveCharacterCount () const
