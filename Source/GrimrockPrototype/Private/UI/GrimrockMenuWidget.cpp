@@ -33,7 +33,7 @@ void UGrimrockMenuWidget::RefreshInventory ()
 {
     if (Page_Inventory)
     {
-        Page_Inventory->RefreshInventory ();
+        Page_Inventory->RefreshInventoryState ();
     }
 }
 

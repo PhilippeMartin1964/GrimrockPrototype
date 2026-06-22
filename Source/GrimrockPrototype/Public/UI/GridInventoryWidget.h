@@ -124,6 +124,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     void InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory")
+    void RefreshInventoryState ();
+
     UFUNCTION (BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
     void RefreshInventory ();
 

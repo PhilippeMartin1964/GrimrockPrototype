@@ -128,16 +128,24 @@ Le portrait est automatiquement masqué lorsque `DefaultPortrait` n'a pas été 
 
 ---
 
-## 7. Étape D - Simplifier RefreshInventory
+## 7. Étape D - Configurer RefreshInventory
 
 Dans le Graph de `WBP_GridInventory`, rechercher `Event RefreshInventory`.
 
-Solution recommandée :
+Ne supprimez pas les appels existants. La chaîne Blueprint attendue est :
 
-1. supprimer l'override Blueprint s'il ne fait qu'appeler les anciennes méthodes de rafraîchissement ;
-2. laisser l'implémentation native exécuter les trois rafraîchissements.
+```text
+Event RefreshInventory
+-> RefreshSelectedCharacterDetails
+-> RefreshRegisteredPartyMemberWidgets
+-> RefreshRegisteredSlotWidgets
+```
 
-Si le Graph contient encore une opération visuelle nécessaire, conserver l'événement et ajouter **Call to Parent Function**. Ne pas rappeler ensuite manuellement les trois méthodes natives.
+Si les deux derniers appels ont été supprimés en suivant une version antérieure de cette checklist, restaurez-les.
+
+Le C++ utilise également `RefreshInventoryState()`, une méthode non surchargeable qui exécute systématiquement ces trois rafraîchissements. Cette protection évite qu'un override Blueprint incomplet laisse les slots, l'équipement ou la fiche centrale dans un état visuel périmé.
+
+Ne placez pas un appel normal à `RefreshInventory` dans `Event RefreshInventory` : cela créerait une récursion. Aucun appel à la fonction parente n'est requis avec la chaîne explicite ci-dessus.
 
 Compiler et enregistrer `WBP_GridInventory` et `WBP_PartyMember`.
 
