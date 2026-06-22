@@ -32,8 +32,8 @@ Vous ne devez modifier aucun Blueprint pour valider CC2.
 - `bInitialCharacterCreationCompleted` distingue le placeholder du personnage finalisé ;
 - `HasCompletedInitialCharacterCreation()` expose cet etat ;
 - `CreateInitialCharacter()` valide la requête avant toute mutation ;
-- une création valide remplacé le placeholder par exactement un personnage ;
-- le personnage cree possède un équipement vide, 40 slots et un curseur vide ;
+- une création valide remplace le placeholder par exactement un personnage ;
+- le personnage créé possède un équipement vide, 40 slots et un curseur vide ;
 - les caractéristiques proviennent de la classe et des bonus raciaux ;
 - les PV, la mana et la charge sont calculés par les règles CC1 ;
 - une seconde création est refusée ;
@@ -124,7 +124,7 @@ Le maintien de `Hero_01` est attendu : CC2 fournit l'API, mais ne l'appelle pas 
 
 - aucun écran de création ;
 - aucun blocage du mouvement au démarrage ;
-- aucun appel automatique a `CreateInitialCharacter()` ;
+- aucun appel automatique à `CreateInitialCharacter()` ;
 - aucun remplacement de `Hero_01` en PIE ;
 - aucune nouvelle statistique affichée dans l'Inventaire ;
 - aucune sauvegarde du personnage.
@@ -138,7 +138,7 @@ Ces fonctions appartiennent aux tranches suivantes.
 CC2 est validée lorsque :
 
 - le projet compile en **Development Editor Win64** ;
-- les deux DataAssets CC1 sont toujours presents ;
+- les deux DataAssets CC1 sont toujours présents ;
 - les dix tests CC0, CC1 et CC2 sont verts ;
 - le test PIE ne révèle aucune régression ;
 - aucune modification Blueprint temporaire n'a ete nécessaire.
