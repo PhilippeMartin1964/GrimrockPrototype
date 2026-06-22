@@ -22,6 +22,20 @@ Nouveau jeu
 
 ---
 
+## 1.1 Convention de responsabilite
+
+Chaque tranche distingue maintenant trois types de travail :
+
+| Type | Responsable | Contenu |
+|---|---|---|
+| Implementation | ChatGPT / Codex | Analyse, C++, tests automatises, documentation et branche Git |
+| Intervention UE5 | Utilisateur | Compilation UnrealHeaderTool, creation ou modification des `.uasset`, reglages Blueprint et Designer |
+| Validation | Utilisateur avec assistance ChatGPT / Codex | Tests Automation, PIE, controle visuel et transmission des erreurs |
+
+ChatGPT / Codex prepare les changements textuels et analyse les resultats. Les assets binaires Unreal et la validation dans l'editeur restent des operations humaines, sauf si un environnement Unreal automatise est explicitement disponible.
+
+---
+
 ## 2. Etat actuel a conserver
 
 Le code possede deja une base exploitable :
@@ -246,6 +260,14 @@ Tests ajoutes dans `Private/Tests/GridPartyInventoryCC0Tests.cpp` :
 ### Tranche CC1 - Modele JdR minimal
 
 **Etat : implementee dans le code, compilation Unreal et creation des DataAssets a valider.**
+
+Checklist humaine detaillee : `docs/Design/CHARACTER_CREATION_CC1_UE5_CHECKLIST.md`.
+
+| Responsable | Taches CC1 |
+|---|---|
+| ChatGPT / Codex | Types JdR, classes DataAsset, calculs centralises, migration de Force, tests et documentation |
+| Utilisateur dans UE5 | Compiler, creer `DA_Race_Human` et `DA_Class_Warrior`, executer les tests et verifier le PIE |
+| Hors CC1 | Ecran de creation, application runtime des DataAssets et affichage des nouvelles statistiques |
 
 Objectif : representer proprement le personnage de niveau 1.
 
