@@ -1,11 +1,10 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "RPG/RPGCharacterRulesLibrary.h"
 
 namespace
 {
-    constexpr float CarryWeightPerStrength = 5.0f;
-
     int32 CountOccupiedSlots (const FGridCharacterInventoryState& CharacterState)
     {
         int32 OccupiedCount = 0;
@@ -1407,7 +1406,8 @@ void UGridPartyInventoryComponent::RecalculateCharacterWeight (int32 CharacterIn
         TotalWeight += CalculateEquipmentWeight (PartyInventoryState.ActiveEquipment[CharacterIndex]);
     }
 
-    CharacterState.MaxCarryWeight = CharacterState.Strength * CarryWeightPerStrength;
+    CharacterState.MaxCarryWeight =
+        URPGCharacterRulesLibrary::CalculateMaxCarryWeight (CharacterState.Attributes);
     CharacterState.CurrentWeight = TotalWeight;
 }
 
@@ -1702,9 +1702,28 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults (
         CharacterState.ClassId = TEXT ("Warrior");
     }
 
+    if (CharacterState.RaceId.IsNone ())
+    {
+        CharacterState.RaceId = TEXT ("Human");
+    }
+
     CharacterState.Level = FMath::Max (1, CharacterState.Level);
-    CharacterState.Strength = FMath::Max (0.0f, CharacterState.Strength);
-    CharacterState.MaxCarryWeight = CharacterState.Strength * CarryWeightPerStrength;
+    CharacterState.Experience = FMath::Max (0, CharacterState.Experience);
+
+    if (!CharacterState.bRPGAttributesInitialized)
+    {
+        CharacterState.Attributes.Strength = FMath::RoundToInt (FMath::Max (0.0f, CharacterState.Strength));
+        CharacterState.bRPGAttributesInitialized = true;
+    }
+
+    CharacterState.Attributes.Strength = FMath::Max (0, CharacterState.Attributes.Strength);
+    CharacterState.Attributes.Dexterity = FMath::Max (0, CharacterState.Attributes.Dexterity);
+    CharacterState.Attributes.Constitution = FMath::Max (0, CharacterState.Attributes.Constitution);
+    CharacterState.Attributes.Intelligence = FMath::Max (0, CharacterState.Attributes.Intelligence);
+    CharacterState.Attributes.Wisdom = FMath::Max (0, CharacterState.Attributes.Wisdom);
+    CharacterState.Attributes.Charisma = FMath::Max (0, CharacterState.Attributes.Charisma);
+    CharacterState.MaxCarryWeight =
+        URPGCharacterRulesLibrary::CalculateMaxCarryWeight (CharacterState.Attributes);
 
     if (CharacterState.InventorySlots.Num () == 0)
     {
