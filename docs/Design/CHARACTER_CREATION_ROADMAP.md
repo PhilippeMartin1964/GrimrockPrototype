@@ -357,7 +357,7 @@ Objectif : permettre au joueur de créer le personnage au lancement.
 
 Contenu de `WBP_CharacterCreation` :
 
-- champ `EditableTextBox_Name` ;
+- champ `EditableText_Name` ;
 - portrait Humain/Guerrier par défaut ;
 - libellés Race et Classe ;
 - six caractéristiques en lecture seule ;
