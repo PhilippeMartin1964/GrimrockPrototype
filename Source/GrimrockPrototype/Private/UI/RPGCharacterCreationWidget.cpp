@@ -62,42 +62,68 @@ void URPGCharacterCreationWidget::InitializeCharacterCreationWidget (AGrimrockPa
 
 void URPGCharacterCreationWidget::RefreshPreview ()
 {
+    const bool bHasRaceDefinition = RaceDefinition && RaceDefinition->IsValidDefinition ();
+    const bool bHasClassDefinition = ClassDefinition && ClassDefinition->IsValidDefinition ();
+    const FText UnavailableValue = FText::FromString (TEXT ("-"));
+
     SetOptionalText (
         Text_RaceValue,
-        RaceDefinition
+        bHasRaceDefinition
             ? GetDefinitionDisplayName (RaceDefinition->DisplayName, RaceDefinition->RaceId)
             : FText::FromString (TEXT ("Race non configurée")));
     SetOptionalText (
         Text_ClassValue,
-        ClassDefinition
+        bHasClassDefinition
             ? GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId)
             : FText::FromString (TEXT ("Classe non configurée")));
 
     FRPGAttributes Attributes;
     const bool bHasAttributes = GetPreviewAttributes (Attributes);
-    SetOptionalText (Text_StrengthValue, FText::AsNumber (Attributes.Strength));
-    SetOptionalText (Text_DexterityValue, FText::AsNumber (Attributes.Dexterity));
-    SetOptionalText (Text_ConstitutionValue, FText::AsNumber (Attributes.Constitution));
-    SetOptionalText (Text_IntelligenceValue, FText::AsNumber (Attributes.Intelligence));
-    SetOptionalText (Text_WisdomValue, FText::AsNumber (Attributes.Wisdom));
-    SetOptionalText (Text_CharismaValue, FText::AsNumber (Attributes.Charisma));
+    SetOptionalText (Text_StrengthValue, bHasAttributes ? FText::AsNumber (Attributes.Strength) : UnavailableValue);
+    SetOptionalText (Text_DexterityValue, bHasAttributes ? FText::AsNumber (Attributes.Dexterity) : UnavailableValue);
+    SetOptionalText (Text_ConstitutionValue, bHasAttributes ? FText::AsNumber (Attributes.Constitution) : UnavailableValue);
+    SetOptionalText (Text_IntelligenceValue, bHasAttributes ? FText::AsNumber (Attributes.Intelligence) : UnavailableValue);
+    SetOptionalText (Text_WisdomValue, bHasAttributes ? FText::AsNumber (Attributes.Wisdom) : UnavailableValue);
+    SetOptionalText (Text_CharismaValue, bHasAttributes ? FText::AsNumber (Attributes.Charisma) : UnavailableValue);
 
     FRPGDerivedStats DerivedStats;
-    GetPreviewDerivedStats (DerivedStats);
-    SetOptionalText (Text_HealthValue, FText::AsNumber (DerivedStats.MaxHealth));
-    SetOptionalText (Text_ManaValue, FText::AsNumber (DerivedStats.MaxMana));
+    const bool bHasDerivedStats = GetPreviewDerivedStats (DerivedStats);
+    SetOptionalText (Text_HealthValue, bHasDerivedStats ? FText::AsNumber (DerivedStats.MaxHealth) : UnavailableValue);
+    SetOptionalText (Text_ManaValue, bHasDerivedStats ? FText::AsNumber (DerivedStats.MaxMana) : UnavailableValue);
     SetOptionalText (
         Text_CarryWeightValue,
-        FText::AsNumber (FMath::RoundToInt (GetPreviewCarryWeight ())));
+        bHasAttributes
+            ? FText::AsNumber (FMath::RoundToInt (GetPreviewCarryWeight ()))
+            : UnavailableValue);
 
     if (Image_Portrait)
     {
-        Image_Portrait->SetBrushFromSoftTexture (DefaultPortrait, false);
+        if (DefaultPortrait.IsNull ())
+        {
+            Image_Portrait->SetVisibility (ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            Image_Portrait->SetBrushFromSoftTexture (DefaultPortrait, false);
+            Image_Portrait->SetVisibility (ESlateVisibility::HitTestInvisible);
+        }
+    }
+
+    if (!bHasRaceDefinition || !bHasClassDefinition)
+    {
+        SetValidationMessage (
+            FText::FromString (
+                TEXT ("Assignez DA_Race_Human et DA_Class_Warrior dans Class Defaults du widget.")),
+            true);
+    }
+    else if (!InventoryComponent)
+    {
+        SetValidationMessage (FText::FromString (TEXT ("Composant d'inventaire indisponible.")), true);
     }
 
     if (Button_CreateCharacter)
     {
-        Button_CreateCharacter->SetIsEnabled (bHasAttributes && CanSubmitCharacterCreation ());
+        Button_CreateCharacter->SetIsEnabled (CanSubmitCharacterCreation ());
     }
 }
 
