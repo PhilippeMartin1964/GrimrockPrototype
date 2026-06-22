@@ -1078,6 +1078,11 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
         return;
     }
 
+    if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
+    {
+        GrimrockPlayerController->SetInventoryUiOpen (true);
+    }
+
     if (!CharacterCreationWidgetClass)
     {
         UE_LOG (LogTemp, Error, TEXT ("CharacterCreation UI Show Failed Pawn=%s Reason=NoWidgetClass"), *GetName ());
@@ -1115,10 +1120,7 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
     InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
     PlayerController->SetInputMode (InputMode);
 
-    if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
-    {
-        GrimrockPlayerController->SetInventoryUiOpen (true);
-    }
+    CharacterCreationWidgetInstance->FocusNameInput ();
 
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreation UI Shown Pawn=%s"), *GetName ());
 }
