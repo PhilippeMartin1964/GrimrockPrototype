@@ -422,7 +422,7 @@ Critère de sortie : aucun affichage de diagnostic, aucun élément coupé, aucu
 
 ### Tranche CC5 - Persistance minimale de nouvelle partie
 
-**État : implémentée dans le code, configuration UE5 et validation PIE à effectuer.**
+**État : validée en UE5 et en PIE ; les treize tests Automation sont verts.**
 
 Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC5_UE5_CHECKLIST.md`.
 
@@ -445,20 +445,51 @@ Objectif : ne plus recréer le personnage à chaque chargement.
 
 Critère de sortie : Elias, son équipement, sa position et l'état des objets du niveau sont identiques après arrêt puis relance du PIE, sans duplication d'ownership.
 
-### Tranche CC6 - Extension des choix
+### Tranche CC6 - Extension progressive des choix
 
-Objectif : ouvrir progressivement les règles v0.1.
+Objectif : ouvrir progressivement les règles v0.1 sans transformer la création de personnage en un bloc monolithique.
 
-Ordre recommandé :
+#### Tranche CC6.1 - Choix de la race et de la classe
 
-1. ajouter les cinq autres races sous forme de DataAssets ;
-2. ajouter les cinq autres classes sous forme de DataAssets ;
-3. ajouter le choix de portrait ;
-4. ajouter une répartition de points avec budget et bouton Réinitialiser ;
-5. ajouter l'équipement de départ défini par la classe ;
-6. ajouter compétences, dons et sorts de niveau 1.
+**État : implémentée dans le code, création des DataAssets et validation PIE à effectuer.**
 
-Chaque ajout doit réutiliser `CreateInitialCharacter` et ne pas modifier l'ownership des objets.
+Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC6_1_UE5_CHECKLIST.md`.
+
+- proposer Humain, Nain, Elfe, Halfelin, Gnome et Demi-orc ;
+- proposer Guerrier, Voleur, Rôdeur, Mage, Prêtre et Alchimiste ;
+- alimenter deux ComboBox UMG depuis des tableaux de DataAssets ;
+- recalculer immédiatement l'aperçu lors d'un changement ;
+- conserver Humain / Guerrier comme sélection initiale ;
+- réutiliser `CreateInitialCharacter` sans modifier l'ownership ;
+- vérifier les 36 combinaisons et une création Elfe / Mage avec deux tests.
+
+Critère de sortie : les quinze tests CC0 à CC6.1 sont verts et chaque choix produit les valeurs attendues dans l'Inventaire.
+
+#### Tranche CC6.2 - Choix du portrait
+
+- définir des options de portrait localisées et orientées données ;
+- filtrer ou regrouper les portraits sans les lier rigidement à une race ou une classe ;
+- conserver le portrait sélectionné dans la sauvegarde.
+
+#### Tranche CC6.3 - Répartition de points
+
+- définir un budget explicite ;
+- ajouter les contrôles d'incrément, décrément et réinitialisation ;
+- appliquer les bornes 6-20 ;
+- valider le budget dans `CreateInitialCharacter`, et non uniquement dans l'UI.
+
+#### Tranche CC6.4 - Équipement de départ
+
+- définir l'équipement initial dans les DataAssets de classe ;
+- créer les instances runtime pendant la transaction de création ;
+- conserver l'ownership exclusif et refuser toute création partielle.
+
+#### Tranche CC6.5 - Compétences, dons et sorts de niveau 1
+
+- créer les DataAssets minimaux ;
+- définir les choix autorisés par race et classe ;
+- sauvegarder les sélections ;
+- ne commencer cette tranche qu'après définition des contrats runtime correspondants.
 
 ---
 

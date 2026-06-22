@@ -1,6 +1,7 @@
 #include "UI/RPGCharacterCreationWidget.h"
 
 #include "Components/Button.h"
+#include "Components/ComboBoxString.h"
 #include "Components/EditableText.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
@@ -31,6 +32,7 @@ void URPGCharacterCreationWidget::NativeConstruct ()
     Super::NativeConstruct ();
 
     BindWidgetEvents ();
+    PopulateDefinitionOptions ();
     RefreshPreview ();
 }
 
@@ -44,6 +46,26 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
         Button_CreateCharacter->OnClicked.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleCreateCharacterClicked);
+    }
+
+    if (ComboBox_Race)
+    {
+        ComboBox_Race->OnSelectionChanged.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleRaceSelectionChanged);
+        ComboBox_Race->OnSelectionChanged.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleRaceSelectionChanged);
+    }
+
+    if (ComboBox_Class)
+    {
+        ComboBox_Class->OnSelectionChanged.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleClassSelectionChanged);
+        ComboBox_Class->OnSelectionChanged.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleClassSelectionChanged);
     }
 
     if (EditableText_Name)
@@ -60,6 +82,101 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
         EditableText_Name->OnTextCommitted.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleNameCommitted);
+    }
+}
+
+void URPGCharacterCreationWidget::PopulateDefinitionOptions ()
+{
+    if (ComboBox_Race)
+    {
+        ComboBox_Race->ClearOptions ();
+
+        TSet<FString> AddedOptions;
+        auto AddRaceOption = [this, &AddedOptions] (URPGRaceAsset* Race)
+        {
+            if (!Race || !Race->IsValidDefinition ())
+            {
+                return;
+            }
+
+            const FString Option = GetDefinitionDisplayName (Race->DisplayName, Race->RaceId).ToString ();
+            if (!AddedOptions.Contains (Option))
+            {
+                AddedOptions.Add (Option);
+                ComboBox_Race->AddOption (Option);
+            }
+        };
+
+        AddRaceOption (RaceDefinition);
+        for (URPGRaceAsset* Race : AvailableRaceDefinitions)
+        {
+            AddRaceOption (Race);
+        }
+
+        if (!RaceDefinition || !RaceDefinition->IsValidDefinition ())
+        {
+            for (URPGRaceAsset* Race : AvailableRaceDefinitions)
+            {
+                if (Race && Race->IsValidDefinition ())
+                {
+                    RaceDefinition = Race;
+                    break;
+                }
+            }
+        }
+
+        if (RaceDefinition && RaceDefinition->IsValidDefinition ())
+        {
+            ComboBox_Race->SetSelectedOption (
+                GetDefinitionDisplayName (RaceDefinition->DisplayName, RaceDefinition->RaceId).ToString ());
+        }
+    }
+
+    if (ComboBox_Class)
+    {
+        ComboBox_Class->ClearOptions ();
+
+        TSet<FString> AddedOptions;
+        auto AddClassOption = [this, &AddedOptions] (URPGClassAsset* CharacterClass)
+        {
+            if (!CharacterClass || !CharacterClass->IsValidDefinition ())
+            {
+                return;
+            }
+
+            const FString Option = GetDefinitionDisplayName (
+                CharacterClass->DisplayName,
+                CharacterClass->ClassId).ToString ();
+            if (!AddedOptions.Contains (Option))
+            {
+                AddedOptions.Add (Option);
+                ComboBox_Class->AddOption (Option);
+            }
+        };
+
+        AddClassOption (ClassDefinition);
+        for (URPGClassAsset* CharacterClass : AvailableClassDefinitions)
+        {
+            AddClassOption (CharacterClass);
+        }
+
+        if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
+        {
+            for (URPGClassAsset* CharacterClass : AvailableClassDefinitions)
+            {
+                if (CharacterClass && CharacterClass->IsValidDefinition ())
+                {
+                    ClassDefinition = CharacterClass;
+                    break;
+                }
+            }
+        }
+
+        if (ClassDefinition && ClassDefinition->IsValidDefinition ())
+        {
+            ComboBox_Class->SetSelectedOption (
+                GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId).ToString ());
+        }
     }
 }
 
@@ -96,6 +213,12 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         bHasClassDefinition
             ? GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId)
             : FText::FromString (TEXT ("Classe non configurée")));
+    SetOptionalText (
+        Text_RaceDescription,
+        bHasRaceDefinition ? RaceDefinition->Description : FText::GetEmpty ());
+    SetOptionalText (
+        Text_ClassDescription,
+        bHasClassDefinition ? ClassDefinition->Description : FText::GetEmpty ());
 
     FRPGAttributes Attributes;
     const bool bHasAttributes = GetPreviewAttributes (Attributes);
@@ -133,7 +256,7 @@ void URPGCharacterCreationWidget::RefreshPreview ()
     {
         SetValidationMessage (
             FText::FromString (
-                TEXT ("Assignez DA_Race_Human et DA_Class_Warrior dans Class Defaults du widget.")),
+                TEXT ("Ajoutez au moins une race et une classe valides dans Class Defaults du widget.")),
             true);
     }
     else if (!InventoryComponent)
@@ -272,6 +395,48 @@ void URPGCharacterCreationWidget::HandleNameCommitted (
     if (CommitMethod == ETextCommit::OnEnter && CanSubmitCharacterCreation ())
     {
         SubmitCharacterCreation ();
+    }
+}
+
+void URPGCharacterCreationWidget::HandleRaceSelectionChanged (
+    FString SelectedItem,
+    ESelectInfo::Type SelectionType)
+{
+    (void)SelectionType;
+
+    for (URPGRaceAsset* Race : AvailableRaceDefinitions)
+    {
+        if (Race &&
+            Race->IsValidDefinition () &&
+            GetDefinitionDisplayName (Race->DisplayName, Race->RaceId).ToString () == SelectedItem)
+        {
+            RaceDefinition = Race;
+            SetValidationMessage (FText::GetEmpty (), false);
+            RefreshPreview ();
+            return;
+        }
+    }
+}
+
+void URPGCharacterCreationWidget::HandleClassSelectionChanged (
+    FString SelectedItem,
+    ESelectInfo::Type SelectionType)
+{
+    (void)SelectionType;
+
+    for (URPGClassAsset* CharacterClass : AvailableClassDefinitions)
+    {
+        if (CharacterClass &&
+            CharacterClass->IsValidDefinition () &&
+            GetDefinitionDisplayName (
+                CharacterClass->DisplayName,
+                CharacterClass->ClassId).ToString () == SelectedItem)
+        {
+            ClassDefinition = CharacterClass;
+            SetValidationMessage (FText::GetEmpty (), false);
+            RefreshPreview ();
+            return;
+        }
     }
 }
 

@@ -1,0 +1,155 @@
+#if WITH_DEV_AUTOMATION_TESTS
+
+#include "Misc/AutomationTest.h"
+#include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "UObject/UObjectGlobals.h"
+
+namespace
+{
+    URPGRaceAsset* CreateCC6Race (
+        FName RaceId,
+        const TCHAR* DisplayName,
+        const FRPGAttributes& Bonuses)
+    {
+        URPGRaceAsset* Race = NewObject<URPGRaceAsset> ();
+        Race->RaceId = RaceId;
+        Race->DisplayName = FText::FromString (DisplayName);
+        Race->AttributeBonuses = Bonuses;
+        return Race;
+    }
+
+    URPGClassAsset* CreateCC6Class (
+        FName ClassId,
+        const TCHAR* DisplayName,
+        const FRPGAttributes& BaseAttributes,
+        int32 HealthAtLevelOne,
+        int32 HealthPerLevel,
+        int32 ManaAtLevelOne,
+        int32 ManaPerLevel)
+    {
+        URPGClassAsset* CharacterClass = NewObject<URPGClassAsset> ();
+        CharacterClass->ClassId = ClassId;
+        CharacterClass->DisplayName = FText::FromString (DisplayName);
+        CharacterClass->BaseAttributes = BaseAttributes;
+        CharacterClass->HealthAtLevelOne = HealthAtLevelOne;
+        CharacterClass->HealthPerLevel = HealthPerLevel;
+        CharacterClass->ManaAtLevelOne = ManaAtLevelOne;
+        CharacterClass->ManaPerLevel = ManaPerLevel;
+        return CharacterClass;
+    }
+
+    TArray<URPGRaceAsset*> CreateCC6Races ()
+    {
+        return {
+            CreateCC6Race (TEXT ("Human"), TEXT ("Humain"), FRPGAttributes { 1, 1, 1, 1, 1, 1 }),
+            CreateCC6Race (TEXT ("Dwarf"), TEXT ("Nain"), FRPGAttributes { 1, 0, 2, 0, 0, 0 }),
+            CreateCC6Race (TEXT ("Elf"), TEXT ("Elfe"), FRPGAttributes { 0, 2, 0, 1, 0, 0 }),
+            CreateCC6Race (TEXT ("Halfling"), TEXT ("Halfelin"), FRPGAttributes { 0, 2, 0, 0, 0, 1 }),
+            CreateCC6Race (TEXT ("Gnome"), TEXT ("Gnome"), FRPGAttributes { 0, 0, 1, 2, 0, 0 }),
+            CreateCC6Race (TEXT ("HalfOrc"), TEXT ("Demi-orc"), FRPGAttributes { 2, 0, 1, 0, 0, 0 })
+        };
+    }
+
+    TArray<URPGClassAsset*> CreateCC6Classes ()
+    {
+        return {
+            CreateCC6Class (TEXT ("Warrior"), TEXT ("Guerrier"), FRPGAttributes { 15, 11, 13, 9, 9, 9 }, 18, 8, 0, 0),
+            CreateCC6Class (TEXT ("Rogue"), TEXT ("Voleur"), FRPGAttributes { 9, 15, 10, 13, 9, 10 }, 14, 6, 0, 0),
+            CreateCC6Class (TEXT ("Ranger"), TEXT ("Rôdeur"), FRPGAttributes { 11, 15, 12, 9, 11, 8 }, 16, 7, 0, 0),
+            CreateCC6Class (TEXT ("Mage"), TEXT ("Mage"), FRPGAttributes { 8, 12, 10, 15, 12, 9 }, 8, 4, 18, 8),
+            CreateCC6Class (TEXT ("Priest"), TEXT ("Prêtre"), FRPGAttributes { 10, 9, 13, 9, 15, 10 }, 12, 6, 16, 7),
+            CreateCC6Class (TEXT ("Alchemist"), TEXT ("Alchimiste"), FRPGAttributes { 9, 13, 12, 15, 9, 8 }, 12, 5, 10, 5)
+        };
+    }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGAllRaceClassCombinationsCC6Test,
+    "Grimrock.CharacterCreation.CC6.AllRaceClassCombinations",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGAllRaceClassCombinationsCC6Test::RunTest (const FString& Parameters)
+{
+    const TArray<URPGRaceAsset*> Races = CreateCC6Races ();
+    const TArray<URPGClassAsset*> Classes = CreateCC6Classes ();
+    int32 ValidCombinationCount = 0;
+
+    TestEqual (TEXT ("Six prototype races are configured"), Races.Num (), 6);
+    TestEqual (TEXT ("Six prototype classes are configured"), Classes.Num (), 6);
+
+    for (const URPGRaceAsset* Race : Races)
+    {
+        TestTrue (TEXT ("Each race definition is valid"), Race && Race->IsValidDefinition ());
+        for (const URPGClassAsset* CharacterClass : Classes)
+        {
+            TestTrue (
+                TEXT ("Each class definition is valid"),
+                CharacterClass && CharacterClass->IsValidDefinition ());
+            if (!Race || !CharacterClass)
+            {
+                continue;
+            }
+
+            const FRPGAttributes Attributes = URPGCharacterRulesLibrary::AddAttributes (
+                CharacterClass->BaseAttributes,
+                Race->AttributeBonuses);
+            if (URPGCharacterRulesLibrary::AreAttributesInRange (Attributes))
+            {
+                ++ValidCombinationCount;
+            }
+        }
+    }
+
+    TestEqual (TEXT ("All 36 race and class combinations are valid"), ValidCombinationCount, 36);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGElfMageCreationCC6Test,
+    "Grimrock.CharacterCreation.CC6.ElfMageCreation",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGElfMageCreationCC6Test::RunTest (const FString& Parameters)
+{
+    const TArray<URPGRaceAsset*> Races = CreateCC6Races ();
+    const TArray<URPGClassAsset*> Classes = CreateCC6Classes ();
+    URPGRaceAsset* Elf = Races[2];
+    URPGClassAsset* Mage = Classes[3];
+
+    FRPGCharacterCreationRequest Request;
+    Request.DisplayName = FText::FromString (TEXT ("Aelwen"));
+    Request.RaceDefinition = Elf;
+    Request.ClassDefinition = Mage;
+
+    UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent> ();
+    Component->InitializeDefaultPartyIfNeeded ();
+
+    FText Error;
+    TestTrue (TEXT ("An Elf Mage can be created"), Component->CreateInitialCharacter (Request, Error));
+    if (!Component->HasCompletedInitialCharacterCreation ())
+    {
+        return false;
+    }
+
+    const FGridCharacterInventoryState& Character =
+        Component->PartyInventoryState.ActiveCharacters[0];
+    TestTrue (TEXT ("The race id is Elf"), Character.RaceId == FName (TEXT ("Elf")));
+    TestTrue (TEXT ("The class id is Mage"), Character.ClassId == FName (TEXT ("Mage")));
+    TestEqual (TEXT ("Elf Mage Strength"), Character.Attributes.Strength, 8);
+    TestEqual (TEXT ("Elf Mage Dexterity"), Character.Attributes.Dexterity, 14);
+    TestEqual (TEXT ("Elf Mage Constitution"), Character.Attributes.Constitution, 10);
+    TestEqual (TEXT ("Elf Mage Intelligence"), Character.Attributes.Intelligence, 16);
+    TestEqual (TEXT ("Elf Mage Wisdom"), Character.Attributes.Wisdom, 12);
+    TestEqual (TEXT ("Elf Mage Charisma"), Character.Attributes.Charisma, 9);
+    TestEqual (TEXT ("Elf Mage maximum health"), Character.DerivedStats.MaxHealth, 8);
+    TestEqual (TEXT ("Elf Mage maximum mana"), Character.DerivedStats.MaxMana, 18);
+    TestTrue (
+        TEXT ("Elf Mage maximum carry weight"),
+        FMath::IsNearlyEqual (Character.MaxCarryWeight, 40.0f));
+    return true;
+}
+
+#endif
