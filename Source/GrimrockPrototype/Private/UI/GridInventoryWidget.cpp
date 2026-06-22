@@ -17,7 +17,7 @@
 
 namespace
 {
-    void SetOptionalText (UTextBlock* TextBlock, const FText& Value)
+    void SetInventoryOptionalText (UTextBlock* TextBlock, const FText& Value)
     {
         if (TextBlock)
         {
@@ -357,20 +357,20 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
     FGridInventoryCharacterSummary Summary;
     if (!GetCharacterSummary (GetSelectedCharacterIndex (), Summary))
     {
-        SetOptionalText (Text_CharacterName, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterRace, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterClass, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterLevel, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterExperience, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterStrength, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterDexterity, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterConstitution, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterIntelligence, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterWisdom, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterCharisma, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterHealth, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterMana, FText::GetEmpty ());
-        SetOptionalText (Text_CharacterCarryWeight, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterName, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterRace, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterClass, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterLevel, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterExperience, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterStrength, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterDexterity, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterConstitution, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterIntelligence, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterWisdom, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterCharisma, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterHealth, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterMana, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterCarryWeight, FText::GetEmpty ());
         if (Image_CharacterPortrait)
         {
             Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
@@ -378,34 +378,34 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
         return;
     }
 
-    SetOptionalText (Text_CharacterName, Summary.DisplayName);
-    SetOptionalText (
+    SetInventoryOptionalText (Text_CharacterName, Summary.DisplayName);
+    SetInventoryOptionalText (
         Text_CharacterRace,
         ResolveCharacterDisplayName (Summary.RaceDisplayName, Summary.RaceId, TEXT ("Race inconnue")));
-    SetOptionalText (
+    SetInventoryOptionalText (
         Text_CharacterClass,
         ResolveCharacterDisplayName (Summary.ClassDisplayName, Summary.ClassId, TEXT ("Classe inconnue")));
-    SetOptionalText (Text_CharacterLevel, FText::AsNumber (Summary.Level));
-    SetOptionalText (Text_CharacterExperience, FText::AsNumber (Summary.Experience));
-    SetOptionalText (Text_CharacterStrength, FText::AsNumber (Summary.Attributes.Strength));
-    SetOptionalText (Text_CharacterDexterity, FText::AsNumber (Summary.Attributes.Dexterity));
-    SetOptionalText (Text_CharacterConstitution, FText::AsNumber (Summary.Attributes.Constitution));
-    SetOptionalText (Text_CharacterIntelligence, FText::AsNumber (Summary.Attributes.Intelligence));
-    SetOptionalText (Text_CharacterWisdom, FText::AsNumber (Summary.Attributes.Wisdom));
-    SetOptionalText (Text_CharacterCharisma, FText::AsNumber (Summary.Attributes.Charisma));
-    SetOptionalText (
+    SetInventoryOptionalText (Text_CharacterLevel, FText::AsNumber (Summary.Level));
+    SetInventoryOptionalText (Text_CharacterExperience, FText::AsNumber (Summary.Experience));
+    SetInventoryOptionalText (Text_CharacterStrength, FText::AsNumber (Summary.Attributes.Strength));
+    SetInventoryOptionalText (Text_CharacterDexterity, FText::AsNumber (Summary.Attributes.Dexterity));
+    SetInventoryOptionalText (Text_CharacterConstitution, FText::AsNumber (Summary.Attributes.Constitution));
+    SetInventoryOptionalText (Text_CharacterIntelligence, FText::AsNumber (Summary.Attributes.Intelligence));
+    SetInventoryOptionalText (Text_CharacterWisdom, FText::AsNumber (Summary.Attributes.Wisdom));
+    SetInventoryOptionalText (Text_CharacterCharisma, FText::AsNumber (Summary.Attributes.Charisma));
+    SetInventoryOptionalText (
         Text_CharacterHealth,
         FText::FromString (FString::Printf (
             TEXT ("%d / %d"),
             Summary.DerivedStats.CurrentHealth,
             Summary.DerivedStats.MaxHealth)));
-    SetOptionalText (
+    SetInventoryOptionalText (
         Text_CharacterMana,
         FText::FromString (FString::Printf (
             TEXT ("%d / %d"),
             Summary.DerivedStats.CurrentMana,
             Summary.DerivedStats.MaxMana)));
-    SetOptionalText (
+    SetInventoryOptionalText (
         Text_CharacterCarryWeight,
         FText::FromString (FString::Printf (
             TEXT ("%.1f / %.1f"),
