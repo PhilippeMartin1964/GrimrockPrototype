@@ -51,7 +51,7 @@ Après compilation, la classe `RPGCharacterCreationWidget` doit être disponible
 Dans le **Content Drawer**, créer :
 
 ```text
-Content/Grimrock/UI/CharacterCreation/
+Content/GrimrockPrototype/Blueprints/UI/RPG/
 ```
 
 ### B.2 Créer le Widget Blueprint
@@ -129,6 +129,7 @@ Pour chacun de ces widgets, cocher **Is Variable**.
 
 Réglages conseillés :
 
+- widget racine : `Interaction > Is Focusable = false` ; le C++ focalise directement le champ du nom ;
 - `EditableTextBox_Name` : texte vide, lecture autorisée, limite visuelle adaptée à 24 caractères ;
 - `Text_ValidationMessage` : visibilité initiale `Collapsed` ;
 - `Image_Portrait` : taille stable, par exemple `256 x 320` ;
@@ -180,6 +181,22 @@ Sans cette assignation, le jeu reste volontairement bloqué et écrit dans le lo
 ```text
 CharacterCreation UI Show Failed ... Reason=NoWidgetClass
 ```
+
+### F.1 Diagnostic si le bouton reste désactivé
+
+Si l'écran affiche `Race non configurée` ou `Classe non configurée` :
+
+1. ouvrir `WBP_CharacterCreation`, et non `BP_GrimrockPartyPawn` ;
+2. ouvrir **Class Defaults** ;
+3. rechercher la catégorie **RPG > Character Creation** ;
+4. assigner `DA_Race_Human` à `RaceDefinition` ;
+5. assigner `DA_Class_Warrior` à `ClassDefinition` ;
+6. compiler puis enregistrer le widget ;
+7. relancer entièrement le PIE.
+
+Les valeurs de caractéristiques affichées par des tirets indiquent également que l'une de ces deux références manque.
+
+L'option `Interaction > Is Focusable` du widget racine doit rester désactivée. Le mode UI ne tente plus de focaliser la racine ; il focalise directement `EditableTextBox_Name`.
 
 ---
 
