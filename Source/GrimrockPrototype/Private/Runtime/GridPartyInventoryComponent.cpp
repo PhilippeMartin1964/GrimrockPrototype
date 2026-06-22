@@ -238,6 +238,70 @@ bool UGridPartyInventoryComponent::HasCompletedInitialCharacterCreation () const
     return PartyInventoryState.bInitialCharacterCreationCompleted;
 }
 
+void UGridPartyInventoryComponent::ResetPartyForNewGame ()
+{
+    PartyInventoryState = FGridPartyInventoryState ();
+    InitializeDefaultPartyIfNeeded ();
+}
+
+bool UGridPartyInventoryComponent::RestorePartyInventoryState (
+    const FGridPartyInventoryState& SavedState,
+    FText& OutError)
+{
+    OutError = FText::GetEmpty ();
+
+    if (!SavedState.bInitialCharacterCreationCompleted)
+    {
+        OutError = FText::FromString (TEXT ("La sauvegarde ne contient aucun personnage finalisé."));
+        return false;
+    }
+
+    if (SavedState.ActiveCharacters.Num () < 1 ||
+        SavedState.MaxActiveCharacters < SavedState.ActiveCharacters.Num ())
+    {
+        OutError = FText::FromString (TEXT ("Le groupe sauvegardé possède un nombre de personnages invalide."));
+        return false;
+    }
+
+    if (SavedState.ActiveEquipment.Num () != SavedState.ActiveCharacters.Num ())
+    {
+        OutError = FText::FromString (TEXT ("Les personnages et leurs équipements sauvegardés ne sont pas alignés."));
+        return false;
+    }
+
+    if (!SavedState.ActiveCharacters.IsValidIndex (SavedState.SelectedCharacterIndex))
+    {
+        OutError = FText::FromString (TEXT ("Le personnage sélectionné dans la sauvegarde est invalide."));
+        return false;
+    }
+
+    for (const FGridCharacterInventoryState& Character : SavedState.ActiveCharacters)
+    {
+        if (!Character.CharacterId.IsValid ())
+        {
+            OutError = FText::FromString (TEXT ("Un personnage sauvegardé ne possède pas d'identifiant valide."));
+            return false;
+        }
+    }
+
+    const FGridPartyInventoryState PreviousState = PartyInventoryState;
+    PartyInventoryState = SavedState;
+    RecalculateAllWeights ();
+
+    FString OwnershipError;
+    if (!ValidateInventoryOwnership (OwnershipError))
+    {
+        PartyInventoryState = PreviousState;
+        OutError = FText::FromString (
+            FString::Printf (
+                TEXT ("L'ownership de la sauvegarde est invalide : %s"),
+                *OwnershipError));
+        return false;
+    }
+
+    return true;
+}
+
 bool UGridPartyInventoryComponent::CreateInitialCharacter (
     const FRPGCharacterCreationRequest& Request,
     FText& OutError)

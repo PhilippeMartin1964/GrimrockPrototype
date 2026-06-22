@@ -28,6 +28,13 @@ enum class EGridItemThrowMode : uint8
     Throw
 };
 
+UENUM (BlueprintType)
+enum class EGrimrockPartyStartupMode : uint8
+{
+    NewGame,
+    Continue
+};
+
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
 {
@@ -37,6 +44,7 @@ public:
     AGrimrockPartyPawn ();
 
     virtual void BeginPlay () override;
+    virtual void EndPlay (const EEndPlayReason::Type EndPlayReason) override;
     virtual void Tick (float DeltaSeconds) override;
     virtual void SetupPlayerInputComponent (UInputComponent* PlayerInputComponent) override;
 
@@ -134,6 +142,18 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     bool bCharacterCreationModalActive = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Save")
+    EGrimrockPartyStartupMode PartyStartupMode = EGrimrockPartyStartupMode::Continue;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Save")
+    FString PartySaveSlotName = TEXT ("GrimrockParty");
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Save", meta = (ClampMin = "0"))
+    int32 PartySaveUserIndex = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Save")
+    bool bAutoSaveOnInventoryClose = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer")
     bool bEnableInputBuffer = true;
@@ -251,6 +271,18 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
     bool IsCharacterCreationModalActive () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Save")
+    bool HasCurrentSave () const;
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Save")
+    bool SaveCurrentGame (UPARAM (ref) FText& OutError);
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Save")
+    bool LoadCurrentGame (UPARAM (ref) FText& OutError);
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Save")
+    bool StartNewGame (UPARAM (ref) FText& OutError);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool EquipSelectedCharacterItemFromInventorySlot (int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
@@ -378,6 +410,8 @@ private:
     void BufferUseCommand ();
     void ClearBufferedCommand ();
     void ApplyCharacterCreationInputMode (bool bIsActive);
+    bool LoadCurrentGameData (FText& OutError, bool bApplyDungeonState);
+    void CloseCharacterCreationWidget ();
     bool TryConsumeBufferedCommand ();
     bool IsBusy () const;
     bool DismissReadableMessageIfVisible ();

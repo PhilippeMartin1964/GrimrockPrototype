@@ -30,6 +30,14 @@ public:
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
     bool HasCompletedInitialCharacterCreation () const;
 
+    UFUNCTION (BlueprintCallable, Category = "RPG|Save")
+    void ResetPartyForNewGame ();
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Save")
+    bool RestorePartyInventoryState (
+        const FGridPartyInventoryState& SavedState,
+        UPARAM (ref) FText& OutError);
+
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     bool CreateInitialCharacter (
         const FRPGCharacterCreationRequest& Request,

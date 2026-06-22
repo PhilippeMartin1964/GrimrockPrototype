@@ -16,6 +16,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
@@ -107,11 +108,6 @@ void AGrimrockPartyPawn::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (PartyInventoryComponent)
-    {
-        PartyInventoryComponent->InitializeDefaultPartyIfNeeded ();
-    }
-
     if (!LevelRuntimeActor)
     {
         LevelRuntimeActor = Cast<AGridLevelRuntimeActor> (
@@ -152,6 +148,38 @@ void AGrimrockPartyPawn::BeginPlay ()
         UE_LOG (LogTemp, Warning, TEXT ("GrimrockPartyPawn: LevelRuntimeActor has no LevelAsset, keeping configured pawn start."));
     }
 
+    bool bLoadedSavedGame = false;
+    if (PartyInventoryComponent)
+    {
+        if (PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
+        {
+            if (HasCurrentSave ())
+            {
+                UGameplayStatics::DeleteGameInSlot (PartySaveSlotName, PartySaveUserIndex);
+            }
+            PartyInventoryComponent->ResetPartyForNewGame ();
+        }
+        else if (HasCurrentSave ())
+        {
+            FText LoadError;
+            bLoadedSavedGame = LoadCurrentGameData (LoadError, true);
+            if (!bLoadedSavedGame)
+            {
+                UE_LOG (
+                    LogTemp,
+                    Warning,
+                    TEXT ("PartySave Load Failed Slot=%s Reason=%s"),
+                    *PartySaveSlotName,
+                    *LoadError.ToString ());
+                PartyInventoryComponent->ResetPartyForNewGame ();
+            }
+        }
+        else
+        {
+            PartyInventoryComponent->ResetPartyForNewGame ();
+        }
+    }
+
     SnapToCurrentCell ();
 
     if (LevelRuntimeActor)
@@ -177,10 +205,39 @@ void AGrimrockPartyPawn::BeginPlay ()
     }
     ApplyCameraLocalViewOffset ();
 
+    if (bLoadedSavedGame)
+    {
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("PartySave Continued Slot=%s CharacterCount=%d"),
+            *PartySaveSlotName,
+            PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount () : 0);
+    }
+
     if (PartyInventoryComponent && !PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         ShowInitialCharacterCreationWidget ();
     }
+}
+
+void AGrimrockPartyPawn::EndPlay (const EEndPlayReason::Type EndPlayReason)
+{
+    if (PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        FText SaveError;
+        if (!SaveCurrentGame (SaveError))
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("PartySave EndPlay Failed Slot=%s Reason=%s"),
+                *PartySaveSlotName,
+                *SaveError.ToString ());
+        }
+    }
+
+    Super::EndPlay (EndPlayReason);
 }
 
 void AGrimrockPartyPawn::Tick (float DeltaSeconds)
@@ -1047,12 +1104,37 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
         PlayerController->CurrentMouseCursor = EMouseCursor::Default;
     }
 
+    if (bAutoSaveOnInventoryClose &&
+        PartyInventoryComponent &&
+        PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        FText SaveError;
+        if (!SaveCurrentGame (SaveError))
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("PartySave InventoryClose Failed Slot=%s Reason=%s"),
+                *PartySaveSlotName,
+                *SaveError.ToString ());
+        }
+    }
+
     UE_LOG (LogTemp, Log, TEXT ("GrimrockMenu UI Hidden Pawn=%s"), *GetName ());
 }
 
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
 {
     return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget () : nullptr;
+}
+
+void AGrimrockPartyPawn::CloseCharacterCreationWidget ()
+{
+    if (CharacterCreationWidgetInstance)
+    {
+        CharacterCreationWidgetInstance->RemoveFromParent ();
+        CharacterCreationWidgetInstance = nullptr;
+    }
 }
 
 void AGrimrockPartyPawn::ApplyCharacterCreationInputMode (bool bIsActive)
@@ -1155,11 +1237,7 @@ void AGrimrockPartyPawn::HandleInitialCharacterCreated ()
         return;
     }
 
-    if (CharacterCreationWidgetInstance)
-    {
-        CharacterCreationWidgetInstance->RemoveFromParent ();
-        CharacterCreationWidgetInstance = nullptr;
-    }
+    CloseCharacterCreationWidget ();
 
     bCharacterCreationModalActive = false;
     ClearBufferedCommand ();
@@ -1167,12 +1245,248 @@ void AGrimrockPartyPawn::HandleInitialCharacterCreated ()
 
     ApplyCharacterCreationInputMode (false);
 
+    FText SaveError;
+    if (!SaveCurrentGame (SaveError))
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("PartySave InitialCharacter Failed Slot=%s Reason=%s"),
+            *PartySaveSlotName,
+            *SaveError.ToString ());
+    }
+
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreation Completed Pawn=%s"), *GetName ());
 }
 
 bool AGrimrockPartyPawn::IsCharacterCreationModalActive () const
 {
     return bCharacterCreationModalActive;
+}
+
+bool AGrimrockPartyPawn::HasCurrentSave () const
+{
+    return !PartySaveSlotName.IsEmpty () &&
+        UGameplayStatics::DoesSaveGameExist (PartySaveSlotName, PartySaveUserIndex);
+}
+
+bool AGrimrockPartyPawn::SaveCurrentGame (FText& OutError)
+{
+    OutError = FText::GetEmpty ();
+
+    if (PartySaveSlotName.IsEmpty ())
+    {
+        OutError = FText::FromString (TEXT ("Le nom du slot de sauvegarde est vide."));
+        return false;
+    }
+
+    if (!PartyInventoryComponent ||
+        !PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        OutError = FText::FromString (TEXT ("Aucun personnage finalisé ne peut être sauvegardé."));
+        return false;
+    }
+
+    FString OwnershipError;
+    if (!PartyInventoryComponent->ValidateInventoryOwnership (OwnershipError))
+    {
+        OutError = FText::FromString (
+            FString::Printf (TEXT ("L'ownership du groupe est invalide : %s"), *OwnershipError));
+        return false;
+    }
+
+    if (!IsValid (LevelRuntimeActor) || !LevelRuntimeActor->CaptureCurrentLevelRuntimeState ())
+    {
+        OutError = FText::FromString (TEXT ("L'état runtime du niveau ne peut pas être capturé."));
+        return false;
+    }
+
+    UGrimrockPartySaveGame* SaveGame = Cast<UGrimrockPartySaveGame> (
+        UGameplayStatics::CreateSaveGameObject (UGrimrockPartySaveGame::StaticClass ()));
+    if (!SaveGame)
+    {
+        OutError = FText::FromString (TEXT ("L'objet de sauvegarde ne peut pas être créé."));
+        return false;
+    }
+
+    SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
+    SaveGame->PartyInventoryState = PartyInventoryComponent->PartyInventoryState;
+    SaveGame->DungeonRuntimeState = LevelRuntimeActor->DungeonRuntimeState;
+    SaveGame->CurrentDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
+    SaveGame->PartyCellX = CurrentCellX;
+    SaveGame->PartyCellY = CurrentCellY;
+    SaveGame->PartyFacing = Facing;
+
+    if (!UGameplayStatics::SaveGameToSlot (SaveGame, PartySaveSlotName, PartySaveUserIndex))
+    {
+        OutError = FText::FromString (TEXT ("L'écriture du fichier de sauvegarde a échoué."));
+        return false;
+    }
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("PartySave Saved Slot=%s Version=%d Characters=%d Cell=(%d,%d) Facing=%d"),
+        *PartySaveSlotName,
+        SaveGame->SaveVersion,
+        SaveGame->PartyInventoryState.ActiveCharacters.Num (),
+        CurrentCellX,
+        CurrentCellY,
+        static_cast<int32> (Facing));
+    return true;
+}
+
+bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeonState)
+{
+    OutError = FText::GetEmpty ();
+
+    if (!HasCurrentSave ())
+    {
+        OutError = FText::FromString (TEXT ("Aucune sauvegarde n'est disponible."));
+        return false;
+    }
+
+    UGrimrockPartySaveGame* SaveGame = Cast<UGrimrockPartySaveGame> (
+        UGameplayStatics::LoadGameFromSlot (PartySaveSlotName, PartySaveUserIndex));
+    if (!SaveGame)
+    {
+        OutError = FText::FromString (TEXT ("Le fichier ne contient pas une sauvegarde de groupe valide."));
+        return false;
+    }
+
+    if (!SaveGame->IsCompatible ())
+    {
+        OutError = FText::FromString (
+            FString::Printf (
+                TEXT ("Version de sauvegarde incompatible : %d, version attendue : %d."),
+                SaveGame->SaveVersion,
+                UGrimrockPartySaveGame::CurrentSaveVersion));
+        return false;
+    }
+
+    if (!PartyInventoryComponent || !IsValid (LevelRuntimeActor))
+    {
+        OutError = FText::FromString (TEXT ("Le groupe ou le niveau runtime est indisponible."));
+        return false;
+    }
+
+    const FGridPartyInventoryState PreviousPartyState = PartyInventoryComponent->PartyInventoryState;
+    const FGridDungeonRuntimeState PreviousDungeonState = LevelRuntimeActor->DungeonRuntimeState;
+    const FName PreviousDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
+    const int32 PreviousCellX = CurrentCellX;
+    const int32 PreviousCellY = CurrentCellY;
+    const EGridEdge PreviousFacing = Facing;
+
+    if (!PartyInventoryComponent->RestorePartyInventoryState (
+        SaveGame->PartyInventoryState,
+        OutError))
+    {
+        return false;
+    }
+
+    LevelRuntimeActor->DungeonRuntimeState = SaveGame->DungeonRuntimeState;
+    LevelRuntimeActor->CurrentDungeonLevelId = SaveGame->CurrentDungeonLevelId;
+    CurrentCellX = SaveGame->PartyCellX;
+    CurrentCellY = SaveGame->PartyCellY;
+    Facing = SaveGame->PartyFacing == EGridEdge::None ? EGridEdge::North : SaveGame->PartyFacing;
+
+    if (bApplyDungeonState && !LevelRuntimeActor->ApplyCurrentLevelRuntimeState ())
+    {
+        PartyInventoryComponent->PartyInventoryState = PreviousPartyState;
+        LevelRuntimeActor->DungeonRuntimeState = PreviousDungeonState;
+        LevelRuntimeActor->CurrentDungeonLevelId = PreviousDungeonLevelId;
+        CurrentCellX = PreviousCellX;
+        CurrentCellY = PreviousCellY;
+        Facing = PreviousFacing;
+        OutError = FText::FromString (TEXT ("L'état runtime sauvegardé ne peut pas être appliqué au niveau."));
+        return false;
+    }
+
+    return true;
+}
+
+bool AGrimrockPartyPawn::LoadCurrentGame (FText& OutError)
+{
+    if (!LoadCurrentGameData (OutError, true))
+    {
+        return false;
+    }
+
+    CloseCharacterCreationWidget ();
+    bCharacterCreationModalActive = false;
+    ClearBufferedCommand ();
+    SnapToCurrentCell ();
+
+    if (LevelRuntimeActor)
+    {
+        LevelRuntimeActor->HandlePartyCellChanged (
+            CurrentCellX,
+            CurrentCellY,
+            CurrentCellX,
+            CurrentCellY);
+    }
+
+    ApplyCharacterCreationInputMode (false);
+    SyncHeldVisualFromSelectedCharacterEquipment ();
+
+    if (MenuWidgetInstance)
+    {
+        MenuWidgetInstance->RefreshInventory ();
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("PartySave Loaded Slot=%s"), *PartySaveSlotName);
+    return true;
+}
+
+bool AGrimrockPartyPawn::StartNewGame (FText& OutError)
+{
+    OutError = FText::GetEmpty ();
+
+    if (HasCurrentSave () &&
+        !UGameplayStatics::DeleteGameInSlot (PartySaveSlotName, PartySaveUserIndex))
+    {
+        OutError = FText::FromString (TEXT ("La sauvegarde existante ne peut pas être supprimée."));
+        return false;
+    }
+
+    if (!PartyInventoryComponent)
+    {
+        OutError = FText::FromString (TEXT ("Le composant de groupe est indisponible."));
+        return false;
+    }
+
+    PartyInventoryComponent->ResetPartyForNewGame ();
+
+    if (bInventoryWidgetVisible)
+    {
+        HideInventoryWidget ();
+    }
+
+    CloseCharacterCreationWidget ();
+    bCharacterCreationModalActive = false;
+    ClearBufferedCommand ();
+    ClearHeldItem ();
+
+    if (LevelRuntimeActor)
+    {
+        LevelRuntimeActor->DungeonRuntimeState = FGridDungeonRuntimeState ();
+        LevelRuntimeActor->RebuildRuntimeObjects ();
+
+        if (LevelRuntimeActor->LevelAsset &&
+            LevelRuntimeActor->LevelAsset->IsStartCellValid ())
+        {
+            CurrentCellX = LevelRuntimeActor->LevelAsset->StartCellX;
+            CurrentCellY = LevelRuntimeActor->LevelAsset->StartCellY;
+            Facing = LevelRuntimeActor->LevelAsset->StartFacing == EGridEdge::None
+                ? EGridEdge::North
+                : LevelRuntimeActor->LevelAsset->StartFacing;
+            SnapToCurrentCell ();
+        }
+    }
+
+    ShowInitialCharacterCreationWidget ();
+    UE_LOG (LogTemp, Log, TEXT ("PartySave NewGame Slot=%s"), *PartySaveSlotName);
+    return true;
 }
 
 bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (

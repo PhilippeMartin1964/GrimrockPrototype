@@ -11,13 +11,13 @@ struct FGridRuntimeDoorState
 {
     GENERATED_BODY ()
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FGuid ObjectId;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bIsOpen = false;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bBlocksMovement = true;
 };
 
@@ -26,16 +26,16 @@ struct FGridRuntimeInteractiveState
 {
     GENERATED_BODY ()
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FGuid ObjectId;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bIsActivated = false;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bIsPressed = false;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bIsOn = false;
 };
 
@@ -44,10 +44,10 @@ struct FGridRuntimeObjectPresenceState
 {
     GENERATED_BODY ()
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FGuid ObjectId;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bRemovedFromInitialPlacement = false;
 };
 
@@ -56,52 +56,52 @@ struct FGridRuntimeItemState
 {
     GENERATED_BODY ()
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FGuid ObjectId;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FName ArchetypeId = NAME_None;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FName ItemDefinitionId = NAME_None;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     int32 Quantity = 1;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     int32 CellX = INDEX_NONE;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     int32 CellY = INDEX_NONE;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     EGridEdge Edge = EGridEdge::None;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FTransform Transform = FTransform::Identity;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bIsSimulatingPhysics = false;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bIsContainedInReceptacle = false;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FGuid ReceptacleObjectId;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bLightsEnabled = true;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FName ReadableContentId = NAME_None;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FText ReadTitleOverride;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FText ReadTextOverride;
 };
 
@@ -110,10 +110,10 @@ struct FGridRuntimeReceptacleState
 {
     GENERATED_BODY ()
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FGuid ObjectId;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TArray<FGridRuntimeItemState> ContainedItems;
 };
 
@@ -122,25 +122,25 @@ struct FGridLevelRuntimeState
 {
     GENERATED_BODY ()
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     FName LevelId = NAME_None;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeDoorState> Doors;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeInteractiveState> InteractiveObjects;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeObjectPresenceState> ObjectPresence;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeItemState> Items;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
 
-    UPROPERTY (Transient, BlueprintReadWrite)
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bHasBeenVisited = false;
 };
 
@@ -149,7 +149,7 @@ struct FGridDungeonRuntimeState
 {
     GENERATED_BODY ()
 
-    // Live in-memory dungeon state for the current PIE/gameplay session only.
-    UPROPERTY (Transient, BlueprintReadWrite)
+    // Runtime state can be embedded in a versioned SaveGame while the actor keeps its owning property transient.
+    UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FName, FGridLevelRuntimeState> LevelStates;
 };

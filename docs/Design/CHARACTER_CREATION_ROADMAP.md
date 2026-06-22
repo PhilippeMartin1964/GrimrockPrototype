@@ -406,7 +406,7 @@ Critère de sortie : les valeurs de création et celles de l'Inventaire sont ide
 
 #### Tranche CC4.1 - Nettoyage et mise en page
 
-**État : implémentée dans le code, intervention Blueprint et validation PIE à effectuer.**
+**État : validée en UE5 et en PIE le 22 juin 2026.**
 
 Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC4_1_UE5_CHECKLIST.md`.
 
@@ -422,15 +422,28 @@ Critère de sortie : aucun affichage de diagnostic, aucun élément coupé, aucu
 
 ### Tranche CC5 - Persistance minimale de nouvelle partie
 
+**État : implémentée dans le code, configuration UE5 et validation PIE à effectuer.**
+
+Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC5_UE5_CHECKLIST.md`.
+
+| Responsable | Tâches CC5 |
+|---|---|
+| ChatGPT / Codex | `USaveGame` versionné, sauvegarde du groupe et du donjon, restauration atomique, modes Nouvelle partie / Continuer, autosauvegarde, tests et documentation |
+| Utilisateur dans UE5 | Compiler, choisir le mode de démarrage dans `BP_GrimrockPartyPawn`, exécuter les treize tests et vérifier deux sessions PIE |
+| Hors CC5 | Menu principal, plusieurs slots utilisateur, migrations entre versions et sauvegarde multi-niveaux avancée |
+
 Objectif : ne plus recréer le personnage à chaque chargement.
 
-- ajouter un objet `USaveGame` versionné ;
-- sauvegarder l'identité et les données JdR du personnage ;
-- sauvegarder `PartyInventoryState`, équipement et ownership ;
-- distinguer clairement `New Game` et `Continue` ;
-- rouvrir la création seulement si aucun personnage finalisé n'est chargé.
+- ajouter `UGrimrockPartySaveGame` avec une version explicite ;
+- sauvegarder l'identité, les données JdR, l'Inventaire, l'équipement, le curseur et l'ownership ;
+- sauvegarder la position du groupe et `FGridDungeonRuntimeState` ;
+- restaurer atomiquement le groupe et refuser une sauvegarde invalide ;
+- distinguer `NewGame` et `Continue` avec `EGrimrockPartyStartupMode` ;
+- autosauvegarder après la création, à la fermeture de l'Inventaire et à la fin de la session ;
+- rouvrir la création seulement si aucun personnage finalisé n'est chargé ;
+- vérifier la sérialisation avec deux tests CC5.
 
-Cette tranche peut suivre CC4, mais elle devient obligatoire avant toute vraie boucle de progression.
+Critère de sortie : Elias, son équipement, sa position et l'état des objets du niveau sont identiques après arrêt puis relance du PIE, sans duplication d'ownership.
 
 ### Tranche CC6 - Extension des choix
 
