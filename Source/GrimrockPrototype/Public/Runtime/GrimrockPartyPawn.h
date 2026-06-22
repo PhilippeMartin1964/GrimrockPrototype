@@ -19,6 +19,7 @@ class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
 class UGrimrockMenuWidget;
+class URPGCharacterCreationWidget;
 
 UENUM (BlueprintType)
 enum class EGridItemThrowMode : uint8
@@ -124,6 +125,15 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
     bool bInventoryWidgetVisible = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+    TObjectPtr<URPGCharacterCreationWidget> CharacterCreationWidgetInstance;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+    bool bCharacterCreationModalActive = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Input Buffer")
     bool bEnableInputBuffer = true;
@@ -232,6 +242,15 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|UI")
     UGridInventoryWidget* GetInventoryWidget () const;
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    void ShowInitialCharacterCreationWidget ();
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    void HandleInitialCharacterCreated ();
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
+    bool IsCharacterCreationModalActive () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool EquipSelectedCharacterItemFromInventorySlot (int32 InventorySlotIndex, EGridEquipmentSlot TargetSlot);
