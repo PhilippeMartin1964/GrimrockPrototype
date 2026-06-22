@@ -264,8 +264,12 @@ void URPGCharacterCreationWidget::HandleNameCommitted (
     ETextCommit::Type CommitMethod)
 {
     (void)NewText;
-    (void)CommitMethod;
     RefreshPreview ();
+
+    if (CommitMethod == ETextCommit::OnEnter && CanSubmitCharacterCreation ())
+    {
+        SubmitCharacterCreation ();
+    }
 }
 
 FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest () const
