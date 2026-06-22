@@ -2,7 +2,7 @@
 
 ## 1. Objet
 
-Cette roadmap definit une première implémentation simple de la création de personnage au démarrage de **GrimrockPrototype**.
+Cette roadmap définit une première implémentation simple de la création de personnage au démarrage de **GrimrockPrototype**.
 
 Elle s'appuie sur :
 
@@ -17,7 +17,7 @@ Nouveau jeu
 -> Validation
 -> Entrée dans le donjon
 -> Personnage visible et sélectionné dans l'Inventaire
--> Objets ramasses attribués a ce personnage
+-> Objets ramassés attribués à ce personnage
 ```
 
 ---
@@ -36,19 +36,19 @@ ChatGPT / Codex prépare les changements textuels et analyse les résultats. Les
 
 ---
 
-## 2. État actuel a conserver
+## 2. État actuel à conserver
 
 Le code possède déjà une base exploitable :
 
 - `AGrimrockPartyPawn` contient `UGridPartyInventoryComponent` ;
 - `BeginPlay()` appelle `InitializeDefaultPartyIfNeeded()` ;
-- cette initialisation cree actuellement `Hero_01`, classe `Warrior`, niveau 1 et Force 10 ;
+- cette initialisation crée actuellement `Hero_01`, classe `Warrior`, niveau 1 et Force 10 ;
 - `FGridCharacterInventoryState` contient déjà l'identifiant, le nom, la classe, le niveau, la Force, la charge et les slots personnels ;
 - `FGridPartyInventoryState` gere le personnage sélectionné, le groupe actif, l'équipement et le `CursorItem` ;
 - `WBP_GridInventory` sait afficher et sélectionner les membres actifs ;
 - `UGridPartyInventoryComponent` doit rester l'unique source de verite de l'inventaire et de l'ownership.
 
-Le personnage technique `Hero_01` doit donc devenir le personnage cree par le joueur. Il ne faut pas creer un second système de groupe ou un inventaire parallele dans le Blueprint.
+Le personnage technique `Hero_01` doit donc devenir le personnage créé par le joueur. Il ne faut pas créer un second système de groupe ou un inventaire parallèle dans le Blueprint.
 
 ---
 
@@ -58,8 +58,8 @@ Le personnage technique `Hero_01` doit donc devenir le personnage cree par le jo
 
 | Champ | Première version |
 |---|---|
-| Nom | Saisi par le joueur, 1 a 24 caractères |
-| Portrait | Portrait par défaut ; choix ajoute ensuite |
+| Nom | Saisi par le joueur, 1 à 24 caractères |
+| Portrait | Portrait par défaut ; choix ajouté ensuite |
 | Race | `Human` uniquement |
 | Classe | `Warrior` uniquement |
 | Niveau | 1 |
@@ -110,9 +110,9 @@ L'armure physique, l'armure magique, la précision, l'esquive et les résistance
 
 ## 4. Architecture recommandée
 
-### 4.1 Donnees de définition et données runtime
+### 4.1 Données de définition et données runtime
 
-Les races et classes sont des définitions partagées. Elles doivent être des DataAssets. Le personnage cree est une instance runtime et ne doit pas être un DataAsset cree dynamiquement.
+Les races et classes sont des définitions partagées. Elles doivent être des DataAssets. Le personnage créé est une instance runtime et ne doit pas être un DataAsset créé dynamiquement.
 
 ```mermaid
 flowchart TD
@@ -200,7 +200,7 @@ struct FRPGCharacterCreationRequest
 - une référence souple de portrait ;
 - `bCreationCompleted` au niveau du groupe ou du personnage.
 
-La Force ne doit pas rester durablement stockée deux fois. La propriété historique `Strength` doit etre migree vers `Attributes.Strength`, puis dépréciée après vérification des Blueprints et assets sérialisés.
+La Force ne doit pas rester durablement stockée deux fois. La propriété historique `Strength` doit être migrée vers `Attributes.Strength`, puis dépréciée après vérification des Blueprints et assets sérialisés.
 
 ### 4.3 Calculs centralisés
 
@@ -221,14 +221,14 @@ void RecalculateCharacterDerivedStats(int32 CharacterIndex);
 
 ## 5. Flux au démarrage
 
-1. `AGrimrockPartyPawn::BeginPlay()` initialise le composant, sans considérer `Hero_01` comme un personnage valide cree.
+1. `AGrimrockPartyPawn::BeginPlay()` initialise le composant, sans considérer `Hero_01` comme un personnage valide créé.
 2. Si aucun personnage finalisé n'existe, `WBP_CharacterCreation` est affiché en modal.
 3. Les déplacements, rotations, interactions monde et ouverture du menu sont bloqués pendant cette étape.
 4. Le joueur saisit son nom et confirme le profil Humain/Guerrier.
 5. Le widget envoie un `FRPGCharacterCreationRequest` au C++.
-6. Le composant cree le personnage actif a l'index 0 et le sélectionné.
+6. Le composant crée le personnage actif à l'index 0 et le sélectionne.
 7. L'interface de création est fermée et le mode de jeu normal est restauré.
-8. A l'ouverture de l'Inventaire, le nom, la race, la classe, le niveau, les caractéristiques, les PV, la mana et la charge proviennent du composant.
+8. À l'ouverture de l'Inventaire, le nom, la race, la classe, le niveau, les caractéristiques, les PV, la mana et la charge proviennent du composant.
 
 Le widget ne modifie jamais directement `PartyInventoryState`.
 
@@ -238,7 +238,7 @@ Le widget ne modifie jamais directement `PartyInventoryState`.
 
 ### Tranche CC0 - Contrat et tests de non-régression
 
-**État : implementee dans le code, exécution Unreal a valider.**
+**État : implémentée dans le code, exécution Unreal à valider.**
 
 Objectif : figer le comportement existant avant d'etendre les données.
 
@@ -259,22 +259,22 @@ Tests ajoutés dans `Private/Tests/GridPartyInventoryCC0Tests.cpp` :
 
 ### Tranche CC1 - Modèle JdR minimal
 
-**État : implementee dans le code, compilation Unreal et création des DataAssets a valider.**
+**État : implémentée dans le code, compilation Unreal et création des DataAssets à valider.**
 
 Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC1_UE5_CHECKLIST.md`.
 
 | Responsable | Tâches CC1 |
 |---|---|
 | ChatGPT / Codex | Types JdR, classes DataAsset, calculs centralisés, migration de Force, tests et documentation |
-| Utilisateur dans UE5 | Compiler, creer `DA_Race_Human` et `DA_Class_Warrior`, executer les tests et vérifier le PIE |
+| Utilisateur dans UE5 | Compiler, créer `DA_Race_Human` et `DA_Class_Warrior`, exécuter les tests et vérifier le PIE |
 | Hors CC1 | Écran de création, application runtime des DataAssets et affichage des nouvelles statistiques |
 
 Objectif : representer proprement le personnage de niveau 1.
 
-- creer `RPGCharacterTypes.h` ;
-- ajouter race, experience, six caractéristiques et valeurs dérivées ;
-- creer `URPGRaceAsset` et `URPGClassAsset` minimaux ;
-- creer `DA_Race_Human` et `DA_Class_Warrior` ;
+- créer `RPGCharacterTypes.h` ;
+- ajouter race, expérience, six caractéristiques et valeurs dérivées ;
+- créer `URPGRaceAsset` et `URPGClassAsset` minimaux ;
+- créer `DA_Race_Human` et `DA_Class_Warrior` ;
 - centraliser modificateurs, PV, mana et charge ;
 - migrer la Force historique.
 
@@ -288,7 +288,7 @@ Tests ajoutés dans `Private/Tests/RPGCharacterModelCC1Tests.cpp` :
 
 Configuration UE5 attendue pour `DA_Race_Human` :
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | `RaceId` | `Human` |
 | `DisplayName` | `Humain` |
@@ -296,7 +296,7 @@ Configuration UE5 attendue pour `DA_Race_Human` :
 
 Configuration UE5 attendue pour `DA_Class_Warrior` :
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | `ClassId` | `Warrior` |
 | `DisplayName` | `Guerrier` |
@@ -312,14 +312,14 @@ Le profil combiné obtenu est `16 / 12 / 14 / 10 / 10 / 10`, avec 20 PV au nivea
 
 ### Tranche CC2 - API de création atomique
 
-**État : implementee dans le code, compilation Unreal et tests Automation a valider.**
+**État : implémentée dans le code, compilation Unreal et tests Automation à valider.**
 
 Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC2_UE5_CHECKLIST.md`.
 
 | Responsable | Tâches CC2 |
 |---|---|
 | ChatGPT / Codex | Requête, etat de finalisation, validation, création atomique, restauration, tests et documentation |
-| Utilisateur dans UE5 | Compiler, conserver les DataAssets CC1, executer les dix tests et vérifier le PIE |
+| Utilisateur dans UE5 | Compiler, conserver les DataAssets CC1, exécuter les dix tests et vérifier le PIE |
 | Hors CC2 | Widget UMG, blocage des contrôles et appel de l'API au démarrage |
 
 Objectif : remplacer le placeholder technique de manière sure.
@@ -339,11 +339,11 @@ Tests ajoutés dans `Private/Tests/RPGCharacterCreationCC2Tests.cpp` :
 - `RejectInvalidRequestAtomically` ;
 - `RejectSecondCreation`.
 
-Critère de sortie : l'API cree un personnage cohérent sans mutation partielle et les dix tests CC0, CC1 et CC2 sont verts.
+Critère de sortie : l'API crée un personnage cohérent sans mutation partielle et les dix tests CC0, CC1 et CC2 sont verts.
 
 ### Tranche CC3 - Écran de création minimal
 
-Objectif : permettre au joueur de creer le personnage au lancement.
+Objectif : permettre au joueur de créer le personnage au lancement.
 
 Contenu de `WBP_CharacterCreation` :
 
@@ -357,13 +357,13 @@ Contenu de `WBP_CharacterCreation` :
 
 Critère de sortie : un nouveau PIE ne permet pas de se deplacer avant validation et entre ensuite normalement dans le donjon.
 
-### Tranche CC4 - Intégration a l'Inventaire
+### Tranche CC4 - Intégration à l'Inventaire
 
-Objectif : rendre le personnage cree visible dans l'interface existante.
+Objectif : rendre le personnage créé visible dans l'interface existante.
 
 - enrichir `FGridInventoryCharacterSummary` ;
 - afficher au minimum nom, classe et niveau dans `WBP_PartyMember` ;
-- afficher race, experience, six caractéristiques, PV, mana et charge dans la zone centrale ;
+- afficher race, expérience, six caractéristiques, PV, mana et charge dans la zone centrale ;
 - conserver les slots générés, le drag and drop et les mains existantes ;
 - rafraichir l'UI depuis `RefreshInventory()` uniquement.
 
@@ -371,13 +371,13 @@ Critère de sortie : les valeurs de création et celles de l'Inventaire sont ide
 
 ### Tranche CC5 - Persistance minimale de nouvelle partie
 
-Objectif : ne plus recréer le personnage a chaque chargement.
+Objectif : ne plus recréer le personnage à chaque chargement.
 
 - ajouter un objet `USaveGame` versionné ;
 - sauvegarder l'identité et les données JdR du personnage ;
 - sauvegarder `PartyInventoryState`, équipement et ownership ;
 - distinguer clairement `New Game` et `Continue` ;
-- rouvrir la création seulement si aucun personnage finalisé n'est charge.
+- rouvrir la création seulement si aucun personnage finalisé n'est chargé.
 
 Cette tranche peut suivre CC4, mais elle devient obligatoire avant toute vraie boucle de progression.
 
@@ -404,21 +404,21 @@ Chaque ajout doit réutiliser `CreateInitialCharacter` et ne pas modifier l'owne
 |---|---|
 | Nouveau PIE sans personnage | Écran de création affiché |
 | Nom vide | Validation refusée |
-| Nom valide | Un seul personnage est cree |
+| Nom valide | Un seul personnage est créé |
 | Validation | Mouvement et interaction redeviennent actifs |
-| Ouverture Inventaire | Le personnage cree apparaît a gauche et au centre |
+| Ouverture Inventaire | Le personnage créé apparaît à gauche et au centre |
 | Caractéristiques | 16, 12, 14, 10, 10, 10 |
 | Charge maximale | 80 avec la formule actuelle |
 | Ramassage d'une torche | Ownership `CharacterInventory`, personnage 0 |
 | Équipement de la torche | Ownership `EquipmentSlot`, personnage 0 |
 | Retour au curseur | Ownership `Cursor`, sans duplication |
-| Rafraichissement UI | Aucun second personnage ni slot manuel n'est cree |
+| Rafraîchissement UI | Aucun second personnage ni slot manuel n'est créé |
 
 ---
 
 ## 8. Points de vigilance
 
-- ne pas creer un `Actor` monde par personnage : le groupe reste porte par `AGrimrockPartyPawn` ;
+- ne pas créer un `Actor` monde par personnage : le groupe reste porté par `AGrimrockPartyPawn` ;
 - ne pas mettre les statistiques dans `WBP_CharacterCreation` ou `WBP_GridInventory` ;
 - ne pas faire du DataAsset de race ou de classe le propriétaire des valeurs runtime comme les PV actuels ;
 - ne pas utiliser le nom comme identifiant : conserver le `FGuid` ;
@@ -433,4 +433,4 @@ Chaque ajout doit réutiliser `CreateInitialCharacter` et ne pas modifier l'owne
 
 Le premier jalon est terminé lorsque le joueur peut lancer une nouvelle partie, nommer un Humain/Guerrier de niveau 1, valider sa création, entrer dans le donjon et retrouver exactement ce personnage dans l'onglet Inventaire avec ses caractéristiques, ses PV, sa mana, sa charge, son inventaire personnel et son équipement.
 
-Le ramassage, le transfert au curseur et l'équipement d'un objet doivent continuer a respecter l'ownership exclusif existant.
+Le ramassage, le transfert au curseur et l'équipement d'un objet doivent continuer à respecter l'ownership exclusif existant.
