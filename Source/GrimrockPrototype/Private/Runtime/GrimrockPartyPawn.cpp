@@ -18,6 +18,7 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
+#include "UI/RPGCharacterCreationWidget.h"
 
 namespace
 {
@@ -175,6 +176,11 @@ void AGrimrockPartyPawn::BeginPlay ()
         }
     }
     ApplyCameraLocalViewOffset ();
+
+    if (PartyInventoryComponent && !PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        ShowInitialCharacterCreationWidget ();
+    }
 }
 
 void AGrimrockPartyPawn::Tick (float DeltaSeconds)
@@ -302,6 +308,11 @@ void AGrimrockPartyPawn::SnapToCurrentCell ()
 void AGrimrockPartyPawn::HandleMoveForward (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
     DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetForward (Facing);
@@ -318,6 +329,11 @@ void AGrimrockPartyPawn::HandleMoveForward (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleMoveBackward (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
     DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetBackward (Facing);
@@ -334,6 +350,11 @@ void AGrimrockPartyPawn::HandleMoveBackward (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleTurnLeft (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
     DismissReadableMessageIfVisible ();
 
     if (IsBusy ())
@@ -348,6 +369,11 @@ void AGrimrockPartyPawn::HandleTurnLeft (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleTurnRight (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
     DismissReadableMessageIfVisible ();
 
     if (IsBusy ())
@@ -362,6 +388,11 @@ void AGrimrockPartyPawn::HandleTurnRight (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleStrafeLeft (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
     DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetLeft (Facing);
@@ -378,6 +409,11 @@ void AGrimrockPartyPawn::HandleStrafeLeft (const FInputActionValue& Value)
 void AGrimrockPartyPawn::HandleStrafeRight (const FInputActionValue& Value)
 {
     (void)Value;
+
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
     DismissReadableMessageIfVisible ();
 
     const EGridEdge Direction = GridDirectionUtils::GetRight (Facing);
@@ -395,6 +431,11 @@ void AGrimrockPartyPawn::HandleUse (const FInputActionValue& Value)
 {
     (void)Value;
 
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
+
     if (IsBusy ())
     {
         BufferUseCommand ();
@@ -406,7 +447,7 @@ void AGrimrockPartyPawn::HandleUse (const FInputActionValue& Value)
 
 bool AGrimrockPartyPawn::TryUseFrontInteraction ()
 {
-    if (bIsMoving || bIsTurning || !HasLevelRuntimeActor ())
+    if (bCharacterCreationModalActive || bIsMoving || bIsTurning || !HasLevelRuntimeActor ())
     {
         return false;
     }
@@ -428,7 +469,7 @@ bool AGrimrockPartyPawn::TryUseFrontInteraction ()
 
 bool AGrimrockPartyPawn::TryStartMove (EGridEdge MoveDirection)
 {
-    if (bIsMoving || bIsTurning || !HasLevelRuntimeActor ())
+    if (bCharacterCreationModalActive || bIsMoving || bIsTurning || !HasLevelRuntimeActor ())
     {
         return false;
     }
@@ -463,7 +504,7 @@ bool AGrimrockPartyPawn::TryStartMove (EGridEdge MoveDirection)
 
 bool AGrimrockPartyPawn::TryStartTurn (bool bTurnRight)
 {
-    if (bIsMoving || bIsTurning)
+    if (bCharacterCreationModalActive || bIsMoving || bIsTurning)
     {
         return false;
     }
@@ -904,6 +945,11 @@ void AGrimrockPartyPawn::LogItemDefinitionDiagnostics () const
 
 void AGrimrockPartyPawn::ToggleInventoryWidget ()
 {
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
+
     if (bInventoryWidgetVisible)
     {
         HideInventoryWidget ();
@@ -916,6 +962,11 @@ void AGrimrockPartyPawn::ToggleInventoryWidget ()
 
 void AGrimrockPartyPawn::ShowInventoryWidget ()
 {
+    if (bCharacterCreationModalActive)
+    {
+        return;
+    }
+
     APlayerController* PlayerController = Cast<APlayerController> (GetController ());
     if (!PlayerController)
     {
@@ -1002,6 +1053,115 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
 {
     return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget () : nullptr;
+}
+
+void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
+{
+    if (!PartyInventoryComponent || PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        bCharacterCreationModalActive = false;
+        return;
+    }
+
+    bCharacterCreationModalActive = true;
+    ClearBufferedCommand ();
+
+    if (bInventoryWidgetVisible)
+    {
+        HideInventoryWidget ();
+    }
+
+    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
+    if (!PlayerController)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("CharacterCreation UI Show Failed Pawn=%s Reason=NoPlayerController"), *GetName ());
+        return;
+    }
+
+    if (!CharacterCreationWidgetClass)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("CharacterCreation UI Show Failed Pawn=%s Reason=NoWidgetClass"), *GetName ());
+        return;
+    }
+
+    if (!CharacterCreationWidgetInstance)
+    {
+        CharacterCreationWidgetInstance = CreateWidget<URPGCharacterCreationWidget> (
+            PlayerController,
+            CharacterCreationWidgetClass);
+    }
+
+    if (!CharacterCreationWidgetInstance)
+    {
+        UE_LOG (LogTemp, Error, TEXT ("CharacterCreation UI Show Failed Pawn=%s Reason=CreateWidgetFailed"), *GetName ());
+        return;
+    }
+
+    CharacterCreationWidgetInstance->InitializeCharacterCreationWidget (this);
+    if (!CharacterCreationWidgetInstance->IsInViewport ())
+    {
+        CharacterCreationWidgetInstance->AddToViewport (1000);
+    }
+    CharacterCreationWidgetInstance->SetVisibility (ESlateVisibility::Visible);
+
+    PlayerController->bEnableClickEvents = true;
+    PlayerController->bEnableMouseOverEvents = true;
+    PlayerController->bShowMouseCursor = true;
+    PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+    PlayerController->CurrentMouseCursor = EMouseCursor::Default;
+
+    FInputModeUIOnly InputMode;
+    InputMode.SetWidgetToFocus (CharacterCreationWidgetInstance->TakeWidget ());
+    InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
+    PlayerController->SetInputMode (InputMode);
+
+    if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
+    {
+        GrimrockPlayerController->SetInventoryUiOpen (true);
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("CharacterCreation UI Shown Pawn=%s"), *GetName ());
+}
+
+void AGrimrockPartyPawn::HandleInitialCharacterCreated ()
+{
+    if (!PartyInventoryComponent || !PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        return;
+    }
+
+    if (CharacterCreationWidgetInstance)
+    {
+        CharacterCreationWidgetInstance->RemoveFromParent ();
+        CharacterCreationWidgetInstance = nullptr;
+    }
+
+    bCharacterCreationModalActive = false;
+    ClearBufferedCommand ();
+    SyncHeldVisualFromSelectedCharacterEquipment ();
+
+    if (APlayerController* PlayerController = Cast<APlayerController> (GetController ()))
+    {
+        if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
+        {
+            GrimrockPlayerController->SetInventoryUiOpen (false);
+        }
+
+        FInputModeGameAndUI InputMode;
+        InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
+        InputMode.SetHideCursorDuringCapture (false);
+        PlayerController->SetInputMode (InputMode);
+        PlayerController->bShowMouseCursor = true;
+        PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+        PlayerController->CurrentMouseCursor = EMouseCursor::Default;
+    }
+
+    UE_LOG (LogTemp, Log, TEXT ("CharacterCreation Completed Pawn=%s"), *GetName ());
+}
+
+bool AGrimrockPartyPawn::IsCharacterCreationModalActive () const
+{
+    return bCharacterCreationModalActive;
 }
 
 bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (
