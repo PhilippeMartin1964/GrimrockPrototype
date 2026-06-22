@@ -1116,7 +1116,6 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
     PlayerController->CurrentMouseCursor = EMouseCursor::Default;
 
     FInputModeUIOnly InputMode;
-    InputMode.SetWidgetToFocus (CharacterCreationWidgetInstance->TakeWidget ());
     InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
     PlayerController->SetInputMode (InputMode);
 
