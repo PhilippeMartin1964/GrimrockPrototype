@@ -26,10 +26,15 @@ namespace
     }
 }
 
-void URPGCharacterCreationWidget::NativeOnInitialized ()
+void URPGCharacterCreationWidget::NativeConstruct ()
 {
-    Super::NativeOnInitialized ();
+    Super::NativeConstruct ();
+    BindWidgetEvents ();
+    RefreshPreview ();
+}
 
+void URPGCharacterCreationWidget::BindWidgetEvents ()
+{
     if (Button_CreateCharacter)
     {
         Button_CreateCharacter->OnClicked.RemoveDynamic (
@@ -48,6 +53,12 @@ void URPGCharacterCreationWidget::NativeOnInitialized ()
         EditableTextBox_Name->OnTextChanged.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleNameChanged);
+        EditableTextBox_Name->OnTextCommitted.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleNameCommitted);
+        EditableTextBox_Name->OnTextCommitted.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleNameCommitted);
     }
 }
 
@@ -121,10 +132,26 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         SetValidationMessage (FText::FromString (TEXT ("Composant d'inventaire indisponible.")), true);
     }
 
+    const bool bCanSubmit = CanSubmitCharacterCreation ();
     if (Button_CreateCharacter)
     {
-        Button_CreateCharacter->SetIsEnabled (CanSubmitCharacterCreation ());
+        Button_CreateCharacter->SetIsEnabled (bCanSubmit);
     }
+
+    const FString NormalizedName = GetNormalizedNameText ().ToString ();
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("CharacterCreation SubmitState CanSubmit=%s Button=%s ButtonEnabled=%s NameLength=%d Inventory=%s Completed=%s Race=%s Class=%s Attributes=%s"),
+        bCanSubmit ? TEXT ("true") : TEXT ("false"),
+        *GetNameSafe (Button_CreateCharacter),
+        Button_CreateCharacter && Button_CreateCharacter->GetIsEnabled () ? TEXT ("true") : TEXT ("false"),
+        NormalizedName.Len (),
+        InventoryComponent ? TEXT ("true") : TEXT ("false"),
+        InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation () ? TEXT ("true") : TEXT ("false"),
+        bHasRaceDefinition ? TEXT ("true") : TEXT ("false"),
+        bHasClassDefinition ? TEXT ("true") : TEXT ("false"),
+        bHasAttributes ? TEXT ("true") : TEXT ("false"));
 }
 
 void URPGCharacterCreationWidget::FocusNameInput ()
@@ -229,6 +256,15 @@ void URPGCharacterCreationWidget::HandleNameChanged (const FText& NewText)
 {
     (void)NewText;
     SetValidationMessage (FText::GetEmpty (), false);
+    RefreshPreview ();
+}
+
+void URPGCharacterCreationWidget::HandleNameCommitted (
+    const FText& NewText,
+    ETextCommit::Type CommitMethod)
+{
+    (void)NewText;
+    (void)CommitMethod;
     RefreshPreview ();
 }
 
