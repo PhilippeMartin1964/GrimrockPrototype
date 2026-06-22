@@ -11,6 +11,8 @@ class GRIMROCKPROTOTYPE_API URPGRaceAsset : public UPrimaryDataAsset
     GENERATED_BODY ()
 
 public:
+    URPGRaceAsset ();
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
     FName RaceId = NAME_None;
 
@@ -21,7 +23,7 @@ public:
     FText Description;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
-    FRPGAttributes AttributeBonuses = FRPGAttributes { 0, 0, 0, 0, 0, 0 };
+    FRPGAttributes AttributeBonuses;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Race")
     bool IsValidDefinition () const;
