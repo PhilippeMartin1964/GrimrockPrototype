@@ -1055,6 +1055,44 @@ UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
     return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget () : nullptr;
 }
 
+void AGrimrockPartyPawn::ApplyCharacterCreationInputMode (bool bIsActive)
+{
+    APlayerController* PlayerController = Cast<APlayerController> (GetController ());
+    if (!PlayerController)
+    {
+        return;
+    }
+
+    if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
+    {
+        GrimrockPlayerController->SetInventoryUiOpen (bIsActive);
+    }
+
+    PlayerController->bEnableClickEvents = true;
+    PlayerController->bEnableMouseOverEvents = true;
+    PlayerController->bShowMouseCursor = true;
+    PlayerController->DefaultMouseCursor = EMouseCursor::Default;
+    PlayerController->CurrentMouseCursor = EMouseCursor::Default;
+
+    if (bIsActive)
+    {
+        FInputModeUIOnly InputMode;
+        InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
+        PlayerController->SetInputMode (InputMode);
+
+        if (CharacterCreationWidgetInstance)
+        {
+            CharacterCreationWidgetInstance->FocusNameInput ();
+        }
+        return;
+    }
+
+    FInputModeGameAndUI InputMode;
+    InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
+    InputMode.SetHideCursorDuringCapture (false);
+    PlayerController->SetInputMode (InputMode);
+}
+
 void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
 {
     if (!PartyInventoryComponent || PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
@@ -1078,10 +1116,7 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
         return;
     }
 
-    if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
-    {
-        GrimrockPlayerController->SetInventoryUiOpen (true);
-    }
+    ApplyCharacterCreationInputMode (true);
 
     if (!CharacterCreationWidgetClass)
     {
@@ -1108,17 +1143,6 @@ void AGrimrockPartyPawn::ShowInitialCharacterCreationWidget ()
         CharacterCreationWidgetInstance->AddToViewport (1000);
     }
     CharacterCreationWidgetInstance->SetVisibility (ESlateVisibility::Visible);
-
-    PlayerController->bEnableClickEvents = true;
-    PlayerController->bEnableMouseOverEvents = true;
-    PlayerController->bShowMouseCursor = true;
-    PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-    PlayerController->CurrentMouseCursor = EMouseCursor::Default;
-
-    FInputModeUIOnly InputMode;
-    InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
-    PlayerController->SetInputMode (InputMode);
-
     CharacterCreationWidgetInstance->FocusNameInput ();
 
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreation UI Shown Pawn=%s"), *GetName ());
@@ -1141,21 +1165,7 @@ void AGrimrockPartyPawn::HandleInitialCharacterCreated ()
     ClearBufferedCommand ();
     SyncHeldVisualFromSelectedCharacterEquipment ();
 
-    if (APlayerController* PlayerController = Cast<APlayerController> (GetController ()))
-    {
-        if (AGrimrockPlayerController* GrimrockPlayerController = Cast<AGrimrockPlayerController> (PlayerController))
-        {
-            GrimrockPlayerController->SetInventoryUiOpen (false);
-        }
-
-        FInputModeGameAndUI InputMode;
-        InputMode.SetLockMouseToViewportBehavior (EMouseLockMode::DoNotLock);
-        InputMode.SetHideCursorDuringCapture (false);
-        PlayerController->SetInputMode (InputMode);
-        PlayerController->bShowMouseCursor = true;
-        PlayerController->DefaultMouseCursor = EMouseCursor::Default;
-        PlayerController->CurrentMouseCursor = EMouseCursor::Default;
-    }
+    ApplyCharacterCreationInputMode (false);
 
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreation Completed Pawn=%s"), *GetName ());
 }

@@ -30,14 +30,6 @@ void URPGCharacterCreationWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
 
-    UE_LOG (
-        LogTemp,
-        Warning,
-        TEXT ("CharacterCreation NativeConstruct Widget=%s NameInput=%s Button=%s"),
-        *GetName (),
-        *GetNameSafe (EditableText_Name),
-        *GetNameSafe (Button_CreateCharacter));
-
     BindWidgetEvents ();
     RefreshPreview ();
 }
@@ -77,11 +69,19 @@ void URPGCharacterCreationWidget::InitializeCharacterCreationWidget (AGrimrockPa
     InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent.Get () : nullptr;
     SetValidationMessage (FText::GetEmpty (), false);
     RefreshPreview ();
-
 }
 
 void URPGCharacterCreationWidget::RefreshPreview ()
 {
+    if (InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        if (Button_CreateCharacter)
+        {
+            Button_CreateCharacter->SetIsEnabled (false);
+        }
+        return;
+    }
+
     const bool bHasRaceDefinition = RaceDefinition && RaceDefinition->IsValidDefinition ();
     const bool bHasClassDefinition = ClassDefinition && ClassDefinition->IsValidDefinition ();
     const FText UnavailableValue = FText::FromString (TEXT ("-"));
@@ -146,21 +146,6 @@ void URPGCharacterCreationWidget::RefreshPreview ()
     {
         Button_CreateCharacter->SetIsEnabled (bCanSubmit);
     }
-
-    const FString NormalizedName = GetNormalizedNameText ().ToString ();
-    UE_LOG (
-        LogTemp,
-        Log,
-        TEXT ("CharacterCreation SubmitState CanSubmit=%s Button=%s ButtonEnabled=%s NameLength=%d Inventory=%s Completed=%s Race=%s Class=%s Attributes=%s"),
-        bCanSubmit ? TEXT ("true") : TEXT ("false"),
-        *GetNameSafe (Button_CreateCharacter),
-        Button_CreateCharacter && Button_CreateCharacter->GetIsEnabled () ? TEXT ("true") : TEXT ("false"),
-        NormalizedName.Len (),
-        InventoryComponent ? TEXT ("true") : TEXT ("false"),
-        InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation () ? TEXT ("true") : TEXT ("false"),
-        bHasRaceDefinition ? TEXT ("true") : TEXT ("false"),
-        bHasClassDefinition ? TEXT ("true") : TEXT ("false"),
-        bHasAttributes ? TEXT ("true") : TEXT ("false"));
 }
 
 void URPGCharacterCreationWidget::FocusNameInput ()
@@ -264,6 +249,11 @@ void URPGCharacterCreationWidget::HandleCreateCharacterClicked ()
 void URPGCharacterCreationWidget::HandleNameChanged (const FText& NewText)
 {
     (void)NewText;
+    if (InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        return;
+    }
+
     SetValidationMessage (FText::GetEmpty (), false);
     RefreshPreview ();
 }
@@ -273,8 +263,12 @@ void URPGCharacterCreationWidget::HandleNameCommitted (
     ETextCommit::Type CommitMethod)
 {
     (void)NewText;
-    RefreshPreview ();
+    if (InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        return;
+    }
 
+    RefreshPreview ();
     if (CommitMethod == ETextCommit::OnEnter && CanSubmitCharacterCreation ())
     {
         SubmitCharacterCreation ();

@@ -377,6 +377,7 @@ private:
     void BufferTurnCommand (bool bTurnRight);
     void BufferUseCommand ();
     void ClearBufferedCommand ();
+    void ApplyCharacterCreationInputMode (bool bIsActive);
     bool TryConsumeBufferedCommand ();
     bool IsBusy () const;
     bool DismissReadableMessageIfVisible ();

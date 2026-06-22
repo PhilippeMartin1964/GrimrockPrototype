@@ -200,21 +200,16 @@ Les valeurs de caractéristiques affichées par des tirets indiquent également 
 
 Si les valeurs sont correctes mais que le bouton reste grisé :
 
-1. vérifier dans la **Hierarchy** que le champ est bien de type **Editable Text**, et non **Editable Text** ou **Text Box** ;
+1. vérifier dans la **Hierarchy** que le champ est bien de type **Editable Text**, et non **Editable Text Box** ;
 2. vérifier son nom exact `EditableText_Name` et cocher **Is Variable** ;
 3. vérifier le nom exact `Button_CreateCharacter` et cocher **Is Variable** ;
 4. compiler `WBP_CharacterCreation` et corriger toute erreur `BindWidget` ;
 5. sélectionner `Button_CreateCharacter` dans le Designer ;
 6. vérifier `Interaction > Is Enabled = true` ;
 7. supprimer tout binding Blueprint placé à droite de `Is Enabled` ;
-8. vérifier que tous ses panneaux parents sont également activés ;
-9. consulter les logs `CharacterCreation NativeConstruct` et `CharacterCreation SubmitState`.
+8. vérifier que tous ses panneaux parents sont également activés.
 
-Avec un nom valide, le log attendu contient :
-
-```text
-CanSubmit=true ButtonEnabled=true NameLength=5 Inventory=true Completed=false Race=true Class=true Attributes=true
-```
+Les diagnostics temporaires `CharacterCreation NativeConstruct` et `CharacterCreation SubmitState` ont été retirés après validation de CC3. Les erreurs de configuration restent journalisées.
 
 La touche **Entrée** valide également la création lorsque la requête est valide.
 
@@ -290,6 +285,8 @@ En l’absence de sauvegarde CC5, l’écran réapparaît normalement à chaque 
 
 ## 12. Validation humaine de CC3
 
+**État au 22 juin 2026 : validée par les dix tests Automation et le scénario PIE de création d'Elias.**
+
 CC3 est validée lorsque :
 
 - la compilation **Development Editor Win64** réussit ;
@@ -301,3 +298,17 @@ CC3 est validée lorsque :
 - la création ferme l’écran et restaure les contrôles ;
 - le nom créé apparaît dans l’Inventaire sans duplication d’objet.
 
+
+---
+
+## 13. Vérification CC3.1
+
+Après compilation du nettoyage CC3.1, un seul test rapide en PIE est nécessaire :
+
+1. lancer un nouveau PIE ;
+2. saisir un nom et valider avec **Entrée** ;
+3. vérifier que l'écran disparaît et que les contrôles reviennent ;
+4. vérifier l'absence de traces répétitives `CharacterCreation SubmitState` ;
+5. vérifier la présence de `CharacterCreation Completed`.
+
+Aucune modification du Widget Blueprint ni des DataAssets n'est requise.

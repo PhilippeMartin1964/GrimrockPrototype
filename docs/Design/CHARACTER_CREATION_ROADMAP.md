@@ -44,7 +44,7 @@ Le code possède déjà une base exploitable :
 - `BeginPlay()` appelle `InitializeDefaultPartyIfNeeded()` ;
 - cette initialisation crée actuellement `Hero_01`, classe `Warrior`, niveau 1 et Force 10 ;
 - `FGridCharacterInventoryState` contient déjà l'identifiant, le nom, la classe, le niveau, la Force, la charge et les slots personnels ;
-- `FGridPartyInventoryState` gere le personnage sélectionné, le groupe actif, l'équipement et le `CursorItem` ;
+- `FGridPartyInventoryState` gère le personnage sélectionné, le groupe actif, l'équipement et le `CursorItem` ;
 - `WBP_GridInventory` sait afficher et sélectionner les membres actifs ;
 - `UGridPartyInventoryComponent` doit rester l'unique source de verite de l'inventaire et de l'ownership.
 
@@ -73,7 +73,7 @@ Profil de départ recommandé :
 | Caractéristique | Valeur |
 |---|---:|
 | Force | 16 |
-| Dexterite | 12 |
+| Dextérité | 12 |
 | Constitution | 14 |
 | Intelligence | 10 |
 | Sagesse | 10 |
@@ -90,7 +90,7 @@ Pour ce premier jalon :
 - modificateurs des six caractéristiques ;
 - charge actuelle ;
 - charge maximale, en conservant provisoirement `Force x 5` ;
-- etat surcharge.
+- état de surcharge.
 
 L'armure physique, l'armure magique, la précision, l'esquive et les résistances peuvent exister dans les données avec des valeurs par défaut, sans être encore utilisées en combat.
 
@@ -269,7 +269,7 @@ Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC1_UE5_CHECKLIS
 | Utilisateur dans UE5 | Compiler, créer `DA_Race_Human` et `DA_Class_Warrior`, exécuter les tests et vérifier le PIE |
 | Hors CC1 | Écran de création, application runtime des DataAssets et affichage des nouvelles statistiques |
 
-Objectif : representer proprement le personnage de niveau 1.
+Objectif : représenter proprement le personnage de niveau 1.
 
 - créer `RPGCharacterTypes.h` ;
 - ajouter race, expérience, six caractéristiques et valeurs dérivées ;
@@ -292,7 +292,7 @@ Configuration UE5 attendue pour `DA_Race_Human` :
 |---|---|
 | `RaceId` | `Human` |
 | `DisplayName` | `Humain` |
-| `AttributeBonuses` | Force 1, Dexterite 1, Constitution 1, Intelligence 1, Sagesse 1, Charisme 1 |
+| `AttributeBonuses` | Force 1, Dextérité 1, Constitution 1, Intelligence 1, Sagesse 1, Charisme 1 |
 
 Configuration UE5 attendue pour `DA_Class_Warrior` :
 
@@ -300,7 +300,7 @@ Configuration UE5 attendue pour `DA_Class_Warrior` :
 |---|---|
 | `ClassId` | `Warrior` |
 | `DisplayName` | `Guerrier` |
-| `BaseAttributes` | Force 15, Dexterite 11, Constitution 13, Intelligence 9, Sagesse 9, Charisme 9 |
+| `BaseAttributes` | Force 15, Dextérité 11, Constitution 13, Intelligence 9, Sagesse 9, Charisme 9 |
 | `HealthAtLevelOne` | 18 |
 | `HealthPerLevel` | 8 |
 | `ManaAtLevelOne` | 0 |
@@ -318,11 +318,11 @@ Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC2_UE5_CHECKLIS
 
 | Responsable | Tâches CC2 |
 |---|---|
-| ChatGPT / Codex | Requête, etat de finalisation, validation, création atomique, restauration, tests et documentation |
+| ChatGPT / Codex | Requête, état de finalisation, validation, création atomique, restauration, tests et documentation |
 | Utilisateur dans UE5 | Compiler, conserver les DataAssets CC1, exécuter les dix tests et vérifier le PIE |
 | Hors CC2 | Widget UMG, blocage des contrôles et appel de l'API au démarrage |
 
-Objectif : remplacer le placeholder technique de manière sure.
+Objectif : remplacer le placeholder technique de manière sûre.
 
 - ajouter `FRPGCharacterCreationRequest` ;
 - ajouter `CreateInitialCharacter` ;
@@ -331,7 +331,7 @@ Objectif : remplacer le placeholder technique de manière sure.
 - initialiser exactement 1 personnage, 1 équipement et 40 slots ;
 - sélectionner l'index 0 ;
 - conserver `CursorItem` vide ;
-- restaurer l'etat précédent si le diagnostic d'ownership échoue.
+- restaurer l'état précédent si le diagnostic d'ownership échoue.
 
 Tests ajoutés dans `Private/Tests/RPGCharacterCreationCC2Tests.cpp` :
 
@@ -343,7 +343,7 @@ Critère de sortie : l'API crée un personnage cohérent sans mutation partielle
 
 ### Tranche CC3 - Écran de création minimal
 
-**État : implémentée dans le code, construction UMG et validation PIE à effectuer.**
+**État : validée en UE5 et en PIE le 22 juin 2026.**
 
 Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC3_UE5_CHECKLIST.md`.
 
@@ -368,6 +368,18 @@ Contenu de `WBP_CharacterCreation` :
 Le Graph Blueprint ne contient aucun calcul ni événement de validation : les bindings, l'aperçu et l'appel à `CreateInitialCharacter()` sont natifs.
 
 Critère de sortie : un nouveau PIE bloque le jeu sur l'écran de création, puis restaure les contrôles après une validation réussie.
+
+#### Tranche CC3.1 - Nettoyage après validation
+
+**État : implémentée dans le code, compilation et test rapide en PIE à effectuer.**
+
+- supprimer les diagnostics temporaires exécutés à chaque caractère saisi ;
+- ignorer les événements tardifs du champ de nom après la création ;
+- centraliser l'activation et la restauration du mode d'entrée modal dans `AGrimrockPartyPawn` ;
+- conserver les erreurs de configuration et les logs de début et de fin utiles ;
+- ne modifier ni les règles de création, ni l'ownership, ni le Widget Blueprint.
+
+Critère de sortie : le scénario CC3 validé reste identique, sans trace `SubmitState` répétitive et sans rafraîchissement après finalisation.
 
 ### Tranche CC4 - Intégration à l'Inventaire
 
@@ -436,7 +448,7 @@ Chaque ajout doit réutiliser `CreateInitialCharacter` et ne pas modifier l'owne
 - ne pas utiliser le nom comme identifiant : conserver le `FGuid` ;
 - ne pas supposer que le groupe contiendra toujours six personnages ;
 - garder les tableaux personnage/équipement strictement alignés tant que cette architecture existe ;
-- versionner la sauvegarde avant de faire évoluer fortement les structures serialisees ;
+- versionner la sauvegarde avant de faire évoluer fortement les structures sérialisées ;
 - conserver le curseur custom et le routage d'input déjà validés par l'Inventaire.
 
 ---
