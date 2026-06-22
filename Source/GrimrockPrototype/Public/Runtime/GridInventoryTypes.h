@@ -1,9 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RPG/RPGCharacterTypes.h"
 #include "GridInventoryTypes.generated.h"
 
 class UGridReadableContentAsset;
+class UTexture2D;
 
 UENUM (BlueprintType)
 enum class EGridItemOwnerType : uint8
@@ -128,9 +130,31 @@ struct FGridCharacterInventoryState
     FName ClassId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    FName RaceId = TEXT ("Human");
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     int32 Level = 1;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Stats")
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character", meta = (ClampMin = "0"))
+    int32 Experience = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG")
+    FRPGAttributes Attributes;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG")
+    FRPGDerivedStats DerivedStats;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG")
+    bool bRPGAttributesInitialized = false;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Stats",
+        meta = (DeprecatedProperty, DeprecationMessage = "Use Attributes.Strength. Kept temporarily for serialized data migration."))
     float Strength = 10.0f;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
