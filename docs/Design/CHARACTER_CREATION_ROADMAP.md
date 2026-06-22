@@ -147,7 +147,7 @@ Assets initiaux :
 ```text
 Content/Grimrock/RPG/Races/DA_Race_Human
 Content/Grimrock/RPG/Classes/DA_Class_Warrior
-Content/Grimrock/UI/CharacterCreation/WBP_CharacterCreation
+Content/GrimrockPrototype/Blueprints/UI/RPG/WBP_CharacterCreation
 ```
 
 ### 4.2 Structures minimales
