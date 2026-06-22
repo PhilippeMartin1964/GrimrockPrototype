@@ -258,7 +258,7 @@ CC3 est validée lorsque :
 - tous les widgets obligatoires sont présents et correctement nommés ;
 - les deux DataAssets et la classe du widget sont assignés ;
 - les dix tests CC0 à CC2 restent verts ;
-- le modal bloque effectivement le jeu ;
+- l’écran modal bloque effectivement le jeu ;
 - la création ferme l’écran et restaure les contrôles ;
 - le nom créé apparaît dans l’Inventaire sans duplication d’objet.
 
