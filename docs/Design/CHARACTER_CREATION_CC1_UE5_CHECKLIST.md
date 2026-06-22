@@ -2,61 +2,61 @@
 
 ## 1. Objet
 
-Ce document decrit uniquement les operations humaines a effectuer dans Unreal Engine 5.5.4 apres l'implementation C++ de la tranche CC1.
+Ce document décrit uniquement les opérations humaines a effectuer dans Unreal Engine 5.5.4 après l'implémentation C++ de la tranche CC1.
 
-La branche concernee est :
+La branche concernée est :
 
 ```text
-codex/character-creation-cc1-rpg-model
+codex/character-création-cc1-rpg-model
 ```
 
 ---
 
-## 2. Repartition des responsabilites
+## 2. Répartition des responsabilités
 
 | Domaine | ChatGPT / Codex | Intervention humaine |
 |---|---|---|
-| Architecture | Definit les structures, les DataAssets et les calculs | Valide les choix fonctionnels |
-| C++ | Ecrit les fichiers, la migration et les tests | Compile avec UnrealBuildTool et Visual Studio |
-| Git | Cree et controle la branche | Recupere la branche et integre les changements valides |
-| DataAssets `.uasset` | Definit leurs classes et les valeurs attendues | Cree et renseigne les assets dans Unreal Editor |
-| Tests Automation | Ecrit les tests CC0 et CC1 | Execute les tests dans Unreal Editor |
-| PIE | Fournit le protocole de non-regression | Joue le protocole et observe le resultat |
-| Diagnostic | Analyse les erreurs et prepare les corrections | Transmet les erreurs de compilation, logs ou captures |
+| Architecture | Définit les structures, les DataAssets et les calculs | Valide les choix fonctionnels |
+| C++ | Écrit les fichiers, la migration et les tests | Compile avec UnrealBuildTool et Visual Studio |
+| Git | Cree et contrôle la branche | Récupère la branche et intègre les changements validés |
+| DataAssets `.uasset` | Définit leurs classes et les valeurs attendues | Cree et renseigne les assets dans Unreal Editor |
+| Tests Automation | Écrit les tests CC0 et CC1 | Exécute les tests dans Unreal Editor |
+| PIE | Fournit le protocole de non-régression | Joue le protocole et observe le résultat |
+| Diagnostic | Analyse les erreurs et prépare les corrections | Transmet les erreurs de compilation, logs ou captures |
 
-Les fichiers `.uasset` sont des fichiers binaires controles par Unreal Editor. Ils ne doivent pas etre fabriques par une modification textuelle Git.
+Les fichiers `.uasset` sont des fichiers binaires contrôles par Unreal Editor. Ils ne doivent pas être fabriques par une modification textuelle Git.
 
 ---
 
-## 3. Ce qui est deja realise par ChatGPT / Codex
+## 3. Ce qui est déjà réalisé par ChatGPT / Codex
 
-Vous ne devez pas recreer ces elements manuellement :
+Vous ne devez pas recréer ces éléments manuellement :
 
 - `FRPGAttributes` ;
 - `FRPGDerivedStats` ;
 - `URPGRaceAsset` ;
 - `URPGClassAsset` ;
 - `URPGCharacterRulesLibrary` ;
-- integration de `RaceId`, `Experience`, `Attributes`, `DerivedStats` et `Portrait` dans `FGridCharacterInventoryState` ;
-- migration de l'ancienne propriete `Strength` ;
+- intégration de `RaceId`, `Experience`, `Attributes`, `DerivedStats` et `Portrait` dans `FGridCharacterInventoryState` ;
+- migration de l'ancienne propriété `Strength` ;
 - calcul de charge depuis `Attributes.Strength` ;
 - tests Automation CC1.
 
 ---
 
-## 4. Etape A - Recuperer et compiler la branche
+## 4. Étape A - Récupérer et compiler la branche
 
-### A.1 Recuperer la branche
+### A.1 Récupérer la branche
 
 Depuis le dossier du projet :
 
 ```bash
 git fetch origin
-git switch codex/character-creation-cc1-rpg-model
+git switch codex/character-création-cc1-rpg-model
 git pull
 ```
 
-Verifier ensuite que les dossiers suivants existent :
+Vérifier ensuite que les dossiers suivants existent :
 
 ```text
 Source/GrimrockPrototype/Public/RPG/
@@ -64,16 +64,16 @@ Source/GrimrockPrototype/Private/RPG/
 Source/GrimrockPrototype/Private/Tests/
 ```
 
-### A.2 Regenerer les fichiers Visual Studio si necessaire
+### A.2 Régénérer les fichiers Visual Studio si nécessaire
 
-Cette etape est recommandee parce que CC1 ajoute plusieurs classes refletees par UnrealHeaderTool.
+Cette étape est recommandée parce que CC1 ajoute plusieurs classes reflétées par UnrealHeaderTool.
 
 1. Fermer Unreal Editor.
 2. Cliquer avec le bouton droit sur `GrimrockPrototype.uproject`.
 3. Choisir **Generate Visual Studio project files**.
 4. Ouvrir `GrimrockPrototype.sln`.
 
-Si la commande n'apparait pas, lancer la generation avec votre installation UE 5.5 ou ouvrir directement le `.uproject`, qui peut proposer de reconstruire les modules.
+Si la commande n'apparaît pas, lancer la génération avec votre installation UE 5.5 ou ouvrir directement le `.uproject`, qui peut proposer de reconstruire les modules.
 
 ### A.3 Compiler
 
@@ -81,10 +81,10 @@ Dans Visual Studio :
 
 1. Configuration : **Development Editor**.
 2. Plateforme : **Win64**.
-3. Projet de demarrage : `GrimrockPrototype`.
+3. Projet de démarrage : `GrimrockPrototype`.
 4. Lancer **Build > Build Solution**.
 
-Resultat attendu :
+Résultat attendu :
 
 ```text
 Build succeeded
@@ -92,14 +92,14 @@ Build succeeded
 
 En cas d'erreur, ne pas modifier les nouveaux fichiers au hasard. Transmettre :
 
-- la premiere erreur C++ ou UnrealHeaderTool ;
-- environ 20 lignes avant et apres cette erreur ;
-- le nom du fichier et le numero de ligne ;
-- les erreurs suivantes seulement si elles semblent independantes.
+- la première erreur C++ ou UnrealHeaderTool ;
+- environ 20 lignes avant et après cette erreur ;
+- le nom du fichier et le numéro de ligne ;
+- les erreurs suivantes seulement si elles semblent indépendantes.
 
 ---
 
-## 5. Etape B - Creer les dossiers de contenu RPG
+## 5. Étape B - Créer les dossiers de contenu RPG
 
 Dans le **Content Drawer** :
 
@@ -118,16 +118,16 @@ Content/Grimrock/RPG/
 
 ---
 
-## 6. Etape C - Creer DA_Race_Human
+## 6. Étape C - Créer DA_Race_Human
 
 Dans `Content/Grimrock/RPG/Races` :
 
 1. Cliquer avec le bouton droit dans une zone vide.
 2. Choisir **Miscellaneous > Data Asset**.
-3. Selectionner la classe `RPGRaceAsset`.
+3. Sélectionner la classe `RPGRaceAsset`.
 4. Nommer l'asset `DA_Race_Human`.
 5. Ouvrir l'asset.
-6. Renseigner les proprietes ci-dessous.
+6. Renseigner les propriétés ci-dessous.
 
 | Propriete | Valeur |
 |---|---|
@@ -143,26 +143,26 @@ Dans `Content/Grimrock/RPG/Races` :
 
 Enregistrer l'asset.
 
-Controle visuel : les six bonus doivent valoir `1`. Ils ne doivent pas conserver la valeur par defaut d'une caracteristique normale.
+Contrôle visuel : les six bonus doivent valoir `1`. Ils ne doivent pas conserver la valeur par défaut d'une caractéristique normale.
 
 ---
 
-## 7. Etape D - Creer DA_Class_Warrior
+## 7. Étape D - Créer DA_Class_Warrior
 
 Dans `Content/Grimrock/RPG/Classes` :
 
 1. Cliquer avec le bouton droit dans une zone vide.
 2. Choisir **Miscellaneous > Data Asset**.
-3. Selectionner la classe `RPGClassAsset`.
+3. Sélectionner la classe `RPGClassAsset`.
 4. Nommer l'asset `DA_Class_Warrior`.
 5. Ouvrir l'asset.
-6. Renseigner les proprietes ci-dessous.
+6. Renseigner les propriétés ci-dessous.
 
 | Propriete | Valeur |
 |---|---|
 | `ClassId` | `Warrior` |
 | `DisplayName` | `Guerrier` |
-| `Description` | `Combattant robuste specialise dans les armes et armures.` |
+| `Description` | `Combattant robuste spécialisé dans les armes et armures.` |
 | `BaseAttributes.Strength` | 15 |
 | `BaseAttributes.Dexterity` | 11 |
 | `BaseAttributes.Constitution` | 13 |
@@ -178,9 +178,9 @@ Dans `Content/Grimrock/RPG/Classes` :
 
 Enregistrer l'asset, puis utiliser **Save All**.
 
-Profil combine attendu apres application des bonus humains :
+Profil combiné attendu après application des bonus humains :
 
-| Caracteristique | Base guerrier | Bonus humain | Resultat |
+| Caractéristique | Base guerrier | Bonus humain | Résultat |
 |---|---:|---:|---:|
 | Force | 15 | 1 | 16 |
 | Dexterite | 11 | 1 | 12 |
@@ -189,17 +189,17 @@ Profil combine attendu apres application des bonus humains :
 | Sagesse | 9 | 1 | 10 |
 | Charisme | 9 | 1 | 10 |
 
-Avec Constitution 14, le modificateur vaut `+2`. Le personnage possedera donc `20 PV` au niveau 1 : `18 + 2`.
+Avec Constitution 14, le modificateur vaut `+2`. Le personnage possédera donc `20 PV` au niveau 1 : `18 + 2`.
 
 ---
 
-## 8. Etape E - Executer les tests Automation
+## 8. Étape E - Exécuter les tests Automation
 
 1. Ouvrir **Tools > Session Frontend**.
 2. Ouvrir l'onglet **Automation**.
-3. Attendre la fin de la decouverte des tests.
+3. Attendre la fin de la découverte des tests.
 4. Rechercher `Grimrock.CharacterCreation`.
-5. Selectionner les groupes `CC0` et `CC1`.
+5. Sélectionner les groupes `CC0` et `CC1`.
 6. Lancer les tests.
 
 Tests CC1 attendus :
@@ -210,56 +210,56 @@ Tests CC1 attendus :
 | `HumanWarriorProfile` | Profil final, PV, mana et charge |
 | `LegacyStrengthMigration` | Migration de l'ancienne Force vers `Attributes.Strength` |
 
-Resultat attendu :
+Résultat attendu :
 
 - les quatre tests CC0 restent verts ;
 - les trois tests CC1 sont verts ;
-- aucune erreur d'ownership n'apparait.
+- aucune erreur d'ownership n'apparaît.
 
-Les tests utilisent des definitions transitoires creees en C++. Ils ne verifient pas encore directement les deux fichiers `.uasset` crees dans l'editeur. Leur raccordement au flux de creation appartient a CC2.
+Les tests utilisent des définitions transitoires creees en C++. Ils ne vérifient pas encore directement les deux fichiers `.uasset` crees dans l'éditeur. Leur raccordement au flux de création appartient a CC2.
 
 ---
 
-## 9. Etape F - Test de non-regression en PIE
+## 9. Étape F - Test de non-régression en PIE
 
-CC1 ne change pas encore l'ecran de jeu. Effectuer seulement ce controle :
+CC1 ne change pas encore l'écran de jeu. Effectuer seulement ce contrôle :
 
 1. Lancer le PIE.
 2. Ouvrir l'Inventaire.
-3. Verifier que `Hero_01` existe toujours.
+3. Vérifier que `Hero_01` existe toujours.
 4. Ramasser un objet.
-5. Verifier qu'il rejoint l'inventaire du personnage selectionne.
+5. Vérifier qu'il rejoint l'inventaire du personnage sélectionné.
 6. Le prendre au curseur.
-7. L'equiper en main.
-8. Verifier qu'il n'existe jamais simultanement dans deux emplacements.
+7. L'équiper en main.
+8. Vérifier qu'il n'existe jamais simultanement dans deux emplacements.
 
-Resultat attendu : aucune difference visible par rapport a CC0 et aucune regression de l'inventaire.
+Résultat attendu : aucune différence visible par rapport a CC0 et aucune régression de l'inventaire.
 
 ---
 
 ## 10. Ce qui ne doit pas encore fonctionner
 
-Les comportements suivants sont prevus dans les tranches suivantes :
+Les comportements suivants sont prévus dans les tranches suivantes :
 
-- aucun ecran de creation de personnage ;
-- `Hero_01` n'est pas encore remplace par un personnage nomme par le joueur ;
-- les DataAssets Humain et Guerrier ne sont pas encore appliques automatiquement au runtime ;
-- les nouvelles caracteristiques ne sont pas encore affichees dans l'Inventaire ;
+- aucun écran de création de personnage ;
+- `Hero_01` n'est pas encore remplacé par un personnage nommé par le joueur ;
+- les DataAssets Humain et Guerrier ne sont pas encore appliqués automatiquement au runtime ;
+- les nouvelles caractéristiques ne sont pas encore affichées dans l'Inventaire ;
 - aucun choix de race ou de classe ;
 - aucune sauvegarde du personnage JdR.
 
-Ne pas considerer ces absences comme des erreurs de CC1.
+Ne pas considérer ces absences comme des erreurs de CC1.
 
 ---
 
 ## 11. Validation humaine de CC1
 
-CC1 est validee localement lorsque :
+CC1 est validée localement lorsque :
 
-- la compilation **Development Editor Win64** reussit ;
-- `DA_Race_Human` et `DA_Class_Warrior` existent aux emplacements prevus ;
+- la compilation **Development Editor Win64** réussit ;
+- `DA_Race_Human` et `DA_Class_Warrior` existent aux emplacements prévus ;
 - leurs valeurs correspondent exactement aux tableaux ;
 - les sept tests CC0 et CC1 sont verts ;
-- le test PIE de non-regression est concluant ;
+- le test PIE de non-régression est concluant ;
 - les deux nouveaux `.uasset` sont inclus dans le prochain commit ou la prochaine fusion.
 
