@@ -377,7 +377,7 @@ Objectif : rendre le personnage créé visible dans l'interface existante.
 - afficher au minimum nom, classe et niveau dans `WBP_PartyMember` ;
 - afficher race, expérience, six caractéristiques, PV, mana et charge dans la zone centrale ;
 - conserver les slots générés, le drag and drop et les mains existantes ;
-- rafraichir l'UI depuis `RefreshInventory()` uniquement.
+- rafraîchir l'UI depuis `RefreshInventory()` uniquement.
 
 Critère de sortie : les valeurs de création et celles de l'Inventaire sont identiques, sans copie Blueprint.
 
