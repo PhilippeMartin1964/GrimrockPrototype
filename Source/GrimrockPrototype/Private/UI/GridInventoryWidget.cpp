@@ -1,6 +1,8 @@
 #include "UI/GridInventoryWidget.h"
 
+#include "Components/Image.h"
 #include "Components/PanelWidget.h"
+#include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "Runtime/GridItemContextActionLibrary.h"
@@ -15,6 +17,23 @@
 
 namespace
 {
+    void SetOptionalText (UTextBlock* TextBlock, const FText& Value)
+    {
+        if (TextBlock)
+        {
+            TextBlock->SetText (Value);
+        }
+    }
+
+    FText ResolveCharacterDisplayName (const FText& DisplayName, FName Id, const TCHAR* Fallback)
+    {
+        if (!DisplayName.IsEmpty ())
+        {
+            return DisplayName;
+        }
+        return Id.IsNone () ? FText::FromString (Fallback) : FText::FromName (Id);
+    }
+
     const TCHAR* GetContextActionName (EGridItemActionType ActionType)
     {
         switch (ActionType)
@@ -99,6 +118,7 @@ void UGridInventoryWidget::RefreshInventory_Implementation ()
     UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
         *GetNameSafe (OwningPartyPawn),
         *GetNameSafe (InventoryComponent));
+    RefreshSelectedCharacterDetails ();
     RefreshRegisteredPartyMemberWidgets ();
     RefreshRegisteredSlotWidgets ();
 }
@@ -278,7 +298,9 @@ FString UGridInventoryWidget::GetSelectedCharacterDisplayText () const
     const FString NameText = Summary.DisplayName.IsEmpty ()
         ? FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1)
         : Summary.DisplayName.ToString ();
-    const FString ClassText = Summary.ClassId.IsNone () ? FString (TEXT ("Unknown")) : Summary.ClassId.ToString ();
+    const FString ClassText = Summary.ClassDisplayName.IsEmpty ()
+        ? (Summary.ClassId.IsNone () ? FString (TEXT ("Classe inconnue")) : Summary.ClassId.ToString ())
+        : Summary.ClassDisplayName.ToString ();
     return FString::Printf (
         TEXT ("SelectedCharacter: %d %s %s Lv%d"),
         CharacterIndex,
@@ -328,6 +350,80 @@ void UGridInventoryWidget::RefreshRegisteredPartyMemberWidgets ()
 void UGridInventoryWidget::HandleRegisteredPartyMemberClicked (int32 CharacterIndex)
 {
     SelectCharacter (CharacterIndex);
+}
+
+void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
+{
+    FGridInventoryCharacterSummary Summary;
+    if (!GetCharacterSummary (GetSelectedCharacterIndex (), Summary))
+    {
+        SetOptionalText (Text_CharacterName, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterRace, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterClass, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterLevel, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterExperience, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterStrength, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterDexterity, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterConstitution, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterIntelligence, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterWisdom, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterCharisma, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterHealth, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterMana, FText::GetEmpty ());
+        SetOptionalText (Text_CharacterCarryWeight, FText::GetEmpty ());
+        if (Image_CharacterPortrait)
+        {
+            Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
+        }
+        return;
+    }
+
+    SetOptionalText (Text_CharacterName, Summary.DisplayName);
+    SetOptionalText (
+        Text_CharacterRace,
+        ResolveCharacterDisplayName (Summary.RaceDisplayName, Summary.RaceId, TEXT ("Race inconnue")));
+    SetOptionalText (
+        Text_CharacterClass,
+        ResolveCharacterDisplayName (Summary.ClassDisplayName, Summary.ClassId, TEXT ("Classe inconnue")));
+    SetOptionalText (Text_CharacterLevel, FText::AsNumber (Summary.Level));
+    SetOptionalText (Text_CharacterExperience, FText::AsNumber (Summary.Experience));
+    SetOptionalText (Text_CharacterStrength, FText::AsNumber (Summary.Attributes.Strength));
+    SetOptionalText (Text_CharacterDexterity, FText::AsNumber (Summary.Attributes.Dexterity));
+    SetOptionalText (Text_CharacterConstitution, FText::AsNumber (Summary.Attributes.Constitution));
+    SetOptionalText (Text_CharacterIntelligence, FText::AsNumber (Summary.Attributes.Intelligence));
+    SetOptionalText (Text_CharacterWisdom, FText::AsNumber (Summary.Attributes.Wisdom));
+    SetOptionalText (Text_CharacterCharisma, FText::AsNumber (Summary.Attributes.Charisma));
+    SetOptionalText (
+        Text_CharacterHealth,
+        FText::FromString (FString::Printf (
+            TEXT ("%d / %d"),
+            Summary.DerivedStats.CurrentHealth,
+            Summary.DerivedStats.MaxHealth)));
+    SetOptionalText (
+        Text_CharacterMana,
+        FText::FromString (FString::Printf (
+            TEXT ("%d / %d"),
+            Summary.DerivedStats.CurrentMana,
+            Summary.DerivedStats.MaxMana)));
+    SetOptionalText (
+        Text_CharacterCarryWeight,
+        FText::FromString (FString::Printf (
+            TEXT ("%.1f / %.1f"),
+            Summary.CurrentWeight,
+            Summary.MaxWeight)));
+
+    if (Image_CharacterPortrait)
+    {
+        if (Summary.Portrait.IsNull ())
+        {
+            Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            Image_CharacterPortrait->SetBrushFromSoftTexture (Summary.Portrait, false);
+            Image_CharacterPortrait->SetVisibility (ESlateVisibility::HitTestInvisible);
+        }
+    }
 }
 
 void UGridInventoryWidget::RegisterInventorySlotWidget (

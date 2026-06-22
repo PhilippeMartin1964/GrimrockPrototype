@@ -13,6 +13,8 @@ class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
+class UImage;
+class UTextBlock;
 class UUniformGridPanel;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
@@ -31,6 +33,51 @@ public:
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UImage> Image_CharacterPortrait;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterName;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterRace;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterClass;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterLevel;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterExperience;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterStrength;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterDexterity;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterConstitution;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterIntelligence;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterWisdom;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterCharisma;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterHealth;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterMana;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterCarryWeight;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
     TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
@@ -139,6 +186,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void RefreshRegisteredPartyMemberWidgets ();
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Character Details")
+    void RefreshSelectedCharacterDetails ();
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void HandleRegisteredPartyMemberClicked (int32 CharacterIndex);

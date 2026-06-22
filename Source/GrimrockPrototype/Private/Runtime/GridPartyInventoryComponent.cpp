@@ -283,7 +283,9 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
     NewCharacter.CharacterId = FGuid::NewGuid ();
     NewCharacter.DisplayName = FText::FromString (NormalizedName);
     NewCharacter.RaceId = Request.RaceDefinition->RaceId;
+    NewCharacter.RaceDisplayName = Request.RaceDefinition->DisplayName;
     NewCharacter.ClassId = Request.ClassDefinition->ClassId;
+    NewCharacter.ClassDisplayName = Request.ClassDefinition->DisplayName;
     NewCharacter.Level = 1;
     NewCharacter.Experience = 0;
     NewCharacter.Attributes = FinalAttributes;
@@ -380,7 +382,18 @@ bool UGridPartyInventoryComponent::GetCharacterSummary (
         ? FText::FromString (CharacterIndex == 0 ? TEXT ("Hero_01") : FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1))
         : CharacterState.DisplayName;
     OutSummary.ClassId = CharacterState.ClassId;
+    OutSummary.ClassDisplayName = CharacterState.ClassDisplayName.IsEmpty ()
+        ? FText::FromName (CharacterState.ClassId)
+        : CharacterState.ClassDisplayName;
+    OutSummary.RaceId = CharacterState.RaceId;
+    OutSummary.RaceDisplayName = CharacterState.RaceDisplayName.IsEmpty ()
+        ? FText::FromName (CharacterState.RaceId)
+        : CharacterState.RaceDisplayName;
     OutSummary.Level = CharacterState.Level;
+    OutSummary.Experience = CharacterState.Experience;
+    OutSummary.Attributes = CharacterState.Attributes;
+    OutSummary.DerivedStats = CharacterState.DerivedStats;
+    OutSummary.Portrait = CharacterState.Portrait;
     OutSummary.UsedInventorySlots = CountOccupiedSlots (CharacterState);
     OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num ();
     OutSummary.CurrentWeight = CharacterState.CurrentWeight;
@@ -1797,6 +1810,16 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults (
     if (CharacterState.RaceId.IsNone ())
     {
         CharacterState.RaceId = TEXT ("Human");
+    }
+
+    if (CharacterState.ClassDisplayName.IsEmpty ())
+    {
+        CharacterState.ClassDisplayName = FText::FromName (CharacterState.ClassId);
+    }
+
+    if (CharacterState.RaceDisplayName.IsEmpty ())
+    {
+        CharacterState.RaceDisplayName = FText::FromName (CharacterState.RaceId);
     }
 
     CharacterState.Level = FMath::Max (1, CharacterState.Level);

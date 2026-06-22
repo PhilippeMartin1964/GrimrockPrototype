@@ -130,7 +130,13 @@ struct FGridCharacterInventoryState
     FName ClassId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    FText ClassDisplayName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     FName RaceId = TEXT ("Human");
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    FText RaceDisplayName;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     int32 Level = 1;
@@ -190,7 +196,28 @@ struct FGridInventoryCharacterSummary
     FName ClassId = NAME_None;
 
     UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FText ClassDisplayName;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FName RaceId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FText RaceDisplayName;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
     int32 Level = 1;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    int32 Experience = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG")
+    FRPGAttributes Attributes;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG")
+    FRPGDerivedStats DerivedStats;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    TSoftObjectPtr<UTexture2D> Portrait;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     int32 UsedInventorySlots = 0;

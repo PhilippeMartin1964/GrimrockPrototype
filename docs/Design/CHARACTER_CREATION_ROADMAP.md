@@ -383,15 +383,26 @@ Critère de sortie : le scénario CC3 validé reste identique, sans trace `Submi
 
 ### Tranche CC4 - Intégration à l'Inventaire
 
+**État : implémentée dans le code, construction UMG et validation PIE à effectuer.**
+
+Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC4_UE5_CHECKLIST.md`.
+
+| Responsable | Tâches CC4 |
+|---|---|
+| ChatGPT / Codex | Résumé complet, noms localisés, rafraîchissement natif, bindings UMG, test et documentation |
+| Utilisateur dans UE5 | Compiler, ajouter les champs visuels dans `WBP_PartyMember` et `WBP_GridInventory`, exécuter les onze tests et vérifier le PIE |
+| Hors CC4 | Sauvegarde, progression et nouvelles races ou classes |
+
 Objectif : rendre le personnage créé visible dans l'interface existante.
 
 - enrichir `FGridInventoryCharacterSummary` ;
 - afficher au minimum nom, classe et niveau dans `WBP_PartyMember` ;
-- afficher race, expérience, six caractéristiques, PV, mana et charge dans la zone centrale ;
-- conserver les slots générés, le drag and drop et les mains existantes ;
-- rafraîchir l'UI depuis `RefreshInventory()` uniquement.
+- afficher race, expérience, six caractéristiques, PV, mana, charge et portrait dans la zone centrale ;
+- conserver les slots générés, le glisser-déposer et les mains existantes ;
+- rafraîchir l'UI depuis `RefreshInventory()` uniquement ;
+- vérifier le contrat avec `Grimrock.CharacterCreation.CC4.InventorySummary`.
 
-Critère de sortie : les valeurs de création et celles de l'Inventaire sont identiques, sans copie Blueprint.
+Critère de sortie : les valeurs de création et celles de l'Inventaire sont identiques, sans copie Blueprint, et les onze tests CC0 à CC4 sont verts.
 
 ### Tranche CC5 - Persistance minimale de nouvelle partie
 
