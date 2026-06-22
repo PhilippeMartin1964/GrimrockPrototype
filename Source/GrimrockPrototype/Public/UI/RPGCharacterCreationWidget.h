@@ -87,6 +87,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     void RefreshPreview ();
 
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    void FocusNameInput ();
+
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
     bool CanSubmitCharacterCreation () const;
 
