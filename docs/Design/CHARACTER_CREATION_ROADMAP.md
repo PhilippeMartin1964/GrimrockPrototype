@@ -185,9 +185,9 @@ struct FRPGCharacterCreationRequest
     GENERATED_BODY()
 
     FText DisplayName;
-    FName RaceId = TEXT("Human");
-    FName ClassId = TEXT("Warrior");
-    FRPGAttributes Attributes;
+    TObjectPtr<URPGRaceAsset> RaceDefinition;
+    TObjectPtr<URPGClassAsset> ClassDefinition;
+    TSoftObjectPtr<UTexture2D> Portrait;
 };
 ```
 
@@ -198,7 +198,7 @@ struct FRPGCharacterCreationRequest
 - `Attributes` ;
 - `DerivedStats` ;
 - une référence souple de portrait ;
-- `bCreationCompleted` au niveau du groupe ou du personnage.
+- `bInitialCharacterCreationCompleted` au niveau du groupe.
 
 La Force ne doit pas rester durablement stockée deux fois. La propriété historique `Strength` doit être migrée vers `Attributes.Strength`, puis dépréciée après vérification des Blueprints et assets sérialisés.
 
@@ -210,7 +210,7 @@ API minimale proposée dans `UGridPartyInventoryComponent` :
 
 ```cpp
 bool HasCompletedInitialCharacterCreation() const;
-bool CreateInitialCharacter(const FRPGCharacterCreationRequest& Request);
+bool CreateInitialCharacter(const FRPGCharacterCreationRequest& Request, FText& OutError);
 bool GetSelectedCharacterDetails(FRPGCharacterDetails& OutDetails) const;
 void RecalculateCharacterDerivedStats(int32 CharacterIndex);
 ```
@@ -343,6 +343,16 @@ Critère de sortie : l'API crée un personnage cohérent sans mutation partielle
 
 ### Tranche CC3 - Écran de création minimal
 
+**État : implémentée dans le code, construction UMG et validation PIE à effectuer.**
+
+Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC3_UE5_CHECKLIST.md`.
+
+| Responsable | Tâches CC3 |
+|---|---|
+| ChatGPT / Codex | Widget natif, aperçu, soumission CC2, ouverture modale, blocage des contrôles et documentation |
+| Utilisateur dans UE5 | Créer `WBP_CharacterCreation`, nommer les widgets, assigner les DataAssets et tester le PIE |
+| Hors CC3 | Affichage détaillé dans l'Inventaire, sauvegarde et choix de plusieurs races ou classes |
+
 Objectif : permettre au joueur de créer le personnage au lancement.
 
 Contenu de `WBP_CharacterCreation` :
@@ -355,7 +365,9 @@ Contenu de `WBP_CharacterCreation` :
 - bouton `Button_CreateCharacter` ;
 - message de validation localisé.
 
-Critère de sortie : un nouveau PIE ne permet pas de se deplacer avant validation et entre ensuite normalement dans le donjon.
+Le Graph Blueprint ne contient aucun calcul ni événement de validation : les bindings, l'aperçu et l'appel à `CreateInitialCharacter()` sont natifs.
+
+Critère de sortie : un nouveau PIE bloque le jeu sur l'écran de création, puis restaure les contrôles après une validation réussie.
 
 ### Tranche CC4 - Intégration à l'Inventaire
 
