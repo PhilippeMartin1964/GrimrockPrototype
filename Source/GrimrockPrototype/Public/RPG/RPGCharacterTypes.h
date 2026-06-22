@@ -3,6 +3,10 @@
 #include "CoreMinimal.h"
 #include "RPGCharacterTypes.generated.h"
 
+class URPGClassAsset;
+class URPGRaceAsset;
+class UTexture2D;
+
 USTRUCT (BlueprintType)
 struct FRPGAttributes
 {
@@ -76,4 +80,22 @@ struct FRPGDerivedStats
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
     int32 Evasion = 0;
+};
+
+USTRUCT (BlueprintType)
+struct FRPGCharacterCreationRequest
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    FText DisplayName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    TObjectPtr<URPGRaceAsset> RaceDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    TObjectPtr<URPGClassAsset> ClassDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    TSoftObjectPtr<UTexture2D> Portrait;
 };
