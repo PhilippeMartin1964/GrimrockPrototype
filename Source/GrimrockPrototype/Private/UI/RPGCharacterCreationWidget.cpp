@@ -58,10 +58,6 @@ void URPGCharacterCreationWidget::InitializeCharacterCreationWidget (AGrimrockPa
     SetValidationMessage (FText::GetEmpty (), false);
     RefreshPreview ();
 
-    if (EditableTextBox_Name)
-    {
-        EditableTextBox_Name->SetKeyboardFocus ();
-    }
 }
 
 void URPGCharacterCreationWidget::RefreshPreview ()
@@ -102,6 +98,14 @@ void URPGCharacterCreationWidget::RefreshPreview ()
     if (Button_CreateCharacter)
     {
         Button_CreateCharacter->SetIsEnabled (bHasAttributes && CanSubmitCharacterCreation ());
+    }
+}
+
+void URPGCharacterCreationWidget::FocusNameInput ()
+{
+    if (EditableTextBox_Name)
+    {
+        EditableTextBox_Name->SetKeyboardFocus ();
     }
 }
 
