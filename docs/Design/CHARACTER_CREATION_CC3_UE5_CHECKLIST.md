@@ -127,6 +127,8 @@ Les libellés statiques, séparateurs et éléments décoratifs peuvent être aj
 
 Pour chacun de ces widgets, cocher **Is Variable**.
 
+`EditableTextBox_Name` et `Button_CreateCharacter` utilisent désormais `BindWidget` obligatoire. Après compilation C++, le Widget Blueprint doit signaler une erreur de compilation si leur nom, leur type ou leur statut de variable ne correspond pas.
+
 Réglages conseillés :
 
 - widget racine : `Interaction > Is Focusable = false` ; le C++ focalise directement le champ du nom ;
@@ -198,11 +200,15 @@ Les valeurs de caractéristiques affichées par des tirets indiquent également 
 
 Si les valeurs sont correctes mais que le bouton reste grisé :
 
-1. sélectionner `Button_CreateCharacter` dans le Designer ;
-2. vérifier `Interaction > Is Enabled = true` ;
-3. supprimer tout binding Blueprint placé à droite de `Is Enabled` ;
-4. vérifier que tous ses panneaux parents sont également activés ;
-5. consulter le log `CharacterCreation SubmitState`.
+1. vérifier dans la **Hierarchy** que le champ est bien de type **Editable Text Box**, et non **Editable Text** ou **Text Box** ;
+2. vérifier son nom exact `EditableTextBox_Name` et cocher **Is Variable** ;
+3. vérifier le nom exact `Button_CreateCharacter` et cocher **Is Variable** ;
+4. compiler `WBP_CharacterCreation` et corriger toute erreur `BindWidget` ;
+5. sélectionner `Button_CreateCharacter` dans le Designer ;
+6. vérifier `Interaction > Is Enabled = true` ;
+7. supprimer tout binding Blueprint placé à droite de `Is Enabled` ;
+8. vérifier que tous ses panneaux parents sont également activés ;
+9. consulter les logs `CharacterCreation NativeConstruct` et `CharacterCreation SubmitState`.
 
 Avec un nom valide, le log attendu contient :
 
