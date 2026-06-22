@@ -27,6 +27,14 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void InitializeDefaultPartyIfNeeded ();
 
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
+    bool HasCompletedInitialCharacterCreation () const;
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    bool CreateInitialCharacter (
+        const FRPGCharacterCreationRequest& Request,
+        UPARAM (ref) FText& OutError);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     int32 GetActiveCharacterCount () const;
 
