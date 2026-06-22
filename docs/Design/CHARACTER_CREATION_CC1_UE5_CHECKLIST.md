@@ -2,7 +2,7 @@
 
 ## 1. Objet
 
-Ce document décrit uniquement les opérations humaines a effectuer dans Unreal Engine 5.5.4 après l'implémentation C++ de la tranche CC1.
+Ce document décrit uniquement les opérations humaines à effectuer dans Unreal Engine 5.5.4 après l'implémentation C++ de la tranche CC1.
 
 La branche concernée est :
 
@@ -18,8 +18,8 @@ codex/character-création-cc1-rpg-model
 |---|---|---|
 | Architecture | Définit les structures, les DataAssets et les calculs | Valide les choix fonctionnels |
 | C++ | Écrit les fichiers, la migration et les tests | Compile avec UnrealBuildTool et Visual Studio |
-| Git | Cree et contrôle la branche | Récupère la branche et intègre les changements validés |
-| DataAssets `.uasset` | Définit leurs classes et les valeurs attendues | Cree et renseigne les assets dans Unreal Editor |
+| Git | Crée et contrôle la branche | Récupère la branche et intègre les changements validés |
+| DataAssets `.uasset` | Définit leurs classes et les valeurs attendues | Crée et renseigne les assets dans Unreal Editor |
 | Tests Automation | Écrit les tests CC0 et CC1 | Exécute les tests dans Unreal Editor |
 | PIE | Fournit le protocole de non-régression | Joue le protocole et observe le résultat |
 | Diagnostic | Analyse les erreurs et prépare les corrections | Transmet les erreurs de compilation, logs ou captures |
@@ -104,9 +104,9 @@ En cas d'erreur, ne pas modifier les nouveaux fichiers au hasard. Transmettre :
 Dans le **Content Drawer** :
 
 1. Ouvrir `Content/Grimrock`.
-2. Creer le dossier `RPG`.
-3. Dans `RPG`, creer `Races`.
-4. Dans `RPG`, creer `Classes`.
+2. Créer le dossier `RPG`.
+3. Dans `RPG`, créer `Races`.
+4. Dans `RPG`, créer `Classes`.
 
 Arborescence attendue :
 
@@ -129,7 +129,7 @@ Dans `Content/Grimrock/RPG/Races` :
 5. Ouvrir l'asset.
 6. Renseigner les propriétés ci-dessous.
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | `RaceId` | `Human` |
 | `DisplayName` | `Humain` |
@@ -158,7 +158,7 @@ Dans `Content/Grimrock/RPG/Classes` :
 5. Ouvrir l'asset.
 6. Renseigner les propriétés ci-dessous.
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | `ClassId` | `Warrior` |
 | `DisplayName` | `Guerrier` |
@@ -216,7 +216,7 @@ Résultat attendu :
 - les trois tests CC1 sont verts ;
 - aucune erreur d'ownership n'apparaît.
 
-Les tests utilisent des définitions transitoires creees en C++. Ils ne vérifient pas encore directement les deux fichiers `.uasset` crees dans l'éditeur. Leur raccordement au flux de création appartient a CC2.
+Les tests utilisent des définitions transitoires créées en C++. Ils ne vérifient pas encore directement les deux fichiers `.uasset` créés dans l'éditeur. Leur raccordement au flux de création appartient à CC2.
 
 ---
 
@@ -233,7 +233,7 @@ CC1 ne change pas encore l'écran de jeu. Effectuer seulement ce contrôle :
 7. L'équiper en main.
 8. Vérifier qu'il n'existe jamais simultanement dans deux emplacements.
 
-Résultat attendu : aucune différence visible par rapport a CC0 et aucune régression de l'inventaire.
+Résultat attendu : aucune différence visible par rapport à CC0 et aucune régression de l'inventaire.
 
 ---
 
