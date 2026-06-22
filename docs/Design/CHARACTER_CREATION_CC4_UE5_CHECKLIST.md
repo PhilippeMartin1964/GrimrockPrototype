@@ -2,6 +2,8 @@
 
 ## 1. Objet
 
+**État au 22 juin 2026 : CC4 validée en UE5 et en PIE ; les onze tests Automation sont verts.**
+
 Cette checklist sépare les changements déjà réalisés en C++ des opérations visuelles à effectuer dans Unreal Engine 5.5.4.
 
 CC4 affiche le personnage créé par CC3 dans les widgets d'Inventaire existants. Elle ne modifie ni l'ownership des objets, ni les slots générés, ni le glisser-déposer.
@@ -130,24 +132,11 @@ Le portrait est automatiquement masqué lorsque `DefaultPortrait` n'a pas été 
 
 ## 7. Étape D - Configurer RefreshInventory
 
-Dans le Graph de `WBP_GridInventory`, rechercher `Event RefreshInventory`.
+Cette étape décrit l'architecture utilisée pour valider CC4. Elle est remplacée par le nettoyage CC4.1.
 
-Ne supprimez pas les appels existants. La chaîne Blueprint attendue est :
+Après récupération de CC4.1, supprimer `Event RefreshInventory` et ses trois appels dans `WBP_GridInventory`. La fonction C++ `RefreshInventory()` exécute directement et systématiquement les trois rafraîchissements.
 
-```text
-Event RefreshInventory
--> RefreshSelectedCharacterDetails
--> RefreshRegisteredPartyMemberWidgets
--> RefreshRegisteredSlotWidgets
-```
-
-Si les deux derniers appels ont été supprimés en suivant une version antérieure de cette checklist, restaurez-les.
-
-Le C++ utilise également `RefreshInventoryState()`, une méthode non surchargeable qui exécute systématiquement ces trois rafraîchissements. Cette protection évite qu'un override Blueprint incomplet laisse les slots, l'équipement ou la fiche centrale dans un état visuel périmé.
-
-Ne placez pas un appel normal à `RefreshInventory` dans `Event RefreshInventory` : cela créerait une récursion. Aucun appel à la fonction parente n'est requis avec la chaîne explicite ci-dessus.
-
-Compiler et enregistrer `WBP_GridInventory` et `WBP_PartyMember`.
+Consulter `docs/Design/CHARACTER_CREATION_CC4_1_UE5_CHECKLIST.md`.
 
 ---
 

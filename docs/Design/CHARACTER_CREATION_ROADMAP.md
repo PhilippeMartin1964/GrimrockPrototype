@@ -371,7 +371,7 @@ Critère de sortie : un nouveau PIE bloque le jeu sur l'écran de création, pui
 
 #### Tranche CC3.1 - Nettoyage après validation
 
-**État : implémentée dans le code, compilation et test rapide en PIE à effectuer.**
+**État : validée en UE5 et en PIE le 22 juin 2026.**
 
 - supprimer les diagnostics temporaires exécutés à chaque caractère saisi ;
 - ignorer les événements tardifs du champ de nom après la création ;
@@ -383,7 +383,7 @@ Critère de sortie : le scénario CC3 validé reste identique, sans trace `Submi
 
 ### Tranche CC4 - Intégration à l'Inventaire
 
-**État : implémentée dans le code, construction UMG et validation PIE à effectuer.**
+**État : validée en UE5 et en PIE le 22 juin 2026 ; les onze tests Automation sont verts.**
 
 Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC4_UE5_CHECKLIST.md`.
 
@@ -403,6 +403,22 @@ Objectif : rendre le personnage créé visible dans l'interface existante.
 - vérifier le contrat avec `Grimrock.CharacterCreation.CC4.InventorySummary`.
 
 Critère de sortie : les valeurs de création et celles de l'Inventaire sont identiques, sans copie Blueprint, et les onze tests CC0 à CC4 sont verts.
+
+#### Tranche CC4.1 - Nettoyage et mise en page
+
+**État : implémentée dans le code, intervention Blueprint et validation PIE à effectuer.**
+
+Checklist humaine détaillée : `docs/Design/CHARACTER_CREATION_CC4_1_UE5_CHECKLIST.md`.
+
+- conserver une seule entrée native `RefreshInventory()` non surchargeable ;
+- supprimer l'override `Event RefreshInventory` devenu inutile dans `WBP_GridInventory` ;
+- retirer le diagnostic visuel `SelectedCharacter: ...` ;
+- supprimer l'override C++ `NativeConstruct()` vide ;
+- faire tenir les six onglets et la grille d'Inventaire dans leur zone ;
+- supprimer l'avertissement de fermeture de `WBP_ItemActionMenu` ;
+- conserver les onze tests verts et le comportement validé de CC4.
+
+Critère de sortie : aucun affichage de diagnostic, aucun élément coupé, aucun avertissement UMG et un seul chemin de rafraîchissement natif.
 
 ### Tranche CC5 - Persistance minimale de nouvelle partie
 

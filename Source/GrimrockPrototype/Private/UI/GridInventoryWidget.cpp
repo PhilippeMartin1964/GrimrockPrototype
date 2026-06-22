@@ -101,19 +101,14 @@ namespace
     }
 }
 
-void UGridInventoryWidget::NativeConstruct ()
-{
-    Super::NativeConstruct ();
-}
-
 void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn)
 {
     OwningPartyPawn = InPartyPawn;
     InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
-    RefreshInventoryState ();
+    RefreshInventory ();
 }
 
-void UGridInventoryWidget::RefreshInventoryState ()
+void UGridInventoryWidget::RefreshInventory ()
 {
     UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
         *GetNameSafe (OwningPartyPawn),
@@ -121,11 +116,6 @@ void UGridInventoryWidget::RefreshInventoryState ()
     RefreshSelectedCharacterDetails ();
     RefreshRegisteredPartyMemberWidgets ();
     RefreshRegisteredSlotWidgets ();
-}
-
-void UGridInventoryWidget::RefreshInventory_Implementation ()
-{
-    RefreshInventoryState ();
 }
 
 int32 UGridInventoryWidget::GetSelectedCharacterIndex () const
@@ -273,7 +263,7 @@ bool UGridInventoryWidget::SelectCharacter (int32 CharacterIndex)
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI SelectCharacter Index=%d Result=%s"),
         CharacterIndex,
         bResult ? TEXT ("true") : TEXT ("false"));
-    RefreshInventoryState ();
+    RefreshInventory ();
     return bResult;
 }
 
@@ -1212,7 +1202,7 @@ bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
 
     if (bExecuted)
     {
-        RefreshInventoryState ();
+        RefreshInventory ();
     }
     return bExecuted;
 }
@@ -1383,14 +1373,14 @@ bool UGridInventoryWidget::HandleSlotDrop (
     if (!InventoryComponent || !OwningPartyPawn)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=MissingPawnOrInventoryComponent"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
     if (SourceType == TargetType && SourceIndex == TargetIndex)
     {
         UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Result=true Reason=SameSlot"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return true;
     }
 
@@ -1555,13 +1545,13 @@ bool UGridInventoryWidget::HandleSlotDrop (
     if (TrySwapOccupiedSlots ())
     {
         ValidateOwnership ();
-        RefreshInventoryState ();
+        RefreshInventory ();
         return true;
     }
     if (bSwapOccupiedSlotsAttempted)
     {
         ValidateOwnership ();
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1571,7 +1561,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=InvalidTargetIndex Target=%d"),
                 TargetIndex);
-            RefreshInventoryState ();
+            RefreshInventory ();
             return false;
         }
 
@@ -1638,7 +1628,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
         }
 
         ValidateOwnership ();
-        RefreshInventoryState ();
+        RefreshInventory ();
         return bInventoryTargetResult;
     }
 
@@ -1703,7 +1693,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
     if (!HasCurrentSourceItem ())
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=SourceEmpty"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1719,7 +1709,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
         if (InventoryComponent->HasCursorItem ())
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=CursorOccupied"));
-            RefreshInventoryState ();
+            RefreshInventory ();
             return false;
         }
 
@@ -1727,7 +1717,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
         if (!bTookSourceToCursor)
         {
             UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=TakeSourceFailed"));
-            RefreshInventoryState ();
+            RefreshInventory ();
             return false;
         }
 
@@ -1744,7 +1734,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Result=%s"),
         bResult ? TEXT ("true") : TEXT ("false"));
     ValidateOwnership ();
-    RefreshInventoryState ();
+    RefreshInventory ();
     return bResult;
 }
 
@@ -1780,7 +1770,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex, bool bSp
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI SlotClicked Slot=%d CursorBefore=false Result=false Reason=NoInventoryComponent"),
             SlotIndex);
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1797,7 +1787,7 @@ bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex, bool bSp
         bCursorBefore ? TEXT ("true") : TEXT ("false"),
         bResult ? TEXT ("true") : TEXT ("false"));
 
-    RefreshInventoryState ();
+    RefreshInventory ();
     return bResult;
 }
 
@@ -1806,7 +1796,7 @@ bool UGridInventoryWidget::HandleMainHandClicked ()
     if (!OwningPartyPawn || !InventoryComponent)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI MainHandClicked CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1819,7 +1809,7 @@ bool UGridInventoryWidget::HandleMainHandClicked ()
         bCursorBefore ? TEXT ("true") : TEXT ("false"),
         bResult ? TEXT ("true") : TEXT ("false"));
 
-    RefreshInventoryState ();
+    RefreshInventory ();
     return bResult;
 }
 
@@ -1828,7 +1818,7 @@ bool UGridInventoryWidget::HandleOffHandClicked ()
     if (!OwningPartyPawn || !InventoryComponent)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI OffHandClicked CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1841,7 +1831,7 @@ bool UGridInventoryWidget::HandleOffHandClicked ()
         bCursorBefore ? TEXT ("true") : TEXT ("false"),
         bResult ? TEXT ("true") : TEXT ("false"));
 
-    RefreshInventoryState ();
+    RefreshInventory ();
     return bResult;
 }
 
@@ -1850,7 +1840,7 @@ bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked ()
     if (!OwningPartyPawn || !InventoryComponent)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1858,7 +1848,7 @@ bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked ()
     if (!bCursorBefore)
     {
         UE_LOG (LogTemp, Log, TEXT ("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false"));
-        RefreshInventoryState ();
+        RefreshInventory ();
         return false;
     }
 
@@ -1866,6 +1856,6 @@ bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked ()
     UE_LOG (LogTemp, Log, TEXT ("GridInventory UI CursorReturnToInventory CursorBefore=true Result=%s"),
         bResult ? TEXT ("true") : TEXT ("false"));
 
-    RefreshInventoryState ();
+    RefreshInventory ();
     return bResult;
 }

@@ -125,9 +125,6 @@ public:
     void InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
-    void RefreshInventoryState ();
-
-    UFUNCTION (BlueprintCallable, BlueprintNativeEvent, Category = "Inventory")
     void RefreshInventory ();
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
@@ -285,9 +282,6 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleCursorReturnToInventoryClicked ();
-
-protected:
-    virtual void NativeConstruct () override;
 
 private:
     void RemoveGeneratedInventorySlotsFromRegistry ();
