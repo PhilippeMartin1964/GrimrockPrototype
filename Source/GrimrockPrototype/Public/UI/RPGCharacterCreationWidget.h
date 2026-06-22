@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Types/SlateEnums.h"
 #include "RPG/RPGCharacterTypes.h"
 #include "RPGCharacterCreationWidget.generated.h"
 
@@ -106,7 +107,7 @@ public:
     bool SubmitCharacterCreation ();
 
 protected:
-    virtual void NativeOnInitialized () override;
+    virtual void NativeConstruct () override;
 
 private:
     UFUNCTION ()
@@ -115,6 +116,10 @@ private:
     UFUNCTION ()
     void HandleNameChanged (const FText& NewText);
 
+    UFUNCTION ()
+    void HandleNameCommitted (const FText& NewText, ETextCommit::Type CommitMethod);
+
+    void BindWidgetEvents ();
     FRPGCharacterCreationRequest BuildCreationRequest () const;
     FText GetNormalizedNameText () const;
     void SetValidationMessage (const FText& Message, bool bIsError);
