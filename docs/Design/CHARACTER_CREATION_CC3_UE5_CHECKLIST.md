@@ -83,7 +83,7 @@ Canvas Panel
                         ├── HorizontalBox_Identity
                         │   ├── Image_Portrait
                         │   └── VerticalBox_IdentityFields
-                        │       ├── EditableTextBox_Name
+                        │       ├── EditableText_Name
                         │       ├── Text_RaceValue
                         │       └── Text_ClassValue
                         ├── UniformGridPanel_Attributes
@@ -109,7 +109,7 @@ Les libellés statiques, séparateurs et éléments décoratifs peuvent être aj
 
 | Nom exact | Type UMG | Rôle |
 |---|---|---|
-| `EditableTextBox_Name` | Editable Text Box | Nom du personnage |
+| `EditableText_Name` | Editable Text | Nom du personnage |
 | `Button_CreateCharacter` | Button | Validation native |
 | `Image_Portrait` | Image | Portrait optionnel |
 | `Text_RaceValue` | Text Block | Nom de la race |
@@ -127,12 +127,12 @@ Les libellés statiques, séparateurs et éléments décoratifs peuvent être aj
 
 Pour chacun de ces widgets, cocher **Is Variable**.
 
-`EditableTextBox_Name` et `Button_CreateCharacter` utilisent désormais `BindWidget` obligatoire. Après compilation C++, le Widget Blueprint doit signaler une erreur de compilation si leur nom, leur type ou leur statut de variable ne correspond pas.
+`EditableText_Name` et `Button_CreateCharacter` utilisent désormais `BindWidget` obligatoire. Après compilation C++, le Widget Blueprint doit signaler une erreur de compilation si leur nom, leur type ou leur statut de variable ne correspond pas.
 
 Réglages conseillés :
 
 - widget racine : `Interaction > Is Focusable = false` ; le C++ focalise directement le champ du nom ;
-- `EditableTextBox_Name` : texte vide, lecture autorisée, limite visuelle adaptée à 24 caractères ;
+- `EditableText_Name` : texte vide, lecture autorisée, limite visuelle adaptée à 24 caractères ;
 - `Text_ValidationMessage` : visibilité initiale `Collapsed` ;
 - `Image_Portrait` : taille stable, par exemple `256 x 320` ;
 - `Button_CreateCharacter` : texte enfant `Créer le personnage`, `Interaction > Is Enabled = true`, sans binding sur cette propriété ;
@@ -200,8 +200,8 @@ Les valeurs de caractéristiques affichées par des tirets indiquent également 
 
 Si les valeurs sont correctes mais que le bouton reste grisé :
 
-1. vérifier dans la **Hierarchy** que le champ est bien de type **Editable Text Box**, et non **Editable Text** ou **Text Box** ;
-2. vérifier son nom exact `EditableTextBox_Name` et cocher **Is Variable** ;
+1. vérifier dans la **Hierarchy** que le champ est bien de type **Editable Text**, et non **Editable Text** ou **Text Box** ;
+2. vérifier son nom exact `EditableText_Name` et cocher **Is Variable** ;
 3. vérifier le nom exact `Button_CreateCharacter` et cocher **Is Variable** ;
 4. compiler `WBP_CharacterCreation` et corriger toute erreur `BindWidget` ;
 5. sélectionner `Button_CreateCharacter` dans le Designer ;
@@ -218,7 +218,7 @@ CanSubmit=true ButtonEnabled=true NameLength=5 Inventory=true Completed=false Ra
 
 La touche **Entrée** valide également la création lorsque la requête est valide.
 
-L'option `Interaction > Is Focusable` du widget racine doit rester désactivée. Le mode UI ne tente plus de focaliser la racine ; il focalise directement `EditableTextBox_Name`.
+L'option `Interaction > Is Focusable` du widget racine doit rester désactivée. Le mode UI ne tente plus de focaliser la racine ; il focalise directement `EditableText_Name`.
 
 ---
 
