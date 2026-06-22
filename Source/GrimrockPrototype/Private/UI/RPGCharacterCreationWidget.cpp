@@ -29,6 +29,15 @@ namespace
 void URPGCharacterCreationWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
+
+    UE_LOG (
+        LogTemp,
+        Warning,
+        TEXT ("CharacterCreation NativeConstruct Widget=%s NameInput=%s Button=%s"),
+        *GetName (),
+        *GetNameSafe (EditableTextBox_Name),
+        *GetNameSafe (Button_CreateCharacter));
+
     BindWidgetEvents ();
     RefreshPreview ();
 }
