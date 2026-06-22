@@ -37,10 +37,10 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "RPG|Character Creation")
     TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UEditableTextBox> EditableTextBox_Name;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UButton> Button_CreateCharacter;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
