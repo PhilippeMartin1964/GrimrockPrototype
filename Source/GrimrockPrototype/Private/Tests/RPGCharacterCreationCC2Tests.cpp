@@ -109,9 +109,15 @@ bool FRPGRejectInvalidInitialCharacterCC2Test::RunTest (const FString& Parameter
     const FGuid PlaceholderId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
     const FString PlaceholderName = Component->PartyInventoryState.ActiveCharacters[0].DisplayName.ToString ();
 
+    FRPGCharacterCreationRequest EmptyNameRequest = CreateValidCC2Request (TEXT ("   "));
+    FText Error;
+    TestTrue (TEXT ("A request with an empty normalized name is rejected"),
+        !Component->CreateInitialCharacter (EmptyNameRequest, Error));
+    TestTrue (TEXT ("The name validation error is returned"), !Error.IsEmpty ());
+
     FRPGCharacterCreationRequest MissingRaceRequest = CreateValidCC2Request ();
     MissingRaceRequest.RaceDefinition = nullptr;
-    FText Error;
+    Error = FText::GetEmpty ();
     TestTrue (TEXT ("A request without race is rejected"),
         !Component->CreateInitialCharacter (MissingRaceRequest, Error));
     TestTrue (TEXT ("The invalid request returns an error"), !Error.IsEmpty ());
