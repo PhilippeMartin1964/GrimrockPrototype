@@ -141,5 +141,5 @@ CC2 est validée lorsque :
 - les deux DataAssets CC1 sont toujours présents ;
 - les dix tests CC0, CC1 et CC2 sont verts ;
 - le test PIE ne révèle aucune régression ;
-- aucune modification Blueprint temporaire n'a ete nécessaire.
+- aucune modification Blueprint temporaire n'a été nécessaire.
 
