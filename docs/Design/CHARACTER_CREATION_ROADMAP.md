@@ -312,6 +312,16 @@ Le profil combine obtenu est `16 / 12 / 14 / 10 / 10 / 10`, avec 20 PV au niveau
 
 ### Tranche CC2 - API de creation atomique
 
+**Etat : implementee dans le code, compilation Unreal et tests Automation a valider.**
+
+Checklist humaine detaillee : `docs/Design/CHARACTER_CREATION_CC2_UE5_CHECKLIST.md`.
+
+| Responsable | Taches CC2 |
+|---|---|
+| ChatGPT / Codex | Requete, etat de finalisation, validation, creation atomique, restauration, tests et documentation |
+| Utilisateur dans UE5 | Compiler, conserver les DataAssets CC1, executer les dix tests et verifier le PIE |
+| Hors CC2 | Widget UMG, blocage des controles et appel de l'API au demarrage |
+
 Objectif : remplacer le placeholder technique de maniere sure.
 
 - ajouter `FRPGCharacterCreationRequest` ;
@@ -320,9 +330,16 @@ Objectif : remplacer le placeholder technique de maniere sure.
 - refuser un second appel apres finalisation ;
 - initialiser exactement 1 personnage, 1 equipement et 40 slots ;
 - selectionner l'index 0 ;
-- conserver `CursorItem` vide.
+- conserver `CursorItem` vide ;
+- restaurer l'etat precedent si le diagnostic d'ownership echoue.
 
-Critere de sortie : le personnage cree recoit correctement le premier objet ramasse.
+Tests ajoutes dans `Private/Tests/RPGCharacterCreationCC2Tests.cpp` :
+
+- `CreateInitialCharacter` ;
+- `RejectInvalidRequestAtomically` ;
+- `RejectSecondCreation`.
+
+Critere de sortie : l'API cree un personnage coherent sans mutation partielle et les dix tests CC0, CC1 et CC2 sont verts.
 
 ### Tranche CC3 - Ecran de creation minimal
 
