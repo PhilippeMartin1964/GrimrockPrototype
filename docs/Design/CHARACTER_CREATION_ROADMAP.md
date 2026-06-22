@@ -245,6 +245,8 @@ Tests ajoutes dans `Private/Tests/GridPartyInventoryCC0Tests.cpp` :
 
 ### Tranche CC1 - Modele JdR minimal
 
+**Etat : implementee dans le code, compilation Unreal et creation des DataAssets a valider.**
+
 Objectif : representer proprement le personnage de niveau 1.
 
 - creer `RPGCharacterTypes.h` ;
@@ -255,6 +257,36 @@ Objectif : representer proprement le personnage de niveau 1.
 - migrer la Force historique.
 
 Critere de sortie : un test C++ construit un Humain/Guerrier valide avec les valeurs attendues.
+
+Tests ajoutes dans `Private/Tests/RPGCharacterModelCC1Tests.cpp` :
+
+- `AttributeModifiers` ;
+- `HumanWarriorProfile` ;
+- `LegacyStrengthMigration`.
+
+Configuration UE5 attendue pour `DA_Race_Human` :
+
+| Propriete | Valeur |
+|---|---|
+| `RaceId` | `Human` |
+| `DisplayName` | `Humain` |
+| `AttributeBonuses` | Force 1, Dexterite 1, Constitution 1, Intelligence 1, Sagesse 1, Charisme 1 |
+
+Configuration UE5 attendue pour `DA_Class_Warrior` :
+
+| Propriete | Valeur |
+|---|---|
+| `ClassId` | `Warrior` |
+| `DisplayName` | `Guerrier` |
+| `BaseAttributes` | Force 15, Dexterite 11, Constitution 13, Intelligence 9, Sagesse 9, Charisme 9 |
+| `HealthAtLevelOne` | 18 |
+| `HealthPerLevel` | 8 |
+| `ManaAtLevelOne` | 0 |
+| `ManaPerLevel` | 0 |
+| `BasePhysicalArmor` | 0 |
+| `BaseMagicalArmor` | 0 |
+
+Le profil combine obtenu est `16 / 12 / 14 / 10 / 10 / 10`, avec 20 PV au niveau 1 apres application du modificateur de Constitution.
 
 ### Tranche CC2 - API de creation atomique
 
