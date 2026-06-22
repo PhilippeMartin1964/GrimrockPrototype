@@ -1,7 +1,7 @@
 #include "UI/RPGCharacterCreationWidget.h"
 
 #include "Components/Button.h"
-#include "Components/EditableTextBox.h"
+#include "Components/EditableText.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
@@ -35,7 +35,7 @@ void URPGCharacterCreationWidget::NativeConstruct ()
         Warning,
         TEXT ("CharacterCreation NativeConstruct Widget=%s NameInput=%s Button=%s"),
         *GetName (),
-        *GetNameSafe (EditableTextBox_Name),
+        *GetNameSafe (EditableText_Name),
         *GetNameSafe (Button_CreateCharacter));
 
     BindWidgetEvents ();
@@ -54,18 +54,18 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
             &URPGCharacterCreationWidget::HandleCreateCharacterClicked);
     }
 
-    if (EditableTextBox_Name)
+    if (EditableText_Name)
     {
-        EditableTextBox_Name->OnTextChanged.RemoveDynamic (
+        EditableText_Name->OnTextChanged.RemoveDynamic (
             this,
             &URPGCharacterCreationWidget::HandleNameChanged);
-        EditableTextBox_Name->OnTextChanged.AddDynamic (
+        EditableText_Name->OnTextChanged.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleNameChanged);
-        EditableTextBox_Name->OnTextCommitted.RemoveDynamic (
+        EditableText_Name->OnTextCommitted.RemoveDynamic (
             this,
             &URPGCharacterCreationWidget::HandleNameCommitted);
-        EditableTextBox_Name->OnTextCommitted.AddDynamic (
+        EditableText_Name->OnTextCommitted.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleNameCommitted);
     }
@@ -165,9 +165,9 @@ void URPGCharacterCreationWidget::RefreshPreview ()
 
 void URPGCharacterCreationWidget::FocusNameInput ()
 {
-    if (EditableTextBox_Name)
+    if (EditableText_Name)
     {
-        EditableTextBox_Name->SetKeyboardFocus ();
+        EditableText_Name->SetKeyboardFocus ();
     }
 }
 
@@ -293,7 +293,7 @@ FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest (
 
 FText URPGCharacterCreationWidget::GetNormalizedNameText () const
 {
-    FString Name = EditableTextBox_Name ? EditableTextBox_Name->GetText ().ToString () : FString ();
+    FString Name = EditableText_Name ? EditableText_Name->GetText ().ToString () : FString ();
     Name.TrimStartAndEndInline ();
     return FText::FromString (Name);
 }
