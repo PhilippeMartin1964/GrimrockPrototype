@@ -301,6 +301,9 @@ struct FGridPartyInventoryState
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Party")
     int32 MaxActiveCharacters = 6;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+    bool bInitialCharacterCreationCompleted = false;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Party")
     TArray<FGridCharacterInventoryState> ActiveCharacters;
 
