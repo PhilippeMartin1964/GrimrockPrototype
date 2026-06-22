@@ -8,7 +8,7 @@
 
 class AGrimrockPartyPawn;
 class UButton;
-class UEditableTextBox;
+class UEditableText;
 class UGridPartyInventoryComponent;
 class UImage;
 class URPGClassAsset;
@@ -38,7 +38,7 @@ public:
     TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 
     UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UEditableTextBox> EditableTextBox_Name;
+    TObjectPtr<UEditableText> EditableText_Name;
 
     UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UButton> Button_CreateCharacter;
