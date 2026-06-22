@@ -117,7 +117,7 @@ bool FGridPartyInventoryCarryWeightTest::RunTest(const FString& Parameters)
     }
 
     FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-    Character.Strength = 10.0f;
+    Character.Attributes.Strength = 10;
     Component->RecalculateCharacterWeight(0);
 
     TestTrue(
