@@ -133,7 +133,7 @@ Réglages conseillés :
 - `EditableTextBox_Name` : texte vide, lecture autorisée, limite visuelle adaptée à 24 caractères ;
 - `Text_ValidationMessage` : visibilité initiale `Collapsed` ;
 - `Image_Portrait` : taille stable, par exemple `256 x 320` ;
-- `Button_CreateCharacter` : texte enfant `Créer le personnage` ;
+- `Button_CreateCharacter` : texte enfant `Créer le personnage`, `Interaction > Is Enabled = true`, sans binding sur cette propriété ;
 - racine et panneaux : aucun événement Blueprint nécessaire.
 
 Le bouton est automatiquement activé ou désactivé par le C++ selon la validité du nom et des DataAssets.
@@ -195,6 +195,22 @@ Si l'écran affiche `Race non configurée` ou `Classe non configurée` :
 7. relancer entièrement le PIE.
 
 Les valeurs de caractéristiques affichées par des tirets indiquent également que l'une de ces deux références manque.
+
+Si les valeurs sont correctes mais que le bouton reste grisé :
+
+1. sélectionner `Button_CreateCharacter` dans le Designer ;
+2. vérifier `Interaction > Is Enabled = true` ;
+3. supprimer tout binding Blueprint placé à droite de `Is Enabled` ;
+4. vérifier que tous ses panneaux parents sont également activés ;
+5. consulter le log `CharacterCreation SubmitState`.
+
+Avec un nom valide, le log attendu contient :
+
+```text
+CanSubmit=true ButtonEnabled=true NameLength=5 Inventory=true Completed=false Race=true Class=true Attributes=true
+```
+
+La touche **Entrée** valide également la création lorsque la requête est valide.
 
 L'option `Interaction > Is Focusable` du widget racine doit rester désactivée. Le mode UI ne tente plus de focaliser la racine ; il focalise directement `EditableTextBox_Name`.
 
