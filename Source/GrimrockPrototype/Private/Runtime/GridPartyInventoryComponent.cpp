@@ -246,7 +246,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
 
     if (HasCompletedInitialCharacterCreation ())
     {
-        OutError = FText::FromString (TEXT ("Initial character creation has already been completed."));
+        OutError = FText::FromString (TEXT ("La création initiale du personnage est déjà terminée."));
         return false;
     }
 
@@ -254,19 +254,19 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
     NormalizedName.TrimStartAndEndInline ();
     if (NormalizedName.Len () < 1 || NormalizedName.Len () > 24)
     {
-        OutError = FText::FromString (TEXT ("Character name must contain between 1 and 24 characters."));
+        OutError = FText::FromString (TEXT ("Le nom du personnage doit contenir entre 1 et 24 caractères."));
         return false;
     }
 
     if (!Request.RaceDefinition || !Request.RaceDefinition->IsValidDefinition ())
     {
-        OutError = FText::FromString (TEXT ("A valid race definition is required."));
+        OutError = FText::FromString (TEXT ("Une définition de race valide est requise."));
         return false;
     }
 
     if (!Request.ClassDefinition || !Request.ClassDefinition->IsValidDefinition ())
     {
-        OutError = FText::FromString (TEXT ("A valid class definition is required."));
+        OutError = FText::FromString (TEXT ("Une définition de classe valide est requise."));
         return false;
     }
 
@@ -275,7 +275,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
         Request.RaceDefinition->AttributeBonuses);
     if (!URPGCharacterRulesLibrary::AreAttributesInRange (FinalAttributes))
     {
-        OutError = FText::FromString (TEXT ("All starting attributes must be between 6 and 20."));
+        OutError = FText::FromString (TEXT ("Toutes les caractéristiques initiales doivent être comprises entre 6 et 20."));
         return false;
     }
 
@@ -316,7 +316,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
     {
         PartyInventoryState = PreviousPartyState;
         OutError = FText::FromString (
-            FString::Printf (TEXT ("Character creation failed ownership validation: %s"), *OwnershipError));
+            FString::Printf (TEXT ("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
         return false;
     }
 
