@@ -1336,6 +1336,32 @@ bool AGrimrockPartyPawn::SaveCurrentGame (FText& OutError)
     return true;
 }
 
+bool AGrimrockPartyPawn::RehydrateLoadedItemDefinitions (FText& OutError)
+{
+    if (!PartyInventoryComponent || !IsValid (LevelRuntimeActor))
+    {
+        OutError = FText::FromString (TEXT ("Le groupe ou le niveau runtime est indisponible."));
+        return false;
+    }
+
+    FName MissingDefinitionId = NAME_None;
+    if (!PartyInventoryComponent->RehydrateOwnedItemDefinitions (
+        [this] (FName DefinitionId)
+        {
+            return LevelRuntimeActor->ResolveRuntimeItemDefinition (DefinitionId);
+        },
+        MissingDefinitionId))
+    {
+        OutError = FText::FromString (
+            FString::Printf (
+                TEXT ("La définition d'objet sauvegardée '%s' est introuvable."),
+                *MissingDefinitionId.ToString ()));
+        return false;
+    }
+
+    return true;
+}
+
 bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeonState)
 {
     OutError = FText::GetEmpty ();
@@ -1377,6 +1403,16 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
     const int32 PreviousCellY = CurrentCellY;
     const EGridEdge PreviousFacing = Facing;
 
+    auto RestorePreviousState = [this, &PreviousPartyState, &PreviousDungeonState, PreviousDungeonLevelId, PreviousCellX, PreviousCellY, PreviousFacing] ()
+    {
+        PartyInventoryComponent->PartyInventoryState = PreviousPartyState;
+        LevelRuntimeActor->DungeonRuntimeState = PreviousDungeonState;
+        LevelRuntimeActor->CurrentDungeonLevelId = PreviousDungeonLevelId;
+        CurrentCellX = PreviousCellX;
+        CurrentCellY = PreviousCellY;
+        Facing = PreviousFacing;
+    };
+
     if (!PartyInventoryComponent->RestorePartyInventoryState (
         SaveGame->PartyInventoryState,
         OutError))
@@ -1390,14 +1426,17 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
     CurrentCellY = SaveGame->PartyCellY;
     Facing = SaveGame->PartyFacing == EGridEdge::None ? EGridEdge::North : SaveGame->PartyFacing;
 
+    if (!RehydrateLoadedItemDefinitions (OutError))
+    {
+        RestorePreviousState ();
+        return false;
+    }
+
     if (bApplyDungeonState && !LevelRuntimeActor->ApplyCurrentLevelRuntimeState ())
     {
-        PartyInventoryComponent->PartyInventoryState = PreviousPartyState;
-        LevelRuntimeActor->DungeonRuntimeState = PreviousDungeonState;
-        LevelRuntimeActor->CurrentDungeonLevelId = PreviousDungeonLevelId;
-        CurrentCellX = PreviousCellX;
-        CurrentCellY = PreviousCellY;
-        Facing = PreviousFacing;
+        RestorePreviousState ();
+        FText RehydrateRollbackError;
+        RehydrateLoadedItemDefinitions (RehydrateRollbackError);
         OutError = FText::FromString (TEXT ("L'état runtime sauvegardé ne peut pas être appliqué au niveau."));
         return false;
     }

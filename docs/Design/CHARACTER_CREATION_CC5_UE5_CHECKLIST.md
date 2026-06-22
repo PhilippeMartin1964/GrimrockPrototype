@@ -159,8 +159,12 @@ PartySave Continued Slot=GrimrockParty CharacterCount=1
    - mana `0 / 0` ;
    - torche toujours en main principale ;
    - charge `1.0 / 80.0`.
-9. Vérifier que la torche sauvegardée n'est pas réapparue à son emplacement initial.
-10. Vérifier que l'éclairage de la torche est actif.
+9. Vérifier que l'icône de la torche est visible.
+10. Retirer la torche de la main et vérifier qu'elle revient dans l'Inventaire avec son icône.
+11. Ouvrir son menu contextuel et vérifier que les actions d'équipement en main sont disponibles.
+12. Rééquiper la torche.
+13. Vérifier que la torche sauvegardée n'est pas réapparue à son emplacement initial.
+14. Vérifier que l'éclairage de la torche est actif.
 
 ---
 
@@ -185,6 +189,7 @@ PartySave Continued Slot=GrimrockParty CharacterCount=1
 | `PartySave Saved` | écriture réussie |
 | `PartySave Continued` | chargement automatique réussi |
 | `PartySave Loaded` | chargement demandé explicitement réussi |
+| `GridInventory Registered ItemDefinition` après chargement | DataAsset d'un objet possédé réhydraté avec son icône et ses actions |
 | `PartySave Load Failed` | sauvegarde invalide, incompatible ou état runtime inapplicable |
 | `PartySave EndPlay Failed` | sauvegarde impossible pendant la fermeture de la session |
 
@@ -200,6 +205,7 @@ CC5 est validée lorsque :
 - Nouvelle partie affiche la création ;
 - Continuer ne réaffiche pas la création ;
 - Elias, sa position et sa torche équipée sont restaurés ;
+- les icônes et les actions contextuelles des objets sauvegardés sont restaurées ;
 - la torche n'est pas dupliquée dans le monde ;
 - l'ownership reste valide ;
 - aucune erreur de sauvegarde n'apparaît dans les logs.

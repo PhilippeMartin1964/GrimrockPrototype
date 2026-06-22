@@ -140,6 +140,35 @@ bool FRPGPartySaveMemoryRoundTripCC5Test::RunTest (const FString& Parameters)
             LoadedSave->PartyInventoryState,
             RestoreError));
 
+    TestTrue (
+        TEXT ("The transient definition registry is not serialized"),
+        RestoredComponent->FindItemDefinition (TEXT ("Item_Torch")) == nullptr);
+
+    UGridItemDefinitionAsset* RestoredTorchDefinition = NewObject<UGridItemDefinitionAsset> ();
+    RestoredTorchDefinition->ItemDefinitionId = TEXT ("Item_Torch");
+    RestoredTorchDefinition->DisplayName = FText::FromString (TEXT ("Torche"));
+    RestoredTorchDefinition->ItemType = EGridItemType::Torch;
+    RestoredTorchDefinition->Weight = 1.0f;
+    RestoredTorchDefinition->CompatibleEquipmentSlots.Add (EGridEquipmentSlot::MainHand);
+
+    FName MissingDefinitionId = NAME_None;
+    TestTrue (
+        TEXT ("Owned item definitions are rehydrated after restore"),
+        RestoredComponent->RehydrateOwnedItemDefinitions (
+            [RestoredTorchDefinition] (FName DefinitionId)
+            {
+                return DefinitionId == RestoredTorchDefinition->ItemDefinitionId
+                    ? RestoredTorchDefinition
+                    : nullptr;
+            },
+            MissingDefinitionId));
+    TestTrue (
+        TEXT ("The restored torch definition is registered"),
+        RestoredComponent->FindItemDefinition (TEXT ("Item_Torch")) == RestoredTorchDefinition);
+    TestTrue (
+        TEXT ("The restored definition keeps its equipment actions"),
+        RestoredTorchDefinition->CanEquipToSlot (EGridEquipmentSlot::MainHand));
+
     FGridItemInstance EquippedItem;
     TestTrue (
         TEXT ("The torch remains equipped in the main hand"),

@@ -772,6 +772,73 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition (UGridItemDefinitionAs
     return true;
 }
 
+bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions (
+    TFunctionRef<UGridItemDefinitionAsset* (FName)> Resolver,
+    FName& OutMissingDefinitionId)
+{
+    OutMissingDefinitionId = NAME_None;
+
+    TSet<FName> DefinitionIds;
+    auto CollectCharacterItems = [&DefinitionIds] (const FGridCharacterInventoryState& Character)
+    {
+        for (const FGridInventorySlot& Slot : Character.InventorySlots)
+        {
+            if (!Slot.IsEmpty ())
+            {
+                DefinitionIds.Add (Slot.Item.ItemDefinitionId);
+            }
+        }
+    };
+
+    for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters)
+    {
+        CollectCharacterItems (Character);
+    }
+    for (const FGridCharacterInventoryState& Character : PartyInventoryState.CharacterPool)
+    {
+        CollectCharacterItems (Character);
+    }
+    for (const FGridCharacterEquipmentState& Equipment : PartyInventoryState.ActiveEquipment)
+    {
+        ForEachEquipmentItem (
+            Equipment,
+            [&DefinitionIds] (EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+            {
+                (void)Slot;
+                if (Item.IsValid ())
+                {
+                    DefinitionIds.Add (Item.ItemDefinitionId);
+                }
+            });
+    }
+    if (PartyInventoryState.bHasCursorItem && PartyInventoryState.CursorItem.IsValid ())
+    {
+        DefinitionIds.Add (PartyInventoryState.CursorItem.ItemDefinitionId);
+    }
+
+    TArray<UGridItemDefinitionAsset*> ResolvedDefinitions;
+    ResolvedDefinitions.Reserve (DefinitionIds.Num ());
+    for (const FName DefinitionId : DefinitionIds)
+    {
+        UGridItemDefinitionAsset* Definition = Resolver (DefinitionId);
+        if (!Definition ||
+            Definition->ItemDefinitionId.IsNone () ||
+            Definition->ItemDefinitionId != DefinitionId)
+        {
+            OutMissingDefinitionId = DefinitionId;
+            return false;
+        }
+        ResolvedDefinitions.Add (Definition);
+    }
+
+    RuntimeItemDefinitionsById.Reset ();
+    for (UGridItemDefinitionAsset* Definition : ResolvedDefinitions)
+    {
+        RegisterItemDefinition (Definition);
+    }
+    return true;
+}
+
 UGridItemDefinitionAsset* UGridPartyInventoryComponent::FindItemDefinition (FName ItemDefinitionId) const
 {
     if (ItemDefinitionId.IsNone ())

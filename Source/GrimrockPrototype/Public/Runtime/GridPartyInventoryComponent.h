@@ -106,6 +106,10 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     bool RegisterItemDefinition (UGridItemDefinitionAsset* Definition);
 
+    bool RehydrateOwnedItemDefinitions (
+        TFunctionRef<UGridItemDefinitionAsset* (FName)> Resolver,
+        FName& OutMissingDefinitionId);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Items")
     UGridItemDefinitionAsset* FindItemDefinition (FName ItemDefinitionId) const;
 

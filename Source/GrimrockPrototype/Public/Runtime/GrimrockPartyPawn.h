@@ -411,6 +411,7 @@ private:
     void ClearBufferedCommand ();
     void ApplyCharacterCreationInputMode (bool bIsActive);
     bool LoadCurrentGameData (FText& OutError, bool bApplyDungeonState);
+    bool RehydrateLoadedItemDefinitions (FText& OutError);
     void CloseCharacterCreationWidget ();
     bool TryConsumeBufferedCommand ();
     bool IsBusy () const;
