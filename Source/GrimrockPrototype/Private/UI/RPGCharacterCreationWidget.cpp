@@ -6,6 +6,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
+#include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -24,6 +25,20 @@ namespace
         return PortraitOption.DisplayName.IsEmpty ()
             ? FText::FromName (PortraitOption.PortraitId)
             : PortraitOption.DisplayName;
+    }
+
+    FText GetPortraitVariantDisplayName (const FRPGCharacterPortraitVariant& PortraitVariant)
+    {
+        return PortraitVariant.DisplayName.IsEmpty ()
+            ? FText::FromName (PortraitVariant.VariantId)
+            : PortraitVariant.DisplayName;
+    }
+
+    FText GetGenderDisplayName (ERPGCharacterPortraitGender Gender)
+    {
+        return Gender == ERPGCharacterPortraitGender::Female
+            ? FText::FromString (TEXT ("Feminin"))
+            : FText::FromString (TEXT ("Masculin"));
     }
 
     bool AreSamePortraitTexture (
@@ -82,6 +97,26 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
         ComboBox_Class->OnSelectionChanged.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleClassSelectionChanged);
+    }
+
+    if (ComboBox_Gender)
+    {
+        ComboBox_Gender->OnSelectionChanged.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleGenderSelectionChanged);
+        ComboBox_Gender->OnSelectionChanged.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleGenderSelectionChanged);
+    }
+
+    if (ComboBox_PortraitVariant)
+    {
+        ComboBox_PortraitVariant->OnSelectionChanged.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged);
+        ComboBox_PortraitVariant->OnSelectionChanged.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged);
     }
 
     if (ComboBox_Portrait)
@@ -205,6 +240,73 @@ void URPGCharacterCreationWidget::PopulateDefinitionOptions ()
         }
     }
 
+    PopulatePortraitOptions ();
+}
+
+void URPGCharacterCreationWidget::PopulatePortraitOptions ()
+{
+    if (ComboBox_Gender)
+    {
+        ComboBox_Gender->ClearOptions ();
+        ComboBox_Gender->AddOption (GetGenderDisplayName (ERPGCharacterPortraitGender::Male).ToString ());
+        ComboBox_Gender->AddOption (GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ());
+        ComboBox_Gender->SetSelectedOption (GetGenderDisplayName (SelectedPortraitGender).ToString ());
+    }
+
+    const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
+    if (!PortraitSet)
+    {
+        if (ComboBox_PortraitVariant)
+        {
+            ComboBox_PortraitVariant->ClearOptions ();
+        }
+        PopulateLegacyPortraitOptions ();
+        return;
+    }
+
+    FRPGCharacterPortraitVariant SelectedVariant;
+    if (!TryResolveSelectedPortraitVariant (SelectedVariant))
+    {
+        SelectFirstValidPortraitForCurrentRaceAndGender ();
+    }
+
+    if (ComboBox_PortraitVariant)
+    {
+        ComboBox_PortraitVariant->ClearOptions ();
+
+        TSet<FString> AddedOptions;
+        for (const FRPGCharacterPortraitVariant& PortraitVariant :
+            PortraitSet->GetPortraitsForGenderRef (SelectedPortraitGender))
+        {
+            if (!PortraitVariant.IsValidDefinition ())
+            {
+                continue;
+            }
+
+            const FString Option = GetPortraitVariantDisplayName (PortraitVariant).ToString ();
+            if (!AddedOptions.Contains (Option))
+            {
+                AddedOptions.Add (Option);
+                ComboBox_PortraitVariant->AddOption (Option);
+            }
+        }
+
+        FRPGCharacterPortraitVariant CurrentVariant;
+        if (TryResolveSelectedPortraitVariant (CurrentVariant))
+        {
+            ComboBox_PortraitVariant->SetSelectedOption (
+                GetPortraitVariantDisplayName (CurrentVariant).ToString ());
+        }
+    }
+
+    if (ComboBox_Portrait)
+    {
+        ComboBox_Portrait->ClearOptions ();
+    }
+}
+
+void URPGCharacterCreationWidget::PopulateLegacyPortraitOptions ()
+{
     const FRPGCharacterPortraitOption* FirstValidPortrait = nullptr;
     const FRPGCharacterPortraitOption* SelectedPortrait = nullptr;
     for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
@@ -228,6 +330,7 @@ void URPGCharacterCreationWidget::PopulateDefinitionOptions ()
     if (DefaultPortrait.IsNull () && FirstValidPortrait)
     {
         DefaultPortrait = FirstValidPortrait->Portrait;
+        SelectedPortraitVariantId = FirstValidPortrait->PortraitId;
         SelectedPortrait = FirstValidPortrait;
     }
 
@@ -285,12 +388,12 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         Text_RaceValue,
         bHasRaceDefinition
             ? GetDefinitionDisplayName (RaceDefinition->DisplayName, RaceDefinition->RaceId)
-            : FText::FromString (TEXT ("Race non configurée")));
+            : FText::FromString (TEXT ("Race non configuree")));
     SetOptionalText (
         Text_ClassValue,
         bHasClassDefinition
             ? GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId)
-            : FText::FromString (TEXT ("Classe non configurée")));
+            : FText::FromString (TEXT ("Classe non configuree")));
     SetOptionalText (
         Text_RaceDescription,
         bHasRaceDefinition ? RaceDefinition->Description : FText::GetEmpty ());
@@ -429,7 +532,7 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
     if (!InventoryComponent->CreateInitialCharacter (BuildCreationRequest (), Error))
     {
         SetValidationMessage (
-            Error.IsEmpty () ? FText::FromString (TEXT ("Création du personnage impossible.")) : Error,
+            Error.IsEmpty () ? FText::FromString (TEXT ("Creation du personnage impossible.")) : Error,
             true);
         RefreshPreview ();
         return false;
@@ -490,6 +593,7 @@ void URPGCharacterCreationWidget::HandleRaceSelectionChanged (
             GetDefinitionDisplayName (Race->DisplayName, Race->RaceId).ToString () == SelectedItem)
         {
             RaceDefinition = Race;
+            PopulatePortraitOptions ();
             SetValidationMessage (FText::GetEmpty (), false);
             RefreshPreview ();
             return;
@@ -519,11 +623,56 @@ void URPGCharacterCreationWidget::HandleClassSelectionChanged (
     }
 }
 
+void URPGCharacterCreationWidget::HandleGenderSelectionChanged (
+    FString SelectedItem,
+    ESelectInfo::Type SelectionType)
+{
+    (void)SelectionType;
+
+    SelectedPortraitGender = SelectedItem == GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ()
+        ? ERPGCharacterPortraitGender::Female
+        : ERPGCharacterPortraitGender::Male;
+    PopulatePortraitOptions ();
+    SetValidationMessage (FText::GetEmpty (), false);
+    RefreshPreview ();
+}
+
+void URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged (
+    FString SelectedItem,
+    ESelectInfo::Type SelectionType)
+{
+    (void)SelectionType;
+
+    const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
+    if (!PortraitSet)
+    {
+        return;
+    }
+
+    for (const FRPGCharacterPortraitVariant& PortraitVariant :
+        PortraitSet->GetPortraitsForGenderRef (SelectedPortraitGender))
+    {
+        if (PortraitVariant.IsValidDefinition () &&
+            GetPortraitVariantDisplayName (PortraitVariant).ToString () == SelectedItem)
+        {
+            SelectPortraitVariant (PortraitVariant);
+            SetValidationMessage (FText::GetEmpty (), false);
+            RefreshPreview ();
+            return;
+        }
+    }
+}
+
 void URPGCharacterCreationWidget::HandlePortraitSelectionChanged (
     FString SelectedItem,
     ESelectInfo::Type SelectionType)
 {
     (void)SelectionType;
+
+    if (FindPortraitSetForSelectedRace ())
+    {
+        return;
+    }
 
     for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
     {
@@ -531,6 +680,7 @@ void URPGCharacterCreationWidget::HandlePortraitSelectionChanged (
             GetPortraitDisplayName (PortraitOption).ToString () == SelectedItem)
         {
             DefaultPortrait = PortraitOption.Portrait;
+            SelectedPortraitVariantId = PortraitOption.PortraitId;
             SetValidationMessage (FText::GetEmpty (), false);
             RefreshPreview ();
             return;
@@ -544,6 +694,8 @@ FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest (
     Request.DisplayName = GetNormalizedNameText ();
     Request.RaceDefinition = RaceDefinition;
     Request.ClassDefinition = ClassDefinition;
+    Request.PortraitGender = SelectedPortraitGender;
+    Request.PortraitVariantId = SelectedPortraitVariantId;
     Request.Portrait = DefaultPortrait;
     return Request;
 }
@@ -557,6 +709,12 @@ FText URPGCharacterCreationWidget::GetNormalizedNameText () const
 
 FText URPGCharacterCreationWidget::ResolveSelectedPortraitDescription () const
 {
+    FRPGCharacterPortraitVariant PortraitVariant;
+    if (TryResolveSelectedPortraitVariant (PortraitVariant))
+    {
+        return PortraitVariant.Description;
+    }
+
     if (DefaultPortrait.IsNull ())
     {
         return FText::GetEmpty ();
@@ -572,6 +730,85 @@ FText URPGCharacterCreationWidget::ResolveSelectedPortraitDescription () const
     }
 
     return FText::GetEmpty ();
+}
+
+const URPGCharacterPortraitSetAsset* URPGCharacterCreationWidget::FindPortraitSetForSelectedRace () const
+{
+    if (!RaceDefinition || !RaceDefinition->IsValidDefinition ())
+    {
+        return nullptr;
+    }
+
+    for (const URPGCharacterPortraitSetAsset* PortraitSet : AvailablePortraitSets)
+    {
+        if (PortraitSet && PortraitSet->IsValidForRace (RaceDefinition->RaceId))
+        {
+            return PortraitSet;
+        }
+    }
+
+    return nullptr;
+}
+
+bool URPGCharacterCreationWidget::TryResolveSelectedPortraitVariant (
+    FRPGCharacterPortraitVariant& OutVariant) const
+{
+    OutVariant = FRPGCharacterPortraitVariant ();
+    const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
+    if (!PortraitSet)
+    {
+        return false;
+    }
+
+    if (!SelectedPortraitVariantId.IsNone () &&
+        PortraitSet->FindPortraitVariant (SelectedPortraitGender, SelectedPortraitVariantId, OutVariant))
+    {
+        return true;
+    }
+
+    for (const FRPGCharacterPortraitVariant& PortraitVariant :
+        PortraitSet->GetPortraitsForGenderRef (SelectedPortraitGender))
+    {
+        if (PortraitVariant.IsValidDefinition () &&
+            AreSamePortraitTexture (DefaultPortrait, PortraitVariant.Portrait))
+        {
+            OutVariant = PortraitVariant;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void URPGCharacterCreationWidget::SelectPortraitVariant (
+    const FRPGCharacterPortraitVariant& PortraitVariant)
+{
+    if (!PortraitVariant.IsValidDefinition ())
+    {
+        return;
+    }
+
+    SelectedPortraitVariantId = PortraitVariant.VariantId;
+    DefaultPortrait = PortraitVariant.Portrait;
+}
+
+void URPGCharacterCreationWidget::SelectFirstValidPortraitForCurrentRaceAndGender ()
+{
+    const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
+    if (!PortraitSet)
+    {
+        return;
+    }
+
+    FRPGCharacterPortraitVariant FirstValidVariant;
+    if (PortraitSet->GetFirstValidPortrait (SelectedPortraitGender, FirstValidVariant))
+    {
+        SelectPortraitVariant (FirstValidVariant);
+        return;
+    }
+
+    SelectedPortraitVariantId = NAME_None;
+    DefaultPortrait.Reset ();
 }
 
 void URPGCharacterCreationWidget::SetValidationMessage (const FText& Message, bool bIsError)
