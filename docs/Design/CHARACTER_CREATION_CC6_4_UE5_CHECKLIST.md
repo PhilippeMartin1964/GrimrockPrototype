@@ -1,23 +1,23 @@
-# CC6.4 - Icones et identite de classe
+# CC6.4 - Icônes et identité de classe
 
 ## 1. Objet
 
-CC6.4 ajoute l'icone de classe au modele visuel composite de creation de personnage.
+CC6.4 ajoute l'icône de classe au modèle visuel composite de création de personnage.
 
-Modele vise :
+Modèle visé :
 
 ```text
 Portrait principal = race + genre + variante
-Surimpression = icone de classe
+Surimpression = icône de classe
 ```
 
-Cette tranche ne cree pas de portrait final par combinaison race/classe. Elle reutilise les portraits CC6.3 et ajoute une icone de classe en overlay.
+Cette tranche ne crée pas de portrait final par combinaison race/classe. Elle réutilise les portraits CC6.3 et ajoute une icône de classe en surimpression.
 
-Convention de documentation : les explications fonctionnelles sont en francais. Les noms de proprietes, widgets, classes C++ et assets Unreal restent dans leur forme technique exacte.
+Convention de documentation : les explications fonctionnelles sont en français. Les noms de propriétés, widgets, classes C++ et assets Unreal restent dans leur forme technique exacte.
 
 ---
 
-## 2. Resume technique
+## 2. Résumé technique
 
 Ajouts C++ :
 
@@ -26,20 +26,20 @@ Ajouts C++ :
 - `Image_ClassIcon` dans `WBP_CharacterCreation` ;
 - `Image_CharacterClassIcon` dans `WBP_GridInventory` ;
 - `ClassIcon` dans `FRPGCharacterCreationRequest` ;
-- `ClassIcon` dans les structures d'etat et de resume inventaire ;
+- `ClassIcon` dans les structures d'état et de résumé inventaire ;
 - `SetCharacterVisualSelection()` et `GetCharacterVisualSelection()` dans `UGridPartyInventoryComponent` ;
 - test `Grimrock.CharacterCreation.CC6.ClassVisualMatchesClass`.
 
 Principe :
 
-- `URPGClassAsset` reste responsable des regles de classe ;
-- `URPGClassVisualAsset` porte uniquement les donnees visuelles ;
-- le widget de creation resout l'icone par `ClassId` ;
-- l'inventaire relit automatiquement la selection visuelle persistante via `GetCharacterVisualSelection()`.
+- `URPGClassAsset` reste responsable des règles de classe ;
+- `URPGClassVisualAsset` porte uniquement les données visuelles ;
+- le widget de création résout l'icône par `ClassId` ;
+- l'inventaire relit automatiquement la sélection visuelle persistante via `GetCharacterVisualSelection()`.
 
 ---
 
-## 3. Etape A - Recuperer et compiler
+## 3. Étape A - Récupérer et compiler
 
 Fermer Unreal Editor, puis :
 
@@ -55,11 +55,11 @@ Compiler :
 - plateforme **Win64** ;
 - cible `GrimrockPrototypeEditor`.
 
-Resultat attendu : `Build succeeded`.
+Résultat attendu : `Build succeeded`.
 
 ---
 
-## 4. Etape B - Verifier les textures d'icones
+## 4. Étape B - Vérifier les textures d'icônes
 
 Les 6 textures minimales doivent exister :
 
@@ -67,93 +67,93 @@ Les 6 textures minimales doivent exister :
 |---|---|
 | Guerrier | `T_ClassIcon_Warrior` |
 | Voleur | `T_ClassIcon_Rogue` |
-| Rodeur | `T_ClassIcon_Ranger` |
+| Rôdeur | `T_ClassIcon_Ranger` |
 | Mage | `T_ClassIcon_Mage` |
-| Pretre | `T_ClassIcon_Priest` |
+| Prêtre | `T_ClassIcon_Priest` |
 | Alchimiste | `T_ClassIcon_Alchemist` |
 
-Reglages recommandes :
+Réglages recommandés :
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | Format source | `512x512 RGBA` |
 | Compression Settings | `UserInterface2D (RGBA)` |
 | Texture Group | `UI` |
 | Mip Gen Settings | `NoMipmaps` |
-| sRGB | active |
-| Alpha | conserve |
+| sRGB | activé |
+| Alpha | conservé |
 
 ---
 
-## 5. Etape C - Creer les DataAssets de visuel de classe
+## 5. Étape C - Créer les DataAssets de visuel de classe
 
-Creer le dossier :
+Créer le dossier :
 
 ```text
 Content/GrimrockPrototype/Core/DataAssets/RPG/Visuals/ClassVisuals/
 ```
 
-Creer 6 DataAssets de type :
+Créer 6 DataAssets de type :
 
 ```text
 URPGClassVisualAsset
 ```
 
-Noms recommandes :
+Noms recommandés :
 
 | DataAsset | ClassId | ClassIcon | DisplayName |
 |---|---|---|---|
 | `DA_ClassVisual_Warrior` | `Warrior` | `T_ClassIcon_Warrior` | Guerrier |
 | `DA_ClassVisual_Rogue` | `Rogue` | `T_ClassIcon_Rogue` | Voleur |
-| `DA_ClassVisual_Ranger` | `Ranger` | `T_ClassIcon_Ranger` | Rodeur |
+| `DA_ClassVisual_Ranger` | `Ranger` | `T_ClassIcon_Ranger` | Rôdeur |
 | `DA_ClassVisual_Mage` | `Mage` | `T_ClassIcon_Mage` | Mage |
-| `DA_ClassVisual_Priest` | `Priest` | `T_ClassIcon_Priest` | Pretre |
+| `DA_ClassVisual_Priest` | `Priest` | `T_ClassIcon_Priest` | Prêtre |
 | `DA_ClassVisual_Alchemist` | `Alchemist` | `T_ClassIcon_Alchemist` | Alchimiste |
 
-Descriptions recommandees :
+Descriptions recommandées :
 
 | ClassId | Description |
 |---|---|
-| `Warrior` | Combattant robuste specialise dans le corps a corps, capable d'encaisser les coups et de tenir la ligne. |
-| `Rogue` | Aventurier agile et opportuniste, efficace avec les armes legeres, les esquives et les attaques precises. |
-| `Ranger` | Explorateur polyvalent, a l'aise avec les armes a distance, la survie et les deplacements tactiques. |
-| `Mage` | Lanceur de sorts offensif, fragile mais capable d'infliger de lourds degats elementaires. |
-| `Priest` | Soutien spirituel capable de proteger, soigner et renforcer le groupe pendant l'exploration. |
-| `Alchemist` | Specialiste des potions, bombes et preparations, utile pour transformer les ressources en avantages tactiques. |
+| `Warrior` | Combattant robuste spécialisé dans le corps à corps, capable d'encaisser les coups et de tenir la ligne. |
+| `Rogue` | Aventurier agile et opportuniste, efficace avec les armes légères, les esquives et les attaques précises. |
+| `Ranger` | Explorateur polyvalent, à l'aise avec les armes à distance, la survie et les déplacements tactiques. |
+| `Mage` | Lanceur de sorts offensif, fragile mais capable d'infliger de lourds dégâts élémentaires. |
+| `Priest` | Soutien spirituel capable de protéger, soigner et renforcer le groupe pendant l'exploration. |
+| `Alchemist` | Spécialiste des potions, bombes et préparations, utile pour transformer les ressources en avantages tactiques. |
 
 Pour chaque DataAsset :
 
 - renseigner `ClassId` exactement comme dans le DataAsset de classe ;
 - renseigner `DisplayName` et `Description` ;
 - assigner `ClassIcon` ;
-- garder `AccentColor` sur blanc pour CC6.4, sauf besoin visuel immediat.
+- garder `AccentColor` sur blanc pour CC6.4, sauf besoin visuel immédiat.
 
 ---
 
-## 6. Etape D - Modifier `WBP_CharacterCreation`
+## 6. Étape D - Modifier `WBP_CharacterCreation`
 
-### D.1 Ajouter l'image d'icone
+### D.1 Ajouter l'image d'icône
 
-Dans le bloc portrait, ajouter une Image nommee exactement :
+Dans le bloc portrait, ajouter une Image nommée exactement :
 
 ```text
 Image_ClassIcon
 ```
 
-Reglages recommandes :
+Réglages recommandés :
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | Is Variable | oui |
 | Visibility initiale | `Collapsed` ou `Hit Test Invisible` |
-| Brush Image | vide par defaut |
-| Anchors / Alignment | coin inferieur droit du portrait |
-| Size | `48x48` a `72x72` selon la taille du portrait |
+| Brush Image | vide par défaut |
+| Anchors / Alignment | coin inférieur droit du portrait |
+| Size | `48x48` à `72x72` selon la taille du portrait |
 | ZOrder | au-dessus de `Image_Portrait` |
 
-Le C++ changera automatiquement la texture et la visibilite.
+Le C++ changera automatiquement la texture et la visibilité.
 
-### D.2 Hierarchie recommandee
+### D.2 Hiérarchie recommandée
 
 ```text
 PortraitOverlay
@@ -161,22 +161,22 @@ PortraitOverlay
 └─ Image_ClassIcon
 ```
 
-Si le portrait est dans un `Overlay`, placer `Image_ClassIcon` apres `Image_Portrait` pour qu'elle soit dessinee au-dessus.
+Si le portrait est dans un `Overlay`, placer `Image_ClassIcon` après `Image_Portrait` pour qu'elle soit dessinée au-dessus.
 
 ### D.3 Graph Blueprint
 
 Ne pas ajouter de logique Blueprint pour :
 
-- choisir l'icone selon la classe ;
+- choisir l'icône selon la classe ;
 - changer la texture de `Image_ClassIcon` ;
-- cacher/afficher l'icone ;
-- copier l'icone dans la requete.
+- cacher/afficher l'icône ;
+- copier l'icône dans la requête.
 
-Le C++ gere ces operations.
+Le C++ gère ces opérations.
 
 ---
 
-## 7. Etape E - Configurer `AvailableClassVisuals`
+## 7. Étape E - Configurer `AvailableClassVisuals`
 
 Dans `WBP_CharacterCreation` :
 
@@ -198,13 +198,13 @@ DA_ClassVisual_Priest
 DA_ClassVisual_Alchemist
 ```
 
-Important : si une icone ne s'affiche pas dans l'ecran de creation, verifier d'abord que `ClassId` correspond exactement a celui de la classe choisie.
+Important : si une icône ne s'affiche pas dans l'écran de création, vérifier d'abord que `ClassId` correspond exactement à celui de la classe choisie.
 
 ---
 
-## 8. Etape F - Modifier `WBP_GridInventory`
+## 8. Étape F - Modifier `WBP_GridInventory`
 
-### F.1 Ajouter l'icone sans remplacer le portrait
+### F.1 Ajouter l'icône sans remplacer le portrait
 
 Dans la fiche centrale personnage, conserver l'image existante :
 
@@ -212,15 +212,15 @@ Dans la fiche centrale personnage, conserver l'image existante :
 Image_CharacterPortrait
 ```
 
-Ajouter une nouvelle Image nommee exactement :
+Ajouter une nouvelle Image nommée exactement :
 
 ```text
 Image_CharacterClassIcon
 ```
 
-Il ne faut pas remplacer `Image_CharacterPortrait`. `Image_CharacterClassIcon` est une petite icone de classe en surimpression du portrait.
+Il ne faut pas remplacer `Image_CharacterPortrait`. `Image_CharacterClassIcon` est une petite icône de classe en surimpression du portrait.
 
-Hierarchie recommandee :
+Hiérarchie recommandée :
 
 ```text
 Overlay_CharacterPortrait
@@ -228,36 +228,36 @@ Overlay_CharacterPortrait
 └─ Image_CharacterClassIcon
 ```
 
-Reglages recommandes pour `Image_CharacterClassIcon` :
+Réglages recommandés pour `Image_CharacterClassIcon` :
 
-| Propriete | Valeur |
+| Propriété | Valeur |
 |---|---|
 | Is Variable | oui |
-| Placement | coin superieur droit ou inferieur droit du portrait personnage |
-| Taille | `32x32` a `64x64` |
-| Brush Image | vide par defaut |
-| Visibilite initiale | `Collapsed` |
+| Placement | coin supérieur droit ou inférieur droit du portrait personnage |
+| Taille | `32x32` à `64x64` |
+| Brush Image | vide par défaut |
+| Visibilité initiale | `Collapsed` |
 | ZOrder | au-dessus de `Image_CharacterPortrait` |
 
 ### F.2 Logique C++ attendue
 
-Apres le correctif CC6.4, `UGridInventoryWidget` declare et rafraichit automatiquement :
+Après le correctif CC6.4, `UGridInventoryWidget` déclare et rafraîchit automatiquement :
 
 ```text
 Image_CharacterClassIcon
 ```
 
-Le Blueprint n'a donc pas besoin d'appeler lui-meme `GetCharacterVisualSelection()` pour afficher l'icone. Le C++ lit la selection visuelle persistante du personnage selectionne et applique :
+Le Blueprint n'a donc pas besoin d'appeler lui-même `GetCharacterVisualSelection()` pour afficher l'icône. Le C++ lit la sélection visuelle persistante du personnage sélectionné et applique :
 
 ```text
 OutSelection.ClassIcon -> Image_CharacterClassIcon
 ```
 
-Le chemin Blueprint manuel reste possible pour diagnostic, mais il n'est plus necessaire pour l'affichage normal.
+Le chemin Blueprint manuel reste possible pour diagnostic, mais il n'est plus nécessaire pour l'affichage normal.
 
 ---
 
-## 9. Etape G - Tests Automation
+## 9. Étape G - Tests Automation
 
 Dans **Tools > Session Frontend > Automation**, rechercher :
 
@@ -271,44 +271,44 @@ Nouveau test CC6.4 :
 Grimrock.CharacterCreation.CC6.ClassVisualMatchesClass
 ```
 
-Nombre attendu apres CC6.4 : **19 tests**.
+Nombre attendu après CC6.4 : **19 tests**.
 
 ---
 
-## 10. Etape H - Validation PIE
+## 10. Étape H - Validation PIE
 
-1. Regler `PartyStartupMode = NewGame`.
+1. Régler `PartyStartupMode = NewGame`.
 2. Lancer le PIE.
 3. Choisir une race et un genre.
 4. Choisir `Mage`.
-5. Verifier que l'icone Mage apparait en surimpression du portrait dans la creation de personnage.
+5. Vérifier que l'icône Mage apparaît en surimpression du portrait dans la création de personnage.
 6. Choisir `Guerrier`.
-7. Verifier que l'icone change immediatement.
-8. Creer le personnage.
+7. Vérifier que l'icône change immédiatement.
+8. Créer le personnage.
 9. Ouvrir l'inventaire.
-10. Verifier que `Image_CharacterPortrait` affiche le portrait.
-11. Verifier que `Image_CharacterClassIcon` affiche l'icone de classe en surimpression.
+10. Vérifier que `Image_CharacterPortrait` affiche le portrait.
+11. Vérifier que `Image_CharacterClassIcon` affiche l'icône de classe en surimpression.
 
-Si l'icone apparait dans la creation mais pas dans l'inventaire :
+Si l'icône apparaît dans la création mais pas dans l'inventaire :
 
-- verifier que le code contient le correctif `Image_CharacterClassIcon` dans `UGridInventoryWidget` ;
-- verifier que le widget dans `WBP_GridInventory` est nomme exactement `Image_CharacterClassIcon` ;
-- verifier que `Is Variable` est coche ;
-- verifier que l'image est dans un `Overlay` ou un conteneur qui ne la masque pas ;
-- verifier qu'elle est placee apres `Image_CharacterPortrait` dans l'Overlay ;
-- verifier que `Visibility` n'est pas forcee a `Collapsed` dans le Graph Blueprint ;
-- verifier que `ClassId` du `DA_ClassVisual_*` correspond exactement au `ClassId` de la classe choisie ;
-- relancer la creation du personnage apres correction, car l'icone est persistee au moment de `Create Character`.
+- vérifier que le code contient le correctif `Image_CharacterClassIcon` dans `UGridInventoryWidget` ;
+- vérifier que le widget dans `WBP_GridInventory` est nommé exactement `Image_CharacterClassIcon` ;
+- vérifier que `Is Variable` est coché ;
+- vérifier que l'image est dans un `Overlay` ou un conteneur qui ne la masque pas ;
+- vérifier qu'elle est placée après `Image_CharacterPortrait` dans l'Overlay ;
+- vérifier que `Visibility` n'est pas forcée à `Collapsed` dans le Graph Blueprint ;
+- vérifier que `ClassId` du `DA_ClassVisual_*` correspond exactement au `ClassId` de la classe choisie ;
+- relancer la création du personnage après correction, car l'icône est persistée au moment de `Create Character`.
 
 ---
 
-## 11. Critere de validation
+## 11. Critère de validation
 
-CC6.4 est validee lorsque :
+CC6.4 est validée lorsque :
 
-- la compilation C++ reussit ;
+- la compilation C++ réussit ;
 - les 19 tests `Grimrock.CharacterCreation` sont verts ;
 - les 6 `DA_ClassVisual_*` existent ;
-- `WBP_CharacterCreation` affiche l'icone correcte en changeant de classe ;
+- `WBP_CharacterCreation` affiche l'icône correcte en changeant de classe ;
 - `WBP_GridInventory` affiche `Image_CharacterClassIcon` en surimpression du portrait ;
-- aucune image finale race + classe n'est necessaire.
+- aucune image finale race + classe n'est nécessaire.
