@@ -24,13 +24,15 @@ Ajouts C++ :
 - `Image_ClassIcon` dans `WBP_CharacterCreation` ;
 - `ClassIcon` dans `FRPGCharacterCreationRequest` ;
 - `ClassIcon` dans les structures d'etat et de resume inventaire ;
+- `SetCharacterVisualSelection()` et `GetCharacterVisualSelection()` dans `UGridPartyInventoryComponent` ;
 - test `Grimrock.CharacterCreation.CC6.ClassVisualMatchesClass`.
 
 Principe :
 
 - `URPGClassAsset` reste responsable des regles de classe ;
 - `URPGClassVisualAsset` porte uniquement les donnees visuelles ;
-- le widget resout l'icone par `ClassId`.
+- le widget resout l'icone par `ClassId` ;
+- l'inventaire peut relire la selection visuelle persistante via `GetCharacterVisualSelection()`.
 
 ---
 
@@ -203,7 +205,15 @@ Reglages recommandes :
 | Taille | `32x32` a `64x64` |
 | Visibilite si vide | `Collapsed` |
 
-Le resume C++ expose maintenant `ClassIcon` dans `FGridInventoryCharacterSummary`. Le binding Blueprint/UMG pourra donc utiliser la meme logique que le portrait, mais en lisant `Summary.ClassIcon`.
+Pour recuperer l'icone :
+
+1. Lire le personnage courant comme aujourd'hui.
+2. Appeler `GetCharacterVisualSelection(CharacterIndex, OutSelection)` sur `UGridPartyInventoryComponent`.
+3. Utiliser `OutSelection.Portrait` pour `Image_CharacterPortrait` si besoin.
+4. Utiliser `OutSelection.ClassIcon` pour `Image_CharacterClassIcon`.
+5. Si `OutSelection.ClassIcon` est nul, cacher `Image_CharacterClassIcon`.
+
+`FGridInventoryCharacterSummary` expose aussi un champ `ClassIcon`, mais le chemin recommande pour CC6.4 est `GetCharacterVisualSelection()` afin de relire explicitement la selection visuelle persistante.
 
 ---
 
@@ -248,5 +258,5 @@ CC6.4 est validee lorsque :
 - les 19 tests `Grimrock.CharacterCreation` sont verts ;
 - les 6 `DA_ClassVisual_*` existent ;
 - `WBP_CharacterCreation` affiche l'icone correcte en changeant de classe ;
-- `WBP_GridInventory` peut afficher `Summary.ClassIcon` en surimpression du portrait ;
+- `WBP_GridInventory` peut afficher `OutSelection.ClassIcon` en surimpression du portrait ;
 - aucune image finale race + classe n'est necessaire.
