@@ -5,6 +5,7 @@
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassVisualAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/SoftObjectPath.h"
@@ -42,6 +43,19 @@ namespace
         CharacterClass->ManaAtLevelOne = ManaAtLevelOne;
         CharacterClass->ManaPerLevel = ManaPerLevel;
         return CharacterClass;
+    }
+
+    URPGClassVisualAsset* CreateClassVisual (
+        FName ClassId,
+        const TCHAR* DisplayName,
+        const TCHAR* TexturePath)
+    {
+        URPGClassVisualAsset* ClassVisual = NewObject<URPGClassVisualAsset> ();
+        ClassVisual->ClassId = ClassId;
+        ClassVisual->DisplayName = FText::FromString (DisplayName);
+        ClassVisual->ClassIcon = TSoftObjectPtr<UTexture2D> (FSoftObjectPath (TexturePath));
+        ClassVisual->AccentColor = FLinearColor::White;
+        return ClassVisual;
     }
 
     FRPGCharacterPortraitVariant CreatePortraitVariant (
@@ -302,6 +316,24 @@ bool FRPGPortraitSetFallbackCC6Test::RunTest (const FString& Parameters)
             ERPGCharacterPortraitGender::Female,
             TEXT ("Male_01"),
             FoundVariant));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGClassVisualMatchesClassCC6Test,
+    "Grimrock.CharacterCreation.CC6.ClassVisualMatchesClass",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGClassVisualMatchesClassCC6Test::RunTest (const FString& Parameters)
+{
+    const URPGClassVisualAsset* MageVisual = CreateClassVisual (
+        TEXT ("Mage"),
+        TEXT ("Mage"),
+        TEXT ("/Game/GrimrockPrototype/UI/Portraits/ClassIcons/T_ClassIcon_Mage.T_ClassIcon_Mage"));
+
+    TestTrue (TEXT ("Class visual is valid"), MageVisual->IsValidDefinition ());
+    TestTrue (TEXT ("Class visual matches Mage"), MageVisual->IsValidForClass (TEXT ("Mage")));
+    TestFalse (TEXT ("Class visual rejects Warrior"), MageVisual->IsValidForClass (TEXT ("Warrior")));
     return true;
 }
 
