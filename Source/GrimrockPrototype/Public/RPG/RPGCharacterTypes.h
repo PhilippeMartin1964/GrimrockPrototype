@@ -82,6 +82,60 @@ struct FRPGDerivedStats
     int32 Evasion = 0;
 };
 
+UENUM (BlueprintType)
+enum class ERPGCharacterPortraitGender : uint8
+{
+    Male UMETA (DisplayName = "Masculin"),
+    Female UMETA (DisplayName = "Feminin")
+};
+
+USTRUCT (BlueprintType)
+struct FRPGCharacterPortraitVariant
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait")
+    FName VariantId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait")
+    FText DisplayName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait")
+    TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait", meta = (MultiLine = "true"))
+    FText Description;
+
+    bool IsValidDefinition () const
+    {
+        return !VariantId.IsNone () && !Portrait.IsNull ();
+    }
+};
+
+USTRUCT (BlueprintType)
+struct FRPGCharacterVisualSelection
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Visual")
+    FName RaceId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Visual")
+    ERPGCharacterPortraitGender Gender = ERPGCharacterPortraitGender::Male;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Visual")
+    FName PortraitVariantId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Visual")
+    TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Visual")
+    FName ClassId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Visual")
+    TSoftObjectPtr<UTexture2D> ClassIcon;
+};
+
 USTRUCT (BlueprintType)
 struct FRPGCharacterPortraitOption
 {
@@ -118,6 +172,12 @@ struct FRPGCharacterCreationRequest
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TObjectPtr<URPGClassAsset> ClassDefinition = nullptr;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    FName PortraitVariantId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TSoftObjectPtr<UTexture2D> Portrait;
