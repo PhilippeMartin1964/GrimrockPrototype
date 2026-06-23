@@ -4,14 +4,21 @@
 
 CC6.2 ajoute un portrait sélectionnable à la création de personnage.
 
-Le portrait choisi doit :
+Cette tranche est volontairement une première marche technique : elle vérifie que le portrait circule correctement entre la création, l'inventaire et la sauvegarde.
 
-- être visible dans `WBP_CharacterCreation` pendant l'aperçu ;
-- être transmis à `CreateInitialCharacter` ;
-- être affiché dans la fiche centrale de l'inventaire ;
-- être conservé par la sauvegarde CC5 et restauré en mode `Continue`.
+La décision de direction visuelle est maintenant documentée dans :
 
-Cette tranche ne traite pas encore la répartition de points, l'équipement initial, les compétences, les dons ou les sorts.
+```text
+docs/Design/CHARACTER_CREATION_VISUAL_IDENTITY_ROADMAP.md
+```
+
+À terme, le portrait final ne sera pas une image unique par combinaison race + classe. Le modèle cible est :
+
+```text
+portrait principal race + genre
++
+icône de classe en surimpression
+```
 
 ---
 
@@ -20,8 +27,8 @@ Cette tranche ne traite pas encore la répartition de points, l'équipement init
 | Responsable | Travail CC6.2 |
 |---|---|
 | ChatGPT / Codex | Type `FRPGCharacterPortraitOption`, ComboBox native optionnelle, transmission du portrait, test de persistance, documentation |
-| Utilisateur dans UE5 | Importer ou créer les textures de portrait, configurer `WBP_CharacterCreation`, vérifier le rendu PIE |
-| Hors CC6.2 | Génération automatique de portraits, portraits par sexe/origine, équipement initial, points libres, compétences, dons et sorts |
+| Utilisateur dans UE5 | Importer ou créer quelques textures de portrait temporaires, configurer `WBP_CharacterCreation`, vérifier le rendu PIE |
+| Hors CC6.2 | Filtrage race + genre, icônes de classe, composition finale, variantes multiples et polissage visuel |
 
 ---
 
@@ -43,22 +50,26 @@ Résultat attendu : `Build succeeded`.
 
 ---
 
-## 4. Étape B - Préparer les textures de portrait
+## 4. Étape B - Préparer les textures de portrait CC6.2
+
+Pour CC6.2, quelques textures suffisent. Elles peuvent déjà suivre la convention cible race + genre, même si le filtrage automatique arrivera plus tard.
 
 Créer ou importer quelques textures dans un dossier dédié, par exemple :
 
 ```text
-Content/GrimrockPrototype/UI/Portraits/
+Content/GrimrockPrototype/UI/Portraits/Races/
 ```
 
-Noms recommandés pour commencer :
+Noms recommandés :
 
 | Asset | Usage |
 |---|---|
-| `T_Portrait_HumanWarrior` | portrait par défaut Humain / Guerrier |
-| `T_Portrait_ElfMage` | validation Elfe / Mage |
-| `T_Portrait_DwarfWarrior` | variation robuste |
-| `T_Portrait_Rogue` | variation voleur |
+| `T_Portrait_Human_Male_01` | portrait par défaut |
+| `T_Portrait_Human_Female_01` | validation genre féminin plus tard |
+| `T_Portrait_Elf_Male_01` | variation Elfe |
+| `T_Portrait_Elf_Female_01` | validation Elfe / Mage |
+| `T_Portrait_Dwarf_Male_01` | variation robuste |
+| `T_Portrait_Dwarf_Female_01` | variation robuste |
 
 Paramètres conseillés :
 
@@ -69,9 +80,34 @@ Paramètres conseillés :
 
 ---
 
-## 5. Étape C - Modifier `WBP_CharacterCreation`
+## 5. Étape C - Préparer le futur set d'icônes de classe
 
-### C.1 Ajouter la ComboBox de portrait
+Le code CC6.2 ne consomme pas encore les icônes de classe, mais la roadmap cible les prévoit.
+
+Dossier recommandé :
+
+```text
+Content/GrimrockPrototype/UI/Portraits/ClassIcons/
+```
+
+Icônes à produire dans une tranche suivante :
+
+| Classe | Asset cible |
+|---|---|
+| Guerrier | `T_ClassIcon_Warrior` |
+| Voleur | `T_ClassIcon_Rogue` |
+| Rôdeur | `T_ClassIcon_Ranger` |
+| Mage | `T_ClassIcon_Mage` |
+| Prêtre | `T_ClassIcon_Priest` |
+| Alchimiste | `T_ClassIcon_Alchemist` |
+
+Ces icônes doivent être lisibles en petit format pour fonctionner en surimpression sur le portrait.
+
+---
+
+## 6. Étape D - Modifier `WBP_CharacterCreation`
+
+### D.1 Ajouter la ComboBox de portrait
 
 Dans le Designer, ajouter une **ComboBox String** :
 
@@ -85,7 +121,7 @@ Ne créer aucun événement `On Selection Changed` dans le Graph.
 
 Cette ComboBox utilise `BindWidgetOptional` : l'absence du widget ne bloque pas la compilation, mais elle empêche la sélection manuelle du portrait.
 
-### C.2 Vérifier l'image d'aperçu
+### D.2 Vérifier l'image d'aperçu
 
 Le widget existant doit conserver ou ajouter :
 
@@ -95,7 +131,7 @@ Le widget existant doit conserver ou ajouter :
 
 Le C++ met à jour cette image avec le portrait choisi.
 
-### C.3 Ajouter une description facultative
+### D.3 Ajouter une description facultative
 
 Ajouter éventuellement un **Text Block** :
 
@@ -107,18 +143,20 @@ Ce champ est optionnel. Il affiche la description de l'option sélectionnée si 
 
 ---
 
-## 6. Étape D - Configurer `AvailablePortraits`
+## 7. Étape E - Configurer `AvailablePortraits`
 
 Dans `WBP_CharacterCreation`, ouvrir **Class Defaults > RPG > Character Creation > Choices**.
 
-Renseigner `AvailablePortraits` avec quelques entrées :
+Renseigner `AvailablePortraits` avec des entrées temporaires mais nommées selon le modèle cible :
 
 | PortraitId | DisplayName | Portrait | Description |
 |---|---|---|---|
-| `HumanWarrior` | `Humain guerrier` | `T_Portrait_HumanWarrior` | Portrait par défaut du prototype. |
-| `ElfMage` | `Elfe mage` | `T_Portrait_ElfMage` | Profil agile et orienté magie. |
-| `DwarfWarrior` | `Nain guerrier` | `T_Portrait_DwarfWarrior` | Profil robuste et défensif. |
-| `Rogue` | `Voleur` | `T_Portrait_Rogue` | Profil discret et mobile. |
+| `Human_Male_01` | `Humain masculin 01` | `T_Portrait_Human_Male_01` | Portrait humain masculin de base. |
+| `Human_Female_01` | `Humain féminin 01` | `T_Portrait_Human_Female_01` | Portrait humain féminin de base. |
+| `Elf_Male_01` | `Elfe masculin 01` | `T_Portrait_Elf_Male_01` | Portrait elfe masculin de base. |
+| `Elf_Female_01` | `Elfe féminin 01` | `T_Portrait_Elf_Female_01` | Portrait elfe féminin de base. |
+| `Dwarf_Male_01` | `Nain masculin 01` | `T_Portrait_Dwarf_Male_01` | Portrait nain masculin de base. |
+| `Dwarf_Female_01` | `Nain féminin 01` | `T_Portrait_Dwarf_Female_01` | Portrait nain féminin de base. |
 
 Règles :
 
@@ -127,9 +165,11 @@ Règles :
 - `DisplayName` peut être vide, mais il est préférable de le renseigner ;
 - si `DefaultPortrait` est vide, le premier portrait valide de `AvailablePortraits` devient le portrait par défaut.
 
+Cette structure reste transitoire. La tranche suivante remplacera cette liste plate par des DataAssets de portraits filtrés par race et genre.
+
 ---
 
-## 7. Étape E - Vérifier l'inventaire
+## 8. Étape F - Vérifier l'inventaire
 
 Dans `WBP_GridInventory`, vérifier que l'image de fiche centrale existe :
 
@@ -139,9 +179,27 @@ Dans `WBP_GridInventory`, vérifier que l'image de fiche centrale existe :
 
 Le code CC4 affiche déjà `Summary.Portrait` dans cette image. Aucun calcul Blueprint n'est nécessaire.
 
+L'icône de classe en surimpression n'est pas encore dans CC6.2. Elle est prévue par la roadmap visuelle.
+
 ---
 
-## 8. Étape F - Tests Automation
+## 9. Étape G - Changements C++ prévus après CC6.2
+
+Les changements C++ suivants ne sont pas demandés pour valider CC6.2, mais ils structurent la suite :
+
+- ajouter un enum de genre ou type de portrait ;
+- remplacer la liste plate par `URPGCharacterPortraitSetAsset` ;
+- ajouter `URPGClassVisualAsset` pour les icônes de classe ;
+- exposer l'icône de classe dans le résumé d'inventaire ;
+- ajouter `Image_ClassIcon` dans la création ;
+- ajouter `Image_CharacterClassIcon` dans l'inventaire ;
+- sauvegarder et restaurer la sélection visuelle complète.
+
+La proposition détaillée est dans `CHARACTER_CREATION_VISUAL_IDENTITY_ROADMAP.md`.
+
+---
+
+## 10. Étape H - Tests Automation
 
 Dans **Tools > Session Frontend > Automation**, rechercher :
 
@@ -160,14 +218,14 @@ Les seize tests doivent être verts.
 
 ---
 
-## 9. Étape G - Validation PIE
+## 11. Étape I - Validation PIE
 
-### G.1 Création nouvelle partie
+### I.1 Création nouvelle partie
 
 1. Régler `PartyStartupMode = NewGame`.
 2. Lancer le PIE.
 3. Vérifier que `ComboBox_Portrait` contient les portraits configurés.
-4. Sélectionner `Elfe mage`.
+4. Sélectionner `Elfe féminin 01`.
 5. Vérifier que `Image_Portrait` change immédiatement.
 6. Saisir `Aelwen`.
 7. Choisir `Elfe` et `Mage`.
@@ -175,7 +233,7 @@ Les seize tests doivent être verts.
 9. Ouvrir l'inventaire.
 10. Vérifier que `Image_CharacterPortrait` affiche le même portrait.
 
-### G.2 Continuer la partie
+### I.2 Continuer la partie
 
 1. Arrêter le PIE après création du personnage.
 2. Régler `PartyStartupMode = Continue`.
@@ -185,7 +243,7 @@ Les seize tests doivent être verts.
 
 ---
 
-## 10. Critère de validation
+## 12. Critère de validation
 
 CC6.2 est validée lorsque :
 
@@ -194,4 +252,5 @@ CC6.2 est validée lorsque :
 - le portrait sélectionné s'affiche dans la création ;
 - le même portrait s'affiche dans l'inventaire ;
 - le portrait reste présent après sauvegarde et chargement ;
-- aucun Graph Blueprint ne calcule ou ne copie manuellement le portrait.
+- aucun Graph Blueprint ne calcule ou ne copie manuellement le portrait ;
+- la suite visuelle est clairement orientée vers race + genre + icône de classe, et non vers des portraits combinés race/classe.
