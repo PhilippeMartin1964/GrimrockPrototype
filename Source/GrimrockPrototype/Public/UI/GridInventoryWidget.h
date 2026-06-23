@@ -10,10 +10,12 @@
 #include "GridInventoryWidget.generated.h"
 
 class AGrimrockPartyPawn;
+class UBorder;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
 class UImage;
+class URPGClassVisualAsset;
 class UTextBlock;
 class UUniformGridPanel;
 
@@ -34,11 +36,17 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory|Character Details|Visuals")
+    TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
+
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
     TObjectPtr<UImage> Image_CharacterPortrait;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
     TObjectPtr<UImage> Image_CharacterClassIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UBorder> Border_CharacterClassAccent;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
     TObjectPtr<UTextBlock> Text_CharacterName;
@@ -290,6 +298,7 @@ protected:
     virtual void NativeTick (const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
+    const URPGClassVisualAsset* FindClassVisualForClass (FName ClassId) const;
     void RefreshSelectedCharacterClassIcon ();
     void RemoveGeneratedInventorySlotsFromRegistry ();
     UGridInventorySlotWidget* FindRegisteredSlotWidget (
@@ -305,8 +314,7 @@ private:
         EGridInventoryUiSlotType SourceSlotType) const;
     bool DropContextItemToGround (
         const FGridItemContextAction& Action,
-        EGridInventoryUiSlotType SourceSlotType,
-        int32 SourceSlotIndex);
+        EGridInventoryUiSlotType SourceSlotType) const;
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;
