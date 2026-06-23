@@ -181,4 +181,7 @@ struct FRPGCharacterCreationRequest
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    TSoftObjectPtr<UTexture2D> ClassIcon;
 };
