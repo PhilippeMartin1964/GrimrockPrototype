@@ -12,9 +12,12 @@
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Templates/GuardValue.h"
 
 namespace
 {
+    bool bIsSynchronizingPortraitOptions = false;
+
     FText GetDefinitionDisplayName (const FText& DisplayName, FName DefinitionId)
     {
         return DisplayName.IsEmpty () ? FText::FromName (DefinitionId) : DisplayName;
@@ -245,6 +248,10 @@ void URPGCharacterCreationWidget::PopulateDefinitionOptions ()
 
 void URPGCharacterCreationWidget::PopulatePortraitOptions ()
 {
+    TGuardValue<bool> GuardSynchronizingPortraitOptions (
+        bIsSynchronizingPortraitOptions,
+        true);
+
     if (ComboBox_Gender)
     {
         ComboBox_Gender->ClearOptions ();
@@ -629,6 +636,11 @@ void URPGCharacterCreationWidget::HandleGenderSelectionChanged (
 {
     (void)SelectionType;
 
+    if (bIsSynchronizingPortraitOptions)
+    {
+        return;
+    }
+
     SelectedPortraitGender = SelectedItem == GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ()
         ? ERPGCharacterPortraitGender::Female
         : ERPGCharacterPortraitGender::Male;
@@ -642,6 +654,11 @@ void URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged (
     ESelectInfo::Type SelectionType)
 {
     (void)SelectionType;
+
+    if (bIsSynchronizingPortraitOptions)
+    {
+        return;
+    }
 
     const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
     if (!PortraitSet)
@@ -668,6 +685,11 @@ void URPGCharacterCreationWidget::HandlePortraitSelectionChanged (
     ESelectInfo::Type SelectionType)
 {
     (void)SelectionType;
+
+    if (bIsSynchronizingPortraitOptions)
+    {
+        return;
+    }
 
     if (FindPortraitSetForSelectedRace ())
     {
