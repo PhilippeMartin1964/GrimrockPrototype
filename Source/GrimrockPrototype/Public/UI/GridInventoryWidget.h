@@ -314,7 +314,8 @@ private:
         EGridInventoryUiSlotType SourceSlotType) const;
     bool DropContextItemToGround (
         const FGridItemContextAction& Action,
-        EGridInventoryUiSlotType SourceSlotType) const;
+        EGridInventoryUiSlotType SourceSlotType,
+        int32 SourceSlotIndex);
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;
