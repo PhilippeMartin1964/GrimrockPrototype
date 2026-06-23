@@ -554,7 +554,8 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
     }
 
     FText Error;
-    if (!InventoryComponent->CreateInitialCharacter (BuildCreationRequest (), Error))
+    const FRPGCharacterCreationRequest Request = BuildCreationRequest ();
+    if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
         SetValidationMessage (
             Error.IsEmpty () ? FText::FromString (TEXT ("Creation du personnage impossible.")) : Error,
@@ -562,6 +563,13 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
         RefreshPreview ();
         return false;
     }
+
+    InventoryComponent->SetCharacterVisualSelection (
+        0,
+        Request.PortraitGender,
+        Request.PortraitVariantId,
+        Request.Portrait,
+        Request.ClassIcon);
 
     SetValidationMessage (FText::GetEmpty (), false);
     if (OwningPartyPawn)
