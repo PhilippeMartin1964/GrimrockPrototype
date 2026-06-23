@@ -159,6 +159,9 @@ struct FGridCharacterInventoryState
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     TSoftObjectPtr<UTexture2D> Portrait;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    TSoftObjectPtr<UTexture2D> ClassIcon;
+
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG")
     bool bRPGAttributesInitialized = false;
 
@@ -230,6 +233,9 @@ struct FGridInventoryCharacterSummary
 
     UPROPERTY (BlueprintReadOnly, Category = "Character")
     TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    TSoftObjectPtr<UTexture2D> ClassIcon;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     int32 UsedInventorySlots = 0;

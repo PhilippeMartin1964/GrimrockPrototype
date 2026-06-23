@@ -9,6 +9,7 @@
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassVisualAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -456,6 +457,8 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         }
     }
 
+    RefreshClassIconPreview ();
+
     if (!bHasRaceDefinition || !bHasClassDefinition)
     {
         SetValidationMessage (
@@ -551,7 +554,8 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
     }
 
     FText Error;
-    if (!InventoryComponent->CreateInitialCharacter (BuildCreationRequest (), Error))
+    const FRPGCharacterCreationRequest Request = BuildCreationRequest ();
+    if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
         SetValidationMessage (
             Error.IsEmpty () ? FText::FromString (TEXT ("Creation du personnage impossible.")) : Error,
@@ -559,6 +563,13 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
         RefreshPreview ();
         return false;
     }
+
+    InventoryComponent->SetCharacterVisualSelection (
+        0,
+        Request.PortraitGender,
+        Request.PortraitVariantId,
+        Request.Portrait,
+        Request.ClassIcon);
 
     SetValidationMessage (FText::GetEmpty (), false);
     if (OwningPartyPawn)
@@ -734,6 +745,7 @@ FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest (
     Request.PortraitGender = SelectedPortraitGender;
     Request.PortraitVariantId = SelectedPortraitVariantId;
     Request.Portrait = DefaultPortrait;
+    Request.ClassIcon = ResolveSelectedClassIcon ();
     return Request;
 }
 
@@ -781,6 +793,24 @@ const URPGCharacterPortraitSetAsset* URPGCharacterCreationWidget::FindPortraitSe
         if (PortraitSet && PortraitSet->IsValidForRace (RaceDefinition->RaceId))
         {
             return PortraitSet;
+        }
+    }
+
+    return nullptr;
+}
+
+const URPGClassVisualAsset* URPGCharacterCreationWidget::FindClassVisualForSelectedClass () const
+{
+    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
+    {
+        return nullptr;
+    }
+
+    for (const URPGClassVisualAsset* ClassVisual : AvailableClassVisuals)
+    {
+        if (ClassVisual && ClassVisual->IsValidForClass (ClassDefinition->ClassId))
+        {
+            return ClassVisual;
         }
     }
 
@@ -846,6 +876,30 @@ void URPGCharacterCreationWidget::SelectFirstValidPortraitForCurrentRaceAndGende
 
     SelectedPortraitVariantId = NAME_None;
     DefaultPortrait.Reset ();
+}
+
+TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedClassIcon () const
+{
+    const URPGClassVisualAsset* ClassVisual = FindClassVisualForSelectedClass ();
+    return ClassVisual ? ClassVisual->ClassIcon : TSoftObjectPtr<UTexture2D> ();
+}
+
+void URPGCharacterCreationWidget::RefreshClassIconPreview ()
+{
+    if (!Image_ClassIcon)
+    {
+        return;
+    }
+
+    const TSoftObjectPtr<UTexture2D> ClassIcon = ResolveSelectedClassIcon ();
+    if (ClassIcon.IsNull ())
+    {
+        Image_ClassIcon->SetVisibility (ESlateVisibility::Collapsed);
+        return;
+    }
+
+    Image_ClassIcon->SetBrushFromSoftTexture (ClassIcon, false);
+    Image_ClassIcon->SetVisibility (ESlateVisibility::HitTestInvisible);
 }
 
 void URPGCharacterCreationWidget::SetValidationMessage (const FText& Message, bool bIsError)
