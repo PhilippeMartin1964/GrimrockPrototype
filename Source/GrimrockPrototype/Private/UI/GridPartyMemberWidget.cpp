@@ -1,6 +1,10 @@
 #include "UI/GridPartyMemberWidget.h"
 
+#include "Components/Border.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
+#include "RPG/RPGClassVisualAsset.h"
 
 void UGridPartyMemberWidget::InitializePartyMember (int32 InCharacterIndex)
 {
@@ -12,7 +16,22 @@ void UGridPartyMemberWidget::SetCharacterSummary (const FGridInventoryCharacterS
     CachedSummary = InSummary;
     CharacterIndex = InSummary.CharacterIndex;
     RefreshBoundMemberFields ();
+    RefreshBoundMemberVisuals ();
     RefreshMemberVisual ();
+}
+
+void UGridPartyMemberWidget::SetAvailableClassVisuals (
+    const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals)
+{
+    AvailableClassVisuals.Reset ();
+    for (URPGClassVisualAsset* ClassVisual : InAvailableClassVisuals)
+    {
+        if (ClassVisual)
+        {
+            AvailableClassVisuals.Add (ClassVisual);
+        }
+    }
+    RefreshBoundMemberVisuals ();
 }
 
 FString UGridPartyMemberWidget::GetDisplayNameText () const
@@ -53,6 +72,24 @@ void UGridPartyMemberWidget::RefreshMemberVisual_Implementation ()
 {
 }
 
+const URPGClassVisualAsset* UGridPartyMemberWidget::FindClassVisualForCachedClass () const
+{
+    if (CachedSummary.ClassId.IsNone ())
+    {
+        return nullptr;
+    }
+
+    for (const URPGClassVisualAsset* ClassVisual : AvailableClassVisuals)
+    {
+        if (ClassVisual && ClassVisual->IsValidForClass (CachedSummary.ClassId))
+        {
+            return ClassVisual;
+        }
+    }
+
+    return nullptr;
+}
+
 void UGridPartyMemberWidget::RefreshBoundMemberFields ()
 {
     if (Text_Name)
@@ -66,5 +103,39 @@ void UGridPartyMemberWidget::RefreshBoundMemberFields ()
     if (Text_Weight)
     {
         Text_Weight->SetText (FText::FromString (GetWeightText ()));
+    }
+}
+
+void UGridPartyMemberWidget::RefreshBoundMemberVisuals ()
+{
+    const URPGClassVisualAsset* ClassVisual = FindClassVisualForCachedClass ();
+    const TSoftObjectPtr<UTexture2D> ClassIcon = ClassVisual && !ClassVisual->ClassIcon.IsNull ()
+        ? ClassVisual->ClassIcon
+        : CachedSummary.ClassIcon;
+
+    if (Image_ClassIcon)
+    {
+        if (ClassIcon.IsNull ())
+        {
+            Image_ClassIcon->SetVisibility (ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            Image_ClassIcon->SetBrushFromSoftTexture (ClassIcon, false);
+            Image_ClassIcon->SetVisibility (ESlateVisibility::HitTestInvisible);
+        }
+    }
+
+    if (Border_ClassAccent)
+    {
+        if (!ClassVisual)
+        {
+            Border_ClassAccent->SetVisibility (ESlateVisibility::Collapsed);
+        }
+        else
+        {
+            Border_ClassAccent->SetBrushColor (ClassVisual->AccentColor);
+            Border_ClassAccent->SetVisibility (ESlateVisibility::HitTestInvisible);
+        }
     }
 }
