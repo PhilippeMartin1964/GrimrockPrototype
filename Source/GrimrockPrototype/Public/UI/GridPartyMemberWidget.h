@@ -5,6 +5,9 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridPartyMemberWidget.generated.h"
 
+class UBorder;
+class UImage;
+class URPGClassVisualAsset;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
@@ -23,8 +26,17 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Party")
     FGridInventoryCharacterSummary CachedSummary;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory|Party|Visuals")
+    TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
+
     UPROPERTY (BlueprintAssignable, Category = "Inventory|Party")
     FOnGridPartyMemberClicked OnPartyMemberClicked;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+    TObjectPtr<UImage> Image_ClassIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
+    TObjectPtr<UBorder> Border_ClassAccent;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Party")
     TObjectPtr<UTextBlock> Text_Name;
@@ -40,6 +52,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void SetCharacterSummary (const FGridInventoryCharacterSummary& InSummary);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
+    void SetAvailableClassVisuals (const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     FString GetDisplayNameText () const;
@@ -60,5 +75,7 @@ public:
     void RefreshMemberVisual ();
 
 private:
+    const URPGClassVisualAsset* FindClassVisualForCachedClass () const;
     void RefreshBoundMemberFields ();
+    void RefreshBoundMemberVisuals ();
 };
