@@ -12,6 +12,7 @@ class UComboBoxString;
 class UEditableText;
 class UGridPartyInventoryComponent;
 class UImage;
+class URPGCharacterPortraitSetAsset;
 class URPGClassAsset;
 class URPGRaceAsset;
 class UTextBlock;
@@ -36,7 +37,16 @@ public:
     TArray<TObjectPtr<URPGClassAsset>> AvailableClassDefinitions;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+    TArray<TObjectPtr<URPGCharacterPortraitSetAsset>> AvailablePortraitSets;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
     TArray<FRPGCharacterPortraitOption> AvailablePortraits;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+    ERPGCharacterPortraitGender SelectedPortraitGender = ERPGCharacterPortraitGender::Male;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+    FName SelectedPortraitVariantId = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     TSoftObjectPtr<UTexture2D> DefaultPortrait;
@@ -61,6 +71,12 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UComboBoxString> ComboBox_Class;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UComboBoxString> ComboBox_Gender;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UComboBoxString> ComboBox_PortraitVariant;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UComboBoxString> ComboBox_Portrait;
@@ -154,12 +170,24 @@ private:
     void HandleClassSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
 
     UFUNCTION ()
+    void HandleGenderSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+
+    UFUNCTION ()
+    void HandlePortraitVariantSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+
+    UFUNCTION ()
     void HandlePortraitSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
 
     void BindWidgetEvents ();
     void PopulateDefinitionOptions ();
+    void PopulatePortraitOptions ();
+    void PopulateLegacyPortraitOptions ();
     FRPGCharacterCreationRequest BuildCreationRequest () const;
     FText GetNormalizedNameText () const;
     FText ResolveSelectedPortraitDescription () const;
+    const URPGCharacterPortraitSetAsset* FindPortraitSetForSelectedRace () const;
+    bool TryResolveSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const;
+    void SelectPortraitVariant (const FRPGCharacterPortraitVariant& PortraitVariant);
+    void SelectFirstValidPortraitForCurrentRaceAndGender ();
     void SetValidationMessage (const FText& Message, bool bIsError);
 };
