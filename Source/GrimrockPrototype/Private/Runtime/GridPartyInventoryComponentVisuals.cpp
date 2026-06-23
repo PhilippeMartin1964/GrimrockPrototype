@@ -1,5 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
+#include "Engine/Texture2D.h"
+
 bool UGridPartyInventoryComponent::SetCharacterVisualSelection (
     int32 CharacterIndex,
     ERPGCharacterPortraitGender PortraitGender,
