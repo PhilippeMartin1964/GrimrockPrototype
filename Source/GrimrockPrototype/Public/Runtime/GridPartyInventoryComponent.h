@@ -52,6 +52,11 @@ public:
         TSoftObjectPtr<UTexture2D> Portrait,
         TSoftObjectPtr<UTexture2D> ClassIcon);
 
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    bool GetCharacterVisualSelection (
+        int32 CharacterIndex,
+        FRPGCharacterVisualSelection& OutSelection) const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     int32 GetActiveCharacterCount () const;
 
