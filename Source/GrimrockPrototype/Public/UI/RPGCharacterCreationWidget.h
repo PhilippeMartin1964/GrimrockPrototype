@@ -14,6 +14,7 @@ class UGridPartyInventoryComponent;
 class UImage;
 class URPGCharacterPortraitSetAsset;
 class URPGClassAsset;
+class URPGClassVisualAsset;
 class URPGRaceAsset;
 class UTextBlock;
 class UTexture2D;
@@ -38,6 +39,9 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
     TArray<TObjectPtr<URPGCharacterPortraitSetAsset>> AvailablePortraitSets;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+    TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
     TArray<FRPGCharacterPortraitOption> AvailablePortraits;
@@ -65,6 +69,9 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UImage> Image_Portrait;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UImage> Image_ClassIcon;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UComboBoxString> ComboBox_Race;
@@ -186,8 +193,11 @@ private:
     FText GetNormalizedNameText () const;
     FText ResolveSelectedPortraitDescription () const;
     const URPGCharacterPortraitSetAsset* FindPortraitSetForSelectedRace () const;
+    const URPGClassVisualAsset* FindClassVisualForSelectedClass () const;
     bool TryResolveSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const;
     void SelectPortraitVariant (const FRPGCharacterPortraitVariant& PortraitVariant);
     void SelectFirstValidPortraitForCurrentRaceAndGender ();
+    TSoftObjectPtr<UTexture2D> ResolveSelectedClassIcon () const;
+    void RefreshClassIconPreview ();
     void SetValidationMessage (const FText& Message, bool bIsError);
 };
