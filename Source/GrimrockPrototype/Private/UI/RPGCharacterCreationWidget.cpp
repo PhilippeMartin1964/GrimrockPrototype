@@ -12,9 +12,12 @@
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Templates/GuardValue.h"
 
 namespace
 {
+    bool bIsSynchronizingPortraitOptions = false;
+
     FText GetDefinitionDisplayName (const FText& DisplayName, FName DefinitionId)
     {
         return DisplayName.IsEmpty () ? FText::FromName (DefinitionId) : DisplayName;
@@ -245,6 +248,53 @@ void URPGCharacterCreationWidget::PopulateDefinitionOptions ()
 
 void URPGCharacterCreationWidget::PopulatePortraitOptions ()
 {
+    if (ComboBox_Gender)
+    {
+        ComboBox_Gender->ClearOptions ();
+        ComboBox_Gender->AddOption (GetGenderDisplayName (ERPGCharacterPortraitGender::Male).ToString ());
+        ComboBox_Gender->AddOption (GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ());
+        ComboBox_Gender->SetSelectedOption (GetGenderDisplayName (SelectedPortraitGender).ToString ());
+    }
+
+    const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
+    if (!PortraitSet)
+    {
+        if (ComboBox_PortraitVariant)
+        {
+            ComboBox_PortraitVariant->ClearOptions ();
+        }
+        PopulateLegacyPortraitOptions ();
+        return;
+    }
+
+    FRPGCharacterPortraitVariant SelectedVariant;
+    if (!TryResolveSelectedPortraitVariant (SelectedVariant))
+    {
+        SelectFirstValidPortraitForCurrentRaceAndGender ();
+    }
+
+    if (ComboBox_PortraitVariant)
+    {
+        ComboBox_PortraitVariant->ClearOptions ();
+
+        TSet<FString> AddedOptions;
+        for (const FRPGCharacterPortraitVariant& PortraitVariant :
+            PortraitSet->GetPortraitsForGenderRef (SelectedPortraitGender))
+        {
+            if (!PortraitVariant.IsValidDefinition ())
+            {
+                continue;
+            }
+
+    PopulatePortraitOptions ();
+}
+
+void URPGCharacterCreationWidget::PopulatePortraitOptions ()
+{
+    TGuardValue<bool> GuardSynchronizingPortraitOptions (
+        bIsSynchronizingPortraitOptions,
+        true);
+
     if (ComboBox_Gender)
     {
         ComboBox_Gender->ClearOptions ();
@@ -629,6 +679,11 @@ void URPGCharacterCreationWidget::HandleGenderSelectionChanged (
 {
     (void)SelectionType;
 
+    if (bIsSynchronizingPortraitOptions)
+    {
+        return;
+    }
+
     SelectedPortraitGender = SelectedItem == GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ()
         ? ERPGCharacterPortraitGender::Female
         : ERPGCharacterPortraitGender::Male;
@@ -642,6 +697,11 @@ void URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged (
     ESelectInfo::Type SelectionType)
 {
     (void)SelectionType;
+
+    if (bIsSynchronizingPortraitOptions)
+    {
+        return;
+    }
 
     const URPGCharacterPortraitSetAsset* PortraitSet = FindPortraitSetForSelectedRace ();
     if (!PortraitSet)
@@ -668,6 +728,11 @@ void URPGCharacterCreationWidget::HandlePortraitSelectionChanged (
     ESelectInfo::Type SelectionType)
 {
     (void)SelectionType;
+
+    if (bIsSynchronizingPortraitOptions)
+    {
+        return;
+    }
 
     if (FindPortraitSetForSelectedRace ())
     {
