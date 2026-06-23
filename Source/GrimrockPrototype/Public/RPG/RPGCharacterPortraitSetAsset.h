@@ -32,7 +32,7 @@ public:
     UFUNCTION (BlueprintPure, Category = "RPG|Portrait Set")
     bool IsValidForRace (FName InRaceId) const;
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Portrait Set")
+    UFUNCTION (BlueprintCallable, Category = "RPG|Portrait Set")
     void GetPortraitsForGender (
         ERPGCharacterPortraitGender Gender,
         TArray<FRPGCharacterPortraitVariant>& OutPortraits) const;
