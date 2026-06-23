@@ -35,6 +35,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
     TArray<TObjectPtr<URPGClassAsset>> AvailableClassDefinitions;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+    TArray<FRPGCharacterPortraitOption> AvailablePortraits;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     TSoftObjectPtr<UTexture2D> DefaultPortrait;
 
@@ -60,6 +63,9 @@ public:
     TObjectPtr<UComboBoxString> ComboBox_Class;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UComboBoxString> ComboBox_Portrait;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UTextBlock> Text_RaceValue;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
@@ -70,6 +76,9 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UTextBlock> Text_ClassDescription;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UTextBlock> Text_PortraitDescription;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UTextBlock> Text_StrengthValue;
@@ -144,9 +153,13 @@ private:
     UFUNCTION ()
     void HandleClassSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
 
+    UFUNCTION ()
+    void HandlePortraitSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+
     void BindWidgetEvents ();
     void PopulateDefinitionOptions ();
     FRPGCharacterCreationRequest BuildCreationRequest () const;
     FText GetNormalizedNameText () const;
+    FText ResolveSelectedPortraitDescription () const;
     void SetValidationMessage (const FText& Message, bool bIsError);
 };

@@ -1,10 +1,12 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Engine/Texture2D.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UObject/SoftObjectPath.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
@@ -149,6 +151,65 @@ bool FRPGElfMageCreationCC6Test::RunTest (const FString& Parameters)
     TestTrue (
         TEXT ("Elf Mage maximum carry weight"),
         FMath::IsNearlyEqual (Character.MaxCarryWeight, 40.0f));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGPortraitSelectionPersistsCC6Test,
+    "Grimrock.CharacterCreation.CC6.PortraitSelectionPersists",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGPortraitSelectionPersistsCC6Test::RunTest (const FString& Parameters)
+{
+    const TArray<URPGRaceAsset*> Races = CreateCC6Races ();
+    const TArray<URPGClassAsset*> Classes = CreateCC6Classes ();
+    const FSoftObjectPath PortraitPath (
+        TEXT ("/Game/GrimrockPrototype/Core/DataAssets/RPG/Portraits/T_Portrait_ElfMage.T_Portrait_ElfMage"));
+
+    FRPGCharacterCreationRequest Request;
+    Request.DisplayName = FText::FromString (TEXT ("Aelwen"));
+    Request.RaceDefinition = Races[2];
+    Request.ClassDefinition = Classes[3];
+    Request.Portrait = TSoftObjectPtr<UTexture2D> (PortraitPath);
+
+    UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent> ();
+    Component->InitializeDefaultPartyIfNeeded ();
+
+    FText Error;
+    TestTrue (TEXT ("A character can be created with a portrait"), Component->CreateInitialCharacter (Request, Error));
+    if (!Component->HasCompletedInitialCharacterCreation ())
+    {
+        return false;
+    }
+
+    const FGridCharacterInventoryState& Character =
+        Component->PartyInventoryState.ActiveCharacters[0];
+    TestEqual (
+        TEXT ("The portrait path is stored on the character"),
+        Character.Portrait.ToSoftObjectPath ().ToString (),
+        PortraitPath.ToString ());
+
+    FGridInventoryCharacterSummary Summary;
+    TestTrue (TEXT ("The character summary can be read"), Component->GetCharacterSummary (0, Summary));
+    TestEqual (
+        TEXT ("The portrait path is exposed to the inventory summary"),
+        Summary.Portrait.ToSoftObjectPath ().ToString (),
+        PortraitPath.ToString ());
+
+    UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent> ();
+    RestoredComponent->InitializeDefaultPartyIfNeeded ();
+    TestTrue (
+        TEXT ("The saved party inventory state restores with the portrait"),
+        RestoredComponent->RestorePartyInventoryState (Component->PartyInventoryState, Error));
+
+    FGridInventoryCharacterSummary RestoredSummary;
+    TestTrue (
+        TEXT ("The restored character summary can be read"),
+        RestoredComponent->GetCharacterSummary (0, RestoredSummary));
+    TestEqual (
+        TEXT ("The restored summary keeps the portrait path"),
+        RestoredSummary.Portrait.ToSoftObjectPath ().ToString (),
+        PortraitPath.ToString ());
     return true;
 }
 

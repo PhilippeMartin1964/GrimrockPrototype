@@ -83,6 +83,29 @@ struct FRPGDerivedStats
 };
 
 USTRUCT (BlueprintType)
+struct FRPGCharacterPortraitOption
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait")
+    FName PortraitId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait")
+    FText DisplayName;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait")
+    TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Portrait", meta = (MultiLine = "true"))
+    FText Description;
+
+    bool IsValidDefinition () const
+    {
+        return !PortraitId.IsNone () && !Portrait.IsNull ();
+    }
+};
+
+USTRUCT (BlueprintType)
 struct FRPGCharacterCreationRequest
 {
     GENERATED_BODY ()

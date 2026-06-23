@@ -5,6 +5,7 @@
 #include "Components/EditableText.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -16,6 +17,21 @@ namespace
     FText GetDefinitionDisplayName (const FText& DisplayName, FName DefinitionId)
     {
         return DisplayName.IsEmpty () ? FText::FromName (DefinitionId) : DisplayName;
+    }
+
+    FText GetPortraitDisplayName (const FRPGCharacterPortraitOption& PortraitOption)
+    {
+        return PortraitOption.DisplayName.IsEmpty ()
+            ? FText::FromName (PortraitOption.PortraitId)
+            : PortraitOption.DisplayName;
+    }
+
+    bool AreSamePortraitTexture (
+        const TSoftObjectPtr<UTexture2D>& Left,
+        const TSoftObjectPtr<UTexture2D>& Right)
+    {
+        return !Left.IsNull () && !Right.IsNull () &&
+            Left.ToSoftObjectPath () == Right.ToSoftObjectPath ();
     }
 
     void SetOptionalText (UTextBlock* TextBlock, const FText& Value)
@@ -66,6 +82,16 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
         ComboBox_Class->OnSelectionChanged.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleClassSelectionChanged);
+    }
+
+    if (ComboBox_Portrait)
+    {
+        ComboBox_Portrait->OnSelectionChanged.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandlePortraitSelectionChanged);
+        ComboBox_Portrait->OnSelectionChanged.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandlePortraitSelectionChanged);
     }
 
     if (EditableText_Name)
@@ -178,6 +204,58 @@ void URPGCharacterCreationWidget::PopulateDefinitionOptions ()
                 GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId).ToString ());
         }
     }
+
+    const FRPGCharacterPortraitOption* FirstValidPortrait = nullptr;
+    const FRPGCharacterPortraitOption* SelectedPortrait = nullptr;
+    for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
+    {
+        if (!PortraitOption.IsValidDefinition ())
+        {
+            continue;
+        }
+
+        if (!FirstValidPortrait)
+        {
+            FirstValidPortrait = &PortraitOption;
+        }
+
+        if (AreSamePortraitTexture (DefaultPortrait, PortraitOption.Portrait))
+        {
+            SelectedPortrait = &PortraitOption;
+        }
+    }
+
+    if (DefaultPortrait.IsNull () && FirstValidPortrait)
+    {
+        DefaultPortrait = FirstValidPortrait->Portrait;
+        SelectedPortrait = FirstValidPortrait;
+    }
+
+    if (ComboBox_Portrait)
+    {
+        ComboBox_Portrait->ClearOptions ();
+
+        TSet<FString> AddedOptions;
+        for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
+        {
+            if (!PortraitOption.IsValidDefinition ())
+            {
+                continue;
+            }
+
+            const FString Option = GetPortraitDisplayName (PortraitOption).ToString ();
+            if (!AddedOptions.Contains (Option))
+            {
+                AddedOptions.Add (Option);
+                ComboBox_Portrait->AddOption (Option);
+            }
+        }
+
+        if (SelectedPortrait)
+        {
+            ComboBox_Portrait->SetSelectedOption (GetPortraitDisplayName (*SelectedPortrait).ToString ());
+        }
+    }
 }
 
 void URPGCharacterCreationWidget::InitializeCharacterCreationWidget (AGrimrockPartyPawn* InPartyPawn)
@@ -219,6 +297,7 @@ void URPGCharacterCreationWidget::RefreshPreview ()
     SetOptionalText (
         Text_ClassDescription,
         bHasClassDefinition ? ClassDefinition->Description : FText::GetEmpty ());
+    SetOptionalText (Text_PortraitDescription, ResolveSelectedPortraitDescription ());
 
     FRPGAttributes Attributes;
     const bool bHasAttributes = GetPreviewAttributes (Attributes);
@@ -440,6 +519,25 @@ void URPGCharacterCreationWidget::HandleClassSelectionChanged (
     }
 }
 
+void URPGCharacterCreationWidget::HandlePortraitSelectionChanged (
+    FString SelectedItem,
+    ESelectInfo::Type SelectionType)
+{
+    (void)SelectionType;
+
+    for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
+    {
+        if (PortraitOption.IsValidDefinition () &&
+            GetPortraitDisplayName (PortraitOption).ToString () == SelectedItem)
+        {
+            DefaultPortrait = PortraitOption.Portrait;
+            SetValidationMessage (FText::GetEmpty (), false);
+            RefreshPreview ();
+            return;
+        }
+    }
+}
+
 FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest () const
 {
     FRPGCharacterCreationRequest Request;
@@ -455,6 +553,25 @@ FText URPGCharacterCreationWidget::GetNormalizedNameText () const
     FString Name = EditableText_Name ? EditableText_Name->GetText ().ToString () : FString ();
     Name.TrimStartAndEndInline ();
     return FText::FromString (Name);
+}
+
+FText URPGCharacterCreationWidget::ResolveSelectedPortraitDescription () const
+{
+    if (DefaultPortrait.IsNull ())
+    {
+        return FText::GetEmpty ();
+    }
+
+    for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
+    {
+        if (PortraitOption.IsValidDefinition () &&
+            AreSamePortraitTexture (DefaultPortrait, PortraitOption.Portrait))
+        {
+            return PortraitOption.Description;
+        }
+    }
+
+    return FText::GetEmpty ();
 }
 
 void URPGCharacterCreationWidget::SetValidationMessage (const FText& Message, bool bIsError)
