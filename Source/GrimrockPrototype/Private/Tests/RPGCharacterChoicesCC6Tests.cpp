@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Engine/Texture2D.h"
+#include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -43,6 +44,35 @@ namespace
         return CharacterClass;
     }
 
+    FRPGCharacterPortraitVariant CreatePortraitVariant (
+        FName VariantId,
+        const TCHAR* DisplayName,
+        const TCHAR* TexturePath)
+    {
+        FRPGCharacterPortraitVariant Variant;
+        Variant.VariantId = VariantId;
+        Variant.DisplayName = FText::FromString (DisplayName);
+        Variant.Portrait = TSoftObjectPtr<UTexture2D> (FSoftObjectPath (TexturePath));
+        Variant.Description = FText::FromString (DisplayName);
+        return Variant;
+    }
+
+    URPGCharacterPortraitSetAsset* CreatePortraitSet (FName RaceId)
+    {
+        URPGCharacterPortraitSetAsset* PortraitSet = NewObject<URPGCharacterPortraitSetAsset> ();
+        PortraitSet->RaceId = RaceId;
+        PortraitSet->DisplayName = FText::FromName (RaceId);
+        PortraitSet->MalePortraits.Add (CreatePortraitVariant (
+            TEXT ("Male_01"),
+            TEXT ("Masculin 01"),
+            TEXT ("/Game/GrimrockPrototype/UI/Portraits/Races/T_Portrait_Elf_Male_01.T_Portrait_Elf_Male_01")));
+        PortraitSet->FemalePortraits.Add (CreatePortraitVariant (
+            TEXT ("Female_01"),
+            TEXT ("Feminin 01"),
+            TEXT ("/Game/GrimrockPrototype/UI/Portraits/Races/T_Portrait_Elf_Female_01.T_Portrait_Elf_Female_01")));
+        return PortraitSet;
+    }
+
     TArray<URPGRaceAsset*> CreateCC6Races ()
     {
         return {
@@ -60,9 +90,9 @@ namespace
         return {
             CreateCC6Class (TEXT ("Warrior"), TEXT ("Guerrier"), FRPGAttributes { 15, 11, 13, 9, 9, 9 }, 18, 8, 0, 0),
             CreateCC6Class (TEXT ("Rogue"), TEXT ("Voleur"), FRPGAttributes { 9, 15, 10, 13, 9, 10 }, 14, 6, 0, 0),
-            CreateCC6Class (TEXT ("Ranger"), TEXT ("Rôdeur"), FRPGAttributes { 11, 15, 12, 9, 11, 8 }, 16, 7, 0, 0),
+            CreateCC6Class (TEXT ("Ranger"), TEXT ("Rodeur"), FRPGAttributes { 11, 15, 12, 9, 11, 8 }, 16, 7, 0, 0),
             CreateCC6Class (TEXT ("Mage"), TEXT ("Mage"), FRPGAttributes { 8, 12, 10, 15, 12, 9 }, 8, 4, 18, 8),
-            CreateCC6Class (TEXT ("Priest"), TEXT ("Prêtre"), FRPGAttributes { 10, 9, 13, 9, 15, 10 }, 12, 6, 16, 7),
+            CreateCC6Class (TEXT ("Priest"), TEXT ("Pretre"), FRPGAttributes { 10, 9, 13, 9, 15, 10 }, 12, 6, 16, 7),
             CreateCC6Class (TEXT ("Alchemist"), TEXT ("Alchimiste"), FRPGAttributes { 9, 13, 12, 15, 9, 8 }, 12, 5, 10, 5)
         };
     }
@@ -210,6 +240,68 @@ bool FRPGPortraitSelectionPersistsCC6Test::RunTest (const FString& Parameters)
         TEXT ("The restored summary keeps the portrait path"),
         RestoredSummary.Portrait.ToSoftObjectPath ().ToString (),
         PortraitPath.ToString ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGPortraitSetFiltersByGenderCC6Test,
+    "Grimrock.CharacterCreation.CC6.PortraitSetFiltersByGender",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGPortraitSetFiltersByGenderCC6Test::RunTest (const FString& Parameters)
+{
+    const URPGCharacterPortraitSetAsset* PortraitSet = CreatePortraitSet (TEXT ("Elf"));
+    TestTrue (TEXT ("Portrait set is valid"), PortraitSet->IsValidDefinition ());
+    TestTrue (TEXT ("Portrait set matches Elf"), PortraitSet->IsValidForRace (TEXT ("Elf")));
+    TestFalse (TEXT ("Portrait set rejects Human"), PortraitSet->IsValidForRace (TEXT ("Human")));
+
+    TArray<FRPGCharacterPortraitVariant> MalePortraits;
+    TArray<FRPGCharacterPortraitVariant> FemalePortraits;
+    PortraitSet->GetPortraitsForGender (ERPGCharacterPortraitGender::Male, MalePortraits);
+    PortraitSet->GetPortraitsForGender (ERPGCharacterPortraitGender::Female, FemalePortraits);
+
+    TestEqual (TEXT ("Male portraits are filtered"), MalePortraits.Num (), 1);
+    TestEqual (TEXT ("Female portraits are filtered"), FemalePortraits.Num (), 1);
+    TestEqual (TEXT ("Male portrait id"), MalePortraits[0].VariantId, FName (TEXT ("Male_01")));
+    TestEqual (TEXT ("Female portrait id"), FemalePortraits[0].VariantId, FName (TEXT ("Female_01")));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGPortraitSetFallbackCC6Test,
+    "Grimrock.CharacterCreation.CC6.PortraitSetFallbackByGender",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FRPGPortraitSetFallbackCC6Test::RunTest (const FString& Parameters)
+{
+    const URPGCharacterPortraitSetAsset* PortraitSet = CreatePortraitSet (TEXT ("Elf"));
+
+    FRPGCharacterPortraitVariant MaleFallback;
+    FRPGCharacterPortraitVariant FemaleFallback;
+    TestTrue (
+        TEXT ("Male fallback is available"),
+        PortraitSet->GetFirstValidPortrait (ERPGCharacterPortraitGender::Male, MaleFallback));
+    TestTrue (
+        TEXT ("Female fallback is available"),
+        PortraitSet->GetFirstValidPortrait (ERPGCharacterPortraitGender::Female, FemaleFallback));
+
+    TestEqual (TEXT ("Male fallback id"), MaleFallback.VariantId, FName (TEXT ("Male_01")));
+    TestEqual (TEXT ("Female fallback id"), FemaleFallback.VariantId, FName (TEXT ("Female_01")));
+
+    FRPGCharacterPortraitVariant FoundVariant;
+    TestTrue (
+        TEXT ("Female variant can be found"),
+        PortraitSet->FindPortraitVariant (
+            ERPGCharacterPortraitGender::Female,
+            TEXT ("Female_01"),
+            FoundVariant));
+    TestEqual (TEXT ("Found female variant id"), FoundVariant.VariantId, FName (TEXT ("Female_01")));
+    TestFalse (
+        TEXT ("Female lookup rejects male variant id"),
+        PortraitSet->FindPortraitVariant (
+            ERPGCharacterPortraitGender::Female,
+            TEXT ("Male_01"),
+            FoundVariant));
     return true;
 }
 
