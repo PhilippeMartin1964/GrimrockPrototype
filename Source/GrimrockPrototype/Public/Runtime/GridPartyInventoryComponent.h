@@ -6,6 +6,7 @@
 #include "GridPartyInventoryComponent.generated.h"
 
 class UGridItemDefinitionAsset;
+class UTexture2D;
 
 UCLASS (ClassGroup = (Grimrock), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridPartyInventoryComponent : public UActorComponent
@@ -42,6 +43,14 @@ public:
     bool CreateInitialCharacter (
         const FRPGCharacterCreationRequest& Request,
         UPARAM (ref) FText& OutError);
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    bool SetCharacterVisualSelection (
+        int32 CharacterIndex,
+        ERPGCharacterPortraitGender PortraitGender,
+        FName PortraitVariantId,
+        TSoftObjectPtr<UTexture2D> Portrait,
+        TSoftObjectPtr<UTexture2D> ClassIcon);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     int32 GetActiveCharacterCount () const;
