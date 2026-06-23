@@ -38,6 +38,9 @@ public:
     TObjectPtr<UImage> Image_CharacterPortrait;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UImage> Image_CharacterClassIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
     TObjectPtr<UTextBlock> Text_CharacterName;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
@@ -283,7 +286,11 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleCursorReturnToInventoryClicked ();
 
+protected:
+    virtual void NativeTick (const FGeometry& MyGeometry, float InDeltaTime) override;
+
 private:
+    void RefreshSelectedCharacterClassIcon ();
     void RemoveGeneratedInventorySlotsFromRegistry ();
     UGridInventorySlotWidget* FindRegisteredSlotWidget (
         EGridInventoryUiSlotType SlotType,
