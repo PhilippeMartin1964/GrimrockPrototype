@@ -297,7 +297,46 @@ L'écran doit rester lisible en résolution PIE standard. Si le portrait pousse 
 
 ## 7. Étape E - Configurer `AvailablePortraits`
 
-Dans `WBP_CharacterCreation`, ouvrir **Class Defaults > RPG > Character Creation > Choices**.
+### E.1 Où trouver la propriété
+
+Dans `WBP_CharacterCreation`, ouvrir **Class Defaults**.
+
+Dans le panneau **Details**, utiliser la barre de recherche et taper :
+
+```text
+AvailablePortraits
+```
+
+La propriété vient de la catégorie C++ :
+
+```cpp
+Category = "RPG|Character Creation|Choices"
+```
+
+Selon l'affichage de l'éditeur, elle peut apparaître sous l'un de ces intitulés :
+
+- `RPG` ;
+- `RPG > Character Creation` ;
+- `RPG > Character Creation > Choices` ;
+- `RPG|Character Creation|Choices`.
+
+Il ne faut donc pas chercher un widget ou un panneau nommé `Choices` dans le Designer. Le moyen fiable est de rechercher directement `AvailablePortraits` dans les **Class Defaults**.
+
+### E.2 Si `AvailablePortraits` n'apparaît pas
+
+Contrôler dans cet ordre :
+
+1. Fermer Unreal Editor.
+2. Recompiler `GrimrockPrototypeEditor` en **Development Editor / Win64**.
+3. Rouvrir le projet.
+4. Ouvrir `WBP_CharacterCreation`.
+5. Cliquer sur **Class Settings** et vérifier que le parent est bien `RPGCharacterCreationWidget`.
+6. Cliquer sur **Class Defaults** puis rechercher `AvailablePortraits`.
+7. Compiler et sauvegarder le Blueprint.
+
+Si la propriété n'apparaît toujours pas, le Blueprint est probablement encore basé sur une ancienne classe ou l'éditeur n'a pas rechargé le module C++ récent.
+
+### E.3 Renseigner les entrées
 
 Renseigner `AvailablePortraits` avec des entrées temporaires mais nommées selon le modèle cible :
 
