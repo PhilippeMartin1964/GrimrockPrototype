@@ -151,6 +151,12 @@ struct FGridCharacterInventoryState
     FRPGDerivedStats DerivedStats;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    FName PortraitVariantId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     TSoftObjectPtr<UTexture2D> Portrait;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG")
@@ -215,6 +221,12 @@ struct FGridInventoryCharacterSummary
 
     UPROPERTY (BlueprintReadOnly, Category = "RPG")
     FRPGDerivedStats DerivedStats;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Character")
+    FName PortraitVariantId = NAME_None;
 
     UPROPERTY (BlueprintReadOnly, Category = "Character")
     TSoftObjectPtr<UTexture2D> Portrait;
