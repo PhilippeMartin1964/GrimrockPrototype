@@ -107,39 +107,191 @@ Ces icônes doivent être lisibles en petit format pour fonctionner en surimpres
 
 ## 6. Étape D - Modifier `WBP_CharacterCreation`
 
-### D.1 Ajouter la ComboBox de portrait
+### D.0 Principe général
 
-Dans le Designer, ajouter une **ComboBox String** :
+`WBP_CharacterCreation` reste un widget Blueprint de présentation. Le C++ fait déjà le travail fonctionnel suivant :
 
-| Nom exact | Type | Is Variable |
+- remplit `ComboBox_Race` depuis `AvailableRaceDefinitions` ;
+- remplit `ComboBox_Class` depuis `AvailableClassDefinitions` ;
+- remplit `ComboBox_Portrait` depuis `AvailablePortraits` ;
+- écoute les changements de sélection ;
+- met à jour `Image_Portrait` ;
+- copie le portrait sélectionné dans la requête de création du personnage.
+
+Dans le Blueprint, il faut donc uniquement ajouter les widgets nommés correctement et les placer dans la mise en page. Il ne faut pas recréer la logique en Graph Blueprint.
+
+### D.1 Ouvrir le widget
+
+Dans le Content Browser, ouvrir :
+
+```text
+WBP_CharacterCreation
+```
+
+Passer dans l'onglet **Designer**.
+
+Avant modification, vérifier que les widgets existants de CC6.1 sont toujours présents et compilent :
+
+| Widget | Type attendu | Rôle |
 |---|---|---|
-| `ComboBox_Portrait` | ComboBox String | activé |
+| `EditableText_Name` | Editable Text | nom du personnage |
+| `ComboBox_Race` | ComboBox String | choix de la race |
+| `ComboBox_Class` | ComboBox String | choix de la classe |
+| `Button_CreateCharacter` | Button | validation de la création |
 
-Ne renseigner aucune option manuellement dans le Designer. Le C++ remplit la liste à partir de `AvailablePortraits`.
+Si l'un de ces widgets a été renommé, le C++ ne pourra plus le retrouver. Corriger le nom avant d'ajouter le portrait.
 
-Ne créer aucun événement `On Selection Changed` dans le Graph.
+### D.2 Choisir l'emplacement du portrait dans la hiérarchie
 
-Cette ComboBox utilise `BindWidgetOptional` : l'absence du widget ne bloque pas la compilation, mais elle empêche la sélection manuelle du portrait.
+Placement recommandé dans le Designer :
 
-### D.2 Vérifier l'image d'aperçu
+```text
+Root
+└─ panneau principal de création
+   ├─ colonne gauche ou panneau d'identité
+   │  ├─ bloc portrait
+   │  │  ├─ Image_Portrait
+   │  │  ├─ ComboBox_Portrait
+   │  │  └─ Text_PortraitDescription optionnel
+   │  └─ bloc nom / race / classe
+   └─ panneau statistiques / aperçu
+```
 
-Le widget existant doit conserver ou ajouter :
+Il n'est pas obligatoire d'avoir exactement ces noms de conteneurs pour les panels. En revanche, les trois widgets consommés par le C++ doivent avoir les noms exacts indiqués plus bas.
 
-| Nom exact | Type | Is Variable |
-|---|---|---|
-| `Image_Portrait` | Image | activé |
+Disposition recommandée :
 
-Le C++ met à jour cette image avec le portrait choisi.
+- `Image_Portrait` au-dessus de la ComboBox ;
+- `ComboBox_Portrait` juste sous l'image ;
+- `Text_PortraitDescription` sous la ComboBox, en texte plus discret ;
+- garder la race et la classe visibles sans devoir scroller.
 
-### D.3 Ajouter une description facultative
+### D.3 Ajouter ou vérifier `Image_Portrait`
 
-Ajouter éventuellement un **Text Block** :
+Ajouter une **Image** si elle n'existe pas déjà.
 
-| Nom exact | Type | Is Variable |
-|---|---|---|
-| `Text_PortraitDescription` | Text Block | activé |
+| Propriété | Valeur |
+|---|---|
+| Nom exact | `Image_Portrait` |
+| Type | Image |
+| Is Variable | activé |
+| Brush Image | vide ou texture temporaire |
+| Visibility | Visible |
 
-Ce champ est optionnel. Il affiche la description de l'option sélectionnée si elle existe.
+Réglages de taille conseillés :
+
+| Cas | Réglage conseillé |
+|---|---|
+| Portrait carré CC6.2 | `SizeBox` autour de l'image en `256x256` ou `320x320` |
+| Si l'UI manque de place | `192x192` minimum |
+| Si vous testez un plein pied vertical | ne pas l'utiliser ici comme portrait final ; créer plutôt un recadrage carré `512x512` tête + buste |
+
+Important : le C++ remplace l'image affichée au moment du `RefreshPreview()`. Le `Brush Image` défini dans le Designer n'est qu'un fallback visuel dans l'éditeur.
+
+### D.4 Ajouter `ComboBox_Portrait`
+
+Ajouter une **ComboBox String** sous le portrait.
+
+| Propriété | Valeur |
+|---|---|
+| Nom exact | `ComboBox_Portrait` |
+| Type | ComboBox String |
+| Is Variable | activé |
+| Options | laisser vide |
+| Selected Option | laisser vide |
+| Visibility | Visible |
+
+Ne pas ajouter les options manuellement dans le Designer. Le C++ appelle `ClearOptions()` puis ajoute les entrées valides de `AvailablePortraits`.
+
+Ne pas créer d'événement Blueprint `On Selection Changed`. Le C++ bind déjà :
+
+```text
+ComboBox_Portrait -> HandlePortraitSelectionChanged
+```
+
+Si un événement Blueprint est quand même ajouté, il risque de dupliquer ou de contredire la logique native.
+
+### D.5 Ajouter `Text_PortraitDescription` optionnel
+
+Ajouter un **Text Block** sous la ComboBox si vous voulez afficher une phrase descriptive.
+
+| Propriété | Valeur |
+|---|---|
+| Nom exact | `Text_PortraitDescription` |
+| Type | Text Block |
+| Is Variable | activé |
+| Text | vide ou `Portrait` temporaire |
+| Auto Wrap Text | activé |
+| Visibility | Visible |
+
+Ce widget est optionnel grâce à `BindWidgetOptional`. S'il n'existe pas, la compilation reste valide et le portrait fonctionne quand même.
+
+Usage recommandé du texte :
+
+```text
+Humain masculin - base neutre pour équipement.
+```
+
+Éviter les descriptions longues : le futur modèle race + genre + icône de classe doit rester lisible dans un écran de création dense.
+
+### D.6 Vérifier les propriétés de binding
+
+Les widgets doivent être exposés au C++ par leur nom exact. Dans l'onglet **Details**, vérifier :
+
+| Widget | Is Variable | Obligatoire CC6.2 |
+|---|---:|---:|
+| `Image_Portrait` | oui | recommandé |
+| `ComboBox_Portrait` | oui | oui pour sélection manuelle |
+| `Text_PortraitDescription` | oui | non |
+
+`Image_Portrait`, `ComboBox_Portrait` et `Text_PortraitDescription` sont déclarés en `BindWidgetOptional`. Cela signifie :
+
+- si le nom est correct, le C++ les pilote ;
+- si le widget manque, le jeu compile encore ;
+- si le widget existe mais avec un mauvais nom, le C++ l'ignore silencieusement.
+
+### D.7 Ne pas modifier le Graph pour le portrait
+
+Dans l'onglet **Graph**, ne pas ajouter de logique pour :
+
+- remplir `ComboBox_Portrait` ;
+- copier le portrait dans `DefaultPortrait` ;
+- changer manuellement `Image_Portrait` ;
+- appeler `RefreshPreview()` après sélection ;
+- construire une requête de personnage.
+
+La seule logique Blueprint acceptable ici est de la mise en forme purement visuelle, par exemple une animation d'apparition ou un changement d'opacité sans toucher aux données.
+
+### D.8 Compiler et sauvegarder le widget
+
+Cliquer dans cet ordre :
+
+1. **Compile** ;
+2. corriger toute erreur de widget manquant ;
+3. **Save**.
+
+Résultat attendu : aucune erreur de compilation Blueprint.
+
+Si une erreur indique qu'un widget obligatoire manque, contrôler d'abord :
+
+- `EditableText_Name` ;
+- `Button_CreateCharacter` ;
+- `ComboBox_Race` ;
+- `ComboBox_Class`.
+
+`ComboBox_Portrait` ne devrait pas bloquer la compilation, mais son absence empêchera de choisir manuellement un portrait.
+
+### D.9 Contrôle rapide dans le Designer
+
+À la fin de l'étape D, le Designer doit permettre de voir au minimum :
+
+- une zone de portrait ;
+- une ComboBox de portrait ;
+- les ComboBox race et classe ;
+- le bouton de création ;
+- l'aperçu des statistiques.
+
+L'écran doit rester lisible en résolution PIE standard. Si le portrait pousse les statistiques hors écran, réduire la taille de `Image_Portrait` ou placer le bloc portrait dans une colonne plus compacte.
 
 ---
 
