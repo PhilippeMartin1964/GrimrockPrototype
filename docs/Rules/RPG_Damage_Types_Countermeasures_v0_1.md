@@ -2,7 +2,7 @@
 
 ## Objet
 
-Ce document complete `Docs/Rules/RPG_Core_Rules_v0_1.md` pour definir les types de degats du prototype GrimrockPrototype, leurs familles defensives et les contre-mesures possibles.
+Ce document complete `docs/Rules/RPG_Core_Rules_v0_1.md` pour definir les types de degats du prototype GrimrockPrototype, leurs familles defensives et les contre-mesures possibles.
 
 Il sert de reference aux DataAssets RPG, aux icones d'interface, aux armes, aux sorts, aux monstres, aux potions, aux resistances et aux effets d'etat.
 
