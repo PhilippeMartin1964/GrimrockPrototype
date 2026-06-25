@@ -98,6 +98,10 @@ protected:
     void InitializeCustomCursor ();
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT ("Unspecified"));
     FGridMouseInteractionResolution ResolveLeftMouseInteraction ();
+    bool ResolveCursorItemHoverCursor (
+        const FGridMouseInteractionResolution& MouseResolution,
+        EGridInteractionCursor& OutCursor,
+        const TCHAR*& OutReason) const;
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
     bool TryGetReceptacleUnderCursor (FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
     bool TryGetWorldHitUnderCursor (FHitResult& OutHitResult) const;
