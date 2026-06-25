@@ -321,6 +321,9 @@ private:
     bool bInventorySlotsBuilt = false;
 
     UPROPERTY (Transient)
+    bool bItemActionMenuCloseRequested = false;
+
+    UPROPERTY (Transient)
     int32 LastBuiltSlotCount = 0;
 
     UPROPERTY (Transient)

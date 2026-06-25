@@ -697,6 +697,7 @@ bool UGridInventoryWidget::HandleItemSlotRightClicked (
 
     if (bBuilt)
     {
+        bItemActionMenuCloseRequested = false;
         OnContextActionsRequested.Broadcast (SlotType, SlotIndex);
     }
     return bBuilt;
@@ -891,9 +892,26 @@ bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex (
 
 void UGridInventoryWidget::CloseItemActionMenu (FName Reason)
 {
+    const FString ReasonString = Reason.IsNone ()
+        ? TEXT ("Unspecified")
+        : Reason.ToString ();
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridItemActionMenu Close Requested Reason=%s"),
+        *ReasonString);
+
+    if (bItemActionMenuCloseRequested)
+    {
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"),
+            *ReasonString);
+        return;
+    }
+
+    bItemActionMenuCloseRequested = true;
     UE_LOG (LogTemp, Log,
         TEXT ("GridItemActionMenu Closed Reason=%s"),
-        Reason.IsNone () ? TEXT ("Unspecified") : *Reason.ToString ());
+        *ReasonString);
     OnItemActionMenuCloseRequested (Reason);
 }
 
