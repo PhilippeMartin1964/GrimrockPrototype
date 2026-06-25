@@ -56,7 +56,7 @@ protected:
     void HandleLeftMousePressed ();
     void UpdateHoveredInteractable ();
     void InitializeCustomCursor ();
-    void SetGridInteractionCursor (EGridInteractionCursor NewCursor);
+    void SetGridInteractionCursor (EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT ("Unspecified"));
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
     bool TryGetReceptacleUnderCursor (FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
     bool TryGetWorldHitUnderCursor (FHitResult& OutHitResult) const;
