@@ -528,3 +528,610 @@ Le modèle visuel est validé lorsque :
 - les tests de filtrage et de persistance sont verts ;
 - aucune image finale race + classe n'est requise pour fonctionner ;
 - la future composition d'équipement reste possible sans refaire toute l'UI.
+
+## 9. Roadmap visuelle cible — références CRPG modernes
+
+### 9.1 Positionnement artistique
+
+L’identité visuelle de la création de personnage doit viser un compromis crédible entre :
+
+```text
+Divinity Original Sin 2 = lisibilité fantasy, plein pied expressif, panneaux décoratifs
+Pathfinder WotR        = richesse des choix, densité RPG, icônes et statistiques claires
+Baldur's Gate 3        = présentation premium, personnage incarné, hiérarchie visuelle moderne
+Grimrock Prototype     = donjon sombre, UI fonctionnelle, architecture simple et data-driven
+```
+
+Le but n’est pas de copier un de ces jeux, mais de construire une interface de création et d’inventaire cohérente avec le projet :
+
+* vue subjective dungeon crawler ;
+* groupe de personnages ;
+* règles RPG lisibles ;
+* inventaire plein pied ;
+* équipements visibles à terme ;
+* assets 2D/Texture2D simples à produire ;
+* compatibilité future avec la création de contenu par les joueurs.
+
+La direction recommandée est :
+
+```text
+Réalisme médiéval fantastique sobre
+Ambiance sombre, pierre, cuir, parchemin, métal vieilli
+Personnage plein pied au centre
+Panneaux latéraux lisibles
+Icônes nettes et cohérentes
+Effets magiques rares mais valorisants
+```
+
+### 9.2 Principe directeur : “BG3-lite en 2D, Pathfinder-lite en règles, DOS2 en ambiance”
+
+Pour rester réaliste dans le cadre du prototype Unreal Engine 5.5.4, il ne faut pas viser immédiatement une création de personnage 3D temps réel équivalente à Baldur’s Gate 3.
+
+La cible crédible est :
+
+```text
+Court terme  = personnages plein pied 2D statiques
+Moyen terme  = composition 2D en couches
+Long terme   = éventuelle prévisualisation 3D ou modèle paper-doll avancé
+```
+
+L’écran doit donner une impression premium, mais rester techniquement simple :
+
+* `UTexture2D` pour les portraits ;
+* `UTexture2D` pour les corps plein pied ;
+* `Overlay` UMG pour les couches d’équipement ;
+* DataAssets pour les visuels ;
+* aucune logique de règles dans le Blueprint ;
+* aucune génération d’image combinée race + genre + classe + équipement.
+
+### 9.3 Inspirations concrètes à reprendre
+
+#### 9.3.1 À reprendre de Divinity Original Sin 2
+
+Divinity Original Sin 2 donne une très bonne leçon de lisibilité fantasy :
+
+* personnage affiché debout, entier ou presque entier ;
+* fond d’ambiance illustratif ;
+* UI décorative mais compréhensible ;
+* onglets simples ;
+* forte silhouette du personnage ;
+* sentiment d’aventure avant même de commencer la partie.
+
+Application Grimrock Prototype :
+
+```text
+Création personnage :
+- personnage plein pied au centre ;
+- fond sombre de crypte, couloir, torche ou parchemin animé très discret ;
+- panneaux latéraux avec cadres métal/cuir/parchemin ;
+- boutons sobres, gravés, médiévaux ;
+- icône de classe visible immédiatement.
+```
+
+À ne pas reprendre tel quel :
+
+* interface trop large ou trop “plein écran cinématique” ;
+* complexité de personnalisation faciale ;
+* origine narrative complète si le prototype ne la supporte pas encore.
+
+#### 9.3.2 À reprendre de Pathfinder: Wrath of the Righteous
+
+Pathfinder est la meilleure référence pour l’organisation d’une création de personnage riche en règles :
+
+* beaucoup de classes ;
+* beaucoup de choix ;
+* attributs, dons, compétences, sorts ;
+* informations techniques affichées sans perdre le joueur expert ;
+* structure par étapes ;
+* résumé final clair.
+
+Application Grimrock Prototype :
+
+```text
+Création personnage :
+- étape Race ;
+- étape Classe ;
+- étape Attributs ;
+- étape Portrait / Apparence ;
+- étape Résumé ;
+- panneau d’explication à droite ;
+- avertissement si une combinaison est invalide ;
+- résumé final avant validation.
+```
+
+À reprendre surtout :
+
+* la discipline dans la hiérarchie des informations ;
+* les icônes de classes/rôles ;
+* les tooltips riches ;
+* le résumé final.
+
+À ne pas reprendre tel quel :
+
+* densité excessive dès CC6 ;
+* listes interminables ;
+* sous-classes complexes non encore implémentées ;
+* surcharge textuelle dans le premier prototype.
+
+#### 9.3.3 À reprendre de Baldur’s Gate 3
+
+Baldur’s Gate 3 est la référence de présentation premium :
+
+* personnage central fortement incarné ;
+* identité visuelle de race et classe immédiate ;
+* icônes de classes très reconnaissables ;
+* présentation claire, élégante et moderne ;
+* sensation que le personnage existe déjà avant le jeu.
+
+Application Grimrock Prototype :
+
+```text
+Inventaire :
+- personnage plein pied au centre ;
+- équipement disposé autour du corps ;
+- nom, race, classe, niveau très visibles ;
+- icône de classe en haut ou près du nom ;
+- PV / mana sous forme de jauges lisibles ;
+- attributs et résistances dans un panneau latéral.
+```
+
+À reprendre surtout :
+
+* la lisibilité premium ;
+* la centralité du personnage ;
+* le soin des portraits et icônes ;
+* les contrastes forts ;
+* les petits effets de lumière.
+
+À ne pas reprendre tel quel :
+
+* rendu 3D complet ;
+* caméra animée ;
+* personnalisation morphologique avancée ;
+* complexité de production trop lourde.
+
+---
+
+## 10. Nouvelle roadmap visuelle proposée
+
+### CC6.5A — Charte visuelle RPG médiévale
+
+But : figer la direction artistique avant de produire trop d’assets.
+
+Livrables :
+
+* palette UI principale ;
+* style de cadres ;
+* style de boutons ;
+* style de panneaux ;
+* règles de contraste ;
+* typographie recommandée ;
+* style des icônes ;
+* style des portraits ;
+* style des corps plein pied.
+
+Palette recommandée :
+
+```text
+Fond principal       : charbon / brun noir / pierre sombre
+Panneaux             : cuir sombre, parchemin vieilli, pierre lissée
+Cadres               : métal usé, bronze, fer noirci
+Texte principal      : ivoire clair
+Texte secondaire     : beige / gris chaud
+Accent guerrier      : rouge sombre / acier
+Accent voleur        : vert sombre / cuir
+Accent rôdeur        : vert forêt / cuivre
+Accent mage          : bleu violet / arcane
+Accent prêtre        : or pâle / ivoire
+Accent alchimiste    : vert bouteille / laiton
+```
+
+Critère de sortie :
+
+```text
+Un document ou tableau de référence permet de produire tous les futurs portraits,
+icônes, fonds, cadres et slots sans changer de style à chaque itération.
+```
+
+### CC6.5B — Maquette écran création personnage “vertical slice”
+
+But : produire une maquette visuelle crédible de l’écran complet avant d’implémenter tous les systèmes.
+
+Disposition recommandée :
+
+```text
++-------------------------------------------------------------+
+| Nom du personnage / titre                                   |
++----------------------+----------------------+---------------+
+| Étapes               | Personnage plein pied | Détails choix |
+|                      |                      |               |
+| 1. Race              |      FullBody         | Description   |
+| 2. Genre             |      Portrait         | Bonus         |
+| 3. Classe            |      + Classe Icon    | Attributs     |
+| 4. Attributs         |                      | Compétences   |
+| 5. Portrait          |                      |               |
+| 6. Résumé            |                      |               |
++----------------------+----------------------+---------------+
+| Retour                         Créer le personnage          |
++-------------------------------------------------------------+
+```
+
+Inspiration dominante :
+
+```text
+BG3 pour la centralité du personnage
+Pathfinder pour les étapes et les informations
+DOS2 pour les panneaux fantasy et l’ambiance
+```
+
+Livrables UE5 :
+
+* `WBP_CharacterCreation_VisualTarget` ou maquette temporaire ;
+* `Overlay_CharacterPreview`;
+* `Image_CharacterFullBodyPreview`;
+* `Image_PortraitCompactPreview`;
+* `Image_ClassIconPreview`;
+* panneau de résumé ;
+* panneau d’aide contextuelle.
+
+Critère de sortie :
+
+```text
+Même avec des données factices, l’écran doit donner une vision claire du produit final.
+```
+
+### CC6.5C — Portrait compact premium
+
+But : améliorer le portrait compact existant sans changer l’architecture.
+
+Travail :
+
+* cadre de portrait commun ;
+* badge de classe en coin ;
+* couleur d’accent de classe ;
+* fond discret selon race ou classe ;
+* état sélectionné / survolé / indisponible ;
+* fallback clair en cas de portrait manquant.
+
+Règle visuelle :
+
+```text
+Le portrait compact doit être lisible en 64x64, 128x128, 256x256 et 512x512.
+```
+
+Critère de sortie :
+
+```text
+La liste du groupe, la création de personnage et l’inventaire affichent tous
+le même personnage de manière cohérente.
+```
+
+### CC6.6A — Inventaire plein pied version “paper-doll statique”
+
+But : installer la structure visuelle centrale de l’inventaire.
+
+Disposition recommandée :
+
+```text
++-------------------------------------------------------------+
+| Nom | Race | Classe | Niveau | Expérience                   |
++-------------------+-------------------------+---------------+
+| Groupe / Portraits| Personnage plein pied   | Stats         |
+|                   |                         | FOR DEX CON   |
+| Portrait 1        |  [Slots autour du corps]| INT SAG CHA   |
+| Portrait 2        |                         |               |
+| Portrait 3        |                         | PV / Mana     |
+| Portrait 4        |                         | Résistances   |
++-------------------+-------------------------+---------------+
+| Inventaire grille / actions / description objet             |
++-------------------------------------------------------------+
+```
+
+Slots autour du corps :
+
+```text
+Tête
+Visage
+Amulette
+Épaulières
+Torse
+Cape
+Gants
+Ceinture
+Pantalons
+Bottes
+Anneau gauche
+Anneau droit
+Main droite
+Main gauche
+```
+
+Critère de sortie :
+
+```text
+Le joueur reconnaît immédiatement le personnage sélectionné,
+son rôle, son état général et son équipement principal.
+```
+
+### CC6.6B — Jauges et statistiques lisibles
+
+But : rendre la fiche centrale réellement RPG.
+
+Éléments visuels requis :
+
+* PV actuels / maximum ;
+* mana actuelle / maximum ;
+* niveau ;
+* expérience ;
+* Force ;
+* Dextérité ;
+* Constitution ;
+* Intelligence ;
+* Sagesse ;
+* Charisme ;
+* attaque ;
+* défense ;
+* dégâts ;
+* critique ;
+* résistances principales.
+
+Règle :
+
+```text
+Le Blueprint affiche les valeurs reçues.
+Il ne recalcule jamais les règles RPG.
+```
+
+Traitement visuel recommandé :
+
+```text
+PV      = jauge rouge sombre
+Mana    = jauge bleue / violette
+XP      = jauge or pâle
+Stats   = icône + valeur + tooltip
+Résist. = petites icônes élémentaires
+```
+
+### CC6.7A — Slots d’équipement visuels définitifs
+
+But : aligner les slots affichés avec les vrais slots runtime.
+
+Travail :
+
+* confirmer la liste officielle des slots ;
+* créer une texture de slot vide par type ;
+* créer état normal ;
+* état survolé ;
+* état sélectionné ;
+* état incompatible ;
+* état verrouillé si le slot n’est pas encore géré ;
+* relier chaque slot à l’inventaire runtime.
+
+Critère de sortie :
+
+```text
+Chaque emplacement visible correspond à une donnée réelle ou à un futur slot documenté.
+Aucun slot décoratif non relié ne doit rester ambigu.
+```
+
+### CC6.8A — Corps plein pied race + genre
+
+But : remplacer le plein pied unique par les 12 corps de base.
+
+Assets minimum :
+
+```text
+T_FullBody_Human_Male_01
+T_FullBody_Human_Female_01
+T_FullBody_Dwarf_Male_01
+T_FullBody_Dwarf_Female_01
+T_FullBody_Elf_Male_01
+T_FullBody_Elf_Female_01
+T_FullBody_Halfling_Male_01
+T_FullBody_Halfling_Female_01
+T_FullBody_Gnome_Male_01
+T_FullBody_Gnome_Female_01
+T_FullBody_HalfOrc_Male_01
+T_FullBody_HalfOrc_Female_01
+```
+
+Style des corps :
+
+* posture debout neutre ;
+* cadrage de pied en cape ;
+* sous-vêtements ou tenue de base très simple ;
+* orientation frontale légèrement trois-quarts ;
+* mains visibles ;
+* proportions cohérentes par race ;
+* fond transparent ;
+* lumière venant du haut gauche ;
+* aucune arme permanente ;
+* aucun équipement lourd permanent.
+
+Critère de sortie :
+
+```text
+La race et le genre sélectionnés dans la création sont visibles dans l’inventaire.
+```
+
+### CC6.9A — Première couche d’équipement visible
+
+But : valider la composition d’équipement sans produire encore tout le catalogue.
+
+Premier set recommandé :
+
+```text
+Guerrier Tier 1
+- casque simple ou coiffe
+- plastron cuir/métal léger
+- gants
+- ceinture
+- pantalon
+- bottes
+- épée main droite
+- bouclier main gauche
+```
+
+Ordre de rendu recommandé :
+
+```text
+BodyBase
+Legs
+Boots
+Chest
+Belt
+Gloves
+Shoulders
+Cloak
+Head
+Face
+MainHand
+OffHand
+VFX
+```
+
+Critère de sortie :
+
+```text
+Équiper ou retirer un objet modifie visuellement le personnage plein pied.
+```
+
+### CC6.10A — Composition dynamique complète
+
+But : rendre l’inventaire visuellement réactif.
+
+Travail :
+
+* chaque item équipable peut référencer un `URPGEquipmentVisualAsset`;
+* chaque asset visuel contient une ou plusieurs textures de couche ;
+* le système choisit la texture selon race, genre, slot et tier ;
+* fallback si texture manquante ;
+* rafraîchissement automatique après équipement/retrait ;
+* test de non-régression inventaire -> visuel.
+
+Critère de sortie :
+
+```text
+Le personnage plein pied devient une vraie fiche visuelle équipée,
+sans nécessiter une image finale unique pour chaque combinaison.
+```
+
+---
+
+## 11. Priorité de production des assets
+
+### Priorité 1 — Minimum crédible
+
+* 12 portraits race + genre ;
+* 6 icônes de classe ;
+* 1 cadre de portrait ;
+* 1 badge de classe ;
+* 1 fond UI sombre ;
+* 1 set de panneaux ;
+* 1 corps plein pied de test ;
+* slots vides de l’inventaire.
+
+### Priorité 2 — Inventaire premium
+
+* 12 corps plein pied race + genre ;
+* icônes des attributs ;
+* icônes PV, mana, XP ;
+* icônes de résistances ;
+* états de slots ;
+* cadre plein pied ;
+* fond d’inventaire.
+
+### Priorité 3 — Équipement visible
+
+* set guerrier tier 1 ;
+* set voleur tier 1 ;
+* set mage tier 1 ;
+* armes main droite ;
+* boucliers / main gauche ;
+* bottes, gants, pantalons, torse, cape, ceinture.
+
+### Priorité 4 — Polissage avancé
+
+* variantes de portraits ;
+* variantes de poses ;
+* fonds selon classe ;
+* effets magiques ;
+* états blessé / empoisonné / mort ;
+* tiers d’équipement 2 à 5 ;
+* support futur de créations de joueurs.
+
+---
+
+## 12. Règles de qualité visuelle
+
+### 12.1 Lisibilité
+
+Une icône doit rester compréhensible à petite taille.
+
+```text
+512x512 = source
+256x256 = affichage détaillé
+128x128 = inventaire / portrait
+64x64   = liste groupe / petits badges
+```
+
+### 12.2 Cohérence
+
+Tous les assets doivent partager :
+
+* même direction de lumière ;
+* même contraste ;
+* même niveau de détail ;
+* même style de contour ;
+* même saturation ;
+* même ambiance médiéval fantastique réaliste.
+
+### 12.3 Transparence
+
+Tous les éléments destinés à être composés doivent être en RGBA avec canal alpha propre :
+
+* portraits détourés si nécessaire ;
+* corps plein pied détourés ;
+* couches d’équipement détourées ;
+* icônes détourées ;
+* slots avec transparence contrôlée.
+
+### 12.4 Sobriété
+
+Le prototype doit éviter l’effet “cartoon” ou mobile game.
+
+À privilégier :
+
+* métal patiné ;
+* cuir usé ;
+* pierre sombre ;
+* parchemin vieilli ;
+* symboles gravés ;
+* lumière de torche ;
+* couleurs de classe discrètes.
+
+À éviter :
+
+* couleurs trop saturées ;
+* contours trop épais ;
+* icônes simplistes ;
+* fonds verts ou unis ;
+* effets magiques excessifs ;
+* style cartoon.
+
+---
+
+## 13. Critère de validation visuelle cible
+
+La roadmap visuelle est validée lorsque :
+
+* la création de personnage donne une impression RPG moderne et crédible ;
+* le personnage sélectionné est immédiatement reconnaissable ;
+* race, genre, classe et portrait sont cohérents ;
+* l’inventaire affiche un plein pied central lisible ;
+* les slots d’équipement sont compréhensibles ;
+* les statistiques principales sont visibles sans surcharge ;
+* les assets peuvent être étendus sans refaire toute l’UI ;
+* les règles restent côté C++ ;
+* l’UI reste data-driven ;
+* la direction artistique reste médiéval fantastique réaliste, sombre et sobre.
