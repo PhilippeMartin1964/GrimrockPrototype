@@ -8,6 +8,8 @@ L’objectif est de remplacer l’ancienne action clavier globale `F` par des in
 
 Le système doit rester compatible avec l’architecture orientée données du projet : les objets de niveau sont définis dans le `GridLevelAsset`, instanciés en runtime, puis activés via les composants runtime existants.
 
+Depuis les stabilisations MI1 à MI6, ce document décrit l’état final attendu du routage souris : les diagnostics existent, les priorités UI / monde sont explicites, le hover d’item tenu est stable et la verbosité des logs de hover est contrôlée par `LogGridMouse`.
+
 ## 2. Règle de design principale
 
 Le principe retenu est le suivant :
@@ -51,7 +53,9 @@ Une porte est actionnée uniquement par :
 - détecter l’objet sous la souris ;
 - vérifier la distance d’interaction ;
 - interroger `CanInteract` avant de promettre une interaction au joueur ;
-- appeler `Interact` lors du clic gauche.
+- appeler `Interact` lors du clic gauche ;
+- arbitrer la priorité entre UI modale, inventaire, item tenu au curseur et interaction monde ;
+- router le clic gauche vers le chemin gameplay approprié sans exécuter lui-même la logique métier.
 
 Le contrôleur ne doit pas contenir de logique spécifique du type :
 
@@ -62,6 +66,62 @@ si torche → inventaire
 ```
 
 Il ne connaît que l’interface générique.
+
+La responsabilité importante du contrôleur est donc l’orchestration :
+
+```text
+Entrée souris
+  -> filtrage UI / readable message
+  -> résolution item tenu ou cible monde
+  -> appel au runtime, à l'interface ou au service adapté
+```
+
+Il ne doit pas devenir le propriétaire des règles de compatibilité item, de serrure, de réceptacle ou de mécanisme.
+
+### 3.1.1 ResolveLeftMouseInteraction
+
+`ResolveLeftMouseInteraction()` centralise la décision du clic gauche.
+
+Son rôle est de produire un seul routage clair pour le clic courant :
+
+- fermer prioritairement un message lisible actif ;
+- bloquer le clic monde lorsqu'une UI modale ou un menu d'action item est actif ;
+- ignorer le clic monde lorsque l'inventaire est ouvert sans item tenu au curseur ;
+- router un item tenu au curseur vers une serrure murale, un réceptacle, un dépôt monde ou un lancer ;
+- exécuter l'interaction monde classique si aucun item n'est tenu ;
+- tomber sur un fallback explicite `NoInteractable` lorsqu'aucune cible valide n'est trouvée.
+
+Cette fonction sépare la résolution d'intention de l'exécution gameplay. Elle ne remplace pas `IGridInteractableInterface`, `TryInteractAtEdge`, les services de transfert ou les règles propres aux acteurs.
+
+### 3.1.2 ResolveCursorItemHoverCursor
+
+`ResolveCursorItemHoverCursor()` est la résolution de hover spécifique au cas où un item est tenu au curseur.
+
+Elle évalue la cible sous la souris et retourne le curseur le plus honnête possible avant le clic :
+
+- serrure murale accessible ;
+- réceptacle compatible ;
+- dépôt monde valide ;
+- lancer possible pour un item throwable ;
+- cible détectée mais action impossible ;
+- aucun hit monde.
+
+Le hover n'exécute aucune mutation. Il ne fait que traduire l'état courant en feedback visuel, avec des logs `Verbose` pour diagnostiquer les refus sans polluer les sessions normales.
+
+### 3.1.3 SetGridInteractionCursor
+
+`SetGridInteractionCursor()` est le point de sortie unique vers le curseur custom.
+
+Il reçoit l'état `EGridInteractionCursor` résolu par le hover ou le routage courant, puis met à jour `WBP_GridMouseCursor`. Le reste du système ne doit pas manipuler directement la texture du curseur.
+
+Cette centralisation permet de conserver une correspondance stable entre :
+
+```text
+état gameplay résolu
+  -> EGridInteractionCursor
+  -> WBP_GridMouseCursor.SetCursorState
+  -> texture affichée
+```
 
 ### 3.2 IGridInteractableInterface
 
@@ -86,6 +146,18 @@ Exemples :
 - réceptacle vide : support principal ;
 - réceptacle plein : objet contenu uniquement ;
 - porte : pas d’interface.
+
+L'interface sert au monde interactable classique : bouton, levier, item au sol, objet lisible, item contenu, support ou autre acteur de niveau.
+
+Elle ne doit pas absorber les responsabilités suivantes :
+
+- décider si une UI modale bloque le clic ;
+- fermer un menu d'inventaire ;
+- choisir une action contextuelle d'item ;
+- résoudre une cible face au groupe pour le menu clic droit ;
+- exécuter des transferts d'inventaire hors du contexte de l'acteur touché.
+
+Le contrat est volontairement local : l'acteur sous la souris dit s'il est interactif et comment il souhaite être présenté. Le runtime ou les services d'item restent responsables des mutations globales.
 
 ### 3.3 EGridInteractionCursor
 
@@ -165,6 +237,65 @@ Hors portée :
 ```text
 EGridInteractionCursor::Forbidden
 ```
+
+## 4.1 Priorité finale du clic gauche
+
+Le clic gauche suit une priorité unique, de la couche la plus globale vers la cible monde :
+
+1. Readable message actif : le clic ferme le message et ne continue pas vers le monde.
+2. UI modale ou menu d'action item détecté : le clic monde est bloqué.
+3. Inventaire ouvert sans item au curseur : le clic monde est ignoré.
+4. Item tenu au curseur : le routage tente, dans l'ordre, serrure murale sous souris, réceptacle ou support sous souris, dépôt monde, lancer, puis échec explicite.
+5. World interactable : le premier acteur valide sous la souris reçoit l'interaction via `IGridInteractableInterface`.
+6. Fallback `NoInteractable` : aucun acteur ou chemin item valide n'a été trouvé.
+
+Cette priorité empêche les effets de bord suivants :
+
+- fermer un message lisible et activer en même temps un objet derrière lui ;
+- cliquer dans le monde au travers d'un menu d'action item ;
+- déposer ou lancer un item alors que le joueur voulait interagir avec une serrure ou un support ;
+- promettre un hover interactif qui ne correspond pas au routage réel du clic.
+
+### 4.1.1 Routage d'un item tenu au curseur
+
+Quand un item est tenu au curseur, la cible sous la souris prime sur la cible face au groupe.
+
+Ordre de routage :
+
+```text
+1. Wall lock sous souris
+2. Réceptacle / support sous souris
+3. Dépôt monde valide
+4. Lancer, si l'item est throwable et que le contexte le permet
+5. Échec explicite avec log de refus
+```
+
+La cible face au groupe reste importante pour le menu contextuel d'inventaire, mais elle ne doit pas détourner un clic souris explicitement posé sur une cible monde différente.
+
+## 4.2 Priorité finale du hover avec item tenu
+
+Lorsque le joueur tient un item au curseur, le hover ne passe pas par le même chemin que le hover monde classique. `ResolveCursorItemHoverCursor()` applique la priorité suivante :
+
+1. Wall lock accessible : curseur d'utilisation ou de verrouillage selon l'état et la compatibilité.
+2. Réceptacle compatible : curseur `Use`.
+3. Dépôt monde valide : curseur de dépôt ou curseur par défaut d'action item selon le mapping courant.
+4. Lancer possible avec item throwable : feedback de lancer si aucune cible prioritaire ne consomme l'action.
+5. Cible détectée mais action impossible : curseur `Forbidden`.
+6. Aucun hit monde : curseur neutre, sans interaction promise.
+
+Le hover est une indication, pas une réservation d'action. Le clic refait la validation avant toute mutation.
+
+## 4.3 Séparation hover, clic et exécution gameplay
+
+Les trois niveaux doivent rester séparés :
+
+| Niveau | Responsabilité | Mutation gameplay |
+|---|---|---|
+| Hover | Détecter et afficher un feedback honnête via `SetGridInteractionCursor()` | Non |
+| Clic | Résoudre l'intention et choisir le chemin de routage via `ResolveLeftMouseInteraction()` | Non directement |
+| Exécution gameplay | Appeler `Interact`, `TryInteractAtEdge`, les services de transfert, wall lock, drop ou throw | Oui, après validation |
+
+Cette séparation rend le système prévisible : le hover explique ce qui semble possible, le clic choisit une intention unique, puis le runtime ou le service spécialisé applique les règles définitives.
 
 ## 5. Objets actuellement interactifs
 
@@ -455,27 +586,67 @@ RuntimeActor->TryInteractAtEdge(CellX, CellY, Edge, PartyPawn)
 
 Cela garantit que `UGridActivationComponent` reste l’autorité sur les liens et les événements.
 
-## 10. Tests de non-régression
+## 10. Logs et diagnostics
+
+La catégorie dédiée au routage souris est :
+
+```text
+LogGridMouse
+```
+
+Règle de verbosité :
+
+- les logs de clic restent au niveau `Log`, car ils documentent une décision utilisateur ponctuelle ;
+- les logs de hover restent au niveau `Verbose`, car ils peuvent être émis à chaque frame ;
+- les refus explicites doivent indiquer le chemin de routage concerné lorsque c'est utile : UI bloquante, inventaire ouvert, wall lock, réceptacle, drop, throw ou `NoInteractable`.
+
+Pour diagnostiquer le hover en PIE, réactiver temporairement la verbosité :
+
+```text
+Log LogGridMouse Verbose
+```
+
+ou au lancement :
+
+```text
+-LogCmds="LogGridMouse Verbose"
+```
+
+Les logs de hover ne doivent pas être remontés au niveau `Log` par défaut. Cela rendrait les sessions normales trop bruyantes et masquerait les décisions de clic réellement utiles.
+
+## 11. Tests de non-régression
 
 Après toute modification du système d’interaction, tester :
 
+| Cas | Attendu |
+|---|---|
+| Readable message actif | Le clic gauche ferme le message et ne déclenche aucune interaction monde derrière lui. |
+| Inventaire ouvert sans item curseur | Le clic monde est ignoré ; aucun pickup, dépôt, activation ou lancer ne se produit. |
+| Menu action item ouvert | Le clic extérieur ferme le menu si le click catcher le demande ; le clic monde reste bloqué. |
+| Item monde pickup | Hover `Take`, clic gauche ramasse l'acteur réel visé et met à jour l'inventaire. |
+| Levier | Hover sur partie mobile `Pull`, clic gauche passe par `TryInteractAtEdge` et bascule l'état. |
+| Bouton | Hover sur partie mobile `Push`, clic gauche passe par `TryInteractAtEdge` et déclenche l'activation. |
+| Porte / chaîne logique | La porte n'est pas cliquable directement ; elle réagit seulement aux mécanismes et liens. |
+| Torche tenue au curseur vers sol | Hover de dépôt valide, clic gauche dépose la torche si la cellule et la portée l'acceptent. |
+| Torche tenue au curseur vers support | Le support compatible prime sur le dépôt monde ; clic gauche place la torche dans le réceptacle. |
+| Torche tenue au curseur vers cible invalide | Hover `Forbidden` ou neutre selon le hit ; clic gauche échoue explicitement sans mutation. |
+| Pierre tenue au curseur vers dépôt proche | Le dépôt monde valide est préféré au lancer si aucune cible prioritaire n'est touchée. |
+| Pierre tenue au curseur hors portée pour lancer | Le lancer est refusé explicitement ; l'item reste au curseur. |
+| Clé compatible tenue au curseur vers wall lock | La wall lock sous souris prime ; la clé est insérée seulement après validation de compatibilité. |
+| Mauvaise clé ou item non clé tenu au curseur vers wall lock | La wall lock refuse l'action avec un feedback interdit ou un message de refus ; aucun dépôt implicite ne remplace l'échec. |
+
+Ces tests résument les stabilisations MI1 à MI6 sous forme de comportement final attendu. Ils doivent être complétés par les tests historiques :
+
 ```text
-Bouton : hover sur partie mobile → Push, clic → activation.
-Levier : hover sur partie mobile → Pull, clic → bascule.
-Objet lisible : hover → Read, clic → message.
-Item au sol : hover → Take, clic → inventaire.
-Torche sur support : hover torche → Take, clic → inventaire.
-Réceptacle vide + item tenu compatible : hover support → Use, clic → dépôt.
 Réceptacle vide sans item tenu : pas de curseur interactif.
 Réceptacle plein + clic support : rien.
 Réceptacle plein + clic item contenu : reprise.
-Porte : aucun curseur interactif, aucun clic direct.
 Hors portée : curseur Forbidden.
 Touche F : inactive par défaut.
 Curseur custom : texture correcte selon EGridInteractionCursor.
 ```
 
-## 11. État actuel
+## 12. État actuel
 
 Le système souris validé couvre actuellement :
 

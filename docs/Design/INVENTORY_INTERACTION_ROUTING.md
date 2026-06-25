@@ -24,6 +24,36 @@ flowchart LR
     Execution --> Refresh["Refresh UI / runtime"]
 ```
 
+## Frontière Avec Le Système Souris Monde
+
+Deux modèles coexistent et ne doivent pas être confondus.
+
+| Modèle | Déclencheur | Cible utilisée | Usage |
+|---|---|---|---|
+| Item tenu au curseur | Clic gauche monde avec un item déjà porté par le curseur | Cible sous la souris | Interaction directe : wall lock, réceptacle, dépôt monde, lancer |
+| Action contextuelle d'inventaire | Clic droit sur un slot, puis bouton du menu | Cible face au groupe au moment de construire l'action | Action explicite : équiper, lire, insérer, placer, déposer |
+
+Le clic gauche monde répond à la question :
+
+```text
+Que fait l'item que je tiens sur ce que je vise avec la souris ?
+```
+
+Le menu contextuel répond à la question :
+
+```text
+Quelles actions explicites sont disponibles pour cet item d'inventaire maintenant ?
+```
+
+La distinction est importante pour les serrures et les réceptacles :
+
+- une clé tenue au curseur vise la wall lock sous la souris ;
+- une clé dans l'inventaire utilise la cible face au groupe pour proposer `Insérer dans la serrure` ;
+- une torche tenue au curseur vise le support sous la souris ;
+- une torche en inventaire utilise la cible face au groupe pour proposer `Placer sur le support`.
+
+La cible sous la souris est donc prioritaire pour le routage monde direct. La cible face au groupe est un contexte d'aide pour le menu clic droit, pas une substitution automatique au hit souris.
+
 ## Tableau Des Interactions
 
 | Interaction | Capture | Validation | Exécution | Refresh UI | Logs principaux |
@@ -71,6 +101,10 @@ flowchart TD
     Actions --> Event["OnContextActionsRequested"]
     Event --> Menu["WBP_ItemActionMenu"]
 ```
+
+Le clic droit d'inventaire ne déplace pas l'item et ne démarre pas une interaction monde. Il construit une photographie des actions disponibles pour le slot ciblé, avec son `SlotType`, son `SlotIndex`, l'item résolu et la cible face au groupe.
+
+Le menu peut être ouvert alors qu'un autre chemin souris existe dans le monde, mais tant qu'il est visible il est modal pour le clic gauche monde : le monde ne doit pas recevoir le clic destiné au menu ou à son click catcher.
 
 ## Flux Drag/Drop
 
@@ -121,6 +155,16 @@ flowchart TD
     Result -->|Oui| Refresh["RefreshInventory"]
     Result -->|Non| Log["Log Failed / NotImplemented"]
 ```
+
+Le menu d'action item est une surface UI, pas un acteur monde. Son rôle est de présenter les actions déjà résolues, puis de relayer l'`ActionIndex` sélectionné au C++.
+
+Règles à préserver :
+
+- le bouton visible exécute toujours l'action par index ;
+- plusieurs boutons peuvent partager le même `ActionType`, par exemple deux actions `Equip` vers des mains différentes ;
+- la fermeture du menu est idempotente : appeler `CloseItemActionMenu(Reason)` plusieurs fois ne doit pas produire de mutation gameplay ni de retrait UI dangereux ;
+- une action réussie peut fermer le menu, mais la fermeture elle-même ne doit jamais modifier l'inventaire ;
+- une action refusée conserve l'état de l'item et peut laisser le menu visible selon le choix UX.
 
 ## Flux Lire
 
@@ -179,6 +223,15 @@ Après ramassage, `FGridItemInstance` est la source de vérité pour `ReadableCo
 
 `RemoveFromParent` ne doit jamais viser `WBP_GridInventory`.
 
+La fermeture est volontairement idempotente :
+
+- si le menu est déjà fermé, `CloseItemActionMenu("ClickOutside")` ne doit pas provoquer d'erreur ;
+- si le Blueprint reçoit plusieurs demandes proches, il retire uniquement l'instance de menu encore valide ;
+- aucun warning `RemoveFromParent` n'est attendu dans le flux nominal ;
+- le retrait du menu ne doit pas masquer `Page_Inventory`, `TopTabs` ou le widget d'inventaire parent.
+
+Le comportement `ClickOutside` est limité à la fermeture du menu. Il ne valide pas une action, ne déplace pas d'item, ne déclenche pas de drop monde et ne doit pas être interprété comme un clic sur la cible sous la souris.
+
 ```mermaid
 flowchart TD
     Root["WBP_ItemActionMenu plein écran"] --> Catcher["Border_ClickCatcher"]
@@ -211,4 +264,7 @@ flowchart TD
 - `GridInventory SwapSlots`
 - `GridEquipmentLight Recompute`
 - `GridItemActionMenu Closed`
+- `GridItemActionMenu Closed Reason=ClickOutside`
 - `GridItemTransfer Success/Failed`
+
+Le flux nominal de fermeture du menu ne doit pas produire de warning `RemoveFromParent`. Si un warning apparaît, vérifier que le Blueprint retire bien `WBP_ItemActionMenu` et non `WBP_GridInventory`, et que la fermeture multiple est traitée comme un no-op.
