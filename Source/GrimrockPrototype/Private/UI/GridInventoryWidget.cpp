@@ -14,6 +14,7 @@
 #include "Runtime/GridReadableContentAsset.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -98,6 +99,42 @@ namespace
         default:
             return TEXT ("None");
         }
+    }
+
+    FObjectPropertyBase* FindCurrentItemActionMenuProperty (UGridInventoryWidget* InventoryWidget)
+    {
+        if (!InventoryWidget)
+        {
+            return nullptr;
+        }
+
+        FProperty* Property = InventoryWidget->GetClass ()->FindPropertyByName (FName (TEXT ("CurrentItemActionMenu")));
+        return CastField<FObjectPropertyBase> (Property);
+    }
+
+    UUserWidget* GetCurrentItemActionMenuWidget (UGridInventoryWidget* InventoryWidget)
+    {
+        FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty (InventoryWidget);
+        if (!Property || !InventoryWidget)
+        {
+            return nullptr;
+        }
+
+        return Cast<UUserWidget> (Property->GetObjectPropertyValue_InContainer (InventoryWidget));
+    }
+
+    void ClearCurrentItemActionMenuWidget (UGridInventoryWidget* InventoryWidget)
+    {
+        FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty (InventoryWidget);
+        if (Property && InventoryWidget)
+        {
+            Property->SetObjectPropertyValue_InContainer (InventoryWidget, nullptr);
+        }
+    }
+
+    bool IsItemActionMenuDetached (const UUserWidget* ItemActionMenu)
+    {
+        return ItemActionMenu && !ItemActionMenu->IsInViewport () && !ItemActionMenu->GetParent ();
     }
 }
 
@@ -909,10 +946,26 @@ void UGridInventoryWidget::CloseItemActionMenu (FName Reason)
     }
 
     bItemActionMenuCloseRequested = true;
+    if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget (this);
+        IsItemActionMenuDetached (CurrentItemActionMenu))
+    {
+        UE_LOG (LogTemp, Verbose,
+            TEXT ("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"),
+            *ReasonString);
+        ClearCurrentItemActionMenuWidget (this);
+        return;
+    }
+
     UE_LOG (LogTemp, Log,
         TEXT ("GridItemActionMenu Closed Reason=%s"),
         *ReasonString);
     OnItemActionMenuCloseRequested (Reason);
+
+    if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget (this);
+        IsItemActionMenuDetached (CurrentItemActionMenu))
+    {
+        ClearCurrentItemActionMenuWidget (this);
+    }
 }
 
 void UGridInventoryWidget::CloseItemReadPanel (FName Reason)
