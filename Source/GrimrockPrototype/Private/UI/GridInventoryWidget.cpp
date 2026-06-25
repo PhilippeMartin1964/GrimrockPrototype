@@ -101,7 +101,7 @@ namespace
         }
     }
 
-    FObjectPropertyBase* FindCurrentItemActionMenuProperty (UGridInventoryWidget* InventoryWidget)
+    FObjectPropertyBase* FindCurrentItemActionMenuProperty (const UGridInventoryWidget* InventoryWidget)
     {
         if (!InventoryWidget)
         {
@@ -112,7 +112,7 @@ namespace
         return CastField<FObjectPropertyBase> (Property);
     }
 
-    UUserWidget* GetCurrentItemActionMenuWidget (UGridInventoryWidget* InventoryWidget)
+    UUserWidget* GetCurrentItemActionMenuWidget (const UGridInventoryWidget* InventoryWidget)
     {
         FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty (InventoryWidget);
         if (!Property || !InventoryWidget)
@@ -966,6 +966,12 @@ void UGridInventoryWidget::CloseItemActionMenu (FName Reason)
     {
         ClearCurrentItemActionMenuWidget (this);
     }
+}
+
+bool UGridInventoryWidget::IsItemActionMenuOpen () const
+{
+    const UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget (this);
+    return CurrentItemActionMenu && !IsItemActionMenuDetached (CurrentItemActionMenu);
 }
 
 void UGridInventoryWidget::CloseItemReadPanel (FName Reason)

@@ -131,6 +131,18 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
 
     Resolution.bHasCursorItem = Resolution.PartyPawn &&
         Resolution.PartyPawn->GetCursorItem (Resolution.CursorItem);
+
+    const UGridInventoryWidget* InventoryWidget = Resolution.PartyPawn
+        ? Resolution.PartyPawn->GetInventoryWidget ()
+        : nullptr;
+    Resolution.bItemActionMenuOpen = InventoryWidget && InventoryWidget->IsItemActionMenuOpen ();
+    if (bInventoryUiOpen && !Resolution.bHasCursorItem && Resolution.bItemActionMenuOpen)
+    {
+        Resolution.Intent = EGridMouseInteractionIntent::IgnoreModalUi;
+        Resolution.DiagnosticReason = TEXT ("ItemActionMenuOpen");
+        return Resolution;
+    }
+
     if (bInventoryUiOpen && !Resolution.bHasCursorItem)
     {
         Resolution.Intent = EGridMouseInteractionIntent::IgnoreInventoryUiWithoutCursorItem;
@@ -244,6 +256,17 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         {
             UE_LOG (LogTemp, Log,
                 TEXT ("GridMouse Click Priority=ReadableMessage Result=Dismissed"));
+        }
+        return;
+    }
+
+    if (MouseResolution.Intent == EGridMouseInteractionIntent::IgnoreModalUi)
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridMouse Click Priority=ModalUI Result=Ignored Reason=ItemActionMenuOpen"));
+        if (bDebugMouseInteraction)
+        {
+            UE_LOG (LogTemp, Verbose, TEXT ("Mouse interaction ignored: item action menu open."));
         }
         return;
     }

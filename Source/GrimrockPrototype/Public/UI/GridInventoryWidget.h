@@ -253,6 +253,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Context Actions")
     void CloseItemActionMenu (FName Reason);
 
+    bool IsItemActionMenuOpen () const;
+
     UFUNCTION (BlueprintImplementableEvent, Category = "Inventory|Context Actions")
     void OnItemActionMenuCloseRequested (FName Reason);
 

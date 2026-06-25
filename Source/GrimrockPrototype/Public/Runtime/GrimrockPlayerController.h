@@ -59,6 +59,7 @@ protected:
     {
         DismissReadableMessage,
         IgnoreInventoryUiWithoutCursorItem,
+        IgnoreModalUi,
         CursorItemNoWorldHit,
         CursorItemWallLock,
         CursorItemReceptacle,
@@ -77,6 +78,7 @@ protected:
         FName DiagnosticReason = NAME_None;
         AGrimrockPartyPawn* PartyPawn = nullptr;
         bool bHasCursorItem = false;
+        bool bItemActionMenuOpen = false;
         FGridItemInstance CursorItem;
         FHitResult HitResult;
         bool bHasWorldHit = false;
