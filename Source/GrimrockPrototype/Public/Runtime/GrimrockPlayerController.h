@@ -3,11 +3,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "Runtime/GridInteractableInterface.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPlayerController.generated.h"
 
 class UPrimitiveComponent;
 class UUserWidget;
 class AGridReceptacleActor;
+class AGridWallLockActor;
 class AGrimrockPartyPawn;
 
 UCLASS ()
@@ -53,10 +55,47 @@ protected:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
     EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
 
+    enum class EGridMouseInteractionIntent : uint8
+    {
+        DismissReadableMessage,
+        IgnoreInventoryUiWithoutCursorItem,
+        CursorItemNoWorldHit,
+        CursorItemWallLock,
+        CursorItemReceptacle,
+        CursorItemWorldDrop,
+        CursorItemThrow,
+        WorldInteractable,
+        WorldInteractableOutOfRange,
+        WorldInteractableInvalidPawnOrComponent,
+        WorldInteractableCanInteractRejected,
+        FallbackNoInteractable
+    };
+
+    struct FGridMouseInteractionResolution
+    {
+        EGridMouseInteractionIntent Intent = EGridMouseInteractionIntent::FallbackNoInteractable;
+        FName DiagnosticReason = NAME_None;
+        AGrimrockPartyPawn* PartyPawn = nullptr;
+        bool bHasCursorItem = false;
+        FGridItemInstance CursorItem;
+        FHitResult HitResult;
+        bool bHasWorldHit = false;
+        bool bWithinInteractionDistance = false;
+        AActor* InteractableActor = nullptr;
+        UPrimitiveComponent* HitComponent = nullptr;
+        AGridReceptacleActor* ReceptacleActor = nullptr;
+        AGridWallLockActor* WallLockActor = nullptr;
+        bool bReceptacleAccessible = false;
+        int32 DropCellX = INDEX_NONE;
+        int32 DropCellY = INDEX_NONE;
+        FVector DropLocalOffset = FVector::ZeroVector;
+    };
+
     void HandleLeftMousePressed ();
     void UpdateHoveredInteractable ();
     void InitializeCustomCursor ();
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT ("Unspecified"));
+    FGridMouseInteractionResolution ResolveLeftMouseInteraction ();
     bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
     bool TryGetReceptacleUnderCursor (FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
     bool TryGetWorldHitUnderCursor (FHitResult& OutHitResult) const;
