@@ -52,6 +52,24 @@ namespace
         }
     }
 
+    const TCHAR* GetReceptacleRejectReasonName (EGridReceptacleRejectReason Reason)
+    {
+        switch (Reason)
+        {
+        case EGridReceptacleRejectReason::InvalidItem:
+            return TEXT ("InvalidItem");
+        case EGridReceptacleRejectReason::Full:
+            return TEXT ("Full");
+        case EGridReceptacleRejectReason::ExplicitlyRejected:
+            return TEXT ("ExplicitlyRejected");
+        case EGridReceptacleRejectReason::NoMatchingAcceptanceRule:
+            return TEXT ("NoMatchingAcceptanceRule");
+        case EGridReceptacleRejectReason::None:
+        default:
+            return TEXT ("Unknown");
+        }
+    }
+
 }
 
 AGrimrockPlayerController::AGrimrockPlayerController ()
@@ -167,23 +185,23 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
         AGridLevelRuntimeActor* RuntimeActor = Resolution.PartyPawn
             ? Resolution.PartyPawn->LevelRuntimeActor.Get ()
             : nullptr;
-        if (Resolution.ReceptacleActor && Resolution.bWithinInteractionDistance)
+        if (Resolution.ReceptacleActor)
         {
-            Resolution.bReceptacleAccessible = RuntimeActor && RuntimeActor->CanPartyInteractWithEdgeObject (
-                Resolution.ReceptacleActor->CellX,
-                Resolution.ReceptacleActor->CellY,
-                Resolution.ReceptacleActor->Edge,
-                Resolution.PartyPawn);
-            if (Resolution.bReceptacleAccessible)
+            if (Resolution.bWithinInteractionDistance)
             {
-                Resolution.Intent = Resolution.WallLockActor
-                    ? EGridMouseInteractionIntent::CursorItemWallLock
-                    : EGridMouseInteractionIntent::CursorItemReceptacle;
-                Resolution.DiagnosticReason = Resolution.WallLockActor
-                    ? TEXT ("WallLockCandidate")
-                    : TEXT ("ReceptacleCandidate");
-                return Resolution;
+                Resolution.bReceptacleAccessible = RuntimeActor && RuntimeActor->CanPartyInteractWithEdgeObject (
+                    Resolution.ReceptacleActor->CellX,
+                    Resolution.ReceptacleActor->CellY,
+                    Resolution.ReceptacleActor->Edge,
+                    Resolution.PartyPawn);
             }
+            Resolution.Intent = Resolution.WallLockActor
+                ? EGridMouseInteractionIntent::CursorItemWallLock
+                : EGridMouseInteractionIntent::CursorItemReceptacle;
+            Resolution.DiagnosticReason = Resolution.bReceptacleAccessible
+                ? (Resolution.WallLockActor ? TEXT ("WallLockCandidate") : TEXT ("ReceptacleCandidate"))
+                : (Resolution.bWithinInteractionDistance ? TEXT ("ReceptacleInaccessible") : TEXT ("ReceptacleOutOfRange"));
+            return Resolution;
         }
 
         if (Resolution.bWithinInteractionDistance &&
@@ -306,23 +324,28 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
         AGridWallLockActor* WallLockActor = MouseResolution.WallLockActor;
         AGridLevelRuntimeActor* RuntimeActor = PartyPawn ? PartyPawn->LevelRuntimeActor.Get () : nullptr;
 
-        if (ReceptacleActor && bWithinInteractionDistance)
+        if (ReceptacleActor)
         {
             UE_LOG (LogTemp, Log,
-                TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleCandidate Item=%s Target=%s HitActor=%s WithinDistance=%s"),
+                TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleCandidate Item=%s Target=%s HitActor=%s WithinDistance=%s Accessible=%s"),
                 *CursorItem.ItemDefinitionId.ToString (),
                 *GetNameSafe (ReceptacleActor),
                 *GetNameSafe (WorldHitResult.GetActor ()),
-                bWithinInteractionDistance ? TEXT ("true") : TEXT ("false"));
+                bWithinInteractionDistance ? TEXT ("true") : TEXT ("false"),
+                MouseResolution.bReceptacleAccessible ? TEXT ("true") : TEXT ("false"));
 
             if (MouseResolution.bReceptacleAccessible)
             {
                 if (MouseResolution.Intent == EGridMouseInteractionIntent::CursorItemWallLock)
                 {
+                    const bool bWasUnlocked = WallLockActor && WallLockActor->bIsUnlocked;
+                    const bool bAcceptedKey = WallLockActor && WallLockActor->CanAcceptKeyDefinition (CursorItem.ItemDefinitionId);
                     UE_LOG (LogTemp, Log,
-                        TEXT ("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Attempt"),
+                        TEXT ("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Attempt AcceptedKey=%s AlreadyUnlocked=%s"),
                         *CursorItem.ItemDefinitionId.ToString (),
-                        *GetNameSafe (WallLockActor));
+                        *GetNameSafe (WallLockActor),
+                        bAcceptedKey ? TEXT ("true") : TEXT ("false"),
+                        bWasUnlocked ? TEXT ("true") : TEXT ("false"));
                     UE_LOG (LogTemp, Log,
                         TEXT ("GridInventory WorldDrop RoutedToWallLock Item=%s Target=%s"),
                         *CursorItem.ItemDefinitionId.ToString (),
@@ -337,6 +360,32 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                     {
                         InventoryWidget->RefreshInventory ();
                     }
+                    const bool bNowUnlocked = WallLockActor && WallLockActor->bIsUnlocked;
+                    if (!bWasUnlocked && bNowUnlocked)
+                    {
+                        UE_LOG (LogTemp, Log,
+                            TEXT ("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Inserted"),
+                            *CursorItem.ItemDefinitionId.ToString (),
+                            *GetNameSafe (WallLockActor));
+                    }
+                    else
+                    {
+                        UGridItemDefinitionAsset* CursorItemDefinition = RuntimeActor
+                            ? RuntimeActor->ResolveRuntimeItemDefinition (CursorItem.ItemDefinitionId)
+                            : nullptr;
+                        const TCHAR* RejectReason = bWasUnlocked
+                            ? TEXT ("AlreadyUnlocked")
+                            : (bAcceptedKey
+                                ? TEXT ("InsertFailed")
+                                : (CursorItemDefinition && CursorItemDefinition->ItemType != EGridItemType::Key
+                                    ? TEXT ("NonKeyItem")
+                                    : TEXT ("IncompatibleKey")));
+                        UE_LOG (LogTemp, Log,
+                            TEXT ("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+                            *CursorItem.ItemDefinitionId.ToString (),
+                            *GetNameSafe (WallLockActor),
+                            RejectReason);
+                    }
                     SetGridInteractionCursor (EGridInteractionCursor::Default, TEXT ("ClickWallLockAttemptComplete"));
                     return;
                 }
@@ -349,10 +398,10 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                 if (!ReceptacleActor->EvaluateItemAcceptance (CursorItem, AcceptanceResult, true))
                 {
                     UE_LOG (LogTemp, Log,
-                        TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Rejected Reason=%d"),
+                        TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
                         *CursorItem.ItemDefinitionId.ToString (),
                         *GetNameSafe (ReceptacleActor),
-                        static_cast<int32> (AcceptanceResult.RejectReason));
+                        GetReceptacleRejectReasonName (AcceptanceResult.RejectReason));
                     ShowInteractionFeedback (
                         GetReceptacleRejectFeedbackText (AcceptanceResult.RejectReason));
                     SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem, TEXT ("ClickReceptacleRejected"));
@@ -365,10 +414,11 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
 
                 const bool bPlaced = ReceptacleActor->TryPlaceCursorItemFromHit (PartyPawn, WorldHitResult);
                 UE_LOG (LogTemp, Log,
-                    TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=%s"),
+                    TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=%s%s"),
                     *CursorItem.ItemDefinitionId.ToString (),
                     *GetNameSafe (ReceptacleActor),
-                    bPlaced ? TEXT ("Placed") : TEXT ("Failed"));
+                    bPlaced ? TEXT ("Placed") : TEXT ("Rejected"),
+                    bPlaced ? TEXT ("") : TEXT (" Reason=PlaceFailed"));
                 UE_LOG (LogTemp, Log, TEXT ("GridInventory WorldDrop Result=%s"),
                     bPlaced ? TEXT ("true") : TEXT ("false"));
 
@@ -388,10 +438,25 @@ void AGrimrockPlayerController::HandleLeftMousePressed ()
                 return;
             }
 
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Inaccessible"),
-                *CursorItem.ItemDefinitionId.ToString (),
-                *GetNameSafe (ReceptacleActor));
+            if (WallLockActor)
+            {
+                UE_LOG (LogTemp, Log,
+                    TEXT ("GridMouse Click Priority=CursorItem Branch=WallLockAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+                    *CursorItem.ItemDefinitionId.ToString (),
+                    *GetNameSafe (WallLockActor),
+                    bWithinInteractionDistance ? TEXT ("EdgeInaccessible") : TEXT ("OutOfRange"));
+            }
+            else
+            {
+                UE_LOG (LogTemp, Log,
+                    TEXT ("GridMouse Click Priority=CursorItem Branch=ReceptacleAttempt Item=%s Target=%s Result=Rejected Reason=%s"),
+                    *CursorItem.ItemDefinitionId.ToString (),
+                    *GetNameSafe (ReceptacleActor),
+                    bWithinInteractionDistance ? TEXT ("EdgeInaccessible") : TEXT ("OutOfRange"));
+            }
+            ShowInteractionFeedback (FText::FromString (TEXT ("Cible hors de port\u00E9e.")));
+            SetGridInteractionCursor (EGridInteractionCursor::CannotPlaceItem, TEXT ("ClickReceptacleInaccessible"));
+            return;
         }
 
         UE_LOG (LogTemp, Log,
@@ -646,12 +711,17 @@ bool AGrimrockPlayerController::ResolveCursorItemHoverCursor (
         return true;
 
     case EGridMouseInteractionIntent::CursorItemWallLock:
-        OutCursor = EGridInteractionCursor::PlaceItem;
-        OutReason = TEXT ("HoverCursorItemWallLock");
+        OutCursor = MouseResolution.bReceptacleAccessible
+            ? EGridInteractionCursor::PlaceItem
+            : EGridInteractionCursor::CannotPlaceItem;
+        OutReason = MouseResolution.bReceptacleAccessible
+            ? TEXT ("HoverCursorItemWallLock")
+            : TEXT ("HoverCursorItemWallLockInaccessible");
         return true;
 
     case EGridMouseInteractionIntent::CursorItemReceptacle:
-        if (MouseResolution.ReceptacleActor &&
+        if (MouseResolution.bReceptacleAccessible &&
+            MouseResolution.ReceptacleActor &&
             MouseResolution.ReceptacleActor->CanAcceptItemInstance (MouseResolution.CursorItem))
         {
             OutCursor = EGridInteractionCursor::PlaceItem;
