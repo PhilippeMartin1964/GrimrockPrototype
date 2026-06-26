@@ -30,7 +30,25 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup")
     void ClearPendingStartupMode();
 
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
+    bool HasDefaultPartySaveGame() const;
+
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
+    bool HasPartySaveGame(const FString& SlotName, int32 UserIndex) const;
+
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
+    FString GetDefaultPartySaveSlotName() const;
+
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
+    int32 GetDefaultPartySaveUserIndex() const;
+
 private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
     EGrimrockPartyStartupMode PendingStartupMode = EGrimrockPartyStartupMode::Continue;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true"))
+    FString DefaultPartySaveSlotName = TEXT("GrimrockParty");
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true", ClampMin = "0"))
+    int32 DefaultPartySaveUserIndex = 0;
 };
