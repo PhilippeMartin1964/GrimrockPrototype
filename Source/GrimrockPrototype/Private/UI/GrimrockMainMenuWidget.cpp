@@ -1,6 +1,8 @@
 #include "UI/GrimrockMainMenuWidget.h"
 
 #include "Components/Button.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UGrimrockMainMenuWidget::NativeConstruct()
 {
@@ -32,6 +34,33 @@ void UGrimrockMainMenuWidget::RefreshButtonStates()
     {
         Button_LoadGame->SetIsEnabled(bHasValidSaveGame);
     }
+}
+
+bool UGrimrockMainMenuWidget::OpenOptionsMenu()
+{
+    return OpenMainMenuModal(OptionsMenuWidgetClass, TEXT("NoOptionsMenuWidgetClass"));
+}
+
+bool UGrimrockMainMenuWidget::OpenCreditsMenu()
+{
+    return OpenMainMenuModal(CreditsMenuWidgetClass, TEXT("NoCreditsMenuWidgetClass"));
+}
+
+bool UGrimrockMainMenuWidget::OpenLicenseMenu()
+{
+    return OpenMainMenuModal(LicenseMenuWidgetClass, TEXT("NoLicenseMenuWidgetClass"));
+}
+
+void UGrimrockMainMenuWidget::QuitMainMenu()
+{
+    APlayerController* PlayerController = GetOwningPlayer();
+    if (!PlayerController && GetWorld())
+    {
+        PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("MainMenu Quit Requested Widget=%s"), *GetName());
+    UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
 }
 
 void UGrimrockMainMenuWidget::BindMainMenuButtons()
@@ -79,6 +108,40 @@ void UGrimrockMainMenuWidget::BindMainMenuButtons()
     }
 }
 
+bool UGrimrockMainMenuWidget::OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetClass, const TCHAR* MissingClassReason)
+{
+    if (!WidgetClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=%s"), *GetName(), MissingClassReason);
+        return false;
+    }
+
+    APlayerController* PlayerController = GetOwningPlayer();
+    if (!PlayerController && GetWorld())
+    {
+        PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    }
+
+    if (!PlayerController)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=NoPlayerController"), *GetName());
+        return false;
+    }
+
+    UUserWidget* ModalWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
+    if (!ModalWidget)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=CreateWidgetFailed Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
+        return false;
+    }
+
+    ModalWidget->AddToViewport(ModalZOrder);
+    ModalWidget->SetVisibility(ESlateVisibility::Visible);
+
+    UE_LOG(LogTemp, Log, TEXT("MainMenu Modal Opened Widget=%s Class=%s ZOrder=%d"), *GetName(), *GetNameSafe(WidgetClass), ModalZOrder);
+    return true;
+}
+
 void UGrimrockMainMenuWidget::HandleContinueClicked()
 {
     if (!bHasValidSaveGame)
@@ -106,20 +169,41 @@ void UGrimrockMainMenuWidget::HandleLoadGameClicked()
 
 void UGrimrockMainMenuWidget::HandleOptionsClicked()
 {
+    if (OpenOptionsMenu())
+    {
+        return;
+    }
+
     OnOptionsRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleCreditsClicked()
 {
+    if (OpenCreditsMenu())
+    {
+        return;
+    }
+
     OnCreditsRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleLicenseClicked()
 {
+    if (OpenLicenseMenu())
+    {
+        return;
+    }
+
     OnLicenseRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleQuitClicked()
 {
+    if (bQuitDirectlyFromMainMenu)
+    {
+        QuitMainMenu();
+        return;
+    }
+
     OnQuitRequested();
 }

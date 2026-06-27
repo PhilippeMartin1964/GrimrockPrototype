@@ -9,9 +9,9 @@ class UButton;
 /**
  * Main title-screen menu widget.
  *
- * MM1 scope: visual shell and safe button hooks only.
- * This widget does not load saves, create characters, or open the CC7 wizard directly.
- * Blueprint or later C++ flow code can react to the requested actions.
+ * The main menu stays a pure menu. It can open secondary modal widgets and
+ * request map transitions, but it does not load saves or create gameplay actors
+ * directly.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockMainMenuWidget : public UUserWidget
@@ -27,6 +27,18 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Main Menu")
     void RefreshButtonStates();
+
+    UFUNCTION(BlueprintCallable, Category = "Main Menu|Modal")
+    bool OpenOptionsMenu();
+
+    UFUNCTION(BlueprintCallable, Category = "Main Menu|Modal")
+    bool OpenCreditsMenu();
+
+    UFUNCTION(BlueprintCallable, Category = "Main Menu|Modal")
+    bool OpenLicenseMenu();
+
+    UFUNCTION(BlueprintCallable, Category = "Main Menu")
+    void QuitMainMenu();
 
 protected:
     virtual void NativeConstruct() override;
@@ -54,6 +66,7 @@ protected:
 
 private:
     void BindMainMenuButtons();
+    bool OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetClass, const TCHAR* MissingClassReason);
 
     UFUNCTION()
     void HandleContinueClicked();
@@ -78,6 +91,21 @@ private:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu", meta = (AllowPrivateAccess = "true"))
     bool bHasValidSaveGame = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true"))
+    TSubclassOf<UUserWidget> OptionsMenuWidgetClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true"))
+    TSubclassOf<UUserWidget> CreditsMenuWidgetClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true"))
+    TSubclassOf<UUserWidget> LicenseMenuWidgetClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true", ClampMin = "0"))
+    int32 ModalZOrder = 200;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu", meta = (AllowPrivateAccess = "true"))
+    bool bQuitDirectlyFromMainMenu = true;
 
     UPROPERTY(meta = (BindWidgetOptional))
     TObjectPtr<UButton> Button_Continue;
