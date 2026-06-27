@@ -2,9 +2,21 @@
 
 #include "Kismet/GameplayStatics.h"
 
+UGrimrockGameInstance::UGrimrockGameInstance()
+{
+    ConfiguredPartySaveSlotNames.Add(TEXT("GrimrockParty"));
+    ConfiguredPartySaveSlotNames.Add(TEXT("GrimrockParty_2"));
+    ConfiguredPartySaveSlotNames.Add(TEXT("GrimrockParty_3"));
+}
+
 void UGrimrockGameInstance::SetPendingStartupMode(EGrimrockPartyStartupMode NewMode)
 {
     PendingStartupMode = NewMode;
+
+    if (PendingStartupMode == EGrimrockPartyStartupMode::NewGame)
+    {
+        ResetPendingLoadSlot();
+    }
 
     UE_LOG(
         LogTemp,
@@ -59,4 +71,149 @@ FString UGrimrockGameInstance::GetDefaultPartySaveSlotName() const
 int32 UGrimrockGameInstance::GetDefaultPartySaveUserIndex() const
 {
     return DefaultPartySaveUserIndex;
+}
+
+TArray<FGrimrockSaveSlotInfo> UGrimrockGameInstance::GetPartySaveSlotInfos() const
+{
+    TArray<FGrimrockSaveSlotInfo> SlotInfos;
+    TSet<FString> AddedSlotNames;
+
+    auto AddSlotInfo = [this, &SlotInfos, &AddedSlotNames](const FString& SlotName, int32 UserIndex, bool bIsDefaultSlot)
+    {
+        if (SlotName.IsEmpty() || AddedSlotNames.Contains(SlotName))
+        {
+            return;
+        }
+
+        AddedSlotNames.Add(SlotName);
+        SlotInfos.Add(MakeSaveSlotInfo(SlotName, UserIndex, bIsDefaultSlot, SlotInfos.Num() + 1));
+    };
+
+    AddSlotInfo(DefaultPartySaveSlotName, DefaultPartySaveUserIndex, true);
+
+    for (const FString& SlotName : ConfiguredPartySaveSlotNames)
+    {
+        AddSlotInfo(SlotName, DefaultPartySaveUserIndex, SlotName == DefaultPartySaveSlotName);
+    }
+
+    return SlotInfos;
+}
+
+TArray<FGrimrockSaveSlotInfo> UGrimrockGameInstance::GetExistingPartySaveSlotInfos() const
+{
+    TArray<FGrimrockSaveSlotInfo> ExistingSlots;
+
+    for (const FGrimrockSaveSlotInfo& SlotInfo : GetPartySaveSlotInfos())
+    {
+        if (SlotInfo.bExists)
+        {
+            ExistingSlots.Add(SlotInfo);
+        }
+    }
+
+    return ExistingSlots;
+}
+
+bool UGrimrockGameInstance::RequestContinueDefaultPartySaveSlot()
+{
+    return RequestLoadPartySaveSlot(DefaultPartySaveSlotName, DefaultPartySaveUserIndex);
+}
+
+bool UGrimrockGameInstance::RequestLoadPartySaveSlot(const FString& SlotName, int32 UserIndex)
+{
+    if (!HasPartySaveGame(SlotName, UserIndex))
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("GrimrockGameInstance LoadSlot Request Failed Slot=%s UserIndex=%d Reason=SaveMissing"),
+            *SlotName,
+            UserIndex);
+        return false;
+    }
+
+    SetPendingLoadSlot(SlotName, UserIndex);
+    SetPendingStartupMode(EGrimrockPartyStartupMode::Continue);
+
+    UE_LOG(
+        LogTemp,
+        Log,
+        TEXT("GrimrockGameInstance LoadSlot Requested Slot=%s UserIndex=%d"),
+        *SlotName,
+        UserIndex);
+
+    return true;
+}
+
+void UGrimrockGameInstance::SetPendingLoadSlot(const FString& SlotName, int32 UserIndex)
+{
+    PendingLoadSlotName = SlotName;
+    PendingLoadSlotUserIndex = UserIndex;
+    bHasPendingLoadSlot = !PendingLoadSlotName.IsEmpty();
+
+    UE_LOG(
+        LogTemp,
+        Log,
+        TEXT("GrimrockGameInstance PendingLoadSlot Set Slot=%s UserIndex=%d"),
+        *PendingLoadSlotName,
+        PendingLoadSlotUserIndex);
+}
+
+bool UGrimrockGameInstance::HasPendingLoadSlot() const
+{
+    return bHasPendingLoadSlot;
+}
+
+bool UGrimrockGameInstance::ConsumePendingLoadSlot(FString& OutSlotName, int32& OutUserIndex)
+{
+    if (!bHasPendingLoadSlot)
+    {
+        OutSlotName.Empty();
+        OutUserIndex = DefaultPartySaveUserIndex;
+        return false;
+    }
+
+    OutSlotName = PendingLoadSlotName;
+    OutUserIndex = PendingLoadSlotUserIndex;
+    ResetPendingLoadSlot();
+
+    UE_LOG(
+        LogTemp,
+        Log,
+        TEXT("GrimrockGameInstance PendingLoadSlot Consumed Slot=%s UserIndex=%d"),
+        *OutSlotName,
+        OutUserIndex);
+
+    return true;
+}
+
+void UGrimrockGameInstance::ClearPendingLoadSlot()
+{
+    ResetPendingLoadSlot();
+
+    UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingLoadSlot Cleared"));
+}
+
+FGrimrockSaveSlotInfo UGrimrockGameInstance::MakeSaveSlotInfo(
+    const FString& SlotName,
+    int32 UserIndex,
+    bool bIsDefaultSlot,
+    int32 DisplayIndex) const
+{
+    FGrimrockSaveSlotInfo SlotInfo;
+    SlotInfo.SlotName = SlotName;
+    SlotInfo.UserIndex = UserIndex;
+    SlotInfo.bExists = HasPartySaveGame(SlotName, UserIndex);
+    SlotInfo.bIsDefaultSlot = bIsDefaultSlot;
+    SlotInfo.DisplayName = bIsDefaultSlot
+        ? FText::FromString(TEXT("Sauvegarde principale"))
+        : FText::FromString(FString::Printf(TEXT("Sauvegarde %d"), DisplayIndex));
+    return SlotInfo;
+}
+
+void UGrimrockGameInstance::ResetPendingLoadSlot()
+{
+    bHasPendingLoadSlot = false;
+    PendingLoadSlotName.Empty();
+    PendingLoadSlotUserIndex = DefaultPartySaveUserIndex;
 }

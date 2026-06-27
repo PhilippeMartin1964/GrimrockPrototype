@@ -39,10 +39,28 @@ void UGrimrockStartupModeComponent::BeginPlay()
 
     PartyPawn->PartyStartupMode = GrimrockGameInstance->ConsumePendingStartupMode();
 
+    FString PendingLoadSlotName;
+    int32 PendingLoadSlotUserIndex = 0;
+    if (GrimrockGameInstance->ConsumePendingLoadSlot(PendingLoadSlotName, PendingLoadSlotUserIndex))
+    {
+        PartyPawn->PartySaveSlotName = PendingLoadSlotName;
+        PartyPawn->PartySaveUserIndex = PendingLoadSlotUserIndex;
+
+        UE_LOG(
+            LogTemp,
+            Log,
+            TEXT("GrimrockStartupMode AppliedSaveSlot Pawn=%s Slot=%s UserIndex=%d"),
+            *GetNameSafe(PartyPawn),
+            *PartyPawn->PartySaveSlotName,
+            PartyPawn->PartySaveUserIndex);
+    }
+
     UE_LOG(
         LogTemp,
         Log,
-        TEXT("GrimrockStartupMode Applied Pawn=%s Mode=%d"),
+        TEXT("GrimrockStartupMode Applied Pawn=%s Mode=%d Slot=%s UserIndex=%d"),
         *GetNameSafe(PartyPawn),
-        static_cast<int32>(PartyPawn->PartyStartupMode));
+        static_cast<int32>(PartyPawn->PartyStartupMode),
+        *PartyPawn->PartySaveSlotName,
+        PartyPawn->PartySaveUserIndex);
 }
