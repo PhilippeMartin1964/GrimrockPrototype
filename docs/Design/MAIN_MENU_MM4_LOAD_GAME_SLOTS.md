@@ -46,7 +46,7 @@ Elle permet a un widget de liste de sauvegardes d'afficher les slots configurabl
 
 ### 2.2 UGrimrockGameInstance
 
-Nouvelles fonctions Blueprint :
+Fonctions Blueprint :
 
 ```text
 GetPartySaveSlotInfos()
@@ -75,7 +75,7 @@ PendingStartupMode = Continue
 
 ### 2.3 GrimrockStartupModeComponent
 
-Le composant consomme maintenant deux choses au lancement du pawn :
+Le composant consomme maintenant :
 
 ```text
 PendingStartupMode
@@ -91,6 +91,31 @@ PartySaveUserIndex
 ```
 
 Cela garantit que `AGrimrockPartyPawn::BeginPlay()` charge le bon slot.
+
+### 2.4 Widgets C++ MM4.1
+
+Deux classes C++ servent de parents aux Blueprints UMG :
+
+```text
+Source/GrimrockPrototype/Public/UI/GrimrockLoadGameMenuWidget.h
+Source/GrimrockPrototype/Private/UI/GrimrockLoadGameMenuWidget.cpp
+Source/GrimrockPrototype/Public/UI/GrimrockLoadGameSlotWidget.h
+Source/GrimrockPrototype/Private/UI/GrimrockLoadGameSlotWidget.cpp
+```
+
+`UGrimrockLoadGameMenuWidget` :
+
+- recupere `GetExistingPartySaveSlotInfos()` ;
+- cree une ligne par slot existant ;
+- appelle `RequestLoadPartySaveSlot(SlotName, UserIndex)` au clic ;
+- ouvre `L_GrimrockEditor` si la requete reussit ;
+- gere `Button_Back` par `RemoveFromParent`.
+
+`UGrimrockLoadGameSlotWidget` :
+
+- affiche `DisplayName`, `SlotName` et l'etat du slot ;
+- desactive le bouton si le slot n'existe pas ;
+- emet `OnSaveSlotSelected(SlotName, UserIndex)` au clic.
 
 ---
 
@@ -139,8 +164,6 @@ Event OnContinueRequested
 
 ### 3.3 OnLoadGameRequested
 
-Pour la premiere version MM4 :
-
 ```text
 Event OnLoadGameRequested
 -> Create Widget WBP_LoadGameMenu
@@ -151,7 +174,37 @@ Ne pas ouvrir `L_GrimrockEditor` directement depuis le bouton `Charger partie`. 
 
 ---
 
-## 4. Blueprint WBP_LoadGameMenu
+## 4. Creer WBP_LoadGameMenu
+
+### 4.1 Creer la ligne de slot
+
+Creer :
+
+```text
+Content/GrimrockPrototype/UI/WBP_LoadGameSlotRow
+```
+
+Parent class :
+
+```text
+GrimrockLoadGameSlotWidget
+```
+
+Hierarchy minimale :
+
+```text
+Button_LoadSlot
+-> HorizontalBox
+   -> Text_DisplayName
+   -> Text_SlotName
+   -> Text_Status
+```
+
+Les noms doivent correspondre exactement aux variables `BindWidgetOptional`.
+
+Aucun Graph n'est requis dans `WBP_LoadGameSlotRow` pour la version MM4.1.
+
+### 4.2 Creer le menu de chargement
 
 Creer :
 
@@ -159,50 +212,50 @@ Creer :
 Content/GrimrockPrototype/UI/WBP_LoadGameMenu
 ```
 
-Parent conseille :
+Parent class :
 
 ```text
-UserWidget
+GrimrockLoadGameMenuWidget
 ```
 
-Contenu minimal :
+Hierarchy minimale :
+
+```text
+Root Canvas ou Border
+-> VerticalBox
+   -> Text_Title
+   -> Text_EmptyState
+   -> ScrollBox
+      -> VerticalBox_SaveSlots
+   -> Button_Back
+```
+
+Noms obligatoires :
 
 ```text
 VerticalBox_SaveSlots
 Button_Back
+Text_EmptyState
 ```
 
-Au `Event Construct` :
+Dans les defaults de `WBP_LoadGameMenu` :
 
 ```text
-Get Game Instance
--> Cast To BP_GrimrockGameInstance
--> GetExistingPartySaveSlotInfos
--> ForEachLoop
--> creer une ligne de slot
+Save Slot Entry Widget Class = WBP_LoadGameSlotRow
+Runtime Level Name           = L_GrimrockEditor
 ```
 
-Pour chaque ligne, afficher au minimum :
+Aucun Graph n'est requis pour remplir la liste ou charger le slot : le parent C++ le fait.
+
+### 4.3 Texte conseille
 
 ```text
-DisplayName
-SlotName
+Text_Title      = Charger partie
+Text_EmptyState = Aucune sauvegarde disponible.
+Button_Back     = Retour
 ```
 
-Au clic sur une ligne :
-
-```text
-RequestLoadPartySaveSlot(SlotName, UserIndex)
--> Branch
-    True  -> Open Level by Name: L_GrimrockEditor
-    False -> rafraichir la liste ou afficher une erreur
-```
-
-`Button_Back` :
-
-```text
-Remove From Parent
-```
+`Text_EmptyState` est automatiquement visible uniquement si aucun slot existant n'est trouve.
 
 ---
 
@@ -211,6 +264,7 @@ Remove From Parent
 Filtrer l'Output Log avec :
 
 ```text
+LoadGameMenu
 GrimrockGameInstance
 GrimrockStartupMode
 PartySave
@@ -232,6 +286,8 @@ PartySave Continued Slot=GrimrockParty CharacterCount=...
 Pour `Charger partie` avec le slot 2 :
 
 ```text
+LoadGameMenu Refreshed Widget=... ExistingSlots=...
+LoadGameMenu OpenRuntimeLevel Slot=GrimrockParty_2 UserIndex=0 Level=L_GrimrockEditor
 GrimrockGameInstance PendingLoadSlot Set Slot=GrimrockParty_2 UserIndex=0
 GrimrockGameInstance PendingStartupMode Set Mode=1
 GrimrockGameInstance LoadSlot Requested Slot=GrimrockParty_2 UserIndex=0
@@ -248,14 +304,15 @@ Conserver :
 ```text
 01_MM4_MainMenu_LoadGameButton.png
 02_MM4_LoadGameMenu_List.png
-03_MM4_LoadGameMenu_SelectedSlotGraph.png
-04_MM4_OutputLog_SelectedSlot.png
+03_MM4_WBP_LoadGameMenu_Hierarchy.png
+04_MM4_WBP_LoadGameSlotRow_Hierarchy.png
+05_MM4_OutputLog_SelectedSlot.png
 ```
 
 Capture optionnelle :
 
 ```text
-05_MM4_BP_GrimrockGameInstance_ConfiguredSlots.png
+06_MM4_BP_GrimrockGameInstance_ConfiguredSlots.png
 ```
 
 ---
@@ -264,7 +321,7 @@ Capture optionnelle :
 
 MM4 est valide lorsque :
 
-- `Charger partie` ouvre un widget de selection de sauvegarde ;
+- `Charger partie` ouvre `WBP_LoadGameMenu` ;
 - le widget liste les slots existants via `GetExistingPartySaveSlotInfos()` ;
 - cliquer un slot appelle `RequestLoadPartySaveSlot(SlotName, UserIndex)` ;
 - le niveau `L_GrimrockEditor` s'ouvre seulement si la requete retourne `true` ;
@@ -276,5 +333,5 @@ MM4 est valide lorsque :
 Statut :
 
 ```text
-MM4 valide apres branchement Blueprint et logs conformes.
+MM4 valide apres creation des deux Blueprints UMG et logs conformes.
 ```
