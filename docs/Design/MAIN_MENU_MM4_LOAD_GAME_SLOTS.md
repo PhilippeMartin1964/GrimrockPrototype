@@ -20,7 +20,7 @@ WBP_MainMenu
 -> AGrimrockPartyPawn charge la sauvegarde selectionnee
 ```
 
-Important : `WBP_LoadGameMenu` est un **modal plein ecran** ajoute par-dessus le menu principal. Si le widget n'a pas un fond plein ecran et un panneau centre, il apparaitra comme des textes flottants par-dessus `WBP_MainMenu`.
+Important : `WBP_LoadGameMenu` est un modal plein ecran ajoute par-dessus le menu principal. Si le widget n'a pas un fond plein ecran et un panneau centre, il apparaitra comme des textes flottants par-dessus `WBP_MainMenu`.
 
 ---
 
@@ -178,8 +178,6 @@ Reglage conseille sur `Add To Viewport` :
 ZOrder = 100
 ```
 
-Ce ZOrder garantit que le modal est au-dessus du menu principal.
-
 ---
 
 ## 4. Creer WBP_LoadGameSlotRow
@@ -196,18 +194,19 @@ Parent class :
 GrimrockLoadGameSlotWidget
 ```
 
-Hierarchy recommandee :
+### 4.1 Hierarchy exacte recommandee
 
 ```text
 WBP_LoadGameSlotRow
--> Button_LoadSlot
-   -> Border_RowBackground
-      -> HorizontalBox_RowContent
-         -> VerticalBox_Texts
-            -> Text_DisplayName
-            -> Text_SlotName
-         -> Spacer_RowFill
-         -> Text_Status
+-> SizeBox_Row
+   -> Button_LoadSlot
+      -> Border_RowBackground
+         -> HorizontalBox_RowContent
+            -> VerticalBox_Texts
+               -> Text_DisplayName
+               -> Text_SlotName
+            -> Spacer_RowFill
+            -> Text_Status
 ```
 
 Noms obligatoires lus par le C++ :
@@ -219,27 +218,108 @@ Text_SlotName
 Text_Status
 ```
 
+Tous les quatre doivent avoir :
+
+```text
+Is Variable = true
+```
+
+`SizeBox_Row`, `Border_RowBackground`, `HorizontalBox_RowContent`, `VerticalBox_Texts` et `Spacer_RowFill` sont recommandes, mais leurs noms ne sont pas lus par le C++.
+
+### 4.2 Reglages visuels obligatoires de la ligne
+
+Le gros carre blanc sans nom signifie que `WBP_LoadGameSlotRow` est bien cree, mais que son contenu n'est pas visible.
+
+Causes les plus probables :
+
+- `Text_DisplayName`, `Text_SlotName` ou `Text_Status` ne portent pas exactement ces noms ;
+- les widgets texte ne sont pas coches `Is Variable` ;
+- les textes sont blancs sur un fond blanc ;
+- les textes ne sont pas dans le contenu du `Button_LoadSlot` ;
+- `Save Slot Entry Widget Class` pointe vers un autre widget que `WBP_LoadGameSlotRow`.
+
 Reglages conseilles :
 
 ```text
+SizeBox_Row
+- Height Override = 72
+- Width Override  = non renseigne
+
 Button_LoadSlot
 - Is Variable = true
-- Size X = Fill parent
-- Height Override = 64 a 80
+- Horizontal Alignment = Fill
+- Vertical Alignment   = Fill
 
 Border_RowBackground
-- Padding = 12 / 8 / 12 / 8
+- Brush Color = gris tres fonce / charbon
+- Alpha = 0.90 a 1.00
+- Padding = 14 / 8 / 14 / 8
+
+HorizontalBox_RowContent
+- Horizontal Alignment = Fill
+- Vertical Alignment   = Center
+
+VerticalBox_Texts
+- Size = Fill
 
 Text_DisplayName
-- Font Size = 22 a 28
+- Is Variable = true
+- Text = Sauvegarde TEST
+- Color = blanc
+- Font Size = 24
 
 Text_SlotName
-- Font Size = 14 a 18
+- Is Variable = true
+- Text = Slot TEST
 - Color = gris clair
+- Font Size = 15
 
 Text_Status
-- Font Size = 16 a 18
+- Is Variable = true
+- Text = Disponible
+- Color = blanc ou vert pale
+- Font Size = 16
 - Justification = Right
+```
+
+Apres compilation, les textes de test doivent etre visibles dans le Designer. En PIE, le C++ les remplacera par :
+
+```text
+Text_DisplayName = Sauvegarde principale / Sauvegarde 2 / Sauvegarde 3
+Text_SlotName    = GrimrockParty / GrimrockParty_2 / GrimrockParty_3
+Text_Status      = Disponible
+```
+
+### 4.3 Test rapide si la ligne reste blanche
+
+Dans `WBP_LoadGameSlotRow`, mettez temporairement :
+
+```text
+Text_DisplayName = TEST DISPLAY
+Text_SlotName    = TEST SLOT
+Text_Status      = TEST STATUS
+```
+
+Puis choisissez une couleur visible :
+
+```text
+Text color = rouge ou noir
+```
+
+Si le texte de test n'apparait pas, le probleme est dans la hierarchy ou le style du widget.
+
+Si le texte de test apparait dans le Designer mais pas en PIE, verifier les noms exacts et le parent class.
+
+Checklist de correction :
+
+```text
+WBP_LoadGameSlotRow Parent Class = GrimrockLoadGameSlotWidget
+Button_LoadSlot existe et Is Variable = true
+Text_DisplayName existe et Is Variable = true
+Text_SlotName existe et Is Variable = true
+Text_Status existe et Is Variable = true
+Les TextBlock sont enfants du contenu de Button_LoadSlot
+WBP_LoadGameMenu / Class Defaults / Save Slot Entry Widget Class = WBP_LoadGameSlotRow
 ```
 
 Aucun Graph n'est requis dans `WBP_LoadGameSlotRow` pour la version MM4.1.
@@ -299,8 +379,6 @@ Text_ErrorMessage
 
 ### 5.2 Reglages CanvasPanel_Root
 
-`CanvasPanel_Root` doit remplir tout l'ecran.
-
 Dans le slot Canvas de `Border_ModalDim` :
 
 ```text
@@ -314,32 +392,13 @@ Alignment     = 0,0
 
 ### 5.3 Reglages Border_ModalDim
 
-`Border_ModalDim` sert a masquer le menu principal qui reste derriere.
-
-Reglages conseilles :
-
 ```text
 Brush Color = noir ou gris tres fonce
 Alpha       = 0.70 a 0.85
 Padding     = 0
 ```
 
-Puis placer `SizeBox_Dialog` comme enfant direct de `Border_ModalDim`.
-
 ### 5.4 Reglages SizeBox_Dialog
-
-`SizeBox_Dialog` doit etre centre et donner une taille stable au panneau.
-
-Si `SizeBox_Dialog` est dans un CanvasPanel, regler :
-
-```text
-Anchors   = Center
-Alignment = 0.5, 0.5
-Position  = 0, 0
-Size      = 720 x 520
-```
-
-Si `SizeBox_Dialog` est directement dans `Border_ModalDim`, envelopper d'abord dans un `Overlay` ou utiliser l'alignement du slot :
 
 ```text
 Horizontal Alignment = Center
@@ -357,16 +416,6 @@ Padding     = 32
 ```
 
 ### 5.6 Reglages VerticalBox_Dialog
-
-```text
-Text_Title
-Text_Subtitle
-Text_ErrorMessage
-Border_ListFrame
-HorizontalBox_Footer
-```
-
-Reglages conseilles :
 
 ```text
 Text_Title
@@ -430,8 +479,6 @@ Le parent C++ remplit la liste et gere le bouton `Retour`. Le Graph Blueprint se
 
 ### 6.1 Event Construct
 
-Option simple :
-
 ```text
 Event Construct
 -> Set Visibility
@@ -440,16 +487,6 @@ Event Construct
 ```
 
 ### 6.2 Event OnLoadSlotRequestFailed
-
-Creer l'evenement :
-
-```text
-Right Click dans le Graph
--> rechercher OnLoadSlotRequestFailed
--> Add Event
-```
-
-Graph recommande :
 
 ```text
 Event OnLoadSlotRequestFailed
@@ -464,13 +501,7 @@ Event OnLoadSlotRequestFailed
    In Visibility = Visible
 ```
 
-Point important : pour creer `Set Text`, tirer le fil depuis la variable `Text_ErrorMessage`. Le `Target` du noeud doit etre :
-
-```text
-Text_ErrorMessage
-```
-
-Il ne doit pas etre `self`.
+Point important : pour creer `Set Text`, tirer le fil depuis la variable `Text_ErrorMessage`. Le `Target` du noeud doit etre `Text_ErrorMessage`, pas `self`.
 
 ---
 
@@ -490,15 +521,11 @@ Correction : appliquer la hierarchy et les reglages de la section 5.
 
 ---
 
-## 8. Pourquoi aucune sauvegarde n'est indiquee ?
+## 8. Pourquoi une seule sauvegarde est affichee ?
 
-`WBP_LoadGameMenu` utilise :
+C'est normal si un seul slot existe vraiment sur disque.
 
-```text
-GetExistingPartySaveSlotInfos()
-```
-
-Cette fonction retourne uniquement les slots qui existent vraiment sur disque, parmi :
+`GetExistingPartySaveSlotInfos()` ne retourne que les slots existants parmi :
 
 ```text
 GrimrockParty
@@ -506,7 +533,13 @@ GrimrockParty_2
 GrimrockParty_3
 ```
 
-Donc `Aucune sauvegarde disponible` est normal si :
+Donc si seule la sauvegarde principale a ete creee, `WBP_LoadGameMenu` affiche une seule ligne.
+
+---
+
+## 9. Pourquoi aucune sauvegarde n'est indiquee ?
+
+`Aucune sauvegarde disponible` est normal si :
 
 - aucune creation de personnage n'a encore ete finalisee ;
 - `SaveCurrentGame` n'a jamais reussi ;
@@ -535,7 +568,7 @@ LoadGameMenu Refresh Failed Widget=... Reason=NoSaveSlotEntryWidgetClass
 
 ---
 
-## 9. Logs de validation
+## 10. Logs de validation
 
 Filtrer l'Output Log avec :
 
@@ -546,16 +579,15 @@ GrimrockStartupMode
 PartySave
 ```
 
-Pour `Continuer` :
+Pour `Charger partie` avec le slot principal :
 
 ```text
+LoadGameMenu Refreshed Widget=... ExistingSlots=1
+LoadGameMenu OpenRuntimeLevel Slot=GrimrockParty UserIndex=0 Level=L_GrimrockEditor
 GrimrockGameInstance PendingLoadSlot Set Slot=GrimrockParty UserIndex=0
 GrimrockGameInstance PendingStartupMode Set Mode=1
 GrimrockGameInstance LoadSlot Requested Slot=GrimrockParty UserIndex=0
-GrimrockGameInstance PendingStartupMode Consumed Mode=1 NextMode=1
-GrimrockGameInstance PendingLoadSlot Consumed Slot=GrimrockParty UserIndex=0
 GrimrockStartupMode AppliedSaveSlot Pawn=... Slot=GrimrockParty UserIndex=0
-GrimrockStartupMode Applied Pawn=... Mode=1 Slot=GrimrockParty UserIndex=0
 PartySave Continued Slot=GrimrockParty CharacterCount=...
 ```
 
@@ -573,7 +605,7 @@ PartySave Continued Slot=GrimrockParty_2 CharacterCount=...
 
 ---
 
-## 10. Captures de validation MM4
+## 11. Captures de validation MM4
 
 Conserver :
 
@@ -593,12 +625,13 @@ Capture optionnelle :
 
 ---
 
-## 11. Critere final MM4
+## 12. Critere final MM4
 
 MM4 est valide lorsque :
 
 - `Charger partie` ouvre `WBP_LoadGameMenu` ;
 - `WBP_LoadGameMenu` affiche un modal plein ecran propre, sans superposition brouillonne ;
+- chaque ligne de sauvegarde affiche au moins `DisplayName`, `SlotName` et `Disponible` ;
 - le widget liste les slots existants via `GetExistingPartySaveSlotInfos()` ;
 - cliquer un slot appelle `RequestLoadPartySaveSlot(SlotName, UserIndex)` ;
 - le niveau `L_GrimrockEditor` s'ouvre seulement si la requete retourne `true` ;
