@@ -1,34 +1,34 @@
-# CC7.1 - Shell du vrai wizard de creation de personnage
+# CC7.1 - Shell du vrai wizard de création de personnage
 
 ## 1. Objet
 
-CC7.1 introduit le parent C++ du futur wizard de creation de personnage.
+CC7.1 introduit le parent C++ du futur wizard de création de personnage.
 
-Objectif : remplacer progressivement l'ecran monobloc `WBP_CharacterCreation` par un flux lisible en cinq etapes, sans reimplementer les regles RPG deja validees.
+Objectif : remplacer progressivement l'écran monobloc `WBP_CharacterCreation` par un flux lisible en cinq étapes, sans réimplémenter les règles RPG déjà validées.
 
 ```text
 Race
 -> Classe
--> Caracteristiques
--> Identite
--> Resume
--> Creation du personnage
+-> Caractéristiques
+-> Identité
+-> Résumé
+-> Création du personnage
 ```
 
-Le shell ne change pas encore les regles de creation. Il encadre l'existant.
+Le shell ne change pas encore les règles de création. Il encadre l'existant.
 
 ---
 
 ## 2. Ajouts C++
 
-Fichiers ajoutes :
+Fichiers ajoutés :
 
 ```text
 Source/GrimrockPrototype/Public/UI/RPGCharacterCreationWizardWidget.h
 Source/GrimrockPrototype/Private/UI/RPGCharacterCreationWizardWidget.cpp
 ```
 
-Classe ajoutee :
+Classe ajoutée :
 
 ```text
 RPGCharacterCreationWizardWidget
@@ -40,7 +40,7 @@ Parent C++ :
 RPGCharacterCreationWidget
 ```
 
-Raison : le wizard reutilise directement :
+Raison : le wizard réutilise directement :
 
 ```text
 InitializeCharacterCreationWidget
@@ -54,7 +54,7 @@ Ainsi, le `AGrimrockPartyPawn::CharacterCreationWidgetClass` peut pointer vers u
 
 ---
 
-## 3. Etapes disponibles
+## 3. Étapes disponibles
 
 Enum Blueprint :
 
@@ -62,7 +62,7 @@ Enum Blueprint :
 ERPGCharacterCreationWizardStep
 ```
 
-Valeurs :
+Valeurs techniques :
 
 ```text
 Race
@@ -72,15 +72,15 @@ Identity
 Summary
 ```
 
-Affichage conseille :
+Affichage conseillé :
 
-| Etape | Role |
+| Étape | Rôle |
 |---|---|
 | Race | Choisir la race et afficher sa description |
-| Class | Choisir la classe et afficher son role |
-| Attributes | Voir les 6 caracteristiques, PV, mana, charge |
-| Identity | Saisir le nom, genre et portrait |
-| Summary | Verifier le recapitulatif avant validation |
+| Classe | Choisir la classe et afficher son rôle |
+| Caractéristiques | Voir les 6 caractéristiques, PV, mana et charge |
+| Identité | Saisir le nom, le genre et le portrait |
+| Résumé | Vérifier le récapitulatif avant validation |
 
 ---
 
@@ -95,7 +95,7 @@ GoToPreviousWizardStep
 CancelWizard
 ```
 
-Lecture d'etat :
+Lecture d'état :
 
 ```text
 CanGoToNextWizardStep
@@ -107,7 +107,7 @@ GetWizardStepCount
 GetCurrentWizardStepTitle
 ```
 
-Evenement Blueprint optionnel :
+Événement Blueprint optionnel :
 
 ```text
 OnWizardStepChanged
@@ -120,13 +120,13 @@ Button_CreateCharacter
 -> SubmitCharacterCreation
 ```
 
-Ce bind est deja fait par le parent `RPGCharacterCreationWidget`.
+Ce bind est déjà fait par le parent `RPGCharacterCreationWidget`.
 
 ---
 
-## 5. Creer le Blueprint WBP_CharacterCreationWizard
+## 5. Créer le Blueprint WBP_CharacterCreationWizard
 
-Creer :
+Créer :
 
 ```text
 Content/GrimrockPrototype/Blueprints/UI/CharacterCreation/WBP_CharacterCreationWizard
@@ -138,17 +138,17 @@ Parent Class :
 RPGCharacterCreationWizardWidget
 ```
 
-Dans `BP_GrimrockPartyPawn` ou le pawn runtime utilise :
+Dans `BP_GrimrockPartyPawn`, ou dans le pawn runtime utilisé :
 
 ```text
 Character Creation Widget Class = WBP_CharacterCreationWizard
 ```
 
-L'ancien `WBP_CharacterCreation` peut rester disponible comme secours tant que CC7 n'est pas entierement valide.
+L'ancien `WBP_CharacterCreation` peut rester disponible comme secours tant que CC7 n'est pas entièrement validé.
 
 ---
 
-## 6. Hierarchie UMG recommandee
+## 6. Hiérarchie UMG recommandée
 
 Structure cible :
 
@@ -195,7 +195,7 @@ Button_Cancel
 Button_CreateCharacter
 ```
 
-Noms herites du parent existant et encore utiles :
+Noms hérités du parent existant et encore utiles :
 
 ```text
 EditableText_Name
@@ -223,26 +223,26 @@ Text_CarryWeightValue
 Text_ValidationMessage
 ```
 
-`EditableText_Name` et `Button_CreateCharacter` restent importants parce qu'ils sont utilises par la logique de creation deja existante.
+`EditableText_Name` et `Button_CreateCharacter` restent importants parce qu'ils sont utilisés par la logique de création déjà existante.
 
 ---
 
-## 7. Repartition conseillee des widgets existants
+## 7. Répartition conseillée des widgets existants
 
 ### Panel_StepRace
 
-Widgets a placer :
+Widgets à placer :
 
 ```text
 ComboBox_Race
 Text_RaceValue
 Text_RaceDescription
-Image_Portrait, optionnel si vous voulez deja voir le portrait race/genre
+Image_Portrait, optionnel si vous voulez déjà voir le portrait race/genre
 ```
 
 ### Panel_StepClass
 
-Widgets a placer :
+Widgets à placer :
 
 ```text
 ComboBox_Class
@@ -253,7 +253,7 @@ Text_ClassDescription
 
 ### Panel_StepAttributes
 
-Widgets a placer :
+Widgets à placer :
 
 ```text
 Text_StrengthValue
@@ -269,7 +269,7 @@ Text_CarryWeightValue
 
 ### Panel_StepIdentity
 
-Widgets a placer :
+Widgets à placer :
 
 ```text
 EditableText_Name
@@ -282,7 +282,7 @@ Text_PortraitDescription
 
 ### Panel_StepSummary
 
-Widgets a placer :
+Widgets à placer :
 
 ```text
 Text_RaceValue
@@ -300,11 +300,11 @@ Image_Portrait
 Image_ClassIcon
 ```
 
-Attention : dans UMG, un meme widget ne peut pas etre physiquement present dans deux panels a la fois. Pour le resume, utilisez soit des TextBlocks dedies remplis plus tard en CC7.2, soit gardez le resume tres simple pour CC7.1.
+Attention : dans UMG, un même widget ne peut pas être physiquement présent dans deux panels à la fois. Pour le résumé, utilisez soit des TextBlocks dédiés remplis plus tard en CC7.2, soit un résumé très simple pour CC7.1.
 
 ---
 
-## 8. Reglages Class Defaults du wizard
+## 8. Réglages Class Defaults du wizard
 
 Dans `WBP_CharacterCreationWizard` :
 
@@ -314,7 +314,7 @@ Allow Cancel = false
 Focus Name Input On Identity Step = true
 ```
 
-Pour un lancement via `Nouvelle partie`, `Allow Cancel` doit rester `false`. Le joueur ne doit pas fermer la creation et se promener sans personnage valide.
+Pour un lancement via `Nouvelle partie`, `Allow Cancel` doit rester `false`. Le joueur ne doit pas fermer la création et se promener sans personnage valide.
 
 ---
 
@@ -325,25 +325,25 @@ Au lancement d'une nouvelle partie :
 ```text
 1. Le wizard s'ouvre sur Race.
 2. Suivant avance vers Classe.
-3. Precedent revient a l'etape precedente.
+3. Précédent revient à l'étape précédente.
 4. Le compteur affiche 1 / 5, 2 / 5, etc.
-5. Button_CreateCharacter est visible seulement sur Resume.
-6. Button_Next est masque sur Resume.
-7. Button_Cancel est masque si Allow Cancel = false.
-8. La validation finale cree le personnage avec le code deja existant.
+5. Button_CreateCharacter est visible seulement sur Résumé.
+6. Button_Next est masqué sur Résumé.
+7. Button_Cancel est masqué si Allow Cancel = false.
+8. La validation finale crée le personnage avec le code déjà existant.
 ```
 
-Le shell ne doit pas encore gerer :
+Le shell ne doit pas encore gérer :
 
 ```text
 - budget de points ;
-- validation bloquante par etape ;
-- resume dedie complet ;
+- validation bloquante par étape ;
+- résumé dédié complet ;
 - choix multiples de portraits en grille ;
-- equipement de depart.
+- équipement de départ.
 ```
 
-Ces points appartiennent a CC7.2+.
+Ces points appartiennent à CC7.2+.
 
 ---
 
@@ -362,29 +362,29 @@ Logs attendus en navigation :
 ```text
 CharacterCreationWizard Refreshed Widget=... Step=0 StepName=Race
 CharacterCreationWizard Refreshed Widget=... Step=1 StepName=Classe
-CharacterCreationWizard Refreshed Widget=... Step=4 StepName=Resume
+CharacterCreationWizard Refreshed Widget=... Step=4 StepName=Résumé
 ```
 
 Le log est en `Verbose`. Si vous ne le voyez pas, c'est normal selon le niveau de log actif.
 
 ---
 
-## 11. Critere de validation CC7.1
+## 11. Critère de validation CC7.1
 
-CC7.1 est valide lorsque :
+CC7.1 est validé lorsque :
 
 ```text
 - le projet recompile ;
-- WBP_CharacterCreationWizard peut etre cree avec le parent RPGCharacterCreationWizardWidget ;
+- WBP_CharacterCreationWizard peut être créé avec le parent RPGCharacterCreationWizardWidget ;
 - CharacterCreationWidgetClass peut pointer vers WBP_CharacterCreationWizard ;
 - une nouvelle partie affiche le wizard ;
-- Precedent/Suivant naviguent entre les cinq etapes ;
-- le bouton final apparait uniquement au resume ;
-- valider cree encore le personnage et ferme le modal comme avant.
+- Précédent/Suivant naviguent entre les cinq étapes ;
+- le bouton final apparaît uniquement au résumé ;
+- valider crée encore le personnage et ferme le modal comme avant.
 ```
 
-Statut attendu apres validation UE5 :
+Statut attendu après validation UE5 :
 
 ```text
-CC7.1 valide - shell wizard fonctionnel, logique RPG inchangee.
+CC7.1 validé - shell wizard fonctionnel, logique RPG inchangée.
 ```

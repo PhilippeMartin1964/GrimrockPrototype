@@ -13,7 +13,7 @@ WBP_MainMenu
 -> RequestLoadPartySaveSlot(SlotName, UserIndex)
 -> Open Level L_GrimrockEditor
 -> GrimrockStartupModeComponent applique le slot au pawn
--> AGrimrockPartyPawn charge la sauvegarde selectionnee
+-> AGrimrockPartyPawn charge la sauvegarde sélectionnée
 ```
 
 Flux de sauvegarde multi-slot :
@@ -52,7 +52,7 @@ SavePartyGameCopyToSlot(PartyPawn, SlotName, UserIndex, OutError)
 
 ---
 
-## 3. Difference entre les fonctions
+## 3. Différence entre les fonctions
 
 ### 3.1 SetPartySaveSlot
 
@@ -66,11 +66,11 @@ SetPartySaveSlot
 
 Cela ne sauvegarde rien tout seul.
 
-Usage : preparer le pawn pour que les prochains appels a `SaveCurrentGame` utilisent un autre slot.
+Usage : préparer le pawn pour que les prochains appels à `SaveCurrentGame` utilisent un autre slot.
 
 ### 3.2 SavePartyGameToSlot
 
-Sauvegarde dans le slot donne et laisse ce slot actif.
+Sauvegarde dans le slot donné et laisse ce slot actif.
 
 ```text
 SavePartyGameToSlot(GrimrockParty_2, 0)
@@ -79,27 +79,27 @@ SavePartyGameToSlot(GrimrockParty_2, 0)
 -> les autosaves futures continueront dans GrimrockParty_2
 ```
 
-Usage conseille : changement durable de chapitre, zone, acte ou progression.
+Usage conseillé : changement durable de chapitre, zone, acte ou progression.
 
 Exemples :
 
 ```text
-Entree au niveau 2 -> SavePartyGameToSlot("GrimrockParty_2", 0)
-Entree au niveau 3 -> SavePartyGameToSlot("GrimrockParty_3", 0)
+Entrée au niveau 2 -> SavePartyGameToSlot("GrimrockParty_2", 0)
+Entrée au niveau 3 -> SavePartyGameToSlot("GrimrockParty_3", 0)
 ```
 
 ### 3.3 SavePartyGameCopyToSlot
 
-Sauvegarde une copie dans le slot donne, puis restaure le slot actif precedent.
+Sauvegarde une copie dans le slot donné, puis restaure le slot actif précédent.
 
 ```text
 slot actif courant = GrimrockParty
 SavePartyGameCopyToSlot(GrimrockParty_2, 0)
--> ecrit GrimrockParty_2
+-> écrit GrimrockParty_2
 -> restaure slot actif = GrimrockParty
 ```
 
-Usage conseille : checkpoint secondaire, sauvegarde de securite, snapshot avant boss, autosave de transition sans changer le slot principal.
+Usage conseillé : checkpoint secondaire, sauvegarde de sécurité, snapshot avant boss, autosave de transition sans changer le slot principal.
 
 ---
 
@@ -113,7 +113,7 @@ GrimrockParty_2
 GrimrockParty_3
 ```
 
-`WBP_LoadGameMenu` n'affiche que les slots existants. Donc un slot apparait seulement apres une sauvegarde reussie dans ce slot.
+`WBP_LoadGameMenu` n'affiche que les slots existants. Donc un slot apparaît seulement après une sauvegarde réussie dans ce slot.
 
 ---
 
@@ -131,7 +131,7 @@ Get Player Pawn
    OutError  = variable Text
 ```
 
-### 5.2 Exemple : passage au deuxieme niveau
+### 5.2 Exemple : passage au deuxième niveau
 
 ```text
 Trigger_Level2Reached
@@ -142,9 +142,9 @@ Trigger_Level2Reached
    UserIndex = 0
 ```
 
-Resultat : la partie est sauvegardee dans `GrimrockParty_2` et ce slot devient le slot actif pour les prochaines sauvegardes automatiques.
+Résultat : la partie est sauvegardée dans `GrimrockParty_2` et ce slot devient le slot actif pour les prochaines sauvegardes automatiques.
 
-### 5.3 Exemple : copie de securite avant un combat
+### 5.3 Exemple : copie de sécurité avant un combat
 
 ```text
 Trigger_BeforeBoss
@@ -155,7 +155,7 @@ Trigger_BeforeBoss
    UserIndex = 0
 ```
 
-Resultat : `GrimrockParty_3` est cree ou remplace, mais le slot actif courant reste inchange.
+Résultat : `GrimrockParty_3` est créé ou remplacé, mais le slot actif courant reste inchangé.
 
 ---
 
@@ -166,8 +166,8 @@ Resultat : `GrimrockParty_3` est cree ou remplace, mais le slot actif courant re
 1. Lancer PIE.
 2. Cliquer `Charger partie`.
 3. Cliquer la ligne `Sauvegarde principale / GrimrockParty / Disponible`.
-4. Verifier que `L_GrimrockEditor` s'ouvre.
-5. Verifier les logs.
+4. Vérifier que `L_GrimrockEditor` s'ouvre.
+5. Vérifier les logs.
 
 Logs attendus :
 
@@ -182,12 +182,12 @@ PartySave Continued Slot=GrimrockParty CharacterCount=...
 
 ### 6.2 Test multi-slot
 
-1. Dans le runtime, declencher une sauvegarde vers `GrimrockParty_2` avec `SavePartyGameToSlot` ou `SavePartyGameCopyToSlot`.
+1. Dans le runtime, déclencher une sauvegarde vers `GrimrockParty_2` avec `SavePartyGameToSlot` ou `SavePartyGameCopyToSlot`.
 2. Revenir au menu principal.
 3. Cliquer `Charger partie`.
-4. Verifier qu'une deuxieme ligne apparait.
+4. Vérifier qu'une deuxième ligne apparaît.
 5. Cliquer `Sauvegarde 2 / GrimrockParty_2 / Disponible`.
-6. Verifier les logs.
+6. Vérifier les logs.
 
 Logs attendus :
 
@@ -222,20 +222,20 @@ ActiveSlot
 
 ---
 
-## 8. Critere final MM4.2
+## 8. Critère final MM4.2
 
-MM4.2 est valide lorsque :
+MM4.2 est validé lorsque :
 
 - cliquer une ligne de `WBP_LoadGameMenu` ouvre `L_GrimrockEditor` ;
-- le pawn charge le slot selectionne ;
-- le log `PartySave Continued Slot=<slot selectionne>` apparait ;
-- `SavePartyGameToSlot` peut creer `GrimrockParty_2` ou `GrimrockParty_3` ;
-- `SavePartyGameCopyToSlot` peut creer une copie sans changer le slot actif ;
-- apres creation d'un nouveau slot, `WBP_LoadGameMenu` l'affiche ;
+- le pawn charge le slot sélectionné ;
+- le log `PartySave Continued Slot=<slot sélectionné>` apparaît ;
+- `SavePartyGameToSlot` peut créer `GrimrockParty_2` ou `GrimrockParty_3` ;
+- `SavePartyGameCopyToSlot` peut créer une copie sans changer le slot actif ;
+- après création d'un nouveau slot, `WBP_LoadGameMenu` l'affiche ;
 - le menu principal ne charge jamais directement une sauvegarde.
 
 Statut :
 
 ```text
-MM4.2 valide apres recompilation, test de chargement et test de creation d'au moins un deuxieme slot.
+MM4.2 validé après recompilation, test de chargement et test de création d'au moins un deuxième slot.
 ```

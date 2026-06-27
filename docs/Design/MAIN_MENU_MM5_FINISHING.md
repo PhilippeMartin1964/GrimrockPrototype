@@ -6,12 +6,12 @@ MM5 finalise les boutons secondaires du menu principal :
 
 ```text
 Options
-Credits
+Crédits
 Licence
 Quitter
 ```
 
-Objectif : garder le menu principal propre, sans gameplay, et ouvrir des modals simples pour les ecrans secondaires.
+Objectif : garder le menu principal propre, sans gameplay, et ouvrir des modals simples pour les écrans secondaires.
 
 ---
 
@@ -19,14 +19,14 @@ Objectif : garder le menu principal propre, sans gameplay, et ouvrir des modals 
 
 ### 2.1 UGrimrockMainMenuModalWidget
 
-Fichiers ajoutes :
+Fichiers ajoutés :
 
 ```text
 Source/GrimrockPrototype/Public/UI/GrimrockMainMenuModalWidget.h
 Source/GrimrockPrototype/Private/UI/GrimrockMainMenuModalWidget.cpp
 ```
 
-Role : parent C++ commun pour les modals secondaires.
+Rôle : parent C++ commun pour les modals secondaires.
 
 Fonctionnement :
 
@@ -68,25 +68,25 @@ Modal ZOrder
 Quit Directly From Main Menu
 ```
 
-Quand ces classes sont renseignees, les boutons ouvrent automatiquement les modals correspondants.
+Quand ces classes sont renseignées, les boutons ouvrent automatiquement les modals correspondants.
 
 ---
 
-## 3. Creer WBP_OptionsMenu
+## 3. Créer WBP_OptionsMenu
 
-Creer :
+Créer :
 
 ```text
 Content/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_OptionsMenu
 ```
 
-Parent class :
+Parent Class :
 
 ```text
 GrimrockMainMenuModalWidget
 ```
 
-Hierarchy recommandee :
+Hiérarchie recommandée :
 
 ```text
 WBP_OptionsMenu
@@ -112,12 +112,12 @@ Noms obligatoires :
 Button_Back
 ```
 
-Textes conseilles :
+Textes conseillés :
 
 ```text
 Text_Title             = Options
-Text_Subtitle          = Reglages du prototype
-Text_OptionPlaceholder = Options audio/video a venir.
+Text_Subtitle          = Réglages du prototype
+Text_OptionPlaceholder = Options audio/vidéo à venir.
 Text_Back              = Retour
 ```
 
@@ -125,28 +125,28 @@ Aucun Graph n'est requis.
 
 ---
 
-## 4. Creer WBP_CreditsMenu
+## 4. Créer WBP_CreditsMenu
 
-Creer :
+Créer :
 
 ```text
 Content/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_CreditsMenu
 ```
 
-Parent class :
+Parent Class :
 
 ```text
 GrimrockMainMenuModalWidget
 ```
 
-Hierarchy identique a `WBP_OptionsMenu`.
+Hiérarchie identique à `WBP_OptionsMenu`.
 
-Textes conseilles :
+Textes conseillés :
 
 ```text
-Text_Title    = Credits
+Text_Title    = Crédits
 Text_Subtitle = Grimrock Prototype
-Text_Content  = Prototype developpe sous Unreal Engine 5.5.4.
+Text_Content  = Prototype développé sous Unreal Engine 5.5.4.
 Text_Back     = Retour
 ```
 
@@ -154,28 +154,28 @@ Aucun Graph n'est requis.
 
 ---
 
-## 5. Creer WBP_LicenseMenu
+## 5. Créer WBP_LicenseMenu
 
-Creer :
+Créer :
 
 ```text
 Content/GrimrockPrototype/Blueprints/UI/MainMenu/WBP_LicenseMenu
 ```
 
-Parent class :
+Parent Class :
 
 ```text
 GrimrockMainMenuModalWidget
 ```
 
-Hierarchy identique a `WBP_OptionsMenu`.
+Hiérarchie identique à `WBP_OptionsMenu`.
 
-Textes conseilles :
+Textes conseillés :
 
 ```text
 Text_Title    = Licence
-Text_Subtitle = Informations legales
-Text_Content  = Prototype prive de developpement. Contenu, assets et licences a documenter avant distribution.
+Text_Subtitle = Informations légales
+Text_Content  = Prototype privé de développement. Contenu, assets et licences à documenter avant distribution.
 Text_Back     = Retour
 ```
 
@@ -198,7 +198,7 @@ Class Defaults
 -> Main Menu|Modal
 ```
 
-Regler :
+Régler :
 
 ```text
 Options Menu Widget Class = WBP_OptionsMenu
@@ -207,7 +207,7 @@ License Menu Widget Class = WBP_LicenseMenu
 Modal ZOrder              = 200
 ```
 
-Puis verifier :
+Puis vérifier :
 
 ```text
 Quit Directly From Main Menu = true
@@ -217,7 +217,7 @@ Ainsi :
 
 ```text
 Options -> ouvre WBP_OptionsMenu
-Credits -> ouvre WBP_CreditsMenu
+Crédits -> ouvre WBP_CreditsMenu
 Licence -> ouvre WBP_LicenseMenu
 Quitter -> QuitGame
 ```
@@ -230,14 +230,14 @@ Pour MM5, aucun Graph n'est requis pour :
 
 ```text
 Options
-Credits
+Crédits
 Licence
 Quitter
 ```
 
-Le C++ gere ces quatre boutons si les Class Defaults sont renseignes.
+Le C++ gère ces quatre boutons si les Class Defaults sont renseignés.
 
-Conserver les Graphs deja faits pour :
+Conserver les Graphs déjà faits pour :
 
 ```text
 OnNewGameRequested
@@ -245,7 +245,7 @@ OnContinueRequested
 OnLoadGameRequested
 ```
 
-Si une classe de modal n'est pas renseignee, le C++ appelle encore l'evenement Blueprint correspondant :
+Si une classe de modal n'est pas renseignée, le C++ appelle encore l'événement Blueprint correspondant :
 
 ```text
 OnOptionsRequested
@@ -258,16 +258,16 @@ Cela permet de garder une voie de secours Blueprint.
 
 ---
 
-## 8. Layout modal conseille
+## 8. Layout modal conseillé
 
-Pour chaque modal secondaire, utiliser un vrai fond plein ecran :
+Pour chaque modal secondaire, utiliser un vrai fond plein écran :
 
 ```text
 Border_ModalDim
 - Anchors = Full Screen
 - Offsets = 0 / 0 / 0 / 0
 - Brush Color = noir
-- Alpha = 0.75 a 0.85
+- Alpha = 0.75 à 0.85
 ```
 
 Panneau central :
@@ -284,8 +284,8 @@ Fond du panneau :
 
 ```text
 Border_DialogBackground
-- Brush Color = noir charbon / gris tres fonce
-- Alpha = 0.95 a 1.0
+- Brush Color = noir charbon / gris très foncé
+- Alpha = 0.95 à 1.0
 - Padding = 32
 ```
 
@@ -299,7 +299,7 @@ Ouvrir Options :
 MainMenu Modal Opened Widget=... Class=WBP_OptionsMenu_C ZOrder=200
 ```
 
-Ouvrir Credits :
+Ouvrir Crédits :
 
 ```text
 MainMenu Modal Opened Widget=... Class=WBP_CreditsMenu_C ZOrder=200
@@ -317,23 +317,23 @@ Quitter :
 MainMenu Quit Requested Widget=...
 ```
 
-En PIE, `QuitGame` arrete normalement la session PIE.
+En PIE, `QuitGame` arrête normalement la session PIE.
 
 ---
 
-## 10. Critere final MM5
+## 10. Critère final MM5
 
-MM5 est valide lorsque :
+MM5 est validé lorsque :
 
 - `Options` ouvre un modal propre avec un bouton `Retour` ;
-- `Credits` ouvre un modal propre avec un bouton `Retour` ;
+- `Crédits` ouvre un modal propre avec un bouton `Retour` ;
 - `Licence` ouvre un modal propre avec un bouton `Retour` ;
 - chaque bouton `Retour` ferme uniquement le modal ;
 - `Quitter` quitte proprement le PIE ou l'application ;
-- les flux `Nouvelle partie`, `Continuer` et `Charger partie` restent inchanges.
+- les flux `Nouvelle partie`, `Continuer` et `Charger partie` restent inchangés.
 
 Statut :
 
 ```text
-MM5 valide apres recompilation, creation des trois widgets UMG et test des quatre boutons.
+MM5 validé après recompilation, création des trois widgets UMG et test des quatre boutons.
 ```
