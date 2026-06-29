@@ -43,9 +43,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
     TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
-    TArray<FRPGCharacterPortraitOption> AvailablePortraits;
-
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     ERPGCharacterPortraitGender SelectedPortraitGender = ERPGCharacterPortraitGender::Male;
 
@@ -84,9 +81,6 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UComboBoxString> ComboBox_PortraitVariant;
-
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UComboBoxString> ComboBox_Portrait;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UTextBlock> Text_RaceValue;
@@ -182,13 +176,9 @@ private:
     UFUNCTION ()
     void HandlePortraitVariantSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
 
-    UFUNCTION ()
-    void HandlePortraitSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
-
     void BindWidgetEvents ();
     void PopulateDefinitionOptions ();
     void PopulatePortraitOptions ();
-    void PopulateLegacyPortraitOptions ();
     FRPGCharacterCreationRequest BuildCreationRequest () const;
     FText GetNormalizedNameText () const;
     FText ResolveSelectedPortraitDescription () const;

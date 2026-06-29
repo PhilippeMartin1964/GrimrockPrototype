@@ -41,13 +41,6 @@ namespace
         return DisplayName.IsEmpty () ? FText::FromName (DefinitionId) : DisplayName;
     }
 
-    FText GetPortraitDisplayName (const FRPGCharacterPortraitOption& PortraitOption)
-    {
-        return PortraitOption.DisplayName.IsEmpty ()
-            ? FText::FromName (PortraitOption.PortraitId)
-            : PortraitOption.DisplayName;
-    }
-
     FText GetPortraitVariantDisplayName (const FRPGCharacterPortraitVariant& PortraitVariant)
     {
         return PortraitVariant.DisplayName.IsEmpty ()
@@ -138,16 +131,6 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
         ComboBox_PortraitVariant->OnSelectionChanged.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged);
-    }
-
-    if (ComboBox_Portrait)
-    {
-        ComboBox_Portrait->OnSelectionChanged.RemoveDynamic (
-            this,
-            &URPGCharacterCreationWidget::HandlePortraitSelectionChanged);
-        ComboBox_Portrait->OnSelectionChanged.AddDynamic (
-            this,
-            &URPGCharacterCreationWidget::HandlePortraitSelectionChanged);
     }
 
     if (EditableText_Name)
@@ -283,7 +266,8 @@ void URPGCharacterCreationWidget::PopulatePortraitOptions ()
         {
             ComboBox_PortraitVariant->ClearOptions ();
         }
-        PopulateLegacyPortraitOptions ();
+        SelectedPortraitVariantId = NAME_None;
+        DefaultPortrait.Reset ();
         return;
     }
 
@@ -319,67 +303,6 @@ void URPGCharacterCreationWidget::PopulatePortraitOptions ()
         {
             ComboBox_PortraitVariant->SetSelectedOption (
                 GetPortraitVariantDisplayName (CurrentVariant).ToString ());
-        }
-    }
-
-    if (ComboBox_Portrait)
-    {
-        ComboBox_Portrait->ClearOptions ();
-    }
-}
-
-void URPGCharacterCreationWidget::PopulateLegacyPortraitOptions ()
-{
-    const FRPGCharacterPortraitOption* FirstValidPortrait = nullptr;
-    const FRPGCharacterPortraitOption* SelectedPortrait = nullptr;
-    for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
-    {
-        if (!PortraitOption.IsValidDefinition ())
-        {
-            continue;
-        }
-
-        if (!FirstValidPortrait)
-        {
-            FirstValidPortrait = &PortraitOption;
-        }
-
-        if (AreSamePortraitTexture (DefaultPortrait, PortraitOption.Portrait))
-        {
-            SelectedPortrait = &PortraitOption;
-        }
-    }
-
-    if (DefaultPortrait.IsNull () && FirstValidPortrait)
-    {
-        DefaultPortrait = FirstValidPortrait->Portrait;
-        SelectedPortraitVariantId = FirstValidPortrait->PortraitId;
-        SelectedPortrait = FirstValidPortrait;
-    }
-
-    if (ComboBox_Portrait)
-    {
-        ComboBox_Portrait->ClearOptions ();
-
-        TSet<FString> AddedOptions;
-        for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
-        {
-            if (!PortraitOption.IsValidDefinition ())
-            {
-                continue;
-            }
-
-            const FString Option = GetPortraitDisplayName (PortraitOption).ToString ();
-            if (!AddedOptions.Contains (Option))
-            {
-                AddedOptions.Add (Option);
-                ComboBox_Portrait->AddOption (Option);
-            }
-        }
-
-        if (SelectedPortrait)
-        {
-            ComboBox_Portrait->SetSelectedOption (GetPortraitDisplayName (*SelectedPortrait).ToString ());
         }
     }
 }
@@ -706,36 +629,6 @@ void URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged (
     }
 }
 
-void URPGCharacterCreationWidget::HandlePortraitSelectionChanged (
-    FString SelectedItem,
-    ESelectInfo::Type SelectionType)
-{
-    (void)SelectionType;
-
-    if (bIsSynchronizingPortraitOptions)
-    {
-        return;
-    }
-
-    if (FindPortraitSetForSelectedRace ())
-    {
-        return;
-    }
-
-    for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
-    {
-        if (PortraitOption.IsValidDefinition () &&
-            GetPortraitDisplayName (PortraitOption).ToString () == SelectedItem)
-        {
-            DefaultPortrait = PortraitOption.Portrait;
-            SelectedPortraitVariantId = PortraitOption.PortraitId;
-            SetValidationMessage (FText::GetEmpty (), false);
-            RefreshPreview ();
-            return;
-        }
-    }
-}
-
 FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest () const
 {
     FRPGCharacterCreationRequest Request;
@@ -762,20 +655,6 @@ FText URPGCharacterCreationWidget::ResolveSelectedPortraitDescription () const
     if (TryResolveSelectedPortraitVariant (PortraitVariant))
     {
         return PortraitVariant.Description;
-    }
-
-    if (DefaultPortrait.IsNull ())
-    {
-        return FText::GetEmpty ();
-    }
-
-    for (const FRPGCharacterPortraitOption& PortraitOption : AvailablePortraits)
-    {
-        if (PortraitOption.IsValidDefinition () &&
-            AreSamePortraitTexture (DefaultPortrait, PortraitOption.Portrait))
-        {
-            return PortraitOption.Description;
-        }
     }
 
     return FText::GetEmpty ();

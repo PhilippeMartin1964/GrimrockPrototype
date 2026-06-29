@@ -19,9 +19,37 @@ Le shell ne change pas encore les règles de création. Il encadre l'existant.
 
 ---
 
-## 2. Ajouts C++
+## 2. Source des portraits
 
-Fichiers ajoutés :
+Le wizard utilise désormais uniquement les sets de portraits :
+
+```text
+AvailablePortraitSets
+```
+
+Ces assets doivent pointer vers les DataAssets placés dans :
+
+```text
+Content/GrimrockPrototype/Core/DataAssets/RPG/Visuals/PortraitSets
+```
+
+La propriété legacy `AvailablePortraits` a été supprimée du widget. Elle faisait double emploi avec les sets de portraits et ne doit plus être renseignée dans `WBP_CharacterCreationWizard`.
+
+Le choix de portrait se fait donc ainsi :
+
+```text
+RaceDefinition.RaceId
+-> recherche du PortraitSet correspondant dans AvailablePortraitSets
+-> filtrage par genre
+-> choix de ComboBox_PortraitVariant
+-> affichage dans Image_Portrait
+```
+
+---
+
+## 3. Ajouts C++
+
+Fichiers ajoutés pour CC7.1 :
 
 ```text
 Source/GrimrockPrototype/Public/UI/RPGCharacterCreationWizardWidget.h
@@ -54,7 +82,7 @@ Ainsi, le `AGrimrockPartyPawn::CharacterCreationWidgetClass` peut pointer vers u
 
 ---
 
-## 3. Étapes disponibles
+## 4. Étapes disponibles
 
 Enum Blueprint :
 
@@ -84,7 +112,7 @@ Affichage conseillé :
 
 ---
 
-## 4. Fonctions Blueprint disponibles
+## 5. Fonctions Blueprint disponibles
 
 Navigation :
 
@@ -124,7 +152,7 @@ Ce bind est déjà fait par le parent `RPGCharacterCreationWidget`.
 
 ---
 
-## 5. Créer le Blueprint WBP_CharacterCreationWizard
+## 6. Créer le Blueprint WBP_CharacterCreationWizard
 
 Créer :
 
@@ -148,7 +176,7 @@ L'ancien `WBP_CharacterCreation` peut rester disponible comme secours tant que C
 
 ---
 
-## 6. Structure UMG complète
+## 7. Structure UMG complète
 
 Structure cible :
 
@@ -203,7 +231,7 @@ Border ou Overlay
 
 ---
 
-## 7. Précision importante sur les réglages UE5
+## 8. Précision importante sur les réglages UE5
 
 Dans UE5, certains réglages ne sont pas des propriétés du widget lui-même, mais du **slot du parent**.
 
@@ -218,7 +246,7 @@ Exemples :
 Donc, dans ce document :
 
 ```text
-"Slot du parent : Size = Fill"
+Slot du parent : Size = Fill
 ```
 
 signifie : régler le **slot dans le panneau parent**, pas chercher une propriété `Fill` directement sur le widget.
@@ -247,7 +275,7 @@ Brush Image = texture souhaitée
 
 ---
 
-## 8. Réglages globaux de layout
+## 9. Réglages globaux de layout
 
 | Widget | Type conseillé | Réglage UE5 exact | Padding | Couleur / apparence | Is Variable |
 |---|---|---|---|---|---|
@@ -293,7 +321,7 @@ Ne pas utiliser de fond blanc par défaut sur les boutons, ComboBox ou champs te
 
 ---
 
-## 9. Widgets obligatoires lus par le C++
+## 10. Widgets obligatoires lus par le C++
 
 Ces widgets doivent porter exactement ces noms.
 
@@ -316,7 +344,7 @@ Le C++ masque automatiquement `Button_CreateCharacter` sauf à l'étape `Résum�
 
 ---
 
-## 10. Widgets hérités de RPGCharacterCreationWidget
+## 11. Widgets hérités de RPGCharacterCreationWidget
 
 Ces noms existent déjà dans la logique de création actuelle. Ils doivent être présents si vous voulez réutiliser l'affichage et les binds existants.
 
@@ -326,8 +354,7 @@ Ces noms existent déjà dans la logique de création actuelle. Ils doivent êtr
 | `ComboBox_Race` | ComboBox String | Race | Oui | Liste des races disponibles |
 | `ComboBox_Class` | ComboBox String | Classe | Oui | Liste des classes disponibles |
 | `ComboBox_Gender` | ComboBox String | Identité | Oui | Masculin / Féminin |
-| `ComboBox_PortraitVariant` | ComboBox String | Identité | Oui | Variante de portrait par race et genre |
-| `ComboBox_Portrait` | ComboBox String | Identité | Oui | Ancien fallback portrait |
+| `ComboBox_PortraitVariant` | ComboBox String | Identité | Oui | Variante de portrait issue du portrait set |
 | `Image_Portrait` | Image | Identité | Oui | Aperçu unique du portrait utilisé par le C++ |
 | `Image_ClassIcon` | Image | Classe | Oui | Icône de classe |
 | `Text_RaceValue` | Text Block | Race ou résumé | Oui | Nom de la race sélectionnée |
@@ -350,9 +377,11 @@ Attention : un même widget UMG ne peut pas être placé physiquement dans deux 
 
 Point corrigé : il ne doit y avoir **qu'un seul** widget nommé `Image_Portrait` dans `WBP_CharacterCreationWizard`.
 
+Point supprimé : il ne faut plus créer de `ComboBox_Portrait`. Le choix du portrait passe uniquement par `ComboBox_PortraitVariant`.
+
 ---
 
-## 11. Style commun des contrôles
+## 12. Style commun des contrôles
 
 ### Textes
 
@@ -425,7 +454,7 @@ Padding = 8 / 4 / 8 / 4
 
 ---
 
-## 12. Détail de Panel_StepRace
+## 13. Détail de Panel_StepRace
 
 Hiérarchie recommandée :
 
@@ -461,7 +490,7 @@ Si l'illustration est trop grande, modifier le `SizeBox_RaceIllustrationPreview`
 
 ---
 
-## 13. Détail de Panel_StepClass
+## 14. Détail de Panel_StepClass
 
 Hiérarchie recommandée :
 
@@ -494,7 +523,7 @@ L'icône de classe doit rester lisible et ne pas être étirée. Prévoir un fon
 
 ---
 
-## 14. Détail de Panel_StepAttributes
+## 15. Détail de Panel_StepAttributes
 
 Hiérarchie recommandée :
 
@@ -550,7 +579,7 @@ Utiliser une hauteur de ligne d'environ 42 à 48 px. Les valeurs doivent être p
 
 ---
 
-## 15. Détail de Panel_StepIdentity
+## 16. Détail de Panel_StepIdentity
 
 Hiérarchie recommandée :
 
@@ -565,7 +594,6 @@ Panel_StepIdentity
       -> ComboBox_Gender
       -> Text_PortraitLabel
       -> ComboBox_PortraitVariant
-      -> ComboBox_Portrait
       -> Text_PortraitDescription
    -> SizeBox_IdentityPortraitPreview
       -> Image_Portrait
@@ -583,7 +611,6 @@ Réglages conseillés :
 | `EditableText_Name` | Dans un `SizeBox` optionnel Height 42, ou Vertical Box Slot Auto | Bottom 16 | Oui |
 | `ComboBox_Gender` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 16 | Oui |
 | `ComboBox_PortraitVariant` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 12 | Oui |
-| `ComboBox_Portrait` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 16 | Oui |
 | `Text_PortraitDescription` | Vertical Box Slot : Auto ou Size = Fill selon place disponible | 0 | Oui |
 | `SizeBox_IdentityPortraitPreview` | Horizontal Box Slot : Auto, Width 300, Height 450 | 0 | Non |
 | `Image_Portrait` | Placée dans le SizeBox, Brush Draw As = Image | 0 | Oui |
@@ -592,7 +619,7 @@ Réglages conseillés :
 
 ---
 
-## 16. Détail de Panel_StepSummary
+## 17. Détail de Panel_StepSummary
 
 Pour CC7.1, le résumé peut rester simple. Ne dupliquez pas trop de logique Blueprint.
 
@@ -630,7 +657,7 @@ Le bouton `Button_CreateCharacter` apparaît seulement sur cette étape. Il doit
 
 ---
 
-## 17. Réglages Class Defaults du wizard
+## 18. Réglages Class Defaults du wizard
 
 Dans `WBP_CharacterCreationWizard` :
 
@@ -640,11 +667,32 @@ Allow Cancel = false
 Focus Name Input On Identity Step = true
 ```
 
+Dans `RPG | Character Creation`, renseigner :
+
+```text
+RaceDefinition
+ClassDefinition
+AvailableRaceDefinitions
+AvailableClassDefinitions
+AvailablePortraitSets
+AvailableClassVisuals
+```
+
+Ne plus renseigner :
+
+```text
+AvailablePortraits
+```
+
+Cette propriété a été supprimée. Si elle apparaît encore dans l'éditeur, recompilez le projet C++ puis rouvrez le Blueprint.
+
+`DefaultPortrait` peut rester vide dans les Class Defaults. Le code le remplit automatiquement avec le premier portrait valide trouvé dans le portrait set correspondant à la race et au genre sélectionnés.
+
 Pour un lancement via `Nouvelle partie`, `Allow Cancel` doit rester `false`. Le joueur ne doit pas fermer la création et se promener sans personnage valide.
 
 ---
 
-## 18. Comportement attendu
+## 19. Comportement attendu
 
 Au lancement d'une nouvelle partie :
 
@@ -673,7 +721,7 @@ Ces points appartiennent à CC7.2+.
 
 ---
 
-## 19. Contrôle rapide avant test PIE
+## 20. Contrôle rapide avant test PIE
 
 Avant de lancer PIE, vérifier :
 
@@ -685,8 +733,9 @@ Avant de lancer PIE, vérifier :
 5. Button_CreateCharacter existe, même s'il est masqué au départ.
 6. Text_ValidationMessage existe sous le WidgetSwitcher.
 7. Character Creation Widget Class du pawn pointe vers WBP_CharacterCreationWizard.
-8. Les DataAssets de races, classes, portraits et icônes sont encore renseignés dans les Class Defaults du widget.
+8. Les DataAssets de races, classes, portrait sets et icônes de classe sont renseignés dans les Class Defaults du widget.
 9. Il n'existe qu'un seul widget nommé Image_Portrait dans toute la hiérarchie.
+10. Il n'existe plus de ComboBox_Portrait dans WBP_CharacterCreationWizard.
 ```
 
 Erreur typique : placer `Panel_StepRace` dans un `Canvas Panel` intermédiaire au lieu d'en faire un enfant direct du `WidgetSwitcher_Steps`. Dans ce cas, le C++ peut ne pas sélectionner le bon panneau.
@@ -695,7 +744,7 @@ Autre erreur typique : chercher une propriété `Fill` sur une `Image` ou une `H
 
 ---
 
-## 20. Logs utiles
+## 21. Logs utiles
 
 Filtre Output Log :
 
@@ -717,7 +766,7 @@ Le log est en `Verbose`. Si vous ne le voyez pas, c'est normal selon le niveau d
 
 ---
 
-## 21. Critère de validation CC7.1
+## 22. Critère de validation CC7.1
 
 CC7.1 est validé lorsque :
 
