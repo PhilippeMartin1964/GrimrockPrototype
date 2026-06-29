@@ -14,9 +14,9 @@ enum class ERPGCharacterCreationWizardStep : uint8
 {
     Race UMETA (DisplayName = "Race"),
     Class UMETA (DisplayName = "Classe"),
-    Attributes UMETA (DisplayName = "Caracteristiques"),
-    Identity UMETA (DisplayName = "Identite"),
-    Summary UMETA (DisplayName = "Resume")
+    Attributes UMETA (DisplayName = "Caractéristiques"),
+    Identity UMETA (DisplayName = "Identité"),
+    Summary UMETA (DisplayName = "Résumé")
 };
 
 /**
@@ -78,9 +78,7 @@ public:
     FText GetCurrentWizardStepTitle () const;
 
     UFUNCTION (BlueprintImplementableEvent, Category = "RPG|Character Creation|Wizard")
-    void OnWizardStepChanged (
-        ERPGCharacterCreationWizardStep PreviousStep,
-        ERPGCharacterCreationWizardStep NewStep);
+    void OnWizardStepChanged (ERPGCharacterCreationWizardStep PreviousStep, ERPGCharacterCreationWizardStep NewStep);
 
 protected:
     virtual void NativeConstruct () override;

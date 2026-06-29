@@ -57,16 +57,15 @@ namespace
         case ERPGCharacterCreationWizardStep::Class:
             return FText::FromString (TEXT ("Classe"));
         case ERPGCharacterCreationWizardStep::Attributes:
-            return FText::FromString (TEXT ("Caracteristiques"));
+            return FText::FromString (TEXT ("Caractéristiques"));
         case ERPGCharacterCreationWizardStep::Identity:
-            return FText::FromString (TEXT ("Identite"));
+            return FText::FromString (TEXT ("Identité"));
         case ERPGCharacterCreationWizardStep::Summary:
-            return FText::FromString (TEXT ("Resume"));
+            return FText::FromString (TEXT ("Résumé"));
         default:
             return FText::GetEmpty ();
         }
     }
-
     ESlateVisibility GetVisibleWhen (bool bShouldBeVisible)
     {
         return bShouldBeVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
@@ -76,7 +75,6 @@ namespace
 void URPGCharacterCreationWizardWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
-
     CurrentWizardStep = InitialWizardStep;
     BindWizardButtons ();
     ApplyWizardStepToSwitcher ();
@@ -87,41 +85,27 @@ void URPGCharacterCreationWizardWidget::BindWizardButtons ()
 {
     if (Button_Previous)
     {
-        Button_Previous->OnClicked.RemoveDynamic (
-            this,
-            &URPGCharacterCreationWizardWidget::HandlePreviousClicked);
-        Button_Previous->OnClicked.AddDynamic (
-            this,
-            &URPGCharacterCreationWizardWidget::HandlePreviousClicked);
+        Button_Previous->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandlePreviousClicked);
+        Button_Previous->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandlePreviousClicked);
     }
 
     if (Button_Next)
     {
-        Button_Next->OnClicked.RemoveDynamic (
-            this,
-            &URPGCharacterCreationWizardWidget::HandleNextClicked);
-        Button_Next->OnClicked.AddDynamic (
-            this,
-            &URPGCharacterCreationWizardWidget::HandleNextClicked);
+        Button_Next->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleNextClicked);
+        Button_Next->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleNextClicked);
     }
 
     if (Button_Cancel)
     {
-        Button_Cancel->OnClicked.RemoveDynamic (
-            this,
-            &URPGCharacterCreationWizardWidget::HandleCancelClicked);
-        Button_Cancel->OnClicked.AddDynamic (
-            this,
-            &URPGCharacterCreationWizardWidget::HandleCancelClicked);
+        Button_Cancel->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCancelClicked);
+        Button_Cancel->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleCancelClicked);
     }
 }
 
-void URPGCharacterCreationWizardWidget::SetCurrentWizardStep (
-    ERPGCharacterCreationWizardStep NewStep)
+void URPGCharacterCreationWizardWidget::SetCurrentWizardStep (ERPGCharacterCreationWizardStep NewStep)
 {
     const ERPGCharacterCreationWizardStep PreviousStep = CurrentWizardStep;
     CurrentWizardStep = NewStep;
-
     ApplyWizardStepToSwitcher ();
     RefreshWizardShell ();
 
@@ -142,7 +126,6 @@ bool URPGCharacterCreationWizardWidget::GoToNextWizardStep ()
     {
         return false;
     }
-
     SetCurrentWizardStep (GetWizardStepFromIndex (GetCurrentWizardStepIndex () + 1));
     return true;
 }
@@ -153,7 +136,6 @@ bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep ()
     {
         return false;
     }
-
     SetCurrentWizardStep (GetWizardStepFromIndex (GetCurrentWizardStepIndex () - 1));
     return true;
 }
@@ -162,14 +144,9 @@ void URPGCharacterCreationWizardWidget::CancelWizard ()
 {
     if (!bAllowCancel)
     {
-        UE_LOG (
-            LogTemp,
-            Log,
-            TEXT ("CharacterCreationWizard Cancel Ignored Widget=%s Reason=CancelDisabled"),
-            *GetName ());
+        UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancel Ignored Widget=%s Reason=CancelDisabled"), *GetName ());
         return;
     }
-
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s"), *GetName ());
     RemoveFromParent ();
 }
@@ -218,9 +195,7 @@ void URPGCharacterCreationWizardWidget::RefreshWizardShell ()
 
     if (Text_StepCounter)
     {
-        Text_StepCounter->SetText (FText::Format (
-            FText::FromString (TEXT ("{0} / {1}")),
-            FText::AsNumber (GetCurrentWizardStepNumber ()),
+        Text_StepCounter->SetText (FText::Format (FText::FromString (TEXT ("{0} / {1}")), FText::AsNumber (GetCurrentWizardStepNumber ()), 
             FText::AsNumber (GetWizardStepCount ())));
     }
 
@@ -247,12 +222,7 @@ void URPGCharacterCreationWizardWidget::RefreshWizardShell ()
         Button_Cancel->SetIsEnabled (bAllowCancel);
     }
 
-    UE_LOG (
-        LogTemp,
-        Verbose,
-        TEXT ("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"),
-        *GetName (),
-        GetCurrentWizardStepIndex (),
+    UE_LOG (LogTemp, Verbose, TEXT ("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"), *GetName (), GetCurrentWizardStepIndex (),
         *GetCurrentWizardStepTitle ().ToString ());
 }
 
@@ -262,14 +232,12 @@ void URPGCharacterCreationWizardWidget::ApplyWizardStepToSwitcher ()
     {
         return;
     }
-
     UWidget* StepPanel = GetPanelForWizardStep (CurrentWizardStep);
     if (StepPanel && StepPanel->GetParent () == WidgetSwitcher_Steps)
     {
         WidgetSwitcher_Steps->SetActiveWidget (StepPanel);
         return;
     }
-
     WidgetSwitcher_Steps->SetActiveWidgetIndex (GetCurrentWizardStepIndex ());
 }
 
