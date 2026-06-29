@@ -187,22 +187,12 @@ namespace
         return FormatSignedInteger (URPGCharacterRulesLibrary::GetAttributeModifier (Value));
     }
 
-    void SetOptionalText (UTextBlock* TextBlock, const FText& Value)
+    void SetWizardOptionalText (UTextBlock* TextBlock, const FText& Value)
     {
         if (TextBlock)
         {
             TextBlock->SetText (Value);
         }
-    }
-
-    void BindButtonClick (UButton* Button, UObject* Object, FName FunctionName)
-    {
-        if (!Button || !Object)
-        {
-            return;
-        }
-        Button->OnClicked.RemoveAll (Object);
-        Button->OnClicked.AddUFunction (Object, FunctionName);
     }
 
     FString NormalizeCharacterName (UEditableText* EditableText)
@@ -248,19 +238,71 @@ void URPGCharacterCreationWizardWidget::BindWizardButtons ()
 
 void URPGCharacterCreationWizardWidget::BindAttributeAllocationButtons ()
 {
-    BindButtonClick (Button_ResetRecommendedAttributes, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleResetRecommendedAttributesClicked));
-    BindButtonClick (Button_StrengthMinus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleStrengthMinusClicked));
-    BindButtonClick (Button_StrengthPlus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleStrengthPlusClicked));
-    BindButtonClick (Button_DexterityMinus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleDexterityMinusClicked));
-    BindButtonClick (Button_DexterityPlus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleDexterityPlusClicked));
-    BindButtonClick (Button_ConstitutionMinus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleConstitutionMinusClicked));
-    BindButtonClick (Button_ConstitutionPlus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleConstitutionPlusClicked));
-    BindButtonClick (Button_IntelligenceMinus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleIntelligenceMinusClicked));
-    BindButtonClick (Button_IntelligencePlus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleIntelligencePlusClicked));
-    BindButtonClick (Button_WisdomMinus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleWisdomMinusClicked));
-    BindButtonClick (Button_WisdomPlus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleWisdomPlusClicked));
-    BindButtonClick (Button_CharismaMinus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleCharismaMinusClicked));
-    BindButtonClick (Button_CharismaPlus, this, GET_FUNCTION_NAME_CHECKED (URPGCharacterCreationWizardWidget, HandleCharismaPlusClicked));
+    if (Button_ResetRecommendedAttributes)
+    {
+        Button_ResetRecommendedAttributes->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleResetRecommendedAttributesClicked);
+        Button_ResetRecommendedAttributes->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleResetRecommendedAttributesClicked);
+    }
+    if (Button_StrengthMinus)
+    {
+        Button_StrengthMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthMinusClicked);
+        Button_StrengthMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthMinusClicked);
+    }
+    if (Button_StrengthPlus)
+    {
+        Button_StrengthPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthPlusClicked);
+        Button_StrengthPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthPlusClicked);
+    }
+    if (Button_DexterityMinus)
+    {
+        Button_DexterityMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityMinusClicked);
+        Button_DexterityMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityMinusClicked);
+    }
+    if (Button_DexterityPlus)
+    {
+        Button_DexterityPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityPlusClicked);
+        Button_DexterityPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityPlusClicked);
+    }
+    if (Button_ConstitutionMinus)
+    {
+        Button_ConstitutionMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionMinusClicked);
+        Button_ConstitutionMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionMinusClicked);
+    }
+    if (Button_ConstitutionPlus)
+    {
+        Button_ConstitutionPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionPlusClicked);
+        Button_ConstitutionPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionPlusClicked);
+    }
+    if (Button_IntelligenceMinus)
+    {
+        Button_IntelligenceMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligenceMinusClicked);
+        Button_IntelligenceMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligenceMinusClicked);
+    }
+    if (Button_IntelligencePlus)
+    {
+        Button_IntelligencePlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligencePlusClicked);
+        Button_IntelligencePlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligencePlusClicked);
+    }
+    if (Button_WisdomMinus)
+    {
+        Button_WisdomMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomMinusClicked);
+        Button_WisdomMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomMinusClicked);
+    }
+    if (Button_WisdomPlus)
+    {
+        Button_WisdomPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomPlusClicked);
+        Button_WisdomPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomPlusClicked);
+    }
+    if (Button_CharismaMinus)
+    {
+        Button_CharismaMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaMinusClicked);
+        Button_CharismaMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaMinusClicked);
+    }
+    if (Button_CharismaPlus)
+    {
+        Button_CharismaPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaPlusClicked);
+        Button_CharismaPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaPlusClicked);
+    }
 }
 
 void URPGCharacterCreationWizardWidget::BindWizardSubmitButton ()
@@ -485,10 +527,10 @@ void URPGCharacterCreationWizardWidget::RefreshAttributeAllocationPreview ()
     const int32 Budget = GetAttributePointBudget ();
     const int32 Remaining = GetRemainingAttributePoints ();
 
-    SetOptionalText (
+    SetWizardOptionalText (
         Text_AttributePointsRemaining,
         FText::Format (FText::FromString (TEXT ("Points restants : {0} / {1}")), FText::AsNumber (Remaining), FText::AsNumber (Budget)));
-    SetOptionalText (
+    SetWizardOptionalText (
         Text_AttributeHelp,
         FText::FromString (TEXT ("Les valeurs de classe peuvent être ajustées. Les bonus de race sont appliqués ensuite.")));
 
@@ -511,10 +553,10 @@ void URPGCharacterCreationWizardWidget::RefreshAttributeAllocationPreview ()
         const int32 ClassValue = GetAttributeValue (ClassAttributes, AttributeId);
         const int32 RaceValue = GetAttributeValue (RaceBonuses, AttributeId);
         const int32 TotalValue = GetAttributeValue (FinalAttributes, AttributeId);
-        SetOptionalText (ClassText, bHasAttributes ? FText::AsNumber (ClassValue) : Unavailable);
-        SetOptionalText (RaceText, bHasAttributes ? FormatSignedInteger (RaceValue) : Unavailable);
-        SetOptionalText (TotalText, bHasAttributes ? FText::AsNumber (TotalValue) : Unavailable);
-        SetOptionalText (ModifierText, bHasAttributes ? FormatModifier (TotalValue) : Unavailable);
+        SetWizardOptionalText (ClassText, bHasAttributes ? FText::AsNumber (ClassValue) : Unavailable);
+        SetWizardOptionalText (RaceText, bHasAttributes ? FormatSignedInteger (RaceValue) : Unavailable);
+        SetWizardOptionalText (TotalText, bHasAttributes ? FText::AsNumber (TotalValue) : Unavailable);
+        SetWizardOptionalText (ModifierText, bHasAttributes ? FormatModifier (TotalValue) : Unavailable);
 
         if (!EffectsText)
         {
