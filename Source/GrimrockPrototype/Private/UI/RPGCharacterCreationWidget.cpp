@@ -51,7 +51,7 @@ namespace
     FText GetGenderDisplayName (ERPGCharacterPortraitGender Gender)
     {
         return Gender == ERPGCharacterPortraitGender::Female
-            ? FText::FromString (TEXT ("Feminin"))
+            ? FText::FromString (TEXT ("Féminin"))
             : FText::FromString (TEXT ("Masculin"));
     }
 
@@ -91,6 +91,26 @@ void URPGCharacterCreationWidget::BindWidgetEvents ()
         Button_CreateCharacter->OnClicked.AddDynamic (
             this,
             &URPGCharacterCreationWidget::HandleCreateCharacterClicked);
+    }
+
+    if (Button_GenderMale)
+    {
+        Button_GenderMale->OnClicked.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleGenderMaleClicked);
+        Button_GenderMale->OnClicked.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleGenderMaleClicked);
+    }
+
+    if (Button_GenderFemale)
+    {
+        Button_GenderFemale->OnClicked.RemoveDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleGenderFemaleClicked);
+        Button_GenderFemale->OnClicked.AddDynamic (
+            this,
+            &URPGCharacterCreationWidget::HandleGenderFemaleClicked);
     }
 
     if (ComboBox_Race)
@@ -334,12 +354,12 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         Text_RaceValue,
         bHasRaceDefinition
             ? GetDefinitionDisplayName (RaceDefinition->DisplayName, RaceDefinition->RaceId)
-            : FText::FromString (TEXT ("Race non configuree")));
+            : FText::FromString (TEXT ("Race non configurée")));
     SetOptionalText (
         Text_ClassValue,
         bHasClassDefinition
             ? GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId)
-            : FText::FromString (TEXT ("Classe non configuree")));
+            : FText::FromString (TEXT ("Classe non configurée")));
     SetOptionalText (
         Text_RaceDescription,
         bHasRaceDefinition ? RaceDefinition->Description : FText::GetEmpty ());
@@ -380,7 +400,9 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         }
     }
 
+    RefreshRaceIllustrationPreview ();
     RefreshClassIconPreview ();
+    RefreshGenderButtonVisualState ();
 
     if (!bHasRaceDefinition || !bHasClassDefinition)
     {
@@ -481,7 +503,7 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
     if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
         SetValidationMessage (
-            Error.IsEmpty () ? FText::FromString (TEXT ("Creation du personnage impossible.")) : Error,
+            Error.IsEmpty () ? FText::FromString (TEXT ("Création du personnage impossible.")) : Error,
             true);
         RefreshPreview ();
         return false;
@@ -505,6 +527,16 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
 void URPGCharacterCreationWidget::HandleCreateCharacterClicked ()
 {
     SubmitCharacterCreation ();
+}
+
+void URPGCharacterCreationWidget::HandleGenderMaleClicked ()
+{
+    SelectPortraitGender (ERPGCharacterPortraitGender::Male);
+}
+
+void URPGCharacterCreationWidget::HandleGenderFemaleClicked ()
+{
+    SelectPortraitGender (ERPGCharacterPortraitGender::Female);
 }
 
 void URPGCharacterCreationWidget::HandleNameChanged (const FText& NewText)
@@ -590,12 +622,10 @@ void URPGCharacterCreationWidget::HandleGenderSelectionChanged (
         return;
     }
 
-    SelectedPortraitGender = SelectedItem == GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ()
-        ? ERPGCharacterPortraitGender::Female
-        : ERPGCharacterPortraitGender::Male;
-    PopulatePortraitOptions ();
-    SetValidationMessage (FText::GetEmpty (), false);
-    RefreshPreview ();
+    SelectPortraitGender (
+        SelectedItem == GetGenderDisplayName (ERPGCharacterPortraitGender::Female).ToString ()
+            ? ERPGCharacterPortraitGender::Female
+            : ERPGCharacterPortraitGender::Male);
 }
 
 void URPGCharacterCreationWidget::HandlePortraitVariantSelectionChanged (
@@ -696,6 +726,24 @@ const URPGClassVisualAsset* URPGCharacterCreationWidget::FindClassVisualForSelec
     return nullptr;
 }
 
+const FRPGRaceIllustrationOption* URPGCharacterCreationWidget::FindRaceIllustrationForSelectedRaceAndGender () const
+{
+    if (!RaceDefinition || !RaceDefinition->IsValidDefinition ())
+    {
+        return nullptr;
+    }
+
+    for (const FRPGRaceIllustrationOption& RaceIllustration : AvailableRaceIllustrations)
+    {
+        if (RaceIllustration.Matches (RaceDefinition->RaceId, SelectedPortraitGender))
+        {
+            return &RaceIllustration;
+        }
+    }
+
+    return nullptr;
+}
+
 bool URPGCharacterCreationWidget::TryResolveSelectedPortraitVariant (
     FRPGCharacterPortraitVariant& OutVariant) const
 {
@@ -757,10 +805,30 @@ void URPGCharacterCreationWidget::SelectFirstValidPortraitForCurrentRaceAndGende
     DefaultPortrait.Reset ();
 }
 
+void URPGCharacterCreationWidget::SelectPortraitGender (ERPGCharacterPortraitGender NewGender)
+{
+    if (SelectedPortraitGender != NewGender)
+    {
+        SelectedPortraitGender = NewGender;
+        SelectedPortraitVariantId = NAME_None;
+        DefaultPortrait.Reset ();
+        PopulatePortraitOptions ();
+        SetValidationMessage (FText::GetEmpty (), false);
+    }
+
+    RefreshPreview ();
+}
+
 TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedClassIcon () const
 {
     const URPGClassVisualAsset* ClassVisual = FindClassVisualForSelectedClass ();
     return ClassVisual ? ClassVisual->ClassIcon : TSoftObjectPtr<UTexture2D> ();
+}
+
+TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedRaceIllustration () const
+{
+    const FRPGRaceIllustrationOption* RaceIllustration = FindRaceIllustrationForSelectedRaceAndGender ();
+    return RaceIllustration ? RaceIllustration->Illustration : TSoftObjectPtr<UTexture2D> ();
 }
 
 void URPGCharacterCreationWidget::RefreshClassIconPreview ()
@@ -779,6 +847,58 @@ void URPGCharacterCreationWidget::RefreshClassIconPreview ()
 
     Image_ClassIcon->SetBrushFromSoftTexture (ClassIcon, false);
     Image_ClassIcon->SetVisibility (ESlateVisibility::HitTestInvisible);
+}
+
+void URPGCharacterCreationWidget::RefreshRaceIllustrationPreview ()
+{
+    if (!Image_RaceIllustration)
+    {
+        return;
+    }
+
+    const TSoftObjectPtr<UTexture2D> RaceIllustration = ResolveSelectedRaceIllustration ();
+    if (RaceIllustration.IsNull ())
+    {
+        Image_RaceIllustration->SetVisibility (ESlateVisibility::Collapsed);
+        return;
+    }
+
+    Image_RaceIllustration->SetBrushFromSoftTexture (RaceIllustration, false);
+    Image_RaceIllustration->SetVisibility (ESlateVisibility::HitTestInvisible);
+}
+
+void URPGCharacterCreationWidget::RefreshGenderButtonVisualState ()
+{
+    const FLinearColor SelectedButtonColor (0.55f, 0.42f, 0.18f, 1.0f);
+    const FLinearColor UnselectedButtonColor (0.18f, 0.18f, 0.18f, 1.0f);
+
+    if (Button_GenderMale)
+    {
+        Button_GenderMale->SetBackgroundColor (
+            SelectedPortraitGender == ERPGCharacterPortraitGender::Male
+                ? SelectedButtonColor
+                : UnselectedButtonColor);
+    }
+
+    if (Button_GenderFemale)
+    {
+        Button_GenderFemale->SetBackgroundColor (
+            SelectedPortraitGender == ERPGCharacterPortraitGender::Female
+                ? SelectedButtonColor
+                : UnselectedButtonColor);
+    }
+
+    if (Image_GenderMale && !GenderMaleButtonIcon.IsNull ())
+    {
+        Image_GenderMale->SetBrushFromSoftTexture (GenderMaleButtonIcon, false);
+        Image_GenderMale->SetVisibility (ESlateVisibility::HitTestInvisible);
+    }
+
+    if (Image_GenderFemale && !GenderFemaleButtonIcon.IsNull ())
+    {
+        Image_GenderFemale->SetBrushFromSoftTexture (GenderFemaleButtonIcon, false);
+        Image_GenderFemale->SetVisibility (ESlateVisibility::HitTestInvisible);
+    }
 }
 
 void URPGCharacterCreationWidget::SetValidationMessage (const FText& Message, bool bIsError)

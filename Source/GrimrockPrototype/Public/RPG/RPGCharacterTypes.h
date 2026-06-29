@@ -86,7 +86,7 @@ UENUM (BlueprintType)
 enum class ERPGCharacterPortraitGender : uint8
 {
     Male UMETA (DisplayName = "Masculin"),
-    Female UMETA (DisplayName = "Feminin")
+    Female UMETA (DisplayName = "Féminin")
 };
 
 USTRUCT (BlueprintType)
@@ -109,6 +109,34 @@ struct FRPGCharacterPortraitVariant
     bool IsValidDefinition () const
     {
         return !VariantId.IsNone () && !Portrait.IsNull ();
+    }
+};
+
+USTRUCT (BlueprintType)
+struct FRPGRaceIllustrationOption
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Race Illustration")
+    FName RaceId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Race Illustration")
+    ERPGCharacterPortraitGender Gender = ERPGCharacterPortraitGender::Male;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Race Illustration")
+    TSoftObjectPtr<UTexture2D> Illustration;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation|Race Illustration")
+    FText DisplayName;
+
+    bool IsValidDefinition () const
+    {
+        return !RaceId.IsNone () && !Illustration.IsNull ();
+    }
+
+    bool Matches (FName InRaceId, ERPGCharacterPortraitGender InGender) const
+    {
+        return IsValidDefinition () && RaceId == InRaceId && Gender == InGender;
     }
 };
 

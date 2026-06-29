@@ -43,6 +43,15 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
     TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+    TArray<FRPGRaceIllustrationOption> AvailableRaceIllustrations;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Gender Buttons")
+    TSoftObjectPtr<UTexture2D> GenderMaleButtonIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Gender Buttons")
+    TSoftObjectPtr<UTexture2D> GenderFemaleButtonIcon;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     ERPGCharacterPortraitGender SelectedPortraitGender = ERPGCharacterPortraitGender::Male;
 
@@ -68,7 +77,22 @@ public:
     TObjectPtr<UImage> Image_Portrait;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UImage> Image_RaceIllustration;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UImage> Image_ClassIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UButton> Button_GenderMale;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UButton> Button_GenderFemale;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UImage> Image_GenderMale;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UImage> Image_GenderFemale;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UComboBoxString> ComboBox_Race;
@@ -159,6 +183,12 @@ private:
     void HandleCreateCharacterClicked ();
 
     UFUNCTION ()
+    void HandleGenderMaleClicked ();
+
+    UFUNCTION ()
+    void HandleGenderFemaleClicked ();
+
+    UFUNCTION ()
     void HandleNameChanged (const FText& NewText);
 
     UFUNCTION ()
@@ -184,10 +214,15 @@ private:
     FText ResolveSelectedPortraitDescription () const;
     const URPGCharacterPortraitSetAsset* FindPortraitSetForSelectedRace () const;
     const URPGClassVisualAsset* FindClassVisualForSelectedClass () const;
+    const FRPGRaceIllustrationOption* FindRaceIllustrationForSelectedRaceAndGender () const;
     bool TryResolveSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const;
     void SelectPortraitVariant (const FRPGCharacterPortraitVariant& PortraitVariant);
     void SelectFirstValidPortraitForCurrentRaceAndGender ();
+    void SelectPortraitGender (ERPGCharacterPortraitGender NewGender);
     TSoftObjectPtr<UTexture2D> ResolveSelectedClassIcon () const;
+    TSoftObjectPtr<UTexture2D> ResolveSelectedRaceIllustration () const;
     void RefreshClassIconPreview ();
+    void RefreshRaceIllustrationPreview ();
+    void RefreshGenderButtonVisualState ();
     void SetValidationMessage (const FText& Message, bool bIsError);
 };
