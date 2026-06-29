@@ -155,28 +155,30 @@ public:
     void InitializeCharacterCreationWidget (AGrimrockPartyPawn* InPartyPawn);
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    void RefreshPreview ();
+    virtual void RefreshPreview ();
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     void FocusNameInput ();
 
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    bool CanSubmitCharacterCreation () const;
+    virtual bool CanSubmitCharacterCreation () const;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    bool GetPreviewAttributes (FRPGAttributes& OutAttributes) const;
+    virtual bool GetPreviewAttributes (FRPGAttributes& OutAttributes) const;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    bool GetPreviewDerivedStats (FRPGDerivedStats& OutDerivedStats) const;
+    virtual bool GetPreviewDerivedStats (FRPGDerivedStats& OutDerivedStats) const;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    float GetPreviewCarryWeight () const;
+    virtual float GetPreviewCarryWeight () const;
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     bool SubmitCharacterCreation ();
 
 protected:
     virtual void NativeConstruct () override;
+
+    void SetValidationMessage (const FText& Message, bool bIsError);
 
 private:
     UFUNCTION ()
@@ -224,5 +226,4 @@ private:
     void RefreshClassIconPreview ();
     void RefreshRaceIllustrationPreview ();
     void RefreshGenderButtonVisualState ();
-    void SetValidationMessage (const FText& Message, bool bIsError);
 };
