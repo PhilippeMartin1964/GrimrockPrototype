@@ -79,7 +79,7 @@ Affichage conseillé :
 | Race | Choisir la race et afficher sa description |
 | Classe | Choisir la classe et afficher son rôle |
 | Caractéristiques | Voir les 6 caractéristiques, PV, mana et charge |
-| Identité | Saisir le nom, le genre et le portrait |
+| Identité | Saisir le nom, le genre et choisir le portrait |
 | Résumé | Vérifier le récapitulatif avant validation |
 
 ---
@@ -183,7 +183,15 @@ WBP_CharacterCreationWizard
                      -> Text_CreateCharacter
 ```
 
-Les cinq widgets `Panel_StepRace`, `Panel_StepClass`, `Panel_StepAttributes`, `Panel_StepIdentity` et `Panel_StepSummary` doivent être des enfants directs de `WidgetSwitcher_Steps`.
+Les cinq widgets suivants doivent être des enfants directs de `WidgetSwitcher_Steps` :
+
+```text
+Panel_StepRace
+Panel_StepClass
+Panel_StepAttributes
+Panel_StepIdentity
+Panel_StepSummary
+```
 
 Type recommandé pour ces cinq panneaux :
 
@@ -191,24 +199,68 @@ Type recommandé pour ces cinq panneaux :
 Border ou Overlay
 ```
 
-Éviter `Canvas Panel` pour ces cinq panneaux, sauf si vous avez vraiment besoin d'un placement libre. Un `Border` avec un `VerticalBox` ou un `Overlay` interne est plus propre, plus stable et plus facile à redimensionner.
+Éviter `Canvas Panel` pour ces cinq panneaux, sauf si vous avez vraiment besoin d'un placement libre. Un `Border` avec un `VerticalBox`, ou un `Overlay` interne, est plus propre et plus facile à redimensionner.
 
 ---
 
-## 7. Réglages globaux de layout
+## 7. Précision importante sur les réglages UE5
 
-| Widget | Type conseillé | Taille / ancrage | Padding | Couleur / apparence | Is Variable |
+Dans UE5, certains réglages ne sont pas des propriétés du widget lui-même, mais du **slot du parent**.
+
+Exemples :
+
+```text
+- Un widget placé dans un VerticalBox possède un Vertical Box Slot.
+- Un widget placé dans un HorizontalBox possède un Horizontal Box Slot.
+- Un widget placé dans un CanvasPanel possède un Canvas Panel Slot.
+```
+
+Donc, dans ce document :
+
+```text
+"Slot du parent : Size = Fill"
+```
+
+signifie : régler le **slot dans le panneau parent**, pas chercher une propriété `Fill` directement sur le widget.
+
+À ne pas confondre :
+
+```text
+Image_Portrait n'a pas de propriété Fill.
+HorizontalBox_RaceLayout n'a pas de propriété Fill.
+```
+
+Pour contrôler la taille d'une image, utiliser plutôt :
+
+```text
+SizeBox autour de l'image
+-> Width Override
+-> Height Override
+```
+
+Puis régler l'image elle-même avec :
+
+```text
+Brush Draw As = Image
+Brush Image = texture souhaitée
+```
+
+---
+
+## 8. Réglages globaux de layout
+
+| Widget | Type conseillé | Réglage UE5 exact | Padding | Couleur / apparence | Is Variable |
 |---|---|---|---|---|---|
-| `CanvasPanel_Root` | Canvas Panel | Plein écran | 0 | Transparent | Non |
-| `Border_ModalDim` | Border | Anchors plein écran, offsets 0 | 0 | Noir, alpha 0.75 à 0.85 | Non |
-| `SizeBox_Wizard` | Size Box | Alignement horizontal et vertical centré | 0 | Aucun brush | Non |
-| `Border_WizardBackground` | Border | Contenu du SizeBox | 32 | Noir charbon / brun très foncé, alpha 0.96 à 1.0 | Non |
-| `VerticalBox_Wizard` | Vertical Box | Fill | 0 | Aucun brush | Non |
-| `HorizontalBox_Header` | Horizontal Box | Hauteur souhaitée 64 à 72 | 0 | Aucun brush | Non |
-| `Border_StepFrame` | Border | Fill dans le VerticalBox | 18 | Fond légèrement plus clair que le panneau | Non |
-| `WidgetSwitcher_Steps` | Widget Switcher | Fill | 0 | Aucun brush | Oui |
-| `Text_ValidationMessage` | Text Block | Auto height | 8 / 8 / 8 / 0 | Rouge doux si erreur, blanc cassé sinon | Oui |
-| `HorizontalBox_Footer` | Horizontal Box | Hauteur souhaitée 56 à 64 | Top 16 | Aucun brush | Non |
+| `CanvasPanel_Root` | Canvas Panel | Anchors plein écran, offsets 0 | 0 | Transparent | Non |
+| `Border_ModalDim` | Border | Canvas Panel Slot : anchors plein écran, offsets 0 | 0 | Noir, alpha 0.75 à 0.85 | Non |
+| `SizeBox_Wizard` | Size Box | Canvas/Border content centré selon parent | 0 | Aucun brush | Non |
+| `Border_WizardBackground` | Border | Contenu du `SizeBox_Wizard` | 32 | Noir charbon / brun très foncé, alpha 0.96 à 1.0 | Non |
+| `VerticalBox_Wizard` | Vertical Box | Contenu du `Border_WizardBackground` | 0 | Aucun brush | Non |
+| `HorizontalBox_Header` | Horizontal Box | Vertical Box Slot : Auto, hauteur contrôlée par contenu | 0 | Aucun brush | Non |
+| `Border_StepFrame` | Border | Vertical Box Slot : Size = Fill | 18 | Fond légèrement plus clair que le panneau | Non |
+| `WidgetSwitcher_Steps` | Widget Switcher | Contenu du `Border_StepFrame` | 0 | Aucun brush | Oui |
+| `Text_ValidationMessage` | Text Block | Vertical Box Slot : Auto | 8 / 8 / 8 / 0 | Rouge doux si erreur, blanc cassé sinon | Oui |
+| `HorizontalBox_Footer` | Horizontal Box | Vertical Box Slot : Auto | Top 16 | Aucun brush | Non |
 
 Réglages conseillés pour `SizeBox_Wizard` :
 
@@ -217,7 +269,7 @@ Width Override  = 1180
 Height Override = 760
 ```
 
-Si l'écran est trop petit, vous pouvez descendre à :
+Si l'écran est trop petit :
 
 ```text
 Width Override  = 1040
@@ -241,7 +293,7 @@ Ne pas utiliser de fond blanc par défaut sur les boutons, ComboBox ou champs te
 
 ---
 
-## 8. Widgets obligatoires lus par le C++
+## 9. Widgets obligatoires lus par le C++
 
 Ces widgets doivent porter exactement ces noms.
 
@@ -264,7 +316,7 @@ Le C++ masque automatiquement `Button_CreateCharacter` sauf à l'étape `Résum�
 
 ---
 
-## 9. Widgets hérités de RPGCharacterCreationWidget
+## 10. Widgets hérités de RPGCharacterCreationWidget
 
 Ces noms existent déjà dans la logique de création actuelle. Ils doivent être présents si vous voulez réutiliser l'affichage et les binds existants.
 
@@ -276,8 +328,8 @@ Ces noms existent déjà dans la logique de création actuelle. Ils doivent êtr
 | `ComboBox_Gender` | ComboBox String | Identité | Oui | Masculin / Féminin |
 | `ComboBox_PortraitVariant` | ComboBox String | Identité | Oui | Variante de portrait par race et genre |
 | `ComboBox_Portrait` | ComboBox String | Identité | Oui | Ancien fallback portrait |
-| `Image_Portrait` | Image | Identité ou résumé | Oui | Aperçu du portrait |
-| `Image_ClassIcon` | Image | Classe ou résumé | Oui | Icône de classe |
+| `Image_Portrait` | Image | Identité | Oui | Aperçu unique du portrait utilisé par le C++ |
+| `Image_ClassIcon` | Image | Classe | Oui | Icône de classe |
 | `Text_RaceValue` | Text Block | Race ou résumé | Oui | Nom de la race sélectionnée |
 | `Text_ClassValue` | Text Block | Classe ou résumé | Oui | Nom de la classe sélectionnée |
 | `Text_RaceDescription` | Text Block | Race | Oui | Description de la race |
@@ -296,9 +348,11 @@ Ces noms existent déjà dans la logique de création actuelle. Ils doivent êtr
 
 Attention : un même widget UMG ne peut pas être placé physiquement dans deux panneaux différents. Pour le résumé, ne déplacez pas `Text_RaceValue`, `Image_Portrait`, etc. Créez plutôt des widgets dédiés au résumé en CC7.2, par exemple `Text_SummaryRace`, `Image_SummaryPortrait`, etc.
 
+Point corrigé : il ne doit y avoir **qu'un seul** widget nommé `Image_Portrait` dans `WBP_CharacterCreationWizard`.
+
 ---
 
-## 10. Style commun des contrôles
+## 11. Style commun des contrôles
 
 ### Textes
 
@@ -350,8 +404,15 @@ Min Desired Width = 220
 Taille recommandée :
 
 ```text
-Height = 38 à 44
-Width  = Fill dans sa colonne
+Placer le champ dans un SizeBox si vous voulez une hauteur fixe.
+SizeBox Height Override = 38 à 44
+```
+
+Pour occuper la largeur de la colonne :
+
+```text
+Dans le slot du parent VerticalBox :
+Horizontal Alignment = Fill
 ```
 
 Style recommandé :
@@ -364,7 +425,7 @@ Padding = 8 / 4 / 8 / 4
 
 ---
 
-## 11. Détail de Panel_StepRace
+## 12. Détail de Panel_StepRace
 
 Hiérarchie recommandée :
 
@@ -376,34 +437,31 @@ Panel_StepRace
       -> ComboBox_Race
       -> Text_RaceValue
       -> Text_RaceDescription
-   -> SizeBox_RacePortraitPreview
-      -> Image_Portrait
+   -> SizeBox_RaceIllustrationPreview
+      -> Image_RaceIllustration
 ```
+
+Important : ne pas utiliser `Image_Portrait` dans cette étape. Le portrait réel utilisé par le C++ est placé dans l'étape Identité. Ici, `Image_RaceIllustration` est seulement décoratif ou informatif.
 
 Réglages conseillés :
 
-| Widget | Taille / slot | Padding | Is Variable |
+| Widget | Réglage UE5 exact | Padding | Is Variable |
 |---|---|---|---|
-| `Panel_StepRace` | Fill | 24 | Oui |
-| `HorizontalBox_RaceLayout` | Fill | 0 | Non |
-| `VerticalBox_RaceChoices` | Fill, environ 65% largeur | 0 / 0 / 24 / 0 | Non |
-| `Text_RaceTitle` | Auto | Bottom 12 | Non |
-| `ComboBox_Race` | Width Fill, Height 40 | Bottom 16 | Oui |
-| `Text_RaceValue` | Auto | Bottom 8 | Oui |
-| `Text_RaceDescription` | Fill ou Auto | 0 | Oui |
-| `SizeBox_RacePortraitPreview` | Width 280, Height 420 | 0 | Non |
-| `Image_Portrait` | Fill | 0 | Oui |
+| `Panel_StepRace` | Enfant direct de `WidgetSwitcher_Steps` | 24 si Border | Oui |
+| `HorizontalBox_RaceLayout` | Slot dans `Panel_StepRace` : contenu unique | 0 | Non |
+| `VerticalBox_RaceChoices` | Horizontal Box Slot : Size = Fill, Padding Right 24 | 0 / 0 / 24 / 0 | Non |
+| `Text_RaceTitle` | Vertical Box Slot : Auto | Bottom 12 | Non |
+| `ComboBox_Race` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 16 | Oui |
+| `Text_RaceValue` | Vertical Box Slot : Auto | Bottom 8 | Oui |
+| `Text_RaceDescription` | Vertical Box Slot : Auto ou Fill selon place disponible | 0 | Oui |
+| `SizeBox_RaceIllustrationPreview` | Horizontal Box Slot : Auto, Width 280, Height 420 | 0 | Non |
+| `Image_RaceIllustration` | Placée dans le SizeBox, Brush Draw As = Image | 0 | Non |
 
-Si le portrait est trop grand, utiliser :
-
-```text
-Image_Portrait Brush Draw As = Image
-Image_Portrait Desired Size  = 256 x 384 ou 280 x 420
-```
+Si l'illustration est trop grande, modifier le `SizeBox_RaceIllustrationPreview`, pas l'image directement.
 
 ---
 
-## 12. Détail de Panel_StepClass
+## 13. Détail de Panel_StepClass
 
 Hiérarchie recommandée :
 
@@ -421,21 +479,22 @@ Panel_StepClass
 
 Réglages conseillés :
 
-| Widget | Taille / slot | Padding | Is Variable |
+| Widget | Réglage UE5 exact | Padding | Is Variable |
 |---|---|---|---|
-| `Panel_StepClass` | Fill | 24 | Oui |
-| `VerticalBox_ClassChoices` | Fill, environ 70% largeur | 0 / 0 / 24 / 0 | Non |
-| `ComboBox_Class` | Width Fill, Height 40 | Bottom 16 | Oui |
-| `Text_ClassValue` | Auto | Bottom 8 | Oui |
-| `Text_ClassDescription` | Fill ou Auto | 0 | Oui |
-| `SizeBox_ClassIconPreview` | Width 180, Height 180 | 0 | Non |
-| `Image_ClassIcon` | Fill | 0 | Oui |
+| `Panel_StepClass` | Enfant direct de `WidgetSwitcher_Steps` | 24 si Border | Oui |
+| `HorizontalBox_ClassLayout` | Slot dans `Panel_StepClass` : contenu unique | 0 | Non |
+| `VerticalBox_ClassChoices` | Horizontal Box Slot : Size = Fill, Padding Right 24 | 0 / 0 / 24 / 0 | Non |
+| `ComboBox_Class` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 16 | Oui |
+| `Text_ClassValue` | Vertical Box Slot : Auto | Bottom 8 | Oui |
+| `Text_ClassDescription` | Vertical Box Slot : Auto ou Fill selon place disponible | 0 | Oui |
+| `SizeBox_ClassIconPreview` | Horizontal Box Slot : Auto, Width 180, Height 180 | 0 | Non |
+| `Image_ClassIcon` | Placée dans le SizeBox, Brush Draw As = Image | 0 | Oui |
 
 L'icône de classe doit rester lisible et ne pas être étirée. Prévoir un fond sombre derrière l'image si l'icône a un canal alpha.
 
 ---
 
-## 13. Détail de Panel_StepAttributes
+## 14. Détail de Panel_StepAttributes
 
 Hiérarchie recommandée :
 
@@ -444,12 +503,12 @@ Panel_StepAttributes
 -> VerticalBox_AttributesLayout
    -> Text_AttributesTitle
    -> UniformGridPanel_Attributes
-      -> Attribute row Force
-      -> Attribute row Dextérité
-      -> Attribute row Constitution
-      -> Attribute row Intelligence
-      -> Attribute row Sagesse
-      -> Attribute row Charisme
+      -> Border_AttributeStrength
+      -> Border_AttributeDexterity
+      -> Border_AttributeConstitution
+      -> Border_AttributeIntelligence
+      -> Border_AttributeWisdom
+      -> Border_AttributeCharisma
    -> Border_DerivedStatsFrame
       -> HorizontalBox_DerivedStats
          -> Text_HealthValue
@@ -459,37 +518,39 @@ Panel_StepAttributes
 
 Réglages conseillés :
 
-| Widget | Taille / slot | Padding | Is Variable |
+| Widget | Réglage UE5 exact | Padding | Is Variable |
 |---|---|---|---|
-| `Panel_StepAttributes` | Fill | 24 | Oui |
-| `Text_AttributesTitle` | Auto | Bottom 16 | Non |
-| `UniformGridPanel_Attributes` | Auto ou Fill | Bottom 24 | Non |
-| `Text_StrengthValue` | Auto | 8 | Oui |
-| `Text_DexterityValue` | Auto | 8 | Oui |
-| `Text_ConstitutionValue` | Auto | 8 | Oui |
-| `Text_IntelligenceValue` | Auto | 8 | Oui |
-| `Text_WisdomValue` | Auto | 8 | Oui |
-| `Text_CharismaValue` | Auto | 8 | Oui |
-| `Border_DerivedStatsFrame` | Auto | 16 | Non |
-| `Text_HealthValue` | Auto | 8 | Oui |
-| `Text_ManaValue` | Auto | 8 | Oui |
-| `Text_CarryWeightValue` | Auto | 8 | Oui |
+| `Panel_StepAttributes` | Enfant direct de `WidgetSwitcher_Steps` | 24 si Border | Oui |
+| `Text_AttributesTitle` | Vertical Box Slot : Auto | Bottom 16 | Non |
+| `UniformGridPanel_Attributes` | Vertical Box Slot : Auto ou Size = Fill | Bottom 24 | Non |
+| `Text_StrengthValue` | Text Block | 8 | Oui |
+| `Text_DexterityValue` | Text Block | 8 | Oui |
+| `Text_ConstitutionValue` | Text Block | 8 | Oui |
+| `Text_IntelligenceValue` | Text Block | 8 | Oui |
+| `Text_WisdomValue` | Text Block | 8 | Oui |
+| `Text_CharismaValue` | Text Block | 8 | Oui |
+| `Border_DerivedStatsFrame` | Vertical Box Slot : Auto | 16 | Non |
+| `Text_HealthValue` | Text Block | 8 | Oui |
+| `Text_ManaValue` | Text Block | 8 | Oui |
+| `Text_CarryWeightValue` | Text Block | 8 | Oui |
 
 Présentation recommandée pour chaque caractéristique :
 
 ```text
 Border_AttributeStrength
--> HorizontalBox
+-> HorizontalBox_AttributeStrength
    -> Text_LabelStrength = Force
-   -> Spacer
+   -> Spacer_AttributeStrength
    -> Text_StrengthValue
 ```
+
+Pour pousser la valeur à droite, utiliser un `Spacer` entre le libellé et la valeur, avec son **Horizontal Box Slot** réglé en `Size = Fill`.
 
 Utiliser une hauteur de ligne d'environ 42 à 48 px. Les valeurs doivent être plus visibles que les libellés.
 
 ---
 
-## 14. Détail de Panel_StepIdentity
+## 15. Détail de Panel_StepIdentity
 
 Hiérarchie recommandée :
 
@@ -510,29 +571,32 @@ Panel_StepIdentity
       -> Image_Portrait
 ```
 
+C'est ici, et uniquement ici, que doit être placé le widget nommé `Image_Portrait`.
+
 Réglages conseillés :
 
-| Widget | Taille / slot | Padding | Is Variable |
+| Widget | Réglage UE5 exact | Padding | Is Variable |
 |---|---|---|---|
-| `Panel_StepIdentity` | Fill | 24 | Oui |
-| `VerticalBox_IdentityForm` | Fill, environ 60% largeur | 0 / 0 / 24 / 0 | Non |
-| `EditableText_Name` | Width Fill, Height 42 | Bottom 16 | Oui |
-| `ComboBox_Gender` | Width Fill, Height 40 | Bottom 16 | Oui |
-| `ComboBox_PortraitVariant` | Width Fill, Height 40 | Bottom 12 | Oui |
-| `ComboBox_Portrait` | Width Fill, Height 40 | Bottom 16 | Oui |
-| `Text_PortraitDescription` | Fill ou Auto | 0 | Oui |
-| `SizeBox_IdentityPortraitPreview` | Width 300, Height 450 | 0 | Non |
-| `Image_Portrait` | Fill | 0 | Oui |
+| `Panel_StepIdentity` | Enfant direct de `WidgetSwitcher_Steps` | 24 si Border | Oui |
+| `HorizontalBox_IdentityLayout` | Slot dans `Panel_StepIdentity` : contenu unique | 0 | Non |
+| `VerticalBox_IdentityForm` | Horizontal Box Slot : Size = Fill, Padding Right 24 | 0 / 0 / 24 / 0 | Non |
+| `EditableText_Name` | Dans un `SizeBox` optionnel Height 42, ou Vertical Box Slot Auto | Bottom 16 | Oui |
+| `ComboBox_Gender` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 16 | Oui |
+| `ComboBox_PortraitVariant` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 12 | Oui |
+| `ComboBox_Portrait` | Dans un `SizeBox` optionnel Height 40, ou Vertical Box Slot Auto | Bottom 16 | Oui |
+| `Text_PortraitDescription` | Vertical Box Slot : Auto ou Size = Fill selon place disponible | 0 | Oui |
+| `SizeBox_IdentityPortraitPreview` | Horizontal Box Slot : Auto, Width 300, Height 450 | 0 | Non |
+| `Image_Portrait` | Placée dans le SizeBox, Brush Draw As = Image | 0 | Oui |
 
 `EditableText_Name` doit être assez large pour 24 caractères. Le C++ peut lui donner le focus automatiquement quand le wizard arrive sur l'étape Identité.
 
 ---
 
-## 15. Détail de Panel_StepSummary
+## 16. Détail de Panel_StepSummary
 
 Pour CC7.1, le résumé peut rester simple. Ne dupliquez pas trop de logique Blueprint.
 
-Hiérarchie recommandée minimale :
+Hiérarchie recommandée :
 
 ```text
 Panel_StepSummary
@@ -554,19 +618,19 @@ Text_SummaryPlaceholder = Le résumé détaillé sera enrichi en CC7.2. Les vale
 
 Réglages conseillés :
 
-| Widget | Taille / slot | Padding | Is Variable |
+| Widget | Réglage UE5 exact | Padding | Is Variable |
 |---|---|---|---|
-| `Panel_StepSummary` | Fill | 24 | Oui |
-| `Text_SummaryTitle` | Auto | Bottom 12 | Non |
-| `Text_SummaryInstruction` | Auto | Bottom 20 | Non |
-| `Border_SummaryFrame` | Fill | 18 | Non |
-| `Text_SummaryPlaceholder` | Auto | 0 | Non |
+| `Panel_StepSummary` | Enfant direct de `WidgetSwitcher_Steps` | 24 si Border | Oui |
+| `Text_SummaryTitle` | Vertical Box Slot : Auto | Bottom 12 | Non |
+| `Text_SummaryInstruction` | Vertical Box Slot : Auto | Bottom 20 | Non |
+| `Border_SummaryFrame` | Vertical Box Slot : Size = Fill | 18 | Non |
+| `Text_SummaryPlaceholder` | Text Block | 0 | Non |
 
 Le bouton `Button_CreateCharacter` apparaît seulement sur cette étape. Il doit être visuellement plus fort que `Button_Previous` et `Button_Next`.
 
 ---
 
-## 16. Réglages Class Defaults du wizard
+## 17. Réglages Class Defaults du wizard
 
 Dans `WBP_CharacterCreationWizard` :
 
@@ -580,7 +644,7 @@ Pour un lancement via `Nouvelle partie`, `Allow Cancel` doit rester `false`. Le 
 
 ---
 
-## 17. Comportement attendu
+## 18. Comportement attendu
 
 Au lancement d'une nouvelle partie :
 
@@ -609,7 +673,7 @@ Ces points appartiennent à CC7.2+.
 
 ---
 
-## 18. Contrôle rapide avant test PIE
+## 19. Contrôle rapide avant test PIE
 
 Avant de lancer PIE, vérifier :
 
@@ -622,13 +686,16 @@ Avant de lancer PIE, vérifier :
 6. Text_ValidationMessage existe sous le WidgetSwitcher.
 7. Character Creation Widget Class du pawn pointe vers WBP_CharacterCreationWizard.
 8. Les DataAssets de races, classes, portraits et icônes sont encore renseignés dans les Class Defaults du widget.
+9. Il n'existe qu'un seul widget nommé Image_Portrait dans toute la hiérarchie.
 ```
 
 Erreur typique : placer `Panel_StepRace` dans un `Canvas Panel` intermédiaire au lieu d'en faire un enfant direct du `WidgetSwitcher_Steps`. Dans ce cas, le C++ peut ne pas sélectionner le bon panneau.
 
+Autre erreur typique : chercher une propriété `Fill` sur une `Image` ou une `HorizontalBox`. Le `Fill` se règle sur le **slot du parent**, par exemple le `Horizontal Box Slot` ou le `Vertical Box Slot`.
+
 ---
 
-## 19. Logs utiles
+## 20. Logs utiles
 
 Filtre Output Log :
 
@@ -650,7 +717,7 @@ Le log est en `Verbose`. Si vous ne le voyez pas, c'est normal selon le niveau d
 
 ---
 
-## 20. Critère de validation CC7.1
+## 21. Critère de validation CC7.1
 
 CC7.1 est validé lorsque :
 
