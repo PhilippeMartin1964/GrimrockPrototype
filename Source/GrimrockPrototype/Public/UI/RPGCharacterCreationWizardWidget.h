@@ -8,6 +8,7 @@ class UButton;
 class UTextBlock;
 class UWidget;
 class UWidgetSwitcher;
+class URPGCharacterCreationAttributesStepWidget;
 
 UENUM (BlueprintType)
 enum class ERPGCharacterCreationWizardStep : uint8
@@ -89,6 +90,33 @@ public:
     virtual bool GetPreviewDerivedStats (FRPGDerivedStats& OutDerivedStats) const override;
     virtual float GetPreviewCarryWeight () const override;
 
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation|Attributes")
+    void ResetAttributeAllocationToClassDefinition ();
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation|Attributes")
+    void AdjustAllocatedAttribute (FName AttributeId, int32 Delta);
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    bool CanIncreaseAllocatedAttribute (FName AttributeId) const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    bool CanDecreaseAllocatedAttribute (FName AttributeId) const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    int32 GetAttributePointBudget () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    int32 GetAllocatedAttributePointsSpent () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    int32 GetRemainingAttributePoints () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    FRPGAttributes GetAllocatedClassAttributesForPreview () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation|Attributes")
+    bool IsUsingRecommendedAttributes () const;
+
     UFUNCTION (BlueprintImplementableEvent, Category = "RPG|Character Creation|Wizard")
     void OnWizardStepChanged (ERPGCharacterCreationWizardStep PreviousStep, ERPGCharacterCreationWizardStep NewStep);
 
@@ -104,16 +132,7 @@ private:
     UWidget* GetPanelForWizardStep (ERPGCharacterCreationWizardStep Step) const;
     void RefreshAttributeAllocationPreview ();
     void RefreshAttributeAllocationControls ();
-    void ResetAttributeAllocationToClassDefinition ();
     void EnsureAttributeAllocationInitialized ();
-    void AdjustAllocatedAttribute (FName AttributeId, int32 Delta);
-    bool CanIncreaseAllocatedAttribute (FName AttributeId) const;
-    bool CanDecreaseAllocatedAttribute (FName AttributeId) const;
-    int32 GetAttributePointBudget () const;
-    int32 GetAllocatedAttributePointsSpent () const;
-    int32 GetRemainingAttributePoints () const;
-    FRPGAttributes GetAllocatedClassAttributesForPreview () const;
-    bool IsUsingRecommendedAttributes () const;
     TSoftObjectPtr<UTexture2D> ResolveWizardSelectedClassIcon () const;
     bool SubmitWizardCharacterCreation ();
 
@@ -195,6 +214,9 @@ private:
 
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UWidget> Panel_StepAttributes;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<URPGCharacterCreationAttributesStepWidget> Widget_StepAttributes;
 
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UWidget> Panel_StepIdentity;

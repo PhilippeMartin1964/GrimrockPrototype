@@ -12,6 +12,7 @@
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "UI/RPGCharacterCreationAttributesStepWidget.h"
 
 namespace
 {
@@ -210,6 +211,10 @@ void URPGCharacterCreationWizardWidget::NativeConstruct ()
     BindWizardButtons ();
     BindAttributeAllocationButtons ();
     BindWizardSubmitButton ();
+    if (Widget_StepAttributes)
+    {
+        Widget_StepAttributes->InitializeAttributesStep (this);
+    }
     ApplyWizardStepToSwitcher ();
     RefreshWizardShell ();
     RefreshPreview ();
@@ -238,6 +243,11 @@ void URPGCharacterCreationWizardWidget::BindWizardButtons ()
 
 void URPGCharacterCreationWizardWidget::BindAttributeAllocationButtons ()
 {
+    if (Widget_StepAttributes)
+    {
+        return;
+    }
+
     if (Button_ResetRecommendedAttributes)
     {
         Button_ResetRecommendedAttributes->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleResetRecommendedAttributesClicked);
@@ -403,8 +413,15 @@ void URPGCharacterCreationWizardWidget::RefreshPreview ()
 {
     EnsureAttributeAllocationInitialized ();
     Super::RefreshPreview ();
-    RefreshAttributeAllocationPreview ();
-    RefreshAttributeAllocationControls ();
+    if (Widget_StepAttributes)
+    {
+        Widget_StepAttributes->RefreshFromWizardState ();
+    }
+    else
+    {
+        RefreshAttributeAllocationPreview ();
+        RefreshAttributeAllocationControls ();
+    }
     RefreshWizardShell ();
 }
 
