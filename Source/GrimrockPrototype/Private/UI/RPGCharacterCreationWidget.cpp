@@ -422,6 +422,7 @@ void URPGCharacterCreationWidget::RefreshPreview ()
         }
     }
 
+    RefreshRaceEnvironmentPreview ();
     RefreshRaceIllustrationPreview ();
     RefreshClassIconPreview ();
     RefreshGenderButtonVisualState ();
@@ -853,6 +854,12 @@ TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedRaceIllus
     return RaceIllustration ? RaceIllustration->Illustration : TSoftObjectPtr<UTexture2D> ();
 }
 
+TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedRaceEnvironment () const
+{
+    const FRPGRaceIllustrationOption* RaceIllustration = FindRaceIllustrationForSelectedRaceAndGender ();
+    return RaceIllustration ? RaceIllustration->Illustration : TSoftObjectPtr<UTexture2D> ();
+}
+
 void URPGCharacterCreationWidget::RefreshClassIconPreview ()
 {
     if (!Image_ClassIcon)
@@ -887,6 +894,22 @@ void URPGCharacterCreationWidget::RefreshRaceIllustrationPreview ()
 
     Image_RaceIllustration->SetBrushFromSoftTexture (RaceIllustration, false);
     Image_RaceIllustration->SetVisibility (ESlateVisibility::HitTestInvisible);
+}
+
+void URPGCharacterCreationWidget::RefreshRaceEnvironmentPreview ()
+{
+    if (!Image_RaceEnvironment)
+    {
+        return;
+    }
+    const TSoftObjectPtr<UTexture2D> RaceEnvironment = ResolveSelectedRaceEnvironment ();
+    if (RaceEnvironment.IsNull ())
+    {
+        Image_RaceEnvironment->SetVisibility (ESlateVisibility::Collapsed);
+        return;
+    }
+    Image_RaceEnvironment->SetBrushFromSoftTexture (RaceEnvironment, false);
+    Image_RaceEnvironment->SetVisibility (ESlateVisibility::HitTestInvisible);
 }
 
 void URPGCharacterCreationWidget::RefreshGenderButtonVisualState ()

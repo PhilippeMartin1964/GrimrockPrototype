@@ -78,6 +78,9 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UImage> Image_RaceIllustration;
+    
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+    TObjectPtr<UImage> Image_RaceEnvironment;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UImage> Image_ClassIcon;
@@ -253,7 +256,9 @@ private:
     void SelectPortraitGender (ERPGCharacterPortraitGender NewGender);
     TSoftObjectPtr<UTexture2D> ResolveSelectedClassIcon () const;
     TSoftObjectPtr<UTexture2D> ResolveSelectedRaceIllustration () const;
+    TSoftObjectPtr<UTexture2D> ResolveSelectedRaceEnvironment () const;
     void RefreshClassIconPreview ();
     void RefreshRaceIllustrationPreview ();
+    void RefreshRaceEnvironmentPreview ();
     void RefreshGenderButtonVisualState ();
 };
