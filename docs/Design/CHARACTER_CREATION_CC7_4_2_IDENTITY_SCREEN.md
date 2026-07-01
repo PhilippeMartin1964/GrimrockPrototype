@@ -4,41 +4,28 @@
 
 L'écran **Identité** correspond à l'étape `4 / 5` du wizard de création de personnage.
 
-Son rôle n'est pas de choisir la race ou la classe. Ces choix sont déjà faits dans les étapes précédentes.
+Il ne sert pas à choisir la race ou la classe. Ces choix sont déjà faits dans les étapes précédentes.
 
 Son rôle est :
 
 ```text
 - saisir le nom du personnage ;
-- confirmer le sexe déjà choisi à l'étape Race ;
-- choisir la variante de portrait correspondant à la race et au sexe ;
-- afficher clairement le portrait final ;
+- rappeler la race choisie ;
+- rappeler la classe choisie ;
+- rappeler le sexe choisi à l'étape Race ;
+- choisir la variante de portrait compatible avec la race et le sexe ;
+- afficher le portrait final ;
 - afficher une description lisible du portrait ;
 - préparer le résumé final.
 ```
 
-L'écran actuel est fonctionnel, mais il reste trop proche d'un prototype :
-
-```text
-- plusieurs Text Block non remplacés ;
-- manque de titres explicites ;
-- ComboBox non expliquées ;
-- portrait placé sans cadre visuel fort ;
-- colonnes mal équilibrées ;
-- fond et bordure trop bruts ;
-- absence de rappel Race / Classe / Sexe ;
-- hiérarchie visuelle insuffisante.
-```
-
-L'objectif de CC7.4.2 est de rendre l'écran **clair, élégant et cohérent** avec les étapes Race, Classe et Caractéristiques.
+Depuis le correctif C++ CC7.4.2, les textes importants de cet écran peuvent être alimentés automatiquement par `URPGCharacterCreationWidget::RefreshPreview()`.
 
 ---
 
-## 2. État fonctionnel à conserver
+## 2. Widgets C++ obligatoires
 
-Les widgets C++ actuellement utilisés pour l'identité sont hérités de `URPGCharacterCreationWidget`.
-
-Ils doivent rester présents avec ces noms exacts :
+Ces widgets doivent exister avec ces noms exacts :
 
 ```text
 EditableText_Name
@@ -47,7 +34,7 @@ Image_Portrait
 Text_PortraitDescription
 ```
 
-Ces widgets sont essentiels :
+Rôle :
 
 ```text
 EditableText_Name          -> nom final du personnage ;
@@ -56,36 +43,82 @@ Image_Portrait             -> portrait final réellement utilisé ;
 Text_PortraitDescription   -> description de la variante sélectionnée.
 ```
 
-`Image_Portrait` doit rester unique dans tout le wizard. Il ne faut pas en créer un second dans Race, Classe ou Résumé.
+`Image_Portrait` doit rester unique dans tout le wizard.
 
 ---
 
-## 3. Point important : le sexe ne doit plus être une ComboBox ici
+## 3. Textes désormais alimentés par le C++
 
-Depuis CC7.2, le choix du sexe est fait avec deux boutons dans l'étape Race :
+Les widgets suivants sont optionnels, mais recommandés.
+
+S'ils existent dans `WBP_CharacterCreationWizard`, ils doivent avoir `Is Variable = true`, car le C++ les recherche par `BindWidgetOptional`.
+
+```text
+Text_IdentityTitle
+Text_IdentityHelp
+Text_NameLabel
+Text_IdentitySummaryTitle
+Text_IdentityRace
+Text_IdentityClass
+Text_IdentityGender
+Text_PortraitVariantLabel
+Text_PortraitDescriptionTitle
+Text_PortraitCaption
+```
+
+Valeurs remplies automatiquement :
+
+```text
+Text_IdentityTitle              = Identité du personnage
+Text_IdentityHelp               = Donnez un nom à votre personnage et choisissez le portrait qui sera utilisé dans l'interface de jeu.
+Text_NameLabel                  = Nom du personnage
+Text_IdentitySummaryTitle       = Choix actuels
+Text_IdentityRace               = Race : <race sélectionnée>
+Text_IdentityClass              = Classe : <classe sélectionnée>
+Text_IdentityGender             = Sexe : Masculin ou Sexe : Féminin
+Text_PortraitVariantLabel       = Variante de portrait
+Text_PortraitDescriptionTitle   = Description du portrait
+Text_PortraitCaption            = Portrait final
+```
+
+`Text_PortraitDescription` reçoit maintenant aussi un texte de secours :
+
+```text
+Aucun portrait disponible pour cette race et ce sexe.
+```
+
+ou :
+
+```text
+Aucune description disponible pour ce portrait.
+```
+
+---
+
+## 4. Point important : le sexe ne doit plus être choisi ici
+
+Depuis CC7.2, le choix du sexe est fait dans l'étape Race avec :
 
 ```text
 Button_GenderMale
 Button_GenderFemale
 ```
 
-L'écran Identité ne doit donc plus présenter une `ComboBox_Gender` comme choix principal.
+L'écran Identité ne doit donc pas afficher `ComboBox_Gender`.
 
-Recommandation :
+À faire :
 
 ```text
-- ne pas afficher ComboBox_Gender dans l'écran Identité ;
-- afficher seulement un rappel non modifiable : Sexe : Masculin ou Sexe : Féminin ;
-- laisser le changement du sexe dans l'étape Race.
+- masquer ou supprimer visuellement ComboBox_Gender de Panel_StepIdentity ;
+- afficher uniquement Text_IdentityGender ;
+- modifier le sexe en revenant à l'étape Race.
 ```
-
-Raison : changer le sexe dans l'écran Identité modifierait aussi les portraits disponibles et pourrait créer une confusion avec l'étape Race.
 
 Le C++ conserve encore `ComboBox_Gender` comme fallback legacy, mais le nouveau wizard ne doit pas l'utiliser visuellement.
 
 ---
 
-## 4. Cible visuelle
+## 5. Cible visuelle
 
 La cible est un écran en deux colonnes :
 
@@ -94,7 +127,7 @@ Gauche : formulaire d'identité et choix de portrait
 Droite : grand aperçu du personnage / portrait
 ```
 
-Structure visuelle attendue :
+Structure visuelle :
 
 ```text
 Identité                                      4 / 5
@@ -106,7 +139,7 @@ Identité                                      4 / 5
 │ Nom du personnage                                            │
 │ [________________________]                                   │
 │                                                              │
-│ Rappel                                                       │
+│ Choix actuels                                                │
 │ Race : Humain                                                │
 │ Classe : Rôdeur                                              │
 │ Sexe : Masculin                                              │
@@ -114,7 +147,7 @@ Identité                                      4 / 5
 │ Variante de portrait                                         │
 │ [Humain masculin 01               v]                         │
 │                                                              │
-│ Description                                                  │
+│ Description du portrait                                      │
 │ Portrait humain masculin de base.                            │
 │                                                              │
 │                                      [grand portrait à droite]│
@@ -123,7 +156,7 @@ Identité                                      4 / 5
 
 ---
 
-## 5. Hiérarchie UMG recommandée
+## 6. Hiérarchie UMG recommandée
 
 Dans `WBP_CharacterCreationWizard`, aller dans :
 
@@ -132,41 +165,42 @@ WidgetSwitcher_Steps
 └── Panel_StepIdentity
 ```
 
-Le contenu recommandé est :
+Créer :
 
 ```text
 Panel_StepIdentity                                      Border ou Overlay, Is Variable = true
 └── Border_IdentityFrame                                Border, Is Variable = false
     └── HorizontalBox_IdentityLayout                    Horizontal Box, Is Variable = false
         ├── VerticalBox_IdentityForm                    Vertical Box, Is Variable = false
-        │   ├── Text_IdentityTitle                      Text Block, Is Variable = false
-        │   ├── Text_IdentityHelp                       Text Block, Is Variable = false
+        │   ├── Text_IdentityTitle                      Text Block, Is Variable = true
+        │   ├── Text_IdentityHelp                       Text Block, Is Variable = true
         │   ├── Spacer_IdentityTopGap                   Spacer, Is Variable = false
-        │   ├── Text_NameLabel                          Text Block, Is Variable = false
+        │   ├── Text_NameLabel                          Text Block, Is Variable = true
         │   ├── SizeBox_NameInput                       Size Box, Is Variable = false
         │   │   └── EditableText_Name                   Editable Text, Is Variable = true
         │   ├── Border_IdentitySummaryFrame             Border, Is Variable = false
         │   │   └── VerticalBox_IdentitySummary         Vertical Box, Is Variable = false
-        │   │       ├── Text_IdentitySummaryTitle       Text Block, Is Variable = false
-        │   │       ├── Text_IdentityRace               Text Block, Is Variable = false ou futur variable
-        │   │       ├── Text_IdentityClass              Text Block, Is Variable = false ou futur variable
-        │   │       └── Text_IdentityGender             Text Block, Is Variable = false ou futur variable
-        │   ├── Text_PortraitVariantLabel               Text Block, Is Variable = false
+        │   │       ├── Text_IdentitySummaryTitle       Text Block, Is Variable = true
+        │   │       ├── Text_IdentityRace               Text Block, Is Variable = true
+        │   │       ├── Text_IdentityClass              Text Block, Is Variable = true
+        │   │       └── Text_IdentityGender             Text Block, Is Variable = true
+        │   ├── Text_PortraitVariantLabel               Text Block, Is Variable = true
         │   ├── SizeBox_PortraitVariantCombo            Size Box, Is Variable = false
         │   │   └── ComboBox_PortraitVariant            ComboBox String, Is Variable = true
-        │   ├── Text_PortraitDescriptionTitle           Text Block, Is Variable = false
+        │   ├── Text_PortraitDescriptionTitle           Text Block, Is Variable = true
         │   └── Border_PortraitDescriptionFrame         Border, Is Variable = false
         │       └── Text_PortraitDescription            Text Block, Is Variable = true
-        └── Border_IdentityPortraitFrame                Border, Is Variable = false
-            └── Overlay_IdentityPortrait                Overlay, Is Variable = false
-                ├── Image_Portrait                      Image, Is Variable = true
-                └── Border_PortraitCaptionOverlay       Border, Is Variable = false
-                    └── Text_PortraitCaption            Text Block, Is Variable = false
+        └── SizeBox_IdentityPortraitColumn              Size Box, Is Variable = false
+            └── Border_IdentityPortraitFrame            Border, Is Variable = false
+                └── Overlay_IdentityPortrait            Overlay, Is Variable = false
+                    ├── Image_Portrait                  Image, Is Variable = true
+                    └── Border_PortraitCaptionOverlay   Border, Is Variable = false
+                        └── Text_PortraitCaption        Text Block, Is Variable = true
 ```
 
 ---
 
-## 6. Réglages du panneau principal
+## 7. Réglages du panneau principal
 
 `Panel_StepIdentity` :
 
@@ -185,92 +219,54 @@ Padding     = 24
 Brush Color = R 0.00 / G 0.00 / B 0.00 / A 0.78
 ```
 
-Slot dans `Panel_StepIdentity` :
-
-```text
-Horizontal Alignment = Fill
-Vertical Alignment   = Fill
-```
-
 `HorizontalBox_IdentityLayout` :
 
 ```text
-Type        = Horizontal Box
-Is Variable = false
-```
-
-Slot dans `Border_IdentityFrame` :
-
-```text
+Type = Horizontal Box
 Horizontal Alignment = Fill
 Vertical Alignment   = Fill
 ```
 
 ---
 
-## 7. Colonne gauche : formulaire
+## 8. Colonne gauche : formulaire
 
 `VerticalBox_IdentityForm` :
 
 ```text
-Type        = Vertical Box
-Is Variable = false
-```
-
-Slot dans `HorizontalBox_IdentityLayout` :
-
-```text
-Size    = Fill
+Type = Vertical Box
+Slot dans HorizontalBox_IdentityLayout : Size = Fill
 Padding = 0 ; 0 ; 24 ; 0
 ```
 
 Largeur visuelle recommandée : environ 60 % de l'espace.
 
-### 7.1. Titre
+### 8.1. Titre et aide
 
 `Text_IdentityTitle` :
 
 ```text
-Text        = Identité du personnage
-Is Variable = false
+Is Variable = true
 Font Size   = 28
 Color       = blanc cassé
 Justification = Left
 ```
 
-Slot :
-
-```text
-Size    = Auto
-Padding = 0 ; 0 ; 0 ; 8
-```
-
-### 7.2. Texte d'aide
-
 `Text_IdentityHelp` :
 
 ```text
-Text        = Donnez un nom à votre personnage et choisissez le portrait qui sera utilisé dans l'interface de jeu.
-Is Variable = false
+Is Variable = true
 Font Size   = 17
 Color       = R 0.82 / G 0.82 / B 0.82 / A 1.00
 Auto Wrap Text = true
 ```
 
-Slot :
-
-```text
-Size    = Auto
-Padding = 0 ; 0 ; 0 ; 20
-```
-
-### 7.3. Nom du personnage
+### 8.2. Nom du personnage
 
 `Text_NameLabel` :
 
 ```text
-Text        = Nom du personnage
-Is Variable = false
+Is Variable = true
 Font Size   = 18
 Color       = blanc cassé
 ```
@@ -292,39 +288,13 @@ Select All Text When Focused = true
 Revert Text On Escape        = true
 ```
 
-Style recommandé :
-
-```text
-Background = gris très foncé / noir désaturé
-Text       = blanc cassé
-Padding    = 10 ; 6 ; 10 ; 6
-```
-
-Le C++ accepte actuellement un nom de 1 à 24 caractères. Le champ doit donc être assez large pour 24 caractères.
+Le C++ accepte un nom de 1 à 24 caractères.
 
 ---
 
-## 8. Bloc de rappel Race / Classe / Sexe
+## 9. Bloc de rappel Race / Classe / Sexe
 
-Ce bloc remplace les `Text Block` anonymes visibles dans l'écran actuel.
-
-Il doit afficher clairement les choix déjà faits.
-
-`Border_IdentitySummaryFrame` :
-
-```text
-Type        = Border
-Is Variable = false
-Padding     = 12
-Brush Color = R 0.06 / G 0.05 / B 0.04 / A 0.85
-```
-
-Slot dans `VerticalBox_IdentityForm` :
-
-```text
-Size    = Auto
-Padding = 0 ; 20 ; 0 ; 20
-```
+Ce bloc remplace les `Text Block` anonymes visibles dans l'ancien écran.
 
 Hiérarchie :
 
@@ -337,33 +307,26 @@ Border_IdentitySummaryFrame
     └── Text_IdentityGender
 ```
 
-Textes recommandés pour le prototype :
+Réglages :
 
 ```text
-Text_IdentitySummaryTitle = Choix actuels
-Text_IdentityRace         = Race : Humain
-Text_IdentityClass        = Classe : Rôdeur
-Text_IdentityGender       = Sexe : Masculin
+Border_IdentitySummaryFrame Padding = 12
+Brush Color = R 0.06 / G 0.05 / B 0.04 / A 0.85
+Slot Padding = 0 ; 20 ; 0 ; 20
 ```
 
-Réglages communs :
+Tous les textes de ce bloc doivent être `Is Variable = true`.
 
-```text
-Font Size = 17 à 18
-Color     = gris clair pour les libellés, blanc cassé pour les valeurs
-```
-
-Important : dans la version actuelle, ces trois textes peuvent rester statiques ou être mis à jour manuellement. Une étape ultérieure pourra les binder automatiquement au wizard.
+Le C++ les remplit automatiquement.
 
 ---
 
-## 9. Variante de portrait
+## 10. Variante de portrait
 
 `Text_PortraitVariantLabel` :
 
 ```text
-Text        = Variante de portrait
-Is Variable = false
+Is Variable = true
 Font Size   = 18
 Color       = blanc cassé
 ```
@@ -388,25 +351,16 @@ AvailablePortraitSets
 + Sexe sélectionné
 ```
 
-Il doit afficher des noms du type :
-
-```text
-Humain masculin 01
-Humain masculin 02
-Elfe féminin 01
-```
-
-Ne pas recréer `ComboBox_Portrait` : il a été supprimé.
+Ne pas recréer `ComboBox_Portrait`.
 
 ---
 
-## 10. Description du portrait
+## 11. Description du portrait
 
 `Text_PortraitDescriptionTitle` :
 
 ```text
-Text        = Description du portrait
-Is Variable = false
+Is Variable = true
 Font Size   = 18
 Color       = blanc cassé
 ```
@@ -414,8 +368,6 @@ Color       = blanc cassé
 `Border_PortraitDescriptionFrame` :
 
 ```text
-Type        = Border
-Is Variable = false
 Padding     = 12
 Brush Color = R 0.03 / G 0.03 / B 0.03 / A 0.85
 ```
@@ -424,59 +376,26 @@ Brush Color = R 0.03 / G 0.03 / B 0.03 / A 0.85
 
 ```text
 Is Variable = true
-Font Size   = 20 si description courte, 16 à 18 si description longue
+Font Size   = 18 à 20
 Color       = blanc cassé
 Auto Wrap Text = true
 ```
 
-Texte exemple :
-
-```text
-Portrait humain masculin de base.
-```
-
-À terme, cette description pourra indiquer le style du portrait : sobre, noble, brutal, mystique, jeune, âgé, etc.
-
 ---
 
-## 11. Colonne droite : portrait final
+## 12. Colonne droite : portrait final
 
-La colonne droite doit donner de la présence au personnage.
-
-`Border_IdentityPortraitFrame` :
-
-```text
-Type        = Border
-Is Variable = false
-Padding     = 12
-Brush Color = R 0.02 / G 0.02 / B 0.02 / A 0.90
-```
-
-Slot dans `HorizontalBox_IdentityLayout` :
-
-```text
-Size    = Auto
-Padding = 24 ; 0 ; 0 ; 0
-```
-
-Largeur recommandée :
-
-```text
-Width  = 360 à 420
-Height = Fill
-```
-
-Utiliser un `SizeBox_IdentityPortraitColumn` autour du `Border_IdentityPortraitFrame` si nécessaire :
+`SizeBox_IdentityPortraitColumn` :
 
 ```text
 Width Override = 380
 ```
 
-`Overlay_IdentityPortrait` :
+`Border_IdentityPortraitFrame` :
 
 ```text
-Type        = Overlay
-Is Variable = false
+Padding     = 12
+Brush Color = R 0.02 / G 0.02 / B 0.02 / A 0.90
 ```
 
 `Image_Portrait` :
@@ -488,49 +407,17 @@ Stretch       = Scale To Fit
 Color and Opacity = blanc
 ```
 
-Si vos portraits sont des personnages de pied ou buste 1024x1536, la zone doit plutôt être verticale :
+Zone recommandée pour les portraits de personnage debout ou en buste :
 
 ```text
-Width  = 360
-Height = 520
-```
-
-Si vous affichez seulement un portrait carré ou visage :
-
-```text
-Width  = 360
-Height = 360
-```
-
-Pour le système actuel, il est préférable de garder une zone verticale afin de permettre plus tard l'affichage du personnage complet avec équipement.
-
----
-
-## 12. Légende du portrait
-
-Ajouter une petite légende en bas de la colonne portrait.
-
-`Border_PortraitCaptionOverlay` :
-
-```text
-Type        = Border
-Is Variable = false
-Padding     = 8
-Brush Color = R 0.00 / G 0.00 / B 0.00 / A 0.55
-```
-
-Slot dans `Overlay_IdentityPortrait` :
-
-```text
-Horizontal Alignment = Fill
-Vertical Alignment   = Bottom
+Width  = 360 à 420
+Height = 500 à 560
 ```
 
 `Text_PortraitCaption` :
 
 ```text
-Text        = Portrait final
-Is Variable = false
+Is Variable = true
 Font Size   = 16
 Color       = gris clair
 Justification = Center
@@ -540,18 +427,18 @@ Justification = Center
 
 ## 13. Ce qu'il faut retirer de l'écran actuel
 
-Supprimer ou remplacer les éléments suivants :
+Supprimer ou remplacer :
 
 ```text
-- les Text Block génériques non renommés ;
+- les Text Block génériques ;
 - les labels non explicites ;
-- la ComboBox vide sous la ComboBox_PortraitVariant si elle correspond à l'ancien ComboBox_Gender ;
+- ComboBox_Gender si elle est visible ;
 - les grands espaces inutiles à gauche ;
 - le portrait sans cadre ;
 - les fonds blancs par défaut.
 ```
 
-Ne pas supprimer :
+Conserver impérativement :
 
 ```text
 EditableText_Name
@@ -562,87 +449,53 @@ Text_PortraitDescription
 
 ---
 
-## 14. Noms exacts à respecter
-
-Widgets obligatoires lus par le C++ :
+## 14. Procédure UE5 recommandée
 
 ```text
-EditableText_Name
-ComboBox_PortraitVariant
-Image_Portrait
-Text_PortraitDescription
-```
-
-Widgets optionnels recommandés pour la lisibilité :
-
-```text
-Text_IdentityTitle
-Text_IdentityHelp
-Text_NameLabel
-Text_IdentitySummaryTitle
-Text_IdentityRace
-Text_IdentityClass
-Text_IdentityGender
-Text_PortraitVariantLabel
-Text_PortraitDescriptionTitle
-Text_PortraitCaption
-```
-
-Ces widgets optionnels ne sont pas lus par le C++ actuellement. Ils servent à rendre l'écran compréhensible.
-
----
-
-## 15. Procédure UE5 recommandée
-
-```text
-1. Ouvrir WBP_CharacterCreationWizard.
-2. Aller dans WidgetSwitcher_Steps > Panel_StepIdentity.
-3. Supprimer les Text Block génériques.
-4. Supprimer l'ancienne ComboBox de sexe si elle est encore visible.
-5. Créer Border_IdentityFrame.
-6. Créer HorizontalBox_IdentityLayout.
-7. Créer VerticalBox_IdentityForm à gauche.
-8. Ajouter Text_IdentityTitle.
-9. Ajouter Text_IdentityHelp.
-10. Ajouter Text_NameLabel.
+1. Recompiler le projet C++.
+2. Ouvrir WBP_CharacterCreationWizard.
+3. Aller dans WidgetSwitcher_Steps > Panel_StepIdentity.
+4. Supprimer les Text Block génériques.
+5. Supprimer la ComboBox de sexe visible.
+6. Créer Border_IdentityFrame.
+7. Créer HorizontalBox_IdentityLayout.
+8. Créer VerticalBox_IdentityForm à gauche.
+9. Ajouter les textes optionnels nommés exactement comme dans ce document.
+10. Mettre Is Variable = true sur ces textes optionnels.
 11. Placer EditableText_Name dans SizeBox_NameInput.
-12. Ajouter le bloc de rappel Race / Classe / Sexe.
-13. Ajouter Text_PortraitVariantLabel.
-14. Placer ComboBox_PortraitVariant dans SizeBox_PortraitVariantCombo.
-15. Ajouter Text_PortraitDescriptionTitle.
-16. Placer Text_PortraitDescription dans Border_PortraitDescriptionFrame.
-17. Créer la colonne droite avec Border_IdentityPortraitFrame.
-18. Placer Image_Portrait dans Overlay_IdentityPortrait.
-19. Ajouter la légende Portrait final.
-20. Compiler WBP_CharacterCreationWizard.
-21. Sauvegarder.
-22. Lancer PIE.
-23. Vérifier que le nom peut être saisi.
-24. Vérifier que la ComboBox de portrait est alimentée.
-25. Vérifier que Image_Portrait change quand la variante change.
+12. Ajouter le bloc Race / Classe / Sexe.
+13. Placer ComboBox_PortraitVariant dans SizeBox_PortraitVariantCombo.
+14. Placer Text_PortraitDescription dans Border_PortraitDescriptionFrame.
+15. Créer la colonne droite avec Image_Portrait.
+16. Ajouter Text_PortraitCaption.
+17. Compiler WBP_CharacterCreationWizard.
+18. Sauvegarder.
+19. Lancer PIE.
+20. Vérifier que tous les textes sont remplis automatiquement.
 ```
 
 ---
 
-## 16. Critères de validation
+## 15. Critères de validation
 
 L'écran Identité est validé lorsque :
 
 ```text
 - aucun Text Block générique n'est visible ;
+- le titre affiche Identité du personnage ;
 - le champ de nom est clair et utilisable ;
+- Race / Classe / Sexe sont rappelés automatiquement ;
 - la ComboBox de portrait est lisible ;
 - la description du portrait est affichée dans un cadre propre ;
 - le portrait est bien cadré ;
 - le sexe n'est pas redemandé ici par ComboBox ;
-- les choix Race / Classe / Sexe sont rappelés clairement ;
 - la navigation Précédent / Suivant fonctionne ;
 - le résumé final reçoit bien les choix effectués.
 ```
 
 ---
 
-## 17. Note pour une future extraction en sous-widget
+## 16. Note pour une future extraction en sous-widget
 
 Comme pour l'étape Caractéristiques, l'étape Identité pourra être extraite plus tard dans un sous-widget :
 
@@ -653,4 +506,4 @@ Parent Class = RPGCharacterCreationIdentityStepWidget
 
 Mais cette extraction n'est pas nécessaire immédiatement.
 
-Priorité actuelle : nettoyer l'UMG dans `Panel_StepIdentity` et conserver les bindings C++ existants.
+Priorité actuelle : nettoyer l'UMG dans `Panel_StepIdentity` et exploiter les bindings C++ ajoutés par CC7.4.2.
