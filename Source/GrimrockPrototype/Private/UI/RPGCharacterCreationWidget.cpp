@@ -349,24 +349,46 @@ void URPGCharacterCreationWidget::RefreshPreview ()
     const bool bHasRaceDefinition = RaceDefinition && RaceDefinition->IsValidDefinition ();
     const bool bHasClassDefinition = ClassDefinition && ClassDefinition->IsValidDefinition ();
     const FText UnavailableValue = FText::FromString (TEXT ("-"));
+    const FText RaceDisplayValue = bHasRaceDefinition
+        ? GetDefinitionDisplayName (RaceDefinition->DisplayName, RaceDefinition->RaceId)
+        : FText::FromString (TEXT ("Race non configurée"));
+    const FText ClassDisplayValue = bHasClassDefinition
+        ? GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId)
+        : FText::FromString (TEXT ("Classe non configurée"));
+    const FText GenderDisplayValue = GetGenderDisplayName (SelectedPortraitGender);
 
+    FText PortraitDescription = ResolveSelectedPortraitDescription ();
+    if (PortraitDescription.IsEmpty ())
+    {
+        PortraitDescription = DefaultPortrait.IsNull ()
+            ? FText::FromString (TEXT ("Aucun portrait disponible pour cette race et ce sexe."))
+            : FText::FromString (TEXT ("Aucune description disponible pour ce portrait."));
+    }
+
+    SetOptionalText (Text_RaceValue, RaceDisplayValue);
+    SetOptionalText (Text_ClassValue, ClassDisplayValue);
+    SetOptionalText (Text_RaceDescription, bHasRaceDefinition ? RaceDefinition->Description : FText::GetEmpty ());
+    SetOptionalText (Text_ClassDescription, bHasClassDefinition ? ClassDefinition->Description : FText::GetEmpty ());
+    SetOptionalText (Text_PortraitDescription, PortraitDescription);
+
+    SetOptionalText (Text_IdentityTitle, FText::FromString (TEXT ("Identité du personnage")));
     SetOptionalText (
-        Text_RaceValue,
-        bHasRaceDefinition
-            ? GetDefinitionDisplayName (RaceDefinition->DisplayName, RaceDefinition->RaceId)
-            : FText::FromString (TEXT ("Race non configurée")));
+        Text_IdentityHelp,
+        FText::FromString (TEXT ("Donnez un nom à votre personnage et choisissez le portrait qui sera utilisé dans l'interface de jeu.")));
+    SetOptionalText (Text_NameLabel, FText::FromString (TEXT ("Nom du personnage")));
+    SetOptionalText (Text_IdentitySummaryTitle, FText::FromString (TEXT ("Choix actuels")));
     SetOptionalText (
-        Text_ClassValue,
-        bHasClassDefinition
-            ? GetDefinitionDisplayName (ClassDefinition->DisplayName, ClassDefinition->ClassId)
-            : FText::FromString (TEXT ("Classe non configurée")));
+        Text_IdentityRace,
+        FText::Format (FText::FromString (TEXT ("Race : {0}")), RaceDisplayValue));
     SetOptionalText (
-        Text_RaceDescription,
-        bHasRaceDefinition ? RaceDefinition->Description : FText::GetEmpty ());
+        Text_IdentityClass,
+        FText::Format (FText::FromString (TEXT ("Classe : {0}")), ClassDisplayValue));
     SetOptionalText (
-        Text_ClassDescription,
-        bHasClassDefinition ? ClassDefinition->Description : FText::GetEmpty ());
-    SetOptionalText (Text_PortraitDescription, ResolveSelectedPortraitDescription ());
+        Text_IdentityGender,
+        FText::Format (FText::FromString (TEXT ("Sexe : {0}")), GenderDisplayValue));
+    SetOptionalText (Text_PortraitVariantLabel, FText::FromString (TEXT ("Variante de portrait")));
+    SetOptionalText (Text_PortraitDescriptionTitle, FText::FromString (TEXT ("Description du portrait")));
+    SetOptionalText (Text_PortraitCaption, FText::FromString (TEXT ("Portrait final")));
 
     FRPGAttributes Attributes;
     const bool bHasAttributes = GetPreviewAttributes (Attributes);
