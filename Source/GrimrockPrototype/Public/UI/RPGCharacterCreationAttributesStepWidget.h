@@ -87,6 +87,15 @@ private:
     TObjectPtr<UTextBlock> Text_AttributeHelp;
 
     UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_HealthValue;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_ManaValue;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_CarryWeightValue;
+
+    UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UButton> Button_ResetRecommendedAttributes;
 
     UPROPERTY (meta = (BindWidgetOptional))

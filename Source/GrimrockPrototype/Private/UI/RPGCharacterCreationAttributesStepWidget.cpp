@@ -210,6 +210,10 @@ void URPGCharacterCreationAttributesStepWidget::RefreshAttributeAllocationPrevie
     const FRPGAttributes RaceBonuses = Wizard->RaceDefinition ? Wizard->RaceDefinition->AttributeBonuses : FRPGAttributes (0, 0, 0, 0, 0, 0);
     const FText Unavailable = FText::FromString (TEXT ("-"));
 
+    CCAttributeStepSetOptionalText (Text_HealthValue, bHasDerivedStats ? FText::AsNumber (DerivedStats.MaxHealth) : Unavailable);
+    CCAttributeStepSetOptionalText (Text_ManaValue, bHasDerivedStats ? FText::AsNumber (DerivedStats.MaxMana) : Unavailable);
+    CCAttributeStepSetOptionalText (Text_CarryWeightValue, bHasAttributes ? FText::AsNumber (FMath::RoundToInt (Wizard->GetPreviewCarryWeight ())) : Unavailable);
+
     auto RefreshRow = [&] (
         FName AttributeId,
         UTextBlock* ClassText,
