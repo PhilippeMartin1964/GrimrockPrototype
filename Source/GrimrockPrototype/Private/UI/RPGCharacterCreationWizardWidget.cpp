@@ -6,6 +6,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
 #include "Components/WidgetSwitcher.h"
+#include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
@@ -17,7 +18,6 @@
 namespace
 {
     constexpr int32 CharacterCreationWizardStepCount = 5;
-
     const FName AttributeStrength (TEXT ("Strength"));
     const FName AttributeDexterity (TEXT ("Dexterity"));
     const FName AttributeConstitution (TEXT ("Constitution"));
@@ -29,18 +29,12 @@ namespace
     {
         switch (Step)
         {
-        case ERPGCharacterCreationWizardStep::Race:
-            return 0;
-        case ERPGCharacterCreationWizardStep::Class:
-            return 1;
-        case ERPGCharacterCreationWizardStep::Attributes:
-            return 2;
-        case ERPGCharacterCreationWizardStep::Identity:
-            return 3;
-        case ERPGCharacterCreationWizardStep::Summary:
-            return 4;
-        default:
-            return 0;
+        case ERPGCharacterCreationWizardStep::Race: return 0;
+        case ERPGCharacterCreationWizardStep::Class: return 1;
+        case ERPGCharacterCreationWizardStep::Attributes: return 2;
+        case ERPGCharacterCreationWizardStep::Identity: return 3;
+        case ERPGCharacterCreationWizardStep::Summary: return 4;
+        default: return 0;
         }
     }
 
@@ -48,18 +42,12 @@ namespace
     {
         switch (FMath::Clamp (StepIndex, 0, CharacterCreationWizardStepCount - 1))
         {
-        case 0:
-            return ERPGCharacterCreationWizardStep::Race;
-        case 1:
-            return ERPGCharacterCreationWizardStep::Class;
-        case 2:
-            return ERPGCharacterCreationWizardStep::Attributes;
-        case 3:
-            return ERPGCharacterCreationWizardStep::Identity;
-        case 4:
-            return ERPGCharacterCreationWizardStep::Summary;
-        default:
-            return ERPGCharacterCreationWizardStep::Race;
+        case 0: return ERPGCharacterCreationWizardStep::Race;
+        case 1: return ERPGCharacterCreationWizardStep::Class;
+        case 2: return ERPGCharacterCreationWizardStep::Attributes;
+        case 3: return ERPGCharacterCreationWizardStep::Identity;
+        case 4: return ERPGCharacterCreationWizardStep::Summary;
+        default: return ERPGCharacterCreationWizardStep::Race;
         }
     }
 
@@ -67,18 +55,12 @@ namespace
     {
         switch (Step)
         {
-        case ERPGCharacterCreationWizardStep::Race:
-            return FText::FromString (TEXT ("Race"));
-        case ERPGCharacterCreationWizardStep::Class:
-            return FText::FromString (TEXT ("Classe"));
-        case ERPGCharacterCreationWizardStep::Attributes:
-            return FText::FromString (TEXT ("Caractéristiques"));
-        case ERPGCharacterCreationWizardStep::Identity:
-            return FText::FromString (TEXT ("Identité"));
-        case ERPGCharacterCreationWizardStep::Summary:
-            return FText::FromString (TEXT ("Résumé"));
-        default:
-            return FText::GetEmpty ();
+        case ERPGCharacterCreationWizardStep::Race: return FText::FromString (TEXT ("Race"));
+        case ERPGCharacterCreationWizardStep::Class: return FText::FromString (TEXT ("Classe"));
+        case ERPGCharacterCreationWizardStep::Attributes: return FText::FromString (TEXT ("Caracteristiques"));
+        case ERPGCharacterCreationWizardStep::Identity: return FText::FromString (TEXT ("Identite"));
+        case ERPGCharacterCreationWizardStep::Summary: return FText::FromString (TEXT ("Resume"));
+        default: return FText::GetEmpty ();
         }
     }
 
@@ -99,59 +81,23 @@ namespace
 
     int32 GetAttributeValue (const FRPGAttributes& Attributes, FName AttributeId)
     {
-        if (AttributeId == AttributeStrength)
-        {
-            return Attributes.Strength;
-        }
-        if (AttributeId == AttributeDexterity)
-        {
-            return Attributes.Dexterity;
-        }
-        if (AttributeId == AttributeConstitution)
-        {
-            return Attributes.Constitution;
-        }
-        if (AttributeId == AttributeIntelligence)
-        {
-            return Attributes.Intelligence;
-        }
-        if (AttributeId == AttributeWisdom)
-        {
-            return Attributes.Wisdom;
-        }
-        if (AttributeId == AttributeCharisma)
-        {
-            return Attributes.Charisma;
-        }
+        if (AttributeId == AttributeStrength) return Attributes.Strength;
+        if (AttributeId == AttributeDexterity) return Attributes.Dexterity;
+        if (AttributeId == AttributeConstitution) return Attributes.Constitution;
+        if (AttributeId == AttributeIntelligence) return Attributes.Intelligence;
+        if (AttributeId == AttributeWisdom) return Attributes.Wisdom;
+        if (AttributeId == AttributeCharisma) return Attributes.Charisma;
         return 0;
     }
 
     void SetAttributeValue (FRPGAttributes& Attributes, FName AttributeId, int32 Value)
     {
-        if (AttributeId == AttributeStrength)
-        {
-            Attributes.Strength = Value;
-        }
-        else if (AttributeId == AttributeDexterity)
-        {
-            Attributes.Dexterity = Value;
-        }
-        else if (AttributeId == AttributeConstitution)
-        {
-            Attributes.Constitution = Value;
-        }
-        else if (AttributeId == AttributeIntelligence)
-        {
-            Attributes.Intelligence = Value;
-        }
-        else if (AttributeId == AttributeWisdom)
-        {
-            Attributes.Wisdom = Value;
-        }
-        else if (AttributeId == AttributeCharisma)
-        {
-            Attributes.Charisma = Value;
-        }
+        if (AttributeId == AttributeStrength) Attributes.Strength = Value;
+        else if (AttributeId == AttributeDexterity) Attributes.Dexterity = Value;
+        else if (AttributeId == AttributeConstitution) Attributes.Constitution = Value;
+        else if (AttributeId == AttributeIntelligence) Attributes.Intelligence = Value;
+        else if (AttributeId == AttributeWisdom) Attributes.Wisdom = Value;
+        else if (AttributeId == AttributeCharisma) Attributes.Charisma = Value;
     }
 
     FRPGAttributes ClampAllocatedAttributes (const FRPGAttributes& Attributes, int32 InMinimum, int32 InMaximum)
@@ -170,12 +116,8 @@ namespace
 
     int32 SumAttributePointsAboveMinimum (const FRPGAttributes& Attributes, int32 Minimum)
     {
-        return FMath::Max (0, Attributes.Strength - Minimum) +
-            FMath::Max (0, Attributes.Dexterity - Minimum) +
-            FMath::Max (0, Attributes.Constitution - Minimum) +
-            FMath::Max (0, Attributes.Intelligence - Minimum) +
-            FMath::Max (0, Attributes.Wisdom - Minimum) +
-            FMath::Max (0, Attributes.Charisma - Minimum);
+        return FMath::Max (0, Attributes.Strength - Minimum) + FMath::Max (0, Attributes.Dexterity - Minimum) + FMath::Max (0, Attributes.Constitution - Minimum) +
+            FMath::Max (0, Attributes.Intelligence - Minimum) + FMath::Max (0, Attributes.Wisdom - Minimum) + FMath::Max (0, Attributes.Charisma - Minimum);
     }
 
     FString NormalizeCharacterName (UEditableText* EditableText)
@@ -183,6 +125,33 @@ namespace
         FString Name = EditableText ? EditableText->GetText ().ToString () : FString ();
         Name.TrimStartAndEndInline ();
         return Name;
+    }
+
+    FString GetDisplayNameString (const FText& DisplayName, FName FallbackId)
+    {
+        return DisplayName.IsEmpty () ? (FallbackId.IsNone () ? FString (TEXT ("-")) : FallbackId.ToString ()) : DisplayName.ToString ();
+    }
+
+    FString GetGenderDisplayNameString (ERPGCharacterPortraitGender Gender)
+    {
+        return Gender == ERPGCharacterPortraitGender::Female ? FString (TEXT ("Feminin")) : FString (TEXT ("Masculin"));
+    }
+
+    FString FormatAttributeSummaryLine (const TCHAR* Label, FName AttributeId, const FRPGAttributes& ClassAttributes, const FRPGAttributes& RaceBonuses, const FRPGAttributes& FinalAttributes)
+    {
+        const int32 ClassValue = GetAttributeValue (ClassAttributes, AttributeId);
+        const int32 RaceValue = GetAttributeValue (RaceBonuses, AttributeId);
+        const int32 FinalValue = GetAttributeValue (FinalAttributes, AttributeId);
+        const int32 Modifier = URPGCharacterRulesLibrary::GetAttributeModifier (FinalValue);
+        return FString::Printf (TEXT ("%s : classe %d | race %+d | total %d | mod %+d"), Label, ClassValue, RaceValue, FinalValue, Modifier);
+    }
+
+    void SetWizardOptionalText (UTextBlock* TextBlock, const FString& Value)
+    {
+        if (TextBlock)
+        {
+            TextBlock->SetText (FText::FromString (Value));
+        }
     }
 }
 
@@ -212,13 +181,11 @@ void URPGCharacterCreationWizardWidget::BindWizardButtons ()
         Button_Previous->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandlePreviousClicked);
         Button_Previous->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandlePreviousClicked);
     }
-
     if (Button_Next)
     {
         Button_Next->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleNextClicked);
         Button_Next->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleNextClicked);
     }
-
     if (Button_Cancel)
     {
         Button_Cancel->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCancelClicked);
@@ -242,12 +209,10 @@ void URPGCharacterCreationWizardWidget::SetCurrentWizardStep (ERPGCharacterCreat
     CurrentWizardStep = NewStep;
     ApplyWizardStepToSwitcher ();
     RefreshWizardShell ();
-
     if (PreviousStep != CurrentWizardStep)
     {
         OnWizardStepChanged (PreviousStep, CurrentWizardStep);
     }
-
     if (bFocusNameInputOnIdentityStep && CurrentWizardStep == ERPGCharacterCreationWizardStep::Identity)
     {
         FocusNameInput ();
@@ -256,20 +221,14 @@ void URPGCharacterCreationWizardWidget::SetCurrentWizardStep (ERPGCharacterCreat
 
 bool URPGCharacterCreationWizardWidget::GoToNextWizardStep ()
 {
-    if (!CanGoToNextWizardStep ())
-    {
-        return false;
-    }
+    if (!CanGoToNextWizardStep ()) return false;
     SetCurrentWizardStep (GetWizardStepFromIndex (GetCurrentWizardStepIndex () + 1));
     return true;
 }
 
 bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep ()
 {
-    if (!CanGoToPreviousWizardStep ())
-    {
-        return false;
-    }
+    if (!CanGoToPreviousWizardStep ()) return false;
     SetCurrentWizardStep (GetWizardStepFromIndex (GetCurrentWizardStepIndex () - 1));
     return true;
 }
@@ -285,40 +244,13 @@ void URPGCharacterCreationWizardWidget::CancelWizard ()
     RemoveFromParent ();
 }
 
-bool URPGCharacterCreationWizardWidget::CanGoToNextWizardStep () const
-{
-    return GetCurrentWizardStepIndex () < CharacterCreationWizardStepCount - 1;
-}
-
-bool URPGCharacterCreationWizardWidget::CanGoToPreviousWizardStep () const
-{
-    return GetCurrentWizardStepIndex () > 0;
-}
-
-bool URPGCharacterCreationWizardWidget::IsWizardOnLastStep () const
-{
-    return GetCurrentWizardStepIndex () == CharacterCreationWizardStepCount - 1;
-}
-
-int32 URPGCharacterCreationWizardWidget::GetCurrentWizardStepIndex () const
-{
-    return GetWizardStepIndex (CurrentWizardStep);
-}
-
-int32 URPGCharacterCreationWizardWidget::GetCurrentWizardStepNumber () const
-{
-    return GetCurrentWizardStepIndex () + 1;
-}
-
-int32 URPGCharacterCreationWizardWidget::GetWizardStepCount () const
-{
-    return CharacterCreationWizardStepCount;
-}
-
-FText URPGCharacterCreationWizardWidget::GetCurrentWizardStepTitle () const
-{
-    return GetWizardStepTitleText (CurrentWizardStep);
-}
+bool URPGCharacterCreationWizardWidget::CanGoToNextWizardStep () const { return GetCurrentWizardStepIndex () < CharacterCreationWizardStepCount - 1; }
+bool URPGCharacterCreationWizardWidget::CanGoToPreviousWizardStep () const { return GetCurrentWizardStepIndex () > 0; }
+bool URPGCharacterCreationWizardWidget::IsWizardOnLastStep () const { return GetCurrentWizardStepIndex () == CharacterCreationWizardStepCount - 1; }
+int32 URPGCharacterCreationWizardWidget::GetCurrentWizardStepIndex () const { return GetWizardStepIndex (CurrentWizardStep); }
+int32 URPGCharacterCreationWizardWidget::GetCurrentWizardStepNumber () const { return GetCurrentWizardStepIndex () + 1; }
+int32 URPGCharacterCreationWizardWidget::GetWizardStepCount () const { return CharacterCreationWizardStepCount; }
+FText URPGCharacterCreationWizardWidget::GetCurrentWizardStepTitle () const { return GetWizardStepTitleText (CurrentWizardStep); }
 
 void URPGCharacterCreationWizardWidget::RefreshPreview ()
 {
@@ -339,14 +271,8 @@ bool URPGCharacterCreationWizardWidget::CanSubmitCharacterCreation () const
 bool URPGCharacterCreationWizardWidget::GetPreviewAttributes (FRPGAttributes& OutAttributes) const
 {
     OutAttributes = FRPGAttributes ();
-    if (!RaceDefinition || !RaceDefinition->IsValidDefinition () || !ClassDefinition || !ClassDefinition->IsValidDefinition ())
-    {
-        return false;
-    }
-
-    OutAttributes = URPGCharacterRulesLibrary::AddAttributes (
-        GetAllocatedClassAttributesForPreview (),
-        RaceDefinition->AttributeBonuses);
+    if (!RaceDefinition || !RaceDefinition->IsValidDefinition () || !ClassDefinition || !ClassDefinition->IsValidDefinition ()) return false;
+    OutAttributes = URPGCharacterRulesLibrary::AddAttributes (GetAllocatedClassAttributesForPreview (), RaceDefinition->AttributeBonuses);
     return true;
 }
 
@@ -354,11 +280,7 @@ bool URPGCharacterCreationWizardWidget::GetPreviewDerivedStats (FRPGDerivedStats
 {
     OutDerivedStats = FRPGDerivedStats ();
     FRPGAttributes Attributes;
-    if (!GetPreviewAttributes (Attributes))
-    {
-        return false;
-    }
-
+    if (!GetPreviewAttributes (Attributes)) return false;
     OutDerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats (Attributes, ClassDefinition, 1);
     return true;
 }
@@ -366,57 +288,100 @@ bool URPGCharacterCreationWizardWidget::GetPreviewDerivedStats (FRPGDerivedStats
 float URPGCharacterCreationWizardWidget::GetPreviewCarryWeight () const
 {
     FRPGAttributes Attributes;
-    return GetPreviewAttributes (Attributes)
-        ? URPGCharacterRulesLibrary::CalculateMaxCarryWeight (Attributes)
-        : 0.0f;
+    return GetPreviewAttributes (Attributes) ? URPGCharacterRulesLibrary::CalculateMaxCarryWeight (Attributes) : 0.0f;
 }
 
 void URPGCharacterCreationWizardWidget::RefreshWizardShell ()
 {
-    if (Text_StepTitle)
-    {
-        Text_StepTitle->SetText (GetCurrentWizardStepTitle ());
-    }
-
+    if (Text_StepTitle) Text_StepTitle->SetText (GetCurrentWizardStepTitle ());
     if (Text_StepCounter)
     {
-        Text_StepCounter->SetText (FText::Format (FText::FromString (TEXT ("{0} / {1}")), FText::AsNumber (GetCurrentWizardStepNumber ()),
-            FText::AsNumber (GetWizardStepCount ())));
+        Text_StepCounter->SetText (FText::Format (FText::FromString (TEXT ("{0} / {1}")), FText::AsNumber (GetCurrentWizardStepNumber ()), FText::AsNumber (GetWizardStepCount ())));
     }
-
-    if (Button_Previous)
-    {
-        Button_Previous->SetIsEnabled (CanGoToPreviousWizardStep ());
-    }
-
+    if (Button_Previous) Button_Previous->SetIsEnabled (CanGoToPreviousWizardStep ());
     if (Button_Next)
     {
         Button_Next->SetVisibility (GetVisibleWhen (CanGoToNextWizardStep ()));
         Button_Next->SetIsEnabled (CanGoToNextWizardStep ());
     }
-
     if (Button_CreateCharacter)
     {
         Button_CreateCharacter->SetVisibility (GetVisibleWhen (IsWizardOnLastStep ()));
         Button_CreateCharacter->SetIsEnabled (IsWizardOnLastStep () && CanSubmitCharacterCreation ());
     }
-
     if (Button_Cancel)
     {
         Button_Cancel->SetVisibility (GetVisibleWhen (bAllowCancel));
         Button_Cancel->SetIsEnabled (bAllowCancel);
     }
+    RefreshSummaryStep ();
+    UE_LOG (LogTemp, Verbose, TEXT ("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"), *GetName (), GetCurrentWizardStepIndex (), *GetCurrentWizardStepTitle ().ToString ());
+}
 
-    UE_LOG (LogTemp, Verbose, TEXT ("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"), *GetName (), GetCurrentWizardStepIndex (),
-        *GetCurrentWizardStepTitle ().ToString ());
+void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
+{
+    const FString Name = NormalizeCharacterName (EditableText_Name);
+    const FString DisplayName = Name.IsEmpty () ? FString (TEXT ("-")) : Name;
+    const FString RaceName = RaceDefinition && RaceDefinition->IsValidDefinition () ? GetDisplayNameString (RaceDefinition->DisplayName, RaceDefinition->RaceId) : FString (TEXT ("-"));
+    const FString ClassName = ClassDefinition && ClassDefinition->IsValidDefinition () ? GetDisplayNameString (ClassDefinition->DisplayName, ClassDefinition->ClassId) : FString (TEXT ("-"));
+    const FString GenderName = GetGenderDisplayNameString (SelectedPortraitGender);
+
+    FRPGCharacterPortraitVariant PortraitVariant;
+    FString PortraitName = TEXT ("-");
+    if (TryResolveWizardSelectedPortraitVariant (PortraitVariant)) PortraitName = GetDisplayNameString (PortraitVariant.DisplayName, PortraitVariant.VariantId);
+    else if (!SelectedPortraitVariantId.IsNone ()) PortraitName = SelectedPortraitVariantId.ToString ();
+
+    FRPGAttributes FinalAttributes;
+    const bool bHasAttributes = GetPreviewAttributes (FinalAttributes);
+    const FRPGAttributes ClassAttributes = GetAllocatedClassAttributesForPreview ();
+    const FRPGAttributes RaceBonuses = RaceDefinition ? RaceDefinition->AttributeBonuses : FRPGAttributes (0, 0, 0, 0, 0, 0);
+    FRPGDerivedStats DerivedStats;
+    const bool bHasDerivedStats = GetPreviewDerivedStats (DerivedStats);
+
+    const FString StrengthLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Force"), AttributeStrength, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Force : -"));
+    const FString DexterityLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Dexterite"), AttributeDexterity, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Dexterite : -"));
+    const FString ConstitutionLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Constitution"), AttributeConstitution, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Constitution : -"));
+    const FString IntelligenceLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Intelligence"), AttributeIntelligence, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Intelligence : -"));
+    const FString WisdomLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Sagesse"), AttributeWisdom, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Sagesse : -"));
+    const FString CharismaLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Charisme"), AttributeCharisma, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Charisme : -"));
+    const FString HealthLine = bHasDerivedStats ? FString::Printf (TEXT ("PV : %d"), DerivedStats.MaxHealth) : FString (TEXT ("PV : -"));
+    const FString ManaLine = bHasDerivedStats ? FString::Printf (TEXT ("Mana : %d"), DerivedStats.MaxMana) : FString (TEXT ("Mana : -"));
+    const FString CarryLine = bHasAttributes ? FString::Printf (TEXT ("Charge max. : %d"), FMath::RoundToInt (GetPreviewCarryWeight ())) : FString (TEXT ("Charge max. : -"));
+
+    FString State;
+    if (CanSubmitCharacterCreation ()) State = TEXT ("Pret a creer le personnage.");
+    else if (!InventoryComponent) State = TEXT ("Creation impossible : inventaire indisponible.");
+    else if (Name.Len () < 1) State = TEXT ("Creation impossible : saisissez un nom.");
+    else if (Name.Len () > 24) State = TEXT ("Creation impossible : le nom depasse 24 caracteres.");
+    else if (!RaceDefinition || !RaceDefinition->IsValidDefinition ()) State = TEXT ("Creation impossible : race invalide.");
+    else if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) State = TEXT ("Creation impossible : classe invalide.");
+    else if (GetRemainingAttributePoints () > 0) State = FString::Printf (TEXT ("Creation impossible : %d point(s) a repartir."), GetRemainingAttributePoints ());
+    else State = TEXT ("Creation impossible : verifiez les choix precedents.");
+
+    SetWizardOptionalText (Text_SummaryName, FString::Printf (TEXT ("Nom : %s"), *DisplayName));
+    SetWizardOptionalText (Text_SummaryRace, FString::Printf (TEXT ("Race : %s"), *RaceName));
+    SetWizardOptionalText (Text_SummaryClass, FString::Printf (TEXT ("Classe : %s"), *ClassName));
+    SetWizardOptionalText (Text_SummaryGender, FString::Printf (TEXT ("Genre : %s"), *GenderName));
+    SetWizardOptionalText (Text_SummaryPortrait, FString::Printf (TEXT ("Portrait : %s"), *PortraitName));
+    SetWizardOptionalText (Text_SummaryStrength, StrengthLine);
+    SetWizardOptionalText (Text_SummaryDexterity, DexterityLine);
+    SetWizardOptionalText (Text_SummaryConstitution, ConstitutionLine);
+    SetWizardOptionalText (Text_SummaryIntelligence, IntelligenceLine);
+    SetWizardOptionalText (Text_SummaryWisdom, WisdomLine);
+    SetWizardOptionalText (Text_SummaryCharisma, CharismaLine);
+    SetWizardOptionalText (Text_SummaryHealth, HealthLine);
+    SetWizardOptionalText (Text_SummaryMana, ManaLine);
+    SetWizardOptionalText (Text_SummaryCarryWeight, CarryLine);
+    SetWizardOptionalText (Text_SummaryValidationState, State);
+
+    const FString FullSummary = FString::Printf (TEXT ("Verifiez vos choix avant de creer le personnage.\n\nNom : %s\nRace : %s\nClasse : %s\nGenre : %s\nPortrait : %s\n\nCaracteristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s | %s | %s\n\n%s"),
+        *DisplayName, *RaceName, *ClassName, *GenderName, *PortraitName, *StrengthLine, *DexterityLine, *ConstitutionLine, *IntelligenceLine, *WisdomLine, *CharismaLine, *HealthLine, *ManaLine, *CarryLine, *State);
+    SetWizardOptionalText (Text_SummaryHelp, FullSummary);
 }
 
 void URPGCharacterCreationWizardWidget::ApplyWizardStepToSwitcher ()
 {
-    if (!WidgetSwitcher_Steps)
-    {
-        return;
-    }
+    if (!WidgetSwitcher_Steps) return;
     UWidget* StepPanel = GetPanelForWizardStep (CurrentWizardStep);
     if (StepPanel && StepPanel->GetParent () == WidgetSwitcher_Steps)
     {
@@ -430,18 +395,12 @@ UWidget* URPGCharacterCreationWizardWidget::GetPanelForWizardStep (ERPGCharacter
 {
     switch (Step)
     {
-    case ERPGCharacterCreationWizardStep::Race:
-        return Panel_StepRace;
-    case ERPGCharacterCreationWizardStep::Class:
-        return Panel_StepClass;
-    case ERPGCharacterCreationWizardStep::Attributes:
-        return Panel_StepAttributes;
-    case ERPGCharacterCreationWizardStep::Identity:
-        return Panel_StepIdentity;
-    case ERPGCharacterCreationWizardStep::Summary:
-        return Panel_StepSummary;
-    default:
-        return nullptr;
+    case ERPGCharacterCreationWizardStep::Race: return Panel_StepRace;
+    case ERPGCharacterCreationWizardStep::Class: return Panel_StepClass;
+    case ERPGCharacterCreationWizardStep::Attributes: return Panel_StepAttributes;
+    case ERPGCharacterCreationWizardStep::Identity: return Panel_StepIdentity;
+    case ERPGCharacterCreationWizardStep::Summary: return Panel_StepSummary;
+    default: return nullptr;
     }
 }
 
@@ -454,21 +413,14 @@ void URPGCharacterCreationWizardWidget::ResetAttributeAllocationToClassDefinitio
         bHasInitializedAllocatedClassAttributes = false;
         return;
     }
-
-    AllocatedClassAttributes = ClampAllocatedAttributes (
-        ClassDefinition->BaseAttributes,
-        AttributeAllocationMinimum,
-        AttributeAllocationMaximum);
+    AllocatedClassAttributes = ClampAllocatedAttributes (ClassDefinition->BaseAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum);
     AllocatedClassId = ClassDefinition->ClassId;
     bHasInitializedAllocatedClassAttributes = true;
 }
 
 void URPGCharacterCreationWizardWidget::EnsureAttributeAllocationInitialized ()
 {
-    if (!bHasInitializedAllocatedClassAttributes ||
-        !ClassDefinition ||
-        !ClassDefinition->IsValidDefinition () ||
-        AllocatedClassId != ClassDefinition->ClassId)
+    if (!bHasInitializedAllocatedClassAttributes || !ClassDefinition || !ClassDefinition->IsValidDefinition () || AllocatedClassId != ClassDefinition->ClassId)
     {
         ResetAttributeAllocationToClassDefinition ();
     }
@@ -477,58 +429,35 @@ void URPGCharacterCreationWizardWidget::EnsureAttributeAllocationInitialized ()
 void URPGCharacterCreationWizardWidget::AdjustAllocatedAttribute (FName AttributeId, int32 Delta)
 {
     EnsureAttributeAllocationInitialized ();
-    if (Delta > 0 && !CanIncreaseAllocatedAttribute (AttributeId))
-    {
-        return;
-    }
-    if (Delta < 0 && !CanDecreaseAllocatedAttribute (AttributeId))
-    {
-        return;
-    }
-
+    if (Delta > 0 && !CanIncreaseAllocatedAttribute (AttributeId)) return;
+    if (Delta < 0 && !CanDecreaseAllocatedAttribute (AttributeId)) return;
     const int32 CurrentValue = GetAttributeValue (AllocatedClassAttributes, AttributeId);
-    const int32 Minimum = GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum);
-    const int32 Maximum = GetSafeAllocationMaximum (AttributeAllocationMinimum, AttributeAllocationMaximum);
-    SetAttributeValue (AllocatedClassAttributes, AttributeId, FMath::Clamp (CurrentValue + Delta, Minimum, Maximum));
+    SetAttributeValue (AllocatedClassAttributes, AttributeId, FMath::Clamp (CurrentValue + Delta, GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum), GetSafeAllocationMaximum (AttributeAllocationMinimum, AttributeAllocationMaximum)));
     SetValidationMessage (FText::GetEmpty (), false);
     RefreshPreview ();
 }
 
 bool URPGCharacterCreationWizardWidget::CanIncreaseAllocatedAttribute (FName AttributeId) const
 {
-    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
-    {
-        return false;
-    }
-    return GetRemainingAttributePoints () > 0 &&
+    return ClassDefinition && ClassDefinition->IsValidDefinition () && GetRemainingAttributePoints () > 0 &&
         GetAttributeValue (GetAllocatedClassAttributesForPreview (), AttributeId) < GetSafeAllocationMaximum (AttributeAllocationMinimum, AttributeAllocationMaximum);
 }
 
 bool URPGCharacterCreationWizardWidget::CanDecreaseAllocatedAttribute (FName AttributeId) const
 {
-    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
-    {
-        return false;
-    }
-    return GetAttributeValue (GetAllocatedClassAttributesForPreview (), AttributeId) > GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum);
+    return ClassDefinition && ClassDefinition->IsValidDefinition () &&
+        GetAttributeValue (GetAllocatedClassAttributesForPreview (), AttributeId) > GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum);
 }
 
 int32 URPGCharacterCreationWizardWidget::GetAttributePointBudget () const
 {
-    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
-    {
-        return 0;
-    }
-    const int32 Minimum = GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum);
-    return SumAttributePointsAboveMinimum (
-        ClampAllocatedAttributes (ClassDefinition->BaseAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum),
-        Minimum);
+    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) return 0;
+    return SumAttributePointsAboveMinimum (ClampAllocatedAttributes (ClassDefinition->BaseAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum), GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum));
 }
 
 int32 URPGCharacterCreationWizardWidget::GetAllocatedAttributePointsSpent () const
 {
-    const int32 Minimum = GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum);
-    return SumAttributePointsAboveMinimum (GetAllocatedClassAttributesForPreview (), Minimum);
+    return SumAttributePointsAboveMinimum (GetAllocatedClassAttributesForPreview (), GetSafeAllocationMinimum (AttributeAllocationMinimum, AttributeAllocationMaximum));
 }
 
 int32 URPGCharacterCreationWizardWidget::GetRemainingAttributePoints () const
@@ -542,48 +471,36 @@ FRPGAttributes URPGCharacterCreationWizardWidget::GetAllocatedClassAttributesFor
     {
         return ClampAllocatedAttributes (AllocatedClassAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum);
     }
-
-    if (ClassDefinition && ClassDefinition->IsValidDefinition ())
-    {
-        return ClampAllocatedAttributes (ClassDefinition->BaseAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum);
-    }
-
-    return FRPGAttributes ();
+    return ClassDefinition && ClassDefinition->IsValidDefinition () ? ClampAllocatedAttributes (ClassDefinition->BaseAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum) : FRPGAttributes ();
 }
 
 bool URPGCharacterCreationWizardWidget::IsUsingRecommendedAttributes () const
 {
-    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
-    {
-        return true;
-    }
-
+    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) return true;
     const FRPGAttributes Current = GetAllocatedClassAttributesForPreview ();
     const FRPGAttributes Recommended = ClampAllocatedAttributes (ClassDefinition->BaseAttributes, AttributeAllocationMinimum, AttributeAllocationMaximum);
-    return Current.Strength == Recommended.Strength &&
-        Current.Dexterity == Recommended.Dexterity &&
-        Current.Constitution == Recommended.Constitution &&
-        Current.Intelligence == Recommended.Intelligence &&
-        Current.Wisdom == Recommended.Wisdom &&
-        Current.Charisma == Recommended.Charisma;
+    return Current.Strength == Recommended.Strength && Current.Dexterity == Recommended.Dexterity && Current.Constitution == Recommended.Constitution &&
+        Current.Intelligence == Recommended.Intelligence && Current.Wisdom == Recommended.Wisdom && Current.Charisma == Recommended.Charisma;
 }
 
 TSoftObjectPtr<UTexture2D> URPGCharacterCreationWizardWidget::ResolveWizardSelectedClassIcon () const
 {
-    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ())
-    {
-        return TSoftObjectPtr<UTexture2D> ();
-    }
-
+    if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) return TSoftObjectPtr<UTexture2D> ();
     for (const URPGClassVisualAsset* ClassVisual : AvailableClassVisuals)
     {
-        if (ClassVisual && ClassVisual->IsValidForClass (ClassDefinition->ClassId))
-        {
-            return ClassVisual->ClassIcon;
-        }
+        if (ClassVisual && ClassVisual->IsValidForClass (ClassDefinition->ClassId)) return ClassVisual->ClassIcon;
     }
-
     return TSoftObjectPtr<UTexture2D> ();
+}
+
+bool URPGCharacterCreationWizardWidget::TryResolveWizardSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const
+{
+    if (!RaceDefinition || !RaceDefinition->IsValidDefinition ()) return false;
+    for (const URPGCharacterPortraitSetAsset* PortraitSet : AvailablePortraitSets)
+    {
+        if (PortraitSet && PortraitSet->IsValidForRace (RaceDefinition->RaceId) && PortraitSet->FindPortraitVariant (SelectedPortraitGender, SelectedPortraitVariantId, OutVariant)) return true;
+    }
+    return false;
 }
 
 bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
@@ -593,20 +510,17 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
         SetValidationMessage (FText::FromString (TEXT ("Composant d'inventaire indisponible.")), true);
         return false;
     }
-
     if (GetRemainingAttributePoints () > 0)
     {
-        SetValidationMessage (FText::FromString (TEXT ("Répartissez tous les points de caractéristiques avant de créer le personnage.")), true);
+        SetValidationMessage (FText::FromString (TEXT ("Repartissez tous les points de caracteristiques avant de creer le personnage.")), true);
         return false;
     }
-
     const FString NormalizedName = NormalizeCharacterName (EditableText_Name);
     if (NormalizedName.Len () < 1 || NormalizedName.Len () > 24)
     {
-        SetValidationMessage (FText::FromString (TEXT ("Le nom du personnage doit contenir entre 1 et 24 caractères.")), true);
+        SetValidationMessage (FText::FromString (TEXT ("Le nom du personnage doit contenir entre 1 et 24 caracteres.")), true);
         return false;
     }
-
     if (!RaceDefinition || !RaceDefinition->IsValidDefinition () || !ClassDefinition || !ClassDefinition->IsValidDefinition ())
     {
         SetValidationMessage (FText::FromString (TEXT ("Une race et une classe valides sont requises.")), true);
@@ -616,10 +530,9 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     URPGClassAsset* EffectiveClassDefinition = DuplicateObject<URPGClassAsset> (ClassDefinition, this);
     if (!EffectiveClassDefinition)
     {
-        SetValidationMessage (FText::FromString (TEXT ("Impossible de préparer la classe du personnage.")), true);
+        SetValidationMessage (FText::FromString (TEXT ("Impossible de preparer la classe du personnage.")), true);
         return false;
     }
-
     EffectiveClassDefinition->BaseAttributes = GetAllocatedClassAttributesForPreview ();
 
     FRPGCharacterCreationRequest Request;
@@ -634,19 +547,16 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     FText Error;
     if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
-        SetValidationMessage (
-            Error.IsEmpty () ? FText::FromString (TEXT ("Création du personnage impossible.")) : Error,
-            true);
+        SetValidationMessage (Error.IsEmpty () ? FText::FromString (TEXT ("Creation du personnage impossible.")) : Error, true);
         RefreshPreview ();
         return false;
     }
 
-    InventoryComponent->SetCharacterVisualSelection (
-        0,
-        Request.PortraitGender,
-        Request.PortraitVariantId,
-        Request.Portrait,
-        Request.ClassIcon);
+    InventoryComponent->SetCharacterVisualSelection (0, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait, Request.ClassIcon);
+    const FRPGAttributes CreatedAttributes = GetAllocatedClassAttributesForPreview ();
+    UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard CreatedCharacter Name=%s Race=%s Class=%s ClassAttributes=%d/%d/%d/%d/%d/%d"), *NormalizedName,
+        RaceDefinition ? *RaceDefinition->RaceId.ToString () : TEXT ("None"), ClassDefinition ? *ClassDefinition->ClassId.ToString () : TEXT ("None"), CreatedAttributes.Strength,
+        CreatedAttributes.Dexterity, CreatedAttributes.Constitution, CreatedAttributes.Intelligence, CreatedAttributes.Wisdom, CreatedAttributes.Charisma);
 
     SetValidationMessage (FText::GetEmpty (), false);
     if (OwningPartyPawn)
@@ -656,22 +566,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     return true;
 }
 
-void URPGCharacterCreationWizardWidget::HandlePreviousClicked ()
-{
-    GoToPreviousWizardStep ();
-}
-
-void URPGCharacterCreationWizardWidget::HandleNextClicked ()
-{
-    GoToNextWizardStep ();
-}
-
-void URPGCharacterCreationWizardWidget::HandleCancelClicked ()
-{
-    CancelWizard ();
-}
-
-void URPGCharacterCreationWizardWidget::HandleWizardCreateCharacterClicked ()
-{
-    SubmitCharacterCreation ();
-}
+void URPGCharacterCreationWizardWidget::HandlePreviousClicked () { GoToPreviousWizardStep (); }
+void URPGCharacterCreationWizardWidget::HandleNextClicked () { GoToNextWizardStep (); }
+void URPGCharacterCreationWizardWidget::HandleCancelClicked () { CancelWizard (); }
+void URPGCharacterCreationWizardWidget::HandleWizardCreateCharacterClicked () { SubmitCharacterCreation (); }
