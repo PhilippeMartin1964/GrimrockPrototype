@@ -57,9 +57,9 @@ namespace
         {
         case ERPGCharacterCreationWizardStep::Race: return FText::FromString (TEXT ("Race"));
         case ERPGCharacterCreationWizardStep::Class: return FText::FromString (TEXT ("Classe"));
-        case ERPGCharacterCreationWizardStep::Attributes: return FText::FromString (TEXT ("Caracteristiques"));
-        case ERPGCharacterCreationWizardStep::Identity: return FText::FromString (TEXT ("Identite"));
-        case ERPGCharacterCreationWizardStep::Summary: return FText::FromString (TEXT ("Resume"));
+        case ERPGCharacterCreationWizardStep::Attributes: return FText::FromString (TEXT ("Caractéristiques"));
+        case ERPGCharacterCreationWizardStep::Identity: return FText::FromString (TEXT ("Identité"));
+        case ERPGCharacterCreationWizardStep::Summary: return FText::FromString (TEXT ("Resumé"));
         default: return FText::GetEmpty ();
         }
     }
@@ -134,7 +134,7 @@ namespace
 
     FString GetGenderDisplayNameString (ERPGCharacterPortraitGender Gender)
     {
-        return Gender == ERPGCharacterPortraitGender::Female ? FString (TEXT ("Feminin")) : FString (TEXT ("Masculin"));
+        return Gender == ERPGCharacterPortraitGender::Female ? FString (TEXT ("Féminin")) : FString (TEXT ("Masculin"));
     }
 
     FString FormatAttributeSummaryLine (const TCHAR* Label, FName AttributeId, const FRPGAttributes& ClassAttributes, const FRPGAttributes& RaceBonuses, const FRPGAttributes& FinalAttributes)
@@ -349,14 +349,14 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     const FString CarryLine = bHasAttributes ? FString::Printf (TEXT ("Charge max. : %d"), FMath::RoundToInt (GetPreviewCarryWeight ())) : FString (TEXT ("Charge max. : -"));
 
     FString State;
-    if (CanSubmitCharacterCreation ()) State = TEXT ("Pret a creer le personnage.");
-    else if (!InventoryComponent) State = TEXT ("Creation impossible : inventaire indisponible.");
-    else if (Name.Len () < 1) State = TEXT ("Creation impossible : saisissez un nom.");
-    else if (Name.Len () > 24) State = TEXT ("Creation impossible : le nom depasse 24 caracteres.");
-    else if (!RaceDefinition || !RaceDefinition->IsValidDefinition ()) State = TEXT ("Creation impossible : race invalide.");
-    else if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) State = TEXT ("Creation impossible : classe invalide.");
-    else if (GetRemainingAttributePoints () > 0) State = FString::Printf (TEXT ("Creation impossible : %d point(s) a repartir."), GetRemainingAttributePoints ());
-    else State = TEXT ("Creation impossible : verifiez les choix precedents.");
+    if (CanSubmitCharacterCreation ()) State = TEXT ("Prêt à créer le personnage.");
+    else if (!InventoryComponent) State = TEXT ("Création impossible : inventaire indisponible.");
+    else if (Name.Len () < 1) State = TEXT ("Création impossible : saisissez un nom.");
+    else if (Name.Len () > 24) State = TEXT ("Création impossible : le nom dépasse 24 caractères.");
+    else if (!RaceDefinition || !RaceDefinition->IsValidDefinition ()) State = TEXT ("Création impossible : race invalide.");
+    else if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) State = TEXT ("Création impossible : classe invalide.");
+    else if (GetRemainingAttributePoints () > 0) State = FString::Printf (TEXT ("Création impossible : %d point(s) à répartir."), GetRemainingAttributePoints ());
+    else State = TEXT ("Création impossible : vérifiez les choix précédents.");
 
     SetWizardOptionalText (Text_SummaryName, FString::Printf (TEXT ("Nom : %s"), *DisplayName));
     SetWizardOptionalText (Text_SummaryRace, FString::Printf (TEXT ("Race : %s"), *RaceName));
@@ -374,7 +374,7 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     SetWizardOptionalText (Text_SummaryCarryWeight, CarryLine);
     SetWizardOptionalText (Text_SummaryValidationState, State);
 
-    const FString FullSummary = FString::Printf (TEXT ("Verifiez vos choix avant de creer le personnage.\n\nNom : %s\nRace : %s\nClasse : %s\nGenre : %s\nPortrait : %s\n\nCaracteristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s | %s | %s\n\n%s"),
+    const FString FullSummary = FString::Printf (TEXT ("Vérifiez vos choix avant de créer le personnage.\n\nNom : %s\nRace : %s\nClasse : %s\nGenre : %s\nPortrait : %s\n\nCaractéristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s | %s | %s\n\n%s"),
         *DisplayName, *RaceName, *ClassName, *GenderName, *PortraitName, *StrengthLine, *DexterityLine, *ConstitutionLine, *IntelligenceLine, *WisdomLine, *CharismaLine, *HealthLine, *ManaLine, *CarryLine, *State);
     SetWizardOptionalText (Text_SummaryHelp, FullSummary);
 }
@@ -512,13 +512,13 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     }
     if (GetRemainingAttributePoints () > 0)
     {
-        SetValidationMessage (FText::FromString (TEXT ("Repartissez tous les points de caracteristiques avant de creer le personnage.")), true);
+        SetValidationMessage (FText::FromString (TEXT ("Répartissez tous les points de caractéristiques avant de créer le personnage.")), true);
         return false;
     }
     const FString NormalizedName = NormalizeCharacterName (EditableText_Name);
     if (NormalizedName.Len () < 1 || NormalizedName.Len () > 24)
     {
-        SetValidationMessage (FText::FromString (TEXT ("Le nom du personnage doit contenir entre 1 et 24 caracteres.")), true);
+        SetValidationMessage (FText::FromString (TEXT ("Le nom du personnage doit contenir entre 1 et 24 caractères.")), true);
         return false;
     }
     if (!RaceDefinition || !RaceDefinition->IsValidDefinition () || !ClassDefinition || !ClassDefinition->IsValidDefinition ())
@@ -530,7 +530,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     URPGClassAsset* EffectiveClassDefinition = DuplicateObject<URPGClassAsset> (ClassDefinition, this);
     if (!EffectiveClassDefinition)
     {
-        SetValidationMessage (FText::FromString (TEXT ("Impossible de preparer la classe du personnage.")), true);
+        SetValidationMessage (FText::FromString (TEXT ("Impossible de préparer la classe du personnage.")), true);
         return false;
     }
     EffectiveClassDefinition->BaseAttributes = GetAllocatedClassAttributesForPreview ();
@@ -547,7 +547,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     FText Error;
     if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
-        SetValidationMessage (Error.IsEmpty () ? FText::FromString (TEXT ("Creation du personnage impossible.")) : Error, true);
+        SetValidationMessage (Error.IsEmpty () ? FText::FromString (TEXT ("Création du personnage impossible.")) : Error, true);
         RefreshPreview ();
         return false;
     }
