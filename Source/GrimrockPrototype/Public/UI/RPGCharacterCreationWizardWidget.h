@@ -5,7 +5,9 @@
 #include "RPGCharacterCreationWizardWidget.generated.h"
 
 class UButton;
+class UImage;
 class UTextBlock;
+class UTexture2D;
 class UWidget;
 class UWidgetSwitcher;
 class URPGCharacterCreationAttributesStepWidget;
@@ -50,6 +52,39 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Attributes", meta = (ClampMin = "1"))
     int32 AttributeAllocationMaximum = 16;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryReadyIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryBlockedIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryStrengthIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryDexterityIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryConstitutionIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryIntelligenceIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryWisdomIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryCharismaIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryHealthIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryManaIcon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Summary Icons")
+    TSoftObjectPtr<UTexture2D> SummaryCarryWeightIcon;
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation|Wizard")
     void SetCurrentWizardStep (ERPGCharacterCreationWizardStep NewStep);
@@ -129,10 +164,12 @@ private:
     void BindWizardSubmitButton ();
     void RefreshWizardShell ();
     void RefreshSummaryStep ();
+    void RefreshSummaryVisuals (bool bCanCreateCharacter);
     void ApplyWizardStepToSwitcher ();
     UWidget* GetPanelForWizardStep (ERPGCharacterCreationWizardStep Step) const;
     void EnsureAttributeAllocationInitialized ();
     TSoftObjectPtr<UTexture2D> ResolveWizardSelectedClassIcon () const;
+    TSoftObjectPtr<UTexture2D> ResolveWizardSelectedPortrait () const;
     bool TryResolveWizardSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const;
 
     UFUNCTION ()
@@ -231,6 +268,42 @@ private:
 
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UTextBlock> Text_SummaryValidationState;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryPortrait;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryClassIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryValidationIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryStrengthIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryDexterityIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryConstitutionIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryIntelligenceIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryWisdomIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryCharismaIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryHealthIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryManaIcon;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UImage> Image_SummaryCarryWeightIcon;
 
     UPROPERTY (Transient)
     FRPGAttributes AllocatedClassAttributes;
