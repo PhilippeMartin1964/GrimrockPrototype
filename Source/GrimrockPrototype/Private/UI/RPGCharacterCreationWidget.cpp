@@ -857,7 +857,7 @@ TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedRaceIllus
 TSoftObjectPtr<UTexture2D> URPGCharacterCreationWidget::ResolveSelectedRaceEnvironment () const
 {
     const FRPGRaceIllustrationOption* RaceIllustration = FindRaceIllustrationForSelectedRaceAndGender ();
-    return RaceIllustration ? RaceIllustration->Illustration : TSoftObjectPtr<UTexture2D> ();
+    return RaceIllustration ? RaceIllustration->RaceEnvironment : TSoftObjectPtr<UTexture2D> ();
 }
 
 void URPGCharacterCreationWidget::RefreshClassIconPreview ()
