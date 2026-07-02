@@ -196,6 +196,10 @@ void URPGCharacterCreationWizardWidget::NativeConstruct ()
     {
         Widget_StepAttributes->InitializeAttributesStep (this);
     }
+    else
+    {
+        UE_LOG (LogTemp, Error, TEXT ("CharacterCreationWizard MissingRequiredWidget Widget=%s Expected=Widget_StepAttributes"), *GetName ());
+    }
     ApplyWizardStepToSwitcher ();
     RefreshWizardShell ();
     RefreshPreview ();
