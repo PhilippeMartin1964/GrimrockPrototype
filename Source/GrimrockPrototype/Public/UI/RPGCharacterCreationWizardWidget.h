@@ -173,7 +173,7 @@ private:
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UWidget> Panel_StepAttributes;
 
-    UPROPERTY (meta = (BindWidgetOptional))
+    UPROPERTY (meta = (BindWidget))
     TObjectPtr<URPGCharacterCreationAttributesStepWidget> Widget_StepAttributes;
 
     UPROPERTY (meta = (BindWidgetOptional))
