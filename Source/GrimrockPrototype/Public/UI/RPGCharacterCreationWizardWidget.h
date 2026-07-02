@@ -128,10 +128,12 @@ private:
     void BindWizardButtons ();
     void BindWizardSubmitButton ();
     void RefreshWizardShell ();
+    void RefreshSummaryStep ();
     void ApplyWizardStepToSwitcher ();
     UWidget* GetPanelForWizardStep (ERPGCharacterCreationWizardStep Step) const;
     void EnsureAttributeAllocationInitialized ();
     TSoftObjectPtr<UTexture2D> ResolveWizardSelectedClassIcon () const;
+    bool TryResolveWizardSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const;
 
     UFUNCTION ()
     void HandlePreviousClicked ();
@@ -181,6 +183,54 @@ private:
 
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UWidget> Panel_StepSummary;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryHelp;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryName;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryRace;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryClass;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryGender;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryPortrait;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryStrength;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryDexterity;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryConstitution;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryIntelligence;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryWisdom;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryCharisma;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryHealth;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryMana;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryCarryWeight;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UTextBlock> Text_SummaryValidationState;
 
     UPROPERTY (Transient)
     FRPGAttributes AllocatedClassAttributes;
