@@ -2,6 +2,7 @@
 
 #include "Components/Button.h"
 #include "Components/EditableText.h"
+#include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
@@ -151,6 +152,34 @@ namespace
         if (TextBlock)
         {
             TextBlock->SetText (FText::FromString (Value));
+        }
+    }
+
+    void SetWizardOptionalImageBrush (UImage* Image, const TSoftObjectPtr<UTexture2D>& TextureRef, bool bCollapseWhenMissing)
+    {
+        if (!Image)
+        {
+            return;
+        }
+
+        if (TextureRef.IsNull ())
+        {
+            if (bCollapseWhenMissing)
+            {
+                Image->SetVisibility (ESlateVisibility::Collapsed);
+            }
+            return;
+        }
+
+        UTexture2D* Texture = TextureRef.LoadSynchronous ();
+        if (Texture)
+        {
+            Image->SetBrushFromTexture (Texture, true);
+            Image->SetVisibility (ESlateVisibility::Visible);
+        }
+        else if (bCollapseWhenMissing)
+        {
+            Image->SetVisibility (ESlateVisibility::Collapsed);
         }
     }
 }
@@ -374,9 +403,28 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     SetWizardOptionalText (Text_SummaryCarryWeight, CarryLine);
     SetWizardOptionalText (Text_SummaryValidationState, State);
 
+    const bool bCanCreateCharacter = CanSubmitCharacterCreation ();
+    RefreshSummaryVisuals (bCanCreateCharacter);
+
     const FString FullSummary = FString::Printf (TEXT ("%s\n%s · %s · %s\nPortrait : %s\n\nCaractéristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\nStatistiques dérivées\n%s | %s | %s\n\n%s"),
         *DisplayName, *RaceName, *ClassName, *GenderName, *PortraitName, *StrengthLine, *DexterityLine, *ConstitutionLine, *IntelligenceLine, *WisdomLine, *CharismaLine, *HealthLine, *ManaLine, *CarryLine, *State);
     SetWizardOptionalText (Text_SummaryHelp, FullSummary);
+}
+
+void URPGCharacterCreationWizardWidget::RefreshSummaryVisuals (bool bCanCreateCharacter)
+{
+    SetWizardOptionalImageBrush (Image_SummaryPortrait, ResolveWizardSelectedPortrait (), true);
+    SetWizardOptionalImageBrush (Image_SummaryClassIcon, ResolveWizardSelectedClassIcon (), true);
+    SetWizardOptionalImageBrush (Image_SummaryValidationIcon, bCanCreateCharacter ? SummaryReadyIcon : SummaryBlockedIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryStrengthIcon, SummaryStrengthIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryDexterityIcon, SummaryDexterityIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryConstitutionIcon, SummaryConstitutionIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryIntelligenceIcon, SummaryIntelligenceIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryWisdomIcon, SummaryWisdomIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryCharismaIcon, SummaryCharismaIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryHealthIcon, SummaryHealthIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryManaIcon, SummaryManaIcon, false);
+    SetWizardOptionalImageBrush (Image_SummaryCarryWeightIcon, SummaryCarryWeightIcon, false);
 }
 
 void URPGCharacterCreationWizardWidget::ApplyWizardStepToSwitcher ()
@@ -491,6 +539,14 @@ TSoftObjectPtr<UTexture2D> URPGCharacterCreationWizardWidget::ResolveWizardSelec
         if (ClassVisual && ClassVisual->IsValidForClass (ClassDefinition->ClassId)) return ClassVisual->ClassIcon;
     }
     return TSoftObjectPtr<UTexture2D> ();
+}
+
+TSoftObjectPtr<UTexture2D> URPGCharacterCreationWizardWidget::ResolveWizardSelectedPortrait () const
+{
+    FRPGCharacterPortraitVariant PortraitVariant;
+    return TryResolveWizardSelectedPortraitVariant (PortraitVariant) && !PortraitVariant.Portrait.IsNull ()
+        ? PortraitVariant.Portrait
+        : DefaultPortrait;
 }
 
 bool URPGCharacterCreationWizardWidget::TryResolveWizardSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const
