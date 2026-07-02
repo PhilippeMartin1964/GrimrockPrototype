@@ -59,7 +59,7 @@ namespace
         case ERPGCharacterCreationWizardStep::Class: return FText::FromString (TEXT ("Classe"));
         case ERPGCharacterCreationWizardStep::Attributes: return FText::FromString (TEXT ("Caractéristiques"));
         case ERPGCharacterCreationWizardStep::Identity: return FText::FromString (TEXT ("Identité"));
-        case ERPGCharacterCreationWizardStep::Summary: return FText::FromString (TEXT ("Resumé"));
+        case ERPGCharacterCreationWizardStep::Summary: return FText::FromString (TEXT ("Résumé"));
         default: return FText::GetEmpty ();
         }
     }
@@ -143,7 +143,7 @@ namespace
         const int32 RaceValue = GetAttributeValue (RaceBonuses, AttributeId);
         const int32 FinalValue = GetAttributeValue (FinalAttributes, AttributeId);
         const int32 Modifier = URPGCharacterRulesLibrary::GetAttributeModifier (FinalValue);
-        return FString::Printf (TEXT ("%s : classe %d | race %+d | total %d | mod %+d"), Label, ClassValue, RaceValue, FinalValue, Modifier);
+        return FString::Printf (TEXT ("%s : %d + %+d = %d  mod %+d"), Label, ClassValue, RaceValue, FinalValue, Modifier);
     }
 
     void SetWizardOptionalText (UTextBlock* TextBlock, const FString& Value)
@@ -339,7 +339,7 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     const bool bHasDerivedStats = GetPreviewDerivedStats (DerivedStats);
 
     const FString StrengthLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Force"), AttributeStrength, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Force : -"));
-    const FString DexterityLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Dexterite"), AttributeDexterity, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Dexterite : -"));
+    const FString DexterityLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Dextérité"), AttributeDexterity, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Dextérité : -"));
     const FString ConstitutionLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Constitution"), AttributeConstitution, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Constitution : -"));
     const FString IntelligenceLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Intelligence"), AttributeIntelligence, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Intelligence : -"));
     const FString WisdomLine = bHasAttributes ? FormatAttributeSummaryLine (TEXT ("Sagesse"), AttributeWisdom, ClassAttributes, RaceBonuses, FinalAttributes) : FString (TEXT ("Sagesse : -"));
@@ -374,7 +374,7 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     SetWizardOptionalText (Text_SummaryCarryWeight, CarryLine);
     SetWizardOptionalText (Text_SummaryValidationState, State);
 
-    const FString FullSummary = FString::Printf (TEXT ("Vérifiez vos choix avant de créer le personnage.\n\nNom : %s\nRace : %s\nClasse : %s\nGenre : %s\nPortrait : %s\n\nCaractéristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\n%s | %s | %s\n\n%s"),
+    const FString FullSummary = FString::Printf (TEXT ("%s\n%s · %s · %s\nPortrait : %s\n\nCaractéristiques finales\n%s\n%s\n%s\n%s\n%s\n%s\n\nStatistiques dérivées\n%s | %s | %s\n\n%s"),
         *DisplayName, *RaceName, *ClassName, *GenderName, *PortraitName, *StrengthLine, *DexterityLine, *ConstitutionLine, *IntelligenceLine, *WisdomLine, *CharismaLine, *HealthLine, *ManaLine, *CarryLine, *State);
     SetWizardOptionalText (Text_SummaryHelp, FullSummary);
 }
