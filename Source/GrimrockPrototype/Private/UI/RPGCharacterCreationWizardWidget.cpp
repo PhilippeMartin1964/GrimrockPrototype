@@ -178,24 +178,6 @@ namespace
             FMath::Max (0, Attributes.Charisma - Minimum);
     }
 
-    FText FormatSignedInteger (int32 Value)
-    {
-        return FText::FromString (FString::Printf (TEXT ("%+d"), Value));
-    }
-
-    FText FormatModifier (int32 Value)
-    {
-        return FormatSignedInteger (URPGCharacterRulesLibrary::GetAttributeModifier (Value));
-    }
-
-    void SetWizardOptionalText (UTextBlock* TextBlock, const FText& Value)
-    {
-        if (TextBlock)
-        {
-            TextBlock->SetText (Value);
-        }
-    }
-
     FString NormalizeCharacterName (UEditableText* EditableText)
     {
         FString Name = EditableText ? EditableText->GetText ().ToString () : FString ();
@@ -209,7 +191,6 @@ void URPGCharacterCreationWizardWidget::NativeConstruct ()
     Super::NativeConstruct ();
     CurrentWizardStep = InitialWizardStep;
     BindWizardButtons ();
-    BindAttributeAllocationButtons ();
     BindWizardSubmitButton ();
     if (Widget_StepAttributes)
     {
@@ -238,80 +219,6 @@ void URPGCharacterCreationWizardWidget::BindWizardButtons ()
     {
         Button_Cancel->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCancelClicked);
         Button_Cancel->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleCancelClicked);
-    }
-}
-
-void URPGCharacterCreationWizardWidget::BindAttributeAllocationButtons ()
-{
-    if (Widget_StepAttributes)
-    {
-        return;
-    }
-
-    if (Button_ResetRecommendedAttributes)
-    {
-        Button_ResetRecommendedAttributes->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleResetRecommendedAttributesClicked);
-        Button_ResetRecommendedAttributes->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleResetRecommendedAttributesClicked);
-    }
-    if (Button_StrengthMinus)
-    {
-        Button_StrengthMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthMinusClicked);
-        Button_StrengthMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthMinusClicked);
-    }
-    if (Button_StrengthPlus)
-    {
-        Button_StrengthPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthPlusClicked);
-        Button_StrengthPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleStrengthPlusClicked);
-    }
-    if (Button_DexterityMinus)
-    {
-        Button_DexterityMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityMinusClicked);
-        Button_DexterityMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityMinusClicked);
-    }
-    if (Button_DexterityPlus)
-    {
-        Button_DexterityPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityPlusClicked);
-        Button_DexterityPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleDexterityPlusClicked);
-    }
-    if (Button_ConstitutionMinus)
-    {
-        Button_ConstitutionMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionMinusClicked);
-        Button_ConstitutionMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionMinusClicked);
-    }
-    if (Button_ConstitutionPlus)
-    {
-        Button_ConstitutionPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionPlusClicked);
-        Button_ConstitutionPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleConstitutionPlusClicked);
-    }
-    if (Button_IntelligenceMinus)
-    {
-        Button_IntelligenceMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligenceMinusClicked);
-        Button_IntelligenceMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligenceMinusClicked);
-    }
-    if (Button_IntelligencePlus)
-    {
-        Button_IntelligencePlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligencePlusClicked);
-        Button_IntelligencePlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleIntelligencePlusClicked);
-    }
-    if (Button_WisdomMinus)
-    {
-        Button_WisdomMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomMinusClicked);
-        Button_WisdomMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomMinusClicked);
-    }
-    if (Button_WisdomPlus)
-    {
-        Button_WisdomPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomPlusClicked);
-        Button_WisdomPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleWisdomPlusClicked);
-    }
-    if (Button_CharismaMinus)
-    {
-        Button_CharismaMinus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaMinusClicked);
-        Button_CharismaMinus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaMinusClicked);
-    }
-    if (Button_CharismaPlus)
-    {
-        Button_CharismaPlus->OnClicked.RemoveDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaPlusClicked);
-        Button_CharismaPlus->OnClicked.AddDynamic (this, &URPGCharacterCreationWizardWidget::HandleCharismaPlusClicked);
     }
 }
 
@@ -416,11 +323,6 @@ void URPGCharacterCreationWizardWidget::RefreshPreview ()
     if (Widget_StepAttributes)
     {
         Widget_StepAttributes->RefreshFromWizardState ();
-    }
-    else
-    {
-        RefreshAttributeAllocationPreview ();
-        RefreshAttributeAllocationControls ();
     }
     RefreshWizardShell ();
 }
@@ -536,124 +438,6 @@ UWidget* URPGCharacterCreationWizardWidget::GetPanelForWizardStep (ERPGCharacter
         return Panel_StepSummary;
     default:
         return nullptr;
-    }
-}
-
-void URPGCharacterCreationWizardWidget::RefreshAttributeAllocationPreview ()
-{
-    const int32 Budget = GetAttributePointBudget ();
-    const int32 Remaining = GetRemainingAttributePoints ();
-
-    SetWizardOptionalText (
-        Text_AttributePointsRemaining,
-        FText::Format (FText::FromString (TEXT ("Points restants : {0} / {1}")), FText::AsNumber (Remaining), FText::AsNumber (Budget)));
-    SetWizardOptionalText (
-        Text_AttributeHelp,
-        FText::FromString (TEXT ("Les valeurs de classe peuvent être ajustées. Les bonus de race sont appliqués ensuite.")));
-
-    FRPGAttributes FinalAttributes;
-    const bool bHasAttributes = GetPreviewAttributes (FinalAttributes);
-    FRPGDerivedStats DerivedStats;
-    const bool bHasDerivedStats = GetPreviewDerivedStats (DerivedStats);
-    const FRPGAttributes ClassAttributes = GetAllocatedClassAttributesForPreview ();
-    const FRPGAttributes RaceBonuses = RaceDefinition ? RaceDefinition->AttributeBonuses : FRPGAttributes (0, 0, 0, 0, 0, 0);
-    const FText Unavailable = FText::FromString (TEXT ("-"));
-
-    auto SetAttributeRow = [&] (
-        FName AttributeId,
-        UTextBlock* ClassText,
-        UTextBlock* RaceText,
-        UTextBlock* TotalText,
-        UTextBlock* ModifierText,
-        UTextBlock* EffectsText)
-    {
-        const int32 ClassValue = GetAttributeValue (ClassAttributes, AttributeId);
-        const int32 RaceValue = GetAttributeValue (RaceBonuses, AttributeId);
-        const int32 TotalValue = GetAttributeValue (FinalAttributes, AttributeId);
-        SetWizardOptionalText (ClassText, bHasAttributes ? FText::AsNumber (ClassValue) : Unavailable);
-        SetWizardOptionalText (RaceText, bHasAttributes ? FormatSignedInteger (RaceValue) : Unavailable);
-        SetWizardOptionalText (TotalText, bHasAttributes ? FText::AsNumber (TotalValue) : Unavailable);
-        SetWizardOptionalText (ModifierText, bHasAttributes ? FormatModifier (TotalValue) : Unavailable);
-
-        if (!EffectsText)
-        {
-            return;
-        }
-
-        if (!bHasAttributes)
-        {
-            EffectsText->SetText (Unavailable);
-            return;
-        }
-
-        const int32 Modifier = URPGCharacterRulesLibrary::GetAttributeModifier (TotalValue);
-        if (AttributeId == AttributeStrength)
-        {
-            EffectsText->SetText (FText::FromString (FString::Printf (
-                TEXT ("Charge %d · CàC %+d"),
-                FMath::RoundToInt (GetPreviewCarryWeight ()),
-                Modifier)));
-        }
-        else if (AttributeId == AttributeDexterity)
-        {
-            EffectsText->SetText (FText::FromString (FString::Printf (
-                TEXT ("Précision %+d · Esquive %+d"),
-                bHasDerivedStats ? DerivedStats.Accuracy : Modifier,
-                bHasDerivedStats ? DerivedStats.Evasion : Modifier)));
-        }
-        else if (AttributeId == AttributeConstitution)
-        {
-            EffectsText->SetText (FText::FromString (FString::Printf (
-                TEXT ("Santé %d · Résistance %+d"),
-                bHasDerivedStats ? DerivedStats.MaxHealth : 0,
-                Modifier)));
-        }
-        else if (AttributeId == AttributeIntelligence)
-        {
-            EffectsText->SetText (FText::FromString (FString::Printf (TEXT ("Savoirs %+d · Alchimie %+d"), Modifier, Modifier)));
-        }
-        else if (AttributeId == AttributeWisdom)
-        {
-            EffectsText->SetText (FText::FromString (FString::Printf (TEXT ("Perception %+d · Volonté %+d"), Modifier, Modifier)));
-        }
-        else if (AttributeId == AttributeCharisma)
-        {
-            EffectsText->SetText (FText::FromString (FString::Printf (TEXT ("Influence %+d · Recrutement %+d"), Modifier, Modifier)));
-        }
-    };
-
-    SetAttributeRow (AttributeStrength, Text_StrengthClassValue, Text_StrengthRaceBonus, Text_StrengthTotalValue, Text_StrengthModifier, Text_StrengthEffects);
-    SetAttributeRow (AttributeDexterity, Text_DexterityClassValue, Text_DexterityRaceBonus, Text_DexterityTotalValue, Text_DexterityModifier, Text_DexterityEffects);
-    SetAttributeRow (AttributeConstitution, Text_ConstitutionClassValue, Text_ConstitutionRaceBonus, Text_ConstitutionTotalValue, Text_ConstitutionModifier, Text_ConstitutionEffects);
-    SetAttributeRow (AttributeIntelligence, Text_IntelligenceClassValue, Text_IntelligenceRaceBonus, Text_IntelligenceTotalValue, Text_IntelligenceModifier, Text_IntelligenceEffects);
-    SetAttributeRow (AttributeWisdom, Text_WisdomClassValue, Text_WisdomRaceBonus, Text_WisdomTotalValue, Text_WisdomModifier, Text_WisdomEffects);
-    SetAttributeRow (AttributeCharisma, Text_CharismaClassValue, Text_CharismaRaceBonus, Text_CharismaTotalValue, Text_CharismaModifier, Text_CharismaEffects);
-}
-
-void URPGCharacterCreationWizardWidget::RefreshAttributeAllocationControls ()
-{
-    auto RefreshButtons = [this] (FName AttributeId, UButton* MinusButton, UButton* PlusButton)
-    {
-        if (MinusButton)
-        {
-            MinusButton->SetIsEnabled (CanDecreaseAllocatedAttribute (AttributeId));
-        }
-        if (PlusButton)
-        {
-            PlusButton->SetIsEnabled (CanIncreaseAllocatedAttribute (AttributeId));
-        }
-    };
-
-    RefreshButtons (AttributeStrength, Button_StrengthMinus, Button_StrengthPlus);
-    RefreshButtons (AttributeDexterity, Button_DexterityMinus, Button_DexterityPlus);
-    RefreshButtons (AttributeConstitution, Button_ConstitutionMinus, Button_ConstitutionPlus);
-    RefreshButtons (AttributeIntelligence, Button_IntelligenceMinus, Button_IntelligencePlus);
-    RefreshButtons (AttributeWisdom, Button_WisdomMinus, Button_WisdomPlus);
-    RefreshButtons (AttributeCharisma, Button_CharismaMinus, Button_CharismaPlus);
-
-    if (Button_ResetRecommendedAttributes)
-    {
-        Button_ResetRecommendedAttributes->SetIsEnabled (!IsUsingRecommendedAttributes ());
     }
 }
 
@@ -798,7 +582,7 @@ TSoftObjectPtr<UTexture2D> URPGCharacterCreationWizardWidget::ResolveWizardSelec
     return TSoftObjectPtr<UTexture2D> ();
 }
 
-bool URPGCharacterCreationWizardWidget::SubmitWizardCharacterCreation ()
+bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
 {
     if (!InventoryComponent)
     {
@@ -885,72 +669,5 @@ void URPGCharacterCreationWizardWidget::HandleCancelClicked ()
 
 void URPGCharacterCreationWizardWidget::HandleWizardCreateCharacterClicked ()
 {
-    SubmitWizardCharacterCreation ();
-}
-
-void URPGCharacterCreationWizardWidget::HandleResetRecommendedAttributesClicked ()
-{
-    ResetAttributeAllocationToClassDefinition ();
-    SetValidationMessage (FText::GetEmpty (), false);
-    RefreshPreview ();
-}
-
-void URPGCharacterCreationWizardWidget::HandleStrengthMinusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeStrength, -1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleStrengthPlusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeStrength, 1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleDexterityMinusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeDexterity, -1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleDexterityPlusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeDexterity, 1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleConstitutionMinusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeConstitution, -1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleConstitutionPlusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeConstitution, 1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleIntelligenceMinusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeIntelligence, -1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleIntelligencePlusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeIntelligence, 1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleWisdomMinusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeWisdom, -1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleWisdomPlusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeWisdom, 1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleCharismaMinusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeCharisma, -1);
-}
-
-void URPGCharacterCreationWizardWidget::HandleCharismaPlusClicked ()
-{
-    AdjustAllocatedAttribute (AttributeCharisma, 1);
+    SubmitCharacterCreation ();
 }
