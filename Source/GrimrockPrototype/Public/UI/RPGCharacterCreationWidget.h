@@ -206,7 +206,7 @@ public:
     virtual float GetPreviewCarryWeight () const;
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    bool SubmitCharacterCreation ();
+    virtual bool SubmitCharacterCreation ();
 
 protected:
     virtual void NativeConstruct () override;
