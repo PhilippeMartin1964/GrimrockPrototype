@@ -90,6 +90,11 @@ public:
     virtual bool GetPreviewDerivedStats (FRPGDerivedStats& OutDerivedStats) const override;
     virtual float GetPreviewCarryWeight () const override;
 
+    virtual bool SubmitCharacterCreation () override
+    {
+        return SubmitWizardCharacterCreation ();
+    }
+
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation|Attributes")
     void ResetAttributeAllocationToClassDefinition ();
 
