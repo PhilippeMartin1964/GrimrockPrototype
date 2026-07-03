@@ -302,15 +302,24 @@ public:
 protected:
     virtual void NativeTick (const FGeometry& MyGeometry, float InDeltaTime) override;
 
+private:
+    const URPGClassVisualAsset* FindClassVisualForClass (FName ClassId) const;
+    void RefreshSelectedCharacterClassIcon ();
     void RemoveGeneratedInventorySlotsFromRegistry ();
-
+    UGridInventorySlotWidget* FindRegisteredSlotWidget (EGridInventoryUiSlotType SlotType, int32 SlotIndex) const;
     bool ExecuteResolvedInventoryContextAction (
         const FGridItemContextAction& Action,
         const FGridFacingTargetContext& FacingTarget,
         EGridInventoryUiSlotType SourceSlotType,
         int32 SourceSlotIndex);
+    EGridEquipmentSlot ResolveSourceEquipmentSlot (
+        const FGridItemContextAction& Action,
+        EGridInventoryUiSlotType SourceSlotType) const;
+    bool DropContextItemToGround (
+        const FGridItemContextAction& Action,
+        EGridInventoryUiSlotType SourceSlotType,
+        int32 SourceSlotIndex);
 
-private:
     UPROPERTY (Transient)
     bool bItemActionMenuCloseRequested = false;
 
