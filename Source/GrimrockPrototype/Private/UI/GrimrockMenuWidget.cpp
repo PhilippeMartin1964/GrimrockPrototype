@@ -85,8 +85,6 @@ void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
         DesignHeightPx / ViewportScale);
 
     const FVector2D FinalSlateSize = DesignSlateSize * FitScale;
-    const FVector2D ViewportSlateSize = ViewportPx / ViewportScale;
-
     SizeBox_MenuDesign->SetWidthOverride (DesignSlateSize.X);
     SizeBox_MenuDesign->SetHeightOverride (DesignSlateSize.Y);
 
@@ -98,7 +96,7 @@ void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
     {
         CanvasSlot->SetAnchors (FAnchors (0.5f, 0.5f));
         CanvasSlot->SetAlignment (FVector2D (0.5f, 0.5f));
-        CanvasSlot->SetPosition (ViewportSlateSize * 0.5f);
+        CanvasSlot->SetPosition (FVector2D::ZeroVector);
         CanvasSlot->SetSize (FinalSlateSize);
         CanvasSlot->SetAutoSize (false);
     }
@@ -110,11 +108,7 @@ void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
     }
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GrimrockMenu Layout ViewportPx=%.0fx%.0f Dpi=%.2f Fit=%.3f FinalSlate=%.1fx%.1f FinalPhysical=%.0fx%.0f"),
-        ViewportPx.X,
-        ViewportPx.Y,
-        ViewportScale,
-        FitScale,
+        TEXT ("GrimrockMenu Layout Centered FinalSlate=%.1fx%.1f FinalPhysical=%.0fx%.0f"),
         FinalSlateSize.X,
         FinalSlateSize.Y,
         FinalSlateSize.X * ViewportScale,
