@@ -166,7 +166,7 @@ public:
     FString GetItemDisplayString (const FGridItemInstance& Item) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
-    FString GetCursorItemDisplayText ();
+    FString GetCursorItemDisplayText () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
     FString GetMainHandDisplayText () const;
