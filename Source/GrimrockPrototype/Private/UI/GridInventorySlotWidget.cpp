@@ -4,7 +4,6 @@
 #include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
-#include "HAL/IConsoleManager.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -13,14 +12,19 @@
 
 namespace
 {
-    TAutoConsoleVariable<float> CVarGridInventoryFixedSlotSize (
-        TEXT ("grimrock.Inventory.FixedSlotSize"),
-        132.0f,
-        TEXT ("Fixed inventory slot size in Slate units. Default: 132."));
+    constexpr float GridInventoryFallbackSlotSize = 132.0f;
 
-    float GetGridInventoryFixedSlotSize ()
+    float GetGridInventoryFixedSlotSize (const UGridInventorySlotWidget* SlotWidget)
     {
-        return FMath::Max (1.0f, CVarGridInventoryFixedSlotSize.GetValueOnGameThread ());
+        const UGridInventoryWidget* InventoryWidget = SlotWidget
+            ? SlotWidget->OwningInventoryWidget.Get ()
+            : nullptr;
+
+        return FMath::Max (
+            1.0f,
+            InventoryWidget
+                ? InventoryWidget->InventorySlotSize
+                : GridInventoryFallbackSlotSize);
     }
 }
 
@@ -60,7 +64,7 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
-    const float FixedSlotSize = GetGridInventoryFixedSlotSize ();
+    const float FixedSlotSize = GetGridInventoryFixedSlotSize (this);
 
     if (SizeBox_Root)
     {
@@ -282,6 +286,8 @@ void UGridInventorySlotWidget::HandleClicked ()
 void UGridInventorySlotWidget::SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget)
 {
     OwningInventoryWidget = InOwnerInventoryWidget;
+    bFixedSlotLayoutApplied = false;
+    ApplyFixedSlotLayout ();
 }
 
 bool UGridInventorySlotWidget::CanStartDrag () const
