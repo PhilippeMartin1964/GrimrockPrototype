@@ -44,6 +44,7 @@ protected:
     virtual void NativeConstruct () override;
 
 private:
+    void ApplyDesignResolutionLayout ();
     UWidget* GetTopTabPage (EInventoryTopTab Tab) const;
     void BindTopTabButtons ();
     void ApplyTopTabButtonStyle (UButton* Button, EInventoryTopTab Tab);
