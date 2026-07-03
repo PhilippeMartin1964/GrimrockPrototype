@@ -333,6 +333,9 @@ private:
     int32 LastBuiltColumnCount = 0;
 
     UPROPERTY (Transient)
+    float LastBuiltSlotSize = 0.0f;
+
+    UPROPERTY (Transient)
     TSubclassOf<UGridInventorySlotWidget> LastBuiltSlotWidgetClass;
 
     UPROPERTY (Transient)

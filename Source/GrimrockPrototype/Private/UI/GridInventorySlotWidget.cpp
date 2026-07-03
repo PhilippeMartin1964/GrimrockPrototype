@@ -10,24 +10,6 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 
-namespace
-{
-    constexpr float GridInventoryFallbackSlotSize = 132.0f;
-
-    float GetGridInventoryFixedSlotSize (const UGridInventorySlotWidget* SlotWidget)
-    {
-        const UGridInventoryWidget* InventoryWidget = SlotWidget
-            ? SlotWidget->OwningInventoryWidget.Get ()
-            : nullptr;
-
-        return FMath::Max (
-            1.0f,
-            InventoryWidget
-                ? InventoryWidget->InventorySlotSize
-                : GridInventoryFallbackSlotSize);
-    }
-}
-
 void UGridInventorySlotWidget::InitializeInventorySlot (
     EGridInventoryUiSlotType InSlotType,
     int32 InInventorySlotIndex)
@@ -64,16 +46,16 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
-    const float FixedSlotSize = GetGridInventoryFixedSlotSize (this);
+    const float SlotSize = FMath::Max (1.0f, FixedSlotSize);
 
     if (SizeBox_Root)
     {
-        SizeBox_Root->SetWidthOverride (FixedSlotSize);
-        SizeBox_Root->SetHeightOverride (FixedSlotSize);
-        SizeBox_Root->SetMinDesiredWidth (FixedSlotSize);
-        SizeBox_Root->SetMinDesiredHeight (FixedSlotSize);
-        SizeBox_Root->SetMaxDesiredWidth (FixedSlotSize);
-        SizeBox_Root->SetMaxDesiredHeight (FixedSlotSize);
+        SizeBox_Root->SetWidthOverride (SlotSize);
+        SizeBox_Root->SetHeightOverride (SlotSize);
+        SizeBox_Root->SetMinDesiredWidth (SlotSize);
+        SizeBox_Root->SetMinDesiredHeight (SlotSize);
+        SizeBox_Root->SetMaxDesiredWidth (SlotSize);
+        SizeBox_Root->SetMaxDesiredHeight (SlotSize);
     }
 
     SetRenderScale (FVector2D (1.0f, 1.0f));
@@ -81,8 +63,8 @@ void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
     bool bGridLayoutApplied = SlotType != EGridInventoryUiSlotType::Inventory;
     if (UUniformGridPanel* UniformGridPanel = Cast<UUniformGridPanel> (GetParent ()))
     {
-        UniformGridPanel->SetMinDesiredSlotWidth (FixedSlotSize);
-        UniformGridPanel->SetMinDesiredSlotHeight (FixedSlotSize);
+        UniformGridPanel->SetMinDesiredSlotWidth (SlotSize);
+        UniformGridPanel->SetMinDesiredSlotHeight (SlotSize);
         bGridLayoutApplied = true;
     }
 
@@ -286,6 +268,13 @@ void UGridInventorySlotWidget::HandleClicked ()
 void UGridInventorySlotWidget::SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget)
 {
     OwningInventoryWidget = InOwnerInventoryWidget;
+    bFixedSlotLayoutApplied = false;
+    ApplyFixedSlotLayout ();
+}
+
+void UGridInventorySlotWidget::SetFixedSlotSize (float InSlotSize)
+{
+    FixedSlotSize = FMath::Max (1.0f, InSlotSize);
     bFixedSlotLayoutApplied = false;
     ApplyFixedSlotLayout ();
 }

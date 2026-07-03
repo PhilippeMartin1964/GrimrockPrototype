@@ -510,9 +510,15 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
 
     const int32 SlotCount = FMath::Max (1, ResolveInventorySlotWidgetCount ());
     const int32 ColumnCount = FMath::Max (1, InventorySlotColumnCount);
+    const float SlotSize = FMath::Max (1.0f, InventorySlotSize);
+
+    InventorySlotsGridPanel->SetMinDesiredSlotWidth (SlotSize);
+    InventorySlotsGridPanel->SetMinDesiredSlotHeight (SlotSize);
+
     if (bInventorySlotsBuilt &&
         LastBuiltSlotCount == SlotCount &&
         LastBuiltColumnCount == ColumnCount &&
+        FMath::IsNearlyEqual (LastBuiltSlotSize, SlotSize) &&
         LastBuiltSlotWidgetClass == InventorySlotWidgetClass &&
         LastBuiltGridPanel == InventorySlotsGridPanel &&
         GeneratedInventorySlotWidgets.Num () == SlotCount)
@@ -534,6 +540,8 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
             continue;
         }
 
+        NewSlot->SetOwnerInventoryWidget (this);
+        NewSlot->SetFixedSlotSize (SlotSize);
         NewSlot->InitializeInventorySlot (EGridInventoryUiSlotType::Inventory, SlotIndex);
         RegisterInventorySlotWidget (NewSlot, EGridInventoryUiSlotType::Inventory, SlotIndex);
 
@@ -544,6 +552,7 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
             GridSlot->SetHorizontalAlignment (HAlign_Left);
             GridSlot->SetVerticalAlignment (VAlign_Top);
         }
+        NewSlot->SetFixedSlotSize (SlotSize);
 
         GeneratedInventorySlotWidgets.Add (NewSlot);
     }
@@ -552,9 +561,10 @@ void UGridInventoryWidget::RebuildInventorySlotWidgets ()
     bInventorySlotsBuilt = true;
     LastBuiltSlotCount = SlotCount;
     LastBuiltColumnCount = ColumnCount;
+    LastBuiltSlotSize = SlotSize;
     LastBuiltSlotWidgetClass = InventorySlotWidgetClass;
     LastBuiltGridPanel = InventorySlotsGridPanel;
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
+    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI RebuildSlots Count=%d Columns=%d SlotSize=%.1f"), SlotCount, ColumnCount, SlotSize);
 }
 
 void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets ()
@@ -578,6 +588,7 @@ void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets ()
     bInventorySlotsBuilt = false;
     LastBuiltSlotCount = 0;
     LastBuiltColumnCount = 0;
+    LastBuiltSlotSize = 0.0f;
     LastBuiltSlotWidgetClass = nullptr;
     LastBuiltGridPanel = nullptr;
 }
