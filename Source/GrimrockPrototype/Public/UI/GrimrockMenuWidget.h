@@ -8,7 +8,10 @@
 
 class AGrimrockPartyPawn;
 class UButton;
+class UCanvasPanel;
 class UGridInventoryWidget;
+class UScaleBox;
+class USizeBox;
 class UTexture2D;
 class UWidget;
 class UWidgetSwitcher;
@@ -43,8 +46,12 @@ public:
 protected:
     virtual void NativeConstruct () override;
 
+    virtual void NativeTick (
+        const FGeometry& MyGeometry,
+        float InDeltaTime) override;
+
 private:
-    void LogDesignResolutionLayout () const;
+    void ApplyMenuViewportLimit ();
     UWidget* GetTopTabPage (EInventoryTopTab Tab) const;
     void BindTopTabButtons ();
     void ApplyTopTabButtonStyle (UButton* Button, EInventoryTopTab Tab);
@@ -66,6 +73,15 @@ private:
 
     UFUNCTION ()
     void HandleCodexTopTabClicked ();
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UCanvasPanel> CanvasPanel_Root;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UScaleBox> ScaleBox_MenuRoot;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<USizeBox> SizeBox_MenuDesign;
 
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UWidgetSwitcher> WidgetSwitcher_MainContent;
@@ -114,4 +130,10 @@ private:
 
     UPROPERTY (Transient)
     bool bTopTabsInitialized = false;
+
+    UPROPERTY (Transient)
+    FVector2D LastAppliedViewportPx = FVector2D::ZeroVector;
+
+    UPROPERTY (Transient)
+    float LastAppliedViewportScale = 0.0f;
 };

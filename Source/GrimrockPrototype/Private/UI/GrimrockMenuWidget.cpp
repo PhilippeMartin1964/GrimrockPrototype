@@ -1,8 +1,10 @@
 #include "UI/GrimrockMenuWidget.h"
 
-#include "Blueprint/WidgetTree.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
-#include "Components/PanelWidget.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Engine/Texture2D.h"
@@ -12,7 +14,7 @@ void UGrimrockMenuWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
 
-    LogDesignResolutionLayout ();
+    ApplyMenuViewportLimit ();
     BindTopTabButtons ();
     if (!bTopTabsInitialized)
     {
@@ -24,42 +26,99 @@ void UGrimrockMenuWidget::NativeConstruct ()
     SetActiveTopTab (CurrentTopTab);
 }
 
-void UGrimrockMenuWidget::LogDesignResolutionLayout () const
+void UGrimrockMenuWidget::NativeTick (
+    const FGeometry& MyGeometry,
+    float InDeltaTime)
 {
-    if (!WidgetTree || !WidgetTree->RootWidget)
+    Super::NativeTick (MyGeometry, InDeltaTime);
+
+    const FVector2D ViewportPx = UWidgetLayoutLibrary::GetViewportSize (this);
+    const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
+    if (!ViewportPx.Equals (LastAppliedViewportPx) ||
+        !FMath::IsNearlyEqual (ViewportScale, LastAppliedViewportScale))
     {
-        UE_LOG (LogTemp, Warning, TEXT ("GrimrockMenu Layout RootWidget=None"));
+        ApplyMenuViewportLimit ();
+    }
+}
+
+void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
+{
+    constexpr float DesignWidthPx = 1920.0f;
+    constexpr float DesignHeightPx = 1080.0f;
+    constexpr float SafeMarginPx = 48.0f;
+
+    const FVector2D ViewportPx = UWidgetLayoutLibrary::GetViewportSize (this);
+    const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
+
+    LastAppliedViewportPx = ViewportPx;
+    LastAppliedViewportScale = ViewportScale;
+
+    if (!CanvasPanel_Root || !ScaleBox_MenuRoot || !SizeBox_MenuDesign)
+    {
+        UE_LOG (LogTemp, Error,
+            TEXT ("GrimrockMenu scaling failed: missing CanvasPanel_Root=%s ScaleBox_MenuRoot=%s SizeBox_MenuDesign=%s."),
+            CanvasPanel_Root ? TEXT ("true") : TEXT ("false"),
+            ScaleBox_MenuRoot ? TEXT ("true") : TEXT ("false"),
+            SizeBox_MenuDesign ? TEXT ("true") : TEXT ("false"));
         return;
     }
 
-    auto GetParentName = [] (const UWidget* Widget)
+    if (ScaleBox_MenuRoot->GetParent () != CanvasPanel_Root)
     {
-        const UPanelWidget* ParentWidget = Widget ? Widget->GetParent () : nullptr;
-        return ParentWidget ? ParentWidget->GetName () : FString (TEXT ("None"));
-    };
+        UE_LOG (LogTemp, Error,
+            TEXT ("GrimrockMenu scaling failed: ScaleBox_MenuRoot is not directly under CanvasPanel_Root. Parent=%s"),
+            *GetNameSafe (ScaleBox_MenuRoot->GetParent ()));
+        return;
+    }
 
-    auto IsDescendantOf = [] (const UWidget* Child, const UWidget* ExpectedAncestor)
+    const FVector2D AvailablePx (
+        FMath::Max (1.0f, ViewportPx.X - SafeMarginPx * 2.0f),
+        FMath::Max (1.0f, ViewportPx.Y - SafeMarginPx * 2.0f));
+
+    const float FitScale = FMath::Min3<float> (
+        1.0f,
+        static_cast<float> (AvailablePx.X / DesignWidthPx),
+        static_cast<float> (AvailablePx.Y / DesignHeightPx));
+
+    const FVector2D DesignSlateSize (
+        DesignWidthPx / ViewportScale,
+        DesignHeightPx / ViewportScale);
+
+    const FVector2D FinalSlateSize = DesignSlateSize * FitScale;
+    const FVector2D ViewportSlateSize = ViewportPx / ViewportScale;
+
+    SizeBox_MenuDesign->SetWidthOverride (DesignSlateSize.X);
+    SizeBox_MenuDesign->SetHeightOverride (DesignSlateSize.Y);
+
+    ScaleBox_MenuRoot->SetStretch (EStretch::ScaleToFit);
+    ScaleBox_MenuRoot->SetStretchDirection (EStretchDirection::Both);
+    ScaleBox_MenuRoot->SetRenderTransformPivot (FVector2D (0.5f, 0.5f));
+
+    if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot> (ScaleBox_MenuRoot->Slot))
     {
-        for (const UWidget* Current = Child; Current; Current = Current->GetParent ())
-        {
-            if (Current == ExpectedAncestor)
-            {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    const USizeBox* SizeBoxMenuDesign = WidgetTree->FindWidget<USizeBox> (TEXT ("SizeBox_MenuDesign"));
-    const bool bPageInventoryUnderDesignSize =
-        Page_Inventory && SizeBoxMenuDesign && IsDescendantOf (Page_Inventory, SizeBoxMenuDesign);
+        CanvasSlot->SetAnchors (FAnchors (0.5f, 0.5f));
+        CanvasSlot->SetAlignment (FVector2D (0.5f, 0.5f));
+        CanvasSlot->SetPosition (ViewportSlateSize * 0.5f);
+        CanvasSlot->SetSize (FinalSlateSize);
+        CanvasSlot->SetAutoSize (false);
+    }
+    else
+    {
+        UE_LOG (LogTemp, Error,
+            TEXT ("GrimrockMenu scaling failed: ScaleBox_MenuRoot is not directly under CanvasPanel_Root."));
+        return;
+    }
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GrimrockMenu Layout RootWidget=%s PageInventoryParent=%s MainContentParent=%s PageInventoryUnderSizeBoxMenuDesign=%s"),
-        *GetNameSafe (WidgetTree->RootWidget),
-        *GetParentName (Page_Inventory),
-        *GetParentName (WidgetSwitcher_MainContent),
-        bPageInventoryUnderDesignSize ? TEXT ("true") : TEXT ("false"));
+        TEXT ("GrimrockMenu Layout ViewportPx=%.0fx%.0f Dpi=%.2f Fit=%.3f FinalSlate=%.1fx%.1f FinalPhysical=%.0fx%.0f"),
+        ViewportPx.X,
+        ViewportPx.Y,
+        ViewportScale,
+        FitScale,
+        FinalSlateSize.X,
+        FinalSlateSize.Y,
+        FinalSlateSize.X * ViewportScale,
+        FinalSlateSize.Y * ViewportScale);
 }
 
 void UGrimrockMenuWidget::InitializeMenuWidget (AGrimrockPartyPawn* InPartyPawn)
