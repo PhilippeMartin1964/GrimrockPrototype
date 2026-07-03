@@ -96,6 +96,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "1"))
     int32 InventorySlotColumnCount = 6;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "1.0", UIMin = "1.0"))
+    float InventorySlotSize = 132.0f;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "0"))
     int32 InventorySlotCountOverride = 0;
 
@@ -163,7 +166,7 @@ public:
     FString GetItemDisplayString (const FGridItemInstance& Item) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
-    FString GetCursorItemDisplayText () const;
+    FString GetCursorItemDisplayText ();
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Display")
     FString GetMainHandDisplayText () const;
@@ -299,31 +302,20 @@ public:
 protected:
     virtual void NativeTick (const FGeometry& MyGeometry, float InDeltaTime) override;
 
-private:
-    const URPGClassVisualAsset* FindClassVisualForClass (FName ClassId) const;
-    void RefreshSelectedCharacterClassIcon ();
     void RemoveGeneratedInventorySlotsFromRegistry ();
-    UGridInventorySlotWidget* FindRegisteredSlotWidget (
-        EGridInventoryUiSlotType SlotType,
-        int32 SlotIndex) const;
+
     bool ExecuteResolvedInventoryContextAction (
         const FGridItemContextAction& Action,
         const FGridFacingTargetContext& FacingTarget,
         EGridInventoryUiSlotType SourceSlotType,
         int32 SourceSlotIndex);
-    EGridEquipmentSlot ResolveSourceEquipmentSlot (
-        const FGridItemContextAction& Action,
-        EGridInventoryUiSlotType SourceSlotType) const;
-    bool DropContextItemToGround (
-        const FGridItemContextAction& Action,
-        EGridInventoryUiSlotType SourceSlotType,
-        int32 SourceSlotIndex);
+
+private:
+    UPROPERTY (Transient)
+    bool bItemActionMenuCloseRequested = false;
 
     UPROPERTY (Transient)
     bool bInventorySlotsBuilt = false;
-
-    UPROPERTY (Transient)
-    bool bItemActionMenuCloseRequested = false;
 
     UPROPERTY (Transient)
     int32 LastBuiltSlotCount = 0;
