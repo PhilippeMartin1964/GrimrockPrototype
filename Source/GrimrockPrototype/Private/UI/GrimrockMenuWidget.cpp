@@ -1,5 +1,6 @@
 #include "UI/GrimrockMenuWidget.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
@@ -39,7 +40,19 @@ void UGrimrockMenuWidget::ApplyDesignResolutionLayout ()
         return;
     }
 
-    auto ConfigureDesignResolutionWidgets = [] (UScaleBox* ScaleBoxMenu, USizeBox* SizeBoxMenuDesignResolution)
+    const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
+    const float MaxDesignWidthSlate = 1920.0f / ViewportScale;
+    const float MaxDesignHeightSlate = 1080.0f / ViewportScale;
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GrimrockMenu DesignResolution ViewportScale=%.2f SlateSize=%.1fx%.1f PhysicalMax=1920x1080"),
+        ViewportScale,
+        MaxDesignWidthSlate,
+        MaxDesignHeightSlate);
+
+    auto ConfigureDesignResolutionWidgets = [MaxDesignWidthSlate, MaxDesignHeightSlate] (
+        UScaleBox* ScaleBoxMenu,
+        USizeBox* SizeBoxMenuDesignResolution)
     {
         if (ScaleBoxMenu)
         {
@@ -49,8 +62,8 @@ void UGrimrockMenuWidget::ApplyDesignResolutionLayout ()
 
         if (SizeBoxMenuDesignResolution)
         {
-            SizeBoxMenuDesignResolution->SetWidthOverride (1920.0f);
-            SizeBoxMenuDesignResolution->SetHeightOverride (1080.0f);
+            SizeBoxMenuDesignResolution->SetWidthOverride (MaxDesignWidthSlate);
+            SizeBoxMenuDesignResolution->SetHeightOverride (MaxDesignHeightSlate);
 
             if (UScaleBoxSlot* SizeBoxSlot = Cast<UScaleBoxSlot> (SizeBoxMenuDesignResolution->Slot))
             {
