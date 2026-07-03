@@ -1,27 +1,18 @@
 #include "UI/GrimrockMenuWidget.h"
 
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
-#include "Components/ContentWidget.h"
-#include "Components/SafeZone.h"
-#include "Components/SafeZoneSlot.h"
-#include "Components/ScaleBox.h"
-#include "Components/ScaleBoxSlot.h"
+#include "Components/PanelWidget.h"
 #include "Components/SizeBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Engine/Texture2D.h"
 #include "UI/GridInventoryWidget.h"
-#include "Widgets/Layout/SScaleBox.h"
 
 void UGrimrockMenuWidget::NativeConstruct ()
 {
-    ApplyDesignResolutionLayout ();
-
     Super::NativeConstruct ();
 
+    LogDesignResolutionLayout ();
     BindTopTabButtons ();
     if (!bTopTabsInitialized)
     {
@@ -33,121 +24,42 @@ void UGrimrockMenuWidget::NativeConstruct ()
     SetActiveTopTab (CurrentTopTab);
 }
 
-void UGrimrockMenuWidget::ApplyDesignResolutionLayout ()
+void UGrimrockMenuWidget::LogDesignResolutionLayout () const
 {
     if (!WidgetTree || !WidgetTree->RootWidget)
     {
+        UE_LOG (LogTemp, Warning, TEXT ("GrimrockMenu Layout RootWidget=None"));
         return;
     }
 
-    const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
-    const float MaxDesignWidthSlate = 1920.0f / ViewportScale;
-    const float MaxDesignHeightSlate = 1080.0f / ViewportScale;
+    auto GetParentName = [] (const UWidget* Widget)
+    {
+        const UPanelWidget* ParentWidget = Widget ? Widget->GetParent () : nullptr;
+        return ParentWidget ? ParentWidget->GetName () : FString (TEXT ("None"));
+    };
+
+    auto IsDescendantOf = [] (const UWidget* Child, const UWidget* ExpectedAncestor)
+    {
+        for (const UWidget* Current = Child; Current; Current = Current->GetParent ())
+        {
+            if (Current == ExpectedAncestor)
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const USizeBox* SizeBoxMenuDesign = WidgetTree->FindWidget<USizeBox> (TEXT ("SizeBox_MenuDesign"));
+    const bool bPageInventoryUnderDesignSize =
+        Page_Inventory && SizeBoxMenuDesign && IsDescendantOf (Page_Inventory, SizeBoxMenuDesign);
 
     UE_LOG (LogTemp, Log,
-        TEXT ("GrimrockMenu DesignResolution ViewportScale=%.2f SlateSize=%.1fx%.1f PhysicalMax=1920x1080"),
-        ViewportScale,
-        MaxDesignWidthSlate,
-        MaxDesignHeightSlate);
-
-    auto ConfigureDesignResolutionWidgets = [MaxDesignWidthSlate, MaxDesignHeightSlate] (
-        UScaleBox* ScaleBoxMenu,
-        USizeBox* SizeBoxMenuDesignResolution)
-    {
-        if (ScaleBoxMenu)
-        {
-            ScaleBoxMenu->SetStretch (EStretch::ScaleToFit);
-            ScaleBoxMenu->SetStretchDirection (EStretchDirection::DownOnly);
-        }
-
-        if (SizeBoxMenuDesignResolution)
-        {
-            SizeBoxMenuDesignResolution->SetWidthOverride (MaxDesignWidthSlate);
-            SizeBoxMenuDesignResolution->SetHeightOverride (MaxDesignHeightSlate);
-
-            if (UScaleBoxSlot* SizeBoxSlot = Cast<UScaleBoxSlot> (SizeBoxMenuDesignResolution->Slot))
-            {
-                SizeBoxSlot->SetHorizontalAlignment (HAlign_Center);
-                SizeBoxSlot->SetVerticalAlignment (VAlign_Center);
-            }
-        }
-    };
-
-    auto ConfigureSafeZonePlacement = [] (USafeZone* SafeZoneMenu)
-    {
-        if (!SafeZoneMenu)
-        {
-            return;
-        }
-
-        if (UCanvasPanelSlot* SafeZoneCanvasSlot = Cast<UCanvasPanelSlot> (SafeZoneMenu->Slot))
-        {
-            SafeZoneCanvasSlot->SetAnchors (FAnchors (0.0f, 0.0f, 1.0f, 1.0f));
-            SafeZoneCanvasSlot->SetOffsets (FMargin (48.0f));
-            SafeZoneCanvasSlot->SetAlignment (FVector2D::ZeroVector);
-        }
-
-        if (UWidget* SafeZoneChild = SafeZoneMenu->GetContent ())
-        {
-            if (USafeZoneSlot* SafeZoneSlot = Cast<USafeZoneSlot> (SafeZoneChild->Slot))
-            {
-                SafeZoneSlot->SetHorizontalAlignment (HAlign_Fill);
-                SafeZoneSlot->SetVerticalAlignment (VAlign_Fill);
-            }
-        }
-    };
-
-    UScaleBox* ExistingScaleBoxMenu = WidgetTree->FindWidget<UScaleBox> (TEXT ("ScaleBox_Menu"));
-    if (!ExistingScaleBoxMenu)
-    {
-        ExistingScaleBoxMenu = WidgetTree->FindWidget<UScaleBox> (TEXT ("ScaleBox_MenuRoot"));
-    }
-
-    USizeBox* ExistingSizeBoxMenuDesignResolution =
-        WidgetTree->FindWidget<USizeBox> (TEXT ("SizeBox_MenuDesignResolution"));
-    if (!ExistingSizeBoxMenuDesignResolution)
-    {
-        ExistingSizeBoxMenuDesignResolution = WidgetTree->FindWidget<USizeBox> (TEXT ("SizeBox_MenuDesign"));
-    }
-
-    if (ExistingScaleBoxMenu && ExistingSizeBoxMenuDesignResolution)
-    {
-        ConfigureSafeZonePlacement (WidgetTree->FindWidget<USafeZone> (TEXT ("SafeZone_Menu")));
-        ConfigureDesignResolutionWidgets (ExistingScaleBoxMenu, ExistingSizeBoxMenuDesignResolution);
-        return;
-    }
-
-    UWidget* ExistingMenuContent = WidgetTree->RootWidget;
-    ExistingMenuContent->RemoveFromParent ();
-
-    UCanvasPanel* CanvasPanelRoot = WidgetTree->ConstructWidget<UCanvasPanel> (
-        UCanvasPanel::StaticClass (),
-        TEXT ("CanvasPanel_Root"));
-    USafeZone* SafeZoneMenu = WidgetTree->ConstructWidget<USafeZone> (
-        USafeZone::StaticClass (),
-        TEXT ("SafeZone_Menu"));
-    UScaleBox* ScaleBoxMenu = WidgetTree->ConstructWidget<UScaleBox> (
-        UScaleBox::StaticClass (),
-        TEXT ("ScaleBox_Menu"));
-    USizeBox* SizeBoxMenuDesignResolution = WidgetTree->ConstructWidget<USizeBox> (
-        USizeBox::StaticClass (),
-        TEXT ("SizeBox_MenuDesignResolution"));
-
-    if (!CanvasPanelRoot || !SafeZoneMenu || !ScaleBoxMenu || !SizeBoxMenuDesignResolution)
-    {
-        WidgetTree->RootWidget = ExistingMenuContent;
-        return;
-    }
-
-    WidgetTree->RootWidget = CanvasPanelRoot;
-
-    SafeZoneMenu->AddChild (ScaleBoxMenu);
-    ScaleBoxMenu->AddChild (SizeBoxMenuDesignResolution);
-    SizeBoxMenuDesignResolution->AddChild (ExistingMenuContent);
-
-    CanvasPanelRoot->AddChildToCanvas (SafeZoneMenu);
-    ConfigureSafeZonePlacement (SafeZoneMenu);
-    ConfigureDesignResolutionWidgets (ScaleBoxMenu, SizeBoxMenuDesignResolution);
+        TEXT ("GrimrockMenu Layout RootWidget=%s PageInventoryParent=%s MainContentParent=%s PageInventoryUnderSizeBoxMenuDesign=%s"),
+        *GetNameSafe (WidgetTree->RootWidget),
+        *GetParentName (Page_Inventory),
+        *GetParentName (WidgetSwitcher_MainContent),
+        bPageInventoryUnderDesignSize ? TEXT ("true") : TEXT ("false"));
 }
 
 void UGrimrockMenuWidget::InitializeMenuWidget (AGrimrockPartyPawn* InPartyPawn)

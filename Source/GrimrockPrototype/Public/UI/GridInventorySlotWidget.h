@@ -96,9 +96,6 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget);
 
-    UFUNCTION (BlueprintCallable, Category = "Inventory|Slot|Layout")
-    void SetFixedSlotSize (float InSlotSize);
-
     UFUNCTION (BlueprintCallable, Category = "Inventory|Drag")
     bool CanStartDrag () const;
 
@@ -114,9 +111,6 @@ protected:
 
     UPROPERTY (Transient)
     bool bFixedSlotLayoutApplied = false;
-
-    UPROPERTY (Transient)
-    float FixedSlotSize = 132.0f;
 
     void ApplyFixedSlotLayout ();
 

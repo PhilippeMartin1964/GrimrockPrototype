@@ -46,7 +46,7 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
-    const float SlotSize = FMath::Max (1.0f, FixedSlotSize);
+    constexpr float SlotSize = 132.0f;
 
     if (SizeBox_Root)
     {
@@ -268,13 +268,6 @@ void UGridInventorySlotWidget::HandleClicked ()
 void UGridInventorySlotWidget::SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget)
 {
     OwningInventoryWidget = InOwnerInventoryWidget;
-    bFixedSlotLayoutApplied = false;
-    ApplyFixedSlotLayout ();
-}
-
-void UGridInventorySlotWidget::SetFixedSlotSize (float InSlotSize)
-{
-    FixedSlotSize = FMath::Max (1.0f, InSlotSize);
     bFixedSlotLayoutApplied = false;
     ApplyFixedSlotLayout ();
 }

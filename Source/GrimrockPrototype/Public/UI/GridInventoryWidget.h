@@ -96,9 +96,6 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "1"))
     int32 InventorySlotColumnCount = 6;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "1.0", UIMin = "1.0"))
-    float InventorySlotSize = 132.0f;
-
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots", meta = (ClampMin = "0"))
     int32 InventorySlotCountOverride = 0;
 
@@ -331,9 +328,6 @@ private:
 
     UPROPERTY (Transient)
     int32 LastBuiltColumnCount = 0;
-
-    UPROPERTY (Transient)
-    float LastBuiltSlotSize = 0.0f;
 
     UPROPERTY (Transient)
     TSubclassOf<UGridInventorySlotWidget> LastBuiltSlotWidgetClass;
