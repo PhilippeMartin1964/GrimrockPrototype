@@ -1,7 +1,6 @@
 #include "UI/GridInventorySlotWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "InputCoreTypes.h"
@@ -46,25 +45,11 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
-    constexpr float SlotSize = 132.0f;
-
-    if (SizeBox_Root)
-    {
-        SizeBox_Root->SetWidthOverride (SlotSize);
-        SizeBox_Root->SetHeightOverride (SlotSize);
-        SizeBox_Root->SetMinDesiredWidth (SlotSize);
-        SizeBox_Root->SetMinDesiredHeight (SlotSize);
-        SizeBox_Root->SetMaxDesiredWidth (SlotSize);
-        SizeBox_Root->SetMaxDesiredHeight (SlotSize);
-    }
-
     SetRenderScale (FVector2D (1.0f, 1.0f));
 
     bool bGridLayoutApplied = SlotType != EGridInventoryUiSlotType::Inventory;
-    if (UUniformGridPanel* UniformGridPanel = Cast<UUniformGridPanel> (GetParent ()))
+    if (Cast<UUniformGridPanel> (GetParent ()))
     {
-        UniformGridPanel->SetMinDesiredSlotWidth (SlotSize);
-        UniformGridPanel->SetMinDesiredSlotHeight (SlotSize);
         bGridLayoutApplied = true;
     }
 
@@ -76,7 +61,7 @@ void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
         bGridSlotApplied = true;
     }
 
-    bFixedSlotLayoutApplied = SizeBox_Root && bGridLayoutApplied && bGridSlotApplied;
+    bFixedSlotLayoutApplied = bGridLayoutApplied && bGridSlotApplied;
 }
 
 void UGridInventorySlotWidget::SetItem (const FGridItemInstance& InItem)
