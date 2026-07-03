@@ -1,11 +1,19 @@
 #include "UI/GridInventorySlotWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/SizeBox.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
+
+namespace
+{
+    constexpr float GridInventoryFixedSlotSize = 132.0f;
+}
 
 void UGridInventorySlotWidget::InitializeInventorySlot (
     EGridInventoryUiSlotType InSlotType,
@@ -13,6 +21,65 @@ void UGridInventorySlotWidget::InitializeInventorySlot (
 {
     SlotType = InSlotType;
     InventorySlotIndex = InInventorySlotIndex;
+    bFixedSlotLayoutApplied = false;
+    ApplyFixedSlotLayout ();
+}
+
+void UGridInventorySlotWidget::NativePreConstruct ()
+{
+    Super::NativePreConstruct ();
+    ApplyFixedSlotLayout ();
+}
+
+void UGridInventorySlotWidget::NativeConstruct ()
+{
+    Super::NativeConstruct ();
+    ApplyFixedSlotLayout ();
+}
+
+void UGridInventorySlotWidget::NativeTick (
+    const FGeometry& MyGeometry,
+    float InDeltaTime)
+{
+    Super::NativeTick (MyGeometry, InDeltaTime);
+
+    if (!bFixedSlotLayoutApplied)
+    {
+        ApplyFixedSlotLayout ();
+    }
+}
+
+void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
+{
+    if (SizeBox_Root)
+    {
+        SizeBox_Root->SetWidthOverride (GridInventoryFixedSlotSize);
+        SizeBox_Root->SetHeightOverride (GridInventoryFixedSlotSize);
+        SizeBox_Root->SetMinDesiredWidth (GridInventoryFixedSlotSize);
+        SizeBox_Root->SetMinDesiredHeight (GridInventoryFixedSlotSize);
+        SizeBox_Root->SetMaxDesiredWidth (GridInventoryFixedSlotSize);
+        SizeBox_Root->SetMaxDesiredHeight (GridInventoryFixedSlotSize);
+    }
+
+    SetRenderScale (FVector2D (1.0f, 1.0f));
+
+    bool bGridLayoutApplied = SlotType != EGridInventoryUiSlotType::Inventory;
+    if (UUniformGridPanel* UniformGridPanel = Cast<UUniformGridPanel> (GetParent ()))
+    {
+        UniformGridPanel->SetMinDesiredSlotWidth (GridInventoryFixedSlotSize);
+        UniformGridPanel->SetMinDesiredSlotHeight (GridInventoryFixedSlotSize);
+        bGridLayoutApplied = true;
+    }
+
+    bool bGridSlotApplied = SlotType != EGridInventoryUiSlotType::Inventory;
+    if (UUniformGridSlot* UniformGridSlot = Cast<UUniformGridSlot> (Slot))
+    {
+        UniformGridSlot->SetHorizontalAlignment (HAlign_Left);
+        UniformGridSlot->SetVerticalAlignment (VAlign_Top);
+        bGridSlotApplied = true;
+    }
+
+    bFixedSlotLayoutApplied = SizeBox_Root && bGridLayoutApplied && bGridSlotApplied;
 }
 
 void UGridInventorySlotWidget::SetItem (const FGridItemInstance& InItem)
