@@ -4,6 +4,7 @@
 #include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "HAL/IConsoleManager.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -12,7 +13,15 @@
 
 namespace
 {
-    constexpr float GridInventoryFixedSlotSize = 132.0f;
+    TAutoConsoleVariable<float> CVarGridInventoryFixedSlotSize (
+        TEXT ("grimrock.Inventory.FixedSlotSize"),
+        132.0f,
+        TEXT ("Fixed inventory slot size in Slate units. Default: 132."));
+
+    float GetGridInventoryFixedSlotSize ()
+    {
+        return FMath::Max (1.0f, CVarGridInventoryFixedSlotSize.GetValueOnGameThread ());
+    }
 }
 
 void UGridInventorySlotWidget::InitializeInventorySlot (
@@ -51,14 +60,16 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
+    const float FixedSlotSize = GetGridInventoryFixedSlotSize ();
+
     if (SizeBox_Root)
     {
-        SizeBox_Root->SetWidthOverride (GridInventoryFixedSlotSize);
-        SizeBox_Root->SetHeightOverride (GridInventoryFixedSlotSize);
-        SizeBox_Root->SetMinDesiredWidth (GridInventoryFixedSlotSize);
-        SizeBox_Root->SetMinDesiredHeight (GridInventoryFixedSlotSize);
-        SizeBox_Root->SetMaxDesiredWidth (GridInventoryFixedSlotSize);
-        SizeBox_Root->SetMaxDesiredHeight (GridInventoryFixedSlotSize);
+        SizeBox_Root->SetWidthOverride (FixedSlotSize);
+        SizeBox_Root->SetHeightOverride (FixedSlotSize);
+        SizeBox_Root->SetMinDesiredWidth (FixedSlotSize);
+        SizeBox_Root->SetMinDesiredHeight (FixedSlotSize);
+        SizeBox_Root->SetMaxDesiredWidth (FixedSlotSize);
+        SizeBox_Root->SetMaxDesiredHeight (FixedSlotSize);
     }
 
     SetRenderScale (FVector2D (1.0f, 1.0f));
@@ -66,8 +77,8 @@ void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
     bool bGridLayoutApplied = SlotType != EGridInventoryUiSlotType::Inventory;
     if (UUniformGridPanel* UniformGridPanel = Cast<UUniformGridPanel> (GetParent ()))
     {
-        UniformGridPanel->SetMinDesiredSlotWidth (GridInventoryFixedSlotSize);
-        UniformGridPanel->SetMinDesiredSlotHeight (GridInventoryFixedSlotSize);
+        UniformGridPanel->SetMinDesiredSlotWidth (FixedSlotSize);
+        UniformGridPanel->SetMinDesiredSlotHeight (FixedSlotSize);
         bGridLayoutApplied = true;
     }
 
