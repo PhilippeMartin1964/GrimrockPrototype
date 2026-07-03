@@ -50,46 +50,29 @@ void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
     const FVector2D ViewportPx = UWidgetLayoutLibrary::GetViewportSize (this);
     const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
 
-    LastAppliedViewportPx = ViewportPx;
-    LastAppliedViewportScale = ViewportScale;
-
-    if (!CanvasPanel_Root || !ScaleBox_MenuRoot || !SizeBox_MenuDesign)
-    {
-        UE_LOG (LogTemp, Error,
-            TEXT ("GrimrockMenu scaling failed: missing CanvasPanel_Root=%s ScaleBox_MenuRoot=%s SizeBox_MenuDesign=%s."),
-            CanvasPanel_Root ? TEXT ("true") : TEXT ("false"),
-            ScaleBox_MenuRoot ? TEXT ("true") : TEXT ("false"),
-            SizeBox_MenuDesign ? TEXT ("true") : TEXT ("false"));
-        return;
-    }
-
-    if (ScaleBox_MenuRoot->GetParent () != CanvasPanel_Root)
-    {
-        UE_LOG (LogTemp, Error,
-            TEXT ("GrimrockMenu scaling failed: ScaleBox_MenuRoot is not directly under CanvasPanel_Root. Parent=%s"),
-            *GetNameSafe (ScaleBox_MenuRoot->GetParent ()));
-        return;
-    }
-
     const FVector2D AvailablePx (
         FMath::Max (1.0f, ViewportPx.X - SafeMarginPx * 2.0f),
         FMath::Max (1.0f, ViewportPx.Y - SafeMarginPx * 2.0f));
 
-    const float FitScale = FMath::Min3<float> (
-        1.0f,
-        static_cast<float> (AvailablePx.X / DesignWidthPx),
-        static_cast<float> (AvailablePx.Y / DesignHeightPx));
+    const float PhysicalFitScale = FMath::Min3 (
+        (double)1.0,
+        AvailablePx.X / DesignWidthPx,
+        AvailablePx.Y / DesignHeightPx);
 
-    const FVector2D DesignSlateSize (
-        DesignWidthPx / ViewportScale,
-        DesignHeightPx / ViewportScale);
+    // IMPORTANT : la surface de design ne change jamais.
+    SizeBox_MenuDesign->SetWidthOverride (DesignWidthPx);
+    SizeBox_MenuDesign->SetHeightOverride (DesignHeightPx);
 
-    const FVector2D FinalSlateSize = DesignSlateSize * FitScale;
-    SizeBox_MenuDesign->SetWidthOverride (DesignSlateSize.X);
-    SizeBox_MenuDesign->SetHeightOverride (DesignSlateSize.Y);
+    // Taille physique maximale souhaitée.
+    const FVector2D FinalPhysicalSize (
+        DesignWidthPx * PhysicalFitScale,
+        DesignHeightPx * PhysicalFitScale);
+
+    // Conversion uniquement du rectangle externe en Slate Units.
+    const FVector2D FinalSlateSlotSize = FinalPhysicalSize / ViewportScale;
 
     ScaleBox_MenuRoot->SetStretch (EStretch::ScaleToFit);
-    ScaleBox_MenuRoot->SetStretchDirection (EStretchDirection::Both);
+    ScaleBox_MenuRoot->SetStretchDirection (EStretchDirection::DownOnly);
     ScaleBox_MenuRoot->SetRenderTransformPivot (FVector2D (0.5f, 0.5f));
 
     if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot> (ScaleBox_MenuRoot->Slot))
@@ -97,22 +80,14 @@ void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
         CanvasSlot->SetAnchors (FAnchors (0.5f, 0.5f));
         CanvasSlot->SetAlignment (FVector2D (0.5f, 0.5f));
         CanvasSlot->SetPosition (FVector2D::ZeroVector);
-        CanvasSlot->SetSize (FinalSlateSize);
+        CanvasSlot->SetSize (FinalSlateSlotSize);
         CanvasSlot->SetAutoSize (false);
     }
     else
     {
         UE_LOG (LogTemp, Error,
             TEXT ("GrimrockMenu scaling failed: ScaleBox_MenuRoot is not directly under CanvasPanel_Root."));
-        return;
     }
-
-    UE_LOG (LogTemp, Log,
-        TEXT ("GrimrockMenu Layout Centered FinalSlate=%.1fx%.1f FinalPhysical=%.0fx%.0f"),
-        FinalSlateSize.X,
-        FinalSlateSize.Y,
-        FinalSlateSize.X * ViewportScale,
-        FinalSlateSize.Y * ViewportScale);
 }
 
 void UGrimrockMenuWidget::InitializeMenuWidget (AGrimrockPartyPawn* InPartyPawn)
