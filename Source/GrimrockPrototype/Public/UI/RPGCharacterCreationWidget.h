@@ -1,9 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
 #include "Types/SlateEnums.h"
 #include "RPG/RPGCharacterTypes.h"
+#include "UI/GrimrockDesignSurfaceWidget.h"
 #include "RPGCharacterCreationWidget.generated.h"
 
 class AGrimrockPartyPawn;
@@ -20,7 +20,7 @@ class UTextBlock;
 class UTexture2D;
 
 UCLASS ()
-class GRIMROCKPROTOTYPE_API URPGCharacterCreationWidget : public UUserWidget
+class GRIMROCKPROTOTYPE_API URPGCharacterCreationWidget : public UGrimrockDesignSurfaceWidget
 {
     GENERATED_BODY ()
 

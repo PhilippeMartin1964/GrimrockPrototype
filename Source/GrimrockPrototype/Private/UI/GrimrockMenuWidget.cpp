@@ -1,11 +1,6 @@
 #include "UI/GrimrockMenuWidget.h"
 
-#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Components/Button.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
-#include "Components/ScaleBox.h"
-#include "Components/SizeBox.h"
 #include "Components/WidgetSwitcher.h"
 #include "Engine/Texture2D.h"
 #include "UI/GridInventoryWidget.h"
@@ -14,7 +9,6 @@ void UGrimrockMenuWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
 
-    ApplyMenuViewportLimit ();
     BindTopTabButtons ();
     if (!bTopTabsInitialized)
     {
@@ -24,70 +18,6 @@ void UGrimrockMenuWidget::NativeConstruct ()
     }
 
     SetActiveTopTab (CurrentTopTab);
-}
-
-void UGrimrockMenuWidget::NativeTick (
-    const FGeometry& MyGeometry,
-    float InDeltaTime)
-{
-    Super::NativeTick (MyGeometry, InDeltaTime);
-
-    const FVector2D ViewportPx = UWidgetLayoutLibrary::GetViewportSize (this);
-    const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
-    if (!ViewportPx.Equals (LastAppliedViewportPx) ||
-        !FMath::IsNearlyEqual (ViewportScale, LastAppliedViewportScale))
-    {
-        ApplyMenuViewportLimit ();
-    }
-}
-
-void UGrimrockMenuWidget::ApplyMenuViewportLimit ()
-{
-    constexpr float DesignWidthPx = 1920.0f;
-    constexpr float DesignHeightPx = 1080.0f;
-    constexpr float SafeMarginPx = 48.0f;
-
-    const FVector2D ViewportPx = UWidgetLayoutLibrary::GetViewportSize (this);
-    const float ViewportScale = FMath::Max (0.01f, UWidgetLayoutLibrary::GetViewportScale (this));
-
-    const FVector2D AvailablePx (
-        FMath::Max (1.0f, ViewportPx.X - SafeMarginPx * 2.0f),
-        FMath::Max (1.0f, ViewportPx.Y - SafeMarginPx * 2.0f));
-
-    const float PhysicalFitScale = FMath::Min3 (
-        (double)1.0,
-        AvailablePx.X / DesignWidthPx,
-        AvailablePx.Y / DesignHeightPx);
-
-    // IMPORTANT : la surface de design ne change jamais.
-    SizeBox_MenuDesign->SetWidthOverride (DesignWidthPx);
-    SizeBox_MenuDesign->SetHeightOverride (DesignHeightPx);
-
-    // Taille physique maximale souhaitée.
-    const FVector2D FinalPhysicalSize (
-        DesignWidthPx * PhysicalFitScale,
-        DesignHeightPx * PhysicalFitScale);
-
-    // Conversion uniquement du rectangle externe en Slate Units.
-    const FVector2D FinalSlateSlotSize = FinalPhysicalSize / ViewportScale;
-
-    ScaleBox_MenuRoot->SetStretch (EStretch::ScaleToFit);
-    ScaleBox_MenuRoot->SetStretchDirection (EStretchDirection::DownOnly);
-    ScaleBox_MenuRoot->SetRenderTransformPivot (FVector2D (0.5f, 0.5f));
-
-    if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot> (ScaleBox_MenuRoot->Slot))
-    {
-        CanvasSlot->SetAnchors (FAnchors (0.5f, 0.5f));
-        CanvasSlot->SetAlignment (FVector2D (0.5f, 0.5f));
-        CanvasSlot->SetPosition (FVector2D::ZeroVector);
-        CanvasSlot->SetSize (FinalSlateSlotSize);
-        CanvasSlot->SetAutoSize (false);
-    }
-    else
-    {
-        UE_LOG (LogTemp, Error,
-            TEXT ("GrimrockMenu scaling failed: ScaleBox_MenuRoot is not directly under CanvasPanel_Root."));
-    }
 }
 
 void UGrimrockMenuWidget::InitializeMenuWidget (AGrimrockPartyPawn* InPartyPawn)
