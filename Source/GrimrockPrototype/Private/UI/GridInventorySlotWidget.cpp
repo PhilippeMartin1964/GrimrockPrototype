@@ -1,6 +1,7 @@
 #include "UI/GridInventorySlotWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "InputCoreTypes.h"
@@ -45,6 +46,14 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
+    constexpr float SlotLogicalExtent = 132.0f;
+
+    if (SizeBox_Root)
+    {
+        SizeBox_Root->SetWidthOverride (SlotLogicalExtent);
+        SizeBox_Root->SetHeightOverride (SlotLogicalExtent);
+    }
+
     SetRenderScale (FVector2D (1.0f, 1.0f));
 
     bool bGridLayoutApplied = SlotType != EGridInventoryUiSlotType::Inventory;
