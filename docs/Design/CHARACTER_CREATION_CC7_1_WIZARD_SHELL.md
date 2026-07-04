@@ -192,7 +192,8 @@ Structure cible :
 WBP_CharacterCreationWizard
 -> CanvasPanel_Root
    -> Border_ModalDim
-      -> SizeBox_Wizard
+   -> ScaleBox_DesignRoot
+      -> SizeBox_DesignSurface
          -> Border_WizardBackground
             -> VerticalBox_Wizard
                -> HorizontalBox_Header
@@ -218,6 +219,14 @@ WBP_CharacterCreationWizard
                   -> Button_CreateCharacter
                      -> Text_CreateCharacter
 ```
+
+`Border_ModalDim` est optionnel. S'il existe, il peut rester enfant direct de `CanvasPanel_Root` avec des anchors full screen.
+
+`ScaleBox_DesignRoot` doit imperativement rester enfant direct de `CanvasPanel_Root`.
+`SizeBox_DesignSurface` doit etre enfant direct de `ScaleBox_DesignRoot`.
+Le contenu reel du Wizard doit etre place sous `SizeBox_DesignSurface`.
+
+Le Wizard herite indirectement de `UGrimrockDesignSurfaceWidget` via `URPGCharacterCreationWidget`. Il beneficie donc automatiquement du scaling 1920x1080, du centrage et de la limite physique viewport, a condition que les widgets `CanvasPanel_Root`, `ScaleBox_DesignRoot` et `SizeBox_DesignSurface` existent et soient correctement hierarchises.
 
 Les cinq widgets suivants doivent être des enfants directs de `WidgetSwitcher_Steps` :
 
