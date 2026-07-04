@@ -114,6 +114,58 @@ namespace
             Action.TargetObjectId = Target->TargetObjectId;
         }
     }
+
+    FText GetEquipmentSlotActionLabel (EGridEquipmentSlot Slot)
+    {
+        switch (Slot)
+        {
+        case EGridEquipmentSlot::MainHand:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotMainHand", "main directrice");
+        case EGridEquipmentSlot::OffHand:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotOffHand", "main secondaire");
+        case EGridEquipmentSlot::Head:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotHead", "tete");
+        case EGridEquipmentSlot::Chest:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotChest", "torse");
+        case EGridEquipmentSlot::Legs:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotLegs", "jambes");
+        case EGridEquipmentSlot::Feet:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotFeet", "pieds");
+        case EGridEquipmentSlot::Amulet:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotAmulet", "amulette");
+        case EGridEquipmentSlot::Ring1:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotRing1", "anneau I");
+        case EGridEquipmentSlot::Ring2:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotRing2", "anneau II");
+        case EGridEquipmentSlot::Shoulders:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotShoulders", "epaules");
+        case EGridEquipmentSlot::Gloves:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotGloves", "gants");
+        case EGridEquipmentSlot::Belt:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotBelt", "ceinture");
+        case EGridEquipmentSlot::Cloak:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotCloak", "cape");
+        case EGridEquipmentSlot::Talisman:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotTalisman", "talisman");
+        case EGridEquipmentSlot::QuickSlot1:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotQuickSlot1", "raccourci I");
+        case EGridEquipmentSlot::QuickSlot2:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotQuickSlot2", "raccourci II");
+        case EGridEquipmentSlot::Face:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotFace", "visage");
+        case EGridEquipmentSlot::Shirt:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotShirt", "chemise");
+        case EGridEquipmentSlot::Bracers:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotBracers", "brassards");
+        case EGridEquipmentSlot::Earring1:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotEarring1", "bijou d'oreille I");
+        case EGridEquipmentSlot::Earring2:
+            return NSLOCTEXT ("GridItemActions", "EquipmentSlotEarring2", "bijou d'oreille II");
+        case EGridEquipmentSlot::None:
+        default:
+            return FText::GetEmpty ();
+        }
+    }
 }
 
 bool UGridItemContextActionLibrary::BuildInventorySlotContextActions (
@@ -205,7 +257,9 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             AddAction (
                 OutActions,
                 EGridItemActionType::Equip,
-                NSLOCTEXT ("GridItemActions", "EquipMainHand", "S'équiper en main directrice"),
+                FText::Format (
+                    NSLOCTEXT ("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"),
+                    GetEquipmentSlotActionLabel (EGridEquipmentSlot::MainHand)),
                 nullptr,
                 EGridEquipmentSlot::MainHand);
         }
@@ -214,9 +268,35 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
             AddAction (
                 OutActions,
                 EGridItemActionType::Equip,
-                NSLOCTEXT ("GridItemActions", "EquipOffHand", "S'équiper en main secondaire"),
+                FText::Format (
+                    NSLOCTEXT ("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"),
+                    GetEquipmentSlotActionLabel (EGridEquipmentSlot::OffHand)),
                 nullptr,
                 EGridEquipmentSlot::OffHand);
+        }
+        for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
+        {
+            if (CompatibleSlot == EGridEquipmentSlot::None ||
+                CompatibleSlot == EGridEquipmentSlot::MainHand ||
+                CompatibleSlot == EGridEquipmentSlot::OffHand)
+            {
+                continue;
+            }
+
+            const FText SlotLabel = GetEquipmentSlotActionLabel (CompatibleSlot);
+            if (SlotLabel.IsEmpty ())
+            {
+                continue;
+            }
+
+            AddAction (
+                OutActions,
+                EGridItemActionType::Equip,
+                FText::Format (
+                    NSLOCTEXT ("GridItemActions", "EquipSpecificSlot", "S'equiper : {0}"),
+                    SlotLabel),
+                nullptr,
+                CompatibleSlot);
         }
     }
 
@@ -242,8 +322,7 @@ bool UGridItemContextActionLibrary::BuildItemContextActions (
         ItemContext.InventorySlotIndex != INDEX_NONE &&
         ItemContext.EquipmentSlot == EGridEquipmentSlot::None;
     const bool bIsEquipmentSlotSource =
-        ItemContext.EquipmentSlot == EGridEquipmentSlot::MainHand ||
-        ItemContext.EquipmentSlot == EGridEquipmentSlot::OffHand;
+        ItemContext.EquipmentSlot != EGridEquipmentSlot::None;
 
     if (bIsInventorySlotSource &&
         OutFacingTarget.bIsValid &&

@@ -55,9 +55,9 @@ Ils pourront etre reutilises plus tard dans un systeme separe : barre rapide, ob
 
 ## Etat technique actuel
 
-La cible visuelle contient plus de slots que le modele C++ actuellement disponible.
-
-Slots deja alignes avec le modele actuel :
+UI-INV2C aligne le modele C++ sur la cible paper doll. Les slots suivants sont
+declares dans `EGridEquipmentSlot`, stockes dans `FGridCharacterEquipmentState`
+et accessibles via les fonctions generiques d'equipement :
 
 - `MainHand` ;
 - `OffHand` ;
@@ -71,17 +71,16 @@ Slots deja alignes avec le modele actuel :
 - `Shoulders` ;
 - `Gloves` ;
 - `Belt` ;
-- `Cloak`.
-
-Slots a ajouter dans une etape C++ suivante :
-
+- `Cloak` ;
 - `Face` ;
 - `Shirt` ;
 - `Bracers` ;
 - `Earring1` ;
 - `Earring2`.
 
-Tant que ces slots ne sont pas ajoutes a `EGridEquipmentSlot` et `FGridCharacterEquipmentState`, ils peuvent etre prepares visuellement dans le Blueprint, mais ne doivent pas etre enregistres comme slots fonctionnels via `RegisterEquipmentSlotWidget`.
+Le Blueprint paper doll reste a implementer dans UI-INV2D. Tant que
+`WBP_GridInventory` n'a pas ete modifie, les nouveaux slots sont disponibles en
+C++ mais ne sont pas encore visibles dans l'interface.
 
 ## Structure cible du panneau SelectedCharacter
 

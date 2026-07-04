@@ -105,11 +105,11 @@ Ils pourront être réutilisés plus tard pour un autre système : barre rapide,
 
 `Cursor` reste un état temporaire de manipulation. Il ne doit jamais être documenté comme un slot d'équipement.
 
-## État technique et dette C++
+## Etat technique UI-INV2C
 
-Le modèle visuel cible est plus large que le modèle C++ disponible au moment de UI-INV2.
+UI-INV2C aligne le modele C++ sur la cible paper doll.
 
-Slots déjà disponibles ou alignés avec l'existant :
+Slots disponibles dans `EGridEquipmentSlot` et `FGridCharacterEquipmentState` :
 
 ```text
 MainHand
@@ -125,11 +125,6 @@ Shoulders
 Gloves
 Belt
 Cloak
-```
-
-Slots à ajouter dans une étape C++ suivante :
-
-```text
 Face
 Shirt
 Bracers
@@ -137,15 +132,12 @@ Earring1
 Earring2
 ```
 
-L'étape suivante devra aligner :
+Les anciens slots `Talisman`, `QuickSlot1` et `QuickSlot2` restent conserves
+dans le C++ pour compatibilite et usage futur, mais ils ne font plus partie de
+la cible visuelle paper doll.
 
-- `EGridEquipmentSlot` ;
-- `FGridCharacterEquipmentState` ;
-- `GetMutableSlot()` ;
-- `GetSlot()` ;
-- `ClearSlot()` ;
-- les compatibilités `UGridItemDefinitionAsset::CompatibleEquipmentSlots` ;
-- les mappings Blueprint `RegisterEquipmentSlotWidget`.
+Le Blueprint paper doll reste a implementer dans UI-INV2D. Les nouveaux slots
+C++ pourront alors etre enregistres via `RegisterEquipmentSlotWidget`.
 
 ## CursorItem
 
@@ -247,11 +239,10 @@ Le SaveGame devra contenir l'état du donjon, l'état du groupe actif, les perso
 
 ### Phase B — Alignement C++ des nouveaux slots
 
-- ajouter `Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2` à `EGridEquipmentSlot` ;
-- ajouter les champs correspondants à `FGridCharacterEquipmentState` ;
-- mettre à jour les fonctions d'accès ;
-- adapter les compatibilités d'items ;
-- brancher les `RegisterEquipmentSlotWidget` manquants.
+- applique par UI-INV2C : `Face`, `Shirt`, `Bracers`, `Earring1`, `Earring2` existent cote C++ ;
+- applique par UI-INV2C : les champs correspondants existent dans `FGridCharacterEquipmentState` ;
+- applique par UI-INV2C : les fonctions d'acces et les compatibilites `CompatibleEquipmentSlots` acceptent les nouveaux slots ;
+- a faire dans UI-INV2D : brancher les widgets paper doll manquants dans `WBP_GridInventory`.
 
 ### Phase C — Équipement visuel dynamique
 
@@ -276,12 +267,12 @@ Déjà appliqué :
 - `UGridItemDefinitionAsset` ;
 - compatibilités via `CompatibleEquipmentSlots` ;
 - type UI générique `EGridInventoryUiSlotType::Equipment` ;
-- documentation UI-INV2B du paper doll.
+- documentation UI-INV2B du paper doll ;
+- alignement C++ UI-INV2C des nouveaux slots paper doll.
 
 Reste à faire :
 
-- alignement C++ complet des nouveaux slots paper doll ;
-- modification finale du `WBP_GridInventory.uasset` ;
+- implementation Blueprint UI-INV2D du paper doll dans `WBP_GridInventory.uasset` ;
 - validation runtime ;
 - sauvegarde complète ;
 - équipement visuel dynamique.

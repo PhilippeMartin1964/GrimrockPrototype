@@ -66,6 +66,16 @@ namespace
             return TEXT ("QuickSlot1");
         case EGridEquipmentSlot::QuickSlot2:
             return TEXT ("QuickSlot2");
+        case EGridEquipmentSlot::Face:
+            return TEXT ("Visage");
+        case EGridEquipmentSlot::Shirt:
+            return TEXT ("Chemise");
+        case EGridEquipmentSlot::Bracers:
+            return TEXT ("Brassards");
+        case EGridEquipmentSlot::Earring1:
+            return TEXT ("Bijou d'oreille I");
+        case EGridEquipmentSlot::Earring2:
+            return TEXT ("Bijou d'oreille II");
         default:
             return TEXT ("Unsupported");
         }

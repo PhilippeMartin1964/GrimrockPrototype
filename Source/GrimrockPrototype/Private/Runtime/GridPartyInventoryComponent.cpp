@@ -37,7 +37,34 @@ namespace
 
     bool IsSupportedEquipmentSlot (EGridEquipmentSlot Slot)
     {
-        return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
+        switch (Slot)
+        {
+        case EGridEquipmentSlot::MainHand:
+        case EGridEquipmentSlot::OffHand:
+        case EGridEquipmentSlot::Head:
+        case EGridEquipmentSlot::Chest:
+        case EGridEquipmentSlot::Legs:
+        case EGridEquipmentSlot::Feet:
+        case EGridEquipmentSlot::Amulet:
+        case EGridEquipmentSlot::Ring1:
+        case EGridEquipmentSlot::Ring2:
+        case EGridEquipmentSlot::Shoulders:
+        case EGridEquipmentSlot::Gloves:
+        case EGridEquipmentSlot::Belt:
+        case EGridEquipmentSlot::Cloak:
+        case EGridEquipmentSlot::Talisman:
+        case EGridEquipmentSlot::QuickSlot1:
+        case EGridEquipmentSlot::QuickSlot2:
+        case EGridEquipmentSlot::Face:
+        case EGridEquipmentSlot::Shirt:
+        case EGridEquipmentSlot::Bracers:
+        case EGridEquipmentSlot::Earring1:
+        case EGridEquipmentSlot::Earring2:
+            return true;
+        case EGridEquipmentSlot::None:
+        default:
+            return false;
+        }
     }
 
     const TCHAR* GetEquipmentSlotName (EGridEquipmentSlot Slot)
@@ -78,6 +105,16 @@ namespace
             return TEXT ("QuickSlot1");
         case EGridEquipmentSlot::QuickSlot2:
             return TEXT ("QuickSlot2");
+        case EGridEquipmentSlot::Face:
+            return TEXT ("Visage");
+        case EGridEquipmentSlot::Shirt:
+            return TEXT ("Chemise");
+        case EGridEquipmentSlot::Bracers:
+            return TEXT ("Brassards");
+        case EGridEquipmentSlot::Earring1:
+            return TEXT ("Bijou d'oreille I");
+        case EGridEquipmentSlot::Earring2:
+            return TEXT ("Bijou d'oreille II");
         default:
             return TEXT ("Unsupported");
         }
@@ -188,7 +225,19 @@ namespace
             EGridEquipmentSlot::Feet,
             EGridEquipmentSlot::Amulet,
             EGridEquipmentSlot::Ring1,
-            EGridEquipmentSlot::Ring2
+            EGridEquipmentSlot::Ring2,
+            EGridEquipmentSlot::Shoulders,
+            EGridEquipmentSlot::Gloves,
+            EGridEquipmentSlot::Belt,
+            EGridEquipmentSlot::Cloak,
+            EGridEquipmentSlot::Talisman,
+            EGridEquipmentSlot::QuickSlot1,
+            EGridEquipmentSlot::QuickSlot2,
+            EGridEquipmentSlot::Face,
+            EGridEquipmentSlot::Shirt,
+            EGridEquipmentSlot::Bracers,
+            EGridEquipmentSlot::Earring1,
+            EGridEquipmentSlot::Earring2
         };
 
         for (const EGridEquipmentSlot Slot : Slots)
@@ -1161,14 +1210,27 @@ FString UGridPartyInventoryComponent::GetEquipmentDiagnosticsForCharacter (int32
 {
     if (!IsValidCharacterIndex (CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
     {
-        return TEXT ("    Equipment: MainHand=None OffHand=None");
+        return TEXT ("    Equipment: None");
     }
 
     const FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
-    return FString::Printf (
-        TEXT ("    Equipment: MainHand=%s OffHand=%s"),
-        EquipmentState.MainHand.IsValid () ? *EquipmentState.MainHand.ItemDefinitionId.ToString () : TEXT ("None"),
-        EquipmentState.OffHand.IsValid () ? *EquipmentState.OffHand.ItemDefinitionId.ToString () : TEXT ("None"));
+    TArray<FString> OccupiedSlots;
+    ForEachEquipmentItem (
+        EquipmentState,
+        [&OccupiedSlots] (EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+        {
+            if (Item.IsValid ())
+            {
+                OccupiedSlots.Add (FString::Printf (
+                    TEXT ("%s=%s"),
+                    GetEquipmentSlotName (Slot),
+                    *Item.ItemDefinitionId.ToString ()));
+            }
+        });
+
+    return OccupiedSlots.Num () > 0
+        ? FString::Printf (TEXT ("    Equipment: %s"), *FString::Join (OccupiedSlots, TEXT (" ")))
+        : TEXT ("    Equipment: None");
 }
 
 bool UGridPartyInventoryComponent::SetCursorItem (const FGridItemInstance& Item)
@@ -1980,14 +2042,11 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults (
 float UGridPartyInventoryComponent::CalculateEquipmentWeight (const FGridCharacterEquipmentState& EquipmentState) const
 {
     float TotalWeight = 0.0f;
-    TotalWeight += GetItemTotalWeight (EquipmentState.MainHand);
-    TotalWeight += GetItemTotalWeight (EquipmentState.OffHand);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Head);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Chest);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Legs);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Feet);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Amulet);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Ring1);
-    TotalWeight += GetItemTotalWeight (EquipmentState.Ring2);
+    ForEachEquipmentItem (
+        EquipmentState,
+        [&TotalWeight] (EGridEquipmentSlot, const FGridItemInstance& Item)
+        {
+            TotalWeight += GetItemTotalWeight (Item);
+        });
     return TotalWeight;
 }

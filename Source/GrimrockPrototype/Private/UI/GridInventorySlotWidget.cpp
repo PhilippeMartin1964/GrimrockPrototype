@@ -10,6 +10,61 @@
 #include "UI/GridInventoryDragDropOperation.h"
 #include "UI/GridInventoryWidget.h"
 
+namespace
+{
+    FText GetEquipmentSlotDisplayName (EGridEquipmentSlot Slot)
+    {
+        switch (Slot)
+        {
+        case EGridEquipmentSlot::MainHand:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotMainHand", "Main directrice");
+        case EGridEquipmentSlot::OffHand:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotOffHand", "Main secondaire");
+        case EGridEquipmentSlot::Head:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotHead", "Tete");
+        case EGridEquipmentSlot::Chest:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotChest", "Torse");
+        case EGridEquipmentSlot::Legs:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotLegs", "Jambes");
+        case EGridEquipmentSlot::Feet:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotFeet", "Pieds");
+        case EGridEquipmentSlot::Amulet:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotAmulet", "Amulette");
+        case EGridEquipmentSlot::Ring1:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotRing1", "Anneau I");
+        case EGridEquipmentSlot::Ring2:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotRing2", "Anneau II");
+        case EGridEquipmentSlot::Shoulders:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotShoulders", "Epaules");
+        case EGridEquipmentSlot::Gloves:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotGloves", "Gants");
+        case EGridEquipmentSlot::Belt:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotBelt", "Ceinture");
+        case EGridEquipmentSlot::Cloak:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotCloak", "Cape");
+        case EGridEquipmentSlot::Talisman:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotTalisman", "Talisman");
+        case EGridEquipmentSlot::QuickSlot1:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotQuickSlot1", "Raccourci I");
+        case EGridEquipmentSlot::QuickSlot2:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotQuickSlot2", "Raccourci II");
+        case EGridEquipmentSlot::Face:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotFace", "Visage");
+        case EGridEquipmentSlot::Shirt:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotShirt", "Chemise");
+        case EGridEquipmentSlot::Bracers:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotBracers", "Brassards");
+        case EGridEquipmentSlot::Earring1:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotEarring1", "Bijou d'oreille I");
+        case EGridEquipmentSlot::Earring2:
+            return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotEarring2", "Bijou d'oreille II");
+        case EGridEquipmentSlot::None:
+        default:
+            return FText::GetEmpty ();
+        }
+    }
+}
+
 void UGridInventorySlotWidget::InitializeInventorySlot (
     EGridInventoryUiSlotType InSlotType,
     int32 InInventorySlotIndex)
@@ -212,30 +267,19 @@ FText UGridInventorySlotWidget::GetCompatibleEquipmentSlotsText () const
         return FText::GetEmpty ();
     }
 
-    const bool bSupportsMainHand =
-        Definition->CompatibleEquipmentSlots.Contains (EGridEquipmentSlot::MainHand);
-    const bool bSupportsOffHand =
-        Definition->CompatibleEquipmentSlots.Contains (EGridEquipmentSlot::OffHand);
-
-    if (bSupportsMainHand && bSupportsOffHand)
+    TArray<FString> SlotLabels;
+    for (const EGridEquipmentSlot CompatibleSlot : Definition->CompatibleEquipmentSlots)
     {
-        return NSLOCTEXT (
-            "GridInventoryTooltip",
-            "EquipmentSlotsBothHands",
-            "Main directrice, Main secondaire");
+        const FText SlotLabel = GetEquipmentSlotDisplayName (CompatibleSlot);
+        if (!SlotLabel.IsEmpty ())
+        {
+            SlotLabels.Add (SlotLabel.ToString ());
+        }
     }
 
-    if (bSupportsMainHand)
-    {
-        return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotMainHand", "Main directrice");
-    }
-
-    if (bSupportsOffHand)
-    {
-        return NSLOCTEXT ("GridInventoryTooltip", "EquipmentSlotOffHand", "Main secondaire");
-    }
-
-    return FText::GetEmpty ();
+    return SlotLabels.Num () > 0
+        ? FText::FromString (FString::Join (SlotLabels, TEXT (", ")))
+        : FText::GetEmpty ();
 }
 
 FText UGridInventorySlotWidget::GetLightTooltipText () const
