@@ -34,19 +34,58 @@ Rôle :
 
 Hiérarchie recommandée :
 
-- `Root` canvas ou overlay ;
-- zone `Page_Inventory` ;
-- grille d'inventaire ;
-- slots `MainHand`, `OffHand`, `Cursor` ;
-- couche UI au-dessus pour `WBP_ItemActionMenu`, `WBP_ItemInspectPanel`, `WBP_ItemReadPanel`.
+`WBP_GridInventory` est le contenu de `Page_Inventory` dans `WBP_GrimrockMenu`.
+Il ne doit pas ajouter de `ScaleBox` local, de `SizeBox_DesignSurface` local,
+de calcul DPI ou de logique viewport.
+
+Structure UI-INV2 attendue pour le panneau personnage :
+
+```text
+SizeBox_SelectedCharacterPanel
+-> Border_SelectedCharacterPanel
+   -> VerticalBox_SelectedCharacter
+      -> Text_SelectedCharacterTitle
+      -> VerticalBox_CharacterDetails
+      -> Text_EquipmentTitle
+      -> Border_EquipmentPanel
+         -> UniformGrid_EquipmentSlots
+            -> SlotWidget_Head
+            -> SlotWidget_Amulet
+            -> SlotWidget_Shoulders
+            -> SlotWidget_Chest
+            -> SlotWidget_Gloves
+            -> SlotWidget_Belt
+            -> SlotWidget_Legs
+            -> SlotWidget_Feet
+            -> SlotWidget_Cloak
+            -> SlotWidget_Ring1
+            -> SlotWidget_Ring2
+            -> SlotWidget_MainHand
+            -> SlotWidget_OffHand
+            -> SlotWidget_Talisman
+            -> SlotWidget_QuickSlot1
+            -> SlotWidget_QuickSlot2
+```
+
+`SlotWidget_Cursor` ne doit pas etre enfant de `UniformGrid_EquipmentSlots`.
+Le Cursor doit etre place dans une couche separee ou conserve hors panneau
+equipement.
+
+Couche UI au-dessus :
+
+- `WBP_ItemActionMenu` ;
+- `WBP_ItemInspectPanel` ;
+- `WBP_ItemReadPanel`.
 
 ```mermaid
 flowchart TD
     Root["WBP_GridInventory<br/>UGridInventoryWidget"] --> Page["Page_Inventory"]
     Page --> Grid["InventoryGrid"]
-    Page --> Main["Slot MainHand"]
-    Page --> Off["Slot OffHand"]
-    Page --> Cursor["Slot Cursor"]
+    Page --> Selected["SelectedCharacterPanel"]
+    Selected --> Equipment["UniformGrid_EquipmentSlots"]
+    Equipment --> Main["SlotWidget_MainHand"]
+    Equipment --> Off["SlotWidget_OffHand"]
+    Page --> Cursor["SlotWidget_Cursor hors équipement"]
     Root --> Overlay["Overlay UI"]
     Overlay --> Menu["WBP_ItemActionMenu"]
     Overlay --> Inspect["WBP_ItemInspectPanel futur"]
@@ -215,14 +254,15 @@ Parent C++ attendu : `UGridInventorySlotWidget`.
 Slots concernés :
 
 - slots d'inventaire ;
-- `MainHand` ;
-- `OffHand` ;
+- slots d'equipement generiques `Equipment` ;
+- `MainHand` et `OffHand` pour compatibilite legacy ;
 - `Cursor`.
 
 Variables obligatoires :
 
 - `SlotType` ;
 - `InventorySlotIndex` ;
+- `EquipmentSlot` pour les slots d'equipement ;
 - `OwningInventoryWidget`.
 
 Responsabilités :
@@ -235,6 +275,62 @@ Interactions :
 
 - clic droit : `HandleItemSlotRightClicked(SlotType, InventorySlotIndex)` ;
 - drop : `HandleSlotDrop(SourceSlotType, SourceSlotIndex, SlotType, InventorySlotIndex, ...)`.
+
+Chaque slot equipement UI-INV2 doit etre un `UGridInventorySlotWidget` et etre
+enregistre par `RegisterEquipmentSlotWidget`.
+
+Mapping Blueprint recommande :
+
+```text
+SlotWidget_Head       -> Head
+SlotWidget_Amulet     -> Amulet
+SlotWidget_Shoulders  -> Shoulders
+SlotWidget_Chest      -> Chest
+SlotWidget_Gloves     -> Gloves
+SlotWidget_Belt       -> Belt
+SlotWidget_Legs       -> Legs
+SlotWidget_Feet       -> Feet
+SlotWidget_Cloak      -> Cloak
+SlotWidget_Ring1      -> Ring1
+SlotWidget_Ring2      -> Ring2
+SlotWidget_MainHand   -> MainHand
+SlotWidget_OffHand    -> OffHand
+SlotWidget_Talisman   -> Talisman
+SlotWidget_QuickSlot1 -> QuickSlot1
+SlotWidget_QuickSlot2 -> QuickSlot2
+```
+
+Structure finale du panneau `SelectedCharacter` :
+
+```text
+SizeBox_SelectedCharacterPanel
+-> Border_SelectedCharacterPanel
+   -> VerticalBox_SelectedCharacter
+      -> Text_SelectedCharacterTitle
+      -> VerticalBox_CharacterDetails
+         -> Border_CharacterClassAccent
+            -> HorizontalBox_Identity
+               -> SizeBox_Portrait
+                  -> Overlay_PortraitSlot
+                     -> Image_CharacterPortrait
+                     -> Image_CharacterClassIcon
+               -> VerticalBox_Identity
+                  -> Text_CharacterName
+                  -> HorizontalBox_Race
+                  -> HorizontalBox_Class
+                  -> HorizontalBox_Level
+                  -> HorizontalBox_Experience
+         -> UniformGridPanel_Attributes
+         -> HorizontalBox_DerivedStats
+      -> Text_EquipmentTitle
+      -> Border_EquipmentPanel
+         -> UniformGrid_EquipmentSlots
+            -> tous les SlotWidget_* equipement UI-INV2
+```
+
+La structure actuelle est globalement conservee. Seul
+`UniformGrid_EquipmentSlots` doit etre complete, et `SlotWidget_Cursor` doit etre
+sorti du panneau equipement.
 
 ## Futur WBP_ItemInspectPanel
 

@@ -58,9 +58,9 @@ La cible sous la souris est donc prioritaire pour le routage monde direct. La ci
 
 | Interaction | Capture | Validation | Exécution | Refresh UI | Logs principaux |
 |---|---|---|---|---|---|
-| Clic gauche slot | `UGridInventorySlotWidget` puis `UGridInventoryWidget::HandleRegisteredSlotClicked` | `UGridInventoryWidget` et `UGridPartyInventoryComponent` | Fonctions cursor/equipment du pawn et du composant | `RefreshInventory` après mutation | `GridInventory UI MainHandClicked`, `OffHandClicked`, `Drop` |
+| Clic gauche slot | `UGridInventorySlotWidget` puis `UGridInventoryWidget::HandleRegisteredSlotClicked` | `UGridInventoryWidget` et `UGridPartyInventoryComponent` | Fonctions cursor/equipment du pawn et du composant | `RefreshInventory` après mutation | `GridInventory UI EquipmentClicked`, `Drop` |
 | Clic droit slot | `UGridInventorySlotWidget::NativeOnMouseButtonDown` | `BuildContextActionsForSlot`, `UGridItemContextActionLibrary` | Aucune mutation à l'ouverture | Blueprint ouvre `WBP_ItemActionMenu` via `OnContextActionsRequested` | `GridInventory RightClick`, `GridItemActions Build` |
-| Drag/drop | `UGridInventorySlotWidget::NativeOnDragDetected` / `NativeOnDrop` | `UGridInventoryWidget::HandleSlotDrop` | Swap atomique ou transfert via composant/pawn | `RefreshInventory`; `SyncHeldVisualFromSelectedCharacterEquipment` si main touchée | `GridInventory UI Drop`, `GridInventory SwapSlots` |
+| Drag/drop | `UGridInventorySlotWidget::NativeOnDragDetected` / `NativeOnDrop` | `UGridInventoryWidget::HandleSlotDrop` | Swap atomique ou transfert via composant/pawn | `RefreshInventory`; `SyncHeldVisualFromSelectedCharacterEquipment` si equipement touche | `GridInventory UI Drop`, `GridInventory SwapSlots` |
 | Clic action menu | `WBP_ItemActionButton` | Action reconstruite et validée par index | `ExecuteInventoryContextActionByIndex` puis `ExecuteResolvedInventoryContextAction` | `RefreshInventory` si action exécutée | `GridItemActions ExecuteByIndex`, `Execute ...` |
 | Clic extérieur menu | `WBP_ItemActionMenu` click catcher | Blueprint vérifie que le clic est hors panneau | `CloseItemActionMenu("ClickOutside")` puis retrait du menu uniquement | Pas de refresh gameplay | `GridItemActionMenu Closed` |
 | Tooltip hover | `WBP_ItemToolTip` / slot widget | Lecture passive de la définition d'item | Aucune mutation | Affichage tooltip uniquement | Pas de log requis |
@@ -80,6 +80,26 @@ Lecture rapide :
 | Qui valide ? | `UGridInventoryWidget`, `UGridItemContextActionLibrary`, services C++ |
 | Qui exécute ? | `ExecuteInventoryContextActionByIndex`, `ExecuteResolvedInventoryContextAction`, `UGridItemTransferService` |
 | Qui rafraîchit ? | `UGridInventoryWidget::RefreshInventory`, synchronisation visuelle du pawn, recompute lumière |
+
+## UI-INV2 — Slots Equipment Generiques
+
+UI-INV2 ajoute un modele de slot equipement generique :
+
+- `SlotType = Equipment` ;
+- `EquipmentSlot` est stocke dans `UGridInventorySlotWidget` ;
+- `InventorySlotIndex = static_cast<int32>(EquipmentSlot)` ;
+- clic gauche : `HandleRegisteredSlotClicked` relaie vers `HandleEquipmentSlotClicked` ;
+- drag/drop : `HandleSlotDrop` recoit `SourceType` ou `TargetType` a `Equipment` avec le `SlotIndex` correspondant ;
+- refresh : `RefreshRegisteredSlotWidgets`, puis `RefreshInventory`, met a jour les widgets enregistres.
+
+`MainHand` et `OffHand` restent supportes pour compatibilite legacy. Le modele
+recommande pour les nouveaux slots est `Equipment` avec `EGridEquipmentSlot`.
+
+Les Blueprints ne decident jamais de la compatibilite. Ils relaient seulement :
+
+- `SlotType` ;
+- `SlotIndex` ;
+- `EquipmentSlot`.
 
 ## Flux Clic Droit
 
@@ -114,7 +134,8 @@ Le menu peut être ouvert alors qu'un autre chemin souris existe dans le monde, 
 4. Le swap valide chaque item contre son slot de destination avant mutation.
 5. Si le swap est impossible, rien n'est déplacé.
 6. Les autres flux continuent d'utiliser les fonctions historiques du composant/pawn pour les slots vides ou le Cursor.
-7. Après mutation, l'UI est rafraîchie et les visuels équipés sont resynchronisés si une main est touchée.
+7. Après mutation, l'UI est rafraîchie et les visuels équipés sont resynchronisés si un equipement est touche.
+8. Pour `Equipment`, `SlotIndex` identifie le `EGridEquipmentSlot` cible ; aucune logique Blueprint ne doit recalculer cette compatibilite.
 
 ```mermaid
 flowchart TD
@@ -246,11 +267,13 @@ flowchart TD
 ## Règles De Maintenance
 
 - Les Blueprints ne décident pas si un item est compatible avec une main, une serrure ou un réceptacle.
+- Les Blueprints ne decident pas si un item est compatible avec un slot `Equipment`.
 - Les Blueprints ne retirent pas eux-mêmes un item de l'inventaire ou de l'équipement.
 - Les Blueprints ne doivent pas ouvrir une porte, déverrouiller une serrure ou déplacer un item par logique locale.
 - Toute action visible du menu conserve son `ActionIndex`.
 - Toute mutation C++ doit préserver l'atomicité : succès complet ou aucun changement.
 - Le Cursor peut rester pour les anciens flux, mais il ne doit pas être utilisé pour les swaps occupés ou les transferts `PlaceOnTarget` depuis une main équipée.
+- Le Cursor n'est pas un equipement ; c'est seulement un etat temporaire de manipulation.
 
 ## Logs Utiles
 

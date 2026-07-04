@@ -15,14 +15,30 @@ parent. Il ne doit donc pas gerer la resolution ecran.
 Structure recommandee pour le panneau central :
 
 ```text
-WBP_GridInventory
--> Border_InventoryPanel
-   -> Overlay_InventoryRoot ou GridPanel_InventoryRoot
-      -> Border_CharacterEquipmentPanel
-         -> Overlay_CharacterEquipmentRoot
-            -> Image_CharacterPortrait ou Image_CharacterFullBody
-            -> slots equipement autour du personnage
-            -> blocs texte personnage / stats
+SizeBox_SelectedCharacterPanel
+-> Border_SelectedCharacterPanel
+   -> VerticalBox_SelectedCharacter
+      -> Text_SelectedCharacterTitle
+      -> VerticalBox_CharacterDetails
+      -> Text_EquipmentTitle
+      -> Border_EquipmentPanel
+         -> UniformGrid_EquipmentSlots
+            -> SlotWidget_Head
+            -> SlotWidget_Amulet
+            -> SlotWidget_Shoulders
+            -> SlotWidget_Chest
+            -> SlotWidget_Gloves
+            -> SlotWidget_Belt
+            -> SlotWidget_Legs
+            -> SlotWidget_Feet
+            -> SlotWidget_Cloak
+            -> SlotWidget_Ring1
+            -> SlotWidget_Ring2
+            -> SlotWidget_MainHand
+            -> SlotWidget_OffHand
+            -> SlotWidget_Talisman
+            -> SlotWidget_QuickSlot1
+            -> SlotWidget_QuickSlot2
 ```
 
 Les slots doivent etre des `WBP_InventorySlot` ou des widgets derives de
@@ -74,6 +90,9 @@ Slot_QuickSlot2 -> EGridEquipmentSlot::QuickSlot2
 Le slot `Face` n'est pas traite dans UI-INV2, car `EGridEquipmentSlot` ne le
 contient pas encore.
 
+`Cursor` n'est pas un equipement. C'est un etat temporaire de manipulation
+d'item, a placer hors de `UniformGrid_EquipmentSlots`.
+
 ## Regles de scaling
 
 - Ne pas ajouter de `ScaleBox` local pour compenser la resolution.
@@ -83,12 +102,61 @@ contient pas encore.
 - Laisser `UGrimrockDesignSurfaceWidget` gerer le centrage et la limite physique
   de la surface via `WBP_GrimrockMenu`.
 
+`WBP_GridInventory` vit dans `WBP_GrimrockMenu`. La surface 1920x1080 est
+fournie par le parent ; l'inventaire organise seulement l'espace qu'il recoit.
+
+## Structure finale du panneau SelectedCharacter
+
+```text
+SizeBox_SelectedCharacterPanel
+-> Border_SelectedCharacterPanel
+   -> VerticalBox_SelectedCharacter
+      -> Text_SelectedCharacterTitle
+      -> VerticalBox_CharacterDetails
+         -> Border_CharacterClassAccent
+            -> HorizontalBox_Identity
+               -> SizeBox_Portrait
+                  -> Overlay_PortraitSlot
+                     -> Image_CharacterPortrait
+                     -> Image_CharacterClassIcon
+               -> VerticalBox_Identity
+                  -> Text_CharacterName
+                  -> HorizontalBox_Race
+                  -> HorizontalBox_Class
+                  -> HorizontalBox_Level
+                  -> HorizontalBox_Experience
+         -> UniformGridPanel_Attributes
+         -> HorizontalBox_DerivedStats
+      -> Text_EquipmentTitle
+      -> Border_EquipmentPanel
+         -> UniformGrid_EquipmentSlots
+            -> tous les SlotWidget_* equipement UI-INV2
+```
+
+La structure actuelle est globalement conservee. Seul
+`UniformGrid_EquipmentSlots` doit etre complete, et `SlotWidget_Cursor` doit etre
+sorti du panneau equipement.
+
+## Checklist Blueprint
+
+- Aucun `.uasset` ne doit etre modifie comme fichier texte.
+- Ne pas ajouter de `ScaleBox` local.
+- Ne pas ajouter de `SizeBox_DesignSurface` local.
+- Chaque `SlotWidget_*` equipement est un `UGridInventorySlotWidget`.
+- Chaque slot equipement appelle `RegisterEquipmentSlotWidget`.
+- `SlotWidget_Cursor` reste hors de `UniformGrid_EquipmentSlots`.
+- `MainHand` et `OffHand` restent enregistres et fonctionnels.
+- Aucun Blueprint ne decide de la compatibilite item/slot.
+
 ## Tests runtime attendus
 
 - Ouvrir l'inventaire en jeu.
 - Verifier que le panneau central est visible et stable.
 - Verifier que les slots restent visuellement a 132x132 dans la surface design.
 - Verifier que `MainHand` et `OffHand` fonctionnent toujours.
+- Verifier qu'un slot `Equipment` vide accepte un `CursorItem` compatible.
+- Verifier qu'un slot `Equipment` occupe peut etre pris au cursor.
+- Verifier qu'un drop inventaire vers `Equipment` incompatible est refuse sans perte.
 - Tester si possible l'equipement et le desequipement d'une arme.
 - Tester si possible l'equipement et le desequipement d'une armure compatible.
 - Verifier le changement de personnage si plusieurs personnages sont actifs.

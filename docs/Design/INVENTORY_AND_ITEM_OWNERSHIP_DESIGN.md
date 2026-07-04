@@ -641,7 +641,35 @@ Contenu possible :
 - amulette ;
 - anneau 1 ;
 - anneau 2 ;
-- autres slots futurs.
+- epaules ;
+- gants ;
+- ceinture ;
+- cape ;
+- talisman ;
+- quick slot 1 ;
+- quick slot 2.
+
+UI-INV2 cible donc les slots d'equipement suivants :
+
+- `MainHand` ;
+- `OffHand` ;
+- `Head` ;
+- `Chest` ;
+- `Legs` ;
+- `Feet` ;
+- `Amulet` ;
+- `Ring1` ;
+- `Ring2` ;
+- `Shoulders` ;
+- `Gloves` ;
+- `Belt` ;
+- `Cloak` ;
+- `Talisman` ;
+- `QuickSlot1` ;
+- `QuickSlot2`.
+
+`Face`, masque et lunettes sont reportes a une etape future. `Cursor` n'est pas un
+slot d'equipement : c'est un etat temporaire de manipulation d'item.
 
 ### 18.5 Active Party State
 
@@ -845,6 +873,16 @@ Tranche 4 appliquee :
 - le poids et les proprietes simples d'item sont appliques aux instances si une definition existe ;
 - compatibilite d'equipement basee sur `CompatibleEquipmentSlots` si definition presente ;
 - fallback permissif `MainHand` / `OffHand` conserve si definition absente.
+
+UI-INV2 applique :
+
+- support C++ des slots d'equipement etendus dans `FGridCharacterEquipmentState` ;
+- ajout du type UI generique `EGridInventoryUiSlotType::Equipment` ;
+- `RegisterEquipmentSlotWidget` enregistre un `UGridInventorySlotWidget` pour un `EGridEquipmentSlot` precis ;
+- `MainHand` et `OffHand` restent supportes pour compatibilite legacy ;
+- les nouveaux slots Blueprint doivent etre ajoutes dans `WBP_GridInventory` et enregistres via `RegisterEquipmentSlotWidget` ;
+- `WBP_GridInventory` reste contenu de `Page_Inventory` dans `WBP_GrimrockMenu`, sans `ScaleBox`, `SizeBox_DesignSurface`, calcul DPI ou logique viewport locale ;
+- `Cursor` reste un etat temporaire de manipulation et ne doit pas etre documente comme un equipement.
 
 ## Definitions d'items minimales
 
@@ -1333,7 +1371,7 @@ Cette tranche décrit l’étape visuelle initiale pendant laquelle `WBP_GridInv
 Les éléments encore valides de cette tranche concernent uniquement le contenu Inventaire :
 
 - la colonne Party avec `PartyMember_0..5` ;
-- le panneau du personnage sélectionné avec `MainHand`, `OffHand` et `Cursor` ;
+- le panneau du personnage sélectionné avec les slots equipement UI-INV2 ;
 - le panneau inventaire avec `InventorySlotsGridPanel` ;
 - la génération automatique des slots par `InventorySlotWidgetClass` ;
 - le maintien du drag and drop C++ et du modèle d’ownership existants ;
@@ -1358,7 +1396,7 @@ Canvas Panel
                 └── VerticalBox_Root
 ```
 
-`WBP_GridInventory` ne doit pas recréer cette hiérarchie globale. Il est instancié comme contenu de `Page_Inventory` dans le switcher du menu.
+`WBP_GridInventory` ne doit pas recréer cette hiérarchie globale. Il est instancié comme contenu de `Page_Inventory` dans le switcher du menu. Depuis UI-DS1, la surface globale est portee par `UGrimrockDesignSurfaceWidget` via `WBP_GrimrockMenu`; l'inventaire ne doit pas ajouter de `ScaleBox` local pour compenser la resolution.
 
 ---
 

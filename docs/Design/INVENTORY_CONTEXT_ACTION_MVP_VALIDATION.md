@@ -20,6 +20,19 @@ Le MVP couvre :
 - swaps atomiques entre slots occupés ;
 - recalcul lumière depuis `MainHand || OffHand`.
 
+Ce MVP historique validait les sources UI suivantes :
+
+- `Inventory` ;
+- `MainHand` ;
+- `OffHand`.
+
+UI-INV2 ajoute le modele generique :
+
+- `EGridInventoryUiSlotType::Equipment` ;
+- `SlotIndex = static_cast<int32>(EGridEquipmentSlot)` ;
+- `MainHand` et `OffHand` restent compatibles en legacy ;
+- `Cursor` n'est pas un equipement, mais un etat temporaire de manipulation.
+
 Synthèse du périmètre MVP :
 
 ```mermaid
@@ -92,6 +105,17 @@ Audit statique effectué :
 | B2 | Inventaire -> `OffHand` | Item compatible équipé en main secondaire, visuel tenu rafraîchi. |
 | B3 | Slot incompatible | Action absente ou refus propre; aucun item perdu. |
 | B4 | Ancienne API ambiguë | Aucune action visible ne déclenche `Reason=AmbiguousActionType`; ce log ne doit apparaître que si l'ancienne API est appelée directement. |
+
+### Bloc B2 — Equipment générique
+
+| ID | Test | Résultat attendu |
+|---|---|---|
+| B2.1 | Clic gauche slot `Equipment` vide avec `CursorItem` compatible | Item equipe dans le `EGridEquipmentSlot` cible, puis `RefreshInventory`. |
+| B2.2 | Clic gauche slot `Equipment` occupe sans `CursorItem` | Item pris au cursor, slot equipe vide, puis `RefreshInventory`. |
+| B2.3 | Clic droit slot `Equipment` occupe | Menu contextuel affiche si des actions sont supportees pour cet item. |
+| B2.4 | Drop inventaire -> `Equipment` compatible | Succes, aucun item perdu, refresh apres mutation. |
+| B2.5 | Drop inventaire -> `Equipment` incompatible | Refus propre, aucun item perdu, refresh coherent. |
+| B2.6 | `MainHand` / `OffHand` legacy | Les anciens chemins restent fonctionnels et donnent le meme resultat que le type generique. |
 
 ### Bloc C — Enlever
 
