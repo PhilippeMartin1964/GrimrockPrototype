@@ -109,6 +109,9 @@ public:
     TArray<TObjectPtr<UGridInventorySlotWidget>> RegisteredInventorySlots;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
+    TMap<EGridEquipmentSlot, TObjectPtr<UGridInventorySlotWidget>> RegisteredEquipmentSlotWidgets;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
     TObjectPtr<UGridInventorySlotWidget> MainHandSlotWidget;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
@@ -152,6 +155,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool GetOffHandItem (FGridItemInstance& OutItem) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
+    bool GetEquipmentItem (EGridEquipmentSlot EquipmentSlot, FGridItemInstance& OutItem) const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory")
     bool GetCursorItem (FGridItemInstance& OutItem) const;
@@ -206,6 +212,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void RegisterInventorySlotWidget (UGridInventorySlotWidget* SlotWidget, EGridInventoryUiSlotType SlotType, int32 SlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
+    void RegisterEquipmentSlotWidget (UGridInventorySlotWidget* SlotWidget, EGridEquipmentSlot EquipmentSlot);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
     void RebuildInventorySlotWidgets ();
@@ -286,6 +295,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleInventorySlotClicked (int32 SlotIndex, bool bSplitStack = false);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
+    bool HandleEquipmentSlotClicked (EGridEquipmentSlot EquipmentSlot);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Actions")
     bool HandleMainHandClicked ();

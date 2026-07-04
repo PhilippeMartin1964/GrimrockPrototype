@@ -16,6 +16,24 @@ void UGridInventorySlotWidget::InitializeInventorySlot (
 {
     SlotType = InSlotType;
     InventorySlotIndex = InInventorySlotIndex;
+    EquipmentSlot = EGridEquipmentSlot::None;
+    if (SlotType == EGridInventoryUiSlotType::MainHand)
+    {
+        EquipmentSlot = EGridEquipmentSlot::MainHand;
+    }
+    else if (SlotType == EGridInventoryUiSlotType::OffHand)
+    {
+        EquipmentSlot = EGridEquipmentSlot::OffHand;
+    }
+    bFixedSlotLayoutApplied = false;
+    ApplyFixedSlotLayout ();
+}
+
+void UGridInventorySlotWidget::InitializeEquipmentSlot (EGridEquipmentSlot InEquipmentSlot)
+{
+    SlotType = EGridInventoryUiSlotType::Equipment;
+    EquipmentSlot = InEquipmentSlot;
+    InventorySlotIndex = static_cast<int32> (InEquipmentSlot);
     bFixedSlotLayoutApplied = false;
     ApplyFixedSlotLayout ();
 }

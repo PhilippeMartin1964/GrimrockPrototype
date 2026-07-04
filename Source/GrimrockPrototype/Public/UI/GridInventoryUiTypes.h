@@ -18,6 +18,7 @@ UENUM (BlueprintType)
 enum class EGridInventoryUiSlotType : uint8
 {
     Inventory,
+    Equipment,
     MainHand,
     OffHand,
     Cursor
@@ -29,6 +30,8 @@ inline const TCHAR* GetGridInventoryUiSlotTypeName (EGridInventoryUiSlotType Slo
     {
     case EGridInventoryUiSlotType::Inventory:
         return TEXT ("Inventory");
+    case EGridInventoryUiSlotType::Equipment:
+        return TEXT ("Equipment");
     case EGridInventoryUiSlotType::MainHand:
         return TEXT ("MainHand");
     case EGridInventoryUiSlotType::OffHand:

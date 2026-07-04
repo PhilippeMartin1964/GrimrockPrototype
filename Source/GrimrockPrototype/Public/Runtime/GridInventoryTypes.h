@@ -288,6 +288,27 @@ struct FGridCharacterEquipmentState
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
     FGridItemInstance Ring2;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance Shoulders;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance Gloves;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance Belt;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance Cloak;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance Talisman;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance QuickSlot1;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+    FGridItemInstance QuickSlot2;
+
     FGridItemInstance* GetMutableSlot (EGridEquipmentSlot Slot)
     {
         switch (Slot)
@@ -310,6 +331,20 @@ struct FGridCharacterEquipmentState
             return &Ring1;
         case EGridEquipmentSlot::Ring2:
             return &Ring2;
+        case EGridEquipmentSlot::Shoulders:
+            return &Shoulders;
+        case EGridEquipmentSlot::Gloves:
+            return &Gloves;
+        case EGridEquipmentSlot::Belt:
+            return &Belt;
+        case EGridEquipmentSlot::Cloak:
+            return &Cloak;
+        case EGridEquipmentSlot::Talisman:
+            return &Talisman;
+        case EGridEquipmentSlot::QuickSlot1:
+            return &QuickSlot1;
+        case EGridEquipmentSlot::QuickSlot2:
+            return &QuickSlot2;
         default:
             return nullptr;
         }

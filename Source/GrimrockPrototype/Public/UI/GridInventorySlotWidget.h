@@ -31,6 +31,9 @@ public:
     int32 InventorySlotIndex = INDEX_NONE;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slot")
+    EGridEquipmentSlot EquipmentSlot = EGridEquipmentSlot::None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slot")
     FGridItemInstance CachedItem;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slot")
@@ -53,6 +56,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void InitializeInventorySlot (EGridInventoryUiSlotType InSlotType, int32 InInventorySlotIndex);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
+    void InitializeEquipmentSlot (EGridEquipmentSlot InEquipmentSlot);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void SetItem (const FGridItemInstance& InItem);
