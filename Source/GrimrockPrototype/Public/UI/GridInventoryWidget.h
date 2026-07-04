@@ -14,10 +14,13 @@ class UBorder;
 class UGridPartyInventoryComponent;
 class UGridInventorySlotWidget;
 class UGridPartyMemberWidget;
+class UHorizontalBox;
 class UImage;
+class UOverlay;
 class URPGClassVisualAsset;
 class UTextBlock;
 class UUniformGridPanel;
+class UVerticalBox;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     FOnGridInventoryContextActionsRequested,
@@ -104,6 +107,9 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Slots")
     TObjectPtr<UUniformGridPanel> InventorySlotsGridPanel;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Equipment")
+    TObjectPtr<UBorder> Border_EquipmentPanel;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
     TArray<TObjectPtr<UGridInventorySlotWidget>> RegisteredInventorySlots;
@@ -231,6 +237,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
     void SetInventorySlotsGridPanel (UUniformGridPanel* InGridPanel);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory UI|Equipment")
+    void BuildPaperDollEquipmentPanel ();
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void RefreshRegisteredSlotWidgets ();
 
@@ -315,6 +324,8 @@ private:
     const URPGClassVisualAsset* FindClassVisualForClass (FName ClassId) const;
     void RefreshSelectedCharacterClassIcon ();
     void RemoveGeneratedInventorySlotsFromRegistry ();
+    UGridInventorySlotWidget* CreatePaperDollEquipmentSlot (EGridEquipmentSlot EquipmentSlot);
+    void ClearGeneratedPaperDollEquipmentPanel ();
     UGridInventorySlotWidget* FindRegisteredSlotWidget (EGridInventoryUiSlotType SlotType, int32 SlotIndex) const;
     bool ExecuteResolvedInventoryContextAction (
         const FGridItemContextAction& Action,
@@ -346,4 +357,22 @@ private:
 
     UPROPERTY (Transient)
     TObjectPtr<UUniformGridPanel> LastBuiltGridPanel;
+
+    UPROPERTY (Transient)
+    bool bPaperDollEquipmentPanelBuilt = false;
+
+    UPROPERTY (Transient)
+    bool bPaperDollMissingContainerLogged = false;
+
+    UPROPERTY (Transient)
+    bool bPaperDollMissingSlotClassLogged = false;
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<UGridInventorySlotWidget>> GeneratedPaperDollSlotWidgets;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UBorder> LastBuiltPaperDollContainer;
+
+    UPROPERTY (Transient)
+    TSubclassOf<UGridInventorySlotWidget> LastBuiltPaperDollSlotWidgetClass;
 };

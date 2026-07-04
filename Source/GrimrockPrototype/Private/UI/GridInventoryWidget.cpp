@@ -1,10 +1,18 @@
 #include "UI/GridInventoryWidget.h"
 
+#include "Components/Border.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
 #include "Components/PanelWidget.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Runtime/GridItemContextActionLibrary.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridItemTransferService.h"
@@ -155,6 +163,45 @@ namespace
         default:
             return EGridEquipmentSlot::None;
         }
+    }
+
+    UVerticalBoxSlot* AddPaperDollSlotToColumn (
+        UVerticalBox* Column,
+        UGridInventorySlotWidget* SlotWidget)
+    {
+        if (!Column || !SlotWidget)
+        {
+            return nullptr;
+        }
+
+        UVerticalBoxSlot* ColumnSlot = Column->AddChildToVerticalBox (SlotWidget);
+        if (ColumnSlot)
+        {
+            ColumnSlot->SetHorizontalAlignment (HAlign_Center);
+            ColumnSlot->SetVerticalAlignment (VAlign_Center);
+            ColumnSlot->SetPadding (FMargin (0.0f));
+        }
+        return ColumnSlot;
+    }
+
+    UHorizontalBoxSlot* AddPaperDollSlotToRow (
+        UHorizontalBox* Row,
+        UWidget* Widget,
+        const FMargin& Padding = FMargin (0.0f))
+    {
+        if (!Row || !Widget)
+        {
+            return nullptr;
+        }
+
+        UHorizontalBoxSlot* RowSlot = Row->AddChildToHorizontalBox (Widget);
+        if (RowSlot)
+        {
+            RowSlot->SetHorizontalAlignment (HAlign_Center);
+            RowSlot->SetVerticalAlignment (VAlign_Center);
+            RowSlot->SetPadding (Padding);
+        }
+        return RowSlot;
     }
 }
 
@@ -691,6 +738,239 @@ void UGridInventoryWidget::SetInventorySlotsGridPanel (UUniformGridPanel* InGrid
 {
     InventorySlotsGridPanel = InGridPanel;
     bInventorySlotsBuilt = false;
+}
+
+UGridInventorySlotWidget* UGridInventoryWidget::CreatePaperDollEquipmentSlot (EGridEquipmentSlot EquipmentSlot)
+{
+    if (!InventorySlotWidgetClass || EquipmentSlot == EGridEquipmentSlot::None)
+    {
+        return nullptr;
+    }
+
+    const FString SlotName = FString::Printf (
+        TEXT ("RuntimePaperDollSlot_%d"),
+        static_cast<int32> (EquipmentSlot));
+    UGridInventorySlotWidget* SlotWidget = CreateWidget<UGridInventorySlotWidget> (
+        this,
+        InventorySlotWidgetClass,
+        MakeUniqueObjectName (this, InventorySlotWidgetClass, FName (*SlotName)));
+    if (!SlotWidget)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory PaperDoll Failed Reason=CreateSlotFailed Slot=%s"),
+            GetContextEquipmentSlotName (EquipmentSlot));
+        return nullptr;
+    }
+
+    RegisterEquipmentSlotWidget (SlotWidget, EquipmentSlot);
+    GeneratedPaperDollSlotWidgets.Add (SlotWidget);
+    return SlotWidget;
+}
+
+void UGridInventoryWidget::ClearGeneratedPaperDollEquipmentPanel ()
+{
+    for (const TObjectPtr<UGridInventorySlotWidget>& SlotWidget : GeneratedPaperDollSlotWidgets)
+    {
+        if (!SlotWidget)
+        {
+            continue;
+        }
+
+        if (RegisteredEquipmentSlotWidgets.FindRef (SlotWidget->EquipmentSlot) == SlotWidget)
+        {
+            RegisteredEquipmentSlotWidgets.Remove (SlotWidget->EquipmentSlot);
+        }
+
+        if (MainHandSlotWidget == SlotWidget)
+        {
+            MainHandSlotWidget = nullptr;
+        }
+        if (OffHandSlotWidget == SlotWidget)
+        {
+            OffHandSlotWidget = nullptr;
+        }
+
+        SlotWidget->RemoveFromParent ();
+    }
+
+    GeneratedPaperDollSlotWidgets.Empty ();
+    if (Border_EquipmentPanel)
+    {
+        Border_EquipmentPanel->SetContent (nullptr);
+    }
+
+    bPaperDollEquipmentPanelBuilt = false;
+    LastBuiltPaperDollContainer = nullptr;
+    LastBuiltPaperDollSlotWidgetClass = nullptr;
+}
+
+void UGridInventoryWidget::BuildPaperDollEquipmentPanel ()
+{
+    if (!Border_EquipmentPanel)
+    {
+        if (!bPaperDollMissingContainerLogged)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory PaperDoll non construit : Border_EquipmentPanel introuvable"));
+            bPaperDollMissingContainerLogged = true;
+        }
+        return;
+    }
+
+    bPaperDollMissingContainerLogged = false;
+
+    if (!InventorySlotWidgetClass)
+    {
+        if (!bPaperDollMissingSlotClassLogged)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory PaperDoll non construit : classe de slot manquante"));
+            bPaperDollMissingSlotClassLogged = true;
+        }
+        return;
+    }
+
+    bPaperDollMissingSlotClassLogged = false;
+
+    if (bPaperDollEquipmentPanelBuilt &&
+        LastBuiltPaperDollContainer == Border_EquipmentPanel &&
+        LastBuiltPaperDollSlotWidgetClass == InventorySlotWidgetClass)
+    {
+        return;
+    }
+
+    ClearGeneratedPaperDollEquipmentPanel ();
+
+    UOverlay* PaperDollRoot = NewObject<UOverlay> (
+        this,
+        UOverlay::StaticClass (),
+        MakeUniqueObjectName (this, UOverlay::StaticClass (), TEXT ("Overlay_RuntimePaperDollRoot")));
+    UHorizontalBox* PaperDollColumns = NewObject<UHorizontalBox> (
+        this,
+        UHorizontalBox::StaticClass (),
+        MakeUniqueObjectName (this, UHorizontalBox::StaticClass (), TEXT ("HorizontalBox_RuntimePaperDollColumns")));
+    UVerticalBox* LeftColumn = NewObject<UVerticalBox> (
+        this,
+        UVerticalBox::StaticClass (),
+        MakeUniqueObjectName (this, UVerticalBox::StaticClass (), TEXT ("VerticalBox_LeftEquipmentColumn")));
+    UVerticalBox* RightColumn = NewObject<UVerticalBox> (
+        this,
+        UVerticalBox::StaticClass (),
+        MakeUniqueObjectName (this, UVerticalBox::StaticClass (), TEXT ("VerticalBox_RightEquipmentColumn")));
+    USizeBox* CharacterFigure = NewObject<USizeBox> (
+        this,
+        USizeBox::StaticClass (),
+        MakeUniqueObjectName (this, USizeBox::StaticClass (), TEXT ("SizeBox_CharacterFigure")));
+    UOverlay* CharacterFigureOverlay = NewObject<UOverlay> (
+        this,
+        UOverlay::StaticClass (),
+        MakeUniqueObjectName (this, UOverlay::StaticClass (), TEXT ("Overlay_CharacterFigure")));
+    UImage* CharacterFullBodyImage = NewObject<UImage> (
+        this,
+        UImage::StaticClass (),
+        MakeUniqueObjectName (this, UImage::StaticClass (), TEXT ("Image_CharacterFullBody")));
+    UHorizontalBox* BottomHandsRow = NewObject<UHorizontalBox> (
+        this,
+        UHorizontalBox::StaticClass (),
+        MakeUniqueObjectName (this, UHorizontalBox::StaticClass (), TEXT ("HorizontalBox_BottomHandsRow")));
+
+    if (!PaperDollRoot ||
+        !PaperDollColumns ||
+        !LeftColumn ||
+        !RightColumn ||
+        !CharacterFigure ||
+        !CharacterFigureOverlay ||
+        !CharacterFullBodyImage ||
+        !BottomHandsRow)
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("GridInventory PaperDoll non construit : creation layout echouee"));
+        ClearGeneratedPaperDollEquipmentPanel ();
+        return;
+    }
+
+    CharacterFigure->SetWidthOverride (360.0f);
+    CharacterFigure->SetHeightOverride (760.0f);
+    CharacterFullBodyImage->SetVisibility (ESlateVisibility::HitTestInvisible);
+    CharacterFigureOverlay->AddChild (CharacterFullBodyImage);
+    CharacterFigure->SetContent (CharacterFigureOverlay);
+
+    const EGridEquipmentSlot LeftSlots[] = {
+        EGridEquipmentSlot::Head,
+        EGridEquipmentSlot::Face,
+        EGridEquipmentSlot::Amulet,
+        EGridEquipmentSlot::Shoulders,
+        EGridEquipmentSlot::Shirt,
+        EGridEquipmentSlot::Chest,
+        EGridEquipmentSlot::Cloak,
+        EGridEquipmentSlot::Bracers
+    };
+
+    const EGridEquipmentSlot RightSlots[] = {
+        EGridEquipmentSlot::Gloves,
+        EGridEquipmentSlot::Belt,
+        EGridEquipmentSlot::Legs,
+        EGridEquipmentSlot::Feet,
+        EGridEquipmentSlot::Ring1,
+        EGridEquipmentSlot::Ring2,
+        EGridEquipmentSlot::Earring1,
+        EGridEquipmentSlot::Earring2
+    };
+
+    for (const EGridEquipmentSlot EquipmentSlot : LeftSlots)
+    {
+        AddPaperDollSlotToColumn (LeftColumn, CreatePaperDollEquipmentSlot (EquipmentSlot));
+    }
+
+    for (const EGridEquipmentSlot EquipmentSlot : RightSlots)
+    {
+        AddPaperDollSlotToColumn (RightColumn, CreatePaperDollEquipmentSlot (EquipmentSlot));
+    }
+
+    AddPaperDollSlotToRow (PaperDollColumns, LeftColumn);
+    AddPaperDollSlotToRow (PaperDollColumns, CharacterFigure, FMargin (48.0f, 0.0f));
+    AddPaperDollSlotToRow (PaperDollColumns, RightColumn);
+
+    if (UOverlaySlot* ColumnsSlot = PaperDollRoot->AddChildToOverlay (PaperDollColumns))
+    {
+        ColumnsSlot->SetHorizontalAlignment (HAlign_Center);
+        ColumnsSlot->SetVerticalAlignment (VAlign_Center);
+    }
+
+    AddPaperDollSlotToRow (
+        BottomHandsRow,
+        CreatePaperDollEquipmentSlot (EGridEquipmentSlot::MainHand),
+        FMargin (0.0f, 0.0f, 48.0f, 0.0f));
+    AddPaperDollSlotToRow (
+        BottomHandsRow,
+        CreatePaperDollEquipmentSlot (EGridEquipmentSlot::OffHand),
+        FMargin (48.0f, 0.0f, 0.0f, 0.0f));
+
+    if (UOverlaySlot* HandsSlot = PaperDollRoot->AddChildToOverlay (BottomHandsRow))
+    {
+        HandsSlot->SetHorizontalAlignment (HAlign_Center);
+        HandsSlot->SetVerticalAlignment (VAlign_Bottom);
+    }
+
+    if (CursorSlotWidget)
+    {
+        CursorSlotWidget->RemoveFromParent ();
+        if (UOverlaySlot* CursorSlot = PaperDollRoot->AddChildToOverlay (CursorSlotWidget))
+        {
+            CursorSlot->SetHorizontalAlignment (HAlign_Right);
+            CursorSlot->SetVerticalAlignment (VAlign_Top);
+            CursorSlot->SetPadding (FMargin (0.0f, 0.0f, 8.0f, 8.0f));
+        }
+    }
+
+    Border_EquipmentPanel->SetContent (PaperDollRoot);
+    RefreshRegisteredSlotWidgets ();
+
+    bPaperDollEquipmentPanelBuilt = true;
+    LastBuiltPaperDollContainer = Border_EquipmentPanel;
+    LastBuiltPaperDollSlotWidgetClass = InventorySlotWidgetClass;
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridInventory PaperDoll construit : 18 slots equipment enregistres"));
 }
 
 void UGridInventoryWidget::RemoveGeneratedInventorySlotsFromRegistry ()

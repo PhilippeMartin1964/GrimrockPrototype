@@ -10,6 +10,7 @@ void UGridInventoryWidget::NativeTick (const FGeometry& MyGeometry, float InDelt
 {
     Super::NativeTick (MyGeometry, InDeltaTime);
     RefreshSelectedCharacterClassIcon ();
+    BuildPaperDollEquipmentPanel ();
 }
 
 const URPGClassVisualAsset* UGridInventoryWidget::FindClassVisualForClass (FName ClassId) const
