@@ -7,6 +7,9 @@
 - Dossier local principal : D:\Development\GrimrockPrototype.
 - Travailler sur `master` sauf instruction contraire explicite.
 - Ne pas créer de branche pour les petites modifications.
+- Une tâche / une réponse ChatGPT = un seul commit Git au maximum.
+- Ne jamais créer un commit par fichier.
+- Si les outils GitHub disponibles risquent de créer plusieurs commits, ne pas les utiliser.
 - Utiliser `docs/` en minuscule, jamais `Docs/`.
 
 ## Git
