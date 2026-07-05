@@ -212,7 +212,7 @@ Les champs deja exposes par `UGridInventoryWidget` doivent etre reutilises pluto
 - Ne pas ajouter de `ScaleBox` local pour compenser la resolution.
 - Ne pas ajouter de `SizeBox_DesignSurface` local dans `WBP_GridInventory`.
 - Ne pas calculer de DPI, viewport ou scaling global dans l'inventaire.
-- Garder les slots a leur taille locale fixe de 132x132.
+- Les slots ont une taille logique configurable via `UGridInventorySlotWidget::SlotLogicalExtent`. La valeur par defaut reste 132x132 pour compatibilite. Les slots paper doll peuvent utiliser une valeur plus petite selon le layout.
 - Laisser `UGrimrockDesignSurfaceWidget` gerer le centrage et la limite physique via `WBP_GrimrockMenu`.
 
 ## Cablage Blueprint

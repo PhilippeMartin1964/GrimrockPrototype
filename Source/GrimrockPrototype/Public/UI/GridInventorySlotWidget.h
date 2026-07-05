@@ -54,11 +54,24 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Slot|Layout")
     TObjectPtr<USizeBox> SizeBox_Root;
 
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Inventory|Slot|Layout",
+        meta = (ClampMin = "16.0", ClampMax = "256.0"))
+    float SlotLogicalExtent = 132.0f;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void InitializeInventorySlot (EGridInventoryUiSlotType InSlotType, int32 InInventorySlotIndex);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void InitializeEquipmentSlot (EGridEquipmentSlot InEquipmentSlot);
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Slot|Layout")
+    void SetSlotLogicalExtent (float InSlotLogicalExtent);
+
+    UFUNCTION (BlueprintPure, Category = "Inventory|Slot|Layout")
+    float GetSlotLogicalExtent () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void SetItem (const FGridItemInstance& InItem);

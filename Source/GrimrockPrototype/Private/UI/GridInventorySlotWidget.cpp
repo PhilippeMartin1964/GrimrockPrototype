@@ -93,6 +93,18 @@ void UGridInventorySlotWidget::InitializeEquipmentSlot (EGridEquipmentSlot InEqu
     ApplyFixedSlotLayout ();
 }
 
+void UGridInventorySlotWidget::SetSlotLogicalExtent (float InSlotLogicalExtent)
+{
+    SlotLogicalExtent = FMath::Clamp (InSlotLogicalExtent, 16.0f, 256.0f);
+    bFixedSlotLayoutApplied = false;
+    ApplyFixedSlotLayout ();
+}
+
+float UGridInventorySlotWidget::GetSlotLogicalExtent () const
+{
+    return SlotLogicalExtent;
+}
+
 void UGridInventorySlotWidget::NativePreConstruct ()
 {
     Super::NativePreConstruct ();
@@ -119,12 +131,12 @@ void UGridInventorySlotWidget::NativeTick (
 
 void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
 {
-    constexpr float SlotLogicalExtent = 132.0f;
+    const float EffectiveSlotLogicalExtent = FMath::Clamp (SlotLogicalExtent, 16.0f, 256.0f);
 
     if (SizeBox_Root)
     {
-        SizeBox_Root->SetWidthOverride (SlotLogicalExtent);
-        SizeBox_Root->SetHeightOverride (SlotLogicalExtent);
+        SizeBox_Root->SetWidthOverride (EffectiveSlotLogicalExtent);
+        SizeBox_Root->SetHeightOverride (EffectiveSlotLogicalExtent);
     }
 
     SetRenderScale (FVector2D (1.0f, 1.0f));
