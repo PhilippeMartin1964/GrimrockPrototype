@@ -10,7 +10,7 @@ La direction validee est un layout **paper doll** : le personnage selectionne es
 
 ## Decision canonique des slots d'equipement
 
-La liste suivante devient la cible officielle du `Character Equipment Panel`.
+La liste suivante est la cible officielle du `Character Equipment Panel`.
 
 ### Colonne gauche
 
@@ -55,9 +55,7 @@ Ils pourront etre reutilises plus tard dans un systeme separe : barre rapide, ob
 
 ## Etat technique actuel
 
-UI-INV2C aligne le modele C++ sur la cible paper doll. Les slots suivants sont
-declares dans `EGridEquipmentSlot`, stockes dans `FGridCharacterEquipmentState`
-et accessibles via les fonctions generiques d'equipement :
+UI-INV2C aligne le modele C++ sur la cible paper doll. Les slots suivants sont declares dans `EGridEquipmentSlot`, stockes dans `FGridCharacterEquipmentState` et accessibles via les fonctions generiques d'equipement :
 
 - `MainHand` ;
 - `OffHand` ;
@@ -78,57 +76,131 @@ et accessibles via les fonctions generiques d'equipement :
 - `Earring1` ;
 - `Earring2`.
 
-Le Blueprint paper doll reste a implementer dans UI-INV2D. Tant que
-`WBP_GridInventory` n'a pas ete modifie, les nouveaux slots sont disponibles en
-C++ mais ne sont pas encore visibles dans l'interface.
+Le Blueprint paper doll reste a implementer dans UI-INV2D. Les nouveaux slots sont disponibles en C++, mais ils ne sont visibles dans l'interface que lorsque `WBP_GridInventory` expose ou construit les widgets correspondants.
 
-## Structure cible du panneau SelectedCharacter
+## Structure definitive de SizeBox_SelectedCharacterPanel
 
-Structure recommandee :
+La structure definitive de `SizeBox_SelectedCharacterPanel` doit separer clairement trois responsabilites :
+
+1. titre du personnage selectionne ;
+2. paper doll avec personnage plein corps et slots autour ;
+3. panneau details / attributs / statistiques.
+
+Structure cible complete :
 
 ```text
 SizeBox_SelectedCharacterPanel
 -> Border_SelectedCharacterPanel
    -> Overlay_SelectedCharacterRoot
       -> Text_SelectedCharacterTitle
-      -> Overlay_PaperDollArea
-         -> VerticalBox_LeftEquipmentColumn
-            -> SlotWidget_Head
-            -> SlotWidget_Face
-            -> SlotWidget_Amulet
-            -> SlotWidget_Shoulders
-            -> SlotWidget_Shirt
-            -> SlotWidget_Chest
-            -> SlotWidget_Cloak
-            -> SlotWidget_Bracers
-         -> SizeBox_CharacterFigure
-            -> Overlay_CharacterFigure
-               -> Image_CharacterFullBody
-               -> Image_CharacterClassIcon ou decoration de classe optionnelle
-         -> VerticalBox_RightEquipmentColumn
-            -> SlotWidget_Gloves
-            -> SlotWidget_Belt
-            -> SlotWidget_Legs
-            -> SlotWidget_Feet
-            -> SlotWidget_Ring1
-            -> SlotWidget_Ring2
-            -> SlotWidget_Earring1
-            -> SlotWidget_Earring2
-         -> HorizontalBox_BottomHandsRow
-            -> SlotWidget_MainHand
-            -> Spacer_BottomHands
-            -> SlotWidget_OffHand
+      -> HorizontalBox_SelectedCharacterBody
+         -> Border_PaperDollPanel
+            -> Overlay_PaperDollArea
+               -> VerticalBox_LeftEquipmentColumn
+                  -> SlotWidget_Head
+                  -> SlotWidget_Face
+                  -> SlotWidget_Amulet
+                  -> SlotWidget_Shoulders
+                  -> SlotWidget_Shirt
+                  -> SlotWidget_Chest
+                  -> SlotWidget_Cloak
+                  -> SlotWidget_Bracers
+               -> SizeBox_CharacterFigure
+                  -> Overlay_CharacterFigure
+                     -> Image_CharacterFullBody
+                     -> Image_CharacterClassIcon
+               -> VerticalBox_RightEquipmentColumn
+                  -> SlotWidget_Gloves
+                  -> SlotWidget_Belt
+                  -> SlotWidget_Legs
+                  -> SlotWidget_Feet
+                  -> SlotWidget_Ring1
+                  -> SlotWidget_Ring2
+                  -> SlotWidget_Earring1
+                  -> SlotWidget_Earring2
+               -> HorizontalBox_BottomHandsRow
+                  -> SlotWidget_MainHand
+                  -> Spacer_BottomHands
+                  -> SlotWidget_OffHand
+         -> Border_CharacterStatsPanel
+            -> VerticalBox_CharacterStatsRoot
+               -> Border_DetailsSection
+                  -> VerticalBox_DetailsSection
+                     -> Text_DetailsTitle
+                     -> HorizontalBox_Name
+                        -> TextLabel_CharacterName
+                        -> Text_CharacterName
+                     -> HorizontalBox_Race
+                        -> TextLabel_Race
+                        -> Text_CharacterRace
+                     -> HorizontalBox_Class
+                        -> TextLabel_Class
+                        -> Text_CharacterClass
+                     -> HorizontalBox_Level
+                        -> TextLabel_Level
+                        -> Text_CharacterLevel
+                     -> HorizontalBox_Experience
+                        -> TextLabel_Experience
+                        -> Text_CharacterExperience
+               -> Border_AttributesSection
+                  -> UniformGridPanel_Attributes
+                     -> TextLabel_Strength
+                     -> Text_CharacterStrength
+                     -> TextLabel_Dexterity
+                     -> Text_CharacterDexterity
+                     -> TextLabel_Constitution
+                     -> Text_CharacterConstitution
+                     -> TextLabel_Intelligence
+                     -> Text_CharacterIntelligence
+                     -> TextLabel_Wisdom
+                     -> Text_CharacterWisdom
+                     -> TextLabel_Charisma
+                     -> Text_CharacterCharisma
+               -> Border_DerivedStatsSection
+                  -> HorizontalBox_DerivedStats
+                     -> VerticalBox_Health
+                        -> TextLabel_Health
+                        -> Text_CharacterHealth
+                     -> VerticalBox_Mana
+                        -> TextLabel_Mana
+                        -> Text_CharacterMana
+                     -> VerticalBox_CarryWeight
+                        -> TextLabel_CarryWeight
+                        -> Text_CharacterCarryWeight
 ```
 
-Le personnage doit etre vu de pied en cap. L'image centrale doit representer le personnage selectionne avec son apparence d'equipement. Dans un premier temps, `Image_CharacterFullBody` peut utiliser une image statique par race/classe/genre ; l'equipement dynamique complet pourra venir plus tard.
+## Regles de construction UMG
+
+`VerticalBox_SelectedCharacter` et `UniformGrid_EquipmentSlots` correspondent a l'ancienne structure. Ils peuvent etre conserves temporairement pendant la transition, mais ils ne sont pas la cible definitive.
+
+La cible definitive utilise :
+
+- `Overlay_SelectedCharacterRoot` comme racine interne du panneau personnage ;
+- `HorizontalBox_SelectedCharacterBody` pour placer le paper doll a gauche et les stats a droite ;
+- `Border_PaperDollPanel` pour encadrer le personnage et ses slots ;
+- `Overlay_PaperDollArea` pour permettre le placement libre des colonnes et de la ligne des mains autour du personnage ;
+- `Border_CharacterStatsPanel` pour isoler les details, attributs et statistiques derivees.
+
+Les slots sont des instances d'un widget de slot existant, par exemple `WBP_InventorySlot` ou tout widget derive de `UGridInventorySlotWidget`. `SlotWidget_Head`, `SlotWidget_Face`, etc. sont donc des **noms d'instances**, pas de nouveaux assets a chercher dans le Content Browser.
+
+## Image du personnage
+
+La cible definitive utilise `Image_CharacterFullBody` pour afficher le personnage de pied en cap.
+
+`Image_CharacterPortrait` peut etre conserve temporairement pour compatibilite ou migration, mais il n'est plus l'image principale du paper doll. Ne pas le supprimer tant que le C++ ou le Blueprint y fait encore reference par `BindWidget`.
 
 ## Panneau de details et statistiques
 
-Le panneau de statistiques doit rester separe du paper doll. Il peut etre place a droite du personnage et regrouper :
+Le panneau de statistiques doit rester separe du paper doll et etre place a droite du personnage.
+
+Il regroupe au minimum :
 
 - `Details` : nom, race, classe, niveau, experience ;
 - `Attributes` : FOR, DEX, CON, INT, SAG, CHA ;
-- `DerivedStats` : PV, mana, charge ;
+- `DerivedStats` : PV, mana, charge.
+
+Il pourra ensuite accueillir :
+
 - `Combat` : armure physique, armure magique, degats, critique, precision, esquive ;
 - `MobilityAndProgression` : deplacement, initiative, experience, niveau suivant ;
 - `Resistances` : feu, eau, terre, air, poison, puis autres resistances si necessaire.
@@ -147,35 +219,38 @@ Les champs deja exposes par `UGridInventoryWidget` doivent etre reutilises pluto
 
 Chaque slot fonctionnel doit etre un `WBP_InventorySlot` ou un widget derive de `UGridInventorySlotWidget`.
 
-Mapping fonctionnel actuel recommande :
+Mapping fonctionnel definitif :
 
 ```text
 SlotWidget_Head       -> Head
+SlotWidget_Face       -> Face
 SlotWidget_Amulet     -> Amulet
 SlotWidget_Shoulders  -> Shoulders
+SlotWidget_Shirt      -> Shirt
 SlotWidget_Chest      -> Chest
 SlotWidget_Cloak      -> Cloak
+SlotWidget_Bracers    -> Bracers
 SlotWidget_Gloves     -> Gloves
 SlotWidget_Belt       -> Belt
 SlotWidget_Legs       -> Legs
 SlotWidget_Feet       -> Feet
 SlotWidget_Ring1      -> Ring1
 SlotWidget_Ring2      -> Ring2
+SlotWidget_Earring1   -> Earring1
+SlotWidget_Earring2   -> Earring2
 SlotWidget_MainHand   -> MainHand
 SlotWidget_OffHand    -> OffHand
 ```
 
-Placeholders visuels jusqu'a alignement C++ :
+Tous les slots paper doll sont fonctionnels cote C++ depuis UI-INV2C. Ils doivent donc pouvoir etre enregistres via `RegisterEquipmentSlotWidget` dans UI-INV2D.
 
-```text
-SlotWidget_Face
-SlotWidget_Shirt
-SlotWidget_Bracers
-SlotWidget_Earring1
-SlotWidget_Earring2
-```
+Ne pas enregistrer dans le paper doll :
 
-Ces placeholders doivent etre clairement documentes comme non fonctionnels tant que le modele C++ n'est pas aligne.
+- `Talisman` ;
+- `QuickSlot1` ;
+- `QuickSlot2` ;
+- `Accessory` ;
+- `Cursor`.
 
 ## Checklist Blueprint
 
@@ -186,8 +261,8 @@ Ces placeholders doivent etre clairement documentes comme non fonctionnels tant 
 - Aucun `ScaleBox` local n'est ajoute dans `WBP_GridInventory`.
 - Aucun `SizeBox_DesignSurface` local n'est ajoute dans `WBP_GridInventory`.
 - Aucun Blueprint ne decide de la compatibilite item/slot.
-- Les slots fonctionnels appellent `RegisterEquipmentSlotWidget`.
-- Les slots non encore supportes par C++ restent visuels ou desactives.
+- Tous les slots paper doll appellent `RegisterEquipmentSlotWidget`.
+- `Image_CharacterPortrait` n'est pas supprime tant que le C++ ou le Blueprint y fait reference.
 
 ## Tests runtime attendus
 
@@ -198,6 +273,6 @@ Ces placeholders doivent etre clairement documentes comme non fonctionnels tant 
 - Verifier qu'un slot fonctionnel vide accepte un `CursorItem` compatible.
 - Verifier qu'un slot fonctionnel occupe peut etre pris au cursor.
 - Verifier qu'un drop incompatible est refuse sans perte.
-- Verifier qu'aucun slot placeholder non supporte ne provoque de crash.
+- Verifier qu'aucun slot paper doll ne provoque de crash.
 - Verifier qu'aucun `design surface scaling failed` n'apparait.
 - Verifier qu'aucune erreur critique `BindWidget` n'apparait.
