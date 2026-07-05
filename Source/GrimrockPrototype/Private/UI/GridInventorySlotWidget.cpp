@@ -1,9 +1,6 @@
 #include "UI/GridInventorySlotWidget.h"
 
 #include "Blueprint/WidgetBlueprintLibrary.h"
-#include "Components/SizeBox.h"
-#include "Components/UniformGridPanel.h"
-#include "Components/UniformGridSlot.h"
 #include "InputCoreTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -80,8 +77,6 @@ void UGridInventorySlotWidget::InitializeInventorySlot (
     {
         EquipmentSlot = EGridEquipmentSlot::OffHand;
     }
-    bFixedSlotLayoutApplied = false;
-    ApplyFixedSlotLayout ();
 }
 
 void UGridInventorySlotWidget::InitializeEquipmentSlot (EGridEquipmentSlot InEquipmentSlot)
@@ -89,73 +84,6 @@ void UGridInventorySlotWidget::InitializeEquipmentSlot (EGridEquipmentSlot InEqu
     SlotType = EGridInventoryUiSlotType::Equipment;
     EquipmentSlot = InEquipmentSlot;
     InventorySlotIndex = static_cast<int32> (InEquipmentSlot);
-    bFixedSlotLayoutApplied = false;
-    ApplyFixedSlotLayout ();
-}
-
-void UGridInventorySlotWidget::SetSlotLogicalExtent (float InSlotLogicalExtent)
-{
-    SlotLogicalExtent = FMath::Clamp (InSlotLogicalExtent, 16.0f, 256.0f);
-    bFixedSlotLayoutApplied = false;
-    ApplyFixedSlotLayout ();
-}
-
-float UGridInventorySlotWidget::GetSlotLogicalExtent () const
-{
-    return SlotLogicalExtent;
-}
-
-void UGridInventorySlotWidget::NativePreConstruct ()
-{
-    Super::NativePreConstruct ();
-    ApplyFixedSlotLayout ();
-}
-
-void UGridInventorySlotWidget::NativeConstruct ()
-{
-    Super::NativeConstruct ();
-    ApplyFixedSlotLayout ();
-}
-
-void UGridInventorySlotWidget::NativeTick (
-    const FGeometry& MyGeometry,
-    float InDeltaTime)
-{
-    Super::NativeTick (MyGeometry, InDeltaTime);
-
-    if (!bFixedSlotLayoutApplied)
-    {
-        ApplyFixedSlotLayout ();
-    }
-}
-
-void UGridInventorySlotWidget::ApplyFixedSlotLayout ()
-{
-    const float EffectiveSlotLogicalExtent = FMath::Clamp (SlotLogicalExtent, 16.0f, 256.0f);
-
-    if (SizeBox_Root)
-    {
-        SizeBox_Root->SetWidthOverride (EffectiveSlotLogicalExtent);
-        SizeBox_Root->SetHeightOverride (EffectiveSlotLogicalExtent);
-    }
-
-    SetRenderScale (FVector2D (1.0f, 1.0f));
-
-    bool bGridLayoutApplied = SlotType != EGridInventoryUiSlotType::Inventory;
-    if (Cast<UUniformGridPanel> (GetParent ()))
-    {
-        bGridLayoutApplied = true;
-    }
-
-    bool bGridSlotApplied = SlotType != EGridInventoryUiSlotType::Inventory;
-    if (UUniformGridSlot* UniformGridSlot = Cast<UUniformGridSlot> (Slot))
-    {
-        UniformGridSlot->SetHorizontalAlignment (HAlign_Left);
-        UniformGridSlot->SetVerticalAlignment (VAlign_Top);
-        bGridSlotApplied = true;
-    }
-
-    bFixedSlotLayoutApplied = bGridLayoutApplied && bGridSlotApplied;
 }
 
 void UGridInventorySlotWidget::SetItem (const FGridItemInstance& InItem)
@@ -336,8 +264,6 @@ void UGridInventorySlotWidget::HandleClicked ()
 void UGridInventorySlotWidget::SetOwnerInventoryWidget (UGridInventoryWidget* InOwnerInventoryWidget)
 {
     OwningInventoryWidget = InOwnerInventoryWidget;
-    bFixedSlotLayoutApplied = false;
-    ApplyFixedSlotLayout ();
 }
 
 bool UGridInventorySlotWidget::CanStartDrag () const

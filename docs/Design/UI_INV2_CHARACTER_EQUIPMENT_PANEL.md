@@ -212,7 +212,10 @@ Les champs deja exposes par `UGridInventoryWidget` doivent etre reutilises pluto
 - Ne pas ajouter de `ScaleBox` local pour compenser la resolution.
 - Ne pas ajouter de `SizeBox_DesignSurface` local dans `WBP_GridInventory`.
 - Ne pas calculer de DPI, viewport ou scaling global dans l'inventaire.
-- Les slots ont une taille logique configurable via `UGridInventorySlotWidget::SlotLogicalExtent`. La valeur par defaut reste 132x132 pour compatibilite. Les slots paper doll peuvent utiliser une valeur plus petite selon le layout.
+- La taille visuelle des slots n'est pas pilotee par le C++. Elle doit etre definie dans les WBP, via le Designer UE5, les SizeBox, les containers et les parametres de layout UMG. `UGridInventorySlotWidget` ne fait que porter la logique d'interaction et d'etat.
+- Aucun hardcode de taille de slot dans `UGridInventorySlotWidget`.
+- Aucune propriete C++ de taille logique de slot.
+- Aucun `SetWidthOverride` / `SetHeightOverride` depuis C++ pour les slots.
 - Laisser `UGrimrockDesignSurfaceWidget` gerer le centrage et la limite physique via `WBP_GrimrockMenu`.
 
 ## Cablage Blueprint

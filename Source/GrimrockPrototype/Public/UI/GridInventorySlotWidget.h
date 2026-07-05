@@ -11,7 +11,6 @@ class UTexture2D;
 class UGridItemDefinitionAsset;
 class UGridInventoryWidget;
 class UDragDropOperation;
-class USizeBox;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     FOnGridInventorySlotClicked,
@@ -51,27 +50,11 @@ public:
     UPROPERTY (Transient)
     TObjectPtr<UTexture2D> CachedIconTexture = nullptr;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Slot|Layout")
-    TObjectPtr<USizeBox> SizeBox_Root;
-
-    UPROPERTY (
-        EditAnywhere,
-        BlueprintReadWrite,
-        Category = "Inventory|Slot|Layout",
-        meta = (ClampMin = "16.0", ClampMax = "256.0"))
-    float SlotLogicalExtent = 132.0f;
-
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void InitializeInventorySlot (EGridInventoryUiSlotType InSlotType, int32 InInventorySlotIndex);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void InitializeEquipmentSlot (EGridEquipmentSlot InEquipmentSlot);
-
-    UFUNCTION (BlueprintCallable, Category = "Inventory|Slot|Layout")
-    void SetSlotLogicalExtent (float InSlotLogicalExtent);
-
-    UFUNCTION (BlueprintPure, Category = "Inventory|Slot|Layout")
-    float GetSlotLogicalExtent () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slot")
     void SetItem (const FGridItemInstance& InItem);
@@ -127,19 +110,6 @@ public:
 protected:
     UPROPERTY (Transient)
     bool bSplitStackRequestedByClick = false;
-
-    UPROPERTY (Transient)
-    bool bFixedSlotLayoutApplied = false;
-
-    void ApplyFixedSlotLayout ();
-
-    virtual void NativePreConstruct () override;
-
-    virtual void NativeConstruct () override;
-
-    virtual void NativeTick (
-        const FGeometry& MyGeometry,
-        float InDeltaTime) override;
 
     virtual FReply NativeOnMouseButtonDown (
         const FGeometry& InGeometry,
