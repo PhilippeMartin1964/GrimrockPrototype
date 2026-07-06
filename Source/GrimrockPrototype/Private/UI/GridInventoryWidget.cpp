@@ -172,7 +172,7 @@ namespace
         EGridEquipmentSlot::QuickSlot2
     };
 
-    bool IsHandEquipmentSlot (EGridEquipmentSlot EquipmentSlot)
+    bool IsGridInventoryHandEquipmentSlot (EGridEquipmentSlot EquipmentSlot)
     {
         return EquipmentSlot == EGridEquipmentSlot::MainHand ||
             EquipmentSlot == EGridEquipmentSlot::OffHand;
@@ -2069,7 +2069,7 @@ bool UGridInventoryWidget::HandleSlotDrop (
 
     auto SyncHeldVisualIfHandEquipmentSlot = [&] (EGridEquipmentSlot EquipmentSlot, const TCHAR* Reason)
     {
-        if (OwningPartyPawn && IsHandEquipmentSlot (EquipmentSlot))
+        if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot (EquipmentSlot))
         {
             OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
             UE_LOG (LogTemp, Log,
@@ -2550,7 +2550,7 @@ bool UGridInventoryWidget::HandleEquipmentSlotClicked (EGridEquipmentSlot Equipm
 
     if (bResult)
     {
-        if (OwningPartyPawn && IsHandEquipmentSlot (EquipmentSlot))
+        if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot (EquipmentSlot))
         {
             OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
             UE_LOG (LogTemp, Log,
