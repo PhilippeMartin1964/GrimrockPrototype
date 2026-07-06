@@ -151,6 +151,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool IsEquipmentSlotOccupied (int32 CharacterIndex, EGridEquipmentSlot Slot) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus (int32 CharacterIndex) const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     FString GetEquipmentDiagnosticsForCharacter (int32 CharacterIndex) const;
 
@@ -218,6 +221,9 @@ public:
 
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Diagnostics")
     void LogEquipmentCompatibilityDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Diagnostics")
+    void LogSelectedCharacterEquipmentStatBonusDiagnostics () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     void LogInventoryOwnershipDiagnostics () const;

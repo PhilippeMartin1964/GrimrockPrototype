@@ -244,6 +244,38 @@ namespace
         return !Definition->EquippedMesh.IsNull ();
     }
 
+    void AddEquipmentStatBonus (
+        FGridEquipmentStatBonus& InOutTotal,
+        const FGridEquipmentStatBonus& Bonus)
+    {
+        InOutTotal.StrengthBonus += Bonus.StrengthBonus;
+        InOutTotal.DexterityBonus += Bonus.DexterityBonus;
+        InOutTotal.ConstitutionBonus += Bonus.ConstitutionBonus;
+        InOutTotal.IntelligenceBonus += Bonus.IntelligenceBonus;
+        InOutTotal.WisdomBonus += Bonus.WisdomBonus;
+        InOutTotal.CharismaBonus += Bonus.CharismaBonus;
+        InOutTotal.MaxHealthBonus += Bonus.MaxHealthBonus;
+        InOutTotal.MaxManaBonus += Bonus.MaxManaBonus;
+        InOutTotal.CarryWeightBonus += Bonus.CarryWeightBonus;
+        InOutTotal.ArmorBonus += Bonus.ArmorBonus;
+    }
+
+    FString GetEquipmentStatBonusText (const FGridEquipmentStatBonus& Bonus)
+    {
+        return FString::Printf (
+            TEXT ("STR=%d DEX=%d CON=%d INT=%d WIS=%d CHA=%d MaxHealth=%d MaxMana=%d CarryWeight=%.1f Armor=%d"),
+            Bonus.StrengthBonus,
+            Bonus.DexterityBonus,
+            Bonus.ConstitutionBonus,
+            Bonus.IntelligenceBonus,
+            Bonus.WisdomBonus,
+            Bonus.CharismaBonus,
+            Bonus.MaxHealthBonus,
+            Bonus.MaxManaBonus,
+            Bonus.CarryWeightBonus,
+            Bonus.ArmorBonus);
+    }
+
     int32 FindFreeInventorySlotIndex (const FGridCharacterInventoryState& CharacterState)
     {
         for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num (); ++SlotIndex)
@@ -549,14 +581,35 @@ bool UGridPartyInventoryComponent::GetCharacterSummary (
         : CharacterState.RaceDisplayName;
     OutSummary.Level = CharacterState.Level;
     OutSummary.Experience = CharacterState.Experience;
+    const FGridEquipmentStatBonus EquipmentStatBonus =
+        ComputeCharacterEquipmentStatBonus (CharacterIndex);
     OutSummary.Attributes = CharacterState.Attributes;
+    OutSummary.Attributes.Strength = FMath::Max (0, OutSummary.Attributes.Strength + EquipmentStatBonus.StrengthBonus);
+    OutSummary.Attributes.Dexterity = FMath::Max (0, OutSummary.Attributes.Dexterity + EquipmentStatBonus.DexterityBonus);
+    OutSummary.Attributes.Constitution = FMath::Max (0, OutSummary.Attributes.Constitution + EquipmentStatBonus.ConstitutionBonus);
+    OutSummary.Attributes.Intelligence = FMath::Max (0, OutSummary.Attributes.Intelligence + EquipmentStatBonus.IntelligenceBonus);
+    OutSummary.Attributes.Wisdom = FMath::Max (0, OutSummary.Attributes.Wisdom + EquipmentStatBonus.WisdomBonus);
+    OutSummary.Attributes.Charisma = FMath::Max (0, OutSummary.Attributes.Charisma + EquipmentStatBonus.CharismaBonus);
     OutSummary.DerivedStats = CharacterState.DerivedStats;
+    OutSummary.DerivedStats.MaxHealth = FMath::Max (1, OutSummary.DerivedStats.MaxHealth + EquipmentStatBonus.MaxHealthBonus);
+    OutSummary.DerivedStats.CurrentHealth = FMath::Clamp (
+        OutSummary.DerivedStats.CurrentHealth,
+        0,
+        OutSummary.DerivedStats.MaxHealth);
+    OutSummary.DerivedStats.MaxMana = FMath::Max (0, OutSummary.DerivedStats.MaxMana + EquipmentStatBonus.MaxManaBonus);
+    OutSummary.DerivedStats.CurrentMana = FMath::Clamp (
+        OutSummary.DerivedStats.CurrentMana,
+        0,
+        OutSummary.DerivedStats.MaxMana);
+    OutSummary.DerivedStats.PhysicalArmor = FMath::Max (
+        0,
+        OutSummary.DerivedStats.PhysicalArmor + EquipmentStatBonus.ArmorBonus);
     OutSummary.Portrait = CharacterState.Portrait;
     OutSummary.UsedInventorySlots = CountOccupiedSlots (CharacterState);
     OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num ();
     OutSummary.CurrentWeight = CharacterState.CurrentWeight;
-    OutSummary.MaxWeight = CharacterState.MaxCarryWeight;
-    OutSummary.bOverloaded = CharacterState.IsOverloaded ();
+    OutSummary.MaxWeight = FMath::Max (0.0f, CharacterState.MaxCarryWeight + EquipmentStatBonus.CarryWeightBonus);
+    OutSummary.bOverloaded = OutSummary.CurrentWeight > OutSummary.MaxWeight;
     OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
     return true;
 }
@@ -1249,6 +1302,37 @@ bool UGridPartyInventoryComponent::IsEquipmentSlotOccupied (int32 CharacterIndex
     }
 
     return PartyInventoryState.ActiveEquipment[CharacterIndex].IsSlotOccupied (Slot);
+}
+
+FGridEquipmentStatBonus UGridPartyInventoryComponent::ComputeCharacterEquipmentStatBonus (
+    int32 CharacterIndex) const
+{
+    FGridEquipmentStatBonus TotalBonus;
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        !PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+    {
+        return TotalBonus;
+    }
+
+    ForEachEquipmentItem (
+        PartyInventoryState.ActiveEquipment[CharacterIndex],
+        [this, &TotalBonus] (EGridEquipmentSlot, const FGridItemInstance& Item)
+        {
+            if (!Item.IsValid ())
+            {
+                return;
+            }
+
+            const UGridItemDefinitionAsset* Definition = FindItemDefinition (Item.ItemDefinitionId);
+            if (!Definition)
+            {
+                return;
+            }
+
+            AddEquipmentStatBonus (TotalBonus, Definition->EquipmentStatBonus);
+        });
+
+    return TotalBonus;
 }
 
 FString UGridPartyInventoryComponent::GetEquipmentDiagnosticsForCharacter (int32 CharacterIndex) const
@@ -1959,6 +2043,57 @@ void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics () const
         LightWithoutHandSlotCount,
         ExcludedPaperDollSlotCount,
         NewPaperDollSlotUsageCount);
+}
+
+void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnostics () const
+{
+    const int32 CharacterIndex = PartyInventoryState.SelectedCharacterIndex;
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        !PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridEquipmentStatBonus Diagnostics Character=%d Result=false Reason=InvalidCharacterOrEquipment"),
+            CharacterIndex);
+        return;
+    }
+
+    const FGridEquipmentStatBonus TotalBonus =
+        ComputeCharacterEquipmentStatBonus (CharacterIndex);
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridEquipmentStatBonus Diagnostics Character=%d Total=%s"),
+        CharacterIndex,
+        *GetEquipmentStatBonusText (TotalBonus));
+
+    ForEachEquipmentItem (
+        PartyInventoryState.ActiveEquipment[CharacterIndex],
+        [this] (EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+        {
+            if (!Item.IsValid ())
+            {
+                return;
+            }
+
+            const UGridItemDefinitionAsset* Definition = FindItemDefinition (Item.ItemDefinitionId);
+            if (!Definition)
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridEquipmentStatBonus Item=%s Slot=%s Warning=MissingDefinition"),
+                    *Item.ItemDefinitionId.ToString (),
+                    GetEquipmentSlotName (Slot));
+                return;
+            }
+
+            if (!Definition->EquipmentStatBonus.HasAnyBonus ())
+            {
+                return;
+            }
+
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridEquipmentStatBonus Item=%s Slot=%s Bonus=%s"),
+                *Definition->ItemDefinitionId.ToString (),
+                GetEquipmentSlotName (Slot),
+                *GetEquipmentStatBonusText (Definition->EquipmentStatBonus));
+        });
 }
 
 void UGridPartyInventoryComponent::LogInventoryOwnershipDiagnostics () const

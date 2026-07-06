@@ -6,6 +6,8 @@ Ce document fixe la matrice officielle des compatibilites entre les familles d'i
 
 Les compatibilites runtime sont portees par `UGridItemDefinitionAsset::CompatibleEquipmentSlots`. Les DataAssets d'items seront renseignes manuellement dans Unreal Editor pendant UI-INV2E-B. Cette etape ne modifie aucun `.uasset` et ne corrige pas automatiquement les assets.
 
+Les bonus de statistiques d'equipement sont documentes separement dans `docs/Design/UI_INV2F_EQUIPMENT_STAT_BONUSES.md` et portes par `UGridItemDefinitionAsset::EquipmentStatBonus`.
+
 ## Matrice officielle
 
 | Famille d'item | Slots compatibles |

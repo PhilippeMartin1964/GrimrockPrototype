@@ -48,6 +48,56 @@ enum class EGridEquipmentSlot : uint8
 };
 
 USTRUCT (BlueprintType)
+struct FGridEquipmentStatBonus
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 StrengthBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 DexterityBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 ConstitutionBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 IntelligenceBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 WisdomBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 CharismaBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 MaxHealthBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 MaxManaBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    float CarryWeightBonus = 0.0f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Stats")
+    int32 ArmorBonus = 0;
+
+    bool HasAnyBonus () const
+    {
+        return StrengthBonus != 0 ||
+            DexterityBonus != 0 ||
+            ConstitutionBonus != 0 ||
+            IntelligenceBonus != 0 ||
+            WisdomBonus != 0 ||
+            CharismaBonus != 0 ||
+            MaxHealthBonus != 0 ||
+            MaxManaBonus != 0 ||
+            !FMath::IsNearlyZero (CarryWeightBonus) ||
+            ArmorBonus != 0;
+    }
+};
+
+USTRUCT (BlueprintType)
 struct FGridItemInstance
 {
     GENERATED_BODY ()

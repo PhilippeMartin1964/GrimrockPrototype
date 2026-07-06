@@ -61,6 +61,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment")
     TArray<EGridEquipmentSlot> CompatibleEquipmentSlots;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Stats")
+    FGridEquipmentStatBonus EquipmentStatBonus;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
     TSoftObjectPtr<UTexture2D> Icon;
 
