@@ -172,6 +172,12 @@ namespace
         EGridEquipmentSlot::QuickSlot2
     };
 
+    bool IsHandEquipmentSlot (EGridEquipmentSlot EquipmentSlot)
+    {
+        return EquipmentSlot == EGridEquipmentSlot::MainHand ||
+            EquipmentSlot == EGridEquipmentSlot::OffHand;
+    }
+
     FObjectPropertyBase* FindCurrentItemActionMenuProperty (const UGridInventoryWidget* InventoryWidget)
     {
         if (!InventoryWidget)
@@ -2061,6 +2067,18 @@ bool UGridInventoryWidget::HandleSlotDrop (
         }
     };
 
+    auto SyncHeldVisualIfHandEquipmentSlot = [&] (EGridEquipmentSlot EquipmentSlot, const TCHAR* Reason)
+    {
+        if (OwningPartyPawn && IsHandEquipmentSlot (EquipmentSlot))
+        {
+            OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridInventory UI Drop SyncHeldVisual Slot=%s Reason=%s"),
+                GetContextEquipmentSlotName (EquipmentSlot),
+                Reason);
+        }
+    };
+
     auto GetMutableSlotItem = [&] (
         EGridInventoryUiSlotType SlotType,
         int32 SlotIndex) -> FGridItemInstance*
@@ -2289,6 +2307,10 @@ bool UGridInventoryWidget::HandleSlotDrop (
                     GetContextEquipmentSlotName (SourceEquipmentSlot),
                     TargetIndex,
                     bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
+                if (bInventoryTargetResult)
+                {
+                    SyncHeldVisualIfHandEquipmentSlot (SourceEquipmentSlot, TEXT ("EquipmentToInventory"));
+                }
                 break;
             }
 
@@ -2337,9 +2359,18 @@ bool UGridInventoryWidget::HandleSlotDrop (
         case EGridInventoryUiSlotType::OffHand:
             return OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor ();
         case EGridInventoryUiSlotType::Equipment:
-            return InventoryComponent->TryTakeEquipmentSlotToCursor (
-                CharacterIndex,
-                ResolveEquipmentSlot (SourceType, SourceIndex));
+            {
+                const EGridEquipmentSlot SourceEquipmentSlot =
+                    ResolveEquipmentSlot (SourceType, SourceIndex);
+                const bool bTaken = InventoryComponent->TryTakeEquipmentSlotToCursor (
+                    CharacterIndex,
+                    SourceEquipmentSlot);
+                if (bTaken)
+                {
+                    SyncHeldVisualIfHandEquipmentSlot (SourceEquipmentSlot, TEXT ("EquipmentToCursor"));
+                }
+                return bTaken;
+            }
         case EGridInventoryUiSlotType::Cursor:
             return InventoryComponent->HasCursorItem ();
         default:
@@ -2359,9 +2390,18 @@ bool UGridInventoryWidget::HandleSlotDrop (
         case EGridInventoryUiSlotType::OffHand:
             return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterOffHand ();
         case EGridInventoryUiSlotType::Equipment:
-            return InventoryComponent->TryEquipCursorItemToCharacterSlot (
-                CharacterIndex,
-                ResolveEquipmentSlot (TargetType, TargetIndex));
+            {
+                const EGridEquipmentSlot TargetEquipmentSlot =
+                    ResolveEquipmentSlot (TargetType, TargetIndex);
+                const bool bEquipped = InventoryComponent->TryEquipCursorItemToCharacterSlot (
+                    CharacterIndex,
+                    TargetEquipmentSlot);
+                if (bEquipped)
+                {
+                    SyncHeldVisualIfHandEquipmentSlot (TargetEquipmentSlot, TEXT ("CursorToEquipment"));
+                }
+                return bEquipped;
+            }
         case EGridInventoryUiSlotType::Cursor:
             return InventoryComponent->HasCursorItem ();
         default:
@@ -2510,6 +2550,13 @@ bool UGridInventoryWidget::HandleEquipmentSlotClicked (EGridEquipmentSlot Equipm
 
     if (bResult)
     {
+        if (OwningPartyPawn && IsHandEquipmentSlot (EquipmentSlot))
+        {
+            OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridInventory UI EquipmentClicked SyncHeldVisual Slot=%s"),
+                GetContextEquipmentSlotName (EquipmentSlot));
+        }
         RefreshInventory ();
     }
     return bResult;
