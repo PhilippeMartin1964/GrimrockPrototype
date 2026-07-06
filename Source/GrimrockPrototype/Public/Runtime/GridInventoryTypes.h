@@ -280,6 +280,15 @@ struct FGridInventoryCharacterSummary
     UPROPERTY (BlueprintReadOnly, Category = "RPG")
     FRPGDerivedStats DerivedStats;
 
+    UPROPERTY (BlueprintReadOnly, Category = "RPG")
+    FRPGAttributes BaseAttributes;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG")
+    FRPGDerivedStats BaseDerivedStats;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Equipment")
+    FGridEquipmentStatBonus EquipmentStatBonus;
+
     UPROPERTY (BlueprintReadOnly, Category = "Character")
     ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;
 
@@ -303,6 +312,9 @@ struct FGridInventoryCharacterSummary
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     float MaxWeight = 0.0f;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Inventory")
+    float BaseMaxWeight = 0.0f;
 
     UPROPERTY (BlueprintReadOnly, Category = "Inventory")
     bool bOverloaded = false;

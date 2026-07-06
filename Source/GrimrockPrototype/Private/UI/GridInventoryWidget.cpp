@@ -43,6 +43,61 @@ namespace
         return Id.IsNone () ? FText::FromString (Fallback) : FText::FromName (Id);
     }
 
+    FText FormatIntWithBonus (int32 FinalValue, int32 Bonus)
+    {
+        if (Bonus == 0)
+        {
+            return FText::AsNumber (FinalValue);
+        }
+
+        return FText::FromString (FString::Printf (
+            TEXT ("%d (%+d)"),
+            FinalValue,
+            Bonus));
+    }
+
+    FText FormatFloatWithBonus (float FinalValue, float Bonus, int32 FractionDigits = 1)
+    {
+        const FString FinalValueText = FString::Printf (TEXT ("%.*f"), FractionDigits, FinalValue);
+        if (FMath::IsNearlyZero (Bonus))
+        {
+            return FText::FromString (FinalValueText);
+        }
+
+        return FText::FromString (FString::Printf (
+            TEXT ("%s (%+.*f)"),
+            *FinalValueText,
+            FractionDigits,
+            Bonus));
+    }
+
+    FText FormatCurrentMaxWithMaxBonus (int32 CurrentValue, int32 FinalMaxValue, int32 MaxBonus)
+    {
+        if (MaxBonus == 0)
+        {
+            return FText::FromString (FString::Printf (
+                TEXT ("%d / %d"),
+                CurrentValue,
+                FinalMaxValue));
+        }
+
+        return FText::FromString (FString::Printf (
+            TEXT ("%d / %d (%+d)"),
+            CurrentValue,
+            FinalMaxValue,
+            MaxBonus));
+    }
+
+    FText FormatWeightWithBonus (float CurrentWeight, float FinalMaxWeight, float MaxWeightBonus)
+    {
+        const FString CurrentWeightText = FString::Printf (TEXT ("%.1f"), CurrentWeight);
+        const FText FinalMaxWeightText = FormatFloatWithBonus (FinalMaxWeight, MaxWeightBonus);
+        return FText::FromString (FString::Printf (
+            TEXT ("%s / %s"),
+            *CurrentWeightText,
+            *FinalMaxWeightText.ToString ()));
+    }
+
     const TCHAR* GetContextActionName (EGridItemActionType ActionType)
     {
         switch (ActionType)
@@ -545,6 +600,7 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
         SetInventoryOptionalText (Text_CharacterHealth, FText::GetEmpty ());
         SetInventoryOptionalText (Text_CharacterMana, FText::GetEmpty ());
         SetInventoryOptionalText (Text_CharacterCarryWeight, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_CharacterArmor, FText::GetEmpty ());
         if (Image_CharacterPortrait)
         {
             Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
@@ -561,30 +617,45 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
         ResolveCharacterDisplayName (Summary.ClassDisplayName, Summary.ClassId, TEXT ("Classe inconnue")));
     SetInventoryOptionalText (Text_CharacterLevel, FText::AsNumber (Summary.Level));
     SetInventoryOptionalText (Text_CharacterExperience, FText::AsNumber (Summary.Experience));
-    SetInventoryOptionalText (Text_CharacterStrength, FText::AsNumber (Summary.Attributes.Strength));
-    SetInventoryOptionalText (Text_CharacterDexterity, FText::AsNumber (Summary.Attributes.Dexterity));
-    SetInventoryOptionalText (Text_CharacterConstitution, FText::AsNumber (Summary.Attributes.Constitution));
-    SetInventoryOptionalText (Text_CharacterIntelligence, FText::AsNumber (Summary.Attributes.Intelligence));
-    SetInventoryOptionalText (Text_CharacterWisdom, FText::AsNumber (Summary.Attributes.Wisdom));
-    SetInventoryOptionalText (Text_CharacterCharisma, FText::AsNumber (Summary.Attributes.Charisma));
+    SetInventoryOptionalText (
+        Text_CharacterStrength,
+        FormatIntWithBonus (Summary.Attributes.Strength, Summary.EquipmentStatBonus.StrengthBonus));
+    SetInventoryOptionalText (
+        Text_CharacterDexterity,
+        FormatIntWithBonus (Summary.Attributes.Dexterity, Summary.EquipmentStatBonus.DexterityBonus));
+    SetInventoryOptionalText (
+        Text_CharacterConstitution,
+        FormatIntWithBonus (Summary.Attributes.Constitution, Summary.EquipmentStatBonus.ConstitutionBonus));
+    SetInventoryOptionalText (
+        Text_CharacterIntelligence,
+        FormatIntWithBonus (Summary.Attributes.Intelligence, Summary.EquipmentStatBonus.IntelligenceBonus));
+    SetInventoryOptionalText (
+        Text_CharacterWisdom,
+        FormatIntWithBonus (Summary.Attributes.Wisdom, Summary.EquipmentStatBonus.WisdomBonus));
+    SetInventoryOptionalText (
+        Text_CharacterCharisma,
+        FormatIntWithBonus (Summary.Attributes.Charisma, Summary.EquipmentStatBonus.CharismaBonus));
     SetInventoryOptionalText (
         Text_CharacterHealth,
-        FText::FromString (FString::Printf (
-            TEXT ("%d / %d"),
+        FormatCurrentMaxWithMaxBonus (
             Summary.DerivedStats.CurrentHealth,
-            Summary.DerivedStats.MaxHealth)));
+            Summary.DerivedStats.MaxHealth,
+            Summary.EquipmentStatBonus.MaxHealthBonus));
     SetInventoryOptionalText (
         Text_CharacterMana,
-        FText::FromString (FString::Printf (
-            TEXT ("%d / %d"),
+        FormatCurrentMaxWithMaxBonus (
             Summary.DerivedStats.CurrentMana,
-            Summary.DerivedStats.MaxMana)));
+            Summary.DerivedStats.MaxMana,
+            Summary.EquipmentStatBonus.MaxManaBonus));
     SetInventoryOptionalText (
         Text_CharacterCarryWeight,
-        FText::FromString (FString::Printf (
-            TEXT ("%.1f / %.1f"),
+        FormatWeightWithBonus (
             Summary.CurrentWeight,
-            Summary.MaxWeight)));
+            Summary.MaxWeight,
+            Summary.EquipmentStatBonus.CarryWeightBonus));
+    SetInventoryOptionalText (
+        Text_CharacterArmor,
+        FormatIntWithBonus (Summary.DerivedStats.PhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus));
 
     if (Image_CharacterPortrait)
     {

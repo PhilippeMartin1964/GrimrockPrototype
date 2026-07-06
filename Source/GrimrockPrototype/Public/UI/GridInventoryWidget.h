@@ -93,6 +93,9 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
     TObjectPtr<UTextBlock> Text_CharacterCarryWeight;
 
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
+    TObjectPtr<UTextBlock> Text_CharacterArmor;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
     TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
 

@@ -581,34 +581,36 @@ bool UGridPartyInventoryComponent::GetCharacterSummary (
         : CharacterState.RaceDisplayName;
     OutSummary.Level = CharacterState.Level;
     OutSummary.Experience = CharacterState.Experience;
-    const FGridEquipmentStatBonus EquipmentStatBonus =
-        ComputeCharacterEquipmentStatBonus (CharacterIndex);
-    OutSummary.Attributes = CharacterState.Attributes;
-    OutSummary.Attributes.Strength = FMath::Max (0, OutSummary.Attributes.Strength + EquipmentStatBonus.StrengthBonus);
-    OutSummary.Attributes.Dexterity = FMath::Max (0, OutSummary.Attributes.Dexterity + EquipmentStatBonus.DexterityBonus);
-    OutSummary.Attributes.Constitution = FMath::Max (0, OutSummary.Attributes.Constitution + EquipmentStatBonus.ConstitutionBonus);
-    OutSummary.Attributes.Intelligence = FMath::Max (0, OutSummary.Attributes.Intelligence + EquipmentStatBonus.IntelligenceBonus);
-    OutSummary.Attributes.Wisdom = FMath::Max (0, OutSummary.Attributes.Wisdom + EquipmentStatBonus.WisdomBonus);
-    OutSummary.Attributes.Charisma = FMath::Max (0, OutSummary.Attributes.Charisma + EquipmentStatBonus.CharismaBonus);
-    OutSummary.DerivedStats = CharacterState.DerivedStats;
-    OutSummary.DerivedStats.MaxHealth = FMath::Max (1, OutSummary.DerivedStats.MaxHealth + EquipmentStatBonus.MaxHealthBonus);
+    OutSummary.BaseAttributes = CharacterState.Attributes;
+    OutSummary.BaseDerivedStats = CharacterState.DerivedStats;
+    OutSummary.BaseMaxWeight = CharacterState.MaxCarryWeight;
+    OutSummary.EquipmentStatBonus = ComputeCharacterEquipmentStatBonus (CharacterIndex);
+    OutSummary.Attributes = OutSummary.BaseAttributes;
+    OutSummary.Attributes.Strength = FMath::Max (0, OutSummary.Attributes.Strength + OutSummary.EquipmentStatBonus.StrengthBonus);
+    OutSummary.Attributes.Dexterity = FMath::Max (0, OutSummary.Attributes.Dexterity + OutSummary.EquipmentStatBonus.DexterityBonus);
+    OutSummary.Attributes.Constitution = FMath::Max (0, OutSummary.Attributes.Constitution + OutSummary.EquipmentStatBonus.ConstitutionBonus);
+    OutSummary.Attributes.Intelligence = FMath::Max (0, OutSummary.Attributes.Intelligence + OutSummary.EquipmentStatBonus.IntelligenceBonus);
+    OutSummary.Attributes.Wisdom = FMath::Max (0, OutSummary.Attributes.Wisdom + OutSummary.EquipmentStatBonus.WisdomBonus);
+    OutSummary.Attributes.Charisma = FMath::Max (0, OutSummary.Attributes.Charisma + OutSummary.EquipmentStatBonus.CharismaBonus);
+    OutSummary.DerivedStats = OutSummary.BaseDerivedStats;
+    OutSummary.DerivedStats.MaxHealth = FMath::Max (1, OutSummary.DerivedStats.MaxHealth + OutSummary.EquipmentStatBonus.MaxHealthBonus);
     OutSummary.DerivedStats.CurrentHealth = FMath::Clamp (
         OutSummary.DerivedStats.CurrentHealth,
         0,
         OutSummary.DerivedStats.MaxHealth);
-    OutSummary.DerivedStats.MaxMana = FMath::Max (0, OutSummary.DerivedStats.MaxMana + EquipmentStatBonus.MaxManaBonus);
+    OutSummary.DerivedStats.MaxMana = FMath::Max (0, OutSummary.DerivedStats.MaxMana + OutSummary.EquipmentStatBonus.MaxManaBonus);
     OutSummary.DerivedStats.CurrentMana = FMath::Clamp (
         OutSummary.DerivedStats.CurrentMana,
         0,
         OutSummary.DerivedStats.MaxMana);
     OutSummary.DerivedStats.PhysicalArmor = FMath::Max (
         0,
-        OutSummary.DerivedStats.PhysicalArmor + EquipmentStatBonus.ArmorBonus);
+        OutSummary.DerivedStats.PhysicalArmor + OutSummary.EquipmentStatBonus.ArmorBonus);
     OutSummary.Portrait = CharacterState.Portrait;
     OutSummary.UsedInventorySlots = CountOccupiedSlots (CharacterState);
     OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num ();
     OutSummary.CurrentWeight = CharacterState.CurrentWeight;
-    OutSummary.MaxWeight = FMath::Max (0.0f, CharacterState.MaxCarryWeight + EquipmentStatBonus.CarryWeightBonus);
+    OutSummary.MaxWeight = FMath::Max (0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
     OutSummary.bOverloaded = OutSummary.CurrentWeight > OutSummary.MaxWeight;
     OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
     return true;
