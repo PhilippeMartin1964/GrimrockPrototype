@@ -114,6 +114,64 @@ namespace
         }
     }
 
+    const TCHAR* GetPaperDollEquipmentSlotName (EGridEquipmentSlot EquipmentSlot)
+    {
+        switch (EquipmentSlot)
+        {
+        case EGridEquipmentSlot::MainHand: return TEXT ("MainHand");
+        case EGridEquipmentSlot::OffHand: return TEXT ("OffHand");
+        case EGridEquipmentSlot::Head: return TEXT ("Head");
+        case EGridEquipmentSlot::Chest: return TEXT ("Chest");
+        case EGridEquipmentSlot::Legs: return TEXT ("Legs");
+        case EGridEquipmentSlot::Feet: return TEXT ("Feet");
+        case EGridEquipmentSlot::Amulet: return TEXT ("Amulet");
+        case EGridEquipmentSlot::Ring1: return TEXT ("Ring1");
+        case EGridEquipmentSlot::Ring2: return TEXT ("Ring2");
+        case EGridEquipmentSlot::Shoulders: return TEXT ("Shoulders");
+        case EGridEquipmentSlot::Gloves: return TEXT ("Gloves");
+        case EGridEquipmentSlot::Belt: return TEXT ("Belt");
+        case EGridEquipmentSlot::Cloak: return TEXT ("Cloak");
+        case EGridEquipmentSlot::Talisman: return TEXT ("Talisman");
+        case EGridEquipmentSlot::QuickSlot1: return TEXT ("QuickSlot1");
+        case EGridEquipmentSlot::QuickSlot2: return TEXT ("QuickSlot2");
+        case EGridEquipmentSlot::Face: return TEXT ("Face");
+        case EGridEquipmentSlot::Shirt: return TEXT ("Shirt");
+        case EGridEquipmentSlot::Bracers: return TEXT ("Bracers");
+        case EGridEquipmentSlot::Earring1: return TEXT ("Earring1");
+        case EGridEquipmentSlot::Earring2: return TEXT ("Earring2");
+        case EGridEquipmentSlot::None:
+        default:
+            return TEXT ("None");
+        }
+    }
+
+    constexpr EGridEquipmentSlot PaperDollEquipmentSlots[] = {
+        EGridEquipmentSlot::Head,
+        EGridEquipmentSlot::Face,
+        EGridEquipmentSlot::Amulet,
+        EGridEquipmentSlot::Shoulders,
+        EGridEquipmentSlot::Shirt,
+        EGridEquipmentSlot::Chest,
+        EGridEquipmentSlot::Cloak,
+        EGridEquipmentSlot::Bracers,
+        EGridEquipmentSlot::Gloves,
+        EGridEquipmentSlot::Belt,
+        EGridEquipmentSlot::Legs,
+        EGridEquipmentSlot::Feet,
+        EGridEquipmentSlot::Ring1,
+        EGridEquipmentSlot::Ring2,
+        EGridEquipmentSlot::Earring1,
+        EGridEquipmentSlot::Earring2,
+        EGridEquipmentSlot::MainHand,
+        EGridEquipmentSlot::OffHand
+    };
+
+    constexpr EGridEquipmentSlot ForbiddenPaperDollEquipmentSlots[] = {
+        EGridEquipmentSlot::Talisman,
+        EGridEquipmentSlot::QuickSlot1,
+        EGridEquipmentSlot::QuickSlot2
+    };
+
     FObjectPropertyBase* FindCurrentItemActionMenuProperty (const UGridInventoryWidget* InventoryWidget)
     {
         if (!InventoryWidget)
@@ -618,6 +676,121 @@ void UGridInventoryWidget::RegisterEquipmentSlotWidget (
     RefreshRegisteredSlotWidgets ();
 }
 
+void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidget (
+    UGridInventorySlotWidget* SlotWidget,
+    EGridEquipmentSlot EquipmentSlot,
+    const TCHAR* WidgetName)
+{
+    if (!SlotWidget)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory PaperDoll SlotMissing Widget=%s EquipmentSlot=%s"),
+            WidgetName,
+            GetPaperDollEquipmentSlotName (EquipmentSlot));
+        return;
+    }
+
+    RegisterEquipmentSlotWidget (SlotWidget, EquipmentSlot);
+
+    bool bValidRegistration = true;
+    if (SlotWidget->SlotType != EGridInventoryUiSlotType::Equipment)
+    {
+        bValidRegistration = false;
+    }
+    if (SlotWidget->EquipmentSlot != EquipmentSlot)
+    {
+        bValidRegistration = false;
+    }
+    if (SlotWidget->InventorySlotIndex != static_cast<int32> (EquipmentSlot))
+    {
+        bValidRegistration = false;
+    }
+
+    if (!bValidRegistration)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridInventory PaperDoll SlotInvalid Widget=%s EquipmentSlot=%s SlotType=%s WidgetEquipmentSlot=%s SlotIndex=%d ExpectedSlotIndex=%d"),
+            WidgetName,
+            GetPaperDollEquipmentSlotName (EquipmentSlot),
+            GetGridInventoryUiSlotTypeName (SlotWidget->SlotType),
+            GetPaperDollEquipmentSlotName (SlotWidget->EquipmentSlot),
+            SlotWidget->InventorySlotIndex,
+            static_cast<int32> (EquipmentSlot));
+    }
+}
+
+void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidgets ()
+{
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Head, EGridEquipmentSlot::Head, TEXT ("SlotWidget_Head"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Face, EGridEquipmentSlot::Face, TEXT ("SlotWidget_Face"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Amulet, EGridEquipmentSlot::Amulet, TEXT ("SlotWidget_Amulet"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Shoulders, EGridEquipmentSlot::Shoulders, TEXT ("SlotWidget_Shoulders"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Shirt, EGridEquipmentSlot::Shirt, TEXT ("SlotWidget_Shirt"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Chest, EGridEquipmentSlot::Chest, TEXT ("SlotWidget_Chest"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Cloak, EGridEquipmentSlot::Cloak, TEXT ("SlotWidget_Cloak"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Bracers, EGridEquipmentSlot::Bracers, TEXT ("SlotWidget_Bracers"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Gloves, EGridEquipmentSlot::Gloves, TEXT ("SlotWidget_Gloves"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Belt, EGridEquipmentSlot::Belt, TEXT ("SlotWidget_Belt"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Legs, EGridEquipmentSlot::Legs, TEXT ("SlotWidget_Legs"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Feet, EGridEquipmentSlot::Feet, TEXT ("SlotWidget_Feet"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Ring1, EGridEquipmentSlot::Ring1, TEXT ("SlotWidget_Ring1"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Ring2, EGridEquipmentSlot::Ring2, TEXT ("SlotWidget_Ring2"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Earring1, EGridEquipmentSlot::Earring1, TEXT ("SlotWidget_Earring1"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Earring2, EGridEquipmentSlot::Earring2, TEXT ("SlotWidget_Earring2"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_MainHand, EGridEquipmentSlot::MainHand, TEXT ("SlotWidget_MainHand"));
+    RegisterPaperDollEquipmentSlotWidget (SlotWidget_OffHand, EGridEquipmentSlot::OffHand, TEXT ("SlotWidget_OffHand"));
+}
+
+bool UGridInventoryWidget::ValidatePaperDollEquipmentRegistration () const
+{
+    bool bIsValid = true;
+    int32 RegisteredPaperDollSlotCount = 0;
+
+    for (const EGridEquipmentSlot EquipmentSlot : PaperDollEquipmentSlots)
+    {
+        const TObjectPtr<UGridInventorySlotWidget>* SlotWidgetPtr =
+            RegisteredEquipmentSlotWidgets.Find (EquipmentSlot);
+        if (!SlotWidgetPtr)
+        {
+            bIsValid = false;
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory PaperDoll Validation Missing EquipmentSlot=%s"),
+                GetPaperDollEquipmentSlotName (EquipmentSlot));
+            continue;
+        }
+
+        if (!SlotWidgetPtr->Get ())
+        {
+            bIsValid = false;
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory PaperDoll Validation NullWidget EquipmentSlot=%s"),
+                GetPaperDollEquipmentSlotName (EquipmentSlot));
+            continue;
+        }
+
+        ++RegisteredPaperDollSlotCount;
+    }
+
+    for (const EGridEquipmentSlot EquipmentSlot : ForbiddenPaperDollEquipmentSlots)
+    {
+        if (RegisteredEquipmentSlotWidgets.Contains (EquipmentSlot))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridInventory PaperDoll Validation Forbidden EquipmentSlot=%s"),
+                GetPaperDollEquipmentSlotName (EquipmentSlot));
+        }
+    }
+
+    if (bIsValid)
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridInventory PaperDoll Validation OK Registered=%d"),
+            RegisteredPaperDollSlotCount);
+    }
+
+    return bIsValid;
+}
+
 void UGridInventoryWidget::RebuildInventorySlotWidgets ()
 {
     if (!InventorySlotsGridPanel)
@@ -806,6 +979,8 @@ void UGridInventoryWidget::ClearGeneratedPaperDollEquipmentPanel ()
 
 void UGridInventoryWidget::BuildPaperDollEquipmentPanel ()
 {
+    // Deprecated for manual UMG paper doll layout.
+    // Do not call automatically; WBP_GridInventory owns the visual paper doll layout.
     if (!Border_EquipmentPanel)
     {
         if (!bPaperDollMissingContainerLogged)

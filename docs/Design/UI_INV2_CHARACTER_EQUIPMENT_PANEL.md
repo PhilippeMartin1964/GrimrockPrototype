@@ -247,6 +247,8 @@ SlotWidget_OffHand    -> OffHand
 
 Tous les slots paper doll sont fonctionnels cote C++ depuis UI-INV2C. Ils doivent donc pouvoir etre enregistres via `RegisterEquipmentSlotWidget` dans UI-INV2D.
 
+Note UI-INV2D4 : les slots paper doll manuels sont enregistres cote C++ via `BindWidgetOptional` sur les widgets `SlotWidget_*`. Le layout visuel reste possede par `WBP_GridInventory`; le C++ valide uniquement la presence et le cablage des widgets. `BuildPaperDollEquipmentPanel` est conserve comme outil provisoire, mais ne doit pas remplacer automatiquement le layout manuel.
+
 Ne pas enregistrer dans le paper doll :
 
 - `Talisman` ;

@@ -6,11 +6,18 @@
 #include "RPG/RPGClassVisualAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
+void UGridInventoryWidget::NativeConstruct ()
+{
+    Super::NativeConstruct ();
+    RegisterPaperDollEquipmentSlotWidgets ();
+    ValidatePaperDollEquipmentRegistration ();
+    RefreshRegisteredSlotWidgets ();
+}
+
 void UGridInventoryWidget::NativeTick (const FGeometry& MyGeometry, float InDeltaTime)
 {
     Super::NativeTick (MyGeometry, InDeltaTime);
     RefreshSelectedCharacterClassIcon ();
-    BuildPaperDollEquipmentPanel ();
 }
 
 const URPGClassVisualAsset* UGridInventoryWidget::FindClassVisualForClass (FName ClassId) const

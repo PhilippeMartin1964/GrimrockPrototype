@@ -111,6 +111,60 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory UI|Equipment")
     TObjectPtr<UBorder> Border_EquipmentPanel;
 
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Head;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Face;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Amulet;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Shoulders;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Shirt;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Chest;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Cloak;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Bracers;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Gloves;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Belt;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Legs;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Feet;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Ring1;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Ring2;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Earring1;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_Earring2;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_MainHand;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|PaperDoll")
+    TObjectPtr<UGridInventorySlotWidget> SlotWidget_OffHand;
+
     UPROPERTY (BlueprintReadOnly, Category = "Inventory|Slots")
     TArray<TObjectPtr<UGridInventorySlotWidget>> RegisteredInventorySlots;
 
@@ -222,6 +276,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Slots")
     void RegisterEquipmentSlotWidget (UGridInventorySlotWidget* SlotWidget, EGridEquipmentSlot EquipmentSlot);
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|PaperDoll")
+    bool ValidatePaperDollEquipmentRegistration () const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory UI|Slots")
     void RebuildInventorySlotWidgets ();
 
@@ -318,12 +375,18 @@ public:
     bool HandleCursorReturnToInventoryClicked ();
 
 protected:
+    virtual void NativeConstruct () override;
     virtual void NativeTick (const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
     const URPGClassVisualAsset* FindClassVisualForClass (FName ClassId) const;
     void RefreshSelectedCharacterClassIcon ();
     void RemoveGeneratedInventorySlotsFromRegistry ();
+    void RegisterPaperDollEquipmentSlotWidget (
+        UGridInventorySlotWidget* SlotWidget,
+        EGridEquipmentSlot EquipmentSlot,
+        const TCHAR* WidgetName);
+    void RegisterPaperDollEquipmentSlotWidgets ();
     UGridInventorySlotWidget* CreatePaperDollEquipmentSlot (EGridEquipmentSlot EquipmentSlot);
     void ClearGeneratedPaperDollEquipmentPanel ();
     UGridInventorySlotWidget* FindRegisteredSlotWidget (EGridInventoryUiSlotType SlotType, int32 SlotIndex) const;
