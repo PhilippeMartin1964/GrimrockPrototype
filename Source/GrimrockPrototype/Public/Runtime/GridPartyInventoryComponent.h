@@ -154,6 +154,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus (int32 CharacterIndex) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
+    FGridDamageResistanceSet ComputeCharacterEquipmentResistances (int32 CharacterIndex) const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     FString GetEquipmentDiagnosticsForCharacter (int32 CharacterIndex) const;
 
@@ -224,6 +227,9 @@ public:
 
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Diagnostics")
     void LogSelectedCharacterEquipmentStatBonusDiagnostics () const;
+
+    UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Diagnostics")
+    void LogSelectedCharacterResistanceDiagnostics () const;
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     void LogInventoryOwnershipDiagnostics () const;

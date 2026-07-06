@@ -47,6 +47,19 @@ enum class EGridEquipmentSlot : uint8
     Earring2
 };
 
+UENUM (BlueprintType)
+enum class EGridDamageType : uint8
+{
+    Physical,
+    Fire,
+    Ice,
+    Lightning,
+    Poison,
+    Holy,
+    Necrotic,
+    Arcane
+};
+
 USTRUCT (BlueprintType)
 struct FGridEquipmentStatBonus
 {
@@ -94,6 +107,65 @@ struct FGridEquipmentStatBonus
             MaxManaBonus != 0 ||
             !FMath::IsNearlyZero (CarryWeightBonus) ||
             ArmorBonus != 0;
+    }
+};
+
+USTRUCT (BlueprintType)
+struct FGridDamageResistanceSet
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 PhysicalResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 FireResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 IceResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 LightningResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 PoisonResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 HolyResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 NecroticResistance = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Resistances")
+    int32 ArcaneResistance = 0;
+
+    void Reset ()
+    {
+        *this = FGridDamageResistanceSet ();
+    }
+
+    void Add (const FGridDamageResistanceSet& Other)
+    {
+        PhysicalResistance += Other.PhysicalResistance;
+        FireResistance += Other.FireResistance;
+        IceResistance += Other.IceResistance;
+        LightningResistance += Other.LightningResistance;
+        PoisonResistance += Other.PoisonResistance;
+        HolyResistance += Other.HolyResistance;
+        NecroticResistance += Other.NecroticResistance;
+        ArcaneResistance += Other.ArcaneResistance;
+    }
+
+    bool IsEmpty () const
+    {
+        return PhysicalResistance == 0 &&
+            FireResistance == 0 &&
+            IceResistance == 0 &&
+            LightningResistance == 0 &&
+            PoisonResistance == 0 &&
+            HolyResistance == 0 &&
+            NecroticResistance == 0 &&
+            ArcaneResistance == 0;
     }
 };
 
@@ -288,6 +360,12 @@ struct FGridInventoryCharacterSummary
 
     UPROPERTY (BlueprintReadOnly, Category = "Equipment")
     FGridEquipmentStatBonus EquipmentStatBonus;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Resistances")
+    FGridDamageResistanceSet EquipmentResistances;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Resistances")
+    FGridDamageResistanceSet FinalResistances;
 
     UPROPERTY (BlueprintReadOnly, Category = "Character")
     ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;

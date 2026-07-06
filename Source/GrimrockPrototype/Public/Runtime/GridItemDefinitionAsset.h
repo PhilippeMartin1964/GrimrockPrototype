@@ -64,6 +64,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Stats")
     FGridEquipmentStatBonus EquipmentStatBonus;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Resistances")
+    FGridDamageResistanceSet EquipmentResistanceBonus;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
     TSoftObjectPtr<UTexture2D> Icon;
 

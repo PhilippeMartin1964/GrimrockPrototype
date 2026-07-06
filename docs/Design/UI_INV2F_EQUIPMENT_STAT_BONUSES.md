@@ -123,7 +123,7 @@ L'armure est prete cote C++ via le `BindWidgetOptional` `Text_CharacterArmor`. A
 
 ## Limites actuelles
 
-- Pas de resistances avancees.
+- Les resistances de degats sont traitees separement dans `docs/Design/UI_INV2G_DAMAGE_RESISTANCES.md`.
 - Pas de bonus conditionnels.
 - Pas de recalcul de `DerivedStats` complet depuis les attributs finaux.
 - Pas de modification persistante des stats de base.

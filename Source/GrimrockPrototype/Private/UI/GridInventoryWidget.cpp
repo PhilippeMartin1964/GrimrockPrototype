@@ -601,6 +601,13 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
         SetInventoryOptionalText (Text_CharacterMana, FText::GetEmpty ());
         SetInventoryOptionalText (Text_CharacterCarryWeight, FText::GetEmpty ());
         SetInventoryOptionalText (Text_CharacterArmor, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistanceFire, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistanceIce, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistanceLightning, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistancePoison, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistanceHoly, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistanceNecrotic, FText::GetEmpty ());
+        SetInventoryOptionalText (Text_ResistanceArcane, FText::GetEmpty ());
         if (Image_CharacterPortrait)
         {
             Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
@@ -656,6 +663,13 @@ void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
     SetInventoryOptionalText (
         Text_CharacterArmor,
         FormatIntWithBonus (Summary.DerivedStats.PhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus));
+    SetInventoryOptionalText (Text_ResistanceFire, FText::AsNumber (Summary.FinalResistances.FireResistance));
+    SetInventoryOptionalText (Text_ResistanceIce, FText::AsNumber (Summary.FinalResistances.IceResistance));
+    SetInventoryOptionalText (Text_ResistanceLightning, FText::AsNumber (Summary.FinalResistances.LightningResistance));
+    SetInventoryOptionalText (Text_ResistancePoison, FText::AsNumber (Summary.FinalResistances.PoisonResistance));
+    SetInventoryOptionalText (Text_ResistanceHoly, FText::AsNumber (Summary.FinalResistances.HolyResistance));
+    SetInventoryOptionalText (Text_ResistanceNecrotic, FText::AsNumber (Summary.FinalResistances.NecroticResistance));
+    SetInventoryOptionalText (Text_ResistanceArcane, FText::AsNumber (Summary.FinalResistances.ArcaneResistance));
 
     if (Image_CharacterPortrait)
     {

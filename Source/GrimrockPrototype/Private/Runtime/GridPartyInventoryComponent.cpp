@@ -276,6 +276,20 @@ namespace
             Bonus.ArmorBonus);
     }
 
+    FString GetDamageResistanceSetText (const FGridDamageResistanceSet& Resistances)
+    {
+        return FString::Printf (
+            TEXT ("Physical=%d Fire=%d Ice=%d Lightning=%d Poison=%d Holy=%d Necrotic=%d Arcane=%d"),
+            Resistances.PhysicalResistance,
+            Resistances.FireResistance,
+            Resistances.IceResistance,
+            Resistances.LightningResistance,
+            Resistances.PoisonResistance,
+            Resistances.HolyResistance,
+            Resistances.NecroticResistance,
+            Resistances.ArcaneResistance);
+    }
+
     int32 FindFreeInventorySlotIndex (const FGridCharacterInventoryState& CharacterState)
     {
         for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num (); ++SlotIndex)
@@ -585,6 +599,8 @@ bool UGridPartyInventoryComponent::GetCharacterSummary (
     OutSummary.BaseDerivedStats = CharacterState.DerivedStats;
     OutSummary.BaseMaxWeight = CharacterState.MaxCarryWeight;
     OutSummary.EquipmentStatBonus = ComputeCharacterEquipmentStatBonus (CharacterIndex);
+    OutSummary.EquipmentResistances = ComputeCharacterEquipmentResistances (CharacterIndex);
+    OutSummary.FinalResistances = OutSummary.EquipmentResistances;
     OutSummary.Attributes = OutSummary.BaseAttributes;
     OutSummary.Attributes.Strength = FMath::Max (0, OutSummary.Attributes.Strength + OutSummary.EquipmentStatBonus.StrengthBonus);
     OutSummary.Attributes.Dexterity = FMath::Max (0, OutSummary.Attributes.Dexterity + OutSummary.EquipmentStatBonus.DexterityBonus);
@@ -1335,6 +1351,37 @@ FGridEquipmentStatBonus UGridPartyInventoryComponent::ComputeCharacterEquipmentS
         });
 
     return TotalBonus;
+}
+
+FGridDamageResistanceSet UGridPartyInventoryComponent::ComputeCharacterEquipmentResistances (
+    int32 CharacterIndex) const
+{
+    FGridDamageResistanceSet TotalResistances;
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        !PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+    {
+        return TotalResistances;
+    }
+
+    ForEachEquipmentItem (
+        PartyInventoryState.ActiveEquipment[CharacterIndex],
+        [this, &TotalResistances] (EGridEquipmentSlot, const FGridItemInstance& Item)
+        {
+            if (!Item.IsValid ())
+            {
+                return;
+            }
+
+            const UGridItemDefinitionAsset* Definition = FindItemDefinition (Item.ItemDefinitionId);
+            if (!Definition)
+            {
+                return;
+            }
+
+            TotalResistances.Add (Definition->EquipmentResistanceBonus);
+        });
+
+    return TotalResistances;
 }
 
 FString UGridPartyInventoryComponent::GetEquipmentDiagnosticsForCharacter (int32 CharacterIndex) const
@@ -2095,6 +2142,57 @@ void UGridPartyInventoryComponent::LogSelectedCharacterEquipmentStatBonusDiagnos
                 *Definition->ItemDefinitionId.ToString (),
                 GetEquipmentSlotName (Slot),
                 *GetEquipmentStatBonusText (Definition->EquipmentStatBonus));
+        });
+}
+
+void UGridPartyInventoryComponent::LogSelectedCharacterResistanceDiagnostics () const
+{
+    const int32 CharacterIndex = PartyInventoryState.SelectedCharacterIndex;
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        !PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("GridDamageResistance Diagnostics Character=%d Result=false Reason=InvalidCharacterOrEquipment"),
+            CharacterIndex);
+        return;
+    }
+
+    const FGridDamageResistanceSet TotalResistances =
+        ComputeCharacterEquipmentResistances (CharacterIndex);
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridDamageResistance Diagnostics Character=%d Total=%s"),
+        CharacterIndex,
+        *GetDamageResistanceSetText (TotalResistances));
+
+    ForEachEquipmentItem (
+        PartyInventoryState.ActiveEquipment[CharacterIndex],
+        [this] (EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+        {
+            if (!Item.IsValid ())
+            {
+                return;
+            }
+
+            const UGridItemDefinitionAsset* Definition = FindItemDefinition (Item.ItemDefinitionId);
+            if (!Definition)
+            {
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridDamageResistance Item=%s Slot=%s Warning=MissingDefinition"),
+                    *Item.ItemDefinitionId.ToString (),
+                    GetEquipmentSlotName (Slot));
+                return;
+            }
+
+            if (Definition->EquipmentResistanceBonus.IsEmpty ())
+            {
+                return;
+            }
+
+            UE_LOG (LogTemp, Log,
+                TEXT ("GridDamageResistance Item=%s Slot=%s Resistances=%s"),
+                *Definition->ItemDefinitionId.ToString (),
+                GetEquipmentSlotName (Slot),
+                *GetDamageResistanceSetText (Definition->EquipmentResistanceBonus));
         });
 }
 

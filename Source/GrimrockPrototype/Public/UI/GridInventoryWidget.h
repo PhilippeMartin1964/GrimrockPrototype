@@ -96,6 +96,27 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details")
     TObjectPtr<UTextBlock> Text_CharacterArmor;
 
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistanceFire;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistanceIce;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistanceLightning;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistancePoison;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistanceHoly;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistanceNecrotic;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Inventory|Character Details|Resistances")
+    TObjectPtr<UTextBlock> Text_ResistanceArcane;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory UI|Slots")
     TSubclassOf<UGridInventorySlotWidget> InventorySlotWidgetClass;
 
