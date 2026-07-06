@@ -199,6 +199,51 @@ namespace
         return Result;
     }
 
+    bool GridInventoryCompatibilityDiagnosticsIsHandSlot (EGridEquipmentSlot Slot)
+    {
+        return Slot == EGridEquipmentSlot::MainHand ||
+            Slot == EGridEquipmentSlot::OffHand;
+    }
+
+    bool GridInventoryCompatibilityDiagnosticsIsExcludedPaperDollSlot (EGridEquipmentSlot Slot)
+    {
+        return Slot == EGridEquipmentSlot::Talisman ||
+            Slot == EGridEquipmentSlot::QuickSlot1 ||
+            Slot == EGridEquipmentSlot::QuickSlot2;
+    }
+
+    bool GridInventoryCompatibilityDiagnosticsIsNewPaperDollSlot (EGridEquipmentSlot Slot)
+    {
+        return Slot == EGridEquipmentSlot::Face ||
+            Slot == EGridEquipmentSlot::Shirt ||
+            Slot == EGridEquipmentSlot::Bracers ||
+            Slot == EGridEquipmentSlot::Earring1 ||
+            Slot == EGridEquipmentSlot::Earring2;
+    }
+
+    bool GridInventoryCompatibilityDiagnosticsLooksPotentiallyEquippable (
+        const UGridItemDefinitionAsset* Definition)
+    {
+        if (!Definition)
+        {
+            return false;
+        }
+
+        switch (Definition->ItemType)
+        {
+        case EGridItemType::Torch:
+        case EGridItemType::Weapon:
+        case EGridItemType::Shield:
+        case EGridItemType::Armor:
+        case EGridItemType::Jewelry:
+            return true;
+        default:
+            break;
+        }
+
+        return !Definition->EquippedMesh.IsNull ();
+    }
+
     int32 FindFreeInventorySlotIndex (const FGridCharacterInventoryState& CharacterState)
     {
         for (int32 SlotIndex = 0; SlotIndex < CharacterState.InventorySlots.Num (); ++SlotIndex)
@@ -1820,6 +1865,100 @@ FString UGridPartyInventoryComponent::GetItemDefinitionDiagnostics () const
 void UGridPartyInventoryComponent::LogItemDefinitionDiagnostics () const
 {
     UE_LOG (LogTemp, Log, TEXT ("%s"), *GetItemDefinitionDiagnostics ());
+}
+
+void UGridPartyInventoryComponent::LogEquipmentCompatibilityDiagnostics () const
+{
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridEquipmentCompatibility Diagnostics RuntimeDefinitions=%d"),
+        RuntimeItemDefinitionsById.Num ());
+
+    TArray<FName> DefinitionIds;
+    RuntimeItemDefinitionsById.GetKeys (DefinitionIds);
+    DefinitionIds.Sort (FNameLexicalLess ());
+
+    int32 PotentiallyEquippableWithoutSlotsCount = 0;
+    int32 LightWithoutHandSlotCount = 0;
+    int32 ExcludedPaperDollSlotCount = 0;
+    int32 NewPaperDollSlotUsageCount = 0;
+
+    for (const FName DefinitionId : DefinitionIds)
+    {
+        const TObjectPtr<UGridItemDefinitionAsset>* DefinitionEntry =
+            RuntimeItemDefinitionsById.Find (DefinitionId);
+        const UGridItemDefinitionAsset* Definition =
+            DefinitionEntry ? DefinitionEntry->Get () : nullptr;
+        if (!Definition)
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridEquipmentCompatibility Item=%s Warning=NullDefinition"),
+                *DefinitionId.ToString ());
+            continue;
+        }
+
+        const FString SlotsText = GetEquipmentSlotsText (Definition->CompatibleEquipmentSlots);
+        if (Definition->CompatibleEquipmentSlots.Num () == 0 &&
+            GridInventoryCompatibilityDiagnosticsLooksPotentiallyEquippable (Definition))
+        {
+            ++PotentiallyEquippableWithoutSlotsCount;
+            UE_LOG (LogTemp, Warning,
+                TEXT ("GridEquipmentCompatibility Item=%s Warning=PotentiallyEquippableWithoutSlots Type=%s Slots=%s"),
+                *Definition->ItemDefinitionId.ToString (),
+                GetItemTypeName (Definition->ItemType),
+                *SlotsText);
+        }
+
+        if (Definition->bCanEmitLight)
+        {
+            bool bHasHandSlot = false;
+            for (const EGridEquipmentSlot Slot : Definition->CompatibleEquipmentSlots)
+            {
+                if (GridInventoryCompatibilityDiagnosticsIsHandSlot (Slot))
+                {
+                    bHasHandSlot = true;
+                    break;
+                }
+            }
+
+            if (!bHasHandSlot)
+            {
+                ++LightWithoutHandSlotCount;
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridEquipmentCompatibility Item=%s Warning=LightWithoutMainHandOrOffHand Slots=%s"),
+                    *Definition->ItemDefinitionId.ToString (),
+                    *SlotsText);
+            }
+        }
+
+        for (const EGridEquipmentSlot Slot : Definition->CompatibleEquipmentSlots)
+        {
+            if (GridInventoryCompatibilityDiagnosticsIsExcludedPaperDollSlot (Slot))
+            {
+                ++ExcludedPaperDollSlotCount;
+                UE_LOG (LogTemp, Warning,
+                    TEXT ("GridEquipmentCompatibility Item=%s Warning=PaperDollExcludedSlot Slot=%s Slots=%s"),
+                    *Definition->ItemDefinitionId.ToString (),
+                    GetEquipmentSlotName (Slot),
+                    *SlotsText);
+            }
+            else if (GridInventoryCompatibilityDiagnosticsIsNewPaperDollSlot (Slot))
+            {
+                ++NewPaperDollSlotUsageCount;
+                UE_LOG (LogTemp, Log,
+                    TEXT ("GridEquipmentCompatibility Item=%s UsesNewPaperDollSlot=%s Slots=%s"),
+                    *Definition->ItemDefinitionId.ToString (),
+                    GetEquipmentSlotName (Slot),
+                    *SlotsText);
+            }
+        }
+    }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("GridEquipmentCompatibility Summary PotentiallyEquippableWithoutSlots=%d LightWithoutHandSlot=%d ExcludedPaperDollSlots=%d NewPaperDollSlotUses=%d"),
+        PotentiallyEquippableWithoutSlotsCount,
+        LightWithoutHandSlotCount,
+        ExcludedPaperDollSlotCount,
+        NewPaperDollSlotUsageCount);
 }
 
 void UGridPartyInventoryComponent::LogInventoryOwnershipDiagnostics () const

@@ -216,6 +216,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     void LogItemDefinitionDiagnostics () const;
 
+    UFUNCTION (BlueprintCallable, CallInEditor, Category = "Inventory|Diagnostics")
+    void LogEquipmentCompatibilityDiagnostics () const;
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Diagnostics")
     void LogInventoryOwnershipDiagnostics () const;
 
