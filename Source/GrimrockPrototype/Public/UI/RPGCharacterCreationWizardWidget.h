@@ -42,9 +42,6 @@ public:
     ERPGCharacterCreationWizardStep CurrentWizardStep = ERPGCharacterCreationWizardStep::Race;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Wizard")
-    bool bAllowCancel = true;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Wizard")
     bool bFocusNameInputOnIdentityStep = true;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Attributes", meta = (ClampMin = "1"))
