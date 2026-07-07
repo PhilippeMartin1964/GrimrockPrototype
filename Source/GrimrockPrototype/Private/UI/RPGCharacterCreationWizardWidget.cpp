@@ -182,6 +182,96 @@ namespace
             Image->SetVisibility (ESlateVisibility::Collapsed);
         }
     }
+
+    FString BuildWizardValidationMessage (const URPGCharacterCreationWizardWidget* Widget, bool& bOutIsError)
+    {
+        bOutIsError = false;
+
+        if (!Widget)
+        {
+            return FString ();
+        }
+
+        if (!Widget->InventoryComponent)
+        {
+            bOutIsError = true;
+            return FString (TEXT ("Composant d'inventaire indisponible."));
+        }
+
+        if (!Widget->RaceDefinition || !Widget->RaceDefinition->IsValidDefinition ())
+        {
+            bOutIsError = true;
+            return FString (TEXT ("Race non configurée : renseignez une race valide dans le widget."));
+        }
+
+        if (!Widget->ClassDefinition || !Widget->ClassDefinition->IsValidDefinition ())
+        {
+            bOutIsError = true;
+            return FString (TEXT ("Classe non configurée : renseignez une classe valide dans le widget."));
+        }
+
+        const int32 RemainingAttributePoints = Widget->GetRemainingAttributePoints ();
+        const FString NormalizedName = NormalizeCharacterName (Widget->EditableText_Name);
+
+        if (RemainingAttributePoints > 0 &&
+            (Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Attributes ||
+                Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Identity ||
+                Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Summary))
+        {
+            return FString::Printf (TEXT ("Il reste %d point(s) de caractéristiques à répartir."), RemainingAttributePoints);
+        }
+
+        if (NormalizedName.Len () < 1 &&
+            (Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Identity ||
+                Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Summary))
+        {
+            return FString (TEXT ("Saisissez un nom pour pouvoir créer le personnage."));
+        }
+
+        if (NormalizedName.Len () > 24)
+        {
+            bOutIsError = true;
+            return FString (TEXT ("Le nom du personnage dépasse 24 caractères."));
+        }
+
+        switch (Widget->CurrentWizardStep)
+        {
+        case ERPGCharacterCreationWizardStep::Race:
+            return FString (TEXT ("Choisissez la race du personnage, puis passez à la classe."));
+        case ERPGCharacterCreationWizardStep::Class:
+            return FString (TEXT ("Choisissez la classe du personnage, puis passez aux caractéristiques."));
+        case ERPGCharacterCreationWizardStep::Attributes:
+            return FString (TEXT ("Caractéristiques validées. Vous pouvez passer à l'identité."));
+        case ERPGCharacterCreationWizardStep::Identity:
+            return FString (TEXT ("Identité validée. Vous pouvez consulter le résumé."));
+        case ERPGCharacterCreationWizardStep::Summary:
+            if (Widget->CanSubmitCharacterCreation ())
+            {
+                return FString (TEXT ("Tous les choix sont valides. Vous pouvez créer le personnage."));
+            }
+
+            bOutIsError = true;
+            return FString (TEXT ("Création impossible : vérifiez les choix précédents."));
+        default:
+            return FString ();
+        }
+    }
+
+    void RefreshWizardValidationMessage (URPGCharacterCreationWizardWidget* Widget)
+    {
+        if (!Widget || !Widget->Text_ValidationMessage)
+        {
+            return;
+        }
+
+        bool bIsError = false;
+        const FString Message = BuildWizardValidationMessage (Widget, bIsError);
+        Widget->Text_ValidationMessage->SetText (FText::FromString (Message));
+        Widget->Text_ValidationMessage->SetColorAndOpacity (
+            bIsError ? FSlateColor (FLinearColor (0.85f, 0.12f, 0.08f)) : FSlateColor (FLinearColor (0.80f, 0.72f, 0.55f)));
+        Widget->Text_ValidationMessage->SetVisibility (
+            Message.IsEmpty () ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+    }
 }
 
 void URPGCharacterCreationWizardWidget::NativeConstruct ()
@@ -343,6 +433,7 @@ void URPGCharacterCreationWizardWidget::RefreshWizardShell ()
         Button_Cancel->SetVisibility (GetVisibleWhen (bAllowCancel));
         Button_Cancel->SetIsEnabled (bAllowCancel);
     }
+    RefreshWizardValidationMessage (this);
     RefreshSummaryStep ();
     UE_LOG (LogTemp, Verbose, TEXT ("CharacterCreationWizard Refreshed Widget=%s Step=%d StepName=%s"), *GetName (), GetCurrentWizardStepIndex (), *GetCurrentWizardStepTitle ().ToString ());
 }
@@ -604,7 +695,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
         SetValidationMessage (Error.IsEmpty () ? FText::FromString (TEXT ("Création du personnage impossible.")) : Error, true);
-        RefreshPreview ();
+        RefreshSummaryStep ();
         return false;
     }
 
