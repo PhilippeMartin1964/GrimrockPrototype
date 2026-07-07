@@ -175,7 +175,12 @@ void UGrimrockStartupModeComponent::ShowBuildProgress(const FText& Title, const 
     if (!PlayerController) return;
     if (World) World->GetTimerManager().ClearTimer(HideBuildProgressTimerHandle);
 
-    const TSubclassOf<UGridDungeonBuildProgressWidget> WidgetClass = BuildProgressWidgetClass ? BuildProgressWidgetClass : UGridDungeonBuildProgressWidget::StaticClass();
+    TSubclassOf<UGridDungeonBuildProgressWidget> WidgetClass = BuildProgressWidgetClass;
+    if (!WidgetClass)
+    {
+        WidgetClass = UGridDungeonBuildProgressWidget::StaticClass();
+    }
+
     if (!BuildProgressWidgetInstance)
     {
         BuildProgressWidgetInstance = CreateWidget<UGridDungeonBuildProgressWidget>(PlayerController, WidgetClass);
