@@ -52,6 +52,27 @@ void UGrimrockGameInstance::ClearPendingStartupMode()
     UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingStartupMode Cleared"));
 }
 
+void UGrimrockGameInstance::RequestReturnToMainMenu(const UObject* WorldContextObject)
+{
+    PendingStartupMode = EGrimrockPartyStartupMode::Continue;
+    ResetPendingLoadSlot();
+
+    if (MainMenuLevelName.IsNone())
+    {
+        UE_LOG(LogTemp, Error, TEXT("GrimrockGameInstance ReturnToMainMenu Failed Reason=NoMainMenuLevelName"));
+        return;
+    }
+
+    const UObject* EffectiveWorldContext = WorldContextObject ? WorldContextObject : this;
+    UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance ReturnToMainMenu Level=%s"), *MainMenuLevelName.ToString());
+    UGameplayStatics::OpenLevel(EffectiveWorldContext, MainMenuLevelName, true);
+}
+
+FName UGrimrockGameInstance::GetMainMenuLevelName() const
+{
+    return MainMenuLevelName;
+}
+
 bool UGrimrockGameInstance::HasDefaultPartySaveGame() const
 {
     return HasPartySaveGame(DefaultPartySaveSlotName, DefaultPartySaveUserIndex);

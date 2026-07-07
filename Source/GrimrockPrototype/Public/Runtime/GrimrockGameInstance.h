@@ -53,6 +53,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup")
     void ClearPendingStartupMode();
 
+    UFUNCTION(BlueprintCallable, Category = "Main Menu|Startup", meta = (WorldContext = "WorldContextObject"))
+    void RequestReturnToMainMenu(const UObject* WorldContextObject);
+
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Startup")
+    FName GetMainMenuLevelName() const;
+
     UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
     bool HasDefaultPartySaveGame() const;
 
@@ -96,6 +102,9 @@ private:
 private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
     EGrimrockPartyStartupMode PendingStartupMode = EGrimrockPartyStartupMode::Continue;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Startup", meta = (AllowPrivateAccess = "true"))
+    FName MainMenuLevelName = TEXT("/Game/GrimrockPrototype/Maps/L_MainMenu");
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Main Menu|Save", meta = (AllowPrivateAccess = "true"))
     FString DefaultPartySaveSlotName = TEXT("GrimrockParty");

@@ -7,13 +7,14 @@
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
 #include "Components/WidgetSwitcher.h"
-#include "Kismet/GameplayStatics.h"
+#include "Engine/World.h"
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/RPGCharacterCreationAttributesStepWidget.h"
 
@@ -26,7 +27,6 @@ namespace
     const FName AttributeIntelligence (TEXT ("Intelligence"));
     const FName AttributeWisdom (TEXT ("Wisdom"));
     const FName AttributeCharisma (TEXT ("Charisma"));
-    const FName MainMenuLevelName (TEXT ("/Game/GrimrockPrototype/Maps/L_MainMenu"));
 
     int32 GetWizardStepIndex (ERPGCharacterCreationWizardStep Step)
     {
@@ -356,9 +356,20 @@ bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep ()
 
 void URPGCharacterCreationWizardWidget::CancelWizard ()
 {
-    UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s ReturningToMainMenu=%s"), *GetName (), *MainMenuLevelName.ToString ());
+    UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s"), *GetName ());
     RemoveFromParent ();
-    UGameplayStatics::OpenLevel (this, MainMenuLevelName, true);
+
+    UGrimrockGameInstance* GrimrockGameInstance = GetWorld()
+        ? GetWorld()->GetGameInstance<UGrimrockGameInstance>()
+        : nullptr;
+
+    if (GrimrockGameInstance)
+    {
+        GrimrockGameInstance->RequestReturnToMainMenu(this);
+        return;
+    }
+
+    UE_LOG (LogTemp, Error, TEXT ("CharacterCreationWizard Cancel Failed Widget=%s Reason=NoGrimrockGameInstance"), *GetName ());
 }
 
 bool URPGCharacterCreationWizardWidget::CanGoToNextWizardStep () const { return GetCurrentWizardStepIndex () < CharacterCreationWizardStepCount - 1; }
