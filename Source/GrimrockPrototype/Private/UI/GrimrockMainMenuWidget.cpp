@@ -10,20 +10,14 @@ void UGrimrockMainMenuWidget::NativeConstruct()
     Super::NativeConstruct();
 
     BindMainMenuButtons();
-
-    if (const UGrimrockGameInstance* GrimrockGameInstance = GetWorld()
-        ? GetWorld()->GetGameInstance<UGrimrockGameInstance>()
-        : nullptr)
-    {
-        bHasValidSaveGame = GrimrockGameInstance->HasDefaultPartySaveGame();
-    }
-
+    RefreshSaveAvailabilityFromGameInstance();
     RefreshButtonStates();
 }
 
 void UGrimrockMainMenuWidget::SetHasValidSaveGame(bool bInHasValidSaveGame)
 {
     bHasValidSaveGame = bInHasValidSaveGame;
+    bHasLoadableSaveSlot = bInHasValidSaveGame;
     RefreshButtonStates();
 }
 
@@ -41,7 +35,7 @@ void UGrimrockMainMenuWidget::RefreshButtonStates()
 
     if (Button_LoadGame)
     {
-        Button_LoadGame->SetIsEnabled(bHasValidSaveGame);
+        Button_LoadGame->SetIsEnabled(bHasLoadableSaveSlot);
     }
 }
 
@@ -117,6 +111,23 @@ void UGrimrockMainMenuWidget::BindMainMenuButtons()
     }
 }
 
+void UGrimrockMainMenuWidget::RefreshSaveAvailabilityFromGameInstance()
+{
+    const UGrimrockGameInstance* GrimrockGameInstance = GetWorld()
+        ? GetWorld()->GetGameInstance<UGrimrockGameInstance>()
+        : nullptr;
+
+    if (!GrimrockGameInstance)
+    {
+        bHasValidSaveGame = false;
+        bHasLoadableSaveSlot = false;
+        return;
+    }
+
+    bHasValidSaveGame = GrimrockGameInstance->HasDefaultPartySaveGame();
+    bHasLoadableSaveSlot = GrimrockGameInstance->GetExistingPartySaveSlotInfos().Num() > 0;
+}
+
 bool UGrimrockMainMenuWidget::OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetClass, const TCHAR* MissingClassReason)
 {
     if (!WidgetClass)
@@ -168,7 +179,7 @@ void UGrimrockMainMenuWidget::HandleNewGameClicked()
 
 void UGrimrockMainMenuWidget::HandleLoadGameClicked()
 {
-    if (!bHasValidSaveGame)
+    if (!bHasLoadableSaveSlot)
     {
         return;
     }

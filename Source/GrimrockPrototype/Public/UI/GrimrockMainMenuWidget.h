@@ -66,6 +66,7 @@ protected:
 
 private:
     void BindMainMenuButtons();
+    void RefreshSaveAvailabilityFromGameInstance();
     bool OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetClass, const TCHAR* MissingClassReason);
 
     UFUNCTION()
@@ -91,6 +92,9 @@ private:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu", meta = (AllowPrivateAccess = "true"))
     bool bHasValidSaveGame = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu", meta = (AllowPrivateAccess = "true"))
+    bool bHasLoadableSaveSlot = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Main Menu|Modal", meta = (AllowPrivateAccess = "true"))
     TSubclassOf<UUserWidget> OptionsMenuWidgetClass;
