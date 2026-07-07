@@ -354,11 +354,6 @@ bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep ()
 
 void URPGCharacterCreationWizardWidget::CancelWizard ()
 {
-    if (!bAllowCancel)
-    {
-        UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancel Ignored Widget=%s Reason=CancelDisabled"), *GetName ());
-        return;
-    }
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s"), *GetName ());
     RemoveFromParent ();
 }
@@ -430,8 +425,8 @@ void URPGCharacterCreationWizardWidget::RefreshWizardShell ()
     }
     if (Button_Cancel)
     {
-        Button_Cancel->SetVisibility (GetVisibleWhen (bAllowCancel));
-        Button_Cancel->SetIsEnabled (bAllowCancel);
+        Button_Cancel->SetVisibility (ESlateVisibility::Visible);
+        Button_Cancel->SetIsEnabled (true);
     }
     RefreshWizardValidationMessage (this);
     RefreshSummaryStep ();
