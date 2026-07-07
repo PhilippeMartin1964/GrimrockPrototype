@@ -2,19 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "TimerManager.h"
 #include "GrimrockStartupModeComponent.generated.h"
 
 class AGridLevelRuntimeActor;
 class AGrimrockPartyPawn;
+class UGridDungeonBuildProgressWidget;
 
-/**
- * Applies the pending startup mode stored in UGrimrockGameInstance to the owning party pawn.
- *
- * Add this component to BP_GrimrockPartyPawn. Actor components begin play during
- * AActor::BeginPlay(), which is called from AGrimrockPartyPawn::Super::BeginPlay().
- * This lets the component set PartyStartupMode before the pawn executes its runtime
- * load/new-game logic.
- */
 UCLASS(ClassGroup = (Grimrock), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGrimrockStartupModeComponent : public UActorComponent
 {
@@ -30,8 +24,23 @@ protected:
 private:
     void DeferNewGameRuntimeActivation(AGrimrockPartyPawn* PartyPawn);
     void TryActivateDeferredNewGameRuntime();
+    void TryCompleteLoadedGameProgress();
+    void SetWaitingTickEnabled();
+    void ShowBuildProgress(const FText& Title, const FText& StatusText, float Progress);
+    void UpdateBuildProgress(const FText& StatusText, float Progress);
+    void CompleteBuildProgress(const FText& StatusText);
+    void HideBuildProgress();
 
 private:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime|Build Progress", meta = (AllowPrivateAccess = "true"))
+    TSubclassOf<UGridDungeonBuildProgressWidget> BuildProgressWidgetClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime|Build Progress", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+    float BuildProgressMinimumVisibleSeconds = 0.35f;
+
+    UPROPERTY(Transient)
+    TObjectPtr<UGridDungeonBuildProgressWidget> BuildProgressWidgetInstance;
+
     UPROPERTY(Transient)
     TObjectPtr<AGrimrockPartyPawn> CachedPartyPawn;
 
@@ -40,4 +49,9 @@ private:
 
     UPROPERTY(Transient)
     bool bWaitingForInitialCharacterCreation = false;
+
+    UPROPERTY(Transient)
+    bool bWaitingForLoadedGameRuntime = false;
+
+    FTimerHandle HideBuildProgressTimerHandle;
 };
