@@ -3,12 +3,21 @@
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Runtime/GrimrockGameInstance.h"
 
 void UGrimrockMainMenuWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
     BindMainMenuButtons();
+
+    if (const UGrimrockGameInstance* GrimrockGameInstance = GetWorld()
+        ? GetWorld()->GetGameInstance<UGrimrockGameInstance>()
+        : nullptr)
+    {
+        bHasValidSaveGame = GrimrockGameInstance->HasDefaultPartySaveGame();
+    }
+
     RefreshButtonStates();
 }
 

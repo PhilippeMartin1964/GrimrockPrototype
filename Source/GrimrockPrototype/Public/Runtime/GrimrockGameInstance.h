@@ -20,6 +20,9 @@ struct GRIMROCKPROTOTYPE_API FGrimrockSaveSlotInfo
     bool bExists = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Save")
+    bool bIsLoadable = false;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Save")
     bool bIsDefaultSlot = false;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Main Menu|Save")
@@ -64,6 +67,12 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
     bool HasPartySaveGame(const FString& SlotName, int32 UserIndex) const;
+
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
+    bool DoesDefaultPartySaveGameExist() const;
+
+    UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
+    bool DoesPartySaveGameExist(const FString& SlotName, int32 UserIndex) const;
 
     UFUNCTION(BlueprintPure, Category = "Main Menu|Save")
     FString GetDefaultPartySaveSlotName() const;
