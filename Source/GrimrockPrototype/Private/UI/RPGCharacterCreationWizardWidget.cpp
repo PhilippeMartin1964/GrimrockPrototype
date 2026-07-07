@@ -7,6 +7,7 @@
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
 #include "Components/WidgetSwitcher.h"
+#include "Kismet/GameplayStatics.h"
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
@@ -25,6 +26,7 @@ namespace
     const FName AttributeIntelligence (TEXT ("Intelligence"));
     const FName AttributeWisdom (TEXT ("Wisdom"));
     const FName AttributeCharisma (TEXT ("Charisma"));
+    const FName MainMenuLevelName (TEXT ("/Game/GrimrockPrototype/Maps/L_MainMenu"));
 
     int32 GetWizardStepIndex (ERPGCharacterCreationWizardStep Step)
     {
@@ -354,8 +356,9 @@ bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep ()
 
 void URPGCharacterCreationWizardWidget::CancelWizard ()
 {
-    UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s"), *GetName ());
+    UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s ReturningToMainMenu=%s"), *GetName (), *MainMenuLevelName.ToString ());
     RemoveFromParent ();
+    UGameplayStatics::OpenLevel (this, MainMenuLevelName, true);
 }
 
 bool URPGCharacterCreationWizardWidget::CanGoToNextWizardStep () const { return GetCurrentWizardStepIndex () < CharacterCreationWizardStepCount - 1; }
