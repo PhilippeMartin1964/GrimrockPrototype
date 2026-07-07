@@ -4,6 +4,9 @@
 #include "Components/ActorComponent.h"
 #include "GrimrockStartupModeComponent.generated.h"
 
+class AGridLevelRuntimeActor;
+class AGrimrockPartyPawn;
+
 /**
  * Applies the pending startup mode stored in UGrimrockGameInstance to the owning party pawn.
  *
@@ -22,4 +25,19 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+    virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+private:
+    void DeferNewGameRuntimeActivation(AGrimrockPartyPawn* PartyPawn);
+    void TryActivateDeferredNewGameRuntime();
+
+private:
+    UPROPERTY(Transient)
+    TObjectPtr<AGrimrockPartyPawn> CachedPartyPawn;
+
+    UPROPERTY(Transient)
+    TObjectPtr<AGridLevelRuntimeActor> DeferredRuntimeActor;
+
+    UPROPERTY(Transient)
+    bool bWaitingForInitialCharacterCreation = false;
 };
