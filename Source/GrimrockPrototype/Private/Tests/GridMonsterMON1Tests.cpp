@@ -88,7 +88,8 @@ bool FGridMonsterDefinitionMON1ValidationTest::RunTest (const FString& Parameter
 
     FGridMonsterAttackDefinition Bite;
     TestTrue (TEXT ("The bite attack can be resolved"), Rat->GetAttackDefinition (TEXT ("Attack_Bite"), Bite));
-    TestEqual (TEXT ("The bite uses piercing damage"), Bite.PhysicalSubtype, EGridPhysicalDamageSubtype::Piercing);
+    TestTrue (TEXT ("The bite uses piercing damage"),
+        Bite.PhysicalSubtype == EGridPhysicalDamageSubtype::Piercing);
     TestEqual (TEXT ("The bite costs one action point"), Bite.ActionPointCost, 1);
 
     TestTrue (TEXT ("Fire vulnerability is 1.50"),
@@ -118,6 +119,12 @@ bool FGridMonsterDefinitionMON1InvalidDataTest::RunTest (const FString& Paramete
     FString Error;
     TestFalse (TEXT ("Duplicate attack ids invalidate the definition"), Rat->ValidateDefinition (Error));
     TestTrue (TEXT ("The duplicate attack id is reported"), Error.Contains (TEXT ("Duplicate AttackId")));
+
+    Rat = CreateGiantRatDefinition ();
+    Rat->Attacks[0].ActionPointCost = 0;
+    Error.Reset ();
+    TestFalse (TEXT ("A free attack invalidates the definition"), Rat->ValidateDefinition (Error));
+    TestTrue (TEXT ("The invalid attack is reported"), Error.Contains (TEXT ("Attack at index 0")));
 
     Rat = CreateGiantRatDefinition ();
     Rat->LootTable[0].DropChance = 0.90f;
