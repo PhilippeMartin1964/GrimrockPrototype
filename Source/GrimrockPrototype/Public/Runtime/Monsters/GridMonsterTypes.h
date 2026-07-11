@@ -61,7 +61,7 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
     int32 RangeCells = 1;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "0"))
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
     int32 ActionPointCost = 1;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation")
@@ -85,7 +85,7 @@ struct FGridMonsterAttackDefinition
             MinDamage >= 0 &&
             MaxDamage >= MinDamage &&
             RangeCells > 0 &&
-            ActionPointCost >= 0 &&
+            ActionPointCost > 0 &&
             (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
     }
 };
