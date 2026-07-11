@@ -104,7 +104,7 @@ void UGrimrockMenuWidget::BindTopTabButtons ()
     {
         SelectedTopTabTexture = LoadObject<UTexture2D> (
             nullptr,
-            TEXT ("/Game/GrimrockPrototype/Blueprints/UI/TopTabs/TopTabs/"
+            TEXT ("/Game/GrimrockPrototype/Blueprints/UI/Buttons/TopTabs/"
                   "T_ButtonTab_Selected_480x100.T_ButtonTab_Selected_480x100"));
     }
 
