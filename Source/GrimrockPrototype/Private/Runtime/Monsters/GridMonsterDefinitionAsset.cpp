@@ -66,8 +66,12 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         Errors.Add (TEXT ("Movement durations must be finite and non-negative."));
     }
 
-    if (VisualScale.X <= 0.0f || VisualScale.Y <= 0.0f || VisualScale.Z <= 0.0f ||
-        !VisualScale.IsFinite ())
+    if (!FMath::IsFinite (VisualScale.X) ||
+        !FMath::IsFinite (VisualScale.Y) ||
+        !FMath::IsFinite (VisualScale.Z) ||
+        VisualScale.X <= 0.0f ||
+        VisualScale.Y <= 0.0f ||
+        VisualScale.Z <= 0.0f)
     {
         Errors.Add (TEXT ("VisualScale components must be finite and greater than zero."));
     }
