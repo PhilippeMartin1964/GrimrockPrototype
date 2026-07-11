@@ -1,0 +1,413 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Animation/AnimInstance.h"
+#include "Components/BoxComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/Actor.h"
+#include "Core/GridDirectionUtils.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "GridMonsterActor.generated.h"
+
+class UGridMonsterAnimInstance;
+
+/**
+ * Runtime visual representation of a grid monster.
+ *
+ * MON2 deliberately keeps the grid position authoritative and does not move the
+ * actor every frame. MON3 will add cell reservations and visual interpolation.
+ */
+UCLASS (BlueprintType, Blueprintable)
+class GRIMROCKPROTOTYPE_API AGridMonsterActor : public AActor
+{
+    GENERATED_BODY ()
+
+public:
+    AGridMonsterActor ()
+    {
+        PrimaryActorTick.bCanEverTick = false;
+        PrimaryActorTick.bStartWithTickEnabled = false;
+
+        SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("SceneRoot"));
+        SetRootComponent (SceneRoot);
+
+        CollisionComponent = CreateDefaultSubobject<UBoxComponent> (TEXT ("CollisionComponent"));
+        CollisionComponent->SetupAttachment (SceneRoot);
+        CollisionComponent->InitBoxExtent (FVector (45.0f, 45.0f, 45.0f));
+        CollisionComponent->SetRelativeLocation (FVector (0.0f, 0.0f, 45.0f));
+        CollisionComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+        CollisionComponent->SetCollisionObjectType (ECC_WorldDynamic);
+        CollisionComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
+        CollisionComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
+        CollisionComponent->SetGenerateOverlapEvents (false);
+
+        SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent> (TEXT ("SkeletalMeshComponent"));
+        SkeletalMeshComponent->SetupAttachment (SceneRoot);
+        SkeletalMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+        SkeletalMeshComponent->SetGenerateOverlapEvents (false);
+        SkeletalMeshComponent->SetAnimationMode (EAnimationMode::AnimationBlueprint);
+        SkeletalMeshComponent->VisibilityBasedAnimTickOption =
+            EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
+
+        SetCanBeDamaged (false);
+    }
+
+    virtual void OnConstruction (const FTransform& Transform) override
+    {
+        Super::OnConstruction (Transform);
+        ApplyDefinitionVisuals ();
+        ApplyFacingRotation ();
+    }
+
+    virtual void BeginPlay () override
+    {
+        Super::BeginPlay ();
+
+        if (MonsterDefinition && MonsterState != EGridMonsterState::Dead && CurrentHealth <= 0)
+        {
+            CurrentHealth = MonsterDefinition->MaxHealth;
+        }
+
+        ApplyDefinitionVisuals ();
+        ApplyFacingRotation ();
+    }
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<USceneComponent> SceneRoot;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<UBoxComponent> CollisionComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Definition")
+    TObjectPtr<UGridMonsterDefinitionAsset> MonsterDefinition = nullptr;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Identity")
+    FGuid SpawnObjectId;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Grid")
+    FIntPoint CurrentCell = FIntPoint::ZeroValue;
+
+    UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Grid")
+    EGridEdge Facing = EGridEdge::North;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
+    EGridMonsterState MonsterState = EGridMonsterState::Idle;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
+    int32 CurrentHealth = 0;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Animation")
+    bool bIsMoving = false;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Animation")
+    bool bIsTurning = false;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Animation", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float MoveAlpha = 0.0f;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Animation", meta = (ClampMin = "-1", ClampMax = "1"))
+    int32 TurnDirection = 0;
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Initialization")
+    bool InitializeMonster (
+        UGridMonsterDefinitionAsset* InDefinition,
+        FGuid InSpawnObjectId,
+        FIntPoint InCell,
+        EGridEdge InFacing = EGridEdge::North)
+    {
+        if (!IsValid (InDefinition) || !InDefinition->IsValidDefinition ())
+        {
+            return false;
+        }
+
+        MonsterDefinition = InDefinition;
+        SpawnObjectId = InSpawnObjectId.IsValid () ? InSpawnObjectId : FGuid::NewGuid ();
+        CurrentCell = InCell;
+        Facing = InFacing == EGridEdge::None ? EGridEdge::North : InFacing;
+        MonsterState = EGridMonsterState::Idle;
+        CurrentHealth = MonsterDefinition->MaxHealth;
+        ResetAnimationSignals ();
+
+        ApplyFacingRotation ();
+        ApplyDefinitionVisuals ();
+        return true;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Visual")
+    bool ApplyDefinitionVisuals ()
+    {
+        if (!IsValid (MonsterDefinition) || !MonsterDefinition->IsValidDefinition () || !SkeletalMeshComponent)
+        {
+            return false;
+        }
+
+        USkeletalMesh* ResolvedMesh = MonsterDefinition->SkeletalMesh.LoadSynchronous ();
+        SkeletalMeshComponent->SetSkeletalMesh (ResolvedMesh);
+        SkeletalMeshComponent->SetRelativeLocation (MonsterDefinition->VisualOffset);
+        SkeletalMeshComponent->SetRelativeScale3D (MonsterDefinition->VisualScale);
+
+        if (MonsterDefinition->AnimationClass)
+        {
+            SkeletalMeshComponent->SetAnimationMode (EAnimationMode::AnimationBlueprint);
+            SkeletalMeshComponent->SetAnimInstanceClass (MonsterDefinition->AnimationClass.Get ());
+        }
+        else
+        {
+            SkeletalMeshComponent->SetAnimInstanceClass (nullptr);
+        }
+
+        return true;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Validation")
+    bool ValidatePresentationSetup (UPARAM (ref) FString& OutError) const
+    {
+        TArray<FString> Errors;
+
+        if (!IsValid (MonsterDefinition))
+        {
+            Errors.Add (TEXT ("MonsterDefinition is not assigned."));
+        }
+        else
+        {
+            FString DefinitionError;
+            if (!MonsterDefinition->ValidateDefinition (DefinitionError))
+            {
+                Errors.Add (FString::Printf (TEXT ("MonsterDefinition is invalid: %s"), *DefinitionError));
+            }
+
+            if (MonsterDefinition->SkeletalMesh.IsNull ())
+            {
+                Errors.Add (TEXT ("MonsterDefinition.SkeletalMesh is not assigned."));
+            }
+
+            if (!MonsterDefinition->AnimationClass)
+            {
+                Errors.Add (TEXT ("MonsterDefinition.AnimationClass is not assigned."));
+            }
+        }
+
+        if (!SkeletalMeshComponent)
+        {
+            Errors.Add (TEXT ("SkeletalMeshComponent is missing."));
+        }
+        else if (!SkeletalMeshComponent->GetSkeletalMeshAsset ())
+        {
+            Errors.Add (TEXT ("SkeletalMeshComponent has no resolved skeletal mesh."));
+        }
+
+        if (Facing == EGridEdge::None)
+        {
+            Errors.Add (TEXT ("Facing must be a cardinal grid direction."));
+        }
+
+        OutError = FString::Join (Errors, TEXT ("\n"));
+        return Errors.Num () == 0;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Grid")
+    void SetGridPose (FIntPoint InCell, EGridEdge InFacing)
+    {
+        CurrentCell = InCell;
+        Facing = InFacing == EGridEdge::None ? EGridEdge::North : InFacing;
+        ApplyFacingRotation ();
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Grid")
+    void ApplyFacingRotation ()
+    {
+        const EGridEdge SafeFacing = Facing == EGridEdge::None ? EGridEdge::North : Facing;
+        SetActorRotation (FRotator (0.0f, GridDirectionUtils::ToYaw (SafeFacing), 0.0f));
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|State")
+    void SetMonsterState (EGridMonsterState InState)
+    {
+        if (InState == EGridMonsterState::Dead)
+        {
+            MarkDead ();
+            return;
+        }
+
+        MonsterState = InState;
+        if (CollisionComponent)
+        {
+            CollisionComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
+        }
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|State")
+    void SetCurrentHealth (int32 InCurrentHealth)
+    {
+        const int32 MaxHealth = MonsterDefinition ? FMath::Max (1, MonsterDefinition->MaxHealth) : MAX_int32;
+        CurrentHealth = FMath::Clamp (InCurrentHealth, 0, MaxHealth);
+
+        if (CurrentHealth <= 0)
+        {
+            MarkDead ();
+        }
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|State")
+    void MarkDead ()
+    {
+        CurrentHealth = 0;
+        MonsterState = EGridMonsterState::Dead;
+        ResetAnimationSignals ();
+
+        if (CollisionComponent)
+        {
+            CollisionComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+        }
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
+    void SetMovementAnimationState (bool bInMoving, float InMoveAlpha = 0.0f)
+    {
+        bIsMoving = bInMoving && MonsterState != EGridMonsterState::Dead;
+        MoveAlpha = bIsMoving ? FMath::Clamp (InMoveAlpha, 0.0f, 1.0f) : 0.0f;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
+    void SetTurnAnimationState (int32 InTurnDirection)
+    {
+        TurnDirection = MonsterState == EGridMonsterState::Dead
+            ? 0
+            : FMath::Clamp (InTurnDirection, -1, 1);
+        bIsTurning = TurnDirection != 0;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
+    void ResetAnimationSignals ()
+    {
+        bIsMoving = false;
+        bIsTurning = false;
+        MoveAlpha = 0.0f;
+        TurnDirection = 0;
+    }
+
+    UFUNCTION (BlueprintPure, Category = "Monster|State")
+    bool IsDead () const
+    {
+        return MonsterState == EGridMonsterState::Dead || CurrentHealth <= 0;
+    }
+
+    UFUNCTION (BlueprintPure, Category = "Monster|State")
+    int32 GetMaxHealth () const
+    {
+        return MonsterDefinition ? MonsterDefinition->MaxHealth : 0;
+    }
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Animation")
+    UGridMonsterAnimInstance* GetGridMonsterAnimInstance () const;
+};
+
+/**
+ * Native bridge used as the parent class of every monster Animation Blueprint.
+ * It mirrors gameplay state from AGridMonsterActor without owning gameplay logic.
+ */
+UCLASS (Transient, BlueprintType, Blueprintable)
+class GRIMROCKPROTOTYPE_API UGridMonsterAnimInstance : public UAnimInstance
+{
+    GENERATED_BODY ()
+
+public:
+    virtual void NativeInitializeAnimation () override
+    {
+        Super::NativeInitializeAnimation ();
+        CachedMonsterActor = Cast<AGridMonsterActor> (GetOwningActor ());
+        SynchronizeFromMonster ();
+    }
+
+    virtual void NativeUpdateAnimation (float DeltaSeconds) override
+    {
+        Super::NativeUpdateAnimation (DeltaSeconds);
+
+        if (!IsValid (CachedMonsterActor))
+        {
+            CachedMonsterActor = Cast<AGridMonsterActor> (GetOwningActor ());
+        }
+
+        SynchronizeFromMonster ();
+    }
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    EGridMonsterState MonsterState = EGridMonsterState::Idle;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    bool bIsMoving = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    bool bIsTurning = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    bool bIsDead = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    float MoveAlpha = 0.0f;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    int32 TurnDirection = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    int32 CurrentHealth = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    int32 MaxHealth = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    FIntPoint CurrentCell = FIntPoint::ZeroValue;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Monster|Animation")
+    EGridEdge Facing = EGridEdge::North;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Animation")
+    AGridMonsterActor* GetMonsterActor () const
+    {
+        return CachedMonsterActor;
+    }
+
+private:
+    UPROPERTY (Transient)
+    TObjectPtr<AGridMonsterActor> CachedMonsterActor = nullptr;
+
+    void SynchronizeFromMonster ()
+    {
+        if (!IsValid (CachedMonsterActor))
+        {
+            MonsterState = EGridMonsterState::Idle;
+            bIsMoving = false;
+            bIsTurning = false;
+            bIsDead = false;
+            MoveAlpha = 0.0f;
+            TurnDirection = 0;
+            CurrentHealth = 0;
+            MaxHealth = 0;
+            CurrentCell = FIntPoint::ZeroValue;
+            Facing = EGridEdge::North;
+            return;
+        }
+
+        MonsterState = CachedMonsterActor->MonsterState;
+        bIsMoving = CachedMonsterActor->bIsMoving;
+        bIsTurning = CachedMonsterActor->bIsTurning;
+        bIsDead = CachedMonsterActor->IsDead ();
+        MoveAlpha = CachedMonsterActor->MoveAlpha;
+        TurnDirection = CachedMonsterActor->TurnDirection;
+        CurrentHealth = CachedMonsterActor->CurrentHealth;
+        MaxHealth = CachedMonsterActor->GetMaxHealth ();
+        CurrentCell = CachedMonsterActor->CurrentCell;
+        Facing = CachedMonsterActor->Facing;
+    }
+};
+
+inline UGridMonsterAnimInstance* AGridMonsterActor::GetGridMonsterAnimInstance () const
+{
+    return SkeletalMeshComponent
+        ? Cast<UGridMonsterAnimInstance> (SkeletalMeshComponent->GetAnimInstance ())
+        : nullptr;
+}
