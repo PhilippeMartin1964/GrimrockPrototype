@@ -114,7 +114,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST (
 bool FGridMonsterDefinitionMON1InvalidDataTest::RunTest (const FString& Parameters)
 {
     UGridMonsterDefinitionAsset* Rat = CreateGiantRatDefinition ();
-    Rat->Attacks.Add (Rat->Attacks[0]);
+    const FGridMonsterAttackDefinition DuplicateAttack = Rat->Attacks[0];
+    Rat->Attacks.Add (DuplicateAttack);
 
     FString Error;
     TestFalse (TEXT ("Duplicate attack ids invalidate the definition"), Rat->ValidateDefinition (Error));
