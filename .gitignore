@@ -8,6 +8,7 @@
 /Textures/
 /Content/Fab/
 /Content/F_FreeFlameFx_Pack/
+/Plugins/
 
 # --- Optional build artifacts ---
 Build/*
