@@ -8,7 +8,7 @@
 
 namespace
 {
-    FString GetActionTypeText (EGridCombatActionType Type)
+    FString GetTurnActionTypeText (EGridCombatActionType Type)
     {
         if (const UEnum* Enum = StaticEnum<EGridCombatActionType> ())
         {
@@ -39,7 +39,7 @@ void UGridTurnManagerComponent::ExecuteNextAction ()
         UE_LOG (LogTemp, Warning,
             TEXT ("[GridTurnManager] Invalid or unaffordable action skipped. Monster=%s Type=%s Cost=%d AP=%d"),
             *GetNameSafe (CurrentMonster),
-            *GetActionTypeText (NextAction.Type),
+            *GetTurnActionTypeText (NextAction.Type),
             NextAction.ActionPointCost,
             ActionPointBudget.GetRemainingPoints ());
         ExecuteNextAction ();
