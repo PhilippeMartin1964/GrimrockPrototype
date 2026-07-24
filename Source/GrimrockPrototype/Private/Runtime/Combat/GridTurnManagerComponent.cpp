@@ -4,9 +4,11 @@
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 
 namespace
@@ -34,6 +36,7 @@ UGridTurnManagerComponent::UGridTurnManagerComponent ()
 {
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.bStartWithTickEnabled = false;
+    CombatRandomStream.Initialize (EncounterRandomSeed);
 }
 
 void UGridTurnManagerComponent::BeginPlay ()
@@ -52,8 +55,13 @@ void UGridTurnManagerComponent::EndPlay (const EEndPlayReason::Type EndPlayReaso
     {
         CurrentMovementComponent->CancelCurrentAction ();
     }
+    if (CurrentCombatComponent)
+    {
+        CurrentCombatComponent->CancelAttackPresentation ();
+    }
 
     UnbindCurrentMovement ();
+    UnbindCurrentCombat ();
     SetPartyInputLocked (false);
     Super::EndPlay (EndPlayReason);
 }
@@ -78,6 +86,27 @@ void UGridTurnManagerComponent::TickComponent (
         }
     }
 
+    if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::MeleeAttack)
+    {
+        if (!bActiveAttackImpactCommitted && ActiveAttackImpactTimeRemaining > 0.0f)
+        {
+            ActiveAttackImpactTimeRemaining -= SafeDeltaTime;
+            if (ActiveAttackImpactTimeRemaining <= 0.0f)
+            {
+                NotifyActiveAttackImpact ();
+            }
+        }
+
+        if (bHasActiveAction && ActiveAttackCompleteTimeRemaining > 0.0f)
+        {
+            ActiveAttackCompleteTimeRemaining -= SafeDeltaTime;
+            if (ActiveAttackCompleteTimeRemaining <= 0.0f)
+            {
+                NotifyActiveAttackComplete ();
+            }
+        }
+    }
+
     if (bHasActiveAction && ActiveActionTimeoutRemaining > 0.0f)
     {
         ActiveActionTimeoutRemaining -= SafeDeltaTime;
@@ -90,11 +119,23 @@ void UGridTurnManagerComponent::TickComponent (
                 ActiveAction.TargetCell.X,
                 ActiveAction.TargetCell.Y);
 
-            if (CurrentMovementComponent && CurrentMovementComponent->IsBusy ())
+            if (ActiveAction.Type == EGridCombatActionType::MeleeAttack)
             {
-                CurrentMovementComponent->CancelCurrentAction ();
+                CommitActiveAttackImpact ();
+                if (CurrentCombatComponent)
+                {
+                    CurrentCombatComponent->CancelAttackPresentation ();
+                }
+                CompleteActiveAction (ActiveAction.bOutcomeCommitted);
             }
-            CompleteActiveAction (false);
+            else
+            {
+                if (CurrentMovementComponent && CurrentMovementComponent->IsBusy ())
+                {
+                    CurrentMovementComponent->CancelCurrentAction ();
+                }
+                CompleteActiveAction (false);
+            }
         }
     }
 
@@ -173,8 +214,13 @@ void UGridTurnManagerComponent::AbortCombat ()
     {
         CurrentMovementComponent->CancelCurrentAction ();
     }
+    if (CurrentCombatComponent)
+    {
+        CurrentCombatComponent->CancelAttackPresentation ();
+    }
 
     UnbindCurrentMovement ();
+    UnbindCurrentCombat ();
     bWaitingForCombatStart = false;
     CombatStartDelayRemaining = 0.0f;
     ActiveActionTimeoutRemaining = 0.0f;
@@ -188,6 +234,7 @@ void UGridTurnManagerComponent::AbortCombat ()
     CurrentMonsterMaximumActionPoints = 0;
     CurrentMonsterRemainingActionPoints = 0;
     ActionPointBudget.Reset (0);
+    ResetActiveAttackState ();
     bCombatActive = false;
 
     PhaseState.AbortCombat ();
@@ -210,7 +257,7 @@ void UGridTurnManagerComponent::ForceDefeat ()
 void UGridTurnManagerComponent::LogCurrentTurnState () const
 {
     UE_LOG (LogTemp, Log,
-        TEXT ("[GridTurnManager] Initialized=%s Active=%s Phase=%s Round=%d Monsters=%d EnemyIndex=%d Current=%s AP=%d/%d Pending=%d ActiveAction=%s Timeout=%.2f InputLocked=%s"),
+        TEXT ("[GridTurnManager] Initialized=%s Active=%s Phase=%s Round=%d Monsters=%d EnemyIndex=%d Current=%s AP=%d/%d Pending=%d ActiveAction=%s Timeout=%.2f InputLocked=%s Attack=%s Target=%d Impact=%s"),
         bInitialized ? TEXT ("true") : TEXT ("false"),
         bCombatActive ? TEXT ("true") : TEXT ("false"),
         *GetCombatPhaseText (CurrentPhase),
@@ -223,7 +270,40 @@ void UGridTurnManagerComponent::LogCurrentTurnState () const
         PendingActions.Num (),
         bHasActiveAction ? *GetActionTypeText (ActiveAction.Type) : TEXT ("None"),
         ActiveActionTimeoutRemaining,
-        bPartyInputLocked ? TEXT ("true") : TEXT ("false"));
+        bPartyInputLocked ? TEXT ("true") : TEXT ("false"),
+        *ActiveAttackDefinition.AttackId.ToString (),
+        LastTargetCharacterIndex,
+        bActiveAttackImpactCommitted ? TEXT ("true") : TEXT ("false"));
+}
+
+void UGridTurnManagerComponent::LogPartyCombatState () const
+{
+    if (!IsValid (PartyPawn) || !IsValid (PartyPawn->PartyInventoryComponent))
+    {
+        UE_LOG (LogTemp, Warning, TEXT ("[GridTurnManager] Party combat state unavailable."));
+        return;
+    }
+
+    const TArray<FGridCharacterInventoryState>& Characters =
+        PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+    UE_LOG (LogTemp, Log,
+        TEXT ("[GridTurnManager] PartyCombat Characters=%d Living=%s"),
+        Characters.Num (),
+        HasLivingPartyCharacter () ? TEXT ("true") : TEXT ("false"));
+
+    for (int32 Index = 0; Index < Characters.Num (); ++Index)
+    {
+        const FGridCharacterInventoryState& Character = Characters[Index];
+        UE_LOG (LogTemp, Log,
+            TEXT ("[GridTurnManager] PartyCharacter Index=%d Name=%s HP=%d/%d PhysicalArmor=%d MagicalArmor=%d Evasion=%d"),
+            Index,
+            *Character.DisplayName.ToString (),
+            Character.DerivedStats.CurrentHealth,
+            Character.DerivedStats.MaxHealth,
+            Character.DerivedStats.PhysicalArmor,
+            Character.DerivedStats.MagicalArmor,
+            Character.DerivedStats.Evasion);
+    }
 }
 
 bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterActor*>& Monsters)
@@ -233,7 +313,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
         return false;
     }
 
-    if (bCombatActive)
+    if (bCombatActive || !HasLivingPartyCharacter ())
     {
         return false;
     }
@@ -275,6 +355,8 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
     ActiveAction = FGridCombatAction ();
     ActiveActionTimeoutRemaining = 0.0f;
     ActionPointBudget.Reset (0);
+    ResetActiveAttackState ();
+    CombatRandomStream.Initialize (EncounterRandomSeed);
 
     bCombatActive = true;
     RoundNumber = PhaseState.GetRoundNumber ();
@@ -349,11 +431,13 @@ bool UGridTurnManagerComponent::PrepareMonsterForCombat (AGridMonsterActor* Mons
         Monster->FindComponentByClass<UGridMonsterMovementComponent> ();
     UGridMonsterBehaviorComponent* Behavior =
         Monster->FindComponentByClass<UGridMonsterBehaviorComponent> ();
+    UGridMonsterCombatComponent* Combat =
+        Monster->FindComponentByClass<UGridMonsterCombatComponent> ();
 
-    if (!Movement || !Behavior)
+    if (!Movement || !Behavior || !Combat)
     {
         UE_LOG (LogTemp, Warning,
-            TEXT ("[GridTurnManager] Monster %s requires MonsterMovement and MonsterBehavior components."),
+            TEXT ("[GridTurnManager] Monster %s requires MonsterMovement, MonsterBehavior and MonsterCombat components."),
             *GetNameSafe (Monster));
         return false;
     }
@@ -370,6 +454,14 @@ bool UGridTurnManagerComponent::PrepareMonsterForCombat (AGridMonsterActor* Mons
     {
         UE_LOG (LogTemp, Warning,
             TEXT ("[GridTurnManager] Behavior initialization failed for %s."),
+            *GetNameSafe (Monster));
+        return false;
+    }
+
+    if (!Combat->IsInitialized () && !Combat->InitializeCombat (PartyPawn))
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("[GridTurnManager] Combat initialization failed for %s."),
             *GetNameSafe (Monster));
         return false;
     }

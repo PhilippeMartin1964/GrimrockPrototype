@@ -2,9 +2,11 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 
@@ -33,6 +35,12 @@ void UGridTurnManagerComponent::BeginRound ()
 
 void UGridTurnManagerComponent::BeginEnemyPhase ()
 {
+    if (!HasLivingPartyCharacter ())
+    {
+        FinishCombat (EGridCombatPhase::Defeat);
+        return;
+    }
+
     if (!HasLivingCombatMonster ())
     {
         FinishCombat (EGridCombatPhase::Victory);
@@ -79,11 +87,13 @@ void UGridTurnManagerComponent::BuildEnemyTurnOrder ()
 void UGridTurnManagerComponent::BeginNextMonsterTurn ()
 {
     UnbindCurrentMovement ();
+    UnbindCurrentCombat ();
     CurrentMonster = nullptr;
     PendingActions.Reset ();
     bHasActiveAction = false;
     ActiveAction = FGridCombatAction ();
     ActiveActionTimeoutRemaining = 0.0f;
+    ResetActiveAttackState ();
 
     while (++CurrentEnemyIndex < EnemyTurnOrder.Num ())
     {
@@ -102,6 +112,8 @@ void UGridTurnManagerComponent::BeginNextMonsterTurn ()
 
         BindCurrentMovement (
             Candidate->FindComponentByClass<UGridMonsterMovementComponent> ());
+        BindCurrentCombat (
+            Candidate->FindComponentByClass<UGridMonsterCombatComponent> ());
         OnMonsterTurnStarted.Broadcast (Candidate);
         PrepareCurrentMonsterActions ();
         ExecuteNextAction ();
@@ -134,8 +146,9 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
     }
 
     Behavior->RefreshPerception ();
+    const bool bHasPartyPerception = Behavior->HasPartyPerception ();
     bool bFoundPath = false;
-    if (Behavior->HasPartyPerception ())
+    if (bHasPartyPerception)
     {
         bFoundPath = Behavior->FindPursuitPath ();
     }
@@ -146,6 +159,29 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
 
     const TArray<FIntPoint> EmptyPath;
     const TArray<FIntPoint>& PlannedPath = bFoundPath ? Behavior->LastPath : EmptyPath;
+
+    FGridMonsterAttackDefinition MeleeAttack;
+    const bool bCanPlanMelee =
+        bHasPartyPerception &&
+        IsValid (CurrentCombatComponent) &&
+        CurrentCombatComponent->GetPreferredMeleeAttack (MeleeAttack) &&
+        IsValid (PartyPawn);
+
+    if (bCanPlanMelee)
+    {
+        FGridMonsterTurnPlanner::BuildDirectMeleeTurn (
+            CurrentMonster->SpawnObjectId,
+            CurrentMonster->CurrentCell,
+            CurrentMonster->Facing,
+            FIntPoint (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY),
+            PlannedPath,
+            CurrentMonsterRemainingActionPoints,
+            MeleeAttack.AttackId,
+            MeleeAttack.ActionPointCost,
+            PendingActions);
+        return;
+    }
+
     FGridMonsterTurnPlanner::BuildMovementTurn (
         CurrentMonster->SpawnObjectId,
         CurrentMonster->CurrentCell,
@@ -159,10 +195,12 @@ void UGridTurnManagerComponent::FinishCurrentMonsterTurn ()
 {
     AGridMonsterActor* CompletedMonster = CurrentMonster;
     UnbindCurrentMovement ();
+    UnbindCurrentCombat ();
     PendingActions.Reset ();
     bHasActiveAction = false;
     ActiveAction = FGridCombatAction ();
     ActiveActionTimeoutRemaining = 0.0f;
+    ResetActiveAttackState ();
     CurrentMonsterMaximumActionPoints = 0;
     CurrentMonsterRemainingActionPoints = 0;
     ActionPointBudget.Reset (0);
@@ -184,6 +222,12 @@ void UGridTurnManagerComponent::FinishEnemyPhase ()
     }
 
     SetPhase (PhaseState.GetPhase ());
+
+    if (!HasLivingPartyCharacter ())
+    {
+        FinishCombat (EGridCombatPhase::Defeat);
+        return;
+    }
 
     if (!HasLivingCombatMonster ())
     {
@@ -214,8 +258,13 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     {
         CurrentMovementComponent->CancelCurrentAction ();
     }
+    if (CurrentCombatComponent)
+    {
+        CurrentCombatComponent->CancelAttackPresentation ();
+    }
 
     UnbindCurrentMovement ();
+    UnbindCurrentCombat ();
     bWaitingForCombatStart = false;
     CombatStartDelayRemaining = 0.0f;
     ActiveActionTimeoutRemaining = 0.0f;
@@ -228,6 +277,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     CurrentMonsterMaximumActionPoints = 0;
     CurrentMonsterRemainingActionPoints = 0;
     ActionPointBudget.Reset (0);
+    ResetActiveAttackState ();
     bCombatActive = false;
 
     SetPhase (PhaseState.GetPhase ());
@@ -262,6 +312,24 @@ bool UGridTurnManagerComponent::HasLivingCombatMonster () const
     for (const AGridMonsterActor* Monster : CombatMonsters)
     {
         if (IsValid (Monster) && !Monster->IsDead ())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool UGridTurnManagerComponent::HasLivingPartyCharacter () const
+{
+    if (!IsValid (PartyPawn) || !IsValid (PartyPawn->PartyInventoryComponent))
+    {
+        return false;
+    }
+
+    for (const FGridCharacterInventoryState& Character :
+        PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
+    {
+        if (Character.DerivedStats.CurrentHealth > 0)
         {
             return true;
         }

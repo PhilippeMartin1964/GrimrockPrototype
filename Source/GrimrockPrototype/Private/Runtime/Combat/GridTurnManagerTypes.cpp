@@ -32,6 +32,22 @@ namespace
         return Action;
     }
 
+    FGridCombatAction MakeMeleeAttackAction (
+        const FGuid& SourceActorId,
+        const FIntPoint& PartyCell,
+        FName AttackId,
+        int32 ActionPointCost)
+    {
+        FGridCombatAction Action;
+        Action.ActionId = FGuid::NewGuid ();
+        Action.Type = EGridCombatActionType::MeleeAttack;
+        Action.SourceActorId = SourceActorId;
+        Action.TargetCell = PartyCell;
+        Action.AttackId = AttackId;
+        Action.ActionPointCost = FMath::Max (0, ActionPointCost);
+        return Action;
+    }
+
     FGridCombatAction MakeWaitAction (
         const FGuid& SourceActorId,
         const FIntPoint& CurrentCell)
@@ -43,6 +59,49 @@ namespace
         Action.TargetCell = CurrentCell;
         Action.ActionPointCost = 0;
         return Action;
+    }
+
+    bool AppendTurnsToward (
+        const FGuid& SourceActorId,
+        const FIntPoint& CurrentCell,
+        EGridEdge DesiredFacing,
+        EGridEdge& InOutFacing,
+        TArray<FGridCombatAction>& OutActions)
+    {
+        if (DesiredFacing == EGridEdge::None)
+        {
+            return false;
+        }
+
+        if (InOutFacing == EGridEdge::None)
+        {
+            InOutFacing = EGridEdge::North;
+        }
+
+        if (InOutFacing == DesiredFacing)
+        {
+            return true;
+        }
+
+        if (GridDirectionUtils::RotateLeft (InOutFacing) == DesiredFacing)
+        {
+            InOutFacing = GridDirectionUtils::RotateLeft (InOutFacing);
+            OutActions.Add (MakeTurnAction (SourceActorId, CurrentCell, InOutFacing));
+            return true;
+        }
+
+        if (GridDirectionUtils::RotateRight (InOutFacing) == DesiredFacing)
+        {
+            InOutFacing = GridDirectionUtils::RotateRight (InOutFacing);
+            OutActions.Add (MakeTurnAction (SourceActorId, CurrentCell, InOutFacing));
+            return true;
+        }
+
+        InOutFacing = GridDirectionUtils::RotateLeft (InOutFacing);
+        OutActions.Add (MakeTurnAction (SourceActorId, CurrentCell, InOutFacing));
+        InOutFacing = GridDirectionUtils::RotateLeft (InOutFacing);
+        OutActions.Add (MakeTurnAction (SourceActorId, CurrentCell, InOutFacing));
+        return InOutFacing == DesiredFacing;
     }
 }
 
@@ -178,35 +237,100 @@ void FGridMonsterTurnPlanner::BuildMovementTurn (
 
         const EGridEdge DesiredFacing =
             FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (SimulatedCell, Step);
-        if (DesiredFacing == EGridEdge::None)
+        if (!AppendTurnsToward (
+            SourceActorId,
+            SimulatedCell,
+            DesiredFacing,
+            SimulatedFacing,
+            OutActions))
         {
             break;
-        }
-
-        if (SimulatedFacing != DesiredFacing)
-        {
-            if (GridDirectionUtils::RotateLeft (SimulatedFacing) == DesiredFacing)
-            {
-                SimulatedFacing = GridDirectionUtils::RotateLeft (SimulatedFacing);
-                OutActions.Add (MakeTurnAction (SourceActorId, SimulatedCell, SimulatedFacing));
-            }
-            else if (GridDirectionUtils::RotateRight (SimulatedFacing) == DesiredFacing)
-            {
-                SimulatedFacing = GridDirectionUtils::RotateRight (SimulatedFacing);
-                OutActions.Add (MakeTurnAction (SourceActorId, SimulatedCell, SimulatedFacing));
-            }
-            else
-            {
-                SimulatedFacing = GridDirectionUtils::RotateLeft (SimulatedFacing);
-                OutActions.Add (MakeTurnAction (SourceActorId, SimulatedCell, SimulatedFacing));
-                SimulatedFacing = GridDirectionUtils::RotateLeft (SimulatedFacing);
-                OutActions.Add (MakeTurnAction (SourceActorId, SimulatedCell, SimulatedFacing));
-            }
         }
 
         OutActions.Add (MakeMoveAction (SourceActorId, Step));
         SimulatedCell = Step;
         ++SpentActionPoints;
+    }
+
+    if (OutActions.IsEmpty ())
+    {
+        OutActions.Add (MakeWaitAction (SourceActorId, StartCell));
+    }
+}
+
+void FGridMonsterTurnPlanner::BuildDirectMeleeTurn (
+    const FGuid& SourceActorId,
+    const FIntPoint& StartCell,
+    EGridEdge StartFacing,
+    const FIntPoint& PartyCell,
+    const TArray<FIntPoint>& Path,
+    int32 AvailableActionPoints,
+    FName AttackId,
+    int32 AttackActionPointCost,
+    TArray<FGridCombatAction>& OutActions)
+{
+    OutActions.Reset ();
+
+    FIntPoint SimulatedCell = StartCell;
+    EGridEdge SimulatedFacing = StartFacing == EGridEdge::None
+        ? EGridEdge::North
+        : StartFacing;
+    int32 RemainingActionPoints = FMath::Max (0, AvailableActionPoints);
+    const int32 SafeAttackCost = FMath::Max (1, AttackActionPointCost);
+    int32 PathIndex = 0;
+
+    while (true)
+    {
+        const int32 DistanceToParty =
+            FMath::Abs (SimulatedCell.X - PartyCell.X) +
+            FMath::Abs (SimulatedCell.Y - PartyCell.Y);
+        if (DistanceToParty == 1 &&
+            !AttackId.IsNone () &&
+            RemainingActionPoints >= SafeAttackCost)
+        {
+            const EGridEdge AttackFacing =
+                FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                    SimulatedCell,
+                    PartyCell);
+            if (AppendTurnsToward (
+                SourceActorId,
+                SimulatedCell,
+                AttackFacing,
+                SimulatedFacing,
+                OutActions))
+            {
+                OutActions.Add (MakeMeleeAttackAction (
+                    SourceActorId,
+                    PartyCell,
+                    AttackId,
+                    SafeAttackCost));
+            }
+            break;
+        }
+
+        if (RemainingActionPoints <= 0 || !Path.IsValidIndex (PathIndex))
+        {
+            break;
+        }
+
+        const FIntPoint Step = Path[PathIndex++];
+        const EGridEdge DesiredFacing =
+            FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                SimulatedCell,
+                Step);
+        if (!AppendTurnsToward (
+            SourceActorId,
+            SimulatedCell,
+            DesiredFacing,
+            SimulatedFacing,
+            OutActions))
+        {
+            break;
+        }
+
+        OutActions.Add (MakeMoveAction (SourceActorId, Step));
+        SimulatedCell = Step;
+        --RemainingActionPoints;
     }
 
     if (OutActions.IsEmpty ())
