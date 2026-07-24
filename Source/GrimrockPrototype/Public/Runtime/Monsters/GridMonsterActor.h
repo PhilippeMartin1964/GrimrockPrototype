@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "Core/GridDirectionUtils.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "GridMonsterActor.generated.h"
 
@@ -15,8 +16,8 @@ class UGridMonsterAnimInstance;
 /**
  * Runtime visual representation of a grid monster.
  *
- * MON2 deliberately keeps the grid position authoritative and does not move the
- * actor every frame. MON3 will add cell reservations and visual interpolation.
+ * Grid position and combat values are authoritative. Dedicated components own
+ * movement, behavior and combat sequencing.
  */
 UCLASS (BlueprintType, Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridMonsterActor : public AActor
@@ -50,6 +51,8 @@ public:
         SkeletalMeshComponent->VisibilityBasedAnimTickOption =
             EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
 
+        CombatComponent = CreateDefaultSubobject<UGridMonsterCombatComponent> (TEXT ("MonsterCombat"));
+
         SetCanBeDamaged (false);
     }
 
@@ -64,9 +67,19 @@ public:
     {
         Super::BeginPlay ();
 
-        if (MonsterDefinition && MonsterState != EGridMonsterState::Dead && CurrentHealth <= 0)
+        if (MonsterDefinition && MonsterState != EGridMonsterState::Dead)
         {
-            CurrentHealth = MonsterDefinition->MaxHealth;
+            if (CurrentHealth <= 0)
+            {
+                CurrentHealth = MonsterDefinition->MaxHealth;
+            }
+
+            if (!bCombatStatsInitialized)
+            {
+                CurrentPhysicalArmor = FMath::Max (0, MonsterDefinition->PhysicalArmor);
+                CurrentMagicalArmor = FMath::Max (0, MonsterDefinition->MagicalArmor);
+                bCombatStatsInitialized = true;
+            }
         }
 
         ApplyDefinitionVisuals ();
@@ -81,6 +94,9 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
     TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<UGridMonsterCombatComponent> CombatComponent;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Definition")
     TObjectPtr<UGridMonsterDefinitionAsset> MonsterDefinition = nullptr;
@@ -99,6 +115,15 @@ public:
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
     int32 CurrentHealth = 0;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
+    int32 CurrentPhysicalArmor = 0;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
+    int32 CurrentMagicalArmor = 0;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
+    bool bCombatStatsInitialized = false;
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Animation")
     bool bIsMoving = false;
@@ -130,6 +155,9 @@ public:
         Facing = InFacing == EGridEdge::None ? EGridEdge::North : InFacing;
         MonsterState = EGridMonsterState::Idle;
         CurrentHealth = MonsterDefinition->MaxHealth;
+        CurrentPhysicalArmor = FMath::Max (0, MonsterDefinition->PhysicalArmor);
+        CurrentMagicalArmor = FMath::Max (0, MonsterDefinition->MagicalArmor);
+        bCombatStatsInitialized = true;
         ResetAnimationSignals ();
 
         ApplyFacingRotation ();
@@ -200,6 +228,11 @@ public:
             Errors.Add (TEXT ("SkeletalMeshComponent has no resolved skeletal mesh."));
         }
 
+        if (!CombatComponent)
+        {
+            Errors.Add (TEXT ("MonsterCombat component is missing."));
+        }
+
         if (Facing == EGridEdge::None)
         {
             Errors.Add (TEXT ("Facing must be a cardinal grid direction."));
@@ -253,11 +286,56 @@ public:
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|State")
+    void SetCurrentPhysicalArmor (int32 InArmor)
+    {
+        CurrentPhysicalArmor = FMath::Max (0, InArmor);
+        bCombatStatsInitialized = true;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|State")
+    void SetCurrentMagicalArmor (int32 InArmor)
+    {
+        CurrentMagicalArmor = FMath::Max (0, InArmor);
+        bCombatStatsInitialized = true;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Combat")
+    void ApplyAttackResult (const FGridAttackResult& Result)
+    {
+        if (IsDead () || !Result.bHit)
+        {
+            return;
+        }
+
+        CurrentPhysicalArmor = FMath::Max (
+            0,
+            CurrentPhysicalArmor - Result.PhysicalArmorDamage);
+        CurrentMagicalArmor = FMath::Max (
+            0,
+            CurrentMagicalArmor - Result.MagicalArmorDamage);
+        CurrentHealth = FMath::Max (0, CurrentHealth - Result.HealthDamage);
+
+        if (CurrentHealth <= 0)
+        {
+            MarkDead ();
+        }
+        else if (Result.GetTotalAppliedDamage () > 0)
+        {
+            SetMonsterState (EGridMonsterState::Hurt);
+        }
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|State")
     void MarkDead ()
     {
         CurrentHealth = 0;
         MonsterState = EGridMonsterState::Dead;
         ResetAnimationSignals ();
+
+        if (CombatComponent)
+        {
+            CombatComponent->CancelAttackPresentation ();
+        }
 
         if (CollisionComponent)
         {
