@@ -11,6 +11,7 @@ class UUserWidget;
 class AGridReceptacleActor;
 class AGridWallLockActor;
 class AGrimrockPartyPawn;
+class UGridTurnManagerComponent;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGrimrockPlayerController : public APlayerController
@@ -113,4 +114,16 @@ protected:
         FVector& OutLocalOffset) const;
     bool IsHitWithinInteractionDistance (const FHitResult& HitResult) const;
     void ShowInteractionFeedback (const FText& MessageText) const;
+
+#if !UE_BUILD_SHIPPING
+    UGridTurnManagerComponent* ResolveMON5TurnManager () const;
+    void LogMON5CommandResult (const TCHAR* CommandName, bool bSucceeded) const;
+
+    void HandleMON5StartCombatFromPerception ();
+    void HandleMON5EndPlayerPhase ();
+    void HandleMON5AbortCombat ();
+    void HandleMON5LogTurnState ();
+    void HandleMON5StartCombatWithAllMonsters ();
+    void HandleMON5ForceVictory ();
+#endif
 };

@@ -4,8 +4,11 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
+#include "EngineUtils.h"
 #include "InputCoreTypes.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -14,6 +17,7 @@
 #include "UI/GridInventoryWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridMouse, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogGridTurnManagerInput, Log, All);
 
 namespace
 {
@@ -119,7 +123,196 @@ void AGrimrockPlayerController::SetupInputComponent ()
     }
 
     InputComponent->BindKey (EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
+
+#if !UE_BUILD_SHIPPING
+    FInputKeyBinding& StartPerceptionBinding = InputComponent->BindKey (
+        EKeys::NumPadOne,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON5StartCombatFromPerception);
+    StartPerceptionBinding.bConsumeInput = true;
+    StartPerceptionBinding.bExecuteWhenPaused = false;
+
+    FInputKeyBinding& EndPlayerPhaseBinding = InputComponent->BindKey (
+        EKeys::NumPadTwo,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON5EndPlayerPhase);
+    EndPlayerPhaseBinding.bConsumeInput = true;
+    EndPlayerPhaseBinding.bExecuteWhenPaused = false;
+
+    FInputKeyBinding& AbortCombatBinding = InputComponent->BindKey (
+        EKeys::NumPadThree,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON5AbortCombat);
+    AbortCombatBinding.bConsumeInput = true;
+    AbortCombatBinding.bExecuteWhenPaused = false;
+
+    FInputKeyBinding& LogTurnStateBinding = InputComponent->BindKey (
+        EKeys::NumPadFour,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON5LogTurnState);
+    LogTurnStateBinding.bConsumeInput = true;
+    LogTurnStateBinding.bExecuteWhenPaused = false;
+
+    FInputKeyBinding& StartAllBinding = InputComponent->BindKey (
+        EKeys::NumPadFive,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON5StartCombatWithAllMonsters);
+    StartAllBinding.bConsumeInput = true;
+    StartAllBinding.bExecuteWhenPaused = false;
+
+    FInputKeyBinding& ForceVictoryBinding = InputComponent->BindKey (
+        EKeys::NumPadSix,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON5ForceVictory);
+    ForceVictoryBinding.bConsumeInput = true;
+    ForceVictoryBinding.bExecuteWhenPaused = false;
+
+    UE_LOG (LogGridTurnManagerInput, Log,
+        TEXT ("[GridTurnManagerInput] Bound NumPad 1-6 PlayerController=%s InputComponent=%s"),
+        *GetNameSafe (this),
+        *GetNameSafe (InputComponent));
+#endif
 }
+
+#if !UE_BUILD_SHIPPING
+UGridTurnManagerComponent* AGrimrockPlayerController::ResolveMON5TurnManager () const
+{
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        UE_LOG (LogGridTurnManagerInput, Warning,
+            TEXT ("[GridTurnManagerInput] Cannot resolve TurnManager: World is null. PlayerController=%s"),
+            *GetNameSafe (this));
+        return nullptr;
+    }
+
+    const APawn* ControlledPawn = GetPawn ();
+    const AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (ControlledPawn);
+    AGridLevelRuntimeActor* RuntimeActor = PartyPawn
+        ? PartyPawn->LevelRuntimeActor.Get ()
+        : nullptr;
+
+    if (!PartyPawn)
+    {
+        UE_LOG (LogGridTurnManagerInput, Warning,
+            TEXT ("[GridTurnManagerInput] Controlled pawn is not AGrimrockPartyPawn. Pawn=%s PlayerController=%s"),
+            *GetNameSafe (ControlledPawn),
+            *GetNameSafe (this));
+    }
+
+    if (!RuntimeActor)
+    {
+        for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+        {
+            RuntimeActor = *It;
+            break;
+        }
+    }
+
+    if (!RuntimeActor)
+    {
+        UE_LOG (LogGridTurnManagerInput, Warning,
+            TEXT ("[GridTurnManagerInput] No GridLevelRuntimeActor could be resolved. Pawn=%s PlayerController=%s"),
+            *GetNameSafe (ControlledPawn),
+            *GetNameSafe (this));
+        return nullptr;
+    }
+
+    UGridTurnManagerComponent* TurnManager =
+        RuntimeActor->FindComponentByClass<UGridTurnManagerComponent> ();
+    if (!TurnManager)
+    {
+        UE_LOG (LogGridTurnManagerInput, Warning,
+            TEXT ("[GridTurnManagerInput] RuntimeActor=%s has no GridTurnManagerComponent."),
+            *GetNameSafe (RuntimeActor));
+    }
+    return TurnManager;
+}
+
+void AGrimrockPlayerController::LogMON5CommandResult (
+    const TCHAR* CommandName,
+    bool bSucceeded) const
+{
+    const FString Message = FString::Printf (
+        TEXT ("[GridTurnManagerInput] %s=%s"),
+        CommandName ? CommandName : TEXT ("UnknownCommand"),
+        bSucceeded ? TEXT ("true") : TEXT ("false"));
+
+    UE_LOG (LogGridTurnManagerInput, Log, TEXT ("%s"), *Message);
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage (
+            INDEX_NONE,
+            1.50f,
+            bSucceeded ? FColor::Green : FColor::Red,
+            Message);
+    }
+}
+
+void AGrimrockPlayerController::HandleMON5StartCombatFromPerception ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    LogMON5CommandResult (
+        TEXT ("StartCombatFromPerception"),
+        TurnManager && TurnManager->StartCombatFromPerception ());
+}
+
+void AGrimrockPlayerController::HandleMON5EndPlayerPhase ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    LogMON5CommandResult (
+        TEXT ("EndPlayerPhase"),
+        TurnManager && TurnManager->EndPlayerPhase ());
+}
+
+void AGrimrockPlayerController::HandleMON5AbortCombat ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    if (TurnManager)
+    {
+        TurnManager->AbortCombat ();
+    }
+    LogMON5CommandResult (
+        TEXT ("AbortCombat"),
+        TurnManager && TurnManager->CurrentPhase == EGridCombatPhase::Exploration);
+}
+
+void AGrimrockPlayerController::HandleMON5LogTurnState ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    if (TurnManager)
+    {
+        TurnManager->LogCurrentTurnState ();
+    }
+    LogMON5CommandResult (TEXT ("LogCurrentTurnState"), TurnManager != nullptr);
+}
+
+void AGrimrockPlayerController::HandleMON5StartCombatWithAllMonsters ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    LogMON5CommandResult (
+        TEXT ("StartCombatWithAllMonsters"),
+        TurnManager && TurnManager->StartCombatWithAllMonsters ());
+}
+
+void AGrimrockPlayerController::HandleMON5ForceVictory ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    if (TurnManager)
+    {
+        TurnManager->ForceVictory ();
+    }
+    LogMON5CommandResult (
+        TEXT ("ForceVictory"),
+        TurnManager && TurnManager->CurrentPhase == EGridCombatPhase::Victory);
+}
+#endif
 
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 {
