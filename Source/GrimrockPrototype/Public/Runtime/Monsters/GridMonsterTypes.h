@@ -55,6 +55,10 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "0"))
     int32 MaxDamage = 1;
 
+    /** Flat damage added after the random damage roll. Attack_Bite uses +1. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
+    int32 DamageBonus = 0;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
     int32 AccuracyBonus = 0;
 
@@ -63,6 +67,14 @@ struct FGridMonsterAttackDefinition
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
     int32 ActionPointCost = 1;
+
+    /** Total presentation duration used by the timer fallback and timeout. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation", meta = (ClampMin = "0.01"))
+    float ExpectedDuration = 0.55f;
+
+    /** Fallback impact time when no montage notify is available. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation", meta = (ClampMin = "0.0"))
+    float ImpactTimeSeconds = 0.25f;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation")
     TSoftObjectPtr<UAnimMontage> AttackMontage;
@@ -86,6 +98,11 @@ struct FGridMonsterAttackDefinition
             MaxDamage >= MinDamage &&
             RangeCells > 0 &&
             ActionPointCost > 0 &&
+            FMath::IsFinite (ExpectedDuration) &&
+            ExpectedDuration > 0.0f &&
+            FMath::IsFinite (ImpactTimeSeconds) &&
+            ImpactTimeSeconds >= 0.0f &&
+            ImpactTimeSeconds <= ExpectedDuration &&
             (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
     }
 };
