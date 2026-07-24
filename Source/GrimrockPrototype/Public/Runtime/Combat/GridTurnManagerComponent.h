@@ -3,12 +3,14 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridTurnManagerComponent.generated.h"
 
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
 class AGrimrockPartyPawn;
 class UGridMonsterBehaviorComponent;
+class UGridMonsterCombatComponent;
 class UGridMonsterMovementComponent;
 
 /** Small deterministic action-point budget used by the turn manager and tests. */
@@ -28,7 +30,7 @@ private:
     int32 RemainingPoints = 0;
 };
 
-/** Pure MON5 phase rules, independent from actors, animation and frame rate. */
+/** Pure phase rules, independent from actors, animation and frame rate. */
 class GRIMROCKPROTOTYPE_API FGridTurnPhaseStateMachine
 {
 public:
@@ -49,10 +51,7 @@ private:
     int32 RoundNumber = 0;
 };
 
-/**
- * Converts a MON4 path into deterministic Turn/Move actions for one monster turn.
- * Rotation is free in MON5; every Move costs one action point. Attacks start in MON6.
- */
+/** Converts MON4 paths into deterministic monster actions. */
 class GRIMROCKPROTOTYPE_API FGridMonsterTurnPlanner
 {
 public:
@@ -62,6 +61,21 @@ public:
         EGridEdge StartFacing,
         const TArray<FIntPoint>& Path,
         int32 AvailableActionPoints,
+        TArray<FGridCombatAction>& OutActions);
+
+    /**
+     * DirectMelee policy used by MON6. A monster attacks when adjacent and can
+     * move then attack when its remaining action points permit it.
+     */
+    static void BuildDirectMeleeTurn (
+        const FGuid& SourceActorId,
+        const FIntPoint& StartCell,
+        EGridEdge StartFacing,
+        const FIntPoint& PartyCell,
+        const TArray<FIntPoint>& Path,
+        int32 AvailableActionPoints,
+        FName AttackId,
+        int32 AttackActionPointCost,
         TArray<FGridCombatAction>& OutActions);
 };
 
@@ -86,16 +100,21 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     FGridCombatAction, Action,
     bool, bSucceeded);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
+    FGridMonsterAttackResolvedSignature,
+    AGridMonsterActor*, Monster,
+    int32, TargetCharacterIndex,
+    FGridAttackResult, Result);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridCombatEndedSignature,
     EGridCombatPhase, ResultPhase);
 
 /**
- * MON5 central combat phase and monster-turn sequencer.
+ * Central combat phase and monster-turn sequencer.
  *
- * The component owns no combat formulas. It only decides when actors may act,
- * spends action points, executes one visual action at a time and protects the
- * sequence with timeouts. MON6 will add attack resolution.
+ * MON6 adds deterministic melee resolution while keeping rule calculation in
+ * FGridCombatResolver and presentation in UGridMonsterCombatComponent.
  */
 UCLASS (ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridTurnManagerComponent : public UActorComponent
@@ -115,13 +134,15 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager")
     bool bAutoInitialize = true;
 
-    /** Additional delay after party motion/input-buffer expiry when combat starts. */
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager", meta = (ClampMin = "0.0"))
     float CombatStartSafetyPadding = 0.05f;
 
-    /** Added to the expected visual duration before an action is force-completed. */
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager", meta = (ClampMin = "0.0"))
     float ActionTimeoutPadding = 0.50f;
+
+    /** Stable seed used for attack rolls and party target selection. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager")
+    int32 EncounterRandomSeed = 1337;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager|Debug")
     bool bLogPhaseChanges = true;
@@ -168,6 +189,18 @@ public:
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager")
     bool bHasActiveAction = false;
 
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager|Attack")
+    FGridMonsterAttackDefinition ActiveAttackDefinition;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager|Attack")
+    FGridAttackResult LastAttackResult;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager|Attack")
+    int32 LastTargetCharacterIndex = INDEX_NONE;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager|Attack")
+    bool bActiveAttackImpactCommitted = false;
+
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
     FGridCombatPhaseChangedSignature OnPhaseChanged;
 
@@ -187,6 +220,9 @@ public:
     FGridCombatActionCompletedSignature OnActionCompleted;
 
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
+    FGridMonsterAttackResolvedSignature OnAttackResolved;
+
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
     FGridCombatEndedSignature OnCombatEnded;
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
@@ -194,15 +230,12 @@ public:
         AGridLevelRuntimeActor* InRuntimeActor = nullptr,
         AGrimrockPartyPawn* InPartyPawn = nullptr);
 
-    /** Starts combat with living monsters that currently see or hear the party. */
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool StartCombatFromPerception ();
 
-    /** Debug/prototype entry point that includes every living GridMonsterActor. */
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager|Debug")
     bool StartCombatWithAllMonsters ();
 
-    /** Ends the interactive player phase. Rejected while the party is between grid poses. */
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool EndPlayerPhase ();
 
@@ -215,8 +248,19 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager|Debug")
     void ForceDefeat ();
 
+    /** Entry point for Monster.AttackImpact Anim Notifies. Safe to call twice. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager|Animation Notify")
+    void NotifyActiveAttackImpact ();
+
+    /** Entry point for Monster.ActionComplete Anim Notifies. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager|Animation Notify")
+    void NotifyActiveAttackComplete ();
+
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Combat|Turn Manager|Debug")
     void LogCurrentTurnState () const;
+
+    UFUNCTION (BlueprintCallable, CallInEditor, Category = "Combat|Turn Manager|Debug")
+    void LogPartyCombatState () const;
 
     UFUNCTION (BlueprintPure, Category = "Combat|Turn Manager")
     bool IsInitialized () const { return bInitialized; }
@@ -233,12 +277,18 @@ private:
     bool bWaitingForCombatStart = false;
     float CombatStartDelayRemaining = 0.0f;
     float ActiveActionTimeoutRemaining = 0.0f;
+    float ActiveAttackImpactTimeRemaining = 0.0f;
+    float ActiveAttackCompleteTimeRemaining = 0.0f;
 
     FGridTurnPhaseStateMachine PhaseState;
     FGridActionPointBudget ActionPointBudget;
+    FRandomStream CombatRandomStream;
 
     UPROPERTY (Transient)
     TObjectPtr<UGridMonsterMovementComponent> CurrentMovementComponent = nullptr;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UGridMonsterCombatComponent> CurrentCombatComponent = nullptr;
 
     bool StartCombatInternal (const TArray<AGridMonsterActor*>& Monsters);
     void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters) const;
@@ -252,20 +302,26 @@ private:
     void PrepareCurrentMonsterActions ();
     void ExecuteNextAction ();
     bool StartActiveAction (const FGridCombatAction& Action);
+    bool StartActiveMeleeAttack ();
+    void CommitActiveAttackImpact ();
     void CompleteActiveAction (bool bSucceeded);
     void FinishCurrentMonsterTurn ();
     void FinishEnemyPhase ();
     void FinishCombat (EGridCombatPhase ResultPhase);
 
+    void ResetActiveAttackState ();
     void SetPhase (EGridCombatPhase NewPhase);
     void SetPartyInputLocked (bool bLocked);
     bool IsPartyAtRest () const;
     bool HasLivingCombatMonster () const;
+    bool HasLivingPartyCharacter () const;
     float CalculateCombatStartDelay () const;
     float GetExpectedActionDuration (const FGridCombatAction& Action) const;
     void RefreshTickEnabled ();
     void BindCurrentMovement (UGridMonsterMovementComponent* MovementComponent);
     void UnbindCurrentMovement ();
+    void BindCurrentCombat (UGridMonsterCombatComponent* CombatComponent);
+    void UnbindCurrentCombat ();
 
     AGridLevelRuntimeActor* FindRuntimeActor () const;
     AGrimrockPartyPawn* FindPartyPawn () const;
@@ -275,4 +331,10 @@ private:
 
     UFUNCTION ()
     void HandleMonsterTurnCompleted (EGridEdge FromFacing, EGridEdge ToFacing);
+
+    UFUNCTION ()
+    void HandleMonsterAttackImpactNotify ();
+
+    UFUNCTION ()
+    void HandleMonsterActionCompleteNotify ();
 };
