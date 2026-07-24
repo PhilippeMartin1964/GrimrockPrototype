@@ -2,6 +2,8 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
