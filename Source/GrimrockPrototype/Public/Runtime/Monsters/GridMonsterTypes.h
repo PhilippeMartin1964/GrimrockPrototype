@@ -5,6 +5,7 @@
 #include "GridMonsterTypes.generated.h"
 
 class UAnimMontage;
+class UGridItemDefinitionAsset;
 class UNiagaraSystem;
 class USoundBase;
 
@@ -156,13 +157,10 @@ struct FGridMonsterLootEntry
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Loot", meta = (ClampMin = "1"))
     int32 MaxQuantity = 1;
 
-    bool IsValidDefinition () const
-    {
-        return !ItemDefinitionId.IsNone () &&
-            FMath::IsFinite (DropChance) &&
-            DropChance >= 0.0f &&
-            DropChance <= 1.0f &&
-            MinQuantity > 0 &&
-            MaxQuantity >= MinQuantity;
-    }
+    /** Optional direct definition used by MON8 world loot placement. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Loot")
+    TObjectPtr<UGridItemDefinitionAsset> ItemDefinitionAsset = nullptr;
+
+    FName GetResolvedItemDefinitionId () const;
+    bool IsValidDefinition () const;
 };

@@ -2622,6 +2622,23 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
     EGridEdge Edge,
     const FVector& LocalOffset)
 {
+    return TryDropItemInstanceAtCell (
+        ItemInstance,
+        nullptr,
+        CellX,
+        CellY,
+        Edge,
+        LocalOffset);
+}
+
+bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
+    const FGridItemInstance& ItemInstance,
+    UGridItemDefinitionAsset* ItemDefinitionAsset,
+    int32 CellX,
+    int32 CellY,
+    EGridEdge Edge,
+    const FVector& LocalOffset)
+{
     if (!LevelAsset || !ItemInstance.IsValid () || !LevelAsset->IsValidCoord (CellX, CellY))
     {
         return false;
@@ -2633,7 +2650,9 @@ bool AGridLevelRuntimeActor::TryDropItemInstanceAtCell (
         return false;
     }
 
-    UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId);
+    UGridItemDefinitionAsset* ItemDefinition = IsValid (ItemDefinitionAsset)
+        ? ItemDefinitionAsset
+        : ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId);
     if (!ItemDefinition)
     {
         UE_LOG (LogTemp, Warning, TEXT ("GridInventory WorldDrop Failed Item=%s Reason=DefinitionNotResolved"),

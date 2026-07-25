@@ -208,6 +208,9 @@ namespace
                     Event == EGridObjectEvent::ItemRemoved ||
                     Event == EGridObjectEvent::ItemChanged;
 
+            case EGridLevelObjectType::MonsterSpawn:
+                return Event == EGridObjectEvent::MonsterDied;
+
             default:
                 return false;
         }

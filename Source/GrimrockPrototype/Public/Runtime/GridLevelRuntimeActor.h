@@ -280,6 +280,15 @@ public:
         EGridEdge Edge,
         const FVector& LocalOffset);
 
+    /** MON8 overload: a loot table may provide its definition directly. */
+    bool TryDropItemInstanceAtCell (
+        const FGridItemInstance& ItemInstance,
+        UGridItemDefinitionAsset* ItemDefinitionAsset,
+        int32 CellX,
+        int32 CellY,
+        EGridEdge Edge,
+        const FVector& LocalOffset);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Throw")
     bool TrySpawnThrownItemProjectile (
         const FGridItemInstance& ItemInstance,

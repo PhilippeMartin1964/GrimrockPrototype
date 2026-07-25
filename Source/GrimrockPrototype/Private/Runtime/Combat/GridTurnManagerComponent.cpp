@@ -93,6 +93,7 @@ void UGridTurnManagerComponent::EndPlay (const EEndPlayReason::Type EndPlayReaso
 
     UnbindCurrentMovement ();
     UnbindCurrentCombat ();
+    UnbindCombatMonsterDeaths ();
     SetPartyInputLocked (false);
     Super::EndPlay (EndPlayReason);
 }
@@ -252,6 +253,7 @@ void UGridTurnManagerComponent::AbortCombat ()
 
     UnbindCurrentMovement ();
     UnbindCurrentCombat ();
+    UnbindCombatMonsterDeaths ();
     bWaitingForCombatStart = false;
     CombatStartDelayRemaining = 0.0f;
     ActiveActionTimeoutRemaining = 0.0f;
@@ -390,6 +392,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
     CombatRandomStream.Initialize (EncounterRandomSeed);
 
     bCombatActive = true;
+    BindCombatMonsterDeaths ();
     RoundNumber = PhaseState.GetRoundNumber ();
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (true);
@@ -403,6 +406,111 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
 
     RefreshTickEnabled ();
     return true;
+}
+
+void UGridTurnManagerComponent::BindCombatMonsterDeaths ()
+{
+    for (AGridMonsterActor* Monster : CombatMonsters)
+    {
+        if (IsValid (Monster))
+        {
+            Monster->OnMonsterDied.AddUniqueDynamic (
+                this,
+                &UGridTurnManagerComponent::HandleCombatMonsterDied);
+        }
+    }
+}
+
+void UGridTurnManagerComponent::UnbindCombatMonsterDeaths ()
+{
+    for (AGridMonsterActor* Monster : CombatMonsters)
+    {
+        if (IsValid (Monster))
+        {
+            Monster->OnMonsterDied.RemoveDynamic (
+                this,
+                &UGridTurnManagerComponent::HandleCombatMonsterDied);
+        }
+    }
+}
+
+void UGridTurnManagerComponent::HandleCombatMonsterDied (
+    AGridMonsterActor* Monster,
+    FIntPoint DeathCell)
+{
+    (void)DeathCell;
+    if (!bCombatActive || !IsValid (Monster) ||
+        !CombatMonsters.ContainsByPredicate (
+            [Monster] (const TObjectPtr<AGridMonsterActor>& Candidate)
+            {
+                return Candidate.Get () == Monster;
+            }))
+    {
+        return;
+    }
+
+    const bool bWasCurrentMonster = CurrentMonster == Monster;
+    const bool bWasEnemyPhase = CurrentPhase == EGridCombatPhase::EnemyPhase;
+    PendingActions.RemoveAll (
+        [Monster] (const FGridCombatAction& Action)
+        {
+            return Action.SourceActorId == Monster->SpawnObjectId;
+        });
+
+    const int32 DeadTurnIndex = EnemyTurnOrder.IndexOfByPredicate (
+        [Monster] (const TObjectPtr<AGridMonsterActor>& Candidate)
+        {
+            return Candidate.Get () == Monster;
+        });
+    if (DeadTurnIndex != INDEX_NONE)
+    {
+        EnemyTurnOrder.RemoveAt (DeadTurnIndex);
+        if (DeadTurnIndex <= CurrentEnemyIndex)
+        {
+            --CurrentEnemyIndex;
+        }
+    }
+
+    if (bWasCurrentMonster)
+    {
+        if (CurrentMovementComponent)
+        {
+            CurrentMovementComponent->CancelCurrentAction ();
+        }
+        if (CurrentCombatComponent)
+        {
+            CurrentCombatComponent->CancelAttackPresentation ();
+        }
+        UnbindCurrentMovement ();
+        UnbindCurrentCombat ();
+        PendingActions.Reset ();
+        bHasActiveAction = false;
+        ActiveAction = FGridCombatAction ();
+        ActiveActionTimeoutRemaining = 0.0f;
+        ResetActiveAttackState ();
+        CurrentMonster = nullptr;
+    }
+
+    int32 RemainingLiving = 0;
+    for (const AGridMonsterActor* Candidate : CombatMonsters)
+    {
+        RemainingLiving += IsValid (Candidate) && !Candidate->IsDead () ? 1 : 0;
+    }
+    const bool bVictory = RemainingLiving == 0;
+    UE_LOG (LogTemp, Log,
+        TEXT ("[GridTurnManager] MonsterDied Monster=%s RemainingLiving=%d Victory=%s"),
+        *GetNameSafe (Monster),
+        RemainingLiving,
+        bVictory ? TEXT ("true") : TEXT ("false"));
+
+    if (bVictory)
+    {
+        FinishCombat (EGridCombatPhase::Victory);
+    }
+    else if (bWasCurrentMonster && bWasEnemyPhase)
+    {
+        BeginNextMonsterTurn ();
+    }
 }
 
 void UGridTurnManagerComponent::CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters) const

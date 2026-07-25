@@ -8,10 +8,17 @@
 #include "GameFramework/Actor.h"
 #include "Core/GridDirectionUtils.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "GridMonsterActor.generated.h"
 
+class AGridMonsterActor;
 class UGridMonsterAnimInstance;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
+    FGridMonsterDiedSignature,
+    AGridMonsterActor*, Monster,
+    FIntPoint, DeathCell);
 
 /**
  * Runtime visual representation of a grid monster.
@@ -52,6 +59,7 @@ public:
             EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered;
 
         CombatComponent = CreateDefaultSubobject<UGridMonsterCombatComponent> (TEXT ("MonsterCombat"));
+        DeathComponent = CreateDefaultSubobject<UGridMonsterDeathComponent> (TEXT ("MonsterDeath"));
 
         SetCanBeDamaged (false);
     }
@@ -61,6 +69,10 @@ public:
         Super::OnConstruction (Transform);
         ApplyDefinitionVisuals ();
         ApplyFacingRotation ();
+        if (DeathComponent)
+        {
+            DeathComponent->InitializeDeathComponent ();
+        }
     }
 
     virtual void BeginPlay () override
@@ -97,6 +109,12 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
     TObjectPtr<UGridMonsterCombatComponent> CombatComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<UGridMonsterDeathComponent> DeathComponent;
+
+    UPROPERTY (BlueprintAssignable, Category = "Monster|Death")
+    FGridMonsterDiedSignature OnMonsterDied;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Definition")
     TObjectPtr<UGridMonsterDefinitionAsset> MonsterDefinition = nullptr;
@@ -243,6 +261,11 @@ public:
             Errors.Add (TEXT ("MonsterCombat component is missing."));
         }
 
+        if (!DeathComponent)
+        {
+            Errors.Add (TEXT ("MonsterDeath component is missing."));
+        }
+
         if (Facing == EGridEdge::None)
         {
             Errors.Add (TEXT ("Facing must be a cardinal grid direction."));
@@ -342,22 +365,7 @@ public:
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|State")
-    void MarkDead ()
-    {
-        CurrentHealth = 0;
-        MonsterState = EGridMonsterState::Dead;
-        ResetAnimationSignals ();
-
-        if (CombatComponent)
-        {
-            CombatComponent->CancelAttackPresentation ();
-        }
-
-        if (CollisionComponent)
-        {
-            CollisionComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-        }
-    }
+    void MarkDead ();
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
     void SetMovementAnimationState (bool bInMoving, float InMoveAlpha = 0.0f)

@@ -1,4 +1,28 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/GridItemDefinitionAsset.h"
+
+FName FGridMonsterLootEntry::GetResolvedItemDefinitionId () const
+{
+    return ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone ()
+        ? ItemDefinitionAsset->ItemDefinitionId
+        : ItemDefinitionId;
+}
+
+bool FGridMonsterLootEntry::IsValidDefinition () const
+{
+    const FName ResolvedId = GetResolvedItemDefinitionId ();
+    const bool bIdsAgree =
+        !ItemDefinitionAsset ||
+        ItemDefinitionId.IsNone () ||
+        ItemDefinitionAsset->ItemDefinitionId == ItemDefinitionId;
+    return !ResolvedId.IsNone () &&
+        bIdsAgree &&
+        FMath::IsFinite (DropChance) &&
+        DropChance >= 0.0f &&
+        DropChance <= 1.0f &&
+        MinQuantity > 0 &&
+        MaxQuantity >= MinQuantity;
+}
 
 FPrimaryAssetId UGridMonsterDefinitionAsset::GetPrimaryAssetId () const
 {
@@ -96,6 +120,11 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         Errors.Add (TEXT ("LowHealthThreshold must be between 0 and 1."));
     }
 
+    if (!FMath::IsFinite (DeathExpectedDuration) || DeathExpectedDuration <= 0.0f)
+    {
+        Errors.Add (TEXT ("DeathExpectedDuration must be finite and greater than zero."));
+    }
+
     TSet<FName> AttackIds;
     for (int32 AttackIndex = 0; AttackIndex < Attacks.Num (); ++AttackIndex)
     {
@@ -150,15 +179,16 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
             continue;
         }
 
-        if (LootIds.Contains (LootEntry.ItemDefinitionId))
+        const FName ResolvedLootId = LootEntry.GetResolvedItemDefinitionId ();
+        if (LootIds.Contains (ResolvedLootId))
         {
             Errors.Add (FString::Printf (
                 TEXT ("Duplicate loot ItemDefinitionId: %s."),
-                *LootEntry.ItemDefinitionId.ToString ()));
+                *ResolvedLootId.ToString ()));
             continue;
         }
 
-        LootIds.Add (LootEntry.ItemDefinitionId);
+        LootIds.Add (ResolvedLootId);
         TotalDropChance += LootEntry.DropChance;
     }
 

@@ -37,11 +37,11 @@ namespace
             case EGridLevelObjectType::PressurePlate:
             case EGridLevelObjectType::Trigger:
             case EGridLevelObjectType::Receptacle:
+            case EGridLevelObjectType::MonsterSpawn:
                 return true;
 
             case EGridLevelObjectType::Item:
             case EGridLevelObjectType::ItemSpawn:
-            case EGridLevelObjectType::MonsterSpawn:
             case EGridLevelObjectType::Door:
             case EGridLevelObjectType::Teleporter:
             case EGridLevelObjectType::Decoration:
@@ -82,9 +82,12 @@ namespace
                 };
                 break;
 
+            case EGridLevelObjectType::MonsterSpawn:
+                Events = {EGridObjectEvent::MonsterDied};
+                break;
+
             case EGridLevelObjectType::Item:
             case EGridLevelObjectType::ItemSpawn:
-            case EGridLevelObjectType::MonsterSpawn:
             case EGridLevelObjectType::Door:
             case EGridLevelObjectType::Teleporter:
             case EGridLevelObjectType::Decoration:
@@ -523,7 +526,8 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
         EGridObjectEvent::Opened,
         EGridObjectEvent::Closed,
         EGridObjectEvent::Enabled,
-        EGridObjectEvent::Disabled
+        EGridObjectEvent::Disabled,
+        EGridObjectEvent::MonsterDied
     };
 
     const auto AddLinkRow = [this, CurrentEditorActor, &Root, &Count, bOutgoing] (const FGridObjectLink& Link)

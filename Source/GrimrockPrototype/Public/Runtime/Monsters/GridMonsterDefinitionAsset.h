@@ -6,6 +6,7 @@
 #include "GridMonsterDefinitionAsset.generated.h"
 
 class UAnimInstance;
+class UAnimMontage;
 class USkeletalMesh;
 class UTexture2D;
 
@@ -127,6 +128,13 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Rewards")
     TArray<FGridMonsterLootEntry> LootTable;
+
+    /** Optional presentation only; logical death never waits for this montage. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation")
+    TSoftObjectPtr<UAnimMontage> DeathMontage;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation", meta = (ClampMin = "0.01"))
+    float DeathExpectedDuration = 1.0f;
 
     UFUNCTION (BlueprintPure, Category = "Monster|Validation")
     bool IsValidDefinition () const;

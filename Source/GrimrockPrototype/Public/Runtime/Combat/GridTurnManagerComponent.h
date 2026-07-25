@@ -340,6 +340,8 @@ private:
     void UnbindCurrentMovement ();
     void BindCurrentCombat (UGridMonsterCombatComponent* CombatComponent);
     void UnbindCurrentCombat ();
+    void BindCombatMonsterDeaths ();
+    void UnbindCombatMonsterDeaths ();
 
     AGridLevelRuntimeActor* FindRuntimeActor () const;
     AGrimrockPartyPawn* FindPartyPawn () const;
@@ -355,4 +357,9 @@ private:
 
     UFUNCTION ()
     void HandleMonsterActionCompleteNotify ();
+
+    UFUNCTION ()
+    void HandleCombatMonsterDied (
+        AGridMonsterActor* Monster,
+        FIntPoint DeathCell);
 };

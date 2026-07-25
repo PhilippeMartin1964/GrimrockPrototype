@@ -234,6 +234,7 @@ void UGridTurnManagerComponent::BeginNextMonsterTurn ()
 {
     UnbindCurrentMovement ();
     UnbindCurrentCombat ();
+    UnbindCombatMonsterDeaths ();
     CurrentMonster = nullptr;
     PendingActions.Reset ();
     bHasActiveAction = false;
@@ -520,6 +521,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     ActionPointBudget.Reset (0);
     ResetActiveAttackState ();
     bCombatActive = false;
+    CombatMonsters.Reset ();
 
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (false);
