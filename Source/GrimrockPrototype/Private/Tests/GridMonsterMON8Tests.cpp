@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Core/GridDirectionUtils.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -466,6 +467,151 @@ bool FGridMonsterMON8VictoryOnLastDeathTest::RunTest (const FString& Parameters)
         TEXT ("A duplicate death leaves Victory unchanged"),
         TurnManager->CurrentPhase,
         EGridCombatPhase::Victory);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON8VictoryAfterEnemyPhaseStartedTest,
+    "Grimrock.Monsters.MON8.VictoryAfterEnemyPhaseStarted",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON8VictoryAfterEnemyPhaseStartedTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON8TestWorld TestWorld;
+    if (!TestNotNull (
+        TEXT ("The transient enemy-phase world exists"),
+        TestWorld.World))
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    AGrimrockPartyPawn* Party =
+        TestWorld.World->SpawnActor<AGrimrockPartyPawn> ();
+    TestNotNull (TEXT ("The runtime actor exists"), Runtime);
+    TestNotNull (TEXT ("The party pawn exists"), Party);
+    if (!Runtime || !ConfigureMON8Floor (Runtime) || !Party ||
+        !Party->PartyInventoryComponent)
+    {
+        return false;
+    }
+
+    Party->LevelRuntimeActor = Runtime;
+    Party->CurrentCellX = 4;
+    Party->CurrentCellY = 4;
+    Party->Facing = EGridEdge::North;
+    Party->MoveDuration = 0.0f;
+    Party->TurnDuration = 0.0f;
+    Party->InputBufferMaxAge = 0.0f;
+    Party->SetActorLocation (Runtime->GetCellCenterWorld (
+        Party->CurrentCellX,
+        Party->CurrentCellY,
+        Party->EyeHeight));
+    Party->SetActorRotation (FRotator (
+        0.0f,
+        GridDirectionUtils::ToYaw (Party->Facing),
+        0.0f));
+
+    FGridCharacterInventoryState LivingCharacter;
+    LivingCharacter.DerivedStats.CurrentHealth = 10;
+    Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = {
+        LivingCharacter
+    };
+
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON8MonsterDefinition (
+            Runtime,
+            TEXT ("MON8_EnemyPhaseVictoryRat"));
+    Definition->HearingRangeCells = 20;
+    AGridMonsterActor* First = SpawnMON8Monster (
+        TestWorld.World,
+        Definition,
+        FGuid (25, 0, 0, 1),
+        FIntPoint (1, 1),
+        true);
+    AGridMonsterActor* Second = SpawnMON8Monster (
+        TestWorld.World,
+        Definition,
+        FGuid (25, 0, 0, 2),
+        FIntPoint (2, 1),
+        true);
+    TestNotNull (TEXT ("The first enemy-phase rat exists"), First);
+    TestNotNull (TEXT ("The second enemy-phase rat exists"), Second);
+    if (!First || !Second)
+    {
+        return false;
+    }
+
+    UGridTurnManagerComponent* TurnManager =
+        NewObject<UGridTurnManagerComponent> (
+            Runtime,
+            TEXT ("MON8EnemyPhaseTurnManager"));
+    TurnManager->bAutoInitialize = false;
+    TurnManager->CombatStartSafetyPadding = 0.0f;
+    Runtime->AddInstanceComponent (TurnManager);
+    TurnManager->RegisterComponent ();
+
+    if (!TestTrue (
+        TEXT ("The enemy-phase TurnManager initializes"),
+        TurnManager->InitializeTurnManager (Runtime, Party)) ||
+        !TestTrue (
+            TEXT ("The enemy-phase encounter starts"),
+            TurnManager->StartCombatWithAllMonsters ()) ||
+        !TestTrue (
+            TEXT ("Ending PlayerPhase starts EnemyPhase"),
+            TurnManager->EndPlayerPhase ()))
+    {
+        return false;
+    }
+
+    TestEqual (
+        TEXT ("The encounter is in EnemyPhase"),
+        TurnManager->CurrentPhase,
+        EGridCombatPhase::EnemyPhase);
+    AGridMonsterActor* ActiveMonster = TurnManager->CurrentMonster;
+    TestNotNull (
+        TEXT ("A monster turn is active after BeginNextMonsterTurn"),
+        ActiveMonster);
+    if (!ActiveMonster)
+    {
+        return false;
+    }
+
+    AGridMonsterActor* RemainingMonster =
+        ActiveMonster == First ? Second : First;
+    ActiveMonster->MarkDead ();
+    TestTrue (
+        TEXT ("Combat remains active after the active monster dies"),
+        TurnManager->bCombatActive);
+    TestEqual (
+        TEXT ("The next living monster immediately receives its turn"),
+        TurnManager->CurrentMonster.Get (),
+        RemainingMonster);
+
+    RemainingMonster->MarkDead ();
+    TestFalse (
+        TEXT ("The last EnemyPhase death immediately ends combat"),
+        TurnManager->bCombatActive);
+    TestEqual (
+        TEXT ("The terminal phase is Victory"),
+        TurnManager->CurrentPhase,
+        EGridCombatPhase::Victory);
+    TestTrue (
+        TEXT ("No pending action remains after Victory"),
+        TurnManager->PendingActions.IsEmpty ());
+    TestFalse (
+        TEXT ("No active action remains after Victory"),
+        TurnManager->bHasActiveAction);
+    TestEqual (
+        TEXT ("ActiveAction is reset after Victory"),
+        TurnManager->ActiveAction.Type,
+        EGridCombatActionType::None);
+    TestFalse (
+        TEXT ("Party input is unlocked after Victory"),
+        TurnManager->IsPartyInputLocked ());
     return true;
 }
 

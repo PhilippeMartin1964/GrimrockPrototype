@@ -234,7 +234,6 @@ void UGridTurnManagerComponent::BeginNextMonsterTurn ()
 {
     UnbindCurrentMovement ();
     UnbindCurrentCombat ();
-    UnbindCombatMonsterDeaths ();
     CurrentMonster = nullptr;
     PendingActions.Reset ();
     bHasActiveAction = false;
@@ -507,6 +506,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
 
     UnbindCurrentMovement ();
     UnbindCurrentCombat ();
+    UnbindCombatMonsterDeaths ();
     bWaitingForCombatStart = false;
     CombatStartDelayRemaining = 0.0f;
     ActiveActionTimeoutRemaining = 0.0f;
