@@ -1,5 +1,6 @@
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
+#include "Misc/Crc.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 
 bool FGridMonsterOccupancyRegistry::TryRegisterMonster (const FGuid& MonsterId, const FIntPoint& Cell)
@@ -140,6 +141,23 @@ bool FGridMonsterOccupancyRegistry::IsCellBlocked (
     return IsCellOccupied (Cell, IgnoredMonsterId) || IsCellReserved (Cell, IgnoredMonsterId);
 }
 
+bool FGridMonsterOccupancyRegistry::CanReserveCell (
+    const FGuid& MonsterId,
+    const FIntPoint& Cell) const
+{
+    if (!MonsterId.IsValid () || !MonsterCells.Contains (MonsterId))
+    {
+        return false;
+    }
+
+    if (const FIntPoint* ExistingReservation = MonsterReservations.Find (MonsterId))
+    {
+        return *ExistingReservation == Cell;
+    }
+
+    return !IsCellBlocked (Cell, MonsterId);
+}
+
 bool FGridMonsterOccupancyRegistry::TryGetMonsterCell (const FGuid& MonsterId, FIntPoint& OutCell) const
 {
     if (const FIntPoint* Cell = MonsterCells.Find (MonsterId))
@@ -193,7 +211,16 @@ bool UGridMonsterOccupancySubsystem::RegisterMonster (AGridMonsterActor* Monster
 
     if (!Monster->SpawnObjectId.IsValid ())
     {
-        Monster->SpawnObjectId = FGuid::NewGuid ();
+        const FString StablePath = Monster->GetPathName ();
+        Monster->SpawnObjectId = FGuid (
+            FCrc::StrCrc32 (*StablePath),
+            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-B"))),
+            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-C"))),
+            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-D"))));
+        if (!Monster->SpawnObjectId.IsValid ())
+        {
+            Monster->SpawnObjectId = FGuid::NewGuid ();
+        }
     }
 
     const FGuid MonsterId = Monster->SpawnObjectId;
@@ -255,6 +282,13 @@ bool UGridMonsterOccupancySubsystem::IsCellBlocked (
     const AGridMonsterActor* IgnoredMonster) const
 {
     return Registry.IsCellBlocked (Cell, ResolveMonsterId (IgnoredMonster));
+}
+
+bool UGridMonsterOccupancySubsystem::CanReserveCell (
+    const AGridMonsterActor* Monster,
+    FIntPoint Cell) const
+{
+    return Registry.CanReserveCell (ResolveMonsterId (Monster), Cell);
 }
 
 AGridMonsterActor* UGridMonsterOccupancySubsystem::GetOccupantAtCell (FIntPoint Cell) const

@@ -8,6 +8,7 @@
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
+#include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 
 namespace
@@ -65,6 +66,11 @@ bool UGridTurnManagerComponent::StartActiveAction (const FGridCombatAction& Acti
     if (!IsValid (CurrentMonster))
     {
         return false;
+    }
+
+    if (Action.bIsRepositioningAction && !CurrentMonster->IsDead ())
+    {
+        CurrentMonster->SetMonsterState (EGridMonsterState::Repositioning);
     }
 
     if (Action.Type == EGridCombatActionType::Wait)
@@ -286,7 +292,37 @@ void UGridTurnManagerComponent::CompleteActiveAction (bool bSucceeded)
         ActionPointBudget.Spend (CompletedAction.ActionPointCost);
     }
     CurrentMonsterRemainingActionPoints = ActionPointBudget.GetRemainingPoints ();
+
+    const bool bFailedReposition =
+        CompletedAction.bIsRepositioningAction && !bSucceeded;
+    if (CompletedAction.bIsRepositioningAction &&
+        IsValid (CurrentMonster) &&
+        !CurrentMonster->IsDead ())
+    {
+        if (bFailedReposition ||
+            CompletedAction.Type == EGridCombatActionType::Move)
+        {
+            CurrentMonster->SetMonsterState (EGridMonsterState::Pursuing);
+        }
+    }
+
     OnActionCompleted.Broadcast (CompletedAction, bSucceeded);
+
+    if (bFailedReposition)
+    {
+        if (CurrentMovementComponent)
+        {
+            CurrentMovementComponent->CancelCurrentAction ();
+            if (UGridMonsterOccupancySubsystem* OccupancySubsystem =
+                CurrentMovementComponent->GetOccupancySubsystem ())
+            {
+                OccupancySubsystem->CancelReservation (CurrentMonster);
+            }
+        }
+        PendingActions.Reset ();
+        FinishCurrentMonsterTurn ();
+        return;
+    }
 
     if (CompletedAction.Type == EGridCombatActionType::MeleeAttack)
     {

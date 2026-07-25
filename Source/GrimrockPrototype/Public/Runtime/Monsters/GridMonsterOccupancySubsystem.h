@@ -25,6 +25,7 @@ public:
     bool IsCellOccupied (const FIntPoint& Cell, const FGuid& IgnoredMonsterId = FGuid ()) const;
     bool IsCellReserved (const FIntPoint& Cell, const FGuid& IgnoredMonsterId = FGuid ()) const;
     bool IsCellBlocked (const FIntPoint& Cell, const FGuid& IgnoredMonsterId = FGuid ()) const;
+    bool CanReserveCell (const FGuid& MonsterId, const FIntPoint& Cell) const;
 
     bool TryGetMonsterCell (const FGuid& MonsterId, FIntPoint& OutCell) const;
     bool TryGetReservation (const FGuid& MonsterId, FIntPoint& OutCell) const;
@@ -76,6 +77,9 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "Monster|Occupancy")
     bool IsCellBlocked (FIntPoint Cell, const AGridMonsterActor* IgnoredMonster = nullptr) const;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Occupancy")
+    bool CanReserveCell (const AGridMonsterActor* Monster, FIntPoint Cell) const;
 
     UFUNCTION (BlueprintPure, Category = "Monster|Occupancy")
     AGridMonsterActor* GetOccupantAtCell (FIntPoint Cell) const;

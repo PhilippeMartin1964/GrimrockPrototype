@@ -18,6 +18,7 @@ class AGridItemActor;
 class AGridThrownItemActor;
 class AGridReceptacleActor;
 class AGridWallLockActor;
+class AGridMonsterActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
@@ -299,6 +300,9 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "Runtime|Interaction")
     bool IsPartyOnCell (int32 CellX, int32 CellY) const;
+
+    /** Applies MON7 metadata to a monster initialized from a LevelAsset placement. */
+    void ApplyMonsterPlacementMetadata (AGridMonsterActor* Monster) const;
 
     bool CanPartyPickupItemActor (const AGridItemActor* ItemActor, const AGrimrockPartyPawn* PartyPawn) const;
     bool CanPartyPickupItemEntry (

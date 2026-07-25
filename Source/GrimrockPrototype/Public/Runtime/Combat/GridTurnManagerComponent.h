@@ -12,6 +12,7 @@ class AGrimrockPartyPawn;
 class UGridMonsterBehaviorComponent;
 class UGridMonsterCombatComponent;
 class UGridMonsterMovementComponent;
+struct FGridRetreatDecision;
 
 /** Small deterministic action-point budget used by the turn manager and tests. */
 class GRIMROCKPROTOTYPE_API FGridActionPointBudget
@@ -76,6 +77,23 @@ public:
         int32 AvailableActionPoints,
         FName AttackId,
         int32 AttackActionPointCost,
+        TArray<FGridCombatAction>& OutActions);
+
+    /**
+     * Preserves DirectMelee planning and optionally appends a marked retreat
+     * after the single planned melee attack.
+     */
+    static void BuildFastHarasserTurn (
+        const FGuid& SourceActorId,
+        const FIntPoint& StartCell,
+        EGridEdge StartFacing,
+        const FIntPoint& PartyCell,
+        const TArray<FIntPoint>& Path,
+        int32 AvailableActionPoints,
+        FName AttackId,
+        int32 AttackActionPointCost,
+        const FGridRetreatDecision& RetreatDecision,
+        bool bShouldRetreat,
         TArray<FGridCombatAction>& OutActions);
 };
 

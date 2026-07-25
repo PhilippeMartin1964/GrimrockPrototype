@@ -147,6 +147,10 @@ struct FGridCombatAction
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Outcome")
     bool bOutcomeCommitted = false;
 
+    /** MON7 marks the free turn and move that belong to a post-attack retreat. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Action")
+    bool bIsRepositioningAction = false;
+
     bool IsValid () const
     {
         return Type != EGridCombatActionType::None && ActionPointCost >= 0;

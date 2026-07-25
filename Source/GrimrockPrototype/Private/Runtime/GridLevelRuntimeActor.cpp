@@ -11,6 +11,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridMechanismActor.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -2882,6 +2883,26 @@ bool AGridLevelRuntimeActor::IsPartyOnCell (int32 CellX, int32 CellY) const
     }
 
     return false;
+}
+
+void AGridLevelRuntimeActor::ApplyMonsterPlacementMetadata (
+    AGridMonsterActor* Monster) const
+{
+    if (!LevelAsset || !IsValid (Monster) || !Monster->SpawnObjectId.IsValid ())
+    {
+        return;
+    }
+
+    const FGridLevelObjectData* Placement = LevelAsset->Objects.FindByPredicate (
+        [Monster] (const FGridLevelObjectData& ObjectData)
+        {
+            return ObjectData.Type == EGridLevelObjectType::MonsterSpawn &&
+                ObjectData.ObjectId == Monster->SpawnObjectId;
+        });
+    if (Placement)
+    {
+        Monster->EncounterGroupId = Placement->EncounterGroupId;
+    }
 }
 
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const

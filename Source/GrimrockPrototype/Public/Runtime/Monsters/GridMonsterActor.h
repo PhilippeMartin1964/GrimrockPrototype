@@ -137,12 +137,21 @@ public:
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Animation", meta = (ClampMin = "-1", ClampMax = "1"))
     int32 TurnDirection = 0;
 
+    /** Editable on directly placed BP_MON_RatGiant instances. */
+    UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Encounter")
+    FName EncounterGroupId = NAME_None;
+
+    /** Disabled monsters never join or propagate a combat encounter. */
+    UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Encounter")
+    bool bMonsterEnabled = true;
+
     UFUNCTION (BlueprintCallable, Category = "Monster|Initialization")
     bool InitializeMonster (
         UGridMonsterDefinitionAsset* InDefinition,
         FGuid InSpawnObjectId,
         FIntPoint InCell,
-        EGridEdge InFacing = EGridEdge::North)
+        EGridEdge InFacing = EGridEdge::North,
+        FName InEncounterGroupId = NAME_None)
     {
         if (!IsValid (InDefinition) || !InDefinition->IsValidDefinition ())
         {
@@ -153,6 +162,7 @@ public:
         SpawnObjectId = InSpawnObjectId.IsValid () ? InSpawnObjectId : FGuid::NewGuid ();
         CurrentCell = InCell;
         Facing = InFacing == EGridEdge::None ? EGridEdge::North : InFacing;
+        EncounterGroupId = InEncounterGroupId;
         MonsterState = EGridMonsterState::Idle;
         CurrentHealth = MonsterDefinition->MaxHealth;
         CurrentPhysicalArmor = FMath::Max (0, MonsterDefinition->PhysicalArmor);
@@ -260,6 +270,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Monster|State")
     void SetMonsterState (EGridMonsterState InState)
     {
+        if (MonsterState == EGridMonsterState::Dead &&
+            InState != EGridMonsterState::Dead)
+        {
+            return;
+        }
+
         if (InState == EGridMonsterState::Dead)
         {
             MarkDead ();

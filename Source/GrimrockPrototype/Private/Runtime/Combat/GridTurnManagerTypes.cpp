@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "Runtime/Monsters/GridMonsterFastHarasserPlanner.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 
 namespace
@@ -337,4 +338,101 @@ void FGridMonsterTurnPlanner::BuildDirectMeleeTurn (
     {
         OutActions.Add (MakeWaitAction (SourceActorId, StartCell));
     }
+}
+
+void FGridMonsterTurnPlanner::BuildFastHarasserTurn (
+    const FGuid& SourceActorId,
+    const FIntPoint& StartCell,
+    EGridEdge StartFacing,
+    const FIntPoint& PartyCell,
+    const TArray<FIntPoint>& Path,
+    int32 AvailableActionPoints,
+    FName AttackId,
+    int32 AttackActionPointCost,
+    const FGridRetreatDecision& RetreatDecision,
+    bool bShouldRetreat,
+    TArray<FGridCombatAction>& OutActions)
+{
+    BuildDirectMeleeTurn (
+        SourceActorId,
+        StartCell,
+        StartFacing,
+        PartyCell,
+        Path,
+        AvailableActionPoints,
+        AttackId,
+        AttackActionPointCost,
+        OutActions);
+
+    if (!bShouldRetreat || !RetreatDecision.bHasRetreatCell)
+    {
+        return;
+    }
+
+    FIntPoint SimulatedCell = StartCell;
+    EGridEdge SimulatedFacing = StartFacing == EGridEdge::None
+        ? EGridEdge::North
+        : StartFacing;
+    int32 RemainingActionPoints = FMath::Max (0, AvailableActionPoints);
+    bool bMeleeAttackPlanned = false;
+
+    for (const FGridCombatAction& Action : OutActions)
+    {
+        if (Action.Type == EGridCombatActionType::Turn)
+        {
+            const EGridEdge TurnFacing =
+                FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                    SimulatedCell,
+                    Action.TargetCell);
+            if (TurnFacing != EGridEdge::None)
+            {
+                SimulatedFacing = TurnFacing;
+            }
+        }
+        else if (Action.Type == EGridCombatActionType::Move)
+        {
+            SimulatedFacing =
+                FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                    SimulatedCell,
+                    Action.TargetCell);
+            SimulatedCell = Action.TargetCell;
+            RemainingActionPoints -= Action.ActionPointCost;
+        }
+        else if (Action.Type == EGridCombatActionType::MeleeAttack)
+        {
+            RemainingActionPoints -= Action.ActionPointCost;
+            bMeleeAttackPlanned = true;
+            break;
+        }
+    }
+
+    if (!bMeleeAttackPlanned ||
+        RemainingActionPoints < 1 ||
+        FGridMonsterPathfinder::GetNeighborCell (
+            SimulatedCell,
+            RetreatDecision.RetreatDirection) != RetreatDecision.RetreatCell)
+    {
+        return;
+    }
+
+    const int32 FirstRetreatActionIndex = OutActions.Num ();
+    if (!AppendTurnsToward (
+        SourceActorId,
+        SimulatedCell,
+        RetreatDecision.RetreatDirection,
+        SimulatedFacing,
+        OutActions))
+    {
+        return;
+    }
+
+    for (int32 Index = FirstRetreatActionIndex; Index < OutActions.Num (); ++Index)
+    {
+        OutActions[Index].bIsRepositioningAction = true;
+    }
+
+    FGridCombatAction RetreatMove =
+        MakeMoveAction (SourceActorId, RetreatDecision.RetreatCell);
+    RetreatMove.bIsRepositioningAction = true;
+    OutActions.Add (RetreatMove);
 }

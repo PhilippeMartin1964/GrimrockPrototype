@@ -8,7 +8,10 @@
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterFastHarasserPlanner.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
+#include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
+#include "Runtime/Monsters/GridMonsterPathfinder.h"
 
 namespace
 {
@@ -17,6 +20,149 @@ namespace
         return Monster && Monster->MonsterDefinition
             ? Monster->MonsterDefinition->Initiative
             : MIN_int32;
+    }
+
+    bool GetPostAttackPlanState (
+        const TArray<FGridCombatAction>& Actions,
+        const FIntPoint& StartCell,
+        EGridEdge StartFacing,
+        int32 AvailableActionPoints,
+        FIntPoint& OutAttackCell,
+        EGridEdge& OutAttackFacing,
+        int32& OutRemainingActionPoints)
+    {
+        OutAttackCell = StartCell;
+        OutAttackFacing = StartFacing == EGridEdge::None
+            ? EGridEdge::North
+            : StartFacing;
+        OutRemainingActionPoints = FMath::Max (0, AvailableActionPoints);
+
+        for (const FGridCombatAction& Action : Actions)
+        {
+            if (Action.Type == EGridCombatActionType::Turn)
+            {
+                const EGridEdge TargetFacing =
+                    FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                        OutAttackCell,
+                        Action.TargetCell);
+                if (TargetFacing != EGridEdge::None)
+                {
+                    OutAttackFacing = TargetFacing;
+                }
+            }
+            else if (Action.Type == EGridCombatActionType::Move)
+            {
+                const EGridEdge MoveFacing =
+                    FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                        OutAttackCell,
+                        Action.TargetCell);
+                if (MoveFacing != EGridEdge::None)
+                {
+                    OutAttackFacing = MoveFacing;
+                }
+                OutAttackCell = Action.TargetCell;
+            }
+
+            OutRemainingActionPoints -= Action.ActionPointCost;
+            if (Action.Type == EGridCombatActionType::MeleeAttack)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool IsRelevantRetreatExit (
+        const AGridLevelRuntimeActor* RuntimeActor,
+        const UGridMonsterOccupancySubsystem* OccupancySubsystem,
+        const AGridMonsterActor* Monster,
+        const FIntPoint& FromCell,
+        EGridEdge Direction,
+        const FIntPoint& PartyCell,
+        FIntPoint& OutCell)
+    {
+        OutCell = FGridMonsterPathfinder::GetNeighborCell (FromCell, Direction);
+        return RuntimeActor &&
+            OccupancySubsystem &&
+            OutCell != PartyCell &&
+            RuntimeActor->IsValidCell (OutCell.X, OutCell.Y) &&
+            RuntimeActor->IsWalkableCell (OutCell.X, OutCell.Y) &&
+            RuntimeActor->CanMove (FromCell.X, FromCell.Y, Direction) &&
+            !OccupancySubsystem->IsCellBlocked (OutCell, Monster);
+    }
+
+    void BuildRetreatCandidates (
+        const AGridLevelRuntimeActor* RuntimeActor,
+        const UGridMonsterOccupancySubsystem* OccupancySubsystem,
+        const AGridMonsterActor* Monster,
+        const FIntPoint& AttackCell,
+        const FIntPoint& PartyCell,
+        TArray<FGridRetreatCandidate>& OutCandidates)
+    {
+        OutCandidates.Reset ();
+        if (!RuntimeActor || !OccupancySubsystem || !IsValid (Monster))
+        {
+            return;
+        }
+
+        const TArray<EGridEdge>& OrderedDirections =
+            FGridMonsterPathfinder::GetOrderedDirections ();
+        for (int32 DirectionIndex = 0;
+            DirectionIndex < OrderedDirections.Num ();
+            ++DirectionIndex)
+        {
+            const EGridEdge Direction = OrderedDirections[DirectionIndex];
+            FIntPoint CandidateCell;
+            if (!IsRelevantRetreatExit (
+                RuntimeActor,
+                OccupancySubsystem,
+                Monster,
+                AttackCell,
+                Direction,
+                PartyCell,
+                CandidateCell) ||
+                !OccupancySubsystem->CanReserveCell (Monster, CandidateCell))
+            {
+                continue;
+            }
+
+            FGridRetreatCandidate Candidate;
+            Candidate.Cell = CandidateCell;
+            Candidate.Direction = Direction;
+            Candidate.DistanceToParty =
+                FGridMonsterPathfinder::ManhattanDistance (
+                    CandidateCell,
+                    PartyCell);
+            Candidate.StableDirectionOrder = DirectionIndex;
+
+            for (const EGridEdge ExitDirection : OrderedDirections)
+            {
+                FIntPoint ExitCell;
+                if (!IsRelevantRetreatExit (
+                    RuntimeActor,
+                    OccupancySubsystem,
+                    Monster,
+                    CandidateCell,
+                    ExitDirection,
+                    PartyCell,
+                    ExitCell))
+                {
+                    continue;
+                }
+
+                ++Candidate.ExitCount;
+                if (FGridMonsterPathfinder::ManhattanDistance (
+                        ExitCell,
+                        PartyCell) < Candidate.DistanceToParty)
+                {
+                    Candidate.bCanContinuePursuit = true;
+                }
+            }
+
+            Candidate.bIsCulDeSac = Candidate.ExitCount <= 1;
+            OutCandidates.Add (Candidate);
+        }
     }
 }
 
@@ -178,6 +324,101 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
             CurrentMonsterRemainingActionPoints,
             MeleeAttack.AttackId,
             MeleeAttack.ActionPointCost,
+            PendingActions);
+
+        if (!CurrentMonster->MonsterDefinition->HasAIProfile (
+            EGridMonsterAIProfile::FastHarasser))
+        {
+            return;
+        }
+
+        FIntPoint AttackCell;
+        EGridEdge AttackFacing = EGridEdge::North;
+        int32 RemainingAfterAttack = 0;
+        if (!GetPostAttackPlanState (
+            PendingActions,
+            CurrentMonster->CurrentCell,
+            CurrentMonster->Facing,
+            CurrentMonsterRemainingActionPoints,
+            AttackCell,
+            AttackFacing,
+            RemainingAfterAttack))
+        {
+            return;
+        }
+
+        if (RemainingAfterAttack < 1)
+        {
+            UE_LOG (LogTemp, Log,
+                TEXT ("[GridFastHarasser] NoRetreat Monster=%s Reason=NoActionPoints"),
+                *GetNameSafe (CurrentMonster));
+            return;
+        }
+
+        UGridMonsterOccupancySubsystem* OccupancySubsystem =
+            CurrentMovementComponent
+                ? CurrentMovementComponent->GetOccupancySubsystem ()
+                : nullptr;
+        const FIntPoint PartyCell (
+            PartyPawn->CurrentCellX,
+            PartyPawn->CurrentCellY);
+        TArray<FGridRetreatCandidate> Candidates;
+        BuildRetreatCandidates (
+            RuntimeActor,
+            OccupancySubsystem,
+            CurrentMonster,
+            AttackCell,
+            PartyCell,
+            Candidates);
+
+        FGridRetreatDecision RetreatDecision;
+        if (!FGridFastHarasserPlanner::SelectBestRetreatCell (
+            Candidates,
+            FGridMonsterPathfinder::ManhattanDistance (
+                AttackCell,
+                PartyCell),
+            RetreatDecision))
+        {
+            UE_LOG (LogTemp, Log,
+                TEXT ("[GridFastHarasser] NoRetreat Monster=%s Reason=NoValidCell"),
+                *GetNameSafe (CurrentMonster));
+            return;
+        }
+
+        float Roll = 0.0f;
+        const float RetreatChance =
+            FMath::Clamp (
+                CurrentMonster->MonsterDefinition->RetreatChance,
+                0.0f,
+                1.0f);
+        const bool bShouldRetreat =
+            FGridFastHarasserPlanner::ShouldRetreat (
+                RetreatChance,
+                CombatRandomStream,
+                &Roll);
+
+        UE_LOG (LogTemp, Log,
+            TEXT ("[GridFastHarasser] Decision Monster=%s Chance=%.2f Roll=%.3f CandidateCount=%d Retreat=%s Cell=(%d,%d) Score=%d"),
+            *GetNameSafe (CurrentMonster),
+            RetreatChance,
+            Roll,
+            Candidates.Num (),
+            bShouldRetreat ? TEXT ("true") : TEXT ("false"),
+            RetreatDecision.RetreatCell.X,
+            RetreatDecision.RetreatCell.Y,
+            RetreatDecision.Score);
+
+        FGridMonsterTurnPlanner::BuildFastHarasserTurn (
+            CurrentMonster->SpawnObjectId,
+            CurrentMonster->CurrentCell,
+            CurrentMonster->Facing,
+            PartyCell,
+            PlannedPath,
+            CurrentMonsterRemainingActionPoints,
+            MeleeAttack.AttackId,
+            MeleeAttack.ActionPointCost,
+            RetreatDecision,
+            bShouldRetreat,
             PendingActions);
         return;
     }

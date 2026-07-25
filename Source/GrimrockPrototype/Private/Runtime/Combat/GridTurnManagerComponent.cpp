@@ -3,13 +3,16 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
+#include "Misc/Crc.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterFastHarasserPlanner.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
+#include "Runtime/Monsters/GridMonsterPathfinder.h"
 
 namespace
 {
@@ -29,6 +32,34 @@ namespace
             return Enum->GetNameStringByValue (static_cast<int64> (Type));
         }
         return TEXT ("Unknown");
+    }
+
+    void EnsureStableMonsterId (AGridMonsterActor* Monster)
+    {
+        if (!IsValid (Monster) || Monster->SpawnObjectId.IsValid ())
+        {
+            return;
+        }
+
+        const FString StablePath = Monster->GetPathName ();
+        Monster->SpawnObjectId = FGuid (
+            FCrc::StrCrc32 (*StablePath),
+            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-B"))),
+            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-C"))),
+            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-D"))));
+        if (!Monster->SpawnObjectId.IsValid ())
+        {
+            Monster->SpawnObjectId = FGuid::NewGuid ();
+        }
+    }
+
+    FString GetStableMonsterSortKey (const AGridMonsterActor* Monster)
+    {
+        if (Monster && Monster->SpawnObjectId.IsValid ())
+        {
+            return Monster->SpawnObjectId.ToString (EGuidFormats::Digits);
+        }
+        return GetPathNameSafe (Monster);
     }
 }
 
@@ -386,11 +417,19 @@ void UGridTurnManagerComponent::CollectAllLivingMonsters (TArray<AGridMonsterAct
     for (TActorIterator<AGridMonsterActor> It (World); It; ++It)
     {
         AGridMonsterActor* Monster = *It;
-        if (IsValid (Monster) && !Monster->IsDead ())
+        if (IsValid (Monster) && !Monster->IsDead () && Monster->bMonsterEnabled)
         {
+            EnsureStableMonsterId (Monster);
             OutMonsters.Add (Monster);
         }
     }
+
+    OutMonsters.Sort ([] (
+        const AGridMonsterActor& Left,
+        const AGridMonsterActor& Right)
+    {
+        return GetStableMonsterSortKey (&Left) < GetStableMonsterSortKey (&Right);
+    });
 }
 
 void UGridTurnManagerComponent::CollectPerceivingMonsters (TArray<AGridMonsterActor*>& OutMonsters)
@@ -399,32 +438,109 @@ void UGridTurnManagerComponent::CollectPerceivingMonsters (TArray<AGridMonsterAc
     CollectAllLivingMonsters (AllMonsters);
     OutMonsters.Reset ();
 
+    TArray<AGridMonsterActor*> PreparedMonsters;
+    TArray<AGridMonsterActor*> DirectSources;
     for (AGridMonsterActor* Monster : AllMonsters)
     {
         if (!PrepareMonsterForCombat (Monster))
         {
             continue;
         }
+        PreparedMonsters.Add (Monster);
 
         UGridMonsterBehaviorComponent* Behavior =
             Monster->FindComponentByClass<UGridMonsterBehaviorComponent> ();
         if (Behavior && Behavior->RefreshPerception ())
         {
-            OutMonsters.Add (Monster);
+            DirectSources.Add (Monster);
+            OutMonsters.AddUnique (Monster);
+        }
+    }
+
+    TArray<FGridMonsterAggroCandidate> AggroCandidates;
+    AggroCandidates.Reserve (PreparedMonsters.Num ());
+    for (const AGridMonsterActor* Monster : PreparedMonsters)
+    {
+        FGridMonsterAggroCandidate Candidate;
+        Candidate.SpawnObjectId = Monster->SpawnObjectId;
+        Candidate.MonsterId = Monster->MonsterDefinition
+            ? Monster->MonsterDefinition->MonsterId
+            : NAME_None;
+        Candidate.EncounterGroupId = Monster->EncounterGroupId;
+        Candidate.Cell = Monster->CurrentCell;
+        Candidate.bIsAlive = !Monster->IsDead ();
+        Candidate.bIsEnabled = Monster->bMonsterEnabled;
+        AggroCandidates.Add (Candidate);
+    }
+
+    // MON7 deliberately performs one deterministic propagation wave.
+    for (AGridMonsterActor* Source : DirectSources)
+    {
+        if (!IsValid (Source) ||
+            !IsValid (Source->MonsterDefinition) ||
+            !Source->MonsterDefinition->bSharesAggroWithGroup ||
+            Source->EncounterGroupId.IsNone ())
+        {
+            continue;
+        }
+
+        TArray<FGuid> TargetIds;
+        FGridFastHarasserPlanner::SelectAggroTargets (
+            Source->SpawnObjectId,
+            Source->MonsterDefinition->MonsterId,
+            Source->EncounterGroupId,
+            Source->CurrentCell,
+            Source->MonsterDefinition->AggroPropagationRange,
+            AggroCandidates,
+            TargetIds);
+
+        for (const FGuid& TargetId : TargetIds)
+        {
+            AGridMonsterActor** TargetPtr = PreparedMonsters.FindByPredicate (
+                [&TargetId] (const AGridMonsterActor* Candidate)
+                {
+                    return IsValid (Candidate) &&
+                        Candidate->SpawnObjectId == TargetId;
+                });
+            AGridMonsterActor* Target = TargetPtr ? *TargetPtr : nullptr;
+            if (!IsValid (Target) || Target->IsDead () || !Target->bMonsterEnabled)
+            {
+                continue;
+            }
+
+            const bool bAlreadyParticipating = OutMonsters.Contains (Target);
+            if (!bAlreadyParticipating)
+            {
+                Target->SetMonsterState (EGridMonsterState::Alert);
+                OutMonsters.Add (Target);
+            }
+
+            UE_LOG (LogTemp, Log,
+                TEXT ("[GridMonsterAggro] Source=%s Group=%s Propagated=%s Distance=%d"),
+                *GetNameSafe (Source),
+                *Source->EncounterGroupId.ToString (),
+                *GetNameSafe (Target),
+                FGridMonsterPathfinder::ManhattanDistance (
+                    Source->CurrentCell,
+                    Target->CurrentCell));
         }
     }
 }
 
 bool UGridTurnManagerComponent::PrepareMonsterForCombat (AGridMonsterActor* Monster)
 {
-    if (!IsValid (Monster) || Monster->IsDead () || !IsValid (Monster->MonsterDefinition))
+    if (!IsValid (Monster) ||
+        Monster->IsDead () ||
+        !Monster->bMonsterEnabled ||
+        !IsValid (Monster->MonsterDefinition))
     {
         return false;
     }
 
-    if (!Monster->SpawnObjectId.IsValid ())
+    EnsureStableMonsterId (Monster);
+    if (IsValid (RuntimeActor))
     {
-        Monster->SpawnObjectId = FGuid::NewGuid ();
+        RuntimeActor->ApplyMonsterPlacementMetadata (Monster);
     }
 
     UGridMonsterMovementComponent* Movement =

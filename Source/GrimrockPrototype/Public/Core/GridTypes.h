@@ -210,6 +210,10 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGridObjectBehaviorParams Behavior;
+
+    /** Optional MON7 encounter group. None preserves legacy placement behavior. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster")
+    FName EncounterGroupId = NAME_None;
 };
 
 USTRUCT (BlueprintType)
