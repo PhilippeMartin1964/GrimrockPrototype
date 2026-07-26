@@ -11,7 +11,12 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridMechanismActor.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
+#include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/GridPressurePlateActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -220,6 +225,44 @@ namespace
         }
 
         return HiddenFloorCells;
+    }
+
+    void GetWorldMonsters (
+        const UWorld* World,
+        TArray<AGridMonsterActor*>& OutMonsters)
+    {
+        OutMonsters.Reset ();
+        if (!World)
+        {
+            return;
+        }
+
+        for (TActorIterator<AGridMonsterActor> It (
+            const_cast<UWorld*> (World)); It; ++It)
+        {
+            if (IsValid (*It))
+            {
+                OutMonsters.Add (*It);
+            }
+        }
+
+        OutMonsters.Sort ([] (
+            const AGridMonsterActor& Left,
+            const AGridMonsterActor& Right)
+        {
+            const FGuid LeftId = Left.ResolvePersistenceId ();
+            const FGuid RightId = Right.ResolvePersistenceId ();
+            if (LeftId.IsValid () != RightId.IsValid ())
+            {
+                return LeftId.IsValid ();
+            }
+            if (LeftId != RightId)
+            {
+                return LeftId.ToString (EGuidFormats::Digits) <
+                    RightId.ToString (EGuidFormats::Digits);
+            }
+            return Left.GetPathName () < Right.GetPathName ();
+        });
     }
 }
 
@@ -529,6 +572,7 @@ void AGridLevelRuntimeActor::BeginPlay ()
         EditorPreviewComponent->Initialize (this);
     }
     RebuildLevel ();
+    ApplyCurrentLevelRuntimeState ();
     if (ActivationComponent)
     {
         ActivationComponent->RefreshAllPressurePlates ();
@@ -549,6 +593,230 @@ const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrent
     return DungeonRuntimeState.LevelStates.Find (RuntimeLevelId);
 }
 
+void AGridLevelRuntimeActor::AbortActiveCombatAndMonsterActions ()
+{
+    if (UGridTurnManagerComponent* TurnManager =
+        FindComponentByClass<UGridTurnManagerComponent> ())
+    {
+        TurnManager->AbortCombat ();
+    }
+
+    TArray<AGridMonsterActor*> Monsters;
+    GetWorldMonsters (GetWorld (), Monsters);
+    for (AGridMonsterActor* Monster : Monsters)
+    {
+        if (Monster->CombatComponent)
+        {
+            Monster->CombatComponent->CancelAttackPresentation ();
+        }
+
+        if (UGridMonsterMovementComponent* Movement =
+            Monster->FindComponentByClass<UGridMonsterMovementComponent> ())
+        {
+            Movement->CancelCurrentAction ();
+        }
+    }
+
+    if (UGridMonsterOccupancySubsystem* Occupancy =
+        GetWorld ()
+            ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> ()
+            : nullptr)
+    {
+        for (AGridMonsterActor* Monster : Monsters)
+        {
+            Occupancy->CancelReservation (Monster);
+        }
+    }
+}
+
+void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
+    AGridMonsterActor* Monster,
+    bool bActive)
+{
+    if (!IsValid (Monster))
+    {
+        return;
+    }
+
+    UGridMonsterMovementComponent* Movement =
+        Monster->FindComponentByClass<UGridMonsterMovementComponent> ();
+    UGridMonsterBehaviorComponent* Behavior =
+        Monster->FindComponentByClass<UGridMonsterBehaviorComponent> ();
+    UGridMonsterOccupancySubsystem* Occupancy =
+        GetWorld ()
+            ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> ()
+            : nullptr;
+
+    if (!bActive)
+    {
+        if (Monster->CombatComponent)
+        {
+            Monster->CombatComponent->CancelAttackPresentation ();
+            Monster->CombatComponent->Deactivate ();
+        }
+        if (Movement)
+        {
+            Movement->CancelCurrentAction ();
+            Movement->ReleaseOccupancy ();
+            Movement->Deactivate ();
+        }
+        else if (Occupancy)
+        {
+            Occupancy->UnregisterMonster (Monster);
+        }
+        if (Behavior)
+        {
+            Behavior->Deactivate ();
+        }
+
+        Monster->ResetAnimationSignals ();
+        Monster->bRuntimeLevelActive = false;
+        Monster->SetActorEnableCollision (false);
+        if (Monster->CollisionComponent)
+        {
+            Monster->CollisionComponent->SetCollisionEnabled (
+                ECollisionEnabled::NoCollision);
+        }
+        Monster->SetActorHiddenInGame (true);
+        if (Monster->SkeletalMeshComponent)
+        {
+            Monster->SkeletalMeshComponent->SetVisibility (
+                false,
+                true);
+        }
+
+        UE_LOG (LogGridMonsterState, Log,
+            TEXT ("[GridMonsterState] DeactivateLevel Level=%s Monster=%s PersistenceId=%s"),
+            *CurrentDungeonLevelId.ToString (),
+            *GetNameSafe (Monster),
+            *Monster->ResolvePersistenceId ().ToString ());
+        return;
+    }
+
+    Monster->bRuntimeLevelActive = true;
+    Monster->SetActorHiddenInGame (false);
+    if (Monster->SkeletalMeshComponent)
+    {
+        Monster->SkeletalMeshComponent->SetVisibility (true, true);
+    }
+    Monster->SetActorLocation (GetCellCenterWorld (
+        Monster->CurrentCell.X,
+        Monster->CurrentCell.Y));
+    Monster->ApplyFacingRotation ();
+
+    if (Monster->IsDead ())
+    {
+        if (Monster->DeathComponent)
+        {
+            Monster->DeathComponent->InitializeDeathComponent (this);
+            Monster->DeathComponent->RestoreCommittedDeathState (
+                Monster->CurrentCell,
+                true);
+        }
+        else
+        {
+            Monster->SetActorEnableCollision (false);
+        }
+    }
+    else if (Monster->bMonsterEnabled)
+    {
+        Monster->SetActorEnableCollision (true);
+        if (Monster->CollisionComponent)
+        {
+            Monster->CollisionComponent->SetCollisionEnabled (
+                ECollisionEnabled::QueryOnly);
+        }
+
+        bool bRegistered = false;
+        if (Movement)
+        {
+            Movement->Activate ();
+            bRegistered = Movement->InitializeMovement (this);
+        }
+        else if (Occupancy)
+        {
+            bRegistered = Occupancy->RegisterMonster (
+                Monster,
+                Monster->CurrentCell);
+        }
+
+        if (!bRegistered)
+        {
+            if (Monster->CollisionComponent)
+            {
+                Monster->CollisionComponent->SetCollisionEnabled (
+                    ECollisionEnabled::NoCollision);
+            }
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) Result=OccupancyConflict"),
+                *CurrentDungeonLevelId.ToString (),
+                *GetNameSafe (Monster),
+                *Monster->ResolvePersistenceId ().ToString (),
+                Monster->CurrentCell.X,
+                Monster->CurrentCell.Y);
+        }
+
+        if (Behavior)
+        {
+            Behavior->Activate ();
+            Behavior->InitializeBehavior (this, nullptr);
+        }
+        if (Monster->CombatComponent)
+        {
+            Monster->CombatComponent->Activate ();
+            Monster->CombatComponent->InitializeCombat (nullptr);
+        }
+    }
+    else
+    {
+        Monster->SetActorEnableCollision (false);
+        if (Monster->CollisionComponent)
+        {
+            Monster->CollisionComponent->SetCollisionEnabled (
+                ECollisionEnabled::NoCollision);
+        }
+    }
+
+    UE_LOG (LogGridMonsterState, Log,
+        TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Dead=%s Enabled=%s"),
+        *CurrentDungeonLevelId.ToString (),
+        *GetNameSafe (Monster),
+        *Monster->ResolvePersistenceId ().ToString (),
+        Monster->IsDead () ? TEXT ("true") : TEXT ("false"),
+        Monster->bMonsterEnabled ? TEXT ("true") : TEXT ("false"));
+}
+
+void AGridLevelRuntimeActor::ApplyInitialMonsterStateForCurrentLevel ()
+{
+    AbortActiveCombatAndMonsterActions ();
+
+    TArray<AGridMonsterActor*> Monsters;
+    GetWorldMonsters (GetWorld (), Monsters);
+    for (AGridMonsterActor* Monster : Monsters)
+    {
+        SetMonsterRuntimeLevelActive (Monster, false);
+    }
+
+    if (UGridMonsterOccupancySubsystem* Occupancy =
+        GetWorld ()
+            ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> ()
+            : nullptr)
+    {
+        Occupancy->ResetRegistry ();
+    }
+
+    const FName RuntimeLevelId =
+        ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
+    for (AGridMonsterActor* Monster : Monsters)
+    {
+        if (Monster->ResolveRuntimeDungeonLevelId (RuntimeLevelId) ==
+            RuntimeLevelId)
+        {
+            SetMonsterRuntimeLevelActive (Monster, true);
+        }
+    }
+}
+
 bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
 {
     if (!LevelAsset)
@@ -567,6 +835,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
     State->ObjectPresence.Reset ();
     State->Items.Reset ();
     State->Receptacles.Reset ();
+    State->Monsters.Reset ();
     State->bHasBeenVisited = true;
 
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
@@ -687,14 +956,81 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState ()
         State->Receptacles.Add (Pair.Key, ReceptacleState);
     }
 
+    TArray<AGridMonsterActor*> Monsters;
+    GetWorldMonsters (GetWorld (), Monsters);
+    TMap<FGuid, int32> PersistenceIdCounts;
+    for (AGridMonsterActor* Monster : Monsters)
+    {
+        if (Monster->ResolveRuntimeDungeonLevelId (State->LevelId) !=
+            State->LevelId)
+        {
+            continue;
+        }
+
+        const FGuid PersistenceId =
+            Monster->ResolvePersistenceId ();
+        if (!PersistenceId.IsValid ())
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] Capture skipped Level=%s Monster=%s Reason=InvalidPersistenceId"),
+                *State->LevelId.ToString (),
+                *GetNameSafe (Monster));
+            continue;
+        }
+        ++PersistenceIdCounts.FindOrAdd (PersistenceId);
+    }
+
+    for (AGridMonsterActor* Monster : Monsters)
+    {
+        if (Monster->ResolveRuntimeDungeonLevelId (State->LevelId) !=
+            State->LevelId)
+        {
+            continue;
+        }
+
+        const FGuid PersistenceId =
+            Monster->ResolvePersistenceId ();
+        const int32 DuplicateCount =
+            PersistenceIdCounts.FindRef (PersistenceId);
+        if (DuplicateCount > 1)
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] DuplicatePersistenceId Level=%s Monster=%s PersistenceId=%s Count=%d"),
+                *State->LevelId.ToString (),
+                *GetNameSafe (Monster),
+                *PersistenceId.ToString (),
+                DuplicateCount);
+            continue;
+        }
+
+        FGridRuntimeMonsterState MonsterState;
+        if (Monster->CaptureRuntimeMonsterState (
+            MonsterState,
+            State->LevelId))
+        {
+            State->Monsters.Add (
+                MonsterState.PersistenceId,
+                MonsterState);
+        }
+    }
+
+    int32 DeadMonsterCount = 0;
+    for (const TPair<FGuid, FGridRuntimeMonsterState>& Pair :
+        State->Monsters)
+    {
+        DeadMonsterCount += Pair.Value.bIsDead ? 1 : 0;
+    }
+
     UE_LOG (LogTemp, Log,
-        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
+        TEXT ("GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d DeadMonsters=%d"),
         *State->LevelId.ToString (),
         State->Doors.Num (),
         CountRemovedRuntimeObjects (State),
         State->Items.Num (),
         State->Receptacles.Num (),
-        State->InteractiveObjects.Num ());
+        State->InteractiveObjects.Num (),
+        State->Monsters.Num (),
+        DeadMonsterCount);
 
     return true;
 }
@@ -709,7 +1045,25 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
     const FGridLevelRuntimeState* State = FindRuntimeStateForCurrentLevel ();
     if (!State || !State->bHasBeenVisited)
     {
+        ApplyInitialMonsterStateForCurrentLevel ();
         return false;
+    }
+
+    AbortActiveCombatAndMonsterActions ();
+
+    TArray<AGridMonsterActor*> WorldMonsters;
+    GetWorldMonsters (GetWorld (), WorldMonsters);
+    for (AGridMonsterActor* Monster : WorldMonsters)
+    {
+        SetMonsterRuntimeLevelActive (Monster, false);
+    }
+
+    if (UGridMonsterOccupancySubsystem* Occupancy =
+        GetWorld ()
+            ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> ()
+            : nullptr)
+    {
+        Occupancy->ResetRegistry ();
     }
 
     if (DoorSystemComponent)
@@ -919,14 +1273,146 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
             ReceptacleActor->HasItem () ? TEXT ("true") : TEXT ("false"),
             ReceptacleActor->GetContainedItemCount ());
     }
+
+    TMap<FGuid, TArray<AGridMonsterActor*>> MonstersByPersistenceId;
+    TArray<AGridMonsterActor*> CurrentLevelMonsters;
+    for (AGridMonsterActor* Monster : WorldMonsters)
+    {
+        if (Monster->ResolveRuntimeDungeonLevelId (State->LevelId) !=
+            State->LevelId)
+        {
+            continue;
+        }
+
+        CurrentLevelMonsters.Add (Monster);
+        const FGuid PersistenceId =
+            Monster->ResolvePersistenceId ();
+        if (PersistenceId.IsValid ())
+        {
+            MonstersByPersistenceId.FindOrAdd (
+                PersistenceId).Add (Monster);
+        }
+        else
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] ActivateLevel skipped Level=%s Monster=%s Reason=InvalidPersistenceId"),
+                *State->LevelId.ToString (),
+                *GetNameSafe (Monster));
+        }
+    }
+
+    for (const TPair<FGuid, TArray<AGridMonsterActor*>>& Pair :
+        MonstersByPersistenceId)
+    {
+        if (Pair.Value.Num () > 1)
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] DuplicatePersistenceId Level=%s PersistenceId=%s Count=%d"),
+                *State->LevelId.ToString (),
+                *Pair.Key.ToString (),
+                Pair.Value.Num ());
+        }
+    }
+
+    TArray<FGuid> SavedMonsterIds;
+    State->Monsters.GetKeys (SavedMonsterIds);
+    SavedMonsterIds.Sort ([] (const FGuid& Left, const FGuid& Right)
+    {
+        return Left.ToString (EGuidFormats::Digits) <
+            Right.ToString (EGuidFormats::Digits);
+    });
+
+    TSet<FGuid> AppliedMonsterIds;
+    for (const FGuid& SavedMonsterId : SavedMonsterIds)
+    {
+        const FGridRuntimeMonsterState* SavedMonsterState =
+            State->Monsters.Find (SavedMonsterId);
+        if (!SavedMonsterState)
+        {
+            continue;
+        }
+
+        const TArray<AGridMonsterActor*>* MatchingActors =
+            MonstersByPersistenceId.Find (SavedMonsterId);
+        if (!MatchingActors || MatchingActors->IsEmpty ())
+        {
+            UE_LOG (LogGridMonsterState, Warning,
+                TEXT ("[GridMonsterState] MissingActor Level=%s PersistenceId=%s Definition=%s Cell=(%d,%d)"),
+                *State->LevelId.ToString (),
+                *SavedMonsterId.ToString (),
+                *SavedMonsterState->MonsterDefinitionId.ToString (),
+                SavedMonsterState->CellX,
+                SavedMonsterState->CellY);
+            continue;
+        }
+        if (MatchingActors->Num () != 1)
+        {
+            continue;
+        }
+
+        AGridMonsterActor* Monster = (*MatchingActors)[0];
+        Monster->RestoreRuntimeMonsterState (
+            *SavedMonsterState,
+            this);
+        AppliedMonsterIds.Add (SavedMonsterId);
+    }
+
+    for (AGridMonsterActor* Monster : CurrentLevelMonsters)
+    {
+        const FGuid PersistenceId =
+            Monster->ResolvePersistenceId ();
+        const TArray<AGridMonsterActor*>* MatchingActors =
+            MonstersByPersistenceId.Find (PersistenceId);
+        if (!PersistenceId.IsValid () ||
+            (MatchingActors && MatchingActors->Num () > 1) ||
+            AppliedMonsterIds.Contains (PersistenceId))
+        {
+            continue;
+        }
+
+        // Version 1 and partial legacy states intentionally preserve the
+        // actor's initial runtime values.
+        SetMonsterRuntimeLevelActive (Monster, true);
+    }
+
+    for (AGridMonsterActor* Monster : CurrentLevelMonsters)
+    {
+        if (!Monster->IsRuntimeLevelActive () ||
+            Monster->IsDead () ||
+            !Monster->bMonsterEnabled)
+        {
+            continue;
+        }
+
+        if (UGridMonsterBehaviorComponent* Behavior =
+            Monster->FindComponentByClass<UGridMonsterBehaviorComponent> ())
+        {
+            Behavior->RefreshPerception ();
+        }
+    }
+
+    if (ActivationComponent)
+    {
+        ActivationComponent->RefreshAllPressurePlates ();
+    }
+
+    int32 DeadMonsterCount = 0;
+    for (const TPair<FGuid, FGridRuntimeMonsterState>& Pair :
+        State->Monsters)
+    {
+        DeadMonsterCount += Pair.Value.bIsDead ? 1 : 0;
+    }
+
     UE_LOG (LogTemp, Log,
-        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d"),
+        TEXT ("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d DeadMonsters=%d"),
         *State->LevelId.ToString (),
         State->Doors.Num (),
         CountRemovedRuntimeObjects (State),
         State->Items.Num (),
         State->Receptacles.Num (),
-        State->InteractiveObjects.Num ());
+        State->InteractiveObjects.Num (),
+        State->Monsters.Num (),
+        DeadMonsterCount);
 
     return true;
 }
@@ -1891,16 +2377,30 @@ bool AGridLevelRuntimeActor::TravelToDungeonLevel (
         TargetCellY,
         *GetRuntimeEdgeText (TargetFacing));
 
+    AbortActiveCombatAndMonsterActions ();
+
     const FName OldLevelId = ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
     CaptureCurrentLevelRuntimeState ();
     if (const FGridLevelRuntimeState* StoredState = DungeonRuntimeState.LevelStates.Find (OldLevelId))
     {
         UE_LOG (LogTemp, Log,
-            TEXT ("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d"),
+            TEXT ("GridRuntimeState Stored Level=%s Receptacles=%d Items=%d Doors=%d Monsters=%d"),
             *OldLevelId.ToString (),
             StoredState->Receptacles.Num (),
             StoredState->Items.Num (),
-            StoredState->Doors.Num ());
+            StoredState->Doors.Num (),
+            StoredState->Monsters.Num ());
+    }
+
+    TArray<AGridMonsterActor*> Monsters;
+    GetWorldMonsters (GetWorld (), Monsters);
+    for (AGridMonsterActor* Monster : Monsters)
+    {
+        if (Monster->ResolveRuntimeDungeonLevelId (OldLevelId) ==
+            OldLevelId)
+        {
+            SetMonsterRuntimeLevelActive (Monster, false);
+        }
     }
 
     CurrentDungeonLevelId = TargetLevelId;
@@ -2921,6 +3421,13 @@ void AGridLevelRuntimeActor::ApplyMonsterPlacementMetadata (
     if (Placement)
     {
         Monster->EncounterGroupId = Placement->EncounterGroupId;
+        if (Monster->HomeDungeonLevelId.IsNone ())
+        {
+            Monster->HomeDungeonLevelId =
+                ResolveRuntimeStateLevelId (
+                    DungeonAsset,
+                    CurrentDungeonLevelId);
+        }
     }
 }
 
@@ -3235,6 +3742,58 @@ FString AGridLevelRuntimeActor::GetLevelAssetDiagnostics () const
     Result += FString::Printf (TEXT ("RuntimeDoors=%d\n"), RuntimeState ? RuntimeState->Doors.Num () : 0);
     Result += FString::Printf (TEXT ("RuntimeItems=%d\n"), RuntimeState ? RuntimeState->Items.Num () : 0);
     Result += FString::Printf (TEXT ("RuntimeReceptacles=%d\n"), RuntimeState ? RuntimeState->Receptacles.Num () : 0);
+
+    const FName RuntimeLevelId =
+        ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
+    TArray<AGridMonsterActor*> DiagnosticMonsters;
+    GetWorldMonsters (World, DiagnosticMonsters);
+    int32 AssociatedMonsterCount = 0;
+    int32 InvalidMonsterIdCount = 0;
+    TMap<FGuid, int32> MonsterIdCounts;
+    for (AGridMonsterActor* Monster : DiagnosticMonsters)
+    {
+        if (Monster->ResolveRuntimeDungeonLevelId (RuntimeLevelId) !=
+            RuntimeLevelId)
+        {
+            continue;
+        }
+
+        ++AssociatedMonsterCount;
+        const FGuid PersistenceId =
+            Monster->ResolvePersistenceId ();
+        if (!PersistenceId.IsValid ())
+        {
+            ++InvalidMonsterIdCount;
+            continue;
+        }
+        ++MonsterIdCounts.FindOrAdd (PersistenceId);
+    }
+
+    int32 DuplicateMonsterIdCount = 0;
+    for (const TPair<FGuid, int32>& Pair : MonsterIdCounts)
+    {
+        DuplicateMonsterIdCount += Pair.Value > 1
+            ? Pair.Value
+            : 0;
+    }
+
+    int32 SavedDeadMonsterCount = 0;
+    if (RuntimeState)
+    {
+        for (const TPair<FGuid, FGridRuntimeMonsterState>& Pair :
+            RuntimeState->Monsters)
+        {
+            SavedDeadMonsterCount += Pair.Value.bIsDead ? 1 : 0;
+        }
+    }
+
+    Result += FString::Printf (
+        TEXT ("MonstersAssociated=%d RuntimeMonsters=%d RuntimeDeadMonsters=%d InvalidMonsterIds=%d DuplicateMonsterIds=%d\n"),
+        AssociatedMonsterCount,
+        RuntimeState ? RuntimeState->Monsters.Num () : 0,
+        SavedDeadMonsterCount,
+        InvalidMonsterIdCount,
+        DuplicateMonsterIdCount);
 
     if (!LevelAsset)
     {

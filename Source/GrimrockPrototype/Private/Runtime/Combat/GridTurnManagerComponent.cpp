@@ -3,7 +3,6 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
-#include "Misc/Crc.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -34,30 +33,31 @@ namespace
         return TEXT ("Unknown");
     }
 
-    void EnsureStableMonsterId (AGridMonsterActor* Monster)
+    bool HasStableMonsterId (const AGridMonsterActor* Monster)
     {
-        if (!IsValid (Monster) || Monster->SpawnObjectId.IsValid ())
+        if (IsValid (Monster) &&
+            Monster->ResolvePersistenceId ().IsValid ())
         {
-            return;
+            return true;
         }
 
-        const FString StablePath = Monster->GetPathName ();
-        Monster->SpawnObjectId = FGuid (
-            FCrc::StrCrc32 (*StablePath),
-            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-B"))),
-            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-C"))),
-            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-D"))));
-        if (!Monster->SpawnObjectId.IsValid ())
-        {
-            Monster->SpawnObjectId = FGuid::NewGuid ();
-        }
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterState] Combat participation skipped Monster=%s Reason=InvalidPersistenceId"),
+            *GetNameSafe (Monster));
+        return false;
     }
 
     FString GetStableMonsterSortKey (const AGridMonsterActor* Monster)
     {
-        if (Monster && Monster->SpawnObjectId.IsValid ())
+        if (Monster)
         {
-            return Monster->SpawnObjectId.ToString (EGuidFormats::Digits);
+            const FGuid PersistenceId =
+                Monster->ResolvePersistenceId ();
+            if (PersistenceId.IsValid ())
+            {
+                return PersistenceId.ToString (
+                    EGuidFormats::Digits);
+            }
         }
         return GetPathNameSafe (Monster);
     }
@@ -454,7 +454,8 @@ void UGridTurnManagerComponent::HandleCombatMonsterDied (
     PendingActions.RemoveAll (
         [Monster] (const FGridCombatAction& Action)
         {
-            return Action.SourceActorId == Monster->SpawnObjectId;
+            return Action.SourceActorId ==
+                Monster->ResolvePersistenceId ();
         });
 
     const int32 DeadTurnIndex = EnemyTurnOrder.IndexOfByPredicate (
@@ -525,9 +526,12 @@ void UGridTurnManagerComponent::CollectAllLivingMonsters (TArray<AGridMonsterAct
     for (TActorIterator<AGridMonsterActor> It (World); It; ++It)
     {
         AGridMonsterActor* Monster = *It;
-        if (IsValid (Monster) && !Monster->IsDead () && Monster->bMonsterEnabled)
+        if (IsValid (Monster) &&
+            !Monster->IsDead () &&
+            Monster->bMonsterEnabled &&
+            Monster->IsRuntimeLevelActive () &&
+            HasStableMonsterId (Monster))
         {
-            EnsureStableMonsterId (Monster);
             OutMonsters.Add (Monster);
         }
     }
@@ -570,7 +574,8 @@ void UGridTurnManagerComponent::CollectPerceivingMonsters (TArray<AGridMonsterAc
     for (const AGridMonsterActor* Monster : PreparedMonsters)
     {
         FGridMonsterAggroCandidate Candidate;
-        Candidate.SpawnObjectId = Monster->SpawnObjectId;
+        Candidate.SpawnObjectId =
+            Monster->ResolvePersistenceId ();
         Candidate.MonsterId = Monster->MonsterDefinition
             ? Monster->MonsterDefinition->MonsterId
             : NAME_None;
@@ -594,7 +599,7 @@ void UGridTurnManagerComponent::CollectPerceivingMonsters (TArray<AGridMonsterAc
 
         TArray<FGuid> TargetIds;
         FGridFastHarasserPlanner::SelectAggroTargets (
-            Source->SpawnObjectId,
+            Source->ResolvePersistenceId (),
             Source->MonsterDefinition->MonsterId,
             Source->EncounterGroupId,
             Source->CurrentCell,
@@ -608,7 +613,7 @@ void UGridTurnManagerComponent::CollectPerceivingMonsters (TArray<AGridMonsterAc
                 [&TargetId] (const AGridMonsterActor* Candidate)
                 {
                     return IsValid (Candidate) &&
-                        Candidate->SpawnObjectId == TargetId;
+                        Candidate->ResolvePersistenceId () == TargetId;
                 });
             AGridMonsterActor* Target = TargetPtr ? *TargetPtr : nullptr;
             if (!IsValid (Target) || Target->IsDead () || !Target->bMonsterEnabled)
@@ -640,12 +645,16 @@ bool UGridTurnManagerComponent::PrepareMonsterForCombat (AGridMonsterActor* Mons
     if (!IsValid (Monster) ||
         Monster->IsDead () ||
         !Monster->bMonsterEnabled ||
+        !Monster->IsRuntimeLevelActive () ||
         !IsValid (Monster->MonsterDefinition))
     {
         return false;
     }
 
-    EnsureStableMonsterId (Monster);
+    if (!HasStableMonsterId (Monster))
+    {
+        return false;
+    }
     if (IsValid (RuntimeActor))
     {
         RuntimeActor->ApplyMonsterPlacementMetadata (Monster);

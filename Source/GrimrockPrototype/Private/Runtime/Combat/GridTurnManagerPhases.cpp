@@ -220,11 +220,17 @@ void UGridTurnManagerComponent::BuildEnemyTurnOrder ()
             return LeftInitiative > RightInitiative;
         }
 
-        const FString LeftId = Left && Left->SpawnObjectId.IsValid ()
-            ? Left->SpawnObjectId.ToString (EGuidFormats::Digits)
+        const FGuid LeftPersistenceId = Left
+            ? Left->ResolvePersistenceId ()
+            : FGuid ();
+        const FGuid RightPersistenceId = Right
+            ? Right->ResolvePersistenceId ()
+            : FGuid ();
+        const FString LeftId = LeftPersistenceId.IsValid ()
+            ? LeftPersistenceId.ToString (EGuidFormats::Digits)
             : GetNameSafe (Left.Get ());
-        const FString RightId = Right && Right->SpawnObjectId.IsValid ()
-            ? Right->SpawnObjectId.ToString (EGuidFormats::Digits)
+        const FString RightId = RightPersistenceId.IsValid ()
+            ? RightPersistenceId.ToString (EGuidFormats::Digits)
             : GetNameSafe (Right.Get ());
         return LeftId < RightId;
     });
@@ -282,7 +288,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
     if (!Behavior)
     {
         FGridMonsterTurnPlanner::BuildMovementTurn (
-            CurrentMonster->SpawnObjectId,
+            CurrentMonster->ResolvePersistenceId (),
             CurrentMonster->CurrentCell,
             CurrentMonster->Facing,
             TArray<FIntPoint> (),
@@ -316,7 +322,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
     if (bCanPlanMelee)
     {
         FGridMonsterTurnPlanner::BuildDirectMeleeTurn (
-            CurrentMonster->SpawnObjectId,
+            CurrentMonster->ResolvePersistenceId (),
             CurrentMonster->CurrentCell,
             CurrentMonster->Facing,
             FIntPoint (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY),
@@ -409,7 +415,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
             RetreatDecision.Score);
 
         FGridMonsterTurnPlanner::BuildFastHarasserTurn (
-            CurrentMonster->SpawnObjectId,
+            CurrentMonster->ResolvePersistenceId (),
             CurrentMonster->CurrentCell,
             CurrentMonster->Facing,
             PartyCell,
@@ -424,7 +430,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
     }
 
     FGridMonsterTurnPlanner::BuildMovementTurn (
-        CurrentMonster->SpawnObjectId,
+        CurrentMonster->ResolvePersistenceId (),
         CurrentMonster->CurrentCell,
         CurrentMonster->Facing,
         PlannedPath,

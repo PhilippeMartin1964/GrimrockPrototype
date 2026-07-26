@@ -313,6 +313,11 @@ public:
     /** Applies MON7 metadata to a monster initialized from a LevelAsset placement. */
     void ApplyMonsterPlacementMetadata (AGridMonsterActor* Monster) const;
 
+    UFUNCTION (BlueprintCallable, Category = "Monster|Persistence")
+    void SetMonsterRuntimeLevelActive (
+        AGridMonsterActor* Monster,
+        bool bActive);
+
     bool CanPartyPickupItemActor (const AGridItemActor* ItemActor, const AGrimrockPartyPawn* PartyPawn) const;
     bool CanPartyPickupItemEntry (
         const FGridSpawnedItemRuntimeEntry& Entry,
@@ -429,6 +434,8 @@ private:
 
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();
+    void AbortActiveCombatAndMonsterActions ();
+    void ApplyInitialMonsterStateForCurrentLevel ();
 
     template<typename TActor>TActor* SpawnRuntimeObjectActor (
         const FGridLevelObjectData& ObjectData, UStaticMesh*& OutMesh, UMaterialInterface*& OutMaterial, FTransform& OutTransform)

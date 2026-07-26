@@ -13,7 +13,13 @@
 #include "GridMonsterActor.generated.h"
 
 class AGridMonsterActor;
+class AGridLevelRuntimeActor;
+class UGridMonsterBehaviorComponent;
+class UGridMonsterMovementComponent;
 class UGridMonsterAnimInstance;
+struct FGridRuntimeMonsterState;
+
+DECLARE_LOG_CATEGORY_EXTERN (LogGridMonsterState, Log, All);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     FGridMonsterDiedSignature,
@@ -64,16 +70,7 @@ public:
         SetCanBeDamaged (false);
     }
 
-    virtual void OnConstruction (const FTransform& Transform) override
-    {
-        Super::OnConstruction (Transform);
-        ApplyDefinitionVisuals ();
-        ApplyFacingRotation ();
-        if (DeathComponent)
-        {
-            DeathComponent->InitializeDeathComponent ();
-        }
-    }
+    virtual void OnConstruction (const FTransform& Transform) override;
 
     virtual void BeginPlay () override
     {
@@ -121,6 +118,15 @@ public:
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Identity")
     FGuid SpawnObjectId;
+
+    UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Identity")
+    FGuid PersistentMonsterId;
+
+    UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Persistence")
+    FName HomeDungeonLevelId = NAME_None;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Persistence")
+    bool bRuntimeLevelActive = true;
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Grid")
     FIntPoint CurrentCell = FIntPoint::ZeroValue;
@@ -177,7 +183,14 @@ public:
         }
 
         MonsterDefinition = InDefinition;
-        SpawnObjectId = InSpawnObjectId.IsValid () ? InSpawnObjectId : FGuid::NewGuid ();
+        SpawnObjectId = InSpawnObjectId;
+        bSpawnObjectIdFromMonsterSpawn = InSpawnObjectId.IsValid ();
+        if (!SpawnObjectId.IsValid ())
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] Initialize Monster=%s has no MonsterSpawn ObjectId; a stable PersistentMonsterId is required before capture."),
+                *GetNameSafe (this));
+        }
         CurrentCell = InCell;
         Facing = InFacing == EGridEdge::None ? EGridEdge::North : InFacing;
         EncounterGroupId = InEncounterGroupId;
@@ -192,6 +205,31 @@ public:
         ApplyDefinitionVisuals ();
         return true;
     }
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Identity")
+    FGuid ResolvePersistenceId () const;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Identity")
+    bool HasMonsterSpawnIdentity () const;
+
+    UFUNCTION (BlueprintCallable, CallInEditor, Category = "Monster|Identity")
+    void EnsurePersistentMonsterId ();
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Validation")
+    bool ValidatePersistenceSetup (UPARAM (ref) FString& OutError) const;
+
+    bool CaptureRuntimeMonsterState (
+        FGridRuntimeMonsterState& OutState,
+        FName CurrentLevelId) const;
+
+    bool RestoreRuntimeMonsterState (
+        const FGridRuntimeMonsterState& State,
+        AGridLevelRuntimeActor* RuntimeActor);
+
+    FName ResolveRuntimeDungeonLevelId (FName CurrentLevelId) const;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Persistence")
+    bool IsRuntimeLevelActive () const { return bRuntimeLevelActive; }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Visual")
     bool ApplyDefinitionVisuals ()
@@ -406,6 +444,10 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "Monster|Animation")
     UGridMonsterAnimInstance* GetGridMonsterAnimInstance () const;
+
+private:
+    UPROPERTY (Transient)
+    bool bSpawnObjectIdFromMonsterSpawn = false;
 };
 
 /**

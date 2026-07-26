@@ -11,6 +11,7 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
+#include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterDeath, Log, All);
 DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterLoot, Log, All);
@@ -24,7 +25,9 @@ namespace
         uint32 Seed = MON8LootSeedSalt;
         if (Monster)
         {
-            Seed = HashCombine (Seed, GetTypeHash (Monster->SpawnObjectId));
+            Seed = HashCombine (
+                Seed,
+                GetTypeHash (Monster->ResolvePersistenceId ()));
             Seed = HashCombine (
                 Seed,
                 GetTypeHash (Monster->MonsterDefinition
@@ -139,7 +142,7 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     GenerateAndPlaceLoot ();
 
     bool bLinksExecuted = false;
-    if (RuntimeActor && OwnerMonster->SpawnObjectId.IsValid ())
+    if (RuntimeActor && OwnerMonster->HasMonsterSpawnIdentity ())
     {
         ++LinkExecutionAttemptCount;
         bLinksExecuted = RuntimeActor->ExecuteLinksFromRuntimeObject (
@@ -178,6 +181,99 @@ bool UGridMonsterDeathComponent::CommitDeath ()
         *OwnerMonster->SpawnObjectId.ToString (),
         bOccupancyReleased ? TEXT ("true") : TEXT ("false"));
     return true;
+}
+
+void UGridMonsterDeathComponent::RestoreCommittedDeathState (
+    FIntPoint InDeathCell,
+    bool bRestorePresentationPose)
+{
+    if (!InitializeDeathComponent (RuntimeActor))
+    {
+        return;
+    }
+
+    if (UWorld* World = GetWorld ())
+    {
+        World->GetTimerManager ().ClearTimer (
+            DeathPresentationTimerHandle);
+    }
+
+    if (UGridMonsterCombatComponent* Combat =
+        OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent> ())
+    {
+        Combat->CancelAttackPresentation ();
+    }
+
+    bool bReleasedByMovement = false;
+    if (UGridMonsterMovementComponent* Movement =
+        OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent> ())
+    {
+        Movement->CancelCurrentAction ();
+        Movement->HandleOwnerDeath ();
+        bReleasedByMovement = true;
+    }
+
+    if (!bReleasedByMovement)
+    {
+        if (UGridMonsterOccupancySubsystem* Occupancy =
+            GetWorld ()
+                ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> ()
+                : nullptr)
+        {
+            Occupancy->UnregisterMonster (OwnerMonster);
+        }
+    }
+
+    bDeathCommitted = true;
+    bLootGenerated = true;
+    bDeathPresentationActive = false;
+    DeathCell = InDeathCell;
+
+    OwnerMonster->CurrentCell = InDeathCell;
+    OwnerMonster->CurrentHealth = 0;
+    OwnerMonster->MonsterState = EGridMonsterState::Dead;
+    OwnerMonster->ResetAnimationSignals ();
+    OwnerMonster->SetActorEnableCollision (false);
+    if (OwnerMonster->CollisionComponent)
+    {
+        OwnerMonster->CollisionComponent->SetCollisionEnabled (
+            ECollisionEnabled::NoCollision);
+    }
+
+    if (bRestorePresentationPose)
+    {
+        OwnerMonster->SetActorHiddenInGame (false);
+        if (OwnerMonster->SkeletalMeshComponent)
+        {
+            OwnerMonster->SkeletalMeshComponent->SetVisibility (
+                true,
+                true);
+        }
+    }
+}
+
+void UGridMonsterDeathComponent::RestoreLivingState ()
+{
+    if (!InitializeDeathComponent (RuntimeActor))
+    {
+        return;
+    }
+
+    if (UWorld* World = GetWorld ())
+    {
+        World->GetTimerManager ().ClearTimer (
+            DeathPresentationTimerHandle);
+    }
+
+    bDeathCommitted = false;
+    bLootGenerated = false;
+    bDeathPresentationActive = false;
+    DeathCell = FIntPoint::ZeroValue;
+    GeneratedLoot.Reset ();
+    PlacedLootCount = 0;
+    FailedLootCount = 0;
+    LogicalDeathEventCount = 0;
+    LinkExecutionAttemptCount = 0;
 }
 
 void UGridMonsterDeathComponent::GenerateAndPlaceLoot ()

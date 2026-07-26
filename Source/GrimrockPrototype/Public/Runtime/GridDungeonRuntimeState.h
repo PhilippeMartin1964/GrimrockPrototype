@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
+#include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridDungeonRuntimeState.generated.h"
 
 class UGridReadableContentAsset;
@@ -118,6 +119,60 @@ struct FGridRuntimeReceptacleState
 };
 
 USTRUCT (BlueprintType)
+struct FGridRuntimeMonsterState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FGuid PersistenceId;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FGuid SpawnObjectId;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FName MonsterDefinitionId = NAME_None;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FName DungeonLevelId = NAME_None;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    int32 CellX = INDEX_NONE;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    int32 CellY = INDEX_NONE;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    EGridEdge Facing = EGridEdge::North;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    EGridMonsterState MonsterState = EGridMonsterState::Idle;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    int32 CurrentHealth = 0;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    int32 CurrentPhysicalArmor = 0;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    int32 CurrentMagicalArmor = 0;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bMonsterEnabled = true;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FName EncounterGroupId = NAME_None;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bHasLastKnownPartyCell = false;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FIntPoint LastKnownPartyCell = FIntPoint::ZeroValue;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bIsDead = false;
+};
+
+USTRUCT (BlueprintType)
 struct FGridLevelRuntimeState
 {
     GENERATED_BODY ()
@@ -142,6 +197,9 @@ struct FGridLevelRuntimeState
 
     UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bHasBeenVisited = false;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TMap<FGuid, FGridRuntimeMonsterState> Monsters;
 };
 
 USTRUCT (BlueprintType)

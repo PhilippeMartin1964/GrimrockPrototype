@@ -56,6 +56,14 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Monster|Death")
     bool CommitDeath ();
 
+    UFUNCTION (BlueprintCallable, Category = "Monster|Death|Persistence")
+    void RestoreCommittedDeathState (
+        FIntPoint InDeathCell,
+        bool bRestorePresentationPose = true);
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Death|Persistence")
+    void RestoreLivingState ();
+
     UFUNCTION (BlueprintCallable, Category = "Monster|Death")
     void StartDeathPresentation ();
 

@@ -1,6 +1,5 @@
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
-#include "Misc/Crc.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 
 bool FGridMonsterOccupancyRegistry::TryRegisterMonster (const FGuid& MonsterId, const FIntPoint& Cell)
@@ -209,21 +208,14 @@ bool UGridMonsterOccupancySubsystem::RegisterMonster (AGridMonsterActor* Monster
         return false;
     }
 
-    if (!Monster->SpawnObjectId.IsValid ())
+    const FGuid MonsterId = Monster->ResolvePersistenceId ();
+    if (!MonsterId.IsValid ())
     {
-        const FString StablePath = Monster->GetPathName ();
-        Monster->SpawnObjectId = FGuid (
-            FCrc::StrCrc32 (*StablePath),
-            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-B"))),
-            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-C"))),
-            FCrc::StrCrc32 (*(StablePath + TEXT ("|MON7-D"))));
-        if (!Monster->SpawnObjectId.IsValid ())
-        {
-            Monster->SpawnObjectId = FGuid::NewGuid ();
-        }
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterState] Occupancy registration skipped Monster=%s Reason=InvalidPersistenceId"),
+            *GetNameSafe (Monster));
+        return false;
     }
-
-    const FGuid MonsterId = Monster->SpawnObjectId;
     if (!Registry.TryRegisterMonster (MonsterId, Cell))
     {
         return false;
@@ -317,5 +309,7 @@ void UGridMonsterOccupancySubsystem::LogRegistry () const
 
 FGuid UGridMonsterOccupancySubsystem::ResolveMonsterId (const AGridMonsterActor* Monster)
 {
-    return IsValid (Monster) ? Monster->SpawnObjectId : FGuid ();
+    return IsValid (Monster)
+        ? Monster->ResolvePersistenceId ()
+        : FGuid ();
 }

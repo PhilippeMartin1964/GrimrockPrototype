@@ -1394,8 +1394,9 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
     {
         OutError = FText::FromString (
             FString::Printf (
-                TEXT ("Version de sauvegarde incompatible : %d, version attendue : %d."),
+                TEXT ("Version de sauvegarde incompatible : %d, versions acceptées : %d à %d."),
                 SaveGame->SaveVersion,
+                UGrimrockPartySaveGame::MinimumCompatibleSaveVersion,
                 UGrimrockPartySaveGame::CurrentSaveVersion));
         return false;
     }
@@ -1409,15 +1410,17 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
     const FGridPartyInventoryState PreviousPartyState = PartyInventoryComponent->PartyInventoryState;
     const FGridDungeonRuntimeState PreviousDungeonState = LevelRuntimeActor->DungeonRuntimeState;
     const FName PreviousDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
+    UGridLevelAsset* PreviousLevelAsset = LevelRuntimeActor->LevelAsset;
     const int32 PreviousCellX = CurrentCellX;
     const int32 PreviousCellY = CurrentCellY;
     const EGridEdge PreviousFacing = Facing;
 
-    auto RestorePreviousState = [this, &PreviousPartyState, &PreviousDungeonState, PreviousDungeonLevelId, PreviousCellX, PreviousCellY, PreviousFacing] ()
+    auto RestorePreviousState = [this, &PreviousPartyState, &PreviousDungeonState, PreviousDungeonLevelId, PreviousLevelAsset, PreviousCellX, PreviousCellY, PreviousFacing] ()
     {
         PartyInventoryComponent->PartyInventoryState = PreviousPartyState;
         LevelRuntimeActor->DungeonRuntimeState = PreviousDungeonState;
         LevelRuntimeActor->CurrentDungeonLevelId = PreviousDungeonLevelId;
+        LevelRuntimeActor->LevelAsset = PreviousLevelAsset;
         CurrentCellX = PreviousCellX;
         CurrentCellY = PreviousCellY;
         Facing = PreviousFacing;
@@ -1432,6 +1435,24 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
 
     LevelRuntimeActor->DungeonRuntimeState = SaveGame->DungeonRuntimeState;
     LevelRuntimeActor->CurrentDungeonLevelId = SaveGame->CurrentDungeonLevelId;
+    if (LevelRuntimeActor->DungeonAsset &&
+        !SaveGame->CurrentDungeonLevelId.IsNone ())
+    {
+        UGridLevelAsset* SavedLevelAsset =
+            LevelRuntimeActor->DungeonAsset->GetLevelAssetById (
+                SaveGame->CurrentDungeonLevelId);
+        if (!SavedLevelAsset)
+        {
+            RestorePreviousState ();
+            OutError = FText::FromString (
+                FString::Printf (
+                    TEXT ("Le niveau sauvegardé '%s' est introuvable dans le donjon."),
+                    *SaveGame->CurrentDungeonLevelId.ToString ()));
+            return false;
+        }
+        LevelRuntimeActor->LevelAsset = SavedLevelAsset;
+        LevelRuntimeActor->RebuildLevel ();
+    }
     CurrentCellX = SaveGame->PartyCellX;
     CurrentCellY = SaveGame->PartyCellY;
     Facing = SaveGame->PartyFacing == EGridEdge::None ? EGridEdge::North : SaveGame->PartyFacing;
