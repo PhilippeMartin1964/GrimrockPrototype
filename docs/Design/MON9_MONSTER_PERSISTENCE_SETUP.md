@@ -67,6 +67,22 @@ Lors de l’activation initiale, `UGridMonsterMovementComponent::InitializeMovem
 
 Après une sauvegarde, la cellule stockée dans `FGridRuntimeMonsterState` devient la source de vérité. La restauration place d’abord l’Actor au centre de cette cellule ; l’initialisation du mouvement enregistre donc la cellule sauvegardée sans reprendre une ancienne position monde. Un monstre mort conserve de la même manière sa `DeathCell` ou sa `CurrentCell` sauvegardée, sans nouvelle inférence ni occupation.
 
+## Ordre BeginPlay et initialisation des statistiques
+
+L’ordre de `BeginPlay` entre `AGridLevelRuntimeActor` et `AGridMonsterActor` n’est pas une source fiable. Le RuntimeActor peut appliquer l’état initial du niveau avant que le MonsterActor ait exécuté son propre `BeginPlay`.
+
+`CurrentHealth=0` avec `bCombatStatsInitialized=false` signifie « statistiques non initialisées », pas « monstre mort ». La mort logique exige au moins une des conditions suivantes :
+
+- `MonsterState=Dead` ;
+- `bDeathCommitted=true` sur le composant de mort ;
+- des statistiques déjà initialisées avec `CurrentHealth<=0`.
+
+`EnsureInitialCombatState()` prépare de manière idempotente les PV et armures d’un monstre neuf. Cette fonction peut être appelée par l’activation du niveau avant `AGridMonsterActor::BeginPlay`, puis rappelée sans écraser un monstre blessé ou un état MON9 restauré. Les états sauvegardés vivants ou morts restent toujours prioritaires.
+
+Pour un niveau jamais visité et pour le chemin legacy v1 sans état de monstre, les statistiques initiales sont garanties avant le premier test de mort. Un Rat directement placé démarre donc vivant à `MaxHealth`, puis sa cellule est déduite depuis sa position monde et enregistrée dans l’occupation.
+
+L’auto-initialisation tardive de `UGridMonsterMovementComponent::BeginPlay()` vérifie que le propriétaire appartient au niveau actif, qu’il est activé et qu’il est vivant. Elle ne réinscrit jamais un monstre mort ou désactivé dans l’occupation.
+
 ## Capture
 
 `CaptureCurrentLevelRuntimeState()` vide d’abord `State->Monsters`, collecte uniquement les monstres du niveau courant, vérifie les identifiants et capture les Actors valides.
@@ -225,6 +241,10 @@ Grimrock.Monsters.MON9.DiskSaveRoundTrip
 Grimrock.Monsters.MON9.StableIdentity
 Grimrock.Monsters.MON9.DirectPlacedInitialCellInference
 Grimrock.Monsters.MON9.RestoredCellNotReinferredFromStaleLocation
+Grimrock.Monsters.MON9.DirectPlacedNewGameStartsAlive
+Grimrock.Monsters.MON9.BeginPlayOrderIndependence
+Grimrock.Monsters.MON9.RestoredDeadRemainsDead
+Grimrock.Monsters.MON9.MovementAutoInitSkipsDead
 ```
 
 La régression complète reste `Grimrock.Monsters.MON`, complétée par les tests de sauvegarde `Grimrock.CharacterCreation.CC5`.
@@ -259,24 +279,26 @@ MON9 associe et restaure un Actor existant. Si une sauvegarde référence un GUI
 6. Renseigner `HomeDungeonLevelId=Into_The_Dark`.
 7. Vérifier que le nom correspond à `CurrentDungeonLevelId`.
 8. Lancer le PIE.
-9. Vérifier un log `[GridMonsterMovement] InferCell` par Rat directement placé.
-10. Vérifier que chaque log indique sa cellule réelle et jamais `(0,0)` par défaut.
-11. Vérifier que chaque Rat est visuellement snappé au centre de sa cellule de carte.
-12. Déclencher une sauvegarde et vérifier que les logs `Capture` utilisent ces mêmes cellules.
-13. Blesser un Rat sans le tuer.
-14. Déplacer le Rat ou le laisser se déplacer.
-15. Noter sa cellule, son orientation et ses PV.
-16. Ouvrir puis fermer l’inventaire pour sauvegarder.
-17. Arrêter le PIE.
-18. Relancer le PIE avec Continuer.
-19. Vérifier la cellule, l’orientation et les PV.
-20. Vérifier que la cellule sauvegardée prime sur la position initiale de la carte.
-21. Tuer le premier Rat.
-22. Vérifier ses éventuels objets de butin et leurs `RuntimeObjectId` distincts.
-23. Laisser plusieurs objets au sol, sauvegarder puis arrêter et relancer le PIE.
-24. Vérifier que le Rat reste mort.
-25. Vérifier que le nombre d’items au sol est inchangé, qu’aucun nouveau jet ou butin n’est généré et que sa cellule reste libre.
-26. Effectuer une transition vers un autre niveau.
-27. Revenir au niveau du Rat.
-28. Vérifier les états, les corps et le butin des Rats.
-29. Démarrer un nouveau combat et confirmer le fonctionnement MON4 à MON8.
+9. Vérifier un log `[GridMonsterState] InitializeFresh` par Rat neuf avec `HP=MaxHealth` et un état différent de `Dead`.
+10. Vérifier que les logs `ActivateLevel` indiquent `Dead=false`, `CombatStatsInitialized=true` et `DeathCommitted=false`.
+11. Vérifier un log `[GridMonsterMovement] InferCell` par Rat directement placé.
+12. Vérifier que chaque log indique sa cellule réelle et jamais `(0,0)` par défaut.
+13. Vérifier que chaque Rat est vivant, visible et visuellement snappé au centre de sa cellule de carte.
+14. Déclencher une sauvegarde et vérifier que les logs `Capture` utilisent ces mêmes cellules avec `Dead=false` et `HP=MaxHealth`.
+15. Blesser un Rat sans le tuer.
+16. Déplacer le Rat ou le laisser se déplacer.
+17. Noter sa cellule, son orientation et ses PV.
+18. Ouvrir puis fermer l’inventaire pour sauvegarder.
+19. Arrêter le PIE.
+20. Relancer le PIE avec Continuer.
+21. Vérifier la cellule, l’orientation et les PV.
+22. Vérifier que la cellule sauvegardée prime sur la position initiale de la carte.
+23. Tuer le premier Rat.
+24. Vérifier ses éventuels objets de butin et leurs `RuntimeObjectId` distincts.
+25. Laisser plusieurs objets au sol, sauvegarder puis arrêter et relancer le PIE.
+26. Vérifier que le Rat reste mort avec `bDeathCommitted=true` et `bLootGenerated=true`.
+27. Vérifier que le nombre d’items au sol est inchangé, qu’aucun nouveau jet ou butin n’est généré et que sa cellule reste libre.
+28. Effectuer une transition vers un autre niveau.
+29. Revenir au niveau du Rat.
+30. Vérifier les états, les corps et le butin des Rats.
+31. Démarrer un nouveau combat et confirmer le fonctionnement MON4 à MON8.

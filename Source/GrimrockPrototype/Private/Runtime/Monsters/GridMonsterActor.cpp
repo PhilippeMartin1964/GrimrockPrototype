@@ -135,6 +135,44 @@ void AGridMonsterActor::OnConstruction (const FTransform& Transform)
     }
 }
 
+bool AGridMonsterActor::EnsureInitialCombatState ()
+{
+    if (!IsValid (MonsterDefinition) ||
+        !MonsterDefinition->IsValidDefinition () ||
+        MonsterState == EGridMonsterState::Dead ||
+        (DeathComponent && DeathComponent->bDeathCommitted))
+    {
+        return false;
+    }
+
+    if (bCombatStatsInitialized)
+    {
+        return true;
+    }
+
+    CurrentHealth = MonsterDefinition->MaxHealth;
+    CurrentPhysicalArmor =
+        FMath::Max (0, MonsterDefinition->PhysicalArmor);
+    CurrentMagicalArmor =
+        FMath::Max (0, MonsterDefinition->MagicalArmor);
+    bCombatStatsInitialized = true;
+    ResetAnimationSignals ();
+
+    if (DeathComponent)
+    {
+        DeathComponent->RestoreLivingState ();
+    }
+
+    UE_LOG (LogGridMonsterState, Log,
+        TEXT ("[GridMonsterState] InitializeFresh Monster=%s HP=%d PhysicalArmor=%d MagicalArmor=%d State=%s"),
+        *GetNameSafe (this),
+        CurrentHealth,
+        CurrentPhysicalArmor,
+        CurrentMagicalArmor,
+        *GetMonsterStateText (MonsterState));
+    return true;
+}
+
 FGuid AGridMonsterActor::ResolvePersistenceId () const
 {
     if (HasMonsterSpawnIdentity ())
@@ -317,10 +355,7 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState (
         return false;
     }
 
-    const bool bDead =
-        IsDead () ||
-        CurrentHealth <= 0 ||
-        (DeathComponent && DeathComponent->bDeathCommitted);
+    const bool bDead = IsDead ();
     const UGridMonsterBehaviorComponent* Behavior =
         FindComponentByClass<UGridMonsterBehaviorComponent> ();
 

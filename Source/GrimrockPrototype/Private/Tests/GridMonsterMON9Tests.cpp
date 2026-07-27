@@ -312,6 +312,26 @@ namespace
         return Movement &&
             Movement->InitializeMovement (RuntimeActor);
     }
+
+    void ResetMON9CombatStateForPreBeginPlay (
+        AGridMonsterActor* Monster)
+    {
+        if (!Monster)
+        {
+            return;
+        }
+
+        Monster->CurrentHealth = 0;
+        Monster->CurrentPhysicalArmor = 0;
+        Monster->CurrentMagicalArmor = 0;
+        Monster->bCombatStatsInitialized = false;
+        Monster->MonsterState = EGridMonsterState::Idle;
+        Monster->ResetAnimationSignals ();
+        if (Monster->DeathComponent)
+        {
+            Monster->DeathComponent->RestoreLivingState ();
+        }
+    }
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
@@ -516,6 +536,385 @@ bool FGridMonsterMON9RestoredCellNotReinferredTest::RunTest (
         TEXT ("The stale initial cell is not occupied"),
         Occupancy &&
         Occupancy->IsCellOccupied (StaleCell));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON9DirectPlacedNewGameStartsAliveTest,
+    "Grimrock.Monsters.MON9.DirectPlacedNewGameStartsAlive",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9DirectPlacedNewGameStartsAliveTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON9TestWorld TestWorld;
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    Runtime->LevelAsset = MakeMON9Floor (Runtime);
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON9Definition (
+            Runtime,
+            TEXT ("MON9_NewGameRat"));
+    const FGuid PersistenceId (98, 2, 1, 1);
+    const FIntPoint ExpectedCell (3, 2);
+    AGridMonsterActor* Monster =
+        SpawnMON9DirectPlacedMonster (
+            TestWorld.World,
+            Definition,
+            PersistenceId,
+            MON9SingleLevelId,
+            Runtime->GetCellCenterWorld (
+                ExpectedCell.X,
+                ExpectedCell.Y),
+            TEXT ("MON9_NewGameRat"));
+    if (!Monster)
+    {
+        return false;
+    }
+    ResetMON9CombatStateForPreBeginPlay (Monster);
+
+    TestFalse (
+        TEXT ("Zero uninitialized health is not a logical death"),
+        Monster->IsDead ());
+    TestFalse (
+        TEXT ("The new level takes the initial-state path"),
+        Runtime->ApplyCurrentLevelRuntimeState ());
+    TestFalse (
+        TEXT ("The directly placed rat starts alive"),
+        Monster->IsDead ());
+    TestTrue (
+        TEXT ("The rat does not enter the Dead state"),
+        Monster->MonsterState != EGridMonsterState::Dead);
+    TestEqual (
+        TEXT ("Fresh health is initialized to MaxHealth"),
+        Monster->CurrentHealth,
+        Definition->MaxHealth);
+    TestTrue (
+        TEXT ("Fresh combat statistics are committed"),
+        Monster->bCombatStatsInitialized);
+    TestFalse (
+        TEXT ("Fresh activation does not commit death"),
+        Monster->DeathComponent->bDeathCommitted);
+    TestFalse (
+        TEXT ("Fresh activation does not generate loot"),
+        Monster->DeathComponent->bLootGenerated);
+    TestTrue (
+        TEXT ("The fresh rat cell is inferred"),
+        Monster->CurrentCell == ExpectedCell);
+
+    UGridMonsterOccupancySubsystem* Occupancy =
+        TestWorld.World->GetSubsystem<
+            UGridMonsterOccupancySubsystem> ();
+    TestTrue (
+        TEXT ("The fresh rat occupies its inferred cell"),
+        Occupancy &&
+        Occupancy->GetRegistry ().GetOccupantId (
+            ExpectedCell) == PersistenceId);
+
+    TestTrue (
+        TEXT ("The fresh living rat is captured"),
+        Runtime->CaptureCurrentLevelRuntimeState ());
+    const FGridLevelRuntimeState* LevelState =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    const FGridRuntimeMonsterState* SavedState =
+        LevelState
+            ? LevelState->Monsters.Find (PersistenceId)
+            : nullptr;
+    TestNotNull (
+        TEXT ("The fresh rat has a MON9 state"),
+        SavedState);
+    if (SavedState)
+    {
+        TestFalse (
+            TEXT ("The fresh rat is captured alive"),
+            SavedState->bIsDead);
+        TestEqual (
+            TEXT ("The fresh rat keeps MaxHealth in MON9"),
+            SavedState->CurrentHealth,
+            Definition->MaxHealth);
+    }
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON9BeginPlayOrderIndependenceTest,
+    "Grimrock.Monsters.MON9.BeginPlayOrderIndependence",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9BeginPlayOrderIndependenceTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    const auto RunOrder =
+        [this] (bool bMonsterBeginsFirst, uint32 IdSuffix)
+    {
+        FGridMON9TestWorld TestWorld;
+        if (!TestWorld.World)
+        {
+            return false;
+        }
+
+        AGridLevelRuntimeActor* Runtime =
+            TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+        Runtime->LevelAsset = MakeMON9Floor (Runtime);
+        UGridMonsterDefinitionAsset* Definition =
+            MakeMON9Definition (
+                Runtime,
+                bMonsterBeginsFirst
+                    ? TEXT ("MON9_OrderMonsterFirst")
+                    : TEXT ("MON9_OrderRuntimeFirst"));
+        const FGuid PersistenceId (98, 2, 2, IdSuffix);
+        const FIntPoint ExpectedCell (2, 4);
+        AGridMonsterActor* Monster =
+            SpawnMON9DirectPlacedMonster (
+                TestWorld.World,
+                Definition,
+                PersistenceId,
+                MON9SingleLevelId,
+                Runtime->GetCellCenterWorld (
+                    ExpectedCell.X,
+                    ExpectedCell.Y),
+                bMonsterBeginsFirst
+                    ? TEXT ("MON9_OrderMonsterFirst")
+                    : TEXT ("MON9_OrderRuntimeFirst"));
+        if (!Monster)
+        {
+            return false;
+        }
+        ResetMON9CombatStateForPreBeginPlay (Monster);
+
+        if (bMonsterBeginsFirst)
+        {
+            Monster->DispatchBeginPlay ();
+            Runtime->ApplyCurrentLevelRuntimeState ();
+        }
+        else
+        {
+            Runtime->ApplyCurrentLevelRuntimeState ();
+            Monster->DispatchBeginPlay ();
+        }
+
+        UGridMonsterOccupancySubsystem* Occupancy =
+            TestWorld.World->GetSubsystem<
+                UGridMonsterOccupancySubsystem> ();
+        const FString OrderText = bMonsterBeginsFirst
+            ? TEXT ("MonsterFirst")
+            : TEXT ("RuntimeFirst");
+        TestFalse (
+            *FString::Printf (
+                TEXT ("%s remains alive"),
+                *OrderText),
+            Monster->IsDead ());
+        TestEqual (
+            *FString::Printf (
+                TEXT ("%s initializes MaxHealth"),
+                *OrderText),
+            Monster->CurrentHealth,
+            Definition->MaxHealth);
+        TestTrue (
+            *FString::Printf (
+                TEXT ("%s infers the same cell"),
+                *OrderText),
+            Monster->CurrentCell == ExpectedCell);
+        TestTrue (
+            *FString::Printf (
+                TEXT ("%s registers the same occupation"),
+                *OrderText),
+            Occupancy &&
+            Occupancy->GetRegistry ().GetOccupantId (
+                ExpectedCell) == PersistenceId);
+        TestEqual (
+            *FString::Printf (
+                TEXT ("%s emits no death"),
+                *OrderText),
+            Monster->DeathComponent->LogicalDeathEventCount,
+            0);
+        TestFalse (
+            *FString::Printf (
+                TEXT ("%s generates no loot"),
+                *OrderText),
+            Monster->DeathComponent->bLootGenerated);
+        return true;
+    };
+
+    TestTrue (
+        TEXT ("Monster BeginPlay before runtime activation is stable"),
+        RunOrder (true, 1));
+    TestTrue (
+        TEXT ("Runtime activation before Monster BeginPlay is stable"),
+        RunOrder (false, 2));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON9RestoredDeadRemainsDeadTest,
+    "Grimrock.Monsters.MON9.RestoredDeadRemainsDead",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9RestoredDeadRemainsDeadTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON9TestWorld TestWorld;
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    Runtime->LevelAsset = MakeMON9Floor (Runtime);
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON9Definition (
+            Runtime,
+            TEXT ("MON9_RestoredDeadRat"));
+    AddGuaranteedMON9Loot (
+        Definition,
+        TEXT ("Item_MON9RestoredDeadLoot"));
+    const FGuid PersistenceId (98, 2, 3, 1);
+    const FIntPoint DeathCell (4, 1);
+    AGridMonsterActor* Monster =
+        SpawnMON9DirectPlacedMonster (
+            TestWorld.World,
+            Definition,
+            PersistenceId,
+            MON9SingleLevelId,
+            Runtime->GetCellCenterWorld (1, 1),
+            TEXT ("MON9_RestoredDeadRat"));
+    if (!Monster)
+    {
+        return false;
+    }
+
+    FGridRuntimeMonsterState SavedState;
+    SavedState.PersistenceId = PersistenceId;
+    SavedState.MonsterDefinitionId = Definition->MonsterId;
+    SavedState.DungeonLevelId = MON9SingleLevelId;
+    SavedState.CellX = DeathCell.X;
+    SavedState.CellY = DeathCell.Y;
+    SavedState.Facing = EGridEdge::South;
+    SavedState.MonsterState = EGridMonsterState::Dead;
+    SavedState.CurrentHealth = 0;
+    SavedState.CurrentPhysicalArmor = 2;
+    SavedState.CurrentMagicalArmor = 1;
+    SavedState.bMonsterEnabled = true;
+    SavedState.bIsDead = true;
+
+    FGridLevelRuntimeState LevelState;
+    LevelState.LevelId = MON9SingleLevelId;
+    LevelState.bHasBeenVisited = true;
+    LevelState.Monsters.Add (PersistenceId, SavedState);
+    Runtime->DungeonRuntimeState.LevelStates.Add (
+        MON9SingleLevelId,
+        LevelState);
+
+    TestTrue (
+        TEXT ("The committed dead state applies"),
+        Runtime->ApplyCurrentLevelRuntimeState ());
+    TestTrue (
+        TEXT ("The restored rat remains dead"),
+        Monster->IsDead ());
+    TestEqual (
+        TEXT ("The restored dead rat keeps zero health"),
+        Monster->CurrentHealth,
+        0);
+    TestTrue (
+        TEXT ("Death commitment remains true"),
+        Monster->DeathComponent->bDeathCommitted);
+    TestTrue (
+        TEXT ("Loot generation remains committed"),
+        Monster->DeathComponent->bLootGenerated);
+    TestEqual (
+        TEXT ("Restoration creates no new loot"),
+        Monster->DeathComponent->GeneratedLoot.Num (),
+        0);
+    TestEqual (
+        TEXT ("Restoration emits no new death"),
+        Monster->DeathComponent->LogicalDeathEventCount,
+        0);
+    UGridMonsterOccupancySubsystem* Occupancy =
+        TestWorld.World->GetSubsystem<
+            UGridMonsterOccupancySubsystem> ();
+    TestFalse (
+        TEXT ("The restored corpse occupies no cell"),
+        Occupancy &&
+        Occupancy->IsCellOccupied (DeathCell));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON9MovementAutoInitSkipsDeadTest,
+    "Grimrock.Monsters.MON9.MovementAutoInitSkipsDead",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9MovementAutoInitSkipsDeadTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON9TestWorld TestWorld;
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    Runtime->LevelAsset = MakeMON9Floor (Runtime);
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON9Definition (
+            Runtime,
+            TEXT ("MON9_AutoInitDeadRat"));
+    const FIntPoint DeathCell (3, 3);
+    AGridMonsterActor* Monster = SpawnMON9Monster (
+        TestWorld.World,
+        Definition,
+        FGuid (98, 2, 4, 1),
+        MON9SingleLevelId,
+        DeathCell,
+        TEXT ("MON9_AutoInitDeadRat"));
+    if (!Monster)
+    {
+        return false;
+    }
+
+    UGridMonsterMovementComponent* Movement =
+        Monster->FindComponentByClass<
+            UGridMonsterMovementComponent> ();
+    if (!Movement)
+    {
+        return false;
+    }
+    Movement->bAutoInitialize = true;
+    Monster->SetActorLocation (
+        Runtime->GetCellCenterWorld (
+            DeathCell.X,
+            DeathCell.Y));
+    Monster->DeathComponent->InitializeDeathComponent (Runtime);
+    Monster->MarkDead ();
+
+    Movement->BeginPlay ();
+
+    TestFalse (
+        TEXT ("Late auto-initialization leaves dead movement uninitialized"),
+        Movement->IsInitialized ());
+    UGridMonsterOccupancySubsystem* Occupancy =
+        TestWorld.World->GetSubsystem<
+            UGridMonsterOccupancySubsystem> ();
+    TestFalse (
+        TEXT ("Late auto-initialization does not occupy the death cell"),
+        Occupancy &&
+        Occupancy->IsCellOccupied (DeathCell));
     return true;
 }
 

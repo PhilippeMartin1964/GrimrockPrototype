@@ -18,7 +18,12 @@ void UGridMonsterMovementComponent::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (bAutoInitialize)
+    AGridMonsterActor* Monster = GetMonsterOwner ();
+    if (bAutoInitialize &&
+        Monster &&
+        Monster->IsRuntimeLevelActive () &&
+        Monster->bMonsterEnabled &&
+        !Monster->IsDead ())
     {
         InitializeMovement (nullptr);
     }

@@ -76,20 +76,7 @@ public:
     {
         Super::BeginPlay ();
 
-        if (MonsterDefinition && MonsterState != EGridMonsterState::Dead)
-        {
-            if (CurrentHealth <= 0)
-            {
-                CurrentHealth = MonsterDefinition->MaxHealth;
-            }
-
-            if (!bCombatStatsInitialized)
-            {
-                CurrentPhysicalArmor = FMath::Max (0, MonsterDefinition->PhysicalArmor);
-                CurrentMagicalArmor = FMath::Max (0, MonsterDefinition->MagicalArmor);
-                bCombatStatsInitialized = true;
-            }
-        }
+        EnsureInitialCombatState ();
 
         ApplyDefinitionVisuals ();
         ApplyFacingRotation ();
@@ -168,6 +155,9 @@ public:
     /** Disabled monsters never join or propagate a combat encounter. */
     UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Encounter")
     bool bMonsterEnabled = true;
+
+    UFUNCTION (BlueprintCallable, Category = "Monster|Initialization")
+    bool EnsureInitialCombatState ();
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Initialization")
     bool InitializeMonster (
@@ -433,7 +423,9 @@ public:
     UFUNCTION (BlueprintPure, Category = "Monster|State")
     bool IsDead () const
     {
-        return MonsterState == EGridMonsterState::Dead || CurrentHealth <= 0;
+        return MonsterState == EGridMonsterState::Dead ||
+            (DeathComponent && DeathComponent->bDeathCommitted) ||
+            (bCombatStatsInitialized && CurrentHealth <= 0);
     }
 
     UFUNCTION (BlueprintPure, Category = "Monster|State")

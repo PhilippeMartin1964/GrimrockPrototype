@@ -700,6 +700,13 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
         Monster->SkeletalMeshComponent->SetVisibility (true, true);
     }
 
+    const bool bStatsWereInitialized =
+        Monster->bCombatStatsInitialized;
+    Monster->EnsureInitialCombatState ();
+    const bool bInitializedStats =
+        !bStatsWereInitialized &&
+        Monster->bCombatStatsInitialized;
+
     if (Monster->IsDead ())
     {
         if (IsValidCell (
@@ -825,12 +832,20 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
     }
 
     UE_LOG (LogGridMonsterState, Log,
-        TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Dead=%s Enabled=%s"),
+        TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Dead=%s Enabled=%s InitializedStats=%s CombatStatsInitialized=%s DeathCommitted=%s"),
         *CurrentDungeonLevelId.ToString (),
         *GetNameSafe (Monster),
         *Monster->ResolvePersistenceId ().ToString (),
         Monster->IsDead () ? TEXT ("true") : TEXT ("false"),
-        Monster->bMonsterEnabled ? TEXT ("true") : TEXT ("false"));
+        Monster->bMonsterEnabled ? TEXT ("true") : TEXT ("false"),
+        bInitializedStats ? TEXT ("true") : TEXT ("false"),
+        Monster->bCombatStatsInitialized
+            ? TEXT ("true")
+            : TEXT ("false"),
+        Monster->DeathComponent &&
+            Monster->DeathComponent->bDeathCommitted
+            ? TEXT ("true")
+            : TEXT ("false"));
 }
 
 void AGridLevelRuntimeActor::ApplyInitialMonsterStateForCurrentLevel ()
@@ -859,6 +874,7 @@ void AGridLevelRuntimeActor::ApplyInitialMonsterStateForCurrentLevel ()
         if (Monster->ResolveRuntimeDungeonLevelId (RuntimeLevelId) ==
             RuntimeLevelId)
         {
+            Monster->EnsureInitialCombatState ();
             SetMonsterRuntimeLevelActive (Monster, true);
         }
     }
@@ -1419,6 +1435,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState ()
 
         // Version 1 and partial legacy states intentionally preserve the
         // actor's initial runtime values.
+        Monster->EnsureInitialCombatState ();
         SetMonsterRuntimeLevelActive (Monster, true);
     }
 
