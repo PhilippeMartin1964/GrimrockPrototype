@@ -100,6 +100,24 @@ Cette voie ne lance pas de nouvelle animation de mort, ne génère aucun butin, 
 
 `RestoreLivingState()` remet les gardes et compteurs transitoires du composant de mort dans un état vivant propre.
 
+## Persistance de plusieurs objets issus d’une mort
+
+Une même mort peut produire plusieurs objets grâce aux jets indépendants MON8. Chaque objet placé possède son propre `RuntimeObjectId` et reste un `AGridItemActor` indépendant.
+
+Lors de la capture du niveau, ces objets sont enregistrés séparément dans `FGridLevelRuntimeState::Items`, chacun sous la forme d’un `FGridRuntimeItemState`. Ils ne sont pas ajoutés à `FGridRuntimeMonsterState`, car les items au sol possèdent déjà leur propre pipeline de persistance.
+
+Lors de la restauration :
+
+- le monstre mort conserve `bDeathCommitted=true` ;
+- il conserve `bLootGenerated=true` ;
+- sa `LootTable` n’est jamais réévaluée ;
+- aucun nouveau `RuntimeObjectId` n’est créé ;
+- aucun second exemplaire n’est placé ;
+- `MonsterDied` et les liens ne sont pas réémis ;
+- chaque item au sol est restauré indépendamment par son état runtime.
+
+Le nombre d’items au sol provenant de la mort doit être strictement identique avant la sauvegarde et après le chargement.
+
 ## Occupation
 
 Le sous-système d’occupation utilise désormais `ResolvePersistenceId()` et ne fabrique plus d’identité à partir du chemin de l’Actor.
@@ -232,10 +250,10 @@ MON9 associe et restaure un Actor existant. Si une sauvegarde référence un GUI
 14. Relancer le PIE avec Continuer.
 15. Vérifier la cellule, l’orientation et les PV.
 16. Tuer le premier Rat.
-17. Vérifier son éventuel butin valide.
-18. Sauvegarder puis arrêter et relancer le PIE.
+17. Vérifier ses éventuels objets de butin et leurs `RuntimeObjectId` distincts.
+18. Laisser plusieurs objets au sol, sauvegarder puis arrêter et relancer le PIE.
 19. Vérifier que le Rat reste mort.
-20. Vérifier qu’aucun nouveau butin n’est généré et que sa cellule reste libre.
+20. Vérifier que le nombre d’items au sol est inchangé, qu’aucun nouveau jet ou butin n’est généré et que sa cellule reste libre.
 21. Effectuer une transition vers un autre niveau.
 22. Revenir au niveau du Rat.
 23. Vérifier les états, les corps et le butin des Rats.

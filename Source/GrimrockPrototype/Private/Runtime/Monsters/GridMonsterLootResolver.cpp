@@ -2,6 +2,8 @@
 
 namespace
 {
+    constexpr uint32 MON8IndependentLootSeedSalt = 0x494C4F54u;
+
     int32 ResolveMON8Quantity (
         const FGridMonsterLootEntry& Entry,
         int32 QuantityRoll)
@@ -12,15 +14,13 @@ namespace
     }
 }
 
-FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveLoot (
+TArray<FGridMonsterLootRollResult> FGridMonsterLootResolver::ResolveLoot (
     const TArray<FGridMonsterLootEntry>& LootTable,
-    FRandomStream& RandomStream)
+    int32 BaseSeed)
 {
-    const float SelectionRoll = RandomStream.FRand ();
-    FGridMonsterLootRollResult Result;
-    Result.SelectionRoll = SelectionRoll;
+    TArray<FGridMonsterLootRollResult> Results;
+    Results.Reserve (LootTable.Num ());
 
-    float CumulativeChance = 0.0f;
     for (int32 EntryIndex = 0; EntryIndex < LootTable.Num (); ++EntryIndex)
     {
         const FGridMonsterLootEntry& Entry = LootTable[EntryIndex];
@@ -29,49 +29,58 @@ FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveLoot (
             continue;
         }
 
-        CumulativeChance += Entry.DropChance;
-        if (SelectionRoll < CumulativeChance)
+        uint32 EntrySeed = HashCombine (
+            static_cast<uint32> (BaseSeed),
+            GetTypeHash (Entry.GetResolvedItemDefinitionId ()));
+        EntrySeed = HashCombine (
+            EntrySeed,
+            MON8IndependentLootSeedSalt);
+        FRandomStream EntryStream (static_cast<int32> (EntrySeed));
+
+        const float DropRoll = EntryStream.FRand ();
+        FGridMonsterLootRollResult Result = ResolveEntryFromRolls (
+            Entry,
+            EntryIndex,
+            DropRoll,
+            0);
+        if (Result.bDropped)
         {
-            Result.bHasLoot = true;
-            Result.SelectedEntryIndex = EntryIndex;
-            Result.ItemDefinitionId = Entry.GetResolvedItemDefinitionId ();
-            Result.Quantity = RandomStream.RandRange (
-                Entry.MinQuantity,
-                Entry.MaxQuantity);
-            return Result;
+            Result = ResolveEntryFromRolls (
+                Entry,
+                EntryIndex,
+                DropRoll,
+                static_cast<int32> (EntryStream.GetUnsignedInt ()));
         }
+        Results.Add (Result);
     }
 
-    return Result;
+    return Results;
 }
 
-FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveLootFromRolls (
-    const TArray<FGridMonsterLootEntry>& LootTable,
-    float SelectionRoll,
+FGridMonsterLootRollResult FGridMonsterLootResolver::ResolveEntryFromRolls (
+    const FGridMonsterLootEntry& Entry,
+    int32 EntryIndex,
+    float DropRoll,
     int32 QuantityRoll)
 {
     FGridMonsterLootRollResult Result;
-    Result.SelectionRoll = FMath::Clamp (SelectionRoll, 0.0f, 1.0f);
+    Result.EntryIndex = EntryIndex;
+    Result.ItemDefinitionId = Entry.GetResolvedItemDefinitionId ();
+    Result.DropRoll = FMath::IsFinite (DropRoll)
+        ? FMath::Clamp (DropRoll, 0.0f, 1.0f)
+        : 1.0f;
 
-    float CumulativeChance = 0.0f;
-    for (int32 EntryIndex = 0; EntryIndex < LootTable.Num (); ++EntryIndex)
+    if (!Entry.IsValidDefinition () || Entry.DropChance <= 0.0f)
     {
-        const FGridMonsterLootEntry& Entry = LootTable[EntryIndex];
-        if (!Entry.IsValidDefinition ())
-        {
-            continue;
-        }
-
-        CumulativeChance += Entry.DropChance;
-        if (Result.SelectionRoll < CumulativeChance)
-        {
-            Result.bHasLoot = true;
-            Result.SelectedEntryIndex = EntryIndex;
-            Result.ItemDefinitionId = Entry.GetResolvedItemDefinitionId ();
-            Result.Quantity = ResolveMON8Quantity (Entry, QuantityRoll);
-            return Result;
-        }
+        return Result;
     }
 
+    Result.bDropped =
+        Entry.DropChance >= 1.0f ||
+        Result.DropRoll < Entry.DropChance;
+    if (Result.bDropped)
+    {
+        Result.Quantity = ResolveMON8Quantity (Entry, QuantityRoll);
+    }
     return Result;
 }

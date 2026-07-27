@@ -37,20 +37,6 @@ namespace
         return static_cast<int32> (Seed);
     }
 
-    float GetMON8TotalDropChance (
-        const TArray<FGridMonsterLootEntry>& LootTable)
-    {
-        float Total = 0.0f;
-        for (const FGridMonsterLootEntry& Entry : LootTable)
-        {
-            if (Entry.IsValidDefinition ())
-            {
-                Total += Entry.DropChance;
-            }
-        }
-        return Total;
-    }
-
     FVector GetMON8LootLocalOffset (int32 LootIndex)
     {
         static const FVector Offsets[] = {
@@ -58,7 +44,11 @@ namespace
             FVector (20.0f, 0.0f, 0.0f),
             FVector (-20.0f, 0.0f, 0.0f),
             FVector (0.0f, 20.0f, 0.0f),
-            FVector (0.0f, -20.0f, 0.0f)
+            FVector (0.0f, -20.0f, 0.0f),
+            FVector (20.0f, 20.0f, 0.0f),
+            FVector (-20.0f, 20.0f, 0.0f),
+            FVector (20.0f, -20.0f, 0.0f),
+            FVector (-20.0f, -20.0f, 0.0f)
         };
         return Offsets[LootIndex % UE_ARRAY_COUNT (Offsets)];
     }
@@ -291,94 +281,122 @@ void UGridMonsterDeathComponent::GenerateAndPlaceLoot ()
 
     const TArray<FGridMonsterLootEntry>& LootTable =
         OwnerMonster->MonsterDefinition->LootTable;
-    FRandomStream LootRandomStream (BuildMON8LootSeed (OwnerMonster));
-    const FGridMonsterLootRollResult Roll =
-        FGridMonsterLootResolver::ResolveLoot (LootTable, LootRandomStream);
+    const TArray<FGridMonsterLootRollResult> Results =
+        FGridMonsterLootResolver::ResolveLoot (
+            LootTable,
+            BuildMON8LootSeed (OwnerMonster));
+    int32 DroppedLootCount = 0;
 
-    if (!Roll.bHasLoot)
+    for (const FGridMonsterLootRollResult& Result : Results)
     {
+        const float DropChance = LootTable.IsValidIndex (Result.EntryIndex)
+            ? LootTable[Result.EntryIndex].DropChance
+            : 0.0f;
         UE_LOG (LogGridMonsterLoot, Log,
-            TEXT ("[GridMonsterLoot] NoDrop Monster=%s Roll=%.3f TotalChance=%.3f"),
+            TEXT ("[GridMonsterLoot] Roll Monster=%s Entry=%d Item=%s Chance=%.3f Roll=%.3f Dropped=%s Quantity=%d"),
             *GetNameSafe (OwnerMonster),
-            Roll.SelectionRoll,
-            GetMON8TotalDropChance (LootTable));
-        return;
-    }
+            Result.EntryIndex,
+            *Result.ItemDefinitionId.ToString (),
+            DropChance,
+            Result.DropRoll,
+            Result.bDropped ? TEXT ("true") : TEXT ("false"),
+            Result.Quantity);
 
-    UE_LOG (LogGridMonsterLoot, Log,
-        TEXT ("[GridMonsterLoot] Roll Monster=%s Roll=%.3f Selected=%s Quantity=%d"),
-        *GetNameSafe (OwnerMonster),
-        Roll.SelectionRoll,
-        *Roll.ItemDefinitionId.ToString (),
-        Roll.Quantity);
+        if (!Result.bDropped)
+        {
+            UE_LOG (LogGridMonsterLoot, Log,
+                TEXT ("[GridMonsterLoot] NoDrop Monster=%s Entry=%d Item=%s Chance=%.3f Roll=%.3f"),
+                *GetNameSafe (OwnerMonster),
+                Result.EntryIndex,
+                *Result.ItemDefinitionId.ToString (),
+                DropChance,
+                Result.DropRoll);
+            continue;
+        }
 
-    if (!LootTable.IsValidIndex (Roll.SelectedEntryIndex))
-    {
-        ++FailedLootCount;
-        return;
-    }
+        ++DroppedLootCount;
+        if (!LootTable.IsValidIndex (Result.EntryIndex))
+        {
+            ++FailedLootCount;
+            continue;
+        }
 
-    const FGridMonsterLootEntry& Entry = LootTable[Roll.SelectedEntryIndex];
-    UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset;
+        const FGridMonsterLootEntry& Entry =
+            LootTable[Result.EntryIndex];
+        UGridItemDefinitionAsset* ItemDefinition =
+            Entry.ItemDefinitionAsset;
 
-    FGridItemInstance ItemInstance;
-    ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
-    ItemInstance.ItemDefinitionId = Roll.ItemDefinitionId;
-    ItemInstance.DisplayName = ItemDefinition
-        ? ItemDefinition->DisplayName
-        : FText::FromName (Roll.ItemDefinitionId);
-    ItemInstance.Quantity = Roll.Quantity;
-    ItemInstance.Weight = ItemDefinition ? ItemDefinition->Weight : 0.0f;
-    ItemInstance.OwnerType = EGridItemOwnerType::World;
-    ItemInstance.OwnerGuid = FGuid ();
-    ItemInstance.OwnerCharacterIndex = INDEX_NONE;
-    ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
-    ItemInstance.bLightsEnabled =
-        ItemDefinition && ItemDefinition->bDefaultLightEnabled;
+        FGridItemInstance ItemInstance;
+        ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
+        ItemInstance.ItemDefinitionId = Result.ItemDefinitionId;
+        ItemInstance.DisplayName = ItemDefinition
+            ? ItemDefinition->DisplayName
+            : FText::FromName (Result.ItemDefinitionId);
+        ItemInstance.Quantity = Result.Quantity;
+        ItemInstance.Weight =
+            ItemDefinition ? ItemDefinition->Weight : 0.0f;
+        ItemInstance.OwnerType = EGridItemOwnerType::World;
+        ItemInstance.OwnerGuid = FGuid ();
+        ItemInstance.OwnerCharacterIndex = INDEX_NONE;
+        ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
+        ItemInstance.bLightsEnabled =
+            ItemDefinition && ItemDefinition->bDefaultLightEnabled;
 
-    const FVector LocalOffset = GetMON8LootLocalOffset (PlacedLootCount);
-    if (RuntimeActor)
-    {
-        ItemInstance.LastWorldTransform = FTransform (
-            FRotator::ZeroRotator,
-            RuntimeActor->GetCellCenterWorld (
+        const FVector LocalOffset =
+            GetMON8LootLocalOffset (PlacedLootCount);
+        if (RuntimeActor)
+        {
+            ItemInstance.LastWorldTransform = FTransform (
+                FRotator::ZeroRotator,
+                RuntimeActor->GetCellCenterWorld (
+                    DeathCell.X,
+                    DeathCell.Y,
+                    12.0f) + LocalOffset,
+                FVector::OneVector);
+        }
+
+        const bool bPlaced = RuntimeActor &&
+            RuntimeActor->TryDropItemInstanceAtCell (
+                ItemInstance,
+                ItemDefinition,
                 DeathCell.X,
                 DeathCell.Y,
-                12.0f) + LocalOffset,
-            FVector::OneVector);
-    }
+                EGridEdge::None,
+                LocalOffset);
+        if (!bPlaced)
+        {
+            ++FailedLootCount;
+            UE_LOG (LogGridMonsterLoot, Warning,
+                TEXT ("[GridMonsterLoot] PlacementFailed Monster=%s Item=%s Cell=(%d,%d) Reason=%s"),
+                *GetNameSafe (OwnerMonster),
+                *Result.ItemDefinitionId.ToString (),
+                DeathCell.X,
+                DeathCell.Y,
+                RuntimeActor
+                    ? TEXT ("UnresolvedDefinitionOrInvalidCell")
+                    : TEXT ("MissingRuntimeActor"));
+            continue;
+        }
 
-    const bool bPlaced = RuntimeActor &&
-        RuntimeActor->TryDropItemInstanceAtCell (
-            ItemInstance,
-            ItemDefinition,
-            DeathCell.X,
-            DeathCell.Y,
-            EGridEdge::None,
-            LocalOffset);
-    if (!bPlaced)
-    {
-        ++FailedLootCount;
-        UE_LOG (LogGridMonsterLoot, Warning,
-            TEXT ("[GridMonsterLoot] PlacementFailed Monster=%s Item=%s Cell=(%d,%d) Reason=%s"),
+        GeneratedLoot.Add (ItemInstance);
+        ++PlacedLootCount;
+        UE_LOG (LogGridMonsterLoot, Log,
+            TEXT ("[GridMonsterLoot] Placed Monster=%s Item=%s Quantity=%d Cell=(%d,%d) RuntimeId=%s"),
             *GetNameSafe (OwnerMonster),
-            *Roll.ItemDefinitionId.ToString (),
+            *Result.ItemDefinitionId.ToString (),
+            Result.Quantity,
             DeathCell.X,
             DeathCell.Y,
-            RuntimeActor ? TEXT ("UnresolvedDefinitionOrInvalidCell") : TEXT ("MissingRuntimeActor"));
-        return;
+            *ItemInstance.RuntimeObjectId.ToString ());
     }
 
-    GeneratedLoot.Add (ItemInstance);
-    ++PlacedLootCount;
     UE_LOG (LogGridMonsterLoot, Log,
-        TEXT ("[GridMonsterLoot] Placed Monster=%s Item=%s Quantity=%d Cell=(%d,%d) RuntimeId=%s"),
+        TEXT ("[GridMonsterLoot] Summary Monster=%s Evaluated=%d Dropped=%d Placed=%d Failed=%d"),
         *GetNameSafe (OwnerMonster),
-        *Roll.ItemDefinitionId.ToString (),
-        Roll.Quantity,
-        DeathCell.X,
-        DeathCell.Y,
-        *ItemInstance.RuntimeObjectId.ToString ());
+        Results.Num (),
+        DroppedLootCount,
+        PlacedLootCount,
+        FailedLootCount);
 }
 
 void UGridMonsterDeathComponent::StartDeathPresentation ()

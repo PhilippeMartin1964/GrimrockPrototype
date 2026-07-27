@@ -777,10 +777,12 @@ Tranchant : dégâts × 1,25
 ### 8.3. Butin proposé
 
 ```text
-55 % : rien
-30 % : viande de rat
-15 % : dent de rat
+Key_Iron       : 100 % indépendamment
+Item_RatTooth  :  40 % indépendamment
+Item_RatMeat   :  80 % indépendamment
 ```
+
+Ces valeurs ne forment pas une table exclusive. Plusieurs objets peuvent tomber lors de la même mort et leur somme peut dépasser 100 %.
 
 ---
 
@@ -2243,12 +2245,17 @@ Le ragdoll pourra être ajouté ultérieurement, mais il ne devra jamais modifie
 
 À la mort :
 
-1. sélectionner une entrée de la table de butin ;
-2. générer un `FGridItemInstance` ;
-3. placer l’item sur la cellule du monstre ;
-4. enregistrer l’item dans le runtime du niveau.
+1. évaluer indépendamment chaque entrée de la table de butin ;
+2. collecter toutes les entrées réussies ;
+3. générer un `FGridItemInstance` par résultat ;
+4. placer chaque item sur la cellule du monstre avec un offset déterministe ;
+5. enregistrer chaque item dans le runtime du niveau.
 
 Le butin doit utiliser le système d’items existant, sans inventaire spécifique aux monstres dans la première version.
+
+Chaque entrée possède une chance individuelle comprise entre 0 et 1. Un drop à `1.0` est garanti, un drop à `0.4` possède 40 % de chance indépendamment des autres, et la somme de la table peut dépasser 1. Le sous-seed déterministe associe la graine du monstre à l’`ItemDefinitionId` : réordonner la table ou ajouter une entrée ne modifie pas les jets existants. L’échec de placement d’un objet n’arrête pas les autres résultats.
+
+Chaque objet placé reçoit un `RuntimeObjectId` distinct. Les items au sol sont persistés séparément dans des `FGridRuntimeItemState`. Restaurer un monstre mort conserve `bLootGenerated=true` et ne rejoue jamais les jets.
 
 ### 23.4. Expérience
 
@@ -2455,7 +2462,12 @@ Show Monster Paths
 - rat déplacé ;
 - rat agressif ;
 - rat mort ;
-- butin généré ;
+- plusieurs drops indépendants ;
+- drop garanti ;
+- somme des chances supérieure à 1 ;
+- stabilité des jets par `ItemDefinitionId` après réordonnancement ou ajout ;
+- butin généré et items au sol persistés séparément ;
+- absence de duplication du butin après restauration ;
 - changement de niveau puis retour ;
 - restauration de la graine aléatoire.
 

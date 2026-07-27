@@ -2,7 +2,7 @@
 
 ## Périmètre
 
-MON8 rend la mort logique indépendante de sa présentation. Dès que les points de vie atteignent zéro, le monstre cesse d’agir, libère sa cellule, produit au plus un butin, émet `MonsterDied` et permet au gestionnaire de tours de conclure immédiatement la rencontre. L’absence de Montage, son, VFX, lien ou butin ne bloque jamais le gameplay.
+MON8 rend la mort logique indépendante de sa présentation. Dès que les points de vie atteignent zéro, le monstre cesse d’agir, libère sa cellule, évalue toutes ses entrées de butin, émet `MonsterDied` et permet au gestionnaire de tours de conclure immédiatement la rencontre. L’absence de Montage, son, VFX, lien ou butin ne bloque jamais le gameplay.
 
 L’expérience reste stockée dans `ExperienceReward`, mais son attribution collective sera réalisée dans un jalon futur.
 
@@ -16,10 +16,11 @@ L’expérience reste stockée dans `ExperienceReward`, mais son attribution col
 - `bDeathCommitted` ;
 - `bLootGenerated` ;
 - l’état de présentation ;
-- les objets réellement placés dans `GeneratedLoot` ;
-- les compteurs de placement réussi ou échoué.
+- tous les objets réellement placés dans `GeneratedLoot` ;
+- `PlacedLootCount`, nombre total de placements réussis ;
+- `FailedLootCount`, nombre total de placements échoués.
 
-`MarkDead()` fixe l’état vital et délègue la séquence irréversible au composant. La garde `bDeathCommitted` est posée avant tout appel externe : une seconde invocation ne libère pas deux fois la cellule, ne rejoue pas le butin, les liens, le délégué ou le Montage.
+`MarkDead()` fixe l’état vital et délègue la séquence irréversible au composant. La garde `bDeathCommitted` est posée avant tout appel externe. `bLootGenerated` est posée avant l’évaluation de la table : une seconde invocation ne libère pas deux fois la cellule, ne rejoue pas les jets, ne crée pas de nouveaux `RuntimeObjectId` et ne réémet ni liens, ni délégué, ni Montage.
 
 ## Ordre de la mort logique
 
@@ -32,20 +33,20 @@ CurrentHealth = 0
 → annulation du déplacement et des réservations
 → HandleOwnerDeath() et libération de l’occupation
 → collision désactivée
-→ génération et placement du butin
+→ évaluation et placement de tous les butins réussis
 → liens EGridObjectEvent::MonsterDied
 → OnMonsterDied
 → présentation visuelle facultative
 → détection immédiate de Victory
 ```
 
-Le corps peut rester visible, mais sa `CollisionComponent` est en `NoCollision` et il n’occupe plus la grille. `UGridMonsterMovementComponent::HandleOwnerDeath()` reste l’unique voie de libération : aucun second registre d’occupation n’est créé.
+La mort, `MonsterDied`, les liens, la victoire et la libération de cellule ne dépendent jamais du succès du butin. Le corps peut rester visible, mais sa `CollisionComponent` est en `NoCollision` et il n’occupe plus la grille.
 
 ## Présentation de mort
 
 `DeathMontage` est facultatif et `DeathExpectedDuration` doit être fini et strictement positif. Si un Montage et un `AnimInstance` existent, le composant lance le Montage et un timer de sécurité réservé à la présentation. Le timer ne retarde ni les événements, ni le butin, ni la victoire.
 
-`NotifyDeathPresentationComplete()` termine uniquement l’état de présentation. Il ne change jamais `MonsterState`, ne réactive jamais la collision et ne détruit pas le corps. Aucun ragdoll n’est ajouté par MON8.
+`NotifyDeathPresentationComplete()` termine uniquement l’état de présentation. Il ne change jamais `MonsterState`, ne réactive jamais la collision et ne détruit pas le corps.
 
 Dans `ABP_MON_RatGiant`, prévoir :
 
@@ -54,27 +55,68 @@ Any State → Dead
 Condition : bIsDead
 ```
 
-L’état `Dead` peut temporairement utiliser `Local Space Ref Pose`, ou une animation de mort existante.
+## Table de butin à jets indépendants
 
-## Table de butin pondérée
+`FGridMonsterLootResolver` est pur et indépendant des Actors et du monde. Chaque entrée valide de `LootTable` reçoit son propre jet dans `[0, 1[`. Si `DropRoll < DropChance`, l’entrée réussit et reçoit ensuite son propre jet de quantité entre `MinQuantity` et `MaxQuantity`. L’évaluation continue toujours avec l’entrée suivante.
 
-`FGridMonsterLootResolver` est pur et indépendant des Actors. Il effectue un seul jet de sélection et parcourt le tableau dans son ordre :
+- `DropChance = 0.0` signifie que l’objet ne tombe jamais ;
+- `DropChance = 1.0` signifie que l’objet tombe toujours ;
+- `DropChance = 0.4` signifie 40 % de chance, indépendamment des autres entrées ;
+- plusieurs entrées peuvent réussir lors de la même mort ;
+- l’échec d’une entrée n’empêche jamais les suivantes d’être évaluées ;
+- la somme des chances n’a aucune limite globale.
+
+Une somme de `1.00 + 0.40 + 0.80 = 2.20` est valide. Elle ne représente pas une probabilité globale : elle correspond à une espérance de `2,20` objets par évaluation si chaque quantité vaut un.
+
+Exemple :
 
 ```text
-Entrée A : 0,40  → tranche [0,00 ; 0,40[
-Entrée B : 0,25  → tranche [0,40 ; 0,65[
-Reste             → aucun butin
+Loot Table
+├── Key_Iron
+│   ├── Drop Chance = 1.00
+│   ├── Min Quantity = 1
+│   └── Max Quantity = 1
+│
+├── Item_RatTooth
+│   ├── Drop Chance = 0.40
+│   ├── Min Quantity = 1
+│   └── Max Quantity = 1
+│
+└── Item_RatMeat
+    ├── Drop Chance = 0.80
+    ├── Min Quantity = 1
+    └── Max Quantity = 2
 ```
 
-Les entrées ne reçoivent pas de jets indépendants. Une seule entrée au maximum est retenue. Le jet de quantité `RandRange(MinQuantity, MaxQuantity)` n’est consommé que si une entrée est sélectionnée.
+Les résultats possibles incluent :
 
-`ItemDefinitionAsset`, ajouté à la fin de `FGridMonsterLootEntry`, est prioritaire pour résoudre l’identifiant. `ItemDefinitionId` reste le repli compatible avec les anciennes données. Si les deux sont renseignés, leurs identifiants doivent correspondre. Les doublons sont validés sur l’identifiant résolu et la somme des chances ne peut pas dépasser `1,0`.
+- clé seule ;
+- clé + dent ;
+- clé + viande ;
+- clé + dent + viande.
 
-La graine du butin combine `SpawnObjectId`, `MonsterId` et le sel constant `MON8LootSeedSalt`. Ce `FRandomStream` est indépendant du `CombatRandomStream`.
+`ItemDefinitionAsset`, ajouté à la fin de `FGridMonsterLootEntry`, est prioritaire pour résoudre l’identifiant. `ItemDefinitionId` reste le repli compatible avec les anciennes données. Si les deux sont renseignés, leurs identifiants doivent correspondre. Chaque entrée conserve sa validation individuelle : identifiant résolu, chance finie comprise entre 0 et 1, quantité minimale positive et maximum supérieur ou égal au minimum. Les doublons d’identifiant résolu restent interdits.
+
+## Déterminisme par entrée
+
+La graine MON8 de base combine `ResolvePersistenceId()`, `MonsterId` et `MON8LootSeedSalt`. Elle n’utilise jamais `CombatRandomStream`.
+
+Le résolveur dérive ensuite un sous-seed pour chaque entrée à partir de la graine de base, de l’`ItemDefinitionId` résolu et d’un sel dédié. Chaque entrée possède donc son propre `FRandomStream`.
+
+Conséquences :
+
+- le même monstre et la même table reproduisent exactement les mêmes jets ;
+- réordonner la table ne change pas le jet ni la quantité d’un identifiant ;
+- ajouter une entrée ne change pas les résultats des entrées existantes ;
+- une entrée invalide est ignorée sans consommer les jets des autres ;
+- deux identités persistantes différentes peuvent produire des résultats différents ;
+- restaurer un monstre mort ne rejoue aucun jet.
 
 ## Placement runtime
 
-Le résultat devient un `FGridItemInstance` avec un nouveau `RuntimeObjectId`, une quantité, un poids, un nom, l’état de lumière et le propriétaire `World`. Le drop utilise la cellule de mort, `EGridEdge::None` et les offsets stables suivants :
+Chaque résultat réussi devient un `FGridItemInstance` indépendant avec un nouveau `RuntimeObjectId`, une quantité, un poids, un nom, l’état de lumière et le propriétaire `World`. Chaque objet reste un `AGridItemActor` ramassable par le système existant ; aucun Actor conteneur de butin n’est créé.
+
+Le dépôt utilise la cellule de mort, `EGridEdge::None` et `PlacedLootCount` pour sélectionner un offset stable :
 
 ```text
 (0, 0, 0)
@@ -82,120 +124,120 @@ Le résultat devient un `FGridItemInstance` avec un nouveau `RuntimeObjectId`, u
 (-20, 0, 0)
 (0, 20, 0)
 (0, -20, 0)
+(20, 20, 0)
+(-20, 20, 0)
+(20, -20, 0)
+(-20, -20, 0)
 ```
 
-La hauteur standard de 12 unités est ajoutée par le dépôt monde. `TryDropItemInstanceAtCell()` conserve son ancienne signature et possède une surcharge C++ acceptant directement le `UGridItemDefinitionAsset` de la table. Le même `SpawnedItemEntries` est alimenté, les plaques de pression sont rafraîchies et `CaptureCurrentLevelRuntimeState()` reste compatible.
+La hauteur standard de 12 unités est ajoutée par le dépôt monde. `TryDropItemInstanceAtCell()` alimente le système `SpawnedItemEntries`, rafraîchit les plaques de pression et laisse `CaptureCurrentLevelRuntimeState()` capturer chaque item dans un `FGridRuntimeItemState` distinct.
 
-Si aucune définition n’est résolue ou si le placement échoue, le compteur d’échec augmente, mais la mort et les événements continuent.
+Si une définition ne peut pas être résolue ou si un placement échoue, `FailedLootCount` augmente et le composant poursuit avec les autres résultats. `GeneratedLoot` ne contient que les objets réellement placés.
 
-## Événements
+## Événements et victoire immédiate
 
 `OnMonsterDied(Monster, DeathCell)` représente la mort logique validée. Il est diffusé exactement une fois après le butin et les liens.
 
-`EGridObjectEvent::MonsterDied` est ajouté après toutes les valeurs historiques. Un `MonsterSpawn` peut désormais être source de ce seul événement dans le panneau de liens. À la mort :
+`EGridObjectEvent::MonsterDied` est ajouté après toutes les valeurs historiques. L’association nécessite que `SpawnObjectId` corresponde à l’`ObjectId` du `MonsterSpawn`. L’absence de lien n’empêche ni la mort, ni le butin, ni la libération de cellule.
 
-```cpp
-RuntimeActor->ExecuteLinksFromRuntimeObject(
-    SpawnObjectId,
-    EGridObjectEvent::MonsterDied);
-```
-
-L’association nécessite que `SpawnObjectId` corresponde à l’`ObjectId` du `MonsterSpawn`. Le projet ne possède pas encore le pipeline natif complet qui génère tous les monstres depuis ces placements. Pour un `BP_MON_RatGiant` directement placé sans identifiant correspondant, la mort, le butin, l’occupation et `OnMonsterDied` fonctionnent ; seul le lien de LevelAsset peut ne pas être trouvé. Aucune association ambiguë par cellule n’est tentée.
-
-## Victoire immédiate
-
-Au démarrage d’une rencontre, le TurnManager lie chaque participant à `OnMonsterDied` sans doublon. Le handler :
-
-- retire le mort de l’ordre ennemi ;
-- supprime ses actions futures ;
-- annule son action active ;
-- passe au monstre suivant si nécessaire ;
-- appelle immédiatement `FinishCombat(Victory)` si aucun participant vivant ne reste.
-
-Les bindings sont retirés dans `AbortCombat`, `FinishCombat` et `EndPlay`. Pendant `PlayerPhase`, la mort d’un monstre laisse la phase continuer si un autre ennemi est vivant.
+Au démarrage d’une rencontre, le TurnManager lie chaque participant à `OnMonsterDied`. Le handler retire le mort de l’ordre ennemi, supprime ses actions, passe au monstre suivant si nécessaire et appelle immédiatement `FinishCombat(Victory)` si aucun participant vivant ne reste.
 
 ## Logs
 
 Les catégories `LogGridMonsterDeath` et `LogGridMonsterLoot` produisent notamment :
 
 ```text
-[GridMonsterDeath] Commit Monster=... Cell=(X,Y) SpawnObjectId=... OccupancyReleased=true
-[GridMonsterDeath] Links Monster=... SourceId=... Event=MonsterDied Executed=true
-[GridMonsterDeath] Broadcast Monster=... DeathCell=(X,Y)
-[GridMonsterLoot] Roll Monster=... Roll=0.312 Selected=... Quantity=1
-[GridMonsterLoot] NoDrop Monster=... Roll=0.812 TotalChance=0.650
-[GridMonsterLoot] Placed Monster=... Item=... Quantity=1 Cell=(X,Y) RuntimeId=...
-[GridMonsterLoot] PlacementFailed Monster=... Item=... Cell=(X,Y) Reason=...
-[GridTurnManager] MonsterDied Monster=... RemainingLiving=0 Victory=true
+[GridMonsterLoot] Roll Monster=Rat Entry=0 Item=Key_Iron Chance=1.000 Roll=0.862 Dropped=true Quantity=1
+[GridMonsterLoot] Roll Monster=Rat Entry=1 Item=Item_RatTooth Chance=0.400 Roll=0.317 Dropped=true Quantity=1
+[GridMonsterLoot] Roll Monster=Rat Entry=2 Item=Item_RatMeat Chance=0.800 Roll=0.914 Dropped=false Quantity=0
+[GridMonsterLoot] NoDrop Monster=Rat Entry=2 Item=Item_RatMeat Chance=0.800 Roll=0.914
+[GridMonsterLoot] Placed Monster=Rat Item=Key_Iron Quantity=1 Cell=(X,Y) RuntimeId=...
+[GridMonsterLoot] PlacementFailed Monster=Rat Item=... Cell=(X,Y) Reason=...
+[GridMonsterLoot] Summary Monster=Rat Evaluated=3 Dropped=2 Placed=2 Failed=0
 ```
 
-Ces logs ne sont jamais produits à chaque Tick.
+Il n’existe plus de log de probabilité totale ni de résultat global « aucun butin ». Aucun de ces logs n’est produit à chaque Tick.
 
 ## Tests Automation
 
-Lancer :
+Lancer la régression complète :
 
 ```text
-Grimrock.Monsters.MON8.LootResolver
-Grimrock.Monsters.MON8.DeathExactlyOnce
-Grimrock.Monsters.MON8.OccupancyRelease
-Grimrock.Monsters.MON8.VictoryOnLastDeath
-Grimrock.Monsters.MON8.MonsterDiedEvent
+Grimrock.Monsters.MON
 ```
 
-Puis les régressions :
+Puis les deux tests de sauvegarde :
 
 ```text
-Grimrock.Monsters.MON3
-Grimrock.Monsters.MON4
-Grimrock.Monsters.MON5
-Grimrock.Monsters.MON6
-Grimrock.Monsters.MON7
+Grimrock.CharacterCreation.CC5
 ```
 
-Les tests MON8 couvrent les tranches cumulatives, le reliquat sans drop, les quantités, la graine, la garde de mort, l’occupation MON3, la victoire et la stabilité numérique de l’enum.
+Les tests MON8 couvrent notamment :
+
+- table vide, chance nulle et drop garanti ;
+- quantité bornée ;
+- plusieurs réussites indépendantes ;
+- échec d’une entrée suivi d’une réussite ;
+- somme des chances égale à 2,20 ;
+- entrée invalide ignorée ;
+- déterminisme à graine identique ;
+- stabilité par `ItemDefinitionId` après réordonnancement ou ajout ;
+- graine différente ;
+- placement réel de trois objets transient avec des `RuntimeObjectId` distincts ;
+- garde contre un second `MarkDead()`.
+
+MON9 vérifie également qu’un mort restauré conserve `bDeathCommitted=true` et `bLootGenerated=true`, sans nouveau jet, objet, événement ou lien.
 
 ## Réglages manuels UE5
 
-Dans `DA_MON_RatGiant` :
+Ne modifier aucun DataAsset automatiquement. Après compilation, le réglage prévu dans `DA_MON_RatGiant` est :
 
 ```text
-Death Montage            = None temporairement
-Death Expected Duration  = 1.0
+Key_Iron
+- Item Definition Asset = DA_Item_IronKey
+- Item Definition Id = Key_Iron
+- Drop Chance = 1.00
+- Min Quantity = 1
+- Max Quantity = 1
 
-Loot Table / Entry 0
-Item Definition Asset    = un ItemDefinition existant et valide
-Item Definition Id       = le même identifiant
-Drop Chance              = 1.0 pour le premier test
-Min Quantity             = 1
-Max Quantity             = 1
+Item_RatTooth
+- à ajouter lorsque DA_Item_RatTooth existera
+- Drop Chance = 0.40
+- Min Quantity = 1
+- Max Quantity = 1
+
+Item_RatMeat
+- à ajouter lorsque DA_Item_RatMeat existera
+- Drop Chance = 0.80
+- Min Quantity = 1
+- Max Quantity = 2
 ```
 
-L’ItemDefinition doit posséder un `WorldMesh`. Après validation, remettre une probabilité de jeu, par exemple `Drop Chance = 0.40`. Aucun DataAsset n’est modifié automatiquement par MON8.
-
-Dans le Grid Editor, un `MonsterSpawn` correctement associé peut émettre `Monster Died` vers une porte avec la commande `Open`.
+Tant que les DataAssets de dent et de viande n’existent pas, conserver uniquement la clé ou garder ces entrées de côté. Chaque définition réellement utilisée doit être valide et peut fournir un `WorldMesh`. La somme des `DropChance` ne rend plus `DA_MON_RatGiant` invalide.
 
 ## Checklist PIE MON8
 
-1. Fermer Unreal Editor et compiler `GrimrockPrototypeEditor` en Development Win64.
-2. Ouvrir `BP_MON_RatGiant`.
-3. Vérifier les composants C++ hérités `MonsterCombat` et `MonsterDeath`.
-4. Vérifier `MonsterMovement` et `MonsterBehavior`, sans ajouter un second `MonsterDeath`.
-5. Ouvrir `DA_MON_RatGiant`.
-6. Configurer une entrée `LootTable` avec `Drop Chance = 1.0`.
-7. Choisir un `ItemDefinitionAsset` valide possédant un `WorldMesh`.
-8. Lancer le PIE.
-9. Démarrer le combat par perception.
-10. Tuer un Rat avec `DebugKillMonster` ou la voie de dégâts disponible.
-11. Vérifier `CurrentHealth = 0`.
-12. Vérifier `MonsterState = Dead`.
-13. Vérifier que la collision est désactivée.
-14. Vérifier que la cellule est immédiatement libérée.
-15. Vérifier qu’un autre Rat peut traverser ou réserver cette cellule.
-16. Vérifier que le corps reste visible.
-17. Vérifier qu’un seul objet de butin apparaît sur la cellule de mort.
-18. Vérifier que cet objet est ramassable.
-19. Appeler une seconde fois `DebugKillMonster` et vérifier l’absence de second butin ou événement.
-20. Avec un lien `Monster Died → Open`, vérifier que la porte s’ouvre une seule fois et que les identifiants correspondent.
-21. Tuer le dernier Rat et vérifier la transition immédiate vers `Victory`.
-22. Restaurer `Drop Chance` à la valeur de jeu retenue, par exemple `0.40`.
+1. Compiler avec Unreal Editor fermé.
+2. Ouvrir `DA_MON_RatGiant`.
+3. Configurer trois `ItemDefinitionAsset` réellement existants pour le test.
+4. Régler temporairement leurs `DropChance` à `1.0`.
+5. Lancer le PIE.
+6. Tuer un Rat.
+7. Vérifier trois logs `Dropped=true`.
+8. Vérifier trois logs `Placed`.
+9. Vérifier trois objets distincts sur la cellule.
+10. Vérifier des `RuntimeObjectId` différents.
+11. Ramasser les trois objets.
+12. Vérifier leur présence dans l’inventaire.
+13. Tuer une seconde fois le Rat via `DebugKillMonster`.
+14. Vérifier qu’aucun objet supplémentaire n’apparaît.
+15. Recommencer avec `1.00 / 0.40 / 0.80`.
+16. Vérifier que la clé tombe toujours.
+17. Vérifier que dent et viande varient indépendamment.
+18. Sauvegarder avec plusieurs objets encore au sol.
+19. Arrêter le PIE.
+20. Recharger.
+21. Vérifier que le Rat reste mort.
+22. Vérifier que le nombre d’objets au sol est inchangé.
+23. Vérifier qu’aucun nouveau `Roll` n’est produit au chargement.
+24. Vérifier qu’aucun nouveau `MonsterDied` n’est émis.

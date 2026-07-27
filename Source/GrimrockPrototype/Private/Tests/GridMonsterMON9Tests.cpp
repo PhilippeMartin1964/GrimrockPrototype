@@ -5,6 +5,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -129,6 +130,26 @@ namespace
         Definition->GridFootprint = FIntPoint (1, 1);
         Definition->DeathExpectedDuration = 1.0f;
         return Definition;
+    }
+
+    void AddGuaranteedMON9Loot (
+        UGridMonsterDefinitionAsset* MonsterDefinition,
+        FName ItemDefinitionId)
+    {
+        UGridItemDefinitionAsset* ItemDefinition =
+            NewObject<UGridItemDefinitionAsset> (MonsterDefinition);
+        ItemDefinition->ItemDefinitionId = ItemDefinitionId;
+        ItemDefinition->DisplayName =
+            FText::FromName (ItemDefinitionId);
+        ItemDefinition->Weight = 1.0f;
+
+        FGridMonsterLootEntry Entry;
+        Entry.ItemDefinitionId = ItemDefinitionId;
+        Entry.ItemDefinitionAsset = ItemDefinition;
+        Entry.DropChance = 1.0f;
+        Entry.MinQuantity = 1;
+        Entry.MaxQuantity = 1;
+        MonsterDefinition->LootTable.Add (Entry);
     }
 
     AGridMonsterActor* SpawnMON9Monster (
@@ -395,6 +416,8 @@ bool FGridMonsterMON9DeadRoundTripTest::RunTest (
     Runtime->LevelAsset = MakeMON9Floor (Runtime);
     UGridMonsterDefinitionAsset* Definition =
         MakeMON9Definition (Runtime, TEXT ("MON9_DeadRat"));
+    AddGuaranteedMON9Loot (Definition, TEXT ("Item_MON9LootA"));
+    AddGuaranteedMON9Loot (Definition, TEXT ("Item_MON9LootB"));
     AGridMonsterActor* Monster = SpawnMON9Monster (
         TestWorld.World,
         Definition,
@@ -410,10 +433,32 @@ bool FGridMonsterMON9DeadRoundTripTest::RunTest (
 
     Monster->DeathComponent->InitializeDeathComponent (Runtime);
     Monster->MarkDead ();
-    FGridItemInstance ExistingLoot;
-    ExistingLoot.RuntimeObjectId = FGuid (92, 2, 2, 2);
-    ExistingLoot.ItemDefinitionId = TEXT ("Item_MON9Loot");
-    Monster->DeathComponent->GeneratedLoot.Add (ExistingLoot);
+    TestEqual (
+        TEXT ("The death places both guaranteed loot entries"),
+        Monster->DeathComponent->PlacedLootCount,
+        2);
+    TestEqual (
+        TEXT ("The death tracks both generated items"),
+        Monster->DeathComponent->GeneratedLoot.Num (),
+        2);
+    TestTrue (
+        TEXT ("The two generated runtime ids are distinct"),
+        Monster->DeathComponent->GeneratedLoot.Num () == 2 &&
+        Monster->DeathComponent->GeneratedLoot[0].RuntimeObjectId !=
+            Monster->DeathComponent->GeneratedLoot[1].RuntimeObjectId);
+    TestTrue (
+        TEXT ("The level captures both world items"),
+        Runtime->CaptureCurrentLevelRuntimeState ());
+    const FGridLevelRuntimeState* LevelStateBeforeRestore =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    const int32 RuntimeItemCountBeforeRestore =
+        LevelStateBeforeRestore
+            ? LevelStateBeforeRestore->Items.Num ()
+            : 0;
+    TestEqual (
+        TEXT ("Both loot items are persisted independently"),
+        RuntimeItemCountBeforeRestore,
+        2);
 
     FGridRuntimeMonsterState SavedState;
     TestTrue (
@@ -468,6 +513,17 @@ bool FGridMonsterMON9DeadRoundTripTest::RunTest (
     TestTrue (
         TEXT ("Loot generation stays committed"),
         Monster->DeathComponent->bLootGenerated);
+    TestTrue (
+        TEXT ("Death commitment stays restored"),
+        Monster->DeathComponent->bDeathCommitted);
+    const FGridLevelRuntimeState* LevelStateAfterRestore =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    TestEqual (
+        TEXT ("Restoring the dead monster does not change runtime items"),
+        LevelStateAfterRestore
+            ? LevelStateAfterRestore->Items.Num ()
+            : 0,
+        RuntimeItemCountBeforeRestore);
     return true;
 }
 

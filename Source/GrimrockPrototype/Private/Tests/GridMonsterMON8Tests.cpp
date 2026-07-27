@@ -6,6 +6,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -107,6 +108,44 @@ namespace
         return Definition;
     }
 
+    UGridItemDefinitionAsset* MakeMON8ItemDefinition (
+        UObject* Outer,
+        FName ItemDefinitionId)
+    {
+        UGridItemDefinitionAsset* Definition =
+            NewObject<UGridItemDefinitionAsset> (Outer);
+        Definition->ItemDefinitionId = ItemDefinitionId;
+        Definition->DisplayName = FText::FromName (ItemDefinitionId);
+        Definition->Weight = 1.0f;
+        return Definition;
+    }
+
+    FGridMonsterLootEntry MakeMON8LootEntry (
+        FName ItemDefinitionId,
+        float DropChance,
+        int32 MinQuantity = 1,
+        int32 MaxQuantity = 1)
+    {
+        FGridMonsterLootEntry Entry;
+        Entry.ItemDefinitionId = ItemDefinitionId;
+        Entry.DropChance = DropChance;
+        Entry.MinQuantity = MinQuantity;
+        Entry.MaxQuantity = MaxQuantity;
+        return Entry;
+    }
+
+    const FGridMonsterLootRollResult* FindMON8LootResult (
+        const TArray<FGridMonsterLootRollResult>& Results,
+        FName ItemDefinitionId)
+    {
+        return Results.FindByPredicate (
+            [ItemDefinitionId] (
+                const FGridMonsterLootRollResult& Result)
+            {
+                return Result.ItemDefinitionId == ItemDefinitionId;
+            });
+    }
+
     AGridMonsterActor* SpawnMON8Monster (
         UWorld* World,
         UGridMonsterDefinitionAsset* Definition,
@@ -164,93 +203,360 @@ bool FGridMonsterMON8LootResolverTest::RunTest (const FString& Parameters)
     (void)Parameters;
 
     TArray<FGridMonsterLootEntry> LootTable;
-    FGridMonsterLootRollResult Result =
-        FGridMonsterLootResolver::ResolveLootFromRolls (LootTable, 0.0f, 0);
-    TestFalse (TEXT ("An empty table drops nothing"), Result.bHasLoot);
-
-    FGridMonsterLootEntry EntryA;
-    EntryA.ItemDefinitionId = TEXT ("Item_A");
-    EntryA.DropChance = 0.0f;
-    LootTable.Add (EntryA);
-    Result = FGridMonsterLootResolver::ResolveLootFromRolls (
-        LootTable,
-        0.0f,
+    TestEqual (
+        TEXT ("An empty table produces no evaluations"),
+        FGridMonsterLootResolver::ResolveLoot (LootTable, 123).Num (),
         0);
-    TestFalse (TEXT ("A total chance of zero drops nothing"), Result.bHasLoot);
 
-    LootTable[0].DropChance = 1.0f;
-    LootTable[0].MinQuantity = 2;
-    LootTable[0].MaxQuantity = 4;
-    Result = FGridMonsterLootResolver::ResolveLootFromRolls (
-        LootTable,
-        0.999f,
+    FGridMonsterLootEntry NeverEntry =
+        MakeMON8LootEntry (TEXT ("Item_Never"), 0.0f);
+    FGridMonsterLootRollResult Result =
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            NeverEntry,
+            0,
+            -1.0f,
+            0);
+    TestFalse (TEXT ("A zero chance never drops"), Result.bDropped);
+    TestEqual (
+        TEXT ("A failed entry has no quantity"),
+        Result.Quantity,
+        0);
+
+    FGridMonsterLootEntry AlwaysEntry =
+        MakeMON8LootEntry (TEXT ("Item_Always"), 1.0f, 2, 4);
+    Result = FGridMonsterLootResolver::ResolveEntryFromRolls (
+        AlwaysEntry,
+        0,
+        2.0f,
         7);
-    TestTrue (TEXT ("A full chance selects the entry"), Result.bHasLoot);
+    TestTrue (TEXT ("A full chance always drops"), Result.bDropped);
     TestTrue (
         TEXT ("The resolved quantity remains inside its range"),
         Result.Quantity >= 2 && Result.Quantity <= 4);
 
-    FGridMonsterLootEntry EntryB;
-    EntryB.ItemDefinitionId = TEXT ("Item_B");
-    EntryB.DropChance = 0.25f;
-    LootTable[0].DropChance = 0.40f;
-    LootTable.Add (EntryB);
+    const FGridMonsterLootEntry Key =
+        MakeMON8LootEntry (TEXT ("Key_Iron"), 1.0f);
+    const FGridMonsterLootEntry Tooth =
+        MakeMON8LootEntry (TEXT ("Item_RatTooth"), 0.4f);
+    const FGridMonsterLootEntry Meat =
+        MakeMON8LootEntry (TEXT ("Item_RatMeat"), 0.8f, 1, 2);
+    LootTable = { Key, Tooth, Meat };
 
-    Result = FGridMonsterLootResolver::ResolveLootFromRolls (
-        LootTable,
-        0.20f,
-        0);
-    TestEqual (
-        TEXT ("The first cumulative slice selects A"),
-        Result.SelectedEntryIndex,
-        0);
-    Result = FGridMonsterLootResolver::ResolveLootFromRolls (
-        LootTable,
-        0.50f,
-        0);
-    TestEqual (
-        TEXT ("The second cumulative slice selects B"),
-        Result.SelectedEntryIndex,
-        1);
-    Result = FGridMonsterLootResolver::ResolveLootFromRolls (
-        LootTable,
-        0.80f,
-        0);
+    TArray<FGridMonsterLootRollResult> ForcedAllDrops;
+    ForcedAllDrops.Add (
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            Key, 0, 0.99f, 0));
+    ForcedAllDrops.Add (
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            Tooth, 1, 0.20f, 0));
+    ForcedAllDrops.Add (
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            Meat, 2, 0.70f, 1));
+    TestTrue (
+        TEXT ("The key succeeds independently"),
+        ForcedAllDrops[0].bDropped);
+    TestTrue (
+        TEXT ("The tooth succeeds independently"),
+        ForcedAllDrops[1].bDropped);
+    TestTrue (
+        TEXT ("The meat succeeds independently"),
+        ForcedAllDrops[2].bDropped);
+
+    TArray<FGridMonsterLootRollResult> ForcedMixedDrops;
+    ForcedMixedDrops.Add (
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            Key, 0, 0.99f, 0));
+    ForcedMixedDrops.Add (
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            Tooth, 1, 0.60f, 0));
+    ForcedMixedDrops.Add (
+        FGridMonsterLootResolver::ResolveEntryFromRolls (
+            Meat, 2, 0.70f, 1));
+    TestTrue (
+        TEXT ("The guaranteed key still succeeds"),
+        ForcedMixedDrops[0].bDropped);
     TestFalse (
-        TEXT ("The residual probability means no drop"),
-        Result.bHasLoot);
+        TEXT ("The tooth can fail independently"),
+        ForcedMixedDrops[1].bDropped);
+    TestTrue (
+        TEXT ("A failed tooth does not prevent the meat"),
+        ForcedMixedDrops[2].bDropped);
 
-    FRandomStream FirstStream (8675309);
-    FRandomStream SecondStream (8675309);
-    const FGridMonsterLootRollResult First =
-        FGridMonsterLootResolver::ResolveLoot (LootTable, FirstStream);
-    const FGridMonsterLootRollResult Second =
-        FGridMonsterLootResolver::ResolveLoot (LootTable, SecondStream);
+    UGridMonsterDefinitionAsset* ValidatedDefinition =
+        MakeMON8MonsterDefinition (
+            GetTransientPackage (),
+            TEXT ("MON8_IndependentLootValidation"));
+    ValidatedDefinition->LootTable = LootTable;
+    FString ValidationError;
+    TestTrue (
+        TEXT ("A 2.20 total chance is valid"),
+        ValidatedDefinition->ValidateDefinition (ValidationError));
+    TestTrue (
+        TEXT ("Independent chances produce no validation error"),
+        ValidationError.IsEmpty ());
+
+    const int32 BaseSeed = 8675309;
+    const TArray<FGridMonsterLootRollResult> First =
+        FGridMonsterLootResolver::ResolveLoot (LootTable, BaseSeed);
+    const TArray<FGridMonsterLootRollResult> Second =
+        FGridMonsterLootResolver::ResolveLoot (LootTable, BaseSeed);
     TestEqual (
-        TEXT ("An identical seed produces the same selection roll"),
-        First.SelectionRoll,
-        Second.SelectionRoll);
+        TEXT ("Every valid entry produces an evaluation"),
+        First.Num (),
+        3);
     TestEqual (
-        TEXT ("An identical seed produces the same selected index"),
-        First.SelectedEntryIndex,
-        Second.SelectedEntryIndex);
-    TestEqual (
-        TEXT ("An identical seed produces the same quantity"),
-        First.Quantity,
-        Second.Quantity);
+        TEXT ("An identical seed produces the same result count"),
+        First.Num (),
+        Second.Num ());
+    for (int32 Index = 0; Index < First.Num (); ++Index)
+    {
+        TestEqual (
+            TEXT ("An identical seed preserves each item id"),
+            First[Index].ItemDefinitionId,
+            Second[Index].ItemDefinitionId);
+        TestEqual (
+            TEXT ("An identical seed preserves each drop roll"),
+            First[Index].DropRoll,
+            Second[Index].DropRoll);
+        TestEqual (
+            TEXT ("An identical seed preserves each drop outcome"),
+            First[Index].bDropped,
+            Second[Index].bDropped);
+        TestEqual (
+            TEXT ("An identical seed preserves each quantity"),
+            First[Index].Quantity,
+            Second[Index].Quantity);
+    }
 
     FGridMonsterLootEntry InvalidEntry;
     InvalidEntry.ItemDefinitionId = NAME_None;
     InvalidEntry.DropChance = 1.0f;
-    LootTable.Insert (InvalidEntry, 0);
-    Result = FGridMonsterLootResolver::ResolveLootFromRolls (
-        LootTable,
-        0.20f,
+    TArray<FGridMonsterLootEntry> WithInvalidEntry = LootTable;
+    WithInvalidEntry.Insert (InvalidEntry, 1);
+    const TArray<FGridMonsterLootRollResult> WithInvalidResults =
+        FGridMonsterLootResolver::ResolveLoot (
+            WithInvalidEntry,
+            BaseSeed);
+    TestEqual (
+        TEXT ("An invalid entry is omitted"),
+        WithInvalidResults.Num (),
+        First.Num ());
+    for (const FGridMonsterLootRollResult& Original : First)
+    {
+        const FGridMonsterLootRollResult* WithInvalid =
+            FindMON8LootResult (
+                WithInvalidResults,
+                Original.ItemDefinitionId);
+        TestNotNull (
+            TEXT ("Each original result survives an invalid entry"),
+            WithInvalid);
+        if (WithInvalid)
+        {
+            TestEqual (
+                TEXT ("An invalid entry does not change another roll"),
+                WithInvalid->DropRoll,
+                Original.DropRoll);
+            TestEqual (
+                TEXT ("An invalid entry does not change another quantity"),
+                WithInvalid->Quantity,
+                Original.Quantity);
+        }
+    }
+
+    const TArray<FGridMonsterLootEntry> ReorderedTable = {
+        Meat, Key, Tooth
+    };
+    const TArray<FGridMonsterLootRollResult> ReorderedResults =
+        FGridMonsterLootResolver::ResolveLoot (
+            ReorderedTable,
+            BaseSeed);
+    for (const FGridMonsterLootRollResult& Original : First)
+    {
+        const FGridMonsterLootRollResult* Reordered =
+            FindMON8LootResult (
+                ReorderedResults,
+                Original.ItemDefinitionId);
+        TestNotNull (
+            TEXT ("Each item exists after table reordering"),
+            Reordered);
+        if (Reordered)
+        {
+            TestEqual (
+                TEXT ("Reordering preserves the item drop roll"),
+                Reordered->DropRoll,
+                Original.DropRoll);
+            TestEqual (
+                TEXT ("Reordering preserves the item quantity"),
+                Reordered->Quantity,
+                Original.Quantity);
+        }
+    }
+
+    TArray<FGridMonsterLootEntry> ExtendedTable = LootTable;
+    ExtendedTable.Add (
+        MakeMON8LootEntry (TEXT ("Item_RatTail"), 0.5f));
+    const TArray<FGridMonsterLootRollResult> ExtendedResults =
+        FGridMonsterLootResolver::ResolveLoot (
+            ExtendedTable,
+            BaseSeed);
+    for (const FGridMonsterLootRollResult& Original : First)
+    {
+        const FGridMonsterLootRollResult* Extended =
+            FindMON8LootResult (
+                ExtendedResults,
+                Original.ItemDefinitionId);
+        TestNotNull (
+            TEXT ("Each original item survives table extension"),
+            Extended);
+        if (Extended)
+        {
+            TestEqual (
+                TEXT ("Adding an entry preserves an existing roll"),
+                Extended->DropRoll,
+                Original.DropRoll);
+            TestEqual (
+                TEXT ("Adding an entry preserves an existing quantity"),
+                Extended->Quantity,
+                Original.Quantity);
+        }
+    }
+
+    const TArray<FGridMonsterLootRollResult> DifferentSeedResults =
+        FGridMonsterLootResolver::ResolveLoot (
+            LootTable,
+            BaseSeed + 1);
+    bool bFoundDifferentRoll = false;
+    for (const FGridMonsterLootRollResult& Original : First)
+    {
+        const FGridMonsterLootRollResult* Different =
+            FindMON8LootResult (
+                DifferentSeedResults,
+                Original.ItemDefinitionId);
+        bFoundDifferentRoll |=
+            Different &&
+            Different->DropRoll != Original.DropRoll;
+    }
+    TestTrue (
+        TEXT ("Different base seeds can produce different rolls"),
+        bFoundDifferentRoll);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON8MultipleIndependentDropsTest,
+    "Grimrock.Monsters.MON8.MultipleIndependentDrops",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON8MultipleIndependentDropsTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON8TestWorld TestWorld;
+    if (!TestNotNull (
+        TEXT ("The transient multiple-loot world exists"),
+        TestWorld.World))
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    if (!TestNotNull (TEXT ("The loot runtime exists"), Runtime) ||
+        !TestNotNull (
+            TEXT ("The loot floor exists"),
+            ConfigureMON8Floor (Runtime)))
+    {
+        return false;
+    }
+
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON8MonsterDefinition (
+            Runtime,
+            TEXT ("MON8_MultipleLootRat"));
+    const FName ItemIds[] = {
+        TEXT ("Key_Iron"),
+        TEXT ("Item_RatTooth"),
+        TEXT ("Item_RatMeat")
+    };
+    for (const FName ItemId : ItemIds)
+    {
+        UGridItemDefinitionAsset* ItemDefinition =
+            MakeMON8ItemDefinition (Definition, ItemId);
+        FGridMonsterLootEntry Entry =
+            MakeMON8LootEntry (ItemId, 1.0f);
+        Entry.ItemDefinitionAsset = ItemDefinition;
+        Definition->LootTable.Add (Entry);
+    }
+
+    AGridMonsterActor* Monster = SpawnMON8Monster (
+        TestWorld.World,
+        Definition,
+        FGuid (8, 8, 8, 8),
+        FIntPoint (2, 2),
+        false);
+    if (!TestNotNull (
+        TEXT ("The multiple-loot monster exists"),
+        Monster) ||
+        !Monster->DeathComponent)
+    {
+        return false;
+    }
+    Monster->DeathComponent->InitializeDeathComponent (Runtime);
+    Monster->MarkDead ();
+
+    TestEqual (
+        TEXT ("All guaranteed entries are placed"),
+        Monster->DeathComponent->PlacedLootCount,
+        3);
+    TestEqual (
+        TEXT ("No guaranteed placement fails"),
+        Monster->DeathComponent->FailedLootCount,
         0);
     TestEqual (
-        TEXT ("An invalid entry is ignored without changing table order"),
-        Result.ItemDefinitionId,
-        FName (TEXT ("Item_A")));
+        TEXT ("GeneratedLoot contains every placed item"),
+        Monster->DeathComponent->GeneratedLoot.Num (),
+        3);
+
+    TSet<FGuid> RuntimeObjectIds;
+    for (const FGridItemInstance& Item :
+        Monster->DeathComponent->GeneratedLoot)
+    {
+        TestTrue (
+            TEXT ("Each placed item has a runtime id"),
+            Item.RuntimeObjectId.IsValid ());
+        RuntimeObjectIds.Add (Item.RuntimeObjectId);
+    }
+    TestEqual (
+        TEXT ("Every placed item has a distinct runtime id"),
+        RuntimeObjectIds.Num (),
+        3);
+
+    TestTrue (
+        TEXT ("The three world items are captured for persistence"),
+        Runtime->CaptureCurrentLevelRuntimeState ());
+    const FGridLevelRuntimeState* RuntimeState =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    TestNotNull (
+        TEXT ("The captured runtime state exists"),
+        RuntimeState);
+    TestEqual (
+        TEXT ("All placed items are captured independently"),
+        RuntimeState ? RuntimeState->Items.Num () : 0,
+        3);
+
+    const int32 PlacedBeforeSecondDeath =
+        Monster->DeathComponent->PlacedLootCount;
+    const int32 GeneratedBeforeSecondDeath =
+        Monster->DeathComponent->GeneratedLoot.Num ();
+    Monster->MarkDead ();
+    TestEqual (
+        TEXT ("A second MarkDead places no additional item"),
+        Monster->DeathComponent->PlacedLootCount,
+        PlacedBeforeSecondDeath);
+    TestEqual (
+        TEXT ("A second MarkDead generates no additional item"),
+        Monster->DeathComponent->GeneratedLoot.Num (),
+        GeneratedBeforeSecondDeath);
     return true;
 }
 

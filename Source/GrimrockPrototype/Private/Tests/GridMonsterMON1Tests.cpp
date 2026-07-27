@@ -132,8 +132,21 @@ bool FGridMonsterDefinitionMON1InvalidDataTest::RunTest (const FString& Paramete
     Rat->LootTable[1].DropChance = 0.80f;
 
     Error.Reset ();
-    TestFalse (TEXT ("Loot chances above 100 percent invalidate the definition"), Rat->ValidateDefinition (Error));
-    TestTrue (TEXT ("The loot probability error is reported"), Error.Contains (TEXT ("must not exceed 1")));
+    TestTrue (
+        TEXT ("Independent loot chances may total above 100 percent"),
+        Rat->ValidateDefinition (Error));
+    TestTrue (
+        TEXT ("An independent total above 100 percent reports no error"),
+        Error.IsEmpty ());
+
+    Rat->LootTable[0].DropChance = 1.01f;
+    Error.Reset ();
+    TestFalse (
+        TEXT ("Each individual loot chance remains capped at 100 percent"),
+        Rat->ValidateDefinition (Error));
+    TestTrue (
+        TEXT ("The invalid individual loot entry is reported"),
+        Error.Contains (TEXT ("Loot entry at index 0")));
 
     UGridMonsterDefinitionAsset* EmptyDefinition = NewObject<UGridMonsterDefinitionAsset> ();
     Error.Reset ();

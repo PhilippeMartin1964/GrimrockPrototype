@@ -168,7 +168,6 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         ModifierKeys.Add (ModifierKey);
     }
 
-    float TotalDropChance = 0.0f;
     TSet<FName> LootIds;
     for (int32 LootIndex = 0; LootIndex < LootTable.Num (); ++LootIndex)
     {
@@ -189,12 +188,6 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         }
 
         LootIds.Add (ResolvedLootId);
-        TotalDropChance += LootEntry.DropChance;
-    }
-
-    if (TotalDropChance > 1.0f + KINDA_SMALL_NUMBER)
-    {
-        Errors.Add (TEXT ("The sum of LootTable DropChance values must not exceed 1."));
     }
 
     OutError = FString::Join (Errors, TEXT ("\n"));

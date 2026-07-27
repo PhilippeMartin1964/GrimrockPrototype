@@ -5,23 +5,24 @@
 
 struct GRIMROCKPROTOTYPE_API FGridMonsterLootRollResult
 {
-    bool bHasLoot = false;
-    int32 SelectedEntryIndex = INDEX_NONE;
+    bool bDropped = false;
+    int32 EntryIndex = INDEX_NONE;
     FName ItemDefinitionId = NAME_None;
     int32 Quantity = 0;
-    float SelectionRoll = 0.0f;
+    float DropRoll = 0.0f;
 };
 
-/** Pure MON8 cumulative loot-table resolver. */
+/** Pure MON8 independent loot-table resolver. */
 class GRIMROCKPROTOTYPE_API FGridMonsterLootResolver
 {
 public:
-    static FGridMonsterLootRollResult ResolveLoot (
+    static TArray<FGridMonsterLootRollResult> ResolveLoot (
         const TArray<FGridMonsterLootEntry>& LootTable,
-        FRandomStream& RandomStream);
+        int32 BaseSeed);
 
-    static FGridMonsterLootRollResult ResolveLootFromRolls (
-        const TArray<FGridMonsterLootEntry>& LootTable,
-        float SelectionRoll,
+    static FGridMonsterLootRollResult ResolveEntryFromRolls (
+        const FGridMonsterLootEntry& Entry,
+        int32 EntryIndex,
+        float DropRoll,
         int32 QuantityRoll);
 };
