@@ -272,6 +272,59 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact ()
     ActiveAction.bCriticalHit = Result.bCriticalHit;
     ActiveAction.RolledDamage = Result.RawDamage;
     ActiveAction.bOutcomeCommitted = true;
+
+    const FText MonsterName =
+        ResolveMonsterDisplayName (CurrentMonster);
+    const FText CharacterName =
+        ResolveCharacterDisplayName (TargetCharacterIndex);
+    const FName AttackId = !ActiveAttackDefinition.AttackId.IsNone ()
+        ? ActiveAttackDefinition.AttackId
+        : ActiveAction.AttackId;
+    const bool bTargetDefeated =
+        Result.TargetHealthBefore > 0 &&
+        Result.TargetHealthAfter <= 0;
+
+    FGridCombatLogEntry AttackEntry;
+    AttackEntry.RoundNumber = RoundNumber;
+    AttackEntry.Phase = CurrentPhase;
+    AttackEntry.Type = Result.bHit
+        ? EGridCombatLogEntryType::AttackHit
+        : EGridCombatLogEntryType::AttackMiss;
+    AttackEntry.SourceId = ResolveMonsterLogId (CurrentMonster);
+    AttackEntry.SourceDisplayName = MonsterName;
+    AttackEntry.TargetCharacterIndex = TargetCharacterIndex;
+    AttackEntry.TargetDisplayName = CharacterName;
+    AttackEntry.AttackId = AttackId;
+    AttackEntry.AttackResult = Result;
+    AttackEntry.bTargetDefeated = bTargetDefeated;
+    AttackEntry.Message = FGridCombatLogFormatter::FormatMonsterAttack (
+        MonsterName,
+        CharacterName,
+        AttackId,
+        Result);
+    AppendCombatLogEntry (AttackEntry);
+
+    if (bTargetDefeated)
+    {
+        FGridCombatLogEntry DefeatedEntry;
+        DefeatedEntry.RoundNumber = RoundNumber;
+        DefeatedEntry.Phase = CurrentPhase;
+        DefeatedEntry.Type =
+            EGridCombatLogEntryType::CharacterDefeated;
+        DefeatedEntry.SourceId =
+            ResolveMonsterLogId (CurrentMonster);
+        DefeatedEntry.SourceDisplayName = MonsterName;
+        DefeatedEntry.TargetCharacterIndex =
+            TargetCharacterIndex;
+        DefeatedEntry.TargetDisplayName = CharacterName;
+        DefeatedEntry.bTargetDefeated = true;
+        DefeatedEntry.Message =
+            FGridCombatLogFormatter::FormatCharacterDefeated (
+                CharacterName);
+        AppendCombatLogEntry (DefeatedEntry);
+    }
+
+    ++AttackResolvedBroadcastCount;
     OnAttackResolved.Broadcast (CurrentMonster, TargetCharacterIndex, Result);
 }
 

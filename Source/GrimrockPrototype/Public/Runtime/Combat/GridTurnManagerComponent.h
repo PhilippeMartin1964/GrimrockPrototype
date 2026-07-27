@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Runtime/Combat/GridCombatLog.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridTurnManagerComponent.generated.h"
@@ -128,6 +129,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridCombatEndedSignature,
     EGridCombatPhase, ResultPhase);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridCombatLogEntryAddedSignature,
+    FGridCombatLogEntry, Entry);
+
 /**
  * Central combat phase and monster-turn sequencer.
  *
@@ -164,6 +169,20 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager|Debug")
     bool bLogPhaseChanges = true;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Feedback",
+        meta = (ClampMin = "1", ClampMax = "512"))
+    int32 MaxCombatLogEntries = 128;
+
+    UPROPERTY (
+        Transient,
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Category = "Combat|Feedback")
+    TArray<FGridCombatLogEntry> CombatLogEntries;
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager")
     TObjectPtr<AGridLevelRuntimeActor> RuntimeActor = nullptr;
@@ -243,6 +262,9 @@ public:
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
     FGridCombatEndedSignature OnCombatEnded;
 
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Feedback")
+    FGridCombatLogEntryAddedSignature OnCombatLogEntryAdded;
+
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool InitializeTurnManager (
         AGridLevelRuntimeActor* InRuntimeActor = nullptr,
@@ -280,6 +302,24 @@ public:
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Combat|Turn Manager|Debug")
     void LogPartyCombatState () const;
 
+    UFUNCTION (BlueprintPure, Category = "Combat|Feedback")
+    const TArray<FGridCombatLogEntry>& GetCombatLogEntries () const
+    {
+        return CombatLogEntries;
+    }
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Feedback")
+    bool GetLatestCombatLogEntry (FGridCombatLogEntry& OutEntry) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Feedback")
+    void ClearCombatLog ();
+
+    UFUNCTION (
+        BlueprintCallable,
+        CallInEditor,
+        Category = "Combat|Feedback|Debug")
+    void LogCombatHistory () const;
+
     UFUNCTION (BlueprintPure, Category = "Combat|Turn Manager")
     bool IsInitialized () const { return bInitialized; }
 
@@ -301,6 +341,10 @@ private:
     FGridTurnPhaseStateMachine PhaseState;
     FGridActionPointBudget ActionPointBudget;
     FRandomStream CombatRandomStream;
+    int32 NextCombatLogSequenceNumber = 1;
+    int32 CombatLogBroadcastCount = 0;
+    int32 AttackResolvedBroadcastCount = 0;
+    TSet<FGuid> LoggedDefeatedMonsterIds;
 
     UPROPERTY (Transient)
     TObjectPtr<UGridMonsterMovementComponent> CurrentMovementComponent = nullptr;
@@ -329,6 +373,10 @@ private:
 
     void ResetActiveAttackState ();
     void SetPhase (EGridCombatPhase NewPhase);
+    void AppendCombatLogEntry (FGridCombatLogEntry Entry);
+    FName ResolveMonsterLogId (const AGridMonsterActor* Monster) const;
+    FText ResolveMonsterDisplayName (const AGridMonsterActor* Monster) const;
+    FText ResolveCharacterDisplayName (int32 CharacterIndex) const;
     void SetPartyInputLocked (bool bLocked);
     bool IsPartyAtRest () const;
     bool HasLivingCombatMonster () const;
@@ -362,4 +410,10 @@ private:
     void HandleCombatMonsterDied (
         AGridMonsterActor* Monster,
         FIntPoint DeathCell);
+
+    friend class FGridMonsterMON10CombatLogRingBufferTest;
+    friend class FGridMonsterMON10CombatLogAttackExactlyOnceTest;
+    friend class FGridMonsterMON10CombatLogCharacterDefeatedTest;
+    friend class FGridMonsterMON10CombatLogMonsterDefeatedAndVictoryTest;
+    friend class FGridMonsterMON10CombatLogFailedStartDoesNotClearHistoryTest;
 };

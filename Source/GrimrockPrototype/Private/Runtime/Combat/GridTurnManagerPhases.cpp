@@ -176,6 +176,14 @@ void UGridTurnManagerComponent::BeginRound ()
     RoundNumber = PhaseState.GetRoundNumber ();
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (false);
+
+    FGridCombatLogEntry RoundEntry;
+    RoundEntry.RoundNumber = RoundNumber;
+    RoundEntry.Phase = CurrentPhase;
+    RoundEntry.Type = EGridCombatLogEntryType::RoundStarted;
+    RoundEntry.Message =
+        FGridCombatLogFormatter::FormatRoundStarted (RoundNumber);
+    AppendCombatLogEntry (RoundEntry);
     OnRoundStarted.Broadcast (RoundNumber);
 }
 
@@ -266,6 +274,19 @@ void UGridTurnManagerComponent::BeginNextMonsterTurn ()
             Candidate->FindComponentByClass<UGridMonsterMovementComponent> ());
         BindCurrentCombat (
             Candidate->FindComponentByClass<UGridMonsterCombatComponent> ());
+
+        FGridCombatLogEntry TurnEntry;
+        TurnEntry.RoundNumber = RoundNumber;
+        TurnEntry.Phase = CurrentPhase;
+        TurnEntry.Type =
+            EGridCombatLogEntryType::MonsterTurnStarted;
+        TurnEntry.SourceId = ResolveMonsterLogId (Candidate);
+        TurnEntry.SourceDisplayName =
+            ResolveMonsterDisplayName (Candidate);
+        TurnEntry.Message =
+            FGridCombatLogFormatter::FormatMonsterTurnStarted (
+                TurnEntry.SourceDisplayName);
+        AppendCombatLogEntry (TurnEntry);
         OnMonsterTurnStarted.Broadcast (Candidate);
         PrepareCurrentMonsterActions ();
         ExecuteNextAction ();
@@ -491,6 +512,14 @@ void UGridTurnManagerComponent::FinishEnemyPhase ()
     RoundNumber = PhaseState.GetRoundNumber ();
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (false);
+
+    FGridCombatLogEntry RoundEntry;
+    RoundEntry.RoundNumber = RoundNumber;
+    RoundEntry.Phase = CurrentPhase;
+    RoundEntry.Type = EGridCombatLogEntryType::RoundStarted;
+    RoundEntry.Message =
+        FGridCombatLogFormatter::FormatRoundStarted (RoundNumber);
+    AppendCombatLogEntry (RoundEntry);
     OnRoundStarted.Broadcast (RoundNumber);
 }
 
@@ -528,6 +557,16 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     ResetActiveAttackState ();
     bCombatActive = false;
     CombatMonsters.Reset ();
+
+    FGridCombatLogEntry ResultEntry;
+    ResultEntry.RoundNumber = RoundNumber;
+    ResultEntry.Phase = ResultPhase;
+    ResultEntry.Type = ResultPhase == EGridCombatPhase::Victory
+        ? EGridCombatLogEntryType::Victory
+        : EGridCombatLogEntryType::Defeat;
+    ResultEntry.Message =
+        FGridCombatLogFormatter::FormatCombatEnded (ResultPhase);
+    AppendCombatLogEntry (ResultEntry);
 
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (false);
