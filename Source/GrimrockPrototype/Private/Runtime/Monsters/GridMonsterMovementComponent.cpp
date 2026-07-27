@@ -77,19 +77,40 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
 {
     AGridMonsterActor* Monster = GetMonsterOwner ();
     AGridLevelRuntimeActor* CandidateRuntime = IsValid (InRuntimeActor) ? InRuntimeActor : FindRuntimeActor ();
+    bool bInferredCell = false;
 
     if (IsValid (Monster) && IsValid (CandidateRuntime) && bInferCellFromActorLocation)
     {
+        const FVector WorldLocation = Monster->GetActorLocation ();
         int32 ResolvedX = INDEX_NONE;
         int32 ResolvedY = INDEX_NONE;
         FVector LocalOffset = FVector::ZeroVector;
         if (CandidateRuntime->TryResolveWorldCellFromImpactPoint (
-                Monster->GetActorLocation (),
+                WorldLocation,
                 ResolvedX,
                 ResolvedY,
                 LocalOffset))
         {
             Monster->CurrentCell = FIntPoint (ResolvedX, ResolvedY);
+            bInferredCell = true;
+            UE_LOG (LogTemp, Log,
+                TEXT ("[GridMonsterMovement] InferCell Monster=%s WorldLocation=%s Cell=(%d,%d) LocalOffset=%s"),
+                *GetNameSafe (Monster),
+                *WorldLocation.ToCompactString (),
+                ResolvedX,
+                ResolvedY,
+                *LocalOffset.ToCompactString ());
+        }
+        else
+        {
+            UE_LOG (LogTemp, Error,
+                TEXT ("[GridMonsterMovement] InferCellFailed Monster=%s WorldLocation=%s CurrentCell=(%d,%d) Runtime=%s"),
+                *GetNameSafe (Monster),
+                *WorldLocation.ToCompactString (),
+                Monster->CurrentCell.X,
+                Monster->CurrentCell.Y,
+                *GetNameSafe (CandidateRuntime));
+            return false;
         }
     }
 
@@ -144,6 +165,12 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
         Monster->SetActorLocation (RuntimeActor->GetCellCenterWorld (Monster->CurrentCell.X, Monster->CurrentCell.Y));
     }
     Monster->ApplyFacingRotation ();
+    UE_LOG (LogTemp, Log,
+        TEXT ("[GridMonsterMovement] Initialize Monster=%s Cell=(%d,%d) Inferred=%s Registered=true"),
+        *GetNameSafe (Monster),
+        Monster->CurrentCell.X,
+        Monster->CurrentCell.Y,
+        bInferredCell ? TEXT ("true") : TEXT ("false"));
     return true;
 }
 

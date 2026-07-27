@@ -220,6 +220,60 @@ namespace
         return Monster;
     }
 
+    AGridMonsterActor* SpawnMON9DirectPlacedMonster (
+        UWorld* World,
+        UGridMonsterDefinitionAsset* Definition,
+        const FGuid& PersistenceId,
+        FName HomeLevelId,
+        const FVector& WorldLocation,
+        FName ActorName)
+    {
+        if (!World || !Definition)
+        {
+            return nullptr;
+        }
+
+        FActorSpawnParameters Params;
+        Params.Name = ActorName;
+        Params.SpawnCollisionHandlingOverride =
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        AGridMonsterActor* Monster =
+            World->SpawnActor<AGridMonsterActor> (
+                AGridMonsterActor::StaticClass (),
+                FTransform (
+                    FRotator::ZeroRotator,
+                    WorldLocation),
+                Params);
+        if (!Monster)
+        {
+            return nullptr;
+        }
+
+        Monster->MonsterDefinition = Definition;
+        Monster->PersistentMonsterId = PersistenceId;
+        Monster->HomeDungeonLevelId = HomeLevelId;
+        Monster->Facing = EGridEdge::North;
+        Monster->MonsterState = EGridMonsterState::Idle;
+        Monster->CurrentHealth = Definition->MaxHealth;
+        Monster->CurrentPhysicalArmor = Definition->PhysicalArmor;
+        Monster->CurrentMagicalArmor = Definition->MagicalArmor;
+        Monster->bCombatStatsInitialized = true;
+        Monster->bMonsterEnabled = true;
+
+        UGridMonsterMovementComponent* Movement =
+            NewObject<UGridMonsterMovementComponent> (
+                Monster,
+                *FString::Printf (
+                    TEXT ("%s_Movement"),
+                    *ActorName.ToString ()));
+        Movement->bAutoInitialize = false;
+        Movement->bInferCellFromActorLocation = true;
+        Movement->bSnapToCellOnInitialize = true;
+        Monster->AddInstanceComponent (Movement);
+        Movement->RegisterComponent ();
+        return Monster;
+    }
+
     AGrimrockPartyPawn* SpawnMON9Party (
         UWorld* World,
         AGridLevelRuntimeActor* RuntimeActor,
@@ -258,6 +312,211 @@ namespace
         return Movement &&
             Movement->InitializeMovement (RuntimeActor);
     }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON9DirectPlacedInitialCellInferenceTest,
+    "Grimrock.Monsters.MON9.DirectPlacedInitialCellInference",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9DirectPlacedInitialCellInferenceTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON9TestWorld TestWorld;
+    if (!TestNotNull (
+        TEXT ("The direct-placement test world exists"),
+        TestWorld.World))
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    UGridLevelAsset* LevelAsset = MakeMON9Floor (Runtime);
+    LevelAsset->GetCellMutable (0, 0).CellType =
+        EGridCellType::Empty;
+    LevelAsset->GetCellMutable (0, 0).bBlocksOccupancy = true;
+    Runtime->LevelAsset = LevelAsset;
+
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON9Definition (
+            Runtime,
+            TEXT ("MON9_DirectPlacedRat"));
+    const FGuid PersistenceId (98, 1, 1, 1);
+    const FIntPoint ExpectedCell (2, 3);
+    const FVector ExpectedLocation =
+        Runtime->GetCellCenterWorld (
+            ExpectedCell.X,
+            ExpectedCell.Y);
+    AGridMonsterActor* Monster =
+        SpawnMON9DirectPlacedMonster (
+            TestWorld.World,
+            Definition,
+            PersistenceId,
+            MON9SingleLevelId,
+            ExpectedLocation,
+            TEXT ("MON9_DirectPlacedRat"));
+    if (!TestNotNull (
+        TEXT ("The directly placed rat exists"),
+        Monster))
+    {
+        return false;
+    }
+
+    TestTrue (
+        TEXT ("CurrentCell starts at its default value"),
+        Monster->CurrentCell == FIntPoint::ZeroValue);
+    TestFalse (
+        TEXT ("An unvisited level uses its initial-state path"),
+        Runtime->ApplyCurrentLevelRuntimeState ());
+    TestTrue (
+        TEXT ("The initial world position is inferred as cell (2,3)"),
+        Monster->CurrentCell == ExpectedCell);
+    TestTrue (
+        TEXT ("The directly placed rat snaps to cell (2,3)"),
+        Monster->GetActorLocation ().Equals (
+            ExpectedLocation,
+            KINDA_SMALL_NUMBER));
+
+    UGridMonsterOccupancySubsystem* Occupancy =
+        TestWorld.World->GetSubsystem<
+            UGridMonsterOccupancySubsystem> ();
+    TestNotNull (
+        TEXT ("The occupancy subsystem exists"),
+        Occupancy);
+    TestTrue (
+        TEXT ("The directly placed rat occupies cell (2,3)"),
+        Occupancy &&
+        Occupancy->GetRegistry ().GetOccupantId (
+            ExpectedCell) == PersistenceId);
+    TestFalse (
+        TEXT ("The invalid default cell is not occupied"),
+        Occupancy &&
+        Occupancy->IsCellOccupied (
+            FIntPoint::ZeroValue));
+
+    TestTrue (
+        TEXT ("The inferred monster is captured"),
+        Runtime->CaptureCurrentLevelRuntimeState ());
+    const FGridLevelRuntimeState* LevelState =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    const FGridRuntimeMonsterState* MonsterState =
+        LevelState
+            ? LevelState->Monsters.Find (PersistenceId)
+            : nullptr;
+    TestNotNull (
+        TEXT ("The inferred monster has a saved state"),
+        MonsterState);
+    if (MonsterState)
+    {
+        TestEqual (
+            TEXT ("The saved cell X is inferred correctly"),
+            MonsterState->CellX,
+            ExpectedCell.X);
+        TestEqual (
+            TEXT ("The saved cell Y is inferred correctly"),
+            MonsterState->CellY,
+            ExpectedCell.Y);
+    }
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON9RestoredCellNotReinferredTest,
+    "Grimrock.Monsters.MON9.RestoredCellNotReinferredFromStaleLocation",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON9RestoredCellNotReinferredTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON9TestWorld TestWorld;
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    Runtime->LevelAsset = MakeMON9Floor (Runtime);
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON9Definition (
+            Runtime,
+            TEXT ("MON9_RestoredCellRat"));
+    const FGuid PersistenceId (98, 1, 1, 2);
+    const FIntPoint StaleCell (1, 1);
+    const FIntPoint RestoredCell (4, 2);
+    AGridMonsterActor* Monster =
+        SpawnMON9DirectPlacedMonster (
+            TestWorld.World,
+            Definition,
+            PersistenceId,
+            MON9SingleLevelId,
+            Runtime->GetCellCenterWorld (
+                StaleCell.X,
+                StaleCell.Y),
+            TEXT ("MON9_RestoredCellRat"));
+    if (!Monster)
+    {
+        return false;
+    }
+
+    FGridRuntimeMonsterState SavedMonsterState;
+    SavedMonsterState.PersistenceId = PersistenceId;
+    SavedMonsterState.MonsterDefinitionId =
+        Definition->MonsterId;
+    SavedMonsterState.DungeonLevelId =
+        MON9SingleLevelId;
+    SavedMonsterState.CellX = RestoredCell.X;
+    SavedMonsterState.CellY = RestoredCell.Y;
+    SavedMonsterState.Facing = EGridEdge::East;
+    SavedMonsterState.MonsterState =
+        EGridMonsterState::Idle;
+    SavedMonsterState.CurrentHealth = 9;
+    SavedMonsterState.CurrentPhysicalArmor = 3;
+    SavedMonsterState.CurrentMagicalArmor = 2;
+    SavedMonsterState.bMonsterEnabled = true;
+
+    FGridLevelRuntimeState LevelState;
+    LevelState.LevelId = MON9SingleLevelId;
+    LevelState.bHasBeenVisited = true;
+    LevelState.Monsters.Add (
+        PersistenceId,
+        SavedMonsterState);
+    Runtime->DungeonRuntimeState.LevelStates.Add (
+        MON9SingleLevelId,
+        LevelState);
+
+    TestTrue (
+        TEXT ("The saved MON9 state applies"),
+        Runtime->ApplyCurrentLevelRuntimeState ());
+    TestTrue (
+        TEXT ("The saved cell overrides the stale actor location"),
+        Monster->CurrentCell == RestoredCell);
+    TestTrue (
+        TEXT ("The restored actor is centered on cell (4,2)"),
+        Monster->GetActorLocation ().Equals (
+            Runtime->GetCellCenterWorld (
+                RestoredCell.X,
+                RestoredCell.Y),
+            KINDA_SMALL_NUMBER));
+
+    UGridMonsterOccupancySubsystem* Occupancy =
+        TestWorld.World->GetSubsystem<
+            UGridMonsterOccupancySubsystem> ();
+    TestTrue (
+        TEXT ("The restored cell contains the rat"),
+        Occupancy &&
+        Occupancy->GetRegistry ().GetOccupantId (
+            RestoredCell) == PersistenceId);
+    TestFalse (
+        TEXT ("The stale initial cell is not occupied"),
+        Occupancy &&
+        Occupancy->IsCellOccupied (StaleCell));
+    return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (

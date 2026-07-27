@@ -699,13 +699,32 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
     {
         Monster->SkeletalMeshComponent->SetVisibility (true, true);
     }
-    Monster->SetActorLocation (GetCellCenterWorld (
-        Monster->CurrentCell.X,
-        Monster->CurrentCell.Y));
-    Monster->ApplyFacingRotation ();
 
     if (Monster->IsDead ())
     {
+        if (IsValidCell (
+                Monster->CurrentCell.X,
+                Monster->CurrentCell.Y) &&
+            IsWalkableCell (
+                Monster->CurrentCell.X,
+                Monster->CurrentCell.Y))
+        {
+            Monster->SetActorLocation (GetCellCenterWorld (
+                Monster->CurrentCell.X,
+                Monster->CurrentCell.Y));
+            Monster->ApplyFacingRotation ();
+        }
+        else
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) Result=InvalidDeadCell"),
+                *CurrentDungeonLevelId.ToString (),
+                *GetNameSafe (Monster),
+                *Monster->ResolvePersistenceId ().ToString (),
+                Monster->CurrentCell.X,
+                Monster->CurrentCell.Y);
+        }
+
         if (Monster->DeathComponent)
         {
             Monster->DeathComponent->InitializeDeathComponent (this);
@@ -733,11 +752,39 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
             Movement->Activate ();
             bRegistered = Movement->InitializeMovement (this);
         }
-        else if (Occupancy)
+        else
         {
-            bRegistered = Occupancy->RegisterMonster (
-                Monster,
-                Monster->CurrentCell);
+            int32 ResolvedX = INDEX_NONE;
+            int32 ResolvedY = INDEX_NONE;
+            FVector LocalOffset = FVector::ZeroVector;
+            const FVector WorldLocation =
+                Monster->GetActorLocation ();
+            if (TryResolveWorldCellFromImpactPoint (
+                    WorldLocation,
+                    ResolvedX,
+                    ResolvedY,
+                    LocalOffset))
+            {
+                Monster->CurrentCell =
+                    FIntPoint (ResolvedX, ResolvedY);
+                Monster->SetActorLocation (GetCellCenterWorld (
+                    ResolvedX,
+                    ResolvedY));
+                Monster->ApplyFacingRotation ();
+                bRegistered = Occupancy &&
+                    Occupancy->RegisterMonster (
+                        Monster,
+                        Monster->CurrentCell);
+            }
+            else
+            {
+                UE_LOG (LogGridMonsterState, Error,
+                    TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s WorldLocation=%s Result=CellInferenceFailed"),
+                    *CurrentDungeonLevelId.ToString (),
+                    *GetNameSafe (Monster),
+                    *Monster->ResolvePersistenceId ().ToString (),
+                    *WorldLocation.ToCompactString ());
+            }
         }
 
         if (!bRegistered)
@@ -748,7 +795,7 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
                     ECollisionEnabled::NoCollision);
             }
             UE_LOG (LogGridMonsterState, Error,
-                TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) Result=OccupancyConflict"),
+                TEXT ("[GridMonsterState] ActivateLevel Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) Result=MovementInitializationOrOccupancyFailed"),
                 *CurrentDungeonLevelId.ToString (),
                 *GetNameSafe (Monster),
                 *Monster->ResolvePersistenceId ().ToString (),

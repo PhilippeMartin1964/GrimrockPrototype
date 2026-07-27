@@ -52,6 +52,21 @@ En éditeur, `OnConstruction` appelle `EnsurePersistentMonsterId()` uniquement p
 
 Dans un niveau unique, `HomeDungeonLevelId=None` est résolu vers l’identifiant runtime courant lors de la première capture. Dans un donjon multi-niveaux, chaque monstre directement placé doit déclarer son niveau d’origine.
 
+## Initialisation des monstres directement placés
+
+`AGridMonsterActor::CurrentCell` commence à `(0,0)`. Pour un Actor directement placé dans une carte et qui ne possède encore aucun état MON9 sauvegardé, cette valeur par défaut n’est pas une position logique valide : la position monde initiale de l’Actor est la source de vérité.
+
+Lors de l’activation initiale, `UGridMonsterMovementComponent::InitializeMovement()` :
+
+1. déduit la cellule depuis la position monde lorsque `bInferCellFromActorLocation=true` ;
+2. valide que la cellule existe et est praticable ;
+3. enregistre le monstre dans le sous-système d’occupation ;
+4. snappe ensuite l’Actor au centre exact de la cellule lorsque `bSnapToCellOnInitialize=true`.
+
+`AGridLevelRuntimeActor` ne doit jamais repositionner un monstre vivant depuis une `CurrentCell` non initialisée avant cet appel. Un monstre vivant sans composant de mouvement suit le même principe : sa cellule est explicitement résolue depuis sa position monde, validée, puis enregistrée.
+
+Après une sauvegarde, la cellule stockée dans `FGridRuntimeMonsterState` devient la source de vérité. La restauration place d’abord l’Actor au centre de cette cellule ; l’initialisation du mouvement enregistre donc la cellule sauvegardée sans reprendre une ancienne position monde. Un monstre mort conserve de la même manière sa `DeathCell` ou sa `CurrentCell` sauvegardée, sans nouvelle inférence ni occupation.
+
 ## Capture
 
 `CaptureCurrentLevelRuntimeState()` vide d’abord `State->Monsters`, collecte uniquement les monstres du niveau courant, vérifie les identifiants et capture les Actors valides.
@@ -208,6 +223,8 @@ Grimrock.Monsters.MON9.LevelTransition
 Grimrock.Monsters.MON9.SaveVersionCompatibility
 Grimrock.Monsters.MON9.DiskSaveRoundTrip
 Grimrock.Monsters.MON9.StableIdentity
+Grimrock.Monsters.MON9.DirectPlacedInitialCellInference
+Grimrock.Monsters.MON9.RestoredCellNotReinferredFromStaleLocation
 ```
 
 La régression complète reste `Grimrock.Monsters.MON`, complétée par les tests de sauvegarde `Grimrock.CharacterCreation.CC5`.
@@ -242,19 +259,24 @@ MON9 associe et restaure un Actor existant. Si une sauvegarde référence un GUI
 6. Renseigner `HomeDungeonLevelId=Into_The_Dark`.
 7. Vérifier que le nom correspond à `CurrentDungeonLevelId`.
 8. Lancer le PIE.
-9. Blesser un Rat sans le tuer.
-10. Déplacer le Rat ou le laisser se déplacer.
-11. Noter sa cellule, son orientation et ses PV.
-12. Ouvrir puis fermer l’inventaire pour sauvegarder.
-13. Arrêter le PIE.
-14. Relancer le PIE avec Continuer.
-15. Vérifier la cellule, l’orientation et les PV.
-16. Tuer le premier Rat.
-17. Vérifier ses éventuels objets de butin et leurs `RuntimeObjectId` distincts.
-18. Laisser plusieurs objets au sol, sauvegarder puis arrêter et relancer le PIE.
-19. Vérifier que le Rat reste mort.
-20. Vérifier que le nombre d’items au sol est inchangé, qu’aucun nouveau jet ou butin n’est généré et que sa cellule reste libre.
-21. Effectuer une transition vers un autre niveau.
-22. Revenir au niveau du Rat.
-23. Vérifier les états, les corps et le butin des Rats.
-24. Démarrer un nouveau combat et confirmer le fonctionnement MON4 à MON8.
+9. Vérifier un log `[GridMonsterMovement] InferCell` par Rat directement placé.
+10. Vérifier que chaque log indique sa cellule réelle et jamais `(0,0)` par défaut.
+11. Vérifier que chaque Rat est visuellement snappé au centre de sa cellule de carte.
+12. Déclencher une sauvegarde et vérifier que les logs `Capture` utilisent ces mêmes cellules.
+13. Blesser un Rat sans le tuer.
+14. Déplacer le Rat ou le laisser se déplacer.
+15. Noter sa cellule, son orientation et ses PV.
+16. Ouvrir puis fermer l’inventaire pour sauvegarder.
+17. Arrêter le PIE.
+18. Relancer le PIE avec Continuer.
+19. Vérifier la cellule, l’orientation et les PV.
+20. Vérifier que la cellule sauvegardée prime sur la position initiale de la carte.
+21. Tuer le premier Rat.
+22. Vérifier ses éventuels objets de butin et leurs `RuntimeObjectId` distincts.
+23. Laisser plusieurs objets au sol, sauvegarder puis arrêter et relancer le PIE.
+24. Vérifier que le Rat reste mort.
+25. Vérifier que le nombre d’items au sol est inchangé, qu’aucun nouveau jet ou butin n’est généré et que sa cellule reste libre.
+26. Effectuer une transition vers un autre niveau.
+27. Revenir au niveau du Rat.
+28. Vérifier les états, les corps et le butin des Rats.
+29. Démarrer un nouveau combat et confirmer le fonctionnement MON4 à MON8.
