@@ -649,6 +649,10 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
 
     if (!bActive)
     {
+        if (Monster->AudioComponent)
+        {
+            Monster->AudioComponent->StopAllMonsterAudio ();
+        }
         if (Monster->CombatComponent)
         {
             Monster->CombatComponent->CancelAttackPresentation ();
@@ -846,6 +850,11 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
             Monster->DeathComponent->bDeathCommitted
             ? TEXT ("true")
             : TEXT ("false"));
+    if (Monster->AudioComponent)
+    {
+        Monster->AudioComponent->InitializeMonsterAudio ();
+        Monster->AudioComponent->RefreshIdleAmbienceScheduling ();
+    }
 }
 
 void AGridLevelRuntimeActor::ApplyInitialMonsterStateForCurrentLevel ()

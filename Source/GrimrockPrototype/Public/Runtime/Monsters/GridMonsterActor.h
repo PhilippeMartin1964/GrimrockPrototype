@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "Core/GridDirectionUtils.h"
+#include "Runtime/Monsters/GridMonsterAudioComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -66,6 +67,7 @@ public:
 
         CombatComponent = CreateDefaultSubobject<UGridMonsterCombatComponent> (TEXT ("MonsterCombat"));
         DeathComponent = CreateDefaultSubobject<UGridMonsterDeathComponent> (TEXT ("MonsterDeath"));
+        AudioComponent = CreateDefaultSubobject<UGridMonsterAudioComponent> (TEXT ("MonsterAudio"));
 
         SetCanBeDamaged (false);
     }
@@ -80,6 +82,11 @@ public:
 
         ApplyDefinitionVisuals ();
         ApplyFacingRotation ();
+        if (AudioComponent)
+        {
+            AudioComponent->InitializeMonsterAudio ();
+            AudioComponent->RefreshIdleAmbienceScheduling ();
+        }
     }
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
@@ -96,6 +103,9 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
     TObjectPtr<UGridMonsterDeathComponent> DeathComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<UGridMonsterAudioComponent> AudioComponent;
 
     UPROPERTY (BlueprintAssignable, Category = "Monster|Death")
     FGridMonsterDiedSignature OnMonsterDied;
@@ -193,6 +203,11 @@ public:
 
         ApplyFacingRotation ();
         ApplyDefinitionVisuals ();
+        if (AudioComponent)
+        {
+            AudioComponent->InitializeMonsterAudio ();
+            AudioComponent->RefreshIdleAmbienceScheduling ();
+        }
         return true;
     }
 
@@ -338,6 +353,10 @@ public:
         {
             CollisionComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
         }
+        if (AudioComponent)
+        {
+            AudioComponent->RefreshIdleAmbienceScheduling ();
+        }
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|State")
@@ -389,6 +408,10 @@ public:
         else if (Result.GetTotalAppliedDamage () > 0)
         {
             SetMonsterState (EGridMonsterState::Hurt);
+            if (AudioComponent)
+            {
+                AudioComponent->PlayHurt ();
+            }
         }
     }
 

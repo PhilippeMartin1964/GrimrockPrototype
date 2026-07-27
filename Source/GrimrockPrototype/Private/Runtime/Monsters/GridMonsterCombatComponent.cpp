@@ -210,6 +210,7 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
     if ((!bInitialized && !InitializeCombat (nullptr)) ||
         !IsValid (OwnerMonster) ||
         OwnerMonster->IsDead () ||
+        bAttackPresentationActive ||
         !Attack.IsValidDefinition ())
     {
         return false;
@@ -219,6 +220,10 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
     LastTargetCharacterIndex = Action.TargetCharacterIndex;
     bAttackPresentationActive = true;
     OwnerMonster->SetMonsterState (EGridMonsterState::Attacking);
+    if (OwnerMonster->AudioComponent)
+    {
+        OwnerMonster->AudioComponent->PlayAttack (Attack);
+    }
 
     UAnimMontage* Montage = Attack.AttackMontage.LoadSynchronous ();
     UAnimInstance* AnimInstance = OwnerMonster->SkeletalMeshComponent

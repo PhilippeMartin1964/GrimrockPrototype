@@ -273,6 +273,18 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact ()
     ActiveAction.RolledDamage = Result.RawDamage;
     ActiveAction.bOutcomeCommitted = true;
 
+    if (IsValid (CurrentMonster) &&
+        CurrentMonster->AudioComponent)
+    {
+        const FVector ImpactWorldLocation = IsValid (PartyPawn)
+            ? PartyPawn->GetActorLocation ()
+            : CurrentMonster->GetActorLocation ();
+        CurrentMonster->AudioComponent->PlayAttackImpact (
+            ActiveAttackDefinition,
+            Result,
+            ImpactWorldLocation);
+    }
+
     const FText MonsterName =
         ResolveMonsterDisplayName (CurrentMonster);
     const FText CharacterName =

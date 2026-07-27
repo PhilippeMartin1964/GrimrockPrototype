@@ -2656,13 +2656,25 @@ Ajouter :
 
 ### Étape MON10.2 — Audio
 
-À venir :
+Statut : implémenté.
 
+Ajouter :
+
+- `UGridMonsterAudioComponent` ;
+- `EGridMonsterAudioEvent` ;
+- `FGridMonsterAudioEventDefinition` ;
+- sons d’alerte et d’entrée en combat ;
 - sons d’attaque ;
-- sons d’impact ;
-- sons de blessure ;
-- sons de mort ;
-- variations d’ambiance.
+- impacts réussis et manqués ;
+- sons de blessure et de mort exclusifs ;
+- ambiance Idle planifiée par timer ;
+- sélection de présentation indépendante du gameplay ;
+- compteurs et requêtes Blueprint transitoires ;
+- absence de persistance audio.
+
+Aucun asset sonore n’est inclus dans ce jalon. La configuration manuelle et la
+procédure PIE sont décrites dans
+`docs/Design/MON10_AUDIO_SETUP.md`.
 
 ### Étape MON10.3 — VFX
 
@@ -2778,6 +2790,9 @@ AGridLevelRuntimeActor
                         ├── UGridMonsterCombatComponent
                         │       attaques, dégâts et mort
                         │
+                        ├── UGridMonsterAudioComponent
+                        │       sons optionnels et ambiance par timer
+                        │
                         ├── USkeletalMeshComponent
                         │       représentation animée
                         │
@@ -2794,6 +2809,7 @@ Behavior        = ce qu’il décide
 Turn Manager    = quand il peut agir
 Combat Resolver = comment l’action est calculée
 Animation       = comment l’action est montrée
+Audio           = comment l’action est entendue
 Grid Runtime    = où l’action peut avoir lieu
 ```
 
@@ -2820,6 +2836,7 @@ sans devoir reconstruire le système pour chaque nouvelle créature.
 - `docs/Rules/RPG_Damage_Types_Countermeasures_v0_1.md`
 - `docs/Design/03_EVENT_COMMAND_LINKS.md`
 - `docs/Design/MON10_COMBAT_FEEDBACK_SETUP.md`
+- `docs/Design/MON10_AUDIO_SETUP.md`
 - `Source/GrimrockPrototype/Public/Core/GridTypes.h`
 - `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h`
 - `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h`

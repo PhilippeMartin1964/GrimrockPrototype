@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Runtime/Monsters/GridMonsterAudioTypes.h"
 #include "GridMonsterTypes.generated.h"
 
 class UAnimMontage;
@@ -89,6 +90,15 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
     TSoftObjectPtr<USoundBase> AttackSound;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition AttackAudio;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition ImpactHitAudio;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition ImpactMissAudio;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
     TSoftObjectPtr<UNiagaraSystem> ImpactVFX;
 
@@ -104,6 +114,9 @@ struct FGridMonsterAttackDefinition
             FMath::IsFinite (ImpactTimeSeconds) &&
             ImpactTimeSeconds >= 0.0f &&
             ImpactTimeSeconds <= ExpectedDuration &&
+            AttackAudio.IsValidDefinition () &&
+            ImpactHitAudio.IsValidDefinition () &&
+            ImpactMissAudio.IsValidDefinition () &&
             (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
     }
 };

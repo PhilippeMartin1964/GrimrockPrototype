@@ -125,6 +125,22 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         Errors.Add (TEXT ("DeathExpectedDuration must be finite and greater than zero."));
     }
 
+    if (!AlertAudio.IsValidDefinition () ||
+        !HurtAudio.IsValidDefinition () ||
+        !DeathAudio.IsValidDefinition () ||
+        !IdleAudio.IsValidDefinition ())
+    {
+        Errors.Add (TEXT ("Monster audio event definitions must be valid."));
+    }
+
+    if (!FMath::IsFinite (IdleAudioMinDelay) ||
+        !FMath::IsFinite (IdleAudioMaxDelay) ||
+        IdleAudioMinDelay <= 0.0f ||
+        IdleAudioMaxDelay < IdleAudioMinDelay)
+    {
+        Errors.Add (TEXT ("Idle audio delay range is invalid."));
+    }
+
     TSet<FName> AttackIds;
     for (int32 AttackIndex = 0; AttackIndex < Attacks.Num (); ++AttackIndex)
     {

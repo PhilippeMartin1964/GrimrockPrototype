@@ -7,6 +7,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterAudioComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
@@ -107,6 +108,10 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     {
         Combat->CancelAttackPresentation ();
     }
+    if (OwnerMonster->AudioComponent)
+    {
+        OwnerMonster->AudioComponent->PlayDeath ();
+    }
 
     bool bOccupancyReleased = false;
     if (UGridMonsterMovementComponent* Movement =
@@ -192,6 +197,10 @@ void UGridMonsterDeathComponent::RestoreCommittedDeathState (
         OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent> ())
     {
         Combat->CancelAttackPresentation ();
+    }
+    if (OwnerMonster->AudioComponent)
+    {
+        OwnerMonster->AudioComponent->StopAllMonsterAudio ();
     }
 
     bool bReleasedByMovement = false;

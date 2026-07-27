@@ -416,4 +416,5 @@ private:
     friend class FGridMonsterMON10CombatLogCharacterDefeatedTest;
     friend class FGridMonsterMON10CombatLogMonsterDefeatedAndVictoryTest;
     friend class FGridMonsterMON10CombatLogFailedStartDoesNotClearHistoryTest;
+    friend class FGridMonsterMON10AudioAttackAndImpactExactlyOnceTest;
 };

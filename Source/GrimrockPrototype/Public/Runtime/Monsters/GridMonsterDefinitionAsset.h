@@ -123,6 +123,35 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Combat")
     TArray<FGridMonsterDamageModifier> DamageModifiers;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition AlertAudio;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition HurtAudio;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition DeathAudio;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Audio")
+    FGridMonsterAudioEventDefinition IdleAudio;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Audio",
+        meta = (ClampMin = "0.1"))
+    float IdleAudioMinDelay = 8.0f;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Audio",
+        meta = (ClampMin = "0.1"))
+    float IdleAudioMaxDelay = 20.0f;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Audio")
+    bool bEnableIdleAudio = false;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Rewards", meta = (ClampMin = "0"))
     int32 ExperienceReward = 0;
 

@@ -419,6 +419,12 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         return false;
     }
 
+    if (AudioComponent)
+    {
+        AudioComponent->InitializeMonsterAudio ();
+        AudioComponent->ResetTransientAudioState ();
+    }
+
     const FName DefinitionId = MonsterDefinition
         ? MonsterDefinition->MonsterId
         : NAME_None;
@@ -638,11 +644,19 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         *GetMonsterStateText (MonsterState),
         CurrentHealth,
         bMonsterEnabled ? TEXT ("true") : TEXT ("false"));
+    if (AudioComponent)
+    {
+        AudioComponent->RefreshIdleAmbienceScheduling ();
+    }
     return true;
 }
 
 void AGridMonsterActor::MarkDead ()
 {
+    if (AudioComponent)
+    {
+        AudioComponent->StopIdleAmbience ();
+    }
     CurrentHealth = 0;
     MonsterState = EGridMonsterState::Dead;
     ResetAnimationSignals ();

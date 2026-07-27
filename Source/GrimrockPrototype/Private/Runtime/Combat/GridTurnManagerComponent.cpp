@@ -540,6 +540,13 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
 
     bCombatActive = true;
     BindCombatMonsterDeaths ();
+    for (AGridMonsterActor* Monster : CombatMonsters)
+    {
+        if (IsValid (Monster) && Monster->AudioComponent)
+        {
+            Monster->AudioComponent->PlayAlert ();
+        }
+    }
     RoundNumber = PhaseState.GetRoundNumber ();
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (true);
