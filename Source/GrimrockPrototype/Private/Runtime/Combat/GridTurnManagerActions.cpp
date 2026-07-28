@@ -285,6 +285,19 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact ()
             ImpactWorldLocation);
     }
 
+    if (IsValid (CurrentMonster) &&
+        CurrentMonster->VFXComponent)
+    {
+        const FVector ImpactWorldLocation = IsValid (PartyPawn)
+            ? PartyPawn->GetActorLocation ()
+            : CurrentMonster->GetActorLocation ();
+        CurrentMonster->VFXComponent->PlayAttackImpactVFX (
+            ActiveAttackDefinition,
+            Result,
+            ImpactWorldLocation,
+            TargetCharacterIndex);
+    }
+
     const FText MonsterName =
         ResolveMonsterDisplayName (CurrentMonster);
     const FText CharacterName =

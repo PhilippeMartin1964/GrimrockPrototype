@@ -112,6 +112,10 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     {
         OwnerMonster->AudioComponent->PlayDeath ();
     }
+    if (OwnerMonster->VFXComponent)
+    {
+        OwnerMonster->VFXComponent->PlayDeathVFX ();
+    }
 
     bool bOccupancyReleased = false;
     if (UGridMonsterMovementComponent* Movement =
@@ -201,6 +205,10 @@ void UGridMonsterDeathComponent::RestoreCommittedDeathState (
     if (OwnerMonster->AudioComponent)
     {
         OwnerMonster->AudioComponent->StopAllMonsterAudio ();
+    }
+    if (OwnerMonster->VFXComponent)
+    {
+        OwnerMonster->VFXComponent->StopAllMonsterVFX ();
     }
 
     bool bReleasedByMovement = false;

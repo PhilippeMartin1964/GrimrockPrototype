@@ -11,6 +11,7 @@
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterVFXComponent.h"
 #include "GridMonsterActor.generated.h"
 
 class AGridMonsterActor;
@@ -68,6 +69,7 @@ public:
         CombatComponent = CreateDefaultSubobject<UGridMonsterCombatComponent> (TEXT ("MonsterCombat"));
         DeathComponent = CreateDefaultSubobject<UGridMonsterDeathComponent> (TEXT ("MonsterDeath"));
         AudioComponent = CreateDefaultSubobject<UGridMonsterAudioComponent> (TEXT ("MonsterAudio"));
+        VFXComponent = CreateDefaultSubobject<UGridMonsterVFXComponent> (TEXT ("MonsterVFX"));
 
         SetCanBeDamaged (false);
     }
@@ -86,6 +88,10 @@ public:
         {
             AudioComponent->InitializeMonsterAudio ();
             AudioComponent->RefreshIdleAmbienceScheduling ();
+        }
+        if (VFXComponent)
+        {
+            VFXComponent->InitializeMonsterVFX ();
         }
     }
 
@@ -106,6 +112,9 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
     TObjectPtr<UGridMonsterAudioComponent> AudioComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<UGridMonsterVFXComponent> VFXComponent;
 
     UPROPERTY (BlueprintAssignable, Category = "Monster|Death")
     FGridMonsterDiedSignature OnMonsterDied;
@@ -207,6 +216,10 @@ public:
         {
             AudioComponent->InitializeMonsterAudio ();
             AudioComponent->RefreshIdleAmbienceScheduling ();
+        }
+        if (VFXComponent)
+        {
+            VFXComponent->InitializeMonsterVFX ();
         }
         return true;
     }
@@ -411,6 +424,10 @@ public:
             if (AudioComponent)
             {
                 AudioComponent->PlayHurt ();
+            }
+            if (VFXComponent)
+            {
+                VFXComponent->PlayHurtVFX (Result);
             }
         }
     }

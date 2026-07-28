@@ -152,6 +152,15 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Audio")
     bool bEnableIdleAudio = false;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|VFX")
+    FGridMonsterVFXEventDefinition AlertVFX;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|VFX")
+    FGridMonsterVFXEventDefinition HurtVFX;
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|VFX")
+    FGridMonsterVFXEventDefinition DeathVFX;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Rewards", meta = (ClampMin = "0"))
     int32 ExperienceReward = 0;
 

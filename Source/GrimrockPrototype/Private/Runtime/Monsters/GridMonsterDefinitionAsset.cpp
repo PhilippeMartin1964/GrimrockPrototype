@@ -141,6 +141,13 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         Errors.Add (TEXT ("Idle audio delay range is invalid."));
     }
 
+    if (!AlertVFX.IsValidDefinition () ||
+        !HurtVFX.IsValidDefinition () ||
+        !DeathVFX.IsValidDefinition ())
+    {
+        Errors.Add (TEXT ("Monster VFX event definitions must be valid."));
+    }
+
     TSet<FName> AttackIds;
     for (int32 AttackIndex = 0; AttackIndex < Attacks.Num (); ++AttackIndex)
     {

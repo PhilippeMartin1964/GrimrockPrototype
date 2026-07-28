@@ -224,6 +224,10 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
     {
         OwnerMonster->AudioComponent->PlayAttack (Attack);
     }
+    if (OwnerMonster->VFXComponent)
+    {
+        OwnerMonster->VFXComponent->PlayAttackVFX (Attack);
+    }
 
     UAnimMontage* Montage = Attack.AttackMontage.LoadSynchronous ();
     UAnimInstance* AnimInstance = OwnerMonster->SkeletalMeshComponent

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Monsters/GridMonsterAudioTypes.h"
+#include "Runtime/Monsters/GridMonsterVFXTypes.h"
 #include "GridMonsterTypes.generated.h"
 
 class UAnimMontage;
@@ -102,6 +103,15 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
     TSoftObjectPtr<UNiagaraSystem> ImpactVFX;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
+    FGridMonsterVFXEventDefinition AttackVFXDefinition;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
+    FGridMonsterVFXEventDefinition ImpactHitVFXDefinition;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
+    FGridMonsterVFXEventDefinition ImpactMissVFXDefinition;
+
     bool IsValidDefinition () const
     {
         return !AttackId.IsNone () &&
@@ -117,6 +127,9 @@ struct FGridMonsterAttackDefinition
             AttackAudio.IsValidDefinition () &&
             ImpactHitAudio.IsValidDefinition () &&
             ImpactMissAudio.IsValidDefinition () &&
+            AttackVFXDefinition.IsValidDefinition () &&
+            ImpactHitVFXDefinition.IsValidDefinition () &&
+            ImpactMissVFXDefinition.IsValidDefinition () &&
             (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
     }
 };

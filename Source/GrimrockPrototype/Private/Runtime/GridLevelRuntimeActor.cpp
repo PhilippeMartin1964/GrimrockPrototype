@@ -649,6 +649,10 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
 
     if (!bActive)
     {
+        if (Monster->VFXComponent)
+        {
+            Monster->VFXComponent->StopAllMonsterVFX ();
+        }
         if (Monster->AudioComponent)
         {
             Monster->AudioComponent->StopAllMonsterAudio ();
@@ -698,6 +702,10 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
     }
 
     Monster->bRuntimeLevelActive = true;
+    if (Monster->VFXComponent)
+    {
+        Monster->VFXComponent->InitializeMonsterVFX ();
+    }
     Monster->SetActorHiddenInGame (false);
     if (Monster->SkeletalMeshComponent)
     {

@@ -424,6 +424,11 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         AudioComponent->InitializeMonsterAudio ();
         AudioComponent->ResetTransientAudioState ();
     }
+    if (VFXComponent)
+    {
+        VFXComponent->InitializeMonsterVFX ();
+        VFXComponent->ResetTransientVFXState ();
+    }
 
     const FName DefinitionId = MonsterDefinition
         ? MonsterDefinition->MonsterId
