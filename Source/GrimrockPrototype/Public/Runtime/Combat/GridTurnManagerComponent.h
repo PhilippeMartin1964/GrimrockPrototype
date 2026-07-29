@@ -136,6 +136,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridCombatLogEntryAddedSignature,
     FGridCombatLogEntry, Entry);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridPlayerAttackRequestedSignature,
+    FGridPlayerAttackRequest, Request);
+
 /**
  * Central combat phase and monster-turn sequencer.
  *
@@ -261,6 +265,28 @@ public:
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager|Attack")
     bool bActiveAttackImpactCommitted = false;
 
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Player Attack")
+    FGridPlayerAttackRequest LastPlayerAttackRequest;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Player Attack")
+    EGridPlayerAttackRejectReason LastPlayerAttackRejectReason =
+        EGridPlayerAttackRejectReason::None;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Player Attack")
+    TSet<FGuid> PlayerAttackCommittedCharacterIds;
+
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
     FGridCombatPhaseChangedSignature OnPhaseChanged;
 
@@ -288,6 +314,9 @@ public:
     UPROPERTY (BlueprintAssignable, Category = "Combat|Feedback")
     FGridCombatLogEntryAddedSignature OnCombatLogEntryAdded;
 
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
+    FGridPlayerAttackRequestedSignature OnPlayerAttackRequested;
+
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool InitializeTurnManager (
         AGridLevelRuntimeActor* InRuntimeActor = nullptr,
@@ -301,6 +330,20 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool EndPlayerPhase ();
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
+    bool RequestSelectedCharacterAttack (
+        FGridPlayerAttackRequest& OutRequest,
+        EGridPlayerAttackRejectReason& OutRejectReason);
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
+    bool RequestCharacterAttack (
+        int32 AttackerCharacterIndex,
+        FGridPlayerAttackRequest& OutRequest,
+        EGridPlayerAttackRejectReason& OutRejectReason);
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
+    bool HasCharacterCommittedAttackThisPhase (int32 CharacterIndex) const;
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     void AbortCombat ();
@@ -397,6 +440,12 @@ private:
     TObjectPtr<UGridMonsterCombatComponent> CurrentCombatComponent = nullptr;
 
     bool StartCombatInternal (const TArray<AGridMonsterActor*>& Monsters);
+    bool RejectPlayerAttack (
+        int32 AttackerCharacterIndex,
+        EGridPlayerAttackRejectReason RejectReason,
+        EGridPlayerAttackRejectReason& OutRejectReason);
+    bool IsCombatMonster (const AGridMonsterActor* Monster) const;
+    void ResetPlayerAttackPhaseState ();
     void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     void CollectPerceivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     bool PrepareMonsterForCombat (AGridMonsterActor* Monster);
@@ -465,4 +514,8 @@ private:
     friend class FGridMonsterMON10OptimizationEncounterSeedLifecycleTest;
     friend class FGridMonsterMON10OptimizationMetricsLifecycleTest;
     friend class FGridMonsterMON10OptimizationMetricsNoGameplayInfluenceTest;
+    friend class FGridMonsterMON11TargetingTest;
+    friend class FGridMonsterMON11RequestValidationTest;
+    friend class FGridMonsterMON11RequestAcceptedWithoutDamageTest;
+    friend class FGridMonsterMON11PerCharacterActionGateTest;
 };

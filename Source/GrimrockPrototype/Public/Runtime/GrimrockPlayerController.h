@@ -125,5 +125,6 @@ protected:
     void HandleMON5LogTurnState ();
     void HandleMON5StartCombatWithAllMonsters ();
     void HandleMON5ForceVictory ();
+    void HandleMON11RequestSelectedCharacterAttack ();
 #endif
 };

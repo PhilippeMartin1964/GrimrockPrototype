@@ -260,6 +260,8 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
 
 void UGridTurnManagerComponent::AbortCombat ()
 {
+    ResetPlayerAttackPhaseState ();
+
     if (CurrentMovementComponent && CurrentMovementComponent->IsBusy ())
     {
         CurrentMovementComponent->CancelCurrentAction ();
@@ -565,6 +567,10 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
         CombatMonsters.Reset ();
         return RejectCombatStart ();
     }
+
+    ResetPlayerAttackPhaseState ();
+    LastPlayerAttackRequest = FGridPlayerAttackRequest ();
+    LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;
 
     TArray<FGuid> ParticipantIds;
     ParticipantIds.Reserve (CombatMonsters.Num ());

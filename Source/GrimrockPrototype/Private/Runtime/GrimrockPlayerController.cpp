@@ -173,8 +173,16 @@ void AGrimrockPlayerController::SetupInputComponent ()
     ForceVictoryBinding.bConsumeInput = true;
     ForceVictoryBinding.bExecuteWhenPaused = false;
 
+    FInputKeyBinding& RequestPlayerAttackBinding = InputComponent->BindKey (
+        EKeys::NumPadSeven,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack);
+    RequestPlayerAttackBinding.bConsumeInput = true;
+    RequestPlayerAttackBinding.bExecuteWhenPaused = false;
+
     UE_LOG (LogGridTurnManagerInput, Log,
-        TEXT ("[GridTurnManagerInput] Bound NumPad 1-6 PlayerController=%s InputComponent=%s"),
+        TEXT ("[GridTurnManagerInput] Bound NumPad 1-7 PlayerController=%s InputComponent=%s"),
         *GetNameSafe (this),
         *GetNameSafe (InputComponent));
 #endif
@@ -311,6 +319,38 @@ void AGrimrockPlayerController::HandleMON5ForceVictory ()
     LogMON5CommandResult (
         TEXT ("ForceVictory"),
         TurnManager && TurnManager->CurrentPhase == EGridCombatPhase::Victory);
+}
+
+void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
+{
+    UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
+    FGridPlayerAttackRequest Request;
+    EGridPlayerAttackRejectReason RejectReason =
+        EGridPlayerAttackRejectReason::TurnManagerNotInitialized;
+    const bool bAccepted = TurnManager &&
+        TurnManager->RequestSelectedCharacterAttack (Request, RejectReason);
+    const FString ReasonText = StaticEnum<EGridPlayerAttackRejectReason> ()
+        ? StaticEnum<EGridPlayerAttackRejectReason> ()->GetNameStringByValue (
+            static_cast<int64> (RejectReason))
+        : TEXT ("Unknown");
+    const FString Message = FString::Printf (
+        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Target=%s TargetCell=(%d,%d)"),
+        bAccepted ? TEXT ("true") : TEXT ("false"),
+        *ReasonText,
+        Request.AttackerCharacterIndex,
+        *Request.TargetMonsterId.ToString (EGuidFormats::Digits),
+        Request.TargetCell.X,
+        Request.TargetCell.Y);
+
+    UE_LOG (LogGridTurnManagerInput, Log, TEXT ("%s"), *Message);
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage (
+            INDEX_NONE,
+            2.0f,
+            bAccepted ? FColor::Green : FColor::Red,
+            Message);
+    }
 }
 #endif
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/GridObjectBehavior.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridCombatTypes.generated.h"
 
@@ -38,6 +39,80 @@ enum class EGridCombatPhase : uint8
     EndingRound    UMETA (DisplayName = "Ending Round"),
     Victory        UMETA (DisplayName = "Victory"),
     Defeat         UMETA (DisplayName = "Defeat")
+};
+
+UENUM (BlueprintType)
+enum class EGridPlayerAttackRejectReason : uint8
+{
+    None                      UMETA (DisplayName = "None"),
+    TurnManagerNotInitialized UMETA (DisplayName = "Turn Manager Not Initialized"),
+    CombatInactive            UMETA (DisplayName = "Combat Inactive"),
+    NotPlayerPhase            UMETA (DisplayName = "Not Player Phase"),
+    PartyUnavailable          UMETA (DisplayName = "Party Unavailable"),
+    PartyBusy                 UMETA (DisplayName = "Party Busy"),
+    InvalidAttacker           UMETA (DisplayName = "Invalid Attacker"),
+    AttackerDefeated          UMETA (DisplayName = "Attacker Defeated"),
+    AttackerAlreadyActed      UMETA (DisplayName = "Attacker Already Acted"),
+    InvalidFacing             UMETA (DisplayName = "Invalid Facing"),
+    TargetCellUnavailable     UMETA (DisplayName = "Target Cell Unavailable"),
+    PassageBlocked            UMETA (DisplayName = "Passage Blocked"),
+    NoMonsterInFront          UMETA (DisplayName = "No Monster In Front"),
+    TargetNotInEncounter      UMETA (DisplayName = "Target Not In Encounter"),
+    TargetInactive            UMETA (DisplayName = "Target Inactive"),
+    TargetDefeated            UMETA (DisplayName = "Target Defeated"),
+    TargetOutOfRange          UMETA (DisplayName = "Target Out Of Range")
+};
+
+USTRUCT (BlueprintType)
+struct FGridPlayerAttackRequest
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FGuid RequestId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    int32 RoundNumber = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    int32 AttackerCharacterIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FGuid AttackerCharacterId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FGuid TargetMonsterId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FIntPoint PartyCell = FIntPoint::ZeroValue;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FIntPoint TargetCell = FIntPoint::ZeroValue;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    EGridEdge PartyFacing = EGridEdge::None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    int32 RangeCells = 1;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FName AttackId = NAME_None;
+
+    bool IsValid () const
+    {
+        const bool bCardinalFacing =
+            PartyFacing == EGridEdge::North ||
+            PartyFacing == EGridEdge::East ||
+            PartyFacing == EGridEdge::South ||
+            PartyFacing == EGridEdge::West;
+        return RequestId.IsValid () &&
+            RoundNumber > 0 &&
+            AttackerCharacterIndex != INDEX_NONE &&
+            AttackerCharacterId.IsValid () &&
+            TargetMonsterId.IsValid () &&
+            bCardinalFacing &&
+            RangeCells > 0;
+    }
 };
 
 USTRUCT (BlueprintType)
