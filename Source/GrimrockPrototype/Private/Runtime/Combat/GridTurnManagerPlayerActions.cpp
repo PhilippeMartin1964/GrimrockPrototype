@@ -1,13 +1,18 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
+#include "RPG/RPGCharacterRulesLibrary.h"
+#include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
 namespace
 {
+    const FName UnarmedAttackId = TEXT ("Attack_Unarmed");
+
     bool IsCardinalFacing (EGridEdge Facing)
     {
         return Facing == EGridEdge::North ||
@@ -30,6 +35,7 @@ namespace
 
 bool UGridTurnManagerComponent::RequestSelectedCharacterAttack (
     FGridPlayerAttackRequest& OutRequest,
+    FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
 {
     const int32 SelectedCharacterIndex =
@@ -40,15 +46,18 @@ bool UGridTurnManagerComponent::RequestSelectedCharacterAttack (
     return RequestCharacterAttack (
         SelectedCharacterIndex,
         OutRequest,
+        OutResult,
         OutRejectReason);
 }
 
 bool UGridTurnManagerComponent::RequestCharacterAttack (
     int32 AttackerCharacterIndex,
     FGridPlayerAttackRequest& OutRequest,
+    FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
 {
     OutRequest = FGridPlayerAttackRequest ();
+    OutResult = FGridAttackResult ();
     OutRejectReason = EGridPlayerAttackRejectReason::None;
 
     if (!bInitialized)
@@ -81,7 +90,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
             EGridPlayerAttackRejectReason::NotPlayerPhase,
             OutRejectReason);
     }
-    if (!IsPartyAtRest ())
+    if (!IsPartyAtRest () || bPlayerAttackResolutionInProgress)
     {
         return RejectPlayerAttack (
             AttackerCharacterIndex,
@@ -229,6 +238,40 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
             OutRejectReason);
     }
 
+    FGridInventoryCharacterSummary CharacterSummary;
+    if (!PartyPawn->PartyInventoryComponent->GetCharacterSummary (
+        AttackerCharacterIndex,
+        CharacterSummary))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::InvalidAttacker,
+            OutRejectReason);
+    }
+    if (!IsValid (TargetMonster->MonsterDefinition))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::TargetInactive,
+            OutRejectReason);
+    }
+
+    FGridAttackSourceStats Source;
+    FGridAttackTargetStats Target;
+    FGridAttackDefinition AttackDefinition;
+    if (!BuildPlayerAttackResolutionInputs (
+        CharacterSummary,
+        TargetMonster,
+        Source,
+        Target,
+        AttackDefinition))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::TargetInactive,
+            OutRejectReason);
+    }
+
     FGridPlayerAttackRequest Request;
     Request.RequestId = FGuid::NewGuid ();
     Request.RoundNumber = RoundNumber;
@@ -239,7 +282,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     Request.TargetCell = TargetCell;
     Request.PartyFacing = PartyPawn->Facing;
     Request.RangeCells = 1;
-    Request.AttackId = NAME_None;
+    Request.AttackId = UnarmedAttackId;
     if (!Request.IsValid ())
     {
         return RejectPlayerAttack (
@@ -248,9 +291,18 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
             OutRejectReason);
     }
 
+    const FGridAttackResult Result =
+        FGridCombatResolver::ResolveAttack (
+            Source,
+            Target,
+            AttackDefinition,
+            CombatRandomStream);
+
     OutRequest = Request;
+    OutResult = Result;
     OutRejectReason = EGridPlayerAttackRejectReason::None;
     LastPlayerAttackRequest = Request;
+    LastPlayerAttackResult = Result;
     LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;
     PlayerAttackCommittedCharacterIds.Add (Attacker.CharacterId);
 
@@ -268,7 +320,92 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
         *UEnum::GetValueAsString (Request.PartyFacing),
         Request.RangeCells);
     OnPlayerAttackRequested.Broadcast (Request);
+
+    FGridCombatLogEntry AttackEntry;
+    AttackEntry.RoundNumber = RoundNumber;
+    AttackEntry.Phase = EGridCombatPhase::PlayerPhase;
+    AttackEntry.Type = Result.bHit
+        ? EGridCombatLogEntryType::AttackHit
+        : EGridCombatLogEntryType::AttackMiss;
+    AttackEntry.SourceId = FName (*Attacker.CharacterId.ToString (
+        EGuidFormats::Digits));
+    AttackEntry.SourceDisplayName = CharacterSummary.DisplayName;
+    AttackEntry.TargetId = FName (*TargetMonsterId.ToString (
+        EGuidFormats::Digits));
+    AttackEntry.TargetDisplayName =
+        ResolveMonsterDisplayName (TargetMonster);
+    AttackEntry.TargetCharacterIndex = INDEX_NONE;
+    AttackEntry.AttackId = UnarmedAttackId;
+    AttackEntry.AttackResult = Result;
+    AttackEntry.bTargetDefeated =
+        Result.TargetHealthBefore > 0 &&
+        Result.TargetHealthAfter <= 0;
+    AttackEntry.Message = FGridCombatLogFormatter::FormatPlayerAttack (
+        AttackEntry.SourceDisplayName,
+        AttackEntry.TargetDisplayName,
+        AttackEntry.AttackId,
+        Result);
+    AppendCombatLogEntry (AttackEntry);
+
+    bPlayerAttackResolutionInProgress = true;
+    TargetMonster->ApplyAttackResult (Result);
+    ++PlayerAttackResolvedBroadcastCount;
+    OnPlayerAttackResolved.Broadcast (Request, TargetMonster, Result);
+    bPlayerAttackResolutionInProgress = false;
+
+    if (bCollectRuntimeMetrics)
+    {
+        ++RuntimeMetrics.AttacksResolved;
+    }
+
+    if (bPendingVictoryAfterPlayerAttack)
+    {
+        bPendingVictoryAfterPlayerAttack = false;
+        FinishCombat (EGridCombatPhase::Victory);
+    }
     return true;
+}
+
+bool UGridTurnManagerComponent::BuildPlayerAttackResolutionInputs (
+    const FGridInventoryCharacterSummary& CharacterSummary,
+    const AGridMonsterActor* TargetMonster,
+    FGridAttackSourceStats& OutSource,
+    FGridAttackTargetStats& OutTarget,
+    FGridAttackDefinition& OutAttackDefinition) const
+{
+    OutSource = FGridAttackSourceStats ();
+    OutTarget = FGridAttackTargetStats ();
+    OutAttackDefinition = FGridAttackDefinition ();
+    if (!IsValid (TargetMonster) ||
+        !IsValid (TargetMonster->MonsterDefinition))
+    {
+        return false;
+    }
+
+    OutSource.Accuracy = CharacterSummary.DerivedStats.Accuracy;
+    OutSource.DamageBonus =
+        URPGCharacterRulesLibrary::GetAttributeModifier (
+            CharacterSummary.Attributes.Strength);
+
+    OutTarget.Evasion = TargetMonster->MonsterDefinition->Evasion;
+    OutTarget.CurrentHealth = TargetMonster->CurrentHealth;
+    OutTarget.PhysicalArmor =
+        TargetMonster->CurrentPhysicalArmor;
+    OutTarget.MagicalArmor =
+        TargetMonster->CurrentMagicalArmor;
+    OutTarget.ResistancePercent = 0;
+    OutTarget.DamageMultiplier =
+        TargetMonster->MonsterDefinition->GetDamageMultiplier (
+            EGridDamageType::Physical,
+            EGridPhysicalDamageSubtype::Bludgeoning);
+
+    OutAttackDefinition.DamageType = EGridDamageType::Physical;
+    OutAttackDefinition.PhysicalSubtype =
+        EGridPhysicalDamageSubtype::Bludgeoning;
+    OutAttackDefinition.MinDamage = 1;
+    OutAttackDefinition.MaxDamage = 3;
+    OutAttackDefinition.AccuracyBonus = 0;
+    return OutAttackDefinition.IsValid ();
 }
 
 bool UGridTurnManagerComponent::HasCharacterCommittedAttackThisPhase (

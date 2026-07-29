@@ -82,6 +82,12 @@ public:
         FName AttackId,
         const FGridAttackResult& Result);
 
+    static FText FormatPlayerAttack (
+        const FText& CharacterName,
+        const FText& MonsterName,
+        FName AttackId,
+        const FGridAttackResult& Result);
+
     static FText FormatCharacterDefeated (const FText& CharacterName);
     static FText FormatMonsterDefeated (const FText& MonsterName);
     static FText FormatCombatEnded (EGridCombatPhase ResultPhase);

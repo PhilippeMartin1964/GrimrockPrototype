@@ -111,7 +111,8 @@ struct FGridPlayerAttackRequest
             AttackerCharacterId.IsValid () &&
             TargetMonsterId.IsValid () &&
             bCardinalFacing &&
-            RangeCells > 0;
+            RangeCells > 0 &&
+            !AttackId.IsNone ();
     }
 };
 

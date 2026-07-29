@@ -140,6 +140,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridPlayerAttackRequestedSignature,
     FGridPlayerAttackRequest, Request);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
+    FGridPlayerAttackResolvedSignature,
+    FGridPlayerAttackRequest, Request,
+    AGridMonsterActor*, TargetMonster,
+    FGridAttackResult, Result);
+
 /**
  * Central combat phase and monster-turn sequencer.
  *
@@ -285,6 +291,13 @@ public:
         BlueprintReadOnly,
         Transient,
         Category = "Combat|Player Attack")
+    FGridAttackResult LastPlayerAttackResult;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Player Attack")
     TSet<FGuid> PlayerAttackCommittedCharacterIds;
 
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
@@ -317,6 +330,9 @@ public:
     UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
     FGridPlayerAttackRequestedSignature OnPlayerAttackRequested;
 
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
+    FGridPlayerAttackResolvedSignature OnPlayerAttackResolved;
+
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool InitializeTurnManager (
         AGridLevelRuntimeActor* InRuntimeActor = nullptr,
@@ -334,12 +350,14 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
     bool RequestSelectedCharacterAttack (
         FGridPlayerAttackRequest& OutRequest,
+        FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason);
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
     bool RequestCharacterAttack (
         int32 AttackerCharacterIndex,
         FGridPlayerAttackRequest& OutRequest,
+        FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason);
 
     UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
@@ -431,6 +449,9 @@ private:
     int32 NextCombatLogSequenceNumber = 1;
     int32 CombatLogBroadcastCount = 0;
     int32 AttackResolvedBroadcastCount = 0;
+    int32 PlayerAttackResolvedBroadcastCount = 0;
+    bool bPlayerAttackResolutionInProgress = false;
+    bool bPendingVictoryAfterPlayerAttack = false;
     TSet<FGuid> LoggedDefeatedMonsterIds;
 
     UPROPERTY (Transient)
@@ -444,6 +465,12 @@ private:
         int32 AttackerCharacterIndex,
         EGridPlayerAttackRejectReason RejectReason,
         EGridPlayerAttackRejectReason& OutRejectReason);
+    bool BuildPlayerAttackResolutionInputs (
+        const FGridInventoryCharacterSummary& CharacterSummary,
+        const AGridMonsterActor* TargetMonster,
+        FGridAttackSourceStats& OutSource,
+        FGridAttackTargetStats& OutTarget,
+        FGridAttackDefinition& OutAttackDefinition) const;
     bool IsCombatMonster (const AGridMonsterActor* Monster) const;
     void ResetPlayerAttackPhaseState ();
     void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
@@ -516,6 +543,10 @@ private:
     friend class FGridMonsterMON10OptimizationMetricsNoGameplayInfluenceTest;
     friend class FGridMonsterMON11TargetingTest;
     friend class FGridMonsterMON11RequestValidationTest;
-    friend class FGridMonsterMON11RequestAcceptedWithoutDamageTest;
+    friend class FGridMonsterMON11RequestAcceptedAndResolvedTest;
     friend class FGridMonsterMON11PerCharacterActionGateTest;
+    friend class FGridMonsterMON11PlayerResolutionMappingTest;
+    friend class FGridMonsterMON11PlayerResolutionDeterminismTest;
+    friend class FGridMonsterMON11PlayerResolutionArmorAndCriticalTest;
+    friend class FGridMonsterMON11PlayerResolutionDeathVictoryTest;
 };

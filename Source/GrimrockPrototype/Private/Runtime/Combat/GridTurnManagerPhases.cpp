@@ -592,6 +592,8 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     }
 
     ResetPlayerAttackPhaseState ();
+    bPlayerAttackResolutionInProgress = false;
+    bPendingVictoryAfterPlayerAttack = false;
 
     if (CurrentMovementComponent && CurrentMovementComponent->IsBusy ())
     {

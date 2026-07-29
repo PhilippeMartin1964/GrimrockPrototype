@@ -7,19 +7,16 @@ DEFINE_LOG_CATEGORY (LogGridCombat);
 namespace
 {
     FText FormatAttackLead (
-        const FText& MonsterName,
+        const FText& SourceName,
         const FText& TargetName,
-        FName AttackId)
+        FName AttackId,
+        const FText& Pattern)
     {
         FFormatNamedArguments Arguments;
-        Arguments.Add (TEXT ("Monster"), MonsterName);
+        Arguments.Add (TEXT ("Source"), SourceName);
         Arguments.Add (TEXT ("Target"), TargetName);
         Arguments.Add (TEXT ("Attack"), FText::FromName (AttackId));
-        return FText::Format (
-            LOCTEXT (
-                "MonsterAttackLead",
-                "{Monster} attaque {Target} avec {Attack}"),
-            Arguments);
+        return FText::Format (Pattern, Arguments);
     }
 
     FText FormatAppliedDamage (const FGridAttackResult& Result)
@@ -135,7 +132,10 @@ FText FGridCombatLogFormatter::FormatMonsterAttack (
     const FText Lead = FormatAttackLead (
         MonsterName,
         TargetName,
-        AttackId);
+        AttackId,
+        LOCTEXT (
+            "MonsterAttackLead",
+            "{Source} attaque {Target} avec {Attack}"));
 
     if (!Result.bHit)
     {
@@ -163,6 +163,49 @@ FText FGridCombatLogFormatter::FormatMonsterAttack (
             Arguments)
         : FText::Format (
             LOCTEXT ("MonsterAttackHit", "{Lead} : {Damage}."),
+            Arguments);
+}
+
+FText FGridCombatLogFormatter::FormatPlayerAttack (
+    const FText& CharacterName,
+    const FText& MonsterName,
+    FName AttackId,
+    const FGridAttackResult& Result)
+{
+    const FText Lead = FormatAttackLead (
+        CharacterName,
+        MonsterName,
+        AttackId,
+        LOCTEXT (
+            "PlayerAttackLead",
+            "{Source} attaque {Target} avec {Attack}"));
+
+    if (!Result.bHit)
+    {
+        FFormatNamedArguments Arguments;
+        Arguments.Add (TEXT ("Lead"), Lead);
+        Arguments.Add (TEXT ("Roll"), FText::AsNumber (Result.AttackRoll));
+        Arguments.Add (
+            TEXT ("Defense"),
+            FText::AsNumber (Result.DefenseValue));
+        return FText::Format (
+            LOCTEXT (
+                "PlayerAttackMiss",
+                "{Lead} : échec (jet {Roll} contre défense {Defense})."),
+            Arguments);
+    }
+
+    FFormatNamedArguments Arguments;
+    Arguments.Add (TEXT ("Lead"), Lead);
+    Arguments.Add (TEXT ("Damage"), FormatAppliedDamage (Result));
+    return Result.bCriticalHit
+        ? FText::Format (
+            LOCTEXT (
+                "PlayerAttackCritical",
+                "{Lead} : coup critique, {Damage}."),
+            Arguments)
+        : FText::Format (
+            LOCTEXT ("PlayerAttackHit", "{Lead} : {Damage}."),
             Arguments);
 }
 

@@ -135,7 +135,7 @@ namespace
             MonsterDefinition->DisplayName =
                 FText::FromString (TEXT ("Rat de test MON11"));
             MonsterDefinition->CategoryId = TEXT ("Vermin");
-            MonsterDefinition->MaxHealth = 8;
+            MonsterDefinition->MaxHealth = 100;
             MonsterDefinition->PhysicalArmor = 2;
             MonsterDefinition->MagicalArmor = 1;
             MonsterDefinition->ActionPointsPerTurn = 2;
@@ -216,6 +216,7 @@ bool FGridMonsterMON11TargetingTest::RunTest (const FString& Parameters)
     Fixture.TurnManager->CombatMonsters.Add (LateralMonster);
 
     FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
     EGridPlayerAttackRejectReason RejectReason =
         EGridPlayerAttackRejectReason::None;
     TestTrue (
@@ -223,6 +224,7 @@ bool FGridMonsterMON11TargetingTest::RunTest (const FString& Parameters)
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("North facing transforms into the north neighbor"),
@@ -246,6 +248,7 @@ bool FGridMonsterMON11TargetingTest::RunTest (const FString& Parameters)
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("A wall reports PassageBlocked"),
@@ -261,6 +264,7 @@ bool FGridMonsterMON11TargetingTest::RunTest (const FString& Parameters)
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("An empty front cell reports NoMonsterInFront"),
@@ -286,6 +290,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
     }
 
     FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
     EGridPlayerAttackRejectReason RejectReason =
         EGridPlayerAttackRejectReason::None;
     Fixture.TurnManager->bCombatActive = false;
@@ -295,6 +300,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("Exploration reports inactive combat"),
@@ -308,6 +314,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("EnemyPhase reports NotPlayerPhase"),
@@ -320,6 +327,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             99,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("An invalid index reports InvalidAttacker"),
@@ -336,6 +344,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("A missing CharacterId reports InvalidAttacker"),
@@ -350,6 +359,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("A zero-health attacker reports AttackerDefeated"),
@@ -363,6 +373,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("An external target reports TargetNotInEncounter"),
@@ -376,6 +387,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("A disabled target reports TargetInactive"),
@@ -389,6 +401,7 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("An inactive-level target reports TargetInactive"),
@@ -398,12 +411,12 @@ bool FGridMonsterMON11RequestValidationTest::RunTest (
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridMonsterMON11RequestAcceptedWithoutDamageTest,
-    "Grimrock.Monsters.MON11.RequestAcceptedWithoutDamage",
+    FGridMonsterMON11RequestAcceptedAndResolvedTest,
+    "Grimrock.Monsters.MON11.RequestAcceptedAndResolved",
     EAutomationTestFlags::EditorContext |
         EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON11RequestAcceptedWithoutDamageTest::RunTest (
+bool FGridMonsterMON11RequestAcceptedAndResolvedTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
@@ -425,6 +438,7 @@ bool FGridMonsterMON11RequestAcceptedWithoutDamageTest::RunTest (
         Fixture.FrontMonster->MonsterState;
 
     FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
     EGridPlayerAttackRejectReason RejectReason =
         EGridPlayerAttackRejectReason::TargetCellUnavailable;
     TestTrue (
@@ -432,6 +446,7 @@ bool FGridMonsterMON11RequestAcceptedWithoutDamageTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestTrue (TEXT ("The accepted request is valid"), Request.IsValid ());
     TestTrue (
@@ -462,11 +477,11 @@ bool FGridMonsterMON11RequestAcceptedWithoutDamageTest::RunTest (
         TEXT ("Party facing is captured"),
         Request.PartyFacing,
         EGridEdge::North);
-    TestEqual (TEXT ("MON11.1 range is one cell"), Request.RangeCells, 1);
+    TestEqual (TEXT ("MON11.2 range is one cell"), Request.RangeCells, 1);
     TestEqual (
-        TEXT ("MON11.1 has no weapon attack id"),
+        TEXT ("MON11.2 uses the provisional unarmed attack"),
         Request.AttackId,
-        FName (NAME_None));
+        FName (TEXT ("Attack_Unarmed")));
     TestEqual (
         TEXT ("Acceptance reports no rejection"),
         RejectReason,
@@ -475,23 +490,48 @@ bool FGridMonsterMON11RequestAcceptedWithoutDamageTest::RunTest (
         TEXT ("The last request is retained transiently"),
         Fixture.TurnManager->LastPlayerAttackRequest.RequestId,
         Request.RequestId);
-
+    TestTrue (
+        TEXT ("The result contains a natural attack roll"),
+        Result.NaturalAttackRoll >= 1 &&
+            Result.NaturalAttackRoll <= 20);
     TestEqual (
-        TEXT ("Requesting does not change monster health"),
-        Fixture.FrontMonster->CurrentHealth,
+        TEXT ("The result captures target health before resolution"),
+        Result.TargetHealthBefore,
         Health);
     TestEqual (
-        TEXT ("Requesting does not change physical armor"),
+        TEXT ("The last result retains the natural roll"),
+        Fixture.TurnManager->LastPlayerAttackResult.NaturalAttackRoll,
+        Result.NaturalAttackRoll);
+    TestEqual (
+        TEXT ("The last result retains raw damage"),
+        Fixture.TurnManager->LastPlayerAttackResult.RawDamage,
+        Result.RawDamage);
+    TestTrue (
+        TEXT ("The accepted attack consumes the character action"),
+        Fixture.TurnManager->HasCharacterCommittedAttackThisPhase (0));
+    TestEqual (
+        TEXT ("Exactly one player resolution is broadcast"),
+        Fixture.TurnManager->PlayerAttackResolvedBroadcastCount,
+        1);
+    TestEqual (
+        TEXT ("Physical armor matches the applied result"),
         Fixture.FrontMonster->CurrentPhysicalArmor,
-        PhysicalArmor);
+        PhysicalArmor - Result.PhysicalArmorDamage);
     TestEqual (
-        TEXT ("Requesting does not change magical armor"),
+        TEXT ("Magical armor matches the applied result"),
         Fixture.FrontMonster->CurrentMagicalArmor,
-        MagicalArmor);
+        MagicalArmor - Result.MagicalArmorDamage);
     TestEqual (
-        TEXT ("Requesting does not change monster state"),
-        Fixture.FrontMonster->MonsterState,
-        State);
+        TEXT ("Health matches the applied result"),
+        Fixture.FrontMonster->CurrentHealth,
+        Health - Result.HealthDamage);
+    if (!Result.bHit)
+    {
+        TestEqual (
+            TEXT ("A miss leaves the monster state unchanged"),
+            Fixture.FrontMonster->MonsterState,
+            State);
+    }
     return true;
 }
 
@@ -518,6 +558,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->PhaseState.GetRoundNumber ();
 
     FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
     EGridPlayerAttackRejectReason RejectReason =
         EGridPlayerAttackRejectReason::None;
     TestTrue (
@@ -525,6 +566,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestTrue (
         TEXT ("The first character is marked for this phase"),
@@ -536,6 +578,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
     TestEqual (
         TEXT ("The second request reports AttackerAlreadyActed"),
@@ -550,6 +593,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             1,
             Request,
+            Result,
             RejectReason));
     TestTrue (
         TEXT ("The second character has its independent gate"),
@@ -572,6 +616,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
+            Result,
             RejectReason));
 
     Fixture.TurnManager->ResetPlayerAttackPhaseState ();
@@ -580,6 +625,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             INDEX_NONE,
             Request,
+            Result,
             RejectReason));
     TestFalse (
         TEXT ("A refused request consumes no valid character action"),
@@ -589,6 +635,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->RequestCharacterAttack (
             1,
             Request,
+            Result,
             RejectReason));
     return true;
 }

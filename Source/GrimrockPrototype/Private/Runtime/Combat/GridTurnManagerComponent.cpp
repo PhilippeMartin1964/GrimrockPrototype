@@ -261,6 +261,8 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
 void UGridTurnManagerComponent::AbortCombat ()
 {
     ResetPlayerAttackPhaseState ();
+    bPlayerAttackResolutionInProgress = false;
+    bPendingVictoryAfterPlayerAttack = false;
 
     if (CurrentMovementComponent && CurrentMovementComponent->IsBusy ())
     {
@@ -570,7 +572,11 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
 
     ResetPlayerAttackPhaseState ();
     LastPlayerAttackRequest = FGridPlayerAttackRequest ();
+    LastPlayerAttackResult = FGridAttackResult ();
     LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;
+    PlayerAttackResolvedBroadcastCount = 0;
+    bPlayerAttackResolutionInProgress = false;
+    bPendingVictoryAfterPlayerAttack = false;
 
     TArray<FGuid> ParticipantIds;
     ParticipantIds.Reserve (CombatMonsters.Num ());
@@ -774,7 +780,11 @@ void UGridTurnManagerComponent::HandleCombatMonsterDied (
         RemainingLiving,
         bVictory ? TEXT ("true") : TEXT ("false"));
 
-    if (bVictory)
+    if (bVictory && bPlayerAttackResolutionInProgress)
+    {
+        bPendingVictoryAfterPlayerAttack = true;
+    }
+    else if (bVictory)
     {
         FinishCombat (EGridCombatPhase::Victory);
     }

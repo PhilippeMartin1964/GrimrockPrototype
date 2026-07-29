@@ -325,22 +325,41 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
 {
     UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
     FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
     EGridPlayerAttackRejectReason RejectReason =
         EGridPlayerAttackRejectReason::TurnManagerNotInitialized;
     const bool bAccepted = TurnManager &&
-        TurnManager->RequestSelectedCharacterAttack (Request, RejectReason);
+        TurnManager->RequestSelectedCharacterAttack (
+            Request,
+            Result,
+            RejectReason);
     const FString ReasonText = StaticEnum<EGridPlayerAttackRejectReason> ()
         ? StaticEnum<EGridPlayerAttackRejectReason> ()->GetNameStringByValue (
             static_cast<int64> (RejectReason))
         : TEXT ("Unknown");
     const FString Message = FString::Printf (
-        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Target=%s TargetCell=(%d,%d)"),
+        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Target=%s TargetCell=(%d,%d) Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s"),
         bAccepted ? TEXT ("true") : TEXT ("false"),
         *ReasonText,
         Request.AttackerCharacterIndex,
+        *Request.AttackId.ToString (),
         *Request.TargetMonsterId.ToString (EGuidFormats::Digits),
         Request.TargetCell.X,
-        Request.TargetCell.Y);
+        Request.TargetCell.Y,
+        Result.NaturalAttackRoll,
+        Result.AttackRoll,
+        Result.DefenseValue,
+        Result.bHit ? TEXT ("true") : TEXT ("false"),
+        Result.bCriticalHit ? TEXT ("true") : TEXT ("false"),
+        Result.PhysicalArmorDamage,
+        Result.MagicalArmorDamage,
+        Result.HealthDamage,
+        Result.TargetHealthBefore,
+        Result.TargetHealthAfter,
+        Result.TargetHealthBefore > 0 &&
+            Result.TargetHealthAfter <= 0
+                ? TEXT ("true")
+                : TEXT ("false"));
 
     UE_LOG (LogGridTurnManagerInput, Log, TEXT ("%s"), *Message);
     if (GEngine)

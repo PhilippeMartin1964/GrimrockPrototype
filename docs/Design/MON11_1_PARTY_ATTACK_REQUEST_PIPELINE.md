@@ -149,10 +149,9 @@ Aucun son, VFX ou animation d’attaque de personnage n’est attendu.
 
 ## Éléments différés
 
-- MON11.2 définira le profil offensif d’arme et la sélection d’attaque.
-- MON11.3 appellera le résolveur, produira les jets et appliquera les résultats.
-- MON11.4 traitera le retour visuel, sonore et l’intégration complète de
-  présentation.
+- MON11.2 résout et applique l’attaque provisoire du groupe.
+- MON11.3 ajoute les armes et l’équipement offensif.
+- MON11.4 ajoute la présentation, l’audio, les VFX et le feedback complet.
 
 Les règles avant/arrière, cooldowns, dégâts, blessures, morts et événements de
 combat du personnage ne sont pas implémentés dans MON11.1.
