@@ -11,6 +11,7 @@
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterIdleVariationComponent.h"
 #include "Runtime/Monsters/GridMonsterVFXComponent.h"
 #include "GridMonsterActor.generated.h"
 
@@ -70,6 +71,9 @@ public:
         DeathComponent = CreateDefaultSubobject<UGridMonsterDeathComponent> (TEXT ("MonsterDeath"));
         AudioComponent = CreateDefaultSubobject<UGridMonsterAudioComponent> (TEXT ("MonsterAudio"));
         VFXComponent = CreateDefaultSubobject<UGridMonsterVFXComponent> (TEXT ("MonsterVFX"));
+        IdleVariationComponent =
+            CreateDefaultSubobject<UGridMonsterIdleVariationComponent> (
+                TEXT ("MonsterIdleVariations"));
 
         SetCanBeDamaged (false);
     }
@@ -93,6 +97,11 @@ public:
         {
             VFXComponent->InitializeMonsterVFX ();
         }
+        if (IdleVariationComponent)
+        {
+            IdleVariationComponent->InitializeIdleVariations ();
+            IdleVariationComponent->RefreshIdleVariationScheduling ();
+        }
     }
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
@@ -115,6 +124,10 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
     TObjectPtr<UGridMonsterVFXComponent> VFXComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Monster|Components")
+    TObjectPtr<UGridMonsterIdleVariationComponent>
+        IdleVariationComponent;
 
     UPROPERTY (BlueprintAssignable, Category = "Monster|Death")
     FGridMonsterDiedSignature OnMonsterDied;
@@ -220,6 +233,14 @@ public:
         if (VFXComponent)
         {
             VFXComponent->InitializeMonsterVFX ();
+        }
+        if (IdleVariationComponent)
+        {
+            IdleVariationComponent->InitializeIdleVariations ();
+            IdleVariationComponent->
+                ResetTransientIdleVariationState ();
+            IdleVariationComponent->
+                RefreshIdleVariationScheduling ();
         }
         return true;
     }
@@ -370,6 +391,11 @@ public:
         {
             AudioComponent->RefreshIdleAmbienceScheduling ();
         }
+        if (IdleVariationComponent)
+        {
+            IdleVariationComponent->
+                RefreshIdleVariationScheduling ();
+        }
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|State")
@@ -438,17 +464,31 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
     void SetMovementAnimationState (bool bInMoving, float InMoveAlpha = 0.0f)
     {
+        const bool bWasMoving = bIsMoving;
         bIsMoving = bInMoving && MonsterState != EGridMonsterState::Dead;
         MoveAlpha = bIsMoving ? FMath::Clamp (InMoveAlpha, 0.0f, 1.0f) : 0.0f;
+        if (bWasMoving != bIsMoving &&
+            IdleVariationComponent)
+        {
+            IdleVariationComponent->
+                RefreshIdleVariationScheduling ();
+        }
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
     void SetTurnAnimationState (int32 InTurnDirection)
     {
+        const bool bWasTurning = bIsTurning;
         TurnDirection = MonsterState == EGridMonsterState::Dead
             ? 0
             : FMath::Clamp (InTurnDirection, -1, 1);
         bIsTurning = TurnDirection != 0;
+        if (bWasTurning != bIsTurning &&
+            IdleVariationComponent)
+        {
+            IdleVariationComponent->
+                RefreshIdleVariationScheduling ();
+        }
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Animation")

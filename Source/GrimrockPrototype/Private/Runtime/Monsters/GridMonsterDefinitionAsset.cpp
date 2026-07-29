@@ -148,6 +148,54 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         Errors.Add (TEXT ("Monster VFX event definitions must be valid."));
     }
 
+    if (!FMath::IsFinite (IdleVariationMinDelay) ||
+        !FMath::IsFinite (IdleVariationMaxDelay) ||
+        IdleVariationMinDelay <= 0.0f ||
+        IdleVariationMaxDelay < IdleVariationMinDelay)
+    {
+        Errors.Add (TEXT ("Idle variation delay range is invalid."));
+    }
+
+    if (!FMath::IsFinite (IdleVariationBlendInTime) ||
+        !FMath::IsFinite (IdleVariationBlendOutTime) ||
+        IdleVariationBlendInTime < 0.0f ||
+        IdleVariationBlendOutTime < 0.0f)
+    {
+        Errors.Add (TEXT ("Idle variation blend times must be finite and non-negative."));
+    }
+
+    if (bEnableIdleVariations &&
+        !IdleVariations.IsEmpty () &&
+        IdleVariationSlotName.IsNone ())
+    {
+        Errors.Add (TEXT ("IdleVariationSlotName must not be None when idle variations are enabled and configured."));
+    }
+
+    TSet<FName> IdleVariationIds;
+    for (int32 VariationIndex = 0;
+        VariationIndex < IdleVariations.Num ();
+        ++VariationIndex)
+    {
+        const FGridMonsterIdleVariationDefinition& Variation =
+            IdleVariations[VariationIndex];
+        if (!Variation.IsValidDefinition ())
+        {
+            Errors.Add (FString::Printf (
+                TEXT ("Idle variation at index %d is invalid."),
+                VariationIndex));
+            continue;
+        }
+
+        if (IdleVariationIds.Contains (Variation.VariationId))
+        {
+            Errors.Add (FString::Printf (
+                TEXT ("Duplicate idle VariationId: %s."),
+                *Variation.VariationId.ToString ()));
+            continue;
+        }
+        IdleVariationIds.Add (Variation.VariationId);
+    }
+
     TSet<FName> AttackIds;
     for (int32 AttackIndex = 0; AttackIndex < Attacks.Num (); ++AttackIndex)
     {

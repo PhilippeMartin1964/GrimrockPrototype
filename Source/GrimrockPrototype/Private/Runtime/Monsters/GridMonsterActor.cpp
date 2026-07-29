@@ -429,6 +429,12 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         VFXComponent->InitializeMonsterVFX ();
         VFXComponent->ResetTransientVFXState ();
     }
+    if (IdleVariationComponent)
+    {
+        IdleVariationComponent->InitializeIdleVariations ();
+        IdleVariationComponent->
+            ResetTransientIdleVariationState ();
+    }
 
     const FName DefinitionId = MonsterDefinition
         ? MonsterDefinition->MonsterId
@@ -653,11 +659,20 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
     {
         AudioComponent->RefreshIdleAmbienceScheduling ();
     }
+    if (IdleVariationComponent)
+    {
+        IdleVariationComponent->
+            RefreshIdleVariationScheduling ();
+    }
     return true;
 }
 
 void AGridMonsterActor::MarkDead ()
 {
+    if (IdleVariationComponent)
+    {
+        IdleVariationComponent->StopIdleVariations ();
+    }
     if (AudioComponent)
     {
         AudioComponent->StopIdleAmbience ();

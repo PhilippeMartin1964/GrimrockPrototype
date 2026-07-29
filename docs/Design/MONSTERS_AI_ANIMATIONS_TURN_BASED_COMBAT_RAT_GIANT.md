@@ -253,11 +253,13 @@ Source/GrimrockPrototype/
 │       │
 │       └── Monsters/
 │           ├── GridMonsterTypes.h
+│           ├── GridMonsterIdleVariationTypes.h
 │           ├── GridMonsterDefinitionAsset.h
 │           ├── GridMonsterActor.h
 │           ├── GridMonsterAnimInstance.h
 │           ├── GridMonsterBehaviorComponent.h
 │           ├── GridMonsterCombatComponent.h
+│           ├── GridMonsterIdleVariationComponent.h
 │           └── GridMonsterPathfinder.h
 │
 └── Private/
@@ -273,6 +275,7 @@ Source/GrimrockPrototype/
             ├── GridMonsterAnimInstance.cpp
             ├── GridMonsterBehaviorComponent.cpp
             ├── GridMonsterCombatComponent.cpp
+            ├── GridMonsterIdleVariationComponent.cpp
             └── GridMonsterPathfinder.cpp
 ```
 
@@ -2697,11 +2700,29 @@ La configuration manuelle et la procédure PIE sont décrites dans
 
 ### Étape MON10.4 — Variations d’Idle
 
-À venir :
+Statut : implémenté.
 
-- choix déterministe de variations ;
-- temporisation ;
-- absence d’influence gameplay.
+`UGridMonsterIdleVariationComponent` planifie sans Tick des variations
+secondaires décrites par `FGridMonsterIdleVariationDefinition`. Le
+`FGridMonsterIdleVariationSelector` produit un choix et un délai déterministes
+à partir de l’identité persistante, du `MonsterId` et d’une occurrence
+transitoire, sans lire `CombatRandomStream` ou `EncounterRandomSeed`.
+
+L’évitement des répétitions immédiates reste déterministe.
+`FGridMonsterIdleVariationPlaybackRequest` expose au delegate Blueprint
+l’animation sélectionnée, son index, son Slot, sa vitesse et sa durée
+effective. La lecture native optionnelle utilise un Dynamic Montage one-shot
+via Slot.
+
+Mouvement, rotation, combat, blessure, mort et désactivation runtime
+interrompent immédiatement la variation. Seul le Dynamic Montage suivi par le
+composant est arrêté ; les montages d’attaque et de mort ne sont pas ciblés.
+Le système n’a aucune influence gameplay, aucune dépendance Audio/VFX et
+aucune persistance MON9.
+
+Aucun asset d’animation n’est inclus dans ce jalon. La configuration manuelle
+du Rat géant, de son DataAsset et de son Animation Blueprint est décrite dans
+`docs/Design/MON10_IDLE_VARIATIONS_SETUP.md`.
 
 ### Étape MON10.5 — Équilibrage et optimisation
 
@@ -2805,6 +2826,9 @@ AGridLevelRuntimeActor
                         ├── UGridMonsterVFXComponent
                         │       effets Niagara optionnels et requêtes Blueprint
                         │
+                        ├── UGridMonsterIdleVariationComponent
+                        │       variations Idle optionnelles par deux timers
+                        │
                         ├── USkeletalMeshComponent
                         │       représentation animée
                         │
@@ -2823,6 +2847,7 @@ Combat Resolver = comment l’action est calculée
 Animation       = comment l’action est montrée
 Audio           = comment l’action est entendue
 VFX             = comment l’impact visuel est présenté
+Idle Variation  = comment l’inactivité est enrichie visuellement
 Grid Runtime    = où l’action peut avoir lieu
 ```
 
@@ -2851,6 +2876,7 @@ sans devoir reconstruire le système pour chaque nouvelle créature.
 - `docs/Design/MON10_COMBAT_FEEDBACK_SETUP.md`
 - `docs/Design/MON10_AUDIO_SETUP.md`
 - `docs/Design/MON10_VFX_SETUP.md`
+- `docs/Design/MON10_IDLE_VARIATIONS_SETUP.md`
 - `Source/GrimrockPrototype/Public/Core/GridTypes.h`
 - `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h`
 - `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h`

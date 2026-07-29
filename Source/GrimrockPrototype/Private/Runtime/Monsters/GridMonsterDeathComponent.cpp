@@ -10,6 +10,7 @@
 #include "Runtime/Monsters/GridMonsterAudioComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterIdleVariationComponent.h"
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
@@ -97,6 +98,12 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     if (!InitializeDeathComponent (RuntimeActor))
     {
         return false;
+    }
+
+    if (OwnerMonster->IdleVariationComponent)
+    {
+        OwnerMonster->IdleVariationComponent->
+            StopIdleVariations ();
     }
 
     // Commit the guard before calling any external gameplay hook.
@@ -189,6 +196,12 @@ void UGridMonsterDeathComponent::RestoreCommittedDeathState (
     if (!InitializeDeathComponent (RuntimeActor))
     {
         return;
+    }
+
+    if (OwnerMonster->IdleVariationComponent)
+    {
+        OwnerMonster->IdleVariationComponent->
+            StopIdleVariations ();
     }
 
     if (UWorld* World = GetWorld ())

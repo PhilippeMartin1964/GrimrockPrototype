@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Runtime/Monsters/GridMonsterIdleVariationTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridMonsterDefinitionAsset.generated.h"
 
@@ -160,6 +161,58 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|VFX")
     FGridMonsterVFXEventDefinition DeathVFX;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations")
+    bool bEnableIdleVariations = false;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations")
+    TArray<FGridMonsterIdleVariationDefinition> IdleVariations;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations",
+        meta = (ClampMin = "0.1"))
+    float IdleVariationMinDelay = 5.0f;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations",
+        meta = (ClampMin = "0.1"))
+    float IdleVariationMaxDelay = 12.0f;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations")
+    bool bAvoidImmediateIdleVariationRepeat = true;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations")
+    FName IdleVariationSlotName = TEXT ("DefaultSlot");
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations",
+        meta = (ClampMin = "0.0"))
+    float IdleVariationBlendInTime = 0.15f;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Idle Variations",
+        meta = (ClampMin = "0.0"))
+    float IdleVariationBlendOutTime = 0.15f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Rewards", meta = (ClampMin = "0"))
     int32 ExperienceReward = 0;

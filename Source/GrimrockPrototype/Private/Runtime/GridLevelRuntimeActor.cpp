@@ -15,6 +15,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterIdleVariationComponent.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/GridPressurePlateActor.h"
@@ -649,6 +650,11 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
 
     if (!bActive)
     {
+        if (Monster->IdleVariationComponent)
+        {
+            Monster->IdleVariationComponent->
+                StopIdleVariations ();
+        }
         if (Monster->VFXComponent)
         {
             Monster->VFXComponent->StopAllMonsterVFX ();
@@ -862,6 +868,13 @@ void AGridLevelRuntimeActor::SetMonsterRuntimeLevelActive (
     {
         Monster->AudioComponent->InitializeMonsterAudio ();
         Monster->AudioComponent->RefreshIdleAmbienceScheduling ();
+    }
+    if (Monster->IdleVariationComponent)
+    {
+        Monster->IdleVariationComponent->
+            InitializeIdleVariations ();
+        Monster->IdleVariationComponent->
+            RefreshIdleVariationScheduling ();
     }
 }
 
