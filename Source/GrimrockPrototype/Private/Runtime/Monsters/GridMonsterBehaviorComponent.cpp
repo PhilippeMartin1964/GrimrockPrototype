@@ -9,6 +9,8 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
+DEFINE_LOG_CATEGORY (LogGridMonsterAI);
+
 UGridMonsterBehaviorComponent::UGridMonsterBehaviorComponent ()
 {
     PrimaryComponentTick.bCanEverTick = false;
@@ -35,7 +37,7 @@ bool UGridMonsterBehaviorComponent::InitializeBehavior (
     if (!IsValid (Monster) || !IsValid (Monster->MonsterDefinition) ||
         !IsValid (CandidateRuntime) || !IsValid (CandidateParty))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridMonsterAI, Warning,
             TEXT ("[GridMonsterBehavior] Initialization failed. Monster=%s Definition=%s Runtime=%s Party=%s"),
             *GetNameSafe (Monster),
             *GetNameSafe (Monster ? Monster->MonsterDefinition : nullptr),
@@ -48,7 +50,7 @@ bool UGridMonsterBehaviorComponent::InitializeBehavior (
         GetWorld () ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> () : nullptr;
     if (!CandidateOccupancy)
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridMonsterAI, Warning,
             TEXT ("[GridMonsterBehavior] Missing occupancy subsystem for %s."),
             *GetNameSafe (Monster));
         return false;
@@ -258,7 +260,7 @@ void UGridMonsterBehaviorComponent::DrawDebugPath (float Duration) const
 void UGridMonsterBehaviorComponent::LogDebugState () const
 {
     const AGridMonsterActor* Monster = GetMonsterOwner ();
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridMonsterAI, Log,
         TEXT ("[GridMonsterBehavior] Monster=%s Initialized=%s Cell=(%d,%d) See=%s Hear=%s LastKnown=%s(%d,%d) PathFound=%s Goal=(%d,%d) Steps=%d Visited=%d"),
         *GetNameSafe (Monster),
         bInitialized ? TEXT ("true") : TEXT ("false"),

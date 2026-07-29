@@ -2,6 +2,8 @@
 
 #include "Runtime/Monsters/GridMonsterActor.h"
 
+DEFINE_LOG_CATEGORY (LogGridMonsterOccupancy);
+
 bool FGridMonsterOccupancyRegistry::TryRegisterMonster (const FGuid& MonsterId, const FIntPoint& Cell)
 {
     if (!MonsterId.IsValid ())
@@ -301,7 +303,7 @@ void UGridMonsterOccupancySubsystem::ResetRegistry ()
 
 void UGridMonsterOccupancySubsystem::LogRegistry () const
 {
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridMonsterOccupancy, Log,
         TEXT ("[GridMonsterOccupancy] Occupied=%d Reserved=%d"),
         Registry.GetOccupiedCellCount (),
         Registry.GetReservedCellCount ());

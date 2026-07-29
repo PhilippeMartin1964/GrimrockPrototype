@@ -8,6 +8,8 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
+DEFINE_LOG_CATEGORY (LogGridMonsterMovement);
+
 UGridMonsterMovementComponent::UGridMonsterMovementComponent ()
 {
     PrimaryComponentTick.bCanEverTick = true;
@@ -98,7 +100,7 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
         {
             Monster->CurrentCell = FIntPoint (ResolvedX, ResolvedY);
             bInferredCell = true;
-            UE_LOG (LogTemp, Log,
+            UE_LOG (LogGridMonsterMovement, Verbose,
                 TEXT ("[GridMonsterMovement] InferCell Monster=%s WorldLocation=%s Cell=(%d,%d) LocalOffset=%s"),
                 *GetNameSafe (Monster),
                 *WorldLocation.ToCompactString (),
@@ -108,7 +110,7 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
         }
         else
         {
-            UE_LOG (LogTemp, Error,
+            UE_LOG (LogGridMonsterMovement, Error,
                 TEXT ("[GridMonsterMovement] InferCellFailed Monster=%s WorldLocation=%s CurrentCell=(%d,%d) Runtime=%s"),
                 *GetNameSafe (Monster),
                 *WorldLocation.ToCompactString (),
@@ -133,14 +135,16 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
     OccupancySubsystem = GetWorld () ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> () : nullptr;
     if (!OccupancySubsystem)
     {
-        UE_LOG (LogTemp, Error, TEXT ("[GridMonsterMovement] Missing occupancy subsystem for %s."), *GetNameSafe (Monster));
+        UE_LOG (LogGridMonsterMovement, Warning,
+            TEXT ("[GridMonsterMovement] Missing occupancy subsystem for %s."),
+            *GetNameSafe (Monster));
         RuntimeActor = nullptr;
         return false;
     }
 
     if (RuntimeActor->IsPartyOnCell (Monster->CurrentCell.X, Monster->CurrentCell.Y))
     {
-        UE_LOG (LogTemp, Error,
+        UE_LOG (LogGridMonsterMovement, Error,
             TEXT ("[GridMonsterMovement] %s cannot initialize on party cell (%d,%d)."),
             *GetNameSafe (Monster),
             Monster->CurrentCell.X,
@@ -152,7 +156,7 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
 
     if (!OccupancySubsystem->RegisterMonster (Monster, Monster->CurrentCell))
     {
-        UE_LOG (LogTemp, Error,
+        UE_LOG (LogGridMonsterMovement, Warning,
             TEXT ("[GridMonsterMovement] Cell (%d,%d) is already occupied or reserved for %s."),
             Monster->CurrentCell.X,
             Monster->CurrentCell.Y,
@@ -170,7 +174,7 @@ bool UGridMonsterMovementComponent::InitializeMovement (AGridLevelRuntimeActor* 
         Monster->SetActorLocation (RuntimeActor->GetCellCenterWorld (Monster->CurrentCell.X, Monster->CurrentCell.Y));
     }
     Monster->ApplyFacingRotation ();
-    UE_LOG (LogTemp, Log,
+    UE_LOG (LogGridMonsterMovement, Verbose,
         TEXT ("[GridMonsterMovement] Initialize Monster=%s Cell=(%d,%d) Inferred=%s Registered=true"),
         *GetNameSafe (Monster),
         Monster->CurrentCell.X,
@@ -353,7 +357,7 @@ bool UGridMonsterMovementComponent::ValidateInitialization (
 
     if (Monster->MonsterDefinition->GridFootprint != FIntPoint (1, 1))
     {
-        UE_LOG (LogTemp, Error,
+        UE_LOG (LogGridMonsterMovement, Error,
             TEXT ("[GridMonsterMovement] MON3 supports only a 1x1 footprint. Monster=%s Footprint=(%d,%d)"),
             *GetNameSafe (Monster),
             Monster->MonsterDefinition->GridFootprint.X,
@@ -393,7 +397,7 @@ void UGridMonsterMovementComponent::CompleteMove ()
     if (!IsValid (Monster) || !OccupancySubsystem ||
         !OccupancySubsystem->CommitMove (Monster, MotionStartCell, MotionTargetCell))
     {
-        UE_LOG (LogTemp, Error,
+        UE_LOG (LogGridMonsterMovement, Error,
             TEXT ("[GridMonsterMovement] Failed to commit move for %s from (%d,%d) to (%d,%d)."),
             *GetNameSafe (Monster),
             MotionStartCell.X,

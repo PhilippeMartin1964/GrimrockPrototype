@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Runtime/Monsters/GridMonsterBalanceTypes.h"
 #include "Runtime/Monsters/GridMonsterIdleVariationTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridMonsterDefinitionAsset.generated.h"
@@ -232,6 +233,16 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Validation")
     bool ValidateDefinition (UPARAM (ref) FString& OutError) const;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Balance")
+    bool BuildBalanceSnapshot (
+        FGridMonsterBalanceSnapshot& OutSnapshot) const;
+
+    UFUNCTION (
+        BlueprintCallable,
+        CallInEditor,
+        Category = "Monster|Balance|Debug")
+    void LogBalanceSnapshot () const;
 
     UFUNCTION (BlueprintPure, Category = "Monster|AI")
     bool HasAIProfile (EGridMonsterAIProfile Profile) const;

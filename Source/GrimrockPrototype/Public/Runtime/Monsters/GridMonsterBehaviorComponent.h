@@ -10,6 +10,8 @@ class AGridLevelRuntimeActor;
 class AGridMonsterActor;
 class UGridMonsterOccupancySubsystem;
 
+DECLARE_LOG_CATEGORY_EXTERN (LogGridMonsterAI, Log, All);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     FGridMonsterPerceptionChangedSignature,
     bool, bCanSeeParty,

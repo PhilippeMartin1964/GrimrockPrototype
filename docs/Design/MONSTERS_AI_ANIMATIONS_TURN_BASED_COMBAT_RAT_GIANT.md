@@ -247,12 +247,14 @@ Source/GrimrockPrototype/
 │   └── Runtime/
 │       ├── Combat/
 │       │   ├── GridCombatTypes.h
+│       │   ├── GridCombatDiagnostics.h
 │       │   ├── GridTurnManagerComponent.h
 │       │   ├── GridCombatResolver.h
 │       │   └── GridCombatLog.h
 │       │
 │       └── Monsters/
 │           ├── GridMonsterTypes.h
+│           ├── GridMonsterBalanceTypes.h
 │           ├── GridMonsterIdleVariationTypes.h
 │           ├── GridMonsterDefinitionAsset.h
 │           ├── GridMonsterActor.h
@@ -265,11 +267,13 @@ Source/GrimrockPrototype/
 └── Private/
     └── Runtime/
         ├── Combat/
+        │   ├── GridCombatDiagnostics.cpp
         │   ├── GridTurnManagerComponent.cpp
         │   ├── GridCombatResolver.cpp
         │   └── GridCombatLog.cpp
         │
         └── Monsters/
+            ├── GridMonsterBalanceTypes.cpp
             ├── GridMonsterDefinitionAsset.cpp
             ├── GridMonsterActor.cpp
             ├── GridMonsterAnimInstance.cpp
@@ -2726,13 +2730,29 @@ du Rat géant, de son DataAsset et de son Animation Blueprint est décrite dans
 
 ### Étape MON10.5 — Équilibrage et optimisation
 
-À venir :
+Statut : implémenté.
 
-- graine par rencontre ;
-- réglage des statistiques ;
-- réduction des logs de diagnostic ;
-- analyse des performances ;
-- normalisation des fins de ligne.
+`EncounterRandomSeed` reste la graine de base compatible. Le
+`FGridEncounterSeedBuilder` construit `ActiveEncounterRandomSeed` à partir du
+niveau et de l’ensemble trié des identités persistantes des participants.
+L’ordre d’entrée n’a aucune influence et la même rencontre reste reproductible
+après reconstruction.
+
+`FGridCombatRuntimeMetrics` fournit des compteurs et temps de perception,
+planification et Tick actif. La collecte est désactivable, transitoire et ne
+participe à aucune décision gameplay. `FGridMonsterBalanceSnapshot` et
+`FGridMonsterBalanceAnalyzer` exposent un aperçu brut des statistiques et des
+plages de dégâts, sans prétendre calculer un DPS complet.
+
+Les diagnostics Combat, IA, mouvement, occupation, performance et balance
+utilisent des catégories dédiées ; les `LogTemp` ciblés sont supprimés et
+`bLogPhaseChanges` est silencieux par défaut. `.gitattributes` fixe
+explicitement LF/CRLF sans renormalisation massive.
+
+MON10 est terminé après validation des 72 tests MON et des 2 tests CC5. Aucun
+asset `Content/` n’est inclus ; le profilage PIE et l’ajustement final du
+DataAsset restent manuels. La procédure complète est décrite dans
+`docs/Design/MON10_BALANCING_OPTIMIZATION.md`.
 
 ---
 
@@ -2829,6 +2849,12 @@ AGridLevelRuntimeActor
                         ├── UGridMonsterIdleVariationComponent
                         │       variations Idle optionnelles par deux timers
                         │
+                        ├── FGridCombatRuntimeMetrics
+                        │       diagnostics transitoires à la demande
+                        │
+                        ├── FGridMonsterBalanceAnalyzer
+                        │       aperçu brut des données d’équilibrage
+                        │
                         ├── USkeletalMeshComponent
                         │       représentation animée
                         │
@@ -2877,6 +2903,7 @@ sans devoir reconstruire le système pour chaque nouvelle créature.
 - `docs/Design/MON10_AUDIO_SETUP.md`
 - `docs/Design/MON10_VFX_SETUP.md`
 - `docs/Design/MON10_IDLE_VARIATIONS_SETUP.md`
+- `docs/Design/MON10_BALANCING_OPTIMIZATION.md`
 - `Source/GrimrockPrototype/Public/Core/GridTypes.h`
 - `Source/GrimrockPrototype/Public/Core/GridLevelAsset.h`
 - `Source/GrimrockPrototype/Public/Runtime/GridLevelRuntimeActor.h`

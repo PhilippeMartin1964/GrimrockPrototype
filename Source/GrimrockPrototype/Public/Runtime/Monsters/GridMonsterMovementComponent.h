@@ -9,6 +9,8 @@ class AGridLevelRuntimeActor;
 class AGridMonsterActor;
 class UGridMonsterOccupancySubsystem;
 
+DECLARE_LOG_CATEGORY_EXTERN (LogGridMonsterMovement, Log, All);
+
 UENUM (BlueprintType)
 enum class EGridMonsterMotionType : uint8
 {

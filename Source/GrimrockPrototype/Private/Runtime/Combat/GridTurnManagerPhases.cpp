@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "HAL/PlatformTime.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -15,6 +16,47 @@
 
 namespace
 {
+    class FScopedTurnPlanningMetrics
+    {
+    public:
+        FScopedTurnPlanningMetrics (
+            bool bInEnabled,
+            FGridCombatRuntimeMetrics& InMetrics,
+            const TArray<FGridCombatAction>& InActions)
+            : bEnabled (bInEnabled)
+            , Metrics (InMetrics)
+            , Actions (InActions)
+            , StartSeconds (
+                bEnabled ? FPlatformTime::Seconds () : 0.0)
+        {
+        }
+
+        ~FScopedTurnPlanningMetrics ()
+        {
+            if (!bEnabled)
+            {
+                return;
+            }
+
+            const float ElapsedMilliseconds = static_cast<float> (
+                (FPlatformTime::Seconds () - StartSeconds) * 1000.0);
+            Metrics.LastTurnPlanningMilliseconds =
+                ElapsedMilliseconds;
+            Metrics.MaximumTurnPlanningMilliseconds = FMath::Max (
+                Metrics.MaximumTurnPlanningMilliseconds,
+                ElapsedMilliseconds);
+            Metrics.PeakPendingActionCount = FMath::Max (
+                Metrics.PeakPendingActionCount,
+                Actions.Num ());
+        }
+
+    private:
+        bool bEnabled;
+        FGridCombatRuntimeMetrics& Metrics;
+        const TArray<FGridCombatAction>& Actions;
+        double StartSeconds;
+    };
+
     int32 GetMonsterInitiative (const AGridMonsterActor* Monster)
     {
         return Monster && Monster->MonsterDefinition
@@ -174,6 +216,10 @@ void UGridTurnManagerComponent::BeginRound ()
     }
 
     RoundNumber = PhaseState.GetRoundNumber ();
+    if (bCollectRuntimeMetrics)
+    {
+        ++RuntimeMetrics.RoundsStarted;
+    }
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (false);
 
@@ -269,6 +315,10 @@ void UGridTurnManagerComponent::BeginNextMonsterTurn ()
             Candidate->MonsterDefinition->ActionPointsPerTurn);
         ActionPointBudget.Reset (CurrentMonsterMaximumActionPoints);
         CurrentMonsterRemainingActionPoints = ActionPointBudget.GetRemainingPoints ();
+        if (bCollectRuntimeMetrics)
+        {
+            ++RuntimeMetrics.MonsterTurnsStarted;
+        }
 
         BindCurrentMovement (
             Candidate->FindComponentByClass<UGridMonsterMovementComponent> ());
@@ -299,6 +349,11 @@ void UGridTurnManagerComponent::BeginNextMonsterTurn ()
 void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
 {
     PendingActions.Reset ();
+    FScopedTurnPlanningMetrics PlanningMetrics (
+        bCollectRuntimeMetrics,
+        RuntimeMetrics,
+        PendingActions);
+
     if (!IsValid (CurrentMonster) || CurrentMonster->IsDead ())
     {
         return;
@@ -376,7 +431,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
 
         if (RemainingAfterAttack < 1)
         {
-            UE_LOG (LogTemp, Log,
+            UE_LOG (LogGridMonsterAI, Verbose,
                 TEXT ("[GridFastHarasser] NoRetreat Monster=%s Reason=NoActionPoints"),
                 *GetNameSafe (CurrentMonster));
             return;
@@ -406,7 +461,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
                 PartyCell),
             RetreatDecision))
         {
-            UE_LOG (LogTemp, Log,
+            UE_LOG (LogGridMonsterAI, Verbose,
                 TEXT ("[GridFastHarasser] NoRetreat Monster=%s Reason=NoValidCell"),
                 *GetNameSafe (CurrentMonster));
             return;
@@ -424,7 +479,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
                 CombatRandomStream,
                 &Roll);
 
-        UE_LOG (LogTemp, Log,
+        UE_LOG (LogGridMonsterAI, Verbose,
             TEXT ("[GridFastHarasser] Decision Monster=%s Chance=%.2f Roll=%.3f CandidateCount=%d Retreat=%s Cell=(%d,%d) Score=%d"),
             *GetNameSafe (CurrentMonster),
             RetreatChance,
@@ -510,6 +565,10 @@ void UGridTurnManagerComponent::FinishEnemyPhase ()
     }
 
     RoundNumber = PhaseState.GetRoundNumber ();
+    if (bCollectRuntimeMetrics)
+    {
+        ++RuntimeMetrics.RoundsStarted;
+    }
     SetPhase (PhaseState.GetPhase ());
     SetPartyInputLocked (false);
 

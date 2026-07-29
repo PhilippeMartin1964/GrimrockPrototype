@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Runtime/Combat/GridCombatDiagnostics.h"
 #include "Runtime/Combat/GridCombatLog.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
@@ -14,6 +15,8 @@ class UGridMonsterBehaviorComponent;
 class UGridMonsterCombatComponent;
 class UGridMonsterMovementComponent;
 struct FGridRetreatDecision;
+
+DECLARE_LOG_CATEGORY_EXTERN (LogGridTurnManager, Log, All);
 
 /** Small deterministic action-point budget used by the turn manager and tests. */
 class GRIMROCKPROTOTYPE_API FGridActionPointBudget
@@ -163,12 +166,32 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager", meta = (ClampMin = "0.0"))
     float ActionTimeoutPadding = 0.50f;
 
-    /** Stable seed used for attack rolls and party target selection. */
+    /** Stable base seed used to derive each encounter seed. */
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager")
     int32 EncounterRandomSeed = 1337;
 
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Turn Manager|Random")
+    int32 ActiveEncounterRandomSeed = 0;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Turn Manager|Debug")
-    bool bLogPhaseChanges = true;
+    bool bLogPhaseChanges = false;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Turn Manager|Diagnostics")
+    bool bCollectRuntimeMetrics = false;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Turn Manager|Diagnostics")
+    FGridCombatRuntimeMetrics RuntimeMetrics;
 
     UPROPERTY (
         EditAnywhere,
@@ -302,6 +325,27 @@ public:
     UFUNCTION (BlueprintCallable, CallInEditor, Category = "Combat|Turn Manager|Debug")
     void LogPartyCombatState () const;
 
+    UFUNCTION (BlueprintPure, Category = "Combat|Turn Manager|Random")
+    int32 GetActiveEncounterRandomSeed () const
+    {
+        return ActiveEncounterRandomSeed;
+    }
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager|Diagnostics")
+    void ResetRuntimeMetrics ();
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Turn Manager|Diagnostics")
+    FGridCombatRuntimeMetrics GetRuntimeMetrics () const
+    {
+        return RuntimeMetrics;
+    }
+
+    UFUNCTION (
+        BlueprintCallable,
+        CallInEditor,
+        Category = "Combat|Turn Manager|Diagnostics")
+    void LogRuntimeMetrics () const;
+
     UFUNCTION (BlueprintPure, Category = "Combat|Feedback")
     const TArray<FGridCombatLogEntry>& GetCombatLogEntries () const
     {
@@ -353,7 +397,7 @@ private:
     TObjectPtr<UGridMonsterCombatComponent> CurrentCombatComponent = nullptr;
 
     bool StartCombatInternal (const TArray<AGridMonsterActor*>& Monsters);
-    void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters) const;
+    void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     void CollectPerceivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     bool PrepareMonsterForCombat (AGridMonsterActor* Monster);
 
@@ -418,4 +462,7 @@ private:
     friend class FGridMonsterMON10CombatLogFailedStartDoesNotClearHistoryTest;
     friend class FGridMonsterMON10AudioAttackAndImpactExactlyOnceTest;
     friend class FGridMonsterMON10VFXAttackAndImpactExactlyOnceTest;
+    friend class FGridMonsterMON10OptimizationEncounterSeedLifecycleTest;
+    friend class FGridMonsterMON10OptimizationMetricsLifecycleTest;
+    friend class FGridMonsterMON10OptimizationMetricsNoGameplayInfluenceTest;
 };

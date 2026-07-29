@@ -1,5 +1,6 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterBalanceTypes.h"
 
 FName FGridMonsterLootEntry::GetResolvedItemDefinitionId () const
 {
@@ -268,6 +269,47 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
 bool UGridMonsterDefinitionAsset::HasAIProfile (EGridMonsterAIProfile Profile) const
 {
     return PrimaryAIProfile == Profile || AdditionalAIProfiles.Contains (Profile);
+}
+
+bool UGridMonsterDefinitionAsset::BuildBalanceSnapshot (
+    FGridMonsterBalanceSnapshot& OutSnapshot) const
+{
+    return FGridMonsterBalanceAnalyzer::BuildSnapshot (
+        this,
+        OutSnapshot);
+}
+
+void UGridMonsterDefinitionAsset::LogBalanceSnapshot () const
+{
+    FGridMonsterBalanceSnapshot Snapshot;
+    if (!BuildBalanceSnapshot (Snapshot))
+    {
+        UE_LOG (LogGridMonsterBalance, Warning,
+            TEXT ("[GridMonsterBalance] Definition=%s Result=Unavailable"),
+            *GetPathName ());
+        return;
+    }
+
+    UE_LOG (LogGridMonsterBalance, Log,
+        TEXT ("[GridMonsterBalance] Monster=%s Danger=%d HP=%d Armor=%d/%d Initiative=%d Accuracy=%d Evasion=%d AP=%d Sight=%d Hearing=%d Attacks=%d Damage=%d..%d Average=%.2f Cost=%d..%d XP=%d"),
+        *Snapshot.MonsterId.ToString (),
+        Snapshot.DangerLevel,
+        Snapshot.MaxHealth,
+        Snapshot.PhysicalArmor,
+        Snapshot.MagicalArmor,
+        Snapshot.Initiative,
+        Snapshot.Accuracy,
+        Snapshot.Evasion,
+        Snapshot.ActionPointsPerTurn,
+        Snapshot.SightRangeCells,
+        Snapshot.HearingRangeCells,
+        Snapshot.AttackCount,
+        Snapshot.MinimumBaseDamage,
+        Snapshot.MaximumBaseDamage,
+        Snapshot.AverageBaseDamage,
+        Snapshot.MinimumAttackActionPointCost,
+        Snapshot.MaximumAttackActionPointCost,
+        Snapshot.ExperienceReward);
 }
 
 float UGridMonsterDefinitionAsset::GetDamageMultiplier (

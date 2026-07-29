@@ -41,7 +41,7 @@ void UGridTurnManagerComponent::ExecuteNextAction ()
 
     if (!NextAction.IsValid () || !ActionPointBudget.CanSpend (NextAction.ActionPointCost))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridTurnManager, Warning,
             TEXT ("[GridTurnManager] Invalid or unaffordable action skipped. Monster=%s Type=%s Cost=%d AP=%d"),
             *GetNameSafe (CurrentMonster),
             *GetTurnActionTypeText (NextAction.Type),
@@ -53,6 +53,10 @@ void UGridTurnManagerComponent::ExecuteNextAction ()
 
     ActiveAction = NextAction;
     bHasActiveAction = true;
+    if (bCollectRuntimeMetrics)
+    {
+        ++RuntimeMetrics.ActionsStarted;
+    }
     OnActionStarted.Broadcast (ActiveAction);
 
     if (!StartActiveAction (ActiveAction))
@@ -144,7 +148,7 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack ()
         CurrentMonster->MonsterDefinition->FindAttackDefinition (ActiveAction.AttackId);
     if (!Attack || !Attack->IsValidDefinition ())
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridTurnManager, Warning,
             TEXT ("[GridTurnManager] Attack definition unavailable. Monster=%s Attack=%s"),
             *GetNameSafe (CurrentMonster),
             *ActiveAction.AttackId.ToString ());
@@ -161,7 +165,7 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack ()
             CurrentMonster->CurrentCell.Y,
             AttackDirection))
     {
-        UE_LOG (LogTemp, Warning,
+        UE_LOG (LogGridTurnManager, Warning,
             TEXT ("[GridTurnManager] Melee attack blocked by grid edge. Monster=%s From=(%d,%d) Target=(%d,%d)"),
             *GetNameSafe (CurrentMonster),
             CurrentMonster->CurrentCell.X,
@@ -350,6 +354,10 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact ()
     }
 
     ++AttackResolvedBroadcastCount;
+    if (bCollectRuntimeMetrics)
+    {
+        ++RuntimeMetrics.AttacksResolved;
+    }
     OnAttackResolved.Broadcast (CurrentMonster, TargetCharacterIndex, Result);
 }
 
@@ -358,6 +366,10 @@ void UGridTurnManagerComponent::CompleteActiveAction (bool bSucceeded)
     if (!bHasActiveAction)
     {
         return;
+    }
+    if (bCollectRuntimeMetrics)
+    {
+        ++RuntimeMetrics.ActionsCompleted;
     }
 
     const FGridCombatAction CompletedAction = ActiveAction;

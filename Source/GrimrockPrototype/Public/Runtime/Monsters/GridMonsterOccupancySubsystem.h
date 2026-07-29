@@ -6,6 +6,8 @@
 
 class AGridMonsterActor;
 
+DECLARE_LOG_CATEGORY_EXTERN (LogGridMonsterOccupancy, Log, All);
+
 /**
  * Pure deterministic occupancy model used by the world subsystem and MON3 tests.
  * It deliberately stores only stable monster ids so the rules remain independent
