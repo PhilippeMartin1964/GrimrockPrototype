@@ -153,7 +153,9 @@ les jets, la défense, le résultat, les dégâts bruts et appliqués, les PV et
 | compatibilité requise | `MainHand` |
 
 Ses autres propriétés, références, meshes, icônes, tags et paramètres de
-lancer sont préservés. L’item n’est ni consommé ni retiré après l’attaque.
+lancer sont préservés. Depuis MON11.4.1, une attaque acceptée transfère une
+unité du slot équipé vers un projectile d’objet récupérable. Une pile est
+décrémentée ; le dernier shuriken libère le slot.
 
 ## Persistance
 
@@ -198,6 +200,10 @@ MON11.4 fournit désormais la présentation de l’objet tenu, l’audio et les 
 orientés données, les impacts distincts hit/miss, le feedback utilisateur des
 résultats et le feedback des refus.
 
+MON11.4.1 fournit en plus le véritable lancer du shuriken, sa collision avec
+le décor, son arrêt visuel sur une cible touchée et sa conversion en objet
+récupérable.
+
 Restent différés le dual wield, les armes à deux mains, le choix manuel
-d’attaque, les munitions, la durabilité, les compétences et prérequis, les
-ressources, cooldowns, zones et projectiles.
+d’attaque, les munitions séparées, la durabilité, les compétences et
+prérequis, les ressources, cooldowns et zones.

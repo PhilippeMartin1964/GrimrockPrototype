@@ -2,6 +2,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
@@ -16,6 +17,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
@@ -1893,6 +1895,135 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem (
     return true;
 }
 
+AGridThrownItemActor*
+AGrimrockPartyPawn::TryLaunchEquippedItemForAttack (
+    int32 CharacterIndex,
+    EGridEquipmentSlot SourceSlot,
+    FName ExpectedItemDefinitionId,
+    const FVector& TargetWorldLocation,
+    const FIntPoint& SourceCell)
+{
+    if (!PartyInventoryComponent ||
+        !LevelRuntimeActor ||
+        !IsHandEquipmentSlot (SourceSlot) ||
+        ExpectedItemDefinitionId.IsNone () ||
+        TargetWorldLocation.ContainsNaN ())
+    {
+        return nullptr;
+    }
+
+    FGridItemInstance EquippedItem;
+    if (!PartyInventoryComponent->GetEquippedItem (
+            CharacterIndex,
+            SourceSlot,
+            EquippedItem) ||
+        EquippedItem.ItemDefinitionId !=
+            ExpectedItemDefinitionId)
+    {
+        return nullptr;
+    }
+
+    UGridItemDefinitionAsset* ItemDefinition =
+        ResolveEquippedItemDefinition (EquippedItem);
+    if (!ItemDefinition ||
+        !ItemDefinition->bThrowable ||
+        ItemDefinition->ThrowSpeed <= KINDA_SMALL_NUMBER)
+    {
+        return nullptr;
+    }
+
+    const bool bVisibleItemMatches =
+        PartyInventoryComponent->GetSelectedCharacterIndex () ==
+            CharacterIndex &&
+        HeldItemActor &&
+        GetHeldItemDefinitionId () ==
+            ExpectedItemDefinitionId;
+    FVector StartLocation =
+        Camera
+            ? Camera->GetComponentLocation ()
+            : GetActorLocation ();
+    if (bVisibleItemMatches)
+    {
+        StartLocation =
+            HeldItemActor->MeshComponent &&
+                HeldItemActor->MeshComponent->GetStaticMesh ()
+                ? HeldItemActor->MeshComponent->Bounds.Origin
+                : HeldItemActor->GetActorLocation ();
+    }
+
+    FVector ThrowDirection =
+        (TargetWorldLocation - StartLocation).GetSafeNormal ();
+    if (ThrowDirection.IsNearlyZero ())
+    {
+        ThrowDirection = Camera
+            ? Camera->GetForwardVector ()
+            : GetActorForwardVector ();
+    }
+    if (!bVisibleItemMatches)
+    {
+        StartLocation += ThrowDirection * 60.0f;
+    }
+    ThrowDirection = (
+        ThrowDirection +
+        FVector::UpVector *
+            FMath::Max (0.0f, ItemDefinition->ThrowArc))
+        .GetSafeNormal ();
+
+    FGridItemInstance WorldItem;
+    if (!PartyInventoryComponent->
+        TryExtractOneEquippedItemForWorldTransfer (
+            CharacterIndex,
+            SourceSlot,
+            ExpectedItemDefinitionId,
+            WorldItem))
+    {
+        return nullptr;
+    }
+    WorldItem.Weight = ItemDefinition->Weight;
+
+    AGridThrownItemActor* ThrownActor =
+        LevelRuntimeActor->SpawnThrownItemProjectile (
+            WorldItem,
+            ItemDefinition,
+            StartLocation,
+            ThrowDirection *
+                FMath::Max (0.0f, ItemDefinition->ThrowSpeed),
+            SourceCell.X,
+            SourceCell.Y);
+    if (!ThrownActor)
+    {
+        const bool bRestored =
+            PartyInventoryComponent->
+                TryRestoreExtractedItemToEquipment (
+                    CharacterIndex,
+                    SourceSlot,
+                    WorldItem);
+        UE_LOG (
+            LogTemp,
+            Error,
+            TEXT ("GridPlayerAttack Throw Failed Item=%s Character=%d Slot=%s Restored=%s"),
+            *ExpectedItemDefinitionId.ToString (),
+            CharacterIndex,
+            GetPawnEquipmentSlotName (SourceSlot),
+            bRestored ? TEXT ("true") : TEXT ("false"));
+        return nullptr;
+    }
+
+    SyncHeldVisualFromSelectedCharacterEquipment ();
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
+        *WorldItem.ItemDefinitionId.ToString (),
+        *WorldItem.RuntimeObjectId.ToString (),
+        CharacterIndex,
+        GetPawnEquipmentSlotName (SourceSlot),
+        TargetWorldLocation.X,
+        TargetWorldLocation.Y,
+        TargetWorldLocation.Z);
+    return ThrownActor;
+}
+
 bool AGrimrockPartyPawn::BuildSingleItemInstanceFromCursor (FGridItemInstance& OutSingleItem) const
 {
     OutSingleItem = FGridItemInstance ();
@@ -2005,6 +2136,27 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
         return false;
     }
 
+    UGridItemDefinitionAsset* ItemDefinition =
+        PartyInventoryComponent
+            ? PartyInventoryComponent->FindItemDefinition (
+                ItemDefinitionId)
+            : nullptr;
+    if (!ItemDefinition && LevelRuntimeActor)
+    {
+        ItemDefinition =
+            LevelRuntimeActor->ResolveRuntimeItemDefinition (
+                ItemDefinitionId);
+    }
+    if (!bUseHeldTorchClass && !ItemDefinition)
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("Held item equip failed: item definition %s could not be resolved."),
+            *ItemDefinitionId.ToString ());
+        return false;
+    }
+
     ClearHeldItem ();
 
     USceneComponent* AttachParent = HeldItemRoot ? HeldItemRoot.Get () : GetRootComponent ();
@@ -2022,7 +2174,12 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
     }
     else
     {
-        HeldItemActor = LevelRuntimeActor->SpawnItemActorForDefinition (nullptr, ItemDefinitionId, this, AttachParent);
+        HeldItemActor =
+            LevelRuntimeActor->SpawnItemActorForDefinition (
+                ItemDefinition,
+                ItemDefinitionId,
+                this,
+                AttachParent);
     }
 
     if (!HeldItemActor)
@@ -2031,6 +2188,13 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
         return false;
     }
 
+    if (!bUseHeldTorchClass &&
+        ItemDefinition &&
+        HeldItemActor->MeshComponent)
+    {
+        HeldItemActor->MeshComponent->SetStaticMesh (
+            ItemDefinition->LoadHeldMesh ());
+    }
     HeldItemActor->AttachToComponent (AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
     HeldItemActor->SetActorRelativeLocation (HeldItemRelativeLocation);
     HeldItemActor->SetActorRelativeRotation (HeldItemRelativeRotation);
@@ -2039,7 +2203,15 @@ bool AGrimrockPartyPawn::EquipHeldItem (FName ItemDefinitionId)
     HeldItemDefinitionId = ItemDefinitionId;
     bHasTorchInHand = ItemDefinitionId == DefaultHeldItemDefinitionId;
 
-    UE_LOG (LogTemp, Log, TEXT ("Held item equipped: %s"), *ItemDefinitionId.ToString ());
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("Held item equipped: %s Mesh=%s"),
+        *ItemDefinitionId.ToString (),
+        HeldItemActor->MeshComponent
+            ? *GetNameSafe (
+                HeldItemActor->MeshComponent->GetStaticMesh ())
+            : TEXT ("None"));
     return true;
 }
 

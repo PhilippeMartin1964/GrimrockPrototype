@@ -151,6 +151,23 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     bool IsEquipmentSlotOccupied (int32 CharacterIndex, EGridEquipmentSlot Slot) const;
 
+    /**
+     * Extracts exactly one equipped item for an atomic transfer to the world.
+     * A stacked slot keeps its remaining quantity; the extracted unit receives
+     * its own runtime identity.
+     */
+    bool TryExtractOneEquippedItemForWorldTransfer (
+        int32 CharacterIndex,
+        EGridEquipmentSlot SourceSlot,
+        FName ExpectedItemDefinitionId,
+        FGridItemInstance& OutWorldItem);
+
+    /** Rolls back TryExtractOneEquippedItemForWorldTransfer after spawn failure. */
+    bool TryRestoreExtractedItemToEquipment (
+        int32 CharacterIndex,
+        EGridEquipmentSlot TargetSlot,
+        const FGridItemInstance& WorldItem);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus (int32 CharacterIndex) const;
 

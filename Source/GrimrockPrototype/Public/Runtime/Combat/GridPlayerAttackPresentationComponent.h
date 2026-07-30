@@ -8,6 +8,7 @@
 class AGridItemActor;
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
+class AGridThrownItemActor;
 class AGrimrockPartyPawn;
 class UNiagaraComponent;
 class UGridTurnManagerComponent;
@@ -52,6 +53,9 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Feedback")
     bool bNativeFeedbackEnabled = true;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Throw")
+    bool bNativeThrownItemLaunchEnabled = true;
+
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Presentation")
     FGridPlayerAttackPresentationRequest LastPresentationRequest;
 
@@ -88,6 +92,15 @@ public:
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Motion")
     bool bHeldItemMotionStarted = false;
 
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Throw")
+    int32 ThrownItemLaunchRequestCount = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Throw")
+    int32 ThrownItemLaunchStartedCount = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack|Throw")
+    bool bThrownItemLaunchStarted = false;
+
     UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack|Presentation")
     FGridPlayerAttackPresentationRequestedSignature
         OnPresentationRequested;
@@ -119,6 +132,7 @@ private:
     {
         FGridPlayerAttackPresentationProfile Profile;
         TWeakObjectPtr<AGridMonsterActor> TargetMonster;
+        TWeakObjectPtr<AGridThrownItemActor> ThrownItemActor;
     };
 
     UPROPERTY (Transient)
@@ -180,6 +194,14 @@ private:
     void StartHeldItemMotion (
         const FGridPlayerAttackRequest& Request,
         const FGridPlayerAttackPresentationProfile& Profile);
+    AGridThrownItemActor* StartThrownItemLaunch (
+        const FGridPlayerAttackRequest& Request,
+        AGridMonsterActor* TargetMonster,
+        const FGridPlayerAttackPresentationProfile& Profile);
+    void ConfigureThrownItemOutcome (
+        AGridThrownItemActor* ThrownItem,
+        AGridMonsterActor* TargetMonster,
+        const FGridAttackResult& Result);
     void RestoreHeldItemMotion ();
     void StopActiveVFX ();
     FText ResolveCharacterDisplayName (int32 CharacterIndex) const;

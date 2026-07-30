@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
@@ -11,6 +12,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -213,6 +215,9 @@ ResetTransientPresentationState ()
     AudioImpactMissRequestCount = 0;
     VFXSpawnRequestCount = 0;
     bHeldItemMotionStarted = false;
+    ThrownItemLaunchRequestCount = 0;
+    ThrownItemLaunchStartedCount = 0;
+    bThrownItemLaunchStarted = false;
     LastPresentationRequest =
         FGridPlayerAttackPresentationRequest ();
     LastFeedbackRequest = FGridPlayerAttackFeedbackRequest ();
@@ -256,6 +261,7 @@ void UGridPlayerAttackPresentationComponent::
 HandlePlayerAttackRequested (FGridPlayerAttackRequest Request)
 {
     bHeldItemMotionStarted = false;
+    bThrownItemLaunchStarted = false;
     if (!PartyPawn && TurnManager)
     {
         PartyPawn = TurnManager->PartyPawn;
@@ -274,7 +280,23 @@ HandlePlayerAttackRequested (FGridPlayerAttackRequest Request)
         nullptr,
         TargetMonster,
         Profile);
-    StartHeldItemMotion (Request, Profile);
+    if (Profile.MotionStyle ==
+        EGridPlayerAttackMotionStyle::Throw)
+    {
+        if (FPendingPresentation* StoredPending =
+            PendingPresentations.Find (Request.RequestId))
+        {
+            StoredPending->ThrownItemActor =
+                StartThrownItemLaunch (
+                    Request,
+                    TargetMonster,
+                    Profile);
+        }
+    }
+    else
+    {
+        StartHeldItemMotion (Request, Profile);
+    }
 }
 
 void UGridPlayerAttackPresentationComponent::
@@ -285,16 +307,22 @@ HandlePlayerAttackResolved (
 {
     FGridPlayerAttackPresentationProfile Profile =
         MakeUnarmedProfile ();
+    AGridThrownItemActor* ThrownItem = nullptr;
     if (const FPendingPresentation* Pending =
         PendingPresentations.Find (Request.RequestId))
     {
         Profile = Pending->Profile;
+        ThrownItem = Pending->ThrownItemActor.Get ();
     }
     else
     {
         Profile = ResolveProfile (Request);
     }
 
+    ConfigureThrownItemOutcome (
+        ThrownItem,
+        TargetMonster,
+        Result);
     EmitPresentation (
         Result.bHit
             ? EGridPlayerAttackPresentationEvent::ImpactHit
@@ -321,6 +349,8 @@ HandlePlayerAttackRejected (
     int32 AttackerCharacterIndex,
     EGridPlayerAttackRejectReason RejectReason)
 {
+    bHeldItemMotionStarted = false;
+    bThrownItemLaunchStarted = false;
     FGridPlayerAttackFeedbackRequest Feedback;
     Feedback.bAccepted = false;
     Feedback.RejectReason = RejectReason;
@@ -631,7 +661,9 @@ void UGridPlayerAttackPresentationComponent::StartHeldItemMotion (
     const FGridPlayerAttackPresentationProfile& Profile)
 {
     RestoreHeldItemMotion ();
-    if (!Profile.bAnimateHeldItem ||
+    if (Profile.MotionStyle ==
+            EGridPlayerAttackMotionStyle::Throw ||
+        !Profile.bAnimateHeldItem ||
         Request.OffensiveItemDefinitionId.IsNone () ||
         !PartyPawn ||
         !PartyPawn->HeldItemActor ||
@@ -658,6 +690,105 @@ void UGridPlayerAttackPresentationComponent::StartHeldItemMotion (
     bMotionActive = true;
     bHeldItemMotionStarted = true;
     SetComponentTickEnabled (true);
+}
+
+AGridThrownItemActor*
+UGridPlayerAttackPresentationComponent::StartThrownItemLaunch (
+    const FGridPlayerAttackRequest& Request,
+    AGridMonsterActor* TargetMonster,
+    const FGridPlayerAttackPresentationProfile& Profile)
+{
+    RestoreHeldItemMotion ();
+    if (Profile.MotionStyle !=
+            EGridPlayerAttackMotionStyle::Throw ||
+        !Profile.bAnimateHeldItem ||
+        Request.OffensiveItemDefinitionId.IsNone () ||
+        (Request.OffensiveEquipmentSlot !=
+                EGridEquipmentSlot::MainHand &&
+            Request.OffensiveEquipmentSlot !=
+                EGridEquipmentSlot::OffHand))
+    {
+        return nullptr;
+    }
+
+    ++ThrownItemLaunchRequestCount;
+    if (!bNativeThrownItemLaunchEnabled ||
+        !PartyPawn ||
+        !IsValid (TargetMonster))
+    {
+        return nullptr;
+    }
+
+    const FVector TargetLocation =
+        TargetMonster->CollisionComponent
+            ? TargetMonster->CollisionComponent->Bounds.Origin
+            : TargetMonster->GetActorLocation ();
+    AGridThrownItemActor* ThrownItem =
+        PartyPawn->TryLaunchEquippedItemForAttack (
+            Request.AttackerCharacterIndex,
+            Request.OffensiveEquipmentSlot,
+            Request.OffensiveItemDefinitionId,
+            TargetLocation,
+            Request.PartyCell);
+    if (!ThrownItem)
+    {
+        UE_LOG (
+            LogGridPlayerAttackPresentation,
+            Warning,
+            TEXT ("[GridPlayerAttackPresentation] ThrownLaunch=false Attack=%s Item=%s Character=%d Slot=%s"),
+            *Request.AttackId.ToString (),
+            *Request.OffensiveItemDefinitionId.ToString (),
+            Request.AttackerCharacterIndex,
+            *UEnum::GetValueAsString (
+                Request.OffensiveEquipmentSlot));
+        return nullptr;
+    }
+
+    ++ThrownItemLaunchStartedCount;
+    bThrownItemLaunchStarted = true;
+    UE_LOG (
+        LogGridPlayerAttackPresentation,
+        Log,
+        TEXT ("[GridPlayerAttackPresentation] ThrownLaunch=true Attack=%s Item=%s RuntimeId=%s"),
+        *Request.AttackId.ToString (),
+        *Request.OffensiveItemDefinitionId.ToString (),
+        *ThrownItem->ThrownItemInstance.RuntimeObjectId.ToString ());
+    return ThrownItem;
+}
+
+void UGridPlayerAttackPresentationComponent::
+ConfigureThrownItemOutcome (
+    AGridThrownItemActor* ThrownItem,
+    AGridMonsterActor* TargetMonster,
+    const FGridAttackResult& Result)
+{
+    if (!IsValid (ThrownItem))
+    {
+        return;
+    }
+
+    FVector TargetLocation =
+        ThrownItem->GetActorLocation ();
+    float AcceptanceRadius = 24.0f;
+    if (TargetMonster)
+    {
+        TargetLocation =
+            TargetMonster->CollisionComponent
+                ? TargetMonster->CollisionComponent->Bounds.Origin
+                : TargetMonster->GetActorLocation ();
+        if (TargetMonster->CollisionComponent)
+        {
+            AcceptanceRadius = FMath::Clamp (
+                TargetMonster->CollisionComponent->
+                    GetScaledBoxExtent ().GetMin () * 0.75f,
+                12.0f,
+                75.0f);
+        }
+    }
+    ThrownItem->ConfigureCombatPresentationTarget (
+        Result.bHit && IsValid (TargetMonster),
+        TargetLocation,
+        AcceptanceRadius);
 }
 
 void UGridPlayerAttackPresentationComponent::

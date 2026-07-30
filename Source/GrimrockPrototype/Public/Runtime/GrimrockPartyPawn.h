@@ -15,6 +15,7 @@ struct FInputActionValue;
 class AGridLevelRuntimeActor;
 class AGridItemActor;
 class AGridReceptacleActor;
+class AGridThrownItemActor;
 class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
@@ -328,6 +329,17 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Throw")
     bool TryThrowOneCursorItem (const FVector& LaunchDirection, EGridItemThrowMode ThrowMode);
+
+    /**
+     * Transfers one unit from an equipped hand to a recoverable world
+     * projectile. Combat damage remains entirely outside this function.
+     */
+    AGridThrownItemActor* TryLaunchEquippedItemForAttack (
+        int32 CharacterIndex,
+        EGridEquipmentSlot SourceSlot,
+        FName ExpectedItemDefinitionId,
+        const FVector& TargetWorldLocation,
+        const FIntPoint& SourceCell);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Receptacle|Debug")
     bool DebugPlaceCursorItemInFrontReceptacle ();

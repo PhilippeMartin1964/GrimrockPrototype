@@ -346,7 +346,7 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
                 UGridPlayerAttackPresentationComponent> ()
             : nullptr;
     const FString Message = FString::Printf (
-        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Item=%s Slot=%s Range=%d Target=%s TargetCell=(%d,%d) DamageType=%s PhysicalSubtype=%s Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s RawDamage=%d ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s PresentationAttackCount=%d PresentationImpactHitCount=%d PresentationImpactMissCount=%d FeedbackCount=%d LastPresentationEvent=%s LastFeedbackOutcome=%s Sound=%s Niagara=%s HeldItemMotionStarted=%s"),
+        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Item=%s Slot=%s Range=%d Target=%s TargetCell=(%d,%d) DamageType=%s PhysicalSubtype=%s Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s RawDamage=%d ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s PresentationAttackCount=%d PresentationImpactHitCount=%d PresentationImpactMissCount=%d FeedbackCount=%d LastPresentationEvent=%s LastFeedbackOutcome=%s Sound=%s Niagara=%s HeldItemMotionStarted=%s ThrownItemLaunchRequests=%d ThrownItemLaunchStarted=%s ThrownItemLaunchCount=%d"),
         bAccepted ? TEXT ("true") : TEXT ("false"),
         *ReasonText,
         Request.AttackerCharacterIndex,
@@ -396,7 +396,16 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
             : TEXT ("None"),
         Presentation && Presentation->bHeldItemMotionStarted
             ? TEXT ("true")
-            : TEXT ("false"));
+            : TEXT ("false"),
+        Presentation
+            ? Presentation->ThrownItemLaunchRequestCount
+            : 0,
+        Presentation && Presentation->bThrownItemLaunchStarted
+            ? TEXT ("true")
+            : TEXT ("false"),
+        Presentation
+            ? Presentation->ThrownItemLaunchStartedCount
+            : 0);
 
     UE_LOG (LogGridTurnManagerInput, Log, TEXT ("%s"), *Message);
     if (GEngine)

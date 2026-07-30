@@ -143,4 +143,7 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "Equipment|Offense|Presentation")
     bool HasValidPlayerAttackPresentation () const;
+
+    /** Uses the dedicated equipped mesh when assigned, otherwise WorldMesh. */
+    UStaticMesh* LoadHeldMesh () const;
 };

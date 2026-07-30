@@ -320,6 +320,15 @@ public:
         int32 SourceCellX,
         int32 SourceCellY);
 
+    /** C++ path used by combat presentation when the definition is already resolved. */
+    AGridThrownItemActor* SpawnThrownItemProjectile (
+        const FGridItemInstance& ItemInstance,
+        UGridItemDefinitionAsset* ItemDefinition,
+        const FVector& StartWorldLocation,
+        const FVector& LaunchVelocity,
+        int32 SourceCellX,
+        int32 SourceCellY);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Throw")
     bool TryResolveWorldCellFromImpactPoint (
         const FVector& WorldPoint,

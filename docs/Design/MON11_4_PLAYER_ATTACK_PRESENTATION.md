@@ -14,8 +14,11 @@ MON11.4 observe le pipeline déterministe de MON11.3 sans le modifier.
 6. victoire éventuelle.
 
 Le composant de présentation ne tire aucun nombre du flux de combat, ne
-modifie ni dégâts, ni inventaire, ni phase, et ne déclenche jamais directement
-Hurt, Death, MonsterDefeated ou Victory.
+modifie ni dégâts ni phase, et ne déclenche jamais directement Hurt, Death,
+MonsterDefeated ou Victory. MON11.4.1 ajoute une exception limitée à
+l’inventaire : une arme réellement jetée est transférée de l’équipement vers
+un objet récupérable dans le monde. Cette mutation ne participe jamais à la
+résolution du hit ou des dégâts.
 
 ## Composant natif
 
@@ -74,8 +77,9 @@ les requêtes.
 Le VFX d’attaque s’attache au visuel tenu lorsqu’il correspond à
 `OffensiveItemDefinitionId`, sinon à la caméra puis au RootComponent du
 groupe. Les impacts sont produits dans le monde, à la position du monstre et
-orientés du groupe vers la cible. Il n’existe ni raycast, ni projectile, ni
-collision d’attaque.
+orientés du groupe vers la cible. La collision du projectile d’objet de
+MON11.4.1 décide uniquement où l’objet récupérable termine sa course. Elle
+n’appelle ni `FGridCombatResolver`, ni `ApplyAttackResult()`.
 
 Les composants Niagara sont auto-détruits et conservés uniquement par
 références faibles. Ils sont arrêtés à la fin du combat et pendant le
@@ -83,18 +87,26 @@ nettoyage runtime.
 
 ## Mouvement de l’objet tenu
 
-Le Tick du composant est désactivé par défaut et actif uniquement pendant un
-mouvement. Le transform relatif initial de `HeldItemActor` est mémorisé.
-L’interpolation suit :
+Pour `Swing`, `Thrust` et `Cast`, le Tick du composant est désactivé par
+défaut et actif uniquement pendant un mouvement. Le transform relatif initial
+de `HeldItemActor` est mémorisé. L’interpolation suit :
 
 `MotionAlpha = sin(PI × Alpha)`
 
 La position et la rotation vont du transform initial au pic, puis reviennent
 exactement au transform initial. Le mouvement est refusé si l’item ne
 correspond pas, si l’attaquant n’est pas sélectionné ou pour
-`Attack_Unarmed`. Une interruption, un remplacement, une nouvelle attaque,
-la fin du combat ou `EndPlay` restaure le transform sans détruire, consommer
-ou déséquiper l’objet.
+`Attack_Unarmed`.
+
+Depuis MON11.4.1, `Throw` n’utilise jamais cette interpolation et ne revient
+donc jamais comme un boomerang. Une unité équipée est portée par un
+`AGridThrownItemActor`. Sur un hit, le projectile s’arrête à la cible et tombe
+dans sa cellule ; sur un miss, il poursuit sa trajectoire jusqu’au décor, au
+sol ou à l’expiration. Il devient alors un objet récupérable.
+
+`EquipHeldItem()` résout désormais la définition réelle et utilise
+`EquippedMesh`, avec repli sur `WorldMesh`. `HeldItemActor` reste un visuel :
+la propriété réelle demeure dans `UGridPartyInventoryComponent`.
 
 ## Feedback accepté et refusé
 
@@ -143,7 +155,7 @@ aucun asset spécifiquement approprié au shuriken n’est disponible.
 
 ## Tests
 
-Six tests transitoires, sans chargement d’asset Content, couvrent :
+Sept tests transitoires, sans chargement d’asset Content, couvrent :
 
 - validation du profil et indépendance du gameplay ;
 - ordre Attack/Impact/feedback ;
@@ -151,6 +163,8 @@ Six tests transitoires, sans chargement d’asset Content, couvrent :
 - mouvement et restauration de l’objet tenu ;
 - textes de feedback et refus atomiques ;
 - exclusivité des réactions Hurt/Death et absence de doublon.
+- préférence `EquippedMesh`, transfert atomique d’une unité, absence de
+  mouvement boomerang, création du projectile et conversion en pickup.
 
 ## Procédure PIE
 
@@ -158,20 +172,29 @@ Six tests transitoires, sans chargement d’asset Content, couvrent :
 2. Placer le Rat géant à deux ou trois cellules dans l’axe.
 3. Démarrer le combat et attendre `PlayerPhase`.
 4. Appuyer sur NumPad 7 et vérifier `Attack_Shuriken`, `Throw`, Attack puis
-   Impact, le retour exact du transform et le texte français.
-5. Vérifier l’armure puis les PV sur hit, et l’absence de Hurt/Death sur miss.
-6. Tuer le Rat et vérifier une seule réaction Death avant Victory.
-7. Réessayer avec le même personnage et vérifier
+   Impact, le départ réel du shuriken et le texte français.
+5. Vérifier `ThrownItemLaunchRequests=1`,
+   `ThrownItemLaunchStarted=true`, `ThrownItemLaunchCount=1` et
+   `HeldItemMotionStarted=false`.
+6. Vérifier l’armure puis les PV sur hit, et l’absence de Hurt/Death sur miss.
+7. Vérifier que la pile équipée diminue d’une unité et que le shuriken devient
+   récupérable dans le monde.
+8. Tuer le Rat et vérifier une seule réaction Death avant Victory.
+9. Réessayer avec le même personnage et vérifier
    `AttackerAlreadyActed`.
-8. Interposer un mur et vérifier `PassageBlocked` sans média ni mouvement.
-9. Retirer le shuriken et vérifier `Attack_Unarmed` adjacent sans mouvement.
+10. Interposer un mur et vérifier `PassageBlocked` sans média, projectile ni
+    mutation d’inventaire.
+11. Retirer le shuriken et vérifier `Attack_Unarmed` adjacent sans mouvement.
 
 Si les listes média sont vides, les diagnostics doivent indiquer
 `Sound=None` et `Niagara=None` ; mouvement et feedback restent fonctionnels.
 
 ## Limites différées
 
-MON11.4 n’ajoute pas de projectile gameplay, collision, consommation,
-munition, dual wield, seconde attaque, Montage de personnage, délai avant
-dégâts, hit stop, camera shake, nombres flottants, HUD complet, musique,
-voix, InputAction, chargement asynchrone ou donnée de présentation sauvegardée.
+MON11.4.1 ajoute un projectile d’objet et la consommation intrinsèque d’une
+unité de l’arme jetée. Ce projectile n’est jamais autorité de combat.
+
+Restent absents : projectile de dégâts, seconde résolution, munition séparée,
+dual wield, seconde attaque, Montage de personnage, délai avant dégâts, hit
+stop, camera shake, HUD complet, musique, voix, InputAction, chargement
+asynchrone ou donnée de présentation sauvegardée.

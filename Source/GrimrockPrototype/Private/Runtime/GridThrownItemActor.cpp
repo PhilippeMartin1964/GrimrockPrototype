@@ -8,6 +8,10 @@
 
 AGridThrownItemActor::AGridThrownItemActor ()
 {
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bStartWithTickEnabled = false;
+    PrimaryActorTick.TickGroup = TG_PostPhysics;
+
     CollisionComponent = CreateDefaultSubobject<USphereComponent> (TEXT ("ProjectileCollision"));
     CollisionComponent->InitSphereRadius (12.0f);
     CollisionComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
@@ -38,6 +42,66 @@ AGridThrownItemActor::AGridThrownItemActor ()
     ProjectileMovementComponent->ProjectileGravityScale = 1.0f;
     ProjectileMovementComponent->InitialSpeed = 0.0f;
     ProjectileMovementComponent->MaxSpeed = 0.0f;
+}
+
+void AGridThrownItemActor::Tick (float DeltaSeconds)
+{
+    Super::Tick (DeltaSeconds);
+    if (!bStopsAtCombatPresentationTarget ||
+        bConversionAttempted)
+    {
+        SetActorTickEnabled (false);
+        return;
+    }
+
+    const FVector CurrentLocation = GetActorLocation ();
+    const FVector Segment =
+        CurrentLocation - PreviousPresentationLocation;
+    const float SegmentLengthSquared = Segment.SizeSquared ();
+    FVector ClosestPoint = CurrentLocation;
+    if (SegmentLengthSquared > KINDA_SMALL_NUMBER)
+    {
+        const float SegmentAlpha = FMath::Clamp (
+            FVector::DotProduct (
+                CombatPresentationTargetLocation -
+                    PreviousPresentationLocation,
+                Segment) /
+                SegmentLengthSquared,
+            0.0f,
+            1.0f);
+        ClosestPoint =
+            PreviousPresentationLocation +
+            Segment * SegmentAlpha;
+    }
+
+    const bool bReachedTarget =
+        FVector::DistSquared (
+            ClosestPoint,
+            CombatPresentationTargetLocation) <=
+            FMath::Square (
+                CombatPresentationTargetAcceptanceRadius);
+    const bool bPassedTarget =
+        FVector::DotProduct (
+            CombatPresentationTargetLocation -
+                PreviousPresentationLocation,
+            CombatPresentationTargetLocation -
+                CurrentLocation) <= 0.0f;
+    if (bReachedTarget || bPassedTarget)
+    {
+        FHitResult TargetHit;
+        TargetHit.ImpactPoint =
+            CombatPresentationTargetLocation;
+        TargetHit.Location =
+            CombatPresentationTargetLocation;
+        TargetHit.ImpactNormal =
+            (-Segment).GetSafeNormal (
+                SMALL_NUMBER,
+                FVector::UpVector);
+        ConvertToWorldPickupAtImpact (TargetHit);
+        return;
+    }
+
+    PreviousPresentationLocation = CurrentLocation;
 }
 
 void AGridThrownItemActor::BeginPlay ()
@@ -88,6 +152,23 @@ void AGridThrownItemActor::InitializeThrownItem (
         false);
 }
 
+void AGridThrownItemActor::ConfigureCombatPresentationTarget (
+    bool bStopAtTarget,
+    const FVector& TargetWorldLocation,
+    float AcceptanceRadius)
+{
+    bStopsAtCombatPresentationTarget =
+        bStopAtTarget &&
+        !TargetWorldLocation.ContainsNaN ();
+    CombatPresentationTargetLocation =
+        TargetWorldLocation;
+    CombatPresentationTargetAcceptanceRadius =
+        FMath::Clamp (AcceptanceRadius, 1.0f, 100.0f);
+    PreviousPresentationLocation = GetActorLocation ();
+    SetActorTickEnabled (
+        bStopsAtCombatPresentationTarget);
+}
+
 void AGridThrownItemActor::HandleProjectileImpact (
     UPrimitiveComponent* HitComponent,
     AActor* OtherActor,
@@ -123,6 +204,8 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact (const FHitResult& Hit)
         return;
     }
     bConversionAttempted = true;
+    bStopsAtCombatPresentationTarget = false;
+    SetActorTickEnabled (false);
     GetWorldTimerManager ().ClearTimer (ExpirationTimerHandle);
 
     if (ProjectileMovementComponent)

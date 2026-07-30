@@ -1,5 +1,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 
+#include "Engine/StaticMesh.h"
+
 bool UGridItemDefinitionAsset::IsValidDefinition () const
 {
     if (ItemDefinitionId.IsNone ())
@@ -39,5 +41,21 @@ bool UGridItemDefinitionAsset::CanProvideAttackFromSlot (
 bool UGridItemDefinitionAsset::HasValidPlayerAttackPresentation () const
 {
     return bProvidesAttackPresentation &&
-        PlayerAttackPresentationProfile.IsValid ();
+        PlayerAttackPresentationProfile.IsValid () &&
+        (PlayerAttackPresentationProfile.MotionStyle !=
+                EGridPlayerAttackMotionStyle::Throw ||
+            bThrowable);
+}
+
+UStaticMesh* UGridItemDefinitionAsset::LoadHeldMesh () const
+{
+    if (!EquippedMesh.IsNull ())
+    {
+        if (UStaticMesh* Mesh =
+            EquippedMesh.LoadSynchronous ())
+        {
+            return Mesh;
+        }
+    }
+    return WorldMesh.LoadSynchronous ();
 }

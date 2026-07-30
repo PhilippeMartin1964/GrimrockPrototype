@@ -17,6 +17,7 @@ class GRIMROCKPROTOTYPE_API AGridThrownItemActor : public AGridItemActor
 
 public:
     AGridThrownItemActor ();
+    virtual void Tick (float DeltaSeconds) override;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
     TObjectPtr<USphereComponent> CollisionComponent;
@@ -45,6 +46,29 @@ public:
         int32 InSourceCellX,
         int32 InSourceCellY);
 
+    /**
+     * Presentation-only target interception. It decides where the recoverable
+     * item stops, never whether the combat attack hits and never applies damage.
+     */
+    void ConfigureCombatPresentationTarget (
+        bool bStopAtTarget,
+        const FVector& TargetWorldLocation,
+        float AcceptanceRadius);
+
+    bool HasCompletedImpactConversion () const
+    {
+        return bConversionAttempted;
+    }
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Projectile|Combat Presentation")
+    bool bStopsAtCombatPresentationTarget = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Projectile|Combat Presentation")
+    FVector CombatPresentationTargetLocation = FVector::ZeroVector;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Projectile|Combat Presentation")
+    float CombatPresentationTargetAcceptanceRadius = 24.0f;
+
 protected:
     virtual void BeginPlay () override;
 
@@ -65,5 +89,6 @@ private:
 
     bool bConversionAttempted = false;
     float ImpactDropOffset = 12.0f;
+    FVector PreviousPresentationLocation = FVector::ZeroVector;
     FTimerHandle ExpirationTimerHandle;
 };

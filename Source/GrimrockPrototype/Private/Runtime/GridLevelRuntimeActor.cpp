@@ -3432,17 +3432,34 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile (
     int32 SourceCellX,
     int32 SourceCellY)
 {
+    UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId);
+    return SpawnThrownItemProjectile (
+        ItemInstance,
+        ItemDefinition,
+        StartWorldLocation,
+        LaunchVelocity,
+        SourceCellX,
+        SourceCellY) != nullptr;
+}
+
+AGridThrownItemActor*
+AGridLevelRuntimeActor::SpawnThrownItemProjectile (
+    const FGridItemInstance& ItemInstance,
+    UGridItemDefinitionAsset* ItemDefinition,
+    const FVector& StartWorldLocation,
+    const FVector& LaunchVelocity,
+    int32 SourceCellX,
+    int32 SourceCellY)
+{
     if (!ItemInstance.IsValid () ||
+        !ItemDefinition ||
+        ItemDefinition->ItemDefinitionId !=
+            ItemInstance.ItemDefinitionId ||
+        !ItemDefinition->bThrowable ||
         LaunchVelocity.IsNearlyZero () ||
         !IsWalkableCell (SourceCellX, SourceCellY))
     {
-        return false;
-    }
-
-    UGridItemDefinitionAsset* ItemDefinition = ResolveRuntimeItemDefinition (ItemInstance.ItemDefinitionId);
-    if (!ItemDefinition || !ItemDefinition->bThrowable)
-    {
-        return false;
+        return nullptr;
     }
 
     const FTransform SpawnTransform (
@@ -3451,13 +3468,13 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile (
         FVector::OneVector);
     if (!IsSafeRuntimeRenderTransform (SpawnTransform))
     {
-        return false;
+        return nullptr;
     }
 
     UWorld* World = GetWorld ();
     if (!World)
     {
-        return false;
+        return nullptr;
     }
 
     FActorSpawnParameters Params;
@@ -3469,7 +3486,7 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile (
         Params);
     if (!ThrownActor)
     {
-        return false;
+        return nullptr;
     }
 
     ThrownActor->InitializeThrownItem (
@@ -3487,7 +3504,7 @@ bool AGridLevelRuntimeActor::TrySpawnThrownItemProjectile (
         SourceCellX,
         SourceCellY,
         LaunchVelocity.Size ());
-    return true;
+    return ThrownActor;
 }
 
 bool AGridLevelRuntimeActor::TryResolveWorldCellFromImpactPoint (
