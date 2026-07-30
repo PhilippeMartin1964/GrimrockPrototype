@@ -177,5 +177,7 @@ présentation d’attaque du personnage n’est attendue.
 
 ## Éléments différés
 
-- MON11.3 ajoutera les armes et l’équipement offensif.
-- MON11.4 ajoutera animations, audio, VFX et feedback complet du personnage.
+- MON11.3 remplace le profil provisoire par l’équipement offensif.
+- `Attack_Unarmed` reste le fallback lorsqu’aucune arme offensive n’est
+  sélectionnée.
+- MON11.4 ajoutera présentation, audio, VFX et feedback complet du personnage.

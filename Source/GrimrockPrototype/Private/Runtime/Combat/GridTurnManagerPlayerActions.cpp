@@ -2,6 +2,7 @@
 
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -12,6 +13,47 @@
 namespace
 {
     const FName UnarmedAttackId = TEXT ("Attack_Unarmed");
+
+    FGridOffensiveEquipmentProfile MakeUnarmedOffensiveProfile ()
+    {
+        FGridOffensiveEquipmentProfile Profile;
+        Profile.AttackId = UnarmedAttackId;
+        Profile.AttackDefinition.DamageType = EGridDamageType::Physical;
+        Profile.AttackDefinition.PhysicalSubtype =
+            EGridPhysicalDamageSubtype::Bludgeoning;
+        Profile.AttackDefinition.MinDamage = 1;
+        Profile.AttackDefinition.MaxDamage = 3;
+        Profile.AttackDefinition.AccuracyBonus = 0;
+        Profile.FlatDamageBonus = 0;
+        Profile.DamageScalingAttribute =
+            EGridAttackScalingAttribute::Strength;
+        Profile.RangeCells = 1;
+        return Profile;
+    }
+
+    int32 GetScalingAttributeValue (
+        const FRPGAttributes& Attributes,
+        EGridAttackScalingAttribute ScalingAttribute)
+    {
+        switch (ScalingAttribute)
+        {
+        case EGridAttackScalingAttribute::Strength:
+            return Attributes.Strength;
+        case EGridAttackScalingAttribute::Dexterity:
+            return Attributes.Dexterity;
+        case EGridAttackScalingAttribute::Constitution:
+            return Attributes.Constitution;
+        case EGridAttackScalingAttribute::Intelligence:
+            return Attributes.Intelligence;
+        case EGridAttackScalingAttribute::Wisdom:
+            return Attributes.Wisdom;
+        case EGridAttackScalingAttribute::Charisma:
+            return Attributes.Charisma;
+        case EGridAttackScalingAttribute::None:
+        default:
+            return 0;
+        }
+    }
 
     bool IsCardinalFacing (EGridEdge Facing)
     {
@@ -140,33 +182,29 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
             OutRejectReason);
     }
 
+    FGridOffensiveEquipmentProfile OffensiveProfile;
+    FName OffensiveItemDefinitionId = NAME_None;
+    EGridEquipmentSlot OffensiveEquipmentSlot =
+        EGridEquipmentSlot::None;
+    EGridPlayerAttackRejectReason OffensiveProfileRejectReason =
+        EGridPlayerAttackRejectReason::None;
+    if (!ResolvePlayerOffensiveProfile (
+        PartyPawn->PartyInventoryComponent,
+        AttackerCharacterIndex,
+        OffensiveProfile,
+        OffensiveItemDefinitionId,
+        OffensiveEquipmentSlot,
+        OffensiveProfileRejectReason))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            OffensiveProfileRejectReason,
+            OutRejectReason);
+    }
+
     const FIntPoint PartyCell (
         PartyPawn->CurrentCellX,
         PartyPawn->CurrentCellY);
-    int32 TargetCellX = INDEX_NONE;
-    int32 TargetCellY = INDEX_NONE;
-    if (!RuntimeActor->TryGetNeighborCell (
-        PartyCell.X,
-        PartyCell.Y,
-        PartyPawn->Facing,
-        TargetCellX,
-        TargetCellY))
-    {
-        return RejectPlayerAttack (
-            AttackerCharacterIndex,
-            EGridPlayerAttackRejectReason::TargetCellUnavailable,
-            OutRejectReason);
-    }
-    if (!RuntimeActor->CanMove (
-        PartyCell.X,
-        PartyCell.Y,
-        PartyPawn->Facing))
-    {
-        return RejectPlayerAttack (
-            AttackerCharacterIndex,
-            EGridPlayerAttackRejectReason::PassageBlocked,
-            OutRejectReason);
-    }
 
     UWorld* World = GetWorld ();
     UGridMonsterOccupancySubsystem* Occupancy =
@@ -179,9 +217,53 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
             OutRejectReason);
     }
 
-    const FIntPoint TargetCell (TargetCellX, TargetCellY);
-    AGridMonsterActor* TargetMonster =
-        Occupancy->GetOccupantAtCell (TargetCell);
+    FIntPoint SearchCell = PartyCell;
+    FIntPoint TargetCell = PartyCell;
+    AGridMonsterActor* TargetMonster = nullptr;
+    int32 TargetDistance = INDEX_NONE;
+    const int32 SearchDistance = OffensiveProfile.RangeCells + 1;
+    for (int32 Distance = 1; Distance <= SearchDistance; ++Distance)
+    {
+        int32 NextCellX = INDEX_NONE;
+        int32 NextCellY = INDEX_NONE;
+        if (!RuntimeActor->TryGetNeighborCell (
+            SearchCell.X,
+            SearchCell.Y,
+            PartyPawn->Facing,
+            NextCellX,
+            NextCellY))
+        {
+            if (Distance == 1)
+            {
+                return RejectPlayerAttack (
+                    AttackerCharacterIndex,
+                    EGridPlayerAttackRejectReason::TargetCellUnavailable,
+                    OutRejectReason);
+            }
+            break;
+        }
+        if (!RuntimeActor->CanMove (
+            SearchCell.X,
+            SearchCell.Y,
+            PartyPawn->Facing))
+        {
+            return RejectPlayerAttack (
+                AttackerCharacterIndex,
+                EGridPlayerAttackRejectReason::PassageBlocked,
+                OutRejectReason);
+        }
+
+        SearchCell = FIntPoint (NextCellX, NextCellY);
+        if (AGridMonsterActor* Occupant =
+            Occupancy->GetOccupantAtCell (SearchCell))
+        {
+            TargetMonster = Occupant;
+            TargetCell = SearchCell;
+            TargetDistance = Distance;
+            break;
+        }
+    }
+
     if (!IsValid (TargetMonster))
     {
         return RejectPlayerAttack (
@@ -189,6 +271,15 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
             EGridPlayerAttackRejectReason::NoMonsterInFront,
             OutRejectReason);
     }
+
+    if (TargetDistance > OffensiveProfile.RangeCells)
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::TargetOutOfRange,
+            OutRejectReason);
+    }
+
     if (!IsCombatMonster (TargetMonster))
     {
         return RejectPlayerAttack (
@@ -230,7 +321,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     const int32 GridDistance =
         FMath::Abs (TargetCell.X - PartyCell.X) +
         FMath::Abs (TargetCell.Y - PartyCell.Y);
-    if (GridDistance != 1)
+    if (GridDistance < 1 ||
+        GridDistance > OffensiveProfile.RangeCells ||
+        GridDistance != TargetDistance)
     {
         return RejectPlayerAttack (
             AttackerCharacterIndex,
@@ -262,6 +355,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     if (!BuildPlayerAttackResolutionInputs (
         CharacterSummary,
         TargetMonster,
+        OffensiveProfile,
         Source,
         Target,
         AttackDefinition))
@@ -281,8 +375,12 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     Request.PartyCell = PartyCell;
     Request.TargetCell = TargetCell;
     Request.PartyFacing = PartyPawn->Facing;
-    Request.RangeCells = 1;
-    Request.AttackId = UnarmedAttackId;
+    Request.RangeCells = OffensiveProfile.RangeCells;
+    Request.AttackId = OffensiveProfile.AttackId;
+    Request.OffensiveItemDefinitionId =
+        OffensiveItemDefinitionId;
+    Request.OffensiveEquipmentSlot =
+        OffensiveEquipmentSlot;
     if (!Request.IsValid ())
     {
         return RejectPlayerAttack (
@@ -307,7 +405,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     PlayerAttackCommittedCharacterIds.Add (Attacker.CharacterId);
 
     UE_LOG (LogGridTurnManager, Log,
-        TEXT ("[GridPlayerAttack] Accepted=true Request=%s Round=%d Attacker=%d Character=%s Target=%s PartyCell=(%d,%d) TargetCell=(%d,%d) Facing=%s Range=%d"),
+        TEXT ("[GridPlayerAttack] Accepted=true Request=%s Round=%d Attacker=%d Character=%s Target=%s PartyCell=(%d,%d) TargetCell=(%d,%d) Facing=%s Range=%d Attack=%s Item=%s Slot=%s"),
         *Request.RequestId.ToString (EGuidFormats::Digits),
         Request.RoundNumber,
         Request.AttackerCharacterIndex,
@@ -318,7 +416,11 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
         Request.TargetCell.X,
         Request.TargetCell.Y,
         *UEnum::GetValueAsString (Request.PartyFacing),
-        Request.RangeCells);
+        Request.RangeCells,
+        *Request.AttackId.ToString (),
+        *Request.OffensiveItemDefinitionId.ToString (),
+        *UEnum::GetValueAsString (Request.OffensiveEquipmentSlot));
+    ++PlayerAttackRequestedBroadcastCount;
     OnPlayerAttackRequested.Broadcast (Request);
 
     FGridCombatLogEntry AttackEntry;
@@ -335,7 +437,11 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     AttackEntry.TargetDisplayName =
         ResolveMonsterDisplayName (TargetMonster);
     AttackEntry.TargetCharacterIndex = INDEX_NONE;
-    AttackEntry.AttackId = UnarmedAttackId;
+    AttackEntry.AttackId = Request.AttackId;
+    AttackEntry.OffensiveItemDefinitionId =
+        Request.OffensiveItemDefinitionId;
+    AttackEntry.OffensiveEquipmentSlot =
+        Request.OffensiveEquipmentSlot;
     AttackEntry.AttackResult = Result;
     AttackEntry.bTargetDefeated =
         Result.TargetHealthBefore > 0 &&
@@ -369,6 +475,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
 bool UGridTurnManagerComponent::BuildPlayerAttackResolutionInputs (
     const FGridInventoryCharacterSummary& CharacterSummary,
     const AGridMonsterActor* TargetMonster,
+    const FGridOffensiveEquipmentProfile& OffensiveProfile,
     FGridAttackSourceStats& OutSource,
     FGridAttackTargetStats& OutTarget,
     FGridAttackDefinition& OutAttackDefinition) const
@@ -377,15 +484,25 @@ bool UGridTurnManagerComponent::BuildPlayerAttackResolutionInputs (
     OutTarget = FGridAttackTargetStats ();
     OutAttackDefinition = FGridAttackDefinition ();
     if (!IsValid (TargetMonster) ||
-        !IsValid (TargetMonster->MonsterDefinition))
+        !IsValid (TargetMonster->MonsterDefinition) ||
+        !OffensiveProfile.IsValid ())
     {
         return false;
     }
 
     OutSource.Accuracy = CharacterSummary.DerivedStats.Accuracy;
-    OutSource.DamageBonus =
-        URPGCharacterRulesLibrary::GetAttributeModifier (
-            CharacterSummary.Attributes.Strength);
+    OutSource.DamageBonus = OffensiveProfile.FlatDamageBonus;
+    if (OffensiveProfile.DamageScalingAttribute !=
+        EGridAttackScalingAttribute::None)
+    {
+        OutSource.DamageBonus +=
+            URPGCharacterRulesLibrary::GetAttributeModifier (
+                GetScalingAttributeValue (
+                    CharacterSummary.Attributes,
+                    OffensiveProfile.DamageScalingAttribute));
+    }
+
+    OutAttackDefinition = OffensiveProfile.AttackDefinition;
 
     OutTarget.Evasion = TargetMonster->MonsterDefinition->Evasion;
     OutTarget.CurrentHealth = TargetMonster->CurrentHealth;
@@ -396,16 +513,77 @@ bool UGridTurnManagerComponent::BuildPlayerAttackResolutionInputs (
     OutTarget.ResistancePercent = 0;
     OutTarget.DamageMultiplier =
         TargetMonster->MonsterDefinition->GetDamageMultiplier (
-            EGridDamageType::Physical,
-            EGridPhysicalDamageSubtype::Bludgeoning);
-
-    OutAttackDefinition.DamageType = EGridDamageType::Physical;
-    OutAttackDefinition.PhysicalSubtype =
-        EGridPhysicalDamageSubtype::Bludgeoning;
-    OutAttackDefinition.MinDamage = 1;
-    OutAttackDefinition.MaxDamage = 3;
-    OutAttackDefinition.AccuracyBonus = 0;
+            OutAttackDefinition.DamageType,
+            OutAttackDefinition.PhysicalSubtype);
     return OutAttackDefinition.IsValid ();
+}
+
+bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
+    const UGridPartyInventoryComponent* PartyInventory,
+    int32 AttackerCharacterIndex,
+    FGridOffensiveEquipmentProfile& OutProfile,
+    FName& OutItemDefinitionId,
+    EGridEquipmentSlot& OutEquipmentSlot,
+    EGridPlayerAttackRejectReason& OutRejectReason) const
+{
+    OutProfile = FGridOffensiveEquipmentProfile ();
+    OutItemDefinitionId = NAME_None;
+    OutEquipmentSlot = EGridEquipmentSlot::None;
+    OutRejectReason = EGridPlayerAttackRejectReason::None;
+    if (!IsValid (PartyInventory))
+    {
+        OutRejectReason =
+            EGridPlayerAttackRejectReason::PartyUnavailable;
+        return false;
+    }
+
+    const EGridEquipmentSlot HandSlots[] = {
+        EGridEquipmentSlot::MainHand,
+        EGridEquipmentSlot::OffHand
+    };
+    for (const EGridEquipmentSlot HandSlot : HandSlots)
+    {
+        FGridItemInstance EquippedItem;
+        if (!PartyInventory->GetEquippedItem (
+            AttackerCharacterIndex,
+            HandSlot,
+            EquippedItem))
+        {
+            continue;
+        }
+
+        const UGridItemDefinitionAsset* Definition =
+            PartyInventory->FindItemDefinition (
+                EquippedItem.ItemDefinitionId);
+        if (!IsValid (Definition))
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    EquippedItemDefinitionUnavailable;
+            return false;
+        }
+
+        if (!Definition->bProvidesAttack)
+        {
+            continue;
+        }
+
+        if (!Definition->CanProvideAttackFromSlot (HandSlot))
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    InvalidOffensiveEquipment;
+            return false;
+        }
+
+        OutProfile = Definition->OffensiveProfile;
+        OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+        OutEquipmentSlot = HandSlot;
+        return true;
+    }
+
+    OutProfile = MakeUnarmedOffensiveProfile ();
+    return true;
 }
 
 bool UGridTurnManagerComponent::HasCharacterCommittedAttackThisPhase (

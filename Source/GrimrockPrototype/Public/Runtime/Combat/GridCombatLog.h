@@ -61,6 +61,12 @@ struct FGridCombatLogEntry
     FName AttackId = NAME_None;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback")
+    FName OffensiveItemDefinitionId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback")
+    EGridEquipmentSlot OffensiveEquipmentSlot = EGridEquipmentSlot::None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback")
     FGridAttackResult AttackResult;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback")

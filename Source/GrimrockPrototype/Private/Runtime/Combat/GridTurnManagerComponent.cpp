@@ -574,6 +574,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
     LastPlayerAttackRequest = FGridPlayerAttackRequest ();
     LastPlayerAttackResult = FGridAttackResult ();
     LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;
+    PlayerAttackRequestedBroadcastCount = 0;
     PlayerAttackResolvedBroadcastCount = 0;
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;

@@ -11,6 +11,7 @@
 class AGridLevelRuntimeActor;
 class AGridMonsterActor;
 class AGrimrockPartyPawn;
+class UGridPartyInventoryComponent;
 class UGridMonsterBehaviorComponent;
 class UGridMonsterCombatComponent;
 class UGridMonsterMovementComponent;
@@ -449,6 +450,7 @@ private:
     int32 NextCombatLogSequenceNumber = 1;
     int32 CombatLogBroadcastCount = 0;
     int32 AttackResolvedBroadcastCount = 0;
+    int32 PlayerAttackRequestedBroadcastCount = 0;
     int32 PlayerAttackResolvedBroadcastCount = 0;
     bool bPlayerAttackResolutionInProgress = false;
     bool bPendingVictoryAfterPlayerAttack = false;
@@ -468,9 +470,17 @@ private:
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,
+        const FGridOffensiveEquipmentProfile& OffensiveProfile,
         FGridAttackSourceStats& OutSource,
         FGridAttackTargetStats& OutTarget,
         FGridAttackDefinition& OutAttackDefinition) const;
+    bool ResolvePlayerOffensiveProfile (
+        const UGridPartyInventoryComponent* PartyInventory,
+        int32 AttackerCharacterIndex,
+        FGridOffensiveEquipmentProfile& OutProfile,
+        FName& OutItemDefinitionId,
+        EGridEquipmentSlot& OutEquipmentSlot,
+        EGridPlayerAttackRejectReason& OutRejectReason) const;
     bool IsCombatMonster (const AGridMonsterActor* Monster) const;
     void ResetPlayerAttackPhaseState ();
     void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
@@ -549,4 +559,9 @@ private:
     friend class FGridMonsterMON11PlayerResolutionDeterminismTest;
     friend class FGridMonsterMON11PlayerResolutionArmorAndCriticalTest;
     friend class FGridMonsterMON11PlayerResolutionDeathVictoryTest;
+    friend class FGridMonsterMON11OffensiveProfileValidationTest;
+    friend class FGridMonsterMON11EquippedWeaponMappingTest;
+    friend class FGridMonsterMON11HandPriorityAndFallbackTest;
+    friend class FGridMonsterMON11RangedWeaponTargetingTest;
+    friend class FGridMonsterMON11ElementalOffensiveEquipmentTest;
 };

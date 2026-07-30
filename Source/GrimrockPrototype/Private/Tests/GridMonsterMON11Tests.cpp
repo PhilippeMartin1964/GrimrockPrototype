@@ -127,6 +127,8 @@ namespace
             Party->PartyInventoryComponent->PartyInventoryState
                 .ActiveCharacters = { FirstCharacter, SecondCharacter };
             Party->PartyInventoryComponent->PartyInventoryState
+                .ActiveEquipment.SetNum (2);
+            Party->PartyInventoryComponent->PartyInventoryState
                 .SelectedCharacterIndex = 0;
 
             MonsterDefinition =
@@ -482,6 +484,13 @@ bool FGridMonsterMON11RequestAcceptedAndResolvedTest::RunTest (
         TEXT ("MON11.2 uses the provisional unarmed attack"),
         Request.AttackId,
         FName (TEXT ("Attack_Unarmed")));
+    TestTrue (
+        TEXT ("An unarmed request has no offensive item"),
+        Request.OffensiveItemDefinitionId.IsNone ());
+    TestEqual (
+        TEXT ("An unarmed request has no equipment slot"),
+        Request.OffensiveEquipmentSlot,
+        EGridEquipmentSlot::None);
     TestEqual (
         TEXT ("Acceptance reports no rejection"),
         RejectReason,

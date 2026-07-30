@@ -15,6 +15,18 @@ enum class EGridPhysicalDamageSubtype : uint8
 };
 
 UENUM (BlueprintType)
+enum class EGridAttackScalingAttribute : uint8
+{
+    None,
+    Strength,
+    Dexterity,
+    Constitution,
+    Intelligence,
+    Wisdom,
+    Charisma
+};
+
+UENUM (BlueprintType)
 enum class EGridCombatActionType : uint8
 {
     None          UMETA (DisplayName = "None"),
@@ -60,7 +72,9 @@ enum class EGridPlayerAttackRejectReason : uint8
     TargetNotInEncounter      UMETA (DisplayName = "Target Not In Encounter"),
     TargetInactive            UMETA (DisplayName = "Target Inactive"),
     TargetDefeated            UMETA (DisplayName = "Target Defeated"),
-    TargetOutOfRange          UMETA (DisplayName = "Target Out Of Range")
+    TargetOutOfRange          UMETA (DisplayName = "Target Out Of Range"),
+    EquippedItemDefinitionUnavailable UMETA (DisplayName = "Equipped Item Definition Unavailable"),
+    InvalidOffensiveEquipment UMETA (DisplayName = "Invalid Offensive Equipment")
 };
 
 USTRUCT (BlueprintType)
@@ -98,6 +112,12 @@ struct FGridPlayerAttackRequest
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
     FName AttackId = NAME_None;
 
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    FName OffensiveItemDefinitionId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    EGridEquipmentSlot OffensiveEquipmentSlot = EGridEquipmentSlot::None;
+
     bool IsValid () const
     {
         const bool bCardinalFacing =
@@ -105,6 +125,13 @@ struct FGridPlayerAttackRequest
             PartyFacing == EGridEdge::East ||
             PartyFacing == EGridEdge::South ||
             PartyFacing == EGridEdge::West;
+        const bool bUnarmed =
+            OffensiveItemDefinitionId.IsNone () &&
+            OffensiveEquipmentSlot == EGridEquipmentSlot::None;
+        const bool bEquipped =
+            !OffensiveItemDefinitionId.IsNone () &&
+            (OffensiveEquipmentSlot == EGridEquipmentSlot::MainHand ||
+                OffensiveEquipmentSlot == EGridEquipmentSlot::OffHand);
         return RequestId.IsValid () &&
             RoundNumber > 0 &&
             AttackerCharacterIndex != INDEX_NONE &&
@@ -112,7 +139,8 @@ struct FGridPlayerAttackRequest
             TargetMonsterId.IsValid () &&
             bCardinalFacing &&
             RangeCells > 0 &&
-            !AttackId.IsNone ();
+            !AttackId.IsNone () &&
+            (bUnarmed || bEquipped);
     }
 };
 
@@ -179,6 +207,41 @@ struct FGridAttackDefinition
         return MinDamage >= 0 &&
             MaxDamage >= MinDamage &&
             (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
+    }
+};
+
+USTRUCT (BlueprintType)
+struct FGridOffensiveEquipmentProfile
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Offense")
+    FName AttackId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Offense")
+    FGridAttackDefinition AttackDefinition;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Offense")
+    int32 FlatDamageBonus = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Equipment|Offense")
+    EGridAttackScalingAttribute DamageScalingAttribute =
+        EGridAttackScalingAttribute::Strength;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Equipment|Offense",
+        meta = (ClampMin = "1", ClampMax = "32"))
+    int32 RangeCells = 1;
+
+    bool IsValid () const
+    {
+        return !AttackId.IsNone () &&
+            AttackDefinition.IsValid () &&
+            AttackDefinition.MaxDamage > 0 &&
+            RangeCells >= 1 &&
+            RangeCells <= 32;
     }
 };
 

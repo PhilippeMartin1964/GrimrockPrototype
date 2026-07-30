@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridItemDefinitionAsset.generated.h"
 
@@ -67,6 +68,16 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Resistances")
     FGridDamageResistanceSet EquipmentResistanceBonus;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Offense")
+    bool bProvidesAttack = false;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Equipment|Offense",
+        meta = (EditCondition = "bProvidesAttack"))
+    FGridOffensiveEquipmentProfile OffensiveProfile;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Visual")
     TSoftObjectPtr<UTexture2D> Icon;
 
@@ -108,4 +119,10 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Item")
     bool CanEquipToSlot (EGridEquipmentSlot Slot) const;
+
+    UFUNCTION (BlueprintPure, Category = "Equipment|Offense")
+    bool HasValidOffensiveProfile () const;
+
+    UFUNCTION (BlueprintPure, Category = "Equipment|Offense")
+    bool CanProvideAttackFromSlot (EGridEquipmentSlot Slot) const;
 };

@@ -18,6 +18,22 @@
 
 namespace
 {
+    FGridOffensiveEquipmentProfile MakeMON11UnarmedProfile ()
+    {
+        FGridOffensiveEquipmentProfile Profile;
+        Profile.AttackId = TEXT ("Attack_Unarmed");
+        Profile.AttackDefinition.DamageType =
+            EGridDamageType::Physical;
+        Profile.AttackDefinition.PhysicalSubtype =
+            EGridPhysicalDamageSubtype::Bludgeoning;
+        Profile.AttackDefinition.MinDamage = 1;
+        Profile.AttackDefinition.MaxDamage = 3;
+        Profile.DamageScalingAttribute =
+            EGridAttackScalingAttribute::Strength;
+        Profile.RangeCells = 1;
+        return Profile;
+    }
+
     struct FGridMON11ResolutionWorld
     {
         UWorld* World = nullptr;
@@ -127,6 +143,8 @@ namespace
             Character.DerivedStats.Accuracy = 7;
             Party->PartyInventoryComponent->PartyInventoryState
                 .ActiveCharacters = { Character };
+            Party->PartyInventoryComponent->PartyInventoryState
+                .ActiveEquipment.SetNum (1);
             Party->PartyInventoryComponent->PartyInventoryState
                 .SelectedCharacterIndex = 0;
 
@@ -279,11 +297,14 @@ bool FGridMonsterMON11PlayerResolutionMappingTest::RunTest (
     FGridAttackSourceStats Source;
     FGridAttackTargetStats Target;
     FGridAttackDefinition Attack;
+    const FGridOffensiveEquipmentProfile UnarmedProfile =
+        MakeMON11UnarmedProfile ();
     TestTrue (
         TEXT ("The provisional resolution inputs are built"),
         Fixture.TurnManager->BuildPlayerAttackResolutionInputs (
             Summary,
             Fixture.Monster,
+            UnarmedProfile,
             Source,
             Target,
             Attack));
@@ -345,6 +366,13 @@ bool FGridMonsterMON11PlayerResolutionMappingTest::RunTest (
         TEXT ("The accepted request carries Attack_Unarmed"),
         Request.AttackId,
         FName (TEXT ("Attack_Unarmed")));
+    TestTrue (
+        TEXT ("The unarmed request carries no item identity"),
+        Request.OffensiveItemDefinitionId.IsNone ());
+    TestEqual (
+        TEXT ("The unarmed request carries no equipment slot"),
+        Request.OffensiveEquipmentSlot,
+        EGridEquipmentSlot::None);
     TestEqual (
         TEXT ("The resolved defense value is mapped exactly"),
         Result.DefenseValue,
