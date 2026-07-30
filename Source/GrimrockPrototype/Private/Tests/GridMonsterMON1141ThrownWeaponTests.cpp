@@ -262,7 +262,7 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
         TEXT ("The held shuriken uses a visible mesh"),
         Party->HeldItemActor
             ? Party->HeldItemActor->MeshComponent->
-                GetStaticMesh ()
+                GetStaticMesh ().Get ()
             : nullptr);
 
     AGridMonsterActor* TargetMonster =
