@@ -47,10 +47,26 @@ AGridThrownItemActor::AGridThrownItemActor ()
 void AGridThrownItemActor::Tick (float DeltaSeconds)
 {
     Super::Tick (DeltaSeconds);
-    if (!bStopsAtCombatPresentationTarget ||
-        bConversionAttempted)
+    if (bConversionAttempted)
     {
         SetActorTickEnabled (false);
+        return;
+    }
+
+    if (MeshComponent &&
+        !FMath::IsNearlyZero (
+            AppliedThrowVisualSpinDegreesPerSecond))
+    {
+        MeshComponent->AddLocalRotation (
+            FRotator (
+                0.0f,
+                0.0f,
+                AppliedThrowVisualSpinDegreesPerSecond *
+                    DeltaSeconds));
+    }
+
+    if (!bStopsAtCombatPresentationTarget)
+    {
         return;
     }
 
@@ -135,6 +151,66 @@ void AGridThrownItemActor::InitializeThrownItem (
     ConfigureAsAttachedItem ();
     SetItemLightsEnabled (InItemInstance.bLightsEnabled);
 
+    const FRotator VisualRotation =
+        InDefinition
+            ? InDefinition->ThrowVisualRelativeRotation
+            : FRotator (-90.0f, 0.0f, 0.0f);
+    FVector VisualScale =
+        InDefinition
+            ? InDefinition->ThrowVisualRelativeScale
+            : FVector (1.5f);
+    if (VisualScale.ContainsNaN ())
+    {
+        VisualScale = FVector (1.5f);
+    }
+    VisualScale.X = FMath::Clamp (
+        FMath::Abs (VisualScale.X),
+        0.01f,
+        100.0f);
+    VisualScale.Y = FMath::Clamp (
+        FMath::Abs (VisualScale.Y),
+        0.01f,
+        100.0f);
+    VisualScale.Z = FMath::Clamp (
+        FMath::Abs (VisualScale.Z),
+        0.01f,
+        100.0f);
+    AppliedThrowVisualSpinDegreesPerSecond =
+        InDefinition
+            ? FMath::Max (
+                0.0f,
+                InDefinition->
+                    ThrowVisualSpinDegreesPerSecond)
+            : 1080.0f;
+
+    if (MeshComponent)
+    {
+        MeshComponent->SetRelativeTransform (
+            FTransform (
+                VisualRotation,
+                FVector::ZeroVector,
+                VisualScale));
+        MeshComponent->SetVisibility (true, true);
+        MeshComponent->SetHiddenInGame (false, true);
+        MeshComponent->UpdateBounds ();
+    }
+    SetActorHiddenInGame (false);
+    SetActorTickEnabled (true);
+
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("GridThrownItem Visual Item=%s RuntimeId=%s Mesh=%s Rotation=%s Scale=%s Spin=%.1f"),
+        *InItemInstance.ItemDefinitionId.ToString (),
+        *InItemInstance.RuntimeObjectId.ToString (),
+        MeshComponent
+            ? *GetNameSafe (
+                MeshComponent->GetStaticMesh ())
+            : TEXT ("None"),
+        *VisualRotation.ToCompactString (),
+        *VisualScale.ToCompactString (),
+        AppliedThrowVisualSpinDegreesPerSecond);
+
     if (ProjectileMovementComponent)
     {
         ProjectileMovementComponent->Velocity = LaunchVelocity;
@@ -165,8 +241,7 @@ void AGridThrownItemActor::ConfigureCombatPresentationTarget (
     CombatPresentationTargetAcceptanceRadius =
         FMath::Clamp (AcceptanceRadius, 1.0f, 100.0f);
     PreviousPresentationLocation = GetActorLocation ();
-    SetActorTickEnabled (
-        bStopsAtCombatPresentationTarget);
+    SetActorTickEnabled (!bConversionAttempted);
 }
 
 void AGridThrownItemActor::HandleProjectileImpact (

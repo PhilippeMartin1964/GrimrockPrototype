@@ -137,6 +137,20 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
         WorldMesh);
     Definition->EquippedMesh = EquippedMesh;
     TestTrue (
+        TEXT ("The default throw rotation faces a flat mesh toward the source"),
+        Definition->ThrowVisualRelativeRotation.Equals (
+            FRotator (-90.0f, 0.0f, 0.0f),
+            KINDA_SMALL_NUMBER));
+    TestTrue (
+        TEXT ("The default throw scale is readable"),
+        Definition->ThrowVisualRelativeScale.Equals (
+            FVector (1.5f),
+            KINDA_SMALL_NUMBER));
+    TestEqual (
+        TEXT ("The default throw spin is configured"),
+        Definition->ThrowVisualSpinDegreesPerSecond,
+        1080.0f);
+    TestTrue (
         TEXT ("A throwable Throw presentation is valid"),
         Definition->HasValidPlayerAttackPresentation ());
     Definition->bThrowable = false;
@@ -255,15 +269,64 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
                 Character.CharacterId,
                 2);
 
-    TestTrue (
-        TEXT ("The held shuriken actor is created"),
-        Party->EquipHeldItem (TEXT ("Shuriken")));
+    Party->SyncHeldVisualFromSelectedCharacterEquipment ();
+    TestNull (
+        TEXT ("A non-light weapon has no permanent held visual"),
+        Party->HeldItemActor.Get ());
+
+    UGridItemDefinitionAsset* TorchDefinition =
+        NewObject<UGridItemDefinitionAsset> (Party);
+    TorchDefinition->ItemDefinitionId =
+        TEXT ("Item_Torch");
+    TorchDefinition->DisplayName =
+        FText::FromString (TEXT ("Torche"));
+    TorchDefinition->ItemType = EGridItemType::Torch;
+    TorchDefinition->Weight = 1.0f;
+    TorchDefinition->bCanEmitLight = true;
+    TorchDefinition->CompatibleEquipmentSlots.Add (
+        EGridEquipmentSlot::OffHand);
+    UStaticMesh* TorchMesh =
+        NewObject<UStaticMesh> (Party);
+    TorchDefinition->WorldMesh = TorchMesh;
+    Party->PartyInventoryComponent->
+        RegisterItemDefinition (TorchDefinition);
+
+    FGridItemInstance EquippedTorch;
+    EquippedTorch.RuntimeObjectId = FGuid::NewGuid ();
+    EquippedTorch.ItemDefinitionId =
+        TorchDefinition->ItemDefinitionId;
+    EquippedTorch.DisplayName =
+        TorchDefinition->DisplayName;
+    EquippedTorch.Quantity = 1;
+    EquippedTorch.Weight = TorchDefinition->Weight;
+    EquippedTorch.OwnerType =
+        EGridItemOwnerType::EquipmentSlot;
+    EquippedTorch.OwnerGuid = Character.CharacterId;
+    EquippedTorch.OwnerCharacterIndex = 0;
+    EquippedTorch.EquipmentSlot =
+        EGridEquipmentSlot::OffHand;
+    Party->PartyInventoryComponent->PartyInventoryState
+        .ActiveEquipment[0].OffHand = EquippedTorch;
+    Party->SyncHeldVisualFromSelectedCharacterEquipment ();
     TestNotNull (
-        TEXT ("The held shuriken uses a visible mesh"),
-        Party->HeldItemActor
-            ? Party->HeldItemActor->MeshComponent->
-                GetStaticMesh ().Get ()
-            : nullptr);
+        TEXT ("An equipped light keeps its held visual"),
+        Party->HeldItemActor.Get ());
+    TestEqual (
+        TEXT ("The held light uses its world mesh"),
+        Party->HeldItemActor &&
+            Party->HeldItemActor->MeshComponent
+                ? Party->HeldItemActor->MeshComponent->
+                    GetStaticMesh ().Get ()
+                : nullptr,
+        TorchMesh);
+
+    Party->PartyInventoryComponent->PartyInventoryState
+        .ActiveEquipment[0].OffHand =
+            FGridItemInstance ();
+    Party->SyncHeldVisualFromSelectedCharacterEquipment ();
+    TestNull (
+        TEXT ("Removing the light does not reveal the equipped weapon"),
+        Party->HeldItemActor.Get ());
 
     AGridMonsterActor* TargetMonster =
         TestWorld.World->SpawnActor<AGridMonsterActor> ();
@@ -357,6 +420,49 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
         TEXT ("The projectile carries exactly one shuriken"),
         ThrownItem->ThrownItemInstance.Quantity,
         1);
+    TestEqual (
+        TEXT ("The projectile uses the world mesh"),
+        ThrownItem->MeshComponent
+            ? ThrownItem->MeshComponent->
+                GetStaticMesh ().Get ()
+            : nullptr,
+        WorldMesh);
+    TestTrue (
+        TEXT ("The projectile mesh is visible"),
+        ThrownItem->MeshComponent &&
+            ThrownItem->MeshComponent->IsVisible () &&
+            !ThrownItem->IsHidden ());
+    TestTrue (
+        TEXT ("The projectile uses its readable visual scale"),
+        ThrownItem->MeshComponent &&
+            ThrownItem->MeshComponent->
+                GetRelativeScale3D ().Equals (
+                    Definition->
+                        ThrowVisualRelativeScale,
+                    KINDA_SMALL_NUMBER));
+    TestTrue (
+        TEXT ("The projectile turns the flat mesh toward the source"),
+        ThrownItem->MeshComponent &&
+            ThrownItem->MeshComponent->
+                GetRelativeRotation ().Equals (
+                    Definition->
+                        ThrowVisualRelativeRotation,
+                    KINDA_SMALL_NUMBER));
+    const FQuat RotationBeforeSpin =
+        ThrownItem->MeshComponent
+            ? ThrownItem->MeshComponent->
+                GetRelativeRotation ().Quaternion ()
+            : FQuat::Identity;
+    ThrownItem->Tick (1.0f / 60.0f);
+    TestFalse (
+        TEXT ("The projectile mesh spins while flying"),
+        ThrownItem->MeshComponent &&
+            ThrownItem->MeshComponent->
+                GetRelativeRotation ().Quaternion ().Equals (
+                    RotationBeforeSpin,
+                    KINDA_SMALL_NUMBER));
+    const FGuid ThrownRuntimeId =
+        ThrownItem->ThrownItemInstance.RuntimeObjectId;
 
     FGridAttackResult HitResult;
     HitResult.bHit = true;
@@ -385,6 +491,34 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
     TestTrue (
         TEXT ("The shuriken becomes a world pickup in the target cell"),
         Runtime->GetWorldItemWeightAtCell (1, 2) > 0.0f);
+    AGridItemActor* DroppedPickup = nullptr;
+    for (TActorIterator<AGridItemActor> It (
+            TestWorld.World);
+        It;
+        ++It)
+    {
+        AGridItemActor* Candidate = *It;
+        if (Candidate &&
+            !Candidate->IsActorBeingDestroyed () &&
+            !Candidate->IsA<AGridThrownItemActor> () &&
+            Candidate->GetRuntimeObjectId () ==
+                ThrownRuntimeId)
+        {
+            DroppedPickup = Candidate;
+            break;
+        }
+    }
+    TestNotNull (
+        TEXT ("The impact creates one recoverable pickup"),
+        DroppedPickup);
+    TestTrue (
+        TEXT ("The recoverable pickup keeps a visible world mesh"),
+        DroppedPickup &&
+            DroppedPickup->MeshComponent &&
+            DroppedPickup->MeshComponent->
+                GetStaticMesh ().Get () == WorldMesh &&
+            DroppedPickup->MeshComponent->IsVisible () &&
+            !DroppedPickup->IsHidden ());
 
     TurnManager->OnPlayerAttackRejected.Broadcast (
         0,
@@ -425,6 +559,109 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
     {
         LastThrownItem->Destroy ();
     }
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON1142PlacedItemRebuildUniquenessTest,
+    "Grimrock.Monsters.MON11.Presentation.PlacedItemRebuildUniqueness",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON1142PlacedItemRebuildUniquenessTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    FGridMON1141TestWorld TestWorld;
+    TestNotNull (
+        TEXT ("The transient rebuild world is created"),
+        TestWorld.World);
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<
+            AGridLevelRuntimeActor> ();
+    UGridLevelAsset* LevelAsset =
+        NewObject<UGridLevelAsset> (Runtime);
+    LevelAsset->Width = 2;
+    LevelAsset->Height = 2;
+    LevelAsset->EnsureCellCount ();
+    for (FGridLevelCellData& Cell : LevelAsset->Cells)
+    {
+        Cell.CellType = EGridCellType::Floor;
+        Cell.bBlocksOccupancy = false;
+    }
+
+    UGridItemDefinitionAsset* Definition =
+        NewObject<UGridItemDefinitionAsset> (Runtime);
+    Definition->ItemDefinitionId = TEXT ("Shuriken");
+    Definition->DisplayName =
+        FText::FromString (TEXT ("Shuriken"));
+    Definition->ItemType = EGridItemType::Weapon;
+    Definition->Weight = 0.1f;
+    Definition->WorldMesh =
+        NewObject<UStaticMesh> (Runtime);
+
+    const FGuid PlacedObjectId = FGuid::NewGuid ();
+    FGridLevelObjectData PlacedItem;
+    PlacedItem.ObjectId = PlacedObjectId;
+    PlacedItem.Type = EGridLevelObjectType::Item;
+    PlacedItem.CellX = 0;
+    PlacedItem.CellY = 0;
+    PlacedItem.bInitiallyEnabled = true;
+    PlacedItem.ItemDefinitionAsset = Definition;
+    PlacedItem.ItemDefinitionId =
+        Definition->ItemDefinitionId;
+    LevelAsset->Objects.Add (PlacedItem);
+    Runtime->LevelAsset = LevelAsset;
+
+    const auto CountLivePlacedItems =
+        [&TestWorld, &PlacedObjectId] ()
+    {
+        int32 Count = 0;
+        for (TActorIterator<AGridItemActor> It (
+                TestWorld.World);
+            It;
+            ++It)
+        {
+            const AGridItemActor* Item = *It;
+            if (Item &&
+                !Item->IsActorBeingDestroyed () &&
+                Item->GetRuntimeObjectId () ==
+                    PlacedObjectId)
+            {
+                ++Count;
+            }
+        }
+        return Count;
+    };
+
+    Runtime->RebuildLevel (
+        EGridRuntimeRebuildMode::Full);
+    TestEqual (
+        TEXT ("The first runtime rebuild has generation one"),
+        Runtime->GetRuntimeObjectRebuildGeneration (),
+        1);
+    TestEqual (
+        TEXT ("The first rebuild creates one placed shuriken"),
+        CountLivePlacedItems (),
+        1);
+
+    Runtime->RebuildLevel (
+        EGridRuntimeRebuildMode::Full);
+    TestEqual (
+        TEXT ("The deferred runtime rebuild has generation two"),
+        Runtime->GetRuntimeObjectRebuildGeneration (),
+        2);
+    TestEqual (
+        TEXT ("A second rebuild replaces rather than duplicates the item"),
+        CountLivePlacedItems (),
+        1);
 
     return true;
 }

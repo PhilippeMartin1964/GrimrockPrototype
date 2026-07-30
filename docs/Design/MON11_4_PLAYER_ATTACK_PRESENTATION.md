@@ -85,7 +85,7 @@ Les composants Niagara sont auto-détruits et conservés uniquement par
 références faibles. Ils sont arrêtés à la fin du combat et pendant le
 nettoyage runtime.
 
-## Mouvement de l’objet tenu
+## Mouvement de l’objet tenu et HUD futur
 
 Pour `Swing`, `Thrust` et `Cast`, le Tick du composant est désactivé par
 défaut et actif uniquement pendant un mouvement. Le transform relatif initial
@@ -104,9 +104,37 @@ donc jamais comme un boomerang. Une unité équipée est portée par un
 dans sa cellule ; sur un miss, il poursuit sa trajectoire jusqu’au décor, au
 sol ou à l’expiration. Il devient alors un objet récupérable.
 
-`EquipHeldItem()` résout désormais la définition réelle et utilise
-`EquippedMesh`, avec repli sur `WorldMesh`. `HeldItemActor` reste un visuel :
-la propriété réelle demeure dans `UGridPartyInventoryComponent`.
+Depuis MON11.4.2, une arme non lumineuse n’est plus affichée en permanence
+devant la caméra. `SyncHeldVisualFromSelectedCharacterEquipment()` ne crée un
+`HeldItemActor` que pour un objet équipé qui émet réellement de la lumière,
+par exemple la torche. Les armes et les sorts seront représentés par les slots
+du HUD de combat de MON12. L’équipement réel demeure exclusivement dans
+`UGridPartyInventoryComponent`.
+
+`EquipHeldItem()` et `EquippedMesh` restent disponibles pour des usages
+explicites futurs, mais ne font plus partie de la synchronisation normale
+d’une arme équipée.
+
+## Visuel des armes de jet
+
+MON11.4.2 applique au mesh du projectile un transform distinct du pickup au
+sol :
+
+- rotation locale par défaut `(-90, 0, 0)` pour présenter un mesh plat vers
+  la source pendant que l’axe X de l’acteur suit la vélocité ;
+- échelle locale par défaut `(1.5, 1.5, 1.5)` ;
+- rotation visuelle de `1080` degrés par seconde pendant tout le vol, hit ou
+  miss ;
+- visibilité forcée sur l’acteur et son `MeshComponent`.
+
+Ces valeurs sont exposées dans `UGridItemDefinitionAsset` sous
+`Throw|Visual`. Elles peuvent être adaptées par arme sans modifier la
+trajectoire, l’impact ou les dégâts. Le projectile démarre légèrement devant,
+à droite et sous la caméra, sans dépendre d’un objet tenu.
+
+À l’impact, le projectile est détruit après transfert de la même instance
+d’objet vers un `AGridItemActor` récupérable. Le pickup conserve le
+`WorldMesh` et son transform de dépôt normal.
 
 ## Feedback accepté et refusé
 
@@ -149,42 +177,60 @@ présentation du groupe ajoute seulement l’impact joueur et le feedback.
 | `PeakLocationOffset` | `(30, 0, -4)` |
 | `PeakRotationOffset` | `(-20, 0, 135)` |
 | `FeedbackDurationSeconds` | `1.35` |
+| `ThrowVisualRelativeRotation` | `(-90, 0, 0)` |
+| `ThrowVisualRelativeScale` | `(1.5, 1.5, 1.5)` |
+| `ThrowVisualSpinDegreesPerSecond` | `1080` |
 
 Aucun son ou Niagara factice n’est assigné. Les listes média restent vides si
 aucun asset spécifiquement approprié au shuriken n’est disponible.
 
 ## Tests
 
-Sept tests transitoires, sans chargement d’asset Content, couvrent :
+Huit tests transitoires, sans chargement d’asset Content, couvrent :
 
 - validation du profil et indépendance du gameplay ;
 - ordre Attack/Impact/feedback ;
 - séparation des médias Attack, hit et miss ;
 - mouvement et restauration de l’objet tenu ;
 - textes de feedback et refus atomiques ;
-- exclusivité des réactions Hurt/Death et absence de doublon.
+- exclusivité des réactions Hurt/Death et absence de doublon ;
 - préférence `EquippedMesh`, transfert atomique d’une unité, absence de
-  mouvement boomerang, création du projectile et conversion en pickup.
+  mouvement boomerang, création du projectile et conversion en pickup ;
+- absence de visuel permanent pour une arme non lumineuse, conservation de
+  l’exception lumineuse de la torche, orientation, échelle, visibilité et
+  rotation du projectile, visibilité du pickup ;
+- remplacement atomique des objets placés lors de deux reconstructions
+  runtime successives.
+
+Deux lignes `Placed item spawned` portant le même `ObjectId` peuvent être
+produites au démarrage d’une nouvelle partie : la génération initiale est
+vidée pendant le wizard, puis une nouvelle génération est construite après
+validation du personnage. Les logs MON11.4.2 indiquent désormais
+`Runtime`, `RebuildGeneration` et `ActiveItemCount`. Il ne s’agit pas d’un
+doublon simultané : le test vérifie qu’une seule instance active subsiste.
 
 ## Procédure PIE
 
-1. Équiper le shuriken existant en `MainHand`.
+1. Équiper le shuriken existant en `MainHand` et vérifier qu’aucun shuriken
+   permanent n’apparaît devant la caméra.
 2. Placer le Rat géant à deux ou trois cellules dans l’axe.
 3. Démarrer le combat et attendre `PlayerPhase`.
 4. Appuyer sur NumPad 7 et vérifier `Attack_Shuriken`, `Throw`, Attack puis
-   Impact, le départ réel du shuriken et le texte français.
+   Impact, le départ réel et visible du shuriken et le texte français.
 5. Vérifier `ThrownItemLaunchRequests=1`,
    `ThrownItemLaunchStarted=true`, `ThrownItemLaunchCount=1` et
    `HeldItemMotionStarted=false`.
-6. Vérifier l’armure puis les PV sur hit, et l’absence de Hurt/Death sur miss.
-7. Vérifier que la pile équipée diminue d’une unité et que le shuriken devient
-   récupérable dans le monde.
-8. Tuer le Rat et vérifier une seule réaction Death avant Victory.
-9. Réessayer avec le même personnage et vérifier
+6. Vérifier le diagnostic `GridThrownItem Visual` : `Mesh=SM_Shuriken_01`,
+   `Rotation=P=-90`, `Scale=X=1.5 Y=1.5 Z=1.5` et `Spin=1080.0`.
+7. Vérifier l’armure puis les PV sur hit, et l’absence de Hurt/Death sur miss.
+8. Vérifier que la pile équipée diminue d’une unité et que le shuriken devient
+   visible et récupérable dans le monde.
+9. Tuer le Rat et vérifier une seule réaction Death avant Victory.
+10. Réessayer avec le même personnage et vérifier
    `AttackerAlreadyActed`.
-10. Interposer un mur et vérifier `PassageBlocked` sans média, projectile ni
+11. Interposer un mur et vérifier `PassageBlocked` sans média, projectile ni
     mutation d’inventaire.
-11. Retirer le shuriken et vérifier `Attack_Unarmed` adjacent sans mouvement.
+12. Retirer le shuriken et vérifier `Attack_Unarmed` adjacent sans mouvement.
 
 Si les listes média sont vides, les diagnostics doivent indiquer
 `Sound=None` et `Niagara=None` ; mouvement et feedback restent fonctionnels.

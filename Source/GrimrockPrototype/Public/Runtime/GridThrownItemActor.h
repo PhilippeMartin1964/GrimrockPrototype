@@ -69,6 +69,9 @@ public:
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Projectile|Combat Presentation")
     float CombatPresentationTargetAcceptanceRadius = 24.0f;
 
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Projectile|Visual")
+    float AppliedThrowVisualSpinDegreesPerSecond = 0.0f;
+
 protected:
     virtual void BeginPlay () override;
 

@@ -1932,25 +1932,10 @@ AGrimrockPartyPawn::TryLaunchEquippedItemForAttack (
         return nullptr;
     }
 
-    const bool bVisibleItemMatches =
-        PartyInventoryComponent->GetSelectedCharacterIndex () ==
-            CharacterIndex &&
-        HeldItemActor &&
-        GetHeldItemDefinitionId () ==
-            ExpectedItemDefinitionId;
     FVector StartLocation =
         Camera
             ? Camera->GetComponentLocation ()
             : GetActorLocation ();
-    if (bVisibleItemMatches)
-    {
-        StartLocation =
-            HeldItemActor->MeshComponent &&
-                HeldItemActor->MeshComponent->GetStaticMesh ()
-                ? HeldItemActor->MeshComponent->Bounds.Origin
-                : HeldItemActor->GetActorLocation ();
-    }
-
     FVector ThrowDirection =
         (TargetWorldLocation - StartLocation).GetSafeNormal ();
     if (ThrowDirection.IsNearlyZero ())
@@ -1959,10 +1944,17 @@ AGrimrockPartyPawn::TryLaunchEquippedItemForAttack (
             ? Camera->GetForwardVector ()
             : GetActorForwardVector ();
     }
-    if (!bVisibleItemMatches)
-    {
-        StartLocation += ThrowDirection * 60.0f;
-    }
+    const FVector ViewRight =
+        Camera
+            ? Camera->GetRightVector ()
+            : GetActorRightVector ();
+    StartLocation +=
+        ThrowDirection * 60.0f +
+        ViewRight * 18.0f -
+        FVector::UpVector * 15.0f;
+    ThrowDirection =
+        (TargetWorldLocation - StartLocation)
+            .GetSafeNormal ();
     ThrowDirection = (
         ThrowDirection +
         FVector::UpVector *
@@ -2336,20 +2328,23 @@ void AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment ()
         VisualItem = &OffHandItem;
         VisualSlot = EGridEquipmentSlot::OffHand;
     }
-    else if (bHasMainHandItem)
-    {
-        VisualItem = &MainHandItem;
-        VisualSlot = EGridEquipmentSlot::MainHand;
-    }
-    else if (bHasOffHandItem)
-    {
-        VisualItem = &OffHandItem;
-        VisualSlot = EGridEquipmentSlot::OffHand;
-    }
 
     if (!VisualItem || VisualSlot == EGridEquipmentSlot::None)
     {
         ClearHeldItem ();
+        UE_LOG (
+            LogTemp,
+            Verbose,
+            TEXT ("GridInventory HeldVisual Sync None Character=%d MainHand=%s MainLight=%s OffHand=%s OffLight=%s Reason=NoEquippedLight"),
+            CharacterIndex,
+            bHasMainHandItem
+                ? *MainHandItem.ItemDefinitionId.ToString ()
+                : TEXT ("None"),
+            bMainLight ? TEXT ("true") : TEXT ("false"),
+            bHasOffHandItem
+                ? *OffHandItem.ItemDefinitionId.ToString ()
+                : TEXT ("None"),
+            bOffLight ? TEXT ("true") : TEXT ("false"));
         return;
     }
 

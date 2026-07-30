@@ -1892,6 +1892,7 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     {
         if (bIsGameWorld)
         {
+            ++RuntimeObjectRebuildGeneration;
             RebuildRuntimeObjects ();
         }
     }
@@ -3768,7 +3769,15 @@ void AGridLevelRuntimeActor::AddPlacedItemActor (const FGridLevelObjectData& Obj
     Entry.ItemDefinitionId = ItemDefinitionId;
     Entry.Quantity = 1;
     SpawnedItemEntries.Add (Entry);
-        UE_LOG (LogTemp, Log, TEXT ("Placed item spawned: %s at object %s."), *ItemDefinitionId.ToString (), *ObjectData.ObjectId.ToString ());
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("Placed item spawned: %s at object %s. Runtime=%s RebuildGeneration=%d ActiveItemCount=%d"),
+        *ItemDefinitionId.ToString (),
+        *ObjectData.ObjectId.ToString (),
+        *GetName (),
+        RuntimeObjectRebuildGeneration,
+        SpawnedItemEntries.Num ());
 }
 
 void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& ObjectData)

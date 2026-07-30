@@ -117,6 +117,19 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
     float ThrowImpactDropOffset = 12.0f;
 
+    /**
+     * Local projectile-mesh transform. The default turns a flat XY mesh
+     * toward the source while the actor X axis follows its velocity.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (EditCondition = "bThrowable"))
+    FRotator ThrowVisualRelativeRotation = FRotator (-90.0f, 0.0f, 0.0f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (EditCondition = "bThrowable"))
+    FVector ThrowVisualRelativeScale = FVector (1.5f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Throw|Visual", meta = (EditCondition = "bThrowable", ClampMin = "0.0"))
+    float ThrowVisualSpinDegreesPerSecond = 1080.0f;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Torch")
     bool bCanEmitLight = false;
 

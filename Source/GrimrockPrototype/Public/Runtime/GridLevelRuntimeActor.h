@@ -259,6 +259,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Runtime|Rendering")
     bool ShouldHideCellFloor (int32 CellX, int32 CellY) const;
 
+    UFUNCTION (BlueprintPure, Category = "Runtime|Diagnostics")
+    int32 GetRuntimeObjectRebuildGeneration () const
+    {
+        return RuntimeObjectRebuildGeneration;
+    }
+
     UFUNCTION (BlueprintCallable, Category = "Runtime|Interaction")
     bool HasDoorOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
 
@@ -447,6 +453,8 @@ private:
 
     UPROPERTY (Transient)
     TArray<FGridSpawnedItemRuntimeEntry> SpawnedItemEntries;
+
+    int32 RuntimeObjectRebuildGeneration = 0;
 
     UPROPERTY (Transient)
     TObjectPtr<UReadableMessageWidget> ActiveReadableMessageWidget;
