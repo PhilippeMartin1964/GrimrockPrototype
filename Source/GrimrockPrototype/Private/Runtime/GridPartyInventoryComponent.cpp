@@ -353,6 +353,12 @@ UGridPartyInventoryComponent::UGridPartyInventoryComponent ()
     PartyInventoryState.MaxActiveCharacters = DefaultMaxActiveCharacters;
 }
 
+void UGridPartyInventoryComponent::NotifyPartyInventoryChanged (
+    int32 CharacterIndex)
+{
+    OnPartyInventoryChanged.Broadcast (CharacterIndex);
+}
+
 void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded ()
 {
     PartyInventoryState.MaxActiveCharacters = FMath::Max (1, DefaultMaxActiveCharacters);
@@ -438,6 +444,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState (
     if (!ValidateInventoryOwnership (OwnershipError))
     {
         PartyInventoryState = PreviousState;
+        NotifyPartyInventoryChanged (INDEX_NONE);
         OutError = FText::FromString (
             FString::Printf (
                 TEXT ("L'ownership de la sauvegarde est invalide : %s"),
@@ -527,6 +534,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
     if (!ValidateInventoryOwnership (OwnershipError))
     {
         PartyInventoryState = PreviousPartyState;
+        NotifyPartyInventoryChanged (INDEX_NONE);
         OutError = FText::FromString (
             FString::Printf (TEXT ("La création du personnage a échoué lors de la validation de l'ownership : %s"), *OwnershipError));
         return false;
@@ -567,6 +575,10 @@ bool UGridPartyInventoryComponent::SetSelectedCharacterIndex (int32 NewIndex)
     }
 
     PartyInventoryState.SelectedCharacterIndex = NewIndex;
+    if (OldIndex != NewIndex)
+    {
+        NotifyPartyInventoryChanged (INDEX_NONE);
+    }
     UE_LOG (LogTemp, Log, TEXT ("GridInventory SelectedCharacter Changed Old=%d New=%d Result=true"),
         OldIndex,
         NewIndex);
@@ -935,6 +947,7 @@ bool UGridPartyInventoryComponent::RegisterItemDefinition (UGridItemDefinitionAs
     }
 
     RuntimeItemDefinitionsById.Add (Definition->ItemDefinitionId, Definition);
+    NotifyPartyInventoryChanged (INDEX_NONE);
 
     UE_LOG (LogTemp, Log, TEXT ("GridInventory Registered ItemDefinition=%s Asset=%s"),
         *Definition->ItemDefinitionId.ToString (),
@@ -2011,6 +2024,7 @@ void UGridPartyInventoryComponent::RecalculateCharacterWeight (int32 CharacterIn
     CharacterState.MaxCarryWeight =
         URPGCharacterRulesLibrary::CalculateMaxCarryWeight (CharacterState.Attributes);
     CharacterState.CurrentWeight = TotalWeight;
+    NotifyPartyInventoryChanged (CharacterIndex);
 }
 
 void UGridPartyInventoryComponent::RecalculateAllWeights ()

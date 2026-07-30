@@ -19,6 +19,7 @@ class AGridThrownItemActor;
 class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
+class UGridCombatActionPanelWidget;
 class UGrimrockMenuWidget;
 class URPGCharacterCreationWidget;
 
@@ -134,6 +135,28 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
     bool bInventoryWidgetVisible = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
+    TSubclassOf<UGridCombatActionPanelWidget>
+        CombatActionPanelWidgetClass;
+
+    /**
+     * INDEX_NONE follows the selected character. An explicit index associates
+     * this first panel with a fixed party member and prepares MON12.3.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
+    int32 CombatActionPanelCharacterIndex = INDEX_NONE;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|UI",
+        meta = (ClampMin = "0"))
+    int32 CombatActionPanelZOrder = 50;
+
+    UPROPERTY (Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Combat|UI")
+    TObjectPtr<UGridCombatActionPanelWidget>
+        CombatActionPanelWidgetInstance;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
@@ -263,6 +286,15 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|UI")
     UGridInventoryWidget* GetInventoryWidget () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|UI")
+    bool ShowCombatActionPanelWidget ();
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|UI")
+    void HideCombatActionPanelWidget ();
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|UI")
+    void RefreshCombatActionPanelWidget ();
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     void ShowInitialCharacterCreationWidget ();

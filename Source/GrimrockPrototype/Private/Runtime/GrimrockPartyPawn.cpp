@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -19,6 +20,7 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
@@ -216,6 +218,7 @@ void AGrimrockPartyPawn::BeginPlay ()
         }
     }
     ApplyCameraLocalViewOffset ();
+    ShowCombatActionPanelWidget ();
 
     if (bLoadedSavedGame)
     {
@@ -235,6 +238,8 @@ void AGrimrockPartyPawn::BeginPlay ()
 
 void AGrimrockPartyPawn::EndPlay (const EEndPlayReason::Type EndPlayReason)
 {
+    HideCombatActionPanelWidget ();
+
     if (PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         FText SaveError;
@@ -357,6 +362,19 @@ void AGrimrockPartyPawn::SetGridStart (
     Facing = StartFacing;
 
     SnapToCurrentCell ();
+    if (CombatActionPanelWidgetInstance)
+    {
+        UGridTurnManagerComponent* TurnManager =
+            IsValid (LevelRuntimeActor)
+                ? LevelRuntimeActor
+                    ->FindComponentByClass<UGridTurnManagerComponent> ()
+                : nullptr;
+        CombatActionPanelWidgetInstance
+            ->InitializeCombatActionPanel (
+                this,
+                CombatActionPanelCharacterIndex,
+                TurnManager);
+    }
 }
 
 void AGrimrockPartyPawn::SnapToCurrentCell ()
@@ -1138,6 +1156,78 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
 UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
 {
     return MenuWidgetInstance ? MenuWidgetInstance->GetInventoryWidget () : nullptr;
+}
+
+bool AGrimrockPartyPawn::ShowCombatActionPanelWidget ()
+{
+    if (!CombatActionPanelWidgetClass)
+    {
+        return false;
+    }
+
+    APlayerController* PlayerController =
+        Cast<APlayerController> (GetController ());
+    if (!PlayerController)
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("GridCombatActionPanel Show Failed Pawn=%s Reason=NoPlayerController"),
+            *GetName ());
+        return false;
+    }
+
+    if (!CombatActionPanelWidgetInstance)
+    {
+        CombatActionPanelWidgetInstance =
+            CreateWidget<UGridCombatActionPanelWidget> (
+                PlayerController,
+                CombatActionPanelWidgetClass);
+    }
+    if (!CombatActionPanelWidgetInstance)
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("GridCombatActionPanel Show Failed Pawn=%s Reason=CreateWidgetFailed"),
+            *GetName ());
+        return false;
+    }
+
+    UGridTurnManagerComponent* TurnManager =
+        IsValid (LevelRuntimeActor)
+            ? LevelRuntimeActor
+                ->FindComponentByClass<UGridTurnManagerComponent> ()
+            : nullptr;
+    CombatActionPanelWidgetInstance->InitializeCombatActionPanel (
+        this,
+        CombatActionPanelCharacterIndex,
+        TurnManager);
+    if (!CombatActionPanelWidgetInstance->IsInViewport ())
+    {
+        CombatActionPanelWidgetInstance->AddToViewport (
+            CombatActionPanelZOrder);
+    }
+    return true;
+}
+
+void AGrimrockPartyPawn::HideCombatActionPanelWidget ()
+{
+    if (!CombatActionPanelWidgetInstance)
+    {
+        return;
+    }
+
+    CombatActionPanelWidgetInstance->RemoveFromParent ();
+    CombatActionPanelWidgetInstance = nullptr;
+}
+
+void AGrimrockPartyPawn::RefreshCombatActionPanelWidget ()
+{
+    if (CombatActionPanelWidgetInstance)
+    {
+        CombatActionPanelWidgetInstance->RefreshFromSources ();
+    }
 }
 
 void AGrimrockPartyPawn::CloseCharacterCreationWidget ()

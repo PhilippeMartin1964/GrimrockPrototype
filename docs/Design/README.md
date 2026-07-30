@@ -24,6 +24,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 18. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
 19. `05_CODEX_TASKS.md` - historical Codex task templates.
 20. `99_DECISIONS_LOG.md` - chronological decision log.
+21. `MON12_1_COMBAT_ACTION_PANEL.md` - current reusable combat action panel architecture, Unreal setup and PIE validation.
 
 ## Document Status
 
@@ -48,6 +49,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` | Checklist | UI/runtime consistency checklist for Selected Object, CONNECTORS, orientation, DataAssets and runtime. |
 | `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` | Current / Reference | Practical table explaining every current `UGridObjectArchetypeAsset` and `DefaultBehavior` parameter. |
 | `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | Current / Production Guide | Asset creation workflow for inventory item definitions, placeable pickup archetypes, palette entries and receptacle content. |
+| `MON12_1_COMBAT_ACTION_PANEL.md` | Current / Production Guide | Read-only per-member combat panel, event-driven refresh, Widget Blueprint construction and PIE validation. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Documents With Diagrams

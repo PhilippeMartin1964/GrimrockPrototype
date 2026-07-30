@@ -379,6 +379,13 @@ public:
     UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
     bool HasCharacterCommittedAttackThisPhase (int32 CharacterIndex) const;
 
+    /**
+     * Authoritative MON12 query for whether this party member may commit a
+     * personal combat action now. UI code must not duplicate these rules.
+     */
+    UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
+    bool CanCharacterAct (int32 CharacterIndex) const;
+
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     void AbortCombat ();
 

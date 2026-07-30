@@ -604,6 +604,37 @@ bool UGridTurnManagerComponent::HasCharacterCommittedAttackThisPhase (
             Characters[CharacterIndex].CharacterId);
 }
 
+bool UGridTurnManagerComponent::CanCharacterAct (
+    int32 CharacterIndex) const
+{
+    if (!bInitialized ||
+        !bCombatActive ||
+        CurrentPhase != EGridCombatPhase::PlayerPhase ||
+        bPartyInputLocked ||
+        bPlayerAttackResolutionInProgress ||
+        !IsPartyAtRest () ||
+        !IsValid (PartyPawn) ||
+        !IsValid (PartyPawn->PartyInventoryComponent))
+    {
+        return false;
+    }
+
+    const TArray<FGridCharacterInventoryState>& Characters =
+        PartyPawn->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters;
+    if (!Characters.IsValidIndex (CharacterIndex))
+    {
+        return false;
+    }
+
+    const FGridCharacterInventoryState& Character =
+        Characters[CharacterIndex];
+    return Character.CharacterId.IsValid () &&
+        Character.DerivedStats.CurrentHealth > 0 &&
+        !PlayerAttackCommittedCharacterIds.Contains (
+            Character.CharacterId);
+}
+
 bool UGridTurnManagerComponent::RejectPlayerAttack (
     int32 AttackerCharacterIndex,
     EGridPlayerAttackRejectReason RejectReason,

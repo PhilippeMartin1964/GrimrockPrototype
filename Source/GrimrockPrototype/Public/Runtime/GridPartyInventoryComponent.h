@@ -8,6 +8,10 @@
 class UGridItemDefinitionAsset;
 class UTexture2D;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridPartyInventoryChangedSignature,
+    int32, CharacterIndex);
+
 UCLASS (ClassGroup = (Grimrock), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridPartyInventoryComponent : public UActorComponent
 {
@@ -24,6 +28,17 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Party")
     int32 DefaultMaxActiveCharacters = 6;
+
+    /**
+     * Presentation notification only. Receivers must read the current state
+     * from this component; the delegate never carries a duplicate inventory.
+     * INDEX_NONE means that the party-wide selection or registry changed.
+     */
+    UPROPERTY (BlueprintAssignable, Category = "Inventory|Events")
+    FGridPartyInventoryChangedSignature OnPartyInventoryChanged;
+
+    UFUNCTION (BlueprintCallable, Category = "Inventory|Events")
+    void NotifyPartyInventoryChanged (int32 CharacterIndex = -1);
 
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     void InitializeDefaultPartyIfNeeded ();

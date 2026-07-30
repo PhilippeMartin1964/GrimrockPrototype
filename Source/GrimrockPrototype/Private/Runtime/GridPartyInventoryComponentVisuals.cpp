@@ -19,6 +19,7 @@ bool UGridPartyInventoryComponent::SetCharacterVisualSelection (
     CharacterState.PortraitVariantId = PortraitVariantId;
     CharacterState.Portrait = Portrait;
     CharacterState.ClassIcon = ClassIcon;
+    NotifyPartyInventoryChanged (CharacterIndex);
     return true;
 }
 
