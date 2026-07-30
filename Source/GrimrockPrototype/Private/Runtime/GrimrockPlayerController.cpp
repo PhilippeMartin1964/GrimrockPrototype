@@ -8,13 +8,16 @@
 #include "Engine/EngineTypes.h"
 #include "EngineUtils.h"
 #include "InputCoreTypes.h"
+#include "NiagaraSystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
+#include "Sound/SoundBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridMouse, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogGridTurnManagerInput, Log, All);
@@ -337,8 +340,13 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
         ? StaticEnum<EGridPlayerAttackRejectReason> ()->GetNameStringByValue (
             static_cast<int64> (RejectReason))
         : TEXT ("Unknown");
+    const UGridPlayerAttackPresentationComponent* Presentation =
+        TurnManager && TurnManager->GetOwner ()
+            ? TurnManager->GetOwner ()->FindComponentByClass<
+                UGridPlayerAttackPresentationComponent> ()
+            : nullptr;
     const FString Message = FString::Printf (
-        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Item=%s Slot=%s Range=%d Target=%s TargetCell=(%d,%d) DamageType=%s PhysicalSubtype=%s Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s RawDamage=%d ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s"),
+        TEXT ("[GridPlayerAttack] Accepted=%s Reason=%s Attacker=%d Attack=%s Item=%s Slot=%s Range=%d Target=%s TargetCell=(%d,%d) DamageType=%s PhysicalSubtype=%s Natural=%d Roll=%d Defense=%d Hit=%s Critical=%s RawDamage=%d ArmorPhysical=%d ArmorMagical=%d HealthDamage=%d Health=%d->%d TargetDefeated=%s PresentationAttackCount=%d PresentationImpactHitCount=%d PresentationImpactMissCount=%d FeedbackCount=%d LastPresentationEvent=%s LastFeedbackOutcome=%s Sound=%s Niagara=%s HeldItemMotionStarted=%s"),
         bAccepted ? TEXT ("true") : TEXT ("false"),
         *ReasonText,
         Request.AttackerCharacterIndex,
@@ -365,7 +373,30 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
         Result.TargetHealthBefore > 0 &&
             Result.TargetHealthAfter <= 0
                 ? TEXT ("true")
-                : TEXT ("false"));
+                : TEXT ("false"),
+        Presentation ? Presentation->PresentationAttackCount : 0,
+        Presentation ? Presentation->PresentationImpactHitCount : 0,
+        Presentation ? Presentation->PresentationImpactMissCount : 0,
+        Presentation ? Presentation->FeedbackCount : 0,
+        Presentation
+            ? *UEnum::GetValueAsString (
+                Presentation->LastPresentationRequest.Event)
+            : TEXT ("None"),
+        Presentation
+            ? *UEnum::GetValueAsString (
+                Presentation->LastFeedbackRequest.Outcome)
+            : TEXT ("None"),
+        Presentation
+            ? *GetNameSafe (
+                Presentation->LastPresentationRequest.ResolvedSound.Get ())
+            : TEXT ("None"),
+        Presentation
+            ? *GetNameSafe (
+                Presentation->LastPresentationRequest.ResolvedSystem.Get ())
+            : TEXT ("None"),
+        Presentation && Presentation->bHeldItemMotionStarted
+            ? TEXT ("true")
+            : TEXT ("false"));
 
     UE_LOG (LogGridTurnManagerInput, Log, TEXT ("%s"), *Message);
     if (GEngine)

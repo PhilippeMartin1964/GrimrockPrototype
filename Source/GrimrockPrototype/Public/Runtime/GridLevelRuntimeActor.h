@@ -8,6 +8,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridDungeonRuntimeState.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationTypes.h"
 #include "GridLevelRuntimeActor.generated.h"
 
 class AGridEditorPreviewObjectActor;
@@ -22,6 +23,7 @@ class AGridMonsterActor;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
+class UGridPlayerAttackPresentationComponent;
 class UReadableMessageWidget;
 class UUserWidget;
 
@@ -93,6 +95,10 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UGridEditorPreviewComponent> EditorPreviewComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UGridPlayerAttackPresentationComponent>
+        PlayerAttackPresentationComponent;
 
 public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Level")
@@ -202,6 +208,23 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "UI")
     void HideInteractionFeedback ();
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "UI|Combat")
+    TSubclassOf<UReadableMessageWidget> CombatFeedbackWidgetClass;
+
+    UFUNCTION (BlueprintCallable, Category = "UI|Combat")
+    void ShowCombatFeedback (
+        const FGridPlayerAttackFeedbackRequest& Feedback);
+
+    UFUNCTION (BlueprintCallable, Category = "UI|Combat")
+    void HideCombatFeedback ();
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Player Attack|Presentation")
+    UGridPlayerAttackPresentationComponent*
+        GetPlayerAttackPresentationComponent () const
+    {
+        return PlayerAttackPresentationComponent;
+    }
 
 public:
     virtual void OnConstruction (const FTransform& Transform) override;
@@ -391,6 +414,8 @@ protected:
     bool ShouldSuppressStandardWallForEdge (int32 X, int32 Y, EGridEdge Edge) const;
 
     virtual void BeginPlay () override;
+    virtual void EndPlay (
+        const EEndPlayReason::Type EndPlayReason) override;
 
 private:
     void GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;
@@ -423,6 +448,11 @@ private:
     TObjectPtr<UReadableMessageWidget> ActiveInteractionFeedbackWidget;
 
     FTimerHandle InteractionFeedbackTimerHandle;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UReadableMessageWidget> ActiveCombatFeedbackWidget;
+
+    FTimerHandle CombatFeedbackTimerHandle;
 
     static bool IsSafeRuntimeRenderTransform (const FTransform& Transform);
     void LogUnsafeInstanceTransform (const TCHAR* FunctionName, const UInstancedStaticMeshComponent* Component,

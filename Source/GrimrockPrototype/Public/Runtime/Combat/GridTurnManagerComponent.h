@@ -147,6 +147,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
     AGridMonsterActor*, TargetMonster,
     FGridAttackResult, Result);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
+    FGridPlayerAttackRejectedSignature,
+    int32, AttackerCharacterIndex,
+    EGridPlayerAttackRejectReason, RejectReason);
+
 /**
  * Central combat phase and monster-turn sequencer.
  *
@@ -333,6 +338,16 @@ public:
 
     UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
     FGridPlayerAttackResolvedSignature OnPlayerAttackResolved;
+
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
+    FGridPlayerAttackRejectedSignature OnPlayerAttackRejected;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Player Attack|Diagnostics")
+    int32 PlayerAttackRejectedBroadcastCount = 0;
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool InitializeTurnManager (

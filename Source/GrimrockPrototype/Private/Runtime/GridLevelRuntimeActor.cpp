@@ -12,6 +12,7 @@
 #include "Runtime/GridLeverActor.h"
 #include "Runtime/GridMechanismActor.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
@@ -351,6 +352,11 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     DoorSystemComponent = CreateDefaultSubobject<UGridDoorSystemComponent> (TEXT ("DoorSystemComponent"));
 
     EditorPreviewComponent = CreateDefaultSubobject<UGridEditorPreviewComponent> (TEXT ("EditorPreviewComponent"));
+
+    PlayerAttackPresentationComponent =
+        CreateDefaultSubobject<
+            UGridPlayerAttackPresentationComponent> (
+                TEXT ("PlayerAttackPresentationComponent"));
 }
 
 void AGridLevelRuntimeActor::ShowReadableMessage (const FText& MessageText)
@@ -592,6 +598,90 @@ const FGridLevelRuntimeState* AGridLevelRuntimeActor::FindRuntimeStateForCurrent
 {
     const FName RuntimeLevelId = ResolveRuntimeStateLevelId (DungeonAsset, CurrentDungeonLevelId);
     return DungeonRuntimeState.LevelStates.Find (RuntimeLevelId);
+}
+
+void AGridLevelRuntimeActor::ShowCombatFeedback (
+    const FGridPlayerAttackFeedbackRequest& Feedback)
+{
+    if (Feedback.PrimaryText.IsEmpty ())
+    {
+        return;
+    }
+    UWorld* World = GetWorld ();
+    const TSubclassOf<UReadableMessageWidget> WidgetClass =
+        CombatFeedbackWidgetClass
+            ? CombatFeedbackWidgetClass
+            : InteractionFeedbackWidgetClass
+                ? InteractionFeedbackWidgetClass
+                : ReadableMessageWidgetClass;
+    if (!World || !WidgetClass)
+    {
+        UE_LOG (
+            LogTemp,
+            Verbose,
+            TEXT ("ShowCombatFeedback skipped: missing world or widget class."));
+        return;
+    }
+    APlayerController* PlayerController =
+        World->GetFirstPlayerController ();
+    if (!PlayerController)
+    {
+        return;
+    }
+    if (!ActiveCombatFeedbackWidget)
+    {
+        ActiveCombatFeedbackWidget =
+            CreateWidget<UReadableMessageWidget> (
+                PlayerController,
+                WidgetClass);
+        if (!ActiveCombatFeedbackWidget)
+        {
+            return;
+        }
+    }
+    const FText DisplayText = Feedback.DetailText.IsEmpty ()
+        ? Feedback.PrimaryText
+        : FText::Format (
+            NSLOCTEXT (
+                "GridPlayerAttackPresentation",
+                "FeedbackWithDetail",
+                "{0}\n{1}"),
+            Feedback.PrimaryText,
+            Feedback.DetailText);
+    ActiveCombatFeedbackWidget->SetReadableText (DisplayText);
+    if (!ActiveCombatFeedbackWidget->IsInViewport ())
+    {
+        ActiveCombatFeedbackWidget->AddToViewport (65);
+    }
+    GetWorldTimerManager ().ClearTimer (
+        CombatFeedbackTimerHandle);
+    GetWorldTimerManager ().SetTimer (
+        CombatFeedbackTimerHandle,
+        this,
+        &AGridLevelRuntimeActor::HideCombatFeedback,
+        FMath::Clamp (
+            Feedback.DurationSeconds,
+            0.1f,
+            10.0f),
+        false);
+}
+
+void AGridLevelRuntimeActor::HideCombatFeedback ()
+{
+    GetWorldTimerManager ().ClearTimer (
+        CombatFeedbackTimerHandle);
+    if (ActiveCombatFeedbackWidget)
+    {
+        ActiveCombatFeedbackWidget->RemoveFromParent ();
+        ActiveCombatFeedbackWidget = nullptr;
+    }
+}
+
+void AGridLevelRuntimeActor::EndPlay (
+    const EEndPlayReason::Type EndPlayReason)
+{
+    HideCombatFeedback ();
+    Super::EndPlay (EndPlayReason);
 }
 
 void AGridLevelRuntimeActor::AbortActiveCombatAndMonsterActions ()

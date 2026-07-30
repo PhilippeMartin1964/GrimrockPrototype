@@ -194,8 +194,10 @@ et monstres transitoires. Ils ne chargent aucun asset `Content/`.
 
 ## Limites différées
 
-MON11.4 ajoutera la présentation de l’attaque du personnage : animations,
-audio, VFX et feedback complet. Restent aussi différés le dual wield, les
-armes à deux mains, le choix manuel d’attaque, les munitions, la durabilité,
-les compétences et prérequis, les ressources, cooldowns, zones et
-projectiles.
+MON11.4 fournit désormais la présentation de l’objet tenu, l’audio et les VFX
+orientés données, les impacts distincts hit/miss, le feedback utilisateur des
+résultats et le feedback des refus.
+
+Restent différés le dual wield, les armes à deux mains, le choix manuel
+d’attaque, les munitions, la durabilité, les compétences et prérequis, les
+ressources, cooldowns, zones et projectiles.

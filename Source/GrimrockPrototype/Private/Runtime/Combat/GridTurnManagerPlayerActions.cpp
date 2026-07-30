@@ -617,6 +617,10 @@ bool UGridTurnManagerComponent::RejectPlayerAttack (
         RoundNumber,
         *UEnum::GetValueAsString (CurrentPhase),
         AttackerCharacterIndex);
+    ++PlayerAttackRejectedBroadcastCount;
+    OnPlayerAttackRejected.Broadcast (
+        AttackerCharacterIndex,
+        RejectReason);
     return false;
 }
 

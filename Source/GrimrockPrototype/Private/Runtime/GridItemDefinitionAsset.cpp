@@ -35,3 +35,9 @@ bool UGridItemDefinitionAsset::CanProvideAttackFromSlot (
             Slot == EGridEquipmentSlot::OffHand) &&
         CompatibleEquipmentSlots.Contains (Slot);
 }
+
+bool UGridItemDefinitionAsset::HasValidPlayerAttackPresentation () const
+{
+    return bProvidesAttackPresentation &&
+        PlayerAttackPresentationProfile.IsValid ();
+}
