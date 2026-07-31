@@ -1,6 +1,7 @@
 #include "UI/GridCombatActionPanelWidget.h"
 
 #include "Components/Border.h"
+#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/Widget.h"
@@ -110,6 +111,31 @@ void UGridCombatActionPanelWidget::RefreshFromSources ()
     RefreshBoundWidgets ();
 }
 
+bool UGridCombatActionPanelWidget::RequestAttackFromSlot (
+    EGridEquipmentSlot EquipmentSlot)
+{
+    if (!IsValid (TurnManagerComponent) ||
+        (EquipmentSlot != EGridEquipmentSlot::MainHand &&
+            EquipmentSlot != EGridEquipmentSlot::OffHand))
+    {
+        return false;
+    }
+
+    FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
+    EGridPlayerAttackRejectReason RejectReason =
+        EGridPlayerAttackRejectReason::None;
+    const bool bAccepted =
+        TurnManagerComponent->RequestCharacterAttackFromSlot (
+            ResolveCharacterIndex (),
+            EquipmentSlot,
+            Request,
+            Result,
+            RejectReason);
+    RefreshFromSources ();
+    return bAccepted;
+}
+
 FText UGridCombatActionPanelWidget::GetActionStateText () const
 {
     return View.ActionState ==
@@ -121,12 +147,36 @@ FText UGridCombatActionPanelWidget::GetActionStateText () const
 void UGridCombatActionPanelWidget::NativeConstruct ()
 {
     Super::NativeConstruct ();
+    if (Button_MainHand)
+    {
+        Button_MainHand->OnClicked.AddUniqueDynamic (
+            this,
+            &UGridCombatActionPanelWidget::HandleMainHandClicked);
+    }
+    if (Button_OffHand)
+    {
+        Button_OffHand->OnClicked.AddUniqueDynamic (
+            this,
+            &UGridCombatActionPanelWidget::HandleOffHandClicked);
+    }
     BindToSources ();
     RefreshFromSources ();
 }
 
 void UGridCombatActionPanelWidget::NativeDestruct ()
 {
+    if (Button_MainHand)
+    {
+        Button_MainHand->OnClicked.RemoveDynamic (
+            this,
+            &UGridCombatActionPanelWidget::HandleMainHandClicked);
+    }
+    if (Button_OffHand)
+    {
+        Button_OffHand->OnClicked.RemoveDynamic (
+            this,
+            &UGridCombatActionPanelWidget::HandleOffHandClicked);
+    }
     UnbindFromSources ();
     Super::NativeDestruct ();
 }
@@ -273,10 +323,12 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets ()
 
     ApplySlotVisual (
         View.MainHand,
+        Button_MainHand,
         Image_MainHandIcon,
         Text_MainHandQuantity);
     ApplySlotVisual (
         View.OffHand,
+        Button_OffHand,
         Image_OffHandIcon,
         Text_OffHandQuantity);
 
@@ -316,6 +368,7 @@ UGridCombatActionPanelWidget::BuildSlotView (
             EquipmentSlot,
             EquippedItem))
     {
+        Result.bCanAttack = true;
         return Result;
     }
 
@@ -337,6 +390,8 @@ UGridCombatActionPanelWidget::BuildSlotView (
         Result.bShowQuantity =
             Definition->bStackable &&
             Result.Quantity > 0;
+        Result.bCanAttack =
+            Definition->CanProvideAttackFromSlot (EquipmentSlot);
     }
     else
     {
@@ -348,9 +403,16 @@ UGridCombatActionPanelWidget::BuildSlotView (
 
 void UGridCombatActionPanelWidget::ApplySlotVisual (
     const FGridCombatActionSlotView& SlotView,
+    UButton* ButtonWidget,
     UImage* IconWidget,
     UTextBlock* QuantityWidget) const
 {
+    if (ButtonWidget)
+    {
+        ButtonWidget->SetIsEnabled (
+            View.bCanAct && SlotView.bCanAttack);
+    }
+
     if (IconWidget)
     {
         if (!SlotView.bOccupied || SlotView.Icon.IsNull ())
@@ -377,6 +439,16 @@ void UGridCombatActionPanelWidget::ApplySlotVisual (
                 ? ESlateVisibility::HitTestInvisible
                 : ESlateVisibility::Collapsed);
     }
+}
+
+void UGridCombatActionPanelWidget::HandleMainHandClicked ()
+{
+    RequestAttackFromSlot (EGridEquipmentSlot::MainHand);
+}
+
+void UGridCombatActionPanelWidget::HandleOffHandClicked ()
+{
+    RequestAttackFromSlot (EGridEquipmentSlot::OffHand);
 }
 
 void UGridCombatActionPanelWidget::HandleInventoryChanged (

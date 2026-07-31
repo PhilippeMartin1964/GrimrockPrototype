@@ -98,6 +98,39 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
 {
+    return RequestCharacterAttackInternal (
+        AttackerCharacterIndex,
+        EGridEquipmentSlot::None,
+        false,
+        OutRequest,
+        OutResult,
+        OutRejectReason);
+}
+
+bool UGridTurnManagerComponent::RequestCharacterAttackFromSlot (
+    int32 AttackerCharacterIndex,
+    EGridEquipmentSlot RequestedEquipmentSlot,
+    FGridPlayerAttackRequest& OutRequest,
+    FGridAttackResult& OutResult,
+    EGridPlayerAttackRejectReason& OutRejectReason)
+{
+    return RequestCharacterAttackInternal (
+        AttackerCharacterIndex,
+        RequestedEquipmentSlot,
+        true,
+        OutRequest,
+        OutResult,
+        OutRejectReason);
+}
+
+bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
+    int32 AttackerCharacterIndex,
+    EGridEquipmentSlot RequestedEquipmentSlot,
+    bool bRequireRequestedEquipmentSlot,
+    FGridPlayerAttackRequest& OutRequest,
+    FGridAttackResult& OutResult,
+    EGridPlayerAttackRejectReason& OutRejectReason)
+{
     OutRequest = FGridPlayerAttackRequest ();
     OutResult = FGridAttackResult ();
     OutRejectReason = EGridPlayerAttackRejectReason::None;
@@ -191,6 +224,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     if (!ResolvePlayerOffensiveProfile (
         PartyPawn->PartyInventoryComponent,
         AttackerCharacterIndex,
+        RequestedEquipmentSlot,
+        bRequireRequestedEquipmentSlot,
         OffensiveProfile,
         OffensiveItemDefinitionId,
         OffensiveEquipmentSlot,
@@ -521,6 +556,8 @@ bool UGridTurnManagerComponent::BuildPlayerAttackResolutionInputs (
 bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
     const UGridPartyInventoryComponent* PartyInventory,
     int32 AttackerCharacterIndex,
+    EGridEquipmentSlot RequestedEquipmentSlot,
+    bool bRequireRequestedEquipmentSlot,
     FGridOffensiveEquipmentProfile& OutProfile,
     FName& OutItemDefinitionId,
     EGridEquipmentSlot& OutEquipmentSlot,
@@ -535,6 +572,51 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
         OutRejectReason =
             EGridPlayerAttackRejectReason::PartyUnavailable;
         return false;
+    }
+
+    if (bRequireRequestedEquipmentSlot)
+    {
+        if (RequestedEquipmentSlot != EGridEquipmentSlot::MainHand &&
+            RequestedEquipmentSlot != EGridEquipmentSlot::OffHand)
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::InvalidOffensiveEquipment;
+            return false;
+        }
+
+        FGridItemInstance EquippedItem;
+        if (!PartyInventory->GetEquippedItem (
+            AttackerCharacterIndex,
+            RequestedEquipmentSlot,
+            EquippedItem))
+        {
+            OutProfile = MakeUnarmedOffensiveProfile ();
+            return true;
+        }
+
+        const UGridItemDefinitionAsset* Definition =
+            PartyInventory->FindItemDefinition (
+                EquippedItem.ItemDefinitionId);
+        if (!IsValid (Definition))
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    EquippedItemDefinitionUnavailable;
+            return false;
+        }
+        if (!Definition->CanProvideAttackFromSlot (
+            RequestedEquipmentSlot))
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    InvalidOffensiveEquipment;
+            return false;
+        }
+
+        OutProfile = Definition->OffensiveProfile;
+        OutItemDefinitionId = EquippedItem.ItemDefinitionId;
+        OutEquipmentSlot = RequestedEquipmentSlot;
+        return true;
     }
 
     const EGridEquipmentSlot HandSlots[] = {

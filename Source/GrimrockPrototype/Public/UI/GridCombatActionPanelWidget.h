@@ -9,6 +9,7 @@
 class AGridMonsterActor;
 class AGrimrockPartyPawn;
 class UBorder;
+class UButton;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
 class UImage;
@@ -49,6 +50,10 @@ struct FGridCombatActionSlotView
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
     bool bShowQuantity = false;
+
+    /** True for an offensive equipped item or an empty, unarmed hand. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
+    bool bCanAttack = false;
 };
 
 /**
@@ -102,11 +107,11 @@ struct FGridCombatActionPanelView
 };
 
 /**
- * MON12.1 read-only combat action panel for one party member.
+ * MON12 combat action panel for one party member.
  *
  * Passing INDEX_NONE as the member index makes the panel follow the selected
  * character. Passing an explicit index prepares the same class for MON12.3.
- * MON12.1 deliberately exposes no attack click handler.
+ * MON12.2 routes hand clicks through the authoritative turn manager.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridCombatActionPanelWidget
@@ -163,10 +168,16 @@ public:
     TObjectPtr<UTextBlock> Text_Mana;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
+    TObjectPtr<UButton> Button_MainHand;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UImage> Image_MainHandIcon;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UTextBlock> Text_MainHandQuantity;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
+    TObjectPtr<UButton> Button_OffHand;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UImage> Image_OffHandIcon;
@@ -195,6 +206,10 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|UI")
     void RefreshFromSources ();
 
+    /** Requests one attack from the clicked hand without resolving rules here. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|UI")
+    bool RequestAttackFromSlot (EGridEquipmentSlot EquipmentSlot);
+
     UFUNCTION (BlueprintPure, Category = "Combat|UI")
     FText GetActionStateText () const;
 
@@ -213,8 +228,15 @@ private:
         EGridEquipmentSlot EquipmentSlot) const;
     void ApplySlotVisual (
         const FGridCombatActionSlotView& SlotView,
+        UButton* ButtonWidget,
         UImage* IconWidget,
         UTextBlock* QuantityWidget) const;
+
+    UFUNCTION ()
+    void HandleMainHandClicked ();
+
+    UFUNCTION ()
+    void HandleOffHandClicked ();
 
     UFUNCTION ()
     void HandleInventoryChanged (int32 ChangedCharacterIndex);

@@ -376,6 +376,20 @@ public:
         FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason);
 
+    /**
+     * MON12.2 entry point for a combat-panel hand click. Unlike the legacy
+     * automatic request, this function resolves only the requested hand. An
+     * empty hand uses the unarmed profile; a non-offensive equipped item is
+     * rejected without consuming the character action.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
+    bool RequestCharacterAttackFromSlot (
+        int32 AttackerCharacterIndex,
+        EGridEquipmentSlot RequestedEquipmentSlot,
+        FGridPlayerAttackRequest& OutRequest,
+        FGridAttackResult& OutResult,
+        EGridPlayerAttackRejectReason& OutRejectReason);
+
     UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
     bool HasCharacterCommittedAttackThisPhase (int32 CharacterIndex) const;
 
@@ -489,6 +503,13 @@ private:
         int32 AttackerCharacterIndex,
         EGridPlayerAttackRejectReason RejectReason,
         EGridPlayerAttackRejectReason& OutRejectReason);
+    bool RequestCharacterAttackInternal (
+        int32 AttackerCharacterIndex,
+        EGridEquipmentSlot RequestedEquipmentSlot,
+        bool bRequireRequestedEquipmentSlot,
+        FGridPlayerAttackRequest& OutRequest,
+        FGridAttackResult& OutResult,
+        EGridPlayerAttackRejectReason& OutRejectReason);
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,
@@ -499,6 +520,8 @@ private:
     bool ResolvePlayerOffensiveProfile (
         const UGridPartyInventoryComponent* PartyInventory,
         int32 AttackerCharacterIndex,
+        EGridEquipmentSlot RequestedEquipmentSlot,
+        bool bRequireRequestedEquipmentSlot,
         FGridOffensiveEquipmentProfile& OutProfile,
         FName& OutItemDefinitionId,
         EGridEquipmentSlot& OutEquipmentSlot,

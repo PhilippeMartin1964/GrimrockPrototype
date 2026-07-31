@@ -12,6 +12,9 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatActionPanelWidget.h"
 
 namespace
@@ -125,12 +128,40 @@ namespace
         return Definition;
     }
 
+    void ConfigureOffensiveDefinition (
+        UGridItemDefinitionAsset* Definition,
+        FName AttackId,
+        EGridEquipmentSlot EquipmentSlot,
+        int32 RangeCells = 1)
+    {
+        if (!Definition)
+        {
+            return;
+        }
+
+        Definition->bProvidesAttack = true;
+        Definition->CompatibleEquipmentSlots.AddUnique (EquipmentSlot);
+        Definition->OffensiveProfile.AttackId = AttackId;
+        Definition->OffensiveProfile.AttackDefinition.DamageType =
+            EGridDamageType::Physical;
+        Definition->OffensiveProfile.AttackDefinition.PhysicalSubtype =
+            EGridPhysicalDamageSubtype::Piercing;
+        Definition->OffensiveProfile.AttackDefinition.MinDamage = 1;
+        Definition->OffensiveProfile.AttackDefinition.MaxDamage = 2;
+        Definition->OffensiveProfile.DamageScalingAttribute =
+            EGridAttackScalingAttribute::Dexterity;
+        Definition->OffensiveProfile.RangeCells = RangeCells;
+    }
+
     struct FGridMON12Fixture
     {
         FGridMON12TestWorld TestWorld;
         AGridLevelRuntimeActor* Runtime = nullptr;
         UGridLevelAsset* LevelAsset = nullptr;
         AGrimrockPartyPawn* Party = nullptr;
+        UGridMonsterDefinitionAsset* MonsterDefinition = nullptr;
+        AGridMonsterActor* Monster = nullptr;
+        UGridMonsterOccupancySubsystem* Occupancy = nullptr;
         UGridTurnManagerComponent* TurnManager = nullptr;
         UGridCombatActionPanelWidget* Panel = nullptr;
         UTexture2D* EliasPortrait = nullptr;
@@ -159,6 +190,7 @@ namespace
                 Cell.bBlocksOccupancy = false;
             }
             Runtime->LevelAsset = LevelAsset;
+            Runtime->CurrentDungeonLevelId = TEXT ("MON12_Test");
 
             Party =
                 TestWorld.World->SpawnActor<AGrimrockPartyPawn> ();
@@ -223,13 +255,20 @@ namespace
                 0,
                 EGridEquipmentSlot::OffHand);
 
-            Party->PartyInventoryComponent->RegisterItemDefinition (
+            UGridItemDefinitionAsset* ShurikenDefinition =
                 MakeItemDefinition (
                     Party,
                     TEXT ("Shuriken"),
                     TEXT ("Shuriken"),
                     true,
-                    ShurikenIcon));
+                    ShurikenIcon);
+            ConfigureOffensiveDefinition (
+                ShurikenDefinition,
+                TEXT ("Attack_Shuriken"),
+                EGridEquipmentSlot::MainHand,
+                2);
+            Party->PartyInventoryComponent->RegisterItemDefinition (
+                ShurikenDefinition);
             Party->PartyInventoryComponent->RegisterItemDefinition (
                 MakeItemDefinition (
                     Party,
@@ -237,6 +276,30 @@ namespace
                     TEXT ("Torche"),
                     false,
                     TorchIcon));
+
+            MonsterDefinition =
+                NewObject<UGridMonsterDefinitionAsset> (Runtime);
+            MonsterDefinition->MonsterId = TEXT ("MON12_Rat");
+            MonsterDefinition->DisplayName =
+                FText::FromString (TEXT ("Rat MON12"));
+            MonsterDefinition->CategoryId = TEXT ("Vermin");
+            MonsterDefinition->MaxHealth = 1000;
+            MonsterDefinition->Evasion = 0;
+            MonsterDefinition->ActionPointsPerTurn = 2;
+            Occupancy = TestWorld.World
+                ->GetSubsystem<UGridMonsterOccupancySubsystem> ();
+            Monster = TestWorld.World->SpawnActor<AGridMonsterActor> ();
+            if (Monster && Occupancy)
+            {
+                Monster->InitializeMonster (
+                    MonsterDefinition,
+                    FGuid (12, 3, 0, 1),
+                    FIntPoint (1, 2),
+                    EGridEdge::South);
+                Occupancy->RegisterMonster (
+                    Monster,
+                    FIntPoint (1, 2));
+            }
 
             TurnManager = NewObject<UGridTurnManagerComponent> (
                 Runtime,
@@ -249,6 +312,10 @@ namespace
             TurnManager->CurrentPhase =
                 EGridCombatPhase::PlayerPhase;
             TurnManager->RoundNumber = 1;
+            if (Monster)
+            {
+                TurnManager->CombatMonsters = { Monster };
+            }
 
             Panel =
                 NewObject<UGridCombatActionPanelWidget> (Party);
@@ -261,6 +328,9 @@ namespace
                 LevelAsset &&
                 Party &&
                 Party->PartyInventoryComponent &&
+                MonsterDefinition &&
+                Monster &&
+                Occupancy &&
                 TurnManager &&
                 Panel &&
                 EliasPortrait &&
@@ -460,6 +530,156 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest (
         TEXT ("Monster attack notification refreshes current health"),
         Fixture.Panel->View.CurrentHealth,
         9);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12CombatActionPanelSlotRoutingTest,
+    "Grimrock.Monsters.MON12.CombatActionPanel.SlotAttackRouting",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12CombatActionPanelSlotRoutingTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 slot-routing fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridItemDefinitionAsset* DaggerDefinition =
+        MakeItemDefinition (
+            Fixture.Party,
+            TEXT ("Item_Dagger"),
+            TEXT ("Dague"),
+            false,
+            Fixture.TorchIcon);
+    ConfigureOffensiveDefinition (
+        DaggerDefinition,
+        TEXT ("Attack_Dagger"),
+        EGridEquipmentSlot::OffHand);
+    Fixture.Party->PartyInventoryComponent->RegisterItemDefinition (
+        DaggerDefinition);
+    Fixture.Party->PartyInventoryComponent->PartyInventoryState
+        .ActiveEquipment[0].OffHand = MakeEquippedItem (
+            FGuid (12, 2, 0, 3),
+            DaggerDefinition->ItemDefinitionId,
+            TEXT ("Dague"),
+            1,
+            0,
+            EGridEquipmentSlot::OffHand);
+
+    Fixture.Panel->InitializeCombatActionPanel (
+        Fixture.Party,
+        0,
+        Fixture.TurnManager);
+    TestTrue (
+        TEXT ("MainHand exposes an offensive action"),
+        Fixture.Panel->View.MainHand.bCanAttack);
+    TestTrue (
+        TEXT ("OffHand exposes its own offensive action"),
+        Fixture.Panel->View.OffHand.bCanAttack);
+
+    TestTrue (
+        TEXT ("Clicking OffHand requests an attack"),
+        Fixture.Panel->RequestAttackFromSlot (
+            EGridEquipmentSlot::OffHand));
+    TestEqual (
+        TEXT ("The turn manager keeps the clicked OffHand"),
+        Fixture.TurnManager->LastPlayerAttackRequest
+            .OffensiveEquipmentSlot,
+        EGridEquipmentSlot::OffHand);
+    TestEqual (
+        TEXT ("The turn manager uses the OffHand item"),
+        Fixture.TurnManager->LastPlayerAttackRequest
+            .OffensiveItemDefinitionId,
+        DaggerDefinition->ItemDefinitionId);
+    TestEqual (
+        TEXT ("The OffHand attack id is retained"),
+        Fixture.TurnManager->LastPlayerAttackRequest.AttackId,
+        FName (TEXT ("Attack_Dagger")));
+    TestEqual (
+        TEXT ("The accepted click commits the character action"),
+        Fixture.Panel->View.ActionState,
+        EGridCombatActionPanelState::AlreadyActed);
+    TestFalse (
+        TEXT ("The panel is disabled after the accepted click"),
+        Fixture.Panel->View.bCanAct);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12CombatActionPanelSlotRejectionTest,
+    "Grimrock.Monsters.MON12.CombatActionPanel.SlotAttackRejection",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12CombatActionPanelSlotRejectionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 slot-rejection fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.Panel->InitializeCombatActionPanel (
+        Fixture.Party,
+        0,
+        Fixture.TurnManager);
+    TestFalse (
+        TEXT ("The equipped torch is visible but not offensive"),
+        Fixture.Panel->View.OffHand.bCanAttack);
+    TestFalse (
+        TEXT ("A non-offensive OffHand request is rejected"),
+        Fixture.Panel->RequestAttackFromSlot (
+            EGridEquipmentSlot::OffHand));
+    TestEqual (
+        TEXT ("The rejection reason identifies non-offensive equipment"),
+        Fixture.TurnManager->LastPlayerAttackRejectReason,
+        EGridPlayerAttackRejectReason::InvalidOffensiveEquipment);
+    TestEqual (
+        TEXT ("A rejected click consumes no character action"),
+        Fixture.TurnManager->PlayerAttackCommittedCharacterIds.Num (),
+        0);
+    TestEqual (
+        TEXT ("A rejected click leaves the panel Ready"),
+        Fixture.Panel->View.ActionState,
+        EGridCombatActionPanelState::Ready);
+    TestTrue (
+        TEXT ("A rejected click leaves the character actionable"),
+        Fixture.Panel->View.bCanAct);
+
+    Fixture.Party->PartyInventoryComponent->PartyInventoryState
+        .ActiveEquipment[0].OffHand = FGridItemInstance ();
+    Fixture.Panel->RefreshFromSources ();
+    TestTrue (
+        TEXT ("An empty OffHand exposes the unarmed action"),
+        Fixture.Panel->View.OffHand.bCanAttack);
+    TestTrue (
+        TEXT ("An empty OffHand request resolves unarmed"),
+        Fixture.Panel->RequestAttackFromSlot (
+            EGridEquipmentSlot::OffHand));
+    TestTrue (
+        TEXT ("The unarmed request has no item definition"),
+        Fixture.TurnManager->LastPlayerAttackRequest
+            .OffensiveItemDefinitionId.IsNone ());
+    TestEqual (
+        TEXT ("The unarmed request has no equipment slot"),
+        Fixture.TurnManager->LastPlayerAttackRequest
+            .OffensiveEquipmentSlot,
+        EGridEquipmentSlot::None);
+    TestEqual (
+        TEXT ("The unarmed attack id is retained"),
+        Fixture.TurnManager->LastPlayerAttackRequest.AttackId,
+        FName (TEXT ("Attack_Unarmed")));
     return true;
 }
 
