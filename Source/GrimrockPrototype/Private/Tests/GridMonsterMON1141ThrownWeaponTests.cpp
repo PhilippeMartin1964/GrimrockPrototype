@@ -444,9 +444,9 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
         TEXT ("The projectile turns the flat mesh toward the source"),
         ThrownItem->MeshComponent &&
             ThrownItem->MeshComponent->
-                GetRelativeRotation ().Equals (
+                GetRelativeTransform ().GetRotation ().Equals (
                     Definition->
-                        ThrowVisualRelativeRotation,
+                        ThrowVisualRelativeRotation.Quaternion (),
                     KINDA_SMALL_NUMBER));
     const FQuat RotationBeforeSpin =
         ThrownItem->MeshComponent
