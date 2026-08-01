@@ -28,6 +28,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 22. `MON12_1_COMBAT_ACTION_PANEL.md` - validated reusable combat-panel vertical slice and V2 migration note.
 23. `MON12_2_COMBAT_ACTION_CLICKS.md` - validated MainHand/OffHand compatibility routing and V2 migration note.
 24. `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` - authoritative player turn states, four-AP budget, two-AP attacks and UMG migration.
+25. `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` - implemented mixed initiative order, one active combatant, end-turn flow and initiative events.
 
 ## Document Status
 
@@ -55,7 +56,8 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Design Target | Authoritative target for rounds, global initiative, personal AP, party mobility AP, action catalogue, HUD and revised MON12 roadmap. |
 | `MON12_1_COMBAT_ACTION_PANEL.md` | Validated Vertical Slice / Migration | Read-only per-member combat panel, event-driven refresh, Widget Blueprint construction and migration from `AlreadyActed`. |
 | `MON12_2_COMBAT_ACTION_CLICKS.md` | Validated Vertical Slice / Migration | MainHand/OffHand click routing kept as a compatibility adapter until the action catalogue replaces slot buttons. |
-| `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` | Implemented / Validation Required | Authoritative per-character turn state, four action points per player phase, two-point attack cost and event-driven panel display. |
+| `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` | Validated Foundation / Superseded Flow | Authoritative per-character PA state and two-point attack cost; MON12.4 now activates and restores one character at a time. |
+| `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Implemented / Validation Required | Deterministic global initiative, one active combatant, individual player/monster turns and event model for the future initiative bar. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Documents With Diagrams
@@ -73,6 +75,7 @@ The following current design documents include Mermaid diagrams or visual tables
 | `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | `DA_Item_XXX` versus `DA_Object_XXXPickup`, item creation flow and responsibility table. |
 | `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Combat lifecycle, action-source catalogue and authoritative action execution sequence. |
 | `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` | Player turn-state and action-point lifecycle during the phase-based migration. |
+| `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Global order, individual turn lifecycle and initiative-bar event contract. |
 
 ## Priority Rule
 

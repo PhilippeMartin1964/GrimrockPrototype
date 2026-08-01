@@ -1,5 +1,10 @@
 # MON12.3 — État de tour et points d'action des personnages
 
+> Ce document décrit le jalon MON12.3 validé. Depuis MON12.4, un seul
+> personnage est `Active` à la fois et reçoit ses 4 PA au début de son propre
+> tour. Voir `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` pour le
+> comportement courant.
+
 ## Résultat
 
 MON12.3 remplace le verrou binaire `Ready / AlreadyActed` par un état runtime

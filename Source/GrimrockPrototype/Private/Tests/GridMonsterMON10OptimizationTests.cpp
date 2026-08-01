@@ -156,6 +156,7 @@ namespace
         Character.DerivedStats.MaxHealth = 30;
         Character.DerivedStats.CurrentHealth = 30;
         Character.DerivedStats.Evasion = 0;
+        Character.DerivedStats.Initiative = 100;
         Party->PartyInventoryComponent->PartyInventoryState
             .ActiveCharacters = { Character };
         return Party;
@@ -466,11 +467,8 @@ bool FGridMonsterMON10OptimizationMetricsLifecycleTest::RunTest (
     TestTrue (TEXT ("The first round is counted"),
         TurnManager->RuntimeMetrics.RoundsStarted >= 1);
 
-    TestTrue (TEXT ("Enemy phase state can begin"),
-        TurnManager->PhaseState.EndPlayerPhase ());
-    TurnManager->SetPhase (
-        TurnManager->PhaseState.GetPhase ());
-    TurnManager->BeginEnemyPhase ();
+    TestTrue (TEXT ("The active player turn can end"),
+        TurnManager->EndActivePlayerTurn ());
     TestTrue (TEXT ("Monster turns are counted"),
         TurnManager->RuntimeMetrics.MonsterTurnsStarted >= 1);
     TestTrue (TEXT ("Actions started are counted"),

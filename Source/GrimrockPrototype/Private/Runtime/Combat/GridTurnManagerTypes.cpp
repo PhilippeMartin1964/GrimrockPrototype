@@ -128,6 +128,53 @@ bool FGridActionPointBudget::Spend (int32 Cost)
     return true;
 }
 
+void FGridInitiativeOrderBuilder::RollAndSort (
+    TArray<FGridCombatantInitiativeEntry>& Entries,
+    FRandomStream& RandomStream)
+{
+    for (FGridCombatantInitiativeEntry& Entry : Entries)
+    {
+        Entry.InitiativeRoll = RandomStream.RandRange (1, 20);
+        Entry.InitiativeTotal =
+            Entry.InitiativeBase + Entry.InitiativeRoll;
+    }
+
+    Sort (Entries);
+}
+
+void FGridInitiativeOrderBuilder::Sort (
+    TArray<FGridCombatantInitiativeEntry>& Entries)
+{
+    Entries.Sort ([] (
+        const FGridCombatantInitiativeEntry& Left,
+        const FGridCombatantInitiativeEntry& Right)
+    {
+        if (Left.InitiativeTotal != Right.InitiativeTotal)
+        {
+            return Left.InitiativeTotal > Right.InitiativeTotal;
+        }
+        if (Left.InitiativeBase != Right.InitiativeBase)
+        {
+            return Left.InitiativeBase > Right.InitiativeBase;
+        }
+        if (Left.Dexterity != Right.Dexterity)
+        {
+            return Left.Dexterity > Right.Dexterity;
+        }
+
+        const FString LeftId =
+            Left.CombatantId.ToString (EGuidFormats::Digits);
+        const FString RightId =
+            Right.CombatantId.ToString (EGuidFormats::Digits);
+        if (LeftId != RightId)
+        {
+            return LeftId < RightId;
+        }
+        return static_cast<uint8> (Left.Side) <
+            static_cast<uint8> (Right.Side);
+    });
+}
+
 bool FGridTurnPhaseStateMachine::StartCombat ()
 {
     if (Phase != EGridCombatPhase::Exploration &&
@@ -185,6 +232,33 @@ bool FGridTurnPhaseStateMachine::BeginNextRound ()
 
     ++RoundNumber;
     Phase = EGridCombatPhase::PlayerPhase;
+    return true;
+}
+
+bool FGridTurnPhaseStateMachine::BeginCombatantTurn (
+    EGridCombatantSide Side)
+{
+    if (Phase != EGridCombatPhase::PlayerPhase &&
+        Phase != EGridCombatPhase::EnemyPhase)
+    {
+        return false;
+    }
+
+    Phase = Side == EGridCombatantSide::Party
+        ? EGridCombatPhase::PlayerPhase
+        : EGridCombatPhase::EnemyPhase;
+    return true;
+}
+
+bool FGridTurnPhaseStateMachine::CompleteInitiativeRound ()
+{
+    if (Phase != EGridCombatPhase::PlayerPhase &&
+        Phase != EGridCombatPhase::EnemyPhase)
+    {
+        return false;
+    }
+
+    Phase = EGridCombatPhase::EndingRound;
     return true;
 }
 

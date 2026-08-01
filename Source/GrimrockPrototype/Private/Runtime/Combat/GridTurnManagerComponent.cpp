@@ -81,6 +81,7 @@ UGridTurnManagerComponent::UGridTurnManagerComponent ()
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.bStartWithTickEnabled = false;
     CombatRandomStream.Initialize (EncounterRandomSeed);
+    InitiativeRandomStream.Initialize (EncounterRandomSeed);
 }
 
 void UGridTurnManagerComponent::BeginPlay ()
@@ -242,6 +243,11 @@ bool UGridTurnManagerComponent::StartCombatWithAllMonsters ()
 
 bool UGridTurnManagerComponent::EndPlayerPhase ()
 {
+    if (!InitiativeOrder.IsEmpty ())
+    {
+        return EndActivePlayerTurn ();
+    }
+
     if (!bCombatActive || CurrentPhase != EGridCombatPhase::PlayerPhase || !IsPartyAtRest ())
     {
         return false;
@@ -262,6 +268,7 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
 void UGridTurnManagerComponent::AbortCombat ()
 {
     ClearPlayerCharacterTurnStates ();
+    ClearInitiativeState (true);
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;
 
@@ -629,6 +636,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
 
     PendingActions.Reset ();
     EnemyTurnOrder.Reset ();
+    ClearInitiativeState (false);
     CurrentMonster = nullptr;
     CurrentEnemyIndex = INDEX_NONE;
     CurrentMonsterMaximumActionPoints = 0;
@@ -639,6 +647,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
     ActionPointBudget.Reset (0);
     ResetActiveAttackState ();
     bCombatActive = true;
+    BuildGlobalInitiativeOrder ();
     BindCombatMonsterDeaths ();
     for (AGridMonsterActor* Monster : CombatMonsters)
     {
@@ -738,6 +747,17 @@ void UGridTurnManagerComponent::HandleCombatMonsterDied (
 
     const bool bWasCurrentMonster = CurrentMonster == Monster;
     const bool bWasEnemyPhase = CurrentPhase == EGridCombatPhase::EnemyPhase;
+    if (FGridCombatantInitiativeEntry* InitiativeEntry =
+        FindInitiativeEntry (
+            EGridCombatantSide::Monster,
+            Monster->ResolvePersistenceId ()))
+    {
+        RefreshInitiativeEntryVitals (*InitiativeEntry);
+        SetInitiativeEntryState (
+            *InitiativeEntry,
+            EGridCombatantTurnState::Defeated);
+        BroadcastInitiativeOrderChanged ();
+    }
     PendingActions.RemoveAll (
         [Monster] (const FGridCombatAction& Action)
         {
@@ -798,6 +818,10 @@ void UGridTurnManagerComponent::HandleCombatMonsterDied (
     else if (bVictory)
     {
         FinishCombat (EGridCombatPhase::Victory);
+    }
+    else if (bWasCurrentMonster && !InitiativeOrder.IsEmpty ())
+    {
+        BeginNextCombatantTurn ();
     }
     else if (bWasCurrentMonster && bWasEnemyPhase)
     {

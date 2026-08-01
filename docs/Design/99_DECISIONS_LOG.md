@@ -472,3 +472,30 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   rafraîchit via `OnPlayerCharacterTurnStateChanged`, sans `Tick`.
 - Le document d'implémentation est
   `docs/Design/MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
+
+---
+
+## 2026-08-01 — MON12.4 : initiative globale et tours individuels
+
+- L'initiative est lancée une fois par rencontre pour tous les personnages et
+  monstres, puis l'ordre est conservé entre les manches.
+- Un flux aléatoire d'initiative dérivé du seed de rencontre est séparé du flux
+  des attaques afin que les jets de combat ne soient pas déplacés.
+- Le tri utilise le total, la base, la Dextérité finale puis l'identifiant
+  stable.
+- Un seul combattant est `Active`. Les personnages reçoivent leurs 4 PA au
+  début de leur propre tour ; les autres restent `Waiting` ou `Completed`.
+- Une attaque provenant d'un autre personnage est refusée avec
+  `NotActiveCombatant` sans consommation ni résolution.
+- `NumPad 2` termine le tour du personnage actif ; atteindre 0 PA le termine
+  automatiquement.
+- Les tours de monstres réutilisent leurs budgets, planificateurs et
+  présentations existants dans le même ordre global.
+- `PlayerPhase` et `EnemyPhase` sont conservés temporairement comme indication
+  du camp du combattant actif, et non plus comme phases complètes de camp.
+- `InitiativeOrder`, `GetUpcomingInitiativeOrder()`,
+  `OnTurnOrderChanged`, `OnActiveCombatantChanged` et
+  `OnCombatantStateChanged` forment le contrat autoritaire de la barre UMG
+  MON12.7.
+- Le document d'implémentation est
+  `docs/Design/MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md`.

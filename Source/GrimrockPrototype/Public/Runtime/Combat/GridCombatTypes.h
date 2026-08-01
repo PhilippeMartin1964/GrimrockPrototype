@@ -5,6 +5,8 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridCombatTypes.generated.h"
 
+class UTexture2D;
+
 UENUM (BlueprintType)
 enum class EGridPhysicalDamageSubtype : uint8
 {
@@ -54,9 +56,8 @@ enum class EGridCombatPhase : uint8
 };
 
 /**
- * Shared vocabulary for an individual combatant turn. MON12.3 uses it for
- * party members; MON12.4 will apply the same states to the global initiative
- * order.
+ * Shared vocabulary for individual party and monster turns in the global
+ * initiative order.
  */
 UENUM (BlueprintType)
 enum class EGridCombatantTurnState : uint8
@@ -66,6 +67,74 @@ enum class EGridCombatantTurnState : uint8
     Completed     UMETA (DisplayName = "Completed"),
     Incapacitated UMETA (DisplayName = "Incapacitated"),
     Defeated      UMETA (DisplayName = "Defeated")
+};
+
+/** Identifies which authority executes a global-initiative entry. */
+UENUM (BlueprintType)
+enum class EGridCombatantSide : uint8
+{
+    Party   UMETA (DisplayName = "Party"),
+    Monster UMETA (DisplayName = "Monster")
+};
+
+/**
+ * UI-ready snapshot of one participant in the authoritative initiative order.
+ * The stable id is a CharacterId for the party and a persistence id for a
+ * monster. Actor pointers deliberately stay out of this public view model.
+ */
+USTRUCT (BlueprintType)
+struct FGridCombatantInitiativeEntry
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    FGuid CombatantId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    EGridCombatantSide Side = EGridCombatantSide::Party;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 CharacterIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    FText DisplayName;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    TSoftObjectPtr<UTexture2D> Portrait;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 InitiativeRoll = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 InitiativeBase = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 InitiativeTotal = 0;
+
+    /** Final Dexterity used only as the second deterministic tie-break. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 Dexterity = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 CurrentHealth = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 MaximumHealth = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    EGridCombatantTurnState State = EGridCombatantTurnState::Waiting;
+
+    bool IsValid () const
+    {
+        return CombatantId.IsValid () &&
+            (Side == EGridCombatantSide::Monster ||
+                CharacterIndex != INDEX_NONE);
+    }
+
+    bool IsPartyMember () const
+    {
+        return Side == EGridCombatantSide::Party;
+    }
 };
 
 /** Authoritative per-round action-point state for one party member. */
@@ -119,7 +188,8 @@ enum class EGridPlayerAttackRejectReason : uint8
     TargetOutOfRange          UMETA (DisplayName = "Target Out Of Range"),
     EquippedItemDefinitionUnavailable UMETA (DisplayName = "Equipped Item Definition Unavailable"),
     InvalidOffensiveEquipment UMETA (DisplayName = "Invalid Offensive Equipment"),
-    InsufficientActionPoints  UMETA (DisplayName = "Insufficient Action Points")
+    InsufficientActionPoints  UMETA (DisplayName = "Insufficient Action Points"),
+    NotActiveCombatant        UMETA (DisplayName = "Not Active Combatant")
 };
 
 USTRUCT (BlueprintType)

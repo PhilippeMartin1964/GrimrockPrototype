@@ -200,6 +200,14 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             EGridPlayerAttackRejectReason::AttackerDefeated,
             OutRejectReason);
     }
+    if (!InitiativeOrder.IsEmpty () &&
+        !IsActivePlayerCharacter (AttackerCharacterIndex))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::NotActiveCombatant,
+            OutRejectReason);
+    }
     const int32 SafeAttackActionPointCost = FMath::Clamp (
         PlayerAttackActionPointCost,
         1,
@@ -477,7 +485,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
 
     FGridCombatLogEntry AttackEntry;
     AttackEntry.RoundNumber = RoundNumber;
-    AttackEntry.Phase = EGridCombatPhase::PlayerPhase;
+    AttackEntry.Phase = CurrentPhase;
     AttackEntry.Type = Result.bHit
         ? EGridCombatLogEntryType::AttackHit
         : EGridCombatLogEntryType::AttackMiss;
@@ -507,6 +515,19 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
 
     bPlayerAttackResolutionInProgress = true;
     TargetMonster->ApplyAttackResult (Result);
+    if (FGridCombatantInitiativeEntry* TargetEntry =
+        FindInitiativeEntry (
+            EGridCombatantSide::Monster,
+            TargetMonsterId))
+    {
+        const int32 PreviousHealth = TargetEntry->CurrentHealth;
+        RefreshInitiativeEntryVitals (*TargetEntry);
+        if (TargetEntry->CurrentHealth != PreviousHealth &&
+            TargetEntry->State != EGridCombatantTurnState::Defeated)
+        {
+            OnCombatantStateChanged.Broadcast (*TargetEntry);
+        }
+    }
     ++PlayerAttackResolvedBroadcastCount;
     OnPlayerAttackResolved.Broadcast (Request, TargetMonster, Result);
     bPlayerAttackResolutionInProgress = false;
@@ -520,6 +541,18 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
     {
         bPendingVictoryAfterPlayerAttack = false;
         FinishCombat (EGridCombatPhase::Victory);
+    }
+    else if (!InitiativeOrder.IsEmpty ())
+    {
+        FGridPlayerCharacterTurnState TurnState;
+        if (GetPlayerCharacterTurnState (
+                AttackerCharacterIndex,
+                TurnState) &&
+            TurnState.RemainingActionPoints <= 0 &&
+            IsActivePlayerCharacter (AttackerCharacterIndex))
+        {
+            FinishActivePlayerTurn ();
+        }
     }
     return true;
 }

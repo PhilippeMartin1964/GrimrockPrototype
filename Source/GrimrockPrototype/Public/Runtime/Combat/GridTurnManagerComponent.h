@@ -36,6 +36,17 @@ private:
     int32 RemainingPoints = 0;
 };
 
+/** Pure deterministic initiative rolling and ordering rules. */
+class GRIMROCKPROTOTYPE_API FGridInitiativeOrderBuilder
+{
+public:
+    static void RollAndSort (
+        TArray<FGridCombatantInitiativeEntry>& Entries,
+        FRandomStream& RandomStream);
+
+    static void Sort (TArray<FGridCombatantInitiativeEntry>& Entries);
+};
+
 /** Pure phase rules, independent from actors, animation and frame rate. */
 class GRIMROCKPROTOTYPE_API FGridTurnPhaseStateMachine
 {
@@ -45,6 +56,8 @@ public:
     bool EndPlayerPhase ();
     bool CompleteEnemyPhase ();
     bool BeginNextRound ();
+    bool BeginCombatantTurn (EGridCombatantSide Side);
+    bool CompleteInitiativeRound ();
     bool FinishCombat (EGridCombatPhase ResultPhase);
     void AbortCombat ();
 
@@ -156,8 +169,19 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridPlayerCharacterTurnStateChangedSignature,
     FGridPlayerCharacterTurnState, TurnState);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE (
+    FGridTurnOrderChangedSignature);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridActiveCombatantChangedSignature,
+    FGridCombatantInitiativeEntry, ActiveCombatant);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridCombatantStateChangedSignature,
+    FGridCombatantInitiativeEntry, Combatant);
+
 /**
- * Central combat phase and monster-turn sequencer.
+ * Central global-initiative and individual-turn sequencer.
  *
  * MON6 adds deterministic melee resolution while keeping rule calculation in
  * FGridCombatResolver and presentation in UGridMonsterCombatComponent.
@@ -241,6 +265,21 @@ public:
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager")
     int32 RoundNumber = 0;
+
+    /** Order rolled once at encounter start and reused by every round. */
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Initiative")
+    TArray<FGridCombatantInitiativeEntry> InitiativeOrder;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Initiative")
+    int32 CurrentInitiativeIndex = INDEX_NONE;
 
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Combat|Turn Manager")
     TArray<TObjectPtr<AGridMonsterActor>> CombatMonsters;
@@ -364,6 +403,18 @@ public:
     FGridPlayerCharacterTurnStateChangedSignature
         OnPlayerCharacterTurnStateChanged;
 
+    /** The authoritative order or its visible states changed. */
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Initiative")
+    FGridTurnOrderChangedSignature OnTurnOrderChanged;
+
+    /** A new participant became active, or an invalid entry cleared it. */
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Initiative")
+    FGridActiveCombatantChangedSignature OnActiveCombatantChanged;
+
+    /** One participant changed Waiting/Active/Completed/vital state. */
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Initiative")
+    FGridCombatantStateChangedSignature OnCombatantStateChanged;
+
     UPROPERTY (
         VisibleInstanceOnly,
         BlueprintReadOnly,
@@ -384,6 +435,10 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     bool EndPlayerPhase ();
+
+    /** Ends only the currently active party member turn. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Initiative")
+    bool EndActivePlayerTurn ();
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
     bool RequestSelectedCharacterAttack (
@@ -437,6 +492,24 @@ public:
     bool GetPlayerCharacterTurnState (
         int32 CharacterIndex,
         FGridPlayerCharacterTurnState& OutTurnState) const;
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Initiative")
+    const TArray<FGridCombatantInitiativeEntry>& GetInitiativeOrder () const
+    {
+        return InitiativeOrder;
+    }
+
+    /** Active participant followed by the remaining actionable turns. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Initiative")
+    void GetUpcomingInitiativeOrder (
+        TArray<FGridCombatantInitiativeEntry>& OutEntries) const;
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Initiative")
+    bool GetActiveCombatant (
+        FGridCombatantInitiativeEntry& OutCombatant) const;
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Initiative")
+    bool IsActivePlayerCharacter (int32 CharacterIndex) const;
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     void AbortCombat ();
@@ -521,6 +594,7 @@ private:
     FGridTurnPhaseStateMachine PhaseState;
     FGridActionPointBudget ActionPointBudget;
     FRandomStream CombatRandomStream;
+    FRandomStream InitiativeRandomStream;
     int32 NextCombatLogSequenceNumber = 1;
     int32 CombatLogBroadcastCount = 0;
     int32 AttackResolvedBroadcastCount = 0;
@@ -565,6 +639,31 @@ private:
         EGridEquipmentSlot& OutEquipmentSlot,
         EGridPlayerAttackRejectReason& OutRejectReason) const;
     bool IsCombatMonster (const AGridMonsterActor* Monster) const;
+    void BuildGlobalInitiativeOrder ();
+    void ResetInitiativeRound ();
+    void BeginNextCombatantTurn ();
+    bool BeginPlayerCombatantTurn (
+        FGridCombatantInitiativeEntry& Entry);
+    bool BeginMonsterCombatantTurn (
+        FGridCombatantInitiativeEntry& Entry);
+    void FinishActivePlayerTurn ();
+    void FinishInitiativeRound ();
+    void ClearInitiativeState (bool bBroadcast);
+    void SetInitiativeEntryState (
+        FGridCombatantInitiativeEntry& Entry,
+        EGridCombatantTurnState NewState);
+    void RefreshInitiativeEntryVitals (
+        FGridCombatantInitiativeEntry& Entry);
+    void BroadcastInitiativeOrderChanged ();
+    FGuid ResolvePlayerCombatantId (int32 CharacterIndex) const;
+    AGridMonsterActor* FindCombatMonsterById (
+        const FGuid& CombatantId) const;
+    FGridCombatantInitiativeEntry* FindInitiativeEntry (
+        EGridCombatantSide Side,
+        const FGuid& CombatantId);
+    const FGridCombatantInitiativeEntry* FindInitiativeEntry (
+        EGridCombatantSide Side,
+        const FGuid& CombatantId) const;
     void BeginPlayerCharacterPhase ();
     void CompletePlayerCharacterPhase ();
     void ClearPlayerCharacterTurnStates ();
@@ -662,4 +761,5 @@ private:
     friend class FGridMonsterMON11RangedWeaponTargetingTest;
     friend class FGridMonsterMON11ElementalOffensiveEquipmentTest;
     friend class FGridMonsterMON12CharacterActionPointLifecycleTest;
+    friend class FGridMonsterMON12GlobalInitiativeLifecycleTest;
 };

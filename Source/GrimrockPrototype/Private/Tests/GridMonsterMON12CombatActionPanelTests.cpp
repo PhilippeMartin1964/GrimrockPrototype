@@ -13,7 +13,9 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatActionPanelWidget.h"
 
@@ -299,6 +301,23 @@ namespace
                 Occupancy->RegisterMonster (
                     Monster,
                     FIntPoint (1, 2));
+
+                UGridMonsterMovementComponent* Movement =
+                    NewObject<UGridMonsterMovementComponent> (
+                        Monster,
+                        TEXT ("MON12Movement"));
+                Movement->bAutoInitialize = false;
+                Movement->bInferCellFromActorLocation = false;
+                Monster->AddInstanceComponent (Movement);
+                Movement->RegisterComponent ();
+
+                UGridMonsterBehaviorComponent* Behavior =
+                    NewObject<UGridMonsterBehaviorComponent> (
+                        Monster,
+                        TEXT ("MON12Behavior"));
+                Behavior->bAutoInitialize = false;
+                Monster->AddInstanceComponent (Behavior);
+                Behavior->RegisterComponent ();
             }
 
             TurnManager = NewObject<UGridTurnManagerComponent> (
@@ -330,6 +349,10 @@ namespace
                 Party->PartyInventoryComponent &&
                 MonsterDefinition &&
                 Monster &&
+                Monster->FindComponentByClass<
+                    UGridMonsterMovementComponent> () &&
+                Monster->FindComponentByClass<
+                    UGridMonsterBehaviorComponent> () &&
                 Occupancy &&
                 TurnManager &&
                 Panel &&
@@ -894,6 +917,267 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest (
     TestFalse (
         TEXT ("A defeated character cannot act"),
         Fixture.TurnManager->CanCharacterAct (1));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12InitiativeOrderRulesTest,
+    "Grimrock.Monsters.MON12.GlobalInitiative.OrderRules",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12InitiativeOrderRulesTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    FGridCombatantInitiativeEntry LowTotal;
+    LowTotal.CombatantId = FGuid (12, 4, 0, 3);
+    LowTotal.Side = EGridCombatantSide::Monster;
+    LowTotal.InitiativeBase = 20;
+    LowTotal.InitiativeTotal = 21;
+
+    FGridCombatantInitiativeEntry LowBase;
+    LowBase.CombatantId = FGuid (12, 4, 0, 2);
+    LowBase.CharacterIndex = 1;
+    LowBase.InitiativeBase = 14;
+    LowBase.InitiativeTotal = 25;
+    LowBase.Dexterity = 18;
+
+    FGridCombatantInitiativeEntry LowDexterity;
+    LowDexterity.CombatantId = FGuid (12, 4, 0, 4);
+    LowDexterity.CharacterIndex = 2;
+    LowDexterity.InitiativeBase = 15;
+    LowDexterity.InitiativeTotal = 25;
+    LowDexterity.Dexterity = 12;
+
+    FGridCombatantInitiativeEntry HighDexterity;
+    HighDexterity.CombatantId = FGuid (12, 4, 0, 1);
+    HighDexterity.CharacterIndex = 0;
+    HighDexterity.InitiativeBase = 15;
+    HighDexterity.InitiativeTotal = 25;
+    HighDexterity.Dexterity = 16;
+
+    TArray<FGridCombatantInitiativeEntry> Entries = {
+        LowTotal,
+        LowBase,
+        LowDexterity,
+        HighDexterity
+    };
+    FGridInitiativeOrderBuilder::Sort (Entries);
+
+    TestTrue (
+        TEXT ("The highest total and Dexterity wins the first tie"),
+        Entries[0].CombatantId == HighDexterity.CombatantId);
+    TestTrue (
+        TEXT ("The same total and base then keeps lower Dexterity second"),
+        Entries[1].CombatantId == LowDexterity.CombatantId);
+    TestTrue (
+        TEXT ("Initiative base precedes Dexterity in tie-breaking"),
+        Entries[2].CombatantId == LowBase.CombatantId);
+    TestTrue (
+        TEXT ("A lower total always acts last"),
+        Entries[3].CombatantId == LowTotal.CombatantId);
+
+    TArray<FGridCombatantInitiativeEntry> FirstRoll = {
+        HighDexterity,
+        LowTotal
+    };
+    TArray<FGridCombatantInitiativeEntry> SecondRoll = FirstRoll;
+    FRandomStream FirstStream (1204);
+    FRandomStream SecondStream (1204);
+    FGridInitiativeOrderBuilder::RollAndSort (
+        FirstRoll,
+        FirstStream);
+    FGridInitiativeOrderBuilder::RollAndSort (
+        SecondRoll,
+        SecondStream);
+    TestTrue (
+        TEXT ("The same encounter seed produces the same first id"),
+        FirstRoll[0].CombatantId == SecondRoll[0].CombatantId);
+    TestEqual (
+        TEXT ("The same encounter seed produces the same first roll"),
+        FirstRoll[0].InitiativeRoll,
+        SecondRoll[0].InitiativeRoll);
+    TestTrue (
+        TEXT ("Every initiative roll stays in d20 bounds"),
+        FirstRoll[0].InitiativeRoll >= 1 &&
+            FirstRoll[0].InitiativeRoll <= 20 &&
+            FirstRoll[1].InitiativeRoll >= 1 &&
+            FirstRoll[1].InitiativeRoll <= 20);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12GlobalInitiativeLifecycleTest,
+    "Grimrock.Monsters.MON12.GlobalInitiative.Lifecycle",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12GlobalInitiativeLifecycleTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 initiative fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.MonsterDefinition->ActionPointsPerTurn = 0;
+    Fixture.TurnManager->bCollectRuntimeMetrics = true;
+    TestTrue (
+        TEXT ("The initiative test enters StartingCombat"),
+        Fixture.TurnManager->PhaseState.StartCombat ());
+    TestTrue (
+        TEXT ("The initiative test starts round one"),
+        Fixture.TurnManager->PhaseState.BeginRound ());
+    Fixture.TurnManager->RoundNumber = 1;
+    Fixture.TurnManager->BuildGlobalInitiativeOrder ();
+
+    for (FGridCombatantInitiativeEntry& Entry :
+        Fixture.TurnManager->InitiativeOrder)
+    {
+        if (Entry.Side == EGridCombatantSide::Party)
+        {
+            Entry.InitiativeTotal = Entry.CharacterIndex == 0
+                ? 30
+                : 10;
+        }
+        else
+        {
+            Entry.InitiativeTotal = 20;
+        }
+    }
+    FGridInitiativeOrderBuilder::Sort (
+        Fixture.TurnManager->InitiativeOrder);
+    Fixture.TurnManager->ResetInitiativeRound ();
+    Fixture.TurnManager->BeginNextCombatantTurn ();
+
+    FGridCombatantInitiativeEntry Active;
+    TestTrue (
+        TEXT ("The first global combatant is active"),
+        Fixture.TurnManager->GetActiveCombatant (Active));
+    TestEqual (
+        TEXT ("Elias acts first in the forced deterministic order"),
+        Active.CharacterIndex,
+        0);
+    TestEqual (
+        TEXT ("The active party member is selected automatically"),
+        Fixture.Party->PartyInventoryComponent
+            ->GetSelectedCharacterIndex (),
+        0);
+
+    FGridPlayerCharacterTurnState EliasTurn;
+    FGridPlayerCharacterTurnState MinaTurn;
+    TestTrue (
+        TEXT ("Elias turn state is available"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("The active character receives four action points"),
+        EliasTurn.RemainingActionPoints,
+        4);
+    TestTrue (
+        TEXT ("Mina waiting state is available"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            1,
+            MinaTurn));
+    TestEqual (
+        TEXT ("A future character remains Waiting"),
+        MinaTurn.State,
+        EGridCombatantTurnState::Waiting);
+    TestEqual (
+        TEXT ("A future character receives no AP before her turn"),
+        MinaTurn.RemainingActionPoints,
+        0);
+
+    TArray<FGridCombatantInitiativeEntry> Upcoming;
+    Fixture.TurnManager->GetUpcomingInitiativeOrder (Upcoming);
+    TestEqual (
+        TEXT ("The upcoming view contains active and two later turns"),
+        Upcoming.Num (),
+        3);
+
+    FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
+    EGridPlayerAttackRejectReason RejectReason =
+        EGridPlayerAttackRejectReason::None;
+    TestFalse (
+        TEXT ("A waiting character cannot attack out of turn"),
+        Fixture.TurnManager->RequestCharacterAttack (
+            1,
+            Request,
+            Result,
+            RejectReason));
+    TestEqual (
+        TEXT ("The refusal identifies the non-active combatant"),
+        RejectReason,
+        EGridPlayerAttackRejectReason::NotActiveCombatant);
+
+    TestTrue (
+        TEXT ("Ending Elias turn advances the global order"),
+        Fixture.TurnManager->EndActivePlayerTurn ());
+    TestTrue (
+        TEXT ("A later global combatant becomes active"),
+        Fixture.TurnManager->GetActiveCombatant (Active));
+    TestEqual (
+        TEXT ("Mina acts after the interleaved monster"),
+        Active.CharacterIndex,
+        1);
+    TestEqual (
+        TEXT ("The interleaved monster receives exactly one turn"),
+        Fixture.TurnManager->RuntimeMetrics.MonsterTurnsStarted,
+        1);
+    TestEqual (
+        TEXT ("Mina is selected for the transitional MON12 panel"),
+        Fixture.Party->PartyInventoryComponent
+            ->GetSelectedCharacterIndex (),
+        1);
+    TestTrue (
+        TEXT ("Mina turn state is refreshed"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            1,
+            MinaTurn));
+    TestEqual (
+        TEXT ("Mina receives her own full budget on activation"),
+        MinaTurn.RemainingActionPoints,
+        4);
+
+    const TArray<FGuid> FirstRoundOrder = {
+        Fixture.TurnManager->InitiativeOrder[0].CombatantId,
+        Fixture.TurnManager->InitiativeOrder[1].CombatantId,
+        Fixture.TurnManager->InitiativeOrder[2].CombatantId
+    };
+    TestTrue (
+        TEXT ("Ending Mina turn completes the mixed round"),
+        Fixture.TurnManager->EndActivePlayerTurn ());
+    TestEqual (
+        TEXT ("Completing all entries starts round two"),
+        Fixture.TurnManager->RoundNumber,
+        2);
+    TestTrue (
+        TEXT ("Round two immediately activates its first combatant"),
+        Fixture.TurnManager->GetActiveCombatant (Active));
+    TestEqual (
+        TEXT ("The same first character acts in round two"),
+        Active.CharacterIndex,
+        0);
+    TestTrue (
+        TEXT ("The initiative order is not rerolled between rounds"),
+        Fixture.TurnManager->InitiativeOrder[0].CombatantId ==
+            FirstRoundOrder[0]);
+    TestTrue (
+        TEXT ("The second initiative position is also stable"),
+        Fixture.TurnManager->InitiativeOrder[1].CombatantId ==
+            FirstRoundOrder[1]);
+    TestTrue (
+        TEXT ("The third initiative position is also stable"),
+        Fixture.TurnManager->InitiativeOrder[2].CombatantId ==
+            FirstRoundOrder[2]);
     return true;
 }
 

@@ -101,9 +101,9 @@ FText FGridCombatLogFormatter::FormatPhaseChanged (EGridCombatPhase Phase)
     case EGridCombatPhase::StartingCombat:
         return LOCTEXT ("StartingCombatPhase", "Préparation du combat.");
     case EGridCombatPhase::PlayerPhase:
-        return LOCTEXT ("PlayerPhase", "Phase du groupe.");
+        return LOCTEXT ("PlayerPhase", "Tour d’un personnage du groupe.");
     case EGridCombatPhase::EnemyPhase:
-        return LOCTEXT ("EnemyPhase", "Phase des ennemis.");
+        return LOCTEXT ("EnemyPhase", "Tour d’un ennemi.");
     case EGridCombatPhase::EndingRound:
         return LOCTEXT ("EndingRoundPhase", "Fin de la manche.");
     case EGridCombatPhase::Victory:

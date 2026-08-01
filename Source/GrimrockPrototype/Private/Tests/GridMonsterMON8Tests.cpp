@@ -715,7 +715,9 @@ bool FGridMonsterMON8VictoryOnLastDeathTest::RunTest (const FString& Parameters)
     Party->CurrentCellX = 4;
     Party->CurrentCellY = 4;
     FGridCharacterInventoryState LivingCharacter;
+    LivingCharacter.CharacterId = FGuid (25, 1, 0, 1);
     LivingCharacter.DerivedStats.CurrentHealth = 10;
+    LivingCharacter.DerivedStats.Initiative = 100;
     Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = {
         LivingCharacter
     };
@@ -822,7 +824,9 @@ bool FGridMonsterMON8VictoryAfterEnemyPhaseStartedTest::RunTest (
         0.0f));
 
     FGridCharacterInventoryState LivingCharacter;
+    LivingCharacter.CharacterId = FGuid (25, 1, 0, 2);
     LivingCharacter.DerivedStats.CurrentHealth = 10;
+    LivingCharacter.DerivedStats.Initiative = 100;
     Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = {
         LivingCharacter
     };
@@ -867,8 +871,8 @@ bool FGridMonsterMON8VictoryAfterEnemyPhaseStartedTest::RunTest (
             TEXT ("The enemy-phase encounter starts"),
             TurnManager->StartCombatWithAllMonsters ()) ||
         !TestTrue (
-            TEXT ("Ending PlayerPhase starts EnemyPhase"),
-            TurnManager->EndPlayerPhase ()))
+            TEXT ("Ending the active player turn starts the enemy"),
+            TurnManager->EndActivePlayerTurn ()))
     {
         return false;
     }

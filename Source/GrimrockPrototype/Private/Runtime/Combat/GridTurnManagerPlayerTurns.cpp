@@ -32,13 +32,11 @@ bool UGridTurnManagerComponent::GetPlayerCharacterTurnState (
 
     const FGridCharacterInventoryState& Character =
         Characters[CharacterIndex];
-    if (!Character.CharacterId.IsValid ())
-    {
-        return false;
-    }
+    const FGuid CombatantId =
+        ResolvePlayerCombatantId (CharacterIndex);
 
     if (const FGridPlayerCharacterTurnState* Existing =
-        FindPlayerCharacterTurnState (Character.CharacterId))
+        FindPlayerCharacterTurnState (CombatantId))
     {
         OutTurnState = *Existing;
         OutTurnState.CharacterIndex = CharacterIndex;
@@ -46,11 +44,25 @@ bool UGridTurnManagerComponent::GetPlayerCharacterTurnState (
     else
     {
         OutTurnState.CharacterIndex = CharacterIndex;
-        OutTurnState.CharacterId = Character.CharacterId;
+        OutTurnState.CharacterId = CombatantId;
         OutTurnState.MaximumActionPoints =
             ClampPlayerActionPoints (BasePlayerActionPointsPerTurn);
 
-        if (bCombatActive &&
+        if (!InitiativeOrder.IsEmpty ())
+        {
+            if (const FGridCombatantInitiativeEntry* Entry =
+                FindInitiativeEntry (
+                    EGridCombatantSide::Party,
+                    CombatantId))
+            {
+                OutTurnState.State = Entry->State;
+                OutTurnState.RemainingActionPoints =
+                    Entry->State == EGridCombatantTurnState::Active
+                        ? OutTurnState.MaximumActionPoints
+                        : 0;
+            }
+        }
+        else if (bCombatActive &&
             CurrentPhase == EGridCombatPhase::PlayerPhase)
         {
             OutTurnState.State = EGridCombatantTurnState::Active;
@@ -82,6 +94,12 @@ bool UGridTurnManagerComponent::CanCharacterAct (
         bPartyInputLocked ||
         bPlayerAttackResolutionInProgress ||
         !IsPartyAtRest ())
+    {
+        return false;
+    }
+
+    if (!InitiativeOrder.IsEmpty () &&
+        !IsActivePlayerCharacter (CharacterIndex))
     {
         return false;
     }
@@ -137,19 +155,20 @@ void UGridTurnManagerComponent::BeginPlayerCharacterPhase ()
     {
         const FGridCharacterInventoryState& Character =
             Characters[CharacterIndex];
-        if (!Character.CharacterId.IsValid ())
-        {
-            continue;
-        }
 
         FGridPlayerCharacterTurnState TurnState;
         TurnState.CharacterIndex = CharacterIndex;
-        TurnState.CharacterId = Character.CharacterId;
+        TurnState.CharacterId =
+            ResolvePlayerCombatantId (CharacterIndex);
         TurnState.MaximumActionPoints = MaximumActionPoints;
         if (Character.DerivedStats.CurrentHealth > 0)
         {
-            TurnState.State = EGridCombatantTurnState::Active;
-            TurnState.RemainingActionPoints = MaximumActionPoints;
+            TurnState.State = InitiativeOrder.IsEmpty ()
+                ? EGridCombatantTurnState::Active
+                : EGridCombatantTurnState::Waiting;
+            TurnState.RemainingActionPoints = InitiativeOrder.IsEmpty ()
+                ? MaximumActionPoints
+                : 0;
         }
         else
         {
@@ -223,7 +242,8 @@ bool UGridTurnManagerComponent::SpendPlayerCharacterActionPoints (
     TurnState->RemainingActionPoints = FMath::Max (
         0,
         TurnState->RemainingActionPoints - ActionPointCost);
-    if (TurnState->RemainingActionPoints == 0)
+    if (TurnState->RemainingActionPoints == 0 &&
+        InitiativeOrder.IsEmpty ())
     {
         TurnState->State = EGridCombatantTurnState::Completed;
     }
@@ -273,6 +293,26 @@ void UGridTurnManagerComponent::RefreshPlayerCharacterVitalState (
         TurnState->State = EGridCombatantTurnState::Defeated;
         TurnState->RemainingActionPoints = 0;
         BroadcastPlayerCharacterTurnState (*TurnState);
+    }
+
+    if (FGridCombatantInitiativeEntry* Entry =
+        FindInitiativeEntry (
+            EGridCombatantSide::Party,
+            ResolvePlayerCombatantId (CharacterIndex)))
+    {
+        const int32 PreviousHealth = Entry->CurrentHealth;
+        RefreshInitiativeEntryVitals (*Entry);
+        if (bDefeated)
+        {
+            SetInitiativeEntryState (
+                *Entry,
+                EGridCombatantTurnState::Defeated);
+            BroadcastInitiativeOrderChanged ();
+        }
+        else if (Entry->CurrentHealth != PreviousHealth)
+        {
+            OnCombatantStateChanged.Broadcast (*Entry);
+        }
     }
 }
 

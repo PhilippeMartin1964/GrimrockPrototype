@@ -14,13 +14,13 @@ Ces deux résultats restent souhaités, mais doivent être construits après la
 fondation des tours individuels, des points d'action, de l'initiative globale,
 du déplacement du groupe et du catalogue d'actions.
 
-MON11.1 à MON11.4.2 et MON12.1 à MON12.3 restent des jalons fonctionnels. Leur
+MON11.1 à MON11.4.2 et MON12.1 à MON12.4 restent des jalons fonctionnels. Leur
 pipeline de résolution et de présentation doit être conservé pendant la
 migration.
 
-MON12.3 est implémentée : les personnages possèdent désormais un état de tour,
-`4 PA` par phase joueur et les attaques existantes coûtent `2 PA`. Les phases
-de camp restent provisoires jusqu'à MON12.4.
+MON12.4 est implémentée : les personnages et monstres sont mélangés dans un
+ordre global, un seul combattant est actif et les personnages reçoivent leurs
+`4 PA` au début de leur propre tour. Les attaques existantes coûtent `2 PA`.
 
 ---
 
@@ -28,8 +28,8 @@ de camp restent provisoires jusqu'à MON12.4.
 
 Le combat actuel possède déjà plusieurs briques utiles :
 
-- un cycle `PlayerPhase -> EnemyPhase -> EndingRound` ;
-- une initiative qui trie les monstres pendant `EnemyPhase` ;
+- un cycle global de tours individuels suivi de `EndingRound` ;
+- une initiative commune lancée une fois par rencontre ;
 - un budget de PA pour chaque monstre ;
 - des coûts d'action pour leurs déplacements et leurs attaques ;
 - un pipeline autoritaire pour les attaques du groupe ;
@@ -40,10 +40,10 @@ Ces règles ne forment toutefois pas encore un système unifié :
 
 | Sujet | État actuel | Limite |
 | --- | --- | --- |
-| monstres | budget de PA réel | limité à la phase ennemie |
-| personnages | 4 PA, attaques à 2 PA | tous les héros vivants sont encore actifs pendant `PlayerPhase` |
-| initiative | ordre des monstres seulement | le groupe agit toujours avant eux |
-| déplacement du groupe | disponible pendant `PlayerPhase` | aucun coût de combat |
+| monstres | budget de PA réel et tour global | catalogue d'actions encore spécialisé dans l'IA |
+| personnages | 4 PA au début du tour, attaques à 2 PA | actions encore représentées par les mains |
+| initiative | ordre commun personnages/monstres | barre UMG différée à MON12.7 |
+| déplacement du groupe | disponible pendant le tour d'un personnage | aucun coût de combat |
 | interface | boutons `MainHand` et `OffHand` | confond équipement et actions |
 | sorts et capacités | différés | aucun catalogue commun |
 
@@ -173,8 +173,10 @@ Règles :
 
 ### 5.1 Formule proposée
 
-L'initiative est calculée une fois par rencontre avec un jet par combattant,
-tiré depuis le `CombatRandomStream` déterministe existant.
+L'initiative est calculée une fois par rencontre avec un jet par combattant.
+`InitiativeRandomStream` est dérivé de `ActiveEncounterRandomSeed` avec un sel
+fixe. Cette séparation préserve la détermination de l'ordre sans déplacer les
+jets ultérieurs d'attaque du `CombatRandomStream`.
 
 Pour un personnage :
 
@@ -683,7 +685,7 @@ Ordre de la manche :
 | Existant | Cible V2 |
 | --- | --- |
 | `PlayerAttackCommittedCharacterIds` | remplacé en MON12.3 par `PlayerCharacterTurnStates` |
-| `AttackerAlreadyActed` | remplacé en MON12.3 par `InsufficientActionPoints`; `NotActiveCombatant` viendra avec MON12.4 |
+| `AttackerAlreadyActed` | remplacé par `InsufficientActionPoints` et `NotActiveCombatant` |
 | `CanCharacterAct()` booléen | complété en MON12.3 par l'instantané PA et `CanCharacterSpendActionPoints()` |
 | boutons `MainHand` / `OffHand` | boutons issus du catalogue d'actions |
 | priorité automatique MainHand > OffHand | sélection explicite de l'action et de sa source |
@@ -714,14 +716,15 @@ Voir `MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
 
 ### MON12.4 — Initiative globale et tours individuels
 
-- calculer l'initiative déterministe de tous les participants ;
-- construire l'ordre global ;
-- activer un seul combattant à la fois ;
-- remplacer la séquence de phases de camp par les tours individuels ;
-- ajouter `Fin du tour` ;
-- exposer l'instantané autoritaire de l'ordre global ;
-- exposer les événements de changement d'ordre, de combattant actif et
-  d'état nécessaires à la barre d'initiative.
+**Implémentée — validation UE5 requise.**
+
+- initiative déterministe de tous les participants ;
+- ordre global conservé entre les manches ;
+- un seul combattant actif ;
+- `Fin du tour` via `EndActivePlayerTurn()` et `NumPad 2` ;
+- instantané autoritaire et événements de la future barre d'initiative.
+
+Voir `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md`.
 
 ### MON12.5 — Déplacement du groupe avec PA et PAM
 

@@ -215,14 +215,22 @@ void UGridTurnManagerComponent::BeginRound ()
         return;
     }
 
-    BeginPlayerCharacterPhase ();
     RoundNumber = PhaseState.GetRoundNumber ();
     if (bCollectRuntimeMetrics)
     {
         ++RuntimeMetrics.RoundsStarted;
     }
-    SetPhase (PhaseState.GetPhase ());
-    SetPartyInputLocked (false);
+    if (InitiativeOrder.IsEmpty ())
+    {
+        BeginPlayerCharacterPhase ();
+        SetPhase (PhaseState.GetPhase ());
+        SetPartyInputLocked (false);
+    }
+    else
+    {
+        ResetInitiativeRound ();
+        SetPartyInputLocked (true);
+    }
 
     FGridCombatLogEntry RoundEntry;
     RoundEntry.RoundNumber = RoundNumber;
@@ -232,6 +240,11 @@ void UGridTurnManagerComponent::BeginRound ()
         FGridCombatLogFormatter::FormatRoundStarted (RoundNumber);
     AppendCombatLogEntry (RoundEntry);
     OnRoundStarted.Broadcast (RoundNumber);
+
+    if (!InitiativeOrder.IsEmpty ())
+    {
+        BeginNextCombatantTurn ();
+    }
 }
 
 void UGridTurnManagerComponent::BeginEnemyPhase ()
@@ -518,6 +531,12 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
 void UGridTurnManagerComponent::FinishCurrentMonsterTurn ()
 {
     AGridMonsterActor* CompletedMonster = CurrentMonster;
+    FGridCombatantInitiativeEntry* CompletedEntry =
+        IsValid (CompletedMonster)
+            ? FindInitiativeEntry (
+                EGridCombatantSide::Monster,
+                CompletedMonster->ResolvePersistenceId ())
+            : nullptr;
     UnbindCurrentMovement ();
     UnbindCurrentCombat ();
     PendingActions.Reset ();
@@ -530,16 +549,43 @@ void UGridTurnManagerComponent::FinishCurrentMonsterTurn ()
     ActionPointBudget.Reset (0);
     CurrentMonster = nullptr;
 
+    if (!InitiativeOrder.IsEmpty () &&
+        CompletedEntry &&
+        CompletedEntry->State != EGridCombatantTurnState::Defeated)
+    {
+        SetInitiativeEntryState (
+            *CompletedEntry,
+            EGridCombatantTurnState::Completed);
+    }
+
     if (IsValid (CompletedMonster))
     {
         OnMonsterTurnEnded.Broadcast (CompletedMonster);
     }
 
-    BeginNextMonsterTurn ();
+    if (!bCombatActive)
+    {
+        return;
+    }
+
+    if (!InitiativeOrder.IsEmpty ())
+    {
+        BeginNextCombatantTurn ();
+    }
+    else
+    {
+        BeginNextMonsterTurn ();
+    }
 }
 
 void UGridTurnManagerComponent::FinishEnemyPhase ()
 {
+    if (!InitiativeOrder.IsEmpty ())
+    {
+        FinishInitiativeRound ();
+        return;
+    }
+
     if (!bCombatActive || !PhaseState.CompleteEnemyPhase ())
     {
         return;
@@ -592,6 +638,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     }
 
     ClearPlayerCharacterTurnStates ();
+    ClearInitiativeState (true);
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;
 

@@ -278,8 +278,8 @@ void AGrimrockPlayerController::HandleMON5EndPlayerPhase ()
 {
     UGridTurnManagerComponent* TurnManager = ResolveMON5TurnManager ();
     LogMON5CommandResult (
-        TEXT ("EndPlayerPhase"),
-        TurnManager && TurnManager->EndPlayerPhase ());
+        TEXT ("EndActivePlayerTurn"),
+        TurnManager && TurnManager->EndActivePlayerTurn ());
 }
 
 void AGrimrockPlayerController::HandleMON5AbortCombat ()
