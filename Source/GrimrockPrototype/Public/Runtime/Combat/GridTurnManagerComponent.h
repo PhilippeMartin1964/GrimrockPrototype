@@ -152,6 +152,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams (
     int32, AttackerCharacterIndex,
     EGridPlayerAttackRejectReason, RejectReason);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridPlayerCharacterTurnStateChangedSignature,
+    FGridPlayerCharacterTurnState, TurnState);
+
 /**
  * Central combat phase and monster-turn sequencer.
  *
@@ -300,11 +304,25 @@ public:
     FGridAttackResult LastPlayerAttackResult;
 
     UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Player Turn",
+        meta = (ClampMin = "2", ClampMax = "6"))
+    int32 BasePlayerActionPointsPerTurn = 4;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Player Attack",
+        meta = (ClampMin = "1", ClampMax = "6"))
+    int32 PlayerAttackActionPointCost = 2;
+
+    UPROPERTY (
         VisibleInstanceOnly,
         BlueprintReadOnly,
         Transient,
-        Category = "Combat|Player Attack")
-    TSet<FGuid> PlayerAttackCommittedCharacterIds;
+        Category = "Combat|Player Turn")
+    TArray<FGridPlayerCharacterTurnState> PlayerCharacterTurnStates;
 
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
     FGridCombatPhaseChangedSignature OnPhaseChanged;
@@ -341,6 +359,10 @@ public:
 
     UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
     FGridPlayerAttackRejectedSignature OnPlayerAttackRejected;
+
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Player Turn")
+    FGridPlayerCharacterTurnStateChangedSignature
+        OnPlayerCharacterTurnStateChanged;
 
     UPROPERTY (
         VisibleInstanceOnly,
@@ -390,15 +412,31 @@ public:
         FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason);
 
-    UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
+    /** Compatibility query: true after this character has spent any PA. */
+    UFUNCTION (
+        BlueprintPure,
+        Category = "Combat|Player Turn",
+        meta = (DeprecatedFunction, DeprecationMessage = "Use GetPlayerCharacterTurnState instead."))
     bool HasCharacterCommittedAttackThisPhase (int32 CharacterIndex) const;
 
     /**
-     * Authoritative MON12 query for whether this party member may commit a
+     * Authoritative query for whether this party member may commit any
      * personal combat action now. UI code must not duplicate these rules.
      */
-    UFUNCTION (BlueprintPure, Category = "Combat|Player Attack")
+    UFUNCTION (BlueprintPure, Category = "Combat|Player Turn")
     bool CanCharacterAct (int32 CharacterIndex) const;
+
+    /** Checks the common turn rules and a specific PA cost. */
+    UFUNCTION (BlueprintPure, Category = "Combat|Player Turn")
+    bool CanCharacterSpendActionPoints (
+        int32 CharacterIndex,
+        int32 ActionPointCost) const;
+
+    /** Returns a copy of the authoritative (or safely derived) turn state. */
+    UFUNCTION (BlueprintPure, Category = "Combat|Player Turn")
+    bool GetPlayerCharacterTurnState (
+        int32 CharacterIndex,
+        FGridPlayerCharacterTurnState& OutTurnState) const;
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Turn Manager")
     void AbortCombat ();
@@ -527,7 +565,21 @@ private:
         EGridEquipmentSlot& OutEquipmentSlot,
         EGridPlayerAttackRejectReason& OutRejectReason) const;
     bool IsCombatMonster (const AGridMonsterActor* Monster) const;
-    void ResetPlayerAttackPhaseState ();
+    void BeginPlayerCharacterPhase ();
+    void CompletePlayerCharacterPhase ();
+    void ClearPlayerCharacterTurnStates ();
+    bool SpendPlayerCharacterActionPoints (
+        int32 CharacterIndex,
+        int32 ActionPointCost);
+    void RefreshPlayerCharacterVitalState (int32 CharacterIndex);
+    FGridPlayerCharacterTurnState* EnsurePlayerCharacterTurnState (
+        int32 CharacterIndex);
+    const FGridPlayerCharacterTurnState* FindPlayerCharacterTurnState (
+        const FGuid& CharacterId) const;
+    FGridPlayerCharacterTurnState* FindPlayerCharacterTurnState (
+        const FGuid& CharacterId);
+    void BroadcastPlayerCharacterTurnState (
+        const FGridPlayerCharacterTurnState& TurnState);
     void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     void CollectPerceivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     bool PrepareMonsterForCombat (AGridMonsterActor* Monster);
@@ -609,4 +661,5 @@ private:
     friend class FGridMonsterMON11HandPriorityAndFallbackTest;
     friend class FGridMonsterMON11RangedWeaponTargetingTest;
     friend class FGridMonsterMON11ElementalOffensiveEquipmentTest;
+    friend class FGridMonsterMON12CharacterActionPointLifecycleTest;
 };

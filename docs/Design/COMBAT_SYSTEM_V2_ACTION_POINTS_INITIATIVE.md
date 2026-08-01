@@ -14,9 +14,13 @@ Ces deux résultats restent souhaités, mais doivent être construits après la
 fondation des tours individuels, des points d'action, de l'initiative globale,
 du déplacement du groupe et du catalogue d'actions.
 
-MON11.1 à MON11.4.2 et MON12.1 à MON12.2 restent des jalons fonctionnels. Leur
+MON11.1 à MON11.4.2 et MON12.1 à MON12.3 restent des jalons fonctionnels. Leur
 pipeline de résolution et de présentation doit être conservé pendant la
 migration.
+
+MON12.3 est implémentée : les personnages possèdent désormais un état de tour,
+`4 PA` par phase joueur et les attaques existantes coûtent `2 PA`. Les phases
+de camp restent provisoires jusqu'à MON12.4.
 
 ---
 
@@ -29,8 +33,7 @@ Le combat actuel possède déjà plusieurs briques utiles :
 - un budget de PA pour chaque monstre ;
 - des coûts d'action pour leurs déplacements et leurs attaques ;
 - un pipeline autoritaire pour les attaques du groupe ;
-- un verrou `AlreadyActed` qui autorise une attaque par personnage et par
-  phase ;
+- un état runtime et un budget de PA indépendant pour chaque personnage ;
 - un premier panneau qui représente directement `MainHand` et `OffHand`.
 
 Ces règles ne forment toutefois pas encore un système unifié :
@@ -38,7 +41,7 @@ Ces règles ne forment toutefois pas encore un système unifié :
 | Sujet | État actuel | Limite |
 | --- | --- | --- |
 | monstres | budget de PA réel | limité à la phase ennemie |
-| personnages | une attaque puis `AlreadyActed` | aucune dépense de PA |
+| personnages | 4 PA, attaques à 2 PA | tous les héros vivants sont encore actifs pendant `PlayerPhase` |
 | initiative | ordre des monstres seulement | le groupe agit toujours avant eux |
 | déplacement du groupe | disponible pendant `PlayerPhase` | aucun coût de combat |
 | interface | boutons `MainHand` et `OffHand` | confond équipement et actions |
@@ -679,9 +682,9 @@ Ordre de la manche :
 
 | Existant | Cible V2 |
 | --- | --- |
-| `PlayerAttackCommittedCharacterIds` | état de tour et budget de PA par combattant |
-| `AttackerAlreadyActed` | `NotActiveCombatant`, `InsufficientActionPoints` ou tour terminé |
-| `CanCharacterAct()` booléen | instantané de tour avec PA, état et raisons |
+| `PlayerAttackCommittedCharacterIds` | remplacé en MON12.3 par `PlayerCharacterTurnStates` |
+| `AttackerAlreadyActed` | remplacé en MON12.3 par `InsufficientActionPoints`; `NotActiveCombatant` viendra avec MON12.4 |
+| `CanCharacterAct()` booléen | complété en MON12.3 par l'instantané PA et `CanCharacterSpendActionPoints()` |
 | boutons `MainHand` / `OffHand` | boutons issus du catalogue d'actions |
 | priorité automatique MainHand > OffHand | sélection explicite de l'action et de sa source |
 | `PlayerPhase` puis `EnemyPhase` | ordre global de tours individuels |
@@ -698,12 +701,16 @@ Les étapes doivent rester petites, testables et publiées séparément.
 
 ### MON12.3 — État de tour et PA des personnages
 
-- créer l'état runtime par combattant ;
-- remplacer `AlreadyActed` par `RemainingActionPoints` ;
-- attribuer 4 PA aux personnages ;
-- donner un coût de 2 PA aux attaques existantes ;
-- conserver provisoirement les phases de camp ;
-- afficher PA actuel / maximum dans le panneau existant.
+**Implémentée — validation UE5 requise.**
+
+- état runtime par personnage créé ;
+- `AlreadyActed` remplacé par `RemainingActionPoints` comme autorité ;
+- 4 PA attribués aux personnages ;
+- coût de 2 PA appliqué aux attaques existantes ;
+- phases de camp conservées provisoirement ;
+- PA actuel / maximum exposés dans le panneau existant.
+
+Voir `MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
 
 ### MON12.4 — Initiative globale et tours individuels
 

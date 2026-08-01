@@ -142,7 +142,7 @@ public:
 
     /**
      * INDEX_NONE follows the selected character. An explicit index associates
-     * this first panel with a fixed party member and prepares MON12.3.
+     * this first panel with a fixed party member and prepares MON12.7.
      */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
     int32 CombatActionPanelCharacterIndex = INDEX_NONE;

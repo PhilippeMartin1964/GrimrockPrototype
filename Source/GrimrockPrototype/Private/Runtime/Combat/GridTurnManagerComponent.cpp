@@ -252,6 +252,7 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
         return false;
     }
 
+    CompletePlayerCharacterPhase ();
     SetPartyInputLocked (true);
     SetPhase (PhaseState.GetPhase ());
     BeginEnemyPhase ();
@@ -260,7 +261,7 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
 
 void UGridTurnManagerComponent::AbortCombat ()
 {
-    ResetPlayerAttackPhaseState ();
+    ClearPlayerCharacterTurnStates ();
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;
 
@@ -350,15 +351,24 @@ void UGridTurnManagerComponent::LogPartyCombatState () const
     for (int32 Index = 0; Index < Characters.Num (); ++Index)
     {
         const FGridCharacterInventoryState& Character = Characters[Index];
+        FGridPlayerCharacterTurnState TurnState;
+        const bool bHasTurnState = GetPlayerCharacterTurnState (
+            Index,
+            TurnState);
         UE_LOG (LogGridTurnManager, Log,
-            TEXT ("[GridTurnManager] PartyCharacter Index=%d Name=%s HP=%d/%d PhysicalArmor=%d MagicalArmor=%d Evasion=%d"),
+            TEXT ("[GridTurnManager] PartyCharacter Index=%d Name=%s HP=%d/%d PhysicalArmor=%d MagicalArmor=%d Evasion=%d AP=%d/%d TurnState=%s"),
             Index,
             *Character.DisplayName.ToString (),
             Character.DerivedStats.CurrentHealth,
             Character.DerivedStats.MaxHealth,
             Character.DerivedStats.PhysicalArmor,
             Character.DerivedStats.MagicalArmor,
-            Character.DerivedStats.Evasion);
+            Character.DerivedStats.Evasion,
+            bHasTurnState ? TurnState.RemainingActionPoints : 0,
+            bHasTurnState ? TurnState.MaximumActionPoints : 0,
+            bHasTurnState
+                ? *UEnum::GetValueAsString (TurnState.State)
+                : TEXT ("Unavailable"));
     }
 }
 
@@ -570,7 +580,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
         return RejectCombatStart ();
     }
 
-    ResetPlayerAttackPhaseState ();
+    ClearPlayerCharacterTurnStates ();
     LastPlayerAttackRequest = FGridPlayerAttackRequest ();
     LastPlayerAttackResult = FGridAttackResult ();
     LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;

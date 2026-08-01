@@ -358,6 +358,7 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact ()
     {
         ++RuntimeMetrics.AttacksResolved;
     }
+    RefreshPlayerCharacterVitalState (TargetCharacterIndex);
     OnAttackResolved.Broadcast (CurrentMonster, TargetCharacterIndex, Result);
 }
 

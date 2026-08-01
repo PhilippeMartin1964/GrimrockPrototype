@@ -215,7 +215,7 @@ void UGridTurnManagerComponent::BeginRound ()
         return;
     }
 
-    ResetPlayerAttackPhaseState ();
+    BeginPlayerCharacterPhase ();
     RoundNumber = PhaseState.GetRoundNumber ();
     if (bCollectRuntimeMetrics)
     {
@@ -565,7 +565,7 @@ void UGridTurnManagerComponent::FinishEnemyPhase ()
         return;
     }
 
-    ResetPlayerAttackPhaseState ();
+    BeginPlayerCharacterPhase ();
     RoundNumber = PhaseState.GetRoundNumber ();
     if (bCollectRuntimeMetrics)
     {
@@ -591,7 +591,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
         return;
     }
 
-    ResetPlayerAttackPhaseState ();
+    ClearPlayerCharacterTurnStates ();
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;
 

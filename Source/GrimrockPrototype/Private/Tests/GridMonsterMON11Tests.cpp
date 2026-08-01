@@ -241,7 +241,7 @@ bool FGridMonsterMON11TargetingTest::RunTest (const FString& Parameters)
         Request.TargetMonsterId,
         LateralMonsterId);
 
-    Fixture.TurnManager->ResetPlayerAttackPhaseState ();
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
     Fixture.LevelAsset->GetCellMutable (1, 1).NorthWall =
         EGridWallType::Solid;
     Request = FGridPlayerAttackRequest ();
@@ -578,21 +578,30 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
             Result,
             RejectReason));
     TestTrue (
-        TEXT ("The first character is marked for this phase"),
+        TEXT ("The first character has spent action points"),
         Fixture.TurnManager->HasCharacterCommittedAttackThisPhase (0));
 
     Request = FGridPlayerAttackRequest ();
+    TestTrue (
+        TEXT ("The same character can spend its remaining two AP"),
+        Fixture.TurnManager->RequestCharacterAttack (
+            0,
+            Request,
+            Result,
+            RejectReason));
+
+    Request = FGridPlayerAttackRequest ();
     TestFalse (
-        TEXT ("The same character cannot request twice"),
+        TEXT ("The same character cannot request a third attack"),
         Fixture.TurnManager->RequestCharacterAttack (
             0,
             Request,
             Result,
             RejectReason));
     TestEqual (
-        TEXT ("The second request reports AttackerAlreadyActed"),
+        TEXT ("The third request reports InsufficientActionPoints"),
         RejectReason,
-        EGridPlayerAttackRejectReason::AttackerAlreadyActed);
+        EGridPlayerAttackRejectReason::InsufficientActionPoints);
     TestFalse (
         TEXT ("A rejected request stays invalid"),
         Request.IsValid ());
@@ -618,7 +627,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
         Fixture.TurnManager->CurrentPhase,
         EGridCombatPhase::PlayerPhase);
     TestFalse (
-        TEXT ("The first character gate resets for the next phase"),
+        TEXT ("The first character PA budget resets for the next phase"),
         Fixture.TurnManager->HasCharacterCommittedAttackThisPhase (0));
     TestTrue (
         TEXT ("The first character can request in the next PlayerPhase"),
@@ -628,7 +637,7 @@ bool FGridMonsterMON11PerCharacterActionGateTest::RunTest (
             Result,
             RejectReason));
 
-    Fixture.TurnManager->ResetPlayerAttackPhaseState ();
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
     TestFalse (
         TEXT ("An invalid attacker request is refused"),
         Fixture.TurnManager->RequestCharacterAttack (

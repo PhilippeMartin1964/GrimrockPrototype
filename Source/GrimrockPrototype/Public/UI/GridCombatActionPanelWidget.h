@@ -17,13 +17,6 @@ class UTextBlock;
 class UTexture2D;
 class UWidget;
 
-UENUM (BlueprintType)
-enum class EGridCombatActionPanelState : uint8
-{
-    Ready,
-    AlreadyActed
-};
-
 /**
  * Read-only presentation of one equipped hand.
  * The inventory component remains the only owner of the real item instance.
@@ -96,21 +89,33 @@ struct FGridCombatActionPanelView
     FGridCombatActionSlotView OffHand;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
-    EGridCombatActionPanelState ActionState =
-        EGridCombatActionPanelState::Ready;
+    EGridCombatantTurnState TurnState =
+        EGridCombatantTurnState::Waiting;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
+    int32 RemainingActionPoints = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
+    int32 MaximumActionPoints = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
+    int32 AttackActionPointCost = 0;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
     bool bCombatActive = false;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
     bool bCanAct = false;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
+    bool bCanPayAttackCost = false;
 };
 
 /**
  * MON12 combat action panel for one party member.
  *
  * Passing INDEX_NONE as the member index makes the panel follow the selected
- * character. Passing an explicit index prepares the same class for MON12.3.
+ * character. Passing an explicit index prepares the same class for MON12.7.
  * MON12.2 routes hand clicks through the authoritative turn manager.
  */
 UCLASS ()
@@ -152,8 +157,20 @@ public:
     FLinearColor ReadyColor = FLinearColor (0.20f, 0.80f, 0.25f, 1.0f);
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+    FLinearColor WaitingColor =
+        FLinearColor (0.75f, 0.60f, 0.15f, 1.0f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
     FLinearColor AlreadyActedColor =
         FLinearColor (0.32f, 0.32f, 0.32f, 1.0f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+    FLinearColor IncapacitatedColor =
+        FLinearColor (0.80f, 0.35f, 0.10f, 1.0f);
+
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+    FLinearColor DefeatedColor =
+        FLinearColor (0.65f, 0.08f, 0.08f, 1.0f);
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UImage> Image_Portrait;
@@ -166,6 +183,9 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UTextBlock> Text_Mana;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
+    TObjectPtr<UTextBlock> Text_ActionPoints;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UButton> Button_MainHand;
@@ -255,6 +275,10 @@ private:
         FGridPlayerAttackRequest Request,
         AGridMonsterActor* TargetMonster,
         FGridAttackResult Result);
+
+    UFUNCTION ()
+    void HandlePlayerCharacterTurnStateChanged (
+        FGridPlayerCharacterTurnState TurnState);
 
     UFUNCTION ()
     void HandleMonsterAttackResolved (

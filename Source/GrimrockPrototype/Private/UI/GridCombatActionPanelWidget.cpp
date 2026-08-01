@@ -22,6 +22,15 @@ namespace
                 FMath::Max (0, MaximumValue)));
     }
 
+    FText FormatActionPoints (int32 CurrentValue, int32 MaximumValue)
+    {
+        return FText::FromString (
+            FString::Printf (
+                TEXT ("PA %d / %d"),
+                FMath::Max (0, CurrentValue),
+                FMath::Max (0, MaximumValue)));
+    }
+
     FText ResolveCharacterName (
         const FGridInventoryCharacterSummary& Summary)
     {
@@ -97,16 +106,26 @@ void UGridCombatActionPanelWidget::RefreshFromSources ()
     View.MainHand = BuildSlotView (EGridEquipmentSlot::MainHand);
     View.OffHand = BuildSlotView (EGridEquipmentSlot::OffHand);
 
-    const bool bAlreadyActed =
-        IsValid (TurnManagerComponent) &&
-        TurnManagerComponent->HasCharacterCommittedAttackThisPhase (
+    FGridPlayerCharacterTurnState TurnState;
+    if (IsValid (TurnManagerComponent) &&
+        TurnManagerComponent->GetPlayerCharacterTurnState (
+            View.CharacterIndex,
+            TurnState))
+    {
+        View.TurnState = TurnState.State;
+        View.RemainingActionPoints = TurnState.RemainingActionPoints;
+        View.MaximumActionPoints = TurnState.MaximumActionPoints;
+        View.AttackActionPointCost = FMath::Clamp (
+            TurnManagerComponent->PlayerAttackActionPointCost,
+            1,
+            6);
+        View.bCanAct = TurnManagerComponent->CanCharacterAct (
             View.CharacterIndex);
-    View.ActionState = bAlreadyActed
-        ? EGridCombatActionPanelState::AlreadyActed
-        : EGridCombatActionPanelState::Ready;
-    View.bCanAct =
-        IsValid (TurnManagerComponent) &&
-        TurnManagerComponent->CanCharacterAct (View.CharacterIndex);
+        View.bCanPayAttackCost =
+            TurnManagerComponent->CanCharacterSpendActionPoints (
+                View.CharacterIndex,
+                View.AttackActionPointCost);
+    }
 
     RefreshBoundWidgets ();
 }
@@ -138,10 +157,20 @@ bool UGridCombatActionPanelWidget::RequestAttackFromSlot (
 
 FText UGridCombatActionPanelWidget::GetActionStateText () const
 {
-    return View.ActionState ==
-        EGridCombatActionPanelState::AlreadyActed
-            ? FText::FromString (TEXT ("AlreadyActed"))
-            : FText::FromString (TEXT ("Ready"));
+    switch (View.TurnState)
+    {
+    case EGridCombatantTurnState::Active:
+        return FText::FromString (TEXT ("Active"));
+    case EGridCombatantTurnState::Completed:
+        return FText::FromString (TEXT ("Completed"));
+    case EGridCombatantTurnState::Incapacitated:
+        return FText::FromString (TEXT ("Incapacitated"));
+    case EGridCombatantTurnState::Defeated:
+        return FText::FromString (TEXT ("Defeated"));
+    case EGridCombatantTurnState::Waiting:
+    default:
+        return FText::FromString (TEXT ("Waiting"));
+    }
 }
 
 void UGridCombatActionPanelWidget::NativeConstruct ()
@@ -221,6 +250,11 @@ void UGridCombatActionPanelWidget::BindToSources ()
         TurnManagerComponent->OnPlayerAttackResolved.AddUniqueDynamic (
             this,
             &UGridCombatActionPanelWidget::HandlePlayerAttackResolved);
+        TurnManagerComponent->OnPlayerCharacterTurnStateChanged
+            .AddUniqueDynamic (
+                this,
+                &UGridCombatActionPanelWidget::
+                    HandlePlayerCharacterTurnStateChanged);
         TurnManagerComponent->OnAttackResolved.AddUniqueDynamic (
             this,
             &UGridCombatActionPanelWidget::HandleMonsterAttackResolved);
@@ -257,6 +291,11 @@ void UGridCombatActionPanelWidget::UnbindFromSources ()
         TurnManagerComponent->OnPlayerAttackResolved.RemoveDynamic (
             this,
             &UGridCombatActionPanelWidget::HandlePlayerAttackResolved);
+        TurnManagerComponent->OnPlayerCharacterTurnStateChanged
+            .RemoveDynamic (
+                this,
+                &UGridCombatActionPanelWidget::
+                    HandlePlayerCharacterTurnStateChanged);
         TurnManagerComponent->OnAttackResolved.RemoveDynamic (
             this,
             &UGridCombatActionPanelWidget::HandleMonsterAttackResolved);
@@ -320,6 +359,13 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets ()
                 View.CurrentMana,
                 View.MaxMana));
     }
+    if (Text_ActionPoints)
+    {
+        Text_ActionPoints->SetText (
+            FormatActionPoints (
+                View.RemainingActionPoints,
+                View.MaximumActionPoints));
+    }
 
     ApplySlotVisual (
         View.MainHand,
@@ -338,11 +384,26 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets ()
     }
     if (Border_ActionState)
     {
-        Border_ActionState->SetBrushColor (
-            View.ActionState ==
-                EGridCombatActionPanelState::AlreadyActed
-                    ? AlreadyActedColor
-                    : ReadyColor);
+        FLinearColor StateColor = WaitingColor;
+        switch (View.TurnState)
+        {
+        case EGridCombatantTurnState::Active:
+            StateColor = ReadyColor;
+            break;
+        case EGridCombatantTurnState::Completed:
+            StateColor = AlreadyActedColor;
+            break;
+        case EGridCombatantTurnState::Incapacitated:
+            StateColor = IncapacitatedColor;
+            break;
+        case EGridCombatantTurnState::Defeated:
+            StateColor = DefeatedColor;
+            break;
+        case EGridCombatantTurnState::Waiting:
+        default:
+            break;
+        }
+        Border_ActionState->SetBrushColor (StateColor);
     }
     if (Panel_DisabledOverlay)
     {
@@ -410,7 +471,7 @@ void UGridCombatActionPanelWidget::ApplySlotVisual (
     if (ButtonWidget)
     {
         ButtonWidget->SetIsEnabled (
-            View.bCanAct && SlotView.bCanAttack);
+            View.bCanPayAttackCost && SlotView.bCanAttack);
     }
 
     if (IconWidget)
@@ -493,6 +554,15 @@ void UGridCombatActionPanelWidget::HandlePlayerAttackResolved (
     (void)TargetMonster;
     (void)Result;
     if (Request.AttackerCharacterIndex == ResolveCharacterIndex ())
+    {
+        RefreshFromSources ();
+    }
+}
+
+void UGridCombatActionPanelWidget::HandlePlayerCharacterTurnStateChanged (
+    FGridPlayerCharacterTurnState TurnState)
+{
+    if (TurnState.CharacterIndex == ResolveCharacterIndex ())
     {
         RefreshFromSources ();
     }

@@ -3,8 +3,8 @@
 > **Statut de migration.** Les clics directs `MainHand / OffHand` restent une
 > verticale fonctionnelle et un adaptateur de compatibilité vers MON11. La
 > cible définitive remplace ces boutons par des actions générées depuis les
-> armes, sorts, capacités et objets. Voir
-> `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
+> armes, sorts, capacités et objets. Depuis MON12.3, chaque clic accepté
+> dépense 2 PA. Voir `MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
 
 ## Résultat
 
@@ -15,7 +15,8 @@ MON12.2 rend les deux mains du panneau MON12.1 cliquables :
 - une main vide utilise l’attaque à mains nues existante ;
 - un objet équipé non offensif, notamment la torche, reste affiché mais son
   bouton est désactivé ;
-- une attaque acceptée passe immédiatement le personnage à `AlreadyActed` ;
+- une attaque acceptée dépense 2 PA ; le personnage reste `Active` à 2/4 PA,
+  puis devient `Completed` à 0/4 PA ;
 - une demande refusée ne consomme ni action ni objet.
 
 Le widget ne sélectionne aucune cible, ne calcule aucun dégât et ne modifie
@@ -139,7 +140,7 @@ MON12.2 ajoute :
 
 | Test | Vérifications |
 | --- | --- |
-| `CombatActionPanel.SlotAttackRouting` | les deux armes sont exposées, le clic `OffHand` conserve le slot, l’objet et l’attaque de la main secondaire, puis produit `AlreadyActed` |
+| `CombatActionPanel.SlotAttackRouting` | les deux armes sont exposées, le clic `OffHand` conserve le slot, l’objet et l’attaque de la main secondaire, puis dépense 2 PA |
 | `CombatActionPanel.SlotAttackRejection` | la torche est non offensive, le refus ne consomme pas l’action, puis une main vide déclenche l’attaque à mains nues |
 
 Les tests MON12.1 `LiveData` et `TurnAuthority` restent également exécutés.
@@ -158,25 +159,25 @@ Les tests MON12.1 `LiveData` et `TurnAuthority` restent également exécutés.
 
 ### Attaque MainHand
 
-1. Vérifier `Ready` et l’icône du shuriken.
+1. Vérifier `Active`, `PA 4 / 4` et l’icône du shuriken.
 2. Survoler `Button_MainHand` et vérifier son état `Hovered`.
 3. Cliquer une seule fois sur `MainHand`.
 4. Vérifier que le Rat reçoit exactement une attaque.
 5. Vérifier que le shuriken est visible en vol, tombe au sol et reste
    récupérable.
 6. Vérifier que la quantité équipée diminue exactement d’une unité.
-7. Vérifier le passage immédiat à `AlreadyActed` et la désactivation du
-   panneau.
-8. Cliquer de nouveau : aucun second projectile, dégât ou décrément ne doit
-   être produit.
+7. Vérifier `PA 2 / 4` et le maintien de l'état `Active`.
+8. Cliquer de nouveau : une seconde attaque est acceptée, puis le panneau
+   passe à `Completed` avec `PA 0 / 4`.
+9. Un troisième clic ne doit produire aucun projectile, dégât ou décrément.
 
 ### Objet OffHand non offensif
 
-1. Attendre la manche suivante afin de retrouver `Ready`.
+1. Attendre la manche suivante afin de retrouver `Active` et `PA 4 / 4`.
 2. Vérifier que la torche reste visible et lumineuse.
 3. Vérifier que `Button_OffHand` est désactivé.
 4. Cliquer sur la zone OffHand : aucune attaque ne doit partir.
-5. Vérifier que le personnage reste `Ready`.
+5. Vérifier que le personnage reste `Active` à `PA 4 / 4`.
 6. Vérifier que `MainHand` demeure cliquable.
 
 ### Arme OffHand
@@ -187,7 +188,7 @@ Les tests MON12.1 `LiveData` et `TurnAuthority` restent également exécutés.
 3. Cliquer `OffHand`.
 4. Vérifier dans le log `[GridPlayerAttack] Accepted=true` que `Slot=OffHand`
    et que `Item` correspond à cette arme.
-5. Vérifier qu’une seule action est consommée.
+5. Vérifier que 2 PA sont consommés.
 
 ### Main vide
 
@@ -198,8 +199,7 @@ Les tests MON12.1 `LiveData` et `TurnAuthority` restent également exécutés.
    - `Attack=Attack_Unarmed` ;
    - `Item=None` ;
    - `Slot=None`.
-5. Vérifier que l’attaque est résolue une seule fois et produit
-   `AlreadyActed`.
+5. Vérifier que l’attaque est résolue une seule fois et dépense 2 PA.
 
 ### Non-régressions
 
@@ -214,7 +214,8 @@ Les tests MON12.1 `LiveData` et `TurnAuthority` restent également exécutés.
 
 ## Hors périmètre historique
 
-- tours individuels et PA des personnages : désormais MON12.3 ;
+- tours individuels : MON12.4 ; les PA des personnages sont implémentés en
+  MON12.3 ;
 - initiative globale : désormais MON12.4 ;
 - déplacement payant du groupe : désormais MON12.5 ;
 - catalogue d'actions : désormais MON12.6 ;

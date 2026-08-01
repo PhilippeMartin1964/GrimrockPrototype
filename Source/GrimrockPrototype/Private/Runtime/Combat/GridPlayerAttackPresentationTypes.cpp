@@ -100,6 +100,8 @@ FText FGridPlayerAttackFeedbackFormatter::FormatRejectReason (
         return LOCTEXT ("RejectAttackerDefeated", "Ce personnage est vaincu.");
     case EGridPlayerAttackRejectReason::AttackerAlreadyActed:
         return LOCTEXT ("RejectAlreadyActed", "Ce personnage a déjà attaqué pendant cette phase.");
+    case EGridPlayerAttackRejectReason::InsufficientActionPoints:
+        return LOCTEXT ("RejectInsufficientAP", "Ce personnage n’a pas assez de points d’action.");
     case EGridPlayerAttackRejectReason::InvalidFacing:
         return LOCTEXT ("RejectInvalidFacing", "L’orientation du groupe est invalide.");
     case EGridPlayerAttackRejectReason::TargetCellUnavailable:

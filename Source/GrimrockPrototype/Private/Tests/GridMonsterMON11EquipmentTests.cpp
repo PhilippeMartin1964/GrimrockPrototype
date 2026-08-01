@@ -482,10 +482,16 @@ bool FGridMonsterMON11OffensiveProfileValidationTest::RunTest (
         TEXT ("The invalid profile reason is explicit"),
         RejectReason,
         EGridPlayerAttackRejectReason::InvalidOffensiveEquipment);
+    FGridPlayerCharacterTurnState TurnState;
+    TestTrue (
+        TEXT ("The rejected character turn state is available"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            TurnState));
     TestEqual (
-        TEXT ("No rejected attack consumes the character action"),
-        Fixture.TurnManager->PlayerAttackCommittedCharacterIds.Num (),
-        0);
+        TEXT ("No rejected attack consumes action points"),
+        TurnState.RemainingActionPoints,
+        4);
     TestEqual (
         TEXT ("No rejected attack emits an attack log"),
         CountPlayerAttackEntries (Fixture.TurnManager),
@@ -726,7 +732,7 @@ bool FGridMonsterMON11HandPriorityAndFallbackTest::RunTest (
         Request.AttackId,
         OffProfile.AttackId);
 
-    Fixture.TurnManager->ResetPlayerAttackPhaseState ();
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
     Fixture.Equip (
         MainDefinition,
         EGridEquipmentSlot::MainHand);
@@ -746,7 +752,7 @@ bool FGridMonsterMON11HandPriorityAndFallbackTest::RunTest (
         Request.AttackId,
         MainProfile.AttackId);
 
-    Fixture.TurnManager->ResetPlayerAttackPhaseState ();
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
     Fixture.ClearEquipment ();
     Fixture.Equip (
         TorchDefinition,
@@ -777,7 +783,7 @@ bool FGridMonsterMON11HandPriorityAndFallbackTest::RunTest (
         TEXT ("The fallback has no item identity"),
         Request.OffensiveItemDefinitionId.IsNone ());
 
-    Fixture.TurnManager->ResetPlayerAttackPhaseState ();
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
     Fixture.ClearEquipment ();
     UGridItemDefinitionAsset* HeadOffense =
         MakeEquipmentDefinition (

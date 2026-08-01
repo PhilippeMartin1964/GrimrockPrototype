@@ -453,23 +453,34 @@ bool FGridMonsterMON11PlayerResolutionDeterminismTest::RunTest (
         EncounterSeed);
     FGridPlayerAttackRequest RejectedRequest;
     FGridAttackResult RejectedResult;
+    TestTrue (
+        TEXT ("A second attack spends the remaining two AP"),
+        FirstFixture.TurnManager->RequestCharacterAttack (
+            0,
+            RejectedRequest,
+            RejectedResult,
+            FirstReject));
+    const int32 StreamAfterSecondSuccess =
+        FirstFixture.TurnManager->CombatRandomStream.GetCurrentSeed ();
+    RejectedRequest = FGridPlayerAttackRequest ();
+    RejectedResult = FGridAttackResult ();
     TestFalse (
-        TEXT ("A second attack by the same character is refused"),
+        TEXT ("A third attack by the same character is refused"),
         FirstFixture.TurnManager->RequestCharacterAttack (
             0,
             RejectedRequest,
             RejectedResult,
             FirstReject));
     TestEqual (
-        TEXT ("The refusal reports AttackerAlreadyActed"),
+        TEXT ("The refusal reports InsufficientActionPoints"),
         FirstReject,
-        EGridPlayerAttackRejectReason::AttackerAlreadyActed);
+        EGridPlayerAttackRejectReason::InsufficientActionPoints);
     TestEqual (
         TEXT ("The refusal consumes no random draw"),
         FirstFixture.TurnManager->CombatRandomStream.GetCurrentSeed (),
-        StreamAfterSuccess);
+        StreamAfterSecondSuccess);
 
-    FirstFixture.TurnManager->ResetPlayerAttackPhaseState ();
+    FirstFixture.TurnManager->BeginPlayerCharacterPhase ();
     TestTrue (
         TEXT ("A later valid resolution continues the same stream"),
         FirstFixture.TurnManager->RequestCharacterAttack (
@@ -478,17 +489,17 @@ bool FGridMonsterMON11PlayerResolutionDeterminismTest::RunTest (
             FirstResult,
             FirstReject));
     TestNotEqual (
-        TEXT ("The later resolution advances beyond the first result"),
+        TEXT ("The later resolution advances beyond the second result"),
         FirstFixture.TurnManager->CombatRandomStream.GetCurrentSeed (),
-        StreamAfterSuccess);
+        StreamAfterSecondSuccess);
     TestEqual (
         TEXT ("Exactly one resolved broadcast occurs per success"),
         FirstFixture.TurnManager->PlayerAttackResolvedBroadcastCount,
-        2);
+        3);
     TestEqual (
         TEXT ("Metrics count successful resolutions only"),
         FirstFixture.TurnManager->RuntimeMetrics.AttacksResolved,
-        2);
+        3);
     return true;
 }
 
@@ -563,7 +574,7 @@ bool FGridMonsterMON11PlayerResolutionArmorAndCriticalTest::RunTest (
         Fixture.Monster->CurrentHealth,
         InitialHealth);
 
-    Fixture.TurnManager->ResetPlayerAttackPhaseState ();
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
     Fixture.TurnManager->CombatRandomStream.Initialize (
         NaturalTwentySeed);
     TestTrue (

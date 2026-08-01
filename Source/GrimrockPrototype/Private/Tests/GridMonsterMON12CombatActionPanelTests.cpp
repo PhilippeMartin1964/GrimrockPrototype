@@ -419,9 +419,21 @@ bool FGridMonsterMON12CombatActionPanelLiveDataTest::RunTest (
         TEXT ("A non-stackable quantity remains hidden"),
         View.OffHand.bShowQuantity);
     TestEqual (
-        TEXT ("The initial turn state is Ready"),
-        View.ActionState,
-        EGridCombatActionPanelState::Ready);
+        TEXT ("The initial turn state is Active"),
+        View.TurnState,
+        EGridCombatantTurnState::Active);
+    TestEqual (
+        TEXT ("The initial action-point budget is full"),
+        View.RemainingActionPoints,
+        4);
+    TestEqual (
+        TEXT ("The panel exposes the maximum action points"),
+        View.MaximumActionPoints,
+        4);
+    TestEqual (
+        TEXT ("The panel exposes the attack action-point cost"),
+        View.AttackActionPointCost,
+        2);
     TestTrue (
         TEXT ("The turn manager authorizes the living ready member"),
         View.bCanAct);
@@ -504,19 +516,24 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest (
         TEXT ("The member is enabled again in the player phase"),
         Fixture.Panel->View.bCanAct);
 
-    Fixture.TurnManager->PlayerAttackCommittedCharacterIds.Add (
-        Fixture.MinaId);
-    FGridPlayerAttackRequest Request;
-    Request.AttackerCharacterIndex = 1;
-    Fixture.TurnManager->OnPlayerAttackRequested.Broadcast (
-        Request);
+    FGridPlayerCharacterTurnState CompletedState;
+    CompletedState.CharacterIndex = 1;
+    CompletedState.CharacterId = Fixture.MinaId;
+    CompletedState.State = EGridCombatantTurnState::Completed;
+    CompletedState.MaximumActionPoints = 4;
+    CompletedState.RemainingActionPoints = 0;
+    Fixture.TurnManager->PlayerCharacterTurnStates = {
+        CompletedState
+    };
+    Fixture.TurnManager->OnPlayerCharacterTurnStateChanged.Broadcast (
+        CompletedState);
 
     TestEqual (
-        TEXT ("The TurnManager commit produces AlreadyActed"),
-        Fixture.Panel->View.ActionState,
-        EGridCombatActionPanelState::AlreadyActed);
+        TEXT ("The TurnManager event produces Completed"),
+        Fixture.Panel->View.TurnState,
+        EGridCombatantTurnState::Completed);
     TestFalse (
-        TEXT ("AlreadyActed disables the panel"),
+        TEXT ("Completed disables the panel"),
         Fixture.Panel->View.bCanAct);
 
     Fixture.Party->PartyInventoryComponent->PartyInventoryState
@@ -603,11 +620,15 @@ bool FGridMonsterMON12CombatActionPanelSlotRoutingTest::RunTest (
         Fixture.TurnManager->LastPlayerAttackRequest.AttackId,
         FName (TEXT ("Attack_Dagger")));
     TestEqual (
-        TEXT ("The accepted click commits the character action"),
-        Fixture.Panel->View.ActionState,
-        EGridCombatActionPanelState::AlreadyActed);
-    TestFalse (
-        TEXT ("The panel is disabled after the accepted click"),
+        TEXT ("The accepted click keeps the character Active"),
+        Fixture.Panel->View.TurnState,
+        EGridCombatantTurnState::Active);
+    TestEqual (
+        TEXT ("The accepted click spends two action points"),
+        Fixture.Panel->View.RemainingActionPoints,
+        2);
+    TestTrue (
+        TEXT ("The panel permits a second two-AP attack"),
         Fixture.Panel->View.bCanAct);
     return true;
 }
@@ -645,14 +666,20 @@ bool FGridMonsterMON12CombatActionPanelSlotRejectionTest::RunTest (
         TEXT ("The rejection reason identifies non-offensive equipment"),
         Fixture.TurnManager->LastPlayerAttackRejectReason,
         EGridPlayerAttackRejectReason::InvalidOffensiveEquipment);
+    FGridPlayerCharacterTurnState TurnState;
+    TestTrue (
+        TEXT ("The rejected character turn state is available"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            TurnState));
     TestEqual (
-        TEXT ("A rejected click consumes no character action"),
-        Fixture.TurnManager->PlayerAttackCommittedCharacterIds.Num (),
-        0);
+        TEXT ("A rejected click consumes no action points"),
+        TurnState.RemainingActionPoints,
+        4);
     TestEqual (
-        TEXT ("A rejected click leaves the panel Ready"),
-        Fixture.Panel->View.ActionState,
-        EGridCombatActionPanelState::Ready);
+        TEXT ("A rejected click leaves the panel Active"),
+        Fixture.Panel->View.TurnState,
+        EGridCombatantTurnState::Active);
     TestTrue (
         TEXT ("A rejected click leaves the character actionable"),
         Fixture.Panel->View.bCanAct);
@@ -680,6 +707,193 @@ bool FGridMonsterMON12CombatActionPanelSlotRejectionTest::RunTest (
         TEXT ("The unarmed attack id is retained"),
         Fixture.TurnManager->LastPlayerAttackRequest.AttackId,
         FName (TEXT ("Attack_Unarmed")));
+    TestEqual (
+        TEXT ("The accepted unarmed attack spends two action points"),
+        Fixture.Panel->View.RemainingActionPoints,
+        2);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12CharacterActionPointLifecycleTest,
+    "Grimrock.Monsters.MON12.CharacterActionPoints.Lifecycle",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 action-point fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.Panel->InitializeCombatActionPanel (
+        Fixture.Party,
+        0,
+        Fixture.TurnManager);
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
+
+    FGridPlayerCharacterTurnState EliasTurn;
+    FGridPlayerCharacterTurnState MinaTurn;
+    TestTrue (
+        TEXT ("Elias has an authoritative turn state"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("Elias begins the round Active"),
+        EliasTurn.State,
+        EGridCombatantTurnState::Active);
+    TestEqual (
+        TEXT ("Elias begins with four action points"),
+        EliasTurn.RemainingActionPoints,
+        4);
+    TestTrue (
+        TEXT ("Mina has an independent turn state"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            1,
+            MinaTurn));
+    TestEqual (
+        TEXT ("Mina also begins with four action points"),
+        MinaTurn.RemainingActionPoints,
+        4);
+
+    FGridPlayerAttackRequest Request;
+    FGridAttackResult Result;
+    EGridPlayerAttackRejectReason RejectReason =
+        EGridPlayerAttackRejectReason::None;
+    TestTrue (
+        TEXT ("Elias can make a first two-AP attack"),
+        Fixture.TurnManager->RequestCharacterAttack (
+            0,
+            Request,
+            Result,
+            RejectReason));
+    TestEqual (
+        TEXT ("The request records its authoritative AP cost"),
+        Request.ActionPointCost,
+        2);
+    TestEqual (
+        TEXT ("The panel refreshes to two remaining AP without Tick"),
+        Fixture.Panel->View.RemainingActionPoints,
+        2);
+    TestEqual (
+        TEXT ("Elias remains Active after the first attack"),
+        Fixture.Panel->View.TurnState,
+        EGridCombatantTurnState::Active);
+    TestTrue (
+        TEXT ("Elias can still afford a second attack"),
+        Fixture.Panel->View.bCanPayAttackCost);
+
+    TestTrue (
+        TEXT ("Elias can make a second two-AP attack"),
+        Fixture.TurnManager->RequestCharacterAttack (
+            0,
+            Request,
+            Result,
+            RejectReason));
+    TestEqual (
+        TEXT ("The second attack exhausts Elias action points"),
+        Fixture.Panel->View.RemainingActionPoints,
+        0);
+    TestEqual (
+        TEXT ("An exhausted character becomes Completed"),
+        Fixture.Panel->View.TurnState,
+        EGridCombatantTurnState::Completed);
+    TestFalse (
+        TEXT ("A Completed character cannot act"),
+        Fixture.Panel->View.bCanAct);
+
+    const int32 SeedBeforeRefusal =
+        Fixture.TurnManager->CombatRandomStream.GetCurrentSeed ();
+    const int32 HealthBeforeRefusal = Fixture.Monster->CurrentHealth;
+    TestFalse (
+        TEXT ("A third attack is refused"),
+        Fixture.TurnManager->RequestCharacterAttack (
+            0,
+            Request,
+            Result,
+            RejectReason));
+    TestEqual (
+        TEXT ("The refusal reports insufficient action points"),
+        RejectReason,
+        EGridPlayerAttackRejectReason::InsufficientActionPoints);
+    TestEqual (
+        TEXT ("The AP refusal consumes no random draw"),
+        Fixture.TurnManager->CombatRandomStream.GetCurrentSeed (),
+        SeedBeforeRefusal);
+    TestEqual (
+        TEXT ("The AP refusal applies no damage"),
+        Fixture.Monster->CurrentHealth,
+        HealthBeforeRefusal);
+
+    TestTrue (
+        TEXT ("Mina remains independently actionable"),
+        Fixture.TurnManager->CanCharacterSpendActionPoints (1, 2));
+    TestTrue (
+        TEXT ("Mina still retains her full budget"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            1,
+            MinaTurn));
+    TestEqual (
+        TEXT ("Elias spending does not change Mina AP"),
+        MinaTurn.RemainingActionPoints,
+        4);
+
+    Fixture.TurnManager->CompletePlayerCharacterPhase ();
+    TestTrue (
+        TEXT ("Mina state remains available after ending the phase"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            1,
+            MinaTurn));
+    TestEqual (
+        TEXT ("Ending the player phase marks unspent characters Completed"),
+        MinaTurn.State,
+        EGridCombatantTurnState::Completed);
+    TestEqual (
+        TEXT ("Ending a phase does not rewrite the diagnostic AP remainder"),
+        MinaTurn.RemainingActionPoints,
+        4);
+
+    Fixture.TurnManager->BeginPlayerCharacterPhase ();
+    TestTrue (
+        TEXT ("Elias state is restored for the next round"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("The next round restores four action points"),
+        EliasTurn.RemainingActionPoints,
+        4);
+    TestEqual (
+        TEXT ("The next round restores Active"),
+        EliasTurn.State,
+        EGridCombatantTurnState::Active);
+
+    Fixture.Party->PartyInventoryComponent->PartyInventoryState
+        .ActiveCharacters[1].DerivedStats.CurrentHealth = 0;
+    Fixture.TurnManager->RefreshPlayerCharacterVitalState (1);
+    TestTrue (
+        TEXT ("The defeated Mina state remains queryable"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            1,
+            MinaTurn));
+    TestEqual (
+        TEXT ("Zero health produces Defeated"),
+        MinaTurn.State,
+        EGridCombatantTurnState::Defeated);
+    TestEqual (
+        TEXT ("A defeated character has no action points"),
+        MinaTurn.RemainingActionPoints,
+        0);
+    TestFalse (
+        TEXT ("A defeated character cannot act"),
+        Fixture.TurnManager->CanCharacterAct (1));
     return true;
 }
 

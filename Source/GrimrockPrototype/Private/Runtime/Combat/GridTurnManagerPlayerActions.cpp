@@ -200,11 +200,17 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             EGridPlayerAttackRejectReason::AttackerDefeated,
             OutRejectReason);
     }
-    if (PlayerAttackCommittedCharacterIds.Contains (Attacker.CharacterId))
+    const int32 SafeAttackActionPointCost = FMath::Clamp (
+        PlayerAttackActionPointCost,
+        1,
+        6);
+    if (!CanCharacterSpendActionPoints (
+        AttackerCharacterIndex,
+        SafeAttackActionPointCost))
     {
         return RejectPlayerAttack (
             AttackerCharacterIndex,
-            EGridPlayerAttackRejectReason::AttackerAlreadyActed,
+            EGridPlayerAttackRejectReason::InsufficientActionPoints,
             OutRejectReason);
     }
     if (!IsCardinalFacing (PartyPawn->Facing))
@@ -416,11 +422,22 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
         OffensiveItemDefinitionId;
     Request.OffensiveEquipmentSlot =
         OffensiveEquipmentSlot;
+    Request.ActionPointCost = SafeAttackActionPointCost;
     if (!Request.IsValid ())
     {
         return RejectPlayerAttack (
             AttackerCharacterIndex,
             EGridPlayerAttackRejectReason::TargetCellUnavailable,
+            OutRejectReason);
+    }
+
+    if (!SpendPlayerCharacterActionPoints (
+        AttackerCharacterIndex,
+        Request.ActionPointCost))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::InsufficientActionPoints,
             OutRejectReason);
     }
 
@@ -437,10 +454,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
     LastPlayerAttackRequest = Request;
     LastPlayerAttackResult = Result;
     LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;
-    PlayerAttackCommittedCharacterIds.Add (Attacker.CharacterId);
 
     UE_LOG (LogGridTurnManager, Log,
-        TEXT ("[GridPlayerAttack] Accepted=true Request=%s Round=%d Attacker=%d Character=%s Target=%s PartyCell=(%d,%d) TargetCell=(%d,%d) Facing=%s Range=%d Attack=%s Item=%s Slot=%s"),
+        TEXT ("[GridPlayerAttack] Accepted=true Request=%s Round=%d Attacker=%d Character=%s Target=%s PartyCell=(%d,%d) TargetCell=(%d,%d) Facing=%s Range=%d Attack=%s Item=%s Slot=%s APCost=%d"),
         *Request.RequestId.ToString (EGuidFormats::Digits),
         Request.RoundNumber,
         Request.AttackerCharacterIndex,
@@ -454,7 +470,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
         Request.RangeCells,
         *Request.AttackId.ToString (),
         *Request.OffensiveItemDefinitionId.ToString (),
-        *UEnum::GetValueAsString (Request.OffensiveEquipmentSlot));
+        *UEnum::GetValueAsString (Request.OffensiveEquipmentSlot),
+        Request.ActionPointCost);
     ++PlayerAttackRequestedBroadcastCount;
     OnPlayerAttackRequested.Broadcast (Request);
 
@@ -668,55 +685,6 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
     return true;
 }
 
-bool UGridTurnManagerComponent::HasCharacterCommittedAttackThisPhase (
-    int32 CharacterIndex) const
-{
-    if (!IsValid (PartyPawn) ||
-        !IsValid (PartyPawn->PartyInventoryComponent))
-    {
-        return false;
-    }
-
-    const TArray<FGridCharacterInventoryState>& Characters =
-        PartyPawn->PartyInventoryComponent->PartyInventoryState
-            .ActiveCharacters;
-    return Characters.IsValidIndex (CharacterIndex) &&
-        Characters[CharacterIndex].CharacterId.IsValid () &&
-        PlayerAttackCommittedCharacterIds.Contains (
-            Characters[CharacterIndex].CharacterId);
-}
-
-bool UGridTurnManagerComponent::CanCharacterAct (
-    int32 CharacterIndex) const
-{
-    if (!bInitialized ||
-        !bCombatActive ||
-        CurrentPhase != EGridCombatPhase::PlayerPhase ||
-        bPartyInputLocked ||
-        bPlayerAttackResolutionInProgress ||
-        !IsPartyAtRest () ||
-        !IsValid (PartyPawn) ||
-        !IsValid (PartyPawn->PartyInventoryComponent))
-    {
-        return false;
-    }
-
-    const TArray<FGridCharacterInventoryState>& Characters =
-        PartyPawn->PartyInventoryComponent->PartyInventoryState
-            .ActiveCharacters;
-    if (!Characters.IsValidIndex (CharacterIndex))
-    {
-        return false;
-    }
-
-    const FGridCharacterInventoryState& Character =
-        Characters[CharacterIndex];
-    return Character.CharacterId.IsValid () &&
-        Character.DerivedStats.CurrentHealth > 0 &&
-        !PlayerAttackCommittedCharacterIds.Contains (
-            Character.CharacterId);
-}
-
 bool UGridTurnManagerComponent::RejectPlayerAttack (
     int32 AttackerCharacterIndex,
     EGridPlayerAttackRejectReason RejectReason,
@@ -746,9 +714,4 @@ bool UGridTurnManagerComponent::IsCombatMonster (
             {
                 return Candidate.Get () == Monster;
             });
-}
-
-void UGridTurnManagerComponent::ResetPlayerAttackPhaseState ()
-{
-    PlayerAttackCommittedCharacterIds.Reset ();
 }

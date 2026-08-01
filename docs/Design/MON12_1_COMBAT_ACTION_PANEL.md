@@ -1,11 +1,10 @@
 # MON12.1 — Premier panneau d’actions de combat
 
 > **Statut de migration.** Ce panneau reste la verticale fonctionnelle
-> validée pour afficher un personnage. Son modèle `Ready / AlreadyActed` et
-> ses vues `MainHand / OffHand` doivent être migrés vers les PA, l'état de tour
-> et le catalogue d'actions décrits dans
-> `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`. Il ne faut pas construire les
-> quatre panneaux définitifs avant cette fondation.
+> validée pour afficher un personnage. MON12.3 a remplacé son ancien modèle
+> `Ready / AlreadyActed` par l'état de tour et les PA. Ses vues
+> `MainHand / OffHand` resteront provisoires jusqu'au catalogue d'actions.
+> Voir `MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
 
 ## Résultat
 
@@ -17,7 +16,7 @@ directement :
 - `MainHand` et `OffHand` depuis l’équipement réel du personnage ;
 - les icônes depuis les `UGridItemDefinitionAsset` enregistrés ;
 - les quantités depuis les véritables `FGridItemInstance` ;
-- `Ready`, `AlreadyActed` et l’autorisation d’agir depuis
+- l'état de tour, les PA et l’autorisation d’agir depuis
   `UGridTurnManagerComponent`.
 
 Le panneau ne possède aucun inventaire parallèle. Sa structure `View` est
@@ -50,12 +49,13 @@ indices `0`, `1`, `2` et `3`.
 | personnage, portrait, PV, mana | `UGridPartyInventoryComponent` |
 | `MainHand`, `OffHand`, quantité | `UGridPartyInventoryComponent` |
 | icône réelle | `UGridItemDefinitionAsset::Icon` |
-| action déjà engagée | `UGridTurnManagerComponent::HasCharacterCommittedAttackThisPhase()` |
+| état de tour et PA | `UGridTurnManagerComponent::GetPlayerCharacterTurnState()` |
 | autorisation actuelle | `UGridTurnManagerComponent::CanCharacterAct()` |
 | rendu et couleur | `UGridCombatActionPanelWidget` / Widget Blueprint |
 
 `CanCharacterAct()` centralise les conditions de phase joueur, combat actif,
-groupe au repos, personnage vivant et action non encore engagée. Le widget ne
+groupe au repos, personnage vivant, état `Active` et PA restants.
+`CanCharacterSpendActionPoints()` vérifie en plus le coût précis. Le widget ne
 réimplémente aucune de ces règles.
 
 ### Actualisation sans `Tick`
@@ -80,9 +80,9 @@ le décrément d’une pile de shurikens équipée sans introduire de polling.
 ## Comportement visuel natif
 
 - le panneau est masqué hors combat par défaut ;
-- `Ready` correspond à un personnage qui n’a pas encore engagé son action ;
-- `AlreadyActed` correspond à un identifiant de personnage présent dans
-  `PlayerAttackCommittedCharacterIds` ;
+- `Active` correspond à un personnage capable de dépenser ses PA ;
+- `Completed` correspond à un personnage sans PA ou dont la phase est finie ;
+- `Waiting`, `Incapacitated` et `Defeated` complètent l'état de tour ;
 - le panneau est désactivé par `SetIsEnabled(false)` et reçoit une opacité de
   `0.45` quand `CanCharacterAct()` vaut `false` ;
 - la quantité est affichée pour un objet empilable ;
@@ -188,7 +188,7 @@ Les noms liés au C++ sont exactement :
 15. Ne créer aucun `Button` et ne placer aucune logique dans l’Event Graph.
 16. Compiler puis sauvegarder `WBP_GridCombatActionPanel`.
 
-Le C++ écrit les textes `Ready` et `AlreadyActed`, les valeurs `actuel / max`,
+Le C++ écrit l'état de tour, les PA, les valeurs `actuel / max`,
 les icônes et les quantités. Aucun binding Blueprint n’est nécessaire.
 
 ### 4. Associer le panneau au Pawn
@@ -220,8 +220,8 @@ Deux tests sont ajoutés :
 
 | Test | Vérifications |
 | --- | --- |
-| `CombatActionPanel.LiveData` | nom, portrait, PV, mana, mains, icônes, quantité empilable, torche non empilable, `Ready`, autorisation et décrément notifié |
-| `CombatActionPanel.TurnAuthority` | suivi du personnage sélectionné, changement d’index sans panneau spécialisé, désactivation hors phase joueur, `AlreadyActed` et actualisation des PV après attaque ennemie |
+| `CombatActionPanel.LiveData` | nom, portrait, PV, mana, mains, icônes, quantité empilable, torche non empilable, `Active`, PA, autorisation et décrément notifié |
+| `CombatActionPanel.TurnAuthority` | suivi du personnage sélectionné, changement d’index sans panneau spécialisé, désactivation hors phase joueur, `Completed` et actualisation des PV après attaque ennemie |
 
 Les tests n’utilisent aucun asset `Content`.
 
@@ -253,18 +253,19 @@ Les tests n’utilisent aucun asset `Content`.
 10. Vérifier l’icône réelle de la torche dans `OffHand`.
 11. Vérifier la quantité initiale de shurikens.
 12. Vérifier que la quantité `1` de la torche n’est pas affichée.
-13. Vérifier `Ready`, la couleur verte et l’opacité normale.
+13. Vérifier `Active`, `PA 4 / 4`, la couleur verte et l’opacité normale.
 
 ### Action déjà accomplie
 
 1. Sans cliquer le panneau, utiliser la commande de test MON11 existante :
    appuyer une fois sur `NumPad 7`.
-2. Vérifier immédiatement `AlreadyActed`.
+2. Vérifier immédiatement `PA 2 / 4` et le maintien de l'état `Active`.
 3. Vérifier la couleur grise, l’overlay sombre et l’état désactivé.
 4. Vérifier que la quantité de shurikens diminue exactement d’une unité.
 5. Vérifier le shuriken visible pendant le vol puis récupérable au sol.
 6. Appuyer une seconde fois sur `NumPad 7`.
-7. Vérifier le refus `AttackerAlreadyActed`.
+7. Après une seconde attaque acceptée, vérifier que la troisième est refusée
+   avec `InsufficientActionPoints`.
 8. Vérifier qu’aucun second projectile et aucun second décrément ne se
    produisent.
 
@@ -274,7 +275,7 @@ Les tests n’utilisent aucun asset `Content`.
 2. Pendant `EnemyPhase`, vérifier que le panneau reste visible mais désactivé.
 3. Si le Rat touche le personnage, vérifier l’actualisation immédiate des PV.
 4. Attendre la manche suivante.
-5. Vérifier le retour à `Ready` et la réactivation du panneau.
+5. Vérifier le retour à `Active`, `PA 4 / 4` et la réactivation du panneau.
 
 ### Non-régressions MON11.4.2
 

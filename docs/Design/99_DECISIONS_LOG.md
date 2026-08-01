@@ -448,3 +448,27 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   représentation UMG appartient à MON12.7.
 - Le document de référence reste
   `docs/Design/COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
+
+---
+
+## 2026-08-01 — MON12.3 : état de tour et PA des personnages
+
+- Le verrou `PlayerAttackCommittedCharacterIds` n'est plus l'autorité des
+  actions du groupe.
+- Chaque personnage possède un `FGridPlayerCharacterTurnState` identifié par
+  son `CharacterId` stable.
+- Les états communs sont `Waiting`, `Active`, `Completed`, `Incapacitated` et
+  `Defeated`.
+- Chaque personnage vivant reçoit 4 PA au début de la phase joueur.
+- Les attaques existantes coûtent 2 PA ; deux attaques peuvent donc être
+  acceptées pendant la même phase.
+- Une attaque sans PA est refusée avec `InsufficientActionPoints` sans tirage,
+  dégâts ni consommation d'objet.
+- Les budgets restent indépendants entre personnages et sont restaurés à la
+  manche suivante, sans report des PA inutilisés.
+- `PlayerPhase / EnemyPhase` est conservé jusqu'à MON12.4 ; tous les héros
+  vivants sont provisoirement `Active` pendant la phase joueur.
+- Le panneau lit et affiche l'état ainsi que `PA courant / maximum` et se
+  rafraîchit via `OnPlayerCharacterTurnStateChanged`, sans `Tick`.
+- Le document d'implémentation est
+  `docs/Design/MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.

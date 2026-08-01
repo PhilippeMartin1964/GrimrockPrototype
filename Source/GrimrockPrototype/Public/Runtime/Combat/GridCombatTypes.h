@@ -53,6 +53,50 @@ enum class EGridCombatPhase : uint8
     Defeat         UMETA (DisplayName = "Defeat")
 };
 
+/**
+ * Shared vocabulary for an individual combatant turn. MON12.3 uses it for
+ * party members; MON12.4 will apply the same states to the global initiative
+ * order.
+ */
+UENUM (BlueprintType)
+enum class EGridCombatantTurnState : uint8
+{
+    Waiting       UMETA (DisplayName = "Waiting"),
+    Active        UMETA (DisplayName = "Active"),
+    Completed     UMETA (DisplayName = "Completed"),
+    Incapacitated UMETA (DisplayName = "Incapacitated"),
+    Defeated      UMETA (DisplayName = "Defeated")
+};
+
+/** Authoritative per-round action-point state for one party member. */
+USTRUCT (BlueprintType)
+struct FGridPlayerCharacterTurnState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Turn")
+    int32 CharacterIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Turn")
+    FGuid CharacterId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Turn")
+    EGridCombatantTurnState State = EGridCombatantTurnState::Waiting;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Turn")
+    int32 MaximumActionPoints = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Turn")
+    int32 RemainingActionPoints = 0;
+
+    bool CanSpend (int32 Cost) const
+    {
+        return State == EGridCombatantTurnState::Active &&
+            Cost >= 0 &&
+            RemainingActionPoints >= Cost;
+    }
+};
+
 UENUM (BlueprintType)
 enum class EGridPlayerAttackRejectReason : uint8
 {
@@ -74,7 +118,8 @@ enum class EGridPlayerAttackRejectReason : uint8
     TargetDefeated            UMETA (DisplayName = "Target Defeated"),
     TargetOutOfRange          UMETA (DisplayName = "Target Out Of Range"),
     EquippedItemDefinitionUnavailable UMETA (DisplayName = "Equipped Item Definition Unavailable"),
-    InvalidOffensiveEquipment UMETA (DisplayName = "Invalid Offensive Equipment")
+    InvalidOffensiveEquipment UMETA (DisplayName = "Invalid Offensive Equipment"),
+    InsufficientActionPoints  UMETA (DisplayName = "Insufficient Action Points")
 };
 
 USTRUCT (BlueprintType)
@@ -118,6 +163,9 @@ struct FGridPlayerAttackRequest
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
     EGridEquipmentSlot OffensiveEquipmentSlot = EGridEquipmentSlot::None;
 
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    int32 ActionPointCost = 2;
+
     bool IsValid () const
     {
         const bool bCardinalFacing =
@@ -139,6 +187,7 @@ struct FGridPlayerAttackRequest
             TargetMonsterId.IsValid () &&
             bCardinalFacing &&
             RangeCells > 0 &&
+            ActionPointCost > 0 &&
             !AttackId.IsNone () &&
             (bUnarmed || bEquipped);
     }
