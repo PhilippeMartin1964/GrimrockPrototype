@@ -1,5 +1,13 @@
 # MON5 — Gestion des tours, phases et points d'action
 
+> **Statut historique.** MON5 décrit le séquenceur actuellement implémenté
+> avec `PlayerPhase` puis `EnemyPhase`. La cible de refonte définie avant la
+> poursuite de MON12 est documentée dans
+> `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` : initiative globale, tours
+> individuels, PA des personnages et mobilité du groupe. Les règles MON5
+> restent autoritaires tant que chaque migration V2 n'est pas implémentée et
+> validée.
+
 ## 1. Objectif
 
 MON5 ajoute le séquenceur central du combat sans encore résoudre les attaques.

@@ -1,5 +1,11 @@
 # MON12.2 — Attaques depuis le panneau d’actions
 
+> **Statut de migration.** Les clics directs `MainHand / OffHand` restent une
+> verticale fonctionnelle et un adaptateur de compatibilité vers MON11. La
+> cible définitive remplace ces boutons par des actions générées depuis les
+> armes, sorts, capacités et objets. Voir
+> `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
+
 ## Résultat
 
 MON12.2 rend les deux mains du panneau MON12.1 cliquables :
@@ -206,11 +212,15 @@ Les tests MON12.1 `LiveData` et `TurnAuthority` restent également exécutés.
 6. Vérifier que les collisions ne produisent aucun dégât supplémentaire.
 7. Vérifier qu’un refus ne consomme ni action ni objet.
 
-## Hors périmètre
+## Hors périmètre historique
 
-- quatre panneaux simultanés : MON12.3 ;
+- tours individuels et PA des personnages : désormais MON12.3 ;
+- initiative globale : désormais MON12.4 ;
+- déplacement payant du groupe : désormais MON12.5 ;
+- catalogue d'actions : désormais MON12.6 ;
+- quatre panneaux simultanés : désormais MON12.7 ;
 - sélection d’une cible dans le HUD ;
-- panneau et lancement des sorts : MON12.4 ;
+- panneau et lancement des sorts : désormais MON12.8 ;
 - capacités, défense, attente et objets consommables ;
 - calcul de dégâts ou mutation d’inventaire dans le widget ;
 - modification automatique d’un asset Unreal binaire.

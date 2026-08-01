@@ -24,8 +24,9 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 18. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
 19. `05_CODEX_TASKS.md` - historical Codex task templates.
 20. `99_DECISIONS_LOG.md` - chronological decision log.
-21. `MON12_1_COMBAT_ACTION_PANEL.md` - current reusable combat action panel architecture, Unreal setup and PIE validation.
-22. `MON12_2_COMBAT_ACTION_CLICKS.md` - authoritative MainHand/OffHand click routing, Widget Blueprint update and PIE validation.
+21. `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` - target combat architecture: global rounds, initiative, personal AP, shared party mobility and action catalogue.
+22. `MON12_1_COMBAT_ACTION_PANEL.md` - validated reusable combat-panel vertical slice and V2 migration note.
+23. `MON12_2_COMBAT_ACTION_CLICKS.md` - validated MainHand/OffHand compatibility routing and V2 migration note.
 
 ## Document Status
 
@@ -50,8 +51,9 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` | Checklist | UI/runtime consistency checklist for Selected Object, CONNECTORS, orientation, DataAssets and runtime. |
 | `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` | Current / Reference | Practical table explaining every current `UGridObjectArchetypeAsset` and `DefaultBehavior` parameter. |
 | `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | Current / Production Guide | Asset creation workflow for inventory item definitions, placeable pickup archetypes, palette entries and receptacle content. |
-| `MON12_1_COMBAT_ACTION_PANEL.md` | Current / Production Guide | Read-only per-member combat panel, event-driven refresh, Widget Blueprint construction and PIE validation. |
-| `MON12_2_COMBAT_ACTION_CLICKS.md` | Current / Production Guide | MainHand/OffHand click routing through the TurnManager, Widget Blueprint update and PIE validation. |
+| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Design Target | Authoritative target for rounds, global initiative, personal AP, party mobility AP, action catalogue, HUD and revised MON12 roadmap. |
+| `MON12_1_COMBAT_ACTION_PANEL.md` | Validated Vertical Slice / Migration | Read-only per-member combat panel, event-driven refresh, Widget Blueprint construction and migration from `AlreadyActed`. |
+| `MON12_2_COMBAT_ACTION_CLICKS.md` | Validated Vertical Slice / Migration | MainHand/OffHand click routing kept as a compatibility adapter until the action catalogue replaces slot buttons. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Documents With Diagrams
@@ -67,6 +69,7 @@ The following current design documents include Mermaid diagrams or visual tables
 | `GRIMROCK_LOCK_SYSTEM.md` | Key / lock / door separation, key compatibility and `Activated -> Door.Open` flow. |
 | `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` | Current WallLock runtime flow and no inventory auto-unlock rule. |
 | `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | `DA_Item_XXX` versus `DA_Object_XXXPickup`, item creation flow and responsibility table. |
+| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Combat lifecycle, action-source catalogue and authoritative action execution sequence. |
 
 ## Priority Rule
 

@@ -1,5 +1,12 @@
 # MON12.1 — Premier panneau d’actions de combat
 
+> **Statut de migration.** Ce panneau reste la verticale fonctionnelle
+> validée pour afficher un personnage. Son modèle `Ready / AlreadyActed` et
+> ses vues `MainHand / OffHand` doivent être migrés vers les PA, l'état de tour
+> et le catalogue d'actions décrits dans
+> `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`. Il ne faut pas construire les
+> quatre panneaux définitifs avant cette fondation.
+
 ## Résultat
 
 MON12.1 ajoute un panneau UMG réutilisable pour un membre du groupe. Il lit
@@ -33,7 +40,7 @@ mutation directe d’objet.
   le Widget Blueprint ;
 - aucun `Tick` n’est activé.
 
-La même classe pourra donc être instanciée quatre fois dans MON12.3 avec les
+La même classe pourra donc être instanciée quatre fois dans MON12.7 avec les
 indices `0`, `1`, `2` et `3`.
 
 ### Autorités
@@ -279,11 +286,11 @@ Les tests n’utilisent aucun asset `Content`.
 6. Vérifier qu’une collision ne produit aucun dégât supplémentaire.
 7. Terminer le combat et vérifier que le panneau disparaît.
 
-## Hors périmètre
+## Hors périmètre historique
 
 - clic `MainHand` ou `OffHand` pour attaquer : MON12.2 ;
-- quatre panneaux simultanés : MON12.3 ;
-- panneau des sorts : MON12.4 ;
+- quatre panneaux simultanés : désormais MON12.7 après la fondation V2 ;
+- sorts : désormais MON12.8 via le catalogue d'actions commun ;
 - calcul de dégâts dans l’interface ;
 - modification d’inventaire depuis l’interface ;
 - modification automatique d’un `.uasset`.

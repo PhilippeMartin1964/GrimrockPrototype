@@ -16,6 +16,24 @@ Le but est de construire un dungeon crawler en vue subjective, avec :
 
 Le projet vise une architecture simple, modulaire, orientée données, compatible avec une évolution future vers la création de niveaux par les joueurs.
 
+## Combat tactique cible
+
+Le combat cible est un tour par tour sur grille qui conserve le groupe dans
+une cellule unique :
+
+- une manche globale ;
+- un tour individuel par personnage ou monstre ;
+- un ordre commun déterminé par l'initiative ;
+- des PA personnels dépensés pour les attaques, sorts, capacités, objets et
+  déplacements ;
+- une réserve de mobilité commune qui limite la distance parcourue par tout le
+  groupe ;
+- une interface construite depuis les actions réellement disponibles, et non
+  depuis deux boutons fixes `MainHand / OffHand`.
+
+Le document de référence est
+`COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
+
 ---
 
 ## Contraintes générales
@@ -116,6 +134,7 @@ La mémoire principale doit être le dépôt Git.
 | `03_EVENT_COMMAND_LINKS.md` | Modèle Events / Commands / Links |
 | `04_IMPLEMENTATION_ROADMAP.md` | Feuille de route technique |
 | `05_CODEX_TASKS.md` | Tâches Codex prêtes à exécuter |
+| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Cible des manches, initiative, PA, mobilité et actions de combat |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---
@@ -130,4 +149,3 @@ Avant chaque grosse modification :
 4. tester dans l’éditeur ;
 5. committer ;
 6. mettre à jour `99_DECISIONS_LOG.md`.
-
