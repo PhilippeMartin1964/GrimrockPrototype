@@ -423,3 +423,28 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - L'ouverture de porte reste exclusivement `WallLock.Activated -> Door.Open`.
 - La suppression de la recherche automatique de clé par simple clic sur la serrure est reportée au patch d'exécution explicite des actions.
 - Le document de référence est `docs/Design/ITEM_CONTEXT_ACTION_SYSTEM.md`.
+
+---
+
+## 2026-08-01 — Barre d'initiative du combat V2
+
+- Le HUD affiche en haut-centre le combattant actif puis les prochains
+  personnages ou monstres dans l'ordre autoritaire du TurnManager.
+- Chaque slot contient le portrait, le camp, l'état de tour, un état vital
+  compact et les effets majeurs empêchant d'agir.
+- Le slot actif est agrandi ; les slots suivants glissent lorsqu'un tour se
+  termine.
+- Huit slots sont visibles au maximum, avec un indicateur `+ N` en cas de
+  débordement.
+- Un combattant vaincu est retiré après notification autoritaire ; un
+  combattant incapable d'agir reste lisible avec l'état `Incapacitated` avant
+  que son tour soit ignoré.
+- La barre est informative : elle ne sélectionne pas de cible et ne déclenche
+  aucune action.
+- Le widget ne calcule jamais l'initiative et n'utilise aucun `Tick` de
+  rafraîchissement. Il lit l'ordre global et ses événements depuis le
+  TurnManager.
+- Le modèle et les événements autoritaires appartiennent à MON12.4 ; la
+  représentation UMG appartient à MON12.7.
+- Le document de référence reste
+  `docs/Design/COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.

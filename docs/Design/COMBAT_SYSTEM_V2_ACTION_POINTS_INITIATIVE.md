@@ -511,14 +511,79 @@ notification autoritaire.
 
 | Zone | Contenu |
 | --- | --- |
-| haut de l'écran | ordre d'initiative de la manche, combattant actif et suivants |
+| haut-centre de l'écran | barre de slots d'initiative : portrait, état du combattant actif et prochains tours |
 | bas gauche | portraits des quatre personnages, PV, mana, PA restants et état du tour |
 | bas centre | actions disponibles du personnage actif uniquement |
 | bas droite | coût en PA, ressource, cible, portée et bouton `Fin du tour` |
 | près des contrôles de déplacement | PAM restants du groupe |
 | zone de feedback | refus localisé, résultat, dégâts et journal |
 
-### 10.2 États d'un panneau de personnage
+### 10.2 Barre des prochains combattants
+
+La partie haute de l'interface affiche une succession horizontale de slots.
+Elle constitue une vue du même ordre autoritaire que celui exécuté par le
+TurnManager ; le widget ne recalcule et ne retrie jamais l'initiative.
+
+```mermaid
+flowchart LR
+    A["Actif<br/>portrait agrandi"] --> B["Prochain<br/>portrait + état"]
+    B --> C["Puis<br/>portrait + état"]
+    C --> D["À venir<br/>portrait + état"]
+    D --> E["+ N<br/>hors écran"]
+```
+
+Le premier slot représente toujours le combattant actif. Les slots suivants
+représentent, dans leur ordre exact, les participants qui doivent encore agir
+pendant la manche courante. Un combattant ayant terminé son tour sort de la
+barre. Le slot suivant glisse alors en première position.
+
+Chaque slot affiche au minimum :
+
+- le portrait réel du personnage ou l'icône de présentation du monstre ;
+- un cadre de camp distinct : groupe ou ennemi ;
+- un marqueur d'état lisible sans dépendre uniquement de la couleur ;
+- un indicateur compact de vie ;
+- les effets majeurs qui modifient ou empêchent le prochain tour.
+
+Au survol, une infobulle indique le nom, l'initiative totale, les PV et les
+états complets. Le score d'initiative n'est pas imposé en permanence dans le
+slot : l'ordre visuel reste l'information principale.
+
+| État du slot | Présentation cible |
+| --- | --- |
+| `Active` | slot agrandi, cadre lumineux, curseur de tour |
+| `Waiting` | portrait normal et position dans l'ordre |
+| `Incapacitated` | portrait désaturé, symbole d'incapacité, tour ignoré par le TurnManager |
+| `Defeated` | retrait immédiat de la liste après la notification autoritaire |
+
+Règles de lisibilité initiales :
+
+- huit slots visibles au maximum, actif compris ;
+- slot actif d'environ `72 x 72`, slots suivants d'environ `56 x 56` ;
+- indicateur `+ N` si la rencontre contient davantage de prochains tours ;
+- aucune duplication anticipée des participants de la manche suivante ;
+- aucun clic nécessaire pour jouer : la barre informe, elle ne sélectionne
+  pas une cible et ne déclenche aucune action ;
+- animation courte lors d'un changement d'ordre, mais aucun `Tick` de
+  rafraîchissement des données.
+
+Le personnage utilise son portrait de `FGridCharacterInventoryState`. Le
+monstre utilise d'abord `UGridMonsterDefinitionAsset::Icon`, puis une
+silhouette de remplacement si l'asset n'est pas renseigné.
+
+L'implémentation cible sépare :
+
+- `UGridCombatInitiativeBarWidget`, conteneur de la liste ;
+- `UGridCombatInitiativeSlotWidget`, vue réutilisable d'un combattant ;
+- un instantané de slot fourni par le TurnManager avec identité stable, camp,
+  portrait, nom, initiative, état de tour et état vital.
+
+La barre s'actualise uniquement à partir des notifications autoritaires
+`OnTurnOrderChanged`, `OnActiveCombatantChanged` et
+`OnCombatantStateChanged`. Ces événements sont créés avec l'initiative globale
+en MON12.4 ; leur représentation UMG appartient à MON12.7.
+
+### 10.3 États d'un panneau de personnage
 
 `Ready / AlreadyActed` est remplacé par des états plus précis :
 
@@ -542,7 +607,7 @@ Il n'affiche plus deux gros boutons permanents correspondant aux mains. Les
 mains peuvent rester visibles en petit comme information d'équipement, mais
 les clics de combat utilisent les actions générées.
 
-### 10.3 Barre d'actions
+### 10.4 Barre d'actions
 
 La barre n'affiche que les actions réellement fournies et actuellement
 pertinentes. Elle peut être regroupée par source :
@@ -647,7 +712,9 @@ Les étapes doivent rester petites, testables et publiées séparément.
 - activer un seul combattant à la fois ;
 - remplacer la séquence de phases de camp par les tours individuels ;
 - ajouter `Fin du tour` ;
-- exposer les événements de changement de combattant actif.
+- exposer l'instantané autoritaire de l'ordre global ;
+- exposer les événements de changement d'ordre, de combattant actif et
+  d'état nécessaires à la barre d'initiative.
 
 ### MON12.5 — Déplacement du groupe avec PA et PAM
 
@@ -668,7 +735,9 @@ Les étapes doivent rester petites, testables et publiées séparément.
 ### MON12.7 — HUD orienté actions et quatre personnages
 
 - afficher les quatre panneaux ;
-- afficher l'ordre d'initiative ;
+- afficher jusqu'à huit slots d'initiative avec portrait, camp et état ;
+- agrandir le combattant actif et faire glisser les prochains tours ;
+- afficher `+ N` lorsque l'ordre dépasse la capacité visible ;
 - afficher PA et état de tour de chacun ;
 - remplacer les gros boutons de mains par la barre d'actions ;
 - afficher les PAM du groupe ;
@@ -735,7 +804,12 @@ Les étapes doivent rester petites, testables et publiées séparément.
 - PA et PAM s'actualisent par événement ;
 - aucun `Tick` de rafraîchissement ;
 - quatre états de tour indépendants ;
-- ordre d'initiative identique à celui du TurnManager.
+- ordre d'initiative identique à celui du TurnManager ;
+- portrait et camp corrects pour personnages et monstres ;
+- combattant actif en première position ;
+- retrait d'un vaincu et glissement des slots sans recalcul UI ;
+- état `Incapacitated` visible avant que le TurnManager ignore son tour ;
+- `+ N` exact au-delà de huit slots.
 
 ---
 

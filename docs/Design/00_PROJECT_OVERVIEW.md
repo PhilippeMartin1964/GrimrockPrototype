@@ -28,6 +28,8 @@ une cellule unique :
   déplacements ;
 - une réserve de mobilité commune qui limite la distance parcourue par tout le
   groupe ;
+- une barre d'initiative affichant le portrait et l'état du combattant actif,
+  puis ceux des prochains personnages ou monstres dans l'ordre réel ;
 - une interface construite depuis les actions réellement disponibles, et non
   depuis deux boutons fixes `MainHand / OffHand`.
 
