@@ -253,8 +253,7 @@ void UGridCombatActionPanelWidget::BindToSources ()
         TurnManagerComponent->OnPlayerCharacterTurnStateChanged
             .AddUniqueDynamic (
                 this,
-                &UGridCombatActionPanelWidget::
-                    HandlePlayerCharacterTurnStateChanged);
+                &UGridCombatActionPanelWidget::HandlePlayerCharacterTurnStateChanged);
         TurnManagerComponent->OnAttackResolved.AddUniqueDynamic (
             this,
             &UGridCombatActionPanelWidget::HandleMonsterAttackResolved);
@@ -294,8 +293,7 @@ void UGridCombatActionPanelWidget::UnbindFromSources ()
         TurnManagerComponent->OnPlayerCharacterTurnStateChanged
             .RemoveDynamic (
                 this,
-                &UGridCombatActionPanelWidget::
-                    HandlePlayerCharacterTurnStateChanged);
+                &UGridCombatActionPanelWidget::HandlePlayerCharacterTurnStateChanged);
         TurnManagerComponent->OnAttackResolved.RemoveDynamic (
             this,
             &UGridCombatActionPanelWidget::HandleMonsterAttackResolved);
