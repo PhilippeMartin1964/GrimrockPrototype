@@ -150,6 +150,10 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
     bool bCollapseOutsideCombat = true;
 
+    /** MON12.7 embeds this panel as status-only; legacy standalone use keeps them. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
+    bool bShowHandActionButtons = true;
+
     UPROPERTY (
         EditAnywhere,
         BlueprintReadOnly,

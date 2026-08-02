@@ -333,17 +333,26 @@ bool UGridTurnManagerComponent::BeginMonsterCombatantTurn (
 
 bool UGridTurnManagerComponent::EndActivePlayerTurn ()
 {
-    FGridCombatantInitiativeEntry ActiveCombatant;
-    if (!bCombatActive ||
-        !GetActiveCombatant (ActiveCombatant) ||
-        ActiveCombatant.Side != EGridCombatantSide::Party ||
-        !IsPartyAtRest ())
+    if (!CanEndActivePlayerTurn ())
     {
         return false;
     }
 
     FinishActivePlayerTurn ();
     return true;
+}
+
+bool UGridTurnManagerComponent::CanEndActivePlayerTurn () const
+{
+    FGridCombatantInitiativeEntry ActiveCombatant;
+    return bInitialized &&
+        bCombatActive &&
+        !bPartyInputLocked &&
+        !bPlayerAttackResolutionInProgress &&
+        !bHasActiveAction &&
+        GetActiveCombatant (ActiveCombatant) &&
+        ActiveCombatant.Side == EGridCombatantSide::Party &&
+        IsPartyAtRest ();
 }
 
 void UGridTurnManagerComponent::FinishActivePlayerTurn ()

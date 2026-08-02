@@ -21,6 +21,7 @@
 #include "Runtime/GridThrownItemActor.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridCombatActionPanelWidget.h"
+#include "UI/GridCombatHudWidget.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
@@ -1231,11 +1232,6 @@ UGridInventoryWidget* AGrimrockPartyPawn::GetInventoryWidget () const
 
 bool AGrimrockPartyPawn::ShowCombatActionPanelWidget ()
 {
-    if (!CombatActionPanelWidgetClass)
-    {
-        return false;
-    }
-
     APlayerController* PlayerController =
         Cast<APlayerController> (GetController ());
     if (!PlayerController)
@@ -1243,8 +1239,45 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget ()
         UE_LOG (
             LogTemp,
             Warning,
-            TEXT ("GridCombatActionPanel Show Failed Pawn=%s Reason=NoPlayerController"),
+            TEXT ("GridCombatHud Show Failed Pawn=%s Reason=NoPlayerController"),
             *GetName ());
+        return false;
+    }
+
+    UGridTurnManagerComponent* TurnManager =
+        IsValid (LevelRuntimeActor)
+            ? LevelRuntimeActor
+                ->FindComponentByClass<UGridTurnManagerComponent> ()
+            : nullptr;
+    if (CombatHudWidgetClass)
+    {
+        if (!CombatHudWidgetInstance)
+        {
+            CombatHudWidgetInstance =
+                CreateWidget<UGridCombatHudWidget> (
+                    PlayerController,
+                    CombatHudWidgetClass);
+        }
+        if (!CombatHudWidgetInstance)
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("GridCombatHud Show Failed Pawn=%s Reason=CreateWidgetFailed"),
+                *GetName ());
+            return false;
+        }
+        CombatHudWidgetInstance->InitializeCombatHud (this, TurnManager);
+        if (!CombatHudWidgetInstance->IsInViewport ())
+        {
+            CombatHudWidgetInstance->AddToViewport (
+                CombatActionPanelZOrder);
+        }
+        return true;
+    }
+
+    if (!CombatActionPanelWidgetClass)
+    {
         return false;
     }
 
@@ -1265,11 +1298,6 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget ()
         return false;
     }
 
-    UGridTurnManagerComponent* TurnManager =
-        IsValid (LevelRuntimeActor)
-            ? LevelRuntimeActor
-                ->FindComponentByClass<UGridTurnManagerComponent> ()
-            : nullptr;
     CombatActionPanelWidgetInstance->InitializeCombatActionPanel (
         this,
         CombatActionPanelCharacterIndex,
@@ -1284,6 +1312,11 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget ()
 
 void AGrimrockPartyPawn::HideCombatActionPanelWidget ()
 {
+    if (CombatHudWidgetInstance)
+    {
+        CombatHudWidgetInstance->RemoveFromParent ();
+        CombatHudWidgetInstance = nullptr;
+    }
     if (!CombatActionPanelWidgetInstance)
     {
         return;
@@ -1295,6 +1328,10 @@ void AGrimrockPartyPawn::HideCombatActionPanelWidget ()
 
 void AGrimrockPartyPawn::RefreshCombatActionPanelWidget ()
 {
+    if (CombatHudWidgetInstance)
+    {
+        CombatHudWidgetInstance->RefreshFromSources ();
+    }
     if (CombatActionPanelWidgetInstance)
     {
         CombatActionPanelWidgetInstance->RefreshFromSources ();

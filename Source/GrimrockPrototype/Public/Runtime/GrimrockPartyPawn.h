@@ -20,6 +20,7 @@ class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
 class UGridCombatActionPanelWidget;
+class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
 class URPGCharacterCreationWidget;
@@ -136,6 +137,13 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
     bool bInventoryWidgetVisible = false;
+
+    /** MON12.7 root HUD. When unset, the historical action panel is retained. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
+    TSubclassOf<UGridCombatHudWidget> CombatHudWidgetClass;
+
+    UPROPERTY (Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Combat|UI")
+    TObjectPtr<UGridCombatHudWidget> CombatHudWidgetInstance;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
     TSubclassOf<UGridCombatActionPanelWidget>

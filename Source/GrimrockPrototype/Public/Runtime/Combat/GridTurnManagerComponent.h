@@ -501,6 +501,10 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|Initiative")
     bool EndActivePlayerTurn ();
 
+    /** Authoritative availability used by every end-turn command surface. */
+    UFUNCTION (BlueprintPure, Category = "Combat|Initiative")
+    bool CanEndActivePlayerTurn () const;
+
     /**
      * Authorizes one party translation during combat and spends its personal
      * PA plus the shared PAM atomically. Exploration never calls this path.
@@ -911,4 +915,5 @@ private:
     friend class FGridMonsterMON12CharacterActionPointLifecycleTest;
     friend class FGridMonsterMON12GlobalInitiativeLifecycleTest;
     friend class FGridMonsterMON12PartyMobilityLifecycleTest;
+    friend class FGridMonsterMON12CombatHudLifecycleTest;
 };

@@ -368,16 +368,33 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets ()
                 View.MaximumActionPoints));
     }
 
-    ApplySlotVisual (
-        View.MainHand,
-        Button_MainHand,
-        Image_MainHandIcon,
-        Text_MainHandQuantity);
-    ApplySlotVisual (
-        View.OffHand,
-        Button_OffHand,
-        Image_OffHandIcon,
-        Text_OffHandQuantity);
+    if (bShowHandActionButtons)
+    {
+        ApplySlotVisual (
+            View.MainHand,
+            Button_MainHand,
+            Image_MainHandIcon,
+            Text_MainHandQuantity);
+        ApplySlotVisual (
+            View.OffHand,
+            Button_OffHand,
+            Image_OffHandIcon,
+            Text_OffHandQuantity);
+    }
+    if (Button_MainHand)
+    {
+        Button_MainHand->SetVisibility (
+            bShowHandActionButtons
+                ? ESlateVisibility::Visible
+                : ESlateVisibility::Collapsed);
+    }
+    if (Button_OffHand)
+    {
+        Button_OffHand->SetVisibility (
+            bShowHandActionButtons
+                ? ESlateVisibility::Visible
+                : ESlateVisibility::Collapsed);
+    }
 
     if (Text_ActionState)
     {
