@@ -7,6 +7,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
+#include "InputActionValue.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -1361,19 +1362,30 @@ bool FGridMonsterMON12PartyMobilityLifecycleTest::RunTest (
         EliasTurn.RemainingActionPoints,
         2);
 
+    Fixture.Party->HandleTurnRight (FInputActionValue ());
     TestTrue (
-        TEXT ("A 90-degree rotation remains free with zero PAM"),
-        Fixture.Party->TryStartTurn (true));
+        TEXT ("The TurnRight input starts a free rotation with zero PAM"),
+        Fixture.Party->bIsTurning);
     TestTrue (
-        TEXT ("The free rotation is tracked during interpolation"),
+        TEXT ("The TurnRight input is tracked during interpolation"),
         Fixture.TurnManager->IsPartyMotionInProgress ());
     Fixture.Party->UpdateTurn (Fixture.Party->TurnDuration);
     TestEqual (
-        TEXT ("The party now faces east"),
+        TEXT ("The TurnRight input follows the validated grid convention"),
         Fixture.Party->Facing,
-        EGridEdge::East);
+        EGridEdge::West);
+
+    Fixture.Party->HandleTurnLeft (FInputActionValue ());
     TestTrue (
-        TEXT ("Elias state remains available after rotating"),
+        TEXT ("The TurnLeft input starts the opposite free rotation"),
+        Fixture.Party->bIsTurning);
+    Fixture.Party->UpdateTurn (Fixture.Party->TurnDuration);
+    TestEqual (
+        TEXT ("TurnLeft reverses the preceding TurnRight input"),
+        Fixture.Party->Facing,
+        EGridEdge::North);
+    TestTrue (
+        TEXT ("Elias state remains available after both rotations"),
         Fixture.TurnManager->GetPlayerCharacterTurnState (
             0,
             EliasTurn));

@@ -9,10 +9,10 @@ namespace GridDirectionUtils
     {
         switch (Dir)
         {
-        case EGridEdge::North: return EGridEdge::West;
-        case EGridEdge::West:  return EGridEdge::South;
-        case EGridEdge::South: return EGridEdge::East;
-        case EGridEdge::East:  return EGridEdge::North;
+        case EGridEdge::North: return EGridEdge::East;
+        case EGridEdge::East:  return EGridEdge::South;
+        case EGridEdge::South: return EGridEdge::West;
+        case EGridEdge::West:  return EGridEdge::North;
         default:               return EGridEdge::North;
         }
     }
@@ -21,10 +21,10 @@ namespace GridDirectionUtils
     {
         switch (Dir)
         {
-        case EGridEdge::North: return EGridEdge::East;
-        case EGridEdge::East:  return EGridEdge::South;
-        case EGridEdge::South: return EGridEdge::West;
-        case EGridEdge::West:  return EGridEdge::North;
+        case EGridEdge::North: return EGridEdge::West;
+        case EGridEdge::West:  return EGridEdge::South;
+        case EGridEdge::South: return EGridEdge::East;
+        case EGridEdge::East:  return EGridEdge::North;
         default:               return EGridEdge::North;
         }
     }
