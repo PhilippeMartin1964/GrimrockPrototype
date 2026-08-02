@@ -79,6 +79,13 @@ public:
         meta = (EditCondition = "bProvidesAttack"))
     FGridOffensiveEquipmentProfile OffensiveProfile;
 
+    /**
+     * Generic actions granted while this item is equipped. An empty array
+     * keeps the legacy bProvidesAttack / OffensiveProfile adapter active.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Combat Actions")
+    TArray<FGridCombatActionDefinition> CombatActions;
+
     UPROPERTY (
         EditAnywhere,
         BlueprintReadOnly,
@@ -153,6 +160,9 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "Equipment|Offense")
     bool CanProvideAttackFromSlot (EGridEquipmentSlot Slot) const;
+
+    UFUNCTION (BlueprintPure, Category = "Equipment|Combat Actions")
+    bool HasValidCombatActions () const;
 
     UFUNCTION (BlueprintPure, Category = "Equipment|Offense|Presentation")
     bool HasValidPlayerAttackPresentation () const;

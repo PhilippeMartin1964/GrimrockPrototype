@@ -695,6 +695,7 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     Request.DisplayName = FText::FromString (NormalizedName);
     Request.RaceDefinition = RaceDefinition;
     Request.ClassDefinition = EffectiveClassDefinition;
+    Request.CombatActionSourceClassDefinition = ClassDefinition;
     Request.PortraitGender = SelectedPortraitGender;
     Request.PortraitVariantId = SelectedPortraitVariantId;
     Request.Portrait = DefaultPortrait;

@@ -204,6 +204,13 @@ struct FRPGCharacterCreationRequest
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TObjectPtr<URPGClassAsset> ClassDefinition = nullptr;
 
+    /**
+     * Canonical asset retained for runtime class actions when ClassDefinition
+     * is a transient copy used to preview allocated attributes.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
+    TObjectPtr<URPGClassAsset> CombatActionSourceClassDefinition = nullptr;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;
 

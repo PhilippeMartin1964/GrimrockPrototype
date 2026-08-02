@@ -1,0 +1,247 @@
+#include "Runtime/Combat/GridCombatActionCatalog.h"
+
+#include "Runtime/GridItemDefinitionAsset.h"
+
+#define LOCTEXT_NAMESPACE "GridCombatActionCatalog"
+
+namespace
+{
+    EGridCombatActionAvailabilityReason EvaluateMON126Availability (
+        const FGridCombatActionCatalogContext& Context,
+        const FGridCombatActionContribution& Contribution)
+    {
+        const FGridCombatActionDefinition& Definition =
+            Contribution.Definition;
+        if (Context.CharacterIndex == INDEX_NONE ||
+            !Context.CharacterId.IsValid ())
+        {
+            return EGridCombatActionAvailabilityReason::InvalidCharacter;
+        }
+        if (!Context.bCombatActive)
+        {
+            return EGridCombatActionAvailabilityReason::CombatInactive;
+        }
+        if (Context.bCharacterDefeated)
+        {
+            return EGridCombatActionAvailabilityReason::CharacterDefeated;
+        }
+        if (!Context.bActiveCombatant)
+        {
+            return EGridCombatActionAvailabilityReason::NotActiveCombatant;
+        }
+        if (Context.bPartyBusy)
+        {
+            return EGridCombatActionAvailabilityReason::PartyBusy;
+        }
+        if (Context.RemainingActionPoints < Definition.ActionPointCost)
+        {
+            return EGridCombatActionAvailabilityReason::
+                InsufficientActionPoints;
+        }
+        if (Context.CurrentMana < Definition.ResourceCosts.ManaCost)
+        {
+            return EGridCombatActionAvailabilityReason::InsufficientMana;
+        }
+        if (Definition.ResourceCosts.SourceItemQuantityCost > 0 &&
+            Contribution.AvailableSourceQuantity <
+                Definition.ResourceCosts.SourceItemQuantityCost)
+        {
+            return EGridCombatActionAvailabilityReason::
+                InsufficientSourceItems;
+        }
+        for (const FName Requirement : Definition.Requirements)
+        {
+            if (!Context.SatisfiedRequirements.Contains (Requirement))
+            {
+                return EGridCombatActionAvailabilityReason::
+                    MissingRequirement;
+            }
+        }
+        if (const int32* RemainingCooldown =
+            Context.RemainingCooldownRounds.Find (Definition.ActionId))
+        {
+            if (*RemainingCooldown > 0)
+            {
+                return EGridCombatActionAvailabilityReason::CooldownActive;
+            }
+        }
+        if (!Context.bEnableExtendedExecutors &&
+            (Definition.ResolutionProfile !=
+                    EGridCombatActionResolutionProfile::Attack ||
+                Definition.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Ability ||
+                Definition.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Spell ||
+                Definition.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::QuickItem))
+        {
+            return EGridCombatActionAvailabilityReason::
+                ExecutionNotImplemented;
+        }
+        return EGridCombatActionAvailabilityReason::None;
+    }
+}
+
+void FGridCombatActionCatalog::Build (
+    const FGridCombatActionCatalogContext& Context,
+    const TArray<FGridCombatActionContribution>& Contributions,
+    TArray<FGridAvailableCombatAction>& OutActions)
+{
+    OutActions.Reset (Contributions.Num ());
+    for (const FGridCombatActionContribution& Contribution : Contributions)
+    {
+        if (!Contribution.IsValid ())
+        {
+            continue;
+        }
+
+        FGridAvailableCombatAction Available;
+        Available.Definition = Contribution.Definition;
+        Available.CharacterIndex = Context.CharacterIndex;
+        Available.CharacterId = Context.CharacterId;
+        Available.SourceDefinitionId = Contribution.SourceDefinitionId;
+        Available.SourceRuntimeId = Contribution.SourceRuntimeId;
+        Available.SourceEquipmentSlot =
+            Contribution.SourceEquipmentSlot;
+        Available.CurrentActionPointCost =
+            Contribution.Definition.ActionPointCost;
+        Available.CurrentManaCost =
+            Contribution.Definition.ResourceCosts.ManaCost;
+        Available.CurrentSourceItemQuantityCost =
+            Contribution.Definition.ResourceCosts.SourceItemQuantityCost;
+        Available.AvailabilityReason = EvaluateMON126Availability (
+            Context,
+            Contribution);
+        Available.bEnabled =
+            Available.AvailabilityReason ==
+                EGridCombatActionAvailabilityReason::None;
+        Available.DisabledReason = Available.bEnabled
+            ? FText::GetEmpty ()
+            : GetAvailabilityReasonText (
+                Available.AvailabilityReason);
+        OutActions.Add (MoveTemp (Available));
+    }
+}
+
+FGridCombatActionDefinition
+FGridCombatActionCatalog::MakeLegacyEquipmentAttackDefinition (
+    const UGridItemDefinitionAsset& ItemDefinition,
+    int32 ActionPointCost)
+{
+    FGridCombatActionDefinition Definition;
+    if (!ItemDefinition.HasValidOffensiveProfile ())
+    {
+        return Definition;
+    }
+
+    Definition.ActionId = ItemDefinition.OffensiveProfile.AttackId;
+    Definition.DisplayName = ItemDefinition.DisplayName;
+    Definition.Description = ItemDefinition.Description;
+    Definition.Icon = ItemDefinition.Icon;
+    Definition.ActionType =
+        ItemDefinition.bThrowable ||
+            ItemDefinition.OffensiveProfile.RangeCells > 1
+        ? EGridCombatActionType::RangedAttack
+        : EGridCombatActionType::MeleeAttack;
+    Definition.SourcePolicy =
+        EGridCombatActionSourcePolicy::Equipment;
+    Definition.TargetingPolicy =
+        EGridCombatTargetingPolicy::FirstAxialTarget;
+    Definition.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Attack;
+    Definition.ActionPointCost = FMath::Clamp (
+        ActionPointCost,
+        1,
+        6);
+    Definition.ResourceCosts.SourceItemQuantityCost =
+        ItemDefinition.bThrowable ? 1 : 0;
+    Definition.RangeCells = ItemDefinition.OffensiveProfile.RangeCells;
+    Definition.PresentationProfileId =
+        ItemDefinition.OffensiveProfile.AttackId;
+    Definition.OffensiveProfile = ItemDefinition.OffensiveProfile;
+    return Definition;
+}
+
+FGridCombatActionDefinition
+FGridCombatActionCatalog::MakeUnarmedAttackDefinition (
+    int32 ActionPointCost)
+{
+    FGridCombatActionDefinition Definition;
+    Definition.ActionId = TEXT ("Attack_Unarmed");
+    Definition.DisplayName = LOCTEXT ("UnarmedName", "À mains nues");
+    Definition.Description = LOCTEXT (
+        "UnarmedDescription",
+        "Attaque physique effectuée sans arme.");
+    Definition.ActionType = EGridCombatActionType::MeleeAttack;
+    Definition.SourcePolicy = EGridCombatActionSourcePolicy::Universal;
+    Definition.TargetingPolicy =
+        EGridCombatTargetingPolicy::FirstAxialTarget;
+    Definition.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Attack;
+    Definition.ActionPointCost = FMath::Clamp (
+        ActionPointCost,
+        1,
+        6);
+    Definition.RangeCells = 1;
+    Definition.PresentationProfileId = TEXT ("Unarmed");
+    Definition.OffensiveProfile.AttackId = TEXT ("Attack_Unarmed");
+    Definition.OffensiveProfile.AttackDefinition.DamageType =
+        EGridDamageType::Physical;
+    Definition.OffensiveProfile.AttackDefinition.PhysicalSubtype =
+        EGridPhysicalDamageSubtype::Bludgeoning;
+    Definition.OffensiveProfile.AttackDefinition.MinDamage = 1;
+    Definition.OffensiveProfile.AttackDefinition.MaxDamage = 3;
+    Definition.OffensiveProfile.DamageScalingAttribute =
+        EGridAttackScalingAttribute::Strength;
+    Definition.OffensiveProfile.RangeCells = 1;
+    return Definition;
+}
+
+FText FGridCombatActionCatalog::GetAvailabilityReasonText (
+    EGridCombatActionAvailabilityReason Reason)
+{
+    switch (Reason)
+    {
+    case EGridCombatActionAvailabilityReason::CombatInactive:
+        return LOCTEXT ("CombatInactive", "Aucun combat n’est actif.");
+    case EGridCombatActionAvailabilityReason::InvalidCharacter:
+        return LOCTEXT ("InvalidCharacter", "Ce personnage est invalide.");
+    case EGridCombatActionAvailabilityReason::CharacterDefeated:
+        return LOCTEXT ("CharacterDefeated", "Ce personnage est vaincu.");
+    case EGridCombatActionAvailabilityReason::NotActiveCombatant:
+        return LOCTEXT (
+            "NotActiveCombatant",
+            "Ce n’est pas le tour de ce personnage.");
+    case EGridCombatActionAvailabilityReason::PartyBusy:
+        return LOCTEXT ("PartyBusy", "Le groupe est occupé.");
+    case EGridCombatActionAvailabilityReason::InsufficientActionPoints:
+        return LOCTEXT (
+            "InsufficientActionPoints",
+            "Ce personnage n’a pas assez de points d’action.");
+    case EGridCombatActionAvailabilityReason::InsufficientMana:
+        return LOCTEXT (
+            "InsufficientMana",
+            "Ce personnage n’a pas assez de mana.");
+    case EGridCombatActionAvailabilityReason::InsufficientSourceItems:
+        return LOCTEXT (
+            "InsufficientSourceItems",
+            "La source ne contient pas assez d’unités.");
+    case EGridCombatActionAvailabilityReason::MissingRequirement:
+        return LOCTEXT (
+            "MissingRequirement",
+            "Une condition requise n’est pas satisfaite.");
+    case EGridCombatActionAvailabilityReason::CooldownActive:
+        return LOCTEXT (
+            "CooldownActive",
+            "Cette action est encore en recharge.");
+    case EGridCombatActionAvailabilityReason::ExecutionNotImplemented:
+        return LOCTEXT (
+            "ExecutionNotImplemented",
+            "L’exécution de cette action sera ajoutée dans un prochain jalon.");
+    case EGridCombatActionAvailabilityReason::None:
+    default:
+        return FText::GetEmpty ();
+    }
+}
+
+#undef LOCTEXT_NAMESPACE

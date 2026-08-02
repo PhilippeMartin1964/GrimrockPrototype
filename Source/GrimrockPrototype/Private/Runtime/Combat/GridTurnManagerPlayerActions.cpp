@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -29,6 +30,53 @@ namespace
             EGridAttackScalingAttribute::Strength;
         Profile.RangeCells = 1;
         return Profile;
+    }
+
+    bool ResolveMON12ItemAttackProfile (
+        const UGridItemDefinitionAsset* Definition,
+        FGridOffensiveEquipmentProfile& OutProfile)
+    {
+        OutProfile = FGridOffensiveEquipmentProfile ();
+        if (!IsValid (Definition))
+        {
+            return false;
+        }
+        if (!Definition->CombatActions.IsEmpty ())
+        {
+            for (const FGridCombatActionDefinition& Action :
+                Definition->CombatActions)
+            {
+                if (Action.IsValid () &&
+                    Action.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Equipment &&
+                    Action.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack)
+                {
+                    OutProfile = Action.OffensiveProfile;
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (!Definition->HasValidOffensiveProfile ())
+        {
+            return false;
+        }
+        OutProfile = Definition->OffensiveProfile;
+        return true;
+    }
+
+    bool DoesMON12ItemDeclareAttack (
+        const UGridItemDefinitionAsset* Definition)
+    {
+        return IsValid (Definition) &&
+            (Definition->bProvidesAttack ||
+                Definition->CombatActions.ContainsByPredicate (
+                    [] (const FGridCombatActionDefinition& Action)
+                    {
+                        return Action.ResolutionProfile ==
+                            EGridCombatActionResolutionProfile::Attack;
+                    }));
     }
 
     int32 GetScalingAttributeValue (
@@ -98,10 +146,50 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
 {
+    TArray<FGridAvailableCombatAction> AvailableActions;
+    GetAvailableCombatActions (
+        AttackerCharacterIndex,
+        AvailableActions);
+    const FGridAvailableCombatAction* CatalogAttack =
+        AvailableActions.FindByPredicate (
+            [] (const FGridAvailableCombatAction& Action)
+            {
+                return Action.Definition.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Equipment &&
+                    Action.Definition.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack;
+            });
+    if (!CatalogAttack)
+    {
+        CatalogAttack = AvailableActions.FindByPredicate (
+            [] (const FGridAvailableCombatAction& Action)
+            {
+                return Action.Definition.ActionId ==
+                        UnarmedAttackId &&
+                    Action.Definition.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Universal &&
+                    Action.Definition.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack;
+            });
+    }
+    if (CatalogAttack)
+    {
+        return RequestCharacterAttackInternal (
+            AttackerCharacterIndex,
+            CatalogAttack->SourceEquipmentSlot,
+            CatalogAttack->Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Equipment,
+            CatalogAttack,
+            OutRequest,
+            OutResult,
+            OutRejectReason);
+    }
+
     return RequestCharacterAttackInternal (
         AttackerCharacterIndex,
         EGridEquipmentSlot::None,
         false,
+        nullptr,
         OutRequest,
         OutResult,
         OutRejectReason);
@@ -114,10 +202,39 @@ bool UGridTurnManagerComponent::RequestCharacterAttackFromSlot (
     FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
 {
+    TArray<FGridAvailableCombatAction> AvailableActions;
+    GetAvailableCombatActions (
+        AttackerCharacterIndex,
+        AvailableActions);
+    const FGridAvailableCombatAction* FirstAttackFromSlot =
+        AvailableActions.FindByPredicate (
+            [RequestedEquipmentSlot]
+            (const FGridAvailableCombatAction& Action)
+            {
+                return Action.SourceEquipmentSlot ==
+                        RequestedEquipmentSlot &&
+                    Action.Definition.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Equipment &&
+                    Action.Definition.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack;
+            });
+    if (FirstAttackFromSlot)
+    {
+        return RequestCharacterAttackInternal (
+            AttackerCharacterIndex,
+            RequestedEquipmentSlot,
+            true,
+            FirstAttackFromSlot,
+            OutRequest,
+            OutResult,
+            OutRejectReason);
+    }
+
     return RequestCharacterAttackInternal (
         AttackerCharacterIndex,
         RequestedEquipmentSlot,
         true,
+        nullptr,
         OutRequest,
         OutResult,
         OutRejectReason);
@@ -127,6 +244,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
     int32 AttackerCharacterIndex,
     EGridEquipmentSlot RequestedEquipmentSlot,
     bool bRequireRequestedEquipmentSlot,
+    const FGridAvailableCombatAction* CombatActionOverride,
     FGridPlayerAttackRequest& OutRequest,
     FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
@@ -209,7 +327,9 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             OutRejectReason);
     }
     const int32 SafeAttackActionPointCost = FMath::Clamp (
-        PlayerAttackActionPointCost,
+        CombatActionOverride
+            ? CombatActionOverride->CurrentActionPointCost
+            : PlayerAttackActionPointCost,
         1,
         6);
     if (!CanCharacterSpendActionPoints (
@@ -235,7 +355,38 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
         EGridEquipmentSlot::None;
     EGridPlayerAttackRejectReason OffensiveProfileRejectReason =
         EGridPlayerAttackRejectReason::None;
-    if (!ResolvePlayerOffensiveProfile (
+    if (CombatActionOverride)
+    {
+        const bool bValidOverride =
+            CombatActionOverride->IsValid () &&
+            CombatActionOverride->bEnabled &&
+            CombatActionOverride->CharacterIndex ==
+                AttackerCharacterIndex &&
+            CombatActionOverride->CharacterId ==
+                Attacker.CharacterId &&
+            CombatActionOverride->Definition.ResolutionProfile ==
+                EGridCombatActionResolutionProfile::Attack &&
+            CombatActionOverride->Definition.OffensiveProfile.IsValid ();
+        if (!bValidOverride)
+        {
+            return RejectPlayerAttack (
+                AttackerCharacterIndex,
+                EGridPlayerAttackRejectReason::
+                    InvalidOffensiveEquipment,
+                OutRejectReason);
+        }
+        OffensiveProfile =
+            CombatActionOverride->Definition.OffensiveProfile;
+        if (CombatActionOverride->Definition.SourcePolicy ==
+            EGridCombatActionSourcePolicy::Equipment)
+        {
+            OffensiveItemDefinitionId =
+                CombatActionOverride->SourceDefinitionId;
+            OffensiveEquipmentSlot =
+                CombatActionOverride->SourceEquipmentSlot;
+        }
+    }
+    else if (!ResolvePlayerOffensiveProfile (
         PartyPawn->PartyInventoryComponent,
         AttackerCharacterIndex,
         RequestedEquipmentSlot,
@@ -654,6 +805,13 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
                     EquippedItemDefinitionUnavailable;
             return false;
         }
+        if (!Definition->IsValidDefinition ())
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    InvalidOffensiveEquipment;
+            return false;
+        }
         if (!Definition->CanProvideAttackFromSlot (
             RequestedEquipmentSlot))
         {
@@ -663,7 +821,15 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
             return false;
         }
 
-        OutProfile = Definition->OffensiveProfile;
+        if (!ResolveMON12ItemAttackProfile (
+            Definition,
+            OutProfile))
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    InvalidOffensiveEquipment;
+            return false;
+        }
         OutItemDefinitionId = EquippedItem.ItemDefinitionId;
         OutEquipmentSlot = RequestedEquipmentSlot;
         return true;
@@ -695,12 +861,12 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
             return false;
         }
 
-        if (!Definition->bProvidesAttack)
+        if (!DoesMON12ItemDeclareAttack (Definition))
         {
             continue;
         }
-
-        if (!Definition->CanProvideAttackFromSlot (HandSlot))
+        if (!Definition->IsValidDefinition () ||
+            !Definition->CanProvideAttackFromSlot (HandSlot))
         {
             OutRejectReason =
                 EGridPlayerAttackRejectReason::
@@ -708,7 +874,16 @@ bool UGridTurnManagerComponent::ResolvePlayerOffensiveProfile (
             return false;
         }
 
-        OutProfile = Definition->OffensiveProfile;
+        if (!ResolveMON12ItemAttackProfile (
+            Definition,
+            OutProfile))
+        {
+            OutRejectReason =
+                EGridPlayerAttackRejectReason::
+                    InvalidOffensiveEquipment;
+            return false;
+        }
+
         OutItemDefinitionId = EquippedItem.ItemDefinitionId;
         OutEquipmentSlot = HandSlot;
         return true;

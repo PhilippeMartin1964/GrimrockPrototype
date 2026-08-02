@@ -8,6 +8,8 @@
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
 #include "InputActionValue.h"
+#include "RPG/RPGClassAsset.h"
+#include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -1487,6 +1489,287 @@ bool FGridMonsterMON12PartyMobilityLifecycleTest::RunTest (
         Fixture.TurnManager->PartyMobilityState
             .RemainingMobilityActionPoints,
         1);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12ActionCatalogContributionsTest,
+    "Grimrock.Monsters.MON12.ActionCatalog.Contributions",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 action-catalogue fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridItemDefinitionAsset* Shuriken =
+        Fixture.Party->PartyInventoryComponent
+            ->FindItemDefinition (TEXT ("Shuriken"));
+    TestNotNull (
+        TEXT ("The shuriken definition is registered"),
+        Shuriken);
+    if (!Shuriken)
+    {
+        return false;
+    }
+
+    FGridCombatActionDefinition QuickThrow =
+        FGridCombatActionCatalog::
+            MakeLegacyEquipmentAttackDefinition (
+                *Shuriken,
+                2);
+    QuickThrow.ActionId = TEXT ("Action_QuickThrow");
+    QuickThrow.DisplayName =
+        FText::FromString (TEXT ("Lancer rapide"));
+    QuickThrow.OffensiveProfile.AttackId =
+        TEXT ("Attack_QuickThrow");
+
+    FGridCombatActionDefinition PreciseThrow = QuickThrow;
+    PreciseThrow.ActionId = TEXT ("Action_PreciseThrow");
+    PreciseThrow.DisplayName =
+        FText::FromString (TEXT ("Lancer précis"));
+    PreciseThrow.ActionPointCost = 3;
+    PreciseThrow.OffensiveProfile.AttackId =
+        TEXT ("Attack_PreciseThrow");
+    PreciseThrow.OffensiveProfile.AttackDefinition.AccuracyBonus = 2;
+    Shuriken->CombatActions = { QuickThrow, PreciseThrow };
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage");
+    MageClass->DisplayName = FText::FromString (TEXT ("Mage"));
+    MageClass->HealthAtLevelOne = 6;
+
+    FGridCombatActionDefinition FocusAbility;
+    FocusAbility.ActionId = TEXT ("Ability_Focus");
+    FocusAbility.DisplayName =
+        FText::FromString (TEXT ("Concentration"));
+    FocusAbility.ActionType = EGridCombatActionType::Ability;
+    FocusAbility.SourcePolicy =
+        EGridCombatActionSourcePolicy::Ability;
+    FocusAbility.TargetingPolicy =
+        EGridCombatTargetingPolicy::Self;
+    FocusAbility.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Effect;
+    FocusAbility.ActionPointCost = 1;
+
+    FGridCombatActionDefinition FireballSpell;
+    FireballSpell.ActionId = TEXT ("Spell_Fireball");
+    FireballSpell.DisplayName =
+        FText::FromString (TEXT ("Boule de feu"));
+    FireballSpell.ActionType = EGridCombatActionType::Ability;
+    FireballSpell.SourcePolicy =
+        EGridCombatActionSourcePolicy::Spell;
+    FireballSpell.TargetingPolicy =
+        EGridCombatTargetingPolicy::Area;
+    FireballSpell.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Effect;
+    FireballSpell.ActionPointCost = 3;
+    FireballSpell.ResourceCosts.ManaCost = 8;
+    FireballSpell.RangeCells = 3;
+    MageClass->CombatActions = { FocusAbility, FireballSpell };
+
+    FGridCharacterInventoryState& Elias =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Elias.ClassId = MageClass->ClassId;
+    Elias.ClassDefinition = MageClass;
+
+    TArray<FGridAvailableCombatAction> Actions;
+    Fixture.TurnManager->GetAvailableCombatActions (0, Actions);
+    TestEqual (
+        TEXT ("Two weapon actions, one ability and one spell contribute"),
+        Actions.Num (),
+        4);
+
+    const FGridAvailableCombatAction* Quick = Actions.FindByPredicate (
+        [] (const FGridAvailableCombatAction& Action)
+        {
+            return Action.Definition.ActionId ==
+                TEXT ("Action_QuickThrow");
+        });
+    const FGridAvailableCombatAction* Precise = Actions.FindByPredicate (
+        [] (const FGridAvailableCombatAction& Action)
+        {
+            return Action.Definition.ActionId ==
+                TEXT ("Action_PreciseThrow");
+        });
+    const FGridAvailableCombatAction* Ability = Actions.FindByPredicate (
+        [] (const FGridAvailableCombatAction& Action)
+        {
+            return Action.Definition.ActionId ==
+                TEXT ("Ability_Focus");
+        });
+    const FGridAvailableCombatAction* Spell = Actions.FindByPredicate (
+        [] (const FGridAvailableCombatAction& Action)
+        {
+            return Action.Definition.ActionId ==
+                TEXT ("Spell_Fireball");
+        });
+    TestNotNull (TEXT ("The first weapon action exists"), Quick);
+    TestNotNull (TEXT ("The second weapon action exists"), Precise);
+    TestNotNull (TEXT ("The class ability exists"), Ability);
+    TestNotNull (TEXT ("The class spell exists"), Spell);
+    if (!Quick || !Precise || !Ability || !Spell)
+    {
+        return false;
+    }
+
+    TestEqual (
+        TEXT ("The quick throw keeps MainHand provenance"),
+        Quick->SourceEquipmentSlot,
+        EGridEquipmentSlot::MainHand);
+    TestEqual (
+        TEXT ("The quick throw keeps the concrete item source"),
+        Quick->SourceDefinitionId,
+        FName (TEXT ("Shuriken")));
+    TestEqual (
+        TEXT ("The precise throw carries its own AP cost"),
+        Precise->CurrentActionPointCost,
+        3);
+    TestTrue (
+        TEXT ("The current axial monster is suggested to both throws"),
+        Quick->SuggestedTargetId ==
+            Fixture.Monster->ResolvePersistenceId () &&
+            Precise->SuggestedTargetId ==
+                Fixture.Monster->ResolvePersistenceId ());
+    TestEqual (
+        TEXT ("An affordable future ability is catalogued but not executed yet"),
+        Ability->AvailabilityReason,
+        EGridCombatActionAvailabilityReason::
+            ExecutionNotImplemented);
+    TestEqual (
+        TEXT ("Mana is checked before the future spell executor"),
+        Spell->AvailabilityReason,
+        EGridCombatActionAvailabilityReason::InsufficientMana);
+    TestFalse (
+        TEXT ("A torch without a declared action contributes nothing"),
+        Actions.ContainsByPredicate (
+            [] (const FGridAvailableCombatAction& Action)
+            {
+                return Action.SourceDefinitionId ==
+                    TEXT ("Item_Torch");
+            }));
+
+    Fixture.Panel->InitializeCombatActionPanel (
+        Fixture.Party,
+        0,
+        Fixture.TurnManager);
+    TestEqual (
+        TEXT ("The existing panel exposes the event-driven catalogue snapshot"),
+        Fixture.Panel->View.AvailableActions.Num (),
+        4);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12GenericActionAttackLifecycleTest,
+    "Grimrock.Monsters.MON12.ActionCatalog.GenericAttackLifecycle",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 generic-action fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    TArray<FGridAvailableCombatAction> Actions;
+    Fixture.TurnManager->GetAvailableCombatActions (0, Actions);
+    TestEqual (
+        TEXT ("The legacy shuriken becomes one generic action"),
+        Actions.Num (),
+        1);
+    if (!Actions.IsValidIndex (0))
+    {
+        return false;
+    }
+    const FGridAvailableCombatAction LegacyAction = Actions[0];
+    TestEqual (
+        TEXT ("The legacy adapter preserves the MON11 attack id"),
+        LegacyAction.Definition.ActionId,
+        FName (TEXT ("Attack_Shuriken")));
+    TestTrue (
+        TEXT ("The adapted shuriken action is currently enabled"),
+        LegacyAction.bEnabled);
+
+    FGridCombatActionRequestResult Execution;
+    TestTrue (
+        TEXT ("The generic action entry point executes the MON11 attack"),
+        Fixture.TurnManager->RequestCharacterCombatAction (
+            0,
+            LegacyAction.Definition.ActionId,
+            LegacyAction.Definition.SourcePolicy,
+            LegacyAction.SourceDefinitionId,
+            LegacyAction.SourceEquipmentSlot,
+            Execution));
+    TestTrue (
+        TEXT ("The generic result reports acceptance"),
+        Execution.bAccepted);
+    TestEqual (
+        TEXT ("The resolved request keeps the offensive item"),
+        Execution.AttackRequest.OffensiveItemDefinitionId,
+        FName (TEXT ("Shuriken")));
+    TestEqual (
+        TEXT ("The generic action pays its definition AP cost"),
+        Execution.AttackRequest.ActionPointCost,
+        2);
+
+    FGridPlayerCharacterTurnState TurnState;
+    TestTrue (
+        TEXT ("The turn state remains available after the generic attack"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            TurnState));
+    TestEqual (
+        TEXT ("The generic attack leaves two of four AP"),
+        TurnState.RemainingActionPoints,
+        2);
+
+    Fixture.TurnManager->PlayerAttackActionPointCost = 3;
+
+    FGridCombatActionRequestResult RejectedExecution;
+    TestFalse (
+        TEXT ("The catalogue is revalidated before a second request"),
+        Fixture.TurnManager->RequestCharacterCombatAction (
+            0,
+            LegacyAction.Definition.ActionId,
+            LegacyAction.Definition.SourcePolicy,
+            LegacyAction.SourceDefinitionId,
+            LegacyAction.SourceEquipmentSlot,
+            RejectedExecution));
+    TestEqual (
+        TEXT ("The unavailable request has a generic rejection"),
+        RejectedExecution.RejectReason,
+        EGridCombatActionRequestRejectReason::ActionUnavailable);
+    TestEqual (
+        TEXT ("The precise disabled reason is insufficient AP"),
+        RejectedExecution.Action.AvailabilityReason,
+        EGridCombatActionAvailabilityReason::
+            InsufficientActionPoints);
+    TestTrue (
+        TEXT ("The turn state remains queryable after refusal"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            TurnState));
+    TestEqual (
+        TEXT ("A refused generic action consumes no AP"),
+        TurnState.RemainingActionPoints,
+        2);
     return true;
 }
 

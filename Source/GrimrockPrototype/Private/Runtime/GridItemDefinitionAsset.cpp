@@ -9,6 +9,11 @@ bool UGridItemDefinitionAsset::IsValidDefinition () const
         return false;
     }
 
+    if (!HasValidCombatActions ())
+    {
+        return false;
+    }
+
     if (!bProvidesAttack)
     {
         return true;
@@ -32,10 +37,42 @@ bool UGridItemDefinitionAsset::HasValidOffensiveProfile () const
 bool UGridItemDefinitionAsset::CanProvideAttackFromSlot (
     EGridEquipmentSlot Slot) const
 {
-    return HasValidOffensiveProfile () &&
-        (Slot == EGridEquipmentSlot::MainHand ||
-            Slot == EGridEquipmentSlot::OffHand) &&
-        CompatibleEquipmentSlots.Contains (Slot);
+    if ((Slot != EGridEquipmentSlot::MainHand &&
+            Slot != EGridEquipmentSlot::OffHand) ||
+        !CompatibleEquipmentSlots.Contains (Slot))
+    {
+        return false;
+    }
+    if (!CombatActions.IsEmpty ())
+    {
+        return CombatActions.ContainsByPredicate (
+            [] (const FGridCombatActionDefinition& Action)
+            {
+                return Action.IsValid () &&
+                    Action.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Equipment &&
+                    Action.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack;
+            });
+    }
+    return HasValidOffensiveProfile ();
+}
+
+bool UGridItemDefinitionAsset::HasValidCombatActions () const
+{
+    TSet<FName> ActionIds;
+    for (const FGridCombatActionDefinition& Action : CombatActions)
+    {
+        if (!Action.IsValid () ||
+            Action.SourcePolicy !=
+                EGridCombatActionSourcePolicy::Equipment ||
+            ActionIds.Contains (Action.ActionId))
+        {
+            return false;
+        }
+        ActionIds.Add (Action.ActionId);
+    }
+    return true;
 }
 
 bool UGridItemDefinitionAsset::HasValidPlayerAttackPresentation () const

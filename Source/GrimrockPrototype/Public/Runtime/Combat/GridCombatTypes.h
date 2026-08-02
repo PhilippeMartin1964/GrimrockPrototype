@@ -43,6 +43,68 @@ enum class EGridCombatActionType : uint8
     Die           UMETA (DisplayName = "Die")
 };
 
+/** Declared owner of a player combat action definition. */
+UENUM (BlueprintType)
+enum class EGridCombatActionSourcePolicy : uint8
+{
+    None      UMETA (DisplayName = "None"),
+    Universal UMETA (DisplayName = "Universal"),
+    Equipment UMETA (DisplayName = "Equipment"),
+    Ability   UMETA (DisplayName = "Ability"),
+    Spell     UMETA (DisplayName = "Spell"),
+    QuickItem UMETA (DisplayName = "Quick Item")
+};
+
+UENUM (BlueprintType)
+enum class EGridCombatTargetingPolicy : uint8
+{
+    None             UMETA (DisplayName = "None"),
+    Self             UMETA (DisplayName = "Self"),
+    Ally             UMETA (DisplayName = "Ally"),
+    FirstAxialTarget UMETA (DisplayName = "First Axial Target"),
+    Cell             UMETA (DisplayName = "Cell"),
+    Area             UMETA (DisplayName = "Area")
+};
+
+UENUM (BlueprintType)
+enum class EGridCombatActionResolutionProfile : uint8
+{
+    None        UMETA (DisplayName = "None"),
+    Attack      UMETA (DisplayName = "Attack"),
+    Defense     UMETA (DisplayName = "Defense"),
+    Effect      UMETA (DisplayName = "Effect"),
+    Interaction UMETA (DisplayName = "Interaction")
+};
+
+/** UI-ready reason why a catalogue entry cannot currently be requested. */
+UENUM (BlueprintType)
+enum class EGridCombatActionAvailabilityReason : uint8
+{
+    None                     UMETA (DisplayName = "None"),
+    CombatInactive           UMETA (DisplayName = "Combat Inactive"),
+    InvalidCharacter         UMETA (DisplayName = "Invalid Character"),
+    CharacterDefeated        UMETA (DisplayName = "Character Defeated"),
+    NotActiveCombatant       UMETA (DisplayName = "Not Active Combatant"),
+    PartyBusy                UMETA (DisplayName = "Party Busy"),
+    InsufficientActionPoints UMETA (DisplayName = "Insufficient Action Points"),
+    InsufficientMana         UMETA (DisplayName = "Insufficient Mana"),
+    InsufficientSourceItems  UMETA (DisplayName = "Insufficient Source Items"),
+    MissingRequirement       UMETA (DisplayName = "Missing Requirement"),
+    CooldownActive           UMETA (DisplayName = "Cooldown Active"),
+    ExecutionNotImplemented  UMETA (DisplayName = "Execution Not Implemented")
+};
+
+UENUM (BlueprintType)
+enum class EGridCombatActionRequestRejectReason : uint8
+{
+    None                      UMETA (DisplayName = "None"),
+    TurnManagerNotInitialized UMETA (DisplayName = "Turn Manager Not Initialized"),
+    InvalidAction             UMETA (DisplayName = "Invalid Action"),
+    ActionUnavailable         UMETA (DisplayName = "Action Unavailable"),
+    UnsupportedResolution     UMETA (DisplayName = "Unsupported Resolution"),
+    AttackRejected            UMETA (DisplayName = "Attack Rejected")
+};
+
 UENUM (BlueprintType)
 enum class EGridCombatPhase : uint8
 {
@@ -404,6 +466,241 @@ struct FGridOffensiveEquipmentProfile
     }
 };
 
+/** Resource costs declared by an action before runtime modifiers. */
+USTRUCT (BlueprintType)
+struct FGridCombatActionResourceCosts
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Costs",
+        meta = (ClampMin = "0"))
+    int32 ManaCost = 0;
+
+    /** Number of units consumed from an item source after acceptance. */
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Costs",
+        meta = (ClampMin = "0"))
+    int32 SourceItemQuantityCost = 0;
+
+    bool IsValid () const
+    {
+        return ManaCost >= 0 && SourceItemQuantityCost >= 0;
+    }
+};
+
+/**
+ * Data-oriented definition shared by equipment, abilities and spells.
+ * Resolution and presentation stay separate from catalogue construction.
+ */
+USTRUCT (BlueprintType)
+struct FGridCombatActionDefinition
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    FName ActionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    FText DisplayName;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action",
+        meta = (MultiLine = "true"))
+    FText Description;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    TSoftObjectPtr<UTexture2D> Icon;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    EGridCombatActionType ActionType = EGridCombatActionType::Ability;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    EGridCombatActionSourcePolicy SourcePolicy =
+        EGridCombatActionSourcePolicy::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    EGridCombatTargetingPolicy TargetingPolicy =
+        EGridCombatTargetingPolicy::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action")
+    EGridCombatActionResolutionProfile ResolutionProfile =
+        EGridCombatActionResolutionProfile::None;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Costs",
+        meta = (ClampMin = "0", ClampMax = "6"))
+    int32 ActionPointCost = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Costs")
+    FGridCombatActionResourceCosts ResourceCosts;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Targeting",
+        meta = (ClampMin = "0", ClampMax = "32"))
+    int32 RangeCells = 0;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Requirements")
+    TArray<FName> Requirements;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Cooldown",
+        meta = (ClampMin = "0"))
+    int32 CooldownRounds = 0;
+
+    /** Stable key resolved by the presentation layer; NAME_None uses source defaults. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Presentation")
+    FName PresentationProfileId = NAME_None;
+
+    /** Attack payload used when ResolutionProfile is Attack. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
+    FGridOffensiveEquipmentProfile OffensiveProfile;
+
+    bool IsValid () const
+    {
+        const bool bAttackProfileValid =
+            ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+            (OffensiveProfile.IsValid () && ActionPointCost > 0);
+        const bool bAttackRangeValid =
+            ResolutionProfile != EGridCombatActionResolutionProfile::Attack ||
+            RangeCells == OffensiveProfile.RangeCells;
+        const bool bTargetingRangeValid =
+            (TargetingPolicy !=
+                    EGridCombatTargetingPolicy::FirstAxialTarget &&
+                TargetingPolicy != EGridCombatTargetingPolicy::Cell &&
+                TargetingPolicy != EGridCombatTargetingPolicy::Area) ||
+            RangeCells > 0;
+        return !ActionId.IsNone () &&
+            ActionType != EGridCombatActionType::None &&
+            SourcePolicy != EGridCombatActionSourcePolicy::None &&
+            TargetingPolicy != EGridCombatTargetingPolicy::None &&
+            ResolutionProfile != EGridCombatActionResolutionProfile::None &&
+            ActionPointCost >= 0 &&
+            ActionPointCost <= 6 &&
+            ResourceCosts.IsValid () &&
+            RangeCells >= 0 &&
+            RangeCells <= 32 &&
+            CooldownRounds >= 0 &&
+            bAttackProfileValid &&
+            bAttackRangeValid &&
+            bTargetingRangeValid;
+    }
+};
+
+/** One concrete source contributing a definition to the catalogue builder. */
+USTRUCT (BlueprintType)
+struct FGridCombatActionContribution
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action Catalog")
+    FGridCombatActionDefinition Definition;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action Catalog")
+    FName SourceDefinitionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action Catalog")
+    FGuid SourceRuntimeId;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action Catalog")
+    EGridEquipmentSlot SourceEquipmentSlot = EGridEquipmentSlot::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action Catalog")
+    int32 AvailableSourceQuantity = 0;
+
+    bool IsValid () const
+    {
+        return Definition.IsValid () &&
+            (Definition.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Universal ||
+                !SourceDefinitionId.IsNone ());
+    }
+};
+
+/** Transient, UI-ready result produced without resolving or paying an action. */
+USTRUCT (BlueprintType)
+struct FGridAvailableCombatAction
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FGridCombatActionDefinition Definition;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    int32 CharacterIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FGuid CharacterId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FName SourceDefinitionId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FGuid SourceRuntimeId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    EGridEquipmentSlot SourceEquipmentSlot = EGridEquipmentSlot::None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    int32 CurrentActionPointCost = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    int32 CurrentManaCost = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    int32 CurrentSourceItemQuantityCost = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    bool bEnabled = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    EGridCombatActionAvailabilityReason AvailabilityReason =
+        EGridCombatActionAvailabilityReason::None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FText DisabledReason;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FGuid SuggestedTargetId;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    FIntPoint SuggestedTargetCell = FIntPoint::ZeroValue;
+
+    bool MatchesSource (
+        FName ActionId,
+        EGridCombatActionSourcePolicy SourcePolicy,
+        FName InSourceDefinitionId,
+        EGridEquipmentSlot InSourceEquipmentSlot) const
+    {
+        return Definition.ActionId == ActionId &&
+            Definition.SourcePolicy == SourcePolicy &&
+            SourceDefinitionId == InSourceDefinitionId &&
+            SourceEquipmentSlot == InSourceEquipmentSlot;
+    }
+
+    bool IsValid () const
+    {
+        return CharacterIndex != INDEX_NONE &&
+            CharacterId.IsValid () &&
+            Definition.IsValid () &&
+            CurrentActionPointCost >= 0 &&
+            CurrentManaCost >= 0 &&
+            CurrentSourceItemQuantityCost >= 0;
+    }
+};
+
 USTRUCT (BlueprintType)
 struct FGridCombatAction
 {
@@ -513,4 +810,31 @@ struct FGridAttackResult
     {
         return PhysicalArmorDamage + MagicalArmorDamage + HealthDamage;
     }
+};
+
+/** Result of the generic MON12 action request entry point. */
+USTRUCT (BlueprintType)
+struct FGridCombatActionRequestResult
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    bool bAccepted = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    EGridCombatActionRequestRejectReason RejectReason =
+        EGridCombatActionRequestRejectReason::None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    FGridAvailableCombatAction Action;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    FGridPlayerAttackRequest AttackRequest;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    FGridAttackResult AttackResult;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    EGridPlayerAttackRejectReason AttackRejectReason =
+        EGridPlayerAttackRejectReason::None;
 };

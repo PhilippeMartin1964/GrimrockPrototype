@@ -109,6 +109,10 @@ struct FGridCombatActionPanelView
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
     bool bCanPayAttackCost = false;
+
+    /** MON12.6 catalogue snapshot consumed by the MON12.7 action bar. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
+    TArray<FGridAvailableCombatAction> AvailableActions;
 };
 
 /**

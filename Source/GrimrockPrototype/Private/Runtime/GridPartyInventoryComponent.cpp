@@ -487,6 +487,20 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
         return false;
     }
 
+    URPGClassAsset* CombatActionSourceClass =
+        Request.CombatActionSourceClassDefinition
+        ? Request.CombatActionSourceClassDefinition.Get ()
+        : Request.ClassDefinition.Get ();
+    if (!CombatActionSourceClass ||
+        !CombatActionSourceClass->IsValidDefinition () ||
+        CombatActionSourceClass->ClassId !=
+            Request.ClassDefinition->ClassId)
+    {
+        OutError = FText::FromString (
+            TEXT ("La source des actions de classe est invalide."));
+        return false;
+    }
+
     const FRPGAttributes FinalAttributes = URPGCharacterRulesLibrary::AddAttributes (
         Request.ClassDefinition->BaseAttributes,
         Request.RaceDefinition->AttributeBonuses);
@@ -503,6 +517,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
     NewCharacter.RaceDisplayName = Request.RaceDefinition->DisplayName;
     NewCharacter.ClassId = Request.ClassDefinition->ClassId;
     NewCharacter.ClassDisplayName = Request.ClassDefinition->DisplayName;
+    NewCharacter.ClassDefinition = CombatActionSourceClass;
     NewCharacter.Level = 1;
     NewCharacter.Experience = 0;
     NewCharacter.Attributes = FinalAttributes;

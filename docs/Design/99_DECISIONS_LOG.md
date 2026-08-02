@@ -522,3 +522,29 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Le déplacement d'exploration hors combat reste inchangé.
 - Le document d'implémentation est
   `docs/Design/MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md`.
+
+---
+
+## 2026-08-02 — MON12.6 : définitions et catalogue d'actions
+
+- Le HUD représente des actions disponibles, jamais directement les slots
+  `MainHand` et `OffHand`.
+- `FGridCombatActionDefinition` est la définition commune aux armes,
+  capacités, sorts, objets rapides et actions universelles.
+- `FGridAvailableCombatAction` conserve la provenance concrète, les coûts
+  courants, l'état disponible et une raison localisable de désactivation.
+- Le catalogue est une lecture pure : le TurnManager reste l'autorité qui
+  revalide puis consomme les ressources.
+- Une arme peut fournir plusieurs actions par
+  `UGridItemDefinitionAsset::CombatActions`.
+- Les capacités et sorts de classe proviennent de
+  `URPGClassAsset::CombatActions` ; le personnage persiste la référence vers
+  le DataAsset canonique de sa classe.
+- Les armes MON11 non migrées conservent automatiquement une action construite
+  depuis `OffensiveProfile`. Une torche sans action ne crée aucune entrée.
+- L'attaque MON11 est le premier profil exécuté par
+  `RequestCharacterCombatAction()`. Les sorts, capacités, défenses et objets
+  rapides restent catalogués mais leurs exécuteurs appartiennent à
+  MON12.8–MON12.9.
+- Le document d'implémentation est
+  `docs/Design/MON12_6_COMBAT_ACTION_CATALOG.md`.

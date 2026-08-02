@@ -735,6 +735,8 @@ Voir `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md`.
 
 ### MON12.5 — Déplacement du groupe avec PA et PAM
 
+**Implémentée et validée.**
+
 - intercepter les translations pendant le combat ;
 - dépenser 1 PA personnel et 1 PAM ;
 - conserver les rotations gratuites ;
@@ -743,11 +745,15 @@ Voir `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md`.
 
 ### MON12.6 — Définitions et catalogue d'actions
 
+**Implémentée — validation UE5 requise.**
+
 - créer la définition générique d'action ;
 - faire contribuer armes, capacités et sorts ;
 - construire `FGridAvailableCombatAction` ;
 - adapter l'attaque MON11 comme première action générique ;
 - conserver l'autorité du TurnManager.
+
+Voir `MON12_6_COMBAT_ACTION_CATALOG.md`.
 
 ### MON12.7 — HUD orienté actions et quatre personnages
 

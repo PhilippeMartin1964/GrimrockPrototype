@@ -125,6 +125,9 @@ void UGridCombatActionPanelWidget::RefreshFromSources ()
             TurnManagerComponent->CanCharacterSpendActionPoints (
                 View.CharacterIndex,
                 View.AttackActionPointCost);
+        TurnManagerComponent->GetAvailableCombatActions (
+            View.CharacterIndex,
+            View.AvailableActions);
     }
 
     RefreshBoundWidgets ();

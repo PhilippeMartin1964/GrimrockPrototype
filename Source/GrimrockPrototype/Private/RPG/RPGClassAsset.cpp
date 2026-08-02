@@ -2,5 +2,25 @@
 
 bool URPGClassAsset::IsValidDefinition () const
 {
-    return !ClassId.IsNone () && HealthAtLevelOne > 0;
+    if (ClassId.IsNone () || HealthAtLevelOne <= 0)
+    {
+        return false;
+    }
+    TSet<FName> ActionIds;
+    for (const FGridCombatActionDefinition& Action : CombatActions)
+    {
+        if (!Action.IsValid () ||
+            (Action.SourcePolicy !=
+                    EGridCombatActionSourcePolicy::Ability &&
+                Action.SourcePolicy !=
+                    EGridCombatActionSourcePolicy::Spell &&
+                Action.SourcePolicy !=
+                    EGridCombatActionSourcePolicy::Universal) ||
+            ActionIds.Contains (Action.ActionId))
+        {
+            return false;
+        }
+        ActionIds.Add (Action.ActionId);
+    }
+    return true;
 }

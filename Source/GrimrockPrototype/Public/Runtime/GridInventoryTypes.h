@@ -6,6 +6,7 @@
 
 class UGridReadableContentAsset;
 class UTexture2D;
+class URPGClassAsset;
 
 UENUM (BlueprintType)
 enum class EGridItemOwnerType : uint8
@@ -258,6 +259,10 @@ struct FGridCharacterInventoryState
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     FText ClassDisplayName;
+
+    /** Persistent source for class abilities and spells. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
+    TSoftObjectPtr<URPGClassAsset> ClassDefinition;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     FName RaceId = TEXT ("Human");

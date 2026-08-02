@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "RPG/RPGCharacterTypes.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "RPGClassAsset.generated.h"
 
 UCLASS (BlueprintType)
@@ -40,6 +41,10 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Class", meta = (ClampMin = "0"))
     int32 BaseMagicalArmor = 0;
+
+    /** Class abilities and spells contributed to the common combat catalogue. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Class|Combat Actions")
+    TArray<FGridCombatActionDefinition> CombatActions;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Class")
     bool IsValidDefinition () const;

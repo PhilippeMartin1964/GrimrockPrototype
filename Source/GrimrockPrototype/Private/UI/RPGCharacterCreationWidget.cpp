@@ -688,6 +688,7 @@ FRPGCharacterCreationRequest URPGCharacterCreationWidget::BuildCreationRequest (
     Request.DisplayName = GetNormalizedNameText ();
     Request.RaceDefinition = RaceDefinition;
     Request.ClassDefinition = ClassDefinition;
+    Request.CombatActionSourceClassDefinition = ClassDefinition;
     Request.PortraitGender = SelectedPortraitGender;
     Request.PortraitVariantId = SelectedPortraitVariantId;
     Request.Portrait = DefaultPortrait;

@@ -565,6 +565,34 @@ public:
         FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason);
 
+    /** Builds the current action catalogue without consuming any resource. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Action Catalog")
+    void GetAvailableCombatActions (
+        int32 CharacterIndex,
+        TArray<FGridAvailableCombatAction>& OutActions) const;
+
+    /**
+     * Generic action entry point. MON12.6 executes Attack resolution profiles;
+     * later milestones extend the same request to spells, effects and defense.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Action Catalog")
+    bool RequestCharacterCombatAction (
+        int32 CharacterIndex,
+        FName ActionId,
+        EGridCombatActionSourcePolicy SourcePolicy,
+        FName SourceDefinitionId,
+        EGridEquipmentSlot SourceEquipmentSlot,
+        FGridCombatActionRequestResult& OutResult);
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Action Catalog|Debug")
+    void LogAvailableCombatActions (int32 CharacterIndex = -1) const;
+
+    UFUNCTION (
+        BlueprintCallable,
+        CallInEditor,
+        Category = "Combat|Action Catalog|Debug")
+    void LogSelectedCharacterAvailableCombatActions () const;
+
     /** Compatibility query: true after this character has spent any PA. */
     UFUNCTION (
         BlueprintPure,
@@ -722,9 +750,15 @@ private:
         int32 AttackerCharacterIndex,
         EGridEquipmentSlot RequestedEquipmentSlot,
         bool bRequireRequestedEquipmentSlot,
+        const FGridAvailableCombatAction* CombatActionOverride,
         FGridPlayerAttackRequest& OutRequest,
         FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason);
+    void BuildPlayerCombatActionContributions (
+        int32 CharacterIndex,
+        TArray<FGridCombatActionContribution>& OutContributions) const;
+    void ResolveSuggestedCombatActionTarget (
+        FGridAvailableCombatAction& Action) const;
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,
