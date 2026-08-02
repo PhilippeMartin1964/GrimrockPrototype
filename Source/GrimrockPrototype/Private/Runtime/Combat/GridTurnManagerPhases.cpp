@@ -222,6 +222,7 @@ void UGridTurnManagerComponent::BeginRound ()
     }
     if (InitiativeOrder.IsEmpty ())
     {
+        ResetPartyMobilityForRound ();
         BeginPlayerCharacterPhase ();
         SetPhase (PhaseState.GetPhase ());
         SetPartyInputLocked (false);
@@ -611,8 +612,9 @@ void UGridTurnManagerComponent::FinishEnemyPhase ()
         return;
     }
 
-    BeginPlayerCharacterPhase ();
     RoundNumber = PhaseState.GetRoundNumber ();
+    ResetPartyMobilityForRound ();
+    BeginPlayerCharacterPhase ();
     if (bCollectRuntimeMetrics)
     {
         ++RuntimeMetrics.RoundsStarted;
@@ -638,6 +640,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     }
 
     ClearPlayerCharacterTurnStates ();
+    ClearPartyMobilityState (true);
     ClearInitiativeState (true);
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;
@@ -688,7 +691,9 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
 
 bool UGridTurnManagerComponent::IsPartyAtRest () const
 {
-    if (!IsValid (PartyPawn) || !IsValid (RuntimeActor))
+    if (!IsValid (PartyPawn) ||
+        !IsValid (RuntimeActor) ||
+        PendingPartyMotionType != EGridPendingPartyMotionType::None)
     {
         return false;
     }

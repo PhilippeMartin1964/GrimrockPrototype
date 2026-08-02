@@ -18,9 +18,11 @@ MON11.1 à MON11.4.2 et MON12.1 à MON12.4 restent des jalons fonctionnels. Leur
 pipeline de résolution et de présentation doit être conservé pendant la
 migration.
 
-MON12.4 est implémentée : les personnages et monstres sont mélangés dans un
+MON12.5 est implémentée : les personnages et monstres sont mélangés dans un
 ordre global, un seul combattant est actif et les personnages reçoivent leurs
-`4 PA` au début de leur propre tour. Les attaques existantes coûtent `2 PA`.
+`4 PA` au début de leur propre tour. Les attaques existantes coûtent `2 PA` ;
+les translations coûtent `1 PA + 1 PAM` sur une réserve commune de `2 PAM`
+restaurée à chaque manche. Les rotations de 90 degrés restent gratuites.
 
 ---
 
@@ -43,7 +45,7 @@ Ces règles ne forment toutefois pas encore un système unifié :
 | monstres | budget de PA réel et tour global | catalogue d'actions encore spécialisé dans l'IA |
 | personnages | 4 PA au début du tour, attaques à 2 PA | actions encore représentées par les mains |
 | initiative | ordre commun personnages/monstres | barre UMG différée à MON12.7 |
-| déplacement du groupe | disponible pendant le tour d'un personnage | aucun coût de combat |
+| déplacement du groupe | `1 PA + 1 PAM`, réserve commune de `2 PAM` | modificateurs de mobilité différés |
 | interface | boutons `MainHand` et `OffHand` | confond équipement et actions |
 | sorts et capacités | différés | aucun catalogue commun |
 
@@ -348,6 +350,11 @@ de multiplier artificiellement la distance parcourue.
 La rotation de 90° reste gratuite, comme pour les monstres actuels, mais elle
 n'est acceptée que pendant le tour d'un personnage et lorsque le groupe est au
 repos.
+
+MON12.5 applique cette règle dans le TurnManager avant l'interpolation du
+Pawn. La cellule, le passage et l'occupation par un monstre sont validés avant
+toute dépense. Si le mouvement utilise le dernier PA, le prochain combattant
+n'est activé qu'après la fin visuelle de la translation.
 
 ### 7.3 Modificateurs futurs
 

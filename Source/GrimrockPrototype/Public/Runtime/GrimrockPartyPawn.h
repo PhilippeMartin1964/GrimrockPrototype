@@ -20,6 +20,7 @@ class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
 class UGridCombatActionPanelWidget;
+class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
 class URPGCharacterCreationWidget;
 
@@ -460,6 +461,7 @@ private:
     bool TryConsumeBufferedCommand ();
     bool IsBusy () const;
     bool DismissReadableMessageIfVisible ();
+    UGridTurnManagerComponent* FindTurnManager () const;
 
 private:
     FVector MoveStartLocation = FVector::ZeroVector;
@@ -491,4 +493,6 @@ private:
 
     int32 MoveStartCellX = 0;
     int32 MoveStartCellY = 0;
+
+    friend class FGridMonsterMON12PartyMobilityLifecycleTest;
 };

@@ -561,15 +561,35 @@ bool AGrimrockPartyPawn::TryStartMove (EGridEdge MoveDirection)
         return false;
     }
 
-    if (!CanMoveOnLevel (CurrentCellX, CurrentCellY, MoveDirection))
-    {
-        return false;
-    }
-
     int32 NextX = CurrentCellX;
     int32 NextY = CurrentCellY;
 
-    if (!TryGetNeighborOnLevel (CurrentCellX, CurrentCellY, MoveDirection, NextX, NextY))
+    UGridTurnManagerComponent* TurnManager = FindTurnManager ();
+    if (IsValid (TurnManager) && TurnManager->bCombatActive)
+    {
+        FIntPoint TargetCell;
+        EGridPartyMovementRejectReason RejectReason =
+            EGridPartyMovementRejectReason::None;
+        if (!TurnManager->RequestPartyTranslation (
+            MoveDirection,
+            TargetCell,
+            RejectReason))
+        {
+            return false;
+        }
+        NextX = TargetCell.X;
+        NextY = TargetCell.Y;
+    }
+    else if (!CanMoveOnLevel (
+        CurrentCellX,
+        CurrentCellY,
+        MoveDirection) ||
+        !TryGetNeighborOnLevel (
+            CurrentCellX,
+            CurrentCellY,
+            MoveDirection,
+            NextX,
+            NextY))
     {
         return false;
     }
@@ -596,9 +616,25 @@ bool AGrimrockPartyPawn::TryStartTurn (bool bTurnRight)
         return false;
     }
 
+    const EGridEdge TargetFacing = bTurnRight
+        ? GridDirectionUtils::RotateRight (Facing)
+        : GridDirectionUtils::RotateLeft (Facing);
+    UGridTurnManagerComponent* TurnManager = FindTurnManager ();
+    if (IsValid (TurnManager) && TurnManager->bCombatActive)
+    {
+        EGridPartyMovementRejectReason RejectReason =
+            EGridPartyMovementRejectReason::None;
+        if (!TurnManager->RequestPartyRotation (
+            TargetFacing,
+            RejectReason))
+        {
+            return false;
+        }
+    }
+
     TurnStartYaw = GetActorRotation ().Yaw;
 
-    Facing = bTurnRight ? GridDirectionUtils::RotateRight (Facing) : GridDirectionUtils::RotateLeft (Facing);
+    Facing = TargetFacing;
     TurnTargetYaw = GridDirectionUtils::ToYaw (Facing);
 
     TurnDeltaYaw = FMath::FindDeltaAngleDegrees (TurnStartYaw, TurnTargetYaw);
@@ -631,6 +667,29 @@ void AGrimrockPartyPawn::UpdateMove (float DeltaSeconds)
                 MoveStartCellY,
                 CurrentCellX,
                 CurrentCellY);
+            if (UGridTurnManagerComponent* TurnManager =
+                FindTurnManager ())
+            {
+                FGridCombatantInitiativeEntry ActiveBefore;
+                const int32 CharacterBefore =
+                    TurnManager->GetActiveCombatant (ActiveBefore) &&
+                    ActiveBefore.Side == EGridCombatantSide::Party
+                        ? ActiveBefore.CharacterIndex
+                        : INDEX_NONE;
+                if (TurnManager->NotifyPartyTranslationCompleted ())
+                {
+                    FGridCombatantInitiativeEntry ActiveAfter;
+                    const int32 CharacterAfter =
+                        TurnManager->GetActiveCombatant (ActiveAfter) &&
+                        ActiveAfter.Side == EGridCombatantSide::Party
+                            ? ActiveAfter.CharacterIndex
+                            : INDEX_NONE;
+                    if (CharacterBefore != CharacterAfter)
+                    {
+                        ClearBufferedCommand ();
+                    }
+                }
+            }
             LevelRuntimeActor->TryExecuteTransitionAtCell (CurrentCellX, CurrentCellY, this, false);
         }
     }
@@ -657,6 +716,10 @@ void AGrimrockPartyPawn::UpdateTurn (float DeltaSeconds)
         bIsTurning = false;
         TurnElapsed = 0.f;
         TurnDeltaYaw = 0.f;
+        if (UGridTurnManagerComponent* TurnManager = FindTurnManager ())
+        {
+            TurnManager->NotifyPartyRotationCompleted ();
+        }
     }
 }
 
@@ -787,6 +850,14 @@ bool AGrimrockPartyPawn::DismissReadableMessageIfVisible ()
 {
     return LevelRuntimeActor &&
         LevelRuntimeActor->DismissReadableMessage ();
+}
+
+UGridTurnManagerComponent* AGrimrockPartyPawn::FindTurnManager () const
+{
+    return IsValid (LevelRuntimeActor)
+        ? LevelRuntimeActor
+            ->FindComponentByClass<UGridTurnManagerComponent> ()
+        : nullptr;
 }
 
 void AGrimrockPartyPawn::UpdateHeadBob (float DeltaSeconds)

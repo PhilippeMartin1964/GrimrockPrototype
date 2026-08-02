@@ -1181,4 +1181,301 @@ bool FGridMonsterMON12GlobalInitiativeLifecycleTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12PartyMobilityLifecycleTest,
+    "Grimrock.Monsters.MON12.PartyMobility.Lifecycle",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12PartyMobilityLifecycleTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (
+        TEXT ("The MON12 party-mobility fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.MonsterDefinition->ActionPointsPerTurn = 0;
+    TestTrue (
+        TEXT ("The mobility test enters StartingCombat"),
+        Fixture.TurnManager->PhaseState.StartCombat ());
+    TestTrue (
+        TEXT ("The mobility test starts round one"),
+        Fixture.TurnManager->PhaseState.BeginRound ());
+    Fixture.TurnManager->RoundNumber = 1;
+    Fixture.TurnManager->BuildGlobalInitiativeOrder ();
+
+    for (FGridCombatantInitiativeEntry& Entry :
+        Fixture.TurnManager->InitiativeOrder)
+    {
+        if (Entry.Side == EGridCombatantSide::Party)
+        {
+            Entry.InitiativeTotal = Entry.CharacterIndex == 0
+                ? 30
+                : 10;
+        }
+        else
+        {
+            Entry.InitiativeTotal = 20;
+        }
+    }
+    FGridInitiativeOrderBuilder::Sort (
+        Fixture.TurnManager->InitiativeOrder);
+    Fixture.TurnManager->ResetInitiativeRound ();
+    Fixture.TurnManager->BeginNextCombatantTurn ();
+
+    FGridPartyMobilityState MobilityState =
+        Fixture.TurnManager->GetPartyMobilityState ();
+    TestEqual (
+        TEXT ("Round one starts with two maximum PAM"),
+        MobilityState.MaximumMobilityActionPoints,
+        2);
+    TestEqual (
+        TEXT ("Round one starts with two remaining PAM"),
+        MobilityState.RemainingMobilityActionPoints,
+        2);
+
+    FGridPlayerCharacterTurnState EliasTurn;
+    TestTrue (
+        TEXT ("Elias starts the mobility test with a turn state"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("Elias starts with four personal AP"),
+        EliasTurn.RemainingActionPoints,
+        4);
+
+    FIntPoint TargetCell;
+    EGridPartyMovementRejectReason RejectReason =
+        EGridPartyMovementRejectReason::None;
+    TestFalse (
+        TEXT ("The party cannot translate into the monster cell"),
+        Fixture.TurnManager->RequestPartyTranslation (
+            EGridEdge::North,
+            TargetCell,
+            RejectReason));
+    TestEqual (
+        TEXT ("The occupied destination has an explicit rejection"),
+        RejectReason,
+        EGridPartyMovementRejectReason::TargetCellOccupied);
+    TestTrue (
+        TEXT ("The rejected movement keeps Elias turn state"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("An occupied cell consumes no personal AP"),
+        EliasTurn.RemainingActionPoints,
+        4);
+    TestEqual (
+        TEXT ("An occupied cell consumes no PAM"),
+        Fixture.TurnManager->PartyMobilityState
+            .RemainingMobilityActionPoints,
+        2);
+
+    TestTrue (
+        TEXT ("Elias starts a valid east translation"),
+        Fixture.Party->TryStartMove (EGridEdge::East));
+    TestTrue (
+        TEXT ("The translation remains pending during interpolation"),
+        Fixture.TurnManager->IsPartyMotionInProgress ());
+    TestTrue (
+        TEXT ("The first translation moves the logical party cell"),
+        FIntPoint (
+            Fixture.Party->CurrentCellX,
+            Fixture.Party->CurrentCellY) == FIntPoint (2, 1));
+    TestTrue (
+        TEXT ("Elias state is updated after the first translation starts"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("The first translation costs one personal AP"),
+        EliasTurn.RemainingActionPoints,
+        3);
+    TestEqual (
+        TEXT ("The first translation costs one shared PAM"),
+        Fixture.TurnManager->PartyMobilityState
+            .RemainingMobilityActionPoints,
+        1);
+    TestFalse (
+        TEXT ("The turn cannot end while the camera is between cells"),
+        Fixture.TurnManager->EndActivePlayerTurn ());
+
+    Fixture.Party->UpdateMove (Fixture.Party->MoveDuration);
+    TestFalse (
+        TEXT ("The first interpolation clears the pending motion"),
+        Fixture.TurnManager->IsPartyMotionInProgress ());
+    FGridCombatantInitiativeEntry ActiveCombatant;
+    TestTrue (
+        TEXT ("A combatant remains active after the first movement"),
+        Fixture.TurnManager->GetActiveCombatant (ActiveCombatant));
+    TestEqual (
+        TEXT ("Elias keeps his turn after spending only one AP"),
+        ActiveCombatant.CharacterIndex,
+        0);
+
+    TestTrue (
+        TEXT ("Elias starts a valid west translation"),
+        Fixture.Party->TryStartMove (EGridEdge::West));
+    Fixture.Party->UpdateMove (Fixture.Party->MoveDuration);
+    TestTrue (
+        TEXT ("Elias state remains available after two translations"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("Two translations leave Elias with two AP"),
+        EliasTurn.RemainingActionPoints,
+        2);
+    TestEqual (
+        TEXT ("Two translations exhaust the shared PAM"),
+        Fixture.TurnManager->PartyMobilityState
+            .RemainingMobilityActionPoints,
+        0);
+
+    RejectReason = EGridPartyMovementRejectReason::None;
+    TestFalse (
+        TEXT ("A third translation is refused in the same round"),
+        Fixture.TurnManager->RequestPartyTranslation (
+            EGridEdge::East,
+            TargetCell,
+            RejectReason));
+    TestEqual (
+        TEXT ("The third translation reports exhausted PAM"),
+        RejectReason,
+        EGridPartyMovementRejectReason::
+            InsufficientMobilityActionPoints);
+    TestTrue (
+        TEXT ("Elias state survives the PAM refusal"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("The PAM refusal consumes no personal AP"),
+        EliasTurn.RemainingActionPoints,
+        2);
+
+    TestTrue (
+        TEXT ("A 90-degree rotation remains free with zero PAM"),
+        Fixture.Party->TryStartTurn (true));
+    TestTrue (
+        TEXT ("The free rotation is tracked during interpolation"),
+        Fixture.TurnManager->IsPartyMotionInProgress ());
+    Fixture.Party->UpdateTurn (Fixture.Party->TurnDuration);
+    TestEqual (
+        TEXT ("The party now faces east"),
+        Fixture.Party->Facing,
+        EGridEdge::East);
+    TestTrue (
+        TEXT ("Elias state remains available after rotating"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("The rotation consumes no personal AP"),
+        EliasTurn.RemainingActionPoints,
+        2);
+    TestEqual (
+        TEXT ("The rotation consumes no PAM"),
+        Fixture.TurnManager->PartyMobilityState
+            .RemainingMobilityActionPoints,
+        0);
+
+    TestTrue (
+        TEXT ("Ending Elias turn advances through the zero-AP monster"),
+        Fixture.TurnManager->EndActivePlayerTurn ());
+    TestTrue (
+        TEXT ("Mina becomes active after the interleaved monster"),
+        Fixture.TurnManager->GetActiveCombatant (ActiveCombatant));
+    TestEqual (
+        TEXT ("Mina is the final combatant of round one"),
+        ActiveCombatant.CharacterIndex,
+        1);
+    TestTrue (
+        TEXT ("Ending Mina turn completes round one"),
+        Fixture.TurnManager->EndActivePlayerTurn ());
+    TestEqual (
+        TEXT ("The global sequencer starts round two"),
+        Fixture.TurnManager->RoundNumber,
+        2);
+
+    MobilityState = Fixture.TurnManager->GetPartyMobilityState ();
+    TestEqual (
+        TEXT ("Round two restores the shared PAM"),
+        MobilityState.RemainingMobilityActionPoints,
+        2);
+    TestEqual (
+        TEXT ("The PAM snapshot follows the current round"),
+        MobilityState.RoundNumber,
+        2);
+    TestTrue (
+        TEXT ("Elias is active again in round two"),
+        Fixture.TurnManager->GetActiveCombatant (ActiveCombatant));
+    TestEqual (
+        TEXT ("The stable initiative order starts round two with Elias"),
+        ActiveCombatant.CharacterIndex,
+        0);
+
+    FGridPlayerCharacterTurnState* MutableEliasTurn =
+        Fixture.TurnManager->FindPlayerCharacterTurnState (
+            Fixture.EliasId);
+    TestNotNull (
+        TEXT ("The test can prepare Elias final movement AP"),
+        MutableEliasTurn);
+    if (!MutableEliasTurn)
+    {
+        return false;
+    }
+    MutableEliasTurn->RemainingActionPoints = 1;
+    TestTrue (
+        TEXT ("Elias starts a translation with his final AP"),
+        Fixture.Party->TryStartMove (EGridEdge::East));
+    TestTrue (
+        TEXT ("Elias remains active until the final interpolation ends"),
+        Fixture.TurnManager->GetActiveCombatant (ActiveCombatant));
+    TestEqual (
+        TEXT ("The moving combatant is still Elias"),
+        ActiveCombatant.CharacterIndex,
+        0);
+    Fixture.Party->BufferMoveCommand (EGridEdge::West);
+
+    Fixture.Party->UpdateMove (Fixture.Party->MoveDuration);
+    TestTrue (
+        TEXT ("Completing the final-AP movement advances the turn"),
+        Fixture.TurnManager->GetActiveCombatant (ActiveCombatant));
+    TestEqual (
+        TEXT ("The zero-AP monster is skipped and Mina becomes active"),
+        ActiveCombatant.CharacterIndex,
+        1);
+    TestFalse (
+        TEXT ("A buffered command never carries into Mina turn"),
+        Fixture.Party->TryConsumeBufferedCommand ());
+    TestTrue (
+        TEXT ("The discarded buffered command does not move the party"),
+        FIntPoint (
+            Fixture.Party->CurrentCellX,
+            Fixture.Party->CurrentCellY) == FIntPoint (2, 1));
+    TestTrue (
+        TEXT ("Elias completed state remains queryable"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (
+            0,
+            EliasTurn));
+    TestEqual (
+        TEXT ("The final movement marks Elias Completed"),
+        EliasTurn.State,
+        EGridCombatantTurnState::Completed);
+    TestEqual (
+        TEXT ("The final movement leaves one shared PAM"),
+        Fixture.TurnManager->PartyMobilityState
+            .RemainingMobilityActionPoints,
+        1);
+    return true;
+}
+
 #endif

@@ -169,6 +169,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridPlayerCharacterTurnStateChangedSignature,
     FGridPlayerCharacterTurnState, TurnState);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
+    FGridPartyMobilityStateChangedSignature,
+    FGridPartyMobilityState, MobilityState);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams (
+    FGridPartyMovementRejectedSignature,
+    int32, CharacterIndex,
+    EGridEdge, Direction,
+    EGridPartyMovementRejectReason, RejectReason);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE (
     FGridTurnOrderChangedSignature);
 
@@ -179,6 +189,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam (
     FGridCombatantStateChangedSignature,
     FGridCombatantInitiativeEntry, Combatant);
+
+enum class EGridPendingPartyMotionType : uint8
+{
+    None,
+    Translation,
+    Rotation
+};
 
 /**
  * Central global-initiative and individual-turn sequencer.
@@ -357,11 +374,47 @@ public:
     int32 PlayerAttackActionPointCost = 2;
 
     UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Party Mobility",
+        meta = (ClampMin = "0", ClampMax = "4"))
+    int32 BasePartyMobilityActionPointsPerRound = 2;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Party Mobility",
+        meta = (ClampMin = "1", ClampMax = "6"))
+    int32 PartyTranslationActionPointCost = 1;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Party Mobility",
+        meta = (ClampMin = "1", ClampMax = "4"))
+    int32 PartyTranslationMobilityActionPointCost = 1;
+
+    UPROPERTY (
         VisibleInstanceOnly,
         BlueprintReadOnly,
         Transient,
         Category = "Combat|Player Turn")
     TArray<FGridPlayerCharacterTurnState> PlayerCharacterTurnStates;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Party Mobility")
+    FGridPartyMobilityState PartyMobilityState;
+
+    UPROPERTY (
+        VisibleInstanceOnly,
+        BlueprintReadOnly,
+        Transient,
+        Category = "Combat|Party Mobility")
+    EGridPartyMovementRejectReason LastPartyMovementRejectReason =
+        EGridPartyMovementRejectReason::None;
 
     UPROPERTY (BlueprintAssignable, Category = "Combat|Turn Manager")
     FGridCombatPhaseChangedSignature OnPhaseChanged;
@@ -403,6 +456,14 @@ public:
     FGridPlayerCharacterTurnStateChangedSignature
         OnPlayerCharacterTurnStateChanged;
 
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Party Mobility")
+    FGridPartyMobilityStateChangedSignature
+        OnPartyMobilityStateChanged;
+
+    UPROPERTY (BlueprintAssignable, Category = "Combat|Party Mobility")
+    FGridPartyMovementRejectedSignature
+        OnPartyMovementRejected;
+
     /** The authoritative order or its visible states changed. */
     UPROPERTY (BlueprintAssignable, Category = "Combat|Initiative")
     FGridTurnOrderChangedSignature OnTurnOrderChanged;
@@ -439,6 +500,43 @@ public:
     /** Ends only the currently active party member turn. */
     UFUNCTION (BlueprintCallable, Category = "Combat|Initiative")
     bool EndActivePlayerTurn ();
+
+    /**
+     * Authorizes one party translation during combat and spends its personal
+     * PA plus the shared PAM atomically. Exploration never calls this path.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Party Mobility")
+    bool RequestPartyTranslation (
+        EGridEdge MoveDirection,
+        FIntPoint& OutTargetCell,
+        EGridPartyMovementRejectReason& OutRejectReason);
+
+    /** Authorizes a free 90-degree rotation during the active party turn. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Party Mobility")
+    bool RequestPartyRotation (
+        EGridEdge TargetFacing,
+        EGridPartyMovementRejectReason& OutRejectReason);
+
+    /** Called by the party pawn after its accepted grid interpolation ends. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Party Mobility")
+    bool NotifyPartyTranslationCompleted ();
+
+    /** Called by the party pawn after its accepted 90-degree turn ends. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Party Mobility")
+    bool NotifyPartyRotationCompleted ();
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Party Mobility")
+    FGridPartyMobilityState GetPartyMobilityState () const
+    {
+        return PartyMobilityState;
+    }
+
+    UFUNCTION (BlueprintPure, Category = "Combat|Party Mobility")
+    bool IsPartyMotionInProgress () const
+    {
+        return PendingPartyMotionType !=
+            EGridPendingPartyMotionType::None;
+    }
 
     UFUNCTION (BlueprintCallable, Category = "Combat|Player Attack")
     bool RequestSelectedCharacterAttack (
@@ -603,6 +701,11 @@ private:
     bool bPlayerAttackResolutionInProgress = false;
     bool bPendingVictoryAfterPlayerAttack = false;
     TSet<FGuid> LoggedDefeatedMonsterIds;
+    EGridPendingPartyMotionType PendingPartyMotionType =
+        EGridPendingPartyMotionType::None;
+    int32 PendingPartyMotionCharacterIndex = INDEX_NONE;
+    FIntPoint PendingPartyTranslationFromCell = FIntPoint::ZeroValue;
+    FIntPoint PendingPartyTranslationTargetCell = FIntPoint::ZeroValue;
 
     UPROPERTY (Transient)
     TObjectPtr<UGridMonsterMovementComponent> CurrentMovementComponent = nullptr;
@@ -679,6 +782,17 @@ private:
         const FGuid& CharacterId);
     void BroadcastPlayerCharacterTurnState (
         const FGridPlayerCharacterTurnState& TurnState);
+    int32 ResolveActivePartyCharacterIndex () const;
+    bool RejectPartyMovement (
+        int32 CharacterIndex,
+        EGridEdge Direction,
+        EGridPartyMovementRejectReason RejectReason,
+        EGridPartyMovementRejectReason& OutRejectReason);
+    void ResetPartyMobilityForRound ();
+    void ClearPartyMobilityState (bool bBroadcast);
+    void ClearPendingPartyMotion ();
+    bool CompletePendingPartyMotion (
+        EGridPendingPartyMotionType ExpectedMotionType);
     void CollectAllLivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     void CollectPerceivingMonsters (TArray<AGridMonsterActor*>& OutMonsters);
     bool PrepareMonsterForCombat (AGridMonsterActor* Monster);
@@ -762,4 +876,5 @@ private:
     friend class FGridMonsterMON11ElementalOffensiveEquipmentTest;
     friend class FGridMonsterMON12CharacterActionPointLifecycleTest;
     friend class FGridMonsterMON12GlobalInitiativeLifecycleTest;
+    friend class FGridMonsterMON12PartyMobilityLifecycleTest;
 };

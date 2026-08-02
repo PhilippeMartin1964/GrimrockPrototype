@@ -144,6 +144,7 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder ()
 void UGridTurnManagerComponent::ResetInitiativeRound ()
 {
     CurrentInitiativeIndex = INDEX_NONE;
+    ResetPartyMobilityForRound ();
     BeginPlayerCharacterPhase ();
 
     for (FGridCombatantInitiativeEntry& Entry : InitiativeOrder)

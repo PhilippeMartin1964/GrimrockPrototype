@@ -499,3 +499,26 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   MON12.7.
 - Le document d'implémentation est
   `docs/Design/MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md`.
+
+---
+
+## 2026-08-02 — MON12.5 : déplacement du groupe avec PA et PAM
+
+- Le groupe possède une réserve commune de `2 PAM`, restaurée au début de
+  chaque manche sans report.
+- Une translation d'une cellule coûte `1 PA` au personnage actif et `1 PAM`
+  au groupe.
+- Les quatre translations sont autorisées uniquement pendant le tour d'un
+  personnage actif ; les rotations gauche/droite de 90 degrés restent
+  gratuites.
+- Le TurnManager valide le tour, le repos, la direction, la cellule, le
+  passage, l'occupation par un monstre, les PA et les PAM avant tout débit.
+- Un refus ne consomme aucune ressource et diffuse une raison explicite via
+  `OnPartyMovementRejected`.
+- `FGridPartyMobilityState` et `OnPartyMobilityStateChanged` constituent le
+  contrat autoritaire de la future représentation UMG.
+- Le Pawn conserve l'interpolation. Un tour épuisé par une translation ne se
+  termine qu'à l'arrivée sur la case, jamais pendant le mouvement visuel.
+- Le déplacement d'exploration hors combat reste inchangé.
+- Le document d'implémentation est
+  `docs/Design/MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md`.

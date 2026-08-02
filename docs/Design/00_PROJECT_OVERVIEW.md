@@ -36,10 +36,10 @@ une cellule unique :
 Le document de référence est
 `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
 
-MON12.4 implémente désormais l'ordre d'initiative mixte, un seul combattant
-actif, les tours individuels et les événements autoritaires nécessaires à la
-future barre d'initiative. Le déplacement payant et les PAM viennent en
-MON12.5.
+MON12.5 implémente désormais le déplacement de combat : chaque translation
+coûte `1 PA` au personnage actif et `1 PAM` sur les `2 PAM` communs restaurés
+à chaque manche. Les rotations restent gratuites, les refus ne consomment
+rien et l'exploration hors combat est inchangée.
 
 ---
 
@@ -143,6 +143,7 @@ La mémoire principale doit être le dépôt Git.
 | `05_CODEX_TASKS.md` | Tâches Codex prêtes à exécuter |
 | `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Cible des manches, initiative, PA, mobilité et actions de combat |
 | `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Implémentation de l'initiative globale et des tours individuels |
+| `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Implémentation du déplacement payant et des PAM communs |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

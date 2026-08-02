@@ -268,6 +268,7 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
 void UGridTurnManagerComponent::AbortCombat ()
 {
     ClearPlayerCharacterTurnStates ();
+    ClearPartyMobilityState (true);
     ClearInitiativeState (true);
     bPlayerAttackResolutionInProgress = false;
     bPendingVictoryAfterPlayerAttack = false;
@@ -636,6 +637,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
 
     PendingActions.Reset ();
     EnemyTurnOrder.Reset ();
+    ClearPartyMobilityState (false);
     ClearInitiativeState (false);
     CurrentMonster = nullptr;
     CurrentEnemyIndex = INDEX_NONE;

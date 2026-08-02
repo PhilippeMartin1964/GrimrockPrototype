@@ -166,6 +166,46 @@ struct FGridPlayerCharacterTurnState
     }
 };
 
+/** Shared per-round movement budget for the party's single grid position. */
+USTRUCT (BlueprintType)
+struct FGridPartyMobilityState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Party Mobility")
+    int32 RoundNumber = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Party Mobility")
+    int32 MaximumMobilityActionPoints = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Party Mobility")
+    int32 RemainingMobilityActionPoints = 0;
+
+    bool CanSpend (int32 Cost) const
+    {
+        return Cost >= 0 && RemainingMobilityActionPoints >= Cost;
+    }
+};
+
+/** Why an authoritative combat translation or rotation was refused. */
+UENUM (BlueprintType)
+enum class EGridPartyMovementRejectReason : uint8
+{
+    None                             UMETA (DisplayName = "None"),
+    TurnManagerNotInitialized        UMETA (DisplayName = "Turn Manager Not Initialized"),
+    CombatInactive                   UMETA (DisplayName = "Combat Inactive"),
+    NotPlayerTurn                    UMETA (DisplayName = "Not Player Turn"),
+    PartyUnavailable                 UMETA (DisplayName = "Party Unavailable"),
+    PartyBusy                        UMETA (DisplayName = "Party Busy"),
+    NotActiveCombatant               UMETA (DisplayName = "Not Active Combatant"),
+    InvalidDirection                 UMETA (DisplayName = "Invalid Direction"),
+    TargetCellUnavailable            UMETA (DisplayName = "Target Cell Unavailable"),
+    PassageBlocked                   UMETA (DisplayName = "Passage Blocked"),
+    TargetCellOccupied               UMETA (DisplayName = "Target Cell Occupied"),
+    InsufficientActionPoints         UMETA (DisplayName = "Insufficient Action Points"),
+    InsufficientMobilityActionPoints UMETA (DisplayName = "Insufficient Mobility Action Points")
+};
+
 UENUM (BlueprintType)
 enum class EGridPlayerAttackRejectReason : uint8
 {
