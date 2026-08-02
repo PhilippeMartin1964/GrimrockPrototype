@@ -27,7 +27,7 @@
 
 namespace
 {
-    bool IsHandEquipmentSlot (EGridEquipmentSlot Slot)
+    bool IsPawnHandEquipmentSlot (EGridEquipmentSlot Slot)
     {
         return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
     }
@@ -1666,7 +1666,7 @@ bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot (
         InventorySlotIndex,
         TargetSlot);
 
-    if (bEquipped && IsHandEquipmentSlot (TargetSlot))
+    if (bEquipped && IsPawnHandEquipmentSlot (TargetSlot))
     {
         SyncHeldVisualFromSelectedCharacterEquipment ();
     }
@@ -1683,11 +1683,11 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory (EGridEquipment
 
     const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex ();
     FGridItemInstance PreviouslyEquippedItem;
-    const bool bHadHandItem = IsHandEquipmentSlot (SourceSlot) &&
+    const bool bHadHandItem = IsPawnHandEquipmentSlot (SourceSlot) &&
         PartyInventoryComponent->GetEquippedItem (CharacterIndex, SourceSlot, PreviouslyEquippedItem);
 
     const bool bUnequipped = PartyInventoryComponent->UnequipItemToInventory (CharacterIndex, SourceSlot);
-    if (bUnequipped && IsHandEquipmentSlot (SourceSlot))
+    if (bUnequipped && IsPawnHandEquipmentSlot (SourceSlot))
     {
         if (bHadHandItem && PreviouslyEquippedItem.ItemDefinitionId == GetHeldItemDefinitionId ())
         {
@@ -1748,7 +1748,7 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot (EGridEquipme
     }
 
     const bool bEquipped = PartyInventoryComponent->TryEquipCursorItemToSelectedCharacterSlot (TargetSlot);
-    if (bEquipped && IsHandEquipmentSlot (TargetSlot))
+    if (bEquipped && IsPawnHandEquipmentSlot (TargetSlot))
     {
         SyncHeldVisualFromSelectedCharacterEquipment ();
     }
@@ -1995,7 +1995,7 @@ AGrimrockPartyPawn::TryLaunchEquippedItemForAttack (
 {
     if (!PartyInventoryComponent ||
         !LevelRuntimeActor ||
-        !IsHandEquipmentSlot (SourceSlot) ||
+        !IsPawnHandEquipmentSlot (SourceSlot) ||
         ExpectedItemDefinitionId.IsNone () ||
         TargetWorldLocation.ContainsNaN ())
     {
