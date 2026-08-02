@@ -529,8 +529,8 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
         }
     }
     ++PlayerAttackResolvedBroadcastCount;
-    OnPlayerAttackResolved.Broadcast (Request, TargetMonster, Result);
     bPlayerAttackResolutionInProgress = false;
+    OnPlayerAttackResolved.Broadcast (Request, TargetMonster, Result);
 
     if (bCollectRuntimeMetrics)
     {

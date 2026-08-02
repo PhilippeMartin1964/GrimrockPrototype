@@ -148,6 +148,10 @@ namespace
             Party->CurrentCellX,
             Party->CurrentCellY,
             Party->EyeHeight));
+        Party->SetActorRotation (FRotator (
+            0.0f,
+            GridDirectionUtils::ToYaw (Party->Facing),
+            0.0f));
 
         FGridCharacterInventoryState Character;
         Character.CharacterId = FGuid (9, 9, 9, 9);
