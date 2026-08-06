@@ -745,7 +745,7 @@ Voir `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md`.
 
 ### MON12.6 — Définitions et catalogue d'actions
 
-**Implémentée — validation UE5 requise.**
+**Implémentée et validée.**
 
 - créer la définition générique d'action ;
 - faire contribuer armes, capacités et sorts ;
@@ -757,6 +757,8 @@ Voir `MON12_6_COMBAT_ACTION_CATALOG.md`.
 
 ### MON12.7 — HUD orienté actions et quatre personnages
 
+**Implémentée — validation UE5 requise.**
+
 - afficher les quatre panneaux ;
 - afficher jusqu'à huit slots d'initiative avec portrait, camp et état ;
 - agrandir le combattant actif et faire glisser les prochains tours ;
@@ -765,6 +767,8 @@ Voir `MON12_6_COMBAT_ACTION_CATALOG.md`.
 - remplacer les gros boutons de mains par la barre d'actions ;
 - afficher les PAM du groupe ;
 - masquer les membres absents et désactiver les vaincus.
+
+Voir `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 
 ### MON12.8 — Sorts, mana et zones
 

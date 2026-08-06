@@ -548,3 +548,25 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   MON12.8–MON12.9.
 - Le document d'implémentation est
   `docs/Design/MON12_6_COMBAT_ACTION_CATALOG.md`.
+
+---
+
+## 2026-08-02 — MON12.7 : HUD de combat orienté actions
+
+- Le HUD crée jusqu'à quatre panneaux liés aux membres réellement présents.
+- Les gros boutons de mains du panneau transitoire sont masqués ; la barre
+  centrale provient exclusivement de `FGridAvailableCombatAction`.
+- Un clic transmet l'identité et la provenance de l'action à
+  `RequestCharacterCombatAction()` ; le widget ne consomme aucune ressource.
+- La barre d'initiative lit `GetUpcomingInitiativeOrder()` sans tri ni jet et
+  affiche huit slots au maximum, puis `+ N`.
+- Le slot actif est agrandi à `72 x 72`; les suivants utilisent `56 x 56`.
+- Les tours terminés et les vaincus sortent de la barre après notification ;
+  les panneaux de personnages vaincus restent visibles mais désactivés.
+- Les PAM sont affichés depuis `FGridPartyMobilityState` et actualisés par
+  `OnPartyMobilityStateChanged`.
+- Tous les rafraîchissements sont événementiels. Aucun `Tick` UI n'est ajouté.
+- Le panneau historique reste le fallback tant que
+  `CombatHudWidgetClass` n'est pas affectée dans le Pawn.
+- Le document d'implémentation est
+  `docs/Design/MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.

@@ -41,6 +41,10 @@ coûte `1 PA` au personnage actif et `1 PAM` sur les `2 PAM` communs restaurés
 à chaque manche. Les rotations restent gratuites, les refus ne consomment
 rien et l'exploration hors combat est inchangée.
 
+MON12.6 fournit le catalogue générique validé. MON12.7 construit désormais le
+HUD depuis ce catalogue : quatre panneaux au maximum, barre d'actions du
+personnage actif, huit prochains tours au maximum et PAM communs.
+
 ---
 
 ## Contraintes générales
@@ -144,6 +148,8 @@ La mémoire principale doit être le dépôt Git.
 | `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Cible des manches, initiative, PA, mobilité et actions de combat |
 | `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Implémentation de l'initiative globale et des tours individuels |
 | `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Implémentation du déplacement payant et des PAM communs |
+| `MON12_6_COMBAT_ACTION_CATALOG.md` | Définitions, contributions et catalogue générique d'actions |
+| `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md` | HUD de quatre personnages, actions, initiative et PAM |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---
