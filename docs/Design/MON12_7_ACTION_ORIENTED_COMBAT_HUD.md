@@ -51,6 +51,28 @@ donc obligatoires dans Unreal Editor 5.5.4 :
 3. créer `WBP_GridCombatHudInitiativeSlot` ;
 4. créer `WBP_GridCombatHud` et l'affecter à `BP_GrimrockPartyPawn`.
 
+> **Correction importante — référence C++ publiée `a0a86af`**
+>
+> `WBP_GridCombatHudAction` et `WBP_GridCombatHudInitiativeSlot` sont bien
+> nécessaires. Le commit publié déclare réellement les classes parentes
+> `UGridCombatHudActionWidget` et `UGridCombatHudInitiativeSlotWidget`, ainsi
+> que les propriétés `ActionWidgetClass` et `InitiativeSlotWidgetClass` dans
+> `UGridCombatHudWidget`. Il ne faut donc ni supprimer ces deux assets, ni les
+> remplacer par des widgets construits directement dans le HUD racine.
+>
+> Les noms `Panel_CharacterPanels`, `Panel_ActionBar`,
+> `Panel_InitiativeBar`, `Panel_ActionArea` et `Text_PartyMobility` appartiennent
+> à une autre variante locale du code et **ne correspondent pas** au commit
+> MON12.7 publié. Avec `a0a86af`, utiliser exclusivement les huit noms du
+> tableau de l'étape UE5.4.8, notamment `Panel_PartyMembers`, `Panel_Actions`,
+> `Panel_Initiative` et `Text_MobilityActionPoints`.
+>
+> En revanche, l'éditeur d'un **Widget Blueprint** UE 5.5.4 n'affiche pas le
+> bouton `Class Defaults` montré dans l'éditeur d'un Blueprint d'Actor. La
+> présente procédure utilise désormais la méthode adaptée : `Graph`, puis
+> `My Blueprint`, `Show Inherited Variables` et enfin `Default Value` dans le
+> panneau `Details`.
+
 Les propriétés C++ utilisent `BindWidgetOptional`. Cela évite un crash si un
 widget manque, mais ne signifie pas que les widgets décrits ci-dessous sont
 facultatifs. Un nom absent ou un type incorrect produit une partie vide du HUD
@@ -104,8 +126,8 @@ MON12.7 ne demande pas de recréer le panneau de MON12.1. Il réutilise
    ```
 
    Si l'asset se trouve actuellement dans un autre dossier, le conserver à cet
-   endroit et utiliser cet asset dans les Class Defaults du HUD à l'étape
-   UE5.4.
+   endroit et sélectionner cet asset comme valeur de
+   `PartyMemberPanelWidgetClass` à l'étape UE5.5.
 
 2. Cliquer `Class Settings`.
 3. Vérifier que `Parent Class` vaut `GridCombatActionPanelWidget`.
@@ -326,12 +348,21 @@ ne doit pas cacher le portrait ni les textes.
    - `Text_State` ;
    - `Text_Side` ;
    - `Border_Active`.
-7. Cliquer `Class Defaults` et vérifier :
+7. Ne chercher aucun bouton `Class Defaults` dans cet éditeur. La valeur C++
+   par défaut de `ActiveScale` est déjà `1.28`, ce qui est précisément la
+   valeur requise par MON12.7. Il n'y a donc rien à renseigner manuellement.
 
-   ```text
-   Combat | HUD | Visuals
-   Active Scale = 1.28
-   ```
+   Pour modifier volontairement cette valeur plus tard :
+   - cliquer `Graph` en haut à droite ;
+   - afficher le panneau `My Blueprint` avec `Window > My Blueprint` s'il est
+     masqué ;
+   - ouvrir les options d'affichage de `My Blueprint` et activer
+     `Show Inherited Variables` ;
+   - rechercher et sélectionner `ActiveScale` ;
+   - modifier `Default Value` dans le panneau `Details`.
+
+   Cette modification est facultative et ne doit pas être effectuée pour la
+   configuration standard MON12.7.
 
 Le C++ :
 
@@ -559,15 +590,84 @@ comme enfants.
 
 ## Étape UE5.5 — Renseigner les classes générées dans le HUD
 
-1. Toujours dans `WBP_GridCombatHud`, cliquer `Class Defaults`.
-2. Dans le panneau `Details`, rechercher `Combat HUD Classes` ou ouvrir la
-   catégorie :
+Cette étape concerne `WBP_GridCombatHud`, qui est un **Widget Blueprint**.
+Sur UE 5.5.4, il est normal que sa barre d'outils ne contienne pas le bouton
+`Class Defaults`. Ne le cherchez ni dans `Designer`, ni dans `Palette`, ni
+dans `Hierarchy`.
+
+1. Ouvrir `WBP_GridCombatHud`.
+2. Cliquer `Compile` une première fois. Cette compilation garantit que les
+   propriétés héritées de la classe C++ parente sont chargées.
+3. En haut à droite de l'éditeur, cliquer l'onglet :
 
    ```text
-   Combat > HUD > Classes
+   Graph
    ```
 
-3. Renseigner exactement :
+   Il se trouve immédiatement à droite de `Designer`.
+
+4. Repérer le panneau `My Blueprint`, normalement situé à gauche en mode
+   `Graph`.
+
+   S'il n'est pas visible, utiliser le menu supérieur :
+
+   ```text
+   Window > My Blueprint
+   ```
+
+5. Dans l'en-tête du panneau `My Blueprint`, ouvrir `View Options` — l'icône
+   peut apparaître sous la forme d'un œil ou d'un petit engrenage selon la
+   disposition de l'éditeur — puis cocher :
+
+   ```text
+   Show Inherited Variables
+   ```
+
+   Cette option est indispensable : les trois propriétés ont été déclarées
+   dans la classe C++ parente et non dans le Widget Blueprint lui-même.
+
+6. Dans le champ de recherche de `My Blueprint`, saisir successivement le nom
+   de chacune des trois variables héritées :
+
+   ```text
+   PartyMemberPanelWidgetClass
+   ActionWidgetClass
+   InitiativeSlotWidgetClass
+   ```
+
+   Selon l'option d'affichage des noms conviviaux, Unreal peut les présenter
+   avec des espaces :
+
+   ```text
+   Party Member Panel Widget Class
+   Action Widget Class
+   Initiative Slot Widget Class
+   ```
+
+7. Sélectionner `PartyMemberPanelWidgetClass` dans `My Blueprint`.
+8. Dans le panneau `Details` situé à droite, descendre jusqu'à la section
+   `Default Value`.
+9. Ouvrir la liste de classes et choisir :
+
+   ```text
+   WBP_GridCombatActionPanel
+   ```
+
+10. Sélectionner ensuite `ActionWidgetClass`, puis régler son `Default Value`
+    sur :
+
+    ```text
+    WBP_GridCombatHudAction
+    ```
+
+11. Sélectionner enfin `InitiativeSlotWidgetClass`, puis régler son
+    `Default Value` sur :
+
+    ```text
+    WBP_GridCombatHudInitiativeSlot
+    ```
+
+12. Le résultat final doit être exactement :
 
    | Propriété | Valeur |
    | --- | --- |
@@ -575,11 +675,24 @@ comme enfants.
    | `Action Widget Class` | `WBP_GridCombatHudAction` |
    | `Initiative Slot Widget Class` | `WBP_GridCombatHudInitiativeSlot` |
 
-4. Ne laisser aucune de ces trois propriétés à `None`.
-5. Cliquer `Compile`.
-6. Examiner le `Compiler Results` : aucune erreur ni alerte de type
+13. Ne laisser aucune de ces trois propriétés à `None`.
+14. Cliquer `Compile`.
+15. Examiner le `Compiler Results` : aucune erreur ni alerte de type
    `BindWidget` ne doit rester.
-7. Cliquer `Save`.
+16. Cliquer `Save`.
+
+Si une variable n'apparaît pas :
+
+1. revenir dans `Designer` ;
+2. cliquer `Class Settings` dans la barre d'outils ;
+3. vérifier que `Parent Class` vaut bien `GridCombatHudWidget` ;
+4. cliquer `Compile` ;
+5. revenir dans `Graph` ;
+6. vérifier de nouveau que `Show Inherited Variables` est coché.
+
+Il ne faut pas créer trois nouvelles variables Blueprint portant ces noms.
+Il faut modifier les valeurs par défaut des trois variables **héritées** du
+C++.
 
 Symptômes d'une classe manquante :
 
@@ -595,7 +708,18 @@ Symptômes d'une classe manquante :
    /Game/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockPartyPawn
    ```
 
-2. Cliquer `Class Defaults`.
+2. Cet asset est un Blueprint d'Actor, pas un Widget Blueprint. Dans son
+   éditeur complet, cliquer `Class Defaults` dans la barre d'outils
+   supérieure, à proximité de `Class Settings`.
+
+   Cette instruction ne concerne donc pas les fenêtres
+   `WBP_GridCombatHudAction` et `WBP_GridCombatHudInitiativeSlot` montrées dans
+   la capture précédente.
+
+   Si `BP_GrimrockPartyPawn` s'ouvre dans l'éditeur simplifié `Data Only`,
+   cliquer d'abord `Open Full Blueprint Editor`. Si les propriétés par défaut
+   sont déjà affichées directement dans `Details`, il est également possible
+   de les renseigner sans ouvrir l'éditeur complet.
 3. Dans `Details`, rechercher `Combat Hud Widget Class` ou ouvrir :
 
    ```text
@@ -641,7 +765,8 @@ puis l'ajoute automatiquement au viewport avec le Z-order configuré.
 3. Vérifier qu'aucun des quatre Widget Blueprints n'affiche une icône de
    compilation en erreur.
 4. Ouvrir une dernière fois `WBP_GridCombatHud` et contrôler dans
-   `Class Defaults` que les trois classes ne sont pas revenues à `None`.
+   `Graph > My Blueprint`, avec `Show Inherited Variables` activé, que les
+   trois `Default Value` ne sont pas revenues à `None`.
 
 ## Tests automatisés dans Unreal Editor
 
@@ -779,7 +904,8 @@ mouvement et l'absence de dépense de PA après refus.
 
 1. Arrêter PIE.
 2. Ouvrir `BP_GrimrockPartyPawn`.
-3. Dans `Class Defaults > Combat > UI`, mettre temporairement :
+3. Dans le panneau `Details` affiché après avoir cliqué `Class Defaults`,
+   rechercher `Combat Hud Widget Class` et mettre temporairement :
 
    ```text
    Combat Hud Widget Class = None
@@ -808,7 +934,7 @@ mouvement et l'absence de dépense de PA après refus.
 | --- | --- | --- |
 | Les classes parentes MON12.7 n'apparaissent pas | module C++ non recompilé ou Editor non redémarré | fermer UE5, compiler `GrimrockPrototypeEditor Development Editor Win64`, rouvrir |
 | Aucun HUD pendant le combat | `Combat Hud Widget Class` vaut `None` ou création du widget en échec | vérifier `BP_GrimrockPartyPawn > Combat > UI` et filtrer l'Output Log sur `GridCombatHud Show Failed` |
-| Le HUD existe mais reste vide | classes générées du HUD laissées à `None` | vérifier les trois valeurs de `WBP_GridCombatHud > Class Defaults > Combat > HUD > Classes` |
+| Le HUD existe mais reste vide | classes générées du HUD laissées à `None` | ouvrir `WBP_GridCombatHud > Graph > My Blueprint`, activer `Show Inherited Variables` et vérifier les trois `Default Value` |
 | Aucun panneau de personnage | nom/type de `Panel_PartyMembers` incorrect ou classe de panneau absente | utiliser un `PanelWidget` nommé exactement `Panel_PartyMembers` et renseigner `WBP_GridCombatActionPanel` |
 | Aucun bouton d'action | `Panel_Actions` absent, `Action Widget Class` absent ou tour ennemi | vérifier le nom, la classe et attendre un tour du groupe |
 | Une décoration de barre disparaît | décoration placée dans un panneau dynamique vidé par `ClearChildren()` | déplacer la décoration hors de `Panel_PartyMembers`, `Panel_Actions` ou `Panel_Initiative` |
