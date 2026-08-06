@@ -980,12 +980,60 @@ void UGridTurnManagerComponent::CollectPerceivingMonsters (TArray<AGridMonsterAc
 
 bool UGridTurnManagerComponent::PrepareMonsterForCombat (AGridMonsterActor* Monster)
 {
-    if (!IsValid (Monster) ||
-        Monster->IsDead () ||
-        !Monster->bMonsterEnabled ||
-        !Monster->IsRuntimeLevelActive () ||
-        !IsValid (Monster->MonsterDefinition))
+    if (!IsValid (Monster))
     {
+        return false;
+    }
+
+    FString DefinitionError;
+    if (!Monster->ValidateMonsterDefinition (DefinitionError))
+    {
+        UE_LOG (
+            LogGridTurnManager,
+            Error,
+            TEXT ("[GridTurnManager] Combat admission rejected Monster=%s PersistenceId=%s Definition=%s MonsterId=%s CurrentHealth=%d MaxHealth=%d CombatStatsInitialized=%s RuntimeState=%s Reason=InvalidDefinition ValidationError=\"%s\""),
+            *GetNameSafe (Monster),
+            *Monster->ResolvePersistenceId ().ToString (),
+            *GetPathNameSafe (Monster->MonsterDefinition),
+            Monster->MonsterDefinition
+                ? *Monster->MonsterDefinition->MonsterId.ToString ()
+                : TEXT ("None"),
+            Monster->CurrentHealth,
+            Monster->MonsterDefinition
+                ? Monster->MonsterDefinition->MaxHealth
+                : 0,
+            Monster->bCombatStatsInitialized
+                ? TEXT ("true")
+                : TEXT ("false"),
+            *UEnum::GetValueAsString (Monster->MonsterState),
+            *DefinitionError);
+        return false;
+    }
+
+    if (Monster->IsDead () ||
+        !Monster->bMonsterEnabled ||
+        !Monster->IsRuntimeLevelActive ())
+    {
+        return false;
+    }
+
+    if (!Monster->EnsureInitialCombatState () ||
+        !Monster->bCombatStatsInitialized)
+    {
+        UE_LOG (
+            LogGridTurnManager,
+            Error,
+            TEXT ("[GridTurnManager] Combat admission rejected Monster=%s PersistenceId=%s Definition=%s MonsterId=%s CurrentHealth=%d MaxHealth=%d CombatStatsInitialized=%s RuntimeState=%s Reason=CombatStateInitializationFailed"),
+            *GetNameSafe (Monster),
+            *Monster->ResolvePersistenceId ().ToString (),
+            *GetPathNameSafe (Monster->MonsterDefinition),
+            *Monster->MonsterDefinition->MonsterId.ToString (),
+            Monster->CurrentHealth,
+            Monster->MonsterDefinition->MaxHealth,
+            Monster->bCombatStatsInitialized
+                ? TEXT ("true")
+                : TEXT ("false"),
+            *UEnum::GetValueAsString (Monster->MonsterState));
         return false;
     }
 

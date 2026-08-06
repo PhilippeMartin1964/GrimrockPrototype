@@ -48,28 +48,46 @@ struct FGridMonsterVFXEventDefinition
         meta = (ClampMin = "0.0"))
     float CooldownSeconds = 0.0f;
 
-    bool IsValidDefinition () const
+    bool ValidateDefinition (FString& OutError) const
     {
-        if (LocationOffset.ContainsNaN () ||
-            RotationOffset.ContainsNaN () ||
-            Scale.ContainsNaN () ||
-            Scale.X <= 0.0 ||
-            Scale.Y <= 0.0 ||
-            Scale.Z <= 0.0 ||
-            !FMath::IsFinite (CooldownSeconds) ||
-            CooldownSeconds < 0.0f)
+        TArray<FString> Errors;
+        if (LocationOffset.ContainsNaN ())
         {
-            return false;
+            Errors.Add (TEXT ("LocationOffset must be finite."));
+        }
+        if (RotationOffset.ContainsNaN ())
+        {
+            Errors.Add (TEXT ("RotationOffset must be finite."));
+        }
+        if (Scale.ContainsNaN () ||
+            Scale.X <= 0.0 || Scale.Y <= 0.0 || Scale.Z <= 0.0)
+        {
+            Errors.Add (TEXT ("Scale components must be finite and greater than zero."));
+        }
+        if (!FMath::IsFinite (CooldownSeconds) || CooldownSeconds < 0.0f)
+        {
+            Errors.Add (TEXT ("CooldownSeconds must be finite and non-negative."));
         }
 
-        for (const TSoftObjectPtr<UNiagaraSystem>& System : Systems)
+        for (int32 SystemIndex = 0;
+            SystemIndex < Systems.Num ();
+            ++SystemIndex)
         {
-            if (System.IsNull ())
+            if (Systems[SystemIndex].IsNull ())
             {
-                return false;
+                Errors.Add (FString::Printf (
+                    TEXT ("Systems[%d] must not be empty."),
+                    SystemIndex));
             }
         }
-        return true;
+        OutError = FString::Join (Errors, TEXT (" "));
+        return Errors.IsEmpty ();
+    }
+
+    bool IsValidDefinition () const
+    {
+        FString Error;
+        return ValidateDefinition (Error);
     }
 
     bool HasConfiguredSystem () const

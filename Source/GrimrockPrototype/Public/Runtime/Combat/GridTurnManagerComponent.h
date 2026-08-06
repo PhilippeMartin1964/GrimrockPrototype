@@ -916,4 +916,10 @@ private:
     friend class FGridMonsterMON12GlobalInitiativeLifecycleTest;
     friend class FGridMonsterMON12PartyMobilityLifecycleTest;
     friend class FGridMonsterMON12CombatHudLifecycleTest;
+    friend class FGridMonsterMON12FreshPlacedCombatInitializationTest;
+    friend class FGridMonsterMON12RestoredInjuredCombatInitializationTest;
+    friend class FGridMonsterMON12RestoredDeadCombatInitializationTest;
+    friend class FGridMonsterMON12InvalidDefinitionAdmissionTest;
+    friend class FGridMonsterMON12UninitializedInitiativeStateTest;
+    friend class FGridMonsterMON12InitializedPersistenceCaptureTest;
 };

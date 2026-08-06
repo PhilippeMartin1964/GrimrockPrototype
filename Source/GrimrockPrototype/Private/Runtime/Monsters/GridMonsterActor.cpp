@@ -137,11 +137,29 @@ void AGridMonsterActor::OnConstruction (const FTransform& Transform)
 
 bool AGridMonsterActor::EnsureInitialCombatState ()
 {
-    if (!IsValid (MonsterDefinition) ||
-        !MonsterDefinition->IsValidDefinition () ||
-        MonsterState == EGridMonsterState::Dead ||
+    if (MonsterState == EGridMonsterState::Dead ||
         (DeathComponent && DeathComponent->bDeathCommitted))
     {
+        return false;
+    }
+
+    FString DefinitionError;
+    if (!ValidateMonsterDefinition (DefinitionError))
+    {
+        UE_LOG (
+            LogGridMonsterState,
+            Error,
+            TEXT ("[GridMonsterState] InitializeFresh skipped Monster=%s Definition=%s MonsterId=%s CurrentHealth=%d MaxHealth=%d CombatStatsInitialized=%s RuntimeState=%s Reason=InvalidDefinition ValidationError=\"%s\""),
+            *GetNameSafe (this),
+            *GetPathNameSafe (MonsterDefinition),
+            MonsterDefinition
+                ? *MonsterDefinition->MonsterId.ToString ()
+                : TEXT ("None"),
+            CurrentHealth,
+            MonsterDefinition ? MonsterDefinition->MaxHealth : 0,
+            bCombatStatsInitialized ? TEXT ("true") : TEXT ("false"),
+            *GetMonsterStateText (MonsterState),
+            *DefinitionError);
         return false;
     }
 
@@ -171,6 +189,18 @@ bool AGridMonsterActor::EnsureInitialCombatState ()
         CurrentMagicalArmor,
         *GetMonsterStateText (MonsterState));
     return true;
+}
+
+bool AGridMonsterActor::ValidateMonsterDefinition (
+    FString& OutError) const
+{
+    if (!IsValid (MonsterDefinition))
+    {
+        OutError = TEXT ("MonsterDefinition is not assigned.");
+        return false;
+    }
+
+    return MonsterDefinition->ValidateDefinition (OutError);
 }
 
 FGuid AGridMonsterActor::ResolvePersistenceId () const
@@ -327,15 +357,42 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState (
         return false;
     }
 
-    if (!IsValid (MonsterDefinition) ||
-        !MonsterDefinition->IsValidDefinition () ||
-        MonsterDefinition->MonsterId.IsNone ())
+    FString DefinitionError;
+    if (!ValidateMonsterDefinition (DefinitionError))
     {
-        UE_LOG (LogGridMonsterState, Error,
-            TEXT ("[GridMonsterState] Capture skipped Level=%s Monster=%s PersistenceId=%s Reason=InvalidDefinition"),
+        UE_LOG (
+            LogGridMonsterState,
+            Error,
+            TEXT ("[GridMonsterState] Capture skipped Level=%s Monster=%s PersistenceId=%s Definition=%s MonsterId=%s CurrentHealth=%d MaxHealth=%d CombatStatsInitialized=%s RuntimeState=%s Reason=InvalidDefinition ValidationError=\"%s\""),
             *CurrentLevelId.ToString (),
             *GetNameSafe (this),
-            *PersistenceId.ToString ());
+            *PersistenceId.ToString (),
+            *GetPathNameSafe (MonsterDefinition),
+            MonsterDefinition
+                ? *MonsterDefinition->MonsterId.ToString ()
+                : TEXT ("None"),
+            CurrentHealth,
+            MonsterDefinition ? MonsterDefinition->MaxHealth : 0,
+            bCombatStatsInitialized ? TEXT ("true") : TEXT ("false"),
+            *GetMonsterStateText (MonsterState),
+            *DefinitionError);
+        return false;
+    }
+
+    if (!bCombatStatsInitialized)
+    {
+        UE_LOG (
+            LogGridMonsterState,
+            Error,
+            TEXT ("[GridMonsterState] Capture skipped Level=%s Monster=%s PersistenceId=%s Definition=%s MonsterId=%s CurrentHealth=%d MaxHealth=%d CombatStatsInitialized=false RuntimeState=%s Reason=UninitializedCombatState"),
+            *CurrentLevelId.ToString (),
+            *GetNameSafe (this),
+            *PersistenceId.ToString (),
+            *GetPathNameSafe (MonsterDefinition),
+            *MonsterDefinition->MonsterId.ToString (),
+            CurrentHealth,
+            MonsterDefinition->MaxHealth,
+            *GetMonsterStateText (MonsterState));
         return false;
     }
 

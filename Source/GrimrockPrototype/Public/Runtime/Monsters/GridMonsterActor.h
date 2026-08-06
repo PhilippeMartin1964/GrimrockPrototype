@@ -191,6 +191,8 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Monster|Initialization")
     bool EnsureInitialCombatState ();
 
+    bool ValidateMonsterDefinition (FString& OutError) const;
+
     UFUNCTION (BlueprintCallable, Category = "Monster|Initialization")
     bool InitializeMonster (
         UGridMonsterDefinitionAsset* InDefinition,

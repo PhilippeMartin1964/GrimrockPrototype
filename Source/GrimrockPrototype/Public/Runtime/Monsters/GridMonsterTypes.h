@@ -112,25 +112,87 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
     FGridMonsterVFXEventDefinition ImpactMissVFXDefinition;
 
+    bool ValidateDefinition (FString& OutError) const
+    {
+        TArray<FString> Errors;
+        if (AttackId.IsNone ())
+        {
+            Errors.Add (TEXT ("AttackId must not be None."));
+        }
+        if (MinDamage < 0)
+        {
+            Errors.Add (TEXT ("MinDamage must be non-negative."));
+        }
+        if (MaxDamage < MinDamage)
+        {
+            Errors.Add (TEXT ("MaxDamage must be at least MinDamage."));
+        }
+        if (RangeCells <= 0)
+        {
+            Errors.Add (TEXT ("RangeCells must be greater than zero."));
+        }
+        if (ActionPointCost <= 0)
+        {
+            Errors.Add (TEXT ("ActionPointCost must be greater than zero."));
+        }
+        if (!FMath::IsFinite (ExpectedDuration) || ExpectedDuration <= 0.0f)
+        {
+            Errors.Add (TEXT ("ExpectedDuration must be finite and greater than zero."));
+        }
+        if (!FMath::IsFinite (ImpactTimeSeconds) ||
+            ImpactTimeSeconds < 0.0f ||
+            ImpactTimeSeconds > ExpectedDuration)
+        {
+            Errors.Add (TEXT ("ImpactTimeSeconds must be finite and between zero and ExpectedDuration."));
+        }
+        if (DamageType != EGridDamageType::Physical &&
+            PhysicalSubtype != EGridPhysicalDamageSubtype::None)
+        {
+            Errors.Add (TEXT ("PhysicalSubtype must be None for non-physical damage."));
+        }
+
+        const auto ValidateAudio = [&Errors] (
+            const TCHAR* FieldName,
+            const FGridMonsterAudioEventDefinition& Definition)
+        {
+            FString Error;
+            if (!Definition.ValidateDefinition (Error))
+            {
+                Errors.Add (FString::Printf (
+                    TEXT ("%s.%s"),
+                    FieldName,
+                    *Error));
+            }
+        };
+        ValidateAudio (TEXT ("AttackAudio"), AttackAudio);
+        ValidateAudio (TEXT ("ImpactHitAudio"), ImpactHitAudio);
+        ValidateAudio (TEXT ("ImpactMissAudio"), ImpactMissAudio);
+
+        const auto ValidateVFX = [&Errors] (
+            const TCHAR* FieldName,
+            const FGridMonsterVFXEventDefinition& Definition)
+        {
+            FString Error;
+            if (!Definition.ValidateDefinition (Error))
+            {
+                Errors.Add (FString::Printf (
+                    TEXT ("%s.%s"),
+                    FieldName,
+                    *Error));
+            }
+        };
+        ValidateVFX (TEXT ("AttackVFXDefinition"), AttackVFXDefinition);
+        ValidateVFX (TEXT ("ImpactHitVFXDefinition"), ImpactHitVFXDefinition);
+        ValidateVFX (TEXT ("ImpactMissVFXDefinition"), ImpactMissVFXDefinition);
+
+        OutError = FString::Join (Errors, TEXT (" "));
+        return Errors.IsEmpty ();
+    }
+
     bool IsValidDefinition () const
     {
-        return !AttackId.IsNone () &&
-            MinDamage >= 0 &&
-            MaxDamage >= MinDamage &&
-            RangeCells > 0 &&
-            ActionPointCost > 0 &&
-            FMath::IsFinite (ExpectedDuration) &&
-            ExpectedDuration > 0.0f &&
-            FMath::IsFinite (ImpactTimeSeconds) &&
-            ImpactTimeSeconds >= 0.0f &&
-            ImpactTimeSeconds <= ExpectedDuration &&
-            AttackAudio.IsValidDefinition () &&
-            ImpactHitAudio.IsValidDefinition () &&
-            ImpactMissAudio.IsValidDefinition () &&
-            AttackVFXDefinition.IsValidDefinition () &&
-            ImpactHitVFXDefinition.IsValidDefinition () &&
-            ImpactMissVFXDefinition.IsValidDefinition () &&
-            (DamageType == EGridDamageType::Physical || PhysicalSubtype == EGridPhysicalDamageSubtype::None);
+        FString Error;
+        return ValidateDefinition (Error);
     }
 };
 

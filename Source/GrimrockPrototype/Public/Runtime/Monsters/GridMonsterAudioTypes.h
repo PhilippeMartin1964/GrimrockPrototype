@@ -56,28 +56,44 @@ struct FGridMonsterAudioEventDefinition
         meta = (ClampMin = "0.0"))
     float CooldownSeconds = 0.0f;
 
-    bool IsValidDefinition () const
+    bool ValidateDefinition (FString& OutError) const
     {
+        TArray<FString> Errors;
         if (!FMath::IsFinite (VolumeMultiplier) ||
-            VolumeMultiplier < 0.0f ||
-            !FMath::IsFinite (PitchMin) ||
-            PitchMin <= 0.0f ||
-            !FMath::IsFinite (PitchMax) ||
-            PitchMax < PitchMin ||
-            !FMath::IsFinite (CooldownSeconds) ||
-            CooldownSeconds < 0.0f)
+            VolumeMultiplier < 0.0f)
         {
-            return false;
+            Errors.Add (TEXT ("VolumeMultiplier must be finite and non-negative."));
+        }
+        if (!FMath::IsFinite (PitchMin) || PitchMin <= 0.0f)
+        {
+            Errors.Add (TEXT ("PitchMin must be finite and greater than zero."));
+        }
+        if (!FMath::IsFinite (PitchMax) || PitchMax < PitchMin)
+        {
+            Errors.Add (TEXT ("PitchMax must be finite and at least PitchMin."));
+        }
+        if (!FMath::IsFinite (CooldownSeconds) || CooldownSeconds < 0.0f)
+        {
+            Errors.Add (TEXT ("CooldownSeconds must be finite and non-negative."));
         }
 
-        for (const TSoftObjectPtr<USoundBase>& Sound : Sounds)
+        for (int32 SoundIndex = 0; SoundIndex < Sounds.Num (); ++SoundIndex)
         {
-            if (Sound.IsNull ())
+            if (Sounds[SoundIndex].IsNull ())
             {
-                return false;
+                Errors.Add (FString::Printf (
+                    TEXT ("Sounds[%d] must not be empty."),
+                    SoundIndex));
             }
         }
-        return true;
+        OutError = FString::Join (Errors, TEXT (" "));
+        return Errors.IsEmpty ();
+    }
+
+    bool IsValidDefinition () const
+    {
+        FString Error;
+        return ValidateDefinition (Error);
     }
 
     bool HasConfiguredSound () const

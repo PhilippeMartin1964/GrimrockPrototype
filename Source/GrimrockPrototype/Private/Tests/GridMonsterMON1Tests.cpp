@@ -125,7 +125,10 @@ bool FGridMonsterDefinitionMON1InvalidDataTest::RunTest (const FString& Paramete
     Rat->Attacks[0].ActionPointCost = 0;
     Error.Reset ();
     TestFalse (TEXT ("A free attack invalidates the definition"), Rat->ValidateDefinition (Error));
-    TestTrue (TEXT ("The invalid attack is reported"), Error.Contains (TEXT ("Attack at index 0")));
+    TestTrue (TEXT ("The invalid attack index is reported"),
+        Error.Contains (TEXT ("Attacks[0]")));
+    TestTrue (TEXT ("The invalid attack field is reported"),
+        Error.Contains (TEXT ("ActionPointCost must be greater than zero.")));
 
     Rat = CreateGiantRatDefinition ();
     Rat->LootTable[0].DropChance = 0.90f;

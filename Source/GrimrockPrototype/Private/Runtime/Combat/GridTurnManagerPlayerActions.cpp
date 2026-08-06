@@ -501,7 +501,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             EGridPlayerAttackRejectReason::TargetInactive,
             OutRejectReason);
     }
-    if (TargetMonster->IsDead () || TargetMonster->CurrentHealth <= 0)
+    if (TargetMonster->IsDead ())
     {
         return RejectPlayerAttack (
             AttackerCharacterIndex,

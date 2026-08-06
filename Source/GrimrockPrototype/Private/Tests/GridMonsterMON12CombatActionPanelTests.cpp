@@ -1029,7 +1029,6 @@ bool FGridMonsterMON12GlobalInitiativeLifecycleTest::RunTest (
         return false;
     }
 
-    Fixture.MonsterDefinition->ActionPointsPerTurn = 0;
     Fixture.TurnManager->bCollectRuntimeMetrics = true;
     TestTrue (
         TEXT ("The initiative test enters StartingCombat"),
@@ -1202,7 +1201,6 @@ bool FGridMonsterMON12PartyMobilityLifecycleTest::RunTest (
         return false;
     }
 
-    Fixture.MonsterDefinition->ActionPointsPerTurn = 0;
     TestTrue (
         TEXT ("The mobility test enters StartingCombat"),
         Fixture.TurnManager->PhaseState.StartCombat ());
@@ -1402,7 +1400,7 @@ bool FGridMonsterMON12PartyMobilityLifecycleTest::RunTest (
         0);
 
     TestTrue (
-        TEXT ("Ending Elias turn advances through the zero-AP monster"),
+        TEXT ("Ending Elias turn advances through the actionless monster"),
         Fixture.TurnManager->EndActivePlayerTurn ());
     TestTrue (
         TEXT ("Mina becomes active after the interleaved monster"),
@@ -1464,7 +1462,7 @@ bool FGridMonsterMON12PartyMobilityLifecycleTest::RunTest (
         TEXT ("Completing the final-AP movement advances the turn"),
         Fixture.TurnManager->GetActiveCombatant (ActiveCombatant));
     TestEqual (
-        TEXT ("The zero-AP monster is skipped and Mina becomes active"),
+        TEXT ("The actionless monster is skipped and Mina becomes active"),
         ActiveCombatant.CharacterIndex,
         1);
     TestFalse (
@@ -1770,6 +1768,336 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest (
         TEXT ("A refused generic action consumes no AP"),
         TurnState.RemainingActionPoints,
         2);
+    return true;
+}
+
+namespace
+{
+    void ResetMON12MonsterToFreshPlacedState (AGridMonsterActor* Monster)
+    {
+        if (!Monster)
+        {
+            return;
+        }
+
+        Monster->CurrentHealth = 0;
+        Monster->CurrentPhysicalArmor = 0;
+        Monster->CurrentMagicalArmor = 0;
+        Monster->bCombatStatsInitialized = false;
+        Monster->MonsterState = EGridMonsterState::Idle;
+        Monster->ResetAnimationSignals ();
+        if (Monster->DeathComponent)
+        {
+            Monster->DeathComponent->RestoreLivingState ();
+        }
+    }
+
+    FGridRuntimeMonsterState MakeMON12RestoredMonsterState (
+        const FGridMON12Fixture& Fixture,
+        int32 CurrentHealth,
+        bool bDead)
+    {
+        FGridRuntimeMonsterState State;
+        State.PersistenceId = Fixture.Monster->ResolvePersistenceId ();
+        State.MonsterDefinitionId = Fixture.MonsterDefinition->MonsterId;
+        State.DungeonLevelId = Fixture.Runtime->CurrentDungeonLevelId;
+        State.CellX = Fixture.Monster->CurrentCell.X;
+        State.CellY = Fixture.Monster->CurrentCell.Y;
+        State.Facing = Fixture.Monster->Facing;
+        State.MonsterState = bDead
+            ? EGridMonsterState::Dead
+            : EGridMonsterState::Alert;
+        State.CurrentHealth = CurrentHealth;
+        State.CurrentPhysicalArmor = 0;
+        State.CurrentMagicalArmor = 0;
+        State.bMonsterEnabled = true;
+        State.bIsDead = bDead;
+        return State;
+    }
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12FreshPlacedCombatInitializationTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.FreshPlacedMonster",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12FreshPlacedCombatInitializationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (TEXT ("The fresh-monster fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    ResetMON12MonsterToFreshPlacedState (Fixture.Monster);
+    Fixture.TurnManager->bCombatActive = false;
+    Fixture.TurnManager->CombatMonsters.Reset ();
+
+    TArray<AGridMonsterActor*> Candidates = {
+        Fixture.Monster,
+        Fixture.Monster
+    };
+    TestTrue (
+        TEXT ("Combat starts with a fresh directly placed monster"),
+        Fixture.TurnManager->StartCombatInternal (Candidates));
+    TestEqual (TEXT ("Fresh health is initialized to MaxHealth"),
+        Fixture.Monster->CurrentHealth,
+        Fixture.MonsterDefinition->MaxHealth);
+    TestTrue (TEXT ("Fresh combat statistics are initialized"),
+        Fixture.Monster->bCombatStatsInitialized);
+    TestFalse (TEXT ("The fresh monster is alive"),
+        Fixture.Monster->IsDead ());
+    TestEqual (TEXT ("The duplicate candidate is admitted once"),
+        Fixture.TurnManager->CombatMonsters.Num (),
+        1);
+
+    const FGridCombatantInitiativeEntry* MonsterEntry =
+        Fixture.TurnManager->InitiativeOrder.FindByPredicate (
+            [&Fixture] (const FGridCombatantInitiativeEntry& Entry)
+            {
+                return Entry.Side == EGridCombatantSide::Monster &&
+                    Entry.CombatantId ==
+                        Fixture.Monster->ResolvePersistenceId ();
+            });
+    TestNotNull (TEXT ("The fresh monster enters initiative"),
+        MonsterEntry);
+    if (MonsterEntry)
+    {
+        TestTrue (TEXT ("The fresh initiative entry is not Defeated"),
+            MonsterEntry->State != EGridCombatantTurnState::Defeated);
+    }
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12RestoredInjuredCombatInitializationTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.RestoredInjuredMonster",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12RestoredInjuredCombatInitializationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (TEXT ("The injured-monster fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    const int32 SavedHealth = 375;
+    const FGridRuntimeMonsterState State =
+        MakeMON12RestoredMonsterState (Fixture, SavedHealth, false);
+    TestTrue (TEXT ("The injured state is restored"),
+        Fixture.Monster->RestoreRuntimeMonsterState (
+            State,
+            Fixture.Runtime));
+    TestTrue (TEXT ("The restored state is combat-ready"),
+        Fixture.TurnManager->PrepareMonsterForCombat (Fixture.Monster));
+    TestEqual (TEXT ("Preparation preserves restored injured health"),
+        Fixture.Monster->CurrentHealth,
+        SavedHealth);
+    TestTrue (TEXT ("Restored injured statistics stay initialized"),
+        Fixture.Monster->bCombatStatsInitialized);
+    TestFalse (TEXT ("The restored injured monster stays alive"),
+        Fixture.Monster->IsDead ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12RestoredDeadCombatInitializationTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.RestoredDeadMonster",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12RestoredDeadCombatInitializationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (TEXT ("The dead-monster fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    const FGridRuntimeMonsterState State =
+        MakeMON12RestoredMonsterState (Fixture, 0, true);
+    TestTrue (TEXT ("The dead state is restored"),
+        Fixture.Monster->RestoreRuntimeMonsterState (
+            State,
+            Fixture.Runtime));
+    TestFalse (TEXT ("A restored corpse is refused from combat"),
+        Fixture.TurnManager->PrepareMonsterForCombat (Fixture.Monster));
+    TestEqual (TEXT ("The restored corpse keeps zero health"),
+        Fixture.Monster->CurrentHealth,
+        0);
+    TestTrue (TEXT ("The restored corpse remains initialized"),
+        Fixture.Monster->bCombatStatsInitialized);
+    TestTrue (TEXT ("The restored corpse remains dead"),
+        Fixture.Monster->IsDead ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12InvalidDefinitionAdmissionTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.InvalidDefinition",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12InvalidDefinitionAdmissionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (TEXT ("The invalid-definition fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.MonsterDefinition->ActionPointsPerTurn = 0;
+    FString ValidationError;
+    TestFalse (TEXT ("The deliberately invalid definition is refused"),
+        Fixture.MonsterDefinition->ValidateDefinition (ValidationError));
+    TestTrue (TEXT ("The precise invalid field is reported"),
+        ValidationError.Contains (
+            TEXT ("ActionPointsPerTurn must be at least 1.")));
+
+    Fixture.TurnManager->bCombatActive = false;
+    Fixture.TurnManager->CombatMonsters.Reset ();
+    AddExpectedError (
+        TEXT ("Reason=InvalidDefinition"),
+        EAutomationExpectedErrorFlags::Contains,
+        1);
+    TArray<AGridMonsterActor*> Candidates = { Fixture.Monster };
+    TestFalse (TEXT ("Combat cannot start with only an invalid monster"),
+        Fixture.TurnManager->StartCombatInternal (Candidates));
+    TestTrue (TEXT ("The invalid monster never enters CombatMonsters"),
+        Fixture.TurnManager->CombatMonsters.IsEmpty ());
+    TestTrue (TEXT ("The invalid monster never enters initiative"),
+        Fixture.TurnManager->InitiativeOrder.IsEmpty ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12UninitializedInitiativeStateTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.UninitializedInitiative",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12UninitializedInitiativeStateTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (TEXT ("The initiative guard fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    ResetMON12MonsterToFreshPlacedState (Fixture.Monster);
+    Fixture.TurnManager->InitiativeOrder.Reset ();
+    AddExpectedError (
+        TEXT ("Reason=UninitializedCombatState"),
+        EAutomationExpectedErrorFlags::Contains,
+        1);
+    Fixture.TurnManager->BuildGlobalInitiativeOrder ();
+    const FGuid MonsterId = Fixture.Monster->ResolvePersistenceId ();
+    TestFalse (TEXT ("An uninitialized monster is excluded from initiative"),
+        Fixture.TurnManager->InitiativeOrder.ContainsByPredicate (
+            [&MonsterId] (const FGridCombatantInitiativeEntry& Entry)
+            {
+                return Entry.Side == EGridCombatantSide::Monster &&
+                    Entry.CombatantId == MonsterId;
+            }));
+
+    FGridCombatantInitiativeEntry UninitializedEntry;
+    UninitializedEntry.CombatantId = MonsterId;
+    UninitializedEntry.Side = EGridCombatantSide::Monster;
+    UninitializedEntry.CurrentHealth = 0;
+    UninitializedEntry.MaximumHealth =
+        Fixture.MonsterDefinition->MaxHealth;
+    UninitializedEntry.State = EGridCombatantTurnState::Waiting;
+    Fixture.TurnManager->InitiativeOrder.Add (UninitializedEntry);
+    Fixture.TurnManager->ResetInitiativeRound ();
+    const FGridCombatantInitiativeEntry* Refreshed =
+        Fixture.TurnManager->FindInitiativeEntry (
+            EGridCombatantSide::Monster,
+            MonsterId);
+    TestNotNull (TEXT ("The defensive initiative entry remains queryable"),
+        Refreshed);
+    if (Refreshed)
+    {
+        TestTrue (TEXT ("Raw zero health does not imply Defeated"),
+            Refreshed->State != EGridCombatantTurnState::Defeated);
+    }
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12InitializedPersistenceCaptureTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.ValidPersistenceCapture",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12InitializedPersistenceCaptureTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON12Fixture Fixture;
+    if (!TestTrue (TEXT ("The capture fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    ResetMON12MonsterToFreshPlacedState (Fixture.Monster);
+    TestTrue (TEXT ("Fresh preparation succeeds before capture"),
+        Fixture.TurnManager->PrepareMonsterForCombat (Fixture.Monster));
+    FGridRuntimeMonsterState CapturedState;
+    TestTrue (TEXT ("A valid initialized monster is captured"),
+        Fixture.Monster->CaptureRuntimeMonsterState (
+            CapturedState,
+            Fixture.Runtime->CurrentDungeonLevelId));
+    TestEqual (TEXT ("The captured monster keeps MaxHealth"),
+        CapturedState.CurrentHealth,
+        Fixture.MonsterDefinition->MaxHealth);
+    TestFalse (TEXT ("The captured fresh monster is alive"),
+        CapturedState.bIsDead);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12RatGiantAssetCompatibilityTest,
+    "Grimrock.Monsters.MON12.InitializationRegression.RatGiantAssetCompatibility",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12RatGiantAssetCompatibilityTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridMonsterDefinitionAsset* RatDefinition =
+        LoadObject<UGridMonsterDefinitionAsset> (
+            nullptr,
+            TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+    if (!TestNotNull (TEXT ("DA_MON_RatGiant loads"), RatDefinition))
+    {
+        return false;
+    }
+
+    FString ValidationError;
+    TestTrue (TEXT ("DA_MON_RatGiant is valid after load normalization"),
+        RatDefinition->ValidateDefinition (ValidationError));
+    TestTrue (TEXT ("DA_MON_RatGiant has no validation error"),
+        ValidationError.IsEmpty ());
     return true;
 }
 

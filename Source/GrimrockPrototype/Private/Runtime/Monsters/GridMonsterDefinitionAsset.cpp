@@ -25,6 +25,40 @@ bool FGridMonsterLootEntry::IsValidDefinition () const
         MaxQuantity >= MinQuantity;
 }
 
+void UGridMonsterDefinitionAsset::PostLoad ()
+{
+    Super::PostLoad ();
+
+    // An optional presentation list containing only an editor-cleared None
+    // entry is equivalent to an empty list. Keep the strict validators for
+    // runtime-authored data while canonicalizing serialized assets on load.
+    const auto RemoveNullReferences = [] (auto& References)
+    {
+        References.RemoveAll ([] (const auto& Reference)
+        {
+            return Reference.IsNull ();
+        });
+    };
+
+    RemoveNullReferences (AlertAudio.Sounds);
+    RemoveNullReferences (HurtAudio.Sounds);
+    RemoveNullReferences (DeathAudio.Sounds);
+    RemoveNullReferences (IdleAudio.Sounds);
+    RemoveNullReferences (AlertVFX.Systems);
+    RemoveNullReferences (HurtVFX.Systems);
+    RemoveNullReferences (DeathVFX.Systems);
+
+    for (FGridMonsterAttackDefinition& Attack : Attacks)
+    {
+        RemoveNullReferences (Attack.AttackAudio.Sounds);
+        RemoveNullReferences (Attack.ImpactHitAudio.Sounds);
+        RemoveNullReferences (Attack.ImpactMissAudio.Sounds);
+        RemoveNullReferences (Attack.AttackVFXDefinition.Systems);
+        RemoveNullReferences (Attack.ImpactHitVFXDefinition.Systems);
+        RemoveNullReferences (Attack.ImpactMissVFXDefinition.Systems);
+    }
+}
+
 FPrimaryAssetId UGridMonsterDefinitionAsset::GetPrimaryAssetId () const
 {
     if (MonsterId.IsNone ())
@@ -201,9 +235,13 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
     for (int32 AttackIndex = 0; AttackIndex < Attacks.Num (); ++AttackIndex)
     {
         const FGridMonsterAttackDefinition& Attack = Attacks[AttackIndex];
-        if (!Attack.IsValidDefinition ())
+        FString AttackError;
+        if (!Attack.ValidateDefinition (AttackError))
         {
-            Errors.Add (FString::Printf (TEXT ("Attack at index %d is invalid."), AttackIndex));
+            Errors.Add (FString::Printf (
+                TEXT ("Attacks[%d] is invalid: %s"),
+                AttackIndex,
+                *AttackError));
             continue;
         }
 

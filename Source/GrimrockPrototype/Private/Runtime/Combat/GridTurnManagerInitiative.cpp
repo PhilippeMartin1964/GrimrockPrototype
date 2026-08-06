@@ -78,9 +78,36 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder ()
 
     for (AGridMonsterActor* Monster : CombatMonsters)
     {
+        FString DefinitionError;
         if (!IsValid (Monster) ||
-            !IsValid (Monster->MonsterDefinition))
+            !Monster->ValidateMonsterDefinition (DefinitionError) ||
+            !Monster->bCombatStatsInitialized)
         {
+            if (IsValid (Monster))
+            {
+                UE_LOG (
+                    LogGridTurnManager,
+                    Error,
+                    TEXT ("[GridInitiative] Monster skipped Monster=%s PersistenceId=%s Definition=%s MonsterId=%s CurrentHealth=%d MaxHealth=%d CombatStatsInitialized=%s RuntimeState=%s Reason=%s ValidationError=\"%s\""),
+                    *GetNameSafe (Monster),
+                    *Monster->ResolvePersistenceId ().ToString (),
+                    *GetPathNameSafe (Monster->MonsterDefinition),
+                    Monster->MonsterDefinition
+                        ? *Monster->MonsterDefinition->MonsterId.ToString ()
+                        : TEXT ("None"),
+                    Monster->CurrentHealth,
+                    Monster->MonsterDefinition
+                        ? Monster->MonsterDefinition->MaxHealth
+                        : 0,
+                    Monster->bCombatStatsInitialized
+                        ? TEXT ("true")
+                        : TEXT ("false"),
+                    *UEnum::GetValueAsString (Monster->MonsterState),
+                    DefinitionError.IsEmpty ()
+                        ? TEXT ("UninitializedCombatState")
+                        : TEXT ("InvalidDefinition"),
+                    *DefinitionError);
+            }
             continue;
         }
 
@@ -150,7 +177,14 @@ void UGridTurnManagerComponent::ResetInitiativeRound ()
     for (FGridCombatantInitiativeEntry& Entry : InitiativeOrder)
     {
         RefreshInitiativeEntryVitals (Entry);
-        if (Entry.CurrentHealth <= 0)
+        const AGridMonsterActor* Monster =
+            Entry.Side == EGridCombatantSide::Monster
+                ? FindCombatMonsterById (Entry.CombatantId)
+                : nullptr;
+        const bool bDefeated = Entry.Side == EGridCombatantSide::Party
+            ? Entry.CurrentHealth <= 0
+            : IsValid (Monster) && Monster->IsDead ();
+        if (bDefeated)
         {
             Entry.State = EGridCombatantTurnState::Defeated;
         }

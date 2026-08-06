@@ -18,6 +18,7 @@ class GRIMROCKPROTOTYPE_API UGridMonsterDefinitionAsset : public UPrimaryDataAss
     GENERATED_BODY ()
 
 public:
+    virtual void PostLoad () override;
     virtual FPrimaryAssetId GetPrimaryAssetId () const override;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Identity")
