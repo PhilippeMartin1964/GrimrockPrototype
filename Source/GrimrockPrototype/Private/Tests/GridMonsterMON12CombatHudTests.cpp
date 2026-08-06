@@ -347,10 +347,12 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
     TestEqual (TEXT ("The shared PAM snapshot is copied"),
         Mobility.RemainingMobilityActionPoints, 1);
 
-    TArray<FGridCombatantInitiativeEntry> Upcoming;
+    TArray<FGridInitiativePreviewEntry> Upcoming;
     for (int32 Index = 0; Index < 10; ++Index)
     {
-        Upcoming.Add (MakeInitiativeEntry (
+        FGridInitiativePreviewEntry& Preview =
+            Upcoming.AddDefaulted_GetRef ();
+        Preview.Combatant = MakeInitiativeEntry (
             FGuid (12, 7, 10, Index + 1),
             Index,
             Index % 2 == 0
@@ -359,7 +361,11 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
             Index == 0
                 ? EGridCombatantTurnState::Active
                 : EGridCombatantTurnState::Waiting,
-            TEXT ("Participant")));
+            TEXT ("Participant"));
+        Preview.RoundNumber = Index < 5 ? 1 : 2;
+        Preview.ActivationIndex = Index % 5;
+        Preview.bIsActive = Index == 0;
+        Preview.bStartsNewRound = Index == 5;
     }
     TArray<FGridCombatHudInitiativeView> Initiative;
     int32 OverflowCount = 0;
@@ -375,7 +381,133 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         Initiative[0].bActive);
     TestEqual (TEXT ("The runtime initiative order is preserved"),
         Initiative[3].Combatant.CombatantId,
-        Upcoming[3].CombatantId);
+        Upcoming[3].Combatant.CombatantId);
+    TestTrue (TEXT ("The projected round boundary is preserved"),
+        Initiative[5].bStartsNewRound);
+    TestEqual (TEXT ("The projected round number is preserved"),
+        Initiative[5].RoundNumber, 2);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1271InitiativePreviewTest,
+    "Grimrock.Monsters.MON12.CombatHUD.SlidingInitiative",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1271InitiativePreviewTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.7.1 preview fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    TArray<FGridInitiativePreviewEntry> Preview;
+    Fixture.TurnManager->GetInitiativePreview (Preview, 8);
+    TestEqual (TEXT ("The sliding timeline always predicts eight activations"),
+        Preview.Num (), 8);
+    TestEqual (TEXT ("The active combatant remains the first activation"),
+        Preview[0].Combatant.CombatantId,
+        Fixture.CharacterIds[0]);
+    TestTrue (TEXT ("Only the first activation is active"),
+        Preview[0].bIsActive);
+    TestEqual (TEXT ("Five current-round activations are retained"),
+        Preview[4].RoundNumber, 1);
+    TestTrue (TEXT ("A separator precedes the first round-two activation"),
+        Preview[5].bStartsNewRound);
+    TestEqual (TEXT ("The separator announces round two"),
+        Preview[5].RoundNumber, 2);
+
+    Fixture.TurnManager->InitiativeOrder.Last ().State =
+        EGridCombatantTurnState::Defeated;
+    Fixture.TurnManager->InitiativeOrder.Last ().CurrentHealth = 0;
+    Fixture.TurnManager->GetInitiativePreview (Preview, 8);
+    TestEqual (TEXT ("A defeated combatant does not reduce slot coverage"),
+        Preview.Num (), 8);
+    TestTrue (TEXT ("Round two now starts after four living activations"),
+        Preview[4].bStartsNewRound);
+    TestEqual (TEXT ("The updated separator still announces round two"),
+        Preview[4].RoundNumber, 2);
+    for (const FGridInitiativePreviewEntry& Entry : Preview)
+    {
+        TestNotEqual (TEXT ("The defeated monster is absent from every projected round"),
+            Entry.Combatant.CombatantId,
+            Fixture.Monster->ResolvePersistenceId ());
+    }
+
+    Fixture.TurnManager->GetInitiativePreview (Preview, 7);
+    TestEqual (TEXT ("Seven configured slots are supported"),
+        Preview.Num (), 7);
+    Fixture.TurnManager->GetInitiativePreview (Preview, 10);
+    TestEqual (TEXT ("Ten configured slots are supported"),
+        Preview.Num (), 10);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1271DynamicInitiativeTest,
+    "Grimrock.Monsters.MON12.CombatHUD.DynamicInitiative",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1271DynamicInitiativeTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.7.1 dynamic fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.TurnManager->InitiativeOrder[0].InitiativeTotal = 40;
+    Fixture.TurnManager->InitiativeOrder[1].InitiativeTotal = 30;
+    Fixture.TurnManager->InitiativeOrder[2].InitiativeTotal = 20;
+    Fixture.TurnManager->InitiativeOrder[3].InitiativeTotal = 10;
+    Fixture.TurnManager->InitiativeOrder[4].InitiativeTotal = 15;
+
+    const FGuid ActiveId =
+        Fixture.TurnManager->InitiativeOrder[0].CombatantId;
+    const FGuid HastedId =
+        Fixture.TurnManager->InitiativeOrder[3].CombatantId;
+    TestTrue (TEXT ("A haste modifier is accepted for a known combatant"),
+        Fixture.TurnManager->SetCombatantInitiativeModifier (
+            EGridCombatantSide::Party,
+            HastedId,
+            100));
+    TestEqual (TEXT ("The already active combatant never moves retroactively"),
+        Fixture.TurnManager->InitiativeOrder[0].CombatantId,
+        ActiveId);
+    TestEqual (TEXT ("The hasted combatant becomes the next future activation"),
+        Fixture.TurnManager->InitiativeOrder[1].CombatantId,
+        HastedId);
+
+    TArray<FGridInitiativePreviewEntry> Preview;
+    Fixture.TurnManager->GetInitiativePreview (Preview, 8);
+    TestEqual (TEXT ("The active activation stays first in the prediction"),
+        Preview[0].Combatant.CombatantId,
+        ActiveId);
+    TestEqual (TEXT ("The current-round future order updates immediately"),
+        Preview[1].Combatant.CombatantId,
+        HastedId);
+    TestEqual (TEXT ("The next round uses the complete modified order"),
+        Preview[5].Combatant.CombatantId,
+        HastedId);
+
+    Fixture.TurnManager->ResetInitiativeRound ();
+    TestEqual (TEXT ("A new round starts with the modified initiative leader"),
+        Fixture.TurnManager->InitiativeOrder[0].CombatantId,
+        HastedId);
+    TestFalse (TEXT ("An unknown combatant cannot change initiative"),
+        Fixture.TurnManager->SetCombatantInitiativeModifier (
+            EGridCombatantSide::Party,
+            FGuid (99, 99, 99, 99),
+            10));
     return true;
 }
 

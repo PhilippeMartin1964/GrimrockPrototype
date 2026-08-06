@@ -45,6 +45,10 @@ public:
         FRandomStream& RandomStream);
 
     static void Sort (TArray<FGridCombatantInitiativeEntry>& Entries);
+
+    static bool Precedes (
+        const FGridCombatantInitiativeEntry& Left,
+        const FGridCombatantInitiativeEntry& Right);
 };
 
 /** Pure phase rules, independent from actors, animation and frame rate. */
@@ -634,6 +638,26 @@ public:
     void GetUpcomingInitiativeOrder (
         TArray<FGridCombatantInitiativeEntry>& OutEntries) const;
 
+    /**
+     * Builds a fixed-length prediction that continues across round boundaries.
+     * The active activation is first; defeated or incapacitated entries never
+     * appear. The HUD must display this order without sorting it.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Initiative")
+    void GetInitiativePreview (
+        TArray<FGridInitiativePreviewEntry>& OutEntries,
+        int32 MaximumEntries = 8) const;
+
+    /**
+     * Applies an absolute runtime haste/slow modifier. Only future activations
+     * are reordered; the active combatant and completed turns never move.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Initiative")
+    bool SetCombatantInitiativeModifier (
+        EGridCombatantSide Side,
+        FGuid CombatantId,
+        int32 InitiativeModifier);
+
     UFUNCTION (BlueprintPure, Category = "Combat|Initiative")
     bool GetActiveCombatant (
         FGridCombatantInitiativeEntry& OutCombatant) const;
@@ -796,6 +820,7 @@ private:
     void RefreshInitiativeEntryVitals (
         FGridCombatantInitiativeEntry& Entry);
     void BroadcastInitiativeOrderChanged ();
+    void ReorderFutureInitiativeEntries ();
     FGuid ResolvePlayerCombatantId (int32 CharacterIndex) const;
     AGridMonsterActor* FindCombatMonsterById (
         const FGuid& CombatantId) const;
@@ -922,4 +947,6 @@ private:
     friend class FGridMonsterMON12InvalidDefinitionAdmissionTest;
     friend class FGridMonsterMON12UninitializedInitiativeStateTest;
     friend class FGridMonsterMON12InitializedPersistenceCaptureTest;
+    friend class FGridMonsterMON1271InitiativePreviewTest;
+    friend class FGridMonsterMON1271DynamicInitiativeTest;
 };

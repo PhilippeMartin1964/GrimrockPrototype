@@ -434,8 +434,8 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   compact et les effets majeurs empêchant d'agir.
 - Le slot actif est agrandi ; les slots suivants glissent lorsqu'un tour se
   termine.
-- Huit slots sont visibles au maximum, avec un indicateur `+ N` en cas de
-  débordement.
+- Huit slots sont visibles par défaut. MON12.7.1 remplit cette capacité en
+  continuant sur les rounds suivants et remplace l'ancien débordement `+ N`.
 - Un combattant vaincu est retiré après notification autoritaire ; un
   combattant incapable d'agir reste lisible avec l'état `Incapacitated` avant
   que son tour soit ignoré.
@@ -493,7 +493,8 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   présentations existants dans le même ordre global.
 - `PlayerPhase` et `EnemyPhase` sont conservés temporairement comme indication
   du camp du combattant actif, et non plus comme phases complètes de camp.
-- `InitiativeOrder`, `GetUpcomingInitiativeOrder()`,
+- `InitiativeOrder`, `GetUpcomingInitiativeOrder()`, puis la projection
+  multi-round `GetInitiativePreview()`,
   `OnTurnOrderChanged`, `OnActiveCombatantChanged` et
   `OnCombatantStateChanged` forment le contrat autoritaire de la barre UMG
   MON12.7.
@@ -558,8 +559,9 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   centrale provient exclusivement de `FGridAvailableCombatAction`.
 - Un clic transmet l'identité et la provenance de l'action à
   `RequestCharacterCombatAction()` ; le widget ne consomme aucune ressource.
-- La barre d'initiative lit `GetUpcomingInitiativeOrder()` sans tri ni jet et
-  affiche huit slots au maximum, puis `+ N`.
+- La première version de la barre lisait `GetUpcomingInitiativeOrder()` et
+  affichait huit slots au maximum, puis `+ N`. Ce comportement est remplacé
+  par la chronologie glissante MON12.7.1.
 - Le slot actif est agrandi à `72 x 72`; les suivants utilisent `56 x 56`.
 - Les tours terminés et les vaincus sortent de la barre après notification ;
   les panneaux de personnages vaincus restent visibles mais désactivés.
@@ -570,3 +572,23 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   `CombatHudWidgetClass` n'est pas affectée dans le Pawn.
 - Le document d'implémentation est
   `docs/Design/MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
+
+---
+
+## 2026-08-06 — MON12.7.1 : chronologie d'initiative glissante
+
+- La barre montre huit activations par défaut, configurables de sept à dix, et
+  continue sur les rounds suivants au lieu d'afficher un débordement `+ N`.
+- Un séparateur `ROUND N` est inséré entre les activations de deux rounds sans
+  consommer de slot.
+- Le TurnManager produit la projection autoritaire par
+  `GetInitiativePreview()` ; le HUD n'effectue aucun tri.
+- Les slots et séparateurs sont mis en pool et actualisés sans recréation des
+  widgets à chaque événement.
+- `InitiativeModifier` permet aux futurs effets de hâte ou ralentissement de
+  réordonner immédiatement les seules activations à venir. L'actif et les tours
+  déjà joués ne sont jamais déplacés rétroactivement.
+- Le jet d'initiative de rencontre reste immuable et l'ordre complet est
+  recalculé au début du round suivant.
+- Le document d'implémentation est
+  `docs/Design/MON12_7_1_SLIDING_DYNAMIC_INITIATIVE.md`.

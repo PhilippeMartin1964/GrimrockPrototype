@@ -155,13 +155,15 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder ()
         UE_LOG (
             LogGridTurnManager,
             Log,
-            TEXT ("[GridInitiative] Side=%s Id=%s Character=%d Base=%d Roll=%d Total=%d State=%s"),
+            TEXT ("[GridInitiative] Side=%s Id=%s Character=%d Base=%d Roll=%d Total=%d Modifier=%d Effective=%d State=%s"),
             *UEnum::GetValueAsString (Entry.Side),
             *Entry.CombatantId.ToString (EGuidFormats::Digits),
             Entry.CharacterIndex,
             Entry.InitiativeBase,
             Entry.InitiativeRoll,
             Entry.InitiativeTotal,
+            Entry.InitiativeModifier,
+            Entry.GetEffectiveInitiativeTotal (),
             *UEnum::GetValueAsString (Entry.State));
     }
 
@@ -171,6 +173,7 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder ()
 void UGridTurnManagerComponent::ResetInitiativeRound ()
 {
     CurrentInitiativeIndex = INDEX_NONE;
+    FGridInitiativeOrderBuilder::Sort (InitiativeOrder);
     ResetPartyMobilityForRound ();
     BeginPlayerCharacterPhase ();
 
@@ -559,6 +562,151 @@ void UGridTurnManagerComponent::GetUpcomingInitiativeOrder (
         {
             OutEntries.Add (Entry);
         }
+    }
+}
+
+void UGridTurnManagerComponent::GetInitiativePreview (
+    TArray<FGridInitiativePreviewEntry>& OutEntries,
+    int32 MaximumEntries) const
+{
+    OutEntries.Reset ();
+    MaximumEntries = FMath::Clamp (MaximumEntries, 0, 32);
+    if (MaximumEntries <= 0 || InitiativeOrder.IsEmpty ())
+    {
+        return;
+    }
+
+    const int32 ProjectedCurrentRound = FMath::Max (1, RoundNumber);
+    const int32 StartIndex = InitiativeOrder.IsValidIndex (
+        CurrentInitiativeIndex)
+        ? CurrentInitiativeIndex
+        : 0;
+    for (int32 Index = StartIndex;
+        Index < InitiativeOrder.Num () &&
+            OutEntries.Num () < MaximumEntries;
+        ++Index)
+    {
+        const FGridCombatantInitiativeEntry& Entry = InitiativeOrder[Index];
+        if (Entry.State != EGridCombatantTurnState::Active &&
+            Entry.State != EGridCombatantTurnState::Waiting ||
+            Entry.CurrentHealth <= 0)
+        {
+            continue;
+        }
+
+        FGridInitiativePreviewEntry& Preview =
+            OutEntries.AddDefaulted_GetRef ();
+        Preview.Combatant = Entry;
+        Preview.RoundNumber = ProjectedCurrentRound;
+        Preview.ActivationIndex = Index;
+        Preview.bIsActive =
+            OutEntries.Num () == 1 &&
+            Entry.State == EGridCombatantTurnState::Active;
+    }
+
+    TArray<FGridCombatantInitiativeEntry> FutureRoundOrder;
+    FutureRoundOrder.Reserve (InitiativeOrder.Num ());
+    for (const FGridCombatantInitiativeEntry& Entry : InitiativeOrder)
+    {
+        if (Entry.State == EGridCombatantTurnState::Defeated ||
+            Entry.State == EGridCombatantTurnState::Incapacitated ||
+            Entry.CurrentHealth <= 0)
+        {
+            continue;
+        }
+
+        FGridCombatantInitiativeEntry& FutureEntry =
+            FutureRoundOrder.AddDefaulted_GetRef ();
+        FutureEntry = Entry;
+        FutureEntry.State = EGridCombatantTurnState::Waiting;
+    }
+    FGridInitiativeOrderBuilder::Sort (FutureRoundOrder);
+    if (FutureRoundOrder.IsEmpty ())
+    {
+        return;
+    }
+
+    int32 ProjectedRound = ProjectedCurrentRound + 1;
+    while (OutEntries.Num () < MaximumEntries)
+    {
+        for (int32 Index = 0;
+            Index < FutureRoundOrder.Num () &&
+                OutEntries.Num () < MaximumEntries;
+            ++Index)
+        {
+            FGridInitiativePreviewEntry& Preview =
+                OutEntries.AddDefaulted_GetRef ();
+            Preview.Combatant = FutureRoundOrder[Index];
+            Preview.RoundNumber = ProjectedRound;
+            Preview.ActivationIndex = Index;
+            Preview.bStartsNewRound =
+                Index == 0 && OutEntries.Num () > 1;
+        }
+        ++ProjectedRound;
+    }
+}
+
+bool UGridTurnManagerComponent::SetCombatantInitiativeModifier (
+    EGridCombatantSide Side,
+    FGuid CombatantId,
+    int32 InitiativeModifier)
+{
+    FGridCombatantInitiativeEntry* Entry =
+        FindInitiativeEntry (Side, CombatantId);
+    if (!Entry)
+    {
+        return false;
+    }
+    if (Entry->InitiativeModifier == InitiativeModifier)
+    {
+        return true;
+    }
+
+    const int32 PreviousModifier = Entry->InitiativeModifier;
+    Entry->InitiativeModifier = InitiativeModifier;
+    const int32 EffectiveInitiativeTotal =
+        Entry->GetEffectiveInitiativeTotal ();
+    ReorderFutureInitiativeEntries ();
+    BroadcastInitiativeOrderChanged ();
+
+    UE_LOG (
+        LogGridTurnManager,
+        Log,
+        TEXT ("[GridInitiative] Modifier Side=%s Id=%s Previous=%d Current=%d EffectiveTotal=%d"),
+        *UEnum::GetValueAsString (Side),
+        *CombatantId.ToString (EGuidFormats::Digits),
+        PreviousModifier,
+        InitiativeModifier,
+        EffectiveInitiativeTotal);
+    return true;
+}
+
+void UGridTurnManagerComponent::ReorderFutureInitiativeEntries ()
+{
+    const int32 FirstFutureIndex = InitiativeOrder.IsValidIndex (
+        CurrentInitiativeIndex)
+        ? CurrentInitiativeIndex + 1
+        : 0;
+
+    TArray<int32> WaitingIndices;
+    TArray<FGridCombatantInitiativeEntry> WaitingEntries;
+    for (int32 Index = FirstFutureIndex;
+        Index < InitiativeOrder.Num ();
+        ++Index)
+    {
+        if (InitiativeOrder[Index].State !=
+            EGridCombatantTurnState::Waiting)
+        {
+            continue;
+        }
+        WaitingIndices.Add (Index);
+        WaitingEntries.Add (InitiativeOrder[Index]);
+    }
+
+    FGridInitiativeOrderBuilder::Sort (WaitingEntries);
+    for (int32 Index = 0; Index < WaitingIndices.Num (); ++Index)
+    {
+        InitiativeOrder[WaitingIndices[Index]] = WaitingEntries[Index];
     }
 }
 

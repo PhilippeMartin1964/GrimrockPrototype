@@ -532,22 +532,23 @@ notification autoritaire.
 
 ### 10.2 Barre des prochains combattants
 
-La partie haute de l'interface affiche une succession horizontale de slots.
-Elle constitue une vue du même ordre autoritaire que celui exécuté par le
+La partie haute de l'interface affiche une chronologie glissante de slots.
+Elle constitue une vue des activations autoritaires prédites par le
 TurnManager ; le widget ne recalcule et ne retrie jamais l'initiative.
 
 ```mermaid
 flowchart LR
     A["Actif<br/>portrait agrandi"] --> B["Prochain<br/>portrait + état"]
     B --> C["Puis<br/>portrait + état"]
-    C --> D["À venir<br/>portrait + état"]
-    D --> E["+ N<br/>hors écran"]
+    C --> D["ROUND N<br/>séparateur"]
+    D --> E["Round suivant<br/>portrait + état"]
 ```
 
 Le premier slot représente toujours le combattant actif. Les slots suivants
-représentent, dans leur ordre exact, les participants qui doivent encore agir
-pendant la manche courante. Un combattant ayant terminé son tour sort de la
-barre. Le slot suivant glisse alors en première position.
+représentent, dans leur ordre exact, les futures activations, y compris celles
+des rounds suivants. Un combattant ayant terminé son tour sort de la première
+position et réapparaît plus loin pour son prochain round. Un séparateur
+`ROUND N` signale chaque frontière sans consommer de slot.
 
 Chaque slot affiche au minimum :
 
@@ -570,10 +571,12 @@ slot : l'ordre visuel reste l'information principale.
 
 Règles de lisibilité initiales :
 
-- huit slots visibles au maximum, actif compris ;
+- huit slots visibles par défaut, configurables entre sept et dix, actif
+  compris ;
 - slot actif d'environ `72 x 72`, slots suivants d'environ `56 x 56` ;
-- indicateur `+ N` si la rencontre contient davantage de prochains tours ;
-- aucune duplication anticipée des participants de la manche suivante ;
+- projection continue sur les rounds suivants afin de remplir chaque slot ;
+- répétition normale d'un portrait lorsque sa prochaine activation appartient
+  à un round ultérieur ;
 - aucun clic nécessaire pour jouer : la barre informe, elle ne sélectionne
   pas une cible et ne déclenche aucune action ;
 - animation courte lors d'un changement d'ordre, mais aucun `Tick` de
@@ -760,9 +763,11 @@ Voir `MON12_6_COMBAT_ACTION_CATALOG.md`.
 **Implémentée — validation UE5 requise.**
 
 - afficher les quatre panneaux ;
-- afficher jusqu'à huit slots d'initiative avec portrait, camp et état ;
+- afficher huit activations d'initiative par défaut avec portrait, camp et
+  état ;
 - agrandir le combattant actif et faire glisser les prochains tours ;
-- afficher `+ N` lorsque l'ordre dépasse la capacité visible ;
+- continuer la prévisualisation sur les rounds suivants avec un séparateur
+  `ROUND N` ;
 - afficher PA et état de tour de chacun ;
 - remplacer les gros boutons de mains par la barre d'actions ;
 - afficher les PAM du groupe ;
@@ -836,7 +841,7 @@ Voir `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 - combattant actif en première position ;
 - retrait d'un vaincu et glissement des slots sans recalcul UI ;
 - état `Incapacitated` visible avant que le TurnManager ignore son tour ;
-- `+ N` exact au-delà de huit slots.
+- séparateurs de rounds exacts dans les huit activations projetées.
 
 ---
 

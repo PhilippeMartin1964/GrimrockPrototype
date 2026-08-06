@@ -10,8 +10,8 @@ MON12.7 ajoute `UGridCombatHudWidget`, un HUD racine événementiel qui affiche 
 - les PAM communs lus depuis `FGridPartyMobilityState` ;
 - les actions du personnage actif générées depuis le catalogue MON12.6 ;
 - un bouton `Fin du tour` autorisé exclusivement par le TurnManager ;
-- l'ordre d'initiative runtime, limité à huit entrées, avec le combattant actif
-  agrandi et un indicateur `+ N` exact.
+- la chronologie d'initiative runtime, fixée à huit activations par défaut,
+  avec le combattant actif agrandi et les frontières de rounds indiquées.
 
 Le HUD ne recalcule ni l'initiative, ni les coûts, ni les disponibilités. Il
 n'utilise pas `Tick`. Ses actualisations proviennent des événements du
@@ -25,7 +25,7 @@ le fallback affiché.
 
 `FGridCombatHudViewModelBuilder` construit des projections testables pour les
 quatre membres, les actions, les PAM et l'initiative. Il copie l'ordre fourni
-par `GetUpcomingInitiativeOrder()` et applique seulement la capacité visuelle
+par `GetInitiativePreview()` et applique seulement la capacité visuelle
 de huit entrées ; il ne trie aucun combattant.
 
 `UGridCombatHudWidget` :
@@ -435,21 +435,20 @@ rester visible ou vide à un moment incorrect.
 
 4. Cocher `Is Variable` sur `Panel_Initiative`.
 5. Laisser `Panel_Initiative` complètement vide dans le Designer.
-6. Ajouter comme second enfant de `HorizontalBox_InitiativeArea` un
-   `TextBlock` nommé exactement :
+6. Le `TextBlock` historique suivant peut rester comme second enfant de
+   `HorizontalBox_InitiativeArea` :
 
    ```text
    Text_InitiativeOverflow
    ```
 
-7. Cocher `Is Variable` sur `Text_InitiativeOverflow`.
-8. Régler son texte de prévisualisation sur `+ 3`, lui donner une marge gauche
-   de `8`, puis régler sa visibilité initiale sur `Collapsed`.
+7. S'il existe, cocher `Is Variable` sur `Text_InitiativeOverflow` et conserver
+   sa visibilité initiale sur `Collapsed`. MON12.7.1 le maintient masqué.
 
 Important : `Text_InitiativeOverflow` doit être un frère de
-`Panel_Initiative`, pas un enfant. Le C++ appelle `ClearChildren()` sur
-`Panel_Initiative` à chaque reconstruction ; tout enfant statique placé dans
-ce panneau serait supprimé au premier rafraîchissement.
+`Panel_Initiative`, pas un enfant. Le C++ gère un pool de slots et de
+séparateurs dans `Panel_Initiative` ; tout enfant statique placé dans ce panneau
+serait retiré au premier rafraîchissement.
 
 ### UE5.4.4 — Construire la zone des quatre personnages
 
@@ -799,7 +798,7 @@ Pour les exécuter dans Unreal Editor :
 
 Ils couvrent les quatre panneaux, la projection du catalogue, le routage de
 l'action générique, la mise à jour événementielle des PA, le changement de
-combattant actif, la limite de huit entrées, `+ N`, le refus de fin de tour en
+combattant actif, la chronologie de huit activations, le refus de fin de tour en
 mouvement et l'absence de dépense de PA après refus.
 
 ## Validation PIE détaillée
@@ -884,7 +883,7 @@ mouvement et l'absence de dépense de PA après refus.
 8. Pendant un tour ennemi, vérifier que le bouton est désactivé et que la
    raison `Tour ennemi` est affichée.
 
-### PIE.6 — Initiative et débordement
+### PIE.6 — Initiative glissante
 
 1. Démarrer un combat avec plusieurs personnages et monstres.
 2. Vérifier que le premier slot correspond au combattant actif.
@@ -892,13 +891,13 @@ mouvement et l'absence de dépense de PA après refus.
 4. Vérifier que ce slot est agrandi par l'échelle `1.28`.
 5. Terminer le tour et contrôler que le nouvel actif passe en première
    position sans tri réalisé par l'interface.
-6. Créer un ordre comprenant plus de huit combattants.
-7. Vérifier :
-   - huit instances maximum dans `Panel_Initiative` ;
-   - `Text_InitiativeOverflow` visible ;
-   - valeur exacte `+ N` ;
-   - disparition de l'indicateur dès que le nombre restant redevient inférieur
-     ou égal à huit.
+6. Vérifier que huit activations restent visibles même avec moins de huit
+   participants, grâce à la projection sur les rounds suivants.
+7. Vérifier que `ROUND 2` apparaît entre les deux rounds sans remplacer un
+   slot et que `Text_InitiativeOverflow` reste masqué.
+8. Se reporter à
+   `docs/Design/MON12_7_1_SLIDING_DYNAMIC_INITIATIVE.md` pour les tests de
+   retrait d'un vaincu et de changement dynamique de l'ordre.
 
 ### PIE.7 — Vérifier le fallback historique
 
@@ -938,7 +937,7 @@ mouvement et l'absence de dépense de PA après refus.
 | Aucun panneau de personnage | nom/type de `Panel_PartyMembers` incorrect ou classe de panneau absente | utiliser un `PanelWidget` nommé exactement `Panel_PartyMembers` et renseigner `WBP_GridCombatActionPanel` |
 | Aucun bouton d'action | `Panel_Actions` absent, `Action Widget Class` absent ou tour ennemi | vérifier le nom, la classe et attendre un tour du groupe |
 | Une décoration de barre disparaît | décoration placée dans un panneau dynamique vidé par `ClearChildren()` | déplacer la décoration hors de `Panel_PartyMembers`, `Panel_Actions` ou `Panel_Initiative` |
-| `+ N` disparaît immédiatement | `Text_InitiativeOverflow` placé dans `Panel_Initiative` | le placer comme frère dans `HorizontalBox_InitiativeArea` |
+| Un ancien `+ N` reste visible | `Text_InitiativeOverflow` forcé visible dans le Blueprint | le laisser lié ou le supprimer, avec visibilité initiale `Collapsed` |
 | Aucun slot d'initiative | `Initiative Slot Widget Class` ou `Panel_Initiative` absent | renseigner la classe et vérifier le nom du panneau |
 | Portrait d'action vide | l'action ne possède pas d'icône dans sa définition | vérifier l'`Icon` du Data Asset d'action ou d'équipement ; le HUD ne fabrique pas d'icône fallback |
 | Portrait d'initiative vide | `FGridCombatantInitiativeEntry::Portrait` est vide | vérifier la donnée de portrait du personnage ou du monstre ; MON12.7 n'ajoute pas de portrait fallback |

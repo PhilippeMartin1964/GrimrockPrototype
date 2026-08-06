@@ -173,6 +173,10 @@ struct FGridCombatantInitiativeEntry
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
     int32 InitiativeTotal = 0;
 
+    /** Runtime haste/slow contribution. The encounter roll never changes. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 InitiativeModifier = 0;
+
     /** Final Dexterity used only as the second deterministic tie-break. */
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
     int32 Dexterity = 0;
@@ -197,6 +201,38 @@ struct FGridCombatantInitiativeEntry
     {
         return Side == EGridCombatantSide::Party;
     }
+
+    int32 GetEffectiveInitiativeTotal () const
+    {
+        return static_cast<int32> (FMath::Clamp<int64> (
+            static_cast<int64> (InitiativeTotal) + InitiativeModifier,
+            MIN_int32,
+            MAX_int32));
+    }
+};
+
+/** One future activation in the authoritative sliding initiative preview. */
+USTRUCT (BlueprintType)
+struct FGridInitiativePreviewEntry
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    FGridCombatantInitiativeEntry Combatant;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 RoundNumber = 0;
+
+    /** Zero-based position of this activation inside its projected round. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    int32 ActivationIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    bool bIsActive = false;
+
+    /** True when a round separator must be drawn before this activation. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Initiative")
+    bool bStartsNewRound = false;
 };
 
 /** Authoritative per-round action-point state for one party member. */

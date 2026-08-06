@@ -149,30 +149,41 @@ void FGridInitiativeOrderBuilder::Sort (
         const FGridCombatantInitiativeEntry& Left,
         const FGridCombatantInitiativeEntry& Right)
     {
-        if (Left.InitiativeTotal != Right.InitiativeTotal)
-        {
-            return Left.InitiativeTotal > Right.InitiativeTotal;
-        }
-        if (Left.InitiativeBase != Right.InitiativeBase)
-        {
-            return Left.InitiativeBase > Right.InitiativeBase;
-        }
-        if (Left.Dexterity != Right.Dexterity)
-        {
-            return Left.Dexterity > Right.Dexterity;
-        }
-
-        const FString LeftId =
-            Left.CombatantId.ToString (EGuidFormats::Digits);
-        const FString RightId =
-            Right.CombatantId.ToString (EGuidFormats::Digits);
-        if (LeftId != RightId)
-        {
-            return LeftId < RightId;
-        }
-        return static_cast<uint8> (Left.Side) <
-            static_cast<uint8> (Right.Side);
+        return FGridInitiativeOrderBuilder::Precedes (Left, Right);
     });
+}
+
+bool FGridInitiativeOrderBuilder::Precedes (
+    const FGridCombatantInitiativeEntry& Left,
+    const FGridCombatantInitiativeEntry& Right)
+{
+    const int32 LeftEffectiveTotal =
+        Left.GetEffectiveInitiativeTotal ();
+    const int32 RightEffectiveTotal =
+        Right.GetEffectiveInitiativeTotal ();
+    if (LeftEffectiveTotal != RightEffectiveTotal)
+    {
+        return LeftEffectiveTotal > RightEffectiveTotal;
+    }
+    if (Left.InitiativeBase != Right.InitiativeBase)
+    {
+        return Left.InitiativeBase > Right.InitiativeBase;
+    }
+    if (Left.Dexterity != Right.Dexterity)
+    {
+        return Left.Dexterity > Right.Dexterity;
+    }
+
+    const FString LeftId =
+        Left.CombatantId.ToString (EGuidFormats::Digits);
+    const FString RightId =
+        Right.CombatantId.ToString (EGuidFormats::Digits);
+    if (LeftId != RightId)
+    {
+        return LeftId < RightId;
+    }
+    return static_cast<uint8> (Left.Side) <
+        static_cast<uint8> (Right.Side);
 }
 
 bool FGridTurnPhaseStateMachine::StartCombat ()

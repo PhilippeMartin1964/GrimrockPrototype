@@ -115,26 +115,30 @@ FGridCombatHudMobilityView FGridCombatHudViewModelBuilder::BuildMobility (
 }
 
 void FGridCombatHudViewModelBuilder::BuildInitiative (
-    const TArray<FGridCombatantInitiativeEntry>& UpcomingOrder,
+    const TArray<FGridInitiativePreviewEntry>& InitiativePreview,
     TArray<FGridCombatHudInitiativeView>& OutInitiative,
     int32& OutOverflowCount,
     int32 MaximumVisibleEntries)
 {
     const int32 VisibleCount = FMath::Min (
-        UpcomingOrder.Num (),
+        InitiativePreview.Num (),
         FMath::Max (0, MaximumVisibleEntries));
     OutInitiative.Reset (VisibleCount);
     for (int32 Index = 0; Index < VisibleCount; ++Index)
     {
         FGridCombatHudInitiativeView& Entry =
             OutInitiative.AddDefaulted_GetRef ();
-        Entry.Combatant = UpcomingOrder[Index];
-        Entry.bActive = Index == 0 &&
-            UpcomingOrder[Index].State == EGridCombatantTurnState::Active;
+        const FGridInitiativePreviewEntry& Preview =
+            InitiativePreview[Index];
+        Entry.Combatant = Preview.Combatant;
+        Entry.bActive = Preview.bIsActive;
+        Entry.RoundNumber = Preview.RoundNumber;
+        Entry.ActivationIndex = Preview.ActivationIndex;
+        Entry.bStartsNewRound = Preview.bStartsNewRound;
     }
     OutOverflowCount = FMath::Max (
         0,
-        UpcomingOrder.Num () - VisibleCount);
+        InitiativePreview.Num () - VisibleCount);
 }
 
 void UGridCombatHudActionWidget::InitializeAction (
@@ -376,15 +380,18 @@ void UGridCombatHudWidget::RefreshFromSources ()
             ? TurnManagerComponent->GetPartyMobilityState ()
             : FGridPartyMobilityState ());
 
-    TArray<FGridCombatantInitiativeEntry> UpcomingOrder;
+    TArray<FGridInitiativePreviewEntry> InitiativePreview;
     if (IsValid (TurnManagerComponent))
     {
-        TurnManagerComponent->GetUpcomingInitiativeOrder (UpcomingOrder);
+        TurnManagerComponent->GetInitiativePreview (
+            InitiativePreview,
+            FMath::Clamp (VisibleInitiativeSlotCount, 7, 10));
     }
     FGridCombatHudViewModelBuilder::BuildInitiative (
-        UpcomingOrder,
+        InitiativePreview,
         View.Initiative,
-        View.InitiativeOverflowCount);
+        View.InitiativeOverflowCount,
+        FMath::Clamp (VisibleInitiativeSlotCount, 7, 10));
 
     View.bCanEndTurn =
         IsValid (TurnManagerComponent) &&
@@ -423,7 +430,8 @@ void UGridCombatHudWidget::RefreshFromSources ()
         }
     }
     RebuildActionWidgets ();
-    RebuildInitiativeWidgets ();
+    EnsureInitiativeWidgets ();
+    RefreshInitiativeWidgets ();
     RefreshBoundWidgets ();
 }
 
@@ -485,6 +493,9 @@ void UGridCombatHudWidget::NativeDestruct ()
     }
     UnbindFromSources ();
     PartyMemberPanels.Reset ();
+    InitiativeSlotWidgets.Reset ();
+    InitiativeRoundSeparatorWidgets.Reset ();
+    InitiativeRoundSeparatorTexts.Reset ();
     Super::NativeDestruct ();
 }
 
@@ -660,18 +671,45 @@ void UGridCombatHudWidget::RebuildActionWidgets ()
     }
 }
 
-void UGridCombatHudWidget::RebuildInitiativeWidgets ()
+void UGridCombatHudWidget::EnsureInitiativeWidgets ()
 {
-    if (!Panel_Initiative)
+    if (!Panel_Initiative || !InitiativeSlotWidgetClass)
     {
         return;
     }
+
+    const int32 SlotCount = FMath::Clamp (
+        VisibleInitiativeSlotCount,
+        7,
+        10);
+    bool bPoolValid =
+        InitiativeSlotWidgets.Num () == SlotCount &&
+        InitiativeRoundSeparatorWidgets.Num () == SlotCount - 1 &&
+        InitiativeRoundSeparatorTexts.Num () == SlotCount - 1;
+    for (const UGridCombatHudInitiativeSlotWidget* SlotWidget :
+        InitiativeSlotWidgets)
+    {
+        bPoolValid = bPoolValid && IsValid (SlotWidget);
+    }
+    for (int32 Index = 0;
+        Index < InitiativeRoundSeparatorWidgets.Num ();
+        ++Index)
+    {
+        bPoolValid = bPoolValid &&
+            IsValid (InitiativeRoundSeparatorWidgets[Index]) &&
+            InitiativeRoundSeparatorTexts.IsValidIndex (Index) &&
+            IsValid (InitiativeRoundSeparatorTexts[Index]);
+    }
+    if (bPoolValid)
+    {
+        return;
+    }
+
     Panel_Initiative->ClearChildren ();
-    if (!InitiativeSlotWidgetClass)
-    {
-        return;
-    }
-    for (const FGridCombatHudInitiativeView& InitiativeView : View.Initiative)
+    InitiativeSlotWidgets.Reset (SlotCount);
+    InitiativeRoundSeparatorWidgets.Reset (SlotCount - 1);
+    InitiativeRoundSeparatorTexts.Reset (SlotCount - 1);
+    for (int32 Index = 0; Index < SlotCount; ++Index)
     {
         UGridCombatHudInitiativeSlotWidget* InitiativeWidget =
             CreateWidget<UGridCombatHudInitiativeSlotWidget> (
@@ -679,8 +717,119 @@ void UGridCombatHudWidget::RebuildInitiativeWidgets ()
                 InitiativeSlotWidgetClass);
         if (InitiativeWidget)
         {
-            InitiativeWidget->InitializeInitiativeSlot (InitiativeView);
+            InitiativeWidget->SetVisibility (ESlateVisibility::Collapsed);
             Panel_Initiative->AddChild (InitiativeWidget);
+            InitiativeSlotWidgets.Add (InitiativeWidget);
+        }
+    }
+
+    for (int32 Index = 0; Index < SlotCount - 1; ++Index)
+    {
+        UBorder* Separator = NewObject<UBorder> (
+            this,
+            UBorder::StaticClass (),
+            MakeUniqueObjectName (
+                this,
+                UBorder::StaticClass (),
+                TEXT ("Border_InitiativeRoundSeparator")));
+        UTextBlock* SeparatorText = NewObject<UTextBlock> (
+            this,
+            UTextBlock::StaticClass (),
+            MakeUniqueObjectName (
+                this,
+                UTextBlock::StaticClass (),
+                TEXT ("Text_InitiativeRoundNumber")));
+        if (!Separator || !SeparatorText)
+        {
+            continue;
+        }
+
+        Separator->SetBrushColor (FLinearColor (
+            0.28f,
+            0.18f,
+            0.06f,
+            0.92f));
+        Separator->SetPadding (FMargin (5.0f, 14.0f));
+        Separator->SetHorizontalAlignment (HAlign_Center);
+        Separator->SetVerticalAlignment (VAlign_Center);
+        Separator->SetVisibility (ESlateVisibility::Collapsed);
+        SeparatorText->SetColorAndOpacity (FSlateColor (FLinearColor (
+            0.92f,
+            0.78f,
+            0.45f,
+            1.0f)));
+        SeparatorText->SetJustification (ETextJustify::Center);
+        FSlateFontInfo Font = SeparatorText->GetFont ();
+        Font.Size = 10;
+        SeparatorText->SetFont (Font);
+        Separator->AddChild (SeparatorText);
+        InitiativeRoundSeparatorWidgets.Add (Separator);
+        InitiativeRoundSeparatorTexts.Add (SeparatorText);
+    }
+}
+
+void UGridCombatHudWidget::RefreshInitiativeWidgets ()
+{
+    if (!Panel_Initiative)
+    {
+        return;
+    }
+
+    Panel_Initiative->ClearChildren ();
+    int32 UsedSeparatorCount = 0;
+    for (int32 Index = 0;
+        Index < InitiativeSlotWidgets.Num ();
+        ++Index)
+    {
+        UGridCombatHudInitiativeSlotWidget* InitiativeWidget =
+            InitiativeSlotWidgets[Index];
+        if (!IsValid (InitiativeWidget))
+        {
+            continue;
+        }
+        if (!View.Initiative.IsValidIndex (Index))
+        {
+            InitiativeWidget->SetVisibility (ESlateVisibility::Collapsed);
+            Panel_Initiative->AddChild (InitiativeWidget);
+            continue;
+        }
+
+        const FGridCombatHudInitiativeView& InitiativeView =
+            View.Initiative[Index];
+        if (InitiativeView.bStartsNewRound &&
+            InitiativeRoundSeparatorWidgets.IsValidIndex (
+                UsedSeparatorCount) &&
+            InitiativeRoundSeparatorTexts.IsValidIndex (
+                UsedSeparatorCount))
+        {
+            UBorder* Separator =
+                InitiativeRoundSeparatorWidgets[UsedSeparatorCount];
+            UTextBlock* SeparatorText =
+                InitiativeRoundSeparatorTexts[UsedSeparatorCount];
+            SeparatorText->SetText (FText::FromString (FString::Printf (
+                TEXT ("ROUND %d"),
+                InitiativeView.RoundNumber)));
+            Separator->SetVisibility (
+                ESlateVisibility::SelfHitTestInvisible);
+            Panel_Initiative->AddChild (Separator);
+            ++UsedSeparatorCount;
+        }
+
+        InitiativeWidget->InitializeInitiativeSlot (
+            InitiativeView);
+        InitiativeWidget->SetVisibility (
+            ESlateVisibility::SelfHitTestInvisible);
+        Panel_Initiative->AddChild (InitiativeWidget);
+    }
+
+    for (int32 Index = UsedSeparatorCount;
+        Index < InitiativeRoundSeparatorWidgets.Num ();
+        ++Index)
+    {
+        if (IsValid (InitiativeRoundSeparatorWidgets[Index]))
+        {
+            InitiativeRoundSeparatorWidgets[Index]->SetVisibility (
+                ESlateVisibility::Collapsed);
         }
     }
 }

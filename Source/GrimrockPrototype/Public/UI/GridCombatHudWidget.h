@@ -99,6 +99,15 @@ struct FGridCombatHudInitiativeView
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     bool bActive = false;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    int32 RoundNumber = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    int32 ActivationIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    bool bStartsNewRound = false;
 };
 
 USTRUCT (BlueprintType)
@@ -154,7 +163,7 @@ public:
         const FGridPartyMobilityState& MobilityState);
 
     static void BuildInitiative (
-        const TArray<FGridCombatantInitiativeEntry>& UpcomingOrder,
+        const TArray<FGridInitiativePreviewEntry>& InitiativePreview,
         TArray<FGridCombatHudInitiativeView>& OutInitiative,
         int32& OutOverflowCount,
         int32 MaximumVisibleEntries = MaximumVisibleInitiativeEntries);
@@ -275,8 +284,27 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Classes")
     TSubclassOf<UGridCombatHudInitiativeSlotWidget> InitiativeSlotWidgetClass;
 
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|HUD|Initiative",
+        meta = (ClampMin = "7", ClampMax = "10", UIMin = "7", UIMax = "10"))
+    int32 VisibleInitiativeSlotCount = 8;
+
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TArray<TObjectPtr<UGridCombatActionPanelWidget>> PartyMemberPanels;
+
+    /** Fixed widget pool; entries are updated instead of recreated. */
+    UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
+    TArray<TObjectPtr<UGridCombatHudInitiativeSlotWidget>>
+        InitiativeSlotWidgets;
+
+    /** Native separator pool inserted between slots without consuming one. */
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<UBorder>> InitiativeRoundSeparatorWidgets;
+
+    UPROPERTY (Transient)
+    TArray<TObjectPtr<UTextBlock>> InitiativeRoundSeparatorTexts;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UPanelWidget> Panel_PartyMembers;
@@ -329,7 +357,8 @@ private:
     void UnbindFromSources ();
     void EnsurePartyMemberPanels ();
     void RebuildActionWidgets ();
-    void RebuildInitiativeWidgets ();
+    void EnsureInitiativeWidgets ();
+    void RefreshInitiativeWidgets ();
     void RefreshBoundWidgets ();
 
     UFUNCTION ()
