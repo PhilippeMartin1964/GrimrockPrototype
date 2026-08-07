@@ -235,7 +235,7 @@ public:
     FGridCombatHudInitiativeView View;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Visuals")
-    float ActiveScale = 1.28f;
+    float ActiveScale = 1.12f;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Visuals")
     FLinearColor HealthBarFillColor = FLinearColor (

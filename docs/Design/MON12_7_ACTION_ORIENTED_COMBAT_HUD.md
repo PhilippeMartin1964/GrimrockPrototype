@@ -339,8 +339,9 @@ ne doit pas cacher le portrait ni les textes.
    - remplissage : rouge ;
    - pourcentage initial : `1.0` ;
    - `Is Variable` : activé.
-5. Placer `Text_Side` et `Text_State` en haut du portrait avec une petite
-   police. Leur valeur est écrite par le C++.
+5. `Text_Side` reste masqué : le HUD ne répète plus `Party / Monster` sur
+   chaque slot. `Text_State` affiche uniquement `ACTIF` sur le premier slot ;
+   les entrées en attente n'affichent aucun libellé.
 6. Sélectionner `Border_Active` :
    - Horizontal Alignment : `Fill` ;
    - Vertical Alignment : `Fill` ;
@@ -356,7 +357,7 @@ ne doit pas cacher le portrait ni les textes.
    - `Text_Side` ;
    - `Border_Active`.
 8. Ne chercher aucun bouton `Class Defaults` dans cet éditeur. La valeur C++
-   par défaut de `ActiveScale` est déjà `1.28`, ce qui est précisément la
+   par défaut de `ActiveScale` est déjà `1.12`, ce qui est précisément la
    valeur requise par MON12.7. Il n'y a donc rien à renseigner manuellement.
 
    Pour modifier volontairement cette valeur plus tard :
@@ -373,9 +374,10 @@ ne doit pas cacher le portrait ni les textes.
 
 Le C++ :
 
-- écrit le portrait, le nom, `PV actuel / maximum`, la barre rouge, l'état et le camp ;
+- écrit le portrait, le nom, `PV actuel / maximum` et la barre rouge ;
+- affiche uniquement `ACTIF` sur le premier slot et masque le camp ;
 - affiche `Border_Active` uniquement pour le premier combattant actif ;
-- applique une échelle de `1.28` au slot actif et `1.0` aux autres ;
+- applique une échelle de `1.12` au slot actif et `1.0` aux autres ;
 - conserve l'ordre exact fourni par le TurnManager.
 
 Ne créer aucun Graph, aucun tri, aucune animation d'initiative et aucun
@@ -442,15 +444,17 @@ rester visible ou vide à un moment incorrect.
 
 4. Cocher `Is Variable` sur `Panel_Initiative`.
 5. Laisser `Panel_Initiative` complètement vide dans le Designer.
-6. Le `TextBlock` historique suivant peut rester comme second enfant de
-   `HorizontalBox_InitiativeArea` :
+6. Le `TextBlock` historique suivant est devenu obsolète et peut être supprimé
+   du Widget Tree :
 
    ```text
    Text_InitiativeOverflow
    ```
 
-7. S'il existe, cocher `Is Variable` sur `Text_InitiativeOverflow` et conserver
-   sa visibilité initiale sur `Collapsed`. MON12.7.1 le maintient masqué.
+7. S'il est conservé pour compatibilité, cocher `Is Variable` sur
+   `Text_InitiativeOverflow` et laisser sa visibilité initiale sur `Collapsed`.
+   MON12.7.1 demande directement le nombre exact d'activations visibles ; il
+   n'existe donc plus d'éléments cachés à annoncer avec `+ N`.
 
 Important : `Text_InitiativeOverflow` doit être un frère de
 `Panel_Initiative`, pas un enfant. Le C++ gère un pool de slots et de
@@ -895,7 +899,7 @@ mouvement et l'absence de dépense de PA après refus.
 1. Démarrer un combat avec plusieurs personnages et monstres.
 2. Vérifier que le premier slot correspond au combattant actif.
 3. Vérifier que `Border_Active` est visible uniquement sur ce slot.
-4. Vérifier que ce slot est agrandi par l'échelle `1.28`.
+4. Vérifier que ce slot est agrandi par l'échelle `1.12`.
 5. Terminer le tour et contrôler que le nouvel actif passe en première
    position sans tri réalisé par l'interface.
 6. Vérifier que huit activations restent visibles même avec moins de huit

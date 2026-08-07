@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -405,6 +406,10 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         NewObject<UGridCombatHudInitiativeSlotWidget> ();
     InitiativeSlot->ProgressBar_Health = NewObject<UProgressBar> (
         InitiativeSlot);
+    InitiativeSlot->Text_State = NewObject<UTextBlock> (
+        InitiativeSlot);
+    InitiativeSlot->Text_Side = NewObject<UTextBlock> (
+        InitiativeSlot);
     InitiativeSlot->InitializeInitiativeSlot (Initiative[0]);
     TestEqual (TEXT ("The initiative health bar receives the view percent"),
         InitiativeSlot->ProgressBar_Health->GetPercent (),
@@ -414,6 +419,20 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
             InitiativeSlot->HealthBarFillColor.G &&
         InitiativeSlot->HealthBarFillColor.R >
             InitiativeSlot->HealthBarFillColor.B);
+    TestEqual (TEXT ("The active initiative scale stays compact"),
+        InitiativeSlot->ActiveScale,
+        1.12f);
+    TestEqual (TEXT ("Only the active state remains visible"),
+        InitiativeSlot->Text_State->GetText ().ToString (),
+        FString (TEXT ("ACTIF")));
+    TestEqual (TEXT ("The combatant side label is hidden"),
+        InitiativeSlot->Text_Side->GetVisibility (),
+        ESlateVisibility::Collapsed);
+
+    InitiativeSlot->InitializeInitiativeSlot (Initiative[1]);
+    TestEqual (TEXT ("Waiting state labels are hidden"),
+        InitiativeSlot->Text_State->GetVisibility (),
+        ESlateVisibility::Collapsed);
     return true;
 }
 

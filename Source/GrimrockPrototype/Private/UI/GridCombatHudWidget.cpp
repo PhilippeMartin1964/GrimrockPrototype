@@ -354,12 +354,18 @@ void UGridCombatHudInitiativeSlotWidget::RefreshWidgets ()
     if (Text_State)
     {
         Text_State->SetText (
-            UEnum::GetDisplayValueAsText (View.Combatant.State));
+            View.bActive
+                ? FText::FromString (TEXT ("ACTIF"))
+                : FText::GetEmpty ());
+        Text_State->SetVisibility (
+            View.bActive
+                ? ESlateVisibility::HitTestInvisible
+                : ESlateVisibility::Collapsed);
     }
     if (Text_Side)
     {
-        Text_Side->SetText (
-            UEnum::GetDisplayValueAsText (View.Combatant.Side));
+        Text_Side->SetText (FText::GetEmpty ());
+        Text_Side->SetVisibility (ESlateVisibility::Collapsed);
     }
     if (Border_Active)
     {
