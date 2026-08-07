@@ -456,6 +456,9 @@ public:
     UPROPERTY (BlueprintAssignable, Category = "Combat|Player Attack")
     FGridPlayerAttackRejectedSignature OnPlayerAttackRejected;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Player Attack|Visuals")
+    TSoftObjectPtr<UTexture2D> UnarmedAttackIcon;
+
     UPROPERTY (BlueprintAssignable, Category = "Combat|Player Turn")
     FGridPlayerCharacterTurnStateChangedSignature
         OnPlayerCharacterTurnStateChanged;

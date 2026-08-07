@@ -186,14 +186,9 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
     if (!bHasEquipmentAttack &&
         !bHasInvalidEquipmentAttackSource)
     {
-        AddMON126Contribution (
-            FGridCombatActionCatalog::MakeUnarmedAttackDefinition (
-                PlayerAttackActionPointCost),
-            NAME_None,
-            FGuid (),
-            EGridEquipmentSlot::None,
-            0,
-            OutContributions);
+        FGridCombatActionDefinition UnarmedAction = FGridCombatActionCatalog::MakeUnarmedAttackDefinition (PlayerAttackActionPointCost);
+        UnarmedAction.Icon = UnarmedAttackIcon;
+        AddMON126Contribution (UnarmedAction, NAME_None, FGuid (), EGridEquipmentSlot::None, 0, OutContributions);
     }
 }
 
