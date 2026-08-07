@@ -3,6 +3,8 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/ProgressBar.h"
@@ -19,6 +21,10 @@
 
 namespace
 {
+    constexpr float InitiativeRoundSeparatorWidth = 24.0f;
+    constexpr float InitiativeRoundSeparatorHeight = 64.0f;
+    constexpr float InitiativeRoundSeparatorTextAngle = -90.0f;
+
     FText FormatActionCost (const FGridAvailableCombatAction& Action)
     {
         FString Result = FString::Printf (
@@ -822,7 +828,22 @@ void UGridCombatHudWidget::EnsureInitiativeWidgets ()
                 this,
                 UTextBlock::StaticClass (),
                 TEXT ("Text_InitiativeRoundNumber")));
-        if (!Separator || !SeparatorText)
+        USizeBox* SeparatorContent = NewObject<USizeBox> (
+            this,
+            USizeBox::StaticClass (),
+            MakeUniqueObjectName (
+                this,
+                USizeBox::StaticClass (),
+                TEXT ("SizeBox_InitiativeRoundSeparator")));
+        UCanvasPanel* SeparatorCanvas = NewObject<UCanvasPanel> (
+            this,
+            UCanvasPanel::StaticClass (),
+            MakeUniqueObjectName (
+                this,
+                UCanvasPanel::StaticClass (),
+                TEXT ("Canvas_InitiativeRoundSeparator")));
+        if (!Separator || !SeparatorText || !SeparatorContent ||
+            !SeparatorCanvas)
         {
             continue;
         }
@@ -832,20 +853,38 @@ void UGridCombatHudWidget::EnsureInitiativeWidgets ()
             0.18f,
             0.06f,
             0.92f));
-        Separator->SetPadding (FMargin (5.0f, 14.0f));
+        Separator->SetPadding (FMargin (2.0f, 6.0f));
         Separator->SetHorizontalAlignment (HAlign_Center);
         Separator->SetVerticalAlignment (VAlign_Center);
         Separator->SetVisibility (ESlateVisibility::Collapsed);
+        SeparatorContent->SetWidthOverride (
+            InitiativeRoundSeparatorWidth);
+        SeparatorContent->SetHeightOverride (
+            InitiativeRoundSeparatorHeight);
         SeparatorText->SetColorAndOpacity (FSlateColor (FLinearColor (
             0.92f,
             0.78f,
             0.45f,
             1.0f)));
         SeparatorText->SetJustification (ETextJustify::Center);
+        SeparatorText->SetRenderTransformPivot (FVector2D (0.5f, 0.5f));
+        SeparatorText->SetRenderTransformAngle (
+            InitiativeRoundSeparatorTextAngle);
         FSlateFontInfo Font = SeparatorText->GetFont ();
         Font.Size = 10;
         SeparatorText->SetFont (Font);
-        Separator->AddChild (SeparatorText);
+        UCanvasPanelSlot* SeparatorTextSlot =
+            SeparatorCanvas->AddChildToCanvas (SeparatorText);
+        if (!SeparatorTextSlot)
+        {
+            continue;
+        }
+        SeparatorTextSlot->SetAnchors (FAnchors (0.5f, 0.5f));
+        SeparatorTextSlot->SetAlignment (FVector2D (0.5f, 0.5f));
+        SeparatorTextSlot->SetPosition (FVector2D::ZeroVector);
+        SeparatorTextSlot->SetAutoSize (true);
+        SeparatorContent->AddChild (SeparatorCanvas);
+        Separator->AddChild (SeparatorContent);
         InitiativeRoundSeparatorWidgets.Add (Separator);
         InitiativeRoundSeparatorTexts.Add (SeparatorText);
     }
