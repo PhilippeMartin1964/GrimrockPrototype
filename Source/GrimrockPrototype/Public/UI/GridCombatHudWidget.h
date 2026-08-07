@@ -242,11 +242,19 @@ public:
         UGridCombatHudWidget* InOwnerHud,
         const FGridCombatHudActionView& InView);
 
+    /** Executes the current binding through the owning authoritative HUD. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Hotbar")
+    bool TryExecuteAction ();
+
 protected:
     virtual void NativeConstruct () override;
     virtual void NativeDestruct () override;
 
     virtual FReply NativeOnPreviewMouseButtonDown (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent) override;
+
+    virtual FReply NativeOnMouseButtonUp (
         const FGeometry& InGeometry,
         const FPointerEvent& InMouseEvent) override;
 
@@ -263,6 +271,9 @@ protected:
 private:
     UPROPERTY (Transient)
     TObjectPtr<UGridCombatHudWidget> OwnerHud;
+
+    bool bLeftMousePressed = false;
+    bool bDragDetected = false;
 
     void RefreshWidgets ();
 };
@@ -420,6 +431,12 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|HUD")
     bool RequestCombatAction (
         const FGridCombatHudActionView& ActionView,
+        FGridCombatActionRequestResult& OutResult);
+
+    /** Rebuilds and executes one of the ten fixed slots by its internal index. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Hotbar")
+    bool RequestHotbarSlot (
+        int32 SlotIndex,
         FGridCombatActionRequestResult& OutResult);
 
     UFUNCTION (BlueprintCallable, Category = "Combat|HUD")

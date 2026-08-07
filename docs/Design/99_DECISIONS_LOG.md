@@ -647,3 +647,21 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   ils sont réservés à MON12.8.3. Les consommables seront exécutés en MON12.8.4.
 - Le document d'implémentation est
   `docs/Design/MON12_8_2_FIXED_COMBAT_HOTBAR_DRAG_DROP.md`.
+
+---
+
+## 2026-08-07 — MON12.8.3 : exécution par clic et clavier
+
+- Le clic gauche court et les touches principales `1 2 3 4 5 6 7 8 9 0`
+  appellent la même entrée `RequestHotbarSlot()`.
+- Le binding est résolu de nouveau contre le catalogue avant chaque demande ;
+  le TurnManager reste seul responsable de la validation et des dépenses.
+- Le clic n'est exécuté qu'au relâchement si aucun drag n'a été détecté. Le
+  déplacement et l'échange MON12.8.2 ne déclenchent donc jamais une attaque.
+- Le Pawn bloque les raccourcis numériques lorsque le menu, l'inventaire, la
+  création de personnage ou une autre interface modale possède les entrées.
+- Les attaques d'équipement et l'attaque universelle à mains nues sont les
+  profils actuellement exécutables. Les effets de capacité, sorts, potions et
+  parchemins restent grisés jusqu'à leurs exécuteurs dédiés.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_3_COMBAT_HOTBAR_EXECUTION.md`.

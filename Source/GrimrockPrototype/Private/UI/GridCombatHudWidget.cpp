@@ -297,8 +297,23 @@ void UGridCombatHudActionWidget::NativeConstruct ()
 
 void UGridCombatHudActionWidget::NativeDestruct ()
 {
+    bLeftMousePressed = false;
+    bDragDetected = false;
     OwnerHud = nullptr;
     Super::NativeDestruct ();
+}
+
+bool UGridCombatHudActionWidget::TryExecuteAction ()
+{
+    if (!IsValid (OwnerHud) || !View.bHasBinding)
+    {
+        return false;
+    }
+
+    FGridCombatActionRequestResult Result;
+    return OwnerHud->RequestHotbarSlot (
+        View.HotbarSlotIndex,
+        Result);
 }
 
 void UGridCombatHudActionWidget::RefreshWidgets ()
@@ -402,6 +417,8 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown (
     if (InMouseEvent.GetEffectingButton () == EKeys::RightMouseButton &&
         View.bHasBinding)
     {
+        bLeftMousePressed = false;
+        bDragDetected = false;
         return OwnerHud->ClearHotbarSlot (View.HotbarSlotIndex)
             ? FReply::Handled ()
             : FReply::Unhandled ();
@@ -409,6 +426,8 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown (
     if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton &&
         View.bHasBinding)
     {
+        bLeftMousePressed = true;
+        bDragDetected = false;
         return UWidgetBlueprintLibrary::DetectDragIfPressed (
             InMouseEvent,
             this,
@@ -416,6 +435,28 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown (
     }
 
     return Super::NativeOnPreviewMouseButtonDown (
+        InGeometry,
+        InMouseEvent);
+}
+
+FReply UGridCombatHudActionWidget::NativeOnMouseButtonUp (
+    const FGeometry& InGeometry,
+    const FPointerEvent& InMouseEvent)
+{
+    if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton &&
+        bLeftMousePressed)
+    {
+        const bool bShouldExecute = !bDragDetected;
+        bLeftMousePressed = false;
+        bDragDetected = false;
+        if (bShouldExecute)
+        {
+            TryExecuteAction ();
+        }
+        return FReply::Handled ();
+    }
+
+    return Super::NativeOnMouseButtonUp (
         InGeometry,
         InMouseEvent);
 }
@@ -429,6 +470,8 @@ void UGridCombatHudActionWidget::NativeOnDragDetected (
         InGeometry,
         InMouseEvent,
         OutOperation);
+    bDragDetected = true;
+    bLeftMousePressed = false;
     if (!IsValid (OwnerHud) || !View.bHasBinding)
     {
         return;
@@ -777,6 +820,29 @@ bool UGridCombatHudWidget::RequestCombatAction (
             OutResult);
     RefreshFromSources ();
     return bAccepted;
+}
+
+bool UGridCombatHudWidget::RequestHotbarSlot (
+    int32 SlotIndex,
+    FGridCombatActionRequestResult& OutResult)
+{
+    OutResult = FGridCombatActionRequestResult ();
+    if (SlotIndex < 0 ||
+        SlotIndex >= FGridCombatHotbarBinding::SlotCount)
+    {
+        return false;
+    }
+
+    // A binding is only an identity. Resolve it again immediately before the
+    // request so keyboard input cannot execute a stale cached action.
+    RefreshFromSources ();
+    if (!View.Actions.IsValidIndex (SlotIndex))
+    {
+        return false;
+    }
+
+    const FGridCombatHudActionView ActionView = View.Actions[SlotIndex];
+    return RequestCombatAction (ActionView, OutResult);
 }
 
 bool UGridCombatHudWidget::RequestEndTurn ()

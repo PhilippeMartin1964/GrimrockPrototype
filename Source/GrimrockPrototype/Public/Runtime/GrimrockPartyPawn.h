@@ -289,6 +289,10 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|UI")
     void RefreshCombatActionPanelWidget ();
 
+    /** Executes a configured hotbar slot unless a modal UI owns input. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|UI")
+    bool TryExecuteCombatHotbarSlot (int32 SlotIndex);
+
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     void ShowInitialCharacterCreationWidget ();
 
@@ -399,6 +403,16 @@ protected:
     void HandleStrafeLeft (const FInputActionValue& Value);
     void HandleStrafeRight (const FInputActionValue& Value);
     void HandleUse (const FInputActionValue& Value);
+    void HandleCombatHotbarSlotOne ();
+    void HandleCombatHotbarSlotTwo ();
+    void HandleCombatHotbarSlotThree ();
+    void HandleCombatHotbarSlotFour ();
+    void HandleCombatHotbarSlotFive ();
+    void HandleCombatHotbarSlotSix ();
+    void HandleCombatHotbarSlotSeven ();
+    void HandleCombatHotbarSlotEight ();
+    void HandleCombatHotbarSlotNine ();
+    void HandleCombatHotbarSlotZero ();
     bool TryUseFrontInteraction ();
     bool TryStartMove (EGridEdge MoveDirection);
     bool TryStartTurn (bool bTurnRight);

@@ -3,6 +3,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Components/HorizontalBox.h"
+#include "Components/InputComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/WrapBox.h"
@@ -10,6 +11,7 @@
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "InputCoreTypes.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -722,9 +724,7 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest (
             DisabledSwordAction->DisabledReason.IsEmpty ());
         FGridCombatActionRequestResult RejectedResult;
         TestFalse (TEXT ("The authoritative retry is refused"),
-            Fixture.Hud->RequestCombatAction (
-                *DisabledSwordAction,
-                RejectedResult));
+            Fixture.Hud->RequestHotbarSlot (0, RejectedResult));
         TestEqual (TEXT ("A refused action consumes no AP"),
             Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
     }
@@ -758,6 +758,205 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest (
         Fixture.Hud->View.PartyMembers[1].RemainingActionPoints, 4);
     Fixture.TurnManager->PendingPartyMotionType =
         EGridPendingPartyMotionType::None;
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1283HotbarClickExecutionTest,
+    "Grimrock.Monsters.MON12.8.3.HotbarClickExecution",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1283HotbarClickExecutionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.3 click fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    FGridItemInstance EquippedSword;
+    if (!TestTrue (TEXT ("The click fixture exposes its sword"),
+        Fixture.Party->PartyInventoryComponent->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            EquippedSword)))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The sword is assigned to keyboard slot 1"),
+        Fixture.Party->PartyInventoryComponent
+            ->SetCharacterCombatHotbarBindingFromItem (
+                0,
+                0,
+                EquippedSword,
+                EGridEquipmentSlot::MainHand));
+
+    UWrapBox* LegacyWrapPanel =
+        NewObject<UWrapBox> (Fixture.Hud, TEXT ("Panel_Actions_1283_Click"));
+    Fixture.Hud->Panel_Actions = LegacyWrapPanel;
+    Fixture.Hud->ActionWidgetClass =
+        UGridCombatHudActionWidget::StaticClass ();
+    Fixture.Hud->RefreshFromSources ();
+    if (!TestTrue (TEXT ("The first clickable slot exists"),
+        Fixture.Hud->HotbarActionWidgets.IsValidIndex (0)))
+    {
+        return false;
+    }
+
+    TestTrue (TEXT ("A short click executes the configured attack"),
+        Fixture.Hud->HotbarActionWidgets[0]->TryExecuteAction ());
+    TestEqual (TEXT ("The click pays exactly two action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        2);
+
+    FGridCombatActionRequestResult EmptyResult;
+    TestFalse (TEXT ("An empty shortcut cannot execute"),
+        Fixture.Hud->RequestHotbarSlot (9, EmptyResult));
+    TestEqual (TEXT ("The empty shortcut consumes no action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        2);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1283UnarmedHotbarExecutionTest,
+    "Grimrock.Monsters.MON12.8.3.UnarmedHotbarExecution",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1283UnarmedHotbarExecutionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.3 unarmed fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.Party->PartyInventoryComponent->PartyInventoryState
+        .ActiveEquipment[0].MainHand = FGridItemInstance ();
+    FGridCombatHotbarBinding UnarmedBinding;
+    UnarmedBinding.Reset (0);
+    UnarmedBinding.ActionId = TEXT ("Attack_Unarmed");
+    UnarmedBinding.SourcePolicy =
+        EGridCombatActionSourcePolicy::Universal;
+    TestTrue (TEXT ("The unarmed action can be configured explicitly"),
+        Fixture.Party->PartyInventoryComponent
+            ->SetCharacterCombatHotbarBinding (
+                0,
+                0,
+                UnarmedBinding));
+
+    FGridCombatActionRequestResult Result;
+    TestTrue (TEXT ("The configured unarmed shortcut executes"),
+        Fixture.Hud->RequestHotbarSlot (0, Result));
+    TestTrue (TEXT ("The generic result accepts the unarmed attack"),
+        Result.bAccepted);
+    TestEqual (TEXT ("The unarmed shortcut pays two action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        2);
+    TestEqual (TEXT ("The unarmed shortcut uses no equipment slot"),
+        Result.Action.SourceEquipmentSlot,
+        EGridEquipmentSlot::None);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1283HotbarKeyboardGuardTest,
+    "Grimrock.Monsters.MON12.8.3.HotbarKeyboardAndModalGuard",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1283HotbarKeyboardGuardTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.3 keyboard fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UInputComponent* InputComponent = NewObject<UInputComponent> (
+        Fixture.Party,
+        TEXT ("MON12_8_3_Input"));
+    Fixture.Party->SetupPlayerInputComponent (InputComponent);
+    const FKey ExpectedKeys[] = {
+        EKeys::One,
+        EKeys::Two,
+        EKeys::Three,
+        EKeys::Four,
+        EKeys::Five,
+        EKeys::Six,
+        EKeys::Seven,
+        EKeys::Eight,
+        EKeys::Nine,
+        EKeys::Zero
+    };
+    for (const FKey& ExpectedKey : ExpectedKeys)
+    {
+        const FInputKeyBinding* Binding =
+            InputComponent->KeyBindings.FindByPredicate (
+                [&ExpectedKey] (const FInputKeyBinding& Candidate)
+                {
+                    return Candidate.Chord.Key == ExpectedKey &&
+                        Candidate.KeyEvent == IE_Pressed;
+                });
+        TestTrue (
+            *FString::Printf (
+                TEXT ("Key %s is bound to the combat hotbar"),
+                *ExpectedKey.ToString ()),
+            Binding && Binding->bConsumeInput &&
+                !Binding->bExecuteWhenPaused);
+    }
+
+    FGridItemInstance EquippedSword;
+    if (!TestTrue (TEXT ("The keyboard fixture exposes its sword"),
+        Fixture.Party->PartyInventoryComponent->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            EquippedSword)))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The sword is assigned before keyboard execution"),
+        Fixture.Party->PartyInventoryComponent
+            ->SetCharacterCombatHotbarBindingFromItem (
+                0,
+                0,
+                EquippedSword,
+                EGridEquipmentSlot::MainHand));
+    Fixture.Party->CombatHudWidgetInstance = Fixture.Hud;
+
+    Fixture.Party->bInventoryWidgetVisible = true;
+    TestFalse (TEXT ("The inventory intercepts the numeric shortcut"),
+        Fixture.Party->TryExecuteCombatHotbarSlot (0));
+    Fixture.Party->bInventoryWidgetVisible = false;
+    Fixture.Party->bCharacterCreationModalActive = true;
+    TestFalse (TEXT ("A modal screen intercepts the numeric shortcut"),
+        Fixture.Party->TryExecuteCombatHotbarSlot (0));
+    Fixture.Party->bCharacterCreationModalActive = false;
+
+    FGridPlayerCharacterTurnState TurnState;
+    TestTrue (TEXT ("The guarded character state remains readable"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (0, TurnState));
+    TestEqual (TEXT ("Blocked shortcuts consume no action points"),
+        TurnState.RemainingActionPoints,
+        4);
+    TestTrue (TEXT ("The numeric shortcut executes after the modal closes"),
+        Fixture.Party->TryExecuteCombatHotbarSlot (0));
+    TestTrue (TEXT ("The post-keyboard character state remains readable"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (0, TurnState));
+    TestEqual (TEXT ("The accepted numeric shortcut pays two action points"),
+        TurnState.RemainingActionPoints,
+        2);
     return true;
 }
 

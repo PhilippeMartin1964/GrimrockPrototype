@@ -338,6 +338,112 @@ void AGrimrockPartyPawn::SetupPlayerInputComponent (UInputComponent* PlayerInput
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Pressed, this, &AGrimrockPartyPawn::BeginFreeLook);
     PlayerInputComponent->BindKey (EKeys::RightMouseButton, IE_Released, this, &AGrimrockPartyPawn::EndFreeLook);
     PlayerInputComponent->BindKey (EKeys::I, IE_Pressed, this, &AGrimrockPartyPawn::ToggleInventoryWidget);
+
+    const auto ConfigureHotbarBinding = [] (FInputKeyBinding& Binding)
+    {
+        Binding.bConsumeInput = true;
+        Binding.bExecuteWhenPaused = false;
+    };
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::One,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotOne));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Two,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotTwo));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Three,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotThree));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Four,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotFour));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Five,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotFive));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Six,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotSix));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Seven,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotSeven));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Eight,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotEight));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Nine,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotNine));
+    ConfigureHotbarBinding (PlayerInputComponent->BindKey (
+        EKeys::Zero,
+        IE_Pressed,
+        this,
+        &AGrimrockPartyPawn::HandleCombatHotbarSlotZero));
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotOne ()
+{
+    TryExecuteCombatHotbarSlot (0);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotTwo ()
+{
+    TryExecuteCombatHotbarSlot (1);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotThree ()
+{
+    TryExecuteCombatHotbarSlot (2);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotFour ()
+{
+    TryExecuteCombatHotbarSlot (3);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotFive ()
+{
+    TryExecuteCombatHotbarSlot (4);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotSix ()
+{
+    TryExecuteCombatHotbarSlot (5);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotSeven ()
+{
+    TryExecuteCombatHotbarSlot (6);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotEight ()
+{
+    TryExecuteCombatHotbarSlot (7);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotNine ()
+{
+    TryExecuteCombatHotbarSlot (8);
+}
+
+void AGrimrockPartyPawn::HandleCombatHotbarSlotZero ()
+{
+    TryExecuteCombatHotbarSlot (9);
 }
 
 void AGrimrockPartyPawn::ApplyCameraLocalViewOffset ()
@@ -1286,6 +1392,24 @@ void AGrimrockPartyPawn::RefreshCombatActionPanelWidget ()
     {
         CombatHudWidgetInstance->RefreshFromSources ();
     }
+}
+
+bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot (int32 SlotIndex)
+{
+    const AGrimrockPlayerController* PlayerController =
+        Cast<AGrimrockPlayerController> (GetController ());
+    if (!IsValid (CombatHudWidgetInstance) ||
+        bInventoryWidgetVisible ||
+        bCharacterCreationModalActive ||
+        (PlayerController && PlayerController->bInventoryUiOpen))
+    {
+        return false;
+    }
+
+    FGridCombatActionRequestResult Result;
+    return CombatHudWidgetInstance->RequestHotbarSlot (
+        SlotIndex,
+        Result);
 }
 
 void AGrimrockPartyPawn::CloseCharacterCreationWidget ()
