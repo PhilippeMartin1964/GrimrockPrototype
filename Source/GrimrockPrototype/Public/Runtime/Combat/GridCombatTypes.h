@@ -92,6 +92,8 @@ enum class EGridCombatActionRequestRejectReason : uint8
     InvalidAction             UMETA (DisplayName = "Invalid Action"),
     ActionUnavailable         UMETA (DisplayName = "Action Unavailable"),
     UnsupportedResolution     UMETA (DisplayName = "Unsupported Resolution"),
+    TargetRequired            UMETA (DisplayName = "Target Required"),
+    InvalidTarget             UMETA (DisplayName = "Invalid Target"),
     AttackRejected            UMETA (DisplayName = "Attack Rejected"),
     QuickItemRejected         UMETA (DisplayName = "Quick Item Rejected"),
     ClassActionRejected       UMETA (DisplayName = "Class Action Rejected")
@@ -609,6 +611,14 @@ struct FGridCombatActionDefinition
         meta = (ClampMin = "0", ClampMax = "32"))
     int32 RangeCells = 0;
 
+    /** Manhattan radius around the selected cell when TargetingPolicy is Area. */
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Targeting",
+        meta = (ClampMin = "0", ClampMax = "8"))
+    int32 AreaRadiusCells = 0;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Requirements")
     TArray<FName> Requirements;
 
@@ -645,6 +655,9 @@ struct FGridCombatActionDefinition
                 TargetingPolicy != EGridCombatTargetingPolicy::Cell &&
                 TargetingPolicy != EGridCombatTargetingPolicy::Area) ||
             RangeCells > 0;
+        const bool bAreaRadiusValid =
+            TargetingPolicy != EGridCombatTargetingPolicy::Area ||
+            AreaRadiusCells > 0;
         return !ActionId.IsNone () &&
             ActionType != EGridCombatActionType::None &&
             SourcePolicy != EGridCombatActionSourcePolicy::None &&
@@ -655,10 +668,13 @@ struct FGridCombatActionDefinition
             ResourceCosts.IsValid () &&
             RangeCells >= 0 &&
             RangeCells <= 32 &&
+            AreaRadiusCells >= 0 &&
+            AreaRadiusCells <= 8 &&
             CooldownRounds >= 0 &&
             bAttackProfileValid &&
             bAttackRangeValid &&
-            bTargetingRangeValid;
+            bTargetingRangeValid &&
+            bAreaRadiusValid;
     }
 };
 
@@ -924,6 +940,55 @@ struct FGridCombatClassActionResult
     int32 ManaAfter = 0;
 };
 
+/** Pure preview of one explicit cell/area target before resources are paid. */
+USTRUCT (BlueprintType)
+struct FGridCombatActionTargetingPreview
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    bool bValid = false;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    FGridAvailableCombatAction Action;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    FIntPoint TargetCell = FIntPoint (INDEX_NONE, INDEX_NONE);
+
+    /** Every valid dungeon cell covered by the action, including an empty cell. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    TArray<FIntPoint> AffectedCells;
+
+    /** Living encounter monsters that would be resolved, in deterministic order. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    TArray<FGuid> TargetMonsterIds;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    FText InvalidReason;
+};
+
+/** Outcome of an accepted cell/area action resolved once against one or more targets. */
+USTRUCT (BlueprintType)
+struct FGridCombatTargetedActionResult
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    FIntPoint TargetCell = FIntPoint (INDEX_NONE, INDEX_NONE);
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    TArray<FIntPoint> AffectedCells;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    TArray<FGuid> TargetMonsterIds;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    TArray<FGridPlayerAttackRequest> AttackRequests;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Targeting")
+    TArray<FGridAttackResult> AttackResults;
+};
+
 /** Result of the generic MON12 action request entry point. */
 USTRUCT (BlueprintType)
 struct FGridCombatActionRequestResult
@@ -955,4 +1020,7 @@ struct FGridCombatActionRequestResult
 
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
     FGridCombatClassActionResult ClassActionResult;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    FGridCombatTargetedActionResult TargetedActionResult;
 };

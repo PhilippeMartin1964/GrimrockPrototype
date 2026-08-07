@@ -703,7 +703,25 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   réservé et ne dépense aucun PA.
 - Les profils `Effect / Self` restaurent immédiatement PV et/ou mana. Un effet
   inutile est grisé et refusé sans dépense.
-- Les profils `Cell` et `Area` restent volontairement indisponibles jusqu'au
-  ciblage explicite et aux zones de MON12.8.6.
+- Les profils `Cell` et `Area` sont confiés au mode de ciblage explicite de
+  MON12.8.6 ; MON12.8.5 ne tente jamais de les exécuter axialement.
 - Le document d'implémentation est
   `docs/Design/MON12_8_5_CLASS_ACTION_PALETTE.md`.
+
+---
+
+## 2026-08-07 — MON12.8.6 : cellule et zone d'effet
+
+- Un raccourci `Cell` ou `Area` ouvre un mode de ciblage sans payer de
+  ressource. Le clic suivant confirme une cellule ; `Échap` annule.
+- Le contrôleur joueur convertit le point d'impact sous la souris en cellule
+  et donne temporairement la priorité au ciblage sur les interactions monde.
+- `RangeCells` mesure la portée jusqu'au centre. `AreaRadiusCells` décrit un
+  diamant en distance de Manhattan autour de ce centre.
+- La prévisualisation expose les cellules couvertes et les monstres vivants de
+  la rencontre. Une cellule vide, une zone sans ennemi ou une cible hors portée
+  reste invalide et gratuite.
+- Une zone résout une attaque par monstre, mais PA, mana et quantité d'objet
+  source sont payés une seule fois après validation complète.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_6_CELL_AREA_TARGETING.md`.

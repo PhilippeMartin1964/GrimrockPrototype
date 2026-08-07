@@ -4,6 +4,8 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Core/GridLevelAsset.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 #include "Engine/EngineTypes.h"
 #include "EngineUtils.h"
@@ -17,6 +19,7 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridInventoryWidget.h"
+#include "UI/GridCombatHudWidget.h"
 #include "Sound/SoundBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridMouse, Log, All);
@@ -113,7 +116,10 @@ void AGrimrockPlayerController::PlayerTick (float DeltaTime)
 {
     Super::PlayerTick (DeltaTime);
 
-    UpdateHoveredInteractable ();
+    if (!UpdateCombatTargeting ())
+    {
+        UpdateHoveredInteractable ();
+    }
 }
 
 void AGrimrockPlayerController::SetupInputComponent ()
@@ -126,6 +132,12 @@ void AGrimrockPlayerController::SetupInputComponent ()
     }
 
     InputComponent->BindKey (EKeys::LeftMouseButton, IE_Pressed, this, &AGrimrockPlayerController::HandleLeftMousePressed);
+    FInputKeyBinding& CancelTargetingBinding = InputComponent->BindKey (
+        EKeys::Escape,
+        IE_Pressed,
+        this,
+        &AGrimrockPlayerController::HandleCancelCombatTargeting);
+    CancelTargetingBinding.bConsumeInput = false;
 
 #if !UE_BUILD_SHIPPING
     FInputKeyBinding& StartPerceptionBinding = InputComponent->BindKey (
@@ -422,6 +434,16 @@ void AGrimrockPlayerController::HandleMON11RequestSelectedCharacterAttack ()
 void AGrimrockPlayerController::SetInventoryUiOpen (bool bOpen)
 {
     bInventoryUiOpen = bOpen;
+    if (bOpen)
+    {
+        if (AGrimrockPartyPawn* PartyPawn =
+                Cast<AGrimrockPartyPawn> (GetPawn ());
+            PartyPawn && IsValid (PartyPawn->CombatHudWidgetInstance))
+        {
+            PartyPawn->CombatHudWidgetInstance
+                ->CancelCombatActionTargeting ();
+        }
+    }
     DefaultMouseCursor = EMouseCursor::Default;
     CurrentMouseCursor = EMouseCursor::Default;
     bShowMouseCursor = true;
@@ -566,8 +588,205 @@ AGrimrockPlayerController::FGridMouseInteractionResolution AGrimrockPlayerContro
     return Resolution;
 }
 
+bool AGrimrockPlayerController::TryResolveCombatTargetCellUnderCursor (
+    FIntPoint& OutTargetCell) const
+{
+    OutTargetCell = FIntPoint (INDEX_NONE, INDEX_NONE);
+    const AGrimrockPartyPawn* PartyPawn =
+        Cast<AGrimrockPartyPawn> (GetPawn ());
+    const AGridLevelRuntimeActor* RuntimeActor = PartyPawn
+        ? PartyPawn->LevelRuntimeActor.Get ()
+        : nullptr;
+    FHitResult HitResult;
+    int32 CellX = INDEX_NONE;
+    int32 CellY = INDEX_NONE;
+    FVector LocalOffset = FVector::ZeroVector;
+    if (!IsValid (RuntimeActor) ||
+        !TryGetWorldHitUnderCursor (HitResult) ||
+        !RuntimeActor->TryResolveWorldCellFromImpactPoint (
+            HitResult.ImpactPoint,
+            CellX,
+            CellY,
+            LocalOffset))
+    {
+        return false;
+    }
+    OutTargetCell = FIntPoint (CellX, CellY);
+    return true;
+}
+
+void AGrimrockPlayerController::DrawCombatTargetingPreview (
+    const AGrimrockPartyPawn& PartyPawn) const
+{
+    const UGridCombatHudWidget* Hud =
+        PartyPawn.CombatHudWidgetInstance;
+    const AGridLevelRuntimeActor* RuntimeActor =
+        PartyPawn.LevelRuntimeActor;
+    if (!IsValid (Hud) ||
+        !Hud->IsCombatActionTargetingActive () ||
+        !IsValid (RuntimeActor) ||
+        !IsValid (RuntimeActor->LevelAsset))
+    {
+        return;
+    }
+
+    const FGridCombatActionTargetingPreview& Preview =
+        Hud->TargetingPreview;
+    const float HalfCell = FMath::Max (
+        4.0f,
+        RuntimeActor->LevelAsset->CellSize * 0.46f);
+    const FColor AreaColor = Preview.bValid
+        ? FColor (48, 220, 96)
+        : FColor (220, 48, 48);
+    for (const FIntPoint& Cell : Preview.AffectedCells)
+    {
+        const bool bCenter = Cell == Preview.TargetCell;
+        DrawDebugBox (
+            GetWorld (),
+            RuntimeActor->GetCellCenterWorld (
+                Cell.X,
+                Cell.Y,
+                8.0f),
+            FVector (HalfCell, HalfCell, bCenter ? 5.0f : 2.5f),
+            bCenter && Preview.bValid ? FColor::Yellow : AreaColor,
+            false,
+            0.0f,
+            0,
+            bCenter ? 5.0f : 2.0f);
+    }
+
+    if (Preview.AffectedCells.IsEmpty () &&
+        RuntimeActor->IsValidCell (
+            Preview.TargetCell.X,
+            Preview.TargetCell.Y))
+    {
+        DrawDebugBox (
+            GetWorld (),
+            RuntimeActor->GetCellCenterWorld (
+                Preview.TargetCell.X,
+                Preview.TargetCell.Y,
+                8.0f),
+            FVector (HalfCell, HalfCell, 5.0f),
+            FColor::Red,
+            false,
+            0.0f,
+            0,
+            5.0f);
+    }
+}
+
+bool AGrimrockPlayerController::UpdateCombatTargeting ()
+{
+    AGrimrockPartyPawn* PartyPawn =
+        Cast<AGrimrockPartyPawn> (GetPawn ());
+    UGridCombatHudWidget* Hud = PartyPawn
+        ? PartyPawn->CombatHudWidgetInstance.Get ()
+        : nullptr;
+    if (!IsValid (Hud) ||
+        !Hud->IsCombatActionTargetingActive ())
+    {
+        return false;
+    }
+    if (bInventoryUiOpen ||
+        PartyPawn->IsCharacterCreationModalActive () ||
+        (IsValid (PartyPawn->LevelRuntimeActor) &&
+            PartyPawn->LevelRuntimeActor->HasActiveReadableMessage ()))
+    {
+        Hud->CancelCombatActionTargeting ();
+        DefaultMouseCursor = EMouseCursor::Default;
+        CurrentMouseCursor = EMouseCursor::Default;
+        return false;
+    }
+
+    FIntPoint TargetCell;
+    if (TryResolveCombatTargetCellUnderCursor (TargetCell))
+    {
+        Hud->UpdateCombatActionTargetingPreview (TargetCell);
+    }
+    else
+    {
+        Hud->ClearCombatActionTargetingPreview ();
+    }
+    DrawCombatTargetingPreview (*PartyPawn);
+    bShowMouseCursor = true;
+    DefaultMouseCursor = EMouseCursor::Crosshairs;
+    CurrentMouseCursor = EMouseCursor::Crosshairs;
+    if (CustomCursorWidget)
+    {
+        CustomCursorWidget->SetVisibility (ESlateVisibility::Collapsed);
+    }
+    return true;
+}
+
+bool AGrimrockPlayerController::HandleCombatTargetingClick ()
+{
+    AGrimrockPartyPawn* PartyPawn =
+        Cast<AGrimrockPartyPawn> (GetPawn ());
+    UGridCombatHudWidget* Hud = PartyPawn
+        ? PartyPawn->CombatHudWidgetInstance.Get ()
+        : nullptr;
+    if (!IsValid (Hud) ||
+        !Hud->IsCombatActionTargetingActive ())
+    {
+        return false;
+    }
+    if (bInventoryUiOpen ||
+        PartyPawn->IsCharacterCreationModalActive () ||
+        (IsValid (PartyPawn->LevelRuntimeActor) &&
+            PartyPawn->LevelRuntimeActor->HasActiveReadableMessage ()))
+    {
+        Hud->CancelCombatActionTargeting ();
+        return false;
+    }
+
+    FIntPoint TargetCell;
+    if (!TryResolveCombatTargetCellUnderCursor (TargetCell))
+    {
+        Hud->ClearCombatActionTargetingPreview ();
+        ShowInteractionFeedback (FText::FromString (
+            TEXT ("Sélectionnez une cellule du donjon.")));
+        return true;
+    }
+
+    FGridCombatActionRequestResult Result;
+    if (!Hud->ConfirmCombatActionTarget (TargetCell, Result))
+    {
+        const FText Reason = Hud->TargetingPreview.InvalidReason.IsEmpty ()
+            ? FText::FromString (TEXT ("Cette cible est invalide."))
+            : Hud->TargetingPreview.InvalidReason;
+        ShowInteractionFeedback (Reason);
+    }
+    else
+    {
+        DefaultMouseCursor = EMouseCursor::Default;
+        CurrentMouseCursor = EMouseCursor::Default;
+    }
+    return true;
+}
+
+void AGrimrockPlayerController::HandleCancelCombatTargeting ()
+{
+    AGrimrockPartyPawn* PartyPawn =
+        Cast<AGrimrockPartyPawn> (GetPawn ());
+    UGridCombatHudWidget* Hud = PartyPawn
+        ? PartyPawn->CombatHudWidgetInstance.Get ()
+        : nullptr;
+    if (!IsValid (Hud) ||
+        !Hud->IsCombatActionTargetingActive ())
+    {
+        return;
+    }
+    Hud->CancelCombatActionTargeting ();
+    DefaultMouseCursor = EMouseCursor::Default;
+    CurrentMouseCursor = EMouseCursor::Default;
+}
+
 void AGrimrockPlayerController::HandleLeftMousePressed ()
 {
+    if (HandleCombatTargetingClick ())
+    {
+        return;
+    }
     const FGridMouseInteractionResolution MouseResolution = ResolveLeftMouseInteraction ();
     AGrimrockPartyPawn* PartyPawn = MouseResolution.PartyPawn;
 

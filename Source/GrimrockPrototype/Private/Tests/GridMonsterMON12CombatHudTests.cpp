@@ -158,6 +158,46 @@ namespace
         return Ability;
     }
 
+    FGridCombatActionDefinition MakeMON1286CellSpell ()
+    {
+        FGridCombatActionDefinition Spell;
+        Spell.ActionId = TEXT ("Spell_MON1286_CellStrike");
+        Spell.DisplayName = FText::FromString (TEXT ("Frappe ciblée"));
+        Spell.Description = FText::FromString (TEXT (
+            "Frappe l'ennemi qui occupe la cellule sélectionnée."));
+        Spell.ActionType = EGridCombatActionType::RangedAttack;
+        Spell.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+        Spell.TargetingPolicy = EGridCombatTargetingPolicy::Cell;
+        Spell.ResolutionProfile =
+            EGridCombatActionResolutionProfile::Attack;
+        Spell.ActionPointCost = 2;
+        Spell.ResourceCosts.ManaCost = 3;
+        Spell.RangeCells = 2;
+        Spell.OffensiveProfile.AttackId =
+            TEXT ("Attack_MON1286_CellStrike");
+        Spell.OffensiveProfile.AttackDefinition.DamageType =
+            EGridDamageType::Arcane;
+        Spell.OffensiveProfile.AttackDefinition.MinDamage = 3;
+        Spell.OffensiveProfile.AttackDefinition.MaxDamage = 3;
+        Spell.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
+        Spell.OffensiveProfile.DamageScalingAttribute =
+            EGridAttackScalingAttribute::Intelligence;
+        Spell.OffensiveProfile.RangeCells = 2;
+        return Spell;
+    }
+
+    FGridCombatActionDefinition MakeMON1286AreaSpell ()
+    {
+        FGridCombatActionDefinition Spell = MakeMON1286CellSpell ();
+        Spell.ActionId = TEXT ("Spell_MON1286_AreaBurst");
+        Spell.DisplayName = FText::FromString (TEXT ("Explosion arcanique"));
+        Spell.TargetingPolicy = EGridCombatTargetingPolicy::Area;
+        Spell.AreaRadiusCells = 1;
+        Spell.OffensiveProfile.AttackId =
+            TEXT ("Attack_MON1286_AreaBurst");
+        return Spell;
+    }
+
     struct FGridCombatHudFixture
     {
         FGridCombatHudTestWorld TestWorld;
@@ -1479,6 +1519,269 @@ bool FGridMonsterMON1285SelfAbilityEffectTest::RunTest (
         Character.DerivedStats.CurrentMana, 6);
     TestEqual (TEXT ("The refused ability consumes no action point"),
         Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1286CellTargetingLifecycleTest,
+    "Grimrock.Monsters.MON12.8.6.CellTargetingLifecycle",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1286CellTargetingLifecycleTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.6 cell fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage_MON1286_Cell");
+    MageClass->HealthAtLevelOne = 6;
+    MageClass->CombatActions = { MakeMON1286CellSpell () };
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = MageClass->ClassId;
+    Character.ClassDefinition = MageClass;
+    Fixture.Hud->RefreshFromSources ();
+    if (!TestEqual (TEXT ("The cell spell is catalogued"),
+        Fixture.Hud->View.ActionPalette.Num (), 1))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The cell spell can configure shortcut six"),
+        Fixture.Hud->AssignCombatActionToHotbarSlot (
+            5,
+            Fixture.Hud->View.ActionPalette[0]));
+
+    FGridCombatActionRequestResult Pending;
+    TestTrue (TEXT ("The shortcut opens explicit targeting"),
+        Fixture.Hud->RequestHotbarSlot (5, Pending));
+    TestTrue (TEXT ("Targeting remains active until confirmation"),
+        Fixture.Hud->IsCombatActionTargetingActive ());
+    TestFalse (TEXT ("Opening targeting does not resolve the spell"),
+        Pending.bAccepted);
+    TestEqual (TEXT ("Opening targeting spends no mana"),
+        Character.DerivedStats.CurrentMana,
+        8);
+    TestEqual (TEXT ("Opening targeting spends no action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        4);
+
+    TestFalse (TEXT ("An empty cell is not a valid attack target"),
+        Fixture.Hud->UpdateCombatActionTargetingPreview (
+            FIntPoint (0, 0)));
+    TestTrue (TEXT ("Invalid hover keeps targeting active"),
+        Fixture.Hud->IsCombatActionTargetingActive ());
+    Fixture.Hud->CancelCombatActionTargeting ();
+    TestFalse (TEXT ("Cancellation closes targeting"),
+        Fixture.Hud->IsCombatActionTargetingActive ());
+    TestEqual (TEXT ("Cancellation still spends no mana"),
+        Character.DerivedStats.CurrentMana,
+        8);
+
+    TestTrue (TEXT ("The shortcut can reopen targeting"),
+        Fixture.Hud->RequestHotbarSlot (5, Pending));
+    TestTrue (TEXT ("The occupied monster cell previews as valid"),
+        Fixture.Hud->UpdateCombatActionTargetingPreview (
+            FIntPoint (1, 2)));
+    TestEqual (TEXT ("A cell spell covers exactly one cell"),
+        Fixture.Hud->TargetingPreview.AffectedCells.Num (),
+        1);
+    TestEqual (TEXT ("A cell spell identifies exactly one monster"),
+        Fixture.Hud->TargetingPreview.TargetMonsterIds.Num (),
+        1);
+
+    FGridCombatActionRequestResult Accepted;
+    TestTrue (TEXT ("The selected monster cell is accepted"),
+        Fixture.Hud->ConfirmCombatActionTarget (
+            FIntPoint (1, 2),
+            Accepted));
+    TestFalse (TEXT ("Accepted execution closes targeting"),
+        Fixture.Hud->IsCombatActionTargetingActive ());
+    TestTrue (TEXT ("The targeted result is accepted"),
+        Accepted.bAccepted);
+    TestEqual (TEXT ("One targeted attack is resolved"),
+        Accepted.TargetedActionResult.AttackResults.Num (),
+        1);
+    TestEqual (TEXT ("The cell spell pays exactly three mana"),
+        Character.DerivedStats.CurrentMana,
+        5);
+    TestEqual (TEXT ("The cell spell pays exactly two action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        2);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1286AreaTargetingTransactionTest,
+    "Grimrock.Monsters.MON12.8.6.AreaTargetingTransaction",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1286AreaTargetingTransactionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.6 area fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridMonsterOccupancySubsystem* Occupancy =
+        Fixture.TestWorld.World
+            ->GetSubsystem<UGridMonsterOccupancySubsystem> ();
+    AGridMonsterActor* SecondMonster =
+        Fixture.TestWorld.World->SpawnActor<AGridMonsterActor> ();
+    if (!TestNotNull (TEXT ("The second area target is spawned"),
+            SecondMonster) ||
+        !TestNotNull (TEXT ("The occupancy subsystem is available"),
+            Occupancy))
+    {
+        return false;
+    }
+    SecondMonster->InitializeMonster (
+        Fixture.Monster->MonsterDefinition,
+        FGuid (12, 8, 6, 2),
+        FIntPoint (2, 2),
+        EGridEdge::South);
+    TestTrue (TEXT ("The second area target occupies its cell"),
+        Occupancy->RegisterMonster (SecondMonster, FIntPoint (2, 2)));
+    Fixture.TurnManager->CombatMonsters.Add (SecondMonster);
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage_MON1286_Area");
+    MageClass->HealthAtLevelOne = 6;
+    MageClass->CombatActions = { MakeMON1286AreaSpell () };
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = MageClass->ClassId;
+    Character.ClassDefinition = MageClass;
+    Fixture.Hud->RefreshFromSources ();
+    if (!TestEqual (TEXT ("The area spell is catalogued"),
+        Fixture.Hud->View.ActionPalette.Num (), 1))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The area spell can configure shortcut seven"),
+        Fixture.Hud->AssignCombatActionToHotbarSlot (
+            6,
+            Fixture.Hud->View.ActionPalette[0]));
+
+    FGridCombatActionRequestResult Pending;
+    TestTrue (TEXT ("The area shortcut opens targeting"),
+        Fixture.Hud->RequestHotbarSlot (6, Pending));
+    TestTrue (TEXT ("The area centered on the first monster is valid"),
+        Fixture.Hud->UpdateCombatActionTargetingPreview (
+            FIntPoint (1, 2)));
+    TestEqual (TEXT ("The radius-one diamond contains four valid cells"),
+        Fixture.Hud->TargetingPreview.AffectedCells.Num (),
+        4);
+    TestEqual (TEXT ("Both monsters are included in the preview"),
+        Fixture.Hud->TargetingPreview.TargetMonsterIds.Num (),
+        2);
+
+    FGridCombatActionRequestResult Accepted;
+    TestTrue (TEXT ("The area spell is accepted"),
+        Fixture.Hud->ConfirmCombatActionTarget (
+            FIntPoint (1, 2),
+            Accepted));
+    TestEqual (TEXT ("Two attacks are resolved by one area action"),
+        Accepted.TargetedActionResult.AttackResults.Num (),
+        2);
+    TestEqual (TEXT ("Both target identities are retained"),
+        Accepted.TargetedActionResult.TargetMonsterIds.Num (),
+        2);
+    TestEqual (TEXT ("The area spell pays mana only once"),
+        Character.DerivedStats.CurrentMana,
+        5);
+    TestEqual (TEXT ("The area spell pays action points only once"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        2);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1286TargetRequiredNoSpendTest,
+    "Grimrock.Monsters.MON12.8.6.TargetRequiredNoSpend",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1286TargetRequiredNoSpendTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.6 rejection fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage_MON1286_Reject");
+    MageClass->HealthAtLevelOne = 6;
+    MageClass->CombatActions = { MakeMON1286AreaSpell () };
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = MageClass->ClassId;
+    Character.ClassDefinition = MageClass;
+    Fixture.Hud->RefreshFromSources ();
+    if (!TestEqual (TEXT ("The rejected area spell is catalogued"),
+        Fixture.Hud->View.ActionPalette.Num (), 1))
+    {
+        return false;
+    }
+    const FGridAvailableCombatAction& Action =
+        Fixture.Hud->View.ActionPalette[0];
+
+    FGridCombatActionRequestResult MissingTarget;
+    TestFalse (TEXT ("A targeted action cannot execute without a cell"),
+        Fixture.TurnManager->RequestCharacterCombatAction (
+            0,
+            Action.Definition.ActionId,
+            Action.Definition.SourcePolicy,
+            Action.SourceDefinitionId,
+            Action.SourceEquipmentSlot,
+            MissingTarget));
+    TestEqual (TEXT ("The generic request reports TargetRequired"),
+        MissingTarget.RejectReason,
+        EGridCombatActionRequestRejectReason::TargetRequired);
+
+    FGridCombatActionRequestResult EmptyArea;
+    TestFalse (TEXT ("An area without an enemy is rejected"),
+        Fixture.TurnManager->RequestCharacterCombatActionAtCell (
+            0,
+            Action.Definition.ActionId,
+            Action.Definition.SourcePolicy,
+            Action.SourceDefinitionId,
+            Action.SourceEquipmentSlot,
+            FIntPoint (0, 0),
+            EmptyArea));
+    TestEqual (TEXT ("The empty area reports InvalidTarget"),
+        EmptyArea.RejectReason,
+        EGridCombatActionRequestRejectReason::InvalidTarget);
+    TestEqual (TEXT ("Rejected targeting spends no mana"),
+        Character.DerivedStats.CurrentMana,
+        8);
+    FGridPlayerCharacterTurnState TurnState;
+    TestTrue (TEXT ("The active turn state remains available"),
+        Fixture.TurnManager->GetPlayerCharacterTurnState (0, TurnState));
+    TestEqual (TEXT ("Rejected targeting spends no action points"),
+        TurnState.RemainingActionPoints,
+        4);
     return true;
 }
 

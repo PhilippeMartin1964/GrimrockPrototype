@@ -595,6 +595,28 @@ public:
         EGridEquipmentSlot SourceEquipmentSlot,
         FGridCombatActionRequestResult& OutResult);
 
+    /** Revalidates an explicit Cell/Area candidate without mutating gameplay. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Action Targeting")
+    bool BuildCombatActionTargetingPreview (
+        int32 CharacterIndex,
+        FName ActionId,
+        EGridCombatActionSourcePolicy SourcePolicy,
+        FName SourceDefinitionId,
+        EGridEquipmentSlot SourceEquipmentSlot,
+        FIntPoint TargetCell,
+        FGridCombatActionTargetingPreview& OutPreview) const;
+
+    /** Executes a previously previewed Cell/Area action at the selected cell. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Action Targeting")
+    bool RequestCharacterCombatActionAtCell (
+        int32 CharacterIndex,
+        FName ActionId,
+        EGridCombatActionSourcePolicy SourcePolicy,
+        FName SourceDefinitionId,
+        EGridEquipmentSlot SourceEquipmentSlot,
+        FIntPoint TargetCell,
+        FGridCombatActionRequestResult& OutResult);
+
     UFUNCTION (BlueprintCallable, Category = "Combat|Action Catalog|Debug")
     void LogAvailableCombatActions (int32 CharacterIndex = -1) const;
 
@@ -805,6 +827,14 @@ private:
         FGridAttackResult& OutResult,
         EGridPlayerAttackRejectReason& OutRejectReason,
         FGridCombatClassActionResult& OutClassResult);
+    bool BuildTargetingPreviewForAction (
+        const FGridAvailableCombatAction& Action,
+        const FIntPoint& TargetCell,
+        FGridCombatActionTargetingPreview& OutPreview) const;
+    bool RequestCharacterTargetedAttack (
+        const FGridAvailableCombatAction& Action,
+        const FGridCombatActionTargetingPreview& Preview,
+        FGridCombatActionRequestResult& OutResult);
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,

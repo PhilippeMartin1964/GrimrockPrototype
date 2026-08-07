@@ -95,7 +95,14 @@ protected:
     };
 
     void HandleLeftMousePressed ();
+    void HandleCancelCombatTargeting ();
     void UpdateHoveredInteractable ();
+    bool UpdateCombatTargeting ();
+    bool HandleCombatTargetingClick ();
+    bool TryResolveCombatTargetCellUnderCursor (
+        FIntPoint& OutTargetCell) const;
+    void DrawCombatTargetingPreview (
+        const AGrimrockPartyPawn& PartyPawn) const;
     void InitializeCustomCursor ();
     void SetGridInteractionCursor (EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT ("Unspecified"));
     FGridMouseInteractionResolution ResolveLeftMouseInteraction ();

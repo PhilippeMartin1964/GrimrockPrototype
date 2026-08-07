@@ -1358,6 +1358,7 @@ bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest (
     FireballSpell.ActionPointCost = 3;
     FireballSpell.ResourceCosts.ManaCost = 8;
     FireballSpell.RangeCells = 3;
+    FireballSpell.AreaRadiusCells = 1;
     MageClass->CombatActions = { FocusAbility, FireballSpell };
 
     FGridCharacterInventoryState& Elias =

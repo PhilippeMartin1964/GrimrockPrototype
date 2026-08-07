@@ -353,6 +353,13 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     FGridCombatHudView View;
 
+    /** Live MON12.8.6 cell/area preview; no resource has been paid yet. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD|Targeting")
+    FGridCombatActionTargetingPreview TargetingPreview;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD|Targeting")
+    bool bCombatActionTargetingActive = false;
+
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<AGrimrockPartyPawn> PartyPawn;
 
@@ -440,6 +447,15 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UWidget> Panel_CombatHud;
 
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Targeting")
+    TObjectPtr<UWidget> Panel_Targeting;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Targeting")
+    TObjectPtr<UTextBlock> Text_TargetingInstructions;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD|Targeting")
+    TObjectPtr<UTextBlock> Text_TargetingCell;
+
     UFUNCTION (BlueprintCallable, Category = "Combat|HUD")
     void InitializeCombatHud (
         AGrimrockPartyPawn* InPartyPawn,
@@ -458,6 +474,33 @@ public:
     bool RequestHotbarSlot (
         int32 SlotIndex,
         FGridCombatActionRequestResult& OutResult);
+
+    UFUNCTION (BlueprintPure, Category = "Combat|HUD|Targeting")
+    bool IsCombatActionTargetingActive () const
+    {
+        return bCombatActionTargetingActive;
+    }
+
+    /** Begins targeting without executing or paying the selected action. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Targeting")
+    bool BeginCombatActionTargeting (
+        const FGridCombatHudActionView& ActionView);
+
+    /** Rebuilds the authoritative preview for the currently hovered cell. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Targeting")
+    bool UpdateCombatActionTargetingPreview (FIntPoint TargetCell);
+
+    /** Executes at a valid target; invalid confirmation keeps targeting active. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Targeting")
+    bool ConfirmCombatActionTarget (
+        FIntPoint TargetCell,
+        FGridCombatActionRequestResult& OutResult);
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Targeting")
+    void ClearCombatActionTargetingPreview ();
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Targeting")
+    void CancelCombatActionTargeting ();
 
     UFUNCTION (BlueprintCallable, Category = "Combat|HUD")
     bool RequestEndTurn ();
@@ -482,6 +525,8 @@ protected:
 private:
     bool bSourcesBound = false;
 
+    FGridCombatHudActionView PendingTargetingActionView;
+
     void BindToSources ();
     void UnbindFromSources ();
     void EnsurePartyMemberPanels ();
@@ -493,6 +538,8 @@ private:
     void EnsureInitiativeWidgets ();
     void RefreshInitiativeWidgets ();
     void RefreshBoundWidgets ();
+    void ValidateCombatActionTargetingState ();
+    void RefreshTargetingWidgets ();
 
     UFUNCTION ()
     void HandleEndTurnClicked ();

@@ -711,6 +711,9 @@ void UGridCombatHudWidget::InitializeCombatHud (
     UGridTurnManagerComponent* InTurnManager)
 {
     UnbindFromSources ();
+    bCombatActionTargetingActive = false;
+    PendingTargetingActionView = FGridCombatHudActionView ();
+    TargetingPreview = FGridCombatActionTargetingPreview ();
     PartyPawn = InPartyPawn;
     InventoryComponent = IsValid (PartyPawn)
         ? PartyPawn->PartyInventoryComponent
@@ -825,6 +828,7 @@ void UGridCombatHudWidget::RefreshFromSources ()
         ActionView.Action.CharacterIndex = View.ActiveCharacterIndex;
     }
     ApplyHotbarPresentationFallbacks ();
+    ValidateCombatActionTargetingState ();
 
     View.Mobility = FGridCombatHudViewModelBuilder::BuildMobility (
         IsValid (TurnManagerComponent)
@@ -886,6 +890,7 @@ void UGridCombatHudWidget::RefreshFromSources ()
     EnsureInitiativeWidgets ();
     RefreshInitiativeWidgets ();
     RefreshBoundWidgets ();
+    RefreshTargetingWidgets ();
 }
 
 bool UGridCombatHudWidget::RequestCombatAction (
@@ -933,7 +938,125 @@ bool UGridCombatHudWidget::RequestHotbarSlot (
     }
 
     const FGridCombatHudActionView ActionView = View.Actions[SlotIndex];
+    if (ActionView.bHasBinding &&
+        ActionView.bResolved &&
+        ActionView.Action.bEnabled &&
+        (ActionView.Action.Definition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::Cell ||
+            ActionView.Action.Definition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::Area))
+    {
+        OutResult.Action = ActionView.Action;
+        return BeginCombatActionTargeting (ActionView);
+    }
+    if (ActionView.bHasBinding &&
+        ActionView.bResolved &&
+        ActionView.Action.bEnabled)
+    {
+        CancelCombatActionTargeting ();
+    }
     return RequestCombatAction (ActionView, OutResult);
+}
+
+bool UGridCombatHudWidget::BeginCombatActionTargeting (
+    const FGridCombatHudActionView& ActionView)
+{
+    if (!IsValid (TurnManagerComponent) ||
+        !ActionView.bHasBinding ||
+        !ActionView.bResolved ||
+        !ActionView.Action.bEnabled ||
+        (ActionView.Action.Definition.TargetingPolicy !=
+                EGridCombatTargetingPolicy::Cell &&
+            ActionView.Action.Definition.TargetingPolicy !=
+                EGridCombatTargetingPolicy::Area))
+    {
+        return false;
+    }
+
+    bCombatActionTargetingActive = true;
+    PendingTargetingActionView = ActionView;
+    TargetingPreview = FGridCombatActionTargetingPreview ();
+    TargetingPreview.Action = ActionView.Action;
+    RefreshTargetingWidgets ();
+    return true;
+}
+
+bool UGridCombatHudWidget::UpdateCombatActionTargetingPreview (
+    FIntPoint TargetCell)
+{
+    if (!bCombatActionTargetingActive ||
+        !IsValid (TurnManagerComponent))
+    {
+        return false;
+    }
+
+    const FGridAvailableCombatAction& Action =
+        PendingTargetingActionView.Action;
+    const bool bValid =
+        TurnManagerComponent->BuildCombatActionTargetingPreview (
+            Action.CharacterIndex,
+            Action.Definition.ActionId,
+            Action.Definition.SourcePolicy,
+            Action.SourceDefinitionId,
+            Action.SourceEquipmentSlot,
+            TargetCell,
+            TargetingPreview);
+    RefreshTargetingWidgets ();
+    return bValid;
+}
+
+bool UGridCombatHudWidget::ConfirmCombatActionTarget (
+    FIntPoint TargetCell,
+    FGridCombatActionRequestResult& OutResult)
+{
+    OutResult = FGridCombatActionRequestResult ();
+    if (!UpdateCombatActionTargetingPreview (TargetCell) ||
+        !TargetingPreview.bValid ||
+        !IsValid (TurnManagerComponent))
+    {
+        OutResult.Action = TargetingPreview.Action;
+        OutResult.RejectReason =
+            EGridCombatActionRequestRejectReason::InvalidTarget;
+        return false;
+    }
+
+    const FGridAvailableCombatAction Action = TargetingPreview.Action;
+    const bool bAccepted =
+        TurnManagerComponent->RequestCharacterCombatActionAtCell (
+            Action.CharacterIndex,
+            Action.Definition.ActionId,
+            Action.Definition.SourcePolicy,
+            Action.SourceDefinitionId,
+            Action.SourceEquipmentSlot,
+            TargetCell,
+            OutResult);
+    if (bAccepted)
+    {
+        bCombatActionTargetingActive = false;
+        PendingTargetingActionView = FGridCombatHudActionView ();
+        TargetingPreview = FGridCombatActionTargetingPreview ();
+    }
+    RefreshFromSources ();
+    return bAccepted;
+}
+
+void UGridCombatHudWidget::ClearCombatActionTargetingPreview ()
+{
+    if (!bCombatActionTargetingActive)
+    {
+        return;
+    }
+    TargetingPreview = FGridCombatActionTargetingPreview ();
+    TargetingPreview.Action = PendingTargetingActionView.Action;
+    RefreshTargetingWidgets ();
+}
+
+void UGridCombatHudWidget::CancelCombatActionTargeting ()
+{
+    bCombatActionTargetingActive = false;
+    PendingTargetingActionView = FGridCombatHudActionView ();
+    TargetingPreview = FGridCombatActionTargetingPreview ();
+    RefreshTargetingWidgets ();
 }
 
 bool UGridCombatHudWidget::RequestEndTurn ()
@@ -942,6 +1065,7 @@ bool UGridCombatHudWidget::RequestEndTurn ()
     {
         return false;
     }
+    CancelCombatActionTargeting ();
     const bool bEnded = TurnManagerComponent->EndActivePlayerTurn ();
     RefreshFromSources ();
     return bEnded;
@@ -1100,6 +1224,7 @@ void UGridCombatHudWidget::NativeConstruct ()
 
 void UGridCombatHudWidget::NativeDestruct ()
 {
+    CancelCombatActionTargeting ();
     if (Button_EndTurn)
     {
         Button_EndTurn->OnClicked.RemoveDynamic (
@@ -1766,6 +1891,97 @@ void UGridCombatHudWidget::RefreshBoundWidgets ()
                     ? ESlateVisibility::SelfHitTestInvisible
                     : ESlateVisibility::Collapsed);
         }
+    }
+}
+
+void UGridCombatHudWidget::ValidateCombatActionTargetingState ()
+{
+    if (!bCombatActionTargetingActive)
+    {
+        return;
+    }
+
+    const FGridCombatHudActionView* CurrentActionView =
+        View.Actions.FindByPredicate (
+            [this] (const FGridCombatHudActionView& Candidate)
+            {
+                return Candidate.bHasBinding &&
+                    Candidate.bResolved &&
+                    Candidate.Action.bEnabled &&
+                    HaveSameHotbarIdentity (
+                        Candidate.Binding,
+                        PendingTargetingActionView.Binding) &&
+                    (Candidate.Action.Definition.TargetingPolicy ==
+                            EGridCombatTargetingPolicy::Cell ||
+                        Candidate.Action.Definition.TargetingPolicy ==
+                            EGridCombatTargetingPolicy::Area);
+            });
+    if (!CurrentActionView ||
+        CurrentActionView->Action.CharacterIndex !=
+            View.ActiveCharacterIndex)
+    {
+        bCombatActionTargetingActive = false;
+        PendingTargetingActionView = FGridCombatHudActionView ();
+        TargetingPreview = FGridCombatActionTargetingPreview ();
+        return;
+    }
+
+    PendingTargetingActionView = *CurrentActionView;
+    TargetingPreview.Action = CurrentActionView->Action;
+}
+
+void UGridCombatHudWidget::RefreshTargetingWidgets ()
+{
+    if (Panel_Targeting)
+    {
+        Panel_Targeting->SetVisibility (
+            bCombatActionTargetingActive
+                ? ESlateVisibility::SelfHitTestInvisible
+                : ESlateVisibility::Collapsed);
+    }
+    if (Text_TargetingInstructions)
+    {
+        const FText ActionName =
+            PendingTargetingActionView.Action.Definition.DisplayName.IsEmpty ()
+                ? FText::FromName (
+                    PendingTargetingActionView.Action.Definition.ActionId)
+                : PendingTargetingActionView.Action.Definition.DisplayName;
+        Text_TargetingInstructions->SetText (
+            bCombatActionTargetingActive
+                ? FText::FromString (FString::Printf (
+                    TEXT ("%s : cliquez une cellule pour confirmer — Échap pour annuler"),
+                    *ActionName.ToString ()))
+                : FText::GetEmpty ());
+    }
+    if (Text_TargetingCell)
+    {
+        FText Status = FText::GetEmpty ();
+        if (bCombatActionTargetingActive)
+        {
+            if (TargetingPreview.TargetCell.X == INDEX_NONE ||
+                TargetingPreview.TargetCell.Y == INDEX_NONE)
+            {
+                Status = FText::FromString (
+                    TEXT ("Survolez une cellule du donjon."));
+            }
+            else if (TargetingPreview.bValid)
+            {
+                Status = FText::FromString (FString::Printf (
+                    TEXT ("Cellule (%d,%d) — %d cible(s)"),
+                    TargetingPreview.TargetCell.X,
+                    TargetingPreview.TargetCell.Y,
+                    TargetingPreview.TargetMonsterIds.Num ()));
+            }
+            else
+            {
+                Status = TargetingPreview.InvalidReason;
+            }
+        }
+        Text_TargetingCell->SetText (Status);
+        Text_TargetingCell->SetVisibility (
+            bCombatActionTargetingActive
+                ? ESlateVisibility::HitTestInvisible
+                : ESlateVisibility::Collapsed);
     }
 }
 

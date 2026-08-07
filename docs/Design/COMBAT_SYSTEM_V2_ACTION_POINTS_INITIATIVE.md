@@ -777,7 +777,7 @@ Voir `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 
 ### MON12.8 — Barre configurable, objets et sorts
 
-**Implémentée jusqu'à MON12.8.5 — validation UE5 requise.**
+**Implémentée jusqu'à MON12.8.6 — validation UE5 requise.**
 
 - dix raccourcis personnels persistants et vides par défaut ;
 - glisser-déposer, déplacement, échange et suppression ;
@@ -785,7 +785,10 @@ Voir `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 - potions et parchemins avec consommation transactionnelle ;
 - palette des capacités et sorts de classe ;
 - attaques axiales et effets personnels avec coûts PA/mana atomiques ;
-- prochaine étape : cible cellule et zone d'effet dans MON12.8.6.
+- cible cellule explicite, annulation et prévisualisation ;
+- zones en diamant avec paiement unique et résolution par cible.
+
+Voir `MON12_8_6_CELL_AREA_TARGETING.md`.
 
 ### MON12.9 — Défense et réactions
 

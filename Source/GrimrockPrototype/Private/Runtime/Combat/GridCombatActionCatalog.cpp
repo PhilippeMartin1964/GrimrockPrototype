@@ -13,6 +13,15 @@ namespace
             SourcePolicy == EGridCombatActionSourcePolicy::Spell;
     }
 
+    bool IsSupportedAttackTargeting (
+        EGridCombatTargetingPolicy TargetingPolicy)
+    {
+        return TargetingPolicy ==
+                EGridCombatTargetingPolicy::FirstAxialTarget ||
+            TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
+            TargetingPolicy == EGridCombatTargetingPolicy::Area;
+    }
+
     EGridCombatActionAvailabilityReason EvaluateMON126Availability (
         const FGridCombatActionCatalogContext& Context,
         const FGridCombatActionContribution& Contribution)
@@ -77,8 +86,10 @@ namespace
             EGridCombatActionSourcePolicy::QuickItem)
         {
             const bool bSupportedQuickItemProfile =
-                Definition.ResolutionProfile ==
-                    EGridCombatActionResolutionProfile::Attack ||
+                (Definition.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack &&
+                    IsSupportedAttackTargeting (
+                        Definition.TargetingPolicy)) ||
                 (Definition.ResolutionProfile ==
                         EGridCombatActionResolutionProfile::Effect &&
                     Definition.TargetingPolicy ==
@@ -118,8 +129,8 @@ namespace
             const bool bSupportedAttack =
                 Definition.ResolutionProfile ==
                     EGridCombatActionResolutionProfile::Attack &&
-                Definition.TargetingPolicy ==
-                    EGridCombatTargetingPolicy::FirstAxialTarget;
+                IsSupportedAttackTargeting (
+                    Definition.TargetingPolicy);
             const bool bSupportedSelfEffect =
                 Definition.ResolutionProfile ==
                     EGridCombatActionResolutionProfile::Effect &&
@@ -154,8 +165,19 @@ namespace
                 }
             }
         }
+        else if (Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Equipment &&
+            (Definition.ResolutionProfile !=
+                    EGridCombatActionResolutionProfile::Attack ||
+                Definition.TargetingPolicy !=
+                    EGridCombatTargetingPolicy::FirstAxialTarget))
+        {
+            return EGridCombatActionAvailabilityReason::
+                ExecutionNotImplemented;
+        }
         else if (Definition.ResolutionProfile !=
-            EGridCombatActionResolutionProfile::Attack)
+                    EGridCombatActionResolutionProfile::Attack ||
+            !IsSupportedAttackTargeting (Definition.TargetingPolicy))
         {
             return EGridCombatActionAvailabilityReason::
                 ExecutionNotImplemented;

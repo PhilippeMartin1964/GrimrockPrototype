@@ -2,6 +2,7 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
+#include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -58,6 +59,27 @@ namespace
     {
         return SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
             SourcePolicy == EGridCombatActionSourcePolicy::Spell;
+    }
+
+    bool IsMON1286ExplicitTargetingPolicy (
+        EGridCombatTargetingPolicy TargetingPolicy)
+    {
+        return TargetingPolicy == EGridCombatTargetingPolicy::Cell ||
+            TargetingPolicy == EGridCombatTargetingPolicy::Area;
+    }
+
+    bool IsMON1286TargetedSource (
+        EGridCombatActionSourcePolicy SourcePolicy)
+    {
+        return SourcePolicy == EGridCombatActionSourcePolicy::Universal ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Spell ||
+            SourcePolicy == EGridCombatActionSourcePolicy::QuickItem;
+    }
+
+    FText MakeMON1286TargetingReason (const TCHAR* Reason)
+    {
+        return FText::FromString (Reason ? Reason : TEXT ("Cible invalide."));
     }
 }
 
@@ -768,6 +790,517 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionAttack (
     return true;
 }
 
+bool UGridTurnManagerComponent::BuildTargetingPreviewForAction (
+    const FGridAvailableCombatAction& Action,
+    const FIntPoint& TargetCell,
+    FGridCombatActionTargetingPreview& OutPreview) const
+{
+    OutPreview = FGridCombatActionTargetingPreview ();
+    OutPreview.Action = Action;
+    OutPreview.TargetCell = TargetCell;
+
+    if (!IsValid (RuntimeActor) || !IsValid (PartyPawn))
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("Le niveau ou le groupe est indisponible."));
+        return false;
+    }
+    const bool bCardinalFacing =
+        PartyPawn->Facing == EGridEdge::North ||
+        PartyPawn->Facing == EGridEdge::East ||
+        PartyPawn->Facing == EGridEdge::South ||
+        PartyPawn->Facing == EGridEdge::West;
+    if (!bCardinalFacing)
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("L'orientation du groupe est invalide."));
+        return false;
+    }
+    if (!Action.IsValid () || !Action.bEnabled)
+    {
+        OutPreview.InvalidReason = Action.DisabledReason.IsEmpty ()
+            ? MakeMON1286TargetingReason (TEXT ("Cette action est indisponible."))
+            : Action.DisabledReason;
+        return false;
+    }
+    if (!IsMON1286TargetedSource (Action.Definition.SourcePolicy) ||
+        Action.Definition.ResolutionProfile !=
+            EGridCombatActionResolutionProfile::Attack ||
+        !IsMON1286ExplicitTargetingPolicy (
+            Action.Definition.TargetingPolicy) ||
+        !Action.Definition.OffensiveProfile.IsValid ())
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("Cette action ne prend pas de cible cellule ou zone."));
+        return false;
+    }
+    if (!RuntimeActor->IsValidCell (TargetCell.X, TargetCell.Y) ||
+        RuntimeActor->GetCell (TargetCell.X, TargetCell.Y).CellType ==
+            EGridCellType::Empty)
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("Cette cellule n'appartient pas au niveau jouable."));
+        return false;
+    }
+
+    const FIntPoint PartyCell (
+        PartyPawn->CurrentCellX,
+        PartyPawn->CurrentCellY);
+    const int32 TargetDistance =
+        FMath::Abs (TargetCell.X - PartyCell.X) +
+        FMath::Abs (TargetCell.Y - PartyCell.Y);
+    if (TargetDistance > Action.Definition.RangeCells)
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("Cette cellule est hors de portée."));
+        return false;
+    }
+
+    if (Action.Definition.TargetingPolicy ==
+        EGridCombatTargetingPolicy::Cell)
+    {
+        OutPreview.AffectedCells.Add (TargetCell);
+    }
+    else
+    {
+        const int32 Radius = Action.Definition.AreaRadiusCells;
+        for (int32 Y = TargetCell.Y - Radius;
+            Y <= TargetCell.Y + Radius;
+            ++Y)
+        {
+            for (int32 X = TargetCell.X - Radius;
+                X <= TargetCell.X + Radius;
+                ++X)
+            {
+                const int32 Distance =
+                    FMath::Abs (X - TargetCell.X) +
+                    FMath::Abs (Y - TargetCell.Y);
+                if (Distance > Radius ||
+                    !RuntimeActor->IsValidCell (X, Y) ||
+                    RuntimeActor->GetCell (X, Y).CellType ==
+                        EGridCellType::Empty)
+                {
+                    continue;
+                }
+                OutPreview.AffectedCells.Add (FIntPoint (X, Y));
+            }
+        }
+    }
+
+    UWorld* World = GetWorld ();
+    UGridMonsterOccupancySubsystem* Occupancy = World
+        ? World->GetSubsystem<UGridMonsterOccupancySubsystem> ()
+        : nullptr;
+    if (!IsValid (Occupancy))
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("L'occupation du niveau est indisponible."));
+        return false;
+    }
+
+    for (const FIntPoint& Cell : OutPreview.AffectedCells)
+    {
+        AGridMonsterActor* Monster = Occupancy->GetOccupantAtCell (Cell);
+        if (!IsValid (Monster) ||
+            !IsCombatMonster (Monster) ||
+            !Monster->bMonsterEnabled ||
+            !Monster->IsRuntimeLevelActive () ||
+            Monster->IsDead ())
+        {
+            continue;
+        }
+        const FGuid MonsterId = Monster->ResolvePersistenceId ();
+        if (MonsterId.IsValid ())
+        {
+            OutPreview.TargetMonsterIds.Add (MonsterId);
+        }
+    }
+
+    if (OutPreview.TargetMonsterIds.IsEmpty ())
+    {
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            Action.Definition.TargetingPolicy ==
+                    EGridCombatTargetingPolicy::Area
+                ? TEXT ("Cette zone ne contient aucun ennemi vivant.")
+                : TEXT ("Cette cellule ne contient aucun ennemi vivant."));
+        return false;
+    }
+
+    OutPreview.bValid = true;
+    OutPreview.InvalidReason = FText::GetEmpty ();
+    return true;
+}
+
+bool UGridTurnManagerComponent::BuildCombatActionTargetingPreview (
+    int32 CharacterIndex,
+    FName ActionId,
+    EGridCombatActionSourcePolicy SourcePolicy,
+    FName SourceDefinitionId,
+    EGridEquipmentSlot SourceEquipmentSlot,
+    FIntPoint TargetCell,
+    FGridCombatActionTargetingPreview& OutPreview) const
+{
+    OutPreview = FGridCombatActionTargetingPreview ();
+    TArray<FGridAvailableCombatAction> AvailableActions;
+    GetAvailableCombatActions (CharacterIndex, AvailableActions);
+    const FGridAvailableCombatAction* Action =
+        AvailableActions.FindByPredicate (
+            [ActionId,
+                SourcePolicy,
+                SourceDefinitionId,
+                SourceEquipmentSlot]
+            (const FGridAvailableCombatAction& Candidate)
+            {
+                return Candidate.MatchesSource (
+                    ActionId,
+                    SourcePolicy,
+                    SourceDefinitionId,
+                    SourceEquipmentSlot);
+            });
+    if (!Action)
+    {
+        OutPreview.TargetCell = TargetCell;
+        OutPreview.InvalidReason = MakeMON1286TargetingReason (
+            TEXT ("Cette action n'est plus disponible."));
+        return false;
+    }
+    return BuildTargetingPreviewForAction (
+        *Action,
+        TargetCell,
+        OutPreview);
+}
+
+bool UGridTurnManagerComponent::RequestCharacterTargetedAttack (
+    const FGridAvailableCombatAction& Action,
+    const FGridCombatActionTargetingPreview& Preview,
+    FGridCombatActionRequestResult& OutResult)
+{
+    UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
+        ? PartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
+    if (!IsValid (Inventory) ||
+        !Preview.bValid ||
+        Preview.TargetMonsterIds.IsEmpty () ||
+        !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            Action.CharacterIndex))
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        Inventory->PartyInventoryState.ActiveCharacters[
+            Action.CharacterIndex];
+    FGridInventoryCharacterSummary CharacterSummary;
+    FGridPlayerCharacterTurnState TurnStateBefore;
+    if (!Inventory->GetCharacterSummary (
+            Action.CharacterIndex,
+            CharacterSummary) ||
+        !GetPlayerCharacterTurnState (
+            Action.CharacterIndex,
+            TurnStateBefore) ||
+        !CanCharacterSpendActionPoints (
+            Action.CharacterIndex,
+            Action.CurrentActionPointCost) ||
+        Character.DerivedStats.CurrentMana < Action.CurrentManaCost)
+    {
+        return false;
+    }
+
+    TArray<AGridMonsterActor*> TargetMonsters;
+    TArray<FGridAttackSourceStats> Sources;
+    TArray<FGridAttackTargetStats> Targets;
+    TArray<FGridAttackDefinition> AttackDefinitions;
+    TargetMonsters.Reserve (Preview.TargetMonsterIds.Num ());
+    Sources.Reserve (Preview.TargetMonsterIds.Num ());
+    Targets.Reserve (Preview.TargetMonsterIds.Num ());
+    AttackDefinitions.Reserve (Preview.TargetMonsterIds.Num ());
+    for (const FGuid& TargetId : Preview.TargetMonsterIds)
+    {
+        AGridMonsterActor* TargetMonster = FindCombatMonsterById (TargetId);
+        if (!IsValid (TargetMonster) ||
+            !TargetMonster->bMonsterEnabled ||
+            !TargetMonster->IsRuntimeLevelActive () ||
+            TargetMonster->IsDead ())
+        {
+            return false;
+        }
+
+        FGridAttackSourceStats Source;
+        FGridAttackTargetStats Target;
+        FGridAttackDefinition AttackDefinition;
+        if (!BuildPlayerAttackResolutionInputs (
+                CharacterSummary,
+                TargetMonster,
+                Action.Definition.OffensiveProfile,
+                Source,
+                Target,
+                AttackDefinition))
+        {
+            return false;
+        }
+        TargetMonsters.Add (TargetMonster);
+        Sources.Add (Source);
+        Targets.Add (Target);
+        AttackDefinitions.Add (AttackDefinition);
+    }
+
+    const bool bQuickItem = Action.Definition.SourcePolicy ==
+        EGridCombatActionSourcePolicy::QuickItem;
+    const int32 QuantityBefore = bQuickItem
+        ? Inventory->CountItemDefinitionInCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId)
+        : 0;
+    if (bQuickItem &&
+        (Action.SourceDefinitionId.IsNone () ||
+            Action.CurrentSourceItemQuantityCost <= 0 ||
+            QuantityBefore < Action.CurrentSourceItemQuantityCost))
+    {
+        return false;
+    }
+
+    if (!SpendPlayerCharacterActionPoints (
+            Action.CharacterIndex,
+            Action.CurrentActionPointCost))
+    {
+        return false;
+    }
+    if (bQuickItem &&
+        !Inventory->RemoveItemDefinitionFromCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId,
+            Action.CurrentSourceItemQuantityCost))
+    {
+        if (FGridPlayerCharacterTurnState* RestoredTurnState =
+            EnsurePlayerCharacterTurnState (Action.CharacterIndex))
+        {
+            *RestoredTurnState = TurnStateBefore;
+            BroadcastPlayerCharacterTurnState (*RestoredTurnState);
+        }
+        return false;
+    }
+
+    const int32 ManaBefore = Character.DerivedStats.CurrentMana;
+    Character.DerivedStats.CurrentMana = FMath::Max (
+        0,
+        ManaBefore - Action.CurrentManaCost);
+    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
+
+    OutResult.TargetedActionResult.TargetCell = Preview.TargetCell;
+    OutResult.TargetedActionResult.AffectedCells = Preview.AffectedCells;
+    OutResult.TargetedActionResult.TargetMonsterIds =
+        Preview.TargetMonsterIds;
+    if (bQuickItem)
+    {
+        OutResult.QuickItemResult.SourceQuantityBefore = QuantityBefore;
+        OutResult.QuickItemResult.SourceQuantityAfter =
+            Inventory->CountItemDefinitionInCharacterInventory (
+                Action.CharacterIndex,
+                Action.SourceDefinitionId);
+        OutResult.QuickItemResult.HealthBefore =
+            Character.DerivedStats.CurrentHealth;
+        OutResult.QuickItemResult.HealthAfter =
+            Character.DerivedStats.CurrentHealth;
+        OutResult.QuickItemResult.ManaBefore = ManaBefore;
+        OutResult.QuickItemResult.ManaAfter =
+            Character.DerivedStats.CurrentMana;
+    }
+    else
+    {
+        OutResult.ClassActionResult.HealthBefore =
+            Character.DerivedStats.CurrentHealth;
+        OutResult.ClassActionResult.HealthAfter =
+            Character.DerivedStats.CurrentHealth;
+        OutResult.ClassActionResult.ManaBefore = ManaBefore;
+        OutResult.ClassActionResult.ManaAfter =
+            Character.DerivedStats.CurrentMana;
+    }
+
+    const FIntPoint PartyCell (
+        PartyPawn->CurrentCellX,
+        PartyPawn->CurrentCellY);
+    bPlayerAttackResolutionInProgress = true;
+    for (int32 Index = 0; Index < TargetMonsters.Num (); ++Index)
+    {
+        AGridMonsterActor* TargetMonster = TargetMonsters[Index];
+        const FGuid TargetMonsterId = Preview.TargetMonsterIds[Index];
+        const FIntPoint TargetMonsterCell = TargetMonster->CurrentCell;
+
+        FGridPlayerAttackRequest Request;
+        Request.RequestId = FGuid::NewGuid ();
+        Request.RoundNumber = RoundNumber;
+        Request.AttackerCharacterIndex = Action.CharacterIndex;
+        Request.AttackerCharacterId = Character.CharacterId;
+        Request.TargetMonsterId = TargetMonsterId;
+        Request.PartyCell = PartyCell;
+        Request.TargetCell = TargetMonsterCell;
+        Request.PartyFacing = PartyPawn->Facing;
+        Request.RangeCells = Action.Definition.RangeCells;
+        Request.AttackId = Action.Definition.OffensiveProfile.AttackId;
+        Request.OffensiveItemDefinitionId = bQuickItem
+            ? Action.SourceDefinitionId
+            : NAME_None;
+        Request.OffensiveEquipmentSlot = EGridEquipmentSlot::None;
+        Request.ActionPointCost = Action.CurrentActionPointCost;
+
+        const FGridAttackResult AttackResult =
+            FGridCombatResolver::ResolveAttack (
+                Sources[Index],
+                Targets[Index],
+                AttackDefinitions[Index],
+                CombatRandomStream);
+        OutResult.TargetedActionResult.AttackRequests.Add (Request);
+        OutResult.TargetedActionResult.AttackResults.Add (AttackResult);
+        if (Index == 0)
+        {
+            OutResult.AttackRequest = Request;
+            OutResult.AttackResult = AttackResult;
+        }
+        LastPlayerAttackRequest = Request;
+        LastPlayerAttackResult = AttackResult;
+        LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;
+
+        ++PlayerAttackRequestedBroadcastCount;
+        OnPlayerAttackRequested.Broadcast (Request);
+
+        FGridCombatLogEntry AttackEntry;
+        AttackEntry.RoundNumber = RoundNumber;
+        AttackEntry.Phase = CurrentPhase;
+        AttackEntry.Type = AttackResult.bHit
+            ? EGridCombatLogEntryType::AttackHit
+            : EGridCombatLogEntryType::AttackMiss;
+        AttackEntry.SourceId = FName (*Character.CharacterId.ToString (
+            EGuidFormats::Digits));
+        AttackEntry.SourceDisplayName = CharacterSummary.DisplayName;
+        AttackEntry.TargetId = FName (*TargetMonsterId.ToString (
+            EGuidFormats::Digits));
+        AttackEntry.TargetDisplayName =
+            ResolveMonsterDisplayName (TargetMonster);
+        AttackEntry.TargetCharacterIndex = INDEX_NONE;
+        AttackEntry.AttackId = Request.AttackId;
+        AttackEntry.OffensiveItemDefinitionId =
+            Request.OffensiveItemDefinitionId;
+        AttackEntry.OffensiveEquipmentSlot =
+            Request.OffensiveEquipmentSlot;
+        AttackEntry.AttackResult = AttackResult;
+        AttackEntry.bTargetDefeated =
+            AttackResult.TargetHealthBefore > 0 &&
+            AttackResult.TargetHealthAfter <= 0;
+        AttackEntry.Message = FGridCombatLogFormatter::FormatPlayerAttack (
+            AttackEntry.SourceDisplayName,
+            AttackEntry.TargetDisplayName,
+            AttackEntry.AttackId,
+            AttackResult);
+        AppendCombatLogEntry (AttackEntry);
+
+        TargetMonster->ApplyAttackResult (AttackResult);
+        if (FGridCombatantInitiativeEntry* TargetEntry =
+            FindInitiativeEntry (
+                EGridCombatantSide::Monster,
+                TargetMonsterId))
+        {
+            const int32 PreviousHealth = TargetEntry->CurrentHealth;
+            RefreshInitiativeEntryVitals (*TargetEntry);
+            if (TargetEntry->CurrentHealth != PreviousHealth &&
+                TargetEntry->State != EGridCombatantTurnState::Defeated)
+            {
+                OnCombatantStateChanged.Broadcast (*TargetEntry);
+            }
+        }
+        ++PlayerAttackResolvedBroadcastCount;
+        OnPlayerAttackResolved.Broadcast (
+            Request,
+            TargetMonster,
+            AttackResult);
+        if (bCollectRuntimeMetrics)
+        {
+            ++RuntimeMetrics.AttacksResolved;
+        }
+    }
+    bPlayerAttackResolutionInProgress = false;
+
+    if (bPendingVictoryAfterPlayerAttack)
+    {
+        bPendingVictoryAfterPlayerAttack = false;
+        FinishCombat (EGridCombatPhase::Victory);
+    }
+    else if (!InitiativeOrder.IsEmpty ())
+    {
+        FGridPlayerCharacterTurnState TurnStateAfter;
+        if (GetPlayerCharacterTurnState (
+                Action.CharacterIndex,
+                TurnStateAfter) &&
+            TurnStateAfter.RemainingActionPoints <= 0 &&
+            IsActivePlayerCharacter (Action.CharacterIndex))
+        {
+            FinishActivePlayerTurn ();
+        }
+    }
+    return true;
+}
+
+bool UGridTurnManagerComponent::RequestCharacterCombatActionAtCell (
+    int32 CharacterIndex,
+    FName ActionId,
+    EGridCombatActionSourcePolicy SourcePolicy,
+    FName SourceDefinitionId,
+    EGridEquipmentSlot SourceEquipmentSlot,
+    FIntPoint TargetCell,
+    FGridCombatActionRequestResult& OutResult)
+{
+    OutResult = FGridCombatActionRequestResult ();
+    if (!bInitialized)
+    {
+        OutResult.RejectReason =
+            EGridCombatActionRequestRejectReason::
+                TurnManagerNotInitialized;
+        return false;
+    }
+
+    FGridCombatActionTargetingPreview Preview;
+    if (!BuildCombatActionTargetingPreview (
+            CharacterIndex,
+            ActionId,
+            SourcePolicy,
+            SourceDefinitionId,
+            SourceEquipmentSlot,
+            TargetCell,
+            Preview))
+    {
+        OutResult.Action = Preview.Action;
+        OutResult.RejectReason = Preview.Action.Definition.ActionId.IsNone ()
+            ? EGridCombatActionRequestRejectReason::InvalidAction
+            : Preview.Action.bEnabled
+                ? EGridCombatActionRequestRejectReason::InvalidTarget
+                : EGridCombatActionRequestRejectReason::ActionUnavailable;
+        return false;
+    }
+
+    OutResult.Action = Preview.Action;
+    const bool bAccepted = RequestCharacterTargetedAttack (
+        Preview.Action,
+        Preview,
+        OutResult);
+    OutResult.bAccepted = bAccepted;
+    OutResult.RejectReason = bAccepted
+        ? EGridCombatActionRequestRejectReason::None
+        : EGridCombatActionRequestRejectReason::InvalidTarget;
+    UE_LOG (
+        LogGridTurnManager,
+        Log,
+        TEXT ("[GridTargetedAction] Accepted=%s Character=%d Action=%s TargetCell=(%d,%d) AreaCells=%d Targets=%d APCost=%d ManaCost=%d"),
+        bAccepted ? TEXT ("true") : TEXT ("false"),
+        CharacterIndex,
+        *ActionId.ToString (),
+        TargetCell.X,
+        TargetCell.Y,
+        Preview.AffectedCells.Num (),
+        Preview.TargetMonsterIds.Num (),
+        Preview.Action.CurrentActionPointCost,
+        Preview.Action.CurrentManaCost);
+    return bAccepted;
+}
+
 bool UGridTurnManagerComponent::RequestCharacterCombatAction (
     int32 CharacterIndex,
     FName ActionId,
@@ -830,6 +1363,22 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction (
             *SourceDefinitionId.ToString (),
             *UEnum::GetValueAsString (SourceEquipmentSlot),
             *GetMON126AvailabilityText (*Action));
+        return false;
+    }
+
+    if (IsMON1286ExplicitTargetingPolicy (
+        Action->Definition.TargetingPolicy))
+    {
+        OutResult.RejectReason =
+            EGridCombatActionRequestRejectReason::TargetRequired;
+        UE_LOG (
+            LogGridTurnManager,
+            Log,
+            TEXT ("[GridActionCatalog] Accepted=false Character=%d Action=%s Source=%s Slot=%s Reason=TargetRequired"),
+            CharacterIndex,
+            *ActionId.ToString (),
+            *SourceDefinitionId.ToString (),
+            *UEnum::GetValueAsString (SourceEquipmentSlot));
         return false;
     }
 

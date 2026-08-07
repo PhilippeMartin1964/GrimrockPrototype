@@ -122,8 +122,8 @@ Il vérifie :
 7. effet personnel accepté avec restauration et coûts exacts ;
 8. refus sans dépense lorsque l'effet personnel est inutile.
 
-## Suite
+## Suite réalisée
 
-MON12.8.6 pourra introduire la sélection explicite d'une cellule, puis les
-zones d'effet. Les profils `Cell` et `Area` restent jusque-là catalogués mais
-indisponibles.
+MON12.8.6 ajoute la sélection explicite d'une cellule et les zones d'effet.
+Les profils `Cell` et `Area` sont désormais exécutables par le HUD et le
+contrôleur joueur. Voir `MON12_8_6_CELL_AREA_TARGETING.md`.
