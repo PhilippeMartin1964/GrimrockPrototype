@@ -19,6 +19,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridInventoryDragDropOperation.h"
 
 namespace
 {
@@ -163,6 +164,7 @@ namespace
                 };
             Party->PartyInventoryComponent->PartyInventoryState
                 .ActiveEquipment.SetNum (4);
+            Party->PartyInventoryComponent->InitializeDefaultPartyIfNeeded ();
 
             FGridItemInstance Weapon;
             Weapon.RuntimeObjectId = FGuid (12, 7, 2, 1);
@@ -322,21 +324,45 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         Members[0].bActive);
 
     TArray<FGridAvailableCombatAction> Catalog;
+    TArray<FGridCombatHotbarBinding> Bindings;
+    Bindings.SetNum (FGridCombatHotbarBinding::SlotCount);
+    for (int32 SlotIndex = 0;
+        SlotIndex < Bindings.Num ();
+        ++SlotIndex)
+    {
+        Bindings[SlotIndex].Reset (SlotIndex);
+    }
     for (int32 Index = 0; Index < 3; ++Index)
     {
         FGridAvailableCombatAction& Action = Catalog.AddDefaulted_GetRef ();
         Action.Definition.ActionId = *FString::Printf (
             TEXT ("Action_%d"), Index);
+        Action.Definition.SourcePolicy =
+            EGridCombatActionSourcePolicy::Universal;
         Action.CurrentActionPointCost = Index + 1;
         Action.bEnabled = Index != 2;
         Action.DisabledReason = Action.bEnabled
             ? FText::GetEmpty ()
             : FText::FromString (TEXT ("PA insuffisants"));
+        Bindings[Index].ActionId = Action.Definition.ActionId;
+        Bindings[Index].SourcePolicy =
+            EGridCombatActionSourcePolicy::Universal;
     }
     TArray<FGridCombatHudActionView> Actions;
-    FGridCombatHudViewModelBuilder::BuildActions (Catalog, Actions);
-    TestEqual (TEXT ("Every catalog action creates one action view"),
-        Actions.Num (), Catalog.Num ());
+    FGridCombatHudViewModelBuilder::BuildHotbarActions (
+        Bindings,
+        Catalog,
+        Actions);
+    TestEqual (TEXT ("The view always exposes ten hotbar slots"),
+        Actions.Num (), 10);
+    TestEqual (TEXT ("The first slot displays key 1"),
+        Actions[0].ShortcutText.ToString (), FString (TEXT ("1")));
+    TestEqual (TEXT ("The last slot displays key 0"),
+        Actions[9].ShortcutText.ToString (), FString (TEXT ("0")));
+    TestTrue (TEXT ("An assigned action is resolved from the catalog"),
+        Actions[0].bResolved);
+    TestFalse (TEXT ("An unassigned slot stays empty"),
+        Actions[9].bHasBinding);
     TestEqual (TEXT ("A disabled action keeps its reason"),
         Actions[2].DisabledReason.ToString (),
         FString (TEXT ("PA insuffisants")));
@@ -587,14 +613,32 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest (
         Fixture.Hud->View.ActiveCharacterIndex, 0);
     TestEqual (TEXT ("The HUD reads the shared PAM authority"),
         Fixture.Hud->View.Mobility.RemainingMobilityActionPoints, 2);
-    TestTrue (TEXT ("The MON12.6 catalog generated action buttons"),
-        Fixture.Hud->View.Actions.Num () > 0);
+    TestEqual (TEXT ("The HUD exposes ten fixed hotbar slots"),
+        Fixture.Hud->View.Actions.Num (), 10);
+    TestFalse (TEXT ("A new hotbar starts empty"),
+        Fixture.Hud->View.Actions[0].bHasBinding);
+
+    FGridItemInstance EquippedSword;
+    TestTrue (TEXT ("The fixture exposes the equipped sword"),
+        Fixture.Party->PartyInventoryComponent->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            EquippedSword));
+    UGridInventoryDragDropOperation* SwordDrag =
+        NewObject<UGridInventoryDragDropOperation> (Fixture.Hud);
+    SwordDrag->InitializeFromSlot (
+        EGridInventoryUiSlotType::MainHand,
+        0,
+        EquippedSword);
+    TestTrue (TEXT ("Dragging the sword can configure slot zero"),
+        Fixture.Hud->HandleHotbarDrop (0, SwordDrag));
 
     const FGridCombatHudActionView* SwordAction =
         Fixture.Hud->View.Actions.FindByPredicate (
             [] (const FGridCombatHudActionView& Candidate)
             {
-                return Candidate.Action.SourceDefinitionId ==
+                return Candidate.bHasBinding &&
+                    Candidate.Action.SourceDefinitionId ==
                     FName (TEXT ("MON12_7_Sword"));
             });
     if (!TestNotNull (TEXT ("The equipped sword contributes an action"),

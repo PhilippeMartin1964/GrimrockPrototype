@@ -8,7 +8,9 @@
 class AGrimrockPartyPawn;
 class UBorder;
 class UButton;
+class UDragDropOperation;
 class UGridCombatActionPanelWidget;
+class UGridCombatHotbarDragDropOperation;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
 class UImage;
@@ -64,6 +66,21 @@ USTRUCT (BlueprintType)
 struct FGridCombatHudActionView
 {
     GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    int32 HotbarSlotIndex = INDEX_NONE;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    FText ShortcutText;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    FGridCombatHotbarBinding Binding;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    bool bHasBinding = false;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    bool bResolved = false;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     FGridAvailableCombatAction Action;
@@ -157,7 +174,8 @@ public:
         const TArray<FGridPlayerCharacterTurnState>& TurnStates,
         TArray<FGridCombatHudPartyMemberView>& OutMembers);
 
-    static void BuildActions (
+    static void BuildHotbarActions (
+        const TArray<FGridCombatHotbarBinding>& Bindings,
         const TArray<FGridAvailableCombatAction>& AvailableActions,
         TArray<FGridCombatHudActionView>& OutActions);
 
@@ -176,7 +194,7 @@ public:
 
 class UGridCombatHudWidget;
 
-/** One generated action button. Its identity comes entirely from MON12.6. */
+/** One fixed, configurable combat hotbar slot. */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridCombatHudActionWidget : public UUserWidget
 {
@@ -201,6 +219,10 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_DisabledReason;
 
+    /** Optional. Without it the shortcut is prefixed to Text_ActionName. */
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
+    TObjectPtr<UTextBlock> Text_ShortcutNumber;
+
     void InitializeAction (
         UGridCombatHudWidget* InOwnerHud,
         const FGridCombatHudActionView& InView);
@@ -209,14 +231,25 @@ protected:
     virtual void NativeConstruct () override;
     virtual void NativeDestruct () override;
 
+    virtual FReply NativeOnPreviewMouseButtonDown (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent) override;
+
+    virtual void NativeOnDragDetected (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent,
+        UDragDropOperation*& OutOperation) override;
+
+    virtual bool NativeOnDrop (
+        const FGeometry& InGeometry,
+        const FDragDropEvent& InDragDropEvent,
+        UDragDropOperation* InOperation) override;
+
 private:
     UPROPERTY (Transient)
     TObjectPtr<UGridCombatHudWidget> OwnerHud;
 
     void RefreshWidgets ();
-
-    UFUNCTION ()
-    void HandleClicked ();
 };
 
 /** One read-only entry copied from the TurnManager upcoming order. */
@@ -270,7 +303,7 @@ private:
 };
 
 /**
- * Event-driven MON12.7 combat HUD. It projects authoritative runtime state and
+ * Event-driven MON12.8 combat HUD. It projects authoritative runtime state and
  * never calculates initiative, action costs, availability or end-turn rules.
  */
 UCLASS ()
@@ -309,6 +342,10 @@ public:
 
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TArray<TObjectPtr<UGridCombatActionPanelWidget>> PartyMemberPanels;
+
+    /** Fixed ten-slot pool; entries are refreshed instead of recreated. */
+    UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
+    TArray<TObjectPtr<UGridCombatHudActionWidget>> HotbarActionWidgets;
 
     /** Fixed widget pool; entries are updated instead of recreated. */
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
@@ -359,6 +396,13 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|HUD")
     bool RequestEndTurn ();
 
+    /** Routes inventory/equipment and hotbar drag payloads to persistence. */
+    bool HandleHotbarDrop (
+        int32 TargetSlotIndex,
+        UDragDropOperation* DragOperation);
+
+    bool ClearHotbarSlot (int32 SlotIndex);
+
 protected:
     virtual void NativeConstruct () override;
     virtual void NativeDestruct () override;
@@ -369,7 +413,9 @@ private:
     void BindToSources ();
     void UnbindFromSources ();
     void EnsurePartyMemberPanels ();
-    void RebuildActionWidgets ();
+    void EnsureActionWidgets ();
+    void RefreshActionWidgets ();
+    void ApplyHotbarPresentationFallbacks ();
     void EnsureInitiativeWidgets ();
     void RefreshInitiativeWidgets ();
     void RefreshBoundWidgets ();

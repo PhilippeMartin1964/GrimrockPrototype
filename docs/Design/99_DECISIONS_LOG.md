@@ -628,3 +628,22 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   raccourcis appartiennent aux jalons suivants.
 - Le document d'implémentation est
   `docs/Design/MON12_8_1_PERSISTENT_COMBAT_HOTBAR_MODEL.md`.
+
+---
+
+## 2026-08-07 — MON12.8.2 : dix slots fixes et glisser-déposer
+
+- La liste automatique du catalogue est remplacée par dix widgets persistants
+  affichés dans l'ordre `1 2 3 4 5 6 7 8 9 0`.
+- Déposer une potion ou un parchemin crée une référence par définition sans
+  déplacer la pile ; déposer une arme équipée crée une référence par instance.
+- Un raccourci suit la même arme si elle change de main. Une arme absente reste
+  configurée mais son slot devient indisponible.
+- Glisser un raccourci vers un slot vide le déplace ; vers un slot occupé, les
+  deux bindings sont échangés atomiquement. Le clic droit efface le slot.
+- Les widgets sont mis en pool et rafraîchis sur événements, sans `Tick` et
+  sans reconstruction complète de la barre.
+- Le clic gauche et les touches numériques n'exécutent pas encore l'action ;
+  ils sont réservés à MON12.8.3. Les consommables seront exécutés en MON12.8.4.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_2_FIXED_COMBAT_HOTBAR_DRAG_DROP.md`.

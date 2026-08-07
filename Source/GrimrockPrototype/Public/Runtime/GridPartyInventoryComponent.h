@@ -110,6 +110,24 @@ public:
         int32 CharacterIndex,
         int32 SlotIndex);
 
+    /**
+     * Creates a shortcut without moving or consuming the source item.
+     * SourceEquipmentSlot is None for inventory potions and scrolls.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
+    bool SetCharacterCombatHotbarBindingFromItem (
+        int32 CharacterIndex,
+        int32 SlotIndex,
+        const FGridItemInstance& SourceItem,
+        EGridEquipmentSlot SourceEquipmentSlot);
+
+    /** Moves into an empty slot or swaps two occupied slots atomically. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
+    bool MoveOrSwapCharacterCombatHotbarBinding (
+        int32 CharacterIndex,
+        int32 SourceSlotIndex,
+        int32 TargetSlotIndex);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     bool IsValidCharacterIndex (int32 Index) const;
 

@@ -785,6 +785,173 @@ bool UGridPartyInventoryComponent::ClearCharacterCombatHotbarBinding (
         EmptyBinding);
 }
 
+bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem (
+    int32 CharacterIndex,
+    int32 SlotIndex,
+    const FGridItemInstance& SourceItem,
+    EGridEquipmentSlot SourceEquipmentSlot)
+{
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        SlotIndex < 0 ||
+        SlotIndex >= FGridCombatHotbarBinding::SlotCount ||
+        !SourceItem.IsValid ())
+    {
+        return false;
+    }
+
+    const UGridItemDefinitionAsset* Definition =
+        FindItemDefinition (SourceItem.ItemDefinitionId);
+    if (!IsValid (Definition) || !Definition->IsValidDefinition ())
+    {
+        return false;
+    }
+
+    FGridCombatHotbarBinding Binding;
+    if (SourceEquipmentSlot != EGridEquipmentSlot::None)
+    {
+        if (SourceEquipmentSlot != EGridEquipmentSlot::MainHand &&
+            SourceEquipmentSlot != EGridEquipmentSlot::OffHand)
+        {
+            return false;
+        }
+        if (!Definition->CompatibleEquipmentSlots.Contains (
+            SourceEquipmentSlot))
+        {
+            return false;
+        }
+
+        FGridItemInstance EquippedItem;
+        if (!GetEquippedItem (
+                CharacterIndex,
+                SourceEquipmentSlot,
+                EquippedItem) ||
+            EquippedItem.RuntimeObjectId != SourceItem.RuntimeObjectId ||
+            EquippedItem.ItemDefinitionId != SourceItem.ItemDefinitionId)
+        {
+            return false;
+        }
+
+        FName PrimaryActionId = NAME_None;
+        if (!Definition->CombatActions.IsEmpty ())
+        {
+            const FGridCombatActionDefinition* PrimaryAction =
+                Definition->CombatActions.FindByPredicate (
+                    [] (const FGridCombatActionDefinition& Candidate)
+                    {
+                        return Candidate.IsValid () &&
+                            Candidate.SourcePolicy ==
+                                EGridCombatActionSourcePolicy::Equipment;
+                    });
+            if (PrimaryAction)
+            {
+                PrimaryActionId = PrimaryAction->ActionId;
+            }
+        }
+        else if (Definition->CanProvideAttackFromSlot (
+            SourceEquipmentSlot))
+        {
+            PrimaryActionId = Definition->OffensiveProfile.AttackId;
+        }
+
+        if (PrimaryActionId.IsNone ())
+        {
+            return false;
+        }
+
+        Binding.ActionId = PrimaryActionId;
+        Binding.SourcePolicy = EGridCombatActionSourcePolicy::Equipment;
+        Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
+        Binding.PreferredSourceRuntimeId = SourceItem.RuntimeObjectId;
+        Binding.PreferredEquipmentSlot = SourceEquipmentSlot;
+    }
+    else
+    {
+        const FGridCharacterInventoryState& Character =
+            PartyInventoryState.ActiveCharacters[CharacterIndex];
+        const bool bItemStillOwned =
+            Character.InventorySlots.ContainsByPredicate (
+                [&SourceItem] (const FGridInventorySlot& Candidate)
+                {
+                    return !Candidate.IsEmpty () &&
+                        Candidate.Item.RuntimeObjectId ==
+                            SourceItem.RuntimeObjectId &&
+                        Candidate.Item.ItemDefinitionId ==
+                            SourceItem.ItemDefinitionId;
+                });
+        if (!bItemStillOwned ||
+            (Definition->ItemType != EGridItemType::Potion &&
+                Definition->ItemType != EGridItemType::Scroll))
+        {
+            return false;
+        }
+
+        Binding.ActionId =
+            FGridCombatHotbarBinding::MakeQuickItemActionId (
+                SourceItem.ItemDefinitionId);
+        Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
+        Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
+    }
+
+    return SetCharacterCombatHotbarBinding (
+        CharacterIndex,
+        SlotIndex,
+        Binding);
+}
+
+bool UGridPartyInventoryComponent::MoveOrSwapCharacterCombatHotbarBinding (
+    int32 CharacterIndex,
+    int32 SourceSlotIndex,
+    int32 TargetSlotIndex)
+{
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        SourceSlotIndex < 0 ||
+        SourceSlotIndex >= FGridCombatHotbarBinding::SlotCount ||
+        TargetSlotIndex < 0 ||
+        TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount)
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!Character.CombatHotbarSlots.IsValidIndex (SourceSlotIndex) ||
+        !Character.CombatHotbarSlots.IsValidIndex (TargetSlotIndex) ||
+        Character.CombatHotbarSlots[SourceSlotIndex].IsEmpty ())
+    {
+        return false;
+    }
+    if (SourceSlotIndex == TargetSlotIndex)
+    {
+        return true;
+    }
+
+    FGridCombatHotbarBinding SourceBinding =
+        Character.CombatHotbarSlots[SourceSlotIndex];
+    FGridCombatHotbarBinding TargetBinding =
+        Character.CombatHotbarSlots[TargetSlotIndex];
+    SourceBinding.SlotIndex = TargetSlotIndex;
+    if (TargetBinding.IsEmpty ())
+    {
+        TargetBinding.Reset (SourceSlotIndex);
+    }
+    else
+    {
+        TargetBinding.SlotIndex = SourceSlotIndex;
+    }
+
+    if (!SourceBinding.IsValid () || !TargetBinding.IsValid ())
+    {
+        return false;
+    }
+
+    Character.CombatHotbarSlots[SourceSlotIndex] =
+        MoveTemp (TargetBinding);
+    Character.CombatHotbarSlots[TargetSlotIndex] =
+        MoveTemp (SourceBinding);
+    NotifyPartyInventoryChanged (CharacterIndex);
+    return true;
+}
+
 bool UGridPartyInventoryComponent::IsValidCharacterIndex (int32 Index) const
 {
     return PartyInventoryState.IsValidActiveCharacterIndex (Index);

@@ -2,8 +2,10 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "UI/GridCombatHudWidget.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace
@@ -313,6 +315,170 @@ bool FGridMON128RejectInvalidHotbarTest::RunTest (
     TestTrue (
         TEXT ("The previous party hotbar remains empty"),
         Component->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[3].IsEmpty ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON128MoveOrSwapHotbarTest,
+    "Grimrock.Monsters.MON12.8.2.MoveOrSwapBindings",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON128MoveOrSwapHotbarTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridPartyInventoryComponent* Component = CreateMON128Inventory ();
+    if (!Component)
+    {
+        return false;
+    }
+
+    const FGuid WeaponRuntimeId = FGuid::NewGuid ();
+    TestTrue (TEXT ("Slot zero accepts the unarmed shortcut"),
+        Component->SetCharacterCombatHotbarBinding (
+            0,
+            0,
+            MakeMON128UnarmedBinding ()));
+    TestTrue (TEXT ("Slot one accepts the weapon shortcut"),
+        Component->SetCharacterCombatHotbarBinding (
+            0,
+            1,
+            MakeMON128EquipmentBinding (WeaponRuntimeId)));
+    TestTrue (TEXT ("Dropping onto an occupied slot swaps atomically"),
+        Component->MoveOrSwapCharacterCombatHotbarBinding (0, 0, 1));
+
+    FGridCombatHotbarBinding SlotZero;
+    FGridCombatHotbarBinding SlotOne;
+    Component->GetCharacterCombatHotbarBinding (0, 0, SlotZero);
+    Component->GetCharacterCombatHotbarBinding (0, 1, SlotOne);
+    TestEqual (TEXT ("The weapon moved to slot zero"),
+        SlotZero.ActionId, FName (TEXT ("Attack_Shuriken")));
+    TestEqual (TEXT ("The unarmed action moved to slot one"),
+        SlotOne.ActionId, FName (TEXT ("Attack_Unarmed")));
+    TestEqual (TEXT ("The swapped first index is normalized"),
+        SlotZero.SlotIndex, 0);
+    TestEqual (TEXT ("The swapped second index is normalized"),
+        SlotOne.SlotIndex, 1);
+
+    TestTrue (TEXT ("Dropping onto an empty slot moves the binding"),
+        Component->MoveOrSwapCharacterCombatHotbarBinding (0, 1, 2));
+    FGridCombatHotbarBinding SlotTwo;
+    Component->GetCharacterCombatHotbarBinding (0, 1, SlotOne);
+    Component->GetCharacterCombatHotbarBinding (0, 2, SlotTwo);
+    TestTrue (TEXT ("The move clears its source"), SlotOne.IsEmpty ());
+    TestEqual (TEXT ("The empty target receives the action"),
+        SlotTwo.ActionId, FName (TEXT ("Attack_Unarmed")));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON128QuickItemDropTest,
+    "Grimrock.Monsters.MON12.8.2.InventoryQuickItemBinding",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON128QuickItemDropTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridPartyInventoryComponent* Component = CreateMON128Inventory ();
+    if (!Component)
+    {
+        return false;
+    }
+
+    UGridItemDefinitionAsset* PotionDefinition =
+        NewObject<UGridItemDefinitionAsset> (Component);
+    PotionDefinition->ItemDefinitionId = TEXT ("Potion_MON1282");
+    PotionDefinition->DisplayName =
+        FText::FromString (TEXT ("Potion de test"));
+    PotionDefinition->ItemType = EGridItemType::Potion;
+    PotionDefinition->bStackable = true;
+    PotionDefinition->MaxStackSize = 10;
+    TestTrue (TEXT ("The potion definition is registered"),
+        Component->RegisterItemDefinition (PotionDefinition));
+
+    FGridItemInstance Potion;
+    Potion.RuntimeObjectId = FGuid::NewGuid ();
+    Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
+    Potion.DisplayName = PotionDefinition->DisplayName;
+    Potion.Quantity = 3;
+    Potion.OwnerType = EGridItemOwnerType::CharacterInventory;
+    Potion.OwnerCharacterIndex = 0;
+    FGridInventorySlot& InventorySlot = Component->PartyInventoryState
+        .ActiveCharacters[0].InventorySlots[0];
+    InventorySlot.bOccupied = true;
+    InventorySlot.Item = Potion;
+
+    TestTrue (TEXT ("Dropping a potion creates a type-based shortcut"),
+        Component->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            4,
+            Potion,
+            EGridEquipmentSlot::None));
+    FGridCombatHotbarBinding Binding;
+    Component->GetCharacterCombatHotbarBinding (0, 4, Binding);
+    TestEqual (TEXT ("The quick-item action id is stable"),
+        Binding.ActionId,
+        FName (TEXT ("Use_Potion_MON1282")));
+    TestTrue (TEXT ("The binding uses quick-item policy"),
+        Binding.SourcePolicy == EGridCombatActionSourcePolicy::QuickItem);
+    TestEqual (TEXT ("The item definition identifies future stacks"),
+        Binding.SourceDefinitionId,
+        PotionDefinition->ItemDefinitionId);
+    TestFalse (TEXT ("A stack runtime id is deliberately not persisted"),
+        Binding.PreferredSourceRuntimeId.IsValid ());
+    TestTrue (TEXT ("Creating the shortcut does not move the potion"),
+        !InventorySlot.IsEmpty () && InventorySlot.Item.Quantity == 3);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON128StableEquipmentResolutionTest,
+    "Grimrock.Monsters.MON12.8.2.EquipmentBindingFollowsRuntimeItem",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON128StableEquipmentResolutionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    const FGuid WeaponRuntimeId = FGuid::NewGuid ();
+    FGridCombatHotbarBinding Binding =
+        MakeMON128EquipmentBinding (WeaponRuntimeId);
+    Binding.SlotIndex = 0;
+    TArray<FGridCombatHotbarBinding> Bindings;
+    Bindings.SetNum (FGridCombatHotbarBinding::SlotCount);
+    for (int32 SlotIndex = 0;
+        SlotIndex < Bindings.Num ();
+        ++SlotIndex)
+    {
+        Bindings[SlotIndex].Reset (SlotIndex);
+    }
+    Bindings[0] = Binding;
+
+    FGridAvailableCombatAction Action;
+    Action.Definition.ActionId = Binding.ActionId;
+    Action.Definition.SourcePolicy = Binding.SourcePolicy;
+    Action.SourceDefinitionId = Binding.SourceDefinitionId;
+    Action.SourceRuntimeId = WeaponRuntimeId;
+    Action.SourceEquipmentSlot = EGridEquipmentSlot::OffHand;
+    Action.bEnabled = true;
+    TArray<FGridAvailableCombatAction> AvailableActions = { Action };
+    TArray<FGridCombatHudActionView> Views;
+    FGridCombatHudViewModelBuilder::BuildHotbarActions (
+        Bindings,
+        AvailableActions,
+        Views);
+
+    TestEqual (TEXT ("The projection still contains ten fixed slots"),
+        Views.Num (), 10);
+    TestTrue (TEXT ("The same runtime weapon resolves after changing hand"),
+        Views[0].bResolved);
+    TestTrue (TEXT ("The resolved action uses its current hand"),
+        Views[0].Action.SourceEquipmentSlot ==
+            EGridEquipmentSlot::OffHand);
     return true;
 }
 

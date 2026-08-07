@@ -1,5 +1,10 @@
 # MON12.7 — HUD de combat orienté actions
 
+> Mise à jour MON12.8.2 : la liste automatique documentée ci-dessous a été
+> remplacée par dix raccourcis fixes et configurables. Voir
+> `docs/Design/MON12_8_2_FIXED_COMBAT_HOTBAR_DRAG_DROP.md` pour l'état actuel
+> de `Panel_Actions` et `WBP_GridCombatHudAction`.
+
 ## Résultat
 
 MON12.7 ajoute `UGridCombatHudWidget`, un HUD racine événementiel qui affiche :

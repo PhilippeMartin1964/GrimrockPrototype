@@ -85,6 +85,16 @@ struct FGridCombatHotbarBinding
         return ActionId.IsNone ();
     }
 
+    /** Stable identity used by consumables until their executor is available. */
+    static FName MakeQuickItemActionId (FName ItemDefinitionId)
+    {
+        return ItemDefinitionId.IsNone ()
+            ? NAME_None
+            : FName (*FString::Printf (
+                TEXT ("Use_%s"),
+                *ItemDefinitionId.ToString ()));
+    }
+
     bool IsValid () const
     {
         if (SlotIndex < 0 || SlotIndex >= SlotCount)

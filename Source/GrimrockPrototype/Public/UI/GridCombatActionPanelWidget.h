@@ -67,10 +67,10 @@ struct FGridCombatActionPanelView
 /**
  * MON12 combat action panel for one party member.
  *
- * MON12.7 uses this class as a read-only status panel. Combat actions are
- * rendered and routed exclusively by UGridCombatHudActionWidget. The HUD
- * assigns one explicit party-member index to each panel instance and owns the
- * event subscriptions that refresh all status panels.
+ * MON12.8 uses this class as a read-only status panel. Configured combat
+ * shortcuts are rendered by UGridCombatHudActionWidget. The HUD assigns one
+ * explicit party-member index to each panel instance and owns the event
+ * subscriptions that refresh all status panels.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridCombatActionPanelWidget
