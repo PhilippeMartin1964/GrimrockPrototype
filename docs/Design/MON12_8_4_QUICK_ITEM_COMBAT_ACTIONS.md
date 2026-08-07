@@ -129,6 +129,7 @@ Il vérifie :
 
 ## Suite
 
-MON12.8.5 pourra ajouter une palette explicite pour affecter sans objet source
-les capacités de classe et les sorts appris, puis leur exécution dédiée sans
-modifier le modèle persistant des dix raccourcis.
+MON12.8.5 ajoute la palette explicite pour affecter sans objet source les
+capacités de classe et les sorts appris, puis exécute les attaques axiales et
+effets personnels compatibles. Voir
+`MON12_8_5_CLASS_ACTION_PALETTE.md`.

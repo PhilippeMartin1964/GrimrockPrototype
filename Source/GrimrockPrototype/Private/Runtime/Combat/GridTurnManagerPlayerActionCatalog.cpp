@@ -52,6 +52,13 @@ namespace
                             EGridCombatActionResolutionProfile::Attack;
                     }));
     }
+
+    bool IsMON1285ClassActionSource (
+        EGridCombatActionSourcePolicy SourcePolicy)
+    {
+        return SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Spell;
+    }
 }
 
 void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
@@ -85,7 +92,10 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
             {
                 AddMON126Contribution (
                     Definition,
-                    ClassDefinition->ClassId,
+                    Definition.SourcePolicy ==
+                            EGridCombatActionSourcePolicy::Universal
+                        ? NAME_None
+                        : ClassDefinition->ClassId,
                     FGuid (),
                     EGridEquipmentSlot::None,
                     1,
@@ -305,6 +315,7 @@ void UGridTurnManagerComponent::GetAvailableCombatActions (
             CharacterSummary.DerivedStats.MaxMana);
     }
     Context.bEnableQuickItemExecutors = true;
+    Context.bEnableClassActionExecutors = true;
     if (!Character.ClassId.IsNone ())
     {
         Context.SatisfiedRequirements.Add (Character.ClassId);
@@ -598,6 +609,165 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect (
     return true;
 }
 
+bool UGridTurnManagerComponent::RequestCharacterClassActionEffect (
+    const FGridAvailableCombatAction& Action,
+    FGridCombatClassActionResult& OutResult)
+{
+    OutResult = FGridCombatClassActionResult ();
+    UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
+        ? PartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
+    if (!IsValid (Inventory) ||
+        !Action.bEnabled ||
+        !IsMON1285ClassActionSource (
+            Action.Definition.SourcePolicy) ||
+        Action.Definition.ResolutionProfile !=
+            EGridCombatActionResolutionProfile::Effect ||
+        Action.Definition.TargetingPolicy !=
+            EGridCombatTargetingPolicy::Self ||
+        !Action.Definition.EffectProfile.IsValid () ||
+        Action.CurrentSourceItemQuantityCost != 0 ||
+        !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            Action.CharacterIndex))
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        Inventory->PartyInventoryState.ActiveCharacters[
+            Action.CharacterIndex];
+    FGridInventoryCharacterSummary Summary;
+    if (!Inventory->GetCharacterSummary (
+            Action.CharacterIndex,
+            Summary) ||
+        !CanCharacterSpendActionPoints (
+            Action.CharacterIndex,
+            Action.CurrentActionPointCost))
+    {
+        return false;
+    }
+
+    OutResult.HealthBefore = Character.DerivedStats.CurrentHealth;
+    OutResult.ManaBefore = Character.DerivedStats.CurrentMana;
+    if (OutResult.ManaBefore < Action.CurrentManaCost)
+    {
+        return false;
+    }
+    OutResult.HealthAfter = FMath::Clamp (
+        OutResult.HealthBefore +
+            Action.Definition.EffectProfile.RestoreHealth,
+        0,
+        FMath::Max (0, Summary.DerivedStats.MaxHealth));
+    OutResult.ManaAfter = FMath::Clamp (
+        OutResult.ManaBefore - Action.CurrentManaCost +
+            Action.Definition.EffectProfile.RestoreMana,
+        0,
+        FMath::Max (0, Summary.DerivedStats.MaxMana));
+    if (OutResult.HealthAfter <= OutResult.HealthBefore &&
+        OutResult.ManaAfter <= OutResult.ManaBefore)
+    {
+        return false;
+    }
+
+    if (!SpendPlayerCharacterActionPoints (
+        Action.CharacterIndex,
+        Action.CurrentActionPointCost))
+    {
+        return false;
+    }
+
+    Character.DerivedStats.CurrentHealth = OutResult.HealthAfter;
+    Character.DerivedStats.CurrentMana = OutResult.ManaAfter;
+    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
+    if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry (
+            EGridCombatantSide::Party,
+            Character.CharacterId))
+    {
+        RefreshInitiativeEntryVitals (*Entry);
+        OnCombatantStateChanged.Broadcast (*Entry);
+    }
+
+    FGridPlayerCharacterTurnState TurnStateAfter;
+    if (!InitiativeOrder.IsEmpty () &&
+        GetPlayerCharacterTurnState (
+            Action.CharacterIndex,
+            TurnStateAfter) &&
+        TurnStateAfter.RemainingActionPoints <= 0 &&
+        IsActivePlayerCharacter (Action.CharacterIndex))
+    {
+        FinishActivePlayerTurn ();
+    }
+    return true;
+}
+
+bool UGridTurnManagerComponent::RequestCharacterClassActionAttack (
+    const FGridAvailableCombatAction& Action,
+    FGridPlayerAttackRequest& OutRequest,
+    FGridAttackResult& OutResult,
+    EGridPlayerAttackRejectReason& OutRejectReason,
+    FGridCombatClassActionResult& OutClassResult)
+{
+    OutRequest = FGridPlayerAttackRequest ();
+    OutResult = FGridAttackResult ();
+    OutRejectReason = EGridPlayerAttackRejectReason::None;
+    OutClassResult = FGridCombatClassActionResult ();
+    UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
+        ? PartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
+    if (!IsValid (Inventory) ||
+        !Action.bEnabled ||
+        !IsMON1285ClassActionSource (
+            Action.Definition.SourcePolicy) ||
+        Action.Definition.ResolutionProfile !=
+            EGridCombatActionResolutionProfile::Attack ||
+        Action.Definition.TargetingPolicy !=
+            EGridCombatTargetingPolicy::FirstAxialTarget ||
+        Action.CurrentSourceItemQuantityCost != 0 ||
+        !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            Action.CharacterIndex))
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        Inventory->PartyInventoryState.ActiveCharacters[
+            Action.CharacterIndex];
+    OutClassResult.HealthBefore =
+        Character.DerivedStats.CurrentHealth;
+    OutClassResult.HealthAfter = OutClassResult.HealthBefore;
+    OutClassResult.ManaBefore = Character.DerivedStats.CurrentMana;
+    OutClassResult.ManaAfter = OutClassResult.ManaBefore;
+    if (OutClassResult.ManaBefore < Action.CurrentManaCost)
+    {
+        return false;
+    }
+
+    // Reserve mana before the attack broadcasts its presentation events.
+    // Every rejection rolls it back; AP are spent only by the accepted
+    // attack pipeline after target validation.
+    Character.DerivedStats.CurrentMana = FMath::Max (
+        0,
+        OutClassResult.ManaBefore - Action.CurrentManaCost);
+    if (!RequestCharacterAttackInternal (
+            Action.CharacterIndex,
+            EGridEquipmentSlot::None,
+            false,
+            &Action,
+            OutRequest,
+            OutResult,
+            OutRejectReason))
+    {
+        Character.DerivedStats.CurrentMana =
+            OutClassResult.ManaBefore;
+        Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
+        return false;
+    }
+
+    OutClassResult.ManaAfter = Character.DerivedStats.CurrentMana;
+    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
+    return true;
+}
+
 bool UGridTurnManagerComponent::RequestCharacterCombatAction (
     int32 CharacterIndex,
     FName ActionId,
@@ -661,6 +831,63 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction (
             *UEnum::GetValueAsString (SourceEquipmentSlot),
             *GetMON126AvailabilityText (*Action));
         return false;
+    }
+
+    if (IsMON1285ClassActionSource (
+        Action->Definition.SourcePolicy))
+    {
+        bool bAccepted = false;
+        if (Action->Definition.ResolutionProfile ==
+            EGridCombatActionResolutionProfile::Attack)
+        {
+            bAccepted = RequestCharacterClassActionAttack (
+                *Action,
+                OutResult.AttackRequest,
+                OutResult.AttackResult,
+                OutResult.AttackRejectReason,
+                OutResult.ClassActionResult);
+            OutResult.RejectReason = bAccepted
+                ? EGridCombatActionRequestRejectReason::None
+                : OutResult.AttackRejectReason !=
+                        EGridPlayerAttackRejectReason::None
+                    ? EGridCombatActionRequestRejectReason::AttackRejected
+                    : EGridCombatActionRequestRejectReason::
+                        ClassActionRejected;
+        }
+        else if (Action->Definition.ResolutionProfile ==
+            EGridCombatActionResolutionProfile::Effect)
+        {
+            bAccepted = RequestCharacterClassActionEffect (
+                *Action,
+                OutResult.ClassActionResult);
+            OutResult.RejectReason = bAccepted
+                ? EGridCombatActionRequestRejectReason::None
+                : EGridCombatActionRequestRejectReason::
+                    ClassActionRejected;
+        }
+        else
+        {
+            OutResult.RejectReason =
+                EGridCombatActionRequestRejectReason::
+                    UnsupportedResolution;
+        }
+
+        OutResult.bAccepted = bAccepted;
+        UE_LOG (
+            LogGridTurnManager,
+            Log,
+            TEXT ("[GridClassAction] Accepted=%s Character=%d Action=%s Source=%s APCost=%d ManaCost=%d Health=%d->%d Mana=%d->%d"),
+            bAccepted ? TEXT ("true") : TEXT ("false"),
+            CharacterIndex,
+            *ActionId.ToString (),
+            *SourceDefinitionId.ToString (),
+            Action->CurrentActionPointCost,
+            Action->CurrentManaCost,
+            OutResult.ClassActionResult.HealthBefore,
+            OutResult.ClassActionResult.HealthAfter,
+            OutResult.ClassActionResult.ManaBefore,
+            OutResult.ClassActionResult.ManaAfter);
+        return bAccepted;
     }
 
     if (Action->Definition.SourcePolicy ==

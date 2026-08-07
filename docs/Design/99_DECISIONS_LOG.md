@@ -684,3 +684,26 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   par la barre afin que cet état survive aussi à une sauvegarde sans pile.
 - Le document d'implémentation est
   `docs/Design/MON12_8_4_QUICK_ITEM_COMBAT_ACTIONS.md`.
+
+---
+
+## 2026-08-07 — MON12.8.5 : palette des capacités et sorts
+
+- Le HUD expose séparément les actions `Universal`, `Ability` et `Spell` du
+  personnage actif dans `Panel_ActionPalette` ; la barre fixe reste limitée à
+  dix raccourcis.
+- `WBP_GridCombatHudAction` sert aussi de visuel de palette. Le numéro est
+  masqué et le clic seul n'exécute rien ; seul le drag vers la barre crée un
+  binding.
+- Une action de classe est identifiée par `ActionId`, `SourcePolicy` et
+  `ClassId`. Elle ne possède jamais de source objet, d'identifiant runtime ou
+  de coût en quantité.
+- Les profils `Attack / FirstAxialTarget` réutilisent le pipeline d'attaque et
+  paient PA et mana de manière transactionnelle. Tout refus restaure le mana
+  réservé et ne dépense aucun PA.
+- Les profils `Effect / Self` restaurent immédiatement PV et/ou mana. Un effet
+  inutile est grisé et refusé sans dépense.
+- Les profils `Cell` et `Area` restent volontairement indisponibles jusqu'au
+  ciblage explicite et aux zones de MON12.8.6.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_5_CLASS_ACTION_PALETTE.md`.

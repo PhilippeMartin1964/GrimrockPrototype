@@ -583,8 +583,8 @@ public:
         TArray<FGridAvailableCombatAction>& OutActions) const;
 
     /**
-     * Generic action entry point. MON12.6 executes Attack resolution profiles;
-     * later milestones extend the same request to spells, effects and defense.
+     * Generic action entry point. It revalidates equipment, quick items,
+     * direct class attacks and supported self effects before paying resources.
      */
     UFUNCTION (BlueprintCallable, Category = "Combat|Action Catalog")
     bool RequestCharacterCombatAction (
@@ -796,6 +796,15 @@ private:
     bool CommitQuickItemResourcesAfterAttack (
         const FGridAvailableCombatAction& Action,
         FGridCombatQuickItemResult& OutResult);
+    bool RequestCharacterClassActionEffect (
+        const FGridAvailableCombatAction& Action,
+        FGridCombatClassActionResult& OutResult);
+    bool RequestCharacterClassActionAttack (
+        const FGridAvailableCombatAction& Action,
+        FGridPlayerAttackRequest& OutRequest,
+        FGridAttackResult& OutResult,
+        EGridPlayerAttackRejectReason& OutRejectReason,
+        FGridCombatClassActionResult& OutClassResult);
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,

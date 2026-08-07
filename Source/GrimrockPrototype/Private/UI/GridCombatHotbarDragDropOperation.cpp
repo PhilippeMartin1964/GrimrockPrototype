@@ -8,4 +8,18 @@ void UGridCombatHotbarDragDropOperation::InitializeFromHotbarSlot (
     CharacterIndex = InCharacterIndex;
     SourceSlotIndex = InSourceSlotIndex;
     Binding = InBinding;
+    bFromActionPalette = false;
+}
+
+void UGridCombatHotbarDragDropOperation::InitializeFromActionPalette (
+    int32 InCharacterIndex,
+    const FGridAvailableCombatAction& InAction)
+{
+    CharacterIndex = InCharacterIndex;
+    SourceSlotIndex = INDEX_NONE;
+    bFromActionPalette = true;
+    Binding = FGridCombatHotbarBinding ();
+    Binding.ActionId = InAction.Definition.ActionId;
+    Binding.SourcePolicy = InAction.Definition.SourcePolicy;
+    Binding.SourceDefinitionId = InAction.SourceDefinitionId;
 }

@@ -93,7 +93,8 @@ enum class EGridCombatActionRequestRejectReason : uint8
     ActionUnavailable         UMETA (DisplayName = "Action Unavailable"),
     UnsupportedResolution     UMETA (DisplayName = "Unsupported Resolution"),
     AttackRejected            UMETA (DisplayName = "Attack Rejected"),
-    QuickItemRejected         UMETA (DisplayName = "Quick Item Rejected")
+    QuickItemRejected         UMETA (DisplayName = "Quick Item Rejected"),
+    ClassActionRejected       UMETA (DisplayName = "Class Action Rejected")
 };
 
 UENUM (BlueprintType)
@@ -523,7 +524,7 @@ struct FGridCombatActionResourceCosts
     }
 };
 
-/** Immediate self-targeted restoration used by combat potions and scrolls. */
+/** Immediate self-targeted restoration used by supported combat effects. */
 USTRUCT (BlueprintType)
 struct FGridCombatActionEffectProfile
 {
@@ -626,7 +627,7 @@ struct FGridCombatActionDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
     FGridOffensiveEquipmentProfile OffensiveProfile;
 
-    /** Immediate self payload used by QuickItem Effect actions. */
+    /** Immediate self payload used by supported Effect actions. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
     FGridCombatActionEffectProfile EffectProfile;
 
@@ -904,6 +905,25 @@ struct FGridCombatQuickItemResult
     int32 ManaAfter = 0;
 };
 
+/** Resource snapshot produced by a non-item ability or spell. */
+USTRUCT (BlueprintType)
+struct FGridCombatClassActionResult
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+    int32 HealthBefore = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+    int32 HealthAfter = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+    int32 ManaBefore = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Class Action")
+    int32 ManaAfter = 0;
+};
+
 /** Result of the generic MON12 action request entry point. */
 USTRUCT (BlueprintType)
 struct FGridCombatActionRequestResult
@@ -932,4 +952,7 @@ struct FGridCombatActionRequestResult
 
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
     FGridCombatQuickItemResult QuickItemResult;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    FGridCombatClassActionResult ClassActionResult;
 };

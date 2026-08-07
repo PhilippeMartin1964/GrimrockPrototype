@@ -150,6 +150,10 @@ struct FGridCombatHudView
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     TArray<FGridCombatHudActionView> Actions;
 
+    /** Configurable class/universal actions shown outside the fixed hotbar. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    TArray<FGridAvailableCombatAction> ActionPalette;
+
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     FGridCombatHudMobilityView Mobility;
 
@@ -238,9 +242,17 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_ShortcutNumber;
 
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    bool bActionPaletteEntry = false;
+
     void InitializeAction (
         UGridCombatHudWidget* InOwnerHud,
         const FGridCombatHudActionView& InView);
+
+    /** Reuses the slot visual as a draggable, non-executable palette entry. */
+    void InitializePaletteAction (
+        UGridCombatHudWidget* InOwnerHud,
+        const FGridAvailableCombatAction& InAction);
 
     /** Executes the current binding through the owning authoritative HUD. */
     UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Hotbar")
@@ -380,6 +392,10 @@ public:
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TArray<TObjectPtr<UGridCombatHudActionWidget>> HotbarActionWidgets;
 
+    /** Variable-sized pool for Universal, Ability and Spell sources. */
+    UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
+    TArray<TObjectPtr<UGridCombatHudActionWidget>> ActionPaletteWidgets;
+
     /**
      * Single runtime row that owns all ten hotbar widgets. When the designer
      * panel is already a HorizontalBox, this points directly to it.
@@ -404,6 +420,10 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UPanelWidget> Panel_Actions;
+
+    /** Optional empty WrapBox/HorizontalBox populated from class actions. */
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
+    TObjectPtr<UPanelWidget> Panel_ActionPalette;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UPanelWidget> Panel_Initiative;
@@ -447,6 +467,12 @@ public:
         int32 TargetSlotIndex,
         UDragDropOperation* DragOperation);
 
+    /** Assigns a currently catalogued class/universal action to one slot. */
+    UFUNCTION (BlueprintCallable, Category = "Combat|HUD|Hotbar")
+    bool AssignCombatActionToHotbarSlot (
+        int32 TargetSlotIndex,
+        const FGridAvailableCombatAction& Action);
+
     bool ClearHotbarSlot (int32 SlotIndex);
 
 protected:
@@ -461,6 +487,8 @@ private:
     void EnsurePartyMemberPanels ();
     void EnsureActionWidgets ();
     void RefreshActionWidgets ();
+    void EnsureActionPaletteWidgets ();
+    void RefreshActionPaletteWidgets ();
     void ApplyHotbarPresentationFallbacks ();
     void EnsureInitiativeWidgets ();
     void RefreshInitiativeWidgets ();

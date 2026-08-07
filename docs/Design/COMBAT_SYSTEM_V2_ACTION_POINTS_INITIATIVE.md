@@ -775,18 +775,21 @@ Voir `MON12_6_COMBAT_ACTION_CATALOG.md`.
 
 Voir `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 
-### MON12.8 — Sorts, mana et zones
+### MON12.8 — Barre configurable, objets et sorts
 
-- intégrer les sorts au catalogue commun ;
-- payer PA et mana de manière atomique ;
-- gérer cible, cellule et zone d'effet ;
-- appliquer cooldowns et présentations ;
-- commencer par un sort direct puis `Boule de feu`.
+**Implémentée jusqu'à MON12.8.5 — validation UE5 requise.**
 
-### MON12.9 — Défense, objets et réactions
+- dix raccourcis personnels persistants et vides par défaut ;
+- glisser-déposer, déplacement, échange et suppression ;
+- exécution par clic et touches `1–9, 0` ;
+- potions et parchemins avec consommation transactionnelle ;
+- palette des capacités et sorts de classe ;
+- attaques axiales et effets personnels avec coûts PA/mana atomiques ;
+- prochaine étape : cible cellule et zone d'effet dans MON12.8.6.
+
+### MON12.9 — Défense et réactions
 
 - défendre ;
-- potion et objet rapide ;
 - préparer une réaction ;
 - effets de début et fin de tour ;
 - attaques d'opportunité éventuelles ;

@@ -6,6 +6,13 @@
 
 namespace
 {
+    bool IsClassActionSource (
+        EGridCombatActionSourcePolicy SourcePolicy)
+    {
+        return SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Spell;
+    }
+
     EGridCombatActionAvailabilityReason EvaluateMON126Availability (
         const FGridCombatActionCatalogContext& Context,
         const FGridCombatActionContribution& Contribution)
@@ -106,12 +113,49 @@ namespace
                 }
             }
         }
+        else if (IsClassActionSource (Definition.SourcePolicy))
+        {
+            const bool bSupportedAttack =
+                Definition.ResolutionProfile ==
+                    EGridCombatActionResolutionProfile::Attack &&
+                Definition.TargetingPolicy ==
+                    EGridCombatTargetingPolicy::FirstAxialTarget;
+            const bool bSupportedSelfEffect =
+                Definition.ResolutionProfile ==
+                    EGridCombatActionResolutionProfile::Effect &&
+                Definition.TargetingPolicy ==
+                    EGridCombatTargetingPolicy::Self &&
+                Definition.EffectProfile.IsValid ();
+            if (!Context.bEnableClassActionExecutors ||
+                (!bSupportedAttack && !bSupportedSelfEffect))
+            {
+                return EGridCombatActionAvailabilityReason::
+                    ExecutionNotImplemented;
+            }
+
+            if (bSupportedSelfEffect)
+            {
+                const int32 HealthAfter = FMath::Clamp (
+                    Context.CurrentHealth +
+                        Definition.EffectProfile.RestoreHealth,
+                    0,
+                    FMath::Max (0, Context.MaximumHealth));
+                const int32 ManaAfter = FMath::Clamp (
+                    Context.CurrentMana -
+                        Definition.ResourceCosts.ManaCost +
+                        Definition.EffectProfile.RestoreMana,
+                    0,
+                    FMath::Max (0, Context.MaximumMana));
+                if (HealthAfter <= Context.CurrentHealth &&
+                    ManaAfter <= Context.CurrentMana)
+                {
+                    return EGridCombatActionAvailabilityReason::
+                        NoApplicableEffect;
+                }
+            }
+        }
         else if (Definition.ResolutionProfile !=
-                EGridCombatActionResolutionProfile::Attack ||
-            Definition.SourcePolicy ==
-                EGridCombatActionSourcePolicy::Ability ||
-            Definition.SourcePolicy ==
-                EGridCombatActionSourcePolicy::Spell)
+            EGridCombatActionResolutionProfile::Attack)
         {
             return EGridCombatActionAvailabilityReason::
                 ExecutionNotImplemented;

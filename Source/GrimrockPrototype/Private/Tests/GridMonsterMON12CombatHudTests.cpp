@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "InputCoreTypes.h"
+#include "RPG/RPGClassAsset.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -23,6 +24,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "UI/GridCombatHudWidget.h"
+#include "UI/GridCombatHotbarDragDropOperation.h"
 #include "UI/GridInventoryDragDropOperation.h"
 
 namespace
@@ -107,6 +109,53 @@ namespace
         Entry.MaximumHealth = 20;
         Entry.InitiativeTotal = 30 - FMath::Max (0, CharacterIndex);
         return Entry;
+    }
+
+    FGridCombatActionDefinition MakeMON1285DirectSpell ()
+    {
+        FGridCombatActionDefinition Spell;
+        Spell.ActionId = TEXT ("Spell_MON1285_ArcaneBolt");
+        Spell.DisplayName = FText::FromString (TEXT ("Trait arcanique"));
+        Spell.Description = FText::FromString (TEXT (
+            "Un projectile magique contre la première cible axiale."));
+        Spell.ActionType = EGridCombatActionType::RangedAttack;
+        Spell.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+        Spell.TargetingPolicy =
+            EGridCombatTargetingPolicy::FirstAxialTarget;
+        Spell.ResolutionProfile =
+            EGridCombatActionResolutionProfile::Attack;
+        Spell.ActionPointCost = 2;
+        Spell.ResourceCosts.ManaCost = 3;
+        Spell.RangeCells = 2;
+        Spell.OffensiveProfile.AttackId =
+            TEXT ("Attack_MON1285_ArcaneBolt");
+        Spell.OffensiveProfile.AttackDefinition.DamageType =
+            EGridDamageType::Arcane;
+        Spell.OffensiveProfile.AttackDefinition.MinDamage = 3;
+        Spell.OffensiveProfile.AttackDefinition.MaxDamage = 3;
+        Spell.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
+        Spell.OffensiveProfile.DamageScalingAttribute =
+            EGridAttackScalingAttribute::Intelligence;
+        Spell.OffensiveProfile.RangeCells = 2;
+        return Spell;
+    }
+
+    FGridCombatActionDefinition MakeMON1285SelfAbility ()
+    {
+        FGridCombatActionDefinition Ability;
+        Ability.ActionId = TEXT ("Ability_MON1285_Recovery");
+        Ability.DisplayName = FText::FromString (TEXT ("Récupération"));
+        Ability.Description = FText::FromString (TEXT (
+            "Restaure immédiatement une partie de la vitalité."));
+        Ability.ActionType = EGridCombatActionType::Ability;
+        Ability.SourcePolicy = EGridCombatActionSourcePolicy::Ability;
+        Ability.TargetingPolicy = EGridCombatTargetingPolicy::Self;
+        Ability.ResolutionProfile =
+            EGridCombatActionResolutionProfile::Effect;
+        Ability.ActionPointCost = 1;
+        Ability.ResourceCosts.ManaCost = 2;
+        Ability.EffectProfile.RestoreHealth = 6;
+        return Ability;
     }
 
     struct FGridCombatHudFixture
@@ -1217,6 +1266,219 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest (
     TestEqual (TEXT ("The accepted scroll spends two action points"),
         Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
         2);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1285ActionPaletteBindingTest,
+    "Grimrock.Monsters.MON12.8.5.ActionPaletteBinding",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1285ActionPaletteBindingTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.5 palette fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage_MON1285");
+    MageClass->DisplayName = FText::FromString (TEXT ("Mage"));
+    MageClass->HealthAtLevelOne = 6;
+    MageClass->CombatActions = {
+        MakeMON1285DirectSpell (),
+        MakeMON1285SelfAbility ()
+    };
+    TestTrue (TEXT ("The class action source is valid"),
+        MageClass->IsValidDefinition ());
+
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = MageClass->ClassId;
+    Character.ClassDefinition = MageClass;
+    Fixture.Hud->ActionWidgetClass =
+        UGridCombatHudActionWidget::StaticClass ();
+    UWrapBox* PalettePanel = NewObject<UWrapBox> (
+        Fixture.Hud,
+        TEXT ("Panel_ActionPalette_Test"));
+    Fixture.Hud->Panel_ActionPalette = PalettePanel;
+    Fixture.Hud->RefreshFromSources ();
+
+    TestEqual (TEXT ("Both class actions appear in the palette"),
+        Fixture.Hud->View.ActionPalette.Num (), 2);
+    TestEqual (TEXT ("The palette creates one widget per class action"),
+        Fixture.Hud->ActionPaletteWidgets.Num (), 2);
+    TestEqual (TEXT ("The optional palette panel owns both widgets"),
+        PalettePanel->GetChildrenCount (), 2);
+    if (!Fixture.Hud->View.ActionPalette.IsValidIndex (0))
+    {
+        return false;
+    }
+
+    UGridCombatHotbarDragDropOperation* PaletteDrag =
+        NewObject<UGridCombatHotbarDragDropOperation> (Fixture.Hud);
+    PaletteDrag->InitializeFromActionPalette (
+        0,
+        Fixture.Hud->View.ActionPalette[0]);
+    TestTrue (TEXT ("A palette action can configure shortcut five"),
+        Fixture.Hud->HandleHotbarDrop (4, PaletteDrag));
+
+    FGridCombatHotbarBinding Binding;
+    TestTrue (TEXT ("The configured binding is persisted"),
+        Fixture.Party->PartyInventoryComponent
+            ->GetCharacterCombatHotbarBinding (0, 4, Binding));
+    TestEqual (TEXT ("The binding keeps the spell identity"),
+        Binding.ActionId,
+        FName (TEXT ("Spell_MON1285_ArcaneBolt")));
+    TestEqual (TEXT ("The binding keeps the Spell source policy"),
+        Binding.SourcePolicy,
+        EGridCombatActionSourcePolicy::Spell);
+    TestEqual (TEXT ("The binding identifies the contributing class"),
+        Binding.SourceDefinitionId,
+        MageClass->ClassId);
+    TestFalse (TEXT ("A class action never stores an item runtime id"),
+        Binding.PreferredSourceRuntimeId.IsValid ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1285DirectSpellManaTransactionTest,
+    "Grimrock.Monsters.MON12.8.5.DirectSpellManaTransaction",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1285DirectSpellManaTransactionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.5 spell fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage_MON1285_Spell");
+    MageClass->HealthAtLevelOne = 6;
+    MageClass->CombatActions = { MakeMON1285DirectSpell () };
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = MageClass->ClassId;
+    Character.ClassDefinition = MageClass;
+    Fixture.Hud->RefreshFromSources ();
+    if (!TestEqual (TEXT ("The spell is catalogued for the active mage"),
+        Fixture.Hud->View.ActionPalette.Num (), 1))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The spell can be assigned without an item source"),
+        Fixture.Hud->AssignCombatActionToHotbarSlot (
+            2,
+            Fixture.Hud->View.ActionPalette[0]));
+
+    Fixture.Party->Facing = EGridEdge::South;
+    FGridCombatActionRequestResult Rejected;
+    TestFalse (TEXT ("A spell without an axial target is rejected"),
+        Fixture.Hud->RequestHotbarSlot (2, Rejected));
+    TestEqual (TEXT ("The rejected spell restores its reserved mana"),
+        Character.DerivedStats.CurrentMana, 8);
+    TestEqual (TEXT ("The rejected spell consumes no action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4);
+
+    Fixture.Party->Facing = EGridEdge::North;
+    FGridCombatActionRequestResult Accepted;
+    TestTrue (TEXT ("The direct axial spell is accepted"),
+        Fixture.Hud->RequestHotbarSlot (2, Accepted));
+    TestTrue (TEXT ("The generic result reports spell acceptance"),
+        Accepted.bAccepted);
+    TestEqual (TEXT ("The spell pays exactly three mana"),
+        Character.DerivedStats.CurrentMana, 5);
+    TestEqual (TEXT ("The spell pays exactly two action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
+    TestEqual (TEXT ("The spell attack uses its offensive profile"),
+        Accepted.AttackRequest.AttackId,
+        FName (TEXT ("Attack_MON1285_ArcaneBolt")));
+    TestTrue (TEXT ("The spell attack has no fake item source"),
+        Accepted.AttackRequest.OffensiveItemDefinitionId.IsNone ());
+    TestEqual (TEXT ("The class result records the mana transaction"),
+        Accepted.ClassActionResult.ManaAfter, 5);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1285SelfAbilityEffectTest,
+    "Grimrock.Monsters.MON12.8.5.SelfAbilityEffect",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1285SelfAbilityEffectTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.5 ability fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    URPGClassAsset* PriestClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    PriestClass->ClassId = TEXT ("Priest_MON1285");
+    PriestClass->HealthAtLevelOne = 8;
+    PriestClass->CombatActions = { MakeMON1285SelfAbility () };
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = PriestClass->ClassId;
+    Character.ClassDefinition = PriestClass;
+    Character.DerivedStats.CurrentHealth = 10;
+    Character.DerivedStats.CurrentMana = 8;
+    Fixture.Hud->RefreshFromSources ();
+    if (!TestEqual (TEXT ("The ability is catalogued for the active priest"),
+        Fixture.Hud->View.ActionPalette.Num (), 1))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The recovery ability can configure shortcut four"),
+        Fixture.Hud->AssignCombatActionToHotbarSlot (
+            3,
+            Fixture.Hud->View.ActionPalette[0]));
+
+    FGridCombatActionRequestResult Accepted;
+    TestTrue (TEXT ("The self-targeted ability is accepted"),
+        Fixture.Hud->RequestHotbarSlot (3, Accepted));
+    TestEqual (TEXT ("The ability restores six health"),
+        Character.DerivedStats.CurrentHealth, 16);
+    TestEqual (TEXT ("The ability pays two mana"),
+        Character.DerivedStats.CurrentMana, 6);
+    TestEqual (TEXT ("The ability pays one action point"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
+    TestEqual (TEXT ("The class result records restored health"),
+        Accepted.ClassActionResult.HealthAfter, 16);
+
+    Character.DerivedStats.CurrentHealth = 20;
+    Fixture.Hud->RefreshFromSources ();
+    TestEqual (TEXT ("A useless recovery is disabled"),
+        Fixture.Hud->View.Actions[3].Action.AvailabilityReason,
+        EGridCombatActionAvailabilityReason::NoApplicableEffect);
+    FGridCombatActionRequestResult Rejected;
+    TestFalse (TEXT ("A useless recovery cannot be spent"),
+        Fixture.Hud->RequestHotbarSlot (3, Rejected));
+    TestEqual (TEXT ("The refused ability consumes no mana"),
+        Character.DerivedStats.CurrentMana, 6);
+    TestEqual (TEXT ("The refused ability consumes no action point"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
     return true;
 }
 

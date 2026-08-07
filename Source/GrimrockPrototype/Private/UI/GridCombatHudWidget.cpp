@@ -80,6 +80,15 @@ namespace
                 Right.PreferredEquipmentSlot;
     }
 
+    bool IsActionPaletteSource (
+        EGridCombatActionSourcePolicy SourcePolicy)
+    {
+        return SourcePolicy ==
+                EGridCombatActionSourcePolicy::Universal ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Spell;
+    }
+
     EGridEquipmentSlot ResolveDraggedEquipmentSlot (
         EGridInventoryUiSlotType SlotType,
         int32 SlotIndex)
@@ -291,7 +300,28 @@ void UGridCombatHudActionWidget::InitializeAction (
     const FGridCombatHudActionView& InView)
 {
     OwnerHud = InOwnerHud;
+    bActionPaletteEntry = false;
     View = InView;
+    RefreshWidgets ();
+}
+
+void UGridCombatHudActionWidget::InitializePaletteAction (
+    UGridCombatHudWidget* InOwnerHud,
+    const FGridAvailableCombatAction& InAction)
+{
+    OwnerHud = InOwnerHud;
+    bActionPaletteEntry = true;
+    View = FGridCombatHudActionView ();
+    View.bHasBinding = true;
+    View.bResolved = true;
+    View.Action = InAction;
+    View.Binding.ActionId = InAction.Definition.ActionId;
+    View.Binding.SourcePolicy = InAction.Definition.SourcePolicy;
+    View.Binding.SourceDefinitionId = InAction.SourceDefinitionId;
+    View.CostText = FormatActionCost (InAction);
+    View.DisabledReason = InAction.bEnabled
+        ? FText::GetEmpty ()
+        : InAction.DisabledReason;
     RefreshWidgets ();
 }
 
@@ -311,7 +341,9 @@ void UGridCombatHudActionWidget::NativeDestruct ()
 
 bool UGridCombatHudActionWidget::TryExecuteAction ()
 {
-    if (!IsValid (OwnerHud) || !View.bHasBinding)
+    if (!IsValid (OwnerHud) ||
+        bActionPaletteEntry ||
+        !View.bHasBinding)
     {
         return false;
     }
@@ -327,10 +359,18 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
     if (Button_Action)
     {
         Button_Action->SetIsEnabled (true);
-        if (!View.bHasBinding)
+        if (bActionPaletteEntry)
+        {
+            Button_Action->SetToolTipText (
+                View.Action.Definition.Description.IsEmpty ()
+                    ? FText::FromString (TEXT (
+                        "Glissez cette action vers un raccourci."))
+                    : View.Action.Definition.Description);
+        }
+        else if (!View.bHasBinding)
         {
             Button_Action->SetToolTipText (FText::FromString (
-                TEXT ("Déposez ici une arme équipée, une potion ou un parchemin.")));
+                TEXT ("Déposez ici une arme équipée, une potion, un parchemin ou une action de la palette.")));
         }
         else
         {
@@ -359,28 +399,41 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
     if (Text_ShortcutNumber)
     {
         Text_ShortcutNumber->SetText (View.ShortcutText);
+        Text_ShortcutNumber->SetVisibility (
+            bActionPaletteEntry
+                ? ESlateVisibility::Collapsed
+                : ESlateVisibility::HitTestInvisible);
     }
     if (Text_ActionName)
     {
         FText ActionName = FText::GetEmpty ();
         if (View.bHasBinding)
         {
+            const bool bPreferSourceName =
+                View.Binding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Equipment ||
+                View.Binding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::QuickItem;
+            const FName FallbackName = bPreferSourceName &&
+                    !View.Binding.SourceDefinitionId.IsNone ()
+                ? View.Binding.SourceDefinitionId
+                : View.Binding.ActionId;
             ActionName = View.Action.Definition.DisplayName.IsEmpty ()
-                ? FText::FromName (View.Binding.SourceDefinitionId.IsNone ()
-                    ? View.Binding.ActionId
-                    : View.Binding.SourceDefinitionId)
+                ? FText::FromName (FallbackName)
                 : View.Action.Definition.DisplayName;
         }
-        Text_ActionName->SetText (Text_ShortcutNumber
+        Text_ActionName->SetText (bActionPaletteEntry
             ? ActionName
-            : FText::FromString (View.bHasBinding
-                ? FString::Printf (
-                    TEXT ("[%s] %s"),
-                    *View.ShortcutText.ToString (),
-                    *ActionName.ToString ())
-                : FString::Printf (
-                    TEXT ("[%s]"),
-                    *View.ShortcutText.ToString ())));
+            : (Text_ShortcutNumber
+                ? ActionName
+                : FText::FromString (View.bHasBinding
+                    ? FString::Printf (
+                        TEXT ("[%s] %s"),
+                        *View.ShortcutText.ToString (),
+                        *ActionName.ToString ())
+                    : FString::Printf (
+                        TEXT ("[%s]"),
+                        *View.ShortcutText.ToString ()))));
     }
     if (Text_ActionCost)
     {
@@ -420,7 +473,19 @@ FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown (
             InMouseEvent);
     }
 
-    if (InMouseEvent.GetEffectingButton () == EKeys::RightMouseButton &&
+    if (bActionPaletteEntry &&
+        InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton)
+    {
+        bLeftMousePressed = true;
+        bDragDetected = false;
+        return UWidgetBlueprintLibrary::DetectDragIfPressed (
+            InMouseEvent,
+            this,
+            EKeys::LeftMouseButton).NativeReply;
+    }
+
+    if (!bActionPaletteEntry &&
+        InMouseEvent.GetEffectingButton () == EKeys::RightMouseButton &&
         View.bHasBinding)
     {
         bLeftMousePressed = false;
@@ -452,7 +517,8 @@ FReply UGridCombatHudActionWidget::NativeOnMouseButtonUp (
     if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton &&
         bLeftMousePressed)
     {
-        const bool bShouldExecute = !bDragDetected;
+        const bool bShouldExecute =
+            !bActionPaletteEntry && !bDragDetected;
         bLeftMousePressed = false;
         bDragDetected = false;
         if (bShouldExecute)
@@ -489,10 +555,19 @@ void UGridCombatHudActionWidget::NativeOnDragDetected (
     {
         return;
     }
-    Operation->InitializeFromHotbarSlot (
-        View.Action.CharacterIndex,
-        View.HotbarSlotIndex,
-        View.Binding);
+    if (bActionPaletteEntry)
+    {
+        Operation->InitializeFromActionPalette (
+            View.Action.CharacterIndex,
+            View.Action);
+    }
+    else
+    {
+        Operation->InitializeFromHotbarSlot (
+            View.Action.CharacterIndex,
+            View.HotbarSlotIndex,
+            View.Binding);
+    }
     Operation->DefaultDragVisual = nullptr;
     Operation->Pivot = EDragPivot::MouseDown;
     OutOperation = Operation;
@@ -717,6 +792,14 @@ void UGridCombatHudWidget::RefreshFromSources ()
         TurnManagerComponent->GetAvailableCombatActions (
             View.ActiveCharacterIndex,
             AvailableActions);
+        for (const FGridAvailableCombatAction& Action : AvailableActions)
+        {
+            if (IsActionPaletteSource (
+                Action.Definition.SourcePolicy))
+            {
+                View.ActionPalette.Add (Action);
+            }
+        }
         if (IsValid (InventoryComponent))
         {
             HotbarBindings.SetNum (
@@ -798,6 +881,8 @@ void UGridCombatHudWidget::RefreshFromSources ()
     }
     EnsureActionWidgets ();
     RefreshActionWidgets ();
+    EnsureActionPaletteWidgets ();
+    RefreshActionPaletteWidgets ();
     EnsureInitiativeWidgets ();
     RefreshInitiativeWidgets ();
     RefreshBoundWidgets ();
@@ -878,6 +963,34 @@ bool UGridCombatHudWidget::HandleHotbarDrop (
     if (const UGridCombatHotbarDragDropOperation* HotbarOperation =
         Cast<UGridCombatHotbarDragDropOperation> (DragOperation))
     {
+        if (HotbarOperation->bFromActionPalette)
+        {
+            TArray<FGridAvailableCombatAction> CurrentActions;
+            if (IsValid (TurnManagerComponent))
+            {
+                TurnManagerComponent->GetAvailableCombatActions (
+                    View.ActiveCharacterIndex,
+                    CurrentActions);
+            }
+            const FGridAvailableCombatAction* CurrentAction =
+                CurrentActions.FindByPredicate (
+                    [HotbarOperation] (
+                        const FGridAvailableCombatAction& Candidate)
+                    {
+                        return IsActionPaletteSource (
+                                Candidate.Definition.SourcePolicy) &&
+                            DoesHotbarBindingMatchAction (
+                                HotbarOperation->Binding,
+                                Candidate);
+                    });
+            return HotbarOperation->CharacterIndex ==
+                    View.ActiveCharacterIndex &&
+                CurrentAction &&
+                AssignCombatActionToHotbarSlot (
+                    TargetSlotIndex,
+                    *CurrentAction);
+        }
+
         FGridCombatHotbarBinding CurrentBinding;
         return HotbarOperation->CharacterIndex ==
                 View.ActiveCharacterIndex &&
@@ -914,6 +1027,54 @@ bool UGridCombatHudWidget::HandleHotbarDrop (
         EquipmentSlot);
 }
 
+bool UGridCombatHudWidget::AssignCombatActionToHotbarSlot (
+    int32 TargetSlotIndex,
+    const FGridAvailableCombatAction& Action)
+{
+    if (!IsValid (InventoryComponent) ||
+        !IsValid (TurnManagerComponent) ||
+        View.ActiveCharacterIndex == INDEX_NONE ||
+        Action.CharacterIndex != View.ActiveCharacterIndex ||
+        TargetSlotIndex < 0 ||
+        TargetSlotIndex >= FGridCombatHotbarBinding::SlotCount ||
+        !IsActionPaletteSource (Action.Definition.SourcePolicy))
+    {
+        return false;
+    }
+
+    TArray<FGridAvailableCombatAction> CurrentActions;
+    TurnManagerComponent->GetAvailableCombatActions (
+        View.ActiveCharacterIndex,
+        CurrentActions);
+    const FGridAvailableCombatAction* CurrentAction =
+        CurrentActions.FindByPredicate (
+            [&Action] (const FGridAvailableCombatAction& Candidate)
+            {
+                return Candidate.MatchesSource (
+                    Action.Definition.ActionId,
+                    Action.Definition.SourcePolicy,
+                    Action.SourceDefinitionId,
+                    Action.SourceEquipmentSlot);
+            });
+    if (!CurrentAction ||
+        !IsActionPaletteSource (
+            CurrentAction->Definition.SourcePolicy))
+    {
+        return false;
+    }
+
+    FGridCombatHotbarBinding Binding;
+    Binding.SlotIndex = TargetSlotIndex;
+    Binding.ActionId = CurrentAction->Definition.ActionId;
+    Binding.SourcePolicy = CurrentAction->Definition.SourcePolicy;
+    Binding.SourceDefinitionId = CurrentAction->SourceDefinitionId;
+    return Binding.IsValid () &&
+        InventoryComponent->SetCharacterCombatHotbarBinding (
+            View.ActiveCharacterIndex,
+            TargetSlotIndex,
+            Binding);
+}
+
 bool UGridCombatHudWidget::ClearHotbarSlot (int32 SlotIndex)
 {
     return IsValid (InventoryComponent) &&
@@ -948,6 +1109,7 @@ void UGridCombatHudWidget::NativeDestruct ()
     UnbindFromSources ();
     PartyMemberPanels.Reset ();
     HotbarActionWidgets.Reset ();
+    ActionPaletteWidgets.Reset ();
     HotbarRow = nullptr;
     InitiativeSlotWidgets.Reset ();
     InitiativeRoundSeparatorWidgets.Reset ();
@@ -1264,6 +1426,104 @@ void UGridCombatHudWidget::RefreshActionWidgets ()
         ActionWidget->InitializeAction (
             this,
             View.Actions[SlotIndex]);
+        ActionWidget->SetVisibility (ESlateVisibility::Visible);
+    }
+}
+
+void UGridCombatHudWidget::EnsureActionPaletteWidgets ()
+{
+    if (!Panel_ActionPalette ||
+        Panel_ActionPalette == Panel_Actions ||
+        !ActionWidgetClass)
+    {
+        return;
+    }
+
+    const int32 DesiredCount = View.ActionPalette.Num ();
+    bool bPoolValid =
+        ActionPaletteWidgets.Num () == DesiredCount &&
+        Panel_ActionPalette->GetChildrenCount () == DesiredCount;
+    for (const UGridCombatHudActionWidget* ActionWidget :
+        ActionPaletteWidgets)
+    {
+        bPoolValid = bPoolValid && IsValid (ActionWidget) &&
+            ActionWidget->GetParent () == Panel_ActionPalette;
+    }
+    if (bPoolValid)
+    {
+        return;
+    }
+
+    Panel_ActionPalette->ClearChildren ();
+    ActionPaletteWidgets.Reset (DesiredCount);
+    for (int32 ActionIndex = 0;
+        ActionIndex < DesiredCount;
+        ++ActionIndex)
+    {
+        UGridCombatHudActionWidget* ActionWidget =
+            CreateWidget<UGridCombatHudActionWidget> (
+                this,
+                ActionWidgetClass);
+        if (!ActionWidget)
+        {
+            continue;
+        }
+
+        UPanelSlot* PaletteSlot =
+            Panel_ActionPalette->AddChild (ActionWidget);
+        const float HalfSpacing =
+            FMath::Max (0.0f, HotbarSlotSpacing) * 0.5f;
+        if (UHorizontalBoxSlot* HorizontalSlot =
+            Cast<UHorizontalBoxSlot> (PaletteSlot))
+        {
+            HorizontalSlot->SetSize (
+                FSlateChildSize (ESlateSizeRule::Automatic));
+            HorizontalSlot->SetPadding (FMargin (
+                HalfSpacing,
+                0.0f,
+                HalfSpacing,
+                0.0f));
+            HorizontalSlot->SetVerticalAlignment (VAlign_Fill);
+        }
+        else if (UWrapBoxSlot* WrapSlot =
+            Cast<UWrapBoxSlot> (PaletteSlot))
+        {
+            WrapSlot->SetPadding (FMargin (
+                HalfSpacing,
+                0.0f,
+                HalfSpacing,
+                0.0f));
+        }
+        ActionPaletteWidgets.Add (ActionWidget);
+    }
+}
+
+void UGridCombatHudWidget::RefreshActionPaletteWidgets ()
+{
+    if (!Panel_ActionPalette ||
+        Panel_ActionPalette == Panel_Actions)
+    {
+        return;
+    }
+
+    Panel_ActionPalette->SetVisibility (
+        View.ActionPalette.IsEmpty ()
+            ? ESlateVisibility::Collapsed
+            : ESlateVisibility::Visible);
+    for (int32 ActionIndex = 0;
+        ActionIndex < ActionPaletteWidgets.Num ();
+        ++ActionIndex)
+    {
+        UGridCombatHudActionWidget* ActionWidget =
+            ActionPaletteWidgets[ActionIndex];
+        if (!IsValid (ActionWidget) ||
+            !View.ActionPalette.IsValidIndex (ActionIndex))
+        {
+            continue;
+        }
+        ActionWidget->InitializePaletteAction (
+            this,
+            View.ActionPalette[ActionIndex]);
         ActionWidget->SetVisibility (ESlateVisibility::Visible);
     }
 }

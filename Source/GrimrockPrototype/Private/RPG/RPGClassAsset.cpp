@@ -16,6 +16,10 @@ bool URPGClassAsset::IsValidDefinition () const
                     EGridCombatActionSourcePolicy::Spell &&
                 Action.SourcePolicy !=
                     EGridCombatActionSourcePolicy::Universal) ||
+            Action.ResourceCosts.SourceItemQuantityCost != 0 ||
+            (Action.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Universal &&
+                Action.ResourceCosts.ManaCost != 0) ||
             ActionIds.Contains (Action.ActionId))
         {
             return false;
