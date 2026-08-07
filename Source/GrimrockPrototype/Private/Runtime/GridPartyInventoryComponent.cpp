@@ -1274,6 +1274,15 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions (
                 DefinitionIds.Add (Slot.Item.ItemDefinitionId);
             }
         }
+        for (const FGridCombatHotbarBinding& Binding :
+            Character.CombatHotbarSlots)
+        {
+            if (!Binding.IsEmpty () &&
+                !Binding.SourceDefinitionId.IsNone ())
+            {
+                DefinitionIds.Add (Binding.SourceDefinitionId);
+            }
+        }
     };
 
     for (const FGridCharacterInventoryState& Character : PartyInventoryState.ActiveCharacters)

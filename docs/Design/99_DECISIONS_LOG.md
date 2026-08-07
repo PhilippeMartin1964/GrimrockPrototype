@@ -665,3 +665,22 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   parchemins restent grisés jusqu'à leurs exécuteurs dédiés.
 - Le document d'implémentation est
   `docs/Design/MON12_8_3_COMBAT_HOTBAR_EXECUTION.md`.
+
+---
+
+## 2026-08-07 — MON12.8.4 : potions et parchemins de combat
+
+- Un `GridItemDefinitionAsset` de type `Potion` ou `Scroll` peut exposer une
+  action `QuickItem` orientée données, sans exécuteur spécifique par asset.
+- L'identité est toujours normalisée en `Use_<ItemDefinitionId>` et la quantité
+  disponible additionne toutes les piles du personnage actif.
+- Les profils `Effect/Self` restaurent les PV et/ou le mana. Les profils
+  `Attack/FirstAxialTarget` réutilisent le pipeline d'attaque existant.
+- Une action refusée ne consomme ni PA, ni mana, ni objet. Une action acceptée
+  consomme exactement le coût source déclaré, au minimum une unité.
+- La dernière unité ne supprime jamais le binding. Le slot reste résolu, grisé
+  à quantité zéro, puis se réactive avec toute nouvelle pile de même définition.
+- La réhydratation des définitions inclut les sources référencées uniquement
+  par la barre afin que cet état survive aussi à une sauvegarde sans pile.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_4_QUICK_ITEM_COMBAT_ACTIONS.md`.

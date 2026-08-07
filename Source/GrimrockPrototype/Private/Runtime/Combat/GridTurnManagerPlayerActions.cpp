@@ -378,10 +378,16 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
         OffensiveProfile =
             CombatActionOverride->Definition.OffensiveProfile;
         if (CombatActionOverride->Definition.SourcePolicy ==
-            EGridCombatActionSourcePolicy::Equipment)
+                EGridCombatActionSourcePolicy::Equipment ||
+            CombatActionOverride->Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::QuickItem)
         {
             OffensiveItemDefinitionId =
                 CombatActionOverride->SourceDefinitionId;
+        }
+        if (CombatActionOverride->Definition.SourcePolicy ==
+            EGridCombatActionSourcePolicy::Equipment)
+        {
             OffensiveEquipmentSlot =
                 CombatActionOverride->SourceEquipmentSlot;
         }

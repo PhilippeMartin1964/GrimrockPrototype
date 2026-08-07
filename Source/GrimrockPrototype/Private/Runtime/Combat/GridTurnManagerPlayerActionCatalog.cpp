@@ -190,6 +190,60 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
         UnarmedAction.Icon = UnarmedAttackIcon;
         AddMON126Contribution (UnarmedAction, NAME_None, FGuid (), EGridEquipmentSlot::None, 0, OutContributions);
     }
+
+    // A quick-item contribution is definition-based rather than stack-based.
+    // Include configured hotbar sources even at quantity zero so a persistent
+    // shortcut stays resolved, disabled, and ready for a replacement stack.
+    TArray<FName> QuickItemDefinitionIds;
+    for (const FGridInventorySlot& InventorySlot :
+        Character.InventorySlots)
+    {
+        if (!InventorySlot.IsEmpty ())
+        {
+            QuickItemDefinitionIds.AddUnique (
+                InventorySlot.Item.ItemDefinitionId);
+        }
+    }
+    for (const FGridCombatHotbarBinding& Binding :
+        Character.CombatHotbarSlots)
+    {
+        if (!Binding.IsEmpty () &&
+            Binding.SourcePolicy ==
+                EGridCombatActionSourcePolicy::QuickItem &&
+            !Binding.SourceDefinitionId.IsNone ())
+        {
+            QuickItemDefinitionIds.AddUnique (
+                Binding.SourceDefinitionId);
+        }
+    }
+    QuickItemDefinitionIds.Sort (
+        [] (const FName Left, const FName Right)
+        {
+            return Left.ToString () < Right.ToString ();
+        });
+
+    for (const FName ItemDefinitionId : QuickItemDefinitionIds)
+    {
+        const UGridItemDefinitionAsset* ItemDefinition =
+            Inventory->FindItemDefinition (ItemDefinitionId);
+        FGridCombatActionDefinition QuickItemAction;
+        if (!IsValid (ItemDefinition) ||
+            !ItemDefinition->BuildQuickItemCombatActionDefinition (
+                QuickItemAction))
+        {
+            continue;
+        }
+
+        AddMON126Contribution (
+            QuickItemAction,
+            ItemDefinitionId,
+            FGuid (),
+            EGridEquipmentSlot::None,
+            Inventory->CountItemDefinitionInCharacterInventory (
+                CharacterIndex,
+                ItemDefinitionId),
+            OutContributions);
+    }
 }
 
 void UGridTurnManagerComponent::GetAvailableCombatActions (
@@ -232,8 +286,25 @@ void UGridTurnManagerComponent::GetAvailableCombatActions (
     Context.RemainingActionPoints = bHasTurnState
         ? FMath::Max (0, TurnState.RemainingActionPoints)
         : 0;
-    Context.CurrentMana =
-        FMath::Max (0, Character.DerivedStats.CurrentMana);
+    FGridInventoryCharacterSummary CharacterSummary;
+    if (Inventory->GetCharacterSummary (
+            CharacterIndex,
+            CharacterSummary))
+    {
+        Context.CurrentHealth = FMath::Max (
+            0,
+            CharacterSummary.DerivedStats.CurrentHealth);
+        Context.MaximumHealth = FMath::Max (
+            0,
+            CharacterSummary.DerivedStats.MaxHealth);
+        Context.CurrentMana = FMath::Max (
+            0,
+            CharacterSummary.DerivedStats.CurrentMana);
+        Context.MaximumMana = FMath::Max (
+            0,
+            CharacterSummary.DerivedStats.MaxMana);
+    }
+    Context.bEnableQuickItemExecutors = true;
     if (!Character.ClassId.IsNone ())
     {
         Context.SatisfiedRequirements.Add (Character.ClassId);
@@ -345,6 +416,188 @@ void UGridTurnManagerComponent::ResolveSuggestedCombatActionTarget (
     }
 }
 
+bool UGridTurnManagerComponent::CommitQuickItemResourcesAfterAttack (
+    const FGridAvailableCombatAction& Action,
+    FGridCombatQuickItemResult& OutResult)
+{
+    OutResult = FGridCombatQuickItemResult ();
+    UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
+        ? PartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
+    if (!IsValid (Inventory) ||
+        Action.Definition.SourcePolicy !=
+            EGridCombatActionSourcePolicy::QuickItem ||
+        Action.SourceDefinitionId.IsNone () ||
+        !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            Action.CharacterIndex))
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        Inventory->PartyInventoryState.ActiveCharacters[
+            Action.CharacterIndex];
+    OutResult.SourceQuantityBefore =
+        Inventory->CountItemDefinitionInCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId);
+    OutResult.HealthBefore = Character.DerivedStats.CurrentHealth;
+    OutResult.HealthAfter = OutResult.HealthBefore;
+    OutResult.ManaBefore = Character.DerivedStats.CurrentMana;
+    const int32 QuantityCost =
+        Action.CurrentSourceItemQuantityCost;
+    const int32 ManaCost = Action.CurrentManaCost;
+    if (QuantityCost <= 0 ||
+        OutResult.SourceQuantityBefore < QuantityCost ||
+        OutResult.ManaBefore < ManaCost)
+    {
+        return false;
+    }
+
+    Character.DerivedStats.CurrentMana = FMath::Max (
+        0,
+        OutResult.ManaBefore - ManaCost);
+    if (!Inventory->RemoveItemDefinitionFromCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId,
+            QuantityCost))
+    {
+        Character.DerivedStats.CurrentMana = OutResult.ManaBefore;
+        return false;
+    }
+
+    OutResult.SourceQuantityAfter =
+        Inventory->CountItemDefinitionInCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId);
+    OutResult.ManaAfter = Character.DerivedStats.CurrentMana;
+    return true;
+}
+
+bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect (
+    const FGridAvailableCombatAction& Action,
+    FGridCombatQuickItemResult& OutResult)
+{
+    OutResult = FGridCombatQuickItemResult ();
+    UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
+        ? PartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
+    if (!IsValid (Inventory) ||
+        !Action.bEnabled ||
+        Action.Definition.SourcePolicy !=
+            EGridCombatActionSourcePolicy::QuickItem ||
+        Action.Definition.ResolutionProfile !=
+            EGridCombatActionResolutionProfile::Effect ||
+        Action.Definition.TargetingPolicy !=
+            EGridCombatTargetingPolicy::Self ||
+        !Action.Definition.EffectProfile.IsValid () ||
+        Action.SourceDefinitionId.IsNone () ||
+        !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            Action.CharacterIndex))
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        Inventory->PartyInventoryState.ActiveCharacters[
+            Action.CharacterIndex];
+    FGridInventoryCharacterSummary Summary;
+    FGridPlayerCharacterTurnState TurnStateBefore;
+    if (!Inventory->GetCharacterSummary (
+            Action.CharacterIndex,
+            Summary) ||
+        !GetPlayerCharacterTurnState (
+            Action.CharacterIndex,
+            TurnStateBefore))
+    {
+        return false;
+    }
+
+    OutResult.SourceQuantityBefore =
+        Inventory->CountItemDefinitionInCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId);
+    OutResult.HealthBefore = Character.DerivedStats.CurrentHealth;
+    OutResult.ManaBefore = Character.DerivedStats.CurrentMana;
+    const int32 QuantityCost =
+        Action.CurrentSourceItemQuantityCost;
+    const int32 ManaCost = Action.CurrentManaCost;
+    if (QuantityCost <= 0 ||
+        OutResult.SourceQuantityBefore < QuantityCost ||
+        OutResult.ManaBefore < ManaCost ||
+        !CanCharacterSpendActionPoints (
+            Action.CharacterIndex,
+            Action.CurrentActionPointCost))
+    {
+        return false;
+    }
+
+    OutResult.HealthAfter = FMath::Clamp (
+        OutResult.HealthBefore +
+            Action.Definition.EffectProfile.RestoreHealth,
+        0,
+        FMath::Max (0, Summary.DerivedStats.MaxHealth));
+    OutResult.ManaAfter = FMath::Clamp (
+        OutResult.ManaBefore - ManaCost +
+            Action.Definition.EffectProfile.RestoreMana,
+        0,
+        FMath::Max (0, Summary.DerivedStats.MaxMana));
+    if (OutResult.HealthAfter <= OutResult.HealthBefore &&
+        OutResult.ManaAfter <= OutResult.ManaBefore)
+    {
+        return false;
+    }
+
+    if (!SpendPlayerCharacterActionPoints (
+            Action.CharacterIndex,
+            Action.CurrentActionPointCost))
+    {
+        return false;
+    }
+
+    Character.DerivedStats.CurrentHealth = OutResult.HealthAfter;
+    Character.DerivedStats.CurrentMana = OutResult.ManaAfter;
+    if (!Inventory->RemoveItemDefinitionFromCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId,
+            QuantityCost))
+    {
+        Character.DerivedStats.CurrentHealth = OutResult.HealthBefore;
+        Character.DerivedStats.CurrentMana = OutResult.ManaBefore;
+        if (FGridPlayerCharacterTurnState* RestoredTurnState =
+            EnsurePlayerCharacterTurnState (Action.CharacterIndex))
+        {
+            *RestoredTurnState = TurnStateBefore;
+            BroadcastPlayerCharacterTurnState (*RestoredTurnState);
+        }
+        return false;
+    }
+
+    OutResult.SourceQuantityAfter =
+        Inventory->CountItemDefinitionInCharacterInventory (
+            Action.CharacterIndex,
+            Action.SourceDefinitionId);
+    if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry (
+            EGridCombatantSide::Party,
+            Character.CharacterId))
+    {
+        RefreshInitiativeEntryVitals (*Entry);
+        OnCombatantStateChanged.Broadcast (*Entry);
+    }
+
+    FGridPlayerCharacterTurnState TurnStateAfter;
+    if (!InitiativeOrder.IsEmpty () &&
+        GetPlayerCharacterTurnState (
+            Action.CharacterIndex,
+            TurnStateAfter) &&
+        TurnStateAfter.RemainingActionPoints <= 0 &&
+        IsActivePlayerCharacter (Action.CharacterIndex))
+    {
+        FinishActivePlayerTurn ();
+    }
+    return true;
+}
+
 bool UGridTurnManagerComponent::RequestCharacterCombatAction (
     int32 CharacterIndex,
     FName ActionId,
@@ -408,6 +661,85 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction (
             *UEnum::GetValueAsString (SourceEquipmentSlot),
             *GetMON126AvailabilityText (*Action));
         return false;
+    }
+
+    if (Action->Definition.SourcePolicy ==
+        EGridCombatActionSourcePolicy::QuickItem)
+    {
+        bool bAccepted = false;
+        if (Action->Definition.ResolutionProfile ==
+            EGridCombatActionResolutionProfile::Attack)
+        {
+            FGridPlayerAttackRequest AttackRequest;
+            FGridAttackResult AttackResult;
+            EGridPlayerAttackRejectReason AttackRejectReason =
+                EGridPlayerAttackRejectReason::None;
+            bAccepted = RequestCharacterAttackInternal (
+                CharacterIndex,
+                EGridEquipmentSlot::None,
+                false,
+                Action,
+                AttackRequest,
+                AttackResult,
+                AttackRejectReason);
+            OutResult.AttackRequest = AttackRequest;
+            OutResult.AttackResult = AttackResult;
+            OutResult.AttackRejectReason = AttackRejectReason;
+            if (bAccepted &&
+                !CommitQuickItemResourcesAfterAttack (
+                    *Action,
+                    OutResult.QuickItemResult))
+            {
+                UE_LOG (
+                    LogGridTurnManager,
+                    Error,
+                    TEXT ("[GridQuickItem] PostAttackCommitFailed Character=%d Action=%s Source=%s"),
+                    CharacterIndex,
+                    *ActionId.ToString (),
+                    *SourceDefinitionId.ToString ());
+                bAccepted = false;
+            }
+            OutResult.RejectReason = bAccepted
+                ? EGridCombatActionRequestRejectReason::None
+                : AttackRejectReason !=
+                        EGridPlayerAttackRejectReason::None
+                    ? EGridCombatActionRequestRejectReason::AttackRejected
+                    : EGridCombatActionRequestRejectReason::QuickItemRejected;
+        }
+        else if (Action->Definition.ResolutionProfile ==
+            EGridCombatActionResolutionProfile::Effect)
+        {
+            bAccepted = RequestCharacterQuickItemEffect (
+                *Action,
+                OutResult.QuickItemResult);
+            OutResult.RejectReason = bAccepted
+                ? EGridCombatActionRequestRejectReason::None
+                : EGridCombatActionRequestRejectReason::QuickItemRejected;
+        }
+        else
+        {
+            OutResult.RejectReason =
+                EGridCombatActionRequestRejectReason::UnsupportedResolution;
+        }
+
+        OutResult.bAccepted = bAccepted;
+        UE_LOG (
+            LogGridTurnManager,
+            Log,
+            TEXT ("[GridQuickItem] Accepted=%s Character=%d Action=%s Source=%s APCost=%d ManaCost=%d Quantity=%d->%d Health=%d->%d Mana=%d->%d"),
+            bAccepted ? TEXT ("true") : TEXT ("false"),
+            CharacterIndex,
+            *ActionId.ToString (),
+            *SourceDefinitionId.ToString (),
+            Action->CurrentActionPointCost,
+            Action->CurrentManaCost,
+            OutResult.QuickItemResult.SourceQuantityBefore,
+            OutResult.QuickItemResult.SourceQuantityAfter,
+            OutResult.QuickItemResult.HealthBefore,
+            OutResult.QuickItemResult.HealthAfter,
+            OutResult.QuickItemResult.ManaBefore,
+            OutResult.QuickItemResult.ManaAfter);
+        return bAccepted;
     }
 
     if (Action->Definition.ResolutionProfile !=
@@ -478,7 +810,7 @@ void UGridTurnManagerComponent::LogAvailableCombatActions (
         UE_LOG (
             LogGridTurnManager,
             Log,
-            TEXT ("[GridActionCatalog] Character=%d Action=%s SourcePolicy=%s Source=%s Slot=%s AP=%d Mana=%d Item=%d Status=%s Target=%s Cell=(%d,%d)"),
+            TEXT ("[GridActionCatalog] Character=%d Action=%s SourcePolicy=%s Source=%s Slot=%s AP=%d Mana=%d Item=%d/%d Status=%s Target=%s Cell=(%d,%d)"),
             ResolvedCharacterIndex,
             *Action.Definition.ActionId.ToString (),
             *UEnum::GetValueAsString (
@@ -489,6 +821,7 @@ void UGridTurnManagerComponent::LogAvailableCombatActions (
             Action.CurrentActionPointCost,
             Action.CurrentManaCost,
             Action.CurrentSourceItemQuantityCost,
+            Action.CurrentSourceItemQuantity,
             *GetMON126AvailabilityText (Action),
             *Action.SuggestedTargetId.ToString (
                 EGuidFormats::Digits),

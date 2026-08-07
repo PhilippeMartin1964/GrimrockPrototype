@@ -65,15 +65,53 @@ namespace
                 return EGridCombatActionAvailabilityReason::CooldownActive;
             }
         }
-        if (!Context.bEnableExtendedExecutors &&
-            (Definition.ResolutionProfile !=
+
+        if (Definition.SourcePolicy ==
+            EGridCombatActionSourcePolicy::QuickItem)
+        {
+            const bool bSupportedQuickItemProfile =
+                Definition.ResolutionProfile ==
                     EGridCombatActionResolutionProfile::Attack ||
-                Definition.SourcePolicy ==
-                    EGridCombatActionSourcePolicy::Ability ||
-                Definition.SourcePolicy ==
-                    EGridCombatActionSourcePolicy::Spell ||
-                Definition.SourcePolicy ==
-                    EGridCombatActionSourcePolicy::QuickItem))
+                (Definition.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Effect &&
+                    Definition.TargetingPolicy ==
+                        EGridCombatTargetingPolicy::Self &&
+                    Definition.EffectProfile.IsValid ());
+            if (!Context.bEnableQuickItemExecutors ||
+                !bSupportedQuickItemProfile)
+            {
+                return EGridCombatActionAvailabilityReason::
+                    ExecutionNotImplemented;
+            }
+
+            if (Definition.ResolutionProfile ==
+                    EGridCombatActionResolutionProfile::Effect)
+            {
+                const int32 HealthAfter = FMath::Clamp (
+                    Context.CurrentHealth +
+                        Definition.EffectProfile.RestoreHealth,
+                    0,
+                    FMath::Max (0, Context.MaximumHealth));
+                const int32 ManaAfter = FMath::Clamp (
+                    Context.CurrentMana -
+                        Definition.ResourceCosts.ManaCost +
+                        Definition.EffectProfile.RestoreMana,
+                    0,
+                    FMath::Max (0, Context.MaximumMana));
+                if (HealthAfter <= Context.CurrentHealth &&
+                    ManaAfter <= Context.CurrentMana)
+                {
+                    return EGridCombatActionAvailabilityReason::
+                        NoApplicableEffect;
+                }
+            }
+        }
+        else if (Definition.ResolutionProfile !=
+                EGridCombatActionResolutionProfile::Attack ||
+            Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Ability ||
+            Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Spell)
         {
             return EGridCombatActionAvailabilityReason::
                 ExecutionNotImplemented;
@@ -109,6 +147,8 @@ void FGridCombatActionCatalog::Build (
             Contribution.Definition.ResourceCosts.ManaCost;
         Available.CurrentSourceItemQuantityCost =
             Contribution.Definition.ResourceCosts.SourceItemQuantityCost;
+        Available.CurrentSourceItemQuantity =
+            Contribution.AvailableSourceQuantity;
         Available.AvailabilityReason = EvaluateMON126Availability (
             Context,
             Contribution);
@@ -234,6 +274,10 @@ FText FGridCombatActionCatalog::GetAvailabilityReasonText (
         return LOCTEXT (
             "CooldownActive",
             "Cette action est encore en recharge.");
+    case EGridCombatActionAvailabilityReason::NoApplicableEffect:
+        return LOCTEXT (
+            "NoApplicableEffect",
+            "Cette action n’aurait actuellement aucun effet utile.");
     case EGridCombatActionAvailabilityReason::ExecutionNotImplemented:
         return LOCTEXT (
             "ExecutionNotImplemented",

@@ -409,6 +409,32 @@ Règles : clé, arme, armure généralement non stackables ; composants, nourrit
 | `CompatibleEquipmentSlots` | Liste des slots où l'item peut être équipé. |
 | `EquippedMesh` | Mesh utilisé si l'item est visible sur le personnage. |
 
+### 5.8 Action rapide de combat — potion ou parchemin
+
+Pour rendre une potion ou un parchemin exécutable depuis
+`WBP_GridCombatHud`, activer `Provides Quick Item Combat Action` dans son
+`GridItemDefinitionAsset`, puis configurer `Quick Item Combat Action`.
+
+Potion de soins ou de mana :
+
+```text
+TargetingPolicy       Self
+ResolutionProfile    Effect
+EffectProfile        RestoreHealth et/ou RestoreMana
+```
+
+Parchemin offensif :
+
+```text
+TargetingPolicy       FirstAxialTarget
+ResolutionProfile    Attack
+OffensiveProfile     profil de dégâts et portée
+```
+
+Le code impose automatiquement l'identité `Use_<ItemDefinitionId>`, la source
+`QuickItem` et une consommation minimale d'une unité. Voir
+`docs/Design/MON12_8_4_QUICK_ITEM_COMBAT_ACTIONS.md` pour les réglages complets.
+
 Exemples : arme -> `MainHand`; bouclier -> `OffHand`; torche -> `MainHand` / `OffHand`; amulette -> `Amulet`; anneau -> `Ring1` / `Ring2`.
 
 Pour une clé :

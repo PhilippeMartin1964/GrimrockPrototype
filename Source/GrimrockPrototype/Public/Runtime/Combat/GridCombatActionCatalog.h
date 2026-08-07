@@ -14,9 +14,12 @@ struct GRIMROCKPROTOTYPE_API FGridCombatActionCatalogContext
     bool bCharacterDefeated = false;
     bool bActiveCombatant = false;
     bool bPartyBusy = false;
-    bool bEnableExtendedExecutors = false;
+    bool bEnableQuickItemExecutors = false;
     int32 RemainingActionPoints = 0;
+    int32 CurrentHealth = 0;
+    int32 MaximumHealth = 0;
     int32 CurrentMana = 0;
+    int32 MaximumMana = 0;
     TSet<FName> SatisfiedRequirements;
     TMap<FName, int32> RemainingCooldownRounds;
 };

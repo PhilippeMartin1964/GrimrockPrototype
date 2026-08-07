@@ -790,6 +790,12 @@ private:
         TArray<FGridCombatActionContribution>& OutContributions) const;
     void ResolveSuggestedCombatActionTarget (
         FGridAvailableCombatAction& Action) const;
+    bool RequestCharacterQuickItemEffect (
+        const FGridAvailableCombatAction& Action,
+        FGridCombatQuickItemResult& OutResult);
+    bool CommitQuickItemResourcesAfterAttack (
+        const FGridAvailableCombatAction& Action,
+        FGridCombatQuickItemResult& OutResult);
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,

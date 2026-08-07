@@ -960,4 +960,264 @@ bool FGridMonsterMON1283HotbarKeyboardGuardTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1284QuickItemEffectTest,
+    "Grimrock.Monsters.MON12.8.4.QuickItemEffectAndPersistence",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1284QuickItemEffectTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.4 effect fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridPartyInventoryComponent* Inventory =
+        Fixture.Party->PartyInventoryComponent;
+    FGridCharacterInventoryState& Character =
+        Inventory->PartyInventoryState.ActiveCharacters[0];
+    Character.DerivedStats.CurrentHealth = 5;
+    Character.DerivedStats.CurrentMana = 4;
+
+    UGridItemDefinitionAsset* PotionDefinition =
+        NewObject<UGridItemDefinitionAsset> (Fixture.Party);
+    PotionDefinition->ItemDefinitionId = TEXT ("Potion_MON1284_Health");
+    PotionDefinition->DisplayName =
+        FText::FromString (TEXT ("Potion de soins MON12.8.4"));
+    PotionDefinition->ItemType = EGridItemType::Potion;
+    PotionDefinition->bStackable = true;
+    PotionDefinition->MaxStackSize = 10;
+    PotionDefinition->bProvidesQuickItemCombatAction = true;
+    PotionDefinition->QuickItemCombatAction.ActionType =
+        EGridCombatActionType::Ability;
+    PotionDefinition->QuickItemCombatAction.TargetingPolicy =
+        EGridCombatTargetingPolicy::Self;
+    PotionDefinition->QuickItemCombatAction.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Effect;
+    PotionDefinition->QuickItemCombatAction.ActionPointCost = 1;
+    PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreHealth = 7;
+    PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreMana = 3;
+    if (!TestTrue (TEXT ("The combat potion definition is registered"),
+        Inventory->RegisterItemDefinition (PotionDefinition)))
+    {
+        return false;
+    }
+
+    FGridItemInstance Potion;
+    Potion.RuntimeObjectId = FGuid (12, 8, 4, 1);
+    Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
+    Potion.DisplayName = PotionDefinition->DisplayName;
+    Potion.Quantity = 2;
+    TestTrue (TEXT ("Two potion units enter the inventory"),
+        Inventory->AddItemToCharacterInventory (0, Potion));
+    TestTrue (TEXT ("The potion configures shortcut one"),
+        Inventory->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            0,
+            Potion,
+            EGridEquipmentSlot::None));
+
+    Fixture.Hud->RefreshFromSources ();
+    TestTrue (TEXT ("The configured potion resolves from the catalogue"),
+        Fixture.Hud->View.Actions[0].bResolved);
+    TestTrue (TEXT ("The potion is initially usable"),
+        Fixture.Hud->View.Actions[0].Action.bEnabled);
+    TestEqual (TEXT ("The catalogue aggregates both potion units"),
+        Fixture.Hud->View.Actions[0].Action.CurrentSourceItemQuantity,
+        2);
+
+    FGridCombatActionRequestResult FirstUse;
+    TestTrue (TEXT ("The first potion use is accepted"),
+        Fixture.Hud->RequestHotbarSlot (0, FirstUse));
+    TestEqual (TEXT ("The potion restores seven health"),
+        Character.DerivedStats.CurrentHealth,
+        12);
+    TestEqual (TEXT ("The same potion restores three mana"),
+        Character.DerivedStats.CurrentMana,
+        7);
+    TestEqual (TEXT ("The potion spends one action point"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        3);
+    TestEqual (TEXT ("Exactly one potion remains"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            PotionDefinition->ItemDefinitionId),
+        1);
+    TestEqual (TEXT ("The result records the consumed unit"),
+        FirstUse.QuickItemResult.SourceQuantityAfter,
+        1);
+
+    Character.DerivedStats.CurrentHealth = 20;
+    Character.DerivedStats.CurrentMana = 8;
+    Fixture.Hud->RefreshFromSources ();
+    TestFalse (TEXT ("A full-health character cannot waste the potion"),
+        Fixture.Hud->View.Actions[0].Action.bEnabled);
+    TestEqual (TEXT ("The disabled reason identifies a useless effect"),
+        Fixture.Hud->View.Actions[0].Action.AvailabilityReason,
+        EGridCombatActionAvailabilityReason::NoApplicableEffect);
+    FGridCombatActionRequestResult RefusedUse;
+    TestFalse (TEXT ("The useless potion request is rejected"),
+        Fixture.Hud->RequestHotbarSlot (0, RefusedUse));
+    TestEqual (TEXT ("A refused potion consumes no unit"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            PotionDefinition->ItemDefinitionId),
+        1);
+    TestEqual (TEXT ("A refused potion consumes no action point"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        3);
+
+    Character.DerivedStats.CurrentHealth = 10;
+    FGridCombatActionRequestResult LastUse;
+    TestTrue (TEXT ("The last potion unit can be consumed"),
+        Fixture.Hud->RequestHotbarSlot (0, LastUse));
+    TestEqual (TEXT ("The inventory quantity reaches zero"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            PotionDefinition->ItemDefinitionId),
+        0);
+    FGridCombatHotbarBinding PersistentBinding;
+    TestTrue (TEXT ("The shortcut still exists at quantity zero"),
+        Inventory->GetCharacterCombatHotbarBinding (
+            0,
+            0,
+            PersistentBinding));
+    TestFalse (TEXT ("The zero-quantity shortcut is not cleared"),
+        PersistentBinding.IsEmpty ());
+    TestTrue (TEXT ("The zero-quantity shortcut remains resolved"),
+        Fixture.Hud->View.Actions[0].bResolved);
+    TestEqual (TEXT ("The catalogue reports the missing source"),
+        Fixture.Hud->View.Actions[0].Action.AvailabilityReason,
+        EGridCombatActionAvailabilityReason::InsufficientSourceItems);
+
+    FGridItemInstance ReplacementPotion = Potion;
+    ReplacementPotion.RuntimeObjectId = FGuid (12, 8, 4, 2);
+    ReplacementPotion.Quantity = 3;
+    TestTrue (TEXT ("A replacement stack can be added"),
+        Inventory->AddItemToCharacterInventory (
+            0,
+            ReplacementPotion));
+    Fixture.Hud->RefreshFromSources ();
+    TestTrue (TEXT ("The same shortcut reactivates for the new stack"),
+        Fixture.Hud->View.Actions[0].Action.bEnabled);
+    TestEqual (TEXT ("The replacement quantity is projected"),
+        Fixture.Hud->View.Actions[0].Action.CurrentSourceItemQuantity,
+        3);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1284QuickItemScrollAttackTest,
+    "Grimrock.Monsters.MON12.8.4.ScrollAttackConsumption",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.4 scroll fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridPartyInventoryComponent* Inventory =
+        Fixture.Party->PartyInventoryComponent;
+    UGridItemDefinitionAsset* ScrollDefinition =
+        NewObject<UGridItemDefinitionAsset> (Fixture.Party);
+    ScrollDefinition->ItemDefinitionId = TEXT ("Scroll_MON1284_Fire");
+    ScrollDefinition->DisplayName =
+        FText::FromString (TEXT ("Parchemin de feu MON12.8.4"));
+    ScrollDefinition->ItemType = EGridItemType::Scroll;
+    ScrollDefinition->bStackable = true;
+    ScrollDefinition->MaxStackSize = 10;
+    ScrollDefinition->bProvidesQuickItemCombatAction = true;
+    FGridCombatActionDefinition& ScrollAction =
+        ScrollDefinition->QuickItemCombatAction;
+    ScrollAction.ActionType = EGridCombatActionType::RangedAttack;
+    ScrollAction.TargetingPolicy =
+        EGridCombatTargetingPolicy::FirstAxialTarget;
+    ScrollAction.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Attack;
+    ScrollAction.ActionPointCost = 2;
+    ScrollAction.RangeCells = 2;
+    ScrollAction.OffensiveProfile.AttackId =
+        TEXT ("Attack_MON1284_FireScroll");
+    ScrollAction.OffensiveProfile.AttackDefinition.DamageType =
+        EGridDamageType::Fire;
+    ScrollAction.OffensiveProfile.AttackDefinition.MinDamage = 2;
+    ScrollAction.OffensiveProfile.AttackDefinition.MaxDamage = 2;
+    ScrollAction.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
+    ScrollAction.OffensiveProfile.DamageScalingAttribute =
+        EGridAttackScalingAttribute::None;
+    ScrollAction.OffensiveProfile.RangeCells = 2;
+    if (!TestTrue (TEXT ("The combat scroll definition is registered"),
+        Inventory->RegisterItemDefinition (ScrollDefinition)))
+    {
+        return false;
+    }
+
+    FGridItemInstance Scroll;
+    Scroll.RuntimeObjectId = FGuid (12, 8, 4, 3);
+    Scroll.ItemDefinitionId = ScrollDefinition->ItemDefinitionId;
+    Scroll.DisplayName = ScrollDefinition->DisplayName;
+    Scroll.Quantity = 2;
+    TestTrue (TEXT ("Two scroll units enter the inventory"),
+        Inventory->AddItemToCharacterInventory (0, Scroll));
+    TestTrue (TEXT ("The scroll configures shortcut two"),
+        Inventory->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            1,
+            Scroll,
+            EGridEquipmentSlot::None));
+
+    Fixture.Party->Facing = EGridEdge::South;
+    Fixture.Hud->RefreshFromSources ();
+    FGridCombatActionRequestResult RejectedScroll;
+    TestFalse (TEXT ("A scroll attack without a target is rejected"),
+        Fixture.Hud->RequestHotbarSlot (1, RejectedScroll));
+    TestEqual (TEXT ("A rejected scroll consumes no unit"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            ScrollDefinition->ItemDefinitionId),
+        2);
+    TestEqual (TEXT ("A rejected scroll consumes no action point"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        4);
+
+    Fixture.Party->Facing = EGridEdge::North;
+    FGridCombatActionRequestResult AcceptedScroll;
+    TestTrue (TEXT ("The axial scroll attack is accepted"),
+        Fixture.Hud->RequestHotbarSlot (1, AcceptedScroll));
+    TestTrue (TEXT ("The generic result records acceptance"),
+        AcceptedScroll.bAccepted);
+    TestTrue (TEXT ("The quick-item attack request is structurally valid"),
+        AcceptedScroll.AttackRequest.IsValid ());
+    TestEqual (TEXT ("The scroll source is recorded on the attack"),
+        AcceptedScroll.AttackRequest.OffensiveItemDefinitionId,
+        ScrollDefinition->ItemDefinitionId);
+    TestEqual (TEXT ("A scroll never claims an equipment slot"),
+        AcceptedScroll.AttackRequest.OffensiveEquipmentSlot,
+        EGridEquipmentSlot::None);
+    TestEqual (TEXT ("Exactly one accepted scroll is consumed"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            ScrollDefinition->ItemDefinitionId),
+        1);
+    TestEqual (TEXT ("The scroll result records the remaining unit"),
+        AcceptedScroll.QuickItemResult.SourceQuantityAfter,
+        1);
+    TestEqual (TEXT ("The accepted scroll spends two action points"),
+        Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
+        2);
+    return true;
+}
+
 #endif

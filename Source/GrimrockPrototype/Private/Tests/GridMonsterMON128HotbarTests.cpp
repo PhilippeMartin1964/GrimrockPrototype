@@ -482,4 +482,65 @@ bool FGridMON128StableEquipmentResolutionTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON1284ZeroQuantityDefinitionRehydrationTest,
+    "Grimrock.Monsters.MON12.8.4.ZeroQuantityDefinitionRehydration",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON1284ZeroQuantityDefinitionRehydrationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridPartyInventoryComponent* Component = CreateMON128Inventory ();
+    if (!Component)
+    {
+        return false;
+    }
+
+    const FName PotionDefinitionId =
+        TEXT ("Potion_MON1284_Rehydrate");
+    FGridCombatHotbarBinding Binding;
+    Binding.ActionId =
+        FGridCombatHotbarBinding::MakeQuickItemActionId (
+            PotionDefinitionId);
+    Binding.SourcePolicy =
+        EGridCombatActionSourcePolicy::QuickItem;
+    Binding.SourceDefinitionId = PotionDefinitionId;
+    TestTrue (TEXT ("A zero-quantity quick item binding is stored"),
+        Component->SetCharacterCombatHotbarBinding (
+            0,
+            0,
+            Binding));
+
+    UGridItemDefinitionAsset* PotionDefinition =
+        NewObject<UGridItemDefinitionAsset> (Component);
+    PotionDefinition->ItemDefinitionId = PotionDefinitionId;
+    PotionDefinition->ItemType = EGridItemType::Potion;
+    int32 ResolverCallCount = 0;
+    FName MissingDefinitionId;
+    TestTrue (TEXT ("Hotbar-only definitions are rehydrated"),
+        Component->RehydrateOwnedItemDefinitions (
+            [&ResolverCallCount,
+                PotionDefinition,
+                PotionDefinitionId]
+            (FName RequestedDefinitionId)
+            {
+                ++ResolverCallCount;
+                return RequestedDefinitionId == PotionDefinitionId
+                    ? PotionDefinition
+                    : nullptr;
+            },
+            MissingDefinitionId));
+    TestEqual (TEXT ("The hotbar definition is resolved exactly once"),
+        ResolverCallCount,
+        1);
+    TestTrue (TEXT ("No definition is reported missing"),
+        MissingDefinitionId.IsNone ());
+    TestEqual (TEXT ("The rehydrated definition remains registered"),
+        Component->FindItemDefinition (PotionDefinitionId),
+        PotionDefinition);
+    return true;
+}
+
 #endif

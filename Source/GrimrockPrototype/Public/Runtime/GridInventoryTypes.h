@@ -85,7 +85,7 @@ struct FGridCombatHotbarBinding
         return ActionId.IsNone ();
     }
 
-    /** Stable identity used by consumables until their executor is available. */
+    /** Stable identity shared by every stack of the same combat consumable. */
     static FName MakeQuickItemActionId (FName ItemDefinitionId)
     {
         return ItemDefinitionId.IsNone ()

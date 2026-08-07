@@ -86,6 +86,21 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Equipment|Combat Actions")
     TArray<FGridCombatActionDefinition> CombatActions;
 
+    /**
+     * Enables one inventory-backed combat action for a potion or scroll.
+     * Runtime identity, source policy and a minimum source cost of one are
+     * normalized from ItemDefinitionId by BuildQuickItemCombatActionDefinition.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|Quick Item")
+    bool bProvidesQuickItemCombatAction = false;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|Quick Item",
+        meta = (EditCondition = "bProvidesQuickItemCombatAction"))
+    FGridCombatActionDefinition QuickItemCombatAction;
+
     UPROPERTY (
         EditAnywhere,
         BlueprintReadOnly,
@@ -163,6 +178,10 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "Equipment|Combat Actions")
     bool HasValidCombatActions () const;
+
+    /** Builds the normalized Use_<ItemDefinitionId> catalogue definition. */
+    bool BuildQuickItemCombatActionDefinition (
+        FGridCombatActionDefinition& OutDefinition) const;
 
     UFUNCTION (BlueprintPure, Category = "Equipment|Offense|Presentation")
     bool HasValidPlayerAttackPresentation () const;

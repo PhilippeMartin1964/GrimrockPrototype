@@ -14,6 +14,16 @@ bool UGridItemDefinitionAsset::IsValidDefinition () const
         return false;
     }
 
+    if (bProvidesQuickItemCombatAction)
+    {
+        FGridCombatActionDefinition QuickItemDefinition;
+        if (!BuildQuickItemCombatActionDefinition (
+                QuickItemDefinition))
+        {
+            return false;
+        }
+    }
+
     if (!bProvidesAttack)
     {
         return true;
@@ -71,6 +81,65 @@ bool UGridItemDefinitionAsset::HasValidCombatActions () const
             return false;
         }
         ActionIds.Add (Action.ActionId);
+    }
+    return true;
+}
+
+bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition (
+    FGridCombatActionDefinition& OutDefinition) const
+{
+    OutDefinition = FGridCombatActionDefinition ();
+    if (!bProvidesQuickItemCombatAction ||
+        ItemDefinitionId.IsNone () ||
+        (ItemType != EGridItemType::Potion &&
+            ItemType != EGridItemType::Scroll))
+    {
+        return false;
+    }
+
+    OutDefinition = QuickItemCombatAction;
+    OutDefinition.ActionId =
+        FGridCombatHotbarBinding::MakeQuickItemActionId (
+            ItemDefinitionId);
+    OutDefinition.SourcePolicy =
+        EGridCombatActionSourcePolicy::QuickItem;
+    OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max (
+        1,
+        OutDefinition.ResourceCosts.SourceItemQuantityCost);
+    if (OutDefinition.DisplayName.IsEmpty ())
+    {
+        OutDefinition.DisplayName = DisplayName;
+    }
+    if (OutDefinition.Description.IsEmpty ())
+    {
+        OutDefinition.Description = Description;
+    }
+    if (OutDefinition.Icon.IsNull ())
+    {
+        OutDefinition.Icon = Icon;
+    }
+
+    if (!OutDefinition.IsValid ())
+    {
+        OutDefinition = FGridCombatActionDefinition ();
+        return false;
+    }
+
+    const bool bSupportedAttack =
+        OutDefinition.ResolutionProfile ==
+            EGridCombatActionResolutionProfile::Attack &&
+        OutDefinition.TargetingPolicy ==
+            EGridCombatTargetingPolicy::FirstAxialTarget;
+    const bool bSupportedSelfEffect =
+        OutDefinition.ResolutionProfile ==
+            EGridCombatActionResolutionProfile::Effect &&
+        OutDefinition.TargetingPolicy ==
+            EGridCombatTargetingPolicy::Self &&
+        OutDefinition.EffectProfile.IsValid ();
+    if (!bSupportedAttack && !bSupportedSelfEffect)
+    {
+        OutDefinition = FGridCombatActionDefinition ();
+        return false;
     }
     return true;
 }

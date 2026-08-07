@@ -80,7 +80,8 @@ enum class EGridCombatActionAvailabilityReason : uint8
     InsufficientSourceItems  UMETA (DisplayName = "Insufficient Source Items"),
     MissingRequirement       UMETA (DisplayName = "Missing Requirement"),
     CooldownActive           UMETA (DisplayName = "Cooldown Active"),
-    ExecutionNotImplemented  UMETA (DisplayName = "Execution Not Implemented")
+    ExecutionNotImplemented  UMETA (DisplayName = "Execution Not Implemented"),
+    NoApplicableEffect       UMETA (DisplayName = "No Applicable Effect")
 };
 
 UENUM (BlueprintType)
@@ -91,7 +92,8 @@ enum class EGridCombatActionRequestRejectReason : uint8
     InvalidAction             UMETA (DisplayName = "Invalid Action"),
     ActionUnavailable         UMETA (DisplayName = "Action Unavailable"),
     UnsupportedResolution     UMETA (DisplayName = "Unsupported Resolution"),
-    AttackRejected            UMETA (DisplayName = "Attack Rejected")
+    AttackRejected            UMETA (DisplayName = "Attack Rejected"),
+    QuickItemRejected         UMETA (DisplayName = "Quick Item Rejected")
 };
 
 UENUM (BlueprintType)
@@ -377,6 +379,9 @@ struct FGridPlayerAttackRequest
             !OffensiveItemDefinitionId.IsNone () &&
             (OffensiveEquipmentSlot == EGridEquipmentSlot::MainHand ||
                 OffensiveEquipmentSlot == EGridEquipmentSlot::OffHand);
+        const bool bQuickItem =
+            !OffensiveItemDefinitionId.IsNone () &&
+            OffensiveEquipmentSlot == EGridEquipmentSlot::None;
         return RequestId.IsValid () &&
             RoundNumber > 0 &&
             AttackerCharacterIndex != INDEX_NONE &&
@@ -386,7 +391,7 @@ struct FGridPlayerAttackRequest
             RangeCells > 0 &&
             ActionPointCost > 0 &&
             !AttackId.IsNone () &&
-            (bUnarmed || bEquipped);
+            (bUnarmed || bEquipped || bQuickItem);
     }
 };
 
@@ -518,6 +523,34 @@ struct FGridCombatActionResourceCosts
     }
 };
 
+/** Immediate self-targeted restoration used by combat potions and scrolls. */
+USTRUCT (BlueprintType)
+struct FGridCombatActionEffectProfile
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Effect",
+        meta = (ClampMin = "0"))
+    int32 RestoreHealth = 0;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|Action|Effect",
+        meta = (ClampMin = "0"))
+    int32 RestoreMana = 0;
+
+    bool IsValid () const
+    {
+        return RestoreHealth >= 0 &&
+            RestoreMana >= 0 &&
+            (RestoreHealth > 0 || RestoreMana > 0);
+    }
+};
+
 /**
  * Data-oriented definition shared by equipment, abilities and spells.
  * Resolution and presentation stay separate from catalogue construction.
@@ -592,6 +625,10 @@ struct FGridCombatActionDefinition
     /** Attack payload used when ResolutionProfile is Attack. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
     FGridOffensiveEquipmentProfile OffensiveProfile;
+
+    /** Immediate self payload used by QuickItem Effect actions. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Action|Resolution")
+    FGridCombatActionEffectProfile EffectProfile;
 
     bool IsValid () const
     {
@@ -687,6 +724,10 @@ struct FGridAvailableCombatAction
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
     int32 CurrentSourceItemQuantityCost = 0;
 
+    /** Total matching units across every inventory stack. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    int32 CurrentSourceItemQuantity = 0;
+
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
     bool bEnabled = false;
 
@@ -722,7 +763,8 @@ struct FGridAvailableCombatAction
             Definition.IsValid () &&
             CurrentActionPointCost >= 0 &&
             CurrentManaCost >= 0 &&
-            CurrentSourceItemQuantityCost >= 0;
+            CurrentSourceItemQuantityCost >= 0 &&
+            CurrentSourceItemQuantity >= 0;
     }
 };
 
@@ -837,6 +879,31 @@ struct FGridAttackResult
     }
 };
 
+/** Resource and vital snapshot produced by a QuickItem combat action. */
+USTRUCT (BlueprintType)
+struct FGridCombatQuickItemResult
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+    int32 SourceQuantityBefore = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+    int32 SourceQuantityAfter = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+    int32 HealthBefore = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+    int32 HealthAfter = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+    int32 ManaBefore = 0;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Quick Item")
+    int32 ManaAfter = 0;
+};
+
 /** Result of the generic MON12 action request entry point. */
 USTRUCT (BlueprintType)
 struct FGridCombatActionRequestResult
@@ -862,4 +929,7 @@ struct FGridCombatActionRequestResult
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
     EGridPlayerAttackRejectReason AttackRejectReason =
         EGridPlayerAttackRejectReason::None;
+
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action")
+    FGridCombatQuickItemResult QuickItemResult;
 };

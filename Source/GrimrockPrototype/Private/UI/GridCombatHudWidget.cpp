@@ -110,9 +110,15 @@ namespace
         }
         if (Action.CurrentSourceItemQuantityCost > 0)
         {
-            Result += FString::Printf (
-                TEXT (" | x%d"),
-                Action.CurrentSourceItemQuantityCost);
+            Result += Action.Definition.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::QuickItem
+                ? FString::Printf (
+                    TEXT (" | x%d/%d"),
+                    Action.CurrentSourceItemQuantityCost,
+                    Action.CurrentSourceItemQuantity)
+                : FString::Printf (
+                    TEXT (" | x%d"),
+                    Action.CurrentSourceItemQuantityCost);
         }
         return FText::FromString (Result);
     }
@@ -1137,8 +1143,8 @@ void UGridCombatHudWidget::ApplyHotbarPresentationFallbacks ()
         {
         case EGridCombatActionSourcePolicy::QuickItem:
             ActionView.DisabledReason = FText::FromString (TEXT (
-                "Raccourci configuré. L’utilisation des potions et "
-                "parchemins sera ajoutée dans MON12.8.4."));
+                "Aucune action de combat n’est configurée dans la "
+                "définition de cette potion ou de ce parchemin."));
             break;
         case EGridCombatActionSourcePolicy::Equipment:
             ActionView.DisabledReason = FText::FromString (TEXT (
