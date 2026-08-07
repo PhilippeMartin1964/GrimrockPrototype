@@ -100,8 +100,11 @@ Le C++ crée une entrée par action compatible. Il réutilise
 `WBP_GridCombatHudAction`, masque le numéro de raccourci pour la palette et
 garde les coûts, l'icône, le tooltip et l'état disponible/indisponible.
 
-Sans `Panel_ActionPalette`, la barre et l'exécution continuent de fonctionner,
-mais aucune source visuelle ne permet d'affecter une capacité ou un sort.
+Depuis MON12.8.7, l'absence de `Panel_ActionPalette` déclenche la création
+automatique d'un `WrapBox` natif au-dessus de `Panel_Actions`. La modification
+du WBP reste recommandée uniquement pour personnaliser précisément la mise en
+page ; elle n'est plus une condition fonctionnelle pour affecter « À mains
+nues », une capacité ou un sort.
 
 ## Tests automatisés
 

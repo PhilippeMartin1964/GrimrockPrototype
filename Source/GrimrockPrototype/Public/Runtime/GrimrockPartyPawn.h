@@ -151,6 +151,13 @@ public:
         meta = (ClampMin = "0"))
     int32 CombatActionPanelZOrder = 50;
 
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Combat|UI",
+        meta = (ClampMin = "0"))
+    int32 CombatHotbarConfigurationZOrder = 150;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
 
@@ -293,6 +300,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Combat|UI")
     bool TryExecuteCombatHotbarSlot (int32 SlotIndex);
 
+    UFUNCTION (BlueprintPure, Category = "Combat|UI")
+    bool IsCombatHotbarExecutionBlocked () const;
+
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     void ShowInitialCharacterCreationWidget ();
 
@@ -366,6 +376,16 @@ public:
     AGridThrownItemActor* TryLaunchEquippedItemForAttack (
         int32 CharacterIndex,
         EGridEquipmentSlot SourceSlot,
+        FName ExpectedItemDefinitionId,
+        const FVector& TargetWorldLocation,
+        const FIntPoint& SourceCell);
+
+    /**
+     * Spawns the recoverable visual for a throwable used directly from the
+     * inventory. The TurnManager remains authoritative for consuming one unit.
+     */
+    AGridThrownItemActor* TryLaunchInventoryItemForAttackPresentation (
+        int32 CharacterIndex,
         FName ExpectedItemDefinitionId,
         const FVector& TargetWorldLocation,
         const FIntPoint& SourceCell);

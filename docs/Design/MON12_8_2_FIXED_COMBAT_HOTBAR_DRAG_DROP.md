@@ -27,16 +27,17 @@ l'objet source.
   `QuickItem`, identifié par son `ItemDefinitionId` ;
 - une arme réellement équipée en `MainHand` ou `OffHand` crée un binding
   `Equipment`, identifié par son `RuntimeObjectId` ;
-- une arme non équipée, un objet de curseur, une armure ou un objet sans action
-  compatible est refusé sans modifier la barre ;
+- depuis MON12.8.7, une arme lançable non équipée est acceptée comme action
+  rapide d'inventaire ; une arme non lançable et non équipée, un objet de
+  curseur, une armure ou un objet sans action compatible reste refusé ;
 - si une définition d'équipement expose plusieurs `CombatActions`, le dépôt de
   l'objet choisit sa première action valide comme action principale. Une future
   liste d'actions permettra d'assigner explicitement les autres.
 
 Les actions sans objet source — notamment le combat à mains nues, les sorts
-appris et les capacités de classe — conservent déjà leur modèle de binding,
-mais leur palette de glisser-déposer sera raccordée avec l'exécution en
-MON12.8.3. MON12.8.2 ne crée aucun raccourci automatique pour elles.
+appris et les capacités de classe — utilisent depuis MON12.8.5 une palette de
+glisser-déposer. MON12.8.7 garantit une palette native de secours lorsque le
+WBP historique ne contient pas `Panel_ActionPalette`.
 
 Le binding d'un consommable utilise l'identité stable `Use_<ItemDefinitionId>`.
 Il pourra donc rester configuré lorsque la quantité atteindra zéro. Le binding

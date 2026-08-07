@@ -183,6 +183,15 @@ public:
     bool BuildQuickItemCombatActionDefinition (
         FGridCombatActionDefinition& OutDefinition) const;
 
+    /**
+     * Builds an inventory-backed action for the hotbar. In addition to the
+     * configured potion/scroll action, throwable weapons receive a normalized
+     * quick-throw action without needing a duplicate data-asset definition.
+     */
+    bool BuildInventoryCombatActionDefinition (
+        int32 DefaultAttackActionPointCost,
+        FGridCombatActionDefinition& OutDefinition) const;
+
     UFUNCTION (BlueprintPure, Category = "Equipment|Offense|Presentation")
     bool HasValidPlayerAttackPresentation () const;
 

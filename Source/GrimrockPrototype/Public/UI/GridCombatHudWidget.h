@@ -403,6 +403,10 @@ public:
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TArray<TObjectPtr<UGridCombatHudActionWidget>> ActionPaletteWidgets;
 
+    /** Native fallback used when the legacy WBP has no action palette panel. */
+    UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
+    TObjectPtr<UPanelWidget> RuntimeActionPalettePanel;
+
     /**
      * Single runtime row that owns all ten hotbar widgets. When the designer
      * panel is already a HorizontalBox, this points directly to it.
@@ -532,6 +536,7 @@ private:
     void EnsurePartyMemberPanels ();
     void EnsureActionWidgets ();
     void RefreshActionWidgets ();
+    void EnsureActionPalettePanel ();
     void EnsureActionPaletteWidgets ();
     void RefreshActionPaletteWidgets ();
     void ApplyHotbarPresentationFallbacks ();

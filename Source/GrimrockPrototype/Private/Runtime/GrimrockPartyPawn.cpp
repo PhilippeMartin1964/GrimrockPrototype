@@ -1254,6 +1254,15 @@ void AGrimrockPartyPawn::ShowInventoryWidget ()
     MenuWidgetInstance->RefreshInventory ();
     bInventoryWidgetVisible = true;
 
+    if (CombatHudWidgetInstance &&
+        CombatHudWidgetInstance->IsInViewport ())
+    {
+        CombatHudWidgetInstance->RemoveFromParent ();
+        CombatHudWidgetInstance->AddToViewport (
+            CombatHotbarConfigurationZOrder);
+        CombatHudWidgetInstance->RefreshFromSources ();
+    }
+
     PlayerController->bEnableClickEvents = true;
     PlayerController->bEnableMouseOverEvents = true;
     PlayerController->bShowMouseCursor = true;
@@ -1283,6 +1292,15 @@ void AGrimrockPartyPawn::HideInventoryWidget ()
         MenuWidgetInstance->SetVisibility (ESlateVisibility::Collapsed);
     }
     bInventoryWidgetVisible = false;
+
+    if (CombatHudWidgetInstance &&
+        CombatHudWidgetInstance->IsInViewport ())
+    {
+        CombatHudWidgetInstance->RemoveFromParent ();
+        CombatHudWidgetInstance->AddToViewport (
+            CombatActionPanelZOrder);
+        CombatHudWidgetInstance->RefreshFromSources ();
+    }
 
     if (APlayerController* PlayerController = Cast<APlayerController> (GetController ()))
     {
@@ -1396,12 +1414,8 @@ void AGrimrockPartyPawn::RefreshCombatActionPanelWidget ()
 
 bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot (int32 SlotIndex)
 {
-    const AGrimrockPlayerController* PlayerController =
-        Cast<AGrimrockPlayerController> (GetController ());
     if (!IsValid (CombatHudWidgetInstance) ||
-        bInventoryWidgetVisible ||
-        bCharacterCreationModalActive ||
-        (PlayerController && PlayerController->bInventoryUiOpen))
+        IsCombatHotbarExecutionBlocked ())
     {
         return false;
     }
@@ -1410,6 +1424,15 @@ bool AGrimrockPartyPawn::TryExecuteCombatHotbarSlot (int32 SlotIndex)
     return CombatHudWidgetInstance->RequestHotbarSlot (
         SlotIndex,
         Result);
+}
+
+bool AGrimrockPartyPawn::IsCombatHotbarExecutionBlocked () const
+{
+    const AGrimrockPlayerController* PlayerController =
+        Cast<AGrimrockPlayerController> (GetController ());
+    return bInventoryWidgetVisible ||
+        bCharacterCreationModalActive ||
+        (PlayerController && PlayerController->bInventoryUiOpen);
 }
 
 void AGrimrockPartyPawn::CloseCharacterCreationWidget ()
@@ -2285,6 +2308,102 @@ AGrimrockPartyPawn::TryLaunchEquippedItemForAttack (
         TargetWorldLocation.X,
         TargetWorldLocation.Y,
         TargetWorldLocation.Z);
+    return ThrownActor;
+}
+
+AGridThrownItemActor*
+AGrimrockPartyPawn::TryLaunchInventoryItemForAttackPresentation (
+    int32 CharacterIndex,
+    FName ExpectedItemDefinitionId,
+    const FVector& TargetWorldLocation,
+    const FIntPoint& SourceCell)
+{
+    if (!PartyInventoryComponent ||
+        !LevelRuntimeActor ||
+        ExpectedItemDefinitionId.IsNone () ||
+        TargetWorldLocation.ContainsNaN () ||
+        !PartyInventoryComponent->PartyInventoryState.ActiveCharacters
+            .IsValidIndex (CharacterIndex))
+    {
+        return nullptr;
+    }
+
+    const FGridCharacterInventoryState& Character =
+        PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[CharacterIndex];
+    const FGridInventorySlot* SourceSlot =
+        Character.InventorySlots.FindByPredicate (
+            [ExpectedItemDefinitionId]
+            (const FGridInventorySlot& Candidate)
+            {
+                return !Candidate.IsEmpty () &&
+                    Candidate.Item.ItemDefinitionId ==
+                        ExpectedItemDefinitionId;
+            });
+    UGridItemDefinitionAsset* ItemDefinition =
+        PartyInventoryComponent->FindItemDefinition (
+            ExpectedItemDefinitionId);
+    if (!SourceSlot ||
+        !IsValid (ItemDefinition) ||
+        !ItemDefinition->bThrowable ||
+        ItemDefinition->ThrowSpeed <= KINDA_SMALL_NUMBER)
+    {
+        return nullptr;
+    }
+
+    FVector StartLocation = Camera
+        ? Camera->GetComponentLocation ()
+        : GetActorLocation ();
+    FVector ThrowDirection =
+        (TargetWorldLocation - StartLocation).GetSafeNormal ();
+    if (ThrowDirection.IsNearlyZero ())
+    {
+        ThrowDirection = Camera
+            ? Camera->GetForwardVector ()
+            : GetActorForwardVector ();
+    }
+    const FVector ViewRight = Camera
+        ? Camera->GetRightVector ()
+        : GetActorRightVector ();
+    StartLocation +=
+        ThrowDirection * 60.0f +
+        ViewRight * 18.0f -
+        FVector::UpVector * 15.0f;
+    ThrowDirection =
+        (TargetWorldLocation - StartLocation).GetSafeNormal ();
+    ThrowDirection = (
+        ThrowDirection +
+        FVector::UpVector *
+            FMath::Max (0.0f, ItemDefinition->ThrowArc))
+        .GetSafeNormal ();
+
+    FGridItemInstance WorldItem = SourceSlot->Item;
+    WorldItem.RuntimeObjectId = FGuid::NewGuid ();
+    WorldItem.Quantity = 1;
+    WorldItem.Weight = ItemDefinition->Weight;
+    WorldItem.OwnerType = EGridItemOwnerType::World;
+    WorldItem.OwnerGuid = FGuid ();
+    WorldItem.OwnerCharacterIndex = INDEX_NONE;
+    WorldItem.EquipmentSlot = EGridEquipmentSlot::None;
+    AGridThrownItemActor* ThrownActor =
+        LevelRuntimeActor->SpawnThrownItemProjectile (
+            WorldItem,
+            ItemDefinition,
+            StartLocation,
+            ThrowDirection *
+                FMath::Max (0.0f, ItemDefinition->ThrowSpeed),
+            SourceCell.X,
+            SourceCell.Y);
+    if (ThrownActor)
+    {
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("GridPlayerAttack InventoryThrow VisualLaunched Item=%s RuntimeId=%s Character=%d"),
+            *WorldItem.ItemDefinitionId.ToString (),
+            *WorldItem.RuntimeObjectId.ToString (),
+            CharacterIndex);
+    }
     return ThrownActor;
 }
 

@@ -112,7 +112,7 @@ public:
 
     /**
      * Creates a shortcut without moving or consuming the source item.
-     * SourceEquipmentSlot is None for inventory potions and scrolls.
+     * SourceEquipmentSlot is None for inventory quick items and throwables.
      */
     UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
     bool SetCharacterCombatHotbarBindingFromItem (

@@ -144,6 +144,90 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition (
     return true;
 }
 
+bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition (
+    int32 DefaultAttackActionPointCost,
+    FGridCombatActionDefinition& OutDefinition) const
+{
+    if (BuildQuickItemCombatActionDefinition (OutDefinition))
+    {
+        return true;
+    }
+
+    OutDefinition = FGridCombatActionDefinition ();
+    if (!bThrowable || ItemDefinitionId.IsNone ())
+    {
+        return false;
+    }
+
+    const FGridCombatActionDefinition* ConfiguredThrow =
+        CombatActions.FindByPredicate (
+            [] (const FGridCombatActionDefinition& Candidate)
+            {
+                return Candidate.IsValid () &&
+                    Candidate.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Equipment &&
+                    Candidate.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack &&
+                    Candidate.TargetingPolicy ==
+                        EGridCombatTargetingPolicy::FirstAxialTarget;
+            });
+    if (ConfiguredThrow)
+    {
+        OutDefinition = *ConfiguredThrow;
+    }
+    else if (HasValidOffensiveProfile () &&
+        (CompatibleEquipmentSlots.Contains (
+                EGridEquipmentSlot::MainHand) ||
+            CompatibleEquipmentSlots.Contains (
+                EGridEquipmentSlot::OffHand)))
+    {
+        OutDefinition.ActionType = EGridCombatActionType::RangedAttack;
+        OutDefinition.TargetingPolicy =
+            EGridCombatTargetingPolicy::FirstAxialTarget;
+        OutDefinition.ResolutionProfile =
+            EGridCombatActionResolutionProfile::Attack;
+        OutDefinition.ActionPointCost = FMath::Clamp (
+            DefaultAttackActionPointCost,
+            1,
+            6);
+        OutDefinition.RangeCells = OffensiveProfile.RangeCells;
+        OutDefinition.PresentationProfileId = OffensiveProfile.AttackId;
+        OutDefinition.OffensiveProfile = OffensiveProfile;
+    }
+    else
+    {
+        return false;
+    }
+
+    OutDefinition.ActionId =
+        FGridCombatHotbarBinding::MakeQuickItemActionId (
+            ItemDefinitionId);
+    OutDefinition.SourcePolicy =
+        EGridCombatActionSourcePolicy::QuickItem;
+    OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max (
+        1,
+        OutDefinition.ResourceCosts.SourceItemQuantityCost);
+    if (OutDefinition.DisplayName.IsEmpty ())
+    {
+        OutDefinition.DisplayName = DisplayName;
+    }
+    if (OutDefinition.Description.IsEmpty ())
+    {
+        OutDefinition.Description = Description;
+    }
+    if (OutDefinition.Icon.IsNull ())
+    {
+        OutDefinition.Icon = Icon;
+    }
+
+    if (!OutDefinition.IsValid ())
+    {
+        OutDefinition = FGridCombatActionDefinition ();
+        return false;
+    }
+    return true;
+}
+
 bool UGridItemDefinitionAsset::HasValidPlayerAttackPresentation () const
 {
     return bProvidesAttackPresentation &&

@@ -16,6 +16,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
+#include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
 #include "InputCoreTypes.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -370,7 +371,7 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
         else if (!View.bHasBinding)
         {
             Button_Action->SetToolTipText (FText::FromString (
-                TEXT ("Déposez ici une arme équipée, une potion, un parchemin ou une action de la palette.")));
+                TEXT ("Déposez ici une arme, un objet lançable, une potion, un parchemin ou une action de la palette.")));
         }
         else
         {
@@ -782,7 +783,15 @@ void UGridCombatHudWidget::RefreshFromSources ()
     FGridCombatantInitiativeEntry ActiveCombatant;
     TArray<FGridAvailableCombatAction> AvailableActions;
     TArray<FGridCombatHotbarBinding> HotbarBindings;
-    if (IsValid (TurnManagerComponent) &&
+    if (IsValid (InventoryComponent) &&
+        InventoryComponent->IsValidCharacterIndex (
+            InventoryComponent->GetSelectedCharacterIndex ()))
+    {
+        View.ActiveCharacterIndex =
+            InventoryComponent->GetSelectedCharacterIndex ();
+    }
+    if (View.bCombatActive &&
+        IsValid (TurnManagerComponent) &&
         TurnManagerComponent->GetActiveCombatant (ActiveCombatant) &&
         ActiveCombatant.Side == EGridCombatantSide::Party)
     {
@@ -792,15 +801,21 @@ void UGridCombatHudWidget::RefreshFromSources ()
         {
             View.PartyMembers[View.ActiveCharacterIndex].bActive = true;
         }
-        TurnManagerComponent->GetAvailableCombatActions (
-            View.ActiveCharacterIndex,
-            AvailableActions);
-        for (const FGridAvailableCombatAction& Action : AvailableActions)
+    }
+    if (View.ActiveCharacterIndex != INDEX_NONE)
+    {
+        if (IsValid (TurnManagerComponent))
         {
-            if (IsActionPaletteSource (
-                Action.Definition.SourcePolicy))
+            TurnManagerComponent->GetAvailableCombatActions (
+                View.ActiveCharacterIndex,
+                AvailableActions);
+            for (const FGridAvailableCombatAction& Action : AvailableActions)
             {
-                View.ActionPalette.Add (Action);
+                if (IsActionPaletteSource (
+                    Action.Definition.SourcePolicy))
+                {
+                    View.ActionPalette.Add (Action);
+                }
             }
         }
         if (IsValid (InventoryComponent))
@@ -923,7 +938,9 @@ bool UGridCombatHudWidget::RequestHotbarSlot (
     FGridCombatActionRequestResult& OutResult)
 {
     OutResult = FGridCombatActionRequestResult ();
-    if (SlotIndex < 0 ||
+    if ((IsValid (PartyPawn) &&
+            PartyPawn->IsCombatHotbarExecutionBlocked ()) ||
+        SlotIndex < 0 ||
         SlotIndex >= FGridCombatHotbarBinding::SlotCount)
     {
         return false;
@@ -1236,6 +1253,7 @@ void UGridCombatHudWidget::NativeDestruct ()
     HotbarActionWidgets.Reset ();
     ActionPaletteWidgets.Reset ();
     HotbarRow = nullptr;
+    RuntimeActionPalettePanel = nullptr;
     InitiativeSlotWidgets.Reset ();
     InitiativeRoundSeparatorWidgets.Reset ();
     InitiativeRoundSeparatorTexts.Reset ();
@@ -1555,8 +1573,60 @@ void UGridCombatHudWidget::RefreshActionWidgets ()
     }
 }
 
+void UGridCombatHudWidget::EnsureActionPalettePanel ()
+{
+    if ((Panel_ActionPalette &&
+            Panel_ActionPalette != Panel_Actions) ||
+        !WidgetTree ||
+        !Panel_Actions)
+    {
+        return;
+    }
+
+    UCanvasPanel* CanvasParent =
+        Cast<UCanvasPanel> (Panel_Actions->GetParent ());
+    if (!CanvasParent)
+    {
+        return;
+    }
+
+    UWrapBox* FallbackPanel =
+        WidgetTree->ConstructWidget<UWrapBox> (
+            UWrapBox::StaticClass (),
+            MakeUniqueObjectName (
+                WidgetTree,
+                UWrapBox::StaticClass (),
+                TEXT ("Panel_ActionPalette_Runtime")));
+    if (!FallbackPanel)
+    {
+        return;
+    }
+
+    UCanvasPanelSlot* PaletteSlot =
+        CanvasParent->AddChildToCanvas (FallbackPanel);
+    const UCanvasPanelSlot* ActionSlot =
+        Cast<UCanvasPanelSlot> (Panel_Actions->Slot);
+    if (PaletteSlot && ActionSlot)
+    {
+        const FVector2D ActionSize = ActionSlot->GetSize ();
+        PaletteSlot->SetAnchors (ActionSlot->GetAnchors ());
+        PaletteSlot->SetAlignment (ActionSlot->GetAlignment ());
+        PaletteSlot->SetPosition (
+            ActionSlot->GetPosition () +
+            FVector2D (0.0f, -ActionSize.Y - 8.0f));
+        PaletteSlot->SetSize (FVector2D (
+            ActionSize.X,
+            FMath::Clamp (ActionSize.Y * 0.45f, 64.0f, 96.0f)));
+        PaletteSlot->SetAutoSize (false);
+    }
+
+    RuntimeActionPalettePanel = FallbackPanel;
+    Panel_ActionPalette = FallbackPanel;
+}
+
 void UGridCombatHudWidget::EnsureActionPaletteWidgets ()
 {
+    EnsureActionPalettePanel ();
     if (!Panel_ActionPalette ||
         Panel_ActionPalette == Panel_Actions ||
         !ActionWidgetClass)
@@ -1625,6 +1695,7 @@ void UGridCombatHudWidget::EnsureActionPaletteWidgets ()
 
 void UGridCombatHudWidget::RefreshActionPaletteWidgets ()
 {
+    EnsureActionPalettePanel ();
     if (!Panel_ActionPalette ||
         Panel_ActionPalette == Panel_Actions)
     {
@@ -1851,20 +1922,46 @@ void UGridCombatHudWidget::RefreshInitiativeWidgets ()
 
 void UGridCombatHudWidget::RefreshBoundWidgets ()
 {
+    const bool bConfiguringHotbar =
+        IsValid (PartyPawn) && PartyPawn->bInventoryWidgetVisible;
+    const bool bShowCombatOnly =
+        View.bCombatActive && !bConfiguringHotbar;
     if (Panel_CombatHud)
     {
         Panel_CombatHud->SetVisibility (
-            View.bCombatActive
+            View.ActiveCharacterIndex != INDEX_NONE
+                ? ESlateVisibility::SelfHitTestInvisible
+                : ESlateVisibility::Collapsed);
+    }
+    if (Panel_Actions)
+    {
+        Panel_Actions->SetVisibility (
+            View.ActiveCharacterIndex != INDEX_NONE
+                ? ESlateVisibility::SelfHitTestInvisible
+                : ESlateVisibility::Collapsed);
+    }
+    if (Panel_Initiative)
+    {
+        Panel_Initiative->SetVisibility (
+            bShowCombatOnly
                 ? ESlateVisibility::SelfHitTestInvisible
                 : ESlateVisibility::Collapsed);
     }
     if (Text_MobilityActionPoints)
     {
         Text_MobilityActionPoints->SetText (View.Mobility.DisplayText);
+        Text_MobilityActionPoints->SetVisibility (
+            bShowCombatOnly
+                ? ESlateVisibility::HitTestInvisible
+                : ESlateVisibility::Collapsed);
     }
     if (Button_EndTurn)
     {
         Button_EndTurn->SetIsEnabled (View.bCanEndTurn);
+        Button_EndTurn->SetVisibility (
+            bShowCombatOnly
+                ? ESlateVisibility::Visible
+                : ESlateVisibility::Collapsed);
         Button_EndTurn->SetToolTipText (
             View.bCanEndTurn
                 ? FText::FromString (TEXT ("Terminer le tour actif"))
@@ -1875,7 +1972,7 @@ void UGridCombatHudWidget::RefreshBoundWidgets ()
         Text_EndTurnDisabledReason->SetText (
             View.EndTurnDisabledReason);
         Text_EndTurnDisabledReason->SetVisibility (
-            View.bCanEndTurn
+            !bShowCombatOnly || View.bCanEndTurn
                 ? ESlateVisibility::Collapsed
                 : ESlateVisibility::HitTestInvisible);
     }
@@ -1887,7 +1984,7 @@ void UGridCombatHudWidget::RefreshBoundWidgets ()
             const bool bPresent = View.PartyMembers.IsValidIndex (Index) &&
                 View.PartyMembers[Index].bPresent;
             PartyMemberPanels[Index]->SetVisibility (
-                bPresent
+                bShowCombatOnly && bPresent
                     ? ESlateVisibility::SelfHitTestInvisible
                     : ESlateVisibility::Collapsed);
         }

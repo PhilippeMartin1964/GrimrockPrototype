@@ -421,9 +421,11 @@ Ne créer aucun Graph, aucun tri, aucune animation d'initiative et aucun
    correspondant à la résolution de travail, par exemple `1920 x 1080`. Cette
    taille n'impose pas la résolution du jeu ; elle sert uniquement au Designer.
 
-Le C++ applique `Collapsed` à `Panel_CombatHud` hors combat et
-`Self Hit Test Invisible` pendant le combat. Si ce nom est absent, le HUD peut
-rester visible ou vide à un moment incorrect.
+Depuis MON12.8.7, le C++ conserve `Panel_CombatHud` en
+`Self Hit Test Invisible` dès qu'un personnage actif existe afin de garder la
+barre visible en exploration. Il masque individuellement l'initiative, les
+panneaux de combattants, les PAM et la fin de tour hors combat. Si ce nom est
+absent, le HUD peut rester visible ou vide à un moment incorrect.
 
 ### UE5.4.3 — Construire la barre d'initiative
 

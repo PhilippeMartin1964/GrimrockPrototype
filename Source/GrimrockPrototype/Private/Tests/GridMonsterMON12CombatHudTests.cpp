@@ -2,6 +2,10 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Blueprint/WidgetTree.h"
+#include "Components/Button.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/InputComponent.h"
 #include "Components/ProgressBar.h"
@@ -13,10 +17,12 @@
 #include "Engine/World.h"
 #include "InputCoreTypes.h"
 #include "RPG/RPGClassAsset.h"
+#include "Runtime/Combat/GridPlayerAttackPresentationComponent.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
@@ -196,6 +202,20 @@ namespace
         Spell.OffensiveProfile.AttackId =
             TEXT ("Attack_MON1286_AreaBurst");
         return Spell;
+    }
+
+    const FGridAvailableCombatAction* FindPaletteAction (
+        const UGridCombatHudWidget* Hud,
+        FName ActionId)
+    {
+        return IsValid (Hud)
+            ? Hud->View.ActionPalette.FindByPredicate (
+                [ActionId]
+                (const FGridAvailableCombatAction& Candidate)
+                {
+                    return Candidate.Definition.ActionId == ActionId;
+                })
+            : nullptr;
     }
 
     struct FGridCombatHudFixture
@@ -1027,6 +1047,9 @@ bool FGridMonsterMON1283HotbarKeyboardGuardTest::RunTest (
     Fixture.Party->bInventoryWidgetVisible = true;
     TestFalse (TEXT ("The inventory intercepts the numeric shortcut"),
         Fixture.Party->TryExecuteCombatHotbarSlot (0));
+    FGridCombatActionRequestResult BlockedClick;
+    TestFalse (TEXT ("The inventory also intercepts a direct slot click"),
+        Fixture.Hud->RequestHotbarSlot (0, BlockedClick));
     Fixture.Party->bInventoryWidgetVisible = false;
     Fixture.Party->bCharacterCreationModalActive = true;
     TestFalse (TEXT ("A modal screen intercepts the numeric shortcut"),
@@ -1351,13 +1374,17 @@ bool FGridMonsterMON1285ActionPaletteBindingTest::RunTest (
     Fixture.Hud->Panel_ActionPalette = PalettePanel;
     Fixture.Hud->RefreshFromSources ();
 
-    TestEqual (TEXT ("Both class actions appear in the palette"),
-        Fixture.Hud->View.ActionPalette.Num (), 2);
-    TestEqual (TEXT ("The palette creates one widget per class action"),
-        Fixture.Hud->ActionPaletteWidgets.Num (), 2);
-    TestEqual (TEXT ("The optional palette panel owns both widgets"),
-        PalettePanel->GetChildrenCount (), 2);
-    if (!Fixture.Hud->View.ActionPalette.IsValidIndex (0))
+    TestEqual (TEXT ("Class actions and unarmed appear in the palette"),
+        Fixture.Hud->View.ActionPalette.Num (), 3);
+    TestEqual (TEXT ("The palette creates one widget per assignable action"),
+        Fixture.Hud->ActionPaletteWidgets.Num (), 3);
+    TestEqual (TEXT ("The optional palette panel owns all widgets"),
+        PalettePanel->GetChildrenCount (), 3);
+    const FGridAvailableCombatAction* SpellAction =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Spell_MON1285_ArcaneBolt"));
+    if (!TestNotNull (TEXT ("The direct spell is present"), SpellAction))
     {
         return false;
     }
@@ -1366,7 +1393,7 @@ bool FGridMonsterMON1285ActionPaletteBindingTest::RunTest (
         NewObject<UGridCombatHotbarDragDropOperation> (Fixture.Hud);
     PaletteDrag->InitializeFromActionPalette (
         0,
-        Fixture.Hud->View.ActionPalette[0]);
+        *SpellAction);
     TestTrue (TEXT ("A palette action can configure shortcut five"),
         Fixture.Hud->HandleHotbarDrop (4, PaletteDrag));
 
@@ -1416,15 +1443,19 @@ bool FGridMonsterMON1285DirectSpellManaTransactionTest::RunTest (
     Character.ClassId = MageClass->ClassId;
     Character.ClassDefinition = MageClass;
     Fixture.Hud->RefreshFromSources ();
-    if (!TestEqual (TEXT ("The spell is catalogued for the active mage"),
-        Fixture.Hud->View.ActionPalette.Num (), 1))
+    const FGridAvailableCombatAction* SpellAction =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Spell_MON1285_ArcaneBolt"));
+    if (!TestNotNull (TEXT ("The spell is catalogued for the active mage"),
+        SpellAction))
     {
         return false;
     }
     TestTrue (TEXT ("The spell can be assigned without an item source"),
         Fixture.Hud->AssignCombatActionToHotbarSlot (
             2,
-            Fixture.Hud->View.ActionPalette[0]));
+            *SpellAction));
 
     Fixture.Party->Facing = EGridEdge::South;
     FGridCombatActionRequestResult Rejected;
@@ -1485,15 +1516,19 @@ bool FGridMonsterMON1285SelfAbilityEffectTest::RunTest (
     Character.DerivedStats.CurrentHealth = 10;
     Character.DerivedStats.CurrentMana = 8;
     Fixture.Hud->RefreshFromSources ();
-    if (!TestEqual (TEXT ("The ability is catalogued for the active priest"),
-        Fixture.Hud->View.ActionPalette.Num (), 1))
+    const FGridAvailableCombatAction* AbilityAction =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Ability_MON1285_Recovery"));
+    if (!TestNotNull (TEXT ("The ability is catalogued for the active priest"),
+        AbilityAction))
     {
         return false;
     }
     TestTrue (TEXT ("The recovery ability can configure shortcut four"),
         Fixture.Hud->AssignCombatActionToHotbarSlot (
             3,
-            Fixture.Hud->View.ActionPalette[0]));
+            *AbilityAction));
 
     FGridCombatActionRequestResult Accepted;
     TestTrue (TEXT ("The self-targeted ability is accepted"),
@@ -1550,15 +1585,18 @@ bool FGridMonsterMON1286CellTargetingLifecycleTest::RunTest (
     Character.ClassId = MageClass->ClassId;
     Character.ClassDefinition = MageClass;
     Fixture.Hud->RefreshFromSources ();
-    if (!TestEqual (TEXT ("The cell spell is catalogued"),
-        Fixture.Hud->View.ActionPalette.Num (), 1))
+    const FGridAvailableCombatAction* CellSpell =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Spell_MON1286_CellStrike"));
+    if (!TestNotNull (TEXT ("The cell spell is catalogued"), CellSpell))
     {
         return false;
     }
     TestTrue (TEXT ("The cell spell can configure shortcut six"),
         Fixture.Hud->AssignCombatActionToHotbarSlot (
             5,
-            Fixture.Hud->View.ActionPalette[0]));
+            *CellSpell));
 
     FGridCombatActionRequestResult Pending;
     TestTrue (TEXT ("The shortcut opens explicit targeting"),
@@ -1668,15 +1706,18 @@ bool FGridMonsterMON1286AreaTargetingTransactionTest::RunTest (
     Character.ClassId = MageClass->ClassId;
     Character.ClassDefinition = MageClass;
     Fixture.Hud->RefreshFromSources ();
-    if (!TestEqual (TEXT ("The area spell is catalogued"),
-        Fixture.Hud->View.ActionPalette.Num (), 1))
+    const FGridAvailableCombatAction* AreaSpell =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Spell_MON1286_AreaBurst"));
+    if (!TestNotNull (TEXT ("The area spell is catalogued"), AreaSpell))
     {
         return false;
     }
     TestTrue (TEXT ("The area spell can configure shortcut seven"),
         Fixture.Hud->AssignCombatActionToHotbarSlot (
             6,
-            Fixture.Hud->View.ActionPalette[0]));
+            *AreaSpell));
 
     FGridCombatActionRequestResult Pending;
     TestTrue (TEXT ("The area shortcut opens targeting"),
@@ -1739,13 +1780,17 @@ bool FGridMonsterMON1286TargetRequiredNoSpendTest::RunTest (
     Character.ClassId = MageClass->ClassId;
     Character.ClassDefinition = MageClass;
     Fixture.Hud->RefreshFromSources ();
-    if (!TestEqual (TEXT ("The rejected area spell is catalogued"),
-        Fixture.Hud->View.ActionPalette.Num (), 1))
+    const FGridAvailableCombatAction* AreaSpell =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Spell_MON1286_AreaBurst"));
+    if (!TestNotNull (TEXT ("The rejected area spell is catalogued"),
+        AreaSpell))
     {
         return false;
     }
     const FGridAvailableCombatAction& Action =
-        Fixture.Hud->View.ActionPalette[0];
+        *AreaSpell;
 
     FGridCombatActionRequestResult MissingTarget;
     TestFalse (TEXT ("A targeted action cannot execute without a cell"),
@@ -1782,6 +1827,251 @@ bool FGridMonsterMON1286TargetRequiredNoSpendTest::RunTest (
     TestEqual (TEXT ("Rejected targeting spends no action points"),
         TurnState.RemainingActionPoints,
         4);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1287PersistentHotbarTest,
+    "Grimrock.Monsters.MON12.8.7.PersistentHotbarAndUnarmedPalette",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1287PersistentHotbarTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.7 HUD fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UCanvasPanel* RootPanel = NewObject<UCanvasPanel> (
+        Fixture.Hud,
+        TEXT ("Panel_CombatHud_1287"));
+    UHorizontalBox* HotbarPanel = NewObject<UHorizontalBox> (
+        Fixture.Hud,
+        TEXT ("Panel_Actions_1287"));
+    UCanvasPanelSlot* HotbarCanvasSlot =
+        RootPanel->AddChildToCanvas (HotbarPanel);
+    HotbarCanvasSlot->SetAnchors (FAnchors (0.5f, 1.0f));
+    HotbarCanvasSlot->SetAlignment (FVector2D (0.5f, 1.0f));
+    HotbarCanvasSlot->SetPosition (FVector2D (0.0f, -24.0f));
+    HotbarCanvasSlot->SetSize (FVector2D (700.0f, 180.0f));
+    Fixture.Hud->Panel_CombatHud = RootPanel;
+    Fixture.Hud->Panel_Actions = HotbarPanel;
+    Fixture.Hud->Panel_ActionPalette = nullptr;
+    Fixture.Hud->Panel_Initiative = NewObject<UHorizontalBox> (
+        Fixture.Hud,
+        TEXT ("Panel_Initiative_1287"));
+    Fixture.Hud->Button_EndTurn = NewObject<UButton> (
+        Fixture.Hud,
+        TEXT ("Button_EndTurn_1287"));
+    Fixture.Hud->ActionWidgetClass =
+        UGridCombatHudActionWidget::StaticClass ();
+
+    Fixture.TurnManager->bCombatActive = false;
+    Fixture.TurnManager->CurrentPhase = EGridCombatPhase::Exploration;
+    TestTrue (TEXT ("The third character can be selected out of combat"),
+        Fixture.Party->PartyInventoryComponent
+            ->SetSelectedCharacterIndex (2));
+    Fixture.Hud->RefreshFromSources ();
+
+    TestFalse (TEXT ("The encounter is inactive"),
+        Fixture.Hud->View.bCombatActive);
+    TestEqual (TEXT ("The selected character owns the out-of-combat bar"),
+        Fixture.Hud->View.ActiveCharacterIndex,
+        2);
+    TestEqual (TEXT ("All ten slots remain projected out of combat"),
+        Fixture.Hud->View.Actions.Num (),
+        FGridCombatHotbarBinding::SlotCount);
+    TestEqual (TEXT ("The HUD root remains visible out of combat"),
+        RootPanel->GetVisibility (),
+        ESlateVisibility::SelfHitTestInvisible);
+    TestEqual (TEXT ("The fixed hotbar remains visible out of combat"),
+        HotbarPanel->GetVisibility (),
+        ESlateVisibility::SelfHitTestInvisible);
+    TestEqual (TEXT ("Combat-only initiative is hidden out of combat"),
+        Fixture.Hud->Panel_Initiative->GetVisibility (),
+        ESlateVisibility::Collapsed);
+    TestEqual (TEXT ("Combat-only end turn is hidden out of combat"),
+        Fixture.Hud->Button_EndTurn->GetVisibility (),
+        ESlateVisibility::Collapsed);
+    TestNotNull (TEXT ("A missing WBP palette receives a runtime fallback"),
+        Fixture.Hud->Panel_ActionPalette.Get ());
+    TestEqual (TEXT ("The fallback palette owns its runtime entries"),
+        Fixture.Hud->ActionPaletteWidgets.Num (),
+        Fixture.Hud->View.ActionPalette.Num ());
+
+    const FGridAvailableCombatAction* UnarmedAction =
+        Fixture.Hud->View.ActionPalette.FindByPredicate (
+            [] (const FGridAvailableCombatAction& Candidate)
+            {
+                return Candidate.Definition.ActionId ==
+                        FName (TEXT ("Attack_Unarmed")) &&
+                    Candidate.Definition.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Universal;
+            });
+    if (!TestNotNull (TEXT ("Unarmed remains available in the palette"),
+        UnarmedAction))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("Unarmed can be assigned while combat is inactive"),
+        Fixture.Hud->AssignCombatActionToHotbarSlot (
+            4,
+            *UnarmedAction));
+    TestTrue (TEXT ("The unarmed binding remains resolved out of combat"),
+        Fixture.Hud->View.Actions[4].bResolved);
+    TestFalse (TEXT ("The resolved binding cannot execute outside combat"),
+        Fixture.Hud->View.Actions[4].Action.bEnabled);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1287InventoryThrowableTest,
+    "Grimrock.Monsters.MON12.8.7.InventoryThrowableHotbar",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1287InventoryThrowableTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.7 throwable fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridPartyInventoryComponent* Inventory =
+        Fixture.Party->PartyInventoryComponent;
+    UGridItemDefinitionAsset* ShurikenDefinition =
+        NewObject<UGridItemDefinitionAsset> (Fixture.Party);
+    ShurikenDefinition->ItemDefinitionId =
+        TEXT ("Shuriken_MON1287");
+    ShurikenDefinition->DisplayName =
+        FText::FromString (TEXT ("Shuriken"));
+    ShurikenDefinition->Description =
+        FText::FromString (TEXT ("Arme de jet rapide."));
+    ShurikenDefinition->ItemType = EGridItemType::Weapon;
+    ShurikenDefinition->bProvidesAttack = true;
+    ShurikenDefinition->bThrowable = true;
+    ShurikenDefinition->bProvidesAttackPresentation = true;
+    ShurikenDefinition->PlayerAttackPresentationProfile.MotionStyle =
+        EGridPlayerAttackMotionStyle::Throw;
+    ShurikenDefinition->PlayerAttackPresentationProfile.bAnimateHeldItem =
+        true;
+    ShurikenDefinition->CompatibleEquipmentSlots.Add (
+        EGridEquipmentSlot::MainHand);
+    ShurikenDefinition->OffensiveProfile.AttackId =
+        TEXT ("Attack_Shuriken_MON1287");
+    ShurikenDefinition->OffensiveProfile.AttackDefinition.DamageType =
+        EGridDamageType::Physical;
+    ShurikenDefinition->OffensiveProfile.AttackDefinition
+        .PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
+    ShurikenDefinition->OffensiveProfile.AttackDefinition.MinDamage = 2;
+    ShurikenDefinition->OffensiveProfile.AttackDefinition.MaxDamage = 2;
+    ShurikenDefinition->OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
+    ShurikenDefinition->OffensiveProfile.RangeCells = 3;
+    TestTrue (TEXT ("The throwable definition is registered"),
+        Inventory->RegisterItemDefinition (ShurikenDefinition));
+
+    FGridItemInstance Shuriken;
+    Shuriken.RuntimeObjectId = FGuid::NewGuid ();
+    Shuriken.ItemDefinitionId = ShurikenDefinition->ItemDefinitionId;
+    Shuriken.DisplayName = ShurikenDefinition->DisplayName;
+    Shuriken.Quantity = 1;
+    Shuriken.OwnerType = EGridItemOwnerType::CharacterInventory;
+    Shuriken.OwnerCharacterIndex = 0;
+    FGridInventorySlot& InventorySlot =
+        Inventory->PartyInventoryState.ActiveCharacters[0]
+            .InventorySlots[0];
+    InventorySlot.bOccupied = true;
+    InventorySlot.Item = Shuriken;
+
+    UGridInventoryDragDropOperation* ShurikenDrag =
+        NewObject<UGridInventoryDragDropOperation> (Fixture.Hud);
+    ShurikenDrag->InitializeFromSlot (
+        EGridInventoryUiSlotType::Inventory,
+        0,
+        Shuriken);
+    TestTrue (TEXT ("The inventory shuriken configures slot seven"),
+        Fixture.Hud->HandleHotbarDrop (6, ShurikenDrag));
+
+    FGridCombatHotbarBinding Binding;
+    TestTrue (TEXT ("The shuriken binding is persisted"),
+        Inventory->GetCharacterCombatHotbarBinding (0, 6, Binding));
+    TestEqual (TEXT ("The inventory throw uses a quick-item source"),
+        Binding.SourcePolicy,
+        EGridCombatActionSourcePolicy::QuickItem);
+    TestEqual (TEXT ("The throw keeps the stable item definition"),
+        Binding.SourceDefinitionId,
+        ShurikenDefinition->ItemDefinitionId);
+    TestEqual (TEXT ("The inventory source is not moved by assignment"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            ShurikenDefinition->ItemDefinitionId),
+        1);
+    TestTrue (TEXT ("The configured shuriken resolves immediately"),
+        Fixture.Hud->View.Actions[6].bResolved);
+    TestTrue (TEXT ("The configured shuriken is usable in combat"),
+        Fixture.Hud->View.Actions[6].Action.bEnabled);
+
+    AGridThrownItemActor* PreviewProjectile =
+        Fixture.Party->TryLaunchInventoryItemForAttackPresentation (
+            0,
+            ShurikenDefinition->ItemDefinitionId,
+            Fixture.Monster->GetActorLocation (),
+            FIntPoint (1, 1));
+    TestNotNull (TEXT ("The inventory throw can create a recoverable projectile"),
+        PreviewProjectile);
+    TestEqual (TEXT ("Presentation alone never consumes the source"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            ShurikenDefinition->ItemDefinitionId),
+        1);
+    if (PreviewProjectile)
+    {
+        PreviewProjectile->Destroy ();
+    }
+
+    UGridPlayerAttackPresentationComponent* Presentation =
+        NewObject<UGridPlayerAttackPresentationComponent> (
+            Fixture.Runtime,
+            TEXT ("MON12_8_7_InventoryThrowPresentation"));
+    Fixture.Runtime->AddInstanceComponent (Presentation);
+    Presentation->RegisterComponent ();
+    Presentation->bNativeAudioPlaybackEnabled = false;
+    Presentation->bNativeVFXSpawnEnabled = false;
+    Presentation->bNativeFeedbackEnabled = false;
+    TestTrue (TEXT ("The inventory throw presentation is initialized"),
+        Presentation->InitializePresentation (Fixture.TurnManager));
+
+    FGridCombatActionRequestResult Result;
+    TestTrue (TEXT ("The shuriken shortcut executes from inventory"),
+        Fixture.Hud->RequestHotbarSlot (6, Result));
+    TestTrue (TEXT ("The inventory throw is accepted"),
+        Result.bAccepted);
+    TestEqual (TEXT ("The attack uses the shuriken offensive profile"),
+        Result.AttackRequest.AttackId,
+        FName (TEXT ("Attack_Shuriken_MON1287")));
+    TestEqual (TEXT ("The attack has no fake equipment slot"),
+        Result.AttackRequest.OffensiveEquipmentSlot,
+        EGridEquipmentSlot::None);
+    TestEqual (TEXT ("The accepted inventory throw requests one launch"),
+        Presentation->ThrownItemLaunchRequestCount,
+        1);
+    TestEqual (TEXT ("The accepted inventory throw starts one projectile"),
+        Presentation->ThrownItemLaunchStartedCount,
+        1);
+    TestEqual (TEXT ("Exactly one shuriken is consumed after acceptance"),
+        Inventory->CountItemDefinitionInCharacterInventory (
+            0,
+            ShurikenDefinition->ItemDefinitionId),
+        0);
     return true;
 }
 

@@ -1370,9 +1370,9 @@ bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest (
     TArray<FGridAvailableCombatAction> Actions;
     Fixture.TurnManager->GetAvailableCombatActions (0, Actions);
     TestEqual (
-        TEXT ("Two weapon actions, one ability and one spell contribute"),
+        TEXT ("Weapon, class and manual unarmed actions contribute"),
         Actions.Num (),
-        4);
+        5);
 
     const FGridAvailableCombatAction* Quick = Actions.FindByPredicate (
         [] (const FGridAvailableCombatAction& Action)
@@ -1467,14 +1467,22 @@ bool FGridMonsterMON12GenericActionAttackLifecycleTest::RunTest (
     TArray<FGridAvailableCombatAction> Actions;
     Fixture.TurnManager->GetAvailableCombatActions (0, Actions);
     TestEqual (
-        TEXT ("The legacy shuriken becomes one generic action"),
+        TEXT ("The legacy shuriken and manual unarmed action are catalogued"),
         Actions.Num (),
-        1);
-    if (!Actions.IsValidIndex (0))
+        2);
+    const FGridAvailableCombatAction* LegacyActionPtr =
+        Actions.FindByPredicate (
+            [] (const FGridAvailableCombatAction& Candidate)
+            {
+                return Candidate.Definition.ActionId ==
+                    FName (TEXT ("Attack_Shuriken"));
+            });
+    if (!TestNotNull (TEXT ("The legacy shuriken action is present"),
+        LegacyActionPtr))
     {
         return false;
     }
-    const FGridAvailableCombatAction LegacyAction = Actions[0];
+    const FGridAvailableCombatAction LegacyAction = *LegacyActionPtr;
     TestEqual (
         TEXT ("The legacy adapter preserves the MON11 attack id"),
         LegacyAction.Definition.ActionId,

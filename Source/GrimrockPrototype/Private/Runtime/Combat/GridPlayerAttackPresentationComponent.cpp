@@ -699,14 +699,19 @@ UGridPlayerAttackPresentationComponent::StartThrownItemLaunch (
     const FGridPlayerAttackPresentationProfile& Profile)
 {
     RestoreHeldItemMotion ();
+    const bool bEquippedSource =
+        Request.OffensiveEquipmentSlot ==
+            EGridEquipmentSlot::MainHand ||
+        Request.OffensiveEquipmentSlot ==
+            EGridEquipmentSlot::OffHand;
+    const bool bInventorySource =
+        Request.OffensiveEquipmentSlot ==
+            EGridEquipmentSlot::None;
     if (Profile.MotionStyle !=
             EGridPlayerAttackMotionStyle::Throw ||
         !Profile.bAnimateHeldItem ||
         Request.OffensiveItemDefinitionId.IsNone () ||
-        (Request.OffensiveEquipmentSlot !=
-                EGridEquipmentSlot::MainHand &&
-            Request.OffensiveEquipmentSlot !=
-                EGridEquipmentSlot::OffHand))
+        (!bEquippedSource && !bInventorySource))
     {
         return nullptr;
     }
@@ -723,10 +728,15 @@ UGridPlayerAttackPresentationComponent::StartThrownItemLaunch (
         TargetMonster->CollisionComponent
             ? TargetMonster->CollisionComponent->Bounds.Origin
             : TargetMonster->GetActorLocation ();
-    AGridThrownItemActor* ThrownItem =
-        PartyPawn->TryLaunchEquippedItemForAttack (
+    AGridThrownItemActor* ThrownItem = bEquippedSource
+        ? PartyPawn->TryLaunchEquippedItemForAttack (
             Request.AttackerCharacterIndex,
             Request.OffensiveEquipmentSlot,
+            Request.OffensiveItemDefinitionId,
+            TargetLocation,
+            Request.PartyCell)
+        : PartyPawn->TryLaunchInventoryItemForAttackPresentation (
+            Request.AttackerCharacterIndex,
             Request.OffensiveItemDefinitionId,
             TargetLocation,
             Request.PartyCell);

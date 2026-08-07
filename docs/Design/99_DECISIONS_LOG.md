@@ -725,3 +725,24 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   source sont payés une seule fois après validation complète.
 - Le document d'implémentation est
   `docs/Design/MON12_8_6_CELL_AREA_TARGETING.md`.
+
+---
+
+## 2026-08-07 — MON12.8.7 : disponibilité et affectations de la barre
+
+- Les dix slots restent visibles hors combat et affichent alors la barre du
+  personnage sélectionné dans l'inventaire.
+- Initiative, panneaux de combattants, PAM et fin de tour restent masqués en
+  exploration ; les raccourcis sont configurables mais non exécutables.
+- `Attack_Unarmed` reste toujours dans la palette, indépendamment des armes
+  équipées, afin de permettre son affectation manuelle.
+- Si le WBP ne fournit pas `Panel_ActionPalette`, le HUD crée un `WrapBox` de
+  secours au-dessus de `Panel_Actions`.
+- Pendant l'ouverture de l'inventaire, la barre passe temporairement devant le
+  menu pour recevoir les dépôts ; le reste du HUD est masqué et toute exécution
+  par clic ou clavier reste bloquée.
+- Une arme lançable peut être affectée directement depuis l'inventaire. Elle
+  devient une action rapide stable par définition, consomme une unité après
+  acceptation et produit le projectile récupérable attendu.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_7_HOTBAR_AVAILABILITY_ASSIGNMENT.md`.

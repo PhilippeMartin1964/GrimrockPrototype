@@ -41,19 +41,6 @@ namespace
             : UEnum::GetValueAsString (Action.AvailabilityReason);
     }
 
-    bool DoesMON126CatalogItemDeclareAttack (
-        const UGridItemDefinitionAsset* Definition)
-    {
-        return IsValid (Definition) &&
-            (Definition->bProvidesAttack ||
-                Definition->CombatActions.ContainsByPredicate (
-                    [] (const FGridCombatActionDefinition& Action)
-                    {
-                        return Action.ResolutionProfile ==
-                            EGridCombatActionResolutionProfile::Attack;
-                    }));
-    }
-
     bool IsMON1285ClassActionSource (
         EGridCombatActionSourcePolicy SourcePolicy)
     {
@@ -126,8 +113,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
         }
     }
 
-    bool bHasEquipmentAttack = false;
-    bool bHasInvalidEquipmentAttackSource = false;
     const EGridEquipmentSlot HandSlots[] = {
         EGridEquipmentSlot::MainHand,
         EGridEquipmentSlot::OffHand
@@ -148,16 +133,11 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
                 EquippedItem.ItemDefinitionId);
         if (!IsValid (ItemDefinition))
         {
-            bHasInvalidEquipmentAttackSource = true;
             continue;
         }
-        const bool bDeclaresAttack =
-            DoesMON126CatalogItemDeclareAttack (ItemDefinition);
         if (!ItemDefinition->IsValidDefinition () ||
             !ItemDefinition->CompatibleEquipmentSlots.Contains (HandSlot))
         {
-            bHasInvalidEquipmentAttackSource =
-                bHasInvalidEquipmentAttackSource || bDeclaresAttack;
             continue;
         }
 
@@ -179,14 +159,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
                 {
                     Definition.Icon = ItemDefinition->Icon;
                 }
-                if (Definition.IsValid () &&
-                    Definition.SourcePolicy ==
-                        EGridCombatActionSourcePolicy::Equipment &&
-                    Definition.ResolutionProfile ==
-                        EGridCombatActionResolutionProfile::Attack)
-                {
-                    bHasEquipmentAttack = true;
-                }
                 AddMON126Contribution (
                     Definition,
                     EquippedItem.ItemDefinitionId,
@@ -203,8 +175,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
                     MakeLegacyEquipmentAttackDefinition (
                         *ItemDefinition,
                         PlayerAttackActionPointCost);
-            bHasEquipmentAttack =
-                bHasEquipmentAttack || LegacyDefinition.IsValid ();
             AddMON126Contribution (
                 LegacyDefinition,
                 EquippedItem.ItemDefinitionId,
@@ -215,13 +185,20 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
         }
     }
 
-    if (!bHasEquipmentAttack &&
-        !bHasInvalidEquipmentAttackSource)
-    {
-        FGridCombatActionDefinition UnarmedAction = FGridCombatActionCatalog::MakeUnarmedAttackDefinition (PlayerAttackActionPointCost);
-        UnarmedAction.Icon = UnarmedAttackIcon;
-        AddMON126Contribution (UnarmedAction, NAME_None, FGuid (), EGridEquipmentSlot::None, 0, OutContributions);
-    }
+    // Unarmed is a manual universal action, not merely an automatic fallback.
+    // Keep it in the catalogue even while a valid weapon is equipped so the
+    // player can always drag it to the personal hotbar.
+    FGridCombatActionDefinition UnarmedAction =
+        FGridCombatActionCatalog::MakeUnarmedAttackDefinition (
+            PlayerAttackActionPointCost);
+    UnarmedAction.Icon = UnarmedAttackIcon;
+    AddMON126Contribution (
+        UnarmedAction,
+        NAME_None,
+        FGuid (),
+        EGridEquipmentSlot::None,
+        0,
+        OutContributions);
 
     // A quick-item contribution is definition-based rather than stack-based.
     // Include configured hotbar sources even at quantity zero so a persistent
@@ -260,7 +237,8 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
             Inventory->FindItemDefinition (ItemDefinitionId);
         FGridCombatActionDefinition QuickItemAction;
         if (!IsValid (ItemDefinition) ||
-            !ItemDefinition->BuildQuickItemCombatActionDefinition (
+            !ItemDefinition->BuildInventoryCombatActionDefinition (
+                PlayerAttackActionPointCost,
                 QuickItemAction))
         {
             continue;

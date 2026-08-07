@@ -878,16 +878,16 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBindingFromItem (
                         Candidate.Item.ItemDefinitionId ==
                             SourceItem.ItemDefinitionId;
                 });
+        FGridCombatActionDefinition InventoryAction;
         if (!bItemStillOwned ||
-            (Definition->ItemType != EGridItemType::Potion &&
-                Definition->ItemType != EGridItemType::Scroll))
+            !Definition->BuildInventoryCombatActionDefinition (
+                2,
+                InventoryAction))
         {
             return false;
         }
 
-        Binding.ActionId =
-            FGridCombatHotbarBinding::MakeQuickItemActionId (
-                SourceItem.ItemDefinitionId);
+        Binding.ActionId = InventoryAction.ActionId;
         Binding.SourcePolicy = EGridCombatActionSourcePolicy::QuickItem;
         Binding.SourceDefinitionId = SourceItem.ItemDefinitionId;
     }
