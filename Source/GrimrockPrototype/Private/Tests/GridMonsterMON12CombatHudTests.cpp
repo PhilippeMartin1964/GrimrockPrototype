@@ -2,8 +2,10 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/HorizontalBox.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/WrapBox.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -617,6 +619,30 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest (
         Fixture.Hud->View.Actions.Num (), 10);
     TestFalse (TEXT ("A new hotbar starts empty"),
         Fixture.Hud->View.Actions[0].bHasBinding);
+
+    UWrapBox* LegacyWrapPanel =
+        NewObject<UWrapBox> (Fixture.Hud, TEXT ("Panel_Actions_Test"));
+    Fixture.Hud->Panel_Actions = LegacyWrapPanel;
+    Fixture.Hud->ActionWidgetClass =
+        UGridCombatHudActionWidget::StaticClass ();
+    Fixture.Hud->RefreshFromSources ();
+    TestNotNull (TEXT ("A horizontal hotbar row is created"),
+        Fixture.Hud->HotbarRow.Get ());
+    TestEqual (TEXT ("The legacy wrap panel owns one row only"),
+        LegacyWrapPanel->GetChildrenCount (), 1);
+    if (Fixture.Hud->HotbarRow)
+    {
+        TestEqual (TEXT ("All ten shortcuts share the same row"),
+            Fixture.Hud->HotbarRow->GetChildrenCount (), 10);
+        for (const UGridCombatHudActionWidget* ActionWidget :
+            Fixture.Hud->HotbarActionWidgets)
+        {
+            TestTrue (TEXT ("Each shortcut belongs to the horizontal row"),
+                IsValid (ActionWidget) &&
+                    ActionWidget->GetParent () ==
+                        Fixture.Hud->HotbarRow);
+        }
+    }
 
     FGridItemInstance EquippedSword;
     TestTrue (TEXT ("The fixture exposes the equipped sword"),

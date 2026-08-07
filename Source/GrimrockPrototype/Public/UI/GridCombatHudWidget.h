@@ -13,6 +13,7 @@ class UGridCombatActionPanelWidget;
 class UGridCombatHotbarDragDropOperation;
 class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
+class UHorizontalBox;
 class UImage;
 class UPanelWidget;
 class UProgressBar;
@@ -346,6 +347,13 @@ public:
     /** Fixed ten-slot pool; entries are refreshed instead of recreated. */
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TArray<TObjectPtr<UGridCombatHudActionWidget>> HotbarActionWidgets;
+
+    /**
+     * Single runtime row that owns all ten hotbar widgets. When the designer
+     * panel is already a HorizontalBox, this points directly to it.
+     */
+    UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
+    TObjectPtr<UHorizontalBox> HotbarRow;
 
     /** Fixed widget pool; entries are updated instead of recreated. */
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")

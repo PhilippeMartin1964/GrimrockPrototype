@@ -6,6 +6,8 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
 #include "Components/ProgressBar.h"
@@ -14,6 +16,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
+#include "Components/WrapBoxSlot.h"
 #include "InputCoreTypes.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -871,6 +874,7 @@ void UGridCombatHudWidget::NativeDestruct ()
     UnbindFromSources ();
     PartyMemberPanels.Reset ();
     HotbarActionWidgets.Reset ();
+    HotbarRow = nullptr;
     InitiativeSlotWidgets.Reset ();
     InitiativeRoundSeparatorWidgets.Reset ();
     InitiativeRoundSeparatorTexts.Reset ();
@@ -1087,22 +1091,57 @@ void UGridCombatHudWidget::EnsureActionWidgets ()
         return;
     }
 
+    if (UHorizontalBox* DesignerRow =
+        Cast<UHorizontalBox> (Panel_Actions))
+    {
+        HotbarRow = DesignerRow;
+    }
+    else if (!IsValid (HotbarRow) ||
+        HotbarRow->GetParent () != Panel_Actions)
+    {
+        Panel_Actions->ClearChildren ();
+        HotbarRow = WidgetTree
+            ? WidgetTree->ConstructWidget<UHorizontalBox> (
+                UHorizontalBox::StaticClass (),
+                MakeUniqueObjectName (
+                    WidgetTree,
+                    UHorizontalBox::StaticClass (),
+                    TEXT ("HorizontalBox_Hotbar_Runtime")))
+            : NewObject<UHorizontalBox> (
+                this,
+                MakeUniqueObjectName (
+                    this,
+                    UHorizontalBox::StaticClass (),
+                    TEXT ("HorizontalBox_Hotbar_Runtime")));
+        if (!HotbarRow)
+        {
+            return;
+        }
+        UPanelSlot* ContainerSlot = Panel_Actions->AddChild (HotbarRow);
+        if (UWrapBoxSlot* WrapSlot = Cast<UWrapBoxSlot> (ContainerSlot))
+        {
+            WrapSlot->SetFillEmptySpace (true);
+        }
+    }
+
     bool bPoolValid =
+        IsValid (HotbarRow) &&
         HotbarActionWidgets.Num () ==
             FGridCombatHotbarBinding::SlotCount &&
-        Panel_Actions->GetChildrenCount () ==
+        HotbarRow->GetChildrenCount () ==
             FGridCombatHotbarBinding::SlotCount;
     for (const UGridCombatHudActionWidget* ActionWidget :
         HotbarActionWidgets)
     {
-        bPoolValid = bPoolValid && IsValid (ActionWidget);
+        bPoolValid = bPoolValid && IsValid (ActionWidget) &&
+            ActionWidget->GetParent () == HotbarRow;
     }
     if (bPoolValid)
     {
         return;
     }
 
-    Panel_Actions->ClearChildren ();
+    HotbarRow->ClearChildren ();
     HotbarActionWidgets.Reset (FGridCombatHotbarBinding::SlotCount);
     for (int32 SlotIndex = 0;
         SlotIndex < FGridCombatHotbarBinding::SlotCount;
@@ -1114,7 +1153,15 @@ void UGridCombatHudWidget::EnsureActionWidgets ()
                 ActionWidgetClass);
         if (ActionWidget)
         {
-            Panel_Actions->AddChild (ActionWidget);
+            UHorizontalBoxSlot* HotbarSlot =
+                HotbarRow->AddChildToHorizontalBox (ActionWidget);
+            if (HotbarSlot)
+            {
+                HotbarSlot->SetSize (
+                    FSlateChildSize (ESlateSizeRule::Fill));
+                HotbarSlot->SetHorizontalAlignment (HAlign_Fill);
+                HotbarSlot->SetVerticalAlignment (VAlign_Fill);
+            }
             HotbarActionWidgets.Add (ActionWidget);
         }
     }

@@ -74,9 +74,15 @@ Les potions et parchemins conservent déjà leur nom et leur icône depuis le
 ## Widget Blueprint
 
 Aucune modification binaire `.uasset` n'est obligatoire pour compiler ce
-jalon. Dans `WBP_GridCombatHud` :
+jalon. Le C++ crée une `HorizontalBox_Hotbar_Runtime` lorsque le panneau du
+Designer n'est pas déjà horizontal. Les dix raccourcis restent ainsi sur une
+seule ligne et reçoivent chacun un dixième de la largeur disponible.
 
-- `Panel_Actions` doit rester un panneau vide dans le Designer ;
+Dans `WBP_GridCombatHud`, la configuration canonique reste néanmoins :
+
+- `Panel_Actions` doit être un `Horizontal Box` vide dans le Designer ;
+- si l'ancien `Wrap Box` est conservé, le fallback C++ y insère une unique
+  rangée horizontale et empêche tout retour à une grille multiligne ;
 - `Action Widget Class` doit rester `WBP_GridCombatHudAction` ;
 - le C++ injecte les dix enfants fixes.
 
