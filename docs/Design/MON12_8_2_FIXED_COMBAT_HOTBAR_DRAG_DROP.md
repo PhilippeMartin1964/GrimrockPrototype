@@ -76,7 +76,10 @@ Les potions et parchemins conservent déjà leur nom et leur icône depuis le
 Aucune modification binaire `.uasset` n'est obligatoire pour compiler ce
 jalon. Le C++ crée une `HorizontalBox_Hotbar_Runtime` lorsque le panneau du
 Designer n'est pas déjà horizontal. Les dix raccourcis restent ainsi sur une
-seule ligne et reçoivent chacun un dixième de la largeur disponible.
+seule ligne et reçoivent chacun un dixième de la largeur disponible. Les slots
+vides conservent une opacité suffisante pour que leur cadre et leur numéro
+restent clairement visibles. Un espacement horizontal de quatre pixels sépare
+également les cadres par défaut.
 
 Dans `WBP_GridCombatHud`, la configuration canonique reste néanmoins :
 
@@ -84,12 +87,17 @@ Dans `WBP_GridCombatHud`, la configuration canonique reste néanmoins :
 - si l'ancien `Wrap Box` est conservé, le fallback C++ y insère une unique
   rangée horizontale et empêche tout retour à une grille multiligne ;
 - `Action Widget Class` doit rester `WBP_GridCombatHudAction` ;
+- `Hotbar Slot Spacing` règle l'écart entre les dix cadres (valeur par défaut :
+  `4`) ;
 - le C++ injecte les dix enfants fixes.
 
 Dans `WBP_GridCombatHudAction`, un `TextBlock` optionnel nommé exactement
 `Text_ShortcutNumber` peut être ajouté pour placer le numéro dans un coin. S'il
 n'existe pas, le C++ préfixe automatiquement `Text_ActionName` avec `[1]` à
 `[0]`, de sorte que les dix numéros restent visibles sans changement du WBP.
+Les propriétés `Empty Slot Opacity` et `Unavailable Slot Opacity`, dans les
+Class Defaults de ce WBP, permettent d'ajuster séparément l'apparence d'un slot
+vide et celle d'une action temporairement indisponible.
 
 Le `Button_Action` doit rester hit-testable afin de recevoir sur son widget
 parent les opérations de glisser-déposer et le clic droit.
@@ -112,7 +120,10 @@ Il vérifie :
 
 Les tests MON12.7 sont adaptés : ils attendent désormais dix slots vides au
 démarrage, configurent explicitement l'épée de test, puis vérifient encore le
-routage autoritaire de la requête.
+routage autoritaire de la requête. Le test de cycle de vie crée un véritable
+`UUserWidget` initialisé afin que son `WidgetTree` et les dix widgets enfants
+existent réellement ; `NewObject<UUserWidget>` seul ne suffit pas pour tester
+la construction UMG.
 
 ## Suite
 

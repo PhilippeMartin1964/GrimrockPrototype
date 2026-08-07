@@ -280,8 +280,13 @@ namespace
                 TEXT ("Rat MON12.7")));
             TurnManager->CurrentInitiativeIndex = 0;
 
-            Hud = NewObject<UGridCombatHudWidget> (Party);
-            Hud->InitializeCombatHud (Party, TurnManager);
+            Hud = CreateWidget<UGridCombatHudWidget> (
+                TestWorld.World,
+                UGridCombatHudWidget::StaticClass ());
+            if (Hud)
+            {
+                Hud->InitializeCombatHud (Party, TurnManager);
+            }
         }
 
         bool IsReady () const
@@ -632,8 +637,16 @@ bool FGridMonsterMON12CombatHudLifecycleTest::RunTest (
         LegacyWrapPanel->GetChildrenCount (), 1);
     if (Fixture.Hud->HotbarRow)
     {
+        TestEqual (TEXT ("The HUD owns ten runtime shortcut widgets"),
+            Fixture.Hud->HotbarActionWidgets.Num (), 10);
         TestEqual (TEXT ("All ten shortcuts share the same row"),
             Fixture.Hud->HotbarRow->GetChildrenCount (), 10);
+        if (Fixture.Hud->HotbarActionWidgets.IsValidIndex (0))
+        {
+            TestEqual (TEXT ("An empty shortcut frame remains visible"),
+                Fixture.Hud->HotbarActionWidgets[0]->GetRenderOpacity (),
+                0.8f);
+        }
         for (const UGridCombatHudActionWidget* ActionWidget :
             Fixture.Hud->HotbarActionWidgets)
         {

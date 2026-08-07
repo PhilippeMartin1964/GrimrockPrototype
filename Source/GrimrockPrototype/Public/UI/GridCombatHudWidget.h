@@ -202,6 +202,20 @@ class GRIMROCKPROTOTYPE_API UGridCombatHudActionWidget : public UUserWidget
     GENERATED_BODY ()
 
 public:
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|HUD|Visuals",
+        meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float EmptySlotOpacity = 0.8f;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|HUD|Visuals",
+        meta = (ClampMin = "0.0", ClampMax = "1.0"))
+    float UnavailableSlotOpacity = 0.65f;
+
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     FGridCombatHudActionView View;
 
@@ -340,6 +354,13 @@ public:
         Category = "Combat|HUD|Initiative",
         meta = (ClampMin = "7", ClampMax = "10", UIMin = "7", UIMax = "10"))
     int32 VisibleInitiativeSlotCount = 8;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Combat|HUD|Hotbar",
+        meta = (ClampMin = "0.0", ClampMax = "16.0", UIMin = "0.0", UIMax = "16.0"))
+    float HotbarSlotSpacing = 4.0f;
 
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|HUD")
     TArray<TObjectPtr<UGridCombatActionPanelWidget>> PartyMemberPanels;

@@ -379,11 +379,13 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
             ? ESlateVisibility::HitTestInvisible
             : ESlateVisibility::Collapsed);
     }
+    // Keep empty slots easy to identify and target. Dimming the whole widget
+    // too aggressively also fades its frame and shortcut number.
     SetRenderOpacity (!View.bHasBinding
-        ? 0.35f
+        ? FMath::Clamp (EmptySlotOpacity, 0.0f, 1.0f)
         : View.bResolved && View.Action.bEnabled
             ? 1.0f
-            : 0.55f);
+            : FMath::Clamp (UnavailableSlotOpacity, 0.0f, 1.0f));
 }
 
 FReply UGridCombatHudActionWidget::NativeOnPreviewMouseButtonDown (
@@ -1159,6 +1161,13 @@ void UGridCombatHudWidget::EnsureActionWidgets ()
             {
                 HotbarSlot->SetSize (
                     FSlateChildSize (ESlateSizeRule::Fill));
+                const float HalfSpacing =
+                    FMath::Max (0.0f, HotbarSlotSpacing) * 0.5f;
+                HotbarSlot->SetPadding (FMargin (
+                    HalfSpacing,
+                    0.0f,
+                    HalfSpacing,
+                    0.0f));
                 HotbarSlot->SetHorizontalAlignment (HAlign_Fill);
                 HotbarSlot->SetVerticalAlignment (VAlign_Fill);
             }
