@@ -1,10 +1,15 @@
 #include "UI/GridCombatHudWidget.h"
 
+#include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/PanelWidget.h"
+#include "Components/ProgressBar.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "Components/Widget.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -135,10 +140,29 @@ void FGridCombatHudViewModelBuilder::BuildInitiative (
         Entry.RoundNumber = Preview.RoundNumber;
         Entry.ActivationIndex = Preview.ActivationIndex;
         Entry.bStartsNewRound = Preview.bStartsNewRound;
+        Entry.HealthPercent = CalculateHealthPercent (
+            Entry.Combatant.CurrentHealth,
+            Entry.Combatant.MaximumHealth);
     }
     OutOverflowCount = FMath::Max (
         0,
         InitiativePreview.Num () - VisibleCount);
+}
+
+float FGridCombatHudViewModelBuilder::CalculateHealthPercent (
+    int32 CurrentHealth,
+    int32 MaximumHealth)
+{
+    if (MaximumHealth <= 0)
+    {
+        return 0.0f;
+    }
+
+    return FMath::Clamp (
+        static_cast<float> (CurrentHealth) /
+            static_cast<float> (MaximumHealth),
+        0.0f,
+        1.0f);
 }
 
 void UGridCombatHudActionWidget::InitializeAction (
@@ -233,7 +257,54 @@ void UGridCombatHudInitiativeSlotWidget::InitializeInitiativeSlot (
     const FGridCombatHudInitiativeView& InView)
 {
     View = InView;
+    EnsureHealthProgressBar ();
     RefreshWidgets ();
+}
+
+void UGridCombatHudInitiativeSlotWidget::NativeConstruct ()
+{
+    Super::NativeConstruct ();
+    EnsureHealthProgressBar ();
+    RefreshWidgets ();
+}
+
+void UGridCombatHudInitiativeSlotWidget::EnsureHealthProgressBar ()
+{
+    if (ProgressBar_Health || !Text_Health || !WidgetTree)
+    {
+        return;
+    }
+
+    UVerticalBox* TextContainer = Cast<UVerticalBox> (
+        Text_Health->GetParent ());
+    if (!TextContainer)
+    {
+        return;
+    }
+
+    USizeBox* HealthBarSizeBox =
+        WidgetTree->ConstructWidget<USizeBox> (
+            USizeBox::StaticClass (),
+            TEXT ("SizeBox_HealthBar_Runtime"));
+    UProgressBar* HealthBar =
+        WidgetTree->ConstructWidget<UProgressBar> (
+            UProgressBar::StaticClass (),
+            TEXT ("ProgressBar_Health_Runtime"));
+    if (!HealthBarSizeBox || !HealthBar)
+    {
+        return;
+    }
+
+    HealthBarSizeBox->SetHeightOverride (6.0f);
+    HealthBarSizeBox->AddChild (HealthBar);
+    UVerticalBoxSlot* HealthBarSlot =
+        TextContainer->AddChildToVerticalBox (HealthBarSizeBox);
+    if (HealthBarSlot)
+    {
+        HealthBarSlot->SetPadding (FMargin (2.0f, 1.0f, 2.0f, 0.0f));
+        HealthBarSlot->SetHorizontalAlignment (HAlign_Fill);
+    }
+    ProgressBar_Health = HealthBar;
 }
 
 void UGridCombatHudInitiativeSlotWidget::RefreshWidgets ()
@@ -258,6 +329,18 @@ void UGridCombatHudInitiativeSlotWidget::RefreshWidgets ()
     if (Text_Health)
     {
         Text_Health->SetText (FormatCurrentAndMaximum (
+            TEXT ("PV"),
+            View.Combatant.CurrentHealth,
+            View.Combatant.MaximumHealth));
+    }
+    if (ProgressBar_Health)
+    {
+        ProgressBar_Health->SetPercent (View.HealthPercent);
+        ProgressBar_Health->SetFillColorAndOpacity (
+            HealthBarFillColor);
+        ProgressBar_Health->SetVisibility (
+            ESlateVisibility::HitTestInvisible);
+        ProgressBar_Health->SetToolTipText (FormatCurrentAndMaximum (
             TEXT ("PV"),
             View.Combatant.CurrentHealth,
             View.Combatant.MaximumHealth));

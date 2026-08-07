@@ -312,6 +312,7 @@ Créer la hiérarchie suivante :
     - `VerticalBox_InitiativeTexts` — `Vertical Box` ;
       - `Text_Name` — `TextBlock`, **BindWidget** ;
       - `Text_Health` — `TextBlock`, **BindWidget** ;
+      - `ProgressBar_Health` — `Progress Bar`, **BindWidgetOptional** ;
     - `HorizontalBox_InitiativeState` — `Horizontal Box` ;
       - `Text_Side` — `TextBlock`, **BindWidget** ;
       - `Text_State` — `TextBlock`, **BindWidget** ;
@@ -333,22 +334,28 @@ ne doit pas cacher le portrait ni les textes.
    - `Visibility` : `Hit Test Invisible`.
 3. Placer `Text_Name` et `Text_Health` en bas du portrait, sur un fond sombre
    semi-transparent si nécessaire pour conserver la lisibilité.
-4. Placer `Text_Side` et `Text_State` en haut du portrait avec une petite
+4. Placer `ProgressBar_Health` directement sous `Text_Health` :
+   - hauteur recommandée : `6` ;
+   - remplissage : rouge ;
+   - pourcentage initial : `1.0` ;
+   - `Is Variable` : activé.
+5. Placer `Text_Side` et `Text_State` en haut du portrait avec une petite
    police. Leur valeur est écrite par le C++.
-5. Sélectionner `Border_Active` :
+6. Sélectionner `Border_Active` :
    - Horizontal Alignment : `Fill` ;
    - Vertical Alignment : `Fill` ;
    - `Visibility` initiale : `Collapsed` ;
    - couleur suggérée : or ou jaune clair ;
    - ne pas utiliser une couleur de remplissage opaque.
-6. Cocher `Is Variable` pour :
+7. Cocher `Is Variable` pour :
    - `Image_Portrait` ;
    - `Text_Name` ;
    - `Text_Health` ;
+   - `ProgressBar_Health` ;
    - `Text_State` ;
    - `Text_Side` ;
    - `Border_Active`.
-7. Ne chercher aucun bouton `Class Defaults` dans cet éditeur. La valeur C++
+8. Ne chercher aucun bouton `Class Defaults` dans cet éditeur. La valeur C++
    par défaut de `ActiveScale` est déjà `1.28`, ce qui est précisément la
    valeur requise par MON12.7. Il n'y a donc rien à renseigner manuellement.
 
@@ -366,7 +373,7 @@ ne doit pas cacher le portrait ni les textes.
 
 Le C++ :
 
-- écrit le portrait, le nom, `PV actuel / maximum`, l'état et le camp ;
+- écrit le portrait, le nom, `PV actuel / maximum`, la barre rouge, l'état et le camp ;
 - affiche `Border_Active` uniquement pour le premier combattant actif ;
 - applique une échelle de `1.28` au slot actif et `1.0` aux autres ;
 - conserve l'ordre exact fourni par le TurnManager.

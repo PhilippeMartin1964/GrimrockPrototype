@@ -818,7 +818,7 @@ private:
         FGridCombatantInitiativeEntry& Entry,
         EGridCombatantTurnState NewState);
     void RefreshInitiativeEntryVitals (
-        FGridCombatantInitiativeEntry& Entry);
+        FGridCombatantInitiativeEntry& Entry) const;
     void BroadcastInitiativeOrderChanged ();
     void ReorderFutureInitiativeEntries ();
     FGuid ResolvePlayerCombatantId (int32 CharacterIndex) const;

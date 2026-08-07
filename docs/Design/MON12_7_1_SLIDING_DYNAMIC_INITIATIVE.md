@@ -73,6 +73,17 @@ Les séparateurs sont des `UBorder` natifs mis en pool par le HUD. Ils portent l
 texte `ROUND N`, s'insèrent avant le premier slot du nouveau round et ne
 nécessitent aucun nouveau Widget Blueprint.
 
+Chaque slot conserve le texte `PV actuel / maximum` et affiche en complément
+une barre de progression rouge. Son remplissage correspond à :
+
+```text
+PV actuels / PV maximum, borné entre 0 et 1
+```
+
+Le TurnManager reste l'autorité des PV. Les dégâts, soins, changements d'état
+et restaurations de partie déclenchent le rafraîchissement du HUD ; toutes les
+occurrences futures du même combattant affichent donc le même état de santé.
+
 `Text_InitiativeOverflow` est conservé pour compatibilité avec le Blueprint
 MON12.7, mais reste masqué : la chronologie montre toujours exactement la
 capacité configurée en continuant sur les rounds suivants.
@@ -89,6 +100,12 @@ Dans `WBP_GridCombatHud`, vérifier uniquement :
 
 Ne placer aucun séparateur ni slot manuellement dans `Panel_Initiative`.
 
+Dans `WBP_GridCombatHudInitiativeSlot`, la propriété facultative
+`ProgressBar_Health` peut être liée à une `Progress Bar` placée sous le portrait.
+Si elle est absente, le C++ crée automatiquement une barre rouge de `6 px` sous
+`Text_Health` dans `VerticalBox_InitiativeTexts`, ce qui maintient la
+compatibilité avec le Blueprint MON12.7.1 existant.
+
 ## Tests automatisés
 
 Les tests MON12.7.1 vérifient :
@@ -102,6 +119,7 @@ Les tests MON12.7.1 vérifient :
 - l'absence de modification rétroactive du tour actif ;
 - le nouvel ordre complet au round suivant ;
 - le refus d'un identifiant de combattant inconnu.
+- le calcul, le bornage et la conservation du pourcentage de PV dans la vue HUD.
 
 Suites ciblées :
 
@@ -121,6 +139,8 @@ Grimrock.Monsters.MON12.CombatHUD.DynamicInitiative
 5. Terminer plusieurs tours et vérifier le glissement d'un slot à chaque fois.
 6. Tuer un monstre et vérifier sa disparition de toutes les occurrences
    futures.
-7. Lorsqu'un premier effet de hâte sera branché, vérifier que seules les
+7. Blesser un combattant et vérifier que son texte de PV et sa barre rouge se
+   mettent à jour simultanément dans toutes ses occurrences visibles.
+8. Lorsqu'un premier effet de hâte sera branché, vérifier que seules les
    activations futures se déplacent et que l'actif ne change jamais en cours de
    tour.

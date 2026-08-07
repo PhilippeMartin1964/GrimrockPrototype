@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Components/ProgressBar.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Engine/Engine.h"
@@ -366,6 +367,8 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         Preview.ActivationIndex = Index % 5;
         Preview.bIsActive = Index == 0;
         Preview.bStartsNewRound = Index == 5;
+        Preview.Combatant.CurrentHealth = Index == 0 ? 7 : 20;
+        Preview.Combatant.MaximumHealth = 20;
     }
     TArray<FGridCombatHudInitiativeView> Initiative;
     int32 OverflowCount = 0;
@@ -386,6 +389,31 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         Initiative[5].bStartsNewRound);
     TestEqual (TEXT ("The projected round number is preserved"),
         Initiative[5].RoundNumber, 2);
+    TestEqual (TEXT ("Initiative health percent reflects current health"),
+        Initiative[0].HealthPercent, 0.35f);
+    TestEqual (TEXT ("Initiative health percent clamps overhealing"),
+        FGridCombatHudViewModelBuilder::CalculateHealthPercent (25, 20),
+        1.0f);
+    TestEqual (TEXT ("Initiative health percent rejects invalid maximum"),
+        FGridCombatHudViewModelBuilder::CalculateHealthPercent (7, 0),
+        0.0f);
+    TestEqual (TEXT ("Initiative health percent clamps negative health"),
+        FGridCombatHudViewModelBuilder::CalculateHealthPercent (-2, 20),
+        0.0f);
+
+    UGridCombatHudInitiativeSlotWidget* InitiativeSlot =
+        NewObject<UGridCombatHudInitiativeSlotWidget> ();
+    InitiativeSlot->ProgressBar_Health = NewObject<UProgressBar> (
+        InitiativeSlot);
+    InitiativeSlot->InitializeInitiativeSlot (Initiative[0]);
+    TestEqual (TEXT ("The initiative health bar receives the view percent"),
+        InitiativeSlot->ProgressBar_Health->GetPercent (),
+        0.35f);
+    TestTrue (TEXT ("The default health bar fill is visibly red"),
+        InitiativeSlot->HealthBarFillColor.R >
+            InitiativeSlot->HealthBarFillColor.G &&
+        InitiativeSlot->HealthBarFillColor.R >
+            InitiativeSlot->HealthBarFillColor.B);
     return true;
 }
 
@@ -421,6 +449,22 @@ bool FGridMonsterMON1271InitiativePreviewTest::RunTest (
         Preview[5].bStartsNewRound);
     TestEqual (TEXT ("The separator announces round two"),
         Preview[5].RoundNumber, 2);
+
+    Fixture.Monster->CurrentHealth = 375;
+    Fixture.TurnManager->GetInitiativePreview (Preview, 8);
+    for (const FGridInitiativePreviewEntry& Entry : Preview)
+    {
+        if (Entry.Combatant.CombatantId ==
+            Fixture.Monster->ResolvePersistenceId ())
+        {
+            TestEqual (TEXT ("Every rat activation reads current runtime health"),
+                Entry.Combatant.CurrentHealth,
+                375);
+            TestEqual (TEXT ("Every rat activation reads maximum definition health"),
+                Entry.Combatant.MaximumHealth,
+                1000);
+        }
+    }
 
     Fixture.TurnManager->InitiativeOrder.Last ().State =
         EGridCombatantTurnState::Defeated;

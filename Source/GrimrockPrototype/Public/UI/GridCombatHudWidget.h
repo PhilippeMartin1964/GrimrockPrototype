@@ -13,6 +13,7 @@ class UGridPartyInventoryComponent;
 class UGridTurnManagerComponent;
 class UImage;
 class UPanelWidget;
+class UProgressBar;
 class UTextBlock;
 class UTexture2D;
 class UWidget;
@@ -108,6 +109,10 @@ struct FGridCombatHudInitiativeView
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     bool bStartsNewRound = false;
+
+    /** UI-ready health ratio, clamped to the progress-bar range. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
+    float HealthPercent = 0.0f;
 };
 
 USTRUCT (BlueprintType)
@@ -167,6 +172,10 @@ public:
         TArray<FGridCombatHudInitiativeView>& OutInitiative,
         int32& OutOverflowCount,
         int32 MaximumVisibleEntries = MaximumVisibleInitiativeEntries);
+
+    static float CalculateHealthPercent (
+        int32 CurrentHealth,
+        int32 MaximumHealth);
 };
 
 class UGridCombatHudWidget;
@@ -228,6 +237,13 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Visuals")
     float ActiveScale = 1.28f;
 
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|HUD|Visuals")
+    FLinearColor HealthBarFillColor = FLinearColor (
+        0.82f,
+        0.02f,
+        0.02f,
+        1.0f);
+
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UImage> Image_Portrait;
 
@@ -236,6 +252,9 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_Health;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
+    TObjectPtr<UProgressBar> ProgressBar_Health;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_State;
@@ -249,7 +268,11 @@ public:
     void InitializeInitiativeSlot (
         const FGridCombatHudInitiativeView& InView);
 
+protected:
+    virtual void NativeConstruct () override;
+
 private:
+    void EnsureHealthProgressBar ();
     void RefreshWidgets ();
 };
 

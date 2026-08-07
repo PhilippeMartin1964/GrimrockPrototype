@@ -494,7 +494,7 @@ void UGridTurnManagerComponent::SetInitiativeEntryState (
 }
 
 void UGridTurnManagerComponent::RefreshInitiativeEntryVitals (
-    FGridCombatantInitiativeEntry& Entry)
+    FGridCombatantInitiativeEntry& Entry) const
 {
     if (Entry.Side == EGridCombatantSide::Party)
     {
@@ -586,7 +586,8 @@ void UGridTurnManagerComponent::GetInitiativePreview (
             OutEntries.Num () < MaximumEntries;
         ++Index)
     {
-        const FGridCombatantInitiativeEntry& Entry = InitiativeOrder[Index];
+        FGridCombatantInitiativeEntry Entry = InitiativeOrder[Index];
+        RefreshInitiativeEntryVitals (Entry);
         if (Entry.State != EGridCombatantTurnState::Active &&
             Entry.State != EGridCombatantTurnState::Waiting ||
             Entry.CurrentHealth <= 0)
@@ -608,16 +609,18 @@ void UGridTurnManagerComponent::GetInitiativePreview (
     FutureRoundOrder.Reserve (InitiativeOrder.Num ());
     for (const FGridCombatantInitiativeEntry& Entry : InitiativeOrder)
     {
-        if (Entry.State == EGridCombatantTurnState::Defeated ||
-            Entry.State == EGridCombatantTurnState::Incapacitated ||
-            Entry.CurrentHealth <= 0)
+        FGridCombatantInitiativeEntry RefreshedEntry = Entry;
+        RefreshInitiativeEntryVitals (RefreshedEntry);
+        if (RefreshedEntry.State == EGridCombatantTurnState::Defeated ||
+            RefreshedEntry.State == EGridCombatantTurnState::Incapacitated ||
+            RefreshedEntry.CurrentHealth <= 0)
         {
             continue;
         }
 
         FGridCombatantInitiativeEntry& FutureEntry =
             FutureRoundOrder.AddDefaulted_GetRef ();
-        FutureEntry = Entry;
+        FutureEntry = RefreshedEntry;
         FutureEntry.State = EGridCombatantTurnState::Waiting;
     }
     FGridInitiativeOrderBuilder::Sort (FutureRoundOrder);
