@@ -314,7 +314,6 @@ Créer la hiérarchie suivante :
       - `Text_Health` — `TextBlock`, **BindWidget** ;
       - `ProgressBar_Health` — `Progress Bar`, **BindWidgetOptional** ;
     - `HorizontalBox_InitiativeState` — `Horizontal Box` ;
-      - `Text_Side` — `TextBlock`, **BindWidget** ;
       - `Text_State` — `TextBlock`, **BindWidget** ;
     - `Border_Active` — `Border`, **BindWidget**.
 
@@ -339,9 +338,9 @@ ne doit pas cacher le portrait ni les textes.
    - remplissage : rouge ;
    - pourcentage initial : `1.0` ;
    - `Is Variable` : activé.
-5. `Text_Side` reste masqué : le HUD ne répète plus `Party / Monster` sur
-   chaque slot. `Text_State` affiche uniquement `ACTIF` sur le premier slot ;
-   les entrées en attente n'affichent aucun libellé.
+5. `Text_State` affiche uniquement `ACTIF` sur le premier slot ; les entrées en
+   attente n'affichent aucun libellé. Supprimer l'ancien `Text_Side` du Widget
+   Tree : le HUD ne répète plus `Party / Monster` sur chaque slot.
 6. Sélectionner `Border_Active` :
    - Horizontal Alignment : `Fill` ;
    - Vertical Alignment : `Fill` ;
@@ -354,7 +353,6 @@ ne doit pas cacher le portrait ni les textes.
    - `Text_Health` ;
    - `ProgressBar_Health` ;
    - `Text_State` ;
-   - `Text_Side` ;
    - `Border_Active`.
 8. Ne chercher aucun bouton `Class Defaults` dans cet éditeur. La valeur C++
    par défaut de `ActiveScale` est déjà `1.12`, ce qui est précisément la
@@ -444,22 +442,15 @@ rester visible ou vide à un moment incorrect.
 
 4. Cocher `Is Variable` sur `Panel_Initiative`.
 5. Laisser `Panel_Initiative` complètement vide dans le Designer.
-6. Le `TextBlock` historique suivant est devenu obsolète et peut être supprimé
-   du Widget Tree :
+6. Supprimer du Widget Tree le `TextBlock` historique :
 
    ```text
    Text_InitiativeOverflow
    ```
 
-7. S'il est conservé pour compatibilité, cocher `Is Variable` sur
-   `Text_InitiativeOverflow` et laisser sa visibilité initiale sur `Collapsed`.
-   MON12.7.1 demande directement le nombre exact d'activations visibles ; il
-   n'existe donc plus d'éléments cachés à annoncer avec `+ N`.
-
-Important : `Text_InitiativeOverflow` doit être un frère de
-`Panel_Initiative`, pas un enfant. Le C++ gère un pool de slots et de
-séparateurs dans `Panel_Initiative` ; tout enfant statique placé dans ce panneau
-serait retiré au premier rafraîchissement.
+   La propriété et le compteur C++ associés n'existent plus. MON12.7.1 demande
+   directement le nombre exact d'activations visibles ; il n'existe donc plus
+   d'éléments cachés à annoncer avec `+ N`.
 
 ### UE5.4.4 — Construire la zone des quatre personnages
 
@@ -578,7 +569,7 @@ Ne créer aucun événement `OnClicked`. Le C++ :
 - affiche automatiquement `Combat inactif`, `Tour ennemi`,
   `Déplacement en cours` ou `Résolution en cours`.
 
-### UE5.4.8 — Vérifier les huit BindWidgets du HUD racine
+### UE5.4.8 — Vérifier les sept BindWidgets du HUD racine
 
 Avant de continuer, contrôler cette liste dans le Widget Tree :
 
@@ -586,7 +577,6 @@ Avant de continuer, contrôler cette liste dans le Widget Tree :
 | --- | --- | --- |
 | `Panel_CombatHud` | Canvas Panel ou autre Widget racine | non |
 | `Panel_Initiative` | Horizontal Box ou autre PanelWidget | oui |
-| `Text_InitiativeOverflow` | TextBlock | non applicable |
 | `Panel_PartyMembers` | Horizontal Box ou autre PanelWidget | oui |
 | `Panel_Actions` | Wrap Box, Horizontal Box ou autre PanelWidget | oui |
 | `Text_MobilityActionPoints` | TextBlock | non applicable |
@@ -905,7 +895,7 @@ mouvement et l'absence de dépense de PA après refus.
 6. Vérifier que huit activations restent visibles même avec moins de huit
    participants, grâce à la projection sur les rounds suivants.
 7. Vérifier que `ROUND 2` apparaît entre les deux rounds sans remplacer un
-   slot et que `Text_InitiativeOverflow` reste masqué.
+   slot.
 8. Se reporter à
    `docs/Design/MON12_7_1_SLIDING_DYNAMIC_INITIATIVE.md` pour les tests de
    retrait d'un vaincu et de changement dynamique de l'ordre.
@@ -948,7 +938,7 @@ mouvement et l'absence de dépense de PA après refus.
 | Aucun panneau de personnage | nom/type de `Panel_PartyMembers` incorrect ou classe de panneau absente | utiliser un `PanelWidget` nommé exactement `Panel_PartyMembers` et renseigner `WBP_GridCombatActionPanel` |
 | Aucun bouton d'action | `Panel_Actions` absent, `Action Widget Class` absent ou tour ennemi | vérifier le nom, la classe et attendre un tour du groupe |
 | Une décoration de barre disparaît | décoration placée dans un panneau dynamique vidé par `ClearChildren()` | déplacer la décoration hors de `Panel_PartyMembers`, `Panel_Actions` ou `Panel_Initiative` |
-| Un ancien `+ N` reste visible | `Text_InitiativeOverflow` forcé visible dans le Blueprint | le laisser lié ou le supprimer, avec visibilité initiale `Collapsed` |
+| Un ancien `+ N` reste visible | ancien `Text_InitiativeOverflow` encore présent dans le Blueprint | supprimer ce widget du Widget Tree |
 | Aucun slot d'initiative | `Initiative Slot Widget Class` ou `Panel_Initiative` absent | renseigner la classe et vérifier le nom du panneau |
 | Portrait d'action vide | l'action ne possède pas d'icône dans sa définition | vérifier l'`Icon` du Data Asset d'action ou d'équipement ; le HUD ne fabrique pas d'icône fallback |
 | Portrait d'initiative vide | `FGridCombatantInitiativeEntry::Portrait` est vide | vérifier la donnée de portrait du personnage ou du monstre ; MON12.7 n'ajoute pas de portrait fallback |

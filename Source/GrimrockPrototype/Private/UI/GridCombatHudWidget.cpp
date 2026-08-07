@@ -128,7 +128,6 @@ FGridCombatHudMobilityView FGridCombatHudViewModelBuilder::BuildMobility (
 void FGridCombatHudViewModelBuilder::BuildInitiative (
     const TArray<FGridInitiativePreviewEntry>& InitiativePreview,
     TArray<FGridCombatHudInitiativeView>& OutInitiative,
-    int32& OutOverflowCount,
     int32 MaximumVisibleEntries)
 {
     const int32 VisibleCount = FMath::Min (
@@ -150,9 +149,6 @@ void FGridCombatHudViewModelBuilder::BuildInitiative (
             Entry.Combatant.CurrentHealth,
             Entry.Combatant.MaximumHealth);
     }
-    OutOverflowCount = FMath::Max (
-        0,
-        InitiativePreview.Num () - VisibleCount);
 }
 
 float FGridCombatHudViewModelBuilder::CalculateHealthPercent (
@@ -362,11 +358,6 @@ void UGridCombatHudInitiativeSlotWidget::RefreshWidgets ()
                 ? ESlateVisibility::HitTestInvisible
                 : ESlateVisibility::Collapsed);
     }
-    if (Text_Side)
-    {
-        Text_Side->SetText (FText::GetEmpty ());
-        Text_Side->SetVisibility (ESlateVisibility::Collapsed);
-    }
     if (Border_Active)
     {
         Border_Active->SetVisibility (
@@ -485,7 +476,6 @@ void UGridCombatHudWidget::RefreshFromSources ()
     FGridCombatHudViewModelBuilder::BuildInitiative (
         InitiativePreview,
         View.Initiative,
-        View.InitiativeOverflowCount,
         FMath::Clamp (VisibleInitiativeSlotCount, 7, 10));
 
     View.bCanEndTurn =
@@ -974,19 +964,6 @@ void UGridCombatHudWidget::RefreshBoundWidgets ()
     if (Text_MobilityActionPoints)
     {
         Text_MobilityActionPoints->SetText (View.Mobility.DisplayText);
-    }
-    if (Text_InitiativeOverflow)
-    {
-        Text_InitiativeOverflow->SetText (
-            View.InitiativeOverflowCount > 0
-                ? FText::FromString (FString::Printf (
-                    TEXT ("+ %d"),
-                    View.InitiativeOverflowCount))
-                : FText::GetEmpty ());
-        Text_InitiativeOverflow->SetVisibility (
-            View.InitiativeOverflowCount > 0
-                ? ESlateVisibility::HitTestInvisible
-                : ESlateVisibility::Collapsed);
     }
     if (Button_EndTurn)
     {

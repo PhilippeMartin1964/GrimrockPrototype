@@ -139,9 +139,6 @@ struct FGridCombatHudView
     TArray<FGridCombatHudInitiativeView> Initiative;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
-    int32 InitiativeOverflowCount = 0;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     bool bCanEndTurn = false;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
@@ -170,7 +167,6 @@ public:
     static void BuildInitiative (
         const TArray<FGridInitiativePreviewEntry>& InitiativePreview,
         TArray<FGridCombatHudInitiativeView>& OutInitiative,
-        int32& OutOverflowCount,
         int32 MaximumVisibleEntries = MaximumVisibleInitiativeEntries);
 
     static float CalculateHealthPercent (
@@ -260,9 +256,6 @@ public:
     TObjectPtr<UTextBlock> Text_State;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
-    TObjectPtr<UTextBlock> Text_Side;
-
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UBorder> Border_Active;
 
     void InitializeInitiativeSlot (
@@ -340,9 +333,6 @@ public:
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_MobilityActionPoints;
-
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
-    TObjectPtr<UTextBlock> Text_InitiativeOverflow;
 
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UButton> Button_EndTurn;

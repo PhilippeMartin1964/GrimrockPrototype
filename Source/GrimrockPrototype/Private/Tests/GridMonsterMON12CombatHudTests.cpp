@@ -372,15 +372,11 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         Preview.Combatant.MaximumHealth = 20;
     }
     TArray<FGridCombatHudInitiativeView> Initiative;
-    int32 OverflowCount = 0;
     FGridCombatHudViewModelBuilder::BuildInitiative (
         Upcoming,
-        Initiative,
-        OverflowCount);
+        Initiative);
     TestEqual (TEXT ("At most eight initiative entries are visible"),
         Initiative.Num (), 8);
-    TestEqual (TEXT ("The initiative overflow is exact"),
-        OverflowCount, 2);
     TestTrue (TEXT ("The first active combatant is emphasized"),
         Initiative[0].bActive);
     TestEqual (TEXT ("The runtime initiative order is preserved"),
@@ -408,8 +404,6 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
         InitiativeSlot);
     InitiativeSlot->Text_State = NewObject<UTextBlock> (
         InitiativeSlot);
-    InitiativeSlot->Text_Side = NewObject<UTextBlock> (
-        InitiativeSlot);
     InitiativeSlot->InitializeInitiativeSlot (Initiative[0]);
     TestEqual (TEXT ("The initiative health bar receives the view percent"),
         InitiativeSlot->ProgressBar_Health->GetPercent (),
@@ -425,10 +419,6 @@ bool FGridMonsterMON12CombatHudViewModelTest::RunTest (
     TestEqual (TEXT ("Only the active state remains visible"),
         InitiativeSlot->Text_State->GetText ().ToString (),
         FString (TEXT ("ACTIF")));
-    TestEqual (TEXT ("The combatant side label is hidden"),
-        InitiativeSlot->Text_Side->GetVisibility (),
-        ESlateVisibility::Collapsed);
-
     InitiativeSlot->InitializeInitiativeSlot (Initiative[1]);
     TestEqual (TEXT ("Waiting state labels are hidden"),
         InitiativeSlot->Text_State->GetVisibility (),

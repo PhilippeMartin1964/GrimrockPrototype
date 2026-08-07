@@ -84,9 +84,10 @@ Le TurnManager reste l'autorité des PV. Les dégâts, soins, changements d'éta
 et restaurations de partie déclenchent le rafraîchissement du HUD ; toutes les
 occurrences futures du même combattant affichent donc le même état de santé.
 
-`Text_InitiativeOverflow` est conservé pour compatibilité avec le Blueprint
-MON12.7, mais reste masqué : la chronologie montre toujours exactement la
-capacité configurée en continuant sur les rounds suivants.
+L'ancien indicateur `Text_InitiativeOverflow` et son compteur C++ ont été
+supprimés : la chronologie demande directement sa capacité configurée et la
+prolonge sur les rounds suivants. Il n'existe donc plus d'activations cachées à
+annoncer avec `+ N`.
 
 ## Configuration Unreal Editor
 
@@ -99,6 +100,8 @@ Dans `WBP_GridCombatHud`, vérifier uniquement :
 | `Visible Initiative Slot Count` | `8` |
 
 Ne placer aucun séparateur ni slot manuellement dans `Panel_Initiative`.
+Supprimer l'ancien `Text_InitiativeOverflow` du Widget Tree s'il est encore
+présent dans `WBP_GridCombatHud`.
 
 Dans `WBP_GridCombatHudInitiativeSlot`, la propriété facultative
 `ProgressBar_Health` peut être liée à une `Progress Bar` placée sous le portrait.
