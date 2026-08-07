@@ -1,10 +1,9 @@
 # MON12.1 — Premier panneau d’actions de combat
 
-> **Statut de migration.** Ce panneau reste la verticale fonctionnelle
-> validée pour afficher un personnage. MON12.3 a remplacé son ancien modèle
-> `Ready / AlreadyActed` par l'état de tour et les PA. Ses vues
-> `MainHand / OffHand` resteront provisoires jusqu'au catalogue d'actions.
-> Voir `MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
+> **Statut historique.** MON12.7 conserve ce Widget Blueprint comme panneau de
+> statut d'un personnage, mais ses vues et widgets `MainHand / OffHand` ont été
+> supprimés. Les actions actuelles proviennent exclusivement du catalogue
+> générique. Voir `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 
 ## Résultat
 

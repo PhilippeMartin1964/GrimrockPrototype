@@ -20,7 +20,6 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
 #include "Save/GrimrockPartySaveGame.h"
-#include "UI/GridCombatActionPanelWidget.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
@@ -363,19 +362,6 @@ void AGrimrockPartyPawn::SetGridStart (
     Facing = StartFacing;
 
     SnapToCurrentCell ();
-    if (CombatActionPanelWidgetInstance)
-    {
-        UGridTurnManagerComponent* TurnManager =
-            IsValid (LevelRuntimeActor)
-                ? LevelRuntimeActor
-                    ->FindComponentByClass<UGridTurnManagerComponent> ()
-                : nullptr;
-        CombatActionPanelWidgetInstance
-            ->InitializeCombatActionPanel (
-                this,
-                CombatActionPanelCharacterIndex,
-                TurnManager);
-    }
 }
 
 void AGrimrockPartyPawn::SnapToCurrentCell ()
@@ -1249,62 +1235,37 @@ bool AGrimrockPartyPawn::ShowCombatActionPanelWidget ()
             ? LevelRuntimeActor
                 ->FindComponentByClass<UGridTurnManagerComponent> ()
             : nullptr;
-    if (CombatHudWidgetClass)
-    {
-        if (!CombatHudWidgetInstance)
-        {
-            CombatHudWidgetInstance =
-                CreateWidget<UGridCombatHudWidget> (
-                    PlayerController,
-                    CombatHudWidgetClass);
-        }
-        if (!CombatHudWidgetInstance)
-        {
-            UE_LOG (
-                LogTemp,
-                Warning,
-                TEXT ("GridCombatHud Show Failed Pawn=%s Reason=CreateWidgetFailed"),
-                *GetName ());
-            return false;
-        }
-        CombatHudWidgetInstance->InitializeCombatHud (this, TurnManager);
-        if (!CombatHudWidgetInstance->IsInViewport ())
-        {
-            CombatHudWidgetInstance->AddToViewport (
-                CombatActionPanelZOrder);
-        }
-        return true;
-    }
-
-    if (!CombatActionPanelWidgetClass)
-    {
-        return false;
-    }
-
-    if (!CombatActionPanelWidgetInstance)
-    {
-        CombatActionPanelWidgetInstance =
-            CreateWidget<UGridCombatActionPanelWidget> (
-                PlayerController,
-                CombatActionPanelWidgetClass);
-    }
-    if (!CombatActionPanelWidgetInstance)
+    if (!CombatHudWidgetClass)
     {
         UE_LOG (
             LogTemp,
             Warning,
-            TEXT ("GridCombatActionPanel Show Failed Pawn=%s Reason=CreateWidgetFailed"),
+            TEXT ("GridCombatHud Show Failed Pawn=%s Reason=WidgetClassUnset"),
             *GetName ());
         return false;
     }
 
-    CombatActionPanelWidgetInstance->InitializeCombatActionPanel (
-        this,
-        CombatActionPanelCharacterIndex,
-        TurnManager);
-    if (!CombatActionPanelWidgetInstance->IsInViewport ())
+    if (!CombatHudWidgetInstance)
     {
-        CombatActionPanelWidgetInstance->AddToViewport (
+        CombatHudWidgetInstance =
+            CreateWidget<UGridCombatHudWidget> (
+                PlayerController,
+                CombatHudWidgetClass);
+    }
+    if (!CombatHudWidgetInstance)
+    {
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("GridCombatHud Show Failed Pawn=%s Reason=CreateWidgetFailed"),
+            *GetName ());
+        return false;
+    }
+
+    CombatHudWidgetInstance->InitializeCombatHud (this, TurnManager);
+    if (!CombatHudWidgetInstance->IsInViewport ())
+    {
+        CombatHudWidgetInstance->AddToViewport (
             CombatActionPanelZOrder);
     }
     return true;
@@ -1317,13 +1278,6 @@ void AGrimrockPartyPawn::HideCombatActionPanelWidget ()
         CombatHudWidgetInstance->RemoveFromParent ();
         CombatHudWidgetInstance = nullptr;
     }
-    if (!CombatActionPanelWidgetInstance)
-    {
-        return;
-    }
-
-    CombatActionPanelWidgetInstance->RemoveFromParent ();
-    CombatActionPanelWidgetInstance = nullptr;
 }
 
 void AGrimrockPartyPawn::RefreshCombatActionPanelWidget ()
@@ -1331,10 +1285,6 @@ void AGrimrockPartyPawn::RefreshCombatActionPanelWidget ()
     if (CombatHudWidgetInstance)
     {
         CombatHudWidgetInstance->RefreshFromSources ();
-    }
-    if (CombatActionPanelWidgetInstance)
-    {
-        CombatActionPanelWidgetInstance->RefreshFromSources ();
     }
 }
 

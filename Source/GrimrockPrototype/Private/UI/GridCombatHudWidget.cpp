@@ -721,7 +721,6 @@ void UGridCombatHudWidget::EnsurePartyMemberPanels ()
         {
             continue;
         }
-        Panel->bShowHandActionButtons = false;
         Panel->InitializeCombatActionPanel (
             PartyPawn,
             CharacterIndex,

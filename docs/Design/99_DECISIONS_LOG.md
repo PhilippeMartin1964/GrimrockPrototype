@@ -592,3 +592,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   recalculé au début du round suivant.
 - Le document d'implémentation est
   `docs/Design/MON12_7_1_SLIDING_DYNAMIC_INITIATIVE.md`.
+
+---
+
+## 2026-08-07 — Nettoyage du panneau de statut MON12.7
+
+- `UGridCombatActionPanelWidget` devient strictement un panneau de statut.
+- Les widgets, vues, callbacks et tests directs `MainHand / OffHand` hérités de
+  MON12.1 et MON12.2 sont supprimés.
+- Le catalogue n'est plus dupliqué dans le panneau : seule la barre d'actions
+  du HUD appelle `GetAvailableCombatActions()` et
+  `RequestCharacterCombatAction()`.
+- Le fallback de Pawn vers le panneau unique MON12.1 est supprimé ;
+  `CombatHudWidgetClass` devient obligatoire.
+- Les sources `MainHand / OffHand` restent dans le gameplay d'équipement et
+  dans la provenance des actions génériques.

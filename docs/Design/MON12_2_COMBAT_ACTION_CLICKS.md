@@ -1,10 +1,10 @@
 # MON12.2 — Attaques depuis le panneau d’actions
 
-> **Statut de migration.** Les clics directs `MainHand / OffHand` restent une
-> verticale fonctionnelle et un adaptateur de compatibilité vers MON11. La
-> cible définitive remplace ces boutons par des actions générées depuis les
-> armes, sorts, capacités et objets. Depuis MON12.3, chaque clic accepté
-> dépense 2 PA. Voir `MON12_3_CHARACTER_TURN_ACTION_POINTS.md`.
+> **Statut historique remplacé.** Les clics directs `MainHand / OffHand`, leur
+> adaptateur de widget et leurs tests ont été supprimés après MON12.7. Les
+> attaques sont maintenant générées depuis le catalogue d'actions et exécutées
+> par `RequestCharacterCombatAction()`. Voir
+> `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md`.
 
 ## Résultat
 

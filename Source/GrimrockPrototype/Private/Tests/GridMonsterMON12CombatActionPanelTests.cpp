@@ -171,8 +171,6 @@ namespace
         UGridCombatActionPanelWidget* Panel = nullptr;
         UTexture2D* EliasPortrait = nullptr;
         UTexture2D* MinaPortrait = nullptr;
-        UTexture2D* ShurikenIcon = nullptr;
-        UTexture2D* TorchIcon = nullptr;
         FGuid EliasId = FGuid (12, 1, 0, 1);
         FGuid MinaId = FGuid (12, 1, 0, 2);
 
@@ -215,8 +213,6 @@ namespace
 
             EliasPortrait = NewObject<UTexture2D> (Party);
             MinaPortrait = NewObject<UTexture2D> (Party);
-            ShurikenIcon = NewObject<UTexture2D> (Party);
-            TorchIcon = NewObject<UTexture2D> (Party);
 
             Party->PartyInventoryComponent->PartyInventoryState
                 .ActiveCharacters = {
@@ -266,7 +262,7 @@ namespace
                     TEXT ("Shuriken"),
                     TEXT ("Shuriken"),
                     true,
-                    ShurikenIcon);
+                    nullptr);
             ConfigureOffensiveDefinition (
                 ShurikenDefinition,
                 TEXT ("Attack_Shuriken"),
@@ -280,7 +276,7 @@ namespace
                     TEXT ("Item_Torch"),
                     TEXT ("Torche"),
                     false,
-                    TorchIcon));
+                    nullptr));
 
             MonsterDefinition =
                 NewObject<UGridMonsterDefinitionAsset> (Runtime);
@@ -360,9 +356,7 @@ namespace
                 TurnManager &&
                 Panel &&
                 EliasPortrait &&
-                MinaPortrait &&
-                ShurikenIcon &&
-                TorchIcon;
+                MinaPortrait;
         }
     };
 }
@@ -422,28 +416,6 @@ bool FGridMonsterMON12CombatActionPanelLiveDataTest::RunTest (
     TestTrue (
         TEXT ("The panel reads the real portrait"),
         View.Portrait.Get () == Fixture.EliasPortrait);
-    TestTrue (
-        TEXT ("MainHand is occupied"),
-        View.MainHand.bOccupied);
-    TestTrue (
-        TEXT ("MainHand uses the registered shuriken icon"),
-        View.MainHand.Icon.Get () == Fixture.ShurikenIcon);
-    TestEqual (
-        TEXT ("MainHand exposes the live stack quantity"),
-        View.MainHand.Quantity,
-        3);
-    TestTrue (
-        TEXT ("The stackable quantity is visible"),
-        View.MainHand.bShowQuantity);
-    TestTrue (
-        TEXT ("OffHand is occupied"),
-        View.OffHand.bOccupied);
-    TestTrue (
-        TEXT ("OffHand uses the registered torch icon"),
-        View.OffHand.Icon.Get () == Fixture.TorchIcon);
-    TestFalse (
-        TEXT ("A non-stackable quantity remains hidden"),
-        View.OffHand.bShowQuantity);
     TestEqual (
         TEXT ("The initial turn state is Active"),
         View.TurnState,
@@ -456,27 +428,9 @@ bool FGridMonsterMON12CombatActionPanelLiveDataTest::RunTest (
         TEXT ("The panel exposes the maximum action points"),
         View.MaximumActionPoints,
         4);
-    TestEqual (
-        TEXT ("The panel exposes the attack action-point cost"),
-        View.AttackActionPointCost,
-        2);
     TestTrue (
         TEXT ("The turn manager authorizes the living ready member"),
         View.bCanAct);
-
-    FGridItemInstance ExtractedItem;
-    TestTrue (
-        TEXT ("One equipped shuriken is extracted"),
-        Fixture.Party->PartyInventoryComponent
-            ->TryExtractOneEquippedItemForWorldTransfer (
-                0,
-                EGridEquipmentSlot::MainHand,
-                TEXT ("Shuriken"),
-                ExtractedItem));
-    TestEqual (
-        TEXT ("The inventory event refreshes the quantity without Tick"),
-        Fixture.Panel->View.MainHand.Quantity,
-        2);
     return true;
 }
 
@@ -500,26 +454,14 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest (
 
     Fixture.Panel->InitializeCombatActionPanel (
         Fixture.Party,
-        INDEX_NONE,
+        1,
         Fixture.TurnManager);
-    TestTrue (
-        TEXT ("INDEX_NONE enables selected-member following"),
-        Fixture.Panel->bFollowSelectedCharacter);
     TestEqual (
-        TEXT ("The panel initially follows character zero"),
-        Fixture.Panel->View.CharacterIndex,
-        0);
-
-    TestTrue (
-        TEXT ("Selecting the second character succeeds"),
-        Fixture.Party->PartyInventoryComponent
-            ->SetSelectedCharacterIndex (1));
-    TestEqual (
-        TEXT ("The selection notification retargets the same panel"),
+        TEXT ("The panel keeps its assigned member index"),
         Fixture.Panel->View.CharacterIndex,
         1);
     TestEqual (
-        TEXT ("The retargeted panel reads Mina"),
+        TEXT ("The assigned panel reads Mina"),
         Fixture.Panel->View.DisplayName.ToString (),
         FString (TEXT ("Mina")));
     TestTrue (
@@ -530,16 +472,18 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest (
         EGridCombatPhase::EnemyPhase;
     Fixture.TurnManager->OnPhaseChanged.Broadcast (
         EGridCombatPhase::EnemyPhase);
+    Fixture.Panel->RefreshFromSources ();
     TestFalse (
-        TEXT ("A Ready member is disabled outside the player phase"),
+        TEXT ("The status panel reflects the enemy phase"),
         Fixture.Panel->View.bCanAct);
 
     Fixture.TurnManager->CurrentPhase =
         EGridCombatPhase::PlayerPhase;
     Fixture.TurnManager->OnPhaseChanged.Broadcast (
         EGridCombatPhase::PlayerPhase);
+    Fixture.Panel->RefreshFromSources ();
     TestTrue (
-        TEXT ("The member is enabled again in the player phase"),
+        TEXT ("The status panel reflects the player phase"),
         Fixture.Panel->View.bCanAct);
 
     FGridPlayerCharacterTurnState CompletedState;
@@ -553,9 +497,10 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest (
     };
     Fixture.TurnManager->OnPlayerCharacterTurnStateChanged.Broadcast (
         CompletedState);
+    Fixture.Panel->RefreshFromSources ();
 
     TestEqual (
-        TEXT ("The TurnManager event produces Completed"),
+        TEXT ("The status panel reflects Completed"),
         Fixture.Panel->View.TurnState,
         EGridCombatantTurnState::Completed);
     TestFalse (
@@ -569,174 +514,11 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest (
         nullptr,
         1,
         Result);
+    Fixture.Panel->RefreshFromSources ();
     TestEqual (
-        TEXT ("Monster attack notification refreshes current health"),
+        TEXT ("The status panel refreshes current health"),
         Fixture.Panel->View.CurrentHealth,
         9);
-    return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridMonsterMON12CombatActionPanelSlotRoutingTest,
-    "Grimrock.Monsters.MON12.CombatActionPanel.SlotAttackRouting",
-    EAutomationTestFlags::EditorContext |
-        EAutomationTestFlags::EngineFilter)
-
-bool FGridMonsterMON12CombatActionPanelSlotRoutingTest::RunTest (
-    const FString& Parameters)
-{
-    (void)Parameters;
-    FGridMON12Fixture Fixture;
-    if (!TestTrue (
-        TEXT ("The MON12 slot-routing fixture is ready"),
-        Fixture.IsReady ()))
-    {
-        return false;
-    }
-
-    UGridItemDefinitionAsset* DaggerDefinition =
-        MakeItemDefinition (
-            Fixture.Party,
-            TEXT ("Item_Dagger"),
-            TEXT ("Dague"),
-            false,
-            Fixture.TorchIcon);
-    ConfigureOffensiveDefinition (
-        DaggerDefinition,
-        TEXT ("Attack_Dagger"),
-        EGridEquipmentSlot::OffHand);
-    Fixture.Party->PartyInventoryComponent->RegisterItemDefinition (
-        DaggerDefinition);
-    Fixture.Party->PartyInventoryComponent->PartyInventoryState
-        .ActiveEquipment[0].OffHand = MakeEquippedItem (
-            FGuid (12, 2, 0, 3),
-            DaggerDefinition->ItemDefinitionId,
-            TEXT ("Dague"),
-            1,
-            0,
-            EGridEquipmentSlot::OffHand);
-
-    Fixture.Panel->InitializeCombatActionPanel (
-        Fixture.Party,
-        0,
-        Fixture.TurnManager);
-    TestTrue (
-        TEXT ("MainHand exposes an offensive action"),
-        Fixture.Panel->View.MainHand.bCanAttack);
-    TestTrue (
-        TEXT ("OffHand exposes its own offensive action"),
-        Fixture.Panel->View.OffHand.bCanAttack);
-
-    TestTrue (
-        TEXT ("Clicking OffHand requests an attack"),
-        Fixture.Panel->RequestAttackFromSlot (
-            EGridEquipmentSlot::OffHand));
-    TestEqual (
-        TEXT ("The turn manager keeps the clicked OffHand"),
-        Fixture.TurnManager->LastPlayerAttackRequest
-            .OffensiveEquipmentSlot,
-        EGridEquipmentSlot::OffHand);
-    TestEqual (
-        TEXT ("The turn manager uses the OffHand item"),
-        Fixture.TurnManager->LastPlayerAttackRequest
-            .OffensiveItemDefinitionId,
-        DaggerDefinition->ItemDefinitionId);
-    TestEqual (
-        TEXT ("The OffHand attack id is retained"),
-        Fixture.TurnManager->LastPlayerAttackRequest.AttackId,
-        FName (TEXT ("Attack_Dagger")));
-    TestEqual (
-        TEXT ("The accepted click keeps the character Active"),
-        Fixture.Panel->View.TurnState,
-        EGridCombatantTurnState::Active);
-    TestEqual (
-        TEXT ("The accepted click spends two action points"),
-        Fixture.Panel->View.RemainingActionPoints,
-        2);
-    TestTrue (
-        TEXT ("The panel permits a second two-AP attack"),
-        Fixture.Panel->View.bCanAct);
-    return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridMonsterMON12CombatActionPanelSlotRejectionTest,
-    "Grimrock.Monsters.MON12.CombatActionPanel.SlotAttackRejection",
-    EAutomationTestFlags::EditorContext |
-        EAutomationTestFlags::EngineFilter)
-
-bool FGridMonsterMON12CombatActionPanelSlotRejectionTest::RunTest (
-    const FString& Parameters)
-{
-    (void)Parameters;
-    FGridMON12Fixture Fixture;
-    if (!TestTrue (
-        TEXT ("The MON12 slot-rejection fixture is ready"),
-        Fixture.IsReady ()))
-    {
-        return false;
-    }
-
-    Fixture.Panel->InitializeCombatActionPanel (
-        Fixture.Party,
-        0,
-        Fixture.TurnManager);
-    TestFalse (
-        TEXT ("The equipped torch is visible but not offensive"),
-        Fixture.Panel->View.OffHand.bCanAttack);
-    TestFalse (
-        TEXT ("A non-offensive OffHand request is rejected"),
-        Fixture.Panel->RequestAttackFromSlot (
-            EGridEquipmentSlot::OffHand));
-    TestEqual (
-        TEXT ("The rejection reason identifies non-offensive equipment"),
-        Fixture.TurnManager->LastPlayerAttackRejectReason,
-        EGridPlayerAttackRejectReason::InvalidOffensiveEquipment);
-    FGridPlayerCharacterTurnState TurnState;
-    TestTrue (
-        TEXT ("The rejected character turn state is available"),
-        Fixture.TurnManager->GetPlayerCharacterTurnState (
-            0,
-            TurnState));
-    TestEqual (
-        TEXT ("A rejected click consumes no action points"),
-        TurnState.RemainingActionPoints,
-        4);
-    TestEqual (
-        TEXT ("A rejected click leaves the panel Active"),
-        Fixture.Panel->View.TurnState,
-        EGridCombatantTurnState::Active);
-    TestTrue (
-        TEXT ("A rejected click leaves the character actionable"),
-        Fixture.Panel->View.bCanAct);
-
-    Fixture.Party->PartyInventoryComponent->PartyInventoryState
-        .ActiveEquipment[0].OffHand = FGridItemInstance ();
-    Fixture.Panel->RefreshFromSources ();
-    TestTrue (
-        TEXT ("An empty OffHand exposes the unarmed action"),
-        Fixture.Panel->View.OffHand.bCanAttack);
-    TestTrue (
-        TEXT ("An empty OffHand request resolves unarmed"),
-        Fixture.Panel->RequestAttackFromSlot (
-            EGridEquipmentSlot::OffHand));
-    TestTrue (
-        TEXT ("The unarmed request has no item definition"),
-        Fixture.TurnManager->LastPlayerAttackRequest
-            .OffensiveItemDefinitionId.IsNone ());
-    TestEqual (
-        TEXT ("The unarmed request has no equipment slot"),
-        Fixture.TurnManager->LastPlayerAttackRequest
-            .OffensiveEquipmentSlot,
-        EGridEquipmentSlot::None);
-    TestEqual (
-        TEXT ("The unarmed attack id is retained"),
-        Fixture.TurnManager->LastPlayerAttackRequest.AttackId,
-        FName (TEXT ("Attack_Unarmed")));
-    TestEqual (
-        TEXT ("The accepted unarmed attack spends two action points"),
-        Fixture.Panel->View.RemainingActionPoints,
-        2);
     return true;
 }
 
@@ -763,6 +545,7 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest (
         0,
         Fixture.TurnManager);
     Fixture.TurnManager->BeginPlayerCharacterPhase ();
+    Fixture.Panel->RefreshFromSources ();
 
     FGridPlayerCharacterTurnState EliasTurn;
     FGridPlayerCharacterTurnState MinaTurn;
@@ -800,12 +583,13 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest (
             Request,
             Result,
             RejectReason));
+    Fixture.Panel->RefreshFromSources ();
     TestEqual (
         TEXT ("The request records its authoritative AP cost"),
         Request.ActionPointCost,
         2);
     TestEqual (
-        TEXT ("The panel refreshes to two remaining AP without Tick"),
+        TEXT ("The status panel projects two remaining AP"),
         Fixture.Panel->View.RemainingActionPoints,
         2);
     TestEqual (
@@ -814,7 +598,7 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest (
         EGridCombatantTurnState::Active);
     TestTrue (
         TEXT ("Elias can still afford a second attack"),
-        Fixture.Panel->View.bCanPayAttackCost);
+        Fixture.TurnManager->CanCharacterSpendActionPoints (0, 2));
 
     TestTrue (
         TEXT ("Elias can make a second two-AP attack"),
@@ -823,6 +607,7 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest (
             Request,
             Result,
             RejectReason));
+    Fixture.Panel->RefreshFromSources ();
     TestEqual (
         TEXT ("The second attack exhausts Elias action points"),
         Fixture.Panel->View.RemainingActionPoints,
@@ -1657,14 +1442,6 @@ bool FGridMonsterMON12ActionCatalogContributionsTest::RunTest (
                     TEXT ("Item_Torch");
             }));
 
-    Fixture.Panel->InitializeCombatActionPanel (
-        Fixture.Party,
-        0,
-        Fixture.TurnManager);
-    TestEqual (
-        TEXT ("The existing panel exposes the event-driven catalogue snapshot"),
-        Fixture.Panel->View.AvailableActions.Num (),
-        4);
     return true;
 }
 

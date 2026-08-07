@@ -17,9 +17,9 @@ Le HUD ne recalcule ni l'initiative, ni les coûts, ni les disponibilités. Il
 n'utilise pas `Tick`. Ses actualisations proviennent des événements du
 TurnManager et de l'inventaire du groupe.
 
-`AGrimrockPartyPawn::CombatHudWidgetClass` est optionnelle. Tant qu'elle n'est
-pas configurée, `CombatActionPanelWidgetClass` et le panneau historique restent
-le fallback affiché.
+`AGrimrockPartyPawn::CombatHudWidgetClass` est la configuration canonique. Si
+elle n'est pas renseignée, aucun ancien panneau d'attaque n'est créé et le Pawn
+écrit un avertissement `WidgetClassUnset`.
 
 ## Architecture C++
 
@@ -37,16 +37,17 @@ de huit entrées ; il ne trie aucun combattant.
 - se rafraîchit sur les événements d'inventaire, PA, PAM, phase, ordre,
   combattant actif, état de combattant, résolution et fin de combat.
 
-Les boutons `MainHand` et `OffHand` du panneau historique sont masqués lorsque
-le panneau est intégré au nouveau HUD. Les sources d'équipement restent dans
-les données de l'action générique, sans devenir des boutons codés en dur.
+`UGridCombatActionPanelWidget` est désormais strictement un panneau de statut.
+Il ne contient plus de boutons `MainHand` ou `OffHand`, ni de snapshot du
+catalogue. Les sources d'équipement restent dans les données de l'action
+générique, sans devenir des boutons codés en dur.
 
 ## Ce qui doit être réalisé manuellement dans Unreal Editor
 
 Le C++ ne crée aucun asset `.uasset`. Les quatre opérations suivantes sont
 donc obligatoires dans Unreal Editor 5.5.4 :
 
-1. vérifier le Widget Blueprint historique `WBP_GridCombatActionPanel` ;
+1. nettoyer le Widget Blueprint `WBP_GridCombatActionPanel` ;
 2. créer `WBP_GridCombatHudAction` ;
 3. créer `WBP_GridCombatHudInitiativeSlot` ;
 4. créer `WBP_GridCombatHud` et l'affecter à `BP_GrimrockPartyPawn`.
@@ -145,22 +146,17 @@ MON12.7 ne demande pas de recréer le panneau de MON12.1. Il réutilise
    | `Border_ActionState` | Border | couleur de l'état du tour |
    | `Panel_DisabledOverlay` | Widget, par exemple Border | voile d'indisponibilité |
 
-5. Les widgets historiques suivants peuvent rester dans l'asset :
+5. Supprimer du Widget Tree le conteneur complet `HorizontalBox_Hands`. Cette
+   suppression retire avec lui les deux branches obsolètes :
 
-   | Nom exact | Type UMG |
-   | --- | --- |
-   | `Button_MainHand` | Button |
-   | `Image_MainHandIcon` | Image |
-   | `Text_MainHandQuantity` | TextBlock |
-   | `Button_OffHand` | Button |
-   | `Image_OffHandIcon` | Image |
-   | `Text_OffHandQuantity` | TextBlock |
+   - `SizeBox_MainHand`, `Overlay_MainHand`, `Border_MainHand`,
+     `Button_MainHand`, `Image_MainHandIcon`, `Text_MainHandQuantity` ;
+   - `SizeBox_OffHand`, `Overlay_OffHand`, `Border_OffHand`,
+     `Button_OffHand`, `Image_OffHandIcon`, `Text_OffHandQuantity`.
 
-6. Ne pas supprimer et ne pas masquer manuellement les deux boutons de main.
-   Lorsque le HUD MON12.7 crée ses quatre panneaux, le C++ applique
-   `bShowHandActionButtons = false` et les masque automatiquement. Ils restent
-   disponibles lorsque le panneau historique est utilisé seul en fallback.
-7. Cocher `Is Variable` pour chaque widget portant un nom de la liste.
+6. Vérifier qu'aucun nœud de l'Event Graph ne référence les widgets supprimés.
+7. Cocher `Is Variable` pour chaque widget de statut portant un nom de la
+   liste de l'étape 4.
 8. Cliquer `Compile` puis `Save`.
 
 Le HUD fournit lui-même les indices `0`, `1`, `2` et `3`. Ne créer ni quatre
@@ -731,23 +727,18 @@ Symptômes d'une classe manquante :
    | Propriété | Valeur |
    | --- | --- |
    | `Combat Hud Widget Class` | `WBP_GridCombatHud` |
-   | `Combat Action Panel Widget Class` | `WBP_GridCombatActionPanel` |
    | `Combat Action Panel ZOrder` | conserver la valeur existante, normalement `50` |
 
-5. Ne pas mettre `Combat Action Panel Widget Class` à `None`. Cette propriété
-   reste le fallback si le HUD MON12.7 est désactivé. La classe utilisée pour
-   créer les quatre panneaux du nouveau HUD est, elle, la propriété distincte
-   `Party Member Panel Widget Class` déjà renseignée dans
-   `WBP_GridCombatHud` à l'étape UE5.5.
-6. Laisser `Combat Action Panel Character Index` à sa valeur existante. Le
-   nouveau HUD n'utilise pas cette valeur : il affecte lui-même `0`, `1`, `2`
-   et `3` à ses quatre panneaux.
-7. Ne rien ajouter dans l'Event Graph :
+5. Les anciennes propriétés `Combat Action Panel Widget Class` et
+   `Combat Action Panel Character Index` n'existent plus dans le C++. La classe
+   utilisée pour créer les quatre panneaux de statut reste
+   `Party Member Panel Widget Class` dans `WBP_GridCombatHud`.
+6. Ne rien ajouter dans l'Event Graph :
    - ne pas appeler `Create Widget` ;
    - ne pas appeler `Add to Viewport` ;
    - ne pas appeler `Initialize Combat Hud` ;
    - ne pas appeler `Refresh From Sources` sur `Tick`.
-8. Cliquer `Compile`, puis `Save`.
+7. Cliquer `Compile`, puis `Save`.
 
 `AGrimrockPartyPawn::BeginPlay()` appelle déjà
 `ShowCombatActionPanelWidget()`. Si `Combat Hud Widget Class` est renseignée,
@@ -819,8 +810,8 @@ mouvement et l'absence de dépense de PA après refus.
 1. Utiliser un groupe de quatre membres.
 2. Vérifier que quatre instances distinctes sont visibles.
 3. Contrôler pour chaque membre : portrait, nom, PV, mana, PA et état.
-4. Vérifier que les boutons `MainHand` et `OffHand` historiques ne sont pas
-   visibles dans ces quatre panneaux.
+4. Vérifier que `HorizontalBox_Hands` et les anciens boutons `MainHand` et
+   `OffHand` ne sont plus présents dans ces quatre panneaux.
 5. Retirer temporairement un membre du groupe ou charger un groupe incomplet :
    le panneau correspondant doit être `Collapsed`, sans décaler les indices
    des membres restants.
@@ -900,33 +891,16 @@ mouvement et l'absence de dépense de PA après refus.
    `docs/Design/MON12_7_1_SLIDING_DYNAMIC_INITIATIVE.md` pour les tests de
    retrait d'un vaincu et de changement dynamique de l'ordre.
 
-### PIE.7 — Vérifier le fallback historique
+### PIE.7 — Vérifier la configuration obligatoire du HUD
 
 1. Arrêter PIE.
 2. Ouvrir `BP_GrimrockPartyPawn`.
-3. Dans le panneau `Details` affiché après avoir cliqué `Class Defaults`,
-   rechercher `Combat Hud Widget Class` et mettre temporairement :
-
-   ```text
-   Combat Hud Widget Class = None
-   ```
-
-4. Ne pas modifier :
-
-   ```text
-   Combat Action Panel Widget Class = WBP_GridCombatActionPanel
-   ```
-
-5. Compiler et sauvegarder le Pawn.
-6. Relancer PIE et vérifier que le panneau historique unique s'affiche.
-7. Arrêter PIE.
-8. Rétablir :
-
-   ```text
-   Combat Hud Widget Class = WBP_GridCombatHud
-   ```
-
-9. Compiler et sauvegarder de nouveau le Pawn.
+3. Vérifier que `Combat Hud Widget Class` vaut `WBP_GridCombatHud`.
+4. Compiler et sauvegarder le Pawn.
+5. Relancer PIE et vérifier que le HUD complet apparaît pendant le combat.
+6. Si la classe est vide, vérifier que l'Output Log contient
+   `GridCombatHud Show Failed ... Reason=WidgetClassUnset` ; aucun panneau
+   historique ne doit apparaître.
 
 ## Diagnostic des problèmes courants
 

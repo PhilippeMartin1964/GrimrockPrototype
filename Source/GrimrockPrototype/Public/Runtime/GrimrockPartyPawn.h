@@ -19,7 +19,6 @@ class AGridThrownItemActor;
 class UGridItemDefinitionAsset;
 class UGridPartyInventoryComponent;
 class UGridInventoryWidget;
-class UGridCombatActionPanelWidget;
 class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
@@ -138,23 +137,12 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|UI")
     bool bInventoryWidgetVisible = false;
 
-    /** MON12.7 root HUD. When unset, the historical action panel is retained. */
+    /** Canonical MON12.7 combat HUD. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
     TSubclassOf<UGridCombatHudWidget> CombatHudWidgetClass;
 
     UPROPERTY (Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UGridCombatHudWidget> CombatHudWidgetInstance;
-
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
-    TSubclassOf<UGridCombatActionPanelWidget>
-        CombatActionPanelWidgetClass;
-
-    /**
-     * INDEX_NONE follows the selected character. An explicit index associates
-     * this first panel with a fixed party member and prepares MON12.7.
-     */
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|UI")
-    int32 CombatActionPanelCharacterIndex = INDEX_NONE;
 
     UPROPERTY (
         EditAnywhere,
@@ -162,10 +150,6 @@ public:
         Category = "Combat|UI",
         meta = (ClampMin = "0"))
     int32 CombatActionPanelZOrder = 50;
-
-    UPROPERTY (Transient, VisibleAnywhere, BlueprintReadOnly, Category = "Combat|UI")
-    TObjectPtr<UGridCombatActionPanelWidget>
-        CombatActionPanelWidgetInstance;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Character Creation")
     TSubclassOf<URPGCharacterCreationWidget> CharacterCreationWidgetClass;
