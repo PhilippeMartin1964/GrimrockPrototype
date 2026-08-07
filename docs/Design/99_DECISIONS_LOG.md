@@ -607,3 +607,24 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   `CombatHudWidgetClass` devient obligatoire.
 - Les sources `MainHand / OffHand` restent dans le gameplay d'équipement et
   dans la provenance des actions génériques.
+
+---
+
+## 2026-08-07 — MON12.8.1 : modèle persistant de barre de raccourcis
+
+- Chaque `FGridCharacterInventoryState` possède exactement dix raccourcis
+  personnels, indexés `0` à `9` et vides au début d'une partie.
+- `FGridCombatHotbarBinding` conserve uniquement l'identité stable de l'action
+  et de sa source ; aucune disponibilité ni aucun coût runtime n'est
+  sérialisé.
+- Une arme mémorise son instance runtime préférée. Un futur consommable
+  s'appuiera d'abord sur son identifiant de définition afin que le raccourci
+  survive à une quantité nulle.
+- Le modèle est modifié exclusivement par `UGridPartyInventoryComponent`, qui
+  expose lecture, affectation et suppression par personnage et par index.
+- Les sauvegardes passent en version `3`. Les versions `1` et `2` reçoivent
+  automatiquement dix slots vides lors de leur restauration.
+- L'UI, le glisser-déposer, les touches numériques et la résolution des
+  raccourcis appartiennent aux jalons suivants.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_1_PERSISTENT_COMBAT_HOTBAR_MODEL.md`.

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridObjectBehavior.h"
+#include "Runtime/Combat/GridCombatActionIdentityTypes.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GridCombatTypes.generated.h"
 
@@ -41,18 +42,6 @@ enum class EGridCombatActionType : uint8
     Wait          UMETA (DisplayName = "Wait"),
     Retreat       UMETA (DisplayName = "Retreat"),
     Die           UMETA (DisplayName = "Die")
-};
-
-/** Declared owner of a player combat action definition. */
-UENUM (BlueprintType)
-enum class EGridCombatActionSourcePolicy : uint8
-{
-    None      UMETA (DisplayName = "None"),
-    Universal UMETA (DisplayName = "Universal"),
-    Equipment UMETA (DisplayName = "Equipment"),
-    Ability   UMETA (DisplayName = "Ability"),
-    Spell     UMETA (DisplayName = "Spell"),
-    QuickItem UMETA (DisplayName = "Quick Item")
 };
 
 UENUM (BlueprintType)

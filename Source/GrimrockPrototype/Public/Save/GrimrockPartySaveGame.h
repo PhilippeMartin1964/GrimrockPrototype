@@ -12,7 +12,7 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
     GENERATED_BODY ()
 
 public:
-    static constexpr int32 CurrentSaveVersion = 2;
+    static constexpr int32 CurrentSaveVersion = 3;
     static constexpr int32 MinimumCompatibleSaveVersion = 1;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")

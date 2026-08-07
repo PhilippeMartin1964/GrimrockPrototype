@@ -1442,6 +1442,8 @@ bool FGridMonsterMON9SaveVersionCompatibilityTest::RunTest (
     Save->SaveVersion = 2;
     TestTrue (TEXT ("Version 2 is accepted"), Save->IsCompatible ());
     Save->SaveVersion = 3;
+    TestTrue (TEXT ("Version 3 is accepted"), Save->IsCompatible ());
+    Save->SaveVersion = 4;
     TestFalse (
         TEXT ("A future version is rejected"),
         Save->IsCompatible ());
@@ -1488,9 +1490,9 @@ bool FGridMonsterMON9SaveVersionCompatibilityTest::RunTest (
     UGrimrockPartySaveGame* NextSave =
         NewObject<UGrimrockPartySaveGame> ();
     TestEqual (
-        TEXT ("The next save defaults to version 2"),
+        TEXT ("The next save defaults to version 3"),
         NextSave->SaveVersion,
-        2);
+        3);
     return true;
 }
 

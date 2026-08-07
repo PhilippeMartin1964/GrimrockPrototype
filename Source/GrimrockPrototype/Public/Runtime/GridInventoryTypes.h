@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "RPG/RPGCharacterTypes.h"
+#include "Runtime/Combat/GridCombatActionIdentityTypes.h"
 #include "GridInventoryTypes.generated.h"
 
 class UGridReadableContentAsset;
@@ -46,6 +47,98 @@ enum class EGridEquipmentSlot : uint8
     Bracers,
     Earring1,
     Earring2
+};
+
+/**
+ * Persistent identity stored by one configurable combat hotbar slot.
+ * Runtime availability and costs are deliberately resolved from the action
+ * catalogue instead of being serialized here.
+ */
+USTRUCT (BlueprintType)
+struct FGridCombatHotbarBinding
+{
+    GENERATED_BODY ()
+
+    static constexpr int32 SlotCount = 10;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
+    int32 SlotIndex = INDEX_NONE;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Hotbar")
+    FName ActionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Hotbar")
+    EGridCombatActionSourcePolicy SourcePolicy =
+        EGridCombatActionSourcePolicy::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Hotbar")
+    FName SourceDefinitionId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Hotbar")
+    FGuid PreferredSourceRuntimeId;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Hotbar")
+    EGridEquipmentSlot PreferredEquipmentSlot = EGridEquipmentSlot::None;
+
+    bool IsEmpty () const
+    {
+        return ActionId.IsNone ();
+    }
+
+    bool IsValid () const
+    {
+        if (SlotIndex < 0 || SlotIndex >= SlotCount)
+        {
+            return false;
+        }
+
+        if (IsEmpty ())
+        {
+            return SourcePolicy == EGridCombatActionSourcePolicy::None &&
+                SourceDefinitionId.IsNone () &&
+                !PreferredSourceRuntimeId.IsValid () &&
+                PreferredEquipmentSlot == EGridEquipmentSlot::None;
+        }
+
+        if (SourcePolicy == EGridCombatActionSourcePolicy::None)
+        {
+            return false;
+        }
+
+        if (SourcePolicy == EGridCombatActionSourcePolicy::Universal)
+        {
+            return SourceDefinitionId.IsNone () &&
+                !PreferredSourceRuntimeId.IsValid () &&
+                PreferredEquipmentSlot == EGridEquipmentSlot::None;
+        }
+
+        if (SourceDefinitionId.IsNone ())
+        {
+            return false;
+        }
+
+        if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment)
+        {
+            return PreferredSourceRuntimeId.IsValid () &&
+                PreferredEquipmentSlot != EGridEquipmentSlot::None;
+        }
+
+        if (SourcePolicy == EGridCombatActionSourcePolicy::Ability ||
+            SourcePolicy == EGridCombatActionSourcePolicy::Spell)
+        {
+            return !PreferredSourceRuntimeId.IsValid () &&
+                PreferredEquipmentSlot == EGridEquipmentSlot::None;
+        }
+
+        return SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
+            PreferredEquipmentSlot == EGridEquipmentSlot::None;
+    }
+
+    void Reset (int32 InSlotIndex)
+    {
+        *this = FGridCombatHotbarBinding ();
+        SlotIndex = InSlotIndex;
+    }
 };
 
 UENUM (BlueprintType)
@@ -312,6 +405,10 @@ struct FGridCharacterInventoryState
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Inventory")
     TArray<FGridInventorySlot> InventorySlots;
+
+    /** Ten player-configured combat shortcuts. New characters start empty. */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
+    TArray<FGridCombatHotbarBinding> CombatHotbarSlots;
 
     bool IsOverloaded () const
     {

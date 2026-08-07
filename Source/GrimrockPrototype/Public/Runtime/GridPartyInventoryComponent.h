@@ -90,6 +90,26 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     bool GetCharacterSummary (int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const;
 
+    UFUNCTION (BlueprintPure, Category = "Combat|Hotbar")
+    int32 GetCombatHotbarSlotCount () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
+    bool GetCharacterCombatHotbarBinding (
+        int32 CharacterIndex,
+        int32 SlotIndex,
+        FGridCombatHotbarBinding& OutBinding) const;
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
+    bool SetCharacterCombatHotbarBinding (
+        int32 CharacterIndex,
+        int32 SlotIndex,
+        const FGridCombatHotbarBinding& Binding);
+
+    UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
+    bool ClearCharacterCombatHotbarBinding (
+        int32 CharacterIndex,
+        int32 SlotIndex);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Party")
     bool IsValidCharacterIndex (int32 Index) const;
 
@@ -275,5 +295,9 @@ private:
 
     void EnsureEquipmentCountMatchesActiveCharacters ();
     void InitializeCharacterDefaults (FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;
+    void InitializeCombatHotbarDefaults (FGridCharacterInventoryState& CharacterState) const;
+    bool ValidateCombatHotbar (
+        const FGridCharacterInventoryState& CharacterState,
+        FString& OutError) const;
     float CalculateEquipmentWeight (const FGridCharacterEquipmentState& EquipmentState) const;
 };

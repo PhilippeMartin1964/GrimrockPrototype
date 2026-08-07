@@ -375,6 +375,11 @@ void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded ()
         InitializeCharacterDefaults (PartyInventoryState.ActiveCharacters[CharacterIndex], CharacterIndex);
     }
 
+    for (FGridCharacterInventoryState& CharacterState : PartyInventoryState.CharacterPool)
+    {
+        InitializeCombatHotbarDefaults (CharacterState);
+    }
+
     EnsureEquipmentCountMatchesActiveCharacters ();
 
     if (!IsValidCharacterIndex (PartyInventoryState.SelectedCharacterIndex))
@@ -427,17 +432,51 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState (
         return false;
     }
 
-    for (const FGridCharacterInventoryState& Character : SavedState.ActiveCharacters)
+    FGridPartyInventoryState RestoredState = SavedState;
+    for (FGridCharacterInventoryState& Character : RestoredState.ActiveCharacters)
     {
         if (!Character.CharacterId.IsValid ())
         {
             OutError = FText::FromString (TEXT ("Un personnage sauvegardé ne possède pas d'identifiant valide."));
             return false;
         }
+
+        if (Character.CombatHotbarSlots.IsEmpty ())
+        {
+            InitializeCombatHotbarDefaults (Character);
+        }
+
+        FString HotbarError;
+        if (!ValidateCombatHotbar (Character, HotbarError))
+        {
+            OutError = FText::FromString (
+                FString::Printf (
+                    TEXT ("La barre de raccourcis d'un personnage sauvegardé est invalide : %s"),
+                    *HotbarError));
+            return false;
+        }
+    }
+
+    for (FGridCharacterInventoryState& Character : RestoredState.CharacterPool)
+    {
+        if (Character.CombatHotbarSlots.IsEmpty ())
+        {
+            InitializeCombatHotbarDefaults (Character);
+        }
+
+        FString HotbarError;
+        if (!ValidateCombatHotbar (Character, HotbarError))
+        {
+            OutError = FText::FromString (
+                FString::Printf (
+                    TEXT ("La barre de raccourcis d'un personnage en réserve est invalide : %s"),
+                    *HotbarError));
+            return false;
+        }
     }
 
     const FGridPartyInventoryState PreviousState = PartyInventoryState;
-    PartyInventoryState = SavedState;
+    PartyInventoryState = MoveTemp (RestoredState);
     RecalculateAllWeights ();
 
     FString OwnershipError;
@@ -531,6 +570,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter (
     NewCharacter.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight (FinalAttributes);
     NewCharacter.CurrentWeight = 0.0f;
     NewCharacter.InventorySlots.SetNum (FMath::Max (0, DefaultInventorySlotCountPerCharacter));
+    InitializeCombatHotbarDefaults (NewCharacter);
 
     FGridPartyInventoryState NewPartyState;
     NewPartyState.SelectedCharacterIndex = 0;
@@ -663,6 +703,86 @@ bool UGridPartyInventoryComponent::GetCharacterSummary (
     OutSummary.bOverloaded = OutSummary.CurrentWeight > OutSummary.MaxWeight;
     OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
     return true;
+}
+
+int32 UGridPartyInventoryComponent::GetCombatHotbarSlotCount () const
+{
+    return FGridCombatHotbarBinding::SlotCount;
+}
+
+bool UGridPartyInventoryComponent::GetCharacterCombatHotbarBinding (
+    int32 CharacterIndex,
+    int32 SlotIndex,
+    FGridCombatHotbarBinding& OutBinding) const
+{
+    OutBinding = FGridCombatHotbarBinding ();
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        SlotIndex < 0 ||
+        SlotIndex >= FGridCombatHotbarBinding::SlotCount)
+    {
+        return false;
+    }
+
+    const FGridCharacterInventoryState& Character =
+        PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!Character.CombatHotbarSlots.IsValidIndex (SlotIndex))
+    {
+        return false;
+    }
+
+    OutBinding = Character.CombatHotbarSlots[SlotIndex];
+    return true;
+}
+
+bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBinding (
+    int32 CharacterIndex,
+    int32 SlotIndex,
+    const FGridCombatHotbarBinding& Binding)
+{
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        SlotIndex < 0 ||
+        SlotIndex >= FGridCombatHotbarBinding::SlotCount)
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        PartyInventoryState.ActiveCharacters[CharacterIndex];
+    if (!Character.CombatHotbarSlots.IsValidIndex (SlotIndex))
+    {
+        return false;
+    }
+
+    FGridCombatHotbarBinding NormalizedBinding = Binding;
+    if (NormalizedBinding.IsEmpty ())
+    {
+        NormalizedBinding.Reset (SlotIndex);
+    }
+    else
+    {
+        NormalizedBinding.SlotIndex = SlotIndex;
+    }
+
+    if (!NormalizedBinding.IsValid ())
+    {
+        return false;
+    }
+
+    Character.CombatHotbarSlots[SlotIndex] = MoveTemp (NormalizedBinding);
+    NotifyPartyInventoryChanged (CharacterIndex);
+    return true;
+}
+
+bool UGridPartyInventoryComponent::ClearCharacterCombatHotbarBinding (
+    int32 CharacterIndex,
+    int32 SlotIndex)
+{
+    FGridCombatHotbarBinding EmptyBinding;
+    EmptyBinding.Reset (SlotIndex);
+    return SetCharacterCombatHotbarBinding (
+        CharacterIndex,
+        SlotIndex,
+        EmptyBinding);
 }
 
 bool UGridPartyInventoryComponent::IsValidCharacterIndex (int32 Index) const
@@ -2566,6 +2686,73 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults (
     {
         CharacterState.InventorySlots.SetNum (FMath::Max (0, DefaultInventorySlotCountPerCharacter));
     }
+
+    InitializeCombatHotbarDefaults (CharacterState);
+}
+
+void UGridPartyInventoryComponent::InitializeCombatHotbarDefaults (
+    FGridCharacterInventoryState& CharacterState) const
+{
+    TArray<FGridCombatHotbarBinding> PreviousBindings =
+        MoveTemp (CharacterState.CombatHotbarSlots);
+    CharacterState.CombatHotbarSlots.SetNum (
+        FGridCombatHotbarBinding::SlotCount);
+
+    for (int32 SlotIndex = 0;
+        SlotIndex < FGridCombatHotbarBinding::SlotCount;
+        ++SlotIndex)
+    {
+        FGridCombatHotbarBinding& Binding =
+            CharacterState.CombatHotbarSlots[SlotIndex];
+        Binding.Reset (SlotIndex);
+
+        if (PreviousBindings.IsValidIndex (SlotIndex))
+        {
+            FGridCombatHotbarBinding PreviousBinding =
+                PreviousBindings[SlotIndex];
+            PreviousBinding.SlotIndex = SlotIndex;
+            if (PreviousBinding.IsValid ())
+            {
+                Binding = MoveTemp (PreviousBinding);
+            }
+        }
+    }
+}
+
+bool UGridPartyInventoryComponent::ValidateCombatHotbar (
+    const FGridCharacterInventoryState& CharacterState,
+    FString& OutError) const
+{
+    OutError.Empty ();
+    if (CharacterState.CombatHotbarSlots.Num () !=
+        FGridCombatHotbarBinding::SlotCount)
+    {
+        OutError = FString::Printf (
+            TEXT ("SlotCount=%d Expected=%d"),
+            CharacterState.CombatHotbarSlots.Num (),
+            FGridCombatHotbarBinding::SlotCount);
+        return false;
+    }
+
+    for (int32 SlotIndex = 0;
+        SlotIndex < CharacterState.CombatHotbarSlots.Num ();
+        ++SlotIndex)
+    {
+        const FGridCombatHotbarBinding& Binding =
+            CharacterState.CombatHotbarSlots[SlotIndex];
+        if (Binding.SlotIndex != SlotIndex || !Binding.IsValid ())
+        {
+            OutError = FString::Printf (
+                TEXT ("InvalidSlot=%d StoredIndex=%d Action=%s SourcePolicy=%s"),
+                SlotIndex,
+                Binding.SlotIndex,
+                *Binding.ActionId.ToString (),
+                *UEnum::GetValueAsString (Binding.SourcePolicy));
+            return false;
+        }
+    }
+
+    return true;
 }
 
 float UGridPartyInventoryComponent::CalculateEquipmentWeight (const FGridCharacterEquipmentState& EquipmentState) const
