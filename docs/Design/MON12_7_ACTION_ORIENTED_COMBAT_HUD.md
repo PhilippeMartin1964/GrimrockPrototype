@@ -147,7 +147,7 @@ MON12.7 ne demande pas de recréer le panneau de MON12.1. Il réutilise
    | `Text_Health` | TextBlock | PV actuels et maximum |
    | `Text_Mana` | TextBlock | mana actuel et maximum |
    | `Text_ActionPoints` | TextBlock | PA actuels et maximum |
-   | `Text_ActionState` | TextBlock | état du tour |
+   | `Text_ActionState` | TextBlock | `ACTIF`, `INCAPACITÉ` ou `VAINCU` ; masqué pour `Waiting` et `Completed` |
    | `Border_ActionState` | Border | couleur de l'état du tour |
    | `Panel_DisabledOverlay` | Widget, par exemple Border | voile d'indisponibilité |
 
@@ -163,6 +163,10 @@ MON12.7 ne demande pas de recréer le panneau de MON12.1. Il réutilise
 7. Cocher `Is Variable` pour chaque widget de statut portant un nom de la
    liste de l'étape 4.
 8. Cliquer `Compile` puis `Save`.
+
+Le HUD racine est seul responsable de masquer ces quatre panneaux hors combat.
+Le panneau enfant ne possède plus de règle `bCollapseOutsideCombat` ni de copie
+de l'état global `bCombatActive`.
 
 Le HUD fournit lui-même les indices `0`, `1`, `2` et `3`. Ne créer ni quatre
 copies manuelles de `WBP_GridCombatActionPanel`, ni quatre variables d'index

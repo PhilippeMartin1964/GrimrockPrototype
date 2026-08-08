@@ -105,6 +105,10 @@ public:
         int32 SlotIndex,
         const FGridCombatHotbarBinding& Binding);
 
+    /**
+     * Clears only the shortcut identity. The source item remains in its
+     * inventory stack or equipment slot and is never transferred to the world.
+     */
     UFUNCTION (BlueprintCallable, Category = "Combat|Hotbar")
     bool ClearCharacterCombatHotbarBinding (
         int32 CharacterIndex,

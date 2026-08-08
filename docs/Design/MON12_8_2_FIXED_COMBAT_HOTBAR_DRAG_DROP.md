@@ -52,7 +52,8 @@ l'index source et le binding persistant.
 - raccourci vers slot vide : déplacement ;
 - raccourci vers slot occupé : échange atomique ;
 - raccourci vers lui-même : aucune modification ;
-- clic droit : suppression du binding ;
+- clic droit : suppression du binding uniquement ; l'objet source n'est ni
+  déplacé, ni déséquipé, ni déposé au sol ;
 - dépôt refusé : aucun slot n'est modifié.
 
 `MoveOrSwapCharacterCombatHotbarBinding()` effectue les deux écritures avant
@@ -102,6 +103,9 @@ vide et celle d'une action temporairement indisponible.
 
 Le `Button_Action` doit rester hit-testable afin de recevoir sur son widget
 parent les opérations de glisser-déposer et le clic droit.
+
+Le tooltip d'un slot attribué rappelle ce contrat : le clic droit retire le
+raccourci, tandis que l'objet reste dans l'inventaire ou dans sa main actuelle.
 
 ## Tests automatisés
 

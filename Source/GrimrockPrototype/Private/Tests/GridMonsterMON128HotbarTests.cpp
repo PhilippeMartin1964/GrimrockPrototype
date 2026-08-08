@@ -543,4 +543,98 @@ bool FGridMON1284ZeroQuantityDefinitionRehydrationTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON1288ClearShortcutKeepsItemSourceTest,
+    "Grimrock.Monsters.MON12.8.8.ClearShortcutKeepsItemSource",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON1288ClearShortcutKeepsItemSourceTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridPartyInventoryComponent* Component = CreateMON128Inventory ();
+    if (!TestNotNull (
+        TEXT ("The inventory component is created"),
+        Component))
+    {
+        return false;
+    }
+
+    FGridCharacterInventoryState& Character =
+        Component->PartyInventoryState.ActiveCharacters[0];
+    FGridInventorySlot& InventorySlot = Character.InventorySlots[0];
+    FGridItemInstance Potion;
+    Potion.RuntimeObjectId = FGuid::NewGuid ();
+    Potion.ItemDefinitionId = TEXT ("Potion_MON1288");
+    Potion.DisplayName = FText::FromString (TEXT ("Potion MON12.8.8"));
+    Potion.Quantity = 3;
+    Potion.OwnerType = EGridItemOwnerType::CharacterInventory;
+    Potion.OwnerCharacterIndex = 0;
+    InventorySlot.bOccupied = true;
+    InventorySlot.Item = Potion;
+
+    FGridCombatHotbarBinding PotionBinding;
+    PotionBinding.ActionId =
+        FGridCombatHotbarBinding::MakeQuickItemActionId (
+            Potion.ItemDefinitionId);
+    PotionBinding.SourcePolicy =
+        EGridCombatActionSourcePolicy::QuickItem;
+    PotionBinding.SourceDefinitionId = Potion.ItemDefinitionId;
+    TestTrue (TEXT ("The inventory item shortcut is assigned"),
+        Component->SetCharacterCombatHotbarBinding (
+            0,
+            0,
+            PotionBinding));
+    TestTrue (TEXT ("The inventory item shortcut is cleared"),
+        Component->ClearCharacterCombatHotbarBinding (0, 0));
+    TestFalse (TEXT ("Clearing does not remove the inventory item"),
+        InventorySlot.IsEmpty ());
+    TestTrue (TEXT ("Clearing preserves the inventory item instance"),
+        InventorySlot.Item.RuntimeObjectId == Potion.RuntimeObjectId);
+    TestEqual (TEXT ("Clearing preserves the inventory stack quantity"),
+        InventorySlot.Item.Quantity,
+        3);
+
+    FGridItemInstance EquippedWeapon;
+    EquippedWeapon.RuntimeObjectId = FGuid::NewGuid ();
+    EquippedWeapon.ItemDefinitionId = TEXT ("Sword_MON1288");
+    EquippedWeapon.DisplayName = FText::FromString (TEXT ("Épée MON12.8.8"));
+    EquippedWeapon.Quantity = 1;
+    EquippedWeapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    EquippedWeapon.OwnerCharacterIndex = 0;
+    EquippedWeapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Component->PartyInventoryState.ActiveEquipment[0].MainHand =
+        EquippedWeapon;
+
+    TestTrue (TEXT ("The equipped item shortcut is assigned"),
+        Component->SetCharacterCombatHotbarBinding (
+            0,
+            1,
+            MakeMON128EquipmentBinding (
+                EquippedWeapon.RuntimeObjectId)));
+    TestTrue (TEXT ("The equipped item shortcut is cleared"),
+        Component->ClearCharacterCombatHotbarBinding (0, 1));
+
+    FGridItemInstance StillEquippedWeapon;
+    TestTrue (TEXT ("Clearing does not unequip the source item"),
+        Component->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            StillEquippedWeapon));
+    TestTrue (TEXT ("Clearing preserves the equipped item instance"),
+        StillEquippedWeapon.RuntimeObjectId ==
+            EquippedWeapon.RuntimeObjectId);
+
+    FGridCombatHotbarBinding ClearedBinding;
+    TestTrue (TEXT ("The cleared shortcut remains readable"),
+        Component->GetCharacterCombatHotbarBinding (
+            0,
+            1,
+            ClearedBinding));
+    TestTrue (TEXT ("Only the shortcut binding is empty"),
+        ClearedBinding.IsEmpty ());
+    return true;
+}
+
 #endif

@@ -520,6 +520,7 @@ public:
         int32 TargetSlotIndex,
         const FGridAvailableCombatAction& Action);
 
+    /** Right-click contract: unassigns the slot without moving its source. */
     bool ClearHotbarSlot (int32 SlotIndex);
 
 protected:
@@ -572,23 +573,6 @@ private:
 
     UFUNCTION ()
     void HandleCombatantStateChanged (FGridCombatantInitiativeEntry Combatant);
-
-    UFUNCTION ()
-    void HandlePlayerAttackResolved (
-        FGridPlayerAttackRequest Request,
-        class AGridMonsterActor* TargetMonster,
-        FGridAttackResult Result);
-
-    UFUNCTION ()
-    void HandlePlayerAttackRejected (
-        int32 CharacterIndex,
-        EGridPlayerAttackRejectReason RejectReason);
-
-    UFUNCTION ()
-    void HandleActionStarted (FGridCombatAction Action);
-
-    UFUNCTION ()
-    void HandleActionCompleted (FGridCombatAction Action, bool bSucceeded);
 
     UFUNCTION ()
     void HandleCombatEnded (EGridCombatPhase ResultPhase);

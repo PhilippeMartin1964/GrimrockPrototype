@@ -68,9 +68,6 @@ void UGridCombatActionPanelWidget::RefreshFromSources ()
 {
     View = FGridCombatActionPanelView ();
     View.CharacterIndex = ConfiguredCharacterIndex;
-    View.bCombatActive =
-        IsValid (TurnManagerComponent) &&
-        TurnManagerComponent->bCombatActive;
 
     FGridInventoryCharacterSummary Summary;
     if (!IsValid (InventoryComponent) ||
@@ -111,35 +108,27 @@ FText UGridCombatActionPanelWidget::GetActionStateText () const
     switch (View.TurnState)
     {
     case EGridCombatantTurnState::Active:
-        return FText::FromString (TEXT ("Active"));
+        return FText::FromString (TEXT ("ACTIF"));
     case EGridCombatantTurnState::Completed:
-        return FText::FromString (TEXT ("Completed"));
+        return FText::GetEmpty ();
     case EGridCombatantTurnState::Incapacitated:
-        return FText::FromString (TEXT ("Incapacitated"));
+        return FText::FromString (TEXT ("INCAPACITÉ"));
     case EGridCombatantTurnState::Defeated:
-        return FText::FromString (TEXT ("Defeated"));
+        return FText::FromString (TEXT ("VAINCU"));
     case EGridCombatantTurnState::Waiting:
     default:
-        return FText::FromString (TEXT ("Waiting"));
+        return FText::GetEmpty ();
     }
 }
 
 void UGridCombatActionPanelWidget::RefreshBoundWidgets ()
 {
-    if (bCollapseOutsideCombat)
-    {
-        SetVisibility (
-            View.bCombatActive && View.bHasValidCharacter
-                ? ESlateVisibility::Visible
-                : ESlateVisibility::Collapsed);
-    }
-    else
-    {
-        SetVisibility (
-            View.bHasValidCharacter
-                ? ESlateVisibility::Visible
-                : ESlateVisibility::Collapsed);
-    }
+    // The owning combat HUD decides whether status panels are combat-only.
+    // This child only decides whether its configured character exists.
+    SetVisibility (
+        View.bHasValidCharacter
+            ? ESlateVisibility::Visible
+            : ESlateVisibility::Collapsed);
 
     if (Image_Portrait)
     {
@@ -186,7 +175,12 @@ void UGridCombatActionPanelWidget::RefreshBoundWidgets ()
 
     if (Text_ActionState)
     {
-        Text_ActionState->SetText (GetActionStateText ());
+        const FText ActionStateText = GetActionStateText ();
+        Text_ActionState->SetText (ActionStateText);
+        Text_ActionState->SetVisibility (
+            ActionStateText.IsEmpty ()
+                ? ESlateVisibility::Collapsed
+                : ESlateVisibility::HitTestInvisible);
     }
     if (Border_ActionState)
     {

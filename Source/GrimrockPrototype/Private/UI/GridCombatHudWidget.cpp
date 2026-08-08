@@ -144,6 +144,24 @@ namespace
             FMath::Max (0, Current),
             FMath::Max (0, Maximum)));
     }
+
+    FText BuildAssignedHotbarToolTip (
+        const FGridCombatHudActionView& ActionView)
+    {
+        const FText StatusText =
+            ActionView.bResolved && ActionView.Action.bEnabled
+                ? ActionView.Action.Definition.Description
+                : ActionView.DisabledReason;
+        FString Result = StatusText.ToString ();
+        if (!Result.IsEmpty ())
+        {
+            Result += TEXT ("\n\n");
+        }
+        Result += TEXT (
+            "Clic droit : retirer le raccourci. "
+            "L’objet reste dans l’inventaire ou équipé.");
+        return FText::FromString (Result);
+    }
 }
 
 void FGridCombatHudViewModelBuilder::BuildPartyMembers (
@@ -376,9 +394,7 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
         else
         {
             Button_Action->SetToolTipText (
-                View.bResolved && View.Action.bEnabled
-                    ? View.Action.Definition.Description
-                    : View.DisabledReason);
+                BuildAssignedHotbarToolTip (View));
         }
     }
     if (Image_ActionIcon)
@@ -1296,18 +1312,6 @@ void UGridCombatHudWidget::BindToSources ()
         TurnManagerComponent->OnCombatantStateChanged.AddUniqueDynamic (
             this,
             &UGridCombatHudWidget::HandleCombatantStateChanged);
-        TurnManagerComponent->OnPlayerAttackResolved.AddUniqueDynamic (
-            this,
-            &UGridCombatHudWidget::HandlePlayerAttackResolved);
-        TurnManagerComponent->OnPlayerAttackRejected.AddUniqueDynamic (
-            this,
-            &UGridCombatHudWidget::HandlePlayerAttackRejected);
-        TurnManagerComponent->OnActionStarted.AddUniqueDynamic (
-            this,
-            &UGridCombatHudWidget::HandleActionStarted);
-        TurnManagerComponent->OnActionCompleted.AddUniqueDynamic (
-            this,
-            &UGridCombatHudWidget::HandleActionCompleted);
         TurnManagerComponent->OnCombatEnded.AddUniqueDynamic (
             this,
             &UGridCombatHudWidget::HandleCombatEnded);
@@ -1349,18 +1353,6 @@ void UGridCombatHudWidget::UnbindFromSources ()
         TurnManagerComponent->OnCombatantStateChanged.RemoveDynamic (
             this,
             &UGridCombatHudWidget::HandleCombatantStateChanged);
-        TurnManagerComponent->OnPlayerAttackResolved.RemoveDynamic (
-            this,
-            &UGridCombatHudWidget::HandlePlayerAttackResolved);
-        TurnManagerComponent->OnPlayerAttackRejected.RemoveDynamic (
-            this,
-            &UGridCombatHudWidget::HandlePlayerAttackRejected);
-        TurnManagerComponent->OnActionStarted.RemoveDynamic (
-            this,
-            &UGridCombatHudWidget::HandleActionStarted);
-        TurnManagerComponent->OnActionCompleted.RemoveDynamic (
-            this,
-            &UGridCombatHudWidget::HandleActionCompleted);
         TurnManagerComponent->OnCombatEnded.RemoveDynamic (
             this,
             &UGridCombatHudWidget::HandleCombatEnded);
@@ -2135,41 +2127,6 @@ void UGridCombatHudWidget::HandleCombatantStateChanged (
     FGridCombatantInitiativeEntry Combatant)
 {
     (void)Combatant;
-    RefreshFromSources ();
-}
-
-void UGridCombatHudWidget::HandlePlayerAttackResolved (
-    FGridPlayerAttackRequest Request,
-    AGridMonsterActor* TargetMonster,
-    FGridAttackResult Result)
-{
-    (void)Request;
-    (void)TargetMonster;
-    (void)Result;
-    RefreshFromSources ();
-}
-
-void UGridCombatHudWidget::HandlePlayerAttackRejected (
-    int32 CharacterIndex,
-    EGridPlayerAttackRejectReason RejectReason)
-{
-    (void)CharacterIndex;
-    (void)RejectReason;
-    RefreshFromSources ();
-}
-
-void UGridCombatHudWidget::HandleActionStarted (FGridCombatAction Action)
-{
-    (void)Action;
-    RefreshFromSources ();
-}
-
-void UGridCombatHudWidget::HandleActionCompleted (
-    FGridCombatAction Action,
-    bool bSucceeded)
-{
-    (void)Action;
-    (void)bSucceeded;
     RefreshFromSources ();
 }
 

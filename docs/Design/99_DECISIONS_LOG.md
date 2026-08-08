@@ -746,3 +746,25 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   acceptation et produit le projectile récupérable attendu.
 - Le document d'implémentation est
   `docs/Design/MON12_8_7_HOTBAR_AVAILABILITY_ASSIGNMENT.md`.
+
+---
+
+## 2026-08-08 — MON12.8.8 : audit de cohérence du HUD et désaffectation
+
+- Le clic droit efface uniquement le binding du raccourci. Une pile reste dans
+  l'inventaire avec la même quantité et une arme équipée reste dans sa main ;
+  aucun objet n'est déposé au sol.
+- Le tooltip des slots attribués rend ce comportement explicite.
+- Le panneau de statut ne répète plus `Waiting` ou `Completed`. Il affiche
+  uniquement `ACTIF`, `INCAPACITÉ` ou `VAINCU` lorsque cette précision est utile.
+- Le HUD racine reste seul propriétaire de la visibilité combat/exploration des
+  panneaux. Les copies `bCombatActive` et `bCollapseOutsideCombat` du panneau
+  enfant sont supprimées.
+- Les abonnements HUD redondants aux événements d'attaque et d'action sont
+  supprimés ; inventaire, état du combattant, état de tour, initiative, phase et
+  fin de combat restent les sources de rafraîchissement autoritaires.
+- Trois WBP doivent être finalisés dans Unreal Editor : `WBP_GridCombatHud`,
+  `WBP_GridCombatHudAction` et `WBP_GridCombatHudInitiativeSlot`. Le panneau
+  `WBP_GridCombatActionPanel` est déjà débarrassé de ses anciens boutons de main.
+- Le document d'audit et de mise à niveau est
+  `docs/Design/MON12_8_8_COMBAT_HUD_COHERENCE_AUDIT.md`.

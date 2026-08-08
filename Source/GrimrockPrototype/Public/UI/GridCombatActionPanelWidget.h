@@ -58,9 +58,6 @@ struct FGridCombatActionPanelView
     int32 MaximumActionPoints = 0;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
-    bool bCombatActive = false;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
     bool bCanAct = false;
 };
 
@@ -93,9 +90,6 @@ public:
 
     UPROPERTY (Transient, BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UGridTurnManagerComponent> TurnManagerComponent = nullptr;
-
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Combat|UI|Visuals")
-    bool bCollapseOutsideCombat = true;
 
     UPROPERTY (
         EditAnywhere,
