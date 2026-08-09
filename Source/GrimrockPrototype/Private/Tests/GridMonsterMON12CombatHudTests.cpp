@@ -2367,5 +2367,167 @@ bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1211HotbarValidationTest,
+    "Grimrock.Monsters.MON12.11.HotbarValidation",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1211HotbarValidationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.11 fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridPartyInventoryComponent* Inventory =
+        Fixture.Party->PartyInventoryComponent;
+    FGridItemInstance EquippedSword;
+    if (!TestTrue (TEXT ("The validation fixture exposes its sword"),
+        Inventory->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            EquippedSword)))
+    {
+        return false;
+    }
+
+    TestTrue (TEXT ("The sword configures slot one"),
+        Inventory->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            0,
+            EquippedSword,
+            EGridEquipmentSlot::MainHand));
+    FGridCombatHotbarBinding UnarmedBinding;
+    UnarmedBinding.Reset (1);
+    UnarmedBinding.ActionId = TEXT ("Attack_Unarmed");
+    UnarmedBinding.SourcePolicy =
+        EGridCombatActionSourcePolicy::Universal;
+    TestTrue (TEXT ("Unarmed configures slot two"),
+        Inventory->SetCharacterCombatHotbarBinding (
+            0,
+            1,
+            UnarmedBinding));
+
+    FGridCombatHotbarBinding SwordBinding;
+    TestTrue (TEXT ("The sword binding is readable before the swap"),
+        Inventory->GetCharacterCombatHotbarBinding (
+            0,
+            0,
+            SwordBinding));
+    UGridCombatHotbarDragDropOperation* SwapOperation =
+        NewObject<UGridCombatHotbarDragDropOperation> (Fixture.Hud);
+    SwapOperation->InitializeFromHotbarSlot (0, 0, SwordBinding);
+    TestTrue (TEXT ("Dropping onto an occupied slot swaps bindings"),
+        Fixture.Hud->HandleHotbarDrop (1, SwapOperation));
+
+    FGridCombatHotbarBinding SwappedFirst;
+    FGridCombatHotbarBinding SwappedSecond;
+    Inventory->GetCharacterCombatHotbarBinding (0, 0, SwappedFirst);
+    Inventory->GetCharacterCombatHotbarBinding (0, 1, SwappedSecond);
+    TestEqual (TEXT ("The first slot now contains unarmed"),
+        SwappedFirst.ActionId,
+        FName (TEXT ("Attack_Unarmed")));
+    TestTrue (TEXT ("The second slot keeps the exact sword instance"),
+        SwappedSecond.PreferredSourceRuntimeId ==
+            EquippedSword.RuntimeObjectId);
+
+    Fixture.TurnManager->PlayerAttackActionPointCost = 5;
+    Fixture.Hud->RefreshFromSources ();
+    FGridCombatActionRequestResult Rejected;
+    TestFalse (TEXT ("An unavailable sword shortcut is refused"),
+        Fixture.Hud->RequestHotbarSlot (1, Rejected));
+    FGridCombatHotbarBinding BindingAfterRefusal;
+    Inventory->GetCharacterCombatHotbarBinding (
+        0,
+        1,
+        BindingAfterRefusal);
+    TestTrue (TEXT ("Refusal preserves the configured shortcut"),
+        BindingAfterRefusal.PreferredSourceRuntimeId ==
+            EquippedSword.RuntimeObjectId);
+
+    FGridPartyInventoryState SavedState =
+        Inventory->PartyInventoryState;
+    SavedState.bInitialCharacterCreationCompleted = true;
+    UGridPartyInventoryComponent* RestoredInventory =
+        NewObject<UGridPartyInventoryComponent> (Fixture.Party);
+    FText RestoreError;
+    TestTrue (TEXT ("The saved hotbar state restores successfully"),
+        RestoredInventory->RestorePartyInventoryState (
+            SavedState,
+            RestoreError));
+    FGridCombatHotbarBinding RestoredSword;
+    RestoredInventory->GetCharacterCombatHotbarBinding (
+        0,
+        1,
+        RestoredSword);
+    TestTrue (TEXT ("Restore keeps the exact sword identity"),
+        RestoredSword.PreferredSourceRuntimeId ==
+            EquippedSword.RuntimeObjectId);
+
+    Fixture.TurnManager->PlayerCharacterTurnStates[0].State =
+        EGridCombatantTurnState::Completed;
+    Fixture.TurnManager->PlayerCharacterTurnStates[1].State =
+        EGridCombatantTurnState::Active;
+    Fixture.TurnManager->PlayerCharacterTurnStates[1]
+        .RemainingActionPoints = 4;
+    Fixture.TurnManager->InitiativeOrder[0].State =
+        EGridCombatantTurnState::Completed;
+    Fixture.TurnManager->InitiativeOrder[1].State =
+        EGridCombatantTurnState::Active;
+    Fixture.TurnManager->CurrentInitiativeIndex = 1;
+    Fixture.TurnManager->OnActiveCombatantChanged.Broadcast (
+        Fixture.TurnManager->InitiativeOrder[1]);
+    TestEqual (TEXT ("The HUD projects character two"),
+        Fixture.Hud->View.ActiveCharacterIndex,
+        1);
+    TestFalse (TEXT ("Character two does not inherit character one's slots"),
+        Fixture.Hud->View.Actions[1].bHasBinding);
+
+    Fixture.TurnManager->PlayerCharacterTurnStates[0].State =
+        EGridCombatantTurnState::Active;
+    Fixture.TurnManager->PlayerCharacterTurnStates[1].State =
+        EGridCombatantTurnState::Waiting;
+    Fixture.TurnManager->InitiativeOrder[0].State =
+        EGridCombatantTurnState::Active;
+    Fixture.TurnManager->InitiativeOrder[1].State =
+        EGridCombatantTurnState::Waiting;
+    Fixture.TurnManager->CurrentInitiativeIndex = 0;
+    Fixture.TurnManager->OnActiveCombatantChanged.Broadcast (
+        Fixture.TurnManager->InitiativeOrder[0]);
+    TestEqual (TEXT ("The HUD returns to character one"),
+        Fixture.Hud->View.ActiveCharacterIndex,
+        0);
+
+    TestTrue (TEXT ("Right-click contract clears the shortcut"),
+        Fixture.Hud->ClearHotbarSlot (1));
+    FGridCombatHotbarBinding ClearedBinding;
+    Inventory->GetCharacterCombatHotbarBinding (
+        0,
+        1,
+        ClearedBinding);
+    TestTrue (TEXT ("The cleared shortcut is empty"),
+        ClearedBinding.IsEmpty ());
+    FGridItemInstance SwordAfterClear;
+    TestTrue (TEXT ("Clearing never removes the equipped source"),
+        Inventory->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            SwordAfterClear));
+    TestTrue (TEXT ("The equipped source identity is unchanged"),
+        SwordAfterClear.RuntimeObjectId == EquippedSword.RuntimeObjectId);
+
+    Fixture.TurnManager->bCombatActive = false;
+    Fixture.TurnManager->CurrentPhase = EGridCombatPhase::Victory;
+    Fixture.Hud->RefreshFromSources ();
+    TestFalse (TEXT ("The hotbar cannot execute after combat"),
+        Fixture.Hud->View.Actions[0].Action.bEnabled);
+    return true;
+}
+
 
 #endif
