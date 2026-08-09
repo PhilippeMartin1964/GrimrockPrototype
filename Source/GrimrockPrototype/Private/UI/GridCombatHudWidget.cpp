@@ -421,55 +421,6 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
                 ? ESlateVisibility::Collapsed
                 : ESlateVisibility::HitTestInvisible);
     }
-    if (Text_ActionName)
-    {
-        FText ActionName = FText::GetEmpty ();
-        if (View.bHasBinding)
-        {
-            const bool bPreferSourceName =
-                View.Binding.SourcePolicy ==
-                    EGridCombatActionSourcePolicy::Equipment ||
-                View.Binding.SourcePolicy ==
-                    EGridCombatActionSourcePolicy::QuickItem;
-            const FName FallbackName = bPreferSourceName &&
-                    !View.Binding.SourceDefinitionId.IsNone ()
-                ? View.Binding.SourceDefinitionId
-                : View.Binding.ActionId;
-            ActionName = View.Action.Definition.DisplayName.IsEmpty ()
-                ? FText::FromName (FallbackName)
-                : View.Action.Definition.DisplayName;
-        }
-        Text_ActionName->SetText (bActionPaletteEntry
-            ? ActionName
-            : (Text_ShortcutNumber
-                ? ActionName
-                : FText::FromString (View.bHasBinding
-                    ? FString::Printf (
-                        TEXT ("[%s] %s"),
-                        *View.ShortcutText.ToString (),
-                        *ActionName.ToString ())
-                    : FString::Printf (
-                        TEXT ("[%s]"),
-                        *View.ShortcutText.ToString ()))));
-    }
-    if (Text_ActionCost)
-    {
-        Text_ActionCost->SetText (View.CostText);
-        Text_ActionCost->SetVisibility (
-            View.bHasBinding && !View.CostText.IsEmpty ()
-                ? ESlateVisibility::HitTestInvisible
-                : ESlateVisibility::Collapsed);
-    }
-    if (Text_DisabledReason)
-    {
-        Text_DisabledReason->SetText (View.DisabledReason);
-        Text_DisabledReason->SetVisibility (
-            View.bHasBinding &&
-                (!View.bResolved || !View.Action.bEnabled) &&
-                !View.DisabledReason.IsEmpty ()
-            ? ESlateVisibility::HitTestInvisible
-            : ESlateVisibility::Collapsed);
-    }
     // Keep empty slots easy to identify and target. Dimming the whole widget
     // too aggressively also fades its frame and shortcut number.
     SetRenderOpacity (!View.bHasBinding

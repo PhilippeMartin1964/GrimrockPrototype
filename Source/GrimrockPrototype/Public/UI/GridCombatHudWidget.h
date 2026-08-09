@@ -229,15 +229,6 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UImage> Image_ActionIcon;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
-    TObjectPtr<UTextBlock> Text_ActionName;
-
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
-    TObjectPtr<UTextBlock> Text_ActionCost;
-
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
-    TObjectPtr<UTextBlock> Text_DisabledReason;
-
     /** Optional. Without it the shortcut is prefixed to Text_ActionName. */
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_ShortcutNumber;
