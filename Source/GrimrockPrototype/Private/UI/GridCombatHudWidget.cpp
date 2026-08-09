@@ -118,19 +118,28 @@ namespace
                 TEXT (" | %d mana"),
                 Action.CurrentManaCost);
         }
-        if (Action.CurrentSourceItemQuantityCost > 0)
-        {
-            Result += Action.Definition.SourcePolicy ==
-                    EGridCombatActionSourcePolicy::QuickItem
-                ? FString::Printf (
-                    TEXT (" | x%d/%d"),
-                    Action.CurrentSourceItemQuantityCost,
-                    Action.CurrentSourceItemQuantity)
-                : FString::Printf (
-                    TEXT (" | x%d"),
-                    Action.CurrentSourceItemQuantityCost);
-        }
         return FText::FromString (Result);
+    }
+
+    FString FormatActionCostAndQuantity (
+        const FGridAvailableCombatAction& Action)
+    {
+        FString Result = FormatActionCost (Action).ToString ();
+        if (Action.Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::QuickItem &&
+            Action.CurrentSourceItemQuantityCost > 0)
+        {
+            Result += FString::Printf (
+                TEXT (" — quantité : %d"),
+                Action.CurrentSourceItemQuantity);
+            if (Action.CurrentSourceItemQuantityCost > 1)
+            {
+                Result += FString::Printf (
+                    TEXT (" (consomme %d)"),
+                    Action.CurrentSourceItemQuantityCost);
+            }
+        }
+        return Result;
     }
 
     FText FormatCurrentAndMaximum (
@@ -148,18 +157,73 @@ namespace
     FText BuildAssignedHotbarToolTip (
         const FGridCombatHudActionView& ActionView)
     {
-        const FText StatusText =
-            ActionView.bResolved && ActionView.Action.bEnabled
-                ? ActionView.Action.Definition.Description
-                : ActionView.DisabledReason;
-        FString Result = StatusText.ToString ();
-        if (!Result.IsEmpty ())
+        const FGridCombatActionDefinition& Definition =
+            ActionView.Action.Definition;
+        FString Result = Definition.DisplayName.ToString ();
+        if (Result.IsEmpty ())
+        {
+            Result = !Definition.ActionId.IsNone ()
+                ? Definition.ActionId.ToString ()
+                : ActionView.Binding.ActionId.ToString ();
+        }
+        if (ActionView.bResolved)
+        {
+            Result += FString::Printf (
+                TEXT ("\nCoût : %s"),
+                *FormatActionCostAndQuantity (ActionView.Action));
+        }
+        const FString Description = Definition.Description.ToString ();
+        if (!Description.IsEmpty ())
         {
             Result += TEXT ("\n\n");
+            Result += Description;
+        }
+        if (!ActionView.bResolved || !ActionView.Action.bEnabled)
+        {
+            FString Reason = ActionView.DisabledReason.ToString ();
+            if (Reason.IsEmpty ())
+            {
+                Reason = TEXT ("cette action n’est plus disponible.");
+            }
+            Result += TEXT ("\n\nIndisponible : ");
+            Result += Reason;
+        }
+        Result += TEXT ("\n\n"
+            "Clic droit : retirer le raccourci.\n"
+            "L’objet reste dans l’inventaire ou équipé.");
+        return FText::FromString (Result);
+    }
+
+    FText BuildPaletteActionToolTip (
+        const FGridAvailableCombatAction& Action)
+    {
+        FString Result = Action.Definition.DisplayName.ToString ();
+        if (Result.IsEmpty ())
+        {
+            Result = Action.Definition.ActionId.ToString ();
+        }
+        Result += FString::Printf (
+            TEXT ("\nCoût : %s"),
+            *FormatActionCostAndQuantity (Action));
+        const FString Description =
+            Action.Definition.Description.ToString ();
+        if (!Description.IsEmpty ())
+        {
+            Result += TEXT ("\n\n");
+            Result += Description;
+        }
+        if (!Action.bEnabled)
+        {
+            FString Reason = Action.DisabledReason.ToString ();
+            if (Reason.IsEmpty ())
+            {
+                Reason = TEXT ("cette action n’est pas utilisable.");
+            }
+            Result += TEXT ("\n\nIndisponible : ");
+            Result += Reason;
         }
         Result += TEXT (
-            "Clic droit : retirer le raccourci. "
-            "L’objet reste dans l’inventaire ou équipé.");
+            "\n\nGlissez cette action vers un raccourci.");
         return FText::FromString (Result);
     }
 }
@@ -237,7 +301,6 @@ void FGridCombatHudViewModelBuilder::BuildHotbarActions (
         {
             ActionView.Action = *ResolvedAction;
             ActionView.bResolved = true;
-            ActionView.CostText = FormatActionCost (*ResolvedAction);
             ActionView.DisabledReason = ResolvedAction->bEnabled
                 ? FText::GetEmpty ()
                 : ResolvedAction->DisabledReason;
@@ -337,7 +400,6 @@ void UGridCombatHudActionWidget::InitializePaletteAction (
     View.Binding.ActionId = InAction.Definition.ActionId;
     View.Binding.SourcePolicy = InAction.Definition.SourcePolicy;
     View.Binding.SourceDefinitionId = InAction.SourceDefinitionId;
-    View.CostText = FormatActionCost (InAction);
     View.DisabledReason = InAction.bEnabled
         ? FText::GetEmpty ()
         : InAction.DisabledReason;
@@ -381,10 +443,7 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
         if (bActionPaletteEntry)
         {
             Button_Action->SetToolTipText (
-                View.Action.Definition.Description.IsEmpty ()
-                    ? FText::FromString (TEXT (
-                        "Glissez cette action vers un raccourci."))
-                    : View.Action.Definition.Description);
+                BuildPaletteActionToolTip (View.Action));
         }
         else if (!View.bHasBinding)
         {

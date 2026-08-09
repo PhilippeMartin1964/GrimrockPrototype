@@ -87,9 +87,6 @@ struct FGridCombatHudActionView
     FGridAvailableCombatAction Action;
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
-    FText CostText;
-
-    UPROPERTY (BlueprintReadOnly, Category = "Combat|HUD")
     FText DisabledReason;
 };
 
@@ -229,7 +226,7 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UImage> Image_ActionIcon;
 
-    /** Optional. Without it the shortcut is prefixed to Text_ActionName. */
+    /** Optional shortcut label overlaid on fixed hotbar slots. */
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|HUD")
     TObjectPtr<UTextBlock> Text_ShortcutNumber;
 

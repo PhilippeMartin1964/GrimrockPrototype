@@ -2168,4 +2168,102 @@ bool FGridMonsterMON1289WeaponDragDropUniquenessTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON129ActionRolloverTest,
+    "Grimrock.Monsters.MON12.9.ActionRollover",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON129ActionRolloverTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    FGridAvailableCombatAction AvailableAction;
+    AvailableAction.Definition.ActionId = TEXT ("Attack_MON129_Shuriken");
+    AvailableAction.Definition.DisplayName =
+        FText::FromString (TEXT ("Shuriken"));
+    AvailableAction.Definition.Description =
+        FText::FromString (TEXT ("Lance un shuriken sur la cible."));
+    AvailableAction.Definition.SourcePolicy =
+        EGridCombatActionSourcePolicy::QuickItem;
+    AvailableAction.CurrentActionPointCost = 2;
+    AvailableAction.CurrentSourceItemQuantityCost = 1;
+    AvailableAction.CurrentSourceItemQuantity = 4;
+    AvailableAction.bEnabled = true;
+
+    FGridCombatHudActionView EmptyView;
+    EmptyView.HotbarSlotIndex = 0;
+    EmptyView.ShortcutText = FText::FromString (TEXT ("1"));
+    UGridCombatHudActionWidget* EmptyWidget =
+        NewObject<UGridCombatHudActionWidget> ();
+    EmptyWidget->Button_Action = NewObject<UButton> (EmptyWidget);
+    EmptyWidget->InitializeAction (nullptr, EmptyView);
+    TestTrue (TEXT ("The empty rollover explains assignment"),
+        EmptyWidget->Button_Action->GetToolTipText ().ToString ().Contains (
+            TEXT ("Déposez ici une arme")));
+
+    FGridCombatHudActionView AssignedView;
+    AssignedView.HotbarSlotIndex = 2;
+    AssignedView.ShortcutText = FText::FromString (TEXT ("3"));
+    AssignedView.bHasBinding = true;
+    AssignedView.bResolved = true;
+    AssignedView.Action = AvailableAction;
+    AssignedView.Binding.ActionId =
+        AvailableAction.Definition.ActionId;
+    AssignedView.Binding.SourcePolicy =
+        AvailableAction.Definition.SourcePolicy;
+
+    UGridCombatHudActionWidget* AssignedWidget =
+        NewObject<UGridCombatHudActionWidget> ();
+    AssignedWidget->Button_Action = NewObject<UButton> (AssignedWidget);
+    AssignedWidget->InitializeAction (nullptr, AssignedView);
+    const FString AssignedToolTip =
+        AssignedWidget->Button_Action->GetToolTipText ().ToString ();
+    TestTrue (TEXT ("The assigned rollover contains the action name"),
+        AssignedToolTip.Contains (TEXT ("Shuriken")));
+    TestTrue (TEXT ("The assigned rollover contains the complete cost"),
+        AssignedToolTip.Contains (
+            TEXT ("Coût : 2 PA — quantité : 4")));
+    TestTrue (TEXT ("The assigned rollover contains the description"),
+        AssignedToolTip.Contains (
+            TEXT ("Lance un shuriken sur la cible.")));
+    TestTrue (TEXT ("The assigned rollover explains removal"),
+        AssignedToolTip.Contains (
+            TEXT ("Clic droit : retirer le raccourci.")));
+
+    FGridCombatHudActionView DisabledView = AssignedView;
+    DisabledView.Action.bEnabled = false;
+    DisabledView.DisabledReason =
+        FText::FromString (TEXT ("aucun combat n’est actif."));
+    UGridCombatHudActionWidget* DisabledWidget =
+        NewObject<UGridCombatHudActionWidget> ();
+    DisabledWidget->Button_Action = NewObject<UButton> (DisabledWidget);
+    DisabledWidget->InitializeAction (nullptr, DisabledView);
+    const FString DisabledToolTip =
+        DisabledWidget->Button_Action->GetToolTipText ().ToString ();
+    TestTrue (TEXT ("The disabled rollover keeps the description"),
+        DisabledToolTip.Contains (
+            TEXT ("Lance un shuriken sur la cible.")));
+    TestTrue (TEXT ("The disabled rollover explains unavailability"),
+        DisabledToolTip.Contains (
+            TEXT ("Indisponible : aucun combat n’est actif.")));
+
+    UGridCombatHudActionWidget* PaletteWidget =
+        NewObject<UGridCombatHudActionWidget> ();
+    PaletteWidget->Button_Action = NewObject<UButton> (PaletteWidget);
+    PaletteWidget->InitializePaletteAction (nullptr, AvailableAction);
+    const FString PaletteToolTip =
+        PaletteWidget->Button_Action->GetToolTipText ().ToString ();
+    TestTrue (TEXT ("The palette rollover contains the action name"),
+        PaletteToolTip.Contains (TEXT ("Shuriken")));
+    TestTrue (TEXT ("The palette rollover contains the complete cost"),
+        PaletteToolTip.Contains (
+            TEXT ("Coût : 2 PA — quantité : 4")));
+    TestTrue (TEXT ("The palette rollover explains drag assignment"),
+        PaletteToolTip.Contains (
+            TEXT ("Glissez cette action vers un raccourci.")));
+    return true;
+}
+
 #endif
