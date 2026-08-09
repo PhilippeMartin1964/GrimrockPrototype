@@ -1705,9 +1705,10 @@ void UGridCombatHudWidget::RefreshActionPaletteWidgets ()
     }
 
     Panel_ActionPalette->SetVisibility (
-        View.ActionPalette.IsEmpty ()
-            ? ESlateVisibility::Collapsed
-            : ESlateVisibility::Visible);
+        !bCombatActionTargetingActive &&
+            !View.ActionPalette.IsEmpty ()
+            ? ESlateVisibility::Visible
+            : ESlateVisibility::Collapsed);
     for (int32 ActionIndex = 0;
         ActionIndex < ActionPaletteWidgets.Num ();
         ++ActionIndex)
@@ -2031,6 +2032,15 @@ void UGridCombatHudWidget::ValidateCombatActionTargetingState ()
 
 void UGridCombatHudWidget::RefreshTargetingWidgets ()
 {
+    if (Panel_ActionPalette &&
+        Panel_ActionPalette != Panel_Actions)
+    {
+        Panel_ActionPalette->SetVisibility (
+            !bCombatActionTargetingActive &&
+                !View.ActionPalette.IsEmpty ()
+                ? ESlateVisibility::Visible
+                : ESlateVisibility::Collapsed);
+    }
     if (Panel_Targeting)
     {
         Panel_Targeting->SetVisibility (
@@ -2048,7 +2058,7 @@ void UGridCombatHudWidget::RefreshTargetingWidgets ()
         Text_TargetingInstructions->SetText (
             bCombatActionTargetingActive
                 ? FText::FromString (FString::Printf (
-                    TEXT ("%s : cliquez une cellule pour confirmer — Échap pour annuler"),
+                    TEXT ("%s — choisissez une cellule\nÉchap : annuler"),
                     *ActionName.ToString ()))
                 : FText::GetEmpty ());
     }
@@ -2065,11 +2075,13 @@ void UGridCombatHudWidget::RefreshTargetingWidgets ()
             }
             else if (TargetingPreview.bValid)
             {
+                const int32 TargetCount =
+                    TargetingPreview.TargetMonsterIds.Num ();
                 Status = FText::FromString (FString::Printf (
-                    TEXT ("Cellule (%d,%d) — %d cible(s)"),
-                    TargetingPreview.TargetCell.X,
-                    TargetingPreview.TargetCell.Y,
-                    TargetingPreview.TargetMonsterIds.Num ()));
+                    TargetCount == 1
+                        ? TEXT ("Cible valide — 1 ennemi")
+                        : TEXT ("Cible valide — %d ennemis"),
+                    TargetCount));
             }
             else
             {

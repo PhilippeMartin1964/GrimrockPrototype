@@ -2266,4 +2266,105 @@ bool FGridMonsterMON129ActionRolloverTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1210ActionPaletteTargetingTest,
+    "Grimrock.Monsters.MON12.10.ActionPaletteTargeting",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1210ActionPaletteTargetingTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.10 fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    Fixture.Hud->Panel_ActionPalette =
+        NewObject<UHorizontalBox> (Fixture.Hud);
+    Fixture.Hud->Panel_Targeting =
+        NewObject<UVerticalBox> (Fixture.Hud);
+    Fixture.Hud->Text_TargetingInstructions =
+        NewObject<UTextBlock> (Fixture.Hud);
+    Fixture.Hud->Text_TargetingCell =
+        NewObject<UTextBlock> (Fixture.Hud);
+
+    URPGClassAsset* MageClass =
+        NewObject<URPGClassAsset> (Fixture.Party);
+    MageClass->ClassId = TEXT ("Mage_MON1210");
+    MageClass->HealthAtLevelOne = 6;
+    MageClass->CombatActions = { MakeMON1286AreaSpell () };
+    FGridCharacterInventoryState& Character =
+        Fixture.Party->PartyInventoryComponent->PartyInventoryState
+            .ActiveCharacters[0];
+    Character.ClassId = MageClass->ClassId;
+    Character.ClassDefinition = MageClass;
+    Fixture.Hud->RefreshFromSources ();
+
+    const FGridAvailableCombatAction* AreaSpell =
+        FindPaletteAction (
+            Fixture.Hud,
+            TEXT ("Spell_MON1286_AreaBurst"));
+    if (!TestNotNull (TEXT ("The synthetic area spell is catalogued"),
+        AreaSpell))
+    {
+        return false;
+    }
+    TestTrue (TEXT ("The area spell configures shortcut seven"),
+        Fixture.Hud->AssignCombatActionToHotbarSlot (6, *AreaSpell));
+    TestEqual (TEXT ("The palette is visible before targeting"),
+        Fixture.Hud->Panel_ActionPalette->GetVisibility (),
+        ESlateVisibility::Visible);
+    TestEqual (TEXT ("The targeting panel is initially hidden"),
+        Fixture.Hud->Panel_Targeting->GetVisibility (),
+        ESlateVisibility::Collapsed);
+
+    FGridCombatActionRequestResult Pending;
+    TestTrue (TEXT ("The shortcut opens area targeting"),
+        Fixture.Hud->RequestHotbarSlot (6, Pending));
+    TestEqual (TEXT ("Targeting replaces the palette"),
+        Fixture.Hud->Panel_ActionPalette->GetVisibility (),
+        ESlateVisibility::Collapsed);
+    TestEqual (TEXT ("The targeting panel is visible"),
+        Fixture.Hud->Panel_Targeting->GetVisibility (),
+        ESlateVisibility::SelfHitTestInvisible);
+    const FString Instructions =
+        Fixture.Hud->Text_TargetingInstructions->GetText ().ToString ();
+    TestTrue (TEXT ("The instructions name the action"),
+        Instructions.Contains (TEXT ("Explosion arcanique")));
+    TestTrue (TEXT ("The instructions explain cancellation"),
+        Instructions.Contains (TEXT ("Échap : annuler")));
+
+    TestFalse (TEXT ("An empty area is invalid"),
+        Fixture.Hud->UpdateCombatActionTargetingPreview (
+            FIntPoint (0, 0)));
+    const FString InvalidStatus =
+        Fixture.Hud->Text_TargetingCell->GetText ().ToString ();
+    TestFalse (TEXT ("Invalid feedback exposes no cell coordinates"),
+        InvalidStatus.Contains (TEXT ("(0,0)")));
+
+    TestTrue (TEXT ("The monster area previews as valid"),
+        Fixture.Hud->UpdateCombatActionTargetingPreview (
+            FIntPoint (1, 2)));
+    const FString ValidStatus =
+        Fixture.Hud->Text_TargetingCell->GetText ().ToString ();
+    TestTrue (TEXT ("Valid feedback reports affected enemies"),
+        ValidStatus.Contains (TEXT ("Cible valide")));
+    TestFalse (TEXT ("Valid feedback exposes no cell coordinates"),
+        ValidStatus.Contains (TEXT ("(1,2)")));
+
+    Fixture.Hud->CancelCombatActionTargeting ();
+    TestEqual (TEXT ("Cancellation restores the palette"),
+        Fixture.Hud->Panel_ActionPalette->GetVisibility (),
+        ESlateVisibility::Visible);
+    TestEqual (TEXT ("Cancellation hides the targeting panel"),
+        Fixture.Hud->Panel_Targeting->GetVisibility (),
+        ESlateVisibility::Collapsed);
+    return true;
+}
+
+
 #endif
