@@ -396,6 +396,15 @@ bool FGridMON128QuickItemDropTest::RunTest (
     PotionDefinition->ItemType = EGridItemType::Potion;
     PotionDefinition->bStackable = true;
     PotionDefinition->MaxStackSize = 10;
+    PotionDefinition->bProvidesQuickItemCombatAction = true;
+    PotionDefinition->QuickItemCombatAction.ActionType =
+        EGridCombatActionType::Ability;
+    PotionDefinition->QuickItemCombatAction.TargetingPolicy =
+        EGridCombatTargetingPolicy::Self;
+    PotionDefinition->QuickItemCombatAction.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Effect;
+    PotionDefinition->QuickItemCombatAction.ActionPointCost = 1;
+    PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreHealth = 1;
     TestTrue (TEXT ("The potion definition is registered"),
         Component->RegisterItemDefinition (PotionDefinition));
 
@@ -483,63 +492,289 @@ bool FGridMON128StableEquipmentResolutionTest::RunTest (
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridMON1284ZeroQuantityDefinitionRehydrationTest,
-    "Grimrock.Monsters.MON12.8.4.ZeroQuantityDefinitionRehydration",
+    FGridMON1289UniqueEquipmentBindingTest,
+    "Grimrock.Monsters.MON12.8.9.RepeatedEquipmentDropMovesBinding",
     EAutomationTestFlags::EditorContext |
         EAutomationTestFlags::EngineFilter)
 
-bool FGridMON1284ZeroQuantityDefinitionRehydrationTest::RunTest (
+bool FGridMON1289UniqueEquipmentBindingTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
     UGridPartyInventoryComponent* Component = CreateMON128Inventory ();
-    if (!Component)
+    if (!TestNotNull (
+        TEXT ("The inventory component is created"),
+        Component))
     {
         return false;
     }
 
-    const FName PotionDefinitionId =
-        TEXT ("Potion_MON1284_Rehydrate");
-    FGridCombatHotbarBinding Binding;
-    Binding.ActionId =
-        FGridCombatHotbarBinding::MakeQuickItemActionId (
-            PotionDefinitionId);
-    Binding.SourcePolicy =
-        EGridCombatActionSourcePolicy::QuickItem;
-    Binding.SourceDefinitionId = PotionDefinitionId;
-    TestTrue (TEXT ("A zero-quantity quick item binding is stored"),
-        Component->SetCharacterCombatHotbarBinding (
+    UGridItemDefinitionAsset* WeaponDefinition =
+        NewObject<UGridItemDefinitionAsset> (Component);
+    WeaponDefinition->ItemDefinitionId = TEXT ("Sword_MON1289");
+    WeaponDefinition->DisplayName =
+        FText::FromString (TEXT ("Épée MON12.8.9"));
+    WeaponDefinition->ItemType = EGridItemType::Weapon;
+    WeaponDefinition->bProvidesAttack = true;
+    WeaponDefinition->CompatibleEquipmentSlots.Add (
+        EGridEquipmentSlot::MainHand);
+    WeaponDefinition->OffensiveProfile.AttackId =
+        TEXT ("Attack_Sword_MON1289");
+    WeaponDefinition->OffensiveProfile.AttackDefinition.DamageType =
+        EGridDamageType::Physical;
+    WeaponDefinition->OffensiveProfile.AttackDefinition.PhysicalSubtype =
+        EGridPhysicalDamageSubtype::Slashing;
+    WeaponDefinition->OffensiveProfile.AttackDefinition.MinDamage = 1;
+    WeaponDefinition->OffensiveProfile.AttackDefinition.MaxDamage = 2;
+    WeaponDefinition->OffensiveProfile.RangeCells = 1;
+    TestTrue (TEXT ("The weapon definition is registered"),
+        Component->RegisterItemDefinition (WeaponDefinition));
+
+    FGridItemInstance Weapon;
+    Weapon.RuntimeObjectId = FGuid::NewGuid ();
+    Weapon.ItemDefinitionId = WeaponDefinition->ItemDefinitionId;
+    Weapon.DisplayName = WeaponDefinition->DisplayName;
+    Weapon.Quantity = 1;
+    Weapon.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    Weapon.OwnerCharacterIndex = 0;
+    Weapon.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Component->PartyInventoryState.ActiveEquipment[0].MainHand = Weapon;
+
+    TestTrue (TEXT ("The first weapon drop configures slot one"),
+        Component->SetCharacterCombatHotbarBindingFromItem (
             0,
             0,
-            Binding));
+            Weapon,
+            EGridEquipmentSlot::MainHand));
+    TestTrue (TEXT ("The same weapon can be dropped onto slot four"),
+        Component->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            3,
+            Weapon,
+            EGridEquipmentSlot::MainHand));
+
+    FGridCombatHotbarBinding OldSlot;
+    FGridCombatHotbarBinding NewSlot;
+    Component->GetCharacterCombatHotbarBinding (0, 0, OldSlot);
+    Component->GetCharacterCombatHotbarBinding (0, 3, NewSlot);
+    TestTrue (TEXT ("The repeated drop clears the previous slot"),
+        OldSlot.IsEmpty ());
+    TestTrue (TEXT ("The target slot keeps the weapon binding"),
+        NewSlot.PreferredSourceRuntimeId == Weapon.RuntimeObjectId);
+
+    int32 MatchingBindingCount = 0;
+    for (const FGridCombatHotbarBinding& Candidate :
+        Component->PartyInventoryState.ActiveCharacters[0]
+            .CombatHotbarSlots)
+    {
+        MatchingBindingCount +=
+            Candidate.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Equipment &&
+                Candidate.PreferredSourceRuntimeId ==
+                    Weapon.RuntimeObjectId
+            ? 1
+            : 0;
+    }
+    TestEqual (TEXT ("The weapon exists in exactly one hotbar slot"),
+        MatchingBindingCount,
+        1);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON1289ConsumedQuickItemBindingTest,
+    "Grimrock.Monsters.MON12.8.9.ConsumedQuickItemClearsBinding",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON1289ConsumedQuickItemBindingTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridPartyInventoryComponent* Component = CreateMON128Inventory ();
+    if (!TestNotNull (
+        TEXT ("The inventory component is created"),
+        Component))
+    {
+        return false;
+    }
 
     UGridItemDefinitionAsset* PotionDefinition =
         NewObject<UGridItemDefinitionAsset> (Component);
-    PotionDefinition->ItemDefinitionId = PotionDefinitionId;
+    PotionDefinition->ItemDefinitionId = TEXT ("Potion_MON1289");
+    PotionDefinition->DisplayName =
+        FText::FromString (TEXT ("Potion MON12.8.9"));
     PotionDefinition->ItemType = EGridItemType::Potion;
-    int32 ResolverCallCount = 0;
-    FName MissingDefinitionId;
-    TestTrue (TEXT ("Hotbar-only definitions are rehydrated"),
-        Component->RehydrateOwnedItemDefinitions (
-            [&ResolverCallCount,
-                PotionDefinition,
-                PotionDefinitionId]
-            (FName RequestedDefinitionId)
-            {
-                ++ResolverCallCount;
-                return RequestedDefinitionId == PotionDefinitionId
-                    ? PotionDefinition
-                    : nullptr;
-            },
-            MissingDefinitionId));
-    TestEqual (TEXT ("The hotbar definition is resolved exactly once"),
-        ResolverCallCount,
+    PotionDefinition->bStackable = true;
+    PotionDefinition->MaxStackSize = 10;
+    PotionDefinition->bProvidesQuickItemCombatAction = true;
+    PotionDefinition->QuickItemCombatAction.ActionType =
+        EGridCombatActionType::Ability;
+    PotionDefinition->QuickItemCombatAction.TargetingPolicy =
+        EGridCombatTargetingPolicy::Self;
+    PotionDefinition->QuickItemCombatAction.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Effect;
+    PotionDefinition->QuickItemCombatAction.ActionPointCost = 1;
+    PotionDefinition->QuickItemCombatAction.EffectProfile.RestoreHealth = 1;
+    TestTrue (TEXT ("The potion definition is registered"),
+        Component->RegisterItemDefinition (PotionDefinition));
+
+    FGridItemInstance Potion;
+    Potion.RuntimeObjectId = FGuid::NewGuid ();
+    Potion.ItemDefinitionId = PotionDefinition->ItemDefinitionId;
+    Potion.DisplayName = PotionDefinition->DisplayName;
+    Potion.Quantity = 2;
+    TestTrue (TEXT ("Two potion units enter the inventory"),
+        Component->AddItemToCharacterInventory (0, Potion));
+    TestTrue (TEXT ("The potion configures slot two"),
+        Component->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            1,
+            Potion,
+            EGridEquipmentSlot::None));
+    TestTrue (TEXT ("The potion also configures slot six"),
+        Component->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            5,
+            Potion,
+            EGridEquipmentSlot::None));
+
+    FGridCombatHotbarBinding FirstBinding;
+    FGridCombatHotbarBinding SecondBinding;
+    Component->GetCharacterCombatHotbarBinding (0, 1, FirstBinding);
+    Component->GetCharacterCombatHotbarBinding (0, 5, SecondBinding);
+    TestTrue (TEXT ("The repeated item drop clears the previous slot"),
+        FirstBinding.IsEmpty ());
+    TestFalse (TEXT ("The target slot keeps the unique item shortcut"),
+        SecondBinding.IsEmpty ());
+
+    TestTrue (TEXT ("Consuming one unit succeeds"),
+        Component->RemoveItemDefinitionFromCharacterInventory (
+            0,
+            Potion.ItemDefinitionId,
+            1));
+    Component->GetCharacterCombatHotbarBinding (0, 5, SecondBinding);
+    TestTrue (TEXT ("A successful consumption clears the shortcut"),
+        SecondBinding.IsEmpty ());
+    TestEqual (TEXT ("One unassigned potion remains in inventory"),
+        Component->CountItemDefinitionInCharacterInventory (
+            0,
+            Potion.ItemDefinitionId),
         1);
-    TestTrue (TEXT ("No definition is reported missing"),
-        MissingDefinitionId.IsNone ());
-    TestEqual (TEXT ("The rehydrated definition remains registered"),
-        Component->FindItemDefinition (PotionDefinitionId),
-        PotionDefinition);
+
+    TestTrue (TEXT ("The remaining potion can be assigned again"),
+        Component->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            5,
+            Potion,
+            EGridEquipmentSlot::None));
+
+    TestTrue (TEXT ("Consuming the last unit succeeds"),
+        Component->RemoveItemDefinitionFromCharacterInventory (
+            0,
+            Potion.ItemDefinitionId,
+            1));
+    Component->GetCharacterCombatHotbarBinding (0, 1, FirstBinding);
+    Component->GetCharacterCombatHotbarBinding (0, 5, SecondBinding);
+    TestTrue (TEXT ("The old source slot remains empty"),
+        FirstBinding.IsEmpty ());
+    TestTrue (TEXT ("The exhausted item shortcut is cleared"),
+        SecondBinding.IsEmpty ());
+    TestEqual (TEXT ("The exhausted item is absent from inventory"),
+        Component->CountItemDefinitionInCharacterInventory (
+            0,
+            Potion.ItemDefinitionId),
+        0);
+
+    FGridItemInstance ReplacementPotion = Potion;
+    ReplacementPotion.RuntimeObjectId = FGuid::NewGuid ();
+    ReplacementPotion.Quantity = 3;
+    TestTrue (TEXT ("A replacement stack can be added later"),
+        Component->AddItemToCharacterInventory (
+            0,
+            ReplacementPotion));
+    Component->GetCharacterCombatHotbarBinding (0, 5, SecondBinding);
+    TestTrue (TEXT ("A replacement stack does not restore the old shortcut"),
+        SecondBinding.IsEmpty ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMON1289LegacyBindingSanitizationTest,
+    "Grimrock.Monsters.MON12.8.9.LegacyBindingsAreSanitized",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMON1289LegacyBindingSanitizationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridPartyInventoryComponent* SourceComponent = CreateMON128Inventory ();
+    if (!TestNotNull (
+        TEXT ("The source inventory component is created"),
+        SourceComponent))
+    {
+        return false;
+    }
+
+    FGridPartyInventoryState LegacyState =
+        SourceComponent->PartyInventoryState;
+    LegacyState.bInitialCharacterCreationCompleted = true;
+    FGridCharacterInventoryState& LegacyCharacter =
+        LegacyState.ActiveCharacters[0];
+
+    const FGuid DuplicateWeaponRuntimeId = FGuid::NewGuid ();
+    FGridCombatHotbarBinding FirstWeaponBinding =
+        MakeMON128EquipmentBinding (DuplicateWeaponRuntimeId);
+    FirstWeaponBinding.SlotIndex = 1;
+    LegacyCharacter.CombatHotbarSlots[1] = FirstWeaponBinding;
+    FGridCombatHotbarBinding DuplicateWeaponBinding =
+        FirstWeaponBinding;
+    DuplicateWeaponBinding.SlotIndex = 7;
+    LegacyCharacter.CombatHotbarSlots[7] = DuplicateWeaponBinding;
+
+    FGridCombatHotbarBinding ExhaustedPotionBinding;
+    ExhaustedPotionBinding.SlotIndex = 4;
+    ExhaustedPotionBinding.ActionId =
+        FGridCombatHotbarBinding::MakeQuickItemActionId (
+            TEXT ("Potion_MON1289_Legacy"));
+    ExhaustedPotionBinding.SourcePolicy =
+        EGridCombatActionSourcePolicy::QuickItem;
+    ExhaustedPotionBinding.SourceDefinitionId =
+        TEXT ("Potion_MON1289_Legacy");
+    LegacyCharacter.CombatHotbarSlots[4] =
+        ExhaustedPotionBinding;
+
+    UGridPartyInventoryComponent* RestoredComponent =
+        NewObject<UGridPartyInventoryComponent> ();
+    FText RestoreError;
+    TestTrue (TEXT ("The legacy state is restored and normalized"),
+        RestoredComponent->RestorePartyInventoryState (
+            LegacyState,
+            RestoreError));
+
+    FGridCombatHotbarBinding PreservedWeapon;
+    FGridCombatHotbarBinding ClearedDuplicate;
+    FGridCombatHotbarBinding ClearedPotion;
+    RestoredComponent->GetCharacterCombatHotbarBinding (
+        0,
+        1,
+        PreservedWeapon);
+    RestoredComponent->GetCharacterCombatHotbarBinding (
+        0,
+        7,
+        ClearedDuplicate);
+    RestoredComponent->GetCharacterCombatHotbarBinding (
+        0,
+        4,
+        ClearedPotion);
+    TestTrue (TEXT ("The first weapon binding is preserved"),
+        PreservedWeapon.PreferredSourceRuntimeId ==
+            DuplicateWeaponRuntimeId);
+    TestTrue (TEXT ("A duplicate weapon binding is removed on load"),
+        ClearedDuplicate.IsEmpty ());
+    TestTrue (TEXT ("An exhausted quick-item binding is removed on load"),
+        ClearedPotion.IsEmpty ());
     return true;
 }
 

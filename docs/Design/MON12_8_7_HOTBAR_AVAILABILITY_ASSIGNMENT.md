@@ -55,8 +55,8 @@ QuantityCost       au minimum 1
 
 L'affectation ne déplace et ne consomme jamais l'objet. L'exécution utilise le
 profil offensif de la définition, consomme exactement une unité seulement
-après acceptation et conserve le binding à quantité zéro. Une nouvelle unité
-de la même définition réactive automatiquement le raccourci.
+après acceptation. Depuis MON12.8.9, chaque lancer accepté efface le binding ;
+un exemplaire restant doit être assigné explicitement.
 
 Pour une présentation `Throw`, le composant de présentation crée un projectile
 récupérable à partir de l'objet d'inventaire. Cette création est visuelle et ne

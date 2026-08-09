@@ -309,6 +309,91 @@ namespace
         return INDEX_NONE;
     }
 
+    bool CharacterHasInventoryItemDefinition (
+        const FGridCharacterInventoryState& CharacterState,
+        FName ItemDefinitionId)
+    {
+        return !ItemDefinitionId.IsNone () &&
+            CharacterState.InventorySlots.ContainsByPredicate (
+                [ItemDefinitionId] (const FGridInventorySlot& Slot)
+                {
+                    return !Slot.IsEmpty () &&
+                        Slot.Item.ItemDefinitionId == ItemDefinitionId &&
+                        Slot.Item.Quantity > 0;
+                });
+    }
+
+    void ClearQuickItemHotbarBindings (
+        FGridCharacterInventoryState& CharacterState,
+        FName ItemDefinitionId)
+    {
+        for (int32 SlotIndex = 0;
+            SlotIndex < CharacterState.CombatHotbarSlots.Num ();
+            ++SlotIndex)
+        {
+            FGridCombatHotbarBinding& Binding =
+                CharacterState.CombatHotbarSlots[SlotIndex];
+            if (Binding.SourcePolicy !=
+                    EGridCombatActionSourcePolicy::QuickItem ||
+                Binding.SourceDefinitionId != ItemDefinitionId)
+            {
+                continue;
+            }
+
+            Binding.Reset (SlotIndex);
+        }
+    }
+
+    void SanitizeCombatHotbarBindings (
+        FGridCharacterInventoryState& CharacterState)
+    {
+        TSet<FGuid> AssignedEquipmentRuntimeIds;
+        TSet<FName> AssignedQuickItemDefinitionIds;
+        for (int32 SlotIndex = 0;
+            SlotIndex < CharacterState.CombatHotbarSlots.Num ();
+            ++SlotIndex)
+        {
+            FGridCombatHotbarBinding& Binding =
+                CharacterState.CombatHotbarSlots[SlotIndex];
+            if (!Binding.IsValid () || Binding.IsEmpty ())
+            {
+                continue;
+            }
+
+            if (Binding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Equipment)
+            {
+                if (AssignedEquipmentRuntimeIds.Contains (
+                        Binding.PreferredSourceRuntimeId))
+                {
+                    Binding.Reset (SlotIndex);
+                }
+                else
+                {
+                    AssignedEquipmentRuntimeIds.Add (
+                        Binding.PreferredSourceRuntimeId);
+                }
+            }
+            else if (Binding.SourcePolicy ==
+                EGridCombatActionSourcePolicy::QuickItem)
+            {
+                if (!CharacterHasInventoryItemDefinition (
+                        CharacterState,
+                        Binding.SourceDefinitionId) ||
+                    AssignedQuickItemDefinitionIds.Contains (
+                        Binding.SourceDefinitionId))
+                {
+                    Binding.Reset (SlotIndex);
+                }
+                else
+                {
+                    AssignedQuickItemDefinitionIds.Add (
+                        Binding.SourceDefinitionId);
+                }
+            }
+        }
+    }
+
     void ForEachEquipmentItem (
         const FGridCharacterEquipmentState& EquipmentState,
         TFunctionRef<void (EGridEquipmentSlot, const FGridItemInstance&)> Visitor)
@@ -445,6 +530,10 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState (
         {
             InitializeCombatHotbarDefaults (Character);
         }
+        else
+        {
+            SanitizeCombatHotbarBindings (Character);
+        }
 
         FString HotbarError;
         if (!ValidateCombatHotbar (Character, HotbarError))
@@ -462,6 +551,10 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState (
         if (Character.CombatHotbarSlots.IsEmpty ())
         {
             InitializeCombatHotbarDefaults (Character);
+        }
+        else
+        {
+            SanitizeCombatHotbarBindings (Character);
         }
 
         FString HotbarError;
@@ -766,6 +859,52 @@ bool UGridPartyInventoryComponent::SetCharacterCombatHotbarBinding (
     if (!NormalizedBinding.IsValid ())
     {
         return false;
+    }
+
+    if (NormalizedBinding.SourcePolicy ==
+            EGridCombatActionSourcePolicy::QuickItem &&
+        !CharacterHasInventoryItemDefinition (
+            Character,
+            NormalizedBinding.SourceDefinitionId))
+    {
+        return false;
+    }
+
+    if (NormalizedBinding.SourcePolicy ==
+            EGridCombatActionSourcePolicy::Equipment ||
+        NormalizedBinding.SourcePolicy ==
+            EGridCombatActionSourcePolicy::QuickItem)
+    {
+        for (int32 ExistingSlotIndex = 0;
+            ExistingSlotIndex < Character.CombatHotbarSlots.Num ();
+            ++ExistingSlotIndex)
+        {
+            if (ExistingSlotIndex == SlotIndex)
+            {
+                continue;
+            }
+
+            FGridCombatHotbarBinding& ExistingBinding =
+                Character.CombatHotbarSlots[ExistingSlotIndex];
+            const bool bSameEquipmentItem =
+                NormalizedBinding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Equipment &&
+                ExistingBinding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Equipment &&
+                ExistingBinding.PreferredSourceRuntimeId ==
+                    NormalizedBinding.PreferredSourceRuntimeId;
+            const bool bSameQuickItemDefinition =
+                NormalizedBinding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::QuickItem &&
+                ExistingBinding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::QuickItem &&
+                ExistingBinding.SourceDefinitionId ==
+                    NormalizedBinding.SourceDefinitionId;
+            if (bSameEquipmentItem || bSameQuickItemDefinition)
+            {
+                ExistingBinding.Reset (ExistingSlotIndex);
+            }
+        }
     }
 
     Character.CombatHotbarSlots[SlotIndex] = MoveTemp (NormalizedBinding);
@@ -1227,8 +1366,17 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory (i
         }
     }
 
+    if (RemainingToRemove != 0)
+    {
+        return false;
+    }
+
+    ClearQuickItemHotbarBindings (
+        CharacterState,
+        ItemDefinitionId);
+
     RecalculateCharacterWeight (CharacterIndex);
-    return RemainingToRemove == 0;
+    return true;
 }
 
 bool UGridPartyInventoryComponent::RemoveItemDefinitionFromSelectedCharacterInventory (FName ItemDefinitionId, int32 Quantity)
@@ -2893,6 +3041,8 @@ void UGridPartyInventoryComponent::InitializeCombatHotbarDefaults (
             }
         }
     }
+
+    SanitizeCombatHotbarBindings (CharacterState);
 }
 
 bool UGridPartyInventoryComponent::ValidateCombatHotbar (
@@ -2910,6 +3060,8 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar (
         return false;
     }
 
+    TSet<FGuid> AssignedEquipmentRuntimeIds;
+    TSet<FName> AssignedQuickItemDefinitionIds;
     for (int32 SlotIndex = 0;
         SlotIndex < CharacterState.CombatHotbarSlots.Num ();
         ++SlotIndex)
@@ -2925,6 +3077,47 @@ bool UGridPartyInventoryComponent::ValidateCombatHotbar (
                 *Binding.ActionId.ToString (),
                 *UEnum::GetValueAsString (Binding.SourcePolicy));
             return false;
+        }
+
+        if (Binding.SourcePolicy ==
+            EGridCombatActionSourcePolicy::Equipment)
+        {
+            if (AssignedEquipmentRuntimeIds.Contains (
+                    Binding.PreferredSourceRuntimeId))
+            {
+                OutError = FString::Printf (
+                    TEXT ("DuplicateEquipmentSource Slot=%d RuntimeId=%s"),
+                    SlotIndex,
+                    *Binding.PreferredSourceRuntimeId.ToString ());
+                return false;
+            }
+            AssignedEquipmentRuntimeIds.Add (
+                Binding.PreferredSourceRuntimeId);
+        }
+        else if (Binding.SourcePolicy ==
+            EGridCombatActionSourcePolicy::QuickItem)
+        {
+            if (!CharacterHasInventoryItemDefinition (
+                    CharacterState,
+                    Binding.SourceDefinitionId))
+            {
+                OutError = FString::Printf (
+                    TEXT ("MissingQuickItemSource Slot=%d Definition=%s"),
+                    SlotIndex,
+                    *Binding.SourceDefinitionId.ToString ());
+                return false;
+            }
+            if (AssignedQuickItemDefinitionIds.Contains (
+                    Binding.SourceDefinitionId))
+            {
+                OutError = FString::Printf (
+                    TEXT ("DuplicateQuickItemSource Slot=%d Definition=%s"),
+                    SlotIndex,
+                    *Binding.SourceDefinitionId.ToString ());
+                return false;
+            }
+            AssignedQuickItemDefinitionIds.Add (
+                Binding.SourceDefinitionId);
         }
     }
 

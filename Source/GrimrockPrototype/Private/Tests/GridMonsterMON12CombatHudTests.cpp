@@ -1074,7 +1074,7 @@ bool FGridMonsterMON1283HotbarKeyboardGuardTest::RunTest (
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMonsterMON1284QuickItemEffectTest,
-    "Grimrock.Monsters.MON12.8.4.QuickItemEffectAndPersistence",
+    "Grimrock.Monsters.MON12.8.4.QuickItemEffectAndUnassignment",
     EAutomationTestFlags::EditorContext |
         EAutomationTestFlags::EngineFilter)
 
@@ -1163,6 +1163,23 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest (
     TestEqual (TEXT ("The result records the consumed unit"),
         FirstUse.QuickItemResult.SourceQuantityAfter,
         1);
+    FGridCombatHotbarBinding RemainingPotionBinding;
+    TestTrue (TEXT ("The consumed shortcut remains readable"),
+        Inventory->GetCharacterCombatHotbarBinding (
+            0,
+            0,
+            RemainingPotionBinding));
+    TestTrue (TEXT ("Every accepted potion clears its shortcut"),
+        RemainingPotionBinding.IsEmpty ());
+    TestFalse (TEXT ("The consumed potion disappears from the HUD slot"),
+        Fixture.Hud->View.Actions[0].bHasBinding);
+
+    TestTrue (TEXT ("The remaining potion can be assigned again"),
+        Inventory->SetCharacterCombatHotbarBindingFromItem (
+            0,
+            0,
+            Potion,
+            EGridEquipmentSlot::None));
 
     Character.DerivedStats.CurrentHealth = 20;
     Character.DerivedStats.CurrentMana = 8;
@@ -1183,6 +1200,8 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest (
     TestEqual (TEXT ("A refused potion consumes no action point"),
         Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
         3);
+    TestTrue (TEXT ("A refused potion keeps its shortcut"),
+        Fixture.Hud->View.Actions[0].bHasBinding);
 
     Character.DerivedStats.CurrentHealth = 10;
     FGridCombatActionRequestResult LastUse;
@@ -1194,18 +1213,17 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest (
             PotionDefinition->ItemDefinitionId),
         0);
     FGridCombatHotbarBinding PersistentBinding;
-    TestTrue (TEXT ("The shortcut still exists at quantity zero"),
+    TestTrue (TEXT ("The exhausted shortcut remains readable"),
         Inventory->GetCharacterCombatHotbarBinding (
             0,
             0,
             PersistentBinding));
-    TestFalse (TEXT ("The zero-quantity shortcut is not cleared"),
+    TestTrue (TEXT ("The last potion clears its shortcut"),
         PersistentBinding.IsEmpty ());
-    TestTrue (TEXT ("The zero-quantity shortcut remains resolved"),
+    TestFalse (TEXT ("The exhausted HUD slot has no binding"),
+        Fixture.Hud->View.Actions[0].bHasBinding);
+    TestFalse (TEXT ("The exhausted HUD slot no longer resolves"),
         Fixture.Hud->View.Actions[0].bResolved);
-    TestEqual (TEXT ("The catalogue reports the missing source"),
-        Fixture.Hud->View.Actions[0].Action.AvailabilityReason,
-        EGridCombatActionAvailabilityReason::InsufficientSourceItems);
 
     FGridItemInstance ReplacementPotion = Potion;
     ReplacementPotion.RuntimeObjectId = FGuid (12, 8, 4, 2);
@@ -1215,11 +1233,8 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest (
             0,
             ReplacementPotion));
     Fixture.Hud->RefreshFromSources ();
-    TestTrue (TEXT ("The same shortcut reactivates for the new stack"),
-        Fixture.Hud->View.Actions[0].Action.bEnabled);
-    TestEqual (TEXT ("The replacement quantity is projected"),
-        Fixture.Hud->View.Actions[0].Action.CurrentSourceItemQuantity,
-        3);
+    TestFalse (TEXT ("A replacement stack does not restore the old shortcut"),
+        Fixture.Hud->View.Actions[0].bHasBinding);
     return true;
 }
 
@@ -1329,6 +1344,16 @@ bool FGridMonsterMON1284QuickItemScrollAttackTest::RunTest (
     TestEqual (TEXT ("The accepted scroll spends two action points"),
         Fixture.Hud->View.PartyMembers[0].RemainingActionPoints,
         2);
+    FGridCombatHotbarBinding ConsumedScrollBinding;
+    TestTrue (TEXT ("The consumed scroll shortcut remains readable"),
+        Inventory->GetCharacterCombatHotbarBinding (
+            0,
+            1,
+            ConsumedScrollBinding));
+    TestTrue (TEXT ("An accepted scroll clears its shortcut"),
+        ConsumedScrollBinding.IsEmpty ());
+    TestFalse (TEXT ("The consumed scroll disappears from the HUD slot"),
+        Fixture.Hud->View.Actions[1].bHasBinding);
     return true;
 }
 
@@ -2072,6 +2097,74 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest (
             0,
             ShurikenDefinition->ItemDefinitionId),
         0);
+    FGridCombatHotbarBinding ExhaustedShurikenBinding;
+    TestTrue (TEXT ("The exhausted shuriken shortcut remains readable"),
+        Inventory->GetCharacterCombatHotbarBinding (
+            0,
+            6,
+            ExhaustedShurikenBinding));
+    TestTrue (TEXT ("The last shuriken clears its hotbar slot"),
+        ExhaustedShurikenBinding.IsEmpty ());
+    TestFalse (TEXT ("The exhausted shuriken disappears from the HUD"),
+        Fixture.Hud->View.Actions[6].bHasBinding);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1289WeaponDragDropUniquenessTest,
+    "Grimrock.Monsters.MON12.8.9.WeaponDragDropMovesBinding",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1289WeaponDragDropUniquenessTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12.8.9 drag/drop fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridPartyInventoryComponent* Inventory =
+        Fixture.Party->PartyInventoryComponent;
+    FGridItemInstance EquippedSword;
+    if (!TestTrue (TEXT ("The fixture exposes the equipped sword"),
+        Inventory->GetEquippedItem (
+            0,
+            EGridEquipmentSlot::MainHand,
+            EquippedSword)))
+    {
+        return false;
+    }
+
+    UGridInventoryDragDropOperation* SwordDrag =
+        NewObject<UGridInventoryDragDropOperation> (Fixture.Hud);
+    SwordDrag->InitializeFromSlot (
+        EGridInventoryUiSlotType::MainHand,
+        0,
+        EquippedSword);
+    TestTrue (TEXT ("The first drag configures slot three"),
+        Fixture.Hud->HandleHotbarDrop (2, SwordDrag));
+    TestTrue (TEXT ("The repeated drag moves the sword to slot nine"),
+        Fixture.Hud->HandleHotbarDrop (8, SwordDrag));
+
+    FGridCombatHotbarBinding PreviousBinding;
+    FGridCombatHotbarBinding CurrentBinding;
+    Inventory->GetCharacterCombatHotbarBinding (
+        0,
+        2,
+        PreviousBinding);
+    Inventory->GetCharacterCombatHotbarBinding (
+        0,
+        8,
+        CurrentBinding);
+    TestTrue (TEXT ("The previous drag/drop slot is empty"),
+        PreviousBinding.IsEmpty ());
+    TestTrue (TEXT ("The target slot keeps the exact weapon instance"),
+        CurrentBinding.PreferredSourceRuntimeId ==
+            EquippedSword.RuntimeObjectId);
     return true;
 }
 

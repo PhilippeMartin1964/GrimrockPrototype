@@ -200,9 +200,8 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
         0,
         OutContributions);
 
-    // A quick-item contribution is definition-based rather than stack-based.
-    // Include configured hotbar sources even at quantity zero so a persistent
-    // shortcut stays resolved, disabled, and ready for a replacement stack.
+    // A quick-item contribution is definition-based rather than stack-based,
+    // but it only exists while at least one source item remains in inventory.
     TArray<FName> QuickItemDefinitionIds;
     for (const FGridInventorySlot& InventorySlot :
         Character.InventorySlots)
@@ -211,18 +210,6 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
         {
             QuickItemDefinitionIds.AddUnique (
                 InventorySlot.Item.ItemDefinitionId);
-        }
-    }
-    for (const FGridCombatHotbarBinding& Binding :
-        Character.CombatHotbarSlots)
-    {
-        if (!Binding.IsEmpty () &&
-            Binding.SourcePolicy ==
-                EGridCombatActionSourcePolicy::QuickItem &&
-            !Binding.SourceDefinitionId.IsNone ())
-        {
-            QuickItemDefinitionIds.AddUnique (
-                Binding.SourceDefinitionId);
         }
     }
     QuickItemDefinitionIds.Sort (
@@ -482,6 +469,7 @@ bool UGridTurnManagerComponent::CommitQuickItemResourcesAfterAttack (
             Action.CharacterIndex,
             Action.SourceDefinitionId);
     OutResult.ManaAfter = Character.DerivedStats.CurrentMana;
+    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
     return true;
 }
 
@@ -588,6 +576,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect (
         Inventory->CountItemDefinitionInCharacterInventory (
             Action.CharacterIndex,
             Action.SourceDefinitionId);
+    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
     if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry (
             EGridCombatantSide::Party,
             Character.CharacterId))

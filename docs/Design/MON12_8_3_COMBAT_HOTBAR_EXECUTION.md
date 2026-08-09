@@ -98,6 +98,7 @@ Il vérifie :
 
 ## Suite
 
-MON12.8.4 ajoutera les contributions et les exécuteurs autoritaires des
-potions et parchemins : résolution par définition, quantité totale, consommation
-après réussite et maintien du raccourci à quantité zéro.
+MON12.8.4 ajoute les contributions et les exécuteurs autoritaires des potions
+et parchemins : résolution par définition, quantité totale et consommation
+après réussite. Depuis MON12.8.9, chaque consommation acceptée supprime aussi
+le binding de la barre.

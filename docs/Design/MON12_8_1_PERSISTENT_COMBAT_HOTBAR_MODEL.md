@@ -29,10 +29,11 @@ courants, la quantité disponible, la raison d'indisponibilité, la cible
 suggérée et les cooldowns restent des projections runtime du catalogue
 MON12.6.
 
-Pour les futurs consommables, `SourceDefinitionId` sera l'identité principale
-et `PreferredSourceRuntimeId` pourra rester vide. Le raccourci pourra ainsi
-rester configuré quand la quantité atteint zéro, puis se réactiver quand un
-objet identique revient dans l'inventaire.
+Pour les consommables, `SourceDefinitionId` est l'identité principale et
+`PreferredSourceRuntimeId` reste vide. Depuis MON12.8.9, chaque consommation
+acceptée supprime le binding, même si d'autres exemplaires restent dans
+l'inventaire ; l'objet doit donc être assigné de nouveau pour une autre
+utilisation.
 
 ## Initialisation et validation
 

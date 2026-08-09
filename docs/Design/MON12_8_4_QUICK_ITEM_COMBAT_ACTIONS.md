@@ -88,18 +88,18 @@ Une potion applique son effet et consomme exactement la quantité déclarée
 seulement après acceptation. Un parchemin offensif n'est consommé qu'après une
 attaque acceptée. Un refus ne dépense ni PA, ni mana, ni objet.
 
-## Quantité zéro et remplacement de pile
+## Désaffectation après consommation
 
-Lorsque la dernière unité est consommée :
+Après chaque consommation acceptée :
 
-- le binding persistant n'est pas effacé ;
-- le slot reste résolu grâce à la définition enregistrée ;
-- il devient gris avec `InsufficientSourceItems` ;
-- sa quantité affichée devient `x1/0`.
+- tous les bindings `QuickItem` de cette définition sont effacés ;
+- les slots correspondants redeviennent vides immédiatement ;
+- l'unité consommée disparaît de l'inventaire et l'action disparaît de la
+  barre au cours de la même transaction autoritaire.
 
-Ajouter ensuite une nouvelle pile de la même définition réactive
-automatiquement le même raccourci, même si cette pile possède un autre
-`RuntimeObjectId`.
+S'il reste d'autres exemplaires, ils demeurent dans l'inventaire mais ne sont
+plus assignés. Le joueur doit glisser de nouveau l'objet sur le slot souhaité.
+Une action refusée ne consomme rien et conserve le binding.
 
 ## Widget Blueprint
 
@@ -120,12 +120,12 @@ Il vérifie :
 1. restauration des PV et du mana, dépense exacte des PA et consommation
    d'une unité ;
 2. refus d'une potion sans effet utile, sans aucune dépense ;
-3. maintien du raccourci à quantité zéro ;
-4. réactivation avec une nouvelle pile de même définition ;
+3. suppression du raccourci après chaque consommation acceptée ;
+4. conservation des exemplaires restants sans réactivation automatique ;
 5. refus d'un parchemin offensif sans cible, sans consommation ;
 6. attaque axiale acceptée et consommation exacte d'un parchemin ;
-7. rechargement de la définition référencée uniquement par un raccourci à
-   quantité zéro.
+7. disparition d'un shuriken de son slot après consommation du dernier
+   exemplaire.
 
 ## Suite
 

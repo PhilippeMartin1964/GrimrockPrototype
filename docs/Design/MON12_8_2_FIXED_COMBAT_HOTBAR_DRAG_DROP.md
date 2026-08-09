@@ -40,9 +40,13 @@ glisser-déposer. MON12.8.7 garantit une palette native de secours lorsque le
 WBP historique ne contient pas `Panel_ActionPalette`.
 
 Le binding d'un consommable utilise l'identité stable `Use_<ItemDefinitionId>`.
-Il pourra donc rester configuré lorsque la quantité atteindra zéro. Le binding
-d'une arme suit au contraire son instance précise et continue de se résoudre
-si cette même arme change de main.
+Depuis MON12.8.9, il est supprimé après chaque consommation acceptée, même si
+d'autres exemplaires restent dans l'inventaire. Le binding d'une arme suit au
+contraire son instance précise, continue de se résoudre si cette même arme
+change de main et ne peut exister que dans un seul slot à la fois. Déposer de
+nouveau la même arme déplace son binding vers le slot cible. La même règle
+s'applique à une définition `QuickItem` afin qu'un shuriken, une potion ou un
+parchemin ne soit pas dupliqué dans la barre.
 
 ## Déplacement, échange et suppression
 
@@ -52,6 +56,8 @@ l'index source et le binding persistant.
 - raccourci vers slot vide : déplacement ;
 - raccourci vers slot occupé : échange atomique ;
 - raccourci vers lui-même : aucune modification ;
+- arme déposée depuis le menu vers un autre slot : l'ancien slot est vidé et
+  le nouveau slot reçoit l'unique binding de cette instance ;
 - clic droit : suppression du binding uniquement ; l'objet source n'est ni
   déplacé, ni déséquipé, ni déposé au sol ;
 - dépôt refusé : aucun slot n'est modifié.

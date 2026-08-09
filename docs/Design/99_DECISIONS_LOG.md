@@ -617,9 +617,9 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - `FGridCombatHotbarBinding` conserve uniquement l'identité stable de l'action
   et de sa source ; aucune disponibilité ni aucun coût runtime n'est
   sérialisé.
-- Une arme mémorise son instance runtime préférée. Un futur consommable
-  s'appuiera d'abord sur son identifiant de définition afin que le raccourci
-  survive à une quantité nulle.
+- Une arme mémorise son instance runtime préférée. Un consommable s'appuie sur
+  son identifiant de définition ; sa règle d'épuisement est précisée par
+  MON12.8.9.
 - Le modèle est modifié exclusivement par `UGridPartyInventoryComponent`, qui
   expose lecture, affectation et suppression par personnage et par index.
 - Les sauvegardes passent en version `3`. Les versions `1` et `2` reçoivent
@@ -638,7 +638,8 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Déposer une potion ou un parchemin crée une référence par définition sans
   déplacer la pile ; déposer une arme équipée crée une référence par instance.
 - Un raccourci suit la même arme si elle change de main. Une arme absente reste
-  configurée mais son slot devient indisponible.
+  configurée mais son slot devient indisponible. Depuis MON12.8.9, une même
+  instance d'arme ne peut toutefois occuper qu'un slot à la fois.
 - Glisser un raccourci vers un slot vide le déplace ; vers un slot occupé, les
   deux bindings sont échangés atomiquement. Le clic droit efface le slot.
 - Les widgets sont mis en pool et rafraîchis sur événements, sans `Tick` et
@@ -678,10 +679,8 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   `Attack/FirstAxialTarget` réutilisent le pipeline d'attaque existant.
 - Une action refusée ne consomme ni PA, ni mana, ni objet. Une action acceptée
   consomme exactement le coût source déclaré, au minimum une unité.
-- La dernière unité ne supprime jamais le binding. Le slot reste résolu, grisé
-  à quantité zéro, puis se réactive avec toute nouvelle pile de même définition.
-- La réhydratation des définitions inclut les sources référencées uniquement
-  par la barre afin que cet état survive aussi à une sauvegarde sans pile.
+- Depuis MON12.8.9, chaque consommation acceptée supprime le binding ; tout
+  exemplaire restant doit être assigné explicitement.
 - Le document d'implémentation est
   `docs/Design/MON12_8_4_QUICK_ITEM_COMBAT_ACTIONS.md`.
 
@@ -768,3 +767,21 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   `WBP_GridCombatActionPanel` est déjà débarrassé de ses anciens boutons de main.
 - Le document d'audit et de mise à niveau est
   `docs/Design/MON12_8_8_COMBAT_HUD_COHERENCE_AUDIT.md`.
+
+---
+
+## 2026-08-09 — MON12.8.9 : unicité et épuisement des objets de raccourci
+
+- Une instance d'arme identifiée par `PreferredSourceRuntimeId` ne peut être
+  affectée qu'à un seul slot par personnage.
+- Une définition `QuickItem` identifiée par `SourceDefinitionId` ne peut elle
+  aussi occuper qu'un seul slot.
+- Déposer de nouveau la même arme déplace son binding vers le slot cible sans
+  déplacer, dupliquer ou déséquiper l'objet.
+- Chaque consommation acceptée efface le binding `QuickItem`, même si d'autres
+  exemplaires restent dans l'inventaire ; une action refusée le conserve.
+- Les anciennes sauvegardes sont normalisées au chargement : doublons d'armes
+  et raccourcis de consommables épuisés sont supprimés sans changer la version
+  sérialisée.
+- Le document d'implémentation est
+  `docs/Design/MON12_8_9_HOTBAR_ITEM_LIFETIME.md`.
