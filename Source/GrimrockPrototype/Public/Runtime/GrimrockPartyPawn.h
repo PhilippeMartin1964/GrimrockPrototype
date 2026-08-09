@@ -381,10 +381,11 @@ public:
         const FIntPoint& SourceCell);
 
     /**
-     * Spawns the recoverable visual for a throwable used directly from the
-     * inventory. The TurnManager remains authoritative for consuming one unit.
+     * Spawns the recoverable projectile for a throwable used directly from
+     * inventory. This function never consumes the source; the TurnManager
+     * commits the corresponding inventory transaction.
      */
-    AGridThrownItemActor* TryLaunchInventoryItemForAttackPresentation (
+    AGridThrownItemActor* TryLaunchInventoryItemForAttack (
         int32 CharacterIndex,
         FName ExpectedItemDefinitionId,
         const FVector& TargetWorldLocation,

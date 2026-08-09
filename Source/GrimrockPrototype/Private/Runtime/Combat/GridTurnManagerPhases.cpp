@@ -640,6 +640,7 @@ void UGridTurnManagerComponent::FinishCombat (EGridCombatPhase ResultPhase)
     }
 
     ClearPlayerCharacterTurnStates ();
+    ResetCombatActionCooldowns ();
     ClearPartyMobilityState (true);
     ClearInitiativeState (true);
     bPlayerAttackResolutionInProgress = false;

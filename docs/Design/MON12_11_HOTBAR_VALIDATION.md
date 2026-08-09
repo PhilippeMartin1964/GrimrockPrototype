@@ -13,9 +13,14 @@ les dix raccourcis configurables par personnage.
 | Fin du combat : actions conservées mais non exécutables | `Grimrock.Monsters.MON12.11.HotbarValidation` |
 | Ciblage manuel, validation et annulation | `Grimrock.Monsters.MON12.10.ActionPaletteTargeting` |
 | Retrait du raccourci sans déplacement ni suppression de l'objet source | `Grimrock.Monsters.MON12.11.HotbarValidation` |
+| Transaction PA/mana/quantité, lancer autoritaire et refus sans mutation | `Grimrock.Monsters.MON12.Coherence.ActionTransactions` |
+| Cooldown isolé par personnage, attente en manches complètes et remise à zéro en fin de combat | `Grimrock.Monsters.MON12.Coherence.ActionTransactions` |
 
 Le test MON12.11 est transversal : il échange une arme et une action abstraite,
-provoque un refus autoritaire, restaure un instantané sauvegardé, change de
-personnage, retire le raccourci, puis termine le combat. Les tests spécialisés
-MON12.8–12.10 restent responsables des détails propres aux consommables, à la
-sérialisation binaire et au ciblage de cellule ou de zone.
+provoque un refus autoritaire, restaure un instantané sauvegardé, passe au
+personnage suivant par `EndActivePlayerTurn()`, retire le raccourci, puis
+termine réellement le combat par `FinishCombat()`. Le test de cohérence ajoute
+les coûts d'une arme de jet, le projectile récupérable indépendant de la
+présentation et le cycle du cooldown. Les tests spécialisés MON12.8–12.10
+restent responsables des détails propres aux consommables, à la sérialisation
+binaire et au ciblage de cellule ou de zone.

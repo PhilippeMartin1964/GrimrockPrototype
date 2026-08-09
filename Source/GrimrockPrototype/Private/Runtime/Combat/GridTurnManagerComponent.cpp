@@ -268,6 +268,7 @@ bool UGridTurnManagerComponent::EndPlayerPhase ()
 void UGridTurnManagerComponent::AbortCombat ()
 {
     ClearPlayerCharacterTurnStates ();
+    ResetCombatActionCooldowns ();
     ClearPartyMobilityState (true);
     ClearInitiativeState (true);
     bPlayerAttackResolutionInProgress = false;
@@ -589,6 +590,7 @@ bool UGridTurnManagerComponent::StartCombatInternal (const TArray<AGridMonsterAc
     }
 
     ClearPlayerCharacterTurnStates ();
+    ResetCombatActionCooldowns ();
     LastPlayerAttackRequest = FGridPlayerAttackRequest ();
     LastPlayerAttackResult = FGridAttackResult ();
     LastPlayerAttackRejectReason = EGridPlayerAttackRejectReason::None;

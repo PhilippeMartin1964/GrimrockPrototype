@@ -379,6 +379,16 @@ bool FGridMON1141ThrownWeaponLifecycleTest::RunTest (
         TEXT ("Shuriken");
     Request.OffensiveEquipmentSlot =
         EGridEquipmentSlot::MainHand;
+    Request.PreparedThrownItemActor =
+        Party->TryLaunchEquippedItemForAttack (
+            0,
+            EGridEquipmentSlot::MainHand,
+            TEXT ("Shuriken"),
+            TargetMonster->GetActorLocation (),
+            Request.PartyCell);
+    TestNotNull (
+        TEXT ("Gameplay commits the recoverable projectile before presentation"),
+        Request.PreparedThrownItemActor.Get ());
 
     TurnManager->OnPlayerAttackRequested.Broadcast (
         Request);

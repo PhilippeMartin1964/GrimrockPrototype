@@ -307,6 +307,25 @@ void UGridTurnManagerComponent::GetAvailableCombatActions (
     {
         Context.SatisfiedRequirements.Add (Character.ClassId);
     }
+    for (const TPair<FGridCombatActionCooldownKey, int32>& Cooldown :
+        CombatActionCooldownAvailableRounds)
+    {
+        if (Cooldown.Key.CharacterId != Character.CharacterId)
+        {
+            continue;
+        }
+
+        const int32 RemainingRounds =
+            GetRemainingCombatActionCooldown (
+                Character.CharacterId,
+                Cooldown.Key.ActionId);
+        if (RemainingRounds > 0)
+        {
+            Context.RemainingCooldownRounds.Add (
+                Cooldown.Key.ActionId,
+                RemainingRounds);
+        }
+    }
 
     if (Inventory->PartyInventoryState.ActiveEquipment.IsValidIndex (
         CharacterIndex))
@@ -414,63 +433,48 @@ void UGridTurnManagerComponent::ResolveSuggestedCombatActionTarget (
     }
 }
 
-bool UGridTurnManagerComponent::CommitQuickItemResourcesAfterAttack (
-    const FGridAvailableCombatAction& Action,
-    FGridCombatQuickItemResult& OutResult)
+int32 UGridTurnManagerComponent::GetRemainingCombatActionCooldown (
+    const FGuid& CharacterId,
+    FName ActionId) const
 {
-    OutResult = FGridCombatQuickItemResult ();
-    UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
-        ? PartyPawn->PartyInventoryComponent.Get ()
-        : nullptr;
-    if (!IsValid (Inventory) ||
-        Action.Definition.SourcePolicy !=
-            EGridCombatActionSourcePolicy::QuickItem ||
-        Action.SourceDefinitionId.IsNone () ||
-        !Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
-            Action.CharacterIndex))
+    if (!CharacterId.IsValid () || ActionId.IsNone ())
     {
-        return false;
+        return 0;
     }
 
-    FGridCharacterInventoryState& Character =
-        Inventory->PartyInventoryState.ActiveCharacters[
-            Action.CharacterIndex];
-    OutResult.SourceQuantityBefore =
-        Inventory->CountItemDefinitionInCharacterInventory (
-            Action.CharacterIndex,
-            Action.SourceDefinitionId);
-    OutResult.HealthBefore = Character.DerivedStats.CurrentHealth;
-    OutResult.HealthAfter = OutResult.HealthBefore;
-    OutResult.ManaBefore = Character.DerivedStats.CurrentMana;
-    const int32 QuantityCost =
-        Action.CurrentSourceItemQuantityCost;
-    const int32 ManaCost = Action.CurrentManaCost;
-    if (QuantityCost <= 0 ||
-        OutResult.SourceQuantityBefore < QuantityCost ||
-        OutResult.ManaBefore < ManaCost)
+    FGridCombatActionCooldownKey Key;
+    Key.CharacterId = CharacterId;
+    Key.ActionId = ActionId;
+    const int32* AvailableRound =
+        CombatActionCooldownAvailableRounds.Find (Key);
+    return AvailableRound
+        ? FMath::Max (0, *AvailableRound - RoundNumber)
+        : 0;
+}
+
+void UGridTurnManagerComponent::StartCombatActionCooldown (
+    const FGridAvailableCombatAction& Action)
+{
+    const int32 CooldownRounds =
+        FMath::Max (0, Action.Definition.CooldownRounds);
+    if (CooldownRounds <= 0 ||
+        !Action.CharacterId.IsValid () ||
+        Action.Definition.ActionId.IsNone ())
     {
-        return false;
+        return;
     }
 
-    Character.DerivedStats.CurrentMana = FMath::Max (
-        0,
-        OutResult.ManaBefore - ManaCost);
-    if (!Inventory->RemoveItemDefinitionFromCharacterInventory (
-            Action.CharacterIndex,
-            Action.SourceDefinitionId,
-            QuantityCost))
-    {
-        Character.DerivedStats.CurrentMana = OutResult.ManaBefore;
-        return false;
-    }
+    FGridCombatActionCooldownKey Key;
+    Key.CharacterId = Action.CharacterId;
+    Key.ActionId = Action.Definition.ActionId;
+    CombatActionCooldownAvailableRounds.Add (
+        Key,
+        RoundNumber + CooldownRounds + 1);
+}
 
-    OutResult.SourceQuantityAfter =
-        Inventory->CountItemDefinitionInCharacterInventory (
-            Action.CharacterIndex,
-            Action.SourceDefinitionId);
-    OutResult.ManaAfter = Character.DerivedStats.CurrentMana;
-    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
-    return true;
+void UGridTurnManagerComponent::ResetCombatActionCooldowns ()
+{
+    CombatActionCooldownAvailableRounds.Reset ();
 }
 
 bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect (
@@ -563,6 +567,10 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect (
     {
         Character.DerivedStats.CurrentHealth = OutResult.HealthBefore;
         Character.DerivedStats.CurrentMana = OutResult.ManaBefore;
+        OutResult.HealthAfter = OutResult.HealthBefore;
+        OutResult.ManaAfter = OutResult.ManaBefore;
+        OutResult.SourceQuantityAfter =
+            OutResult.SourceQuantityBefore;
         if (FGridPlayerCharacterTurnState* RestoredTurnState =
             EnsurePlayerCharacterTurnState (Action.CharacterIndex))
         {
@@ -576,6 +584,7 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect (
         Inventory->CountItemDefinitionInCharacterInventory (
             Action.CharacterIndex,
             Action.SourceDefinitionId);
+    StartCombatActionCooldown (Action);
     Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
     if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry (
             EGridCombatantSide::Party,
@@ -667,6 +676,7 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect (
 
     Character.DerivedStats.CurrentHealth = OutResult.HealthAfter;
     Character.DerivedStats.CurrentMana = OutResult.ManaAfter;
+    StartCombatActionCooldown (Action);
     Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
     if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry (
             EGridCombatantSide::Party,
@@ -718,25 +728,20 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionAttack (
         return false;
     }
 
-    FGridCharacterInventoryState& Character =
+    const FGridCharacterInventoryState& CharacterBefore =
         Inventory->PartyInventoryState.ActiveCharacters[
             Action.CharacterIndex];
     OutClassResult.HealthBefore =
-        Character.DerivedStats.CurrentHealth;
+        CharacterBefore.DerivedStats.CurrentHealth;
     OutClassResult.HealthAfter = OutClassResult.HealthBefore;
-    OutClassResult.ManaBefore = Character.DerivedStats.CurrentMana;
+    OutClassResult.ManaBefore =
+        CharacterBefore.DerivedStats.CurrentMana;
     OutClassResult.ManaAfter = OutClassResult.ManaBefore;
     if (OutClassResult.ManaBefore < Action.CurrentManaCost)
     {
         return false;
     }
 
-    // Reserve mana before the attack broadcasts its presentation events.
-    // Every rejection rolls it back; AP are spent only by the accepted
-    // attack pipeline after target validation.
-    Character.DerivedStats.CurrentMana = FMath::Max (
-        0,
-        OutClassResult.ManaBefore - Action.CurrentManaCost);
     if (!RequestCharacterAttackInternal (
             Action.CharacterIndex,
             EGridEquipmentSlot::None,
@@ -746,14 +751,17 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionAttack (
             OutResult,
             OutRejectReason))
     {
-        Character.DerivedStats.CurrentMana =
-            OutClassResult.ManaBefore;
-        Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
         return false;
     }
 
-    OutClassResult.ManaAfter = Character.DerivedStats.CurrentMana;
-    Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
+    if (IsValid (Inventory) &&
+        Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            Action.CharacterIndex))
+    {
+        OutClassResult.ManaAfter =
+            Inventory->PartyInventoryState.ActiveCharacters[
+                Action.CharacterIndex].DerivedStats.CurrentMana;
+    }
     return true;
 }
 
@@ -1051,6 +1059,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack (
     Character.DerivedStats.CurrentMana = FMath::Max (
         0,
         ManaBefore - Action.CurrentManaCost);
+    StartCombatActionCooldown (Action);
     Inventory->NotifyPartyInventoryChanged (Action.CharacterIndex);
 
     OutResult.TargetedActionResult.TargetCell = Preview.TargetCell;
@@ -1413,6 +1422,33 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction (
         if (Action->Definition.ResolutionProfile ==
             EGridCombatActionResolutionProfile::Attack)
         {
+            UGridPartyInventoryComponent* Inventory = IsValid (PartyPawn)
+                ? PartyPawn->PartyInventoryComponent.Get ()
+                : nullptr;
+            if (!IsValid (Inventory) ||
+                !Inventory->PartyInventoryState.ActiveCharacters
+                    .IsValidIndex (CharacterIndex))
+            {
+                OutResult.RejectReason =
+                    EGridCombatActionRequestRejectReason::QuickItemRejected;
+                return false;
+            }
+            OutResult.QuickItemResult.SourceQuantityBefore =
+                Inventory->CountItemDefinitionInCharacterInventory (
+                    CharacterIndex,
+                    Action->SourceDefinitionId);
+            const FGridCharacterInventoryState& CharacterBefore =
+                Inventory->PartyInventoryState.ActiveCharacters[
+                    CharacterIndex];
+            OutResult.QuickItemResult.HealthBefore =
+                CharacterBefore.DerivedStats.CurrentHealth;
+            OutResult.QuickItemResult.HealthAfter =
+                CharacterBefore.DerivedStats.CurrentHealth;
+            OutResult.QuickItemResult.ManaBefore =
+                CharacterBefore.DerivedStats.CurrentMana;
+            OutResult.QuickItemResult.ManaAfter =
+                OutResult.QuickItemResult.ManaBefore;
+
             FGridPlayerAttackRequest AttackRequest;
             FGridAttackResult AttackResult;
             EGridPlayerAttackRejectReason AttackRejectReason =
@@ -1428,19 +1464,41 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction (
             OutResult.AttackRequest = AttackRequest;
             OutResult.AttackResult = AttackResult;
             OutResult.AttackRejectReason = AttackRejectReason;
-            if (bAccepted &&
-                !CommitQuickItemResourcesAfterAttack (
-                    *Action,
-                    OutResult.QuickItemResult))
+            if (bAccepted)
             {
+                const bool bCharacterStillAvailable =
+                    IsValid (Inventory) &&
+                    Inventory->PartyInventoryState.ActiveCharacters
+                        .IsValidIndex (CharacterIndex);
+                if (bCharacterStillAvailable)
+                {
+                    const FGridCharacterInventoryState& CharacterAfter =
+                        Inventory->PartyInventoryState.ActiveCharacters[
+                            CharacterIndex];
+                    OutResult.QuickItemResult.SourceQuantityAfter =
+                        Inventory->
+                            CountItemDefinitionInCharacterInventory (
+                                CharacterIndex,
+                                Action->SourceDefinitionId);
+                    OutResult.QuickItemResult.HealthAfter =
+                        CharacterAfter.DerivedStats.CurrentHealth;
+                    OutResult.QuickItemResult.ManaAfter =
+                        CharacterAfter.DerivedStats.CurrentMana;
+                }
+            }
+            else
+            {
+                OutResult.QuickItemResult.SourceQuantityAfter =
+                    OutResult.QuickItemResult.SourceQuantityBefore;
+                OutResult.QuickItemResult.ManaAfter =
+                    OutResult.QuickItemResult.ManaBefore;
                 UE_LOG (
                     LogGridTurnManager,
-                    Error,
-                    TEXT ("[GridQuickItem] PostAttackCommitFailed Character=%d Action=%s Source=%s"),
+                    Verbose,
+                    TEXT ("[GridQuickItem] AttackRejectedWithoutCommit Character=%d Action=%s Source=%s"),
                     CharacterIndex,
                     *ActionId.ToString (),
                     *SourceDefinitionId.ToString ());
-                bAccepted = false;
             }
             OutResult.RejectReason = bAccepted
                 ? EGridCombatActionRequestRejectReason::None

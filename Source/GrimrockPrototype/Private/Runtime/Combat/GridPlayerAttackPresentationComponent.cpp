@@ -709,7 +709,6 @@ UGridPlayerAttackPresentationComponent::StartThrownItemLaunch (
             EGridEquipmentSlot::None;
     if (Profile.MotionStyle !=
             EGridPlayerAttackMotionStyle::Throw ||
-        !Profile.bAnimateHeldItem ||
         Request.OffensiveItemDefinitionId.IsNone () ||
         (!bEquippedSource && !bInventorySource))
     {
@@ -717,7 +716,32 @@ UGridPlayerAttackPresentationComponent::StartThrownItemLaunch (
     }
 
     ++ThrownItemLaunchRequestCount;
+    if (IsValid (Request.PreparedThrownItemActor.Get ()))
+    {
+        ++ThrownItemLaunchStartedCount;
+        bThrownItemLaunchStarted = true;
+        return Request.PreparedThrownItemActor.Get ();
+    }
+
+    // Equipped projectiles are gameplay state committed by the TurnManager.
+    // Presentation must never extract or consume an equipped item as a
+    // side-effect of receiving a visual event.
+    if (bEquippedSource)
+    {
+        UE_LOG (
+            LogGridPlayerAttackPresentation,
+            Warning,
+            TEXT ("[GridPlayerAttackPresentation] MissingPreparedThrow Attack=%s Item=%s Character=%d Slot=%s"),
+            *Request.AttackId.ToString (),
+            *Request.OffensiveItemDefinitionId.ToString (),
+            Request.AttackerCharacterIndex,
+            *UEnum::GetValueAsString (
+                Request.OffensiveEquipmentSlot));
+        return nullptr;
+    }
+
     if (!bNativeThrownItemLaunchEnabled ||
+        !Profile.bAnimateHeldItem ||
         !PartyPawn ||
         !IsValid (TargetMonster))
     {
@@ -728,14 +752,8 @@ UGridPlayerAttackPresentationComponent::StartThrownItemLaunch (
         TargetMonster->CollisionComponent
             ? TargetMonster->CollisionComponent->Bounds.Origin
             : TargetMonster->GetActorLocation ();
-    AGridThrownItemActor* ThrownItem = bEquippedSource
-        ? PartyPawn->TryLaunchEquippedItemForAttack (
-            Request.AttackerCharacterIndex,
-            Request.OffensiveEquipmentSlot,
-            Request.OffensiveItemDefinitionId,
-            TargetLocation,
-            Request.PartyCell)
-        : PartyPawn->TryLaunchInventoryItemForAttackPresentation (
+    AGridThrownItemActor* ThrownItem =
+        PartyPawn->TryLaunchInventoryItemForAttack (
             Request.AttackerCharacterIndex,
             Request.OffensiveItemDefinitionId,
             TargetLocation,

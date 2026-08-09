@@ -53,6 +53,7 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Feedback")
     bool bNativeFeedbackEnabled = true;
 
+    /** Enables presentation-only fallback launches; committed throws ignore it. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Combat|Player Attack|Throw")
     bool bNativeThrownItemLaunchEnabled = true;
 

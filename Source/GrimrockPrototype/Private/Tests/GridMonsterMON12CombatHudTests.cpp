@@ -2047,7 +2047,7 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest (
         Fixture.Hud->View.Actions[6].Action.bEnabled);
 
     AGridThrownItemActor* PreviewProjectile =
-        Fixture.Party->TryLaunchInventoryItemForAttackPresentation (
+        Fixture.Party->TryLaunchInventoryItemForAttack (
             0,
             ShurikenDefinition->ItemDefinitionId,
             Fixture.Monster->GetActorLocation (),
@@ -2383,6 +2383,14 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest (
     {
         return false;
     }
+    TestTrue (TEXT ("The MON12.11 phase state starts combat"),
+        Fixture.TurnManager->PhaseState.StartCombat ());
+    TestTrue (TEXT ("The MON12.11 phase state starts round one"),
+        Fixture.TurnManager->PhaseState.BeginRound ());
+    Fixture.TurnManager->CurrentPhase =
+        Fixture.TurnManager->PhaseState.GetPhase ();
+    Fixture.TurnManager->RoundNumber =
+        Fixture.TurnManager->PhaseState.GetRoundNumber ();
 
     UGridPartyInventoryComponent* Inventory =
         Fixture.Party->PartyInventoryComponent;
@@ -2438,6 +2446,10 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest (
 
     Fixture.TurnManager->PlayerAttackActionPointCost = 5;
     Fixture.Hud->RefreshFromSources ();
+    FGridPlayerCharacterTurnState TurnStateBeforeRefusal;
+    Fixture.TurnManager->GetPlayerCharacterTurnState (
+        0,
+        TurnStateBeforeRefusal);
     FGridCombatActionRequestResult Rejected;
     TestFalse (TEXT ("An unavailable sword shortcut is refused"),
         Fixture.Hud->RequestHotbarSlot (1, Rejected));
@@ -2449,6 +2461,13 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest (
     TestTrue (TEXT ("Refusal preserves the configured shortcut"),
         BindingAfterRefusal.PreferredSourceRuntimeId ==
             EquippedSword.RuntimeObjectId);
+    FGridPlayerCharacterTurnState TurnStateAfterRefusal;
+    Fixture.TurnManager->GetPlayerCharacterTurnState (
+        0,
+        TurnStateAfterRefusal);
+    TestEqual (TEXT ("Refusal preserves action points"),
+        TurnStateAfterRefusal.RemainingActionPoints,
+        TurnStateBeforeRefusal.RemainingActionPoints);
 
     FGridPartyInventoryState SavedState =
         Inventory->PartyInventoryState;
@@ -2469,40 +2488,6 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest (
         RestoredSword.PreferredSourceRuntimeId ==
             EquippedSword.RuntimeObjectId);
 
-    Fixture.TurnManager->PlayerCharacterTurnStates[0].State =
-        EGridCombatantTurnState::Completed;
-    Fixture.TurnManager->PlayerCharacterTurnStates[1].State =
-        EGridCombatantTurnState::Active;
-    Fixture.TurnManager->PlayerCharacterTurnStates[1]
-        .RemainingActionPoints = 4;
-    Fixture.TurnManager->InitiativeOrder[0].State =
-        EGridCombatantTurnState::Completed;
-    Fixture.TurnManager->InitiativeOrder[1].State =
-        EGridCombatantTurnState::Active;
-    Fixture.TurnManager->CurrentInitiativeIndex = 1;
-    Fixture.TurnManager->OnActiveCombatantChanged.Broadcast (
-        Fixture.TurnManager->InitiativeOrder[1]);
-    TestEqual (TEXT ("The HUD projects character two"),
-        Fixture.Hud->View.ActiveCharacterIndex,
-        1);
-    TestFalse (TEXT ("Character two does not inherit character one's slots"),
-        Fixture.Hud->View.Actions[1].bHasBinding);
-
-    Fixture.TurnManager->PlayerCharacterTurnStates[0].State =
-        EGridCombatantTurnState::Active;
-    Fixture.TurnManager->PlayerCharacterTurnStates[1].State =
-        EGridCombatantTurnState::Waiting;
-    Fixture.TurnManager->InitiativeOrder[0].State =
-        EGridCombatantTurnState::Active;
-    Fixture.TurnManager->InitiativeOrder[1].State =
-        EGridCombatantTurnState::Waiting;
-    Fixture.TurnManager->CurrentInitiativeIndex = 0;
-    Fixture.TurnManager->OnActiveCombatantChanged.Broadcast (
-        Fixture.TurnManager->InitiativeOrder[0]);
-    TestEqual (TEXT ("The HUD returns to character one"),
-        Fixture.Hud->View.ActiveCharacterIndex,
-        0);
-
     TestTrue (TEXT ("Right-click contract clears the shortcut"),
         Fixture.Hud->ClearHotbarSlot (1));
     FGridCombatHotbarBinding ClearedBinding;
@@ -2521,11 +2506,275 @@ bool FGridMonsterMON1211HotbarValidationTest::RunTest (
     TestTrue (TEXT ("The equipped source identity is unchanged"),
         SwordAfterClear.RuntimeObjectId == EquippedSword.RuntimeObjectId);
 
-    Fixture.TurnManager->bCombatActive = false;
-    Fixture.TurnManager->CurrentPhase = EGridCombatPhase::Victory;
+    TestTrue (TEXT ("The real initiative flow ends character one's turn"),
+        Fixture.TurnManager->EndActivePlayerTurn ());
+    TestEqual (TEXT ("The HUD projects character two"),
+        Fixture.Hud->View.ActiveCharacterIndex,
+        1);
+    TestFalse (TEXT ("Character two does not inherit character one's slots"),
+        Fixture.Hud->View.Actions[1].bHasBinding);
+
+    Fixture.TurnManager->FinishCombat (EGridCombatPhase::Victory);
     Fixture.Hud->RefreshFromSources ();
+    FGridCombatHotbarBinding PersistentUnarmed;
+    Inventory->GetCharacterCombatHotbarBinding (
+        0,
+        0,
+        PersistentUnarmed);
+    TestEqual (TEXT ("Combat finish preserves configured assignments"),
+        PersistentUnarmed.ActionId,
+        FName (TEXT ("Attack_Unarmed")));
     TestFalse (TEXT ("The hotbar cannot execute after combat"),
         Fixture.Hud->View.Actions[0].Action.bEnabled);
+    FGridCombatActionRequestResult AfterCombat;
+    TestFalse (TEXT ("The real action entry point refuses after combat"),
+        Fixture.TurnManager->RequestCharacterCombatAction (
+            0,
+            TEXT ("Attack_Unarmed"),
+            EGridCombatActionSourcePolicy::Universal,
+            NAME_None,
+            EGridEquipmentSlot::None,
+            AfterCombat));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON12ActionTransactionTest,
+    "Grimrock.Monsters.MON12.Coherence.ActionTransactions",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON12ActionTransactionTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridCombatHudFixture Fixture;
+    if (!TestTrue (TEXT ("The MON12 transaction fixture is ready"),
+        Fixture.IsReady ()))
+    {
+        return false;
+    }
+
+    UGridTurnManagerComponent* TurnManager = Fixture.TurnManager;
+    UGridPartyInventoryComponent* Inventory =
+        Fixture.Party->PartyInventoryComponent;
+    TestTrue (TEXT ("The real phase state enters combat"),
+        TurnManager->PhaseState.StartCombat ());
+    TestTrue (TEXT ("The real phase state enters round one"),
+        TurnManager->PhaseState.BeginRound ());
+    TurnManager->CurrentPhase = TurnManager->PhaseState.GetPhase ();
+    TurnManager->RoundNumber = TurnManager->PhaseState.GetRoundNumber ();
+
+    UGridItemDefinitionAsset* ShurikenDefinition =
+        NewObject<UGridItemDefinitionAsset> (Fixture.Party);
+    ShurikenDefinition->ItemDefinitionId =
+        TEXT ("Shuriken_MON12_Transaction");
+    ShurikenDefinition->DisplayName =
+        FText::FromString (TEXT ("Shuriken transactionnel"));
+    ShurikenDefinition->ItemType = EGridItemType::Weapon;
+    ShurikenDefinition->bStackable = true;
+    ShurikenDefinition->MaxStackSize = 10;
+    ShurikenDefinition->bProvidesAttack = true;
+    ShurikenDefinition->bThrowable = true;
+    ShurikenDefinition->bProvidesAttackPresentation = true;
+    ShurikenDefinition->PlayerAttackPresentationProfile.MotionStyle =
+        EGridPlayerAttackMotionStyle::Throw;
+    ShurikenDefinition->PlayerAttackPresentationProfile.bAnimateHeldItem =
+        true;
+    ShurikenDefinition->CompatibleEquipmentSlots.Add (
+        EGridEquipmentSlot::MainHand);
+
+    FGridCombatActionDefinition ShurikenAction;
+    ShurikenAction.ActionId = TEXT ("Attack_MON12_Transaction");
+    ShurikenAction.DisplayName = ShurikenDefinition->DisplayName;
+    ShurikenAction.ActionType = EGridCombatActionType::RangedAttack;
+    ShurikenAction.SourcePolicy =
+        EGridCombatActionSourcePolicy::Equipment;
+    ShurikenAction.TargetingPolicy =
+        EGridCombatTargetingPolicy::FirstAxialTarget;
+    ShurikenAction.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Attack;
+    ShurikenAction.ActionPointCost = 1;
+    ShurikenAction.ResourceCosts.ManaCost = 2;
+    ShurikenAction.ResourceCosts.SourceItemQuantityCost = 1;
+    ShurikenAction.CooldownRounds = 1;
+    ShurikenAction.RangeCells = 1;
+    ShurikenAction.OffensiveProfile.AttackId =
+        ShurikenAction.ActionId;
+    ShurikenAction.OffensiveProfile.AttackDefinition.DamageType =
+        EGridDamageType::Physical;
+    ShurikenAction.OffensiveProfile.AttackDefinition.PhysicalSubtype =
+        EGridPhysicalDamageSubtype::Piercing;
+    ShurikenAction.OffensiveProfile.AttackDefinition.MinDamage = 2;
+    ShurikenAction.OffensiveProfile.AttackDefinition.MaxDamage = 2;
+    ShurikenAction.OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
+    ShurikenAction.OffensiveProfile.DamageScalingAttribute =
+        EGridAttackScalingAttribute::None;
+    ShurikenAction.OffensiveProfile.RangeCells = 1;
+    ShurikenDefinition->OffensiveProfile =
+        ShurikenAction.OffensiveProfile;
+    ShurikenDefinition->CombatActions.Add (ShurikenAction);
+    TestTrue (TEXT ("The transactional weapon definition is valid"),
+        ShurikenDefinition->IsValidDefinition ());
+    TestTrue (TEXT ("The transactional weapon is registered"),
+        Inventory->RegisterItemDefinition (ShurikenDefinition));
+
+    FGridItemInstance EquippedShuriken;
+    EquippedShuriken.RuntimeObjectId = FGuid (12, 12, 1, 1);
+    EquippedShuriken.ItemDefinitionId =
+        ShurikenDefinition->ItemDefinitionId;
+    EquippedShuriken.DisplayName = ShurikenDefinition->DisplayName;
+    EquippedShuriken.Quantity = 2;
+    EquippedShuriken.OwnerType = EGridItemOwnerType::EquipmentSlot;
+    EquippedShuriken.OwnerGuid = Fixture.CharacterIds[0];
+    EquippedShuriken.OwnerCharacterIndex = 0;
+    EquippedShuriken.EquipmentSlot = EGridEquipmentSlot::MainHand;
+    Inventory->PartyInventoryState.ActiveEquipment[0].MainHand =
+        EquippedShuriken;
+
+    UGridPlayerAttackPresentationComponent* Presentation =
+        Fixture.Runtime->GetPlayerAttackPresentationComponent ();
+    if (!TestNotNull (TEXT ("The presentation component exists"),
+        Presentation))
+    {
+        return false;
+    }
+    Presentation->bNativeThrownItemLaunchEnabled = false;
+    Presentation->bNativeAudioPlaybackEnabled = false;
+    Presentation->bNativeVFXSpawnEnabled = false;
+    Presentation->bNativeFeedbackEnabled = false;
+    TestTrue (TEXT ("The presentation observes the authoritative manager"),
+        Presentation->InitializePresentation (TurnManager));
+
+    FGridCombatActionRequestResult Accepted;
+    TestTrue (TEXT ("The equipment action is accepted"),
+        TurnManager->RequestCharacterCombatAction (
+            0,
+            ShurikenAction.ActionId,
+            EGridCombatActionSourcePolicy::Equipment,
+            ShurikenDefinition->ItemDefinitionId,
+            EGridEquipmentSlot::MainHand,
+            Accepted));
+    TestTrue (TEXT ("The accepted attack is structurally valid"),
+        Accepted.AttackRequest.IsValid ());
+    TestNotNull (TEXT ("Gameplay prepares a recoverable projectile"),
+        Accepted.AttackRequest.PreparedThrownItemActor.Get ());
+    TestEqual (TEXT ("Exactly one equipped source unit is paid"),
+        Inventory->PartyInventoryState.ActiveEquipment[0]
+            .MainHand.Quantity,
+        1);
+    TestEqual (TEXT ("The equipment mana cost is paid"),
+        Inventory->PartyInventoryState.ActiveCharacters[0]
+            .DerivedStats.CurrentMana,
+        6);
+    FGridPlayerCharacterTurnState TurnState;
+    TurnManager->GetPlayerCharacterTurnState (0, TurnState);
+    TestEqual (TEXT ("The equipment AP cost is paid"),
+        TurnState.RemainingActionPoints,
+        3);
+    TestEqual (TEXT ("Presentation does not perform a second extraction"),
+        Inventory->PartyInventoryState.ActiveEquipment[0]
+            .MainHand.Quantity,
+        1);
+    TestEqual (TEXT ("Presentation observes exactly one committed launch"),
+        Presentation->ThrownItemLaunchRequestCount,
+        1);
+    TestEqual (TEXT ("The committed launch does not depend on the visual fallback"),
+        Presentation->ThrownItemLaunchStartedCount,
+        1);
+
+    TArray<FGridAvailableCombatAction> Actions;
+    TurnManager->GetAvailableCombatActions (0, Actions);
+    const FGridAvailableCombatAction* CoolingAction =
+        Actions.FindByPredicate (
+            [&ShurikenAction]
+            (const FGridAvailableCombatAction& Candidate)
+            {
+                return Candidate.Definition.ActionId ==
+                    ShurikenAction.ActionId;
+            });
+    TestTrue (TEXT ("The used action remains in the catalogue"),
+        CoolingAction != nullptr);
+    TestTrue (TEXT ("The used action enters cooldown"),
+        CoolingAction &&
+            CoolingAction->AvailabilityReason ==
+                EGridCombatActionAvailabilityReason::CooldownActive);
+    TestEqual (TEXT ("Cooldown belongs only to the acting character"),
+        TurnManager->GetRemainingCombatActionCooldown (
+            Fixture.CharacterIds[1],
+            ShurikenAction.ActionId),
+        0);
+
+    TurnManager->RoundNumber = 2;
+    TurnManager->GetAvailableCombatActions (0, Actions);
+    CoolingAction = Actions.FindByPredicate (
+        [&ShurikenAction]
+        (const FGridAvailableCombatAction& Candidate)
+        {
+            return Candidate.Definition.ActionId ==
+                ShurikenAction.ActionId;
+        });
+    TestTrue (TEXT ("One complete following round remains blocked"),
+        CoolingAction && !CoolingAction->bEnabled &&
+            CoolingAction->AvailabilityReason ==
+                EGridCombatActionAvailabilityReason::CooldownActive);
+
+    TurnManager->RoundNumber = 3;
+    TurnManager->GetAvailableCombatActions (0, Actions);
+    CoolingAction = Actions.FindByPredicate (
+        [&ShurikenAction]
+        (const FGridAvailableCombatAction& Candidate)
+        {
+            return Candidate.Definition.ActionId ==
+                ShurikenAction.ActionId;
+        });
+    TestTrue (TEXT ("The action returns after one complete round"),
+        CoolingAction && CoolingAction->bEnabled);
+    ShurikenDefinition->ThrowSpeed = 0.0f;
+    const int32 ManaBeforeRefusal =
+        Inventory->PartyInventoryState.ActiveCharacters[0]
+            .DerivedStats.CurrentMana;
+    const int32 QuantityBeforeRefusal =
+        Inventory->PartyInventoryState.ActiveEquipment[0]
+            .MainHand.Quantity;
+    TurnManager->GetPlayerCharacterTurnState (0, TurnState);
+    const int32 ActionPointsBeforeRefusal =
+        TurnState.RemainingActionPoints;
+    const int32 MonsterHealthBeforeRefusal =
+        Fixture.Monster->CurrentHealth;
+    FGridCombatActionRequestResult Rejected;
+    TestFalse (TEXT ("An unavailable projectile source is rejected"),
+        TurnManager->RequestCharacterCombatAction (
+            0,
+            ShurikenAction.ActionId,
+            EGridCombatActionSourcePolicy::Equipment,
+            ShurikenDefinition->ItemDefinitionId,
+            EGridEquipmentSlot::MainHand,
+            Rejected));
+    TurnManager->GetPlayerCharacterTurnState (0, TurnState);
+    TestEqual (TEXT ("A rejected action keeps AP"),
+        TurnState.RemainingActionPoints,
+        ActionPointsBeforeRefusal);
+    TestEqual (TEXT ("A rejected action keeps mana"),
+        Inventory->PartyInventoryState.ActiveCharacters[0]
+            .DerivedStats.CurrentMana,
+        ManaBeforeRefusal);
+    TestEqual (TEXT ("A rejected action keeps its equipment source"),
+        Inventory->PartyInventoryState.ActiveEquipment[0]
+            .MainHand.Quantity,
+        QuantityBeforeRefusal);
+    TestEqual (TEXT ("A rejected action cannot damage its target"),
+        Fixture.Monster->CurrentHealth,
+        MonsterHealthBeforeRefusal);
+
+    TurnManager->FinishCombat (EGridCombatPhase::Victory);
+    TestFalse (TEXT ("The real combat finish deactivates combat"),
+        TurnManager->bCombatActive);
+    TestEqual (TEXT ("Combat finish clears transient cooldowns"),
+        TurnManager->GetRemainingCombatActionCooldown (
+            Fixture.CharacterIds[0],
+            ShurikenAction.ActionId),
+        0);
     return true;
 }
 

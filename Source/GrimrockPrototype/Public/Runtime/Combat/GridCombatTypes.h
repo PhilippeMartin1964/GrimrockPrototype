@@ -6,6 +6,7 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridCombatTypes.generated.h"
 
+class AGridThrownItemActor;
 class UTexture2D;
 
 UENUM (BlueprintType)
@@ -367,6 +368,14 @@ struct FGridPlayerAttackRequest
 
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
     int32 ActionPointCost = 2;
+
+    /**
+     * Recoverable projectile already committed by the authoritative attack
+     * transaction. Presentation may animate/configure it but never consumes
+     * the source item itself.
+     */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Player Attack")
+    TObjectPtr<AGridThrownItemActor> PreparedThrownItemActor = nullptr;
 
     bool IsValid () const
     {

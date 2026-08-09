@@ -2312,7 +2312,7 @@ AGrimrockPartyPawn::TryLaunchEquippedItemForAttack (
 }
 
 AGridThrownItemActor*
-AGrimrockPartyPawn::TryLaunchInventoryItemForAttackPresentation (
+AGrimrockPartyPawn::TryLaunchInventoryItemForAttack (
     int32 CharacterIndex,
     FName ExpectedItemDefinitionId,
     const FVector& TargetWorldLocation,

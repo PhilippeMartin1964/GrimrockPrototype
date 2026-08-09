@@ -225,6 +225,14 @@ public:
         EGridEquipmentSlot TargetSlot,
         const FGridItemInstance& WorldItem);
 
+    /** Atomically consumes a non-world equipment source used by an action. */
+    bool TryConsumeEquippedItemQuantityForCombatAction (
+        int32 CharacterIndex,
+        EGridEquipmentSlot SourceSlot,
+        FName ExpectedItemDefinitionId,
+        const FGuid& ExpectedRuntimeObjectId,
+        int32 Quantity);
+
     UFUNCTION (BlueprintCallable, Category = "Inventory|Equipment")
     FGridEquipmentStatBonus ComputeCharacterEquipmentStatBonus (int32 CharacterIndex) const;
 

@@ -6,6 +6,7 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GridThrownItemActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
@@ -252,7 +253,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             OutRejectReason);
     }
 
-    const TArray<FGridCharacterInventoryState>& Characters =
+    TArray<FGridCharacterInventoryState>& Characters =
         PartyPawn->PartyInventoryComponent->PartyInventoryState
             .ActiveCharacters;
     if (!Characters.IsValidIndex (AttackerCharacterIndex))
@@ -263,7 +264,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             OutRejectReason);
     }
 
-    const FGridCharacterInventoryState& Attacker =
+    FGridCharacterInventoryState& Attacker =
         Characters[AttackerCharacterIndex];
     if (!Attacker.CharacterId.IsValid ())
     {
@@ -557,9 +558,75 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             OutRejectReason);
     }
 
-    if (!SpendPlayerCharacterActionPoints (
-        AttackerCharacterIndex,
-        Request.ActionPointCost))
+    UGridPartyInventoryComponent* Inventory =
+        PartyPawn->PartyInventoryComponent.Get ();
+    const EGridCombatActionSourcePolicy SourcePolicy =
+        CombatActionOverride
+            ? CombatActionOverride->Definition.SourcePolicy
+            : OffensiveEquipmentSlot != EGridEquipmentSlot::None
+                ? EGridCombatActionSourcePolicy::Equipment
+                : EGridCombatActionSourcePolicy::Universal;
+    const int32 ManaCost = CombatActionOverride
+        ? FMath::Max (0, CombatActionOverride->CurrentManaCost)
+        : 0;
+    int32 SourceItemQuantityCost = CombatActionOverride
+        ? FMath::Max (
+            0,
+            CombatActionOverride->CurrentSourceItemQuantityCost)
+        : 0;
+    const UGridItemDefinitionAsset* SourceItemDefinition =
+        OffensiveItemDefinitionId.IsNone ()
+            ? nullptr
+            : Inventory->FindItemDefinition (
+                OffensiveItemDefinitionId);
+    if (!CombatActionOverride &&
+        OffensiveEquipmentSlot != EGridEquipmentSlot::None &&
+        IsValid (SourceItemDefinition) &&
+        SourceItemDefinition->bThrowable)
+    {
+        SourceItemQuantityCost = 1;
+    }
+
+    FGridItemInstance EquippedSourceItem;
+    if (Attacker.DerivedStats.CurrentMana < ManaCost ||
+        (SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
+            (OffensiveItemDefinitionId.IsNone () ||
+                SourceItemQuantityCost <= 0 ||
+                Inventory->CountItemDefinitionInCharacterInventory (
+                    AttackerCharacterIndex,
+                    OffensiveItemDefinitionId) <
+                    SourceItemQuantityCost)) ||
+        (SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+            (!Inventory->GetEquippedItem (
+                    AttackerCharacterIndex,
+                    OffensiveEquipmentSlot,
+                    EquippedSourceItem) ||
+                EquippedSourceItem.ItemDefinitionId !=
+                    OffensiveItemDefinitionId ||
+                (CombatActionOverride &&
+                    CombatActionOverride->SourceRuntimeId.IsValid () &&
+                    EquippedSourceItem.RuntimeObjectId !=
+                        CombatActionOverride->SourceRuntimeId) ||
+                FMath::Max (1, EquippedSourceItem.Quantity) <
+                    SourceItemQuantityCost ||
+                (SourceItemQuantityCost > 0 &&
+                    IsValid (SourceItemDefinition) &&
+                    SourceItemDefinition->bThrowable &&
+                    SourceItemQuantityCost != 1))))
+    {
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::InvalidOffensiveEquipment,
+            OutRejectReason);
+    }
+
+    FGridPlayerCharacterTurnState TurnStateBefore;
+    if (!GetPlayerCharacterTurnState (
+            AttackerCharacterIndex,
+            TurnStateBefore) ||
+        !SpendPlayerCharacterActionPoints (
+            AttackerCharacterIndex,
+            Request.ActionPointCost))
     {
         return RejectPlayerAttack (
             AttackerCharacterIndex,
@@ -567,6 +634,94 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             OutRejectReason);
     }
 
+    const auto RestoreReservedActionPoints = [this,
+        AttackerCharacterIndex,
+        &TurnStateBefore] ()
+    {
+        if (FGridPlayerCharacterTurnState* RestoredTurnState =
+            EnsurePlayerCharacterTurnState (AttackerCharacterIndex))
+        {
+            *RestoredTurnState = TurnStateBefore;
+            BroadcastPlayerCharacterTurnState (*RestoredTurnState);
+        }
+    };
+
+    AGridThrownItemActor* PreparedThrownItem = nullptr;
+    bool bSourceCommitted = true;
+    if (SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+        SourceItemQuantityCost > 0)
+    {
+        if (IsValid (SourceItemDefinition) &&
+            SourceItemDefinition->bThrowable)
+        {
+            PreparedThrownItem =
+                PartyPawn->TryLaunchEquippedItemForAttack (
+                    AttackerCharacterIndex,
+                    OffensiveEquipmentSlot,
+                    OffensiveItemDefinitionId,
+                    TargetMonster->GetActorLocation (),
+                    PartyCell);
+            bSourceCommitted = IsValid (PreparedThrownItem);
+        }
+        else
+        {
+            bSourceCommitted = Inventory->
+                TryConsumeEquippedItemQuantityForCombatAction (
+                    AttackerCharacterIndex,
+                    OffensiveEquipmentSlot,
+                    OffensiveItemDefinitionId,
+                    CombatActionOverride
+                        ? CombatActionOverride->SourceRuntimeId
+                        : FGuid (),
+                    SourceItemQuantityCost);
+        }
+    }
+    else if (SourcePolicy == EGridCombatActionSourcePolicy::QuickItem)
+    {
+        if (IsValid (SourceItemDefinition) &&
+            SourceItemDefinition->bThrowable)
+        {
+            PreparedThrownItem =
+                PartyPawn->TryLaunchInventoryItemForAttack (
+                    AttackerCharacterIndex,
+                    OffensiveItemDefinitionId,
+                    TargetMonster->GetActorLocation (),
+                    PartyCell);
+            bSourceCommitted = IsValid (PreparedThrownItem);
+        }
+        if (bSourceCommitted)
+        {
+            bSourceCommitted =
+                Inventory->RemoveItemDefinitionFromCharacterInventory (
+                    AttackerCharacterIndex,
+                    OffensiveItemDefinitionId,
+                    SourceItemQuantityCost);
+        }
+    }
+
+    if (!bSourceCommitted)
+    {
+        if (IsValid (PreparedThrownItem))
+        {
+            PreparedThrownItem->Destroy ();
+        }
+        RestoreReservedActionPoints ();
+        return RejectPlayerAttack (
+            AttackerCharacterIndex,
+            EGridPlayerAttackRejectReason::InvalidOffensiveEquipment,
+            OutRejectReason);
+    }
+
+    Attacker.DerivedStats.CurrentMana = FMath::Max (
+        0,
+        Attacker.DerivedStats.CurrentMana - ManaCost);
+    Request.PreparedThrownItemActor = PreparedThrownItem;
+    const bool bCooldownStarted = CombatActionOverride &&
+        CombatActionOverride->Definition.CooldownRounds > 0;
+    if (CombatActionOverride)
+    {
+        StartCombatActionCooldown (*CombatActionOverride);
+    }
     const FGridAttackResult Result =
         FGridCombatResolver::ResolveAttack (
             Source,
@@ -607,7 +762,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
     AttackEntry.Type = Result.bHit
         ? EGridCombatLogEntryType::AttackHit
         : EGridCombatLogEntryType::AttackMiss;
-    AttackEntry.SourceId = FName (*Attacker.CharacterId.ToString (
+    AttackEntry.SourceId = FName (*Request.AttackerCharacterId.ToString (
         EGuidFormats::Digits));
     AttackEntry.SourceDisplayName = CharacterSummary.DisplayName;
     AttackEntry.TargetId = FName (*TargetMonsterId.ToString (
@@ -649,6 +804,13 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
     ++PlayerAttackResolvedBroadcastCount;
     bPlayerAttackResolutionInProgress = false;
     OnPlayerAttackResolved.Broadcast (Request, TargetMonster, Result);
+    if ((ManaCost > 0 || SourceItemQuantityCost > 0 ||
+            bCooldownStarted) &&
+        IsValid (Inventory))
+    {
+        Inventory->NotifyPartyInventoryChanged (
+            AttackerCharacterIndex);
+    }
 
     if (bCollectRuntimeMetrics)
     {

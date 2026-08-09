@@ -201,6 +201,27 @@ enum class EGridPendingPartyMotionType : uint8
     Rotation
 };
 
+/** Runtime-only key for one character's action cooldown. */
+struct FGridCombatActionCooldownKey
+{
+    FGuid CharacterId;
+    FName ActionId = NAME_None;
+
+    bool operator== (const FGridCombatActionCooldownKey& Other) const
+    {
+        return CharacterId == Other.CharacterId &&
+            ActionId == Other.ActionId;
+    }
+
+    friend uint32 GetTypeHash (
+        const FGridCombatActionCooldownKey& Key)
+    {
+        return HashCombine (
+            GetTypeHash (Key.CharacterId),
+            GetTypeHash (Key.ActionId));
+    }
+};
+
 /**
  * Central global-initiative and individual-turn sequencer.
  *
@@ -782,6 +803,8 @@ private:
     bool bPlayerAttackResolutionInProgress = false;
     bool bPendingVictoryAfterPlayerAttack = false;
     TSet<FGuid> LoggedDefeatedMonsterIds;
+    TMap<FGridCombatActionCooldownKey, int32>
+        CombatActionCooldownAvailableRounds;
     EGridPendingPartyMotionType PendingPartyMotionType =
         EGridPendingPartyMotionType::None;
     int32 PendingPartyMotionCharacterIndex = INDEX_NONE;
@@ -815,9 +838,6 @@ private:
     bool RequestCharacterQuickItemEffect (
         const FGridAvailableCombatAction& Action,
         FGridCombatQuickItemResult& OutResult);
-    bool CommitQuickItemResourcesAfterAttack (
-        const FGridAvailableCombatAction& Action,
-        FGridCombatQuickItemResult& OutResult);
     bool RequestCharacterClassActionEffect (
         const FGridAvailableCombatAction& Action,
         FGridCombatClassActionResult& OutResult);
@@ -835,6 +855,12 @@ private:
         const FGridAvailableCombatAction& Action,
         const FGridCombatActionTargetingPreview& Preview,
         FGridCombatActionRequestResult& OutResult);
+    int32 GetRemainingCombatActionCooldown (
+        const FGuid& CharacterId,
+        FName ActionId) const;
+    void StartCombatActionCooldown (
+        const FGridAvailableCombatAction& Action);
+    void ResetCombatActionCooldowns ();
     bool BuildPlayerAttackResolutionInputs (
         const FGridInventoryCharacterSummary& CharacterSummary,
         const AGridMonsterActor* TargetMonster,
@@ -997,4 +1023,6 @@ private:
     friend class FGridMonsterMON12InitializedPersistenceCaptureTest;
     friend class FGridMonsterMON1271InitiativePreviewTest;
     friend class FGridMonsterMON1271DynamicInitiativeTest;
+    friend class FGridMonsterMON1211HotbarValidationTest;
+    friend class FGridMonsterMON12ActionTransactionTest;
 };

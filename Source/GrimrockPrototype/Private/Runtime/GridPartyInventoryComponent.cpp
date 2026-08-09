@@ -1920,6 +1920,51 @@ TryRestoreExtractedItemToEquipment (
     return true;
 }
 
+bool UGridPartyInventoryComponent::
+TryConsumeEquippedItemQuantityForCombatAction (
+    int32 CharacterIndex,
+    EGridEquipmentSlot SourceSlot,
+    FName ExpectedItemDefinitionId,
+    const FGuid& ExpectedRuntimeObjectId,
+    int32 Quantity)
+{
+    EnsureEquipmentCountMatchesActiveCharacters ();
+    if (!IsValidCharacterIndex (CharacterIndex) ||
+        !PartyInventoryState.ActiveEquipment.IsValidIndex (
+            CharacterIndex) ||
+        !IsHandEquipmentSlot (SourceSlot) ||
+        ExpectedItemDefinitionId.IsNone () ||
+        Quantity <= 0)
+    {
+        return false;
+    }
+
+    FGridItemInstance* EquippedItem =
+        PartyInventoryState.ActiveEquipment[CharacterIndex]
+            .GetMutableSlot (SourceSlot);
+    if (!EquippedItem ||
+        !EquippedItem->IsValid () ||
+        EquippedItem->ItemDefinitionId != ExpectedItemDefinitionId ||
+        (ExpectedRuntimeObjectId.IsValid () &&
+            EquippedItem->RuntimeObjectId != ExpectedRuntimeObjectId) ||
+        FMath::Max (1, EquippedItem->Quantity) < Quantity)
+    {
+        return false;
+    }
+
+    const int32 QuantityBefore = FMath::Max (1, EquippedItem->Quantity);
+    if (QuantityBefore == Quantity)
+    {
+        *EquippedItem = FGridItemInstance ();
+    }
+    else
+    {
+        EquippedItem->Quantity = QuantityBefore - Quantity;
+    }
+    RecalculateCharacterWeight (CharacterIndex);
+    return true;
+}
+
 FGridEquipmentStatBonus UGridPartyInventoryComponent::ComputeCharacterEquipmentStatBonus (
     int32 CharacterIndex) const
 {

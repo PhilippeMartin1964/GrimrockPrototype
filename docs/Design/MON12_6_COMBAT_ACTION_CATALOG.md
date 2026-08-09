@@ -104,6 +104,19 @@ Une action refusée ne modifie aucune ressource. Une attaque acceptée emprunte
 ensuite le pipeline MON11 existant : ciblage axial, résolution, PA, journal,
 présentation, projectile éventuel, dégâts et victoire.
 
+Le paiement est transactionnel et précède les effets irréversibles : PA,
+mana et quantité de source sont tous validés avant le journal, les delegates
+de présentation et les dégâts. Si la réservation d'une source échoue, les PA
+sont restaurés et l'attaque reste refusée. Pour une arme de jet, le projectile
+récupérable est créé par cette transaction autoritaire ; la présentation ne
+retire jamais elle-même l'objet de l'équipement.
+
+Un `CooldownRounds` positif est propre au personnage et à l'`ActionId`.
+Après une utilisation acceptée, l'action attend ce nombre de manches
+complètes avant de redevenir disponible. Les cooldowns sont transitoires à
+l'affrontement et sont effacés au démarrage, à la fin ou à l'abandon du
+combat.
+
 ## Compatibilité MON11
 
 Lorsque `UGridItemDefinitionAsset::CombatActions` est vide et que l'ancien
