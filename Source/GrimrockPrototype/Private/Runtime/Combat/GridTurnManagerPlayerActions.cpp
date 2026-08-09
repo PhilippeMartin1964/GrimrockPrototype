@@ -146,45 +146,6 @@ bool UGridTurnManagerComponent::RequestCharacterAttack (
     FGridAttackResult& OutResult,
     EGridPlayerAttackRejectReason& OutRejectReason)
 {
-    TArray<FGridAvailableCombatAction> AvailableActions;
-    GetAvailableCombatActions (
-        AttackerCharacterIndex,
-        AvailableActions);
-    const FGridAvailableCombatAction* CatalogAttack =
-        AvailableActions.FindByPredicate (
-            [] (const FGridAvailableCombatAction& Action)
-            {
-                return Action.Definition.SourcePolicy ==
-                        EGridCombatActionSourcePolicy::Equipment &&
-                    Action.Definition.ResolutionProfile ==
-                        EGridCombatActionResolutionProfile::Attack;
-            });
-    if (!CatalogAttack)
-    {
-        CatalogAttack = AvailableActions.FindByPredicate (
-            [] (const FGridAvailableCombatAction& Action)
-            {
-                return Action.Definition.ActionId ==
-                        UnarmedAttackId &&
-                    Action.Definition.SourcePolicy ==
-                        EGridCombatActionSourcePolicy::Universal &&
-                    Action.Definition.ResolutionProfile ==
-                        EGridCombatActionResolutionProfile::Attack;
-            });
-    }
-    if (CatalogAttack)
-    {
-        return RequestCharacterAttackInternal (
-            AttackerCharacterIndex,
-            CatalogAttack->SourceEquipmentSlot,
-            CatalogAttack->Definition.SourcePolicy ==
-                EGridCombatActionSourcePolicy::Equipment,
-            CatalogAttack,
-            OutRequest,
-            OutResult,
-            OutRejectReason);
-    }
-
     return RequestCharacterAttackInternal (
         AttackerCharacterIndex,
         EGridEquipmentSlot::None,
