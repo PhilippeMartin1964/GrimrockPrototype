@@ -10,6 +10,7 @@
 #include "Components/InputComponent.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
 #include "Components/WrapBox.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"

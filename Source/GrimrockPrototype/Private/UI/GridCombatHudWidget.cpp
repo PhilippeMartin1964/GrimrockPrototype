@@ -2077,11 +2077,12 @@ void UGridCombatHudWidget::RefreshTargetingWidgets ()
             {
                 const int32 TargetCount =
                     TargetingPreview.TargetMonsterIds.Num ();
-                Status = FText::FromString (FString::Printf (
-                    TargetCount == 1
-                        ? TEXT ("Cible valide — 1 ennemi")
-                        : TEXT ("Cible valide — %d ennemis"),
-                    TargetCount));
+                Status = TargetCount == 1
+                    ? FText::FromString (
+                        TEXT ("Cible valide — 1 ennemi"))
+                    : FText::FromString (FString::Printf (
+                        TEXT ("Cible valide — %d ennemis"),
+                        TargetCount));
             }
             else
             {
