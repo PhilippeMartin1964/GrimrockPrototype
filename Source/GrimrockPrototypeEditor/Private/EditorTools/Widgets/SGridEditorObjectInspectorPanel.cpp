@@ -10,6 +10,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 #include "AssetRegistry/AssetData.h"
