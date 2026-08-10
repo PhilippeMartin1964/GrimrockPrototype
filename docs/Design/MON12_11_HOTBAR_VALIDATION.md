@@ -14,6 +14,7 @@ les dix raccourcis configurables par personnage.
 | Ciblage manuel, validation et annulation | `Grimrock.Monsters.MON12.10.ActionPaletteTargeting` |
 | Retrait du raccourci sans déplacement ni suppression de l'objet source | `Grimrock.Monsters.MON12.11.HotbarValidation` |
 | Transaction PA/mana/quantité, lancer autoritaire et refus sans mutation | `Grimrock.Monsters.MON12.Coherence.ActionTransactions` |
+| Coût d'un projectile normalisé à une unité malgré un DataAsset à 0 ou 2 | `Grimrock.Monsters.MON12.Coherence.ActionTransactions` et `Grimrock.Monsters.MON12.8.7.InventoryThrowableHotbar` |
 | Cooldown isolé par personnage, attente en manches complètes et remise à zéro en fin de combat | `Grimrock.Monsters.MON12.Coherence.ActionTransactions` |
 
 Le test MON12.11 est transversal : il échange une arme et une action abstraite,

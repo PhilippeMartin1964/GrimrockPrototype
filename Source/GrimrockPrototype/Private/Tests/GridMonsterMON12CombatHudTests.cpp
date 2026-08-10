@@ -2002,6 +2002,21 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest (
     ShurikenDefinition->OffensiveProfile.AttackDefinition.MaxDamage = 2;
     ShurikenDefinition->OffensiveProfile.AttackDefinition.AccuracyBonus = 100;
     ShurikenDefinition->OffensiveProfile.RangeCells = 3;
+    FGridCombatActionDefinition MisconfiguredThrow;
+    MisconfiguredThrow.ActionId = TEXT ("Attack_Shuriken_MON1287_Configured");
+    MisconfiguredThrow.ActionType = EGridCombatActionType::RangedAttack;
+    MisconfiguredThrow.SourcePolicy =
+        EGridCombatActionSourcePolicy::Equipment;
+    MisconfiguredThrow.TargetingPolicy =
+        EGridCombatTargetingPolicy::FirstAxialTarget;
+    MisconfiguredThrow.ResolutionProfile =
+        EGridCombatActionResolutionProfile::Attack;
+    MisconfiguredThrow.ActionPointCost = 2;
+    MisconfiguredThrow.ResourceCosts.SourceItemQuantityCost = 2;
+    MisconfiguredThrow.RangeCells = 3;
+    MisconfiguredThrow.OffensiveProfile =
+        ShurikenDefinition->OffensiveProfile;
+    ShurikenDefinition->CombatActions.Add (MisconfiguredThrow);
     TestTrue (TEXT ("The throwable definition is registered"),
         Inventory->RegisterItemDefinition (ShurikenDefinition));
 
@@ -2081,6 +2096,9 @@ bool FGridMonsterMON1287InventoryThrowableTest::RunTest (
         Fixture.Hud->RequestHotbarSlot (6, Result));
     TestTrue (TEXT ("The inventory throw is accepted"),
         Result.bAccepted);
+    TestEqual (TEXT ("The inventory throwable cost is normalized to one"),
+        Result.Action.CurrentSourceItemQuantityCost,
+        1);
     TestEqual (TEXT ("The attack uses the shuriken offensive profile"),
         Result.AttackRequest.AttackId,
         FName (TEXT ("Attack_Shuriken_MON1287")));
@@ -2596,7 +2614,9 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest (
         EGridCombatActionResolutionProfile::Attack;
     ShurikenAction.ActionPointCost = 1;
     ShurikenAction.ResourceCosts.ManaCost = 2;
-    ShurikenAction.ResourceCosts.SourceItemQuantityCost = 1;
+    // The runtime must normalize a misconfigured equipped throwable to one
+    // consumed unit in both the catalogue and the authoritative transaction.
+    ShurikenAction.ResourceCosts.SourceItemQuantityCost = 0;
     ShurikenAction.CooldownRounds = 1;
     ShurikenAction.RangeCells = 1;
     ShurikenAction.OffensiveProfile.AttackId =
@@ -2655,6 +2675,9 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest (
             ShurikenDefinition->ItemDefinitionId,
             EGridEquipmentSlot::MainHand,
             Accepted));
+    TestEqual (TEXT ("The catalogue normalizes the throwable source cost"),
+        Accepted.Action.CurrentSourceItemQuantityCost,
+        1);
     TestTrue (TEXT ("The accepted attack is structurally valid"),
         Accepted.AttackRequest.IsValid ());
     TestNotNull (TEXT ("Gameplay prepares a recoverable projectile"),

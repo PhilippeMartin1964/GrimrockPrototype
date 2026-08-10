@@ -103,9 +103,11 @@ bool UGridItemDefinitionAsset::BuildQuickItemCombatActionDefinition (
             ItemDefinitionId);
     OutDefinition.SourcePolicy =
         EGridCombatActionSourcePolicy::QuickItem;
-    OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max (
-        1,
-        OutDefinition.ResourceCosts.SourceItemQuantityCost);
+    OutDefinition.ResourceCosts.SourceItemQuantityCost = bThrowable
+        ? 1
+        : FMath::Max (
+            1,
+            OutDefinition.ResourceCosts.SourceItemQuantityCost);
     if (OutDefinition.DisplayName.IsEmpty ())
     {
         OutDefinition.DisplayName = DisplayName;
@@ -204,9 +206,7 @@ bool UGridItemDefinitionAsset::BuildInventoryCombatActionDefinition (
             ItemDefinitionId);
     OutDefinition.SourcePolicy =
         EGridCombatActionSourcePolicy::QuickItem;
-    OutDefinition.ResourceCosts.SourceItemQuantityCost = FMath::Max (
-        1,
-        OutDefinition.ResourceCosts.SourceItemQuantityCost);
+    OutDefinition.ResourceCosts.SourceItemQuantityCost = 1;
     if (OutDefinition.DisplayName.IsEmpty ())
     {
         OutDefinition.DisplayName = DisplayName;

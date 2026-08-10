@@ -159,6 +159,14 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
                 {
                     Definition.Icon = ItemDefinition->Icon;
                 }
+                if (ItemDefinition->bThrowable &&
+                    Definition.SourcePolicy ==
+                        EGridCombatActionSourcePolicy::Equipment &&
+                    Definition.ResolutionProfile ==
+                        EGridCombatActionResolutionProfile::Attack)
+                {
+                    Definition.ResourceCosts.SourceItemQuantityCost = 1;
+                }
                 AddMON126Contribution (
                     Definition,
                     EquippedItem.ItemDefinitionId,

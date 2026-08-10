@@ -25,17 +25,21 @@ de l’instance équipée.
 
 Le style `Throw` avec `bAnimateHeldItem=true` suit ce chemin :
 
-1. le `TurnManager` accepte et résout une seule attaque ;
-2. `OnPlayerAttackRequested` sélectionne le profil `Throw` ;
-3. une unité est extraite du slot offensif par
+1. le `TurnManager` revalide la cible, les PA, le mana et la source ;
+2. il réserve les PA puis fait extraire exactement une unité par
    `UGridPartyInventoryComponent` ;
-4. `AGrimrockPartyPawn` crée un `AGridThrownItemActor` depuis la position du
-   visuel tenu, ou depuis la caméra en repli ;
-5. une pile équipée conserve sa quantité restante ;
-6. le dernier exemplaire libère le slot et efface le visuel tenu ;
-7. `OnPlayerAttackResolved` indique au projectile s’il doit s’arrêter sur la
+3. `AGrimrockPartyPawn` crée immédiatement le `AGridThrownItemActor`
+   récupérable ;
+4. le mana et le cooldown éventuels sont payés, puis l'attaque est résolue ;
+5. `FGridPlayerAttackRequest::PreparedThrownItemActor` transmet le projectile
+   déjà engagé à `OnPlayerAttackRequested` ;
+6. la présentation anime et configure ce projectile sans toucher à
+   l'inventaire ;
+7. une pile équipée conserve sa quantité restante, tandis que le dernier
+   exemplaire libère le slot et efface le visuel tenu ;
+8. `OnPlayerAttackResolved` indique au projectile s’il doit s’arrêter sur la
    cible touchée ;
-8. l’impact convertit le projectile en pickup de monde récupérable.
+9. l’impact convertit le projectile en pickup de monde récupérable.
 
 Si la création du projectile échoue après l’extraction, l’unité est restaurée
 dans le même slot. Il n’existe donc ni perte ni duplication.
@@ -87,7 +91,7 @@ NumPad 7 ajoute :
 | --- | --- |
 | `HeldItemMotionStarted` | doit rester `false` pour `Throw` |
 | `ThrownItemLaunchRequests` | nombre de présentations Throw demandées |
-| `ThrownItemLaunchStarted` | création native réussie pour la dernière attaque |
+| `ThrownItemLaunchStarted` | projectile engagé observé par la présentation |
 | `ThrownItemLaunchCount` | nombre total de projectiles créés |
 
 Les logs `GridInventory EquipmentWorldTransfer`, `GridPlayerAttack Throw` et
@@ -110,8 +114,8 @@ asset Content et vérifie :
 - interception de la cible sur hit ;
 - conversion en pickup récupérable dans la cellule cible.
 
-Le filtre `Grimrock.Monsters.MON11` contient désormais 20 tests et le filtre
-global `Grimrock.Monsters.MON` en contient 92.
+Le filtre `Grimrock.Monsters.MON11` contient désormais 21 tests. Le filtre
+global `Grimrock.Monsters.MON` couvre 142 tests MON1 à MON12.
 
 ## Procédure PIE
 

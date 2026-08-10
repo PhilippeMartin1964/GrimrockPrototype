@@ -579,10 +579,11 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal (
             ? nullptr
             : Inventory->FindItemDefinition (
                 OffensiveItemDefinitionId);
-    if (!CombatActionOverride &&
-        OffensiveEquipmentSlot != EGridEquipmentSlot::None &&
-        IsValid (SourceItemDefinition) &&
-        SourceItemDefinition->bThrowable)
+    if (IsValid (SourceItemDefinition) &&
+        SourceItemDefinition->bThrowable &&
+        ((SourcePolicy == EGridCombatActionSourcePolicy::Equipment &&
+            OffensiveEquipmentSlot != EGridEquipmentSlot::None) ||
+            SourcePolicy == EGridCombatActionSourcePolicy::QuickItem))
     {
         SourceItemQuantityCost = 1;
     }

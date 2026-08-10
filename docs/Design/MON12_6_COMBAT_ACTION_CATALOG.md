@@ -111,6 +111,12 @@ sont restaurés et l'attaque reste refusée. Pour une arme de jet, le projectile
 récupérable est créé par cette transaction autoritaire ; la présentation ne
 retire jamais elle-même l'objet de l'équipement.
 
+Une arme marquée `bThrowable` annonce et consomme toujours exactement une
+unité, qu'elle soit lancée depuis l'équipement ou depuis l'inventaire. Le
+catalogue normalise donc un coût de source erroné (`0`, `2`, etc.) à `1`, et
+le `TurnManager` réapplique cet invariant au moment du paiement. Un DataAsset
+mal configuré ne peut produire ni lancer gratuit ni double consommation.
+
 Un `CooldownRounds` positif est propre au personnage et à l'`ActionId`.
 Après une utilisation acceptée, l'action attend ce nombre de manches
 complètes avant de redevenir disponible. Les cooldowns sont transitoires à
