@@ -10,6 +10,7 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 #include "AssetRegistry/AssetData.h"
 #include "PropertyCustomizationHelpers.h"
@@ -76,6 +77,16 @@ namespace
     FText GetEdgeOrFacingText (const FGridLevelObjectData& Obj)
     {
         const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
+        if (Obj.Type == EGridLevelObjectType::MonsterSpawn &&
+            Obj.InitialFacing != EGridEdge::None)
+        {
+            return FText::Format (
+                FText::FromString (TEXT ("Facing {0}")),
+                GridEditorWidgetHelpers::GetGridEnumDisplayText (
+                    EdgeEnum,
+                    static_cast<int64> (Obj.InitialFacing)));
+        }
+
         if (Obj.Edge != EGridEdge::None)
         {
             return GridEditorWidgetHelpers::GetGridEnumDisplayText (EdgeEnum, static_cast<int64>(Obj.Edge));
@@ -221,6 +232,10 @@ namespace
             Obj.Type == EGridLevelObjectType::ItemSpawn ||
             Obj.Type == EGridLevelObjectType::MonsterSpawn)
         {
+            if (Obj.Type == EGridLevelObjectType::MonsterSpawn)
+            {
+                return true;
+            }
             return Archetype->PreviewMesh || Archetype->FixedMesh || Archetype->MovingMesh;
         }
 
@@ -270,6 +285,20 @@ namespace
             .OnObjectChanged_Lambda ([ApplyAsset] (const FAssetData& AssetData)
             {
                 ApplyAsset (Cast<UGridReadableContentAsset> (AssetData.GetAsset ()));
+            });
+    }
+
+    TSharedRef<SWidget> BuildMonsterDefinitionAssetPicker (
+        UGridMonsterDefinitionAsset* CurrentAsset,
+        TFunction<void(UGridMonsterDefinitionAsset*)> ApplyAsset)
+    {
+        return SNew (SObjectPropertyEntryBox)
+            .AllowedClass (UGridMonsterDefinitionAsset::StaticClass ())
+            .ObjectPath (CurrentAsset ? CurrentAsset->GetPathName () : FString ())
+            .OnObjectChanged_Lambda ([ApplyAsset] (const FAssetData& AssetData)
+            {
+                ApplyAsset (Cast<UGridMonsterDefinitionAsset> (
+                    AssetData.GetAsset ()));
             });
     }
 }
@@ -363,7 +392,11 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildObjectInspectorSection
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildOrientationWidget (const FGridLevelObjectData& Obj)
 {
     const bool bUsesEdge = Obj.Edge != EGridEdge::None;
-    const EGridEdge CurrentOrientation = bUsesEdge
+    const EGridEdge CurrentOrientation =
+        Obj.Type == EGridLevelObjectType::MonsterSpawn &&
+        Obj.InitialFacing != EGridEdge::None
+        ? Obj.InitialFacing
+        : bUsesEdge
         ? Obj.Edge
         : (FMath::IsNearlyEqual (Obj.LocalYaw, 90.f) ? EGridEdge::East
             : FMath::IsNearlyEqual (Obj.LocalYaw, 180.f) ? EGridEdge::South
@@ -639,6 +672,10 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildContextualComponentSec
 
             case EGridLevelObjectType::Item:
                 PrimarySection = BuildItemDefinitionSection (Obj);
+                break;
+
+            case EGridLevelObjectType::MonsterSpawn:
+                PrimarySection = BuildMonsterSpawnSection (Obj);
                 break;
 
             case EGridLevelObjectType::Teleporter:
@@ -1870,6 +1907,183 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildItemDefinitionSection 
                         }))
                 ]
         ];
+}
+
+TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection (
+    const FGridLevelObjectData& Obj)
+{
+    const bool bHasDefinitionAsset = Obj.MonsterDefinitionAsset != nullptr;
+    const bool bHasDefinitionId = !Obj.MonsterDefinitionId.IsNone ();
+    const bool bConflictingDefinitionId =
+        bHasDefinitionAsset &&
+        bHasDefinitionId &&
+        Obj.MonsterDefinitionAsset->MonsterId != Obj.MonsterDefinitionId;
+    const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
+
+    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("SpawnId / ObjectId")),
+                FText::FromString (Obj.ObjectId.ToString ()))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("MonsterDefinitionAsset")),
+                BuildMonsterDefinitionAssetPicker (
+                    Obj.MonsterDefinitionAsset,
+                    [this] (UGridMonsterDefinitionAsset* NewAsset)
+                    {
+                        if (AGridLevelEditorActor* CurrentEditorActor =
+                            GetEditorActor ())
+                        {
+                            if (CurrentEditorActor->
+                                SetSelectedObjectMonsterDefinitionAsset (
+                                    NewAsset))
+                            {
+                                RequestRefresh ();
+                            }
+                        }
+                    }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("MonsterDefinitionId")),
+                SNew (SEditableTextBox)
+                    .Text (GetNameText (Obj.MonsterDefinitionId))
+                    .MinDesiredWidth (160.f)
+                    .OnTextCommitted_Lambda (
+                        [this] (const FText& NewText,
+                            ETextCommit::Type CommitType)
+                    {
+                        if (AGridLevelEditorActor* CurrentEditorActor =
+                            GetEditorActor ())
+                        {
+                            if (CurrentEditorActor->
+                                SetSelectedObjectMonsterDefinitionId (
+                                    GetNameFromEditorText (NewText)))
+                            {
+                                RequestRefresh ();
+                            }
+                        }
+                    }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("EncounterGroupId")),
+                SNew (SEditableTextBox)
+                    .Text (GetNameText (Obj.EncounterGroupId))
+                    .MinDesiredWidth (160.f)
+                    .OnTextCommitted_Lambda (
+                        [this] (const FText& NewText,
+                            ETextCommit::Type CommitType)
+                    {
+                        if (AGridLevelEditorActor* CurrentEditorActor =
+                            GetEditorActor ())
+                        {
+                            if (CurrentEditorActor->
+                                SetSelectedObjectEncounterGroupId (
+                                    GetNameFromEditorText (NewText)))
+                            {
+                                RequestRefresh ();
+                            }
+                        }
+                    }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("InitialFacing")),
+                GridEditorWidgetHelpers::GetGridEnumDisplayText (
+                    EdgeEnum,
+                    static_cast<int64> (Obj.InitialFacing)))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Initial State")),
+                FText::FromString (Obj.bInitiallyEnabled
+                    ? TEXT ("Enabled")
+                    : TEXT ("Disabled")))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+                FText::FromString (TEXT ("Monster Actor Class")),
+                GetClassNameText (Obj.MonsterDefinitionAsset
+                    ? Obj.MonsterDefinitionAsset->MonsterActorClass.Get ()
+                    : nullptr))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+        [
+            SNew (SButton)
+                .Text (FText::FromString (TEXT ("Sync Id From Asset")))
+                .IsEnabled (bHasDefinitionAsset)
+                .OnClicked_Lambda ([this] ()
+                {
+                    if (AGridLevelEditorActor* CurrentEditorActor =
+                        GetEditorActor ())
+                    {
+                        if (CurrentEditorActor->
+                            SyncSelectedMonsterDefinitionIdFromAsset ())
+                        {
+                            RequestRefresh ();
+                        }
+                    }
+                    return FReply::Handled ();
+                })
+        ];
+
+    if (!bHasDefinitionAsset && !bHasDefinitionId)
+    {
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (
+                    TEXT ("Error: MonsterSpawn requires a monster definition.")))
+                .AutoWrapText (true)
+                .ColorAndOpacity (FSlateColor (
+                    FLinearColor (1.f, 0.25f, 0.18f, 1.f)))
+        ];
+    }
+
+    if (bConflictingDefinitionId)
+    {
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 2.f, 0.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (
+                    TEXT ("Error: MonsterDefinitionId differs from the selected asset id.")))
+                .AutoWrapText (true)
+                .ColorAndOpacity (FSlateColor (
+                    FLinearColor (1.f, 0.25f, 0.18f, 1.f)))
+        ];
+    }
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
+    [
+        SNew (STextBlock)
+            .Text (FText::FromString (TEXT (
+                "MON13.1 stores and validates this placement. Runtime actor creation starts in MON13.2.")))
+            .AutoWrapText (true)
+            .ColorAndOpacity (FSlateColor (
+                FLinearColor (0.65f, 0.65f, 0.65f)))
+    ];
+
+    return GridEditorWidgetHelpers::BuildGridPanelSection (
+        FText::FromString (TEXT ("Monster Spawn")),
+        Root);
 }
 
 TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj)

@@ -1,4 +1,5 @@
 #include "Core/GridObjectPaletteAsset.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 bool UGridObjectPaletteAsset::ValidatePalette (TArray<FGridArchetypeValidationMessage>& OutMessages) const
 {
@@ -46,6 +47,33 @@ bool UGridObjectPaletteAsset::ValidatePalette (TArray<FGridArchetypeValidationMe
             OutMessages.Emplace (
                 EGridArchetypeValidationSeverity::Error,
                 FString::Printf (TEXT ("Palette entry '%s' DefaultArchetype SupportedType must not be None."), *EntryName));
+        }
+
+        if (Entry.DefaultArchetype->SupportedType ==
+            EGridLevelObjectType::MonsterSpawn)
+        {
+            if (!Entry.DefaultMonsterDefinition)
+            {
+                OutMessages.Emplace (
+                    EGridArchetypeValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Palette entry '%s' requires DefaultMonsterDefinition for MonsterSpawn."),
+                        *EntryName));
+            }
+            else
+            {
+                FString DefinitionError;
+                if (!Entry.DefaultMonsterDefinition->ValidateDefinition (
+                    DefinitionError))
+                {
+                    OutMessages.Emplace (
+                        EGridArchetypeValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("Palette entry '%s' has an invalid DefaultMonsterDefinition: %s"),
+                            *EntryName,
+                            *DefinitionError));
+                }
+            }
         }
     }
 

@@ -1,6 +1,12 @@
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBalanceTypes.h"
+
+UGridMonsterDefinitionAsset::UGridMonsterDefinitionAsset ()
+{
+    MonsterActorClass = AGridMonsterActor::StaticClass ();
+}
 
 FName FGridMonsterLootEntry::GetResolvedItemDefinitionId () const
 {
@@ -92,6 +98,11 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
     if (CategoryId.IsNone ())
     {
         Errors.Add (TEXT ("CategoryId must not be None."));
+    }
+
+    if (!MonsterActorClass)
+    {
+        Errors.Add (TEXT ("MonsterActorClass must be assigned."));
     }
 
     if (DangerLevel < 1)

@@ -7,6 +7,7 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridReadableContentAsset.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/StaticMesh.h"
@@ -109,6 +110,10 @@ namespace
         if (Message.Contains (TEXT ("Item")) || Message.Contains (TEXT ("item")))
         {
             return TEXT ("Items");
+        }
+        if (Message.Contains (TEXT ("Monster")) || Message.Contains (TEXT ("monster")))
+        {
+            return TEXT ("Monsters");
         }
         if (Message.Contains (TEXT ("Archetype")) || Message.Contains (TEXT ("archetype")))
         {
@@ -800,6 +805,12 @@ bool AGridLevelEditorActor::SetSelectedObjectOrientation (EGridEdge Orientation)
     {
         SelectedObject->Edge = Orientation;
         SelectedEdge = Orientation;
+    }
+    else if (SelectedObject->Type ==
+        EGridLevelObjectType::MonsterSpawn)
+    {
+        SelectedObject->InitialFacing = Orientation;
+        SelectedObject->LocalYaw = GetYawForOrientation (Orientation);
     }
     else
     {
@@ -1815,6 +1826,9 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.CellY = SelectedCellY;
     NewObject.Edge = bPlaceObjectOnEdge ? SelectedEdge : EGridEdge::None;
     NewObject.LocalYaw = 0.f;
+    NewObject.InitialFacing = NewObject.Type == EGridLevelObjectType::MonsterSpawn
+        ? EGridEdge::North
+        : EGridEdge::None;
     NewObject.ArchetypeId = ObjectArchetypeId;
     NewObject.bInitiallyEnabled = bObjectInitiallyEnabled;
     NewObject.bInitiallyActive = bObjectInitiallyActive;
@@ -1822,6 +1836,21 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
     NewObject.Notes = ObjectNotes;
     NewObject.PaletteEntryId = SelectedPaletteEntryId;
     NewObject.Behavior = ObjectBehavior;
+    if (NewObject.Type == EGridLevelObjectType::MonsterSpawn &&
+        ObjectPalette)
+    {
+        if (const FGridObjectPaletteEntry* PaletteEntry =
+            ObjectPalette->FindEntryById (SelectedPaletteEntryId))
+        {
+            NewObject.MonsterDefinitionAsset =
+                PaletteEntry->DefaultMonsterDefinition;
+            if (NewObject.MonsterDefinitionAsset)
+            {
+                NewObject.MonsterDefinitionId =
+                    NewObject.MonsterDefinitionAsset->MonsterId;
+            }
+        }
+    }
     if (NewObject.Type == EGridLevelObjectType::Item)
     {
         NewObject.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;
@@ -3024,6 +3053,103 @@ bool AGridLevelEditorActor::SyncSelectedItemDefinitionIdFromAsset ()
     return true;
 }
 
+bool AGridLevelEditorActor::SetSelectedObjectMonsterDefinitionAsset (
+    UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->MonsterDefinitionAsset = NewMonsterDefinitionAsset;
+    if (NewMonsterDefinitionAsset)
+    {
+        Obj->MonsterDefinitionId = NewMonsterDefinitionAsset->MonsterId;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectMonsterDefinitionId (
+    FName NewMonsterDefinitionId)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->MonsterDefinitionId = NewMonsterDefinitionId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SyncSelectedMonsterDefinitionIdFromAsset ()
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj ||
+        Obj->Type != EGridLevelObjectType::MonsterSpawn ||
+        !Obj->MonsterDefinitionAsset)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->MonsterDefinitionId = Obj->MonsterDefinitionAsset->MonsterId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
+bool AGridLevelEditorActor::SetSelectedObjectEncounterGroupId (
+    FName NewEncounterGroupId)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->EncounterGroupId = NewEncounterGroupId;
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
 bool AGridLevelEditorActor::SetSelectedObjectReadableContentAsset (
     UGridReadableContentAsset* NewReadableContentAsset)
 {
@@ -3648,6 +3774,7 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
     TMap<FGuid, int32> ReceptacleItemInsertedLinkCountBySourceId;
     TMap<FGuid, int32> ReceptacleItemRemovedLinkCountBySourceId;
     TMap<FGuid, int32> ReceptacleItemChangedLinkCountBySourceId;
+    TMap<FIntPoint, FGuid> EnabledMonsterSpawnByCell;
 
     auto IsEdgeOrWallPlacedObject = [this] (const FGridLevelObjectData& ObjectData) -> bool
     {
@@ -3904,6 +4031,115 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     EGridLevelValidationSeverity::Warning,
                     TEXT ("Placed item is on a non-walkable cell; normal party pickup cannot reach this cell."),
                     Obj.ObjectId);
+            }
+        }
+
+        if (Obj.Type == EGridLevelObjectType::MonsterSpawn)
+        {
+            const UGridMonsterDefinitionAsset* Definition =
+                Obj.MonsterDefinitionAsset;
+            const FName AssetDefinitionId = Definition
+                ? Definition->MonsterId
+                : NAME_None;
+            const FName ResolvedDefinitionId =
+                !AssetDefinitionId.IsNone ()
+                ? AssetDefinitionId
+                : Obj.MonsterDefinitionId;
+
+            if (ResolvedDefinitionId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("MonsterSpawn requires MonsterDefinitionAsset or MonsterDefinitionId."),
+                    Obj.ObjectId);
+            }
+
+            if (Definition)
+            {
+                FString DefinitionError;
+                if (!Definition->ValidateDefinition (DefinitionError))
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("MonsterSpawn references an invalid MonsterDefinition: %s"),
+                            *DefinitionError),
+                        Obj.ObjectId);
+                }
+
+                if (!Obj.MonsterDefinitionId.IsNone () &&
+                    Obj.MonsterDefinitionId != AssetDefinitionId)
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("MonsterSpawn stores MonsterDefinitionId '%s' but its asset resolves to '%s'."),
+                            *Obj.MonsterDefinitionId.ToString (),
+                            *AssetDefinitionId.ToString ()),
+                        Obj.ObjectId);
+                }
+            }
+
+            const bool bCardinalFacing =
+                Obj.InitialFacing == EGridEdge::North ||
+                Obj.InitialFacing == EGridEdge::East ||
+                Obj.InitialFacing == EGridEdge::South ||
+                Obj.InitialFacing == EGridEdge::West;
+            if (!bCardinalFacing)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("MonsterSpawn requires a cardinal InitialFacing."),
+                    Obj.ObjectId);
+            }
+            else if (!FMath::IsNearlyEqual (
+                Obj.LocalYaw,
+                GetYawForOrientation (Obj.InitialFacing)))
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Warning,
+                    TEXT ("MonsterSpawn LocalYaw preview mirror differs from InitialFacing; InitialFacing remains authoritative."),
+                    Obj.ObjectId);
+            }
+
+            if (Obj.Edge != EGridEdge::None)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("MonsterSpawn is cell-centered and requires Edge=None."),
+                    Obj.ObjectId);
+            }
+
+            const FGridLevelCellData& SpawnCell =
+                LevelAsset->GetCell (Obj.CellX, Obj.CellY);
+            if (SpawnCell.CellType == EGridCellType::Empty ||
+                SpawnCell.bBlocksOccupancy)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("MonsterSpawn must be placed on a non-empty cell that allows occupancy."),
+                    Obj.ObjectId);
+            }
+
+            if (Obj.bInitiallyEnabled)
+            {
+                const FIntPoint CellKey (Obj.CellX, Obj.CellY);
+                if (const FGuid* ExistingSpawnId =
+                    EnabledMonsterSpawnByCell.Find (CellKey))
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("MonsterSpawn shares its initial cell with enabled MonsterSpawn %s."),
+                            *ExistingSpawnId->ToString ()),
+                        Obj.ObjectId);
+                }
+                else
+                {
+                    EnabledMonsterSpawnByCell.Add (
+                        CellKey,
+                        Obj.ObjectId);
+                }
             }
         }
 

@@ -13,6 +13,7 @@ class UGridObjectPaletteAsset;
 class UGridObjectArchetypeAsset;
 class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
+class UGridMonsterDefinitionAsset;
 
 UENUM (BlueprintType)
 enum class EGridEditorTool : uint8
@@ -413,6 +414,19 @@ public:
 
     UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
     bool SyncSelectedItemDefinitionIdFromAsset ();
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
+    bool SetSelectedObjectMonsterDefinitionAsset (
+        UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset);
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
+    bool SetSelectedObjectMonsterDefinitionId (FName NewMonsterDefinitionId);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Monster Definition")
+    bool SyncSelectedMonsterDefinitionIdFromAsset ();
+
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
+    bool SetSelectedObjectEncounterGroupId (FName NewEncounterGroupId);
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
     bool SetSelectedObjectReadableContentAsset (UGridReadableContentAsset* NewReadableContentAsset);

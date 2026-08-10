@@ -267,7 +267,12 @@ Pour un futur placement `MonsterSpawn`, `SpawnObjectId` utilisera l’`ObjectId`
 
 ## Limitation du pipeline MonsterSpawn
 
-MON9 associe et restaure un Actor existant. Si une sauvegarde référence un GUID sans Actor, un Warning est produit et le chargement continue. MON9 ne crée pas d’Actor générique et n’implémente pas encore le pipeline natif complet de spawn depuis `MonsterSpawn`.
+MON13.1 fournit désormais le modèle persistant validé du placement
+`MonsterSpawn` (`ObjectId/SpawnId`, définition, cellule, orientation, état
+initial et rencontre). MON9 associe toutefois toujours l'état sauvegardé à un
+Actor existant. Si une sauvegarde référence un GUID sans Actor, un Warning est
+produit et le chargement continue. La création native de l'Actor depuis ce
+placement commence en MON13.2.
 
 ## Checklist PIE MON9
 

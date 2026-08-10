@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.h"
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "GridTypes.generated.h"
 
 class UGridReadableContentAsset;
@@ -191,6 +192,21 @@ struct FGridLevelObjectData
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Item|Reading", meta = (MultiLine = "true"))
     FText ReadTextOverride;
 
+    /** MON13 persistent monster definition. ObjectId remains the stable SpawnId. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
+    TObjectPtr<UGridMonsterDefinitionAsset> MonsterDefinitionAsset = nullptr;
+
+    /** Stable lookup id used by persistence and future Asset Manager resolution. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
+    FName MonsterDefinitionId = NAME_None;
+
+    /** Cardinal gameplay orientation. LocalYaw remains a preview compatibility mirror. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
+    EGridEdge InitialFacing = EGridEdge::None;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     bool bInitiallyEnabled = true;
 
@@ -212,7 +228,7 @@ struct FGridLevelObjectData
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGridObjectBehaviorParams Behavior;
 
-    /** Optional MON7 encounter group. None preserves legacy placement behavior. */
+    /** Optional MON7/MON13 encounter group. None preserves independent behavior. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster")
     FName EncounterGroupId = NAME_None;
 };

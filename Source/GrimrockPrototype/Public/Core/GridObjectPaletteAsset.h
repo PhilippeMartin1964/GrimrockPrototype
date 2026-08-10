@@ -31,6 +31,10 @@ struct FGridObjectPaletteEntry
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
     TObjectPtr<UGridObjectArchetypeAsset> DefaultArchetype = nullptr;
 
+    /** Required default when the archetype places a MonsterSpawn. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
+    TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;
+
     FName GetEffectiveArchetypeId () const
     {
         return DefaultArchetype ? DefaultArchetype->ArchetypeId : NAME_None;

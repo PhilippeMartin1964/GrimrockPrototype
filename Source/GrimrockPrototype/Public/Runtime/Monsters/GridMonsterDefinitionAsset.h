@@ -11,6 +11,7 @@ class UAnimInstance;
 class UAnimMontage;
 class USkeletalMesh;
 class UTexture2D;
+class AGridMonsterActor;
 
 UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridMonsterDefinitionAsset : public UPrimaryDataAsset
@@ -18,6 +19,8 @@ class GRIMROCKPROTOTYPE_API UGridMonsterDefinitionAsset : public UPrimaryDataAss
     GENERATED_BODY ()
 
 public:
+    UGridMonsterDefinitionAsset ();
+
     virtual void PostLoad () override;
     virtual FPrimaryAssetId GetPrimaryAssetId () const override;
 
@@ -44,6 +47,10 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Visual")
     TSubclassOf<UAnimInstance> AnimationClass;
+
+    /** Actor implementation instantiated by the MON13 spawn pipeline. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Runtime")
+    TSubclassOf<AGridMonsterActor> MonsterActorClass;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Visual")
     FVector VisualScale = FVector::OneVector;

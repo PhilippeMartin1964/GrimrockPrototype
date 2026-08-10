@@ -44,6 +44,7 @@ private:
     TSharedRef<SWidget> BuildTransitionDetailsSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildLightDetailsSection (const UGridObjectArchetypeAsset& Archetype);
     TSharedRef<SWidget> BuildItemDefinitionSection (const FGridLevelObjectData& Obj);
+    TSharedRef<SWidget> BuildMonsterSpawnSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildTriggerBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReceptacleBehaviorSection (const FGridLevelObjectData& Obj);
     TSharedRef<SWidget> BuildReadableTextSection (const FGridLevelObjectData& Obj);

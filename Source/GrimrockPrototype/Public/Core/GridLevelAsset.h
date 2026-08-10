@@ -12,6 +12,8 @@ class GRIMROCKPROTOTYPE_API UGridLevelAsset : public UDataAsset
 
 public:
 
+    virtual void PostLoad () override;
+
     // --- Grid size ---
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid")
     int32 Width = 32;
@@ -69,4 +71,13 @@ public:
     void RemoveLinksForObject (const FGuid& ObjectId);
 
     void EnsureObjectIds ();
+
+    /**
+     * Validates the persistent MON13.1 MonsterSpawn contract only.
+     * Runtime actor creation and occupancy registration belong to later MON13 milestones.
+     */
+    UFUNCTION (BlueprintCallable, Category = "Gameplay|Monsters|Validation")
+    bool ValidateMonsterSpawns (UPARAM (ref) TArray<FString>& OutErrors) const;
+
+    const FGridLevelObjectData* FindMonsterSpawnById (const FGuid& SpawnId) const;
 };
