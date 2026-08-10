@@ -3,7 +3,7 @@
 
 namespace
 {
-    bool IsCardinalFacing (EGridEdge Facing)
+    bool IsValidMonsterSpawnFacing (EGridEdge Facing)
     {
         return Facing == EGridEdge::North ||
             Facing == EGridEdge::East ||
@@ -55,7 +55,7 @@ namespace
             return;
         }
 
-        if (!IsCardinalFacing (ObjectData.InitialFacing))
+        if (!IsValidMonsterSpawnFacing (ObjectData.InitialFacing))
         {
             ObjectData.InitialFacing =
                 GetFacingForLegacyYaw (ObjectData.LocalYaw);
@@ -347,7 +347,7 @@ bool UGridLevelAsset::ValidateMonsterSpawns (
                 *SpawnLabel));
         }
 
-        if (!IsCardinalFacing (Spawn.InitialFacing))
+        if (!IsValidMonsterSpawnFacing (Spawn.InitialFacing))
         {
             OutErrors.Add (FString::Printf (
                 TEXT ("MonsterSpawn %s requires a cardinal InitialFacing."),

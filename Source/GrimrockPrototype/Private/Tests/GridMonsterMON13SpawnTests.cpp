@@ -78,8 +78,8 @@ namespace
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMonsterMON131PersistentModelTest,
     "Grimrock.Monsters.MON13.1.PersistentModel",
-    EAutomationTestFlags::ApplicationContextMask |
-        EAutomationTestFlags::ProductFilter)
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON131PersistentModelTest::RunTest (
     const FString& Parameters)
@@ -138,8 +138,8 @@ bool FGridMonsterMON131PersistentModelTest::RunTest (
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMonsterMON131ValidationTest,
     "Grimrock.Monsters.MON13.1.Validation",
-    EAutomationTestFlags::ApplicationContextMask |
-        EAutomationTestFlags::ProductFilter)
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON131ValidationTest::RunTest (
     const FString& Parameters)
@@ -216,8 +216,8 @@ bool FGridMonsterMON131ValidationTest::RunTest (
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMonsterMON131PaletteContractTest,
     "Grimrock.Monsters.MON13.1.PaletteContract",
-    EAutomationTestFlags::ApplicationContextMask |
-        EAutomationTestFlags::ProductFilter)
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
 
 bool FGridMonsterMON131PaletteContractTest::RunTest (
     const FString& Parameters)
