@@ -958,13 +958,26 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest (
     UGridLevelAsset* LevelAsset = ConfigureMON8Floor (Runtime);
     const FGuid SourceId (30, 0, 0, 1);
     const FGuid TargetId (30, 0, 0, 2);
+    const FGuid UnlinkedSourceId (30, 0, 0, 3);
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON8MonsterDefinition (Runtime, TEXT ("MON8_EventRat"));
 
     FGridLevelObjectData Source;
     Source.ObjectId = SourceId;
     Source.Type = EGridLevelObjectType::MonsterSpawn;
     Source.CellX = 1;
     Source.CellY = 1;
+    Source.Edge = EGridEdge::None;
+    Source.InitialFacing = EGridEdge::North;
+    Source.MonsterDefinitionAsset = Definition;
+    Source.MonsterDefinitionId = Definition->MonsterId;
     LevelAsset->Objects.Add (Source);
+
+    FGridLevelObjectData UnlinkedSource = Source;
+    UnlinkedSource.ObjectId = UnlinkedSourceId;
+    UnlinkedSource.CellX = 2;
+    UnlinkedSource.CellY = 2;
+    LevelAsset->Objects.Add (UnlinkedSource);
 
     FGridLevelObjectData Target;
     Target.ObjectId = TargetId;
@@ -981,15 +994,15 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest (
     LevelAsset->Links.Add (Link);
     Runtime->RebuildLevel ();
 
-    UGridMonsterDefinitionAsset* Definition =
-        MakeMON8MonsterDefinition (Runtime, TEXT ("MON8_EventRat"));
-    AGridMonsterActor* Monster = SpawnMON8Monster (
-        TestWorld.World,
-        Definition,
-        SourceId,
-        FIntPoint (1, 1),
-        false);
-    Monster->DeathComponent->InitializeDeathComponent (Runtime);
+    AGridMonsterActor* Monster =
+        Runtime->FindSpawnedMonsterActor (SourceId);
+    TestNotNull (
+        TEXT ("The linked MonsterSpawn creates its runtime monster"),
+        Monster);
+    if (!Monster)
+    {
+        return false;
+    }
     Monster->MarkDead ();
     TestEqual (
         TEXT ("The MonsterDied link is attempted once"),
@@ -1001,13 +1014,15 @@ bool FGridMonsterMON8MonsterDiedEventTest::RunTest (
         Monster->DeathComponent->LinkExecutionAttemptCount,
         1);
 
-    AGridMonsterActor* UnlinkedMonster = SpawnMON8Monster (
-        TestWorld.World,
-        Definition,
-        FGuid (30, 0, 0, 3),
-        FIntPoint (2, 2),
-        false);
-    UnlinkedMonster->DeathComponent->InitializeDeathComponent (Runtime);
+    AGridMonsterActor* UnlinkedMonster =
+        Runtime->FindSpawnedMonsterActor (UnlinkedSourceId);
+    TestNotNull (
+        TEXT ("The unlinked MonsterSpawn creates its runtime monster"),
+        UnlinkedMonster);
+    if (!UnlinkedMonster)
+    {
+        return false;
+    }
     UnlinkedMonster->MarkDead ();
     TestTrue (
         TEXT ("A missing LevelAsset link does not prevent death"),

@@ -47,11 +47,6 @@ namespace
         Definition->ActionPointsPerTurn = 2;
         Definition->GridFootprint = FIntPoint (1, 1);
         Definition->DeathExpectedDuration = 1.0f;
-        Definition->SkeletalMesh =
-            TSoftObjectPtr<USkeletalMesh> (
-                NewObject<USkeletalMesh> (Definition));
-        Definition->AnimationClass =
-            UGridMonsterAnimInstance::StaticClass ();
         return Definition;
     }
 
