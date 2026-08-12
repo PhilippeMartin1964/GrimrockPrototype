@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Animation/AnimInstance.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
@@ -47,6 +48,37 @@ namespace
         Definition->ActionPointsPerTurn = 2;
         Definition->GridFootprint = FIntPoint (1, 1);
         Definition->DeathExpectedDuration = 1.0f;
+        return Definition;
+    }
+
+    UGridMonsterDefinitionAsset* MakeMON13RuntimeDefinition (
+        FAutomationTestBase& Test,
+        UObject* Outer,
+        FName MonsterId)
+    {
+        USkeletalMesh* SkeletalMesh = LoadObject<USkeletalMesh> (
+            nullptr,
+            TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Meshes/SK_RatGiant.SK_RatGiant"));
+        UClass* AnimationClass = LoadClass<UAnimInstance> (
+            nullptr,
+            TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C"));
+
+        Test.TestNotNull (
+            TEXT ("MON13.2 runtime fixture loads the Rat Giant skeletal mesh"),
+            SkeletalMesh);
+        Test.TestNotNull (
+            TEXT ("MON13.2 runtime fixture loads the Rat Giant animation class"),
+            AnimationClass);
+        if (!SkeletalMesh || !AnimationClass)
+        {
+            return nullptr;
+        }
+
+        UGridMonsterDefinitionAsset* Definition =
+            MakeMON13Definition (Outer, MonsterId);
+        Definition->SkeletalMesh =
+            TSoftObjectPtr<USkeletalMesh> (SkeletalMesh);
+        Definition->AnimationClass = AnimationClass;
         return Definition;
     }
 
@@ -346,7 +378,14 @@ bool FGridMonsterMON132RuntimePipelineTest::RunTest (
     UGridLevelAsset* Level = MakeMON13Level (Runtime);
     Runtime->LevelAsset = Level;
     UGridMonsterDefinitionAsset* Definition =
-        MakeMON13Definition (Runtime, TEXT ("MON132_Rat"));
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON132_Rat"));
+    if (!Definition)
+    {
+        return false;
+    }
     const FGuid SpawnId (13, 2, 1, 1);
     FGridLevelObjectData Spawn = MakeMON13Spawn (
         Definition,
@@ -357,10 +396,6 @@ bool FGridMonsterMON132RuntimePipelineTest::RunTest (
     Spawn.EncounterGroupId = TEXT ("Encounter_MON132");
     Level->Objects.Add (Spawn);
 
-    AddExpectedMessage (
-        TEXT ("[GridMonsterSpawn] PresentationWarning"),
-        EAutomationExpectedMessageFlags::Contains,
-        2);
     Runtime->RebuildLevel ();
     AGridMonsterActor* FirstMonster =
         Runtime->FindSpawnedMonsterActor (SpawnId);
@@ -451,7 +486,14 @@ bool FGridMonsterMON132AtomicFailureTest::RunTest (
     UGridLevelAsset* Level = MakeMON13Level (Runtime);
     Runtime->LevelAsset = Level;
     UGridMonsterDefinitionAsset* Definition =
-        MakeMON13Definition (Runtime, TEXT ("MON132_AtomicRat"));
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON132_AtomicRat"));
+    if (!Definition)
+    {
+        return false;
+    }
 
     const FGuid ValidId (13, 2, 2, 1);
     Level->Objects.Add (MakeMON13Spawn (
@@ -494,11 +536,8 @@ bool FGridMonsterMON132AtomicFailureTest::RunTest (
     AddExpectedError (
         TEXT ("[GridMonsterSpawn] Skipped"),
         EAutomationExpectedErrorFlags::Contains,
-        4);
-    AddExpectedMessage (
-        TEXT ("[GridMonsterSpawn] PresentationWarning"),
-        EAutomationExpectedMessageFlags::Contains,
-        1);
+        4,
+        false);
     Runtime->RebuildLevel ();
     TestEqual (TEXT ("Only the valid placement creates an Actor"),
         Runtime->GetSpawnedMonsterActorCount (),
@@ -547,11 +586,16 @@ bool FGridMonsterMON132EditorPreviewTest::RunTest (
     UGridLevelAsset* Level = MakeMON13Level (Runtime);
     Runtime->LevelAsset = Level;
     UGridMonsterDefinitionAsset* Definition =
-        MakeMON13Definition (Runtime, TEXT ("MON132_PreviewRat"));
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON132_PreviewRat"));
+    if (!Definition)
+    {
+        return false;
+    }
     USkeletalMesh* PreviewMesh =
-        NewObject<USkeletalMesh> (Definition);
-    Definition->SkeletalMesh =
-        TSoftObjectPtr<USkeletalMesh> (PreviewMesh);
+        Definition->SkeletalMesh.Get ();
     Definition->VisualOffset = FVector (1.0f, 2.0f, 3.0f);
     Definition->VisualScale = FVector (1.5f);
 
