@@ -357,6 +357,10 @@ bool FGridMonsterMON132RuntimePipelineTest::RunTest (
     Spawn.EncounterGroupId = TEXT ("Encounter_MON132");
     Level->Objects.Add (Spawn);
 
+    AddExpectedError (
+        TEXT ("[GridMonsterSpawn] PresentationWarning"),
+        EAutomationExpectedErrorFlags::Contains,
+        2);
     Runtime->RebuildLevel ();
     AGridMonsterActor* FirstMonster =
         Runtime->FindSpawnedMonsterActor (SpawnId);
@@ -491,6 +495,10 @@ bool FGridMonsterMON132AtomicFailureTest::RunTest (
         TEXT ("[GridMonsterSpawn] Skipped"),
         EAutomationExpectedErrorFlags::Contains,
         4);
+    AddExpectedError (
+        TEXT ("[GridMonsterSpawn] PresentationWarning"),
+        EAutomationExpectedErrorFlags::Contains,
+        1);
     Runtime->RebuildLevel ();
     TestEqual (TEXT ("Only the valid placement creates an Actor"),
         Runtime->GetSpawnedMonsterActorCount (),
