@@ -1,7 +1,11 @@
 #include "Runtime/GridEditorPreviewObjectActor.h"
 
+#include "Animation/AnimInstance.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor ()
 {
@@ -18,6 +22,16 @@ AGridEditorPreviewObjectActor::AGridEditorPreviewObjectActor ()
     MeshComponent->SetupAttachment (SceneRoot);
     MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
     MeshComponent->SetMobility (EComponentMobility::Movable);
+
+    SkeletalMeshComponent =
+        CreateDefaultSubobject<USkeletalMeshComponent> (
+            TEXT ("SkeletalMesh"));
+    SkeletalMeshComponent->SetupAttachment (SceneRoot);
+    SkeletalMeshComponent->SetCollisionEnabled (
+        ECollisionEnabled::NoCollision);
+    SkeletalMeshComponent->SetGenerateOverlapEvents (false);
+    SkeletalMeshComponent->SetMobility (EComponentMobility::Movable);
+    SkeletalMeshComponent->SetVisibility (false, true);
 }
 
 void AGridEditorPreviewObjectActor::InitializePreviewObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* NormalMaterial)
@@ -32,6 +46,14 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject (const FGridLevelObj
         return;
     }
 
+    if (SkeletalMeshComponent)
+    {
+        SkeletalMeshComponent->SetSkeletalMesh (nullptr);
+        SkeletalMeshComponent->SetAnimInstanceClass (nullptr);
+        SkeletalMeshComponent->SetVisibility (false, true);
+    }
+
+    MeshComponent->SetVisibility (true, true);
     MeshComponent->SetStaticMesh (Mesh);
 
     if (CachedNormalMaterial)
@@ -42,6 +64,49 @@ void AGridEditorPreviewObjectActor::InitializePreviewObject (const FGridLevelObj
     MeshComponent->SetRenderCustomDepth (false);
     MeshComponent->SetCustomDepthStencilValue (0);
     MeshComponent->MarkRenderStateDirty ();
+
+    bIsHovered = false;
+    bIsSelected = false;
+    RefreshStencilState ();
+}
+
+void AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject (
+    const FGridLevelObjectData& ObjectData,
+    UGridMonsterDefinitionAsset* MonsterDefinition)
+{
+    ObjectId = ObjectData.ObjectId;
+    ObjectType = ObjectData.Type;
+    CachedNormalMaterial = nullptr;
+
+    if (MeshComponent)
+    {
+        MeshComponent->SetStaticMesh (nullptr);
+        MeshComponent->SetVisibility (false, true);
+    }
+
+    if (!SkeletalMeshComponent || !IsValid (MonsterDefinition))
+    {
+        return;
+    }
+
+    SkeletalMeshComponent->SetSkeletalMesh (
+        MonsterDefinition->SkeletalMesh.LoadSynchronous ());
+    SkeletalMeshComponent->SetRelativeLocation (
+        MonsterDefinition->VisualOffset);
+    SkeletalMeshComponent->SetRelativeScale3D (
+        MonsterDefinition->VisualScale);
+    if (MonsterDefinition->AnimationClass)
+    {
+        SkeletalMeshComponent->SetAnimationMode (
+            EAnimationMode::AnimationBlueprint);
+        SkeletalMeshComponent->SetAnimInstanceClass (
+            MonsterDefinition->AnimationClass.Get ());
+    }
+    else
+    {
+        SkeletalMeshComponent->SetAnimInstanceClass (nullptr);
+    }
+    SkeletalMeshComponent->SetVisibility (true, true);
 
     bIsHovered = false;
     bIsSelected = false;
@@ -62,11 +127,6 @@ void AGridEditorPreviewObjectActor::SetSelected (bool bSelected)
 
 void AGridEditorPreviewObjectActor::RefreshStencilState ()
 {
-    if (!MeshComponent)
-    {
-        return;
-    }
-
     int32 StencilValue = 0;
 
     if (bIsSelected)
@@ -77,7 +137,18 @@ void AGridEditorPreviewObjectActor::RefreshStencilState ()
         StencilValue = 1;
     }
 
-    MeshComponent->SetRenderCustomDepth (StencilValue != 0);
-    MeshComponent->SetCustomDepthStencilValue (StencilValue);
-    MeshComponent->MarkRenderStateDirty ();
+    const auto ApplyStencil = [StencilValue] (
+        UPrimitiveComponent* Component)
+    {
+        if (!Component)
+        {
+            return;
+        }
+        Component->SetRenderCustomDepth (StencilValue != 0);
+        Component->SetCustomDepthStencilValue (StencilValue);
+        Component->MarkRenderStateDirty ();
+    };
+
+    ApplyStencil (MeshComponent);
+    ApplyStencil (SkeletalMeshComponent);
 }

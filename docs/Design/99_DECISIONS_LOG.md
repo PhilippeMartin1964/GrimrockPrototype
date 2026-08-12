@@ -785,3 +785,24 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   sérialisée.
 - Le document d'implémentation est
   `docs/Design/MON12_8_9_HOTBAR_ITEM_LIFETIME.md`.
+
+---
+
+## 2026-08-12 — MON13.2 : instanciation native des `MonsterSpawn`
+
+- `ObjectId` reste l'unique `SpawnId` et l'identité persistante de l'Actor ;
+  aucun second GUID n'est créé.
+- `DA_MonsterSpawn.RuntimeActorClass` reste à `None`. La classe concrète vient
+  exclusivement de `MonsterDefinitionAsset.MonsterActorClass`.
+- La résolution runtime exige le DataAsset, un identifiant concordant, une
+  classe concrète, une cellule praticable et une orientation cardinale.
+- L'Actor est créé en différé et initialisé avant `BeginPlay`; un refus ne
+  conserve aucun état partiel.
+- Les Actors générés sont suivis par `SpawnId`, détruits lors d'un rebuild ou
+  d'un changement de niveau, puis recréés avant restauration MON9.
+- L'aperçu éditeur utilise un Actor editor-only à mesh squelettique et ne crée
+  aucune logique de combat.
+- Les placements désactivés et les commandes dynamiques restent hors périmètre
+  jusqu'à MON13.3.
+- Le document d'implémentation est
+  `docs/Design/MON13_2_MONSTER_SPAWN_PIPELINE.md`.

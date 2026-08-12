@@ -16,6 +16,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterIdleVariationComponent.h"
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
@@ -27,10 +28,20 @@
 #include "Blueprint/UserWidget.h"
 #include "EngineUtils.h"
 #include "GameFramework/GameModeBase.h"
+#include "Kismet/GameplayStatics.h"
 
 namespace
 {
     const FName SingleLevelRuntimeStateId (TEXT ("SingleLevel"));
+
+    bool IsMON132CardinalMonsterSpawnFacing (
+        EGridEdge Facing)
+    {
+        return Facing == EGridEdge::North ||
+            Facing == EGridEdge::East ||
+            Facing == EGridEdge::South ||
+            Facing == EGridEdge::West;
+    }
 
     FName ResolveRuntimeStateLevelId (const UGridDungeonAsset* DungeonAsset, FName CurrentDungeonLevelId)
     {
@@ -1614,6 +1625,7 @@ void AGridLevelRuntimeActor::ClearVisuals (EGridRuntimeRebuildMode RebuildMode)
     const bool bClearObjects = RebuildMode != EGridRuntimeRebuildMode::GeometryOnly;
     if (bClearObjects)
     {
+        RuntimeMonsterSpawnFailureCount = 0;
         ClearRuntimeObjectActors ();
         if (EditorPreviewComponent) EditorPreviewComponent->ClearPreviewObjects ();
         if (DoorSystemComponent) DoorSystemComponent->ResetRuntimeState ();
@@ -2984,6 +2996,8 @@ void AGridLevelRuntimeActor::RegisterRuntimeObjectActor (const FGuid& ObjectId, 
 
 void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
 {
+    ClearSpawnedMonsterActors ();
+
     for (AGridItemActor* ItemActor : SpawnedItemActors)
     {
         if (IsValid (ItemActor))
@@ -3007,6 +3021,29 @@ void AGridLevelRuntimeActor::ClearRuntimeObjectActors ()
         }
     }
     SpawnedRuntimeObjectActors.Empty ();
+}
+
+void AGridLevelRuntimeActor::ClearSpawnedMonsterActors ()
+{
+    if (SpawnedMonsterActors.IsEmpty ())
+    {
+        return;
+    }
+
+    AbortActiveCombatAndMonsterActions ();
+    for (TPair<FGuid, TObjectPtr<AGridMonsterActor>>& Pair :
+        SpawnedMonsterActors)
+    {
+        AGridMonsterActor* Monster = Pair.Value.Get ();
+        if (!IsValid (Monster))
+        {
+            continue;
+        }
+
+        SetMonsterRuntimeLevelActive (Monster, false);
+        Monster->Destroy ();
+    }
+    SpawnedMonsterActors.Empty ();
 }
 
 bool AGridLevelRuntimeActor::CanPartyPickupItemEntry (
@@ -3633,6 +3670,184 @@ void AGridLevelRuntimeActor::ApplyMonsterPlacementMetadata (
     }
 }
 
+bool AGridLevelRuntimeActor::ResolveMonsterSpawn (
+    const FGridLevelObjectData& ObjectData,
+    UGridMonsterDefinitionAsset*& OutDefinition,
+    TSubclassOf<AGridMonsterActor>& OutActorClass,
+    FString& OutError) const
+{
+    OutDefinition = nullptr;
+    OutActorClass = nullptr;
+    OutError.Empty ();
+
+    TArray<FString> Errors;
+    if (!LevelAsset)
+    {
+        Errors.Add (TEXT ("LevelAsset is missing."));
+    }
+    if (ObjectData.Type != EGridLevelObjectType::MonsterSpawn)
+    {
+        Errors.Add (TEXT ("Object type is not MonsterSpawn."));
+    }
+    if (!ObjectData.ObjectId.IsValid ())
+    {
+        Errors.Add (TEXT ("SpawnId/ObjectId is invalid."));
+    }
+    if (!LevelAsset ||
+        !LevelAsset->IsValidCoord (
+            ObjectData.CellX,
+            ObjectData.CellY))
+    {
+        Errors.Add (FString::Printf (
+            TEXT ("Cell=(%d,%d) is outside the level."),
+            ObjectData.CellX,
+            ObjectData.CellY));
+    }
+    else if (!IsWalkableCell (
+            ObjectData.CellX,
+            ObjectData.CellY))
+    {
+        Errors.Add (FString::Printf (
+            TEXT ("Cell=(%d,%d) does not allow monster occupancy."),
+            ObjectData.CellX,
+            ObjectData.CellY));
+    }
+    if (ObjectData.Edge != EGridEdge::None)
+    {
+        Errors.Add (TEXT ("MonsterSpawn requires Edge=None."));
+    }
+    if (!IsMON132CardinalMonsterSpawnFacing (
+            ObjectData.InitialFacing))
+    {
+        Errors.Add (TEXT ("InitialFacing is not cardinal."));
+    }
+
+    UGridMonsterDefinitionAsset* Definition =
+        ObjectData.MonsterDefinitionAsset.Get ();
+    if (!Definition)
+    {
+        Errors.Add (ObjectData.MonsterDefinitionId.IsNone ()
+            ? TEXT ("MonsterDefinitionAsset and MonsterDefinitionId are missing.")
+            : FString::Printf (
+                TEXT ("MonsterDefinitionId '%s' cannot be resolved without MonsterDefinitionAsset in MON13.2."),
+                *ObjectData.MonsterDefinitionId.ToString ()));
+    }
+    else
+    {
+        if (ObjectData.MonsterDefinitionId.IsNone ())
+        {
+            Errors.Add (TEXT ("MonsterDefinitionId is missing."));
+        }
+        else if (Definition->MonsterId !=
+            ObjectData.MonsterDefinitionId)
+        {
+            Errors.Add (FString::Printf (
+                TEXT ("MonsterDefinitionId '%s' differs from asset MonsterId '%s'."),
+                *ObjectData.MonsterDefinitionId.ToString (),
+                *Definition->MonsterId.ToString ()));
+        }
+
+        FString DefinitionError;
+        if (!Definition->ValidateDefinition (DefinitionError))
+        {
+            Errors.Add (FString::Printf (
+                TEXT ("MonsterDefinition '%s' is invalid: %s"),
+                *GetPathNameSafe (Definition),
+                *DefinitionError));
+        }
+        else
+        {
+            UClass* ActorClass =
+                Definition->MonsterActorClass.Get ();
+            if (!ActorClass)
+            {
+                Errors.Add (TEXT ("MonsterActorClass is missing."));
+            }
+            else if (!ActorClass->IsChildOf (
+                    AGridMonsterActor::StaticClass ()))
+            {
+                Errors.Add (FString::Printf (
+                    TEXT ("MonsterActorClass '%s' is not an AGridMonsterActor."),
+                    *ActorClass->GetPathName ()));
+            }
+            else if (ActorClass->HasAnyClassFlags (CLASS_Abstract))
+            {
+                Errors.Add (FString::Printf (
+                    TEXT ("MonsterActorClass '%s' is abstract."),
+                    *ActorClass->GetPathName ()));
+            }
+            else
+            {
+                OutActorClass =
+                    Definition->MonsterActorClass;
+            }
+        }
+    }
+
+    if (!Errors.IsEmpty ())
+    {
+        OutError = FString::Join (Errors, TEXT (" "));
+        return false;
+    }
+
+    OutDefinition = Definition;
+    return true;
+}
+
+bool AGridLevelRuntimeActor::GetMonsterSpawnTransform (
+    const FGridLevelObjectData& ObjectData,
+    FTransform& OutTransform) const
+{
+    OutTransform = FTransform::Identity;
+    if (!LevelAsset ||
+        ObjectData.Type != EGridLevelObjectType::MonsterSpawn ||
+        !LevelAsset->IsValidCoord (
+            ObjectData.CellX,
+            ObjectData.CellY) ||
+        !IsMON132CardinalMonsterSpawnFacing (
+            ObjectData.InitialFacing))
+    {
+        return false;
+    }
+
+    OutTransform = FTransform (
+        FRotator (
+            0.0f,
+            GridDirectionUtils::ToYaw (
+                ObjectData.InitialFacing),
+            0.0f),
+        GetCellCenterWorld (
+            ObjectData.CellX,
+            ObjectData.CellY),
+        FVector::OneVector);
+    return IsSafeRuntimeRenderTransform (OutTransform);
+}
+
+AGridMonsterActor*
+    AGridLevelRuntimeActor::FindSpawnedMonsterActor (
+        const FGuid& SpawnId) const
+{
+    if (const TObjectPtr<AGridMonsterActor>* Monster =
+        SpawnedMonsterActors.Find (SpawnId))
+    {
+        return IsValid (Monster->Get ())
+            ? Monster->Get ()
+            : nullptr;
+    }
+    return nullptr;
+}
+
+int32 AGridLevelRuntimeActor::GetSpawnedMonsterActorCount () const
+{
+    int32 Count = 0;
+    for (const TPair<FGuid, TObjectPtr<AGridMonsterActor>>& Pair :
+        SpawnedMonsterActors)
+    {
+        Count += IsValid (Pair.Value.Get ()) ? 1 : 0;
+    }
+    return Count;
+}
+
 TSubclassOf<AGridRuntimeObjectActor> AGridLevelRuntimeActor::GetObjectRuntimeActorClass (const FGridLevelObjectData& ObjectData) const
 {
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
@@ -3664,6 +3879,18 @@ bool AGridLevelRuntimeActor::IsRuntimeSpawnableObject (const FGridLevelObjectDat
             (Archetype && (Archetype->DefaultBehavior.Item.ItemDefinitionAsset ||
                 !Archetype->DefaultBehavior.Item.ItemDefinitionId.IsNone ())) ||
             !ObjectData.ArchetypeId.IsNone ();
+    }
+
+    if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
+    {
+        UGridMonsterDefinitionAsset* Definition = nullptr;
+        TSubclassOf<AGridMonsterActor> ActorClass;
+        FString Error;
+        return ResolveMonsterSpawn (
+            ObjectData,
+            Definition,
+            ActorClass,
+            Error);
     }
 
     const UGridObjectArchetypeAsset* Archetype = FindObjectArchetype (ObjectData.ArchetypeId);
@@ -3826,6 +4053,218 @@ void AGridLevelRuntimeActor::AddRuntimeObjectActor (const FGridLevelObjectData& 
     }
 }
 
+AGridMonsterActor* AGridLevelRuntimeActor::AddMonsterSpawnActor (
+    const FGridLevelObjectData& ObjectData)
+{
+    const FString SpawnIdText =
+        ObjectData.ObjectId.ToString (EGuidFormats::DigitsWithHyphens);
+    if (SpawnedMonsterActors.Contains (ObjectData.ObjectId))
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=DuplicateSpawnId"),
+            *SpawnIdText,
+            ObjectData.CellX,
+            ObjectData.CellY);
+        return nullptr;
+    }
+
+    UGridMonsterDefinitionAsset* Definition = nullptr;
+    TSubclassOf<AGridMonsterActor> MonsterActorClass;
+    FString ResolutionError;
+    if (!ResolveMonsterSpawn (
+            ObjectData,
+            Definition,
+            MonsterActorClass,
+            ResolutionError))
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) DefinitionId=%s Reason=%s"),
+            *SpawnIdText,
+            ObjectData.CellX,
+            ObjectData.CellY,
+            *ObjectData.MonsterDefinitionId.ToString (),
+            *ResolutionError);
+        return nullptr;
+    }
+
+    FTransform SpawnTransform;
+    if (!GetMonsterSpawnTransform (
+            ObjectData,
+            SpawnTransform))
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) DefinitionId=%s Reason=InvalidTransform"),
+            *SpawnIdText,
+            ObjectData.CellX,
+            ObjectData.CellY,
+            *ObjectData.MonsterDefinitionId.ToString ());
+        return nullptr;
+    }
+
+    UWorld* World = GetWorld ();
+    if (!World)
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Reason=MissingWorld"),
+            *SpawnIdText);
+        return nullptr;
+    }
+
+    for (TActorIterator<AGridMonsterActor> It (World); It; ++It)
+    {
+        AGridMonsterActor* ExistingMonster = *It;
+        if (IsValid (ExistingMonster) &&
+            ExistingMonster->ResolvePersistenceId () ==
+                ObjectData.ObjectId)
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=PersistenceIdAlreadyExists ExistingActor=%s"),
+                *SpawnIdText,
+                ObjectData.CellX,
+                ObjectData.CellY,
+                *GetNameSafe (ExistingMonster));
+            return nullptr;
+        }
+    }
+
+    const FIntPoint SpawnCell (
+        ObjectData.CellX,
+        ObjectData.CellY);
+    for (const TPair<FGuid, TObjectPtr<AGridMonsterActor>>& Pair :
+        SpawnedMonsterActors)
+    {
+        const AGridMonsterActor* SpawnedMonster =
+            Pair.Value.Get ();
+        if (IsValid (SpawnedMonster) &&
+            SpawnedMonster->CurrentCell == SpawnCell)
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=GeneratedMonsterCellConflict OccupantSpawnId=%s"),
+                *SpawnIdText,
+                SpawnCell.X,
+                SpawnCell.Y,
+                *Pair.Key.ToString (
+                    EGuidFormats::DigitsWithHyphens));
+            return nullptr;
+        }
+    }
+    if (IsPartyOnCell (SpawnCell.X, SpawnCell.Y))
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=PartyOccupiesCell"),
+            *SpawnIdText,
+            SpawnCell.X,
+            SpawnCell.Y);
+        return nullptr;
+    }
+    if (const UGridMonsterOccupancySubsystem* Occupancy =
+        World->GetSubsystem<UGridMonsterOccupancySubsystem> ())
+    {
+        if (Occupancy->IsCellBlocked (SpawnCell))
+        {
+            UE_LOG (LogGridMonsterState, Error,
+                TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=MonsterOccupancyConflict"),
+                *SpawnIdText,
+                SpawnCell.X,
+                SpawnCell.Y);
+            return nullptr;
+        }
+    }
+
+    AGridMonsterActor* Monster =
+        World->SpawnActorDeferred<AGridMonsterActor> (
+            MonsterActorClass,
+            SpawnTransform,
+            this,
+            nullptr,
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+    if (!Monster)
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) DefinitionId=%s Class=%s Reason=DeferredSpawnFailed"),
+            *SpawnIdText,
+            SpawnCell.X,
+            SpawnCell.Y,
+            *Definition->MonsterId.ToString (),
+            *GetPathNameSafe (MonsterActorClass.Get ()));
+        return nullptr;
+    }
+
+    Monster->HomeDungeonLevelId =
+        ResolveRuntimeStateLevelId (
+            DungeonAsset,
+            CurrentDungeonLevelId);
+    Monster->bMonsterEnabled = true;
+    Monster->bRuntimeLevelActive = true;
+    if (!Monster->InitializeMonster (
+            Definition,
+            ObjectData.ObjectId,
+            SpawnCell,
+            ObjectData.InitialFacing,
+            ObjectData.EncounterGroupId))
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) DefinitionId=%s Class=%s Reason=InitializationFailed"),
+            *SpawnIdText,
+            SpawnCell.X,
+            SpawnCell.Y,
+            *Definition->MonsterId.ToString (),
+            *GetPathNameSafe (MonsterActorClass.Get ()));
+        Monster->Destroy ();
+        return nullptr;
+    }
+
+    UGameplayStatics::FinishSpawningActor (
+        Monster,
+        SpawnTransform);
+    if (!IsValid (Monster))
+    {
+        UE_LOG (LogGridMonsterState, Error,
+            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) DefinitionId=%s Reason=FinishSpawningFailed"),
+            *SpawnIdText,
+            SpawnCell.X,
+            SpawnCell.Y,
+            *Definition->MonsterId.ToString ());
+        return nullptr;
+    }
+
+    Monster->SetActorLocation (SpawnTransform.GetLocation ());
+    Monster->ApplyFacingRotation ();
+    ApplyMonsterPlacementMetadata (Monster);
+    if (Monster->DeathComponent)
+    {
+        Monster->DeathComponent->InitializeDeathComponent (this);
+    }
+    FString PresentationError;
+    if (!Monster->ValidatePresentationSetup (PresentationError))
+    {
+        PresentationError.ReplaceInline (
+            TEXT ("\n"),
+            TEXT (" | "));
+        UE_LOG (LogGridMonsterState, Warning,
+            TEXT ("[GridMonsterSpawn] PresentationWarning SpawnId=%s DefinitionId=%s Actor=%s Reason=%s"),
+            *SpawnIdText,
+            *Definition->MonsterId.ToString (),
+            *GetNameSafe (Monster),
+            *PresentationError);
+    }
+    SpawnedMonsterActors.Add (
+        ObjectData.ObjectId,
+        Monster);
+
+    UE_LOG (LogGridMonsterState, Log,
+        TEXT ("[GridMonsterSpawn] Spawned SpawnId=%s DefinitionId=%s Class=%s Cell=(%d,%d) Facing=%s Encounter=%s RuntimeLevel=%s"),
+        *SpawnIdText,
+        *Definition->MonsterId.ToString (),
+        *Monster->GetClass ()->GetPathName (),
+        SpawnCell.X,
+        SpawnCell.Y,
+        *GetRuntimeEdgeText (ObjectData.InitialFacing),
+        *ObjectData.EncounterGroupId.ToString (),
+        *Monster->HomeDungeonLevelId.ToString ());
+    return Monster;
+}
+
 void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
 {
     if (!LevelAsset)
@@ -3833,8 +4272,19 @@ void AGridLevelRuntimeActor::RebuildRuntimeObjects ()
         return;
     }
     LevelAsset->EnsureCellCount ();
+    RuntimeMonsterSpawnFailureCount = 0;
     for (const FGridLevelObjectData& ObjectData : LevelAsset->Objects)
     {
+        if (ObjectData.Type ==
+            EGridLevelObjectType::MonsterSpawn)
+        {
+            if (ObjectData.bInitiallyEnabled &&
+                !AddMonsterSpawnActor (ObjectData))
+            {
+                ++RuntimeMonsterSpawnFailureCount;
+            }
+            continue;
+        }
         if (ObjectData.Type == EGridLevelObjectType::Item)
         {
             if (ObjectData.bInitiallyEnabled)
@@ -3870,6 +4320,10 @@ FString AGridLevelRuntimeActor::GetRuntimeDebugSummary () const
     Result += FString::Printf (TEXT ("Grid Runtime | Level=%s\n"), LevelAsset ? *LevelAsset->GetName () : TEXT ("None"));
     Result += FString::Printf (TEXT ("Runtime Actors=%d\n"), SpawnedRuntimeObjectActors.Num ());
     Result += FString::Printf (TEXT ("Spawned Items=%d\n"), SpawnedItemActors.Num ());
+    Result += FString::Printf (
+        TEXT ("Spawned Monsters=%d Failures=%d\n"),
+        GetSpawnedMonsterActorCount (),
+        RuntimeMonsterSpawnFailureCount);
     Result += ActivationComponent ? ActivationComponent->GetDebugSummary () : TEXT ("Activation | Missing");
     Result += TEXT ("\n");
     Result += DoorSystemComponent ? DoorSystemComponent->GetDebugSummary () : TEXT ("Doors | Missing");

@@ -265,14 +265,14 @@ Le nom doit correspondre exactement à `CurrentDungeonLevelId`.
 
 Pour un futur placement `MonsterSpawn`, `SpawnObjectId` utilisera l’`ObjectId` du placement ; aucun identifiant direct supplémentaire ne sera nécessaire.
 
-## Limitation du pipeline MonsterSpawn
+## Intégration du pipeline MonsterSpawn
 
 MON13.1 fournit désormais le modèle persistant validé du placement
 `MonsterSpawn` (`ObjectId/SpawnId`, définition, cellule, orientation, état
-initial et rencontre). MON9 associe toutefois toujours l'état sauvegardé à un
-Actor existant. Si une sauvegarde référence un GUID sans Actor, un Warning est
-produit et le chargement continue. La création native de l'Actor depuis ce
-placement commence en MON13.2.
+initial et rencontre). MON13.2 crée désormais l'Actor natif depuis ce placement
+avant que MON9 restaure l'état sauvegardé avec le même `ObjectId/SpawnId`. Si une
+sauvegarde référence encore un GUID sans Actor résolu, un Warning est produit et
+le chargement continue.
 
 ## Checklist PIE MON9
 

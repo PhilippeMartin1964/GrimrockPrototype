@@ -20,6 +20,7 @@ class AGridThrownItemActor;
 class AGridReceptacleActor;
 class AGridWallLockActor;
 class AGridMonsterActor;
+class UGridMonsterDefinitionAsset;
 class UGridActivationComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
@@ -351,6 +352,27 @@ public:
     /** Applies MON7 metadata to a monster initialized from a LevelAsset placement. */
     void ApplyMonsterPlacementMetadata (AGridMonsterActor* Monster) const;
 
+    /** Resolves the strict MON13.2 runtime contract without creating an Actor. */
+    bool ResolveMonsterSpawn (
+        const FGridLevelObjectData& ObjectData,
+        UGridMonsterDefinitionAsset*& OutDefinition,
+        TSubclassOf<AGridMonsterActor>& OutActorClass,
+        FString& OutError) const;
+
+    /** Builds the authoritative cell-centered transform from InitialFacing. */
+    bool GetMonsterSpawnTransform (
+        const FGridLevelObjectData& ObjectData,
+        FTransform& OutTransform) const;
+
+    AGridMonsterActor* FindSpawnedMonsterActor (
+        const FGuid& SpawnId) const;
+
+    int32 GetSpawnedMonsterActorCount () const;
+    int32 GetMonsterSpawnFailureCount () const
+    {
+        return RuntimeMonsterSpawnFailureCount;
+    }
+
     UFUNCTION (BlueprintCallable, Category = "Monster|Persistence")
     void SetMonsterRuntimeLevelActive (
         AGridMonsterActor* Monster,
@@ -454,7 +476,12 @@ private:
     UPROPERTY (Transient)
     TArray<FGridSpawnedItemRuntimeEntry> SpawnedItemEntries;
 
+    /** MON13.2 Actors owned by LevelAsset MonsterSpawn placements. */
+    UPROPERTY (Transient)
+    TMap<FGuid, TObjectPtr<AGridMonsterActor>> SpawnedMonsterActors;
+
     int32 RuntimeObjectRebuildGeneration = 0;
+    int32 RuntimeMonsterSpawnFailureCount = 0;
 
     UPROPERTY (Transient)
     TObjectPtr<UReadableMessageWidget> ActiveReadableMessageWidget;
@@ -481,6 +508,9 @@ private:
 
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();
+    AGridMonsterActor* AddMonsterSpawnActor (
+        const FGridLevelObjectData& ObjectData);
+    void ClearSpawnedMonsterActors ();
     void AbortActiveCombatAndMonsterActions ();
     void ApplyInitialMonsterStateForCurrentLevel ();
 

@@ -31,6 +31,8 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 25. `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` - implemented mixed initiative order, one active combatant, end-turn flow and initiative events.
 26. `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` - validated party translation costs, shared mobility points and free rotations.
 27. `MON12_6_COMBAT_ACTION_CATALOG.md` - generic action definitions, equipment/class contributions, runtime availability and MON11 attack adapter.
+28. `MON13_1_MONSTER_SPAWN_MODEL.md` - persistent MonsterSpawn identity, definition, orientation and editor validation.
+29. `MON13_2_MONSTER_SPAWN_PIPELINE.md` - strict definition resolution, skeletal editor preview and runtime Actor creation.
 
 ## Document Status
 
@@ -62,6 +64,8 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Validated | Deterministic global initiative, one active combatant, individual player/monster turns and event model for the future initiative bar. |
 | `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Validated | Personal and shared movement costs, free rotations, authoritative refusals and interpolation-safe turn completion. |
 | `MON12_6_COMBAT_ACTION_CATALOG.md` | Implemented / Validation Required | Generic action definitions, pure catalogue construction, source provenance and first generic MON11 attack execution. |
+| `MON13_1_MONSTER_SPAWN_MODEL.md` | Validated | Persistent placement model, palette contract, stable SpawnId and editor validation rules. |
+| `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Implemented / Validation Required | Strict MonsterSpawn resolution, skeletal editor preview, deferred runtime Actor creation and rebuild lifecycle. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Documents With Diagrams

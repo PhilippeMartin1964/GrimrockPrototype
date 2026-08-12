@@ -6,6 +6,8 @@
 #include "GridEditorPreviewObjectActor.generated.h"
 
 class UStaticMeshComponent;
+class USkeletalMeshComponent;
+class UGridMonsterDefinitionAsset;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API AGridEditorPreviewObjectActor : public AActor
@@ -21,6 +23,9 @@ public:
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UStaticMeshComponent* MeshComponent;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    USkeletalMeshComponent* SkeletalMeshComponent;
+
     UPROPERTY (BlueprintReadOnly, Category = "Grid")
     FGuid ObjectId;
 
@@ -29,6 +34,10 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Preview")
     void InitializePreviewObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* NormalMaterial);
+
+    void InitializeMonsterPreviewObject (
+        const FGridLevelObjectData& ObjectData,
+        UGridMonsterDefinitionAsset* MonsterDefinition);
 
     UFUNCTION (BlueprintCallable, Category = "Preview")
     void SetHovered (bool bHovered);

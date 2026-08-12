@@ -2076,7 +2076,7 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection (
     [
         SNew (STextBlock)
             .Text (FText::FromString (TEXT (
-                "MON13.1 stores and validates this placement. Runtime actor creation starts in MON13.2.")))
+                "MON13.2 creates the configured monster Actor in preview and at runtime. Dynamic Spawn, Despawn and Teleport commands start in MON13.3.")))
             .AutoWrapText (true)
             .ColorAndOpacity (FSlateColor (
                 FLinearColor (0.65f, 0.65f, 0.65f)))

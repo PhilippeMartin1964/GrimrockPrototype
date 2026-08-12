@@ -121,10 +121,10 @@ D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe D:\Development\GrimrockProt
 
 ### Périmètre et critère de réussite
 
-Cette checklist valide le modèle persistant et les outils d'édition de MON13.1.
-Elle ne doit pas chercher un `AGridMonsterActor` dans le World Outliner et ne
-doit pas démarrer un combat : la création runtime de l'Actor commence en
-MON13.2.
+Cette checklist valide isolément le modèle persistant et les outils d'édition de
+MON13.1. Dans la version actuelle, MON13.2 crée désormais l'aperçu squelettique
+et l'Actor runtime ; leur validation complète appartient à la checklist
+`MON13_2_MONSTER_SPAWN_PIPELINE.md`.
 
 MON13.1 est validé dans l'éditeur si :
 
@@ -211,8 +211,8 @@ ne doit être présente.
 - [ ] aucun `SpawnId` n'est vide ou composé uniquement de zéros ;
 - [ ] les deux `SpawnId` sont différents ;
 - [ ] le second placement n'a ni supprimé ni modifié le premier ;
-- [ ] le texte d'information confirme que la création runtime commence en
-  MON13.2.
+- [ ] le texte d'information confirme que MON13.2 crée désormais l'Actor et que
+  les commandes dynamiques commencent en MON13.3.
 
 ### 3 — Orientation cardinale et aperçu
 
@@ -441,14 +441,16 @@ En cas d'échec, relever au minimum le scénario, le `SpawnId`, la cellule, le
 texte exact de validation, une capture de `SELECTED OBJECT` et les lignes utiles
 de l'Output Log.
 
-## Hors périmètre
+## Suite du pipeline
 
-- résolution asynchrone d'un `MonsterDefinitionId` seul ;
-- création d'`AGridMonsterActor` ;
-- enregistrement dans l'occupation et le combat ;
+MON13.2 implémente désormais la résolution stricte
+`MonsterSpawn → MonsterDefinition → MonsterActorClass`, l'aperçu squelettique,
+la création différée de l'Actor gameplay et sa reconstruction avant restauration
+MON9. Voir `docs/Design/MON13_2_MONSTER_SPAWN_PIPELINE.md`.
+
+Restent hors périmètre :
+
+- résolution Asset Manager d'un `MonsterDefinitionId` seul ;
 - `Spawn`, `Despawn` et `Teleport` commandés ;
-- reconstruction d'un Actor absent depuis une sauvegarde.
-
-Ces opérations commencent avec MON13.2, qui implémentera la résolution stricte
-`MonsterSpawn → MonsterDefinition → MonsterActorClass` et l'initialisation
-déterministe de l'Actor, sans encore introduire les commandes runtime complètes.
+- activation runtime d'un placement initialement désactivé ;
+- gestion complète des rencontres.
