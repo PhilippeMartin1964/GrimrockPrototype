@@ -144,11 +144,37 @@ MON13.2 ajoute :
 - `Grimrock.Monsters.MON13.2.AtomicFailure` ;
 - `Grimrock.Monsters.MON13.2.EditorPreview`.
 
+Les trois fixtures MON13.2 construisent une définition transitoire, puis chargent
+explicitement la présentation réelle du Rat géant :
+
+```text
+/Game/GrimrockPrototype/Monsters/RatGiant/Meshes/SK_RatGiant.SK_RatGiant
+/Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C
+```
+
+Chaque ressource fait l'objet d'une assertion et la fixture s'arrête
+immédiatement si le mesh ou la classe d'animation manque. Les tests runtime
+exercent ainsi un spawn complet sans masquer `PresentationWarning` et sans créer
+de faux `USkeletalMesh` dépourvu de squelette ou de données de rendu.
+
+`AtomicFailure` attend exactement quatre logs contenant
+`[GridMonsterSpawn] Skipped`, correspondant aux quatre placements activés
+invalides. Le placement valide utilise la même présentation complète que les
+deux autres tests.
+
 Commande UE 5.5.4 :
 
 ```bat
 D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe D:\Development\GrimrockPrototype\GrimrockPrototype.uproject -unattended -nop4 -nosplash -NullRHI -ExecCmds="Automation RunTests Grimrock.Monsters.MON13.2" -TestExit="Automation Test Queue Empty" -ReportOutputPath="D:\Development\GrimrockPrototype\Saved\TestReports\MON13_2"
 ```
+
+### Validation du 12 août 2026
+
+- compilation `GrimrockPrototypeEditor Win64 Development` : réussie ;
+- `Grimrock.Monsters.MON13.2` : 3/3 réussis, 0 warning, 0 erreur ;
+- `Grimrock.Monsters.MON13` : 6/6 réussis, 0 warning, 0 erreur ;
+- `Grimrock.Monsters.MON8.MonsterDiedEvent` : réussi ;
+- aucun `PresentationWarning` dans les tests MON13.
 
 ## Checklist éditeur et PIE
 
