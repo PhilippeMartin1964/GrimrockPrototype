@@ -443,14 +443,18 @@ de l'Output Log.
 
 ## Suite du pipeline
 
-MON13.2 implémente désormais la résolution stricte
+MON13.2 implémente la résolution stricte
 `MonsterSpawn → MonsterDefinition → MonsterActorClass`, l'aperçu squelettique,
 la création différée de l'Actor gameplay et sa reconstruction avant restauration
 MON9. Voir `docs/Design/MON13_2_MONSTER_SPAWN_PIPELINE.md`.
 
+MON13.3 ajoute les commandes runtime `Spawn`, `Despawn` et `Teleport`,
+l'activation différée, les événements de cycle de vie et la présence
+persistante. Voir `docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md`.
+
 Restent hors périmètre :
 
 - résolution Asset Manager d'un `MonsterDefinitionId` seul ;
-- `Spawn`, `Despawn` et `Teleport` commandés ;
-- activation runtime d'un placement initialement désactivé ;
+- téléportation inter-niveaux ;
+- suppression définitive non réversible d'un placement ;
 - gestion complète des rencontres.

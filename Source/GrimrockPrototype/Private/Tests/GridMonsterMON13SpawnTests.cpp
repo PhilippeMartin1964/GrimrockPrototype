@@ -12,10 +12,12 @@
 #include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Kismet/GameplayStatics.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Save/GrimrockPartySaveGame.h"
 
 namespace
 {
@@ -653,6 +655,399 @@ bool FGridMonsterMON132EditorPreviewTest::RunTest (
     TestEqual (TEXT ("Editor preview creates no gameplay monster"),
         CountMON132WorldMonsters (TestWorld.World),
         0);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON133DeferredSpawnLinksTest,
+    "Grimrock.Monsters.MON13.3.DeferredSpawnLinks",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON132TestWorld TestWorld (EWorldType::Game);
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    UGridLevelAsset* Level = MakeMON13Level (Runtime);
+    Runtime->LevelAsset = Level;
+
+    UGridMonsterDefinitionAsset* FirstDefinition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON133_FirstRat"));
+    UGridMonsterDefinitionAsset* SecondDefinition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON133_SecondRat"));
+    if (!FirstDefinition || !SecondDefinition)
+    {
+        return false;
+    }
+
+    const FGuid TriggerId (13, 3, 1, 1);
+    const FGuid FirstSpawnId (13, 3, 1, 2);
+    const FGuid SecondSpawnId (13, 3, 1, 3);
+
+    FGridLevelObjectData Trigger;
+    Trigger.ObjectId = TriggerId;
+    Trigger.Type = EGridLevelObjectType::Trigger;
+    Trigger.CellX = 3;
+    Trigger.CellY = 3;
+    Trigger.Edge = EGridEdge::None;
+    Trigger.bInitiallyEnabled = true;
+    Level->Objects.Add (Trigger);
+
+    FGridLevelObjectData FirstSpawn = MakeMON13Spawn (
+        FirstDefinition,
+        FirstSpawnId,
+        FIntPoint (0, 0));
+    FirstSpawn.bInitiallyEnabled = false;
+    FirstSpawn.EncounterGroupId = TEXT ("Encounter_MON133_Rats");
+    Level->Objects.Add (FirstSpawn);
+
+    FGridLevelObjectData SecondSpawn = MakeMON13Spawn (
+        SecondDefinition,
+        SecondSpawnId,
+        FIntPoint (1, 0));
+    SecondSpawn.bInitiallyEnabled = false;
+    SecondSpawn.EncounterGroupId = TEXT ("Encounter_MON133_Rats");
+    Level->Objects.Add (SecondSpawn);
+
+    FGridObjectLink TriggerLink;
+    TriggerLink.SourceObjectId = TriggerId;
+    TriggerLink.TargetObjectId = FirstSpawnId;
+    TriggerLink.SourceEvent = EGridObjectEvent::Activated;
+    TriggerLink.Command = EGridObjectCommand::Spawn;
+    Level->Links.Add (TriggerLink);
+
+    FGridObjectLink CascadeLink;
+    CascadeLink.SourceObjectId = FirstSpawnId;
+    CascadeLink.TargetObjectId = SecondSpawnId;
+    CascadeLink.SourceEvent = EGridObjectEvent::MonsterSpawned;
+    CascadeLink.Command = EGridObjectCommand::Spawn;
+    Level->Links.Add (CascadeLink);
+
+    FGridObjectLink TeleportCascadeLink;
+    TeleportCascadeLink.SourceObjectId = FirstSpawnId;
+    TeleportCascadeLink.TargetObjectId = SecondSpawnId;
+    TeleportCascadeLink.SourceEvent =
+        EGridObjectEvent::MonsterTeleported;
+    TeleportCascadeLink.Command = EGridObjectCommand::Despawn;
+    Level->Links.Add (TeleportCascadeLink);
+
+    FGridObjectLink DespawnCascadeLink;
+    DespawnCascadeLink.SourceObjectId = FirstSpawnId;
+    DespawnCascadeLink.TargetObjectId = SecondSpawnId;
+    DespawnCascadeLink.SourceEvent =
+        EGridObjectEvent::MonsterDespawned;
+    DespawnCascadeLink.Command = EGridObjectCommand::Spawn;
+    Level->Links.Add (DespawnCascadeLink);
+
+    Runtime->RebuildLevel ();
+    TestEqual (TEXT ("Disabled placements start absent"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        0);
+    TestTrue (TEXT ("Trigger executes the first Spawn command"),
+        Runtime->ExecuteLinksFromRuntimeObject (
+            TriggerId,
+            EGridObjectEvent::Activated));
+    TestEqual (TEXT ("MonsterSpawned cascades to the second placement"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        2);
+
+    AGridMonsterActor* FirstMonster =
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId);
+    AGridMonsterActor* SecondMonster =
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId);
+    TestNotNull (TEXT ("First deferred monster exists"), FirstMonster);
+    TestNotNull (TEXT ("Second deferred monster exists"), SecondMonster);
+    if (!FirstMonster || !SecondMonster)
+    {
+        return false;
+    }
+    TestEqual (TEXT ("Encounter group reaches the first monster"),
+        FirstMonster->EncounterGroupId,
+        FName (TEXT ("Encounter_MON133_Rats")));
+    TestEqual (TEXT ("Encounter group reaches the cascaded monster"),
+        SecondMonster->EncounterGroupId,
+        FName (TEXT ("Encounter_MON133_Rats")));
+
+    TestTrue (TEXT ("Teleport emits its lifecycle event"),
+        Runtime->TeleportSpawnedMonster (
+            FirstSpawnId,
+            2,
+            2,
+            EGridEdge::South));
+    TestNull (TEXT ("MonsterTeleported executes the linked Despawn"),
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+    TestTrue (TEXT ("Teleport command returns to the placement pose"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            FirstSpawnId,
+            EGridObjectCommand::Teleport));
+    TestEqual (TEXT ("Teleport command restores the placement cell"),
+        FirstMonster->CurrentCell,
+        FIntPoint (0, 0));
+    TestEqual (TEXT ("Teleport command restores the placement facing"),
+        FirstMonster->Facing,
+        EGridEdge::North);
+    TestTrue (TEXT ("Despawn emits its lifecycle event"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            FirstSpawnId,
+            EGridObjectCommand::Despawn));
+    TestNull (TEXT ("The first placement remains despawned"),
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId));
+    TestNotNull (TEXT ("MonsterDespawned executes the linked Spawn"),
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+
+    Runtime->RebuildLevel ();
+    TestEqual (TEXT ("Cascaded lifecycle presence survives a rebuild"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        1);
+    TestNull (TEXT ("Rebuild preserves the first despawn"),
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId));
+    TestNotNull (TEXT ("Rebuild preserves the second spawn"),
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON133LifecyclePersistenceTest,
+    "Grimrock.Monsters.MON13.3.LifecyclePersistence",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON133LifecyclePersistenceTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON132TestWorld TestWorld (EWorldType::Game);
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    UGridLevelAsset* Level = MakeMON13Level (Runtime);
+    Runtime->LevelAsset = Level;
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON133_PersistentRat"));
+    if (!Definition)
+    {
+        return false;
+    }
+
+    const FGuid SpawnId (13, 3, 2, 1);
+    FGridLevelObjectData Spawn = MakeMON13Spawn (
+        Definition,
+        SpawnId,
+        FIntPoint (0, 0));
+    Spawn.EncounterGroupId = TEXT ("Encounter_MON133_Persistent");
+    Level->Objects.Add (Spawn);
+
+    Runtime->RebuildLevel ();
+    AGridMonsterActor* InitialMonster =
+        Runtime->FindSpawnedMonsterActor (SpawnId);
+    TestNotNull (TEXT ("Initial placement is spawned"), InitialMonster);
+    if (!InitialMonster)
+    {
+        return false;
+    }
+    InitialMonster->CurrentHealth = 7;
+
+    TestTrue (TEXT ("Teleport accepts a free walkable cell"),
+        Runtime->TeleportSpawnedMonster (
+            SpawnId,
+            2,
+            2,
+            EGridEdge::South));
+    TestTrue (TEXT ("Despawn stores and removes the Actor"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            SpawnId,
+            EGridObjectCommand::Despawn));
+    TestEqual (TEXT ("Despawn leaves no generated Actor"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        0);
+
+    Runtime->RebuildLevel ();
+    TestEqual (TEXT ("A rebuild preserves the despawned state"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        0);
+
+    TestTrue (TEXT ("Spawn restores the saved placement state"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            SpawnId,
+            EGridObjectCommand::Spawn));
+    AGridMonsterActor* RestoredMonster =
+        Runtime->FindSpawnedMonsterActor (SpawnId);
+    TestNotNull (TEXT ("Spawn recreates the Actor"), RestoredMonster);
+    if (!RestoredMonster)
+    {
+        return false;
+    }
+    TestEqual (TEXT ("Teleport cell survives despawn and spawn"),
+        RestoredMonster->CurrentCell,
+        FIntPoint (2, 2));
+    TestEqual (TEXT ("Teleport facing survives despawn and spawn"),
+        RestoredMonster->Facing,
+        EGridEdge::South);
+    TestEqual (TEXT ("Health survives despawn and spawn"),
+        RestoredMonster->CurrentHealth,
+        7);
+    TestEqual (TEXT ("Encounter group survives despawn and spawn"),
+        RestoredMonster->EncounterGroupId,
+        FName (TEXT ("Encounter_MON133_Persistent")));
+
+    TestTrue (TEXT ("Lifecycle state can be captured for persistence"),
+        Runtime->CaptureCurrentLevelRuntimeState ());
+    UGrimrockPartySaveGame* SourceSave =
+        NewObject<UGrimrockPartySaveGame> (Runtime);
+    SourceSave->DungeonRuntimeState = Runtime->DungeonRuntimeState;
+    TArray<uint8> SaveBytes;
+    TestTrue (TEXT ("Lifecycle state serializes through SaveGame"),
+        UGameplayStatics::SaveGameToMemory (
+            SourceSave,
+            SaveBytes));
+    UGrimrockPartySaveGame* LoadedSave =
+        Cast<UGrimrockPartySaveGame> (
+            UGameplayStatics::LoadGameFromMemory (
+                SaveBytes));
+    TestNotNull (TEXT ("Lifecycle SaveGame deserializes"), LoadedSave);
+    if (!LoadedSave)
+    {
+        return false;
+    }
+
+    Runtime->ClearVisuals ();
+    Runtime->DungeonRuntimeState = LoadedSave->DungeonRuntimeState;
+    Runtime->RebuildLevel ();
+    Runtime->ApplyCurrentLevelRuntimeState ();
+    AGridMonsterActor* RebuiltMonster =
+        Runtime->FindSpawnedMonsterActor (SpawnId);
+    TestNotNull (TEXT ("Spawned state survives a runtime-state round trip"),
+        RebuiltMonster);
+    if (RebuiltMonster)
+    {
+        TestEqual (TEXT ("Runtime state restores the teleported cell"),
+            RebuiltMonster->CurrentCell,
+            FIntPoint (2, 2));
+        TestEqual (TEXT ("Runtime state restores health"),
+            RebuiltMonster->CurrentHealth,
+            7);
+    }
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON133AtomicCommandsTest,
+    "Grimrock.Monsters.MON13.3.AtomicCommands",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON133AtomicCommandsTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON132TestWorld TestWorld (EWorldType::Game);
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    UGridLevelAsset* Level = MakeMON13Level (Runtime);
+    Runtime->LevelAsset = Level;
+    UGridMonsterDefinitionAsset* FirstDefinition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON133_AtomicFirst"));
+    UGridMonsterDefinitionAsset* SecondDefinition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON133_AtomicSecond"));
+    if (!FirstDefinition || !SecondDefinition)
+    {
+        return false;
+    }
+
+    const FGuid FirstSpawnId (13, 3, 3, 1);
+    const FGuid SecondSpawnId (13, 3, 3, 2);
+    Level->Objects.Add (MakeMON13Spawn (
+        FirstDefinition,
+        FirstSpawnId,
+        FIntPoint (0, 0)));
+    Level->Objects.Add (MakeMON13Spawn (
+        SecondDefinition,
+        SecondSpawnId,
+        FIntPoint (1, 0)));
+
+    Runtime->RebuildLevel ();
+    AGridMonsterActor* FirstMonster =
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId);
+    TestNotNull (TEXT ("First atomic fixture monster exists"),
+        FirstMonster);
+    if (!FirstMonster)
+    {
+        return false;
+    }
+
+    TestFalse (TEXT ("Teleport rejects an occupied monster cell"),
+        Runtime->TeleportSpawnedMonster (
+            FirstSpawnId,
+            1,
+            0,
+            EGridEdge::West));
+    TestEqual (TEXT ("Rejected teleport preserves the source cell"),
+        FirstMonster->CurrentCell,
+        FIntPoint (0, 0));
+    TestEqual (TEXT ("Rejected teleport preserves both Actors"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        2);
+
+    TestTrue (TEXT ("Second monster despawns before cell reuse"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            SecondSpawnId,
+            EGridObjectCommand::Despawn));
+    TestTrue (TEXT ("Freed cell accepts the first monster"),
+        Runtime->TeleportSpawnedMonster (
+            FirstSpawnId,
+            1,
+            0,
+            EGridEdge::West));
+
+    AddExpectedError (
+        TEXT ("[GridMonsterSpawn] Skipped"),
+        EAutomationExpectedErrorFlags::Contains,
+        1,
+        false);
+    TestFalse (TEXT ("Spawn rejects its occupied saved cell"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            SecondSpawnId,
+            EGridObjectCommand::Spawn));
+    TestNull (TEXT ("Rejected spawn leaves no partial Actor"),
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+    TestEqual (TEXT ("Rejected spawn leaves one world monster"),
+        CountMON132WorldMonsters (TestWorld.World),
+        1);
+    TestEqual (TEXT ("Occupying monster remains at the destination"),
+        FirstMonster->CurrentCell,
+        FIntPoint (1, 0));
     return true;
 }
 

@@ -328,6 +328,47 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
     bool bSuccess = false;
     const TCHAR* FailureReason = TEXT ("unsupported target type or command");
 
+    if (TargetObject->Type == EGridLevelObjectType::MonsterSpawn)
+    {
+        switch (ResolvedCommand)
+        {
+            case EGridObjectCommand::Spawn:
+            case EGridObjectCommand::Despawn:
+            case EGridObjectCommand::Teleport:
+            case EGridObjectCommand::Activate:
+            case EGridObjectCommand::Deactivate:
+            case EGridObjectCommand::Enable:
+            case EGridObjectCommand::Disable:
+            case EGridObjectCommand::Toggle:
+                bSuccess = RuntimeActor->ExecuteMonsterSpawnCommand (
+                    TargetObject->ObjectId,
+                    ResolvedCommand);
+                break;
+
+            default:
+                break;
+        }
+
+        if (bSuccess)
+        {
+            if (RuntimeActor->FindSpawnedMonsterActor (
+                    TargetObject->ObjectId))
+            {
+                ActiveObjectIds.Add (TargetObject->ObjectId);
+            }
+            else
+            {
+                ActiveObjectIds.Remove (TargetObject->ObjectId);
+            }
+        }
+        LogLinkResult (
+            LinkData,
+            ResolvedCommand,
+            bSuccess,
+            bSuccess ? nullptr : TEXT ("monster lifecycle command failed"));
+        return bSuccess;
+    }
+
     if (IsReceptacleCommand (ResolvedCommand))
     {
         bSuccess = ApplyReceptacleLinkCommand (*TargetObject, ResolvedCommand);
@@ -723,8 +764,7 @@ bool UGridActivationComponent::SetTargetActiveState (const FGridLevelObjectData&
     }
 
     if (!bHandledByRuntimeActor &&
-        (TargetObject.Type == EGridLevelObjectType::MonsterSpawn ||
-            TargetObject.Type == EGridLevelObjectType::ItemSpawn))
+        TargetObject.Type == EGridLevelObjectType::ItemSpawn)
     {
         UE_LOG (LogTemp, Log, TEXT ("Grid link target %s is %s; state stored, spawn behavior TODO."),
             *TargetObject.ObjectId.ToString (), *GridObjectTypeToString (TargetObject.Type));

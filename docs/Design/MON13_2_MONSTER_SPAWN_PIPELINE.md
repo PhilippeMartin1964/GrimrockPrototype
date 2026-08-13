@@ -273,13 +273,15 @@ Outliner.
 En cas d'échec, relever le `SpawnId`, la cellule, la définition, la classe, la
 ligne `[GridMonsterSpawn]` complète et une capture du World Outliner.
 
-## Hors périmètre
+## Suite du pipeline
 
-- commande `Spawn` pendant le jeu ;
-- activation différée d'un placement désactivé ;
-- `Despawn` temporaire ou définitif ;
-- `Teleport` intra-niveau ou inter-niveaux ;
+MON13.3 implémente désormais `Spawn`, `Despawn`, l'activation différée et la
+téléportation intra-niveau. Voir
+`docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md`.
+
+Restent hors périmètre :
+
+- suppression définitive non réversible d'un placement ;
+- `Teleport` inter-niveaux ;
 - résolution Asset Manager d'un `MonsterDefinitionId` sans pointeur d'asset ;
 - gestion globale des rencontres par `EncounterGroupId`.
-
-Ces opérations commencent avec MON13.3.

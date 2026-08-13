@@ -45,6 +45,22 @@ MON12.6 fournit le catalogue générique validé. MON12.7 construit désormais l
 HUD depuis ce catalogue : quatre panneaux au maximum, barre d'actions du
 personnage actif, huit prochains tours au maximum et PAM communs.
 
+## Apparition des monstres
+
+MON13 remplace les monstres posés manuellement par un pipeline orienté données :
+
+```text
+MonsterSpawn persistant
+    → MonsterDefinition
+    → Actor runtime
+    → état MON9 par SpawnId
+```
+
+MON13.1 définit le placement persistant et son édition. MON13.2 crée l'aperçu
+squelettique et l'Actor runtime. MON13.3 ajoute les commandes `Spawn`,
+`Despawn` et `Teleport`, leurs événements de cycle de vie et la persistance de
+la présence ainsi que du dernier état du monstre.
+
 ---
 
 ## Contraintes générales
@@ -119,7 +135,7 @@ Le système de liens fait la jonction.
 Les décisions importantes doivent être conservées dans les fichiers Markdown du dossier :
 
 ```text
-Docs/Design/
+docs/Design/
 ```
 
 Ces documents servent de mémoire stable pour :
@@ -150,6 +166,9 @@ La mémoire principale doit être le dépôt Git.
 | `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Implémentation du déplacement payant et des PAM communs |
 | `MON12_6_COMBAT_ACTION_CATALOG.md` | Définitions, contributions et catalogue générique d'actions |
 | `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md` | HUD de quatre personnages, actions, initiative et PAM |
+| `MON13_1_MONSTER_SPAWN_MODEL.md` | Placement persistant, identité et validation des MonsterSpawn |
+| `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Aperçu squelettique et instanciation runtime |
+| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Commandes Spawn/Despawn/Teleport et persistance du cycle de vie |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

@@ -172,6 +172,26 @@ struct FGridRuntimeMonsterState
     bool bIsDead = false;
 };
 
+/** Persistent MON13.3 presence and last known state for one MonsterSpawn. */
+USTRUCT (BlueprintType)
+struct FGridRuntimeMonsterPlacementState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FGuid SpawnId;
+
+    /** False keeps the placement absent until a Spawn command succeeds. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bIsSpawned = false;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bHasMonsterState = false;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FGridRuntimeMonsterState MonsterState;
+};
+
 USTRUCT (BlueprintType)
 struct FGridLevelRuntimeState
 {
@@ -200,6 +220,10 @@ struct FGridLevelRuntimeState
 
     UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeMonsterState> Monsters;
+
+    /** MON13.3 lifecycle state keyed by persistent MonsterSpawn ObjectId. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TMap<FGuid, FGridRuntimeMonsterPlacementState> MonsterPlacements;
 };
 
 USTRUCT (BlueprintType)

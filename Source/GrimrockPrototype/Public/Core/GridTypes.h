@@ -118,7 +118,10 @@ enum class EGridObjectEvent : uint8
     Closed       UMETA (DisplayName = "Closed"),
     Enabled      UMETA (DisplayName = "Enabled"),
     Disabled     UMETA (DisplayName = "Disabled"),
-    MonsterDied  UMETA (DisplayName = "Monster Died")
+    MonsterDied       UMETA (DisplayName = "Monster Died"),
+    MonsterSpawned    UMETA (DisplayName = "Monster Spawned"),
+    MonsterDespawned  UMETA (DisplayName = "Monster Despawned"),
+    MonsterTeleported UMETA (DisplayName = "Monster Teleported")
 };
 
 USTRUCT (BlueprintType)

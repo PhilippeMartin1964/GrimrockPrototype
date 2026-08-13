@@ -806,3 +806,24 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   jusqu'à MON13.3.
 - Le document d'implémentation est
   `docs/Design/MON13_2_MONSTER_SPAWN_PIPELINE.md`.
+
+---
+
+## 2026-08-13 — MON13.3 : commandes runtime des `MonsterSpawn`
+
+- Les commandes générales existantes sont réutilisées : `Spawn`, `Despawn`,
+  `Teleport`, avec alias `Activate/Enable`, `Deactivate/Disable` et `Toggle`.
+- `Despawn` est une absence persistante mais réversible : un `Spawn` ultérieur
+  restaure le dernier état connu sous le même `SpawnId`.
+- La commande de lien `Teleport` ramène le monstre à la pose de son placement ;
+  l'API Blueprint/C++ accepte une cellule et une orientation explicites.
+- Les événements `MonsterSpawned`, `MonsterDespawned` et
+  `MonsterTeleported` sont ajoutés à la fin de `EGridObjectEvent`.
+- `FGridLevelRuntimeState::MonsterPlacements` conserve présence et dernier état
+  complet, y compris cellule, orientation, PV, mort et `EncounterGroupId`.
+- Un refus de spawn ou de téléportation ne modifie ni l'Actor, ni l'occupation,
+  ni l'état persistant ; un échec de capture interdit le despawn.
+- La gestion globale des rencontres et la téléportation inter-niveaux restent
+  hors périmètre.
+- Le document d'implémentation est
+  `docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md`.

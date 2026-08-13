@@ -134,6 +134,15 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     }
     else
     {
+        if (UGridMonsterOccupancySubsystem* Occupancy =
+            GetWorld ()
+                ? GetWorld ()->GetSubsystem<
+                    UGridMonsterOccupancySubsystem> ()
+                : nullptr)
+        {
+            Occupancy->UnregisterMonster (OwnerMonster);
+            bOccupancyReleased = true;
+        }
         UE_LOG (LogGridMonsterDeath, Warning,
             TEXT ("[GridMonsterDeath] Monster=%s Reason=MissingMonsterMovement; continuing death."),
             *GetNameSafe (OwnerMonster));

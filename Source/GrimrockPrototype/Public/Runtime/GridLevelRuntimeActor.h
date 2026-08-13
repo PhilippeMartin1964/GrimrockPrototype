@@ -373,6 +373,20 @@ public:
         return RuntimeMonsterSpawnFailureCount;
     }
 
+    /** Executes a MON13.3 lifecycle command for one persistent MonsterSpawn. */
+    UFUNCTION (BlueprintCallable, Category = "Monster|Spawn")
+    bool ExecuteMonsterSpawnCommand (
+        FGuid SpawnId,
+        EGridObjectCommand Command);
+
+    /** Atomically moves a spawned monster to a validated intra-level pose. */
+    UFUNCTION (BlueprintCallable, Category = "Monster|Spawn")
+    bool TeleportSpawnedMonster (
+        FGuid SpawnId,
+        int32 TargetCellX,
+        int32 TargetCellY,
+        EGridEdge TargetFacing);
+
     UFUNCTION (BlueprintCallable, Category = "Monster|Persistence")
     void SetMonsterRuntimeLevelActive (
         AGridMonsterActor* Monster,
@@ -509,7 +523,16 @@ private:
     void RegisterRuntimeObjectActor (const FGuid& ObjectId, AGridRuntimeObjectActor* Actor);
     void ClearRuntimeObjectActors ();
     AGridMonsterActor* AddMonsterSpawnActor (
-        const FGridLevelObjectData& ObjectData);
+        const FGridLevelObjectData& ObjectData,
+        const FGridRuntimeMonsterState* RestoreState = nullptr);
+    bool DespawnMonsterSpawnActor (
+        const FGridLevelObjectData& ObjectData,
+        bool bRememberState,
+        bool bEmitEvent);
+    bool StoreMonsterPlacementState (
+        const FGridLevelObjectData& ObjectData,
+        AGridMonsterActor* Monster,
+        bool bIsSpawned);
     void ClearSpawnedMonsterActors ();
     void AbortActiveCombatAndMonsterActions ();
     void ApplyInitialMonsterStateForCurrentLevel ();
