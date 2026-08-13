@@ -425,15 +425,16 @@ Targets actuellement autorisées :
 ```text
 Door
 Secret Door
+Teleporter
+Light
+Receptacle
+MonsterSpawn
 ```
 
 Targets futures possibles :
 
 ```text
-Teleporter
-Light
 ItemSpawner
-MonsterSpawner
 LogicRelay
 ```
 
@@ -443,15 +444,15 @@ Targets actuellement exclues :
 Button
 Lever
 PressurePlate
-Receptacle
 WallInscription
 Decoration
 Item
 ItemSpawn
-MonsterSpawn
 ```
 
-`ItemSpawn` et `MonsterSpawn` restent exclus tant que leur comportement de spawn commandé est TODO runtime.
+Depuis MON13.3, `MonsterSpawn` propose `Spawn`, `Despawn`, `Teleport` et les
+alias d'activation. `ItemSpawn` reste exclu tant que son comportement de spawn
+commandé est TODO runtime.
 
 Règle : `Interactable` ne signifie pas `Command Target`.
 
@@ -479,4 +480,3 @@ Exemple de log :
 [GridActivation] -> Door_Stone_01.ToggleOpen
 [GridDoor] Door_Stone_01 ToggleOpen accepted
 ```
-

@@ -3,6 +3,7 @@
 #if WITH_EDITOR
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/GridEditorLinkPolicy.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
@@ -25,119 +26,6 @@ namespace
     const FLinearColor BrokenConnectorColor (1.f, 0.18f, 0.16f, 1.f);
 
     const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId);
-    TArray<EGridObjectCommand> GetSupportedCommandsForTarget (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype);
-
-    bool CanObjectEmitEvents (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
-    {
-        (void)Archetype;
-        switch (Obj.Type)
-        {
-            case EGridLevelObjectType::Button:
-            case EGridLevelObjectType::Lever:
-            case EGridLevelObjectType::PressurePlate:
-            case EGridLevelObjectType::Trigger:
-            case EGridLevelObjectType::Receptacle:
-            case EGridLevelObjectType::MonsterSpawn:
-                return true;
-
-            case EGridLevelObjectType::Item:
-            case EGridLevelObjectType::ItemSpawn:
-            case EGridLevelObjectType::Door:
-            case EGridLevelObjectType::Teleporter:
-            case EGridLevelObjectType::Decoration:
-            case EGridLevelObjectType::Light:
-            default:
-                return false;
-        }
-    }
-
-    TArray<EGridObjectEvent> GetSupportedEventsForSource (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
-    {
-        (void)Archetype;
-        TArray<EGridObjectEvent> Events;
-
-        switch (Obj.Type)
-        {
-            case EGridLevelObjectType::Button:
-                Events = {EGridObjectEvent::Activated};
-                break;
-
-            case EGridLevelObjectType::Lever:
-                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
-                break;
-
-            case EGridLevelObjectType::PressurePlate:
-                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
-                break;
-
-            case EGridLevelObjectType::Trigger:
-                Events = {EGridObjectEvent::Activated, EGridObjectEvent::Deactivated};
-                break;
-
-            case EGridLevelObjectType::Receptacle:
-                Events = {
-                    EGridObjectEvent::ItemInserted,
-                    EGridObjectEvent::ItemRemoved,
-                    EGridObjectEvent::ItemChanged
-                };
-                break;
-
-            case EGridLevelObjectType::MonsterSpawn:
-                Events = {EGridObjectEvent::MonsterDied};
-                break;
-
-            case EGridLevelObjectType::Item:
-            case EGridLevelObjectType::ItemSpawn:
-            case EGridLevelObjectType::Door:
-            case EGridLevelObjectType::Teleporter:
-            case EGridLevelObjectType::Decoration:
-            case EGridLevelObjectType::Light:
-            default:
-                break;
-        }
-
-        return Events;
-    }
-
-    bool CanObjectReceiveCommands (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
-    {
-        return GetSupportedCommandsForTarget (Obj, Archetype).Num () > 0;
-    }
-
-    TArray<EGridObjectCommand> GetSupportedCommandsForTarget (const FGridLevelObjectData& Obj, const UGridObjectArchetypeAsset* Archetype)
-    {
-        switch (Obj.Type)
-        {
-            case EGridLevelObjectType::Door:
-                return {
-                    EGridObjectCommand::Open,
-                    EGridObjectCommand::Close,
-                    EGridObjectCommand::Toggle,
-                    EGridObjectCommand::Activate,
-                    EGridObjectCommand::Deactivate
-                };
-
-            case EGridLevelObjectType::Teleporter:
-                return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
-
-            case EGridLevelObjectType::Light:
-                return {EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle};
-
-            case EGridLevelObjectType::Receptacle:
-                return {
-                    EGridObjectCommand::ReceptacleConsumeItem,
-                    EGridObjectCommand::ReceptacleConsumeAllItems,
-                    EGridObjectCommand::ReceptacleEnableRemoval,
-                    EGridObjectCommand::ReceptacleDisableRemoval
-                };
-
-            default:
-                break;
-        }
-
-        return {};
-    }
-
     bool IsConnectorBroken (const FGridObjectLink& Link)
     {
         return !Link.SourceObjectId.IsValid () || !Link.TargetObjectId.IsValid ();
@@ -227,10 +115,9 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
             .Text (FText::FromString (TEXT ("No selected object.")));
     }
 
-    const UGridObjectArchetypeAsset* SelectedArchetype = CurrentEditorActor->FindObjectArchetypeById (SelectedObject->ArchetypeId);
     const bool bSelectedObjectSupportsConnectors =
-        CanObjectEmitEvents (*SelectedObject, SelectedArchetype) ||
-        CanObjectReceiveCommands (*SelectedObject, SelectedArchetype);
+        GridEditorLinkPolicy::CanObjectEmitEvents (*SelectedObject) ||
+        GridEditorLinkPolicy::CanObjectReceiveCommands (*SelectedObject);
 
     if (!bSelectedObjectSupportsConnectors)
     {
@@ -513,23 +400,6 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
 
     int32 Count = 0;
 
-    static const EGridObjectEvent EventOrder[] =
-    {
-        EGridObjectEvent::Activated,
-        EGridObjectEvent::Deactivated,
-        EGridObjectEvent::ItemInserted,
-        EGridObjectEvent::ItemRemoved,
-        EGridObjectEvent::ItemChanged,
-        EGridObjectEvent::Used,
-        EGridObjectEvent::Entered,
-        EGridObjectEvent::Exited,
-        EGridObjectEvent::Opened,
-        EGridObjectEvent::Closed,
-        EGridObjectEvent::Enabled,
-        EGridObjectEvent::Disabled,
-        EGridObjectEvent::MonsterDied
-    };
-
     const auto AddLinkRow = [this, CurrentEditorActor, &Root, &Count, bOutgoing] (const FGridObjectLink& Link)
     {
         const FGuid SourceId = Link.SourceObjectId;
@@ -612,7 +482,8 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
 
     if (bOutgoing)
     {
-        for (const EGridObjectEvent Event : EventOrder)
+        for (const EGridObjectEvent Event :
+            GridEditorLinkPolicy::GetEventDisplayOrder ())
         {
             bool bEventHeaderAdded = false;
             for (const FGridObjectLink& Link : CurrentEditorActor->LevelAsset->Links)
@@ -912,13 +783,12 @@ void SGridEditorLinksPanel::BuildObjectOptions ()
 
     for (const FGridLevelObjectData& Object : CurrentEditorActor->LevelAsset->Objects)
     {
-        const UGridObjectArchetypeAsset* Archetype = CurrentEditorActor->FindObjectArchetypeById (Object.ArchetypeId);
-        if (CanObjectEmitEvents (Object, Archetype))
+        if (GridEditorLinkPolicy::CanObjectEmitEvents (Object))
         {
             SourceObjectOptions.Add (MakeShared<FGuid> (Object.ObjectId));
         }
 
-        if (CanObjectReceiveCommands (Object, Archetype))
+        if (GridEditorLinkPolicy::CanObjectReceiveCommands (Object))
         {
             TargetObjectOptions.Add (MakeShared<FGuid> (Object.ObjectId));
         }
@@ -964,8 +834,9 @@ void SGridEditorLinksPanel::BuildEventOptions ()
 
     if (SourceObject)
     {
-        const UGridObjectArchetypeAsset* SourceArchetype = CurrentEditorActor->FindObjectArchetypeById (SourceObject->ArchetypeId);
-        for (const EGridObjectEvent Event : GetSupportedEventsForSource (*SourceObject, SourceArchetype))
+        for (const EGridObjectEvent Event :
+            GridEditorLinkPolicy::GetSupportedEventsForSource (
+                *SourceObject))
         {
             LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (Event));
         }
@@ -999,8 +870,9 @@ void SGridEditorLinksPanel::BuildCommandOptions ()
 
     if (TargetObject)
     {
-        const UGridObjectArchetypeAsset* TargetArchetype = CurrentEditorActor->FindObjectArchetypeById (TargetObject->ArchetypeId);
-        for (const EGridObjectCommand Command : GetSupportedCommandsForTarget (*TargetObject, TargetArchetype))
+        for (const EGridObjectCommand Command :
+            GridEditorLinkPolicy::GetSupportedCommandsForTarget (
+                *TargetObject))
         {
             LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (Command));
         }

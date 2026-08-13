@@ -625,15 +625,16 @@ Doit contenir actuellement :
 ```text
 Door_Stone
 Door_Secret
+Teleporter
+Light
+Receptacle
+MonsterSpawn
 ```
 
 Targets futures possibles, mais non actives tant que le runtime n’est pas implémenté :
 
 ```text
-Teleporter
-Light
 ItemSpawner
-MonsterSpawner
 LogicRelay
 ```
 
@@ -643,12 +644,10 @@ Ne doit pas contenir :
 Button
 Lever
 PressurePlate
-Receptacle
 WallInscription
 Item_Torch
 Floor decorations
 ItemSpawn tant que spawn commandé non implémenté
-MonsterSpawn tant que spawn commandé non implémenté
 ```
 
 ## 5.4 Command
@@ -661,6 +660,19 @@ Close
 Toggle
 Lock
 Unlock
+```
+
+Pour `MonsterSpawn` :
+
+```text
+Spawn
+Despawn
+Teleport
+Activate
+Deactivate
+Enable
+Disable
+Toggle
 ```
 
 Aucune commande de porte ne doit être proposée pour un objet qui n’est pas une porte.

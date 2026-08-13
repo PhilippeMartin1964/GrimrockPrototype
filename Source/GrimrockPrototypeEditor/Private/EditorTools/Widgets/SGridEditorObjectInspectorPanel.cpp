@@ -2074,9 +2074,17 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection (
 
     Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
     [
+        GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
+            FText::FromString (TEXT ("Supported Commands")),
+            FText::FromString (TEXT (
+                "Spawn, Despawn, Teleport, Activate, Deactivate, Enable, Disable, Toggle")))
+    ];
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
+    [
         SNew (STextBlock)
             .Text (FText::FromString (TEXT (
-                "MON13.2 creates the configured monster Actor in preview and at runtime. Dynamic Spawn, Despawn and Teleport commands start in MON13.3.")))
+                "MON13.3 exposes MonsterSpawn as a connector target and supports persistent Spawn, Despawn and intra-level Teleport commands.")))
             .AutoWrapText (true)
             .ColorAndOpacity (FSlateColor (
                 FLinearColor (0.65f, 0.65f, 0.65f)))

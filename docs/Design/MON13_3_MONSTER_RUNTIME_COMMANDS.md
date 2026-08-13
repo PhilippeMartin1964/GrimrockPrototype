@@ -52,6 +52,11 @@ Trigger.Activated → Rat_A.Spawn
 Rat_A.MonsterSpawned → Rat_B.Spawn
 ```
 
+Dans le Grimrock Grid Editor Mode, un `MonsterSpawn` apparaît dans
+`Target Object`. Une fois sélectionné, la liste `Command` propose les trois
+commandes principales et leurs alias. Un `MonsterSpawn` peut aussi être source
+des quatre événements de cycle de vie ci-dessus, y compris `MonsterDied`.
+
 Une mutation réussie de la population ou de la pose interrompt le combat actif
 afin que l'initiative ne conserve jamais un participant absent ou une position
 devenue obsolète. Une opération refusée n'interrompt pas le combat.
@@ -98,7 +103,8 @@ MON13.3 ajoute :
 
 - `Grimrock.Monsters.MON13.3.DeferredSpawnLinks` ;
 - `Grimrock.Monsters.MON13.3.LifecyclePersistence` ;
-- `Grimrock.Monsters.MON13.3.AtomicCommands`.
+- `Grimrock.Monsters.MON13.3.AtomicCommands` ;
+- `Grimrock.Monsters.MON13.3.EditorLinkPolicy`.
 
 Commande UE 5.5.4 :
 
@@ -114,6 +120,8 @@ D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe D:\Development\GrimrockProt
 2. Créer un lien `Trigger.Activated → Rat.Spawn`.
 3. Lancer PIE et activer le trigger.
 
+- [ ] le Rat apparaît dans `Target Object` ;
+- [ ] la sélection du Rat propose `Spawn` dans `Command` ;
 - [ ] aucun Actor n'existe avant l'activation ;
 - [ ] un seul Actor apparaît après l'activation ;
 - [ ] le `SpawnId`, la définition et `EncounterGroupId` correspondent au

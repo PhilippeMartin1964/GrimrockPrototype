@@ -565,6 +565,7 @@ Lever
 PressurePlate
 Trigger
 Receptacle
+MonsterSpawn
 ```
 
 Targets actuellement attendues :
@@ -572,6 +573,10 @@ Targets actuellement attendues :
 ```text
 Door
 Secret Door
+Teleporter
+Light
+Receptacle
+MonsterSpawn
 ```
 
 Objets exclus des sources ou des targets selon leur rôle actuel :
@@ -582,9 +587,13 @@ readable-only
 decorations
 items simples
 objets purement visuels
-Button / Lever / PressurePlate / Receptacle comme targets
-ItemSpawn / MonsterSpawn comme targets tant que le spawn commandé reste TODO runtime
+Button / Lever / PressurePlate comme targets
+ItemSpawn comme target tant que le spawn commandé reste TODO runtime
 ```
+
+Pour `MonsterSpawn`, MON13.3 expose `MonsterDied`, `MonsterSpawned`,
+`MonsterDespawned` et `MonsterTeleported` comme événements, puis `Spawn`,
+`Despawn`, `Teleport` et leurs alias comme commandes.
 
 Règles de lecture :
 

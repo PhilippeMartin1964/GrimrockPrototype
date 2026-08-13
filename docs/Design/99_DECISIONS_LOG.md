@@ -819,6 +819,9 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   l'API Blueprint/C++ accepte une cellule et une orientation explicites.
 - Les événements `MonsterSpawned`, `MonsterDespawned` et
   `MonsterTeleported` sont ajoutés à la fin de `EGridObjectEvent`.
+- Le Grimrock Grid Editor expose `MonsterSpawn` comme cible de connector avec
+  `Spawn`, `Despawn`, `Teleport` et leurs alias ; les quatre événements du
+  monstre sont également disponibles comme événements sources.
 - `FGridLevelRuntimeState::MonsterPlacements` conserve présence et dernier état
   complet, y compris cellule, orientation, PV, mort et `EncounterGroupId`.
 - Un refus de spawn ou de téléportation ne modifie ni l'Actor, ni l'occupation,
