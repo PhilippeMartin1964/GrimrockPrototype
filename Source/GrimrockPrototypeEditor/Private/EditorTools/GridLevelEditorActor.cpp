@@ -1,5 +1,7 @@
 #include "EditorTools/GridLevelEditorActor.h"
 
+#include "EditorTools/GridEditorLinkPolicy.h"
+
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridGenericObjectActor.h"
@@ -214,7 +216,12 @@ namespace
                     Event == EGridObjectEvent::ItemChanged;
 
             case EGridLevelObjectType::MonsterSpawn:
-                return Event == EGridObjectEvent::MonsterDied;
+            {
+                FGridLevelObjectData MonsterSpawn;
+                MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
+                return GridEditorLinkPolicy::GetSupportedEventsForSource (
+                    MonsterSpawn).Contains (Event);
+            }
 
             default:
                 return false;
@@ -223,6 +230,14 @@ namespace
 
     bool IsCommandSupportedByCurrentRuntime (EGridLevelObjectType TargetType, EGridObjectCommand Command)
     {
+        if (TargetType == EGridLevelObjectType::MonsterSpawn)
+        {
+            FGridLevelObjectData MonsterSpawn;
+            MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
+            return GridEditorLinkPolicy::GetSupportedCommandsForTarget (
+                MonsterSpawn).Contains (Command);
+        }
+
         if (IsReceptacleCommand (Command))
         {
             return TargetType == EGridLevelObjectType::Receptacle;
@@ -246,7 +261,6 @@ namespace
             case EGridLevelObjectType::PressurePlate:
             case EGridLevelObjectType::Lever:
             case EGridLevelObjectType::Decoration:
-            case EGridLevelObjectType::MonsterSpawn:
             case EGridLevelObjectType::ItemSpawn:
             case EGridLevelObjectType::Item:
             case EGridLevelObjectType::Light:
@@ -4449,7 +4463,14 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                         *ToGridObjectTypeText (TargetObject->Type)),
                     Link.TargetObjectId);
             }
-            if (!TargetObject->bInitiallyEnabled)
+            const bool bCommandCreatesDisabledMonster =
+                TargetObject->Type == EGridLevelObjectType::MonsterSpawn &&
+                (Link.Command == EGridObjectCommand::Spawn ||
+                    Link.Command == EGridObjectCommand::Activate ||
+                    Link.Command == EGridObjectCommand::Enable ||
+                    Link.Command == EGridObjectCommand::Toggle);
+            if (!TargetObject->bInitiallyEnabled &&
+                !bCommandCreatesDisabledMonster)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,

@@ -22,7 +22,5 @@ namespace GridPIEPlaytestRequest
         const AGridLevelRuntimeActor* RuntimeActor);
 
     GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor* ResolveMatchingRuntimeActor (
-        UWorld* World,
-        int32* OutRuntimeActorCount = nullptr,
-        int32* OutMatchingActorCount = nullptr);
+        UWorld* World);
 }

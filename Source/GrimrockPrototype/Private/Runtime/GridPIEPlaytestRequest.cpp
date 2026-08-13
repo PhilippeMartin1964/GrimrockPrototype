@@ -106,15 +106,13 @@ namespace GridPIEPlaytestRequest
     }
 
     AGridLevelRuntimeActor* ResolveMatchingRuntimeActor (
-        UWorld* World,
-        int32* OutRuntimeActorCount,
-        int32* OutMatchingActorCount)
+        UWorld* World)
     {
-        int32 RuntimeActorCount = 0;
-        int32 MatchingActorCount = 0;
         AGridLevelRuntimeActor* Match = nullptr;
 
 #if WITH_EDITOR
+        int32 RuntimeActorCount = 0;
+        int32 MatchingActorCount = 0;
         if (IsActiveForWorld (World))
         {
             for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
@@ -128,7 +126,7 @@ namespace GridPIEPlaytestRequest
                 {
                     Match = RuntimeActor;
                 }
-                UE_LOG (LogTemp, Log,
+                UE_LOG (LogTemp, Verbose,
                     TEXT ("[GridPIEPlaytestRequest] Resolve ActorName=%s ActorPath=%s LevelAsset=%s DungeonAsset=%s CurrentDungeonLevelId=%s Matches=%s"),
                     *RuntimeActor->GetName (),
                     *RuntimeActor->GetPathName (),
@@ -151,16 +149,10 @@ namespace GridPIEPlaytestRequest
                 Match = nullptr;
             }
         }
+#else
+        (void)World;
 #endif
 
-        if (OutRuntimeActorCount)
-        {
-            *OutRuntimeActorCount = RuntimeActorCount;
-        }
-        if (OutMatchingActorCount)
-        {
-            *OutMatchingActorCount = MatchingActorCount;
-        }
         return Match;
     }
 }

@@ -97,6 +97,12 @@ Conséquences :
 - les anciennes sauvegardes sans `MonsterPlacements` conservent le comportement
   MON9/MON13.2 fondé sur `Monsters` et `bInitiallyEnabled`.
 
+Un PIE préparé depuis le Grimrock Grid Editor est volontairement traité comme
+un playtest frais : le profil du groupe peut être chargé, mais la cellule, le
+niveau et `MonsterPlacements` de la sauvegarde ne sont pas importés. La session
+ne réécrit pas la sauvegarde à sa fermeture. Un PIE normal en mode `Continue`,
+sans cette préparation, restaure au contraire l'état persistant complet.
+
 ## Automation Tests
 
 MON13.3 ajoute :
@@ -104,7 +110,14 @@ MON13.3 ajoute :
 - `Grimrock.Monsters.MON13.3.DeferredSpawnLinks` ;
 - `Grimrock.Monsters.MON13.3.LifecyclePersistence` ;
 - `Grimrock.Monsters.MON13.3.AtomicCommands` ;
-- `Grimrock.Monsters.MON13.3.EditorLinkPolicy`.
+- `Grimrock.Monsters.MON13.3.EditorLinkPolicy` ;
+- `Grimrock.Monsters.MON13.3.FreshPIEPreparation` ;
+- `Grimrock.Monsters.MON13.3.RealPIEIntegration`.
+
+`RealPIEIntegration` utilise un slot temporaire dédié et vérifie deux sessions
+réelles : le playtest frais n'affiche pas le rat avant le trigger et ne modifie
+pas le fichier de sauvegarde temporaire, puis un `Continue` normal restaure le
+rat depuis `MonsterPlacements`.
 
 Commande UE 5.5.4 :
 

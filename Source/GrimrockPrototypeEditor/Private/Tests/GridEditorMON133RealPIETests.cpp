@@ -1,7 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "HAL/FileManager.h"
+#include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 
 #include "Editor.h"
@@ -34,8 +34,10 @@ namespace
         TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
         FString PreparedRuntimeActorName;
         bool bOriginalAutoPreparePIE = true;
+        bool bSetupSucceeded = false;
+        bool bContinuePIEReady = false;
         FDelegateHandle PIEWorldInitializationHandle;
-        FDateTime TemporarySaveTimestampBeforeFreshPIE;
+        TArray<uint8> TemporarySaveBytesBeforeFreshPIE;
     };
 
     UWorld* GetMON133PIEWorld ()
@@ -115,6 +117,12 @@ namespace
                 FIntPoint (RatSpawn->CellX, RatSpawn->CellY), MON133RatCell);
             Test->TestEqual (TEXT ("The real StartCell is unchanged"),
                 EditorActor->LevelAsset->GetStartCell (), MON133StartCell);
+            if (RatSpawn->bInitiallyEnabled ||
+                FIntPoint (RatSpawn->CellX, RatSpawn->CellY) != MON133RatCell ||
+                EditorActor->LevelAsset->GetStartCell () != MON133StartCell)
+            {
+                return true;
+            }
 
             const FGridLevelObjectData* Trigger = nullptr;
             for (const FGridLevelObjectData& Object : EditorActor->LevelAsset->Objects)
@@ -127,25 +135,28 @@ namespace
                 }
             }
             Test->TestNotNull (TEXT ("The real trigger exists on the expected cell"), Trigger);
-            Test->TestTrue (TEXT ("The trigger is not on StartCell"),
-                MON133TriggerCell != MON133StartCell);
+            if (!Trigger)
+            {
+                return true;
+            }
 
             bool bHasExpectedLink = false;
-            if (Trigger)
+            for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
             {
-                for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
+                if (Link.SourceObjectId == Trigger->ObjectId &&
+                    Link.TargetObjectId == MON133RatSpawnId &&
+                    Link.SourceEvent == EGridObjectEvent::Activated &&
+                    Link.Command == EGridObjectCommand::Spawn)
                 {
-                    if (Link.SourceObjectId == Trigger->ObjectId &&
-                        Link.TargetObjectId == MON133RatSpawnId &&
-                        Link.SourceEvent == EGridObjectEvent::Activated &&
-                        Link.Command == EGridObjectCommand::Spawn)
-                    {
-                        bHasExpectedLink = true;
-                        break;
-                    }
+                    bHasExpectedLink = true;
+                    break;
                 }
             }
             Test->TestTrue (TEXT ("Trigger.Activated links to Rat.Spawn"), bHasExpectedLink);
+            if (!bHasExpectedLink)
+            {
+                return true;
+            }
 
             State->EditorActor = EditorActor;
             State->PreparedRuntimeActorName = EditorActor->PreviewRuntimeActor->GetName ();
@@ -176,13 +187,29 @@ namespace
             Placement.bIsSpawned = true;
             Placement.bHasMonsterState = false;
 
+            const bool bSaveWritten =
+                UGameplayStatics::SaveGameToSlot (
+                    Save,
+                    State->TemporarySaveSlot,
+                    0);
             Test->TestTrue (TEXT ("The dedicated temporary save is written"),
-                UGameplayStatics::SaveGameToSlot (Save, State->TemporarySaveSlot, 0));
+                bSaveWritten);
+            if (!bSaveWritten)
+            {
+                return true;
+            }
             const FString SavePath = FPaths::ProjectSavedDir () /
                 TEXT ("SaveGames") /
                 (State->TemporarySaveSlot + TEXT (".sav"));
-            State->TemporarySaveTimestampBeforeFreshPIE =
-                IFileManager::Get ().GetTimeStamp (*SavePath);
+            const bool bSaveBytesLoaded = FFileHelper::LoadFileToArray (
+                State->TemporarySaveBytesBeforeFreshPIE,
+                *SavePath);
+            Test->TestTrue (TEXT ("The dedicated temporary save can be read back"),
+                bSaveBytesLoaded);
+            if (!bSaveBytesLoaded)
+            {
+                return true;
+            }
 
             EditorActor->bAutoPreparePIE = true;
             State->PIEWorldInitializationHandle =
@@ -214,6 +241,10 @@ namespace
                                 *State->TemporarySaveSlot);
                         }
                     });
+            State->bSetupSucceeded =
+                State->PIEWorldInitializationHandle.IsValid ();
+            Test->TestTrue (TEXT ("The PIE startup injection is registered"),
+                State->bSetupSucceeded);
             UE_LOG (LogTemp, Log,
                 TEXT ("[MON133PIE] Phase=IntegrationSetup SaveSlot=%s SpawnId=%s bInitiallyEnabled=false StartCell=(28,23) TriggerCell=(27,24) MonsterPlacements=present bIsSpawned=true"),
                 *State->TemporarySaveSlot,
@@ -229,13 +260,19 @@ namespace
     class FWaitForMON133PIE : public IAutomationLatentCommand
     {
     public:
-        explicit FWaitForMON133PIE (FAutomationTestBase* InTest)
-            : Test (InTest)
+        FWaitForMON133PIE (
+            FAutomationTestBase* InTest,
+            TSharedRef<FMON133RealPIEState> InState)
+            : Test (InTest), State (MoveTemp (InState))
         {
         }
 
         virtual bool Update () override
         {
+            if (!State->bSetupSucceeded)
+            {
+                return true;
+            }
             if (StartSeconds <= 0.0)
             {
                 StartSeconds = FPlatformTime::Seconds ();
@@ -255,7 +292,27 @@ namespace
 
     private:
         FAutomationTestBase* Test;
+        TSharedRef<FMON133RealPIEState> State;
         double StartSeconds = 0.0;
+    };
+
+    class FStartMON133PIEIfReady : public IAutomationLatentCommand
+    {
+    public:
+        explicit FStartMON133PIEIfReady (
+            TSharedRef<FMON133RealPIEState> InState)
+            : State (MoveTemp (InState)), StartPIECommand (false)
+        {
+        }
+
+        virtual bool Update () override
+        {
+            return !State->bSetupSucceeded || StartPIECommand.Update ();
+        }
+
+    private:
+        TSharedRef<FMON133RealPIEState> State;
+        FStartPIECommand StartPIECommand;
     };
 
     class FCheckMON133FreshPIE : public IAutomationLatentCommand
@@ -270,6 +327,10 @@ namespace
 
         virtual bool Update () override
         {
+            if (!State->bSetupSucceeded)
+            {
+                return true;
+            }
             UWorld* World = GetMON133PIEWorld ();
             Test->TestNotNull (TEXT ("A genuine duplicated PIE world exists"), World);
             if (!World)
@@ -313,6 +374,8 @@ namespace
                 Party->PartyStartupMode, EGrimrockPartyStartupMode::Continue);
             Test->TestEqual (TEXT ("StartupModeComponent used the dedicated temporary slot"),
                 Party->PartySaveSlotName, State->TemporarySaveSlot);
+            State->bContinuePIEReady =
+                Party->PartySaveSlotName == State->TemporarySaveSlot;
 
             Test->TestEqual (TEXT ("Fresh real PIE has no Rat after all BeginPlay calls"),
                 CountMON133RatActors (World), 0);
@@ -364,6 +427,36 @@ namespace
         TSharedRef<FMON133RealPIEState> State;
     };
 
+    class FProtectMON133SaveSlot : public IAutomationLatentCommand
+    {
+    public:
+        explicit FProtectMON133SaveSlot (
+            TSharedRef<FMON133RealPIEState> InState)
+            : State (MoveTemp (InState))
+        {
+        }
+
+        virtual bool Update () override
+        {
+            UWorld* World = State->bSetupSucceeded
+                ? GetMON133PIEWorld ()
+                : nullptr;
+            if (World)
+            {
+                for (TActorIterator<AGrimrockPartyPawn> It (
+                    World); It; ++It)
+                {
+                    It->PartySaveSlotName = State->TemporarySaveSlot;
+                    It->PartySaveUserIndex = 0;
+                }
+            }
+            return true;
+        }
+
+    private:
+        TSharedRef<FMON133RealPIEState> State;
+    };
+
     class FPrepareMON133ContinuePIE : public IAutomationLatentCommand
     {
     public:
@@ -376,31 +469,48 @@ namespace
 
         virtual bool Update () override
         {
-            AGridLevelEditorActor* EditorActor = nullptr;
-            UWorld* EditorWorld = GEditor
-                ? GEditor->GetEditorWorldContext ().World ()
-                : nullptr;
-            if (EditorWorld)
+            if (!State->bSetupSucceeded ||
+                !State->bContinuePIEReady)
             {
-                for (TActorIterator<AGridLevelEditorActor> It (EditorWorld); It; ++It)
-                {
-                    EditorActor = *It;
-                    break;
-                }
+                State->bSetupSucceeded = false;
+                return true;
             }
+            AGridLevelEditorActor* EditorActor = State->EditorActor.Get ();
             Test->TestNotNull (TEXT ("Editor actor survives the first PIE session"), EditorActor);
-            if (EditorActor)
+            if (!EditorActor)
             {
-                EditorActor->bAutoPreparePIE = false;
+                State->bSetupSucceeded = false;
+                return true;
             }
+            const bool bTemporarySaveExists =
+                UGameplayStatics::DoesSaveGameExist (
+                    State->TemporarySaveSlot,
+                    0);
             Test->TestTrue (TEXT ("Temporary save survives until Continue validation"),
-                UGameplayStatics::DoesSaveGameExist (State->TemporarySaveSlot, 0));
+                bTemporarySaveExists);
+            if (!bTemporarySaveExists)
+            {
+                State->bSetupSucceeded = false;
+                return true;
+            }
             const FString SavePath = FPaths::ProjectSavedDir () /
                 TEXT ("SaveGames") /
                 (State->TemporarySaveSlot + TEXT (".sav"));
-            Test->TestEqual (TEXT ("Fresh PIE does not modify the temporary save"),
-                IFileManager::Get ().GetTimeStamp (*SavePath),
-                State->TemporarySaveTimestampBeforeFreshPIE);
+            TArray<uint8> CurrentSaveBytes;
+            const bool bSaveBytesLoaded =
+                FFileHelper::LoadFileToArray (CurrentSaveBytes, *SavePath);
+            Test->TestTrue (TEXT ("The temporary save remains readable"),
+                bSaveBytesLoaded);
+            Test->TestTrue (TEXT ("Fresh PIE does not modify the temporary save"),
+                bSaveBytesLoaded &&
+                    CurrentSaveBytes == State->TemporarySaveBytesBeforeFreshPIE);
+            if (!bSaveBytesLoaded ||
+                CurrentSaveBytes != State->TemporarySaveBytesBeforeFreshPIE)
+            {
+                State->bSetupSucceeded = false;
+                return true;
+            }
+            EditorActor->bAutoPreparePIE = false;
             return true;
         }
 
@@ -421,6 +531,10 @@ namespace
 
         virtual bool Update () override
         {
+            if (!State->bSetupSucceeded)
+            {
+                return true;
+            }
             UWorld* World = GetMON133PIEWorld ();
             Test->TestNotNull (TEXT ("A second genuine PIE world exists for Continue"), World);
             if (!World)
@@ -436,6 +550,17 @@ namespace
             Test->TestNotNull (TEXT ("Continue PIE has its runtime actor"), Runtime);
             Test->TestEqual (TEXT ("Continue restores Rat from MonsterPlacements"),
                 CountMON133RatActors (World), 1);
+            AGrimrockPartyPawn* Party = nullptr;
+            int32 PartyCount = 0;
+            for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
+            {
+                ++PartyCount;
+                Party = *It;
+            }
+            Test->TestEqual (TEXT ("Continue PIE has exactly one party pawn"),
+                PartyCount, 1);
+            Test->TestTrue (TEXT ("Continue PIE uses the dedicated temporary slot"),
+                Party && Party->PartySaveSlotName == State->TemporarySaveSlot);
             if (Runtime)
             {
                 Test->TestNotNull (TEXT ("Continue restores the Rat SpawnId"),
@@ -465,18 +590,7 @@ namespace
 
         virtual bool Update () override
         {
-            AGridLevelEditorActor* EditorActor = nullptr;
-            UWorld* EditorWorld = GEditor
-                ? GEditor->GetEditorWorldContext ().World ()
-                : nullptr;
-            if (EditorWorld)
-            {
-                for (TActorIterator<AGridLevelEditorActor> It (EditorWorld); It; ++It)
-                {
-                    EditorActor = *It;
-                    break;
-                }
-            }
+            AGridLevelEditorActor* EditorActor = State->EditorActor.Get ();
             if (EditorActor)
             {
                 EditorActor->bAutoPreparePIE = State->bOriginalAutoPreparePIE;
@@ -516,17 +630,19 @@ bool FGridEditorMON133RealPIEIntegrationTest::RunTest (
 
     ADD_LATENT_AUTOMATION_COMMAND (FEditorLoadMap (MON133MapPath));
     ADD_LATENT_AUTOMATION_COMMAND (FSetupMON133RealPIE (this, State));
-    ADD_LATENT_AUTOMATION_COMMAND (FStartPIECommand (false));
-    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON133PIE (this));
+    ADD_LATENT_AUTOMATION_COMMAND (FStartMON133PIEIfReady (State));
+    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON133PIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (2.0f));
     ADD_LATENT_AUTOMATION_COMMAND (FCheckMON133FreshPIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FProtectMON133SaveSlot (State));
     ADD_LATENT_AUTOMATION_COMMAND (FEndPlayMapCommand ());
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (1.0f));
     ADD_LATENT_AUTOMATION_COMMAND (FPrepareMON133ContinuePIE (this, State));
-    ADD_LATENT_AUTOMATION_COMMAND (FStartPIECommand (false));
-    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON133PIE (this));
+    ADD_LATENT_AUTOMATION_COMMAND (FStartMON133PIEIfReady (State));
+    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON133PIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (2.0f));
     ADD_LATENT_AUTOMATION_COMMAND (FCheckMON133ContinuePIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FProtectMON133SaveSlot (State));
     ADD_LATENT_AUTOMATION_COMMAND (FEndPlayMapCommand ());
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (1.0f));
     ADD_LATENT_AUTOMATION_COMMAND (FCleanupMON133RealPIE (this, State));

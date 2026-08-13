@@ -16,7 +16,6 @@ public class GrimrockPrototypeEditor : ModuleRules
             "AssetRegistry",
             "UnrealEd",
             "EditorFramework",
-            "LevelEditor",
             "PropertyEditor",
             "Slate",
             "SlateCore",
