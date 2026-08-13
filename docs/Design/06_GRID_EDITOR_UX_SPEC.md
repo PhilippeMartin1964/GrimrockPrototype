@@ -595,6 +595,10 @@ Pour `MonsterSpawn`, MON13.3 expose `MonsterDied`, `MonsterSpawned`,
 `MonsterDespawned` et `MonsterTeleported` comme événements, puis `Spawn`,
 `Despawn`, `Teleport` et leurs alias comme commandes.
 
+MON13.4 ajoute `EncounterWaveStarted`, `EncounterCompleted` et la commande
+`StartEncounter`. La commande exige un `EncounterGroupId`; l'indice de vague
+est éditable dans Selected Object via `EncounterWaveIndex`.
+
 Règles de lecture :
 
 - `Readable` ne signifie pas `Event Source` ;

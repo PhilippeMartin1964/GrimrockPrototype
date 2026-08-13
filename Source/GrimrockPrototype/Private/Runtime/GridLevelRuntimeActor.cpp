@@ -1,5 +1,6 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
+#include "Runtime/GridMonsterEncounterComponent.h"
 #include "Core/GridTypes.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectArchetypeAsset.h"
@@ -360,6 +361,10 @@ AGridLevelRuntimeActor::AGridLevelRuntimeActor ()
     CeilingISM->SetupAttachment (SceneRoot);
 
     ActivationComponent = CreateDefaultSubobject<UGridActivationComponent> (TEXT ("ActivationComponent"));
+
+    MonsterEncounterComponent =
+        CreateDefaultSubobject<UGridMonsterEncounterComponent> (
+            TEXT ("MonsterEncounterComponent"));
 
     DoorSystemComponent = CreateDefaultSubobject<UGridDoorSystemComponent> (TEXT ("DoorSystemComponent"));
 
@@ -1870,6 +1875,10 @@ void AGridLevelRuntimeActor::RebuildLevel (EGridRuntimeRebuildMode RebuildMode)
     {
         ActivationComponent->Initialize (this);
         ActivationComponent->RebuildIndexes ();
+    }
+    if (MonsterEncounterComponent)
+    {
+        MonsterEncounterComponent->Initialize (this);
     }
 
     if (DoorSystemComponent)
@@ -3897,6 +3906,39 @@ int32 AGridLevelRuntimeActor::GetSpawnedMonsterActorCount () const
     return Count;
 }
 
+bool AGridLevelRuntimeActor::StartMonsterEncounter (
+    FGuid AnchorSpawnId)
+{
+    return MonsterEncounterComponent &&
+        MonsterEncounterComponent->StartEncounter (AnchorSpawnId);
+}
+
+bool AGridLevelRuntimeActor::IsMonsterEncounterCompleted (
+    FName EncounterGroupId) const
+{
+    return MonsterEncounterComponent &&
+        MonsterEncounterComponent->IsEncounterCompleted (
+            EncounterGroupId);
+}
+
+int32 AGridLevelRuntimeActor::GetMonsterEncounterActiveWave (
+    FName EncounterGroupId) const
+{
+    return MonsterEncounterComponent
+        ? MonsterEncounterComponent->GetActiveWaveIndex (
+            EncounterGroupId)
+        : INDEX_NONE;
+}
+
+void AGridLevelRuntimeActor::NotifyMonsterEncounterDeath (
+    FGuid SpawnId)
+{
+    if (MonsterEncounterComponent)
+    {
+        MonsterEncounterComponent->NotifyMonsterDied (SpawnId);
+    }
+}
+
 bool AGridLevelRuntimeActor::StoreMonsterPlacementState (
     const FGridLevelObjectData& ObjectData,
     AGridMonsterActor* Monster,
@@ -4580,6 +4622,7 @@ AGridMonsterActor* AGridLevelRuntimeActor::AddMonsterSpawnActor (
         const AGridMonsterActor* SpawnedMonster =
             Pair.Value.Get ();
         if (IsValid (SpawnedMonster) &&
+            !SpawnedMonster->IsDead () &&
             SpawnedMonster->CurrentCell == SpawnCell)
         {
             UE_LOG (LogGridMonsterState, Error,

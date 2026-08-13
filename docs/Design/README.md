@@ -34,6 +34,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 28. `MON13_1_MONSTER_SPAWN_MODEL.md` - persistent MonsterSpawn identity, definition, orientation and editor validation.
 29. `MON13_2_MONSTER_SPAWN_PIPELINE.md` - strict definition resolution, skeletal editor preview and runtime Actor creation.
 30. `MON13_3_MONSTER_RUNTIME_COMMANDS.md` - persistent Spawn, Despawn and Teleport commands with lifecycle events.
+31. `MON13_4_MONSTER_ENCOUNTER_WAVES.md` - persistent encounter groups, ordered waves and death-driven progression.
 
 ## Document Status
 
@@ -68,6 +69,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `MON13_1_MONSTER_SPAWN_MODEL.md` | Validated | Persistent placement model, palette contract, stable SpawnId and editor validation rules. |
 | `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Validated | Strict MonsterSpawn resolution, skeletal editor preview, deferred runtime Actor creation and rebuild lifecycle. |
 | `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Implemented / Validation Required | Persistent runtime Spawn, Despawn and intra-level Teleport commands, lifecycle events and atomic rollback. |
+| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Implemented / Validation Required | Persistent encounter groups, atomic ordered waves, death-only progression and encounter lifecycle events. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Documents With Diagrams

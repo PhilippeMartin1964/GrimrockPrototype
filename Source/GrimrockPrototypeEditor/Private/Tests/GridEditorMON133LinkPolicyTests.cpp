@@ -38,9 +38,8 @@ bool FGridEditorMON133MonsterSpawnLinkPolicyTest::RunTest (
     TestTrue (TEXT ("MonsterSpawn appears in Target Object"),
         GridEditorLinkPolicy::CanObjectReceiveCommands (
             MonsterSpawn));
-    TestEqual (TEXT ("MonsterSpawn exposes every runtime command"),
-        MonsterCommands.Num (),
-        8);
+    TestTrue (TEXT ("MonsterSpawn keeps every MON13.3 runtime command"),
+        MonsterCommands.Num () >= 8);
     TestTrue (TEXT ("MonsterSpawn exposes Spawn"),
         MonsterCommands.Contains (EGridObjectCommand::Spawn));
     TestTrue (TEXT ("MonsterSpawn exposes Despawn"),
@@ -61,9 +60,8 @@ bool FGridEditorMON133MonsterSpawnLinkPolicyTest::RunTest (
     const TArray<EGridObjectEvent> MonsterEvents =
         GridEditorLinkPolicy::GetSupportedEventsForSource (
             MonsterSpawn);
-    TestEqual (TEXT ("MonsterSpawn exposes every lifecycle event"),
-        MonsterEvents.Num (),
-        4);
+    TestTrue (TEXT ("MonsterSpawn keeps every MON13.3 lifecycle event"),
+        MonsterEvents.Num () >= 4);
     TestTrue (TEXT ("MonsterSpawn exposes MonsterDied"),
         MonsterEvents.Contains (EGridObjectEvent::MonsterDied));
     TestTrue (TEXT ("MonsterSpawn exposes MonsterSpawned"),
@@ -81,6 +79,54 @@ bool FGridEditorMON133MonsterSpawnLinkPolicyTest::RunTest (
         DisplayOrder.Contains (EGridObjectEvent::MonsterDespawned));
     TestTrue (TEXT ("Outgoing links display MonsterTeleported"),
         DisplayOrder.Contains (EGridObjectEvent::MonsterTeleported));
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridEditorMON134EncounterLinkPolicyTest,
+    "Grimrock.Monsters.MON13.4.EditorLinkPolicy",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridEditorMON134EncounterLinkPolicyTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridLevelObjectData MonsterSpawn;
+    MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
+    MonsterSpawn.EncounterGroupId = TEXT ("Encounter_MON134");
+
+    const TArray<EGridObjectCommand> MonsterCommands =
+        GridEditorLinkPolicy::GetSupportedCommandsForTarget (
+            MonsterSpawn);
+    TestEqual (TEXT ("MonsterSpawn exposes all encounter commands"),
+        MonsterCommands.Num (),
+        9);
+    TestTrue (TEXT ("MonsterSpawn exposes Start Encounter"),
+        MonsterCommands.Contains (
+            EGridObjectCommand::StartEncounter));
+
+    const TArray<EGridObjectEvent> MonsterEvents =
+        GridEditorLinkPolicy::GetSupportedEventsForSource (
+            MonsterSpawn);
+    TestEqual (TEXT ("MonsterSpawn exposes all encounter events"),
+        MonsterEvents.Num (),
+        6);
+    TestTrue (TEXT ("MonsterSpawn exposes EncounterWaveStarted"),
+        MonsterEvents.Contains (
+            EGridObjectEvent::EncounterWaveStarted));
+    TestTrue (TEXT ("MonsterSpawn exposes EncounterCompleted"),
+        MonsterEvents.Contains (
+            EGridObjectEvent::EncounterCompleted));
+
+    const TArray<EGridObjectEvent> DisplayOrder =
+        GridEditorLinkPolicy::GetEventDisplayOrder ();
+    TestTrue (TEXT ("Outgoing links display EncounterWaveStarted"),
+        DisplayOrder.Contains (
+            EGridObjectEvent::EncounterWaveStarted));
+    TestTrue (TEXT ("Outgoing links display EncounterCompleted"),
+        DisplayOrder.Contains (
+            EGridObjectEvent::EncounterCompleted));
     return true;
 }
 

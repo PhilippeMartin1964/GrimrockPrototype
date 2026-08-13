@@ -30,7 +30,6 @@
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
-#include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 
@@ -1992,6 +1991,30 @@ TSharedRef<SWidget> SGridEditorObjectInspectorPanel::BuildMonsterSpawnSection (
                             if (CurrentEditorActor->
                                 SetSelectedObjectEncounterGroupId (
                                     GetNameFromEditorText (NewText)))
+                            {
+                                RequestRefresh ();
+                            }
+                        }
+                    }))
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("EncounterWaveIndex")),
+                SNew (SSpinBox<int32>)
+                    .Value (Obj.EncounterWaveIndex)
+                    .MinValue (0)
+                    .OnValueCommitted_Lambda (
+                        [this] (int32 NewValue,
+                            ETextCommit::Type CommitType)
+                    {
+                        if (AGridLevelEditorActor* CurrentEditorActor =
+                            GetEditorActor ())
+                        {
+                            if (CurrentEditorActor->
+                                SetSelectedObjectEncounterWaveIndex (
+                                    NewValue))
                             {
                                 RequestRefresh ();
                             }

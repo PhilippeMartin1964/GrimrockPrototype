@@ -1144,4 +1144,424 @@ bool FGridMonsterMON133AtomicCommandsTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON134EncounterWavesTest,
+    "Grimrock.Monsters.MON13.4.EncounterWaves",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON134EncounterWavesTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON132TestWorld TestWorld (EWorldType::PIE);
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    UGridLevelAsset* Level = MakeMON13Level (Runtime);
+    Runtime->LevelAsset = Level;
+    UGridActivationComponent* Activation =
+        Runtime->FindComponentByClass<UGridActivationComponent> ();
+    TestNotNull (TEXT ("Runtime activation component exists"), Activation);
+    if (!Activation)
+    {
+        return false;
+    }
+
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON134_WaveRat"));
+    if (!Definition)
+    {
+        return false;
+    }
+
+    const FName EncounterId (TEXT ("Encounter_MON134_Rats"));
+    const FGuid TriggerId (13, 4, 1, 1);
+    const FGuid Wave0AnchorId (13, 4, 1, 2);
+    const FGuid Wave0SecondId (13, 4, 1, 3);
+    const FGuid Wave1Id (13, 4, 1, 4);
+    const FGuid WaveStartedMarkerId (13, 4, 1, 5);
+    const FGuid CompletedMarkerId (13, 4, 1, 6);
+
+    FGridLevelObjectData Trigger;
+    Trigger.ObjectId = TriggerId;
+    Trigger.Type = EGridLevelObjectType::Trigger;
+    Trigger.CellX = 3;
+    Trigger.CellY = 3;
+    Trigger.Edge = EGridEdge::None;
+    Trigger.bInitiallyEnabled = true;
+    Level->Objects.Add (Trigger);
+
+    FGridLevelObjectData Wave0Anchor = MakeMON13Spawn (
+        Definition,
+        Wave0AnchorId,
+        FIntPoint (0, 1));
+    Wave0Anchor.EncounterGroupId = EncounterId;
+    Wave0Anchor.EncounterWaveIndex = 0;
+    Wave0Anchor.bInitiallyEnabled = false;
+    Level->Objects.Add (Wave0Anchor);
+
+    FGridLevelObjectData Wave0Second = MakeMON13Spawn (
+        Definition,
+        Wave0SecondId,
+        FIntPoint (1, 1));
+    Wave0Second.EncounterGroupId = EncounterId;
+    Wave0Second.EncounterWaveIndex = 0;
+    Wave0Second.bInitiallyEnabled = false;
+    Level->Objects.Add (Wave0Second);
+
+    FGridLevelObjectData Wave1 = MakeMON13Spawn (
+        Definition,
+        Wave1Id,
+        FIntPoint (2, 1));
+    Wave1.EncounterGroupId = EncounterId;
+    Wave1.EncounterWaveIndex = 1;
+    Wave1.bInitiallyEnabled = false;
+    Level->Objects.Add (Wave1);
+
+    FGridLevelObjectData WaveStartedMarker;
+    WaveStartedMarker.ObjectId = WaveStartedMarkerId;
+    WaveStartedMarker.Type = EGridLevelObjectType::Lever;
+    WaveStartedMarker.CellX = 0;
+    WaveStartedMarker.CellY = 3;
+    WaveStartedMarker.Edge = EGridEdge::North;
+    WaveStartedMarker.bInitiallyEnabled = true;
+    WaveStartedMarker.bInitiallyActive = false;
+    Level->Objects.Add (WaveStartedMarker);
+
+    FGridLevelObjectData CompletedMarker = WaveStartedMarker;
+    CompletedMarker.ObjectId = CompletedMarkerId;
+    CompletedMarker.CellX = 1;
+    Level->Objects.Add (CompletedMarker);
+
+    FGridObjectLink StartLink;
+    StartLink.SourceObjectId = TriggerId;
+    StartLink.TargetObjectId = Wave0AnchorId;
+    StartLink.SourceEvent = EGridObjectEvent::Activated;
+    StartLink.Command = EGridObjectCommand::StartEncounter;
+    Level->Links.Add (StartLink);
+
+    FGridObjectLink WaveStartedLink;
+    WaveStartedLink.SourceObjectId = Wave0AnchorId;
+    WaveStartedLink.TargetObjectId = WaveStartedMarkerId;
+    WaveStartedLink.SourceEvent =
+        EGridObjectEvent::EncounterWaveStarted;
+    WaveStartedLink.Command = EGridObjectCommand::Toggle;
+    Level->Links.Add (WaveStartedLink);
+
+    FGridObjectLink CompletedLink;
+    CompletedLink.SourceObjectId = Wave0AnchorId;
+    CompletedLink.TargetObjectId = CompletedMarkerId;
+    CompletedLink.SourceEvent = EGridObjectEvent::EncounterCompleted;
+    CompletedLink.Command = EGridObjectCommand::Toggle;
+    Level->Links.Add (CompletedLink);
+
+    Runtime->RebuildLevel ();
+    TestEqual (TEXT ("Encounter members start absent"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        0);
+
+    Runtime->HandlePartyCellChanged (0, 0, 3, 3);
+    TestNotNull (TEXT ("Wave zero spawns its anchor"),
+        Runtime->FindSpawnedMonsterActor (Wave0AnchorId));
+    TestNotNull (TEXT ("Wave zero spawns every member"),
+        Runtime->FindSpawnedMonsterActor (Wave0SecondId));
+    TestNull (TEXT ("Future wave remains absent"),
+        Runtime->FindSpawnedMonsterActor (Wave1Id));
+    TestEqual (TEXT ("Wave zero becomes active"),
+        Runtime->GetMonsterEncounterActiveWave (EncounterId),
+        0);
+    TestFalse (TEXT ("Encounter is not complete after start"),
+        Runtime->IsMonsterEncounterCompleted (EncounterId));
+    TestTrue (TEXT ("Wave-start event is emitted"),
+        Activation->GetActiveObjectIds ().Contains (
+            WaveStartedMarkerId));
+
+    Runtime->HandlePartyCellChanged (0, 0, 3, 3);
+    TestEqual (TEXT ("Repeated start creates no duplicate"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        2);
+    TestTrue (TEXT ("Repeated start emits no duplicate wave event"),
+        Activation->GetActiveObjectIds ().Contains (
+            WaveStartedMarkerId));
+
+    Activation->SetActiveObjectIds (TSet<FGuid> ());
+
+    TestTrue (TEXT ("A wave member can be despawned"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            Wave0AnchorId,
+            EGridObjectCommand::Despawn));
+    AGridMonsterActor* Wave0SecondMonster =
+        Runtime->FindSpawnedMonsterActor (Wave0SecondId);
+    TestNotNull (TEXT ("Second wave-zero member remains"),
+        Wave0SecondMonster);
+    if (!Wave0SecondMonster)
+    {
+        return false;
+    }
+    Wave0SecondMonster->MarkDead ();
+    TestEqual (TEXT ("Despawn does not count as an encounter death"),
+        Runtime->GetMonsterEncounterActiveWave (EncounterId),
+        0);
+    TestNull (TEXT ("Despawn cannot advance the encounter"),
+        Runtime->FindSpawnedMonsterActor (Wave1Id));
+
+    TestTrue (TEXT ("Despawned member can rejoin its active wave"),
+        Runtime->ExecuteMonsterSpawnCommand (
+            Wave0AnchorId,
+            EGridObjectCommand::Spawn));
+    AGridMonsterActor* RespawnedAnchor =
+        Runtime->FindSpawnedMonsterActor (Wave0AnchorId);
+    TestNotNull (TEXT ("Wave-zero anchor respawns"), RespawnedAnchor);
+    if (!RespawnedAnchor)
+    {
+        return false;
+    }
+    RespawnedAnchor->MarkDead ();
+
+    AGridMonsterActor* Wave1Monster =
+        Runtime->FindSpawnedMonsterActor (Wave1Id);
+    TestNotNull (TEXT ("Completing wave zero spawns wave one"),
+        Wave1Monster);
+    TestEqual (TEXT ("Wave one becomes active"),
+        Runtime->GetMonsterEncounterActiveWave (EncounterId),
+        1);
+    TestTrue (TEXT ("Second wave emits its wave-start event"),
+        Activation->GetActiveObjectIds ().Contains (
+            WaveStartedMarkerId));
+    if (!Wave1Monster)
+    {
+        return false;
+    }
+
+    Wave1Monster->MarkDead ();
+    TestTrue (TEXT ("Final committed death completes encounter"),
+        Runtime->IsMonsterEncounterCompleted (EncounterId));
+    TestEqual (TEXT ("Completed encounter has no active wave"),
+        Runtime->GetMonsterEncounterActiveWave (EncounterId),
+        INDEX_NONE);
+    TestTrue (TEXT ("Completion event is emitted once"),
+        Activation->GetActiveObjectIds ().Contains (
+            CompletedMarkerId));
+
+    const FGridLevelRuntimeState* LevelState =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    const FGridRuntimeMonsterEncounterState* EncounterState =
+        LevelState
+            ? LevelState->MonsterEncounters.Find (EncounterId)
+            : nullptr;
+    TestNotNull (TEXT ("Encounter progress is persisted"),
+        EncounterState);
+    if (!EncounterState)
+    {
+        return false;
+    }
+    TestEqual (TEXT ("All encounter members are defeated"),
+        EncounterState->DefeatedSpawnIds.Num (),
+        3);
+
+    TestTrue (TEXT ("Encounter runtime state can be captured"),
+        Runtime->CaptureCurrentLevelRuntimeState ());
+    UGrimrockPartySaveGame* SourceSave =
+        NewObject<UGrimrockPartySaveGame> (Runtime);
+    SourceSave->DungeonRuntimeState = Runtime->DungeonRuntimeState;
+    TArray<uint8> SaveBytes;
+    TestTrue (TEXT ("Encounter state serializes through SaveGame"),
+        UGameplayStatics::SaveGameToMemory (SourceSave, SaveBytes));
+    const UGrimrockPartySaveGame* LoadedSave =
+        Cast<UGrimrockPartySaveGame> (
+            UGameplayStatics::LoadGameFromMemory (SaveBytes));
+    TestNotNull (TEXT ("Encounter SaveGame deserializes"), LoadedSave);
+    if (!LoadedSave)
+    {
+        return false;
+    }
+    const FGridLevelRuntimeState* LoadedLevelState =
+        LoadedSave->DungeonRuntimeState.LevelStates.Find (
+            TEXT ("SingleLevel"));
+    const FGridRuntimeMonsterEncounterState* LoadedEncounterState =
+        LoadedLevelState
+            ? LoadedLevelState->MonsterEncounters.Find (EncounterId)
+            : nullptr;
+    TestTrue (TEXT ("Completed encounter survives SaveGame round trip"),
+        LoadedEncounterState && LoadedEncounterState->bCompleted);
+    TestEqual (TEXT ("Defeated members survive SaveGame round trip"),
+        LoadedEncounterState
+            ? LoadedEncounterState->DefeatedSpawnIds.Num ()
+            : 0,
+        3);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON134AtomicWaveFailureTest,
+    "Grimrock.Monsters.MON13.4.AtomicWaveFailure",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON134AtomicWaveFailureTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    FGridMON132TestWorld TestWorld (EWorldType::Game);
+    if (!TestWorld.World)
+    {
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    UGridLevelAsset* Level = MakeMON13Level (Runtime);
+    Runtime->LevelAsset = Level;
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON13RuntimeDefinition (
+            *this,
+            Runtime,
+            TEXT ("MON134_AtomicRat"));
+    if (!Definition)
+    {
+        return false;
+    }
+
+    const FName EncounterId (TEXT ("Encounter_MON134_Atomic"));
+    const FGuid AnchorId (13, 4, 2, 1);
+    FGridLevelObjectData Anchor = MakeMON13Spawn (
+        Definition,
+        AnchorId,
+        FIntPoint (1, 1));
+    Anchor.EncounterGroupId = EncounterId;
+    Anchor.bInitiallyEnabled = false;
+    Level->Objects.Add (Anchor);
+
+    FGridLevelObjectData Conflict = MakeMON13Spawn (
+        Definition,
+        FGuid (13, 4, 2, 2),
+        FIntPoint (1, 1));
+    Conflict.EncounterGroupId = EncounterId;
+    Conflict.bInitiallyEnabled = false;
+    Level->Objects.Add (Conflict);
+
+    Runtime->RebuildLevel ();
+    AddExpectedError (
+        TEXT ("Reason=GeneratedMonsterCellConflict"),
+        EAutomationExpectedErrorFlags::Contains,
+        1,
+        false);
+    AddExpectedError (
+        TEXT ("[GridMonsterEncounter] WaveRejected"),
+        EAutomationExpectedErrorFlags::Contains,
+        1,
+        false);
+    TestFalse (TEXT ("Invalid wave is rejected atomically"),
+        Runtime->StartMonsterEncounter (AnchorId));
+    TestEqual (TEXT ("Rejected wave leaves no tracked Actor"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        0);
+    TestEqual (TEXT ("Rejected wave leaks no world Actor"),
+        CountMON132WorldMonsters (TestWorld.World),
+        0);
+    TestEqual (TEXT ("Rejected wave has no active index"),
+        Runtime->GetMonsterEncounterActiveWave (EncounterId),
+        INDEX_NONE);
+
+    const FGridLevelRuntimeState* LevelState =
+        Runtime->FindRuntimeStateForCurrentLevel ();
+    const FGridRuntimeMonsterEncounterState* EncounterState =
+        LevelState
+            ? LevelState->MonsterEncounters.Find (EncounterId)
+            : nullptr;
+    TestNotNull (TEXT ("Rejected encounter keeps retry metadata"),
+        EncounterState);
+    TestTrue (TEXT ("Rejected wave is not marked started"),
+        EncounterState && !EncounterState->bStarted);
+    TestEqual (TEXT ("Rejected wave restores placement state"),
+        LevelState ? LevelState->MonsterPlacements.Num () : -1,
+        0);
+    TestEqual (TEXT ("Rejected wave restores monster state"),
+        LevelState ? LevelState->Monsters.Num () : -1,
+        0);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON134ValidationTest,
+    "Grimrock.Monsters.MON13.4.Validation",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON134ValidationTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridLevelAsset* Level = MakeMON13Level (GetTransientPackage ());
+    UGridMonsterDefinitionAsset* Definition =
+        MakeMON13Definition (Level, TEXT ("MON134_ValidationRat"));
+
+    FGridLevelObjectData NegativeWave = MakeMON13Spawn (
+        Definition,
+        FGuid (13, 4, 3, 1),
+        FIntPoint (0, 0));
+    NegativeWave.EncounterWaveIndex = -1;
+    Level->Objects.Add (NegativeWave);
+
+    FGridLevelObjectData UngroupedFutureWave = MakeMON13Spawn (
+        Definition,
+        FGuid (13, 4, 3, 2),
+        FIntPoint (1, 0));
+    UngroupedFutureWave.EncounterGroupId = NAME_None;
+    UngroupedFutureWave.EncounterWaveIndex = 1;
+    UngroupedFutureWave.bInitiallyEnabled = false;
+    Level->Objects.Add (UngroupedFutureWave);
+
+    FGridLevelObjectData EnabledFutureWave = MakeMON13Spawn (
+        Definition,
+        FGuid (13, 4, 3, 3),
+        FIntPoint (2, 0));
+    EnabledFutureWave.EncounterGroupId = TEXT ("Encounter_MON134_Future");
+    EnabledFutureWave.EncounterWaveIndex = 1;
+    EnabledFutureWave.bInitiallyEnabled = true;
+    Level->Objects.Add (EnabledFutureWave);
+
+    FGridLevelObjectData SharedWaveCellA = MakeMON13Spawn (
+        Definition,
+        FGuid (13, 4, 3, 4),
+        FIntPoint (0, 1));
+    SharedWaveCellA.EncounterGroupId = TEXT ("Encounter_MON134_Shared");
+    SharedWaveCellA.EncounterWaveIndex = 2;
+    SharedWaveCellA.bInitiallyEnabled = false;
+    Level->Objects.Add (SharedWaveCellA);
+
+    FGridLevelObjectData SharedWaveCellB = SharedWaveCellA;
+    SharedWaveCellB.ObjectId = FGuid (13, 4, 3, 5);
+    Level->Objects.Add (SharedWaveCellB);
+
+    TArray<FString> Errors;
+    TestFalse (TEXT ("Invalid encounter wave data is rejected"),
+        Level->ValidateMonsterSpawns (Errors));
+    TestTrue (TEXT ("Negative wave index is reported"),
+        HasErrorContaining (
+            Errors,
+            TEXT ("EncounterWaveIndex >= 0")));
+    TestTrue (TEXT ("Future wave requires an encounter group"),
+        HasErrorContaining (
+            Errors,
+            TEXT ("requires EncounterGroupId")));
+    TestTrue (TEXT ("Future wave must start disabled"),
+        HasErrorContaining (
+            Errors,
+            TEXT ("must be disabled at start")));
+    TestTrue (TEXT ("Same-wave cell conflict is reported"),
+        HasErrorContaining (
+            Errors,
+            TEXT ("shares encounter wave")));
+    return true;
+}
+
 #endif

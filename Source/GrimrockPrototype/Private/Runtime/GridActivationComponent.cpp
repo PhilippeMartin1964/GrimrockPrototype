@@ -332,6 +332,11 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
     {
         switch (ResolvedCommand)
         {
+            case EGridObjectCommand::StartEncounter:
+                bSuccess = RuntimeActor->StartMonsterEncounter (
+                    TargetObject->ObjectId);
+                break;
+
             case EGridObjectCommand::Spawn:
             case EGridObjectCommand::Despawn:
             case EGridObjectCommand::Teleport:
@@ -365,7 +370,7 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             LinkData,
             ResolvedCommand,
             bSuccess,
-            bSuccess ? nullptr : TEXT ("monster lifecycle command failed"));
+            bSuccess ? nullptr : TEXT ("monster lifecycle or encounter command failed"));
         return bSuccess;
     }
 

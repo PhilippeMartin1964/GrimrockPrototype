@@ -830,3 +830,22 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   hors périmètre.
 - Le document d'implémentation est
   `docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md`.
+
+---
+
+## 2026-08-13 — MON13.4 : rencontres et vagues de monstres
+
+- Aucun nouvel objet de grille n'est créé : un `MonsterSpawn` groupé sert
+  d'ancre et reçoit la commande `StartEncounter`.
+- `EncounterWaveIndex` ordonne les membres d'un même `EncounterGroupId`; une
+  vague future doit être désactivée au démarrage.
+- Une vague est créée atomiquement. Tout échec détruit les Actors créés par la
+  tentative et restaure l'état persistant précédent.
+- Seul `CommitDeath` ajoute un `SpawnId` aux membres vaincus. `Despawn` ne fait
+  jamais progresser la rencontre.
+- L'ancre émet `EncounterWaveStarted` après chaque vague réussie et
+  `EncounterCompleted` une seule fois après la dernière vague.
+- La vague active, l'ancre, la fin et les membres vaincus sont conservés dans
+  `FGridLevelRuntimeState::MonsterEncounters` et sérialisés par SaveGame.
+- Le document d'implémentation est
+  `docs/Design/MON13_4_MONSTER_ENCOUNTER_WAVES.md`.

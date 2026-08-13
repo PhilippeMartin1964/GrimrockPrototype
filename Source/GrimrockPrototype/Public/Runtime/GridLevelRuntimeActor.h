@@ -22,6 +22,7 @@ class AGridWallLockActor;
 class AGridMonsterActor;
 class UGridMonsterDefinitionAsset;
 class UGridActivationComponent;
+class UGridMonsterEncounterComponent;
 class UGridDoorSystemComponent;
 class UGridEditorPreviewComponent;
 class UGridPlayerAttackPresentationComponent;
@@ -90,6 +91,9 @@ protected:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UGridActivationComponent> ActivationComponent;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    TObjectPtr<UGridMonsterEncounterComponent> MonsterEncounterComponent;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     TObjectPtr<UGridDoorSystemComponent> DoorSystemComponent;
@@ -379,6 +383,19 @@ public:
         FGuid SpawnId,
         EGridObjectCommand Command);
 
+    /** Starts or resumes the persistent MON13.4 encounter owned by this anchor. */
+    UFUNCTION (BlueprintCallable, Category = "Monster|Encounter")
+    bool StartMonsterEncounter (FGuid AnchorSpawnId);
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Encounter")
+    bool IsMonsterEncounterCompleted (FName EncounterGroupId) const;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Encounter")
+    int32 GetMonsterEncounterActiveWave (FName EncounterGroupId) const;
+
+    /** Called only after a MonsterSpawn has committed a genuine death. */
+    void NotifyMonsterEncounterDeath (FGuid SpawnId);
+
     /** Atomically moves a spawned monster to a validated intra-level pose. */
     UFUNCTION (BlueprintCallable, Category = "Monster|Spawn")
     bool TeleportSpawnedMonster (
@@ -469,6 +486,8 @@ protected:
         const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+    friend class UGridMonsterEncounterComponent;
+
     void GetEdgeTransform (int32 X, int32 Y, EGridEdge Edge, float CellSize, FVector& OutWorldLocation, FRotator& OutWorldRotation) const;
     bool TryGetOppositeEdge (int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge) const;
     bool TryResolveDoorEdge (int32 X, int32 Y, EGridEdge Edge, int32& OutX, int32& OutY, EGridEdge& OutEdge, bool& bOutResolvedOpposite) const;

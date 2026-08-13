@@ -109,6 +109,10 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     // Commit the guard before calling any external gameplay hook.
     bDeathCommitted = true;
     DeathCell = OwnerMonster->CurrentCell;
+    const FGuid EncounterSpawnId =
+        OwnerMonster->HasMonsterSpawnIdentity ()
+            ? OwnerMonster->SpawnObjectId
+            : FGuid ();
 
     if (UGridMonsterCombatComponent* Combat =
         OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent> ())
@@ -157,11 +161,11 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     GenerateAndPlaceLoot ();
 
     bool bLinksExecuted = false;
-    if (RuntimeActor && OwnerMonster->HasMonsterSpawnIdentity ())
+    if (RuntimeActor && EncounterSpawnId.IsValid ())
     {
         ++LinkExecutionAttemptCount;
         bLinksExecuted = RuntimeActor->ExecuteLinksFromRuntimeObject (
-            OwnerMonster->SpawnObjectId,
+            EncounterSpawnId,
             EGridObjectEvent::MonsterDied);
         UE_LOG (LogGridMonsterDeath, Log,
             TEXT ("[GridMonsterDeath] Links Monster=%s SourceId=%s Event=MonsterDied Executed=%s"),
@@ -180,6 +184,10 @@ bool UGridMonsterDeathComponent::CommitDeath ()
 
     ++LogicalDeathEventCount;
     OwnerMonster->OnMonsterDied.Broadcast (OwnerMonster, DeathCell);
+    if (RuntimeActor && EncounterSpawnId.IsValid ())
+    {
+        RuntimeActor->NotifyMonsterEncounterDeath (EncounterSpawnId);
+    }
     UE_LOG (LogGridMonsterDeath, Log,
         TEXT ("[GridMonsterDeath] Broadcast Monster=%s DeathCell=(%d,%d)"),
         *GetNameSafe (OwnerMonster),

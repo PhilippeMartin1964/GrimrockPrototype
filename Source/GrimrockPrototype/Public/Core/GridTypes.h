@@ -87,7 +87,8 @@ enum class EGridObjectCommand : uint8
     ReceptacleConsumeItem          UMETA (DisplayName = "Receptacle Consume Item"),
     ReceptacleConsumeAllItems      UMETA (DisplayName = "Receptacle Consume All Items"),
     ReceptacleEnableRemoval = 17   UMETA (DisplayName = "Receptacle Enable Removal"),
-    ReceptacleDisableRemoval = 18  UMETA (DisplayName = "Receptacle Disable Removal")
+    ReceptacleDisableRemoval = 18  UMETA (DisplayName = "Receptacle Disable Removal"),
+    StartEncounter = 19            UMETA (DisplayName = "Start Encounter")
 };
 
 UENUM (BlueprintType)
@@ -121,7 +122,9 @@ enum class EGridObjectEvent : uint8
     MonsterDied       UMETA (DisplayName = "Monster Died"),
     MonsterSpawned    UMETA (DisplayName = "Monster Spawned"),
     MonsterDespawned  UMETA (DisplayName = "Monster Despawned"),
-    MonsterTeleported UMETA (DisplayName = "Monster Teleported")
+    MonsterTeleported UMETA (DisplayName = "Monster Teleported"),
+    EncounterWaveStarted UMETA (DisplayName = "Encounter Wave Started"),
+    EncounterCompleted   UMETA (DisplayName = "Encounter Completed")
 };
 
 USTRUCT (BlueprintType)
@@ -234,6 +237,11 @@ struct FGridLevelObjectData
     /** Optional MON7/MON13 encounter group. None preserves independent behavior. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster")
     FName EncounterGroupId = NAME_None;
+
+    /** MON13.4 zero-based wave inside EncounterGroupId. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides, ClampMin = "0"))
+    int32 EncounterWaveIndex = 0;
 };
 
 USTRUCT (BlueprintType)

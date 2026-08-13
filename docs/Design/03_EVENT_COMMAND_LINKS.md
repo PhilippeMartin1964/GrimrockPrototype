@@ -454,6 +454,10 @@ Depuis MON13.3, `MonsterSpawn` propose `Spawn`, `Despawn`, `Teleport` et les
 alias d'activation. `ItemSpawn` reste exclu tant que son comportement de spawn
 commandé est TODO runtime.
 
+Depuis MON13.4, un `MonsterSpawn` groupé propose aussi `StartEncounter`. L'ancre
+émet `EncounterWaveStarted` après chaque vague créée atomiquement, puis
+`EncounterCompleted` après la dernière mort requise.
+
 Règle : `Interactable` ne signifie pas `Command Target`.
 
 ---

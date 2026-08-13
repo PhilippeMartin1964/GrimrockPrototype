@@ -267,6 +267,8 @@ bool UGridLevelAsset::ValidateMonsterSpawns (
     }
 
     TMap<FIntPoint, FGuid> EnabledSpawnByCell;
+    TMap<FName, TMap<int32, TMap<FIntPoint, FGuid>>>
+        EncounterSpawnByWaveAndCell;
     for (const FGridLevelObjectData& Spawn : Objects)
     {
         if (Spawn.Type != EGridLevelObjectType::MonsterSpawn)
@@ -352,6 +354,56 @@ bool UGridLevelAsset::ValidateMonsterSpawns (
             OutErrors.Add (FString::Printf (
                 TEXT ("MonsterSpawn %s requires a cardinal InitialFacing."),
                 *SpawnLabel));
+        }
+
+        if (Spawn.EncounterWaveIndex < 0)
+        {
+            OutErrors.Add (FString::Printf (
+                TEXT ("MonsterSpawn %s requires EncounterWaveIndex >= 0."),
+                *SpawnLabel));
+        }
+        if (Spawn.EncounterGroupId.IsNone () &&
+            Spawn.EncounterWaveIndex > 0)
+        {
+            OutErrors.Add (FString::Printf (
+                TEXT ("MonsterSpawn %s requires EncounterGroupId when EncounterWaveIndex is greater than 0."),
+                *SpawnLabel));
+        }
+        if (!Spawn.EncounterGroupId.IsNone () &&
+            Spawn.EncounterWaveIndex > 0 &&
+            Spawn.bInitiallyEnabled)
+        {
+            OutErrors.Add (FString::Printf (
+                TEXT ("MonsterSpawn %s belongs to future encounter wave %d and must be disabled at start."),
+                *SpawnLabel,
+                Spawn.EncounterWaveIndex));
+        }
+        if (!Spawn.EncounterGroupId.IsNone () &&
+            Spawn.EncounterWaveIndex >= 0 &&
+            IsValidCoord (Spawn.CellX, Spawn.CellY))
+        {
+            TMap<FIntPoint, FGuid>& SpawnByCell =
+                EncounterSpawnByWaveAndCell
+                    .FindOrAdd (Spawn.EncounterGroupId)
+                    .FindOrAdd (Spawn.EncounterWaveIndex);
+            const FIntPoint SpawnCell (Spawn.CellX, Spawn.CellY);
+            if (const FGuid* ExistingSpawnId =
+                SpawnByCell.Find (SpawnCell))
+            {
+                OutErrors.Add (FString::Printf (
+                    TEXT ("MonsterSpawn %s shares encounter wave %d cell (%d,%d) with MonsterSpawn %s in encounter '%s'."),
+                    *SpawnLabel,
+                    Spawn.EncounterWaveIndex,
+                    Spawn.CellX,
+                    Spawn.CellY,
+                    *ExistingSpawnId->ToString (
+                        EGuidFormats::DigitsWithHyphens),
+                    *Spawn.EncounterGroupId.ToString ()));
+            }
+            else
+            {
+                SpawnByCell.Add (SpawnCell, Spawn.ObjectId);
+            }
         }
 
         const UGridMonsterDefinitionAsset* Definition =

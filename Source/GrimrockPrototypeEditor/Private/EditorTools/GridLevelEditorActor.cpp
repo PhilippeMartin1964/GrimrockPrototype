@@ -3165,6 +3165,29 @@ bool AGridLevelEditorActor::SetSelectedObjectEncounterGroupId (
     return true;
 }
 
+bool AGridLevelEditorActor::SetSelectedObjectEncounterWaveIndex (
+    int32 NewEncounterWaveIndex)
+{
+    FGridLevelObjectData* Obj = FindSelectedObjectMutable ();
+    if (!Obj || Obj->Type != EGridLevelObjectType::MonsterSpawn)
+    {
+        return false;
+    }
+
+#if WITH_EDITOR
+    LevelAsset->Modify ();
+#endif
+
+    Obj->EncounterWaveIndex = FMath::Max (0, NewEncounterWaveIndex);
+
+#if WITH_EDITOR
+    LevelAsset->MarkPackageDirty ();
+#endif
+
+    RebuildPreview ();
+    return true;
+}
+
 bool AGridLevelEditorActor::SetSelectedObjectReadableContentAsset (
     UGridReadableContentAsset* NewReadableContentAsset)
 {
@@ -3790,6 +3813,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
     TMap<FGuid, int32> ReceptacleItemRemovedLinkCountBySourceId;
     TMap<FGuid, int32> ReceptacleItemChangedLinkCountBySourceId;
     TMap<FIntPoint, FGuid> EnabledMonsterSpawnByCell;
+    TMap<FName, TMap<int32, TMap<FIntPoint, FGuid>>>
+        EncounterMonsterSpawnByWaveAndCell;
 
     auto IsEdgeOrWallPlacedObject = [this] (const FGridLevelObjectData& ObjectData) -> bool
     {
@@ -4153,7 +4178,59 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 {
                     EnabledMonsterSpawnByCell.Add (
                         CellKey,
+                    Obj.ObjectId);
+                }
+            }
+
+            if (Obj.EncounterWaveIndex < 0)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("MonsterSpawn requires EncounterWaveIndex >= 0."),
+                    Obj.ObjectId);
+            }
+            if (Obj.EncounterGroupId.IsNone () &&
+                Obj.EncounterWaveIndex > 0)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    TEXT ("MonsterSpawn requires EncounterGroupId when EncounterWaveIndex is greater than 0."),
+                    Obj.ObjectId);
+            }
+            if (!Obj.EncounterGroupId.IsNone () &&
+                Obj.EncounterWaveIndex > 0 &&
+                Obj.bInitiallyEnabled)
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("MonsterSpawn belongs to future encounter wave %d and must be disabled at start."),
+                        Obj.EncounterWaveIndex),
+                    Obj.ObjectId);
+            }
+            if (!Obj.EncounterGroupId.IsNone () &&
+                Obj.EncounterWaveIndex >= 0)
+            {
+                TMap<FIntPoint, FGuid>& SpawnByCell =
+                    EncounterMonsterSpawnByWaveAndCell
+                        .FindOrAdd (Obj.EncounterGroupId)
+                        .FindOrAdd (Obj.EncounterWaveIndex);
+                const FIntPoint CellKey (Obj.CellX, Obj.CellY);
+                if (const FGuid* ExistingSpawnId =
+                    SpawnByCell.Find (CellKey))
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (
+                            TEXT ("MonsterSpawn shares encounter wave %d cell with MonsterSpawn %s in encounter '%s'."),
+                            Obj.EncounterWaveIndex,
+                            *ExistingSpawnId->ToString (),
+                            *Obj.EncounterGroupId.ToString ()),
                         Obj.ObjectId);
+                }
+                else
+                {
+                    SpawnByCell.Add (CellKey, Obj.ObjectId);
                 }
             }
         }
@@ -4401,7 +4478,11 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                         *ToGridObjectTypeText (SourceObject->Type)),
                     Link.SourceObjectId);
             }
-            if (!SourceObject->bInitiallyEnabled)
+            const bool bDisabledMonsterLifecycleSource =
+                SourceObject->Type ==
+                    EGridLevelObjectType::MonsterSpawn;
+            if (!SourceObject->bInitiallyEnabled &&
+                !bDisabledMonsterLifecycleSource)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
@@ -4468,13 +4549,27 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                 (Link.Command == EGridObjectCommand::Spawn ||
                     Link.Command == EGridObjectCommand::Activate ||
                     Link.Command == EGridObjectCommand::Enable ||
-                    Link.Command == EGridObjectCommand::Toggle);
+                    Link.Command == EGridObjectCommand::Toggle ||
+                    Link.Command == EGridObjectCommand::StartEncounter);
             if (!TargetObject->bInitiallyEnabled &&
                 !bCommandCreatesDisabledMonster)
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Warning,
                     FString::Printf (TEXT ("Link %d target object is initially disabled and may have no spawned runtime actor."), LinkIndex),
+                    Link.TargetObjectId);
+            }
+
+            if (TargetObject->Type ==
+                    EGridLevelObjectType::MonsterSpawn &&
+                Link.Command == EGridObjectCommand::StartEncounter &&
+                TargetObject->EncounterGroupId.IsNone ())
+            {
+                AddMessage (
+                    EGridLevelValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Link %d command Start Encounter requires a MonsterSpawn target with EncounterGroupId."),
+                        LinkIndex),
                     Link.TargetObjectId);
             }
 

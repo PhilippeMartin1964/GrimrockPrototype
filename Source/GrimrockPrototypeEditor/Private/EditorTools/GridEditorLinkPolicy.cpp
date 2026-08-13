@@ -32,7 +32,9 @@ namespace GridEditorLinkPolicy
                     EGridObjectEvent::MonsterDied,
                     EGridObjectEvent::MonsterSpawned,
                     EGridObjectEvent::MonsterDespawned,
-                    EGridObjectEvent::MonsterTeleported
+                    EGridObjectEvent::MonsterTeleported,
+                    EGridObjectEvent::EncounterWaveStarted,
+                    EGridObjectEvent::EncounterCompleted
                 };
 
             default:
@@ -79,7 +81,8 @@ namespace GridEditorLinkPolicy
                     EGridObjectCommand::Deactivate,
                     EGridObjectCommand::Enable,
                     EGridObjectCommand::Disable,
-                    EGridObjectCommand::Toggle
+                    EGridObjectCommand::Toggle,
+                    EGridObjectCommand::StartEncounter
                 };
 
             default:
@@ -117,7 +120,9 @@ namespace GridEditorLinkPolicy
             EGridObjectEvent::MonsterDied,
             EGridObjectEvent::MonsterSpawned,
             EGridObjectEvent::MonsterDespawned,
-            EGridObjectEvent::MonsterTeleported
+            EGridObjectEvent::MonsterTeleported,
+            EGridObjectEvent::EncounterWaveStarted,
+            EGridObjectEvent::EncounterCompleted
         };
     }
 }

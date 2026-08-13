@@ -192,6 +192,33 @@ struct FGridRuntimeMonsterPlacementState
     FGridRuntimeMonsterState MonsterState;
 };
 
+/** Persistent MON13.4 progress for one encounter group. */
+USTRUCT (BlueprintType)
+struct FGridRuntimeMonsterEncounterState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FName EncounterGroupId = NAME_None;
+
+    /** MonsterSpawn used as the source of encounter lifecycle links. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    FGuid AnchorSpawnId;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    int32 ActiveWaveIndex = INDEX_NONE;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bStarted = false;
+
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bCompleted = false;
+
+    /** Only committed deaths advance waves; Despawn never adds an id here. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TSet<FGuid> DefeatedSpawnIds;
+};
+
 USTRUCT (BlueprintType)
 struct FGridLevelRuntimeState
 {
@@ -224,6 +251,10 @@ struct FGridLevelRuntimeState
     /** MON13.3 lifecycle state keyed by persistent MonsterSpawn ObjectId. */
     UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FGuid, FGridRuntimeMonsterPlacementState> MonsterPlacements;
+
+    /** MON13.4 encounter progress keyed by EncounterGroupId. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TMap<FName, FGridRuntimeMonsterEncounterState> MonsterEncounters;
 };
 
 USTRUCT (BlueprintType)

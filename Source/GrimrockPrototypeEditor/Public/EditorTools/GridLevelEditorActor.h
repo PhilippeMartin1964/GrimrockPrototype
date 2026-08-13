@@ -428,6 +428,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
     bool SetSelectedObjectEncounterGroupId (FName NewEncounterGroupId);
 
+    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
+    bool SetSelectedObjectEncounterWaveIndex (int32 NewEncounterWaveIndex);
+
     UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
     bool SetSelectedObjectReadableContentAsset (UGridReadableContentAsset* NewReadableContentAsset);
 

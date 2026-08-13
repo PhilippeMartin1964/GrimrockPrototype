@@ -60,6 +60,9 @@ MON13.1 définit le placement persistant et son édition. MON13.2 crée l'aperç
 squelettique et l'Actor runtime. MON13.3 ajoute les commandes `Spawn`,
 `Despawn` et `Teleport`, leurs événements de cycle de vie et la persistance de
 la présence ainsi que du dernier état du monstre.
+MON13.4 ajoute les rencontres persistantes pilotées par `EncounterGroupId`,
+les vagues ordonnées, la commande `StartEncounter` et une progression fondée
+uniquement sur les morts réellement validées.
 
 ---
 
@@ -169,6 +172,7 @@ La mémoire principale doit être le dépôt Git.
 | `MON13_1_MONSTER_SPAWN_MODEL.md` | Placement persistant, identité et validation des MonsterSpawn |
 | `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Aperçu squelettique et instanciation runtime |
 | `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Commandes Spawn/Despawn/Teleport et persistance du cycle de vie |
+| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Rencontres persistantes, vagues atomiques et progression par mort |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

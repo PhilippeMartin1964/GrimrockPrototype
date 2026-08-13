@@ -180,7 +180,9 @@ puis vers une cellule occupée.
 - téléportation inter-niveaux d'un monstre ;
 - suppression définitive non réversible d'un placement ;
 - résolution Asset Manager depuis `MonsterDefinitionId` seul ;
-- gestion globale des rencontres, des vagues et de leur état terminé par
-  `EncounterGroupId`.
+- embranchements de rencontres et conditions autres que la mort de tous les
+  membres.
 
-Ces points appartiennent aux jalons MON13 suivants.
+La gestion globale des rencontres et des vagues est désormais implémentée par
+`docs/Design/MON13_4_MONSTER_ENCOUNTER_WAVES.md`. Les autres points appartiennent
+aux jalons MON13 suivants.
