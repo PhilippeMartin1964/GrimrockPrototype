@@ -15,6 +15,7 @@
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
@@ -122,7 +123,15 @@ void AGrimrockPartyPawn::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (!LevelRuntimeActor)
+    const bool bFreshPIERequestForWorld =
+        GridPIEPlaytestRequest::IsActiveForWorld (GetWorld ());
+    if (bFreshPIERequestForWorld)
+    {
+        LevelRuntimeActor =
+            GridPIEPlaytestRequest::ResolveMatchingRuntimeActor (
+                GetWorld ());
+    }
+    else if (!LevelRuntimeActor)
     {
         LevelRuntimeActor = Cast<AGridLevelRuntimeActor> (
             UGameplayStatics::GetActorOfClass (GetWorld (), AGridLevelRuntimeActor::StaticClass ())
@@ -163,8 +172,7 @@ void AGrimrockPartyPawn::BeginPlay ()
     }
 
     const bool bFreshDungeonPlaytest =
-        LevelRuntimeActor &&
-        LevelRuntimeActor->bUseFreshDungeonStateOnBeginPlay;
+        GridPIEPlaytestRequest::Matches (LevelRuntimeActor);
     bool bLoadedSavedGame = false;
     if (PartyInventoryComponent)
     {
@@ -274,7 +282,15 @@ void AGrimrockPartyPawn::EndPlay (const EEndPlayReason::Type EndPlayReason)
 {
     HideCombatActionPanelWidget ();
 
-    if (PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    const bool bFreshDungeonPlaytest =
+        GridPIEPlaytestRequest::Matches (LevelRuntimeActor);
+    if (bFreshDungeonPlaytest)
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("PartySave PlaytestAutoSaveSkipped Slot=%s Reason=FreshPIERequest"),
+            *PartySaveSlotName);
+    }
+    else if (PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         FText SaveError;
         if (!SaveCurrentGame (SaveError))

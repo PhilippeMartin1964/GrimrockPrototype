@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -78,7 +79,9 @@ void UGrimrockStartupModeComponent::DeferNewGameRuntimeActivation(AGrimrockParty
     AGridLevelRuntimeActor* RuntimeActor = PartyPawn->LevelRuntimeActor.Get();
     if (!RuntimeActor)
     {
-        RuntimeActor = Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
+        RuntimeActor = GridPIEPlaytestRequest::IsActiveForWorld (GetWorld ())
+            ? GridPIEPlaytestRequest::ResolveMatchingRuntimeActor (GetWorld ())
+            : Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
     }
 
     if (RuntimeActor)
@@ -115,7 +118,9 @@ void UGrimrockStartupModeComponent::TryActivateDeferredNewGameRuntime()
     if (!RuntimeActor) RuntimeActor = PartyPawn->LevelRuntimeActor.Get();
     if (!RuntimeActor)
     {
-        RuntimeActor = Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
+        RuntimeActor = GridPIEPlaytestRequest::IsActiveForWorld (GetWorld ())
+            ? GridPIEPlaytestRequest::ResolveMatchingRuntimeActor (GetWorld ())
+            : Cast<AGridLevelRuntimeActor>(UGameplayStatics::GetActorOfClass(GetWorld(), AGridLevelRuntimeActor::StaticClass()));
     }
     if (!RuntimeActor)
     {

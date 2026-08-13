@@ -1449,7 +1449,6 @@ bool AGridLevelEditorActor::PreparePIETestFromStartInternal (FString& OutError)
     PreviewRuntimeActor->Modify ();
 #endif
     PreviewRuntimeActor->bApplyLevelStartOnBeginPlay = true;
-    PreviewRuntimeActor->bUseFreshDungeonStateOnBeginPlay = true;
     PreviewRuntimeActor->DungeonRuntimeState = FGridDungeonRuntimeState ();
     PreviewRuntimeActor->LevelAsset = LevelAsset;
     PreviewRuntimeActor->DungeonAsset = DungeonAsset;

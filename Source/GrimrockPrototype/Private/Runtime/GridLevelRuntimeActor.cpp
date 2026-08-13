@@ -1,4 +1,5 @@
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPIEPlaytestRequest.h"
 #include "Core/GridTypes.h"
 #include "Core/GridDirectionUtils.h"
 #include "Core/GridObjectArchetypeAsset.h"
@@ -520,7 +521,7 @@ void AGridLevelRuntimeActor::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (bUseFreshDungeonStateOnBeginPlay)
+    if (GridPIEPlaytestRequest::Matches (this))
     {
         DungeonRuntimeState = FGridDungeonRuntimeState ();
         UE_LOG (LogTemp, Log,

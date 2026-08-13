@@ -147,8 +147,6 @@ bool FGridEditorMON133FreshPIEPreparationTest::RunTest (
     FString Error;
     TestTrue (TEXT ("PreparePIETestFromStartInternal succeeds"),
         EditorActor->PreparePIETestFromStartInternal (Error));
-    TestTrue (TEXT ("PIE preparation marks fresh dungeon startup"),
-        Runtime->bUseFreshDungeonStateOnBeginPlay);
     TestEqual (TEXT ("PIE preparation clears only transient dungeon state"),
         Runtime->DungeonRuntimeState.LevelStates.Num (),
         0);

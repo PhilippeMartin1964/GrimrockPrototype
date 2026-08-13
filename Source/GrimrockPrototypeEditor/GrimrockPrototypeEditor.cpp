@@ -2,6 +2,8 @@
 #include "EditorModeRegistry.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPIEPlaytestRequest.h"
 
 #include "Editor.h"
 #include "EngineUtils.h"
@@ -19,12 +21,19 @@ public:
 
         PreBeginPIEHandle = FEditorDelegates::PreBeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandlePreBeginPIE);
         BeginPIEHandle = FEditorDelegates::BeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandleBeginPIE);
+        CancelPIEHandle = FEditorDelegates::CancelPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandleCancelPIE);
+        WorldCleanupHandle = FWorldDelegates::OnWorldCleanup.AddRaw (
+            this,
+            &FGrimrockPrototypeEditorModule::HandleWorldCleanup);
     }
 
     virtual void ShutdownModule() override
     {
         FEditorDelegates::PreBeginPIE.Remove (PreBeginPIEHandle);
         FEditorDelegates::BeginPIE.Remove (BeginPIEHandle);
+        FEditorDelegates::CancelPIE.Remove (CancelPIEHandle);
+        FWorldDelegates::OnWorldCleanup.Remove (WorldCleanupHandle);
+        GridPIEPlaytestRequest::Clear (TEXT ("EditorModuleShutdown"));
 
         if (FModuleManager::Get().IsModuleLoaded("UnrealEd"))
         {
@@ -57,6 +66,7 @@ private:
     void HandlePreBeginPIE (bool bIsSimulating)
     {
         bRequestStopPIEAfterBegin = false;
+        GridPIEPlaytestRequest::Clear (TEXT ("HandlePreBeginPIE"));
 
         AGridLevelEditorActor* EditorActor = FindEditorActorForPIEPreparation ();
         if (!EditorActor || !EditorActor->bAutoPreparePIE)
@@ -76,8 +86,12 @@ private:
                 bRequestStopPIEAfterBegin = true;
                 UE_LOG (LogTemp, Error, TEXT ("PIE aborted because bAbortPIEOnPreparationError is true."));
             }
+            GridPIEPlaytestRequest::Clear (TEXT ("PIEPreparationFailed"));
             return;
         }
+
+        GridPIEPlaytestRequest::BeginFreshPlaytest (
+            EditorActor->PreviewRuntimeActor.Get ());
 
         const UGridLevelAsset* LevelAsset = EditorActor->LevelAsset;
         UE_LOG (
@@ -103,9 +117,30 @@ private:
         GEditor->RequestEndPlayMap ();
     }
 
+    void HandleCancelPIE ()
+    {
+        if (!GEditor || !GEditor->PlayWorld)
+        {
+            GridPIEPlaytestRequest::Clear (TEXT ("HandleCancelPIEBeforeWorld"));
+        }
+    }
+
+    void HandleWorldCleanup (
+        UWorld* World,
+        bool bSessionEnded,
+        bool bCleanupResources)
+    {
+        if (World && World->WorldType == EWorldType::PIE)
+        {
+            GridPIEPlaytestRequest::Clear (TEXT ("PIEWorldCleanup"));
+        }
+    }
+
 private:
     FDelegateHandle PreBeginPIEHandle;
     FDelegateHandle BeginPIEHandle;
+    FDelegateHandle CancelPIEHandle;
+    FDelegateHandle WorldCleanupHandle;
     bool bRequestStopPIEAfterBegin = false;
 };
 
