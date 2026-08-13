@@ -13,6 +13,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -668,7 +669,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
-    FGridMON132TestWorld TestWorld (EWorldType::Game);
+    FGridMON132TestWorld TestWorld (EWorldType::PIE);
     if (!TestWorld.World)
     {
         return false;
@@ -678,6 +679,16 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
         TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
     UGridLevelAsset* Level = MakeMON13Level (Runtime);
     Runtime->LevelAsset = Level;
+    UGridActivationComponent* Activation =
+        Runtime->FindComponentByClass<UGridActivationComponent> ();
+    TestNotNull (TEXT ("Runtime activation component exists"), Activation);
+    if (!Activation)
+    {
+        return false;
+    }
+    Level->StartCellX = 0;
+    Level->StartCellY = 0;
+    Level->StartFacing = EGridEdge::North;
 
     UGridMonsterDefinitionAsset* FirstDefinition =
         MakeMON13RuntimeDefinition (
@@ -697,6 +708,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
     const FGuid TriggerId (13, 3, 1, 1);
     const FGuid FirstSpawnId (13, 3, 1, 2);
     const FGuid SecondSpawnId (13, 3, 1, 3);
+    const FGuid SpawnEventMarkerId (13, 3, 1, 4);
 
     FGridLevelObjectData Trigger;
     Trigger.ObjectId = TriggerId;
@@ -710,7 +722,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
     FGridLevelObjectData FirstSpawn = MakeMON13Spawn (
         FirstDefinition,
         FirstSpawnId,
-        FIntPoint (0, 0));
+        FIntPoint (0, 1));
     FirstSpawn.bInitiallyEnabled = false;
     FirstSpawn.EncounterGroupId = TEXT ("Encounter_MON133_Rats");
     Level->Objects.Add (FirstSpawn);
@@ -723,6 +735,15 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
     SecondSpawn.EncounterGroupId = TEXT ("Encounter_MON133_Rats");
     Level->Objects.Add (SecondSpawn);
 
+    FGridLevelObjectData SpawnEventMarker;
+    SpawnEventMarker.ObjectId = SpawnEventMarkerId;
+    SpawnEventMarker.Type = EGridLevelObjectType::Lever;
+    SpawnEventMarker.CellX = 2;
+    SpawnEventMarker.CellY = 3;
+    SpawnEventMarker.Edge = EGridEdge::North;
+    SpawnEventMarker.bInitiallyEnabled = false;
+    Level->Objects.Add (SpawnEventMarker);
+
     FGridObjectLink TriggerLink;
     TriggerLink.SourceObjectId = TriggerId;
     TriggerLink.TargetObjectId = FirstSpawnId;
@@ -732,9 +753,9 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
 
     FGridObjectLink CascadeLink;
     CascadeLink.SourceObjectId = FirstSpawnId;
-    CascadeLink.TargetObjectId = SecondSpawnId;
+    CascadeLink.TargetObjectId = SpawnEventMarkerId;
     CascadeLink.SourceEvent = EGridObjectEvent::MonsterSpawned;
-    CascadeLink.Command = EGridObjectCommand::Spawn;
+    CascadeLink.Command = EGridObjectCommand::Toggle;
     Level->Links.Add (CascadeLink);
 
     FGridObjectLink TeleportCascadeLink;
@@ -754,33 +775,78 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
     Level->Links.Add (DespawnCascadeLink);
 
     Runtime->RebuildLevel ();
+    TestEqual (TEXT ("Deferred-spawn fixture uses a PIE world"),
+        TestWorld.World->WorldType,
+        EWorldType::PIE);
     TestEqual (TEXT ("Disabled placements start absent"),
         Runtime->GetSpawnedMonsterActorCount (),
         0);
-    TestTrue (TEXT ("Trigger executes the first Spawn command"),
-        Runtime->ExecuteLinksFromRuntimeObject (
-            TriggerId,
-            EGridObjectEvent::Activated));
-    TestEqual (TEXT ("MonsterSpawned cascades to the second placement"),
+    TestNull (TEXT ("The first SpawnId is absent after RebuildLevel"),
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId));
+    Runtime->HandlePartyCellChanged (
+        Level->StartCellX,
+        Level->StartCellY,
+        Level->StartCellX,
+        Level->StartCellY);
+    TestEqual (TEXT ("Startup notification away from the trigger spawns nothing"),
         Runtime->GetSpawnedMonsterActorCount (),
-        2);
+        0);
+    TestNull (TEXT ("The first SpawnId remains absent on StartCell"),
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId));
+
+    Runtime->HandlePartyCellChanged (
+        Level->StartCellX,
+        Level->StartCellY,
+        Trigger.CellX,
+        Trigger.CellY);
+    TestEqual (TEXT ("Entering the trigger cell creates one Actor"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        1);
 
     AGridMonsterActor* FirstMonster =
         Runtime->FindSpawnedMonsterActor (FirstSpawnId);
     AGridMonsterActor* SecondMonster =
         Runtime->FindSpawnedMonsterActor (SecondSpawnId);
     TestNotNull (TEXT ("First deferred monster exists"), FirstMonster);
-    TestNotNull (TEXT ("Second deferred monster exists"), SecondMonster);
-    if (!FirstMonster || !SecondMonster)
+    TestNull (TEXT ("Unrelated disabled placement remains absent"), SecondMonster);
+    TestTrue (TEXT ("MonsterSpawned executes its linked marker command"),
+        Activation->GetActiveObjectIds ().Contains (
+            SpawnEventMarkerId));
+    if (!FirstMonster)
     {
         return false;
     }
     TestEqual (TEXT ("Encounter group reaches the first monster"),
         FirstMonster->EncounterGroupId,
         FName (TEXT ("Encounter_MON133_Rats")));
-    TestEqual (TEXT ("Encounter group reaches the cascaded monster"),
-        SecondMonster->EncounterGroupId,
-        FName (TEXT ("Encounter_MON133_Rats")));
+
+    const FGridLevelRuntimeState* SpawnedState =
+        Runtime->DungeonRuntimeState.LevelStates.Find (TEXT ("SingleLevel"));
+    const FGridRuntimeMonsterPlacementState* SpawnedPlacement =
+        SpawnedState
+            ? SpawnedState->MonsterPlacements.Find (FirstSpawnId)
+            : nullptr;
+    TestNotNull (TEXT ("A genuine Spawn stores MonsterPlacements state"),
+        SpawnedPlacement);
+    if (SpawnedPlacement)
+    {
+        TestTrue (TEXT ("Persisted placement is spawned"),
+            SpawnedPlacement->bIsSpawned);
+        TestTrue (TEXT ("Persisted placement has monster state"),
+            SpawnedPlacement->bHasMonsterState);
+    }
+
+    Runtime->HandlePartyCellChanged (
+        Level->StartCellX,
+        Level->StartCellY,
+        Trigger.CellX,
+        Trigger.CellY);
+    TestEqual (TEXT ("A second trigger notification creates no duplicate"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        1);
+    TestTrue (TEXT ("Idempotent Spawn does not emit MonsterSpawned twice"),
+        Activation->GetActiveObjectIds ().Contains (
+            SpawnEventMarkerId));
 
     TestTrue (TEXT ("Teleport emits its lifecycle event"),
         Runtime->TeleportSpawnedMonster (
@@ -796,7 +862,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
             EGridObjectCommand::Teleport));
     TestEqual (TEXT ("Teleport command restores the placement cell"),
         FirstMonster->CurrentCell,
-        FIntPoint (0, 0));
+        FIntPoint (0, 1));
     TestEqual (TEXT ("Teleport command restores the placement facing"),
         FirstMonster->Facing,
         EGridEdge::North);
@@ -808,6 +874,13 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
         Runtime->FindSpawnedMonsterActor (FirstSpawnId));
     TestNotNull (TEXT ("MonsterDespawned executes the linked Spawn"),
         Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+    SecondMonster = Runtime->FindSpawnedMonsterActor (SecondSpawnId);
+    if (SecondMonster)
+    {
+        TestEqual (TEXT ("Encounter group reaches the lifecycle-spawned monster"),
+            SecondMonster->EncounterGroupId,
+            FName (TEXT ("Encounter_MON133_Rats")));
+    }
 
     Runtime->RebuildLevel ();
     TestEqual (TEXT ("Cascaded lifecycle presence survives a rebuild"),
@@ -816,6 +889,26 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest (
     TestNull (TEXT ("Rebuild preserves the first despawn"),
         Runtime->FindSpawnedMonsterActor (FirstSpawnId));
     TestNotNull (TEXT ("Rebuild preserves the second spawn"),
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+
+    const FGridDungeonRuntimeState ContinueState =
+        Runtime->DungeonRuntimeState;
+    Runtime->DungeonRuntimeState = FGridDungeonRuntimeState ();
+    Runtime->RebuildLevel ();
+    TestEqual (TEXT ("A fresh playtest does not restore prior placements"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        0);
+    TestNull (TEXT ("Fresh playtest keeps the first SpawnId absent"),
+        Runtime->FindSpawnedMonsterActor (FirstSpawnId));
+    TestNull (TEXT ("Fresh playtest keeps the second SpawnId absent"),
+        Runtime->FindSpawnedMonsterActor (SecondSpawnId));
+
+    Runtime->DungeonRuntimeState = ContinueState;
+    Runtime->RebuildLevel ();
+    TestEqual (TEXT ("Continue restores persisted placement presence"),
+        Runtime->GetSpawnedMonsterActorCount (),
+        1);
+    TestNotNull (TEXT ("Continue restores the lifecycle-spawned monster"),
         Runtime->FindSpawnedMonsterActor (SecondSpawnId));
     return true;
 }
