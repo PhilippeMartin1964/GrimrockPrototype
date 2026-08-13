@@ -520,6 +520,13 @@ void AGridLevelRuntimeActor::BeginPlay ()
 {
     Super::BeginPlay ();
 
+    if (bUseFreshDungeonStateOnBeginPlay)
+    {
+        DungeonRuntimeState = FGridDungeonRuntimeState ();
+        UE_LOG (LogTemp, Log,
+            TEXT ("GridLevelRuntimeActor: fresh PIE dungeon state initialized without modifying save data."));
+    }
+
     if (DungeonAsset)
     {
         if (!CurrentDungeonLevelId.IsNone ())

@@ -147,6 +147,10 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Runtime|Start")
     bool bApplyLevelStartOnBeginPlay = true;
 
+    /** One-shot editor PIE contract: start from the LevelAsset, not saved dungeon state. */
+    UPROPERTY (Transient)
+    bool bUseFreshDungeonStateOnBeginPlay = false;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Debug")
     bool bRebuildInConstruction = false;
 

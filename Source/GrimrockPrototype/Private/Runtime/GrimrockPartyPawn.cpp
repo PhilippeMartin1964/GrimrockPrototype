@@ -162,10 +162,35 @@ void AGrimrockPartyPawn::BeginPlay ()
         UE_LOG (LogTemp, Warning, TEXT ("GrimrockPartyPawn: LevelRuntimeActor has no LevelAsset, keeping configured pawn start."));
     }
 
+    const bool bFreshDungeonPlaytest =
+        LevelRuntimeActor &&
+        LevelRuntimeActor->bUseFreshDungeonStateOnBeginPlay;
     bool bLoadedSavedGame = false;
     if (PartyInventoryComponent)
     {
-        if (PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
+        if (bFreshDungeonPlaytest)
+        {
+            if (HasCurrentSave ())
+            {
+                FText LoadError;
+                bLoadedSavedGame = LoadCurrentGameData (LoadError, false);
+                if (!bLoadedSavedGame)
+                {
+                    UE_LOG (
+                        LogTemp,
+                        Warning,
+                        TEXT ("PartySave PlaytestProfileLoad Failed Slot=%s Reason=%s"),
+                        *PartySaveSlotName,
+                        *LoadError.ToString ());
+                    PartyInventoryComponent->ResetPartyForNewGame ();
+                }
+            }
+            else
+            {
+                PartyInventoryComponent->ResetPartyForNewGame ();
+            }
+        }
+        else if (PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
         {
             if (HasCurrentSave ())
             {
@@ -220,7 +245,16 @@ void AGrimrockPartyPawn::BeginPlay ()
     ApplyCameraLocalViewOffset ();
     ShowCombatActionPanelWidget ();
 
-    if (bLoadedSavedGame)
+    if (bLoadedSavedGame && bFreshDungeonPlaytest)
+    {
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("PartySave PlaytestProfileLoaded Slot=%s CharacterCount=%d DungeonState=Fresh"),
+            *PartySaveSlotName,
+            PartyInventoryComponent ? PartyInventoryComponent->GetActiveCharacterCount () : 0);
+    }
+    else if (bLoadedSavedGame)
     {
         UE_LOG (
             LogTemp,
@@ -1730,29 +1764,32 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
         return false;
     }
 
-    LevelRuntimeActor->DungeonRuntimeState = SaveGame->DungeonRuntimeState;
-    LevelRuntimeActor->CurrentDungeonLevelId = SaveGame->CurrentDungeonLevelId;
-    if (LevelRuntimeActor->DungeonAsset &&
-        !SaveGame->CurrentDungeonLevelId.IsNone ())
+    if (bApplyDungeonState)
     {
-        UGridLevelAsset* SavedLevelAsset =
-            LevelRuntimeActor->DungeonAsset->GetLevelAssetById (
-                SaveGame->CurrentDungeonLevelId);
-        if (!SavedLevelAsset)
+        LevelRuntimeActor->DungeonRuntimeState = SaveGame->DungeonRuntimeState;
+        LevelRuntimeActor->CurrentDungeonLevelId = SaveGame->CurrentDungeonLevelId;
+        if (LevelRuntimeActor->DungeonAsset &&
+            !SaveGame->CurrentDungeonLevelId.IsNone ())
         {
-            RestorePreviousState ();
-            OutError = FText::FromString (
-                FString::Printf (
-                    TEXT ("Le niveau sauvegardé '%s' est introuvable dans le donjon."),
-                    *SaveGame->CurrentDungeonLevelId.ToString ()));
-            return false;
+            UGridLevelAsset* SavedLevelAsset =
+                LevelRuntimeActor->DungeonAsset->GetLevelAssetById (
+                    SaveGame->CurrentDungeonLevelId);
+            if (!SavedLevelAsset)
+            {
+                RestorePreviousState ();
+                OutError = FText::FromString (
+                    FString::Printf (
+                        TEXT ("Le niveau sauvegardé '%s' est introuvable dans le donjon."),
+                        *SaveGame->CurrentDungeonLevelId.ToString ()));
+                return false;
+            }
+            LevelRuntimeActor->LevelAsset = SavedLevelAsset;
+            LevelRuntimeActor->RebuildLevel ();
         }
-        LevelRuntimeActor->LevelAsset = SavedLevelAsset;
-        LevelRuntimeActor->RebuildLevel ();
+        CurrentCellX = SaveGame->PartyCellX;
+        CurrentCellY = SaveGame->PartyCellY;
+        Facing = SaveGame->PartyFacing == EGridEdge::None ? EGridEdge::North : SaveGame->PartyFacing;
     }
-    CurrentCellX = SaveGame->PartyCellX;
-    CurrentCellY = SaveGame->PartyCellY;
-    Facing = SaveGame->PartyFacing == EGridEdge::None ? EGridEdge::North : SaveGame->PartyFacing;
 
     if (!RehydrateLoadedItemDefinitions (OutError))
     {
