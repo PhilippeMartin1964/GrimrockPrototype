@@ -12,14 +12,14 @@
 | Cible | Dungeon crawler en vue subjective, case par case, inspiré de *Legend of Grimrock 2* |
 | Moteur | Unreal Engine 5.5.4 |
 | Branche analysée | `master` |
-| Commit analysé | `a3a29a953c8bbb39c0db4b811487fa796065288c` — `Fix MON12 action transactions and cooldowns` |
-| Date de l'état analysé | 9 août 2026 |
-| Fichiers suivis | 1 059 |
-| Code C++ | 128 `.cpp` + 105 `.h`, environ 90 575 lignes |
+| Commit analysé | `0d008bbde52fb7cbe4eae49811ce5c005cbaee5f` — `Fix fresh MON13.3 PIE monster spawning` |
+| Date de l'état analysé | 13 août 2026 |
+| Fichiers suivis | 1 078 |
+| Code C++ | 133 `.cpp` + 107 `.h`, environ 94 816 lignes |
 | Modules | `GrimrockPrototype` et `GrimrockPrototypeEditor` |
-| Tests C++ | 27 fichiers, 161 déclarations d'Automation Tests |
-| Contenu Unreal | 550 `.uasset` + 2 `.umap` |
-| Documentation | 153 fichiers Markdown, plus 29 SVG et 66 images PNG/JPG |
+| Tests C++ | 30 fichiers, 173 déclarations d'Automation Tests |
+| Contenu Unreal | 557 `.uasset` + 2 `.umap` |
+| Documentation | 161 fichiers Markdown, plus 29 SVG et 66 images PNG/JPG |
 
 Cette synthèse décrit l'état présent dans le dépôt. Un statut **validé** signifie
 que le jalon correspondant est documenté comme validé et/ou couvert par des
@@ -39,6 +39,8 @@ déjà une architecture data-driven couvrant :
 - l'inventaire, l'équipement, l'ownership exclusif et les transferts d'items ;
 - la création de personnage, les races/classes, les portraits et la sauvegarde ;
 - un système de monstres déterministe construit autour du Rat géant ;
+- un pipeline natif `MonsterSpawn` avec aperçu éditeur, instanciation,
+  commandes runtime et persistance ;
 - un combat tour par tour à initiative globale, PA/PAM et catalogue d'actions ;
 - un HUD de combat avec dix raccourcis persistants par personnage ;
 - le menu principal, les slots de sauvegarde et les transitions de niveaux.
@@ -187,7 +189,7 @@ flowchart TB
 | Création | Widgets `RPGCharacterCreation*` | Wizard, race, genre, portrait, classe et allocation d'attributs | 🟡 avancé, recrutement à finir |
 | Menu | `UGrimrockGameInstance`, widgets Main/Load, StartupMode | Nouvelle partie, continuer, charger, options, crédits, licence, quitter | ✅ MVP |
 | Sauvegarde | `UGrimrockPartySaveGame`, `FGridDungeonRuntimeState` | Groupe, inventaire, niveau courant, items, objets, portes et monstres | ✅ version 3 |
-| Monstres | `AGridMonsterActor` et composants Movement/Behavior/Combat/Death/Audio/VFX | Définition data-driven, grille, IA, attaque, mort, butin et présentation | ✅ pour Rat géant ; 🟡 bestiaire |
+| Monstres | `AGridMonsterActor`, `UGridMonsterDefinitionAsset` et composants Movement/Behavior/Combat/Death/Audio/VFX | Définition data-driven, `MonsterSpawn`, grille, IA, attaque, mort, butin et présentation | ✅ Rat géant et MON13.1–13.3 ; 🟡 bestiaire |
 | Combat | `UGridTurnManagerComponent`, `FGridCombatAction*`, Resolver, Log | Initiative, tours, PA/PAM, actions, dégâts, ressources et cooldowns | ✅ fondation MON1–MON12 |
 | HUD combat | `UGridCombatHudWidget`, ActionPanel, InitiativeSlot | 4 panneaux, initiative glissante, palette, ciblage et dix raccourcis | ✅ MON12.11 |
 | UI hors inventaire | Pages Skills, Journal, Map, Recipes, Codex | Navigation et conteneurs visuels | 🟡 coquilles, logique métier absente |
@@ -234,8 +236,8 @@ flowchart TB
 
 **Reste à faire**
 
-- Exécution réelle des commandes `Spawn`, `Despawn` et `Teleport` pour toutes
-  les cibles déclarées.
+- Commandes `Spawn`, `Despawn` et `Teleport` encore à généraliser au-delà des
+  cibles `MonsterSpawn` validées par MON13.3, notamment `ItemSpawn`.
 - Émission systématique `Opened`/`Closed` par les portes si nécessaire au design.
 - Édition complète des conditions de lien directement dans le panneau Slate.
 - Timers, compteurs, relais logiques et séquences programmables.
@@ -304,6 +306,14 @@ flowchart TB
 - Mort logique unique, cadavre non bloquant, butin déterministe et victoire.
 - Audio, VFX, variations d'idle et métriques d'équilibrage.
 - Persistance des monstres vivants, blessés, déplacés ou morts.
+- Placement persistant `MonsterSpawn` avec `ObjectId=SpawnId`, définition,
+  orientation, groupe de rencontre et validation éditeur.
+- Aperçu squelettique editor-only et instanciation native différée depuis le
+  `LevelAsset`, avec refus atomique et rebuild sans duplication.
+- Commandes runtime `Spawn`, `Despawn` et `Teleport` intra-niveau, aliases,
+  événements de cycle de vie et état `MonsterPlacements` persistant.
+- Spawn différé `Trigger.Activated -> Rat.Spawn` validé en PIE ; correction du
+  premier lancement PIE au commit de référence.
 - Attaques du groupe : mains nues, équipement offensif et armes de jet.
 - Initiative globale mélangeant personnages et monstres.
 - Tours individuels, quatre PA personnels, deux PAM communs et rotations gratuites.
@@ -314,8 +324,11 @@ flowchart TB
 
 **Reste à faire**
 
-- Pipeline natif créant les monstres depuis les placements `MonsterSpawn` du
-  LevelAsset ; le Rat géant dépend encore du chemin d'Actor placé/configuré.
+- Clôture formelle de MON13.3 : matrice complète des Automation Tests, rebuild,
+  sauvegarde/chargement et mise à jour du statut de jalon.
+- Gestion globale des rencontres et vagues par `EncounterGroupId`,
+  téléportation inter-niveaux et résolution Asset Manager depuis l'identifiant
+  seul.
 - Attribution de l'expérience de victoire et progression du groupe.
 - Effets de statut : hâte réelle, ralentissement, poison, étourdissement,
   immobilisation, saignement, buffs et debuffs.
@@ -380,123 +393,44 @@ complets.
 | MON8–MON10 | Mort, butin, persistance, audio/VFX/idles, équilibrage et optimisation |
 | MON11 | Requête et résolution des attaques du groupe, équipement offensif, présentation, armes de jet |
 | MON12 | Initiative globale, PA/PAM, catalogue, HUD, hotbar, quick items, sorts/capacités, ciblage et cooldowns |
+| MON13.1 | Modèle persistant `MonsterSpawn`, identité `SpawnId`, définition, orientation et validation éditeur |
+| MON13.2 | Aperçu squelettique, résolution stricte, instanciation native et rebuild sans duplication |
+| MON13.3 | `Spawn`/`Despawn`/`Teleport`, liens éditeur, événements de cycle de vie et persistance de présence |
 
-## 8. Carte mentale type XMind
+## 8. Cartographie visuelle
+
+La carte Mermaid reste volontairement courte : elle montre les domaines et leur
+état sans tenter de faire tenir plus de mille sujets sur une page GitHub.
 
 ```mermaid
-mindmap
-  root((GrimrockPrototype))
-    Vision
-      Vue subjective
-      Grille 32x32
-      Donjons multi-niveaux
-      Enigmes et exploration
-      Combat tactique au tour par tour
-      Création de niveaux par les joueurs
-    Données persistantes
-      ✅ DungeonAsset
-      ✅ LevelAsset
-      ✅ Cellules objets liens
-      ✅ Palettes et archétypes
-      ✅ Items races classes monstres
-      🟡 Données de campagne
-      ⬜ Quêtes dialogues scripts
-    Editeur
-      ✅ Editor Mode et Toolkit
-      ✅ Peinture grille et murs
-      ✅ Placement objets
-      ✅ Inspecteur contextuel
-      ✅ Connecteurs
-      ✅ Validation et mini-carte
-      🟡 Conditions avancées dans UI
-      ⬜ Editeur standalone et partage
-    Runtime donjon
-      ✅ Génération géométrie
-      ✅ Déplacement case par case
-      ✅ Portes et passages secrets
-      ✅ Multi-niveaux
-      ✅ Etat vivant par niveau
-      🟡 Transitions par Use
-      ⬜ Portails et dangers avancés
-    Mécanismes
-      ✅ Boutons leviers plaques triggers
-      ✅ Event Condition Command
-      ✅ Réceptacles
-      ✅ Serrures murales MVP
-      🟡 Autels bols fentes à pièce
-      ⬜ Timers compteurs relais
-      ⬜ Crochetage et pièges
-      ⬜ Langage de scripting
-    Items et inventaire
-      ✅ Ownership exclusif
-      ✅ Inventaires personnels
-      ✅ Equipement et bonus
-      ✅ Curseur et drag-drop
-      ✅ Torches et lisibles
-      ✅ Shuriken lancé et récupérable
-      🟡 Dépôt libre et physique
-      ⬜ Catalogue complet d'items
-      ⬜ Crafting et conteneurs
-    Personnages
-      ✅ Attributs et stats dérivées
-      ✅ Six races
-      ✅ Six classes
-      ✅ Portraits et icônes
-      ✅ Wizard et allocation
-      🟡 Groupe et recrutement
-      ⬜ XP et niveaux
-      ⬜ Compétences dons sorts
-      ⬜ Paper doll visuel complet
-    Monstres
-      ✅ Rat géant vertical slice
-      ✅ Grille et pathfinding
-      ✅ Perception et aggro
-      ✅ Combat mort et butin
-      ✅ Persistance
-      ✅ Audio VFX idles
-      🟡 MonsterSpawn natif
-      ⬜ Bestiaire de production
-      ⬜ IA distance magie boss
-    Combat
-      ✅ Initiative globale
-      ✅ Tours individuels
-      ✅ PA personnels et PAM communs
-      ✅ Attaques et résistances
-      ✅ Catalogue d'actions
-      ✅ Quick items et cooldowns
-      ✅ Ciblage cellule et zone
-      ✅ HUD et hotbar 0-9
-      🟡 Sorts et capacités de production
-      ⬜ Statuts buffs debuffs
-      ⬜ Défense réactions préparation
-    Flux et sauvegarde
-      ✅ Menu principal
-      ✅ Nouvelle partie et continuer
-      ✅ Chargement multi-slot
-      ✅ SaveGame v3
-      ✅ Etat groupe donjon monstres
-      🟡 Options de jeu réelles
-      ⬜ Pause autosave checkpoints
-      ⬜ Migration et reprise après crash
-    Contenu et finition
-      🟡 Trois LevelAssets
-      🟡 Un DungeonAsset
-      🟡 Un monstre jouable
-      🟡 Kit visuel donjon et UI
-      ⬜ Campagne complète
-      ⬜ Quêtes dialogues secrets
-      ⬜ Musiques et soundscape
-      ⬜ Tutoriel difficulté équilibrage
-      ⬜ Localisation accessibilité
-    Qualité et livraison
-      ✅ 161 Automation Tests déclarés
-      ⚠️ Tests assets et PIE manuels
-      ⚠️ Gros fichiers très centralisés
-      ⚠️ Documentation fragmentée
-      ⬜ CI Windows UE5
-      ⬜ Build Shipping et installateur
-      ⬜ Modding et publication de niveaux
+flowchart TB
+    P["GrimrockPrototype<br/>vertical slice technique avancé"]
+    A["✅ Données et architecture<br/>DungeonAsset · LevelAsset · état"]
+    E["✅ Éditeur de niveaux<br/>grille · palette · liens · validation"]
+    R["✅ Runtime et exploration<br/>géométrie · mouvement · mécanismes"]
+    G["🟡 Groupe et RPG<br/>création · inventaire · progression à faire"]
+    C["🟡 Monstres et combat<br/>MON1–MON13 · bestiaire à généraliser"]
+    Q["⚠️ Qualité et livraison<br/>tests solides · PIE/CI/Shipping à compléter"]
+    P --> A
+    A --> E
+    A --> R
+    R --> G
+    R --> C
+    G --> Q
+    C --> Q
 ```
+
+La cartographie exhaustive est disponible sous deux formes complémentaires :
+
+- [`Maps/GRIMROCK_PROJECT_MAP.xmind`](Maps/GRIMROCK_PROJECT_MAP.xmind) : classeur
+  XMind actuel, éditable, composé de huit feuilles et de plus de mille sujets ;
+- [`Maps/GRIMROCK_PROJECT_MAP.md`](Maps/GRIMROCK_PROJECT_MAP.md) : source
+  textuelle versionnable, relisible et comparable dans Git.
+
+Les feuilles couvrent : vue générale ; données et architecture ; éditeur ;
+runtime et mécanismes ; groupe/RPG/items/UI ; monstres et combat ; persistance,
+qualité et livraison ; jalons et roadmap. Elles utilisent des marqueurs de
+statut, des notes et des relations transversales.
 
 ## 9. Feuille de route vers un jeu complet
 
@@ -505,7 +439,7 @@ devrait progresser par **portes de sortie jouables**.
 
 ### Phase A — Consolider le vertical slice actuel
 
-Objectif : disposer d'une référence stable après MON12.
+Objectif : disposer d'une référence stable après MON13.3.
 
 - compiler `Development Editor Win64` et `Development/Shipping Win64` ;
 - exécuter tous les filtres `Grimrock.CharacterCreation.*` et
@@ -521,8 +455,10 @@ sans commande de debug ni manipulation manuelle d'asset.
 
 ### Phase B — Fermer les trous du moteur de donjon
 
-- pipeline natif `MonsterSpawn -> MonsterDefinition -> AGridMonsterActor` ;
-- commandes runtime `Spawn`, `Despawn`, `Teleport` ;
+- clôturer MON13.3 puis compléter rencontres/vagues, téléportation inter-niveaux
+  et résolution des définitions par Asset Manager ;
+- généraliser les commandes runtime `Spawn`, `Despawn`, `Teleport` aux autres
+  cibles pertinentes, notamment `ItemSpawn` ;
 - transitions par `Use` et portails ;
 - dépôt libre d'items finalisé ;
 - timers, compteurs, relais et conditions éditables ;
@@ -594,19 +530,20 @@ présenter sa progression sans documents externes.
 **Porte de sortie :** build candidate installable, sauvegardes migrables, campagne
 complète, aucun blocage critique et budget de performance respecté.
 
-## 10. Priorités recommandées immédiatement après MON12
+## 10. Priorités recommandées immédiatement après MON13.3
 
 Ordre conseillé :
 
-1. **Audit de clôture MON12 complet**, compilation et PIE transversal.
-2. **Pipeline natif `MonsterSpawn`**, car il relie enfin l'éditeur au système de
-   monstres sans Actor posé manuellement.
-3. **XP et montée de niveau**, afin que les combats alimentent une progression.
-4. **Premier deuxième monstre**, choisi pour tester un nouveau comportement
+1. **Audit de clôture MON13.3**, suite MON13 complète, rebuild,
+   sauvegarde/chargement et PIE transversal.
+2. **XP et montée de niveau**, afin que les combats alimentent une progression.
+3. **Deuxième monstre**, choisi pour tester un nouveau comportement
    plutôt qu'une simple variante du Rat géant.
-5. **Premier sort et premier consommable de production**, utilisant la palette
+4. **Premier sort et premier consommable de production**, utilisant la palette
    et le ciblage déjà terminés.
-6. **Vertical slice de 45 minutes**, pour transformer les fondations en jeu et
+5. **Premiers effets de statut**, pour exercer durées, sauvegarde et recalcul de
+   l'initiative au-delà des tests d'infrastructure.
+6. **Vertical slice de 45–90 minutes**, pour transformer les fondations en jeu et
    révéler les vrais manques avant d'étendre encore l'architecture.
 
 ## 11. Risques et dettes techniques
@@ -617,12 +554,12 @@ Plusieurs fichiers deviennent des points de fragilité :
 
 | Fichier | Taille approximative | Risque |
 |---|---:|---|
-| `GridLevelEditorActor.cpp` | 153 Ko | Trop de logique d'édition et de validation dans un Actor |
-| `GridLevelRuntimeActor.cpp` | 142 Ko | Reconstruction, interactions, état, transitions et spawn centralisés |
+| `GridLevelEditorActor.cpp` | 160 Ko | Trop de logique d'édition et de validation dans un Actor |
+| `GridLevelRuntimeActor.cpp` | 172 Ko | Reconstruction, interactions, état, transitions et spawn centralisés |
 | `GridPartyInventoryComponent.cpp` | 113 Ko | Ownership, RPG, équipement et hotbar dans le même composant |
 | `GridInventoryWidget.cpp` | 100 Ko | Logique UI et routage d'actions très dense |
-| `SGridEditorObjectInspectorPanel.cpp` | 94 Ko | Inspecteur monolithique difficile à faire évoluer |
-| `GrimrockPartyPawn.cpp` | 85 Ko | Mouvement, UI, sauvegarde, inventaire et lancer liés au Pawn |
+| `SGridEditorObjectInspectorPanel.cpp` | 103 Ko | Inspecteur monolithique difficile à faire évoluer |
+| `GrimrockPartyPawn.cpp` | 87 Ko | Mouvement, UI, sauvegarde, inventaire et lancer liés au Pawn |
 | `GridCombatHudWidget.cpp` | 70 Ko | Projection, hotbar, ciblage et exécution dans une même classe UI |
 
 Il ne faut pas lancer un refactor massif. Chaque nouvelle fonctionnalité doit
@@ -632,7 +569,7 @@ transferts, projection HUD, validation éditeur, etc.
 
 ### 11.2 Documentation fragmentée
 
-- 153 documents Markdown rendent la recherche difficile.
+- 161 documents Markdown rendent la recherche difficile.
 - `00_PROJECT_OVERVIEW.md` ne reflète pas encore toute la création de personnage,
   le menu, l'inventaire et MON8–MON12.
 - Plusieurs roadmaps historiques restent justes pour leur époque mais ne sont
@@ -663,6 +600,8 @@ leur rôle spécialisé.
 |---|---|
 | `docs/README.md` | Porte d'entrée de toute la documentation |
 | `docs/Architecture/PROJECT_SYNTHESIS.md` | Vue globale, état et feuille de route |
+| `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.xmind` | Classeur XMind détaillé multi-feuilles |
+| `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` | Source textuelle versionnable de la carte |
 | `docs/Architecture/ARCHITECTURE_INDEX.md` | Contrats techniques détaillés |
 | `docs/Architecture/CODEBASE_INVENTORY.md` | Inventaire de code à générer automatiquement |
 | `docs/Architecture/*_FOUNDATION.md` | Contrats par sous-système |
@@ -678,7 +617,7 @@ leur rôle spécialisé.
 
 1. mettre à jour la ligne du domaine dans la section 5 ;
 2. déplacer les éléments de « Reste à faire » vers « Fait » ;
-3. mettre à jour la carte mentale ;
+3. mettre à jour `GRIMROCK_PROJECT_MAP.md`, puis régénérer le classeur XMind ;
 4. modifier le commit/date de référence ;
 5. ajouter ou mettre à jour le test autoritaire ;
 6. inscrire la décision durable dans `docs/Design/99_DECISIONS_LOG.md` ;
@@ -687,7 +626,7 @@ leur rôle spécialisé.
 
 ## 13. Sources principales dans le dépôt
 
-Pour approfondir un bloc sans parcourir les 1 059 fichiers :
+Pour approfondir un bloc sans parcourir les 1 078 fichiers :
 
 | Sujet | Document d'entrée |
 |---|---|
@@ -701,11 +640,16 @@ Pour approfondir un bloc sans parcourir les 1 059 fichiers :
 | Monstres MON1–MON10 | `docs/Design/MONSTERS_AI_ANIMATIONS_TURN_BASED_COMBAT_RAT_GIANT.md` |
 | Attaques du groupe | `docs/Design/MON11_1_PARTY_ATTACK_REQUEST_PIPELINE.md` |
 | HUD et hotbar | `docs/Design/MON12_11_HOTBAR_VALIDATION.md` |
+| Apparition native des monstres | `docs/Design/MON13_1_MONSTER_SPAWN_MODEL.md` |
+| Instanciation des monstres | `docs/Design/MON13_2_MONSTER_SPAWN_PIPELINE.md` |
+| Commandes runtime des monstres | `docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md` |
+| Carte complète du projet | `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.xmind` |
 | Tests manuels | `docs/Tests/TEST_DUNGEON_PASS_CHECKLIST.md` |
 
 ---
 
 **Conclusion :** la prochaine étape stratégique n'est pas d'ajouter une nouvelle
-couche générique. Il faut maintenant consolider MON12, fermer le pipeline
-`MonsterSpawn`, ajouter progression et variété, puis produire un vertical slice
-de contenu assez long pour tester le jeu — pas seulement ses systèmes.
+couche générique. Le pipeline `MonsterSpawn` est désormais fonctionnel jusqu'aux
+commandes runtime et à la persistance. Il faut clôturer MON13.3, ajouter
+progression et variété, puis produire un vertical slice de contenu assez long
+pour tester le jeu — pas seulement ses systèmes.

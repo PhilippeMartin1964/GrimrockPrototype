@@ -1,0 +1,1110 @@
+# GrimrockPrototype — Carte détaillée du projet
+
+> Source textuelle, diffable et révisable du classeur
+> `GRIMROCK_PROJECT_MAP.xmind`. Chaque section numérotée correspond à une
+> feuille du classeur XMind. État audité sur `master` au commit `0d008bb`, le
+> 13 août 2026.
+
+## Légende
+
+- ✅ : implémenté et validé dans le périmètre indiqué ;
+- 🟡 : implémenté en partie, vertical slice à généraliser ou validation finale
+  encore nécessaire ;
+- ⬜ : à concevoir ou à implémenter ;
+- ⚠️ : dette, risque ou contrôle manuel important ;
+- 🎯 : priorité ou porte de sortie.
+
+Les noms de classes et de documents servent de points d'entrée. La carte reste
+une synthèse : les contrats complets demeurent dans les fichiers d'architecture,
+de design et de tests associés.
+
+## 00 — Vue générale
+
+- GrimrockPrototype — Vue générale
+  - Vision du produit
+    - Dungeon crawler en vue subjective
+    - Déplacement case par case
+    - Grilles 32 × 32
+    - Donjons multi-niveaux
+    - Exploration, secrets et énigmes
+    - Combat tactique au tour par tour
+    - Groupe de personnages personnalisables
+    - Architecture orientée données
+    - 🎯 Création de niveaux par les joueurs à terme
+  - Principes autoritaires
+    - ✅ DataAssets = sources persistantes
+    - ✅ Actors runtime = instances transitoires
+    - ✅ Grille = autorité du déplacement et du combat
+    - ✅ Identités stables par GUID
+    - ✅ Liens = Source + Event → Target + Command
+    - ✅ Logique déterministe séparée de la présentation
+    - ✅ État initial séparé de l'état vivant
+    - ✅ Module Editor dépend du Runtime, jamais l'inverse
+  - Architecture globale
+    - Éditeur
+      - GrimrockPrototypeEditor
+      - Editor Mode et Toolkit
+      - Palette, inspecteur, connecteurs, validation
+    - Données
+      - UGridDungeonAsset
+      - UGridLevelAsset
+      - Palettes et archétypes
+      - Définitions d'items, RPG et monstres
+    - Runtime
+      - AGridLevelRuntimeActor
+      - AGrimrockPartyPawn
+      - Actors d'objets et d'items
+      - Activation Event → Command
+    - Combat
+      - UGridTurnManagerComponent
+      - Catalogue d'actions
+      - AGridMonsterActor et composants
+      - HUD de combat
+    - Persistance
+      - FGridDungeonRuntimeState
+      - FGridPartyInventoryState
+      - UGrimrockPartySaveGame v3
+  - État actuel
+    - ✅ Fondations du donjon avancées
+    - ✅ Éditeur intégré avancé
+    - ✅ Exploration et interaction jouables
+    - ✅ Inventaire et équipement avancés
+    - ✅ Création de personnage jouable
+    - ✅ Rat géant = vertical slice monstre complet
+    - ✅ MON12 = fondation de combat complète
+    - ✅ MON13.1 = modèle MonsterSpawn persistant
+    - ✅ MON13.2 = aperçu et instanciation native
+    - 🟡 MON13.3 = commandes runtime validées en PIE, clôture à formaliser
+    - 🟡 Vertical slice technique avancé
+    - ⬜ Jeu complet et campagne
+  - Périmètre validé
+    - Donjon et grille
+    - Géométrie runtime
+    - Objets interactifs et liens
+    - Portes et passages secrets
+    - Réceptacles et serrures murales MVP
+    - Items, torches et objets lisibles
+    - Groupe, inventaire et équipement
+    - Menu principal et sauvegarde
+    - IA, combat, mort et butin du Rat géant
+    - Initiative, PA, PAM, ciblage et cooldowns
+    - Spawn natif, différé et persistant des monstres
+  - Vertical slices à généraliser
+    - 🟡 Un seul DungeonAsset de production
+    - 🟡 Trois LevelAssets versionnés
+    - 🟡 Une seule famille de monstre jouable
+    - 🟡 Six races et six classes sans progression complète
+    - 🟡 Sorts et quick items surtout validés par infrastructure
+    - 🟡 Kit visuel donjon et interface encore incomplet
+  - Systèmes manquants déterminants
+    - ⬜ XP et montée de niveau
+    - ⬜ Compétences, dons et spécialisations
+    - ⬜ Grimoire et apprentissage des sorts
+    - ⬜ Recrutement complet du groupe
+    - ⬜ Effets de statut de production
+    - ⬜ Bestiaire varié
+    - ⬜ Quêtes, journal et dialogues
+    - ⬜ Carte découverte et codex
+    - ⬜ Campagne et contenu équilibré
+    - ⬜ CI, Shipping et installation
+  - Priorités après MON13.3
+    - 🎯 Audit de clôture MON13
+    - 🎯 XP et montée de niveau
+    - 🎯 Second monstre à comportement distinct
+    - 🎯 Premier sort et consommable de production
+    - 🎯 Effets de statut minimaux
+    - 🎯 Vertical slice de contenu 45–90 minutes
+  - Indicateurs du dépôt
+    - 1 078 fichiers suivis
+    - 240 fichiers C++
+      - 133 fichiers .cpp
+      - 107 fichiers .h
+      - Environ 94 816 lignes
+    - 30 fichiers de tests C++
+    - 173 déclarations Automation Tests
+    - 557 assets .uasset
+    - 2 cartes .umap
+    - 161 documents Markdown
+
+## 01 — Données et architecture
+
+- Données et architecture
+  - Sources persistantes
+    - ✅ UGridDungeonAsset
+      - Référence les niveaux du donjon
+      - Définit l'ordre et les transitions
+      - Sépare campagne de niveau individuel
+    - ✅ UGridLevelAsset
+      - Cells
+        - Coordonnées 32 × 32
+        - Sol et plafond
+        - Occupation initiale
+        - Géométrie et matériaux
+      - Objects
+        - FGridLevelObjectData
+        - ObjectId stable
+        - Type et archétype
+        - Cellule, arête et transform local
+        - État initial
+        - Données spécialisées
+      - Links
+        - FGridObjectLink
+        - SourceObjectId
+        - Event
+        - TargetObjectId
+        - Command
+        - Condition optionnelle
+      - Point de départ du groupe
+      - Références de niveau et métadonnées
+  - Palettes et archétypes
+    - ✅ UGridObjectPaletteAsset
+      - Entrées proposées à l'éditeur
+      - Archétype par défaut
+      - Définition spécialisée par défaut
+    - ✅ UGridObjectArchetypeAsset
+      - SupportedType
+      - PlacementKind
+      - Preview et rendu
+      - RuntimeActorClass pour objets génériques
+      - DefaultBehavior
+      - bDefaultInitiallyEnabled
+    - Règle MonsterSpawn
+      - ✅ DefaultArchetype = DA_MonsterSpawn
+      - ✅ RuntimeActorClass de l'archétype = None
+      - ✅ DefaultMonsterDefinition = DA_MON_RatGiant
+      - ✅ Classe concrète lue dans MonsterDefinition
+  - Définitions de contenu
+    - ✅ UGridItemDefinitionAsset
+      - Identité fonctionnelle ItemDefinitionId
+      - Mesh, icône et propriétés
+      - Empilement, poids et usages
+      - Profils d'équipement et d'attaque
+    - ✅ UGridMonsterDefinitionAsset
+      - MonsterId
+      - MonsterActorClass
+      - Statistiques de combat
+      - IA et mouvement
+      - Mesh, AnimationClass, audio et VFX
+      - Butin et présentation
+    - ✅ URPGRaceAsset
+    - ✅ URPGClassAsset
+    - ✅ Définitions d'actions de combat
+    - ✅ Données d'objets lisibles
+    - ⬜ Quêtes, dialogues et campagne
+  - Identités et ownership
+    - Objets du niveau
+      - ObjectId = identité persistante
+      - MonsterSpawn ObjectId = SpawnId
+    - Items
+      - RuntimeItemId = identité d'instance
+      - ItemDefinitionId = type fonctionnel
+      - Ownership exclusif
+        - Monde
+        - Inventaire
+        - Équipement
+        - Curseur
+        - Réceptacle
+    - Monstres
+      - SpawnId = identité MON13
+      - SpawnObjectId = lien vers placement
+      - PersistentMonsterId = secours hors MonsterSpawn
+      - Pas de seconde identité pour un spawn natif
+  - État vivant
+    - ✅ FGridDungeonRuntimeState
+      - État par niveau
+      - Portes et objets
+      - Items et réceptacles
+      - Monstres
+      - MonsterPlacements MON13.3
+    - ✅ FGridRuntimeMonsterPlacementState
+      - bIsSpawned
+      - Dernier état connu
+      - Cellule et orientation
+      - PV, armures et IA
+      - Mort, activation et rencontre
+    - ✅ FGridPartyInventoryState
+      - Membres du groupe
+      - Inventaires et équipement
+      - Raccourcis persistants
+    - ✅ UGrimrockPartySaveGame v3
+      - Sérialise groupe et donjon
+      - Compatibilité v1–v3
+  - Séparation des modules
+    - GrimrockPrototype Runtime
+      - Core
+      - Runtime
+      - RPG
+      - Save
+      - UI
+      - Tests runtime
+    - GrimrockPrototypeEditor
+      - Editor Mode
+      - Toolkit et Slate
+      - Outils et validation
+      - Tests editor-only
+    - ✅ Runtime sans dépendance vers UnrealEd
+    - ✅ Editor dépend du module Runtime
+  - Flux de données principal
+    - Édition
+      - Palette → placement
+      - Placement → FGridLevelObjectData
+      - Inspecteur → modifications persistantes
+      - Validation → messages reliés aux ObjectId
+    - Construction runtime
+      - DungeonAsset → LevelAsset
+      - LevelAsset → géométrie et Actors
+      - État sauvegardé → restauration
+    - Interaction
+      - Event source
+      - Condition
+      - Command target
+      - Capture de l'état vivant
+    - Sauvegarde
+      - Runtime → FGridDungeonRuntimeState
+      - Groupe → FGridPartyInventoryState
+      - États → SaveGame
+  - Principales dettes
+    - ⚠️ AGridLevelRuntimeActor très centralisé
+    - ⚠️ AGridLevelEditorActor très centralisé
+    - ⚠️ Documentation de fondation antérieure à MON12/MON13
+    - ⬜ Résolution Asset Manager depuis identifiants seuls
+    - ⬜ Format stable de publication de donjons joueurs
+  - Documents d'entrée
+    - docs/Architecture/CORE_DUNGEON_LEVEL_GRID.md
+    - docs/Architecture/OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md
+    - docs/Architecture/ARCHITECTURE_INDEX.md
+    - docs/Design/99_DECISIONS_LOG.md
+    - docs/Design/JALON_RUNTIME_DUNGEON_STATE.md
+
+## 02 — Éditeur de niveaux
+
+- Éditeur de niveaux
+  - Module et mode
+    - ✅ GrimrockPrototypeEditor
+    - ✅ FGridLevelEdMode
+    - ✅ Toolkit du Grid Editor
+    - ✅ AGridLevelEditorActor
+    - ✅ Panneaux Slate spécialisés
+  - Gestion du donjon
+    - ✅ Sélection du DungeonAsset
+    - ✅ Liste DUNGEON LEVELS
+    - ✅ Création d'un LevelAsset
+    - ✅ Chargement et rechargement du niveau courant
+    - ✅ Point de départ et orientation du groupe
+    - 🟡 Transitions et destinations à enrichir
+  - Outils de grille
+    - ✅ Paint Cell
+      - Créer une cellule
+      - Sol et plafond
+      - Matériaux et variantes
+    - ✅ Paint Wall
+      - Arêtes cardinales
+      - Cohérence entre cellules adjacentes
+    - ✅ Erase
+      - Cellules
+      - Murs
+      - Objets
+    - ✅ Select
+      - Cellule
+      - Arête
+      - Objet
+      - Focus depuis validation
+    - ✅ Rotation et déplacement d'objets
+  - Palette d'objets
+    - ✅ Catégories data-driven
+    - ✅ Archétype concret par entrée
+    - ✅ Copie des valeurs par défaut
+    - Objets disponibles
+      - Boutons
+      - Leviers
+      - Plaques de pression
+      - Triggers
+      - Portes ordinaires
+      - Portes secrètes
+      - Réceptacles
+      - Serrures murales
+      - Items placés
+      - Escaliers
+      - ✅ MonsterSpawn MON13
+    - ⬜ Catalogue complet de production
+  - Inspecteur contextuel
+    - ✅ Données communes
+      - ObjectId en lecture seule
+      - Type et archétype
+      - Cellule et arête
+      - Transform local
+      - Enabled et Active at Start
+    - ✅ Données de mécanismes
+    - ✅ Données de réceptacles
+    - ✅ Données de serrures
+    - ✅ Données d'items
+    - ✅ MonsterSpawn MON13.1
+      - SpawnId
+      - MonsterDefinitionAsset
+      - MonsterDefinitionId synchronisé
+      - EncounterGroupId
+      - InitialFacing
+      - Classe d'Actor résolue
+  - Connecteurs
+    - ✅ Source Object
+    - ✅ Source Event
+    - ✅ Target Object
+    - ✅ Command
+    - ✅ Création et suppression de liens
+    - ✅ Politique MON13.3
+      - MonsterSpawn visible comme cible
+      - Spawn, Despawn et Teleport
+      - Activate, Enable et Toggle
+      - MonsterSpawned
+      - MonsterDespawned
+      - MonsterTeleported
+      - MonsterDied
+    - 🟡 Édition complète des conditions avancées
+    - ⬜ Visualisation de graphes complexes
+  - Aperçu
+    - ✅ Géométrie de la grille
+    - ✅ Objets à mesh statique
+    - ✅ Sélection et survol par stencil
+    - ✅ MonsterSpawn squelettique MON13.2
+      - USkeletalMeshComponent editor-only
+      - Mesh et AnimationClass de la définition
+      - VisualOffset et VisualScale
+      - Orientation InitialFacing
+      - Aucun Actor gameplay hors PIE
+    - ✅ Mini-carte et diagnostics
+  - Validation
+    - ✅ ValidateCurrentLevel
+    - ✅ Messages par catégorie
+    - ✅ Select Object et Focus Object
+    - ✅ ObjectId uniques
+    - ✅ Cellules et arêtes valides
+    - ✅ Archétypes et références
+    - ✅ Contrats MonsterSpawn
+      - SpawnId valide et unique
+      - Cellule praticable
+      - Edge=None
+      - Orientation cardinale
+      - Définition cohérente
+      - Pas de conflit initial d'occupation
+    - ⚠️ Validation des assets binaires nécessite UE/PIE
+  - Lancement et playtest
+    - ✅ Rebuild du runtime
+    - ✅ Requête de playtest PIE MON13.3
+    - ✅ Spawn frais corrigé au commit 0d008bb
+    - 🟡 Checklist transversale à institutionnaliser
+  - Tests autoritaires
+    - Tests Core et Editor historiques
+    - MON13.1 PaletteContract
+    - MON13.1 Validation
+    - MON13.2 EditorPreview
+    - MON13.3 EditorLinkPolicy
+    - MON13.3 RealPIE
+  - Reste à faire
+    - ⬜ Timers, compteurs et relais dans la palette
+    - ⬜ Conditions complètes éditables
+    - ⬜ Portails et dangers avancés
+    - ⬜ Outils de duplication et templates de zones
+    - ⬜ Éditeur standalone pour les joueurs
+    - ⬜ Packaging et partage de donjons
+  - Documents d'entrée
+    - docs/Design/06_GRID_EDITOR_UX_SPEC.md
+    - docs/Design/10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md
+    - docs/Architecture/LEVEL_VALIDATION_PANEL_FOUNDATION.md
+    - docs/Design/MON13_1_MONSTER_SPAWN_MODEL.md
+
+## 03 — Runtime, exploration et mécanismes
+
+- Runtime, exploration et mécanismes
+  - Construction du niveau
+    - ✅ AGridLevelRuntimeActor
+    - ✅ Chargement DungeonAsset et LevelAsset
+    - ✅ Génération des sols et plafonds
+    - ✅ Génération des murs et arêtes
+    - ✅ Instancing de la géométrie
+    - ✅ Création des objets runtime
+    - ✅ Création des items monde
+    - ✅ Création des MonsterSpawn MON13.2
+    - ✅ Restauration de l'état vivant
+    - ⚠️ Responsabilités très concentrées
+  - Déplacement du groupe
+    - ✅ AGrimrockPartyPawn
+    - ✅ Avant et arrière
+    - ✅ Strafe gauche et droite
+    - ✅ Rotations à 90 degrés
+    - ✅ Input buffer
+    - ✅ Interpolation de case
+    - ✅ Head bob
+    - ✅ Free look
+    - ✅ Blocage par murs et portes
+    - ✅ Occupation par monstres
+    - ✅ Coût PA/PAM en combat
+  - Interaction
+    - ✅ Touche Use
+    - ✅ Clic souris
+    - ✅ Trace ECC_Visibility
+    - ✅ Premier hit bloquant autoritaire
+    - ✅ Portée d'interaction
+    - ✅ Résolution cellule + arête + orientation
+    - ✅ Curseurs contextuels
+    - ✅ Feedback court et messages lisibles séparés
+  - Portes
+    - ✅ AGridDoorActor
+    - ✅ AGridSecretDoorActor
+    - ✅ UGridDoorSystemComponent
+    - ✅ Open, Close, Toggle
+    - ✅ Animation
+    - ✅ RuntimeBlockedDoorEdges
+    - ✅ Cohérence logique et visuelle
+    - 🟡 Événements Opened et Closed selon besoins de design
+  - Sources d'événements
+    - ✅ Boutons normaux
+    - ✅ Boutons secrets
+    - ✅ Leviers
+    - ✅ Plaques de pression
+    - ✅ Triggers Enter et Exit
+    - ✅ MonsterSpawn cycle de vie
+    - ⬜ Timers
+    - ⬜ Compteurs
+    - ⬜ Relais et séquences
+  - Routage Event → Command
+    - ✅ UGridActivationComponent
+    - ✅ Résolution par ObjectId
+    - ✅ Conditions de base
+    - ✅ Commandes d'activation
+    - ✅ Commandes de portes
+    - ✅ Commandes de réceptacles
+    - ✅ Commandes MonsterSpawn MON13.3
+      - Spawn
+      - Despawn
+      - Teleport intra-niveau
+      - Alias Enable et Disable
+      - Toggle idempotent
+    - ⬜ ItemSpawn dynamique complet
+    - ⬜ Langage léger de scripting
+  - Réceptacles
+    - ✅ AGridReceptacleActor
+    - ✅ Profils d'acceptation
+    - ✅ Dépôt socketé
+    - ✅ Dépôt physique au point d'impact
+    - ✅ Retrait et événements
+    - ✅ Support mural de torche
+    - 🟡 Alcôves et variantes concrètes
+    - ⬜ Bol d'offrande complet
+    - ⬜ Autel complet
+    - ⬜ Fente à pièce
+    - ⬜ Coffres à inventaire dédié
+  - Serrures
+    - ✅ AGridWallLockActor MVP
+    - ✅ Profils de clé
+    - ✅ Compatibilité explicite
+    - ✅ Insertion visuelle de la clé
+    - ✅ Activated → Door.Open
+    - 🟡 Plusieurs variantes cuivre et fer
+    - ⬜ Crochetage par compétence + kit
+    - ⬜ Pièges de serrure
+    - ⬜ Conteneurs verrouillables
+  - Items monde
+    - ✅ AGridItemActor
+    - ✅ Ramassage
+    - ✅ Dépôt ciblé
+    - ✅ Dépôt au sol
+    - ✅ Torches persistantes
+    - ✅ Objets lisibles
+    - ✅ AGridThrownItemActor
+    - ✅ Shuriken visible et récupérable
+    - 🟡 Dépôt libre générique à finaliser
+    - ⬜ Physique, rebonds et dégâts hors combat avancés
+  - Transitions
+    - ✅ Donjon multi-niveaux
+    - ✅ Escaliers haut et bas
+    - ✅ Transition automatique existante
+    - 🟡 Transition par Use
+    - ⬜ Portails
+    - ⬜ Téléportation inter-niveaux
+  - Environnement futur
+    - ⬜ Fosses
+    - ⬜ Eau et surfaces dangereuses
+    - ⬜ Pièges environnementaux
+    - ⬜ Objets cassables
+    - ⬜ Obstacles mobiles
+    - ⬜ Mécanismes programmables
+  - Documents d'entrée
+    - docs/Architecture/MOUSE_INTERACTION_FOUNDATION.md
+    - docs/Architecture/LINK_EVENT_COMMAND_FOUNDATION.md
+    - docs/Architecture/DOOR_MECHANISM_FOUNDATION.md
+    - docs/Architecture/RECEPTACLE_SYSTEM_FOUNDATION.md
+    - docs/Design/GRIMROCK_LOCK_SYSTEM.md
+
+## 04 — Groupe, RPG, items et interface
+
+- Groupe, RPG, items et interface
+  - Modèle du groupe
+    - ✅ Jusqu'à six membres actifs
+    - ✅ Identité persistante de chaque membre
+    - ✅ Formation utilisée par le ciblage
+    - ✅ Personnage actif et sélection UI
+    - 🟡 Création initiale centrée sur le premier personnage
+    - ⬜ Recrutement et remplacement des compagnons
+  - Modèle RPG
+    - ✅ FRPGAttributes
+      - Force
+      - Dextérité
+      - Constitution
+      - Intelligence
+      - Sagesse
+      - Charisme
+    - ✅ Statistiques dérivées
+    - ✅ Santé et mana
+    - ✅ Armures et résistances
+    - ✅ Six races
+      - Humain
+      - Nain
+      - Elfe
+      - Halfelin
+      - Gnome
+      - Demi-orc
+    - ✅ Six classes
+      - Guerrier
+      - Mage
+      - Prêtre
+      - Rôdeur
+      - Roublard
+      - Alchimiste
+    - ⬜ XP et courbe de niveau
+    - ⬜ Compétences et dons
+    - ⬜ Spécialisations et prérequis
+    - ⬜ Sorts appris ou préparés
+  - Création de personnage CC0–CC6
+    - ✅ Modèle atomique
+    - ✅ Wizard multi-étapes
+    - ✅ Choix de race
+    - ✅ Choix de genre
+    - ✅ Portraits et variantes
+    - ✅ Choix de classe
+    - ✅ Allocation d'attributs
+    - ✅ Validation des choix
+    - ✅ Création de l'inventaire
+    - ✅ Persistance
+    - 🟡 Équipement de départ par classe
+    - ⬜ Création ou recrutement du groupe complet
+  - Inventaires
+    - ✅ UGridPartyInventoryComponent
+    - ✅ 40 slots personnels par défaut
+    - ✅ Piles
+    - ✅ Poids
+    - ✅ Surcharge calculée
+    - ✅ Drag-and-drop
+    - ✅ Curseur d'item
+    - ✅ Transferts interpersonnages
+    - ✅ Ownership exclusif
+    - ⚠️ Composant très centralisé
+  - Service de transfert
+    - ✅ UGridItemTransferService
+    - Monde → inventaire
+    - Inventaire → équipement
+    - Inventaire → curseur
+    - Curseur → monde
+    - Curseur → réceptacle
+    - Réceptacle → inventaire
+    - Équipement → inventaire
+    - ✅ Invariants transactionnels
+    - ✅ Pas de duplication d'instance
+  - Équipement
+    - ✅ Paper doll logique C++
+    - ✅ MainHand et OffHand
+    - ✅ Armures
+    - ✅ Bijoux et accessoires
+    - ✅ Compatibilité par emplacement
+    - ✅ Bonus de caractéristiques
+    - ✅ Résistances
+    - ✅ Profil offensif
+    - 🟡 Représentation plein pied optionnelle
+  - Items disponibles
+    - ✅ Torche
+    - ✅ Clés cuivre et fer
+    - ✅ Pierre
+    - ✅ Note lisible
+    - ✅ Shuriken
+    - 🟡 Bottes et équipement de test
+    - ⬜ Armes de production
+    - ⬜ Armures de production
+    - ⬜ Potions et consommables
+    - ⬜ Parchemins et objets magiques
+    - ⬜ Objets de quête et composants
+  - Actions contextuelles
+    - ✅ Clic droit et menu d'action
+    - ✅ Examiner
+    - ✅ Lire
+    - ✅ Équiper et déséquiper
+    - ✅ Utiliser
+    - ✅ Jeter ou déposer
+    - ✅ Routage C++ vers UMG
+    - 🟡 Catalogue de production à compléter
+  - Interface hors combat
+    - ✅ WBP_GrimrockMenu
+    - ✅ WBP_GridInventory
+    - ✅ WBP_ItemTooltip
+    - ✅ WBP_ItemReadPanel
+    - ✅ WBP_ItemActionMenu
+    - ✅ WBP_PartyMember
+    - Pages existantes sans métier complet
+      - 🟡 Skills
+      - 🟡 Journal
+      - 🟡 Map
+      - 🟡 Recipes
+      - 🟡 Codex
+    - ⬜ Dialogues
+    - ⬜ Quêtes
+  - Menu principal MM1–MM5
+    - ✅ Nouvelle partie
+    - ✅ Continuer
+    - ✅ Charger une partie
+    - ✅ Slots de sauvegarde
+    - ✅ Options MVP
+    - ✅ Crédits et licences
+    - ✅ Quitter
+    - ⬜ Options réellement persistantes
+    - ⬜ Menu pause
+  - Documents d'entrée
+    - docs/Design/CHARACTER_CREATION_ROADMAP.md
+    - docs/Design/INVENTORY_AND_ITEM_OWNERSHIP_DESIGN.md
+    - docs/Design/ITEM_CONTEXT_ACTION_SYSTEM.md
+    - docs/Design/INVENTORY_INTERACTION_ROUTING.md
+    - docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md
+
+## 05 — Monstres et combat
+
+- Monstres et combat
+  - Vertical slice Rat géant
+    - ✅ DataAsset DA_MON_RatGiant
+    - ✅ Mesh squelettique SK_RatGiant
+    - ✅ Skeleton SKEL_RatGiant
+    - ✅ Animation Blueprint
+    - ✅ Animation de marche
+    - ✅ Matériau et textures
+    - ✅ Icône d'initiative
+    - ✅ Audio, VFX et idles
+  - Architecture monstre
+    - ✅ AGridMonsterActor
+    - Composants spécialisés
+      - Mouvement
+      - Behavior et décision
+      - Combat
+      - Mort et butin
+      - Audio
+      - VFX
+    - ✅ UGridMonsterDefinitionAsset
+    - ✅ Logique séparée de la présentation
+  - MON1–MON4 — Fondations
+    - ✅ Définition data-driven
+    - ✅ Actor initialisé
+    - ✅ Occupation et réservation de cellule
+    - ✅ Mouvement orthogonal
+    - ✅ Interpolation sans Root Motion
+    - ✅ Pathfinding déterministe
+    - ✅ Perception et dernière position connue
+  - MON5–MON7 — Tours et IA
+    - ✅ Tours des monstres
+    - ✅ Attaque de la formation
+    - ✅ DirectMelee
+    - ✅ FastHarasser
+    - ✅ Repli tactique
+    - ✅ Aggro par groupe
+    - ✅ EncounterGroupId transmis
+  - MON8–MON10 — Cycle de vie
+    - ✅ Mort logique unique
+    - ✅ Cadavre non bloquant
+    - ✅ MonsterDied event
+    - ✅ Butin déterministe
+    - ✅ Victoire
+    - ✅ Persistance vivant, blessé, déplacé ou mort
+    - ✅ Audio et VFX déterministes
+    - ✅ Variations d'idle
+    - ✅ Équilibrage et optimisation
+  - MON11 — Attaques du groupe
+    - ✅ Requête d'attaque
+    - ✅ Résolution déterministe
+    - ✅ Équipement offensif
+      - MainHand prioritaire
+      - OffHand
+      - Mains nues
+    - ✅ Portée axiale
+    - ✅ Blocage par mur et porte
+    - ✅ Premier monstre touché
+    - ✅ Présentation attaque → impact → feedback
+    - ✅ Armes de jet
+      - Shuriken consommé
+      - Projectile visible
+      - Récupérable au sol
+  - MON12 — Combat orienté actions
+    - ✅ Initiative globale
+      - Personnages et monstres mélangés
+      - Ordre déterministe
+      - Un combattant actif
+      - Rounds globaux
+    - ✅ Ressources de tour
+      - Quatre PA personnels
+      - Deux PAM communs
+      - Rotations gratuites
+      - Mouvement transactionnel
+    - ✅ Catalogue d'actions
+      - Actions universelles
+      - Actions d'équipement
+      - Capacités de classe
+      - Sorts
+      - Quick items
+    - ✅ Exécution transactionnelle
+      - Revalidation au clic
+      - Paiement PA
+      - Paiement mana
+      - Consommation d'item
+      - Cooldowns
+      - Aucun coût en cas d'échec
+    - ✅ Ciblage
+      - Automatique
+      - Cellule
+      - Zone
+      - Annulation sans coût
+    - ✅ HUD de combat
+      - Quatre panneaux de personnage
+      - Initiative glissante 7–10 slots
+      - Séparateur de round
+      - Barre de PV
+      - Palette d'actions
+      - Dix raccourcis 0–9 persistants
+  - MON13.1 — Modèle MonsterSpawn
+    - ✅ MonsterSpawn reste FGridLevelObjectData
+    - ✅ ObjectId = SpawnId
+    - ✅ MonsterDefinitionAsset + MonsterDefinitionId
+    - ✅ InitialFacing cardinal
+    - ✅ EncounterGroupId
+    - ✅ bInitiallyEnabled
+    - ✅ MonsterActorClass dans la définition
+    - ✅ Validation du niveau et de la palette
+    - Tests
+      - PersistentModel
+      - Validation
+      - PaletteContract
+  - MON13.2 — Pipeline natif
+    - ✅ Résolution stricte du placement
+    - ✅ Refus atomique
+    - ✅ Aperçu squelettique hors PIE
+    - ✅ SpawnActorDeferred
+    - ✅ InitializeMonster avant FinishSpawning
+    - ✅ SpawnedMonsterActors indexé par SpawnId
+    - ✅ Rebuild sans duplication
+    - ✅ Restauration MON9
+    - ✅ 3/3 tests MON13.2 validés
+    - Diagnostics
+      - Spawned
+      - Skipped
+      - PresentationWarning
+  - MON13.3 — Commandes runtime
+    - ✅ Trigger.Activated → Rat.Spawn
+    - ✅ Spawn et alias Activate/Enable
+    - ✅ Despawn et alias Deactivate/Disable
+    - ✅ Toggle idempotent
+    - ✅ Teleport intra-niveau
+    - ✅ Rollback sur cellule occupée
+    - ✅ Événements de cycle de vie
+      - MonsterSpawned
+      - MonsterDespawned
+      - MonsterTeleported
+    - ✅ Interruption du combat après mutation réussie
+    - ✅ MonsterPlacements persistant
+    - ✅ Spawn frais PIE corrigé
+    - 🟡 Clôture documentaire et matrice complète à formaliser
+    - Tests
+      - DeferredSpawnLinks
+      - LifecyclePersistence
+      - AtomicCommands
+      - EditorLinkPolicy
+      - RealPIE
+  - Flux MonsterSpawn autoritaire
+    - LevelAsset
+      - FGridLevelObjectData MonsterSpawn
+        - SpawnId
+        - Définition
+        - Cellule et orientation
+        - État initial
+    - Runtime
+      - ResolveMonsterSpawn
+      - Validation atomique
+      - SpawnActorDeferred
+      - InitializeMonster
+      - Occupation de grille
+    - Persistance
+      - Capture MonsterPlacements
+      - SaveGame
+      - Rebuild ou chargement
+      - Restauration du même SpawnId
+  - Reste à faire combat
+    - ⬜ XP de victoire
+    - ⬜ Hâte et ralentissement réels
+    - ⬜ Poison, stun et immobilisation
+    - ⬜ Buffs, debuffs et effets persistants
+    - ⬜ Défense, garde et préparation
+    - ⬜ Réactions et interruptions si retenues
+    - ⬜ Présentations de sorts et zones
+    - ⬜ Équilibrage multi-archétypes
+  - Reste à faire monstres
+    - ⬜ Second monstre à comportement distinct
+    - ⬜ Distance et lanceur de sorts
+    - ⬜ Soutien et invocation
+    - ⬜ Fuite et gardien
+    - ⬜ Boss multi-phase
+    - ⬜ Rencontres et vagues globales
+    - ⬜ Teleport inter-niveaux
+    - ⬜ Résolution par Asset Manager depuis ID seul
+  - Documents d'entrée
+    - docs/Design/MONSTERS_AI_ANIMATIONS_TURN_BASED_COMBAT_RAT_GIANT.md
+    - docs/Design/MON11_1_PARTY_ATTACK_REQUEST_PIPELINE.md
+    - docs/Design/MON12_12_CLOSURE_VALIDATION.md
+    - docs/Design/MON13_1_MONSTER_SPAWN_MODEL.md
+    - docs/Design/MON13_2_MONSTER_SPAWN_PIPELINE.md
+    - docs/Design/MON13_3_MONSTER_RUNTIME_COMMANDS.md
+
+## 06 — Persistance, qualité et livraison
+
+- Persistance, qualité et livraison
+  - Sauvegarde du groupe
+    - ✅ Identité des membres
+    - ✅ Race, classe et attributs
+    - ✅ Santé, mana et statistiques
+    - ✅ Inventaires
+    - ✅ Équipement
+    - ✅ Raccourcis 0–9
+    - ✅ Niveau courant
+  - Sauvegarde du donjon
+    - ✅ État par LevelAsset
+    - ✅ Portes
+    - ✅ Objets interactifs
+    - ✅ Items monde
+    - ✅ Réceptacles
+    - ✅ Monstres MON9
+    - ✅ MonsterPlacements MON13.3
+    - ✅ Absence persistante après Despawn
+    - ✅ Pose persistante après Teleport
+  - Cycle de chargement
+    - ✅ Nouvelle partie
+    - ✅ Continuer
+    - ✅ Chargement multi-slot
+    - ✅ Construction par phases
+    - ✅ Restauration du niveau
+    - ✅ Restauration du groupe
+    - ✅ Retour en exploration
+    - ⬜ Autosave et checkpoints
+    - ⬜ Reprise après crash
+  - Compatibilité
+    - ✅ SaveGame v3
+    - ✅ Lecture v1–v3
+    - ✅ Anciennes sauvegardes sans MonsterPlacements
+    - ⬜ Politique de migration future
+    - ⬜ Tests de migration longue durée
+  - Tests automatiques
+    - 30 fichiers de tests C++
+    - 173 déclarations Automation Tests
+    - Familles
+      - Core et grille
+      - Inventaire CC0
+      - Création CC1–CC6
+      - Monstres MON1–MON13
+      - Combat MON11–MON12
+      - Editor MON13.3
+    - Forces
+      - Déterminisme
+      - Refus atomiques
+      - Non-régression
+      - Persistance en mémoire
+      - Contrats UI statiques
+    - Limites
+      - ⚠️ Assets binaires
+      - ⚠️ Widget Blueprints
+      - ⚠️ Meshes et Animation Blueprints
+      - ⚠️ Packaging et matériel réel
+  - Validations manuelles
+    - ✅ Checklists PIE par jalon
+    - ✅ Logs structurés MonsterSpawn
+    - ✅ Validation utilisateur MON13.3 spawn différé
+    - 🟡 Passe transversale New Game → Save/Load
+    - 🟡 Build Development standalone
+    - ⬜ Build Shipping candidate
+  - Performance
+    - ✅ Instancing de géométrie
+    - ✅ Pathfinding sur grille
+    - ✅ Optimisations MON10
+    - 🟡 Construction runtime par phases
+    - ⚠️ Gros Actors et widgets centraux
+    - ⬜ Budgets CPU/GPU/mémoire par niveau
+    - ⬜ Tests de charge avec bestiaire réel
+  - Dette technique
+    - ⚠️ GridLevelRuntimeActor.cpp ≈ 172 Ko
+    - ⚠️ GridLevelEditorActor.cpp ≈ 160 Ko
+    - ⚠️ GridPartyInventoryComponent.cpp ≈ 113 Ko
+    - ⚠️ SGridEditorObjectInspectorPanel.cpp ≈ 103 Ko
+    - ⚠️ GridInventoryWidget.cpp ≈ 100 Ko
+    - ⚠️ GrimrockPartyPawn.cpp ≈ 87 Ko
+    - ⚠️ GridCombatHudWidget.cpp ≈ 70 Ko
+    - Règle
+      - Pas de refactor massif
+      - Extraire seulement les contrats stabilisés
+      - Ne pas agrandir automatiquement les fichiers centraux
+  - Documentation
+    - ✅ PROJECT_SYNTHESIS.md = point d'entrée
+    - ✅ GRIMROCK_PROJECT_MAP.md = source diffable
+    - ✅ GRIMROCK_PROJECT_MAP.xmind = navigation détaillée
+    - ✅ ARCHITECTURE_INDEX.md = contrats techniques
+    - ✅ 99_DECISIONS_LOG.md = décisions autoritaires
+    - ⚠️ 161 documents Markdown fragmentés
+    - 🟡 Roadmaps historiques à distinguer du backlog actif
+  - Intégration continue et livraison
+    - ⬜ GitHub Actions Windows/UE5
+    - ⬜ Compilation automatisée
+    - ⬜ Exécution des Automation Tests
+    - ⬜ Validation de packaging
+    - ⬜ Build Shipping
+    - ⬜ Installateur
+    - ⬜ Crash handling et rapports
+    - ⬜ Tests matériels
+    - ⬜ Localisation et accessibilité
+  - Modding et niveaux joueurs
+    - ⬜ Éditeur standalone
+    - ⬜ Sandbox du scripting
+    - ⬜ Format de paquet de donjon
+    - ⬜ Validation de contenu non fiable
+    - ⬜ Publication et partage
+
+## 07 — Jalons et roadmap
+
+- Jalons et roadmap
+  - Fondations terminées
+    - ✅ Core donjon et LevelAsset
+    - ✅ Éditeur de grille avancé
+    - ✅ Objets, liens et mécanismes MVP
+    - ✅ Portes et passages secrets
+    - ✅ Réceptacles et serrures MVP
+    - ✅ Items, interaction et inventaire
+    - ✅ CC0–CC6 création de personnage
+    - ✅ MM1–MM5 menu et chargement
+    - ✅ MON1–MON10 Rat géant complet
+    - ✅ MON11 attaques du groupe
+    - ✅ MON12 combat orienté actions
+    - ✅ MON13.1–MON13.2 MonsterSpawn natif
+    - 🟡 MON13.3 commandes runtime à clôturer formellement
+  - MON13.3 — Porte actuelle
+    - Implémentation
+      - ✅ Spawn différé
+      - ✅ Despawn persistant
+      - ✅ Teleport atomique intra-niveau
+      - ✅ Liens dans le Grid Editor
+      - ✅ Événements de cycle de vie
+      - ✅ Correction du spawn frais PIE
+    - Validation observée
+      - ✅ Rat absent au départ
+      - ✅ Trigger.Activated reçu
+      - ✅ Rat créé une seule fois
+      - ✅ SpawnId conservé
+      - ✅ MonsterPlacements capturé
+      - ✅ bIsSpawned persistant
+    - 🎯 Clôture attendue
+      - Compilation Development Editor Win64
+      - Suite Grimrock.Monsters.MON13
+      - Test MON8 MonsterDiedEvent
+      - Checklist Save/Load et rebuild
+      - Mise à jour du statut de MON13.3
+  - Phase A — Référence stable
+    - Recompiler Editor et standalone
+    - Exécuter CC et MON complets
+    - Passe PIE transversale
+    - Vérifier New Game, inventaire et combat
+    - Vérifier mécanismes et transitions
+    - Vérifier sauvegarde et chargement
+    - 🎯 Porte de sortie
+      - Boucle autonome de 15–30 minutes
+      - Aucun debug manuel requis
+  - Phase B — Fermer le moteur de donjon
+    - Finaliser MON13
+      - Rencontres et vagues
+      - Teleport inter-niveaux
+      - Résolution par Asset Manager
+    - Implémenter ItemSpawn dynamique
+    - Transition par Use et portails
+    - Finaliser dépôt libre d'items
+    - Timers, compteurs et relais
+    - Conditions éditables
+    - Réceptacles et conteneurs restants
+    - Crochetage et pièges
+    - 🎯 Porte de sortie
+      - Énigme multi-étapes sans C++
+      - Rencontre et transition entièrement data-driven
+  - Phase C — Fermer la boucle RPG
+    - XP et montée de niveau
+    - Compétences et dons
+    - Spécialisations et prérequis
+    - Sorts appris ou préparés
+    - Effets temporaires et permanents
+    - Recrutement et composition du groupe
+    - Équipement initial et tables d'items
+    - Repos, nourriture et récupération
+    - 🎯 Porte de sortie
+      - Gain de niveau avec choix durable
+      - État identique après chargement
+  - Phase D — Généraliser combat et bestiaire
+    - Défense, garde et préparation
+    - Hâte, ralentissement et statuts
+    - Sorts et attaques de zone
+    - Monstres mêlée, distance et magie
+    - Soutien, invocation et boss
+    - XP, butin et danger
+    - Combats multi-groupes
+    - 🎯 Porte de sortie
+      - Cinq familles de monstres
+      - Trois archétypes de personnages viables
+  - Phase E — Vertical slice de contenu
+    - Mini-campagne 45–90 minutes
+    - Trois à cinq niveaux reliés
+    - Progression et raccourcis
+    - Énigmes, secrets et serrures
+    - Objectifs et journal minimal
+    - Boss et conclusion
+    - Lumière, ambiance, musique et son
+    - 🎯 Porte de sortie
+      - Une personne extérieure termine sans aide
+  - Phase F — Systèmes de campagne
+    - Journal et quêtes
+    - Carte découverte
+    - Codex et bestiaire
+    - Recettes et alchimie si conservées
+    - Dialogues et choix
+    - Difficulté et tutoriel
+    - 🎯 Porte de sortie
+      - Progression guidée sans document externe
+  - Phase G — Production et livraison
+    - Budgets de performance
+    - CI Windows/UE5
+    - Tests de migration
+    - Pause, options et remapping
+    - Audio, graphismes et accessibilité
+    - Localisation
+    - Shipping et installateur
+    - Crash handling et tests matériels
+    - Packaging de l'éditeur joueur
+    - 🎯 Porte de sortie
+      - Build candidate installable
+      - Campagne complète
+      - Aucun blocage critique
+  - Ordre recommandé immédiat
+    - 1 — Clôturer MON13.3
+    - 2 — Implémenter XP et niveaux
+    - 3 — Produire un second monstre distinct
+    - 4 — Produire un sort et un consommable
+    - 5 — Ajouter les statuts minimaux
+    - 6 — Construire le vertical slice de 45–90 minutes
+  - Règle de mise à jour
+    - Actualiser PROJECT_SYNTHESIS.md
+    - Actualiser cette source Markdown
+    - Régénérer le classeur XMind
+    - Modifier commit et date de référence
+    - Lier le test autoritaire
+    - Consigner les décisions durables
+    - Garder les jalons historiques comme historique

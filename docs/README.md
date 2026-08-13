@@ -6,6 +6,15 @@ Le dossier `docs/Design` contient la mémoire de design gameplay, éditeur, obje
 
 ## Ordre de lecture recommandé
 
+### 0. Comprendre l'ensemble du projet
+
+- `docs/Architecture/PROJECT_SYNTHESIS.md` pour la vue globale, l'état actuel et
+  la feuille de route ;
+- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.xmind` pour la carte détaillée et
+  éditable à huit feuilles ;
+- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` pour sa source textuelle
+  versionnable dans Git.
+
 ### A. Comprendre le gameplay et l'éditeur
 
 Lire d'abord :

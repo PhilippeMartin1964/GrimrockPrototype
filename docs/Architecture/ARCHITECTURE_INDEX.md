@@ -8,15 +8,18 @@ Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Il
 
 ## Ordre de lecture recommandé
 
-1. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
-2. [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
-3. [Panneau de validation du niveau](LEVEL_VALIDATION_PANEL_FOUNDATION.md)
-4. [Interaction souris](MOUSE_INTERACTION_FOUNDATION.md)
-5. [Liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md)
-6. [Portes et mécanismes](DOOR_MECHANISM_FOUNDATION.md)
-7. [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
-8. [Ramassage et placement des items](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
-9. [Objets lisibles et retours](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
+1. [Synthèse globale du projet](PROJECT_SYNTHESIS.md)
+2. [Carte détaillée XMind](Maps/GRIMROCK_PROJECT_MAP.xmind) ou sa
+   [source Markdown](Maps/GRIMROCK_PROJECT_MAP.md)
+3. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
+4. [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
+5. [Panneau de validation du niveau](LEVEL_VALIDATION_PANEL_FOUNDATION.md)
+6. [Interaction souris](MOUSE_INTERACTION_FOUNDATION.md)
+7. [Liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md)
+8. [Portes et mécanismes](DOOR_MECHANISM_FOUNDATION.md)
+9. [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
+10. [Ramassage et placement des items](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
+11. [Objets lisibles et retours](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
 
 ## Documents de fondation
 
