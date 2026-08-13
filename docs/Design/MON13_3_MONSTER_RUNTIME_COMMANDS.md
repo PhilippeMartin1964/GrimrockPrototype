@@ -111,13 +111,14 @@ MON13.3 ajoute :
 - `Grimrock.Monsters.MON13.3.LifecyclePersistence` ;
 - `Grimrock.Monsters.MON13.3.AtomicCommands` ;
 - `Grimrock.Monsters.MON13.3.EditorLinkPolicy` ;
-- `Grimrock.Monsters.MON13.3.FreshPIEPreparation` ;
-- `Grimrock.Monsters.MON13.3.RealPIEIntegration`.
+- `Grimrock.Monsters.MON13.3.FreshPIEPreparation`.
 
-`RealPIEIntegration` utilise un slot temporaire dédié et vérifie deux sessions
-réelles : le playtest frais n'affiche pas le rat avant le trigger et ne modifie
-pas le fichier de sauvegarde temporaire, puis un `Continue` normal restaure le
-rat depuis `MonsterPlacements`.
+Le test PIE réel a été déplacé et étendu par
+`Grimrock.Monsters.MON13.5.RealPIEIntegration`. Il utilise un slot temporaire
+dédié et vérifie deux sessions réelles : le playtest frais ignore l'état de
+rencontre sauvegardé et ne modifie pas le fichier temporaire, puis un `Continue`
+normal restaure la vague active depuis `MonsterPlacements` et
+`MonsterEncounters`.
 
 Commande UE 5.5.4 :
 

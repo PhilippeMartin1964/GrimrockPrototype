@@ -849,3 +849,25 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   `FGridLevelRuntimeState::MonsterEncounters` et sérialisés par SaveGame.
 - Le document d'implémentation est
   `docs/Design/MON13_4_MONSTER_ENCOUNTER_WAVES.md`.
+
+---
+
+## 2026-08-13 — MON13.5 : clôture du pipeline `MonsterSpawn`
+
+- La définition de production `DA_MON_RatGiant` doit référencer
+  `BP_MON_RatGiant_C`, et non la classe native `AGridMonsterActor` seule.
+- Les fixtures runtime MON13 chargent désormais la véritable classe gameplay du
+  Rat, son mesh et son Animation Blueprint. Elles vérifient la présence de
+  `MonsterMovement`, `MonsterBehavior` et `MonsterCombat`.
+- Un test de contrat charge directement `DA_MON_RatGiant` et refuse toute
+  régression vers la classe native de base.
+- Le test PIE autoritaire suit la carte versionnée : trois Rats désactivés, deux
+  vagues, `Trigger.Activated -> StartEncounter`, deux membres en vague 0 et un
+  membre en vague 1.
+- Le playtest frais ignore toujours l'état sauvegardé ; un Continue normal
+  restaure les deux membres et l'état actif de la vague 0 depuis une sauvegarde
+  temporaire qui n'est jamais le slot utilisateur.
+- `StartEncounter` ne force pas le début du combat. Le démarrage par perception
+  demeure une requête distincte du TurnManager.
+- Le document de clôture est
+  `docs/Design/MON13_5_MONSTER_SPAWN_CLOSURE.md`.

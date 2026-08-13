@@ -35,6 +35,7 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 29. `MON13_2_MONSTER_SPAWN_PIPELINE.md` - strict definition resolution, skeletal editor preview and runtime Actor creation.
 30. `MON13_3_MONSTER_RUNTIME_COMMANDS.md` - persistent Spawn, Despawn and Teleport commands with lifecycle events.
 31. `MON13_4_MONSTER_ENCOUNTER_WAVES.md` - persistent encounter groups, ordered waves and death-driven progression.
+32. `MON13_5_MONSTER_SPAWN_CLOSURE.md` - production asset contract and real PIE closure of the MON13 spawn pipeline.
 
 ## Document Status
 
@@ -68,8 +69,9 @@ This folder is the stable design memory for the GrimrockPrototype grid, object, 
 | `MON12_6_COMBAT_ACTION_CATALOG.md` | Implemented / Validation Required | Generic action definitions, pure catalogue construction, source provenance and first generic MON11 attack execution. |
 | `MON13_1_MONSTER_SPAWN_MODEL.md` | Validated | Persistent placement model, palette contract, stable SpawnId and editor validation rules. |
 | `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Validated | Strict MonsterSpawn resolution, skeletal editor preview, deferred runtime Actor creation and rebuild lifecycle. |
-| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Implemented / Validation Required | Persistent runtime Spawn, Despawn and intra-level Teleport commands, lifecycle events and atomic rollback. |
-| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Implemented / Validation Required | Persistent encounter groups, atomic ordered waves, death-only progression and encounter lifecycle events. |
+| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Validated | Persistent runtime Spawn, Despawn and intra-level Teleport commands, lifecycle events and atomic rollback. |
+| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Validated | Persistent encounter groups, atomic ordered waves, death-only progression and encounter lifecycle events. |
+| `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Implemented / Validation Required | Production Rat class contract and real PIE regression coverage for the versioned encounter map. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
 ## Documents With Diagrams

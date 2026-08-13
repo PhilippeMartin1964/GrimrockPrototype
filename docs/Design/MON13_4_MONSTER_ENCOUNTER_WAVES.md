@@ -67,6 +67,12 @@ Une vague réussie interrompt le combat courant, comme les mutations de
 population MON13.3, afin que l'initiative soit reconstruite depuis la
 population réelle.
 
+`StartEncounter` crée la population de la vague, mais ne force pas le début du
+combat. Dans la configuration actuelle, `NumPad 1` demande un combat avec les
+monstres qui perçoivent le groupe et `NumPad 5` constitue la commande de debug
+avec tous les monstres vivants. Le déclenchement automatique du combat lors de
+la création d'une vague serait un contrat gameplay distinct.
+
 ## Persistance
 
 `FGridLevelRuntimeState::MonsterEncounters` conserve par groupe :
@@ -112,6 +118,19 @@ D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe D:\Development\GrimrockProt
 - [ ] la mort du dernier membre émet `EncounterCompleted` ;
 - [ ] un rebuild/Continue conserve la progression ;
 - [ ] aucun `PresentationWarning` ni Actor partiel n'est produit.
+
+### Validation PIE du 13 août 2026
+
+- les deux membres de la vague 0 apparaissent ensemble ;
+- `StartCombatFromPerception=true` avec les deux Rats ;
+- la première mort conserve la vague 0 ;
+- la seconde mort ouvre la vague 1 ;
+- le dernier `CommitDeath` émet `EncounterCompleted` avec trois membres vaincus ;
+- chaque Actor est un `BP_MON_RatGiant_C` apte au combat ;
+- la victoire finale est atteinte sans warning de composant monstre manquant.
+
+Les warnings de butin `Item_RatTooth` et `Item_RatMeat` observés pendant cette
+validation relèvent de leurs DataAssets encore absents et non de MON13.4.
 
 ## Hors périmètre
 

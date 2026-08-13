@@ -34,6 +34,18 @@ création d'Actor si l'une des conditions suivantes n'est pas satisfaite :
 - `MonsterActorClass` existe, dérive d'`AGridMonsterActor` et n'est pas
   abstraite.
 
+Pour le Rat géant de production, cette dernière condition ne suffit pas à
+garantir le combat. `DA_MON_RatGiant.MonsterActorClass` doit désigner exactement :
+
+```text
+/Game/GrimrockPrototype/Monsters/RatGiant/Blueprints/BP_MON_RatGiant.BP_MON_RatGiant_C
+```
+
+La classe native `/Script/GrimrockPrototype.GridMonsterActor` fournit
+`MonsterCombat`, mais pas les composants `MonsterMovement` et
+`MonsterBehavior` ajoutés dans `BP_MON_RatGiant`. Elle peut donc présenter un
+Rat sans permettre son admission par le TurnManager.
+
 MON13.2 ne tente pas encore de charger un DataAsset à partir d'un
 `MonsterDefinitionId` seul. Le pointeur `MonsterDefinitionAsset` reste donc
 obligatoire dans le placement.
@@ -145,9 +157,10 @@ MON13.2 ajoute :
 - `Grimrock.Monsters.MON13.2.EditorPreview`.
 
 Les trois fixtures MON13.2 construisent une définition transitoire, puis chargent
-explicitement la présentation réelle du Rat géant :
+explicitement la classe gameplay et la présentation réelles du Rat géant :
 
 ```text
+/Game/GrimrockPrototype/Monsters/RatGiant/Blueprints/BP_MON_RatGiant.BP_MON_RatGiant_C
 /Game/GrimrockPrototype/Monsters/RatGiant/Meshes/SK_RatGiant.SK_RatGiant
 /Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C
 ```
@@ -181,7 +194,8 @@ D:\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe D:\Development\GrimrockProt
 ### 1 — Configuration des assets
 
 - [ ] ouvrir `DA_MonsterSpawn` et vérifier `RuntimeActorClass=None` ;
-- [ ] ouvrir `DA_MON_RatGiant` et vérifier `MonsterActorClass` ;
+- [ ] ouvrir `DA_MON_RatGiant` et vérifier
+  `MonsterActorClass=BP_MON_RatGiant` ;
 - [ ] vérifier `SkeletalMesh`, `AnimationClass`, `VisualOffset` et
   `VisualScale` ;
 - [ ] ouvrir `DA_ObjectPalette_Default` ;

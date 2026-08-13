@@ -63,6 +63,9 @@ la présence ainsi que du dernier état du monstre.
 MON13.4 ajoute les rencontres persistantes pilotées par `EncounterGroupId`,
 les vagues ordonnées, la commande `StartEncounter` et une progression fondée
 uniquement sur les morts réellement validées.
+MON13.5 clôt le pipeline par des contrats automatisés sur les assets de
+production et une véritable session PIE couvrant la carte de référence, le
+playtest frais, les vagues, les composants de combat et le chargement Continue.
 
 ---
 
@@ -173,6 +176,7 @@ La mémoire principale doit être le dépôt Git.
 | `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Aperçu squelettique et instanciation runtime |
 | `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Commandes Spawn/Despawn/Teleport et persistance du cycle de vie |
 | `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Rencontres persistantes, vagues atomiques et progression par mort |
+| `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Clôture transversale des assets, vagues, PIE frais et Continue |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

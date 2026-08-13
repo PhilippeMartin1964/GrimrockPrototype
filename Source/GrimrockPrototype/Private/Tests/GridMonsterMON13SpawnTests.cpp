@@ -17,7 +17,10 @@
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 
 namespace
@@ -65,6 +68,9 @@ namespace
         UClass* AnimationClass = LoadClass<UAnimInstance> (
             nullptr,
             TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C"));
+        UClass* MonsterActorClass = LoadClass<AGridMonsterActor> (
+            nullptr,
+            TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Blueprints/BP_MON_RatGiant.BP_MON_RatGiant_C"));
 
         Test.TestNotNull (
             TEXT ("MON13.2 runtime fixture loads the Rat Giant skeletal mesh"),
@@ -72,7 +78,10 @@ namespace
         Test.TestNotNull (
             TEXT ("MON13.2 runtime fixture loads the Rat Giant animation class"),
             AnimationClass);
-        if (!SkeletalMesh || !AnimationClass)
+        Test.TestNotNull (
+            TEXT ("MON13 runtime fixture loads the combat-ready Rat Giant Actor class"),
+            MonsterActorClass);
+        if (!SkeletalMesh || !AnimationClass || !MonsterActorClass)
         {
             return nullptr;
         }
@@ -82,6 +91,7 @@ namespace
         Definition->SkeletalMesh =
             TSoftObjectPtr<USkeletalMesh> (SkeletalMesh);
         Definition->AnimationClass = AnimationClass;
+        Definition->MonsterActorClass = MonsterActorClass;
         return Definition;
     }
 
@@ -421,6 +431,15 @@ bool FGridMonsterMON132RuntimePipelineTest::RunTest (
     TestEqual (TEXT ("Definition chooses the spawned Actor class"),
         FirstMonster->GetClass (),
         Definition->MonsterActorClass.Get ());
+    TestNotNull (TEXT ("Spawned Actor has MonsterMovement"),
+        FirstMonster->FindComponentByClass<
+            UGridMonsterMovementComponent> ());
+    TestNotNull (TEXT ("Spawned Actor has MonsterBehavior"),
+        FirstMonster->FindComponentByClass<
+            UGridMonsterBehaviorComponent> ());
+    TestNotNull (TEXT ("Spawned Actor has MonsterCombat"),
+        FirstMonster->FindComponentByClass<
+            UGridMonsterCombatComponent> ());
     TestEqual (TEXT ("SpawnId remains the persistence id"),
         FirstMonster->ResolvePersistenceId (),
         SpawnId);
@@ -465,6 +484,42 @@ bool FGridMonsterMON132RuntimePipelineTest::RunTest (
     TestEqual (TEXT ("Only one live monster remains in the world"),
         CountMON132WorldMonsters (TestWorld.World),
         1);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON135ProductionAssetContractTest,
+    "Grimrock.Monsters.MON13.5.ProductionAssetContract",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON135ProductionAssetContractTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+    UGridMonsterDefinitionAsset* RatDefinition =
+        LoadObject<UGridMonsterDefinitionAsset> (
+            nullptr,
+            TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant.DA_MON_RatGiant"));
+    UClass* ExpectedRatClass = LoadClass<AGridMonsterActor> (
+        nullptr,
+        TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Blueprints/BP_MON_RatGiant.BP_MON_RatGiant_C"));
+
+    TestNotNull (TEXT ("Production Rat definition loads"),
+        RatDefinition);
+    TestNotNull (TEXT ("Production Rat Actor class loads"),
+        ExpectedRatClass);
+    if (!RatDefinition || !ExpectedRatClass)
+    {
+        return false;
+    }
+
+    TestEqual (TEXT ("DA_MON_RatGiant uses BP_MON_RatGiant_C"),
+        RatDefinition->MonsterActorClass.Get (),
+        ExpectedRatClass);
+    TestNotEqual (TEXT ("Production Rat never falls back to the native base Actor"),
+        RatDefinition->MonsterActorClass.Get (),
+        AGridMonsterActor::StaticClass ());
     return true;
 }
 

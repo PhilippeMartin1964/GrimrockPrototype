@@ -11,6 +11,9 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterCombatComponent.h"
+#include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "Tests/AutomationCommon.h"
@@ -18,18 +21,25 @@
 
 namespace
 {
-    const FString MON133MapPath =
+    const FString MON135MapPath =
         TEXT ("/Game/GrimrockPrototype/Maps/L_GrimrockEditor");
-    const FGuid MON133RatSpawnId (
+    const FGuid MON135RatSpawnId (
         0xF7319908, 0x4F46EDCC, 0x7D64ED9C, 0x42588D57);
-    const FIntPoint MON133RatCell (29, 25);
-    const FIntPoint MON133StartCell (28, 23);
-    const FIntPoint MON133TriggerCell (27, 24);
+    const FGuid MON135Wave0SecondSpawnId (
+        0xE4DC825C, 0x490F3B73, 0xEA579EB7, 0xAC3D2AEA);
+    const FGuid MON135Wave1SpawnId (
+        0xAAF0E031, 0x45A2838D, 0x0B4CCB98, 0xFC04126C);
+    const FName MON135EncounterId (TEXT ("Encounter_Rats_01"));
+    const FIntPoint MON135RatCell (29, 25);
+    const FIntPoint MON135Wave0SecondCell (28, 26);
+    const FIntPoint MON135Wave1Cell (27, 25);
+    const FIntPoint MON135StartCell (28, 23);
+    const FIntPoint MON135TriggerCell (27, 24);
 
-    struct FMON133RealPIEState
+    struct FMON135RealPIEState
     {
         FString TemporarySaveSlot = FString::Printf (
-            TEXT ("MON133_PIE_Integration_%s"),
+            TEXT ("MON135_PIE_Integration_%s"),
             *FGuid::NewGuid ().ToString (EGuidFormats::Digits));
         TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
         FString PreparedRuntimeActorName;
@@ -40,12 +50,19 @@ namespace
         TArray<uint8> TemporarySaveBytesBeforeFreshPIE;
     };
 
-    UWorld* GetMON133PIEWorld ()
+    UWorld* GetMON135PIEWorld ()
     {
         return GEditor ? GEditor->PlayWorld : nullptr;
     }
 
-    int32 CountMON133RatActors (UWorld* World)
+    bool IsMON135EncounterSpawnId (const FGuid& SpawnId)
+    {
+        return SpawnId == MON135RatSpawnId ||
+            SpawnId == MON135Wave0SecondSpawnId ||
+            SpawnId == MON135Wave1SpawnId;
+    }
+
+    int32 CountMON135EncounterActors (UWorld* World)
     {
         int32 Count = 0;
         if (!World)
@@ -54,7 +71,7 @@ namespace
         }
         for (TActorIterator<AGridMonsterActor> It (World); It; ++It)
         {
-            if (It->SpawnObjectId == MON133RatSpawnId)
+            if (IsMON135EncounterSpawnId (It->SpawnObjectId))
             {
                 ++Count;
             }
@@ -62,12 +79,12 @@ namespace
         return Count;
     }
 
-    class FSetupMON133RealPIE : public IAutomationLatentCommand
+    class FSetupMON135RealPIE : public IAutomationLatentCommand
     {
     public:
-        FSetupMON133RealPIE (
+        FSetupMON135RealPIE (
             FAutomationTestBase* InTest,
-            TSharedRef<FMON133RealPIEState> InState)
+            TSharedRef<FMON135RealPIEState> InState)
             : Test (InTest), State (MoveTemp (InState))
         {
         }
@@ -105,21 +122,62 @@ namespace
             }
 
             const FGridLevelObjectData* RatSpawn =
-                EditorActor->LevelAsset->FindMonsterSpawnById (MON133RatSpawnId);
-            Test->TestNotNull (TEXT ("The real Rat SpawnId exists"), RatSpawn);
-            if (!RatSpawn)
+                EditorActor->LevelAsset->FindMonsterSpawnById (MON135RatSpawnId);
+            const FGridLevelObjectData* Wave0SecondSpawn =
+                EditorActor->LevelAsset->FindMonsterSpawnById (
+                    MON135Wave0SecondSpawnId);
+            const FGridLevelObjectData* Wave1Spawn =
+                EditorActor->LevelAsset->FindMonsterSpawnById (
+                    MON135Wave1SpawnId);
+            Test->TestNotNull (TEXT ("The real encounter anchor exists"),
+                RatSpawn);
+            Test->TestNotNull (TEXT ("The second wave-zero Rat exists"),
+                Wave0SecondSpawn);
+            Test->TestNotNull (TEXT ("The wave-one Rat exists"),
+                Wave1Spawn);
+            if (!RatSpawn || !Wave0SecondSpawn || !Wave1Spawn)
             {
                 return true;
             }
-            Test->TestFalse (TEXT ("The real Rat has Enabled at Start disabled"),
+            Test->TestFalse (TEXT ("The encounter anchor starts disabled"),
                 RatSpawn->bInitiallyEnabled);
-            Test->TestEqual (TEXT ("The real Rat cell is unchanged"),
-                FIntPoint (RatSpawn->CellX, RatSpawn->CellY), MON133RatCell);
+            Test->TestFalse (TEXT ("The second wave-zero Rat starts disabled"),
+                Wave0SecondSpawn->bInitiallyEnabled);
+            Test->TestFalse (TEXT ("The wave-one Rat starts disabled"),
+                Wave1Spawn->bInitiallyEnabled);
+            Test->TestEqual (TEXT ("The encounter anchor cell is unchanged"),
+                FIntPoint (RatSpawn->CellX, RatSpawn->CellY), MON135RatCell);
+            Test->TestEqual (TEXT ("The second wave-zero cell is unchanged"),
+                FIntPoint (Wave0SecondSpawn->CellX, Wave0SecondSpawn->CellY),
+                MON135Wave0SecondCell);
+            Test->TestEqual (TEXT ("The wave-one cell is unchanged"),
+                FIntPoint (Wave1Spawn->CellX, Wave1Spawn->CellY),
+                MON135Wave1Cell);
+            Test->TestEqual (TEXT ("The three Rats share the production encounter"),
+                RatSpawn->EncounterGroupId,
+                MON135EncounterId);
+            Test->TestEqual (TEXT ("The second Rat shares the production encounter"),
+                Wave0SecondSpawn->EncounterGroupId,
+                MON135EncounterId);
+            Test->TestEqual (TEXT ("The future Rat shares the production encounter"),
+                Wave1Spawn->EncounterGroupId,
+                MON135EncounterId);
+            Test->TestEqual (TEXT ("The encounter anchor belongs to wave zero"),
+                RatSpawn->EncounterWaveIndex,
+                0);
+            Test->TestEqual (TEXT ("The second Rat belongs to wave zero"),
+                Wave0SecondSpawn->EncounterWaveIndex,
+                0);
+            Test->TestEqual (TEXT ("The future Rat belongs to wave one"),
+                Wave1Spawn->EncounterWaveIndex,
+                1);
             Test->TestEqual (TEXT ("The real StartCell is unchanged"),
-                EditorActor->LevelAsset->GetStartCell (), MON133StartCell);
+                EditorActor->LevelAsset->GetStartCell (), MON135StartCell);
             if (RatSpawn->bInitiallyEnabled ||
-                FIntPoint (RatSpawn->CellX, RatSpawn->CellY) != MON133RatCell ||
-                EditorActor->LevelAsset->GetStartCell () != MON133StartCell)
+                Wave0SecondSpawn->bInitiallyEnabled ||
+                Wave1Spawn->bInitiallyEnabled ||
+                FIntPoint (RatSpawn->CellX, RatSpawn->CellY) != MON135RatCell ||
+                EditorActor->LevelAsset->GetStartCell () != MON135StartCell)
             {
                 return true;
             }
@@ -128,7 +186,7 @@ namespace
             for (const FGridLevelObjectData& Object : EditorActor->LevelAsset->Objects)
             {
                 if (Object.Type == EGridLevelObjectType::Trigger &&
-                    FIntPoint (Object.CellX, Object.CellY) == MON133TriggerCell)
+                    FIntPoint (Object.CellX, Object.CellY) == MON135TriggerCell)
                 {
                     Trigger = &Object;
                     break;
@@ -144,15 +202,16 @@ namespace
             for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
             {
                 if (Link.SourceObjectId == Trigger->ObjectId &&
-                    Link.TargetObjectId == MON133RatSpawnId &&
+                    Link.TargetObjectId == MON135RatSpawnId &&
                     Link.SourceEvent == EGridObjectEvent::Activated &&
-                    Link.Command == EGridObjectCommand::Spawn)
+                    Link.Command == EGridObjectCommand::StartEncounter)
                 {
                     bHasExpectedLink = true;
                     break;
                 }
             }
-            Test->TestTrue (TEXT ("Trigger.Activated links to Rat.Spawn"), bHasExpectedLink);
+            Test->TestTrue (TEXT ("Trigger.Activated links to Rat.StartEncounter"),
+                bHasExpectedLink);
             if (!bHasExpectedLink)
             {
                 return true;
@@ -169,12 +228,12 @@ namespace
             Save->PartyInventoryState.MaxActiveCharacters = 6;
             FGridCharacterInventoryState Character;
             Character.CharacterId = FGuid::NewGuid ();
-            Character.DisplayName = FText::FromString (TEXT ("MON13.3 PIE Test"));
+            Character.DisplayName = FText::FromString (TEXT ("MON13.5 PIE Test"));
             Save->PartyInventoryState.ActiveCharacters.Add (Character);
             Save->PartyInventoryState.ActiveEquipment.AddDefaulted ();
             Save->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
-            Save->PartyCellX = MON133StartCell.X;
-            Save->PartyCellY = MON133StartCell.Y;
+            Save->PartyCellX = MON135StartCell.X;
+            Save->PartyCellY = MON135StartCell.Y;
             Save->PartyFacing = EditorActor->LevelAsset->StartFacing;
             FGridLevelRuntimeState& SavedLevel =
                 Save->DungeonRuntimeState.LevelStates.FindOrAdd (
@@ -182,10 +241,24 @@ namespace
             SavedLevel.LevelId = Save->CurrentDungeonLevelId;
             SavedLevel.bHasBeenVisited = true;
             FGridRuntimeMonsterPlacementState& Placement =
-                SavedLevel.MonsterPlacements.FindOrAdd (MON133RatSpawnId);
-            Placement.SpawnId = MON133RatSpawnId;
+                SavedLevel.MonsterPlacements.FindOrAdd (MON135RatSpawnId);
+            Placement.SpawnId = MON135RatSpawnId;
             Placement.bIsSpawned = true;
             Placement.bHasMonsterState = false;
+            FGridRuntimeMonsterPlacementState& SecondPlacement =
+                SavedLevel.MonsterPlacements.FindOrAdd (
+                    MON135Wave0SecondSpawnId);
+            SecondPlacement.SpawnId = MON135Wave0SecondSpawnId;
+            SecondPlacement.bIsSpawned = true;
+            SecondPlacement.bHasMonsterState = false;
+            FGridRuntimeMonsterEncounterState& EncounterState =
+                SavedLevel.MonsterEncounters.FindOrAdd (
+                    MON135EncounterId);
+            EncounterState.EncounterGroupId = MON135EncounterId;
+            EncounterState.AnchorSpawnId = MON135RatSpawnId;
+            EncounterState.ActiveWaveIndex = 0;
+            EncounterState.bStarted = true;
+            EncounterState.bCompleted = false;
 
             const bool bSaveWritten =
                 UGameplayStatics::SaveGameToSlot (
@@ -235,7 +308,7 @@ namespace
                             GameInstance->SetPendingStartupMode (
                                 EGrimrockPartyStartupMode::Continue);
                             UE_LOG (LogTemp, Log,
-                                TEXT ("[MON133PIE] Phase=IntegrationPIEWorldInitialized WorldType=%d WorldName=%s SaveSlot=%s"),
+                                TEXT ("[MON135PIE] Phase=IntegrationPIEWorldInitialized WorldType=%d WorldName=%s SaveSlot=%s"),
                                 static_cast<int32> (World->WorldType),
                                 *World->GetName (),
                                 *State->TemporarySaveSlot);
@@ -246,23 +319,23 @@ namespace
             Test->TestTrue (TEXT ("The PIE startup injection is registered"),
                 State->bSetupSucceeded);
             UE_LOG (LogTemp, Log,
-                TEXT ("[MON133PIE] Phase=IntegrationSetup SaveSlot=%s SpawnId=%s bInitiallyEnabled=false StartCell=(28,23) TriggerCell=(27,24) MonsterPlacements=present bIsSpawned=true"),
+                TEXT ("[MON135PIE] Phase=IntegrationSetup SaveSlot=%s AnchorSpawnId=%s Encounter=Encounter_Rats_01 Wave0=2 Wave1=1 bInitiallyEnabled=false StartCell=(28,23) TriggerCell=(27,24)"),
                 *State->TemporarySaveSlot,
-                *MON133RatSpawnId.ToString ());
+                *MON135RatSpawnId.ToString ());
             return true;
         }
 
     private:
         FAutomationTestBase* Test;
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
     };
 
-    class FWaitForMON133PIE : public IAutomationLatentCommand
+    class FWaitForMON135PIE : public IAutomationLatentCommand
     {
     public:
-        FWaitForMON133PIE (
+        FWaitForMON135PIE (
             FAutomationTestBase* InTest,
-            TSharedRef<FMON133RealPIEState> InState)
+            TSharedRef<FMON135RealPIEState> InState)
             : Test (InTest), State (MoveTemp (InState))
         {
         }
@@ -277,7 +350,7 @@ namespace
             {
                 StartSeconds = FPlatformTime::Seconds ();
             }
-            UWorld* World = GetMON133PIEWorld ();
+            UWorld* World = GetMON135PIEWorld ();
             if (World && World->HasBegunPlay ())
             {
                 return true;
@@ -292,15 +365,15 @@ namespace
 
     private:
         FAutomationTestBase* Test;
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
         double StartSeconds = 0.0;
     };
 
-    class FStartMON133PIEIfReady : public IAutomationLatentCommand
+    class FStartMON135PIEIfReady : public IAutomationLatentCommand
     {
     public:
-        explicit FStartMON133PIEIfReady (
-            TSharedRef<FMON133RealPIEState> InState)
+        explicit FStartMON135PIEIfReady (
+            TSharedRef<FMON135RealPIEState> InState)
             : State (MoveTemp (InState)), StartPIECommand (false)
         {
         }
@@ -311,16 +384,16 @@ namespace
         }
 
     private:
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
         FStartPIECommand StartPIECommand;
     };
 
-    class FCheckMON133FreshPIE : public IAutomationLatentCommand
+    class FCheckMON135FreshPIE : public IAutomationLatentCommand
     {
     public:
-        FCheckMON133FreshPIE (
+        FCheckMON135FreshPIE (
             FAutomationTestBase* InTest,
-            TSharedRef<FMON133RealPIEState> InState)
+            TSharedRef<FMON135RealPIEState> InState)
             : Test (InTest), State (MoveTemp (InState))
         {
         }
@@ -331,7 +404,7 @@ namespace
             {
                 return true;
             }
-            UWorld* World = GetMON133PIEWorld ();
+            UWorld* World = GetMON135PIEWorld ();
             Test->TestNotNull (TEXT ("A genuine duplicated PIE world exists"), World);
             if (!World)
             {
@@ -345,7 +418,7 @@ namespace
             {
                 Runtimes.Add (*It);
                 UE_LOG (LogTemp, Log,
-                    TEXT ("[MON133PIE] Phase=IntegrationFreshCheck RuntimeActorName=%s RuntimeActorPath=%s"),
+                    TEXT ("[MON135PIE] Phase=IntegrationFreshCheck RuntimeActorName=%s RuntimeActorPath=%s"),
                     *It->GetName (),
                     *It->GetPathName ());
             }
@@ -377,35 +450,71 @@ namespace
             State->bContinuePIEReady =
                 Party->PartySaveSlotName == State->TemporarySaveSlot;
 
-            Test->TestEqual (TEXT ("Fresh real PIE has no Rat after all BeginPlay calls"),
-                CountMON133RatActors (World), 0);
-            Test->TestNull (TEXT ("The Rat SpawnId is absent after real PIE startup"),
-                Runtime->FindSpawnedMonsterActor (MON133RatSpawnId));
+            Test->TestEqual (TEXT ("Fresh real PIE has no encounter Actor after all BeginPlay calls"),
+                CountMON135EncounterActors (World), 0);
+            Test->TestNull (TEXT ("The encounter anchor is absent after real PIE startup"),
+                Runtime->FindSpawnedMonsterActor (MON135RatSpawnId));
+            Test->TestNull (TEXT ("The second wave-zero Rat is absent after startup"),
+                Runtime->FindSpawnedMonsterActor (MON135Wave0SecondSpawnId));
+            Test->TestNull (TEXT ("The wave-one Rat is absent after startup"),
+                Runtime->FindSpawnedMonsterActor (MON135Wave1SpawnId));
 
             Runtime->HandlePartyCellChanged (
-                MON133StartCell.X,
-                MON133StartCell.Y,
-                MON133StartCell.X,
-                MON133StartCell.Y);
-            Test->TestEqual (TEXT ("StartCell notification away from trigger keeps Rat absent"),
-                CountMON133RatActors (World), 0);
+                MON135StartCell.X,
+                MON135StartCell.Y,
+                MON135StartCell.X,
+                MON135StartCell.Y);
+            Test->TestEqual (TEXT ("StartCell notification away from trigger keeps encounter absent"),
+                CountMON135EncounterActors (World), 0);
 
             Runtime->HandlePartyCellChanged (
-                MON133StartCell.X,
-                MON133StartCell.Y,
-                MON133TriggerCell.X,
-                MON133TriggerCell.Y);
-            Test->TestEqual (TEXT ("Entering TriggerCell creates exactly one Rat"),
-                CountMON133RatActors (World), 1);
-            Test->TestNotNull (TEXT ("Rat SpawnId exists after Trigger.Activated"),
-                Runtime->FindSpawnedMonsterActor (MON133RatSpawnId));
+                MON135StartCell.X,
+                MON135StartCell.Y,
+                MON135TriggerCell.X,
+                MON135TriggerCell.Y);
+            Test->TestEqual (TEXT ("Entering TriggerCell creates both wave-zero Rats"),
+                CountMON135EncounterActors (World), 2);
+            AGridMonsterActor* AnchorMonster =
+                Runtime->FindSpawnedMonsterActor (MON135RatSpawnId);
+            AGridMonsterActor* SecondMonster =
+                Runtime->FindSpawnedMonsterActor (
+                    MON135Wave0SecondSpawnId);
+            Test->TestNotNull (TEXT ("Encounter anchor exists after Trigger.Activated"),
+                AnchorMonster);
+            Test->TestNotNull (TEXT ("Second wave-zero Rat exists after Trigger.Activated"),
+                SecondMonster);
+            Test->TestNull (TEXT ("Wave-one Rat remains absent"),
+                Runtime->FindSpawnedMonsterActor (MON135Wave1SpawnId));
+            Test->TestEqual (TEXT ("Wave zero is the active encounter wave"),
+                Runtime->GetMonsterEncounterActiveWave (
+                    MON135EncounterId),
+                0);
+            for (AGridMonsterActor* Monster : {AnchorMonster, SecondMonster})
+            {
+                if (!Monster)
+                {
+                    continue;
+                }
+                Test->TestNotEqual (TEXT ("Real encounter Rat is not the native base class"),
+                    Monster->GetClass (),
+                    AGridMonsterActor::StaticClass ());
+                Test->TestNotNull (TEXT ("Real encounter Rat has MonsterMovement"),
+                    Monster->FindComponentByClass<
+                        UGridMonsterMovementComponent> ());
+                Test->TestNotNull (TEXT ("Real encounter Rat has MonsterBehavior"),
+                    Monster->FindComponentByClass<
+                        UGridMonsterBehaviorComponent> ());
+                Test->TestNotNull (TEXT ("Real encounter Rat has MonsterCombat"),
+                    Monster->FindComponentByClass<
+                        UGridMonsterCombatComponent> ());
+            }
             const FGridLevelRuntimeState* SpawnedLevelState =
                 Runtime->DungeonRuntimeState.LevelStates.Find (
                     Runtime->CurrentDungeonLevelId);
             const FGridRuntimeMonsterPlacementState* SpawnedPlacement =
                 SpawnedLevelState
                     ? SpawnedLevelState->MonsterPlacements.Find (
-                        MON133RatSpawnId)
+                        MON135RatSpawnId)
                     : nullptr;
             Test->TestNotNull (TEXT ("Real spawn creates persistent MonsterPlacements state"),
                 SpawnedPlacement);
@@ -413,25 +522,25 @@ namespace
                 SpawnedPlacement && SpawnedPlacement->bIsSpawned);
 
             Runtime->HandlePartyCellChanged (
-                MON133StartCell.X,
-                MON133StartCell.Y,
-                MON133TriggerCell.X,
-                MON133TriggerCell.Y);
-            Test->TestEqual (TEXT ("Second trigger notification creates no duplicate"),
-                CountMON133RatActors (World), 1);
+                MON135StartCell.X,
+                MON135StartCell.Y,
+                MON135TriggerCell.X,
+                MON135TriggerCell.Y);
+            Test->TestEqual (TEXT ("Second trigger notification creates no duplicate wave"),
+                CountMON135EncounterActors (World), 2);
             return true;
         }
 
     private:
         FAutomationTestBase* Test;
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
     };
 
-    class FProtectMON133SaveSlot : public IAutomationLatentCommand
+    class FProtectMON135SaveSlot : public IAutomationLatentCommand
     {
     public:
-        explicit FProtectMON133SaveSlot (
-            TSharedRef<FMON133RealPIEState> InState)
+        explicit FProtectMON135SaveSlot (
+            TSharedRef<FMON135RealPIEState> InState)
             : State (MoveTemp (InState))
         {
         }
@@ -439,7 +548,7 @@ namespace
         virtual bool Update () override
         {
             UWorld* World = State->bSetupSucceeded
-                ? GetMON133PIEWorld ()
+                ? GetMON135PIEWorld ()
                 : nullptr;
             if (World)
             {
@@ -454,15 +563,15 @@ namespace
         }
 
     private:
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
     };
 
-    class FPrepareMON133ContinuePIE : public IAutomationLatentCommand
+    class FPrepareMON135ContinuePIE : public IAutomationLatentCommand
     {
     public:
-        FPrepareMON133ContinuePIE (
+        FPrepareMON135ContinuePIE (
             FAutomationTestBase* InTest,
-            TSharedRef<FMON133RealPIEState> InState)
+            TSharedRef<FMON135RealPIEState> InState)
             : Test (InTest), State (MoveTemp (InState))
         {
         }
@@ -516,15 +625,15 @@ namespace
 
     private:
         FAutomationTestBase* Test;
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
     };
 
-    class FCheckMON133ContinuePIE : public IAutomationLatentCommand
+    class FCheckMON135ContinuePIE : public IAutomationLatentCommand
     {
     public:
-        FCheckMON133ContinuePIE (
+        FCheckMON135ContinuePIE (
             FAutomationTestBase* InTest,
-            TSharedRef<FMON133RealPIEState> InState)
+            TSharedRef<FMON135RealPIEState> InState)
             : Test (InTest), State (MoveTemp (InState))
         {
         }
@@ -535,7 +644,7 @@ namespace
             {
                 return true;
             }
-            UWorld* World = GetMON133PIEWorld ();
+            UWorld* World = GetMON135PIEWorld ();
             Test->TestNotNull (TEXT ("A second genuine PIE world exists for Continue"), World);
             if (!World)
             {
@@ -548,8 +657,8 @@ namespace
                 break;
             }
             Test->TestNotNull (TEXT ("Continue PIE has its runtime actor"), Runtime);
-            Test->TestEqual (TEXT ("Continue restores Rat from MonsterPlacements"),
-                CountMON133RatActors (World), 1);
+            Test->TestEqual (TEXT ("Continue restores both active wave-zero Rats"),
+                CountMON135EncounterActors (World), 2);
             AGrimrockPartyPawn* Party = nullptr;
             int32 PartyCount = 0;
             for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
@@ -564,26 +673,40 @@ namespace
             if (Runtime)
             {
                 Test->TestNotNull (TEXT ("Continue restores the Rat SpawnId"),
-                    Runtime->FindSpawnedMonsterActor (MON133RatSpawnId));
+                    Runtime->FindSpawnedMonsterActor (MON135RatSpawnId));
+                Test->TestNotNull (TEXT ("Continue restores the second wave-zero Rat"),
+                    Runtime->FindSpawnedMonsterActor (
+                        MON135Wave0SecondSpawnId));
+                Test->TestNull (TEXT ("Continue keeps the future wave absent"),
+                    Runtime->FindSpawnedMonsterActor (
+                        MON135Wave1SpawnId));
+                Test->TestEqual (TEXT ("Continue restores active encounter wave zero"),
+                    Runtime->GetMonsterEncounterActiveWave (
+                        MON135EncounterId),
+                    0);
             }
             UE_LOG (LogTemp, Log,
-                TEXT ("[MON133PIE] Phase=IntegrationContinueCheck SaveSlot=%s RatCount=%d"),
+                TEXT ("[MON135PIE] Phase=IntegrationContinueCheck SaveSlot=%s EncounterActorCount=%d ActiveWave=%d"),
                 *State->TemporarySaveSlot,
-                CountMON133RatActors (World));
+                CountMON135EncounterActors (World),
+                Runtime
+                    ? Runtime->GetMonsterEncounterActiveWave (
+                        MON135EncounterId)
+                    : INDEX_NONE);
             return true;
         }
 
     private:
         FAutomationTestBase* Test;
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
     };
 
-    class FCleanupMON133RealPIE : public IAutomationLatentCommand
+    class FCleanupMON135RealPIE : public IAutomationLatentCommand
     {
     public:
-        FCleanupMON133RealPIE (
+        FCleanupMON135RealPIE (
             FAutomationTestBase* InTest,
-            TSharedRef<FMON133RealPIEState> InState)
+            TSharedRef<FMON135RealPIEState> InState)
             : Test (InTest), State (MoveTemp (InState))
         {
         }
@@ -611,41 +734,41 @@ namespace
 
     private:
         FAutomationTestBase* Test;
-        TSharedRef<FMON133RealPIEState> State;
+        TSharedRef<FMON135RealPIEState> State;
     };
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridEditorMON133RealPIEIntegrationTest,
-    "Grimrock.Monsters.MON13.3.RealPIEIntegration",
+    FGridEditorMON135RealPIEIntegrationTest,
+    "Grimrock.Monsters.MON13.5.RealPIEIntegration",
     EAutomationTestFlags::EditorContext |
         EAutomationTestFlags::EngineFilter)
 
-bool FGridEditorMON133RealPIEIntegrationTest::RunTest (
+bool FGridEditorMON135RealPIEIntegrationTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
-    TSharedRef<FMON133RealPIEState> State =
-        MakeShared<FMON133RealPIEState> ();
+    TSharedRef<FMON135RealPIEState> State =
+        MakeShared<FMON135RealPIEState> ();
 
-    ADD_LATENT_AUTOMATION_COMMAND (FEditorLoadMap (MON133MapPath));
-    ADD_LATENT_AUTOMATION_COMMAND (FSetupMON133RealPIE (this, State));
-    ADD_LATENT_AUTOMATION_COMMAND (FStartMON133PIEIfReady (State));
-    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON133PIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FEditorLoadMap (MON135MapPath));
+    ADD_LATENT_AUTOMATION_COMMAND (FSetupMON135RealPIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FStartMON135PIEIfReady (State));
+    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON135PIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (2.0f));
-    ADD_LATENT_AUTOMATION_COMMAND (FCheckMON133FreshPIE (this, State));
-    ADD_LATENT_AUTOMATION_COMMAND (FProtectMON133SaveSlot (State));
+    ADD_LATENT_AUTOMATION_COMMAND (FCheckMON135FreshPIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FProtectMON135SaveSlot (State));
     ADD_LATENT_AUTOMATION_COMMAND (FEndPlayMapCommand ());
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (1.0f));
-    ADD_LATENT_AUTOMATION_COMMAND (FPrepareMON133ContinuePIE (this, State));
-    ADD_LATENT_AUTOMATION_COMMAND (FStartMON133PIEIfReady (State));
-    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON133PIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FPrepareMON135ContinuePIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FStartMON135PIEIfReady (State));
+    ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON135PIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (2.0f));
-    ADD_LATENT_AUTOMATION_COMMAND (FCheckMON133ContinuePIE (this, State));
-    ADD_LATENT_AUTOMATION_COMMAND (FProtectMON133SaveSlot (State));
+    ADD_LATENT_AUTOMATION_COMMAND (FCheckMON135ContinuePIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FProtectMON135SaveSlot (State));
     ADD_LATENT_AUTOMATION_COMMAND (FEndPlayMapCommand ());
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (1.0f));
-    ADD_LATENT_AUTOMATION_COMMAND (FCleanupMON133RealPIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FCleanupMON135RealPIE (this, State));
     return true;
 }
 
