@@ -218,6 +218,15 @@ public:
     UPROPERTY (EditAnywhere, Category = "Editor|Display")
     bool bShowConnectorLabels = true;
 
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Patrol Route")
+    bool bShowSelectedMonsterPatrolRoute = true;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Editor|Patrol Route")
+    bool bPatrolRouteEditMode = false;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Editor|Patrol Route")
+    int32 SelectedPatrolWaypointIndex = INDEX_NONE;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
     bool bHideEditorActorDuringPIE = true;
 
@@ -430,6 +439,57 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
     bool SetSelectedObjectEncounterWaveIndex (int32 NewEncounterWaveIndex);
+
+    UFUNCTION (BlueprintPure, Category = "Editor|Patrol Route")
+    bool CanEditSelectedMonsterPatrolRoute () const;
+
+    UFUNCTION (BlueprintPure, Category = "Editor|Patrol Route")
+    bool IsPatrolRouteEditModeActive () const;
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void ToggleSelectedMonsterPatrolRouteEditing ();
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
+    bool SetSelectedMonsterPatrolMode (EGridMonsterPatrolMode NewMode);
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
+    bool AddOrSelectPatrolWaypointAtHoveredCell ();
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
+    bool SelectPatrolWaypointByIndex (int32 WaypointIndex);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    bool RemoveSelectedPatrolWaypoint ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    bool ClearSelectedMonsterPatrolRoute ();
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
+    bool MoveSelectedPatrolWaypoint (int32 IndexDelta);
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
+    bool SetSelectedPatrolWaypointFacing (EGridEdge NewFacing);
+
+    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
+    bool SetSelectedPatrolWaypointWaitSeconds (float NewWaitSeconds);
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void CycleSelectedMonsterPatrolMode ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void CycleSelectedPatrolWaypointFacing ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void MoveSelectedPatrolWaypointEarlier ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void MoveSelectedPatrolWaypointLater ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void IncreaseSelectedPatrolWaypointWait ();
+
+    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+    void DecreaseSelectedPatrolWaypointWait ();
 
     UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
     bool SetSelectedObjectReadableContentAsset (UGridReadableContentAsset* NewReadableContentAsset);

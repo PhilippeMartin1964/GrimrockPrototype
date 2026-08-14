@@ -207,6 +207,184 @@ namespace
         bOutIncoming = bIncoming && !bOutgoing;
         return true;
     }
+
+    FVector GetPatrolWaypointWorldCenter (
+        const AGridLevelEditorActor* EditorActor,
+        const FGridMonsterPatrolWaypoint& Waypoint,
+        float ZOffset = 35.0f)
+    {
+        if (!EditorActor || !EditorActor->LevelAsset)
+        {
+            return FVector::ZeroVector;
+        }
+
+        const float CellSize = EditorActor->LevelAsset->CellSize;
+        const float Half = CellSize * 0.5f;
+        const FVector GridWorldOrigin = EditorActor->PreviewRuntimeActor
+            ? EditorActor->PreviewRuntimeActor->GetActorLocation () +
+                EditorActor->PreviewRuntimeActor->GridOrigin
+            : EditorActor->GetActorLocation ();
+        return GridWorldOrigin + FVector (
+            (Waypoint.Cell.X * CellSize) + Half,
+            (Waypoint.Cell.Y * CellSize) + Half,
+            ZOffset);
+    }
+
+    FVector GetPatrolFacingVector (EGridEdge Facing)
+    {
+        switch (Facing)
+        {
+            case EGridEdge::North: return FVector (0.f, 1.f, 0.f);
+            case EGridEdge::East:  return FVector (1.f, 0.f, 0.f);
+            case EGridEdge::South: return FVector (0.f, -1.f, 0.f);
+            case EGridEdge::West:  return FVector (-1.f, 0.f, 0.f);
+            default:               return FVector::ZeroVector;
+        }
+    }
+
+    FString GetPatrolModeText (EGridMonsterPatrolMode Mode)
+    {
+        if (const UEnum* PatrolEnum = StaticEnum<EGridMonsterPatrolMode> ())
+        {
+            return PatrolEnum->GetNameStringByValue (static_cast<int64> (Mode));
+        }
+        return TEXT ("None");
+    }
+
+    FString GetPatrolFacingText (EGridEdge Facing)
+    {
+        if (const UEnum* EdgeEnum = StaticEnum<EGridEdge> ())
+        {
+            return EdgeEnum->GetNameStringByValue (static_cast<int64> (Facing));
+        }
+        return TEXT ("None");
+    }
+
+    void DrawSelectedMonsterPatrolRoute (
+        AGridLevelEditorActor* EditorActor,
+        const FGridLevelObjectData& SelectedObject,
+        FPrimitiveDrawInterface* PDI)
+    {
+        if (!EditorActor || !PDI ||
+            SelectedObject.Type != EGridLevelObjectType::MonsterSpawn ||
+            !EditorActor->bShowSelectedMonsterPatrolRoute)
+        {
+            return;
+        }
+
+        const TArray<FGridMonsterPatrolWaypoint>& Waypoints =
+            SelectedObject.PatrolWaypoints;
+        if (Waypoints.Num () == 0)
+        {
+            return;
+        }
+
+        const FLinearColor RouteColor (0.15f, 0.85f, 1.0f, 0.95f);
+        const FLinearColor ClosingColor (0.55f, 0.75f, 1.0f, 0.85f);
+        const float CellSize = EditorActor->LevelAsset
+            ? EditorActor->LevelAsset->CellSize
+            : 200.0f;
+
+        for (int32 Index = 0; Index + 1 < Waypoints.Num (); ++Index)
+        {
+            const FVector Start = GetPatrolWaypointWorldCenter (
+                EditorActor, Waypoints[Index]);
+            const FVector End = GetPatrolWaypointWorldCenter (
+                EditorActor, Waypoints[Index + 1]);
+            PDI->DrawLine (Start, End, RouteColor, SDPG_Foreground, 3.0f);
+            DrawArrowHead (
+                PDI,
+                End,
+                End - Start,
+                RouteColor,
+                20.0f,
+                2.0f,
+                SDPG_Foreground);
+
+            if (SelectedObject.PatrolMode == EGridMonsterPatrolMode::PingPong)
+            {
+                DrawArrowHead (
+                    PDI,
+                    Start,
+                    Start - End,
+                    RouteColor,
+                    20.0f,
+                    2.0f,
+                    SDPG_Foreground);
+            }
+        }
+
+        if (SelectedObject.PatrolMode == EGridMonsterPatrolMode::Loop &&
+            Waypoints.Num () > 1)
+        {
+            const FVector Start = GetPatrolWaypointWorldCenter (
+                EditorActor, Waypoints.Last ());
+            const FVector End = GetPatrolWaypointWorldCenter (
+                EditorActor, Waypoints[0]);
+            DrawDashedLine (
+                PDI,
+                Start,
+                End,
+                ClosingColor,
+                20.0f,
+                10.0f,
+                2.0f,
+                SDPG_Foreground);
+            DrawArrowHead (
+                PDI,
+                End,
+                End - Start,
+                ClosingColor,
+                20.0f,
+                2.0f,
+                SDPG_Foreground);
+        }
+
+        for (int32 Index = 0; Index < Waypoints.Num (); ++Index)
+        {
+            const FGridMonsterPatrolWaypoint& Waypoint = Waypoints[Index];
+            const FVector Center = GetPatrolWaypointWorldCenter (
+                EditorActor, Waypoint);
+            const bool bSelected =
+                EditorActor->IsPatrolRouteEditModeActive () &&
+                EditorActor->SelectedPatrolWaypointIndex == Index;
+            const FColor MarkerColor = bSelected
+                ? FColor::Yellow
+                : FColor::Cyan;
+            const float Radius = bSelected ? 24.0f : 17.0f;
+            DrawWireBox (
+                PDI,
+                FBox (
+                    Center - FVector (Radius, Radius, Radius),
+                    Center + FVector (Radius, Radius, Radius)),
+                MarkerColor,
+                SDPG_Foreground);
+
+            const FVector FacingVector = GetPatrolFacingVector (Waypoint.Facing);
+            if (!FacingVector.IsNearlyZero ())
+            {
+                const FVector FacingEnd =
+                    Center + FacingVector * FMath::Max (40.0f, CellSize * 0.28f);
+                const FLinearColor FacingColor = bSelected
+                    ? FLinearColor (1.0f, 0.8f, 0.1f, 1.0f)
+                    : FLinearColor (0.25f, 1.0f, 0.55f, 0.9f);
+                PDI->DrawLine (
+                    Center,
+                    FacingEnd,
+                    FacingColor,
+                    SDPG_Foreground,
+                    2.0f);
+                DrawArrowHead (
+                    PDI,
+                    FacingEnd,
+                    FacingVector,
+                    FacingColor,
+                    18.0f,
+                    2.0f,
+                    SDPG_Foreground);
+            }
+        }
+    }
 }
 
 const FEditorModeID FGridLevelEdMode::EM_GridLevelEdModeId = TEXT ("EM_GrimrockGridLevelEdMode");
@@ -322,6 +500,20 @@ void FGridLevelEdMode::ApplyErase () const
 
 bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
+    AGridLevelEditorActor* EditorActor = FindEditorActor ();
+
+    if (Event == IE_Pressed && Key == EKeys::P && EditorActor)
+    {
+        EditorActor->ToggleSelectedMonsterPatrolRouteEditing ();
+        bIsPainting = false;
+        ResetPaintCache ();
+        if (Toolkit.IsValid ())
+        {
+            Toolkit->RefreshPalette ();
+        }
+        return true;
+    }
+
     if (Key == EKeys::RightMouseButton)
     {
         bIsPainting = false;
@@ -336,6 +528,82 @@ bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewpor
 
         return FEdMode::InputKey (ViewportClient, Viewport, Key, Event);
     }
+
+    if (EditorActor && EditorActor->IsPatrolRouteEditModeActive ())
+    {
+        if (Event == IE_Pressed)
+        {
+            bool bHandledPatrolCommand = true;
+            if (Key == EKeys::M)
+            {
+                EditorActor->CycleSelectedMonsterPatrolMode ();
+            }
+            else if (Key == EKeys::F)
+            {
+                EditorActor->CycleSelectedPatrolWaypointFacing ();
+            }
+            else if (Key == EKeys::Delete || Key == EKeys::BackSpace)
+            {
+                EditorActor->RemoveSelectedPatrolWaypoint ();
+            }
+            else if (Key == EKeys::PageUp)
+            {
+                EditorActor->MoveSelectedPatrolWaypointEarlier ();
+            }
+            else if (Key == EKeys::PageDown)
+            {
+                EditorActor->MoveSelectedPatrolWaypointLater ();
+            }
+            else if (Key == EKeys::Hyphen || Key == EKeys::Subtract)
+            {
+                EditorActor->DecreaseSelectedPatrolWaypointWait ();
+            }
+            else if (Key == EKeys::Equals || Key == EKeys::Add)
+            {
+                EditorActor->IncreaseSelectedPatrolWaypointWait ();
+            }
+            else
+            {
+                bHandledPatrolCommand = false;
+            }
+
+            if (bHandledPatrolCommand)
+            {
+                if (Toolkit.IsValid ())
+                {
+                    Toolkit->RefreshPalette ();
+                }
+                return true;
+            }
+        }
+
+        if (Key == EKeys::LeftMouseButton)
+        {
+            if (Event == IE_Pressed)
+            {
+                FIntPoint MousePos;
+                Viewport->GetMousePos (MousePos);
+                if (UpdateHoverFromMouse (
+                    ViewportClient,
+                    Viewport,
+                    MousePos.X,
+                    MousePos.Y))
+                {
+                    EditorActor->AddOrSelectPatrolWaypointAtHoveredCell ();
+                    if (Toolkit.IsValid ())
+                    {
+                        Toolkit->RefreshPalette ();
+                    }
+                }
+                return true;
+            }
+            if (Event == IE_Released)
+            {
+                return true;
+            }
+        }
+    }
+
     if (Key == EKeys::LeftMouseButton)
     {
         if (Event == IE_Pressed)
@@ -348,7 +616,7 @@ bool FGridLevelEdMode::InputKey (FEditorViewportClient* ViewportClient, FViewpor
 
             if (UpdateHoverFromMouse (ViewportClient, Viewport, MousePos.X, MousePos.Y))
             {
-                if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
+                if (EditorActor || (EditorActor = FindEditorActor ()))
                 {
                     if (CommitHoveredSelection (EditorActor) && ShouldApplyPaintForCurrentSelection (EditorActor))
                     {
@@ -382,6 +650,16 @@ bool FGridLevelEdMode::ProcessCapturedMouseMoves (FEditorViewportClient* InViewp
         ResetPaintCache ();
 
         return FEdMode::ProcessCapturedMouseMoves (InViewportClient, InViewport, MouseMoves);
+    }
+
+    if (const AGridLevelEditorActor* EditorActor = FindEditorActor ())
+    {
+        if (EditorActor->IsPatrolRouteEditModeActive ())
+        {
+            bIsPainting = false;
+            ResetPaintCache ();
+            return true;
+        }
     }
 
     if (!bIsPainting)
@@ -472,9 +750,15 @@ void FGridLevelEdMode::Render (const FSceneView* View, FViewport* Viewport, FPri
             PDI->DrawLine (SourceLocation, Center, FLinearColor {0.f, 1.f, 1.f, 1.f}, SDPG_Foreground, 1.5f);
         }
     }
+
     const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
-    if (SelectedObject && EditorActor->LevelAsset)
+    if (SelectedObject)
     {
+        DrawSelectedMonsterPatrolRoute (
+            EditorActor,
+            *SelectedObject,
+            PDI);
+
         for (const FGridObjectLink& Link : EditorActor->LevelAsset->Links)
         {
             bool bIncoming = false;
@@ -518,7 +802,6 @@ void FGridLevelEdMode::DrawHUD (
 
     AGridLevelEditorActor* EditorActor = FindEditorActor ();
     if (!EditorActor ||
-        !EditorActor->bShowConnectorLabels ||
         !EditorActor->IsSelectionValidForEditing () ||
         !EditorActor->LevelAsset ||
         !View ||
@@ -530,6 +813,86 @@ void FGridLevelEdMode::DrawHUD (
 
     const FGridLevelObjectData* SelectedObject = EditorActor->GetSelectedObjectData ();
     if (!SelectedObject)
+    {
+        return;
+    }
+
+    if (SelectedObject->Type == EGridLevelObjectType::MonsterSpawn &&
+        EditorActor->bShowSelectedMonsterPatrolRoute)
+    {
+        for (int32 Index = 0; Index < SelectedObject->PatrolWaypoints.Num (); ++Index)
+        {
+            const FGridMonsterPatrolWaypoint& Waypoint =
+                SelectedObject->PatrolWaypoints[Index];
+            const FVector LabelWorldPosition =
+                GetPatrolWaypointWorldCenter (EditorActor, Waypoint, 75.0f);
+            FVector2D PixelLocation = FVector2D::ZeroVector;
+            if (!View->WorldToPixel (LabelWorldPosition, PixelLocation))
+            {
+                continue;
+            }
+
+            const bool bSelected =
+                EditorActor->IsPatrolRouteEditModeActive () &&
+                EditorActor->SelectedPatrolWaypointIndex == Index;
+            const FString Label = FString::Printf (
+                TEXT ("#%d%s"),
+                Index + 1,
+                bSelected ? TEXT (" *") : TEXT (""));
+            Canvas->DrawShadowedString (
+                PixelLocation.X,
+                PixelLocation.Y,
+                *Label,
+                GEngine->GetSmallFont (),
+                bSelected
+                    ? FLinearColor (1.0f, 0.82f, 0.12f, 1.0f)
+                    : FLinearColor (0.25f, 0.95f, 1.0f, 0.95f));
+        }
+
+        if (EditorActor->IsPatrolRouteEditModeActive ())
+        {
+            const FString Header = FString::Printf (
+                TEXT ("PATROL ROUTE EDIT  Mode=%s  Waypoints=%d"),
+                *GetPatrolModeText (SelectedObject->PatrolMode),
+                SelectedObject->PatrolWaypoints.Num ());
+            Canvas->DrawShadowedString (
+                20.0f,
+                85.0f,
+                *Header,
+                GEngine->GetSmallFont (),
+                FLinearColor (1.0f, 0.82f, 0.12f, 1.0f));
+
+            Canvas->DrawShadowedString (
+                20.0f,
+                103.0f,
+                TEXT ("Left click add/select | Delete remove | M mode | F facing | PgUp/PgDn reorder | -/+ wait | P exit"),
+                GEngine->GetSmallFont (),
+                FLinearColor (0.92f, 0.92f, 0.92f, 0.95f));
+
+            if (SelectedObject->PatrolWaypoints.IsValidIndex (
+                EditorActor->SelectedPatrolWaypointIndex))
+            {
+                const FGridMonsterPatrolWaypoint& Waypoint =
+                    SelectedObject->PatrolWaypoints[
+                        EditorActor->SelectedPatrolWaypointIndex];
+                const FString Detail = FString::Printf (
+                    TEXT ("Waypoint #%d Cell=(%d,%d) Facing=%s Wait=%.1fs"),
+                    EditorActor->SelectedPatrolWaypointIndex + 1,
+                    Waypoint.Cell.X,
+                    Waypoint.Cell.Y,
+                    *GetPatrolFacingText (Waypoint.Facing),
+                    Waypoint.WaitSeconds);
+                Canvas->DrawShadowedString (
+                    20.0f,
+                    121.0f,
+                    *Detail,
+                    GEngine->GetSmallFont (),
+                    FLinearColor (0.25f, 1.0f, 0.55f, 0.95f));
+            }
+        }
+    }
+
+    if (!EditorActor->bShowConnectorLabels)
     {
         return;
     }
@@ -610,6 +973,14 @@ void FGridLevelEdMode::Enter ()
 
 void FGridLevelEdMode::Exit ()
 {
+    if (AGridLevelEditorActor* EditorActor = FindEditorActor ())
+    {
+        if (EditorActor->IsPatrolRouteEditModeActive ())
+        {
+            EditorActor->ToggleSelectedMonsterPatrolRouteEditing ();
+        }
+    }
+
     if (Toolkit.IsValid ())
     {
         FToolkitManager::Get ().CloseToolkit (Toolkit.ToSharedRef ());
