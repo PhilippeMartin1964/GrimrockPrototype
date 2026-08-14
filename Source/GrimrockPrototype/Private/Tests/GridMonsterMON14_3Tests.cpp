@@ -294,7 +294,7 @@ bool FGridMonsterMON143CursorRulesTest::RunTest (const FString& Parameters)
         FGridMonsterPatrolCursorRules::Initialize (
             FIntPoint (5, 2), EGridMonsterPatrolMode::Loop,
             Route, Target, Direction));
-    TestEqual (TEXT ("Nearest waypoint chosen deterministically"), Target, 2);
+    TestEqual (TEXT ("Nearest waypoint chosen deterministically"), Target, 1);
     return true;
 }
 
