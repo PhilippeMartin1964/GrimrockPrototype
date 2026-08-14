@@ -120,7 +120,7 @@ namespace
         return Spawn;
     }
 
-    bool HasErrorContaining (
+    bool MON142HasErrorContaining (
         const TArray<FString>& Errors,
         const TCHAR* Expected)
     {
@@ -233,28 +233,28 @@ bool FGridMonsterMON142SpawnModelValidationTest::RunTest (
     TestFalse (TEXT ("Alert is not an authored fresh-spawn state"),
         Level->ValidateMonsterSpawns (Errors));
     TestTrue (TEXT ("Invalid initial state is reported"),
-        HasErrorContaining (Errors, TEXT ("InitialMonsterState Idle or Dormant")));
+        MON142HasErrorContaining (Errors, TEXT ("InitialMonsterState Idle or Dormant")));
 
     Level->Objects[0].InitialMonsterState = EGridMonsterState::Dormant;
     Level->Objects[0].PatrolWaypoints.SetNum (1);
     TestFalse (TEXT ("A live patrol requires two waypoints"),
         Level->ValidateMonsterSpawns (Errors));
     TestTrue (TEXT ("Short patrol is reported"),
-        HasErrorContaining (Errors, TEXT ("requires at least two waypoints")));
+        MON142HasErrorContaining (Errors, TEXT ("requires at least two waypoints")));
 
     Level->Objects[0].PatrolWaypoints = { First, Second };
     Level->Objects[0].PatrolWaypoints[1].Cell = FIntPoint (99, 99);
     TestFalse (TEXT ("Out-of-bounds patrol waypoint is rejected"),
         Level->ValidateMonsterSpawns (Errors));
     TestTrue (TEXT ("Out-of-bounds waypoint is reported"),
-        HasErrorContaining (Errors, TEXT ("patrol waypoint 1 is outside grid bounds")));
+        MON142HasErrorContaining (Errors, TEXT ("patrol waypoint 1 is outside grid bounds")));
 
     Level->Objects[0].PatrolWaypoints[1] = Second;
     Level->Objects[0].PatrolWaypoints[1].WaitSeconds = -1.0f;
     TestFalse (TEXT ("Negative waypoint wait is rejected"),
         Level->ValidateMonsterSpawns (Errors));
     TestTrue (TEXT ("Invalid wait is reported"),
-        HasErrorContaining (Errors, TEXT ("finite non-negative WaitSeconds")));
+        MON142HasErrorContaining (Errors, TEXT ("finite non-negative WaitSeconds")));
 
     Level->Objects[0].PatrolWaypoints[1] = Second;
     Level->Objects[0].PatrolWaypoints[1].Facing =
@@ -262,7 +262,7 @@ bool FGridMonsterMON142SpawnModelValidationTest::RunTest (
     TestFalse (TEXT ("Invalid waypoint facing is rejected"),
         Level->ValidateMonsterSpawns (Errors));
     TestTrue (TEXT ("Invalid waypoint facing is reported"),
-        HasErrorContaining (Errors, TEXT ("Facing=None or a cardinal direction")));
+        MON142HasErrorContaining (Errors, TEXT ("Facing=None or a cardinal direction")));
     return true;
 }
 
