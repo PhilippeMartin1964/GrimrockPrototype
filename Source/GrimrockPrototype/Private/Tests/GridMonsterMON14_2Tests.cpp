@@ -61,7 +61,7 @@ namespace
         }
     };
 
-    UGridLevelAsset* MakeFloorLevel (
+    UGridLevelAsset* MON142MakeFloorLevel (
         UObject* Outer,
         int32 Width = 8,
         int32 Height = 8)
@@ -82,7 +82,7 @@ namespace
         return Level;
     }
 
-    UGridMonsterDefinitionAsset* MakeDefinition (
+    UGridMonsterDefinitionAsset* MON142MakeDefinition (
         UObject* Outer,
         FName MonsterId)
     {
@@ -99,7 +99,7 @@ namespace
         return Definition;
     }
 
-    FGridLevelObjectData MakeSpawn (
+    FGridLevelObjectData MON142MakeSpawn (
         UGridMonsterDefinitionAsset* Definition,
         FGuid SpawnId,
         FIntPoint Cell = FIntPoint (2, 2))
@@ -202,12 +202,12 @@ bool FGridMonsterMON142SpawnModelValidationTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
-    UGridLevelAsset* Level = MakeFloorLevel (GetTransientPackage ());
-    UGridMonsterDefinitionAsset* Definition = MakeDefinition (
+    UGridLevelAsset* Level = MON142MakeFloorLevel (GetTransientPackage ());
+    UGridMonsterDefinitionAsset* Definition = MON142MakeDefinition (
         Level,
         TEXT ("MON14_2_ValidationRat"));
 
-    FGridLevelObjectData Spawn = MakeSpawn (
+    FGridLevelObjectData Spawn = MON142MakeSpawn (
         Definition,
         FGuid (14, 2, 1, 1));
     Spawn.InitialMonsterState = EGridMonsterState::Dormant;
@@ -290,13 +290,13 @@ bool FGridMonsterMON142FreshSpawnConfigurationTest::RunTest (
         return false;
     }
     Runtime->bApplyLevelStartOnBeginPlay = false;
-    Runtime->LevelAsset = MakeFloorLevel (Runtime);
+    Runtime->LevelAsset = MON142MakeFloorLevel (Runtime);
 
-    UGridMonsterDefinitionAsset* Definition = MakeDefinition (
+    UGridMonsterDefinitionAsset* Definition = MON142MakeDefinition (
         Runtime,
         TEXT ("MON14_2_FreshRat"));
     const FGuid SpawnId (14, 2, 2, 1);
-    FGridLevelObjectData Spawn = MakeSpawn (
+    FGridLevelObjectData Spawn = MON142MakeSpawn (
         Definition,
         SpawnId,
         FIntPoint (3, 3));
@@ -396,18 +396,18 @@ bool FGridMonsterMON142BehaviorFacingIntegrationTest::RunTest (
         return false;
     }
     Runtime->bApplyLevelStartOnBeginPlay = false;
-    Runtime->LevelAsset = MakeFloorLevel (Runtime);
+    Runtime->LevelAsset = MON142MakeFloorLevel (Runtime);
 
     Party->LevelRuntimeActor = Runtime;
     Party->CurrentCellX = 2;
     Party->CurrentCellY = 5;
     Party->SetActorLocation (Runtime->GetCellCenterWorld (2, 5));
 
-    UGridMonsterDefinitionAsset* Definition = MakeDefinition (
+    UGridMonsterDefinitionAsset* Definition = MON142MakeDefinition (
         Runtime,
         TEXT ("MON14_2_FacingRat"));
     const FGuid SpawnId (14, 2, 3, 1);
-    FGridLevelObjectData Spawn = MakeSpawn (
+    FGridLevelObjectData Spawn = MON142MakeSpawn (
         Definition,
         SpawnId,
         FIntPoint (2, 2));
