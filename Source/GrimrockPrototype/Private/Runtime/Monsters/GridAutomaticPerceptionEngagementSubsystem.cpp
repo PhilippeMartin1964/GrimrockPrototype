@@ -5,6 +5,8 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
+#include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
 
 DEFINE_LOG_CATEGORY (LogGridAutomaticEngagement);
 
@@ -84,6 +86,12 @@ void UGridAutomaticPerceptionEngagementSubsystem::RequestEvaluation (
         return;
     }
 
+    if (UGridMonsterPatrolSubsystem* PatrolSubsystem =
+        World->GetSubsystem<UGridMonsterPatrolSubsystem> ())
+    {
+        PatrolSubsystem->RegisterRuntime (RuntimeActor);
+    }
+
     ++QueuedRequestCount;
     PendingRuntimeActor = RuntimeActor;
     if (!Reason.IsNone ())
@@ -146,8 +154,6 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow ()
         return false;
     }
 
-    // A dungeon transition owns save/restore and rebuild ordering. Never inspect
-    // perception until that atomic operation has left its guarded section.
     if (RuntimeActor->bIsExecutingDungeonTransition)
     {
         PendingReason = Reason;
@@ -176,10 +182,6 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow ()
         return false;
     }
 
-    // Exploration movement is interpolated by the Pawn rather than by the
-    // TurnManager. Comparing XY with the authoritative CurrentCell center is a
-    // runtime-safe way to detect that interpolation without exposing Pawn
-    // internals or adding AI/gameplay polling to Tick.
     if (IsPartyBetweenGridCells (RuntimeActor, TurnManager->PartyPawn))
     {
         PendingReason = Reason;
@@ -187,8 +189,16 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow ()
         return false;
     }
 
+    // Victory is a terminal combat presentation state but StartCombatInternal
+    // already knows how to reset it before a later encounter. Allowing a safe
+    // post-victory perception pass is required for guards that keep patrolling
+    // elsewhere in the same dungeon level.
+    const bool bExplorationCompatiblePhase =
+        TurnManager->CurrentPhase == EGridCombatPhase::Exploration ||
+        (!TurnManager->bCombatActive &&
+            TurnManager->CurrentPhase == EGridCombatPhase::Victory);
     if (TurnManager->bCombatActive ||
-        TurnManager->CurrentPhase != EGridCombatPhase::Exploration ||
+        !bExplorationCompatiblePhase ||
         TurnManager->IsExecutingAction () ||
         TurnManager->IsPartyMotionInProgress ())
     {
@@ -227,6 +237,15 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow ()
             *GetNameSafe (RuntimeActor),
             *Reason.ToString (),
             EffectiveEvaluationCount);
+    }
+
+    if (UGridMonsterPatrolSubsystem* PatrolSubsystem =
+        World->GetSubsystem<UGridMonsterPatrolSubsystem> ())
+    {
+        PatrolSubsystem->HandlePerceptionEvaluation (
+            RuntimeActor,
+            bStartedCombat,
+            Reason);
     }
 
     return bStartedCombat;
