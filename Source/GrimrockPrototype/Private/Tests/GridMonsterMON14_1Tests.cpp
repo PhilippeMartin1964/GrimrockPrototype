@@ -203,7 +203,7 @@ namespace
                     Definition,
                     StableId,
                     Cell,
-                    EGridEdge::North,
+                    EGridEdge::South,
                     GroupId))
             {
                 return nullptr;
@@ -320,7 +320,7 @@ namespace
         Spawn.CellX = Cell.X;
         Spawn.CellY = Cell.Y;
         Spawn.Edge = EGridEdge::None;
-        Spawn.InitialFacing = EGridEdge::North;
+        Spawn.InitialFacing = EGridEdge::South;
         Spawn.MonsterDefinitionAsset = Definition;
         Spawn.MonsterDefinitionId = Definition ? Definition->MonsterId : NAME_None;
         Spawn.EncounterGroupId = GroupId;

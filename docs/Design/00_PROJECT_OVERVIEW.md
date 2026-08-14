@@ -70,10 +70,10 @@ playtest frais, les vagues, les composants de combat et le chargement Continue.
 ## Engagement exploration → combat
 
 MON14.1 raccorde désormais la perception logique MON4 au TurnManager MON5 sans
-commande gameplay manuelle. Une ligne de vue orthogonale valide depuis un
-monstre vivant et actif vers le groupe peut démarrer automatiquement le combat ;
-l'ouïe seule continue à mettre le monstre en `Alert` et à renseigner sa dernière
-cellule connue, mais ne déclenche pas l'engagement automatique.
+commande gameplay manuelle. Une ligne de vue valide depuis un monstre vivant et
+actif vers le groupe peut démarrer automatiquement le combat ; l'ouïe seule
+continue à mettre le monstre en `Alert` et à renseigner sa dernière cellule
+connue, mais ne déclenche pas l'engagement automatique.
 
 Les demandes d'évaluation sont centralisées par
 `UGridAutomaticPerceptionEngagementSubsystem`, différées et coalescées. Elles
@@ -85,6 +85,14 @@ jamais directement `StartCombat()`.
 La propagation d'aggro MON7 reste l'autorité pour ajouter les alliés du monstre
 qui voit le groupe. Le chemin manuel F5 conserve le contrat historique
 vue/ouïe comme outil de diagnostic.
+
+MON14.2 rend maintenant cette vue directionnelle : le rayon axial MON4 ne
+compte comme vision que s'il se trouve devant le `Facing` cardinal courant du
+monstre. `MonsterSpawn` peut également démarrer en `Idle` ou `Dormant`, sans
+confondre la dormance avec l'absence `bInitiallyEnabled=false`. Enfin, le niveau
+peut sérialiser une route de patrouille `None`, `Loop` ou `PingPong` avec des
+waypoints, orientations d'arrivée et temps d'attente. MON14.2 ne déplace pas
+encore les gardes hors combat ; l'exécution de ces routes appartient à MON14.3.
 
 ---
 
@@ -197,6 +205,7 @@ La mémoire principale doit être le dépôt Git.
 | `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Rencontres persistantes, vagues atomiques et progression par mort |
 | `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Clôture transversale des assets, vagues, PIE frais et Continue |
 | `MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md` | Engagement exploration → combat par perception visuelle, différé et coalescé |
+| `MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md` | Facing visuel, état initial Idle/Dormant et fondation des routes de patrouille |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

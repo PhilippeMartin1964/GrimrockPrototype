@@ -226,6 +226,61 @@ bool FGridMonsterPerception::HasStraightLineOfSight (
     return true;
 }
 
+bool FGridMonsterPerception::IsTargetInFacingDirection (
+    const FIntPoint& ObserverCell,
+    EGridEdge Facing,
+    const FIntPoint& TargetCell)
+{
+    if (ObserverCell == TargetCell)
+    {
+        return Facing == EGridEdge::North ||
+            Facing == EGridEdge::East ||
+            Facing == EGridEdge::South ||
+            Facing == EGridEdge::West;
+    }
+
+    switch (Facing)
+    {
+        case EGridEdge::North:
+            return TargetCell.X == ObserverCell.X &&
+                TargetCell.Y > ObserverCell.Y;
+
+        case EGridEdge::East:
+            return TargetCell.Y == ObserverCell.Y &&
+                TargetCell.X > ObserverCell.X;
+
+        case EGridEdge::South:
+            return TargetCell.X == ObserverCell.X &&
+                TargetCell.Y < ObserverCell.Y;
+
+        case EGridEdge::West:
+            return TargetCell.Y == ObserverCell.Y &&
+                TargetCell.X < ObserverCell.X;
+
+        case EGridEdge::None:
+        default:
+            return false;
+    }
+}
+
+bool FGridMonsterPerception::HasDirectionalLineOfSight (
+    const FIntPoint& ObserverCell,
+    EGridEdge Facing,
+    const FIntPoint& TargetCell,
+    int32 SightRangeCells,
+    const TFunction<bool (const FIntPoint&, const FIntPoint&)>& CanTraverse)
+{
+    return IsTargetInFacingDirection (
+            ObserverCell,
+            Facing,
+            TargetCell) &&
+        HasStraightLineOfSight (
+            ObserverCell,
+            TargetCell,
+            SightRangeCells,
+            CanTraverse);
+}
+
 bool FGridMonsterPerception::CanHear (
     const FIntPoint& ObserverCell,
     const FIntPoint& TargetCell,

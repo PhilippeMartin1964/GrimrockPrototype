@@ -213,6 +213,20 @@ struct FGridLevelObjectData
         meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
     EGridEdge InitialFacing = EGridEdge::None;
 
+    /** Fresh-spawn exploration state. Presence remains controlled by bInitiallyEnabled. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
+    EGridMonsterState InitialMonsterState = EGridMonsterState::Idle;
+
+    /** MON14.2 route data only. MON14.3 will execute these waypoints. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Patrol",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
+    EGridMonsterPatrolMode PatrolMode = EGridMonsterPatrolMode::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Patrol",
+        meta = (EditCondition = "Type == EGridLevelObjectType::MonsterSpawn", EditConditionHides))
+    TArray<FGridMonsterPatrolWaypoint> PatrolWaypoints;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     bool bInitiallyEnabled = true;
 

@@ -44,13 +44,13 @@ Les producteurs ne connaissent jamais le TurnManager. Ils appellent seulement `G
 
 `UGridMonsterBehaviorComponent::RefreshPerception()` continue toujours à calculer les deux sens.
 
-- Une vue orthogonale valide et dans `SightRangeCells` peut déclencher automatiquement le combat.
+- Une vue valide et dans `SightRangeCells` peut déclencher automatiquement le combat.
 - Un mur ou une porte fermée bloque la vue via `AGridLevelRuntimeActor::CanMove()`.
 - L'ouïe continue à utiliser la distance de Manhattan.
 - Une perception uniquement auditive peut faire `Dormant/Idle -> Alert` et mémoriser `LastKnownPartyCell`, mais elle n'est pas une source directe d'engagement automatique.
 - Le filtre visuel n'existe que dans le scope synchrone de MON14.1 ; le démarrage manuel conserve le comportement historique vue/ouïe.
 
-Le champ de vision directionnel n'est pas ajouté ici. La vue reste orthogonale et omnidirectionnelle dans sa portée, conformément à MON4.
+MON14.2 complète désormais ce contrat : la géométrie orthogonale MON4 est filtrée par le `Facing` cardinal courant du monstre. La source automatique doit donc se trouver à la fois sur une ligne de vue ouverte **et devant le monstre**. Le helper géométrique MON4 reste disponible indépendamment du Facing pour les tests et diagnostics purs.
 
 ## Participants
 
@@ -100,9 +100,7 @@ Cette séparation préserve `MonsterPlacements`, `MonsterEncounters`, `CommitDea
 
 `bInitiallyEnabled=false` conserve une autre signification : le MonsterSpawn est absent. Il ne doit jamais servir à simuler la dormance.
 
-### Limite reportée
-
-Le placement `MonsterSpawn` ne possède pas encore de champ sérialisé permettant de choisir proprement `Dormant` comme état initial. `InitializeMonster()` initialise actuellement l'état à `Idle`. Ajouter un `InitialMonsterState` limité aux états d'exploration est reporté à MON14.2 ; MON14.1 ne détourne pas `bInitiallyEnabled`.
+MON14.2 ajoute désormais `InitialMonsterState` au `MonsterSpawn`, limité à `Idle` ou `Dormant`. Un playtest frais applique cet état au nouvel Actor ; une restauration MON9/MON13 reste ensuite autoritaire et remplace l'état initial par l'état sauvegardé.
 
 ## Tests automatisés
 
@@ -124,25 +122,28 @@ La suite `Grimrock.Monsters.MON14.1` couvre :
 - requête après rebuild ;
 - maintien du démarrage manuel historique par l'ouïe.
 
+Depuis MON14.2, les fixtures de vue MON14.1 orientent explicitement leurs monstres vers le groupe afin que ces tests continuent à vérifier le raccord automatique, tandis que la directionnalité elle-même est couverte par `Grimrock.Monsters.MON14.2`.
+
 Les scénarios `StartEncounter` chargent les vrais assets de présentation et la vraie classe Blueprint du Rat géant, comme les fixtures MON13. Ils restent des tests runtime automatisés ; une validation PIE manuelle complète demeure distincte.
 
 ## Checklist PIE manuelle
 
 1. Compiler `GrimrockPrototypeEditor` en `Win64 Development`.
 2. Ouvrir la carte runtime de référence et lancer un playtest frais.
-3. Approcher un Rat géant en ligne droite sans appuyer sur F5 : vérifier `Idle/Dormant -> Alert`, puis l'entrée automatique en combat et l'initiative.
-4. Refaire derrière un mur : aucun combat tant que la ligne de vue reste bloquée.
-5. Refaire derrière une porte fermée puis ouvrir la porte : le combat doit démarrer après l'ouverture, jamais avant.
-6. Placer le groupe en diagonale dans la portée auditive seulement : vérifier l'alerte logique sans entrée automatique en combat.
-7. Déclencher une rencontre dont la vague apparaît hors vue : vérifier le spawn sans combat.
-8. Déclencher une rencontre dont au moins un membre apparaît en vue : vérifier un unique démarrage après la vague complète.
-9. Tuer la première vague et vérifier que la vague suivante n'existe pas dans l'initiative avant son apparition.
-10. Sauvegarder dans un slot de test distinct de `GrimrockParty`, faire Continue et vérifier qu'aucun combat ne démarre pendant la restauration, puis qu'une perception visuelle stable peut engager ensuite.
-11. Vérifier que F5 reste utilisable comme diagnostic et n'est plus nécessaire au gameplay normal.
-12. Contrôler les logs : une seule ligne de réussite MON14.1 par engagement et aucun participant dupliqué.
+3. Approcher un Rat géant dans son axe avant sans appuyer sur F5 : vérifier `Idle/Dormant -> Alert`, puis l'entrée automatique en combat et l'initiative.
+4. Refaire dans son axe arrière ou latéral : aucun engagement visuel tant qu'il ne fait pas face au groupe.
+5. Refaire derrière un mur : aucun combat tant que la ligne de vue reste bloquée.
+6. Refaire derrière une porte fermée puis ouvrir la porte : le combat doit démarrer après l'ouverture si le groupe se trouve dans l'axe avant, jamais avant.
+7. Placer le groupe en diagonale dans la portée auditive seulement : vérifier l'alerte logique sans entrée automatique en combat.
+8. Déclencher une rencontre dont la vague apparaît hors vue : vérifier le spawn sans combat.
+9. Déclencher une rencontre dont au moins un membre apparaît en vue et regarde le groupe : vérifier un unique démarrage après la vague complète.
+10. Tuer la première vague et vérifier que la vague suivante n'existe pas dans l'initiative avant son apparition.
+11. Sauvegarder dans un slot de test distinct de `GrimrockParty`, faire Continue et vérifier qu'aucun combat ne démarre pendant la restauration, puis qu'une perception visuelle stable peut engager ensuite.
+12. Vérifier que F5 reste utilisable comme diagnostic et n'est plus nécessaire au gameplay normal.
+13. Contrôler les logs : une seule ligne de réussite MON14.1 par engagement et aucun participant dupliqué.
 
-## Limites MON14.2 / MON14.3
+## Suite MON14.3
 
-MON14.2 doit traiter le champ de vision directionnel, l'état initial `Dormant` sérialisé et les premières données de patrouille sans transformer MON14.1 en système d'IA généraliste.
+MON14.2 fournit désormais le champ de vision directionnel, l'état initial `Idle/Dormant` et les données `None/Loop/PingPong` avec waypoints.
 
-MON14.3 pourra ensuite traiter l'investigation hors combat, les routes `Loop/PingPong`, les attentes aux points de passage et les transitions de comportement associées.
+MON14.3 peut donc se concentrer sur l'exécution hors combat : déplacements entre waypoints, orientations d'arrivée, attentes, abandon immédiat de la patrouille lors d'une perception et transitions vers une éventuelle investigation.

@@ -885,3 +885,18 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
 - Aucun `Tick` IA, `UAIPerceptionComponent`, dépendance Editor ou recherche globale fragile du TurnManager n'est ajouté.
 - `Dormant` reste l'état d'un monstre présent ; `bInitiallyEnabled=false` signifie toujours absence. La sérialisation d'un état initial `Dormant` sur `MonsterSpawn` est reportée à MON14.2.
 - Le document d'implémentation est `docs/Design/MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md`.
+
+---
+
+## 2026-08-14 — MON14.2 : Facing visuel, état initial et données de patrouille
+
+- La ligne de vue runtime des monstres conserve la géométrie axiale MON4, mais elle est désormais filtrée par le `Facing` cardinal courant : une cible située derrière ou latéralement n'est pas vue.
+- `HasStraightLineOfSight()` reste le helper géométrique MON4 ; `HasDirectionalLineOfSight()` porte le contrat MON14.2 utilisé par `UGridMonsterBehaviorComponent`.
+- L'ouïe reste omnidirectionnelle et fondée sur la distance de Manhattan. Le contrat MON14.1 « vue = engagement automatique, ouïe seule = alerte » ne change pas.
+- `MonsterSpawn.InitialMonsterState` est sérialisé et limité à `Idle` ou `Dormant`. `bInitiallyEnabled=false` reste exclusivement une absence de l'Actor.
+- Un spawn frais applique l'état initial avant `BeginPlay`. Une restauration MON9/MON13 reste ensuite autoritaire et remplace cet état par l'état sauvegardé.
+- `EGridMonsterPatrolMode` introduit `None`, `Loop` et `PingPong`. Chaque waypoint contient une cellule, un Facing optionnel et un temps d'attente.
+- Les données de patrouille sont copiées vers l'Actor mais ne produisent encore aucun mouvement, aucune attente et aucun retournement hors combat. Leur exécution appartient à MON14.3.
+- Une patrouille active requiert au moins deux waypoints ; les cellules, orientations et attentes sont validées par `UGridLevelAsset::ValidateMonsterSpawns()`.
+- Aucun `Tick` IA n'est ajouté par MON14.2.
+- Le document d'implémentation est `docs/Design/MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md`.

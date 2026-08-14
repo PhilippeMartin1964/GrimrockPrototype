@@ -35,6 +35,35 @@ enum class EGridMonsterState : uint8
     Dead          UMETA (DisplayName = "Dead")
 };
 
+/** MON14.2 serialized route policy. Route execution belongs to MON14.3. */
+UENUM (BlueprintType)
+enum class EGridMonsterPatrolMode : uint8
+{
+    None     UMETA (DisplayName = "None"),
+    Loop     UMETA (DisplayName = "Loop"),
+    PingPong UMETA (DisplayName = "Ping Pong")
+};
+
+/** One authored patrol stop. Facing=None preserves the travel/arrival facing. */
+USTRUCT (BlueprintType)
+struct FGridMonsterPatrolWaypoint
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Patrol")
+    FIntPoint Cell = FIntPoint::ZeroValue;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Patrol")
+    EGridEdge Facing = EGridEdge::None;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "Monster|Patrol",
+        meta = (ClampMin = "0.0"))
+    float WaitSeconds = 0.0f;
+};
+
 USTRUCT (BlueprintType)
 struct FGridMonsterAttackDefinition
 {

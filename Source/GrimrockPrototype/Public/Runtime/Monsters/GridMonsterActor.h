@@ -184,6 +184,13 @@ public:
     UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Encounter")
     FName EncounterGroupId = NAME_None;
 
+    /** MON14.2 authored route copied from the MonsterSpawn. Execution begins in MON14.3. */
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Patrol")
+    EGridMonsterPatrolMode PatrolMode = EGridMonsterPatrolMode::None;
+
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|Patrol")
+    TArray<FGridMonsterPatrolWaypoint> PatrolWaypoints;
+
     /** Disabled monsters never join or propagate a combat encounter. */
     UPROPERTY (EditInstanceOnly, BlueprintReadOnly, Category = "Monster|Encounter")
     bool bMonsterEnabled = true;
@@ -219,6 +226,9 @@ public:
         Facing = InFacing == EGridEdge::None ? EGridEdge::North : InFacing;
         EncounterGroupId = InEncounterGroupId;
         MonsterState = EGridMonsterState::Idle;
+        PatrolMode = EGridMonsterPatrolMode::None;
+        PatrolWaypoints.Reset ();
+        ApplySpawnPlacementConfiguration ();
         CurrentHealth = MonsterDefinition->MaxHealth;
         CurrentPhysicalArmor = FMath::Max (0, MonsterDefinition->PhysicalArmor);
         CurrentMagicalArmor = FMath::Max (0, MonsterDefinition->MagicalArmor);
@@ -520,6 +530,8 @@ public:
     UGridMonsterAnimInstance* GetGridMonsterAnimInstance () const;
 
 private:
+    void ApplySpawnPlacementConfiguration ();
+
     UPROPERTY (Transient)
     bool bSpawnObjectIdFromMonsterSpawn = false;
 };

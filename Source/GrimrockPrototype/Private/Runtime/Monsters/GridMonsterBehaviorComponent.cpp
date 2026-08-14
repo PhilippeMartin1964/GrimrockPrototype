@@ -87,8 +87,11 @@ bool UGridMonsterBehaviorComponent::RefreshPerception ()
     const bool bPreviousCanHear = bCanHearParty;
     const FIntPoint PartyCell = GetPartyCell ();
 
-    bCanSeeParty = FGridMonsterPerception::HasStraightLineOfSight (
+    // MON14.2 keeps MON4's axial/grid LOS geometry but constrains vision to the
+    // cardinal ray emitted by the monster's authoritative Facing.
+    bCanSeeParty = FGridMonsterPerception::HasDirectionalLineOfSight (
         Monster->CurrentCell,
+        Monster->Facing,
         PartyCell,
         Monster->MonsterDefinition->SightRangeCells,
         [this] (const FIntPoint& From, const FIntPoint& To)
@@ -278,11 +281,12 @@ void UGridMonsterBehaviorComponent::LogDebugState () const
 {
     const AGridMonsterActor* Monster = GetMonsterOwner ();
     UE_LOG (LogGridMonsterAI, Log,
-        TEXT ("[GridMonsterBehavior] Monster=%s Initialized=%s Cell=(%d,%d) See=%s Hear=%s LastKnown=%s(%d,%d) PathFound=%s Goal=(%d,%d) Steps=%d Visited=%d"),
+        TEXT ("[GridMonsterBehavior] Monster=%s Initialized=%s Cell=(%d,%d) Facing=%s See=%s Hear=%s LastKnown=%s(%d,%d) PathFound=%s Goal=(%d,%d) Steps=%d Visited=%d"),
         *GetNameSafe (Monster),
         bInitialized ? TEXT ("true") : TEXT ("false"),
         Monster ? Monster->CurrentCell.X : INDEX_NONE,
         Monster ? Monster->CurrentCell.Y : INDEX_NONE,
+        Monster ? *UEnum::GetValueAsString (Monster->Facing) : TEXT ("None"),
         bCanSeeParty ? TEXT ("true") : TEXT ("false"),
         bCanHearParty ? TEXT ("true") : TEXT ("false"),
         bHasLastKnownPartyCell ? TEXT ("true") : TEXT ("false"),

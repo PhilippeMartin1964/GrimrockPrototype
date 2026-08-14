@@ -88,7 +88,8 @@ class GRIMROCKPROTOTYPE_API FGridMonsterPerception
 public:
     /**
      * MON4 sight is deliberately orthogonal: the target must share X or Y with
-     * the observer and every crossed edge must be open. Corners are handled by hearing.
+     * the observer and every crossed edge must be open. This helper remains as
+     * the geometry-only contract for legacy tests and diagnostics.
      */
     static bool HasStraightLineOfSight (
         const FIntPoint& ObserverCell,
@@ -96,6 +97,21 @@ public:
         int32 SightRangeCells,
         const TFunction<bool (const FIntPoint&, const FIntPoint&)>& CanTraverse);
 
+    /** True only when TargetCell lies on the cardinal ray emitted by Facing. */
+    static bool IsTargetInFacingDirection (
+        const FIntPoint& ObserverCell,
+        EGridEdge Facing,
+        const FIntPoint& TargetCell);
+
+    /** MON14.2 sight: straight-line geometry constrained by monster Facing. */
+    static bool HasDirectionalLineOfSight (
+        const FIntPoint& ObserverCell,
+        EGridEdge Facing,
+        const FIntPoint& TargetCell,
+        int32 SightRangeCells,
+        const TFunction<bool (const FIntPoint&, const FIntPoint&)>& CanTraverse);
+
+    /** Hearing remains omnidirectional and Manhattan-distance based. */
     static bool CanHear (
         const FIntPoint& ObserverCell,
         const FIntPoint& TargetCell,

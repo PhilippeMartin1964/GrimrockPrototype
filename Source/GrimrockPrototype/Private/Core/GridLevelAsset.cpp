@@ -11,6 +11,18 @@ namespace
             Facing == EGridEdge::West;
     }
 
+    bool IsValidMonsterSpawnInitialState (EGridMonsterState State)
+    {
+        return State == EGridMonsterState::Idle ||
+            State == EGridMonsterState::Dormant;
+    }
+
+    bool IsValidPatrolWaypointFacing (EGridEdge Facing)
+    {
+        return Facing == EGridEdge::None ||
+            IsValidMonsterSpawnFacing (Facing);
+    }
+
     float GetYawForFacing (EGridEdge Facing)
     {
         switch (Facing)
@@ -354,6 +366,80 @@ bool UGridLevelAsset::ValidateMonsterSpawns (
             OutErrors.Add (FString::Printf (
                 TEXT ("MonsterSpawn %s requires a cardinal InitialFacing."),
                 *SpawnLabel));
+        }
+
+        if (!IsValidMonsterSpawnInitialState (Spawn.InitialMonsterState))
+        {
+            OutErrors.Add (FString::Printf (
+                TEXT ("MonsterSpawn %s requires InitialMonsterState Idle or Dormant."),
+                *SpawnLabel));
+        }
+
+        if (Spawn.PatrolMode != EGridMonsterPatrolMode::None &&
+            Spawn.PatrolWaypoints.Num () < 2)
+        {
+            OutErrors.Add (FString::Printf (
+                TEXT ("MonsterSpawn %s patrol mode %s requires at least two waypoints."),
+                *SpawnLabel,
+                *UEnum::GetValueAsString (Spawn.PatrolMode)));
+        }
+
+        for (int32 WaypointIndex = 0;
+            WaypointIndex < Spawn.PatrolWaypoints.Num ();
+            ++WaypointIndex)
+        {
+            const FGridMonsterPatrolWaypoint& Waypoint =
+                Spawn.PatrolWaypoints[WaypointIndex];
+            if (!IsValidCoord (Waypoint.Cell.X, Waypoint.Cell.Y))
+            {
+                OutErrors.Add (FString::Printf (
+                    TEXT ("MonsterSpawn %s patrol waypoint %d is outside grid bounds at (%d,%d)."),
+                    *SpawnLabel,
+                    WaypointIndex,
+                    Waypoint.Cell.X,
+                    Waypoint.Cell.Y));
+            }
+            else
+            {
+                const int32 WaypointCellIndex =
+                    GetIndex (Waypoint.Cell.X, Waypoint.Cell.Y);
+                if (!Cells.IsValidIndex (WaypointCellIndex))
+                {
+                    OutErrors.Add (FString::Printf (
+                        TEXT ("MonsterSpawn %s patrol waypoint %d cannot resolve its level cell."),
+                        *SpawnLabel,
+                        WaypointIndex));
+                }
+                else
+                {
+                    const FGridLevelCellData& WaypointCell =
+                        Cells[WaypointCellIndex];
+                    if (WaypointCell.CellType == EGridCellType::Empty ||
+                        WaypointCell.bBlocksOccupancy)
+                    {
+                        OutErrors.Add (FString::Printf (
+                            TEXT ("MonsterSpawn %s patrol waypoint %d must use a non-empty cell that allows occupancy."),
+                            *SpawnLabel,
+                            WaypointIndex));
+                    }
+                }
+            }
+
+            if (!IsValidPatrolWaypointFacing (Waypoint.Facing))
+            {
+                OutErrors.Add (FString::Printf (
+                    TEXT ("MonsterSpawn %s patrol waypoint %d requires Facing=None or a cardinal direction."),
+                    *SpawnLabel,
+                    WaypointIndex));
+            }
+            if (!FMath::IsFinite (Waypoint.WaitSeconds) ||
+                Waypoint.WaitSeconds < 0.0f)
+            {
+                OutErrors.Add (FString::Printf (
+                    TEXT ("MonsterSpawn %s patrol waypoint %d requires a finite non-negative WaitSeconds."),
+                    *SpawnLabel,
+                    WaypointIndex));
+            }
         }
 
         if (Spawn.EncounterWaveIndex < 0)
