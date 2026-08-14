@@ -4,6 +4,7 @@
 #include "Runtime/GridDoorActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridRuntimeObjectActor.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 
 static EGridEdge GetOppositeEdge (EGridEdge Edge)
 {
@@ -91,6 +92,10 @@ bool UGridDoorSystemComponent::OpenDoorOnEdge (int32 X, int32 Y, EGridEdge Edge)
         Y,
         static_cast<int32> (Edge),
         DoorActor->IsAnimating () ? TEXT ("true") : TEXT ("false"));
+
+    GridAutomaticPerceptionEngagement::Request (
+        RuntimeActor,
+        TEXT ("DoorOpened"));
     return true;
 }
 
@@ -258,6 +263,10 @@ void UGridDoorSystemComponent::RebuildIndexes ()
         }
         DoorIndexByEdge.Add (FGridEdgeKey (ObjectData.CellX, ObjectData.CellY, ObjectData.Edge), Index);
     }
+
+    GridAutomaticPerceptionEngagement::Request (
+        RuntimeActor,
+        TEXT ("RuntimeRebuild"));
 }
 
 const FGridLevelObjectData* UGridDoorSystemComponent::GetDoorObjectByIndex (int32 ObjectIndex) const

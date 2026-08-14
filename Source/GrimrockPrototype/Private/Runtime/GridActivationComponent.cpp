@@ -9,6 +9,7 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridGenericObjectActor.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
 
 namespace
@@ -115,6 +116,9 @@ void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 Old
     {
         RefreshPressurePlatesAtCell (NewCellX, NewCellY);
         NotifyPawnEnteredCell (NewCellX, NewCellY);
+        GridAutomaticPerceptionEngagement::Request (
+            RuntimeActor,
+            TEXT ("PartyCellStable"));
         return;
     }
 
@@ -123,6 +127,9 @@ void UGridActivationComponent::HandlePartyCellChanged (int32 OldCellX, int32 Old
 
     NotifyPawnExitedCell (OldCellX, OldCellY);
     NotifyPawnEnteredCell (NewCellX, NewCellY);
+    GridAutomaticPerceptionEngagement::Request (
+        RuntimeActor,
+        TEXT ("PartyTranslationCompleted"));
 }
 
 void UGridActivationComponent::NotifyPawnEnteredCell (int32 CellX, int32 CellY)
@@ -365,6 +372,12 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             {
                 ActiveObjectIds.Remove (TargetObject->ObjectId);
             }
+
+            GridAutomaticPerceptionEngagement::Request (
+                RuntimeActor,
+                ResolvedCommand == EGridObjectCommand::StartEncounter
+                    ? TEXT ("EncounterStarted")
+                    : TEXT ("MonsterLifecycleCommand"));
         }
         LogLinkResult (
             LinkData,

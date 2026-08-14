@@ -871,3 +871,17 @@ Les variantes visuelles passent par `ArchetypeId` et par les assets d’archéty
   demeure une requête distincte du TurnManager.
 - Le document de clôture est
   `docs/Design/MON13_5_MONSTER_SPAWN_CLOSURE.md`.
+
+---
+
+## 2026-08-14 — MON14.1 : engagement automatique par perception visuelle
+
+- Le gameplay normal ne dépend plus de F5 pour raccorder exploration et combat : les événements runtime demandent une évaluation centralisée et différée via `UGridAutomaticPerceptionEngagementSubsystem`.
+- Une source directe d'engagement automatique doit posséder une ligne de vue logique MON4 valide sur le groupe. L'ouïe seule continue à mettre à jour `Alert` et `LastKnownPartyCell`, mais ne déclenche pas automatiquement le combat.
+- `StartCombatFromPerception()` conserve son contrat historique vue/ouïe hors du scope automatique afin de rester utilisable comme diagnostic et de préserver les tests MON5 existants.
+- Les demandes sont coalescées et émises après changement de cellule du groupe, rebuild, ouverture de porte, cycle de vie `MonsterSpawn` et activation atomique d'une vague.
+- `StartEncounter` reste une transaction MON13 de rencontre/spawn et ne doit jamais appeler directement `StartCombat()` ; une vague réussie ne fait que demander l'évaluation de perception après sa transaction.
+- La propagation d'aggro MON7 reste l'autorité pour compléter les participants à partir des sources visuelles, avec la déduplication du TurnManager.
+- Aucun `Tick` IA, `UAIPerceptionComponent`, dépendance Editor ou recherche globale fragile du TurnManager n'est ajouté.
+- `Dormant` reste l'état d'un monstre présent ; `bInitiallyEnabled=false` signifie toujours absence. La sérialisation d'un état initial `Dormant` sur `MonsterSpawn` est reportée à MON14.2.
+- Le document d'implémentation est `docs/Design/MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md`.

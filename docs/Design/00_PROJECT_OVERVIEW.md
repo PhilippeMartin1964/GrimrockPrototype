@@ -67,6 +67,25 @@ MON13.5 clôt le pipeline par des contrats automatisés sur les assets de
 production et une véritable session PIE couvrant la carte de référence, le
 playtest frais, les vagues, les composants de combat et le chargement Continue.
 
+## Engagement exploration → combat
+
+MON14.1 raccorde désormais la perception logique MON4 au TurnManager MON5 sans
+commande gameplay manuelle. Une ligne de vue orthogonale valide depuis un
+monstre vivant et actif vers le groupe peut démarrer automatiquement le combat ;
+l'ouïe seule continue à mettre le monstre en `Alert` et à renseigner sa dernière
+cellule connue, mais ne déclenche pas l'engagement automatique.
+
+Les demandes d'évaluation sont centralisées par
+`UGridAutomaticPerceptionEngagementSubsystem`, différées et coalescées. Elles
+sont émises après les points runtime pertinents : changement de cellule du
+groupe, rebuild, ouverture de porte, apparition de `MonsterSpawn` et vague
+MON13.4. `StartEncounter` reste une transaction de rencontre/spawn et ne force
+jamais directement `StartCombat()`.
+
+La propagation d'aggro MON7 reste l'autorité pour ajouter les alliés du monstre
+qui voit le groupe. Le chemin manuel F5 conserve le contrat historique
+vue/ouïe comme outil de diagnostic.
+
 ---
 
 ## Contraintes générales
@@ -177,6 +196,7 @@ La mémoire principale doit être le dépôt Git.
 | `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Commandes Spawn/Despawn/Teleport et persistance du cycle de vie |
 | `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Rencontres persistantes, vagues atomiques et progression par mort |
 | `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Clôture transversale des assets, vagues, PIE frais et Continue |
+| `MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md` | Engagement exploration → combat par perception visuelle, différé et coalescé |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

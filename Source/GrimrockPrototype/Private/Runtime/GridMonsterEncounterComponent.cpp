@@ -2,6 +2,7 @@
 
 #include "Core/GridLevelAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 
 UGridMonsterEncounterComponent::UGridMonsterEncounterComponent ()
@@ -244,6 +245,13 @@ bool UGridMonsterEncounterComponent::ActivateWave (
     RuntimeActor->ExecuteLinksFromRuntimeObject (
         State.AnchorSpawnId,
         EGridObjectEvent::EncounterWaveStarted);
+
+    // MON13 remains purely responsible for the atomic encounter transaction.
+    // MON14.1 only asks the centralized bridge to inspect perception later,
+    // after every spawn/link side effect in this wave has completed.
+    GridAutomaticPerceptionEngagement::Request (
+        RuntimeActor,
+        TEXT ("EncounterWaveActivated"));
 
     return IsWaveDefeated (State, WaveIndex)
         ? AdvanceCompletedWave (State)

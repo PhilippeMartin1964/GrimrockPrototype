@@ -5,6 +5,7 @@
 #include "EngineUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
@@ -20,9 +21,18 @@ void UGridMonsterBehaviorComponent::BeginPlay ()
 {
     Super::BeginPlay ();
 
-    if (bAutoInitialize && InitializeBehavior (nullptr, nullptr) && bRefreshPerceptionOnBeginPlay)
+    if (bAutoInitialize && InitializeBehavior (nullptr, nullptr))
     {
-        RefreshPerception ();
+        if (bRefreshPerceptionOnBeginPlay)
+        {
+            RefreshPerception ();
+        }
+
+        // Spawn/restore may occur inside an atomic encounter transaction. The
+        // subsystem deliberately defers the actual evaluation until next tick.
+        GridAutomaticPerceptionEngagement::Request (
+            RuntimeActor,
+            TEXT ("MonsterBeginPlay"));
     }
 }
 
@@ -91,7 +101,8 @@ bool UGridMonsterBehaviorComponent::RefreshPerception ()
         PartyCell,
         Monster->MonsterDefinition->HearingRangeCells);
 
-    if (HasPartyPerception ())
+    const bool bHasPartyPerception = HasPartyPerception ();
+    if (bHasPartyPerception)
     {
         bHasLastKnownPartyCell = true;
         LastKnownPartyCell = PartyCell;
@@ -103,7 +114,13 @@ bool UGridMonsterBehaviorComponent::RefreshPerception ()
     {
         OnPerceptionChanged.Broadcast (bCanSeeParty, bCanHearParty);
     }
-    return HasPartyPerception ();
+
+    // Historical callers (including the F5 diagnostic path) keep the MON4
+    // sight-or-hearing contract. Only the scoped MON14.1 automatic collector
+    // requires sight for a monster to become a direct combat source.
+    return GridAutomaticPerceptionEngagement::IsVisualSourceRequired ()
+        ? bCanSeeParty
+        : bHasPartyPerception;
 }
 
 void UGridMonsterBehaviorComponent::ClearLastKnownPartyCell ()
