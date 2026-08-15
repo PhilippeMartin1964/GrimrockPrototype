@@ -1,6 +1,8 @@
 # MON15.3 — Montée de niveau et recalcul des statistiques
 
-Statut : **implémenté en C++ — validation UE5.5.4 en attente**.
+Statut : **VALIDÉ ET CLOS sous Unreal Engine 5.5.4**.
+
+Date de validation : **15 août 2026**.
 
 MON15.3 transforme l'XP cumulative MON15.1/MON15.2 en montée de niveau effective. Il ne crée aucun nouveau champ persistant et ne traite encore ni talents, ni compétences, ni sorts, ni UI de level-up.
 
@@ -127,7 +129,7 @@ nouveau maximum : 25 PV
 après : 20 / 25 PV
 ```
 
-Le personnage porte toujours 5 points de dégâts. Il ne devient pas artificiellement blessé de 10 points parce que son maximum a augmenté.
+Le personnage porte toujours 5 points de dégâts. Il ne devient pas artificiellement blessé parce que son maximum a augmenté.
 
 Cas spécial :
 
@@ -223,7 +225,7 @@ MON15.3 n'ajoute aucun champ :
 
 `UGrimrockPartySaveGame::CurrentSaveVersion` reste `3`.
 
-Après une transaction réussie, sauvegarder/restaurer doit reproduire exactement `Level`, `Experience` et les stats recalculées. Une restauration cohérente ne doit pas produire un second level-up.
+Après une transaction réussie, sauvegarder/restaurer reproduit exactement `Level`, `Experience` et les stats recalculées. Une restauration cohérente ne produit pas un second level-up.
 
 ---
 
@@ -246,30 +248,72 @@ Ces sujets restent réservés à MON15.4–MON15.6.
 
 ---
 
-## 13. Automation Tests
+## 13. Automation Tests — validation finale
 
-Suite dédiée :
+Suite dédiée MON15.3 exécutée sous UE5.5.4 le 15 août 2026 :
 
 ```text
-Grimrock.RPG.MON15.3.SingleLevelResourcePolicy
-Grimrock.RPG.MON15.3.MultiLevelTransaction
-Grimrock.RPG.MON15.3.DeadCharacterRemainsDead
-Grimrock.RPG.MON15.3.AtomicFailure
-Grimrock.RPG.MON15.3.ExperienceAwardIntegration
-Grimrock.RPG.MON15.3.PersistenceState
+Grimrock.RPG.MON15.3.SingleLevelResourcePolicy   Success
+Grimrock.RPG.MON15.3.MultiLevelTransaction      Success
+Grimrock.RPG.MON15.3.DeadCharacterRemainsDead  Success
+Grimrock.RPG.MON15.3.AtomicFailure              Success
+Grimrock.RPG.MON15.3.ExperienceAwardIntegration Success
+Grimrock.RPG.MON15.3.PersistenceState           Success
 ```
 
-Ils couvrent le recalcul PV/mana, les déficits courants, les morts, plusieurs niveaux, les échecs atomiques, l'intégration au gain XP et la persistance.
+Résultats observés significatifs :
+
+```text
+Single level :  Level 1 -> 2, XP=1000, HP=21/27, Mana=7/13
+Dead character: Level 1 -> 2, HP=0/27
+XP integration : 999 + 1 -> 1000, LevelStored=2
+Multi-level :    Level 1 -> 4, LevelsGained=3, XP=6000
+Persistence :    Level 4 / XP=6000 restaurés par le test dédié
+```
+
+Les suites MON15.1 et MON15.2 ainsi que les régressions monstres MON8/MON9 exécutées avec la même campagne restent `Success`.
+
+Les warnings `InvalidClassDefinition` visibles dans certains fixtures MON15.2 sont attendus : ces fixtures historiques n'ont pas de `ClassDefinition`. L'XP y reste acquise et aucun level-up invalide n'est appliqué.
 
 ---
 
-## 14. Porte de sortie
+## 14. Régressions Character Creation
 
-MON15.3 pourra être marqué **VALIDÉ ET CLOS** lorsque :
+La campagne complémentaire du 15 août 2026 confirme :
 
-- les six tests dédiés réussissent sous UE5.5.4 ;
-- MON15.1 et MON15.2 restent verts ;
-- CC2/CC5 et les tests de combat pertinents restent verts ;
-- un scénario PIE réel franchit un seuil XP et montre un unique log `[GridLevelUp]` cohérent ;
-- les PV/mana courants respectent la politique décrite ;
-- sauvegarder/Continue conserve le niveau appliqué sans seconde montée de niveau.
+```text
+Grimrock.CharacterCreation.CC2.CreateInitialCharacter           Success
+Grimrock.CharacterCreation.CC2.RejectInvalidRequestAtomically   Success
+Grimrock.CharacterCreation.CC2.RejectSecondCreation              Success
+Grimrock.CharacterCreation.CC5.RejectInvalidSnapshotAtomically  Success
+Grimrock.CharacterCreation.CC5.SaveMemoryRoundTrip               Success
+```
+
+Les autres tests Character Creation présents dans cette campagne (CC0, CC1, CC4 et CC6) sont également restés `Success`.
+
+---
+
+## 15. PIE réel
+
+Le scénario PIE MON15.3 a été **validé manuellement par l'utilisateur le 15 août 2026**, selon la procédure de la checklist : franchissement d'un seuil XP, level-up unique, cohérence PV/mana, sauvegarde puis Continue sans répétition de la montée de niveau.
+
+Aucun log PIE détaillé n'est archivé dans ce document ; cette partie de la validation repose sur la confirmation manuelle explicite de l'utilisateur.
+
+---
+
+## 16. Clôture
+
+MON15.3 satisfait sa porte de sortie :
+
+- 6/6 tests dédiés MON15.3 `Success` ;
+- MON15.1 et MON15.2 sans régression ;
+- CC2 3/3 `Success` ;
+- CC5 2/2 `Success` ;
+- combat/victoire et persistance monstres sans régression dans la campagne fournie ;
+- PIE réel validé manuellement ;
+- aucun nouveau champ SaveGame ;
+- aucun `.uasset`, `.umap` ou WBP requis.
+
+L'exécution réussie des Automation Tests sous UE5.5.4 confirme que le module C++ testé est chargé et exécutable. Aucun transcript UBT/Visual Studio séparé n'a été archivé pour cette clôture.
+
+**MON15.3 — VALIDÉ ET CLOS.**
