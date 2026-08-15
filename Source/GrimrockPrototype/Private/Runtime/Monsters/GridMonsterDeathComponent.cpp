@@ -4,8 +4,11 @@
 #include "Animation/AnimMontage.h"
 #include "Components/BoxComponent.h"
 #include "EngineUtils.h"
+#include "RPG/RPGExperienceRewardService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterAudioComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
@@ -17,6 +20,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterDeath, Log, All);
 DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterLoot, Log, All);
+DEFINE_LOG_CATEGORY_STATIC (LogGridExperience, Log, All);
 
 namespace
 {
@@ -53,6 +57,26 @@ namespace
             FVector (-20.0f, -20.0f, 0.0f)
         };
         return Offsets[LootIndex % UE_ARRAY_COUNT (Offsets)];
+    }
+
+    UGridPartyInventoryComponent* FindMON152PartyInventory (
+        UWorld* World)
+    {
+        if (!World)
+        {
+            return nullptr;
+        }
+
+        for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
+        {
+            AGrimrockPartyPawn* PartyPawn = *It;
+            if (IsValid (PartyPawn) &&
+                IsValid (PartyPawn->PartyInventoryComponent))
+            {
+                return PartyPawn->PartyInventoryComponent;
+            }
+        }
+        return nullptr;
     }
 }
 
@@ -159,6 +183,45 @@ bool UGridMonsterDeathComponent::CommitDeath ()
     }
 
     GenerateAndPlaceLoot ();
+
+    const int32 RequestedExperienceReward =
+        OwnerMonster->MonsterDefinition
+            ? FMath::Max (0, OwnerMonster->MonsterDefinition->ExperienceReward)
+            : 0;
+    int32 AppliedExperienceReward = 0;
+    if (RequestedExperienceReward > 0)
+    {
+        if (UGridPartyInventoryComponent* PartyInventory =
+            FindMON152PartyInventory (GetWorld ()))
+        {
+            AppliedExperienceReward =
+                FRPGExperienceRewardService::AwardToActiveParty (
+                    PartyInventory,
+                    RequestedExperienceReward);
+        }
+        else
+        {
+            UE_LOG (
+                LogGridExperience,
+                Warning,
+                TEXT ("[GridExperience] Monster=%s PersistenceId=%s Reward=%d Applied=0 Reason=MissingPartyInventory"),
+                *GetNameSafe (OwnerMonster),
+                *OwnerMonster->ResolvePersistenceId ().ToString (),
+                RequestedExperienceReward);
+        }
+    }
+
+    if (RequestedExperienceReward > 0)
+    {
+        UE_LOG (
+            LogGridExperience,
+            Log,
+            TEXT ("[GridExperience] Monster=%s PersistenceId=%s Reward=%d Applied=%d"),
+            *GetNameSafe (OwnerMonster),
+            *OwnerMonster->ResolvePersistenceId ().ToString (),
+            RequestedExperienceReward,
+            AppliedExperienceReward);
+    }
 
     bool bLinksExecuted = false;
     if (RuntimeActor && EncounterSpawnId.IsValid ())
