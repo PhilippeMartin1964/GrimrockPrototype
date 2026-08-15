@@ -18,7 +18,8 @@ DECLARE_MULTICAST_DELEGATE_FourParams (
 
 /**
  * Stateless MON15.2 transaction for sharing one monster XP reward between the
- * active party. It never changes Level, derived stats, inventory or hotbar.
+ * active party. MON15.3 resolves any pending level-up synchronously after the
+ * XP mutations and before the XP/inventory notifications are broadcast.
  */
 struct GRIMROCKPROTOTYPE_API FRPGExperienceRewardService
 {

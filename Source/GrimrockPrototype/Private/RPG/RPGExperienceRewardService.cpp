@@ -1,6 +1,7 @@
 #include "RPG/RPGExperienceRewardService.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGLevelUpService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridExperience, Log, All);
@@ -122,12 +123,22 @@ int32 FRPGExperienceRewardService::AwardToActiveParty (
         PendingAwards.Add (Pending);
     }
 
-    // Apply every state mutation before notifying external observers. This keeps
-    // the group transaction coherent if a listener immediately reads the party.
+    // Apply every XP mutation first so level-up calculations see the complete
+    // group reward transaction before any external observer is notified.
     for (const FRPGPendingExperienceAward& Pending : PendingAwards)
     {
         ActiveCharacters[Pending.CharacterIndex].Experience =
             Pending.NewExperience;
+    }
+
+    // MON15.3: resolve pending level-ups synchronously before XP/inventory
+    // notifications. The later inventory notification covers both mutations.
+    for (const FRPGPendingExperienceAward& Pending : PendingAwards)
+    {
+        FRPGLevelUpService::ApplyPendingLevelUp (
+            PartyInventoryComponent,
+            Pending.CharacterIndex,
+            false);
     }
 
     for (const FRPGPendingExperienceAward& Pending : PendingAwards)
