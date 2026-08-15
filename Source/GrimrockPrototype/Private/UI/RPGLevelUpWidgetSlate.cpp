@@ -76,14 +76,20 @@ TSharedRef<SWidget> URPGLevelUpWidget::RebuildWidget ()
                         SAssignNew (NativeConfirmButton, SButton)
                         .HAlign (HAlign_Center)
                         .Text (LOCTEXT ("Confirm", "Confirmer"))
-                        .OnClicked (this, &URPGLevelUpWidget::HandleNativeConfirmClicked)
+                        .OnClicked (
+                            FOnClicked::CreateUObject (
+                                this,
+                                &URPGLevelUpWidget::HandleNativeConfirmClicked))
                     ]
                     + SHorizontalBox::Slot ().FillWidth (1.0f).Padding (8.0f, 0.0f, 0.0f, 0.0f)
                     [
                         SNew (SButton)
                         .HAlign (HAlign_Center)
                         .Text (LOCTEXT ("Cancel", "Annuler"))
-                        .OnClicked (this, &URPGLevelUpWidget::HandleNativeCancelClicked)
+                        .OnClicked (
+                            FOnClicked::CreateUObject (
+                                this,
+                                &URPGLevelUpWidget::HandleNativeCancelClicked))
                     ]
                 ]
             ]
