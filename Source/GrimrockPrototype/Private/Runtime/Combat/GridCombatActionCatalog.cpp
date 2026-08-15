@@ -1,5 +1,6 @@
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 
+#include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 
 #define LOCTEXT_NAMESPACE "GridCombatActionCatalog"
@@ -191,6 +192,11 @@ void FGridCombatActionCatalog::Build (
     const TArray<FGridCombatActionContribution>& Contributions,
     TArray<FGridAvailableCombatAction>& OutActions)
 {
+    FGridCombatActionCatalogContext EffectiveContext = Context;
+    FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements (
+        Context.CharacterId,
+        EffectiveContext.SatisfiedRequirements);
+
     OutActions.Reset (Contributions.Num ());
     for (const FGridCombatActionContribution& Contribution : Contributions)
     {
@@ -201,8 +207,8 @@ void FGridCombatActionCatalog::Build (
 
         FGridAvailableCombatAction Available;
         Available.Definition = Contribution.Definition;
-        Available.CharacterIndex = Context.CharacterIndex;
-        Available.CharacterId = Context.CharacterId;
+        Available.CharacterIndex = EffectiveContext.CharacterIndex;
+        Available.CharacterId = EffectiveContext.CharacterId;
         Available.SourceDefinitionId = Contribution.SourceDefinitionId;
         Available.SourceRuntimeId = Contribution.SourceRuntimeId;
         Available.SourceEquipmentSlot =
@@ -216,7 +222,7 @@ void FGridCombatActionCatalog::Build (
         Available.CurrentSourceItemQuantity =
             Contribution.AvailableSourceQuantity;
         Available.AvailabilityReason = EvaluateMON126Availability (
-            Context,
+            EffectiveContext,
             Contribution);
         Available.bEnabled =
             Available.AvailabilityReason ==

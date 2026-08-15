@@ -11,6 +11,15 @@ DECLARE_MULTICAST_DELEGATE_FourParams (
     int32,
     int32);
 
+/** Source-aware MON15.5 notification without breaking MON15.3 observers. */
+DECLARE_MULTICAST_DELEGATE_FiveParams (
+    FGridCharacterLevelUpAppliedWithSourceNativeSignature,
+    UGridPartyInventoryComponent*,
+    int32,
+    int32,
+    int32,
+    int32);
+
 /**
  * MON15.3 runtime transaction for applying level changes already justified by
  * cumulative Experience. The service owns no persistent state.
@@ -37,4 +46,11 @@ struct GRIMROCKPROTOTYPE_API FRPGLevelUpService
      */
     static FGridCharacterLevelUpAppliedNativeSignature&
         OnCharacterLevelUpApplied ();
+
+    /**
+     * PartyInventoryComponent, CharacterIndex, PreviousLevel, NewLevel,
+     * LevelsGained. Added by MON15.5 for runtime notification/UI routing.
+     */
+    static FGridCharacterLevelUpAppliedWithSourceNativeSignature&
+        OnCharacterLevelUpAppliedWithSource ();
 };

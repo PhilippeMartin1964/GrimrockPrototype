@@ -2,6 +2,7 @@
 
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridLevelUp, Log, All);
@@ -71,6 +72,13 @@ FGridCharacterLevelUpAppliedNativeSignature&
 FRPGLevelUpService::OnCharacterLevelUpApplied ()
 {
     static FGridCharacterLevelUpAppliedNativeSignature Delegate;
+    return Delegate;
+}
+
+FGridCharacterLevelUpAppliedWithSourceNativeSignature&
+FRPGLevelUpService::OnCharacterLevelUpAppliedWithSource ()
+{
+    static FGridCharacterLevelUpAppliedWithSourceNativeSignature Delegate;
     return Delegate;
 }
 
@@ -169,6 +177,11 @@ bool FRPGLevelUpService::ApplyPendingLevelUp (
     Character.Level = TargetLevel;
     Character.DerivedStats = NewStats;
 
+    // MON15.5 projection is ready before any observer or UI reads the new level.
+    FRPGClassProgressionTransactionService::RefreshCharacterProjection (
+        PartyInventoryComponent,
+        CharacterIndex);
+
     if (bNotifyPartyInventoryChanged)
     {
         PartyInventoryComponent->NotifyPartyInventoryChanged (
@@ -176,6 +189,12 @@ bool FRPGLevelUpService::ApplyPendingLevelUp (
     }
 
     const int32 LevelsGained = TargetLevel - PreviousLevel;
+    OnCharacterLevelUpAppliedWithSource ().Broadcast (
+        PartyInventoryComponent,
+        CharacterIndex,
+        PreviousLevel,
+        TargetLevel,
+        LevelsGained);
     OnCharacterLevelUpApplied ().Broadcast (
         CharacterIndex,
         PreviousLevel,
