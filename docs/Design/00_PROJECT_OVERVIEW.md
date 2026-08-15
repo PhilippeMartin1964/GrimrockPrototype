@@ -91,8 +91,27 @@ compte comme vision que s'il se trouve devant le `Facing` cardinal courant du
 monstre. `MonsterSpawn` peut également démarrer en `Idle` ou `Dormant`, sans
 confondre la dormance avec l'absence `bInitiallyEnabled=false`. Enfin, le niveau
 peut sérialiser une route de patrouille `None`, `Loop` ou `PingPong` avec des
-waypoints, orientations d'arrivée et temps d'attente. MON14.2 ne déplace pas
-encore les gardes hors combat ; l'exécution de ces routes appartient à MON14.3.
+waypoints, orientations d'arrivée et temps d'attente.
+
+MON14.3 exécute ces routes hors combat sans Tick IA permanent. Les gardes
+rejoignent et parcourent leurs waypoints, respectent orientation et attente,
+interrompent leur patrouille sur perception, enquêtent vers
+`LastKnownPartyCell`, effectuent une recherche locale puis reprennent leur
+patrouille si le groupe n'est pas retrouvé. Toute locomotion d'exploration est
+suspendue atomiquement lorsque le combat prend la main.
+
+MON14.3.1 ajoute l'édition visuelle des routes dans le Grimrock Grid Editor :
+création et sélection des waypoints par clic, ordre, `Loop/PingPong`, Facing,
+attente et rendu numéroté directement dans le viewport. Ce jalon a été validé
+manuellement sur `L_GrimrockEditor`.
+
+MON14.4 étend cette exploration par une alarme locale entre monstres. Il
+réutilise strictement le contrat MON7 (`bSharesAggroWithGroup`,
+`AggroPropagationRange`, même `MonsterId` et même `EncounterGroupId`) : un
+monstre qui perçoit le groupe peut réveiller des alliés proches et leur fournir
+sa dernière cellule connue. Les alliés passent en investigation, mais l'alarme
+seule ne démarre jamais le combat ; la vision réelle MON14.1 reste l'unique
+autorité d'engagement automatique.
 
 ---
 
@@ -206,6 +225,9 @@ La mémoire principale doit être le dépôt Git.
 | `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Clôture transversale des assets, vagues, PIE frais et Continue |
 | `MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md` | Engagement exploration → combat par perception visuelle, différé et coalescé |
 | `MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md` | Facing visuel, état initial Idle/Dormant et fondation des routes de patrouille |
+| `MON14_3_RUNTIME_PATROL_INVESTIGATION.md` | Exécution événementielle des patrouilles, investigation et recherche locale |
+| `MON14_3_1_VISUAL_PATROL_ROUTE_EDITOR.md` | Édition visuelle des routes de patrouille dans le Grid Editor |
+| `MON14_4_EXPLORATION_ALARM_COORDINATION.md` | Alerte locale MON7 entre monstres et renforts d'investigation |
 | `99_DECISIONS_LOG.md` | Journal des décisions validées |
 
 ---

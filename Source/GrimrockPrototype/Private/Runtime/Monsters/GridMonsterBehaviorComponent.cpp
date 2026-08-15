@@ -9,6 +9,7 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
+#include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
 
 DEFINE_LOG_CATEGORY (LogGridMonsterAI);
 
@@ -112,6 +113,26 @@ bool UGridMonsterBehaviorComponent::RefreshPerception ()
     }
 
     UpdateOwnerStateFromPerception ();
+
+    // MON14.4: reuse the already validated MON7 group/range contract as a
+    // local exploration alarm. This never starts combat by itself; it only
+    // wakes eligible allies and gives them the source's last known party cell.
+    if (bHasPartyPerception)
+    {
+        if (UWorld* World = GetWorld ())
+        {
+            if (UGridMonsterPatrolSubsystem* PatrolSubsystem =
+                World->GetSubsystem<UGridMonsterPatrolSubsystem> ())
+            {
+                PatrolSubsystem->HandleExplorationAlert (
+                    Monster,
+                    PartyCell,
+                    bCanSeeParty
+                        ? TEXT ("PerceptionVision")
+                        : TEXT ("PerceptionHearing"));
+            }
+        }
+    }
 
     if (bPreviousCanSee != bCanSeeParty || bPreviousCanHear != bCanHearParty)
     {

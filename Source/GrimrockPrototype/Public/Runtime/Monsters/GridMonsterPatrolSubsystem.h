@@ -49,6 +49,10 @@ public:
  * MON14.3 event-driven exploration AI orchestrator.
  * Movement/occupancy remain MON3 responsibilities, perception/pathfinding MON4
  * responsibilities. This subsystem adds no permanent AI Tick.
+ *
+ * MON14.4 also reuses the MON7 aggro-sharing contract as a local exploration
+ * alarm. Hearing/vision can wake same-group allies and give them the last known
+ * party cell, but an alarm by itself never starts combat.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridMonsterPatrolSubsystem : public UWorldSubsystem
@@ -67,6 +71,15 @@ public:
 
     bool ProcessMonsterNow (
         AGridMonsterActor* Monster,
+        FName Reason = NAME_None);
+
+    /**
+     * MON14.4 exploration alarm entry point used by MON4 perception refresh.
+     * Returns the number of newly redirected allies. This never starts combat.
+     */
+    int32 HandleExplorationAlert (
+        AGridMonsterActor* SourceMonster,
+        const FIntPoint& KnownPartyCell,
         FName Reason = NAME_None);
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Patrol")
