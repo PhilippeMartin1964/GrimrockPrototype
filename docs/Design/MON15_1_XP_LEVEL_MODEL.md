@@ -1,8 +1,10 @@
 # MON15.1 — XP & Level Model
 
-Statut : **implémenté en C++ — validation UE5.5.4 en attente**.
+Statut : **VALIDÉ sous Unreal Engine 5.5.4 — Automation Tests fournis le 15 août 2026**.
 
-Ce document décrit le modèle de progression introduit par MON15.1. Il ne constitue pas une validation fonctionnelle : le jalon ne sera marqué `Validé` qu'après retour des Automation Tests exécutés dans Unreal Engine 5.5.4.
+Ce document décrit le modèle de progression introduit par MON15.1 et sa validation. Les quatre Automation Tests dédiés ont été exécutés sous Unreal Engine 5.5.4 et ont tous retourné `Success`. Les trois tests de non-régression `Grimrock.CharacterCreation.CC2.*` fournis dans la même session ont également retourné `Success`.
+
+Aucun log séparé de commande de compilation n'a été fourni avec cette validation ; le présent document n'affirme donc pas qu'une commande de build distincte a été exécutée. Il constate uniquement les résultats UE5.5.4 effectivement fournis.
 
 ---
 
@@ -223,19 +225,47 @@ Grimrock.RPG.MON15.1.ProgressionBoundaries
 Grimrock.RPG.MON15.1.ExistingCharacterState
 ```
 
+Résultats UE5.5.4 fournis le 15 août 2026 :
+
+```text
+Grimrock.RPG.MON15.1.ProgressionCurve          Success
+Grimrock.RPG.MON15.1.LevelFromExperience       Success
+Grimrock.RPG.MON15.1.ProgressionBoundaries     Success
+Grimrock.RPG.MON15.1.ExistingCharacterState    Success
+```
+
 Les tests sont indépendants des WBP, maps et DataAssets de production.
 
 Ils couvrent les seuils, les bornes, la monotonie, la reconstruction du niveau, la cohérence d'un `FGridCharacterInventoryState` existant et l'absence de mutation de ses attributs, inventaire et hotbar par les helpers purs.
 
+### Non-régression création de personnage
+
+La même validation fournie contient également :
+
+```text
+Grimrock.CharacterCreation.CC2.CreateInitialCharacter          Success
+Grimrock.CharacterCreation.CC2.RejectInvalidRequestAtomically  Success
+Grimrock.CharacterCreation.CC2.RejectSecondCreation             Success
+```
+
+Ces résultats confirment que MON15.1 ne casse pas les contrats CC2 couverts par cette suite.
+
 ---
 
-## 11. Porte de sortie MON15.1
+## 11. Validation MON15.1
 
-Le code est prêt pour validation UE5.5.4 lorsque :
+La porte de sortie MON15.1 est franchie sur la base des résultats UE5.5.4 fournis :
 
-1. le projet compile localement ;
-2. les quatre tests `Grimrock.RPG.MON15.1.*` réussissent ;
-3. les tests de non-régression jugés utiles sur création/inventaire/save restent verts ;
-4. aucun comportement MON15.2 n'a été introduit prématurément.
+1. les quatre tests `Grimrock.RPG.MON15.1.*` réussissent ;
+2. les trois tests `Grimrock.CharacterCreation.CC2.*` exécutés en non-régression réussissent ;
+3. aucun comportement MON15.2 n'a été introduit prématurément ;
+4. aucun `.uasset`, `.umap` ou WBP n'a été modifié ;
+5. aucun changement du format SaveGame n'a été introduit.
 
-Tant que ces résultats UE5 n'ont pas été fournis, MON15.1 reste **implémenté mais non validé**.
+MON15.1 est donc **VALIDÉ ET CLOS**.
+
+Le prochain sous-jalon autorisé est :
+
+```text
+MON15.2 — Attribution XP après combat
+```
