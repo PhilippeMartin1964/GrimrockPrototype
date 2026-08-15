@@ -158,8 +158,9 @@ bool FRPGMON154DefinitionValidationTest::RunTest (const FString& Parameters)
 
     URPGClassAsset* DuplicateLevel =
         MakeMON154Class (GetTransientPackage ());
-    DuplicateLevel->ProgressionLevelGrants.Add (
-        DuplicateLevel->ProgressionLevelGrants[0]);
+    const FRPGClassProgressionLevelGrant DuplicateGrant =
+        DuplicateLevel->ProgressionLevelGrants[0];
+    DuplicateLevel->ProgressionLevelGrants.Add (DuplicateGrant);
     TestFalse (TEXT ("Duplicate grant level is rejected"),
         DuplicateLevel->IsValidDefinition ());
 
