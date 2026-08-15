@@ -1,98 +1,163 @@
 # GrimrockPrototype Design Docs
 
-This folder is the stable design memory for the GrimrockPrototype grid, object, connector, runtime, and editor workflows. It is meant to keep decisions readable across ChatGPT, Codex, Unreal Editor, and Git sessions.
+This folder is the stable design memory for the GrimrockPrototype project. It keeps accepted decisions, active roadmaps, implementation contracts and validation checklists readable across ChatGPT, Codex, Unreal Editor and Git sessions.
 
-## Recommended Reading Order
+## Active Reading Order
 
-1. `00_PROJECT_OVERVIEW.md` - current project overview.
-2. `01_GRID_OBJECT_SYSTEM.md` - current grid object model.
-3. `02_OBJECT_ARCHETYPES.md` - current archetype naming and object families.
-4. `03_EVENT_COMMAND_LINKS.md` - current connector semantics.
-5. `ITEM_CONTEXT_ACTION_SYSTEM.md` - target inventory UX: right-click contextual actions, drag/drop shortcuts, assisted world targets and Cursor deprecation as public model.
-6. `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` - validation checklist for the current inventory context action MVP.
-7. `INVENTORY_INTERACTION_ROUTING.md` - C++ / Blueprint responsibility map for inventory interactions and context actions.
-8. `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` - construction guide for inventory UMG widgets, menu, buttons, tooltip, inspect and read panels.
-9. `GRIMROCK_LOCK_SYSTEM.md` - prospective lock, key, lockpicking, trap and lockable container design.
-10. `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` - current MVP wall lock behavior, including explicit inventory key context action, cursor insertion and `Activated -> Door.Open` connector rule.
-11. `06_GRID_EDITOR_UX_SPEC.md` - current editor UX target and implemented UI decisions.
-12. `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` - audit of archetype fields after UI/runtime cleanup.
-13. `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` - practical reference explaining each DataAsset / GridObjectArchetypeAsset parameter.
-14. `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` - production guide for item definitions, pickup archetypes, palette entries and receptacle content.
-15. `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` - audit/checklist for concrete DataAssets.
-16. `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` - naming normalization plan.
-17. `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` - UI/runtime consistency checklist.
-18. `04_IMPLEMENTATION_ROADMAP.md` - historical implementation roadmap.
-19. `05_CODEX_TASKS.md` - historical Codex task templates.
-20. `99_DECISIONS_LOG.md` - chronological decision log.
-21. `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` - target combat architecture: global rounds, initiative, personal AP, shared party mobility and action catalogue.
-22. `MON12_1_COMBAT_ACTION_PANEL.md` - validated reusable combat-panel vertical slice and V2 migration note.
-23. `MON12_2_COMBAT_ACTION_CLICKS.md` - validated MainHand/OffHand compatibility routing and V2 migration note.
-24. `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` - authoritative player turn states, four-AP budget, two-AP attacks and UMG migration.
-25. `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` - implemented mixed initiative order, one active combatant, end-turn flow and initiative events.
-26. `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` - validated party translation costs, shared mobility points and free rotations.
-27. `MON12_6_COMBAT_ACTION_CATALOG.md` - generic action definitions, equipment/class contributions, runtime availability and MON11 attack adapter.
-28. `MON13_1_MONSTER_SPAWN_MODEL.md` - persistent MonsterSpawn identity, definition, orientation and editor validation.
-29. `MON13_2_MONSTER_SPAWN_PIPELINE.md` - strict definition resolution, skeletal editor preview and runtime Actor creation.
-30. `MON13_3_MONSTER_RUNTIME_COMMANDS.md` - persistent Spawn, Despawn and Teleport commands with lifecycle events.
-31. `MON13_4_MONSTER_ENCOUNTER_WAVES.md` - persistent encounter groups, ordered waves and death-driven progression.
-32. `MON13_5_MONSTER_SPAWN_CLOSURE.md` - production asset contract and real PIE closure of the MON13 spawn pipeline.
+For current development work, read these first:
 
-## Document Status
+1. `00_PROJECT_OVERVIEW.md` — current project orientation and validated state.
+2. `PROJECT_COMPLETION_ROADMAP.md` — **active backlog from MON15 onward**.
+3. `MON14_CLOSURE.md` — closure of automatic engagement, directional perception, patrol, investigation, route editing and alarm coordination.
+4. `99_DECISIONS_LOG.md` — chronological authoritative decision log.
+5. `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` — current combat architecture.
+6. `GRIMROCK_LOCK_SYSTEM.md` — lock/key/lockpicking/container target design.
+7. `06_GRID_EDITOR_UX_SPEC.md` — current editor UX target.
+
+`04_IMPLEMENTATION_ROADMAP.md` and `05_CODEX_TASKS.md` are historical documents. They remain useful context but **do not define the active backlog**.
+
+---
+
+## Current Major Milestones
+
+| Family | Status | Summary |
+|---|---|---|
+| MON1–MON10 | Validated foundation | Monster definition, actor, movement, pathfinding, perception, combat, death, persistence, presentation, balance. |
+| MON11 | Validated | Party attack pipeline, offensive equipment, presentation and thrown weapons. |
+| MON12 | Validated | Global initiative, AP/PAM, action catalogue, HUD, hotbar, quick items, spell/action targeting and cooldowns. |
+| MON13 | Validated / Closed | Persistent `MonsterSpawn`, runtime Spawn/Despawn/Teleport, encounter groups, waves, production asset contracts and real PIE closure. |
+| MON14 | **Validated / Closed** | Automatic visual engagement, directional sight, Idle/Dormant, patrol data/runtime, investigation/search, visual route editor and local alarm coordination. |
+| MON15 | **Next** | XP and level progression. |
+
+MON14 closure was validated on 15 August 2026, including:
+
+```text
+Grimrock.Monsters.MON14.4.AlarmFiltering           Success
+Grimrock.Monsters.MON14.4.HearingAlarmPropagation Success
+Grimrock.Monsters.MON14.4.SharingDisabled          Success
+```
+
+and a manual functional validation in `L_GrimrockEditor` / PIE.
+
+---
+
+## Active Roadmap
+
+The accepted order is:
+
+```text
+MON15 — XP & Level Progression
+MON16 — Status Effects
+MON17 — Second Monster Family
+MON18 — Magic & Spellbook
+MON19 — Advanced Dungeon Logic / Scripting
+MON20 — Recruitment / Skills / Talents
+MON21 — Quests / Journal / Map / Codex
+MON22 — 45–90 Minute Vertical Slice
+```
+
+The immediate task is:
+
+```text
+MON15.1 — XP & Level Model
+```
+
+See `PROJECT_COMPLETION_ROADMAP.md` for scope and exit criteria.
+
+---
+
+## Core Design Documents
 
 | Document | Status | Role |
 |---|---|---|
-| `00_PROJECT_OVERVIEW.md` | Current | Project orientation and high-level goals. |
+| `00_PROJECT_OVERVIEW.md` | Current | Project orientation, validated milestones and next phase. |
+| `PROJECT_COMPLETION_ROADMAP.md` | **Current / Active Backlog** | Authoritative MON15→MON22 development order and exit gates. |
+| `MON14_CLOSURE.md` | Validated Closure | Consolidated MON14 result and validation evidence. |
 | `01_GRID_OBJECT_SYSTEM.md` | Current | Grid object model and runtime/editor split. |
 | `02_OBJECT_ARCHETYPES.md` | Current | Concrete archetype families and naming rules. |
 | `03_EVENT_COMMAND_LINKS.md` | Current | Explicit `Source Object + Source Event + Target Object + Command` connector rules. |
-| `ITEM_CONTEXT_ACTION_SYSTEM.md` | Design Target / Partial Implementation | Inventory UX target plus the current Patch 1 C++ foundation for contextual action discovery and UMG integration. |
-| `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` | Current / Validation | Validation checklist and static audit result for the current context action MVP. |
-| `INVENTORY_INTERACTION_ROUTING.md` | Current / Reference | Blueprint versus C++ responsibility map for inventory clicks, drag/drop, context menu execution and UI dismissal. |
-| `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` | Current / Production Guide | UMG construction guide for inventory slots, context menu, action buttons, tooltip, inspection and reading panels. |
-| `GRIMROCK_LOCK_SYSTEM.md` | Design / Prospective | Lock, key, lockpicking, trapped lock and lockable container specification; must stay compatible with the existing Event -> Command model. |
-| `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` | Current / MVP | Runtime behavior for wall locks: explicit inventory key context action, cursor insertion, visual key attachment and mandatory `Activated -> Door.Open` connector. |
-| `04_IMPLEMENTATION_ROADMAP.md` | Historical | Initial roadmap; several phases are done or superseded. |
-| `05_CODEX_TASKS.md` | Historical | Prompt/task templates, not the active backlog. |
-| `06_GRID_EDITOR_UX_SPEC.md` | Current | Editor UX specification and recent UI cleanup decisions. |
-| `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` | Audit | Phase 4A archetype field audit, updated after cleanup. |
-| `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` | Audit / Checklist | DataAsset review checklist. |
-| `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` | Checklist | Naming normalization plan. |
-| `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` | Checklist | UI/runtime consistency checklist for Selected Object, CONNECTORS, orientation, DataAssets and runtime. |
-| `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` | Current / Reference | Practical table explaining every current `UGridObjectArchetypeAsset` and `DefaultBehavior` parameter. |
-| `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | Current / Production Guide | Asset creation workflow for inventory item definitions, placeable pickup archetypes, palette entries and receptacle content. |
-| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Design Target | Authoritative target for rounds, global initiative, personal AP, party mobility AP, action catalogue, HUD and revised MON12 roadmap. |
-| `MON12_1_COMBAT_ACTION_PANEL.md` | Validated Vertical Slice / Migration | Read-only per-member combat panel, event-driven refresh, Widget Blueprint construction and migration from `AlreadyActed`. |
-| `MON12_2_COMBAT_ACTION_CLICKS.md` | Validated Vertical Slice / Migration | MainHand/OffHand click routing kept as a compatibility adapter until the action catalogue replaces slot buttons. |
-| `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` | Validated Foundation / Superseded Flow | Authoritative per-character PA state and two-point attack cost; MON12.4 now activates and restores one character at a time. |
-| `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Validated | Deterministic global initiative, one active combatant, individual player/monster turns and event model for the future initiative bar. |
-| `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Validated | Personal and shared movement costs, free rotations, authoritative refusals and interpolation-safe turn completion. |
-| `MON12_6_COMBAT_ACTION_CATALOG.md` | Implemented / Validation Required | Generic action definitions, pure catalogue construction, source provenance and first generic MON11 attack execution. |
-| `MON13_1_MONSTER_SPAWN_MODEL.md` | Validated | Persistent placement model, palette contract, stable SpawnId and editor validation rules. |
-| `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Validated | Strict MonsterSpawn resolution, skeletal editor preview, deferred runtime Actor creation and rebuild lifecycle. |
-| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Validated | Persistent runtime Spawn, Despawn and intra-level Teleport commands, lifecycle events and atomic rollback. |
-| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Validated | Persistent encounter groups, atomic ordered waves, death-only progression and encounter lifecycle events. |
-| `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Implemented / Validation Required | Production Rat class contract and real PIE regression coverage for the versioned encounter map. |
+| `04_IMPLEMENTATION_ROADMAP.md` | Historical | Initial object-system roadmap, superseded as active backlog. |
+| `05_CODEX_TASKS.md` | Historical | Historical task templates. |
+| `06_GRID_EDITOR_UX_SPEC.md` | Current | Editor UX specification. |
+| `07_GRID_OBJECT_ARCHETYPE_ASSET_AUDIT.md` | Audit | Archetype field audit. |
+| `08_GRID_OBJECT_ARCHETYPE_DATA_ASSETS_AUDIT.md` | Audit / Checklist | Concrete DataAsset review. |
+| `09_GRID_OBJECT_ARCHETYPE_NAMING_NORMALIZATION_PLAN.md` | Checklist | Naming normalization. |
+| `10_GRID_EDITOR_UI_CONSISTENCY_CHECKLIST.md` | Checklist | Editor UI/runtime consistency. |
+| `11_GRID_OBJECT_ARCHETYPE_PARAMETERS_REFERENCE.md` | Current / Reference | Practical archetype parameter reference. |
 | `99_DECISIONS_LOG.md` | Decision Log | Authoritative chronological record of accepted decisions. |
 
-## Documents With Diagrams
+---
 
-The following current design documents include Mermaid diagrams or visual tables:
+## Inventory / Interaction / Lock Documents
 
-| Document | Diagram Focus |
-|---|---|
-| `ITEM_CONTEXT_ACTION_SYSTEM.md` | Context action overview, right-click flow, action execution map, Tooltip / Examiner / Lire distinction. |
-| `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` | MVP scope and compact validation matrix. |
-| `INVENTORY_INTERACTION_ROUTING.md` | C++ / Blueprint responsibility split, mouse routing, drag/drop and menu dismissal. |
-| `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` | `WBP_GridInventory`, `WBP_ItemActionMenu`, fullscreen click catcher and `Border_MenuPanel` positioning. |
-| `GRIMROCK_LOCK_SYSTEM.md` | Key / lock / door separation, key compatibility and `Activated -> Door.Open` flow. |
-| `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` | Current WallLock runtime flow and no inventory auto-unlock rule. |
-| `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | `DA_Item_XXX` versus `DA_Object_XXXPickup`, item creation flow and responsibility table. |
-| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Combat lifecycle, action-source catalogue and authoritative action execution sequence. |
-| `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` | Player turn-state and action-point lifecycle during the phase-based migration. |
-| `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Global order, individual turn lifecycle and initiative-bar event contract. |
-| `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | PA/PAM authority and interpolation-safe party movement flow. |
-| `MON12_6_COMBAT_ACTION_CATALOG.md` | Equipment, class and spell contributions plus generic action revalidation flow. |
+| Document | Status | Role |
+|---|---|---|
+| `ITEM_CONTEXT_ACTION_SYSTEM.md` | Design Target / Partial | Right-click contextual actions and target model. |
+| `INVENTORY_CONTEXT_ACTION_MVP_VALIDATION.md` | Validation | Current context action MVP checklist. |
+| `INVENTORY_INTERACTION_ROUTING.md` | Reference | C++ / Blueprint responsibility map. |
+| `INVENTORY_BLUEPRINT_CONSTRUCTION_GUIDE.md` | Production Guide | Inventory UMG construction guide. |
+| `ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` | Production Guide | Item definition, pickup archetype and palette workflow. |
+| `GRIMROCK_LOCK_SYSTEM.md` | Design / Prospective | Lock, key, lockpicking, traps and lockable containers. |
+| `WALL_LOCK_MVP_RUNTIME_BEHAVIOR.md` | Current / MVP | Current wall-lock runtime contract. |
 
-## Priority Rule
+---
 
-When documents disagree, prefer `99_DECISIONS_LOG.md` and the most recently updated current/audit documents. Historical roadmaps and Codex task templates are useful context, but they do not override later decisions.
+## Combat Documents
+
+| Document | Status | Role |
+|---|---|---|
+| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Current Target | Global initiative, personal AP, shared mobility and action catalogue. |
+| `MON12_1_COMBAT_ACTION_PANEL.md` | Validated / Historical Migration | First reusable combat panel. |
+| `MON12_2_COMBAT_ACTION_CLICKS.md` | Validated / Historical Migration | Main/Off-hand compatibility adapter. |
+| `MON12_3_CHARACTER_TURN_ACTION_POINTS.md` | Validated | Per-character AP state. |
+| `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Validated | Mixed initiative and individual turns. |
+| `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Validated | Party translation costs and PAM. |
+| `MON12_6_COMBAT_ACTION_CATALOG.md` | Validated Foundation | Generic action definitions and catalogue. |
+| `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md` | Validated | Action-oriented HUD. |
+| `MON12_7_1_SLIDING_DYNAMIC_INITIATIVE.md` | Validated | Sliding initiative preview and modifiers. |
+| `MON12_8_1_PERSISTENT_COMBAT_HOTBAR_MODEL.md` through `MON12_11_HOTBAR_VALIDATION.md` | Validated | Ten persistent shortcuts, execution, targeting, item lifetime and validation. |
+
+---
+
+## Monster Documents
+
+| Document | Status | Role |
+|---|---|---|
+| `MON13_1_MONSTER_SPAWN_MODEL.md` | Validated | Persistent placement and stable SpawnId. |
+| `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Validated | Skeletal editor preview and runtime Actor creation. |
+| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Validated | Spawn, Despawn, Teleport and lifecycle persistence. |
+| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Validated | Encounter groups and ordered waves. |
+| `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Validated Closure | Production Rat contract and real PIE closure. |
+| `MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md` | Validated | Visual automatic exploration→combat bridge. |
+| `MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md` | Validated | Directional sight, Idle/Dormant and patrol route data. |
+| `MON14_3_RUNTIME_PATROL_INVESTIGATION.md` | Validated | Event-driven patrol, investigation and local search. |
+| `MON14_3_1_VISUAL_PATROL_ROUTE_EDITOR.md` | Validated | Visual patrol-route editing in the Grid Editor. |
+| `MON14_4_EXPLORATION_ALARM_COORDINATION.md` | Validated | Local MON7-based ally alarm and investigation coordination. |
+| `MON14_CLOSURE.md` | **Closed** | Cross-cutting MON14 closure and final architecture. |
+
+---
+
+## Documentation Priority Rule
+
+When documents disagree, use this precedence:
+
+1. `99_DECISIONS_LOG.md` and the latest validated milestone/closure document ;
+2. `PROJECT_COMPLETION_ROADMAP.md` for what to do next ;
+3. `00_PROJECT_OVERVIEW.md` for current project orientation ;
+4. current subsystem design/audit documents ;
+5. historical roadmaps and task templates only as context.
+
+Do not use an older roadmap to reopen a milestone that a later closure document marks as validated.
+
+---
+
+## Update Rule
+
+At the closure of a major milestone:
+
+1. add a closure or final validation document when useful ;
+2. update `00_PROJECT_OVERVIEW.md` ;
+3. update `PROJECT_COMPLETION_ROADMAP.md` ;
+4. record durable decisions in `99_DECISIONS_LOG.md` ;
+5. update the project map/XMind if the architecture or backlog changed materially ;
+6. keep old milestone documents as historical evidence instead of rewriting their original scope.

@@ -12,40 +12,83 @@ Le but est de construire un dungeon crawler en vue subjective, avec :
 - édition directe de niveaux ;
 - objets interactifs ;
 - mécanismes reliés entre eux ;
-- énigmes basées sur boutons, leviers, plaques, portes, réceptacles, triggers, timers, téléporteurs, etc.
+- énigmes basées sur boutons, leviers, plaques, portes, réceptacles, triggers, timers, téléporteurs, etc. ;
+- monstres data-driven capables de patrouiller, percevoir, enquêter et engager automatiquement le groupe ;
+- combat tactique au tour par tour ;
+- progression RPG ;
+- à terme, création et partage de niveaux par les joueurs.
 
-Le projet vise une architecture simple, modulaire, orientée données, compatible avec une évolution future vers la création de niveaux par les joueurs.
+Le projet vise une architecture simple, modulaire, orientée données. La grille et les DataAssets restent les autorités logiques ; les Actors, animations, VFX et widgets sont des représentations runtime ou de présentation.
 
-## Combat tactique cible
+---
 
-Le combat cible est un tour par tour sur grille qui conserve le groupe dans
-une cellule unique :
+## État actuel — 15 août 2026
+
+Le projet a dépassé le stade du prototype de déplacement. Les fondations suivantes sont disponibles :
+
+- donjons multi-niveaux et `UGridLevelAsset` ;
+- Grid Editor intégré avec palette, inspecteur, connecteurs et validation ;
+- déplacement et interaction en vue subjective ;
+- items, inventaire, équipement, réceptacles, portes, serrures et passages secrets ;
+- création de personnage, races/classes et statistiques dérivées ;
+- sauvegarde/Continue ;
+- combat MON1–MON12 à initiative globale, PA/PAM et raccourcis 0–9 ;
+- pipeline `MonsterSpawn` MON13 avec rencontres, vagues et persistance ;
+- exploration IA MON14 avec perception directionnelle, dormance, patrouille, investigation, édition visuelle de route et alarme locale.
+
+Le chantier **MON14 est validé et clos**. La feuille de route active commence désormais par :
+
+```text
+MON15 — XP & Level Progression
+```
+
+Le backlog actif autoritaire est :
+
+```text
+docs/Design/PROJECT_COMPLETION_ROADMAP.md
+```
+
+`04_IMPLEMENTATION_ROADMAP.md` est désormais un document historique.
+
+---
+
+## Combat tactique
+
+Le combat est un tour par tour sur grille qui conserve le groupe dans une cellule unique :
 
 - une manche globale ;
 - un tour individuel par personnage ou monstre ;
 - un ordre commun déterminé par l'initiative ;
-- des PA personnels dépensés pour les attaques, sorts, capacités, objets et
-  déplacements ;
-- une réserve de mobilité commune qui limite la distance parcourue par tout le
-  groupe ;
-- une barre d'initiative affichant le portrait et l'état du combattant actif,
-  puis ceux des prochains personnages ou monstres dans l'ordre réel ;
-- une interface construite depuis les actions réellement disponibles, et non
-  depuis deux boutons fixes `MainHand / OffHand`.
+- des PA personnels dépensés pour les attaques, sorts, capacités, objets et déplacements ;
+- une réserve de mobilité commune PAM ;
+- une barre d'initiative glissante ;
+- une interface construite depuis les actions réellement disponibles ;
+- dix raccourcis persistants par personnage.
 
-Le document de référence est
-`COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
+Le document de référence est :
 
-MON12.5 implémente désormais le déplacement de combat : chaque translation
-coûte `1 PA` au personnage actif et `1 PAM` sur les `2 PAM` communs restaurés
-à chaque manche. Les rotations restent gratuites, les refus ne consomment
-rien et l'exploration hors combat est inchangée.
+```text
+COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md
+```
 
-MON12.6 fournit le catalogue générique validé. MON12.7 construit désormais le
-HUD depuis ce catalogue : quatre panneaux au maximum, barre d'actions du
-personnage actif, huit prochains tours au maximum et PAM communs.
+MON12 fournit désormais :
 
-## Apparition des monstres
+- initiative globale ;
+- tours individuels ;
+- PA personnels ;
+- PAM communs ;
+- catalogue générique d'actions ;
+- HUD orienté actions ;
+- hotbar 0–9 ;
+- quick items ;
+- sorts/capacités dans le catalogue ;
+- ciblage cellule/zone ;
+- paiement transactionnel des ressources ;
+- cooldowns.
+
+---
+
+## Apparition des monstres — MON13
 
 MON13 remplace les monstres posés manuellement par un pipeline orienté données :
 
@@ -53,65 +96,145 @@ MON13 remplace les monstres posés manuellement par un pipeline orienté donnée
 MonsterSpawn persistant
     → MonsterDefinition
     → Actor runtime
-    → état MON9 par SpawnId
+    → état persistant par SpawnId
 ```
 
-MON13.1 définit le placement persistant et son édition. MON13.2 crée l'aperçu
-squelettique et l'Actor runtime. MON13.3 ajoute les commandes `Spawn`,
-`Despawn` et `Teleport`, leurs événements de cycle de vie et la persistance de
-la présence ainsi que du dernier état du monstre.
-MON13.4 ajoute les rencontres persistantes pilotées par `EncounterGroupId`,
-les vagues ordonnées, la commande `StartEncounter` et une progression fondée
-uniquement sur les morts réellement validées.
-MON13.5 clôt le pipeline par des contrats automatisés sur les assets de
-production et une véritable session PIE couvrant la carte de référence, le
-playtest frais, les vagues, les composants de combat et le chargement Continue.
+MON13.1 définit le placement persistant et son édition.
 
-## Engagement exploration → combat
+MON13.2 crée l'aperçu squelettique et l'Actor runtime.
 
-MON14.1 raccorde désormais la perception logique MON4 au TurnManager MON5 sans
-commande gameplay manuelle. Une ligne de vue valide depuis un monstre vivant et
-actif vers le groupe peut démarrer automatiquement le combat ; l'ouïe seule
-continue à mettre le monstre en `Alert` et à renseigner sa dernière cellule
-connue, mais ne déclenche pas l'engagement automatique.
+MON13.3 ajoute les commandes `Spawn`, `Despawn` et `Teleport`, les événements de cycle de vie et la persistance de présence.
 
-Les demandes d'évaluation sont centralisées par
-`UGridAutomaticPerceptionEngagementSubsystem`, différées et coalescées. Elles
-sont émises après les points runtime pertinents : changement de cellule du
-groupe, rebuild, ouverture de porte, apparition de `MonsterSpawn` et vague
-MON13.4. `StartEncounter` reste une transaction de rencontre/spawn et ne force
-jamais directement `StartCombat()`.
+MON13.4 ajoute les rencontres persistantes pilotées par `EncounterGroupId`, les vagues ordonnées et `StartEncounter`.
 
-La propagation d'aggro MON7 reste l'autorité pour ajouter les alliés du monstre
-qui voit le groupe. Le chemin manuel F5 conserve le contrat historique
-vue/ouïe comme outil de diagnostic.
+MON13.5 clôt le pipeline par des contrats automatisés et une véritable session PIE couvrant les assets de production, les vagues, le playtest frais et Continue.
 
-MON14.2 rend maintenant cette vue directionnelle : le rayon axial MON4 ne
-compte comme vision que s'il se trouve devant le `Facing` cardinal courant du
-monstre. `MonsterSpawn` peut également démarrer en `Idle` ou `Dormant`, sans
-confondre la dormance avec l'absence `bInitiallyEnabled=false`. Enfin, le niveau
-peut sérialiser une route de patrouille `None`, `Loop` ou `PingPong` avec des
-waypoints, orientations d'arrivée et temps d'attente.
+---
 
-MON14.3 exécute ces routes hors combat sans Tick IA permanent. Les gardes
-rejoignent et parcourent leurs waypoints, respectent orientation et attente,
-interrompent leur patrouille sur perception, enquêtent vers
-`LastKnownPartyCell`, effectuent une recherche locale puis reprennent leur
-patrouille si le groupe n'est pas retrouvé. Toute locomotion d'exploration est
-suspendue atomiquement lorsque le combat prend la main.
+## Exploration et engagement — MON14
 
-MON14.3.1 ajoute l'édition visuelle des routes dans le Grimrock Grid Editor :
-création et sélection des waypoints par clic, ordre, `Loop/PingPong`, Facing,
-attente et rendu numéroté directement dans le viewport. Ce jalon a été validé
-manuellement sur `L_GrimrockEditor`.
+MON14 est clos. Le document récapitulatif est :
 
-MON14.4 étend cette exploration par une alarme locale entre monstres. Il
-réutilise strictement le contrat MON7 (`bSharesAggroWithGroup`,
-`AggroPropagationRange`, même `MonsterId` et même `EncounterGroupId`) : un
-monstre qui perçoit le groupe peut réveiller des alliés proches et leur fournir
-sa dernière cellule connue. Les alliés passent en investigation, mais l'alarme
-seule ne démarre jamais le combat ; la vision réelle MON14.1 reste l'unique
-autorité d'engagement automatique.
+```text
+MON14_CLOSURE.md
+```
+
+### MON14.1 — Engagement automatique
+
+`UGridAutomaticPerceptionEngagementSubsystem` raccorde la perception MON4 au TurnManager sans commande gameplay manuelle.
+
+Règle :
+
+```text
+Vision réelle valide -> combat automatique possible
+Ouïe seule           -> Alert / LastKnownPartyCell, jamais combat automatique
+```
+
+Les demandes d'évaluation sont différées et coalescées. `StartEncounter` reste une transaction de rencontre/spawn et ne force jamais directement `StartCombat()`.
+
+### MON14.2 — Vision directionnelle et données de patrouille
+
+La vue ne compte que dans le `Facing` cardinal avant du monstre.
+
+`MonsterSpawn` peut démarrer en :
+
+```text
+Idle
+Dormant
+```
+
+La dormance ne doit jamais être confondue avec `bInitiallyEnabled=false`, qui signifie absence de l'Actor.
+
+Les routes utilisent :
+
+```text
+PatrolMode = None / Loop / PingPong
+PatrolWaypoints[] = Cell + Facing + WaitSeconds
+```
+
+### MON14.3 — Patrol & Investigation
+
+`UGridMonsterPatrolSubsystem` exécute les routes hors combat sans Tick IA permanent.
+
+Les gardes :
+
+- rejoignent et parcourent leurs waypoints ;
+- respectent orientation et attente ;
+- interrompent leur patrouille sur perception ;
+- enquêtent vers `LastKnownPartyCell` ;
+- effectuent une recherche locale ;
+- reprennent leur patrouille après échec ;
+- suspendent atomiquement leur locomotion lorsque le combat prend la main.
+
+### MON14.3.1 — Édition visuelle
+
+Les routes sont éditables dans le Grimrock Grid Editor :
+
+- ajout/sélection par clic ;
+- ordre ;
+- `Loop/PingPong` ;
+- Facing ;
+- attente ;
+- rendu numéroté dans le viewport.
+
+Ce jalon a été validé manuellement dans `L_GrimrockEditor`.
+
+### MON14.4 — Alarm Coordination
+
+MON14.4 réutilise le contrat MON7 :
+
+```text
+bSharesAggroWithGroup
+AggroPropagationRange
+même MonsterId
+même EncounterGroupId
+```
+
+Un monstre qui perçoit le groupe peut réveiller des alliés proches et leur transmettre sa dernière cellule connue. Les alliés passent en investigation.
+
+L'alarme seule ne déclenche jamais le combat ; une vraie vision MON14.1 reste nécessaire.
+
+Les trois tests dédiés MON14.4 sont validés :
+
+```text
+AlarmFiltering           Success
+HearingAlarmPropagation  Success
+SharingDisabled          Success
+```
+
+Le scénario fonctionnel final a également été validé manuellement.
+
+---
+
+## Prochaine phase — MON15 à MON22
+
+L'ordre de travail validé est :
+
+```text
+MON15 — XP & Level Progression
+MON16 — Status Effects
+MON17 — Second Monster Family
+MON18 — Magic & Spellbook
+MON19 — Advanced Dungeon Logic / Scripting
+MON20 — Recruitment / Skills / Talents
+MON21 — Quests / Journal / Map / Codex
+MON22 — 45–90 Minute Vertical Slice
+```
+
+Le premier sous-jalon est :
+
+```text
+MON15.1 — XP & Level Model
+```
+
+Les champs suivants existent déjà dans `FGridCharacterInventoryState` et doivent être réutilisés :
+
+```cpp
+int32 Level = 1;
+int32 Experience = 0;
+```
+
+`URPGClassAsset` contient déjà les gains de PV/mana par niveau et `URPGCharacterRulesLibrary::CalculateDerivedStats()` accepte déjà le niveau. MON15 ne doit donc pas créer un second état de progression parallèle.
 
 ---
 
@@ -119,56 +242,46 @@ autorité d'engagement automatique.
 
 - Unreal Engine : 5.5.4
 - Langage : C++
-- IDE principal : Visual Studio
-- Dépôt GitHub : `GrimrockPrototype`
-- Style d’architecture : données d’abord, classes C++ simples, comportement piloté par archétypes
-- Taille de grille cible : 32x32
-- Cellule standard : 200 x 200 cm
+- IDE : Visual Studio
+- Dépôt : `GrimrockPrototype`
+- Branche de travail : `master`
+- Style : données d'abord, classes C++ simples, comportement piloté par assets
+- Taille de grille cible : 32 × 32
+- Cellule standard : 200 × 200 cm
 - Hauteur de cellule : environ 300 cm
-- Objectif runtime : jeu fluide, lisible, proche de l’esprit Grimrock
+- Runtime : fluide, lisible et proche de l'esprit Grimrock
 
 ---
 
 ## Principe fondamental
 
-Chaque objet placé dans le donjon doit être considéré comme un **objet concret de gameplay**, mais son comportement doit rester factorisé.
+Chaque objet placé dans le donjon est un **objet concret de gameplay**, mais son comportement doit rester factorisé.
 
 Exemple :
 
-- `Button_Normal`
-- `Button_Secret`
-- `Button_Wall`
+```text
+Button_Normal
+Button_Secret
+Button_Wall
+```
 
-sont trois objets distincts dans la palette et dans les DataAssets, car ils sont visuellement différents.
-
-Mais ils peuvent partager la même classe C++ :
+sont trois objets distincts dans la palette et dans les DataAssets, mais peuvent partager :
 
 ```cpp
 AGridButtonActor
 ```
 
-Même principe pour :
-
-- `Receptacle_Alcove`
-- `Receptacle_TorchHolder`
-- `Receptacle_Altar`
-- `Receptacle_OfferingBowl`
-
-qui sont des objets concrets distincts, mais peuvent reposer sur :
-
-```cpp
-AGridReceptacleActor
-```
+Même principe pour les réceptacles, portes, monstres et futures variantes de contenu.
 
 ---
 
-## Séparation conceptuelle majeure
+## Séparation Event / Command / Link
 
-Le système doit distinguer :
+Le système distingue :
 
-1. les **événements émis** par un objet ;
-2. les **commandes reçues** par un objet cible ;
-3. les **liens logiques** qui relient les deux.
+1. les événements émis par une source ;
+2. les commandes reçues par une cible ;
+3. les liens logiques entre les deux.
 
 Exemple :
 
@@ -176,30 +289,34 @@ Exemple :
 Button_Secret_01.OnActivate -> Door_Secret_01.Open
 ```
 
-La porte ne connaît pas le bouton.  
-Le bouton ne connaît pas la porte.  
-Le système de liens fait la jonction.
+La porte ne connaît pas le bouton. Le bouton ne connaît pas la porte. Le système de liens fait la jonction.
 
 ---
 
-## Mémoire de projet
+## Mémoire stable du projet
 
-Les décisions importantes doivent être conservées dans les fichiers Markdown du dossier :
+Les décisions importantes doivent rester dans le dépôt Git, principalement sous :
 
 ```text
 docs/Design/
 ```
 
-Ces documents servent de mémoire stable pour :
+ChatGPT et Codex ne sont pas la mémoire principale du projet.
 
-- ChatGPT ;
-- Codex ;
-- les futures sessions de travail ;
-- les revues de code ;
-- les décisions d’architecture.
+Documents à maintenir lors des grands jalons :
 
-ChatGPT et Codex ne doivent pas être la mémoire principale du projet.  
-La mémoire principale doit être le dépôt Git.
+```text
+00_PROJECT_OVERVIEW.md
+PROJECT_COMPLETION_ROADMAP.md
+99_DECISIONS_LOG.md
+```
+
+et, lorsque la cartographie change significativement :
+
+```text
+docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md
+docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.xmind
+```
 
 ---
 
@@ -207,38 +324,38 @@ La mémoire principale doit être le dépôt Git.
 
 | Fichier | Rôle |
 |---|---|
-| `00_PROJECT_OVERVIEW.md` | Vue d’ensemble du projet |
-| `01_GRID_OBJECT_SYSTEM.md` | Architecture du système d’objets |
-| `02_OBJECT_ARCHETYPES.md` | Liste et rôle des archétypes d’objets |
-| `03_EVENT_COMMAND_LINKS.md` | Modèle Events / Commands / Links |
-| `04_IMPLEMENTATION_ROADMAP.md` | Feuille de route technique |
-| `05_CODEX_TASKS.md` | Tâches Codex prêtes à exécuter |
-| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Cible des manches, initiative, PA, mobilité et actions de combat |
-| `MON12_4_GLOBAL_INITIATIVE_INDIVIDUAL_TURNS.md` | Implémentation de l'initiative globale et des tours individuels |
-| `MON12_5_PARTY_MOVEMENT_ACTION_POINTS.md` | Implémentation du déplacement payant et des PAM communs |
-| `MON12_6_COMBAT_ACTION_CATALOG.md` | Définitions, contributions et catalogue générique d'actions |
-| `MON12_7_ACTION_ORIENTED_COMBAT_HUD.md` | HUD de quatre personnages, actions, initiative et PAM |
-| `MON13_1_MONSTER_SPAWN_MODEL.md` | Placement persistant, identité et validation des MonsterSpawn |
-| `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Aperçu squelettique et instanciation runtime |
-| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Commandes Spawn/Despawn/Teleport et persistance du cycle de vie |
-| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Rencontres persistantes, vagues atomiques et progression par mort |
-| `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Clôture transversale des assets, vagues, PIE frais et Continue |
-| `MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md` | Engagement exploration → combat par perception visuelle, différé et coalescé |
-| `MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md` | Facing visuel, état initial Idle/Dormant et fondation des routes de patrouille |
-| `MON14_3_RUNTIME_PATROL_INVESTIGATION.md` | Exécution événementielle des patrouilles, investigation et recherche locale |
-| `MON14_3_1_VISUAL_PATROL_ROUTE_EDITOR.md` | Édition visuelle des routes de patrouille dans le Grid Editor |
-| `MON14_4_EXPLORATION_ALARM_COORDINATION.md` | Alerte locale MON7 entre monstres et renforts d'investigation |
-| `99_DECISIONS_LOG.md` | Journal des décisions validées |
+| `00_PROJECT_OVERVIEW.md` | Vue d'ensemble actuelle |
+| `PROJECT_COMPLETION_ROADMAP.md` | **Backlog actif MON15+** |
+| `MON14_CLOSURE.md` | Clôture fonctionnelle de MON14 |
+| `01_GRID_OBJECT_SYSTEM.md` | Architecture du système d'objets |
+| `02_OBJECT_ARCHETYPES.md` | Archétypes d'objets |
+| `03_EVENT_COMMAND_LINKS.md` | Events / Commands / Links |
+| `04_IMPLEMENTATION_ROADMAP.md` | Roadmap historique, non autoritaire pour la suite |
+| `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md` | Architecture combat |
+| `MON13_1_MONSTER_SPAWN_MODEL.md` | Placement persistant MonsterSpawn |
+| `MON13_2_MONSTER_SPAWN_PIPELINE.md` | Aperçu et instanciation runtime |
+| `MON13_3_MONSTER_RUNTIME_COMMANDS.md` | Spawn/Despawn/Teleport |
+| `MON13_4_MONSTER_ENCOUNTER_WAVES.md` | Rencontres et vagues |
+| `MON13_5_MONSTER_SPAWN_CLOSURE.md` | Clôture MON13 |
+| `MON14_1_AUTOMATIC_PERCEPTION_ENGAGEMENT.md` | Engagement automatique |
+| `MON14_2_DIRECTIONAL_PERCEPTION_PATROL_DATA.md` | Vision directionnelle et données de patrouille |
+| `MON14_3_RUNTIME_PATROL_INVESTIGATION.md` | Patrouille et investigation runtime |
+| `MON14_3_1_VISUAL_PATROL_ROUTE_EDITOR.md` | Édition visuelle des routes |
+| `MON14_4_EXPLORATION_ALARM_COORDINATION.md` | Alarme locale entre monstres |
+| `99_DECISIONS_LOG.md` | Journal chronologique des décisions |
 
 ---
 
 ## Règle de travail
 
-Avant chaque grosse modification :
+Pour chaque sous-jalon :
 
-1. valider l’architecture dans un document Markdown ;
-2. demander à Codex une tâche courte et ciblée ;
-3. compiler dans Visual Studio / UE5 ;
-4. tester dans l’éditeur ;
-5. committer ;
-6. mettre à jour `99_DECISIONS_LOG.md`.
+1. auditer le code existant avant d'ajouter une nouvelle abstraction ;
+2. documenter le contrat ;
+3. modifier peu de fichiers ;
+4. compiler sous UE5.5.4 ;
+5. exécuter les Automation Tests dédiés et les régressions utiles ;
+6. faire la validation PIE/manuelle lorsque des assets ou WBP sont impliqués ;
+7. produire un commit Git clair ;
+8. pousser sur `origin/master` ;
+9. mettre à jour la documentation durable à la clôture du jalon.
