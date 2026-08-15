@@ -1,65 +1,53 @@
 # MON15.4 — Validation Checklist
 
-Statut : **à valider sous Unreal Engine 5.5.4**.
-
-Ne pas commencer MON15.5 avant validation de cette checklist.
+Statut : **VALIDÉ ET CLOS sous Unreal Engine 5.5.4**.
 
 ---
 
-## 1. Compilation
+## 1. Compilation / chargement UE
 
-- [ ] Compiler `GrimrockPrototype` sous UE5.5.4 / Visual Studio.
-- [ ] Vérifier `RPGClassAsset.h/.cpp`.
-- [ ] Vérifier `RPGClassProgressionService.h/.cpp`.
-- [ ] Aucun `.uasset`, `.umap` ou WBP requis.
+- [x] Le module MON15.4 est compilé et chargé dans Unreal Engine 5.5.4.
+- [x] `RPGClassAsset.h/.cpp` chargé par les Automation Tests.
+- [x] `RPGClassProgressionService.h/.cpp` chargé par les Automation Tests.
+- [x] Aucun `.uasset`, `.umap` ou WBP requis ou modifié.
+
+Aucun transcript UBT/Visual Studio séparé n'est archivé dans cette validation ; les campagnes Automation ont exécuté le code compilé sous UE5.5.4.
 
 ---
 
 ## 2. Tests MON15.4
 
-Exécuter :
+- [x] `DefinitionValidation` — Success
+- [x] `ChoicePointAccounting` — Success
+- [x] `SelectionRules` — Success
+- [x] `RequirementProjection` — Success
+- [x] `CombatActionUnlockProjection` — Success
+- [x] `LevelUpIntegration` — Success
+- [x] `LegacyCompatibility` — Success
 
-```text
-Grimrock.RPG.MON15.4.DefinitionValidation
-Grimrock.RPG.MON15.4.ChoicePointAccounting
-Grimrock.RPG.MON15.4.SelectionRules
-Grimrock.RPG.MON15.4.RequirementProjection
-Grimrock.RPG.MON15.4.CombatActionUnlockProjection
-Grimrock.RPG.MON15.4.LevelUpIntegration
-Grimrock.RPG.MON15.4.LegacyCompatibility
-```
-
-Attendus :
-
-- [ ] `DefinitionValidation` — Success
-- [ ] `ChoicePointAccounting` — Success
-- [ ] `SelectionRules` — Success
-- [ ] `RequirementProjection` — Success
-- [ ] `CombatActionUnlockProjection` — Success
-- [ ] `LevelUpIntegration` — Success
-- [ ] `LegacyCompatibility` — Success
+Le premier passage de `DefinitionValidation` a déclenché `TArray::CheckAddress` dans le fixture de test. Cause : insertion dans un `TArray` à partir d'une référence vers un élément du même tableau. Correctif appliqué dans `64f0571b90c30d311edfd49a25366804aada4b9f` par copie locale avant `Add()`. Nouvelle campagne : aucun assert, aucune exception, tous les tests Success.
 
 ---
 
-## 3. Validation des assets de classe
+## 3. Validation des données de classe
 
-- [ ] Une classe sans progression MON15.4 reste valide.
-- [ ] Les niveaux de grant sont dans `[1, 20]`.
-- [ ] Deux grants au même niveau sont refusés.
-- [ ] Un grant vide est refusé.
-- [ ] Les points négatifs sont refusés.
-- [ ] Les requirements vides/dupliqués sont refusés.
-- [ ] Un `ChoiceId` vide ou dupliqué est refusé.
-- [ ] Un coût de choix nul/négatif est refusé.
-- [ ] Un prérequis inconnu est refusé.
-- [ ] Un choix ne peut pas se requérir lui-même.
-- [ ] Un cycle entre choix est refusé.
+- [x] Une classe sans progression MON15.4 reste valide.
+- [x] Les niveaux de grant sont bornés par les niveaux RPG.
+- [x] Deux grants au même niveau sont refusés.
+- [x] Un grant vide est refusé.
+- [x] Les points négatifs sont refusés.
+- [x] Les requirements invalides/dupliqués sont refusés.
+- [x] Un `ChoiceId` vide ou dupliqué est refusé.
+- [x] Un coût de choix invalide est refusé.
+- [x] Un prérequis inconnu est refusé.
+- [x] Un auto-prérequis est refusé.
+- [x] Un cycle entre choix est refusé.
 
 ---
 
-## 4. Points de progression
+## 4. Points et règles de choix
 
-Avec la fixture MON15.4 :
+Fixture validée :
 
 ```text
 Level 1 -> 0 point
@@ -68,39 +56,39 @@ Level 3 -> 2 points cumulés
 Level 4 -> 4 points cumulés
 ```
 
-- [ ] Les grants sont cumulatifs.
-- [ ] Les points ne sont pas consommés/modifiés par le service pur.
-- [ ] `Spent` est la somme des coûts des choix hypothétiques valides.
-- [ ] `Remaining = Granted - Spent`.
-- [ ] Un ensemble qui dépasse le budget est invalide.
+- [x] Grants cumulatifs.
+- [x] Service pur sans mutation du personnage.
+- [x] `Spent` = somme des coûts des choix valides.
+- [x] `Remaining = Granted - Spent`.
+- [x] Dépassement de budget refusé.
+- [x] `MinimumLevel` appliqué.
+- [x] `PrerequisiteChoiceIds` appliqué.
+- [x] Choix déjà sélectionné signalé.
+- [x] Choix inconnu signalé.
+- [x] Budget insuffisant signalé.
 
 ---
 
-## 5. Règles de choix
+## 5. Projection des requirements
 
-- [ ] `MinimumLevel` est appliqué.
-- [ ] `PrerequisiteChoiceIds` est appliqué.
-- [ ] Un choix déjà sélectionné est signalé.
-- [ ] Un choix inconnu est signalé.
-- [ ] Un budget insuffisant est signalé.
-- [ ] Aucun état personnage n'est muté par MON15.4.
-
----
-
-## 6. Projection des requirements
-
-- [ ] `ClassId` est satisfait pour une classe valide.
-- [ ] Un grant niveau 2 n'apparaît pas au niveau 1.
-- [ ] Il apparaît au niveau 2 et au-dessus.
-- [ ] Un `ChoiceId` hypothétiquement sélectionné devient un requirement satisfait.
-- [ ] `GrantedRequirementIds` d'un choix sont projetés.
-- [ ] Un état de sélection hypothétique invalide ne produit aucun set fiable.
+- [x] `ClassId` projeté pour une classe valide.
+- [x] Grant niveau 2 absent au niveau 1.
+- [x] Grant niveau 2 présent au niveau 2+.
+- [x] `ChoiceId` sélectionné projeté comme requirement.
+- [x] `GrantedRequirementIds` projetés.
+- [x] État hypothétique invalide rejeté.
 
 ---
 
-## 7. Catalogue MON12
+## 6. Catalogue MON12
 
-Le test `CombatActionUnlockProjection` doit prouver :
+Le contrat unique reste :
+
+```cpp
+FGridCombatActionDefinition::Requirements
+```
+
+Validé par MON15.4 :
 
 ```text
 Action Requirements=[Feature_Level2]
@@ -112,79 +100,99 @@ et :
 
 ```text
 Action Requirements=[Choice_A]
-Choice_A absent  -> locked
-Choice_A validé  -> enabled dans la projection hypothétique
+Choice_A absent -> locked
+Choice_A présent dans une sélection valide -> enabled
 ```
 
-- [ ] Aucun second mécanisme d'activation d'action n'est créé.
-- [ ] `FGridCombatActionDefinition::Requirements` reste le contrat unique.
+- [x] Aucun second mécanisme d'activation d'action créé.
+- [x] `Requirements` reste le contrat unique.
 
 ---
 
-## 8. Raccord MON15.3
+## 7. Raccord MON15.3
 
-- [ ] Personnage niveau 1 / XP 1000.
-- [ ] `FRPGLevelUpService` applique `1 -> 2`.
-- [ ] MON15.4 dérive ensuite 1 point disponible.
-- [ ] `Feature_Level2` est projeté automatiquement.
-- [ ] Aucun champ supplémentaire n'est muté pendant le level-up.
-
----
-
-## 9. SaveGame / compatibilité
-
-- [ ] Aucun nouveau champ dans `FGridCharacterInventoryState`.
-- [ ] Aucun nouveau champ dans `UGrimrockPartySaveGame`.
-- [ ] `CurrentSaveVersion == 3`.
-- [ ] Une classe historique sans `ProgressionLevelGrants`/`ProgressionChoices` reste valide.
+- [x] Personnage niveau 1 / XP 1000.
+- [x] `FRPGLevelUpService` applique `1 -> 2`.
+- [x] MON15.4 dérive ensuite 1 point disponible.
+- [x] `Feature_Level2` est projeté automatiquement.
+- [x] Aucun champ persistant supplémentaire n'est muté pendant le level-up.
 
 ---
 
-## 10. Régressions recommandées
+## 8. SaveGame / compatibilité
 
-Exécuter au minimum :
+- [x] Aucun nouveau champ dans `FGridCharacterInventoryState`.
+- [x] Aucun nouveau champ dans `UGrimrockPartySaveGame`.
+- [x] `CurrentSaveVersion == 3`.
+- [x] Une classe historique sans données MON15.4 reste valide.
+
+---
+
+## 9. Régressions MON15 / CharacterCreation
+
+Campagne validée :
+
+- [x] MON15.1 — Success.
+- [x] MON15.2 — Success.
+- [x] MON15.3 — Success.
+- [x] CharacterCreation CC1 — Success.
+- [x] CharacterCreation CC2 — Success.
+- [x] CharacterCreation CC6 — Success.
+- [x] CC0 / CC4 / CC5 également verts dans la campagne fournie.
+
+---
+
+## 10. Régressions ActionCatalog / Hotbar
+
+Campagne complémentaire validée :
 
 ```text
-Grimrock.RPG.MON15.1
-Grimrock.RPG.MON15.2
-Grimrock.RPG.MON15.3
-Grimrock.CharacterCreation.CC1
-Grimrock.CharacterCreation.CC2
-Grimrock.CharacterCreation.CC6
-Grimrock.Monsters.MON12.6
-Grimrock.Monsters.MON12.8
+Grimrock.Monsters.MON12.ActionCatalog.Contributions             Success
+Grimrock.Monsters.MON12.ActionCatalog.GenericAttackLifecycle    Success
+Grimrock.Monsters.MON12.8.*                                     Success
 ```
 
-Si les chemins MON12 sont subdivisés différemment dans Automation, exécuter les tests contenant `ActionCatalog`, `CombatActionPanel` et `CombatHud` pertinents.
+La famille MON12.8 exécutée couvre notamment :
 
-- [ ] MON15.1 reste vert.
-- [ ] MON15.2 reste vert.
-- [ ] MON15.3 reste vert.
-- [ ] Création de personnage/classe reste verte.
-- [ ] Catalogue/actions/hotbar restent verts.
+- hotbar vide par défaut ;
+- persistance / migration ;
+- bindings par personnage ;
+- rejet atomique des bindings invalides ;
+- move/swap et drag/drop ;
+- exécution clic et clavier ;
+- mains nues ;
+- quick items et suppression de binding à consommation ;
+- parchemins ;
+- capacités et sorts de classe avec mana ;
+- ciblage cellule et zone ;
+- arme de jet depuis inventaire ;
+- sanitation des bindings historiques.
+
+- [x] Catalogue d'actions sans régression.
+- [x] Hotbar sans régression.
+- [x] Transactions PA/mana/items sans régression observée.
 
 ---
 
 ## 11. PIE
 
-Aucun changement de `.uasset` de production n'est requis pour valider MON15.4.
+Aucun PIE spécifique n'était requis pour MON15.4, car aucun choix réel n'est encore committé et aucun DataAsset de classe de production n'a été migré.
 
-Un PIE spécifique n'est pas une porte obligatoire à ce stade, car aucun choix n'est encore committé et aucun asset de classe de production n'est migré. La preuve runtime est assurée par le raccord au catalogue MON12 et par `LevelUpIntegration`.
-
-Le premier test PIE de choix réel sera pertinent en MON15.5 après ajout de la transaction de sélection et de l'interface.
+Le premier PIE de sélection réelle appartient à MON15.5.
 
 ---
 
 ## 12. Critère de clôture
 
 ```text
-Compilation UE5.5.4                         OK
-7 tests Grimrock.RPG.MON15.4.*              Success
-Régressions MON15.1 / MON15.2 / MON15.3     Success
-Régressions CharacterCreation pertinentes   Success
-Régressions action catalogue/hotbar          Success
-SaveVersion                                  3
-Aucun asset/WBP modifié                      OK
+Compilation/chargement UE5.5.4                 OK
+7 tests Grimrock.RPG.MON15.4.*                  Success
+Régressions MON15.1 / MON15.2 / MON15.3         Success
+Régressions CharacterCreation pertinentes       Success
+Régressions ActionCatalog / MON12.8              Success
+SaveVersion                                      3
+Aucun asset/WBP modifié                          OK
+Assert TArray du fixture                         Corrigé et non reproduit
 ```
 
-Lorsque ces éléments sont confirmés, MON15.4 peut être marqué **VALIDÉ ET CLOS**.
+**MON15.4 est VALIDÉ ET CLOS.**
