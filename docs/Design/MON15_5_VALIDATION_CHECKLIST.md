@@ -1,244 +1,221 @@
 # MON15.5 — Validation Checklist
 
-Statut : **à valider sous Unreal Engine 5.5.4**.
+Statut : **VALIDÉ ET CLOS — UE5.5.4 — 16 août 2026**.
 
-Ne pas commencer MON15.6 avant validation de cette checklist.
+MON15.6 est désormais débloqué.
 
 ---
 
 ## 1. Compilation
 
-- [ ] Compiler `GrimrockPrototype` sous UE5.5.4 / Visual Studio.
-- [ ] Aucun warning/error UHT dans les nouveaux `USTRUCT` / `UCLASS`.
-- [ ] Vérifier les includes Slate/UMG du widget natif.
-- [ ] Aucun `.uasset`, `.umap` ou WBP requis.
+- [x] `GrimrockPrototype` compile sous UE5.5.4 après correction des bindings Slate UObject.
+- [x] Aucun problème UHT dans les nouveaux `USTRUCT` / `UCLASS`.
+- [x] Includes Slate/UMG validés.
+- [x] Aucun `.uasset`, `.umap` ou WBP requis.
+
+Correctif compilation : les boutons Slate `Confirmer` / `Annuler` utilisent `FOnClicked::CreateUObject` et non une surcharge `CreateSP` exigeant `AsShared()`.
 
 ---
 
 ## 2. Tests dédiés MON15.5
 
-Exécuter :
+Les huit tests uniques sont `Success` :
 
-```text
-Grimrock.RPG.MON15.5
-```
+- [x] `AtomicBatchCommit`
+- [x] `AtomicFailure`
+- [x] `WidgetCancelIsNonMutating`
+- [x] `WidgetConfirmTransaction`
+- [x] `CombatCatalogUnlock`
+- [x] `LevelUpNotificationSource`
+- [x] `CharacterIsolation`
+- [x] `TransientPersistenceBoundary`
 
-Attendus :
+Campagne finale : la suite MON15.5 a été exécutée 3 fois, soit **24/24 Success**.
 
-- [ ] `AtomicBatchCommit` — Success
-- [ ] `AtomicFailure` — Success
-- [ ] `WidgetCancelIsNonMutating` — Success
-- [ ] `WidgetConfirmTransaction` — Success
-- [ ] `CombatCatalogUnlock` — Success
-- [ ] `LevelUpNotificationSource` — Success
-- [ ] `CharacterIsolation` — Success
-- [ ] `TransientPersistenceBoundary` — Success
-
-Aucun assert, ensure, breakpoint de sécurité ou exception ne doit être forcé
-avec `Continuer`.
+- [x] Aucun assert.
+- [x] Aucun ensure.
+- [x] Aucun `CheckAddress`.
+- [x] Aucune exception ni `Fatal error`.
 
 ---
 
 ## 3. Transaction par lot
 
-Avec la fixture niveau 3 :
-
-```text
-Granted = 2
-Choice_A coût 1
-Choice_B coût 1, prerequisite Choice_A
-```
-
-- [ ] `{Choice_A, Choice_B}` réussit en une transaction.
-- [ ] Les deux choix sont présents après commit.
-- [ ] `Spent=2`, `Remaining=0`.
-- [ ] Le delegate de commit n'est émis qu'après validation complète.
+- [x] `{Choice_A, Choice_B}` réussit en une transaction.
+- [x] Les deux choix sont présents après commit.
+- [x] `Spent=2`, `Remaining=0` dans la fixture niveau 3.
+- [x] Le commit n'est émis qu'après validation complète.
 
 ---
 
 ## 4. Échec atomique
 
-Tester un lot dépassant le budget :
-
-```text
-{Choice_A, Choice_Expensive}
-```
-
-- [ ] Transaction refusée.
-- [ ] Raison `InsufficientChoicePoints`.
-- [ ] `Choice_A` n'est pas partiellement confirmé.
-- [ ] Aucun requirement de choix refusé n'est projeté.
-- [ ] Les grants automatiques valides restent disponibles.
+- [x] Un lot dépassant le budget est refusé.
+- [x] Raison `InsufficientChoicePoints`.
+- [x] Aucun choix partiel n'est confirmé.
+- [x] Aucun requirement refusé n'est projeté.
+- [x] Les grants automatiques valides restent disponibles.
 
 ---
 
 ## 5. Modal staged
 
-- [ ] Un clic ajoute seulement un choix pending.
-- [ ] Aucun choix runtime n'est acquis avant `Confirmer`.
-- [ ] Un prérequis pending peut rendre un choix dépendant pending sélectionnable.
-- [ ] Un prérequis pending ne peut pas être retiré si un autre pending en dépend.
-- [ ] `Annuler` vide le staging sans mutation autoritaire.
-- [ ] `Confirmer` applique tout le staging d'un coup.
-- [ ] Une confirmation refusée laisse la modal ouverte.
+- [x] Un clic ajoute seulement un choix pending.
+- [x] Aucun choix runtime n'est acquis avant `Confirmer`.
+- [x] Un prérequis pending peut rendre un choix dépendant sélectionnable.
+- [x] Un prérequis pending requis par un autre pending ne peut pas être retiré.
+- [x] `Annuler` ne mute pas l'état autoritaire.
+- [x] `Confirmer` applique le lot en une transaction.
+- [x] Une confirmation invalide laisse la modal ouverte.
 
 ---
 
 ## 6. Comparaison avant / après
 
-- [ ] `PreviousLevel` et `NewLevel` sont corrects.
-- [ ] PV max avant/après proviennent de `CalculateDerivedStats`.
-- [ ] Mana max avant/après proviennent de `CalculateDerivedStats`.
-- [ ] Armure physique/magique avant/après sont cohérentes.
-- [ ] Aucun bonus d'équipement n'est bake dans les stats de base.
-- [ ] Les points affichés correspondent au niveau final.
+- [x] `PreviousLevel` et `NewLevel` sont cohérents.
+- [x] PV max via `CalculateDerivedStats`.
+- [x] Mana max via `CalculateDerivedStats`.
+- [x] Armures cohérentes.
+- [x] Aucun bonus d'équipement n'est bake dans les stats de base.
+- [x] Les points affichés correspondent au niveau final.
 
 ---
 
 ## 7. Notification level-up
 
-- [ ] Le delegate MON15.3 historique continue de fonctionner.
-- [ ] Le delegate MON15.5 source-aware est émis une fois par transaction level-up.
-- [ ] Il transporte le bon `UGridPartyInventoryComponent`.
-- [ ] Il transporte les bons niveaux précédent/nouveau.
-- [ ] La projection de requirements est prête avant présentation de la modal.
+- [x] Delegate MON15.3 historique conservé.
+- [x] Delegate MON15.5 source-aware valide.
+- [x] Bon `UGridPartyInventoryComponent` transmis.
+- [x] Bons niveaux précédent/nouveau transmis.
+- [x] Projection requirements prête avant consommation par le catalogue.
 
 ---
 
-## 8. Catalogue combat
+## 8. Sécurité combat
 
-- [ ] Avant confirmation, une action `Requirements=[Choice_A]` est `MissingRequirement`.
-- [ ] Après confirmation, la même action devient disponible si le reste du contexte l'autorise.
-- [ ] Les grants automatiques de niveau sont eux aussi ajoutés au contexte.
-- [ ] `FGridCombatActionDefinition::Requirements` reste l'unique contrat.
-- [ ] Aucun second catalogue/circuit d'exécution n'est créé.
-
----
-
-## 9. Isolation personnages
-
-- [ ] Les choix sont indexés par `CharacterId` stable.
-- [ ] Le choix de Character 0 ne change pas Character 1.
-- [ ] Une projection obsolète appartenant à un autre composant n'est pas réutilisée.
-
----
-
-## 10. Input / modalité PIE
-
-Pendant la modal :
-
-- [ ] déplacement impossible ;
-- [ ] rotation impossible ;
-- [ ] touche 0–9 hotbar sans effet gameplay ;
-- [ ] clic monde sans interaction ;
-- [ ] souris utilisable dans la modal ;
-- [ ] ciblage combat annulé/masqué correctement.
-
-Après fermeture :
-
-- [ ] déplacement/rotation restaurés ;
-- [ ] hotbar restaurée ;
-- [ ] interaction monde restaurée ;
-- [ ] état précédent de l'inventaire cohérent.
-
----
-
-## 11. File de notifications PIE
-
-Avec deux personnages franchissant un seuil dans la même distribution XP :
-
-- [ ] une seule modal à la fois ;
-- [ ] la seconde attend la fermeture de la première ;
-- [ ] les index/personnages affichés ne sont pas mélangés.
-
-Si cette situation est difficile à produire manuellement, la validation du
-mécanisme de queue peut être complétée par logs diagnostics, mais aucune double
-modal ne doit être observée.
-
----
-
-## 12. SaveGame — frontière volontaire
-
-- [ ] `UGrimrockPartySaveGame::CurrentSaveVersion == 3`.
-- [ ] Aucun nouveau champ SaveGame en MON15.5.
-- [ ] Les choix confirmés sont runtime seulement dans ce sous-jalon.
-- [ ] Un reset du registry runtime perd volontairement ces choix.
-- [ ] Cette perte est documentée et sera corrigée par MON15.6.
-
-Ne pas présenter MON15.5 comme une persistance finale des choix.
-
----
-
-## 13. Régressions
-
-Exécuter au minimum :
+Scénario PIE validé :
 
 ```text
-Grimrock.RPG.MON15.1
-Grimrock.RPG.MON15.2
-Grimrock.RPG.MON15.3
-Grimrock.RPG.MON15.4
-Grimrock.CharacterCreation.CC2
-Grimrock.CharacterCreation.CC5
-Grimrock.CharacterCreation.CC6
-Grimrock.Monsters.MON12.ActionCatalog
-Grimrock.Monsters.MON12.8
+Queued 1->2
+Deferred ... Reason=CombatActive
+...
+Coalesced 1->3 Gained=2 Pending=1
+...
+CombatSafePoint Result=Victory Pending=1
+ModalGuard Applied ... PausedByModal=true
+Opened Previous=1 New=3
 ```
 
-- [ ] MON15.1–15.4 verts.
-- [ ] CharacterCreation pertinente verte.
-- [ ] ActionCatalog vert.
-- [ ] MON12.8/hotbar vert.
+- [x] Aucun écran Level Up n'est ouvert pendant un combat actif.
+- [x] Le TurnManager est résolu depuis le `AGridLevelRuntimeActor`.
+- [x] Le combat continue normalement pendant l'attente.
+- [x] La modal s'ouvre seulement au point sûr `OnCombatEnded`.
+- [x] La modal pause effectivement le jeu.
+- [x] L'ancien warning de focus `InputMode:UIOnly` a disparu.
 
 ---
 
-## 14. PIE minimal conseillé
+## 9. Coalescence des level-ups
 
-Pour éviter de modifier durablement les assets, utiliser temporairement une
-classe de test ou une classe existante puis **ne pas sauvegarder/pousser** les
-changements `.uasset` :
+- [x] Deux montées successives du même personnage avant présentation sont fusionnées.
+- [x] `1->2` puis `2->3` devient une seule notification `1->3`.
+- [x] `LevelsGained=2` après fusion.
+- [x] Une seule modal est ouverte.
+- [x] Les choix sont évalués avec le vrai niveau final.
+
+---
+
+## 10. Catalogue combat
+
+- [x] Avant confirmation : action exigeant `Choice_A` => `MissingRequirement`.
+- [x] Après confirmation : action disponible si le reste du contexte le permet.
+- [x] Grants automatiques ajoutés au contexte.
+- [x] `FGridCombatActionDefinition::Requirements` reste l'unique contrat.
+- [x] Aucun second catalogue/circuit d'exécution.
+
+Régression finale :
 
 ```text
-Level 2 grant : +1 ChoicePoint
-Choice_A : MinimumLevel=2, PointCost=1
-Action de classe : Requirements=[Choice_A]
+Grimrock.Monsters.MON12.ActionCatalog.Contributions              Success
+Grimrock.Monsters.MON12.ActionCatalog.GenericAttackLifecycle     Success
 ```
 
-Mettre temporairement un monstre assez généreux en XP pour franchir le seuil
-rapidement.
-
-Scénario :
-
-1. personnage niveau 1 proche/avant 1000 XP ;
-2. tuer le monstre ;
-3. vérifier `[GridLevelUp]` puis `[GridLevelUpUI] Queued/Opened` ;
-4. modal : contrôler niveau et stats avant/après ;
-5. sélectionner `Choice_A`, puis **Annuler** ;
-6. confirmer qu'aucun `[GridClassProgression]` n'a été émis ;
-7. reproduire le level-up sur une session de test et choisir `Choice_A` ;
-8. **Confirmer** ;
-9. vérifier `[GridClassProgression] ... Committed=1` ;
-10. en combat, vérifier que l'action requérant `Choice_A` n'est plus `MissingRequirement`.
-
-Remettre les valeurs de test avant toute validation d'asset.
+Les deux tests apparaissent deux fois dans le log final : **4/4 Success**.
 
 ---
 
-## 15. Critère de clôture
+## 11. Hotbar / modalité
+
+Suite `Grimrock.Monsters.MON12.8.*` : **26 tests uniques / 26 Success**.
+
+Elle couvre notamment :
+
+- [x] hotbar vide par défaut ;
+- [x] migration legacy hotbar ;
+- [x] bindings par personnage ;
+- [x] sauvegarde mémoire ;
+- [x] drag/drop et swaps ;
+- [x] clic et clavier ;
+- [x] garde modal ;
+- [x] mains nues ;
+- [x] quick items ;
+- [x] parchemins ;
+- [x] sorts / mana ;
+- [x] ciblage cellule et zone ;
+- [x] armes de jet ;
+- [x] nettoyage des bindings après consommation.
+
+---
+
+## 12. Isolation personnages
+
+- [x] Choix indexés par `CharacterId` stable.
+- [x] Le choix d'un personnage ne modifie pas les autres.
+- [x] Une projection obsolète d'un autre composant n'est pas réutilisée.
+
+---
+
+## 13. SaveGame — frontière volontaire
+
+- [x] `UGrimrockPartySaveGame::CurrentSaveVersion == 3`.
+- [x] Aucun nouveau champ SaveGame en MON15.5.
+- [x] Choix confirmés runtime uniquement.
+- [x] Reset du registry => perte volontaire des choix.
+- [x] Cette limite est réservée à MON15.6.
+
+MON15.5 ne doit pas être présenté comme une persistance finale des choix.
+
+---
+
+## 14. Régressions globales déjà validées
+
+Les campagnes antérieures de MON15.5 ont également confirmé :
+
+- [x] MON15.1–15.4 verts ;
+- [x] CharacterCreation pertinente verte ;
+- [x] `ActionCatalog` vert ;
+- [x] MON12.8 / hotbar vert.
+
+---
+
+## 15. Résultat final
 
 ```text
 Compilation UE5.5.4                         OK
 8 tests Grimrock.RPG.MON15.5.*              Success
-Régressions MON15.1–15.4                    Success
-Régressions CharacterCreation               Success
-Régressions ActionCatalog / MON12.8          Success
-PIE modal automatique                        OK
-Annulation sans mutation                     OK
-Confirmation atomique                        OK
-Projection action après choix                OK
-File de notifications                        OK
+Campagne finale MON15.5                      24/24 Success
+ActionCatalog final                           4/4 Success
+MON12.8 final                                26/26 Success
+Total log final                              54/54 Success
+PIE modal automatique après combat            OK
+Déféré pendant combat                         OK
+Coalescence 1->2 + 2->3 => 1->3              OK
+Annulation sans mutation                      OK
+Confirmation atomique                         OK
+Projection action après choix                 OK
+File de notifications                         OK
 SaveVersion                                  3
 Aucun asset/WBP modifié                      OK
 ```
 
-Lorsque ces éléments sont confirmés, MON15.5 peut être marqué **VALIDÉ ET CLOS**.
+**MON15.5 — VALIDÉ ET CLOS.**
