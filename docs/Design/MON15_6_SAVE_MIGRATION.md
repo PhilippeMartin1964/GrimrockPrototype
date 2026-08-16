@@ -1,6 +1,6 @@
 # MON15.6 — Save / migration de la progression RPG
 
-Statut : **IMPLEMENTÉ — EN ATTENTE DE VALIDATION UE5.5.4**  
+Statut : **VALIDÉ ET CLOS — UE5.5.4**  
 Date : **16 août 2026**
 
 ---
@@ -22,7 +22,7 @@ Aucun `.uasset`, `.umap` ou WBP n'est requis.
 
 ## 2. SaveVersion 4
 
-Le contrat devient :
+Le contrat est :
 
 ```cpp
 UGrimrockPartySaveGame::CurrentSaveVersion = 4;
@@ -64,7 +64,7 @@ Au chargement :
 1. le snapshot est migré/validé ;
 2. les choix sont validés contre la classe, le niveau, le budget et les prérequis ;
 3. `FRPGClassProgressionTransactionService::RestorePersistentState()` reconstruit un cache détaché par `CharacterId` ;
-4. `FGridCombatActionCatalog::Build()` peut immédiatement retrouver `ChoiceId` et `GrantedRequirementIds` via `AppendRuntimeSatisfiedRequirements()` ;
+4. `FGridCombatActionCatalog::Build()` peut retrouver `ChoiceId` et `GrantedRequirementIds` via `AppendRuntimeSatisfiedRequirements()` ;
 5. lors du prochain accès du personnage, la projection détachée se rattache au `UGridPartyInventoryComponent` vivant.
 
 Le SaveGame est la frontière persistante ; le registry reste un cache dérivé.
@@ -112,7 +112,7 @@ La politique MON15.3 est conservée :
 - déficit absolu de PV préservé ;
 - déficit absolu de mana préservé ;
 - un personnage à `0 HP` reste à `0 HP` ;
-- aucun bonus d'équipement n'est bake dans `DerivedStats`.
+- aucun bonus d'équipement n'est intégré dans `DerivedStats`.
 
 Si une migration de niveau exige un recalcul mais que la définition de classe est invalide, la migration est rejetée plutôt que de fabriquer des statistiques.
 
@@ -159,7 +159,7 @@ Cette différence entre **migration legacy** et **validation v4** évite qu'une 
 
 ## 8. Sauvegarde avec Level Up disponible
 
-MON15.5 avait une file runtime transitoire. Sans MON15.6, une sauvegarde réalisée alors qu'un Level Up était différé pendant un combat pouvait restaurer le niveau mais perdre l'ouverture automatique de la modal.
+MON15.5 avait une file runtime transitoire. Sans MON15.6, une sauvegarde réalisée alors qu'un Level Up était différé pouvait restaurer le niveau mais perdre l'ouverture automatique de la modal.
 
 MON15.6 maintient un miroir persistant des notifications non acquittées :
 
@@ -172,12 +172,19 @@ Elles sont capturées dans `PendingLevelUpNotifications`.
 Après chargement :
 
 1. le miroir persistant est restauré ;
-2. le `UGameInstanceSubsystem` attend un tick afin que `PartyInventoryState` soit réellement chargé ;
+2. le `UGameInstanceSubsystem` attend que `PartyInventoryState` soit réellement disponible ;
 3. les `CharacterId` sont remappés vers les index actifs ;
 4. la file MON15.5 est reconstruite ;
-5. `TryPresentNextNotification()` repasse par le garde de combat existant.
+5. `TryPresentNextNotification()` repasse par le garde de présentation existant.
 
-Une notification restaurée ne peut donc ni être perdue ni s'ouvrir au milieu d'un combat.
+Validation PIE finale : une sauvegarde avec `PendingLevelUps=1` a été rechargée par `Continue`, puis a produit exactement :
+
+```text
+[GridLevelUpUI] Restored Pending=1
+[GridLevelUpUI] Opened Character=0 Previous=1 New=2
+```
+
+La modal `NIVEAU SUPÉRIEUR` s'est affichée une seule fois après restauration du groupe.
 
 ---
 
@@ -204,7 +211,7 @@ Après la désérialisation UE :
 - restaure le miroir de notifications ;
 - expose l'échec par `IsCompatible()` et un log `[GridSaveMigration]`.
 
-Le chemin existant `AGrimrockPartyPawn::SaveCurrentGame()` / `LoadCurrentGameData()` reste donc inchangé et bénéficie automatiquement du contrat v4.
+Le chemin existant `AGrimrockPartyPawn::SaveCurrentGame()` / `LoadCurrentGameData()` reste inchangé et bénéficie automatiquement du contrat v4.
 
 ---
 
@@ -216,25 +223,28 @@ Les opérations importantes utilisent :
 [GridSaveMigration]
 ```
 
-Exemples attendus :
+Exemples :
 
 ```text
 [GridSaveMigration] Load SourceVersion=3 TargetVersion=4 Migrated=true Reconciled=1 Choices=1 PendingLevelUps=0 Result=Accepted
-[GridSaveMigration] Load SourceVersion=4 TargetVersion=4 Migrated=false ... Result=Accepted
-[GridSaveMigration] LoadValidation ... Result=Rejected Reason=...
+[GridSaveMigration] Load SourceVersion=4 TargetVersion=4 Migrated=false Reconciled=0 Choices=1 PendingLevelUps=1 Result=Accepted
 ```
 
-La restauration UI utilise toujours :
+La restauration UI utilise :
 
 ```text
 [GridLevelUpUI] Restored Pending=N
 ```
 
+Les warnings `PersistentRestore ... PartyNotReady` observés dans `L_MainMenu` proviennent de l'inspection préalable des slots avant création du `PartyPawn`. Ils n'ont entraîné aucune perte de notification : le chargement du slot effectivement choisi a ensuite restauré `Pending=1` correctement.
+
+Des erreurs `LoadValidation ... 0 états de progression pour 1 personnages actifs` peuvent également apparaître pour d'anciens slots secondaires v4 incomplets. Elles ne concernaient pas le slot principal sélectionné, qui était accepté avec `Choices=1`.
+
 ---
 
 ## 11. Tests automatisés MON15.6
 
-Suite ajoutée :
+Suite validée :
 
 ```text
 Grimrock.RPG.MON15.6.PersistentChoiceRoundTrip
@@ -247,20 +257,60 @@ Grimrock.RPG.MON15.6.RejectInvalidPendingNotification
 Grimrock.RPG.MON15.6.SaveVersionContract
 ```
 
-Les tests MON15.4/MON15.5 qui vérifiaient explicitement `SaveVersion == 3` ont été adaptés à la nouvelle frontière v4 sans modifier leurs règles de progression.
+Résultat : **8/8 Success**.
+
+Les régressions MON15.1 à MON15.5, CC5, MON9 et MON12 ActionCatalog sont également validées.
 
 ---
 
-## 12. Porte de sortie
+## 12. Validation PIE
 
-MON15.6 pourra être déclaré **VALIDÉ ET CLOS** lorsque :
+### Choix confirmé
 
-- le projet compile sous UE5.5.4 ;
-- les 8 tests `Grimrock.RPG.MON15.6.*` réussissent ;
-- MON15.1 à MON15.5 restent verts ;
-- CC5 persistance reste verte ;
-- MON9 SaveGame/monster persistence reste vert ;
-- MON12 `ActionCatalog` reste vert ;
-- un PIE réel confirme qu'un choix de classe confirmé survit à Save → Continue ;
-- un PIE réel confirme qu'une notification Level Up encore à présenter survit à Save → Continue ;
-- le log de chargement confirme `Version=4` et aucune migration inattendue sur une sauvegarde v4.
+Scénario validé :
+
+```text
+choix de progression confirmé
+-> Save v4
+-> arrêt PIE
+-> Continue
+-> choix toujours Acquis
+```
+
+Le log confirme :
+
+```text
+[GridSaveMigration] Load SourceVersion=4 TargetVersion=4 Migrated=false Reconciled=0 Choices=1 PendingLevelUps=0 Result=Accepted
+PartySave Continued Slot=GrimrockParty CharacterCount=1
+```
+
+### Notification Level Up persistante
+
+Scénario validé :
+
+```text
+Level Up non acquitté
+-> Save v4 avec PendingLevelUps=1
+-> arrêt PIE
+-> Continue
+-> Restored Pending=1
+-> modal ouverte une seule fois
+```
+
+Le log confirme :
+
+```text
+[GridSaveMigration] Load SourceVersion=4 TargetVersion=4 Migrated=false Reconciled=0 Choices=1 PendingLevelUps=1 Result=Accepted
+[GridLevelUpUI] Restored Pending=1
+[GridLevelUpUI] Opened Character=0 Previous=1 New=2
+```
+
+---
+
+## 13. Porte de sortie
+
+Tous les critères de sortie sont satisfaits.
+
+**MON15.6 — VALIDÉ ET CLOS.**
+
+Prochaine étape : **MON15.7 — équilibrage et clôture complète de MON15**.
