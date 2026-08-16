@@ -164,8 +164,13 @@ void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
     if (!PartyPawn->PartyInventoryComponent->HasCompletedInitialCharacterCreation()) return;
 
     UpdateBuildProgress(LOCTEXT("LoadGameProgressRuntime", "Application de l'état du donjon..."), 0.85f);
-    CompleteBuildProgress(LOCTEXT("LoadGameProgressReady", "Partie chargée."));
+    UpdateBuildProgress(LOCTEXT("LoadGameProgressReady", "Partie chargée."), 1.0f);
     bWaitingForLoadedGameRuntime = false;
+
+    // A restored Level Up can pause the world on the next tick. Hiding the load
+    // overlay synchronously avoids freezing its delayed hide timer above the modal.
+    HideBuildProgress();
+    UE_LOG(LogTemp, Log, TEXT("GrimrockStartupMode LoadProgress HiddenImmediately Pawn=%s Reason=LoadedGameReady"), *GetNameSafe(PartyPawn));
 }
 
 void UGrimrockStartupModeComponent::SetWaitingTickEnabled()
@@ -196,7 +201,10 @@ void UGrimrockStartupModeComponent::ShowBuildProgress(const FText& Title, const 
         return;
     }
     if (!BuildProgressWidgetInstance->IsInViewport()) BuildProgressWidgetInstance->AddToViewport(5000);
-    BuildProgressWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+
+    // Progress overlays are informational only and must never consume input from
+    // a modal that may appear during startup restoration.
+    BuildProgressWidgetInstance->SetVisibility(ESlateVisibility::HitTestInvisible);
     BuildProgressWidgetInstance->SetBuildTitle(Title);
     BuildProgressWidgetInstance->SetBuildProgress(Progress, StatusText);
 }
@@ -221,6 +229,11 @@ void UGrimrockStartupModeComponent::CompleteBuildProgress(const FText& StatusTex
 
 void UGrimrockStartupModeComponent::HideBuildProgress()
 {
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(HideBuildProgressTimerHandle);
+    }
+
     if (BuildProgressWidgetInstance)
     {
         BuildProgressWidgetInstance->RemoveFromParent();
