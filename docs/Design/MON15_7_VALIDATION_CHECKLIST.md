@@ -1,205 +1,166 @@
 # MON15.7 — Validation Checklist
 
-Statut : **IMPLEMENTÉ — EN ATTENTE DE VALIDATION UE5.5.4**  
+Statut : **VALIDÉ ET CLOS sous Unreal Engine 5.5.4**  
 Date : **16 août 2026**
 
 ---
 
 ## 1. Préparation DataAsset
 
-Dans Unreal Editor :
+`/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant`
 
-```text
-/Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant
-```
-
-régler :
-
-```text
-Monster | Rewards | Experience Reward = 500
-```
-
-- [ ] la valeur temporaire `1000` a été retirée ;
-- [ ] la valeur historique `10` n'est plus la valeur de production ;
-- [ ] l'asset est sauvegardé.
+- [x] valeur temporaire `1000` retirée ;
+- [x] valeur historique `10` n'est plus la valeur de production ;
+- [x] `Experience Reward = 500` ;
+- [x] asset sauvegardé ;
+- [x] asset poussé sur `origin/master` via Git LFS (`9b1fc8c...`).
 
 ---
 
-## 2. Compilation
+## 2. Compilation / chargement UE
 
-- [ ] `Development Editor x64` compile sous UE5.5.4 ;
-- [ ] aucun changement de SaveVersion ;
-- [ ] aucun nouveau warning C++ MON15.7.
+- [x] les nouveaux tests MON15.7 sont chargés sous UE5.5.4 ;
+- [x] aucun changement de SaveVersion ;
+- [x] aucun nouveau warning C++ MON15.7 bloquant.
 
 ---
 
 ## 3. Tests dédiés
 
-Exécuter :
+`Grimrock.RPG.MON15.7` : **4/4 Success**.
 
-```text
-Grimrock.RPG.MON15.7
-```
+- [x] `FrozenCurve`
+- [x] `SoloRatPacing`
+- [x] `PartyRatPacing`
+- [x] `ProductionRatAsset`
 
-Attendu : **4/4 Success**.
-
-- [ ] `FrozenCurve`
-- [ ] `SoloRatPacing`
-- [ ] `PartyRatPacing`
-- [ ] `ProductionRatAsset`
-
-`ProductionRatAsset` doit charger le vrai DataAsset et confirmer `ExperienceReward=500`.
+`ProductionRatAsset` charge le vrai DataAsset et confirme `ExperienceReward=500`.
 
 ---
 
 ## 4. Courbe finale
 
-- [ ] L1 = 0 XP ;
-- [ ] L2 = 1000 XP ;
-- [ ] L3 = 3000 XP ;
-- [ ] L4 = 6000 XP ;
-- [ ] L5 = 10000 XP ;
-- [ ] L20 = 190000 XP ;
-- [ ] niveau maximum = 20.
+- [x] L1 = 0 XP ;
+- [x] L2 = 1000 XP ;
+- [x] L3 = 3000 XP ;
+- [x] L4 = 6000 XP ;
+- [x] L5 = 10000 XP ;
+- [x] L20 = 190000 XP ;
+- [x] niveau maximum = 20.
 
 ---
 
-## 5. Pacing solo de référence
+## 5. Pacing de référence
 
-Avec un seul personnage actif :
+Solo :
 
-- [ ] 1 Rat Géant = 500 XP, toujours niveau 1 ;
-- [ ] 2 Rats Géants cumulés = 1000 XP, niveau 2 ;
-- [ ] 6 Rats Géants cumulés = 3000 XP, niveau 3 ;
-- [ ] 12 Rats Géants cumulés = 6000 XP, niveau 4 ;
-- [ ] 20 Rats Géants cumulés = 10000 XP, niveau 5.
+- [x] 1 Rat Géant = 500 XP, toujours niveau 1 ;
+- [x] 2 Rats Géants cumulés = 1000 XP, niveau 2 ;
+- [x] 6 Rat-equivalents cumulés = 3000 XP, niveau 3 ;
+- [x] 12 Rat-equivalents cumulés = 6000 XP, niveau 4 ;
+- [x] 20 Rat-equivalents cumulés = 10000 XP, niveau 5.
+
+Groupe de quatre :
+
+- [x] 500 XP se divisent exactement en 125 XP chacun ;
+- [x] 8 Rat-equivalents = niveau 2 ;
+- [x] 24 Rat-equivalents = niveau 3 ;
+- [x] 48 Rat-equivalents = niveau 4.
 
 ---
 
-## 6. Pacing groupe de référence
+## 6. PIE final
 
-Avec quatre personnages actifs et éligibles :
+Scénario observé :
 
-- [ ] 500 XP se divisent exactement en 125 XP chacun ;
-- [ ] 8 rat-equivalents cumulés = niveau 2 ;
-- [ ] 24 rat-equivalents cumulés = niveau 3 ;
-- [ ] 48 rat-equivalents cumulés = niveau 4.
+```text
+Rat 1 : Previous=0    New=500  LevelStored=1
+Rat 2 : Previous=500  New=1000 LevelStored=2
+Rat 3 : Previous=1000 New=1500 LevelStored=2
+```
 
-Ces nombres sont des budgets de balance, pas une obligation de construire le donjon uniquement avec des rats.
+- [x] aucun Level Up après le premier rat ;
+- [x] Level Up 1 -> 2 exactement après le deuxième rat ;
+- [x] notification différée pendant combat ;
+- [x] présentation au safe point de victoire ;
+- [x] modal cliquable ;
+- [x] choix confirmable ;
+- [x] `ModalGuard Restored` ;
+- [x] gameplay utilisable après fermeture.
 
 ---
 
 ## 7. Régression MON15 complète
 
-Exécuter :
+Campagne finale : **95/95 Success**.
 
-```text
-Grimrock.RPG.MON15
-```
+MON15 : **42/42**.
 
-- [ ] MON15.1 vert ;
-- [ ] MON15.2 vert ;
-- [ ] MON15.3 vert ;
-- [ ] MON15.4 vert ;
-- [ ] MON15.5 vert ;
-- [ ] MON15.6 vert ;
-- [ ] MON15.7 vert.
+- [x] MON15.1 — 4/4 ;
+- [x] MON15.2 — 5/5 ;
+- [x] MON15.3 — 6/6 ;
+- [x] MON15.4 — 7/7 ;
+- [x] MON15.5 — 8/8 ;
+- [x] MON15.6 — 8/8 ;
+- [x] MON15.7 — 4/4.
 
 ---
 
 ## 8. Régressions externes
 
-Exécuter :
+Dans la campagne finale fournie :
 
-```text
-Grimrock.CharacterCreation.CC5
-Grimrock.Monsters.MON9
-Grimrock.Monsters.MON12.ActionCatalog
-```
+- [x] MON9 — 13/13 ;
+- [x] MON13.5 RealPIEIntegration — Success ;
+- [x] MON14.1–MON14.4 — Success ;
+- [x] aucune erreur Automation dans les 95 tests.
 
-- [ ] CC5 vert ;
-- [ ] MON9 vert ;
-- [ ] MON12 ActionCatalog vert.
+Couverture antérieure conservée :
 
-Si possible avant clôture majeure :
+- [x] CC5 — validé pendant MON15.6 ;
+- [x] MON12.ActionCatalog — validé pendant MON15.6.
 
-```text
-Grimrock.Monsters
-```
-
-- [ ] campagne monstres globale verte, ou écarts analysés et documentés.
+Ces deux groupes ne figurent pas dans le dernier log de 95 tests. MON15.7 n'a modifié aucun de leurs chemins runtime.
 
 ---
 
-## 9. PIE final — 1 rat puis 2 rats
+## 9. Save / Continue
 
-Depuis une nouvelle partie solo avec 0 XP :
+Le contrat Save/Continue a été revalidé en profondeur pendant MON15.6, notamment :
 
-### Après le premier Rat Géant
+- [x] SaveVersion 4 ;
+- [x] Level / Experience cohérents ;
+- [x] choix confirmé restauré ;
+- [x] `PendingLevelUps=1` restauré ;
+- [x] modal restaurée exactement une fois ;
+- [x] overlay de chargement retiré avant modal ;
+- [x] gameplay rendu au joueur après fermeture.
 
-Attendu :
+MON15.7 ne modifie aucune logique SaveGame.
+
+---
+
+## 10. Documentation
+
+- [x] `MON15_7_BALANCING.md` finalisé ;
+- [x] `MON15_7_VALIDATION_CHECKLIST.md` finalisé ;
+- [x] `MON15_CLOSURE.md` créé ;
+- [x] `00_PROJECT_OVERVIEW.md` mis à jour ;
+- [x] `PROJECT_COMPLETION_ROADMAP.md` mis à jour ;
+- [x] `MON1_RAT_GIANT_DATA_ASSET_SETUP.md` annoté pour signaler que `10 XP` est historique et supersédé par `500 XP` ;
+- [ ] `99_DECISIONS_LOG.md` non réécrit dans ce commit : `MON15_CLOSURE.md` constitue le record autoritaire de décision MON15 afin d'éviter une réécriture massive du journal historique.
+
+---
+
+## 11. Porte de clôture
+
+Toutes les portes fonctionnelles de MON15.7 sont franchies.
+
+**MON15.7 — VALIDÉ ET CLOS.**  
+**MON15 — XP & Level Progression — VALIDÉ ET CLOS.**
+
+Prochain travail autoritaire :
 
 ```text
-Reward=500
-Previous=0
-New=500
-LevelStored=1
+MON16.1 — Status Effect Definition & Runtime State
 ```
-
-- [ ] aucune modal Level Up ;
-- [ ] le combat se termine normalement.
-
-### Après le deuxième Rat Géant
-
-Attendu :
-
-```text
-Reward=500
-Previous=500
-New=1000
-PreviousLevel=1
-NewLevel=2
-```
-
-- [ ] une seule modal Level Up ;
-- [ ] choix/annulation fonctionnels ;
-- [ ] `ModalGuard Restored` ;
-- [ ] déplacement/interaction/combat reprennent après fermeture.
-
----
-
-## 10. Save / Continue
-
-Après le niveau 2 :
-
-- [ ] sauvegarder ;
-- [ ] arrêter PIE ;
-- [ ] relancer et `Continue` ;
-- [ ] XP = 1000 ;
-- [ ] niveau = 2 ;
-- [ ] choix confirmé toujours acquis s'il y en a un ;
-- [ ] aucun overlay de chargement bloqué ;
-- [ ] gameplay utilisable.
-
----
-
-## 11. Documentation de clôture MON15
-
-À la clôture :
-
-- [ ] créer `MON15_CLOSURE.md` ;
-- [ ] mettre à jour `00_PROJECT_OVERVIEW.md` ;
-- [ ] mettre à jour `PROJECT_COMPLETION_ROADMAP.md` ;
-- [ ] mettre à jour `99_DECISIONS_LOG.md` ;
-- [ ] mettre à jour `MON1_RAT_GIANT_DATA_ASSET_SETUP.md` pour signaler que la valeur historique `10` est supersédée par MON15.7 `500` ;
-- [ ] vérifier la cartographie du projet si nécessaire.
-
----
-
-## 12. Porte de clôture
-
-MON15.7 ne sera déclaré **VALIDÉ ET CLOS** qu'après validation de l'asset réel et du scénario PIE 1 rat / 2 rats.
-
-La clôture de MON15 entraîne ensuite le passage à :
-
-**MON16 — Status Effects**.

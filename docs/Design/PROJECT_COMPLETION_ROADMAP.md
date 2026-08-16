@@ -1,38 +1,37 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif** à partir de la clôture de MON14.
+Statut : **backlog actif après clôture de MON15**  
+Date de référence : **16 août 2026**
 
-Date de référence : 15 août 2026.
-
-Ce document remplace `04_IMPLEMENTATION_ROADMAP.md` comme feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste un document historique utile pour comprendre la construction initiale du système d'objets et de connecteurs, mais il ne doit plus être utilisé pour décider du prochain jalon.
+Ce document est la feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
 ---
 
-## 1. Point de départ
+## 1. État de départ
 
-La clôture de MON14 signifie que le vertical slice des monstres couvre désormais :
+Jalons majeurs clos :
 
-- `MonsterSpawn` data-driven et persistant ;
-- rencontres et vagues ;
-- perception logique directionnelle ;
-- engagement exploration → combat automatique par la vision ;
-- état initial `Idle` / `Dormant` ;
-- patrouilles `Loop` / `PingPong` ;
-- investigation vers `LastKnownPartyCell` ;
-- recherche locale ;
-- suspension atomique de l'IA d'exploration pendant le combat ;
-- édition visuelle des routes dans `L_GrimrockEditor` ;
-- alarme locale entre monstres via le contrat MON7.
+```text
+MON13 — Monster Spawn / Encounters / Persistence
+MON14 — Automatic Engagement / Patrol / Investigation / Alarm
+MON15 — XP & Level Progression
+```
 
-Le prochain besoin structurant n'est donc plus une nouvelle couche d'IA d'exploration. Le projet doit maintenant fermer la boucle RPG, généraliser le contenu et transformer les fondations en jeu.
+MON15 a fermé la boucle RPG combat -> XP -> Level Up -> progression de classe -> Save/Continue.
+
+Référence :
+
+```text
+docs/Design/MON15_CLOSURE.md
+```
+
+Le prochain besoin structurant est une infrastructure commune d'effets d'état, réutilisable par le combat, les monstres et la magie future.
 
 ---
 
 ## 2. Ordre des grands jalons
 
 ```text
-MON15 — XP & Level Progression
-        ↓
 MON16 — Status Effects
         ↓
 MON17 — Second Monster Family
@@ -48,120 +47,37 @@ MON21 — Quests / Journal / Map / Codex
 MON22 — 45–90 Minute Vertical Slice
 ```
 
-Les jalons MON23+ sont conservés comme horizon de production, mais ne doivent pas détourner le développement de MON15–MON22.
+Les jalons MON23+ restent un horizon de production.
 
 ---
 
-# MON15 — XP & Level Progression
+# MON15 — XP & Level Progression — CLOS
 
-## Objectif
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Transformer le combat et les récompenses en progression durable des personnages.
+Sous-jalons :
 
-Le projet possède déjà deux champs persistants dans `FGridCharacterInventoryState` :
-
-```cpp
-int32 Level = 1;
-int32 Experience = 0;
+```text
+MON15.1 — Modèle XP / niveaux              CLOS
+MON15.2 — Attribution XP                   CLOS
+MON15.3 — Level-up / recalcul stats        CLOS
+MON15.4 — Progression de classe            CLOS
+MON15.5 — Choix de progression + UI        CLOS
+MON15.6 — Save / migration / restauration  CLOS
+MON15.7 — Équilibrage final                CLOS
 ```
 
-et `URPGClassAsset` possède déjà :
+Contrats finaux :
 
-```cpp
-HealthAtLevelOne
-HealthPerLevel
-ManaAtLevelOne
-ManaPerLevel
-```
-
-Enfin, `URPGCharacterRulesLibrary::CalculateDerivedStats()` accepte déjà un niveau. MON15 doit donc réutiliser ce socle plutôt que créer un second modèle de personnage.
-
-## MON15.1 — Modèle XP et niveau
-
-### Périmètre
-
-- définir une courbe XP autoritaire et déterministe ;
-- définir le niveau maximum du système actuel ;
-- fournir les helpers purs :
-  - XP cumulative requise pour un niveau ;
-  - niveau correspondant à une XP totale ;
-  - XP restante vers le niveau suivant ;
-  - validation et clamp des valeurs ;
-- garantir la monotonie de la courbe ;
-- conserver `Level` et `Experience` dans `FGridCharacterInventoryState` comme état persistant autoritaire ;
-- ne pas encore attribuer d'XP après les combats ;
-- ne pas encore ouvrir d'UI de montée de niveau ;
-- ne pas encore distribuer de points de compétences/dons.
-
-### Décision de conception initiale
-
-`Experience` représente une **XP totale cumulative**, jamais un compteur remis à zéro à chaque niveau.
-
-Le niveau doit pouvoir être reconstruit depuis l'XP pour les validations et migrations, mais le champ `Level` reste sérialisé afin de ne pas casser le modèle existant et de permettre des contrôles de cohérence.
-
-La courbe doit être centralisée dans une règle unique et testable. Aucun widget, monstre ou composant de combat ne doit contenir sa propre table de seuils.
-
-### Critères de sortie
-
-- tests des seuils exacts ;
-- tests avant/après chaque seuil ;
-- XP négative normalisée ;
-- XP très élevée clampée au niveau maximum ;
-- courbe strictement croissante ;
-- aucun changement de combat ou de récompense dans ce sous-jalon.
-
-## MON15.2 — Attribution XP après combat
-
-- utiliser `UGridMonsterDefinitionAsset::ExperienceReward` ;
-- attribuer l'XP une seule fois par mort réellement validée ;
-- empêcher le double gain après rebuild, Continue ou callbacks répétés ;
-- définir la politique de partage entre personnages actifs ;
-- diffuser un événement de gain XP ;
-- conserver la transaction indépendante du loot.
-
-### Porte de sortie
-
-Tuer un Rat Géant attribue exactement la récompense attendue une fois et la valeur survit à la sauvegarde/Continue.
-
-## MON15.3 — Montée de niveau et recalcul des statistiques
-
-- détecter le franchissement d'un ou plusieurs seuils ;
-- recalculer les statistiques via les règles RPG existantes ;
-- appliquer `HealthPerLevel` et `ManaPerLevel` ;
-- définir la politique sur `CurrentHealth` / `CurrentMana` au level-up ;
-- supporter plusieurs niveaux gagnés en une transaction ;
-- ne jamais perdre les dégâts ou ressources courantes par un recalcul naïf.
-
-## MON15.4 — Progression propre aux classes
-
-- points/choix accordés par niveau ;
-- prérequis ;
-- capacités débloquées ;
-- préparation du raccord avec MON16 et MON18 ;
-- rester data-driven dans `URPGClassAsset` ou un asset de progression dédié si la complexité le justifie.
-
-## MON15.5 — Interface Level Up
-
-- notification de niveau disponible ;
-- écran/modal de progression ;
-- comparaison avant/après ;
-- choix atomique et validation ;
-- aucune modification partielle si le joueur annule ou si la transaction échoue.
-
-## MON15.6 — Sauvegarde / restauration / migration
-
-- validation `Level` ↔ `Experience` ;
-- migration des sauvegardes v1–v3 ;
-- sauvegarde pendant un niveau disponible ;
-- restauration exacte des choix déjà effectués.
-
-## MON15.7 — Équilibrage et clôture
-
-- courbe finale du vertical slice ;
-- XP du Rat Géant ;
-- temps moyen par niveau ;
-- tests de non-régression combat/inventaire/save ;
-- documentation de clôture.
+- XP cumulative : `1000 * (L - 1) * L / 2` ;
+- niveau maximum 20 ;
+- SaveVersion 4 ;
+- récompenses monstres data-driven ;
+- Rat Géant = 500 XP de pool total ;
+- choix de progression persistants par `CharacterId` ;
+- Level Up différable pendant combat et restaurable après Continue ;
+- 42/42 tests MON15 verts ;
+- campagne finale 95/95 Success.
 
 ---
 
@@ -171,7 +87,7 @@ Tuer un Rat Géant attribue exactement la récompense attendue une fois et la va
 
 Créer une infrastructure commune pour les états temporaires et permanents affectant personnages et monstres.
 
-## Sous-jalons proposés
+## Sous-jalons
 
 ```text
 MON16.1 — Status Effect Definition & Runtime State
@@ -186,11 +102,28 @@ MON16.8 — Closure and Regression
 
 ## Principes
 
-- un seul modèle d'effet pour le groupe et les monstres lorsque possible ;
+- un seul modèle d'effet pour groupe et monstres lorsque possible ;
 - durée autoritaire en tours/rounds, pas en secondes de présentation ;
 - intégration événementielle avec le TurnManager ;
 - `InitiativeModifier` MON12.7.1 doit être réutilisé pour Haste/Slow ;
-- un effet ne doit jamais dépendre d'un Widget Blueprint pour fonctionner.
+- les effets ne doivent jamais dépendre d'un Widget Blueprint pour fonctionner ;
+- les définitions doivent rester data-driven ;
+- les effets appliqués doivent pouvoir être sérialisés en MON16.7 sans dupliquer l'état combat.
+
+## MON16.1 — Status Effect Definition & Runtime State
+
+Périmètre recommandé :
+
+- définir l'identité d'un effet (`StatusEffectId`) ;
+- définir catégorie/tags et règles de stacking minimales ;
+- définir un état runtime indépendant de la présentation ;
+- supporter propriétaire personnage ou monstre ;
+- distinguer définition immutable et instance runtime ;
+- prévoir source/applier sans créer de dépendance forte entre Actors ;
+- ajouter validations et tests purs ;
+- ne pas encore appliquer Poison/Haste/Stun dans ce sous-jalon.
+
+Porte de sortie : une instance d'effet valide peut être créée, interrogée, remplacée/stackée selon une règle déterministe et supprimée, sur personnage comme sur monstre, sans UI.
 
 ---
 
@@ -205,9 +138,9 @@ Le second monstre doit imposer un comportement différent, par exemple :
 - squelette `DirectMelee / SlowPressure` ; ou
 - archer/gobelin `RangedKeeper`.
 
-Une simple reskin du Rat Géant n'est pas suffisante pour valider MON17.
+Une simple reskin du Rat Géant n'est pas suffisante.
 
-## Sous-jalons proposés
+Sous-jalons :
 
 ```text
 MON17.1 — Definition / Assets / Spawn Contract
@@ -219,10 +152,6 @@ MON17.6 — Encounter / Loot / XP Integration
 MON17.7 — Balance / Closure
 ```
 
-## Porte de sortie
-
-Le nouveau monstre doit utiliser le même pipeline `MonsterSpawn`, la même persistance, le même TurnManager et les mêmes systèmes MON14 sans code gameplay spécifique à `RatGiant`.
-
 ---
 
 # MON18 — Magic & Spellbook
@@ -231,7 +160,7 @@ Le nouveau monstre doit utiliser le même pipeline `MonsterSpawn`, la même pers
 
 Transformer l'infrastructure de sorts MON12 en système RPG complet.
 
-## Sous-jalons proposés
+Sous-jalons :
 
 ```text
 MON18.1 — Spell Definition / Identity
@@ -245,12 +174,7 @@ MON18.8 — Scroll Learning / Casting
 MON18.9 — Save / Closure
 ```
 
-## Premiers cas de validation recommandés
-
-- `Magic Missile` : cible unique ;
-- `Fireball` : zone ;
-- `Heal` : soi/allié ;
-- `Haste` : effet MON16.
+Cas de validation recommandés : `Magic Missile`, `Fireball`, `Heal`, `Haste`.
 
 ---
 
@@ -260,7 +184,7 @@ MON18.9 — Save / Closure
 
 Permettre au level designer de construire des énigmes riches sans ajouter du C++ spécifique.
 
-## Sous-jalons proposés
+Sous-jalons :
 
 ```text
 MON19.1 — Timer
@@ -273,18 +197,7 @@ MON19.7 — Lightweight Script Language
 MON19.8 — Sandbox / Validation / Limits
 ```
 
-## Exemple cible
-
-```text
-PressurePlate.Activated
-    -> Counter +1
-    -> if Counter == 3
-    -> Door.Open
-    -> Timer 5 s
-    -> Door.Close
-```
-
-Le langage léger ne doit arriver qu'après validation des briques Timer/Counter/Relay. Il doit compléter `Event -> Condition -> Command`, pas le remplacer.
+Le langage léger doit compléter `Event -> Condition -> Command`, pas le remplacer.
 
 ---
 
@@ -292,9 +205,9 @@ Le langage léger ne doit arriver qu'après validation des briques Timer/Counter
 
 ## Objectif
 
-Passer du groupe techniquement multi-personnages à un système RPG de compagnons et de progression de personnage.
+Passer du groupe techniquement multi-personnages à un système RPG de compagnons et de progression avancée.
 
-## Sous-jalons proposés
+Sous-jalons :
 
 ```text
 MON20.1 — Recruitment / Party Roster
@@ -307,8 +220,6 @@ MON20.7 — Lockpicking Integration
 MON20.8 — Save / Closure
 ```
 
-Le crochetage déjà prévu dans `GRIMROCK_LOCK_SYSTEM.md` doit consommer les compétences/outils de ce système plutôt qu'introduire sa propre progression parallèle.
-
 ---
 
 # MON21 — Quests / Journal / Map / Codex
@@ -317,7 +228,7 @@ Le crochetage déjà prévu dans `GRIMROCK_LOCK_SYSTEM.md` doit consommer les co
 
 Donner une structure de campagne aux pages UI actuellement surtout décoratives.
 
-## Sous-jalons proposés
+Sous-jalons :
 
 ```text
 MON21.1 — Quest Definition
@@ -329,8 +240,6 @@ MON21.6 — Codex / Bestiary Unlocks
 MON21.7 — Save / Closure
 ```
 
-Les états doivent être data-driven et persistants ; les widgets restent des projections de l'état runtime.
-
 ---
 
 # MON22 — 45–90 Minute Vertical Slice
@@ -339,11 +248,11 @@ Les états doivent être data-driven et persistants ; les widgets restent des pr
 
 Suspendre volontairement l'ajout de grandes infrastructures et construire un jeu testable de bout en bout.
 
-## Contenu cible
+Contenu cible :
 
 - 1 donjon cohérent ;
 - 3 à 5 niveaux ;
-- 45 à 90 minutes de jeu pour un nouveau joueur ;
+- 45 à 90 minutes de jeu ;
 - plusieurs énigmes multi-étapes ;
 - secrets ;
 - 2 à 4 familles de monstres ;
@@ -355,15 +264,11 @@ Suspendre volontairement l'ajout de grandes infrastructures et construire un jeu
 - sauvegarde et Continue ;
 - conclusion claire du slice.
 
-## Porte de sortie
-
-Une personne extérieure au développement peut lancer une build autonome, comprendre les règles, terminer le slice sans commande de debug et reprendre une sauvegarde en cours de partie.
+Porte de sortie : une personne extérieure peut lancer une build autonome, comprendre les règles, terminer le slice sans commande de debug et reprendre une sauvegarde.
 
 ---
 
 # Horizon MON23+
-
-Ces chantiers restent importants mais viennent après la porte de sortie MON22 :
 
 ```text
 MON23 — Containers / Lock Traps / Crafting
@@ -378,27 +283,21 @@ MON30 — Full Campaign
 
 ---
 
-## Règles de conduite de la roadmap
+## Règles de conduite
 
 1. Un sous-jalon doit être petit, compilable et testable.
-2. Ne pas créer de branche de travail : le projet travaille sur `master` selon la pratique actuelle.
+2. Travail sur `master`, sans branche de fonctionnalité.
 3. Un commit logique par étape lorsque possible.
-4. Les modifications doivent être poussées sur `origin/master` après l'étape.
-5. Aucun refactor massif « préventif ».
+4. Pousser sur `origin/master` après chaque étape validée.
+5. Aucun refactor massif préventif.
 6. Réutiliser les systèmes existants avant d'ajouter une abstraction parallèle.
-7. Les tests C++ valident la logique ; les `.uasset`, `.umap`, WBP, meshes et AnimBP exigent une validation UE/PIE lorsqu'ils sont impliqués.
-8. À la clôture d'un jalon majeur, mettre à jour :
-   - `00_PROJECT_OVERVIEW.md` ;
-   - `PROJECT_COMPLETION_ROADMAP.md` ;
-   - `99_DECISIONS_LOG.md` ;
-   - la cartographie du projet si nécessaire.
+7. Les tests C++ valident la logique ; assets/WBP/maps exigent une validation UE/PIE lorsqu'ils sont impliqués.
+8. À la clôture d'un jalon majeur, mettre à jour overview, roadmap et document de clôture.
 
 ---
 
 ## Prochain travail autoritaire
 
 ```text
-MON15.1 — XP & Level Model
+MON16.1 — Status Effect Definition & Runtime State
 ```
-
-MON15.1 doit commencer par un audit précis du modèle RPG existant. Les champs `Level` et `Experience` existent déjà ; il ne faut pas les dupliquer. La première implémentation doit porter sur les règles pures de progression, les validations et les tests, sans attribuer encore d'XP depuis les combats.

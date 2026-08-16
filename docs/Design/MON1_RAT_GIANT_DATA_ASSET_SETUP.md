@@ -3,59 +3,24 @@
 **Projet :** GrimrockPrototype  
 **Moteur :** Unreal Engine 5.5.4  
 **Jalon :** MON1 — Types, DataAsset et validation des données  
-**Date :** 11 juillet 2026
+**Date initiale :** 11 juillet 2026  
+**Note de production :** 16 août 2026
+
+> Ce document conserve les valeurs historiques de MON1. Pour la production actuelle, la récompense XP du Rat Géant est supersédée par MON15.7 : `ExperienceReward = 500`.
 
 ---
 
 ## 1. État du jalon
 
-La partie C++ de MON1 comprend désormais :
+MON1 a introduit :
 
 - `GridCombatTypes.h` ;
 - `GridMonsterTypes.h` ;
 - `GridMonsterDefinitionAsset.h/.cpp` ;
-- les tests `Grimrock.Monsters.MON1.*`.
+- les tests `Grimrock.Monsters.MON1.*` ;
+- le DataAsset `DA_MON_RatGiant`.
 
-Le fichier `.uasset` doit être créé dans Unreal Editor, car il s’agit d’un asset binaire.
-
----
-
-## 2. Compiler le projet
-
-1. Fermer Unreal Editor s’il est ouvert.
-2. Régénérer les fichiers du projet Visual Studio si les nouveaux fichiers n’apparaissent pas.
-3. Compiler la cible `GrimrockPrototypeEditor` en configuration `Development Editor`.
-4. Ouvrir le projet avec Unreal Engine 5.5.4.
-
-Après compilation, la classe suivante doit être disponible dans le sélecteur de DataAsset :
-
-```text
-GridMonsterDefinitionAsset
-```
-
----
-
-## 3. Créer l’asset
-
-Créer le dossier suivant s’il n’existe pas :
-
-```text
-Content/GrimrockPrototype/Monsters/RatGiant/Data
-```
-
-Dans le Content Browser :
-
-1. clic droit ;
-2. `Miscellaneous` ;
-3. `Data Asset` ;
-4. sélectionner `GridMonsterDefinitionAsset` ;
-5. nommer l’asset :
-
-```text
-DA_MON_RatGiant
-```
-
-Chemin final recommandé :
+Chemin canonique :
 
 ```text
 /Game/GrimrockPrototype/Monsters/RatGiant/Data/DA_MON_RatGiant
@@ -63,33 +28,18 @@ Chemin final recommandé :
 
 ---
 
-## 4. Valeurs de `DA_MON_RatGiant`
-
-### Identity
+## 2. Identité
 
 | Propriété | Valeur |
 |---|---|
 | Monster Id | `MON_RatGiant` |
 | Display Name | `Rat géant` |
-| Description | `Vermine massive des profondeurs, rapide et agressive, utilisée comme premier ennemi de tutoriel.` |
 | Category Id | `Vermin` |
 | Danger Level | `1` |
 
-### Visual
+---
 
-Les références visuelles peuvent rester vides pendant MON1.
-
-| Propriété | Valeur MON1 |
-|---|---|
-| Icon | vide |
-| Skeletal Mesh | vide |
-| Animation Class | vide |
-| Visual Scale | `(1, 1, 1)` |
-| Visual Offset | `(0, 0, 0)` |
-
-Elles seront renseignées pendant MON2.
-
-### Stats
+## 3. Statistiques historiques de référence
 
 | Propriété | Valeur |
 |---|---:|
@@ -101,7 +51,7 @@ Elles seront renseignées pendant MON2.
 | Evasion | 1 |
 | Action Points Per Turn | 2 |
 
-### Movement
+Movement :
 
 | Propriété | Valeur |
 |---|---|
@@ -112,7 +62,7 @@ Elles seront renseignées pendant MON2.
 | Can Open Doors | faux |
 | Can Use Teleporters | faux |
 
-### Perception
+Perception :
 
 | Propriété | Valeur |
 |---|---:|
@@ -121,7 +71,7 @@ Elles seront renseignées pendant MON2.
 | Aggro Propagation Range | 3 |
 | Shares Aggro With Group | vrai |
 
-### AI
+AI :
 
 | Propriété | Valeur |
 |---|---|
@@ -134,9 +84,7 @@ Elles seront renseignées pendant MON2.
 
 ---
 
-## 5. Attaque `Attack_Bite`
-
-Ajouter une entrée dans `Attacks` :
+## 4. Attaque `Attack_Bite`
 
 | Propriété | Valeur |
 |---|---|
@@ -149,68 +97,69 @@ Ajouter une entrée dans `Attacks` :
 | Accuracy Bonus | 0 |
 | Range Cells | 1 |
 | Action Point Cost | 1 |
-| Attack Montage | vide pendant MON1 |
-| Impact Notify Name | `Monster.AttackImpact` |
-| Complete Notify Name | `Monster.ActionComplete` |
-| Attack Sound | vide pendant MON1 |
-| Impact VFX | vide pendant MON1 |
 
-`2 à 5` représente provisoirement `1d4 + 1`.
-
-Une attaque doit toujours coûter au moins un point d’action afin d’éviter une boucle d’actions gratuites.
+`2 à 5` représente historiquement `1d4 + 1`.
 
 ---
 
-## 6. Vulnérabilités
+## 5. Vulnérabilités
 
-Ajouter deux entrées dans `Damage Modifiers`.
+Feu :
 
-### Entrée 1 — Feu
+```text
+Damage Type = Fire
+Multiplier  = 1.50
+```
 
-| Propriété | Valeur |
-|---|---|
-| Damage Type | `Fire` |
-| Physical Subtype | `None` |
-| Damage Multiplier | `1.50` |
+Tranchant :
 
-### Entrée 2 — Tranchant
-
-| Propriété | Valeur |
-|---|---|
-| Damage Type | `Physical` |
-| Physical Subtype | `Slashing` |
-| Damage Multiplier | `1.25` |
-
-Les dégâts physiques perforants ou contondants conservent un multiplicateur de `1.0`.
+```text
+Damage Type       = Physical
+Physical Subtype  = Slashing
+Multiplier        = 1.25
+```
 
 ---
 
-## 7. Récompenses et butin
+## 6. Récompenses et butin
 
 ### Experience Reward
+
+Valeur historique MON1 :
 
 ```text
 10
 ```
 
-### Loot Table
+Valeur de production depuis MON15.7 :
 
-Ajouter deux entrées :
+```text
+500
+```
+
+La valeur `500` est un **pool total de groupe** distribué par `FRPGExperienceRewardService` entre les personnages actifs éligibles.
+
+Référence autoritaire actuelle :
+
+```text
+docs/Design/MON15_7_BALANCING.md
+docs/Design/MON15_CLOSURE.md
+```
+
+### Loot Table historique
 
 | Item Definition Id | Chance | Min | Max |
 |---|---:|---:|---:|
 | `Item_RatMeat` | 0.30 | 1 | 1 |
 | `Item_RatTooth` | 0.15 | 1 | 1 |
 
-La probabilité restante, soit `0.55`, signifie qu’aucun objet n’est généré.
-
-Les identifiants d’items pourront être reliés à leurs futurs `UGridItemDefinitionAsset` lorsque ces objets seront créés.
+Des entrées supplémentaires ont pu être ajoutées dans les assets de test/production ultérieurs. Le loot et l'XP restent indépendants.
 
 ---
 
-## 8. Vérifier la définition dans Blueprint
+## 7. Validation
 
-La classe expose les fonctions suivantes :
+La définition expose notamment :
 
 ```text
 Is Valid Definition
@@ -220,56 +169,31 @@ Get Damage Multiplier
 Get Attack Definition
 ```
 
-Pour une vérification rapide :
+MON1 validait les règles structurelles de la définition. MON15.7 ajoute désormais une garde de production :
 
-1. appeler `Validate Definition` ;
-2. vérifier que le résultat est vrai ;
-3. vérifier que la chaîne d’erreur est vide.
+```text
+Grimrock.RPG.MON15.7.ProductionRatAsset
+```
+
+qui charge directement `DA_MON_RatGiant` et exige :
+
+```text
+MonsterId = MON_RatGiant
+ExperienceReward = 500
+```
+
+Cette garde a été validée sous UE5.5.4 le 16 août 2026.
 
 ---
 
-## 9. Exécuter les Automation Tests
+## 8. Note historique
 
-Dans Unreal Editor :
+Les valeurs de MON1 restent utiles pour comprendre l'origine du premier monstre de test. Lorsqu'une valeur MON1 est en conflit avec un jalon ultérieur validé, le jalon le plus récent est autoritaire.
 
-1. ouvrir `Tools > Test Automation` ou le panneau Automation du Session Frontend ;
-2. rechercher :
-
-```text
-Grimrock.Monsters.MON1
-```
-
-3. exécuter :
+Pour l'XP du Rat Géant :
 
 ```text
-Grimrock.Monsters.MON1.DefinitionValidation
-Grimrock.Monsters.MON1.InvalidData
+MON1 / MON15.2 historique : 10 XP
+MON15.5 / MON15.6 fixture PIE : 1000 XP
+MON15.7 production : 500 XP
 ```
-
-Les tests vérifient notamment :
-
-- l’identifiant de Primary Asset ;
-- les profils `DirectMelee` et `FastHarasser` ;
-- la résolution de `Attack_Bite` ;
-- la vulnérabilité au feu ;
-- la vulnérabilité au tranchant ;
-- l’absence de modificateur perforant ;
-- le rejet des attaques dupliquées ;
-- le rejet d’une attaque gratuite ;
-- le rejet d’une table de butin dépassant 100 % ;
-- le rejet d’une définition vide.
-
----
-
-## 10. Critères de validation MON1
-
-MON1 est validé lorsque :
-
-- le projet compile sous UE 5.5.4 ;
-- `GridMonsterDefinitionAsset` apparaît dans le sélecteur de DataAsset ;
-- `DA_MON_RatGiant` est créé au chemin recommandé ;
-- toutes les valeurs ci-dessus sont renseignées ;
-- `Validate Definition` retourne vrai ;
-- les deux tests `Grimrock.Monsters.MON1` réussissent.
-
-Une fois ces points confirmés, le projet peut passer à **MON2 — Actor animé du Rat géant**.
