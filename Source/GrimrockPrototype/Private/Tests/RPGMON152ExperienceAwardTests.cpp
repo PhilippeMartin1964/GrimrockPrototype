@@ -474,9 +474,9 @@ bool FRPGMON152PersistenceStateTest::RunTest (
     UGrimrockPartySaveGame* SaveGame =
         NewObject<UGrimrockPartySaveGame> ();
     SaveGame->PartyInventoryState = SourceComponent->PartyInventoryState;
-    TestEqual (TEXT ("MON15.2 does not bump the save version"),
+    TestEqual (TEXT ("New save containers use the current save version"),
         SaveGame->SaveVersion,
-        3);
+        UGrimrockPartySaveGame::CurrentSaveVersion);
 
     UGridPartyInventoryComponent* RestoredComponent =
         NewObject<UGridPartyInventoryComponent> ();
