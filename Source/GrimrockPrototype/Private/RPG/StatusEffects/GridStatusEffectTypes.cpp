@@ -116,6 +116,7 @@ bool FGridStatusEffectCollection::TryApply (
         break;
 
     case EGridStatusEffectStackPolicy::AddStacks:
+        Updated.DefinitionAsset = Candidate.DefinitionAsset;
         Updated.SourceId = Candidate.SourceId;
         Updated.StackCount = FMath::Min (
             Definition.MaxStacks,

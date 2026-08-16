@@ -65,6 +65,14 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectRuntimeState
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
     int32 Potency = 0;
 
+    /**
+     * Transient static-data authority used by MON16.3 periodic resolution.
+     * EffectId remains the stable identity; this pointer is never a source id
+     * and is not part of the MON16.7 persistence contract.
+     */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG|Status Effects")
+    TObjectPtr<UGridStatusEffectDefinitionAsset> DefinitionAsset = nullptr;
+
     bool IsValid () const
     {
         if (EffectId.IsNone () || StackCount < 1 || Potency < 0)

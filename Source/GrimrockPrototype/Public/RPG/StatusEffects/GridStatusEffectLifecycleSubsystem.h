@@ -6,7 +6,9 @@
 #include "GridStatusEffectLifecycleSubsystem.generated.h"
 
 class AActor;
+class AGridMonsterActor;
 class UGridTurnManagerComponent;
+struct FGridCharacterInventoryState;
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridStatusEffectLifecycleSubsystem : public UWorldSubsystem
@@ -34,6 +36,14 @@ private:
 
     void TryBindFromActor (AActor* Actor);
     void AdvanceAllRoundEffects (int32 BoundaryCount);
+    void ApplyPeriodicDamageToCharacter (
+        FGridCharacterInventoryState& Character,
+        int32 CharacterIndex,
+        EGridStatusEffectDurationUnit DurationUnit);
+    void ApplyPeriodicDamageToMonster (
+        AGridMonsterActor* Monster,
+        EGridStatusEffectDurationUnit DurationUnit);
+    bool HasLivingPartyCharacter () const;
 
     UFUNCTION ()
     void HandleActorSpawned (AActor* Actor);

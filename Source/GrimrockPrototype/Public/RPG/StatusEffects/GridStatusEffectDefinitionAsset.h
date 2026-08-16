@@ -3,7 +3,37 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
+#include "Runtime/GridInventoryTypes.h"
 #include "GridStatusEffectDefinitionAsset.generated.h"
+
+/** Optional deterministic periodic damage payload for MON16.3. */
+USTRUCT (BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageProfile
+{
+    GENERATED_BODY ()
+
+    /** Canonical combat damage type; no parallel resistance vocabulary. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Damage")
+    EGridDamageType DamageType = EGridDamageType::Physical;
+
+    /** Raw damage dealt by each active stack on the effect's duration boundary. */
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "RPG|Status Effects|Periodic Damage",
+        meta = (ClampMin = "0"))
+    int32 DamagePerStack = 0;
+
+    bool IsEnabled () const
+    {
+        return DamagePerStack > 0;
+    }
+
+    bool IsValid () const
+    {
+        return DamagePerStack >= 0;
+    }
+};
 
 UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridStatusEffectDefinitionAsset : public UPrimaryDataAsset
@@ -39,6 +69,13 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Stacking", meta = (ClampMin = "1"))
     int32 MaxStacks = 1;
+
+    /**
+     * Periodic damage executes immediately before the matching Turns/Rounds
+     * duration decrement. A zero DamagePerStack means no periodic damage.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Periodic Damage")
+    FGridStatusEffectPeriodicDamageProfile PeriodicDamage;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Combat")
     int32 InitiativeModifier = 0;

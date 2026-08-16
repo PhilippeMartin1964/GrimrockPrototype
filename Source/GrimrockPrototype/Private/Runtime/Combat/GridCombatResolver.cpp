@@ -44,6 +44,21 @@ namespace
             0,
             Result.TargetHealthBefore - Result.HealthDamage);
     }
+
+    void ResolveDamageModifiers (
+        const FGridAttackTargetStats& Target,
+        FGridAttackResult& Result)
+    {
+        const int32 DamageAfterMultiplier = FMath::Max (
+            0,
+            FMath::RoundToInt (
+                static_cast<float> (Result.RawDamage) *
+                Result.DamageMultiplier));
+        Result.DamageAfterModifiers = ApplyResistancePercent (
+            DamageAfterMultiplier,
+            Result.ResistancePercent);
+        SplitDamageAcrossPools (Target, Result);
+    }
 }
 
 FGridAttackResult FGridCombatResolver::ResolveAttack (
@@ -101,16 +116,62 @@ FGridAttackResult FGridCombatResolver::ResolveAttackFromRolls (
     const int32 SafeDamageRoll = FMath::Clamp (DamageRoll, Attack.MinDamage, Attack.MaxDamage);
     const int32 BaseDamage = FMath::Max (0, SafeDamageRoll + Source.DamageBonus);
     Result.RawDamage = Result.bCriticalHit ? BaseDamage * 2 : BaseDamage;
-
-    const int32 DamageAfterMultiplier = FMath::Max (
-        0,
-        FMath::RoundToInt (static_cast<float> (Result.RawDamage) * Result.DamageMultiplier));
-    Result.DamageAfterModifiers = ApplyResistancePercent (
-        DamageAfterMultiplier,
-        Result.ResistancePercent);
-
-    SplitDamageAcrossPools (Target, Result);
+    ResolveDamageModifiers (Target, Result);
     return Result;
+}
+
+FGridAttackResult FGridCombatResolver::ResolveDirectDamage (
+    const FGridAttackTargetStats& Target,
+    EGridDamageType DamageType,
+    int32 RawDamage,
+    EGridPhysicalDamageSubtype PhysicalSubtype)
+{
+    FGridAttackResult Result;
+    Result.DamageType = DamageType;
+    Result.PhysicalSubtype = DamageType == EGridDamageType::Physical
+        ? PhysicalSubtype
+        : EGridPhysicalDamageSubtype::None;
+    Result.ResistancePercent = ClampResistancePercent (Target.ResistancePercent);
+    Result.DamageMultiplier = FMath::Max (0.0f, Target.DamageMultiplier);
+    Result.TargetHealthBefore = FMath::Max (0, Target.CurrentHealth);
+    Result.TargetHealthAfter = Result.TargetHealthBefore;
+    Result.RawDamage = FMath::Max (0, RawDamage);
+
+    if (Target.CurrentHealth <= 0 || Result.RawDamage <= 0)
+    {
+        return Result;
+    }
+
+    Result.bHit = true;
+    ResolveDamageModifiers (Target, Result);
+    return Result;
+}
+
+int32 FGridCombatResolver::GetResistancePercent (
+    const FGridDamageResistanceSet& Resistances,
+    EGridDamageType DamageType)
+{
+    switch (DamageType)
+    {
+    case EGridDamageType::Physical:
+        return Resistances.PhysicalResistance;
+    case EGridDamageType::Fire:
+        return Resistances.FireResistance;
+    case EGridDamageType::Ice:
+        return Resistances.IceResistance;
+    case EGridDamageType::Lightning:
+        return Resistances.LightningResistance;
+    case EGridDamageType::Poison:
+        return Resistances.PoisonResistance;
+    case EGridDamageType::Holy:
+        return Resistances.HolyResistance;
+    case EGridDamageType::Necrotic:
+        return Resistances.NecroticResistance;
+    case EGridDamageType::Arcane:
+        return Resistances.ArcaneResistance;
+    default:
+        return 0;
+    }
 }
 
 int32 FGridPartyTargetSelector::SelectTarget (

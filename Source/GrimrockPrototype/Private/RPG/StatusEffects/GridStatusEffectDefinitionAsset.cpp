@@ -56,6 +56,15 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition (FString& OutError) co
     {
         Errors.Add (TEXT ("Only AddStacks may declare MaxStacks greater than one."));
     }
+    if (!PeriodicDamage.IsValid ())
+    {
+        Errors.Add (TEXT ("PeriodicDamage.DamagePerStack must not be negative."));
+    }
+    if (PeriodicDamage.IsEnabled () &&
+        DurationUnit == EGridStatusEffectDurationUnit::Permanent)
+    {
+        Errors.Add (TEXT ("Periodic damage requires a Turns or Rounds duration in MON16.3."));
+    }
 
     OutError = FString::Join (Errors, TEXT ("\n"));
     return Errors.IsEmpty ();
@@ -112,6 +121,8 @@ bool UGridStatusEffectDefinitionAsset::BuildRuntimeState (
     Candidate.DurationUnit = DurationUnit;
     Candidate.RemainingDuration = ResolvedDuration;
     Candidate.Potency = ResolvedPotency;
+    Candidate.DefinitionAsset =
+        const_cast<UGridStatusEffectDefinitionAsset*> (this);
     if (!Candidate.IsValid ())
     {
         OutError = TEXT ("The generated runtime status effect state is invalid.");
