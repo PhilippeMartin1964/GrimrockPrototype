@@ -2,13 +2,20 @@
 
 ## Statut
 
-**Implémenté — validation UE5 en attente.**
+**VALIDÉ ET CLOS — 16 août 2026.**
 
 Base :
 
 ```text
 83f2630c213ad8e1c0583c326085be4df73de71a
 Close MON16.1 status effect runtime model
+```
+
+Commit logique d'implémentation MON16.2 :
+
+```text
+e038df582acc25bd990d924eec689d7a2b09d231
+Add MON16.2 status effect lifecycle
 ```
 
 MON16.2 ajoute le lifecycle logique des effets de statut sans introduire leur comportement spécifique. Les durées restent exprimées en tours ou rounds, jamais en secondes.
@@ -107,23 +114,54 @@ docs/Design/MON16_2_VALIDATION_CHECKLIST.md
 
 Aucun `.uasset`, `.umap` ou WBP.
 
-## Automation
+## Validation Automation
+
+Résultats fournis et analysés le 16 août 2026 :
 
 ```text
-Grimrock.RPG.MON16.2.TurnDurationLifecycle
-Grimrock.RPG.MON16.2.RoundDurationLifecycle
-Grimrock.RPG.MON16.2.PermanentDurationLifecycle
-Grimrock.RPG.MON16.2.NoStackAndRefresh
-Grimrock.RPG.MON16.2.AddStacks
-Grimrock.RPG.MON16.2.ReplaceIfStronger
-Grimrock.RPG.MON16.2.AtomicFailure
-Grimrock.RPG.MON16.2.DeterministicExpiration
-Grimrock.RPG.MON16.2.TurnManagerEventIntegration
-Grimrock.RPG.MON16.2.NoUIDependency
+Grimrock.RPG.MON16.2.TurnDurationLifecycle          Success
+Grimrock.RPG.MON16.2.RoundDurationLifecycle         Success
+Grimrock.RPG.MON16.2.PermanentDurationLifecycle     Success
+Grimrock.RPG.MON16.2.NoStackAndRefresh              Success
+Grimrock.RPG.MON16.2.AddStacks                      Success
+Grimrock.RPG.MON16.2.ReplaceIfStronger              Success
+Grimrock.RPG.MON16.2.AtomicFailure                   Success
+Grimrock.RPG.MON16.2.DeterministicExpiration        Success
+Grimrock.RPG.MON16.2.TurnManagerEventIntegration    Success
+Grimrock.RPG.MON16.2.NoUIDependency                  Success
 ```
 
-Attendu : **10/10 Success**. Les 7 tests MON16.1 doivent rester verts.
+Bilan ciblé : **10/10 Success**.
 
-MON16.2 ne sera déclaré **VALIDÉ ET CLOS** qu'après compilation UE5.5.4, succès des tests ciblés et régression appropriée sur logs utilisateur.
+Régressions exécutées dans la même validation :
 
-Prochaine étape après clôture : **MON16.3 — DoT Poison / Bleeding / Burning**.
+```text
+Grimrock.RPG.MON16.1        7/7 Success
+Grimrock.RPG.MON15         42/42 Success
+Grimrock.Monsters.MON14    19/19 Success
+```
+
+Bilan de la campagne fournie : **78/78 Success**.
+
+Aucun `Result={Fail}` ni erreur Automation n'est présent dans le log analysé. Les warnings de rendu `FlushRenderingCommands called recursively` observés pendant la campagne ciblée n'ont provoqué aucun échec et ne concernent pas les règles du lifecycle.
+
+Le fait que les nouveaux tests C++ MON16.2 soient découverts, chargés et exécutés par UE5.5.4 confirme que le code MON16.2 correspondant est compilé et chargé dans l'éditeur utilisé pour la validation.
+
+## Contrat gelé à la clôture
+
+MON16.2 est **VALIDÉ ET CLOS** avec les règles suivantes :
+
+- les durées gameplay restent exclusivement en `Turns`, `Rounds` ou `Permanent` ;
+- les frontières temporelles sont celles du TurnManager existant ;
+- aucun timer ni tick de statut ;
+- `Turns` avance à la consommation d'une activation de la cible ;
+- `Rounds` avance aux frontières de round ;
+- expiration déterministe à zéro ;
+- réapplication via `TryApply()` et politiques data-driven ;
+- `Potency` sert uniquement à `ReplaceIfStronger` ;
+- aucune logique spécifique Poison/Bleeding/Burning en MON16.2 ;
+- aucune modification effective d'initiative en MON16.2 ;
+- aucune dépendance UI ;
+- aucune persistance avant MON16.7.
+
+Prochaine étape : **MON16.3 — DoT Poison / Bleeding / Burning**.
