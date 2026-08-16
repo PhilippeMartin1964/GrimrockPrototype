@@ -6,10 +6,7 @@ FPrimaryAssetId UGridStatusEffectDefinitionAsset::GetPrimaryAssetId () const
     {
         return Super::GetPrimaryAssetId ();
     }
-
-    return FPrimaryAssetId (
-        FPrimaryAssetType (TEXT ("GridStatusEffect")),
-        EffectId);
+    return FPrimaryAssetId (FPrimaryAssetType (TEXT ("GridStatusEffect")), EffectId);
 }
 
 bool UGridStatusEffectDefinitionAsset::IsValidDefinition () const
@@ -21,17 +18,14 @@ bool UGridStatusEffectDefinitionAsset::IsValidDefinition () const
 bool UGridStatusEffectDefinitionAsset::ValidateDefinition (FString& OutError) const
 {
     TArray<FString> Errors;
-
     if (EffectId.IsNone ())
     {
         Errors.Add (TEXT ("EffectId must not be None."));
     }
-
     if (DisplayName.IsEmpty ())
     {
         Errors.Add (TEXT ("DisplayName must not be empty."));
     }
-
     if (DurationUnit == EGridStatusEffectDurationUnit::Permanent)
     {
         if (DefaultDuration != 0)
@@ -43,12 +37,14 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition (FString& OutError) co
     {
         Errors.Add (TEXT ("Timed effects require DefaultDuration greater than zero."));
     }
-
+    if (DefaultPotency < 0)
+    {
+        Errors.Add (TEXT ("DefaultPotency must not be negative."));
+    }
     if (MaxStacks < 1)
     {
         Errors.Add (TEXT ("MaxStacks must be at least one."));
     }
-
     if (StackPolicy == EGridStatusEffectStackPolicy::AddStacks)
     {
         if (MaxStacks < 2)
@@ -58,7 +54,7 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition (FString& OutError) co
     }
     else if (MaxStacks != 1)
     {
-        Errors.Add (TEXT ("Only AddStacks may declare MaxStacks greater than one in MON16.1."));
+        Errors.Add (TEXT ("Only AddStacks may declare MaxStacks greater than one."));
     }
 
     OutError = FString::Join (Errors, TEXT ("\n"));
@@ -69,18 +65,16 @@ bool UGridStatusEffectDefinitionAsset::BuildRuntimeState (
     const FGuid& SourceId,
     int32 InitialStackCount,
     int32 DurationOverride,
+    int32 PotencyOverride,
     FGridStatusEffectRuntimeState& OutState,
     FString& OutError) const
 {
     FString DefinitionError;
     if (!ValidateDefinition (DefinitionError))
     {
-        OutError = FString::Printf (
-            TEXT ("Status effect definition is invalid: %s"),
-            *DefinitionError);
+        OutError = FString::Printf (TEXT ("Status effect definition is invalid: %s"), *DefinitionError);
         return false;
     }
-
     if (InitialStackCount < 1 || InitialStackCount > MaxStacks)
     {
         OutError = FString::Printf (
@@ -90,10 +84,8 @@ bool UGridStatusEffectDefinitionAsset::BuildRuntimeState (
         return false;
     }
 
-    const int32 ResolvedDuration = DurationOverride == INDEX_NONE
-        ? DefaultDuration
-        : DurationOverride;
-
+    const int32 ResolvedDuration = DurationOverride == INDEX_NONE ? DefaultDuration : DurationOverride;
+    const int32 ResolvedPotency = PotencyOverride == INDEX_NONE ? DefaultPotency : PotencyOverride;
     if (DurationUnit == EGridStatusEffectDurationUnit::Permanent)
     {
         if (ResolvedDuration != 0)
@@ -107,6 +99,11 @@ bool UGridStatusEffectDefinitionAsset::BuildRuntimeState (
         OutError = TEXT ("Timed runtime states require RemainingDuration greater than zero.");
         return false;
     }
+    if (ResolvedPotency < 0)
+    {
+        OutError = TEXT ("Runtime status effect potency must not be negative.");
+        return false;
+    }
 
     FGridStatusEffectRuntimeState Candidate;
     Candidate.EffectId = EffectId;
@@ -114,7 +111,7 @@ bool UGridStatusEffectDefinitionAsset::BuildRuntimeState (
     Candidate.StackCount = InitialStackCount;
     Candidate.DurationUnit = DurationUnit;
     Candidate.RemainingDuration = ResolvedDuration;
-
+    Candidate.Potency = ResolvedPotency;
     if (!Candidate.IsValid ())
     {
         OutError = TEXT ("The generated runtime status effect state is invalid.");

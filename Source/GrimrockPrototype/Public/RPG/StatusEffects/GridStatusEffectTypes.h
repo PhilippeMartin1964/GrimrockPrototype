@@ -30,20 +30,26 @@ enum class EGridStatusEffectStackPolicy : uint8
     ReplaceIfStronger UMETA (DisplayName = "Replace If Stronger")
 };
 
-/** One runtime application of a data-driven status effect. */
+UENUM (BlueprintType)
+enum class EGridStatusEffectApplyOutcome : uint8
+{
+    None                UMETA (DisplayName = "None"),
+    Added               UMETA (DisplayName = "Added"),
+    RefreshedDuration   UMETA (DisplayName = "Refreshed Duration"),
+    AddedStacks         UMETA (DisplayName = "Added Stacks"),
+    ReplacedStronger    UMETA (DisplayName = "Replaced Stronger"),
+    RejectedNoStack     UMETA (DisplayName = "Rejected No Stack"),
+    RejectedNotStronger UMETA (DisplayName = "Rejected Not Stronger")
+};
+
 USTRUCT (BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridStatusEffectRuntimeState
 {
     GENERATED_BODY ()
 
-    /** Stable identity of the static effect definition. */
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
     FName EffectId = NAME_None;
 
-    /**
-     * Stable gameplay identity of the source when one exists.
-     * An invalid Guid means an anonymous/system/environment source.
-     */
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
     FGuid SourceId;
 
@@ -51,16 +57,17 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectRuntimeState
     int32 StackCount = 1;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
-    EGridStatusEffectDurationUnit DurationUnit =
-        EGridStatusEffectDurationUnit::Rounds;
+    EGridStatusEffectDurationUnit DurationUnit = EGridStatusEffectDurationUnit::Rounds;
 
-    /** Zero is reserved for Permanent effects. */
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
     int32 RemainingDuration = 0;
 
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 Potency = 0;
+
     bool IsValid () const
     {
-        if (EffectId.IsNone () || StackCount < 1)
+        if (EffectId.IsNone () || StackCount < 1 || Potency < 0)
         {
             return false;
         }
@@ -70,21 +77,73 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectRuntimeState
         case EGridStatusEffectDurationUnit::Turns:
         case EGridStatusEffectDurationUnit::Rounds:
             return RemainingDuration > 0;
-
         case EGridStatusEffectDurationUnit::Permanent:
             return RemainingDuration == 0;
-
         default:
             return false;
         }
     }
 };
 
-/**
- * Common ordered runtime container used by party characters and monsters.
- * MON16.1 only accepts one runtime entry per EffectId; stacking resolution is
- * intentionally deferred to MON16.2.
- */
+USTRUCT (BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridStatusEffectApplyResult
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    EGridStatusEffectApplyOutcome Outcome = EGridStatusEffectApplyOutcome::None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    FName EffectId = NAME_None;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 PreviousStackCount = 0;
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 CurrentStackCount = 0;
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 PreviousRemainingDuration = 0;
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 CurrentRemainingDuration = 0;
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 PreviousPotency = 0;
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    int32 CurrentPotency = 0;
+
+    bool DidMutate () const
+    {
+        return Outcome == EGridStatusEffectApplyOutcome::Added ||
+            Outcome == EGridStatusEffectApplyOutcome::RefreshedDuration ||
+            Outcome == EGridStatusEffectApplyOutcome::AddedStacks ||
+            Outcome == EGridStatusEffectApplyOutcome::ReplacedStronger;
+    }
+
+    void Reset () { *this = FGridStatusEffectApplyResult (); }
+};
+
+USTRUCT (BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridStatusEffectAdvanceResult
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    EGridStatusEffectDurationUnit DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    TArray<FName> AdvancedEffectIds;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
+    TArray<FName> ExpiredEffectIds;
+
+    bool HasChanges () const { return !AdvancedEffectIds.IsEmpty (); }
+
+    void Reset (EGridStatusEffectDurationUnit InDurationUnit)
+    {
+        DurationUnit = InDurationUnit;
+        AdvancedEffectIds.Reset ();
+        ExpiredEffectIds.Reset ();
+    }
+};
+
 USTRUCT (BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridStatusEffectCollection
 {
@@ -93,32 +152,13 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectCollection
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects")
     TArray<FGridStatusEffectRuntimeState> ActiveEffects;
 
-    int32 Num () const
-    {
-        return ActiveEffects.Num ();
-    }
-
-    bool IsEmpty () const
-    {
-        return ActiveEffects.IsEmpty ();
-    }
-
-    void Reset ()
-    {
-        ActiveEffects.Reset ();
-    }
+    int32 Num () const { return ActiveEffects.Num (); }
+    bool IsEmpty () const { return ActiveEffects.IsEmpty (); }
+    void Reset () { ActiveEffects.Reset (); }
 
     const FGridStatusEffectRuntimeState* FindByEffectId (FName EffectId) const;
+    bool Contains (FName EffectId) const { return FindByEffectId (EffectId) != nullptr; }
 
-    bool Contains (FName EffectId) const
-    {
-        return FindByEffectId (EffectId) != nullptr;
-    }
-
-    /**
-     * Atomically creates and appends one runtime state from Definition.
-     * DurationOverride == INDEX_NONE uses the definition default.
-     */
     bool TryAdd (
         const UGridStatusEffectDefinitionAsset& Definition,
         const FGuid& SourceId,
@@ -131,13 +171,37 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectCollection
         const FGuid& SourceId,
         FString& OutError)
     {
-        return TryAdd (
+        return TryAdd (Definition, SourceId, 1, INDEX_NONE, OutError);
+    }
+
+    bool TryApply (
+        const UGridStatusEffectDefinitionAsset& Definition,
+        const FGuid& SourceId,
+        int32 InitialStackCount,
+        int32 DurationOverride,
+        int32 PotencyOverride,
+        FGridStatusEffectApplyResult& OutResult,
+        FString& OutError);
+
+    bool TryApply (
+        const UGridStatusEffectDefinitionAsset& Definition,
+        const FGuid& SourceId,
+        FGridStatusEffectApplyResult& OutResult,
+        FString& OutError)
+    {
+        return TryApply (
             Definition,
             SourceId,
             1,
             INDEX_NONE,
+            INDEX_NONE,
+            OutResult,
             OutError);
     }
+
+    void AdvanceDuration (
+        EGridStatusEffectDurationUnit DurationUnit,
+        FGridStatusEffectAdvanceResult& OutResult);
 
 private:
     void SortDeterministically ();
