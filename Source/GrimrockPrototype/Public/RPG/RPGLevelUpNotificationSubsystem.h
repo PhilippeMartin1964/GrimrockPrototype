@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridCombatTypes.h"
+#include "Save/GrimrockPartySaveGame.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "RPGLevelUpNotificationSubsystem.generated.h"
 
@@ -10,13 +11,9 @@ class UGridTurnManagerComponent;
 class URPGLevelUpWidget;
 
 /**
- * MON15.5 runtime coordinator that turns the source-aware level-up event into
- * a modal notification. Multiple simultaneous level-ups are queued.
- *
- * Combat safety: level-up notifications earned during combat remain queued
- * until the authoritative turn manager broadcasts OnCombatEnded. This keeps
- * combat resolution deterministic and prevents an enemy turn from executing
- * behind the modal.
+ * Runtime coordinator that turns source-aware level-up events into modal
+ * notifications. MON15.6 additionally persists notifications that have not
+ * yet been acknowledged.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API URPGLevelUpNotificationSubsystem
@@ -34,17 +31,34 @@ public:
     UFUNCTION (BlueprintPure, Category = "RPG|Level Up")
     bool IsLevelUpModalOpen () const;
 
+    /** Captures pending + currently displayed notifications for this party. */
+    static bool CapturePersistentState (
+        const FGridPartyInventoryState& PartyState,
+        TArray<FRPGPendingLevelUpSaveState>& OutStates,
+        FText& OutError);
+
+    /**
+     * Replaces the persistent mirror after SaveGame load. Live subsystems adopt
+     * it on a following world tick, after PartyInventoryState is restored.
+     */
+    static void RestorePersistentState (
+        const TArray<FRPGPendingLevelUpSaveState>& SavedStates);
+
 private:
     struct FPendingNotification
     {
         TWeakObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
         int32 CharacterIndex = INDEX_NONE;
+        FGuid CharacterId;
         int32 PreviousLevel = 1;
         int32 NewLevel = 1;
         int32 LevelsGained = 0;
     };
 
     TArray<FPendingNotification> PendingNotifications;
+    TOptional<FPendingNotification> ActiveNotification;
+    TArray<FRPGPendingLevelUpSaveState> PendingPersistentRestoreStates;
+    int32 PersistentRestoreRetryCount = 0;
 
     UPROPERTY (Transient)
     TObjectPtr<URPGLevelUpWidget> ActiveWidget;
@@ -70,4 +84,10 @@ private:
         UGridTurnManagerComponent* TurnManager);
     void ClearDeferredCombatTurnManager ();
     void TryPresentNextNotification ();
+    void HandlePersistentStateRestored (
+        const TArray<FRPGPendingLevelUpSaveState>& SavedStates);
+    bool TryAdoptPersistentRestoreState ();
+    void SchedulePersistentRestoreRetry ();
+    void HandlePersistentRestoreRetryTick ();
+    void SyncPersistentMirrorForCharacter (const FGuid& CharacterId);
 };

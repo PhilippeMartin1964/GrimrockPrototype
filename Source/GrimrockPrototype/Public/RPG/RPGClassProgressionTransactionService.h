@@ -4,6 +4,8 @@
 #include "RPG/RPGClassProgressionService.h"
 
 class UGridPartyInventoryComponent;
+struct FGridPartyInventoryState;
+struct FRPGCharacterProgressionSaveState;
 
 enum class ERPGClassProgressionCommitRejectReason : uint8
 {
@@ -41,25 +43,25 @@ DECLARE_MULTICAST_DELEGATE_FourParams (
     int32);
 
 /**
- * MON15.5 authoritative in-session transaction for class progression choices.
+ * Authoritative runtime transaction and projection cache for class choices.
  *
- * The runtime registry is intentionally transient. MON15.6 will move this
- * state into the SaveGame contract and own migration from older saves.
+ * MON15.6 persists the selected choices in UGrimrockPartySaveGame. RuntimeStates
+ * remains a derived cache keyed by CharacterId and may be rebuilt from a save.
  */
 struct GRIMROCKPROTOTYPE_API FRPGClassProgressionTransactionService
 {
-    /** Rebuilds automatic + committed requirement tags for one character. */
+    /** Rebuilds automatic + committed requirement tags for one live character. */
     static bool RefreshCharacterProjection (
         UGridPartyInventoryComponent* PartyInventoryComponent,
         int32 CharacterIndex);
 
-    /** Reads committed choices for the current runtime session. */
+    /** Reads committed choices for the current character. */
     static bool TryGetSelectedChoiceIds (
         UGridPartyInventoryComponent* PartyInventoryComponent,
         int32 CharacterIndex,
         TArray<FName>& OutSelectedChoiceIds);
 
-    /** Returns the point balance of the committed runtime selection. */
+    /** Returns the point balance of the committed selection. */
     static bool TryGetChoicePointBalance (
         UGridPartyInventoryComponent* PartyInventoryComponent,
         int32 CharacterIndex,
@@ -82,7 +84,27 @@ struct GRIMROCKPROTOTYPE_API FRPGClassProgressionTransactionService
         const FGuid& CharacterId,
         TSet<FName>& InOutSatisfiedRequirements);
 
-    /** Test/session reset. Null clears all transient progression state. */
+    /**
+     * Captures exactly one progression record per active character. The runtime
+     * cache is the authority during play; missing cache entries serialize as an
+     * empty selection.
+     */
+    static bool CapturePersistentState (
+        const FGridPartyInventoryState& PartyState,
+        TArray<FRPGCharacterProgressionSaveState>& OutStates,
+        FText& OutError);
+
+    /**
+     * Validates and rebuilds detached runtime projections from persisted data.
+     * The rebuilt projections become immediately consumable by MON12 catalogues
+     * and bind to the live inventory component on the next refresh.
+     */
+    static bool RestorePersistentState (
+        const FGridPartyInventoryState& PartyState,
+        const TArray<FRPGCharacterProgressionSaveState>& SavedStates,
+        FText& OutError);
+
+    /** Test/session cache reset. Null clears all derived progression state. */
     static void ResetRuntimeState (
         UGridPartyInventoryComponent* PartyInventoryComponent = nullptr);
 

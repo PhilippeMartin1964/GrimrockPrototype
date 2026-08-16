@@ -467,9 +467,9 @@ bool FRPGMON154LegacyCompatibilityTest::RunTest (const FString& Parameters)
             ClassDefinition, 10, Requirements));
     TestTrue (TEXT ("Legacy class identity remains available"),
         Requirements.Contains (ClassDefinition->ClassId));
-    TestEqual (TEXT ("MON15.4 does not bump SaveVersion"),
-        UGrimrockPartySaveGame::CurrentSaveVersion,
-        3);
+    TestTrue (TEXT ("MON15.4-era version three remains migration-compatible"),
+        UGrimrockPartySaveGame::MinimumCompatibleSaveVersion <= 3 &&
+        UGrimrockPartySaveGame::CurrentSaveVersion >= 3);
     return true;
 }
 

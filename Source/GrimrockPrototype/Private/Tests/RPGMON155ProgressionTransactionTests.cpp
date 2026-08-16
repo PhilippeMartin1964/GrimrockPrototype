@@ -148,7 +148,7 @@ bool FRPGMON155TransientBoundaryTest::RunTest (const FString& Parameters)
         MakeMON155Inventory (2, 1000, ClassDefinition);
 
     FRPGClassProgressionCommitResult Result;
-    TestTrue (TEXT ("Choice A commits before the transient boundary check"),
+    TestTrue (TEXT ("Choice A commits before the runtime boundary check"),
         FRPGClassProgressionTransactionService::TryCommitChoices (
             Component,
             0,
@@ -157,8 +157,8 @@ bool FRPGMON155TransientBoundaryTest::RunTest (const FString& Parameters)
 
     UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame> ();
     Save->PartyInventoryState = Component->PartyInventoryState;
-    TestEqual (TEXT ("MON15.5 keeps SaveVersion three"),
-        UGrimrockPartySaveGame::CurrentSaveVersion, 3);
+    TestEqual (TEXT ("MON15.6 current SaveVersion is four"),
+        UGrimrockPartySaveGame::CurrentSaveVersion, 4);
 
     FRPGClassProgressionTransactionService::ResetRuntimeState (Component);
     TArray<FName> SelectedAfterRuntimeReset;
@@ -167,8 +167,10 @@ bool FRPGMON155TransientBoundaryTest::RunTest (const FString& Parameters)
             Component,
             0,
             SelectedAfterRuntimeReset));
-    TestTrue (TEXT ("MON15.5 choices are intentionally not persisted yet"),
+    TestTrue (TEXT ("A cache reset alone still clears the MON15.5 transient selection"),
         SelectedAfterRuntimeReset.IsEmpty ());
+    TestTrue (TEXT ("MON15.6 persistence is captured by SaveGame serialization, not the ordinary party snapshot"),
+        Save->ClassProgressionStates.IsEmpty ());
     TestEqual (TEXT ("The ordinary party snapshot is otherwise unchanged"),
         Save->PartyInventoryState.ActiveCharacters.Num (), 1);
     return true;
