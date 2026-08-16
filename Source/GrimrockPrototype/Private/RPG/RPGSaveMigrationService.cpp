@@ -5,7 +5,7 @@
 #include "RPG/RPGClassProgressionService.h"
 #include "Save/GrimrockPartySaveGame.h"
 
-namespace
+namespace MON156SaveMigrationPrivate
 {
     int32 PreserveHealthDeficit (
         const FRPGDerivedStats& PreviousStats,
@@ -332,6 +332,8 @@ namespace
         return true;
     }
 }
+
+using namespace MON156SaveMigrationPrivate;
 
 bool FRPGSaveMigrationService::PrepareLoadedSave (
     UGrimrockPartySaveGame* SaveGame,
