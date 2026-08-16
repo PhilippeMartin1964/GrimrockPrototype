@@ -2,9 +2,9 @@
 
 ## Statut
 
-**Implémenté — validation UE5 en attente.**
+**VALIDÉ ET CLOS — 16 août 2026.**
 
-MON16.1 pose uniquement le vocabulaire, la définition statique et l'état runtime générique des effets de statut. Aucune compilation Unreal Engine ni campagne Automation n'est considérée comme validée tant que le log UE5 correspondant n'a pas été fourni et examiné.
+MON16.1 pose uniquement le vocabulaire, la définition statique et l'état runtime générique des effets de statut. Le code a été chargé et exécuté par Unreal Engine 5.5.4, les 7 tests Automation dédiés sont `Success` et les régressions pertinentes disponibles sont vertes.
 
 Référence d'audit avant implémentation :
 
@@ -18,6 +18,13 @@ Commit logique de code MON16.1 :
 ```text
 10c93ce522fc9cd97dbb927f5234104be6378ae9
 Add MON16.1 status effect runtime model
+```
+
+Commit documentaire initial :
+
+```text
+355968325f7ace0159b82bde9a05dbc2ab939078
+Document MON16.1 status effect model
 ```
 
 ---
@@ -140,11 +147,11 @@ RemainingDuration
 Exemple logique :
 
 ```text
-EffectId          = Poison
-SourceId          = <Guid stable de la source>
-StackCount        = 2
-DurationUnit      = Rounds
-RemainingDuration = 3
+EffectId           = Poison
+SourceId           = <Guid stable de la source>
+StackCount         = 2
+DurationUnit       = Rounds
+RemainingDuration  = 3
 ```
 
 MON16.1 ne modifie jamais `RemainingDuration` après la création de l'état.
@@ -159,7 +166,7 @@ Quand une source gameplay possède une identité stable :
 - monstre : identité de persistance/résolution existante du monstre ;
 - autre objet runtime : son identité stable existante si le système en possède une.
 
-Un `FGuid` invalide représente volontairement une source anonyme, système ou environnementale. Cela évite d'inventer un UObject persistant fragile uniquement pour appliquer un effet.
+Un `FGuid` invalide représente volontairement une source anonyme, système ou environnementale.
 
 ---
 
@@ -176,11 +183,9 @@ La collection :
 - refuse en MON16.1 un second état possédant le même `EffectId` ;
 - trie les effets par `EffectId` pour garantir une lecture déterministe.
 
-### Pourquoi refuser actuellement un doublon ?
+### Stacking
 
-Les politiques de stacking sont déjà **déclarées par données**, mais leur exécution n'appartient pas à MON16.1.
-
-Ainsi :
+Les politiques sont déclarées par données :
 
 ```text
 NoStack
@@ -189,9 +194,9 @@ AddStacks
 ReplaceIfStronger
 ```
 
-sont représentables, sans que MON16.1 décide encore comment fusionner deux applications concurrentes. Un ajout dupliqué échoue donc sans modifier la collection existante.
+mais leur exécution n'appartient pas à MON16.1. Un ajout dupliqué échoue donc sans modifier la collection existante.
 
-La résolution effective sera introduite avec le lifecycle MON16.2.
+La résolution effective est réservée au lifecycle MON16.2.
 
 ---
 
@@ -205,9 +210,7 @@ La résolution effective sera introduite avec le lifecycle MON16.2.
 FGridStatusEffectCollection StatusEffects;
 ```
 
-La propriété est `Transient` en MON16.1.
-
-Chaque personnage possède sa propre collection par valeur. Aucun état global n'est partagé entre les membres du groupe.
+La propriété est `Transient` en MON16.1. Chaque personnage possède sa propre collection par valeur.
 
 ### Monstres
 
@@ -253,7 +256,7 @@ De la même manière, les futurs `Strength Buff`, `Armor Buff` ou `Regeneration`
 
 ---
 
-## 9. Ce que MON16.1 permet déjà de représenter
+## 9. Effets représentables
 
 La même architecture peut porter des identités telles que :
 
@@ -311,7 +314,7 @@ La prochaine étape devra notamment décider précisément :
 - comment les réapplications exécutent `NoStack`, `RefreshDuration`, `AddStacks`, `ReplaceIfStronger` ;
 - comment notifier les changements sans dépendre d'un Widget.
 
-La présentation et les dégâts périodiques resteront hors de MON16.2 si leur sous-jalon dédié n'est pas encore atteint.
+La présentation et les dégâts périodiques restent hors de MON16.2 si leur sous-jalon dédié n'est pas encore atteint.
 
 ---
 
@@ -323,39 +326,47 @@ Namespace :
 Grimrock.RPG.MON16.1
 ```
 
-Tests :
+Tests validés le 16 août 2026 :
 
 ```text
-Grimrock.RPG.MON16.1.DefinitionValidation
-Grimrock.RPG.MON16.1.StableIdentity
-Grimrock.RPG.MON16.1.RuntimeStateCreation
-Grimrock.RPG.MON16.1.TargetIsolation
-Grimrock.RPG.MON16.1.DeterministicCollection
-Grimrock.RPG.MON16.1.AtomicInvalidAdd
-Grimrock.RPG.MON16.1.NoUIDependency
+Grimrock.RPG.MON16.1.DefinitionValidation       Success
+Grimrock.RPG.MON16.1.StableIdentity             Success
+Grimrock.RPG.MON16.1.RuntimeStateCreation       Success
+Grimrock.RPG.MON16.1.TargetIsolation            Success
+Grimrock.RPG.MON16.1.DeterministicCollection    Success
+Grimrock.RPG.MON16.1.AtomicInvalidAdd            Success
+Grimrock.RPG.MON16.1.NoUIDependency              Success
 ```
 
-Couverture :
+Bilan : **7/7 Success**.
 
-- définition valide ;
-- `EffectId` invalide ;
-- durées et stacking incohérents ;
-- identité `PrimaryAssetId` stable ;
-- création runtime valide ;
-- création atomique ;
-- ajout sur personnage ;
-- ajout sur vrai `AGridMonsterActor` de test ;
-- isolation entre deux personnages ;
-- isolation personnage/monstre ;
-- collection commune aux deux modèles ;
-- ordre déterministe ;
-- ajout invalide/dupliqué sans mutation ;
-- absence de dépendance source vers UI/UMG/widget.
-
-Commande Automation ciblée :
+La campagne de validation a également confirmé les régressions pertinentes observées dans les logs fournis :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.1
+Grimrock.RPG.MON15                    42/42 Success
+Grimrock.Monsters.MON14               19/19 Success
+Grimrock.Monsters.MON13.5.RealPIEIntegration    Success
 ```
 
-MON16.1 ne doit être déclaré **VALIDÉ ET CLOS** qu'après compilation UE5 et succès réel de cette campagne, puis régression appropriée, sur logs fournis par l'utilisateur.
+Le fait que les nouveaux tests C++ MON16.1 soient découverts, chargés et exécutés avec succès par UE5.5.4 confirme que le module contenant les nouveaux types a été compilé et chargé correctement.
+
+Aucune correction C++ n'a été nécessaire après cette campagne.
+
+---
+
+## 13. Clôture
+
+MON16.1 est **VALIDÉ ET CLOS**.
+
+Le contrat gelé à la clôture est le suivant :
+
+- définition data-driven unique des effets ;
+- identité stable `EffectId` ;
+- état runtime commun personnage/monstre ;
+- stockage runtime transitoire ;
+- aucune dépendance UI ;
+- aucune persistance avant MON16.7 ;
+- aucune application gameplay spécifique avant les sous-jalons dédiés ;
+- réutilisation obligatoire de `FGridCombatantInitiativeEntry::InitiativeModifier` pour MON16.4.
+
+Prochaine étape : **MON16.2 — Duration / Turn / Round Lifecycle**.

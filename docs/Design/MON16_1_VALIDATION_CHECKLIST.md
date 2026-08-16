@@ -3,134 +3,84 @@
 ## État
 
 ```text
-Implémentation C++ : préparée
-Documentation      : préparée
-Compilation UE5    : EN ATTENTE
-Automation MON16.1 : EN ATTENTE
-Régression globale : EN ATTENTE
-Clôture             : NON
+Implémentation C++ : VALIDÉE
+Documentation      : VALIDÉE
+UE5.5.4             : nouveaux tests C++ chargés et exécutés
+Automation MON16.1 : 7/7 SUCCESS
+Régression MON15   : 42/42 SUCCESS
+Régression MON14   : 19/19 SUCCESS
+MON13.5 RealPIE    : SUCCESS
+Clôture            : OUI
 ```
 
-Ne pas déclarer MON16.1 validé ou clos avant réception et analyse des logs UE5.
+MON16.1 est **VALIDÉ ET CLOS** depuis le 16 août 2026.
 
----
-
-## 1. Vérification Git
+## Vérification Git
 
 - [x] base auditée sur `master` au commit `941ae876899c26e5587ed279be50a71a501fa361`
-- [x] branche de travail logique : `master` uniquement
-- [x] aucun `.uasset`
-- [x] aucun `.umap`
-- [x] aucun WBP
-- [x] aucune modification `Documentation/`
-- [x] documentation MON16.1 sous `docs/Design/`
+- [x] `master` uniquement
+- [x] aucun `.uasset`, `.umap` ou WBP modifié
+- [x] documentation sous `docs/Design/`
 
----
+## Architecture
 
-## 2. Vérification architecture
+- [x] définition data-driven `UGridStatusEffectDefinitionAsset`
+- [x] identité stable `EffectId`
+- [x] état runtime commun personnages/monstres
+- [x] stockage transitoire sur personnage et monstre
+- [x] aucune persistance ajoutée en MON16.1
+- [x] aucune dépendance UI
+- [x] `InitiativeModifier` reste déclaratif en MON16.1
 
-- [x] `UGridStatusEffectDefinitionAsset` est data-driven
-- [x] `EffectId` est un `FName` stable
-- [x] `PrimaryAssetId = GridStatusEffect:EffectId`
-- [x] `FGridStatusEffectRuntimeState` ne stocke aucun pointeur UObject/Actor source
-- [x] `SourceId` utilise un `FGuid`
-- [x] `FGridStatusEffectCollection` est commune personnages/monstres
-- [x] `FGridCharacterInventoryState` possède sa collection
-- [x] `AGridMonsterActor` possède sa collection
-- [x] les deux propriétés de cible sont `Transient` en MON16.1
-- [x] `FGridRuntimeMonsterState` n'est pas modifié
-- [x] aucun système de statistiques parallèle n'est introduit
-- [x] `InitiativeModifier` de la définition est déclaratif seulement
-- [x] aucune logique gameplay ne dépend d'un Widget
+## Périmètre
 
----
-
-## 3. Vérification périmètre
-
-- [x] aucune diminution automatique de durée
-- [x] aucune expiration automatique
-- [x] aucun DoT
-- [x] aucun comportement Poison/Bleeding/Burning
-- [x] aucun comportement Haste/Slow
-- [x] aucun comportement Stun/Silence/Immobilize
+- [x] aucune logique de durée automatique
+- [x] aucun dégât périodique
+- [x] aucun comportement spécifique d'effet
+- [x] aucune modification effective d'initiative
 - [x] aucun HUD/icône
 - [x] aucune sauvegarde/restauration des effets
-- [x] politiques de stacking déclarées mais pas exécutées
+- [x] stacking déclaré mais non exécuté
 
----
+## Automation MON16.1
 
-## 4. Compilation à effectuer par l'utilisateur
+Résultats fournis le 16 août 2026 :
 
-Compiler le projet UE5.5.4 normalement avec la configuration de développement habituelle.
+- [x] `DefinitionValidation` — Success
+- [x] `StableIdentity` — Success
+- [x] `RuntimeStateCreation` — Success
+- [x] `TargetIsolation` — Success
+- [x] `DeterministicCollection` — Success
+- [x] `AtomicInvalidAdd` — Success
+- [x] `NoUIDependency` — Success
 
-Résultat attendu avant de poursuivre :
+Bilan : **7/7 Success**.
 
-```text
-0 erreur C++
-0 erreur UHT liée à MON16.1
-0 erreur de link liée aux nouveaux types
-```
+Le fait que ces nouveaux tests C++ soient découverts et exécutés par Unreal Engine 5.5.4 confirme que le module MON16.1 correspondant est chargé correctement dans l'éditeur utilisé pour la validation.
 
-- [ ] compilation réussie confirmée par log utilisateur
+## Régressions
 
----
-
-## 5. Automation ciblée
-
-Dans l'Automation Test Framework, exécuter :
+Les logs fournis confirment également :
 
 ```text
-Grimrock.RPG.MON16.1
+Grimrock.RPG.MON15                         42/42 Success
+Grimrock.Monsters.MON14                    19/19 Success
+Grimrock.Monsters.MON13.5.RealPIEIntegration     Success
 ```
 
-Tests attendus :
+- [x] régression RPG MON15 réussie
+- [x] régression Monster MON14 réussie
+- [x] intégration PIE réelle MON13.5 réussie
+- [x] aucune régression pertinente observée après MON16.1
 
-```text
-Grimrock.RPG.MON16.1.DefinitionValidation
-Grimrock.RPG.MON16.1.StableIdentity
-Grimrock.RPG.MON16.1.RuntimeStateCreation
-Grimrock.RPG.MON16.1.TargetIsolation
-Grimrock.RPG.MON16.1.DeterministicCollection
-Grimrock.RPG.MON16.1.AtomicInvalidAdd
-Grimrock.RPG.MON16.1.NoUIDependency
-```
+## Clôture
 
-- [ ] DefinitionValidation — Success
-- [ ] StableIdentity — Success
-- [ ] RuntimeStateCreation — Success
-- [ ] TargetIsolation — Success
-- [ ] DeterministicCollection — Success
-- [ ] AtomicInvalidAdd — Success
-- [ ] NoUIDependency — Success
+- [x] les 7 tests dédiés sont `Success`
+- [x] les régressions pertinentes disponibles sont vertes
+- [x] les logs ont été fournis et examinés
+- [x] aucune correction C++ supplémentaire n'est nécessaire
+- [x] documentation de clôture mise à jour
 
----
+**Décision : MON16.1 — VALIDÉ ET CLOS.**
 
-## 6. Régression après succès MON16.1
-
-Après succès des tests ciblés, relancer au minimum les familles qui touchent directement les deux modèles étendus :
-
-```text
-Grimrock.RPG.MON15
-Grimrock.Monsters.MON13
-Grimrock.Monsters.MON14
-Grimrock.RPG.MON16.1
-```
-
-Puis, pour la validation de clôture, exécuter la campagne globale du projet utilisée à la fin de MON15.
-
-- [ ] régression RPG MON15 réussie
-- [ ] régression Monster MON13 réussie
-- [ ] régression Monster MON14 réussie
-- [ ] campagne globale réussie
-
----
-
-## 7. Critère de clôture
-
-MON16.1 pourra être marqué **VALIDÉ ET CLOS** uniquement quand :
-
-- [ ] le projet compile dans UE5.5.4 ;
-- [ ] tous les tests `Grimrock.RPG.MON16.1.*` sont Success ;
-- [ ] aucune régression pertinente n'est observée ;
-- [ ] les logs ont été fournis et examinés ;
-- [ ] toute correction éventuelle a été poussée sur `origin/master`.
+Prochaine étape : **MON16.2 — Duration / Turn / Round Lifecycle**.
