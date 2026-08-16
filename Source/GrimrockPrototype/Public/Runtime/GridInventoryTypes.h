@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "RPG/RPGCharacterTypes.h"
+#include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/Combat/GridCombatActionIdentityTypes.h"
 #include "GridInventoryTypes.generated.h"
 
@@ -384,6 +385,10 @@ struct FGridCharacterInventoryState
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG")
     FRPGDerivedStats DerivedStats;
+
+    /** Runtime-only in MON16.1; save/restore is introduced by MON16.7. */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG|Status Effects")
+    FGridStatusEffectCollection StatusEffects;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Character")
     ERPGCharacterPortraitGender PortraitGender = ERPGCharacterPortraitGender::Male;

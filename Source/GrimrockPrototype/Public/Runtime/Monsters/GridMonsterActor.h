@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
 #include "Core/GridDirectionUtils.h"
+#include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/Monsters/GridMonsterAudioComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
@@ -165,6 +166,10 @@ public:
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
     int32 CurrentMagicalArmor = 0;
 
+    /** Runtime-only in MON16.1; persistence is introduced by MON16.7. */
+    UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = "Monster|Status Effects")
+    FGridStatusEffectCollection StatusEffects;
+
     UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Category = "Monster|State")
     bool bCombatStatsInitialized = false;
 
@@ -232,6 +237,7 @@ public:
         CurrentHealth = MonsterDefinition->MaxHealth;
         CurrentPhysicalArmor = FMath::Max (0, MonsterDefinition->PhysicalArmor);
         CurrentMagicalArmor = FMath::Max (0, MonsterDefinition->MagicalArmor);
+        StatusEffects.Reset ();
         bCombatStatsInitialized = true;
         ResetAnimationSignals ();
 
