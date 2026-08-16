@@ -3,15 +3,23 @@
 ## État
 
 ```text
-Implémentation C++ : préparée
-Documentation      : préparée
-Compilation UE5    : EN ATTENTE
-Automation MON16.3 : EN ATTENTE
-Régressions        : EN ATTENTE
-Clôture            : NON
+Implémentation C++ : VALIDÉE
+Documentation      : VALIDÉE
+UE5.5.4             : nouveaux tests C++ chargés et exécutés
+Automation MON16.3 : 11/11 SUCCESS
+Régression MON16.2 : 10/10 SUCCESS
+Régression MON16.1 :  7/7 SUCCESS
+Régression MON15   : 42/42 SUCCESS
+Régression MON14   : 19/19 SUCCESS
+Campagne fournie   : 123/123 SUCCESS
+Clôture            : OUI
 ```
 
 Base : `91f5157b483f39e6ec6b6350ea6d16d95da3f476`.
+
+Commit d'implémentation : `afd2ab1c3ade2d267ea7641eb4d61547e3dc9184`.
+
+MON16.3 est **VALIDÉ ET CLOS** depuis le 16 août 2026.
 
 ## Architecture
 
@@ -64,52 +72,65 @@ Base : `91f5157b483f39e6ec6b6350ea6d16d95da3f476`.
 - [x] aucune sauvegarde/restauration
 - [x] aucun nouveau VFX/audio de statut
 
-## Compilation UE5.5.4
+## Validation UE5.5.4
 
-Attendu : 0 erreur C++, UHT ou link.
+Le log utilisateur du 16 août 2026 contient **123 tests terminés**, tous avec `Result={Success}`. Aucun `Result={Fail}` ni erreur Automation Controller n'est présent.
 
-- [ ] compilation / chargement confirmé par log utilisateur
+Les nouveaux tests C++ MON16.3 sont découverts et exécutés par l'éditeur UE5.5.4, ce qui confirme que le code MON16.3 correspondant est compilé et chargé dans cette session de validation.
 
-## Automation ciblée
+## Automation MON16.3
 
-Exécuter :
+- [x] `DefinitionValidation` — Success
+- [x] `DirectDamagePipeline` — Success
+- [x] `DamageTypeRouting` — Success
+- [x] `StackScaling` — Success
+- [x] `TurnLifecycleParty` — Success
+- [x] `TurnLifecycleMonster` — Success
+- [x] `LethalMonsterDot` — Success
+- [x] `RoundLifecycle` — Success
+- [x] `NonPeriodicIsolation` — Success
+- [x] `MonsterDamageMultiplier` — Success
+- [x] `NoParallelSystem` — Success
+
+Bilan : **11/11 Success**.
+
+## Contrôles runtime observés
+
+- [x] Poison létal : `HP=2->0`
+- [x] multiplicateur monstre : `Raw=6`, `Multiplier=0.500`, puis armure/HP
+- [x] Poison `Rounds` : deux ticks visibles `10->8->6`
+- [x] Burning monstre : armure magique consommée avant HP
+- [x] Burning personnage : dégâts appliqués à la frontière du tour
+
+## Régressions
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.3
+MON16.2    10/10 Success
+MON16.1     7/7 Success
+MON15      42/42 Success
+MON14      19/19 Success
 ```
 
-- [ ] `DefinitionValidation` — Success
-- [ ] `DirectDamagePipeline` — Success
-- [ ] `DamageTypeRouting` — Success
-- [ ] `StackScaling` — Success
-- [ ] `TurnLifecycleParty` — Success
-- [ ] `TurnLifecycleMonster` — Success
-- [ ] `LethalMonsterDot` — Success
-- [ ] `RoundLifecycle` — Success
-- [ ] `NonPeriodicIsolation` — Success
-- [ ] `MonsterDamageMultiplier` — Success
-- [ ] `NoParallelSystem` — Success
-
-Attendu : **11/11 Success**.
-
-## Régressions minimales
-
-Après MON16.3 vert :
-
-```text
-Automation RunTests Grimrock.RPG.MON16.2
-Automation RunTests Grimrock.RPG.MON16.1
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
-```
-
-- [ ] MON16.2 : 10/10 Success
-- [ ] MON16.1 : 7/7 Success
-- [ ] MON15 : 42/42 Success
-- [ ] MON14 : 19/19 Success
+- [x] MON16.2 sans régression
+- [x] MON16.1 sans régression
+- [x] MON15 sans régression
+- [x] MON14 sans régression
 
 ## Clôture
 
-MON16.3 pourra être marqué **VALIDÉ ET CLOS** après compilation/chargement UE5.5.4, 11/11 MON16.3 et régressions appropriées sans échec sur les logs utilisateur.
+Critères satisfaits :
+
+```text
+[x] code MON16.3 chargé/exécuté sous UE5.5.4
+[x] MON16.3 11/11 Success
+[x] MON16.2 10/10 Success
+[x] MON16.1 7/7 Success
+[x] MON15 42/42 Success
+[x] MON14 19/19 Success
+[x] aucun échec dans les 123 tests terminés du log fourni
+[x] documentation à jour dans docs/Design
+```
+
+**MON16.3 — VALIDÉ ET CLOS.**
 
 Prochaine étape : `MON16.4 — Haste / Slow & InitiativeModifier`.
