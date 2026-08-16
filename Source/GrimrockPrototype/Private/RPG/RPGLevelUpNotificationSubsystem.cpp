@@ -135,23 +135,60 @@ void URPGLevelUpNotificationSubsystem::HandleCharacterLevelUpApplied (
         PartyInventoryComponent,
         CharacterIndex);
 
-    FPendingNotification Notification;
-    Notification.InventoryComponent = PartyInventoryComponent;
-    Notification.CharacterIndex = CharacterIndex;
-    Notification.PreviousLevel = PreviousLevel;
-    Notification.NewLevel = NewLevel;
-    Notification.LevelsGained = LevelsGained;
-    PendingNotifications.Add (Notification);
+    FPendingNotification* ExistingNotification =
+        PendingNotifications.FindByPredicate (
+            [PartyInventoryComponent, CharacterIndex] (
+                const FPendingNotification& Pending)
+            {
+                return Pending.InventoryComponent.Get () ==
+                        PartyInventoryComponent &&
+                    Pending.CharacterIndex == CharacterIndex;
+            });
 
-    UE_LOG (
-        LogGridLevelUpUI,
-        Log,
-        TEXT ("[GridLevelUpUI] Queued Character=%d Previous=%d New=%d Gained=%d Pending=%d"),
-        CharacterIndex,
-        PreviousLevel,
-        NewLevel,
-        LevelsGained,
-        PendingNotifications.Num ());
+    if (ExistingNotification)
+    {
+        ExistingNotification->PreviousLevel = FMath::Min (
+            ExistingNotification->PreviousLevel,
+            PreviousLevel);
+        ExistingNotification->NewLevel = FMath::Max (
+            ExistingNotification->NewLevel,
+            NewLevel);
+        ExistingNotification->LevelsGained = FMath::Max (
+            0,
+            ExistingNotification->NewLevel -
+                ExistingNotification->PreviousLevel);
+
+        UE_LOG (
+            LogGridLevelUpUI,
+            Log,
+            TEXT ("[GridLevelUpUI] Coalesced Character=%d Previous=%d New=%d Gained=%d Pending=%d"),
+            CharacterIndex,
+            ExistingNotification->PreviousLevel,
+            ExistingNotification->NewLevel,
+            ExistingNotification->LevelsGained,
+            PendingNotifications.Num ());
+    }
+    else
+    {
+        FPendingNotification Notification;
+        Notification.InventoryComponent = PartyInventoryComponent;
+        Notification.CharacterIndex = CharacterIndex;
+        Notification.PreviousLevel = PreviousLevel;
+        Notification.NewLevel = NewLevel;
+        Notification.LevelsGained = LevelsGained;
+        PendingNotifications.Add (Notification);
+
+        UE_LOG (
+            LogGridLevelUpUI,
+            Log,
+            TEXT ("[GridLevelUpUI] Queued Character=%d Previous=%d New=%d Gained=%d Pending=%d"),
+            CharacterIndex,
+            PreviousLevel,
+            NewLevel,
+            LevelsGained,
+            PendingNotifications.Num ());
+    }
+
     TryPresentNextNotification ();
 }
 
