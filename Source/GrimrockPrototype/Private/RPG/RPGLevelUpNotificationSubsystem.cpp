@@ -3,15 +3,66 @@
 #include "Blueprint/UserWidget.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/Pawn.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGLevelUpService.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockPartyPawn.h"
 #include "UI/RPGLevelUpWidget.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridLevelUpUI, Log, All);
+
+namespace
+{
+    UGridTurnManagerComponent* ResolveTurnManagerForParty (
+        AGrimrockPartyPawn* PartyPawn)
+    {
+        if (!IsValid (PartyPawn))
+        {
+            return nullptr;
+        }
+
+        if (IsValid (PartyPawn->LevelRuntimeActor))
+        {
+            if (UGridTurnManagerComponent* TurnManager =
+                    PartyPawn->LevelRuntimeActor
+                        ->FindComponentByClass<UGridTurnManagerComponent> ())
+            {
+                if (!IsValid (TurnManager->PartyPawn) ||
+                    TurnManager->PartyPawn == PartyPawn)
+                {
+                    return TurnManager;
+                }
+            }
+        }
+
+        UWorld* World = PartyPawn->GetWorld ();
+        if (!World)
+        {
+            return nullptr;
+        }
+
+        for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+        {
+            AGridLevelRuntimeActor* RuntimeActor = *It;
+            UGridTurnManagerComponent* TurnManager = RuntimeActor
+                ? RuntimeActor
+                    ->FindComponentByClass<UGridTurnManagerComponent> ()
+                : nullptr;
+            if (IsValid (TurnManager) &&
+                (!IsValid (TurnManager->PartyPawn) ||
+                    TurnManager->PartyPawn == PartyPawn))
+            {
+                return TurnManager;
+            }
+        }
+
+        return nullptr;
+    }
+}
 
 void URPGLevelUpNotificationSubsystem::Initialize (
     FSubsystemCollectionBase& Collection)
@@ -185,7 +236,8 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification ()
             continue;
         }
 
-        APawn* PartyPawn = Cast<APawn> (InventoryComponent->GetOwner ());
+        AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (
+            InventoryComponent->GetOwner ());
         APlayerController* PlayerController = PartyPawn
             ? Cast<APlayerController> (PartyPawn->GetController ())
             : nullptr;
@@ -201,9 +253,8 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification ()
             continue;
         }
 
-        UGridTurnManagerComponent* TurnManager = PartyPawn
-            ? PartyPawn->FindComponentByClass<UGridTurnManagerComponent> ()
-            : nullptr;
+        UGridTurnManagerComponent* TurnManager =
+            ResolveTurnManagerForParty (PartyPawn);
         if (IsValid (TurnManager) && TurnManager->bCombatActive)
         {
             const bool bNewDeferredManager =
