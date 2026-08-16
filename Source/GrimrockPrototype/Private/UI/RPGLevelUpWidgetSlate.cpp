@@ -2,6 +2,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "Widgets/Input/SButton.h"
@@ -11,6 +12,8 @@
 #include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "RPGLevelUpWidget"
+
+DEFINE_LOG_CATEGORY_STATIC (LogGridLevelUpWidget, Log, All);
 
 void URPGLevelUpWidget::SynchronizeProperties ()
 {
@@ -211,18 +214,45 @@ void URPGLevelUpWidget::ApplyInputGuard ()
     PlayerController->SetInventoryUiOpen (true);
     PartyPawn->DisableInput (PlayerController);
 
+    if (!UGameplayStatics::IsGamePaused (PartyPawn))
+    {
+        bGamePausedByModal = UGameplayStatics::SetGamePaused (
+            PartyPawn,
+            true);
+    }
+
     FInputModeUIOnly InputMode;
-    InputMode.SetWidgetToFocus (TakeWidget ());
     InputMode.SetLockMouseToViewportBehavior (
         EMouseLockMode::DoNotLock);
     PlayerController->SetInputMode (InputMode);
     PlayerController->bShowMouseCursor = true;
     bInputGuardApplied = true;
+
+    UE_LOG (
+        LogGridLevelUpWidget,
+        Log,
+        TEXT ("[GridLevelUpUI] ModalGuard Applied Character=%d PausedByModal=%s"),
+        CharacterIndex,
+        bGamePausedByModal ? TEXT ("true") : TEXT ("false"));
 }
 
 void URPGLevelUpWidget::RestoreInputGuard ()
 {
-    if (!bInputGuardApplied || !IsValid (InventoryComponent))
+    if (!bInputGuardApplied)
+    {
+        return;
+    }
+
+    if (bGamePausedByModal)
+    {
+        if (UWorld* World = GetWorld ())
+        {
+            UGameplayStatics::SetGamePaused (World, false);
+        }
+        bGamePausedByModal = false;
+    }
+
+    if (!IsValid (InventoryComponent))
     {
         bInputGuardApplied = false;
         return;
@@ -243,6 +273,12 @@ void URPGLevelUpWidget::RestoreInputGuard ()
         PlayerController->bShowMouseCursor = true;
     }
     bInputGuardApplied = false;
+
+    UE_LOG (
+        LogGridLevelUpWidget,
+        Log,
+        TEXT ("[GridLevelUpUI] ModalGuard Restored Character=%d"),
+        CharacterIndex);
 }
 
 void URPGLevelUpWidget::CloseModal ()

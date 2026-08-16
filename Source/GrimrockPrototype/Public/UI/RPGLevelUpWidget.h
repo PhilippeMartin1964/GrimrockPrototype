@@ -178,6 +178,7 @@ private:
 
     bool bInputGuardApplied = false;
     bool bPreviousInventoryUiOpen = false;
+    bool bGamePausedByModal = false;
     FRPGLevelUpWidgetClosedNativeSignature ClosedDelegate;
 
     TSharedPtr<STextBlock> NativeTitleText;

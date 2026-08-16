@@ -7,6 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGLevelUpService.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/RPGLevelUpWidget.h"
 
@@ -32,6 +33,9 @@ void URPGLevelUpNotificationSubsystem::Deinitialize ()
             .Remove (LevelUpDelegateHandle);
         LevelUpDelegateHandle.Reset ();
     }
+
+    ClearDeferredCombatTurnManager ();
+
     if (IsValid (ActiveWidget))
     {
         if (WidgetClosedDelegateHandle.IsValid ())
@@ -116,6 +120,51 @@ void URPGLevelUpNotificationSubsystem::HandleWidgetClosed (
     TryPresentNextNotification ();
 }
 
+void URPGLevelUpNotificationSubsystem::HandleDeferredCombatEnded (
+    EGridCombatPhase ResultPhase)
+{
+    UE_LOG (
+        LogGridLevelUpUI,
+        Log,
+        TEXT ("[GridLevelUpUI] CombatSafePoint Result=%s Pending=%d"),
+        *UEnum::GetValueAsString (ResultPhase),
+        PendingNotifications.Num ());
+
+    ClearDeferredCombatTurnManager ();
+    TryPresentNextNotification ();
+}
+
+void URPGLevelUpNotificationSubsystem::SetDeferredCombatTurnManager (
+    UGridTurnManagerComponent* TurnManager)
+{
+    if (DeferredCombatTurnManager == TurnManager)
+    {
+        return;
+    }
+
+    ClearDeferredCombatTurnManager ();
+    if (!IsValid (TurnManager))
+    {
+        return;
+    }
+
+    DeferredCombatTurnManager = TurnManager;
+    TurnManager->OnCombatEnded.AddUniqueDynamic (
+        this,
+        &URPGLevelUpNotificationSubsystem::HandleDeferredCombatEnded);
+}
+
+void URPGLevelUpNotificationSubsystem::ClearDeferredCombatTurnManager ()
+{
+    if (IsValid (DeferredCombatTurnManager))
+    {
+        DeferredCombatTurnManager->OnCombatEnded.RemoveDynamic (
+            this,
+            &URPGLevelUpNotificationSubsystem::HandleDeferredCombatEnded);
+    }
+    DeferredCombatTurnManager = nullptr;
+}
+
 void URPGLevelUpNotificationSubsystem::TryPresentNextNotification ()
 {
     if (IsValid (ActiveWidget))
@@ -126,13 +175,13 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification ()
     while (!PendingNotifications.IsEmpty ())
     {
         const FPendingNotification Notification = PendingNotifications[0];
-        PendingNotifications.RemoveAt (0);
         UGridPartyInventoryComponent* InventoryComponent =
             Notification.InventoryComponent.Get ();
         if (!IsValid (InventoryComponent) ||
             !InventoryComponent->IsValidCharacterIndex (
                 Notification.CharacterIndex))
         {
+            PendingNotifications.RemoveAt (0);
             continue;
         }
 
@@ -143,13 +192,39 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification ()
         if (!IsValid (PlayerController) ||
             !PlayerController->IsLocalController ())
         {
+            PendingNotifications.RemoveAt (0);
             UE_LOG (
                 LogGridLevelUpUI,
                 Verbose,
-                TEXT ("[GridLevelUpUI] Presentation deferred/skipped Character=%d Reason=NoLocalPlayerController"),
+                TEXT ("[GridLevelUpUI] Presentation skipped Character=%d Reason=NoLocalPlayerController"),
                 Notification.CharacterIndex);
             continue;
         }
+
+        UGridTurnManagerComponent* TurnManager = PartyPawn
+            ? PartyPawn->FindComponentByClass<UGridTurnManagerComponent> ()
+            : nullptr;
+        if (IsValid (TurnManager) && TurnManager->bCombatActive)
+        {
+            const bool bNewDeferredManager =
+                DeferredCombatTurnManager != TurnManager;
+            SetDeferredCombatTurnManager (TurnManager);
+            if (bNewDeferredManager)
+            {
+                UE_LOG (
+                    LogGridLevelUpUI,
+                    Log,
+                    TEXT ("[GridLevelUpUI] Deferred Character=%d Previous=%d New=%d Reason=CombatActive Phase=%s"),
+                    Notification.CharacterIndex,
+                    Notification.PreviousLevel,
+                    Notification.NewLevel,
+                    *UEnum::GetValueAsString (TurnManager->CurrentPhase));
+            }
+            return;
+        }
+
+        ClearDeferredCombatTurnManager ();
+        PendingNotifications.RemoveAt (0);
 
         ActiveWidget = CreateWidget<URPGLevelUpWidget> (
             PlayerController,
@@ -179,4 +254,6 @@ void URPGLevelUpNotificationSubsystem::TryPresentNextNotification ()
             Notification.NewLevel);
         return;
     }
+
+    ClearDeferredCombatTurnManager ();
 }

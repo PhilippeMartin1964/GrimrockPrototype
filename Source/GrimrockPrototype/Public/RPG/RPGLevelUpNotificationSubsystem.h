@@ -1,15 +1,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Combat/GridCombatTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "RPGLevelUpNotificationSubsystem.generated.h"
 
 class UGridPartyInventoryComponent;
+class UGridTurnManagerComponent;
 class URPGLevelUpWidget;
 
 /**
  * MON15.5 runtime coordinator that turns the source-aware level-up event into
  * a modal notification. Multiple simultaneous level-ups are queued.
+ *
+ * Combat safety: level-up notifications earned during combat remain queued
+ * until the authoritative turn manager broadcasts OnCombatEnded. This keeps
+ * combat resolution deterministic and prevents an enemy turn from executing
+ * behind the modal.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API URPGLevelUpNotificationSubsystem
@@ -42,6 +49,9 @@ private:
     UPROPERTY (Transient)
     TObjectPtr<URPGLevelUpWidget> ActiveWidget;
 
+    UPROPERTY (Transient)
+    TObjectPtr<UGridTurnManagerComponent> DeferredCombatTurnManager;
+
     FDelegateHandle LevelUpDelegateHandle;
     FDelegateHandle WidgetClosedDelegateHandle;
 
@@ -52,5 +62,12 @@ private:
         int32 NewLevel,
         int32 LevelsGained);
     void HandleWidgetClosed (URPGLevelUpWidget* ClosedWidget);
+
+    UFUNCTION ()
+    void HandleDeferredCombatEnded (EGridCombatPhase ResultPhase);
+
+    void SetDeferredCombatTurnManager (
+        UGridTurnManagerComponent* TurnManager);
+    void ClearDeferredCombatTurnManager ();
     void TryPresentNextNotification ();
 };
