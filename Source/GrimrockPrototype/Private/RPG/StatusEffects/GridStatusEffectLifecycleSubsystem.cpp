@@ -4,6 +4,7 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectInitiativeResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectPeriodicDamageResolver.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
@@ -80,6 +81,10 @@ void UGridStatusEffectLifecycleSubsystem::BindToTurnManager (UGridTurnManagerCom
     TurnManager->OnCombatEnded.AddUniqueDynamic (
         this,
         &UGridStatusEffectLifecycleSubsystem::HandleCombatEnded);
+    TurnManager->OnTurnOrderChanged.AddUniqueDynamic (
+        this,
+        &UGridStatusEffectLifecycleSubsystem::HandleTurnOrderChanged);
+    RefreshAllInitiativeModifiers ();
 }
 
 void UGridStatusEffectLifecycleSubsystem::UnbindFromTurnManager ()
@@ -95,9 +100,13 @@ void UGridStatusEffectLifecycleSubsystem::UnbindFromTurnManager ()
         TurnManager->OnCombatEnded.RemoveDynamic (
             this,
             &UGridStatusEffectLifecycleSubsystem::HandleCombatEnded);
+        TurnManager->OnTurnOrderChanged.RemoveDynamic (
+            this,
+            &UGridStatusEffectLifecycleSubsystem::HandleTurnOrderChanged);
     }
     BoundTurnManager.Reset ();
     LastObservedRoundNumber = 0;
+    bRefreshingInitiativeModifiers = false;
 }
 
 void UGridStatusEffectLifecycleSubsystem::TryBindFromActor (AActor* Actor)
@@ -112,6 +121,93 @@ void UGridStatusEffectLifecycleSubsystem::TryBindFromActor (AActor* Actor)
 void UGridStatusEffectLifecycleSubsystem::HandleActorSpawned (AActor* Actor)
 {
     TryBindFromActor (Actor);
+}
+
+bool UGridStatusEffectLifecycleSubsystem::TryApplyStatusEffectToPartyCharacter (
+    int32 CharacterIndex,
+    UGridStatusEffectDefinitionAsset* Definition,
+    const FGuid& SourceId,
+    FGridStatusEffectApplyResult& OutResult,
+    FString& OutError,
+    int32 InitialStackCount,
+    int32 DurationOverride,
+    int32 PotencyOverride)
+{
+    OutResult.Reset ();
+    UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get ();
+    if (!IsValid (Definition))
+    {
+        OutError = TEXT ("Status effect definition is not assigned.");
+        return false;
+    }
+    if (!IsValid (TurnManager) ||
+        !IsValid (TurnManager->PartyPawn) ||
+        !IsValid (TurnManager->PartyPawn->PartyInventoryComponent))
+    {
+        OutError = TEXT ("Party status application requires a bound TurnManager with a party inventory.");
+        return false;
+    }
+
+    TArray<FGridCharacterInventoryState>& Characters =
+        TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+    if (!Characters.IsValidIndex (CharacterIndex))
+    {
+        OutError = FString::Printf (
+            TEXT ("CharacterIndex %d is invalid for status application."),
+            CharacterIndex);
+        return false;
+    }
+
+    const bool bApplied = Characters[CharacterIndex].StatusEffects.TryApply (
+        *Definition,
+        SourceId,
+        InitialStackCount,
+        DurationOverride,
+        PotencyOverride,
+        OutResult,
+        OutError);
+    if (bApplied && OutResult.DidMutate ())
+    {
+        RefreshInitiativeModifierForPartyCharacter (CharacterIndex);
+    }
+    return bApplied;
+}
+
+bool UGridStatusEffectLifecycleSubsystem::TryApplyStatusEffectToMonster (
+    AGridMonsterActor* Monster,
+    UGridStatusEffectDefinitionAsset* Definition,
+    const FGuid& SourceId,
+    FGridStatusEffectApplyResult& OutResult,
+    FString& OutError,
+    int32 InitialStackCount,
+    int32 DurationOverride,
+    int32 PotencyOverride)
+{
+    OutResult.Reset ();
+    if (!IsValid (Monster))
+    {
+        OutError = TEXT ("Monster status application requires a valid monster.");
+        return false;
+    }
+    if (!IsValid (Definition))
+    {
+        OutError = TEXT ("Status effect definition is not assigned.");
+        return false;
+    }
+
+    const bool bApplied = Monster->StatusEffects.TryApply (
+        *Definition,
+        SourceId,
+        InitialStackCount,
+        DurationOverride,
+        PotencyOverride,
+        OutResult,
+        OutError);
+    if (bApplied && OutResult.DidMutate ())
+    {
+        RefreshInitiativeModifierForMonster (Monster);
+    }
+    return bApplied;
 }
 
 void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged (
@@ -151,6 +247,7 @@ void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged (
         Character.StatusEffects.AdvanceDuration (
             EGridStatusEffectDurationUnit::Turns,
             AdvanceResult);
+        RefreshInitiativeModifierForPartyCharacter (Combatant.CharacterIndex);
         return;
     }
 
@@ -168,6 +265,7 @@ void UGridStatusEffectLifecycleSubsystem::HandleCombatantStateChanged (
             Monster->StatusEffects.AdvanceDuration (
                 EGridStatusEffectDurationUnit::Turns,
                 AdvanceResult);
+            RefreshInitiativeModifierForMonster (Monster);
             return;
         }
     }
@@ -195,6 +293,133 @@ void UGridStatusEffectLifecycleSubsystem::HandleCombatEnded (EGridCombatPhase Re
     LastObservedRoundNumber = 0;
 }
 
+void UGridStatusEffectLifecycleSubsystem::HandleTurnOrderChanged ()
+{
+    if (!bRefreshingInitiativeModifiers)
+    {
+        RefreshAllInitiativeModifiers ();
+    }
+}
+
+void UGridStatusEffectLifecycleSubsystem::RefreshAllInitiativeModifiers ()
+{
+    UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get ();
+    if (!IsValid (TurnManager) || bRefreshingInitiativeModifiers ||
+        TurnManager->InitiativeOrder.IsEmpty ())
+    {
+        return;
+    }
+
+    TGuardValue<bool> Guard (bRefreshingInitiativeModifiers, true);
+    const TArray<FGridCombatantInitiativeEntry> InitiativeSnapshot =
+        TurnManager->InitiativeOrder;
+    for (const FGridCombatantInitiativeEntry& Entry : InitiativeSnapshot)
+    {
+        int32 Modifier = 0;
+        if (Entry.Side == EGridCombatantSide::Party)
+        {
+            if (IsValid (TurnManager->PartyPawn) &&
+                IsValid (TurnManager->PartyPawn->PartyInventoryComponent))
+            {
+                const TArray<FGridCharacterInventoryState>& Characters =
+                    TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+                if (Characters.IsValidIndex (Entry.CharacterIndex))
+                {
+                    Modifier = FGridStatusEffectInitiativeResolver::ComputeModifier (
+                        Characters[Entry.CharacterIndex].StatusEffects);
+                }
+            }
+        }
+        else if (Entry.Side == EGridCombatantSide::Monster)
+        {
+            for (const AGridMonsterActor* Monster : TurnManager->CombatMonsters)
+            {
+                if (IsValid (Monster) &&
+                    Monster->ResolvePersistenceId () == Entry.CombatantId)
+                {
+                    Modifier = FGridStatusEffectInitiativeResolver::ComputeModifier (
+                        Monster->StatusEffects);
+                    break;
+                }
+            }
+        }
+
+        TurnManager->SetCombatantInitiativeModifier (
+            Entry.Side,
+            Entry.CombatantId,
+            Modifier);
+    }
+}
+
+void UGridStatusEffectLifecycleSubsystem::RefreshInitiativeModifierForPartyCharacter (
+    int32 CharacterIndex)
+{
+    UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get ();
+    if (!IsValid (TurnManager) || bRefreshingInitiativeModifiers ||
+        !IsValid (TurnManager->PartyPawn) ||
+        !IsValid (TurnManager->PartyPawn->PartyInventoryComponent))
+    {
+        return;
+    }
+
+    const TArray<FGridCharacterInventoryState>& Characters =
+        TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+    if (!Characters.IsValidIndex (CharacterIndex))
+    {
+        return;
+    }
+
+    FGuid CombatantId;
+    for (const FGridCombatantInitiativeEntry& Entry : TurnManager->InitiativeOrder)
+    {
+        if (Entry.Side == EGridCombatantSide::Party &&
+            Entry.CharacterIndex == CharacterIndex)
+        {
+            CombatantId = Entry.CombatantId;
+            break;
+        }
+    }
+    if (!CombatantId.IsValid ())
+    {
+        return;
+    }
+
+    const int32 Modifier =
+        FGridStatusEffectInitiativeResolver::ComputeModifier (
+            Characters[CharacterIndex].StatusEffects);
+    TGuardValue<bool> Guard (bRefreshingInitiativeModifiers, true);
+    TurnManager->SetCombatantInitiativeModifier (
+        EGridCombatantSide::Party,
+        CombatantId,
+        Modifier);
+}
+
+void UGridStatusEffectLifecycleSubsystem::RefreshInitiativeModifierForMonster (
+    AGridMonsterActor* Monster)
+{
+    UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get ();
+    if (!IsValid (TurnManager) || bRefreshingInitiativeModifiers ||
+        !IsValid (Monster))
+    {
+        return;
+    }
+
+    const FGuid CombatantId = Monster->ResolvePersistenceId ();
+    if (!CombatantId.IsValid ())
+    {
+        return;
+    }
+
+    const int32 Modifier =
+        FGridStatusEffectInitiativeResolver::ComputeModifier (
+            Monster->StatusEffects);
+    TGuardValue<bool> Guard (bRefreshingInitiativeModifiers, true);
+    TurnManager->SetCombatantInitiativeModifier (
+        EGridCombatantSide::Monster,
+        CombatantId,
+        Modifier);
+}
+
 void UGridStatusEffectLifecycleSubsystem::AdvanceAllRoundEffects (int32 BoundaryCount)
 {
     UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get ();
@@ -220,6 +445,7 @@ void UGridStatusEffectLifecycleSubsystem::AdvanceAllRoundEffects (int32 Boundary
                 Character.StatusEffects.AdvanceDuration (
                     EGridStatusEffectDurationUnit::Rounds,
                     AdvanceResult);
+                RefreshInitiativeModifierForPartyCharacter (CharacterIndex);
             }
         }
 
@@ -246,6 +472,10 @@ void UGridStatusEffectLifecycleSubsystem::AdvanceAllRoundEffects (int32 Boundary
             Monster->StatusEffects.AdvanceDuration (
                 EGridStatusEffectDurationUnit::Rounds,
                 AdvanceResult);
+            if (TurnManager->bCombatActive)
+            {
+                RefreshInitiativeModifierForMonster (Monster);
+            }
             if (!TurnManager->bCombatActive)
             {
                 return;
