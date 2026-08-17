@@ -2,13 +2,27 @@
 
 ## Statut
 
-**IMPLEMENTED — validation UE5.5.4 en attente.**
+**VALIDÉ ET CLOS — 17 août 2026.**
 
 Base :
 
 ```text
 b153a5d48f709f5b86d8d125e7cd61daa095966b
 Close MON16.5 status control
+```
+
+Implémentation :
+
+```text
+969839d2546eea399cd2403dee2c977628efe2fc
+Add MON16.6 status HUD feedback
+```
+
+Correctif compilation UE5.5.4 :
+
+```text
+8f11c2641e64f46f5ebe31a162404fd58ffae22e
+Fix MON16.6 UE5.5 compilation
 ```
 
 MON16.6 ajoute une couche de présentation strictement read-only au système de statuts MON16.1–5. Les règles de durée, DoT, initiative et contrôle restent dans leurs systèmes autoritatifs existants.
@@ -188,8 +202,61 @@ PartyPanelProjection
 NoParallelSystem
 ```
 
-Attendu : **10/10 Success**.
+Validation : **10/10 Success**.
 
-Après succès ciblé, lancer les régressions MON16.5 → MON14 selon la checklist.
+Le feedback observé confirme notamment :
 
-Prochaine étape après validation : **MON16.7 — Save / Restore des status effects**.
+- application groupe et monstre ;
+- refresh avec durée mise à jour ;
+- DoT présenté depuis le résultat MON16.3 ;
+- deux ticks successifs puis expiration ;
+- projection HUD groupe ;
+- absence de système parallèle.
+
+## 11. Validation finale du 17 août 2026
+
+Après le correctif UE5.5.4 `8f11c2641e64f46f5ebe31a162404fd58ffae22e`, les tests ont été exécutés avec succès dans l'éditeur.
+
+Le log utilisateur contient quatre campagnes successives (`Test Run 5` à `Test Run 8`) :
+
+```text
+Test Completed : 293
+Success        : 293
+Fail           : 0
+Error          : 0
+```
+
+La dernière campagne complète pertinente (`Test Run 8`) donne :
+
+```text
+MON16.6 : 10/10 Success
+MON16.5 : 11/11 Success
+MON16.4 : 11/11 Success
+MON16.3 : 11/11 Success
+MON16.2 : 10/10 Success
+MON16.1 :  7/7 Success
+MON15   : 42/42 Success
+MON14   : 19/19 Success
+-----------------------
+Total   : 121/121 Success
+```
+
+Les warnings présents dans certaines fixtures historiques (par exemple `MissingMonsterMovement`, `MissingRuntimeActor` ou `InvalidClassDefinition`) appartiennent aux chemins négatifs attendus de leurs tests respectifs ; aucun `Test Completed` n'est en échec.
+
+## Contrat gelé MON16.6
+
+À la clôture :
+
+- la présentation reste read-only et data-driven ;
+- aucune règle gameplay de statut n'est déplacée dans le HUD ;
+- le TurnManager reste l'unique propriétaire de `CombatLogEntries` ;
+- le lifecycle n'expose qu'un feedback transitoire, sans second historique ;
+- le HUD groupe projette nom, durée, stacks et dernier feedback ;
+- les monstres utilisent le même payload de feedback ;
+- le DoT est présenté depuis le `FGridAttackResult` déjà résolu ;
+- aucun WBP/.uasset/.umap n'est requis ;
+- aucune persistance des statuts n'est ajoutée ici.
+
+MON16.6 est **VALIDÉ ET CLOS**.
+
+Prochaine étape : **MON16.7 — Save / Restore des status effects**.
