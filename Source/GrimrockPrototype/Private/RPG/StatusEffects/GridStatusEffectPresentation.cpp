@@ -168,12 +168,20 @@ FText FGridStatusEffectPresentationBuilder::FormatDuration (
     switch (DurationUnit)
     {
     case EGridStatusEffectDurationUnit::Turns:
+        if (SafeDuration == 1)
+        {
+            return FText::FromString (TEXT ("1 tour"));
+        }
         return FText::FromString (FString::Printf (
-            SafeDuration == 1 ? TEXT ("1 tour") : TEXT ("%d tours"),
+            TEXT ("%d tours"),
             SafeDuration));
     case EGridStatusEffectDurationUnit::Rounds:
+        if (SafeDuration == 1)
+        {
+            return FText::FromString (TEXT ("1 manche"));
+        }
         return FText::FromString (FString::Printf (
-            SafeDuration == 1 ? TEXT ("1 manche") : TEXT ("%d manches"),
+            TEXT ("%d manches"),
             SafeDuration));
     case EGridStatusEffectDurationUnit::Permanent:
         return FText::FromString (TEXT ("Permanent"));

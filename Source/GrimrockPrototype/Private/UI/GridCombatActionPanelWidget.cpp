@@ -213,10 +213,10 @@ void UGridCombatActionPanelWidget::EnsureStatusWidgets ()
             Font.Size = 10;
             Text_StatusEffects->SetFont (Font);
             Text_StatusEffects->SetAutoWrapText (true);
-            if (UVerticalBoxSlot* Slot =
+            if (UVerticalBoxSlot* StatusSlot =
                 Parent->AddChildToVerticalBox (Text_StatusEffects))
             {
-                Slot->SetPadding (FMargin (0.0f, 2.0f, 0.0f, 0.0f));
+                StatusSlot->SetPadding (FMargin (0.0f, 2.0f, 0.0f, 0.0f));
             }
         }
     }
@@ -235,10 +235,10 @@ void UGridCombatActionPanelWidget::EnsureStatusWidgets ()
             Font.Size = 9;
             Text_StatusFeedback->SetFont (Font);
             Text_StatusFeedback->SetAutoWrapText (true);
-            if (UVerticalBoxSlot* Slot =
+            if (UVerticalBoxSlot* FeedbackSlot =
                 Parent->AddChildToVerticalBox (Text_StatusFeedback))
             {
-                Slot->SetPadding (FMargin (0.0f, 1.0f, 0.0f, 0.0f));
+                FeedbackSlot->SetPadding (FMargin (0.0f, 1.0f, 0.0f, 0.0f));
             }
         }
     }
