@@ -1,19 +1,20 @@
 # MON16.8 — Validation Checklist — Clôture Status Effects
 
-## État
+## État final
 
 ```text
-Audit architecture       : TERMINÉ
-Implémentation MON16.8   : PRÉPARÉE
-Compilation UE5.5.4      : EN ATTENTE
-Automation MON16.8       : EN ATTENTE
-Régression MON16         : EN ATTENTE
-Régression MON15         : EN ATTENTE
-Régression MON14         : EN ATTENTE
-Milestone MON16 clôturé  : NON
+Audit architecture       : OK
+Implémentation MON16.8   : OK
+Exécution UE5.5.4        : OK
+Automation MON16.8       : 10/10 Success
+Régression MON16         : 81/81 Success
+Régression MON15         : 42/42 Success
+Régression MON14         : 21/21 Success
+Campagne finale          : 144/144 Success
+Milestone MON16 clôturé  : OUI
 ```
 
-Base : `b4ba41c10e5f38820bbd08ee0abb200dce6a6a92`.
+Commit d'implémentation MON16.8 : `0244d1dc41d99160d81d5d700ec38408b5c88b0d`.
 
 ## Audit de cohérence
 
@@ -30,93 +31,93 @@ Base : `b4ba41c10e5f38820bbd08ee0abb200dce6a6a92`.
 
 ## Contrats de données
 
-- [x] EffectId reste l'identité stable
+- [x] `EffectId` reste l'identité stable
 - [x] PrimaryAssetId reste `GridStatusEffect:EffectId`
-- [x] runtime party StatusEffects reste `Transient`
-- [x] runtime monster StatusEffects reste `Transient`
-- [x] runtime DefinitionAsset reste `Transient`
-- [x] SaveState n'embarque aucun DefinitionAsset
+- [x] runtime party `StatusEffects` reste `Transient`
+- [x] runtime monster `StatusEffects` reste `Transient`
+- [x] runtime `DefinitionAsset` reste `Transient`
+- [x] SaveState n'embarque aucun `DefinitionAsset`
 - [x] SaveVersion MON16 reste 5
 - [x] MinimumCompatibleSaveVersion reste 1
 
-## Automation ciblée MON16.8
+## Automation MON16.8
 
-Exécuter :
+Résultat observé : **10/10 Success**.
 
-```text
-Automation RunTests Grimrock.RPG.MON16.8
-```
+- [x] `PrimaryAssetIdentityContract`
+- [x] `CrossFeatureComposition`
+- [x] `PersistenceRoundTripSemantics`
+- [x] `DeterministicPersistenceOrder`
+- [x] `RuntimeSaveBoundary`
+- [x] `SaveVersionContract`
+- [x] `LifecycleArchitectureBoundary`
+- [x] `NoHardCodedStatusIdentity`
+- [x] `RegressionNamespaceCoverage`
+- [x] `SingleCanonicalModel`
 
-Attendu : **10/10 Success**.
-
-- [ ] `PrimaryAssetIdentityContract`
-- [ ] `CrossFeatureComposition`
-- [ ] `PersistenceRoundTripSemantics`
-- [ ] `DeterministicPersistenceOrder`
-- [ ] `RuntimeSaveBoundary`
-- [ ] `SaveVersionContract`
-- [ ] `LifecycleArchitectureBoundary`
-- [ ] `NoHardCodedStatusIdentity`
-- [ ] `RegressionNamespaceCoverage`
-- [ ] `SingleCanonicalModel`
-
-## Baseline MON16 figée
-
-Les namespaces existants doivent rester :
+## Baseline MON16 validée
 
 ```text
-MON16.1 :  7
-MON16.2 : 10
-MON16.3 : 11
-MON16.4 : 11
-MON16.5 : 11
-MON16.6 : 10
-MON16.7 : 11
-MON16.8 : 10
+MON16.1 :  7/7
+MON16.2 : 10/10
+MON16.3 : 11/11
+MON16.4 : 11/11
+MON16.5 : 11/11
+MON16.6 : 10/10
+MON16.7 : 11/11
+MON16.8 : 10/10
 ----------------
-MON16   : 81
+MON16   : 81/81 Success
 ```
+
+- [x] MON16 : 81/81
+- [x] aucun Fail MON16
+- [x] aucun Error MON16
 
 ## Campagne finale
 
-Exécuter :
+Résultats réellement observés dans les logs :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
+Run 5 : MON16                  =  81/81 Success
+Run 6 : MON15 + MON16          = 123/123 Success
+Run 7 : MON14 + MON15 + MON16  = 144/144 Success
 ```
 
-Attendu :
+Baseline définitive :
 
 ```text
-MON16 : 81/81 Success
+MON14 : 21/21 Success
 MON15 : 42/42 Success
-MON14 : 19/19 Success
-Total : 142/142 Success
+MON16 : 81/81 Success
+----------------------
+Total : 144/144 Success
 ```
 
-- [ ] MON16 : 81/81
-- [ ] MON15 : 42/42
-- [ ] MON14 : 19/19
-- [ ] aucun Fail
-- [ ] aucun Error
+MON14 contient :
 
-## Smoke test manuel optionnel
+```text
+19 tests Grimrock.Monsters.MON14...
+ 2 tests Grimrock.Editor.MON14.3.1...
+-------------------------------
+21 tests
+```
 
-Ce contrôle n'est pas un substitut aux automations :
+La valeur prévisionnelle `19/19` / `142/142` était donc incomplète et est remplacée par cette baseline issue de l'exécution réelle.
 
-1. appliquer un effet comportant durée + contrôle ou DoT ;
-2. vérifier le résumé HUD / feedback ;
-3. sauvegarder ;
-4. recharger ;
-5. vérifier stacks et durée restante ;
-6. vérifier que l'effet continue à modifier combat / mouvement / initiative selon sa définition.
+- [x] MON14 : 21/21
+- [x] MON15 : 42/42
+- [x] MON16 : 81/81
+- [x] total : 144/144
+- [x] aucun `Result={Fail}`
+- [x] aucun `Result={Error}`
 
-- [ ] smoke test effectué si souhaité
+## Smoke test manuel
+
+Un smoke test manuel status effect reste possible pour la QA de présentation, mais il n'est plus une condition de clôture technique du milestone : les contrats runtime, combat, présentation et persistance sont couverts par l'automation.
 
 ## Clôture
 
-MON16 ne doit être marqué **VALIDÉ ET CLOS** qu'après confirmation des campagnes ci-dessus.
+**MON16 — Status Effects : VALIDÉ ET CLOS.**
 
-Aucun nouveau mécanisme de status effect ne doit être ajouté dans ce commit de clôture.
+Aucun nouveau mécanisme de status effect ne doit être ajouté dans ce commit de clôture. Toute évolution future doit conserver cette baseline ou documenter explicitement son changement dans un milestone ultérieur.

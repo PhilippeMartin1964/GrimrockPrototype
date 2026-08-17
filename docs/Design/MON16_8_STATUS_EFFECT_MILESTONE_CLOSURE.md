@@ -2,18 +2,25 @@
 
 ## Statut
 
-**IMPLEMENTED — validation finale UE5.5.4 en attente.**
+**VALIDÉ ET CLOS — 17 août 2026.**
 
-Base :
+Implémentation MON16.8 :
+
+```text
+0244d1dc41d99160d81d5d700ec38408b5c88b0d
+Add MON16.8 status effect milestone regression
+```
+
+Base MON16.7 :
 
 ```text
 b4ba41c10e5f38820bbd08ee0abb200dce6a6a92
 Close MON16.7 status effect persistence
 ```
 
-MON16.8 ne crée aucune nouvelle mécanique de status effect. Cette étape gèle le contrat du milestone MON16, vérifie sa cohérence transversale et ajoute une campagne de régression dédiée à l'architecture complète MON16.1–MON16.7.
+MON16.8 ne crée aucune nouvelle mécanique. Cette étape gèle le contrat du milestone MON16 et valide sa cohérence transversale par une campagne de régression réelle sous UE5.5.4.
 
-## 1. Résultat de l'audit
+## 1. Architecture gelée
 
 La revue de clôture confirme une architecture unique et orientée données :
 
@@ -38,9 +45,7 @@ FGridStatusEffectCollection
         +--> FGridStatusEffectPersistence
 ```
 
-Aucun second modèle de statut, second lifecycle, second système de persistance ou second registre de monstres n'a été identifié.
-
-MON16.8 ne modifie donc pas le gameplay de production : il ajoute des tests contractuels et la documentation de gel du milestone.
+Aucun second modèle de statut, second lifecycle ou second système de persistance n'a été identifié.
 
 ## 2. Contrats gelés
 
@@ -50,12 +55,12 @@ MON16.8 ne modifie donc pas le gameplay de production : il ajoute des tests cont
 - PrimaryAssetId `GridStatusEffect:EffectId` ;
 - collection runtime déterministe ;
 - état séparé par cible ;
-- pas de dépendance UI.
+- aucune dépendance UI.
 
 ### MON16.2 — lifecycle
 
 - événementiel via le TurnManager ;
-- durée `Turns`, `Rounds`, `Permanent` ;
+- durées `Turns`, `Rounds`, `Permanent` ;
 - stacking data-driven ;
 - aucune horloge murale ;
 - aucun timer ou Tick de statut.
@@ -65,7 +70,7 @@ MON16.8 ne modifie donc pas le gameplay de production : il ajoute des tests cont
 - profil de dégâts data-driven ;
 - pipeline de dégâts existant réutilisé ;
 - tick avant décrément / expiration ;
-- aucune branche `Poison/Burning/...` par EffectId.
+- aucune branche de gameplay par nom d'effet.
 
 ### MON16.4 — initiative
 
@@ -79,29 +84,28 @@ MON16.8 ne modifie donc pas le gameplay de production : il ajoute des tests cont
 - `bSkipActivation` ;
 - `bBlockSpellActions` ;
 - `bBlockTranslation` ;
-- Stun/Silence/Immobilize restent des configurations de données, jamais des classes parallèles.
+- Stun / Silence / Immobilize sont des configurations de données et non des systèmes parallèles.
 
 ### MON16.6 — présentation
 
-- snapshot UI en lecture seule ;
+- projection UI en lecture seule ;
 - HUD alimenté depuis l'état runtime ;
 - feedback Apply / Refresh / Tick / Expire ;
-- un seul CombatLog autoritatif ;
 - aucun WBP requis pour le contrat C++.
 
 ### MON16.7 — persistance
 
 - snapshot stable sans pointeur UObject ;
-- rebind de `DefinitionAsset` via PrimaryAssetId ;
+- rebind de `DefinitionAsset` via l'identité primaire ;
 - groupe actif + CharacterPool ;
-- monstres via `FGridRuntimeMonsterState` ;
+- monstres via le runtime monster existant ;
 - restauration atomique ;
 - SaveGame v5 ;
 - migration v4 -> v5 conservant la progression MON15.
 
 ## 3. Automation MON16.8
 
-Nouveau fichier :
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Private/Tests/RPGMON168StatusEffectMilestoneTests.cpp
@@ -128,151 +132,92 @@ RegressionNamespaceCoverage
 SingleCanonicalModel
 ```
 
-Attendu : **10/10 Success**.
+Résultat observé : **10/10 Success**.
 
-## 4. Ce que vérifient les tests de clôture
-
-### Identité
-
-`PrimaryAssetIdentityContract` fige :
+## 4. Baseline MON16 validée
 
 ```text
-GridStatusEffect:EffectId
-```
-
-comme identité canonique.
-
-### Composition
-
-`CrossFeatureComposition` applique un même effet comportant simultanément :
-
-- stacks ;
-- potency ;
-- initiative ;
-- dégâts périodiques ;
-- blocage de sorts ;
-- blocage de translation.
-
-Les résolveurs et la présentation doivent tous projeter le même état runtime.
-
-### Round-trip sémantique
-
-`PersistenceRoundTripSemantics` vérifie que capture puis restore conservent :
-
-- EffectId ;
-- SourceId ;
-- StackCount ;
-- DurationUnit ;
-- RemainingDuration ;
-- Potency ;
-- initiative ;
-- contrôles ;
-- présentation ;
-- periodic damage.
-
-`DefinitionAsset` est réattaché au restore et n'est pas sérialisé.
-
-### Déterminisme
-
-`DeterministicPersistenceOrder` vérifie que runtime, capture et restore convergent vers l'ordre stable par EffectId.
-
-### Frontière runtime / SaveGame
-
-`RuntimeSaveBoundary` vérifie statiquement que :
-
-- les collections de statut des personnages restent `Transient` ;
-- les collections de statut des monstres restent `Transient` ;
-- `DefinitionAsset` reste `Transient` ;
-- le snapshot sauvegardé ne contient pas `DefinitionAsset` ;
-- les champs persistants sont `SaveGame`.
-
-### Lifecycle
-
-`LifecycleArchitectureBoundary` interdit dans le lifecycle :
-
-- `TickComponent` ;
-- `SetTimer` / `FTimerManager` ;
-- `FDateTime` ;
-- `FPlatformTime` ;
-- dépendance `UUserWidget` / `WBP_`.
-
-Il vérifie les bindings événementiels au TurnManager.
-
-### Data-driven
-
-`NoHardCodedStatusIdentity` protège les sources de production MON16 contre des branches par identité textuelle de Poison, Bleeding, Burning, Haste, Slow, Stun, Silence ou Immobilize.
-
-### Baseline de régression
-
-`RegressionNamespaceCoverage` gèle le nombre de tests préexistants :
-
-```text
-MON16.1 :  7
-MON16.2 : 10
-MON16.3 : 11
-MON16.4 : 11
-MON16.5 : 11
-MON16.6 : 10
-MON16.7 : 11
+MON16.1 :  7/7
+MON16.2 : 10/10
+MON16.3 : 11/11
+MON16.4 : 11/11
+MON16.5 : 11/11
+MON16.6 : 10/10
+MON16.7 : 11/11
+MON16.8 : 10/10
 ----------------
-Baseline : 71
+MON16   : 81/81 Success
 ```
 
-Avec les 10 tests MON16.8 :
+Le Run 5 du log de validation exécute exactement les 81 tests MON16 et retourne 81 `Success`, sans `Fail` ni `Error`.
+
+## 5. Régressions amont validées
+
+La campagne a également vérifié les milestones dont MON16 dépend directement :
 
 ```text
-Grimrock.RPG.MON16 : 81 tests attendus
+MON15 : 42/42 Success
+MON16 : 81/81 Success
+----------------------
+Run 6 : 123/123 Success
 ```
 
-## 5. Régression finale du milestone
+Le Run 7 étend la validation à MON14. Le nombre réel de tests MON14 est **21**, et non 19 :
 
-Après compilation :
+- 19 tests `Grimrock.Monsters.MON14...` ;
+- 2 tests éditeur `Grimrock.Editor.MON14.3.1...`.
+
+Résultat final :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.8
+MON14 : 21/21 Success
+MON15 : 42/42 Success
+MON16 : 81/81 Success
+----------------------
+Total : 144/144 Success
 ```
 
-Puis :
+Aucun `Result={Fail}` ni `Result={Error}` n'est présent dans les trois campagnes finales.
+
+## 6. Points fonctionnels effectivement couverts
+
+La régression confirme notamment :
+
+- identité primaire stable ;
+- stacking et expiration déterministes ;
+- dégâts périodiques party/monster ;
+- initiative positive/négative, expiration et reordering ;
+- Stun / Silence / Immobilize ;
+- rotation permise sous immobilisation ;
+- translation bloquée sans consommation de ressources ;
+- blocage atomique des sorts sous Silence ;
+- feedback Apply / Refresh / Tick / Expire ;
+- projection HUD ;
+- sauvegarde/restauration des status effects ;
+- migration de sauvegarde ;
+- séparation `Transient` / `SaveGame` ;
+- absence de système parallèle et de logique par nom d'effet.
+
+## 7. Correctif de baseline MON14
+
+La prévision initiale de MON16.8 indiquait :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
-```
-
-Attendus :
-
-```text
-MON16 : 81/81
-MON15 : 42/42
 MON14 : 19/19
-----------------
 Total : 142/142
 ```
 
-Ces nombres sont les attentes de la campagne, pas une validation anticipée.
+Elle était incomplète car elle ne comptait pas les deux tests éditeur MON14.3.1. La baseline correcte, issue de l'exécution réelle, est désormais :
 
-## 6. Hors périmètre
+```text
+MON14 : 21/21
+MON15 : 42/42
+MON16 : 81/81
+Total : 144/144
+```
 
-MON16.8 n'ajoute ni :
+## 8. Périmètre de clôture
 
-- nouvel EffectId de production ;
-- nouvelle règle de combat ;
-- nouveau widget ;
-- modification `.uasset` / `.umap` ;
-- nouveau système de sauvegarde ;
-- nouveau système de monstres ;
-- refactor massif.
+Aucun changement supplémentaire de gameplay, `.uasset`, `.umap` ou WBP n'est requis pour clore MON16.
 
-## 7. Condition de clôture
-
-Le milestone MON16 sera marqué **VALIDÉ ET CLOS** uniquement après :
-
-1. compilation UE5.5.4 confirmée ;
-2. MON16.8 : 10/10 Success ;
-3. MON16 : 81/81 Success ;
-4. MON15 : 42/42 Success ;
-5. MON14 : 19/19 Success ;
-6. aucun Fail/Error résiduel attribuable au milestone.
-
-Après cette validation, MON16 est gelé et les évolutions de gameplay devront appartenir au milestone suivant.
+Le milestone **Status Effects MON16 est gelé**. Toute extension fonctionnelle future des effets de statut doit être traitée dans un milestone ultérieur, en conservant les contrats et la baseline de régression définis ici.
