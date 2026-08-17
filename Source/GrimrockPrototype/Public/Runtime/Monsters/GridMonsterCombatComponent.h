@@ -66,6 +66,13 @@ public:
     UFUNCTION (BlueprintPure, Category = "Monster|Combat")
     bool IsInitialized () const { return bInitialized; }
 
+    /** Returns the highest-priority valid attack whose authored range contains DistanceCells. */
+    UFUNCTION (BlueprintCallable, Category = "Monster|Combat")
+    bool GetPreferredAttackForRange (
+        int32 DistanceCells,
+        FGridMonsterAttackDefinition& OutAttack) const;
+
+    /** Compatibility wrapper for existing contact planners. No attack id is hard-coded. */
     UFUNCTION (BlueprintCallable, Category = "Monster|Combat")
     bool GetPreferredMeleeAttack (FGridMonsterAttackDefinition& OutAttack) const;
 

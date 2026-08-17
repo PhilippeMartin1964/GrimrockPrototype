@@ -10,6 +10,7 @@ class UAnimMontage;
 class UGridItemDefinitionAsset;
 class UNiagaraSystem;
 class USoundBase;
+class UStaticMesh;
 
 UENUM (BlueprintType)
 enum class EGridMonsterAIProfile : uint8
@@ -20,6 +21,15 @@ enum class EGridMonsterAIProfile : uint8
     RangedKeeper UMETA (DisplayName = "Ranged Keeper"),
     Ambush       UMETA (DisplayName = "Ambush"),
     PuzzleLinked UMETA (DisplayName = "Puzzle Linked")
+};
+
+/** Generic delivery contract for monster attacks. Execution remains owned by combat/TurnManager systems. */
+UENUM (BlueprintType)
+enum class EGridMonsterAttackDelivery : uint8
+{
+    Contact    UMETA (DisplayName = "Contact"),
+    Projectile UMETA (DisplayName = "Projectile"),
+    Instant    UMETA (DisplayName = "Instant")
 };
 
 UENUM (BlueprintType)
@@ -94,11 +104,31 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
     int32 AccuracyBonus = 0;
 
+    /** Inclusive minimum legal grid distance for this attack. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
+    int32 MinRangeCells = 1;
+
+    /** Inclusive maximum legal grid distance. Kept as RangeCells for serialized asset compatibility. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1", DisplayName = "Maximum Range Cells"))
     int32 RangeCells = 1;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
+    EGridMonsterAttackDelivery Delivery = EGridMonsterAttackDelivery::Contact;
+
+    /** Ranged planners/executors must reject the attack when the target is not visible. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
+    bool bRequiresLineOfSight = false;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
     int32 ActionPointCost = 1;
+
+    /** Number of the monster's subsequent turns for which this attack remains unavailable. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "0"))
+    int32 CooldownTurns = 0;
+
+    /** Higher values win when more than one legal attack is available at the same distance. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack")
+    int32 Priority = 0;
 
     /** Total presentation duration used by the timer fallback and timeout. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Animation", meta = (ClampMin = "0.01"))
@@ -141,6 +171,29 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|VFX")
     FGridMonsterVFXEventDefinition ImpactMissVFXDefinition;
 
+    /** Optional presentation-only mesh for Delivery=Projectile. Gameplay impact remains grid-authoritative. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
+    TSoftObjectPtr<UStaticMesh> ProjectileVisualMesh;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
+    FVector ProjectileVisualScale = FVector::OneVector;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
+    FRotator ProjectileRotationOffset = FRotator::ZeroRotator;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile", meta = (ClampMin = "0.01"))
+    float ProjectileTravelDuration = 0.20f;
+
+    bool SupportsDistance (int32 DistanceCells) const
+    {
+        return DistanceCells >= MinRangeCells && DistanceCells <= RangeCells;
+    }
+
+    bool IsRangedAttack () const
+    {
+        return Delivery != EGridMonsterAttackDelivery::Contact || RangeCells > 1;
+    }
+
     bool ValidateDefinition (FString& OutError) const
     {
         TArray<FString> Errors;
@@ -156,13 +209,21 @@ struct FGridMonsterAttackDefinition
         {
             Errors.Add (TEXT ("MaxDamage must be at least MinDamage."));
         }
-        if (RangeCells <= 0)
+        if (MinRangeCells <= 0)
         {
-            Errors.Add (TEXT ("RangeCells must be greater than zero."));
+            Errors.Add (TEXT ("MinRangeCells must be greater than zero."));
+        }
+        if (RangeCells < MinRangeCells)
+        {
+            Errors.Add (TEXT ("RangeCells must be at least MinRangeCells."));
         }
         if (ActionPointCost <= 0)
         {
             Errors.Add (TEXT ("ActionPointCost must be greater than zero."));
+        }
+        if (CooldownTurns < 0)
+        {
+            Errors.Add (TEXT ("CooldownTurns must not be negative."));
         }
         if (!FMath::IsFinite (ExpectedDuration) || ExpectedDuration <= 0.0f)
         {
@@ -178,6 +239,19 @@ struct FGridMonsterAttackDefinition
             PhysicalSubtype != EGridPhysicalDamageSubtype::None)
         {
             Errors.Add (TEXT ("PhysicalSubtype must be None for non-physical damage."));
+        }
+        if (!FMath::IsFinite (ProjectileTravelDuration) || ProjectileTravelDuration <= 0.0f)
+        {
+            Errors.Add (TEXT ("ProjectileTravelDuration must be finite and greater than zero."));
+        }
+        if (!FMath::IsFinite (ProjectileVisualScale.X) ||
+            !FMath::IsFinite (ProjectileVisualScale.Y) ||
+            !FMath::IsFinite (ProjectileVisualScale.Z) ||
+            ProjectileVisualScale.X <= 0.0f ||
+            ProjectileVisualScale.Y <= 0.0f ||
+            ProjectileVisualScale.Z <= 0.0f)
+        {
+            Errors.Add (TEXT ("ProjectileVisualScale components must be finite and greater than zero."));
         }
 
         const auto ValidateAudio = [&Errors] (

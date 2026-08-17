@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif après clôture de MON15**  
-Date de référence : **16 août 2026**
+Statut : **backlog actif après clôture de MON16**  
+Date de référence : **17 août 2026**
 
 Ce document est la feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -15,25 +15,27 @@ Jalons majeurs clos :
 MON13 — Monster Spawn / Encounters / Persistence
 MON14 — Automatic Engagement / Patrol / Investigation / Alarm
 MON15 — XP & Level Progression
+MON16 — Status Effects
 ```
 
 MON15 a fermé la boucle RPG combat -> XP -> Level Up -> progression de classe -> Save/Continue.
 
-Référence :
+MON16 a ajouté le modèle générique d'effets d'état groupe/monstres : durée Turns/Rounds/Permanent, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD/feedback, Save/Restore et identité primaire `GridStatusEffect:EffectId`.
+
+Références :
 
 ```text
 docs/Design/MON15_CLOSURE.md
+docs/Design/MON16_CLOSURE.md
 ```
 
-Le prochain besoin structurant est une infrastructure commune d'effets d'état, réutilisable par le combat, les monstres et la magie future.
+Le prochain besoin structurant est de prouver que l'architecture monstre MON1–MON16 n'est pas spécifique au Rat Géant en intégrant une seconde famille tactiquement distincte : le **Gobelin Archer** (`RangedKeeper`).
 
 ---
 
 ## 2. Ordre des grands jalons
 
 ```text
-MON16 — Status Effects
-        ↓
 MON17 — Second Monster Family
         ↓
 MON18 — Magic & Spellbook
@@ -71,85 +73,84 @@ Contrats finaux :
 
 - XP cumulative : `1000 * (L - 1) * L / 2` ;
 - niveau maximum 20 ;
-- SaveVersion 4 ;
 - récompenses monstres data-driven ;
 - Rat Géant = 500 XP de pool total ;
 - choix de progression persistants par `CharacterId` ;
 - Level Up différable pendant combat et restaurable après Continue ;
-- 42/42 tests MON15 verts ;
-- campagne finale 95/95 Success.
+- 42/42 tests MON15 verts.
+
+La version globale de sauvegarde n'est plus celle de clôture MON15 : **SaveGame est maintenant en version 5 depuis MON16**.
 
 ---
 
-# MON16 — Status Effects
+# MON16 — Status Effects — CLOS
 
-## Objectif
-
-Créer une infrastructure commune pour les états temporaires et permanents affectant personnages et monstres.
-
-## Sous-jalons
-
-```text
-MON16.1 — Status Effect Definition & Runtime State
-MON16.2 — Duration / Turn / Round Lifecycle
-MON16.3 — Damage-over-time: Poison / Bleeding / Burning
-MON16.4 — Haste / Slow and InitiativeModifier
-MON16.5 — Stun / Silence / Immobilize
-MON16.6 — HUD and Combat Feedback
-MON16.7 — Save / Restore
-MON16.8 — Closure and Regression
-```
-
-## Principes
-
-- un seul modèle d'effet pour groupe et monstres lorsque possible ;
-- durée autoritaire en tours/rounds, pas en secondes de présentation ;
-- intégration événementielle avec le TurnManager ;
-- `InitiativeModifier` MON12.7.1 doit être réutilisé pour Haste/Slow ;
-- les effets ne doivent jamais dépendre d'un Widget Blueprint pour fonctionner ;
-- les définitions doivent rester data-driven ;
-- les effets appliqués doivent pouvoir être sérialisés en MON16.7 sans dupliquer l'état combat.
-
-## MON16.1 — Status Effect Definition & Runtime State
-
-Périmètre recommandé :
-
-- définir l'identité d'un effet (`StatusEffectId`) ;
-- définir catégorie/tags et règles de stacking minimales ;
-- définir un état runtime indépendant de la présentation ;
-- supporter propriétaire personnage ou monstre ;
-- distinguer définition immutable et instance runtime ;
-- prévoir source/applier sans créer de dépendance forte entre Actors ;
-- ajouter validations et tests purs ;
-- ne pas encore appliquer Poison/Haste/Stun dans ce sous-jalon.
-
-Porte de sortie : une instance d'effet valide peut être créée, interrogée, remplacée/stackée selon une règle déterministe et supprimée, sur personnage comme sur monstre, sans UI.
-
----
-
-# MON17 — Second Monster Family
-
-## Objectif
-
-Prouver que l'architecture MON1–MON14 n'est pas spécifique au Rat Géant.
-
-Le second monstre doit imposer un comportement différent, par exemple :
-
-- squelette `DirectMelee / SlowPressure` ; ou
-- archer/gobelin `RangedKeeper`.
-
-Une simple reskin du Rat Géant n'est pas suffisante.
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**.
 
 Sous-jalons :
 
 ```text
-MON17.1 — Definition / Assets / Spawn Contract
-MON17.2 — Skeletal Mesh / Skeleton / AnimBP
-MON17.3 — Distinct Attack Set
-MON17.4 — Distinct AI Profile
-MON17.5 — Patrol / Perception / Alarm Integration
-MON17.6 — Encounter / Loot / XP Integration
-MON17.7 — Balance / Closure
+MON16.1 — Status Effect Definition & Runtime State  CLOS
+MON16.2 — Duration / Turn / Round Lifecycle         CLOS
+MON16.3 — Damage-over-time                          CLOS
+MON16.4 — Haste / Slow and InitiativeModifier      CLOS
+MON16.5 — Stun / Silence / Immobilize               CLOS
+MON16.6 — HUD and Combat Feedback                   CLOS
+MON16.7 — Save / Restore                            CLOS
+MON16.8 — Closure and Regression                    CLOS
+```
+
+Contrats finaux :
+
+- un modèle générique commun aux personnages et monstres ;
+- durée `Turns`, `Rounds` ou `Permanent` ;
+- stacking data-driven ;
+- DoT ;
+- Haste / Slow intégrés à l'initiative ;
+- Stun / Silence / Immobilize ;
+- HUD et combat log ;
+- Save / Restore ;
+- `UGrimrockPartySaveGame::CurrentSaveVersion = 5` ;
+- identité primaire `GridStatusEffect:EffectId` ;
+- campagne finale : MON14 21/21, MON15 42/42, MON16 81/81, soit **144/144 Success**.
+
+---
+
+# MON17 — Second Monster Family — EN COURS
+
+## Objectif
+
+Prouver que l'architecture MON1–MON16 n'est pas spécifique au Rat Géant.
+
+Seconde famille retenue :
+
+```text
+Gobelin Archer
+PrimaryAIProfile = RangedKeeper
+```
+
+Comportement cible : perception -> recherche d'une distance favorable -> orientation vers le groupe -> attaque à distance si LOS valide -> repositionnement lorsque le groupe devient trop proche.
+
+Une simple reskin du Rat Géant n'est pas suffisante et aucune seconde IA parallèle ne doit être créée.
+
+Sous-jalons :
+
+```text
+MON17.1 — Definition / Assets / Spawn Contract          EN COURS
+MON17.2 — Skeletal Mesh / Skeleton / AnimBP             À FAIRE
+MON17.3 — Distinct Attack Set                            À FAIRE
+MON17.4 — Distinct AI Profile — RangedKeeper            À FAIRE
+MON17.5 — Patrol / Perception / Alarm Integration       À FAIRE
+MON17.6 — Encounter / Loot / XP Integration             À FAIRE
+MON17.7 — Balance / Closure                              À FAIRE
+```
+
+MON17.1 doit réutiliser `GridMonsterDefinitionAsset`, la palette/éditeur, `MonsterSpawn`, `AGridMonsterActor`, l'état persistant MON13, le profil `RangedKeeper` déjà existant et les contrats MON14–MON16. Il définit uniquement les données génériques minimales manquantes pour une attaque à distance ; l'exécution du projectile et le planner complet restent hors de ce sous-jalon.
+
+Référence MON17.1 :
+
+```text
+docs/Design/MON17_1_GOBLIN_ARCHER_DEFINITION_SPAWN_CONTRACT.md
 ```
 
 ---
@@ -299,5 +300,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON16.1 — Status Effect Definition & Runtime State
+MON17.1 — Definition / Assets / Spawn Contract — Gobelin Archer
 ```

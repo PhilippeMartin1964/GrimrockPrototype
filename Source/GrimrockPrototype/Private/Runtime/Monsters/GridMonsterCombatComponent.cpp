@@ -48,39 +48,46 @@ bool UGridMonsterCombatComponent::InitializeCombat (AGrimrockPartyPawn* InPartyP
     return true;
 }
 
-bool UGridMonsterCombatComponent::GetPreferredMeleeAttack (
+bool UGridMonsterCombatComponent::GetPreferredAttackForRange (
+    int32 DistanceCells,
     FGridMonsterAttackDefinition& OutAttack) const
 {
     OutAttack = FGridMonsterAttackDefinition ();
-    if (!IsValid (OwnerMonster) || !IsValid (OwnerMonster->MonsterDefinition))
+    if (DistanceCells <= 0 ||
+        !IsValid (OwnerMonster) ||
+        !IsValid (OwnerMonster->MonsterDefinition))
     {
         return false;
     }
 
-    static const FName BiteAttackId (TEXT ("Attack_Bite"));
-    if (const FGridMonsterAttackDefinition* Bite =
-        OwnerMonster->MonsterDefinition->FindAttackDefinition (BiteAttackId))
+    const FGridMonsterAttackDefinition* BestAttack = nullptr;
+    for (const FGridMonsterAttackDefinition& Attack :
+        OwnerMonster->MonsterDefinition->Attacks)
     {
-        if (Bite->IsValidDefinition () && Bite->RangeCells == 1)
+        if (!Attack.IsValidDefinition () || !Attack.SupportsDistance (DistanceCells))
         {
-            OutAttack = *Bite;
-            return true;
+            continue;
+        }
+
+        if (!BestAttack || Attack.Priority > BestAttack->Priority)
+        {
+            BestAttack = &Attack;
         }
     }
 
-    const FGridMonsterAttackDefinition* FirstMelee =
-        OwnerMonster->MonsterDefinition->Attacks.FindByPredicate (
-            [] (const FGridMonsterAttackDefinition& Attack)
-            {
-                return Attack.IsValidDefinition () && Attack.RangeCells == 1;
-            });
-    if (!FirstMelee)
+    if (!BestAttack)
     {
         return false;
     }
 
-    OutAttack = *FirstMelee;
+    OutAttack = *BestAttack;
     return true;
+}
+
+bool UGridMonsterCombatComponent::GetPreferredMeleeAttack (
+    FGridMonsterAttackDefinition& OutAttack) const
+{
+    return GetPreferredAttackForRange (1, OutAttack);
 }
 
 int32 UGridMonsterCombatComponent::SelectPartyTarget (FRandomStream& RandomStream) const
