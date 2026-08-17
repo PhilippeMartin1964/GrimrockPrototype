@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Core/GridTypes.h"
+#include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/Monsters/GridMonsterTypes.h"
 #include "GridDungeonRuntimeState.generated.h"
 
@@ -155,6 +156,10 @@ struct FGridRuntimeMonsterState
 
     UPROPERTY (SaveGame, BlueprintReadWrite)
     int32 CurrentMagicalArmor = 0;
+
+    /** Stable MON16.7 status snapshots; DefinitionAsset remains transient. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TArray<FGridStatusEffectSaveState> StatusEffects;
 
     UPROPERTY (SaveGame, BlueprintReadWrite)
     bool bMonsterEnabled = true;

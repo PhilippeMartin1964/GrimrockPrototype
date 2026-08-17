@@ -81,9 +81,9 @@ bool FRPGMON156PersistentChoiceRoundTripTest::RunTest (
         return false;
     }
 
-    TestEqual (TEXT ("Save contract is version four"),
+    TestEqual (TEXT ("Save contract is the current version"),
         LoadedSave->SaveVersion,
-        4);
+        UGrimrockPartySaveGame::CurrentSaveVersion);
     TestTrue (TEXT ("Loaded progression is compatible"),
         LoadedSave->IsCompatible ());
     TestEqual (TEXT ("One character progression snapshot is restored"),
@@ -136,7 +136,7 @@ bool FRPGMON156LegacyExperienceAheadMigrationTest::RunTest (
     Save->SaveVersion = 1;
     FText Error;
     FRPGSaveMigrationReport Report;
-    TestTrue (TEXT ("Version one migrates to MON15.6"),
+    TestTrue (TEXT ("Version one migrates to the current contract"),
         FRPGSaveMigrationService::PrepareLoadedSave (
             Save,
             Error,
@@ -145,9 +145,9 @@ bool FRPGMON156LegacyExperienceAheadMigrationTest::RunTest (
     TestEqual (TEXT ("Migration source remains version one in report"),
         Report.SourceVersion,
         1);
-    TestEqual (TEXT ("Migration target is version four"),
+    TestEqual (TEXT ("Migration target is the current version"),
         Save->SaveVersion,
-        4);
+        UGrimrockPartySaveGame::CurrentSaveVersion);
     TestEqual (TEXT ("XP 6000 reconstructs level four"), Character.Level, 1);
 
     const FGridCharacterInventoryState& MigratedCharacter =
@@ -225,7 +225,7 @@ bool FRPGMON156RejectCurrentMismatchTest::RunTest (
     UGridPartyInventoryComponent* Component =
         MakeMON155Inventory (1, 1000, ClassDefinition);
     UGrimrockPartySaveGame* Save = MakeMON156Save (Component);
-    Save->SaveVersion = 4;
+    Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
     AddEmptyProgressionState (
         Save,
         Component->PartyInventoryState.ActiveCharacters[0].CharacterId);
@@ -234,10 +234,10 @@ bool FRPGMON156RejectCurrentMismatchTest::RunTest (
     TestFalse (TEXT ("Current-version inconsistent Level/Experience is rejected"),
         FRPGSaveMigrationService::ValidateCurrentSave (Save, Error));
     TestTrue (TEXT ("Mismatch rejection reports an error"), !Error.IsEmpty ());
-    TestEqual (TEXT ("Strict v4 validation does not mutate the stored level"),
+    TestEqual (TEXT ("Strict current validation does not mutate the stored level"),
         Save->PartyInventoryState.ActiveCharacters[0].Level,
         1);
-    TestEqual (TEXT ("Strict v4 validation does not mutate XP"),
+    TestEqual (TEXT ("Strict current validation does not mutate XP"),
         Save->PartyInventoryState.ActiveCharacters[0].Experience,
         1000);
     return true;
@@ -258,7 +258,7 @@ bool FRPGMON156RejectInvalidChoiceSnapshotTest::RunTest (
     UGridPartyInventoryComponent* Component =
         MakeMON155Inventory (2, 1000, ClassDefinition);
     UGrimrockPartySaveGame* Save = MakeMON156Save (Component);
-    Save->SaveVersion = 4;
+    Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
     FRPGCharacterProgressionSaveState Progression;
     Progression.CharacterId =
@@ -352,7 +352,7 @@ bool FRPGMON156RejectInvalidPendingNotificationTest::RunTest (
     UGridPartyInventoryComponent* Component =
         MakeMON155Inventory (2, 1000, ClassDefinition);
     UGrimrockPartySaveGame* Save = MakeMON156Save (Component);
-    Save->SaveVersion = 4;
+    Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
     const FGuid CharacterId =
         Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
     AddEmptyProgressionState (Save, CharacterId);
@@ -381,9 +381,9 @@ bool FRPGMON156SaveVersionContractTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
-    TestEqual (TEXT ("MON15.6 bumps the current save contract to four"),
+    TestEqual (TEXT ("Current save contract is version five"),
         UGrimrockPartySaveGame::CurrentSaveVersion,
-        4);
+        5);
     TestEqual (TEXT ("Version one remains the minimum compatible save"),
         UGrimrockPartySaveGame::MinimumCompatibleSaveVersion,
         1);

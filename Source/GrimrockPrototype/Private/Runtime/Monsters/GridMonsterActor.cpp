@@ -2,6 +2,7 @@
 
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
@@ -412,6 +413,23 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState (
         return false;
     }
 
+    FString StatusPersistenceError;
+    if (!FGridStatusEffectPersistence::CaptureCollection (
+            StatusEffects,
+            OutState.StatusEffects,
+            StatusPersistenceError))
+    {
+        UE_LOG (
+            LogGridMonsterState,
+            Error,
+            TEXT ("[GridStatusPersistence] MonsterCapture Level=%s Monster=%s PersistenceId=%s Result=Rejected Reason=%s"),
+            *CurrentLevelId.ToString (),
+            *GetNameSafe (this),
+            *PersistenceId.ToString (),
+            *StatusPersistenceError);
+        return false;
+    }
+
     const bool bDead = IsDead ();
     const UGridMonsterBehaviorComponent* Behavior =
         FindComponentByClass<UGridMonsterBehaviorComponent> ();
@@ -451,7 +469,7 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState (
     OutState.bIsDead = bDead;
 
     UE_LOG (LogGridMonsterState, Log,
-        TEXT ("[GridMonsterState] Capture Level=%s Monster=%s PersistenceId=%s SpawnObjectId=%s Cell=(%d,%d) State=%s HP=%d Dead=%s"),
+        TEXT ("[GridMonsterState] Capture Level=%s Monster=%s PersistenceId=%s SpawnObjectId=%s Cell=(%d,%d) State=%s HP=%d Dead=%s StatusEffects=%d"),
         *CurrentLevelId.ToString (),
         *GetNameSafe (this),
         *PersistenceId.ToString (),
@@ -460,7 +478,8 @@ bool AGridMonsterActor::CaptureRuntimeMonsterState (
         OutState.CellY,
         *GetMonsterStateText (OutState.MonsterState),
         OutState.CurrentHealth,
-        bDead ? TEXT ("true") : TEXT ("false"));
+        bDead ? TEXT ("true") : TEXT ("false"),
+        OutState.StatusEffects.Num ());
     return true;
 }
 
@@ -473,6 +492,24 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         !PersistenceId.IsValid () ||
         State.PersistenceId != PersistenceId)
     {
+        return false;
+    }
+
+    FGridStatusEffectCollection RestoredStatusEffects;
+    FString StatusPersistenceError;
+    if (!FGridStatusEffectPersistence::RestoreCollection (
+            State.StatusEffects,
+            RestoredStatusEffects,
+            StatusPersistenceError))
+    {
+        UE_LOG (
+            LogGridMonsterState,
+            Error,
+            TEXT ("[GridStatusPersistence] MonsterRestore Level=%s Monster=%s PersistenceId=%s Result=Rejected Reason=%s"),
+            *State.DungeonLevelId.ToString (),
+            *GetNameSafe (this),
+            *PersistenceId.ToString (),
+            *StatusPersistenceError);
         return false;
     }
 
@@ -522,6 +559,8 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
             RestoredCell.Y);
         return false;
     }
+
+    StatusEffects = MoveTemp (RestoredStatusEffects);
 
     if (CombatComponent)
     {
@@ -615,12 +654,13 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         }
 
         UE_LOG (LogGridMonsterState, Log,
-            TEXT ("[GridMonsterState] RestoreDead Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d)"),
+            TEXT ("[GridMonsterState] RestoreDead Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) StatusEffects=%d"),
             *State.DungeonLevelId.ToString (),
             *GetNameSafe (this),
             *PersistenceId.ToString (),
             CurrentCell.X,
-            CurrentCell.Y);
+            CurrentCell.Y,
+            StatusEffects.Num ());
         return true;
     }
 
@@ -703,7 +743,7 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
     }
 
     UE_LOG (LogGridMonsterState, Log,
-        TEXT ("[GridMonsterState] RestoreAlive Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) State=%s HP=%d Enabled=%s"),
+        TEXT ("[GridMonsterState] RestoreAlive Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) State=%s HP=%d Enabled=%s StatusEffects=%d"),
         *State.DungeonLevelId.ToString (),
         *GetNameSafe (this),
         *PersistenceId.ToString (),
@@ -711,7 +751,8 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         CurrentCell.Y,
         *GetMonsterStateText (MonsterState),
         CurrentHealth,
-        bMonsterEnabled ? TEXT ("true") : TEXT ("false"));
+        bMonsterEnabled ? TEXT ("true") : TEXT ("false"),
+        StatusEffects.Num ());
     if (AudioComponent)
     {
         AudioComponent->RefreshIdleAmbienceScheduling ();

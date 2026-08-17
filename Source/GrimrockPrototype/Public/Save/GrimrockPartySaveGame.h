@@ -2,9 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
+#include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPartySaveGame.generated.h"
+
+class UGridStatusEffectDefinitionAsset;
 
 USTRUCT (BlueprintType)
 struct FRPGCharacterProgressionSaveState
@@ -36,13 +39,26 @@ struct FRPGPendingLevelUpSaveState
     int32 LevelsGained = 0;
 };
 
+/** MON16.7 status snapshots for one party member, keyed by stable CharacterId. */
+USTRUCT (BlueprintType)
+struct FGridCharacterStatusEffectSaveState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
+    FGuid CharacterId;
+
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
+    TArray<FGridStatusEffectSaveState> StatusEffects;
+};
+
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 {
     GENERATED_BODY ()
 
 public:
-    static constexpr int32 CurrentSaveVersion = 4;
+    static constexpr int32 CurrentSaveVersion = 5;
     static constexpr int32 MinimumCompatibleSaveVersion = 1;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
@@ -58,6 +74,10 @@ public:
     /** MON15.6 level-up notifications that still need to be presented. */
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
     TArray<FRPGPendingLevelUpSaveState> PendingLevelUpNotifications;
+
+    /** MON16.7 party status snapshots. Runtime DefinitionAsset pointers are excluded. */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Status Effects")
+    TArray<FGridCharacterStatusEffectSaveState> CharacterStatusEffectStates;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
     FGridDungeonRuntimeState DungeonRuntimeState;
@@ -75,6 +95,17 @@ public:
     EGridEdge PartyFacing = EGridEdge::North;
 
     virtual void Serialize (FArchive& Ar) override;
+
+    /** Captures transient party status collections into stable MON16.7 snapshots. */
+    bool CaptureStatusEffectState (FString& OutError);
+
+    /** Restores party status collections using canonical GridStatusEffect primary assets. */
+    bool RestoreStatusEffectState (FString& OutError);
+
+    /** Test seam and deterministic restore path with an injected definition resolver. */
+    bool RestoreStatusEffectState (
+        TFunctionRef<UGridStatusEffectDefinitionAsset* (FName)> DefinitionResolver,
+        FString& OutError);
 
     bool IsCompatible () const
     {

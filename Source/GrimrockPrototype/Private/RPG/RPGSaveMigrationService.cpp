@@ -80,6 +80,40 @@ namespace MON156SaveMigrationPrivate
         return true;
     }
 
+    void ResetLegacyPartyStatusEffects (
+        FGridPartyInventoryState& PartyState)
+    {
+        for (FGridCharacterInventoryState& Character :
+            PartyState.ActiveCharacters)
+        {
+            Character.StatusEffects.Reset ();
+        }
+        for (FGridCharacterInventoryState& Character :
+            PartyState.CharacterPool)
+        {
+            Character.StatusEffects.Reset ();
+        }
+    }
+
+    void ResetLegacyMonsterStatusEffects (
+        FGridDungeonRuntimeState& DungeonState)
+    {
+        for (TPair<FName, FGridLevelRuntimeState>& LevelPair :
+            DungeonState.LevelStates)
+        {
+            for (TPair<FGuid, FGridRuntimeMonsterState>& MonsterPair :
+                LevelPair.Value.Monsters)
+            {
+                MonsterPair.Value.StatusEffects.Reset ();
+            }
+            for (TPair<FGuid, FGridRuntimeMonsterPlacementState>& PlacementPair :
+                LevelPair.Value.MonsterPlacements)
+            {
+                PlacementPair.Value.MonsterState.StatusEffects.Reset ();
+            }
+        }
+    }
+
     bool MigrateLegacyCharacter (
         FGridCharacterInventoryState& Character,
         int32& InOutReconciledCount,
@@ -375,7 +409,34 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
         return ValidateCurrentSave (SaveGame, OutError);
     }
 
+    // MON16.7: v4 is already authoritative for MON15 progression. Do not run
+    // the v1-v3 reconstruction path, which would erase confirmed class choices.
+    if (SourceVersion == 4)
+    {
+        if (!ValidateSnapshot (
+                SaveGame->PartyInventoryState,
+                SaveGame->ClassProgressionStates,
+                SaveGame->PendingLevelUpNotifications,
+                OutError))
+        {
+            return false;
+        }
+
+        ResetLegacyPartyStatusEffects (SaveGame->PartyInventoryState);
+        ResetLegacyMonsterStatusEffects (SaveGame->DungeonRuntimeState);
+        SaveGame->CharacterStatusEffectStates.Reset ();
+        SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
+
+        if (OutReport)
+        {
+            OutReport->ReconciledCharacterCount = 0;
+            OutReport->bMigrated = true;
+        }
+        return true;
+    }
+
     FGridPartyInventoryState MigratedPartyState = SaveGame->PartyInventoryState;
+    ResetLegacyPartyStatusEffects (MigratedPartyState);
     int32 ReconciledCharacterCount = 0;
     for (FGridCharacterInventoryState& Character :
         MigratedPartyState.ActiveCharacters)
@@ -421,9 +482,15 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
         return false;
     }
 
+    FGridDungeonRuntimeState MigratedDungeonState =
+        SaveGame->DungeonRuntimeState;
+    ResetLegacyMonsterStatusEffects (MigratedDungeonState);
+
     SaveGame->PartyInventoryState = MoveTemp (MigratedPartyState);
     SaveGame->ClassProgressionStates = MoveTemp (MigratedProgressionStates);
     SaveGame->PendingLevelUpNotifications = MoveTemp (MigratedPendingNotifications);
+    SaveGame->CharacterStatusEffectStates.Reset ();
+    SaveGame->DungeonRuntimeState = MoveTemp (MigratedDungeonState);
     SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
     if (OutReport)

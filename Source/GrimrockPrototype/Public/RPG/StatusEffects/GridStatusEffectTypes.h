@@ -93,6 +93,50 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectRuntimeState
     }
 };
 
+/** Stable MON16.7 SaveGame snapshot. DefinitionAsset is intentionally absent. */
+USTRUCT (BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridStatusEffectSaveState
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (SaveGame, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Save")
+    FName EffectId = NAME_None;
+
+    UPROPERTY (SaveGame, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Save")
+    FGuid SourceId;
+
+    UPROPERTY (SaveGame, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Save")
+    int32 StackCount = 1;
+
+    UPROPERTY (SaveGame, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Save")
+    EGridStatusEffectDurationUnit DurationUnit = EGridStatusEffectDurationUnit::Rounds;
+
+    UPROPERTY (SaveGame, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Save")
+    int32 RemainingDuration = 0;
+
+    UPROPERTY (SaveGame, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Save")
+    int32 Potency = 0;
+
+    bool IsStructurallyValid () const
+    {
+        if (EffectId.IsNone () || StackCount < 1 || Potency < 0)
+        {
+            return false;
+        }
+
+        switch (DurationUnit)
+        {
+        case EGridStatusEffectDurationUnit::Turns:
+        case EGridStatusEffectDurationUnit::Rounds:
+            return RemainingDuration > 0;
+        case EGridStatusEffectDurationUnit::Permanent:
+            return RemainingDuration == 0;
+        default:
+            return false;
+        }
+    }
+};
+
 USTRUCT (BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridStatusEffectApplyResult
 {
