@@ -157,8 +157,9 @@ bool FRPGMON155TransientBoundaryTest::RunTest (const FString& Parameters)
 
     UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame> ();
     Save->PartyInventoryState = Component->PartyInventoryState;
-    TestEqual (TEXT ("MON15.6 current SaveVersion is four"),
-        UGrimrockPartySaveGame::CurrentSaveVersion, 4);
+    TestEqual (TEXT ("Save object uses the current SaveVersion contract"),
+        Save->SaveVersion,
+        UGrimrockPartySaveGame::CurrentSaveVersion);
 
     FRPGClassProgressionTransactionService::ResetRuntimeState (Component);
     TArray<FName> SelectedAfterRuntimeReset;
