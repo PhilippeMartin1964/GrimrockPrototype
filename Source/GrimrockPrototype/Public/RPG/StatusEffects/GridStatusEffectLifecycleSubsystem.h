@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Misc/GuardValue.h"
+#include "Templates/UnrealTemplate.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/Combat/GridCombatTypes.h"
