@@ -35,6 +35,41 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageProfile
     }
 };
 
+/**
+ * Generic MON16.5 combat restrictions. Names such as Stun, Silence and
+ * Immobilize remain data-only conventions; production code consumes these
+ * boolean capabilities and never compares EffectId.
+ */
+USTRUCT (BlueprintType)
+struct GRIMROCKPROTOTYPE_API FGridStatusEffectControlProfile
+{
+    GENERATED_BODY ()
+
+    /** Consume the target's next matching initiative activation without acting. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
+    bool bSkipActivation = false;
+
+    /** Block combat actions whose canonical SourcePolicy is Spell. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
+    bool bBlockSpellActions = false;
+
+    /** Block cell translation while still allowing turning and attacks. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
+    bool bBlockTranslation = false;
+
+    bool HasAnyRestriction () const
+    {
+        return bSkipActivation || bBlockSpellActions || bBlockTranslation;
+    }
+
+    void Merge (const FGridStatusEffectControlProfile& Other)
+    {
+        bSkipActivation = bSkipActivation || Other.bSkipActivation;
+        bBlockSpellActions = bBlockSpellActions || Other.bBlockSpellActions;
+        bBlockTranslation = bBlockTranslation || Other.bBlockTranslation;
+    }
+};
+
 UCLASS (BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridStatusEffectDefinitionAsset : public UPrimaryDataAsset
 {
@@ -79,6 +114,10 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Combat")
     int32 InitiativeModifier = 0;
+
+    /** Optional action/movement restrictions aggregated by MON16.5. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Control")
+    FGridStatusEffectControlProfile Control;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Status Effects|Validation")
     bool IsValidDefinition () const;

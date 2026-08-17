@@ -65,6 +65,11 @@ bool UGridStatusEffectDefinitionAsset::ValidateDefinition (FString& OutError) co
     {
         Errors.Add (TEXT ("Periodic damage requires a Turns or Rounds duration in MON16.3."));
     }
+    if (Control.bSkipActivation &&
+        DurationUnit == EGridStatusEffectDurationUnit::Permanent)
+    {
+        Errors.Add (TEXT ("SkipActivation requires a Turns or Rounds duration in MON16.5."));
+    }
 
     OutError = FString::Join (Errors, TEXT ("\n"));
     return Errors.IsEmpty ();

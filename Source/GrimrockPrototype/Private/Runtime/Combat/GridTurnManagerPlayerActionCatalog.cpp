@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -371,8 +372,23 @@ void UGridTurnManagerComponent::GetAvailableCombatActions (
         Context,
         Contributions,
         OutActions);
+
+    const bool bSpellActionsBlocked =
+        FGridStatusEffectControlResolver::Resolve (
+            Character.StatusEffects).bBlockSpellActions;
     for (FGridAvailableCombatAction& Action : OutActions)
     {
+        if (bSpellActionsBlocked &&
+            Action.bEnabled &&
+            Action.Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Spell)
+        {
+            Action.bEnabled = false;
+            Action.AvailabilityReason =
+                EGridCombatActionAvailabilityReason::MissingRequirement;
+            Action.DisabledReason = FText::FromString (
+                TEXT ("Un effet de statut empêche l'utilisation des sorts."));
+        }
         ResolveSuggestedCombatActionTarget (Action);
     }
 }
@@ -676,8 +692,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect (
     }
 
     if (!SpendPlayerCharacterActionPoints (
-        Action.CharacterIndex,
-        Action.CurrentActionPointCost))
+            Action.CharacterIndex,
+            Action.CurrentActionPointCost))
     {
         return false;
     }

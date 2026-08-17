@@ -1,6 +1,7 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -69,6 +70,19 @@ bool UGridTurnManagerComponent::StartActiveAction (const FGridCombatAction& Acti
 {
     if (!IsValid (CurrentMonster))
     {
+        return false;
+    }
+
+    if (Action.Type == EGridCombatActionType::Move &&
+        FGridStatusEffectControlResolver::Resolve (
+            CurrentMonster->StatusEffects).bBlockTranslation)
+    {
+        UE_LOG (
+            LogGridTurnManager,
+            Log,
+            TEXT ("[MON16.5] TranslationBlocked Target=Monster Monster=%s Round=%d"),
+            *GetNameSafe (CurrentMonster),
+            RoundNumber);
         return false;
     }
 

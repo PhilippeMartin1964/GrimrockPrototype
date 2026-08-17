@@ -2,6 +2,7 @@
 
 #include "Core/GridDirectionUtils.h"
 #include "Engine/World.h"
+#include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -94,6 +95,29 @@ bool UGridTurnManagerComponent::RequestPartyTranslation (
             EGridPartyMovementRejectReason::PartyBusy,
             OutRejectReason);
     }
+
+    const TArray<FGridCharacterInventoryState>& Characters =
+        PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters;
+    if (Characters.IsValidIndex (CharacterIndex) &&
+        FGridStatusEffectControlResolver::Resolve (
+            Characters[CharacterIndex].StatusEffects).bBlockTranslation)
+    {
+        UE_LOG (
+            LogGridTurnManager,
+            Log,
+            TEXT ("[MON16.5] TranslationBlocked Target=Party Character=%d Round=%d"),
+            CharacterIndex,
+            RoundNumber);
+
+        // MON16.6 will surface a dedicated presentation reason. Keep the
+        // existing public movement reject contract unchanged in MON16.5.
+        return RejectPartyMovement (
+            CharacterIndex,
+            MoveDirection,
+            EGridPartyMovementRejectReason::PartyBusy,
+            OutRejectReason);
+    }
+
     if (!IsPartyMovementCardinalDirection (MoveDirection))
     {
         return RejectPartyMovement (

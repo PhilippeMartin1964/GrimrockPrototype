@@ -1,5 +1,6 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
+#include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -227,6 +228,86 @@ void UGridTurnManagerComponent::BeginNextCombatantTurn ()
             Entry.State == EGridCombatantTurnState::Incapacitated)
         {
             OnCombatantStateChanged.Broadcast (Entry);
+            continue;
+        }
+
+        bool bSkipActivation = false;
+        if (Entry.Side == EGridCombatantSide::Party &&
+            IsValid (PartyPawn) &&
+            IsValid (PartyPawn->PartyInventoryComponent))
+        {
+            const TArray<FGridCharacterInventoryState>& Characters =
+                PartyPawn->PartyInventoryComponent->PartyInventoryState
+                    .ActiveCharacters;
+            if (Characters.IsValidIndex (Entry.CharacterIndex))
+            {
+                bSkipActivation =
+                    FGridStatusEffectControlResolver::Resolve (
+                        Characters[Entry.CharacterIndex].StatusEffects)
+                        .bSkipActivation;
+            }
+        }
+        else if (Entry.Side == EGridCombatantSide::Monster)
+        {
+            if (const AGridMonsterActor* Monster =
+                FindCombatMonsterById (Entry.CombatantId))
+            {
+                bSkipActivation =
+                    FGridStatusEffectControlResolver::Resolve (
+                        Monster->StatusEffects)
+                        .bSkipActivation;
+            }
+        }
+
+        if (bSkipActivation)
+        {
+            if (Entry.Side == EGridCombatantSide::Party)
+            {
+                if (FGridPlayerCharacterTurnState* TurnState =
+                    EnsurePlayerCharacterTurnState (Entry.CharacterIndex))
+                {
+                    if (TurnState->State != EGridCombatantTurnState::Defeated)
+                    {
+                        TurnState->MaximumActionPoints = FMath::Clamp (
+                            BasePlayerActionPointsPerTurn,
+                            2,
+                            6);
+                        TurnState->RemainingActionPoints = 0;
+                        TurnState->State = EGridCombatantTurnState::Completed;
+                        BroadcastPlayerCharacterTurnState (*TurnState);
+                    }
+                }
+            }
+
+            UE_LOG (
+                LogGridTurnManager,
+                Log,
+                TEXT ("[MON16.5] ActivationSkipped Side=%s Id=%s Character=%d Round=%d"),
+                *UEnum::GetValueAsString (Entry.Side),
+                *Entry.CombatantId.ToString (EGuidFormats::Digits),
+                Entry.CharacterIndex,
+                RoundNumber);
+
+            // Completed is intentional: MON16.2 already treats it as a consumed
+            // activation, so Turns effects tick/decrement exactly once here.
+            SetInitiativeEntryState (
+                Entry,
+                EGridCombatantTurnState::Completed);
+
+            if (!bCombatActive)
+            {
+                return;
+            }
+            if (!HasLivingPartyCharacter ())
+            {
+                FinishCombat (EGridCombatPhase::Defeat);
+                return;
+            }
+            if (!HasLivingCombatMonster ())
+            {
+                FinishCombat (EGridCombatPhase::Victory);
+                return;
+            }
             continue;
         }
 
