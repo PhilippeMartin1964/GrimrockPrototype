@@ -18,7 +18,11 @@ enum class EGridCombatLogEntryType : uint8
     CharacterDefeated,
     MonsterDefeated,
     Victory,
-    Defeat
+    Defeat,
+    StatusApplied,
+    StatusRefreshed,
+    StatusTicked,
+    StatusExpired
 };
 
 /** Transient, structured feedback emitted by the current combat encounter. */
@@ -71,6 +75,19 @@ struct FGridCombatLogEntry
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback")
     bool bTargetDefeated = false;
+
+    /** MON16.6 structured status feedback; attack fields remain untouched. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback|Status Effects")
+    FName StatusEffectId = NAME_None;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback|Status Effects")
+    FText StatusEffectDisplayName;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback|Status Effects")
+    int32 StatusEffectStackCount = 0;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|Feedback|Status Effects")
+    FText StatusEffectDurationText;
 };
 
 /** Pure localized text formatter. It never reads actors or resolves combat. */
@@ -97,4 +114,25 @@ public:
     static FText FormatCharacterDefeated (const FText& CharacterName);
     static FText FormatMonsterDefeated (const FText& MonsterName);
     static FText FormatCombatEnded (EGridCombatPhase ResultPhase);
+
+    static FText FormatStatusApplied (
+        const FText& TargetName,
+        const FText& EffectName,
+        int32 StackCount,
+        const FText& DurationText);
+
+    static FText FormatStatusRefreshed (
+        const FText& TargetName,
+        const FText& EffectName,
+        int32 StackCount,
+        const FText& DurationText);
+
+    static FText FormatStatusTick (
+        const FText& TargetName,
+        const FText& EffectName,
+        const FGridAttackResult& Result);
+
+    static FText FormatStatusExpired (
+        const FText& TargetName,
+        const FText& EffectName);
 };

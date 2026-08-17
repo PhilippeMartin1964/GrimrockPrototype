@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "RPG/StatusEffects/GridStatusEffectPresentation.h"
 #include "Runtime/Combat/GridCombatTypes.h"
 #include "GridCombatActionPanelWidget.generated.h"
 
@@ -59,15 +60,23 @@ struct FGridCombatActionPanelView
 
     UPROPERTY (BlueprintReadOnly, Category = "Combat|UI")
     bool bCanAct = false;
+
+    /** MON16.6 read-only projection of the authoritative runtime collection. */
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI|Status Effects")
+    TArray<FGridStatusEffectPresentationView> StatusEffects;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI|Status Effects")
+    FText StatusSummary;
+
+    UPROPERTY (BlueprintReadOnly, Category = "Combat|UI|Status Effects")
+    FText LatestStatusFeedback;
 };
 
 /**
  * MON12 combat action panel for one party member.
- *
- * MON12.8 uses this class as a read-only status panel. Configured combat
- * shortcuts are rendered by UGridCombatHudActionWidget. The HUD assigns one
- * explicit party-member index to each panel instance and owns the event
- * subscriptions that refresh all status panels.
+ * MON16.6 adds a native status summary/feedback fallback without requiring a
+ * WBP change. Designer widgets named Text_StatusEffects/Text_StatusFeedback
+ * are optional and take precedence when present.
  */
 UCLASS ()
 class GRIMROCKPROTOTYPE_API UGridCombatActionPanelWidget
@@ -141,6 +150,12 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI")
     TObjectPtr<UWidget> Panel_DisabledOverlay;
 
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Status Effects")
+    TObjectPtr<UTextBlock> Text_StatusEffects;
+
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Combat|UI|Status Effects")
+    TObjectPtr<UTextBlock> Text_StatusFeedback;
+
     UFUNCTION (BlueprintCallable, Category = "Combat|UI")
     void InitializeCombatActionPanel (
         AGrimrockPartyPawn* InPartyPawn,
@@ -152,5 +167,6 @@ public:
 
 private:
     FText GetActionStateText () const;
+    void EnsureStatusWidgets ();
     void RefreshBoundWidgets ();
 };

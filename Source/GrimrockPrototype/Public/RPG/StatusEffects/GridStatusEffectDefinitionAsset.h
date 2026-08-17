@@ -6,6 +6,8 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GridStatusEffectDefinitionAsset.generated.h"
 
+class UTexture2D;
+
 /** Optional deterministic periodic damage payload for MON16.3. */
 USTRUCT (BlueprintType)
 struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageProfile
@@ -86,6 +88,10 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Identity", meta = (MultiLine = "true"))
     FText Description;
+
+    /** Optional MON16.6 HUD icon. Runtime rules never depend on it. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Presentation")
+    TSoftObjectPtr<UTexture2D> Icon;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Status Effects|Rules")
     EGridStatusEffectDisposition Disposition = EGridStatusEffectDisposition::Neutral;

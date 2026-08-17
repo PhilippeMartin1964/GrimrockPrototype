@@ -68,15 +68,36 @@ namespace
             return FText::Format (
                 LOCTEXT (
                     "DamageWithHealth",
-                    "{Damage}, {Before} \u2192 {After} PV"),
+                    "{Damage}, {Before} → {After} PV"),
                 Arguments);
         }
 
-        return FText::Format (
-            LOCTEXT (
-                "ArmorAbsorbedDamage",
-                "{0} dégâts absorbés par l'armure"),
-            FText::AsNumber (Result.GetTotalAppliedDamage ()));
+        const int32 TotalDamage = Result.GetTotalAppliedDamage ();
+        return TotalDamage > 0
+            ? FText::Format (
+                LOCTEXT (
+                    "ArmorAbsorbedDamage",
+                    "{0} dégâts absorbés par l'armure"),
+                FText::AsNumber (TotalDamage))
+            : LOCTEXT ("NoAppliedDamage", "aucun dégât appliqué");
+    }
+
+    FText FormatStatusStateSuffix (
+        int32 StackCount,
+        const FText& DurationText)
+    {
+        if (StackCount > 1)
+        {
+            FFormatNamedArguments Arguments;
+            Arguments.Add (TEXT ("Stacks"), FText::AsNumber (StackCount));
+            Arguments.Add (TEXT ("Duration"), DurationText);
+            return FText::Format (
+                LOCTEXT (
+                    "StatusStateWithStacks",
+                    "{Stacks} stacks, {Duration}"),
+                Arguments);
+        }
+        return DurationText;
     }
 }
 
@@ -231,6 +252,74 @@ FText FGridCombatLogFormatter::FormatCombatEnded (
     return ResultPhase == EGridCombatPhase::Victory
         ? LOCTEXT ("Victory", "Victoire.")
         : LOCTEXT ("Defeat", "Défaite.");
+}
+
+FText FGridCombatLogFormatter::FormatStatusApplied (
+    const FText& TargetName,
+    const FText& EffectName,
+    int32 StackCount,
+    const FText& DurationText)
+{
+    FFormatNamedArguments Arguments;
+    Arguments.Add (TEXT ("Target"), TargetName);
+    Arguments.Add (TEXT ("Effect"), EffectName);
+    Arguments.Add (
+        TEXT ("State"),
+        FormatStatusStateSuffix (StackCount, DurationText));
+    return FText::Format (
+        LOCTEXT (
+            "StatusApplied",
+            "{Target} reçoit {Effect} ({State})."),
+        Arguments);
+}
+
+FText FGridCombatLogFormatter::FormatStatusRefreshed (
+    const FText& TargetName,
+    const FText& EffectName,
+    int32 StackCount,
+    const FText& DurationText)
+{
+    FFormatNamedArguments Arguments;
+    Arguments.Add (TEXT ("Target"), TargetName);
+    Arguments.Add (TEXT ("Effect"), EffectName);
+    Arguments.Add (
+        TEXT ("State"),
+        FormatStatusStateSuffix (StackCount, DurationText));
+    return FText::Format (
+        LOCTEXT (
+            "StatusRefreshed",
+            "{Effect} est actualisé sur {Target} ({State})."),
+        Arguments);
+}
+
+FText FGridCombatLogFormatter::FormatStatusTick (
+    const FText& TargetName,
+    const FText& EffectName,
+    const FGridAttackResult& Result)
+{
+    FFormatNamedArguments Arguments;
+    Arguments.Add (TEXT ("Target"), TargetName);
+    Arguments.Add (TEXT ("Effect"), EffectName);
+    Arguments.Add (TEXT ("Damage"), FormatAppliedDamage (Result));
+    return FText::Format (
+        LOCTEXT (
+            "StatusTick",
+            "{Effect} affecte {Target} : {Damage}."),
+        Arguments);
+}
+
+FText FGridCombatLogFormatter::FormatStatusExpired (
+    const FText& TargetName,
+    const FText& EffectName)
+{
+    FFormatNamedArguments Arguments;
+    Arguments.Add (TEXT ("Target"), TargetName);
+    Arguments.Add (TEXT ("Effect"), EffectName);
+    return FText::Format (
+        LOCTEXT (
+            "StatusExpired",
+            "{Effect} expire sur {Target}."),
+        Arguments);
 }
 
 #undef LOCTEXT_NAMESPACE
