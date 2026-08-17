@@ -3,15 +3,16 @@
 ## État
 
 ```text
-Implémentation C++ : préparée
-Documentation      : préparée
-Compilation UE5    : EN ATTENTE
-Automation MON16.7 : EN ATTENTE
-Régressions        : EN ATTENTE
-Clôture            : NON
+Implémentation C++ : VALIDÉE
+Documentation      : VALIDÉE
+Compilation UE5    : VALIDÉE
+Automation MON16.7 : 11/11 SUCCESS
+Régressions        : VALIDÉES
+Clôture            : OUI
 ```
 
-Base : `71f38ea0638bdd99c81e268b26afc768fb196f57`.
+Implémentation : `3d6d1b1600245a79cb0a5262a97a45ecb2237f5c`.
+Correctif test de régression : `8d64574f6681c7691a5778451ff3a61dfcdcec8b`.
 
 ## Contrat persistant
 
@@ -66,72 +67,78 @@ Base : `71f38ea0638bdd99c81e268b26afc768fb196f57`.
 
 ## Compilation UE5.5.4
 
-Attendu : 0 erreur C++, UHT ou link.
-
-- [ ] compilation / chargement confirmé par log utilisateur
+- [x] compilation / chargement confirmé par exécution des automations utilisateur
 
 ## Automation ciblée
 
-Exécuter :
+Commande :
 
 ```text
 Automation RunTests Grimrock.RPG.MON16.7
 ```
 
-- [ ] `CollectionCapture` — Success
-- [ ] `CollectionRestore` — Success
-- [ ] `AtomicRestoreFailure` — Success
-- [ ] `DuplicateEffectRejected` — Success
-- [ ] `DefinitionContractMismatch` — Success
-- [ ] `PartyActiveAndPoolRoundTrip` — Success
-- [ ] `PartyAtomicFailure` — Success
-- [ ] `V4MigrationPreservesProgression` — Success
-- [ ] `MonsterSnapshotContract` — Success
-- [ ] `SaveVersionContract` — Success
-- [ ] `TransientRuntimeBoundary` — Success
+- [x] `CollectionCapture` — Success
+- [x] `CollectionRestore` — Success
+- [x] `AtomicRestoreFailure` — Success
+- [x] `DuplicateEffectRejected` — Success
+- [x] `DefinitionContractMismatch` — Success
+- [x] `PartyActiveAndPoolRoundTrip` — Success
+- [x] `PartyAtomicFailure` — Success
+- [x] `V4MigrationPreservesProgression` — Success
+- [x] `MonsterSnapshotContract` — Success
+- [x] `SaveVersionContract` — Success
+- [x] `TransientRuntimeBoundary` — Success
 
-Attendu : **11/11 Success**.
+Résultat : **11/11 Success**.
 
-## Régressions minimales
+## Régressions
 
-Après MON16.7 vert :
-
-```text
-Automation RunTests Grimrock.RPG.MON16.6
-Automation RunTests Grimrock.RPG.MON16.5
-Automation RunTests Grimrock.RPG.MON16.4
-Automation RunTests Grimrock.RPG.MON16.3
-Automation RunTests Grimrock.RPG.MON16.2
-Automation RunTests Grimrock.RPG.MON16.1
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
-```
-
-Attendus :
+Campagnes demandées :
 
 ```text
-MON16.6 : 10/10
-MON16.5 : 11/11
-MON16.4 : 11/11
-MON16.3 : 11/11
-MON16.2 : 10/10
-MON16.1 :  7/7
-MON15   : 42/42
-MON14   : 19/19
+Grimrock.RPG.MON16.6
+Grimrock.RPG.MON16.5
+Grimrock.RPG.MON16.4
+Grimrock.RPG.MON16.3
+Grimrock.RPG.MON16.2
+Grimrock.RPG.MON16.1
+Grimrock.RPG.MON15
+Grimrock.Monsters.MON14
 ```
 
-- [ ] MON16.6 : 10/10 Success
-- [ ] MON16.5 : 11/11 Success
-- [ ] MON16.4 : 11/11 Success
-- [ ] MON16.3 : 11/11 Success
-- [ ] MON16.2 : 10/10 Success
-- [ ] MON16.1 : 7/7 Success
-- [ ] MON15 : 42/42 Success
-- [ ] MON14 : 19/19 Success
+Résultat : tous les tests fonctionnels demandés sont verts après correction du seul test historique obsolète `Grimrock.RPG.MON15.5.TransientPersistenceBoundary`.
+
+Cause du test obsolète : il imposait `CurrentSaveVersion == 4` alors que MON16.7 définit légitimement la version 5.
+
+Correction appliquée :
+
+```text
+8d64574f6681c7691a5778451ff3a61dfcdcec8b
+Fix MON16.7 save version regression test
+```
+
+Rerun :
+
+```text
+Automation RunTests Grimrock.RPG.MON15.5
+```
+
+- [x] AtomicBatchCommit — Success
+- [x] AtomicFailure — Success
+- [x] CharacterIsolation — Success
+- [x] CombatCatalogUnlock — Success
+- [x] LevelUpNotificationSource — Success
+- [x] TransientPersistenceBoundary — Success
+- [x] WidgetCancelIsNonMutating — Success
+- [x] WidgetConfirmTransaction — Success
+
+Résultat : **8/8 Success**.
+
+- [x] aucun échec résiduel connu dans le périmètre MON14 / MON15 / MON16 demandé
 
 ## Vérification manuelle conseillée
 
-Après les automations :
+Cette vérification reste utile comme contrôle de production, mais n'est plus bloquante pour la clôture automation :
 
 1. appliquer un effet à un personnage ;
 2. sauvegarder ;
@@ -140,10 +147,8 @@ Après les automations :
 5. vérifier que l'effet continue son lifecycle ;
 6. répéter avec un monstre persistant si un scénario de test runtime est disponible.
 
-Cette vérification manuelle n'est pas un substitut aux automations mais confirme le wiring SaveGame réel avec des DataAssets de production.
-
 ## Clôture
 
-MON16.7 sera marqué **VALIDÉ ET CLOS** uniquement après compilation/chargement UE5.5.4, 11/11 MON16.7 et régressions appropriées sans nouvel échec.
+**MON16.7 — VALIDÉ ET CLOS.**
 
 Prochaine étape : `MON16.8 — clôture / régression finale du milestone Status Effects`.

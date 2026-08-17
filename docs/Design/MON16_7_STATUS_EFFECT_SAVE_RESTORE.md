@@ -2,13 +2,27 @@
 
 ## Statut
 
-**IMPLEMENTED — validation UE5.5.4 en attente.**
+**VALIDÉ ET CLOS — UE5.5.4.**
 
-Base :
+Base d'implémentation :
 
 ```text
 71f38ea0638bdd99c81e268b26afc768fb196f57
 Close MON16.6 status HUD feedback
+```
+
+Implémentation MON16.7 :
+
+```text
+3d6d1b1600245a79cb0a5262a97a45ecb2237f5c
+Add MON16.7 status effect persistence
+```
+
+Correctif de régression de test :
+
+```text
+8d64574f6681c7691a5778451ff3a61dfcdcec8b
+Fix MON16.7 save version regression test
 ```
 
 MON16.7 rend persistants les status effects introduits par MON16.1–6 sans sérialiser les pointeurs runtime ni créer un second système de statuts.
@@ -134,7 +148,7 @@ Au chargement :
 3. restauration de toutes les collections sauvegardées ;
 4. commit de la copie candidate uniquement si tout est valide.
 
-La restauration du groupe est donc atomique.
+La restauration du groupe est atomique.
 
 ## 5. Monstres
 
@@ -170,7 +184,7 @@ MinimumCompatibleSaveVersion : 1 (inchangé)
 
 La version 4 contient déjà l'état de progression autoritatif MON15.6.
 
-Elle ne doit surtout pas être traitée comme une sauvegarde legacy v1-v3.
+Elle ne doit pas être traitée comme une sauvegarde legacy v1-v3.
 
 La migration v4 -> v5 :
 
@@ -237,7 +251,9 @@ MON16.7 n'ajoute pas :
 - de VFX/audio ;
 - de nouvelle dépendance de module.
 
-## 10. Automation
+## 10. Validation UE5.5.4
+
+### Automation ciblée MON16.7
 
 Namespace :
 
@@ -245,24 +261,40 @@ Namespace :
 Grimrock.RPG.MON16.7
 ```
 
-Tests :
+Résultat utilisateur : **11/11 Success**.
 
 ```text
-CollectionCapture
-CollectionRestore
-AtomicRestoreFailure
-DuplicateEffectRejected
-DefinitionContractMismatch
-PartyActiveAndPoolRoundTrip
-PartyAtomicFailure
-V4MigrationPreservesProgression
-MonsterSnapshotContract
-SaveVersionContract
-TransientRuntimeBoundary
+CollectionCapture                 Success
+CollectionRestore                 Success
+AtomicRestoreFailure              Success
+DuplicateEffectRejected           Success
+DefinitionContractMismatch        Success
+PartyActiveAndPoolRoundTrip       Success
+PartyAtomicFailure                Success
+V4MigrationPreservesProgression   Success
+MonsterSnapshotContract           Success
+SaveVersionContract               Success
+TransientRuntimeBoundary          Success
 ```
 
-Attendu : **11/11 Success**.
+### Régressions MON14 / MON15 / MON16
 
-Après validation ciblée, relancer MON16.6 -> MON14 selon la checklist.
+La campagne de régression a validé l'ensemble du périmètre fonctionnel. Un seul test historique échouait :
 
-Prochaine étape après validation : **MON16.8 — clôture / régression finale du milestone Status Effects**.
+```text
+Grimrock.RPG.MON15.5.TransientPersistenceBoundary
+```
+
+Cause : l'assertion du test imposait encore `CurrentSaveVersion == 4`, alors que MON16.7 fait évoluer le contrat à 5. Il ne s'agissait pas d'une régression runtime.
+
+Correctif : le test vérifie désormais que l'instance SaveGame utilise `UGrimrockPartySaveGame::CurrentSaveVersion`, sans figer un numéro appartenant à un milestone ultérieur.
+
+Rerun ciblé MON15.5 après correctif : **8/8 Success**.
+
+Conclusion : **aucun échec résiduel connu dans le périmètre de régression demandé**.
+
+## 11. Clôture
+
+MON16.7 est **VALIDÉ ET CLOS**.
+
+Prochaine étape : **MON16.8 — clôture / régression finale du milestone Status Effects**.
