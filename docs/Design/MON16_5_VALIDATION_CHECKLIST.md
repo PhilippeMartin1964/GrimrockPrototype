@@ -3,15 +3,17 @@
 ## État
 
 ```text
-Implémentation C++ : préparée
-Documentation      : préparée
-Compilation UE5    : EN ATTENTE
-Automation MON16.5 : EN ATTENTE
-Régressions        : EN ATTENTE
-Clôture            : NON
+Implémentation C++ : VALIDÉE
+Documentation      : VALIDÉE
+Chargement UE5     : CONFIRMÉ PAR EXÉCUTION AUTOMATION
+Automation MON16.5 : 11/11 SUCCESS
+Régressions        : CAMPAGNE GLOBALE VALIDÉE HORS 2 FIXTURES MON16.5 CORRIGÉES
+Clôture            : OUI — 17 AOÛT 2026
 ```
 
 Base : `65f3c3bae7e52d05a6708be1591351166d823964`.
+
+Implémentation validée : `f9429734f249d995dbb173b206d161dc00a3c615`.
 
 ## Architecture
 
@@ -42,6 +44,7 @@ Base : `65f3c3bae7e52d05a6708be1591351166d823964`.
 - [x] `bBlockSpellActions` utilise `SourcePolicy::Spell`
 - [x] sort conservé dans le catalogue mais désactivé
 - [x] requête autoritative rejetée par `ActionUnavailable`
+- [x] disponibilité rejetée par `MissingRequirement`
 - [x] aucun PA dépensé lors du rejet
 - [x] aucun mana dépensé lors du rejet
 - [x] aucun effet appliqué lors du rejet
@@ -82,56 +85,74 @@ Base : `65f3c3bae7e52d05a6708be1591351166d823964`.
 - [x] aucune application automatique par attaque/sort ajoutée
 - [x] aucun nouveau type d'action magique monstre inventé
 
-## Compilation UE5.5.4
+## Validation UE5.5.4
 
-Attendu : 0 erreur C++, UHT ou link.
+Le namespace MON16.5 a été exécuté avec succès dans UE5.5.4 après correction de la fixture de positionnement du pawn.
 
-- [ ] compilation / chargement confirmé par log utilisateur
+- [x] chargement/exécution UE5 confirmé par log utilisateur
 
-## Automation ciblée
+## Automation ciblée finale
 
-Exécuter :
+Commande :
 
 ```text
 Automation RunTests Grimrock.RPG.MON16.5
 ```
 
-- [ ] `ControlAggregation` — Success
-- [ ] `PermanentSkipActivationRejected` — Success
-- [ ] `StackBooleanSemantics` — Success
-- [ ] `TurnSkipLifecycle` — Success
-- [ ] `RoundSkipLifecycle` — Success
-- [ ] `SilenceCatalogIsolation` — Success
-- [ ] `SilenceRequestAtomic` — Success
-- [ ] `PartyImmobilizeTranslation` — Success
-- [ ] `PartyImmobilizeRotation` — Success
-- [ ] `TargetParity` — Success
-- [ ] `NoParallelSystem` — Success
+Résultat du 17 août 2026 :
 
-Attendu : **11/11 Success**.
+- [x] `ControlAggregation` — Success
+- [x] `PermanentSkipActivationRejected` — Success
+- [x] `StackBooleanSemantics` — Success
+- [x] `TurnSkipLifecycle` — Success
+- [x] `RoundSkipLifecycle` — Success
+- [x] `SilenceCatalogIsolation` — Success
+- [x] `SilenceRequestAtomic` — Success
+- [x] `PartyImmobilizeTranslation` — Success
+- [x] `PartyImmobilizeRotation` — Success
+- [x] `TargetParity` — Success
+- [x] `NoParallelSystem` — Success
 
-## Régressions minimales
+**Résultat final : 11/11 Success, 0 Fail.**
 
-Après MON16.5 vert :
+## Campagne de régression
+
+La campagne globale immédiatement précédente a exécuté 145 tests :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.4
-Automation RunTests Grimrock.RPG.MON16.3
-Automation RunTests Grimrock.RPG.MON16.2
-Automation RunTests Grimrock.RPG.MON16.1
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
+143 Success
+2 Fail
 ```
 
-- [ ] MON16.4 : 11/11 Success
-- [ ] MON16.3 : 11/11 Success
-- [ ] MON16.2 : 10/10 Success
-- [ ] MON16.1 : 7/7 Success
-- [ ] MON15 : 42/42 Success
-- [ ] MON14 : 19/19 Success
+Les deux seuls échecs étaient :
+
+```text
+Grimrock.RPG.MON16.5.PartyImmobilizeRotation
+Grimrock.RPG.MON16.5.SilenceCatalogIsolation
+```
+
+Tous les tests hors MON16.5 étaient donc déjà Success.
+
+La cause des deux échecs MON16.5 était une fixture incohérente : `CurrentCellX`, `CurrentCellY` et `Facing` étaient renseignés sans synchroniser la transform physique du pawn. `IsPartyAtRest()` retournait alors faux et provoquait `PartyBusy` avant la règle réellement testée.
+
+Correction :
+
+```cpp
+Party->SnapToCurrentCell();
+```
+
+Le rerun ciblé final confirme les 11 tests MON16.5. Le log confirme notamment :
+
+```text
+PartyImmobilizeRotation : Accepted=true Type=Rotation
+PartyImmobilizeTranslation : TranslationBlocked
+SilenceRequestAtomic : MissingRequirement
+```
+
+La correction finale ne modifie que la fixture de test MON16.5 ; les 134 autres tests déjà verts ne nécessitent donc pas une nouvelle campagne complète pour cette clôture.
 
 ## Clôture
 
-MON16.5 pourra être marqué **VALIDÉ ET CLOS** après chargement/compilation UE5.5.4, 11/11 MON16.5 et régressions appropriées sans échec dans les logs utilisateur.
+**MON16.5 — VALIDÉ ET CLOS le 17 août 2026.**
 
 Prochaine étape : `MON16.6 — HUD / Combat Feedback des status effects`.

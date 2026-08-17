@@ -2,20 +2,27 @@
 
 ## Statut
 
-**Implémenté — validation UE5 en attente.**
+**VALIDÉ ET CLOS — 17 août 2026.**
 
-Base :
+Base MON16.5 :
 
 ```text
 65f3c3bae7e52d05a6708be1591351166d823964
 Close MON16.4 status initiative modifiers
 ```
 
+Implémentation MON16.5 validée :
+
+```text
+f9429734f249d995dbb173b206d161dc00a3c615
+Add MON16.5 status control
+```
+
 MON16.5 ajoute les premières restrictions d'action aux effets de statut en réutilisant le lifecycle MON16.2, le catalogue d'actions MON12 et le TurnManager existant. Aucun `EffectId` n'est interprété comme Stun, Silence ou Immobilize par le code de production.
 
 ## 1. Modèle data-driven
 
-`UGridStatusEffectDefinitionAsset` reçoit un profil générique :
+`UGridStatusEffectDefinitionAsset` porte un profil générique :
 
 ```text
 FGridStatusEffectControlProfile Control
@@ -37,56 +44,46 @@ Silence     -> bBlockSpellActions=true
 Immobilize  -> bBlockTranslation=true
 ```
 
-Un même effet peut combiner plusieurs capacités. Plusieurs effets actifs sont agrégés par OR logique via :
-
-```text
-FGridStatusEffectControlResolver
-```
-
-Les stacks conservent leur `StackCount` dans le modèle commun, mais une restriction booléenne n'est pas multipliée par le nombre de stacks.
+Plusieurs effets actifs sont agrégés par OR logique via `FGridStatusEffectControlResolver`. Les stacks conservent leur `StackCount`, mais une restriction booléenne n'est pas multipliée par le nombre de stacks.
 
 ## 2. Stun — consommation d'activation
 
-Le Stun est projeté par `bSkipActivation` au moment où le TurnManager s'apprête à démarrer une activation globale.
-
-La sémantique retenue est :
+`bSkipActivation` est évalué à la frontière d'activation globale.
 
 ```text
-combatant Waiting
-    -> contrôle des statuts
-    -> bSkipActivation=true
-    -> aucune activation Player/Monster démarrée
-    -> 0 PA utilisable pour la party
-    -> état initiative Completed
-    -> OnCombatantStateChanged
-    -> lifecycle MON16.2
-    -> décrément Turns éventuel
-    -> combattant suivant
+Waiting
+ -> contrôle des statuts
+ -> SkipActivation
+ -> aucune activation Player/Monster démarrée
+ -> party : 0 PA utilisable
+ -> initiative Completed
+ -> OnCombatantStateChanged
+ -> lifecycle MON16.2
+ -> décrément Turns éventuel
+ -> combattant suivant
 ```
 
-`Incapacitated` n'est pas utilisé comme état persistant de Stun. Il conserve son rôle historique d'échec/incapacité du TurnManager. Le Stun consomme au contraire une activation réelle comme `Completed`, ce qui permet aux durées `Turns` existantes de décrémenter exactement une fois.
+`Incapacitated` n'est pas détourné pour représenter Stun. L'activation est consommée comme `Completed`, ce qui permet aux durées `Turns` de décrémenter exactement une fois.
 
-Un Stun `Turns=1` retire donc une activation puis expire. Un Stun en `Rounds` reste actif jusqu'à la frontière de round gérée par MON16.2.
+Un Stun `Turns=1` retire donc une activation puis expire. Un Stun en `Rounds` reste gouverné par MON16.2. Un `bSkipActivation` permanent est rejeté par validation afin d'éviter un combat impossible à faire progresser.
 
-Un `bSkipActivation` permanent est rejeté par la validation de définition : une incapacité permanente pourrait empêcher toute progression d'un combat. Les restrictions Silence/Immobilize peuvent, elles, être permanentes.
-
-MON16.5 ne force pas rétroactivement la fin d'un combattant déjà `Active`. La restriction est évaluée à la prochaine frontière d'activation autoritative.
+MON16.5 ne force pas rétroactivement la fin d'un combattant déjà `Active` : la restriction est évaluée à la prochaine frontière d'activation autoritative.
 
 ## 3. Silence — blocage des sorts
 
-Le Silence est défini par :
+Le Silence utilise :
 
 ```text
 bBlockSpellActions=true
 ```
 
-Le blocage repose exclusivement sur la taxonomie existante :
+Le blocage repose sur la taxonomie existante :
 
 ```text
 EGridCombatActionSourcePolicy::Spell
 ```
 
-Après construction normale du catalogue, les actions Spell qui seraient disponibles deviennent indisponibles. Elles restent présentes dans le catalogue commun, mais :
+Le sort reste dans le catalogue commun mais devient indisponible :
 
 ```text
 bEnabled=false
@@ -94,7 +91,7 @@ AvailabilityReason=MissingRequirement
 DisabledReason="Un effet de statut empêche l'utilisation des sorts."
 ```
 
-Le même catalogue est utilisé par l'UI et par les requêtes autoritatives. Une tentative d'exécution retourne donc `ActionUnavailable` avant toute dépense de PA, mana, item ou application d'effet.
+La requête autoritative retourne `ActionUnavailable` avant toute dépense de PA, mana, item ou application d'effet.
 
 Ne sont pas bloqués par Silence :
 
@@ -105,9 +102,7 @@ QuickItem
 Universal
 ```
 
-Les sorts `Self`, `FirstAxialTarget`, `Cell` et `Area` passent tous par ce même catalogue ; le blocage n'est donc pas limité aux actions non ciblées.
-
-MON16.5 n'invente pas de nouvelle catégorie de « sort monstre ». Les monstres peuvent porter le même profil de statut, mais `bBlockSpellActions` n'aura un consommateur monstre que lorsque leurs actions magiques utiliseront la taxonomie commune.
+Les politiques de ciblage réutilisent le même catalogue. MON16.5 n'introduit pas de seconde taxonomie magique pour les monstres.
 
 ## 4. Immobilize — translation interdite
 
@@ -119,26 +114,17 @@ bBlockTranslation=true
 
 ### Party
 
-`RequestPartyTranslation()` vérifie le statut du personnage actif avant toute dépense de PA/PAM ou validation spatiale. En cas de blocage :
+`RequestPartyTranslation()` bloque la translation avant toute dépense de PA/PAM. Aucun mouvement n'est lancé. La rotation à 90 degrés reste autorisée par `RequestPartyRotation()`.
 
-- translation refusée ;
-- aucun PA personnel dépensé ;
-- aucun PAM partagé dépensé ;
-- aucun mouvement lancé.
-
-La rotation à 90 degrés reste autorisée : `RequestPartyRotation()` n'est pas bloquée.
-
-MON16.5 conserve provisoirement le contrat public de rejet existant et utilise `PartyBusy` comme raison générique. Une raison/presentation dédiée relève de MON16.6.
+MON16.5 conserve provisoirement `PartyBusy` comme raison publique générique de rejet ; la présentation dédiée relève de MON16.6.
 
 ### Monstres
 
-`StartActiveAction()` refuse uniquement :
+`StartActiveAction()` refuse uniquement les actions :
 
 ```text
 EGridCombatActionType::Move
 ```
-
-si `bBlockTranslation` est actif.
 
 Restent possibles :
 
@@ -148,18 +134,18 @@ MeleeAttack
 Wait
 ```
 
-Le planner existant n'est pas remplacé. Si un déplacement déjà planifié est refusé, le pipeline d'échec d'action du TurnManager termine ou poursuit le tour selon ses règles existantes.
+Le planner existant est conservé.
 
 ## 5. Coexistence avec MON16.2 / MON16.3 / MON16.4
 
-MON16.5 n'ajoute aucune horloge.
+MON16.5 n'ajoute aucune horloge ni système parallèle :
 
-- MON16.2 reste l'autorité des durées Turns/Rounds/Permanent ;
-- MON16.3 reste l'autorité des DoT ;
-- MON16.4 reste l'autorité Haste/Slow via `InitiativeModifier` ;
+- MON16.2 reste l'autorité des durées `Turns/Rounds/Permanent` ;
+- MON16.3 reste l'autorité des dégâts périodiques ;
+- MON16.4 reste l'autorité des modificateurs d'initiative ;
 - MON16.5 ajoute seulement les restrictions de contrôle.
 
-Un même effet peut donc, si le design le souhaite, combiner dégâts périodiques, initiative et restrictions de contrôle sans créer de système parallèle.
+Un même effet peut donc combiner dégâts périodiques, initiative et restrictions de contrôle.
 
 ## 6. Hors périmètre
 
@@ -167,11 +153,11 @@ MON16.5 n'ajoute pas :
 
 - d'icône de statut ;
 - de widget/HUD/WBP ;
-- de nouveau message de feedback visuel final ;
+- de feedback visuel final ;
 - de résistance/immunité au contrôle ;
 - de jet de sauvegarde ;
 - de dispel/cleanse ;
-- d'application automatique de Stun/Silence/Immobilize par une attaque ou un sort ;
+- d'application automatique par attaque ou sort ;
 - de persistance des statuts ;
 - de `.uasset` ou `.umap`.
 
@@ -202,7 +188,7 @@ Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerPlayerActionCatal
 
 Aucun `.uasset`, `.umap`, WBP, Build.cs ou SaveGame.
 
-## 8. Automation
+## 8. Validation
 
 Namespace :
 
@@ -210,7 +196,7 @@ Namespace :
 Grimrock.RPG.MON16.5
 ```
 
-Tests :
+Tests MON16.5 :
 
 ```text
 ControlAggregation
@@ -226,19 +212,47 @@ TargetParity
 NoParallelSystem
 ```
 
-Attendu : **11/11 Success**.
+### Campagne globale initiale
 
-Régressions après succès ciblé :
+La campagne complète exécutée par l'utilisateur a donné :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.4
-Automation RunTests Grimrock.RPG.MON16.3
-Automation RunTests Grimrock.RPG.MON16.2
-Automation RunTests Grimrock.RPG.MON16.1
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
+145 tests exécutés
+143 Success
+2 Fail
 ```
 
-MON16.5 sera déclaré **VALIDÉ ET CLOS** uniquement après compilation/chargement UE5.5.4 et succès des tests sur logs utilisateur.
+Les deux seuls échecs étaient MON16.5 :
 
-Prochaine étape après clôture : **MON16.6 — HUD / Combat Feedback des status effects**.
+```text
+PartyImmobilizeRotation
+SilenceCatalogIsolation
+```
+
+L'analyse a montré un défaut de fixture : la grille logique du pawn était configurée sans synchroniser sa transform, ce qui provoquait `PartyBusy` avant l'évaluation réelle des règles MON16.5.
+
+La fixture a été corrigée avec `Party->SnapToCurrentCell()` et les assertions Silence ont été renforcées afin de vérifier le rejet réel `MissingRequirement` / `ActionUnavailable`.
+
+### Rerun ciblé final — 17 août 2026
+
+```text
+Automation RunTests Grimrock.RPG.MON16.5
+11/11 Success
+0 Fail
+```
+
+Points explicitement confirmés par le log final :
+
+- `PartyImmobilizeRotation` : rotation acceptée ;
+- `PartyImmobilizeTranslation` : translation bloquée avant dépense ;
+- `SilenceCatalogIsolation` : Success ;
+- `SilenceRequestAtomic` : rejet par `MissingRequirement`, donc par Silence et non par `PartyBusy` ;
+- les 11 tests MON16.5 sont Success.
+
+Comme les 134 autres tests de la campagne globale étaient déjà Success et que la correction finale ne touche que la fixture de test MON16.5, aucune nouvelle régression n'est introduite par cette correction.
+
+## 9. Clôture
+
+**MON16.5 est VALIDÉ ET CLOS au 17 août 2026.**
+
+Prochaine étape : **MON16.6 — HUD / Combat Feedback des status effects**.
