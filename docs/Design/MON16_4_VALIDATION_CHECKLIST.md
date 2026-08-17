@@ -3,15 +3,20 @@
 ## État
 
 ```text
-Implémentation C++ : préparée
-Documentation      : préparée
-Compilation UE5    : EN ATTENTE
-Automation MON16.4 : EN ATTENTE
-Régressions        : EN ATTENTE
-Clôture            : NON
+Implémentation C++ : VALIDÉE
+Documentation      : VALIDÉE
+Compilation UE5    : VALIDÉE après correctif include UE5.5.4
+Automation MON16.4 : 11/11 SUCCESS
+Régressions        : VALIDÉES
+Campagne complète  : 134/134 SUCCESS
+Clôture            : OUI — 17 août 2026
 ```
 
 Base : `e8ffd4308fe5dc20f2393dc9e1e027b78aaa8eda`.
+
+Implémentation : `b926dc584a1f38ca0aed3d4a53cd8c2b79ca23e5`.
+
+Correctif compilation UE5.5.4 : `53d86f47cbbb0440f4807e434fe9aaf593a70112`.
 
 ## Architecture
 
@@ -67,52 +72,79 @@ Base : `e8ffd4308fe5dc20f2393dc9e1e027b78aaa8eda`.
 
 ## Compilation UE5.5.4
 
-Attendu : 0 erreur C++, UHT ou link.
+Le premier build a échoué uniquement sur :
 
-- [ ] compilation / chargement confirmé par log utilisateur
+```text
+fatal error C1083: 'Misc/GuardValue.h': No such file or directory
+```
+
+Correction appliquée :
+
+```text
+#include "Templates/UnrealTemplate.h"
+```
+
+- [x] correctif poussé sur `master`
+- [x] le nouveau code MON16.4 est compilé/chargé, confirmé par l'exécution des tests MON16.4
 
 ## Automation ciblée
 
-Exécuter :
+Namespace :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.4
+Grimrock.RPG.MON16.4
 ```
 
-- [ ] `AggregateModifier` — Success
-- [ ] `StackScalingAndSaturation` — Success
-- [ ] `TurnOrderBroadcastProjection` — Success
-- [ ] `FutureHasteReorder` — Success
-- [ ] `FutureSlowReorder` — Success
-- [ ] `ActiveCombatantStability` — Success
-- [ ] `TurnExpiration` — Success
-- [ ] `RoundExpiration` — Success
-- [ ] `MonsterParity` — Success
-- [ ] `ReapplicationUpdatesModifier` — Success
-- [ ] `NoParallelSystem` — Success
+- [x] `AggregateModifier` — Success
+- [x] `StackScalingAndSaturation` — Success
+- [x] `TurnOrderBroadcastProjection` — Success
+- [x] `FutureHasteReorder` — Success
+- [x] `FutureSlowReorder` — Success
+- [x] `ActiveCombatantStability` — Success
+- [x] `TurnExpiration` — Success
+- [x] `RoundExpiration` — Success
+- [x] `MonsterParity` — Success
+- [x] `ReapplicationUpdatesModifier` — Success
+- [x] `NoParallelSystem` — Success
 
-Attendu : **11/11 Success**.
+Bilan : **11/11 Success**.
+
+## Vérifications runtime observées
+
+- [x] Haste futur : `0 -> +12`, `EffectiveTotal=22`
+- [x] Slow futur : `0 -> -15`, `EffectiveTotal=5`
+- [x] actif stable avec `+100`
+- [x] réapplication : `+4 -> +8`
+- [x] expiration round : `+12 -> 0`
+- [x] expiration turn : `+9 -> 0`
+- [x] parité monstre : `0 -> -10`, `EffectiveTotal=5`
 
 ## Régressions minimales
 
-Après MON16.4 vert :
+- [x] MON16.3 : 11/11 Success
+- [x] MON16.2 : 10/10 Success
+- [x] MON16.1 : 7/7 Success
+- [x] MON15 : 42/42 Success
+- [x] MON14 : 19/19 Success
+
+## Campagne complète fournie
+
+Analyse du log utilisateur :
 
 ```text
-Automation RunTests Grimrock.RPG.MON16.3
-Automation RunTests Grimrock.RPG.MON16.2
-Automation RunTests Grimrock.RPG.MON16.1
-Automation RunTests Grimrock.RPG.MON15
-Automation RunTests Grimrock.Monsters.MON14
+Tests terminés : 134
+Success         : 134
+Fail            : 0
+Error Automation: 0
 ```
 
-- [ ] MON16.3 : 11/11 Success
-- [ ] MON16.2 : 10/10 Success
-- [ ] MON16.1 : 7/7 Success
-- [ ] MON15 : 42/42 Success
-- [ ] MON14 : 19/19 Success
+- [x] aucune régression Automation détectée dans la campagne complète
+- [x] `Grimrock.Monsters.MON13.5.RealPIEIntegration` est également `Success`
 
 ## Clôture
 
-MON16.4 pourra être marqué **VALIDÉ ET CLOS** après chargement/compilation UE5.5.4, 11/11 MON16.4 et régressions appropriées sans échec sur les logs utilisateur.
+**MON16.4 — VALIDÉ ET CLOS le 17 août 2026.**
+
+Contrat gelé : Haste/Slow se projettent exclusivement dans `FGridCombatantInitiativeEntry::InitiativeModifier`, sans reroll, sans ordre parallèle et sans déplacement rétroactif de l'actif ou des tours déjà consommés.
 
 Prochaine étape : `MON16.5 — Stun / Silence / Immobilize`.
