@@ -15,10 +15,10 @@ namespace
     {
         UGridMonsterDefinitionAsset* Definition =
             NewObject<UGridMonsterDefinitionAsset> (Outer);
-        Definition->MonsterId = TEXT ("MON_GoblinArcher");
-        Definition->DisplayName = FText::FromString (TEXT ("Gobelin Archer"));
+        Definition->MonsterId = TEXT ("MON_GoblinThrower");
+        Definition->DisplayName = FText::FromString (TEXT ("Gobelin lanceur"));
         Definition->CategoryId = TEXT ("Goblin");
-        Definition->DangerLevel = 2;
+        Definition->DangerLevel = 3;
         Definition->MaxHealth = 10;
         Definition->Initiative = 12;
         Definition->Accuracy = 2;
@@ -30,20 +30,20 @@ namespace
         Definition->PreferredMaxDistance = 5;
         Definition->ExperienceReward = 125;
 
-        FGridMonsterAttackDefinition Shortbow;
-        Shortbow.AttackId = TEXT ("Attack_Shortbow");
-        Shortbow.DisplayName = FText::FromString (TEXT ("Shortbow"));
-        Shortbow.DamageType = EGridDamageType::Physical;
-        Shortbow.MinDamage = 2;
-        Shortbow.MaxDamage = 5;
-        Shortbow.MinRangeCells = 2;
-        Shortbow.RangeCells = 6;
-        Shortbow.Delivery = EGridMonsterAttackDelivery::Projectile;
-        Shortbow.bRequiresLineOfSight = true;
-        Shortbow.ActionPointCost = 2;
-        Shortbow.CooldownTurns = 0;
-        Shortbow.Priority = 100;
-        Definition->Attacks.Add (Shortbow);
+        FGridMonsterAttackDefinition ThrowKnife;
+        ThrowKnife.AttackId = TEXT ("Attack_ThrowKnife");
+        ThrowKnife.DisplayName = FText::FromString (TEXT ("Couteau lancé"));
+        ThrowKnife.DamageType = EGridDamageType::Physical;
+        ThrowKnife.MinDamage = 2;
+        ThrowKnife.MaxDamage = 5;
+        ThrowKnife.MinRangeCells = 2;
+        ThrowKnife.RangeCells = 6;
+        ThrowKnife.Delivery = EGridMonsterAttackDelivery::Projectile;
+        ThrowKnife.bRequiresLineOfSight = true;
+        ThrowKnife.ActionPointCost = 2;
+        ThrowKnife.CooldownTurns = 0;
+        ThrowKnife.Priority = 100;
+        Definition->Attacks.Add (ThrowKnife);
 
         return Definition;
     }
@@ -129,9 +129,9 @@ bool FGridMonsterMON171GoblinDefinitionTest::RunTest (
     UGridMonsterDefinitionAsset* Definition =
         MakeMON171GoblinDefinition (GetTransientPackage ());
     FString Error;
-    TestTrue (TEXT ("Goblin Archer definition validates without monster-id special cases"),
+    TestTrue (TEXT ("Goblin Thrower definition validates without monster-id special cases"),
         Definition->ValidateDefinition (Error));
-    TestTrue (TEXT ("Goblin Archer uses the existing RangedKeeper profile"),
+    TestTrue (TEXT ("Goblin Thrower uses the existing RangedKeeper profile"),
         Definition->HasAIProfile (EGridMonsterAIProfile::RangedKeeper));
     TestEqual (TEXT ("Preferred minimum distance remains data-driven"),
         Definition->PreferredMinDistance,
@@ -149,7 +149,7 @@ bool FGridMonsterMON171GoblinDefinitionTest::RunTest (
         FPrimaryAssetType (TEXT ("GridMonster")));
     TestEqual (TEXT ("Monster primary asset name uses MonsterId"),
         PrimaryId.PrimaryAssetName,
-        FName (TEXT ("MON_GoblinArcher")));
+        FName (TEXT ("MON_GoblinThrower")));
 
     TestEqual (TEXT ("Goblin has one authored attack in MON17.1 fixture"),
         Definition->Attacks.Num (),
@@ -164,6 +164,9 @@ bool FGridMonsterMON171GoblinDefinitionTest::RunTest (
             Attack.bRequiresLineOfSight);
         TestFalse (TEXT ("Goblin projectile cannot attack adjacent targets"),
             Attack.SupportsDistance (1));
+        TestEqual (TEXT ("Goblin fixture uses the ArtBook-aligned thrown-knife attack"),
+            Attack.AttackId,
+            FName (TEXT ("Attack_ThrowKnife")));
     }
     return true;
 }
@@ -185,21 +188,21 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest (
 
     UGridObjectArchetypeAsset* Archetype =
         NewObject<UGridObjectArchetypeAsset> (Level);
-    Archetype->ArchetypeId = TEXT ("Monster_GoblinArcher");
-    Archetype->DisplayName = FText::FromString (TEXT ("Gobelin Archer"));
+    Archetype->ArchetypeId = TEXT ("Monster_GoblinThrower");
+    Archetype->DisplayName = FText::FromString (TEXT ("Gobelin lanceur"));
     Archetype->SupportedType = EGridLevelObjectType::MonsterSpawn;
     Archetype->PlacementKind = EGridObjectPlacementKind::Center;
 
     UGridObjectPaletteAsset* Palette =
         NewObject<UGridObjectPaletteAsset> (Level);
     FGridObjectPaletteEntry Entry;
-    Entry.EntryId = TEXT ("MON_GoblinArcher");
+    Entry.EntryId = TEXT ("MON_GoblinThrower");
     Entry.DefaultArchetype = Archetype;
     Entry.DefaultMonsterDefinition = Definition;
     Palette->Entries.Add (Entry);
 
     TArray<FGridArchetypeValidationMessage> PaletteMessages;
-    TestTrue (TEXT ("Goblin Archer enters the existing MonsterSpawn palette contract"),
+    TestTrue (TEXT ("Goblin Thrower enters the existing MonsterSpawn palette contract"),
         Palette->ValidatePalette (PaletteMessages));
 
     FGridLevelObjectData Spawn;
@@ -217,11 +220,11 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest (
     const FGuid SpawnId = Level->AddObject (Spawn);
     const FGridLevelObjectData* StoredSpawn =
         Level->FindMonsterSpawnById (SpawnId);
-    TestNotNull (TEXT ("Goblin Archer placement is stored as a generic MonsterSpawn"),
+    TestNotNull (TEXT ("Goblin Thrower placement is stored as a generic MonsterSpawn"),
         StoredSpawn);
 
     TArray<FString> SpawnErrors;
-    TestTrue (TEXT ("Goblin Archer MonsterSpawn validates"),
+    TestTrue (TEXT ("Goblin Thrower MonsterSpawn validates"),
         Level->ValidateMonsterSpawns (SpawnErrors));
 
     FGridRuntimeMonsterState RuntimeState;
@@ -243,7 +246,7 @@ bool FGridMonsterMON171SpawnPersistenceContractTest::RunTest (
 
     TestEqual (TEXT ("Persistent runtime state keeps the second monster definition id"),
         PlacementState.MonsterState.MonsterDefinitionId,
-        FName (TEXT ("MON_GoblinArcher")));
+        FName (TEXT ("MON_GoblinThrower")));
     TestEqual (TEXT ("Persistent runtime state keeps the MonsterSpawn id"),
         PlacementState.MonsterState.SpawnObjectId,
         SpawnId);

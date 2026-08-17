@@ -29,7 +29,7 @@ docs/Design/MON15_CLOSURE.md
 docs/Design/MON16_CLOSURE.md
 ```
 
-Le prochain besoin structurant est de prouver que l'architecture monstre MON1–MON16 n'est pas spécifique au Rat Géant en intégrant une seconde famille tactiquement distincte : le **Gobelin Archer** (`RangedKeeper`).
+Le prochain besoin structurant est de prouver que l'architecture monstre MON1–MON16 n'est pas spécifique au Rat Géant en intégrant une seconde famille tactiquement distincte : le **Gobelin lanceur** (`MON_GoblinThrower`, `RangedKeeper`), conformément au Bestiaire des Profondeurs — Volume II.
 
 ---
 
@@ -125,9 +125,12 @@ Prouver que l'architecture MON1–MON16 n'est pas spécifique au Rat Géant.
 Seconde famille retenue :
 
 ```text
-Gobelin Archer
+Gobelin lanceur
+MonsterId = MON_GoblinThrower
 PrimaryAIProfile = RangedKeeper
 ```
+
+Cette créature est déjà décrite dans `docs/ArtBook/Bestiaire_des_Profondeurs_Volume_II_Les_Salles_Interdites.md` comme un ennemi « Projectile / harcèlement », utilisant couteaux, pierres ou fioles acides. MON17 prend `RangedKeeper` comme profil runtime autoritaire ; l'intention ArtBook `FleeAndCallHelp` ne doit pas provoquer la création prématurée d'une seconde IA parallèle.
 
 Comportement cible : perception -> recherche d'une distance favorable -> orientation vers le groupe -> attaque à distance si LOS valide -> repositionnement lorsque le groupe devient trop proche.
 
@@ -150,7 +153,7 @@ MON17.1 doit réutiliser `GridMonsterDefinitionAsset`, la palette/éditeur, `Mon
 Référence MON17.1 :
 
 ```text
-docs/Design/MON17_1_GOBLIN_ARCHER_DEFINITION_SPAWN_CONTRACT.md
+docs/Design/MON17_1_GOBLIN_THROWER_DEFINITION_SPAWN_CONTRACT.md
 ```
 
 ---
@@ -300,5 +303,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.1 — Definition / Assets / Spawn Contract — Gobelin Archer
+MON17.1 — Definition / Assets / Spawn Contract — Gobelin lanceur
 ```
