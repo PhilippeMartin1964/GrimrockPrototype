@@ -1,6 +1,6 @@
 # MON17.2 — Gobelin lanceur — Skeletal Mesh / Skeleton / AnimBP
 
-Statut : **EN COURS — contrat C++ posé, assets UE5.5.4 à intégrer et valider**  
+Statut : **EN COURS — contrat C++ validé 1/1, assets UE5.5.4 à intégrer et valider**  
 Référence MON17.1 validée : `2e00f67accbdb01763cb1a3a5a5771350c3884a2`
 
 ## 1. Objectif
@@ -222,6 +222,16 @@ Le premier test `PresentationBridgeContract` utilise les assets Rat Géant déj�
 - `IAnimClassInterface` disponible ;
 - Skeleton cible de l'AnimBP non nul ;
 - compatibilité entre Skeleton du mesh et Skeleton de l'AnimBP.
+
+### Validation UE5.5.4 — 18 août 2026
+
+Résultat fourni après compilation locale :
+
+```text
+Grimrock.Monsters.MON17.2.PresentationBridgeContract  Success
+```
+
+Bilan automatisé MON17.2 actuel : **1/1 Success**.
 
 Ce test protège le **contrat générique**. Un test strict sur les assets Gobelin sera ajouté/activé lorsque les `.uasset` Gobelin auront réellement été créés et versionnés ; MON17.2 ne simule pas des assets binaires inexistants.
 
