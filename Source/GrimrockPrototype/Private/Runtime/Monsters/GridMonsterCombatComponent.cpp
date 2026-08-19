@@ -2,14 +2,137 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Runtime/Combat/GridCombatProjectileActor.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterCombat, Log, All);
+
+namespace
+{
+    FVector ResolveProjectileSourceWorldLocation (
+        const AGridMonsterActor* Monster)
+    {
+        if (IsValid (Monster) &&
+            IsValid (Monster->SkeletalMeshComponent) &&
+            Monster->SkeletalMeshComponent->IsRegistered ())
+        {
+            return Monster->SkeletalMeshComponent->Bounds.Origin;
+        }
+
+        return IsValid (Monster)
+            ? Monster->GetActorLocation ()
+            : FVector::ZeroVector;
+    }
+
+    void LaunchMonsterProjectilePresentation (
+        TWeakObjectPtr<UGridMonsterCombatComponent> WeakCombatComponent,
+        TWeakObjectPtr<AGridMonsterActor> WeakMonster,
+        TWeakObjectPtr<AGrimrockPartyPawn> WeakPartyPawn,
+        TSoftObjectPtr<UStaticMesh> ProjectileVisualMesh,
+        FVector ProjectileVisualScale,
+        FRotator ProjectileRotationOffset,
+        float ProjectileTravelDuration,
+        FName AttackId)
+    {
+        UGridMonsterCombatComponent* CombatComponent =
+            WeakCombatComponent.Get ();
+        AGridMonsterActor* Monster = WeakMonster.Get ();
+        AGrimrockPartyPawn* PartyPawn = WeakPartyPawn.Get ();
+        if (!IsValid (CombatComponent) ||
+            !CombatComponent->bAttackPresentationActive ||
+            CombatComponent->LastAttackId != AttackId ||
+            !IsValid (Monster) ||
+            Monster->IsDead () ||
+            !IsValid (PartyPawn))
+        {
+            return;
+        }
+
+        UStaticMesh* ProjectileMesh = ProjectileVisualMesh.LoadSynchronous ();
+        if (!IsValid (ProjectileMesh))
+        {
+            UE_LOG (
+                LogGridMonsterCombat,
+                Warning,
+                TEXT ("[GridMonsterProjectile] Presentation skipped Monster=%s Attack=%s Reason=MissingProjectileVisualMesh"),
+                *GetNameSafe (Monster),
+                *AttackId.ToString ());
+            return;
+        }
+
+        UWorld* World = Monster->GetWorld ();
+        if (!IsValid (World))
+        {
+            return;
+        }
+
+        const FVector SourceWorldLocation =
+            ResolveProjectileSourceWorldLocation (Monster);
+        const FVector TargetWorldLocation = PartyPawn->GetActorLocation ();
+
+        FActorSpawnParameters SpawnParameters;
+        SpawnParameters.Owner = Monster;
+        SpawnParameters.SpawnCollisionHandlingOverride =
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+        AGridCombatProjectileActor* Projectile =
+            World->SpawnActor<AGridCombatProjectileActor> (
+                AGridCombatProjectileActor::StaticClass (),
+                SourceWorldLocation,
+                FRotator::ZeroRotator,
+                SpawnParameters);
+        if (!IsValid (Projectile))
+        {
+            UE_LOG (
+                LogGridMonsterCombat,
+                Warning,
+                TEXT ("[GridMonsterProjectile] Presentation skipped Monster=%s Attack=%s Reason=SpawnFailed"),
+                *GetNameSafe (Monster),
+                *AttackId.ToString ());
+            return;
+        }
+
+        if (!Projectile->InitializeProjectilePresentation (
+            ProjectileMesh,
+            SourceWorldLocation,
+            TargetWorldLocation,
+            ProjectileTravelDuration,
+            ProjectileVisualScale,
+            ProjectileRotationOffset))
+        {
+            Projectile->Destroy ();
+            UE_LOG (
+                LogGridMonsterCombat,
+                Warning,
+                TEXT ("[GridMonsterProjectile] Presentation skipped Monster=%s Attack=%s Reason=InitializationFailed"),
+                *GetNameSafe (Monster),
+                *AttackId.ToString ());
+            return;
+        }
+
+        UE_LOG (
+            LogGridMonsterCombat,
+            Log,
+            TEXT ("[GridMonsterProjectile] Launched Monster=%s Attack=%s Travel=%.3f Source=(%.1f,%.1f,%.1f) Target=(%.1f,%.1f,%.1f)"),
+            *GetNameSafe (Monster),
+            *AttackId.ToString (),
+            ProjectileTravelDuration,
+            SourceWorldLocation.X,
+            SourceWorldLocation.Y,
+            SourceWorldLocation.Z,
+            TargetWorldLocation.X,
+            TargetWorldLocation.Y,
+            TargetWorldLocation.Z);
+    }
+}
 
 UGridMonsterCombatComponent::UGridMonsterCombatComponent ()
 {
@@ -243,6 +366,62 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
     if (Montage && AnimInstance)
     {
         AnimInstance->Montage_Play (Montage, 1.0f);
+    }
+
+    if (Action.Type == EGridCombatActionType::RangedAttack &&
+        Attack.Delivery == EGridMonsterAttackDelivery::Projectile &&
+        !Attack.ProjectileVisualMesh.IsNull ())
+    {
+        const float LaunchDelay =
+            AGridCombatProjectileActor::CalculateLaunchDelay (
+                Attack.ImpactTimeSeconds,
+                Attack.ProjectileTravelDuration);
+
+        const TWeakObjectPtr<UGridMonsterCombatComponent> WeakCombatComponent (this);
+        const TWeakObjectPtr<AGridMonsterActor> WeakMonster (OwnerMonster);
+        const TWeakObjectPtr<AGrimrockPartyPawn> WeakPartyPawn (PartyPawn);
+        const TSoftObjectPtr<UStaticMesh> ProjectileVisualMesh =
+            Attack.ProjectileVisualMesh;
+        const FVector ProjectileVisualScale = Attack.ProjectileVisualScale;
+        const FRotator ProjectileRotationOffset = Attack.ProjectileRotationOffset;
+        const float ProjectileTravelDuration = Attack.ProjectileTravelDuration;
+        const FName ProjectileAttackId = Attack.AttackId;
+
+        FTimerDelegate LaunchDelegate;
+        LaunchDelegate.BindLambda (
+            [WeakCombatComponent,
+             WeakMonster,
+             WeakPartyPawn,
+             ProjectileVisualMesh,
+             ProjectileVisualScale,
+             ProjectileRotationOffset,
+             ProjectileTravelDuration,
+             ProjectileAttackId] ()
+            {
+                LaunchMonsterProjectilePresentation (
+                    WeakCombatComponent,
+                    WeakMonster,
+                    WeakPartyPawn,
+                    ProjectileVisualMesh,
+                    ProjectileVisualScale,
+                    ProjectileRotationOffset,
+                    ProjectileTravelDuration,
+                    ProjectileAttackId);
+            });
+
+        if (LaunchDelay <= KINDA_SMALL_NUMBER)
+        {
+            LaunchDelegate.ExecuteIfBound ();
+        }
+        else if (UWorld* World = GetWorld ())
+        {
+            FTimerHandle TimerHandle;
+            World->GetTimerManager ().SetTimer (
+                TimerHandle,
+                LaunchDelegate,
+                LaunchDelay,
+                false);
+        }
     }
 
     return true;

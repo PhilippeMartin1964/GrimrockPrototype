@@ -2,6 +2,7 @@
 
 #include "Misc/AutomationTest.h"
 #include "Runtime/Combat/GridCombatProjectileActor.h"
+#include "Runtime/Monsters/GridMonsterTypes.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMonsterMON1732ProjectileTimingTest,
@@ -83,6 +84,51 @@ bool FGridMonsterMON1732ProjectileTrajectoryTest::RunTest (const FString& Parame
             Target,
             3.0f),
         Target);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON1732ProjectileVisualOptionalityTest,
+    "Grimrock.Monsters.MON17.3.2.ProjectileVisualOptionality",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON1732ProjectileVisualOptionalityTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    FGridMonsterAttackDefinition Attack;
+    Attack.AttackId = TEXT ("Attack_TestProjectile");
+    Attack.MinDamage = 2;
+    Attack.MaxDamage = 5;
+    Attack.MinRangeCells = 2;
+    Attack.RangeCells = 6;
+    Attack.Delivery = EGridMonsterAttackDelivery::Projectile;
+    Attack.bRequiresLineOfSight = true;
+    Attack.ActionPointCost = 2;
+    Attack.ExpectedDuration = 0.55f;
+    Attack.ImpactTimeSeconds = 0.25f;
+    Attack.ProjectileTravelDuration = 0.20f;
+    Attack.ProjectileVisualMesh.Reset ();
+
+    FString ValidationError;
+    TestTrue (
+        TEXT ("A projectile attack remains a valid gameplay definition without a presentation mesh"),
+        Attack.ValidateDefinition (ValidationError));
+    TestTrue (
+        TEXT ("The presentation mesh is explicitly optional"),
+        Attack.ProjectileVisualMesh.IsNull ());
+    TestTrue (
+        TEXT ("The attack remains classified as ranged"),
+        Attack.IsRangedAttack ());
+
+    if (!ValidationError.IsEmpty ())
+    {
+        AddInfo (FString::Printf (
+            TEXT ("Validation detail: %s"),
+            *ValidationError));
+    }
 
     return true;
 }
