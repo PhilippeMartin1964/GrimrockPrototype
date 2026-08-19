@@ -1,6 +1,6 @@
 # MON17.3.3 — Gobelin lanceur — Présentation de lancer
 
-Statut : **EN COURS — contrat socket/source C++ posé, compilation et validation UE5.5.4 à faire**
+Statut : **EN COURS — contrat socket/source C++ validé 1/1 sous UE5.5.4, validation PIE du socket de main restante**
 
 ## Objectif
 
@@ -62,7 +62,7 @@ Le gameplay reste inchangé : le socket n'intervient jamais dans portée, LOS, H
 
 ## Test automatisé
 
-Nouveau filtre :
+Filtre :
 
 ```text
 Grimrock.Monsters.MON17.3.3
@@ -81,15 +81,21 @@ Il vérifie :
 - acceptation d'un socket et d'un offset finis ;
 - rejet d'un offset non fini.
 
-Résultat : **à valider localement sous UE5.5.4**.
+### Validation locale UE5.5.4
 
-## Étape UE5.5.4 après validation C++
+Exécution fournie par l'utilisateur le 19 août 2026 : **1/1 Success**.
 
-Une fois le test vert :
+```text
+ProjectileSourceContract  Success
+```
+
+Le contrat C++ MON17.3.3 est donc validé sous UE5.5.4.
+
+## Étape UE5.5.4 — validation visuelle du socket
 
 1. ouvrir `SKEL_GoblinThrower` ou `SK_GoblinThrower` ;
 2. identifier le bone de la main qui réalise le lancer ;
-3. créer un socket nommé par exemple :
+3. créer un socket nommé :
 
 ```text
 ProjectileSource
@@ -104,7 +110,10 @@ Projectile Source Offset      = (0,0,0) au départ
 ```
 
 6. conserver temporairement `SM_Bomb` si nécessaire pour valider visuellement la nouvelle origine ;
-7. vérifier dans le log que `SourceSocket=ProjectileSource` apparaît et que les coordonnées source ont changé par rapport au centre des bounds.
+7. vérifier dans le log que `SourceSocket=ProjectileSource` apparaît et que les coordonnées source ont changé par rapport au centre des bounds ;
+8. confirmer visuellement que le projectile part de la main et non du centre du Gobelin.
+
+MON17.3.3 ne sera clos qu'après cette validation PIE et, si nécessaire, l'ajustement du socket/offset.
 
 ## Animation / montage
 
