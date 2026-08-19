@@ -46,6 +46,12 @@ namespace
         return TEXT ("Unknown");
     }
 
+    bool IsMonsterAttackAction (EGridCombatActionType Type)
+    {
+        return Type == EGridCombatActionType::MeleeAttack ||
+            Type == EGridCombatActionType::RangedAttack;
+    }
+
     bool HasStableMonsterId (const AGridMonsterActor* Monster)
     {
         if (IsValid (Monster) &&
@@ -137,7 +143,7 @@ void UGridTurnManagerComponent::TickComponent (
         }
     }
 
-    if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::MeleeAttack)
+    if (bHasActiveAction && IsMonsterAttackAction (ActiveAction.Type))
     {
         if (!bActiveAttackImpactCommitted && ActiveAttackImpactTimeRemaining > 0.0f)
         {
@@ -170,7 +176,7 @@ void UGridTurnManagerComponent::TickComponent (
                 ActiveAction.TargetCell.X,
                 ActiveAction.TargetCell.Y);
 
-            if (ActiveAction.Type == EGridCombatActionType::MeleeAttack)
+            if (IsMonsterAttackAction (ActiveAction.Type))
             {
                 CommitActiveAttackImpact ();
                 if (CurrentCombatComponent)

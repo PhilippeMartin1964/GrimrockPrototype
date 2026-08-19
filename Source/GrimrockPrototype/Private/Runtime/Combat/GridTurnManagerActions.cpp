@@ -11,6 +11,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
+#include "Runtime/Monsters/GridMonsterRangedAttackPlanner.h"
 
 namespace
 {
@@ -21,6 +22,12 @@ namespace
             return Enum->GetNameStringByValue (static_cast<int64> (Type));
         }
         return TEXT ("Unknown");
+    }
+
+    bool IsMonsterAttackAction (EGridCombatActionType Type)
+    {
+        return Type == EGridCombatActionType::MeleeAttack ||
+            Type == EGridCombatActionType::RangedAttack;
     }
 }
 
@@ -97,8 +104,10 @@ bool UGridTurnManagerComponent::StartActiveAction (const FGridCombatAction& Acti
         return true;
     }
 
-    if (Action.Type == EGridCombatActionType::MeleeAttack)
+    if (IsMonsterAttackAction (Action.Type))
     {
+        // Kept under its historical name for ABI/source compatibility. The
+        // implementation now executes both MeleeAttack and RangedAttack.
         return StartActiveMeleeAttack ();
     }
 
@@ -153,7 +162,17 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack ()
     if (!IsValid (CurrentMonster) ||
         !IsValid (CurrentMonster->MonsterDefinition) ||
         !IsValid (CurrentCombatComponent) ||
-        !IsValid (RuntimeActor))
+        !IsValid (RuntimeActor) ||
+        !IsValid (PartyPawn))
+    {
+        return false;
+    }
+
+    const bool bMeleeAction =
+        ActiveAction.Type == EGridCombatActionType::MeleeAttack;
+    const bool bRangedAction =
+        ActiveAction.Type == EGridCombatActionType::RangedAttack;
+    if (!bMeleeAction && !bRangedAction)
     {
         return false;
     }
@@ -169,24 +188,119 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack ()
         return false;
     }
 
-    const EGridEdge AttackDirection =
-        FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
-            CurrentMonster->CurrentCell,
-            ActiveAction.TargetCell);
-    if (AttackDirection == EGridEdge::None ||
-        !RuntimeActor->CanMove (
-            CurrentMonster->CurrentCell.X,
-            CurrentMonster->CurrentCell.Y,
-            AttackDirection))
+    const FIntPoint PartyCell (
+        PartyPawn->CurrentCellX,
+        PartyPawn->CurrentCellY);
+    if (ActiveAction.TargetCell != PartyCell)
     {
         UE_LOG (LogGridTurnManager, Warning,
-            TEXT ("[GridTurnManager] Melee attack blocked by grid edge. Monster=%s From=(%d,%d) Target=(%d,%d)"),
+            TEXT ("[GridTurnManager] Monster attack target moved. Monster=%s Action=%s Planned=(%d,%d) Current=(%d,%d)"),
             *GetNameSafe (CurrentMonster),
-            CurrentMonster->CurrentCell.X,
-            CurrentMonster->CurrentCell.Y,
+            *GetTurnActionTypeText (ActiveAction.Type),
             ActiveAction.TargetCell.X,
-            ActiveAction.TargetCell.Y);
+            ActiveAction.TargetCell.Y,
+            PartyCell.X,
+            PartyCell.Y);
         return false;
+    }
+
+    const int32 AttackDistance =
+        FGridMonsterPathfinder::ManhattanDistance (
+            CurrentMonster->CurrentCell,
+            PartyCell);
+    if (!Attack->SupportsDistance (AttackDistance))
+    {
+        UE_LOG (LogGridTurnManager, Warning,
+            TEXT ("[GridTurnManager] Monster attack out of authored range. Monster=%s Attack=%s Distance=%d Range=%d..%d"),
+            *GetNameSafe (CurrentMonster),
+            *Attack->AttackId.ToString (),
+            AttackDistance,
+            Attack->MinRangeCells,
+            Attack->RangeCells);
+        return false;
+    }
+
+    if (bMeleeAction)
+    {
+        const EGridEdge AttackDirection =
+            FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                CurrentMonster->CurrentCell,
+                PartyCell);
+        if (AttackDirection == EGridEdge::None ||
+            !RuntimeActor->CanMove (
+                CurrentMonster->CurrentCell.X,
+                CurrentMonster->CurrentCell.Y,
+                AttackDirection))
+        {
+            UE_LOG (LogGridTurnManager, Warning,
+                TEXT ("[GridTurnManager] Melee attack blocked by grid edge. Monster=%s From=(%d,%d) Target=(%d,%d)"),
+                *GetNameSafe (CurrentMonster),
+                CurrentMonster->CurrentCell.X,
+                CurrentMonster->CurrentCell.Y,
+                PartyCell.X,
+                PartyCell.Y);
+            return false;
+        }
+    }
+    else
+    {
+        if (!Attack->IsRangedAttack ())
+        {
+            UE_LOG (LogGridTurnManager, Warning,
+                TEXT ("[GridTurnManager] Ranged action references non-ranged attack. Monster=%s Attack=%s"),
+                *GetNameSafe (CurrentMonster),
+                *Attack->AttackId.ToString ());
+            return false;
+        }
+
+        const EGridEdge AttackDirection =
+            FGridMonsterRangedAttackPlanner::GetAxialDirection (
+                CurrentMonster->CurrentCell,
+                PartyCell);
+        if (AttackDirection == EGridEdge::None ||
+            CurrentMonster->Facing != AttackDirection)
+        {
+            UE_LOG (LogGridTurnManager, Warning,
+                TEXT ("[GridTurnManager] Ranged attack requires axial facing. Monster=%s Attack=%s Facing=%s From=(%d,%d) Target=(%d,%d)"),
+                *GetNameSafe (CurrentMonster),
+                *Attack->AttackId.ToString (),
+                *UEnum::GetValueAsString (CurrentMonster->Facing),
+                CurrentMonster->CurrentCell.X,
+                CurrentMonster->CurrentCell.Y,
+                PartyCell.X,
+                PartyCell.Y);
+            return false;
+        }
+
+        if (Attack->bRequiresLineOfSight &&
+            !FGridMonsterPerception::HasStraightLineOfSight (
+                CurrentMonster->CurrentCell,
+                PartyCell,
+                Attack->RangeCells,
+                [this] (const FIntPoint& From, const FIntPoint& To)
+                {
+                    const EGridEdge Direction =
+                        FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                            From,
+                            To);
+                    return IsValid (RuntimeActor) &&
+                        Direction != EGridEdge::None &&
+                        RuntimeActor->CanMove (
+                            From.X,
+                            From.Y,
+                            Direction);
+                }))
+        {
+            UE_LOG (LogGridTurnManager, Warning,
+                TEXT ("[GridTurnManager] Ranged attack blocked by LOS. Monster=%s Attack=%s From=(%d,%d) Target=(%d,%d)"),
+                *GetNameSafe (CurrentMonster),
+                *Attack->AttackId.ToString (),
+                CurrentMonster->CurrentCell.X,
+                CurrentMonster->CurrentCell.Y,
+                PartyCell.X,
+                PartyCell.Y);
+            return false;
+        }
     }
 
     const int32 TargetCharacterIndex =
@@ -227,7 +341,7 @@ void UGridTurnManagerComponent::NotifyActiveAttackImpact ()
 
 void UGridTurnManagerComponent::NotifyActiveAttackComplete ()
 {
-    if (!bHasActiveAction || ActiveAction.Type != EGridCombatActionType::MeleeAttack)
+    if (!bHasActiveAction || !IsMonsterAttackAction (ActiveAction.Type))
     {
         return;
     }
@@ -243,7 +357,7 @@ void UGridTurnManagerComponent::NotifyActiveAttackComplete ()
 void UGridTurnManagerComponent::CommitActiveAttackImpact ()
 {
     if (!bHasActiveAction ||
-        ActiveAction.Type != EGridCombatActionType::MeleeAttack ||
+        !IsMonsterAttackAction (ActiveAction.Type) ||
         bActiveAttackImpactCommitted)
     {
         return;
@@ -429,7 +543,7 @@ void UGridTurnManagerComponent::CompleteActiveAction (bool bSucceeded)
         return;
     }
 
-    if (CompletedAction.Type == EGridCombatActionType::MeleeAttack)
+    if (IsMonsterAttackAction (CompletedAction.Type))
     {
         ResetActiveAttackState ();
         if (!HasLivingPartyCharacter ())
@@ -470,7 +584,7 @@ float UGridTurnManagerComponent::GetExpectedActionDuration (const FGridCombatAct
     {
         return FMath::Max (0.01f, CurrentMonster->MonsterDefinition->TurnDuration);
     }
-    if (Action.Type == EGridCombatActionType::MeleeAttack)
+    if (IsMonsterAttackAction (Action.Type))
     {
         if (ActiveAttackDefinition.IsValidDefinition ())
         {

@@ -13,6 +13,7 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
+#include "Runtime/Monsters/GridMonsterRangedAttackPlanner.h"
 
 namespace
 {
@@ -390,6 +391,85 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
 
     Behavior->RefreshPerception ();
     const bool bHasPartyPerception = Behavior->HasPartyPerception ();
+    const FIntPoint PartyCell = IsValid (PartyPawn)
+        ? FIntPoint (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY)
+        : FIntPoint::ZeroValue;
+    const bool bKnowsCurrentPartyCell =
+        IsValid (PartyPawn) &&
+        (bHasPartyPerception ||
+            (Behavior->bHasLastKnownPartyCell &&
+                Behavior->LastKnownPartyCell == PartyCell));
+    const bool bRangedKeeper =
+        IsValid (CurrentMonster->MonsterDefinition) &&
+        CurrentMonster->MonsterDefinition->HasAIProfile (
+            EGridMonsterAIProfile::RangedKeeper);
+
+    if (bKnowsCurrentPartyCell && IsValid (CurrentCombatComponent))
+    {
+        const int32 DistanceToParty =
+            FGridMonsterPathfinder::ManhattanDistance (
+                CurrentMonster->CurrentCell,
+                PartyCell);
+        FGridMonsterAttackDefinition RangedAttack;
+        if (CurrentCombatComponent->GetPreferredAttackForRange (
+                DistanceToParty,
+                RangedAttack) &&
+            RangedAttack.IsRangedAttack ())
+        {
+            bool bLineOfSightSatisfied = true;
+            if (RangedAttack.bRequiresLineOfSight)
+            {
+                bLineOfSightSatisfied =
+                    IsValid (RuntimeActor) &&
+                    FGridMonsterPerception::HasStraightLineOfSight (
+                        CurrentMonster->CurrentCell,
+                        PartyCell,
+                        RangedAttack.RangeCells,
+                        [this] (const FIntPoint& From, const FIntPoint& To)
+                        {
+                            const EGridEdge Direction =
+                                FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                                    From,
+                                    To);
+                            return IsValid (RuntimeActor) &&
+                                Direction != EGridEdge::None &&
+                                RuntimeActor->CanMove (
+                                    From.X,
+                                    From.Y,
+                                    Direction);
+                        });
+            }
+
+            if (FGridMonsterRangedAttackPlanner::BuildStationaryRangedTurn (
+                CurrentMonster->ResolvePersistenceId (),
+                CurrentMonster->CurrentCell,
+                CurrentMonster->Facing,
+                PartyCell,
+                CurrentMonsterRemainingActionPoints,
+                RangedAttack,
+                bLineOfSightSatisfied,
+                PendingActions))
+            {
+                return;
+            }
+        }
+    }
+
+    // MON17.3 deliberately does not invent a firing position. A RangedKeeper
+    // that cannot attack from its current cell waits until MON17.4 owns range
+    // seeking, retreat and kiting.
+    if (bRangedKeeper)
+    {
+        FGridMonsterTurnPlanner::BuildMovementTurn (
+            CurrentMonster->ResolvePersistenceId (),
+            CurrentMonster->CurrentCell,
+            CurrentMonster->Facing,
+            TArray<FIntPoint> (),
+            CurrentMonsterRemainingActionPoints,
+            PendingActions);
+        return;
+    }
+
     bool bFoundPath = false;
     if (bHasPartyPerception)
     {
@@ -416,7 +496,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
             CurrentMonster->ResolvePersistenceId (),
             CurrentMonster->CurrentCell,
             CurrentMonster->Facing,
-            FIntPoint (PartyPawn->CurrentCellX, PartyPawn->CurrentCellY),
+            PartyCell,
             PlannedPath,
             CurrentMonsterRemainingActionPoints,
             MeleeAttack.AttackId,
@@ -456,9 +536,6 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
             CurrentMovementComponent
                 ? CurrentMovementComponent->GetOccupancySubsystem ()
                 : nullptr;
-        const FIntPoint PartyCell (
-            PartyPawn->CurrentCellX,
-            PartyPawn->CurrentCellY);
         TArray<FGridRetreatCandidate> Candidates;
         BuildRetreatCandidates (
             RuntimeActor,
