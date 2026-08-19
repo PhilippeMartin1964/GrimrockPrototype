@@ -1,6 +1,6 @@
 # MON17.3.2 — Projectile de présentation générique
 
-Statut : **EN COURS — contrat 17.3.2a validé, branchement runtime 17.3.2b posé et à valider sous UE5.5.4**
+Statut : **C++ / AUTOMATION VALIDÉ 3/3 — validation visuelle PIE restante avant clôture**
 
 ## Objectif
 
@@ -80,14 +80,14 @@ Filtre :
 Grimrock.Monsters.MON17.3.2
 ```
 
-Résultat local UE5.5.4 du 19 août 2026 : **2/2 Success** sur le contrat initial.
+Le contrat initial valide :
 
 ```text
 ProjectileTiming      Success
 ProjectileTrajectory  Success
 ```
 
-Ces tests valident :
+Ces tests couvrent :
 
 - le calcul du délai de lancement ;
 - le lancement immédiat lorsque le temps de trajet dépasse le temps d'impact ;
@@ -133,15 +133,25 @@ ProjectileVisualMesh = None
 
 De même, un échec de chargement, de spawn ou d'initialisation du projectile ne fait pas échouer l'action de combat ; seul un warning de présentation est émis.
 
-Un troisième test est ajouté :
+Le test :
 
 ```text
 ProjectileVisualOptionality
 ```
 
-Il vérifie qu'une `FGridMonsterAttackDefinition` `Delivery=Projectile` reste valide et ranged sans mesh visuel.
+vérifie qu'une `FGridMonsterAttackDefinition` `Delivery=Projectile` reste valide et ranged sans mesh visuel.
 
-Résultat de ce troisième test : **à valider localement**.
+## Validation UE5.5.4
+
+Exécution locale du 19 août 2026 fournie par l'utilisateur : **3/3 Success**.
+
+```text
+ProjectileTiming             Success
+ProjectileTrajectory         Success
+ProjectileVisualOptionality  Success
+```
+
+Le code et les contrats automatisés de MON17.3.2 sont donc validés sous UE5.5.4.
 
 ## Relation avec MON11.4.1
 
@@ -155,9 +165,9 @@ résolution combat autoritaire
 trajectoire visuelle
 ```
 
-## Validation PIE attendue
+## Validation PIE restante
 
-Une fois un mesh temporaire ou final affecté à :
+Avant de clôturer MON17.3.2, renseigner un mesh temporaire ou final dans :
 
 ```text
 DA_MON_GoblinThrower
@@ -165,7 +175,7 @@ DA_MON_GoblinThrower
     ProjectileVisualMesh
 ```
 
-placer le Gobelin sur le même axe que le groupe, entre 2 et 6 cases, avec LOS ouverte.
+Puis placer le Gobelin sur le même axe que le groupe, entre 2 et 6 cases, avec LOS ouverte.
 
 Log attendu :
 
@@ -173,7 +183,13 @@ Log attendu :
 [GridMonsterProjectile] Launched Monster=... Attack=Attack_ThrowKnife Travel=...
 ```
 
-Le projectile doit être visible pendant son trajet, puis disparaître. La résolution de dégâts et la dépense de PA doivent rester identiques avec ou sans mesh projectile.
+Le projectile doit :
+
+- apparaître pendant le `RangedAttack` ;
+- parcourir visuellement la trajectoire vers le groupe ;
+- disparaître à l'arrivée ;
+- ne pas modifier Hit/Miss, dégâts ou dépense de PA ;
+- ne pas empêcher l'attaque si le mesh visuel est retiré.
 
 ## Hors périmètre
 
