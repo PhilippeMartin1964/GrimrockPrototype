@@ -1,62 +1,76 @@
 # MON17.2 — Gobelin lanceur — Skeletal Mesh / Skeleton / AnimBP
 
-Statut : **EN COURS — contrat C++ validé 1/1, assets UE5.5.4 à intégrer et valider**  
-Référence MON17.1 validée : `2e00f67accbdb01763cb1a3a5a5771350c3884a2`
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
+Référence MON17.1 : `2e00f67accbdb01763cb1a3a5a5771350c3884a2`  
+Correction générique d'orientation : `c8ebcb4ab850bf7be01e8c81203b56309c2fec3d`
 
-## 1. Objectif
+## 1. Objectif atteint
 
-MON17.2 donne au **Gobelin lanceur** (`MON_GoblinThrower`) sa représentation squelettique propre sans créer de pipeline visuel ou d'animation parallèle au Rat Géant.
+MON17.2 donne au **Gobelin lanceur** (`MON_GoblinThrower`) une représentation squelettique complète et fonctionnelle en réutilisant le pipeline monstre existant. Aucun Actor C++ spécifique au Gobelin et aucun second système d'animation n'ont été introduits.
 
-Le résultat attendu est :
+Le contrat de production validé est :
 
 ```text
 DA_MON_GoblinThrower
-    ├── MonsterActorClass -> BP_MON_GoblinThrower
-    ├── SkeletalMesh      -> SK_GoblinThrower
-    ├── AnimationClass    -> ABP_MON_GoblinThrower_C
-    ├── VisualScale
-    └── VisualOffset
+    ├── MonsterActorClass     -> BP_MON_GoblinThrower_C
+    ├── SkeletalMesh          -> SK_GoblinThrower
+    ├── AnimationClass        -> ABP_MON_GoblinThrower_C
+    ├── VisualScale           -> (1,1,1)
+    ├── VisualOffset          -> (0,0,0)
+    └── VisualRotationOffset  -> (Pitch=0, Yaw=-90, Roll=0)
              ↓
-AGridMonsterActor / BP_MON_GoblinThrower
+BP_MON_GoblinThrower / AGridMonsterActor
              ↓
 UGridMonsterAnimInstance
              ↓
-Skeleton compatible + AnimBP
+SKEL_GoblinThrower + ABP_MON_GoblinThrower
 ```
 
-L'attaque de couteau, son montage, le projectile et l'impact restent hors MON17.2 et appartiennent à MON17.3.
+L'attaque `Attack_ThrowKnife`, son exécution projectile et le maintien tactique de distance restent volontairement hors MON17.2.
 
-## 2. Audit du pipeline existant
+## 2. Assets de production validés
 
-Le pipeline visuel est déjà générique.
+Le Gobelin provient de l'asset tiers **CGTrader Goblin_Bomber**, fourni comme projet Unreal Engine 5.5 natif puis réorganisé sous le domaine du projet :
 
-`UGridMonsterDefinitionAsset` possède déjà :
+```text
+/Game/GrimrockPrototype/Monsters/GoblinThrower/
+├── Animation/
+│   ├── ABP_MON_GoblinThrower
+│   ├── A_GoblinThrower_Idle
+│   └── A_GoblinThrower_Walk
+├── Blueprints/
+│   └── BP_MON_GoblinThrower
+├── Data/
+│   └── DA_MON_GoblinThrower
+├── Materials/
+├── Meshes/
+│   ├── SK_GoblinThrower
+│   ├── SKEL_GoblinThrower
+│   ├── PHYS_GoblinThrower
+│   └── SM_Bomb
+└── Textures/
+```
+
+`A_GoblinThrower_Walk` est une animation **in-place** : le mesh reste physiquement sur place et `Enable Root Motion` est désactivé. La position logique et le déplacement restent donc autoritaires côté grille.
+
+## 3. Pipeline visuel générique réutilisé
+
+`UGridMonsterDefinitionAsset` fournit la présentation par données :
 
 ```text
 SkeletalMesh
 AnimationClass
 VisualScale
 VisualOffset
+VisualRotationOffset
 MonsterActorClass
 ```
 
-`AGridMonsterActor::ApplyDefinitionVisuals()` charge le `SkeletalMesh`, applique `VisualOffset` / `VisualScale` et affecte `AnimationClass` au `USkeletalMeshComponent`.
+`AGridMonsterActor::ApplyDefinitionVisuals()` charge et applique ces données au `USkeletalMeshComponent` runtime.
 
 `AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject()` applique le même contrat à l'aperçu editor-only.
 
-Le warning observé à la fin de MON17.1 :
-
-```text
-[GridMonsterSpawn] Preview skipped ... Definition=MON_GoblinThrower Reason=MissingSkeletalMesh
-```
-
-est donc le comportement attendu tant que `DA_MON_GoblinThrower.SkeletalMesh` n'est pas renseigné.
-
-Aucune classe C++ `GoblinThrowerActor`, aucun composant visuel Gobelin spécifique et aucun second système d'animation ne sont nécessaires.
-
-## 3. Contrat Animation Blueprint commun à tous les monstres
-
-`UGridMonsterAnimInstance` est le pont natif commun. Un Animation Blueprint de monstre doit en dériver afin de recevoir les signaux gameplay existants :
+`UGridMonsterAnimInstance` reste l'unique pont natif commun aux Animation Blueprints de monstres. Il expose notamment :
 
 ```text
 MonsterState
@@ -71,81 +85,18 @@ CurrentCell
 Facing
 ```
 
-L'Animation Blueprint ne décide jamais du déplacement logique, de la cible, du résultat d'une attaque ni du coût en PA.
+L'Animation Blueprint ne décide jamais de la position logique, du pathfinding, de la cible, du coût en PA ou du résultat d'une attaque.
 
-MON17.2 impose donc au Gobelin :
+## 4. ABP_MON_GoblinThrower
 
-1. un `USkeletalMesh` possédant un `USkeleton` valide ;
-2. un `ABP_MON_GoblinThrower` dérivé de `UGridMonsterAnimInstance` ;
-3. un Skeleton cible identique ou compatible avec celui de `SK_GoblinThrower` ;
-4. aucune Root Motion pour le déplacement de grille.
-
-## 4. Arborescence UE recommandée
-
-Pour rester symétrique avec `RatGiant` :
-
-```text
-Content/GrimrockPrototype/Monsters/GoblinThrower/
-├── Animation/
-│   ├── ABP_MON_GoblinThrower
-│   ├── A_GoblinThrower_Idle        // si disponible
-│   └── A_GoblinThrower_Walk
-├── Blueprints/
-│   └── BP_MON_GoblinThrower
-├── Data/
-│   └── DA_MON_GoblinThrower
-├── Materials/
-├── Meshes/
-│   ├── SKEL_GoblinThrower
-│   └── SK_GoblinThrower
-└── Textures/
-```
-
-Le `DA_MON_GoblinThrower` créé en MON17.1 doit être déplacé dans `Data/` si nécessaire avec les outils de déplacement/redirector d'Unreal, jamais par déplacement brut dans l'explorateur Windows.
-
-## 5. Import Skeletal Mesh / Skeleton
-
-Importer le modèle Gobelin depuis sa source réelle dans :
-
-```text
-/Game/GrimrockPrototype/Monsters/GoblinThrower/Meshes
-```
-
-Noms cibles :
-
-```text
-SK_GoblinThrower
-SKEL_GoblinThrower
-```
-
-Contrôles avant de poursuivre :
-
-- le mesh est bien un **Skeletal Mesh**, pas un Static Mesh ;
-- le Skeleton est présent et assigné ;
-- les matériaux/textures sont correctement rattachés ;
-- le Gobelin est debout dans l'axe attendu du projet ;
-- l'échelle d'import ne doit pas être compensée par un scale d'Actor runtime ;
-- le mesh ne possède pas de Root Motion nécessaire à son déplacement logique ;
-- aucune animation d'attaque n'est obligatoire à ce stade.
-
-`VisualScale` et `VisualOffset` de la DataAsset servent uniquement à l'ajustement visuel dans la case.
-
-## 6. Animation Blueprint minimal
-
-Créer un **Animation Blueprint** nommé :
-
-```text
-ABP_MON_GoblinThrower
-```
-
-avec :
+Configuration validée :
 
 ```text
 Target Skeleton = SKEL_GoblinThrower
-Parent Class    = GridMonsterAnimInstance / UGridMonsterAnimInstance
+Parent Class    = UGridMonsterAnimInstance
 ```
 
-Le graph minimal de MON17.2 doit seulement pouvoir représenter :
+Le graphe MON17.2 fournit le comportement visuel minimal :
 
 ```text
 Idle
@@ -153,59 +104,83 @@ Idle
 Walk
 ```
 
-`A_GoblinThrower_Walk` doit être une animation sur place. Une vraie animation `A_GoblinThrower_Idle` est préférable ; si elle n'est pas encore disponible, une pose de référence temporaire peut suffire pour valider le câblage, mais MON17.2 ne sera clos qu'avec une présentation visuelle acceptable en PIE.
+L'animation est visible et fonctionnelle en PIE. Aucune logique `RangedKeeper`, projectile ou combat spécifique au Gobelin n'est placée dans l'AnimBP.
 
-Ne pas ajouter dans l'AnimBP :
+## 5. BP_MON_GoblinThrower
 
-- sélection de cible ;
-- calcul de portée ;
-- pathfinding ;
-- consommation de PA ;
-- logique `RangedKeeper` ;
-- résolution du projectile.
-
-## 7. Blueprint Actor gameplay
-
-Le Gobelin ne doit pas utiliser directement la classe native `AGridMonsterActor` en production, car le pipeline MON13 attend aussi les composants gameplay ajoutés au Blueprint monstre.
-
-Créer :
+Configuration validée :
 
 ```text
-/Game/GrimrockPrototype/Monsters/GoblinThrower/Blueprints/BP_MON_GoblinThrower
+Parent = AGridMonsterActor
 ```
 
-Parent :
+Le Blueprint est effectivement choisi par `DA_MON_GoblinThrower.MonsterActorClass` et utilisé par le pipeline `MonsterSpawn` en PIE.
+
+Il réutilise les composants génériques requis par le pipeline monstre, notamment `MonsterMovement` et `MonsterBehavior`. `MonsterCombat`, `MonsterDeath`, le `SkeletalMeshComponent`, l'audio et les VFX restent fournis par la classe native existante.
+
+Aucun comportement Gobelin spécifique n'a été ajouté à l'Event Graph.
+
+## 6. DA_MON_GoblinThrower — présentation finale MON17.2
+
+Valeurs validées :
 
 ```text
-AGridMonsterActor
+MonsterActorClass     = BP_MON_GoblinThrower_C
+SkeletalMesh          = SK_GoblinThrower
+AnimationClass        = ABP_MON_GoblinThrower_C
+VisualScale           = (1,1,1)
+VisualOffset          = (0,0,0)
+VisualRotationOffset  = (0,-90,0)
 ```
 
-Ajouter les mêmes composants gameplay génériques nécessaires que pour le Rat Géant :
+Le Gobelin est correctement posé au sol avec `VisualScale = 1` et ne nécessite aucun offset de position.
+
+## 7. Correction générique d'orientation — VisualRotationOffset
+
+Le Skeletal Mesh importé possède un axe local différent de l'axe visuel attendu par le système de grille :
 
 ```text
-GridMonsterMovementComponent   -> composant MonsterMovement
-GridMonsterBehaviorComponent   -> composant MonsterBehavior
+InitialFacing = North
 ```
 
-`MonsterCombat`, `MonsterDeath`, audio, VFX et le SkeletalMeshComponent sont déjà fournis nativement par `AGridMonsterActor`.
+apparaissait initialement visuellement orienté vers l'ouest.
 
-Ne pas coder de comportement Gobelin dans l'Event Graph. `RangedKeeper` restera une donnée de `DA_MON_GoblinThrower` et son planner sera traité en MON17.4.
+Le mesh n'a volontairement pas été corrigé dans Blender. Un paramètre générique a été ajouté à `UGridMonsterDefinitionAsset` :
 
-## 8. Raccordement de DA_MON_GoblinThrower
+```cpp
+FRotator VisualRotationOffset = FRotator::ZeroRotator;
+```
 
-Dans `DA_MON_GoblinThrower`, renseigner :
+Ce paramètre est appliqué :
+
+- dans `AGridMonsterActor::ApplyDefinitionVisuals()` ;
+- dans `AGridEditorPreviewObjectActor::InitializeMonsterPreviewObject()`.
+
+Le principe est important :
 
 ```text
-MonsterActorClass = BP_MON_GoblinThrower
-SkeletalMesh      = SK_GoblinThrower
-AnimationClass    = ABP_MON_GoblinThrower_C
-VisualScale       = (à ajuster visuellement)
-VisualOffset      = (à ajuster visuellement)
+Facing                = orientation logique autoritaire sur la grille
+VisualRotationOffset  = correction locale propre au mesh
 ```
 
-Ne modifier ni `MonsterId`, ni les statistiques MON17.1, ni `PrimaryAIProfile=RangedKeeper` pendant cette étape.
+Pour le Gobelin :
 
-## 9. Test automatisé MON17.2
+```text
+Pitch = 0
+Yaw   = -90
+Roll  = 0
+```
+
+La correction a été validée dans UE5.5.4 : `InitialFacing=North` apparaît désormais visuellement North, en aperçu éditeur comme en runtime.
+
+Commit de la correction :
+
+```text
+c8ebcb4ab850bf7be01e8c81203b56309c2fec3d
+Add generic monster visual rotation offset
+```
+
+## 8. Tests automatisés MON17.2
 
 Filtre :
 
@@ -213,85 +188,141 @@ Filtre :
 Grimrock.Monsters.MON17.2
 ```
 
-Le premier test `PresentationBridgeContract` utilise les assets Rat Géant déjà validés comme référence de production et exige :
-
-- chargement d'un Skeletal Mesh réel ;
-- Skeleton non nul ;
-- chargement de l'Animation Blueprint réel ;
-- parent `UGridMonsterAnimInstance` ;
-- `IAnimClassInterface` disponible ;
-- Skeleton cible de l'AnimBP non nul ;
-- compatibilité entre Skeleton du mesh et Skeleton de l'AnimBP.
-
-### Validation UE5.5.4 — 18 août 2026
-
-Résultat fourni après compilation locale :
+Tests présents :
 
 ```text
-Grimrock.Monsters.MON17.2.PresentationBridgeContract  Success
+Grimrock.Monsters.MON17.2.PresentationBridgeContract
+Grimrock.Monsters.MON17.2.VisualRotationOffsetContract
 ```
 
-Bilan automatisé MON17.2 actuel : **1/1 Success**.
-
-Ce test protège le **contrat générique**. Un test strict sur les assets Gobelin sera ajouté/activé lorsque les `.uasset` Gobelin auront réellement été créés et versionnés ; MON17.2 ne simule pas des assets binaires inexistants.
-
-## 10. Validation manuelle UE5.5.4
-
-### Aperçu éditeur
-
-Après affectation du mesh dans `DA_MON_GoblinThrower`, utiliser `Reload Current` ou reconstruire l'aperçu.
-
-Résultats attendus :
-
-- plus aucun `Reason=MissingSkeletalMesh` pour le SpawnId du Gobelin ;
-- le Gobelin est visible hors PIE ;
-- il est centré dans sa case après ajustement `VisualOffset` ;
-- sa taille est cohérente avec la grille après ajustement `VisualScale` ;
-- son `InitialFacing` est visuellement respecté ;
-- sélection et survol continuent à fonctionner.
-
-### PIE
-
-Lancer le niveau de test et rechercher `[GridMonsterSpawn]`.
-
-Résultats attendus :
+`PresentationBridgeContract` a été exécuté localement sous UE5.5.4 avec résultat :
 
 ```text
+Success
+```
+
+Il protège le contrat générique Mesh / Skeleton / AnimBP : mesh réel, Skeleton valide, parent `UGridMonsterAnimInstance`, Skeleton cible de l'AnimBP et compatibilité entre Skeletons.
+
+`VisualRotationOffsetContract` a été ajouté avec la correction `c8ebcb4`. Il protège la valeur par défaut nulle et la possibilité de stocker une correction locale de yaw. Aucun résultat d'exécution séparé de ce second test n'a été fourni dans le journal de clôture ; la correction elle-même a en revanche été validée manuellement dans UE5.5.4 sur le Gobelin réel.
+
+## 9. Validation aperçu éditeur
+
+Après `Reload Current`, les contrôles suivants sont validés :
+
+- Gobelin visible hors PIE : **OK** ;
+- `MissingSkeletalMesh` disparu : **OK** ;
+- `VisualScale=(1,1,1)` : **OK** ;
+- `VisualOffset=(0,0,0)` : **OK** ;
+- pieds au sol : **OK** ;
+- `InitialFacing=North` visuellement correct avec `VisualRotationOffset=(0,-90,0)` : **OK** ;
+- le même contrat de correction est utilisé par le preview et le runtime : **OK**.
+
+## 10. Validation PIE / intégration gameplay
+
+Spawn observé :
+
+```text
+[GridMonsterSpawn]
 DefinitionId=MON_GoblinThrower
-Class=BP_MON_GoblinThrower_C
-Spawned Monsters=... Failures=0
+Class=/Game/GrimrockPrototype/Monsters/GoblinThrower/Blueprints/BP_MON_GoblinThrower.BP_MON_GoblinThrower_C
+Cell=(28,24)
+Facing=North
+RuntimeLevel=Into_The_Dark
 ```
 
-Contrôler dans le World Outliner pendant PIE :
+Le Gobelin apparaît animé en PIE et participe au pipeline gameplay existant.
 
-- un seul Actor pour le SpawnId ;
-- `MonsterDefinition = DA_MON_GoblinThrower` ;
-- `SkeletalMeshComponent = SK_GoblinThrower` ;
-- Anim Instance de classe `ABP_MON_GoblinThrower_C` ;
-- présence de `MonsterMovement`, `MonsterBehavior` et `MonsterCombat` ;
-- pas de `PresentationWarning` concernant ce Gobelin.
+Le combat automatique se déclenche correctement :
 
-Le déplacement peut encore utiliser la stratégie actuelle ; le maintien de distance spécifique à `RangedKeeper` n'est pas attendu avant MON17.4.
+```text
+[MON14.1] Automatic combat started
+Reason=PatrolVision
+```
 
-## 11. Critères de clôture MON17.2
+Son initiative de base observée est `12`, conformément à `DA_MON_GoblinThrower`.
 
-MON17.2 pourra être marqué CLOS lorsque :
+Un combat réel a validé le cycle complet :
 
-- le test `Grimrock.Monsters.MON17.2` est vert sous UE5.5.4 ;
-- `SK_GoblinThrower` et `SKEL_GoblinThrower` existent ;
-- `ABP_MON_GoblinThrower` cible le bon Skeleton et dérive de `UGridMonsterAnimInstance` ;
-- `BP_MON_GoblinThrower` contient les composants gameplay génériques requis ;
-- `DA_MON_GoblinThrower` référence les trois assets de production ;
-- le preview éditeur est visible sans `MissingSkeletalMesh` ;
-- le Gobelin apparaît correctement en PIE sans `PresentationWarning` ;
-- aucun comportement d'attaque projectile ou de kiting spécifique n'a été introduit prématurément.
+```text
+HP 10 -> 6 -> 2 -> 0
+```
 
-## 12. Hors périmètre
+Puis :
 
-- animation/montage `Attack_ThrowKnife` : MON17.3 ;
-- projectile couteau et impact : MON17.3 ;
-- choix d'attaque à distance et cooldown runtime : MON17.3 ;
-- planner de maintien de distance / repositionnement : MON17.4 ;
-- patrouille, perception et alarme de production : MON17.5 ;
-- loot / XP final : MON17.6 ;
-- équilibrage final : MON17.7.
+- mort détectée ;
+- occupation libérée ;
+- événement `MonsterDied` émis ;
+- victoire détectée ;
+- récompense XP `125` appliquée.
+
+Logs significatifs :
+
+```text
+[GridExperience] Monster=BP_MON_GoblinThrower_C_0 ... Reward=125 Applied=125
+
+[GridMonsterDeath] Commit Monster=BP_MON_GoblinThrower_C_0
+Cell=(28,24)
+OccupancyReleased=true
+
+[GridCombat] Type=Victory Message="Victoire."
+```
+
+Aucun des diagnostics suivants n'a été observé :
+
+```text
+MissingSkeletalMesh
+PresentationWarning
+erreur de spawn
+```
+
+## 11. Comportement volontairement non corrigé en MON17.2
+
+Lorsque le Gobelin reçoit son tour à distance 1, le journal montre :
+
+```text
+MonsterTurnStarted
+→ EndingRound
+```
+
+Ce comportement est attendu à ce stade car `Attack_ThrowKnife` exige :
+
+```text
+MinRangeCells = 2
+```
+
+MON17.2 ne doit pas contourner cette règle.
+
+La séparation de responsabilités reste :
+
+```text
+MON17.3 = exécuter Attack_ThrowKnife lorsque la position actuelle est déjà valide
+MON17.4 = RangedKeeper, maintien de distance, recul et choix de case
+```
+
+## 12. Clôture MON17.2
+
+MON17.2 est **VALIDÉ ET CLOS** parce que :
+
+- le contrat générique Mesh / Skeleton / AnimBP a été validé sous UE5.5.4 ;
+- `SK_GoblinThrower` et `SKEL_GoblinThrower` sont intégrés ;
+- `A_GoblinThrower_Idle` et `A_GoblinThrower_Walk` sont disponibles ;
+- la marche est in-place, sans Root Motion ;
+- `ABP_MON_GoblinThrower` cible le bon Skeleton et utilise `UGridMonsterAnimInstance` ;
+- `BP_MON_GoblinThrower` est utilisé réellement par le pipeline runtime ;
+- `DA_MON_GoblinThrower` référence les assets de production ;
+- `VisualScale`, `VisualOffset` et `VisualRotationOffset` sont validés ;
+- l'aperçu éditeur est fonctionnel ;
+- le spawn et l'animation PIE sont fonctionnels ;
+- le Gobelin entre normalement dans le combat, meurt et attribue son XP ;
+- aucun `MissingSkeletalMesh` ni `PresentationWarning` n'a été observé ;
+- aucune logique MON17.3/MON17.4 n'a été introduite prématurément.
+
+## 13. Suite
+
+Le travail autoritaire suivant est :
+
+```text
+MON17.3 — Distinct Attack Set — Attack_ThrowKnife
+```
+
+MON17.3 doit rendre l'attaque projectile effectivement exécutable quand le Gobelin est déjà à portée et avec une ligne de vue valide. Le repositionnement et le maintien de distance restent réservés à MON17.4.

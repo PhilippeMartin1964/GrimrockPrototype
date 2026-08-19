@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
 Statut : **backlog actif après clôture de MON16**  
-Date de référence : **18 août 2026**
+Date de référence : **19 août 2026**
 
 Ce document est la feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -29,7 +29,7 @@ docs/Design/MON15_CLOSURE.md
 docs/Design/MON16_CLOSURE.md
 ```
 
-Le prochain besoin structurant est de prouver que l'architecture monstre MON1–MON16 n'est pas spécifique au Rat Géant en intégrant une seconde famille tactiquement distincte : le **Gobelin lanceur** (`MON_GoblinThrower`, `RangedKeeper`), conformément au Bestiaire des Profondeurs — Volume II.
+Le besoin structurant de MON17 est de prouver que l'architecture monstre MON1–MON16 n'est pas spécifique au Rat Géant en intégrant une seconde famille tactiquement distincte : le **Gobelin lanceur** (`MON_GoblinThrower`, `RangedKeeper`), conformément au Bestiaire des Profondeurs — Volume II.
 
 ---
 
@@ -130,7 +130,7 @@ MonsterId = MON_GoblinThrower
 PrimaryAIProfile = RangedKeeper
 ```
 
-Cette créature est déjà décrite dans `docs/ArtBook/Bestiaire_des_Profondeurs_Volume_II_Les_Salles_Interdites.md` comme un ennemi « Projectile / harcèlement », utilisant couteaux, pierres ou fioles acides. MON17 prend `RangedKeeper` comme profil runtime autoritaire ; l'intention ArtBook `FleeAndCallHelp` ne doit pas provoquer la création prématurée d'une seconde IA parallèle.
+Cette créature est décrite dans `docs/ArtBook/Bestiaire_des_Profondeurs_Volume_II_Les_Salles_Interdites.md` comme un ennemi « Projectile / harcèlement », utilisant couteaux, pierres ou fioles acides. MON17 prend `RangedKeeper` comme profil runtime autoritaire ; l'intention ArtBook `FleeAndCallHelp` ne doit pas provoquer la création prématurée d'une seconde IA parallèle.
 
 Comportement cible : perception -> recherche d'une distance favorable -> orientation vers le groupe -> attaque à distance si LOS valide -> repositionnement lorsque le groupe devient trop proche.
 
@@ -140,35 +140,95 @@ Sous-jalons :
 
 ```text
 MON17.1 — Definition / Assets / Spawn Contract          CLOS
-MON17.2 — Skeletal Mesh / Skeleton / AnimBP             EN COURS
-MON17.3 — Distinct Attack Set                            À FAIRE
+MON17.2 — Skeletal Mesh / Skeleton / AnimBP             CLOS
+MON17.3 — Distinct Attack Set                            EN COURS
 MON17.4 — Distinct AI Profile — RangedKeeper            À FAIRE
 MON17.5 — Patrol / Perception / Alarm Integration       À FAIRE
 MON17.6 — Encounter / Loot / XP Integration             À FAIRE
 MON17.7 — Balance / Closure                              À FAIRE
 ```
 
+## MON17.1 — CLOS
+
 MON17.1 a été validé sous UE5.5.4 :
 
 - `Grimrock.Monsters.MON17.1` : **3/3 Success** ;
 - `DA_MON_GoblinThrower` : `Danger=3`, `HP=10`, `Initiative=12`, `Accuracy=2`, `Evasion=3`, `AP=3`, `Sight=8`, `Hearing=4`, `Damage=2..5`, `XP=125` ;
 - entrée palette `MON_GoblinThrower` avec `DA_MonsterSpawn` et `DA_MON_GoblinThrower` ;
-- résolution du `MonsterSpawn` confirmée ;
-- le dernier warning `MissingSkeletalMesh` est la frontière attendue avec MON17.2.
+- résolution du `MonsterSpawn` confirmée.
 
-Référence MON17.1 :
+Référence :
 
 ```text
 docs/Design/MON17_1_GOBLIN_THROWER_DEFINITION_SPAWN_CONTRACT.md
 ```
 
-MON17.2 réutilise le pipeline visuel générique existant (`SkeletalMesh`, `AnimationClass`, `VisualScale`, `VisualOffset`) et `UGridMonsterAnimInstance`. Il doit créer la présentation propre du Gobelin, un `BP_MON_GoblinThrower` disposant de `MonsterMovement` et `MonsterBehavior`, puis raccorder ces assets à `DA_MON_GoblinThrower`. L'attaque projectile et le planner `RangedKeeper` restent hors périmètre.
+## MON17.2 — CLOS
 
-Référence MON17.2 :
+MON17.2 a intégré la présentation réelle du Gobelin lanceur et validé le pipeline visuel générique :
+
+```text
+SK_GoblinThrower
+SKEL_GoblinThrower
+PHYS_GoblinThrower
+A_GoblinThrower_Idle
+A_GoblinThrower_Walk
+ABP_MON_GoblinThrower
+BP_MON_GoblinThrower
+DA_MON_GoblinThrower
+```
+
+Contrat de présentation validé :
+
+```text
+MonsterActorClass     = BP_MON_GoblinThrower_C
+SkeletalMesh          = SK_GoblinThrower
+AnimationClass        = ABP_MON_GoblinThrower_C
+VisualScale           = (1,1,1)
+VisualOffset          = (0,0,0)
+VisualRotationOffset  = (0,-90,0)
+```
+
+`VisualRotationOffset` est une correction générique de l'axe local du mesh ; `Facing` reste l'orientation logique autoritaire de la grille.
+
+Validation UE5.5.4 acquise :
+
+- `PresentationBridgeContract` : Success ;
+- preview éditeur visible sans `MissingSkeletalMesh` ;
+- orientation `InitialFacing=North` corrigée et validée ;
+- animation Idle/Walk fonctionnelle en PIE, marche in-place sans Root Motion ;
+- spawn runtime via `BP_MON_GoblinThrower_C` ;
+- combat automatique rejoint correctement le TurnManager ;
+- cycle réel HP 10 -> 0, mort, libération d'occupation et victoire ;
+- récompense XP 125 appliquée ;
+- aucun `PresentationWarning` ni erreur de spawn observé.
+
+Le cas `MonsterTurnStarted -> EndingRound` à distance 1 est volontairement conservé : `Attack_ThrowKnife.MinRangeCells=2`. MON17.3 doit rendre l'attaque projectile exécutable quand la situation est déjà valide ; MON17.4 décidera du repositionnement pour obtenir/conserver cette situation.
+
+Référence :
 
 ```text
 docs/Design/MON17_2_GOBLIN_THROWER_SKELETAL_ANIMATION.md
 ```
+
+## MON17.3 — EN COURS
+
+Objectif : rendre `Attack_ThrowKnife` réellement exécutable à distance sans introduire le planner `RangedKeeper`.
+
+Contrat de départ :
+
+```text
+AttackId               = Attack_ThrowKnife
+Delivery               = Projectile
+MinRangeCells           = 2
+RangeCells              = 6
+bRequiresLineOfSight    = true
+ActionPointCost         = 2
+CooldownTurns           = 0
+Priority                = 100
+```
+
+MON17.3 doit réutiliser les pipelines de combat, présentation et projectile existants avant toute nouvelle abstraction. Le maintien de distance, recul/kiting et choix tactique de case restent exclusivement MON17.4.
 
 ---
 
@@ -317,5 +377,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.2 — Skeletal Mesh / Skeleton / AnimBP — Gobelin lanceur
+MON17.3 — Distinct Attack Set — Attack_ThrowKnife
 ```
