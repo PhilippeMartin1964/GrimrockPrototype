@@ -23,10 +23,9 @@ bool FGridMonsterMON1733ProjectileSourceContractTest::RunTest (const FString& Pa
     TestTrue (
         TEXT ("Legacy projectile definitions remain valid without a source socket"),
         Attack.IsValidDefinition ());
-    TestEqual (
+    TestTrue (
         TEXT ("Projectile source socket defaults to None"),
-        Attack.ProjectileSourceSocketName,
-        NAME_None);
+        Attack.ProjectileSourceSocketName.IsNone ());
     TestEqual (
         TEXT ("Projectile source offset defaults to zero"),
         Attack.ProjectileSourceOffset,
