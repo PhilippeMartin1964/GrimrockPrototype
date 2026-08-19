@@ -7,6 +7,7 @@
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMonsterMON172PresentationBridgeContractTest,
@@ -72,6 +73,40 @@ bool FGridMonsterMON172PresentationBridgeContractTest::RunTest (
     TestTrue (
         TEXT ("Monster mesh Skeleton and Animation Blueprint Skeleton are compatible"),
         bCompatibleSkeletons);
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON172VisualRotationOffsetContractTest,
+    "Grimrock.Monsters.MON17.2.VisualRotationOffsetContract",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON172VisualRotationOffsetContractTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    UGridMonsterDefinitionAsset* Definition =
+        NewObject<UGridMonsterDefinitionAsset> (GetTransientPackage ());
+    TestNotNull (
+        TEXT ("Transient monster definition can be created"),
+        Definition);
+    if (!Definition)
+    {
+        return false;
+    }
+
+    TestTrue (
+        TEXT ("Visual rotation offset defaults to zero"),
+        Definition->VisualRotationOffset.IsNearlyZero ());
+
+    const FRotator ExpectedOffset (0.0f, -90.0f, 0.0f);
+    Definition->VisualRotationOffset = ExpectedOffset;
+    TestTrue (
+        TEXT ("Visual rotation offset stores mesh-local yaw correction"),
+        Definition->VisualRotationOffset.Equals (ExpectedOffset));
 
     return true;
 }

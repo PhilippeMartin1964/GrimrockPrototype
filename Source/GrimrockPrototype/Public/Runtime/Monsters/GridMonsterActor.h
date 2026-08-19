@@ -299,6 +299,7 @@ public:
         USkeletalMesh* ResolvedMesh = MonsterDefinition->SkeletalMesh.LoadSynchronous ();
         SkeletalMeshComponent->SetSkeletalMesh (ResolvedMesh);
         SkeletalMeshComponent->SetRelativeLocation (MonsterDefinition->VisualOffset);
+        SkeletalMeshComponent->SetRelativeRotation (MonsterDefinition->VisualRotationOffset);
         SkeletalMeshComponent->SetRelativeScale3D (MonsterDefinition->VisualScale);
 
         if (MonsterDefinition->AnimationClass)

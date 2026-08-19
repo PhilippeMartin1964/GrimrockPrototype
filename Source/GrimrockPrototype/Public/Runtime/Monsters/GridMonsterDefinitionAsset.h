@@ -58,6 +58,10 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Visual")
     FVector VisualOffset = FVector::ZeroVector;
 
+    /** Mesh-local orientation correction; logical grid Facing remains authoritative. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Visual")
+    FRotator VisualRotationOffset = FRotator::ZeroRotator;
+
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Stats", meta = (ClampMin = "1"))
     int32 MaxHealth = 1;
 
