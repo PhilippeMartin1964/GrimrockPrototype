@@ -1,6 +1,6 @@
 # MON17.3.2 — Projectile de présentation générique
 
-Statut : **C++ / AUTOMATION VALIDÉ 3/3 — validation visuelle PIE restante avant clôture**
+Statut : **VALIDÉ / CLOS sous UE5.5.4**
 
 ## Objectif
 
@@ -113,7 +113,7 @@ le composant :
 2. calcule `LaunchDelay` ;
 3. programme le projectile visuel ;
 4. charge `ProjectileVisualMesh` au moment du lancement ;
-5. prend provisoirement comme source le centre des bounds du SkeletalMesh du monstre ;
+5. prend, pour MON17.3.2, le centre des bounds du SkeletalMesh du monstre comme source provisoire ;
 6. prend comme cible la position monde du PartyPawn ;
 7. crée `AGridCombatProjectileActor` ;
 8. initialise sa trajectoire avec scale, rotation et durée authorés.
@@ -122,7 +122,7 @@ Le callback différé vérifie encore que la présentation d'attaque est active 
 
 ### Présentation optionnelle
 
-L'absence de `ProjectileVisualMesh` n'est **jamais** une erreur de gameplay :
+L'absence de `ProjectileVisualMesh` n'est jamais une erreur de gameplay :
 
 ```text
 ProjectileVisualMesh = None
@@ -141,7 +141,7 @@ ProjectileVisualOptionality
 
 vérifie qu'une `FGridMonsterAttackDefinition` `Delivery=Projectile` reste valide et ranged sans mesh visuel.
 
-## Validation UE5.5.4
+## Validation automatisée UE5.5.4
 
 Exécution locale du 19 août 2026 fournie par l'utilisateur : **3/3 Success**.
 
@@ -151,7 +151,39 @@ ProjectileTrajectory         Success
 ProjectileVisualOptionality  Success
 ```
 
-Le code et les contrats automatisés de MON17.3.2 sont donc validés sous UE5.5.4.
+## Validation PIE UE5.5.4
+
+Validation réelle effectuée avec `SM_Bomb` comme placeholder de `ProjectileVisualMesh` sur `Attack_ThrowKnife`.
+
+Le Gobelin était en position légale de tir, avec LOS ouverte. Le log confirme six lancements successifs :
+
+```text
+[GridMonsterProjectile] Launched Monster=BP_MON_GoblinThrower_C_1 Attack=Attack_ThrowKnife Travel=0.200 Source=(5698.6,4904.4,78.0) Target=(5700.0,4500.0,110.0)
+```
+
+Observations validées :
+
+- le projectile est effectivement visible en PIE ;
+- il apparaît brièvement au centre de l'écran, ce qui est attendu avec la source provisoire au centre des bounds, la cible au PartyPawn et un trajet de 0.20 s ;
+- le lancement se produit indépendamment du résultat combat ;
+- un miss est correctement résolu sans dégâts ;
+- les hits appliquent leurs dégâts normalement ;
+- les coups critiques fonctionnent ;
+- le combat progresse jusqu'à la défaite du personnage sans erreur de projectile ;
+- aucune logique d'inventaire/pickup n'intervient.
+
+Extrait représentatif :
+
+```text
+Round 1 : Attack_ThrowKnife -> miss, HP 20 -> 20
+Round 2 : hit 2, HP 20 -> 18
+Round 3 : critical 8, HP 18 -> 10
+Round 4 : hit 5, HP 10 -> 5
+Round 5 : hit 3, HP 5 -> 2
+Round 6 : critical, HP 2 -> 0 -> CharacterDefeated -> Defeat
+```
+
+MON17.3.2 est donc **VALIDÉ / CLOS**. L'amélioration du point de départ visuel, du vrai mesh couteau et de la synchronisation avec le geste de lancer passe à MON17.3.3.
 
 ## Relation avec MON11.4.1
 
@@ -165,37 +197,12 @@ résolution combat autoritaire
 trajectoire visuelle
 ```
 
-## Validation PIE restante
-
-Avant de clôturer MON17.3.2, renseigner un mesh temporaire ou final dans :
-
-```text
-DA_MON_GoblinThrower
-  Attacks[Attack_ThrowKnife]
-    ProjectileVisualMesh
-```
-
-Puis placer le Gobelin sur le même axe que le groupe, entre 2 et 6 cases, avec LOS ouverte.
-
-Log attendu :
-
-```text
-[GridMonsterProjectile] Launched Monster=... Attack=Attack_ThrowKnife Travel=...
-```
-
-Le projectile doit :
-
-- apparaître pendant le `RangedAttack` ;
-- parcourir visuellement la trajectoire vers le groupe ;
-- disparaître à l'arrivée ;
-- ne pas modifier Hit/Miss, dégâts ou dépense de PA ;
-- ne pas empêcher l'attaque si le mesh visuel est retiré.
-
-## Hors périmètre
+## Hors périmètre transféré à MON17.3.3+
 
 - socket de main / point de départ final ;
 - montage de lancer final ;
 - choix du mesh couteau final ;
-- spin ou arc balistique ;
-- cooldown runtime ;
+- synchronisation fine du lancer ;
+- spin ou arc balistique éventuel ;
+- cooldown runtime (MON17.3.4) ;
 - maintien de distance / recul / kiting (`MON17.4`).
