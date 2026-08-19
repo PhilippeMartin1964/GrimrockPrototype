@@ -1,6 +1,6 @@
 # MON17.3.3 — Gobelin lanceur — Présentation de lancer
 
-Statut : **EN COURS — contrat socket/source C++ validé 1/1 sous UE5.5.4, validation PIE du socket de main restante**
+Statut : **EN COURS — contrat socket/source validé en automation et PIE ; vrai projectile et animation/montage de lancer restants**
 
 ## Objectif
 
@@ -14,7 +14,7 @@ MON17.3.3 ne modifie ni portée, LOS, dégâts, coût PA, choix tactique de case
 
 MON17.3.2 est clos : le projectile générique est visible en PIE, le placeholder `SM_Bomb` est lancé avec `Attack_ThrowKnife`, et Hit/Miss/dégâts restent autoritaires côté combat.
 
-L'observation « bombe brièvement visible au centre de l'écran » vient du contrat provisoire MON17.3.2 :
+L'observation initiale « bombe brièvement visible au centre de l'écran » venait du contrat provisoire MON17.3.2 :
 
 ```text
 Source = centre des bounds du SkeletalMesh du monstre
@@ -22,7 +22,7 @@ Target = position monde du PartyPawn
 Travel = 0.20 s
 ```
 
-MON17.3.3 doit améliorer cette présentation sans changer la résolution combat.
+MON17.3.3 améliore cette présentation sans changer la résolution combat.
 
 ## Contrat C++ ajouté
 
@@ -91,31 +91,35 @@ ProjectileSourceContract  Success
 
 Le contrat C++ MON17.3.3 est donc validé sous UE5.5.4.
 
-## Étape UE5.5.4 — validation visuelle du socket
+## Validation PIE du socket de main
 
-1. ouvrir `SKEL_GoblinThrower` ou `SK_GoblinThrower` ;
-2. identifier le bone de la main qui réalise le lancer ;
-3. créer un socket nommé :
-
-```text
-ProjectileSource
-```
-
-4. placer le socket au niveau du point où le couteau doit quitter la main ;
-5. dans `DA_MON_GoblinThrower > Attack_ThrowKnife`, renseigner :
+Configuration validée :
 
 ```text
 Projectile Source Socket Name = ProjectileSource
-Projectile Source Offset      = (0,0,0) au départ
+Projectile Source Offset      = (0,0,0)
+Projectile Visual Mesh        = SM_Bomb (placeholder)
+Projectile Travel Duration    = 0.20 s
 ```
 
-6. conserver temporairement `SM_Bomb` si nécessaire pour valider visuellement la nouvelle origine ;
-7. vérifier dans le log que `SourceSocket=ProjectileSource` apparaît et que les coordonnées source ont changé par rapport au centre des bounds ;
-8. confirmer visuellement que le projectile part de la main et non du centre du Gobelin.
+Le socket `ProjectileSource` est placé sur la main droite du Gobelin lanceur.
 
-MON17.3.3 ne sera clos qu'après cette validation PIE et, si nécessaire, l'ajustement du socket/offset.
+Log PIE représentatif fourni le 19 août 2026 :
 
-## Animation / montage
+```text
+[GridMonsterProjectile] Launched Monster=BP_MON_GoblinThrower_C_1 Attack=Attack_ThrowKnife Travel=0.200 SourceSocket=ProjectileSource Source=(5727.2,4904.2,72.3) Target=(5700.0,4500.0,110.0)
+```
+
+Validation visuelle fournie par l'utilisateur :
+
+- `SourceSocket=ProjectileSource` est bien utilisé ;
+- le projectile ne part plus du centre des bounds ;
+- le projectile part visuellement de la paume de la main droite ;
+- Hit/Miss et dégâts continuent à être résolus normalement après le lancement.
+
+La partie **source/socket de MON17.3.3 est donc VALIDÉE**.
+
+## Animation / montage — étape restante
 
 Le dépôt ne contient actuellement sous `GoblinThrower/Animation` que :
 
@@ -125,9 +129,9 @@ A_GoblinThrower_Idle
 A_GoblinThrower_Walk
 ```
 
-Le montage/animation de lancer final devra donc être ajouté depuis les assets source dans UE5.5.4, puis référencé par `AttackMontage`.
+Le montage/animation de lancer final doit encore être ajouté depuis les assets source dans UE5.5.4, puis référencé par `AttackMontage`.
 
-La synchronisation fine se fera ensuite avec les données déjà existantes :
+Le pipeline existant possède déjà les données de temporisation suivantes :
 
 ```text
 ExpectedDuration
@@ -136,7 +140,23 @@ ProjectileTravelDuration
 AttackMontage
 ```
 
-Le projectile doit quitter la main avant l'impact autoritaire, sans déplacer ce dernier hors du TurnManager.
+Le projectile visuel est programmé de manière à arriver au moment `ImpactTimeSeconds` :
+
+```text
+LaunchDelay = max(0, ImpactTimeSeconds - ProjectileTravelDuration)
+```
+
+La prochaine étape doit donc :
+
+1. choisir/importer l'animation de lancer du Gobelin ;
+2. créer un montage dédié ;
+3. affecter ce montage à `Attack_ThrowKnife.AttackMontage` ;
+4. régler `ExpectedDuration`, `ImpactTimeSeconds` et `ProjectileTravelDuration` pour que le projectile quitte la paume au moment visuel du lâcher ;
+5. remplacer `SM_Bomb` par le vrai mesh de couteau ;
+6. régler `ProjectileVisualScale` et `ProjectileRotationOffset` ;
+7. valider en PIE le geste, le départ de la main, le trajet, l'impact et le retour à l'état normal.
+
+MON17.3.3 ne sera clos qu'après cette validation visuelle finale.
 
 ## Hors périmètre
 
