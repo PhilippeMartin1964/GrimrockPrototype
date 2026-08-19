@@ -2,6 +2,7 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -18,18 +19,47 @@ DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterCombat, Log, All);
 namespace
 {
     FVector ResolveProjectileSourceWorldLocation (
-        const AGridMonsterActor* Monster)
+        const AGridMonsterActor* Monster,
+        FName SourceSocketName,
+        const FVector& SourceOffset)
     {
         if (IsValid (Monster) &&
             IsValid (Monster->SkeletalMeshComponent) &&
             Monster->SkeletalMeshComponent->IsRegistered ())
         {
-            return Monster->SkeletalMeshComponent->Bounds.Origin;
+            USkeletalMeshComponent* SkeletalMeshComponent =
+                Monster->SkeletalMeshComponent;
+
+            if (!SourceSocketName.IsNone ())
+            {
+                if (SkeletalMeshComponent->DoesSocketExist (SourceSocketName))
+                {
+                    const FTransform SocketTransform =
+                        SkeletalMeshComponent->GetSocketTransform (
+                            SourceSocketName,
+                            RTS_World);
+                    return SocketTransform.TransformPositionNoScale (SourceOffset);
+                }
+
+                UE_LOG (
+                    LogGridMonsterCombat,
+                    Warning,
+                    TEXT ("[GridMonsterProjectile] Source socket unavailable Monster=%s Socket=%s Fallback=BoundsCenter"),
+                    *GetNameSafe (Monster),
+                    *SourceSocketName.ToString ());
+            }
+
+            return SkeletalMeshComponent->Bounds.Origin +
+                SkeletalMeshComponent->GetComponentQuat ().RotateVector (SourceOffset);
         }
 
-        return IsValid (Monster)
-            ? Monster->GetActorLocation ()
-            : FVector::ZeroVector;
+        if (IsValid (Monster))
+        {
+            return Monster->GetActorLocation () +
+                Monster->GetActorQuat ().RotateVector (SourceOffset);
+        }
+
+        return FVector::ZeroVector;
     }
 
     void LaunchMonsterProjectilePresentation (
@@ -39,6 +69,8 @@ namespace
         TSoftObjectPtr<UStaticMesh> ProjectileVisualMesh,
         FVector ProjectileVisualScale,
         FRotator ProjectileRotationOffset,
+        FName ProjectileSourceSocketName,
+        FVector ProjectileSourceOffset,
         float ProjectileTravelDuration,
         FName AttackId)
     {
@@ -75,7 +107,10 @@ namespace
         }
 
         const FVector SourceWorldLocation =
-            ResolveProjectileSourceWorldLocation (Monster);
+            ResolveProjectileSourceWorldLocation (
+                Monster,
+                ProjectileSourceSocketName,
+                ProjectileSourceOffset);
         const FVector TargetWorldLocation = PartyPawn->GetActorLocation ();
 
         FActorSpawnParameters SpawnParameters;
@@ -121,10 +156,13 @@ namespace
         UE_LOG (
             LogGridMonsterCombat,
             Log,
-            TEXT ("[GridMonsterProjectile] Launched Monster=%s Attack=%s Travel=%.3f Source=(%.1f,%.1f,%.1f) Target=(%.1f,%.1f,%.1f)"),
+            TEXT ("[GridMonsterProjectile] Launched Monster=%s Attack=%s Travel=%.3f SourceSocket=%s Source=(%.1f,%.1f,%.1f) Target=(%.1f,%.1f,%.1f)"),
             *GetNameSafe (Monster),
             *AttackId.ToString (),
             ProjectileTravelDuration,
+            ProjectileSourceSocketName.IsNone ()
+                ? TEXT ("None")
+                : *ProjectileSourceSocketName.ToString (),
             SourceWorldLocation.X,
             SourceWorldLocation.Y,
             SourceWorldLocation.Z,
@@ -384,6 +422,8 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
             Attack.ProjectileVisualMesh;
         const FVector ProjectileVisualScale = Attack.ProjectileVisualScale;
         const FRotator ProjectileRotationOffset = Attack.ProjectileRotationOffset;
+        const FName ProjectileSourceSocketName = Attack.ProjectileSourceSocketName;
+        const FVector ProjectileSourceOffset = Attack.ProjectileSourceOffset;
         const float ProjectileTravelDuration = Attack.ProjectileTravelDuration;
         const FName ProjectileAttackId = Attack.AttackId;
 
@@ -395,6 +435,8 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
              ProjectileVisualMesh,
              ProjectileVisualScale,
              ProjectileRotationOffset,
+             ProjectileSourceSocketName,
+             ProjectileSourceOffset,
              ProjectileTravelDuration,
              ProjectileAttackId] ()
             {
@@ -405,6 +447,8 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
                     ProjectileVisualMesh,
                     ProjectileVisualScale,
                     ProjectileRotationOffset,
+                    ProjectileSourceSocketName,
+                    ProjectileSourceOffset,
                     ProjectileTravelDuration,
                     ProjectileAttackId);
             });

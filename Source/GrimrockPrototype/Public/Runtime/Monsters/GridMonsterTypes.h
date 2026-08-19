@@ -181,6 +181,14 @@ struct FGridMonsterAttackDefinition
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
     FRotator ProjectileRotationOffset = FRotator::ZeroRotator;
 
+    /** Optional skeletal socket used as the projectile presentation origin. None preserves the bounds-center fallback. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
+    FName ProjectileSourceSocketName = NAME_None;
+
+    /** Local presentation offset applied at the authored socket, or in mesh/monster local space for the fallback. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile")
+    FVector ProjectileSourceOffset = FVector::ZeroVector;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster|Projectile", meta = (ClampMin = "0.01"))
     float ProjectileTravelDuration = 0.20f;
 
@@ -252,6 +260,12 @@ struct FGridMonsterAttackDefinition
             ProjectileVisualScale.Z <= 0.0f)
         {
             Errors.Add (TEXT ("ProjectileVisualScale components must be finite and greater than zero."));
+        }
+        if (!FMath::IsFinite (ProjectileSourceOffset.X) ||
+            !FMath::IsFinite (ProjectileSourceOffset.Y) ||
+            !FMath::IsFinite (ProjectileSourceOffset.Z))
+        {
+            Errors.Add (TEXT ("ProjectileSourceOffset components must be finite."));
         }
 
         const auto ValidateAudio = [&Errors] (
