@@ -24,7 +24,7 @@ namespace
         return TEXT ("Unknown");
     }
 
-    bool IsMonsterAttackAction (EGridCombatActionType Type)
+    bool IsExecutableMonsterAttackAction (EGridCombatActionType Type)
     {
         return Type == EGridCombatActionType::MeleeAttack ||
             Type == EGridCombatActionType::RangedAttack;
@@ -104,7 +104,7 @@ bool UGridTurnManagerComponent::StartActiveAction (const FGridCombatAction& Acti
         return true;
     }
 
-    if (IsMonsterAttackAction (Action.Type))
+    if (IsExecutableMonsterAttackAction (Action.Type))
     {
         // Kept under its historical name for ABI/source compatibility. The
         // implementation now executes both MeleeAttack and RangedAttack.
@@ -341,7 +341,7 @@ void UGridTurnManagerComponent::NotifyActiveAttackImpact ()
 
 void UGridTurnManagerComponent::NotifyActiveAttackComplete ()
 {
-    if (!bHasActiveAction || !IsMonsterAttackAction (ActiveAction.Type))
+    if (!bHasActiveAction || !IsExecutableMonsterAttackAction (ActiveAction.Type))
     {
         return;
     }
@@ -357,7 +357,7 @@ void UGridTurnManagerComponent::NotifyActiveAttackComplete ()
 void UGridTurnManagerComponent::CommitActiveAttackImpact ()
 {
     if (!bHasActiveAction ||
-        !IsMonsterAttackAction (ActiveAction.Type) ||
+        !IsExecutableMonsterAttackAction (ActiveAction.Type) ||
         bActiveAttackImpactCommitted)
     {
         return;
@@ -543,7 +543,7 @@ void UGridTurnManagerComponent::CompleteActiveAction (bool bSucceeded)
         return;
     }
 
-    if (IsMonsterAttackAction (CompletedAction.Type))
+    if (IsExecutableMonsterAttackAction (CompletedAction.Type))
     {
         ResetActiveAttackState ();
         if (!HasLivingPartyCharacter ())
@@ -584,7 +584,7 @@ float UGridTurnManagerComponent::GetExpectedActionDuration (const FGridCombatAct
     {
         return FMath::Max (0.01f, CurrentMonster->MonsterDefinition->TurnDuration);
     }
-    if (IsMonsterAttackAction (Action.Type))
+    if (IsExecutableMonsterAttackAction (Action.Type))
     {
         if (ActiveAttackDefinition.IsValidDefinition ())
         {
