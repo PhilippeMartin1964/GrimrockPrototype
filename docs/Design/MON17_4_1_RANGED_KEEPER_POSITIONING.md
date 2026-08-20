@@ -1,6 +1,6 @@
 # MON17.4.1 — RangedKeeper Preferred Firing Position
 
-Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — PIE tactique restant avant clôture**
+Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — PIE A validé ; PIE B/C restant avant clôture**
 
 ## Objectif
 
@@ -203,25 +203,60 @@ Aucune régression automatisée n'est observée sur :
 - `DirectMeleePlanner` ;
 - `PartyTargetSelector`.
 
-Il reste uniquement à confirmer le comportement tactique réel en PIE.
+## Validation PIE tactique
 
-## Validation PIE demandée
+### Cas A — trop près — VALIDÉ
 
-Cas A — trop près :
+Configuration validée :
 
 ```text
-Party
-.
-Goblin   distance 1 ou 2
+Party  = (28,23)
+Goblin = (28,24)
+Distance initiale = 1
 ```
 
-Le Gobelin doit chercher à augmenter la distance vers `3..5` au lieu de charger au contact.
+Le groupe reste immobile au premier tour.
 
-Cas B — trop loin :
+Observation :
+
+```text
+Round 1
+- MonsterTurnStarted Gobelin lanceur
+- aucune Attack_ThrowKnife
+- fin de tour
+
+Round 2
+- MonsterTurnStarted Gobelin lanceur
+- Attack_ThrowKnife
+```
+
+Le log d'attaque de la manche 2 situe le Gobelin à :
+
+```text
+Attack audio location Y = 5300
+Party target location Y = 4700
+```
+
+Avec la grille runtime de 200 unités par cellule, l'écart de 600 unités correspond à **3 cellules**. Le Gobelin est donc passé de `(28,24)` à `(28,26)` pendant le premier tour, soit deux déplacements, puis attaque au tour suivant depuis la distance préférée minimale `3`.
+
+Comportement validé :
+
+```text
+Distance 1
+-> repositionnement de 2 cellules
+-> aucun tir prématuré
+-> distance 3 au tour suivant
+-> Attack_ThrowKnife
+-> ProjectileSource toujours utilisé
+```
+
+Le cas A confirme donc que `RangedKeeper` ne reste plus bloqué à distance trop courte et ne charge pas au contact : il recrée la distance de tir préférée.
+
+### Cas B — trop loin — À VALIDER
 
 Le Gobelin hors de portée `>6`, mais ayant connaissance du groupe, doit rejoindre une case de tir légale/préférée au lieu d'attendre indéfiniment.
 
-Cas C — bonne distance :
+### Cas C — bonne distance — À VALIDER
 
 À distance `3..5`, axial, LOS libre : comportement MON17.3 inchangé, `Attack_ThrowKnife` directement.
 
@@ -242,7 +277,9 @@ Cas C — bonne distance :
 2. Grimrock.Monsters.MON17.4.1         3/3 Success
 3. Régressions MON17.3 + MON6          13/13 Success
 4. Campagne totale exécutée            16/16 Success
-5. PIE tactique RangedKeeper           À VALIDER
+5. PIE A — trop près                    VALIDÉ
+6. PIE B — trop loin                    À VALIDER
+7. PIE C — bonne distance               À VALIDER
 ```
 
-MON17.4.1 sera marqué **VALIDÉ / CLOS** après le PIE tactique sans régression du lancer MON17.3.
+MON17.4.1 sera marqué **VALIDÉ / CLOS** après les PIE B et C, sans régression du lancer MON17.3.
