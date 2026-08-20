@@ -1,6 +1,6 @@
 # MON17.3.4 — Monster Attack Cooldown / Regression / Closure
 
-Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — PIE final Gobelin restant avant clôture MON17.3**
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**
 
 ## Objectif
 
@@ -31,11 +31,11 @@ Le Gobelin lanceur conserve donc :
 Attack_ThrowKnife.CooldownTurns = 0
 ```
 
-et son comportement validé en MON17.3.1–17.3.3 ne doit pas changer.
+et son comportement validé en MON17.3.1–17.3.3 ne change pas.
 
 ## Architecture
 
-Le cooldown appartient à `UGridMonsterCombatComponent`, qui possède désormais un état runtime pur :
+Le cooldown appartient à `UGridMonsterCombatComponent`, qui possède un état runtime pur :
 
 ```cpp
 FGridMonsterAttackCooldownState
@@ -73,7 +73,7 @@ Le système suppose le contrat actuel du TurnManager : un monstre possède au pl
 
 ## Sélection des attaques
 
-`UGridMonsterCombatComponent::GetPreferredAttackForRange()` continue de sélectionner la définition valide de plus haute priorité, mais ignore maintenant une attaque dont l'`AttackId` est en cooldown.
+`UGridMonsterCombatComponent::GetPreferredAttackForRange()` continue de sélectionner la définition valide de plus haute priorité, mais ignore une attaque dont l'`AttackId` est en cooldown.
 
 Ainsi, si plusieurs attaques partagent la même portée :
 
@@ -160,8 +160,6 @@ et vérifie que l'attaque reste disponible après utilisation et au tour suivant
 
 ## Validation UE5.5.4 — 20 août 2026
 
-Compilation `Development_Editor x64` suffisamment valide pour exécuter les campagnes Automation.
-
 ### MON17.3.4
 
 Résultat fourni par l'utilisateur : **3/3 Success**.
@@ -203,39 +201,70 @@ Campagne combinée demandée : **13/13 Success**.
 
 Aucune régression automatisée n'est observée sur le planner mêlée historique, la LOS, le ranged planner, la présentation projectile, le socket de source ou le cooldown zéro du Gobelin.
 
-## Validation PIE finale demandée
+## Validation PIE finale — VALIDÉE
 
-Un dernier PIE court avec le Gobelin doit confirmer qu'avec :
+Le PIE final fourni le 20 août 2026 confirme qu'avec :
 
 ```text
 Attack_ThrowKnife.CooldownTurns = 0
 ```
 
-- `Attack_ThrowKnife` reste utilisable à chaque tour où portée/LOS/AP sont valides ;
-- `AM_GoblinThrower_ThrowKnife` reste joué ;
-- le projectile part toujours de `ProjectileSource` sur la paume droite ;
-- les timings restent `ExpectedDuration=2.20 s`, `ImpactTimeSeconds=1.00 s`, `ProjectileTravelDuration=0.20 s`, donc lancement visuel vers `0.80 s` ;
-- Hit/Miss/dégâts restent inchangés ;
-- aucun log `[GridMonsterCooldown] Attack rejected ... Reason=Cooldown` ne doit apparaître pour `Attack_ThrowKnife` avec `CooldownTurns=0`.
+le Gobelin lanceur attaque sur plusieurs manches successives dès que portée/LOS/AP sont valides.
 
-## Porte de clôture MON17.3
+Observation du log :
 
-État au 20 août 2026 :
+```text
+Round 1  Attack_ThrowKnife  Miss
+Round 2  Attack_ThrowKnife  Miss
+Round 3  Attack_ThrowKnife  Hit, 4 dégâts
+```
+
+Pour chaque tir observé :
+
+```text
+SourceSocket=ProjectileSource
+ProjectileTravelDuration=0.200
+```
+
+Le projectile continue donc de partir de la paume droite et le pipeline Hit/Miss/dégâts reste autoritaire et inchangé.
+
+Aucun log :
+
+```text
+[GridMonsterCooldown] Attack rejected ... Reason=Cooldown
+```
+
+n'est observé pour `Attack_ThrowKnife` avec `CooldownTurns=0`.
+
+Les réglages de présentation restent ceux validés en MON17.3.3 :
+
+```text
+ExpectedDuration          = 2.20 s
+ImpactTimeSeconds         = 1.00 s
+ProjectileTravelDuration  = 0.20 s
+LaunchDelay               = 0.80 s
+```
+
+## Clôture
+
+Porte de clôture :
 
 ```text
 1. Compilation UE5.5.4                 VALIDÉE
 2. MON17.3.4                            3/3 Success
 3. MON17.3.1–17.3.4                     10/10 Success
 4. MON6                                 3/3 Success
-5. PIE Gobelin cooldown zéro            À VALIDER
+5. PIE Gobelin cooldown zéro            VALIDÉ
 ```
 
-`MON17.3 — Distinct Attack Set` pourra être déclaré **VALIDÉ / CLOS** dès que le dernier PIE confirme l'absence de régression runtime.
+**MON17.3.4 — Monster Attack Cooldown / Regression / Closure est VALIDÉ ET CLOS.**
 
-Après cela, le travail autoritaire devient :
+Par conséquent, **MON17.3 — Distinct Attack Set est également VALIDÉ ET CLOS**.
+
+Le travail autoritaire devient :
 
 ```text
 MON17.4 — Distinct AI Profile — RangedKeeper
 ```
 
-Le maintien de distance, la recherche d'une case de tir, le recul et le kiting restent explicitement hors périmètre de MON17.3.4.
+Le maintien de distance, la recherche d'une case de tir, le recul et le kiting restent explicitement hors périmètre de MON17.3.

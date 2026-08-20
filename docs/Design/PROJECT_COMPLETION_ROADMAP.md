@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
 Statut : **backlog actif après clôture de MON16**  
-Date de référence : **19 août 2026**
+Date de référence : **20 août 2026**
 
 Ce document est la feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -141,8 +141,8 @@ Sous-jalons :
 ```text
 MON17.1 — Definition / Assets / Spawn Contract          CLOS
 MON17.2 — Skeletal Mesh / Skeleton / AnimBP             CLOS
-MON17.3 — Distinct Attack Set                            EN COURS
-MON17.4 — Distinct AI Profile — RangedKeeper            À FAIRE
+MON17.3 — Distinct Attack Set                            CLOS
+MON17.4 — Distinct AI Profile — RangedKeeper            EN COURS
 MON17.5 — Patrol / Perception / Alarm Integration       À FAIRE
 MON17.6 — Encounter / Loot / XP Integration             À FAIRE
 MON17.7 — Balance / Closure                              À FAIRE
@@ -203,7 +203,7 @@ Validation UE5.5.4 acquise :
 - récompense XP 125 appliquée ;
 - aucun `PresentationWarning` ni erreur de spawn observé.
 
-Le cas `MonsterTurnStarted -> EndingRound` à distance 1 est volontairement conservé : `Attack_ThrowKnife.MinRangeCells=2`. MON17.3 doit rendre l'attaque projectile exécutable quand la situation est déjà valide ; MON17.4 décidera du repositionnement pour obtenir/conserver cette situation.
+Le cas `MonsterTurnStarted -> EndingRound` à distance 1 était volontairement conservé en MON17.2 : `Attack_ThrowKnife.MinRangeCells=2`. MON17.3 a rendu l'attaque projectile exécutable lorsque la situation est déjà valide ; MON17.4 décide maintenant du repositionnement pour obtenir/conserver cette situation.
 
 Référence :
 
@@ -211,11 +211,11 @@ Référence :
 docs/Design/MON17_2_GOBLIN_THROWER_SKELETAL_ANIMATION.md
 ```
 
-## MON17.3 — EN COURS
+## MON17.3 — CLOS
 
-Objectif : rendre `Attack_ThrowKnife` réellement exécutable à distance sans introduire le planner `RangedKeeper`.
+`MON17.3 — Distinct Attack Set` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Contrat de départ :
+Contrat final de `Attack_ThrowKnife` :
 
 ```text
 AttackId               = Attack_ThrowKnife
@@ -226,9 +226,70 @@ bRequiresLineOfSight    = true
 ActionPointCost         = 2
 CooldownTurns           = 0
 Priority                = 100
+ExpectedDuration        = 2.20 s
+ImpactTimeSeconds       = 1.00 s
+ProjectileTravel       = 0.20 s
+LaunchDelay             = 0.80 s
+ProjectileSourceSocket = ProjectileSource
 ```
 
-MON17.3 doit réutiliser les pipelines de combat, présentation et projectile existants avant toute nouvelle abstraction. Le maintien de distance, recul/kiting et choix tactique de case restent exclusivement MON17.4.
+Sous-étapes validées :
+
+```text
+MON17.3.1 — Ranged Action Execution          CLOS
+MON17.3.2 — Projectile Presentation          CLOS
+MON17.3.3 — Throw Presentation               CLOS
+MON17.3.4 — Cooldown / Regression / Closure  CLOS
+```
+
+MON17.3 a établi :
+
+- exécution générique `RangedAttack` sans hardcoding Gobelin ;
+- portée min/max et LOS réévaluées au runtime ;
+- projectile visuel purement présentation, sans inventaire/persistence/dégâts parallèles ;
+- source projectile data-driven via socket optionnel ;
+- animation `A_GoblinThrower_ThrowKnife` retargetée depuis Mixamo ;
+- montage `AM_GoblinThrower_ThrowKnife` intégré au Slot de `ABP_MON_GoblinThrower` ;
+- lancement depuis la paume droite via `ProjectileSource` ;
+- cooldown générique par `AttackId`, runtime-only ;
+- `CooldownTurns=0` confirmé sans régression pour le Gobelin.
+
+Validation automatisée finale :
+
+```text
+MON17.3.1–17.3.4   10/10 Success
+MON6                3/3 Success
+Total demandé       13/13 Success
+```
+
+Validation PIE finale : le Gobelin utilise `Attack_ThrowKnife` sur plusieurs manches successives avec `CooldownTurns=0`, le projectile part toujours de `ProjectileSource`, et Hit/Miss/dégâts restent corrects.
+
+Références :
+
+```text
+docs/Design/MON17_3_1_RANGED_ATTACK_EXECUTION.md
+docs/Design/MON17_3_2_PROJECTILE_PRESENTATION.md
+docs/Design/MON17_3_3_THROW_PRESENTATION.md
+docs/Design/MON17_3_4_MONSTER_ATTACK_COOLDOWN.md
+```
+
+## MON17.4 — EN COURS
+
+Objectif autoritaire : faire de `RangedKeeper` un profil tactiquement distinct sans remettre en cause le pipeline d'attaque validé en MON17.3.
+
+Le comportement attendu devient :
+
+```text
+perception
+→ évaluer distance / LOS
+→ tirer depuis la case actuelle si elle est favorable
+→ sinon rechercher une case de tir valide
+→ maintenir PreferredMinDistance..PreferredMaxDistance
+→ reculer/repositionner si le groupe est trop proche
+→ ne jamais charger inutilement au contact comme DirectMelee
+```
+
+MON17.4 doit réutiliser `FGridMonsterPathfinder`, l'occupation de grille, la LOS et le TurnManager existants. Aucun second moteur d'IA parallèle ne doit être introduit.
 
 ---
 
@@ -377,5 +438,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.3 — Distinct Attack Set — Attack_ThrowKnife
+MON17.4 — Distinct AI Profile — RangedKeeper
 ```
