@@ -143,8 +143,8 @@ MON17.1 — Definition / Assets / Spawn Contract          CLOS
 MON17.2 — Skeletal Mesh / Skeleton / AnimBP             CLOS
 MON17.3 — Distinct Attack Set                            CLOS
 MON17.4 — Distinct AI Profile — RangedKeeper            CLOS
-MON17.5 — Patrol / Perception / Alarm Integration       EN COURS
-MON17.6 — Encounter / Loot / XP Integration             À FAIRE
+MON17.5 — Patrol / Perception / Alarm Integration       CLOS
+MON17.6 — Encounter / Loot / XP Integration             EN COURS
 MON17.7 — Balance / Closure                              À FAIRE
 ```
 
@@ -318,30 +318,60 @@ Référence :
 docs/Design/MON17_4_1_RANGED_KEEPER_POSITIONING.md
 ```
 
-## MON17.5 — EN COURS
+## MON17.5 — CLOS
 
-Objectif : prouver que le Gobelin `RangedKeeper` utilise sans fork spécifique les systèmes MON14 de patrouille, perception directionnelle, investigation, engagement automatique et alarme locale.
+`MON17.5 — Patrol / Perception / Alarm Integration` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Première étape :
+Le Gobelin `RangedKeeper` réutilise sans fork les systèmes MON14 :
 
 ```text
-MON17.5.1 — Goblin Exploration Integration Contract
+patrouille
+→ perception directionnelle / ouïe
+→ investigation / recherche
+→ alarme locale same MonsterId + same EncounterGroup
+→ engagement visuel automatique
+→ TurnManager
+→ RangedKeeper
 ```
 
-La suite dédiée vérifie :
+Valeurs de production retenues :
 
-- patrouille `Loop` avec un Gobelin `RangedKeeper` ;
-- vision directionnelle et ouïe omnidirectionnelle ;
-- réveil/investigation d'un allié Gobelin par alarme ;
-- handoff visuel vers l'activité `Engaging` ;
-- absence de démarrage de combat sur ouïe/alarme seule.
+```text
+DA_MON_GoblinThrower
+bSharesAggroWithGroup = true
+AggroPropagationRange = 5
+```
 
-Aucun nouveau moteur d'IA n'est introduit : MON17.5 réutilise `UGridMonsterBehaviorComponent`, `UGridMonsterPatrolSubsystem`, `UGridAutomaticPerceptionEngagementSubsystem` et le contrat MON14.4 d'aggro locale.
+Validation automatisée :
 
-Référence :
+```text
+Grimrock.Monsters.MON17.5.1    4/4 Success
+MON14 présent dans la campagne 19/19 Success
+Campagne complète              198/198 Success
+```
+
+Validation PIE de production : deux `MON_GoblinThrower` dans `Encounter_GoblinThrowers_01`; `ExplorationAlert Range=5 Alerted=1`, puis démarrage automatique `Reason=PatrolVision`; les deux Gobelins rejoignent l'initiative et exécutent `Attack_ThrowKnife` via le pipeline `ProjectileSource`.
+
+Références :
 
 ```text
 docs/Design/MON17_5_1_GOBLIN_EXPLORATION_INTEGRATION.md
+docs/Design/MON17_5_CLOSURE.md
+```
+
+## MON17.6 — EN COURS
+
+Objectif : prouver que le Gobelin lanceur utilise les contrats existants d'encounter, loot et XP sans logique spécifique : groupes/vagues MON13, mort exactement une fois, loot data-driven MON8, récompense `ExperienceReward=125` MON15 et persistance associée.
+
+La validation doit couvrir au minimum :
+
+```text
+EncounterGroup / wave participation
+MonsterDied exactly once
+LootTable Gobelin
+XP = 125 appliquée exactement une fois
+Victory / occupancy release
+Save/Continue sans duplication de loot/XP
 ```
 
 ---
@@ -491,5 +521,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.5.1 — Goblin Exploration Integration Contract
+MON17.6 — Encounter / Loot / XP Integration
 ```
