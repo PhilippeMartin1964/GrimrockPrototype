@@ -142,8 +142,8 @@ Sous-jalons :
 MON17.1 — Definition / Assets / Spawn Contract          CLOS
 MON17.2 — Skeletal Mesh / Skeleton / AnimBP             CLOS
 MON17.3 — Distinct Attack Set                            CLOS
-MON17.4 — Distinct AI Profile — RangedKeeper            EN COURS
-MON17.5 — Patrol / Perception / Alarm Integration       À FAIRE
+MON17.4 — Distinct AI Profile — RangedKeeper            CLOS
+MON17.5 — Patrol / Perception / Alarm Integration       EN COURS
 MON17.6 — Encounter / Loot / XP Integration             À FAIRE
 MON17.7 — Balance / Closure                              À FAIRE
 ```
@@ -273,11 +273,11 @@ docs/Design/MON17_3_3_THROW_PRESENTATION.md
 docs/Design/MON17_3_4_MONSTER_ATTACK_COOLDOWN.md
 ```
 
-## MON17.4 — EN COURS
+## MON17.4 — CLOS
 
-Objectif autoritaire : faire de `RangedKeeper` un profil tactiquement distinct sans remettre en cause le pipeline d'attaque validé en MON17.3.
+`MON17.4 — Distinct AI Profile — RangedKeeper` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Le comportement attendu devient :
+Le profil possède désormais un comportement tactiquement distinct :
 
 ```text
 perception
@@ -286,10 +286,63 @@ perception
 → sinon rechercher une case de tir valide
 → maintenir PreferredMinDistance..PreferredMaxDistance
 → reculer/repositionner si le groupe est trop proche
+→ approcher si nécessaire
 → ne jamais charger inutilement au contact comme DirectMelee
 ```
 
-MON17.4 doit réutiliser `FGridMonsterPathfinder`, l'occupation de grille, la LOS et le TurnManager existants. Aucun second moteur d'IA parallèle ne doit être introduit.
+Contrat du Gobelin :
+
+```text
+PreferredMinDistance = 3
+PreferredMaxDistance = 5
+ThrowKnife range      = 2..6
+AP                     = 3
+Move                   = 1 AP
+ThrowKnife             = 2 AP
+```
+
+Validation :
+
+```text
+Grimrock.Monsters.MON17.4.1     3/3 Success
+MON17.3 + MON6 regressions       13/13 Success
+Campagne exécutée                16/16 Success
+PIE courte portée                VALIDÉ
+PIE distance préférée            VALIDÉ
+Approche multi-tour depuis loin  VALIDÉE en Automation
+```
+
+Référence :
+
+```text
+docs/Design/MON17_4_1_RANGED_KEEPER_POSITIONING.md
+```
+
+## MON17.5 — EN COURS
+
+Objectif : prouver que le Gobelin `RangedKeeper` utilise sans fork spécifique les systèmes MON14 de patrouille, perception directionnelle, investigation, engagement automatique et alarme locale.
+
+Première étape :
+
+```text
+MON17.5.1 — Goblin Exploration Integration Contract
+```
+
+La suite dédiée vérifie :
+
+- patrouille `Loop` avec un Gobelin `RangedKeeper` ;
+- vision directionnelle et ouïe omnidirectionnelle ;
+- réveil/investigation d'un allié Gobelin par alarme ;
+- handoff visuel vers l'activité `Engaging` ;
+- absence de démarrage de combat sur ouïe/alarme seule.
+
+Aucun nouveau moteur d'IA n'est introduit : MON17.5 réutilise `UGridMonsterBehaviorComponent`, `UGridMonsterPatrolSubsystem`, `UGridAutomaticPerceptionEngagementSubsystem` et le contrat MON14.4 d'aggro locale.
+
+Référence :
+
+```text
+docs/Design/MON17_5_1_GOBLIN_EXPLORATION_INTEGRATION.md
+```
 
 ---
 
@@ -438,5 +491,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.4 — Distinct AI Profile — RangedKeeper
+MON17.5.1 — Goblin Exploration Integration Contract
 ```
