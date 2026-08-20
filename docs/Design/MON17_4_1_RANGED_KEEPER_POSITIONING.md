@@ -1,6 +1,6 @@
 # MON17.4.1 — RangedKeeper Preferred Firing Position
 
-Statut : **IMPLÉMENTÉ — compilation et validation UE5.5.4 à faire**
+Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — régressions et PIE tactique restant avant clôture**
 
 ## Objectif
 
@@ -162,7 +162,21 @@ Vérifie :
 - un chemin de deux cellules avec seulement 3 AP produit les deux Moves mais pas un tir prématuré ;
 - un cooldown peut empêcher l'attaque sans empêcher le repositionnement.
 
-## Validation PIE demandée après Automation
+## Validation Automation UE5.5.4 — 20 août 2026
+
+Résultat fourni par l'utilisateur : **3/3 Success**.
+
+```text
+MultiTurnApproach          Success
+PreferredFiringCandidates  Success
+RepositionThenAttack       Success
+```
+
+La logique pure de MON17.4.1 est donc validée : génération des positions préférées, approche multi-tour et séquence `Move + RangedAttack` avec budget PA.
+
+Il reste à vérifier que l'intégration runtime n'a pas régressé les contrats MON17.3/MON6, puis à confirmer le comportement tactique en PIE.
+
+## Validation PIE demandée après régressions
 
 Cas A — trop près :
 
@@ -192,9 +206,13 @@ Cas C — bonne distance :
 
 ## Porte de sortie
 
-MON17.4.1 pourra être marqué validé lorsque :
+État au 20 août 2026 :
 
-1. le projet compile sous UE5.5.4 ;
-2. `Grimrock.Monsters.MON17.4.1` est vert ;
-3. les régressions MON17.3 restent vertes ;
-4. un PIE confirme recul/approche/bande préférée sans casser le lancer validé.
+```text
+1. Compilation UE5.5.4                 VALIDÉE
+2. Grimrock.Monsters.MON17.4.1         3/3 Success
+3. Régressions MON17.3 + MON6          À VALIDER
+4. PIE tactique RangedKeeper           À VALIDER
+```
+
+MON17.4.1 sera marqué **VALIDÉ / CLOS** après les régressions et le PIE tactique sans régression du lancer MON17.3.
