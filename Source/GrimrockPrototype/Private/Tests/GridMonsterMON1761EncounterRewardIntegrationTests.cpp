@@ -12,6 +12,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
+#include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterDeathComponent.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterLootResolver.h"
@@ -324,6 +325,19 @@ namespace
         {
             Monster->Destroy ();
             return nullptr;
+        }
+
+        UGridMonsterBehaviorComponent* Behavior =
+            Monster->FindComponentByClass<UGridMonsterBehaviorComponent> ();
+        if (!Behavior)
+        {
+            Behavior = NewObject<UGridMonsterBehaviorComponent> (
+                Monster,
+                TEXT ("MON176Behavior"));
+            Behavior->bAutoInitialize = false;
+            Behavior->bRefreshPerceptionOnBeginPlay = false;
+            Monster->AddInstanceComponent (Behavior);
+            Behavior->RegisterComponent ();
         }
 
         if (Monster->DeathComponent)
@@ -686,6 +700,8 @@ bool FGridMonsterMON1761PersistenceNoReplayTest::RunTest (
 
     Runtime->DungeonRuntimeState = LoadedSave->DungeonRuntimeState;
     Runtime->RebuildLevel ();
+    TestTrue (TEXT ("Continue applies persisted runtime state"),
+        Runtime->ApplyCurrentLevelRuntimeState ());
     AGridMonsterActor* RestoredMonster =
         Runtime->FindSpawnedMonsterActor (SpawnId);
     if (!TestNotNull (TEXT ("Continue restores the Goblin placement"), RestoredMonster) ||
