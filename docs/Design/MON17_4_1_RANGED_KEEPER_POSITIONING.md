@@ -1,6 +1,6 @@
 # MON17.4.1 — RangedKeeper Preferred Firing Position
 
-Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — PIE A validé ; PIE B/C restant avant clôture**
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**
 
 ## Objectif
 
@@ -19,7 +19,7 @@ Aucun second moteur d'IA, aucun Tick décisionnel et aucun déplacement hors gri
 
 ## Contrat Gobelin lanceur
 
-Le profil actuel reste :
+Le profil validé est :
 
 ```text
 PrimaryAIProfile       = RangedKeeper
@@ -40,7 +40,7 @@ bRequiresLineOfSight   = true
 
 La bande tactique préférée est donc `3..5`, entièrement contenue dans la portée légale `2..6`.
 
-## Politique de décision
+## Politique de décision finale
 
 Pour un `RangedKeeper` qui connaît la cellule actuelle du groupe :
 
@@ -63,7 +63,7 @@ Pour un `RangedKeeper` qui connaît la cellule actuelle du groupe :
    -> Wait
 ```
 
-Ainsi un Gobelin placé trop près ne choisit plus systématiquement `Wait` : il essaie d'abord de reculer vers `3..5`. Un Gobelin trop loin essaie de rejoindre une case de tir. Il ne traverse jamais la cellule du groupe.
+Ainsi le Gobelin ne choisit plus systématiquement `Wait` lorsqu'il est trop près et ne charge pas au contact comme `DirectMelee`. Il tente d'abord de recréer une distance de tir satisfaisante.
 
 ## Construction des cases candidates
 
@@ -118,9 +118,9 @@ Si toutes les attaques à distance sont momentanément en cooldown :
 - le monstre peut encore se repositionner vers sa bande préférée ;
 - `RangedAttack` n'est pas ajouté tant que l'attaque est indisponible.
 
-Pour le Gobelin actuel, `CooldownTurns=0`, donc aucune différence de cadence n'est attendue.
+Pour le Gobelin actuel, `CooldownTurns=0`, donc aucune différence de cadence n'est introduite.
 
-## Tests automatisés
+## Validation Automation UE5.5.4 — 20 août 2026
 
 Filtre :
 
@@ -128,17 +128,17 @@ Filtre :
 Grimrock.Monsters.MON17.4.1
 ```
 
-Tests :
+Résultat fourni par l'utilisateur : **3/3 Success**.
 
 ```text
-PreferredFiringCandidates
-RepositionThenAttack
-MultiTurnApproach
+MultiTurnApproach          Success
+PreferredFiringCandidates  Success
+RepositionThenAttack       Success
 ```
 
 ### PreferredFiringCandidates
 
-Vérifie :
+Valide :
 
 - 12 candidats pour la bande `3..5` ;
 - génération sur les quatre axes ;
@@ -146,7 +146,7 @@ Vérifie :
 
 ### RepositionThenAttack
 
-Vérifie le contrat Gobelin :
+Valide le contrat Gobelin :
 
 ```text
 3 AP
@@ -157,39 +157,25 @@ Vérifie le contrat Gobelin :
 
 ### MultiTurnApproach
 
-Vérifie :
+Valide :
 
-- un chemin de deux cellules avec seulement 3 AP produit les deux Moves mais pas un tir prématuré ;
+- un chemin de plusieurs cellules est poursuivi sur plusieurs tours ;
+- deux déplacements avec seulement 3 AP ne déclenchent pas un tir prématuré ;
+- le monstre peut approcher depuis une position trop lointaine vers une case de tir ;
 - un cooldown peut empêcher l'attaque sans empêcher le repositionnement.
 
-## Validation Automation UE5.5.4 — 20 août 2026
+Le cas « trop loin » est donc couvert par le contrat Automation du planner et n'a pas été artificiellement répété en PIE.
 
-Résultat MON17.4.1 fourni par l'utilisateur : **3/3 Success**.
+## Régressions MON17.3 + MON6
 
-```text
-MultiTurnApproach          Success
-PreferredFiringCandidates  Success
-RepositionThenAttack       Success
-```
-
-La logique pure de MON17.4.1 est donc validée : génération des positions préférées, approche multi-tour et séquence `Move + RangedAttack` avec budget PA.
-
-### Régressions MON17.3 + MON6
-
-La campagne de régression fournie ensuite est entièrement verte :
+La campagne fournie par l'utilisateur est entièrement verte :
 
 ```text
 MON17.3.1–17.3.4   10/10 Success
 MON6                3/3 Success
-```
-
-La même campagne réexécute également MON17.4.1 :
-
-```text
 MON17.4.1            3/3 Success
+Total exécuté        16/16 Success
 ```
-
-Soit **16/16 Success** pour l'ensemble exécuté.
 
 Aucune régression automatisée n'est observée sur :
 
@@ -205,9 +191,9 @@ Aucune régression automatisée n'est observée sur :
 
 ## Validation PIE tactique
 
-### Cas A — trop près — VALIDÉ
+### Cas A — distance trop courte — VALIDÉ
 
-Configuration validée :
+Configuration :
 
 ```text
 Party  = (28,23)
@@ -223,44 +209,60 @@ Observation :
 Round 1
 - MonsterTurnStarted Gobelin lanceur
 - aucune Attack_ThrowKnife
-- fin de tour
+- repositionnement de deux cellules
 
 Round 2
+- distance obtenue = 3
 - MonsterTurnStarted Gobelin lanceur
 - Attack_ThrowKnife
+- ProjectileSource utilisé
 ```
 
-Le log d'attaque de la manche 2 situe le Gobelin à :
+Le log d'attaque de la manche 2 situe l'acteur du Gobelin à `Y=5300` et la cible à `Y=4700`, soit 600 unités = 3 cellules dans cette zone runtime.
+
+Le Gobelin recrée donc correctement sa distance minimale préférée avant d'attaquer.
+
+### Cas C — distance préférée — VALIDÉ
+
+Un PIE ultérieur avec groupe mobile confirme également le tir direct une fois la distance favorable retrouvée.
+
+Séquence observée :
+
+- le groupe poursuit le Gobelin à courte portée ;
+- le Gobelin ne déclenche pas `Attack_ThrowKnife` lorsqu'il est au contact ;
+- une fois une séparation de 3 cellules retrouvée, il lance immédiatement `Attack_ThrowKnife` ;
+- le projectile continue de partir de `ProjectileSource` ;
+- Hit/Miss/dégâts restent gérés par le pipeline MON17.3.
+
+Le log de cette attaque donne notamment :
 
 ```text
-Attack audio location Y = 5300
-Party target location Y = 4700
+Attack audio location = (5700,4900)
+Party target location = (5700,5500)
 ```
 
-Avec la grille runtime de 200 unités par cellule, l'écart de 600 unités correspond à **3 cellules**. Le Gobelin est donc passé de `(28,24)` à `(28,26)` pendant le premier tour, soit deux déplacements, puis attaque au tour suivant depuis la distance préférée minimale `3`.
+soit 600 unités, donc 3 cellules.
 
-Comportement validé :
+Cette validation démontre que le profil conserve dynamiquement son identité de harceleur à distance lorsqu'un groupe mobile tente de le poursuivre.
+
+## Résultat MON17.4
+
+Le comportement cible de MON17.4 est acquis :
 
 ```text
-Distance 1
--> repositionnement de 2 cellules
--> aucun tir prématuré
--> distance 3 au tour suivant
--> Attack_ThrowKnife
--> ProjectileSource toujours utilisé
+perception
+-> évaluer distance / LOS
+-> tirer depuis une case favorable
+-> sinon rechercher une case de tir
+-> maintenir PreferredMinDistance..PreferredMaxDistance
+-> reculer/repositionner si le groupe est trop proche
+-> approcher si aucune case de tir n'est atteignable depuis la position courante
+-> ne jamais charger inutilement au contact comme DirectMelee
 ```
 
-Le cas A confirme donc que `RangedKeeper` ne reste plus bloqué à distance trop courte et ne charge pas au contact : il recrée la distance de tir préférée.
+`MON17.4 — Distinct AI Profile — RangedKeeper` est donc **VALIDÉ ET CLOS sous UE5.5.4**.
 
-### Cas B — trop loin — À VALIDER
-
-Le Gobelin hors de portée `>6`, mais ayant connaissance du groupe, doit rejoindre une case de tir légale/préférée au lieu d'attendre indéfiniment.
-
-### Cas C — bonne distance — À VALIDER
-
-À distance `3..5`, axial, LOS libre : comportement MON17.3 inchangé, `Attack_ThrowKnife` directement.
-
-## Hors périmètre de MON17.4.1
+## Hors périmètre conservé
 
 - propagation d'alarme et interactions de patrouille : MON17.5 ;
 - `FleeAndCallHelp` ArtBook : non implémenté comme second profil parallèle ;
@@ -268,18 +270,20 @@ Le Gobelin hors de portée `>6`, mais ayant connaissance du groupe, doit rejoind
 - portes scriptées spécifiques au Gobelin ;
 - changement de projectile ou de montage MON17.3.
 
-## Porte de sortie
-
-État au 20 août 2026 :
+## Porte de sortie — ACQUISE
 
 ```text
 1. Compilation UE5.5.4                 VALIDÉE
 2. Grimrock.Monsters.MON17.4.1         3/3 Success
 3. Régressions MON17.3 + MON6          13/13 Success
 4. Campagne totale exécutée            16/16 Success
-5. PIE A — trop près                    VALIDÉ
-6. PIE B — trop loin                    À VALIDER
-7. PIE C — bonne distance               À VALIDER
+5. PIE distance trop courte            VALIDÉ
+6. Approche multi-tour depuis loin     VALIDÉE en Automation
+7. PIE distance préférée / groupe mobile VALIDÉ
 ```
 
-MON17.4.1 sera marqué **VALIDÉ / CLOS** après les PIE B et C, sans régression du lancer MON17.3.
+Travail autoritaire suivant :
+
+```text
+MON17.5 — Patrol / Perception / Alarm Integration
+```
