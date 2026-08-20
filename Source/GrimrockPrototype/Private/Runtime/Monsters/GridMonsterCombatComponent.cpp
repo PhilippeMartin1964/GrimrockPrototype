@@ -8,6 +8,8 @@
 #include "EngineUtils.h"
 #include "Runtime/Combat/GridCombatProjectileActor.h"
 #include "Runtime/Combat/GridCombatResolver.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -185,6 +187,14 @@ void UGridMonsterCombatComponent::BeginPlay ()
     {
         InitializeCombat (nullptr);
     }
+    RefreshTurnManagerBinding ();
+}
+
+void UGridMonsterCombatComponent::EndPlay (
+    const EEndPlayReason::Type EndPlayReason)
+{
+    UnbindTurnManagerEvents ();
+    Super::EndPlay (EndPlayReason);
 }
 
 bool UGridMonsterCombatComponent::InitializeCombat (AGrimrockPartyPawn* InPartyPawn)
@@ -206,6 +216,7 @@ bool UGridMonsterCombatComponent::InitializeCombat (AGrimrockPartyPawn* InPartyP
     OwnerMonster = CandidateOwner;
     PartyPawn = CandidateParty;
     bInitialized = true;
+    RefreshTurnManagerBinding ();
     return true;
 }
 
@@ -213,6 +224,9 @@ bool UGridMonsterCombatComponent::GetPreferredAttackForRange (
     int32 DistanceCells,
     FGridMonsterAttackDefinition& OutAttack) const
 {
+    const_cast<UGridMonsterCombatComponent*> (this)->
+        EnsureCurrentCombatTurnObserved ();
+
     OutAttack = FGridMonsterAttackDefinition ();
     if (DistanceCells <= 0 ||
         !IsValid (OwnerMonster) ||
@@ -225,7 +239,9 @@ bool UGridMonsterCombatComponent::GetPreferredAttackForRange (
     for (const FGridMonsterAttackDefinition& Attack :
         OwnerMonster->MonsterDefinition->Attacks)
     {
-        if (!Attack.IsValidDefinition () || !Attack.SupportsDistance (DistanceCells))
+        if (!Attack.IsValidDefinition () ||
+            !Attack.SupportsDistance (DistanceCells) ||
+            !AttackCooldownState.IsAttackAvailable (Attack))
         {
             continue;
         }
@@ -273,6 +289,18 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack (
     OutResult = FGridAttackResult ();
     if (!bInitialized && !InitializeCombat (nullptr))
     {
+        return false;
+    }
+
+    EnsureCurrentCombatTurnObserved ();
+    if (AttackCooldownState.IsOnCooldown (Attack.AttackId))
+    {
+        UE_LOG (
+            LogGridMonsterCombat,
+            Warning,
+            TEXT ("[GridMonsterCooldown] Attack rejected Monster=%s Attack=%s Reason=Cooldown"),
+            *GetNameSafe (OwnerMonster),
+            *Attack.AttackId.ToString ());
         return false;
     }
 
@@ -350,6 +378,18 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack (
     LastTargetCharacterIndex = TargetCharacterIndex;
     LastAttackResult = OutResult;
 
+    if (AttackCooldownState.CommitAttack (Attack))
+    {
+        UE_LOG (
+            LogGridMonsterCombat,
+            Verbose,
+            TEXT ("[GridMonsterCooldown] Started Monster=%s Attack=%s CooldownTurns=%d TurnSerial=%d"),
+            *GetNameSafe (OwnerMonster),
+            *Attack.AttackId.ToString (),
+            Attack.CooldownTurns,
+            AttackCooldownState.GetCurrentTurnSerial ());
+    }
+
     UE_LOG (LogGridMonsterCombat, Log,
         TEXT ("[GridMonsterCombat] Attack Monster=%s Attack=%s Target=%d Name=%s Natural=%d Total=%d Defense=%d Hit=%s Critical=%s Raw=%d ArmorPhysical=%d ArmorMagical=%d Health=%d HP=%d->%d"),
         *GetNameSafe (OwnerMonster),
@@ -375,11 +415,13 @@ bool UGridMonsterCombatComponent::StartAttackPresentation (
     const FGridCombatAction& Action,
     const FGridMonsterAttackDefinition& Attack)
 {
+    EnsureCurrentCombatTurnObserved ();
     if ((!bInitialized && !InitializeCombat (nullptr)) ||
         !IsValid (OwnerMonster) ||
         OwnerMonster->IsDead () ||
         bAttackPresentationActive ||
-        !Attack.IsValidDefinition ())
+        !Attack.IsValidDefinition () ||
+        AttackCooldownState.IsOnCooldown (Attack.AttackId))
     {
         return false;
     }
@@ -515,7 +557,7 @@ void UGridMonsterCombatComponent::CancelAttackPresentation ()
 void UGridMonsterCombatComponent::LogCombatState () const
 {
     UE_LOG (LogGridMonsterCombat, Log,
-        TEXT ("[GridMonsterCombat] Initialized=%s Owner=%s Party=%s Active=%s Attack=%s Target=%d Hit=%s Damage=%d"),
+        TEXT ("[GridMonsterCombat] Initialized=%s Owner=%s Party=%s Active=%s Attack=%s Target=%d Hit=%s Damage=%d CooldownTurn=%d"),
         bInitialized ? TEXT ("true") : TEXT ("false"),
         *GetNameSafe (OwnerMonster),
         *GetNameSafe (PartyPawn),
@@ -523,7 +565,122 @@ void UGridMonsterCombatComponent::LogCombatState () const
         *LastAttackId.ToString (),
         LastTargetCharacterIndex,
         LastAttackResult.bHit ? TEXT ("true") : TEXT ("false"),
-        LastAttackResult.GetTotalAppliedDamage ());
+        LastAttackResult.GetTotalAppliedDamage (),
+        AttackCooldownState.GetCurrentTurnSerial ());
+}
+
+void UGridMonsterCombatComponent::ResetAttackCooldowns ()
+{
+    AttackCooldownState.Reset ();
+    LastObservedCombatRound = INDEX_NONE;
+}
+
+void UGridMonsterCombatComponent::RefreshTurnManagerBinding ()
+{
+    UGridTurnManagerComponent* CandidateTurnManager = nullptr;
+    if (UWorld* World = GetWorld ())
+    {
+        for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
+        {
+            if (UGridTurnManagerComponent* TurnManager =
+                It->FindComponentByClass<UGridTurnManagerComponent> ())
+            {
+                CandidateTurnManager = TurnManager;
+                break;
+            }
+        }
+    }
+
+    if (BoundTurnManager == CandidateTurnManager)
+    {
+        return;
+    }
+
+    UnbindTurnManagerEvents ();
+    BoundTurnManager = CandidateTurnManager;
+    if (!IsValid (BoundTurnManager))
+    {
+        return;
+    }
+
+    BoundTurnManager->OnMonsterTurnStarted.AddUniqueDynamic (
+        this,
+        &UGridMonsterCombatComponent::HandleMonsterTurnStarted);
+    BoundTurnManager->OnPhaseChanged.AddUniqueDynamic (
+        this,
+        &UGridMonsterCombatComponent::HandleCombatPhaseChanged);
+}
+
+void UGridMonsterCombatComponent::UnbindTurnManagerEvents ()
+{
+    if (IsValid (BoundTurnManager))
+    {
+        BoundTurnManager->OnMonsterTurnStarted.RemoveDynamic (
+            this,
+            &UGridMonsterCombatComponent::HandleMonsterTurnStarted);
+        BoundTurnManager->OnPhaseChanged.RemoveDynamic (
+            this,
+            &UGridMonsterCombatComponent::HandleCombatPhaseChanged);
+    }
+    BoundTurnManager = nullptr;
+}
+
+void UGridMonsterCombatComponent::EnsureCurrentCombatTurnObserved ()
+{
+    RefreshTurnManagerBinding ();
+    if (IsValid (BoundTurnManager) &&
+        BoundTurnManager->bCombatActive &&
+        BoundTurnManager->CurrentMonster == OwnerMonster)
+    {
+        ObserveCombatTurn (BoundTurnManager->RoundNumber);
+    }
+}
+
+void UGridMonsterCombatComponent::ObserveCombatTurn (int32 RoundNumber)
+{
+    if (RoundNumber <= 0 || LastObservedCombatRound == RoundNumber)
+    {
+        return;
+    }
+
+    if (LastObservedCombatRound != INDEX_NONE &&
+        RoundNumber < LastObservedCombatRound)
+    {
+        ResetAttackCooldowns ();
+    }
+
+    AttackCooldownState.BeginTurn ();
+    LastObservedCombatRound = RoundNumber;
+
+    UE_LOG (
+        LogGridMonsterCombat,
+        Verbose,
+        TEXT ("[GridMonsterCooldown] Turn Monster=%s Round=%d Serial=%d"),
+        *GetNameSafe (OwnerMonster),
+        RoundNumber,
+        AttackCooldownState.GetCurrentTurnSerial ());
+}
+
+void UGridMonsterCombatComponent::HandleMonsterTurnStarted (
+    AGridMonsterActor* Monster)
+{
+    if (Monster != OwnerMonster || !IsValid (BoundTurnManager))
+    {
+        return;
+    }
+    ObserveCombatTurn (BoundTurnManager->RoundNumber);
+}
+
+void UGridMonsterCombatComponent::HandleCombatPhaseChanged (
+    EGridCombatPhase NewPhase)
+{
+    if (NewPhase == EGridCombatPhase::StartingCombat ||
+        NewPhase == EGridCombatPhase::Exploration ||
+        NewPhase == EGridCombatPhase::Victory ||
+        NewPhase == EGridCombatPhase::Defeat)
+    {
+        ResetAttackCooldowns ();
+    }
 }
 
 AGrimrockPartyPawn* UGridMonsterCombatComponent::FindPartyPawn () const

@@ -8,8 +8,86 @@
 
 class AGridMonsterActor;
 class AGrimrockPartyPawn;
+class UGridTurnManagerComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE (FGridMonsterCombatNotifySignature);
+
+/**
+ * Runtime-only per-monster attack cooldown state.
+ *
+ * CooldownTurns counts subsequent activations. For CooldownTurns=2, an
+ * attack used on turn N is unavailable on N+1 and N+2, then available on N+3.
+ */
+class GRIMROCKPROTOTYPE_API FGridMonsterAttackCooldownState
+{
+public:
+    void Reset ()
+    {
+        CurrentTurnSerial = 0;
+        UnavailableThroughTurnSerial.Reset ();
+    }
+
+    void BeginTurn ()
+    {
+        ++CurrentTurnSerial;
+        for (auto It = UnavailableThroughTurnSerial.CreateIterator (); It; ++It)
+        {
+            if (It.Value () < CurrentTurnSerial)
+            {
+                It.RemoveCurrent ();
+            }
+        }
+    }
+
+    bool IsOnCooldown (FName AttackId) const
+    {
+        if (AttackId.IsNone () || CurrentTurnSerial <= 0)
+        {
+            return false;
+        }
+
+        const int32* UnavailableThrough =
+            UnavailableThroughTurnSerial.Find (AttackId);
+        return UnavailableThrough &&
+            CurrentTurnSerial <= *UnavailableThrough;
+    }
+
+    bool IsAttackAvailable (
+        const FGridMonsterAttackDefinition& Attack) const
+    {
+        return !IsOnCooldown (Attack.AttackId);
+    }
+
+    bool CommitAttack (
+        const FGridMonsterAttackDefinition& Attack)
+    {
+        if (Attack.AttackId.IsNone () || CurrentTurnSerial <= 0)
+        {
+            return false;
+        }
+
+        const int32 CooldownTurns = FMath::Max (0, Attack.CooldownTurns);
+        if (CooldownTurns <= 0)
+        {
+            UnavailableThroughTurnSerial.Remove (Attack.AttackId);
+            return false;
+        }
+
+        UnavailableThroughTurnSerial.Add (
+            Attack.AttackId,
+            CurrentTurnSerial + CooldownTurns);
+        return true;
+    }
+
+    int32 GetCurrentTurnSerial () const
+    {
+        return CurrentTurnSerial;
+    }
+
+private:
+    int32 CurrentTurnSerial = 0;
+    TMap<FName, int32> UnavailableThroughTurnSerial;
+};
 
 /**
  * Runtime combat bridge owned by a grid monster.
@@ -26,6 +104,7 @@ public:
     UGridMonsterCombatComponent ();
 
     virtual void BeginPlay () override;
+    virtual void EndPlay (const EEndPlayReason::Type EndPlayReason) override;
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Combat")
     bool bAutoInitialize = true;
@@ -66,7 +145,7 @@ public:
     UFUNCTION (BlueprintPure, Category = "Monster|Combat")
     bool IsInitialized () const { return bInitialized; }
 
-    /** Returns the highest-priority valid attack whose authored range contains DistanceCells. */
+    /** Returns the highest-priority valid, off-cooldown attack for DistanceCells. */
     UFUNCTION (BlueprintCallable, Category = "Monster|Combat")
     bool GetPreferredAttackForRange (
         int32 DistanceCells,
@@ -75,6 +154,12 @@ public:
     /** Compatibility wrapper for existing contact planners. No attack id is hard-coded. */
     UFUNCTION (BlueprintCallable, Category = "Monster|Combat")
     bool GetPreferredMeleeAttack (FGridMonsterAttackDefinition& OutAttack) const;
+
+    UFUNCTION (BlueprintPure, Category = "Monster|Combat|Cooldown")
+    bool IsAttackOnCooldown (FName AttackId) const
+    {
+        return AttackCooldownState.IsOnCooldown (AttackId);
+    }
 
     int32 SelectPartyTarget (FRandomStream& RandomStream) const;
 
@@ -103,6 +188,23 @@ public:
 
 private:
     bool bInitialized = false;
+    FGridMonsterAttackCooldownState AttackCooldownState;
+    int32 LastObservedCombatRound = INDEX_NONE;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UGridTurnManagerComponent> BoundTurnManager = nullptr;
+
+    void ResetAttackCooldowns ();
+    void RefreshTurnManagerBinding ();
+    void UnbindTurnManagerEvents ();
+    void EnsureCurrentCombatTurnObserved ();
+    void ObserveCombatTurn (int32 RoundNumber);
+
+    UFUNCTION ()
+    void HandleMonsterTurnStarted (AGridMonsterActor* Monster);
+
+    UFUNCTION ()
+    void HandleCombatPhaseChanged (EGridCombatPhase NewPhase);
 
     AGrimrockPartyPawn* FindPartyPawn () const;
     static int32 GetResistancePercent (
