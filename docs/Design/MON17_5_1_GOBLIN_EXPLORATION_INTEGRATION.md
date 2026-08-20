@@ -1,6 +1,6 @@
 # MON17.5.1 — Goblin Thrower Exploration Integration Contract
 
-Statut : **IMPLÉMENTÉ — compilation et validation UE5.5.4 à faire**
+Statut : **VALIDÉ / CLOS sous UE5.5.4**
 
 ## Objectif
 
@@ -81,7 +81,7 @@ Un réveil par alarme ne déclenche pas à lui seul le combat.
 
 ## Tests automatisés
 
-Nouveau filtre :
+Filtre :
 
 ```text
 Grimrock.Monsters.MON17.5.1
@@ -184,31 +184,111 @@ ExplorationActivity = Engaging
 
 Le démarrage réel du combat reste différé vers `UGridAutomaticPerceptionEngagementSubsystem`, comme pour les autres monstres.
 
-Des PIE MON17 précédents ont déjà confirmé le handoff complet pour le Gobelin avec :
+## Validation UE5.5.4 — 20 août 2026
+
+La campagne complète fournie par l'utilisateur contient :
 
 ```text
-[MON14.1] Automatic combat started ... Reason=PatrolVision
+Tests terminés : 198
+Success         : 198
+Fail            : 0
 ```
 
-## Valeurs de production à décider après Automation
+### MON17.5.1
 
-MON17.5 ne doit pas imposer silencieusement des valeurs d'alarme au DataAsset.
-
-Après validation des tests, la configuration de production de `DA_MON_GoblinThrower` devra être arrêtée explicitement :
+Résultat : **4/4 Success**.
 
 ```text
-bSharesAggroWithGroup
-AggroPropagationRange
+DirectionalPerception      Success
+HearingAlarm               Success
+PatrolRangedKeeper         Success
+VisionEngagementHandoff    Success
 ```
 
-Le choix recommandé pour un garde Gobelin coordonné est :
+Le log `HearingAlarm` confirme également l'utilisation du pipeline MON14.4 :
+
+```text
+[MON14.4] ExplorationAlert
+Source=GridMonsterActor_0
+Group=GoblinAlarm_A
+Cell=(1,4)
+Range=2
+Alerted=1
+Reason=PerceptionHearing
+```
+
+### Régressions d'exploration MON14
+
+Tous les tests MON14 présents dans cette campagne sont verts :
+
+```text
+MON14.1    7/7 Success
+MON14.2    4/4 Success
+MON14.3    5/5 Success
+MON14.4    3/3 Success
+Total     19/19 Success
+```
+
+Les sous-systèmes directement réutilisés par MON17.5.1 sont donc couverts sans régression : patrouille, investigation, perception directionnelle, suspension combat et alarme locale.
+
+### Régressions MON17
+
+La même campagne confirme aussi :
+
+```text
+MON17.1                3/3 Success
+MON17.2                2/2 Success
+MON17.3.1–17.3.4      10/10 Success
+MON17.4.1              3/3 Success
+MON17.5.1              4/4 Success
+```
+
+### Intégration PIE déjà observée
+
+`Grimrock.Monsters.MON13.5.RealPIEIntegration` termine également en `Success` dans cette campagne.
+
+Le log PIE montre un Gobelin réel `MON_GoblinThrower` participant au handoff d'exploration vers le combat :
+
+```text
+[MON14.1] Automatic combat started
+Reason=PatrolVision
+```
+
+Puis le TurnManager démarre son tour :
+
+```text
+MonsterTurnStarted Message="Tour de Gobelin lanceur."
+Attack=Attack_ThrowKnife
+```
+
+Cela confirme que l'intégration d'exploration n'interrompt ni `RangedKeeper` ni le pipeline projectile MON17.3.
+
+## Warnings observés dans la campagne
+
+La campagne contient des warnings provenant de fixtures historiques de tests, notamment :
+
+- `MissingMonsterMovement` dans certains tests de mort ;
+- `PresentationWarning` sur des définitions synthétiques MON8 sans mesh/AnimBP ;
+- `Party=None` dans des tests MON9 d'ordre d'initialisation ;
+- rejets `InvalidClassDefinition` volontairement exercés par MON15 ;
+- un échec volontaire de placement de loot MON15.2 sans RuntimeActor.
+
+Ils n'entraînent aucun échec Automation et aucun de ces warnings n'est produit par les quatre tests MON17.5.1.
+
+## Valeurs de production à valider en PIE
+
+Le contrat étant validé, l'étape suivante peut fixer un comportement de groupe réel sur `DA_MON_GoblinThrower`.
+
+Valeur de départ retenue pour la validation de production :
 
 ```text
 bSharesAggroWithGroup = true
-AggroPropagationRange = 4 à 6 cellules
+AggroPropagationRange = 5
 ```
 
-La valeur finale sera fixée en fonction du scénario PIE et de l'équilibrage MON17.7.
+`5` est volontairement au milieu de la plage envisagée `4..6` et reste cohérent avec un Gobelin ayant `SightRangeCells=8` et `HearingRangeCells=4`.
+
+La valeur définitive restera révisable à l'équilibrage MON17.7.
 
 ## Hors périmètre
 
@@ -219,14 +299,17 @@ La valeur finale sera fixée en fonction du scénario PIE et de l'équilibrage M
 - logique de renforts inter-groupes ;
 - scripts de portes spécifiques au Gobelin.
 
-## Porte de sortie MON17.5.1
+## Porte de sortie MON17.5.1 — ACQUISE
 
 ```text
-1. Compilation UE5.5.4                              À VALIDER
-2. Grimrock.Monsters.MON17.5.1                     4/4 attendus
-3. Régressions MON14.3 / MON14.4                   À VALIDER
-4. PIE patrouille / vision Gobelin                  déjà partiellement acquis
-5. PIE alarme entre deux Gobelins                   à faire après Automation
+1. Compilation / exécution UE5.5.4                    VALIDÉE
+2. Grimrock.Monsters.MON17.5.1                       4/4 Success
+3. Régressions MON14.3 / MON14.4                     8/8 Success
+4. Régressions MON14 présentes dans la campagne     19/19 Success
+5. Campagne automatisée fournie                    198/198 Success
+6. Handoff Gobelin PatrolVision -> combat            OBSERVÉ EN PIE
 ```
 
-Si ces contrats sont verts, MON17.5 pourra passer à la validation de production du Gobelin dans une vraie route de patrouille et un vrai groupe d'alarme, sans modification architecturale supplémentaire.
+MON17.5.1 est donc **VALIDÉ / CLOS**.
+
+Étape suivante : **MON17.5.2 — validation PIE de production avec deux Gobelins, route de patrouille et groupe d'alarme réel**.
