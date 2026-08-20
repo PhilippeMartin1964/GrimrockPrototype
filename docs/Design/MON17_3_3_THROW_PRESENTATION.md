@@ -1,32 +1,20 @@
 # MON17.3.3 — Gobelin lanceur — Présentation de lancer
 
-Statut : **EN COURS — contrat socket/source validé en automation et PIE ; vrai projectile et animation/montage de lancer restants**
+Statut : **VALIDÉ / CLOS sous UE5.5.4**
 
 ## Objectif
 
-Améliorer la présentation de `Attack_ThrowKnife` sans modifier son gameplay : point de départ du projectile depuis un socket/offset authoré, synchronisation visuelle avec le geste de lancer, puis validation avec un vrai mesh de couteau.
+Finaliser la présentation de `Attack_ThrowKnife` sans modifier son gameplay : animation de lancer retargetée, montage runtime, départ du projectile depuis la paume droite et synchronisation visuelle avec l'impact autoritaire du combat.
 
 ## Frontière
 
-MON17.3.3 ne modifie ni portée, LOS, dégâts, coût PA, choix tactique de case, recul ou kiting. Ces règles restent respectivement dans les contrats MON17.3.1/17.3.2 et dans MON17.4 pour `RangedKeeper`.
+MON17.3.3 ne modifie ni portée, LOS, dégâts, coût PA, choix tactique de case, recul ou kiting. Ces règles restent respectivement dans MON17.3.1/17.3.2 et MON17.4 pour `RangedKeeper`.
 
-## État de départ validé
+La résolution Hit/Miss/dégâts reste autoritaire côté TurnManager / combat. Le projectile reste strictement presentation-only.
 
-MON17.3.2 est clos : le projectile générique est visible en PIE, le placeholder `SM_Bomb` est lancé avec `Attack_ThrowKnife`, et Hit/Miss/dégâts restent autoritaires côté combat.
+## Contrat C++ validé
 
-L'observation initiale « bombe brièvement visible au centre de l'écran » venait du contrat provisoire MON17.3.2 :
-
-```text
-Source = centre des bounds du SkeletalMesh du monstre
-Target = position monde du PartyPawn
-Travel = 0.20 s
-```
-
-MON17.3.3 améliore cette présentation sans changer la résolution combat.
-
-## Contrat C++ ajouté
-
-`FGridMonsterAttackDefinition` possède désormais :
+`FGridMonsterAttackDefinition` possède :
 
 ```text
 ProjectileSourceSocketName
@@ -40,27 +28,15 @@ ProjectileSourceSocketName = None
 ProjectileSourceOffset     = (0,0,0)
 ```
 
-Ces valeurs préservent le comportement MON17.3.2 des assets existants.
+Le runtime :
 
-### Résolution runtime
+1. utilise le socket authoré s'il existe sur le `USkeletalMeshComponent` ;
+2. applique `ProjectileSourceOffset` dans l'espace local du socket ;
+3. conserve le fallback centre-des-bounds si aucun socket n'est configuré ;
+4. émet un warning puis utilise le fallback si le socket configuré n'existe pas ;
+5. ne fait jamais dépendre portée, LOS, Hit/Miss, dégâts ou PA de ce socket.
 
-Pour une attaque projectile :
-
-1. si `ProjectileSourceSocketName` est renseigné et existe sur le `USkeletalMeshComponent`, sa transform monde est utilisée ;
-2. `ProjectileSourceOffset` est appliqué dans l'espace local de ce socket ;
-3. si le socket est `None`, le runtime conserve le centre des bounds comme base et applique l'offset dans l'orientation du mesh ;
-4. si un nom de socket est renseigné mais introuvable, un warning est émis et le fallback centre-des-bounds est utilisé ;
-5. si aucun SkeletalMeshComponent exploitable n'est disponible, le fallback est la transform de l'Actor.
-
-Log de lancement enrichi :
-
-```text
-[GridMonsterProjectile] Launched Monster=... Attack=... Travel=... SourceSocket=... Source=(...) Target=(...)
-```
-
-Le gameplay reste inchangé : le socket n'intervient jamais dans portée, LOS, Hit/Miss, dégâts ou PA.
-
-## Test automatisé
+## Validation automatisée
 
 Filtre :
 
@@ -74,95 +50,158 @@ Test :
 ProjectileSourceContract
 ```
 
-Il vérifie :
+Résultat local UE5.5.4 :
+
+```text
+ProjectileSourceContract  Success
+```
+
+Soit **1/1 Success**.
+
+Le test couvre :
 
 - compatibilité des anciennes définitions avec `Socket=None` ;
 - valeurs par défaut ;
 - acceptation d'un socket et d'un offset finis ;
 - rejet d'un offset non fini.
 
-### Validation locale UE5.5.4
+## Socket de projectile
 
-Exécution fournie par l'utilisateur le 19 août 2026 : **1/1 Success**.
+Le socket :
 
 ```text
-ProjectileSourceContract  Success
+ProjectileSource
 ```
 
-Le contrat C++ MON17.3.3 est donc validé sous UE5.5.4.
-
-## Validation PIE du socket de main
+est placé sur la paume de la main droite du Gobelin lanceur.
 
 Configuration validée :
 
 ```text
 Projectile Source Socket Name = ProjectileSource
 Projectile Source Offset      = (0,0,0)
-Projectile Visual Mesh        = SM_Bomb (placeholder)
-Projectile Travel Duration    = 0.20 s
 ```
 
-Le socket `ProjectileSource` est placé sur la main droite du Gobelin lanceur.
-
-Log PIE représentatif fourni le 19 août 2026 :
+Log PIE représentatif :
 
 ```text
 [GridMonsterProjectile] Launched Monster=BP_MON_GoblinThrower_C_1 Attack=Attack_ThrowKnife Travel=0.200 SourceSocket=ProjectileSource Source=(5727.2,4904.2,72.3) Target=(5700.0,4500.0,110.0)
 ```
 
-Validation visuelle fournie par l'utilisateur :
+Validation visuelle acquise :
 
 - `SourceSocket=ProjectileSource` est bien utilisé ;
+- le projectile part de la paume de la main droite ;
 - le projectile ne part plus du centre des bounds ;
-- le projectile part visuellement de la paume de la main droite ;
-- Hit/Miss et dégâts continuent à être résolus normalement après le lancement.
+- Hit/Miss et dégâts restent indépendants de la présentation.
 
-La partie **source/socket de MON17.3.3 est donc VALIDÉE**.
+## Animation de lancer — Mixamo / IK Retargeter
 
-## Animation / montage — étape restante
+Le pack source `Goblin_Bomber` ne fournissant aucune animation de lancer exploitable, l'animation `Throw` de Mixamo a été utilisée puis retargetée sous UE5.5.4.
 
-Le dépôt ne contient actuellement sous `GoblinThrower/Animation` que :
-
-```text
-ABP_MON_GoblinThrower
-A_GoblinThrower_Idle
-A_GoblinThrower_Walk
-```
-
-Le montage/animation de lancer final doit encore être ajouté depuis les assets source dans UE5.5.4, puis référencé par `AttackMontage`.
-
-Le pipeline existant possède déjà les données de temporisation suivantes :
+Pipeline validé :
 
 ```text
-ExpectedDuration
-ImpactTimeSeconds
-ProjectileTravelDuration
-AttackMontage
+Import source Mixamo
+        ↓
+IK_Mixamo
+        ↓
+IK_GoblinThrower
+        ↓
+RTG_Mixamo_To_GoblinThrower
+        ↓
+Retarget Pose Goblin_Mixamo_TPose
+        ↓
+A_GoblinThrower_ThrowKnife
+        ↓
+AM_GoblinThrower_ThrowKnife
+        ↓
+Slot montage dans ABP_MON_GoblinThrower
+        ↓
+DA_MON_GoblinThrower.Attack_ThrowKnife.AttackMontage
 ```
 
-Le projectile visuel est programmé de manière à arriver au moment `ImpactTimeSeconds` :
+Éléments validés :
+
+- import source Mixamo ;
+- `IK_Mixamo` ;
+- `IK_GoblinThrower` ;
+- `RTG_Mixamo_To_GoblinThrower` ;
+- Retarget Pose `Goblin_Mixamo_TPose` ;
+- `A_GoblinThrower_ThrowKnife` ;
+- `AM_GoblinThrower_ThrowKnife` ;
+- Slot montage dans `ABP_MON_GoblinThrower` ;
+- `Attack_ThrowKnife.AttackMontage` affecté ;
+- animation complète visible en PIE ;
+- pas de dépendance de gameplay au squelette Mixamo ;
+- déplacement du Gobelin toujours grid-authoritative / in-place.
+
+## Synchronisation finale validée
+
+Réglages :
+
+```text
+ExpectedDuration          = 2.20 s
+ImpactTimeSeconds         = 1.00 s
+ProjectileTravelDuration  = 0.20 s
+```
+
+Le runtime calcule :
 
 ```text
 LaunchDelay = max(0, ImpactTimeSeconds - ProjectileTravelDuration)
+            = 1.00 - 0.20
+            = 0.80 s
 ```
 
-La prochaine étape doit donc :
+Chronologie validée :
 
-1. choisir/importer l'animation de lancer du Gobelin ;
-2. créer un montage dédié ;
-3. affecter ce montage à `Attack_ThrowKnife.AttackMontage` ;
-4. régler `ExpectedDuration`, `ImpactTimeSeconds` et `ProjectileTravelDuration` pour que le projectile quitte la paume au moment visuel du lâcher ;
-5. remplacer `SM_Bomb` par le vrai mesh de couteau ;
-6. régler `ProjectileVisualScale` et `ProjectileRotationOffset` ;
-7. valider en PIE le geste, le départ de la main, le trajet, l'impact et le retour à l'état normal.
+```text
+t=0.00  début du montage de lancer
+t≈0.80  lancement visuel depuis ProjectileSource / paume droite
+t≈1.00  arrivée visuelle prévue + impact combat autoritaire
+t≈2.20  fin de la présentation / action
+```
 
-MON17.3.3 ne sera clos qu'après cette validation visuelle finale.
+La synchronisation visuelle a été jugée satisfaisante en PIE.
 
-## Hors périmètre
+## Résultat final MON17.3.3
 
-- modification de portée ou LOS ;
-- dégâts / critique ;
-- dépense PA ;
-- `RangedKeeper`, recul ou kiting ;
-- cooldown runtime, traité en MON17.3.4 ;
-- arc balistique ou spin avancé, sauf besoin visuel constaté après le vrai couteau.
+MON17.3.3 est **VALIDÉ / CLOS** avec :
+
+```text
+A_GoblinThrower_ThrowKnife
+AM_GoblinThrower_ThrowKnife
+ProjectileSource
+ExpectedDuration          = 2.20 s
+ImpactTimeSeconds         = 1.00 s
+ProjectileTravelDuration  = 0.20 s
+LaunchDelay               ≈ 0.80 s
+```
+
+Le Gobelin lanceur dispose maintenant d'une présentation complète et distincte du Rat Géant : geste de lancer, montage, projectile lancé depuis la main droite et résolution combat toujours séparée de la présentation.
+
+## Étape suivante
+
+MON17.3.4 doit traiter uniquement ce qui reste au jalon `Distinct Attack Set` :
+
+- contrat runtime de `CooldownTurns` ;
+- tests avec cooldown non nul synthétique ;
+- régressions MON17.1 / MON17.2 / MON17.3 ;
+- vérification des pipelines de combat antérieurs pertinents ;
+- clôture de MON17.3.
+
+Pour `Attack_ThrowKnife`, la valeur actuelle reste :
+
+```text
+CooldownTurns = 0
+```
+
+Le cooldown ne doit donc pas modifier le comportement actuel du Gobelin tant qu'une valeur non nulle n'est pas authorée.
+
+## Hors périmètre transféré
+
+- `RangedKeeper`, recherche de distance, recul et kiting : MON17.4 ;
+- Patrol / Perception / Alarm : MON17.5 ;
+- Encounter / Loot / XP : MON17.6 ;
+- équilibrage final MON17 : MON17.7.
