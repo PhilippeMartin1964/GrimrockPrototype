@@ -1,6 +1,6 @@
 # MON17.6.1 — Goblin Encounter / Reward Integration Contract
 
-Statut : **IMPLÉMENTÉ — compilation et validation UE5.5.4 à faire**
+Statut : **AUTOMATION VALIDÉE sous UE5.5.4 — régressions ciblées à faire**
 
 ## Objectif
 
@@ -159,12 +159,13 @@ mort
 → LoadGameFromMemory
 → DungeonRuntimeState restauré
 → RebuildLevel
+→ ApplyCurrentLevelRuntimeState
 → Gobelin restauré Dead
 → bDeathCommitted restauré
 → nouvelle MarkDead
 ```
 
-Résultat attendu :
+Résultat attendu et validé :
 
 ```text
 XP reste 125
@@ -172,11 +173,35 @@ Items reste 1
 aucun replay de récompense
 ```
 
+## Validation UE5.5.4
+
+Après correction de deux fixtures de test (`MonsterBehavior` manquant dans la fixture combat et `ApplyCurrentLevelRuntimeState()` manquant dans la simulation de Continue), la suite complète a été exécutée avec succès :
+
+```text
+Grimrock.Monsters.MON17.6.1.DeathRewardsExactlyOnce      Success
+Grimrock.Monsters.MON17.6.1.EncounterWaveParticipation  Success
+Grimrock.Monsters.MON17.6.1.PersistenceNoReplay          Success
+Grimrock.Monsters.MON17.6.1.ProductionRewardContract    Success
+
+MON17.6.1 = 4/4 Success
+```
+
+Le run valide notamment :
+
+```text
+Victory sur la dernière mort
+3 loots indépendants, Failed=0
+XP Gobelin = 125 exactement une fois
+Encounter 2 vagues = 3 Gobelins = 375 XP
+Save/Continue restaure le Gobelin Dead et Items=1
+aucune duplication XP / loot après restore
+```
+
 ## Porte de sortie MON17.6.1
 
 ```text
-1. Compilation UE5.5.4                         À VALIDER
-2. Grimrock.Monsters.MON17.6.1                4/4 attendus
+1. Compilation UE5.5.4                         VALIDÉE
+2. Grimrock.Monsters.MON17.6.1                4/4 SUCCESS
 3. Grimrock.Monsters.MON13.4                  régression à valider
 4. Grimrock.Monsters.MON8                     régression à valider
 5. Grimrock.RPG.MON15.2                       régression à valider
@@ -184,7 +209,7 @@ aucun replay de récompense
 
 ## Étape production après Automation
 
-Après validation, créer dans l'éditeur les deux définitions d'objets manquantes correspondant au Bestiaire :
+Après validation des régressions, créer dans l'éditeur les deux définitions d'objets manquantes correspondant au Bestiaire :
 
 ```text
 couteau Gobelin
