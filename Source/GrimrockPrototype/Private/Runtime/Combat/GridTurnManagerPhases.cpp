@@ -14,6 +14,7 @@
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 #include "Runtime/Monsters/GridMonsterPathfinder.h"
 #include "Runtime/Monsters/GridMonsterRangedAttackPlanner.h"
+#include "Runtime/Monsters/GridMonsterRangedKeeperPlanner.h"
 
 namespace
 {
@@ -206,6 +207,403 @@ namespace
             Candidate.bIsCulDeSac = Candidate.ExitCount <= 1;
             OutCandidates.Add (Candidate);
         }
+    }
+
+    bool MON174SelectRangedKeeperAttack (
+        const UGridMonsterDefinitionAsset* Definition,
+        const UGridMonsterCombatComponent* CombatComponent,
+        FGridMonsterAttackDefinition& OutAttack,
+        bool& OutMayAttackThisTurn)
+    {
+        OutAttack = FGridMonsterAttackDefinition ();
+        OutMayAttackThisTurn = false;
+        if (!IsValid (Definition) || !IsValid (CombatComponent))
+        {
+            return false;
+        }
+
+        const FGridMonsterAttackDefinition* BestAvailable = nullptr;
+        const FGridMonsterAttackDefinition* BestAuthored = nullptr;
+        for (const FGridMonsterAttackDefinition& Attack : Definition->Attacks)
+        {
+            if (!Attack.IsValidDefinition () || !Attack.IsRangedAttack ())
+            {
+                continue;
+            }
+
+            if (!BestAuthored || Attack.Priority > BestAuthored->Priority)
+            {
+                BestAuthored = &Attack;
+            }
+
+            if (!CombatComponent->IsAttackOnCooldown (Attack.AttackId) &&
+                (!BestAvailable || Attack.Priority > BestAvailable->Priority))
+            {
+                BestAvailable = &Attack;
+            }
+        }
+
+        const FGridMonsterAttackDefinition* Selected =
+            BestAvailable ? BestAvailable : BestAuthored;
+        if (!Selected)
+        {
+            return false;
+        }
+
+        OutAttack = *Selected;
+        OutMayAttackThisTurn = BestAvailable != nullptr;
+        return true;
+    }
+
+    bool MON174HasLegalRangedShot (
+        const AGridLevelRuntimeActor* RuntimeActor,
+        const FIntPoint& FromCell,
+        const FIntPoint& PartyCell,
+        const FGridMonsterAttackDefinition& Attack)
+    {
+        const int32 Distance =
+            FGridMonsterPathfinder::ManhattanDistance (FromCell, PartyCell);
+        if (!Attack.SupportsDistance (Distance) ||
+            FGridMonsterRangedAttackPlanner::GetAxialDirection (
+                FromCell,
+                PartyCell) == EGridEdge::None)
+        {
+            return false;
+        }
+
+        if (!Attack.bRequiresLineOfSight)
+        {
+            return true;
+        }
+
+        return IsValid (RuntimeActor) &&
+            FGridMonsterPerception::HasStraightLineOfSight (
+                FromCell,
+                PartyCell,
+                Attack.RangeCells,
+                [RuntimeActor] (const FIntPoint& From, const FIntPoint& To)
+                {
+                    const EGridEdge Direction =
+                        FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                            From,
+                            To);
+                    return IsValid (RuntimeActor) &&
+                        Direction != EGridEdge::None &&
+                        RuntimeActor->CanMove (
+                            From.X,
+                            From.Y,
+                            Direction);
+                });
+    }
+
+    void MON174BuildValidFiringGoals (
+        const AGridLevelRuntimeActor* RuntimeActor,
+        const UGridMonsterOccupancySubsystem* OccupancySubsystem,
+        const AGridMonsterActor* Monster,
+        const FIntPoint& PartyCell,
+        const FGridMonsterAttackDefinition& Attack,
+        int32 MinDistance,
+        int32 MaxDistance,
+        TArray<FIntPoint>& OutGoals)
+    {
+        FGridMonsterRangedKeeperPlanner::BuildAxialFiringCandidates (
+            PartyCell,
+            MinDistance,
+            MaxDistance,
+            OutGoals);
+
+        OutGoals.RemoveAll (
+            [RuntimeActor,
+             OccupancySubsystem,
+             Monster,
+             PartyCell,
+             &Attack] (const FIntPoint& Candidate)
+            {
+                return !IsValid (RuntimeActor) ||
+                    !IsValid (OccupancySubsystem) ||
+                    !IsValid (Monster) ||
+                    Candidate == PartyCell ||
+                    !RuntimeActor->IsValidCell (Candidate.X, Candidate.Y) ||
+                    !RuntimeActor->IsWalkableCell (Candidate.X, Candidate.Y) ||
+                    OccupancySubsystem->IsCellBlocked (Candidate, Monster) ||
+                    !MON174HasLegalRangedShot (
+                        RuntimeActor,
+                        Candidate,
+                        PartyCell,
+                        Attack);
+            });
+    }
+
+    bool MON174FindPathToFiringGoals (
+        const AGridLevelRuntimeActor* RuntimeActor,
+        const UGridMonsterOccupancySubsystem* OccupancySubsystem,
+        const AGridMonsterActor* Monster,
+        const FIntPoint& PartyCell,
+        const TArray<FIntPoint>& Goals,
+        FGridMonsterPathResult& OutResult)
+    {
+        OutResult.Reset ();
+        if (!IsValid (RuntimeActor) ||
+            !IsValid (OccupancySubsystem) ||
+            !IsValid (Monster) ||
+            Goals.IsEmpty ())
+        {
+            return false;
+        }
+
+        FGridMonsterPathQuery Query;
+        Query.Start = Monster->CurrentCell;
+        Query.Goals = Goals;
+        Query.MaxVisitedCells = 1024;
+        Query.bAllowBlockedGoal = false;
+
+        FGridMonsterPathContext Context;
+        Context.IsValidCell =
+            [RuntimeActor] (const FIntPoint& Cell)
+            {
+                return IsValid (RuntimeActor) &&
+                    RuntimeActor->IsValidCell (Cell.X, Cell.Y);
+            };
+        Context.IsWalkableCell =
+            [RuntimeActor] (const FIntPoint& Cell)
+            {
+                return IsValid (RuntimeActor) &&
+                    RuntimeActor->IsWalkableCell (Cell.X, Cell.Y);
+            };
+        Context.CanTraverse =
+            [RuntimeActor] (const FIntPoint& From, const FIntPoint& To)
+            {
+                const EGridEdge Direction =
+                    FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
+                        From,
+                        To);
+                return IsValid (RuntimeActor) &&
+                    Direction != EGridEdge::None &&
+                    RuntimeActor->CanMove (From.X, From.Y, Direction);
+            };
+        Context.IsCellBlocked =
+            [OccupancySubsystem,
+             Monster,
+             PartyCell] (const FIntPoint& Cell)
+            {
+                return Cell == PartyCell ||
+                    !IsValid (OccupancySubsystem) ||
+                    OccupancySubsystem->IsCellBlocked (Cell, Monster);
+            };
+
+        return FGridMonsterPathfinder::FindPath (
+            Query,
+            Context,
+            OutResult);
+    }
+
+    bool MON174TryPlanRangedKeeper (
+        const AGridLevelRuntimeActor* RuntimeActor,
+        const UGridMonsterMovementComponent* MovementComponent,
+        AGridMonsterActor* Monster,
+        UGridMonsterCombatComponent* CombatComponent,
+        const FIntPoint& PartyCell,
+        int32 AvailableActionPoints,
+        TArray<FGridCombatAction>& OutActions)
+    {
+        OutActions.Reset ();
+        if (!IsValid (Monster) ||
+            !IsValid (Monster->MonsterDefinition) ||
+            !IsValid (CombatComponent))
+        {
+            return false;
+        }
+
+        FGridMonsterAttackDefinition RangedAttack;
+        bool bMayAttackThisTurn = false;
+        if (!MON174SelectRangedKeeperAttack (
+            Monster->MonsterDefinition,
+            CombatComponent,
+            RangedAttack,
+            bMayAttackThisTurn))
+        {
+            return false;
+        }
+
+        const int32 CurrentDistance =
+            FGridMonsterPathfinder::ManhattanDistance (
+                Monster->CurrentCell,
+                PartyCell);
+        const bool bCurrentShotLegal =
+            MON174HasLegalRangedShot (
+                RuntimeActor,
+                Monster->CurrentCell,
+                PartyCell,
+                RangedAttack);
+
+        const int32 AuthoredPreferredMin = FMath::Max (
+            0,
+            Monster->MonsterDefinition->PreferredMinDistance);
+        const int32 AuthoredPreferredMax = FMath::Max (
+            AuthoredPreferredMin,
+            Monster->MonsterDefinition->PreferredMaxDistance);
+        const int32 PreferredMin = FMath::Max (
+            RangedAttack.MinRangeCells,
+            AuthoredPreferredMin);
+        const int32 PreferredMax = FMath::Min (
+            RangedAttack.RangeCells,
+            AuthoredPreferredMax);
+        const bool bHasPreferredBand = PreferredMin <= PreferredMax;
+
+        if (bMayAttackThisTurn &&
+            bCurrentShotLegal &&
+            bHasPreferredBand &&
+            FGridMonsterRangedKeeperPlanner::IsPreferredDistance (
+                CurrentDistance,
+                PreferredMin,
+                PreferredMax) &&
+            FGridMonsterRangedAttackPlanner::BuildStationaryRangedTurn (
+                Monster->ResolvePersistenceId (),
+                Monster->CurrentCell,
+                Monster->Facing,
+                PartyCell,
+                AvailableActionPoints,
+                RangedAttack,
+                true,
+                OutActions))
+        {
+            UE_LOG (LogGridMonsterAI, Verbose,
+                TEXT ("[GridRangedKeeper] Plan Monster=%s Mode=PreferredShot Distance=%d Preferred=%d..%d Attack=%s"),
+                *GetNameSafe (Monster),
+                CurrentDistance,
+                PreferredMin,
+                PreferredMax,
+                *RangedAttack.AttackId.ToString ());
+            return true;
+        }
+
+        UGridMonsterOccupancySubsystem* OccupancySubsystem =
+            IsValid (MovementComponent)
+                ? MovementComponent->GetOccupancySubsystem ()
+                : nullptr;
+
+        if (bHasPreferredBand &&
+            IsValid (RuntimeActor) &&
+            IsValid (OccupancySubsystem))
+        {
+            TArray<FIntPoint> PreferredGoals;
+            MON174BuildValidFiringGoals (
+                RuntimeActor,
+                OccupancySubsystem,
+                Monster,
+                PartyCell,
+                RangedAttack,
+                PreferredMin,
+                PreferredMax,
+                PreferredGoals);
+
+            FGridMonsterPathResult PreferredPath;
+            if (MON174FindPathToFiringGoals (
+                    RuntimeActor,
+                    OccupancySubsystem,
+                    Monster,
+                    PartyCell,
+                    PreferredGoals,
+                    PreferredPath) &&
+                FGridMonsterRangedKeeperPlanner::BuildRepositionTurn (
+                    Monster->ResolvePersistenceId (),
+                    Monster->CurrentCell,
+                    Monster->Facing,
+                    PartyCell,
+                    PreferredPath.Cells,
+                    AvailableActionPoints,
+                    RangedAttack,
+                    true,
+                    bMayAttackThisTurn,
+                    OutActions))
+            {
+                UE_LOG (LogGridMonsterAI, Verbose,
+                    TEXT ("[GridRangedKeeper] Plan Monster=%s Mode=PreferredReposition From=(%d,%d) Goal=(%d,%d) PathSteps=%d Distance=%d Preferred=%d..%d Attack=%s Available=%s"),
+                    *GetNameSafe (Monster),
+                    Monster->CurrentCell.X,
+                    Monster->CurrentCell.Y,
+                    PreferredPath.ReachedGoal.X,
+                    PreferredPath.ReachedGoal.Y,
+                    PreferredPath.Cells.Num (),
+                    CurrentDistance,
+                    PreferredMin,
+                    PreferredMax,
+                    *RangedAttack.AttackId.ToString (),
+                    bMayAttackThisTurn ? TEXT ("true") : TEXT ("false"));
+                return true;
+            }
+        }
+
+        if (bMayAttackThisTurn &&
+            bCurrentShotLegal &&
+            FGridMonsterRangedAttackPlanner::BuildStationaryRangedTurn (
+                Monster->ResolvePersistenceId (),
+                Monster->CurrentCell,
+                Monster->Facing,
+                PartyCell,
+                AvailableActionPoints,
+                RangedAttack,
+                true,
+                OutActions))
+        {
+            UE_LOG (LogGridMonsterAI, Verbose,
+                TEXT ("[GridRangedKeeper] Plan Monster=%s Mode=LegalShotFallback Distance=%d Attack=%s"),
+                *GetNameSafe (Monster),
+                CurrentDistance,
+                *RangedAttack.AttackId.ToString ());
+            return true;
+        }
+
+        if (!bCurrentShotLegal &&
+            IsValid (RuntimeActor) &&
+            IsValid (OccupancySubsystem))
+        {
+            TArray<FIntPoint> LegalGoals;
+            MON174BuildValidFiringGoals (
+                RuntimeActor,
+                OccupancySubsystem,
+                Monster,
+                PartyCell,
+                RangedAttack,
+                RangedAttack.MinRangeCells,
+                RangedAttack.RangeCells,
+                LegalGoals);
+
+            FGridMonsterPathResult LegalPath;
+            if (MON174FindPathToFiringGoals (
+                    RuntimeActor,
+                    OccupancySubsystem,
+                    Monster,
+                    PartyCell,
+                    LegalGoals,
+                    LegalPath) &&
+                FGridMonsterRangedKeeperPlanner::BuildRepositionTurn (
+                    Monster->ResolvePersistenceId (),
+                    Monster->CurrentCell,
+                    Monster->Facing,
+                    PartyCell,
+                    LegalPath.Cells,
+                    AvailableActionPoints,
+                    RangedAttack,
+                    true,
+                    bMayAttackThisTurn,
+                    OutActions))
+            {
+                UE_LOG (LogGridMonsterAI, Verbose,
+                    TEXT ("[GridRangedKeeper] Plan Monster=%s Mode=LegalReposition From=(%d,%d) Goal=(%d,%d) PathSteps=%d Attack=%s Available=%s"),
+                    *GetNameSafe (Monster),
+                    Monster->CurrentCell.X,
+                    Monster->CurrentCell.Y,
+                    LegalPath.ReachedGoal.X,
+                    LegalPath.ReachedGoal.Y,
+                    LegalPath.Cells.Num (),
+                    *RangedAttack.AttackId.ToString (),
+                    bMayAttackThisTurn ? TEXT ("true") : TEXT ("false"));
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -404,6 +802,35 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
         CurrentMonster->MonsterDefinition->HasAIProfile (
             EGridMonsterAIProfile::RangedKeeper);
 
+    if (bRangedKeeper)
+    {
+        if (bKnowsCurrentPartyCell &&
+            IsValid (CurrentCombatComponent) &&
+            MON174TryPlanRangedKeeper (
+                RuntimeActor,
+                CurrentMovementComponent,
+                CurrentMonster,
+                CurrentCombatComponent,
+                PartyCell,
+                CurrentMonsterRemainingActionPoints,
+                PendingActions))
+        {
+            return;
+        }
+
+        UE_LOG (LogGridMonsterAI, Verbose,
+            TEXT ("[GridRangedKeeper] Plan Monster=%s Mode=Wait Reason=NoValidFiringPlan"),
+            *GetNameSafe (CurrentMonster));
+        FGridMonsterTurnPlanner::BuildMovementTurn (
+            CurrentMonster->ResolvePersistenceId (),
+            CurrentMonster->CurrentCell,
+            CurrentMonster->Facing,
+            TArray<FIntPoint> (),
+            CurrentMonsterRemainingActionPoints,
+            PendingActions);
+        return;
+    }
+
     if (bKnowsCurrentPartyCell && IsValid (CurrentCombatComponent))
     {
         const int32 DistanceToParty =
@@ -453,21 +880,6 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions ()
                 return;
             }
         }
-    }
-
-    // MON17.3 deliberately does not invent a firing position. A RangedKeeper
-    // that cannot attack from its current cell waits until MON17.4 owns range
-    // seeking, retreat and kiting.
-    if (bRangedKeeper)
-    {
-        FGridMonsterTurnPlanner::BuildMovementTurn (
-            CurrentMonster->ResolvePersistenceId (),
-            CurrentMonster->CurrentCell,
-            CurrentMonster->Facing,
-            TArray<FIntPoint> (),
-            CurrentMonsterRemainingActionPoints,
-            PendingActions);
-        return;
     }
 
     bool bFoundPath = false;
