@@ -1,6 +1,6 @@
 # MON17.3.4 — Monster Attack Cooldown / Regression / Closure
 
-Statut : **IMPLÉMENTÉ — compilation et validation UE5.5.4 à faire**
+Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — PIE final Gobelin restant avant clôture MON17.3**
 
 ## Objectif
 
@@ -158,46 +158,79 @@ Priority              100
 
 et vérifie que l'attaque reste disponible après utilisation et au tour suivant.
 
-## Validation demandée
+## Validation UE5.5.4 — 20 août 2026
 
-Après compilation UE5.5.4 :
+Compilation `Development_Editor x64` suffisamment valide pour exécuter les campagnes Automation.
 
-```text
-Grimrock.Monsters.MON17.3.4
-```
+### MON17.3.4
 
-Résultat attendu :
+Résultat fourni par l'utilisateur : **3/3 Success**.
 
 ```text
-CooldownLifecycle            Success
 CooldownIsolation            Success
+CooldownLifecycle            Success
 GoblinZeroCooldownContract   Success
 ```
 
-Puis régressions :
+### Régression MON17.3 complète
+
+Résultat fourni par l'utilisateur : **10/10 Success**.
 
 ```text
-Grimrock.Monsters.MON17.3.1
-Grimrock.Monsters.MON17.3.2
-Grimrock.Monsters.MON17.3.3
-Grimrock.Monsters.MON6
+MON17.3.1.LineOfSight                  Success
+MON17.3.1.MeleeRegressionPlanner       Success
+MON17.3.1.StationaryRangedPlanner      Success
+MON17.3.2.ProjectileTiming             Success
+MON17.3.2.ProjectileTrajectory         Success
+MON17.3.2.ProjectileVisualOptionality  Success
+MON17.3.3.ProjectileSourceContract     Success
+MON17.3.4.CooldownIsolation            Success
+MON17.3.4.CooldownLifecycle            Success
+MON17.3.4.GoblinZeroCooldownContract   Success
 ```
 
-Enfin, un PIE court avec le Gobelin doit confirmer qu'avec `CooldownTurns=0` :
+### Régression combat MON6
+
+Résultat fourni par l'utilisateur : **3/3 Success**.
+
+```text
+MON6.CombatResolver        Success
+MON6.DirectMeleePlanner    Success
+MON6.PartyTargetSelector   Success
+```
+
+Campagne combinée demandée : **13/13 Success**.
+
+Aucune régression automatisée n'est observée sur le planner mêlée historique, la LOS, le ranged planner, la présentation projectile, le socket de source ou le cooldown zéro du Gobelin.
+
+## Validation PIE finale demandée
+
+Un dernier PIE court avec le Gobelin doit confirmer qu'avec :
+
+```text
+Attack_ThrowKnife.CooldownTurns = 0
+```
 
 - `Attack_ThrowKnife` reste utilisable à chaque tour où portée/LOS/AP sont valides ;
-- le montage de lancer reste joué ;
-- le projectile part toujours de `ProjectileSource` ;
-- Hit/Miss/dégâts restent inchangés.
+- `AM_GoblinThrower_ThrowKnife` reste joué ;
+- le projectile part toujours de `ProjectileSource` sur la paume droite ;
+- les timings restent `ExpectedDuration=2.20 s`, `ImpactTimeSeconds=1.00 s`, `ProjectileTravelDuration=0.20 s`, donc lancement visuel vers `0.80 s` ;
+- Hit/Miss/dégâts restent inchangés ;
+- aucun log `[GridMonsterCooldown] Attack rejected ... Reason=Cooldown` ne doit apparaître pour `Attack_ThrowKnife` avec `CooldownTurns=0`.
 
 ## Porte de clôture MON17.3
 
-`MON17.3 — Distinct Attack Set` pourra être déclaré **VALIDÉ / CLOS** lorsque :
+État au 20 août 2026 :
 
-1. MON17.3.4 compile sous UE5.5.4 ;
-2. les 3 tests MON17.3.4 sont verts ;
-3. les régressions MON17.3.1/2/3 et MON6 sont vertes ;
-4. le PIE Gobelin à cooldown zéro reste inchangé.
+```text
+1. Compilation UE5.5.4                 VALIDÉE
+2. MON17.3.4                            3/3 Success
+3. MON17.3.1–17.3.4                     10/10 Success
+4. MON6                                 3/3 Success
+5. PIE Gobelin cooldown zéro            À VALIDER
+```
+
+`MON17.3 — Distinct Attack Set` pourra être déclaré **VALIDÉ / CLOS** dès que le dernier PIE confirme l'absence de régression runtime.
 
 Après cela, le travail autoritaire devient :
 
