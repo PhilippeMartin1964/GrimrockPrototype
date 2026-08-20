@@ -1,6 +1,6 @@
 # MON17.4.1 — RangedKeeper Preferred Firing Position
 
-Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — régressions et PIE tactique restant avant clôture**
+Statut : **VALIDÉ EN AUTOMATION UE5.5.4 — PIE tactique restant avant clôture**
 
 ## Objectif
 
@@ -164,7 +164,7 @@ Vérifie :
 
 ## Validation Automation UE5.5.4 — 20 août 2026
 
-Résultat fourni par l'utilisateur : **3/3 Success**.
+Résultat MON17.4.1 fourni par l'utilisateur : **3/3 Success**.
 
 ```text
 MultiTurnApproach          Success
@@ -174,9 +174,38 @@ RepositionThenAttack       Success
 
 La logique pure de MON17.4.1 est donc validée : génération des positions préférées, approche multi-tour et séquence `Move + RangedAttack` avec budget PA.
 
-Il reste à vérifier que l'intégration runtime n'a pas régressé les contrats MON17.3/MON6, puis à confirmer le comportement tactique en PIE.
+### Régressions MON17.3 + MON6
 
-## Validation PIE demandée après régressions
+La campagne de régression fournie ensuite est entièrement verte :
+
+```text
+MON17.3.1–17.3.4   10/10 Success
+MON6                3/3 Success
+```
+
+La même campagne réexécute également MON17.4.1 :
+
+```text
+MON17.4.1            3/3 Success
+```
+
+Soit **16/16 Success** pour l'ensemble exécuté.
+
+Aucune régression automatisée n'est observée sur :
+
+- planner mêlée historique ;
+- LOS ;
+- stationary ranged planner ;
+- timing / trajectoire / optionalité du projectile ;
+- `ProjectileSource` ;
+- cooldown générique et `CooldownTurns=0` du Gobelin ;
+- `CombatResolver` ;
+- `DirectMeleePlanner` ;
+- `PartyTargetSelector`.
+
+Il reste uniquement à confirmer le comportement tactique réel en PIE.
+
+## Validation PIE demandée
 
 Cas A — trop près :
 
@@ -211,8 +240,9 @@ Cas C — bonne distance :
 ```text
 1. Compilation UE5.5.4                 VALIDÉE
 2. Grimrock.Monsters.MON17.4.1         3/3 Success
-3. Régressions MON17.3 + MON6          À VALIDER
-4. PIE tactique RangedKeeper           À VALIDER
+3. Régressions MON17.3 + MON6          13/13 Success
+4. Campagne totale exécutée            16/16 Success
+5. PIE tactique RangedKeeper           À VALIDER
 ```
 
-MON17.4.1 sera marqué **VALIDÉ / CLOS** après les régressions et le PIE tactique sans régression du lancer MON17.3.
+MON17.4.1 sera marqué **VALIDÉ / CLOS** après le PIE tactique sans régression du lancer MON17.3.
