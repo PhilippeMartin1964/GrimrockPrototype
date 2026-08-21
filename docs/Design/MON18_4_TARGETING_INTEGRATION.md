@@ -1,6 +1,6 @@
 # MON18.4 — Targeting Integration
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -39,6 +39,22 @@ Spell request
 
 MON18.4 n'applique toujours aucun effet de sort. Cette responsabilité commence avec MON18.5.
 
+## Validation UE5.5.4
+
+Campagne reçue le 21 août 2026 :
+
+```text
+Grimrock.Magic.MON18.4.AllyRelation                   Success
+Grimrock.Magic.MON18.4.AxialTargetSuccess             Success
+Grimrock.Magic.MON18.4.CellAreaResolution             Success
+Grimrock.Magic.MON18.4.LineOfSightNoMutation          Success
+Grimrock.Magic.MON18.4.NonAxialNoMutation             Success
+Grimrock.Magic.MON18.4.OutOfRangeNoMutation           Success
+Grimrock.Magic.MON18.4.SelfResolution                 Success
+Grimrock.Magic.MON18.4.TransactionFailureAfterTarget  Success
+Total                                                   8/8 Success
+```
+
 ## Rejets de ciblage
 
 ```text
@@ -62,21 +78,6 @@ Source/GrimrockPrototype/Private/Magic/GridSpellTargeting.cpp
 Source/GrimrockPrototype/Private/Tests/GridMagicMON184TargetingTests.cpp
 docs/Design/MON18_4_TARGETING_INTEGRATION.md
 ```
-
-## Tests Automation
-
-```text
-Grimrock.Magic.MON18.4.AxialTargetSuccess
-Grimrock.Magic.MON18.4.OutOfRangeNoMutation
-Grimrock.Magic.MON18.4.NonAxialNoMutation
-Grimrock.Magic.MON18.4.LineOfSightNoMutation
-Grimrock.Magic.MON18.4.AllyRelation
-Grimrock.Magic.MON18.4.CellAreaResolution
-Grimrock.Magic.MON18.4.SelfResolution
-Grimrock.Magic.MON18.4.TransactionFailureAfterTarget
-```
-
-Attendu : **8/8 Success**.
 
 ## Hors périmètre
 

@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.4 implémenté — validation UE5.5.4 en attente**  
+Statut : **backlog actif après clôture de MON18.4**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -53,8 +53,8 @@ Sous-jalons :
 MON18.1 — Spell Data Model & Cast Contract      CLOS
 MON18.2 — Spell Knowledge / Spellbook           CLOS
 MON18.3 — Runtime Casting / Cost Transaction    CLOS
-MON18.4 — Targeting Integration                 EN VALIDATION
-MON18.5 — First Production Spells
+MON18.4 — Targeting Integration                 CLOS
+MON18.5 — First Production Spells               PROCHAIN
 MON18.6 — Spell Presentation
 MON18.7 — Spellbook / Hotbar UI
 MON18.8 — Persistence / Migration
@@ -65,58 +65,19 @@ MON18.9 — Balance / Regression / Closure
 
 `MON18.1 — Spell Data Model & Cast Contract` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Contrats livrés :
+Contrats livrés : identité stable `SpellId`, définition data-driven, coûts mana/PA, portée/LOS, ciblage commun, effets déclaratifs et pont MON16.
 
-- identité stable `SpellId` ;
-- définition data-driven via `UGridSpellDefinitionAsset` ;
-- coûts mana/PA ;
-- portée/LOS ;
-- réutilisation de `EGridCombatTargetingPolicy` ;
-- effets déclaratifs `Damage`, `Heal`, `ApplyStatusEffect`, `RemoveStatusEffect` ;
-- pont MON16 par `StatusEffectId` ;
-- requête de cast sans pointeur d'acteur ;
-- contrat pur sans consommation de ressource ni résolution runtime.
+Validation automatisée : **4/4 Success**.
 
-Validation automatisée :
-
-```text
-Grimrock.Magic.MON18.1.CastRequestValidation   Success
-Grimrock.Magic.MON18.1.ContractIsPure          Success
-Grimrock.Magic.MON18.1.DefinitionValidation    Success
-Grimrock.Magic.MON18.1.StatusEffectBridge      Success
-Total                                           4/4 Success
-```
-
-Référence :
-
-```text
-docs/Design/MON18_1_SPELL_DATA_MODEL_CAST_CONTRACT.md
-```
+Référence : `docs/Design/MON18_1_SPELL_DATA_MODEL_CAST_CONTRACT.md`.
 
 ### MON18.2 — CLOS
 
 `MON18.2 — Spell Knowledge / Spellbook` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Contrats livrés :
+Contrats livrés : Spellbook runtime distinct par `CharacterId`, connaissance par `SpellId`, apprentissage/oubli explicites, isolation entre personnages et persistance différée à MON18.8.
 
-- un Spellbook runtime distinct par `CharacterId` ;
-- connaissance représentée uniquement par `SpellId` stable ;
-- apprentissage / oubli explicites ;
-- refus des doublons et des identités invalides ;
-- isolation stricte entre personnages ;
-- aucune consommation PA/mana ni exécution d'effet ;
-- persistance volontairement différée à MON18.8.
-
-Validation automatisée :
-
-```text
-Grimrock.Magic.MON18.2.CharacterIsolation     Success
-Grimrock.Magic.MON18.2.CharacterRegistration  Success
-Grimrock.Magic.MON18.2.LearnForget            Success
-Grimrock.Magic.MON18.2.StableIdentity         Success
-Grimrock.Magic.MON18.2.TransientContract      Success
-Total                                          5/5 Success
-```
+Validation automatisée : **5/5 Success**.
 
 Références :
 
@@ -129,27 +90,9 @@ docs/Design/MON18_2_VALIDATION.md
 
 `MON18.3 — Runtime Casting / Cost Transaction` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Contrats livrés :
+Contrats livrés : mana/PA autoritaires, validation du sort connu et des identités, transaction atomique, aucune mutation en cas d'échec et reçu après succès.
 
-- réutilisation de `FRPGDerivedStats::CurrentMana` comme mana autoritaire ;
-- réutilisation de `FGridPlayerCharacterTurnState::RemainingActionPoints` comme PA autoritaires ;
-- validation du sort connu et des identités avant paiement ;
-- transaction atomique PA + mana ;
-- aucune mutation en cas d'échec ;
-- reçu de coût uniquement après succès ;
-- ciblage explicitement différé à MON18.4.
-
-Validation automatisée :
-
-```text
-Grimrock.Magic.MON18.3.IdentityMismatchNoMutation          Success
-Grimrock.Magic.MON18.3.InsufficientActionPointsNoMutation  Success
-Grimrock.Magic.MON18.3.InsufficientManaNoMutation          Success
-Grimrock.Magic.MON18.3.SuccessfulCommit                    Success
-Grimrock.Magic.MON18.3.TargetingDeferred                   Success
-Grimrock.Magic.MON18.3.UnknownSpellNoMutation              Success
-Total                                                       6/6 Success
-```
+Validation automatisée : **6/6 Success**.
 
 Références :
 
@@ -158,34 +101,19 @@ docs/Design/MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md
 docs/Design/MON18_3_VALIDATION.md
 ```
 
-### MON18.4 — EN VALIDATION
+### MON18.4 — CLOS
 
-`FGridSpellTargetingService` réutilise `EGridCombatTargetingPolicy` et valide `Self`, `Ally`, `FirstAxialTarget`, `Cell` et `Area`.
+`MON18.4 — Targeting Integration` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Le contrat vérifie :
+Contrats livrés : politiques `Self`, `Ally`, `FirstAxialTarget`, `Cell`, `Area`, portée, relation de cible, axialité, LOS autoritaire et pipeline `Targeting -> Cost Transaction` sans mutation en cas de rejet.
 
-- identité de cible résolue ;
-- relation alliée/hostile selon la politique ;
-- portée `MinRangeCells..MaxRangeCells` ;
-- alignement axial pour `FirstAxialTarget` ;
-- résultat LOS fourni par la couche grille runtime autoritaire lorsque `bRequiresLineOfSight` est actif.
+Validation automatisée : **8/8 Success**.
 
-`FGridSpellCastPipelineService` impose l'ordre :
-
-```text
-Targeting validation / resolution
--> si échec : zéro mutation
--> MON18.3 cost transaction
--> si échec : zéro mutation
--> resolved target + cost receipt
-```
-
-Aucun effet de sort n'est encore appliqué ; cette responsabilité commence avec MON18.5.
-
-Référence :
+Références :
 
 ```text
 docs/Design/MON18_4_TARGETING_INTEGRATION.md
+docs/Design/MON18_4_VALIDATION.md
 ```
 
 ---
@@ -245,5 +173,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider MON18.4 sous UE5.5.4, puis MON18.5 — First Production Spells
+MON18.5 — First Production Spells
 ```
