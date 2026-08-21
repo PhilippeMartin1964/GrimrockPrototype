@@ -1,8 +1,11 @@
 #include "UI/GridSpellbookWidget.h"
 
+#include "Components/PanelWidget.h"
+#include "Components/TextBlock.h"
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridSpellbookEntryWidget.h"
 
 void UGridSpellbookWidget::InitializeSpellbookWidget (
     AGrimrockPartyPawn* InPartyPawn)
@@ -72,6 +75,12 @@ void UGridSpellbookWidget::ClearViewState ()
     SpellEntries.Reset ();
 }
 
+void UGridSpellbookWidget::NotifySpellbookRefreshed ()
+{
+    RebuildSpellEntryWidgets ();
+    OnSpellbookRefreshed.Broadcast ();
+}
+
 UGridPartySpellbookComponent*
 UGridSpellbookWidget::ResolveOrCreateSpellbookComponent (
     AGrimrockPartyPawn* PartyPawn) const
@@ -125,7 +134,7 @@ void UGridSpellbookWidget::RefreshSpellbook ()
 
     if (!InventoryComponent || !SpellbookComponent)
     {
-        OnSpellbookRefreshed.Broadcast ();
+        NotifySpellbookRefreshed ();
         return;
     }
 
@@ -133,7 +142,7 @@ void UGridSpellbookWidget::RefreshSpellbook ()
     if (!InventoryComponent->IsValidCharacterIndex (SelectedCharacterIndex))
     {
         ClearViewState ();
-        OnSpellbookRefreshed.Broadcast ();
+        NotifySpellbookRefreshed ();
         return;
     }
 
@@ -142,7 +151,7 @@ void UGridSpellbookWidget::RefreshSpellbook ()
     if (!SelectedCharacterId.IsValid ())
     {
         ClearViewState ();
-        OnSpellbookRefreshed.Broadcast ();
+        NotifySpellbookRefreshed ();
         return;
     }
 
@@ -151,7 +160,7 @@ void UGridSpellbookWidget::RefreshSpellbook ()
     if (!SpellbookComponent->EnsureCharacterSpellbook (SelectedCharacterId))
     {
         ClearViewState ();
-        OnSpellbookRefreshed.Broadcast ();
+        NotifySpellbookRefreshed ();
         return;
     }
 
@@ -160,7 +169,7 @@ void UGridSpellbookWidget::RefreshSpellbook ()
     if (!CharacterSpellbook)
     {
         ClearViewState ();
-        OnSpellbookRefreshed.Broadcast ();
+        NotifySpellbookRefreshed ();
         return;
     }
 
@@ -182,7 +191,49 @@ void UGridSpellbookWidget::RefreshSpellbook ()
         HotbarBindings,
         SpellEntries);
 
-    OnSpellbookRefreshed.Broadcast ();
+    NotifySpellbookRefreshed ();
+}
+
+void UGridSpellbookWidget::RebuildSpellEntryWidgets ()
+{
+    if (Text_EmptySpellbook)
+    {
+        Text_EmptySpellbook->SetVisibility (
+            SpellEntries.IsEmpty ()
+                ? ESlateVisibility::Visible
+                : ESlateVisibility::Collapsed);
+    }
+
+    if (!Panel_SpellEntries)
+    {
+        return;
+    }
+
+    Panel_SpellEntries->ClearChildren ();
+    if (SpellEntries.IsEmpty () || !SpellEntryWidgetClass)
+    {
+        return;
+    }
+
+    for (const FGridSpellbookEntryView& Entry : SpellEntries)
+    {
+        UGridSpellbookEntryWidget* EntryWidget =
+            CreateWidget<UGridSpellbookEntryWidget> (
+                GetOwningPlayer (),
+                SpellEntryWidgetClass);
+        if (!EntryWidget)
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("GridSpellbookWidget failed to create spell row for %s."),
+                *Entry.SpellId.ToString ());
+            continue;
+        }
+
+        EntryWidget->InitializeSpellEntry (Entry);
+        Panel_SpellEntries->AddChild (EntryWidget);
+    }
 }
 
 int32 UGridSpellbookWidget::GetSpellEntryCount () const

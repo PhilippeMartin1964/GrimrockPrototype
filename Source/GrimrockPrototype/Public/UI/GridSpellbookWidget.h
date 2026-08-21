@@ -8,6 +8,9 @@
 class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 class UGridPartySpellbookComponent;
+class UGridSpellbookEntryWidget;
+class UPanelWidget;
+class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE (FGridSpellbookWidgetRefreshedSignature);
 
@@ -43,7 +46,19 @@ public:
     UPROPERTY (BlueprintReadOnly, Category = "Magic|Spellbook|UI")
     TArray<FGridSpellbookEntryView> SpellEntries;
 
-    /** Presentation notification. Blueprint can rebuild its visual rows here. */
+    /** Blueprint row class used to render one spell entry in Panel_SpellEntries. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Magic|Spellbook|UI|Presentation")
+    TSubclassOf<UGridSpellbookEntryWidget> SpellEntryWidgetClass;
+
+    /** Optional UMG container populated automatically from SpellEntries. */
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Magic|Spellbook|UI|Presentation")
+    TObjectPtr<UPanelWidget> Panel_SpellEntries;
+
+    /** Optional empty-state label shown only when the selected character knows no spells. */
+    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "Magic|Spellbook|UI|Presentation")
+    TObjectPtr<UTextBlock> Text_EmptySpellbook;
+
+    /** Presentation notification. Blueprint may add presentation-only reactions here. */
     UPROPERTY (BlueprintAssignable, Category = "Magic|Spellbook|UI|Events")
     FGridSpellbookWidgetRefreshedSignature OnSpellbookRefreshed;
 
@@ -52,6 +67,10 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Magic|Spellbook|UI")
     void RefreshSpellbook ();
+
+    /** Rebuilds the optional UMG list from the current SpellEntries projection. */
+    UFUNCTION (BlueprintCallable, Category = "Magic|Spellbook|UI|Presentation")
+    void RebuildSpellEntryWidgets ();
 
     UFUNCTION (BlueprintPure, Category = "Magic|Spellbook|UI")
     int32 GetSpellEntryCount () const;
@@ -85,6 +104,7 @@ private:
     const FGridCharacterSpellbookState* GetSelectedCharacterSpellbook () const;
 
     void ClearViewState ();
+    void NotifySpellbookRefreshed ();
 
     bool bRefreshInProgress = false;
 };
