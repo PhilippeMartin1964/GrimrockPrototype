@@ -1,5 +1,8 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
+#include "Magic/GridPartySpellbookComponent.h"
+#include "Magic/GridProductionSpellLibrary.h"
+#include "Magic/GridSpellbookUI.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
@@ -110,6 +113,64 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions (
                     EGridEquipmentSlot::None,
                     1,
                     OutContributions);
+            }
+        }
+    }
+
+    // UI01.4.3e: the runtime Spellbook is the authoritative source of known
+    // spell actions. The hotbar stores identity only; the combat catalogue
+    // must reconstruct the action from SpellId every time it is queried.
+    if (IsValid (PartyPawn))
+    {
+        const UGridPartySpellbookComponent* SpellbookComponent =
+            PartyPawn->FindComponentByClass<UGridPartySpellbookComponent> ();
+        const FGridCharacterSpellbookState* CharacterSpellbook =
+            IsValid (SpellbookComponent)
+                ? SpellbookComponent->SpellbookState.FindSpellbook (
+                    Character.CharacterId)
+                : nullptr;
+        if (CharacterSpellbook)
+        {
+            TArray<FGridSpellDefinition> ProductionSpells;
+            FGridProductionSpellLibrary::BuildAll (ProductionSpells);
+            for (const FName SpellId : CharacterSpellbook->KnownSpellIds)
+            {
+                const FGridSpellDefinition* SpellDefinition =
+                    ProductionSpells.FindByPredicate (
+                        [SpellId] (const FGridSpellDefinition& Candidate)
+                        {
+                            return Candidate.SpellId == SpellId;
+                        });
+                if (!SpellDefinition ||
+                    FGridSpellContract::ValidateDefinition (
+                        *SpellDefinition) != EGridSpellValidationError::None)
+                {
+                    continue;
+                }
+
+                const FGridCombatActionDefinition SpellAction =
+                    UGridSpellbookUILibrary::
+                        MakeSpellCombatActionDefinition (*SpellDefinition);
+                const bool bAlreadyContributed =
+                    OutContributions.ContainsByPredicate (
+                        [SpellId] (
+                            const FGridCombatActionContribution& Existing)
+                        {
+                            return Existing.Definition.SourcePolicy ==
+                                    EGridCombatActionSourcePolicy::Spell &&
+                                Existing.Definition.ActionId == SpellId &&
+                                Existing.SourceDefinitionId == SpellId;
+                        });
+                if (!bAlreadyContributed)
+                {
+                    AddMON126Contribution (
+                        SpellAction,
+                        SpellId,
+                        FGuid (),
+                        EGridEquipmentSlot::None,
+                        1,
+                        OutContributions);
+                }
             }
         }
     }
