@@ -7,26 +7,50 @@ UGridPartySpellbookComponent::UGridPartySpellbookComponent ()
 
 bool UGridPartySpellbookComponent::EnsureCharacterSpellbook (FGuid CharacterId)
 {
-    return SpellbookState.EnsureCharacter (CharacterId);
+    const bool bAlreadyRegistered =
+        SpellbookState.FindSpellbook (CharacterId) != nullptr;
+    const bool bResult = SpellbookState.EnsureCharacter (CharacterId);
+    if (bResult && !bAlreadyRegistered)
+    {
+        OnSpellbookChanged.Broadcast ();
+    }
+    return bResult;
 }
 
 bool UGridPartySpellbookComponent::RemoveCharacterSpellbook (FGuid CharacterId)
 {
-    return SpellbookState.RemoveCharacter (CharacterId);
+    const bool bResult = SpellbookState.RemoveCharacter (CharacterId);
+    if (bResult)
+    {
+        OnSpellbookChanged.Broadcast ();
+    }
+    return bResult;
 }
 
 EGridSpellbookMutationResult UGridPartySpellbookComponent::LearnSpell (
     FGuid CharacterId,
     FName SpellId)
 {
-    return SpellbookState.LearnSpell (CharacterId, SpellId);
+    const EGridSpellbookMutationResult Result =
+        SpellbookState.LearnSpell (CharacterId, SpellId);
+    if (Result == EGridSpellbookMutationResult::Success)
+    {
+        OnSpellbookChanged.Broadcast ();
+    }
+    return Result;
 }
 
 EGridSpellbookMutationResult UGridPartySpellbookComponent::ForgetSpell (
     FGuid CharacterId,
     FName SpellId)
 {
-    return SpellbookState.ForgetSpell (CharacterId, SpellId);
+    const EGridSpellbookMutationResult Result =
+        SpellbookState.ForgetSpell (CharacterId, SpellId);
+    if (Result == EGridSpellbookMutationResult::Success)
+    {
+        OnSpellbookChanged.Broadcast ();
+    }
+    return Result;
 }
 
 bool UGridPartySpellbookComponent::KnowsSpell (
@@ -44,7 +68,12 @@ TArray<FName> UGridPartySpellbookComponent::GetKnownSpellIds (FGuid CharacterId)
 
 void UGridPartySpellbookComponent::ResetAllSpellbooks ()
 {
+    const bool bHadSpellbooks = SpellbookState.CharacterSpellbooks.Num () > 0;
     SpellbookState.Reset ();
+    if (bHadSpellbooks)
+    {
+        OnSpellbookChanged.Broadcast ();
+    }
 }
 
 bool UGridPartySpellbookComponent::ValidateSpellbookState (FString& OutError) const
