@@ -1,6 +1,6 @@
 # MON17.7 — Final Balance Contract
 
-Statut : **VALIDÉ sous UE5.5.4 — PIE final et régressions à faire**  
+Statut : **VALIDÉ sous UE5.5.4 — PIE final VALIDÉ, régressions finales à faire**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -102,7 +102,13 @@ Sortie de référence :
 MON17.7 final balance: HP=10 Initiative=12 Accuracy=2 Evasion=3 AP=3 Damage=2..5 XP=125 LootExpected=1.000
 ```
 
-Le `DA_MON_GoblinThrower.uasset` équilibré est également versionné sur `origin/master`.
+Le `DA_MON_GoblinThrower.uasset` équilibré est versionné sur `origin/master`.
+
+Le PIE final à deux Gobelins est également validé. Référence :
+
+```text
+docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
+```
 
 ## Porte de sortie
 
@@ -110,9 +116,9 @@ Le `DA_MON_GoblinThrower.uasset` équilibré est également versionné sur `orig
 1. DA_MON_GoblinThrower équilibré poussé sur origin/master   VALIDÉ
 2. Compilation UE5.5.4                                      VALIDÉE
 3. Grimrock.Monsters.MON17.7.FinalBalanceContract           SUCCESS
-4. PIE final deux Gobelins                                   À VALIDER
+4. PIE final deux Gobelins                                   VALIDÉ
 5. Régressions finales MON17 + MON6/8/13/14/15              À VALIDER
 6. MON17 closure                                             À FAIRE
 ```
 
-Le PIE final reste un contrôle de sensation et de lisibilité. Les valeurs de production sont désormais couvertes par Automation.
+Les valeurs de production et le comportement PIE sont validés. La dernière porte avant clôture MON17 est la campagne de régression ciblée.
