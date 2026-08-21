@@ -1,81 +1,53 @@
-# MON18.1 — Spell Data Model & Cast Contract
+# GrimrockPrototype — MON18.1 — Spell Data Model & Cast Contract
 
-Statut : **IMPLÉMENTÉ — validation UE5.5.4 en attente du résultat utilisateur**  
-Date : **21 août 2026**
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
+Date de validation : **21 août 2026**
 
 ---
 
 ## 1. Objectif
 
-MON18.1 établit le contrat C++ minimal du futur système de magie sans implémenter encore le runtime de lancement de sort.
+MON18.1 pose le contrat de données générique du système de magie sans introduire de seconde pile parallèle pour les actions, le ciblage, les ressources, les effets de statut, les projectiles, la hotbar ou la persistance.
 
-L'étape doit répondre à deux contraintes :
+Le jalon définit :
 
-1. fournir une représentation data-driven et sérialisable d'un sort ;
-2. réutiliser les systèmes existants plutôt que créer un second moteur de combat, de ciblage ou de Status Effects.
+- l'identité stable d'un sort ;
+- ses métadonnées de gameplay ;
+- son coût en mana et PA ;
+- ses contraintes de portée et de LOS ;
+- sa politique de ciblage ;
+- son cooldown ;
+- ses effets déclaratifs ;
+- le contrat sérialisable d'une requête de lancement.
 
----
-
-## 2. Audit des contrats existants réutilisés
-
-### MON12 — actions / hotbar / ressources
-
-Le catalogue de combat possède déjà :
-
-- `EGridCombatActionSourcePolicy::Spell` ;
-- `EGridCombatTargetingPolicy` avec `Self`, `Ally`, `FirstAxialTarget`, `Cell`, `Area` ;
-- les raisons d'indisponibilité `InsufficientActionPoints`, `InsufficientMana`, `CooldownActive` ;
-- un contexte de catalogue contenant `RemainingActionPoints`, `CurrentMana`, `MaximumMana` et les cooldowns.
-
-`FGridCombatActionCatalog` est explicitement pur : il évalue les définitions et ressources mais ne résout aucun effet et ne consomme ni PA, ni mana, ni objet source.
-
-MON18 reprend ce principe. Le coût d'un sort est une donnée ; le paiement transactionnel sera raccordé au runtime en MON18.3.
-
-### MON16 — Status Effects
-
-MON18.1 ne crée aucun état d'effet magique parallèle. Un effet de sort de type `ApplyStatusEffect` ou `RemoveStatusEffect` référence MON16 par un `StatusEffectId` stable.
-
-L'application, le stacking, la durée, les ticks et la persistance restent sous l'autorité de MON16.
-
-### MON17 — projectile
-
-MON18.1 ne crée aucun projectile magique spécifique. Le contrat de projectile/présentation validé avec le Gobelin lanceur sera réutilisé lorsque MON18.6 abordera la présentation.
-
-### MON15 / Save
-
-Les identités persistantes utilisent des valeurs sérialisables (`FGuid`, `FName`, coordonnées de grille). Aucun pointeur d'acteur n'est stocké dans `FGridSpellCastRequest` ou `FGridSpellTarget`.
+MON18.1 ne résout aucun sort et ne consomme aucune ressource. Ces responsabilités sont reportées aux sous-jalons runtime de MON18.
 
 ---
 
-## 3. Nouveau contrat
+## 2. Réutilisation des systèmes existants
 
-Fichier :
+MON18.1 réutilise explicitement les contrats existants :
 
-```text
-Source/GrimrockPrototype/Public/Magic/GridSpellTypes.h
-```
+- `EGridCombatTargetingPolicy` pour le ciblage ;
+- les PA et la mana déjà exposés par le catalogue d'actions MON12 ;
+- `EGridCombatActionSourcePolicy::Spell` pour l'identité d'origine d'une action ;
+- `StatusEffectId` comme pont vers MON16 ;
+- le pipeline projectile/presentation déjà validé avec MON17 ;
+- les identifiants stables (`FGuid`, `FName`) pour préparer Spellbook, hotbar et Save/Continue.
+
+Aucune mutation de PA/mana, aucune recherche de cible et aucune application d'effet n'est effectuée par le contrat de données.
+
+---
+
+## 3. Types introduits
 
 ### `EGridSpellSchool`
 
-Vocabulaire initial volontairement léger :
-
-```text
-None
-Arcane
-Fire
-Frost
-Air
-Earth
-Life
-Death
-Protection
-```
-
-Ce vocabulaire est extensible et n'impose pas encore les écoles définitives du design de production.
+Vocabulaire initial des écoles de magie.
 
 ### `EGridSpellEffectType`
 
-MON18.1 définit uniquement des intentions déclaratives :
+Types d'effets déclaratifs initiaux :
 
 ```text
 Damage
@@ -84,26 +56,15 @@ ApplyStatusEffect
 RemoveStatusEffect
 ```
 
-Aucun de ces effets n'est exécuté dans MON18.1.
+Les effets d'état référencent uniquement un `StatusEffectId`. Le système MON16 reste l'autorité sur la durée, le stacking, DoT, Haste/Slow, Stun/Silence/Immobilize et la persistance de l'effet.
 
 ### `FGridSpellEffectDefinition`
 
-Contient :
-
-```text
-Type
-Magnitude
-StatusEffectId
-```
-
-Règles structurelles :
-
-- Damage / Heal : `Magnitude > 0` ;
-- ApplyStatusEffect / RemoveStatusEffect : `StatusEffectId != None`.
+Décrit un effet élémentaire d'un sort.
 
 ### `FGridSpellDefinition`
 
-Contient :
+Contient le contrat de gameplay d'un sort :
 
 ```text
 SpellId
@@ -114,27 +75,19 @@ ManaCost
 ActionPointCost
 MinRangeCells
 MaxRangeCells
-TargetingPolicy
 bRequiresLineOfSight
+TargetingPolicy
 CooldownRounds
 Effects[]
 ```
 
-`TargetingPolicy` réutilise directement `EGridCombatTargetingPolicy` du combat existant.
-
 ### `FGridSpellTarget`
 
-Cible sérialisable sans pointeur d'acteur :
-
-```text
-TargetId
-GridCell
-bHasGridCell
-```
-
-`TargetId` est destiné aux membres du groupe / monstres identifiés de façon stable. `GridCell` sert aux sorts visant une cellule ou une zone.
+Cible purement data-driven, sans pointeur d'acteur.
 
 ### `FGridSpellCastRequest`
+
+Requête de lancement sérialisable :
 
 ```text
 CasterCharacterId
@@ -142,115 +95,62 @@ SpellId
 Target
 ```
 
-Ce contrat transporte l'intention de lancement. Il ne dépense aucune ressource et ne résout aucun effet.
-
 ### `FGridSpellContract`
 
-Service pur de validation structurelle :
+Service pur de validation structurelle du contrat. Il ne possède aucun état runtime et ne consomme aucune ressource.
+
+---
+
+## 4. Asset data-driven
+
+`UGridSpellDefinitionAsset : UPrimaryDataAsset` expose `FGridSpellDefinition` dans l'éditeur et suit le pattern déjà utilisé par les autres définitions data-driven du projet.
+
+Aucun DataAsset de production n'est requis pour valider MON18.1 ; les premiers sorts de production arriveront en MON18.5.
+
+---
+
+## 5. Invariants verrouillés
+
+MON18.1 impose les invariants suivants :
+
+1. `SpellId` est obligatoire et constitue l'identité stable du sort.
+2. Les coûts de mana et de PA ne peuvent pas être négatifs.
+3. Les portées ne peuvent pas être négatives et `MinRangeCells <= MaxRangeCells`.
+4. Le cooldown ne peut pas être négatif.
+5. Un sort doit déclarer une politique de ciblage cohérente.
+6. Les effets d'état doivent référencer un `StatusEffectId` valide.
+7. Les requêtes de lancement doivent fournir un `CasterCharacterId` valide et un `SpellId` valide.
+8. Le contrat reste pur : aucune consommation de ressource, aucun accès monde, aucun acteur requis.
+
+---
+
+## 6. Validation automatisée UE5.5.4
+
+Commande exécutée :
 
 ```text
-ValidateDefinition()
-ValidateRequest()
+Automation RunTests Grimrock.Magic.MON18.1
 ```
 
-Il vérifie notamment :
-
-- identité du sort ;
-- nom ;
-- coûts non négatifs ;
-- portée cohérente ;
-- politique de ciblage ;
-- présence et validité des effets ;
-- identité stable du lanceur ;
-- présence d'une cible selon le `TargetingPolicy`.
-
----
-
-## 4. Ce que MON18.1 ne fait volontairement pas
-
-MON18.1 ne contient pas :
-
-- paiement mana ;
-- paiement PA ;
-- vérification de la mana courante ;
-- vérification du tour actif ;
-- résolution réelle LOS / portée dans le monde ;
-- dégâts ;
-- soins ;
-- application MON16 ;
-- projectile ;
-- VFX / audio ;
-- Spellbook ;
-- apprentissage ;
-- hotbar runtime ;
-- migration SaveGame ;
-- Blueprint / DataAsset / WBP de production.
-
-Ces responsabilités sont volontairement différées aux sous-jalons suivants.
-
----
-
-## 5. Tests Automation ajoutés
-
-Fichier :
+Résultat fourni le 21 août 2026 :
 
 ```text
-Source/GrimrockPrototype/Private/Tests/GridMagicMON181SpellContractTests.cpp
+Grimrock.Magic.MON18.1.CastRequestValidation   Success
+Grimrock.Magic.MON18.1.ContractIsPure          Success
+Grimrock.Magic.MON18.1.DefinitionValidation    Success
+Grimrock.Magic.MON18.1.StatusEffectBridge      Success
+
+Total                                           4/4 Success
 ```
 
-Tests :
-
-```text
-Grimrock.Magic.MON18.1.DefinitionValidation
-Grimrock.Magic.MON18.1.StatusEffectBridge
-Grimrock.Magic.MON18.1.CastRequestValidation
-Grimrock.Magic.MON18.1.ContractIsPure
-```
-
-Ils verrouillent :
-
-- définition valide / invalide ;
-- identité obligatoire ;
-- portée cohérente ;
-- cible obligatoire ;
-- effets obligatoires ;
-- référence MON16 par `StatusEffectId` ;
-- cible par identifiant stable ou coordonnées de grille ;
-- absence de mutation des coûts/effets pendant la validation.
-
 ---
 
-## 6. Trous architecturaux identifiés pour les étapes suivantes
+## 7. Conclusion
 
-L'audit fait ressortir plusieurs raccords à traiter sans créer de systèmes parallèles :
+**MON18.1 — Spell Data Model & Cast Contract est VALIDÉ ET CLOS sous UE5.5.4.**
 
-1. `EGridCombatActionSourcePolicy::Spell` existe, mais l'exécution runtime de cette source doit être branchée au TurnManager en MON18.3.
-2. Le catalogue expose déjà mana, PA et cooldown ; MON18.3 doit réutiliser la transaction existante plutôt que payer directement depuis le modèle de sort.
-3. `EGridCombatTargetingPolicy` fournit le vocabulaire de cible ; MON18.4 doit raccorder ses résolveurs aux règles de grille/LOS existantes.
-4. MON16 fournit le runtime d'effets d'état ; le résolveur de sort devra seulement router `StatusEffectId` vers ce système.
-5. Le pipeline projectile MON17 est une présentation ; les dégâts magiques devront rester dans la résolution de sort et non dans le projectile.
-6. La connaissance des sorts par personnage n'existe pas encore comme contrat persistant : c'est le périmètre de MON18.2.
-
----
-
-## 7. Porte de sortie MON18.1
-
-MON18.1 pourra être déclaré **VALIDÉ ET CLOS** uniquement après :
-
-1. compilation du projet sous UE5.5.4 ;
-2. exécution des quatre tests `Grimrock.Magic.MON18.1` ;
-3. résultat `Success` fourni par l'utilisateur.
-
-Aucune compilation ou exécution UE n'est revendiquée dans ce document avant ce retour.
-
----
-
-## 8. Suite prévue
-
-Après validation MON18.1 :
+Prochain travail autoritaire :
 
 ```text
 MON18.2 — Spell Knowledge / Spellbook
 ```
-
-Cette étape introduira les sorts connus par personnage, apprentissage/anti-duplication, contraintes de classe/niveau et base de persistance, sans encore déplacer l'autorité du runtime de combat.
