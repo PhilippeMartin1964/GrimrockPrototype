@@ -1,8 +1,10 @@
-# UI Architecture Target
+# UI01.2 — Architecture UI cible détaillée
 
 ## Objectif
 
-Créer une architecture UI globale avant l'intégration complète du Spellbook.
+Définir une architecture UI globale cohérente avant l'intégration du Spellbook.
+
+Le principe retenu est de disposer d'un conteneur joueur unique permettant d'accéder aux différents panneaux RPG sans créer des écrans indépendants.
 
 ## Conteneur principal
 
@@ -28,53 +30,140 @@ WBP_GrimrockMenu
 Responsable de :
 
 - navigation entre modules ;
-- affichage/masquage des panneaux ;
+- affichage et masquage des panneaux ;
 - raccourcis clavier ;
-- état actif du menu.
+- état actif du menu ;
+- orchestration des événements UI.
 
-Il ne contient pas de logique métier.
+Ne contient pas :
 
-### Widgets spécialisés
+- règles gameplay ;
+- calculs de combat ;
+- validation inventaire ;
+- logique des sorts.
 
-Chaque module reste autonome :
+### WBP_GridInventory
 
-- Inventory : objets et équipement.
-- Skills : compétences.
-- Spellbook : connaissance des sorts et affectation hotbar.
-- Journal : quêtes et événements.
-- Map : exploration.
-- Codex : connaissances.
-- Recipes : artisanat.
+Responsable de :
 
-## Flux C++ ↔ Blueprint
+- affichage inventaire ;
+- interaction avec objets ;
+- déplacement d'objets ;
+- interaction équipement/raccourcis.
 
-Principe :
+La logique métier reste dans les composants C++ existants.
+
+### WBP_GridSkills
+
+Responsable de :
+
+- affichage des compétences ;
+- progression ;
+- choix disponibles.
+
+### WBP_GridSpellbook
+
+Responsable de :
+
+- affichage des sorts connus ;
+- informations sort ;
+- coûts ;
+- affectation Hotbar.
+
+La validation et l'exécution restent dans MON18.
+
+### WBP_GridJournal
+
+Responsable de :
+
+- quêtes ;
+- événements ;
+- historique joueur.
+
+### WBP_GridMap
+
+Responsable de :
+
+- exploration ;
+- progression cartographique ;
+- découvertes.
+
+### WBP_GridCodex
+
+Responsable de :
+
+- lore ;
+- bestiaire ;
+- connaissances.
+
+### WBP_GridRecipes
+
+Responsable de :
+
+- recettes connues ;
+- fabrication ;
+- ingrédients.
+
+# Flux C++ ↔ Blueprint
+
+Architecture :
 
 ```
 C++ Data Model
-      ↓
-UI View Models / Libraries
-      ↓
+        ↓
+UI View Models / UI Libraries
+        ↓
 Blueprint Widgets
-      ↓
-Interaction joueur
+        ↓
+Commandes utilisateur
 ```
 
-Les widgets affichent et déclenchent des commandes, mais ne possèdent pas la logique système.
+Les Widgets :
+
+- affichent des données préparées ;
+- déclenchent des commandes ;
+- ne reproduisent pas les règles métier.
+
+## Gestion de navigation
+
+`WBP_GrimrockMenu` possède :
+
+- panneau actif courant ;
+- références aux panneaux enfants ;
+- événements Open/Close ;
+- transitions éventuelles.
+
+Flux type :
+
+```
+OpenMenu()
+    |
+    +-- SelectPanel(Spellbook)
+            |
+            +-- RefreshView()
+```
+
+## Gestion de l'état UI
+
+L'état UI doit rester séparé du gameplay :
+
+- onglet courant ;
+- personnage sélectionné ;
+- filtres d'affichage ;
+- état d'ouverture.
+
+## Principes de conception
+
+- Pas de logique métier dans les Widgets.
+- Pas de dépendance directe entre panneaux.
+- Un seul point d'entrée UI joueur.
+- Réutilisation des systèmes MON12/MON18.
+- Architecture extensible pour futurs modules.
 
 ## Évolution prévue
 
-Étapes :
+UI01.3 : création du shell `WBP_GrimrockMenu`.
 
-1. Audit UI actuel.
-2. Création du conteneur `WBP_GrimrockMenu`.
-3. Navigation entre panneaux.
-4. Intégration `WBP_GridSpellbook`.
-5. Validation PIE.
+UI01.4 : intégration `WBP_GridSpellbook`.
 
-## Contraintes
-
-- ne pas modifier inutilement les assets binaires ;
-- conserver l'architecture data-driven existante ;
-- réutiliser les systèmes MON18 existants ;
-- éviter les duplications de logique.
+UI01.5 : validation PIE et flux utilisateur.
