@@ -7,6 +7,132 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/GridSpellbookEntryWidget.h"
 
+#if !UE_BUILD_SHIPPING
+#include "HAL/IConsoleManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Magic/GridProductionSpellLibrary.h"
+#endif
+
+namespace
+{
+#if !UE_BUILD_SHIPPING
+    void SeedProductionSpellsForPIE (UWorld* World)
+    {
+        if (!World)
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("Grimrock.Spellbook.SeedProduction failed: no world."));
+            return;
+        }
+
+        AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn> (
+            UGameplayStatics::GetPlayerPawn (World, 0));
+        if (!PartyPawn || !PartyPawn->PartyInventoryComponent)
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("Grimrock.Spellbook.SeedProduction failed: party pawn or inventory component unavailable."));
+            return;
+        }
+
+        UGridPartyInventoryComponent* InventoryComponent =
+            PartyPawn->PartyInventoryComponent;
+        const int32 CharacterIndex =
+            InventoryComponent->GetSelectedCharacterIndex ();
+        if (!InventoryComponent->IsValidCharacterIndex (CharacterIndex))
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("Grimrock.Spellbook.SeedProduction failed: invalid selected character index %d."),
+                CharacterIndex);
+            return;
+        }
+
+        const FGuid CharacterId = InventoryComponent->
+            PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+        if (!CharacterId.IsValid ())
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("Grimrock.Spellbook.SeedProduction failed: selected character has no valid CharacterId."));
+            return;
+        }
+
+        UGridPartySpellbookComponent* SpellbookComponent =
+            PartyPawn->FindComponentByClass<UGridPartySpellbookComponent> ();
+        if (!SpellbookComponent)
+        {
+            SpellbookComponent = NewObject<UGridPartySpellbookComponent> (
+                PartyPawn,
+                UGridPartySpellbookComponent::StaticClass (),
+                TEXT ("PartySpellbookComponent"));
+            if (!SpellbookComponent)
+            {
+                UE_LOG (
+                    LogTemp,
+                    Warning,
+                    TEXT ("Grimrock.Spellbook.SeedProduction failed: could not create PartySpellbookComponent."));
+                return;
+            }
+
+            PartyPawn->AddInstanceComponent (SpellbookComponent);
+            SpellbookComponent->RegisterComponent ();
+        }
+
+        if (!SpellbookComponent->EnsureCharacterSpellbook (CharacterId))
+        {
+            UE_LOG (
+                LogTemp,
+                Warning,
+                TEXT ("Grimrock.Spellbook.SeedProduction failed: could not ensure character spellbook."));
+            return;
+        }
+
+        TArray<FGridSpellDefinition> ProductionSpells;
+        FGridProductionSpellLibrary::BuildAll (ProductionSpells);
+
+        int32 AddedCount = 0;
+        int32 AlreadyKnownCount = 0;
+        for (const FGridSpellDefinition& Definition : ProductionSpells)
+        {
+            const EGridSpellbookMutationResult Result =
+                SpellbookComponent->LearnSpell (
+                    CharacterId,
+                    Definition.SpellId);
+            if (Result == EGridSpellbookMutationResult::Success)
+            {
+                ++AddedCount;
+            }
+            else if (Result == EGridSpellbookMutationResult::AlreadyKnown)
+            {
+                ++AlreadyKnownCount;
+            }
+        }
+
+        UE_LOG (
+            LogTemp,
+            Display,
+            TEXT ("Grimrock.Spellbook.SeedProduction: CharacterIndex=%d Added=%d AlreadyKnown=%d TotalProduction=%d. Runtime-only; stopping PIE discards this seed."),
+            CharacterIndex,
+            AddedCount,
+            AlreadyKnownCount,
+            ProductionSpells.Num ());
+    }
+
+    static FAutoConsoleCommandWithWorld GSeedProductionSpellsForPIECommand (
+        TEXT ("Grimrock.Spellbook.SeedProduction"),
+        TEXT ("Development validation command. Teaches all MON18.5 production spells to the currently selected party character for the current runtime session only."),
+        FConsoleCommandWithWorldDelegate::CreateStatic (
+            &SeedProductionSpellsForPIE),
+        ECVF_Default);
+#endif
+}
+
 void UGridSpellbookWidget::InitializeSpellbookWidget (
     AGrimrockPartyPawn* InPartyPawn)
 {
