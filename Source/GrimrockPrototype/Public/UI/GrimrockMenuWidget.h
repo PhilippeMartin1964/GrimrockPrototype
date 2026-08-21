@@ -66,6 +66,9 @@ private:
     UFUNCTION ()
     void HandleCodexTopTabClicked ();
 
+    UFUNCTION ()
+    void HandleSpellbookTopTabClicked ();
+
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UWidgetSwitcher> WidgetSwitcher_MainContent;
 
@@ -87,6 +90,9 @@ private:
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UButton> Button_TabCodex;
 
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UButton> Button_TabSpellbook;
+
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UGridInventoryWidget> Page_Inventory;
 
@@ -104,6 +110,9 @@ private:
 
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UWidget> Page_Codex;
+
+    UPROPERTY (meta = (BindWidgetOptional))
+    TObjectPtr<UWidget> Page_Spellbook;
 
     UPROPERTY (Transient)
     TMap<TObjectPtr<UButton>, FButtonStyle> DefaultTopTabButtonStyles;

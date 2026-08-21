@@ -58,6 +58,8 @@ UWidget* UGrimrockMenuWidget::GetTopTabPage (EInventoryTopTab Tab) const
         return Page_Recipes;
     case EInventoryTopTab::Codex:
         return Page_Codex;
+    case EInventoryTopTab::Spellbook:
+        return Page_Spellbook;
     default:
         return nullptr;
     }
@@ -89,7 +91,8 @@ void UGrimrockMenuWidget::BindTopTabButtons ()
         Button_TabJournal,
         Button_TabMap,
         Button_TabRecipes,
-        Button_TabCodex
+        Button_TabCodex,
+        Button_TabSpellbook
     };
 
     for (UButton* Button : Buttons)
@@ -138,6 +141,11 @@ void UGrimrockMenuWidget::BindTopTabButtons ()
         Button_TabCodex->OnClicked.RemoveDynamic (this, &UGrimrockMenuWidget::HandleCodexTopTabClicked);
         Button_TabCodex->OnClicked.AddDynamic (this, &UGrimrockMenuWidget::HandleCodexTopTabClicked);
     }
+    if (Button_TabSpellbook)
+    {
+        Button_TabSpellbook->OnClicked.RemoveDynamic (this, &UGrimrockMenuWidget::HandleSpellbookTopTabClicked);
+        Button_TabSpellbook->OnClicked.AddDynamic (this, &UGrimrockMenuWidget::HandleSpellbookTopTabClicked);
+    }
 }
 
 void UGrimrockMenuWidget::UpdateTopTabButtonStyles ()
@@ -148,6 +156,7 @@ void UGrimrockMenuWidget::UpdateTopTabButtonStyles ()
     ApplyTopTabButtonStyle (Button_TabMap, EInventoryTopTab::Map);
     ApplyTopTabButtonStyle (Button_TabRecipes, EInventoryTopTab::Recipes);
     ApplyTopTabButtonStyle (Button_TabCodex, EInventoryTopTab::Codex);
+    ApplyTopTabButtonStyle (Button_TabSpellbook, EInventoryTopTab::Spellbook);
 }
 
 void UGrimrockMenuWidget::ApplyTopTabButtonStyle (UButton* Button, EInventoryTopTab Tab)
@@ -201,4 +210,9 @@ void UGrimrockMenuWidget::HandleRecipesTopTabClicked ()
 void UGrimrockMenuWidget::HandleCodexTopTabClicked ()
 {
     SetActiveTopTab (EInventoryTopTab::Codex);
+}
+
+void UGrimrockMenuWidget::HandleSpellbookTopTabClicked ()
+{
+    SetActiveTopTab (EInventoryTopTab::Spellbook);
 }

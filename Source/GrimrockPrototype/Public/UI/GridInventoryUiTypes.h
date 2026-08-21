@@ -11,7 +11,8 @@ enum class EInventoryTopTab : uint8
     Journal = 2,
     Map = 3,
     Recipes = 4,
-    Codex = 5
+    Codex = 5,
+    Spellbook = 6
 };
 
 UENUM (BlueprintType)
