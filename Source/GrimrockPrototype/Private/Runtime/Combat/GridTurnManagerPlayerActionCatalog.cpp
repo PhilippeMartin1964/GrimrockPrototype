@@ -3,8 +3,12 @@
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookUI.h"
+#include "Magic/GridSpellHotbarExecution.h"
+#include "Magic/GridSpellPresentationComponent.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
+#include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
+#include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/Combat/GridCombatResolver.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -13,6 +17,7 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
+#include "UObject/UObjectIterator.h"
 
 namespace
 {
@@ -71,6 +76,55 @@ namespace
     FText MakeMON1286TargetingReason (const TCHAR* Reason)
     {
         return FText::FromString (Reason ? Reason : TEXT ("Cible invalide."));
+    }
+
+    bool TryBuildUI0143e2ProductionSpell (
+        FName SpellId,
+        FGridSpellDefinition& OutDefinition)
+    {
+        OutDefinition = FGridSpellDefinition ();
+        if (SpellId.IsNone ())
+        {
+            return false;
+        }
+
+        TArray<FGridSpellDefinition> Definitions;
+        FGridProductionSpellLibrary::BuildAll (Definitions);
+        const FGridSpellDefinition* Found =
+            Definitions.FindByPredicate (
+                [SpellId] (const FGridSpellDefinition& Candidate)
+                {
+                    return Candidate.SpellId == SpellId;
+                });
+        if (!Found ||
+            FGridSpellContract::ValidateDefinition (*Found) !=
+                EGridSpellValidationError::None)
+        {
+            return false;
+        }
+        OutDefinition = *Found;
+        return true;
+    }
+
+    const UGridStatusEffectDefinitionAsset*
+    ResolveUI0143e2StatusDefinition (FName EffectId)
+    {
+        if (EffectId.IsNone ())
+        {
+            return nullptr;
+        }
+
+        for (TObjectIterator<UGridStatusEffectDefinitionAsset> It; It; ++It)
+        {
+            UGridStatusEffectDefinitionAsset* Definition = *It;
+            if (IsValid (Definition) &&
+                Definition->EffectId == EffectId &&
+                Definition->IsValidDefinition ())
+            {
+                return Definition;
+            }
+        }
+        return nullptr;
     }
 }
 
@@ -1441,6 +1495,330 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction (
             *SourceDefinitionId.ToString (),
             *UEnum::GetValueAsString (SourceEquipmentSlot));
         return false;
+    }
+
+    UGridPartyInventoryComponent* SpellInventory = IsValid (PartyPawn)
+        ? PartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
+    UGridPartySpellbookComponent* SpellbookComponent = IsValid (PartyPawn)
+        ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent> ()
+        : nullptr;
+    const FGridCharacterInventoryState* SpellCharacter =
+        IsValid (SpellInventory) &&
+        SpellInventory->PartyInventoryState.ActiveCharacters.IsValidIndex (
+            CharacterIndex)
+            ? &SpellInventory->PartyInventoryState.ActiveCharacters[
+                CharacterIndex]
+            : nullptr;
+    const FGridCharacterSpellbookState* CharacterSpellbook =
+        SpellCharacter && IsValid (SpellbookComponent)
+            ? SpellbookComponent->SpellbookState.FindSpellbook (
+                SpellCharacter->CharacterId)
+            : nullptr;
+    const bool bSpellbookBackedAction =
+        Action->Definition.SourcePolicy ==
+            EGridCombatActionSourcePolicy::Spell &&
+        Action->SourceDefinitionId == Action->Definition.ActionId &&
+        CharacterSpellbook &&
+        CharacterSpellbook->KnowsSpell (Action->Definition.ActionId);
+
+    if (bSpellbookBackedAction)
+    {
+        FGridSpellDefinition SpellDefinition;
+        FGridPlayerCharacterTurnState TurnStateBefore;
+        if (!SpellCharacter ||
+            !TryBuildUI0143e2ProductionSpell (
+                Action->Definition.ActionId,
+                SpellDefinition) ||
+            !GetPlayerCharacterTurnState (
+                CharacterIndex,
+                TurnStateBefore))
+        {
+            OutResult.RejectReason =
+                EGridCombatActionRequestRejectReason::ClassActionRejected;
+            return false;
+        }
+
+        FGridSpellCastRequest CastRequest;
+        CastRequest.CasterCharacterId = SpellCharacter->CharacterId;
+        CastRequest.SpellId = SpellDefinition.SpellId;
+
+        FGridSpellTargetingContext TargetingContext;
+        TargetingContext.CasterCell = FIntPoint (
+            PartyPawn->CurrentCellX,
+            PartyPawn->CurrentCellY);
+        TargetingContext.bLineOfSightClear = true;
+
+        AGridMonsterActor* TargetMonster = nullptr;
+        if (SpellDefinition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::Self ||
+            SpellDefinition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::Ally)
+        {
+            // UI01.4.3e.2: a direct Ally hotbar cast deterministically targets
+            // its caster until a dedicated party-portrait target selector is
+            // introduced. No target heuristics or hidden selection are used.
+            CastRequest.Target.TargetId = SpellCharacter->CharacterId;
+            CastRequest.Target.GridCell = TargetingContext.CasterCell;
+            CastRequest.Target.bHasGridCell = true;
+            TargetingContext.ResolvedTargetId = SpellCharacter->CharacterId;
+            TargetingContext.ResolvedTargetCell = TargetingContext.CasterCell;
+            TargetingContext.bHasResolvedTargetCell = true;
+            TargetingContext.bResolvedTargetIsAlly = true;
+        }
+        else if (SpellDefinition.TargetingPolicy ==
+            EGridCombatTargetingPolicy::FirstAxialTarget)
+        {
+            if (!Action->SuggestedTargetId.IsValid ())
+            {
+                OutResult.RejectReason =
+                    EGridCombatActionRequestRejectReason::InvalidTarget;
+                UE_LOG (
+                    LogGridTurnManager,
+                    Log,
+                    TEXT ("[GridSpellAction] Accepted=false Character=%d Spell=%s Reason=NoSuggestedHostileTarget"),
+                    CharacterIndex,
+                    *SpellDefinition.SpellId.ToString ());
+                return false;
+            }
+            TargetMonster = FindCombatMonsterById (
+                Action->SuggestedTargetId);
+            if (!IsValid (TargetMonster) ||
+                !TargetMonster->bMonsterEnabled ||
+                !TargetMonster->IsRuntimeLevelActive () ||
+                TargetMonster->IsDead ())
+            {
+                OutResult.RejectReason =
+                    EGridCombatActionRequestRejectReason::InvalidTarget;
+                return false;
+            }
+
+            CastRequest.Target.TargetId = Action->SuggestedTargetId;
+            CastRequest.Target.GridCell = Action->SuggestedTargetCell;
+            CastRequest.Target.bHasGridCell = true;
+            TargetingContext.ResolvedTargetId = Action->SuggestedTargetId;
+            TargetingContext.ResolvedTargetCell = Action->SuggestedTargetCell;
+            TargetingContext.bHasResolvedTargetCell = true;
+            TargetingContext.bResolvedTargetIsHostile = true;
+        }
+        else
+        {
+            OutResult.RejectReason =
+                EGridCombatActionRequestRejectReason::UnsupportedResolution;
+            return false;
+        }
+
+        const int32 TargetMaxHealth = TargetMonster
+            ? IsValid (TargetMonster->MonsterDefinition)
+                ? FMath::Max (
+                    1,
+                    TargetMonster->MonsterDefinition->MaxHealth)
+                : FMath::Max (1, TargetMonster->CurrentHealth)
+            : FMath::Max (1, SpellCharacter->DerivedStats.MaxHealth);
+        const int32 TargetCurrentHealth = TargetMonster
+            ? TargetMonster->CurrentHealth
+            : SpellCharacter->DerivedStats.CurrentHealth;
+        const FGridStatusEffectCollection TargetStatusEffects = TargetMonster
+            ? TargetMonster->StatusEffects
+            : SpellCharacter->StatusEffects;
+
+        FGridSpellHotbarExecutionResult Execution;
+        const bool bExecuted =
+            FGridSpellHotbarExecutionService::TryExecute (
+                SpellDefinition,
+                CastRequest,
+                TargetingContext,
+                *CharacterSpellbook,
+                SpellCharacter->DerivedStats,
+                TurnStateBefore,
+                TargetMaxHealth,
+                TargetCurrentHealth,
+                TargetStatusEffects,
+                [] (FName EffectId)
+                    -> const UGridStatusEffectDefinitionAsset*
+                {
+                    return ResolveUI0143e2StatusDefinition (EffectId);
+                },
+                Execution);
+        if (!bExecuted)
+        {
+            OutResult.RejectReason =
+                Execution.PipelineRejectStage ==
+                        EGridSpellCastPipelineRejectStage::Targeting
+                    ? EGridCombatActionRequestRejectReason::InvalidTarget
+                    : EGridCombatActionRequestRejectReason::ClassActionRejected;
+            UE_LOG (
+                LogGridTurnManager,
+                Log,
+                TEXT ("[GridSpellAction] Accepted=false Character=%d Spell=%s PipelineStage=%s Targeting=%s Transaction=%s Effect=%s Error=%s"),
+                CharacterIndex,
+                *SpellDefinition.SpellId.ToString (),
+                *UEnum::GetValueAsString (Execution.PipelineRejectStage),
+                *UEnum::GetValueAsString (Execution.TargetingRejectReason),
+                *UEnum::GetValueAsString (Execution.TransactionRejectReason),
+                *UEnum::GetValueAsString (Execution.EffectRejectReason),
+                *Execution.Error);
+            return false;
+        }
+
+        FGridPlayerCharacterTurnState* AuthoritativeTurnState =
+            FindPlayerCharacterTurnState (SpellCharacter->CharacterId);
+        if (!AuthoritativeTurnState ||
+            !SpellInventory->PartyInventoryState.ActiveCharacters
+                .IsValidIndex (CharacterIndex))
+        {
+            OutResult.RejectReason =
+                EGridCombatActionRequestRejectReason::ClassActionRejected;
+            return false;
+        }
+
+        FGridCharacterInventoryState& MutableCharacter =
+            SpellInventory->PartyInventoryState.ActiveCharacters[
+                CharacterIndex];
+        OutResult.ClassActionResult.HealthBefore =
+            MutableCharacter.DerivedStats.CurrentHealth;
+        OutResult.ClassActionResult.ManaBefore =
+            MutableCharacter.DerivedStats.CurrentMana;
+
+        MutableCharacter.DerivedStats = Execution.CasterStats;
+        *AuthoritativeTurnState = Execution.CasterTurnState;
+        if (!TargetMonster)
+        {
+            MutableCharacter.DerivedStats.CurrentHealth =
+                Execution.TargetCurrentHealth;
+            MutableCharacter.StatusEffects =
+                Execution.TargetStatusEffects;
+        }
+        BroadcastPlayerCharacterTurnState (*AuthoritativeTurnState);
+
+        if (TargetMonster)
+        {
+            TargetMonster->StatusEffects = Execution.TargetStatusEffects;
+            const bool bPreviousResolutionInProgress =
+                bPlayerAttackResolutionInProgress;
+            bPlayerAttackResolutionInProgress = true;
+            TargetMonster->SetCurrentHealth (
+                Execution.TargetCurrentHealth);
+            bPlayerAttackResolutionInProgress =
+                bPreviousResolutionInProgress;
+
+            OutResult.TargetedActionResult.TargetCell =
+                Execution.ResolvedTarget.GridCell;
+            OutResult.TargetedActionResult.AffectedCells.Add (
+                Execution.ResolvedTarget.GridCell);
+            OutResult.TargetedActionResult.TargetMonsterIds.Add (
+                TargetMonster->ResolvePersistenceId ());
+            if (!TargetMonster->IsDead ())
+            {
+                if (FGridCombatantInitiativeEntry* TargetEntry =
+                    FindInitiativeEntry (
+                        EGridCombatantSide::Monster,
+                        TargetMonster->ResolvePersistenceId ()))
+                {
+                    RefreshInitiativeEntryVitals (*TargetEntry);
+                    OnCombatantStateChanged.Broadcast (*TargetEntry);
+                }
+            }
+        }
+
+        StartCombatActionCooldown (*Action);
+        SpellInventory->NotifyPartyInventoryChanged (CharacterIndex);
+        if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry (
+                EGridCombatantSide::Party,
+                MutableCharacter.CharacterId))
+        {
+            RefreshInitiativeEntryVitals (*Entry);
+            OnCombatantStateChanged.Broadcast (*Entry);
+        }
+        if (UWorld* World = GetWorld ())
+        {
+            if (UGridStatusEffectLifecycleSubsystem* StatusLifecycle =
+                World->GetSubsystem<UGridStatusEffectLifecycleSubsystem> ())
+            {
+                StatusLifecycle->RefreshAllInitiativeModifiers ();
+            }
+        }
+
+        const FVector SourceWorldLocation = PartyPawn->GetActorLocation ();
+        const FVector TargetWorldLocation = TargetMonster
+            ? TargetMonster->GetActorLocation ()
+            : SourceWorldLocation;
+        FGridSpellPresentationProfile PresentationProfile;
+        if (FGridProductionSpellLibrary::TryBuildPresentationProfile (
+                SpellDefinition.SpellId,
+                PresentationProfile))
+        {
+            FGridSpellPresentationPlan PresentationPlan;
+            if (FGridSpellPresentationService::BuildPlan (
+                    SpellDefinition,
+                    Execution.ResolvedTarget,
+                    PresentationProfile,
+                    SourceWorldLocation,
+                    TargetWorldLocation,
+                    PresentationPlan))
+            {
+                UGridSpellPresentationComponent* PresentationComponent =
+                    PartyPawn->FindComponentByClass<
+                        UGridSpellPresentationComponent> ();
+                if (!IsValid (PresentationComponent))
+                {
+                    PresentationComponent =
+                        NewObject<UGridSpellPresentationComponent> (
+                            PartyPawn,
+                            TEXT ("GridSpellPresentationRuntime"));
+                    if (IsValid (PresentationComponent))
+                    {
+                        PartyPawn->AddInstanceComponent (
+                            PresentationComponent);
+                        PresentationComponent->RegisterComponent ();
+                    }
+                }
+                if (IsValid (PresentationComponent))
+                {
+                    PresentationComponent->PresentSpell (
+                        PresentationPlan,
+                        PresentationProfile);
+                }
+            }
+        }
+
+        OutResult.ClassActionResult.HealthAfter =
+            MutableCharacter.DerivedStats.CurrentHealth;
+        OutResult.ClassActionResult.ManaAfter =
+            MutableCharacter.DerivedStats.CurrentMana;
+        OutResult.bAccepted = true;
+        OutResult.RejectReason =
+            EGridCombatActionRequestRejectReason::None;
+
+        UE_LOG (
+            LogGridTurnManager,
+            Log,
+            TEXT ("[GridSpellAction] Accepted=true Character=%d Spell=%s Target=%s AP=%d Mana=%d Health=%d->%d ManaState=%d->%d Damage=%d Healing=%d"),
+            CharacterIndex,
+            *SpellDefinition.SpellId.ToString (),
+            *Execution.ResolvedTarget.TargetId.ToString (
+                EGuidFormats::Digits),
+            Execution.CostReceipt.ActionPointsSpent,
+            Execution.CostReceipt.ManaSpent,
+            OutResult.ClassActionResult.HealthBefore,
+            OutResult.ClassActionResult.HealthAfter,
+            OutResult.ClassActionResult.ManaBefore,
+            OutResult.ClassActionResult.ManaAfter,
+            Execution.EffectResult.TotalDamage,
+            Execution.EffectResult.TotalHealing);
+
+        if (bPendingVictoryAfterPlayerAttack)
+        {
+            bPendingVictoryAfterPlayerAttack = false;
+            FinishCombat (EGridCombatPhase::Victory);
+        }
+        else if (!InitiativeOrder.IsEmpty () &&
+            AuthoritativeTurnState->RemainingActionPoints <= 0 &&
+            IsActivePlayerCharacter (CharacterIndex))
+        {
+            FinishActivePlayerTurn ();
+        }
+        return true;
     }
 
     if (IsMON1285ClassActionSource (
