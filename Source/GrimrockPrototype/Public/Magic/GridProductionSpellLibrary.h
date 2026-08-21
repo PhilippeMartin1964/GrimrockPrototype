@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Magic/GridSpellPresentation.h"
 #include "Magic/GridSpellTypes.h"
 
 /** First canonical production spell definitions introduced by MON18.5. */
@@ -15,6 +16,14 @@ struct GRIMROCKPROTOTYPE_API FGridProductionSpellLibrary
     static FGridSpellDefinition MakeLesserHeal ();
     static FGridSpellDefinition MakeHaste ();
     static FGridSpellDefinition MakeCurePoison ();
+
+    static FGridSpellPresentationProfile MakeArcaneBoltPresentation ();
+    static FGridSpellPresentationProfile MakeLesserHealPresentation ();
+    static FGridSpellPresentationProfile MakeHastePresentation ();
+    static FGridSpellPresentationProfile MakeCurePoisonPresentation ();
+    static bool TryBuildPresentationProfile (
+        FName SpellId,
+        FGridSpellPresentationProfile& OutProfile);
 
     static void BuildAll (TArray<FGridSpellDefinition>& OutDefinitions);
 };

@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif après clôture de MON18.5**  
+Statut : **MON18.6 implémenté — validation UE5.5.4 en attente**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -55,7 +55,7 @@ MON18.2 — Spell Knowledge / Spellbook           CLOS
 MON18.3 — Runtime Casting / Cost Transaction    CLOS
 MON18.4 — Targeting Integration                 CLOS
 MON18.5 — First Production Spells               CLOS
-MON18.6 — Spell Presentation                    PROCHAIN
+MON18.6 — Spell Presentation                    EN VALIDATION
 MON18.7 — Spellbook / Hotbar UI
 MON18.8 — Persistence / Migration
 MON18.9 — Balance / Regression / Closure
@@ -206,7 +206,14 @@ Spell_Haste
 Spell_CurePoison
 ```
 
-`FGridSpellEffectResolver` couvre les quatre effets de MON18.1 : `Damage`, `Heal`, `ApplyStatusEffect` via MON16 et `RemoveStatusEffect` par identité stable. Le resolver commit le batch complet uniquement en cas de succès afin d'éviter toute mutation partielle.
+`FGridSpellEffectResolver` couvre les quatre effets de MON18.1 :
+
+- `Damage` ;
+- `Heal` ;
+- `ApplyStatusEffect` via `FGridStatusEffectCollection::TryApply` ;
+- `RemoveStatusEffect` par identité stable MON16.
+
+Le resolver travaille sur des copies puis commit le batch complet uniquement en cas de succès, évitant les mutations partielles lorsqu'une définition de Status Effect manque ou est invalide.
 
 Validation automatisée :
 
@@ -225,6 +232,27 @@ Références :
 ```text
 docs/Design/MON18_5_FIRST_PRODUCTION_SPELLS.md
 docs/Design/MON18_5_VALIDATION.md
+```
+
+### MON18.6 — EN VALIDATION
+
+`FGridSpellPresentationProfile` ajoute une présentation data-driven séparée du gameplay et réutilise directement les définitions audio/VFX du pipeline MON11.
+
+`FGridSpellPresentationService` construit un plan déterministe :
+
+```text
+Projectile : CastStarted -> ProjectileLaunched -> Impact -> Completed
+Instantané : CastStarted -> Impact -> Completed
+```
+
+Pour les projectiles, MON18.6 délègue le délai et la trajectoire à `AGridCombatProjectileActor`, déjà validé par MON17.3.2. `Spell_ArcaneBolt` utilise un trajet de présentation de 0.20 s ; `LesserHeal`, `Haste` et `CurePoison` restent instantanés.
+
+`UGridSpellPresentationComponent` peut jouer audio/Niagara et créer le projectile visuel, mais il ne possède aucune API capable de muter PV, mana, PA, inventaire ou Status Effects. L'absence d'assets de présentation n'invalide donc jamais le gameplay.
+
+Référence :
+
+```text
+docs/Design/MON18_6_SPELL_PRESENTATION.md
 ```
 
 ---
@@ -284,5 +312,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.6 — Spell Presentation
+Valider MON18.6 sous UE5.5.4, puis MON18.7 — Spellbook / Hotbar UI
 ```

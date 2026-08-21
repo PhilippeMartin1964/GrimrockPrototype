@@ -21,6 +21,14 @@ namespace
         Effect.StatusEffectId = StatusEffectId;
         return Effect;
     }
+
+    FGridSpellPresentationProfile MakeInstantPresentation ()
+    {
+        FGridSpellPresentationProfile Profile;
+        Profile.Projectile.bEnabled = false;
+        Profile.FeedbackDurationSeconds = 1.25f;
+        return Profile;
+    }
 }
 
 FGridSpellDefinition FGridProductionSpellLibrary::MakeArcaneBolt ()
@@ -101,6 +109,63 @@ FGridSpellDefinition FGridProductionSpellLibrary::MakeCurePoison ()
             EGridSpellEffectType::RemoveStatusEffect,
             TEXT ("Status_Poison")));
     return Definition;
+}
+
+FGridSpellPresentationProfile
+FGridProductionSpellLibrary::MakeArcaneBoltPresentation ()
+{
+    FGridSpellPresentationProfile Profile;
+    Profile.Projectile.bEnabled = true;
+    Profile.Projectile.TravelDurationSeconds = 0.20f;
+    Profile.Projectile.VisualScale = FVector (0.25f);
+    Profile.FeedbackDurationSeconds = 1.25f;
+    return Profile;
+}
+
+FGridSpellPresentationProfile
+FGridProductionSpellLibrary::MakeLesserHealPresentation ()
+{
+    return MakeInstantPresentation ();
+}
+
+FGridSpellPresentationProfile
+FGridProductionSpellLibrary::MakeHastePresentation ()
+{
+    return MakeInstantPresentation ();
+}
+
+FGridSpellPresentationProfile
+FGridProductionSpellLibrary::MakeCurePoisonPresentation ()
+{
+    return MakeInstantPresentation ();
+}
+
+bool FGridProductionSpellLibrary::TryBuildPresentationProfile (
+    FName SpellId,
+    FGridSpellPresentationProfile& OutProfile)
+{
+    OutProfile = FGridSpellPresentationProfile ();
+    if (SpellId == ArcaneBoltId ())
+    {
+        OutProfile = MakeArcaneBoltPresentation ();
+        return true;
+    }
+    if (SpellId == LesserHealId ())
+    {
+        OutProfile = MakeLesserHealPresentation ();
+        return true;
+    }
+    if (SpellId == HasteId ())
+    {
+        OutProfile = MakeHastePresentation ();
+        return true;
+    }
+    if (SpellId == CurePoisonId ())
+    {
+        OutProfile = MakeCurePoisonPresentation ();
+        return true;
+    }
+    return false;
 }
 
 void FGridProductionSpellLibrary::BuildAll (
