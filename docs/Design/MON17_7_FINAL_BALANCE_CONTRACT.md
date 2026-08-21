@@ -1,6 +1,6 @@
 # MON17.7 — Final Balance Contract
 
-Statut : **IMPLÉMENTÉ — validation UE5.5.4 à faire**  
+Statut : **VALIDÉ sous UE5.5.4 — PIE final et régressions à faire**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -56,7 +56,7 @@ Les trois tirages restent indépendants ; ce contrat ne crée aucune table exclu
 
 ## Automation
 
-Nouveau test :
+Test :
 
 ```text
 Grimrock.Monsters.MON17.7.FinalBalanceContract
@@ -88,12 +88,28 @@ quantités = 1..1
 ExpectedItemsPerKill = 1.000
 ```
 
+## Validation UE5.5.4
+
+Le contrat final a été exécuté avec succès :
+
+```text
+Grimrock.Monsters.MON17.7.FinalBalanceContract  Success
+```
+
+Sortie de référence :
+
+```text
+MON17.7 final balance: HP=10 Initiative=12 Accuracy=2 Evasion=3 AP=3 Damage=2..5 XP=125 LootExpected=1.000
+```
+
+Le `DA_MON_GoblinThrower.uasset` équilibré est également versionné sur `origin/master`.
+
 ## Porte de sortie
 
 ```text
-1. DA_MON_GoblinThrower équilibré poussé sur origin/master   À FAIRE
-2. Compilation UE5.5.4                                      À VALIDER
-3. Grimrock.Monsters.MON17.7.FinalBalanceContract           À VALIDER
+1. DA_MON_GoblinThrower équilibré poussé sur origin/master   VALIDÉ
+2. Compilation UE5.5.4                                      VALIDÉE
+3. Grimrock.Monsters.MON17.7.FinalBalanceContract           SUCCESS
 4. PIE final deux Gobelins                                   À VALIDER
 5. Régressions finales MON17 + MON6/8/13/14/15              À VALIDER
 6. MON17 closure                                             À FAIRE

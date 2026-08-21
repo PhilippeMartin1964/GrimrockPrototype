@@ -1,6 +1,6 @@
 # MON17.7 — Balance / Closure — Audit initial
 
-Statut : **EN COURS — baseline automatisée VALIDÉE 3/3 sous UE5.5.4**
+Statut : **EN COURS — contrat final VALIDÉ sous UE5.5.4, PIE final et régressions à faire**
 Date : **21 août 2026**
 
 ## Objectif
@@ -28,7 +28,7 @@ XP                  125
 
 Le contrat tactique reste cohérent : `RangedKeeper`, distance préférée `3..5`, `ThrowKnife` à portée `2..6`, mouvement `1 AP` puis attaque `2 AP`.
 
-Aucun changement de statistiques de combat n'est justifié à ce stade. Elles restent donc figées pour la suite de MON17.7, sauf anomalie révélée par le PIE final.
+Aucun changement de statistiques de combat n'est justifié. Elles restent figées pour la clôture MON17.
 
 ## Pacing XP validé
 
@@ -54,23 +54,18 @@ Décision MON17.7 :
 ExperienceReward = 125  CONSERVÉ
 ```
 
-## Baseline loot validée
+## Baseline loot initiale
 
-Les trois vrais DataAssets et leurs entrées de production ont été chargés avec succès lors de la baseline initiale :
+La configuration temporaire de MON17.6 était :
 
 ```text
 GoblinKnife  Chance=1.0 Quantity=1
 Stone        Chance=1.0 Quantity=1
 EmptyVial    Chance=1.0 Quantity=1
-```
-
-La mesure initiale confirmée était :
-
-```text
 ExpectedItemsPerKill = 3.000
 ```
 
-soit six objets garantis pour l'encounter actuel à deux Gobelins. Cette valeur avait été choisie pour rendre MON17.6 déterministe ; elle n'est pas retenue comme balance finale.
+Cette valeur rendait MON17.6 déterministe mais était trop généreuse comme balance finale.
 
 ## Validation Automation baseline
 
@@ -91,7 +86,7 @@ AP=3 Attacks=1 Damage=2..5 Average=3.50 XP=125
 
 ## Décision de balance finale : loot
 
-MON17.7 ne modifie qu'une famille de paramètres à la fois. Les statistiques de combat et l'XP restent inchangées ; l'ajustement final porte uniquement sur les `DropChance` du `LootTable`.
+MON17.7 ne modifie qu'une famille de paramètres. Les statistiques de combat et l'XP restent inchangées ; l'ajustement final porte uniquement sur les `DropChance` du `LootTable`.
 
 Valeurs retenues et validées sous UE5.5.4 :
 
@@ -111,15 +106,29 @@ ExpectedItems pour 2 Gobelins = 2.000
 
 Les trois tirages restent indépendants : un Gobelin peut ne rien laisser, laisser un seul objet ou exceptionnellement plusieurs objets. Cela conserve le système de loot existant sans introduire de table exclusive ou de logique spécifique au Gobelin.
 
-## Contrat final ajouté
+Le `DA_MON_GoblinThrower.uasset` équilibré est versionné sur `origin/master` depuis le commit :
 
-Le test suivant verrouille désormais les décisions finales de MON17.7 :
+```text
+dbb3b14392f209c02b2ce3c220e28fcb821a777d
+Last MON17.7 tests
+```
+
+## Contrat final validé
+
+Le test suivant verrouille les décisions finales de MON17.7 :
 
 ```text
 Grimrock.Monsters.MON17.7.FinalBalanceContract
 ```
 
-Il vérifie les vrais DataAssets `DA_MON_GoblinThrower` et `DA_MON_RatGiant`, les statistiques finales du Gobelin, `ThrowKnife`, le ratio XP `4 x 125 = 500`, les trois entrées de loot et l'espérance finale `1.000`.
+Il charge les vrais DataAssets `DA_MON_GoblinThrower` et `DA_MON_RatGiant`, puis vérifie les statistiques finales du Gobelin, `ThrowKnife`, le ratio XP `4 x 125 = 500`, les trois entrées de loot et l'espérance finale `1.000`.
+
+Validation UE5.5.4 :
+
+```text
+FinalBalanceContract  Success
+MON17.7 final balance: HP=10 Initiative=12 Accuracy=2 Evasion=3 AP=3 Damage=2..5 XP=125 LootExpected=1.000
+```
 
 Référence :
 
@@ -129,10 +138,9 @@ docs/Design/MON17_7_FINAL_BALANCE_CONTRACT.md
 
 ## Étape suivante
 
-1. pousser le `DA_MON_GoblinThrower.uasset` équilibré sur `origin/master` ;
-2. compiler puis exécuter `Grimrock.Monsters.MON17.7.FinalBalanceContract` ;
-3. effectuer un seul PIE final de sensation de jeu avec deux Gobelins ;
-4. rejouer MON17.1–MON17.7 et les régressions MON6/MON8/MON13/MON14/MON15 ciblées ;
-5. documenter et clore MON17.
+1. effectuer un seul PIE final de sensation de jeu avec les deux Gobelins de production ;
+2. vérifier l'engagement, le comportement `RangedKeeper`, `ThrowKnife`, la victoire, `125 XP` par Gobelin et la lisibilité des drops probabilistes ;
+3. rejouer MON17.1–MON17.7 et les régressions MON6/MON8/MON13/MON14/MON15 ciblées ;
+4. documenter et clore MON17.
 
 Le PIE final sert uniquement à vérifier la sensation de combat et la lisibilité du loot ; il ne remplace pas les contrats Automation.
