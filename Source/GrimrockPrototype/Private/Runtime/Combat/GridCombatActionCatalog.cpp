@@ -23,6 +23,27 @@ namespace
             TargetingPolicy == EGridCombatTargetingPolicy::Area;
     }
 
+    bool IsUI0143e2SpellbookProjection (
+        const FGridCombatActionContribution& Contribution)
+    {
+        const FGridCombatActionDefinition& Definition =
+            Contribution.Definition;
+        const bool bSupportedTargeting =
+            Definition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::Self ||
+            Definition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::Ally ||
+            Definition.TargetingPolicy ==
+                EGridCombatTargetingPolicy::FirstAxialTarget;
+        return Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Spell &&
+            !Definition.ActionId.IsNone () &&
+            Contribution.SourceDefinitionId == Definition.ActionId &&
+            Definition.ResolutionProfile ==
+                EGridCombatActionResolutionProfile::Effect &&
+            bSupportedTargeting;
+    }
+
     EGridCombatActionAvailabilityReason EvaluateMON126Availability (
         const FGridCombatActionCatalogContext& Context,
         const FGridCombatActionContribution& Contribution)
@@ -123,6 +144,18 @@ namespace
                     return EGridCombatActionAvailabilityReason::
                         NoApplicableEffect;
                 }
+            }
+        }
+        else if (IsUI0143e2SpellbookProjection (Contribution))
+        {
+            // UI01.4.3e.2 has a dedicated Spellbook executor in the TurnManager.
+            // The existing non-item executor gate is already enabled by the
+            // runtime catalogue context; do not route these projections through
+            // the legacy generic class-action shape validation below.
+            if (!Context.bEnableClassActionExecutors)
+            {
+                return EGridCombatActionAvailabilityReason::
+                    ExecutionNotImplemented;
             }
         }
         else if (IsClassActionSource (Definition.SourcePolicy))

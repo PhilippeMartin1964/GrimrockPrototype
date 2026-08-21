@@ -70,4 +70,120 @@ bool FGridUI0143eSpellCatalogBindingIdentityTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridUI0143e2SpellbookCatalogAvailabilityTest,
+    "Grimrock.UI.UI01.4.3e.2.SpellbookCatalogAvailability",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridUI0143e2SpellbookCatalogAvailabilityTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    FGridCombatActionCatalogContext Context;
+    Context.CharacterIndex = 0;
+    Context.CharacterId = FGuid::NewGuid ();
+    Context.bCombatActive = true;
+    Context.bActiveCombatant = true;
+    Context.bEnableClassActionExecutors = true;
+    Context.RemainingActionPoints = 6;
+    Context.CurrentHealth = 20;
+    Context.MaximumHealth = 20;
+    Context.CurrentMana = 20;
+    Context.MaximumMana = 20;
+
+    TArray<FGridSpellDefinition> Spells;
+    FGridProductionSpellLibrary::BuildAll (Spells);
+    TArray<FGridCombatActionContribution> Contributions;
+    for (const FGridSpellDefinition& Spell : Spells)
+    {
+        FGridCombatActionContribution Contribution;
+        Contribution.Definition =
+            UGridSpellbookUILibrary::MakeSpellCombatActionDefinition (Spell);
+        Contribution.SourceDefinitionId = Spell.SpellId;
+        Contribution.AvailableSourceQuantity = 1;
+        Contributions.Add (MoveTemp (Contribution));
+    }
+
+    TArray<FGridAvailableCombatAction> Actions;
+    FGridCombatActionCatalog::Build (
+        Context,
+        Contributions,
+        Actions);
+
+    TestEqual (
+        TEXT ("All production Spellbook projections reach the catalogue"),
+        Actions.Num (),
+        Spells.Num ());
+    for (const FGridAvailableCombatAction& Action : Actions)
+    {
+        TestTrue (
+            *FString::Printf (
+                TEXT ("Spellbook action %s is executable"),
+                *Action.Definition.ActionId.ToString ()),
+            Action.bEnabled);
+        TestTrue (
+            *FString::Printf (
+                TEXT ("Spellbook action %s is not blocked as unimplemented"),
+                *Action.Definition.ActionId.ToString ()),
+            Action.AvailabilityReason !=
+                EGridCombatActionAvailabilityReason::
+                    ExecutionNotImplemented);
+    }
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridUI0143e2SpellbookCatalogExecutorGateTest,
+    "Grimrock.UI.UI01.4.3e.2.SpellbookCatalogExecutorGate",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridUI0143e2SpellbookCatalogExecutorGateTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    const FGridSpellDefinition Spell =
+        FGridProductionSpellLibrary::MakeArcaneBolt ();
+    FGridCombatActionContribution Contribution;
+    Contribution.Definition =
+        UGridSpellbookUILibrary::MakeSpellCombatActionDefinition (Spell);
+    Contribution.SourceDefinitionId = Spell.SpellId;
+    Contribution.AvailableSourceQuantity = 1;
+
+    FGridCombatActionCatalogContext Context;
+    Context.CharacterIndex = 0;
+    Context.CharacterId = FGuid::NewGuid ();
+    Context.bCombatActive = true;
+    Context.bActiveCombatant = true;
+    Context.bEnableClassActionExecutors = false;
+    Context.RemainingActionPoints = 6;
+    Context.CurrentHealth = 20;
+    Context.MaximumHealth = 20;
+    Context.CurrentMana = 20;
+    Context.MaximumMana = 20;
+
+    TArray<FGridAvailableCombatAction> Actions;
+    FGridCombatActionCatalog::Build (
+        Context,
+        { Contribution },
+        Actions);
+
+    TestEqual (TEXT ("One Spellbook action is projected"), Actions.Num (), 1);
+    if (Actions.Num () != 1)
+    {
+        return false;
+    }
+    TestFalse (
+        TEXT ("Spellbook execution remains gated when executors are disabled"),
+        Actions[0].bEnabled);
+    TestTrue (
+        TEXT ("Disabled executor reports ExecutionNotImplemented"),
+        Actions[0].AvailabilityReason ==
+            EGridCombatActionAvailabilityReason::ExecutionNotImplemented);
+    return true;
+}
+
 #endif
