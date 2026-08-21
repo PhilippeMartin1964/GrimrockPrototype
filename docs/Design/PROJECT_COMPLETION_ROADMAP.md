@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.3 implémenté — validation UE5.5.4 en attente**  
+Statut : **backlog actif après clôture de MON18.3**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -52,8 +52,8 @@ Sous-jalons :
 ```text
 MON18.1 — Spell Data Model & Cast Contract      CLOS
 MON18.2 — Spell Knowledge / Spellbook           CLOS
-MON18.3 — Runtime Casting / Cost Transaction    EN VALIDATION
-MON18.4 — Targeting Integration
+MON18.3 — Runtime Casting / Cost Transaction    CLOS
+MON18.4 — Targeting Integration                 PROCHAIN
 MON18.5 — First Production Spells
 MON18.6 — Spell Presentation
 MON18.7 — Spellbook / Hotbar UI
@@ -125,22 +125,26 @@ docs/Design/MON18_2_SPELL_KNOWLEDGE_SPELLBOOK.md
 docs/Design/MON18_2_VALIDATION.md
 ```
 
-### MON18.3 — EN VALIDATION
+### MON18.3 — CLOS
 
-`FGridSpellCastTransactionService` réutilise les états autoritaires existants :
+`MON18.3 — Runtime Casting / Cost Transaction` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-```text
-FRPGDerivedStats::CurrentMana
-FGridPlayerCharacterTurnState::RemainingActionPoints
-FGridCharacterSpellbookState
-```
+Contrats livrés :
 
-La transaction valide le sort connu, les identités personnage, l'état de tour et les ressources avant toute mutation. Le ciblage reste volontairement différé à MON18.4.
+- réutilisation du mana et des PA autoritaires existants ;
+- validation du sort connu et des identités avant paiement ;
+- transaction atomique PA + mana ;
+- aucune mutation en cas d'échec ;
+- reçu de coût uniquement après succès ;
+- ciblage explicitement différé à MON18.4.
 
-Référence :
+Validation automatisée : **6/6 Success**.
+
+Références :
 
 ```text
 docs/Design/MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md
+docs/Design/MON18_3_VALIDATION.md
 ```
 
 ---
@@ -200,5 +204,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider MON18.3 sous UE5.5.4, puis MON18.4 — Targeting Integration
+MON18.4 — Targeting Integration
 ```

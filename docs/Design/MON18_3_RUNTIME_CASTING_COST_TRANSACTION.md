@@ -1,6 +1,6 @@
 # MON18.3 — Runtime Casting / Cost Transaction
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -70,7 +70,7 @@ MON18.4  validation/résolution du ciblage avant engagement de la transaction
 MON18.5  résolution des premiers sorts de production
 ```
 
-Le pipeline intégré de MON18.4 devra toujours valider la cible avant d'appeler `TryCommitCosts`.
+Le pipeline intégré de MON18.4 doit toujours valider la cible avant d'appeler `TryCommitCosts`.
 
 ## Fichiers
 
@@ -79,19 +79,19 @@ Source/GrimrockPrototype/Public/Magic/GridSpellCastTransaction.h
 Source/GrimrockPrototype/Private/Magic/GridSpellCastTransaction.cpp
 Source/GrimrockPrototype/Private/Tests/GridMagicMON183CastTransactionTests.cpp
 docs/Design/MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md
+docs/Design/MON18_3_VALIDATION.md
 ```
 
-## Tests Automation
+## Validation Automation UE5.5.4
 
 ```text
-Grimrock.Magic.MON18.3.SuccessfulCommit
-Grimrock.Magic.MON18.3.UnknownSpellNoMutation
-Grimrock.Magic.MON18.3.InsufficientManaNoMutation
-Grimrock.Magic.MON18.3.InsufficientActionPointsNoMutation
-Grimrock.Magic.MON18.3.IdentityMismatchNoMutation
-Grimrock.Magic.MON18.3.TargetingDeferred
+Grimrock.Magic.MON18.3.IdentityMismatchNoMutation          Success
+Grimrock.Magic.MON18.3.InsufficientActionPointsNoMutation  Success
+Grimrock.Magic.MON18.3.InsufficientManaNoMutation          Success
+Grimrock.Magic.MON18.3.SuccessfulCommit                    Success
+Grimrock.Magic.MON18.3.TargetingDeferred                   Success
+Grimrock.Magic.MON18.3.UnknownSpellNoMutation              Success
+Total                                                       6/6 Success
 ```
 
-Attendu : **6/6 Success**.
-
-Aucun Blueprint, DataAsset, WBP ou `.uasset` n'est requis pour MON18.3.
+MON18.3 est **VALIDÉ ET CLOS**. Aucun Blueprint, DataAsset, WBP ou `.uasset` n'a été requis pour cette étape.
