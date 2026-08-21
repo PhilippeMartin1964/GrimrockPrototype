@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif après clôture de MON16**  
-Date de référence : **20 août 2026**
+Statut : **backlog actif après clôture de MON17**  
+Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -16,28 +16,30 @@ MON13 — Monster Spawn / Encounters / Persistence
 MON14 — Automatic Engagement / Patrol / Investigation / Alarm
 MON15 — XP & Level Progression
 MON16 — Status Effects
+MON17 — Second Monster Family
 ```
 
 MON15 a fermé la boucle RPG combat -> XP -> Level Up -> progression de classe -> Save/Continue.
 
 MON16 a ajouté le modèle générique d'effets d'état groupe/monstres : durée Turns/Rounds/Permanent, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD/feedback, Save/Restore et identité primaire `GridStatusEffect:EffectId`.
 
+MON17 a prouvé que l'architecture monstre n'est pas spécifique au Rat Géant en intégrant le **Gobelin lanceur** (`MON_GoblinThrower`) avec attaque projectile, profil tactique `RangedKeeper`, perception/patrouille/alarme MON14, encounter, loot, XP et persistance génériques.
+
 Références :
 
 ```text
 docs/Design/MON15_CLOSURE.md
 docs/Design/MON16_CLOSURE.md
+docs/Design/MON17_CLOSURE.md
 ```
 
-Le besoin structurant de MON17 est de prouver que l'architecture monstre MON1–MON16 n'est pas spécifique au Rat Géant en intégrant une seconde famille tactiquement distincte : le **Gobelin lanceur** (`MON_GoblinThrower`, `RangedKeeper`), conformément au Bestiaire des Profondeurs — Volume II.
+Le besoin structurant de MON18 est désormais de transformer l'infrastructure de sorts déjà présente dans MON12 en système RPG complet de magie et Spellbook, sans dupliquer les systèmes existants de coûts, ciblage, effets de statut, projectile ou persistance.
 
 ---
 
 ## 2. Ordre des grands jalons
 
 ```text
-MON17 — Second Monster Family
-        ↓
 MON18 — Magic & Spellbook
         ↓
 MON19 — Advanced Dungeon Logic / Scripting
@@ -116,7 +118,9 @@ Contrats finaux :
 
 ---
 
-# MON17 — Second Monster Family — EN COURS
+# MON17 — Second Monster Family — CLOS
+
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**.
 
 ## Objectif
 
@@ -130,11 +134,9 @@ MonsterId = MON_GoblinThrower
 PrimaryAIProfile = RangedKeeper
 ```
 
-Cette créature est décrite dans `docs/ArtBook/Bestiaire_des_Profondeurs_Volume_II_Les_Salles_Interdites.md` comme un ennemi « Projectile / harcèlement », utilisant couteaux, pierres ou fioles acides. MON17 prend `RangedKeeper` comme profil runtime autoritaire ; l'intention ArtBook `FleeAndCallHelp` ne doit pas provoquer la création prématurée d'une seconde IA parallèle.
+Cette créature est décrite dans `docs/ArtBook/Bestiaire_des_Profondeurs_Volume_II_Les_Salles_Interdites.md` comme un ennemi « Projectile / harcèlement », utilisant couteaux, pierres ou fioles acides. MON17 prend `RangedKeeper` comme profil runtime autoritaire ; l'intention ArtBook `FleeAndCallHelp` ne provoque pas la création d'une seconde IA parallèle.
 
-Comportement cible : perception -> recherche d'une distance favorable -> orientation vers le groupe -> attaque à distance si LOS valide -> repositionnement lorsque le groupe devient trop proche.
-
-Une simple reskin du Rat Géant n'est pas suffisante et aucune seconde IA parallèle ne doit être créée.
+Comportement validé : perception -> recherche d'une distance favorable -> orientation vers le groupe -> attaque à distance si LOS valide -> repositionnement lorsque le groupe devient trop proche.
 
 Sous-jalons :
 
@@ -145,7 +147,7 @@ MON17.3 — Distinct Attack Set                            CLOS
 MON17.4 — Distinct AI Profile — RangedKeeper            CLOS
 MON17.5 — Patrol / Perception / Alarm Integration       CLOS
 MON17.6 — Encounter / Loot / XP Integration             CLOS
-MON17.7 — Balance / Closure                              EN COURS
+MON17.7 — Balance / Closure                              CLOS
 ```
 
 ## MON17.1 — CLOS
@@ -202,8 +204,6 @@ Validation UE5.5.4 acquise :
 - cycle réel HP 10 -> 0, mort, libération d'occupation et victoire ;
 - récompense XP 125 appliquée ;
 - aucun `PresentationWarning` ni erreur de spawn observé.
-
-Le cas `MonsterTurnStarted -> EndingRound` à distance 1 était volontairement conservé en MON17.2 : `Attack_ThrowKnife.MinRangeCells=2`. MON17.3 a rendu l'attaque projectile exécutable lorsque la situation est déjà valide ; MON17.4 décide maintenant du repositionnement pour obtenir/conserver cette situation.
 
 Référence :
 
@@ -277,7 +277,7 @@ docs/Design/MON17_3_4_MONSTER_ATTACK_COOLDOWN.md
 
 `MON17.4 — Distinct AI Profile — RangedKeeper` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Le profil possède désormais un comportement tactiquement distinct :
+Le profil possède un comportement tactiquement distinct :
 
 ```text
 perception
@@ -346,7 +346,6 @@ Validation automatisée :
 
 ```text
 Grimrock.Monsters.MON17.5.1    4/4 Success
-MON14 présent dans la campagne 19/19 Success
 Campagne complète              198/198 Success
 ```
 
@@ -392,27 +391,60 @@ docs/Design/MON17_6_PRODUCTION_PIE_VALIDATION.md
 docs/Design/MON17_6_CLOSURE.md
 ```
 
-## MON17.7 — EN COURS
+## MON17.7 — CLOS
 
-L'audit initial charge les vrais assets de production et fixe une baseline automatisée **3/3 Success** :
+`MON17.7 — Balance / Closure` est **VALIDÉ ET CLOS sous UE5.5.4**.
+
+Balance finale :
 
 ```text
-ProductionBalanceBaseline
-ProductionLootBaseline
-RewardPacingBaseline
+Danger              3
+HP                  10
+Armures             0 / 0
+Initiative          12
+Accuracy / Evasion  2 / 3
+AP                  3
+Dégâts               2..5
+XP                   125
 ```
 
-Constats : `HP=10`, armures `0/0`, dégâts `2..5`, moyenne `3.5`, `XP=125`; le loot déterministe produit actuellement `3.0` objets par Gobelin. La prochaine étape autoritaire est une mesure PIE de balance, puis l'ajustement minimal des seules probabilités de loot si les résultats le confirment.
+Loot final :
 
-Référence :
+```text
+GoblinKnife  0.25
+Stone        0.50
+EmptyVial    0.25
+ExpectedItemsPerKill = 1.000
+```
+
+Automation MON17.7 :
+
+```text
+ProductionBalanceBaseline   Success
+ProductionLootBaseline      Success
+RewardPacingBaseline        Success
+FinalBalanceContract        Success
+```
+
+Le PIE final à deux Gobelins a validé perception, alarme, engagement, initiative, `RangedKeeper`, `Attack_ThrowKnife`, projectile, loot, XP, libération d'occupation et Victory.
+
+Pendant les dernières régressions, `MON13.5.RealPIEIntegration` a révélé un conflit de cellule entre sa fixture de Rats et les monstres de production présents sur la carte. La fixture a été isolée, puis le test a été relancé avec `Result={Success}`. Les contrôles MON17.7 finaux ont eux aussi été relancés avec succès.
+
+La campagne finale est déclarée validée sous UE5.5.4 ; MON17 est clos.
+
+Références :
 
 ```text
 docs/Design/MON17_7_BALANCE_AUDIT.md
+docs/Design/MON17_7_FINAL_BALANCE_CONTRACT.md
+docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
+docs/Design/MON17_FINAL_REGRESSION_PLAN.md
+docs/Design/MON17_CLOSURE.md
 ```
 
 ---
 
-# MON18 — Magic & Spellbook
+# MON18 — Magic & Spellbook — PROCHAIN JALON
 
 ## Objectif
 
@@ -433,6 +465,8 @@ MON18.9 — Save / Closure
 ```
 
 Cas de validation recommandés : `Magic Missile`, `Fireball`, `Heal`, `Haste`.
+
+Avant d'ajouter une abstraction, MON18 doit auditer et réutiliser les contrats déjà présents dans MON12, MON15, MON16 et MON17 : coûts PA/mana, hotbar, ciblage, transaction de ressources, cooldowns, effets de statut, projectile/presentation et SaveGame.
 
 ---
 
@@ -557,5 +591,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.7 — Balance / Closure
+MON18.1 — Spell Definition / Identity
 ```

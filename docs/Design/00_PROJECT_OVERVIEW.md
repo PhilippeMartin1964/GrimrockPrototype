@@ -20,7 +20,7 @@ L'architecture reste simple, modulaire et orientée données. Les DataAssets et 
 
 ---
 
-## État actuel — 16 août 2026
+## État actuel — 21 août 2026
 
 Les fondations suivantes sont disponibles :
 
@@ -33,7 +33,9 @@ Les fondations suivantes sont disponibles :
 - combat MON1–MON12 à initiative globale, PA/PAM et hotbar 0–9 ;
 - pipeline `MonsterSpawn` MON13 avec rencontres, vagues et persistance ;
 - exploration IA MON14 avec vision directionnelle, dormance, patrouille, investigation, édition visuelle de route et alarme locale ;
-- progression XP/niveaux MON15 avec Level Up, progression de classe, modal, sauvegarde/migration et équilibrage initial.
+- progression XP/niveaux MON15 avec Level Up, progression de classe, modal, sauvegarde/migration et équilibrage initial ;
+- effets de statut MON16 communs aux personnages et monstres, avec durée, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD et Save/Restore ;
+- seconde famille de monstres MON17 avec le Gobelin lanceur `MON_GoblinThrower`, attaque projectile, profil tactique `RangedKeeper`, encounter, loot et XP data-driven.
 
 Les jalons majeurs suivants sont **validés et clos** :
 
@@ -41,12 +43,15 @@ Les jalons majeurs suivants sont **validés et clos** :
 MON13 — Monster Spawn / Encounter / Persistence
 MON14 — Automatic Engagement / Patrol / Investigation / Alarm
 MON15 — XP & Level Progression
+MON16 — Status Effects
+MON17 — Second Monster Family
 ```
 
 Le prochain jalon autoritaire est :
 
 ```text
-MON16.1 — Status Effect Definition & Runtime State
+MON18 — Magic & Spellbook
+MON18.1 — Spell Definition / Identity
 ```
 
 Le backlog actif autoritaire est :
@@ -82,7 +87,7 @@ COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md
 
 ---
 
-## Monstres — MON13 / MON14
+## Monstres — MON13 / MON14 / MON17
 
 Le pipeline de contenu est :
 
@@ -115,10 +120,23 @@ MON14 apporte :
 - suspension atomique pendant le combat ;
 - alarme locale entre monstres.
 
-Document de clôture :
+MON17 prouve que ces systèmes ne sont pas spécifiques au Rat Géant. Le Gobelin lanceur utilise :
+
+```text
+MonsterId             MON_GoblinThrower
+PrimaryAIProfile      RangedKeeper
+PreferredDistance     3..5
+Attack_ThrowKnife     Projectile, dégâts 2..5, portée 2..6
+ExperienceReward      125
+```
+
+Le pipeline projectile est générique et de présentation ; la logique de dégâts reste dans le resolver de combat. `RangedKeeper` repositionne le monstre pour conserver une distance favorable plutôt que de reproduire le comportement `DirectMelee`.
+
+Documents de clôture :
 
 ```text
 MON14_CLOSURE.md
+MON17_CLOSURE.md
 ```
 
 ---
@@ -162,13 +180,14 @@ L20 190000 XP
 
 `UGridMonsterDefinitionAsset::ExperienceReward` reste data-driven.
 
-Le Rat Géant de production utilise :
+Références de production :
 
 ```text
-ExperienceReward = 500
+Rat Géant          500 XP
+Gobelin lanceur    125 XP
 ```
 
-C'est un pool partagé entre les personnages actifs éligibles.
+Le pool est partagé entre les personnages actifs éligibles.
 
 ### Level Up
 
@@ -196,41 +215,57 @@ La modal Level Up :
 SaveVersion courant :
 
 ```text
-4
+5
 ```
 
-Le SaveGame persiste :
+Le SaveGame persiste notamment :
 
 - Level / Experience ;
 - choix de progression ;
-- notifications Level Up encore en attente.
+- notifications Level Up encore en attente ;
+- effets de statut MON16.
 
-Les sauvegardes v1-v3 sont migrées ; les snapshots v4 incohérents sont rejetés strictement.
+Les anciennes versions supportées sont migrées selon les contrats de migration existants.
 
 ### Validation finale MON15
 
 ```text
 42 tests MON15 : 42 Success
-Campagne finale : 95 tests, 95 Success
 ```
 
-Le PIE final confirme :
+Le PIE final de MON15 a confirmé la progression XP et les Level Up. MON17 réutilise ce pipeline sans logique spéciale pour attribuer les 125 XP du Gobelin lanceur.
+
+---
+
+## Effets de statut — MON16
+
+MON16 est validé et clos.
+
+Contrats principaux :
+
+- modèle générique commun aux personnages et monstres ;
+- durée `Turns`, `Rounds` ou `Permanent` ;
+- stacking data-driven ;
+- dégâts périodiques ;
+- Haste / Slow via l'initiative ;
+- Stun / Silence / Immobilize ;
+- HUD et feedback de combat ;
+- Save / Restore ;
+- identité primaire `GridStatusEffect:EffectId`.
+
+Document de clôture :
 
 ```text
-Rat 1 : 500 XP -> niveau 1
-Rat 2 : 1000 XP -> niveau 2
-Rat 3 : 1500 XP -> niveau 2
+MON16_CLOSURE.md
 ```
 
 ---
 
-## Prochaine phase — MON16 à MON22
+## Prochaine phase — MON18 à MON22
 
 Ordre actif :
 
 ```text
-MON16 — Status Effects
-MON17 — Second Monster Family
 MON18 — Magic & Spellbook
 MON19 — Advanced Dungeon Logic / Scripting
 MON20 — Recruitment / Skills / Talents
@@ -241,16 +276,10 @@ MON22 — 45–90 Minute Vertical Slice
 Premier sous-jalon :
 
 ```text
-MON16.1 — Status Effect Definition & Runtime State
+MON18.1 — Spell Definition / Identity
 ```
 
-Principes déjà retenus pour MON16 :
-
-- un modèle commun personnages/monstres lorsque possible ;
-- durées en tours/rounds, pas en secondes de présentation ;
-- intégration événementielle au TurnManager ;
-- réutilisation de `InitiativeModifier` pour Haste/Slow ;
-- aucune dépendance Widget Blueprint pour le fonctionnement logique.
+MON18 doit transformer l'infrastructure de sorts déjà présente dans MON12 en système RPG complet, en réutilisant les coûts PA/mana, le ciblage, les cooldowns, les effets MON16, la présentation projectile et la persistance existante plutôt qu'en créant un second pipeline de combat.
 
 ---
 
@@ -298,6 +327,8 @@ Documents autoritaires à maintenir :
 PROJECT_COMPLETION_ROADMAP.md
 MON14_CLOSURE.md
 MON15_CLOSURE.md
+MON16_CLOSURE.md
+MON17_CLOSURE.md
 99_DECISIONS_LOG.md
 ```
 

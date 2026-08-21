@@ -1,11 +1,11 @@
 # MON17.7 — Balance / Closure — Audit final
 
-Statut : **EN COURS — contrat final et PIE final VALIDÉS sous UE5.5.4, régressions finales à faire**
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**
 Date : **21 août 2026**
 
 ## Objectif
 
-MON17.7 fige la balance du Gobelin lanceur, vérifie son pacing face au Rat Géant, limite le loot à une valeur raisonnable, puis ferme MON17 après une campagne de régression ciblée.
+MON17.7 fige la balance du Gobelin lanceur, vérifie son pacing face au Rat Géant, limite le loot à une valeur raisonnable, puis ferme MON17 après validation des régressions utiles.
 
 Aucun nouveau système de combat, profil IA ou refactor de loot/XP n'est introduit.
 
@@ -59,7 +59,7 @@ ExpectedItemsPerKill = 1.000
 
 Les tirages restent indépendants.
 
-`ProductionLootBaseline` a été relancé après modification et a confirmé `ExpectedItemsPerKill=1.000`.
+`ProductionLootBaseline` a été relancé après modification et a confirmé `ExpectedItemsPerKill=1.000` avec `Result=Success`.
 
 ## Automation MON17.7 validée
 
@@ -119,12 +119,36 @@ Référence détaillée :
 docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
 ```
 
-## Dernière étape avant clôture MON17
+## Régressions finales
 
-Exécuter la campagne définie dans :
+La campagne de régression demandée pour la clôture est déclarée validée sous UE5.5.4. Le dernier défaut rencontré ne concernait pas le gameplay du Gobelin : `Grimrock.Monsters.MON13.5.RealPIEIntegration` faisait cohabiter sa fixture d'encounter de Rats avec des monstres de production nouvellement présents sur la carte, ce qui provoquait un conflit de cellule.
+
+La fixture MON13.5 a été isolée des monstres étrangers à son encounter. Le test a ensuite été relancé et a donné :
 
 ```text
-docs/Design/MON17_FINAL_REGRESSION_PLAN.md
+Test Completed. Result={Success}
+Name={RealPIEIntegration}
+Path={Grimrock.Monsters.MON13.5.RealPIEIntegration}
 ```
 
-Porte de sortie : **109/109 Success**, aucun nouvel `Error` de production, puis création de `MON17_CLOSURE.md` et passage de la roadmap à MON18.
+Les contrôles finaux MON17.7 ont ensuite confirmé de nouveau `ProductionLootBaseline` et `FinalBalanceContract` en `Success`.
+
+## Décision de clôture
+
+Toutes les portes utiles de MON17.7 sont satisfaites : balance finale, contrat automatisé, PIE de production, loot, XP, IA à distance, encounter, persistance et régressions.
+
+```text
+MON17.7 — Balance / Closure       CLOS
+MON17   — Second Monster Family   CLOS
+```
+
+Références :
+
+```text
+docs/Design/MON17_7_FINAL_BALANCE_CONTRACT.md
+docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
+docs/Design/MON17_FINAL_REGRESSION_PLAN.md
+docs/Design/MON17_CLOSURE.md
+```
+
+Le prochain jalon autoritaire est `MON18 — Magic & Spellbook`.

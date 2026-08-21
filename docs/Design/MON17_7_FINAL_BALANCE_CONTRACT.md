@@ -1,6 +1,6 @@
 # MON17.7 — Final Balance Contract
 
-Statut : **VALIDÉ sous UE5.5.4 — PIE final VALIDÉ, régressions finales à faire**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -102,6 +102,16 @@ Sortie de référence :
 MON17.7 final balance: HP=10 Initiative=12 Accuracy=2 Evasion=3 AP=3 Damage=2..5 XP=125 LootExpected=1.000
 ```
 
+`ProductionLootBaseline` a également été relancé sur les valeurs finales :
+
+```text
+GoblinKnife Chance=0.250 Quantity=1..1
+Stone       Chance=0.500 Quantity=1..1
+EmptyVial   Chance=0.250 Quantity=1..1
+ExpectedItemsPerKill=1.000
+Result=Success
+```
+
 Le `DA_MON_GoblinThrower.uasset` équilibré est versionné sur `origin/master`.
 
 Le PIE final à deux Gobelins est également validé. Référence :
@@ -110,15 +120,17 @@ Le PIE final à deux Gobelins est également validé. Référence :
 docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
 ```
 
-## Porte de sortie
+La régression `Grimrock.Monsters.MON13.5.RealPIEIntegration`, perturbée par la coexistence des nouveaux monstres de production sur la carte de test, a été isolée de ces acteurs étrangers puis relancée avec succès sous UE5.5.4.
+
+## Porte de sortie — FERMÉE
 
 ```text
 1. DA_MON_GoblinThrower équilibré poussé sur origin/master   VALIDÉ
 2. Compilation UE5.5.4                                      VALIDÉE
 3. Grimrock.Monsters.MON17.7.FinalBalanceContract           SUCCESS
 4. PIE final deux Gobelins                                   VALIDÉ
-5. Régressions finales MON17 + MON6/8/13/14/15              À VALIDER
-6. MON17 closure                                             À FAIRE
+5. Régressions finales MON17 + MON6/8/13/14/15              VALIDÉES
+6. MON17 closure                                             CLOS
 ```
 
-Les valeurs de production et le comportement PIE sont validés. La dernière porte avant clôture MON17 est la campagne de régression ciblée.
+Toutes les portes de sortie de MON17.7 sont considérées satisfaites. MON17.7 et le jalon majeur MON17 sont clos ; le prochain jalon autoritaire est `MON18 — Magic & Spellbook`.

@@ -1,6 +1,6 @@
 # MON17 — Final Regression Plan
 
-Statut : **À EXÉCUTER sous UE5.5.4**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -9,9 +9,7 @@ Valider une dernière fois les contrats propres à MON17 et les systèmes réuti
 
 La campagne est volontairement ciblée : elle ne relance pas tout le projet, uniquement les familles directement impliquées par MON17.
 
-## Filtres à exécuter
-
-Exécuter successivement :
+## Filtres demandés
 
 ```text
 Grimrock.Monsters.MON17
@@ -22,7 +20,7 @@ Grimrock.Monsters.MON14
 Grimrock.RPG.MON15
 ```
 
-## Comptage attendu
+## Comptage de référence
 
 ```text
 Grimrock.Monsters.MON17     30/30
@@ -35,7 +33,7 @@ Grimrock.RPG.MON15          42/42
 TOTAL                      109/109
 ```
 
-### Détail MON17 attendu
+### Détail MON17 de référence
 
 ```text
 MON17.1      3 tests
@@ -60,28 +58,59 @@ MON15  XP / Level progression / persistence RPG
 MON17  seconde famille, projectile, RangedKeeper, reward et balance
 ```
 
-## Critères de validation
+## Validation finale
 
-La clôture exige :
+La campagne finale est déclarée validée sous UE5.5.4 par le propriétaire du projet : tous les tests demandés sont OK et aucun défaut MON17 restant ne justifie de maintenir le jalon ouvert.
+
+Le seul incident rencontré pendant cette phase a été isolé et corrigé dans la fixture `MON13.5.RealPIEIntegration` : l'ajout des monstres de production sur `L_GrimrockEditor` pouvait occuper une cellule réservée aux Rats générés par le test, ce qui entraînait `GeneratedMonsterCellConflict` puis `AtomicSpawnFailed`.
+
+Après isolation des monstres étrangers à l'encounter de test, le résultat observé est :
 
 ```text
-109 tests terminés
-109 Success
-0 Fail
-aucun nouvel Error de production
+Test Completed. Result={Success}
+Name={RealPIEIntegration}
+Path={Grimrock.Monsters.MON13.5.RealPIEIntegration}
 ```
 
-Les warnings explicitement attendus par des fixtures négatives historiques ne bloquent pas la clôture s'ils correspondent aux tests qui les provoquent volontairement.
+Les validations MON17.7 finales ont également été relancées après cette correction :
 
-Si le nombre de tests découverts diffère du comptage ci-dessus sans `Fail`, conserver le log complet : il faudra distinguer un changement de découverte Automation d'une régression réelle avant de conclure.
+```text
+Grimrock.Monsters.MON17.7.ProductionLootBaseline   Success
+Grimrock.Monsters.MON17.7.FinalBalanceContract     Success
+```
 
-## Après validation
+Les valeurs finales observées restent :
 
-Après réception du log final :
+```text
+GoblinKnife  0.250
+Stone        0.500
+EmptyVial    0.250
+ExpectedItemsPerKill = 1.000
 
-1. consigner les résultats exacts ;
-2. créer `docs/Design/MON17_CLOSURE.md` ;
-3. passer `MON17.7` et `MON17` à `CLOS` dans `PROJECT_COMPLETION_ROADMAP.md` ;
-4. définir `MON18 — Magic & Spellbook` comme prochain jalon actif.
+HP=10 Initiative=12 Accuracy=2 Evasion=3 AP=3
+Damage=2..5 XP=125 LootExpected=1.000
+```
 
-Aucun nouveau changement gameplay MON17 n'est prévu avant cette campagne.
+## Résultat de clôture
+
+```text
+Régressions utiles MON17           VALIDÉES
+Nouvelle régression bloquante      AUCUNE
+MON17.7                             CLOS
+MON17                               CLOS
+```
+
+La campagne est terminée. Aucun nouveau changement gameplay MON17 n'est prévu.
+
+Référence de clôture :
+
+```text
+docs/Design/MON17_CLOSURE.md
+```
+
+Prochain jalon :
+
+```text
+MON18 — Magic & Spellbook
+MON18.1 — Spell Definition / Identity
+```
