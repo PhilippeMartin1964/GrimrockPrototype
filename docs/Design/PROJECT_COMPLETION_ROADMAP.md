@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif après clôture de MON18.3**  
+Statut : **MON18.4 implémenté — validation UE5.5.4 en attente**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -53,7 +53,7 @@ Sous-jalons :
 MON18.1 — Spell Data Model & Cast Contract      CLOS
 MON18.2 — Spell Knowledge / Spellbook           CLOS
 MON18.3 — Runtime Casting / Cost Transaction    CLOS
-MON18.4 — Targeting Integration                 PROCHAIN
+MON18.4 — Targeting Integration                 EN VALIDATION
 MON18.5 — First Production Spells
 MON18.6 — Spell Presentation
 MON18.7 — Spellbook / Hotbar UI
@@ -131,20 +131,61 @@ docs/Design/MON18_2_VALIDATION.md
 
 Contrats livrés :
 
-- réutilisation du mana et des PA autoritaires existants ;
+- réutilisation de `FRPGDerivedStats::CurrentMana` comme mana autoritaire ;
+- réutilisation de `FGridPlayerCharacterTurnState::RemainingActionPoints` comme PA autoritaires ;
 - validation du sort connu et des identités avant paiement ;
 - transaction atomique PA + mana ;
 - aucune mutation en cas d'échec ;
 - reçu de coût uniquement après succès ;
 - ciblage explicitement différé à MON18.4.
 
-Validation automatisée : **6/6 Success**.
+Validation automatisée :
+
+```text
+Grimrock.Magic.MON18.3.IdentityMismatchNoMutation          Success
+Grimrock.Magic.MON18.3.InsufficientActionPointsNoMutation  Success
+Grimrock.Magic.MON18.3.InsufficientManaNoMutation          Success
+Grimrock.Magic.MON18.3.SuccessfulCommit                    Success
+Grimrock.Magic.MON18.3.TargetingDeferred                   Success
+Grimrock.Magic.MON18.3.UnknownSpellNoMutation              Success
+Total                                                       6/6 Success
+```
 
 Références :
 
 ```text
 docs/Design/MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md
 docs/Design/MON18_3_VALIDATION.md
+```
+
+### MON18.4 — EN VALIDATION
+
+`FGridSpellTargetingService` réutilise `EGridCombatTargetingPolicy` et valide `Self`, `Ally`, `FirstAxialTarget`, `Cell` et `Area`.
+
+Le contrat vérifie :
+
+- identité de cible résolue ;
+- relation alliée/hostile selon la politique ;
+- portée `MinRangeCells..MaxRangeCells` ;
+- alignement axial pour `FirstAxialTarget` ;
+- résultat LOS fourni par la couche grille runtime autoritaire lorsque `bRequiresLineOfSight` est actif.
+
+`FGridSpellCastPipelineService` impose l'ordre :
+
+```text
+Targeting validation / resolution
+-> si échec : zéro mutation
+-> MON18.3 cost transaction
+-> si échec : zéro mutation
+-> resolved target + cost receipt
+```
+
+Aucun effet de sort n'est encore appliqué ; cette responsabilité commence avec MON18.5.
+
+Référence :
+
+```text
+docs/Design/MON18_4_TARGETING_INTEGRATION.md
 ```
 
 ---
@@ -204,5 +245,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.4 — Targeting Integration
+Valider MON18.4 sous UE5.5.4, puis MON18.5 — First Production Spells
 ```
