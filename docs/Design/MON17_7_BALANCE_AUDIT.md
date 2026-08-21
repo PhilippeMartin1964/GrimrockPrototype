@@ -1,6 +1,6 @@
 # MON17.7 — Balance / Closure — Audit initial
 
-Statut : **EN COURS — baseline automatisée implémentée, validation UE5.5.4 à faire**
+Statut : **EN COURS — baseline automatisée VALIDÉE 3/3 sous UE5.5.4**
 Date : **21 août 2026**
 
 ## Objectif
@@ -9,9 +9,9 @@ MON17.7 doit figer une baseline cohérente pour le Gobelin lanceur, vérifier so
 
 Cette étape n'introduit ni nouveau système de combat, ni nouveau profil IA, ni refactor du loot ou de l'XP.
 
-## Baseline de production attendue
+## Baseline de production validée
 
-Le test charge le vrai `DA_MON_GoblinThrower` et verrouille les valeurs actuellement authorées :
+La suite charge le vrai `DA_MON_GoblinThrower` et a confirmé sous UE5.5.4 :
 
 ```text
 Danger              3
@@ -26,11 +26,11 @@ Dégâts bruts moyens 3.5
 XP                  125
 ```
 
-Le contrat tactique attendu reste cohérent : `RangedKeeper`, distance préférée `3..5`, `ThrowKnife` à portée `2..6`, mouvement `1 AP` puis attaque `2 AP`.
+Le contrat tactique reste cohérent : `RangedKeeper`, distance préférée `3..5`, `ThrowKnife` à portée `2..6`, mouvement `1 AP` puis attaque `2 AP`.
 
-Ces valeurs ne seront considérées comme baseline validée qu'après exécution de `Grimrock.Monsters.MON17.7` sous UE5.5.4.
+Aucun changement de statistiques de combat n'est justifié à ce stade. Elles restent donc figées pour la suite de MON17.7, sauf anomalie révélée par le PIE final.
 
-## Pacing XP calculé
+## Pacing XP validé
 
 Avec la courbe MON15 actuelle :
 
@@ -46,11 +46,17 @@ personnage 0      niveau 2 après 32 Gobelins
 personnages 1..3  niveau 2 après 33 Gobelins
 ```
 
-Ce décalage est faible à cette échelle. MON17.7 doit décider explicitement si `ExperienceReward=125` reste la valeur de production ; aucun changement d'asset n'est justifié avant validation de la baseline.
+Le décalage d'un Gobelin entre le premier personnage et les autres est faible et ne justifie pas de déformer la récompense uniquement pour obtenir une divisibilité parfaite par quatre.
 
-## Baseline loot configurée
+Décision MON17.7 :
 
-Les trois entrées de production actuellement authorées sont :
+```text
+ExperienceReward = 125  CONSERVÉ
+```
+
+## Baseline loot validée
+
+Les trois vrais DataAssets et leurs entrées de production ont été chargés avec succès :
 
 ```text
 GoblinKnife  Chance=1.0 Quantity=1
@@ -58,39 +64,62 @@ Stone        Chance=1.0 Quantity=1
 EmptyVial    Chance=1.0 Quantity=1
 ```
 
-L'espérance configurée est donc :
+La mesure confirmée est :
 
 ```text
-3.0 objets par Gobelin
-6.0 objets pour l'encounter de production à deux Gobelins
+ExpectedItemsPerKill = 3.000
 ```
 
-Cette fréquence était volontaire pour rendre MON17.6 déterministe. Elle est très probablement trop généreuse comme valeur de production finale ; MON17.7 doit la réduire après validation du contrat des trois vrais DataAssets.
+soit six objets garantis pour l'encounter actuel à deux Gobelins. Cette valeur avait été choisie pour rendre MON17.6 déterministe ; elle n'est pas retenue comme balance finale.
 
-## Première étape implémentée
-
-La suite suivante caractérise les vrais assets sans modifier le runtime ni aucun `.uasset` :
+## Validation Automation
 
 ```text
-Grimrock.Monsters.MON17.7.ProductionBalanceBaseline  À VALIDER
-Grimrock.Monsters.MON17.7.ProductionLootBaseline     À VALIDER
-Grimrock.Monsters.MON17.7.RewardPacingBaseline       À VALIDER
+Grimrock.Monsters.MON17.7.ProductionBalanceBaseline  Success
+Grimrock.Monsters.MON17.7.ProductionLootBaseline     Success
+Grimrock.Monsters.MON17.7.RewardPacingBaseline       Success
 
-MON17.7 baseline                                     0/3 validés
+MON17.7 baseline                                     3/3 Success
 ```
 
-Elle verrouille les contrats déjà acquis et journalise les probabilités de loot afin que toute décision de balance soit explicite et relisible.
+Sortie de référence :
+
+```text
+Danger=3 HP=10 Armor=0/0 Initiative=12 Accuracy=2 Evasion=3
+AP=3 Attacks=1 Damage=2..5 Average=3.50 XP=125
+ExpectedItemsPerKill=3.000
+```
+
+## Première décision de balance : loot
+
+MON17.7 ne modifie qu'une famille de paramètres à la fois. Les statistiques de combat et l'XP restent inchangées ; le premier ajustement porte uniquement sur les `DropChance` du `LootTable`.
+
+Cible : environ un objet attendu par Gobelin, avec la pierre comme drop le plus courant et le couteau / la fiole comme drops secondaires.
+
+Valeurs proposées pour la prochaine itération :
+
+```text
+GoblinKnife  DropChance = 0.25
+Stone        DropChance = 0.50
+EmptyVial    DropChance = 0.25
+
+MinQuantity = 1
+MaxQuantity = 1
+
+ExpectedItemsPerKill = 1.00
+ExpectedItems pour 2 Gobelins = 2.00
+```
+
+Ces trois tirages restent indépendants : un Gobelin peut ne rien laisser, laisser un seul objet ou exceptionnellement plusieurs objets. Cela conserve le système de loot existant sans introduire de table exclusive ou de logique spécifique au Gobelin.
 
 ## Étape suivante
 
-1. compiler puis exécuter `Grimrock.Monsters.MON17.7` ;
-2. relever la baseline réellement chargée depuis les DataAssets de production ;
-3. conserver `ExperienceReward=125` si le ratio avec le Rat Géant et le pacing MON15 sont confirmés ;
-4. réduire en priorité le loot pour viser environ `0.8..1.2` objet attendu par Gobelin ;
-5. modifier une seule famille de paramètres à la fois, idéalement uniquement `DA_MON_GoblinThrower.LootTable` ;
-6. compléter la caractérisation automatisée du niveau de pression offensif avant tout autre ajustement de statistiques ;
-7. effectuer ensuite un seul PIE final de sensation de jeu ;
-8. rejouer MON17.1–MON17.7 et les régressions MON6/MON8/MON13/MON14/MON15 ciblées ;
-9. documenter la clôture de MON17.
+1. modifier uniquement les trois `DropChance` de `DA_MON_GoblinThrower.LootTable` à `0.25 / 0.50 / 0.25` ;
+2. sauvegarder et pousser `DA_MON_GoblinThrower.uasset` ;
+3. relancer `Grimrock.Monsters.MON17.7.ProductionLootBaseline` et vérifier `ExpectedItemsPerKill=1.000` ;
+4. ajouter ensuite un contrat Automation de balance finale qui verrouille cette plage de loot ;
+5. effectuer un seul PIE final de sensation de jeu avec deux Gobelins ;
+6. rejouer MON17.1–MON17.7 et les régressions MON6/MON8/MON13/MON14/MON15 ciblées ;
+7. documenter et clore MON17.
 
-La plage `0.8..1.2` objet attendu par Gobelin est une cible de départ, pas une valeur finale déjà décidée.
+Le PIE final sert uniquement à vérifier la sensation de combat et la lisibilité du loot ; il ne remplace pas les contrats Automation.
