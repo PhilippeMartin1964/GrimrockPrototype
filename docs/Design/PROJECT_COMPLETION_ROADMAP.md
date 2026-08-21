@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif après clôture de MON18.1**  
+Statut : **backlog actif après clôture de MON18.2**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -51,8 +51,8 @@ Sous-jalons :
 
 ```text
 MON18.1 — Spell Data Model & Cast Contract      CLOS
-MON18.2 — Spell Knowledge / Spellbook           PROCHAIN
-MON18.3 — Runtime Casting / Cost Transaction
+MON18.2 — Spell Knowledge / Spellbook           CLOS
+MON18.3 — Runtime Casting / Cost Transaction    PROCHAIN
 MON18.4 — Targeting Integration
 MON18.5 — First Production Spells
 MON18.6 — Spell Presentation
@@ -91,6 +91,38 @@ Référence :
 
 ```text
 docs/Design/MON18_1_SPELL_DATA_MODEL_CAST_CONTRACT.md
+```
+
+### MON18.2 — CLOS
+
+`MON18.2 — Spell Knowledge / Spellbook` est **VALIDÉ ET CLOS sous UE5.5.4**.
+
+Contrats livrés :
+
+- un Spellbook runtime distinct par `CharacterId` ;
+- connaissance représentée uniquement par `SpellId` stable ;
+- apprentissage / oubli explicites ;
+- refus des doublons et des identités invalides ;
+- isolation stricte entre personnages ;
+- aucune consommation PA/mana ni exécution d'effet ;
+- persistance volontairement différée à MON18.8.
+
+Validation automatisée :
+
+```text
+Grimrock.Magic.MON18.2.CharacterIsolation     Success
+Grimrock.Magic.MON18.2.CharacterRegistration  Success
+Grimrock.Magic.MON18.2.LearnForget            Success
+Grimrock.Magic.MON18.2.StableIdentity         Success
+Grimrock.Magic.MON18.2.TransientContract      Success
+Total                                          5/5 Success
+```
+
+Références :
+
+```text
+docs/Design/MON18_2_SPELL_KNOWLEDGE_SPELLBOOK.md
+docs/Design/MON18_2_VALIDATION.md
 ```
 
 ---
@@ -150,5 +182,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.2 — Spell Knowledge / Spellbook
+MON18.3 — Runtime Casting / Cost Transaction
 ```
