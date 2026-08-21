@@ -4,6 +4,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "Engine/Texture2D.h"
 #include "UI/GridInventoryWidget.h"
+#include "UI/GridSpellbookWidget.h"
 
 void UGrimrockMenuWidget::NativeConstruct ()
 {
@@ -27,6 +28,10 @@ void UGrimrockMenuWidget::InitializeMenuWidget (AGrimrockPartyPawn* InPartyPawn)
     {
         Page_Inventory->InitializeInventoryWidget (InPartyPawn);
     }
+    if (UGridSpellbookWidget* SpellbookWidget = GetSpellbookWidget ())
+    {
+        SpellbookWidget->InitializeSpellbookWidget (InPartyPawn);
+    }
 }
 
 void UGrimrockMenuWidget::RefreshInventory ()
@@ -37,9 +42,22 @@ void UGrimrockMenuWidget::RefreshInventory ()
     }
 }
 
+void UGrimrockMenuWidget::RefreshSpellbook ()
+{
+    if (UGridSpellbookWidget* SpellbookWidget = GetSpellbookWidget ())
+    {
+        SpellbookWidget->RefreshSpellbook ();
+    }
+}
+
 UGridInventoryWidget* UGrimrockMenuWidget::GetInventoryWidget () const
 {
     return Page_Inventory;
+}
+
+UGridSpellbookWidget* UGrimrockMenuWidget::GetSpellbookWidget () const
+{
+    return Cast<UGridSpellbookWidget> (Page_Spellbook);
 }
 
 UWidget* UGrimrockMenuWidget::GetTopTabPage (EInventoryTopTab Tab) const
@@ -76,6 +94,10 @@ void UGrimrockMenuWidget::SetActiveTopTab (EInventoryTopTab NewTab)
 
     CurrentTopTab = NewTab;
     WidgetSwitcher_MainContent->SetActiveWidget (TargetPage);
+    if (NewTab == EInventoryTopTab::Spellbook)
+    {
+        RefreshSpellbook ();
+    }
     UpdateTopTabButtonStyles ();
 
     UE_LOG (LogTemp, VeryVerbose, TEXT ("GrimrockMenu active TopTab=%d Page=%s"),

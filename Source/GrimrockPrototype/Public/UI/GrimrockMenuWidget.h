@@ -9,6 +9,7 @@
 class AGrimrockPartyPawn;
 class UButton;
 class UGridInventoryWidget;
+class UGridSpellbookWidget;
 class UTexture2D;
 class UWidget;
 class UWidgetSwitcher;
@@ -25,6 +26,9 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Menu")
     void RefreshInventory ();
 
+    UFUNCTION (BlueprintCallable, Category = "Menu")
+    void RefreshSpellbook ();
+
     UFUNCTION (BlueprintCallable, Category = "Menu|Top Tabs")
     void SetActiveTopTab (EInventoryTopTab NewTab);
 
@@ -33,6 +37,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Menu")
     UGridInventoryWidget* GetInventoryWidget () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Menu")
+    UGridSpellbookWidget* GetSpellbookWidget () const;
 
     UPROPERTY (BlueprintReadOnly, Category = "Menu")
     TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
@@ -111,6 +118,7 @@ private:
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UWidget> Page_Codex;
 
+    /** Kept generic until WBP_GridSpellbook is reparented in UI01.4.3b. */
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UWidget> Page_Spellbook;
 
