@@ -19,6 +19,7 @@
 #include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
 #include "InputCoreTypes.h"
+#include "Magic/GridPartySpellbookComponent.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridLevelRuntimeActor.h"
@@ -480,8 +481,6 @@ void UGridCombatHudActionWidget::RefreshWidgets ()
                 ? ESlateVisibility::Collapsed
                 : ESlateVisibility::HitTestInvisible);
     }
-    // Keep empty slots easy to identify and target. Dimming the whole widget
-    // too aggressively also fades its frame and shortcut number.
     SetRenderOpacity (!View.bHasBinding
         ? FMath::Clamp (EmptySlotOpacity, 0.0f, 1.0f)
         : View.bResolved && View.Action.bEnabled
@@ -972,8 +971,6 @@ bool UGridCombatHudWidget::RequestHotbarSlot (
         return false;
     }
 
-    // A binding is only an identity. Resolve it again immediately before the
-    // request so keyboard input cannot execute a stale cached action.
     RefreshFromSources ();
     if (!View.Actions.IsValidIndex (SlotIndex))
     {
@@ -1130,6 +1127,48 @@ bool UGridCombatHudWidget::HandleHotbarDrop (
     if (const UGridCombatHotbarDragDropOperation* HotbarOperation =
         Cast<UGridCombatHotbarDragDropOperation> (DragOperation))
     {
+        if (HotbarOperation->bFromSpellbook)
+        {
+            if (HotbarOperation->CharacterIndex !=
+                    View.ActiveCharacterIndex ||
+                !IsValid (PartyPawn) ||
+                !InventoryComponent->IsValidCharacterIndex (
+                    View.ActiveCharacterIndex))
+            {
+                return false;
+            }
+
+            UGridPartySpellbookComponent* SpellbookComponent =
+                PartyPawn->FindComponentByClass<
+                    UGridPartySpellbookComponent> ();
+            if (!IsValid (SpellbookComponent))
+            {
+                return false;
+            }
+
+            const FGuid CharacterId = InventoryComponent->
+                PartyInventoryState.ActiveCharacters[
+                    View.ActiveCharacterIndex].CharacterId;
+            if (!CharacterId.IsValid ())
+            {
+                return false;
+            }
+
+            const FGridCharacterSpellbookState* CharacterSpellbook =
+                SpellbookComponent->SpellbookState.FindSpellbook (
+                    CharacterId);
+            if (!CharacterSpellbook)
+            {
+                return false;
+            }
+
+            return HotbarOperation->CommitSpellbookDrop (
+                    InventoryComponent,
+                    *CharacterSpellbook,
+                    TargetSlotIndex) ==
+                EGridSpellHotbarAssignmentResult::Success;
+        }
+
         if (HotbarOperation->bFromActionPalette)
         {
             TArray<FGridAvailableCombatAction> CurrentActions;
