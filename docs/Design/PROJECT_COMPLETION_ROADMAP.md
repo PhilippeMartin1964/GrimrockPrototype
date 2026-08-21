@@ -3,11 +3,11 @@
 Statut : **backlog actif après clôture de MON17**  
 Date de référence : **21 août 2026**
 
-Ce document est la feuille de route active. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
+Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
 ---
 
-## 1. État de départ
+## 1. État de référence
 
 Jalons majeurs clos :
 
@@ -16,24 +16,28 @@ MON13 — Monster Spawn / Encounters / Persistence
 MON14 — Automatic Engagement / Patrol / Investigation / Alarm
 MON15 — XP & Level Progression
 MON16 — Status Effects
-MON17 — Second Monster Family
+MON17 — Second Monster Family / Gobelin lanceur
 ```
 
 MON15 a fermé la boucle RPG combat -> XP -> Level Up -> progression de classe -> Save/Continue.
 
-MON16 a ajouté le modèle générique d'effets d'état groupe/monstres : durée Turns/Rounds/Permanent, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD/feedback, Save/Restore et identité primaire `GridStatusEffect:EffectId`.
+MON16 a ajouté le modèle générique d'effets d'état commun au groupe et aux monstres : durée Turns/Rounds/Permanent, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD/feedback, Save/Restore et identité primaire `GridStatusEffect:EffectId`.
 
 MON17 a prouvé que l'architecture monstre n'est pas spécifique au Rat Géant en intégrant le **Gobelin lanceur** (`MON_GoblinThrower`) avec attaque projectile, profil tactique `RangedKeeper`, perception/patrouille/alarme MON14, encounter, loot, XP et persistance génériques.
 
-Références :
+MON17.7 est **VALIDÉ ET CLOS sous UE5.5.4**. La campagne finale et le PIE de production ont validé perception, alarme, engagement automatique, initiative, `RangedKeeper`, `Attack_ThrowKnife`, projectile, mort, loot, 125 XP par Gobelin, libération d'occupation et Victory. Le test `Grimrock.Monsters.MON13.5.RealPIEIntegration` a également été remis au vert après isolation de sa fixture d'encounter.
+
+Références de clôture :
 
 ```text
 docs/Design/MON15_CLOSURE.md
 docs/Design/MON16_CLOSURE.md
 docs/Design/MON17_CLOSURE.md
+docs/Design/MON17_7_BALANCE_AUDIT.md
+docs/Design/MON17_7_FINAL_BALANCE_CONTRACT.md
+docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
+docs/Design/MON17_FINAL_REGRESSION_PLAN.md
 ```
-
-Le besoin structurant de MON18 est désormais de transformer l'infrastructure de sorts déjà présente dans MON12 en système RPG complet de magie et Spellbook, sans dupliquer les systèmes existants de coûts, ciblage, effets de statut, projectile ou persistance.
 
 ---
 
@@ -59,8 +63,6 @@ Les jalons MON23+ restent un horizon de production.
 
 Statut : **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Sous-jalons :
-
 ```text
 MON15.1 — Modèle XP / niveaux              CLOS
 MON15.2 — Attribution XP                   CLOS
@@ -71,25 +73,13 @@ MON15.6 — Save / migration / restauration  CLOS
 MON15.7 — Équilibrage final                CLOS
 ```
 
-Contrats finaux :
-
-- XP cumulative : `1000 * (L - 1) * L / 2` ;
-- niveau maximum 20 ;
-- récompenses monstres data-driven ;
-- Rat Géant = 500 XP de pool total ;
-- choix de progression persistants par `CharacterId` ;
-- Level Up différable pendant combat et restaurable après Continue ;
-- 42/42 tests MON15 verts.
-
-La version globale de sauvegarde n'est plus celle de clôture MON15 : **SaveGame est maintenant en version 5 depuis MON16**.
+Contrats principaux : XP cumulative, niveau maximum 20, récompenses monstres data-driven, choix de progression persistants par `CharacterId`, Level Up différable pendant combat et restaurable après Continue.
 
 ---
 
 # MON16 — Status Effects — CLOS
 
 Statut : **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Sous-jalons :
 
 ```text
 MON16.1 — Status Effect Definition & Runtime State  CLOS
@@ -102,19 +92,9 @@ MON16.7 — Save / Restore                            CLOS
 MON16.8 — Closure and Regression                    CLOS
 ```
 
-Contrats finaux :
+Contrats principaux : modèle commun personnages/monstres, stacking data-driven, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD/combat log, Save/Restore et identité primaire `GridStatusEffect:EffectId`.
 
-- un modèle générique commun aux personnages et monstres ;
-- durée `Turns`, `Rounds` ou `Permanent` ;
-- stacking data-driven ;
-- DoT ;
-- Haste / Slow intégrés à l'initiative ;
-- Stun / Silence / Immobilize ;
-- HUD et combat log ;
-- Save / Restore ;
-- `UGrimrockPartySaveGame::CurrentSaveVersion = 5` ;
-- identité primaire `GridStatusEffect:EffectId` ;
-- campagne finale : MON14 21/21, MON15 42/42, MON16 81/81, soit **144/144 Success**.
+La version globale de sauvegarde est actuellement **SaveGame v5** depuis MON16.
 
 ---
 
@@ -122,21 +102,44 @@ Contrats finaux :
 
 Statut : **VALIDÉ ET CLOS sous UE5.5.4**.
 
-## Objectif
-
-Prouver que l'architecture MON1–MON16 n'est pas spécifique au Rat Géant.
+Objectif atteint : démontrer que l'architecture MON1–MON16 n'est pas spécifique au Rat Géant.
 
 Seconde famille retenue :
 
 ```text
-Gobelin lanceur
-MonsterId = MON_GoblinThrower
-PrimaryAIProfile = RangedKeeper
+MonsterId            MON_GoblinThrower
+DangerLevel          3
+MaxHealth            10
+Initiative           12
+Accuracy / Evasion   2 / 3
+ActionPointsPerTurn  3
+PrimaryAIProfile     RangedKeeper
+PreferredDistance    3..5
+ExperienceReward     125
 ```
 
-Cette créature est décrite dans `docs/ArtBook/Bestiaire_des_Profondeurs_Volume_II_Les_Salles_Interdites.md` comme un ennemi « Projectile / harcèlement », utilisant couteaux, pierres ou fioles acides. MON17 prend `RangedKeeper` comme profil runtime autoritaire ; l'intention ArtBook `FleeAndCallHelp` ne provoque pas la création d'une seconde IA parallèle.
+Attaque de production :
 
-Comportement validé : perception -> recherche d'une distance favorable -> orientation vers le groupe -> attaque à distance si LOS valide -> repositionnement lorsque le groupe devient trop proche.
+```text
+AttackId               Attack_ThrowKnife
+Delivery               Projectile
+Damage                 2..5
+MinRangeCells           2
+RangeCells              6
+ActionPointCost         2
+CooldownTurns           0
+ProjectileSourceSocket ProjectileSource
+ProjectileTravel       0.20 s
+```
+
+Loot final :
+
+```text
+GoblinKnife  25 %
+Stone        50 %
+EmptyVial    25 %
+ExpectedItemsPerKill = 1.000
+```
 
 Sous-jalons :
 
@@ -150,333 +153,174 @@ MON17.6 — Encounter / Loot / XP Integration             CLOS
 MON17.7 — Balance / Closure                              CLOS
 ```
 
-## MON17.1 — CLOS
-
-MON17.1 a été validé sous UE5.5.4 :
-
-- `Grimrock.Monsters.MON17.1` : **3/3 Success** ;
-- `DA_MON_GoblinThrower` : `Danger=3`, `HP=10`, `Initiative=12`, `Accuracy=2`, `Evasion=3`, `AP=3`, `Sight=8`, `Hearing=4`, `Damage=2..5`, `XP=125` ;
-- entrée palette `MON_GoblinThrower` avec `DA_MonsterSpawn` et `DA_MON_GoblinThrower` ;
-- résolution du `MonsterSpawn` confirmée.
-
-Référence :
-
-```text
-docs/Design/MON17_1_GOBLIN_THROWER_DEFINITION_SPAWN_CONTRACT.md
-```
-
-## MON17.2 — CLOS
-
-MON17.2 a intégré la présentation réelle du Gobelin lanceur et validé le pipeline visuel générique :
-
-```text
-SK_GoblinThrower
-SKEL_GoblinThrower
-PHYS_GoblinThrower
-A_GoblinThrower_Idle
-A_GoblinThrower_Walk
-ABP_MON_GoblinThrower
-BP_MON_GoblinThrower
-DA_MON_GoblinThrower
-```
-
-Contrat de présentation validé :
-
-```text
-MonsterActorClass     = BP_MON_GoblinThrower_C
-SkeletalMesh          = SK_GoblinThrower
-AnimationClass        = ABP_MON_GoblinThrower_C
-VisualScale           = (1,1,1)
-VisualOffset          = (0,0,0)
-VisualRotationOffset  = (0,-90,0)
-```
-
-`VisualRotationOffset` est une correction générique de l'axe local du mesh ; `Facing` reste l'orientation logique autoritaire de la grille.
-
-Validation UE5.5.4 acquise :
-
-- `PresentationBridgeContract` : Success ;
-- preview éditeur visible sans `MissingSkeletalMesh` ;
-- orientation `InitialFacing=North` corrigée et validée ;
-- animation Idle/Walk fonctionnelle en PIE, marche in-place sans Root Motion ;
-- spawn runtime via `BP_MON_GoblinThrower_C` ;
-- combat automatique rejoint correctement le TurnManager ;
-- cycle réel HP 10 -> 0, mort, libération d'occupation et victoire ;
-- récompense XP 125 appliquée ;
-- aucun `PresentationWarning` ni erreur de spawn observé.
-
-Référence :
-
-```text
-docs/Design/MON17_2_GOBLIN_THROWER_SKELETAL_ANIMATION.md
-```
-
-## MON17.3 — CLOS
-
-`MON17.3 — Distinct Attack Set` est **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Contrat final de `Attack_ThrowKnife` :
-
-```text
-AttackId               = Attack_ThrowKnife
-Delivery               = Projectile
-MinRangeCells           = 2
-RangeCells              = 6
-bRequiresLineOfSight    = true
-ActionPointCost         = 2
-CooldownTurns           = 0
-Priority                = 100
-ExpectedDuration        = 2.20 s
-ImpactTimeSeconds       = 1.00 s
-ProjectileTravel       = 0.20 s
-LaunchDelay             = 0.80 s
-ProjectileSourceSocket = ProjectileSource
-```
-
-Sous-étapes validées :
-
-```text
-MON17.3.1 — Ranged Action Execution          CLOS
-MON17.3.2 — Projectile Presentation          CLOS
-MON17.3.3 — Throw Presentation               CLOS
-MON17.3.4 — Cooldown / Regression / Closure  CLOS
-```
-
-MON17.3 a établi :
-
-- exécution générique `RangedAttack` sans hardcoding Gobelin ;
-- portée min/max et LOS réévaluées au runtime ;
-- projectile visuel purement présentation, sans inventaire/persistence/dégâts parallèles ;
-- source projectile data-driven via socket optionnel ;
-- animation `A_GoblinThrower_ThrowKnife` retargetée depuis Mixamo ;
-- montage `AM_GoblinThrower_ThrowKnife` intégré au Slot de `ABP_MON_GoblinThrower` ;
-- lancement depuis la paume droite via `ProjectileSource` ;
-- cooldown générique par `AttackId`, runtime-only ;
-- `CooldownTurns=0` confirmé sans régression pour le Gobelin.
-
-Validation automatisée finale :
-
-```text
-MON17.3.1–17.3.4   10/10 Success
-MON6                3/3 Success
-Total demandé       13/13 Success
-```
-
-Validation PIE finale : le Gobelin utilise `Attack_ThrowKnife` sur plusieurs manches successives avec `CooldownTurns=0`, le projectile part toujours de `ProjectileSource`, et Hit/Miss/dégâts restent corrects.
-
-Références :
-
-```text
-docs/Design/MON17_3_1_RANGED_ATTACK_EXECUTION.md
-docs/Design/MON17_3_2_PROJECTILE_PRESENTATION.md
-docs/Design/MON17_3_3_THROW_PRESENTATION.md
-docs/Design/MON17_3_4_MONSTER_ATTACK_COOLDOWN.md
-```
-
-## MON17.4 — CLOS
-
-`MON17.4 — Distinct AI Profile — RangedKeeper` est **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Le profil possède un comportement tactiquement distinct :
-
-```text
-perception
-→ évaluer distance / LOS
-→ tirer depuis la case actuelle si elle est favorable
-→ sinon rechercher une case de tir valide
-→ maintenir PreferredMinDistance..PreferredMaxDistance
-→ reculer/repositionner si le groupe est trop proche
-→ approcher si nécessaire
-→ ne jamais charger inutilement au contact comme DirectMelee
-```
-
-Contrat du Gobelin :
-
-```text
-PreferredMinDistance = 3
-PreferredMaxDistance = 5
-ThrowKnife range      = 2..6
-AP                     = 3
-Move                   = 1 AP
-ThrowKnife             = 2 AP
-```
-
-Validation :
-
-```text
-Grimrock.Monsters.MON17.4.1     3/3 Success
-MON17.3 + MON6 regressions       13/13 Success
-Campagne exécutée                16/16 Success
-PIE courte portée                VALIDÉ
-PIE distance préférée            VALIDÉ
-Approche multi-tour depuis loin  VALIDÉE en Automation
-```
-
-Référence :
-
-```text
-docs/Design/MON17_4_1_RANGED_KEEPER_POSITIONING.md
-```
-
-## MON17.5 — CLOS
-
-`MON17.5 — Patrol / Perception / Alarm Integration` est **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Le Gobelin `RangedKeeper` réutilise sans fork les systèmes MON14 :
-
-```text
-patrouille
-→ perception directionnelle / ouïe
-→ investigation / recherche
-→ alarme locale same MonsterId + same EncounterGroup
-→ engagement visuel automatique
-→ TurnManager
-→ RangedKeeper
-```
-
-Valeurs de production retenues :
-
-```text
-DA_MON_GoblinThrower
-bSharesAggroWithGroup = true
-AggroPropagationRange = 5
-```
-
-Validation automatisée :
-
-```text
-Grimrock.Monsters.MON17.5.1    4/4 Success
-Campagne complète              198/198 Success
-```
-
-Validation PIE de production : deux `MON_GoblinThrower` dans `Encounter_GoblinThrowers_01`; `ExplorationAlert Range=5 Alerted=1`, puis démarrage automatique `Reason=PatrolVision`; les deux Gobelins rejoignent l'initiative et exécutent `Attack_ThrowKnife` via le pipeline `ProjectileSource`.
-
-Références :
-
-```text
-docs/Design/MON17_5_1_GOBLIN_EXPLORATION_INTEGRATION.md
-docs/Design/MON17_5_CLOSURE.md
-```
-
-## MON17.6 — CLOS
-
-`MON17.6 — Encounter / Loot / XP Integration` est **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Contrats validés :
-
-```text
-EncounterGroup / wave participation
-MonsterDied exactly once
-LootTable Gobelin
-XP = 125 appliquée exactement une fois
-Victory / occupancy release
-Save/Continue sans duplication de loot/XP
-```
-
-Validation finale :
-
-```text
-MON17.6.1 dédiée                         4/4 Success
-MON13.4 + MON8 + MON15.2 ciblées       16/16 Success
-Campagne ciblée totale                 20/20 Success
-PIE de production à deux Gobelins      VALIDÉ
-Assets de loot sur origin/master       VALIDÉS
-```
-
-Références :
-
-```text
-docs/Design/MON17_6_1_GOBLIN_ENCOUNTER_REWARD_INTEGRATION.md
-docs/Design/MON17_6_PRODUCTION_PIE_VALIDATION.md
-docs/Design/MON17_6_CLOSURE.md
-```
-
-## MON17.7 — CLOS
-
-`MON17.7 — Balance / Closure` est **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Balance finale :
-
-```text
-Danger              3
-HP                  10
-Armures             0 / 0
-Initiative          12
-Accuracy / Evasion  2 / 3
-AP                  3
-Dégâts               2..5
-XP                   125
-```
-
-Loot final :
-
-```text
-GoblinKnife  0.25
-Stone        0.50
-EmptyVial    0.25
-ExpectedItemsPerKill = 1.000
-```
-
-Automation MON17.7 :
-
-```text
-ProductionBalanceBaseline   Success
-ProductionLootBaseline      Success
-RewardPacingBaseline        Success
-FinalBalanceContract        Success
-```
-
-Le PIE final à deux Gobelins a validé perception, alarme, engagement, initiative, `RangedKeeper`, `Attack_ThrowKnife`, projectile, loot, XP, libération d'occupation et Victory.
-
-Pendant les dernières régressions, `MON13.5.RealPIEIntegration` a révélé un conflit de cellule entre sa fixture de Rats et les monstres de production présents sur la carte. La fixture a été isolée, puis le test a été relancé avec `Result={Success}`. Les contrôles MON17.7 finaux ont eux aussi été relancés avec succès.
-
-La campagne finale est déclarée validée sous UE5.5.4 ; MON17 est clos.
-
-Références :
-
-```text
-docs/Design/MON17_7_BALANCE_AUDIT.md
-docs/Design/MON17_7_FINAL_BALANCE_CONTRACT.md
-docs/Design/MON17_7_FINAL_PIE_VALIDATION.md
-docs/Design/MON17_FINAL_REGRESSION_PLAN.md
-docs/Design/MON17_CLOSURE.md
-```
+MON17 a notamment établi un projectile visuel de présentation sans dégâts/inventaire/persistance parallèles, une source projectile data-driven via socket optionnel, un cooldown générique par `AttackId` et la réutilisation sans fork des systèmes MON14.
 
 ---
 
-# MON18 — Magic & Spellbook — PROCHAIN JALON
+# MON18 — Magic & Spellbook — JALON ACTIF
 
-## Objectif
+## Objectif général
 
-Transformer l'infrastructure de sorts MON12 en système RPG complet.
+Établir un véritable système de magie **générique, data-driven et extensible** pour les personnages, sans créer quelques sorts codés en dur et sans dupliquer les systèmes déjà existants.
 
-Sous-jalons :
+Le système doit s'intégrer à :
+
+- personnages, classes, statistiques et progression MON15 ;
+- mana, PA et transactions d'actions ;
+- catalogue d'actions et hotbar 0–9 MON12 ;
+- inventaire, objets et parchemins ;
+- ciblage et ligne de vue ;
+- combat groupe/monstres ;
+- Status Effects MON16 ;
+- dégâts et soins ;
+- projectile/presentation/VFX/audio MON11/MON17 ;
+- SaveGame / Continue ;
+- UI.
+
+Le système magique ne doit créer ni second moteur de combat, ni second système de Status Effects, ni second gestionnaire de hotbar, ni second pipeline projectile.
+
+Chaîne architecturale cible, à confronter et raccorder aux contrats existants :
 
 ```text
-MON18.1 — Spell Definition / Identity
-MON18.2 — Known Spells per Character
-MON18.3 — Spellbook
-MON18.4 — Learning Rules
-MON18.5 — Availability / Preparation
-MON18.6 — First Production Offensive Spell
-MON18.7 — First Buff / Debuff
-MON18.8 — Scroll Learning / Casting
-MON18.9 — Save / Closure
+SpellDefinition
+    ↓
+SpellCastRequest
+    ↓
+Validation
+    ↓
+Target Resolution
+    ↓
+Cost Transaction
+    ↓
+Spell Resolution
+    ↓
+Effects
+    ↓
+Presentation
+    ↓
+Persistence / UI notification
 ```
 
-Cas de validation recommandés : `Magic Missile`, `Fireball`, `Heal`, `Haste`.
+## MON18.1 — Spell Data Model & Cast Contract — ACTIF
 
-Avant d'ajouter une abstraction, MON18 doit auditer et réutiliser les contrats déjà présents dans MON12, MON15, MON16 et MON17 : coûts PA/mana, hotbar, ciblage, transaction de ressources, cooldowns, effets de statut, projectile/presentation et SaveGame.
+Objectif : définir le contrat C++ data-driven minimal sur lequel le reste de MON18 pourra s'appuyer.
+
+Périmètre :
+
+- identifiant stable de sort ;
+- nom / description / école ou type ;
+- coût mana ;
+- coût PA ;
+- portée minimale/maximale ;
+- règle de ligne de vue ;
+- mode de ciblage ;
+- cooldown déclaratif ;
+- liste d'effets déclaratifs ;
+- contrat de requête de lancement ;
+- validation structurelle du modèle et de la requête ;
+- Automation Tests du contrat.
+
+Hors périmètre MON18.1 :
+
+- paiement effectif mana/PA ;
+- application réelle de dégâts/soins/Status Effects ;
+- UI Spellbook ;
+- assets de production ;
+- VFX/audio/projectiles de production ;
+- SaveGame migration.
+
+Principes autoritaires :
+
+1. Les coûts PA/mana du `SpellDefinition` sont des données de contrat ; le paiement transactionnel reste dans le runtime d'action existant et sera raccordé en MON18.3.
+2. Le ciblage doit réutiliser les représentations grille/groupe existantes ; pas de second targeting subsystem.
+3. Les effets de statut doivent être résolus par MON16 ; pas de `SpellStatusEffect` parallèle.
+4. Les projectiles magiques futurs réutiliseront le pipeline projectile de présentation MON17.
+5. Les identifiants doivent être stables et sérialisables ; aucun état persistant ne doit dépendre d'un pointeur d'acteur.
+6. MON18.1 n'exige aucun Blueprint, DataAsset, WBP, `.uasset` ou `.umap`.
+
+Porte de sortie : le code compile sous UE5.5.4 et les tests MON18.1 fournis sont exécutés avec succès par l'utilisateur. La validation UE n'est déclarée qu'après retour explicite des résultats.
+
+## MON18.2 — Spell Knowledge / Spellbook
+
+- sorts connus par personnage ;
+- apprentissage ;
+- anti-duplication ;
+- relation avec classe/niveau ;
+- Spellbook / liste de sorts ;
+- préparation ou sélection si le modèle de classe l'exige ;
+- persistance du modèle de connaissance.
+
+## MON18.3 — Spell Casting Runtime
+
+- requête de cast runtime ;
+- validation contextuelle ;
+- paiement transactionnel PA/mana ;
+- aucun paiement en cas d'échec ;
+- cooldown runtime ;
+- résolution générique ;
+- erreurs stables et exploitables par UI/log.
+
+## MON18.4 — Targeting
+
+- Self ;
+- PartyMember ;
+- Enemy ;
+- GridCell ;
+- extension ultérieure vers zone/AoE ;
+- portée et ligne de vue ;
+- intégration au système de ciblage existant.
+
+## MON18.5 — First Production Spells
+
+Créer un petit ensemble représentatif pour valider l'architecture :
+
+- un projectile offensif ;
+- un soin ;
+- un buff ou debuff utilisant MON16.
+
+Les noms de production sont décidés au moment de l'intégration artistique. `Fire Bolt`, `Heal`, `Haste` ou équivalents sont des cas de validation, pas des obligations de nomenclature.
+
+## MON18.6 — Spell Presentation
+
+- animation ;
+- projectile si nécessaire ;
+- VFX ;
+- audio ;
+- impact ;
+- timing ;
+- réutilisation prioritaire des pipelines MON11/MON17.
+
+## MON18.7 — Spellbook / Hotbar UI
+
+- affichage des sorts connus ;
+- tooltip ;
+- drag & drop vers les slots 0–9 ;
+- activation depuis la hotbar ;
+- état Disabled selon mana, PA, cooldown et cible ;
+- réutilisation du type/action `Spell` déjà prévu par MON12.
+
+## MON18.8 — Persistence
+
+- sorts connus ;
+- préparation/sélection éventuelle ;
+- cooldowns si leur persistance est retenue ;
+- migration SaveGame si le schéma évolue ;
+- restauration après Continue ;
+- absence de duplication lors des migrations.
+
+## MON18.9 — Balance / Regression / Closure
+
+- équilibrage des premiers sorts ;
+- campagne de régression MON12/MON15/MON16/MON17 ;
+- validation PIE des sorts de production ;
+- documentation de clôture ;
+- mise à jour du project overview et de cette roadmap.
 
 ---
 
 # MON19 — Advanced Dungeon Logic / Scripting
 
-## Objectif
-
-Permettre au level designer de construire des énigmes riches sans ajouter du C++ spécifique.
-
-Sous-jalons :
+Objectif : permettre au level designer de construire des énigmes riches sans ajouter du C++ spécifique.
 
 ```text
 MON19.1 — Timer
@@ -495,12 +339,6 @@ Le langage léger doit compléter `Event -> Condition -> Command`, pas le rempla
 
 # MON20 — Recruitment / Skills / Talents
 
-## Objectif
-
-Passer du groupe techniquement multi-personnages à un système RPG de compagnons et de progression avancée.
-
-Sous-jalons :
-
 ```text
 MON20.1 — Recruitment / Party Roster
 MON20.2 — Skills
@@ -516,12 +354,6 @@ MON20.8 — Save / Closure
 
 # MON21 — Quests / Journal / Map / Codex
 
-## Objectif
-
-Donner une structure de campagne aux pages UI actuellement surtout décoratives.
-
-Sous-jalons :
-
 ```text
 MON21.1 — Quest Definition
 MON21.2 — Quest Runtime State
@@ -536,9 +368,7 @@ MON21.7 — Save / Closure
 
 # MON22 — 45–90 Minute Vertical Slice
 
-## Objectif
-
-Suspendre volontairement l'ajout de grandes infrastructures et construire un jeu testable de bout en bout.
+Objectif : suspendre volontairement l'ajout de grandes infrastructures et construire un jeu testable de bout en bout.
 
 Contenu cible :
 
@@ -578,18 +408,20 @@ MON30 — Full Campaign
 ## Règles de conduite
 
 1. Un sous-jalon doit être petit, compilable et testable.
-2. Travail sur `master`, sans branche de fonctionnalité.
+2. Travail sur `master`, sans branche ni Pull Request.
 3. Un commit logique par étape lorsque possible.
-4. Pousser sur `origin/master` après chaque étape validée.
+4. Pousser sur `origin/master` après chaque étape.
 5. Aucun refactor massif préventif.
 6. Réutiliser les systèmes existants avant d'ajouter une abstraction parallèle.
 7. Les tests C++ valident la logique ; assets/WBP/maps exigent une validation UE/PIE lorsqu'ils sont impliqués.
-8. À la clôture d'un jalon majeur, mettre à jour overview, roadmap et document de clôture.
+8. Ne jamais déclarer compilation ou tests UE5.5.4 validés sans résultat fourni par l'utilisateur.
+9. Documentation projet dans `docs/Design/`, jamais dans `Documentation/`.
+10. À la clôture d'un jalon majeur, mettre à jour overview, roadmap et document de clôture.
 
 ---
 
 ## Prochain travail autoritaire
 
 ```text
-MON18.1 — Spell Definition / Identity
+MON18.1 — Spell Data Model & Cast Contract
 ```
