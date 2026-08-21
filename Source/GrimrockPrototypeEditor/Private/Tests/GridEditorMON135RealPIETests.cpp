@@ -79,6 +79,38 @@ namespace
         return Count;
     }
 
+    int32 IsolateMON135EncounterFromUnrelatedMonsters (UWorld* World)
+    {
+        int32 IsolatedCount = 0;
+        if (!World)
+        {
+            return IsolatedCount;
+        }
+
+        for (TActorIterator<AGridMonsterActor> It (World); It; ++It)
+        {
+            AGridMonsterActor* Monster = *It;
+            if (!IsValid (Monster) || IsMON135EncounterSpawnId (Monster->SpawnObjectId))
+            {
+                continue;
+            }
+
+            // MON13.5 validates the real production encounter/SaveGame path. The
+            // production map can legitimately gain unrelated monsters over time;
+            // they must not patrol into the historical encounter fixture cells and
+            // turn this test into an accidental MON14/MON17 interaction test.
+            Monster->bMonsterEnabled = false;
+            if (UGridMonsterMovementComponent* Movement =
+                    Monster->FindComponentByClass<UGridMonsterMovementComponent> ())
+            {
+                Movement->ReleaseOccupancy ();
+            }
+            Monster->Destroy ();
+            ++IsolatedCount;
+        }
+        return IsolatedCount;
+    }
+
     class FSetupMON135RealPIE : public IAutomationLatentCommand
     {
     public:
@@ -374,6 +406,46 @@ namespace
         FAutomationTestBase* Test;
         TSharedRef<FMON135RealPIEState> State;
         double StartSeconds = 0.0;
+    };
+
+    class FIsolateMON135PIE : public IAutomationLatentCommand
+    {
+    public:
+        FIsolateMON135PIE (
+            FAutomationTestBase* InTest,
+            TSharedRef<FMON135RealPIEState> InState)
+            : Test (InTest), State (MoveTemp (InState))
+        {
+        }
+
+        virtual bool Update () override
+        {
+            if (!State->bSetupSucceeded)
+            {
+                return true;
+            }
+
+            UWorld* World = GetMON135PIEWorld ();
+            Test->TestNotNull (
+                TEXT ("The PIE world exists before MON13.5 fixture isolation"),
+                World);
+            if (!World)
+            {
+                return true;
+            }
+
+            const int32 IsolatedCount =
+                IsolateMON135EncounterFromUnrelatedMonsters (World);
+            UE_LOG (LogTemp, Log,
+                TEXT ("[MON135PIE] Phase=IntegrationIsolation UnrelatedMonsters=%d Encounter=%s"),
+                IsolatedCount,
+                *MON135EncounterId.ToString ());
+            return true;
+        }
+
+    private:
+        FAutomationTestBase* Test;
+        TSharedRef<FMON135RealPIEState> State;
     };
 
     class FStartMON135PIEIfReady : public IAutomationLatentCommand
@@ -762,6 +834,7 @@ bool FGridEditorMON135RealPIEIntegrationTest::RunTest (
     ADD_LATENT_AUTOMATION_COMMAND (FSetupMON135RealPIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FStartMON135PIEIfReady (State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON135PIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FIsolateMON135PIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (2.0f));
     ADD_LATENT_AUTOMATION_COMMAND (FCheckMON135FreshPIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FProtectMON135SaveSlot (State));
@@ -770,6 +843,7 @@ bool FGridEditorMON135RealPIEIntegrationTest::RunTest (
     ADD_LATENT_AUTOMATION_COMMAND (FPrepareMON135ContinuePIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FStartMON135PIEIfReady (State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitForMON135PIE (this, State));
+    ADD_LATENT_AUTOMATION_COMMAND (FIsolateMON135PIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FWaitLatentCommand (2.0f));
     ADD_LATENT_AUTOMATION_COMMAND (FCheckMON135ContinuePIE (this, State));
     ADD_LATENT_AUTOMATION_COMMAND (FProtectMON135SaveSlot (State));
