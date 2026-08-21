@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **backlog actif après clôture de MON18.2**  
+Statut : **MON18.3 implémenté — validation UE5.5.4 en attente**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -52,7 +52,7 @@ Sous-jalons :
 ```text
 MON18.1 — Spell Data Model & Cast Contract      CLOS
 MON18.2 — Spell Knowledge / Spellbook           CLOS
-MON18.3 — Runtime Casting / Cost Transaction    PROCHAIN
+MON18.3 — Runtime Casting / Cost Transaction    EN VALIDATION
 MON18.4 — Targeting Integration
 MON18.5 — First Production Spells
 MON18.6 — Spell Presentation
@@ -125,6 +125,24 @@ docs/Design/MON18_2_SPELL_KNOWLEDGE_SPELLBOOK.md
 docs/Design/MON18_2_VALIDATION.md
 ```
 
+### MON18.3 — EN VALIDATION
+
+`FGridSpellCastTransactionService` réutilise les états autoritaires existants :
+
+```text
+FRPGDerivedStats::CurrentMana
+FGridPlayerCharacterTurnState::RemainingActionPoints
+FGridCharacterSpellbookState
+```
+
+La transaction valide le sort connu, les identités personnage, l'état de tour et les ressources avant toute mutation. Le ciblage reste volontairement différé à MON18.4.
+
+Référence :
+
+```text
+docs/Design/MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md
+```
+
 ---
 
 # MON19 — Advanced Dungeon Logic / Scripting
@@ -182,5 +200,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.3 — Runtime Casting / Cost Transaction
+Valider MON18.3 sous UE5.5.4, puis MON18.4 — Targeting Integration
 ```
