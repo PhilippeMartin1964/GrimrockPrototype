@@ -1,6 +1,6 @@
 # MON18.6 — Spell Presentation
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -73,19 +73,26 @@ Les calculs de délai et de trajectoire délèguent explicitement à `AGridComba
 
 Un échec ou une absence de présentation visuelle n'annule donc jamais le gameplay déjà résolu.
 
-## Tests Automation
+## Validation Automation UE5.5.4
+
+Exécution locale fournie par l'utilisateur le **21 août 2026** : **7/7 Success**.
 
 ```text
-Grimrock.Magic.MON18.6.ProductionProfiles
-Grimrock.Magic.MON18.6.ProjectilePlanSequence
-Grimrock.Magic.MON18.6.InstantPlanSequence
-Grimrock.Magic.MON18.6.ProjectileTrajectoryReuse
-Grimrock.Magic.MON18.6.ProjectileTimingReuse
-Grimrock.Magic.MON18.6.VisualOptionality
-Grimrock.Magic.MON18.6.PresentationPurity
+Grimrock.Magic.MON18.6.InstantPlanSequence          Success
+Grimrock.Magic.MON18.6.PresentationPurity          Success
+Grimrock.Magic.MON18.6.ProductionProfiles          Success
+Grimrock.Magic.MON18.6.ProjectilePlanSequence      Success
+Grimrock.Magic.MON18.6.ProjectileTimingReuse       Success
+Grimrock.Magic.MON18.6.ProjectileTrajectoryReuse   Success
+Grimrock.Magic.MON18.6.VisualOptionality           Success
+Total                                                7/7 Success
 ```
 
-Attendu : **7/7 Success**.
+Référence de validation :
+
+```text
+docs/Design/MON18_6_VALIDATION.md
+```
 
 ## Hors périmètre
 
