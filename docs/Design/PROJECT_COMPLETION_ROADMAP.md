@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.5 implémenté — validation UE5.5.4 en attente**  
+Statut : **backlog actif après clôture de MON18.5**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -54,8 +54,8 @@ MON18.1 — Spell Data Model & Cast Contract      CLOS
 MON18.2 — Spell Knowledge / Spellbook           CLOS
 MON18.3 — Runtime Casting / Cost Transaction    CLOS
 MON18.4 — Targeting Integration                 CLOS
-MON18.5 — First Production Spells               EN VALIDATION
-MON18.6 — Spell Presentation
+MON18.5 — First Production Spells               CLOS
+MON18.6 — Spell Presentation                    PROCHAIN
 MON18.7 — Spellbook / Hotbar UI
 MON18.8 — Persistence / Migration
 MON18.9 — Balance / Regression / Closure
@@ -193,7 +193,9 @@ docs/Design/MON18_4_TARGETING_INTEGRATION.md
 docs/Design/MON18_4_VALIDATION.md
 ```
 
-### MON18.5 — EN VALIDATION
+### MON18.5 — CLOS
+
+`MON18.5 — First Production Spells` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
 Premiers sorts canoniques :
 
@@ -204,19 +206,25 @@ Spell_Haste
 Spell_CurePoison
 ```
 
-`FGridSpellEffectResolver` couvre les quatre effets de MON18.1 :
+`FGridSpellEffectResolver` couvre les quatre effets de MON18.1 : `Damage`, `Heal`, `ApplyStatusEffect` via MON16 et `RemoveStatusEffect` par identité stable. Le resolver commit le batch complet uniquement en cas de succès afin d'éviter toute mutation partielle.
 
-- `Damage` ;
-- `Heal` ;
-- `ApplyStatusEffect` via `FGridStatusEffectCollection::TryApply` ;
-- `RemoveStatusEffect` par identité stable MON16.
+Validation automatisée :
 
-Le resolver travaille sur des copies puis commit le batch complet uniquement en cas de succès, évitant les mutations partielles lorsqu'une définition de Status Effect manque ou est invalide.
+```text
+Grimrock.Magic.MON18.5.ApplyStatusBridge         Success
+Grimrock.Magic.MON18.5.AtomicFailureNoMutation   Success
+Grimrock.Magic.MON18.5.DamageResolution          Success
+Grimrock.Magic.MON18.5.HealingClamp              Success
+Grimrock.Magic.MON18.5.ProductionDefinitions     Success
+Grimrock.Magic.MON18.5.RemoveStatus               Success
+Total                                              6/6 Success
+```
 
-Référence :
+Références :
 
 ```text
 docs/Design/MON18_5_FIRST_PRODUCTION_SPELLS.md
+docs/Design/MON18_5_VALIDATION.md
 ```
 
 ---
@@ -276,5 +284,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider MON18.5 sous UE5.5.4, puis MON18.6 — Spell Presentation
+MON18.6 — Spell Presentation
 ```

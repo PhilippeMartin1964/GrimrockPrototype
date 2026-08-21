@@ -1,6 +1,6 @@
 # MON18.5 — First Production Spells
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
@@ -49,18 +49,30 @@ L'orchestration complète paiement + effets sera raccordée au runtime joueur à
 
 MON18.5 ne duplique ni durée, ni stacking, ni puissance, ni lifecycle de statut. `Haste` passe par la définition `Status_Haste` existante/résolue par le runtime. `Cure Poison` retire `Status_Poison` par identité stable.
 
-## Tests Automation
+## Validation UE5.5.4
+
+Campagne exécutée avec :
 
 ```text
-Grimrock.Magic.MON18.5.ProductionDefinitions
-Grimrock.Magic.MON18.5.DamageResolution
-Grimrock.Magic.MON18.5.HealingClamp
-Grimrock.Magic.MON18.5.ApplyStatusBridge
-Grimrock.Magic.MON18.5.RemoveStatus
-Grimrock.Magic.MON18.5.AtomicFailureNoMutation
+Automation RunTests Grimrock.Magic.MON18.5
 ```
 
-Attendu : **6/6 Success**.
+Résultat : **6/6 Success**.
+
+```text
+Grimrock.Magic.MON18.5.ApplyStatusBridge         Success
+Grimrock.Magic.MON18.5.AtomicFailureNoMutation   Success
+Grimrock.Magic.MON18.5.DamageResolution          Success
+Grimrock.Magic.MON18.5.HealingClamp              Success
+Grimrock.Magic.MON18.5.ProductionDefinitions     Success
+Grimrock.Magic.MON18.5.RemoveStatus               Success
+```
+
+Référence détaillée :
+
+```text
+docs/Design/MON18_5_VALIDATION.md
+```
 
 ## Hors périmètre
 
