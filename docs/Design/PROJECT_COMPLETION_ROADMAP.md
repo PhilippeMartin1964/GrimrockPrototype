@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.6 VALIDÉ ET CLOS — MON18.7 en cours**  
+Statut : **MON18.7a implémenté — validation UE5.5.4 en attente**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -57,119 +57,59 @@ MON18.4 — Targeting Integration                 CLOS
 MON18.5 — First Production Spells               CLOS
 MON18.6 — Spell Presentation                    CLOS
 MON18.7 — Spellbook / Hotbar UI                 EN COURS
+  MON18.7a — Native UI model + Hotbar bridge    EN VALIDATION
+  MON18.7b — WBP hookup + PIE validation        À FAIRE
 MON18.8 — Persistence / Migration
 MON18.9 — Balance / Regression / Closure
 ```
 
 ### MON18.1 — CLOS
 
-`MON18.1 — Spell Data Model & Cast Contract` est **VALIDÉ ET CLOS sous UE5.5.4**.
-
-Contrats livrés :
-
-- identité stable `SpellId` ;
-- définition data-driven via `UGridSpellDefinitionAsset` ;
-- coûts mana/PA ;
-- portée/LOS ;
-- réutilisation de `EGridCombatTargetingPolicy` ;
-- effets déclaratifs `Damage`, `Heal`, `ApplyStatusEffect`, `RemoveStatusEffect` ;
-- pont MON16 par `StatusEffectId` ;
-- requête de cast sans pointeur d'acteur ;
-- contrat pur sans consommation de ressource ni résolution runtime.
-
-Validation automatisée : **4/4 Success**.
+`MON18.1 — Spell Data Model & Cast Contract` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **4/4 Success**.
 
 Référence : `docs/Design/MON18_1_SPELL_DATA_MODEL_CAST_CONTRACT.md`.
 
 ### MON18.2 — CLOS
 
-`MON18.2 — Spell Knowledge / Spellbook` est **VALIDÉ ET CLOS sous UE5.5.4**.
+`MON18.2 — Spell Knowledge / Spellbook` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **5/5 Success**.
 
-Contrats livrés : Spellbook runtime par `CharacterId`, connaissance par `SpellId`, apprentissage/oubli explicites, isolation stricte et persistance différée à MON18.8.
-
-Validation automatisée : **5/5 Success**.
-
-Références :
-
-```text
-docs/Design/MON18_2_SPELL_KNOWLEDGE_SPELLBOOK.md
-docs/Design/MON18_2_VALIDATION.md
-```
+Références : `MON18_2_SPELL_KNOWLEDGE_SPELLBOOK.md`, `MON18_2_VALIDATION.md`.
 
 ### MON18.3 — CLOS
 
-`MON18.3 — Runtime Casting / Cost Transaction` est **VALIDÉ ET CLOS sous UE5.5.4**.
+`MON18.3 — Runtime Casting / Cost Transaction` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **6/6 Success**.
 
-Contrats livrés : mana/PA autoritaires, validation du sort connu et des identités, paiement atomique et zéro mutation en cas d'échec.
-
-Validation automatisée : **6/6 Success**.
-
-Références :
-
-```text
-docs/Design/MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md
-docs/Design/MON18_3_VALIDATION.md
-```
+Références : `MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md`, `MON18_3_VALIDATION.md`.
 
 ### MON18.4 — CLOS
 
-`MON18.4 — Targeting Integration` est **VALIDÉ ET CLOS sous UE5.5.4**.
+`MON18.4 — Targeting Integration` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **8/8 Success**.
 
-Contrats livrés : politiques `Self`, `Ally`, `FirstAxialTarget`, `Cell`, `Area`, portée, relation de cible, alignement axial, LOS et ordre `Targeting -> Cost Transaction`.
-
-Validation automatisée : **8/8 Success**.
-
-Références :
-
-```text
-docs/Design/MON18_4_TARGETING_INTEGRATION.md
-docs/Design/MON18_4_VALIDATION.md
-```
+Références : `MON18_4_TARGETING_INTEGRATION.md`, `MON18_4_VALIDATION.md`.
 
 ### MON18.5 — CLOS
 
-`MON18.5 — First Production Spells` est **VALIDÉ ET CLOS sous UE5.5.4**.
+`MON18.5 — First Production Spells` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **6/6 Success**.
 
-Premiers sorts canoniques :
+Premiers sorts : `Spell_ArcaneBolt`, `Spell_LesserHeal`, `Spell_Haste`, `Spell_CurePoison`.
 
-```text
-Spell_ArcaneBolt
-Spell_LesserHeal
-Spell_Haste
-Spell_CurePoison
-```
-
-`FGridSpellEffectResolver` couvre `Damage`, `Heal`, `ApplyStatusEffect` et `RemoveStatusEffect` avec batch d'effets atomique et réutilisation de MON16.
-
-Validation automatisée : **6/6 Success**.
-
-Références :
-
-```text
-docs/Design/MON18_5_FIRST_PRODUCTION_SPELLS.md
-docs/Design/MON18_5_VALIDATION.md
-```
+Références : `MON18_5_FIRST_PRODUCTION_SPELLS.md`, `MON18_5_VALIDATION.md`.
 
 ### MON18.6 — CLOS
 
-`MON18.6 — Spell Presentation` est **VALIDÉ ET CLOS sous UE5.5.4**.
+`MON18.6 — Spell Presentation` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **7/7 Success**.
 
-`FGridSpellPresentationProfile` sépare la présentation du gameplay et réutilise les définitions audio/VFX MON11. `FGridSpellPresentationService` construit les plans `CastStarted -> ProjectileLaunched -> Impact -> Completed` ou `CastStarted -> Impact -> Completed`. Le projectile visuel délègue timing et trajectoire à `AGridCombatProjectileActor` de MON17.3.2.
+Présentation data-driven séparée du gameplay, réutilisation audio/VFX MON11 et projectile visuel MON17.3.2.
 
-`UGridSpellPresentationComponent` ne possède aucune API de mutation de PV, mana, PA, inventaire ou Status Effects.
-
-Validation automatisée : **7/7 Success**.
-
-Références :
-
-```text
-docs/Design/MON18_6_SPELL_PRESENTATION.md
-docs/Design/MON18_6_VALIDATION.md
-```
+Références : `MON18_6_SPELL_PRESENTATION.md`, `MON18_6_VALIDATION.md`.
 
 ### MON18.7 — EN COURS
 
-Objectif : exposer les sorts connus au HUD/Spellbook et permettre leur affectation aux dix raccourcis 0–9 existants sans créer un second hotbar.
+`MON18.7a` fournit le view-model Spellbook et le bridge vers les dix raccourcis MON12.8. Les sorts non résolus restent visibles mais non assignables ; les doublons de raccourcis sont évités par move/swap.
+
+`MON18.7b` raccordera les WBP existants et fera la validation PIE, sans modifier les contrats gameplay.
+
+Référence : `docs/Design/MON18_7_SPELLBOOK_HOTBAR_UI.md`.
 
 ---
 
@@ -228,5 +168,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.7 — Spellbook / Hotbar UI
+Valider MON18.7a sous UE5.5.4, puis MON18.7b — WBP hookup + PIE
 ```
