@@ -1425,7 +1425,13 @@ bool UGridPartyInventoryComponent::RehydrateOwnedItemDefinitions (
         for (const FGridCombatHotbarBinding& Binding :
             Character.CombatHotbarSlots)
         {
+            const bool bUsesItemDefinition =
+                Binding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::Equipment ||
+                Binding.SourcePolicy ==
+                    EGridCombatActionSourcePolicy::QuickItem;
             if (!Binding.IsEmpty () &&
+                bUsesItemDefinition &&
                 !Binding.SourceDefinitionId.IsNone ())
             {
                 DefinitionIds.Add (Binding.SourceDefinitionId);
