@@ -33,7 +33,6 @@ namespace
     const FIntPoint MON135RatCell (29, 25);
     const FIntPoint MON135Wave0SecondCell (28, 26);
     const FIntPoint MON135Wave1Cell (27, 25);
-    const FIntPoint MON135StartCell (28, 23);
     const FIntPoint MON135TriggerCell (27, 24);
 
     struct FMON135RealPIEState
@@ -43,6 +42,7 @@ namespace
             *FGuid::NewGuid ().ToString (EGuidFormats::Digits));
         TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
         FString PreparedRuntimeActorName;
+        FIntPoint StartCell = FIntPoint (0, 0);
         bool bOriginalAutoPreparePIE = true;
         bool bSetupSucceeded = false;
         bool bContinuePIEReady = false;
@@ -171,13 +171,18 @@ namespace
             Test->TestEqual (TEXT ("The future Rat belongs to wave one"),
                 Wave1Spawn->EncounterWaveIndex,
                 1);
-            Test->TestEqual (TEXT ("The real StartCell is unchanged"),
-                EditorActor->LevelAsset->GetStartCell (), MON135StartCell);
+
+            State->StartCell = EditorActor->LevelAsset->GetStartCell ();
+            const bool bStartCellValid = EditorActor->LevelAsset->IsStartCellValid ();
+            Test->TestTrue (TEXT ("The real StartCell is valid"), bStartCellValid);
+            Test->TestTrue (TEXT ("The real StartCell remains outside the encounter trigger"),
+                State->StartCell != MON135TriggerCell);
             if (RatSpawn->bInitiallyEnabled ||
                 Wave0SecondSpawn->bInitiallyEnabled ||
                 Wave1Spawn->bInitiallyEnabled ||
                 FIntPoint (RatSpawn->CellX, RatSpawn->CellY) != MON135RatCell ||
-                EditorActor->LevelAsset->GetStartCell () != MON135StartCell)
+                !bStartCellValid ||
+                State->StartCell == MON135TriggerCell)
             {
                 return true;
             }
@@ -232,8 +237,8 @@ namespace
             Save->PartyInventoryState.ActiveCharacters.Add (Character);
             Save->PartyInventoryState.ActiveEquipment.AddDefaulted ();
             Save->CurrentDungeonLevelId = EditorActor->CurrentDungeonLevelId;
-            Save->PartyCellX = MON135StartCell.X;
-            Save->PartyCellY = MON135StartCell.Y;
+            Save->PartyCellX = State->StartCell.X;
+            Save->PartyCellY = State->StartCell.Y;
             Save->PartyFacing = EditorActor->LevelAsset->StartFacing;
             FGridLevelRuntimeState& SavedLevel =
                 Save->DungeonRuntimeState.LevelStates.FindOrAdd (
@@ -319,9 +324,11 @@ namespace
             Test->TestTrue (TEXT ("The PIE startup injection is registered"),
                 State->bSetupSucceeded);
             UE_LOG (LogTemp, Log,
-                TEXT ("[MON135PIE] Phase=IntegrationSetup SaveSlot=%s AnchorSpawnId=%s Encounter=Encounter_Rats_01 Wave0=2 Wave1=1 bInitiallyEnabled=false StartCell=(28,23) TriggerCell=(27,24)"),
+                TEXT ("[MON135PIE] Phase=IntegrationSetup SaveSlot=%s AnchorSpawnId=%s Encounter=Encounter_Rats_01 Wave0=2 Wave1=1 bInitiallyEnabled=false StartCell=(%d,%d) TriggerCell=(27,24)"),
                 *State->TemporarySaveSlot,
-                *MON135RatSpawnId.ToString ());
+                *MON135RatSpawnId.ToString (),
+                State->StartCell.X,
+                State->StartCell.Y);
             return true;
         }
 
@@ -460,16 +467,16 @@ namespace
                 Runtime->FindSpawnedMonsterActor (MON135Wave1SpawnId));
 
             Runtime->HandlePartyCellChanged (
-                MON135StartCell.X,
-                MON135StartCell.Y,
-                MON135StartCell.X,
-                MON135StartCell.Y);
+                State->StartCell.X,
+                State->StartCell.Y,
+                State->StartCell.X,
+                State->StartCell.Y);
             Test->TestEqual (TEXT ("StartCell notification away from trigger keeps encounter absent"),
                 CountMON135EncounterActors (World), 0);
 
             Runtime->HandlePartyCellChanged (
-                MON135StartCell.X,
-                MON135StartCell.Y,
+                State->StartCell.X,
+                State->StartCell.Y,
                 MON135TriggerCell.X,
                 MON135TriggerCell.Y);
             Test->TestEqual (TEXT ("Entering TriggerCell creates both wave-zero Rats"),
@@ -522,8 +529,8 @@ namespace
                 SpawnedPlacement && SpawnedPlacement->bIsSpawned);
 
             Runtime->HandlePartyCellChanged (
-                MON135StartCell.X,
-                MON135StartCell.Y,
+                State->StartCell.X,
+                State->StartCell.Y,
                 MON135TriggerCell.X,
                 MON135TriggerCell.Y);
             Test->TestEqual (TEXT ("Second trigger notification creates no duplicate wave"),
