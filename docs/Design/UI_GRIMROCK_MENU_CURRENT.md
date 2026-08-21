@@ -4,119 +4,122 @@
 
 Ce document est la référence canonique du menu joueur multipage de GrimrockPrototype.
 
-État de référence avant UI01.4.3a :
+État de référence : **UI01.4.3e VALIDÉ ET CLOS sous UE5.5.4**.  
+Date : **21 août 2026**.
+
+Référence Git de clôture fonctionnelle Spellbook/hotbar :
 
 ```text
-89bb94b71d155c9b70b87a509db020a638bc732d
-Integrate GridSpellbook into GrimrockMenu
+56bce2cdd90064b1b548cd93649b9e1207ba0bdc
+Fix UI01.4.3e.2 Spellbook action availability
 ```
-
-UI01.4.3a ajoute le pont runtime natif du Spellbook. Le code de ce jalon doit encore être compilé sous UE5.5.4 par l'utilisateur avant d'être déclaré validé.
 
 Le document couvre :
 
-- `WBP_GrimrockMenu` ;
-- `UGrimrockMenuWidget` ;
-- ouverture et fermeture depuis `AGrimrockPartyPawn` ;
-- navigation des onglets ;
+- `WBP_GrimrockMenu` et `UGrimrockMenuWidget` ;
+- navigation des sept onglets ;
+- cycle ouverture/fermeture depuis `AGrimrockPartyPawn` ;
 - page inventaire ;
 - page Spellbook ;
 - modèle natif de connaissance des sorts ;
-- projection UI MON18.7a ;
-- pont vers la hotbar MON12 ;
-- règles de maintenance pour les évolutions futures.
+- projection visuelle ;
+- drag & drop vers la hotbar MON12 ;
+- résolution et exécution d'un sort depuis la hotbar ;
+- responsabilités gameplay/UI ;
+- limites restantes, notamment MON18.8.
 
 En cas de divergence, l'ordre de priorité est :
 
 1. code C++ réellement compilé ;
 2. assets réellement sérialisés dans Unreal ;
 3. présent document ;
-4. documents de conception historiques.
-
-Toute évolution significative du menu doit mettre à jour cette référence dans le même jalon.
+4. documents historiques.
 
 ---
 
-## 2. Résumé architectural
+## 2. Architecture actuelle
 
 ```mermaid
 flowchart TD
     Input["Touche I"] --> Pawn["AGrimrockPartyPawn"]
     Pawn --> Menu["WBP_GrimrockMenu / UGrimrockMenuWidget"]
     Menu --> Switcher["WidgetSwitcher_MainContent"]
-    Switcher --> Inventory["Page_Inventory / UGridInventoryWidget"]
+    Switcher --> Inventory["Page_Inventory / WBP_GridInventory"]
+    Switcher --> Skills["Page_Skills / WBP_GridSkills"]
     Switcher --> SpellbookPage["Page_Spellbook / WBP_GridSpellbook"]
-    Inventory --> InventoryComponent["UGridPartyInventoryComponent"]
-    SpellbookPage -. "UI01.4.3b: reparent" .-> SpellbookWidget["UGridSpellbookWidget"]
-    SpellbookWidget --> InventoryComponent
+    Switcher --> Journal["Page_Journal / WBP_GridJournal"]
+    Switcher --> Map["Page_Map / WBP_GridMap"]
+    Switcher --> Recipes["Page_Recipes / WBP_GridRecipes"]
+    Switcher --> Codex["Page_Codex / WBP_GridCodex"]
+    SpellbookPage --> SpellbookWidget["UGridSpellbookWidget"]
+    SpellbookWidget --> InventoryComponent["UGridPartyInventoryComponent"]
     SpellbookWidget --> SpellbookComponent["UGridPartySpellbookComponent"]
     SpellbookWidget --> UILibrary["UGridSpellbookUILibrary"]
-    UILibrary --> Hotbar["MON12 persistent 10-slot hotbar"]
-    Pawn --> Controller["AGrimrockPlayerController"]
+    UILibrary --> Hotbar["Hotbar MON12 — 10 slots"]
+    Hotbar --> Catalog["FGridCombatActionCatalog"]
+    Catalog --> TurnManager["UGridTurnManagerComponent"]
+    TurnManager --> SpellExec["FGridSpellHotbarExecutionService"]
+    SpellExec --> Targeting["MON18.4"]
+    SpellExec --> Costs["MON18.3"]
+    SpellExec --> Effects["MON18.5"]
+    TurnManager --> Presentation["MON18.6"]
 ```
 
 Principes :
 
 - le menu global possède la navigation ;
 - chaque page possède sa présentation spécialisée ;
-- les données de gameplay restent dans les composants/services C++ ;
+- aucune logique métier n'est dupliquée dans le Graph du shell ;
 - le Spellbook ne crée pas une deuxième hotbar ;
-- le Blueprint ne duplique pas la navigation du shell C++.
+- les coûts, le ciblage et les effets restent autoritaires en C++ ;
+- l'UI demande une action, elle ne la résout pas elle-même.
 
 ---
 
-## 3. Sources de vérité
+## 3. Sources de vérité C++
 
-### 3.1 Shell et navigation
-
-| Responsabilité | Fichier |
-|---|---|
-| Enum des onglets | `Source/GrimrockPrototype/Public/UI/GridInventoryUiTypes.h` |
-| Contrat du shell | `Source/GrimrockPrototype/Public/UI/GrimrockMenuWidget.h` |
-| Navigation et styles | `Source/GrimrockPrototype/Private/UI/GrimrockMenuWidget.cpp` |
-| Surface 1920x1080 | `Source/GrimrockPrototype/Public/UI/GrimrockDesignSurfaceWidget.h` |
-| Cycle ouverture/fermeture | `Source/GrimrockPrototype/Public/Runtime/GrimrockPartyPawn.h` |
-| Implémentation ouverture/fermeture | `Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawn.cpp` |
-| État UI global / souris | `Source/GrimrockPrototype/Public/Runtime/GrimrockPlayerController.h` |
-
-### 3.2 Inventaire
+### Shell / navigation
 
 | Responsabilité | Fichier |
 |---|---|
-| Page inventaire native | `Source/GrimrockPrototype/Public/UI/GridInventoryWidget.h` |
-| Implémentation page inventaire | `Source/GrimrockPrototype/Private/UI/GridInventoryWidget.cpp` |
-| État parti/inventaire/hotbar | `Source/GrimrockPrototype/Public/Runtime/GridPartyInventoryComponent.h` |
+| Enum onglets | `Source/GrimrockPrototype/Public/UI/GridInventoryUiTypes.h` |
+| Shell natif | `Source/GrimrockPrototype/Public/UI/GrimrockMenuWidget.h` |
+| Navigation / styles | `Source/GrimrockPrototype/Private/UI/GrimrockMenuWidget.cpp` |
+| Surface de design | `Source/GrimrockPrototype/Public/UI/GrimrockDesignSurfaceWidget.h` |
+| Ouverture / fermeture | `Source/GrimrockPrototype/Private/Runtime/GrimrockPartyPawn.cpp` |
 
-### 3.3 Spellbook
+### Inventaire / hotbar
+
+| Responsabilité | Fichier |
+|---|---|
+| Inventaire / hotbar autoritaire | `Source/GrimrockPrototype/Public/Runtime/GridPartyInventoryComponent.h` |
+| Drag/drop hotbar | `Source/GrimrockPrototype/Public/UI/GridCombatHotbarDragDropOperation.h` |
+| Catalogue d'actions | `Source/GrimrockPrototype/Private/Runtime/Combat/GridCombatActionCatalog.cpp` |
+
+### Spellbook
 
 | Responsabilité | Fichier |
 |---|---|
 | État de connaissance | `Source/GrimrockPrototype/Public/Magic/GridSpellbookTypes.h` |
 | Propriétaire runtime | `Source/GrimrockPrototype/Public/Magic/GridPartySpellbookComponent.h` |
-| Mutations runtime | `Source/GrimrockPrototype/Private/Magic/GridPartySpellbookComponent.cpp` |
-| Projection UI / hotbar | `Source/GrimrockPrototype/Public/Magic/GridSpellbookUI.h` |
-| Implémentation projection | `Source/GrimrockPrototype/Private/Magic/GridSpellbookUI.cpp` |
-| Widget natif du Spellbook | `Source/GrimrockPrototype/Public/UI/GridSpellbookWidget.h` |
-| Implémentation widget natif | `Source/GrimrockPrototype/Private/UI/GridSpellbookWidget.cpp` |
-| Drag/drop hotbar | `Source/GrimrockPrototype/Public/UI/GridCombatHotbarDragDropOperation.h` |
+| Projection UI/hotbar | `Source/GrimrockPrototype/Public/Magic/GridSpellbookUI.h` |
+| Page native | `Source/GrimrockPrototype/Public/UI/GridSpellbookWidget.h` |
+| Exécution hotbar | `Source/GrimrockPrototype/Public/Magic/GridSpellHotbarExecution.h` |
+| Routage runtime | `Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerPlayerActionCatalog.cpp` |
+| Présentation | `Source/GrimrockPrototype/Public/Magic/GridSpellPresentationComponent.h` |
 
 ---
 
 ## 4. Assets UMG actuels
 
-Le menu principal est :
+Menu principal :
 
 ```text
 /Game/GrimrockPrototype/Blueprints/UI/WBP_GrimrockMenu
+Parent natif : UGrimrockMenuWidget
 ```
 
-Son parent natif est :
-
-```text
-UGrimrockMenuWidget
-```
-
-Les pages actuellement intégrées sont :
+Pages intégrées :
 
 | Page | Widget |
 |---|---|
@@ -128,50 +131,39 @@ Les pages actuellement intégrées sont :
 | `Page_Recipes` | `WBP_GridRecipes` |
 | `Page_Codex` | `WBP_GridCodex` |
 
-UI01.4.2 a validé dans Unreal :
+`WBP_GridSpellbook` est désormais reparenté vers `UGridSpellbookWidget` et la page est fonctionnelle en PIE.
 
-- présence de l'onglet `Sorts` ;
-- présence de `Button_TabSpellbook` ;
-- présence de `Page_Spellbook` ;
-- navigation entre les sept onglets ;
-- affichage temporaire `Livre de sorts` dans la nouvelle page.
-
-`WBP_GridSpellbook` reste, à la fin de UI01.4.3a, un `UserWidget` simple. Son reparenting vers `UGridSpellbookWidget` appartient explicitement à UI01.4.3b.
+`WBP_GridSpellbookEntry` fournit la présentation d'une entrée de sort.
 
 ---
 
-## 5. Widget Tree contractuel
+## 5. Contrat du shell `WBP_GrimrockMenu`
 
-Structure logique :
+Le Graph de `WBP_GrimrockMenu` ne porte pas la navigation. La logique est dans `UGrimrockMenuWidget`.
+
+Bindings principaux :
 
 ```text
-WBP_GrimrockMenu
-└── CanvasPanel_Root
-    └── ScaleBox_DesignRoot
-        └── SizeBox_DesignSurface
-            └── Border
-                └── VerticalBox
-                    ├── HorizontalBox des onglets
-                    │   ├── Button_TabInventory
-                    │   ├── Button_TabSkills
-                    │   ├── Button_TabSpellbook
-                    │   ├── Button_TabJournal
-                    │   ├── Button_TabMap
-                    │   ├── Button_TabRecipes
-                    │   └── Button_TabCodex
-                    └── WidgetSwitcher_MainContent
-                        ├── Page_Inventory
-                        ├── Page_Skills
-                        ├── Page_Spellbook
-                        ├── Page_Journal
-                        ├── Page_Map
-                        ├── Page_Recipes
-                        └── Page_Codex
+WidgetSwitcher_MainContent
+Button_TabInventory
+Button_TabSkills
+Button_TabSpellbook
+Button_TabJournal
+Button_TabMap
+Button_TabRecipes
+Button_TabCodex
+Page_Inventory
+Page_Skills
+Page_Spellbook
+Page_Journal
+Page_Map
+Page_Recipes
+Page_Codex
 ```
 
-L'ordre physique des pages n'est pas utilisé pour résoudre la navigation. Le C++ appelle `SetActiveWidget(TargetPage)` et non `SetActiveWidgetIndex()`.
+Le C++ sélectionne la page par widget et non par index physique du `WidgetSwitcher`.
 
-Le Graph de `WBP_GrimrockMenu` ne doit contenir aucune navigation parallèle de type :
+Il ne faut pas réintroduire dans le Graph :
 
 ```text
 OnClicked(Button_TabX)
@@ -181,8 +173,6 @@ OnClicked(Button_TabX)
 ---
 
 ## 6. Enum des onglets
-
-Déclaration courante :
 
 ```cpp
 enum class EInventoryTopTab : uint8
@@ -197,107 +187,21 @@ enum class EInventoryTopTab : uint8
 };
 ```
 
-`Spellbook` a volontairement été ajouté à la fin pour ne pas renuméroter les valeurs existantes susceptibles d'être sérialisées.
+`Spellbook` a été ajouté en fin d'enum pour préserver les valeurs existantes.
 
-L'ordre visuel peut être :
+Ordre visuel courant :
 
 ```text
 Inventaire | Compétences | Sorts | Journal | Carte | Recettes | Codex
 ```
 
-sans dépendre de la valeur numérique de l'enum.
-
-### Dette de nommage
-
-`EInventoryTopTab`, `ToggleInventoryWidget()`, `ShowInventoryWidget()`, `HideInventoryWidget()`, `bInventoryWidgetVisible` et `bInventoryUiOpen` portent encore un nom historique centré inventaire alors que l'écran est désormais un menu RPG global.
-
-Aucun renommage transversal n'est effectué pendant UI01 : cela demanderait un refactor dédié avec redirects et validation des références sérialisées.
+La dette de nommage `EInventoryTopTab` / `ToggleInventoryWidget()` reste volontairement hors périmètre : aucun refactor transversal n'est justifié pour cette seule raison.
 
 ---
 
-## 7. Contrat C++ ↔ `WBP_GrimrockMenu`
+## 7. Ouverture / fermeture
 
-### 7.1 Bindings existants obligatoires
-
-```text
-WidgetSwitcher_MainContent
-Button_TabInventory
-Button_TabSkills
-Button_TabJournal
-Button_TabMap
-Button_TabRecipes
-Button_TabCodex
-Page_Inventory
-Page_Skills
-Page_Journal
-Page_Map
-Page_Recipes
-Page_Codex
-```
-
-### 7.2 Bindings Spellbook préparatoires
-
-UI01.4.1 a ajouté :
-
-```text
-Button_TabSpellbook   BindWidgetOptional
-Page_Spellbook        BindWidgetOptional
-```
-
-Ils existent désormais réellement dans l'asset depuis UI01.4.2.
-
-`Page_Spellbook` reste temporairement typé `UWidget*` dans `UGrimrockMenuWidget`. Ceci est intentionnel : le Blueprint n'est reparenté vers `UGridSpellbookWidget` qu'en UI01.4.3b. Ainsi UI01.4.3a peut compiler sans exiger immédiatement une modification binaire.
-
----
-
-## 8. Navigation native
-
-### 8.1 Construction
-
-```mermaid
-flowchart TD
-    A["NativeConstruct"] --> B["Super::NativeConstruct"]
-    B --> C["BindTopTabButtons"]
-    C --> D{"première construction ?"}
-    D -->|oui| E["SetActiveTopTab(Inventory)"]
-    D -->|non| F["SetActiveTopTab(CurrentTopTab)"]
-```
-
-Le menu mémorise l'onglet actif tant que son instance n'est pas détruite.
-
-### 8.2 Flux d'un clic Spellbook
-
-```mermaid
-flowchart LR
-    A["Button_TabSpellbook.OnClicked"] --> B["HandleSpellbookTopTabClicked"]
-    B --> C["SetActiveTopTab(Spellbook)"]
-    C --> D["GetTopTabPage(Spellbook)"]
-    D --> E["Page_Spellbook"]
-    C --> F["WidgetSwitcher_MainContent.SetActiveWidget"]
-    F --> G["RefreshSpellbook"]
-    G --> H["UpdateTopTabButtonStyles"]
-```
-
-`RefreshSpellbook()` est explicitement demandé lors de l'activation de l'onglet. Si le Blueprint n'est pas encore enfant de `UGridSpellbookWidget`, le cast retourne `nullptr` et l'appel reste sans effet.
-
-### 8.3 Styles
-
-`BindTopTabButtons()` :
-
-- capture le style initial de chaque bouton une fois ;
-- charge `T_ButtonTab_Selected_480x100` ;
-- bind les handlers avec `RemoveDynamic` puis `AddDynamic` ;
-- inclut maintenant `Button_TabSpellbook`.
-
-`UpdateTopTabButtonStyles()` applique les styles aux sept boutons.
-
----
-
-## 9. Ouverture / fermeture du menu
-
-### 9.1 Ouverture
-
-Point d'entrée :
+Point d'entrée historique :
 
 ```text
 I -> AGrimrockPartyPawn::ToggleInventoryWidget()
@@ -308,128 +212,31 @@ Première ouverture :
 ```text
 CreateWidget(MenuWidgetClass)
 -> InitializeMenuWidget(this)
--> AddToViewport(100)
--> Visible
--> RefreshInventory()
--> GameAndUI / focus / curseur
--> SetInventoryUiOpen(true)
+-> AddToViewport(...)
+-> affichage
+-> refresh
+-> GameAndUI / curseur
 ```
 
-Réouverture : la même instance est réutilisée. Elle n'est pas recréée.
+La même instance est ensuite réutilisée. La fermeture replie le widget, restaure l'état UI du joueur et peut déclencher l'autosave prévu par le pawn.
 
-### 9.2 Fermeture
-
-```text
-HideInventoryWidget()
--> SetVisibility(Collapsed)
--> restauration Z-order HUD
--> SetInventoryUiOpen(false)
--> autosave conditionnel
-```
-
-La fermeture ne détruit pas l'instance et ne remet pas `CurrentTopTab` à Inventory.
+Le menu mémorise son onglet actif tant que l'instance subsiste.
 
 ---
 
-## 10. Page Inventaire
+## 8. Page Spellbook
 
-`UGrimrockMenuWidget::InitializeMenuWidget()` continue d'initialiser :
-
-```text
-Page_Inventory->InitializeInventoryWidget(InPartyPawn)
-```
-
-`RefreshInventory()` continue de déléguer uniquement à :
-
-```text
-Page_Inventory->RefreshInventory()
-```
-
-Aucune logique d'inventaire n'est déplacée vers le shell par UI01.4.3a.
-
----
-
-## 11. Modèle de connaissance Spellbook
-
-`FGridCharacterSpellbookState` contient :
-
-```text
-CharacterId
-KnownSpellIds[]
-```
-
-Principes :
-
-- identité stable par `FName SpellId` ;
-- un état par `CharacterId` ;
-- pas de copie d'asset de définition ;
-- pas de pointeur d'acteur dans l'état ;
-- pas de doublon de `SpellId` ;
-- `NAME_None` interdit.
-
-`UGridPartySpellbookComponent` possède :
-
-```text
-FGridPartySpellbookState SpellbookState
-```
-
-et expose :
-
-```text
-EnsureCharacterSpellbook
-RemoveCharacterSpellbook
-LearnSpell
-ForgetSpell
-KnowsSpell
-GetKnownSpellIds
-ResetAllSpellbooks
-ValidateSpellbookState
-```
-
-La persistance reste volontairement hors périmètre jusqu'à MON18.8.
-
----
-
-## 12. Notification native du Spellbook
-
-UI01.4.3a ajoute :
-
-```cpp
-FGridPartySpellbookChangedSignature OnSpellbookChanged;
-```
-
-Il s'agit d'une notification de présentation sans copie de données. Les consommateurs relisent l'état autoritaire du composant.
-
-Le delegate est diffusé lorsqu'une mutation effective réussit :
-
-- création d'un état personnage absent ;
-- suppression d'un état personnage ;
-- `LearnSpell` réussi ;
-- `ForgetSpell` réussi ;
-- `ResetAllSpellbooks` lorsqu'il existait au moins un état.
-
-Pas de broadcast pour :
-
-- `AlreadyKnown` ;
-- `NotKnown` ;
-- identifiant invalide ;
-- `EnsureCharacterSpellbook` sur un état déjà présent.
-
----
-
-## 13. `UGridSpellbookWidget` — rôle
-
-UI01.4.3a introduit une classe native dédiée à la page Spellbook :
+Hiérarchie :
 
 ```text
 UUserWidget
 └── UGridSpellbookWidget
-    └── WBP_GridSpellbook     [après reparent UI01.4.3b]
+    └── WBP_GridSpellbook
 ```
 
-Elle est une couche de présentation. Elle ne possède aucune copie autoritaire de gameplay.
+La page est une couche de présentation. Elle ne possède pas de copie autoritaire de gameplay.
 
-### 13.1 État de présentation exposé
+État exposé :
 
 ```text
 OwningPartyPawn
@@ -441,285 +248,191 @@ SpellEntries[]
 OnSpellbookRefreshed
 ```
 
-### 13.2 API Blueprint exposée
+API principale :
 
 ```text
-InitializeSpellbookWidget(PartyPawn)
+InitializeSpellbookWidget(...)
 RefreshSpellbook()
 GetSpellEntryCount()
-GetSpellEntry(Index, OutEntry)
-AssignSpellToHotbar(SpellId, SlotIndex)
-UnassignSpellFromHotbar(SpellId)
+GetSpellEntry(...)
+AssignSpellToHotbar(...)
+UnassignSpellFromHotbar(...)
 ```
-
-Ces fonctions sont destinées à `WBP_GridSpellbook` après UI01.4.3b.
 
 ---
 
-## 14. Résolution runtime du composant Spellbook
+## 9. Modèle de connaissance
 
-MON18.2 avait volontairement laissé `UGridPartySpellbookComponent` détaché de `AGrimrockPartyPawn`.
-
-UI01.4.3a ferme ce manque pour l'UI sans modifier le gros contrat sérialisé du Pawn : `UGridSpellbookWidget` recherche d'abord un composant existant sur le pawn :
-
-```cpp
-PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>()
-```
-
-S'il n'en existe pas, le widget crée une instance runtime :
+`FGridCharacterSpellbookState` contient :
 
 ```text
-NewObject<UGridPartySpellbookComponent>(PartyPawn)
--> PartyPawn->AddInstanceComponent(...)
--> RegisterComponent()
+CharacterId
+KnownSpellIds[]
 ```
 
-Conséquences :
+Invariants :
 
-- le composant est possédé par le pawn pour sa durée de vie runtime ;
-- une réouverture du menu retrouve la même instance ;
-- aucune seconde structure de Spellbook n'est créée ;
-- aucun `.uasset` de Pawn n'est modifié par UI01.4.3a ;
-- le composant n'existe qu'à partir de la première initialisation effective de la page native ;
-- ce choix reste compatible avec une migration future vers un default subobject si le Spellbook doit exister avant toute UI.
+- identité stable par `CharacterId` et `SpellId` ;
+- aucun doublon de `SpellId` ;
+- `NAME_None` interdit ;
+- aucune copie d'asset de définition dans l'état ;
+- aucune dépendance d'acteur dans la structure de connaissance.
 
-Cette création paresseuse est une décision de portée UI01.4.3a, pas une règle générale imposant que les composants gameplay soient créés par l'UI.
+`UGridPartySpellbookComponent` est la source de vérité runtime.
+
+La persistance de cet état reste à faire dans MON18.8.
 
 ---
 
-## 15. Sélection du personnage
+## 10. Projection visuelle
 
-La page Spellbook ne crée pas son propre sélecteur de personnage.
-
-La source autoritaire reste :
-
-```text
-UGridPartyInventoryComponent::GetSelectedCharacterIndex()
-```
-
-Puis :
-
-```text
-PartyInventoryState.ActiveCharacters[SelectedCharacterIndex].CharacterId
-```
-
-Le Spellbook et l'inventaire décrivent donc toujours le même personnage sélectionné.
-
-Lors d'un `OnPartyInventoryChanged`, `UGridSpellbookWidget` relit cette sélection et reconstruit sa vue.
-
----
-
-## 16. Enregistrement d'un état personnage
-
-Lors du refresh, si le personnage sélectionné possède un `CharacterId` valide mais pas encore d'entrée Spellbook :
-
-```text
-EnsureCharacterSpellbook(CharacterId)
-```
-
-est appelé.
-
-Cette opération :
-
-- crée seulement le conteneur vide `FGridCharacterSpellbookState` ;
-- n'ajoute aucun sort ;
-- ne connaît aucune classe ou progression ;
-- ne fabrique aucun `SpellId` ;
-- ne donne donc aucun sort artificiellement au personnage.
-
-Un personnage sans sort connu produit légitimement `SpellEntries.Num() == 0`.
-
----
-
-## 17. Construction de `SpellEntries`
-
-Flux :
-
-```mermaid
-flowchart TD
-    A["SelectedCharacterIndex"] --> B["CharacterId"]
-    B --> C["FGridCharacterSpellbookState"]
-    A --> D["10 bindings hotbar MON12"]
-    C --> E["UGridSpellbookUILibrary::BuildProductionSpellbookEntries"]
-    D --> E
-    E --> F["SpellEntries[]"]
-    F --> G["OnSpellbookRefreshed"]
-```
-
-Chaque `FGridSpellbookEntryView` peut exposer :
+`UGridSpellbookUILibrary::BuildProductionSpellbookEntries()` construit `FGridSpellbookEntryView[]` avec :
 
 - `SpellId` ;
-- nom ;
-- description ;
+- nom et description ;
 - école ;
-- coût mana ;
-- coût PA ;
+- coût mana et PA ;
 - portée min/max ;
-- politique de ciblage ;
+- ciblage ;
 - LOS ;
-- définition résolue ou non ;
-- assignabilité hotbar ;
-- présence éventuelle dans un slot ;
-- index du slot ;
-- `FGridCombatActionDefinition` adapté au HUD.
+- résolution de définition ;
+- assignabilité ;
+- slot hotbar associé ;
+- définition d'action pour le HUD.
 
-Un `SpellId` connu dont la définition n'est pas résolue reste visible dans le modèle UI et n'est pas silencieusement supprimé.
+Un sort connu dont la définition n'est pas résolue reste visible mais non assignable.
 
----
+Le seed de développement :
 
-## 18. Réactivité et cycle de vie du widget Spellbook
+```text
+Grimrock.Spellbook.SeedProduction
+```
 
-`InitializeSpellbookWidget()` :
-
-1. retire les anciens bindings de delegates ;
-2. mémorise le pawn ;
-3. récupère `PartyInventoryComponent` ;
-4. résout ou crée `UGridPartySpellbookComponent` ;
-5. bind `OnPartyInventoryChanged` ;
-6. bind `OnSpellbookChanged` ;
-7. appelle `RefreshSpellbook()`.
-
-`NativeDestruct()` retire les bindings mais ne détruit pas le composant Spellbook du pawn.
-
-Un garde `bRefreshInProgress` empêche une récursion lorsque l'enregistrement initial d'un personnage déclenche `OnSpellbookChanged` pendant un refresh.
+apprend temporairement les quatre sorts de production pendant PIE. Il est runtime-only et ne constitue pas une persistance.
 
 ---
 
-## 19. Pont Spellbook → hotbar MON12
+## 11. Spellbook → Hotbar
 
-Aucun nouveau stockage de raccourcis n'est créé.
-
-Identité d'un sort dans la hotbar :
+Identité canonique :
 
 ```text
 ActionId           = SpellId
 SourcePolicy       = Spell
 SourceDefinitionId = SpellId
+SourceRuntimeId    = invalid
+EquipmentSlot      = None
 ```
 
-`AssignSpellToHotbar()` délègue à :
+Les dix slots MON12 restent l'unique hotbar.
+
+Le drag/drop Spellbook réutilise `UGridCombatHotbarDragDropOperation`. Le move/swap et la suppression réutilisent les API existantes du composant inventaire.
+
+Un même sort ne doit pas être dupliqué dans plusieurs slots.
+
+---
+
+## 12. Résolution du sort dans le catalogue
+
+`BuildPlayerCombatActionContributions()` relit les `KnownSpellIds` du personnage puis reconstruit chaque définition de production.
+
+Une action Spellbook est reconnue par :
 
 ```text
-UGridSpellbookUILibrary::AssignKnownSpellToHotbar()
+SourcePolicy == Spell
+SourceDefinitionId == ActionId == SpellId
 ```
 
-Le bridge :
+La correction `56bce2c` garantit que ces actions ne sont plus bloquées par l'ancien garde `ExecutionNotImplemented` réservé aux anciens profils de classe.
 
-- vérifie le personnage ;
-- vérifie l'index de slot ;
-- refuse un sort non connu ;
-- refuse une définition de production invalide ;
-- utilise les API MON12 existantes ;
-- déplace/échange si le sort est déjà assigné ailleurs ;
-- évite les doublons.
-
-`UnassignSpellFromHotbar()` enlève seulement le raccourci. Le sort reste connu.
-
-Après une affectation/désaffectation réussie, `UGridSpellbookWidget` rafraîchit sa projection.
+La palette générique n'affiche pas les sorts gérés par le Livre de sorts ; la hotbar conserve les bindings explicitement configurés.
 
 ---
 
-## 20. Drag & Drop déjà disponible
+## 13. Exécution depuis la hotbar
 
-`UGridCombatHotbarDragDropOperation` possède déjà le contrat MON18.7a :
+Chemin réel :
 
 ```text
-bFromSpellbook
-InitializeFromSpellbookEntry(...)
-CommitSpellbookDrop(...)
+clic / touche hotbar
+    -> RequestCharacterCombatAction()
+    -> FGridSpellHotbarExecutionService
+    -> FGridSpellCastPipelineService
+        -> ciblage MON18.4
+        -> coûts MON18.3
+    -> FGridSpellEffectResolver MON18.5
+    -> commit autoritaire
+    -> présentation MON18.6
 ```
 
-UI01.4.3a n'ajoute aucun second système de drag/drop. UI01.4.3b pourra connecter le visuel du Spellbook à ce contrat existant.
+Les coûts sont calculés sur copies et commités uniquement après succès de la résolution des effets.
 
----
-
-## 21. Intégration dans `UGrimrockMenuWidget`
-
-UI01.4.3a ajoute :
+### Sorts de production actuels
 
 ```text
-RefreshSpellbook()
-GetSpellbookWidget()
+Spell_ArcaneBolt   hostile axial
+Spell_LesserHeal   allié
+Spell_Haste        allié
+Spell_CurePoison   allié
 ```
 
-`GetSpellbookWidget()` effectue :
+Pour une activation directe de la hotbar, `Ally` cible actuellement le lanceur lui-même. La sélection d'un autre membre pourra être ajoutée ultérieurement sans casser ce pipeline.
 
-```cpp
-Cast<UGridSpellbookWidget>(Page_Spellbook)
+---
+
+## 14. Validation UI01.4.3e
+
+Automation UE5.5.4 : **6/6 Success** pour le filtre :
+
+```text
+Grimrock.UI.UI01.4.3e.2
 ```
 
-Ce cast est volontairement tolérant :
+Couverture :
 
-- avant reparent UI01.4.3b : `nullptr`, aucune régression ;
-- après reparent : API native disponible.
+```text
+ArcaneBoltExecution
+LesserHealExecution
+MissingStatusNoCostCommit
+SpellbookCatalogAvailability
+SpellbookCatalogExecutorGate
+UnknownSpellNoCostCommit
+```
 
-`InitializeMenuWidget()` initialise désormais la page Spellbook si le cast réussit.
+PIE validé :
 
-`SetActiveTopTab(Spellbook)` demande un refresh après activation de la page.
+- `Lesser Heal` : -2 PA, -4 mana, +5 PV ;
+- `Arcane Bolt` : -2 PA, -3 mana, 4 dégâts ;
+- mort de Gobelin par sort propagée vers loot, XP, `MonsterDied` et occupation ;
+- mana insuffisant correctement refusé avant exécution.
 
-Aucune logique métier de cast n'entre dans `UGrimrockMenuWidget`.
-
----
-
-## 22. Ce qui reste hors périmètre UI01.4.3a
-
-UI01.4.3a ne :
-
-- reparent pas `WBP_GridSpellbook` ;
-- ne construit pas les lignes visuelles de sorts ;
-- ne crée pas d'icônes finales ;
-- ne réalise pas le drag/drop visuel ;
-- ne modifie aucun `.uasset` ou `.umap` ;
-- ne donne aucun sort de test au personnage ;
-- ne modifie pas le pipeline de cast MON18.3–MON18.5 ;
-- ne persiste pas le Spellbook ;
-- ne modifie pas le format SaveGame.
-
-La persistance reste MON18.8.
+Référence détaillée : `docs/Design/UI_SPELLBOOK_HOTBAR_EXECUTION.md`.
 
 ---
 
-## 23. UI01.4.3b — raccordement Blueprint attendu
-
-Après compilation réussie de UI01.4.3a, le travail Unreal doit être limité à :
-
-1. ouvrir `WBP_GridSpellbook` ;
-2. `File -> Reparent Blueprint` ;
-3. choisir `GridSpellbookWidget` ;
-4. compiler et sauvegarder ;
-5. vérifier que `Page_Spellbook` reste l'instance correcte dans `WBP_GrimrockMenu` ;
-6. construire le visuel des entrées à partir de `SpellEntries` / `GetSpellEntry` ;
-7. binder la reconstruction sur `OnSpellbookRefreshed` ;
-8. raccorder ensuite le drag/drop existant MON18.7a ;
-9. valider en PIE.
-
-La procédure détaillée sera fournie lors de UI01.4.3b. Il ne faut pas anticiper ces modifications binaires pendant UI01.4.3a.
-
----
-
-## 24. Invariants à préserver
+## 15. Invariants de maintenance
 
 1. `WBP_GrimrockMenu` reste enfant de `UGrimrockMenuWidget`.
-2. Navigation supérieure uniquement dans le shell C++.
-3. Aucun `SetActiveWidgetIndex` parallèle dans le Graph.
-4. Les anciennes valeurs de `EInventoryTopTab` restent stables.
-5. Le Spellbook utilise `CharacterId` et `SpellId` comme identités stables.
-6. `UGridPartySpellbookComponent` reste la source de vérité de connaissance runtime.
-7. `UGridPartyInventoryComponent` reste la source de vérité de sélection et de hotbar.
-8. `SpellEntries` est une projection de présentation, jamais un stockage gameplay.
-9. Les dix slots MON12 restent l'unique hotbar persistante.
-10. Un sort inconnu ne peut pas être assigné.
-11. Un sort connu n'est jamais oublié lors d'un simple unassign de hotbar.
-12. Aucun coût mana/PA n'est payé par l'UI Spellbook.
-13. Le cast autoritaire reste dans les services MON18.3–MON18.5.
-14. Les mutations du Spellbook notifient les vues sans dupliquer l'état.
-15. La persistance Spellbook reste séparée jusqu'à MON18.8.
+2. La navigation supérieure reste dans le shell C++.
+3. Aucun `SetActiveWidgetIndex()` parallèle dans le Graph.
+4. Les valeurs historiques de `EInventoryTopTab` restent stables.
+5. `UGridPartySpellbookComponent` reste la source de vérité de connaissance runtime.
+6. `UGridPartyInventoryComponent` reste la source de vérité de sélection et de hotbar.
+7. `SpellEntries` reste une projection UI.
+8. Les dix slots MON12 restent l'unique hotbar.
+9. Un sort inconnu ne peut pas être assigné ou exécuté.
+10. Un unassign de hotbar ne fait jamais oublier le sort.
+11. L'UI ne paie jamais directement PA/mana.
+12. Les services MON18 restent autoritaires pour ciblage, transaction et effets.
+13. Une erreur d'effet ne doit pas consommer de ressources.
+14. Les mutations Spellbook notifient les vues sans dupliquer l'état.
+15. La persistance Spellbook appartient à MON18.8.
 
 ---
 
-## 25. Diagnostic rapide
+## 16. Diagnostic rapide
 
-### L'onglet Sorts ne s'ouvre pas
+### Onglet Sorts inaccessible
 
 Vérifier :
 
@@ -729,111 +442,59 @@ Page_Spellbook
 EInventoryTopTab::Spellbook
 HandleSpellbookTopTabClicked
 GetTopTabPage(Spellbook)
-BindTopTabButtons
-UpdateTopTabButtonStyles
 ```
 
-et rechercher :
-
-```text
-GrimrockMenu cannot activate TopTab
-```
-
-### Le Spellbook s'ouvre mais reste vide
-
-Un livre vide est valide si le personnage ne connaît aucun sort.
-
-Vérifier ensuite :
-
-1. `GetSelectedCharacterIndex()` valide ;
-2. `CharacterId` valide ;
-3. `SpellbookComponent` non nul ;
-4. état personnage enregistré ;
-5. `KnownSpellIds` réellement non vide ;
-6. `OnSpellbookRefreshed` reçu côté Blueprint ;
-7. construction visuelle des lignes réalisée en UI01.4.3b.
-
-### Un sort connu apparaît avec son identifiant brut
-
-Cela signifie que la connaissance existe mais que la définition de production n'a pas été résolue/validée. Le modèle conserve volontairement l'entrée et la marque non assignable.
-
-### L'affectation hotbar échoue
-
-Inspecter `EGridSpellHotbarAssignmentResult` :
-
-```text
-InvalidCharacter
-InvalidSlot
-UnknownSpell
-InvalidDefinition
-HotbarRejected
-NotAssigned
-```
-
-### Changer de personnage ne met pas la page à jour
-
-Vérifier le binding de :
-
-```text
-UGridPartyInventoryComponent::OnPartyInventoryChanged
-```
-
-vers :
-
-```text
-UGridSpellbookWidget::HandlePartyInventoryChanged
-```
-
-### LearnSpell ne met pas la page à jour
+### Spellbook vide
 
 Vérifier :
 
 ```text
-UGridPartySpellbookComponent::OnSpellbookChanged
+SelectedCharacterIndex
+CharacterId
+UGridPartySpellbookComponent
+KnownSpellIds
+OnSpellbookRefreshed
 ```
 
-et que la mutation a réellement retourné `Success`.
+Un Spellbook vide est valide si aucun sort n'est connu.
+
+### Sort visible mais non assignable
+
+La définition de production n'a probablement pas été résolue ou validée.
+
+### Sort dans la hotbar mais `ExecutionNotImplemented`
+
+Ce comportement est une régression. Les projections Spellbook valides doivent passer le garde du catalogue depuis `56bce2c`. Lancer :
+
+```text
+Grimrock.UI.UI01.4.3e.2.SpellbookCatalogAvailability
+Grimrock.UI.UI01.4.3e.2.SpellbookCatalogExecutorGate
+```
+
+### Sort refusé au clic
+
+Inspecter d'abord le log `GridActionCatalog` puis `GridSpellAction`. Les causes attendues incluent :
+
+```text
+InsufficientActionPoints
+InsufficientMana
+InvalidTarget
+SpellNotKnown
+MissingStatusEffectDefinition
+```
 
 ---
 
-## 26. Résumé canonique actuel
+## 17. Limite actuelle et prochain travail
+
+Le parcours UI Spellbook/hotbar est fonctionnellement terminé.
+
+La limite structurante restante est la persistance : `UGridPartySpellbookComponent::SpellbookState` est runtime et les `KnownSpellIds` ne sont pas encore sauvegardés/restaurés.
+
+Prochain sous-jalon autoritaire :
 
 ```text
-AGrimrockPartyPawn
-    |
-    +-- UGridPartyInventoryComponent
-    |
-    +-- WBP_GrimrockMenu / UGrimrockMenuWidget
-            |
-            +-- navigation C++ 7 onglets
-            |
-            +-- Page_Inventory / UGridInventoryWidget
-            |
-            +-- Page_Spellbook / WBP_GridSpellbook
-                    |
-                    +-- UI01.4.3b -> parent UGridSpellbookWidget
-                            |
-                            +-- selected character depuis InventoryComponent
-                            +-- UGridPartySpellbookComponent runtime sur le pawn
-                            +-- UGridSpellbookUILibrary
-                            +-- FGridSpellbookEntryView[]
-                            +-- hotbar MON12
-
-Connaissance
-    UGridPartySpellbookComponent
-        CharacterId -> KnownSpellIds[]
-
-Présentation
-    UGridSpellbookWidget
-        -> projection uniquement
-
-Hotbar
-    UGridPartyInventoryComponent
-        -> 10 slots existants
-
-Cast
-    services MON18.3-MON18.5
-        -> autoritaires
+MON18.8 — Persistence / Migration du Spellbook
 ```
 
 Ce document doit permettre de reprendre le travail sur le menu ou le Spellbook sans recommencer un audit de découverte de l'architecture.

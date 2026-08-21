@@ -1,92 +1,121 @@
 # UI Architecture Current State
 
-## Audit reference
+Statut : **UI01.4.3e VALIDÉ ET CLOS sous UE5.5.4**  
+Date : **21 août 2026**
 
-HEAD audité : `0eb8dd576763d0afc177ffb9cccf95e46433ca9a`
+## Référence canonique
 
-Dernier jalon : `Implement MON18.7a spellbook UI hotbar bridge`.
+Le détail technique autoritaire du menu joueur est désormais :
 
-## Organisation actuelle
-
-Le dossier `Content/GrimrockPrototype/Blueprints/UI/` contient déjà une séparation partielle par domaines :
-
-- `MainMenu/` : menus de démarrage et options.
-- `Combat/` : interface combat.
-- `RPG/` : widgets RPG.
-- Widgets spécialisés : inventaire, journal, carte, codex, recettes.
-
-Widgets identifiés :
-
-- `WBP_GrimrockMenu`
-- `WBP_GridInventory`
-- `WBP_GridJournal`
-- `WBP_GridMap`
-- `WBP_GridCodex`
-- `WBP_GridRecipes`
-- `WBP_GridCombatHud`
-
-## Etat actuel de WBP_GrimrockMenu
-
-Contrairement à une création future, `WBP_GrimrockMenu` existe déjà dans le projet.
-
-Son rôle actuel est de fournir l'accès à l'interface joueur, notamment à l'inventaire :
-
-```
-WBP_GrimrockMenu
-        |
-        +-- WBP_GridInventory
+```text
+docs/Design/UI_GRIMROCK_MENU_CURRENT.md
 ```
 
-Cet écran est fonctionnel et doit être conservé.
+Ce document résume uniquement l'état architectural global afin d'éviter de conserver des descriptions devenues obsolètes.
 
-L'objectif UI n'est donc pas de remplacer ce widget, mais de le faire évoluer progressivement vers un conteneur global des modules RPG.
+## Menu joueur actuel
 
-## Flux actuel
+`WBP_GrimrockMenu` est un menu RPG multipage existant et fonctionnel. Son parent natif est `UGrimrockMenuWidget`.
 
-L'interface repose déjà sur des widgets spécialisés.
+Pages intégrées :
 
-Le flux actuel doit être audité avant extension :
+```text
+Inventaire
+Compétences
+Sorts
+Journal
+Carte
+Recettes
+Codex
+```
 
-- ouverture de `WBP_GrimrockMenu` ;
-- création et affichage du widget ;
-- connexion avec l'inventaire ;
-- fermeture et retour au jeu.
+La navigation des onglets est portée par le C++. Le Graph de `WBP_GrimrockMenu` ne doit pas recréer une navigation parallèle.
 
-## Navigation actuelle
+## Spellbook
 
-La navigation existante est centrée sur le fonctionnement actuel du menu inventaire.
+`WBP_GridSpellbook` est intégré dans `Page_Spellbook` et utilise `UGridSpellbookWidget` comme parent natif.
 
-Points à compléter pour l'évolution RPG :
+Le modèle de connaissance autoritaire reste :
 
-- gestion centralisée des panneaux joueur ;
-- état global de navigation ;
-- stratégie commune d'ouverture/fermeture ;
-- navigation clavier commune entre modules.
+```text
+UGridPartySpellbookComponent
+    -> CharacterId
+    -> KnownSpellIds[]
+```
 
-## Dépendances
+La vue est construite par `UGridSpellbookUILibrary` et ne possède aucune copie gameplay autoritaire.
 
-Les systèmes existants sont principalement :
+## Hotbar
 
-- données C++ data-driven ;
-- widgets Blueprint ;
-- inventaire personnage ;
-- hotbar combat ;
-- spellbook runtime MON18.
+Le Spellbook réutilise la hotbar MON12 à dix slots. Aucun second stockage de raccourcis n'existe.
 
-## Points faibles
+Identité d'un binding Spell :
 
-1. `WBP_GrimrockMenu` est limité actuellement à son usage inventaire.
-2. Les futurs modules RPG doivent être intégrés sans casser l'existant.
-3. La navigation entre écrans doit être harmonisée.
-4. L'état UI global doit être séparé de la logique gameplay.
+```text
+ActionId           = SpellId
+SourcePolicy       = Spell
+SourceDefinitionId = SpellId
+```
 
-## Conclusion
+Le drag/drop, le move/swap et la désaffectation réutilisent les API MON12 existantes.
 
-Avant MON18.7b, il faut faire évoluer `WBP_GrimrockMenu` existant afin qu'il devienne progressivement le conteneur UI joueur global.
+## Exécution
 
-Cette évolution doit respecter les principes suivants :
+UI01.4.3e a fermé le parcours complet :
 
-- conserver l'inventaire actuel ;
-- ajouter les nouveaux panneaux progressivement ;
-- ne pas déplacer la logique métier dans les widgets ;
-- réutiliser les systèmes C++ existants.
+```text
+Spellbook
+    -> hotbar
+    -> catalogue
+    -> ciblage MON18.4
+    -> transaction PA/mana MON18.3
+    -> effets MON18.5
+    -> commit runtime
+    -> présentation MON18.6
+```
+
+Validation UE5.5.4 :
+
+- 6/6 tests Automation UI01.4.3e.2 ;
+- `Lesser Heal` validé en PIE ;
+- `Arcane Bolt` validé en PIE ;
+- mort d'un monstre par sort correctement propagée vers les systèmes existants ;
+- refus correct pour mana insuffisant.
+
+## Responsabilités
+
+```text
+UGrimrockMenuWidget
+    navigation / shell
+
+UGridSpellbookWidget
+    présentation de la page Sorts
+
+UGridPartySpellbookComponent
+    connaissance runtime des sorts
+
+UGridPartyInventoryComponent
+    sélection personnage + hotbar
+
+UGridTurnManagerComponent
+    autorité combat
+
+Services MON18
+    ciblage / coûts / effets / présentation
+```
+
+## Dette / travail futur
+
+Les éléments suivants ne remettent pas en cause la clôture UI01.4.3e :
+
+- persistance `KnownSpellIds` : MON18.8 ;
+- sélection explicite d'un autre allié depuis la hotbar ;
+- icônes finales de sorts ;
+- modules complets Skills, Journal, Map, Recipes et Codex selon leurs jalons futurs ;
+- éventuel renommage des API historiques encore centrées sur le mot `Inventory`.
+
+## Prochain travail autoritaire
+
+```text
+MON18.8 — Persistence / Migration du Spellbook
+```

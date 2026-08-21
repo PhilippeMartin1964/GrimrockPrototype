@@ -1,11 +1,30 @@
 # UI01.4.3e — Resolve & Execute Spell Hotbar Actions
 
-Statut : **e.1 VALIDÉ ; e.2 IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**  
 Date : **21 août 2026**
 
 ## Objectif
 
 Faire d'un binding Spellbook présent dans la hotbar MON12 une vraie action de combat : résolution depuis le Spellbook autoritaire, ciblage MON18.4, transaction PA/mana MON18.3, effets MON18.5 puis présentation MON18.6.
+
+## Résultat final
+
+UI01.4.3e est clos. Le flux réel validé est :
+
+```text
+Spellbook
+    -> drag/drop vers hotbar MON12
+    -> clic ou touche 0-9
+    -> catalogue d'actions
+    -> résolution Spellbook
+    -> ciblage MON18.4
+    -> transaction PA/mana MON18.3
+    -> effets MON18.5
+    -> commit autoritaire personnage/monstre
+    -> présentation MON18.6
+```
+
+Aucun deuxième moteur de coûts, ciblage, effets, hotbar ou présentation n'a été introduit.
 
 ## e.1 — Resolve — VALIDÉ
 
@@ -28,16 +47,16 @@ SourceRuntimeId    = invalid
 EquipmentSlot      = None
 ```
 
-Les tests `SpellCatalogProjection` et `SpellBindingMatchesProjectedAction` ont été validés sous UE5.5.4. La palette générique MON12 n'affiche pas ces entrées Spellbook ; elles restent dans le Livre de sorts et dans les slots explicitement configurés.
+La palette générique MON12 n'affiche pas les entrées gérées par le Spellbook. Elles restent visibles dans le Livre de sorts et dans les slots explicitement configurés.
 
-## e.2 — Execute — contrat runtime
+## e.2 — Execute — VALIDÉ
 
-`UGridTurnManagerComponent::RequestCharacterCombatAction()` distingue maintenant un sort réellement fourni par le Spellbook d'une ancienne action de classe dont `SourcePolicy` vaut également `Spell`.
+`UGridTurnManagerComponent::RequestCharacterCombatAction()` distingue maintenant un sort fourni par le Spellbook d'une ancienne action de classe dont `SourcePolicy` vaut également `Spell`.
 
 Un sort Spellbook est exécuté par :
 
 ```text
-Hotbar / clic / touche 1-0
+Hotbar / clic / touche 0-9
     -> FGridSpellHotbarExecutionService
         -> FGridSpellCastPipelineService
             -> FGridSpellTargetingService
@@ -48,7 +67,24 @@ Hotbar / clic / touche 1-0
     -> UGridSpellPresentationComponent
 ```
 
-Aucun deuxième moteur de coûts, ciblage, effets ou présentation n'est introduit.
+## Correction du verrou de catalogue
+
+La première implémentation e.2 était correcte au niveau de l'exécuteur, mais restait inaccessible en PIE : `FGridCombatActionCatalog` classait encore les projections Spellbook comme anciennes actions de classe et renvoyait :
+
+```text
+EGridCombatActionAvailabilityReason::ExecutionNotImplemented
+```
+
+Le correctif descendant `56bce2cdd90064b1b548cd93649b9e1207ba0bdc` reconnaît explicitement une projection Spellbook exécutable par son identité canonique :
+
+```text
+SourcePolicy       = Spell
+ActionId           = SpellId
+SourceDefinitionId = SpellId
+ResolutionProfile  = Effect
+```
+
+Les ciblages `Self`, `Ally` et `FirstAxialTarget` peuvent alors atteindre l'exécuteur MON18.
 
 ## Atomicité
 
@@ -59,7 +95,7 @@ Aucun deuxième moteur de coûts, ciblage, effets ou présentation n'est introdu
 - PV de la cible ;
 - `FGridStatusEffectCollection` de la cible.
 
-Les PA/mana validés par MON18.3 ne sont donc écrits dans l'état autoritaire qu'après réussite de la résolution des effets MON18.5. Si `Haste` ne peut pas résoudre `Status_Haste`, par exemple, le cast est rejeté sans consommation réelle de PA ni de mana.
+Les PA/mana ne sont écrits dans l'état autoritaire qu'après réussite de la résolution des effets. Un rejet de ciblage, de connaissance ou de définition de statut ne consomme donc rien.
 
 ## Ciblage depuis la hotbar
 
@@ -72,33 +108,33 @@ Spell_Haste        -> allié
 Spell_CurePoison   -> allié
 ```
 
-Pour UI01.4.3e.2, un sort `Ally` lancé directement depuis la hotbar cible par défaut **le lanceur lui-même**. Cette règle est volontaire et déterministe : elle permet d'utiliser immédiatement les sorts alliés sans inventer un deuxième sélecteur d'allié. Une future sélection par portrait pourra fournir un autre `CharacterId` sans modifier le pipeline MON18.
+Pour UI01.4.3e, un sort `Ally` lancé directement depuis la hotbar cible par défaut le lanceur lui-même. Cette règle est volontaire et déterministe. Une future sélection par portrait pourra fournir un autre `CharacterId` sans modifier le pipeline MON18.
 
-`Arcane Bolt` réutilise la cible `SuggestedTargetId/SuggestedTargetCell` déjà calculée par le catalogue avec la traversée axiale du niveau. L'absence de cible vivante suggérée provoque `InvalidTarget` sans coût.
+`Arcane Bolt` réutilise `SuggestedTargetId/SuggestedTargetCell` calculé par le catalogue. L'absence de cible vivante suggérée provoque `InvalidTarget` sans coût.
 
 ## Effets autoritaires
 
 - personnage ciblé : commit de `CurrentHealth` et `StatusEffects` dans `FGridCharacterInventoryState` ;
-- monstre ciblé : commit de `StatusEffects`, puis `SetCurrentHealth()` afin de conserver le pipeline de mort/persistance existant ;
-- les changements de statut demandent ensuite au lifecycle MON16 de recalculer les modificateurs d'initiative ;
+- monstre ciblé : commit des statuts puis `SetCurrentHealth()` afin de conserver mort, loot, XP, persistance et libération d'occupation ;
+- les changements de statut demandent au lifecycle MON16 de recalculer les modificateurs d'initiative ;
 - les coûts écrits sont ceux du receipt MON18.3 ;
 - le cooldown MON12 reste géré par `StartCombatActionCooldown()` ;
 - AP à zéro termine normalement le tour actif ;
-- la mort du dernier monstre conserve le mécanisme de victoire différée déjà utilisé pendant la résolution d'une attaque joueur.
+- la victoire conserve le mécanisme différé du TurnManager.
 
 ## Présentation
 
-Après un cast accepté, le TurnManager tente de construire le profil de présentation via `FGridProductionSpellLibrary::TryBuildPresentationProfile()` puis un plan MON18.6.
+Après un cast accepté, le TurnManager construit le profil de présentation via `FGridProductionSpellLibrary::TryBuildPresentationProfile()` puis un plan MON18.6.
 
-Le composant `UGridSpellPresentationComponent` est retrouvé sur le pawn ou créé comme composant runtime si nécessaire. Une présentation absente/incomplète n'annule jamais le gameplay déjà accepté, conformément au contrat MON18.6.
+Le composant `UGridSpellPresentationComponent` est retrouvé sur le pawn ou créé comme composant runtime si nécessaire. Une présentation absente/incomplète n'annule jamais le gameplay déjà accepté.
 
-L'absence actuelle d'icônes de sorts dans la hotbar reste une finition graphique distincte.
+Les icônes finales de sorts restent une finition graphique distincte.
 
 ## Status_Haste
 
-Le code n'invente aucune définition de Haste. `UGridStatusEffectDefinitionAsset` reste data-driven. UI01.4.3e.2 résout une définition `Status_Haste` chargée et valide ; si aucune définition n'est disponible, Haste est rejeté atomiquement et le log indique le rejet d'effet.
+Le code n'invente aucune définition de Haste. `UGridStatusEffectDefinitionAsset` reste data-driven. Si `Status_Haste` ne peut pas être résolu, Haste est rejeté atomiquement sans consommation réelle de PA ni de mana.
 
-## Tests Automation e.2
+## Validation Automation
 
 Filtre :
 
@@ -106,30 +142,68 @@ Filtre :
 Grimrock.UI.UI01.4.3e.2
 ```
 
-Tests :
+Résultat UE5.5.4 : **6/6 Success**.
 
 ```text
-ArcaneBoltExecution
-LesserHealExecution
-MissingStatusNoCostCommit
-UnknownSpellNoCostCommit
+ArcaneBoltExecution                Success
+LesserHealExecution                Success
+MissingStatusNoCostCommit          Success
+SpellbookCatalogAvailability       Success
+SpellbookCatalogExecutorGate       Success
+UnknownSpellNoCostCommit           Success
 ```
 
-Ils vérifient notamment :
+Les deux tests `SpellbookCatalogAvailability` et `SpellbookCatalogExecutorGate` couvrent explicitement la régression `ExecutionNotImplemented` découverte en PIE.
 
-- dégâts + PA + mana pour Arcane Bolt ;
-- soin + PA + mana pour Lesser Heal ;
-- absence de coût réel lorsque Haste manque sa définition MON16 ;
-- absence de coût pour un sort non connu.
+## Validation PIE
 
-## Validation PIE attendue
+Validation manuelle réussie sous UE5.5.4 avec `Grimrock.Spellbook.SeedProduction`.
 
-1. `Grimrock.Spellbook.SeedProduction`.
-2. Affecter `Arcane Bolt` à un slot de hotbar.
-3. Entrer en combat avec une cible axiale à 1–5 cases.
-4. Au tour du personnage, cliquer le slot ou utiliser sa touche 1–0.
-5. Vérifier : cast accepté, -2 PA, -3 mana, -4 PV sur la cible.
-6. Affecter `Lesser Heal`, blesser le personnage, puis lancer le sort : -2 PA, -4 mana, +5 PV plafonné au maximum.
-7. Vérifier qu'un rejet de ciblage, de connaissance ou de définition de statut ne consomme rien.
+### Lesser Heal
 
-Après validation compilation + Automation + PIE, UI01.4.3e pourra être déclaré clos et la documentation MON18.7/roadmap sera remise à jour lors de la clôture.
+Observation réelle :
+
+```text
+[GridSpellAction] Accepted=true
+Spell=Spell_LesserHeal
+AP=2
+Mana=4
+Health=3->8
+ManaState=18->14
+Damage=0
+Healing=5
+```
+
+### Arcane Bolt
+
+Observation réelle :
+
+```text
+[GridSpellAction] Accepted=true
+Spell=Spell_ArcaneBolt
+AP=2
+Mana=3
+Damage=4
+```
+
+Le sort a été relancé sur plusieurs manches. Le coup létal sur un Gobelin lanceur a correctement déclenché le pipeline existant de mort, loot, XP, `MonsterDied` et libération de l'occupation.
+
+### Mana insuffisant
+
+Lorsque le personnage ne disposait plus que de 1 mana, `Arcane Bolt` a été refusé par le catalogue avec :
+
+```text
+EGridCombatActionAvailabilityReason::InsufficientMana
+```
+
+Aucun coût supplémentaire n'a été engagé.
+
+## Conclusion
+
+```text
+UI01.4.3e.1 — Resolve Spell Hotbar Actions   VALIDÉ
+UI01.4.3e.2 — Execute Spell Hotbar Actions   VALIDÉ Automation + PIE
+UI01.4.3e   — Resolve & Execute               VALIDÉ ET CLOS
+```
+
+Le prochain travail fonctionnel de MON18 n'est plus l'UI d'exécution : il s'agit de `MON18.8 — Persistence / Migration`, afin de persister réellement `KnownSpellIds` et de restaurer le Spellbook après `Continue`.

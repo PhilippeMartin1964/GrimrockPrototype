@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.7a implémenté — validation UE5.5.4 en attente**  
+Statut : **MON18.7 VALIDÉ ET CLOS — MON18.8 prochain sous-jalon**  
 Date de référence : **21 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -21,7 +21,7 @@ MON17 — Second Monster Family / Gobelin lanceur
 
 MON17.7 est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-MON18 est maintenant le jalon actif : **Magic & Spellbook**.
+MON18 est le jalon actif : **Magic & Spellbook**.
 
 ---
 
@@ -56,10 +56,8 @@ MON18.3 — Runtime Casting / Cost Transaction    CLOS
 MON18.4 — Targeting Integration                 CLOS
 MON18.5 — First Production Spells               CLOS
 MON18.6 — Spell Presentation                    CLOS
-MON18.7 — Spellbook / Hotbar UI                 EN COURS
-  MON18.7a — Native UI model + Hotbar bridge    EN VALIDATION
-  MON18.7b — WBP hookup + PIE validation        À FAIRE
-MON18.8 — Persistence / Migration
+MON18.7 — Spellbook / Hotbar UI                 CLOS
+MON18.8 — Persistence / Migration               PROCHAIN
 MON18.9 — Balance / Regression / Closure
 ```
 
@@ -103,13 +101,55 @@ Présentation data-driven séparée du gameplay, réutilisation audio/VFX MON11 
 
 Références : `MON18_6_SPELL_PRESENTATION.md`, `MON18_6_VALIDATION.md`.
 
-### MON18.7 — EN COURS
+### MON18.7 — CLOS
 
-`MON18.7a` fournit le view-model Spellbook et le bridge vers les dix raccourcis MON12.8. Les sorts non résolus restent visibles mais non assignables ; les doublons de raccourcis sont évités par move/swap.
+`MON18.7 — Spellbook / Hotbar UI` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-`MON18.7b` raccordera les WBP existants et fera la validation PIE, sans modifier les contrats gameplay.
+Le menu joueur expose maintenant un onglet Sorts fonctionnel, les sorts connus sont projetés dans `WBP_GridSpellbook`, peuvent être glissés vers les dix slots MON12, déplacés/échangés/désassignés puis exécutés depuis la hotbar.
 
-Référence : `docs/Design/MON18_7_SPELLBOOK_HOTBAR_UI.md`.
+Le chemin d'exécution validé est :
+
+```text
+Spellbook
+    -> Hotbar MON12
+    -> catalogue
+    -> ciblage MON18.4
+    -> transaction PA/mana MON18.3
+    -> effets MON18.5
+    -> commit runtime
+    -> présentation MON18.6
+```
+
+UI01.4.3e.2 a été validé avec **6/6 Automation Success** et en PIE réel :
+
+- `Lesser Heal` : 2 PA, 4 mana, +5 PV ;
+- `Arcane Bolt` : 2 PA, 3 mana, 4 dégâts ;
+- mort par `Arcane Bolt` correctement propagée vers loot, XP, événement de mort et occupation ;
+- refus correct pour mana insuffisant ;
+- régression `ExecutionNotImplemented` couverte par tests dédiés.
+
+Références :
+
+- `docs/Design/MON18_7_SPELLBOOK_HOTBAR_UI.md` ;
+- `docs/Design/UI_SPELLBOOK_HOTBAR_EXECUTION.md` ;
+- `docs/Design/UI_GRIMROCK_MENU_CURRENT.md`.
+
+### MON18.8 — PROCHAIN
+
+Objectif : rendre le Spellbook durable dans le SaveGame.
+
+Le contrat à implémenter doit couvrir au minimum :
+
+```text
+KnownSpellIds par CharacterId
+    -> snapshot SaveGame
+    -> version / migration
+    -> restauration au Continue
+    -> cohérence avec les bindings Spell de hotbar
+    -> validation Automation + PIE
+```
+
+Le comportement actuel `Grimrock.Spellbook.SeedProduction` reste volontairement runtime-only et ne remplace pas la persistance.
 
 ---
 
@@ -168,5 +208,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider MON18.7a sous UE5.5.4, puis MON18.7b — WBP hookup + PIE
+MON18.8 — Persistence / Migration du Spellbook
 ```
