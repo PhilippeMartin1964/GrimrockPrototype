@@ -1,6 +1,11 @@
 #include "UI/GridSpellbookEntryWidget.h"
 
+#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/TextBlock.h"
+#include "InputCoreTypes.h"
+#include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+#include "UI/GridCombatHotbarDragDropOperation.h"
 
 void UGridSpellbookEntryWidget::InitializeSpellEntry (
     const FGridSpellbookEntryView& InEntry)
@@ -35,6 +40,82 @@ void UGridSpellbookEntryWidget::RefreshEntryVisual ()
     {
         Text_Description->SetText (Entry.Description);
     }
+
+    SetToolTipText (
+        Entry.bCanAssignToHotbar
+            ? NSLOCTEXT (
+                "GridSpellbook",
+                "SpellDragToHotbar",
+                "Glissez ce sort vers un raccourci de la barre d'actions.")
+            : NSLOCTEXT (
+                "GridSpellbook",
+                "SpellCannotDragToHotbar",
+                "Ce sort ne peut pas être assigné à la barre d'actions."));
+}
+
+FReply UGridSpellbookEntryWidget::NativeOnPreviewMouseButtonDown (
+    const FGeometry& InGeometry,
+    const FPointerEvent& InMouseEvent)
+{
+    if (InMouseEvent.GetEffectingButton () == EKeys::LeftMouseButton &&
+        Entry.bCanAssignToHotbar &&
+        !Entry.SpellId.IsNone ())
+    {
+        return UWidgetBlueprintLibrary::DetectDragIfPressed (
+            InMouseEvent,
+            this,
+            EKeys::LeftMouseButton).NativeReply;
+    }
+
+    return Super::NativeOnPreviewMouseButtonDown (
+        InGeometry,
+        InMouseEvent);
+}
+
+void UGridSpellbookEntryWidget::NativeOnDragDetected (
+    const FGeometry& InGeometry,
+    const FPointerEvent& InMouseEvent,
+    UDragDropOperation*& OutOperation)
+{
+    Super::NativeOnDragDetected (
+        InGeometry,
+        InMouseEvent,
+        OutOperation);
+
+    if (!Entry.bCanAssignToHotbar || Entry.SpellId.IsNone ())
+    {
+        return;
+    }
+
+    AGrimrockPartyPawn* PartyPawn =
+        Cast<AGrimrockPartyPawn> (GetOwningPlayerPawn ());
+    UGridPartyInventoryComponent* InventoryComponent =
+        PartyPawn ? PartyPawn->PartyInventoryComponent.Get () : nullptr;
+    if (!InventoryComponent)
+    {
+        return;
+    }
+
+    const int32 CharacterIndex =
+        InventoryComponent->GetSelectedCharacterIndex ();
+    if (!InventoryComponent->IsValidCharacterIndex (CharacterIndex))
+    {
+        return;
+    }
+
+    UGridCombatHotbarDragDropOperation* Operation =
+        NewObject<UGridCombatHotbarDragDropOperation> (this);
+    if (!Operation)
+    {
+        return;
+    }
+
+    Operation->InitializeFromSpellbookEntry (
+        CharacterIndex,
+        Entry);
+    Operation->DefaultDragVisual = nullptr;
+    Operation->Pivot = EDragPivot::MouseDown;
+    OutOperation = Operation;
 }
 
 FText UGridSpellbookEntryWidget::GetSpellNameText () const

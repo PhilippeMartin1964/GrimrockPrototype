@@ -5,6 +5,7 @@
 #include "Magic/GridSpellbookUI.h"
 #include "GridSpellbookEntryWidget.generated.h"
 
+class UDragDropOperation;
 class UTextBlock;
 
 /**
@@ -45,6 +46,16 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Magic|Spellbook|UI")
     void RefreshEntryVisual ();
+
+protected:
+    virtual FReply NativeOnPreviewMouseButtonDown (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent) override;
+
+    virtual void NativeOnDragDetected (
+        const FGeometry& InGeometry,
+        const FPointerEvent& InMouseEvent,
+        UDragDropOperation*& OutOperation) override;
 
 private:
     FText GetSpellNameText () const;
