@@ -91,6 +91,19 @@ namespace
             SourcePolicy == EGridCombatActionSourcePolicy::Spell;
     }
 
+    bool IsSpellbookManagedAction (
+        const FGridAvailableCombatAction& Action)
+    {
+        // Spellbook actions use SpellId as both action and source definition
+        // identity. They belong to Menu -> Sorts and the configured hotbar,
+        // not to the legacy combat action palette. Class-provided Spell
+        // actions keep their class SourceDefinitionId and remain in palette.
+        return Action.Definition.SourcePolicy ==
+                EGridCombatActionSourcePolicy::Spell &&
+            !Action.Definition.ActionId.IsNone () &&
+            Action.SourceDefinitionId == Action.Definition.ActionId;
+    }
+
     EGridEquipmentSlot ResolveDraggedEquipmentSlot (
         EGridInventoryUiSlotType SlotType,
         int32 SlotIndex)
@@ -837,7 +850,8 @@ void UGridCombatHudWidget::RefreshFromSources ()
             for (const FGridAvailableCombatAction& Action : AvailableActions)
             {
                 if (IsActionPaletteSource (
-                    Action.Definition.SourcePolicy))
+                        Action.Definition.SourcePolicy) &&
+                    !IsSpellbookManagedAction (Action))
                 {
                     View.ActionPalette.Add (Action);
                 }
