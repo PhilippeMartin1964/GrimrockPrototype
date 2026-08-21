@@ -17,6 +17,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 #include "Runtime/GridPartyInventoryComponent.h"
+#include "Runtime/GrimrockGameInstance.h"
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
@@ -212,13 +213,42 @@ void AGrimrockPartyPawn::BeginPlay ()
             bLoadedSavedGame = LoadCurrentGameData (LoadError, true);
             if (!bLoadedSavedGame)
             {
+                const FString FailedLoadSlotName = PartySaveSlotName;
                 UE_LOG (
                     LogTemp,
                     Warning,
                     TEXT ("PartySave Load Failed Slot=%s Reason=%s"),
-                    *PartySaveSlotName,
+                    *FailedLoadSlotName,
                     *LoadError.ToString ());
-                PartyInventoryComponent->ResetPartyForNewGame ();
+
+                // A failed Continue is not a New Game. Preserve the save and the
+                // rolled-back runtime party, disarm EndPlay autosave for this
+                // dying pawn, and return to the main menu without ever opening
+                // Character Creation.
+                PartySaveSlotName.Empty ();
+                if (UGrimrockGameInstance* GameInstance =
+                    GetWorld ()
+                        ? GetWorld ()->GetGameInstance<UGrimrockGameInstance> ()
+                        : nullptr)
+                {
+                    UE_LOG (
+                        LogTemp,
+                        Error,
+                        TEXT ("PartySave ContinueAborted Slot=%s Reason=%s Action=ReturnToMainMenu"),
+                        *FailedLoadSlotName,
+                        *LoadError.ToString ());
+                    GameInstance->RequestReturnToMainMenu (this);
+                }
+                else
+                {
+                    UE_LOG (
+                        LogTemp,
+                        Error,
+                        TEXT ("PartySave ContinueAborted Slot=%s Reason=%s Action=None Error=NoGrimrockGameInstance"),
+                        *FailedLoadSlotName,
+                        *LoadError.ToString ());
+                }
+                return;
             }
         }
         else
@@ -290,7 +320,9 @@ void AGrimrockPartyPawn::EndPlay (const EEndPlayReason::Type EndPlayReason)
             TEXT ("PartySave PlaytestAutoSaveSkipped Slot=%s Reason=FreshPIERequest"),
             *PartySaveSlotName);
     }
-    else if (PartyInventoryComponent && PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
+    else if (!PartySaveSlotName.IsEmpty () &&
+        PartyInventoryComponent &&
+        PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         FText SaveError;
         if (!SaveCurrentGame (SaveError))
