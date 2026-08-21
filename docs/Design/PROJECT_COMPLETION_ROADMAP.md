@@ -144,8 +144,8 @@ MON17.2 — Skeletal Mesh / Skeleton / AnimBP             CLOS
 MON17.3 — Distinct Attack Set                            CLOS
 MON17.4 — Distinct AI Profile — RangedKeeper            CLOS
 MON17.5 — Patrol / Perception / Alarm Integration       CLOS
-MON17.6 — Encounter / Loot / XP Integration             EN COURS
-MON17.7 — Balance / Closure                              À FAIRE
+MON17.6 — Encounter / Loot / XP Integration             CLOS
+MON17.7 — Balance / Closure                              EN COURS
 ```
 
 ## MON17.1 — CLOS
@@ -359,11 +359,11 @@ docs/Design/MON17_5_1_GOBLIN_EXPLORATION_INTEGRATION.md
 docs/Design/MON17_5_CLOSURE.md
 ```
 
-## MON17.6 — EN COURS
+## MON17.6 — CLOS
 
-Objectif : prouver que le Gobelin lanceur utilise les contrats existants d'encounter, loot et XP sans logique spécifique : groupes/vagues MON13, mort exactement une fois, loot data-driven MON8, récompense `ExperienceReward=125` MON15 et persistance associée.
+`MON17.6 — Encounter / Loot / XP Integration` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-La validation doit couvrir au minimum :
+Contrats validés :
 
 ```text
 EncounterGroup / wave participation
@@ -372,6 +372,42 @@ LootTable Gobelin
 XP = 125 appliquée exactement une fois
 Victory / occupancy release
 Save/Continue sans duplication de loot/XP
+```
+
+Validation finale :
+
+```text
+MON17.6.1 dédiée                         4/4 Success
+MON13.4 + MON8 + MON15.2 ciblées       16/16 Success
+Campagne ciblée totale                 20/20 Success
+PIE de production à deux Gobelins      VALIDÉ
+Assets de loot sur origin/master       VALIDÉS
+```
+
+Références :
+
+```text
+docs/Design/MON17_6_1_GOBLIN_ENCOUNTER_REWARD_INTEGRATION.md
+docs/Design/MON17_6_PRODUCTION_PIE_VALIDATION.md
+docs/Design/MON17_6_CLOSURE.md
+```
+
+## MON17.7 — EN COURS
+
+L'audit initial charge les vrais assets de production et fixe une baseline automatisée **3/3 Success** :
+
+```text
+ProductionBalanceBaseline
+ProductionLootBaseline
+RewardPacingBaseline
+```
+
+Constats : `HP=10`, armures `0/0`, dégâts `2..5`, moyenne `3.5`, `XP=125`; le loot déterministe produit actuellement `3.0` objets par Gobelin. La prochaine étape autoritaire est une mesure PIE de balance, puis l'ajustement minimal des seules probabilités de loot si les résultats le confirment.
+
+Référence :
+
+```text
+docs/Design/MON17_7_BALANCE_AUDIT.md
 ```
 
 ---
@@ -521,5 +557,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON17.6 — Encounter / Loot / XP Integration
+MON17.7 — Balance / Closure
 ```

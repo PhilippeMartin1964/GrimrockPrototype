@@ -1,6 +1,6 @@
 # MON17.6.1 — Goblin Encounter / Reward Integration Contract
 
-Statut : **AUTOMATION VALIDÉE sous UE5.5.4 — régressions ciblées à faire**
+Statut : **VALIDÉ ET CLOS sous UE5.5.4**
 
 ## Objectif
 
@@ -54,21 +54,27 @@ pierres taillées
 fiole vide
 ```
 
-Dans les DataAssets de production actuellement versionnés, le seul de ces concepts déjà disponible est :
+Lors de l'implémentation Automation initiale, le seul de ces concepts déjà versionné était :
 
 ```text
 /Game/GrimrockPrototype/Core/DataAssets/Items/DA_Item_Stone
 ItemDefinitionId = Stone
 ```
 
-Aucun DataAsset de couteau Gobelin ni de fiole vide n'est actuellement présent dans `Core/DataAssets/Items`.
+Les deux définitions manquantes ont ensuite été créées dans l'éditeur et sont maintenant versionnées avec le LootTable de production :
 
-Conséquence volontaire :
+```text
+DA_Item_GoblinKnife
+DA_Item_EmptyVial
+DA_MON_GoblinThrower
+```
+
+Le choix de fixture Automation reste volontaire :
 
 - Automation utilise trois `UGridItemDefinitionAsset` synthétiques pour vérifier le contrat de loot indépendant ;
 - le test de Save/Continue utilise le vrai `DA_Item_Stone`, afin que la définition puisse être résolue après reconstruction ;
-- aucun `.uasset` n'est créé ou modifié par MON17.6.1 ;
-- les deux assets de production manquants seront créés/configurés dans l'éditeur après validation des tests.
+- aucun `.uasset` n'est créé ou modifié par le test MON17.6.1 ;
+- le PIE de production et MON17.7 chargent désormais les vrais assets versionnés.
 
 Les IDs synthétiques `MON176_GoblinKnife`, `MON176_ShapedStone` et `MON176_EmptyVial` ne sont **pas** des IDs de production et ne doivent pas être copiés tels quels dans le DataAsset final.
 
@@ -202,21 +208,22 @@ aucune duplication XP / loot après restore
 ```text
 1. Compilation UE5.5.4                         VALIDÉE
 2. Grimrock.Monsters.MON17.6.1                4/4 SUCCESS
-3. Grimrock.Monsters.MON13.4                  régression à valider
-4. Grimrock.Monsters.MON8                     régression à valider
-5. Grimrock.RPG.MON15.2                       régression à valider
+3. Grimrock.Monsters.MON13.4                  4/4 SUCCESS
+4. Grimrock.Monsters.MON8                     7/7 SUCCESS
+5. Grimrock.RPG.MON15.2                       5/5 SUCCESS
+6. Campagne ciblée de clôture                 20/20 SUCCESS
 ```
 
-## Étape production après Automation
+## Étape production après Automation — réalisée
 
-Après validation des régressions, créer dans l'éditeur les deux définitions d'objets manquantes correspondant au Bestiaire :
+Les deux définitions correspondant au Bestiaire ont été créées dans l'éditeur :
 
 ```text
 couteau Gobelin
 fiole vide
 ```
 
-Puis configurer `DA_MON_GoblinThrower.LootTable` avec les trois entrées de production :
+`DA_MON_GoblinThrower.LootTable` contient les trois entrées de production :
 
 ```text
 couteau
@@ -224,7 +231,7 @@ Stone
 fiole vide
 ```
 
-Les probabilités et quantités finales seront fixées en MON17.7 afin de ne pas mélanger contrat d'intégration et équilibrage.
+La configuration déterministe `Chance=1.0`, `Quantity=1` reste la baseline de validation MON17.6. Les probabilités finales appartiennent à MON17.7.
 
 ## Hors périmètre
 
