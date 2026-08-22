@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.8 VALIDÉ ET CLOS — MON18.9 PROCHAIN**  
+Statut : **MON18.9.1 COMBAT SAVE POLICY IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
 Date de référence : **22 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -58,7 +58,8 @@ MON18.5 — First Production Spells               CLOS
 MON18.6 — Spell Presentation                    CLOS
 MON18.7 — Spellbook / Hotbar UI                 CLOS
 MON18.8 — Persistence / Migration               CLOS
-MON18.9 — Balance / Regression / Closure        PROCHAIN
+MON18.9 — Balance / Regression / Closure        EN COURS
+  MON18.9.1 — Combat Save Policy / Checkpoint   EN VALIDATION
 ```
 
 ### MON18.1 — CLOS
@@ -175,16 +176,44 @@ Références :
 - `docs/Design/MON18_8_SPELLBOOK_PERSISTENCE_MIGRATION.md` ;
 - `docs/Design/MON18_8_VALIDATION.md`.
 
-### MON18.9 — PROCHAIN
+### MON18.9 — EN COURS
 
-`MON18.9 — Balance / Regression / Closure` doit maintenant :
+`MON18.9 — Balance / Regression / Closure` consolide MON18 avant clôture du jalon majeur.
 
-- consolider la campagne de non-régression MON18 complète ;
-- vérifier les coûts PA/mana, portées, cooldowns et comportements des quatre sorts de production ;
-- vérifier les interactions Status Effects / combat / hotbar / SaveGame ;
-- traiter les diagnostics résiduels utiles, notamment les vieux slots auxiliaires incompatibles s'ils polluent encore les logs ;
-- mettre à jour la documentation de synthèse ;
-- fermer le jalon majeur MON18.
+#### MON18.9.1 — Combat Save Policy / Pre-Combat Checkpoint — EN VALIDATION
+
+Politique implémentée :
+
+```text
+Exploration / Victory      -> sauvegarde autorisée
+Combat / Defeat            -> sauvegarde refusée
+engagement automatique     -> checkpoint <slot>_AutoCombat avant StartCombat
+échec checkpoint           -> combat automatique refusé
+```
+
+Le format `UGrimrockPartySaveGame` reste en version 6 : aucun état transitoire de combat (initiative, round, PA/PAM, cooldowns, actions en cours) n'est ajouté à la persistance.
+
+Le verrou de sérialisation protège également les autosaves historiques de fermeture d'inventaire et `EndPlay`, qui ne peuvent plus écraser un checkpoint avec un état de combat partiel.
+
+Validation ciblée attendue :
+
+```text
+Grimrock.Save.MON18.9.1                6/6 attendu
+Grimrock.Save.SAVEFIX.2                régression
+Grimrock.Magic.MON18.8                 régression
+Grimrock.Monsters.MON14.1              régression
+```
+
+Référence : `docs/Design/MON18_9_1_COMBAT_SAVE_POLICY.md`.
+
+Après validation MON18.9.1, MON18.9 poursuivra :
+
+- la vérification des coûts PA/mana, portées, cooldowns et comportements des quatre sorts de production ;
+- les interactions Status Effects / combat / hotbar / SaveGame ;
+- les diagnostics résiduels utiles, notamment les vieux slots auxiliaires incompatibles s'ils polluent encore les logs ;
+- la campagne de non-régression MON18 complète ;
+- la mise à jour de la documentation de synthèse ;
+- la clôture du jalon majeur MON18.
 
 ---
 
@@ -243,5 +272,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.9 — Balance / Regression / Closure
+Valider MON18.9.1 — Combat Save Policy / Pre-Combat Checkpoint sous UE5.5.4
 ```

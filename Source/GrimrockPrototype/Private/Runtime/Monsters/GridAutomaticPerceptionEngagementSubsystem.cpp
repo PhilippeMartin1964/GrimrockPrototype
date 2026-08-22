@@ -1,12 +1,15 @@
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "TimerManager.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterPatrolSubsystem.h"
+#include "Save/GridCombatSavePolicy.h"
 
 DEFINE_LOG_CATEGORY (LogGridAutomaticEngagement);
 
@@ -32,6 +35,52 @@ namespace
             CurrentLocation.X - CellCenter.X,
             CurrentLocation.Y - CellCenter.Y);
         return !DeltaXY.IsNearlyZero (0.5f);
+    }
+
+    bool HasImmediateVisualCombatSource (
+        AGridLevelRuntimeActor* RuntimeActor,
+        UGridTurnManagerComponent* TurnManager)
+    {
+        UWorld* World = IsValid (RuntimeActor)
+            ? RuntimeActor->GetWorld ()
+            : nullptr;
+        AGrimrockPartyPawn* PartyPawn = IsValid (TurnManager)
+            ? TurnManager->PartyPawn.Get ()
+            : nullptr;
+        if (!World || !IsValid (PartyPawn))
+        {
+            return false;
+        }
+
+        for (TActorIterator<AGridMonsterActor> It (World); It; ++It)
+        {
+            AGridMonsterActor* Monster = *It;
+            if (!IsValid (Monster) ||
+                Monster->IsDead () ||
+                !Monster->bMonsterEnabled ||
+                !Monster->IsRuntimeLevelActive () ||
+                !Monster->ResolvePersistenceId ().IsValid ())
+            {
+                continue;
+            }
+
+            UGridMonsterBehaviorComponent* Behavior =
+                Monster->FindComponentByClass<UGridMonsterBehaviorComponent> ();
+            if (!IsValid (Behavior))
+            {
+                continue;
+            }
+            if (!Behavior->IsInitialized () &&
+                !Behavior->InitializeBehavior (RuntimeActor, PartyPawn))
+            {
+                continue;
+            }
+            if (Behavior->RefreshPerception ())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
@@ -216,19 +265,69 @@ bool UGridAutomaticPerceptionEngagementSubsystem::ProcessPendingEvaluationNow ()
     ++EffectiveEvaluationCount;
 
     bool bStartedCombat = false;
+    bool bHadVisualSource = false;
+    bool bCheckpointGateSatisfied = true;
+    bool bCheckpointSkipped = false;
     {
         GridAutomaticPerceptionEngagement::FScopedVisualSourceRequirement VisualOnlyScope;
-        bStartedCombat = TurnManager->StartCombatFromPerception ();
+
+        // MON18.9.1 performs the same visual-only perception preflight that
+        // StartCombatFromPerception will immediately repeat. This keeps routine
+        // no-contact evaluations disk-free while ensuring the checkpoint is
+        // written before StartCombatInternal mutates initiative/combat state.
+        bHadVisualSource = HasImmediateVisualCombatSource (
+            RuntimeActor,
+            TurnManager);
+        if (bHadVisualSource)
+        {
+            FText CheckpointError;
+            bCheckpointGateSatisfied =
+                FGridCombatSavePolicy::PreparePreCombatCheckpoint (
+                    TurnManager->PartyPawn,
+                    CheckpointError,
+                    bCheckpointSkipped);
+            if (!bCheckpointGateSatisfied)
+            {
+                UE_LOG (
+                    LogGridAutomaticEngagement,
+                    Warning,
+                    TEXT ("[MON18.9.1] Automatic combat blocked Runtime=%s Reason=%s Cause=PreCombatCheckpointFailed Error=%s"),
+                    *GetNameSafe (RuntimeActor),
+                    *Reason.ToString (),
+                    *CheckpointError.ToString ());
+            }
+        }
+
+        if (bCheckpointGateSatisfied)
+        {
+            bStartedCombat = TurnManager->StartCombatFromPerception ();
+        }
+    }
+
+    // A synchronous second perception pass should never discover a new source
+    // that the preflight missed. Fail closed if that invariant is violated so
+    // production cannot enter an uncheckpointed combat silently.
+    if (bStartedCombat && !bHadVisualSource)
+    {
+        UE_LOG (
+            LogGridAutomaticEngagement,
+            Error,
+            TEXT ("[MON18.9.1] Automatic combat aborted Runtime=%s Reason=%s Cause=StartedWithoutPreCombatCheckpoint"),
+            *GetNameSafe (RuntimeActor),
+            *Reason.ToString ());
+        TurnManager->AbortCombat ();
+        bStartedCombat = false;
     }
 
     if (bStartedCombat)
     {
         ++SuccessfulStartCount;
         UE_LOG (LogGridAutomaticEngagement, Log,
-            TEXT ("[MON14.1] Automatic combat started Runtime=%s Reason=%s Evaluation=%d"),
+            TEXT ("[MON14.1] Automatic combat started Runtime=%s Reason=%s Evaluation=%d Checkpoint=%s"),
             *GetNameSafe (RuntimeActor),
             *Reason.ToString (),
-            EffectiveEvaluationCount);
+            EffectiveEvaluationCount,
+            bCheckpointSkipped ? TEXT ("SkippedTransient") : TEXT ("Saved"));
     }
     else
     {

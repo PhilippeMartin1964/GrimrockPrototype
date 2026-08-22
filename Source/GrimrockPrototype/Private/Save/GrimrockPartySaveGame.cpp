@@ -4,6 +4,7 @@
 #include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "RPG/RPGSaveMigrationService.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
+#include "Save/GridCombatSavePolicy.h"
 
 DEFINE_LOG_CATEGORY_STATIC (LogGrimrockPartySave, Log, All);
 
@@ -188,6 +189,21 @@ void UGrimrockPartySaveGame::Serialize (FArchive& Ar)
 {
     if (Ar.IsSaving ())
     {
+        // MON18.9.1: the durable SaveGame intentionally excludes turn/round,
+        // initiative, pending actions and presentation. Refuse every matching
+        // party write while combat is active (and through Defeat) so callers
+        // such as inventory-close and EndPlay cannot persist a partial fight.
+        if (FGridCombatSavePolicy::IsSaveBlockedForParty (
+                PartyInventoryState))
+        {
+            UE_LOG (
+                LogGrimrockPartySave,
+                Warning,
+                TEXT ("[MON18.9.1] SaveValidation Result=Rejected Reason=CombatStateNotSaveable"));
+            Ar.SetError ();
+            return;
+        }
+
         SaveVersion = CurrentSaveVersion;
         bProgressionLoadValid = true;
         ProgressionLoadError.Reset ();
