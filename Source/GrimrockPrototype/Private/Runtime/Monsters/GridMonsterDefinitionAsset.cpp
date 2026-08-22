@@ -171,6 +171,17 @@ bool UGridMonsterDefinitionAsset::ValidateDefinition (FString& OutError) const
         Errors.Add (TEXT ("DeathExpectedDuration must be finite and greater than zero."));
     }
 
+    if (!FMath::IsFinite (DeathDissolveDelay) || DeathDissolveDelay < 0.0f ||
+        !FMath::IsFinite (DeathDissolveDuration) || DeathDissolveDuration <= 0.0f)
+    {
+        Errors.Add (TEXT ("Death dissolve delay/duration must be finite; delay must be non-negative and duration greater than zero."));
+    }
+
+    if (bEnableDeathDissolve && DeathDissolveParameterName.IsNone ())
+    {
+        Errors.Add (TEXT ("DeathDissolveParameterName must not be None when death dissolve is enabled."));
+    }
+
     if (!AlertAudio.IsValidDefinition () ||
         !HurtAudio.IsValidDefinition () ||
         !DeathAudio.IsValidDefinition () ||

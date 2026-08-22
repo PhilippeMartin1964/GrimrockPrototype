@@ -240,6 +240,30 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation", meta = (ClampMin = "0.01"))
     float DeathExpectedDuration = 1.0f;
 
+    /** Optional visual-only corpse dissolve. Disabled by default for backward compatibility. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve")
+    bool bEnableDeathDissolve = false;
+
+    /** Time the final corpse pose remains fully visible after the death presentation. */
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Death Dissolve",
+        meta = (ClampMin = "0.0"))
+    float DeathDissolveDelay = 2.0f;
+
+    /** Duration of the visual dissolve from fully visible to fully dissolved. */
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadOnly,
+        Category = "Monster|Animation|Death Dissolve",
+        meta = (ClampMin = "0.01"))
+    float DeathDissolveDuration = 1.5f;
+
+    /** Scalar material parameter driven from 0 (visible) to 1 (dissolved). */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation|Death Dissolve")
+    FName DeathDissolveParameterName = TEXT ("DissolveAmount");
+
     UFUNCTION (BlueprintPure, Category = "Monster|Validation")
     bool IsValidDefinition () const;
 

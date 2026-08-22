@@ -142,4 +142,157 @@ bool FGridMonsterMON178DeathPresentationApiContractTest::RunTest (
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON178DeathDissolveDefinitionContractTest,
+    "Grimrock.Monsters.MON17.8.DeathDissolveDefinitionContract",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON178DeathDissolveDefinitionContractTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    UGridMonsterDefinitionAsset* Definition =
+        GridMonsterMON178Death::MakeValidDefinition ();
+    TestNotNull (
+        TEXT ("Transient dissolve definition can be created"),
+        Definition);
+    if (!Definition)
+    {
+        return false;
+    }
+
+    TestFalse (
+        TEXT ("Death dissolve is disabled by default"),
+        Definition->bEnableDeathDissolve);
+    TestEqual (
+        TEXT ("Default corpse hold before dissolve is two seconds"),
+        Definition->DeathDissolveDelay,
+        2.0f);
+    TestEqual (
+        TEXT ("Default dissolve duration is one and a half seconds"),
+        Definition->DeathDissolveDuration,
+        1.5f);
+    TestEqual (
+        TEXT ("Default dissolve parameter is DissolveAmount"),
+        Definition->DeathDissolveParameterName,
+        FName (TEXT ("DissolveAmount")));
+
+    FString ValidationError;
+    TestTrue (
+        TEXT ("Backward-compatible definition stays valid with dissolve disabled"),
+        Definition->ValidateDefinition (ValidationError));
+
+    Definition->bEnableDeathDissolve = true;
+    ValidationError.Reset ();
+    TestTrue (
+        TEXT ("Default dissolve settings are valid when enabled"),
+        Definition->ValidateDefinition (ValidationError));
+
+    Definition->DeathDissolveParameterName = NAME_None;
+    ValidationError.Reset ();
+    TestFalse (
+        TEXT ("Enabled dissolve requires a material parameter name"),
+        Definition->ValidateDefinition (ValidationError));
+    TestTrue (
+        TEXT ("Missing parameter reports DeathDissolveParameterName"),
+        ValidationError.Contains (TEXT ("DeathDissolveParameterName")));
+
+    Definition->DeathDissolveParameterName = TEXT ("DissolveAmount");
+    Definition->DeathDissolveDelay = -0.1f;
+    ValidationError.Reset ();
+    TestFalse (
+        TEXT ("Negative corpse hold is rejected"),
+        Definition->ValidateDefinition (ValidationError));
+
+    Definition->DeathDissolveDelay = 0.0f;
+    Definition->DeathDissolveDuration = 0.0f;
+    ValidationError.Reset ();
+    TestFalse (
+        TEXT ("Zero dissolve duration is rejected"),
+        Definition->ValidateDefinition (ValidationError));
+
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FGridMonsterMON178DeathDissolveApiContractTest,
+    "Grimrock.Monsters.MON17.8.DeathDissolveApiContract",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FGridMonsterMON178DeathDissolveApiContractTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    UClass* DefinitionClass = UGridMonsterDefinitionAsset::StaticClass ();
+    UClass* DeathComponentClass = UGridMonsterDeathComponent::StaticClass ();
+    TestNotNull (TEXT ("Definition class exists"), DefinitionClass);
+    TestNotNull (TEXT ("Death component class exists"), DeathComponentClass);
+    if (!DefinitionClass || !DeathComponentClass)
+    {
+        return false;
+    }
+
+    const FName DefinitionProperties[] =
+    {
+        GET_MEMBER_NAME_CHECKED (
+            UGridMonsterDefinitionAsset,
+            bEnableDeathDissolve),
+        GET_MEMBER_NAME_CHECKED (
+            UGridMonsterDefinitionAsset,
+            DeathDissolveDelay),
+        GET_MEMBER_NAME_CHECKED (
+            UGridMonsterDefinitionAsset,
+            DeathDissolveDuration),
+        GET_MEMBER_NAME_CHECKED (
+            UGridMonsterDefinitionAsset,
+            DeathDissolveParameterName)
+    };
+
+    for (const FName PropertyName : DefinitionProperties)
+    {
+        TestNotNull (
+            FString::Printf (
+                TEXT ("Definition exposes %s"),
+                *PropertyName.ToString ()),
+            FindFProperty<FProperty> (
+                DefinitionClass,
+                PropertyName));
+    }
+
+    TestNotNull (
+        TEXT ("Death component exposes bDeathDissolveActive"),
+        FindFProperty<FProperty> (
+            DeathComponentClass,
+            GET_MEMBER_NAME_CHECKED (
+                UGridMonsterDeathComponent,
+                bDeathDissolveActive)));
+    TestNotNull (
+        TEXT ("Death component exposes DeathDissolveAlpha"),
+        FindFProperty<FProperty> (
+            DeathComponentClass,
+            GET_MEMBER_NAME_CHECKED (
+                UGridMonsterDeathComponent,
+                DeathDissolveAlpha)));
+    TestNotNull (
+        TEXT ("Death component exposes dissolve reset API"),
+        DeathComponentClass->FindFunctionByName (
+            TEXT ("ResetDeathDissolvePresentation")));
+
+    const UGridMonsterDeathComponent* ComponentCDO =
+        GetDefault<UGridMonsterDeathComponent> ();
+    TestNotNull (TEXT ("Death component CDO exists"), ComponentCDO);
+    if (ComponentCDO)
+    {
+        TestFalse (
+            TEXT ("Death dissolve does not require a permanent component tick"),
+            ComponentCDO->PrimaryComponentTick.bCanEverTick);
+    }
+
+    return true;
+}
+
 #endif
