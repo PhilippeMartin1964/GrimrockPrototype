@@ -1,38 +1,38 @@
-# MON19.1 — Event/Command Audit & Lua Feasibility
+# MON19.1 — Audit Event/Command et faisabilité de Lua
 
-Status: **audit completed — documentation only**  
-Date: **2026-08-22**  
-Reference `master` before MON19.1: `208c5316a2375c276753604ea7faf7a0fc3ecf11` (`Close MON17.8 monster presentation and persistence`)
+Statut : **audit terminé — documentation uniquement**  
+Date : **22 août 2026**  
+Référence `master` avant MON19.1 : `208c5316a2375c276753604ea7faf7a0fc3ecf11` (`Close MON17.8 monster presentation and persistence`)
 
-## 1. Scope and method
+## 1. Périmètre et méthode
 
-MON19.1 audits the existing Event -> Command architecture before any new scripting system is introduced.
+MON19.1 audite l’architecture Event → Command existante avant l’introduction de tout nouveau système de script.
 
-The audit covered:
+L’audit a couvert :
 
-- `AGENTS.md` and the repository work rules;
-- `docs/Design/PROJECT_COMPLETION_ROADMAP.md`;
-- `docs/Design/03_EVENT_COMMAND_LINKS.md`;
-- `FGridObjectLink`, `EGridObjectEvent`, `EGridObjectCommand` and `EGridObjectCondition`;
-- `UGridActivationComponent` and `AGridLevelRuntimeActor`;
-- door, receptacle and monster-spawn specializations;
-- editor connector policy, Slate connector panel, editor actor validation and viewport visualization;
-- level runtime persistence and SaveGame versioning;
-- available automated/manual tests related to links and MON13 encounters;
-- historical documentation and remaining TODOs;
-- official Lua, sol2 and UnLua, including licensing, exception handling, packaging and sandbox implications.
+- `AGENTS.md` et les règles de travail du dépôt ;
+- `docs/Design/PROJECT_COMPLETION_ROADMAP.md` ;
+- `docs/Design/03_EVENT_COMMAND_LINKS.md` ;
+- `FGridObjectLink`, `EGridObjectEvent`, `EGridObjectCommand` et `EGridObjectCondition` ;
+- `UGridActivationComponent` et `AGridLevelRuntimeActor` ;
+- les spécialisations portes, réceptacles et points d’apparition de monstres ;
+- la politique des connecteurs dans l’éditeur, le panneau Slate des connecteurs, la validation portée par l’acteur d’édition et la visualisation dans le viewport ;
+- la persistance de l’état d’exécution des niveaux et le versionnement des sauvegardes ;
+- les tests automatisés et manuels disponibles concernant les liens et les rencontres MON13 ;
+- la documentation historique et les TODO encore présents ;
+- Lua officiel, sol2 et UnLua, notamment sous l’angle des licences, des exceptions C++, du packaging et de la sécurité d’exécution.
 
-No production C++ code, `.uasset` or `.umap` is changed by MON19.1.
+MON19.1 ne modifie **aucun code C++ de production**, aucun `.uasset` et aucune `.umap`.
 
-The repository-visible `master` HEAD was verified immediately before this document was prepared and still matched the reference commit above. The audit environment can inspect and update the GitHub repository but cannot execute `git status` on the user's local `D:\Development\GrimrockPrototype` working tree; no claim is therefore made about uncommitted local files on that machine.
+Le HEAD `master` visible dans le dépôt GitHub a été vérifié avant la rédaction de cet audit et correspondait encore au commit de référence indiqué ci-dessus. L’environnement utilisé pour cet audit peut consulter et mettre à jour le dépôt GitHub, mais il ne peut pas exécuter `git status` dans le répertoire local `D:\Development\GrimrockPrototype` de la machine de développement ; aucune affirmation n’est donc faite ici concernant d’éventuels fichiers locaux non validés.
 
 ---
 
-# A. Exact current Event -> Command architecture
+# A. Architecture Event → Command actuelle
 
-## A.1 Persistent level data
+## A.1 Données persistantes du niveau
 
-The authoritative connector data is stored in:
+Les données faisant autorité pour les connecteurs sont stockées dans :
 
 ```text
 UGridLevelAsset
@@ -40,13 +40,13 @@ UGridLevelAsset
     Links   : TArray<FGridObjectLink>
 ```
 
-A link is no longer merely the historical quadruplet:
+Un lien n’est plus simplement le quadruplet historique :
 
 ```text
 SourceObjectId + SourceEvent -> TargetObjectId + Command
 ```
 
-`FGridObjectLink` currently contains:
+`FGridObjectLink` contient actuellement :
 
 ```text
 SourceObjectId
@@ -62,52 +62,52 @@ ConditionWeight
 bInvertCondition
 ```
 
-Therefore the real model already is:
+Le modèle réel est donc déjà le suivant :
 
 ```text
-Source object
-    emits SourceEvent
-        -> select matching FGridObjectLink
-        -> evaluate optional condition
-        -> apply Command to target object
+Objet source
+    émet SourceEvent
+        -> sélection des FGridObjectLink correspondants
+        -> évaluation de la condition éventuelle
+        -> application de Command à l’objet cible
 ```
 
-The existing conditions are specialized to receptacle state. They support:
+Les conditions existantes sont spécialisées sur l’état d’un réceptacle. Elles permettent :
 
-- no condition;
-- receptacle empty;
-- receptacle contains any item;
-- item definition match;
-- item tag match;
-- item type match;
-- minimum item count;
-- minimum total weight;
-- inversion of a valid condition result.
+- l’absence de condition ;
+- de tester si un réceptacle est vide ;
+- de tester s’il contient au moins un objet ;
+- de rechercher une définition d’objet précise ;
+- de rechercher un tag d’objet ;
+- de rechercher un type d’objet ;
+- de tester un nombre minimal d’objets ;
+- de tester un poids total minimal ;
+- d’inverser le résultat d’une condition valide.
 
-This is an important MON19 finding: **the project already contains a small conditional logic layer**. MON19 must extend it rather than recreate it.
+C’est une conclusion importante de MON19.1 : **le projet possède déjà une petite couche de logique conditionnelle**. MON19 doit l’étendre au lieu d’en recréer une autre en parallèle.
 
-## A.2 Runtime dispatcher
+## A.2 Dispatcher d’exécution
 
-`UGridActivationComponent` is the central runtime coordinator.
+`UGridActivationComponent` est le coordinateur central de l’exécution Event → Command.
 
-Its responsibilities are already close to the correct future architecture:
+Ses responsabilités sont déjà très proches de l’architecture souhaitable à long terme :
 
-1. index level objects by `ObjectId`;
-2. index links by `SourceObjectId`;
-3. receive object events;
-4. keep only links whose `SourceEvent` matches the emitted event;
-5. resolve the target object and runtime actor;
-6. evaluate the optional link condition;
-7. dispatch the command according to the target type;
-8. update the central active-state set where applicable;
-9. emit follow-up events for stateful objects that support them;
-10. log rejected/missing/unsupported paths.
+1. indexer les objets du niveau par `ObjectId` ;
+2. indexer les liens par `SourceObjectId` ;
+3. recevoir les événements produits par les objets ;
+4. conserver uniquement les liens dont `SourceEvent` correspond à l’événement reçu ;
+5. résoudre l’objet cible et, le cas échéant, son acteur d’exécution ;
+6. évaluer la condition éventuelle ;
+7. dispatcher la commande selon le type de cible ;
+8. mettre à jour l’ensemble central des objets actifs lorsque cela s’applique ;
+9. produire les événements consécutifs pour les objets à état qui les prennent en charge ;
+10. journaliser les chemins rejetés, absents ou non pris en charge.
 
-The component has no permanent Tick (`PrimaryComponentTick.bCanEverTick = false`). This is a good foundation for MON19: script execution does not require introducing a permanent scripting Tick.
+Le composant n’a pas de Tick permanent (`PrimaryComponentTick.bCanEverTick = false`). C’est une bonne base pour MON19 : l’exécution de scripts ne justifie pas l’ajout d’un Tick permanent.
 
-## A.3 Event emission paths
+## A.3 Chemins d’émission des événements
 
-The normal object families currently emit:
+Les familles d’objets normales émettent actuellement :
 
 ```text
 Button
@@ -122,15 +122,15 @@ PressurePlate
     Deactivated
 
 Trigger
-    Activated      (party enters)
-    Deactivated    (party exits)
+    Activated      (le groupe entre)
+    Deactivated    (le groupe sort)
 
 Receptacle
     ItemInserted
     ItemRemoved
     ItemChanged
 
-MonsterSpawn / Encounter lifecycle
+Cycle MonsterSpawn / Encounter
     MonsterDied
     MonsterSpawned
     MonsterDespawned
@@ -139,17 +139,17 @@ MonsterSpawn / Encounter lifecycle
     EncounterCompleted
 ```
 
-Notably, trigger entry/exit is translated to `Activated` / `Deactivated`; the enum values `Entered` / `Exited` are not the active contract.
+À noter : l’entrée et la sortie d’un trigger sont traduites en `Activated` et `Deactivated`. Les valeurs d’enum `Entered` et `Exited` ne constituent donc pas le contrat actif actuel.
 
-`MonsterDied` is emitted through `UGridMonsterDeathComponent`, which forwards the stable monster spawn object id to `AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject()`.
+`MonsterDied` est émis par `UGridMonsterDeathComponent`, qui transmet l’identifiant stable du point d’apparition du monstre à `AGridLevelRuntimeActor::ExecuteLinksFromRuntimeObject()`.
 
-MON13 spawn/encounter lifecycle events also return through the same Event -> Command path. They are not a separate scripting/event bus.
+Les événements du cycle d’apparition et de rencontre de MON13 reviennent eux aussi dans le même chemin Event → Command. Il n’existe pas de bus d’événements ou de système de script séparé pour MON13.
 
-## A.4 Command dispatch paths
+## A.4 Chemins de dispatch des commandes
 
-### Doors
+### Portes
 
-The effective door commands are:
+Les commandes de porte réellement opérationnelles sont :
 
 ```text
 Toggle
@@ -157,11 +157,11 @@ Open / Activate
 Close / Deactivate
 ```
 
-They use the specialized door command path and have real gameplay consequences.
+Elles utilisent le chemin spécialisé des portes et produisent de véritables effets de gameplay.
 
-### Receptacles
+### Réceptacles
 
-The effective specialized receptacle commands are:
+Les commandes spécialisées réellement opérationnelles sont :
 
 ```text
 ReceptacleConsumeItem
@@ -170,75 +170,75 @@ ReceptacleEnableRemoval
 ReceptacleDisableRemoval
 ```
 
-The generic state commands can also reach a receptacle through the central state path.
+Les commandes génériques d’état peuvent également atteindre un réceptacle par le chemin d’état central.
 
 ### MonsterSpawn
 
-MON13 extends the central dispatcher with:
+MON13 étend le dispatcher central avec :
 
 ```text
 Spawn
 Despawn
 Teleport
-Activate   -> Spawn alias
-Enable     -> Spawn alias
-Deactivate -> Despawn alias
-Disable    -> Despawn alias
-Toggle     -> Spawn/Despawn according to current presence
+Activate   -> alias de Spawn
+Enable     -> alias de Spawn
+Deactivate -> alias de Despawn
+Disable    -> alias de Despawn
+Toggle     -> Spawn/Despawn selon la présence actuelle
 StartEncounter
 ```
 
-These commands are real runtime behavior, not historical enum placeholders.
+Il s’agit de comportements d’exécution réels et non de simples valeurs d’enum historiques.
 
-### Generic state path
+### Chemin générique d’état
 
-For several other object types, the dispatcher accepts:
+Pour plusieurs autres types d’objets, le dispatcher accepte :
 
 ```text
-Open / Activate   -> active=true
+Open / Activate    -> active=true
 Close / Deactivate -> active=false
-Toggle             -> invert active state
+Toggle             -> inversion de l’état actif
 ```
 
-However, **successfully storing an active flag is not the same thing as implementing gameplay behavior**. This distinction is central to the MON19 audit.
+Cependant, **enregistrer avec succès un indicateur d’état actif ne signifie pas que le comportement de gameplay correspondant est réellement implémenté**. Cette distinction est centrale pour MON19.
 
-`ItemSpawn` currently logs that the state is stored but spawn behavior remains TODO. `Teleporter` likewise logs that the state is stored but teleport behavior remains TODO. Generic mechanisms without a specialized handler can also succeed with state bookkeeping only.
+`ItemSpawn` journalise actuellement que l’état est enregistré, mais que le comportement d’apparition reste TODO. `Teleporter` journalise de la même manière que l’état est enregistré alors que le comportement de téléportation reste TODO. Des mécanismes génériques sans gestionnaire spécialisé peuvent donc eux aussi retourner un succès limité à la seule comptabilité d’état.
 
-## A.5 Runtime chaining and cycle protection
+## A.5 Chaînage à l’exécution et protection contre les cycles
 
-When a link command changes the state of a Lever or PressurePlate, the new state can emit `Activated` or `Deactivated`, which allows chained connectors.
+Lorsqu’une commande de lien change l’état d’un `Lever` ou d’une `PressurePlate`, le nouvel état peut émettre `Activated` ou `Deactivated`. Cela permet déjà de chaîner des connecteurs.
 
-`DispatchingSourceObjectIds` prevents re-entry of a source that is already being dispatched. It therefore stops a runtime cycle once a connector chain comes back to an already-active source.
+`DispatchingSourceObjectIds` empêche la réentrée d’une source déjà en cours de dispatch. Une chaîne cyclique est donc interrompue lorsqu’elle revient vers une source dont le traitement n’est pas encore terminé.
 
-This is not a full graph-analysis system:
+Ce mécanisme n’est pas une analyse complète de graphe :
 
-- the editor does not calculate arbitrary connector cycles ahead of time;
-- an extremely long chain of distinct sources is not instruction-budgeted;
-- future Lua -> Command -> Event -> Lua recursion will need a shared execution-depth/budget guard in addition to the existing source re-entry guard.
+- l’éditeur ne calcule pas à l’avance tous les cycles possibles entre connecteurs ;
+- une chaîne extrêmement longue de sources toutes différentes n’est pas limitée par un budget d’instructions ;
+- une future récursion Lua → Command → Event → Lua devra disposer d’une limite commune de profondeur et/ou d’un budget d’exécution en plus de la protection actuelle contre la réentrée d’une source.
 
-Nevertheless, the current runtime is **not completely unprotected against indirect cycles**.
+Le runtime actuel n’est néanmoins **pas dépourvu de protection contre les cycles indirects**.
 
-## A.6 Editor CONNECTORS architecture
+## A.6 Architecture de l’éditeur CONNECTORS
 
-The connector editor is correctly split into three layers:
+L’éditeur de connecteurs est correctement séparé en plusieurs responsabilités :
 
 ```text
 GridEditorLinkPolicy
-    -> declares events/commands allowed per object type
+    -> déclare les événements/commandes autorisés selon le type d’objet
 
 SGridEditorLinksPanel
-    -> source/event/target/command form and link lists
+    -> formulaire source/événement/cible/commande et listes de liens
 
 GridLevelEditorActor
-    -> creation/removal/validation and persistent asset mutation
+    -> création/suppression/validation et mutation persistante du LevelAsset
 
 GridLevelEdMode / GridLevelEdModeToolkit
-    -> connector visualization and toolkit composition
+    -> visualisation des connecteurs et composition de l’outil d’édition
 ```
 
-`GridEditorLinkPolicy` is particularly important. It is already the central editor capability table and should remain the authoritative UI filter in MON19.
+`GridEditorLinkPolicy` est particulièrement important. Il constitue déjà la table centrale des capacités de l’éditeur et doit rester l’autorité utilisée pour filtrer l’interface de MON19.
 
-The Slate panel currently exposes only:
+Le panneau Slate expose actuellement uniquement :
 
 ```text
 Source Object
@@ -247,13 +247,13 @@ Target Object
 Command
 ```
 
-It **does not expose the existing `FGridObjectLink` condition fields**.
+Il **n’expose pas les champs de condition déjà présents dans `FGridObjectLink`**.
 
-The viewport mode draws incoming/outgoing connector arrows and labels from the same `UGridLevelAsset::Links` data; it does not duplicate runtime execution.
+Le mode viewport dessine les connecteurs entrants et sortants ainsi que leurs libellés à partir du même tableau `UGridLevelAsset::Links`. Il ne duplique pas l’exécution du runtime.
 
-## A.7 Link creation/removal identity mismatch
+## A.7 Incohérence de l’identité des liens lors de leur création/suppression
 
-The persistent data model allows condition fields to distinguish links during validation, but the editor's `CreateLink()` duplicate test uses only:
+Le modèle persistant permet aux champs de condition de distinguer plusieurs liens lors de la validation, mais le test de doublon de `CreateLink()` utilise uniquement :
 
 ```text
 SourceObjectId
@@ -262,46 +262,46 @@ SourceEvent
 Command
 ```
 
-`RemoveExactLink()` also removes by that same four-field identity.
+`RemoveExactLink()` supprime lui aussi selon cette même identité à quatre champs.
 
-Consequences:
+Conséquences :
 
-1. a manually edited conditional link can prevent creation of another link with the same quadruplet but a different condition;
-2. removing one such connector can remove every variant sharing the same quadruplet;
-3. validation considers the condition payload when detecting exact duplicates, while creation/removal does not.
+1. un lien conditionnel modifié manuellement peut empêcher la création d’un second lien ayant le même quadruplet mais une condition différente ;
+2. la suppression d’un tel connecteur peut supprimer toutes les variantes partageant le même quadruplet ;
+3. la validation tient compte de la condition pour identifier un doublon exact, tandis que la création et la suppression n’en tiennent pas compte.
 
-This is a real pre-MON19 editor/data-contract gap and should be corrected before complex logic is layered on top.
+Il s’agit d’une lacune réelle du contrat données/éditeur avant MON19. Cette incohérence doit être corrigée avant d’ajouter une logique plus complexe.
 
 ---
 
-# B. Current capability matrix
+# B. Matrice des capacités actuelles
 
-Legend:
+Légende :
 
-- **Yes**: implemented as real gameplay behavior.
-- **State only**: dispatcher can store active state but no complete specialized effect exists.
-- **No**: not part of the supported current connector contract.
-- **Partial**: some state is persisted, but not the whole command-relevant state.
-- **Static/manual**: coverage exists in documentation/manual PIE but no dedicated automated reference to the audited behavior was found by the source audit.
+- **Oui** : comportement de gameplay réellement implémenté.
+- **État uniquement** : le dispatcher peut mémoriser l’état actif, mais aucun effet spécialisé complet n’existe.
+- **Non** : ne fait pas partie du contrat de connecteur actuellement pris en charge.
+- **Partiel** : une partie de l’état est persistée, mais pas l’ensemble de l’état pertinent pour les commandes.
+- **Statique/manuel** : une couverture existe dans la documentation ou via des tests PIE manuels, mais aucun test automatisé dédié au comportement audité n’a été trouvé.
 
-| Object type / family | Events actually emitted | Commands officially exposed by editor | Runtime implementation | Editor exposed | Tests found in audit | Persistence relevant to links | Unsupported command failure |
+| Type/famille d’objet | Événements réellement émis | Commandes officiellement exposées dans l’éditeur | Implémentation à l’exécution | Exposé dans l’éditeur | Tests trouvés pendant l’audit | Persistance pertinente pour les liens | Échec d’une commande non prise en charge |
 |---|---|---|---|---|---|---|---|
-| Door, including secret-door archetypes | none (`Opened`/`Closed` not emitted) | `Open`, `Close`, `Toggle`, `Activate`, `Deactivate` | **Yes** | target yes, source no | existing door foundation/manual coverage; no new MON19 execution performed | **Yes**: open/blocking state | clean central rejection for unsupported command |
-| Button | `Activated` | none as target | source **Yes**; generic target path exists only if hand-authored outside policy | source yes | no dedicated general-link automation found | **Yes** in interactive state | editor prevents unsupported target links |
-| Lever | `Activated`, `Deactivated` | none as target | source **Yes**; commanded state can re-emit event if hand-authored | source yes | no dedicated general-link automation found | **Yes** | editor prevents unsupported target links |
-| PressurePlate | `Activated`, `Deactivated` | none as target | **Yes**, including state-change emission | source yes | no dedicated general-link automation found | **Yes**, then runtime refresh can recompute | editor prevents unsupported target links |
-| Trigger | `Activated`, `Deactivated` | none as target | **Yes** for enter/exit translation | source yes | MON13.3 editor policy verifies Trigger source; no dedicated trigger-link suite found | **Yes** only if central active state is used | editor prevents unsupported target links |
-| Receptacle / wall-lock family | `ItemInserted`, `ItemRemoved`, `ItemChanged` | consume one/all, enable/disable removal | **Yes** | source and target yes | detailed validated manual PIE protocol; no automated test references to `EGridObjectCondition` found | **Partial**: contents yes, active state yes; `bCanRemoveItem` is not in runtime save state | clean specialized rejection |
-| MonsterSpawn / Encounter | `MonsterDied`, `MonsterSpawned`, `MonsterDespawned`, `MonsterTeleported`, `EncounterWaveStarted`, `EncounterCompleted` | Spawn/Despawn/Teleport + aliases + `StartEncounter` | **Yes** | source and target yes | **Strong automated coverage**: MON13.3/13.4 runtime, policy, persistence and atomic-failure tests | **Yes**: monster state, placement, presence and encounters | clean/atomic paths covered by MON13 tests |
-| Light | none | `Activate`, `Deactivate`, `Toggle` | **State only** unless a specialized runtime actor handles it | target yes | no dedicated link automation found | **No** for central active flag: Light is not captured in `InteractiveObjects` | command can report success even when only state bookkeeping occurred |
-| Teleporter | none | `Activate`, `Deactivate`, `Toggle` | **State only; teleport behavior TODO** | target yes | no dedicated link automation found | **No** for central active flag | command can report success while gameplay teleport remains unimplemented |
-| ItemSpawn | none | none | **State only; spawn behavior TODO** if hand-authored | no | no dedicated link automation found | **No** for central active flag | editor excludes it; hand-authored generic state can still return success |
-| Decoration / readable | none (`Used` not emitted) | none | readable interaction exists outside connector emission; generic state has no official connector target contract | no connector source/target | no dedicated link automation found | no connector state persistence | editor excludes it |
-| Item | none | none | item runtime exists, but not as a connector endpoint | no | item systems have separate tests | **Yes** as item/world state, not connector active state | editor excludes it |
+| Porte, y compris les archétypes de porte secrète | aucun (`Opened`/`Closed` non émis) | `Open`, `Close`, `Toggle`, `Activate`, `Deactivate` | **Oui** | cible oui, source non | fondation des portes + validation manuelle existante ; aucun nouveau test MON19 exécuté | **Oui** : ouverture et blocage | rejet central propre pour les commandes incompatibles |
+| Button | `Activated` | aucune comme cible | source **Oui** ; un chemin générique de cible n’existe que si le lien est créé hors politique | source oui | aucun test automatisé générique de liens trouvé | **Oui** dans l’état interactif | l’éditeur empêche les liens de cible non pris en charge |
+| Lever | `Activated`, `Deactivated` | aucune comme cible | source **Oui** ; un changement d’état commandé peut réémettre un événement si le lien est créé manuellement | source oui | aucun test automatisé générique de liens trouvé | **Oui** | l’éditeur empêche les liens de cible non pris en charge |
+| PressurePlate | `Activated`, `Deactivated` | aucune comme cible | **Oui**, y compris l’émission lors d’un changement d’état | source oui | aucun test automatisé générique de liens trouvé | **Oui**, puis le rafraîchissement peut recalculer l’état | l’éditeur empêche les liens de cible non pris en charge |
+| Trigger | `Activated`, `Deactivated` | aucune comme cible | **Oui** pour la traduction entrée/sortie | source oui | la politique MON13.3 vérifie le Trigger comme source ; aucune suite dédiée aux liens de trigger trouvée | **Oui** seulement si l’état central est utilisé | l’éditeur empêche les liens de cible non pris en charge |
+| Réceptacle / famille de serrure murale | `ItemInserted`, `ItemRemoved`, `ItemChanged` | consommer un/tous les objets, autoriser/interdire le retrait | **Oui** | source et cible oui | protocole PIE manuel détaillé et validé ; aucun test automatisé utilisant explicitement `EGridObjectCondition` trouvé | **Partiel** : contenu oui, état actif oui ; `bCanRemoveItem` n’est pas sauvegardé | rejet spécialisé propre |
+| MonsterSpawn / Encounter | `MonsterDied`, `MonsterSpawned`, `MonsterDespawned`, `MonsterTeleported`, `EncounterWaveStarted`, `EncounterCompleted` | Spawn/Despawn/Teleport + alias + `StartEncounter` | **Oui** | source et cible oui | **Forte couverture automatisée** : MON13.3/13.4, runtime, politique, persistance et échecs atomiques | **Oui** : état du monstre, placement, présence et rencontres | chemins propres/atomiques couverts par MON13 |
+| Light | aucun | `Activate`, `Deactivate`, `Toggle` | **État uniquement**, sauf gestionnaire spécialisé porté par un acteur d’exécution | cible oui | aucun test dédié trouvé | **Non** pour l’indicateur central : Light n’est pas capturé dans `InteractiveObjects` | une commande peut retourner succès alors que seule la comptabilité d’état a eu lieu |
+| Teleporter | aucun | `Activate`, `Deactivate`, `Toggle` | **État uniquement ; téléportation TODO** | cible oui | aucun test dédié trouvé | **Non** pour l’indicateur central | une commande peut retourner succès alors que la téléportation de gameplay n’existe pas encore |
+| ItemSpawn | aucun | aucune | **État uniquement ; apparition TODO** si créé manuellement | non | aucun test dédié trouvé | **Non** pour l’indicateur central | l’éditeur l’exclut ; un lien créé manuellement peut néanmoins retourner succès pour l’état |
+| Decoration / objet lisible | aucun (`Used` non émis) | aucune | l’interaction de lecture existe hors du système de connecteurs ; pas de contrat officiel de cible | non | aucun test dédié de lien trouvé | aucune persistance d’état de connecteur | l’éditeur l’exclut |
+| Item | aucun | aucune | le runtime d’objet existe, mais pas comme extrémité officielle d’un connecteur | non | tests séparés du système d’objets | **Oui** pour l’état monde/inventaire, pas pour un état actif de connecteur | l’éditeur l’exclut |
 
-### B.1 Enum values declared but not active as generic contract
+## B.1 Valeurs d’enum déclarées mais non actives dans le contrat générique
 
-Events present in the enum but with no active C++ emitter in the audited Event -> Command system:
+Événements présents dans l’enum mais sans émetteur C++ actif dans le système Event → Command audité :
 
 ```text
 Used
@@ -313,7 +313,7 @@ Enabled
 Disabled
 ```
 
-Commands declared but not implemented as generic commands:
+Commandes déclarées mais non implémentées comme commandes génériques :
 
 ```text
 Lock
@@ -321,11 +321,11 @@ Unlock
 ShowMessage
 ```
 
-`Enable`, `Disable`, `Spawn`, `Despawn` and `Teleport` are **not globally dead** anymore: MON13 implements them for `MonsterSpawn`. They must not be documented as universally inactive.
+`Enable`, `Disable`, `Spawn`, `Despawn` et `Teleport` ne sont **plus globalement inactifs** : MON13 les implémente pour `MonsterSpawn`. Ils ne doivent donc plus être documentés comme universellement inutilisés.
 
-### B.2 Current editor policy table
+## B.2 Table de politique actuelle de l’éditeur
 
-`GridEditorLinkPolicy` currently exposes exactly:
+`GridEditorLinkPolicy` expose actuellement exactement :
 
 ```text
 Sources
@@ -339,8 +339,8 @@ MonsterSpawn    : MonsterDied, MonsterSpawned, MonsterDespawned,
                   MonsterTeleported, EncounterWaveStarted,
                   EncounterCompleted
 
-Targets
--------
+Cibles
+------
 Door            : Open, Close, Toggle, Activate, Deactivate
 Teleporter      : Activate, Deactivate, Toggle
 Light           : Activate, Deactivate, Toggle
@@ -351,17 +351,17 @@ MonsterSpawn    : Spawn, Despawn, Teleport,
                   StartEncounter
 ```
 
-This policy should be **extended, not replaced**, by MON19.
+Cette politique doit être **étendue et non remplacée** par MON19.
 
 ---
 
-# C. Real functional gaps
+# C. Lacunes fonctionnelles réelles
 
-The gaps below are ordered by architectural importance, not by historical TODO age.
+Les lacunes ci-dessous sont classées selon leur importance architecturale et non selon l’ancienneté des TODO.
 
-## C.1 P0 — no generic persistent puzzle variables
+## C.1 P0 — absence de variables génériques persistantes pour les énigmes
 
-There is no canonical store for values such as:
+Il n’existe pas de stockage canonique pour des valeurs telles que :
 
 ```text
 Crypt.SecretOpened = true
@@ -369,15 +369,15 @@ Crypt.RuneCount = 3
 Crypt.Stage = 2
 ```
 
-`FGridLevelRuntimeState` persists doors, selected interactive objects, object presence, items, receptacles, monsters and encounters, but it has no generic typed level-variable map.
+`FGridLevelRuntimeState` persiste les portes, certains objets interactifs, la présence d’objets, les objets, les réceptacles, les monstres et les rencontres, mais ne contient aucune table générique de variables typées propre au niveau.
 
-This is the clearest prerequisite for advanced puzzle logic and for safe Lua persistence.
+C’est le prérequis le plus évident pour une logique d’énigme avancée et pour une persistance Lua sûre.
 
-## C.2 P0 — commands have no payload model
+## C.2 P0 — absence de paramètres génériques pour les commandes
 
-`EGridObjectCommand` is an enum with no generic argument payload.
+`EGridObjectCommand` est un enum sans charge utile générique.
 
-That is sufficient for `Door.Open`, but not for future operations such as:
+Cela suffit pour `Door.Open`, mais pas pour de futures opérations comme :
 
 ```text
 Counter.Add(2)
@@ -387,81 +387,81 @@ Message.Show("Crypt.Warning")
 Lua.Invoke("OnRuneActivated")
 ```
 
-MON19 needs a deliberately small typed command-argument contract or a logical-node representation that carries those parameters in level data. It does **not** need a parallel command bus.
+MON19 a donc besoin soit d’un petit contrat typé d’arguments de commande, soit d’une représentation de nœud logique portant ces paramètres dans les données du niveau. Il n’a **pas** besoin d’un second bus de commandes.
 
-## C.3 P0 — existing conditions are too target-specific
+## C.3 P0 — conditions existantes trop dépendantes de la cible
 
-All current non-`None` conditions require the **target actor to be a receptacle**.
+Toutes les conditions actuelles différentes de `None` exigent que **l’acteur cible soit un réceptacle**.
 
-This can answer:
+Le système peut exprimer :
 
 ```text
 Button.Activated
     -> SecretAltar.ConsumeAllItems
-       if SecretAltar contains RedGem
+       si SecretAltar contient RedGem
 ```
 
-It cannot directly express:
+Mais il ne peut pas exprimer directement :
 
 ```text
 Button.Activated
     -> Door.Open
-       if AnotherReceptacle contains RedGem
+       si AnotherReceptacle contient RedGem
 ```
 
-because the condition is evaluated against the command target, which is the Door.
+car la condition est évaluée sur la cible de la commande, qui est ici la porte.
 
-A generic logic-variable / logic-node mechanism is therefore justified even before Lua.
+Un mécanisme de variables logiques ou de nœuds logiques génériques est donc justifié avant même l’introduction de Lua.
 
-## C.4 P0 — connector condition UI is missing
+## C.4 P0 — interface d’édition des conditions absente
 
-The level data and runtime already support receptacle conditions, and validation knows their fields, but `SGridEditorLinksPanel` does not expose them.
+Les données du niveau et le runtime savent déjà gérer les conditions de réceptacle, et la validation connaît tous leurs champs. Pourtant, `SGridEditorLinksPanel` ne permet pas de les modifier.
 
-This forces designers to edit the `Links` array through generic Unreal asset details for advanced existing links.
+Les concepteurs sont donc contraints d’éditer directement le tableau `Links` dans les propriétés Unreal génériques pour créer des liens conditionnels avancés déjà pris en charge par le runtime.
 
-MON19.2 should fix this before adding a more complex scripting UI.
+MON19.2 doit corriger cette lacune avant d’ajouter une interface de script plus complexe.
 
-## C.5 P0 — editor link identity ignores conditions
+## C.5 P0 — l’identité des liens dans l’éditeur ignore les conditions
 
-`CreateLink()` and `RemoveExactLink()` identify a connector using only the source/target/event/command quadruplet, while validation includes condition parameters in exact-duplicate detection.
+`CreateLink()` et `RemoveExactLink()` identifient un connecteur uniquement par le quadruplet source/cible/événement/commande, alors que la validation inclut les paramètres de condition lorsqu’elle recherche les doublons exacts.
 
-Before adding more conditional/payload fields, link identity/edit operations must become consistent.
+Avant d’ajouter d’autres champs de condition ou de charge utile, l’identité et les opérations d’édition des liens doivent devenir cohérentes.
 
-## C.6 P0 — command success does not always mean gameplay success
+## C.6 P0 — succès d’une commande ≠ succès de gameplay
 
-Light, Teleporter and ItemSpawn demonstrate a semantic problem:
+`Light`, `Teleporter` et `ItemSpawn` révèlent un problème sémantique :
 
-- a generic state command can update `ActiveObjectIds` and return success;
-- the specialized gameplay effect can still be absent;
-- Teleporter and ItemSpawn explicitly log TODO behavior.
+- une commande générique d’état peut mettre à jour `ActiveObjectIds` et retourner succès ;
+- l’effet de gameplay spécialisé peut cependant être absent ;
+- `Teleporter` et `ItemSpawn` journalisent explicitement un comportement encore TODO.
 
-MON19 validation must distinguish:
+La validation MON19 doit distinguer :
 
 ```text
-state can be stored
+l’état peut être mémorisé
 ```
 
-from:
+de :
 
 ```text
-this target type implements this command as gameplay
+ce type de cible implémente réellement cette commande en gameplay
 ```
 
-This matters especially if Lua later receives a success/failure result from `grid.command()`.
+Cette distinction est indispensable si Lua reçoit ultérieurement le résultat succès/échec de `grid.command()`.
 
-## C.7 P0 — persistence is incomplete for some command-relevant state
+## C.7 P0 — persistance incomplète pour certains états modifiés par commande
 
-Examples found by the audit:
+Exemples relevés pendant l’audit :
 
-1. `FGridRuntimeReceptacleState` persists contained items but not `bCanRemoveItem`; therefore `ReceptacleDisableRemoval` / `ReceptacleEnableRemoval` are not durable across Save/Load.
-2. `CaptureCurrentLevelRuntimeState()` captures activation state only for Button, Lever, PressurePlate, Receptacle and Trigger. Light, Teleporter, ItemSpawn, Decoration and Item generic active flags are not captured.
-3. This means a successful generic state command can be lost on Save/Load.
+1. `FGridRuntimeReceptacleState` persiste les objets contenus mais pas `bCanRemoveItem`. Les commandes `ReceptacleDisableRemoval` et `ReceptacleEnableRemoval` ne survivent donc pas à une sauvegarde/recharge.
+2. `CaptureCurrentLevelRuntimeState()` capture l’état d’activation uniquement pour `Button`, `Lever`, `PressurePlate`, `Receptacle` et `Trigger`. Les indicateurs actifs génériques de `Light`, `Teleporter`, `ItemSpawn`, `Decoration` et `Item` ne sont pas capturés.
+3. Une commande générique ayant retourné succès peut donc être perdue lors d’un Save/Load.
 
-MON19 should not build persistent puzzle logic on that ambiguity.
+MON19 ne doit pas construire des énigmes persistantes sur cette ambiguïté.
 
-## C.8 P1 — generic link/condition automated coverage is weak
+## C.8 P1 — couverture automatisée faible pour les liens et conditions génériques
 
-The MON13 MonsterSpawn/Encounter extension has good automated coverage, including:
+L’extension MonsterSpawn/Encounter de MON13 possède une bonne couverture automatisée, notamment :
 
 ```text
 MON13.3 DeferredSpawnLinks
@@ -474,183 +474,183 @@ MON13.4 Validation
 MON13.4 EditorLinkPolicy
 ```
 
-Receptacle behavior has a detailed manual PIE suite and previously validated results.
+Les réceptacles disposent de leur côté d’une suite PIE manuelle détaillée et de résultats déjà validés.
 
-However, repository source search did not find automated tests directly referencing the `EGridObjectCondition` values or a broad generic suite that exhaustively checks each source/event/target/command pair.
+En revanche, la recherche dans le dépôt n’a pas révélé de tests automatisés référant directement les valeurs de `EGridObjectCondition`, ni de suite générique exhaustive couvrant chaque combinaison source/événement/cible/commande.
 
-MON19.2 should add table-driven contract tests before Lua is connected.
+MON19.2 doit introduire des tests contractuels pilotés par table avant de relier Lua au système.
 
-## C.9 P1 — editor/runtime capability definitions can drift
+## C.9 P1 — risque de divergence entre capacités éditeur et runtime
 
-`GridEditorLinkPolicy` is a good editor authority, but `GridLevelEditorActor` also contains runtime-support helper logic, while `UGridActivationComponent` contains the actual dispatcher.
+`GridEditorLinkPolicy` constitue une bonne autorité côté éditeur, mais `GridLevelEditorActor` contient également des fonctions auxiliaires de validation du support runtime, tandis que `UGridActivationComponent` porte le véritable dispatcher.
 
-The audit already finds semantics where a type is considered state-command-compatible although its specialized gameplay behavior is absent.
+L’audit montre déjà des cas où un type est considéré compatible avec une commande d’état alors que son effet de gameplay spécialisé n’existe pas.
 
-MON19 should avoid adding a third independently maintained capability table. Prefer shared declarative helpers or tests asserting editor policy against actual runtime capability.
+MON19 doit éviter d’introduire une troisième table de capacités maintenue séparément. Il faut privilégier des fonctions déclaratives partagées ou, à défaut, des tests vérifiant explicitement la politique de l’éditeur contre les capacités réelles du runtime.
 
-## C.10 P1 — no general execution budget
+## C.10 P1 — absence de budget général d’exécution
 
-Current source re-entry protection is useful, but Lua introduces a second class of risk:
+La protection actuelle contre la réentrée d’une source est utile, mais Lua introduit une seconde classe de risques :
 
 ```lua
 while true do
 end
 ```
 
-and also cross-system chains such as:
+ainsi que des chaînes inter-systèmes telles que :
 
 ```text
 Lua -> Command -> Event -> Lua -> Command -> ...
 ```
 
-A Lua instruction budget plus a central MON19 dispatch-depth/budget guard is required before community scripts are allowed.
+Un budget d’instructions Lua ainsi qu’une limite commune de profondeur/budget pour le dispatch MON19 seront indispensables avant d’autoriser les scripts de niveaux communautaires.
 
 ---
 
-# D. Historical/documentation drift
+# D. Dérive historique de la documentation
 
 ## D.1 `docs/Design/03_EVENT_COMMAND_LINKS.md`
 
-This document is useful as historical design intent but is no longer authoritative for the exact enum/runtime contract.
+Ce document reste utile comme intention de conception historique, mais il n’est plus la source d’autorité pour le contrat exact des enums et du runtime.
 
-Examples of drift include:
+Exemples de dérive :
 
-- historical event naming such as `OnActivate`/`OnDeactivate` versus current `Activated`/`Deactivated`;
-- historical commands such as timer operations, `Destroy`, animation/sound commands, etc. that are not in the current enum;
-- old statements around spawn/teleport support that predate MON13;
-- object-source/target lists that no longer describe the full MonsterSpawn/Encounter extension.
+- anciens noms d’événements tels que `OnActivate`/`OnDeactivate` au lieu des valeurs actuelles `Activated`/`Deactivated` ;
+- anciennes commandes de timer, `Destroy`, commandes d’animation ou de son, etc., absentes de l’enum actuel ;
+- anciennes affirmations sur l’apparition et la téléportation antérieures à MON13 ;
+- listes de sources/cibles qui ne décrivent plus l’extension complète MonsterSpawn/Encounter.
 
-MON19 documentation should use the current code and `GridEditorLinkPolicy` as authority.
+La documentation MON19 doit considérer le code actuel et `GridEditorLinkPolicy` comme sources d’autorité.
 
 ## D.2 `docs/Architecture/LINK_EVENT_COMMAND_FOUNDATION.md`
 
-This document is much closer to current code but has MON13/persistence drift:
+Ce document est beaucoup plus proche du code actuel, mais comporte lui aussi une dérive liée à MON13 et à la persistance :
 
-- it lists `Spawn`, `Despawn` and `Teleport` among values not dispatched, while MON13 now implements them for MonsterSpawn;
-- it predates `StartEncounter` in its command summary;
-- its statement that no link runtime state is saved is now too broad: several target states are persisted, although incompletely;
-- its “indirect cycles are not detected” wording should distinguish **editor graph detection** from the existing runtime re-entry guard, which stops a chain when it returns to an already-dispatching source.
+- il classe `Spawn`, `Despawn` et `Teleport` parmi les valeurs non dispatchées alors que MON13 les implémente désormais pour `MonsterSpawn` ;
+- son résumé des commandes est antérieur à `StartEncounter` ;
+- l’affirmation selon laquelle aucun état runtime de lien n’est sauvegardé est devenue trop générale : plusieurs états cibles sont désormais persistés, bien que de manière incomplète ;
+- la formule « les cycles indirects ne sont pas détectés » doit distinguer l’absence d’analyse de graphe dans l’éditeur de la protection runtime existante contre la réentrée, qui interrompt une chaîne lorsqu’elle revient sur une source déjà en cours de dispatch.
 
-## D.3 Receptacle documentation
+## D.3 Documentation des réceptacles
 
-The receptacle test documentation correctly records the important remaining UI limitation: condition fields exist in `FGridObjectLink` but are not exposed in the Slate connector form.
+La documentation de test des réceptacles décrit correctement une limitation toujours actuelle : les champs de condition existent dans `FGridObjectLink`, mais ne sont pas exposés dans le formulaire Slate de création des connecteurs.
 
-That is current, not historical.
+Ce point reste actuel et doit être traité dans MON19.
 
-## D.4 Roadmap implication
+## D.4 Conséquence pour la feuille de route
 
-The authoritative project roadmap correctly says that a scripting language should only be introduced if Event -> Command is insufficient.
+La feuille de route faisant autorité précise à juste titre qu’un langage de script ne doit être introduit que si Event → Command s’avère insuffisant.
 
-MON19.1 confirms:
+MON19.1 confirme que :
 
-- Event -> Command is sufficient for simple puzzles and for a significant class of chained mechanisms;
-- generic persistent values and parameterized logic are the first missing pieces;
-- Lua is justified only for logic that becomes awkward or combinatorial in data;
-- a new proprietary language is not justified.
+- Event → Command suffit aux énigmes simples et à une part importante des mécanismes chaînés ;
+- les premières pièces réellement manquantes sont des valeurs génériques persistantes et une logique paramétrée ;
+- Lua n’est justifié que lorsque la logique devient maladroite, combinatoire ou difficile à représenter uniquement en données ;
+- la création d’un langage propriétaire n’est pas justifiée.
 
 ---
 
-# E. Lua feasibility study
+# E. Étude de faisabilité de Lua
 
-## E.1 Current upstream status on 2026-08-22
+## E.1 État des versions au 22 août 2026
 
-Official Lua upstream reports:
+Les informations officielles de Lua indiquent :
 
-- Lua 5.5 released 2025-12-22;
-- current Lua release: **5.5.1**, released 2026-08-03;
-- current stable 5.4 maintenance release: **5.4.8**, released 2025-06-04;
-- Lua 5.4.9 is in release-candidate state during August 2026, therefore it should not be the project baseline yet.
+- Lua 5.5 publié le 22 décembre 2025 ;
+- version Lua courante : **5.5.1**, publiée le 3 août 2026 ;
+- dernière version de maintenance stable de la branche 5.4 : **5.4.8**, publiée le 4 juin 2025 ;
+- Lua 5.4.9 est encore en phase de release candidate pendant août 2026 et ne doit donc pas servir immédiatement de base de production.
 
-Lua is distributed under the MIT license and is explicitly intended to be embedded in C/C++ applications.
+Lua est distribué sous licence MIT et conçu explicitement pour être embarqué dans des applications C/C++.
 
-Lua's own version documentation also warns that bytecode/VM compatibility is not guaranteed across different Lua versions. This reinforces the project decision to store scripts as source text, not versioned runtime bytecode.
+La documentation de version de Lua rappelle également que la compatibilité du bytecode et de la VM n’est pas garantie entre versions. Cela renforce la décision de stocker les scripts sous forme de texte source et non de bytecode compilé persisté.
 
-Official references:
+Références officielles :
 
 - https://www.lua.org/versions.html
 - https://www.lua.org/download.html
 - https://www.lua.org/manual/5.4/
 - https://www.lua.org/license.html
 
-## E.2 Recommended Lua version: 5.4.8
+## E.2 Version recommandée : Lua 5.4.8
 
-**Recommendation for MON19: Lua 5.4.8.**
+**Recommandation pour MON19 : Lua 5.4.8.**
 
-Reasons:
+Raisons :
 
-1. it is a mature stable maintenance release;
-2. it has long-established embedding behavior and a stable 5.4 API;
-3. sol2 v3 explicitly contains Lua 5.4 fixes;
-4. current 2026 sol2 issue traffic contains an open “Issues with Lua 5.5” report;
-5. Lua 5.5.1 is only a few weeks old at the date of this audit;
-6. MON19 does not need any Lua 5.5-specific language feature;
-7. source scripts make a later 5.5 migration practical.
+1. il s’agit d’une version de maintenance stable et éprouvée ;
+2. l’intégration C de la branche 5.4 est bien établie ;
+3. sol2 v3 contient explicitement des correctifs pour Lua 5.4 ;
+4. le suivi des problèmes de sol2 en 2026 comporte encore un ticket ouvert concernant Lua 5.5 ;
+5. Lua 5.5.1 n’a que quelques semaines à la date de cet audit ;
+6. MON19 ne nécessite aucune fonctionnalité propre à Lua 5.5 ;
+7. le stockage des scripts en texte source rend une migration ultérieure vers 5.5 raisonnablement simple à envisager.
 
-Do not use 5.4.9 RC in production. Re-evaluate when 5.4.9 is final or when a future migration to 5.5 is justified and tested.
+Il ne faut pas utiliser Lua 5.4.9 RC en production. Une réévaluation pourra avoir lieu lorsque 5.4.9 sera final ou lorsqu’une migration vers 5.5 apportera un bénéfice concret et aura été testée.
 
-## E.3 Direct Lua C API
+## E.3 API C directe de Lua
 
-### Advantages
+### Avantages
 
-- only one third-party dependency: official Lua;
-- smallest attack surface;
-- exact control over which functions/tables enter the VM;
-- no automatic Unreal reflection binding;
-- no template-heavy binding layer;
-- no requirement to enable C++ exceptions in `GrimrockPrototype`;
-- ideal for a deliberately tiny whitelist API;
-- easier to audit for future untrusted player content.
+- une seule dépendance tierce : Lua officiel ;
+- surface d’attaque minimale ;
+- contrôle exact des fonctions et tables introduites dans la VM ;
+- aucune liaison automatique avec la réflexion Unreal ;
+- pas de couche de templates C++ lourde ;
+- aucune nécessité d’activer les exceptions C++ dans `GrimrockPrototype` ;
+- parfaitement adaptée à une API volontairement très petite et explicitement autorisée ;
+- plus facile à auditer en vue du futur chargement de contenus joueurs non fiables.
 
-### Costs
+### Coûts
 
-- more verbose stack manipulation;
-- bindings require disciplined type checking;
-- C++ code must respect Lua's C error/longjmp model;
-- helper wrappers should be kept tiny and tested.
+- manipulation de pile plus verbeuse ;
+- nécessité d’une discipline stricte sur le contrôle des types ;
+- obligation de respecter le modèle d’erreur C de Lua et son usage de `longjmp` ;
+- les petits wrappers C++ devront rester simples et fortement testés.
 
-For this project, the small whitelist is a feature, not a limitation.
+Dans ce projet, la petitesse de la surface d’API est un avantage recherché et non une limitation.
 
 ## E.4 sol2
 
-sol2 is:
+sol2 est :
 
-- MIT licensed;
-- header-only;
-- designed as a C++ <-> Lua binding layer;
-- advertised as supporting Lua 5.1+ including 5.4.
+- sous licence MIT ;
+- header-only ;
+- conçu comme couche de liaison C++ ↔ Lua ;
+- annoncé compatible avec Lua 5.1+ et notamment Lua 5.4.
 
-Current stable release shown by upstream is `v3.3.0`.
+La version stable indiquée en amont est `v3.3.0`.
 
-Relevant facts for GrimrockPrototype:
+Faits pertinents pour GrimrockPrototype :
 
-1. the project `Build.cs` does not currently set `bEnableExceptions=true`;
-2. Unreal Build Tool exposes `bEnableExceptions`, but the project does not opt in;
-3. sol2 supports `SOL_NO_EXCEPTIONS`, but its documentation warns that in this configuration its default panic behavior changes and requires deliberate handling;
-4. sol2's own error documentation highlights Lua's `setjmp`/`longjmp` behavior and C++ destructor hazards;
-5. the sol2 issue tracker currently contains 2026 issues titled around exception-disabled behavior and Lua 5.5;
-6. a large part of sol2's value—automatic usertype/binding ergonomics—is intentionally **not wanted** for the future sandbox.
+1. les `Build.cs` du projet n’activent actuellement pas `bEnableExceptions=true` ;
+2. Unreal Build Tool fournit bien `bEnableExceptions`, mais le projet n’a pas choisi cette option ;
+3. sol2 prend en charge `SOL_NO_EXCEPTIONS`, mais sa documentation précise que ce mode modifie le comportement par défaut des paniques et demande une gestion volontaire ;
+4. la documentation d’erreur de sol2 attire l’attention sur le comportement `setjmp`/`longjmp` de Lua et les risques pour les destructeurs C++ ;
+5. le suivi des problèmes de sol2 contient en 2026 des tickets concernant le mode sans exceptions et Lua 5.5 ;
+6. une grande partie de l’intérêt de sol2 — liaison automatique de types utilisateurs et ergonomie de binding — est précisément ce que le futur bac à sable ne doit **pas** offrir.
 
-References:
+Références :
 
 - https://github.com/ThePhD/sol2
 - https://sol2.readthedocs.io/en/latest/exceptions.html
 - https://sol2.readthedocs.io/en/latest/safety.html
 
-### sol2 conclusion
+### Conclusion concernant sol2
 
-**Do not make sol2 a MON19 production dependency.**
+**Ne pas faire de sol2 une dépendance de production de MON19.**
 
-A tiny isolated compile proof can still be kept as an optional experiment if desired, but the production recommendation is the direct Lua 5.4 C API.
+Un petit essai de compilation isolé peut rester envisageable à titre expérimental, mais la recommandation de production est l’API C directe de Lua 5.4.
 
-This is not because sol2 is a poor library. It is because GrimrockPrototype intentionally needs a very small, security-auditable API, while the project's current no-exception build posture makes sol2's convenience layer less compelling and adds another compatibility surface.
+Ce choix ne signifie pas que sol2 serait une mauvaise bibliothèque. Il signifie que GrimrockPrototype cherche volontairement une API minuscule, maîtrisable du point de vue de la sécurité, tandis que le choix actuel du projet de ne pas activer les exceptions C++ réduit l’intérêt de la couche de confort de sol2 et ajoute une surface supplémentaire de compatibilité.
 
-No global or module-wide exception enable should be introduced merely to accommodate sol2.
+Il ne faut pas activer globalement ou à l’échelle du module les exceptions C++ uniquement pour satisfaire sol2.
 
 ## E.5 UnLua
 
-UnLua is MIT licensed and supports Unreal Engine 5.x.
+UnLua est sous licence MIT et prend en charge Unreal Engine 5.x.
 
-Its principal features deliberately include direct access to:
+Ses fonctionnalités principales comprennent volontairement un accès direct à :
 
 ```text
 UCLASS
@@ -659,31 +659,31 @@ UFUNCTION
 USTRUCT
 UENUM
 Blueprint events
-native UE containers
-latent functions/coroutines
+conteneurs UE natifs
+fonctions latentes/coroutines
 ```
 
-That is almost the opposite of the desired trust boundary:
+C’est presque l’opposé de la frontière de confiance souhaitée :
 
 ```text
 Lua
-  -> controlled Grimrock API
-  -> existing Event/Command and runtime services
+  -> API Grimrock contrôlée
+  -> services Event/Command et runtime existants
 ```
 
-Therefore:
+Par conséquent :
 
-**UnLua is rejected for MON19**, despite its valid UE integration and MIT license.
+**UnLua est rejeté pour MON19**, malgré son intégration UE valide et sa licence MIT.
 
-Reference:
+Référence :
 
 - https://github.com/Tencent/UnLua
 
-## E.6 UE5.5.4 build and packaging
+## E.6 Intégration UE5.5.4 et packaging
 
-Epic's documented third-party pattern uses a `.Build.cs` external module (`ModuleType.External`) to expose includes, definitions and static/import libraries.
+Le modèle de dépendance tierce documenté par Epic utilise un module externe `.Build.cs` (`ModuleType.External`) afin d’exposer les includes, définitions et bibliothèques statiques/importées.
 
-A good Windows-first layout is:
+Une organisation Windows-first raisonnable serait :
 
 ```text
 Source/
@@ -701,16 +701,16 @@ Source/
       LICENSE.txt
 ```
 
-Then:
+Puis :
 
 ```text
 GrimrockPrototype.Build.cs
-    -> dependency on Lua54
+    -> dépendance vers Lua54
 ```
 
-For the first integration, prefer a **static library** built from official Lua C sources, excluding the standalone `lua.c` and `luac.c` programs. A static library avoids DLL staging and runtime search-path issues in Development and Shipping.
+Pour la première intégration, il est préférable d’utiliser une **bibliothèque statique** construite à partir des sources C officielles de Lua, en excluant les programmes autonomes `lua.c` et `luac.c`. Une bibliothèque statique évite le staging de DLL et les problèmes de recherche de bibliothèques dynamiques en Development et Shipping.
 
-The exact MSVC/UBT configuration must be proven in MON19.3 with:
+La configuration exacte MSVC/UBT devra être démontrée dans MON19.3 avec :
 
 ```text
 Editor Development
@@ -719,87 +719,87 @@ packaged Development
 Shipping
 ```
 
-No claim is made by MON19.1 that these builds have already been executed.
+MON19.1 ne prétend pas que ces configurations ont déjà été compilées.
 
-Epic reference:
+Référence Epic :
 
 - https://dev.epicgames.com/documentation/unreal-engine/integrating-third-party-libraries-into-unreal-engine
 
-## E.7 Exception model
+## E.7 Modèle d’exceptions
 
-Current project files:
+Les fichiers actuels :
 
 ```text
 Source/GrimrockPrototype/GrimrockPrototype.Build.cs
 Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.Build.cs
 ```
 
-do not enable exceptions.
+n’activent pas les exceptions C++.
 
-Recommendation:
+Recommandations :
 
-- keep the main project module in its current exception posture;
-- compile official Lua as C in the third-party library;
-- execute all user callbacks through protected Lua calls;
-- ensure Lua-facing C/C++ trampolines do not rely on C++ exceptions;
-- avoid designs where a Lua `longjmp` can skip important C++ RAII cleanup;
-- never allow a Lua panic to become normal control flow.
+- conserver la politique actuelle du module principal ;
+- compiler Lua officiel en C dans la bibliothèque tierce ;
+- exécuter toutes les fonctions de rappel utilisateur à travers des appels Lua protégés ;
+- veiller à ce que les trampolines C/C++ exposés à Lua ne reposent pas sur des exceptions C++ ;
+- éviter toute conception dans laquelle un `longjmp` Lua pourrait contourner une destruction RAII importante ;
+- ne jamais utiliser une panique Lua comme mécanisme normal de contrôle de flux.
 
 ---
 
-# F. Firm architecture recommendation
+# F. Recommandation architecturale ferme
 
-## F.1 Use Lua?
+## F.1 Faut-il utiliser Lua ?
 
-**Yes.**
+**Oui.**
 
-But only for complex logic that is materially clearer in script.
+Mais uniquement pour les logiques complexes dont l’expression devient réellement plus claire sous forme de script.
 
-Simple puzzles must remain:
+Les énigmes simples doivent rester :
 
 ```text
 Event -> Command
 ```
 
-without a Lua VM call.
+sans appel à la VM Lua.
 
-## F.2 Use sol2?
+## F.2 Faut-il utiliser sol2 ?
 
-**No for the MON19 production baseline.**
+**Non pour la base de production de MON19.**
 
-Use the direct official Lua 5.4 C API behind a small project-owned wrapper.
+Utiliser l’API C officielle de Lua 5.4 derrière un wrapper très réduit appartenant au projet.
 
-Revisit sol2 only if a later measured need for richer binding ergonomics appears and its no-exception configuration has been independently proven against the exact UE toolchain.
+sol2 ne devra être réévalué que si un besoin mesuré d’une liaison C++ plus riche apparaît ultérieurement et si son mode sans exceptions a été démontré avec la chaîne d’outils UE exacte du projet.
 
-## F.3 Lua version
+## F.3 Version de Lua
 
-**Lua 5.4.8** for MON19.
+**Lua 5.4.8** pour MON19.
 
-## F.4 Runtime ownership
+## F.4 Propriété et durée de vie du runtime Lua
 
-Prefer a no-Tick component owned by the level runtime actor, for example:
+Il est préférable d’utiliser un composant sans Tick appartenant à l’acteur d’exécution du niveau, par exemple :
 
 ```text
 AGridLevelRuntimeActor
   + UGridActivationComponent
-  + UGridLuaRuntimeComponent   // proposed, no Tick
+  + UGridLuaRuntimeComponent   // proposé, sans Tick
 ```
 
-rather than a global singleton VM.
+plutôt qu’une VM globale singleton.
 
-Reasons:
+Raisons :
 
-- lifetime follows the loaded grid level/runtime actor;
-- easy reset on level rebuild/transition;
-- no global script state leaking between levels;
-- direct integration point beside the existing activation component;
-- tests can instantiate a runtime actor and its Lua component in isolation.
+- sa durée de vie suit celle du niveau chargé ;
+- la remise à zéro lors d’un rebuild ou d’une transition de niveau est simple ;
+- aucun état global de script ne fuit d’un niveau à l’autre ;
+- le point d’intégration se trouve naturellement à côté du composant d’activation existant ;
+- les tests peuvent instancier un acteur runtime et son composant Lua en isolation.
 
-The component should own one `lua_State*` for the active level and destroy it on teardown/reload.
+Le composant devrait posséder un unique `lua_State*` pour le niveau actif et le détruire lors du teardown ou du rechargement.
 
-## F.5 No direct Unreal exposure
+## F.5 Aucune exposition directe d’Unreal
 
-Lua must never receive:
+Lua ne doit jamais recevoir :
 
 ```text
 UWorld*
@@ -807,12 +807,12 @@ AActor*
 UObject*
 UClass*
 UFunction*
-raw filesystem path access
-reflection helpers
-console/process execution
+accès direct à un chemin du système de fichiers
+outils de réflexion
+exécution de console/processus
 ```
 
-The only exposed surface should be project-defined scalar functions/tables such as the eventual equivalent of:
+La surface exposée doit se limiter à des fonctions/tables scalaires définies par le projet, par exemple l’équivalent futur de :
 
 ```text
 grid.command(id, command)
@@ -821,41 +821,41 @@ grid.setBool(name, value)
 grid.getInt(name)
 grid.setInt(name, value)
 grid.addInt(name, delta)
-grid.log(message)        // rate-limited / development-aware
+grid.log(message)        // limité en fréquence / adapté au mode Development
 ```
 
-The exact names are MON19.3/19.4 implementation details; they are not frozen by this audit.
+Les noms exacts relèveront de l’implémentation MON19.3/MON19.4 ; ils ne sont pas figés par cet audit.
 
-## F.6 Lua -> Command must reuse the central dispatcher
+## F.6 Lua → Command doit réutiliser le dispatcher central
 
-Lua must not resolve an Actor and call `OpenDoor()` directly.
+Lua ne doit jamais résoudre directement un Actor puis appeler `OpenDoor()`.
 
-The required path is:
+Le chemin obligatoire est :
 
 ```text
-Lua callback
-    -> Grimrock whitelist binding
-        -> ObjectId / validated logical id resolution
-            -> UGridActivationComponent / AGridLevelRuntimeActor command entry
-                -> existing target-specific command implementation
+Fonction Lua
+    -> liaison Grimrock explicitement autorisée
+        -> résolution ObjectId / identifiant logique validé
+            -> entrée de commande UGridActivationComponent / AGridLevelRuntimeActor
+                -> implémentation existante propre au type de cible
 ```
 
-This requires extracting/exposing a safe **single-command execution entry point** from the current central dispatcher, not creating a second command implementation for Lua.
+Cela demande d’extraire ou d’exposer un **point d’entrée sûr permettant d’exécuter une commande unique** dans le dispatcher central actuel, et non de créer une seconde implémentation des commandes réservée à Lua.
 
-## F.7 Event -> Lua bridge should remain a connector target
+## F.7 Le pont Event → Lua doit rester intégré au graphe de connecteurs
 
-The least disruptive conceptual model is a non-gameplay logical/script endpoint that participates in the existing link graph.
+Le modèle conceptuel le moins perturbateur consiste à introduire une extrémité logique/script sans gameplay propre, participant au graphe de liens existant.
 
-Example:
+Exemple :
 
 ```text
 Lever_A.Activated
     -> ScriptLogic_OnLever.Invoke
 ```
 
-The script endpoint has no world gameplay Actor requirement. It resolves a configured callback in the level Lua environment.
+Cette extrémité de script ne nécessite pas d’acteur de gameplay dans le monde. Elle résout une fonction de rappel configurée dans l’environnement Lua du niveau.
 
-The callback can then request normal commands:
+Cette fonction peut ensuite demander des commandes normales :
 
 ```text
 Lua
@@ -863,265 +863,267 @@ Lua
     -> grid.command(Teleporter_Exit, Activate)
 ```
 
-The exact representation—logical object subtype versus a small dedicated logic-node record—should be finalized in MON19.2 after the generic logic-node design is implemented. Do **not** fake Lua invocation by overloading an unrelated Door/Trigger target.
+La représentation exacte — sous-type d’objet logique ou petit enregistrement de nœud logique dédié — devra être finalisée dans MON19.2 après la conception des primitives logiques génériques. Il ne faut **pas** simuler l’appel Lua en détournant une cible sans rapport telle qu’une porte ou un trigger.
 
-## F.8 Designer-facing identifiers
+## F.8 Identifiants destinés aux concepteurs
 
-Internal execution should continue to use `FGuid ObjectId` as the canonical object identity.
+L’exécution interne doit continuer à utiliser `FGuid ObjectId` comme identité canonique des objets.
 
-For Lua authoring, raw GUIDs are too fragile to type manually. A future script-exposed object should therefore have an optional stable designer-facing `FName` alias (for example `LogicId` / `ScriptId`) that is:
+Pour l’écriture de scripts Lua, des GUID bruts sont trop fragiles à saisir manuellement. Un objet exposé aux scripts devra donc disposer à terme d’un alias `FName` stable et optionnel — par exemple `LogicId` ou `ScriptId` — répondant aux règles suivantes :
 
-- unique within the level;
-- validated by the editor;
-- resolved once to `ObjectId`;
-- never used to bypass the central object index.
+- unique dans le niveau ;
+- validé par l’éditeur ;
+- résolu une seule fois vers `ObjectId` ;
+- jamais utilisé pour contourner l’index central des objets.
 
-Do not repurpose an arbitrary non-unique Tag without adding uniqueness validation.
+Il ne faut pas recycler un `Tag` arbitraire potentiellement non unique sans ajouter une validation explicite d’unicité.
 
 ---
 
-# G. Final MON19.2 -> MON19.8 proposal
+# G. Proposition finale MON19.2 → MON19.8
 
-## MON19.2 — Event/Command Hardening & Logic Primitives
+## MON19.2 — Durcissement Event/Command et primitives logiques
 
-### Goal
+### Objectif
 
-Cover the common puzzle cases without Lua and remove the inconsistencies discovered by MON19.1.
+Couvrir les cas courants d’énigmes sans Lua et corriger les incohérences découvertes par MON19.1.
 
-### Work
+### Travaux
 
-1. make connector identity consistent with condition/payload fields;
-2. expose existing receptacle conditions in `SGridEditorLinksPanel`;
-3. add table-driven tests for every supported editor event/command pair;
-4. distinguish “state bookkeeping” from real command implementation in validation;
-5. add a small generic typed level-variable model:
-   - Bool;
-   - Int32;
-   - optionally FName only if an immediate production use exists;
-6. add minimal data-driven logic primitives, preferably represented without one Actor class per primitive:
-   - set/toggle Bool;
-   - set/add/subtract/reset Int;
-   - threshold/compare;
-   - one-shot latch;
-   - relay;
-7. allow logic nodes to emit normal `Activated` / `Deactivated` or another deliberately small event set back into the existing connector graph;
-8. fix command-relevant persistence holes needed by production puzzles, including receptacle removal state if it remains a persistent mechanism command.
+1. rendre l’identité des connecteurs cohérente avec les champs de condition et de charge utile ;
+2. exposer les conditions de réceptacle existantes dans `SGridEditorLinksPanel` ;
+3. ajouter des tests pilotés par table pour chaque paire événement/commande prise en charge par l’éditeur ;
+4. distinguer dans la validation la simple « mémorisation d’état » d’une véritable implémentation de commande ;
+5. ajouter un petit modèle générique de variables typées de niveau :
+   - Bool ;
+   - Int32 ;
+   - éventuellement FName uniquement si un besoin de production immédiat existe ;
+6. ajouter quelques primitives logiques data-driven, de préférence sans créer une classe Actor par primitive :
+   - définir/inverser un Bool ;
+   - définir/ajouter/soustraire/réinitialiser un Int ;
+   - seuil/comparaison ;
+   - verrou à déclenchement unique ;
+   - relais ;
+7. permettre aux nœuds logiques d’émettre `Activated` / `Deactivated`, ou un autre ensemble volontairement réduit d’événements, dans le graphe de connecteurs existant ;
+8. corriger les trous de persistance nécessaires aux énigmes de production, notamment l’état d’autorisation de retrait des réceptacles s’il reste une commande persistante.
 
-### Explicitly out of scope
+### Explicitement hors périmètre
 
-- Lua VM;
-- custom scripting language;
-- editor IDE;
-- arbitrary expression engine.
+- VM Lua ;
+- langage de script propriétaire ;
+- IDE intégré ;
+- moteur d’expressions arbitraires.
 
-### Exit criteria
+### Critère de sortie
 
-At least two non-trivial puzzles using variables/counters must work with **zero Lua**.
+Au moins deux énigmes non triviales utilisant variables et compteurs doivent fonctionner avec **zéro Lua**.
 
-## MON19.3 — Lua 5.4 Runtime Foundation
+## MON19.3 — Fondation du runtime Lua 5.4
 
-### Goal
+### Objectif
 
-Embed official Lua 5.4.8 with the smallest safe runtime surface.
+Embarquer Lua 5.4.8 officiel avec la plus petite surface d’exécution sûre possible.
 
-### Work
+### Travaux
 
-1. add vendored Lua 5.4.8 license/source or reproducible third-party build inputs;
-2. create the `Lua54` external UBT module and static Win64 library integration;
-3. add the no-Tick Lua runtime component/service;
-4. create/destroy one VM per active level runtime;
-5. load source text only;
-6. execute only protected callbacks;
-7. open only approved libraries;
-8. add deterministic error reporting;
-9. implement custom memory allocator/accounting from the start, even if initial limits are generous;
-10. add instruction-count hook infrastructure from the start.
+1. ajouter la licence et les sources Lua 5.4.8 vendues avec le projet, ou des entrées de build tierces reproductibles ;
+2. créer le module UBT externe `Lua54` et l’intégration de la bibliothèque statique Win64 ;
+3. ajouter le composant/service Lua sans Tick ;
+4. créer/détruire une VM par niveau actif ;
+5. charger uniquement du texte source ;
+6. exécuter uniquement des appels protégés ;
+7. ouvrir uniquement les bibliothèques explicitement approuvées ;
+8. fournir des diagnostics d’erreur déterministes ;
+9. intégrer dès le départ un allocateur mémoire avec comptabilisation, même si les limites initiales sont généreuses ;
+10. intégrer dès le départ l’infrastructure de hook de comptage d’instructions.
 
-### Exit criteria
+### Critère de sortie
 
-A trivial callback can execute in Editor Development without access to Unreal objects, filesystem, OS or package loading.
+Une fonction Lua triviale peut s’exécuter en Editor Development sans accès aux objets Unreal, au système de fichiers, au système d’exploitation ou au chargement de packages.
 
-No sol2 dependency is required.
+Aucune dépendance sol2 n’est nécessaire.
 
-## MON19.4 — Event -> Lua -> Command Bridge
+## MON19.4 — Pont Event → Lua → Command
 
-### Goal
+### Objectif
 
-Connect Lua to the existing connector graph without creating a second gameplay dispatcher.
+Relier Lua au graphe de connecteurs existant sans créer un second dispatcher de gameplay.
 
-### Work
+### Travaux
 
-1. represent a script callback as a valid connector target/logical endpoint;
-2. add a single script invocation command/contract;
-3. resolve designer-facing script object aliases to canonical `ObjectId`;
-4. expose `grid.command()` through the central command execution path;
-5. return controlled success/error values, not Actor pointers;
-6. share a dispatch depth/budget context across Event -> Lua -> Command -> Event chains;
-7. ensure a Lua runtime error fails the current script invocation without crashing or corrupting the level runtime.
+1. représenter une fonction de script comme cible de connecteur ou extrémité logique valide ;
+2. ajouter un contrat unique d’invocation de script ;
+3. résoudre les alias d’objets destinés aux concepteurs vers les `ObjectId` canoniques ;
+4. exposer `grid.command()` à travers le chemin central d’exécution des commandes ;
+5. retourner des résultats succès/erreur contrôlés, jamais des pointeurs d’Actor ;
+6. partager un contexte de profondeur/budget de dispatch entre les chaînes Event → Lua → Command → Event ;
+7. garantir qu’une erreur Lua échoue uniquement l’invocation concernée sans provoquer de crash ni corrompre l’état du niveau.
 
-### Exit criteria
+### Critère de sortie
+
+Le scénario :
 
 ```text
 Button.Activated
-    -> Lua callback
+    -> fonction Lua
         -> Door.Open
 ```
 
-works while the existing direct:
+fonctionne, tandis que le chemin direct :
 
 ```text
 Button.Activated
     -> Door.Open
 ```
 
-still uses no Lua.
+continue à fonctionner sans aucune intervention de Lua.
 
-## MON19.5 — Lua Persistence Contract & Save Version
+## MON19.5 — Contrat de persistance Lua et version de sauvegarde
 
-### Goal
+### Objectif
 
-Persist only canonical puzzle results.
+Ne persister que les résultats canoniques des énigmes.
 
-### Work
+### Travaux
 
-1. expose the MON19.2 typed level-variable store to Lua;
-2. never serialize `lua_State`, stack, closures, coroutines, userdata or compiled chunks;
-3. capture typed variables in `FGridLevelRuntimeState`;
-4. restore variables before script callbacks can depend on them;
-5. add SaveGame migration and validation;
-6. add Save/Load tests through a partially completed puzzle;
-7. ensure script source/version changes do not require bytecode migration.
+1. exposer à Lua le stockage de variables typées de MON19.2 ;
+2. ne jamais sérialiser `lua_State`, pile, closures, coroutines, userdata ou chunks compilés ;
+3. capturer les variables typées dans `FGridLevelRuntimeState` ;
+4. restaurer les variables avant toute fonction de script qui pourrait en dépendre ;
+5. ajouter la migration et la validation du SaveGame ;
+6. ajouter des tests Save/Load au milieu d’une énigme partiellement résolue ;
+7. garantir qu’un changement de version/source du script n’exige jamais de migration de bytecode.
 
-### Exit criteria
+### Critère de sortie
 
-A save made after changing puzzle variables reloads to the same logical state with a newly created Lua VM.
+Une sauvegarde réalisée après modification des variables d’une énigme se recharge dans le même état logique avec une VM Lua entièrement recréée.
 
-## MON19.6 — Editor Integration & Validation
+## MON19.6 — Intégration et validation dans l’éditeur
 
-### Goal
+### Objectif
 
-Make advanced logic authorable without turning the dungeon editor into a Lua IDE.
+Rendre la logique avancée éditable sans transformer l’éditeur de donjon en IDE Lua.
 
-### Work
+### Travaux
 
-1. edit link conditions directly in CONNECTORS;
-2. create/edit logical variables/nodes;
-3. associate a level script source and callback name;
-4. validate callback names where source is available;
-5. validate unique script-facing object aliases;
-6. show Event -> Script connector edges in the same visualization;
-7. add diagnostic categories for:
-   - missing script;
-   - syntax error;
-   - missing callback;
-   - invalid object alias;
-   - unsupported command;
-   - security policy violation;
-8. provide a small read-only runtime variable inspector for PIE if useful.
+1. éditer directement les conditions des liens dans CONNECTORS ;
+2. créer et modifier les variables/nœuds logiques ;
+3. associer une source de script de niveau et un nom de fonction de rappel ;
+4. valider les noms de fonctions lorsque la source est disponible ;
+5. valider l’unicité des alias d’objets visibles par les scripts ;
+6. afficher les arêtes Event → Script dans la même visualisation des connecteurs ;
+7. ajouter des catégories de diagnostic pour :
+   - script absent ;
+   - erreur de syntaxe ;
+   - fonction de rappel absente ;
+   - alias d’objet invalide ;
+   - commande non prise en charge ;
+   - violation de la politique de sécurité ;
+8. fournir, si utile, un petit inspecteur en lecture seule des variables runtime pendant PIE.
 
-### Explicitly out of scope
+### Explicitement hors périmètre
 
-- debugger;
-- breakpoints;
-- code completion;
-- full source editor.
+- débogueur ;
+- points d’arrêt ;
+- complétion de code ;
+- éditeur de source complet.
 
-## MON19.7 — Sandbox / Runtime Limits / Packaging
+## MON19.7 — Bac à sable, limites d’exécution et packaging
 
-### Goal
+### Objectif
 
-Prove that a community-level script can be treated as untrusted input within the defined game sandbox.
+Démontrer qu’un script provenant d’un niveau communautaire peut être traité comme une entrée non fiable à l’intérieur du bac à sable défini par le jeu.
 
-### Work
+### Travaux
 
-1. never call `luaL_openlibs()` wholesale;
-2. explicitly open only approved libraries;
-3. remove/never expose `io`, `os`, `package`, `debug`;
-4. do not expose `require`, `dofile`, `loadfile` or arbitrary module loaders;
-5. restrict dynamic code loading; use text-only loading mode;
-6. use an instruction-count hook to stop infinite loops;
-7. use a per-VM memory quota through `lua_newstate` custom allocator;
-8. enforce maximum script size;
-9. enforce callback/dispatch depth;
-10. keep every exposed C++ function bounded and non-blocking;
-11. rate-limit script logs/errors;
-12. test malformed scripts and deliberate infinite loops;
-13. test packaged Development;
-14. test Shipping;
-15. verify packaged script-source staging/loading policy;
-16. verify no direct UE/reflection/filesystem/process surface exists.
+1. ne jamais appeler `luaL_openlibs()` globalement ;
+2. ouvrir explicitement uniquement les bibliothèques approuvées ;
+3. ne jamais exposer `io`, `os`, `package`, `debug` ;
+4. ne pas exposer `require`, `dofile`, `loadfile` ni de chargeur de module arbitraire ;
+5. restreindre le chargement de code dynamique et utiliser un mode texte uniquement ;
+6. utiliser un hook de comptage d’instructions pour interrompre les boucles infinies ;
+7. imposer un quota mémoire par VM grâce à l’allocateur personnalisé de `lua_newstate` ;
+8. imposer une taille maximale de script ;
+9. imposer une profondeur maximale des fonctions de rappel/dispatch ;
+10. garantir que chaque fonction C++ exposée reste bornée et non bloquante ;
+11. limiter la fréquence des logs et erreurs issus des scripts ;
+12. tester des scripts mal formés et des boucles infinies intentionnelles ;
+13. tester un package Development ;
+14. tester Shipping ;
+15. vérifier la politique de staging et de chargement des sources de scripts packagées ;
+16. vérifier qu’aucun accès direct à UE, à la réflexion, au système de fichiers ou aux processus n’existe.
 
-### Exit criteria
+### Critère de sortie
 
-A deliberately hostile test script can exhaust its own budget and be aborted without freezing or crashing the game thread.
+Un script de test volontairement hostile peut épuiser son propre budget puis être interrompu sans bloquer ni faire planter le thread de jeu.
 
-## MON19.8 — Production Puzzle Suite / Regression / Closure
+## MON19.8 — Suite d’énigmes de production, régression et clôture
 
-Implement and validate:
+Implémenter et valider :
 
-### Puzzle A — direct data-driven
+### Énigme A — data-driven directe
 
 ```text
 Lever -> Door
 ```
 
-No Lua.
+Sans Lua.
 
-### Puzzle B — variables/counter
+### Énigme B — variables/compteur
 
-Multiple switches/counter/threshold using MON19.2 only.
+Plusieurs interrupteurs, compteur et seuil, uniquement avec MON19.2.
 
-### Puzzle C — conditional Lua
+### Énigme C — Lua conditionnel
 
-Lua callback reads persistent variables and issues normal commands.
+Une fonction Lua lit des variables persistantes puis demande des commandes normales.
 
-### Puzzle D — encounter bridge
+### Énigme D — pont avec une rencontre
 
 ```text
 EncounterCompleted
     -> Lua
         -> Door.Open
-        -> Teleporter/Message or another completed production command
+        -> Teleporter/Message ou autre commande de production complète
 ```
 
-If Teleporter/Message behavior is still incomplete, it must be completed or the test should use a target whose runtime behavior is real; do not treat state-only success as puzzle completion.
+Si `Teleporter` ou `ShowMessage` sont encore incomplets à ce stade, leur comportement doit être terminé ou le test doit utiliser une cible dont l’effet de gameplay est réel. Un simple succès « état uniquement » ne doit pas être considéré comme une énigme réussie.
 
-### Puzzle E — Save/Load mid-puzzle
+### Énigme E — Save/Load au milieu d’une résolution
 
-Persist variables and canonical target state, recreate Lua VM, continue puzzle.
+Persister les variables et les états canoniques des cibles, recréer la VM Lua, puis poursuivre l’énigme.
 
-### Puzzle F — hostile/broken Lua
+### Énigme F — Lua défectueux ou hostile
 
-Syntax error, runtime error and infinite loop are contained and reported.
+Erreur de syntaxe, erreur runtime et boucle infinie sont contenues et diagnostiquées.
 
-Then:
+Puis :
 
-- run targeted automated tests;
-- run full relevant regression;
-- perform PIE validation supplied/confirmed by the project owner;
-- verify packaged Development/Shipping as applicable;
-- update authoritative architecture docs;
-- close MON19.
+- exécuter les tests automatisés ciblés ;
+- exécuter les régressions pertinentes ;
+- effectuer les validations PIE fournies/confirmées par le propriétaire du projet ;
+- vérifier les packages Development/Shipping selon le périmètre retenu ;
+- mettre à jour la documentation d’architecture faisant autorité ;
+- clôturer MON19.
 
 ---
 
-# H. SaveGame and versioning impact
+# H. Impact sur SaveGame et le versionnement
 
-## H.1 Current state
+## H.1 État actuel
 
-`UGrimrockPartySaveGame::CurrentSaveVersion` is currently:
+`UGrimrockPartySaveGame::CurrentSaveVersion` vaut actuellement :
 
 ```text
 6
 ```
 
-Version 6 was introduced by MON18.8 Spellbook persistence.
+La version 6 a été introduite par MON18.8 pour la persistance du Spellbook.
 
-`FGridDungeonRuntimeState` contains per-level `FGridLevelRuntimeState` snapshots.
+`FGridDungeonRuntimeState` contient les snapshots `FGridLevelRuntimeState` de chaque niveau.
 
-## H.2 Proposed MON19 data
+## H.2 Données MON19 proposées
 
-Add a typed persistent logic store to `FGridLevelRuntimeState`, conceptually:
+Ajouter dans `FGridLevelRuntimeState` un stockage logique typé persistant, conceptuellement :
 
 ```text
 LevelVariables
@@ -1129,201 +1131,201 @@ LevelVariables
     Crypt.RuneCount    : Int=3
 ```
 
-Use a typed USTRUCT, not a Lua value or serialized Lua table.
+Utiliser une `USTRUCT` typée, jamais une valeur Lua ni une table Lua sérialisée.
 
-The first production version should support only types with a proven gameplay use. Recommended baseline:
+La première version de production doit prendre en charge uniquement les types dont l’usage gameplay est démontré. Base recommandée :
 
 ```text
 Bool
 Int32
 ```
 
-Add FName/String later only when required.
+Ajouter `FName` ou `String` plus tard uniquement si un besoin réel l’impose.
 
-## H.3 Version bump
+## H.3 Incrément de version
 
-When the persistent MON19 store is introduced, bump:
+Lors de l’introduction du stockage persistant MON19 :
 
 ```text
 CurrentSaveVersion 6 -> 7
 ```
 
-This project uses explicit save-version migration even for additive domains, so keeping that discipline is preferable to silently changing semantics under version 6.
+Le projet utilise des migrations explicites de version même pour les domaines ajoutés de manière additive. Il est préférable de conserver cette discipline plutôt que de modifier silencieusement la sémantique de la version 6.
 
-## H.4 Critical migration detail
+## H.4 Détail critique de migration
 
-`FRPGSaveMigrationService::PrepareLoadedSave()` currently has special handling for v5 and v4, then older migration logic.
+`FRPGSaveMigrationService::PrepareLoadedSave()` possède actuellement des traitements spécifiques pour v5 et v4, puis un chemin de migration pour les versions plus anciennes.
 
-Once `CurrentSaveVersion` becomes 7, **v6 must receive its own explicit migration path before the current v5 branch**.
+Lorsque `CurrentSaveVersion` passera à 7, **v6 devra disposer de son propre chemin de migration explicite avant la branche v5 actuelle**.
 
-Otherwise a legitimate v6 save would fall through into older reconstruction logic that was not written for v6.
+Sans cela, une sauvegarde v6 parfaitement légitime tomberait dans une logique de reconstruction ancienne qui n’a pas été conçue pour elle.
 
-Recommended v6 -> v7 migration:
+Migration v6 → v7 recommandée :
 
-1. validate the existing v6 domains exactly as today;
-2. leave MON19 variable snapshots empty;
-3. set `SaveVersion=7`;
-4. on level restore, an absent variable snapshot initializes from the current `UGridLevelAsset` variable defaults;
-5. validate the resulting typed store.
+1. valider les domaines v6 existants exactement comme aujourd’hui ;
+2. laisser vide le snapshot des variables MON19 ;
+3. définir `SaveVersion=7` ;
+4. lors de la restauration du niveau, un snapshot de variables absent est initialisé à partir des valeurs par défaut actuelles du `UGridLevelAsset` ;
+5. valider ensuite le stockage typé obtenu.
 
-Do not make the SaveGame migration service instantiate level-specific puzzle defaults itself.
+Le service de migration SaveGame ne doit pas lui-même instancier les valeurs par défaut spécifiques aux énigmes de chaque niveau.
 
-## H.5 Existing persistence gaps to decide before MON19 closure
+## H.5 Trous de persistance à trancher avant la clôture de MON19
 
-- `bCanRemoveItem` for receptacles if removal commands are intended to survive Save/Load;
-- Light/Teleporter/ItemSpawn central active state if these become production connector targets;
-- any one-shot/latch state introduced by MON19.2.
+- `bCanRemoveItem` des réceptacles, si les commandes de retrait doivent survivre à Save/Load ;
+- état actif central de `Light`, `Teleporter` et `ItemSpawn` s’ils deviennent de véritables cibles de production ;
+- tout état de verrou ou de déclenchement unique introduit par MON19.2.
 
-## H.6 Lua-specific SaveGame rule
+## H.6 Règle SaveGame propre à Lua
 
-Never save:
+Ne jamais sauvegarder :
 
 ```text
 lua_State
-stack
+pile Lua
 closures
 coroutines
 userdata
 registry
-instruction counters
-open iterators
-Lua timers
-compiled bytecode
+compteurs d’instructions
+itérateurs ouverts
+timers Lua
+bytecode compilé
 ```
 
-Save only canonical game state.
+Seul l’état canonique du jeu doit être persisté.
 
 ---
 
-# I. Sandbox strategy for future player content
+# I. Stratégie de bac à sable pour les futurs contenus joueurs
 
-## I.1 Library policy
+## I.1 Politique des bibliothèques
 
-Do **not** call `luaL_openlibs()` in the player-level VM.
+Ne **pas** appeler `luaL_openlibs()` dans la VM destinée aux niveaux joueurs.
 
-Open explicit safe libraries individually with the Lua C API.
+Ouvrir explicitement les bibliothèques sûres, une par une, avec l’API C de Lua.
 
-Initial candidate allowlist:
+Liste blanche initiale envisageable :
 
 ```text
-selected base functions
+sous-ensemble des fonctions de base
 math
 string
 table
-utf8 (optional but low risk)
+utf8 (optionnel, risque faible)
 ```
 
-Initial denylist:
+Liste noire initiale :
 
 ```text
 io
 os
 package
 debug
-coroutine (defer unless a concrete design requires it)
+coroutine (à différer tant qu’un besoin concret ne l’exige pas)
 ```
 
-Also remove or never expose:
+Ne jamais exposer non plus :
 
 ```text
 require
 dofile
 loadfile
-arbitrary filesystem module loading
-process execution
+chargement arbitraire de modules depuis le système de fichiers
+exécution de processus
 ```
 
-`load` should be omitted initially. Level scripts should not dynamically compile arbitrary secondary chunks unless a future feature proves that need.
+`load` doit être omis dans un premier temps. Un script de niveau ne doit pas pouvoir compiler dynamiquement des fragments secondaires arbitraires tant qu’aucune fonctionnalité ne justifie ce besoin.
 
-## I.2 Text-only scripts
+## I.2 Scripts texte uniquement
 
-Use Lua's text-mode loading (`luaL_loadbufferx(..., "t")` or equivalent) so binary chunks are rejected.
+Utiliser le mode texte de Lua (`luaL_loadbufferx(..., "t")` ou équivalent) afin de rejeter les chunks binaires.
 
-Keep player-authored scripts as source `.lua` inside the future level package/content boundary.
+Les scripts créés par les joueurs doivent rester des fichiers source `.lua` dans la frontière du futur package de niveau.
 
-## I.3 Instruction budget
+## I.3 Budget d’instructions
 
-Use `lua_sethook()` with `LUA_MASKCOUNT` to decrement an instruction budget for each protected callback invocation.
+Utiliser `lua_sethook()` avec `LUA_MASKCOUNT` pour décrémenter un budget d’instructions à chaque invocation protégée.
 
-The budget must be deterministic and reset per top-level script invocation.
+Le budget doit être déterministe et réinitialisé à chaque appel de script de premier niveau.
 
-An optional wall-clock diagnostic can supplement it, but wall-clock timeout alone is not sufficient because:
+Un diagnostic complémentaire basé sur le temps réel peut exister, mais un simple timeout temporel ne suffit pas car :
 
-- it is non-deterministic;
-- it cannot safely preempt arbitrary C++ work;
-- every exposed C++ function should already be bounded.
+- il n’est pas déterministe ;
+- il ne peut pas interrompre proprement n’importe quel travail C++ ;
+- chaque fonction C++ exposée doit déjà être bornée par conception.
 
-## I.4 Memory budget
+## I.4 Budget mémoire
 
-Create the VM using `lua_newstate(customAllocator, context)`.
+Créer la VM avec `lua_newstate(customAllocator, context)`.
 
-Track bytes allocated for that VM and reject allocations over a configured level-script quota.
+Suivre le nombre d’octets alloués pour cette VM et refuser les allocations au-delà d’un quota configuré pour le script du niveau.
 
-This provides a real bound against scripts that build unbounded tables/strings.
+Cela fournit une véritable limite contre les scripts construisant des tables ou chaînes sans borne.
 
-## I.5 Execution depth
+## I.5 Profondeur d’exécution
 
-Maintain a MON19 execution context containing at least:
+Maintenir un contexte d’exécution MON19 contenant au minimum :
 
 ```text
-remaining Lua instruction budget
-Event/Command/Lua nesting depth
-current script/callback identity
-current level identity
+budget d’instructions Lua restant
+profondeur d’imbrication Event/Command/Lua
+identité du script et de la fonction actuellement exécutés
+identité du niveau courant
 ```
 
-The existing `DispatchingSourceObjectIds` remains useful, but the new depth guard protects long chains involving distinct sources and Lua callbacks.
+`DispatchingSourceObjectIds` reste utile, mais la nouvelle limite de profondeur protège les chaînes longues utilisant des sources différentes et des appels Lua.
 
-## I.6 API whitelist
+## I.6 Liste blanche de l’API
 
-Bindings must traffic in stable scalar IDs and values only.
+Les liaisons doivent manipuler uniquement des identifiants et des valeurs scalaires stables.
 
-Good boundary:
+Bonne frontière :
 
 ```text
-FName / validated string id
+FName / chaîne validée servant d’identifiant
 bool
 int32
-small result enum/error
+petit enum de résultat/erreur
 ```
 
-Bad boundary:
+Mauvaise frontière :
 
 ```text
 UObject*
 AActor*
 UWorld*
 TSubclassOf
-reflection access
-raw pointers
-arbitrary asset loading
+accès à la réflexion
+pointeurs bruts
+chargement arbitraire d’assets
 ```
 
-## I.7 Error isolation
+## I.7 Isolation des erreurs
 
-Every script load and callback must be protected.
+Chaque chargement de script et chaque appel de fonction doit être protégé.
 
-On failure:
+En cas d’échec :
 
-1. record a concise level/script/callback error;
-2. abort that invocation;
-3. leave canonical runtime state consistent;
-4. do not continue with a corrupted Lua stack;
-5. if the VM itself enters a panic/unrecoverable state, destroy and recreate the VM rather than pretending it remains safe.
+1. enregistrer une erreur concise indiquant niveau/script/fonction ;
+2. interrompre cette invocation ;
+3. laisser l’état canonique du runtime cohérent ;
+4. ne pas poursuivre avec une pile Lua corrompue ;
+5. si la VM elle-même atteint un état de panique irrécupérable, la détruire et la recréer plutôt que de prétendre qu’elle reste sûre.
 
-## I.8 Community file boundary
+## I.8 Frontière des fichiers communautaires
 
-Future external levels should load Lua only from the selected level package/root. The Lua API must never accept an arbitrary host filesystem path.
+Les futurs niveaux externes doivent charger Lua uniquement depuis le package ou la racine du niveau sélectionné. L’API Lua ne doit jamais accepter un chemin arbitraire vers le système de fichiers de la machine hôte.
 
-A level package loader should resolve script names internally and hand source bytes to the Lua runtime.
+Le chargeur du package de niveau doit résoudre lui-même les noms de scripts et transmettre les octets source au runtime Lua.
 
 ---
 
-# J. Files likely involved in MON19.2 / MON19.3
+# J. Fichiers probablement concernés par MON19.2 / MON19.3
 
-No file below is modified by MON19.1 except this audit document. This is the expected implementation surface based on current ownership.
+Aucun fichier listé ci-dessous n’est modifié par MON19.1, à l’exception du présent document d’audit. Il s’agit de la surface d’implémentation probable d’après les responsabilités actuelles.
 
-## J.1 Existing runtime/core files — likely MON19.2
+## J.1 Fichiers runtime/core existants — probablement MON19.2
 
 ```text
 Source/GrimrockPrototype/Public/Core/GridTypes.h
@@ -1339,26 +1341,26 @@ Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp
 Source/GrimrockPrototype/Public/Runtime/GridDungeonRuntimeState.h
 ```
 
-Likely responsibilities:
+Responsabilités probables :
 
-- logic value/node types;
-- command payload or equivalent logical-node parameters;
-- safe single-command execution entry point;
-- variable runtime state;
-- capture/restore;
-- capability checks.
+- types de valeurs/nœuds logiques ;
+- charge utile de commande ou paramètres équivalents des nœuds logiques ;
+- point d’entrée sûr pour l’exécution d’une commande unique ;
+- état runtime des variables ;
+- capture/restauration ;
+- vérification des capacités.
 
-## J.2 Save files — when MON19 persistent variables land
+## J.2 Fichiers de sauvegarde — lorsque les variables persistantes MON19 seront introduites
 
 ```text
 Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h
-Source/GrimrockPrototype/Public/RPG/RPGSaveMigrationService.h   // only if public contract changes
+Source/GrimrockPrototype/Public/RPG/RPGSaveMigrationService.h   // uniquement si le contrat public change
 Source/GrimrockPrototype/Private/RPG/RPGSaveMigrationService.cpp
 ```
 
-Plus the existing save/migration automation tests relevant to version 6 -> 7.
+Ainsi que les tests automatisés existants de sauvegarde/migration concernés par le passage v6 → v7.
 
-## J.3 Existing editor files — likely MON19.2 / MON19.6
+## J.3 Fichiers d’éditeur existants — probablement MON19.2 / MON19.6
 
 ```text
 Source/GrimrockPrototypeEditor/Public/EditorTools/GridEditorLinkPolicy.h
@@ -1374,27 +1376,27 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdMode.cpp
 Source/GrimrockPrototypeEditor/Private/EditorTools/GridLevelEdModeToolkit.cpp
 ```
 
-`SGridEditorObjectInspectorPanel` may also be involved if logic/script properties are edited there, but it should not be changed merely to satisfy MON19 naming.
+`SGridEditorObjectInspectorPanel` pourra également être concerné si les propriétés logiques/scripts y sont éditées, mais il ne doit pas être modifié uniquement pour satisfaire une convention de nommage MON19.
 
-## J.4 Proposed new Lua runtime files — MON19.3
+## J.4 Nouveaux fichiers runtime Lua proposés — MON19.3
 
-A minimal shape is:
+Forme minimale :
 
 ```text
 Source/GrimrockPrototype/Public/Runtime/Scripting/GridLuaRuntimeComponent.h
 Source/GrimrockPrototype/Private/Runtime/Scripting/GridLuaRuntimeComponent.cpp
 ```
 
-Potential tiny helper files should be added only if the component becomes too broad, for example:
+De petits fichiers auxiliaires ne devront être ajoutés que si le composant devient réellement trop large, par exemple :
 
 ```text
 GridLuaSandboxConfig.h
 GridLuaBindings.cpp
 ```
 
-Do not begin with a large scripting framework hierarchy.
+Il ne faut pas commencer par une hiérarchie volumineuse de framework de script.
 
-## J.5 Third-party files — MON19.3
+## J.5 Fichiers tiers — MON19.3
 
 ```text
 Source/ThirdParty/Lua54/Lua54.Build.cs
@@ -1403,13 +1405,13 @@ Source/ThirdParty/Lua54/lib/Win64/lua54.lib
 Source/ThirdParty/Lua54/LICENSE.txt
 ```
 
-`Source/GrimrockPrototype/GrimrockPrototype.Build.cs` then adds the dependency.
+`Source/GrimrockPrototype/GrimrockPrototype.Build.cs` ajoutera ensuite la dépendance.
 
-No editor module dependency on Lua is required merely to run scripts; editor syntax validation can call a runtime-safe validation service later if needed.
+Une dépendance du module éditeur vers Lua n’est pas nécessaire simplement pour exécuter des scripts ; la validation syntaxique dans l’éditeur pourra appeler plus tard un service de validation sûr partagé avec le runtime si cela devient utile.
 
-## J.6 Tests to add
+## J.6 Tests à ajouter
 
-Suggested new tests:
+Proposition :
 
 ```text
 Source/GrimrockPrototype/Private/Tests/GridMON19LogicTests.cpp
@@ -1418,37 +1420,38 @@ Source/GrimrockPrototypeEditor/Private/Tests/GridEditorMON19LinkPolicyTests.cpp
 Source/GrimrockPrototypeEditor/Private/Tests/GridEditorMON19ValidationTests.cpp
 ```
 
-Do not fragment these into one test file per tiny primitive unless file size genuinely requires it.
+Ne pas fragmenter ces tests dans un fichier par minuscule primitive tant que la taille réelle des fichiers ne le justifie pas.
 
 ---
 
-# Final decision
+# Décision finale
 
-The answer to the MON19.1 central question is:
+La réponse à la question centrale de MON19.1 est la suivante :
 
-> **Event -> Command already knows how to do considerably more than the old design document suggests: typed object events, central dispatch, chaining, receptacle conditions, MON13 monster/encounter lifecycle, editor capability filtering, validation and partial persistence. It should remain the authoritative gameplay logic backbone.**
+> **Event → Command sait déjà faire nettement plus que ce que laisse penser l’ancien document de conception : événements typés par objet, dispatch central, chaînage, conditions de réceptacle, cycle Monster/Encounter de MON13, filtrage des capacités dans l’éditeur, validation et persistance partielle. Ce système doit rester l’ossature faisant autorité pour la logique de gameplay.**
 
-The smallest missing layer is not Lua first. It is:
-
-```text
-1. harden existing connector editing/validation;
-2. add generic typed persistent level variables and a few data-driven logic primitives;
-3. repair command-relevant persistence gaps;
-4. then embed a very small Lua VM only for genuinely complex logic.
-```
-
-For scripting:
+La plus petite couche manquante n’est pas d’abord Lua. Elle consiste à :
 
 ```text
-Use Lua            : YES
-Version            : Lua 5.4.8
-Use sol2 production: NO for MON19 baseline
-Use UnLua          : NO
-Binding            : direct Lua C API, project-owned whitelist
-UE exposure        : NONE
-Lua -> gameplay    : through existing central Command path
-VM persistence     : NEVER
-Persistent data    : typed canonical level variables only
+1. durcir l’édition et la validation des connecteurs existants ;
+2. ajouter des variables de niveau génériques, typées et persistantes,
+   ainsi que quelques primitives logiques data-driven ;
+3. corriger les lacunes de persistance pour les états réellement modifiés par commande ;
+4. puis seulement embarquer une petite VM Lua pour les logiques réellement complexes.
 ```
 
-This architecture keeps the project simple, data-driven and compatible with the long-term objective of safely loading player-created levels without giving scripts unrestricted access to Unreal Engine internals.
+Pour le script :
+
+```text
+Utiliser Lua             : OUI
+Version                  : Lua 5.4.8
+sol2 en production       : NON pour la base MON19
+UnLua                    : NON
+Liaison                  : API C Lua directe, liste blanche appartenant au projet
+Exposition d’Unreal      : AUCUNE
+Lua -> gameplay          : via le chemin Command central existant
+Persistance de la VM     : JAMAIS
+Données persistantes     : uniquement variables canoniques typées du niveau
+```
+
+Cette architecture maintient le projet simple, orienté données et compatible avec l’objectif à long terme : charger en sécurité des niveaux créés par les joueurs sans donner aux scripts un accès libre aux mécanismes internes d’Unreal Engine.
