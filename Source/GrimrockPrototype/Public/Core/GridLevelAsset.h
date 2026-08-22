@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GridLuaScriptTypes.h"
 #include "GridLevelVariableTypes.h"
 #include "GridTypes.h"
 #include "GridLevelAsset.generated.h"
@@ -57,6 +58,13 @@ public:
      */
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Logic|Variables")
     TArray<FGridLevelVariableDefinition> LevelVariables;
+
+    /**
+     * MON19.3.1 source-only Lua scripts for this level. One future active-level
+     * VM loads all enabled ScriptIds into isolated environments.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Logic|Lua")
+    TArray<FGridLuaScriptSource> LuaScripts;
 
 public:
 

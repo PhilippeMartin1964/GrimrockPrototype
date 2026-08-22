@@ -5,6 +5,11 @@
 	"Description": "",
 	"Modules": [
 		{
+			"Name": "GrimrockLua",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "GrimrockPrototype",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
