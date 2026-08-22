@@ -23,6 +23,7 @@
 #include "Runtime/GrimrockPlayerController.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridThrownItemActor.h"
+#include "Save/GridCombatSavePolicy.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UI/GridCombatHudWidget.h"
 #include "UI/GridInventoryWidget.h"
@@ -1707,6 +1708,22 @@ bool AGrimrockPartyPawn::SaveCurrentGame (FText& OutError)
         !PartyInventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         OutError = FText::FromString (TEXT ("Aucun personnage finalisé ne peut être sauvegardé."));
+        return false;
+    }
+
+    // MON18.9.1 primary gate: reject before any runtime capture or disk
+    // write. Serialize() keeps a defense-in-depth backstop for direct
+    // SaveGame writes that bypass this authoritative Pawn entry point.
+    if (FGridCombatSavePolicy::IsSaveBlockedByCombatState (
+            FindTurnManager ()))
+    {
+        OutError = FText::FromString (
+            TEXT ("La sauvegarde est interdite pendant un combat ou après une défaite."));
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("PartySave SaveRejected Slot=%s Reason=CombatStateNotSaveable"),
+            *PartySaveSlotName);
         return false;
     }
 

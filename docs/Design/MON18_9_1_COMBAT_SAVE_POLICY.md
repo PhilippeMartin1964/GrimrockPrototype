@@ -46,8 +46,12 @@ Defeat          -> sauvegarde normale refusée
 `bCombatActive=true` bloque également toujours l'écriture, indépendamment de
 la phase affichée.
 
-Le verrou est défensif au niveau de `UGrimrockPartySaveGame::Serialize()`.
-Il protège donc tous les appelants existants de `SaveCurrentGame()` :
+Le verrou principal est appliqué dans `AGrimrockPartyPawn::SaveCurrentGame()`,
+avant toute capture runtime et avant `UGameplayStatics::SaveGameToSlot()`.
+`UGrimrockPartySaveGame::Serialize()` conserve en plus un garde-fou défensif pour
+les écritures directes qui contourneraient le Pawn.
+
+Cette double barrière protège donc tous les appelants existants de `SaveCurrentGame()` :
 
 - sauvegarde manuelle future ;
 - autosave à la fermeture du menu/inventaire ;
