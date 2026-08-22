@@ -9,6 +9,7 @@
 
 class AGridLevelEditorActor;
 enum class EGridItemType : uint8;
+enum class EGridLogicIntComparison : uint8;
 enum class EGridObjectCommand : uint8;
 enum class EGridObjectCondition : uint8;
 enum class EGridObjectEvent : uint8;
@@ -50,6 +51,8 @@ private:
     void BuildCommandOptions ();
     void BuildConditionOptions ();
     void BuildItemTypeOptions ();
+    void BuildVariableOptions ();
+    void BuildIntComparisonOptions ();
     void RefreshConnectorFormOptions ();
     FReply OnRemoveExactLinkClicked (FGridObjectLink Link);
     FReply OnClearSelectedObjectLinksClicked ();
@@ -64,6 +67,7 @@ private:
     FText GetLinkConditionText (EGridObjectCondition Condition) const;
     FText GetLinkConditionSummaryText (const FGridObjectLink& Link) const;
     FText GetItemTypeText (EGridItemType ItemType) const;
+    FText GetIntComparisonText (EGridLogicIntComparison Comparison) const;
     FText GetSelectedObjectOptionText (const TSharedPtr<FGuid>& ObjectId, const FText& EmptyText) const;
     FGridObjectLink BuildLinkFromForm () const;
     bool CanCreateConnector () const;
@@ -91,6 +95,14 @@ private:
     void OnItemTypeSelectionChanged (TSharedPtr<EGridItemType> NewValue, ESelectInfo::Type SelectInfo);
     FText GetSelectedItemTypeText () const;
 
+    TSharedRef<SWidget> MakeVariableComboWidget (TSharedPtr<FName> Item) const;
+    void OnVariableSelectionChanged (TSharedPtr<FName> NewValue, ESelectInfo::Type SelectInfo);
+    FText GetSelectedVariableText () const;
+
+    TSharedRef<SWidget> MakeIntComparisonComboWidget (TSharedPtr<EGridLogicIntComparison> Item) const;
+    void OnIntComparisonSelectionChanged (TSharedPtr<EGridLogicIntComparison> NewValue, ESelectInfo::Type SelectInfo);
+    FText GetSelectedIntComparisonText () const;
+
 private:
     TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
     FOnGetGridEditorLinksActor OnGetEditorActor;
@@ -100,6 +112,8 @@ private:
     TArray<TSharedPtr<EGridObjectCommand>> LinkCommandOptions;
     TArray<TSharedPtr<EGridObjectCondition>> LinkConditionOptions;
     TArray<TSharedPtr<EGridItemType>> ItemTypeOptions;
+    TArray<TSharedPtr<EGridLogicIntComparison>> IntComparisonOptions;
+    TArray<TSharedPtr<FName>> VariableOptions;
     TArray<TSharedPtr<FGuid>> SourceObjectOptions;
     TArray<TSharedPtr<FGuid>> TargetObjectOptions;
 
@@ -110,11 +124,15 @@ private:
     TSharedPtr<EGridObjectCommand> SelectedCommand;
     TSharedPtr<EGridObjectCondition> SelectedCondition;
     TSharedPtr<EGridItemType> SelectedConditionItemType;
+    TSharedPtr<EGridLogicIntComparison> SelectedConditionIntComparison;
+    TSharedPtr<FName> SelectedConditionVariableId;
 
     FName ConditionItemDefinitionId = NAME_None;
     FName ConditionItemTag = NAME_None;
     int32 ConditionCount = 1;
     float ConditionWeight = 0.0f;
+    bool ConditionBoolValue = false;
+    int32 ConditionIntValue = 0;
     bool bInvertCondition = false;
 };
 

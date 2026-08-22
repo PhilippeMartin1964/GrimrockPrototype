@@ -138,21 +138,24 @@ namespace GridEditorLinkPolicy
     TArray<EGridObjectCondition> GetSupportedConditionsForTarget (
         const FGridLevelObjectData& ObjectData)
     {
-        if (ObjectData.Type != EGridLevelObjectType::Receptacle)
+        TArray<EGridObjectCondition> Conditions = {
+            EGridObjectCondition::None,
+            EGridObjectCondition::LevelVariableBoolEquals,
+            EGridObjectCondition::LevelVariableIntCompare
+        };
+
+        if (ObjectData.Type == EGridLevelObjectType::Receptacle)
         {
-            return {EGridObjectCondition::None};
+            Conditions.Add (EGridObjectCondition::ReceptacleIsEmpty);
+            Conditions.Add (EGridObjectCondition::ReceptacleHasAnyItem);
+            Conditions.Add (EGridObjectCondition::ReceptacleContainsItemDefinition);
+            Conditions.Add (EGridObjectCondition::ReceptacleContainsItemTag);
+            Conditions.Add (EGridObjectCondition::ReceptacleContainsItemType);
+            Conditions.Add (EGridObjectCondition::ReceptacleItemCountAtLeast);
+            Conditions.Add (EGridObjectCondition::ReceptacleWeightAtLeast);
         }
 
-        return {
-            EGridObjectCondition::None,
-            EGridObjectCondition::ReceptacleIsEmpty,
-            EGridObjectCondition::ReceptacleHasAnyItem,
-            EGridObjectCondition::ReceptacleContainsItemDefinition,
-            EGridObjectCondition::ReceptacleContainsItemTag,
-            EGridObjectCondition::ReceptacleContainsItemType,
-            EGridObjectCondition::ReceptacleItemCountAtLeast,
-            EGridObjectCondition::ReceptacleWeightAtLeast
-        };
+        return Conditions;
     }
 
     EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport (
@@ -212,6 +215,10 @@ namespace GridEditorLinkPolicy
             A.SourceEvent == B.SourceEvent &&
             A.Command == B.Command &&
             A.Condition == B.Condition &&
+            A.ConditionVariableId == B.ConditionVariableId &&
+            A.ConditionBoolValue == B.ConditionBoolValue &&
+            A.ConditionIntComparison == B.ConditionIntComparison &&
+            A.ConditionIntValue == B.ConditionIntValue &&
             A.ConditionItemDefinitionId == B.ConditionItemDefinitionId &&
             A.ConditionItemTag == B.ConditionItemTag &&
             A.ConditionItemType == B.ConditionItemType &&

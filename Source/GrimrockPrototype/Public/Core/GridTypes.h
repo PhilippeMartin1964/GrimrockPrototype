@@ -105,7 +105,9 @@ enum class EGridObjectCondition : uint8
     ReceptacleContainsItemTag         UMETA (DisplayName = "Receptacle Contains Item Tag"),
     ReceptacleContainsItemType        UMETA (DisplayName = "Receptacle Contains Item Type"),
     ReceptacleItemCountAtLeast        UMETA (DisplayName = "Receptacle Item Count At Least"),
-    ReceptacleWeightAtLeast           UMETA (DisplayName = "Receptacle Weight At Least")
+    ReceptacleWeightAtLeast           UMETA (DisplayName = "Receptacle Weight At Least"),
+    LevelVariableBoolEquals           UMETA (DisplayName = "Level Variable Bool Equals"),
+    LevelVariableIntCompare           UMETA (DisplayName = "Level Variable Int Compare")
 };
 
 UENUM (BlueprintType)
@@ -286,6 +288,18 @@ struct FGridObjectLink
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
     EGridObjectCondition Condition = EGridObjectCondition::None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
+    FName ConditionVariableId = NAME_None;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
+    bool ConditionBoolValue = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
+    EGridLogicIntComparison ConditionIntComparison = EGridLogicIntComparison::Equal;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition|Variable")
+    int32 ConditionIntValue = 0;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
     FName ConditionItemDefinitionId = NAME_None;

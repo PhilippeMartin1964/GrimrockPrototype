@@ -955,12 +955,16 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
         const FGridLevelObjectData* TargetObject = TargetObjectPtr ? *TargetObjectPtr : nullptr;
 
         const FString LinkKey = FString::Printf (
-            TEXT ("%s|%s|%d|%d|%d|%s|%s|%d|%d|%.9g|%d"),
+            TEXT ("%s|%s|%d|%d|%d|%s|%d|%d|%d|%s|%s|%d|%d|%.9g|%d"),
             *Link.SourceObjectId.ToString (EGuidFormats::Digits),
             *Link.TargetObjectId.ToString (EGuidFormats::Digits),
             static_cast<int32> (Link.SourceEvent),
             static_cast<int32> (Link.Command),
             static_cast<int32> (Link.Condition),
+            *Link.ConditionVariableId.ToString (),
+            Link.ConditionBoolValue ? 1 : 0,
+            static_cast<int32> (Link.ConditionIntComparison),
+            Link.ConditionIntValue,
             *Link.ConditionItemDefinitionId.ToString (),
             *Link.ConditionItemTag.ToString (),
             static_cast<int32> (Link.ConditionItemType),
@@ -1143,7 +1147,12 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
 
         if (Link.Condition != EGridObjectCondition::None)
         {
-            if (!TargetObject || TargetObject->Type != EGridLevelObjectType::Receptacle)
+            const bool bVariableCondition =
+                Link.Condition == EGridObjectCondition::LevelVariableBoolEquals ||
+                Link.Condition == EGridObjectCondition::LevelVariableIntCompare;
+
+            if (!bVariableCondition &&
+                (!TargetObject || TargetObject->Type != EGridLevelObjectType::Receptacle))
             {
                 AddMessage (
                     EGridLevelValidationSeverity::Error,
@@ -1152,6 +1161,75 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                         LinkIndex,
                         *ToGridObjectConditionText (Link.Condition)),
                     Link.TargetObjectId);
+            }
+
+            if (bVariableCondition)
+            {
+                if (Link.ConditionVariableId.IsNone ())
+                {
+                    AddMessage (
+                        EGridLevelValidationSeverity::Error,
+                        FString::Printf (TEXT ("Link %d variable condition requires ConditionVariableId."), LinkIndex),
+                        Link.SourceObjectId);
+                }
+                else
+                {
+                    const FGridLevelVariableDefinition* VariableDefinition =
+                        LevelAsset->LevelVariables.FindByPredicate (
+                            [&Link] (const FGridLevelVariableDefinition& Definition)
+                    {
+                        return Definition.VariableId == Link.ConditionVariableId;
+                    });
+
+                    if (!VariableDefinition)
+                    {
+                        AddMessage (
+                            EGridLevelValidationSeverity::Error,
+                            FString::Printf (
+                                TEXT ("Link %d condition references undeclared level variable '%s'."),
+                                LinkIndex,
+                                *Link.ConditionVariableId.ToString ()),
+                            Link.SourceObjectId);
+                    }
+                    else
+                    {
+                        const EGridLevelVariableType RequiredType =
+                            Link.Condition == EGridObjectCondition::LevelVariableBoolEquals
+                                ? EGridLevelVariableType::Bool
+                                : EGridLevelVariableType::Int32;
+                        if (VariableDefinition->Type != RequiredType)
+                        {
+                            AddMessage (
+                                EGridLevelValidationSeverity::Error,
+                                FString::Printf (
+                                    TEXT ("Link %d condition variable '%s' has the wrong type."),
+                                    LinkIndex,
+                                    *Link.ConditionVariableId.ToString ()),
+                                Link.SourceObjectId);
+                        }
+                    }
+                }
+
+                if (Link.Condition == EGridObjectCondition::LevelVariableIntCompare)
+                {
+                    switch (Link.ConditionIntComparison)
+                    {
+                        case EGridLogicIntComparison::Equal:
+                        case EGridLogicIntComparison::NotEqual:
+                        case EGridLogicIntComparison::Less:
+                        case EGridLogicIntComparison::LessOrEqual:
+                        case EGridLogicIntComparison::Greater:
+                        case EGridLogicIntComparison::GreaterOrEqual:
+                            break;
+
+                        default:
+                            AddMessage (
+                                EGridLevelValidationSeverity::Error,
+                                FString::Printf (TEXT ("Link %d uses an invalid level-variable Int comparison."), LinkIndex),
+                                Link.SourceObjectId);
+                            break;
+                    }
+                }
             }
 
             switch (Link.Condition)
@@ -1206,6 +1284,8 @@ TArray<FGridLevelValidationMessage> AGridLevelEditorActor::ValidateCurrentLevel 
                     }
                     break;
 
+                case EGridObjectCondition::LevelVariableBoolEquals:
+                case EGridObjectCondition::LevelVariableIntCompare:
                 case EGridObjectCondition::ReceptacleIsEmpty:
                 case EGridObjectCondition::ReceptacleHasAnyItem:
                 case EGridObjectCondition::None:

@@ -7,6 +7,7 @@
 #include "EditorTools/GridEditorLinkService.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
+#include "Core/GridLevelVariableTypes.h"
 #include "Core/GridObjectArchetypeAsset.h"
 #include "Core/GridTypes.h"
 
@@ -371,6 +372,14 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildConditionCreationSection ()
             : EVisibility::Collapsed;
     };
 
+    const auto VariableVisibility = [this] ()
+    {
+        return IsConditionSelected (EGridObjectCondition::LevelVariableBoolEquals) ||
+            IsConditionSelected (EGridObjectCondition::LevelVariableIntCompare)
+                ? EVisibility::Visible
+                : EVisibility::Collapsed;
+    };
+
     const auto InvertVisibility = [this] ()
     {
         return SelectedCondition.IsValid () &&
@@ -396,6 +405,111 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildConditionCreationSection ()
                             return GetSelectedLinkConditionText ();
                         })
                     ])
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda (VariableVisibility)
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Variable")),
+                        SNew (SComboBox<TSharedPtr<FName>>)
+                            .OptionsSource (&VariableOptions)
+                            .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeVariableComboWidget)
+                            .OnSelectionChanged (this, &SGridEditorLinksPanel::OnVariableSelectionChanged)
+                            [
+                                SNew (STextBlock)
+                                    .Text_Lambda ([this] ()
+                                {
+                                    return GetSelectedVariableText ();
+                                })
+                            ])
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::LevelVariableBoolEquals);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Expected Value")),
+                        SNew (SHorizontalBox)
+
+                        + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center)
+                        [
+                            SNew (SCheckBox)
+                                .IsChecked_Lambda ([this] ()
+                                {
+                                    return ConditionBoolValue
+                                        ? ECheckBoxState::Checked
+                                        : ECheckBoxState::Unchecked;
+                                })
+                                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                                {
+                                    ConditionBoolValue = NewState == ECheckBoxState::Checked;
+                                })
+                        ]
+
+                        + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (5.f, 0.f, 0.f, 0.f)
+                        [
+                            SNew (STextBlock)
+                                .Text_Lambda ([this] ()
+                                {
+                                    return FText::FromString (ConditionBoolValue ? TEXT ("true") : TEXT ("false"));
+                                })
+                        ])
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::LevelVariableIntCompare);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Comparison")),
+                        SNew (SComboBox<TSharedPtr<EGridLogicIntComparison>>)
+                            .OptionsSource (&IntComparisonOptions)
+                            .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeIntComparisonComboWidget)
+                            .OnSelectionChanged (this, &SGridEditorLinksPanel::OnIntComparisonSelectionChanged)
+                            [
+                                SNew (STextBlock)
+                                    .Text_Lambda ([this] ()
+                                {
+                                    return GetSelectedIntComparisonText ();
+                                })
+                            ])
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::LevelVariableIntCompare);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Compare Value")),
+                        SNew (SNumericEntryBox<int32>)
+                            .Value_Lambda ([this] () -> TOptional<int32>
+                            {
+                                return ConditionIntValue;
+                            })
+                            .OnValueChanged_Lambda ([this] (int32 NewValue)
+                            {
+                                ConditionIntValue = NewValue;
+                            }))
+                ]
         ]
 
         + SVerticalBox::Slot ().AutoHeight ()
@@ -779,6 +893,7 @@ FReply SGridEditorLinksPanel::OnToggleAddConnectorClicked ()
         BuildEventOptions ();
         BuildCommandOptions ();
         BuildConditionOptions ();
+        BuildVariableOptions ();
     }
 
     RebuildLinksSection ();
@@ -801,6 +916,7 @@ FReply SGridEditorLinksPanel::OnCreateConnectorClicked ()
         {
             SelectedTargetObjectId.Reset ();
             SelectedCondition.Reset ();
+            SelectedConditionVariableId.Reset ();
             bAddConnectorVisible = false;
             RequestRefresh ();
         }
@@ -813,6 +929,7 @@ FReply SGridEditorLinksPanel::OnCancelAddConnectorClicked ()
 {
     SelectedTargetObjectId.Reset ();
     SelectedCondition.Reset ();
+    SelectedConditionVariableId.Reset ();
     bAddConnectorVisible = false;
     RebuildLinksSection ();
     return FReply::Handled ();
@@ -905,6 +1022,15 @@ FText SGridEditorLinksPanel::GetItemTypeText (EGridItemType ItemType) const
         : FText::FromString (TEXT ("Unknown"));
 }
 
+FText SGridEditorLinksPanel::GetIntComparisonText (EGridLogicIntComparison Comparison) const
+{
+    const UEnum* Enum = StaticEnum<EGridLogicIntComparison> ();
+
+    return Enum
+        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (Comparison))
+        : FText::FromString (TEXT ("Unknown"));
+}
+
 FText SGridEditorLinksPanel::GetLinkConditionSummaryText (const FGridObjectLink& Link) const
 {
     if (Link.Condition == EGridObjectCondition::None)
@@ -916,6 +1042,21 @@ FText SGridEditorLinksPanel::GetLinkConditionSummaryText (const FGridObjectLink&
 
     switch (Link.Condition)
     {
+        case EGridObjectCondition::LevelVariableBoolEquals:
+            Summary += FString::Printf (
+                TEXT (" [%s == %s]"),
+                *Link.ConditionVariableId.ToString (),
+                Link.ConditionBoolValue ? TEXT ("true") : TEXT ("false"));
+            break;
+
+        case EGridObjectCondition::LevelVariableIntCompare:
+            Summary += FString::Printf (
+                TEXT (" [%s %s %d]"),
+                *Link.ConditionVariableId.ToString (),
+                *GetIntComparisonText (Link.ConditionIntComparison).ToString (),
+                Link.ConditionIntValue);
+            break;
+
         case EGridObjectCondition::ReceptacleContainsItemDefinition:
             Summary += FString::Printf (TEXT (" [%s]"), *Link.ConditionItemDefinitionId.ToString ());
             break;
@@ -986,6 +1127,23 @@ FGridObjectLink SGridEditorLinksPanel::BuildLinkFromForm () const
 
     switch (Link.Condition)
     {
+        case EGridObjectCondition::LevelVariableBoolEquals:
+            Link.ConditionVariableId = SelectedConditionVariableId.IsValid ()
+                ? *SelectedConditionVariableId
+                : NAME_None;
+            Link.ConditionBoolValue = ConditionBoolValue;
+            break;
+
+        case EGridObjectCondition::LevelVariableIntCompare:
+            Link.ConditionVariableId = SelectedConditionVariableId.IsValid ()
+                ? *SelectedConditionVariableId
+                : NAME_None;
+            Link.ConditionIntComparison = SelectedConditionIntComparison.IsValid ()
+                ? *SelectedConditionIntComparison
+                : EGridLogicIntComparison::Equal;
+            Link.ConditionIntValue = ConditionIntValue;
+            break;
+
         case EGridObjectCondition::ReceptacleContainsItemDefinition:
             Link.ConditionItemDefinitionId = ConditionItemDefinitionId;
             break;
@@ -1119,9 +1277,11 @@ bool SGridEditorLinksPanel::IsConditionSelected (EGridObjectCondition Condition)
 void SGridEditorLinksPanel::BuildLinkOptions ()
 {
     BuildItemTypeOptions ();
+    BuildIntComparisonOptions ();
     BuildEventOptions ();
     BuildCommandOptions ();
     BuildConditionOptions ();
+    BuildVariableOptions ();
 }
 
 void SGridEditorLinksPanel::BuildObjectOptions ()
@@ -1329,12 +1489,100 @@ void SGridEditorLinksPanel::BuildItemTypeOptions ()
     }
 }
 
+void SGridEditorLinksPanel::BuildVariableOptions ()
+{
+    VariableOptions.Reset ();
+
+    EGridLevelVariableType RequiredType = EGridLevelVariableType::Bool;
+    bool bUsesVariable = false;
+    if (IsConditionSelected (EGridObjectCondition::LevelVariableBoolEquals))
+    {
+        RequiredType = EGridLevelVariableType::Bool;
+        bUsesVariable = true;
+    }
+    else if (IsConditionSelected (EGridObjectCondition::LevelVariableIntCompare))
+    {
+        RequiredType = EGridLevelVariableType::Int32;
+        bUsesVariable = true;
+    }
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    if (!bUsesVariable || !CurrentEditorActor || !CurrentEditorActor->LevelAsset)
+    {
+        SelectedConditionVariableId.Reset ();
+        return;
+    }
+
+    for (const FGridLevelVariableDefinition& Definition : CurrentEditorActor->LevelAsset->LevelVariables)
+    {
+        if (!Definition.VariableId.IsNone () && Definition.Type == RequiredType)
+        {
+            VariableOptions.Add (MakeShared<FName> (Definition.VariableId));
+        }
+    }
+
+    bool bCurrentVariableStillValid = false;
+    for (const TSharedPtr<FName>& Option : VariableOptions)
+    {
+        if (Option.IsValid () && SelectedConditionVariableId.IsValid () &&
+            *Option == *SelectedConditionVariableId)
+        {
+            SelectedConditionVariableId = Option;
+            bCurrentVariableStillValid = true;
+            break;
+        }
+    }
+
+    if (!bCurrentVariableStillValid)
+    {
+        SelectedConditionVariableId = VariableOptions.Num () > 0 ? VariableOptions[0] : nullptr;
+    }
+}
+
+void SGridEditorLinksPanel::BuildIntComparisonOptions ()
+{
+    IntComparisonOptions.Reset ();
+    const EGridLogicIntComparison Comparisons[] = {
+        EGridLogicIntComparison::Equal,
+        EGridLogicIntComparison::NotEqual,
+        EGridLogicIntComparison::Less,
+        EGridLogicIntComparison::LessOrEqual,
+        EGridLogicIntComparison::Greater,
+        EGridLogicIntComparison::GreaterOrEqual
+    };
+
+    for (const EGridLogicIntComparison Comparison : Comparisons)
+    {
+        IntComparisonOptions.Add (MakeShared<EGridLogicIntComparison> (Comparison));
+    }
+
+    bool bCurrentComparisonStillValid = false;
+    for (const TSharedPtr<EGridLogicIntComparison>& Option : IntComparisonOptions)
+    {
+        if (Option.IsValid () && SelectedConditionIntComparison.IsValid () &&
+            *Option == *SelectedConditionIntComparison)
+        {
+            SelectedConditionIntComparison = Option;
+            bCurrentComparisonStillValid = true;
+            break;
+        }
+    }
+
+    if (!bCurrentComparisonStillValid)
+    {
+        SelectedConditionIntComparison = IntComparisonOptions.Num () > 0
+            ? IntComparisonOptions[0]
+            : nullptr;
+    }
+}
+
 void SGridEditorLinksPanel::RefreshConnectorFormOptions ()
 {
     BuildObjectOptions ();
     BuildEventOptions ();
     BuildCommandOptions ();
     BuildConditionOptions ();
+    BuildVariableOptions ();
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeObjectComboWidget (TSharedPtr<FGuid> Item) const
@@ -1364,6 +1612,7 @@ void SGridEditorLinksPanel::OnTargetObjectSelectionChanged (
     SelectedTargetObjectId = NewValue;
     BuildCommandOptions ();
     BuildConditionOptions ();
+    BuildVariableOptions ();
     RebuildLinksSection ();
 }
 
@@ -1448,6 +1697,8 @@ void SGridEditorLinksPanel::OnLinkConditionSelectionChanged (
         {
             bInvertCondition = false;
         }
+        BuildVariableOptions ();
+        RebuildLinksSection ();
     }
 }
 
@@ -1485,6 +1736,64 @@ FText SGridEditorLinksPanel::GetSelectedItemTypeText () const
     return SelectedConditionItemType.IsValid ()
         ? GetItemTypeText (*SelectedConditionItemType)
         : FText::FromString (TEXT ("Select item type"));
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::MakeVariableComboWidget (
+    TSharedPtr<FName> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (FText::FromName (*Item));
+}
+
+void SGridEditorLinksPanel::OnVariableSelectionChanged (
+    TSharedPtr<FName> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    (void)SelectInfo;
+    if (NewValue.IsValid ())
+    {
+        SelectedConditionVariableId = NewValue;
+    }
+}
+
+FText SGridEditorLinksPanel::GetSelectedVariableText () const
+{
+    return SelectedConditionVariableId.IsValid ()
+        ? FText::FromName (*SelectedConditionVariableId)
+        : FText::FromString (TEXT ("Select variable"));
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::MakeIntComparisonComboWidget (
+    TSharedPtr<EGridLogicIntComparison> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (GetIntComparisonText (*Item));
+}
+
+void SGridEditorLinksPanel::OnIntComparisonSelectionChanged (
+    TSharedPtr<EGridLogicIntComparison> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    (void)SelectInfo;
+    if (NewValue.IsValid ())
+    {
+        SelectedConditionIntComparison = NewValue;
+    }
+}
+
+FText SGridEditorLinksPanel::GetSelectedIntComparisonText () const
+{
+    return SelectedConditionIntComparison.IsValid ()
+        ? GetIntComparisonText (*SelectedConditionIntComparison)
+        : FText::FromString (TEXT ("Select comparison"));
 }
 
 #endif

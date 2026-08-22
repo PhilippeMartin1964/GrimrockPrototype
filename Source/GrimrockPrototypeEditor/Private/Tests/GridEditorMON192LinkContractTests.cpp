@@ -202,11 +202,13 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest (
     const TArray<EGridObjectCondition> ReceptacleConditions =
         GridEditorLinkPolicy::GetSupportedConditionsForTarget (Receptacle);
     TestTrue (
-        TEXT ("Receptacle exposes exactly all eight current condition values"),
+        TEXT ("Receptacle exposes its eight historical conditions plus two level-variable conditions"),
         ContainsExactly (
             ReceptacleConditions,
             {
                 EGridObjectCondition::None,
+                EGridObjectCondition::LevelVariableBoolEquals,
+                EGridObjectCondition::LevelVariableIntCompare,
                 EGridObjectCondition::ReceptacleIsEmpty,
                 EGridObjectCondition::ReceptacleHasAnyItem,
                 EGridObjectCondition::ReceptacleContainsItemDefinition,
@@ -217,10 +219,14 @@ bool FGridEditorMON192LinkPolicyMatrixTest::RunTest (
             }));
 
     TestTrue (
-        TEXT ("Door exposes no receptacle-specific condition"),
+        TEXT ("Door exposes None plus both level-variable conditions"),
         ContainsExactly (
             GridEditorLinkPolicy::GetSupportedConditionsForTarget (Door),
-            {EGridObjectCondition::None}));
+            {
+                EGridObjectCondition::None,
+                EGridObjectCondition::LevelVariableBoolEquals,
+                EGridObjectCondition::LevelVariableIntCompare
+            }));
 
     return true;
 }
