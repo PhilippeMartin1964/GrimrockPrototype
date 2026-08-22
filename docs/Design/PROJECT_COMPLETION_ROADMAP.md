@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.9.1 COMBAT SAVE POLICY VALIDÉ ET CLOS — MON18.9 EN COURS**  
+Statut : **MON18.9.2 SPELL BALANCE VALIDÉ ET CLOS — MON18.9 EN COURS**  
 Date de référence : **22 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -60,7 +60,8 @@ MON18.7 — Spellbook / Hotbar UI                 CLOS
 MON18.8 — Persistence / Migration               CLOS
 MON18.9 — Balance / Regression / Closure        EN COURS
   MON18.9.1 — Combat Save Policy / Checkpoint   CLOS
-  MON18.9.2 — Spell Balance / Cross-System      EN VALIDATION
+  MON18.9.2 — Spell Balance / Cross-System      CLOS
+  MON18.9.3 — Final Diagnostics / Global Tests  PROCHAIN
 ```
 
 ### MON18.1 — CLOS
@@ -164,13 +165,11 @@ Validation UE5.5.4 :
 
 ```text
 Grimrock.Magic.MON18.8                 12/12 Success
-Grimrock.RPG.MON16.5                   9/9 Success après correctif d25cf26e
-Grimrock.UI.UI01.4.3e.2                6/6 Success
-PIE Save -> arrêt PIE -> Continue      VALIDÉ
-Seed après Continue                    Added=0 AlreadyKnown=4
+Grimrock.RPG.MON16.5                    9/9 Success après correctif d25cf26e
+Grimrock.UI.UI01.4.3e.2                 6/6 Success
+PIE Save -> arrêt PIE -> Continue       VALIDÉ
+Seed après Continue                     Added=0 AlreadyKnown=4
 ```
-
-Le second seed prouve la restauration réelle des quatre sorts de production depuis le SaveGame v6.
 
 Références :
 
@@ -192,50 +191,59 @@ engagement automatique     -> checkpoint <slot>_AutoCombat avant StartCombat
 échec checkpoint           -> combat automatique refusé
 ```
 
-Le format `UGrimrockPartySaveGame` reste en version 6 : aucun état transitoire de combat (initiative, round, PA/PAM, cooldowns, actions en cours) n'est ajouté à la persistance.
+Le format `UGrimrockPartySaveGame` reste en version 6 : aucun état transitoire de combat n'est ajouté à la persistance.
 
-Le verrou autoritaire est appliqué dans `AGrimrockPartyPawn::SaveCurrentGame()` avant toute capture/écriture disque. `UGrimrockPartySaveGame::Serialize()` reste une seconde barrière défensive.
-
-Validation UE5.5.4 fournie le 22 août 2026 :
+Validation UE5.5.4 :
 
 ```text
 Grimrock.Save.MON18.9.1                6/6 Success
 Grimrock.Save.SAVEFIX.2                1/1 Success
-Grimrock.Magic.MON18.8                 12/12 Success
+Grimrock.Magic.MON18.8                12/12 Success
 Grimrock.Monsters.MON14.1              7/7 Success
 ```
 
-Les logs confirment que les sauvegardes régulières sont réellement refusées en combat/défaite, que le slot principal n'est pas écrasé et que le checkpoint `_AutoCombat` est préservé.
-
 Référence : `docs/Design/MON18_9_1_COMBAT_SAVE_POLICY.md`.
 
-#### MON18.9.2 — Spell Balance & Cross-System Regression — EN VALIDATION
+#### MON18.9.2 — Spell Balance & Cross-System Regression — CLOS
 
-Baseline figée sans changement arbitraire de chiffres :
-
-```text
-Arcane Bolt   Damage 4             Mana 3  PA 2  portée 1..5  cooldown 0
-Lesser Heal   Heal 5               Mana 4  PA 2  portée 0..3  cooldown 0
-Haste         Apply Status_Haste   Mana 5  PA 2  portée 0..3  cooldown 0
-Cure Poison   Remove Status_Poison Mana 4  PA 2  portée 0..3  cooldown 0
-```
-
-Nouveau contrat transactionnel : un sort qui ne peut produire aucune mutation utile (`Lesser Heal` à PV max, `Cure Poison` sans poison) est rejeté avec `NoEffectWouldApply` avant tout commit PA/mana.
-
-Validation ciblée attendue :
+Baseline de production gelée :
 
 ```text
-Grimrock.Magic.MON18.9.2             5/5 attendu
-Grimrock.UI.UI01.4.3e.2              régression
-Grimrock.Magic.MON18.5               régression
-Grimrock.Magic.MON18.8               régression
-Grimrock.RPG.MON16.4                 régression
-Grimrock.RPG.MON16.7                 régression
+Arcane Bolt   Damage 4              Mana 3  PA 2  portée 1..5  cooldown 0
+Lesser Heal   Heal 5                Mana 4  PA 2  portée 0..3  cooldown 0
+Haste         Apply Status_Haste    Mana 5  PA 2  portée 0..3  cooldown 0
+Cure Poison   Remove Status_Poison  Mana 4  PA 2  portée 0..3  cooldown 0
 ```
+
+Contrat transactionnel : un sort qui ne peut produire aucune mutation utile (`Lesser Heal` à PV max, `Cure Poison` sans poison) est rejeté avec `NoEffectWouldApply` avant tout commit PA/mana.
+
+Validation UE5.5.4 fournie le 22 août 2026 :
+
+```text
+Grimrock.Magic.MON18.9.2             5/5 Success
+Grimrock.UI.UI01.4.3e.2              6/6 Success
+Grimrock.Magic.MON18.5               6/6 Success
+Grimrock.Magic.MON18.8              12/12 Success
+Grimrock.RPG.MON16.4                11/11 Success
+Grimrock.RPG.MON16.7                11/11 Success
+```
+
+Bilan cumulé demandé : **51/51 Success**.
 
 Référence : `docs/Design/MON18_9_2_SPELL_BALANCE_CROSS_SYSTEM_REGRESSION.md`.
 
-Après validation MON18.9.2, MON18.9 poursuivra les diagnostics résiduels, la campagne `Grimrock` complète et la clôture documentaire de MON18.
+#### MON18.9.3 — Final Diagnostics / Global Regression / Closure — PROCHAIN
+
+Objectif : dernière passe avant fermeture du jalon majeur MON18.
+
+Travail attendu :
+
+- identifier et clarifier les diagnostics résiduels liés aux anciens slots auxiliaires de sauvegarde s'ils apparaissent encore ;
+- lancer la campagne Automation globale `Grimrock` ;
+- corriger uniquement les régressions réellement observées, sans refactor massif ;
+- effectuer une courte validation PIE finale du flux Spellbook/hotbar/save/combat ;
+- mettre à jour overview, roadmap et document de clôture MON18 ;
+- déclarer MON18 clos uniquement après résultats UE5.5.4 fournis par l'utilisateur.
 
 ---
 
@@ -294,5 +302,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider MON18.9.2 — Spell Balance & Cross-System Regression sous UE5.5.4
+MON18.9.3 — diagnostics résiduels, campagne Automation globale Grimrock et préparation de la clôture de MON18
 ```

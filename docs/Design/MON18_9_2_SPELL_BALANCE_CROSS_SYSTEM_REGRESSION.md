@@ -2,35 +2,33 @@
 
 ## Statut
 
-**IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE.**
+**VALIDÉ ET CLOS sous UE5.5.4 — 22 août 2026.**
 
-Base :
+Base d'implémentation :
 
 ```text
-a315672c18999f2d413fd9077ad25866f2e4186d
-Close MON18.9.1 combat save policy validation
+5da47790ea0a2f2c03c3bf0c2a09bf5e711b40d6
+Implement MON18.9.2 spell balance regressions
 ```
 
 ## 1. Objectif
 
 MON18.9.2 ne crée aucun nouveau système de magie. Il fige la première baseline de balance des quatre sorts de production et sécurise leurs interactions transactionnelles avec la hotbar, les PA/mana et MON16.
 
-Baseline conservée :
+Baseline conservée et désormais couverte par Automation :
 
 ```text
-Spell_ArcaneBolt   Damage 4            Mana 3  PA 2  portée 1..5  cooldown 0
-Spell_LesserHeal   Heal 5              Mana 4  PA 2  portée 0..3  cooldown 0
-Spell_Haste        Apply Status_Haste  Mana 5  PA 2  portée 0..3  cooldown 0
-Spell_CurePoison   Remove Status_Poison Mana 4 PA 2  portée 0..3  cooldown 0
+Spell_ArcaneBolt    Damage 4              Mana 3  PA 2  portée 1..5  cooldown 0
+Spell_LesserHeal    Heal 5                Mana 4  PA 2  portée 0..3  cooldown 0
+Spell_Haste         Apply Status_Haste    Mana 5  PA 2  portée 0..3  cooldown 0
+Spell_CurePoison    Remove Status_Poison  Mana 4  PA 2  portée 0..3  cooldown 0
 ```
 
-Les valeurs ne sont pas modifiées arbitrairement avant playtest. Elles deviennent un contrat testé afin que toute future modification de balance soit volontaire et visible.
+Les valeurs ne sont pas modifiées arbitrairement avant playtest. Toute future modification de balance devra être intentionnelle et mettre à jour ce contrat.
 
-## 2. Règle transactionnelle ajoutée
+## 2. Contrat transactionnel
 
 Un sort qui ne peut produire aucune mutation utile sur sa cible est rejeté avant commit runtime.
-
-Cas couverts :
 
 ```text
 Lesser Heal sur cible à PV max
@@ -44,23 +42,11 @@ Cure Poison sur cible sans Status_Poison
     -> 0 mana consommée
 ```
 
-Le resolver MON18.5 reste déterministe et peut toujours produire un résultat où tous les effets ont `bMutatedTarget=false`. La décision de ne pas payer un sort inutile appartient au niveau d'orchestration `FGridSpellHotbarExecutionService`, après résolution sur copies et avant publication du résultat autoritaire.
+Le resolver MON18.5 reste déterministe. La décision de ne pas payer un sort inutile appartient à `FGridSpellHotbarExecutionService`, après résolution sur copies et avant publication du résultat autoritaire.
 
-## 3. Nouveau contrat de résultat
+`EGridSpellEffectResolutionRejectReason` contient désormais `NoEffectWouldApply` et `FGridSpellEffectResolutionResult::DidMutateTarget()` centralise le test de mutation utile.
 
-`EGridSpellEffectResolutionRejectReason` reçoit :
-
-```text
-NoEffectWouldApply
-```
-
-`FGridSpellEffectResolutionResult::DidMutateTarget()` centralise la détection d'au moins une mutation utile dans le batch d'effets.
-
-Cette règle conserve l'atomicité MON18.3/MON18.5 : les coûts calculés ne vivent encore que dans des copies locales lorsque le rejet survient.
-
-## 4. Cas qui restent payants
-
-Les casts utiles conservent le comportement existant :
+## 3. Cas utiles conservés
 
 ```text
 Cure Poison + Status_Poison présent
@@ -72,41 +58,48 @@ Haste + définition MON16 valide
     -> 2 PA + 5 mana débités
 ```
 
-Arcane Bolt et Lesser Heal utiles ne changent pas de comportement.
+Arcane Bolt et Lesser Heal utiles conservent leur comportement précédent.
 
-## 5. Tests Automation
+## 4. Validation UE5.5.4
 
-Namespace :
+Campagne fournie par l'utilisateur le 22 août 2026.
 
-```text
-Grimrock.Magic.MON18.9.2
-```
-
-Tests ajoutés :
+### MON18.9.2 ciblé
 
 ```text
-BalanceContract
-FullHealthHealNoCost
-CurePoisonCleanTargetNoCost
-CurePoisonCommit
-HasteCommit
+Grimrock.Magic.MON18.9.2.BalanceContract                 Success
+Grimrock.Magic.MON18.9.2.CurePoisonCleanTargetNoCost     Success
+Grimrock.Magic.MON18.9.2.CurePoisonCommit                Success
+Grimrock.Magic.MON18.9.2.FullHealthHealNoCost            Success
+Grimrock.Magic.MON18.9.2.HasteCommit                     Success
 ```
 
-Attendu : **5/5 Success**.
+Bilan : **5/5 Success**.
 
-Régressions recommandées après succès ciblé :
+### Régressions cross-system
 
 ```text
-Grimrock.UI.UI01.4.3e.2
-Grimrock.Magic.MON18.5
-Grimrock.Magic.MON18.8
-Grimrock.RPG.MON16.4
-Grimrock.RPG.MON16.7
+Grimrock.UI.UI01.4.3e.2      6/6 Success
+Grimrock.Magic.MON18.5       6/6 Success
+Grimrock.Magic.MON18.8      12/12 Success
+Grimrock.RPG.MON16.4        11/11 Success
+Grimrock.RPG.MON16.7        11/11 Success
 ```
 
-## 6. Fichiers
+Bilan cumulé de la campagne demandée : **51/51 Success**.
 
-Modifiés :
+Les résultats confirment notamment :
+
+- l'exécution hotbar d'Arcane Bolt et Lesser Heal ;
+- l'absence de coût sur les échecs transactionnels ;
+- la résolution Damage/Heal/ApplyStatus/RemoveStatus de MON18.5 ;
+- la persistance Spellbook v6 et les protections SAVEFIX.1 ;
+- le réordonnancement d'initiative Haste/Slow de MON16.4 ;
+- la persistance et migration des Status Effects de MON16.7.
+
+## 5. Fichiers
+
+Modifiés par l'implémentation :
 
 ```text
 Source/GrimrockPrototype/Public/Magic/GridSpellEffectResolver.h
@@ -120,14 +113,17 @@ Source/GrimrockPrototype/Private/Tests/GridMagicMON1892SpellBalanceRegressionTes
 docs/Design/MON18_9_2_SPELL_BALANCE_CROSS_SYSTEM_REGRESSION.md
 ```
 
-Aucun `.uasset`, `.umap`, SaveGame version bump ou nouvelle abstraction parallèle.
+Aucun `.uasset`, `.umap`, SaveGame version bump ou système parallèle.
 
-## 7. Validation attendue
+## 6. Contrat gelé
 
-Après compilation UE5.5.4 :
+À partir de cette clôture :
 
-```text
-Automation RunTests Grimrock.Magic.MON18.9.2
-```
+- les quatre valeurs de production constituent la baseline de balance initiale ;
+- un cast totalement sans effet utile ne doit jamais consommer PA/mana ;
+- les sorts de statut réutilisent MON16 ;
+- les bindings restent ceux de la hotbar MON12 ;
+- la persistance Spellbook reste celle de MON18.8 ;
+- tout changement ultérieur de coûts, portée, cooldown ou magnitude doit être explicite et testé.
 
-Puis les régressions listées ci-dessus. La clôture de MON18.9.2 attend les résultats fournis par l'utilisateur.
+Prochaine étape : **MON18.9.3 — diagnostics résiduels, campagne globale `Grimrock` et préparation de la clôture de MON18.**
