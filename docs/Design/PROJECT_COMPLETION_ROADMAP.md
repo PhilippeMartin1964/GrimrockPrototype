@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.9.2 SPELL BALANCE VALIDÉ ET CLOS — MON18.9 EN COURS**  
+Statut : **MON18.9.3 FINAL DIAGNOSTICS / GLOBAL REGRESSION — EN VALIDATION**  
 Date de référence : **22 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -61,7 +61,7 @@ MON18.8 — Persistence / Migration               CLOS
 MON18.9 — Balance / Regression / Closure        EN COURS
   MON18.9.1 — Combat Save Policy / Checkpoint   CLOS
   MON18.9.2 — Spell Balance / Cross-System      CLOS
-  MON18.9.3 — Final Diagnostics / Global Tests  PROCHAIN
+  MON18.9.3 — Final Diagnostics / Global Tests  EN VALIDATION
 ```
 
 ### MON18.1 — CLOS
@@ -123,13 +123,7 @@ Spellbook
     -> présentation MON18.6
 ```
 
-UI01.4.3e.2 a été validé avec **6/6 Automation Success** et en PIE réel :
-
-- `Lesser Heal` : 2 PA, 4 mana, +5 PV ;
-- `Arcane Bolt` : 2 PA, 3 mana, 4 dégâts ;
-- mort par `Arcane Bolt` correctement propagée vers loot, XP, événement de mort et occupation ;
-- refus correct pour mana insuffisant ;
-- régression `ExecutionNotImplemented` couverte par tests dédiés.
+UI01.4.3e.2 a été validé avec **6/6 Automation Success** et en PIE réel.
 
 Références :
 
@@ -151,15 +145,6 @@ UGridPartySpellbookComponent runtime/transient
     -> restore atomique par CharacterId
     -> hotbar Spell conservée comme simple référence
 ```
-
-Principes validés :
-
-- aucun sort n'est inventé lors de la migration d'une sauvegarde v5 ;
-- un SpellId valide dont la définition a disparu reste conservé ;
-- un binding Spell de hotbar ne peut pas enseigner un sort ;
-- `SourceDefinitionId` d'un binding Spell ne redevient jamais un `ItemDefinitionId` ;
-- SAVEFIX.1 et SAVEFIX.2 restent protégés ;
-- aucune modification `.uasset/.umap` n'a été nécessaire.
 
 Validation UE5.5.4 :
 
@@ -191,8 +176,6 @@ engagement automatique     -> checkpoint <slot>_AutoCombat avant StartCombat
 échec checkpoint           -> combat automatique refusé
 ```
 
-Le format `UGrimrockPartySaveGame` reste en version 6 : aucun état transitoire de combat n'est ajouté à la persistance.
-
 Validation UE5.5.4 :
 
 ```text
@@ -217,7 +200,7 @@ Cure Poison   Remove Status_Poison  Mana 4  PA 2  portée 0..3  cooldown 0
 
 Contrat transactionnel : un sort qui ne peut produire aucune mutation utile (`Lesser Heal` à PV max, `Cure Poison` sans poison) est rejeté avec `NoEffectWouldApply` avant tout commit PA/mana.
 
-Validation UE5.5.4 fournie le 22 août 2026 :
+Validation UE5.5.4 :
 
 ```text
 Grimrock.Magic.MON18.9.2             5/5 Success
@@ -232,18 +215,36 @@ Bilan cumulé demandé : **51/51 Success**.
 
 Référence : `docs/Design/MON18_9_2_SPELL_BALANCE_CROSS_SYSTEM_REGRESSION.md`.
 
-#### MON18.9.3 — Final Diagnostics / Global Regression / Closure — PROCHAIN
+#### MON18.9.3 — Final Diagnostics / Global Regression / Closure — EN VALIDATION
 
-Objectif : dernière passe avant fermeture du jalon majeur MON18.
+MON18.9.3 n'ajoute aucun gameplay. Il améliore l'observabilité des anciens SaveGame : lorsqu'un slot configuré existe mais est rejeté, `UGrimrockGameInstance::HasPartySaveGame()` ajoute un diagnostic avec le nom du slot, son `UserIndex` et une raison stable :
 
-Travail attendu :
+```text
+LoadFailedOrWrongClass
+IncompatibleSave
+PartyInventoryStateNotLoadable
+```
 
-- identifier et clarifier les diagnostics résiduels liés aux anciens slots auxiliaires de sauvegarde s'ils apparaissent encore ;
-- lancer la campagne Automation globale `Grimrock` ;
-- corriger uniquement les régressions réellement observées, sans refactor massif ;
-- effectuer une courte validation PIE finale du flux Spellbook/hotbar/save/combat ;
-- mettre à jour overview, roadmap et document de clôture MON18 ;
-- déclarer MON18 clos uniquement après résultats UE5.5.4 fournis par l'utilisateur.
+Le checkpoint `<slot>_AutoCombat` reste exclu des slots manuels configurés et ne doit pas apparaître dans le menu de chargement normal.
+
+Automation ciblée :
+
+```text
+Grimrock.Magic.MON18.9.3.SaveSlotDiagnostics
+Grimrock.Magic.MON18.9.3.CheckpointIsolation
+```
+
+Attendu : **2/2 Success**.
+
+Après validation ciblée :
+
+```text
+Automation RunTests Grimrock
+```
+
+Une campagne globale sans `Fail` suivie d'un PIE final Spellbook/hotbar/combat/save permettra la clôture du jalon majeur MON18.
+
+Référence : `docs/Design/MON18_9_3_FINAL_DIAGNOSTICS_GLOBAL_REGRESSION.md`.
 
 ---
 
@@ -302,5 +303,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON18.9.3 — diagnostics résiduels, campagne Automation globale Grimrock et préparation de la clôture de MON18
+Valider Grimrock.Magic.MON18.9.3 puis lancer Automation RunTests Grimrock
 ```
