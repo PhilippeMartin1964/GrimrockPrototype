@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GridObjectBehavior.h"
+#include "GridLogicTypes.h"
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 #include "GridTypes.generated.h"
@@ -41,7 +42,8 @@ enum class EGridLevelObjectType : uint8
     Teleporter      UMETA (DisplayName = "Teleporter"),
     Trigger         UMETA (DisplayName = "Trigger"),
     Receptacle      UMETA (DisplayName = "Receptacle"),
-    Item            UMETA (DisplayName = "Item")
+    Item            UMETA (DisplayName = "Item"),
+    Logic           UMETA (DisplayName = "Logic")
 };
 
 UENUM (BlueprintType)
@@ -88,7 +90,9 @@ enum class EGridObjectCommand : uint8
     ReceptacleConsumeAllItems      UMETA (DisplayName = "Receptacle Consume All Items"),
     ReceptacleEnableRemoval = 17   UMETA (DisplayName = "Receptacle Enable Removal"),
     ReceptacleDisableRemoval = 18  UMETA (DisplayName = "Receptacle Disable Removal"),
-    StartEncounter = 19            UMETA (DisplayName = "Start Encounter")
+    StartEncounter = 19            UMETA (DisplayName = "Start Encounter"),
+    LogicExecute = 20              UMETA (DisplayName = "Logic Execute"),
+    LogicReset = 21                UMETA (DisplayName = "Logic Reset")
 };
 
 UENUM (BlueprintType)
@@ -247,6 +251,11 @@ struct FGridLevelObjectData
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGridObjectBehaviorParams Behavior;
+
+    /** MON19.2.3 data-only logic primitive. No runtime Actor is required. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Logic",
+        meta = (EditCondition = "Type == EGridLevelObjectType::Logic", EditConditionHides))
+    FGridLogicNodeParams Logic;
 
     /** Optional MON7/MON13 encounter group. None preserves independent behavior. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster")

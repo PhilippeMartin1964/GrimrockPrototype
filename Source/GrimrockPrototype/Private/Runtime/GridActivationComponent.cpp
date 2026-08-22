@@ -9,6 +9,7 @@
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridGenericObjectActor.h"
+#include "Runtime/GridLogicRuntime.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
 
@@ -335,6 +336,66 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
     bool bSuccess = false;
     const TCHAR* FailureReason = TEXT ("unsupported target type or command");
 
+    if (TargetObject->Type == EGridLevelObjectType::Logic)
+    {
+        if (DispatchingSourceObjectIds.Contains (TargetObject->ObjectId))
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("cyclic logic target dispatch"));
+            return false;
+        }
+
+        if (!RuntimeActor->LevelAsset)
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("missing level asset for logic command"));
+            return false;
+        }
+
+        FGridLevelRuntimeState* RuntimeState =
+            RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel ();
+        if (!RuntimeState)
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("missing current-level runtime state"));
+            return false;
+        }
+
+        FGridLogicExecutionResult LogicResult;
+        bSuccess = GridLogicRuntime::ExecuteNode (
+            *RuntimeActor->LevelAsset,
+            *TargetObject,
+            *RuntimeState,
+            ResolvedCommand,
+            LogicResult);
+
+        if (bSuccess && LogicResult.bEmitEvent)
+        {
+            ExecuteLinksFromObjectForEvent (
+                TargetObject->ObjectId,
+                LogicResult.EmittedEvent);
+        }
+
+        const FString LogicFailureReason = LogicResult.Error.IsEmpty ()
+            ? TEXT ("logic command failed")
+            : LogicResult.Error;
+        LogLinkResult (
+            LinkData,
+            ResolvedCommand,
+            bSuccess,
+            bSuccess ? nullptr : *LogicFailureReason);
+        return bSuccess;
+    }
+
     if (TargetObject->Type == EGridLevelObjectType::MonsterSpawn)
     {
         switch (ResolvedCommand)
@@ -421,6 +482,7 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             break;
         }
 
+        case EGridLevelObjectType::Logic:
         case EGridLevelObjectType::None:
         default:
         break;

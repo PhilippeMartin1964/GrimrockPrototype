@@ -57,6 +57,21 @@ namespace GridEditorLinkPolicy
                     EGridObjectEvent::EncounterCompleted
                 };
 
+            case EGridLevelObjectType::Logic:
+                switch (ObjectData.Logic.NodeType)
+                {
+                    case EGridLogicNodeType::CompareBool:
+                    case EGridLogicNodeType::CompareInt:
+                    case EGridLogicNodeType::Latch:
+                        return {
+                            EGridObjectEvent::Activated,
+                            EGridObjectEvent::Deactivated
+                        };
+
+                    default:
+                        return {EGridObjectEvent::Activated};
+                }
+
             default:
                 return {};
         }
@@ -105,6 +120,16 @@ namespace GridEditorLinkPolicy
                     EGridObjectCommand::StartEncounter
                 };
 
+            case EGridLevelObjectType::Logic:
+                if (ObjectData.Logic.NodeType == EGridLogicNodeType::Latch)
+                {
+                    return {
+                        EGridObjectCommand::LogicExecute,
+                        EGridObjectCommand::LogicReset
+                    };
+                }
+                return {EGridObjectCommand::LogicExecute};
+
             default:
                 return {};
         }
@@ -134,7 +159,8 @@ namespace GridEditorLinkPolicy
         const FGridLevelObjectData& ObjectData,
         EGridObjectCommand Command)
     {
-        if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
+        if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn ||
+            ObjectData.Type == EGridLevelObjectType::Logic)
         {
             return GetSupportedCommandsForTarget (ObjectData).Contains (Command)
                 ? EGridEditorCommandRuntimeSupport::Gameplay
@@ -170,6 +196,7 @@ namespace GridEditorLinkPolicy
             case EGridLevelObjectType::Receptacle:
                 return EGridEditorCommandRuntimeSupport::StateOnly;
 
+            case EGridLevelObjectType::Logic:
             case EGridLevelObjectType::None:
             default:
                 return EGridEditorCommandRuntimeSupport::Unsupported;
