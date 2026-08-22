@@ -60,6 +60,7 @@ MON18.7 — Spellbook / Hotbar UI                 CLOS
 MON18.8 — Persistence / Migration               CLOS
 MON18.9 — Balance / Regression / Closure        EN COURS
   MON18.9.1 — Combat Save Policy / Checkpoint   CLOS
+  MON18.9.2 — Spell Balance / Cross-System      EN VALIDATION
 ```
 
 ### MON18.1 — CLOS
@@ -208,14 +209,33 @@ Les logs confirment que les sauvegardes régulières sont réellement refusées 
 
 Référence : `docs/Design/MON18_9_1_COMBAT_SAVE_POLICY.md`.
 
-MON18.9 poursuit maintenant :
+#### MON18.9.2 — Spell Balance & Cross-System Regression — EN VALIDATION
 
-- la vérification des coûts PA/mana, portées, cooldowns et comportements des quatre sorts de production ;
-- les interactions Status Effects / combat / hotbar / SaveGame ;
-- les diagnostics résiduels utiles, notamment les vieux slots auxiliaires incompatibles s'ils polluent encore les logs ;
-- la campagne de non-régression MON18 complète ;
-- la mise à jour de la documentation de synthèse ;
-- la clôture du jalon majeur MON18.
+Baseline figée sans changement arbitraire de chiffres :
+
+```text
+Arcane Bolt   Damage 4             Mana 3  PA 2  portée 1..5  cooldown 0
+Lesser Heal   Heal 5               Mana 4  PA 2  portée 0..3  cooldown 0
+Haste         Apply Status_Haste   Mana 5  PA 2  portée 0..3  cooldown 0
+Cure Poison   Remove Status_Poison Mana 4  PA 2  portée 0..3  cooldown 0
+```
+
+Nouveau contrat transactionnel : un sort qui ne peut produire aucune mutation utile (`Lesser Heal` à PV max, `Cure Poison` sans poison) est rejeté avec `NoEffectWouldApply` avant tout commit PA/mana.
+
+Validation ciblée attendue :
+
+```text
+Grimrock.Magic.MON18.9.2             5/5 attendu
+Grimrock.UI.UI01.4.3e.2              régression
+Grimrock.Magic.MON18.5               régression
+Grimrock.Magic.MON18.8               régression
+Grimrock.RPG.MON16.4                 régression
+Grimrock.RPG.MON16.7                 régression
+```
+
+Référence : `docs/Design/MON18_9_2_SPELL_BALANCE_CROSS_SYSTEM_REGRESSION.md`.
+
+Après validation MON18.9.2, MON18.9 poursuivra les diagnostics résiduels, la campagne `Grimrock` complète et la clôture documentaire de MON18.
 
 ---
 
@@ -274,5 +294,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Poursuivre MON18.9 — balance des quatre sorts de production, interactions cross-system et campagne de non-régression avant clôture de MON18
+Valider MON18.9.2 — Spell Balance & Cross-System Regression sous UE5.5.4
 ```

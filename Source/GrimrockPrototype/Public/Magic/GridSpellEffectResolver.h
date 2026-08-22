@@ -16,7 +16,8 @@ enum class EGridSpellEffectResolutionRejectReason : uint8
     InvalidTargetState            UMETA (DisplayName = "Invalid Target State"),
     MissingStatusEffectDefinition UMETA (DisplayName = "Missing Status Effect Definition"),
     InvalidStatusEffectDefinition UMETA (DisplayName = "Invalid Status Effect Definition"),
-    StatusEffectApplyFailed       UMETA (DisplayName = "Status Effect Apply Failed")
+    StatusEffectApplyFailed       UMETA (DisplayName = "Status Effect Apply Failed"),
+    NoEffectWouldApply            UMETA (DisplayName = "No Effect Would Apply")
 };
 
 USTRUCT (BlueprintType)
@@ -56,6 +57,15 @@ struct FGridSpellEffectResolutionResult
 
     UPROPERTY (BlueprintReadOnly, Category = "Magic|Effect")
     TArray<FGridResolvedSpellEffect> Effects;
+
+    bool DidMutateTarget () const
+    {
+        return Effects.ContainsByPredicate (
+            [] (const FGridResolvedSpellEffect& Effect)
+            {
+                return Effect.bMutatedTarget;
+            });
+    }
 
     void Reset ()
     {

@@ -55,6 +55,17 @@ bool FGridSpellHotbarExecutionService::TryExecute (
         return false;
     }
 
+    // MON18.9.2: a spell that cannot change its target must not consume AP or
+    // mana. Costs still live only on the working copies at this point, so this
+    // rejection remains fully atomic for the authoritative runtime state.
+    if (!EffectResult.DidMutateTarget ())
+    {
+        OutResult.EffectRejectReason =
+            EGridSpellEffectResolutionRejectReason::NoEffectWouldApply;
+        OutResult.Error = TEXT ("Spell effects would not change the target.");
+        return false;
+    }
+
     OutResult.CasterStats = MoveTemp (WorkingCasterStats);
     OutResult.CasterTurnState = MoveTemp (WorkingTurnState);
     OutResult.TargetCurrentHealth = WorkingTargetHealth;
