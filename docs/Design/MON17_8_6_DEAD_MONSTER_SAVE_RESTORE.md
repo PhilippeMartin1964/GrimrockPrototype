@@ -1,6 +1,6 @@
 # MON17.8.6 — Dead Monster Save / Restore
 
-Statut : **CONTRAT / IMPLÉMENTATION / TESTS AJOUTÉS — compilation et validation UE5.5.4 requises**
+Statut : **VALIDÉ ET CLOS — automatisation et PIE UE5.5.4 validés**
 
 ## 1. Objectif
 
@@ -91,7 +91,7 @@ Validation PIE observée : le Gobelin vivant n'est plus partiellement dissous et
 
 ### AGridMonsterActor::RestoreRuntimeMonsterState
 
-Le chemin mort doit appeler :
+Le chemin mort appelle :
 
 ```text
 RestoreCommittedDeathState(RestoredCell, false)
@@ -140,7 +140,7 @@ Les items déjà persistés restent gérés par `FGridLevelRuntimeState::Items` 
 
 ## 6. Tests MON17.8.6
 
-Nouveau fichier :
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Private/Tests/
@@ -178,23 +178,34 @@ Vérifie qu'après un état mort restauré/caché, un restore vivant canonique :
 - efface l'état transitoire de dissolve ;
 - restaure une occupation normale si le monstre est activé.
 
-## 7. Régressions demandées
+## 7. Validation automatisée
 
-Après compilation UE5.5.4 :
+Validation UE5.5.4 fournie le 22 août 2026 :
 
 ```text
-Grimrock.Monsters.MON17.8
-Grimrock.Monsters.MON9
-Grimrock.Monsters.MON8
-Grimrock.Monsters.MON10
-Grimrock.Monsters.MON17.3.3
+Grimrock.Monsters.MON17.8     8/8 SUCCESS
+Grimrock.Monsters.MON9       13/13 SUCCESS
+Grimrock.Monsters.MON8        7/7 SUCCESS
+Grimrock.Monsters.MON10      37/37 SUCCESS
+Grimrock.Monsters.MON17.3.3   1/1 SUCCESS
 ```
 
-Le filtre MON17.8 doit désormais contenir **8 tests**.
+Total :
 
-Aucun résultat n'est déclaré validé avant retour local UE5.5.4.
+```text
+66/66 tests SUCCESS
+```
 
-## 8. Validation PIE demandée
+Les logs confirment notamment :
+
+```text
+RestoreDead ... PresentationHidden=true
+RestoreAlive ... State=Idle HP=7 Enabled=true
+```
+
+## 8. Validation PIE
+
+Les trois scénarios prévus ont été validés en PIE UE5.5.4 :
 
 ### Scénario A — mort complètement dissoute
 
@@ -205,15 +216,7 @@ Aucun résultat n'est déclaré validé avant retour local UE5.5.4.
 4. recharger
 ```
 
-Attendu :
-
-```text
-Gobelin invisible
-aucun replay de mort
-aucun dissolve
-loot toujours présent
-aucune occupation
-```
+Résultat validé : le Gobelin ne réapparaît pas, aucun replay de mort/dissolve, loot conservé, aucune occupation fantôme.
 
 ### Scénario B — sauvegarde pendant la présentation
 
@@ -223,22 +226,14 @@ aucune occupation
 3. recharger
 ```
 
-Attendu identique :
-
-```text
-état canonique Dead + mesh caché immédiatement
-```
+Résultat validé : restauration directe dans l'état canonique `Dead + mesh caché`, sans replay visuel.
 
 ### Scénario C — plusieurs morts
 
-Plusieurs monstres morts avant sauvegarde doivent rester tous cachés après chargement, sans duplication de loot ou d'événements.
+Résultat validé : plusieurs Gobelins morts restent cachés après Save/Load, sans duplication de loot, XP, événement de mort ou occupation.
 
-## 9. Frontière MON17.8.7
+## 9. Conclusion
 
-MON17.8.7 effectuera la validation finale/closure :
+MON17.8.6 est **VALIDÉ ET CLOS**.
 
-- compilation ;
-- automatisation complète ;
-- PIE GoblinThrower ;
-- non-régression RatGiant ;
-- synthèse du contrat générique Walk / Death / Dissolve / Persistence.
+La persistance ne sérialise aucun état transitoire de présentation et restaure tous les monstres morts dans un état canonique stable, générique et compatible avec le pipeline MON9.
