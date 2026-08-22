@@ -290,6 +290,8 @@ void UGridMonsterDeathComponent::RestoreCommittedDeathState (
             DeathPresentationTimerHandle);
     }
 
+    ResetDeathDissolvePresentation (true, false);
+
     if (UGridMonsterCombatComponent* Combat =
         OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent> ())
     {
@@ -334,21 +336,17 @@ void UGridMonsterDeathComponent::RestoreCommittedDeathState (
     OwnerMonster->MonsterState = EGridMonsterState::Dead;
     OwnerMonster->ResetAnimationSignals ();
     OwnerMonster->SetActorEnableCollision (false);
+    OwnerMonster->SetActorHiddenInGame (false);
     if (OwnerMonster->CollisionComponent)
     {
         OwnerMonster->CollisionComponent->SetCollisionEnabled (
             ECollisionEnabled::NoCollision);
     }
-
-    if (bRestorePresentationPose)
+    if (OwnerMonster->SkeletalMeshComponent)
     {
-        OwnerMonster->SetActorHiddenInGame (false);
-        if (OwnerMonster->SkeletalMeshComponent)
-        {
-            OwnerMonster->SkeletalMeshComponent->SetVisibility (
-                true,
-                true);
-        }
+        OwnerMonster->SkeletalMeshComponent->SetVisibility (
+            bRestorePresentationPose,
+            true);
     }
 }
 
@@ -364,6 +362,8 @@ void UGridMonsterDeathComponent::RestoreLivingState ()
         World->GetTimerManager ().ClearTimer (
             DeathPresentationTimerHandle);
     }
+
+    ResetDeathDissolvePresentation (true, true);
 
     bDeathCommitted = false;
     bLootGenerated = false;

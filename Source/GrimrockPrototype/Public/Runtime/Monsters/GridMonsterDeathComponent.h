@@ -69,10 +69,16 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Monster|Death")
     bool CommitDeath ();
 
+    /**
+     * Restores an already committed logical death without replaying presentation.
+     * The default MON17.8.6 policy considers restored deaths visually complete,
+     * therefore the skeletal mesh remains hidden unless an explicit legacy
+     * presentation pose is requested.
+     */
     UFUNCTION (BlueprintCallable, Category = "Monster|Death|Persistence")
     void RestoreCommittedDeathState (
         FIntPoint InDeathCell,
-        bool bRestorePresentationPose = true);
+        bool bRestorePresentationPose = false);
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Death|Persistence")
     void RestoreLivingState ();

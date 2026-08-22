@@ -645,16 +645,23 @@ bool AGridMonsterActor::RestoreRuntimeMonsterState (
         {
             DeathComponent->RestoreCommittedDeathState (
                 RestoredCell,
-                true);
+                false);
         }
-        else if (CollisionComponent)
+        else
         {
-            CollisionComponent->SetCollisionEnabled (
-                ECollisionEnabled::NoCollision);
+            if (CollisionComponent)
+            {
+                CollisionComponent->SetCollisionEnabled (
+                    ECollisionEnabled::NoCollision);
+            }
+            if (SkeletalMeshComponent)
+            {
+                SkeletalMeshComponent->SetVisibility (false, true);
+            }
         }
 
         UE_LOG (LogGridMonsterState, Log,
-            TEXT ("[GridMonsterState] RestoreDead Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) StatusEffects=%d"),
+            TEXT ("[GridMonsterState] RestoreDead Level=%s Monster=%s PersistenceId=%s Cell=(%d,%d) StatusEffects=%d PresentationHidden=true"),
             *State.DungeonLevelId.ToString (),
             *GetNameSafe (this),
             *PersistenceId.ToString (),
