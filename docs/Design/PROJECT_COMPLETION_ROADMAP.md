@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.8 IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **MON18.8 VALIDÉ ET CLOS — MON18.9 PROCHAIN**  
 Date de référence : **22 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -57,8 +57,8 @@ MON18.4 — Targeting Integration                 CLOS
 MON18.5 — First Production Spells               CLOS
 MON18.6 — Spell Presentation                    CLOS
 MON18.7 — Spellbook / Hotbar UI                 CLOS
-MON18.8 — Persistence / Migration               EN VALIDATION
-MON18.9 — Balance / Regression / Closure        APRÈS MON18.8
+MON18.8 — Persistence / Migration               CLOS
+MON18.9 — Balance / Regression / Closure        PROCHAIN
 ```
 
 ### MON18.1 — CLOS
@@ -134,11 +134,11 @@ Références :
 - `docs/Design/UI_SPELLBOOK_HOTBAR_EXECUTION.md` ;
 - `docs/Design/UI_GRIMROCK_MENU_CURRENT.md`.
 
-### MON18.8 — EN VALIDATION
+### MON18.8 — CLOS
 
-`MON18.8 — Spellbook Persistence / Migration` est implémenté en C++ ; la validation UE5.5.4 reste à effectuer.
+`MON18.8 — Spellbook Persistence / Migration` est **VALIDÉ ET CLOS sous UE5.5.4**.
 
-Le contrat implémenté est :
+Le contrat final est :
 
 ```text
 UGridPartySpellbookComponent runtime/transient
@@ -149,26 +149,42 @@ UGridPartySpellbookComponent runtime/transient
     -> hotbar Spell conservée comme simple référence
 ```
 
-Principes :
+Principes validés :
 
 - aucun sort n'est inventé lors de la migration d'une sauvegarde v5 ;
 - un SpellId valide dont la définition a disparu reste conservé ;
 - un binding Spell de hotbar ne peut pas enseigner un sort ;
 - `SourceDefinitionId` d'un binding Spell ne redevient jamais un `ItemDefinitionId` ;
-- SAVEFIX.1 et SAVEFIX.2 restent des contrats de non-régression obligatoires ;
-- aucune modification `.uasset/.umap` n'est nécessaire.
+- SAVEFIX.1 et SAVEFIX.2 restent protégés ;
+- aucune modification `.uasset/.umap` n'a été nécessaire.
 
-Référence : `docs/Design/MON18_8_SPELLBOOK_PERSISTENCE_MIGRATION.md`.
-
-Validation attendue :
+Validation UE5.5.4 :
 
 ```text
-Grimrock.Magic.MON18.8                 12/12 attendu
-+ régressions SAVEFIX.2 / MON15.6 / MON16.7 / MON16.8 / MON12.8.1
-+ Save -> Quit -> Continue en PIE réel
+Grimrock.Magic.MON18.8                 12/12 Success
+Grimrock.RPG.MON16.5                   9/9 Success après correctif d25cf26e
+Grimrock.UI.UI01.4.3e.2                6/6 Success
+PIE Save -> arrêt PIE -> Continue      VALIDÉ
+Seed après Continue                    Added=0 AlreadyKnown=4
 ```
 
-Après validation et clôture de MON18.8, le prochain sous-jalon sera `MON18.9 — Balance / Regression / Closure`.
+Le second seed prouve la restauration réelle des quatre sorts de production depuis le SaveGame v6.
+
+Références :
+
+- `docs/Design/MON18_8_SPELLBOOK_PERSISTENCE_MIGRATION.md` ;
+- `docs/Design/MON18_8_VALIDATION.md`.
+
+### MON18.9 — PROCHAIN
+
+`MON18.9 — Balance / Regression / Closure` doit maintenant :
+
+- consolider la campagne de non-régression MON18 complète ;
+- vérifier les coûts PA/mana, portées, cooldowns et comportements des quatre sorts de production ;
+- vérifier les interactions Status Effects / combat / hotbar / SaveGame ;
+- traiter les diagnostics résiduels utiles, notamment les vieux slots auxiliaires incompatibles s'ils polluent encore les logs ;
+- mettre à jour la documentation de synthèse ;
+- fermer le jalon majeur MON18.
 
 ---
 
@@ -227,5 +243,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider MON18.8 — Persistence / Migration du Spellbook sous UE5.5.4
+MON18.9 — Balance / Regression / Closure
 ```
