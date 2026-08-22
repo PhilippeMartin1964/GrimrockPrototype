@@ -2,13 +2,19 @@
 
 ## Statut
 
-**IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE.**
+**VALIDÉ ET CLOS sous UE5.5.4 — 22 août 2026.**
 
 Base d'implémentation :
 
 ```text
 090c1c082e1bf6844ded4dbdb084da4b236e38c8
 Close UI01.4.3e documentation and roadmap
+
+cafdb3f8640497680fd75e507ef0dad618d7bc59
+Implement MON18.8 spellbook persistence and migration
+
+d25cf26e0d7c052fe30ba772e50e02b7debaa918
+Fix MON16.5 status identity regression
 ```
 
 MON18.8 rend persistante la connaissance des sorts sans sérialiser le runtime de magie, les définitions de sorts, la présentation ou les widgets.
@@ -251,7 +257,7 @@ Le comportement d'un échec de **Continue** reste inchangé :
 
 Le Spellbook candidat étant construit avant son commit runtime, un échec de chargement ne remplace pas non plus le Spellbook courant.
 
-## 12. Automation MON18.8
+## 12. Automation MON18.8 — VALIDÉ
 
 Namespace :
 
@@ -259,60 +265,80 @@ Namespace :
 Grimrock.Magic.MON18.8
 ```
 
-Tests attendus :
+Résultat UE5.5.4 fourni le 22 août 2026 : **12/12 Success**.
+
+Tests validés :
 
 ```text
-SingleCharacterRoundTrip
-MultipleCharactersRoundTrip
-V5MigrationCreatesEmptySpellbook
-UnknownDefinitionPreserved
-InvalidSpellIdRejected
-DuplicateSpellRejected
-OrphanCharacterRejected
 AtomicRestoreFailure
+DiskRoundTrip
+DuplicateSpellRejected
 HotbarSpellRoundTrip
 HotbarWithoutKnowledgePreserved
+InvalidSpellIdRejected
+MultipleCharactersRoundTrip
+OrphanCharacterRejected
+SingleCharacterRoundTrip
 SpellBindingIsNotItemDefinition
-DiskRoundTrip
+UnknownDefinitionPreserved
+V5MigrationCreatesEmptySpellbook
 ```
 
-Attendu : **12/12 Success** après compilation UE5.5.4.
-
-Régressions obligatoires après la campagne ciblée :
+Régression découverte pendant la campagne globale :
 
 ```text
-Grimrock.Save.SAVEFIX.2
-Grimrock.RPG.MON15.6
-Grimrock.RPG.MON16.7
-Grimrock.RPG.MON16.8
-Grimrock.Monsters.MON12.8.1
+Grimrock.RPG.MON16.5.NoParallelSystem
 ```
 
-Les assertions historiques qui figeaient encore `CurrentSaveVersion == 5` sont réalignées sur le contrat v6.
+Elle provenait d'une comparaison directe de `EffectId` dans le chemin d'exécution des sorts de statut. Le correctif `d25cf26e` remplace cette comparaison par l'identité primaire canonique du Status Effect.
 
-## 13. Validation PIE finale
+Validation après correctif :
 
-Scénario attendu après Automation :
+```text
+Grimrock.RPG.MON16.5.NoParallelSystem    Success
+Grimrock.RPG.MON16.5                     9/9 Success
+Grimrock.UI.UI01.4.3e.2                  6/6 Success
+```
+
+Le filtre UI correct est :
+
+```text
+Automation RunTests Grimrock.UI.UI01.4.3e.2
+```
+
+Référence détaillée : `docs/Design/MON18_8_VALIDATION.md`.
+
+## 13. Validation PIE finale — VALIDÉE
+
+Scénario effectué sous UE5.5.4 :
 
 ```text
 New Game / Mage
 -> Grimrock.Spellbook.SeedProduction
 -> Added=4 AlreadyKnown=0
--> assign Arcane Bolt + Lesser Heal à la hotbar
--> Save
--> arrêter PIE
--> relancer
+-> Save v6 avec Spellbooks=1
+-> arrêt PIE
+-> nouvelle session PIE
 -> Continue
--> ouvrir Sorts
--> 4 sorts toujours connus
--> hotbar toujours configurée
+-> snapshot v6 accepté avec SpellbookCharacters=1
+-> PartySave Continued
 -> Grimrock.Spellbook.SeedProduction
 -> Added=0 AlreadyKnown=4
--> combat
--> Arcane Bolt depuis la hotbar
 ```
 
-Le dernier scénario ne pourra être marqué VALIDÉ qu'après résultat PIE fourni depuis UE5.5.4.
+La ligne finale `Added=0 AlreadyKnown=4` prouve que les quatre `KnownSpellIds` ont été restaurés depuis le SaveGame et ne proviennent pas d'un nouveau seed runtime.
+
+La persistance des bindings hotbar Spell est en outre couverte par :
+
+```text
+HotbarSpellRoundTrip
+HotbarWithoutKnowledgePreserved
+SpellBindingIsNotItemDefinition
+```
+
+### Note sur les diagnostics de slots auxiliaires
+
+Le menu principal peut également sonder les slots configurés `GrimrockParty_2` et `GrimrockParty_3`. Des slots auxiliaires anciens/incompatibles peuvent produire un `LoadValidation ... Result=Rejected` pendant l'énumération sans invalider le slot principal `GrimrockParty`, lequel a été chargé avec succès dans le scénario PIE ci-dessus.
 
 ## 14. Hors périmètre
 
@@ -324,3 +350,9 @@ MON18.8 n'ajoute :
 - aucun `.uasset` / `.umap` ;
 - aucun apprentissage automatique par classe ;
 - aucune réparation destructive de hotbar legacy.
+
+## Conclusion
+
+**MON18.8 — Spellbook Persistence / Migration est VALIDÉ ET CLOS sous UE5.5.4.**
+
+Prochaine étape : `MON18.9 — Balance / Regression / Closure`.
