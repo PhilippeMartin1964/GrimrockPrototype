@@ -4,6 +4,7 @@
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
 #include "EditorTools/GridEditorLinkPolicy.h"
+#include "EditorTools/GridEditorLinkService.h"
 #include "EditorTools/GridLevelEditorActor.h"
 #include "Core/GridLevelAsset.h"
 #include "Core/GridObjectArchetypeAsset.h"
@@ -17,7 +18,11 @@
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
 
 namespace
 {
@@ -26,6 +31,7 @@ namespace
     const FLinearColor BrokenConnectorColor (1.f, 0.18f, 0.16f, 1.f);
 
     const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId);
+
     bool IsConnectorBroken (const FGridObjectLink& Link)
     {
         return !Link.SourceObjectId.IsValid () || !Link.TargetObjectId.IsValid ();
@@ -172,7 +178,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                 [
                                     SNew (STextBlock)
                                         .Text (FText::FromString (TEXT ("OUTGOING CONNECTORS")))
-                                        .ColorAndOpacity (FSlateColor (FLinearColor (0.25f, 0.75f, 1.f, 1.f)))
+                                        .ColorAndOpacity (FSlateColor (OutgoingConnectorColor))
                                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                                 ]
 
@@ -195,7 +201,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinksSection ()
                                 [
                                     SNew (STextBlock)
                                         .Text (FText::FromString (TEXT ("INCOMING CONNECTORS")))
-                                        .ColorAndOpacity (FSlateColor (FLinearColor (0.70f, 0.55f, 1.f, 1.f)))
+                                        .ColorAndOpacity (FSlateColor (IncomingConnectorColor))
                                         .Font (FAppStyle::GetFontStyle ("DetailsView.CategoryFontStyle"))
                                 ]
 
@@ -327,6 +333,11 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinkCreationSection ()
                             ])
                 ]
 
+                + SVerticalBox::Slot ().AutoHeight ()
+                [
+                    BuildConditionCreationSection ()
+                ]
+
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
                 [
                     SNew (SHorizontalBox)
@@ -347,6 +358,186 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildLinkCreationSection ()
                             FText::FromString (TEXT ("Cancel")),
                             FOnClicked::CreateSP (this, &SGridEditorLinksPanel::OnCancelAddConnectorClicked))
                     ]
+                ]
+        ];
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::BuildConditionCreationSection ()
+{
+    const auto VisibilityFor = [this] (EGridObjectCondition Condition)
+    {
+        return IsConditionSelected (Condition)
+            ? EVisibility::Visible
+            : EVisibility::Collapsed;
+    };
+
+    const auto InvertVisibility = [this] ()
+    {
+        return SelectedCondition.IsValid () &&
+            *SelectedCondition != EGridObjectCondition::None
+                ? EVisibility::Visible
+                : EVisibility::Collapsed;
+    };
+
+    return SNew (SVerticalBox)
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            GridEditorWidgetHelpers::BuildGridPropertyRow (
+                FText::FromString (TEXT ("Condition")),
+                SNew (SComboBox<TSharedPtr<EGridObjectCondition>>)
+                    .OptionsSource (&LinkConditionOptions)
+                    .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeLinkConditionComboWidget)
+                    .OnSelectionChanged (this, &SGridEditorLinksPanel::OnLinkConditionSelectionChanged)
+                    [
+                        SNew (STextBlock)
+                            .Text_Lambda ([this] ()
+                        {
+                            return GetSelectedLinkConditionText ();
+                        })
+                    ])
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::ReceptacleContainsItemDefinition);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Item Definition Id")),
+                        SNew (SEditableTextBox)
+                            .Text_Lambda ([this] ()
+                            {
+                                return ConditionItemDefinitionId.IsNone ()
+                                    ? FText::GetEmpty ()
+                                    : FText::FromName (ConditionItemDefinitionId);
+                            })
+                            .OnTextChanged_Lambda ([this] (const FText& NewText)
+                            {
+                                const FString Value = NewText.ToString ().TrimStartAndEnd ();
+                                ConditionItemDefinitionId = Value.IsEmpty () ? NAME_None : FName (*Value);
+                            }))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::ReceptacleContainsItemTag);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Item Tag")),
+                        SNew (SEditableTextBox)
+                            .Text_Lambda ([this] ()
+                            {
+                                return ConditionItemTag.IsNone ()
+                                    ? FText::GetEmpty ()
+                                    : FText::FromName (ConditionItemTag);
+                            })
+                            .OnTextChanged_Lambda ([this] (const FText& NewText)
+                            {
+                                const FString Value = NewText.ToString ().TrimStartAndEnd ();
+                                ConditionItemTag = Value.IsEmpty () ? NAME_None : FName (*Value);
+                            }))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::ReceptacleContainsItemType);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Item Type")),
+                        SNew (SComboBox<TSharedPtr<EGridItemType>>)
+                            .OptionsSource (&ItemTypeOptions)
+                            .OnGenerateWidget (this, &SGridEditorLinksPanel::MakeItemTypeComboWidget)
+                            .OnSelectionChanged (this, &SGridEditorLinksPanel::OnItemTypeSelectionChanged)
+                            [
+                                SNew (STextBlock)
+                                    .Text_Lambda ([this] ()
+                                {
+                                    return GetSelectedItemTypeText ();
+                                })
+                            ])
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::ReceptacleItemCountAtLeast);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Minimum Count")),
+                        SNew (SNumericEntryBox<int32>)
+                            .MinValue (1)
+                            .MinSliderValue (1)
+                            .Value_Lambda ([this] () -> TOptional<int32>
+                            {
+                                return ConditionCount;
+                            })
+                            .OnValueChanged_Lambda ([this] (int32 NewValue)
+                            {
+                                ConditionCount = FMath::Max (1, NewValue);
+                            }))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda ([VisibilityFor] ()
+                {
+                    return VisibilityFor (EGridObjectCondition::ReceptacleWeightAtLeast);
+                })
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Minimum Weight")),
+                        SNew (SNumericEntryBox<float>)
+                            .MinValue (0.0f)
+                            .MinSliderValue (0.0f)
+                            .Value_Lambda ([this] () -> TOptional<float>
+                            {
+                                return ConditionWeight;
+                            })
+                            .OnValueChanged_Lambda ([this] (float NewValue)
+                            {
+                                ConditionWeight = FMath::Max (0.0f, NewValue);
+                            }))
+                ]
+        ]
+
+        + SVerticalBox::Slot ().AutoHeight ()
+        [
+            SNew (SBox)
+                .Visibility_Lambda (InvertVisibility)
+                [
+                    GridEditorWidgetHelpers::BuildGridPropertyRow (
+                        FText::FromString (TEXT ("Invert")),
+                        SNew (SCheckBox)
+                            .IsChecked_Lambda ([this] ()
+                            {
+                                return bInvertCondition
+                                    ? ECheckBoxState::Checked
+                                    : ECheckBoxState::Unchecked;
+                            })
+                            .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
+                            {
+                                bInvertCondition = NewState == ECheckBoxState::Checked;
+                            }))
                 ]
         ];
 }
@@ -441,6 +632,19 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
 
                         + SVerticalBox::Slot ()
                         .AutoHeight ()
+                        .Padding (0.f, 0.f, 0.f, Link.Condition == EGridObjectCondition::None ? 0.f : 4.f)
+                        [
+                            SNew (STextBlock)
+                                .Visibility (Link.Condition == EGridObjectCondition::None
+                                    ? EVisibility::Collapsed
+                                    : EVisibility::Visible)
+                                .Text (GetLinkConditionSummaryText (Link))
+                                .ColorAndOpacity (FSlateColor (FLinearColor (0.78f, 0.78f, 0.58f, 1.f)))
+                                .AutoWrapText (true)
+                        ]
+
+                        + SVerticalBox::Slot ()
+                        .AutoHeight ()
                         [
                             SNew (SHorizontalBox)
 
@@ -466,11 +670,7 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
                                     FText::FromString (TEXT ("Remove")),
                                     FOnClicked::CreateLambda ([this, Link] () -> FReply
                                     {
-                                        return OnRemoveExactLinkClicked (
-                                            Link.SourceObjectId,
-                                            Link.TargetObjectId,
-                                            Link.SourceEvent,
-                                            Link.Command);
+                                        return OnRemoveExactLinkClicked (Link);
                                     }))
                             ]
                         ]
@@ -530,16 +730,12 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
     return Root;
 }
 
-FReply SGridEditorLinksPanel::OnRemoveExactLinkClicked (
-    FGuid SourceObjectId,
-    FGuid TargetObjectId,
-    EGridObjectEvent SourceEvent,
-    EGridObjectCommand Command)
+FReply SGridEditorLinksPanel::OnRemoveExactLinkClicked (FGridObjectLink Link)
 {
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
     {
         CurrentEditorActor->Modify ();
-        CurrentEditorActor->RemoveExactLink (SourceObjectId, TargetObjectId, SourceEvent, Command);
+        GridEditorLinkService::RemoveExactLink (*CurrentEditorActor, Link);
         RequestRefresh ();
     }
 
@@ -580,6 +776,9 @@ FReply SGridEditorLinksPanel::OnToggleAddConnectorClicked ()
     if (bAddConnectorVisible)
     {
         BuildObjectOptions ();
+        BuildEventOptions ();
+        BuildCommandOptions ();
+        BuildConditionOptions ();
     }
 
     RebuildLinksSection ();
@@ -596,14 +795,12 @@ FReply SGridEditorLinksPanel::OnCreateConnectorClicked ()
     if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
     {
         CurrentEditorActor->Modify ();
+        const FGridObjectLink Link = BuildLinkFromForm ();
 
-        if (CurrentEditorActor->CreateLink (
-            *SelectedSourceObjectId,
-            *SelectedTargetObjectId,
-            *SelectedSourceEvent,
-            *SelectedCommand))
+        if (GridEditorLinkService::CreateLink (*CurrentEditorActor, Link))
         {
             SelectedTargetObjectId.Reset ();
+            SelectedCondition.Reset ();
             bAddConnectorVisible = false;
             RequestRefresh ();
         }
@@ -615,6 +812,7 @@ FReply SGridEditorLinksPanel::OnCreateConnectorClicked ()
 FReply SGridEditorLinksPanel::OnCancelAddConnectorClicked ()
 {
     SelectedTargetObjectId.Reset ();
+    SelectedCondition.Reset ();
     bAddConnectorVisible = false;
     RebuildLinksSection ();
     return FReply::Handled ();
@@ -689,6 +887,67 @@ FText SGridEditorLinksPanel::GetLinkCommandText (EGridObjectCommand Command) con
         : FText::FromString (TEXT ("Unknown"));
 }
 
+FText SGridEditorLinksPanel::GetLinkConditionText (EGridObjectCondition Condition) const
+{
+    const UEnum* Enum = StaticEnum<EGridObjectCondition> ();
+
+    return Enum
+        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (Condition))
+        : FText::FromString (TEXT ("Unknown"));
+}
+
+FText SGridEditorLinksPanel::GetItemTypeText (EGridItemType ItemType) const
+{
+    const UEnum* Enum = StaticEnum<EGridItemType> ();
+
+    return Enum
+        ? Enum->GetDisplayNameTextByValue (static_cast<int64> (ItemType))
+        : FText::FromString (TEXT ("Unknown"));
+}
+
+FText SGridEditorLinksPanel::GetLinkConditionSummaryText (const FGridObjectLink& Link) const
+{
+    if (Link.Condition == EGridObjectCondition::None)
+    {
+        return FText::GetEmpty ();
+    }
+
+    FString Summary = GetLinkConditionText (Link.Condition).ToString ();
+
+    switch (Link.Condition)
+    {
+        case EGridObjectCondition::ReceptacleContainsItemDefinition:
+            Summary += FString::Printf (TEXT (" [%s]"), *Link.ConditionItemDefinitionId.ToString ());
+            break;
+
+        case EGridObjectCondition::ReceptacleContainsItemTag:
+            Summary += FString::Printf (TEXT (" [%s]"), *Link.ConditionItemTag.ToString ());
+            break;
+
+        case EGridObjectCondition::ReceptacleContainsItemType:
+            Summary += FString::Printf (TEXT (" [%s]"), *GetItemTypeText (Link.ConditionItemType).ToString ());
+            break;
+
+        case EGridObjectCondition::ReceptacleItemCountAtLeast:
+            Summary += FString::Printf (TEXT (" [%d]"), Link.ConditionCount);
+            break;
+
+        case EGridObjectCondition::ReceptacleWeightAtLeast:
+            Summary += FString::Printf (TEXT (" [%.3g]"), Link.ConditionWeight);
+            break;
+
+        default:
+            break;
+    }
+
+    if (Link.bInvertCondition)
+    {
+        Summary = FString (TEXT ("NOT ")) + Summary;
+    }
+
+    return FText::FromString (FString (TEXT ("Condition: ")) + Summary);
+}
+
 FText SGridEditorLinksPanel::GetSelectedObjectOptionText (
     const TSharedPtr<FGuid>& ObjectId,
     const FText& EmptyText) const
@@ -696,6 +955,64 @@ FText SGridEditorLinksPanel::GetSelectedObjectOptionText (
     return ObjectId.IsValid ()
         ? GetObjectSummaryText (*ObjectId)
         : EmptyText;
+}
+
+FGridObjectLink SGridEditorLinksPanel::BuildLinkFromForm () const
+{
+    FGridObjectLink Link;
+
+    if (SelectedSourceObjectId.IsValid ())
+    {
+        Link.SourceObjectId = *SelectedSourceObjectId;
+    }
+    if (SelectedTargetObjectId.IsValid ())
+    {
+        Link.TargetObjectId = *SelectedTargetObjectId;
+    }
+    if (SelectedSourceEvent.IsValid ())
+    {
+        Link.SourceEvent = *SelectedSourceEvent;
+    }
+    if (SelectedCommand.IsValid ())
+    {
+        Link.Command = *SelectedCommand;
+    }
+    if (SelectedCondition.IsValid ())
+    {
+        Link.Condition = *SelectedCondition;
+    }
+
+    Link.bInvertCondition = Link.Condition != EGridObjectCondition::None && bInvertCondition;
+
+    switch (Link.Condition)
+    {
+        case EGridObjectCondition::ReceptacleContainsItemDefinition:
+            Link.ConditionItemDefinitionId = ConditionItemDefinitionId;
+            break;
+
+        case EGridObjectCondition::ReceptacleContainsItemTag:
+            Link.ConditionItemTag = ConditionItemTag;
+            break;
+
+        case EGridObjectCondition::ReceptacleContainsItemType:
+            Link.ConditionItemType = SelectedConditionItemType.IsValid ()
+                ? *SelectedConditionItemType
+                : EGridItemType::None;
+            break;
+
+        case EGridObjectCondition::ReceptacleItemCountAtLeast:
+            Link.ConditionCount = ConditionCount;
+            break;
+
+        case EGridObjectCondition::ReceptacleWeightAtLeast:
+            Link.ConditionWeight = ConditionWeight;
+            break;
+
+        default:
+            break;
+    }
+
+    return GridEditorLinkService::NormalizeLink (Link);
 }
 
 bool SGridEditorLinksPanel::CanCreateConnector () const
@@ -754,18 +1071,57 @@ bool SGridEditorLinksPanel::CanCreateConnector () const
         return false;
     };
 
-    return ContainsGuid (SourceObjectOptions, SelectedSourceObjectId) &&
-        SelectedSourceObjectId->IsValid () &&
-        ContainsEvent (LinkSourceEventOptions, SelectedSourceEvent) &&
-        ContainsGuid (TargetObjectOptions, SelectedTargetObjectId) &&
-        SelectedTargetObjectId->IsValid () &&
-        ContainsCommand (LinkCommandOptions, SelectedCommand);
+    const auto ContainsCondition = [] (const TArray<TSharedPtr<EGridObjectCondition>>& Options, const TSharedPtr<EGridObjectCondition>& Value)
+    {
+        if (!Value.IsValid ())
+        {
+            return false;
+        }
+
+        for (const TSharedPtr<EGridObjectCondition>& Option : Options)
+        {
+            if (Option.IsValid () && *Option == *Value)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    if (!ContainsGuid (SourceObjectOptions, SelectedSourceObjectId) ||
+        !SelectedSourceObjectId->IsValid () ||
+        !ContainsEvent (LinkSourceEventOptions, SelectedSourceEvent) ||
+        !ContainsGuid (TargetObjectOptions, SelectedTargetObjectId) ||
+        !SelectedTargetObjectId->IsValid () ||
+        !ContainsCommand (LinkCommandOptions, SelectedCommand) ||
+        !ContainsCondition (LinkConditionOptions, SelectedCondition))
+    {
+        return false;
+    }
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    if (!CurrentEditorActor || !CurrentEditorActor->LevelAsset)
+    {
+        return false;
+    }
+
+    const FGridObjectLink Link = BuildLinkFromForm ();
+    return GridEditorLinkService::IsLinkSupported (*CurrentEditorActor->LevelAsset, Link) &&
+        !GridEditorLinkService::ContainsExactLink (CurrentEditorActor->LevelAsset->Links, Link);
+}
+
+bool SGridEditorLinksPanel::IsConditionSelected (EGridObjectCondition Condition) const
+{
+    return SelectedCondition.IsValid () && *SelectedCondition == Condition;
 }
 
 void SGridEditorLinksPanel::BuildLinkOptions ()
 {
+    BuildItemTypeOptions ();
     BuildEventOptions ();
     BuildCommandOptions ();
+    BuildConditionOptions ();
 }
 
 void SGridEditorLinksPanel::BuildObjectOptions ()
@@ -834,9 +1190,7 @@ void SGridEditorLinksPanel::BuildEventOptions ()
 
     if (SourceObject)
     {
-        for (const EGridObjectEvent Event :
-            GridEditorLinkPolicy::GetSupportedEventsForSource (
-                *SourceObject))
+        for (const EGridObjectEvent Event : GridEditorLinkPolicy::GetSupportedEventsForSource (*SourceObject))
         {
             LinkSourceEventOptions.Add (MakeShared<EGridObjectEvent> (Event));
         }
@@ -870,9 +1224,7 @@ void SGridEditorLinksPanel::BuildCommandOptions ()
 
     if (TargetObject)
     {
-        for (const EGridObjectCommand Command :
-            GridEditorLinkPolicy::GetSupportedCommandsForTarget (
-                *TargetObject))
+        for (const EGridObjectCommand Command : GridEditorLinkPolicy::GetSupportedCommandsForTarget (*TargetObject))
         {
             LinkCommandOptions.Add (MakeShared<EGridObjectCommand> (Command));
         }
@@ -895,11 +1247,94 @@ void SGridEditorLinksPanel::BuildCommandOptions ()
     }
 }
 
+void SGridEditorLinksPanel::BuildConditionOptions ()
+{
+    LinkConditionOptions.Reset ();
+
+    const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ();
+    const FGridLevelObjectData* TargetObject = CurrentEditorActor && CurrentEditorActor->LevelAsset && SelectedTargetObjectId.IsValid ()
+        ? FindObjectById (CurrentEditorActor->LevelAsset, *SelectedTargetObjectId)
+        : nullptr;
+
+    if (TargetObject)
+    {
+        for (const EGridObjectCondition Condition : GridEditorLinkPolicy::GetSupportedConditionsForTarget (*TargetObject))
+        {
+            LinkConditionOptions.Add (MakeShared<EGridObjectCondition> (Condition));
+        }
+    }
+
+    bool bCurrentConditionStillValid = false;
+    for (const TSharedPtr<EGridObjectCondition>& Option : LinkConditionOptions)
+    {
+        if (Option.IsValid () && SelectedCondition.IsValid () && *Option == *SelectedCondition)
+        {
+            SelectedCondition = Option;
+            bCurrentConditionStillValid = true;
+            break;
+        }
+    }
+
+    if (!bCurrentConditionStillValid)
+    {
+        SelectedCondition = LinkConditionOptions.Num () > 0 ? LinkConditionOptions[0] : nullptr;
+    }
+
+    if (!SelectedCondition.IsValid () || *SelectedCondition == EGridObjectCondition::None)
+    {
+        bInvertCondition = false;
+    }
+}
+
+void SGridEditorLinksPanel::BuildItemTypeOptions ()
+{
+    ItemTypeOptions.Reset ();
+
+    const EGridItemType ItemTypes[] = {
+        EGridItemType::Torch,
+        EGridItemType::Weapon,
+        EGridItemType::Shield,
+        EGridItemType::Armor,
+        EGridItemType::Jewelry,
+        EGridItemType::Key,
+        EGridItemType::Gem,
+        EGridItemType::Potion,
+        EGridItemType::Scroll,
+        EGridItemType::Book,
+        EGridItemType::Food,
+        EGridItemType::Component,
+        EGridItemType::Quest,
+        EGridItemType::Misc
+    };
+
+    for (const EGridItemType ItemType : ItemTypes)
+    {
+        ItemTypeOptions.Add (MakeShared<EGridItemType> (ItemType));
+    }
+
+    bool bCurrentTypeStillValid = false;
+    for (const TSharedPtr<EGridItemType>& Option : ItemTypeOptions)
+    {
+        if (Option.IsValid () && SelectedConditionItemType.IsValid () && *Option == *SelectedConditionItemType)
+        {
+            SelectedConditionItemType = Option;
+            bCurrentTypeStillValid = true;
+            break;
+        }
+    }
+
+    if (!bCurrentTypeStillValid)
+    {
+        SelectedConditionItemType = ItemTypeOptions.Num () > 0 ? ItemTypeOptions[0] : nullptr;
+    }
+}
+
 void SGridEditorLinksPanel::RefreshConnectorFormOptions ()
 {
     BuildObjectOptions ();
     BuildEventOptions ();
     BuildCommandOptions ();
+    BuildConditionOptions ();
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeObjectComboWidget (TSharedPtr<FGuid> Item) const
@@ -916,6 +1351,7 @@ void SGridEditorLinksPanel::OnSourceObjectSelectionChanged (
     TSharedPtr<FGuid> NewValue,
     ESelectInfo::Type SelectInfo)
 {
+    (void)SelectInfo;
     SelectedSourceObjectId = NewValue;
     BuildEventOptions ();
 }
@@ -924,8 +1360,11 @@ void SGridEditorLinksPanel::OnTargetObjectSelectionChanged (
     TSharedPtr<FGuid> NewValue,
     ESelectInfo::Type SelectInfo)
 {
+    (void)SelectInfo;
     SelectedTargetObjectId = NewValue;
     BuildCommandOptions ();
+    BuildConditionOptions ();
+    RebuildLinksSection ();
 }
 
 TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkSourceEventComboWidget (
@@ -943,6 +1382,7 @@ void SGridEditorLinksPanel::OnLinkSourceEventSelectionChanged (
     TSharedPtr<EGridObjectEvent> NewValue,
     ESelectInfo::Type SelectInfo)
 {
+    (void)SelectInfo;
     if (NewValue.IsValid ())
     {
         SelectedSourceEvent = NewValue;
@@ -971,6 +1411,7 @@ void SGridEditorLinksPanel::OnLinkCommandSelectionChanged (
     TSharedPtr<EGridObjectCommand> NewValue,
     ESelectInfo::Type SelectInfo)
 {
+    (void)SelectInfo;
     if (NewValue.IsValid ())
     {
         SelectedCommand = NewValue;
@@ -982,6 +1423,68 @@ FText SGridEditorLinksPanel::GetSelectedLinkCommandText () const
     return SelectedCommand.IsValid ()
         ? GetLinkCommandText (*SelectedCommand)
         : FText::FromString (TEXT ("Select command"));
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::MakeLinkConditionComboWidget (
+    TSharedPtr<EGridObjectCondition> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (GetLinkConditionText (*Item));
+}
+
+void SGridEditorLinksPanel::OnLinkConditionSelectionChanged (
+    TSharedPtr<EGridObjectCondition> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    (void)SelectInfo;
+    if (NewValue.IsValid ())
+    {
+        SelectedCondition = NewValue;
+        if (*SelectedCondition == EGridObjectCondition::None)
+        {
+            bInvertCondition = false;
+        }
+    }
+}
+
+FText SGridEditorLinksPanel::GetSelectedLinkConditionText () const
+{
+    return SelectedCondition.IsValid ()
+        ? GetLinkConditionText (*SelectedCondition)
+        : FText::FromString (TEXT ("Select condition"));
+}
+
+TSharedRef<SWidget> SGridEditorLinksPanel::MakeItemTypeComboWidget (
+    TSharedPtr<EGridItemType> Item) const
+{
+    if (!Item.IsValid ())
+    {
+        return SNew (STextBlock).Text (FText::FromString (TEXT ("Invalid")));
+    }
+
+    return SNew (STextBlock).Text (GetItemTypeText (*Item));
+}
+
+void SGridEditorLinksPanel::OnItemTypeSelectionChanged (
+    TSharedPtr<EGridItemType> NewValue,
+    ESelectInfo::Type SelectInfo)
+{
+    (void)SelectInfo;
+    if (NewValue.IsValid ())
+    {
+        SelectedConditionItemType = NewValue;
+    }
+}
+
+FText SGridEditorLinksPanel::GetSelectedItemTypeText () const
+{
+    return SelectedConditionItemType.IsValid ()
+        ? GetItemTypeText (*SelectedConditionItemType)
+        : FText::FromString (TEXT ("Select item type"));
 }
 
 #endif

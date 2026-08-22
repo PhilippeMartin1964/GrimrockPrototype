@@ -132,32 +132,27 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
         return false;
     }
 
-#if WITH_EDITOR
-    LevelAsset->Modify ();
-#endif
+    FGridObjectLink NewLink;
+    NewLink.SourceObjectId = PendingLinkSourceObjectId;
+    NewLink.TargetObjectId = SelectedObject->ObjectId;
+    NewLink.SourceEvent = LinkSourceEvent;
+    NewLink.Command = LinkCommand;
+    NewLink.Condition = EGridObjectCondition::None;
 
-    const bool bAlreadyExists = LevelAsset->Links.ContainsByPredicate (
-        [&] (const FGridObjectLink& Link)
+    const bool bAlreadyExists = GridEditorLinkService::ContainsExactLink (
+        LevelAsset->Links,
+        NewLink);
+    if (!bAlreadyExists && !GridEditorLinkService::CreateLink (*this, NewLink))
     {
-        return Link.SourceObjectId == PendingLinkSourceObjectId &&
-            Link.TargetObjectId == SelectedObject->ObjectId &&
-            Link.SourceEvent == LinkSourceEvent &&
-            Link.Command == LinkCommand;
-    });
+        UE_LOG (
+            LogTemp,
+            Warning,
+            TEXT ("GridLevelEditorActor: link creation rejected by the connector policy."));
+        return false;
+    }
 
     if (!bAlreadyExists)
     {
-        FGridObjectLink NewLink;
-        NewLink.SourceObjectId = PendingLinkSourceObjectId;
-        NewLink.TargetObjectId = SelectedObject->ObjectId;
-        NewLink.SourceEvent = LinkSourceEvent;
-        NewLink.Command = LinkCommand;
-        LevelAsset->Links.Add (NewLink);
-
-#if WITH_EDITOR
-        LevelAsset->MarkPackageDirty ();
-#endif
-
         UE_LOG (
             LogTemp,
             Log,
@@ -168,7 +163,10 @@ bool AGridLevelEditorActor::BeginOrCompleteLinkAtSelection ()
 
     LastSelectedObjectId = SelectedObject->ObjectId;
     ClearPendingLinkSource ();
-    RebuildPreview ();
+    if (bAlreadyExists)
+    {
+        RebuildPreview ();
+    }
     return true;
 }
 

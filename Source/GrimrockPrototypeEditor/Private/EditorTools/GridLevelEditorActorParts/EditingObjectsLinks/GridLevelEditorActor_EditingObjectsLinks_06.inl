@@ -1,18 +1,3 @@
-    });
-
-    if (RemovedCount <= 0)
-    {
-        return false;
-    }
-
-#if WITH_EDITOR
-    LevelAsset->MarkPackageDirty ();
-#endif
-
-    RebuildPreview ();
-    return true;
-}
-
 const FGridLevelObjectData* AGridLevelEditorActor::GetSelectedObjectData () const
 {
     return FindObjectById (LastSelectedObjectId);
