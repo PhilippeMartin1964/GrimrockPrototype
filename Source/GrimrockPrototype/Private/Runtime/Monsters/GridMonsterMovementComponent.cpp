@@ -62,7 +62,9 @@ void UGridMonsterMovementComponent::TickComponent (
     if (ActiveMotion == EGridMonsterMotionType::Move)
     {
         Monster->SetActorLocation (FMath::Lerp (MotionStartLocation, MotionTargetLocation, VisualAlpha));
-        Monster->SetMovementAnimationState (true, LinearAlpha);
+        // MoveAlpha mirrors the actual spatial interpolation used by the actor so
+        // in-place locomotion can evaluate its phase against travelled cell distance.
+        Monster->SetMovementAnimationState (true, VisualAlpha);
 
         if (LinearAlpha >= 1.0f)
         {
