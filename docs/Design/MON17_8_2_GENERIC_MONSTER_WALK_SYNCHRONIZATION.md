@@ -1,18 +1,18 @@
 # MON17.8.2 — Generic Monster Walk Synchronization
 
-Statut : **IMPLEMENTATION C++ PRETE — validation compilation/UE5/PIE requise**
+Statut : **VALIDÉ VISUELLEMENT EN PIE SUR GOBLINTHROWER — compilation C++ / automation / non-régression RatGiant encore à confirmer**
 
-## 1. Portee
+## 1. Portée
 
-MON17.8 utilise `GoblinThrower` comme creature pilote, mais le contrat introduit ici est **generique pour tout le bestiaire**.
+MON17.8 utilise `GoblinThrower` comme créature pilote, mais le contrat introduit ici est **générique pour tout le bestiaire**.
 
-Il doit s'appliquer sans code specifique a :
+Il doit s'appliquer sans code spécifique à :
 
 - `MON_RatGiant` existant ;
 - `MON_GoblinThrower` ;
 - tous les monstres futurs utilisant `AGridMonsterActor`, `UGridMonsterMovementComponent` et `UGridMonsterAnimInstance`.
 
-Regle d'architecture :
+Architecture :
 
 ```text
 Gameplay / grille
@@ -23,44 +23,28 @@ Gameplay / grille
     -> Animation Sequence propre au monstre
 ```
 
-Interdit dans ce jalon :
+Interdit :
 
 ```text
 AGoblinThrowerActor
 UGoblinThrowerMovementComponent
 if (MonsterId == MON_GoblinThrower)
 Root Motion autoritaire
-second systeme de locomotion
+second système de locomotion
 ```
 
-## 2. Probleme corrige
+## 2. Correction C++ générique
 
-Avant MON17.8.2, `UGridMonsterMovementComponent::TickComponent()` calculait :
+Avant MON17.8.2 :
 
 ```text
-LinearAlpha = temps ecoule / MoveDuration
+LinearAlpha = temps écoulé / MoveDuration
 VisualAlpha = EaseInOut(LinearAlpha)
 ```
 
-La position de l'Actor utilisait `VisualAlpha` :
+La position monde utilisait `VisualAlpha`, mais `MoveAlpha` transmis à l'animation utilisait encore `LinearAlpha`.
 
-```cpp
-SetActorLocation(Lerp(Start, Target, VisualAlpha));
-```
-
-mais le signal animation utilisait encore `LinearAlpha` :
-
-```cpp
-SetMovementAnimationState(true, LinearAlpha);
-```
-
-Avec `bUseEaseInOut=true`, le squelette pouvait donc evaluer sa marche selon une progression differente de la distance reellement parcourue dans la case.
-
-Cette incoherence est generique et peut produire du foot sliding sur n'importe quel monstre utilisant `MoveAlpha` pour piloter sa phase de locomotion.
-
-## 3. Correction C++
-
-`GridMonsterMovementComponent.cpp` transmet maintenant le meme alpha que celui utilise pour la translation :
+La correction est volontairement minimale :
 
 ```cpp
 Monster->SetActorLocation(
@@ -69,163 +53,221 @@ Monster->SetActorLocation(
 Monster->SetMovementAnimationState(true, VisualAlpha);
 ```
 
-Le contrat de `MoveAlpha` devient donc :
+Le contrat devient :
 
 ```text
-MoveAlpha = progression spatiale normalisee du mouvement affiche
+MoveAlpha = progression spatiale normalisée du mouvement affiché
 0.0 = centre de la cellule source
 1.0 = centre de la cellule destination
 ```
 
-Si `bUseEaseInOut=false`, `MoveAlpha` reste naturellement lineaire.
+`MoveDuration` reste l'unique durée autoritaire de présentation du déplacement. Aucun PlayRate C++ ni connaissance d'asset d'animation n'est ajouté au runtime générique.
 
-Aucune nouvelle propriete n'est ajoutee. `MoveDuration` reste l'unique duree autoritaire de presentation du deplacement.
+## 3. Enseignement important : ne pas mapper automatiquement toute la séquence à une case
 
-## 4. Contrat AnimBP recommande
-
-Pour une animation de marche **in-place**, l'AnimBP peut utiliser `MoveAlpha` comme phase normalisee de la traversee d'une case.
-
-Pour une sequence de longueur `WalkLengthSeconds` :
+L'hypothèse initiale :
 
 ```text
-ExplicitTime = MoveAlpha * WalkLengthSeconds
+ExplicitTime = MoveAlpha * SequenceLength
 ```
 
-La solution privilegiee dans UE5.5.4 est donc un `Sequence Evaluator` (ou mecanisme equivalent permettant un temps explicite) plutot qu'un Sequence Player libre dont le PlayRate evolue independamment de la translation de grille.
+s'est révélée trop simpliste pour un asset contenant plusieurs foulées.
 
-Le C++ ne connait pas la longueur des animations propres aux squelettes. C'est volontaire :
+Le contrat générique corrigé est :
 
 ```text
-C++ generique     -> fournit 0..1
-AnimBP specifique -> convertit 0..1 vers la duree de son animation
+ExplicitTime = CycleStart + MoveAlpha * CycleDuration
 ```
 
-Ainsi Rat, Gobelin, Araignee, Squelette, etc. peuvent utiliser des animations de durees differentes sans specialisation C++.
+où l'AnimBP spécifique au squelette choisit un **cycle locomoteur propre**, par exemple pied droit -> pied gauche -> pied droit.
 
-## 5. Modification manuelle UE5.5.4 — GoblinThrower
-
-### 5.1 Verifier la sequence
-
-Ouvrir :
+Ainsi :
 
 ```text
-A_GoblinThrower_Walk
+C++ générique
+    fournit MoveAlpha 0..1
+
+AnimBP spécifique
+    choisit son asset
+    choisit CycleStart
+    choisit CycleDuration
 ```
 
-Verifier :
+Le C++ ne connaît ni la longueur du clip, ni le nombre de pas, ni la phase des pieds.
 
-- Root Motion desactive ;
-- animation reellement in-place ;
-- longueur exacte de la sequence ;
-- debut et fin compatibles avec une boucle ;
-- absence de translation globale du root qui ferait avancer physiquement le personnage.
+## 4. Choix d'asset GoblinThrower
 
-Noter la valeur exacte de `Sequence Length`.
+L'ancien `A_GoblinThrower_Walk`, issu de `MM_Walk_InPlace`, a été jugé visuellement trop faible : le Gobelin donnait surtout l'impression de glisser au sol avec peu d'engagement des jambes.
 
-### 5.2 Modifier ABP_MON_GoblinThrower
-
-Conserver le State Machine et les transitions existantes :
+Une meilleure source du même package natif Goblin_Bomber a été retenue :
 
 ```text
-Idle -> Walk : bIsMoving == true
-Walk -> Idle : bIsMoving == false
+MM_Walk_Fwd
 ```
 
-Dans l'etat `Walk` :
+Cette animation :
 
-1. remplacer le Sequence Player libre de `A_GoblinThrower_Walk` par un `Sequence Evaluator` ;
-2. selectionner `A_GoblinThrower_Walk` ;
-3. piloter son `Explicit Time` avec :
+- provient du même squelette / même hiérarchie d'os que le GoblinThrower réorganisé dans le projet ;
+- reste sur place avec le root verrouillé ;
+- présente une démarche plus naturelle et plus affirmée ;
+- est utilisée sous le nom de production :
 
 ```text
-MoveAlpha * SequenceLength
+A_GoblinThrower_Walk_Fwd
 ```
 
-4. conserver la sortie de pose vers le State Result ;
-5. ne pas modifier le Slot utilise par `AM_GoblinThrower_ThrowKnife` ;
-6. ne pas activer Root Motion.
-
-Si UE expose directement une entree de temps normalise sur le noeud utilise, preferer cette entree a une multiplication manuelle par la duree.
-
-## 6. Verification Rat Geant
-
-Le Rat Geant sert de test de non-regression du pipeline generique.
-
-Dans son AnimBP :
-
-- s'il utilise seulement `bIsMoving` avec un Sequence Player libre, aucune modification binaire n'est obligatoire pour la compilation de MON17.8.2 ;
-- verifier toutefois en PIE que son comportement de marche n'a pas change negativement ;
-- a terme, il pourra adopter le meme contrat `MoveAlpha`-driven si son animation presente du glissement de pieds.
-
-MON17.8 ne doit pas imposer qu'une meme animation ou une meme duree soit utilisee par tous les monstres. Seul le signal normalise 0..1 est commun.
-
-## 7. Cas a tester en PIE
-
-### GoblinThrower
-
-Verifier successivement :
+Réglages vérifiés :
 
 ```text
-1 case en avant
-plusieurs cases consecutives
-poursuite du groupe
-patrouille
-move apres rotation
-move -> attaque ThrowKnife
-attaque ThrowKnife -> move suivant
+Skeleton              = SKEL_GoblinThrower
+Enable Root Motion    = false
+Root Motion Root Lock = Ref Pose
+Force Root Lock       = true
 ```
 
-Observer en priorite :
+Aucun IK Retargeter Mixamo n'est requis pour cette animation : `MM_Walk_Fwd` et `MM_Walk_InPlace` proviennent du même package Goblin_Bomber. Le projet a seulement renommé/réorganisé le Skeleton, le Skeletal Mesh et le Physics Asset.
 
-- les pieds ne doivent plus visiblement glisser par rapport au sol ;
-- la pose de marche doit avancer avec la distance parcourue ;
-- aucun snap supplementaire ne doit apparaitre au centre des cellules ;
-- le Gobelin doit toujours terminer exactement au centre de sa cellule ;
-- le lancer de couteau doit conserver son montage et son timing MON17.3.3.
+## 5. Cycle locomoteur retenu
 
-### RatGiant
+Les contacts de pieds observés dans `A_GoblinThrower_Walk_Fwd` sont :
 
-Verifier au minimum :
+```text
+L : 0.413 s  (frame 13)
+R : 0.895 s  (frame 27)
+L : 1.349 s  (frame 40)
+R : 1.800 s  (frame 54)
+L : 2.449 s  (frame 67)
+R : 2.716 s  (frame 81)
+```
+
+Le cycle le plus régulier est :
+
+```text
+R 0.895 s
+    -> L 1.349 s   (+0.454 s)
+    -> R 1.800 s   (+0.451 s)
+```
+
+soit :
+
+```text
+CycleStart    = 0.895 s
+CycleDuration = 0.905 s
+```
+
+Le Graphe de l'état `Walk` de `ABP_MON_GoblinThrower` utilise donc :
+
+```text
+ExplicitTime = 0.895 + MoveAlpha * 0.905
+```
+
+avec :
+
+```text
+Sequence                  = A_GoblinThrower_Walk_Fwd
+Should Loop               = false
+Teleport to Explicit Time = true
+Root Motion               = non autoritaire / désactivé
+```
+
+Le Slot utilisé par `AM_GoblinThrower_ThrowKnife` reste intact.
+
+## 6. Réglage final GoblinThrower validé visuellement
+
+Après essais PIE, le réglage retenu par validation visuelle est :
+
+```text
+DA_MON_GoblinThrower.MoveDuration = 1.00 s
+Idle -> Walk Blend Duration       = 0.20 s
+Walk -> Idle Blend Duration       = 0.20 s
+
+Walk Sequence                     = A_GoblinThrower_Walk_Fwd
+ExplicitTime                      = 0.895 + MoveAlpha * 0.905
+```
+
+Le résultat est jugé **presque parfait** visuellement pour le rythme volontairement posé d'un dungeon crawler tactique, et nettement supérieur à l'ancien `MM_Walk_InPlace`.
+
+Un léger à-coup peut encore être perceptible lors de l'enchaînement case -> case, mais il n'est pas considéré bloquant à ce stade. Une éventuelle amélioration future devra rester générique et distinguer la fin logique d'une case de la fin visuelle d'une locomotion continue, sans casser le commit grille case par case.
+
+## 7. Règle data-driven pour les monstres futurs
+
+`MoveDuration` est une caractéristique de présentation/gameplay par espèce, pas une constante universelle.
+
+Exemples conceptuels uniquement :
+
+```text
+créature rapide   -> MoveDuration plus court
+créature humanoïde posée -> MoveDuration intermédiaire
+créature lourde   -> MoveDuration plus long
+```
+
+Chaque AnimBP peut utiliser son propre :
+
+```text
+WalkSequence
+CycleStart
+CycleDuration
+```
+
+tout en partageant le même `MoveAlpha` générique 0..1.
+
+## 8. RatGiant — non-régression requise
+
+Le Rat Géant reste le test de non-régression représentatif du pipeline existant.
+
+Aucune modification binaire de son AnimBP n'est imposée par MON17.8.2. Il faut toutefois vérifier en PIE :
 
 ```text
 Idle
 move d'une case
-moves consecutifs
-poursuite/patrouille existante
+moves consécutifs
+poursuite / patrouille
 combat existant
 ```
 
-Aucune regression gameplay ne doit etre acceptee.
+Si son animation présente un foot sliding notable, il pourra adopter le même contrat `MoveAlpha` + sous-cycle propre, sans changement C++ spécifique.
 
-## 8. Validation C++ / automation demandee
+## 9. Validation restant à fournir
 
-Apres pull du commit MON17.8.2 :
+La validation visuelle PIE GoblinThrower est acquise dans cette étape.
 
-1. compiler le projet sous UE5.5.4 / Visual Studio ;
-2. executer les tests cibles existants :
+Il reste à fournir depuis l'environnement UE5.5.4 local :
 
 ```text
+Compilation C++ du projet
 Grimrock.Monsters.MON3
 Grimrock.Monsters.MON10
 Grimrock.Monsters.MON17.2
 Grimrock.Monsters.MON17.3
+non-régression PIE RatGiant
+non-régression ThrowKnife
 ```
 
-3. effectuer la validation PIE GoblinThrower + RatGiant ci-dessus.
+Cette documentation ne déclare pas ces éléments réussis tant que leur résultat n'a pas été fourni.
 
-Cette documentation ne declare **aucune compilation ni aucun test valide** tant que le resultat n'a pas ete fourni depuis l'environnement UE5.5.4 local.
+## 10. Assets binaires UE concernés localement
 
-## 9. Criteres de cloture MON17.8.2
+Les modifications UE5.5.4 réalisées manuellement concernent notamment :
 
-MON17.8.2 peut etre considere valide lorsque :
+```text
+A_GoblinThrower_Walk_Fwd
+ABP_MON_GoblinThrower
+DA_MON_GoblinThrower
+```
+
+Ces `.uasset` ne sont pas modifiés par le commit documentaire/C++ via GitHub ; ils doivent être sauvegardés et versionnés depuis l'environnement local Unreal/Git.
+
+## 11. Critères de clôture complète MON17.8.2
+
+MON17.8.2 sera entièrement clos lorsque :
 
 - le C++ compile sous UE5.5.4 ;
-- `MoveAlpha` represente bien la progression spatiale affichee ;
-- le GoblinThrower utilise sa marche in-place sans glissement notable ;
-- le RatGiant ne regresse pas ;
-- ThrowKnife ne regresse pas ;
-- aucun code specifique au Gobelin n'a ete introduit ;
+- `MoveAlpha` représente la progression spatiale affichée ;
+- le GoblinThrower utilise le cycle validé ci-dessus ;
+- le RatGiant ne régresse pas ;
+- ThrowKnife ne régresse pas ;
+- aucun code spécifique au Gobelin n'a été introduit ;
 - Root Motion reste non autoritaire ;
 - les tests cibles passent.
 
-La suite est `MON17.8.3 — Generic Monster Presentation State Integration`, avec le GoblinThrower comme premier cas complet et le RatGiant comme regression representative.
+La suite est `MON17.8.3 — Generic Monster Presentation State Integration`, avec GoblinThrower comme premier cas complet et RatGiant comme non-régression représentative.
