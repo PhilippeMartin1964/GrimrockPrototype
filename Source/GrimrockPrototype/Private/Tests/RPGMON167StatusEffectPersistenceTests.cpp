@@ -396,28 +396,30 @@ bool FRPGMON167V4MigrationPreservesProgressionTest::RunTest (
 
     FText MigrationError;
     FRPGSaveMigrationReport Report;
-    TestTrue (TEXT ("v4 migrates to v5"),
+    TestTrue (TEXT ("v4 migrates to the current save contract"),
         FRPGSaveMigrationService::PrepareLoadedSave (
             Save,
             MigrationError,
             &Report));
-    TestEqual (TEXT ("v4 migration targets save version five"),
-        Save->SaveVersion, 5);
+    TestEqual (TEXT ("v4 migration targets current save version six"),
+        Save->SaveVersion, 6);
     TestEqual (TEXT ("v4 migration performs no level reconciliation"),
         Report.ReconciledCharacterCount, 0);
     TestEqual (TEXT ("v4 progression snapshot count is preserved"),
         Save->ClassProgressionStates.Num (), 1);
     if (Save->ClassProgressionStates.Num () == 1)
     {
-        TestTrue (TEXT ("Choice A survives v4 to v5"),
+        TestTrue (TEXT ("Choice A survives legacy migration"),
             Save->ClassProgressionStates[0].SelectedChoiceIds.Contains (
                 TEXT ("Choice_A")));
-        TestTrue (TEXT ("Choice B survives v4 to v5"),
+        TestTrue (TEXT ("Choice B survives legacy migration"),
             Save->ClassProgressionStates[0].SelectedChoiceIds.Contains (
                 TEXT ("Choice_B")));
     }
     TestTrue (TEXT ("v4 starts with no status snapshots"),
         Save->CharacterStatusEffectStates.IsEmpty ());
+    TestTrue (TEXT ("v4 starts with no spellbook snapshots"),
+        Save->CharacterSpellbookStates.IsEmpty ());
     return true;
 }
 
@@ -455,8 +457,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST (
 bool FRPGMON167SaveVersionContractTest::RunTest (const FString& Parameters)
 {
     (void)Parameters;
-    TestEqual (TEXT ("MON16.7 advances save version to five"),
-        UGrimrockPartySaveGame::CurrentSaveVersion, 5);
+    TestEqual (TEXT ("Current save version includes later persistence milestones"),
+        UGrimrockPartySaveGame::CurrentSaveVersion, 6);
     TestEqual (TEXT ("Minimum compatible version remains one"),
         UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
     return true;

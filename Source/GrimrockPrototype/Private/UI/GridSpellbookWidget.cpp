@@ -117,7 +117,7 @@ namespace
         UE_LOG (
             LogTemp,
             Display,
-            TEXT ("Grimrock.Spellbook.SeedProduction: CharacterIndex=%d Added=%d AlreadyKnown=%d TotalProduction=%d. Runtime-only; stopping PIE discards this seed."),
+            TEXT ("Grimrock.Spellbook.SeedProduction: CharacterIndex=%d Added=%d AlreadyKnown=%d TotalProduction=%d. MON18.8 persists these learned spells on the next successful save."),
             CharacterIndex,
             AddedCount,
             AlreadyKnownCount,
@@ -126,7 +126,7 @@ namespace
 
     static FAutoConsoleCommandWithWorld GSeedProductionSpellsForPIECommand (
         TEXT ("Grimrock.Spellbook.SeedProduction"),
-        TEXT ("Development validation command. Teaches all MON18.5 production spells to the currently selected party character for the current runtime session only."),
+        TEXT ("Development validation command. Teaches all MON18.5 production spells to the currently selected party character; MON18.8 persists them on the next successful save."),
         FConsoleCommandWithWorldDelegate::CreateStatic (
             &SeedProductionSpellsForPIE),
         ECVF_Default);

@@ -1,5 +1,6 @@
 #include "RPG/RPGSaveMigrationService.h"
 
+#include "Magic/GridSpellbookPersistence.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
@@ -409,6 +410,41 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
         return ValidateCurrentSave (SaveGame, OutError);
     }
 
+    // MON18.8: v5 already contains authoritative MON15 progression and MON16
+    // status snapshots. The only new v6 domain is Spellbook knowledge. Never
+    // route v5 through the v1-v3 reconstruction path.
+    if (SourceVersion == 5)
+    {
+        if (!ValidateSnapshot (
+                SaveGame->PartyInventoryState,
+                SaveGame->ClassProgressionStates,
+                SaveGame->PendingLevelUpNotifications,
+                OutError))
+        {
+            return false;
+        }
+
+        SaveGame->CharacterSpellbookStates.Reset ();
+        SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
+
+        FString SpellbookError;
+        if (!FGridSpellbookPersistence::ValidateSavedPartySpellbooks (
+                SaveGame->PartyInventoryState,
+                SaveGame->CharacterSpellbookStates,
+                SpellbookError))
+        {
+            OutError = FText::FromString (SpellbookError);
+            return false;
+        }
+
+        if (OutReport)
+        {
+            OutReport->ReconciledCharacterCount = 0;
+            OutReport->bMigrated = true;
+        }
+        return true;
+    }
+
     // MON16.7: v4 is already authoritative for MON15 progression. Do not run
     // the v1-v3 reconstruction path, which would erase confirmed class choices.
     if (SourceVersion == 4)
@@ -425,6 +461,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
         ResetLegacyPartyStatusEffects (SaveGame->PartyInventoryState);
         ResetLegacyMonsterStatusEffects (SaveGame->DungeonRuntimeState);
         SaveGame->CharacterStatusEffectStates.Reset ();
+        SaveGame->CharacterSpellbookStates.Reset ();
         SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
         if (OutReport)
@@ -490,6 +527,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
     SaveGame->ClassProgressionStates = MoveTemp (MigratedProgressionStates);
     SaveGame->PendingLevelUpNotifications = MoveTemp (MigratedPendingNotifications);
     SaveGame->CharacterStatusEffectStates.Reset ();
+    SaveGame->CharacterSpellbookStates.Reset ();
     SaveGame->DungeonRuntimeState = MoveTemp (MigratedDungeonState);
     SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
@@ -521,9 +559,24 @@ bool FRPGSaveMigrationService::ValidateCurrentSave (
         return false;
     }
 
-    return ValidateSnapshot (
-        SaveGame->PartyInventoryState,
-        SaveGame->ClassProgressionStates,
-        SaveGame->PendingLevelUpNotifications,
-        OutError);
+    if (!ValidateSnapshot (
+            SaveGame->PartyInventoryState,
+            SaveGame->ClassProgressionStates,
+            SaveGame->PendingLevelUpNotifications,
+            OutError))
+    {
+        return false;
+    }
+
+    FString SpellbookError;
+    if (!FGridSpellbookPersistence::ValidateSavedPartySpellbooks (
+            SaveGame->PartyInventoryState,
+            SaveGame->CharacterSpellbookStates,
+            SpellbookError))
+    {
+        OutError = FText::FromString (SpellbookError);
+        return false;
+    }
+
+    return true;
 }

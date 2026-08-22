@@ -299,12 +299,13 @@ void UGrimrockPartySaveGame::Serialize (FArchive& Ar)
     UE_LOG (
         LogGrimrockPartySave,
         Log,
-        TEXT ("[GridSaveMigration] Load SourceVersion=%d TargetVersion=%d Migrated=%s Reconciled=%d Choices=%d PendingLevelUps=%d StatusCharacters=%d Result=Accepted"),
+        TEXT ("[GridSaveMigration] Load SourceVersion=%d TargetVersion=%d Migrated=%s Reconciled=%d Choices=%d PendingLevelUps=%d StatusCharacters=%d SpellbookCharacters=%d Result=Accepted"),
         MigrationReport.SourceVersion,
         MigrationReport.TargetVersion,
         MigrationReport.bMigrated ? TEXT ("true") : TEXT ("false"),
         MigrationReport.ReconciledCharacterCount,
         ClassProgressionStates.Num (),
         PendingLevelUpNotifications.Num (),
-        CharacterStatusEffectStates.Num ());
+        CharacterStatusEffectStates.Num (),
+        CharacterSpellbookStates.Num ());
 }

@@ -381,9 +381,9 @@ bool FRPGMON156SaveVersionContractTest::RunTest (
     const FString& Parameters)
 {
     (void)Parameters;
-    TestEqual (TEXT ("Current save contract is version five"),
+    TestEqual (TEXT ("Current save contract includes MON18.8 version six"),
         UGrimrockPartySaveGame::CurrentSaveVersion,
-        5);
+        6);
     TestEqual (TEXT ("Version one remains the minimum compatible save"),
         UGrimrockPartySaveGame::MinimumCompatibleSaveVersion,
         1);

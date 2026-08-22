@@ -9,7 +9,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE (FGridPartySpellbookChangedSignature);
 
 /**
  * Runtime owner for party spell knowledge.
- * MON18.2 deliberately keeps this state transient; Save/Restore is MON18.8.
+ * The state remains transient; MON18.8 persists stable CharacterId/SpellId
+ * snapshots through FGridSpellbookPersistence instead of serializing this
+ * component or any spell definition pointer.
  */
 UCLASS (ClassGroup = (Grimrock), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridPartySpellbookComponent : public UActorComponent

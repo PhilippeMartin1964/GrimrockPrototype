@@ -11,6 +11,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
+#include "Magic/GridPartySpellbookComponent.h"
+#include "Magic/GridSpellbookPersistence.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -32,6 +34,23 @@ namespace
     bool IsPawnHandEquipmentSlot (EGridEquipmentSlot Slot)
     {
         return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
+    }
+
+    UGridPartySpellbookComponent* GetPawnSpellbookComponent (
+        AGrimrockPartyPawn* PartyPawn)
+    {
+        return IsValid (PartyPawn)
+            ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent> ()
+            : nullptr;
+    }
+
+    void ResetPawnSpellbook (AGrimrockPartyPawn* PartyPawn)
+    {
+        if (UGridPartySpellbookComponent* SpellbookComponent =
+            GetPawnSpellbookComponent (PartyPawn))
+        {
+            SpellbookComponent->ResetAllSpellbooks ();
+        }
     }
 
     const TCHAR* GetPawnEquipmentSlotName (EGridEquipmentSlot Slot)
@@ -115,6 +134,7 @@ AGrimrockPartyPawn::AGrimrockPartyPawn ()
     HeldItemRoot->SetupAttachment (Camera ? Cast<USceneComponent> (Camera) : SceneRoot);
 
     PartyInventoryComponent = CreateDefaultSubobject<UGridPartyInventoryComponent> (TEXT ("PartyInventoryComponent"));
+    CreateDefaultSubobject<UGridPartySpellbookComponent> (TEXT ("PartySpellbookComponent"));
 
     AutoPossessPlayer = EAutoReceiveInput::Player0;
     Camera->SetRelativeLocation (CameraLocalOffset);
@@ -192,11 +212,13 @@ void AGrimrockPartyPawn::BeginPlay ()
                         *PartySaveSlotName,
                         *LoadError.ToString ());
                     PartyInventoryComponent->ResetPartyForNewGame ();
+                    ResetPawnSpellbook (this);
                 }
             }
             else
             {
                 PartyInventoryComponent->ResetPartyForNewGame ();
+                ResetPawnSpellbook (this);
             }
         }
         else if (PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
@@ -206,6 +228,7 @@ void AGrimrockPartyPawn::BeginPlay ()
                 UGameplayStatics::DeleteGameInSlot (PartySaveSlotName, PartySaveUserIndex);
             }
             PartyInventoryComponent->ResetPartyForNewGame ();
+            ResetPawnSpellbook (this);
         }
         else if (HasCurrentSave ())
         {
@@ -254,6 +277,7 @@ void AGrimrockPartyPawn::BeginPlay ()
         else
         {
             PartyInventoryComponent->ResetPartyForNewGame ();
+            ResetPawnSpellbook (this);
         }
     }
 
@@ -1626,6 +1650,16 @@ void AGrimrockPartyPawn::HandleInitialCharacterCreated ()
         return;
     }
 
+    if (UGridPartySpellbookComponent* SpellbookComponent =
+        GetPawnSpellbookComponent (this))
+    {
+        for (const FGridCharacterInventoryState& Character :
+            PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
+        {
+            SpellbookComponent->EnsureCharacterSpellbook (Character.CharacterId);
+        }
+    }
+
     CloseCharacterCreationWidget ();
 
     bCharacterCreationModalActive = false;
@@ -1676,11 +1710,35 @@ bool AGrimrockPartyPawn::SaveCurrentGame (FText& OutError)
         return false;
     }
 
+    UGridPartySpellbookComponent* SpellbookComponent =
+        GetPawnSpellbookComponent (this);
+    if (!SpellbookComponent)
+    {
+        OutError = FText::FromString (
+            TEXT ("Le composant Spellbook du groupe est indisponible."));
+        return false;
+    }
+
     FString OwnershipError;
     if (!PartyInventoryComponent->ValidateInventoryOwnership (OwnershipError))
     {
         OutError = FText::FromString (
             FString::Printf (TEXT ("L'ownership du groupe est invalide : %s"), *OwnershipError));
+        return false;
+    }
+
+    TArray<FGridCharacterSpellbookSaveState> SpellbookSnapshots;
+    FString SpellbookCaptureError;
+    if (!FGridSpellbookPersistence::CapturePartySpellbooks (
+            PartyInventoryComponent->PartyInventoryState,
+            SpellbookComponent->SpellbookState,
+            SpellbookSnapshots,
+            SpellbookCaptureError))
+    {
+        OutError = FText::FromString (
+            FString::Printf (
+                TEXT ("Le Spellbook ne peut pas être capturé : %s"),
+                *SpellbookCaptureError));
         return false;
     }
 
@@ -1700,6 +1758,7 @@ bool AGrimrockPartyPawn::SaveCurrentGame (FText& OutError)
 
     SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
     SaveGame->PartyInventoryState = PartyInventoryComponent->PartyInventoryState;
+    SaveGame->CharacterSpellbookStates = MoveTemp (SpellbookSnapshots);
     SaveGame->DungeonRuntimeState = LevelRuntimeActor->DungeonRuntimeState;
     SaveGame->CurrentDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
     SaveGame->PartyCellX = CurrentCellX;
@@ -1715,10 +1774,11 @@ bool AGrimrockPartyPawn::SaveCurrentGame (FText& OutError)
     UE_LOG (
         LogTemp,
         Log,
-        TEXT ("PartySave Saved Slot=%s Version=%d Characters=%d Cell=(%d,%d) Facing=%d"),
+        TEXT ("PartySave Saved Slot=%s Version=%d Characters=%d Spellbooks=%d Cell=(%d,%d) Facing=%d"),
         *PartySaveSlotName,
         SaveGame->SaveVersion,
         SaveGame->PartyInventoryState.ActiveCharacters.Num (),
+        SaveGame->CharacterSpellbookStates.Num (),
         CurrentCellX,
         CurrentCellY,
         static_cast<int32> (Facing));
@@ -1780,9 +1840,29 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
         return false;
     }
 
-    if (!PartyInventoryComponent || !IsValid (LevelRuntimeActor))
+    UGridPartySpellbookComponent* SpellbookComponent =
+        GetPawnSpellbookComponent (this);
+    if (!PartyInventoryComponent ||
+        !SpellbookComponent ||
+        !IsValid (LevelRuntimeActor))
     {
-        OutError = FText::FromString (TEXT ("Le groupe ou le niveau runtime est indisponible."));
+        OutError = FText::FromString (
+            TEXT ("Le groupe, le Spellbook ou le niveau runtime est indisponible."));
+        return false;
+    }
+
+    FGridPartySpellbookState RestoredSpellbookState;
+    FString SpellbookRestoreError;
+    if (!FGridSpellbookPersistence::RestorePartySpellbooks (
+            SaveGame->PartyInventoryState,
+            SaveGame->CharacterSpellbookStates,
+            RestoredSpellbookState,
+            SpellbookRestoreError))
+    {
+        OutError = FText::FromString (
+            FString::Printf (
+                TEXT ("Le Spellbook sauvegardé est invalide : %s"),
+                *SpellbookRestoreError));
         return false;
     }
 
@@ -1854,6 +1934,8 @@ bool AGrimrockPartyPawn::LoadCurrentGameData (FText& OutError, bool bApplyDungeo
         return false;
     }
 
+    SpellbookComponent->SpellbookState = MoveTemp (RestoredSpellbookState);
+    SpellbookComponent->OnSpellbookChanged.Broadcast ();
     return true;
 }
 
@@ -1884,6 +1966,7 @@ bool AGrimrockPartyPawn::LoadCurrentGame (FText& OutError)
     if (MenuWidgetInstance)
     {
         MenuWidgetInstance->RefreshInventory ();
+        MenuWidgetInstance->RefreshSpellbook ();
     }
 
     UE_LOG (LogTemp, Log, TEXT ("PartySave Loaded Slot=%s"), *PartySaveSlotName);
@@ -1908,6 +1991,7 @@ bool AGrimrockPartyPawn::StartNewGame (FText& OutError)
     }
 
     PartyInventoryComponent->ResetPartyForNewGame ();
+    ResetPawnSpellbook (this);
 
     if (bInventoryWidgetVisible)
     {

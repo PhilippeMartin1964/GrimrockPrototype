@@ -13,14 +13,14 @@ struct FRPGSaveMigrationReport
 };
 
 /**
- * MON15.6 versioned validation and migration for RPG progression save data.
+ * Versioned validation and migration for party RPG save data.
  */
 struct GRIMROCKPROTOTYPE_API FRPGSaveMigrationService
 {
     /**
-     * Migrates v1-v3 snapshots to the current contract, then validates the
-     * resulting progression data. Current-version snapshots are validated
-     * without silently repairing corruption.
+     * Migrates compatible legacy snapshots to the current contract, then
+     * validates the resulting data. MON18.8 handles v5 -> v6 explicitly so
+     * authoritative MON15/MON16 state is never routed through v1-v3 repair.
      */
     static bool PrepareLoadedSave (
         UGrimrockPartySaveGame* SaveGame,

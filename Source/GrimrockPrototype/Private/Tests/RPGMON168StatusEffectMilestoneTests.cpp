@@ -514,9 +514,9 @@ bool FRPGMON168SaveVersionContractTest::RunTest (
 {
     (void)Parameters;
     TestEqual (
-        TEXT ("MON16 milestone freezes current SaveVersion at five"),
+        TEXT ("Current SaveVersion includes MON18.8 spellbook persistence"),
         UGrimrockPartySaveGame::CurrentSaveVersion,
-        5);
+        6);
     TestEqual (
         TEXT ("Minimum compatible SaveVersion remains one"),
         UGrimrockPartySaveGame::MinimumCompatibleSaveVersion,
