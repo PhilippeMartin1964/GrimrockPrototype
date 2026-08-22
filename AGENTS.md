@@ -17,6 +17,12 @@
 - Toujours commencer par `git status`.
 - Avant modification importante, vérifier la branche courante avec `git branch --show-current`.
 - Ne pas écraser les changements utilisateur.
+- RÈGLE ABSOLUE : une étape fonctionnelle = exactement un commit final maximum sur `master`.
+- Aucun commit intermédiaire ne doit être poussé pour une étape en cours.
+- Toutes les modifications de code, tests et documentation appartenant à une même étape doivent être regroupées dans ce commit final.
+- Les corrections découvertes avant livraison doivent être intégrées dans ce même commit final ; ne jamais publier de commit séparé `Fix...`, `Fix includes...`, `Cleanup...` ou équivalent pour la même étape.
+- Avant toute publication, vérifier que l'écart entre le commit de départ de l'étape et le HEAD publié contient exactement un commit, sauf demande explicite contraire de l'utilisateur.
+- Si plusieurs commits intermédiaires ont été créés localement ou techniquement, les regrouper avant toute mise à jour de `origin/master`.
 
 ## Unreal Engine
 
@@ -36,9 +42,10 @@
 
 - Cette section remplace toute instruction antérieure contradictoire.
 - Toute demande de développement, correction ou documentation implique :
-  1. vérifier les changements ;
-  2. créer au maximum un commit atomique ;
-  3. pousser automatiquement ce commit sur `origin/master`.
+  1. préparer et vérifier l'ensemble des changements de l'étape sans publication intermédiaire ;
+  2. créer un seul commit atomique final au maximum pour l'étape ;
+  3. pousser automatiquement ce commit unique sur `origin/master`.
+- Ne jamais utiliser un workflow qui crée un commit par fichier ou un commit par correction intermédiaire.
 - Ne jamais demander une confirmation supplémentaire avant un commit ou un push ordinaire.
 - S’arrêter uniquement en cas de divergence distante, de changements utilisateur imprévus, de force-push, de rebase/reset destructif ou de blocage technique réel.
 - Si l’environnement interdit le push, ne pas demander à nouveau l’autorisation : conserver le commit local et fournir directement la commande exacte à exécuter.
