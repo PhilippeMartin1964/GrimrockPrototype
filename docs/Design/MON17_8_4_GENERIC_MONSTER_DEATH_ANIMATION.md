@@ -1,6 +1,6 @@
 # MON17.8.4 — Generic Monster Death Animation
 
-Statut : **CONTRAT C++ EXISTANT CONFIRMÉ + TESTS AJOUTÉS — asset Death GoblinThrower / validation UE5.5.4 requise**
+Statut : **VALIDÉ EN PIE SUR GOBLINTHROWER — pipeline générique de mort conservé**
 
 ## 1. Objectif
 
@@ -17,9 +17,9 @@ HP <= 0
     -> MON17.8.5 : dissolution générique
 ```
 
-Aucun gameplay ne doit dépendre d'un AnimNotify, d'un montage ou du Skeleton.
+Aucun gameplay ne dépend d'un AnimNotify, d'un montage ou du Skeleton.
 
-## 2. Audit du runtime actuel
+## 2. Runtime générique confirmé
 
 `UGridMonsterDefinitionAsset` possède déjà :
 
@@ -28,13 +28,7 @@ DeathMontage
 DeathExpectedDuration
 ```
 
-`DeathMontage` est explicitement presentation-only et optionnel.
-
-`DeathExpectedDuration` :
-
-- vaut `1.0 s` par défaut ;
-- doit être fini et strictement supérieur à zéro ;
-- sert de timeout / durée attendue de la présentation.
+`DeathMontage` est optionnel et purement présentationnel.
 
 `UGridMonsterDeathComponent::CommitDeath()` conserve l'ordre autoritaire suivant :
 
@@ -56,7 +50,7 @@ StartDeathPresentation
 
 Le montage est donc lancé **après** le commit logique complet de la mort.
 
-## 3. StartDeathPresentation existant
+## 3. StartDeathPresentation
 
 Le code générique :
 
@@ -76,33 +70,32 @@ NotifyDeathPresentationComplete()
     -> bDeathPresentationActive = false
 ```
 
-Aucun changement runtime n'est requis pour afficher une animation de chute.
+Aucun changement runtime n'a été nécessaire pour afficher la chute.
 
-## 4. Règle de maintien de la pose finale
+## 4. Asset GoblinThrower validé
 
-Pour MON17.8.4, le maintien visuel du cadavre est authoré dans le montage :
-
-```text
-AM_GoblinThrower_Death
-Enable Auto Blend Out = false
-```
-
-Ainsi le montage reste sur sa dernière pose au sol après la fin de la séquence.
-
-Le timer `DeathExpectedDuration` reste indépendant : il marque la fin logique de la présentation et servira de point de départ au futur pipeline de dissolution MON17.8.5.
-
-Ne pas :
+Animation retargetée :
 
 ```text
-DestroyActor
-réactiver l'Idle
-rejouer la mort
-faire dépendre loot / XP / MonsterDied de la fin du montage
+/Game/GrimrockPrototype/Monsters/GoblinThrower/Animation/A_GoblinThrower_Death
 ```
 
-## 5. Pipeline asset GoblinThrower
+Caractéristiques observées sous UE5.5.4 :
 
-Réutiliser exactement le pipeline Mixamo validé pour `ThrowKnife` :
+```text
+Sequence Length = 3.6333333 s
+Root Motion     = disabled
+```
+
+Présentation :
+
+- le Gobelin reçoit le coup fatal ;
+- il s'effondre à la renverse vers l'arrière ;
+- il reste spatialement dans sa case ;
+- aucune translation de gameplay n'est produite par l'animation ;
+- la pose finale est exploitable comme cadavre.
+
+Pipeline de création :
 
 ```text
 Animation Death Mixamo
@@ -124,186 +117,124 @@ AM_GoblinThrower_Death
 DA_MON_GoblinThrower.DeathMontage
 ```
 
-Le pipeline de référence reste celui de MON17.3.3.
+Ce pipeline réutilise exactement la chaîne validée auparavant pour `ThrowKnife`.
 
-## 6. Import / retarget UE5.5.4
+## 5. Montage de mort
 
-### 6.1 Source Mixamo
-
-Choisir une animation de mort adaptée à un humanoïde de petite taille : chute lisible, sans déplacement de gameplay volontaire.
-
-Utiliser les **mêmes réglages d'export/import Mixamo que pour l'animation Throw validée** afin de conserver le même Skeleton source et éviter une nouvelle chaîne de retarget.
-
-Après import, vérifier :
-
-```text
-Skeleton = skeleton Mixamo source déjà utilisé par Throw
-Root Motion = disabled
-```
-
-### 6.2 Retarget
-
-Dans `RTG_Mixamo_To_GoblinThrower` :
-
-```text
-Source       = IK_Mixamo
-Target       = IK_GoblinThrower
-RetargetPose = Goblin_Mixamo_TPose
-```
-
-Prévisualiser l'animation complète avant export.
-
-Exporter sous :
-
-```text
-A_GoblinThrower_Death
-```
-
-dans le domaine Animation du GoblinThrower.
-
-### 6.3 Vérification de la séquence
-
-Ouvrir `A_GoblinThrower_Death` et vérifier :
-
-- Skeleton = `SKEL_GoblinThrower` ;
-- Root Motion désactivé ;
-- le Gobelin tombe sans translation anormale hors de sa cellule ;
-- aucune explosion de membres / twist de bras ;
-- la dernière pose est utilisable comme cadavre ;
-- noter la **Sequence Length exacte**.
-
-## 7. Création du montage
-
-Créer :
+Montage :
 
 ```text
 AM_GoblinThrower_Death
 ```
 
-à partir de `A_GoblinThrower_Death`.
-
-Réglages :
+Réglage essentiel validé :
 
 ```text
-Slot                  = même Slot que le montage ThrowKnife validé
 Enable Auto Blend Out = false
 ```
 
-Ne pas ajouter d'AnimNotify de gameplay.
+Le montage conserve donc la dernière pose au sol au lieu de revenir à Idle.
 
-Un notify purement présentationnel n'est pas nécessaire à ce stade : le timer générique `DeathExpectedDuration` existe déjà.
+Le Slot reste celui déjà utilisé par le pipeline de montage du Gobelin ; aucun second système d'animation n'est introduit.
 
-## 8. Configuration DA_MON_GoblinThrower
+## 6. Configuration DA_MON_GoblinThrower
 
-Configurer :
+Configuration validée :
 
 ```text
-Death Montage          = AM_GoblinThrower_Death
-Death Expected Duration = longueur réelle utile de la mort
+Death Montage           = AM_GoblinThrower_Death
+Death Expected Duration = 3.6333333 s
 ```
 
-La valeur exacte de `DeathExpectedDuration` doit être réglée après observation de `A_GoblinThrower_Death` / du montage.
+Une valeur d'affichage arrondie à environ `3.63 s` est acceptable dans l'éditeur, mais la référence observée de la séquence est `3.6333333 s`.
 
-Elle doit couvrir la chute jusqu'à la pose de cadavre stable, car MON17.8.5 utilisera ensuite ce point comme fin de la phase de chute.
+## 7. Validation PIE acquise
 
-## 9. Tests automatisés MON17.8.4
+Les cinq critères de validation demandés ont été confirmés en PIE sous UE5.5.4 :
 
-Fichier ajouté :
+```text
+1. le coup fatal déclenche immédiatement la chute ;
+2. l'animation se déroule entièrement ;
+3. le Gobelin reste dans sa case pendant toute la chute ;
+4. arrivé en fin de séquence, il reste dans sa pose finale et ne revient pas debout ;
+5. loot / combat / victoire continuent normalement sans attendre la fin de l'animation.
+```
+
+Résultat : **5/5 validés**.
+
+Cela confirme la séparation recherchée :
+
+```text
+mort gameplay immédiate
+!=
+présentation de mort
+```
+
+La grille, l'occupation, le loot, l'XP et les événements restent indépendants de l'animation.
+
+## 8. Tests automatisés MON17.8.4
+
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Private/Tests/GridMonsterMON178DeathPresentationTests.cpp
 ```
 
-Nouveaux tests :
+Tests :
 
 ```text
 Grimrock.Monsters.MON17.8.DeathDefinitionContract
 Grimrock.Monsters.MON17.8.DeathPresentationApiContract
 ```
 
-### DeathDefinitionContract
+Ils protègent le contrat générique `DeathMontage` / `DeathExpectedDuration` / `UGridMonsterDeathComponent`.
 
-Protège :
+Ils ne remplacent pas la validation visuelle de l'asset binaire, désormais acquise pour le GoblinThrower.
 
-- `DeathMontage` optionnel par défaut ;
-- `DeathExpectedDuration = 1.0 s` par défaut ;
-- définition valide sans montage ;
-- rejet de `DeathExpectedDuration = 0`.
+## 9. Règle de maintien du cadavre
 
-### DeathPresentationApiContract
-
-Protège la présence du contrat générique :
+MON17.8.4 se termine volontairement avec le cadavre maintenu au sol :
 
 ```text
-UGridMonsterDefinitionAsset.DeathMontage
-UGridMonsterDefinitionAsset.DeathExpectedDuration
-UGridMonsterDeathComponent.bDeathPresentationActive
-CommitDeath
-StartDeathPresentation
-NotifyDeathPresentationComplete
-RestoreCommittedDeathState
+0.00 s      début chute
+...
+3.6333333   pose de cadavre stable
+               ↓
+        dernière frame conservée
 ```
 
-Ces tests ne valident pas un `.uasset` Gobelin tant que celui-ci n'a pas été créé localement.
-
-## 10. Validation PIE demandée
-
-Après création et assignation du montage :
-
-### Mort fraîche GoblinThrower
-
-Vérifier :
+Ne pas :
 
 ```text
-1. le Gobelin peut mourir pendant Idle ;
-2. le Gobelin peut mourir après déplacement ;
-3. le Gobelin peut mourir après / autour d'un ThrowKnife ;
-4. l'attaque en cours est annulée si nécessaire ;
-5. la chute joue une seule fois ;
-6. le Gobelin reste exactement dans sa cellule ;
-7. la collision / occupation sont libérées immédiatement ;
-8. le loot reste disponible ;
-9. la dernière pose reste au sol ;
-10. aucune pose Idle ne réapparaît après la chute.
+DestroyActor
+réactiver Idle
+rejouer DeathMontage
+faire dépendre loot / XP / MonsterDied de la fin du montage
 ```
 
-### RatGiant
+## 10. Frontière avec MON17.8.5
 
-Vérifier une mort existante afin de s'assurer qu'aucune régression générique n'a été introduite.
+MON17.8.4 est maintenant **validé côté présentation PIE GoblinThrower**.
 
-## 11. Régressions automatisées à relancer
-
-Après compilation :
+MON17.8.5 ajoute le **Corpse Dissolve** générique :
 
 ```text
-Grimrock.Monsters.MON17.8
-Grimrock.Monsters.MON8
-Grimrock.Monsters.MON10
-Grimrock.Monsters.MON17.3.3
+DeathExpectedDuration atteint
+        ↓
+corpse hold / delay
+        ↓
+Dynamic Material Instances
+        ↓
+DissolveAmount 0..1
+        ↓
+hide SkeletalMesh
 ```
 
-Les nouveaux tests C++ ne sont pas déclarés réussis avant retour UE5.5.4 local.
+Contraintes :
 
-## 12. Frontière avec MON17.8.5
-
-MON17.8.4 s'arrête lorsque :
-
-```text
-DeathMontage joue
-Gobelin tombe correctement
-pose finale reste affichée
-DeathExpectedDuration est réglée
-régressions passent
-```
-
-MON17.8.5 ajoutera ensuite le **Corpse Dissolve** générique :
-
-```text
-corpse hold
-    -> delay
-    -> Dynamic Material Instances
-    -> DissolveAmount 0..1
-    -> hide SkeletalMesh
-```
-
-sans détruire l'Actor mort ni modifier loot, XP ou persistance.
+- pas de Tick permanent ;
+- ne pas détruire l'Actor mort ;
+- ne pas modifier loot, XP, occupation ou MonsterDied ;
+- paramètres data-driven par MonsterDefinition ;
+- matériaux vérifiés dans UE5.5.4 avant authoring du paramètre de dissolution ;
+- restauration SaveGame traitée séparément dans MON17.8.6.
