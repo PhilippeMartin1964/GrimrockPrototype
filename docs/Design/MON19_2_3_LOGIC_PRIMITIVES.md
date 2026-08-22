@@ -2,7 +2,16 @@
 
 ## Statut
 
-Implémentation C++ préparée. La compilation et les tests UE5.5.4 restent à valider par le propriétaire du projet.
+**VALIDÉ sous Unreal Engine 5.5.4.**
+
+Validation fournie le 22.08.2026 :
+
+- compilation UE5.5.4 : OK ;
+- runtime Logic : 5/5 tests `Success` ;
+- policy éditeur Logic : 2/2 tests `Success` ;
+- total MON19.2.3 : **7/7 tests `Success`**.
+
+Le warning `cyclic logic target dispatch` observé dans `EventCommandChain` est attendu : le test crée volontairement un self-loop afin de vérifier qu'un nœud Logic ne peut pas être réexécuté pendant sa propre propagation et qu'aucune seconde mutation n'est appliquée.
 
 ## Objectif
 
@@ -236,6 +245,29 @@ sans Actor pour les deux nœuds Logic.
 Grimrock.MON19.2.Editor.LogicPolicy
 Grimrock.MON19.2.Editor.LogicRuntimeSupport
 ```
+
+## Validation UE5.5.4
+
+Résultats observés :
+
+```text
+Grimrock.MON19.2.Runtime.Logic.ComparisonPrimitives   Success
+Grimrock.MON19.2.Runtime.Logic.EventCommandChain     Success
+Grimrock.MON19.2.Runtime.Logic.LatchAndRelay         Success
+Grimrock.MON19.2.Runtime.Logic.MutationPrimitives    Success
+Grimrock.MON19.2.Runtime.Logic.ValidationAndOverflow Success
+
+Grimrock.MON19.2.Editor.LogicPolicy                  Success
+Grimrock.MON19.2.Editor.LogicRuntimeSupport          Success
+```
+
+Le log attendu du test cyclique est :
+
+```text
+Grid link failed ... Command=LogicExecute Reason=cyclic logic target dispatch
+```
+
+Cette ligne confirme le comportement testé ; elle n'indique pas un échec du jalon. `EventCommandChain` se termine par `Result={Success}` et la chaîne précédente applique correctement chaque mutation une seule fois.
 
 ## Périmètre volontairement différé
 
