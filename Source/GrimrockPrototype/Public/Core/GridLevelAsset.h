@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "GridLevelVariableTypes.h"
 #include "GridTypes.h"
 #include "GridLevelAsset.generated.h"
 
@@ -49,6 +50,13 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
     TArray<FGridObjectLink> Links;
+
+    /**
+     * MON19.2.2 logical variables. VariableId is unique across Bool and Int32
+     * definitions; runtime values live in FGridLevelRuntimeState, never here.
+     */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Logic|Variables")
+    TArray<FGridLevelVariableDefinition> LevelVariables;
 
 public:
 

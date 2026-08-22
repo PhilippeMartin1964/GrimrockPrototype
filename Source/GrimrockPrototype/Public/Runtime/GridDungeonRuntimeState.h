@@ -260,6 +260,21 @@ struct FGridLevelRuntimeState
     /** MON13.4 encounter progress keyed by EncounterGroupId. */
     UPROPERTY (SaveGame, BlueprintReadWrite)
     TMap<FName, FGridRuntimeMonsterEncounterState> MonsterEncounters;
+
+    /**
+     * MON19.2.2: distinguishes a canonical runtime variable snapshot from a
+     * legacy save whose variables still need level-default initialization.
+     */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    bool bLevelVariablesInitialized = false;
+
+    /** MON19.2.2 Bool values keyed by stable VariableId. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TMap<FName, bool> BoolVariables;
+
+    /** MON19.2.2 Int32 values keyed by stable VariableId. */
+    UPROPERTY (SaveGame, BlueprintReadWrite)
+    TMap<FName, int32> IntVariables;
 };
 
 USTRUCT (BlueprintType)

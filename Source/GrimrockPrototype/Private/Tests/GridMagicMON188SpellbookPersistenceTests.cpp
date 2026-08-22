@@ -214,13 +214,13 @@ bool FGridMagicMON188V5MigrationCreatesEmptySpellbookTest::RunTest (
 
     FText Error;
     FRPGSaveMigrationReport Report;
-    TestTrue (TEXT ("Version five migrates explicitly to version six"),
+    TestTrue (TEXT ("Version five migrates explicitly to the current version"),
         FRPGSaveMigrationService::PrepareLoadedSave (
             Save, Error, &Report));
     TestEqual (TEXT ("Migration source is version five"),
         Report.SourceVersion, 5);
-    TestEqual (TEXT ("Migration target is version six"),
-        Save->SaveVersion, 6);
+    TestEqual (TEXT ("Migration target is the current version"),
+        Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
     TestTrue (TEXT ("Migration is reported"), Report.bMigrated);
     TestEqual (TEXT ("Version five performs no progression reconciliation"),
         Report.ReconciledCharacterCount, 0);
@@ -504,7 +504,7 @@ bool FGridMagicMON188DiskRoundTripTest::RunTest (
     };
     Source->CharacterSpellbookStates.Add (Spellbook);
 
-    TestTrue (TEXT ("Version-six Spellbook save writes to a real temporary slot"),
+    TestTrue (TEXT ("Current-version Spellbook save writes to a real temporary slot"),
         UGameplayStatics::SaveGameToSlot (
             Source,
             DiskSlot.SlotName,
@@ -520,8 +520,8 @@ bool FGridMagicMON188DiskRoundTripTest::RunTest (
         return false;
     }
 
-    TestEqual (TEXT ("Disk round trip uses SaveVersion six"),
-        Loaded->SaveVersion, 6);
+    TestEqual (TEXT ("Disk round trip uses the current SaveVersion"),
+        Loaded->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
     TestTrue (TEXT ("Loaded save is compatible"), Loaded->IsCompatible ());
     TestEqual (TEXT ("One spellbook snapshot survives disk round trip"),
         Loaded->CharacterSpellbookStates.Num (), 1);

@@ -401,8 +401,8 @@ bool FRPGMON167V4MigrationPreservesProgressionTest::RunTest (
             Save,
             MigrationError,
             &Report));
-    TestEqual (TEXT ("v4 migration targets current save version six"),
-        Save->SaveVersion, 6);
+    TestEqual (TEXT ("v4 migration targets the current save version"),
+        Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
     TestEqual (TEXT ("v4 migration performs no level reconciliation"),
         Report.ReconciledCharacterCount, 0);
     TestEqual (TEXT ("v4 progression snapshot count is preserved"),
@@ -458,7 +458,7 @@ bool FRPGMON167SaveVersionContractTest::RunTest (const FString& Parameters)
 {
     (void)Parameters;
     TestEqual (TEXT ("Current save version includes later persistence milestones"),
-        UGrimrockPartySaveGame::CurrentSaveVersion, 6);
+        UGrimrockPartySaveGame::CurrentSaveVersion, 7);
     TestEqual (TEXT ("Minimum compatible version remains one"),
         UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
     return true;

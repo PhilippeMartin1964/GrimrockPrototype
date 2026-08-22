@@ -19,8 +19,8 @@ struct GRIMROCKPROTOTYPE_API FRPGSaveMigrationService
 {
     /**
      * Migrates compatible legacy snapshots to the current contract, then
-     * validates the resulting data. MON18.8 handles v5 -> v6 explicitly so
-     * authoritative MON15/MON16 state is never routed through v1-v3 repair.
+     * validates the resulting data. MON18.8 preserves the explicit v5 path;
+     * MON19.2.2 adds an explicit v6 -> v7 level-variable migration.
      */
     static bool PrepareLoadedSave (
         UGrimrockPartySaveGame* SaveGame,

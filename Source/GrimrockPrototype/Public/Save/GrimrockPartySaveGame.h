@@ -59,8 +59,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
     GENERATED_BODY ()
 
 public:
-    /** MON18.8 adds versioned Spellbook knowledge persistence. */
-    static constexpr int32 CurrentSaveVersion = 6;
+    /** MON19.2.2 adds typed persistent level-variable snapshots. */
+    static constexpr int32 CurrentSaveVersion = 7;
     static constexpr int32 MinimumCompatibleSaveVersion = 1;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
