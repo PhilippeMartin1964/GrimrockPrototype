@@ -2,6 +2,26 @@
 
 #include "Core/GridTypes.h"
 
+namespace
+{
+    bool IsGenericStateCommand (EGridObjectCommand Command)
+    {
+        return Command == EGridObjectCommand::Toggle ||
+            Command == EGridObjectCommand::Open ||
+            Command == EGridObjectCommand::Close ||
+            Command == EGridObjectCommand::Activate ||
+            Command == EGridObjectCommand::Deactivate;
+    }
+
+    bool IsReceptacleCommand (EGridObjectCommand Command)
+    {
+        return Command == EGridObjectCommand::ReceptacleConsumeItem ||
+            Command == EGridObjectCommand::ReceptacleConsumeAllItems ||
+            Command == EGridObjectCommand::ReceptacleEnableRemoval ||
+            Command == EGridObjectCommand::ReceptacleDisableRemoval;
+    }
+}
+
 namespace GridEditorLinkPolicy
 {
     TArray<EGridObjectEvent> GetSupportedEventsForSource (
@@ -88,6 +108,89 @@ namespace GridEditorLinkPolicy
             default:
                 return {};
         }
+    }
+
+    TArray<EGridObjectCondition> GetSupportedConditionsForTarget (
+        const FGridLevelObjectData& ObjectData)
+    {
+        if (ObjectData.Type != EGridLevelObjectType::Receptacle)
+        {
+            return {EGridObjectCondition::None};
+        }
+
+        return {
+            EGridObjectCondition::None,
+            EGridObjectCondition::ReceptacleIsEmpty,
+            EGridObjectCondition::ReceptacleHasAnyItem,
+            EGridObjectCondition::ReceptacleContainsItemDefinition,
+            EGridObjectCondition::ReceptacleContainsItemTag,
+            EGridObjectCondition::ReceptacleContainsItemType,
+            EGridObjectCondition::ReceptacleItemCountAtLeast,
+            EGridObjectCondition::ReceptacleWeightAtLeast
+        };
+    }
+
+    EGridEditorCommandRuntimeSupport GetCommandRuntimeSupport (
+        const FGridLevelObjectData& ObjectData,
+        EGridObjectCommand Command)
+    {
+        if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn)
+        {
+            return GetSupportedCommandsForTarget (ObjectData).Contains (Command)
+                ? EGridEditorCommandRuntimeSupport::Gameplay
+                : EGridEditorCommandRuntimeSupport::Unsupported;
+        }
+
+        if (IsReceptacleCommand (Command))
+        {
+            return ObjectData.Type == EGridLevelObjectType::Receptacle
+                ? EGridEditorCommandRuntimeSupport::Gameplay
+                : EGridEditorCommandRuntimeSupport::Unsupported;
+        }
+
+        if (!IsGenericStateCommand (Command))
+        {
+            return EGridEditorCommandRuntimeSupport::Unsupported;
+        }
+
+        switch (ObjectData.Type)
+        {
+            case EGridLevelObjectType::Door:
+            case EGridLevelObjectType::Lever:
+            case EGridLevelObjectType::PressurePlate:
+                return EGridEditorCommandRuntimeSupport::Gameplay;
+
+            case EGridLevelObjectType::Button:
+            case EGridLevelObjectType::Decoration:
+            case EGridLevelObjectType::ItemSpawn:
+            case EGridLevelObjectType::Item:
+            case EGridLevelObjectType::Light:
+            case EGridLevelObjectType::Teleporter:
+            case EGridLevelObjectType::Trigger:
+            case EGridLevelObjectType::Receptacle:
+                return EGridEditorCommandRuntimeSupport::StateOnly;
+
+            case EGridLevelObjectType::None:
+            default:
+                return EGridEditorCommandRuntimeSupport::Unsupported;
+        }
+    }
+
+    bool AreLinksExactlyEquivalent (
+        const FGridObjectLink& A,
+        const FGridObjectLink& B)
+    {
+        return A.SourceObjectId == B.SourceObjectId &&
+            A.TargetObjectId == B.TargetObjectId &&
+            A.SourceEvent == B.SourceEvent &&
+            A.Command == B.Command &&
+            A.Condition == B.Condition &&
+            A.ConditionItemDefinitionId == B.ConditionItemDefinitionId &&
+            A.ConditionItemTag == B.ConditionItemTag &&
+            A.ConditionItemType == B.ConditionItemType &&
+            A.ConditionCount == B.ConditionCount &&
+            A.ConditionWeight == B.ConditionWeight &&
+            A.bInvertCondition == B.bInvertCondition;
     }
 
     bool CanObjectEmitEvents (
