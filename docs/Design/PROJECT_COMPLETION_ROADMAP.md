@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON18.9.3 FINAL DIAGNOSTICS / GLOBAL REGRESSION — EN VALIDATION**  
+Statut : **MON18 MAGIC & SPELLBOOK VALIDÉ ET CLOS — MON19 PROCHAIN**  
 Date de référence : **22 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -9,7 +9,7 @@ Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEME
 
 ## 1. État de référence
 
-Jalons majeurs clos :
+Jalons majeurs validés et clos :
 
 ```text
 MON13 — Monster Spawn / Encounters / Persistence
@@ -17,20 +17,29 @@ MON14 — Automatic Engagement / Patrol / Investigation / Alarm
 MON15 — XP & Level Progression
 MON16 — Status Effects
 MON17 — Second Monster Family / Gobelin lanceur
+MON18 — Magic & Spellbook
 ```
 
-MON17.7 est **VALIDÉ ET CLOS sous UE5.5.4**.
+Le prochain jalon autoritaire est :
 
-MON18 est le jalon actif : **Magic & Spellbook**.
+```text
+MON19 — Advanced Dungeon Logic / Scripting
+```
+
+Référence de clôture du jalon précédent :
+
+```text
+docs/Design/MON18_CLOSURE.md
+```
 
 ---
 
 ## 2. Ordre des grands jalons
 
 ```text
-MON18 — Magic & Spellbook
+MON18 — Magic & Spellbook                         CLOS
         ↓
-MON19 — Advanced Dungeon Logic / Scripting
+MON19 — Advanced Dungeon Logic / Scripting        PROCHAIN
         ↓
 MON20 — Recruitment / Skills / Talents
         ↓
@@ -41,11 +50,9 @@ MON22 — 45–90 Minute Vertical Slice
 
 ---
 
-# MON18 — Magic & Spellbook — EN COURS
+# MON18 — Magic & Spellbook — CLOS
 
-## Objectif
-
-Construire un système RPG complet de magie en réutilisant les systèmes existants de combat, PA/mana, ciblage, hotbar, inventaire, effets de statut, projectiles, progression et sauvegarde.
+Objectif atteint : construire un système RPG complet de magie en réutilisant combat, PA/mana, ciblage, hotbar, inventaire, Status Effects, projectiles, UI et sauvegarde existants.
 
 Sous-jalons :
 
@@ -58,59 +65,64 @@ MON18.5 — First Production Spells               CLOS
 MON18.6 — Spell Presentation                    CLOS
 MON18.7 — Spellbook / Hotbar UI                 CLOS
 MON18.8 — Persistence / Migration               CLOS
-MON18.9 — Balance / Regression / Closure        EN COURS
+MON18.9 — Balance / Regression / Closure        CLOS
   MON18.9.1 — Combat Save Policy / Checkpoint   CLOS
   MON18.9.2 — Spell Balance / Cross-System      CLOS
-  MON18.9.3 — Final Diagnostics / Global Tests  EN VALIDATION
+  MON18.9.3 — Final Diagnostics / Global Tests  CLOS
 ```
 
-### MON18.1 — CLOS
+### MON18.1 — Spell Data Model & Cast Contract
 
-`MON18.1 — Spell Data Model & Cast Contract` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **4/4 Success**.
+Validation : **4/4 Success**.
 
-Référence : `docs/Design/MON18_1_SPELL_DATA_MODEL_CAST_CONTRACT.md`.
+Référence : `MON18_1_SPELL_DATA_MODEL_CAST_CONTRACT.md`.
 
-### MON18.2 — CLOS
+### MON18.2 — Spell Knowledge / Spellbook
 
-`MON18.2 — Spell Knowledge / Spellbook` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **5/5 Success**.
+Validation : **5/5 Success**.
 
 Références : `MON18_2_SPELL_KNOWLEDGE_SPELLBOOK.md`, `MON18_2_VALIDATION.md`.
 
-### MON18.3 — CLOS
+### MON18.3 — Runtime Casting / Cost Transaction
 
-`MON18.3 — Runtime Casting / Cost Transaction` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **6/6 Success**.
+Validation : **6/6 Success**.
 
 Références : `MON18_3_RUNTIME_CASTING_COST_TRANSACTION.md`, `MON18_3_VALIDATION.md`.
 
-### MON18.4 — CLOS
+### MON18.4 — Targeting Integration
 
-`MON18.4 — Targeting Integration` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **8/8 Success**.
+Validation : **8/8 Success**.
 
 Références : `MON18_4_TARGETING_INTEGRATION.md`, `MON18_4_VALIDATION.md`.
 
-### MON18.5 — CLOS
+### MON18.5 — First Production Spells
 
-`MON18.5 — First Production Spells` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **6/6 Success**.
+Validation : **6/6 Success**.
 
-Premiers sorts : `Spell_ArcaneBolt`, `Spell_LesserHeal`, `Spell_Haste`, `Spell_CurePoison`.
+Sorts de production :
+
+```text
+Spell_ArcaneBolt
+Spell_LesserHeal
+Spell_Haste
+Spell_CurePoison
+```
 
 Références : `MON18_5_FIRST_PRODUCTION_SPELLS.md`, `MON18_5_VALIDATION.md`.
 
-### MON18.6 — CLOS
+### MON18.6 — Spell Presentation
 
-`MON18.6 — Spell Presentation` est **VALIDÉ ET CLOS sous UE5.5.4**. Validation : **7/7 Success**.
+Validation : **7/7 Success**.
 
-Présentation data-driven séparée du gameplay, réutilisation audio/VFX MON11 et projectile visuel MON17.3.2.
+Présentation data-driven séparée du gameplay, réutilisant les infrastructures audio/VFX/projectile existantes.
 
 Références : `MON18_6_SPELL_PRESENTATION.md`, `MON18_6_VALIDATION.md`.
 
-### MON18.7 — CLOS
+### MON18.7 — Spellbook / Hotbar UI
 
-`MON18.7 — Spellbook / Hotbar UI` est **VALIDÉ ET CLOS sous UE5.5.4**.
+L'onglet Sorts est fonctionnel. Les sorts connus peuvent être glissés vers les dix raccourcis MON12, déplacés/échangés/désassignés puis exécutés depuis la hotbar.
 
-Le menu joueur expose maintenant un onglet Sorts fonctionnel, les sorts connus sont projetés dans `WBP_GridSpellbook`, peuvent être glissés vers les dix slots MON12, déplacés/échangés/désassignés puis exécutés depuis la hotbar.
-
-Le chemin d'exécution validé est :
+Pipeline validé :
 
 ```text
 Spellbook
@@ -118,78 +130,70 @@ Spellbook
     -> catalogue
     -> ciblage MON18.4
     -> transaction PA/mana MON18.3
-    -> effets MON18.5
+    -> effets MON18.5 / MON16
     -> commit runtime
     -> présentation MON18.6
 ```
 
-UI01.4.3e.2 a été validé avec **6/6 Automation Success** et en PIE réel.
+UI01.4.3e.2 : **6/6 Success** + validation PIE réelle.
 
 Références :
 
-- `docs/Design/MON18_7_SPELLBOOK_HOTBAR_UI.md` ;
-- `docs/Design/UI_SPELLBOOK_HOTBAR_EXECUTION.md` ;
-- `docs/Design/UI_GRIMROCK_MENU_CURRENT.md`.
+- `MON18_7_SPELLBOOK_HOTBAR_UI.md` ;
+- `UI_SPELLBOOK_HOTBAR_EXECUTION.md` ;
+- `UI_GRIMROCK_MENU_CURRENT.md`.
 
-### MON18.8 — CLOS
+### MON18.8 — Persistence / Migration
 
-`MON18.8 — Spellbook Persistence / Migration` est **VALIDÉ ET CLOS sous UE5.5.4**.
+SaveGame courant : **version 6**.
 
-Le contrat final est :
+Contrat :
 
 ```text
 UGridPartySpellbookComponent runtime/transient
-    -> capture sparse CharacterId + KnownSpellIds
-    -> UGrimrockPartySaveGame version 6
+    -> capture CharacterId + KnownSpellIds
+    -> UGrimrockPartySaveGame v6
     -> migration explicite v5 -> v6
     -> restore atomique par CharacterId
-    -> hotbar Spell conservée comme simple référence
 ```
 
-Validation UE5.5.4 :
+Validation :
 
 ```text
-Grimrock.Magic.MON18.8                 12/12 Success
-Grimrock.RPG.MON16.5                    9/9 Success après correctif d25cf26e
-Grimrock.UI.UI01.4.3e.2                 6/6 Success
-PIE Save -> arrêt PIE -> Continue       VALIDÉ
-Seed après Continue                     Added=0 AlreadyKnown=4
+Grimrock.Magic.MON18.8              12/12 Success
+Grimrock.RPG.MON16.5                 9/9 Success après correctif
+Grimrock.UI.UI01.4.3e.2              6/6 Success
+PIE Save -> Stop PIE -> Continue     VALIDÉ
+Seed après Continue                  Added=0 AlreadyKnown=4
 ```
 
-Références :
+Références : `MON18_8_SPELLBOOK_PERSISTENCE_MIGRATION.md`, `MON18_8_VALIDATION.md`.
 
-- `docs/Design/MON18_8_SPELLBOOK_PERSISTENCE_MIGRATION.md` ;
-- `docs/Design/MON18_8_VALIDATION.md`.
+### MON18.9.1 — Combat Save Policy / Pre-Combat Checkpoint
 
-### MON18.9 — EN COURS
-
-`MON18.9 — Balance / Regression / Closure` consolide MON18 avant clôture du jalon majeur.
-
-#### MON18.9.1 — Combat Save Policy / Pre-Combat Checkpoint — CLOS
-
-Politique validée :
+Politique finale :
 
 ```text
 Exploration / Victory      -> sauvegarde autorisée
-Combat / Defeat            -> sauvegarde refusée
+Combat / Defeat            -> sauvegarde régulière interdite
 engagement automatique     -> checkpoint <slot>_AutoCombat avant StartCombat
 échec checkpoint           -> combat automatique refusé
 ```
 
-Validation UE5.5.4 :
+Validation :
 
 ```text
-Grimrock.Save.MON18.9.1                6/6 Success
-Grimrock.Save.SAVEFIX.2                1/1 Success
-Grimrock.Magic.MON18.8                12/12 Success
-Grimrock.Monsters.MON14.1              7/7 Success
+Grimrock.Save.MON18.9.1       6/6 Success
+Grimrock.Save.SAVEFIX.2       1/1 Success
+Grimrock.Magic.MON18.8       12/12 Success
+Grimrock.Monsters.MON14.1     7/7 Success
 ```
 
-Référence : `docs/Design/MON18_9_1_COMBAT_SAVE_POLICY.md`.
+Référence : `MON18_9_1_COMBAT_SAVE_POLICY.md`.
 
-#### MON18.9.2 — Spell Balance & Cross-System Regression — CLOS
+### MON18.9.2 — Spell Balance / Cross-System
 
-Baseline de production gelée :
+Baseline initiale :
 
 ```text
 Arcane Bolt   Damage 4              Mana 3  PA 2  portée 1..5  cooldown 0
@@ -198,59 +202,97 @@ Haste         Apply Status_Haste    Mana 5  PA 2  portée 0..3  cooldown 0
 Cure Poison   Remove Status_Poison  Mana 4  PA 2  portée 0..3  cooldown 0
 ```
 
-Contrat transactionnel : un sort qui ne peut produire aucune mutation utile (`Lesser Heal` à PV max, `Cure Poison` sans poison) est rejeté avec `NoEffectWouldApply` avant tout commit PA/mana.
+Un cast totalement sans effet utile est rejeté avec `NoEffectWouldApply` avant tout commit PA/mana.
 
-Validation UE5.5.4 :
-
-```text
-Grimrock.Magic.MON18.9.2             5/5 Success
-Grimrock.UI.UI01.4.3e.2              6/6 Success
-Grimrock.Magic.MON18.5               6/6 Success
-Grimrock.Magic.MON18.8              12/12 Success
-Grimrock.RPG.MON16.4                11/11 Success
-Grimrock.RPG.MON16.7                11/11 Success
-```
-
-Bilan cumulé demandé : **51/51 Success**.
-
-Référence : `docs/Design/MON18_9_2_SPELL_BALANCE_CROSS_SYSTEM_REGRESSION.md`.
-
-#### MON18.9.3 — Final Diagnostics / Global Regression / Closure — EN VALIDATION
-
-MON18.9.3 n'ajoute aucun gameplay. Il améliore l'observabilité des anciens SaveGame : lorsqu'un slot configuré existe mais est rejeté, `UGrimrockGameInstance::HasPartySaveGame()` ajoute un diagnostic avec le nom du slot, son `UserIndex` et une raison stable :
+Validation :
 
 ```text
-LoadFailedOrWrongClass
-IncompatibleSave
-PartyInventoryStateNotLoadable
+Grimrock.Magic.MON18.9.2        5/5 Success
+Cross-system demandé           51/51 Success
 ```
 
-Le checkpoint `<slot>_AutoCombat` reste exclu des slots manuels configurés et ne doit pas apparaître dans le menu de chargement normal.
+Référence : `MON18_9_2_SPELL_BALANCE_CROSS_SYSTEM_REGRESSION.md`.
 
-Automation ciblée :
+### MON18.9.3 — Final Diagnostics / Global Regression
+
+Diagnostics SaveGame :
 
 ```text
-Grimrock.Magic.MON18.9.3.SaveSlotDiagnostics
-Grimrock.Magic.MON18.9.3.CheckpointIsolation
+[MON18.9.3] SlotProbe Slot=<nom> UserIndex=<index> Result=Rejected Reason=<raison>
 ```
 
-Attendu : **2/2 Success**.
+Le PIE final a identifié l'ancien slot problématique :
 
-Après validation ciblée :
+```text
+Slot=GrimrockParty_2
+Reason=IncompatibleSave
+```
+
+`GrimrockParty` reste chargeable.
+
+Validation ciblée :
+
+```text
+CheckpointIsolation   Success
+SaveSlotDiagnostics   Success
+```
+
+Bilan : **2/2 Success**.
+
+Campagne globale finale :
 
 ```text
 Automation RunTests Grimrock
+221/221 Success
+0 Fail
 ```
 
-Une campagne globale sans `Fail` suivie d'un PIE final Spellbook/hotbar/combat/save permettra la clôture du jalon majeur MON18.
+PIE final :
 
-Référence : `docs/Design/MON18_9_3_FINAL_DIAGNOSTICS_GLOBAL_REGRESSION.md`.
+```text
+Continue GrimrockParty                     VALIDÉ
+GrimrockParty_AutoCombat créé              VALIDÉ
+Automatic combat + Checkpoint=Saved        VALIDÉ
+EndPlay combat -> CombatStateNotSaveable   VALIDÉ
+```
+
+Référence : `MON18_9_3_FINAL_DIAGNOSTICS_GLOBAL_REGRESSION.md`.
+
+### Clôture MON18
+
+Référence autoritaire :
+
+```text
+docs/Design/MON18_CLOSURE.md
+```
 
 ---
 
-# MON19 — Advanced Dungeon Logic / Scripting
+# MON19 — Advanced Dungeon Logic / Scripting — PROCHAIN
 
-Objectif : permettre au level designer de construire des énigmes riches sans ajouter du C++ spécifique.
+## Objectif
+
+Permettre au level designer de construire des énigmes et mécanismes riches sans ajouter du C++ spécifique à chaque puzzle.
+
+Le jalon devra s'appuyer sur l'architecture existante :
+
+```text
+UGridLevelAsset
++ objets de grille
++ SourceEvent -> TargetCommand
++ liens persistants
++ runtime data-driven
+```
+
+Contraintes :
+
+- ne pas créer un second système de liens parallèle ;
+- préserver l'édition directe sur la grille ;
+- rester compatible avec la future création de niveaux par les joueurs ;
+- définir un langage léger seulement si les événements/commandes existants ne suffisent pas ;
+- conserver une séparation stricte données / runtime / présentation.
+
+Le premier sous-jalon de MON19 doit être défini après audit du système Event -> Command existant.
 
 ---
 
@@ -303,5 +345,6 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-Valider Grimrock.Magic.MON18.9.3 puis lancer Automation RunTests Grimrock
+MON19 — Advanced Dungeon Logic / Scripting
+Audit de l'existant Event -> Command avant définition de MON19.1
 ```

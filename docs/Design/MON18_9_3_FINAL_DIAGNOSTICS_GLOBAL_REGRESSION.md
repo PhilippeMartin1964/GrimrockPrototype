@@ -2,30 +2,29 @@
 
 ## Statut
 
-**IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE.**
+**VALIDÉ ET CLOS sous UE5.5.4 — 22 août 2026.**
 
-Base :
+Base d'implémentation :
 
 ```text
-9e6fe3971a48a870066fb4898325b300609de497
-Close MON18.9.2 spell balance validation
+07e655707bca61007de847bc6504fdff9022b589
+Implement MON18.9.3 final diagnostics
 ```
 
 ## 1. Objectif
 
-MON18.9.3 est la dernière passe de stabilisation avant la clôture du jalon majeur MON18 — Magic & Spellbook.
+MON18.9.3 constitue la dernière passe de stabilisation de `MON18 — Magic & Spellbook`.
 
-Aucun nouveau gameplay n'est introduit. Le sous-jalon se limite à :
+Aucun nouveau gameplay n'est introduit. Le sous-jalon :
 
-- rendre les diagnostics de slots SaveGame résiduels attribuables à un slot précis ;
-- garantir que le checkpoint pré-combat `_AutoCombat` ne devient pas un slot de chargement normal ;
-- lancer une campagne Automation globale `Grimrock` ;
-- corriger uniquement d'éventuelles régressions réellement observées ;
-- effectuer une courte validation PIE finale avant clôture de MON18.
+- rend les diagnostics de slots SaveGame résiduels attribuables à un slot précis ;
+- garantit que le checkpoint pré-combat `_AutoCombat` ne devient pas un slot manuel normal ;
+- valide la non-régression globale du projet ;
+- confirme en PIE le flux `Continue -> engagement automatique -> checkpoint -> refus de sauvegarde en combat`.
 
 ## 2. Diagnostic des anciens slots
 
-Le menu principal sonde les slots configurés :
+Le menu principal sonde :
 
 ```text
 GrimrockParty
@@ -33,16 +32,10 @@ GrimrockParty_2
 GrimrockParty_3
 ```
 
-`UGrimrockPartySaveGame::Serialize()` peut détecter et journaliser une migration/restauration invalide, mais il ne connaît pas le nom du slot passé à `UGameplayStatics::LoadGameFromSlot()`.
-
-MON18.9.3 complète donc l'observabilité dans `UGrimrockGameInstance::HasPartySaveGame()` : lorsqu'un slot existant n'est pas chargeable, un diagnostic complémentaire inclut :
+Lorsqu'un slot existant n'est pas chargeable, `UGrimrockGameInstance::HasPartySaveGame()` ajoute désormais un diagnostic stable :
 
 ```text
-[MON18.9.3] SlotProbe
-Slot=<nom>
-UserIndex=<index>
-Result=Rejected
-Reason=<raison>
+[MON18.9.3] SlotProbe Slot=<nom> UserIndex=<index> Result=Rejected Reason=<raison>
 ```
 
 Raisons distinguées :
@@ -53,7 +46,17 @@ IncompatibleSave
 PartyInventoryStateNotLoadable
 ```
 
-Aucun ancien slot n'est supprimé, migré de force ou écrasé par cette passe. Le diagnostic sert uniquement à identifier clairement le slot responsable.
+Aucun ancien slot n'est supprimé ou réécrit automatiquement.
+
+### Validation PIE finale
+
+Le log fourni le 22 août 2026 identifie sans ambiguïté le slot auxiliaire incompatible :
+
+```text
+[MON18.9.3] SlotProbe Slot=GrimrockParty_2 UserIndex=0 Result=Rejected Reason=IncompatibleSave Version=6 Detail=Le snapshot contient 0 états de progression pour 1 personnages actifs.
+```
+
+Le bruit de validation observé depuis MON18.8 est donc expliqué : `GrimrockParty_2` est un ancien snapshot incompatible ; la sauvegarde principale n'est pas en cause.
 
 ## 3. Isolation du checkpoint pré-combat
 
@@ -63,9 +66,9 @@ Le checkpoint MON18.9.1 reste :
 <slot courant>_AutoCombat
 ```
 
-Il ne doit pas être ajouté à `ConfiguredPartySaveSlotNames` et ne doit donc pas apparaître comme une sauvegarde manuelle normale dans le menu de chargement.
+Il n'est pas ajouté à `ConfiguredPartySaveSlotNames` et n'apparaît donc pas comme une sauvegarde manuelle normale dans le menu de chargement.
 
-## 4. Automation MON18.9.3
+## 4. Automation ciblée
 
 Namespace :
 
@@ -73,60 +76,108 @@ Namespace :
 Grimrock.Magic.MON18.9.3
 ```
 
-Tests :
+Résultats fournis après reconstruction complète de `GrimrockPrototypeEditor` :
 
 ```text
-SaveSlotDiagnostics
-CheckpointIsolation
+Grimrock.Magic.MON18.9.3.CheckpointIsolation   Success
+Grimrock.Magic.MON18.9.3.SaveSlotDiagnostics   Success
 ```
 
-Attendu : **2/2 Success**.
+Bilan : **2/2 Success**.
 
 ## 5. Campagne globale
 
-Après succès des deux tests ciblés :
+Commande :
 
 ```text
 Automation RunTests Grimrock
 ```
 
-Cette campagne est l'autorité de non-régression finale du projet avant clôture de MON18.
-
-Toute occurrence de :
+Le log complet fourni contient :
 
 ```text
-Result={Fail}
-Error:
-Ensure condition failed
-Assertion failed
+221 tests terminés
+221 Success
+0 Fail
 ```
 
-sera analysée. Seules les régressions réellement observées seront corrigées ; aucun refactor préventif n'est autorisé dans MON18.9.3.
+Aucune occurrence d'`Ensure condition failed`, `Assertion failed` ou erreur fatale n'a été relevée.
 
-## 6. Validation PIE finale après campagne verte
+Les warnings rencontrés appartiennent aux fixtures de tests volontairement dégradées : absence de composant de mouvement, RuntimeActor manquant, définition visuelle incomplète, classe invalide testée, etc. Les tests correspondants terminent en `Success` et ne constituent pas une régression production.
 
-Scénario court :
+La campagne globale avait été exécutée avant le rebuild qui a enregistré le nouveau fichier MON18.9.3 ; les deux tests MON18.9.3 ont donc été exécutés séparément ensuite. L'ensemble de la preuve finale est :
 
-1. New Game avec Mage.
-2. `Grimrock.Spellbook.SeedProduction`.
-3. Vérifier les quatre sorts dans Spellbook.
-4. Affecter au moins Arcane Bolt et Lesser Heal à la hotbar.
-5. Déclencher un combat automatique et constater le checkpoint pré-combat.
-6. Exécuter Arcane Bolt ou Lesser Heal selon la situation.
-7. Vérifier qu'une sauvegarde régulière est refusée pendant le combat.
-8. Sauvegarder hors combat dans un scénario stable.
-9. Stop PIE puis `Continue`.
-10. Vérifier Spellbook et bindings hotbar restaurés.
-11. Relancer `Grimrock.Spellbook.SeedProduction` et obtenir `Added=0 AlreadyKnown=4`.
+```text
+Campagne globale Grimrock     221/221 Success
+MON18.9.3 ciblé                 2/2 Success
+```
 
-## 7. Critères de clôture MON18
+## 6. Validation PIE finale
 
-MON18 pourra être déclaré **VALIDÉ ET CLOS** uniquement lorsque :
+Le log final fourni confirme :
+
+### Continue
+
+```text
+GrimrockGameInstance PendingLoadSlot Set Slot=GrimrockParty UserIndex=0
+PartySave Continued Slot=GrimrockParty CharacterCount=1
+```
+
+Le slot principal reste chargeable malgré l'ancien `GrimrockParty_2` incompatible.
+
+### Checkpoint pré-combat
+
+Juste avant l'engagement :
+
+```text
+PartySave Saved Slot=GrimrockParty_AutoCombat Version=6 Characters=1 Spellbooks=0 Cell=(29,22) Facing=1
+[MON18.9.1] PreCombatCheckpoint Saved Slot=GrimrockParty_AutoCombat SourceSlot=GrimrockParty Cell=(29,22)
+```
+
+Puis :
+
+```text
+[MON14.1] Automatic combat started ... Reason=PatrolVision ... Checkpoint=Saved
+```
+
+Le checkpoint est donc créé avant l'entrée effective en combat.
+
+### Refus de sauvegarde pendant le combat
+
+À la fermeture PIE en combat :
+
+```text
+PartySave SaveRejected Slot=GrimrockParty Reason=CombatStateNotSaveable
+PartySave EndPlay Failed Slot=GrimrockParty Reason=La sauvegarde est interdite pendant un combat ou après une défaite.
+```
+
+Le slot principal n'est pas écrasé par un état transitoire de combat.
+
+## 7. Portée de la preuve Spellbook
+
+Le dernier log PIE utilise une sauvegarde où `SpellbookCharacters=0` et ne rejoue pas les casts de production. Il n'est donc pas utilisé comme preuve nouvelle de `Arcane Bolt`, `Lesser Heal`, `Haste`, `Cure Poison` ou du round-trip Spellbook.
+
+Cette preuve existe déjà et reste valide dans les étapes précédentes :
+
+- UI01.4.3e.2 : **6/6 Success** avec exécution `ArcaneBolt` et `LesserHeal` ;
+- MON18.8 : **12/12 Success** ;
+- PIE MON18.8 : `SeedProduction Added=4`, Save v6 avec `Spellbooks=1`, puis Stop PIE -> Continue -> `Added=0 AlreadyKnown=4` ;
+- MON18.9.2 : **5/5 Success** plus **51/51** régressions cross-system.
+
+La clôture finale repose donc sur l'ensemble cumulatif de ces validations et non sur une interprétation abusive du dernier log.
+
+## 8. Conclusion
+
+Les critères de clôture sont satisfaits :
 
 ```text
 Grimrock.Magic.MON18.9.3     2/2 Success
-Automation RunTests Grimrock campagne globale sans Fail
-PIE final                    validé par l'utilisateur
+Automation RunTests Grimrock 221/221 Success
+PIE diagnostics/Continue     VALIDÉ
+PIE checkpoint/combat-save   VALIDÉ
+Spellbook/casts/persistence  déjà VALIDÉS dans MON18.7 / MON18.8 / MON18.9.2
 ```
 
-Ensuite seulement seront mis à jour le project overview, la roadmap et le document de clôture de MON18.
+**MON18.9.3 est VALIDÉ ET CLOS sous UE5.5.4.**
+
+Cette validation autorise la clôture du jalon majeur **MON18 — Magic & Spellbook**.

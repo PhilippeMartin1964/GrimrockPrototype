@@ -14,13 +14,14 @@ Le projet vise :
 - monstres data-driven ;
 - combat tactique au tour par tour ;
 - progression RPG persistante ;
+- magie et Spellbook intégrés au combat ;
 - à terme, création et partage de niveaux par les joueurs.
 
 L'architecture reste simple, modulaire et orientée données. Les DataAssets et l'état de grille sont les autorités logiques ; Actors, animations, VFX et widgets sont des projections runtime ou de présentation.
 
 ---
 
-## État actuel — 21 août 2026
+## État actuel — 22 août 2026
 
 Les fondations suivantes sont disponibles :
 
@@ -35,7 +36,8 @@ Les fondations suivantes sont disponibles :
 - exploration IA MON14 avec vision directionnelle, dormance, patrouille, investigation, édition visuelle de route et alarme locale ;
 - progression XP/niveaux MON15 avec Level Up, progression de classe, modal, sauvegarde/migration et équilibrage initial ;
 - effets de statut MON16 communs aux personnages et monstres, avec durée, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD et Save/Restore ;
-- seconde famille de monstres MON17 avec le Gobelin lanceur `MON_GoblinThrower`, attaque projectile, profil tactique `RangedKeeper`, encounter, loot et XP data-driven.
+- seconde famille de monstres MON17 avec le Gobelin lanceur `MON_GoblinThrower`, attaque projectile, profil tactique `RangedKeeper`, encounter, loot et XP data-driven ;
+- magie MON18 avec Spellbook par personnage, ciblage, transactions PA/mana, quatre sorts de production, présentation, UI hotbar, persistance v6 et politique de sauvegarde pré-combat.
 
 Les jalons majeurs suivants sont **validés et clos** :
 
@@ -45,13 +47,13 @@ MON14 — Automatic Engagement / Patrol / Investigation / Alarm
 MON15 — XP & Level Progression
 MON16 — Status Effects
 MON17 — Second Monster Family
+MON18 — Magic & Spellbook
 ```
 
 Le prochain jalon autoritaire est :
 
 ```text
-MON18 — Magic & Spellbook
-MON18.1 — Spell Definition / Identity
+MON19 — Advanced Dungeon Logic / Scripting
 ```
 
 Le backlog actif autoritaire est :
@@ -130,7 +132,7 @@ Attack_ThrowKnife     Projectile, dégâts 2..5, portée 2..6
 ExperienceReward      125
 ```
 
-Le pipeline projectile est générique et de présentation ; la logique de dégâts reste dans le resolver de combat. `RangedKeeper` repositionne le monstre pour conserver une distance favorable plutôt que de reproduire le comportement `DirectMelee`.
+Le pipeline projectile est générique et de présentation ; la logique de dégâts reste dans le resolver de combat.
 
 Documents de clôture :
 
@@ -143,13 +145,7 @@ MON17_CLOSURE.md
 
 ## Progression RPG — MON15
 
-MON15 est clos. Le document récapitulatif est :
-
-```text
-MON15_CLOSURE.md
-```
-
-### XP et niveaux
+MON15 est clos.
 
 État canonique :
 
@@ -176,8 +172,6 @@ L5   10000 XP
 L20 190000 XP
 ```
 
-### Récompenses
-
 `UGridMonsterDefinitionAsset::ExperienceReward` reste data-driven.
 
 Références de production :
@@ -187,53 +181,17 @@ Rat Géant          500 XP
 Gobelin lanceur    125 XP
 ```
 
-Le pool est partagé entre les personnages actifs éligibles.
-
-### Level Up
-
-Le système :
+Le Level Up :
 
 - détecte un ou plusieurs seuils ;
-- recalcule les statistiques via les règles RPG existantes ;
+- recalcule les statistiques ;
 - conserve le déficit absolu de PV/mana ;
 - maintient les morts à 0 PV ;
-- applique les choix de progression de classe atomiquement ;
+- applique les choix de progression atomiquement ;
 - projette les requirements acquis vers le catalogue MON12 ;
-- différencie notification de Level Up et transaction de choix.
+- différencie notification et transaction de choix.
 
-### UI
-
-La modal Level Up :
-
-- est différée pendant le combat ;
-- s'ouvre au premier safe point ;
-- supporte confirmer/annuler ;
-- rend correctement la pause et les entrées au gameplay.
-
-### Persistance
-
-SaveVersion courant :
-
-```text
-5
-```
-
-Le SaveGame persiste notamment :
-
-- Level / Experience ;
-- choix de progression ;
-- notifications Level Up encore en attente ;
-- effets de statut MON16.
-
-Les anciennes versions supportées sont migrées selon les contrats de migration existants.
-
-### Validation finale MON15
-
-```text
-42 tests MON15 : 42 Success
-```
-
-Le PIE final de MON15 a confirmé la progression XP et les Level Up. MON17 réutilise ce pipeline sans logique spéciale pour attribuer les 125 XP du Gobelin lanceur.
+Référence : `MON15_CLOSURE.md`.
 
 ---
 
@@ -253,33 +211,115 @@ Contrats principaux :
 - Save / Restore ;
 - identité primaire `GridStatusEffect:EffectId`.
 
-Document de clôture :
-
-```text
-MON16_CLOSURE.md
-```
+Référence : `MON16_CLOSURE.md`.
 
 ---
 
-## Prochaine phase — MON18 à MON22
+## Magie & Spellbook — MON18
+
+MON18 est **validé et clos**.
+
+Pipeline final :
+
+```text
+Spell Definition
+    -> Spellbook par personnage
+    -> WBP_GridSpellbook
+    -> Hotbar MON12
+    -> Combat Action Catalog
+    -> Targeting MON18.4
+    -> transaction PA/mana MON18.3
+    -> effets MON18.5 / Status Effects MON16
+    -> commit runtime
+    -> présentation MON18.6
+```
+
+### Sorts de production
+
+```text
+Spell_ArcaneBolt   Damage 4              Mana 3  PA 2  portée 1..5
+Spell_LesserHeal  Heal 5                Mana 4  PA 2  portée 0..3
+Spell_Haste       Apply Status_Haste    Mana 5  PA 2  portée 0..3
+Spell_CurePoison  Remove Status_Poison  Mana 4  PA 2  portée 0..3
+```
+
+Un sort qui ne peut produire aucune mutation utile est rejeté avant commit avec `NoEffectWouldApply`.
+
+### Persistance
+
+SaveVersion courant :
+
+```text
+6
+```
+
+Le Spellbook persiste uniquement :
+
+```text
+CharacterId
+KnownSpellIds[]
+```
+
+Migration v5 -> v6 : Spellbook vide, aucun sort inventé.
+
+PIE validé :
+
+```text
+Seed initial            Added=4 AlreadyKnown=0
+Save                    Spellbooks=1
+Stop PIE -> Continue    SpellbookCharacters=1
+Seed après Continue     Added=0 AlreadyKnown=4
+```
+
+### Sauvegarde en combat
+
+Politique finale :
+
+```text
+Exploration / Victory   -> sauvegarde autorisée
+Combat / Defeat         -> sauvegarde régulière interdite
+Avant StartCombat       -> <slot>_AutoCombat
+```
+
+Le checkpoint pré-combat protège une situation stable sans persister initiative, round, PA actifs, targeting ou présentation transitoire.
+
+### Validation finale
+
+```text
+MON18.9.3 ciblé          2/2 Success
+Global Grimrock        221/221 Success
+PIE Continue             VALIDÉ
+PIE PreCombatCheckpoint  VALIDÉ
+PIE combat save reject   VALIDÉ
+```
+
+Le diagnostic final a isolé l'ancien slot auxiliaire incompatible `GrimrockParty_2` sans remettre en cause `GrimrockParty`.
+
+Référence : `MON18_CLOSURE.md`.
+
+---
+
+## Prochaine phase — MON19 à MON22
 
 Ordre actif :
 
 ```text
-MON18 — Magic & Spellbook
 MON19 — Advanced Dungeon Logic / Scripting
 MON20 — Recruitment / Skills / Talents
 MON21 — Quests / Journal / Map / Codex
 MON22 — 45–90 Minute Vertical Slice
 ```
 
-Premier sous-jalon :
+MON19 doit approfondir les mécanismes de donjon en réutilisant d'abord :
 
 ```text
-MON18.1 — Spell Definition / Identity
+UGridLevelAsset
++ objets de grille
++ SourceEvent -> TargetCommand
++ liens persistants
 ```
 
-MON18 doit transformer l'infrastructure de sorts déjà présente dans MON12 en système RPG complet, en réutilisant les coûts PA/mana, le ciblage, les cooldowns, les effets MON16, la présentation projectile et la persistance existante plutôt qu'en créant un second pipeline de combat.
+Un langage léger ne doit être ajouté que si l'Event -> Command existant ne permet pas d'exprimer proprement les mécanismes nécessaires.
 
 ---
 
@@ -314,7 +354,7 @@ Les objets ne se connaissent pas directement.
 
 ### Mémoire stable
 
-La connaissance durable du projet se trouve dans le dépôt, principalement sous :
+La connaissance durable du projet se trouve sous :
 
 ```text
 docs/Design/
@@ -329,6 +369,7 @@ MON14_CLOSURE.md
 MON15_CLOSURE.md
 MON16_CLOSURE.md
 MON17_CLOSURE.md
+MON18_CLOSURE.md
 99_DECISIONS_LOG.md
 ```
 
