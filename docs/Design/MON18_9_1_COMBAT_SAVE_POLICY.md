@@ -2,13 +2,20 @@
 
 ## Statut
 
-**IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE.**
+**VALIDÉ ET CLOS SOUS UE5.5.4 — 22 AOÛT 2026.**
 
-Base :
+Implémentation initiale :
 
 ```text
-015cefc657740509b614a79c8074c08741386987
-Remove redundant MON18.8 status note
+36f7a85f2f98baf99fd2177c48b0ee6b8b54c5ed
+Implement MON18.9.1 combat save policy
+```
+
+Correctif de validation :
+
+```text
+f2c09e8af6b2547c2d200755cb142d0fe85c5b7b
+Fix MON18.9.1 combat save rejection
 ```
 
 ## 1. Décision
@@ -142,7 +149,7 @@ Le bouton et l'API de reprise ne font pas partie de MON18.9.1.
 `Victory` est un état stable et sauvegardable. Un autosave post-combat pourra
 donc être ajouté sans étendre le format SaveGame.
 
-MON18.9.1 ne crée pas encore automatiquement un slot `PostCombat`.
+MON18.9.1 ne crée pas automatiquement un slot `PostCombat`.
 
 ## 7. Format de sauvegarde
 
@@ -154,50 +161,61 @@ UGrimrockPartySaveGame::CurrentSaveVersion = 6
 
 MON18.9.1 est une politique d'écriture, pas une nouvelle donnée persistante.
 
-## 8. Tests Automation
+## 8. Validation Automation UE5.5.4
 
-Namespace :
+Namespace ciblé :
 
 ```text
 Grimrock.Save.MON18.9.1
 ```
 
-Tests ciblés :
+Résultat fourni le 22 août 2026 : **6/6 Success**.
 
 ```text
-SaveOutsideCombatAccepted
-SaveDuringCombatRejected
-PreCombatCheckpointCreated
-TransientCheckpointSkipped
-CombatSaveDoesNotOverwriteMainSlot
-DefeatPreservesPreCombatCheckpoint
+CombatSaveDoesNotOverwriteMainSlot      Success
+DefeatPreservesPreCombatCheckpoint      Success
+PreCombatCheckpointCreated              Success
+SaveDuringCombatRejected                Success
+SaveOutsideCombatAccepted               Success
+TransientCheckpointSkipped              Success
 ```
 
-Attendu après compilation UE5.5.4 : **6/6 Success**.
-
-Régressions recommandées :
+Les logs confirment le contrat attendu :
 
 ```text
-Grimrock.Save.SAVEFIX.2
-Grimrock.Magic.MON18.8
-Grimrock.Monsters.MON14.1
+PartySave SaveRejected ... Reason=CombatStateNotSaveable
 ```
 
-Puis campagne `Grimrock` complète avant clôture de MON18.9.
+apparaît pendant le combat ou en défaite sans écriture normale ultérieure, tandis que le
+checkpoint `_AutoCombat` est sauvegardé, relu et conserve la cellule pré-combat.
 
-## 9. Validation PIE attendue
+## 9. Régressions validées
 
-Scénario :
+Les campagnes recommandées ont également été exécutées sous UE5.5.4 :
 
 ```text
-New Game / Continue hors combat
--> vérifier sauvegarde normale
--> approcher un monstre jusqu'au déclenchement automatique
--> log : [MON18.9.1] PreCombatCheckpoint Saved ..._AutoCombat
--> combat
--> fermer le menu/inventaire ou arrêter PIE pendant le combat
--> aucune sauvegarde de combat ne remplace le checkpoint
--> vérifier que *_AutoCombat existe et contient l'état pré-combat
+Grimrock.Save.SAVEFIX.2                1/1 Success
+Grimrock.Magic.MON18.8                12/12 Success
+Grimrock.Monsters.MON14.1              7/7 Success
 ```
 
-La clôture de MON18.9.1 attend les résultats UE5.5.4 fournis par l'utilisateur.
+Points couverts :
+
+- un échec de `Continue` reste non destructif ;
+- la persistance/migration Spellbook v6 reste intacte ;
+- les bindings Spell de hotbar restent cohérents ;
+- l'engagement automatique MON14.1 fonctionne toujours ;
+- les fixtures transientes MON14.1 utilisent explicitement `Checkpoint=SkippedTransient` ;
+- aucun état de combat partiel n'écrase le slot principal ou le checkpoint pré-combat.
+
+## 10. Conclusion
+
+MON18.9.1 est **VALIDÉ ET CLOS**.
+
+Le correctif de validation a confirmé que `Serialize()` seul ne pouvait pas être le
+verrou autoritaire, car `UGameplayStatics::SaveGameToSlot()` pouvait encore retourner
+un succès après une erreur d'archive. Le refus est donc correctement appliqué en amont
+dans `AGrimrockPartyPawn::SaveCurrentGame()`.
+
+La campagne `Grimrock` complète reste à exécuter dans la phase finale de MON18.9 avant
+clôture du jalon majeur MON18.
