@@ -118,7 +118,7 @@ namespace
         {
             UGridStatusEffectDefinitionAsset* Definition = *It;
             if (IsValid (Definition) &&
-                Definition->EffectId == EffectId &&
+                Definition->GetPrimaryAssetId ().PrimaryAssetName == EffectId &&
                 Definition->IsValidDefinition ())
             {
                 return Definition;
