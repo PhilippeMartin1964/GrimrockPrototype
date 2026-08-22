@@ -2,7 +2,19 @@
 
 ## Statut
 
-Implémentation C++ préparée. La compilation et les tests UE5.5.4 restent à valider par le propriétaire du projet.
+**VALIDÉ sous Unreal Engine 5.5.4 le 22 août 2026.**
+
+Validation fournie par le propriétaire du projet :
+
+- compilation `Development Editor` : OK ;
+- `Grimrock.MON19.2.Runtime.LevelVariables` : **2/2 Success** ;
+- `Grimrock.MON19.2.Save` : **3/3 Success** ;
+- non-régression `Grimrock.RPG.MON16.7` : **11/11 Success** ;
+- non-régression `Grimrock.RPG.MON16.8` : **10/10 Success** ;
+- non-régression `Grimrock.Magic.MON18.8` : **12/12 Success** ;
+- non-régression `Grimrock.MON19.2.Editor` : **4/4 Success**.
+
+Les avertissements `FlushRenderingCommands called recursively!` observés lors de `DefaultInitialization` n'ont provoqué aucun échec de test et ne sont pas attribués au contrat MON19.2.2.
 
 ## Objectif
 
