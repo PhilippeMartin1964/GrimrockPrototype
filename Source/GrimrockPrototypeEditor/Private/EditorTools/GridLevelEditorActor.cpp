@@ -1,3 +1,5 @@
+#include "EditorTools/GridLevelEditorActor.h"
+
 // MON19.2.1R — Décomposition structurelle de AGridLevelEditorActor.
 //
 // Cette unité de traduction reste volontairement unique afin de préserver
