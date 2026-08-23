@@ -1,12 +1,12 @@
 # MON17.9 — Generic Monster Hurt / Hit-Reaction Presentation
 
-Statut : **C++ IMPLÉMENTÉ — COMPILATION, TESTS ET PIE À VALIDER**
+Statut : **VALIDÉ ET CLOS**
 
 ## 1. Objectif
 
 Ajouter une présentation générique de réaction aux dégâts non mortels sans modifier l'autorité du combat, de la grille ou de la persistance.
 
-Contrat :
+Contrat final :
 
 ```text
 Damage
@@ -55,7 +55,7 @@ Caractéristiques :
 - purement présentationnel ;
 - aucune validation n'impose sa présence ;
 - aucun monstre existant n'est obligé de fournir un montage ;
-- `RatGiant` peut donc conserver `HurtMontage = None`.
+- `RatGiant` peut conserver `HurtMontage = None`.
 
 ### Pas de HurtExpectedDuration
 
@@ -148,7 +148,7 @@ MON17.9 réutilise donc les points de nettoyage existants au lieu d'ajouter un n
 
 ### Save / Load
 
-La politique existante reste :
+La politique reste :
 
 ```text
 Saved Hurt + last-known party cell
@@ -160,7 +160,7 @@ Saved Hurt + no last-known party cell
 
 Aucun temps de montage, booléen de présentation ou état d'avancement Hurt n'est persisté.
 
-## 8. Asset GoblinThrower authoré dans UE5.5.4
+## 8. Assets GoblinThrower validés dans UE5.5.4
 
 Source Mixamo :
 
@@ -181,7 +181,7 @@ Pain Gesture
   -> AM_GoblinThrower_Hurt
 ```
 
-Observations validées manuellement pendant l'authoring :
+Configuration validée :
 
 ```text
 A_GoblinThrower_Hurt
@@ -196,24 +196,28 @@ AM_GoblinThrower_Hurt
 - Blend Out : 0.25 s
 ```
 
-Les `.uasset` restent gérés depuis Unreal Editor par l'utilisateur et ne sont pas écrits par cette étape C++.
-
-## 9. Configuration à effectuer après compilation
-
-Dans `DA_MON_GoblinThrower` :
+Configuration du Data Asset validée :
 
 ```text
-Monster | Animation
+DA_MON_GoblinThrower
 Hurt Montage = AM_GoblinThrower_Hurt
+Death Montage = AM_GoblinThrower_Death
+Death Expected Duration = 3.633333 s
 ```
 
-Pour les monstres sans animation de réaction, notamment le RatGiant tant qu'aucun asset n'est authoré :
+Les `.uasset` restent authorés et enregistrés depuis Unreal Editor.
+
+## 9. Compilation
+
+Compilation C++ UE5.5.4 confirmée par l'utilisateur le 23 août 2026.
+
+Résultat :
 
 ```text
-Hurt Montage = None
+Compilation : SUCCESS
 ```
 
-## 10. Tests automatisés ajoutés
+## 10. Tests automatisés MON17.9
 
 Fichier :
 
@@ -221,34 +225,31 @@ Fichier :
 Source/GrimrockPrototype/Private/Tests/GridMonsterMON179HurtPresentationTests.cpp
 ```
 
-Tests :
+Résultat confirmé :
 
 ```text
-Grimrock.Monsters.MON17.9.HurtDefinitionContract
-Grimrock.Monsters.MON17.9.HurtPresentationApiContract
-Grimrock.Monsters.MON17.9.NonFatalDamageRequestsHurt
-Grimrock.Monsters.MON17.9.FatalDamageBypassesHurt
-Grimrock.Monsters.MON17.9.MissingHurtMontageIsSafe
-Grimrock.Monsters.MON17.9.HurtRestoreNormalization
+Grimrock.Monsters.MON17.9.FatalDamageBypassesHurt        Success
+Grimrock.Monsters.MON17.9.HurtDefinitionContract         Success
+Grimrock.Monsters.MON17.9.HurtPresentationApiContract    Success
+Grimrock.Monsters.MON17.9.HurtRestoreNormalization       Success
+Grimrock.Monsters.MON17.9.MissingHurtMontageIsSafe       Success
+Grimrock.Monsters.MON17.9.NonFatalDamageRequestsHurt     Success
+
+MON17.9 : 6/6 Success
 ```
 
-Ils protègent :
-
-- le caractère optionnel de `HurtMontage` ;
-- l'API générique ;
-- le chemin non fatal vers Hurt ;
-- le bypass Hurt lors d'un coup fatal ;
-- la compatibilité des monstres sans montage ;
-- la normalisation Save/Load de l'état Hurt.
-
-## 11. Validation encore requise
-
-Ne pas considérer MON17.9 comme fermé avant résultats réels.
-
-À exécuter :
+`HurtRestoreNormalization` confirme les deux sorties prévues :
 
 ```text
-Grimrock.Monsters.MON17.9
+Hurt + no last-known party cell -> Idle
+Hurt + last-known party cell    -> Alert
+```
+
+## 11. Régressions automatisées
+
+Les suites de régression demandées ont été exécutées et les tests affichés terminent en `Success` :
+
+```text
 Grimrock.Monsters.MON17.8
 Grimrock.Monsters.MON10
 Grimrock.Monsters.MON9
@@ -256,15 +257,58 @@ Grimrock.Monsters.MON8
 Grimrock.Monsters.MON17.3.3
 ```
 
-Puis en PIE :
+Le test MON10 `AudioHurtDeathExclusivity` confirme notamment l'exclusivité attendue entre Hurt et Death.
 
-1. coup non fatal GoblinThrower -> Hurt montage, audio/VFX, retour normal ;
-2. second coup non fatal -> Hurt rejoué proprement ;
-3. coup fatal -> Death immédiatement, aucune réaction Hurt supplémentaire ;
-4. RatGiant sans HurtMontage -> aucun crash/régression ;
-5. sauvegarde/restauration -> aucun montage Hurt repris.
+Les warnings observés dans certaines fixtures (`MissingMonsterMovement`, absence de Party, PresentationWarning de fixtures sans mesh) ne correspondent pas à des échecs MON17.9 et les tests concernés terminent en `Success`.
 
-## 12. Non-objectifs
+## 12. Validation PIE finale
+
+Validation visuelle utilisateur confirmée le 23 août 2026.
+
+### Cas fatal
+
+Un premier GoblinThrower a reçu un coup critique :
+
+```text
+Attack_Unarmed
+10 dégâts
+10 -> 0 PV
+```
+
+Résultat observé :
+
+```text
+Dead directement
+Death presentation
+aucune réaction Hurt supplémentaire
+```
+
+Le pipeline historique Death reste fonctionnel : loot, XP, MonsterDied, corpse/dissolve et occupancy release sont exécutés.
+
+### Cas non fatal répété
+
+Un second GoblinThrower a reçu deux coups non mortels :
+
+```text
+Premier impact : 4 dégâts, 10 -> 6 PV
+Deuxième impact : 4 dégâts, 6 -> 2 PV
+```
+
+Résultat visuel confirmé : le Gobelin se « tortille de douleur » après chaque coup au but, puis revient correctement à sa présentation normale.
+
+Cela valide :
+
+```text
+nonfatal damage
+-> Hurt
+-> AM_GoblinThrower_Hurt
+-> Auto Blend Out
+-> retour normal
+```
+
+Le monstre reste sur sa case et conserve ensuite son comportement de combat.
+
+## 13. Non-objectifs confirmés
 
 MON17.9 n'introduit pas :
 
@@ -279,4 +323,8 @@ C++ GoblinThrower spécifique
 sauvegarde de progression de montage
 ```
 
-Le principe reste celui de MON17.8 : **gameplay autoritaire, présentation optionnelle et data-driven**.
+## 14. Verdict de clôture
+
+MON17.9 est **VALIDÉ ET CLOS**.
+
+Le contrat final reste celui de MON17.8 : **gameplay autoritaire, présentation optionnelle et data-driven**.
