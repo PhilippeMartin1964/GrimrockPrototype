@@ -2,11 +2,19 @@
 #include "EditorModeRegistry.h"
 #include "EditorTools/GridLevelEdMode.h"
 #include "EditorTools/GridLevelEditorActor.h"
+#include "EditorTools/Widgets/SGridEditorLuaScriptsPanel.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPIEPlaytestRequest.h"
 
 #include "Editor.h"
 #include "EngineUtils.h"
+#include "Framework/Docking/TabManager.h"
+#include "Widgets/Docking/SDockTab.h"
+
+namespace
+{
+    const FName GridLuaEditorTabName (TEXT ("GrimrockLuaEditor"));
+}
 
 class FGrimrockPrototypeEditorModule : public IModuleInterface
 {
@@ -18,6 +26,16 @@ public:
             FText::FromString(TEXT("Grimrock Grid Editor")),
             FSlateIcon(),
             true);
+
+        FGlobalTabmanager::Get ()->RegisterNomadTabSpawner (
+            GridLuaEditorTabName,
+            FOnSpawnTab::CreateRaw (
+                this,
+                &FGrimrockPrototypeEditorModule::SpawnLuaEditorTab))
+            .SetDisplayName (FText::FromString (TEXT ("Grimrock Lua Scripts")))
+            .SetTooltipText (FText::FromString (
+                TEXT ("Edit and validate level Lua scripts and Lua event bindings.")))
+            .SetMenuType (ETabSpawnerMenuType::Enabled);
 
         PreBeginPIEHandle = FEditorDelegates::PreBeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandlePreBeginPIE);
         BeginPIEHandle = FEditorDelegates::BeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandleBeginPIE);
@@ -34,6 +52,8 @@ public:
         FEditorDelegates::CancelPIE.Remove (CancelPIEHandle);
         FWorldDelegates::OnWorldCleanup.Remove (WorldCleanupHandle);
         GridPIEPlaytestRequest::Clear (TEXT ("EditorModuleShutdown"));
+        FGlobalTabmanager::Get ()->UnregisterNomadTabSpawner (
+            GridLuaEditorTabName);
 
         if (FModuleManager::Get().IsModuleLoaded("UnrealEd"))
         {
@@ -42,6 +62,17 @@ public:
     }
 
 private:
+    TSharedRef<SDockTab> SpawnLuaEditorTab (
+        const FSpawnTabArgs& SpawnTabArgs)
+    {
+        (void)SpawnTabArgs;
+        return SNew (SDockTab)
+            .TabRole (ETabRole::NomadTab)
+            [
+                SNew (SGridEditorLuaScriptsPanel)
+            ];
+    }
+
     AGridLevelEditorActor* FindEditorActorForPIEPreparation () const
     {
         if (!GEditor)

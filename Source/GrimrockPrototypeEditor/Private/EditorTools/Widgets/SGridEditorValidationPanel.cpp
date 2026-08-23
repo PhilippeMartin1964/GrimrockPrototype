@@ -3,6 +3,7 @@
 #if WITH_EDITOR
 
 #include "EditorTools/Widgets/GridEditorWidgetHelpers.h"
+#include "EditorTools/GridEditorLuaService.h"
 
 #include "HAL/PlatformApplicationMisc.h"
 #include "Styling/AppStyle.h"
@@ -543,7 +544,8 @@ FReply SGridEditorValidationPanel::OnValidateLevelClicked ()
     {
         FGridEditorValidationPanelState& CurrentValidationState = GetValidationState ();
         CurrentValidationState.bValidationHasRun = true;
-        CurrentValidationState.ValidationMessages = CurrentEditorActor->ValidateCurrentLevel ();
+        CurrentValidationState.ValidationMessages =
+            GridEditorLuaService::ValidateCurrentLevelWithLua (*CurrentEditorActor);
         RequestRefresh ();
     }
 

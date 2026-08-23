@@ -19,7 +19,8 @@ public class GrimrockPrototypeEditor : ModuleRules
             "PropertyEditor",
             "Slate",
             "SlateCore",
-            "GrimrockPrototype"
+            "GrimrockPrototype",
+            "GrimrockLua"
         });
     }
 }
