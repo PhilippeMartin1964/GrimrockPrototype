@@ -27,6 +27,11 @@ public:
             FSlateIcon(),
             true);
 
+        // StartupModule can be reached again during editor module reloads.
+        // Remove any stale registration first so the Window menu exposes one
+        // canonical "Grimrock Lua Scripts" entry.
+        FGlobalTabmanager::Get ()->UnregisterNomadTabSpawner (
+            GridLuaEditorTabName);
         FGlobalTabmanager::Get ()->RegisterNomadTabSpawner (
             GridLuaEditorTabName,
             FOnSpawnTab::CreateRaw (

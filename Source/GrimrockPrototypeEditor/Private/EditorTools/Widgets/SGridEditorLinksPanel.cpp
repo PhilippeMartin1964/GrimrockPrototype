@@ -35,14 +35,34 @@ namespace
 
     bool IsConnectorBroken (const FGridObjectLink& Link)
     {
-        return !Link.SourceObjectId.IsValid () || !Link.TargetObjectId.IsValid ();
+        if (!Link.SourceObjectId.IsValid ())
+        {
+            return true;
+        }
+
+        if (Link.Command == EGridObjectCommand::LuaCallback)
+        {
+            return Link.LuaScriptId.IsNone () || Link.LuaCallbackName.IsNone ();
+        }
+
+        return !Link.TargetObjectId.IsValid ();
     }
 
     bool IsConnectorBroken (const FGridObjectLink& Link, const UGridLevelAsset* LevelAsset)
     {
-        return IsConnectorBroken (Link) ||
-            !FindObjectById (LevelAsset, Link.SourceObjectId) ||
-            !FindObjectById (LevelAsset, Link.TargetObjectId);
+        if (IsConnectorBroken (Link) || !FindObjectById (LevelAsset, Link.SourceObjectId))
+        {
+            return true;
+        }
+
+        if (Link.Command == EGridObjectCommand::LuaCallback)
+        {
+            // Lua callbacks are intentionally targetless. Script existence and
+            // compilability are reported by the MON19.6 Lua validation service.
+            return false;
+        }
+
+        return !FindObjectById (LevelAsset, Link.TargetObjectId);
     }
 
     const FGridLevelObjectData* FindObjectById (const UGridLevelAsset* LevelAsset, const FGuid& ObjectId)
@@ -709,18 +729,24 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
     {
         const FGuid SourceId = Link.SourceObjectId;
         const FGuid TargetId = Link.TargetObjectId;
-        const FGuid OtherId = bOutgoing ? TargetId : SourceId;
+        const bool bLuaCallback = Link.Command == EGridObjectCommand::LuaCallback;
+        const FGuid OtherId = (bOutgoing && bLuaCallback) ? FGuid () : (bOutgoing ? TargetId : SourceId);
         const bool bBroken = IsConnectorBroken (Link, CurrentEditorActor->LevelAsset);
-        const FText FlowText = bOutgoing
+        const FText FlowText = bOutgoing && bLuaCallback
             ? FText::Format (
-                FText::FromString (TEXT ("-> {0} : {1}")),
-                FindObjectById (CurrentEditorActor->LevelAsset, TargetId) ? GetObjectSummaryText (TargetId) : FText::FromString (TEXT ("Missing object")),
-                GetLinkCommandText (Link.Command))
-            : FText::Format (
-                FText::FromString (TEXT ("{0} : {1} -> {2}")),
-                FindObjectById (CurrentEditorActor->LevelAsset, SourceId) ? GetObjectSummaryText (SourceId) : FText::FromString (TEXT ("Missing object")),
-                GetLinkSourceEventText (Link.SourceEvent),
-                GetLinkCommandText (Link.Command));
+                FText::FromString (TEXT ("-> Lua {0}.{1}")),
+                FText::FromName (Link.LuaScriptId),
+                FText::FromName (Link.LuaCallbackName))
+            : bOutgoing
+                ? FText::Format (
+                    FText::FromString (TEXT ("-> {0} : {1}")),
+                    FindObjectById (CurrentEditorActor->LevelAsset, TargetId) ? GetObjectSummaryText (TargetId) : FText::FromString (TEXT ("Missing object")),
+                    GetLinkCommandText (Link.Command))
+                : FText::Format (
+                    FText::FromString (TEXT ("{0} : {1} -> {2}")),
+                    FindObjectById (CurrentEditorActor->LevelAsset, SourceId) ? GetObjectSummaryText (SourceId) : FText::FromString (TEXT ("Missing object")),
+                    GetLinkSourceEventText (Link.SourceEvent),
+                    GetLinkCommandText (Link.Command));
 
         Root->AddSlot ()
             .AutoHeight ()
@@ -766,14 +792,16 @@ TSharedRef<SWidget> SGridEditorLinksPanel::BuildObjectLinksList (
                             .AutoWidth ()
                             .Padding (0.f, 0.f, 4.f, 0.f)
                             [
-                                GridEditorWidgetHelpers::BuildGridActionButton (
-                                    bOutgoing
-                                        ? FText::FromString (TEXT ("Go To Target"))
-                                        : FText::FromString (TEXT ("Go To Source")),
-                                    FOnClicked::CreateLambda ([this, OtherId] () -> FReply
-                                    {
-                                        return OnSelectObjectFromLinkClicked (OtherId);
-                                    }))
+                                (bOutgoing && bLuaCallback)
+                                    ? SNullWidget::NullWidget
+                                    : GridEditorWidgetHelpers::BuildGridActionButton (
+                                        bOutgoing
+                                            ? FText::FromString (TEXT ("Go To Target"))
+                                            : FText::FromString (TEXT ("Go To Source")),
+                                        FOnClicked::CreateLambda ([this, OtherId] () -> FReply
+                                        {
+                                            return OnSelectObjectFromLinkClicked (OtherId);
+                                        }))
                             ]
 
                             + SHorizontalBox::Slot ()
