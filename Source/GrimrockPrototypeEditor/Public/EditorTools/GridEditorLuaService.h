@@ -39,7 +39,7 @@ struct FGridEditorLuaAnalysis
     }
 };
 
-/** MON19.6 editor-only Lua authoring, binding and validation helpers. */
+/** MON19.6/19.7.1 editor-only Lua authoring, binding and validation helpers. */
 namespace GridEditorLuaService
 {
     GRIMROCKPROTOTYPEEDITOR_API bool AnalyzeLevel (
@@ -91,6 +91,11 @@ namespace GridEditorLuaService
         bool bEnabled,
         FString& OutError);
 
+    /**
+     * Replaces source and atomically synchronizes enabled scripts' top-level
+     * `persistent` declarations into LevelVariables. Existing unrelated
+     * LevelVariables are never removed automatically.
+     */
     GRIMROCKPROTOTYPEEDITOR_API bool SetScriptSource (
         UGridLevelAsset& LevelAsset,
         FName ScriptId,
@@ -102,10 +107,16 @@ namespace GridEditorLuaService
         FName ScriptId,
         FString& OutError);
 
+    /** Sets/clears the selected object's unique human-readable Lua LogicId. */
+    GRIMROCKPROTOTYPEEDITOR_API bool SetSelectedObjectLogicId (
+        AGridLevelEditorActor& EditorActor,
+        FName LogicId,
+        FString& OutError);
+
     /**
      * Runs the historical level validator, removes MON19 false positives for
      * data-only Logic / targetless Lua links, then appends authoritative Logic
-     * and Lua diagnostics.
+     * and Lua diagnostics, including LogicId and persistent declarations.
      */
     GRIMROCKPROTOTYPEEDITOR_API TArray<FGridLevelValidationMessage>
         ValidateCurrentLevelWithLua (

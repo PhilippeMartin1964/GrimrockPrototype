@@ -169,6 +169,10 @@ struct FGridLevelObjectData
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     FGuid ObjectId;
 
+    /** Optional human-authored stable alias used by Lua and editor diagnostics. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Logic")
+    FName LogicId = NAME_None;
+
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     EGridLevelObjectType Type = EGridLevelObjectType::None;
 

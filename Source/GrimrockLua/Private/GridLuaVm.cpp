@@ -39,6 +39,19 @@ namespace
             lua_pop (State, 1);
         }
     }
+
+    bool ArePersistentDefinitionsCompatible (
+        const FGridLuaPersistentVariableDefinition& A,
+        const FGridLuaPersistentVariableDefinition& B)
+    {
+        if (A.VariableId != B.VariableId || A.Type != B.Type)
+        {
+            return false;
+        }
+        return A.Type == EGridLuaPersistentValueType::Bool
+            ? A.bDefaultBoolValue == B.bDefaultBoolValue
+            : A.DefaultInt32Value == B.DefaultInt32Value;
+    }
 }
 
 struct FGridLuaVm::FImpl
@@ -46,6 +59,8 @@ struct FGridLuaVm::FImpl
     lua_State* State = nullptr;
     FGridLuaVmConfig Config;
     TMap<FName, int32> EnvironmentRefByScriptId;
+    TMap<FName, TArray<FGridLuaPersistentVariableDefinition>> PersistentDefinitionsByScriptId;
+    TMap<FName, FGridLuaPersistentVariableDefinition> PersistentDefinitionByVariableId;
     SIZE_T AllocatedBytes = 0;
     int32 RemainingInstructionBudget = 0;
     int32 HookStep = MaximumHookStep;
@@ -320,7 +335,7 @@ struct FGridLuaVm::FImpl
             return PushActionResult (
                 InState,
                 false,
-                TEXT ("grid.command expects target ObjectId and command name strings."));
+                TEXT ("grid.command expects target ObjectId/LogicId and command name strings."));
         }
 
         const char* TargetUtf8 = lua_tostring (InState, 1);
@@ -393,6 +408,8 @@ struct FGridLuaVm::FImpl
     void Close ()
     {
         ActiveHost = nullptr;
+        PersistentDefinitionsByScriptId.Reset ();
+        PersistentDefinitionByVariableId.Reset ();
         EnvironmentRefByScriptId.Reset ();
         if (State)
         {
@@ -494,6 +511,363 @@ struct FGridLuaVm::FImpl
         lua_setfield (State, GridIndex, "log");
     }
 
+    bool ExtractPersistentDefinitions (
+        FName ScriptId,
+        int32 EnvironmentRef,
+        FString& OutError)
+    {
+        const int32 BaseTop = lua_gettop (State);
+        TArray<FGridLuaPersistentVariableDefinition> ScriptDefinitions;
+
+        lua_rawgeti (State, LUA_REGISTRYINDEX, EnvironmentRef);
+        lua_getfield (State, -1, "persistent");
+        if (lua_isnil (State, -1))
+        {
+            PersistentDefinitionsByScriptId.Add (
+                ScriptId,
+                MoveTemp (ScriptDefinitions));
+            lua_settop (State, BaseTop);
+            OutError.Reset ();
+            return true;
+        }
+        if (!lua_istable (State, -1))
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua script '%s' declares 'persistent' but it is not a table."),
+                *ScriptId.ToString ());
+            lua_settop (State, BaseTop);
+            return false;
+        }
+
+        const int32 PersistentIndex = lua_absindex (State, -1);
+        lua_pushnil (State);
+        while (lua_next (State, PersistentIndex) != 0)
+        {
+            if (lua_type (State, -2) != LUA_TSTRING)
+            {
+                OutError = FString::Printf (
+                    TEXT ("Lua script '%s' persistent keys must be strings."),
+                    *ScriptId.ToString ());
+                lua_settop (State, BaseTop);
+                return false;
+            }
+
+            const char* KeyUtf8 = lua_tostring (State, -2);
+            const FString VariableText = KeyUtf8
+                ? FString (UTF8_TO_TCHAR (KeyUtf8)).TrimStartAndEnd ()
+                : FString ();
+            if (VariableText.IsEmpty ())
+            {
+                OutError = FString::Printf (
+                    TEXT ("Lua script '%s' contains an empty persistent variable name."),
+                    *ScriptId.ToString ());
+                lua_settop (State, BaseTop);
+                return false;
+            }
+
+            FGridLuaPersistentVariableDefinition Definition;
+            Definition.VariableId = FName (*VariableText);
+            if (lua_isboolean (State, -1))
+            {
+                Definition.Type = EGridLuaPersistentValueType::Bool;
+                Definition.bDefaultBoolValue = lua_toboolean (State, -1) != 0;
+            }
+            else if (lua_isinteger (State, -1))
+            {
+                const lua_Integer LuaValue = lua_tointeger (State, -1);
+                if (LuaValue < static_cast<lua_Integer> (MIN_int32) ||
+                    LuaValue > static_cast<lua_Integer> (MAX_int32))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Lua persistent variable '%s' is outside the Int32 range."),
+                        *Definition.VariableId.ToString ());
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+                Definition.Type = EGridLuaPersistentValueType::Int32;
+                Definition.DefaultInt32Value = static_cast<int32> (LuaValue);
+            }
+            else
+            {
+                OutError = FString::Printf (
+                    TEXT ("Lua persistent variable '%s' must have a Bool or Int32 literal default."),
+                    *Definition.VariableId.ToString ());
+                lua_settop (State, BaseTop);
+                return false;
+            }
+
+            if (const FGridLuaPersistentVariableDefinition* Existing =
+                    PersistentDefinitionByVariableId.Find (Definition.VariableId))
+            {
+                if (!ArePersistentDefinitionsCompatible (*Existing, Definition))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Lua persistent variable '%s' is declared with conflicting type/default values."),
+                        *Definition.VariableId.ToString ());
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+            }
+            else
+            {
+                PersistentDefinitionByVariableId.Add (
+                    Definition.VariableId,
+                    Definition);
+            }
+
+            ScriptDefinitions.Add (Definition);
+            lua_pop (State, 1);
+        }
+
+        ScriptDefinitions.Sort (
+            [] (const FGridLuaPersistentVariableDefinition& A,
+                const FGridLuaPersistentVariableDefinition& B)
+            {
+                return A.VariableId.LexicalLess (B.VariableId);
+            });
+        PersistentDefinitionsByScriptId.Add (
+            ScriptId,
+            MoveTemp (ScriptDefinitions));
+        lua_settop (State, BaseTop);
+        OutError.Reset ();
+        return true;
+    }
+
+    bool SyncPersistentTableFromHost (
+        FName ScriptId,
+        const FGridLuaHostApi& HostApi,
+        TMap<FName, bool>& OutInitialBoolValues,
+        TMap<FName, int32>& OutInitialIntValues,
+        FString& OutError)
+    {
+        OutInitialBoolValues.Reset ();
+        OutInitialIntValues.Reset ();
+        const TArray<FGridLuaPersistentVariableDefinition>* Definitions =
+            PersistentDefinitionsByScriptId.Find (ScriptId);
+        if (!Definitions || Definitions->IsEmpty ())
+        {
+            OutError.Reset ();
+            return true;
+        }
+
+        const int32* EnvironmentRef = EnvironmentRefByScriptId.Find (ScriptId);
+        if (!EnvironmentRef)
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua script '%s' is not loaded."),
+                *ScriptId.ToString ());
+            return false;
+        }
+
+        const int32 BaseTop = lua_gettop (State);
+        lua_rawgeti (State, LUA_REGISTRYINDEX, *EnvironmentRef);
+        lua_getfield (State, -1, "persistent");
+        if (!lua_istable (State, -1))
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua script '%s' persistent table disappeared after initialization."),
+                *ScriptId.ToString ());
+            lua_settop (State, BaseTop);
+            return false;
+        }
+        const int32 PersistentIndex = lua_absindex (State, -1);
+
+        for (const FGridLuaPersistentVariableDefinition& Definition : *Definitions)
+        {
+            const FString VariableText = Definition.VariableId.ToString ();
+            FTCHARToUTF8 VariableUtf8 (*VariableText);
+            FString HostError;
+            if (Definition.Type == EGridLuaPersistentValueType::Bool)
+            {
+                bool bValue = false;
+                if (!HostApi.GetBool ||
+                    !HostApi.GetBool (Definition.VariableId, bValue, HostError))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Cannot synchronize persistent Bool '%s': %s"),
+                        *VariableText,
+                        HostError.IsEmpty () ? TEXT ("host getter unavailable") : *HostError);
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+                OutInitialBoolValues.Add (Definition.VariableId, bValue);
+                lua_pushboolean (State, bValue ? 1 : 0);
+            }
+            else
+            {
+                int32 Value = 0;
+                if (!HostApi.GetInt32 ||
+                    !HostApi.GetInt32 (Definition.VariableId, Value, HostError))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Cannot synchronize persistent Int32 '%s': %s"),
+                        *VariableText,
+                        HostError.IsEmpty () ? TEXT ("host getter unavailable") : *HostError);
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+                OutInitialIntValues.Add (Definition.VariableId, Value);
+                lua_pushinteger (State, static_cast<lua_Integer> (Value));
+            }
+            lua_setfield (State, PersistentIndex, VariableUtf8.Get ());
+        }
+
+        lua_settop (State, BaseTop);
+        OutError.Reset ();
+        return true;
+    }
+
+    bool CommitPersistentTableToHost (
+        FName ScriptId,
+        const FGridLuaHostApi& HostApi,
+        const TMap<FName, bool>& InitialBoolValues,
+        const TMap<FName, int32>& InitialIntValues,
+        FString& OutError)
+    {
+        const TArray<FGridLuaPersistentVariableDefinition>* Definitions =
+            PersistentDefinitionsByScriptId.Find (ScriptId);
+        if (!Definitions || Definitions->IsEmpty ())
+        {
+            OutError.Reset ();
+            return true;
+        }
+
+        const int32* EnvironmentRef = EnvironmentRefByScriptId.Find (ScriptId);
+        if (!EnvironmentRef)
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua script '%s' is not loaded."),
+                *ScriptId.ToString ());
+            return false;
+        }
+
+        TSet<FName> DeclaredIds;
+        for (const FGridLuaPersistentVariableDefinition& Definition : *Definitions)
+        {
+            DeclaredIds.Add (Definition.VariableId);
+        }
+
+        TMap<FName, bool> ChangedBoolValues;
+        TMap<FName, int32> ChangedIntValues;
+        const int32 BaseTop = lua_gettop (State);
+        lua_rawgeti (State, LUA_REGISTRYINDEX, *EnvironmentRef);
+        lua_getfield (State, -1, "persistent");
+        if (!lua_istable (State, -1))
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua script '%s' persistent table is no longer a table."),
+                *ScriptId.ToString ());
+            lua_settop (State, BaseTop);
+            return false;
+        }
+        const int32 PersistentIndex = lua_absindex (State, -1);
+
+        lua_pushnil (State);
+        while (lua_next (State, PersistentIndex) != 0)
+        {
+            if (lua_type (State, -2) != LUA_TSTRING)
+            {
+                OutError = TEXT ("Lua persistent table gained a non-string key during callback execution.");
+                lua_settop (State, BaseTop);
+                return false;
+            }
+            const char* KeyUtf8 = lua_tostring (State, -2);
+            const FName VariableId (KeyUtf8 ? UTF8_TO_TCHAR (KeyUtf8) : TEXT (""));
+            if (VariableId.IsNone () || !DeclaredIds.Contains (VariableId))
+            {
+                OutError = FString::Printf (
+                    TEXT ("Lua persistent variable '%s' was not declared in the top-level persistent table."),
+                    KeyUtf8 ? UTF8_TO_TCHAR (KeyUtf8) : TEXT (""));
+                lua_settop (State, BaseTop);
+                return false;
+            }
+            lua_pop (State, 1);
+        }
+
+        for (const FGridLuaPersistentVariableDefinition& Definition : *Definitions)
+        {
+            const FString VariableText = Definition.VariableId.ToString ();
+            FTCHARToUTF8 VariableUtf8 (*VariableText);
+            lua_getfield (State, PersistentIndex, VariableUtf8.Get ());
+            if (Definition.Type == EGridLuaPersistentValueType::Bool)
+            {
+                if (!lua_isboolean (State, -1))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Lua persistent variable '%s' must remain a Bool."),
+                        *VariableText);
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+                const bool bValue = lua_toboolean (State, -1) != 0;
+                const bool* InitialValue = InitialBoolValues.Find (Definition.VariableId);
+                if (!InitialValue || *InitialValue != bValue)
+                {
+                    ChangedBoolValues.Add (Definition.VariableId, bValue);
+                }
+            }
+            else
+            {
+                if (!lua_isinteger (State, -1))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Lua persistent variable '%s' must remain an Int32."),
+                        *VariableText);
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+                const lua_Integer LuaValue = lua_tointeger (State, -1);
+                if (LuaValue < static_cast<lua_Integer> (MIN_int32) ||
+                    LuaValue > static_cast<lua_Integer> (MAX_int32))
+                {
+                    OutError = FString::Printf (
+                        TEXT ("Lua persistent variable '%s' moved outside the Int32 range."),
+                        *VariableText);
+                    lua_settop (State, BaseTop);
+                    return false;
+                }
+                const int32 Value = static_cast<int32> (LuaValue);
+                const int32* InitialValue = InitialIntValues.Find (Definition.VariableId);
+                if (!InitialValue || *InitialValue != Value)
+                {
+                    ChangedIntValues.Add (Definition.VariableId, Value);
+                }
+            }
+            lua_pop (State, 1);
+        }
+        lua_settop (State, BaseTop);
+
+        for (const TPair<FName, bool>& Pair : ChangedBoolValues)
+        {
+            FString HostError;
+            if (!HostApi.SetBool ||
+                !HostApi.SetBool (Pair.Key, Pair.Value, HostError))
+            {
+                OutError = FString::Printf (
+                    TEXT ("Cannot commit persistent Bool '%s': %s"),
+                    *Pair.Key.ToString (),
+                    HostError.IsEmpty () ? TEXT ("host setter unavailable") : *HostError);
+                return false;
+            }
+        }
+        for (const TPair<FName, int32>& Pair : ChangedIntValues)
+        {
+            FString HostError;
+            if (!HostApi.SetInt32 ||
+                !HostApi.SetInt32 (Pair.Key, Pair.Value, HostError))
+            {
+                OutError = FString::Printf (
+                    TEXT ("Cannot commit persistent Int32 '%s': %s"),
+                    *Pair.Key.ToString (),
+                    HostError.IsEmpty () ? TEXT ("host setter unavailable") : *HostError);
+                return false;
+            }
+        }
+
+        OutError.Reset ();
+        return true;
+    }
+
     bool ExecuteProtectedFunction (
         int32 ArgumentCount,
         int32 ResultCount,
@@ -579,6 +953,16 @@ struct FGridLuaVm::FImpl
                 TEXT ("Script '%s' failed during initialization: %s"),
                 *ScriptIdString,
                 *ExecutionError);
+            luaL_unref (State, LUA_REGISTRYINDEX, EnvironmentRef);
+            lua_settop (State, BaseTop);
+            return false;
+        }
+
+        if (!ExtractPersistentDefinitions (
+                Script.ScriptId,
+                EnvironmentRef,
+                OutError))
+        {
             luaL_unref (State, LUA_REGISTRYINDEX, EnvironmentRef);
             lua_settop (State, BaseTop);
             return false;
@@ -700,6 +1084,25 @@ bool FGridLuaVm::HasScript (FName ScriptId) const
     return IsReady () && Impl->EnvironmentRefByScriptId.Contains (ScriptId);
 }
 
+TArray<FGridLuaPersistentVariableDefinition>
+FGridLuaVm::GetPersistentVariableDefinitions () const
+{
+    TArray<FGridLuaPersistentVariableDefinition> Result;
+    if (!IsReady ())
+    {
+        return Result;
+    }
+
+    Impl->PersistentDefinitionByVariableId.GenerateValueArray (Result);
+    Result.Sort (
+        [] (const FGridLuaPersistentVariableDefinition& A,
+            const FGridLuaPersistentVariableDefinition& B)
+        {
+            return A.VariableId.LexicalLess (B.VariableId);
+        });
+    return Result;
+}
+
 bool FGridLuaVm::CallFunction (
     FName ScriptId,
     FName FunctionName,
@@ -766,6 +1169,19 @@ bool FGridLuaVm::CallEventFunction (
     }
 
     const int32 BaseTop = lua_gettop (Impl->State);
+    TMap<FName, bool> InitialBoolValues;
+    TMap<FName, int32> InitialIntValues;
+    if (!Impl->SyncPersistentTableFromHost (
+            ScriptId,
+            HostApi,
+            InitialBoolValues,
+            InitialIntValues,
+            OutError))
+    {
+        lua_settop (Impl->State, BaseTop);
+        return false;
+    }
+
     if (!Impl->PushScriptGlobal (ScriptId, FunctionName, OutError))
     {
         lua_settop (Impl->State, BaseTop);
@@ -791,7 +1207,7 @@ bool FGridLuaVm::CallEventFunction (
 
     Impl->ActiveHost = &HostApi;
     FString ExecutionError;
-    const bool bSuccess =
+    bool bSuccess =
         Impl->ExecuteProtectedFunction (1, 0, ExecutionError);
     Impl->ActiveHost = nullptr;
 
@@ -802,6 +1218,24 @@ bool FGridLuaVm::CallEventFunction (
             *ScriptId.ToString (),
             *FunctionName.ToString (),
             *ExecutionError);
+    }
+    else
+    {
+        FString CommitError;
+        if (!Impl->CommitPersistentTableToHost (
+                ScriptId,
+                HostApi,
+                InitialBoolValues,
+                InitialIntValues,
+                CommitError))
+        {
+            bSuccess = false;
+            OutError = FString::Printf (
+                TEXT ("Lua event callback '%s.%s' persistent commit failed: %s"),
+                *ScriptId.ToString (),
+                *FunctionName.ToString (),
+                *CommitError);
+        }
     }
 
     lua_settop (Impl->State, BaseTop);

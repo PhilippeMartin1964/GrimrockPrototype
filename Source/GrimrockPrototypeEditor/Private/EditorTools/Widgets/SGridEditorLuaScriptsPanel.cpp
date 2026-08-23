@@ -577,17 +577,11 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildBindingsSection ()
         return Root;
     }
 
-    const TArray<EGridObjectEvent> SupportedEvents =
-        GridEditorLinkPolicy::GetSupportedEventsForSource (*Source);
-    if (SupportedEvents.IsEmpty ())
-    {
-        Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("The selected object does not emit connector events.")))
-        ];
-        return Root;
-    }
+    const FString SourceName = !Source->LogicId.IsNone ()
+        ? Source->LogicId.ToString ()
+        : (Source->Tag.IsNone ()
+            ? Source->ObjectId.ToString ().Left (8)
+            : Source->Tag.ToString ());
 
     Root->AddSlot ().AutoHeight ().Padding (0.f, 4.f, 0.f, 0.f)
     [
@@ -595,10 +589,69 @@ TSharedRef<SWidget> SGridEditorLuaScriptsPanel::BuildBindingsSection ()
             .Text (FText::FromString (
                 FString::Printf (
                     TEXT ("Source: %s @ (%d,%d)"),
-                    Source->Tag.IsNone () ? *Source->ObjectId.ToString ().Left (8) : *Source->Tag.ToString (),
+                    *SourceName,
                     Source->CellX,
                     Source->CellY)))
     ];
+
+    Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
+    [
+        SNew (SHorizontalBox)
+        + SHorizontalBox::Slot ().AutoWidth ().VAlign (VAlign_Center).Padding (0.f, 0.f, 8.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (TEXT ("Logic Id")))
+        ]
+        + SHorizontalBox::Slot ().FillWidth (1.f)
+        [
+            SNew (SEditableTextBox)
+                .Text (Source->LogicId.IsNone ()
+                    ? FText::GetEmpty ()
+                    : FText::FromName (Source->LogicId))
+                .HintText (FText::FromString (TEXT ("e.g. SecretDoor")))
+                .ToolTipText (FText::FromString (
+                    TEXT ("Stable readable alias used by grid.command(\"SecretDoor\", \"Open\"). Must be unique in the level.")))
+                .OnTextCommitted_Lambda (
+                    [this] (const FText& Text, ETextCommit::Type CommitType)
+                    {
+                        (void)CommitType;
+                        AGridLevelEditorActor* CurrentEditorActor = FindEditorActor ();
+                        if (!CurrentEditorActor)
+                        {
+                            return;
+                        }
+                        const FString Trimmed = Text.ToString ().TrimStartAndEnd ();
+                        const FName LogicId = Trimmed.IsEmpty ()
+                            ? NAME_None
+                            : FName (*Trimmed);
+                        FString Error;
+                        const bool bOk = GridEditorLuaService::SetSelectedObjectLogicId (
+                            *CurrentEditorActor,
+                            LogicId,
+                            Error);
+                        SetStatus (
+                            bOk
+                                ? TEXT ("Logic Id updated. Lua can now reference this object by name.")
+                                : Error,
+                            bOk);
+                        Rebuild ();
+                    })
+        ]
+    ];
+
+    const TArray<EGridObjectEvent> SupportedEvents =
+        GridEditorLinkPolicy::GetSupportedEventsForSource (*Source);
+    if (SupportedEvents.IsEmpty ())
+    {
+        Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
+        [
+            SNew (STextBlock)
+                .Text (FText::FromString (
+                    TEXT ("The selected object does not emit connector events. Its Logic Id can still be used as a Lua command target.")))
+                .AutoWrapText (true)
+        ];
+        return Root;
+    }
 
     Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 0.f)
     [
@@ -931,7 +984,11 @@ FReply SGridEditorLuaScriptsPanel::OnApplyScriptClicked ()
             DraftSource,
             Error);
     }
-    SetStatus (bOk ? TEXT ("Lua script applied. Run Validate Lua before playtest.") : Error, bOk);
+    SetStatus (
+        bOk
+            ? TEXT ("Lua script applied. Persistent declarations synchronized; run Validate Lua before playtest.")
+            : Error,
+        bOk);
     LastValidatedCallbacks.Reset ();
     if (bOk)
     {

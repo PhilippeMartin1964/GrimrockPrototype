@@ -20,6 +20,26 @@ struct GRIMROCKLUA_API FGridLuaEventContext
     FString EventName;
 };
 
+/** Type inferred from a literal entry in the script-level `persistent` table. */
+enum class EGridLuaPersistentValueType : uint8
+{
+    Bool,
+    Int32
+};
+
+/**
+ * One MON19.7.1 persistent declaration authored directly in Lua:
+ *
+ *   persistent = { GateOpen = false, RuneCount = 0 }
+ */
+struct GRIMROCKLUA_API FGridLuaPersistentVariableDefinition
+{
+    FName VariableId = NAME_None;
+    EGridLuaPersistentValueType Type = EGridLuaPersistentValueType::Bool;
+    bool bDefaultBoolValue = false;
+    int32 DefaultInt32Value = 0;
+};
+
 /**
  * Host callbacks backing the safe `grid` Lua API.
  *
@@ -76,6 +96,14 @@ public:
     int32 GetLoadedScriptCount () const;
     bool HasScript (FName ScriptId) const;
 
+    /**
+     * Returns the merged declarations inferred from enabled scripts' literal
+     * `persistent` tables. Repeated declarations are accepted only when type
+     * and default value are identical.
+     */
+    TArray<FGridLuaPersistentVariableDefinition>
+        GetPersistentVariableDefinitions () const;
+
     /** Calls one no-argument/no-result callback in the selected script _ENV. */
     bool CallFunction (
         FName ScriptId,
@@ -89,7 +117,9 @@ public:
      *   event.event
      *
      * During this protected call only, the script-local `grid` API is backed
-     * by HostApi. Nested host-bound Lua callbacks are rejected explicitly.
+     * by HostApi. MON19.7.1 additionally synchronizes the script's declared
+     * `persistent` table from HostApi before the call and commits it back only
+     * after the Lua callback succeeds. Nested hosted callbacks remain rejected.
      */
     bool CallEventFunction (
         FName ScriptId,

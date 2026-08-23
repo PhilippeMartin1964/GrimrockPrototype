@@ -403,13 +403,58 @@ bool UGridActivationComponent::ExecuteLuaIssuedCommand (
     const FString& CommandName,
     FString& OutError)
 {
-    FGuid TargetId;
-    if (!FGuid::Parse (TargetObjectId, TargetId) || !TargetId.IsValid ())
+    const FString TargetReference = TargetObjectId.TrimStartAndEnd ();
+    if (TargetReference.IsEmpty ())
     {
-        OutError = FString::Printf (
-            TEXT ("grid.command target ObjectId '%s' is invalid."),
-            *TargetObjectId);
+        OutError = TEXT ("grid.command target reference cannot be empty.");
         return false;
+    }
+
+    FGuid TargetId;
+    if (!FGuid::Parse (TargetReference, TargetId) || !TargetId.IsValid ())
+    {
+        if (!RuntimeActor || !RuntimeActor->LevelAsset)
+        {
+            OutError = TEXT ("grid.command cannot resolve LogicId without a current LevelAsset.");
+            return false;
+        }
+
+        const FName RequestedLogicId (*TargetReference);
+        const FGridLevelObjectData* ResolvedObject = nullptr;
+        int32 MatchCount = 0;
+        for (const FGridLevelObjectData& Object : RuntimeActor->LevelAsset->Objects)
+        {
+            if (!Object.LogicId.IsNone () &&
+                Object.LogicId == RequestedLogicId)
+            {
+                ResolvedObject = &Object;
+                ++MatchCount;
+            }
+        }
+
+        if (MatchCount == 0 || !ResolvedObject)
+        {
+            OutError = FString::Printf (
+                TEXT ("grid.command target '%s' is neither a valid ObjectId nor a declared LogicId."),
+                *TargetReference);
+            return false;
+        }
+        if (MatchCount > 1)
+        {
+            OutError = FString::Printf (
+                TEXT ("grid.command LogicId '%s' is ambiguous (%d objects)."),
+                *TargetReference,
+                MatchCount);
+            return false;
+        }
+        TargetId = ResolvedObject->ObjectId;
+        if (!TargetId.IsValid ())
+        {
+            OutError = FString::Printf (
+                TEXT ("grid.command LogicId '%s' resolves to an object without a valid ObjectId."),
+                *TargetReference);
+            return false;
+        }
     }
 
     const UEnum* CommandEnum = StaticEnum<EGridObjectCommand> ();
@@ -443,7 +488,7 @@ bool UGridActivationComponent::ExecuteLuaIssuedCommand (
     {
         OutError = FString::Printf (
             TEXT ("grid.command failed: Target=%s Command=%s"),
-            *TargetObjectId,
+            *TargetReference,
             *CommandName);
         return false;
     }
