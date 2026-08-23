@@ -9,6 +9,7 @@
 #include "Editor.h"
 #include "EngineUtils.h"
 #include "Framework/Docking/TabManager.h"
+#include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
 
 namespace
@@ -43,6 +44,11 @@ public:
             .SetMenuType (ETabSpawnerMenuType::Enabled)
             .SetAutoGenerateMenuEntry (false);
 
+        UToolMenus::RegisterStartupCallback (
+            FSimpleMulticastDelegate::FDelegate::CreateRaw (
+                this,
+                &FGrimrockPrototypeEditorModule::RegisterMenus));
+
         PreBeginPIEHandle = FEditorDelegates::PreBeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandlePreBeginPIE);
         BeginPIEHandle = FEditorDelegates::BeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandleBeginPIE);
         CancelPIEHandle = FEditorDelegates::CancelPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandleCancelPIE);
@@ -58,6 +64,10 @@ public:
         FEditorDelegates::CancelPIE.Remove (CancelPIEHandle);
         FWorldDelegates::OnWorldCleanup.Remove (WorldCleanupHandle);
         GridPIEPlaytestRequest::Clear (TEXT ("EditorModuleShutdown"));
+
+        UToolMenus::UnRegisterStartupCallback (this);
+        UToolMenus::UnregisterOwner (this);
+
         FGlobalTabmanager::Get ()->UnregisterNomadTabSpawner (
             GridLuaEditorTabName);
 
@@ -68,6 +78,38 @@ public:
     }
 
 private:
+    void RegisterMenus ()
+    {
+        FToolMenuOwnerScoped OwnerScoped (this);
+
+        UToolMenu* WindowMenu = UToolMenus::Get ()->ExtendMenu (
+            TEXT ("LevelEditor.MainMenu.Window"));
+        if (!WindowMenu)
+        {
+            return;
+        }
+
+        TSharedPtr<FTabSpawnerEntry> LuaTabSpawner =
+            FGlobalTabmanager::Get ()->FindTabSpawnerFor (GridLuaEditorTabName);
+        if (!LuaTabSpawner.IsValid ())
+        {
+            return;
+        }
+
+        FToolMenuSection& Section = WindowMenu->FindOrAddSection (
+            TEXT ("WindowLayout"));
+        Section.AddMenuEntry (
+            TEXT ("GrimrockLuaScripts"),
+            FText::FromString (TEXT ("Grimrock Lua Scripts")),
+            FText::FromString (
+                TEXT ("Edit and validate level Lua scripts and Lua event bindings.")),
+            FSlateIcon (),
+            FGlobalTabmanager::Get ()->GetUIActionForTabSpawnerMenuEntry (
+                LuaTabSpawner),
+            EUserInterfaceActionType::ToggleButton,
+            NAME_None);
+    }
+
     TSharedRef<SDockTab> SpawnLuaEditorTab (
         const FSpawnTabArgs& SpawnTabArgs)
     {

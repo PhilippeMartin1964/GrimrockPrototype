@@ -19,6 +19,7 @@ public class GrimrockPrototypeEditor : ModuleRules
             "PropertyEditor",
             "Slate",
             "SlateCore",
+            "ToolMenus",
             "GrimrockPrototype",
             "GrimrockLua"
         });
