@@ -1,6 +1,6 @@
 # MON19.8 — Suite d’énigmes de production, régression et clôture
 
-Statut : **implémenté — validation UE5.5.4 en attente**  
+Statut : **validation ciblée UE5.5.4 réussie — clôture MON19 en attente**  
 Date : **23 août 2026**  
 Référence de départ : `81d6f5dc6a0730864f68ef86382a34f0a1a50f39` (`Valider MON19.7.1 authoring Lua et LogicId`)
 
@@ -22,8 +22,6 @@ Aucun bus d’événements parallèle, aucun Actor de script générique et aucu
 
 ## 2. Scénarios de clôture issus de MON19.1
 
-L’audit MON19.1 avait fixé quatre énigmes représentatives.
-
 ### Puzzle A — data-driven directe
 
 ```text
@@ -32,8 +30,6 @@ Lever.Activated
 ```
 
 But : démontrer que le chemin historique Event -> Command reste la solution la plus simple lorsqu’aucune logique avancée n’est nécessaire.
-
-Lua n’intervient pas.
 
 ### Puzzle B — compteur et seuil sans Lua
 
@@ -50,13 +46,9 @@ LeverB.Activated ----/           |
                       Door.Open
 ```
 
-But : démontrer qu’un puzzle à compteur/seuil reste entièrement data-driven grâce aux variables persistantes MON19.2.2 et aux primitives Logic MON19.2.3.
-
 Le premier levier donne `RuneCount = 1` et la porte reste fermée. Le second donne `RuneCount = 2` et la porte s’ouvre.
 
 ### Puzzle C — Lua conditionnel
-
-Le runtime persistant contient `RuneCount`. Le callback Lua lit cette valeur et ne demande `Door.Open` que lorsque le seuil est atteint :
 
 ```lua
 persistent = { RuneCount = 0 }
@@ -81,11 +73,11 @@ MonsterSpawn / Encounter
                 -> Door.Open
 ```
 
-But : démontrer qu’un événement de gameplay produit par MON13 peut traverser le pont Lua sans créer une seconde architecture d’événements.
+But : démontrer qu’un événement MON13 peut traverser le pont Lua sans créer une seconde architecture d’événements.
 
-## 3. Tests automatisés ajoutés
+## 3. Implémentation
 
-Fichier :
+Fichier de tests :
 
 ```text
 Source/GrimrockPrototype/Private/Tests/GridMON198ProductionPuzzleTests.cpp
@@ -100,178 +92,120 @@ Grimrock.MON19.8.ProductionPuzzles.C_LuaConditional
 Grimrock.MON19.8.ProductionPuzzles.D_EncounterLuaDoor
 ```
 
-Résultat attendu :
+Aucun changement de production n’a été nécessaire dans `UGridActivationComponent`, `GridLogicRuntime`, le VM Lua, le système de portes, MON13, SaveGame ou le Grid Editor.
+
+Aucun `.uasset` / `.umap` n’est modifié par cette étape.
+
+## 4. Correctif Unity Build
+
+La première compilation UE5.5.4 a détecté un conflit de helpers de tests :
 
 ```text
-4/4 Success
+MakeIntVariable
+MakeLogicNode
 ```
 
-### 3.1 Puzzle A
+Ces fonctions existaient déjà dans `GridMON192LogicPrimitiveTests.cpp`. Le Unity Build d’Unreal regroupait les deux `.cpp` dans la même unité de compilation et provoquait les erreurs `C2572`, `C2084` et `C2264`.
 
-Le test crée une vraie porte runtime C++ et vérifie :
+Correctif : isolation complète des helpers/tests MON19.8 dans :
 
-1. porte initialement fermée ;
-2. événement `Lever.Activated` ;
-3. lien direct `Door.Open` ;
-4. passage de porte ouvert.
+```cpp
+namespace GridMON198Tests
+{
+    ...
+}
+```
 
-### 3.2 Puzzle B
-
-Le test vérifie :
-
-1. `RuneCount` déclaré à `0` ;
-2. premier levier -> `1` ;
-3. `CompareInt >= 2` faux -> porte fermée ;
-4. second levier -> `2` ;
-5. comparaison vraie -> `Door.Open` ;
-6. porte ouverte.
-
-Aucun Lua n’est chargé pour cette énigme.
-
-### 3.3 Puzzle C
-
-Le test vérifie deux branches sur le même callback :
+Commit du correctif :
 
 ```text
-RuneCount = 1 -> callback Success -> porte reste fermée
-RuneCount = 2 -> callback Success -> SecretDoor.Open -> porte ouverte
+74986ef8540f47edd15a408fc153aafe6b2472f3
+Corriger le conflit Unity des tests MON19.8
 ```
 
-Il couvre ensemble :
-
-- synchronisation runtime de `persistent` ;
-- lecture d’une variable typée ;
-- branche conditionnelle Lua ;
-- résolution `LogicId` ;
-- commande normale de porte.
-
-### 3.4 Puzzle D
-
-Le test utilise un objet `MonsterSpawn` comme source stable de l’événement `EncounterCompleted`, puis valide le trajet :
-
-```text
-EncounterCompleted -> LuaCallback -> grid.command -> Door.Open
-```
-
-L’émission réelle de `EncounterCompleted` par le système de rencontre reste couverte par MON13 ; MON19.8 vérifie ici son intégration avec le pont Lua et le dispatcher central.
-
-## 4. Ce que MON19.8 ne change pas
-
-Aucun changement de production n’est nécessaire dans :
-
-- `UGridActivationComponent` ;
-- `GridLogicRuntime` ;
-- le VM Lua ;
-- le système de portes ;
-- MON13 MonsterSpawn / Encounter ;
-- SaveGame ;
-- le Grid Editor.
-
-Aucun `.uasset` / `.umap` n’est modifié par cette étape C++/tests.
-
-C’est volontaire : la suite de clôture doit démontrer que l’architecture déjà construite suffit.
-
-## 5. Validation UE5.5.4 demandée
+## 5. Validation UE5.5.4 ciblée
 
 ### 5.1 Compilation
 
-Compiler le projet en :
+Validation utilisateur du 23 août 2026 :
 
 ```text
-Development Editor / Win64
+Development Editor / Win64 : OK
 ```
 
-La compilation n’est considérée comme validée qu’après résultat fourni depuis l’environnement utilisateur.
+### 5.2 Tests MON19.8
 
-### 5.2 Tests ciblés MON19.8
-
-Dans Session Frontend / Automation :
+Résultats fournis depuis UE5.5.4 :
 
 ```text
-Grimrock.MON19.8
+A_DirectLeverDoor          Success
+B_LogicCounterThreshold    Success
+C_LuaConditional           Success
+D_EncounterLuaDoor         Success
 ```
 
-Attendu :
+Résultat : **4/4 Success**.
 
-```text
-4/4 Success
-```
+Le log confirme les chemins attendus :
 
-### 5.3 Régression MON19 complète
+- Puzzle A : `Lever.Activated -> Door.Open`, avec vraie commande de porte et `Blocked=false` ;
+- Puzzle B : première comparaison `Deactivated`, puis seuil atteint, `Activated -> Door.Open` ;
+- Puzzle C : callback Lua exécuté sous le seuil sans ouvrir la porte, puis `grid.command("SecretDoor", "Open")` au seuil ;
+- Puzzle D : `EncounterCompleted -> Lua -> Door.Open` avec `AnyApplied=true`.
 
-Ensuite exécuter :
+Aucun échec ni erreur Automation n’est présent dans cette suite ciblée.
+
+## 6. Régression MON19 complète — encore requise
+
+Exécuter :
 
 ```text
 Grimrock.MON19
 ```
 
-Le nombre exact de tests dépend de l’ensemble actuellement enregistré par UE5.5.4 ; le critère est :
+Le nombre exact de tests dépend de l’ensemble enregistré par UE5.5.4. Critère :
 
 ```text
 0 Fail
 0 Error
 ```
 
-Les warnings volontairement produits par les tests de budget, sandbox, source Lua invalide ou cycle Logic restent acceptables lorsque leur test termine en `Success`.
+Les warnings volontairement produits par les tests de budget, sandbox, source Lua invalide ou cycle Logic restent acceptables lorsque leur test se termine en `Success`.
 
-## 6. Validation PIE de clôture proposée
+## 7. Validation PIE de clôture — encore requise
 
-Après Automation verte, utiliser le niveau de travail déjà employé pour MON19.7.1, avec la porte située autour de `(28,22)` et son `Logic Id = SecretDoor`.
+Le scénario représentatif recommandé reste le Puzzle C dans le niveau de travail réel :
 
-Le scénario manuel minimal recommandé pour la clôture est le puzzle C :
+1. `RuneCount < 2` -> activation du callback -> porte fermée ;
+2. `RuneCount >= 2` -> activation du callback -> `SecretDoor` ouverte.
 
-1. conserver une variable persistante `RuneCount` ;
-2. utiliser un bouton/trigger comme source ;
-3. appliquer :
+Le test PIE doit confirmer le comportement du Data Asset réel, de l’authoring Lua et du runtime avec les assets du niveau.
 
-```lua
-persistent = {
-    RuneCount = 0
-}
+Le Puzzle D réel est optionnel si les validations MON13 précédentes restent vertes.
 
-function on_secret_button(event)
-    if persistent.RuneCount >= 2 then
-        local ok, err = grid.command("SecretDoor", "Open")
-        assert(ok, err)
-    end
-end
-```
+## 8. Critères de clôture MON19
 
-4. vérifier que la porte ne s’ouvre pas lorsque `RuneCount < 2` ;
-5. vérifier qu’elle s’ouvre lorsque la valeur autoritaire atteint `2` ou plus.
-
-Si un scénario Encounter réel est facilement disponible dans le niveau de test, le puzzle D peut être validé en complément :
+État actuel :
 
 ```text
-EncounterCompleted -> Lua -> SecretDoor.Open
+Compilation                             OK
+Grimrock.MON19.8                        4/4 Success
+Grimrock.MON19                          EN ATTENTE
+PIE puzzle de production représentatif EN ATTENTE
 ```
 
-Ce complément n’est pas nécessaire pour démontrer à nouveau l’émission MON13 si la campagne Automation MON19.8 et les anciennes validations MON13 restent vertes.
+MON19 sera déclaré **VALIDÉ ET CLOS** lorsque la régression complète et le PIE représentatif seront également fournis depuis UE5.5.4.
 
-## 7. Critères de clôture MON19
+À ce moment-là :
 
-MON19 pourra être déclaré **VALIDÉ ET CLOS** lorsque les éléments suivants auront été fournis depuis UE5.5.4 :
+1. créer `docs/Design/MON19_CLOSURE.md` ;
+2. mettre à jour `docs/Design/PROJECT_COMPLETION_ROADMAP.md` avec MON19 CLOS et MON20 PROCHAIN ;
+3. mettre à jour la synthèse/overview autoritaire si nécessaire ;
+4. pousser le commit de clôture sur `origin/master`.
 
-```text
-Compilation                           OK
-Grimrock.MON19.8                      4/4 Success
-Grimrock.MON19                        0 Fail / 0 Error
-PIE puzzle de production représentatif VALIDÉ
-```
+## 9. Conclusion technique
 
-À ce moment-là, l’étape de clôture devra :
-
-1. passer ce document en `VALIDÉ UE5.5.4` ;
-2. créer `docs/Design/MON19_CLOSURE.md` ;
-3. mettre à jour `docs/Design/PROJECT_COMPLETION_ROADMAP.md` avec MON19 CLOS et MON20 PROCHAIN ;
-4. mettre à jour la synthèse/overview autoritaire si nécessaire ;
-5. pousser le commit de clôture sur `origin/master`.
-
-## 8. Conclusion technique attendue
-
-La conclusion recherchée par MON19 n’est pas « tous les puzzles doivent être écrits en Lua ».
-
-La hiérarchie finale doit être :
+La hiérarchie finale recherchée reste :
 
 ```text
 cas simple
@@ -285,4 +219,4 @@ orchestration réellement complexe
        mais sortie par commandes normales
 ```
 
-Lua est donc un complément au modèle data-driven, pas son remplacement.
+Lua complète donc le modèle data-driven ; il ne le remplace pas.
