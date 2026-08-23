@@ -23,6 +23,8 @@ class UGridCombatHudWidget;
 class UGridTurnManagerComponent;
 class UGrimrockMenuWidget;
 class URPGCharacterCreationWidget;
+class URPGStoryCompanionAsset;
+class URPGStoryCompanionRecruitmentWidget;
 
 UENUM (BlueprintType)
 enum class EGridItemThrowMode : uint8
@@ -166,6 +168,19 @@ public:
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     bool bCharacterCreationModalActive = false;
+
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Recruitment")
+    TSubclassOf<URPGStoryCompanionRecruitmentWidget> StoryCompanionRecruitmentWidgetClass;
+
+    UPROPERTY (Transient, VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Recruitment")
+    TObjectPtr<URPGStoryCompanionRecruitmentWidget> StoryCompanionRecruitmentWidgetInstance;
+
+    UPROPERTY (
+        EditAnywhere,
+        BlueprintReadWrite,
+        Category = "RPG|Recruitment",
+        meta = (ClampMin = "0"))
+    int32 StoryCompanionRecruitmentZOrder = 500;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Save")
     EGrimrockPartyStartupMode PartyStartupMode = EGrimrockPartyStartupMode::Continue;
@@ -311,6 +326,20 @@ public:
 
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
     bool IsCharacterCreationModalActive () const;
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Recruitment")
+    bool ShowStoryCompanionRecruitmentWidget (
+        URPGStoryCompanionAsset* CompanionDefinition);
+
+    UFUNCTION (BlueprintCallable, Category = "RPG|Recruitment")
+    void CloseStoryCompanionRecruitmentWidget ();
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Recruitment")
+    bool IsStoryCompanionRecruitmentModalActive () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Recruitment")
+    URPGStoryCompanionRecruitmentWidget*
+    GetStoryCompanionRecruitmentWidget () const;
 
     UFUNCTION (BlueprintPure, Category = "RPG|Save")
     bool HasCurrentSave () const;
@@ -485,6 +514,8 @@ private:
     bool LoadCurrentGameData (FText& OutError, bool bApplyDungeonState);
     bool RehydrateLoadedItemDefinitions (FText& OutError);
     void CloseCharacterCreationWidget ();
+    void HandleStoryCompanionRecruitmentClosed (
+        URPGStoryCompanionRecruitmentWidget* ClosedWidget);
     bool TryConsumeBufferedCommand ();
     bool IsBusy () const;
     bool DismissReadableMessageIfVisible ();

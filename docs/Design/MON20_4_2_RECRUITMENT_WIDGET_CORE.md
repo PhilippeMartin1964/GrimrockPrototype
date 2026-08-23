@@ -4,6 +4,8 @@
 
 Implémentation C++ du noyau UI de recrutement. Aucun `.uasset` / `.umap` n'est requis dans cette étape.
 
+Validation UE5.5.4 effectuée le 23 août 2026 : **8/8 tests `Grimrock.MON20.4.RecruitmentUI` Success** pour le périmètre MON20.4.2.
+
 ## Responsabilités
 
 `URPGStoryCompanionRecruitmentWidget` est une couche de présentation et d'orchestration uniquement.
@@ -112,7 +114,7 @@ Filtre :
 Grimrock.MON20.4.RecruitmentUI
 ```
 
-Cas couverts :
+Cas MON20.4.2 validés :
 
 ```text
 ViewProjection
@@ -125,7 +127,7 @@ InvalidDefinition
 DeclineNoMutation
 ```
 
-La validation réelle UE5.5.4 reste à effectuer par compilation et Automation Test après récupération du commit.
+Résultat UE5.5.4 fourni après exécution locale : **8/8 Success**.
 
 ## Hors périmètre
 
