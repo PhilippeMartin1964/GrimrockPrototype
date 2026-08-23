@@ -1,6 +1,6 @@
 # MON19.7.1 — Lua Authoring API : variables persistantes et LogicId
 
-Statut : **implémenté — validation UE5.5.4 en attente**  
+Statut : **VALIDÉ UE5.5.4**  
 Date : **23 août 2026**  
 Référence de départ : `3ec89ce23872d7d13fdd79f81c4556e4bc9a4d70` (`Documenter la validation Automation MON19.7`)
 
@@ -314,33 +314,31 @@ Documentation :
 
 - `docs/Design/MON19_7_1_LUA_AUTHORING_API.md`
 
-Aucun `.uasset` / `.umap` n’est modifié.
+Aucun `.uasset` / `.umap` n’est modifié par l’implémentation C++.
 
-## 13. Automation Tests à exécuter
+## 13. Validation UE5.5.4
 
-### 13.1 Nouveau périmètre
+### 13.1 Nouveau périmètre MON19.7.1
+
+Exécuté dans l’environnement UE5.5.4 utilisateur le 23 août 2026 :
 
 ```text
 Grimrock.MON19.7.1.LuaAuthoring
-    PersistentTable
-    PersistentValidation
-    LegacyGridVarsCompatibility
-    LogicIdCommand
+    PersistentTable                 Success
+    PersistentValidation            Success
+    LegacyGridVarsCompatibility     Success
+    LogicIdCommand                  Success
 
 Grimrock.MON19.7.1.Editor
-    PersistentSynchronization
-    LogicIdAuthoring
+    PersistentSynchronization       Success
+    LogicIdAuthoring                Success
 ```
 
-Résultat attendu :
+Résultat : **6/6 Success**.
 
-```text
-6/6 Success
-```
+### 13.2 Non-régression Lua
 
-### 13.2 Non-régression Lua demandée
-
-Après compilation UE5.5.4, exécuter également :
+Les suites suivantes ont également été exécutées :
 
 ```text
 Grimrock.MON19.3.Lua.Foundation
@@ -350,44 +348,41 @@ Grimrock.MON19.6.Editor
 Grimrock.MON19.7.LuaSandboxPackaging
 ```
 
-Aucun résultat UE5.5.4 n’est considéré comme validé tant qu’il n’a pas été fourni depuis l’environnement utilisateur.
+Résultat global observé : **23/23 Success**. Aucun `Result={Fail}` ni `Result={Error}` dans le log fourni.
 
-## 14. Validation visuelle demandée
+Les warnings produits par `InvalidCurrentSourceDropsStaleVm` et `SharedActionBudget` sont attendus par leurs tests respectifs et les tests se terminent en `Success`.
 
-Après compilation et Automation Tests :
+### 13.3 Validation visuelle / authoring réel
 
-1. sélectionner la porte secrète dans le Grid Editor ;
-2. ouvrir **Window > Grimrock Lua Scripts** ;
-3. cliquer `Refresh` ;
-4. saisir `SecretDoor` dans **Logic Id** ;
-5. sélectionner le `Secret Button` ;
-6. appliquer le script suivant :
+Validation effectuée avec le puzzle réel du niveau :
+
+- `Secret Button` à `(27,22)` reste la source du binding `Activated -> Lua Script.on_secret_button` ;
+- la porte à `(28,22)` reçoit `Logic Id = SecretDoor` ;
+- le panneau Lua accepte et conserve ce `LogicId` sur un objet qui n’émet pas lui-même d’événement connector ;
+- une déclaration Lua `persistent = { GateOpen = false }` crée automatiquement `GateOpen` dans les `LevelVariables` du Data Asset ;
+- `grid.command("SecretDoor", "Open")` résout la porte par `LogicId` et permet de l’ouvrir sans GUID écrit dans le script.
+
+Une première tentative avait attribué `LogicId = SecretDoor` au bouton lui-même : le log montrait alors `Source == Target`. Cette erreur d’authoring a permis de confirmer que la résolution suivait bien le `LogicId`. Après attribution du `LogicId` à la porte, la cible devient l’objet attendu.
+
+La validation a également clarifié un point important : **`GateOpen` n’est pas requis pour exécuter `grid.command("SecretDoor", "Open")`**. Les deux fonctions de MON19.7.1 sont orthogonales :
+
+1. `persistent` sert à déclarer/synchroniser un état persistant typé lorsque le gameplay en a besoin ;
+2. `LogicId` sert à adresser lisiblement un objet depuis Lua.
+
+Pour un bouton qui doit simplement ouvrir une porte, le script minimal valide est donc :
 
 ```lua
-persistent = {
-    GateOpen = false
-}
-
 function on_secret_button(event)
-    persistent.GateOpen = true
     local ok, err = grid.command("SecretDoor", "Open")
     assert(ok, err)
 end
 ```
 
-7. conserver/créer le binding `Activated -> Script.on_secret_button` ;
-8. lancer PIE ;
-9. presser le bouton.
+La variable `GateOpen` devient utile uniquement si le puzzle doit mémoriser, tester ou partager explicitement cet état avec d’autres callbacks, CONNECTORS ou nœuds Logic.
 
-Résultat attendu :
+**Conclusion : MON19.7.1 est validé sous UE5.5.4.**
 
-- aucun message `Variable 'GateOpen' is not a declared Bool` ;
-- callback Lua exécuté ;
-- `SecretDoor` résolu sans GUID saisi dans le script ;
-- porte ouverte ;
-- événement source terminé avec `AnyApplied=true`.
-
-## 15. Hors périmètre
+## 14. Hors périmètre
 
 MON19.7.1 ne cherche pas à :
 
