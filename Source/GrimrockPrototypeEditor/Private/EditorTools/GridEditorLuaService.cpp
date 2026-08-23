@@ -460,12 +460,16 @@ namespace GridEditorLuaService
         const UGridLevelAsset& LevelAsset,
         FName ScriptId)
     {
-        return LevelAsset.Links.CountByPredicate (
-            [ScriptId] (const FGridObjectLink& Link)
+        int32 ReferenceCount = 0;
+        for (const FGridObjectLink& Link : LevelAsset.Links)
         {
-            return Link.Command == EGridObjectCommand::LuaCallback &&
-                Link.LuaScriptId == ScriptId;
-        });
+            if (Link.Command == EGridObjectCommand::LuaCallback &&
+                Link.LuaScriptId == ScriptId)
+            {
+                ++ReferenceCount;
+            }
+        }
+        return ReferenceCount;
     }
 
     bool AddScript (
