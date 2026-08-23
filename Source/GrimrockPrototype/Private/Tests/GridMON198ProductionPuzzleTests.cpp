@@ -13,7 +13,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridLevelVariableStore.h"
 
-namespace
+namespace GridMON198Tests
 {
     struct FMON198TestWorld
     {
@@ -202,7 +202,6 @@ namespace
         Link.LuaCallbackName = CallbackName;
         return Link;
     }
-}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMON198PuzzleADirectLeverDoorTest,
@@ -595,5 +594,7 @@ bool FGridMON198PuzzleDEncounterLuaDoorTest::RunTest (
         Runtime->IsDoorOpenOnEdge (Door.CellX, Door.CellY, Door.Edge));
     return true;
 }
+
+} // namespace GridMON198Tests
 
 #endif // WITH_DEV_AUTOMATION_TESTS
