@@ -1,6 +1,6 @@
 # MON19.7 — Sandbox et packaging Lua
 
-Statut : **implémenté — validation UE5.5.4 / package Win64 en attente**  
+Statut : **Automation UE5.5.4 validée — smoke test package Win64 en attente**  
 Date : **23 août 2026**  
 Référence de départ : `50d43bf90aa1abc75496f8267fa031928ac730e2` (`Rétablir une entrée Lua unique dans Window MON19.6`)
 
@@ -213,31 +213,48 @@ Ils vérifient :
 - présence des bibliothèques pures autorisées ;
 - exécution d'une source fournie uniquement en mémoire via `FGridLuaScriptSource`.
 
-## 9. Non-régression demandée
+## 9. Validation Automation UE5.5.4
 
-Après compilation UE5.5.4 :
+Résultats fournis le **23 août 2026** depuis Unreal Engine 5.5.4 :
 
 ```text
 Grimrock.MON19.7.LuaSandboxPackaging
+    EmbeddedSourceRuntime       Success
+    ForbiddenSurfaceHardened    Success
+    SourceHardLimits            Success
+    TextOnlyBytecodeRejection   Success
+                                4/4 Success
+
 Grimrock.MON19.3.Lua.Foundation
+                                6/6 Success
+
 Grimrock.MON19.4.LuaBridge
+                                5/5 Success
+
 Grimrock.MON19.5.LuaPersistence
+                                4/4 Success
+
 Grimrock.MON19.6.Editor
+                                4/4 Success
 ```
 
-Résultats attendus :
+Bilan du périmètre demandé :
 
 ```text
-MON19.7 SandboxPackaging  4/4 Success
-MON19.3 Foundation        6/6 Success
-MON19.4 LuaBridge         5/5 Success
-MON19.5 LuaPersistence    4/4 Success
-MON19.6 Editor            4/4 Success
+23/23 Success
 ```
+
+Les avertissements observés ne constituent pas des échecs de MON19.7 :
+
+- `FlushRenderingCommands called recursively` apparaît pendant `EmbeddedSourceRuntime`, qui termine néanmoins en `Success` ;
+- `SharedActionBudget` provoque volontairement l'épuisement du budget commun Event/Command/Lua et termine en `Success` ;
+- `InvalidCurrentSourceDropsStaleVm` injecte volontairement une source Lua syntaxiquement invalide afin de vérifier qu'un ancien VM ne survit pas au rebuild et termine en `Success`.
+
+La validation automatisée du sandbox, du source-only runtime et des non-régressions Lua est donc **acquise**.
 
 ## 10. Validation packaging Win64
 
-La validation finale de MON19.7 doit comprendre, en plus des Automation Tests, un build/package Win64 réel.
+La validation finale de MON19.7 doit comprendre, en plus des Automation Tests désormais validés, un build/package Win64 réel.
 
 Critères :
 
@@ -247,7 +264,7 @@ Critères :
 4. le callback Lua fonctionne depuis les sources embarquées dans le `UGridLevelAsset` ;
 5. aucun fichier `.lua` externe n'est nécessaire à côté de l'exécutable.
 
-MON19.7 ne sera marqué VALIDÉ qu'après ce smoke test package fourni depuis UE5.5.4.
+MON19.7 ne sera marqué **VALIDÉ et clos** qu'après ce smoke test package fourni depuis UE5.5.4.
 
 ## 11. Hors périmètre
 
