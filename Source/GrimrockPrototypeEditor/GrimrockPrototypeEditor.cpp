@@ -40,7 +40,8 @@ public:
             .SetDisplayName (FText::FromString (TEXT ("Grimrock Lua Scripts")))
             .SetTooltipText (FText::FromString (
                 TEXT ("Edit and validate level Lua scripts and Lua event bindings.")))
-            .SetMenuType (ETabSpawnerMenuType::Enabled);
+            .SetMenuType (ETabSpawnerMenuType::Enabled)
+            .SetAutoGenerateMenuEntry (false);
 
         PreBeginPIEHandle = FEditorDelegates::PreBeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandlePreBeginPIE);
         BeginPIEHandle = FEditorDelegates::BeginPIE.AddRaw (this, &FGrimrockPrototypeEditorModule::HandleBeginPIE);
