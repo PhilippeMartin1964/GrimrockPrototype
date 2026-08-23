@@ -474,11 +474,20 @@ public:
             {
                 VFXComponent->PlayHurtVFX (Result);
             }
+            StartHurtPresentation ();
         }
     }
 
     UFUNCTION (BlueprintCallable, Category = "Monster|State")
     void MarkDead ();
+
+    /** Starts the optional hit-reaction montage without owning gameplay timing. */
+    UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
+    bool StartHurtPresentation ();
+
+    /** Stops only the configured hit-reaction montage; gameplay state is unchanged. */
+    UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
+    void StopHurtPresentation (float BlendOutTime = 0.10f);
 
     UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
     void SetMovementAnimationState (bool bInMoving, float InMoveAlpha = 0.0f)
@@ -513,6 +522,7 @@ public:
     UFUNCTION (BlueprintCallable, Category = "Monster|Animation")
     void ResetAnimationSignals ()
     {
+        StopHurtPresentation (0.0f);
         bIsMoving = false;
         bIsTurning = false;
         MoveAlpha = 0.0f;

@@ -233,6 +233,10 @@ public:
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Rewards")
     TArray<FGridMonsterLootEntry> LootTable;
 
+    /** Optional presentation only; gameplay never waits for this montage. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation")
+    TSoftObjectPtr<UAnimMontage> HurtMontage;
+
     /** Optional presentation only; logical death never waits for this montage. */
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Monster|Animation")
     TSoftObjectPtr<UAnimMontage> DeathMontage;
