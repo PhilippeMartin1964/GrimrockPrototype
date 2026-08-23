@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON19 ADVANCED DUNGEON LOGIC / SCRIPTING VALIDÉ ET CLOS — MON20 PROCHAIN**  
+Statut : **MON20 EN COURS — MON20.1 À MON20.3 VALIDÉS — MON20.4 PROCHAIN**  
 Date de référence : **23 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -21,16 +21,19 @@ MON18 — Magic & Spellbook
 MON19 — Advanced Dungeon Logic / Scripting
 ```
 
-Le prochain jalon autoritaire est :
+Jalon courant :
 
 ```text
 MON20 — Recruitment / Skills / Talents
 ```
 
-Référence de clôture du jalon précédent :
+État interne :
 
 ```text
-docs/Design/MON19_CLOSURE.md
+MON20.1 — Audit & Architecture Contract                  TERMINÉ
+MON20.2 — Active Party Recruitment Foundation           VALIDÉ UE5.5.4 — 6/6
+MON20.3 — Story Companion Definition / Pool             VALIDÉ UE5.5.4 — 6/6
+MON20.4 — Story Companion Recruitment UI                PROCHAIN
 ```
 
 ---
@@ -40,7 +43,7 @@ docs/Design/MON19_CLOSURE.md
 ```text
 MON19 — Advanced Dungeon Logic / Scripting        CLOS
         ↓
-MON20 — Recruitment / Skills / Talents            PROCHAIN
+MON20 — Recruitment / Skills / Talents            EN COURS
         ↓
 MON21 — Quests / Journal / Map / Codex
         ↓
@@ -49,97 +52,68 @@ MON22 — 45–90 Minute Vertical Slice
 
 ---
 
-# MON19 — Advanced Dungeon Logic / Scripting — CLOS
-
-Objectif atteint : permettre la création d’énigmes riches sans C++ spécifique à chaque puzzle, en conservant l’architecture Event -> Command existante et en ajoutant seulement les briques nécessaires.
-
-Hiérarchie finale :
-
-```text
-cas simple
-    -> Event -> Command direct
-
-état / compteur / comparaison
-    -> variables persistantes + nœuds Logic
-
-orchestration complexe
-    -> Lua sandboxé
-       -> commandes runtime normales
-```
-
-Capacités validées :
-
-- conditions de liens typées ;
-- variables de niveau persistantes `Bool` / `Int32` ;
-- primitives Logic data-driven ;
-- SaveGame / migration des variables de niveau ;
-- VM Lua embarquée avec sandbox, quotas et isolation ;
-- pont Event -> Lua -> Command ;
-- authoring Lua dans le Grid Editor ;
-- durcissement sandbox / packaging ;
-- table `persistent = { ... }` synchronisée avec le Data Asset ;
-- `LogicId` lisible pour cibler les objets sans GUID dans les scripts ;
-- quatre puzzles de production de clôture.
-
-Validation finale :
-
-```text
-Development Editor / Win64    OK
-Grimrock.MON19.8               4/4 Success
-Grimrock.MON19                55/55 Success
-Fail                           0
-Error                          0
-PIE puzzle représentatif       VALIDÉ
-```
-
-Références :
-
-```text
-docs/Design/MON19_CLOSURE.md
-docs/Design/MON19_8_PRODUCTION_PUZZLES_CLOSURE.md
-```
-
----
-
-# MON20 — Recruitment / Skills / Talents — PROCHAIN
+# MON20 — Recruitment / Skills / Talents — EN COURS
 
 ## Objectif
 
-Enrichir le groupe avec recrutement, compétences, talents et spécialisations.
+Enrichir le groupe avec recrutement, compétences, talents et spécialisations, en réutilisant création de personnage, progression MON15, RequirementIds MON12, inventaire, Status Effects, Spellbook, SaveGame et UI existants.
 
-Le jalon doit réutiliser en priorité :
+## MON20.1 — Audit & Architecture Contract — TERMINÉ
 
-```text
-création de personnage / identité des membres
-+ classes / statistiques
-+ progression MON15
-+ requirements / catalogue d’actions MON12
-+ inventaire / équipement
-+ Status Effects MON16
-+ Spellbook MON18 si pertinent
-+ SaveGame / migrations
-+ UI de groupe / GrimrockMenu
-```
+Conclusions :
 
-Le premier sous-jalon n’est pas figé avant audit de cet existant.
+- `FGridPartyInventoryState` reste l’autorité du groupe ;
+- `CharacterPool` existe déjà et doit être réutilisé ;
+- aucun second `PartyMemberState` ;
+- les talents doivent réutiliser les `ProgressionChoices` avant toute abstraction parallèle ;
+- un modèle Skill dédié n’est justifié que par rangs/tests hors combat indépendants.
 
-Référence de démarrage :
+## MON20.2 — Active Party Recruitment Foundation — VALIDÉ
+
+`FRPGPartyRecruitmentService::TryRecruitFromPool` réalise une transaction atomique pool → groupe actif, aligne l’équipement, normalise l’ownership et rollback en cas d’échec.
 
 ```text
-docs/Design/MON20_START.md
+Grimrock.MON20.2.Recruitment   6/6 Success
 ```
+
+## MON20.3 — Story Companion Definition / Pool — VALIDÉ
+
+`URPGStoryCompanionAsset` et `FRPGStoryCompanionService` ajoutent un compagnon data-driven avec `CompanionId` et `CharacterId` stable, enregistrement idempotent dans `CharacterPool` et reconnaissance active/pool.
+
+```text
+Grimrock.MON20.3.StoryCompanion   6/6 Success
+```
+
+Pas de SaveGame v8 ni `PartyMemberKind` persistant à ce stade.
+
+## MON20.4 — Story Companion Recruitment UI — PROCHAIN
+
+Objectif : écran scénarisé `Recruter / Refuser / Voir la fiche`, branché sur MON20.3 et MON20.2 sans logique métier Blueprint parallèle.
+
+## Suite MON20 proposée
+
+```text
+MON20.5 — Custom Recruit / Wizard Context Reuse
+MON20.6 — Skills Data Model & Runtime
+MON20.7 — Talents / Progression Choice Integration
+MON20.8 — Cross-System Requirements / Actions / UI
+MON20.9 — Reserve / Persistence / Migration
+MON20.10 — Balance / Regression / Closure
+```
+
+La numérotation peut encore être ajustée si un sous-jalon doit être divisé, mais l’ordre fonctionnel est désormais clair.
 
 ---
 
 # MON21 — Quests / Journal / Map / Codex
 
-Objectif : structurer la campagne avec quêtes, journal, carte et codex.
+Objectif : structurer la campagne avec quêtes, journal, carte, codex et narration/dialogues associés.
 
 ---
 
 # MON22 — 45–90 Minute Vertical Slice
 
-Objectif : construire un jeu testable de bout en bout avant la phase de production étendue.
+Objectif : construire un jeu testable de bout en bout avant la production étendue.
 
 ---
 
@@ -162,18 +136,18 @@ MON30 — Full Campaign
 
 1. Un sous-jalon doit être petit, compilable et testable.
 2. Travail sur `master`, sans branche de fonctionnalité.
-3. Un commit logique par sous-jalon ou étape de clôture si possible.
-4. Pousser sur `origin/master` après chaque étape validée.
-5. Aucun refactor massif préventif.
-6. Réutiliser les systèmes existants avant d'ajouter une abstraction parallèle.
-7. Les tests C++ valident la logique ; assets/WBP/maps exigent une validation UE/PIE lorsqu'ils sont impliqués.
-8. À la clôture d'un jalon majeur, mettre à jour overview, roadmap et document de clôture.
+3. **Un commit logique par sous-jalon ou passe documentaire.**
+4. Aucun refactor massif préventif.
+5. Réutiliser les systèmes existants avant d’ajouter une abstraction parallèle.
+6. Les tests C++ valident la logique ; assets/WBP/maps exigent UE/PIE lorsqu’ils sont impliqués.
+7. À la clôture d’un jalon majeur, mettre à jour overview, roadmap et documentation d’architecture.
 
 ---
 
 ## Prochain travail autoritaire
 
 ```text
-MON20 — Recruitment / Skills / Talents
-Audit de l’existant avant définition du contrat MON20.1
+MON20.4 — Story Companion Recruitment UI
 ```
+
+Cette reprise intervient après la passe de bilan `docs/Architecture` du 23 août 2026.

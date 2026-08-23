@@ -1,78 +1,78 @@
-# Audit de cohérence de l'architecture
+# Audit transversal de cohérence de l’architecture
 
 ## Référence
 
-- **Commit audité** : `09fd112f16626a706a9f61c4781628d6db2d6e53`
-- **Date de l'audit** : 11 juin 2026
-- **Périmètre** : sources C++ et documentation Markdown du socle d'architecture
-
-## Objectif
-
-Cette première passe vérifie que les documents de `docs/Architecture/` décrivent le comportement réellement présent dans les modules runtime, Core et éditeur. Elle recherche les écarts factuels sans lancer de refonte gameplay ni modifier les assets.
-
-## Documents relus
-
-Les huit documents de fondation et leurs notes de cleanup ont été relus :
-
-- [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
-- [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
-- [Interaction souris](MOUSE_INTERACTION_FOUNDATION.md)
-- [Liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md)
-- [Portes et mécanismes](DOOR_MECHANISM_FOUNDATION.md)
-- [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
-- [Ramassage et placement des items](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
-- [Objets lisibles et retours](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
-
-L'[index de l'architecture](ARCHITECTURE_INDEX.md) donne accès aux notes associées.
-
-## Sources C++ consultées
-
-La relecture a notamment couvert :
-
-- `Core/GridTypes.h`, `GridDungeonAsset.h/.cpp`, `GridLevelAsset.h/.cpp`, `GridObjectBehavior.h` et `GridObjectArchetypeAsset.h/.cpp` ;
-- `Runtime/GridLevelRuntimeActor.h/.cpp`, `GridRuntimeObjectActor.h/.cpp` et `GridActivationComponent.h/.cpp` ;
-- `Runtime/GrimrockPlayerController.h/.cpp`, `GrimrockPartyPawn.h/.cpp` et `GridInteractableInterface.h` ;
-- `Runtime/GridDoorActor.h/.cpp`, `GridDoorSystemComponent.h/.cpp`, `GridReceptacleActor.h/.cpp` et `GridItemActor.h/.cpp` ;
-- `UI/ReadableMessageWidget.h/.cpp` et `Runtime/GridGenericObjectActor.h/.cpp` ;
-- `EditorTools/GridLevelEditorActor.h/.cpp`, le mode d'édition, son toolkit et les panneaux d'inspection concernés.
+- **Code audité** : `0b8bab8f86f3a7f9df4979f1df4259838a93023d`
+- **Date** : 23 août 2026
+- **Périmètre** : modules C++, documentation `docs/Architecture`, synthèses `docs/Design`.
+- **Contexte** : après MON19 fermé et validation UE5.5.4 de MON20.2 et MON20.3, avant MON20.4.
 
 ## Verdict
 
-La documentation d'architecture est globalement alignée avec le C++ actuel. Aucun écart grave code ↔ architecture n'a été identifié pendant cette première passe. Les corrections appliquées concernent principalement une phrase obsolète sur les diagnostics de réceptacle, une précision sur l'inventaire ouvert dans le flux souris, et la création d'un index global.
+Le code reste cohérent avec les principes fondateurs. La documentation d’architecture était en retard sur l’évolution réelle du projet : `GrimrockLua`, MON14–MON19, SaveGame v7, XP/progression, Status Effects, Spellbook et recrutement devaient être intégrés à la synthèse. Aucun refactor de production n’est requis par cet audit.
 
-## Écarts trouvés
+## Écarts documentaires corrigés
 
-1. `RECEPTACLE_SYSTEM_FOUNDATION.md` indiquait encore que chaque évaluation journalisait temporairement l'état complet. Le code est silencieux par défaut et ne produit ce diagnostic qu'avec `bLogDiagnostics=true`, au niveau `VeryVerbose`.
-2. `MOUSE_INTERACTION_FOUNDATION.md` ne précisait pas que l'inventaire ouvert bloque le clic de gameplay seulement lorsqu'aucun item n'est porté au curseur.
+- **Modules** : trois modules actuels — `GrimrockLua`, `GrimrockPrototype`, `GrimrockPrototypeEditor`.
+- **Event/Command** : variables persistantes `Bool`/`Int32`, conditions, Logic nodes, Lua, `persistent`, `LogicId` et authoring Editor sont documentés.
+- **Grid Editor** : `AGridLevelEditorActor` reste une façade importante mais son implémentation est maintenant fractionnée en parts/services.
+- **Runtime** : `AGridLevelRuntimeActor` reste un point de concentration majeur.
+- **RPG** : XP/niveaux/progression MON15 et Status Effects MON16 sont fermés.
+- **Monstres** : MON14 ajoute perception/dormance/patrouille/investigation/alarmes ; MON17 ajoute le Gobelin lanceur et le ranged combat.
+- **Magic** : Spellbook/cast pipeline MON18 est un système de production.
+- **Persistance** : contrat courant SaveGame v7.
+- **Recruitment** : `CharacterPool` est réutilisé ; MON20.2 et MON20.3 sont validés 6/6.
 
-## Corrections appliquées
+## Cohérence code ↔ décisions
 
-- correction de la description des diagnostics de réceptacle ;
-- ajout de la règle d'inventaire ouvert dans la priorité du clic gauche ;
-- création de [ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md) ;
-- création du présent document de synthèse ;
-- contrôle des liens Markdown ajoutés et des références aux SVG existants.
+- DataAsset source de conception ; runtime state séparé.
+- Grille autoritaire.
+- Event → Command reste la voie d’effet gameplay.
+- Logic/Lua orchestrent sans devenir un second dispatcher.
+- `ObjectId` autoritaire, `LogicId` alias.
+- `CharacterId` stable pour groupe/réserve/compagnons.
+- Ownership inventaire exclusif.
+- Combat déterministe séparé de la présentation.
+- Editor hors runtime shipping.
+- Réutilisation des systèmes existants avant nouvelle abstraction.
 
-## Points surveillés mais non corrigés
+## Dettes et risques confirmés
 
-- `FindRuntimeActor()` dans `GridReceptacleActor.cpp` reste une dette technique future ;
-- certains refus utilisateur réels sont encore journalisés en `Warning` ;
-- les SVG n'ont pas été validés visuellement dans l'éditeur ;
-- les comportements dépendants des Blueprints ou des `.uasset` restent à vérifier en PIE.
+1. `AGridLevelRuntimeActor` très volumineux.
+2. `UGridPartyInventoryComponent`, PartyPawn et PlayerController volumineux.
+3. Grid Editor complexe malgré son meilleur découpage.
+4. Assets binaires dépendants de UE/PIE pour validation.
+5. CI/Shipping non encore complet.
+6. Architecture plus mature que le volume de contenu de production.
 
-## Limites de l'audit
+## Validation récente prise en compte
 
-- audit fondé sur les sources C++ et Markdown ;
-- aucune modification d'asset ;
-- aucun test PIE automatisé ;
-- vérification des SVG limitée à leur présence, leur syntaxe XML et leurs références ;
-- compilation UBT exécutée après les modifications documentaires ;
-- la cohérence des configurations binaires reste hors périmètre.
+```text
+MON19.8                         4/4 Success
+Grimrock.MON19                55/55 Success
+MON19 PIE final                VALIDÉ
+MON20.2 Recruitment             6/6 Success
+MON20.3 StoryCompanion          6/6 Success
+```
 
-## Recommandations
+## Documents de référence produits / augmentés
 
-1. Utiliser [ARCHITECTURE_INDEX.md](ARCHITECTURE_INDEX.md) comme point d'entrée de toute nouvelle passe.
-2. Mettre à jour le document de fondation concerné dans le même commit qu'une évolution de contrat C++.
-3. Réserver les notes de cleanup aux constats, migrations et dettes, sans y dupliquer le contrat principal.
-4. Vérifier en PIE les comportements dépendants des Blueprints avant de considérer leur présentation comme stabilisée.
-5. Réexécuter un audit transversal après une évolution majeure des identités, interactions, liens ou transferts.
+- `PROJECT_SYNTHESIS.md` — synthèse actuelle ;
+- `ARCHITECTURE_INDEX.md` — ordre de lecture et fondations ;
+- `Maps/GRIMROCK_PROJECT_MAP.md` — carte détaillée textuelle et autoritaire, couvrant 19 domaines actuels ;
+- `Maps/GRIMROCK_PROJECT_MAP_MERMAID.md` — vues visuelles Mermaid dérivées de la carte détaillée ;
+- `ADVANCED_DUNGEON_LOGIC_FOUNDATION.md` ;
+- `COMBAT_MONSTER_AI_FOUNDATION.md` ;
+- `PARTY_RPG_RECRUITMENT_FOUNDATION.md` ;
+- `MAGIC_STATUS_EFFECTS_FOUNDATION.md` ;
+- `SAVE_PERSISTENCE_FOUNDATION.md` ;
+- `UI_GAME_FLOW_FOUNDATION.md` ;
+- `TEST_AUTOMATION_FOUNDATION.md`.
+
+## Politique de format et d’historique
+
+La carte courante est maintenue en Markdown/Mermaid, formats textuels diffables et fiables dans Git. Le fichier XMind n’est plus maintenu comme source courante : les anciennes versions restent récupérables naturellement dans l’historique Git, sans copies `*_YYYY-MM-DD`.
+
+## Conclusion
+
+Le risque principal n’est plus l’absence de fondations techniques, mais la concentration de certaines classes historiques, la densité encore limitée du contenu et l’achèvement des systèmes de campagne. La prochaine étape de développement reste MON20.4.

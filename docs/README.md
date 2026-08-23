@@ -1,33 +1,25 @@
 # Documentation GrimrockPrototype
 
-Ce dossier regroupe la documentation transversale du projet.
-
-Le dossier `docs/Design` contient la mémoire de design gameplay, éditeur, objets, connecteurs et décisions. Les fichiers Markdown placés directement dans `docs/` couvrent surtout la documentation technique transversale : pipeline art/materials/textures, structure `Content`, architecture C++ runtime/editor, tests manuels et licences.
+Ce dossier regroupe la documentation transversale du projet. `docs/Design` porte les décisions/jalons ; `docs/Architecture` porte les contrats techniques durables et le bilan courant.
 
 ## Ordre de lecture recommandé
 
-### 0. Comprendre l'ensemble du projet
+### 0. Comprendre l’ensemble du projet
 
-- `docs/Architecture/PROJECT_SYNTHESIS.md` pour la vue globale, l'état actuel et
-  la feuille de route ;
-- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.xmind` pour la carte détaillée et
-  éditable à huit feuilles ;
-- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` pour sa source textuelle
-  versionnable dans Git.
+- `docs/Architecture/PROJECT_SYNTHESIS.md` — synthèse globale ;
+- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP.md` — carte détaillée textuelle et autoritaire ;
+- `docs/Architecture/Maps/GRIMROCK_PROJECT_MAP_MERMAID.md` — vues visuelles Mermaid ;
+- `docs/Architecture/ARCHITECTURE_INDEX.md` — index des contrats.
 
-### A. Comprendre le gameplay et l'éditeur
-
-Lire d'abord :
+### A. Gameplay et éditeur
 
 - `docs/Design/README.md`
-- `docs/Design/GRIMROCK_LOCK_SYSTEM.md` pour le système prospectif de serrures, clés, crochetage, conteneurs verrouillables et serrures piégées.
-- `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md` pour créer les définitions d'items, les archétypes de pickup et leur entrée de palette.
+- `docs/Design/99_DECISIONS_LOG.md`
+- `docs/Design/PROJECT_COMPLETION_ROADMAP.md`
+- `docs/Design/ITEM_AND_PICKUP_ASSET_CREATION_GUIDE.md`
+- `docs/Design/GRIMROCK_LOCK_SYSTEM.md`
 
-Ce README oriente vers les documents de design actuels, les audits, les checklists et le journal de décisions.
-
-### B. Pipeline art, materials et textures
-
-Lire dans cet ordre :
+### B. Pipeline art / materials / textures
 
 1. `docs/00_README_Art_Materials_Textures.md`
 2. `docs/01_Content_Structure.md`
@@ -43,8 +35,6 @@ Lire dans cet ordre :
 - `docs/Architecture/ARCHITECTURE_INDEX.md`
 - `docs/Design/JALON_RUNTIME_DUNGEON_STATE.md`
 
-Ces documents complètent `docs/Design` pour la séparation C++ entre le module runtime et le module editor, pour la responsabilité DataAsset / map / acteur avant le multi-niveaux, et pour la validation de la couche d'état runtime en mémoire du donjon multi-niveaux.
-
 ### D. Tests manuels
 
 - `docs/Design/PIE_TEST_FROM_EDITOR.md`
@@ -56,8 +46,10 @@ Ces documents complètent `docs/Design` pour la séparation C++ entre le module 
 
 - `docs/FONT_LICENCES.md`
 
+## Historique documentaire
+
+Git est l’historique. Les documents courants ne sont pas dupliqués avec des suffixes de date.
+
 ## Règle de priorité
 
-En cas de contradiction sur le design gameplay, les objets, les connecteurs ou l'éditeur, `docs/Design/99_DECISIONS_LOG.md` et les documents `docs/Design` les plus récents priment.
-
-Les documents techniques racine ne doivent pas dupliquer les règles gameplay/editor détaillées dans `docs/Design`.
+En cas de contradiction, `docs/Design/99_DECISIONS_LOG.md` et les documents de clôture/validation les plus récents priment.

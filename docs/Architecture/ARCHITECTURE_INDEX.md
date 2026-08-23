@@ -1,74 +1,80 @@
-# Index de l'architecture
+# Index de l’architecture
 
 ## Objet
 
-Cet index présente les contrats d'architecture actuellement vérifiés contre le C++ de GrimrockPrototype. Les documents de fondation décrivent le fonctionnement en vigueur. Les notes de cleanup consignent les audits, corrections et limites observés pendant chaque passe.
+Cet index référence les contrats d’architecture vérifiés contre le C++ actuel. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-Les documents de `docs/Design/` peuvent décrire des intentions prospectives. Ils ne constituent pas nécessairement le contrat runtime tant que le code et les documents de fondation ne les confirment pas.
+**Audit courant :** 23 août 2026, après validation de MON20.3 et avant MON20.4.
 
 ## Ordre de lecture recommandé
 
 1. [Synthèse globale du projet](PROJECT_SYNTHESIS.md)
-2. [Carte détaillée XMind](Maps/GRIMROCK_PROJECT_MAP.xmind) ou sa
-   [source Markdown](Maps/GRIMROCK_PROJECT_MAP.md)
-3. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
-4. [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
-5. [Panneau de validation du niveau](LEVEL_VALIDATION_PANEL_FOUNDATION.md)
-6. [Interaction souris](MOUSE_INTERACTION_FOUNDATION.md)
-7. [Liens, événements et commandes](LINK_EVENT_COMMAND_FOUNDATION.md)
-8. [Portes et mécanismes](DOOR_MECHANISM_FOUNDATION.md)
-9. [Réceptacles](RECEPTACLE_SYSTEM_FOUNDATION.md)
-10. [Ramassage et placement des items](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md)
-11. [Objets lisibles et retours](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md)
+2. [Carte détaillée autoritaire](Maps/GRIMROCK_PROJECT_MAP.md)
+3. [Cartes visuelles Mermaid](Maps/GRIMROCK_PROJECT_MAP_MERMAID.md)
+4. [Audit transversal de cohérence](ARCHITECTURE_CONSISTENCY_AUDIT.md)
+5. [Donjon, niveau et grille](CORE_DUNGEON_LEVEL_GRID.md)
+6. [Archétypes et objets placés](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md)
+7. [Event, variables, Logic et Lua](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md)
+8. [Combat, monstres et IA](COMBAT_MONSTER_AI_FOUNDATION.md)
+9. [Groupe, RPG et recrutement](PARTY_RPG_RECRUITMENT_FOUNDATION.md)
+10. [Magie et effets de statut](MAGIC_STATUS_EFFECTS_FOUNDATION.md)
+11. [Sauvegarde et persistance](SAVE_PERSISTENCE_FOUNDATION.md)
+12. [UI et flux de jeu](UI_GAME_FLOW_FOUNDATION.md)
+13. [Tests et validation](TEST_AUTOMATION_FOUNDATION.md)
 
-## Documents de fondation
-
-| Document | Portée |
-|---|---|
-| [CORE_DUNGEON_LEVEL_GRID.md](CORE_DUNGEON_LEVEL_GRID.md) | Donjon, niveaux, cellules, murs, édition de base et génération runtime. |
-| [OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md) | Archétypes, palette, données placées, overrides, aperçu et acteurs runtime. |
-| [LEVEL_VALIDATION_PANEL_FOUNDATION.md](LEVEL_VALIDATION_PANEL_FOUNDATION.md) | Messages de validation, catégories, tableau de bord et navigation vers les problèmes. |
-| [MOUSE_INTERACTION_FOUNDATION.md](MOUSE_INTERACTION_FOUNDATION.md) | Trace de visibilité, priorité du clic, portée, interactions de bord et curseurs. |
-| [LINK_EVENT_COMMAND_FOUNDATION.md](LINK_EVENT_COMMAND_FOUNDATION.md) | Identité des liens, événements source, conditions et commandes cible. |
-| [DOOR_MECHANISM_FOUNDATION.md](DOOR_MECHANISM_FOUNDATION.md) | État des portes, passabilité, animation, commandes et chaîne. |
-| [RECEPTACLE_SYSTEM_FOUNDATION.md](RECEPTACLE_SYSTEM_FOUNDATION.md) | Acceptation, dépôt, retrait, contenu, événements et commandes de réceptacle. |
-| [ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md) | Identité des items, accessibilité, inventaire, curseur et transferts. |
-| [READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md) | Textes lisibles, messages persistants, retours courts et états de curseur. |
-
-## Conceptions prospectives liées
+## Fondations historiques toujours actives
 
 | Document | Portée |
 |---|---|
-| [GRIMROCK_LOCK_SYSTEM.md](../Design/GRIMROCK_LOCK_SYSTEM.md) | Spécification de design pour serrures murales, clés, crochetage abstrait, conteneurs verrouillables et serrures piégées. Ce document complète les fondations existantes mais ne remplace pas un futur contrat runtime validé contre le C++. |
+| [CORE_DUNGEON_LEVEL_GRID.md](CORE_DUNGEON_LEVEL_GRID.md) | Donjon, niveaux, cellules, murs et génération runtime. |
+| [OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md](OBJECT_ARCHETYPES_AND_PLACED_OBJECTS.md) | Archétypes, palette, objets placés, preview et actors. |
+| [LEVEL_VALIDATION_PANEL_FOUNDATION.md](LEVEL_VALIDATION_PANEL_FOUNDATION.md) | Validation éditeur et navigation vers les problèmes. |
+| [MOUSE_INTERACTION_FOUNDATION.md](MOUSE_INTERACTION_FOUNDATION.md) | Interaction souris, traces, portée et priorité. |
+| [LINK_EVENT_COMMAND_FOUNDATION.md](LINK_EVENT_COMMAND_FOUNDATION.md) | Socle Event → Command, étendu par MON19. |
+| [DOOR_MECHANISM_FOUNDATION.md](DOOR_MECHANISM_FOUNDATION.md) | Portes, passabilité et commandes. |
+| [RECEPTACLE_SYSTEM_FOUNDATION.md](RECEPTACLE_SYSTEM_FOUNDATION.md) | Réceptacles, contenu et événements. |
+| [ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md](ITEM_PICKUP_AND_PLACEMENT_FOUNDATION.md) | Items, ownership, curseur et transferts. |
+| [READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md](READABLE_OBJECTS_AND_FEEDBACK_FOUNDATION.md) | Objets lisibles et feedback. |
 
-## Notes de cleanup
+## Fondations transversales de l’audit 2026-08-23
 
-- [CORE_CLEANUP_NOTES.md](CORE_CLEANUP_NOTES.md)
-- [OBJECT_SYSTEM_CLEANUP_NOTES.md](OBJECT_SYSTEM_CLEANUP_NOTES.md)
-- [MOUSE_INTERACTION_CLEANUP_NOTES.md](MOUSE_INTERACTION_CLEANUP_NOTES.md)
-- [LINK_EVENT_COMMAND_CLEANUP_NOTES.md](LINK_EVENT_COMMAND_CLEANUP_NOTES.md)
-- [DOOR_MECHANISM_CLEANUP_NOTES.md](DOOR_MECHANISM_CLEANUP_NOTES.md)
-- [RECEPTACLE_SYSTEM_CLEANUP_NOTES.md](RECEPTACLE_SYSTEM_CLEANUP_NOTES.md)
-- [ITEM_PICKUP_AND_PLACEMENT_CLEANUP_NOTES.md](ITEM_PICKUP_AND_PLACEMENT_CLEANUP_NOTES.md)
-- [READABLE_OBJECTS_AND_FEEDBACK_CLEANUP_NOTES.md](READABLE_OBJECTS_AND_FEEDBACK_CLEANUP_NOTES.md)
-- [LEVEL_VALIDATION_PANEL_CLEANUP_NOTES.md](LEVEL_VALIDATION_PANEL_CLEANUP_NOTES.md)
+| Document | Portée |
+|---|---|
+| [ADVANCED_DUNGEON_LOGIC_FOUNDATION.md](ADVANCED_DUNGEON_LOGIC_FOUNDATION.md) | Variables typées, Logic, Lua, `persistent`, `LogicId`. |
+| [COMBAT_MONSTER_AI_FOUNDATION.md](COMBAT_MONSTER_AI_FOUNDATION.md) | Turn manager, actions, monstres, perception, patrouille, planners. |
+| [PARTY_RPG_RECRUITMENT_FOUNDATION.md](PARTY_RPG_RECRUITMENT_FOUNDATION.md) | Groupe, XP/progression, CharacterPool et recrutement. |
+| [MAGIC_STATUS_EFFECTS_FOUNDATION.md](MAGIC_STATUS_EFFECTS_FOUNDATION.md) | Spellbook, cast pipeline et Status Effects. |
+| [SAVE_PERSISTENCE_FOUNDATION.md](SAVE_PERSISTENCE_FOUNDATION.md) | SaveGame v7, snapshots, migration et politique combat. |
+| [UI_GAME_FLOW_FOUNDATION.md](UI_GAME_FLOW_FOUNDATION.md) | Menus, inventaire, combat, création, progression, spellbook, surfaces futures. |
+| [TEST_AUTOMATION_FOUNDATION.md](TEST_AUTOMATION_FOUNDATION.md) | Automation Tests, PIE et règles de validation. |
 
-Une synthèse transversale de la première relecture est disponible dans [ARCHITECTURE_CONSISTENCY_AUDIT.md](ARCHITECTURE_CONSISTENCY_AUDIT.md).
+## Modules
 
-## Tests
+```text
+GrimrockLua
+    ↓
+GrimrockPrototype
+    ↓
+GrimrockPrototypeEditor
+```
 
-- [Checklist de régression du donjon de test](../Tests/TEST_DUNGEON_PASS_CHECKLIST.md)
-- [Rapport de régression du donjon de test](../Tests/TEST_DUNGEON_PASS_REPORT.md)
+L’Editor dépend aussi directement de `GrimrockLua`. Le Runtime ne dépend jamais du module Editor.
 
 ## Règles transversales
 
-1. Les DataAssets restent les sources persistantes.
-2. Les acteurs runtime sont transitoires et reconstruits depuis les données persistantes.
-3. Les outils et acteurs éditeur modifient les DataAssets, pas un état runtime parallèle.
-4. Le premier hit bloquant `ECC_Visibility` est autoritaire pour l'interaction souris.
-5. Les interactions placées sur une arête dépendent de la cellule, du bord et de l'orientation du groupe.
-6. Les liens utilisent `ObjectId` comme identité principale, jamais le tag ou l'archétype.
-7. Les portes utilisent `RuntimeBlockedDoorEdges` comme source de vérité pour la passabilité.
-8. Les items utilisent `ItemDefinitionId` comme identité fonctionnelle.
-9. Les messages lisibles, retours courts, curseurs et logs sont des canaux séparés.
-10. Les Blueprints et assets configurent les variantes concrètes sans remplacer les contrats C++ documentés.
+1. DataAssets = sources persistantes de conception.
+2. Actors runtime reconstruits depuis ces données.
+3. Grille autoritaire pour déplacement, occupation, ligne de mire et combat.
+4. `ObjectId` reste l’identité d’objet ; `LogicId` est un alias authoring.
+5. Event → Command est le bus gameplay ; Logic et Lua reviennent vers ses commandes.
+6. Ownership item exclusif.
+7. `FGridPartyInventoryState` reste l’autorité groupe/`CharacterPool`.
+8. Les talents réutilisent d’abord la progression de classe existante.
+9. SaveGame reste v7 tant qu’une nouvelle persistance ne justifie pas une migration.
+10. Blueprint configure/compose ; logique métier validable en C++.
+11. Les assets binaires ne sont validés qu’après UE/PIE.
+12. Un sous-jalon = un commit logique.
+
+## Historique
+
+Git est l’unique mécanisme de conservation des versions antérieures de ces documents. Aucun doublon daté n’est maintenu dans l’arborescence courante.
