@@ -1,6 +1,6 @@
 # MON19.4 — Pont Event → Lua → Command
 
-Statut : **implémenté — validation UE5.5.4 en attente**  
+Statut : **VALIDÉ sous Unreal Engine 5.5.4 — clos**  
 Date : **23 août 2026**  
 Référence de départ : `57801b87fdba3c03882f71713cf69165fbb5363d` (`Valider MON19.3.1 fondation runtime Lua`)
 
@@ -298,7 +298,54 @@ Le runtime et le contrat persistant sont prêts, mais la création visuelle des 
 
 À la demande explicite du propriétaire du dépôt, `AGENTS.md` formalise désormais l'autorisation permanente suivante : un commit parasite/intermédiaire créé accidentellement par ChatGPT ou ses outils peut être retiré immédiatement de `master` par réécriture/force-push sans redemander une confirmation, après vérification qu'aucun commit utilisateur ou changement distant imprévu ne serait supprimé.
 
-## 16. Hors périmètre
+## 16. Validation UE5.5.4 — 23 août 2026
+
+La compilation `Development Editor` sous Unreal Engine 5.5.4 est validée : les suites MON19.4 ont pu être exécutées après correction du test de compilation.
+
+Résultats runtime :
+
+```text
+Grimrock.MON19.4.LuaBridge.CommandToExistingRuntime   -> Success
+Grimrock.MON19.4.LuaBridge.EventContextAndVariables   -> Success
+Grimrock.MON19.4.LuaBridge.HostFailureIsProtected     -> Success
+Grimrock.MON19.4.LuaBridge.LinkCondition              -> Success
+Grimrock.MON19.4.LuaBridge.SharedActionBudget         -> Success
+```
+
+Bilan runtime : **5/5 Success**.
+
+Le warning suivant observé pendant `SharedActionBudget` est attendu et constitue le comportement testé :
+
+```text
+Grid runtime action rejected: Action=ObjectCommand Reason=shared Event/Command/Lua budget exhausted
+```
+
+Il confirme que le budget commun interrompt la chaîne avant la mutation finale.
+
+Résultat éditeur :
+
+```text
+Grimrock.MON19.4.Editor.LuaLinkIdentity -> Success
+```
+
+Bilan éditeur : **1/1 Success**.
+
+Régression de la fondation Lua :
+
+```text
+Grimrock.MON19.3.Lua.Foundation.InstructionBudget               -> Success
+Grimrock.MON19.3.Lua.Foundation.InvalidDefinitionsAtomicReload -> Success
+Grimrock.MON19.3.Lua.Foundation.MemoryQuota                    -> Success
+Grimrock.MON19.3.Lua.Foundation.MultipleScriptsIsolated        -> Success
+Grimrock.MON19.3.Lua.Foundation.SandboxSurface                 -> Success
+Grimrock.MON19.3.Lua.Foundation.VersionAndLifecycle            -> Success
+```
+
+Bilan MON19.3.1 de non-régression : **6/6 Success**.
+
+MON19.4 est donc **VALIDÉ et clos**.
+
+## 17. Hors périmètre
 
 Restent à venir :
 
