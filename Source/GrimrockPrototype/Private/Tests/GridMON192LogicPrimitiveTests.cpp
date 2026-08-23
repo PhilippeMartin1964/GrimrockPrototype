@@ -12,7 +12,7 @@
 #include "Runtime/GridLevelVariableStore.h"
 #include "Runtime/GridLogicRuntime.h"
 
-namespace
+namespace GridMON192LogicPrimitiveTests
 {
     FGridLevelVariableDefinition MakeBoolVariable (
         FName Id,
@@ -128,6 +128,8 @@ namespace
         }
     };
 }
+
+using namespace GridMON192LogicPrimitiveTests;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FGridMON1923MutationPrimitivesTest,
