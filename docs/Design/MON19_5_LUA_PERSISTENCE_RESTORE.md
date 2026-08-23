@@ -1,8 +1,9 @@
 # MON19.5 — Persistance / restauration Lua
 
-Statut : **implémenté — validation UE5.5.4 en attente**  
+Statut : **VALIDÉ**  
 Date : **23 août 2026**  
-Référence de départ : `4d1ba5bc85c102e0c9e04f61f3774e420336c81f` (`Valider MON19.4 pont Event Lua Command`)
+Référence de départ : `4d1ba5bc85c102e0c9e04f61f3774e420336c81f` (`Valider MON19.4 pont Event Lua Command`)  
+Commit d'implémentation : `92cd1a407452adc0488d0706251a199390e65cc2` (`Ajouter le contrat de persistance Lua MON19.5`)
 
 ## 1. Objectif
 
@@ -172,7 +173,7 @@ Cette règle est différente du hot reload explicite `ReloadLuaRuntime()`, dont 
 
 ## 9. Tests MON19.5
 
-Nouveau fichier :
+Fichier :
 
 ```text
 Source/GrimrockPrototype/Private/Tests/GridMON195LuaPersistenceTests.cpp
@@ -224,18 +225,85 @@ Le test verrouille explicitement :
 CurrentSaveVersion == 7
 ```
 
-## 10. Non-régression attendue
+## 10. Validation UE5.5.4 — 23 août 2026
 
-Après compilation UE5.5.4, lancer :
+Les résultats Automation fournis par le propriétaire du projet valident le contrat MON19.5 et les non-régressions ciblées.
+
+### 10.1 MON19.5 — persistance / restauration Lua
 
 ```text
-Grimrock.MON19.5.LuaPersistence
-Grimrock.MON19.4.LuaBridge
-Grimrock.MON19.3.Lua.Foundation
-Grimrock.MON19.2.Save
+Grimrock.MON19.5.LuaPersistence.CurrentScriptSourceWins          -> Success
+Grimrock.MON19.5.LuaPersistence.InvalidCurrentSourceDropsStaleVm -> Success
+Grimrock.MON19.5.LuaPersistence.SaveRoundTripFreshVm             -> Success
+Grimrock.MON19.5.LuaPersistence.SaveVersionContract              -> Success
 ```
 
-MON19.5 est considéré validé uniquement après résultat UE5.5.4 fourni par l'utilisateur.
+Résultat : **4/4 Success**.
+
+Le warning de compilation Lua observé pendant `InvalidCurrentSourceDropsStaleVm` est intentionnel : le test injecte une source invalide afin de vérifier que le VM précédent est supprimé avant la tentative de chargement du nouveau script.
+
+Le log confirme ensuite :
+
+```text
+Grid Lua callback rejected
+AnyApplied=false
+```
+
+ce qui prouve qu'aucun callback obsolète n'a été exécuté.
+
+### 10.2 Non-régression MON19.4 — Event -> Lua -> Command
+
+```text
+Grimrock.MON19.4.LuaBridge.CommandToExistingRuntime -> Success
+Grimrock.MON19.4.LuaBridge.EventContextAndVariables  -> Success
+Grimrock.MON19.4.LuaBridge.HostFailureIsProtected    -> Success
+Grimrock.MON19.4.LuaBridge.LinkCondition             -> Success
+Grimrock.MON19.4.LuaBridge.SharedActionBudget        -> Success
+```
+
+Résultat : **5/5 Success**.
+
+Les warnings `shared Event/Command/Lua budget exhausted` du test `SharedActionBudget` sont attendus : le test construit volontairement une chaîne dépassant le budget runtime afin de vérifier que l'exécution est bornée et rejetée proprement.
+
+### 10.3 Non-régression MON19.3 — fondation Lua
+
+```text
+Grimrock.MON19.3.Lua.Foundation.InstructionBudget               -> Success
+Grimrock.MON19.3.Lua.Foundation.InvalidDefinitionsAtomicReload  -> Success
+Grimrock.MON19.3.Lua.Foundation.MemoryQuota                     -> Success
+Grimrock.MON19.3.Lua.Foundation.MultipleScriptsIsolated         -> Success
+Grimrock.MON19.3.Lua.Foundation.SandboxSurface                  -> Success
+Grimrock.MON19.3.Lua.Foundation.VersionAndLifecycle             -> Success
+```
+
+Résultat : **6/6 Success**.
+
+### 10.4 Non-régression MON19.2 — Save v7
+
+```text
+Grimrock.MON19.2.Save.LevelVariableSnapshotValidation -> Success
+Grimrock.MON19.2.Save.LevelVariablesRoundTrip          -> Success
+Grimrock.MON19.2.Save.V6ToV7LevelVariables             -> Success
+```
+
+Résultat : **3/3 Success**.
+
+Le log `Load SourceVersion=7 TargetVersion=7 Migrated=false ... Result=Accepted` confirme également qu'un snapshot v7 courant est accepté sans migration artificielle.
+
+### 10.5 Bilan de validation
+
+```text
+MON19.5 LuaPersistence  : 4/4 Success
+MON19.4 LuaBridge       : 5/5 Success
+MON19.3 Lua Foundation  : 6/6 Success
+MON19.2 Save            : 3/3 Success
+------------------------------------
+Total ciblé             : 18/18 Success
+```
+
+**MON19.5 est validé fonctionnellement sous UE5.5.4.**
+
+L'extrait de validation archivé pour cette étape contient les résultats Automation mais pas une sortie séparée de compilation Development Editor ; aucune affirmation indépendante sur cette compilation n'est donc ajoutée ici.
 
 ## 11. Modifications de production
 
