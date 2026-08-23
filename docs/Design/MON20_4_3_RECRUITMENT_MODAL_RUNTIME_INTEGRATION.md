@@ -4,6 +4,8 @@
 
 Intégration C++ du modal de recrutement dans le runtime du groupe.
 
+Validation UE5.5.4 effectuée le 23 août 2026 : **10/10 tests `Grimrock.MON20.4.RecruitmentUI` Success** après le correctif de build Unity `e1c06cce262cf0f00b8857af7d27d82b985eb819`.
+
 Cette étape raccorde le noyau UI de MON20.4.2 à `AGrimrockPartyPawn`. Elle ne raccorde pas encore le système `Event -> Command` du niveau et ne nécessite aucun `.uasset` / `.umap`.
 
 ## Point d'intégration
@@ -109,7 +111,22 @@ RuntimeDefaultState
 - aucune instance modale au démarrage ;
 - état modal inactif.
 
-Après cette étape, le filtre MON20.4 contient 10 tests au total : les 8 tests du noyau MON20.4.2 et ces 2 tests runtime.
+Validation locale UE5.5.4 :
+
+```text
+AlreadyActiveNoDoubleRecruitment  Success
+AlreadyInPool                     Success
+DeclineNoMutation                 Success
+IdentityCollision                 Success
+InvalidDefinition                 Success
+NominalRecruitment                Success
+PartyFull                         Success
+RuntimeContract                   Success
+RuntimeDefaultState               Success
+ViewProjection                    Success
+```
+
+Résultat final MON20.4.3 : **10/10 Success**.
 
 ## WBP futur
 
