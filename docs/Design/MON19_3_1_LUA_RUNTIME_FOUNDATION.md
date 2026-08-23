@@ -1,7 +1,7 @@
 # MON19.3.1 — Fondation runtime Lua 5.4.8
 
-Statut : **implémenté — validation UE5.5.4 en attente**  
-Date : **22 août 2026**  
+Statut : **VALIDÉ sous Unreal Engine 5.5.4**  
+Date : **23 août 2026**  
 Référence de départ : `73b116819e28dac5864cdffb09fafde97dd80e2d` (`Ajouter les conditions de liens sur variables MON19.2.4`)
 
 ## 1. Objectif
@@ -296,7 +296,36 @@ Ils couvrent respectivement :
 - interruption d'une boucle infinie ;
 - refus d'une croissance mémoire hors quota.
 
-## 13. Hors périmètre de MON19.3.1
+## 13. Validation UE5.5.4 — 23 août 2026
+
+La compilation du module `GrimrockLua` sous Unreal Engine 5.5.4 a été validée par l'utilisateur.
+
+Résultat de la suite automatisée :
+
+```text
+Grimrock.MON19.3.Lua.Foundation.InstructionBudget                -> Success
+Grimrock.MON19.3.Lua.Foundation.InvalidDefinitionsAtomicReload  -> Success
+Grimrock.MON19.3.Lua.Foundation.MemoryQuota                     -> Success
+Grimrock.MON19.3.Lua.Foundation.MultipleScriptsIsolated         -> Success
+Grimrock.MON19.3.Lua.Foundation.SandboxSurface                  -> Success
+Grimrock.MON19.3.Lua.Foundation.VersionAndLifecycle             -> Success
+```
+
+Bilan : **6/6 tests Success**.
+
+Cette validation confirme notamment :
+
+- l'exécution effective de Lua 5.4.8 dans le module UE5.5.4 ;
+- l'arrêt protégé d'une boucle infinie par budget d'instructions ;
+- le maintien du VM précédent lors d'un reload invalide ;
+- l'application du quota mémoire ;
+- l'isolation de plusieurs scripts partageant le même VM ;
+- la surface sandbox attendue ;
+- la création et destruction correcte du VM.
+
+MON19.3.1 est donc **VALIDÉ et clos**.
+
+## 14. Hors périmètre de MON19.3.1
 
 Restent volontairement à venir :
 
