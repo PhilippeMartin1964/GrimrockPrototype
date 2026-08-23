@@ -105,6 +105,16 @@ void AGridLevelEditorActor::PlaceSelectedObject ()
             }
         }
     }
+    if (NewObject.Type == EGridLevelObjectType::StoryCompanion &&
+        ObjectPalette)
+    {
+        if (const FGridObjectPaletteEntry* PaletteEntry =
+            ObjectPalette->FindEntryById (SelectedPaletteEntryId))
+        {
+            NewObject.StoryCompanionDefinition =
+                PaletteEntry->DefaultStoryCompanionDefinition;
+        }
+    }
     if (NewObject.Type == EGridLevelObjectType::Item)
     {
         NewObject.ReadableContentAsset = ObjectBehavior.Item.DefaultReadableContentAsset;

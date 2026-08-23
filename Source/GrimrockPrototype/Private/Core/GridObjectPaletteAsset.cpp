@@ -1,5 +1,6 @@
 #include "Core/GridObjectPaletteAsset.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
+#include "RPG/RPGStoryCompanionAsset.h"
 
 bool UGridObjectPaletteAsset::ValidatePalette (TArray<FGridArchetypeValidationMessage>& OutMessages) const
 {
@@ -73,6 +74,27 @@ bool UGridObjectPaletteAsset::ValidatePalette (TArray<FGridArchetypeValidationMe
                             *EntryName,
                             *DefinitionError));
                 }
+            }
+        }
+
+        if (Entry.DefaultArchetype->SupportedType ==
+            EGridLevelObjectType::StoryCompanion)
+        {
+            if (!Entry.DefaultStoryCompanionDefinition)
+            {
+                OutMessages.Emplace (
+                    EGridArchetypeValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Palette entry '%s' requires DefaultStoryCompanionDefinition for StoryCompanion."),
+                        *EntryName));
+            }
+            else if (!Entry.DefaultStoryCompanionDefinition->IsValidDefinition ())
+            {
+                OutMessages.Emplace (
+                    EGridArchetypeValidationSeverity::Error,
+                    FString::Printf (
+                        TEXT ("Palette entry '%s' has an invalid DefaultStoryCompanionDefinition."),
+                        *EntryName));
             }
         }
     }

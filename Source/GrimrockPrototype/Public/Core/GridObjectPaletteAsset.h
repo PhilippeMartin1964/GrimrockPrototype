@@ -8,6 +8,7 @@
 
 class UTexture2D;
 class UGridObjectArchetypeAsset;
+class URPGStoryCompanionAsset;
 
 USTRUCT (BlueprintType)
 struct FGridObjectPaletteEntry
@@ -34,6 +35,10 @@ struct FGridObjectPaletteEntry
     /** Required default when the archetype places a MonsterSpawn. */
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
     TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;
+
+    /** MON20.4.5 default copied into a placed StoryCompanion target. */
+    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette|Story Companion")
+    TObjectPtr<URPGStoryCompanionAsset> DefaultStoryCompanionDefinition = nullptr;
 
     FName GetEffectiveArchetypeId () const
     {

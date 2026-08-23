@@ -6,6 +6,8 @@ Bridge C++ data-driven entre le système de niveau `Event -> Command` et le moda
 
 Cette étape ne crée pas de système de dialogue parallèle et ne modifie pas directement l'état du groupe.
 
+**Validation UE5.5.4 : 23 août 2026 — filtre `Grimrock.MON20.4.RecruitmentUI` : 13/13 Success.**
+
 ## Contrat de données
 
 `EGridLevelObjectType` reçoit un nouveau type ajouté en fin d'enum afin de préserver les valeurs sérialisées existantes :
@@ -108,7 +110,7 @@ Les commandes génériques comme `Toggle` sont rejetées pour ce target.
 
 Le compagnon est, dans ce périmètre, un target de commande uniquement ; aucun événement source propre n'est ajouté.
 
-La présentation/édition spécialisée de `StoryCompanionDefinition` dans l'inspecteur Grid Editor peut être raffinée lors de la tranche de clôture si le panneau personnalisé ne l'expose pas encore. Le contrat sérialisé existe déjà dans `FGridLevelObjectData`.
+La création par palette et la copie automatique de la définition sont traitées en MON20.4.5.
 
 ## WBP de production
 
@@ -141,7 +143,7 @@ Le filtre principal reste :
 Grimrock.MON20.4.RecruitmentUI
 ```
 
-Trois tests sont ajoutés :
+Trois tests ont été ajoutés :
 
 ```text
 EventCommandContract
@@ -172,6 +174,8 @@ avec définition absente et vérifie :
 - rejet propre du link command ;
 - aucune activation artificielle du target data-only.
 
+Le warning `missing or invalid story companion definition` émis par ce scénario est intentionnel et fait partie du contrat testé.
+
 ### EditorLinkPolicy
 
 Vérifie :
@@ -183,11 +187,19 @@ Vérifie :
 - target recevable par l'éditeur ;
 - aucun événement source implicite.
 
-## Validation restante
+## Validation obtenue
 
-La compilation UE5.5.4 et les Automation Tests doivent être exécutés localement après récupération du commit final MON20.4.4.
+Le 23 août 2026, UE5.5.4 a exécuté le filtre complet :
 
-Le PIE de clôture devra ensuite vérifier sur un vrai niveau :
+```text
+Grimrock.MON20.4.RecruitmentUI
+```
+
+Résultat : **13 tests / 13 Success**.
+
+Les tests MON20.4.2, MON20.4.3 et MON20.4.4 sont donc tous verts avant la tranche de placement Grid Editor MON20.4.5.
+
+Le PIE de clôture reste à effectuer sur un vrai niveau :
 
 ```text
 Trigger -> OfferRecruitment -> WBP
