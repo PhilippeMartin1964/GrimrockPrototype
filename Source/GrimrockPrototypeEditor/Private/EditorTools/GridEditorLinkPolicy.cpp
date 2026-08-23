@@ -130,6 +130,9 @@ namespace GridEditorLinkPolicy
                 }
                 return {EGridObjectCommand::LogicExecute};
 
+            case EGridLevelObjectType::StoryCompanion:
+                return {EGridObjectCommand::OfferRecruitment};
+
             default:
                 return {};
         }
@@ -163,7 +166,8 @@ namespace GridEditorLinkPolicy
         EGridObjectCommand Command)
     {
         if (ObjectData.Type == EGridLevelObjectType::MonsterSpawn ||
-            ObjectData.Type == EGridLevelObjectType::Logic)
+            ObjectData.Type == EGridLevelObjectType::Logic ||
+            ObjectData.Type == EGridLevelObjectType::StoryCompanion)
         {
             return GetSupportedCommandsForTarget (ObjectData).Contains (Command)
                 ? EGridEditorCommandRuntimeSupport::Gameplay
@@ -199,6 +203,7 @@ namespace GridEditorLinkPolicy
             case EGridLevelObjectType::Receptacle:
                 return EGridEditorCommandRuntimeSupport::StateOnly;
 
+            case EGridLevelObjectType::StoryCompanion:
             case EGridLevelObjectType::Logic:
             case EGridLevelObjectType::None:
             default:

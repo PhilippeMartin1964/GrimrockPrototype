@@ -8,6 +8,7 @@
 #include "GridTypes.generated.h"
 
 class UGridReadableContentAsset;
+class URPGStoryCompanionAsset;
 
 UENUM (BlueprintType)
 enum class EGridCellType : uint8
@@ -43,7 +44,8 @@ enum class EGridLevelObjectType : uint8
     Trigger         UMETA (DisplayName = "Trigger"),
     Receptacle      UMETA (DisplayName = "Receptacle"),
     Item            UMETA (DisplayName = "Item"),
-    Logic           UMETA (DisplayName = "Logic")
+    Logic           UMETA (DisplayName = "Logic"),
+    StoryCompanion  UMETA (DisplayName = "Story Companion")
 };
 
 UENUM (BlueprintType)
@@ -93,7 +95,8 @@ enum class EGridObjectCommand : uint8
     StartEncounter = 19            UMETA (DisplayName = "Start Encounter"),
     LogicExecute = 20              UMETA (DisplayName = "Logic Execute"),
     LogicReset = 21                UMETA (DisplayName = "Logic Reset"),
-    LuaCallback = 22               UMETA (DisplayName = "Lua Callback")
+    LuaCallback = 22               UMETA (DisplayName = "Lua Callback"),
+    OfferRecruitment = 23          UMETA (DisplayName = "Offer Recruitment")
 };
 
 UENUM (BlueprintType)
@@ -263,6 +266,11 @@ struct FGridLevelObjectData
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Logic",
         meta = (EditCondition = "Type == EGridLevelObjectType::Logic", EditConditionHides))
     FGridLogicNodeParams Logic;
+
+    /** MON20.4 narrative recruitment target. No runtime Actor is required. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "RPG|Story Companion",
+        meta = (EditCondition = "Type == EGridLevelObjectType::StoryCompanion", EditConditionHides))
+    TObjectPtr<URPGStoryCompanionAsset> StoryCompanionDefinition = nullptr;
 
     /** Optional MON7/MON13 encounter group. None preserves independent behavior. */
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Monster")

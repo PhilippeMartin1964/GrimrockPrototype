@@ -13,6 +13,8 @@
 #include "Runtime/GridLogicRuntime.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
+#include "Kismet/GameplayStatics.h"
+#include "RPG/RPGStoryCompanionAsset.h"
 
 namespace
 {
@@ -704,6 +706,53 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
     bool bSuccess = false;
     const TCHAR* FailureReason = TEXT ("unsupported target type or command");
 
+    if (TargetObject->Type == EGridLevelObjectType::StoryCompanion)
+    {
+        if (ResolvedCommand != EGridObjectCommand::OfferRecruitment)
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("story companion only supports OfferRecruitment"));
+            return false;
+        }
+
+        if (!IsValid (TargetObject->StoryCompanionDefinition) ||
+            !TargetObject->StoryCompanionDefinition->IsValidDefinition ())
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("missing or invalid story companion definition"));
+            return false;
+        }
+
+        AGrimrockPartyPawn* PartyPawn = RuntimeActor->GetWorld ()
+            ? Cast<AGrimrockPartyPawn> (
+                UGameplayStatics::GetPlayerPawn (RuntimeActor->GetWorld (), 0))
+            : nullptr;
+        if (!IsValid (PartyPawn))
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("missing player party pawn"));
+            return false;
+        }
+
+        bSuccess = PartyPawn->ShowStoryCompanionRecruitmentWidget (
+            TargetObject->StoryCompanionDefinition);
+        LogLinkResult (
+            LinkData,
+            ResolvedCommand,
+            bSuccess,
+            bSuccess ? nullptr : TEXT ("recruitment modal rejected"));
+        return bSuccess;
+    }
+
     if (TargetObject->Type == EGridLevelObjectType::Logic)
     {
         if (DispatchingSourceObjectIds.Contains (TargetObject->ObjectId))
@@ -850,6 +899,7 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             break;
         }
 
+        case EGridLevelObjectType::StoryCompanion:
         case EGridLevelObjectType::Logic:
         case EGridLevelObjectType::None:
         default:
