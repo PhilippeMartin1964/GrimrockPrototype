@@ -1,6 +1,6 @@
 # MON19.6 — Éditeur / validation Lua
 
-Statut : **implémenté — validation UE5.5.4 en attente**  
+Statut : **VALIDÉ sous Unreal Engine 5.5.4 — clos**  
 Date : **23 août 2026**  
 Référence de départ : `9e22108f66fb7479c56f332a6a33966aa8c28152` (`Valider MON19.5 persistance restauration Lua`)
 
@@ -57,6 +57,8 @@ LUA BINDINGS — SELECTED GRID OBJECT
 
 Pour créer un binding, le level designer sélectionne d'abord l'objet source dans Grimrock Grid Editor puis rafraîchit l'onglet Lua.
 
+L'intégration finale du menu utilise une seule entrée explicite `ToolMenus`, adossée à l'action native du tab spawner. La validation visuelle fournie sous UE5.5.4 confirme qu'une seule entrée `Grimrock Lua Scripts` est visible dans `Window`.
+
 ## 3. Édition des scripts
 
 Service :
@@ -95,6 +97,8 @@ Un script référencé ne peut pas être supprimé ni désactivé depuis ce serv
 Le level designer doit d'abord supprimer les bindings concernés.
 
 Cela évite de créer volontairement des liens cassés depuis l'éditeur.
+
+Le comptage final utilise un parcours explicite des bindings afin de retourner le nombre réel de références. Le test de régression couvre plusieurs bindings vers un même script.
 
 ## 4. Détection des callbacks
 
@@ -144,6 +148,8 @@ Les liens restent stockés dans :
 ```text
 UGridLevelAsset::Links
 ```
+
+Le panneau CONNECTORS a été aligné sur ce contrat : un `LuaCallback` targetless est affiché comme `Lua Script.callback`, sans faux `Missing object` ni bouton `Go To Target`. Ce comportement a été validé visuellement sous UE5.5.4.
 
 ## 6. Conditions de binding Lua
 
@@ -283,6 +289,7 @@ Source/GrimrockPrototypeEditor/Private/EditorTools/GridEditorLuaService.cpp
 Source/GrimrockPrototypeEditor/Public/EditorTools/Widgets/SGridEditorLuaScriptsPanel.h
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorLuaScriptsPanel.cpp
 Source/GrimrockPrototypeEditor/Private/Tests/GridEditorMON196LuaEditorTests.cpp
+Source/GrimrockPrototypeEditor/Private/Tests/GridEditorMON196ReferenceCountRegressionTest.cpp
 docs/Design/MON19_6_LUA_EDITOR_VALIDATION.md
 ```
 
@@ -292,6 +299,7 @@ Modifiés :
 Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.Build.cs
 Source/GrimrockPrototypeEditor/GrimrockPrototypeEditor.cpp
 Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorValidationPanel.cpp
+Source/GrimrockPrototypeEditor/Private/EditorTools/Widgets/SGridEditorLinksPanel.cpp
 ```
 
 Le module éditeur dépend explicitement de `GrimrockLua` ; le runtime `GrimrockPrototype` n'acquiert aucune nouvelle dépendance.
@@ -304,11 +312,12 @@ Suite :
 Grimrock.MON19.6.Editor
 ```
 
-Tests :
+Tests finaux :
 
 ```text
 Grimrock.MON19.6.Editor.LuaScriptAnalysis
 Grimrock.MON19.6.Editor.LuaBindingAndScriptMutations
+Grimrock.MON19.6.Editor.LuaReferenceCountRegression
 Grimrock.MON19.6.Editor.ValidationAlignment
 ```
 
@@ -322,24 +331,44 @@ Ils couvrent :
 - rejet d'une condition Receptacle sur Lua ;
 - rename ScriptId + mise à jour des bindings ;
 - protection de disable/remove lorsqu'un script est référencé ;
+- comptage de plusieurs références vers un même script ;
 - suppression de binding ;
 - correction du faux `TargetObjectId` ;
 - correction du faux doublon entre callbacks distincts ;
 - validation d'un Logic Relay data-only sans ArchetypeId.
 
-## 11. Non-régression demandée
+## 11. Validation UE5.5.4
 
-Après compilation UE5.5.4 :
+Résultat final fourni depuis Unreal Engine 5.5.4 :
 
 ```text
-Grimrock.MON19.6.Editor
-Grimrock.MON19.4.Editor
-Grimrock.MON19.4.LuaBridge
-Grimrock.MON19.3.Lua.Foundation
-Grimrock.MON19.2.Editor
+LuaBindingAndScriptMutations  -> Success
+LuaReferenceCountRegression   -> Success
+LuaScriptAnalysis             -> Success
+ValidationAlignment           -> Success
 ```
 
-MON19.6 ne sera marqué VALIDÉ qu'après résultats fournis depuis UE5.5.4.
+Soit :
+
+```text
+Grimrock.MON19.6.Editor = 4/4 Success
+```
+
+Validation visuelle également confirmée :
+
+```text
+Window
+    -> une seule entrée Grimrock Lua Scripts
+
+CONNECTORS
+    -> Lua Script.on_secret_button
+    -> aucun faux Missing object
+    -> aucun Go To Target pour un LuaCallback targetless
+```
+
+Les non-régressions MON19.4 / MON19.3 / MON19.2 demandées pendant le jalon avaient également été fournies avec succès avant les derniers correctifs purement UI.
+
+MON19.6 est donc **VALIDÉ et clos**.
 
 ## 12. Hors périmètre
 
@@ -358,4 +387,4 @@ nouveau tableau de bindings
 modification .uasset/.umap
 ```
 
-Les contraintes de sandbox/package restent le périmètre de MON19.7.
+Les contraintes de sandbox/package sont traitées par MON19.7.

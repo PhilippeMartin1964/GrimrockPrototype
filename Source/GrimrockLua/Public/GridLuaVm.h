@@ -47,6 +47,14 @@ struct GRIMROCKLUA_API FGridLuaHostApi
 class GRIMROCKLUA_API FGridLuaVm
 {
 public:
+    /**
+     * MON19.7 hard package/sandbox caps. These limits are intentionally not
+     * level data and therefore cannot be raised by player-authored content.
+     */
+    static constexpr int32 HardMaxScriptCount = 64;
+    static constexpr SIZE_T HardMaxSourceBytesPerScript = 256 * 1024;
+    static constexpr SIZE_T HardMaxTotalSourceBytes = 1024 * 1024;
+
     FGridLuaVm ();
     ~FGridLuaVm ();
 

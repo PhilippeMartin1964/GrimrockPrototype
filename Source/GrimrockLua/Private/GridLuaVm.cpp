@@ -454,6 +454,14 @@ struct FGridLuaVm::FImpl
             if (lua_istable (State, -1))
             {
                 CloneLuaTable (State, -1);
+                if (FCStringAnsi::Strcmp (LibraryName, LUA_STRLIBNAME) == 0)
+                {
+                    // Source-only sandbox: scripts cannot generate reusable
+                    // Lua bytecode even though binary chunks are also rejected
+                    // by luaL_loadbufferx(mode="t").
+                    lua_pushnil (State);
+                    lua_setfield (State, -2, "dump");
+                }
                 lua_setfield (State, EnvironmentIndex, LibraryName);
             }
             lua_pop (State, 1);
@@ -898,7 +906,17 @@ bool FGridLuaVm::ValidateScriptDefinitions (
     const TArray<FGridLuaScriptSource>& Scripts,
     FString& OutError)
 {
+    if (Scripts.Num () > HardMaxScriptCount)
+    {
+        OutError = FString::Printf (
+            TEXT ("Lua level defines %d scripts; hard limit is %d."),
+            Scripts.Num (),
+            HardMaxScriptCount);
+        return false;
+    }
+
     TSet<FName> SeenIds;
+    SIZE_T TotalSourceBytes = 0;
     for (int32 Index = 0; Index < Scripts.Num (); ++Index)
     {
         const FGridLuaScriptSource& Script = Scripts[Index];
@@ -917,6 +935,28 @@ bool FGridLuaVm::ValidateScriptDefinitions (
             return false;
         }
         SeenIds.Add (Script.ScriptId);
+
+        FTCHARToUTF8 SourceUtf8 (*Script.Source);
+        const SIZE_T SourceBytes =
+            static_cast<SIZE_T> (SourceUtf8.Length ());
+        if (SourceBytes > HardMaxSourceBytesPerScript)
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua script '%s' uses %llu UTF-8 source bytes; hard per-script limit is %llu."),
+                *Script.ScriptId.ToString (),
+                static_cast<uint64> (SourceBytes),
+                static_cast<uint64> (HardMaxSourceBytesPerScript));
+            return false;
+        }
+        if (SourceBytes > HardMaxTotalSourceBytes ||
+            TotalSourceBytes > HardMaxTotalSourceBytes - SourceBytes)
+        {
+            OutError = FString::Printf (
+                TEXT ("Lua level source exceeds the hard total limit of %llu UTF-8 bytes."),
+                static_cast<uint64> (HardMaxTotalSourceBytes));
+            return false;
+        }
+        TotalSourceBytes += SourceBytes;
     }
 
     OutError.Reset ();
