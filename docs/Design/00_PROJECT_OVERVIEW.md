@@ -11,6 +11,7 @@ Le projet vise :
 - rotation à 90° ;
 - édition directe des niveaux ;
 - objets interactifs et connecteurs Event -> Command ;
+- logique de donjon avancée data-driven avec variables, nœuds Logic et Lua sandboxé ;
 - monstres data-driven ;
 - combat tactique au tour par tour ;
 - progression RPG persistante ;
@@ -21,23 +22,24 @@ L'architecture reste simple, modulaire et orientée données. Les DataAssets et 
 
 ---
 
-## État actuel — 22 août 2026
+## État actuel — 23 août 2026
 
 Les fondations suivantes sont disponibles :
 
 - donjons multi-niveaux et `UGridLevelAsset` ;
-- Grid Editor intégré avec palette, inspecteur, connecteurs et validation ;
+- Grid Editor intégré avec palette, inspecteur, connecteurs, validation et authoring Lua ;
 - déplacement et interaction en vue subjective ;
 - items, inventaire, équipement, réceptacles, portes, serrures et passages secrets ;
 - création de personnage, races/classes et statistiques dérivées ;
-- sauvegarde/Continue ;
+- sauvegarde/Continue et migrations explicites ;
 - combat MON1–MON12 à initiative globale, PA/PAM et hotbar 0–9 ;
 - pipeline `MonsterSpawn` MON13 avec rencontres, vagues et persistance ;
-- exploration IA MON14 avec vision directionnelle, dormance, patrouille, investigation, édition visuelle de route et alarme locale ;
-- progression XP/niveaux MON15 avec Level Up, progression de classe, modal, sauvegarde/migration et équilibrage initial ;
-- effets de statut MON16 communs aux personnages et monstres, avec durée, stacking, DoT, Haste/Slow, Stun/Silence/Immobilize, HUD et Save/Restore ;
-- seconde famille de monstres MON17 avec le Gobelin lanceur `MON_GoblinThrower`, attaque projectile, profil tactique `RangedKeeper`, encounter, loot et XP data-driven ;
-- magie MON18 avec Spellbook par personnage, ciblage, transactions PA/mana, quatre sorts de production, présentation, UI hotbar, persistance v6 et politique de sauvegarde pré-combat.
+- exploration IA MON14 avec vision directionnelle, dormance, patrouille, investigation et alarme locale ;
+- progression XP/niveaux MON15 ;
+- effets de statut MON16 communs groupe/monstres ;
+- seconde famille de monstres MON17 avec Gobelin lanceur et profil tactique `RangedKeeper` ;
+- magie MON18 avec Spellbook, ciblage, transactions PA/mana, quatre sorts de production, présentation, hotbar et checkpoint pré-combat ;
+- logique avancée MON19 avec variables persistantes, conditions, primitives Logic, Lua sandboxé, `persistent`, `LogicId`, pont Event -> Lua -> Command et puzzles de production.
 
 Les jalons majeurs suivants sont **validés et clos** :
 
@@ -48,12 +50,13 @@ MON15 — XP & Level Progression
 MON16 — Status Effects
 MON17 — Second Monster Family
 MON18 — Magic & Spellbook
+MON19 — Advanced Dungeon Logic / Scripting
 ```
 
 Le prochain jalon autoritaire est :
 
 ```text
-MON19 — Advanced Dungeon Logic / Scripting
+MON20 — Recruitment / Skills / Talents
 ```
 
 Le backlog actif autoritaire est :
@@ -66,32 +69,15 @@ docs/Design/PROJECT_COMPLETION_ROADMAP.md
 
 ## Combat tactique — MON12
 
-Le combat utilise :
+Le combat utilise initiative globale, tours individuels, PA personnels, PAM communs, catalogue générique d’actions, HUD orienté actions, dix raccourcis persistants, quick items, ciblage, transaction de ressources et cooldowns.
 
-- initiative globale ;
-- tours individuels ;
-- PA personnels ;
-- PAM communs ;
-- catalogue générique d'actions ;
-- HUD orienté actions ;
-- dix raccourcis persistants ;
-- quick items ;
-- sorts/capacités catalogués ;
-- ciblage cellule/zone ;
-- paiement transactionnel des ressources ;
-- cooldowns.
-
-Document de référence :
-
-```text
-COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md
-```
+Référence : `COMBAT_SYSTEM_V2_ACTION_POINTS_INITIATIVE.md`.
 
 ---
 
 ## Monstres — MON13 / MON14 / MON17
 
-Le pipeline de contenu est :
+Le pipeline de contenu reste :
 
 ```text
 MonsterSpawn persistant
@@ -100,226 +86,120 @@ MonsterSpawn persistant
     -> état persistant par SpawnId
 ```
 
-MON13 apporte :
+MON13 gère placement, lifecycle, encounters, vagues et persistance. MON14 apporte vision directionnelle, engagement automatique, dormance, patrouille, investigation et alarme. MON17 prouve la généricité avec `MON_GoblinThrower`, attaque projectile et profil `RangedKeeper`.
 
-- placement persistant ;
-- preview et instanciation runtime ;
-- `Spawn`, `Despawn`, `Teleport` ;
-- rencontres et vagues ;
-- sauvegarde/Continue ;
-- vraie intégration PIE de production.
-
-MON14 apporte :
-
-- engagement automatique uniquement par vision valide ;
-- ouïe = alerte/investigation, jamais combat automatique à elle seule ;
-- vision directionnelle selon le Facing ;
-- états initiaux `Idle` / `Dormant` ;
-- patrouilles `Loop` / `PingPong` ;
-- investigation vers `LastKnownPartyCell` ;
-- recherche locale ;
-- édition visuelle des routes ;
-- suspension atomique pendant le combat ;
-- alarme locale entre monstres.
-
-MON17 prouve que ces systèmes ne sont pas spécifiques au Rat Géant. Le Gobelin lanceur utilise :
-
-```text
-MonsterId             MON_GoblinThrower
-PrimaryAIProfile      RangedKeeper
-PreferredDistance     3..5
-Attack_ThrowKnife     Projectile, dégâts 2..5, portée 2..6
-ExperienceReward      125
-```
-
-Le pipeline projectile est générique et de présentation ; la logique de dégâts reste dans le resolver de combat.
-
-Documents de clôture :
-
-```text
-MON14_CLOSURE.md
-MON17_CLOSURE.md
-```
+Références : `MON14_CLOSURE.md`, `MON17_CLOSURE.md`.
 
 ---
 
-## Progression RPG — MON15
+## Progression RPG — MON15 / MON16
 
-MON15 est clos.
+MON15 fournit XP, niveaux, progression de classe et Level Up jusqu’au niveau 20. MON16 fournit le modèle générique de Status Effects avec durée, stacking, DoT, Haste/Slow, contrôles, HUD et Save/Restore.
 
-État canonique :
-
-```cpp
-int32 Level = 1;
-int32 Experience = 0;
-```
-
-Courbe finale :
-
-```text
-XP cumulative niveau L = 1000 * (L - 1) * L / 2
-Niveau maximum = 20
-```
-
-Seuils principaux :
-
-```text
-L1       0 XP
-L2    1000 XP
-L3    3000 XP
-L4    6000 XP
-L5   10000 XP
-L20 190000 XP
-```
-
-`UGridMonsterDefinitionAsset::ExperienceReward` reste data-driven.
-
-Références de production :
-
-```text
-Rat Géant          500 XP
-Gobelin lanceur    125 XP
-```
-
-Le Level Up :
-
-- détecte un ou plusieurs seuils ;
-- recalcule les statistiques ;
-- conserve le déficit absolu de PV/mana ;
-- maintient les morts à 0 PV ;
-- applique les choix de progression atomiquement ;
-- projette les requirements acquis vers le catalogue MON12 ;
-- différencie notification et transaction de choix.
-
-Référence : `MON15_CLOSURE.md`.
-
----
-
-## Effets de statut — MON16
-
-MON16 est validé et clos.
-
-Contrats principaux :
-
-- modèle générique commun aux personnages et monstres ;
-- durée `Turns`, `Rounds` ou `Permanent` ;
-- stacking data-driven ;
-- dégâts périodiques ;
-- Haste / Slow via l'initiative ;
-- Stun / Silence / Immobilize ;
-- HUD et feedback de combat ;
-- Save / Restore ;
-- identité primaire `GridStatusEffect:EffectId`.
-
-Référence : `MON16_CLOSURE.md`.
+Références : `MON15_CLOSURE.md`, `MON16_CLOSURE.md`.
 
 ---
 
 ## Magie & Spellbook — MON18
 
-MON18 est **validé et clos**.
+MON18 est validé et clos.
 
-Pipeline final :
+Pipeline :
 
 ```text
 Spell Definition
     -> Spellbook par personnage
     -> WBP_GridSpellbook
     -> Hotbar MON12
-    -> Combat Action Catalog
-    -> Targeting MON18.4
-    -> transaction PA/mana MON18.3
-    -> effets MON18.5 / Status Effects MON16
-    -> commit runtime
-    -> présentation MON18.6
+    -> Targeting
+    -> transaction PA/mana
+    -> effets / Status Effects
+    -> présentation
 ```
 
-### Sorts de production
+Sorts de production :
 
 ```text
-Spell_ArcaneBolt   Damage 4              Mana 3  PA 2  portée 1..5
-Spell_LesserHeal  Heal 5                Mana 4  PA 2  portée 0..3
-Spell_Haste       Apply Status_Haste    Mana 5  PA 2  portée 0..3
-Spell_CurePoison  Remove Status_Poison  Mana 4  PA 2  portée 0..3
+Spell_ArcaneBolt
+Spell_LesserHeal
+Spell_Haste
+Spell_CurePoison
 ```
 
-Un sort qui ne peut produire aucune mutation utile est rejeté avant commit avec `NoEffectWouldApply`.
-
-### Persistance
-
-SaveVersion courant :
-
-```text
-6
-```
-
-Le Spellbook persiste uniquement :
-
-```text
-CharacterId
-KnownSpellIds[]
-```
-
-Migration v5 -> v6 : Spellbook vide, aucun sort inventé.
-
-PIE validé :
-
-```text
-Seed initial            Added=4 AlreadyKnown=0
-Save                    Spellbooks=1
-Stop PIE -> Continue    SpellbookCharacters=1
-Seed après Continue     Added=0 AlreadyKnown=4
-```
-
-### Sauvegarde en combat
-
-Politique finale :
-
-```text
-Exploration / Victory   -> sauvegarde autorisée
-Combat / Defeat         -> sauvegarde régulière interdite
-Avant StartCombat       -> <slot>_AutoCombat
-```
-
-Le checkpoint pré-combat protège une situation stable sans persister initiative, round, PA actifs, targeting ou présentation transitoire.
-
-### Validation finale
-
-```text
-MON18.9.3 ciblé          2/2 Success
-Global Grimrock        221/221 Success
-PIE Continue             VALIDÉ
-PIE PreCombatCheckpoint  VALIDÉ
-PIE combat save reject   VALIDÉ
-```
-
-Le diagnostic final a isolé l'ancien slot auxiliaire incompatible `GrimrockParty_2` sans remettre en cause `GrimrockParty`.
+La politique de sauvegarde refuse la sauvegarde régulière en combat et crée un checkpoint pré-combat avant engagement automatique.
 
 Référence : `MON18_CLOSURE.md`.
 
 ---
 
-## Prochaine phase — MON19 à MON22
+## Advanced Dungeon Logic / Scripting — MON19
+
+MON19 est **validé et clos**.
+
+Hiérarchie finale :
+
+```text
+cas simple
+    -> Event -> Command direct
+
+état / compteur / comparaison
+    -> variables persistantes + nœuds Logic
+
+orchestration complexe
+    -> Lua sandboxé
+       -> grid.command(...)
+       -> runtime existant
+```
+
+Capacités principales :
+
+- conditions de liens typées ;
+- variables persistantes `Bool` / `Int32` ;
+- primitives Logic ;
+- SaveGame / migration ;
+- VM Lua embarquée, quotas mémoire/instructions et isolation ;
+- pont Event -> Lua -> Command ;
+- outils Lua dans le Grid Editor ;
+- sandbox/packaging durcis ;
+- déclaration `persistent = { ... }` ;
+- `LogicId` lisible pour remplacer les GUID dans l’authoring Lua.
+
+Validation finale :
+
+```text
+Compilation UE5.5.4          OK
+Grimrock.MON19.8             4/4 Success
+Grimrock.MON19              55/55 Success
+PIE puzzle représentatif     VALIDÉ
+```
+
+Le puzzle PIE final confirme : premier clic `RuneCount=1` porte fermée ; second clic `RuneCount=2` puis `SecretDoor` ouverte.
+
+Référence : `MON19_CLOSURE.md`.
+
+---
+
+## Persistance
+
+Le SaveGame a évolué avec les jalons RPG et logique de donjon. La migration MON19 couvre les variables de niveau ; les tests de régression montrent un chargement au contrat courant de version 7.
+
+La VM Lua elle-même n’est pas sérialisée : l’état durable reste dans les données/runtime persistants.
+
+---
+
+## Prochaine phase — MON20 à MON22
 
 Ordre actif :
 
 ```text
-MON19 — Advanced Dungeon Logic / Scripting
 MON20 — Recruitment / Skills / Talents
 MON21 — Quests / Journal / Map / Codex
 MON22 — 45–90 Minute Vertical Slice
 ```
 
-MON19 doit approfondir les mécanismes de donjon en réutilisant d'abord :
+MON20 commence par un audit de l’existant personnage/groupe/classes/statistiques/progression/actions/inventaire/UI/SaveGame avant définition de MON20.1.
 
-```text
-UGridLevelAsset
-+ objets de grille
-+ SourceEvent -> TargetCommand
-+ liens persistants
-```
-
-Un langage léger ne doit être ajouté que si l'Event -> Command existant ne permet pas d'exprimer proprement les mécanismes nécessaires.
+Référence : `MON20_START.md`.
 
 ---
 
@@ -350,15 +230,11 @@ Le modèle reste :
 SourceObjectId + SourceEvent -> TargetObjectId + TargetCommand
 ```
 
-Les objets ne se connaissent pas directement.
+MON19 l’étend sans le remplacer : les nœuds Logic et Lua repassent toujours par le dispatcher et les commandes runtime normales.
 
 ### Mémoire stable
 
-La connaissance durable du projet se trouve sous :
-
-```text
-docs/Design/
-```
+La connaissance durable du projet se trouve sous `docs/Design/`.
 
 Documents autoritaires à maintenir :
 
@@ -370,6 +246,7 @@ MON15_CLOSURE.md
 MON16_CLOSURE.md
 MON17_CLOSURE.md
 MON18_CLOSURE.md
+MON19_CLOSURE.md
 99_DECISIONS_LOG.md
 ```
 
