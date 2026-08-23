@@ -1,6 +1,6 @@
 # MON19.8 — Suite d’énigmes de production, régression et clôture
 
-Statut : **validation ciblée UE5.5.4 réussie — clôture MON19 en attente**  
+Statut : **régression MON19 UE5.5.4 réussie — validation PIE finale en attente**  
 Date : **23 août 2026**  
 Référence de départ : `81d6f5dc6a0730864f68ef86382a34f0a1a50f39` (`Valider MON19.7.1 authoring Lua et LogicId`)
 
@@ -155,22 +155,32 @@ Le log confirme les chemins attendus :
 
 Aucun échec ni erreur Automation n’est présent dans cette suite ciblée.
 
-## 6. Régression MON19 complète — encore requise
+## 6. Régression MON19 complète
 
-Exécuter :
+La suite complète a été exécutée dans UE5.5.4 le 23 août 2026 :
 
 ```text
 Grimrock.MON19
 ```
 
-Le nombre exact de tests dépend de l’ensemble enregistré par UE5.5.4. Critère :
+Résultat observé :
 
 ```text
+55/55 Success
 0 Fail
 0 Error
 ```
 
-Les warnings volontairement produits par les tests de budget, sandbox, source Lua invalide ou cycle Logic restent acceptables lorsque leur test se termine en `Success`.
+La campagne couvre MON19.2 à MON19.8 et se termine proprement par `StopTestSession` après `D_EncounterLuaDoor`.
+
+Les warnings observés sont ceux volontairement produits par les tests de robustesse :
+
+- `cyclic logic target dispatch` dans le test de protection contre les cycles Logic ;
+- variable absente dans le test `InvalidVariable` ;
+- épuisement du budget partagé dans `SharedActionBudget` ;
+- source Lua invalide dans `InvalidCurrentSourceDropsStaleVm`.
+
+Dans chaque cas, le test concerné se termine en `Result={Success}` : ces warnings valident donc le comportement de protection attendu et ne constituent pas des régressions.
 
 ## 7. Validation PIE de clôture — encore requise
 
@@ -190,11 +200,11 @@ Le Puzzle D réel est optionnel si les validations MON13 précédentes restent v
 ```text
 Compilation                             OK
 Grimrock.MON19.8                        4/4 Success
-Grimrock.MON19                          EN ATTENTE
+Grimrock.MON19                         55/55 Success
 PIE puzzle de production représentatif EN ATTENTE
 ```
 
-MON19 sera déclaré **VALIDÉ ET CLOS** lorsque la régression complète et le PIE représentatif seront également fournis depuis UE5.5.4.
+MON19 sera déclaré **VALIDÉ ET CLOS** lorsque le PIE représentatif sera également fourni depuis UE5.5.4.
 
 À ce moment-là :
 
