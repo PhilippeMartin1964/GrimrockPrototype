@@ -35,9 +35,9 @@ Le contrat initial MON20.1 envisageait d’introduire immédiatement `ERPGPartyM
 
 MON20.2 le diffère volontairement : ajouter maintenant un nouveau champ persistant ferait évoluer le contrat SaveGame avant même que les définitions de compagnons scénarisés soient figées.
 
-`PartyMemberKind` sera introduit avec MON20.3, en même temps que le modèle de compagnon et sa stratégie de persistance/migration.
+L’audit de MON20.3 a confirmé qu’un compagnon scénarisé peut conserver une identité durable en réutilisant le `CharacterId` déjà persistant. `PartyMemberKind` est donc reporté à la tranche où réserve/persistance en auront réellement besoin, au lieu de forcer une migration SaveGame prématurée.
 
-Cette décision conserve MON20.2 petit et réversible.
+Cette décision conserve les premières tranches MON20 petites et réversibles.
 
 ## 3. Nouveau service
 
@@ -151,13 +151,15 @@ La fondation de recrutement réutilise bien l’autorité existante `CharacterPo
 La suite autoritaire est :
 
 ```text
-MON20.3 — Story Companion Definition / Recruitment UI
+MON20.3 — Story Companion Definition & Pool Registration
 ```
 
-Cette tranche introduira proprement :
+Cette tranche introduit :
 
-- `ERPGPartyMemberKind` ;
-- définition data-driven du compagnon ;
-- construction d’un candidat complet dans `CharacterPool` ;
-- écran de recrutement scénarisé ;
-- stratégie SaveGame/migration cohérente.
+- une définition data-driven du compagnon ;
+- un `CharacterId` stable défini dans le DataAsset ;
+- la construction d’un candidat complet dans `CharacterPool` ;
+- l’enregistrement idempotent et la détection de collision ;
+- l’intégration avec la transaction MON20.2.
+
+L’écran de recrutement scénarisé est séparé en MON20.4.
