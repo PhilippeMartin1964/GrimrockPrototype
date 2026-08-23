@@ -13,8 +13,33 @@ struct GRIMROCKLUA_API FGridLuaVmConfig
     int32 InstructionBudgetPerCall = 100000;
 };
 
+/** Minimal event context exposed to one MON19.4 callback. */
+struct GRIMROCKLUA_API FGridLuaEventContext
+{
+    FString SourceObjectId;
+    FString EventName;
+};
+
 /**
- * MON19.3.1 Lua 5.4.8 runtime foundation.
+ * Host callbacks backing the safe `grid` Lua API.
+ *
+ * GrimrockLua deliberately knows nothing about UWorld, Actors or gameplay
+ * enums. The owning runtime binds these functions for the duration of one
+ * callback and remains the only authority allowed to mutate gameplay state.
+ */
+struct GRIMROCKLUA_API FGridLuaHostApi
+{
+    TFunction<bool(FName, bool&, FString&)> GetBool;
+    TFunction<bool(FName, bool, FString&)> SetBool;
+    TFunction<bool(FName, int32&, FString&)> GetInt32;
+    TFunction<bool(FName, int32, FString&)> SetInt32;
+    TFunction<bool(const FString&, const FString&, FString&)> Command;
+    TFunction<void(const FString&)> Log;
+};
+
+/**
+ * MON19.3.1 Lua 5.4.8 runtime foundation, extended by MON19.4 with a
+ * host-controlled Event -> Lua callback bridge.
  *
  * The Lua C API is deliberately hidden behind this PIMPL wrapper so no
  * lua_State or Lua header crosses the GrimrockLua module boundary.
@@ -47,6 +72,22 @@ public:
     bool CallFunction (
         FName ScriptId,
         FName FunctionName,
+        FString& OutError);
+
+    /**
+     * MON19.4 event callback. The callback receives one Lua table argument:
+     *
+     *   event.source_object_id
+     *   event.event
+     *
+     * During this protected call only, the script-local `grid` API is backed
+     * by HostApi. Nested host-bound Lua callbacks are rejected explicitly.
+     */
+    bool CallEventFunction (
+        FName ScriptId,
+        FName FunctionName,
+        const FGridLuaEventContext& EventContext,
+        const FGridLuaHostApi& HostApi,
         FString& OutError);
 
     /** Test/diagnostic access to script-local scalar globals. */

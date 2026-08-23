@@ -33,11 +33,10 @@ namespace
         lua_pushnil (State);
         while (lua_next (State, SourceIndex) != 0)
         {
-            // Stack: source ... key value. Duplicate key/value into destination.
             lua_pushvalue (State, -2);
             lua_pushvalue (State, -2);
             lua_rawset (State, DestinationIndex);
-            lua_pop (State, 1); // original value; keep key for lua_next
+            lua_pop (State, 1);
         }
     }
 }
@@ -50,10 +49,22 @@ struct FGridLuaVm::FImpl
     SIZE_T AllocatedBytes = 0;
     int32 RemainingInstructionBudget = 0;
     int32 HookStep = MaximumHookStep;
+    const FGridLuaHostApi* ActiveHost = nullptr;
 
     ~FImpl ()
     {
         Close ();
+    }
+
+    static FImpl* GetSelf (lua_State* InState)
+    {
+        if (!InState)
+        {
+            return nullptr;
+        }
+        FImpl* const* SelfSlot =
+            static_cast<FImpl* const*> (lua_getextraspace (InState));
+        return SelfSlot ? *SelfSlot : nullptr;
     }
 
     static void* LuaAllocator (
@@ -102,9 +113,7 @@ struct FGridLuaVm::FImpl
 
     static void InstructionHook (lua_State* InState, lua_Debug*)
     {
-        FImpl* const* SelfSlot =
-            static_cast<FImpl* const*> (lua_getextraspace (InState));
-        FImpl* Self = SelfSlot ? *SelfSlot : nullptr;
+        FImpl* Self = GetSelf (InState);
         if (!Self)
         {
             luaL_error (InState, "Grimrock Lua instruction hook lost VM context");
@@ -118,6 +127,243 @@ struct FGridLuaVm::FImpl
         }
     }
 
+    static int PushGetFailure (lua_State* InState, const FString& Error)
+    {
+        lua_pushnil (InState);
+        FTCHARToUTF8 ErrorUtf8 (*Error);
+        lua_pushstring (InState, ErrorUtf8.Get ());
+        return 2;
+    }
+
+    static int PushActionResult (
+        lua_State* InState,
+        bool bSuccess,
+        const FString& Error)
+    {
+        lua_pushboolean (InState, bSuccess ? 1 : 0);
+        if (bSuccess)
+        {
+            lua_pushnil (InState);
+        }
+        else
+        {
+            FTCHARToUTF8 ErrorUtf8 (*Error);
+            lua_pushstring (InState, ErrorUtf8.Get ());
+        }
+        return 2;
+    }
+
+    static bool TryReadNameArgument (
+        lua_State* InState,
+        int32 Index,
+        FName& OutName,
+        FString& OutError)
+    {
+        if (lua_type (InState, Index) != LUA_TSTRING)
+        {
+            OutError = TEXT ("Expected a variable name string.");
+            return false;
+        }
+        const char* Value = lua_tostring (InState, Index);
+        if (!Value || Value[0] == '\0')
+        {
+            OutError = TEXT ("Variable name must be non-empty.");
+            return false;
+        }
+        OutName = FName (UTF8_TO_TCHAR (Value));
+        OutError.Reset ();
+        return true;
+    }
+
+    static int LuaGetBool (lua_State* InState)
+    {
+        FImpl* Self = GetSelf (InState);
+        if (!Self || !Self->ActiveHost || !Self->ActiveHost->GetBool)
+        {
+            return PushGetFailure (
+                InState,
+                TEXT ("grid.vars.get_bool is unavailable outside a hosted callback."));
+        }
+
+        FName VariableId;
+        FString Error;
+        if (!TryReadNameArgument (InState, 1, VariableId, Error))
+        {
+            return PushGetFailure (InState, Error);
+        }
+
+        bool bValue = false;
+        if (!Self->ActiveHost->GetBool (VariableId, bValue, Error))
+        {
+            return PushGetFailure (InState, Error);
+        }
+
+        lua_pushboolean (InState, bValue ? 1 : 0);
+        lua_pushnil (InState);
+        return 2;
+    }
+
+    static int LuaSetBool (lua_State* InState)
+    {
+        FImpl* Self = GetSelf (InState);
+        if (!Self || !Self->ActiveHost || !Self->ActiveHost->SetBool)
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.vars.set_bool is unavailable outside a hosted callback."));
+        }
+
+        FName VariableId;
+        FString Error;
+        if (!TryReadNameArgument (InState, 1, VariableId, Error))
+        {
+            return PushActionResult (InState, false, Error);
+        }
+        if (!lua_isboolean (InState, 2))
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.vars.set_bool expects a Bool value."));
+        }
+
+        const bool bValue = lua_toboolean (InState, 2) != 0;
+        const bool bSuccess =
+            Self->ActiveHost->SetBool (VariableId, bValue, Error);
+        return PushActionResult (InState, bSuccess, Error);
+    }
+
+    static int LuaGetInt (lua_State* InState)
+    {
+        FImpl* Self = GetSelf (InState);
+        if (!Self || !Self->ActiveHost || !Self->ActiveHost->GetInt32)
+        {
+            return PushGetFailure (
+                InState,
+                TEXT ("grid.vars.get_int is unavailable outside a hosted callback."));
+        }
+
+        FName VariableId;
+        FString Error;
+        if (!TryReadNameArgument (InState, 1, VariableId, Error))
+        {
+            return PushGetFailure (InState, Error);
+        }
+
+        int32 Value = 0;
+        if (!Self->ActiveHost->GetInt32 (VariableId, Value, Error))
+        {
+            return PushGetFailure (InState, Error);
+        }
+
+        lua_pushinteger (InState, static_cast<lua_Integer> (Value));
+        lua_pushnil (InState);
+        return 2;
+    }
+
+    static int LuaSetInt (lua_State* InState)
+    {
+        FImpl* Self = GetSelf (InState);
+        if (!Self || !Self->ActiveHost || !Self->ActiveHost->SetInt32)
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.vars.set_int is unavailable outside a hosted callback."));
+        }
+
+        FName VariableId;
+        FString Error;
+        if (!TryReadNameArgument (InState, 1, VariableId, Error))
+        {
+            return PushActionResult (InState, false, Error);
+        }
+        if (!lua_isinteger (InState, 2))
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.vars.set_int expects an integer value."));
+        }
+
+        const lua_Integer LuaValue = lua_tointeger (InState, 2);
+        if (LuaValue < static_cast<lua_Integer> (MIN_int32) ||
+            LuaValue > static_cast<lua_Integer> (MAX_int32))
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.vars.set_int value is outside the Int32 range."));
+        }
+
+        const bool bSuccess = Self->ActiveHost->SetInt32 (
+            VariableId,
+            static_cast<int32> (LuaValue),
+            Error);
+        return PushActionResult (InState, bSuccess, Error);
+    }
+
+    static int LuaCommand (lua_State* InState)
+    {
+        FImpl* Self = GetSelf (InState);
+        if (!Self || !Self->ActiveHost || !Self->ActiveHost->Command)
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.command is unavailable outside a hosted callback."));
+        }
+        if (lua_type (InState, 1) != LUA_TSTRING ||
+            lua_type (InState, 2) != LUA_TSTRING)
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.command expects target ObjectId and command name strings."));
+        }
+
+        const char* TargetUtf8 = lua_tostring (InState, 1);
+        const char* CommandUtf8 = lua_tostring (InState, 2);
+        const FString Target = TargetUtf8
+            ? FString (UTF8_TO_TCHAR (TargetUtf8))
+            : FString ();
+        const FString Command = CommandUtf8
+            ? FString (UTF8_TO_TCHAR (CommandUtf8))
+            : FString ();
+
+        FString Error;
+        const bool bSuccess =
+            Self->ActiveHost->Command (Target, Command, Error);
+        return PushActionResult (InState, bSuccess, Error);
+    }
+
+    static int LuaLog (lua_State* InState)
+    {
+        FImpl* Self = GetSelf (InState);
+        if (!Self || !Self->ActiveHost || !Self->ActiveHost->Log)
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.log is unavailable outside a hosted callback."));
+        }
+        if (lua_type (InState, 1) != LUA_TSTRING)
+        {
+            return PushActionResult (
+                InState,
+                false,
+                TEXT ("grid.log expects a string."));
+        }
+
+        const char* MessageUtf8 = lua_tostring (InState, 1);
+        Self->ActiveHost->Log (
+            MessageUtf8
+                ? FString (UTF8_TO_TCHAR (MessageUtf8))
+                : FString ());
+        return PushActionResult (InState, true, FString ());
+    }
+
     bool Initialize (FString& OutError)
     {
         State = lua_newstate (&FImpl::LuaAllocator, this);
@@ -129,8 +375,6 @@ struct FGridLuaVm::FImpl
 
         *static_cast<FImpl**> (lua_getextraspace (State)) = this;
 
-        // Open only the libraries used to construct script-local safe _ENV tables.
-        // The actual Lua global table is never exposed to scripts.
         luaL_requiref (State, "_G", luaopen_base, 1);
         lua_pop (State, 1);
         luaL_requiref (State, LUA_MATHLIBNAME, luaopen_math, 1);
@@ -148,6 +392,7 @@ struct FGridLuaVm::FImpl
 
     void Close ()
     {
+        ActiveHost = nullptr;
         EnvironmentRefByScriptId.Reset ();
         if (State)
         {
@@ -211,12 +456,34 @@ struct FGridLuaVm::FImpl
                 CloneLuaTable (State, -1);
                 lua_setfield (State, EnvironmentIndex, LibraryName);
             }
-            lua_pop (State, 1); // source library or nil
+            lua_pop (State, 1);
         }
 
-        // _G is script-local; scripts cannot reach Lua's hidden process globals.
         lua_pushvalue (State, EnvironmentIndex);
         lua_setfield (State, EnvironmentIndex, "_G");
+    }
+
+    void PushGridApi ()
+    {
+        lua_newtable (State);
+        const int32 GridIndex = lua_absindex (State, -1);
+
+        lua_newtable (State);
+        const int32 VarsIndex = lua_absindex (State, -1);
+        lua_pushcfunction (State, &FImpl::LuaGetBool);
+        lua_setfield (State, VarsIndex, "get_bool");
+        lua_pushcfunction (State, &FImpl::LuaSetBool);
+        lua_setfield (State, VarsIndex, "set_bool");
+        lua_pushcfunction (State, &FImpl::LuaGetInt);
+        lua_setfield (State, VarsIndex, "get_int");
+        lua_pushcfunction (State, &FImpl::LuaSetInt);
+        lua_setfield (State, VarsIndex, "set_int");
+        lua_setfield (State, GridIndex, "vars");
+
+        lua_pushcfunction (State, &FImpl::LuaCommand);
+        lua_setfield (State, GridIndex, "command");
+        lua_pushcfunction (State, &FImpl::LuaLog);
+        lua_setfield (State, GridIndex, "log");
     }
 
     bool ExecuteProtectedFunction (
@@ -309,6 +576,13 @@ struct FGridLuaVm::FImpl
             return false;
         }
 
+        // Install the safe host bridge only after top-level initialization.
+        // Native functions remain inert unless CallEventFunction binds a host.
+        lua_rawgeti (State, LUA_REGISTRYINDEX, EnvironmentRef);
+        PushGridApi ();
+        lua_setfield (State, -2, "grid");
+        lua_pop (State, 1);
+
         EnvironmentRefByScriptId.Add (Script.ScriptId, EnvironmentRef);
         lua_settop (State, BaseTop);
         OutError.Reset ();
@@ -343,7 +617,7 @@ struct FGridLuaVm::FImpl
         lua_rawgeti (State, LUA_REGISTRYINDEX, *EnvironmentRef);
         FTCHARToUTF8 GlobalNameUtf8 (*GlobalName.ToString ());
         lua_getfield (State, -1, GlobalNameUtf8.Get ());
-        lua_remove (State, -2); // leave global value only
+        lua_remove (State, -2);
         OutError.Reset ();
         return true;
     }
@@ -452,6 +726,71 @@ bool FGridLuaVm::CallFunction (
     {
         OutError = FString::Printf (
             TEXT ("Lua callback '%s.%s' failed: %s"),
+            *ScriptId.ToString (),
+            *FunctionName.ToString (),
+            *ExecutionError);
+    }
+
+    lua_settop (Impl->State, BaseTop);
+    if (bSuccess)
+    {
+        OutError.Reset ();
+    }
+    return bSuccess;
+}
+
+bool FGridLuaVm::CallEventFunction (
+    FName ScriptId,
+    FName FunctionName,
+    const FGridLuaEventContext& EventContext,
+    const FGridLuaHostApi& HostApi,
+    FString& OutError)
+{
+    if (!IsReady ())
+    {
+        OutError = TEXT ("Lua VM is not ready.");
+        return false;
+    }
+    if (Impl->ActiveHost)
+    {
+        OutError = TEXT ("Nested hosted Lua callbacks are not supported.");
+        return false;
+    }
+
+    const int32 BaseTop = lua_gettop (Impl->State);
+    if (!Impl->PushScriptGlobal (ScriptId, FunctionName, OutError))
+    {
+        lua_settop (Impl->State, BaseTop);
+        return false;
+    }
+    if (!lua_isfunction (Impl->State, -1))
+    {
+        OutError = FString::Printf (
+            TEXT ("Lua '%s.%s' is not a function."),
+            *ScriptId.ToString (),
+            *FunctionName.ToString ());
+        lua_settop (Impl->State, BaseTop);
+        return false;
+    }
+
+    lua_newtable (Impl->State);
+    FTCHARToUTF8 SourceUtf8 (*EventContext.SourceObjectId);
+    lua_pushstring (Impl->State, SourceUtf8.Get ());
+    lua_setfield (Impl->State, -2, "source_object_id");
+    FTCHARToUTF8 EventUtf8 (*EventContext.EventName);
+    lua_pushstring (Impl->State, EventUtf8.Get ());
+    lua_setfield (Impl->State, -2, "event");
+
+    Impl->ActiveHost = &HostApi;
+    FString ExecutionError;
+    const bool bSuccess =
+        Impl->ExecuteProtectedFunction (1, 0, ExecutionError);
+    Impl->ActiveHost = nullptr;
+
+    if (!bSuccess)
+    {
+        OutError = FString::Printf (
+            TEXT ("Lua event callback '%s.%s' failed: %s"),
             *ScriptId.ToString (),
             *FunctionName.ToString (),
             *ExecutionError);

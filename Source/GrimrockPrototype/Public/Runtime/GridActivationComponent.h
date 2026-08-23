@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Core/GridTypes.h"
+#include "GridLuaVm.h"
 #include "GridActivationComponent.generated.h"
 
 class AGridLevelRuntimeActor;
@@ -34,10 +35,13 @@ public:
 
     void RebuildIndexes ();
 
+    /** Reloads the MON19 Lua VM from the current LevelAsset scripts. */
+    bool ReloadLuaRuntime (FString* OutError = nullptr);
+
     const TSet<FGuid>& GetActiveObjectIds () const { return ActiveObjectIds; }
     void SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds);
 
-	// Debugging
+    // Debugging
     FString GetDebugSummary () const;
     void LogDebugSummary () const;
 
@@ -50,7 +54,19 @@ private:
 
     TSet<FGuid> DispatchingSourceObjectIds;
 
+    /** One Lua VM per active runtime component/level. Not serialized. */
+    FGridLuaVm LuaVm;
+
+    /** Prevents synchronous Lua -> command -> Lua callback re-entry. */
+    bool bExecutingLuaCallback = false;
+
+    /** Shared Event -> Command -> Lua action budget for one root dispatch. */
+    int32 RuntimeDispatchDepth = 0;
+    int32 RuntimeActionBudgetRemaining = 0;
+
 private:
+    static constexpr int32 MaxRuntimeActionBudget = 128;
+
     const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
     const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
 
@@ -58,6 +74,13 @@ private:
 
     bool ExecuteLinksFromObjectForEventInternal (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
     bool ApplyLinkCommand (const FGridObjectLink& LinkData);
+    bool ExecuteLuaCallbackLink (const FGridObjectLink& LinkData);
+    bool ExecuteLuaIssuedCommand (
+        FGuid SourceObjectId,
+        const FString& TargetObjectId,
+        const FString& CommandName,
+        FString& OutError);
+    bool ConsumeRuntimeActionBudget (const TCHAR* ActionLabel);
     bool EvaluateGridObjectLinkCondition (const FGridObjectLink& LinkData, AActor* SourceActor, AActor* TargetActor) const;
     bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
     bool ApplyReceptacleLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);

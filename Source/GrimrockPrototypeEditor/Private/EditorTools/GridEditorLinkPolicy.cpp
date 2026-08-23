@@ -214,6 +214,8 @@ namespace GridEditorLinkPolicy
             A.TargetObjectId == B.TargetObjectId &&
             A.SourceEvent == B.SourceEvent &&
             A.Command == B.Command &&
+            A.LuaScriptId == B.LuaScriptId &&
+            A.LuaCallbackName == B.LuaCallbackName &&
             A.Condition == B.Condition &&
             A.ConditionVariableId == B.ConditionVariableId &&
             A.ConditionBoolValue == B.ConditionBoolValue &&

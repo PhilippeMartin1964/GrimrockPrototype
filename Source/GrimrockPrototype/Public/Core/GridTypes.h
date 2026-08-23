@@ -92,7 +92,8 @@ enum class EGridObjectCommand : uint8
     ReceptacleDisableRemoval = 18  UMETA (DisplayName = "Receptacle Disable Removal"),
     StartEncounter = 19            UMETA (DisplayName = "Start Encounter"),
     LogicExecute = 20              UMETA (DisplayName = "Logic Execute"),
-    LogicReset = 21                UMETA (DisplayName = "Logic Reset")
+    LogicReset = 21                UMETA (DisplayName = "Logic Reset"),
+    LuaCallback = 22               UMETA (DisplayName = "Lua Callback")
 };
 
 UENUM (BlueprintType)
@@ -285,6 +286,14 @@ struct FGridObjectLink
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite)
     EGridObjectCommand Command = EGridObjectCommand::Toggle;
+
+    /** MON19.4 ScriptId used only when Command == LuaCallback. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lua")
+    FName LuaScriptId = NAME_None;
+
+    /** MON19.4 callback function used only when Command == LuaCallback. */
+    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Lua")
+    FName LuaCallbackName = NAME_None;
 
     UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Condition")
     EGridObjectCondition Condition = EGridObjectCondition::None;

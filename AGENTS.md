@@ -23,6 +23,9 @@
 - Les corrections découvertes avant livraison doivent être intégrées dans ce même commit final ; ne jamais publier de commit séparé `Fix...`, `Fix includes...`, `Cleanup...` ou équivalent pour la même étape.
 - Avant toute publication, vérifier que l'écart entre le commit de départ de l'étape et le HEAD publié contient exactement un commit, sauf demande explicite contraire de l'utilisateur.
 - Si plusieurs commits intermédiaires ont été créés localement ou techniquement, les regrouper avant toute mise à jour de `origin/master`.
+- AUTORISATION PERMANENTE : si ChatGPT ou un outil qu'il pilote crée accidentellement sur `master` un commit parasite, vide, intermédiaire ou techniquement indésirable, ChatGPT est autorisé à réécrire immédiatement `master` par force-push/reset vers le dernier état vérifié puis à republier l'étape sous forme atomique, sans demander une nouvelle confirmation.
+- Cette autorisation de réécriture ne couvre que les commits créés par ChatGPT ou ses outils pendant le travail en cours. Ne jamais supprimer ni réécrire un commit utilisateur ou un changement distant imprévu sans instruction explicite.
+- Avant toute réécriture automatique, vérifier le parent et la divergence distante ; après la réécriture, relire `master` et vérifier que le commit parasite n'est plus atteignable depuis la branche.
 
 ## Unreal Engine
 
@@ -47,5 +50,6 @@
   3. pousser automatiquement ce commit unique sur `origin/master`.
 - Ne jamais utiliser un workflow qui crée un commit par fichier ou un commit par correction intermédiaire.
 - Ne jamais demander une confirmation supplémentaire avant un commit ou un push ordinaire.
-- S’arrêter uniquement en cas de divergence distante, de changements utilisateur imprévus, de force-push, de rebase/reset destructif ou de blocage technique réel.
-- Si l’environnement interdit le push, ne pas demander à nouveau l’autorisation : conserver le commit local et fournir directement la commande exacte à exécuter.
+- Ne pas demander de confirmation pour un force-push destiné exclusivement à retirer des commits accidentels créés par ChatGPT ou ses outils pendant l'étape en cours ; appliquer alors les garde-fous de la section Git.
+- S'arrêter uniquement en cas de divergence distante ou de changements utilisateur imprévus, de réécriture qui toucherait un commit utilisateur, ou de blocage technique réel.
+- Si l'environnement interdit le push, ne pas demander à nouveau l'autorisation : conserver le commit local et fournir directement la commande exacte à exécuter.

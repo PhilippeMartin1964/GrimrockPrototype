@@ -113,12 +113,49 @@ UGridActivationComponent::UGridActivationComponent ()
 void UGridActivationComponent::Initialize (AGridLevelRuntimeActor* InRuntime)
 {
     RuntimeActor = InRuntime;
+
+    FString LuaError;
+    if (!ReloadLuaRuntime (&LuaError) && !LuaError.IsEmpty ())
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid Lua runtime initialization failed: %s"),
+            *LuaError);
+    }
 }
 
 void UGridActivationComponent::ResetRuntimeState ()
 {
     ActiveObjectIds.Reset ();
     DispatchingSourceObjectIds.Reset ();
+    RuntimeDispatchDepth = 0;
+    RuntimeActionBudgetRemaining = 0;
+    bExecutingLuaCallback = false;
+    LuaVm.Reset ();
+}
+
+bool UGridActivationComponent::ReloadLuaRuntime (FString* OutError)
+{
+    FString Error;
+    if (!RuntimeActor || !RuntimeActor->LevelAsset)
+    {
+        LuaVm.Reset ();
+        Error = TEXT ("Cannot load Lua runtime without a current LevelAsset.");
+        if (OutError)
+        {
+            *OutError = Error;
+        }
+        return false;
+    }
+
+    const bool bSuccess = LuaVm.Reload (
+        RuntimeActor->LevelAsset->LuaScripts,
+        FGridLuaVmConfig (),
+        Error);
+    if (OutError)
+    {
+        *OutError = Error;
+    }
+    return bSuccess;
 }
 
 void UGridActivationComponent::SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds)
@@ -342,12 +379,267 @@ bool UGridActivationComponent::RefreshAllPressurePlates ()
     return bAnyStateChanged;
 }
 
+bool UGridActivationComponent::ConsumeRuntimeActionBudget (const TCHAR* ActionLabel)
+{
+    if (RuntimeDispatchDepth <= 0)
+    {
+        return true;
+    }
+    if (RuntimeActionBudgetRemaining <= 0)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid runtime action rejected: Action=%s Reason=shared Event/Command/Lua budget exhausted"),
+            ActionLabel ? ActionLabel : TEXT ("Unknown"));
+        return false;
+    }
+
+    --RuntimeActionBudgetRemaining;
+    return true;
+}
+
+bool UGridActivationComponent::ExecuteLuaIssuedCommand (
+    FGuid SourceObjectId,
+    const FString& TargetObjectId,
+    const FString& CommandName,
+    FString& OutError)
+{
+    FGuid TargetId;
+    if (!FGuid::Parse (TargetObjectId, TargetId) || !TargetId.IsValid ())
+    {
+        OutError = FString::Printf (
+            TEXT ("grid.command target ObjectId '%s' is invalid."),
+            *TargetObjectId);
+        return false;
+    }
+
+    const UEnum* CommandEnum = StaticEnum<EGridObjectCommand> ();
+    const int64 CommandValue = CommandEnum
+        ? CommandEnum->GetValueByNameString (CommandName)
+        : INDEX_NONE;
+    if (CommandValue == INDEX_NONE)
+    {
+        OutError = FString::Printf (
+            TEXT ("grid.command command '%s' is unknown."),
+            *CommandName);
+        return false;
+    }
+
+    const EGridObjectCommand Command =
+        static_cast<EGridObjectCommand> (CommandValue);
+    if (Command == EGridObjectCommand::LuaCallback)
+    {
+        OutError = TEXT ("grid.command cannot invoke LuaCallback directly.");
+        return false;
+    }
+
+    FGridObjectLink SyntheticLink;
+    SyntheticLink.SourceObjectId = SourceObjectId;
+    SyntheticLink.TargetObjectId = TargetId;
+    SyntheticLink.SourceEvent = EGridObjectEvent::Activated;
+    SyntheticLink.Command = Command;
+    SyntheticLink.Condition = EGridObjectCondition::None;
+
+    if (!ApplyLinkCommand (SyntheticLink))
+    {
+        OutError = FString::Printf (
+            TEXT ("grid.command failed: Target=%s Command=%s"),
+            *TargetObjectId,
+            *CommandName);
+        return false;
+    }
+
+    OutError.Reset ();
+    return true;
+}
+
+bool UGridActivationComponent::ExecuteLuaCallbackLink (
+    const FGridObjectLink& LinkData)
+{
+    if (!RuntimeActor || !RuntimeActor->LevelAsset)
+    {
+        return false;
+    }
+    if (LinkData.LuaScriptId.IsNone () ||
+        LinkData.LuaCallbackName.IsNone ())
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid Lua callback rejected: Source=%s Script=%s Callback=%s Reason=missing ScriptId or CallbackName"),
+            *LinkData.SourceObjectId.ToString (),
+            *LinkData.LuaScriptId.ToString (),
+            *LinkData.LuaCallbackName.ToString ());
+        return false;
+    }
+    if (bExecutingLuaCallback)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid Lua callback rejected: Source=%s Script=%s Callback=%s Reason=nested Lua callback dispatch"),
+            *LinkData.SourceObjectId.ToString (),
+            *LinkData.LuaScriptId.ToString (),
+            *LinkData.LuaCallbackName.ToString ());
+        return false;
+    }
+
+    if (!LuaVm.IsReady ())
+    {
+        FString ReloadError;
+        if (!ReloadLuaRuntime (&ReloadError))
+        {
+            UE_LOG (LogTemp, Warning,
+                TEXT ("Grid Lua callback rejected: Script=%s Callback=%s Reason=%s"),
+                *LinkData.LuaScriptId.ToString (),
+                *LinkData.LuaCallbackName.ToString (),
+                *ReloadError);
+            return false;
+        }
+    }
+
+    FGridLevelRuntimeState* RuntimeState =
+        RuntimeActor->GetOrCreateRuntimeStateForCurrentLevel ();
+    if (!RuntimeState)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid Lua callback rejected: Script=%s Callback=%s Reason=missing current-level runtime state"),
+            *LinkData.LuaScriptId.ToString (),
+            *LinkData.LuaCallbackName.ToString ());
+        return false;
+    }
+
+    FGridLuaHostApi HostApi;
+    HostApi.GetBool = [this, RuntimeState] (
+        FName VariableId,
+        bool& OutValue,
+        FString& OutError)
+    {
+        return GridLevelVariableStore::TryGetBool (
+            *RuntimeActor->LevelAsset,
+            *RuntimeState,
+            VariableId,
+            OutValue,
+            OutError);
+    };
+    HostApi.SetBool = [this, RuntimeState] (
+        FName VariableId,
+        bool bValue,
+        FString& OutError)
+    {
+        return GridLevelVariableStore::SetBool (
+            *RuntimeActor->LevelAsset,
+            *RuntimeState,
+            VariableId,
+            bValue,
+            OutError);
+    };
+    HostApi.GetInt32 = [this, RuntimeState] (
+        FName VariableId,
+        int32& OutValue,
+        FString& OutError)
+    {
+        return GridLevelVariableStore::TryGetInt32 (
+            *RuntimeActor->LevelAsset,
+            *RuntimeState,
+            VariableId,
+            OutValue,
+            OutError);
+    };
+    HostApi.SetInt32 = [this, RuntimeState] (
+        FName VariableId,
+        int32 Value,
+        FString& OutError)
+    {
+        return GridLevelVariableStore::SetInt32 (
+            *RuntimeActor->LevelAsset,
+            *RuntimeState,
+            VariableId,
+            Value,
+            OutError);
+    };
+    HostApi.Command = [this, SourceObjectId = LinkData.SourceObjectId] (
+        const FString& TargetObjectId,
+        const FString& CommandName,
+        FString& OutError)
+    {
+        return ExecuteLuaIssuedCommand (
+            SourceObjectId,
+            TargetObjectId,
+            CommandName,
+            OutError);
+    };
+    HostApi.Log = [ScriptId = LinkData.LuaScriptId] (const FString& Message)
+    {
+        UE_LOG (LogTemp, Log,
+            TEXT ("[GridLua:%s] %s"),
+            *ScriptId.ToString (),
+            *Message);
+    };
+
+    FGridLuaEventContext EventContext;
+    EventContext.SourceObjectId = LinkData.SourceObjectId.ToString ();
+    EventContext.EventName = GridObjectEventToString (LinkData.SourceEvent);
+
+    bExecutingLuaCallback = true;
+    FString LuaError;
+    const bool bSuccess = LuaVm.CallEventFunction (
+        LinkData.LuaScriptId,
+        LinkData.LuaCallbackName,
+        EventContext,
+        HostApi,
+        LuaError);
+    bExecutingLuaCallback = false;
+
+    if (!bSuccess)
+    {
+        UE_LOG (LogTemp, Warning,
+            TEXT ("Grid Lua callback failed: Source=%s Event=%s Script=%s Callback=%s Reason=%s"),
+            *LinkData.SourceObjectId.ToString (),
+            *GridObjectEventToString (LinkData.SourceEvent),
+            *LinkData.LuaScriptId.ToString (),
+            *LinkData.LuaCallbackName.ToString (),
+            *LuaError);
+        return false;
+    }
+
+    UE_LOG (LogTemp, Log,
+        TEXT ("Grid Lua callback executed: Source=%s Event=%s Script=%s Callback=%s"),
+        *LinkData.SourceObjectId.ToString (),
+        *GridObjectEventToString (LinkData.SourceEvent),
+        *LinkData.LuaScriptId.ToString (),
+        *LinkData.LuaCallbackName.ToString ());
+    return true;
+}
+
 bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData)
 {
     if (!RuntimeActor)
     {
         LogLinkResult (LinkData, LinkData.Command, false, TEXT ("missing runtime actor"));
         return false;
+    }
+    if (!ConsumeRuntimeActionBudget (
+            LinkData.Command == EGridObjectCommand::LuaCallback
+                ? TEXT ("LuaCallback")
+                : TEXT ("ObjectCommand")))
+    {
+        LogLinkResult (
+            LinkData,
+            LinkData.Command,
+            false,
+            TEXT ("shared runtime action budget exhausted"));
+        return false;
+    }
+
+    AActor* SourceActor =
+        RuntimeActor->FindRuntimeObjectActor<AActor> (LinkData.SourceObjectId);
+
+    if (LinkData.Command == EGridObjectCommand::LuaCallback)
+    {
+        if (!EvaluateGridObjectLinkCondition (
+                LinkData,
+                SourceActor,
+                nullptr))
+        {
+            return false;
+        }
+        return ExecuteLuaCallbackLink (LinkData);
     }
 
     const FGridLevelObjectData* TargetObject = FindObjectById (LinkData.TargetObjectId);
@@ -357,7 +649,6 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
         return false;
     }
 
-    AActor* SourceActor = RuntimeActor->FindRuntimeObjectActor<AActor> (LinkData.SourceObjectId);
     AActor* TargetActor = RuntimeActor->FindRuntimeObjectActor<AActor> (LinkData.TargetObjectId);
     if (!EvaluateGridObjectLinkCondition (LinkData, SourceActor, TargetActor))
     {
@@ -740,7 +1031,23 @@ bool UGridActivationComponent::ExecuteLinksFromObjectForEvent (
     FGuid SourceObjectId,
     EGridObjectEvent SourceEvent)
 {
-    return ExecuteLinksFromObjectForEventInternal (SourceObjectId, SourceEvent);
+    const bool bRootDispatch = RuntimeDispatchDepth == 0;
+    if (bRootDispatch)
+    {
+        RuntimeActionBudgetRemaining = MaxRuntimeActionBudget;
+    }
+
+    ++RuntimeDispatchDepth;
+    const bool bResult = ExecuteLinksFromObjectForEventInternal (
+        SourceObjectId,
+        SourceEvent);
+    --RuntimeDispatchDepth;
+
+    if (bRootDispatch)
+    {
+        RuntimeActionBudgetRemaining = 0;
+    }
+    return bResult;
 }
 
 bool UGridActivationComponent::ExecuteLinksFromObjectForEventInternal (
@@ -1211,13 +1518,14 @@ bool UGridActivationComponent::ActivateReceptacle (
 FString UGridActivationComponent::GetDebugSummary () const
 {
     return FString::Printf (
-        TEXT ("Activation | Objects=%d Links=%d Interactables=%d Plates=%d Triggers=%d Active=%d"),
+        TEXT ("Activation | Objects=%d Links=%d Interactables=%d Plates=%d Triggers=%d Active=%d LuaScripts=%d"),
         ObjectIndexById.Num (),
         LinkIndexesBySource.Num (),
         InteractableObjectIndexByEdge.Num (),
         PressurePlateIndexesByCell.Num (),
         TriggerIndexesByCell.Num (),
-        ActiveObjectIds.Num ()
+        ActiveObjectIds.Num (),
+        LuaVm.GetLoadedScriptCount ()
     );
 }
 
