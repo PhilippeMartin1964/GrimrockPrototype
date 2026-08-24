@@ -1,7 +1,7 @@
 # MON20.9.4 — Skill Projection / Skills Page Restore Regression
 
 Date : **24 août 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE**
+Statut : **VALIDÉ UE5.5.4 — 8/8 SUCCESS — 24/24 CUMULÉS MON20.9**
 
 ## 1. Objectif
 
@@ -42,7 +42,7 @@ Aucun `RequirementId`, état d'action ou état de page n'est sauvegardé.
 
 ### 3.1 SkillId
 
-Un rang restauré strictement positif doit immédiatement satisfaire son propre `SkillId`.
+Un rang restauré strictement positif satisfait immédiatement son propre `SkillId`.
 
 ```text
 Skill_Lockpicking rank 2 restored
@@ -58,15 +58,15 @@ rank >= MinimumRank
     -> GrantedRequirementIds satisfied
 ```
 
-Un rang inférieur au seuil ne doit jamais sur-déverrouiller une capacité.
+Un rang inférieur au seuil ne sur-déverrouille jamais une capacité.
 
 ### 3.3 Actions
 
-Une action gated par un requirement Skill restauré doit devenir disponible via le catalogue existant. Une action dont le seuil n'est pas atteint reste verrouillée et conserve son diagnostic `MissingRequirements`.
+Une action gated par un requirement Skill restauré devient disponible via le catalogue existant. Une action dont le seuil n'est pas atteint reste verrouillée et conserve son diagnostic `MissingRequirements`.
 
 ### 3.4 Page Compétences
 
-`FGridSkillsPageService` doit lire directement le rang restauré et afficher :
+`FGridSkillsPageService` lit directement le rang restauré et affiche :
 
 ```text
 Rank
@@ -74,13 +74,13 @@ MaxRank
 bTrained
 ```
 
-La variante personnage sélectionné doit continuer à suivre `SelectedCharacterIndex`.
+La variante personnage sélectionné continue à suivre `SelectedCharacterIndex`.
 
 ### 3.5 Snapshot vide
 
 Le snapshot Skill persistant est autoritaire.
 
-Un restore avec `CharacterSkillStates=[]` supprime donc tout `SkillRanks` transient préexistant. Les consumers doivent ensuite voir :
+Un restore avec `CharacterSkillStates=[]` supprime donc tout `SkillRanks` transient préexistant. Les consumers voient ensuite :
 
 ```text
 rank = 0
@@ -94,7 +94,7 @@ Un restore invalide reste atomique. Les consumers continuent de voir l'état run
 
 ## 4. Tests Automation
 
-Nouveau filtre :
+Filtre :
 
 ```text
 Grimrock.MON20.9.RestoredConsumers
@@ -103,14 +103,14 @@ Grimrock.MON20.9.RestoredConsumers
 Tests :
 
 ```text
+EmptySnapshotClearsTransientConsumers
+InvalidRestorePreservesConsumers
+RestoreBelowThresholdKeepsActionLocked
 RestoreProjectsSkillId
 RestoreProjectsThresholdRequirement
 RestoreUnlocksAction
-RestoreBelowThresholdKeepsActionLocked
-RestoreUpdatesSkillsPage
 RestoreUpdatesSelectedCharacterPage
-EmptySnapshotClearsTransientConsumers
-InvalidRestorePreservesConsumers
+RestoreUpdatesSkillsPage
 ```
 
 ## 5. Couverture détaillée
@@ -153,57 +153,66 @@ InvalidRestorePreservesConsumers
 - le restore échoue atomiquement ;
 - le rang, la projection et la page restent sur l'état valide précédent.
 
-## 6. Critères de sortie
+## 6. Validation UE5.5.4 fournie
+
+Campagne exécutée le **24 août 2026**.
+
+Résultat ciblé :
+
+```text
+Grimrock.MON20.9.RestoredConsumers
+
+8 / 8 Success
+0 Fail
+0 Error
+```
+
+Résultat cumulatif :
+
+```text
+Grimrock.MON20.9
+
+SkillPersistence        8/8 Success
+ActivePoolPersistence   8/8 Success
+RestoredConsumers       8/8 Success
+---------------------------
+TOTAL                   24/24 Success
+0 Fail
+0 Error
+```
+
+Cette validation confirme simultanément :
 
 ```text
 rang restauré -> SkillId                  OK
 rang restauré -> threshold RequirementId  OK
 action gated restaurée                    débloquée
 seuil non atteint                         reste verrouillé
+MissingRequirements                       cohérent
 page Compétences                          rang restauré visible
 personnage sélectionné                    autorité conservée
 snapshot vide                             consumers remis à zéro
 restore invalide                          consumers antérieurs préservés
 ```
 
-## 7. Validation demandée
+Aucun PIE n'était requis pour MON20.9.4 : aucun asset ni comportement visuel n'a été modifié dans cette tranche.
 
-Après compilation UE5.5.4 :
+## 7. Conclusion
 
-```text
-Grimrock.MON20.9.RestoredConsumers
-```
+MON20.9.4 est **VALIDÉ UE5.5.4 — 8/8**.
 
-Attendu :
+La campagne cumulative MON20.9 est désormais :
 
 ```text
-8 / 8 Success
-0 Fail
-0 Error
+24 / 24 Success
 ```
 
-Puis campagne cumulative :
-
-```text
-Grimrock.MON20.9
-```
-
-Attendu après MON20.9.4 :
-
-```text
-SkillPersistence        8/8
-ActivePoolPersistence   8/8
-RestoredConsumers       8/8
----------------------------
-TOTAL                  24/24
-```
-
-Aucun PIE n'est requis pour cette tranche : le rendu UMG a déjà été validé en MON20.8.4 et MON20.9.4 ne modifie aucun asset.
+Aucune nouvelle abstraction parallèle n'a été introduite et les `RequirementIds` restent strictement dérivés.
 
 ## 8. Suite
-
-Après validation :
 
 ```text
 MON20.9.5 — Automation / PIE Regression & Closure
 ```
+
+MON20.9.5 doit consolider la campagne Automation déjà verte et effectuer le dernier smoke test PIE de la frontière Save/Continue avant fermeture de MON20.9.
