@@ -1,6 +1,6 @@
 # MON20.5.3 — Wizard Context Reuse
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 16/16 AUTOMATION TESTS SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -229,32 +229,41 @@ WizardNewGameSubmitRegression
 
 Les 9 tests MON20.5.2 restent présents.
 
-Total attendu après MON20.5.3 :
+Validation réalisée dans UE5.5.4 le 24 août 2026 :
 
 ```text
-16 tests
+16 / 16 Success
+0 Fail
 ```
 
-Critères principaux :
+Le journal utilisateur confirme notamment :
 
 ```text
-NewGame par défaut                  -> inchangé
-party terminée + place disponible  -> CustomRecruit submit autorisé
-party initiale absente             -> CustomRecruit refusé
-party pleine                        -> CustomRecruit refusé sans mutation
-submit wizard CustomRecruit         -> ajoute exactement une recrue
-cancel CustomRecruit                -> aucun changement du groupe
-submit wizard NewGame               -> création initiale toujours fonctionnelle
+WizardCustomCancelNoMutation  -> Success
+WizardCustomRecruitSubmit     -> Success
+WizardNewGameSubmitRegression -> Success
 ```
+
+Le submit CustomRecruit produit bien :
+
+```text
+CharacterCreationWizard RecruitedCustomCharacter Name=Ariane Race=Human Class=Warrior CharacterIndex=1
+```
+
+et la non-régression New Game produit toujours :
+
+```text
+CharacterCreationWizard CreatedCharacter Name=Héros Race=Human Class=Warrior
+```
+
+MON20.5.3 est donc validé sous l’éditeur cible.
 
 ---
 
-## 10. Suite après validation
-
-Après compilation + `16 / 16 Success` :
+## 10. Suite
 
 ```text
 MON20.5.4 — Custom Recruit Modal Runtime Integration
 ```
 
-Cette tranche branchera les delegates de MON20.5.3 sur `AGrimrockPartyPawn`, réutilisera la garde d’input existante et permettra d’ouvrir/fermer le même WBP pendant l’aventure.
+Cette tranche branche les delegates de MON20.5.3 sur `AGrimrockPartyPawn`, réutilise la garde d’input existante et permet d’ouvrir/fermer le même WBP pendant l’aventure.
