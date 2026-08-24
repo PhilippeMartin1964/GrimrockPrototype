@@ -55,7 +55,7 @@ MON20.8 — Cross-System Requirements / Actions / UI        VALIDÉ UE5.5.4 — 
   MON20.8.5 — Automation / PIE Regression & Closure               CLOS
 MON20.9 — Persistence / Migration                         EN COURS
   MON20.9.1 — Audit & Architecture Contract              TERMINÉ
-  MON20.9.2 — Skill Rank Save Snapshot + v8 Migration   PROCHAIN
+  MON20.9.2 — Skill Rank Save Snapshot + v8 Migration   IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
   MON20.9.3 — Active/Pool Character Persistence Regression
   MON20.9.4 — Skill Projection / Skills Page Restore Regression
   MON20.9.5 — Automation / PIE Regression & Closure
@@ -273,7 +273,7 @@ Décisions :
 - `FRPGTalentRuntimeService` reste une façade read-only sans état ;
 - le Level Up existant expose le vocabulaire Talent sans nouveau workflow ;
 - les effets transversaux utilisent `RequirementIds` ;
-- `CurrentSaveVersion` reste 7.
+- `CurrentSaveVersion` reste 7 à la clôture de MON20.7.
 
 Découpage final :
 
@@ -405,11 +405,24 @@ SkillRanks runtime restent Transient
 
 La migration v7 -> v8 initialise un snapshot Skill vide : aucun rang ne peut être inventé puisque les rangs étaient volontairement runtime-only en v7. Les RequirementIds restent dérivés et ne sont jamais sauvegardés.
 
+MON20.9.2 est implémenté :
+
+```text
+FRPGSkillRankSaveState
+FRPGCharacterSkillSaveState
+FRPGSkillPersistence
+CharacterSkillStates dans UGrimrockPartySaveGame
+CurrentSaveVersion = 8
+migration explicite v7 -> v8
+```
+
+La capture et le restore couvrent personnages actifs + réserve, utilisent uniquement `CharacterId`, résolvent les définitions canoniques `RPGSkill:<SkillId>` et sont atomiques. Les chemins legacy v1-v7 initialisent le domaine Skill vide lorsqu'il n'existait pas.
+
 Découpage :
 
 ```text
 MON20.9.1 — Audit & Architecture Contract                     TERMINÉ
-MON20.9.2 — Skill Rank Save Snapshot + v8 Migration           PROCHAIN
+MON20.9.2 — Skill Rank Save Snapshot + v8 Migration           IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
 MON20.9.3 — Active/Pool Character Persistence Regression
 MON20.9.4 — Skill Projection / Skills Page Restore Regression
 MON20.9.5 — Automation / PIE Regression & Closure
@@ -419,6 +432,7 @@ Documents :
 
 ```text
 docs/Design/MON20_9_1_PERSISTENCE_MIGRATION_ARCHITECTURE_CONTRACT.md
+docs/Design/MON20_9_2_SKILL_RANK_SAVE_SNAPSHOT_V8_MIGRATION.md
 ```
 
 ## Suite MON20
@@ -472,5 +486,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
+MON20.9.2 — Skill Rank Save Snapshot + v8 Migration — VALIDATION UE5.5.4
 ```

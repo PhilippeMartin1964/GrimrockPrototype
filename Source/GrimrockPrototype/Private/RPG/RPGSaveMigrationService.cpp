@@ -4,6 +4,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
+#include "RPG/RPGSkillPersistence.h"
 #include "Runtime/GridLevelVariableStore.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -94,6 +95,21 @@ namespace MON156SaveMigrationPrivate
             PartyState.CharacterPool)
         {
             Character.StatusEffects.Reset ();
+        }
+    }
+
+    void ResetLegacyPartySkillRanks (
+        FGridPartyInventoryState& PartyState)
+    {
+        for (FGridCharacterInventoryState& Character :
+            PartyState.ActiveCharacters)
+        {
+            Character.SkillRanks.Reset ();
+        }
+        for (FGridCharacterInventoryState& Character :
+            PartyState.CharacterPool)
+        {
+            Character.SkillRanks.Reset ();
         }
     }
 
@@ -384,6 +400,39 @@ namespace MON156SaveMigrationPrivate
         OutError = FText::FromString (SpellbookError);
         return false;
     }
+
+    bool ValidateSkills (
+        const UGrimrockPartySaveGame& SaveGame,
+        FText& OutError)
+    {
+        FString SkillError;
+        if (FRPGSkillPersistence::ValidateSavedPartySkills (
+                SaveGame.PartyInventoryState,
+                SaveGame.CharacterSkillStates,
+                SkillError))
+        {
+            return true;
+        }
+
+        OutError = FText::FromString (SkillError);
+        return false;
+    }
+
+    bool ValidateLevelVariables (
+        const UGrimrockPartySaveGame& SaveGame,
+        FText& OutError)
+    {
+        FString VariableError;
+        if (GridLevelVariableStore::ValidateDungeonSnapshots (
+                SaveGame.DungeonRuntimeState,
+                VariableError))
+        {
+            return true;
+        }
+
+        OutError = FText::FromString (VariableError);
+        return false;
+    }
 }
 
 using namespace MON156SaveMigrationPrivate;
@@ -428,8 +477,40 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
         return ValidateCurrentSave (SaveGame, OutError);
     }
 
-    // MON19.2.2: v6 already owns the authoritative MON15-MON18 state. The
-    // only v7 domain is typed level variables, which did not exist in v6.
+    // MON20.9.2: v7 owns all MON15-MON19 durable domains, but SkillRanks were
+    // deliberately Transient. Validate the v7 snapshot, initialize an empty
+    // Skill snapshot and move to v8 without inventing any rank.
+    if (SourceVersion == 7)
+    {
+        if (!ValidateSnapshot (
+                SaveGame->PartyInventoryState,
+                SaveGame->ClassProgressionStates,
+                SaveGame->PendingLevelUpNotifications,
+                OutError) ||
+            !ValidateSpellbooks (*SaveGame, OutError) ||
+            !ValidateLevelVariables (*SaveGame, OutError))
+        {
+            return false;
+        }
+
+        ResetLegacyPartySkillRanks (SaveGame->PartyInventoryState);
+        SaveGame->CharacterSkillStates.Reset ();
+        SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
+        if (!ValidateCurrentSave (SaveGame, OutError))
+        {
+            return false;
+        }
+
+        if (OutReport)
+        {
+            OutReport->ReconciledCharacterCount = 0;
+            OutReport->bMigrated = true;
+        }
+        return true;
+    }
+
+    // MON19.2.2: v6 already owns the authoritative MON15-MON18 state. Typed
+    // level variables and Skill persistence did not exist yet.
     if (SourceVersion == 6)
     {
         if (!ValidateSnapshot (
@@ -442,6 +523,8 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
             return false;
         }
 
+        ResetLegacyPartySkillRanks (SaveGame->PartyInventoryState);
+        SaveGame->CharacterSkillStates.Reset ();
         GridLevelVariableStore::ResetLegacyDungeonSnapshots (
             SaveGame->DungeonRuntimeState);
         SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
@@ -459,8 +542,8 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
     }
 
     // MON18.8: v5 already contains authoritative MON15 progression and MON16
-    // status snapshots. Spellbook and MON19 variable domains are initialized
-    // without routing v5 through the v1-v3 reconstruction path.
+    // status snapshots. Spellbook, MON19 variable and MON20 Skill domains are
+    // initialized without routing v5 through the v1-v3 reconstruction path.
     if (SourceVersion == 5)
     {
         if (!ValidateSnapshot (
@@ -472,7 +555,9 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
             return false;
         }
 
+        ResetLegacyPartySkillRanks (SaveGame->PartyInventoryState);
         SaveGame->CharacterSpellbookStates.Reset ();
+        SaveGame->CharacterSkillStates.Reset ();
         GridLevelVariableStore::ResetLegacyDungeonSnapshots (
             SaveGame->DungeonRuntimeState);
         SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
@@ -504,9 +589,11 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
         }
 
         ResetLegacyPartyStatusEffects (SaveGame->PartyInventoryState);
+        ResetLegacyPartySkillRanks (SaveGame->PartyInventoryState);
         ResetLegacyMonsterStatusEffects (SaveGame->DungeonRuntimeState);
         SaveGame->CharacterStatusEffectStates.Reset ();
         SaveGame->CharacterSpellbookStates.Reset ();
+        SaveGame->CharacterSkillStates.Reset ();
         GridLevelVariableStore::ResetLegacyDungeonSnapshots (
             SaveGame->DungeonRuntimeState);
         SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
@@ -526,6 +613,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
 
     FGridPartyInventoryState MigratedPartyState = SaveGame->PartyInventoryState;
     ResetLegacyPartyStatusEffects (MigratedPartyState);
+    ResetLegacyPartySkillRanks (MigratedPartyState);
     int32 ReconciledCharacterCount = 0;
     for (FGridCharacterInventoryState& Character :
         MigratedPartyState.ActiveCharacters)
@@ -581,6 +669,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave (
     SaveGame->PendingLevelUpNotifications = MoveTemp (MigratedPendingNotifications);
     SaveGame->CharacterStatusEffectStates.Reset ();
     SaveGame->CharacterSpellbookStates.Reset ();
+    SaveGame->CharacterSkillStates.Reset ();
     SaveGame->DungeonRuntimeState = MoveTemp (MigratedDungeonState);
     SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
@@ -622,17 +711,10 @@ bool FRPGSaveMigrationService::ValidateCurrentSave (
             SaveGame->ClassProgressionStates,
             SaveGame->PendingLevelUpNotifications,
             OutError) ||
-        !ValidateSpellbooks (*SaveGame, OutError))
+        !ValidateSpellbooks (*SaveGame, OutError) ||
+        !ValidateSkills (*SaveGame, OutError) ||
+        !ValidateLevelVariables (*SaveGame, OutError))
     {
-        return false;
-    }
-
-    FString VariableError;
-    if (!GridLevelVariableStore::ValidateDungeonSnapshots (
-            SaveGame->DungeonRuntimeState,
-            VariableError))
-    {
-        OutError = FText::FromString (VariableError);
         return false;
     }
 

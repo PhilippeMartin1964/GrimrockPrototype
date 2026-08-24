@@ -3,6 +3,7 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "RPG/RPGSaveMigrationService.h"
+#include "RPG/RPGSkillPersistence.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Save/GridCombatSavePolicy.h"
 
@@ -239,6 +240,21 @@ void UGrimrockPartySaveGame::Serialize (FArchive& Ar)
             return;
         }
 
+        FString SkillCaptureError;
+        if (!FRPGSkillPersistence::CapturePartySkills (
+                PartyInventoryState,
+                CharacterSkillStates,
+                SkillCaptureError))
+        {
+            UE_LOG (
+                LogGrimrockPartySave,
+                Error,
+                TEXT ("[GridSkillPersistence] SaveCapture Result=Rejected Reason=%s"),
+                *SkillCaptureError);
+            Ar.SetError ();
+            return;
+        }
+
         UGrimrockPartySaveGame* MutableThis = this;
         if (!FRPGSaveMigrationService::ValidateCurrentSave (
                 MutableThis,
@@ -309,13 +325,29 @@ void UGrimrockPartySaveGame::Serialize (FArchive& Ar)
         return;
     }
 
+    FString SkillRestoreError;
+    if (!FRPGSkillPersistence::RestorePartySkills (
+            PartyInventoryState,
+            CharacterSkillStates,
+            SkillRestoreError))
+    {
+        bProgressionLoadValid = false;
+        ProgressionLoadError = SkillRestoreError;
+        UE_LOG (
+            LogGrimrockPartySave,
+            Error,
+            TEXT ("[GridSkillPersistence] PartyRestore Result=Rejected Reason=%s"),
+            *ProgressionLoadError);
+        return;
+    }
+
     URPGLevelUpNotificationSubsystem::RestorePersistentState (
         PendingLevelUpNotifications);
 
     UE_LOG (
         LogGrimrockPartySave,
         Log,
-        TEXT ("[GridSaveMigration] Load SourceVersion=%d TargetVersion=%d Migrated=%s Reconciled=%d Choices=%d PendingLevelUps=%d StatusCharacters=%d SpellbookCharacters=%d Result=Accepted"),
+        TEXT ("[GridSaveMigration] Load SourceVersion=%d TargetVersion=%d Migrated=%s Reconciled=%d Choices=%d PendingLevelUps=%d StatusCharacters=%d SpellbookCharacters=%d SkillCharacters=%d Result=Accepted"),
         MigrationReport.SourceVersion,
         MigrationReport.TargetVersion,
         MigrationReport.bMigrated ? TEXT ("true") : TEXT ("false"),
@@ -323,5 +355,6 @@ void UGrimrockPartySaveGame::Serialize (FArchive& Ar)
         ClassProgressionStates.Num (),
         PendingLevelUpNotifications.Num (),
         CharacterStatusEffectStates.Num (),
-        CharacterSpellbookStates.Num ());
+        CharacterSpellbookStates.Num (),
+        CharacterSkillStates.Num ());
 }

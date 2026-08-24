@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "Magic/GridSpellbookPersistence.h"
+#include "RPG/RPGSkillPersistence.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -59,8 +60,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
     GENERATED_BODY ()
 
 public:
-    /** MON19.2.2 adds typed persistent level-variable snapshots. */
-    static constexpr int32 CurrentSaveVersion = 7;
+    /** MON20.9.2 adds explicit transient SkillRanks snapshots. */
+    static constexpr int32 CurrentSaveVersion = 8;
     static constexpr int32 MinimumCompatibleSaveVersion = 1;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
@@ -84,6 +85,10 @@ public:
     /** MON18.8 sparse Spellbook snapshots. CharacterId + SpellId identities only. */
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Magic|Spellbook")
     TArray<FGridCharacterSpellbookSaveState> CharacterSpellbookStates;
+
+    /** MON20.9 sparse Skill rank snapshots for active and pooled characters. */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Skills")
+    TArray<FRPGCharacterSkillSaveState> CharacterSkillStates;
 
     UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
     FGridDungeonRuntimeState DungeonRuntimeState;
