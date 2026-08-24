@@ -1,7 +1,7 @@
 # MON20.9.3 — Active / Pool Character Persistence Regression
 
 Date : **24 août 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE**
+Statut : **VALIDÉ UE5.5.4 — 8/8 SUCCESS**
 
 ## 1. Objectif
 
@@ -80,7 +80,7 @@ Le système ne doit donc jamais nécessiter de synchronisation parallèle des Sk
 
 ## 5. Tests Automation
 
-Nouveau filtre :
+Filtre :
 
 ```text
 Grimrock.MON20.9.ActivePoolPersistence
@@ -148,45 +148,59 @@ réordonnancement du pool                             restore par CharacterId
 snapshot avant recrutement                           valide après déplacement d'identité
 ```
 
-## 7. Validation demandée
+## 7. Validation UE5.5.4 — VALIDÉ
 
-Après compilation UE5.5.4 :
+Validation fournie le **24 août 2026** après correction de la collision de helpers en build Unity.
+
+Filtre ciblé :
 
 ```text
 Grimrock.MON20.9.ActivePoolPersistence
 ```
 
-Attendu :
+Résultat :
 
 ```text
+ActiveSnapshotRestoresAfterReserveMove  Success
+MixedActivePoolIsolation                 Success
+PoolReorderRestoresByIdentity            Success
+PoolSnapshotRestoresAfterRecruitment     Success
+RecruitmentPreservesPoolSkill            Success
+RecruitmentRejectPreservesPoolSkill      Success
+SelectedCharacterIndependent             Success
+SnapshotValidAfterRecruitmentMove        Success
+
 8 / 8 Success
 0 Fail
 0 Error
 ```
 
-Puis campagne cumulative :
+Campagne cumulative :
 
 ```text
 Grimrock.MON20.9
-```
 
-Attendu à ce stade :
-
-```text
 SkillPersistence       8/8
 ActivePoolPersistence  8/8
 --------------------------
-TOTAL                  16/16
+TOTAL                 16/16 Success
+0 Fail
+0 Error
+```
+
+La validation détaillée est également consignée dans :
+
+```text
+docs/Design/MON20_9_3_AUTOMATION_VALIDATION.md
 ```
 
 Aucun PIE n'est requis pour MON20.9.3 : aucun asset ni comportement visuel n'est modifié.
 
 ## 8. Suite
 
-Après validation :
-
 ```text
 MON20.9.4 — Skill Projection / Skills Page Restore Regression
+            IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
 ```
 
-Cette étape vérifiera que les rangs restaurés redeviennent immédiatement consommables par la projection `RequirementIds`, les actions et la page Compétences.
+Cette étape vérifie que les rangs restaurés redeviennent immédiatement consommables par la projection `RequirementIds`, les actions et la page Compétences.
