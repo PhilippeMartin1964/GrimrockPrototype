@@ -1,6 +1,6 @@
 # MON20.7.4 — Requirement Projection / Persistence Regression
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 24/24 CUMULÉS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.7 — Talents / Progression Choice Integration**
 
@@ -148,15 +148,15 @@ InvalidRestoreAtomic
 RestoreByCharacterId
 ```
 
-Après MON20.7.4 :
+Validation utilisateur sous UE5.5.4 :
 
 ```text
-24 / 24 Success attendus
+24 / 24 Success
 0 Fail
 0 Error
 ```
 
-Les 16 tests MON20.7.2 + MON20.7.3 doivent rester verts.
+Les 16 tests MON20.7.2 + MON20.7.3 sont restés verts.
 
 ---
 
@@ -183,27 +183,29 @@ Aucun `.uasset`, `.umap` ou changement SaveGame.
 ## 9. Critères de sortie
 
 ```text
-projection automatique avant talent                -> OK
-ChoiceId projeté après acquisition                 -> OK
-GrantedRequirementIds projetés après acquisition  -> OK
-isolation par CharacterId                          -> OK
-capture MON15.6 conserve SelectedChoiceIds         -> OK
-SaveVersion reste 7                                -> OK
-restore rend le talent au read model MON20.7       -> OK
-restore détaché projette déjà les requirements     -> OK
-restore invalide est atomique                      -> OK
-ordre des snapshots sans importance                -> OK
-24/24 Automation cumulés                           -> requis
+[OK] projection automatique avant talent
+[OK] ChoiceId projeté après acquisition
+[OK] GrantedRequirementIds projetés après acquisition
+[OK] isolation par CharacterId
+[OK] capture MON15.6 conserve SelectedChoiceIds
+[OK] SaveVersion reste 7
+[OK] restore rend le talent au read model MON20.7
+[OK] restore détaché projette déjà les requirements
+[OK] restore invalide est atomique
+[OK] ordre des snapshots sans importance
+[OK] 24/24 Automation cumulés
 ```
 
 ---
 
-## 10. Suite
+## 10. Conclusion
 
-Après validation :
+```text
+MON20.7.4 — VALIDÉ UE5.5.4 — CLOS
+```
+
+La passe cumulative 24/24 sert également de régression finale pour :
 
 ```text
 MON20.7.5 — Automation Regression / Closure
 ```
-
-MON20.7.5 devra être une clôture légère : aucune nouvelle abstraction sauf anomalie révélée par la régression cumulative.

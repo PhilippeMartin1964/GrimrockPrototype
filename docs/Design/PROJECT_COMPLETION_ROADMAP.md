@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON20 EN COURS — MON20.6 CLOS — MON20.7 EN COURS**  
+Statut : **MON20 EN COURS — MON20.7 CLOS — MON20.8 PROCHAIN**  
 Date de référence : **24 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -41,12 +41,14 @@ MON20.6 — Skills Data Model & Runtime                     VALIDÉ UE5.5.4 — 
   MON20.6.3 — Deterministic Skill Check Resolution       VALIDÉ — 16/16 cumulés
   MON20.6.4 — Runtime Access / Character Selection API   VALIDÉ — 24/24 cumulés
   MON20.6.5 — Automation Regression / Closure            CLOS
-MON20.7 — Talents / Progression Choice Integration        EN COURS
+MON20.7 — Talents / Progression Choice Integration        VALIDÉ UE5.5.4 — CLOS — 24/24
   MON20.7.1 — Audit & Architecture Contract              TERMINÉ
   MON20.7.2 — Talent Runtime Read Model / Selection      VALIDÉ UE5.5.4 — 8/8
   MON20.7.3 — Level Up Talent Presentation Contract      VALIDÉ UE5.5.4 — 16/16 cumulés
-  MON20.7.4 — Requirement Projection / Persistence       IMPLÉMENTÉ — VALIDATION EN ATTENTE
-  MON20.7.5 — Automation Regression / Closure
+  MON20.7.4 — Requirement Projection / Persistence       VALIDÉ UE5.5.4 — 24/24 cumulés
+  MON20.7.5 — Automation Regression / Closure            CLOS
+MON20.8 — Cross-System Requirements / Actions / UI        PROCHAIN
+  MON20.8.1 — Audit & Architecture Contract              PROCHAIN
 ```
 
 ---
@@ -225,11 +227,13 @@ docs/Design/MON20_6_4_RUNTIME_ACCESS_CHARACTER_SELECTION.md
 docs/Design/MON20_6_5_AUTOMATION_REGRESSION_CLOSURE.md
 ```
 
-## MON20.7 — Talents / Progression Choice Integration — EN COURS
+## MON20.7 — Talents / Progression Choice Integration — VALIDÉ ET CLOS
+
+Clôturé le **24 août 2026**.
 
 MON20.7 réutilise le système de progression MON15 au lieu d'introduire un domaine Talent parallèle.
 
-Contrat MON20.7.1 :
+Contrat final :
 
 ```text
 ProgressionChoice == Talent de classe sélectionnable
@@ -253,51 +257,43 @@ Décisions :
 - aucun `TalentId` parallèle ;
 - aucun `TalentPoints` parallèle ;
 - aucun second arbre ;
-- persistance déjà fournie par MON15.6 ;
+- persistance fournie par MON15.6 ;
 - mutation toujours via `TryCommitChoices()` ;
-- une éventuelle façade Talent reste sans état ;
-- les effets transversaux via RequirementIds sont traités en MON20.8.
+- `FRPGTalentRuntimeService` reste une façade read-only sans état ;
+- le Level Up existant expose le vocabulaire Talent sans nouveau workflow ;
+- les effets transversaux utilisent `RequirementIds` ;
+- `CurrentSaveVersion` reste 7.
 
-Découpage :
+Découpage final :
 
 ```text
 MON20.7.1 — Audit & Architecture Contract                    TERMINÉ
 MON20.7.2 — Talent Runtime Read Model / Selected Character  VALIDÉ UE5.5.4 — 8/8
 MON20.7.3 — Level Up Talent Presentation Contract           VALIDÉ UE5.5.4 — 16/16 cumulés
-MON20.7.4 — Requirement Projection / Persistence Regression IMPLÉMENTÉ — VALIDATION EN ATTENTE
-MON20.7.5 — Automation Regression / Closure
+MON20.7.4 — Requirement Projection / Persistence Regression VALIDÉ UE5.5.4 — 24/24 cumulés
+MON20.7.5 — Automation Regression / Closure                 CLOS
 ```
 
-MON20.7.2 ajoute `FRPGTalentRuntimeService`, une façade read-only sans état qui délègue entièrement à MON15 pour :
+Principaux acquis :
 
-- lire les talents acquis ;
-- tester `HasTalent` ;
-- lire le solde de ChoicePoints ;
-- calculer les talents actuellement disponibles ;
-- travailler par `CharacterIndex` explicite ou personnage sélectionné.
-
-MON20.7.3 conserve le même `URPGLevelUpWidget` et le même workflow MON15, mais ajoute un contrat de présentation Blueprint/Slate explicite :
-
-```text
-FRPGLevelUpPresentationView
-    Title
-    TalentSectionTitle
-    TalentPointsLabel
-    EmptyTalentsMessage
-    SelectionPrompt
-```
-
-Les identifiants `ChoiceId`, le budget `ChoicePoints`, `PendingChoiceIds` et `TryCommitChoices()` restent inchangés.
-
-MON20.7.4 ne crée aucun runtime supplémentaire. Il verrouille par Automation :
-
-- projection de `ChoiceId` et `GrantedRequirementIds` ;
+- lecture des talents acquis, disponibilité et budget par personnage ;
+- façade sur le personnage sélectionné sans sélection parallèle ;
+- vocabulaire `Talents de classe` / `Points de talent` dans la présentation Level Up ;
+- maintien de l'identité `ChoiceId` et des transactions MON15 ;
+- projection immédiate de `ChoiceId` et `GrantedRequirementIds` ;
 - isolation par `CharacterId` ;
 - capture/restore via `ClassProgressionStates` MON15.6 ;
 - restore détaché immédiatement consommable ;
-- atomicité d'un restore invalide ;
-- restore par `CharacterId`, indépendant de l'ordre du tableau ;
-- `CurrentSaveVersion == 7` inchangé.
+- restore invalide atomique ;
+- restore indépendant de l'ordre des snapshots.
+
+Validation cumulative :
+
+```text
+Grimrock.MON20.7.Talents   24/24 Success
+0 Fail
+0 Error
+```
 
 Documents :
 
@@ -306,12 +302,13 @@ docs/Design/MON20_7_1_TALENTS_PROGRESSION_CHOICE_ARCHITECTURE.md
 docs/Design/MON20_7_2_TALENT_RUNTIME_READ_MODEL.md
 docs/Design/MON20_7_3_LEVEL_UP_TALENT_PRESENTATION_CONTRACT.md
 docs/Design/MON20_7_4_REQUIREMENT_PROJECTION_PERSISTENCE_REGRESSION.md
+docs/Design/MON20_7_5_AUTOMATION_REGRESSION_CLOSURE.md
 ```
 
 ## Suite MON20
 
 ```text
-MON20.8 — Cross-System Requirements / Actions / UI
+MON20.8 — Cross-System Requirements / Actions / UI       PROCHAIN
 MON20.9 — Reserve / Persistence / Migration
 MON20.10 — Balance / Regression / Closure
 ```
@@ -360,5 +357,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.7.4 — Requirement Projection / Persistence Regression — VALIDATION UE5.5.4
+MON20.8.1 — Cross-System Requirements / Actions / UI — Audit & Architecture Contract
 ```
