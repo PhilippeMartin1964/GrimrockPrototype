@@ -6,6 +6,12 @@ public class GrimrockPrototypeEditor : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+        // Editor tooling contains many file-local helper functions. Building the
+        // editor module without unity batches keeps those implementation details
+        // isolated and avoids nondeterministic collisions when UBT reshuffles
+        // source files after adding or removing editor tests/tools.
+        bUseUnity = false;
+
         PublicDependencyModuleNames.AddRange(new string[]
         {
             "Core",

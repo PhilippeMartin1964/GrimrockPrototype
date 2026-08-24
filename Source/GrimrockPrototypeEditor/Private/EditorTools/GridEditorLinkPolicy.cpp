@@ -13,7 +13,7 @@ namespace
             Command == EGridObjectCommand::Deactivate;
     }
 
-    bool IsReceptacleCommand (EGridObjectCommand Command)
+    bool IsGridEditorReceptacleCommand (EGridObjectCommand Command)
     {
         return Command == EGridObjectCommand::ReceptacleConsumeItem ||
             Command == EGridObjectCommand::ReceptacleConsumeAllItems ||
@@ -178,7 +178,7 @@ namespace GridEditorLinkPolicy
                 : EGridEditorCommandRuntimeSupport::Unsupported;
         }
 
-        if (IsReceptacleCommand (Command))
+        if (IsGridEditorReceptacleCommand (Command))
         {
             return ObjectData.Type == EGridLevelObjectType::Receptacle
                 ? EGridEditorCommandRuntimeSupport::Gameplay

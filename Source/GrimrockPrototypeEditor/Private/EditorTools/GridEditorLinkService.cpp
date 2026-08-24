@@ -7,7 +7,7 @@
 
 namespace
 {
-    const FGridLevelObjectData* FindObjectById (
+    const FGridLevelObjectData* FindLinkServiceObjectById (
         const UGridLevelAsset& LevelAsset,
         const FGuid& ObjectId)
     {
@@ -18,7 +18,7 @@ namespace
         });
     }
 
-    const FGridLevelVariableDefinition* FindVariableDefinition (
+    const FGridLevelVariableDefinition* FindLinkServiceVariableDefinition (
         const UGridLevelAsset& LevelAsset,
         FName VariableId)
     {
@@ -164,8 +164,8 @@ namespace GridEditorLinkService
             return false;
         }
 
-        const FGridLevelObjectData* Source = FindObjectById (LevelAsset, Link.SourceObjectId);
-        const FGridLevelObjectData* Target = FindObjectById (LevelAsset, Link.TargetObjectId);
+        const FGridLevelObjectData* Source = FindLinkServiceObjectById (LevelAsset, Link.SourceObjectId);
+        const FGridLevelObjectData* Target = FindLinkServiceObjectById (LevelAsset, Link.TargetObjectId);
         if (!Source || !Target)
         {
             return false;
@@ -183,7 +183,7 @@ namespace GridEditorLinkService
             Link.Condition == EGridObjectCondition::LevelVariableIntCompare)
         {
             const FGridLevelVariableDefinition* Definition =
-                FindVariableDefinition (LevelAsset, Link.ConditionVariableId);
+                FindLinkServiceVariableDefinition (LevelAsset, Link.ConditionVariableId);
             if (!Definition)
             {
                 return false;
