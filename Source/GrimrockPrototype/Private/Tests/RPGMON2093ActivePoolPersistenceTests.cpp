@@ -57,7 +57,7 @@ namespace RPGMON2093Tests
         return Inventory;
     }
 
-    URPGSkillAsset* MakeSkill (
+    URPGSkillAsset* MakeMON2093Skill (
         FName SkillId,
         int32 MaxRank = 5)
     {
@@ -68,7 +68,7 @@ namespace RPGMON2093Tests
         return Skill;
     }
 
-    void AddRank (
+    void AddMON2093Rank (
         FGridCharacterInventoryState& Character,
         FName SkillId,
         int32 Rank)
@@ -115,7 +115,7 @@ bool FRPGMON2093RecruitmentPreservesPoolSkillTest::RunTest (
     const FGuid RecruitId (20, 9, 3, 2);
     FGridCharacterInventoryState Recruit =
         MakeCharacter (RecruitId, TEXT ("SkilledRecruit"));
-    AddRank (Recruit, TEXT ("Skill_Lockpicking"), 3);
+    AddMON2093Rank (Recruit, TEXT ("Skill_Lockpicking"), 3);
     Inventory->PartyInventoryState.CharacterPool.Add (Recruit);
 
     FRPGPartyRecruitmentResult Result;
@@ -153,10 +153,10 @@ bool FRPGMON2093PoolSnapshotRestoresAfterRecruitmentTest::RunTest (
     const FGuid RecruitId (20, 9, 3, 3);
     FGridCharacterInventoryState Recruit =
         MakeCharacter (RecruitId, TEXT ("PoolToActive"));
-    AddRank (Recruit, TEXT ("Skill_Lockpicking"), 4);
+    AddMON2093Rank (Recruit, TEXT ("Skill_Lockpicking"), 4);
     Inventory->PartyInventoryState.CharacterPool.Add (Recruit);
 
-    URPGSkillAsset* Skill = MakeSkill (TEXT ("Skill_Lockpicking"), 5);
+    URPGSkillAsset* Skill = MakeMON2093Skill (TEXT ("Skill_Lockpicking"), 5);
     const auto Resolver = [Skill] (FName SkillId) -> const URPGSkillAsset*
     {
         return SkillId == Skill->SkillId ? Skill : nullptr;
@@ -208,7 +208,7 @@ bool FRPGMON2093ActiveSnapshotRestoresAfterReserveMoveTest::RunTest (
     const FGuid RecruitId (20, 9, 3, 4);
     FGridCharacterInventoryState Recruit =
         MakeCharacter (RecruitId, TEXT ("ActiveToPool"));
-    AddRank (Recruit, TEXT ("Skill_Athletics"), 2);
+    AddMON2093Rank (Recruit, TEXT ("Skill_Athletics"), 2);
     Inventory->PartyInventoryState.CharacterPool.Add (Recruit);
 
     FRPGPartyRecruitmentResult Recruitment;
@@ -218,7 +218,7 @@ bool FRPGMON2093ActiveSnapshotRestoresAfterReserveMoveTest::RunTest (
             RecruitId,
             Recruitment));
 
-    URPGSkillAsset* Skill = MakeSkill (TEXT ("Skill_Athletics"), 5);
+    URPGSkillAsset* Skill = MakeMON2093Skill (TEXT ("Skill_Athletics"), 5);
     const auto Resolver = [Skill] (FName SkillId) -> const URPGSkillAsset*
     {
         return SkillId == Skill->SkillId ? Skill : nullptr;
@@ -276,16 +276,16 @@ bool FRPGMON2093MixedActivePoolIsolationTest::RunTest (
 
     UGridPartyInventoryComponent* Inventory = MakeParty (3);
     const FGuid PoolId (20, 9, 3, 5);
-    AddRank (
+    AddMON2093Rank (
         Inventory->PartyInventoryState.ActiveCharacters[0],
         TEXT ("Skill_Perception"),
         1);
     FGridCharacterInventoryState PoolCharacter =
         MakeCharacter (PoolId, TEXT ("Reserve"));
-    AddRank (PoolCharacter, TEXT ("Skill_Perception"), 4);
+    AddMON2093Rank (PoolCharacter, TEXT ("Skill_Perception"), 4);
     Inventory->PartyInventoryState.CharacterPool.Add (PoolCharacter);
 
-    URPGSkillAsset* Skill = MakeSkill (TEXT ("Skill_Perception"), 5);
+    URPGSkillAsset* Skill = MakeMON2093Skill (TEXT ("Skill_Perception"), 5);
     const auto Resolver = [Skill] (FName SkillId) -> const URPGSkillAsset*
     {
         return SkillId == Skill->SkillId ? Skill : nullptr;
@@ -335,13 +335,13 @@ bool FRPGMON2093SelectedCharacterIndependentTest::RunTest (
 
     UGridPartyInventoryComponent* Inventory = MakeParty (2);
     const FGuid RecruitId (20, 9, 3, 6);
-    AddRank (
+    AddMON2093Rank (
         Inventory->PartyInventoryState.ActiveCharacters[0],
         TEXT ("Skill_Survival"),
         1);
     FGridCharacterInventoryState Recruit =
         MakeCharacter (RecruitId, TEXT ("SelectedRecruit"));
-    AddRank (Recruit, TEXT ("Skill_Survival"), 3);
+    AddMON2093Rank (Recruit, TEXT ("Skill_Survival"), 3);
     Inventory->PartyInventoryState.CharacterPool.Add (Recruit);
 
     FRPGPartyRecruitmentResult Recruitment;
@@ -352,7 +352,7 @@ bool FRPGMON2093SelectedCharacterIndependentTest::RunTest (
             Recruitment));
     Inventory->PartyInventoryState.SelectedCharacterIndex = 1;
 
-    URPGSkillAsset* Skill = MakeSkill (TEXT ("Skill_Survival"), 5);
+    URPGSkillAsset* Skill = MakeMON2093Skill (TEXT ("Skill_Survival"), 5);
     const auto Resolver = [Skill] (FName SkillId) -> const URPGSkillAsset*
     {
         return SkillId == Skill->SkillId ? Skill : nullptr;
@@ -411,7 +411,7 @@ bool FRPGMON2093RecruitmentRejectPreservesPoolSkillTest::RunTest (
     const FGuid RecruitId (20, 9, 3, 7);
     FGridCharacterInventoryState Recruit =
         MakeCharacter (RecruitId, TEXT ("WaitingRecruit"));
-    AddRank (Recruit, TEXT ("Skill_Lockpicking"), 3);
+    AddMON2093Rank (Recruit, TEXT ("Skill_Lockpicking"), 3);
     Inventory->PartyInventoryState.CharacterPool.Add (Recruit);
 
     FRPGPartyRecruitmentResult Result;
@@ -450,12 +450,12 @@ bool FRPGMON2093PoolReorderRestoresByIdentityTest::RunTest (
         MakeCharacter (FirstId, TEXT ("FirstReserve"));
     FGridCharacterInventoryState Second =
         MakeCharacter (SecondId, TEXT ("SecondReserve"));
-    AddRank (First, TEXT ("Skill_Perception"), 1);
-    AddRank (Second, TEXT ("Skill_Perception"), 4);
+    AddMON2093Rank (First, TEXT ("Skill_Perception"), 1);
+    AddMON2093Rank (Second, TEXT ("Skill_Perception"), 4);
     Inventory->PartyInventoryState.CharacterPool.Add (First);
     Inventory->PartyInventoryState.CharacterPool.Add (Second);
 
-    URPGSkillAsset* Skill = MakeSkill (TEXT ("Skill_Perception"), 5);
+    URPGSkillAsset* Skill = MakeMON2093Skill (TEXT ("Skill_Perception"), 5);
     const auto Resolver = [Skill] (FName SkillId) -> const URPGSkillAsset*
     {
         return SkillId == Skill->SkillId ? Skill : nullptr;
@@ -521,10 +521,10 @@ bool FRPGMON2093SnapshotValidAfterRecruitmentMoveTest::RunTest (
     const FGuid RecruitId (20, 9, 3, 10);
     FGridCharacterInventoryState Recruit =
         MakeCharacter (RecruitId, TEXT ("MovingIdentity"));
-    AddRank (Recruit, TEXT ("Skill_Lockpicking"), 2);
+    AddMON2093Rank (Recruit, TEXT ("Skill_Lockpicking"), 2);
     Inventory->PartyInventoryState.CharacterPool.Add (Recruit);
 
-    URPGSkillAsset* Skill = MakeSkill (TEXT ("Skill_Lockpicking"), 5);
+    URPGSkillAsset* Skill = MakeMON2093Skill (TEXT ("Skill_Lockpicking"), 5);
     const auto Resolver = [Skill] (FName SkillId) -> const URPGSkillAsset*
     {
         return SkillId == Skill->SkillId ? Skill : nullptr;
