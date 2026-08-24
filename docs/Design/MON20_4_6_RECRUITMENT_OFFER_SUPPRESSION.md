@@ -2,7 +2,9 @@
 
 ## Statut
 
-Implémenté côté source — compilation, Automation Tests et PIE UE5.5.4 à valider.
+**Compilation UE5.5.4 validée et Automation Tests validés 18/18 — PIE de suppression à finaliser.**
+
+Validation automation enregistrée le **24 août 2026**.
 
 ## Problème observé en PIE
 
@@ -178,11 +180,39 @@ Vérifie :
 - collision GUID avec ClassId différent -> pas déjà actif ;
 - personnage uniquement dans `CharacterPool` -> reste offerable.
 
-Le filtre MON20.4 doit donc passer de **16 à 18 tests**.
+## Validation Automation UE5.5.4 — 24 août 2026
+
+Le filtre complet :
+
+```text
+Grimrock.MON20.4.RecruitmentUI
+```
+
+a été exécuté sous UE5.5.4 avec le résultat :
+
+```text
+18 tests / 18 Success
+0 Fail
+```
+
+Les deux nouveaux tests MON20.4.6 sont validés :
+
+```text
+OfferAlreadyActiveSuppression   Success
+OfferDeclineSourceScope         Success
+```
+
+Les seize tests précédents restent également verts.
+
+Le warning suivant observé pendant `EventCommandMissingDefinition` est intentionnel et appartient au scénario négatif testé :
+
+```text
+Grid link failed: ... Command=OfferRecruitment Reason=missing or invalid story companion definition
+```
+
+Le test correspondant termine bien en `Success`.
 
 ## Validation PIE demandée
-
-Après 18/18 Automation Tests :
 
 ### Cas A — Refuser
 
