@@ -89,6 +89,14 @@ enum class ERPGCharacterPortraitGender : uint8
     Female UMETA (DisplayName = "Féminin")
 };
 
+/** Transient purpose of one character-creation wizard instance. */
+UENUM (BlueprintType)
+enum class ERPGCharacterCreationContext : uint8
+{
+    NewGameMainHero UMETA (DisplayName = "Nouveau héros"),
+    CustomRecruit UMETA (DisplayName = "Recrue personnalisée")
+};
+
 USTRUCT (BlueprintType)
 struct FRPGCharacterPortraitVariant
 {
