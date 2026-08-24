@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON20 EN COURS — MON20.8 CLOS — MON20.9 EN COURS**  
+Statut : **MON20 EN COURS — MON20.9 CLOS — MON20.10 PROCHAIN**  
 Date de référence : **24 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -53,13 +53,13 @@ MON20.8 — Cross-System Requirements / Actions / UI        VALIDÉ UE5.5.4 — 
   MON20.8.3 — Combat Action Requirement Integration & Diagnostics   VALIDÉ — 16/16 cumulés
   MON20.8.4 — Skills/Talents Page Read Model & Menu Integration    VALIDÉ — 24/24 cumulés + PIE
   MON20.8.5 — Automation / PIE Regression & Closure               CLOS
-MON20.9 — Persistence / Migration                         EN COURS
+MON20.9 — Persistence / Migration                         VALIDÉ UE5.5.4 — CLOS — 24/24 + PIE
   MON20.9.1 — Audit & Architecture Contract              TERMINÉ
   MON20.9.2 — Skill Rank Save Snapshot + v8 Migration   VALIDÉ UE5.5.4 — 8/8
   MON20.9.3 — Active/Pool Character Persistence Regression          VALIDÉ UE5.5.4 — 8/8 — 16/16 cumulés
   MON20.9.4 — Skill Projection / Skills Page Restore Regression     VALIDÉ UE5.5.4 — 8/8 — 24/24 cumulés
-  MON20.9.5 — Automation / PIE Regression & Closure                EN VALIDATION — AUTOMATION 24/24 — PIE À FAIRE
-MON20.10 — Balance / Regression / Closure
+  MON20.9.5 — Automation / PIE Regression & Closure                CLOS — 24/24 + PIE
+MON20.10 — Balance / Regression / Closure                  PROCHAIN
 ```
 
 ---
@@ -388,11 +388,13 @@ docs/Design/MON20_8_4_AUTOMATION_VALIDATION.md
 docs/Design/MON20_8_5_AUTOMATION_PIE_REGRESSION_CLOSURE.md
 ```
 
-## MON20.9 — Persistence / Migration — EN COURS
+## MON20.9 — Persistence / Migration — VALIDÉ ET CLOS
 
-Objectif : rendre persistantes les données MON20 qui restent runtime-only, en priorité les `SkillRanks`, sans dupliquer la progression de classe/talents déjà persistée par MON15.6.
+Clôturé le **24 août 2026**.
 
-Contrat MON20.9.1 :
+Objectif atteint : rendre persistants les `SkillRanks` MON20 qui restaient runtime-only, sans dupliquer la progression de classe/talents déjà persistée par MON15.6.
+
+Architecture finale :
 
 ```text
 SkillRanks runtime restent Transient
@@ -401,11 +403,12 @@ SkillRanks runtime restent Transient
     -> capture/restore atomiques
     -> définition canonique RPGSkill:<SkillId>
     -> SaveGame v8
+    -> consommateurs MON20.8 reconstruits après restore
 ```
 
-La migration v7 -> v8 initialise un snapshot Skill vide : aucun rang ne peut être inventé puisque les rangs étaient volontairement runtime-only en v7. Les RequirementIds restent dérivés et ne sont jamais sauvegardés.
+La migration v7 -> v8 initialise un snapshot Skill vide : aucun rang n'est inventé puisque les rangs étaient volontairement runtime-only en v7. Les `RequirementIds` restent dérivés et ne sont jamais sauvegardés.
 
-MON20.9.2 est validé UE5.5.4 :
+MON20.9.2 valide le snapshot et la migration :
 
 ```text
 FRPGSkillRankSaveState
@@ -418,15 +421,13 @@ migration explicite v7 -> v8
 Grimrock.MON20.9.SkillPersistence   8/8 Success
 ```
 
-La capture et le restore couvrent personnages actifs + réserve, utilisent uniquement `CharacterId`, résolvent les définitions canoniques `RPGSkill:<SkillId>` et sont atomiques. Les chemins legacy v1-v7 initialisent le domaine Skill vide lorsqu'il n'existait pas.
-
-MON20.9.3 est validé UE5.5.4 : les Skills suivent `CharacterId` à travers recrutement, réserve, réordonnancement et changement de sélection.
+MON20.9.3 valide l'identité active/réserve : les Skills suivent `CharacterId` à travers recrutement, réserve, réordonnancement et changement de sélection.
 
 ```text
 Grimrock.MON20.9.ActivePoolPersistence   8/8 Success
 ```
 
-MON20.9.4 est validé UE5.5.4 : les rangs restaurés redeviennent immédiatement consommables par la projection des requirements, le catalogue d'actions et la page Compétences, sans persister de données dérivées.
+MON20.9.4 valide les consommateurs restaurés : les rangs redeviennent immédiatement consommables par la projection des requirements, le catalogue d'actions et la page Compétences, sans persister de données dérivées.
 
 ```text
 Grimrock.MON20.9.RestoredConsumers   8/8 Success
@@ -441,16 +442,18 @@ TOTAL                  24/24 Success
 0 Error
 ```
 
-MON20.9.5 est en validation finale. Aucun nouveau runtime n'est requis : la campagne logique est complète à 24/24 et le dernier travail est un smoke test PIE de la frontière Save/Continue v8 et de la page Compétences après chargement.
+MON20.9.5 valide la frontière réelle en PIE. Le slot `GrimrockParty` est chargé en SaveVersion 8 avec `Result=Accepted`, le groupe est restauré avec `CharacterCount=2`, le menu s'ouvre et la sélection de personnage reste fonctionnelle. `SkillCharacters=0` est valide tant qu'aucun Skill de production n'est entraîné ; les snapshots non vides sont couverts par l'Automation.
 
-Découpage :
+Un slot secondaire `GrimrockParty_2` est rejeté par le probe MON18.9.3 car son snapshot de progression est incohérent. Ce rejet fail-closed ne concerne pas le slot utilisé par Continuer et n'invalide pas MON20.9. Le warning de spawn monstre `Reason=PartyOccupiesCell` et le `MissingActor` associé sont hors périmètre MON20.9 et doivent être revus pendant MON20.10.
+
+Découpage final :
 
 ```text
 MON20.9.1 — Audit & Architecture Contract                     TERMINÉ
 MON20.9.2 — Skill Rank Save Snapshot + v8 Migration           VALIDÉ UE5.5.4 — 8/8
 MON20.9.3 — Active/Pool Character Persistence Regression      VALIDÉ UE5.5.4 — 8/8 — 16/16 cumulés
 MON20.9.4 — Skill Projection / Skills Page Restore Regression VALIDÉ UE5.5.4 — 8/8 — 24/24 cumulés
-MON20.9.5 — Automation / PIE Regression & Closure             EN VALIDATION — AUTOMATION 24/24 — PIE À FAIRE
+MON20.9.5 — Automation / PIE Regression & Closure             CLOS — 24/24 + PIE
 ```
 
 Documents :
@@ -469,8 +472,8 @@ docs/Design/MON20_9_5_AUTOMATION_PIE_REGRESSION_CLOSURE.md
 ## Suite MON20
 
 ```text
-MON20.9 — Persistence / Migration                    EN COURS — AUTOMATION 24/24 — PIE FINAL À FAIRE
-MON20.10 — Balance / Regression / Closure
+MON20.9 — Persistence / Migration                    CLOS — 24/24 + PIE
+MON20.10 — Balance / Regression / Closure             PROCHAIN
 ```
 
 ---
@@ -517,5 +520,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.9.5 — Automation / PIE Regression & Closure — PIE FINAL
+MON20.10 — Balance / Regression / Closure
 ```
