@@ -36,15 +36,23 @@ MON20.3 — Story Companion Definition / Pool              VALIDÉ UE5.5.4 — 6
 MON20.4 — Story Companion Recruitment UI                 VALIDÉ UE5.5.4 — CLOS — 18/18
 MON20.5 — Custom Recruit / Wizard Context Reuse           VALIDÉ UE5.5.4 — CLOS — 23/23 + PIE
 MON20.6 — Skills Data Model & Runtime                     VALIDÉ UE5.5.4 — CLOS — 24/24
+  MON20.6.1 — Audit & Architecture Contract              TERMINÉ
+  MON20.6.2 — Skill Definition + Character Runtime Ranks VALIDÉ — 8/8
+  MON20.6.3 — Deterministic Skill Check Resolution       VALIDÉ — 16/16 cumulés
+  MON20.6.4 — Runtime Access / Character Selection API   VALIDÉ — 24/24 cumulés
+  MON20.6.5 — Automation Regression / Closure            CLOS
 MON20.7 — Talents / Progression Choice Integration        VALIDÉ UE5.5.4 — CLOS — 24/24
+  MON20.7.1 — Audit & Architecture Contract              TERMINÉ
+  MON20.7.2 — Talent Runtime Read Model / Selection      VALIDÉ UE5.5.4 — 8/8
+  MON20.7.3 — Level Up Talent Presentation Contract      VALIDÉ UE5.5.4 — 16/16 cumulés
+  MON20.7.4 — Requirement Projection / Persistence       VALIDÉ UE5.5.4 — 24/24 cumulés
+  MON20.7.5 — Automation Regression / Closure            CLOS
 MON20.8 — Cross-System Requirements / Actions / UI        EN COURS
   MON20.8.1 — Audit & Architecture Contract              TERMINÉ
   MON20.8.2 — Skill Definition Identity & Requirement Projection    PROCHAIN
   MON20.8.3 — Combat Action Requirement Integration & Diagnostics
   MON20.8.4 — Skills/Talents Page Read Model & Menu Integration
   MON20.8.5 — Automation / PIE Regression & Closure
-MON20.9 — Reserve / Persistence / Migration               À FAIRE
-MON20.10 — Balance / Regression / Closure                 À FAIRE
 ```
 
 ---
@@ -69,28 +77,247 @@ MON22 — 45–90 Minute Vertical Slice
 
 Enrichir le groupe avec recrutement, compétences, talents et spécialisations, en réutilisant création de personnage, progression MON15, RequirementIds MON12, inventaire, Status Effects, Spellbook, SaveGame et UI existants.
 
-## MON20.1 à MON20.7 — CLOS
+## MON20.1 — Audit & Architecture Contract — TERMINÉ
 
-Les fondations de recrutement, les Skills runtime et l'intégration Talent sont validées.
+Conclusions :
 
-Références principales :
+- `FGridPartyInventoryState` reste l’autorité du groupe ;
+- `CharacterPool` existe déjà et doit être réutilisé ;
+- aucun second `PartyMemberState` ;
+- les talents doivent réutiliser les `ProgressionChoices` avant toute abstraction parallèle ;
+- un modèle Skill dédié n’est justifié que par rangs/tests hors combat indépendants.
+
+## MON20.2 — Active Party Recruitment Foundation — VALIDÉ
+
+`FRPGPartyRecruitmentService::TryRecruitFromPool` réalise une transaction atomique pool -> groupe actif, aligne l’équipement, normalise l’ownership et rollback en cas d’échec.
 
 ```text
-MON20.4 — Story Companion Recruitment UI                 18/18
-MON20.5 — Custom Recruit / Wizard Context Reuse           23/23 + PIE
-MON20.6 — Skills Data Model & Runtime                     24/24
-MON20.7 — Talents / Progression Choice Integration        24/24
+Grimrock.MON20.2.Recruitment   6/6 Success
+```
+
+## MON20.3 — Story Companion Definition / Pool — VALIDÉ
+
+`URPGStoryCompanionAsset` et `FRPGStoryCompanionService` ajoutent un compagnon data-driven avec `CompanionId` et `CharacterId` stable, enregistrement idempotent dans `CharacterPool` et reconnaissance active/pool.
+
+```text
+Grimrock.MON20.3.StoryCompanion   6/6 Success
+```
+
+## MON20.4 — Story Companion Recruitment UI — VALIDÉ ET CLOS
+
+Clôturé le **24 août 2026**.
+
+MON20.4 fournit :
+
+- UI `Recruter / Refuser / Voir la fiche` ;
+- intégration modale Pawn ;
+- `OfferRecruitment` Event -> Command / Lua ;
+- cible StoryCompanion data-only ;
+- transaction MON20.3 -> MON20.2 ;
+- suppression des offres déjà recrutées ;
+- refus source-scoped pendant la session.
+
+Validation :
+
+```text
+Grimrock.MON20.4.RecruitmentUI   18/18 Success
+```
+
+## MON20.5 — Custom Recruit / Wizard Context Reuse — VALIDÉ ET CLOS
+
+Clôturé le **24 août 2026**.
+
+Architecture finale :
+
+```text
+Trigger.Activated
+    -> CustomRecruiter.OpenCustomRecruit
+    -> AGrimrockPartyPawn
+    -> WBP_CharacterCreationWizard Context=CustomRecruit
+    -> FRPGCustomRecruitService
+    -> CharacterPool temporaire
+    -> MON20.2 TryRecruitFromPool
+    -> ActiveCharacters
+```
+
+Principaux acquis :
+
+- réutilisation du même wizard ;
+- transaction custom recruit atomique ;
+- identité `CharacterId` unique ;
+- race, classe, attributs, portrait et spellbook préservés ;
+- `Annuler` sans mutation ;
+- target `CustomRecruiter` data-only ;
+- commande `OpenCustomRecruit` dans Event -> Command / Lua ;
+- refus propre pendant un combat actif ;
+- correction de la double suppression `RemoveFromParent()` ;
+- aucun SaveGame v8 prématuré.
+
+Validation :
+
+```text
+Grimrock.MON20.5.CustomRecruit   23/23 Success
+```
+
+PIE :
+
+```text
+[OK] Hors combat -> Annuler
+[OK] Hors combat -> Engager
+[OK] En combat   -> recrutement refusé
+```
+
+Assets d'authoring versionnés dans :
+
+```text
+3a4a7d1cd1133a9536dbde4c964d4b81bfcbc2d4
+```
+
+Documentation de clôture :
+
+```text
+docs/Design/MON20_5_CLOSURE.md
+```
+
+## MON20.6 — Skills Data Model & Runtime — VALIDÉ ET CLOS
+
+Clôturé le **24 août 2026**.
+
+Architecture finale :
+
+```text
+URPGSkillAsset
+    + FRPGSkillRank dans FGridCharacterInventoryState
+    + FRPGSkillService
+    + FRPGSkillCheckService
+    + FRPGSkillRuntimeService
+```
+
+Formule :
+
+```text
+Total = d20 + SkillRank + AttributeModifier
+Success = Total >= Difficulty
+```
+
+Principaux acquis :
+
+- définition Skill data-driven ;
+- rang sparse par personnage dans l'autorité existante ;
+- mutation atomique des rangs ;
+- résolution déterministe via `FRandomStream` ;
+- aucune consommation RNG sur rejet ;
+- lecture/mutation/check par `CharacterIndex` explicite ou personnage sélectionné ;
+- notifications uniquement sur mutation réelle ;
+- aucun second registre de personnages ;
+- `SkillRanks` reste `Transient` jusqu'à MON20.9 ;
+- aucune migration SaveGame dans MON20.6.
+
+Validation cumulative :
+
+```text
+Grimrock.MON20.6.Skills   24/24 Success
+0 Fail
+0 Error
+```
+
+Documents :
+
+```text
+docs/Design/MON20_6_1_SKILLS_ARCHITECTURE_CONTRACT.md
+docs/Design/MON20_6_2_SKILL_DEFINITION_RUNTIME_RANKS.md
+docs/Design/MON20_6_3_DETERMINISTIC_SKILL_CHECK_RESOLUTION.md
+docs/Design/MON20_6_4_RUNTIME_ACCESS_CHARACTER_SELECTION.md
+docs/Design/MON20_6_5_AUTOMATION_REGRESSION_CLOSURE.md
+```
+
+## MON20.7 — Talents / Progression Choice Integration — VALIDÉ ET CLOS
+
+Clôturé le **24 août 2026**.
+
+MON20.7 réutilise le système de progression MON15 au lieu d'introduire un domaine Talent parallèle.
+
+Contrat final :
+
+```text
+ProgressionChoice == Talent de classe sélectionnable
+ChoiceId          == identité stable du talent
+ChoicePoints      == monnaie existante
+PrerequisiteChoiceIds == arbre / dépendances
+GrantedRequirementIds == projection vers consommateurs
+```
+
+Autorités réutilisées :
+
+```text
+URPGClassAsset.ProgressionChoices
+FRPGClassProgressionService
+FRPGClassProgressionTransactionService
+URPGLevelUpWidget
+```
+
+Décisions :
+
+- aucun `TalentId` parallèle ;
+- aucun `TalentPoints` parallèle ;
+- aucun second arbre ;
+- persistance fournie par MON15.6 ;
+- mutation toujours via `TryCommitChoices()` ;
+- `FRPGTalentRuntimeService` reste une façade read-only sans état ;
+- le Level Up existant expose le vocabulaire Talent sans nouveau workflow ;
+- les effets transversaux utilisent `RequirementIds` ;
+- `CurrentSaveVersion` reste 7.
+
+Découpage final :
+
+```text
+MON20.7.1 — Audit & Architecture Contract                    TERMINÉ
+MON20.7.2 — Talent Runtime Read Model / Selected Character  VALIDÉ UE5.5.4 — 8/8
+MON20.7.3 — Level Up Talent Presentation Contract           VALIDÉ UE5.5.4 — 16/16 cumulés
+MON20.7.4 — Requirement Projection / Persistence Regression VALIDÉ UE5.5.4 — 24/24 cumulés
+MON20.7.5 — Automation Regression / Closure                 CLOS
+```
+
+Principaux acquis :
+
+- lecture des talents acquis, disponibilité et budget par personnage ;
+- façade sur le personnage sélectionné sans sélection parallèle ;
+- vocabulaire `Talents de classe` / `Points de talent` dans la présentation Level Up ;
+- maintien de l'identité `ChoiceId` et des transactions MON15 ;
+- projection immédiate de `ChoiceId` et `GrantedRequirementIds` ;
+- isolation par `CharacterId` ;
+- capture/restore via `ClassProgressionStates` MON15.6 ;
+- restore détaché immédiatement consommable ;
+- restore invalide atomique ;
+- restore indépendant de l'ordre des snapshots.
+
+Validation cumulative :
+
+```text
+Grimrock.MON20.7.Talents   24/24 Success
+0 Fail
+0 Error
+```
+
+Documents :
+
+```text
+docs/Design/MON20_7_1_TALENTS_PROGRESSION_CHOICE_ARCHITECTURE.md
+docs/Design/MON20_7_2_TALENT_RUNTIME_READ_MODEL.md
+docs/Design/MON20_7_3_LEVEL_UP_TALENT_PRESENTATION_CONTRACT.md
+docs/Design/MON20_7_4_REQUIREMENT_PROJECTION_PERSISTENCE_REGRESSION.md
+docs/Design/MON20_7_5_AUTOMATION_REGRESSION_CLOSURE.md
 ```
 
 ## MON20.8 — Cross-System Requirements / Actions / UI — EN COURS
 
-MON20.8 branche Skills et Talents sur les consommateurs existants sans créer de pipeline parallèle.
+MON20.8 branche les Skills et Talents sur les consommateurs existants sans créer de pipeline parallèle.
 
 Audit MON20.8.1 :
 
 - `FGridCombatActionDefinition::Requirements` est déjà le contrat de gating des actions ;
 - `FGridCombatActionCatalogContext::SatisfiedRequirements` reçoit déjà `ClassId` et `ItemTags` ;
-- MON15/MON20.7 projette déjà niveau, `ChoiceId` et `GrantedRequirementIds` ;
+- MON15/MON20.7 projette déjà niveau, `ChoiceId` et `GrantedRequirementIds` dans le catalogue ;
 - le HUD/hotbar sait déjà conserver et présenter une action indisponible ;
 - les `SkillRanks` ne produisent encore aucun RequirementId ;
 - `URPGSkillAsset` n'a pas encore d'identité PrimaryAsset explicite basée sur `SkillId` ni de résolveur canonique ;
@@ -136,16 +363,9 @@ docs/Design/MON20_8_1_CROSS_SYSTEM_REQUIREMENTS_ACTIONS_UI_CONTRACT.md
 ## Suite MON20
 
 ```text
+MON20.8 — Cross-System Requirements / Actions / UI       EN COURS
 MON20.9 — Reserve / Persistence / Migration
-    -> persister notamment SkillRanks par CharacterId
-    -> migration SaveGame si nécessaire
-    -> vérifier réserve / pool / recrutement après reload
-
 MON20.10 — Balance / Regression / Closure
-    -> équilibre initial Skills/Talents/recrutement
-    -> campagne Automation globale MON20
-    -> PIE bout en bout
-    -> documentation et clôture MON20
 ```
 
 ---
