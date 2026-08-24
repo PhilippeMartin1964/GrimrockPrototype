@@ -1,6 +1,6 @@
 # MON20.6.2 — Skill Definition + Character Runtime Ranks
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 8/8 SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.6 — Skills Data Model & Runtime**
 
@@ -71,8 +71,6 @@ ERPGSkillGoverningAttribute
     Wisdom
     Charisma
 ```
-
-La formule utilisant cet attribut sera introduite dans MON20.6.3.
 
 ---
 
@@ -163,8 +161,6 @@ Donc :
 - les anciennes sauvegardes ne sont pas modifiées ;
 - MON20.9 introduira le snapshot persistant keyed by `CharacterId`.
 
-Cette séparation évite de figer le schéma SaveGame avant la validation complète du modèle Skill.
-
 ---
 
 ## 7. Automation ajoutée
@@ -188,44 +184,44 @@ ZeroRankRemovesSparseEntry
 DuplicateSkillStateRejected
 ```
 
-Total attendu :
-
-```text
-8 / 8 Success
-0 Fail
-0 Error
-```
-
 ---
 
-## 8. Critères de validation UE5.5.4
+## 8. Validation UE5.5.4 — VALIDÉE
 
-1. compiler `GrimrockPrototypeEditor` ;
-2. ouvrir Session Frontend / Automation ;
-3. exécuter :
+Validation utilisateur du **24 août 2026** avec le filtre :
 
 ```text
 Grimrock.MON20.6.Skills
 ```
 
-Attendu :
+Résultat observé :
+
+```text
+DefaultRuntimeState             Success
+DefinitionValidation            Success
+DuplicateSkillStateRejected     Success
+IncreaseRank                    Success
+MaxRankAtomicReject             Success
+NegativeRankAtomicReject        Success
+SetRank                         Success
+ZeroRankRemovesSparseEntry      Success
+```
+
+Bilan :
 
 ```text
 8 / 8 Success
-0 Fail
-0 Error
+0 test en échec dans le log fourni
 ```
 
-Aucune validation PIE n'est nécessaire pour MON20.6.2 : cette tranche ne crée encore ni UI, ni interaction monde, ni asset d'authoring.
+Aucune validation PIE n'est requise pour MON20.6.2 : cette tranche ne crée ni UI, ni interaction monde, ni asset d'authoring.
 
 ---
 
 ## 9. Suite
 
-Après validation :
-
 ```text
 MON20.6.3 — Deterministic Skill Check Resolution
 ```
 
-Cette étape fixera explicitement la formule de test de compétence et utilisera `FRandomStream` pour des tests déterministes avant toute intégration aux serrures, pièges ou scripts.
+Cette étape fixe explicitement la formule de test de compétence et utilise `FRandomStream` pour une résolution déterministe avant toute intégration aux serrures, pièges ou scripts.
