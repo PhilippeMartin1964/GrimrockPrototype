@@ -49,7 +49,7 @@ MON20.7 — Talents / Progression Choice Integration        VALIDÉ UE5.5.4 — 
   MON20.7.5 — Automation Regression / Closure            CLOS
 MON20.8 — Cross-System Requirements / Actions / UI        EN COURS
   MON20.8.1 — Audit & Architecture Contract              TERMINÉ
-  MON20.8.2 — Skill Definition Identity & Requirement Projection    PROCHAIN
+  MON20.8.2 — Skill Definition Identity & Requirement Projection    IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
   MON20.8.3 — Combat Action Requirement Integration & Diagnostics
   MON20.8.4 — Skills/Talents Page Read Model & Menu Integration
   MON20.8.5 — Automation / PIE Regression & Closure
@@ -342,22 +342,31 @@ Skill RequirementIds
     -> HUD + hotbar existants
 ```
 
+MON20.8.2 est implémenté :
+
+- `URPGSkillAsset::GetPrimaryAssetId()` utilise `RPGSkill:<SkillId>` ;
+- `FRPGSkillRequirementGrant` définit les capabilities par seuil de rang ;
+- `FRPGSkillRequirementProjectionService` résout les définitions canoniques et projette les requirements de manière atomique ;
+- les RequirementIds restent dérivés et non persistés ;
+- 8 tests Automation ciblés attendent validation UE5.5.4.
+
 La page `Compétences` sera read-only pour la progression dans MON20.8 : elle affichera Skills + Talents du personnage sélectionné, mais n'inventera pas une monnaie de points de compétence. Les talents restent acquis via le Level Up MON15/MON20.7.
 
 Découpage :
 
 ```text
 MON20.8.1 — Audit & Architecture Contract                         TERMINÉ
-MON20.8.2 — Skill Definition Identity & Requirement Projection    PROCHAIN
+MON20.8.2 — Skill Definition Identity & Requirement Projection    IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
 MON20.8.3 — Combat Action Requirement Integration & Diagnostics
 MON20.8.4 — Skills/Talents Page Read Model & Menu Integration
 MON20.8.5 — Automation / PIE Regression & Closure
 ```
 
-Document :
+Documents :
 
 ```text
 docs/Design/MON20_8_1_CROSS_SYSTEM_REQUIREMENTS_ACTIONS_UI_CONTRACT.md
+docs/Design/MON20_8_2_SKILL_DEFINITION_IDENTITY_REQUIREMENT_PROJECTION.md
 ```
 
 ## Suite MON20
@@ -412,5 +421,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.8.2 — Skill Definition Identity & Requirement Projection
+MON20.8.2 — Skill Definition Identity & Requirement Projection — VALIDATION UE5.5.4
 ```
