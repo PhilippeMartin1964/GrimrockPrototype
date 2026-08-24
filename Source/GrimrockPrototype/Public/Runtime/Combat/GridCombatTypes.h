@@ -764,6 +764,10 @@ struct FGridAvailableCombatAction
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
     FText DisabledReason;
 
+    /** Stable, deterministic RequirementIds not currently satisfied. */
+    UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
+    TArray<FName> MissingRequirements;
+
     UPROPERTY (BlueprintReadOnly, Transient, Category = "Combat|Action Catalog")
     FGuid SuggestedTargetId;
 
