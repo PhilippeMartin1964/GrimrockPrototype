@@ -1,6 +1,6 @@
 # MON20.8.2 — Skill Definition Identity & Requirement Projection
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE**  
+Statut : **VALIDÉ UE5.5.4 — 8/8 AUTOMATION SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.8 — Cross-System Requirements / Actions / UI**
 
@@ -191,22 +191,18 @@ Filtre :
 Grimrock.MON20.8.SkillRequirements
 ```
 
-Tests prévus :
+Résultat validé sous UE5.5.4 le 24 août 2026 :
 
 ```text
-PrimaryAssetIdentity
-RequirementGrantValidation
-UntrainedNoRequirements
-TrainedSkillId
-ThresholdRequirements
-MultipleSkillsProjection
-InvalidRankAtomic
-MissingDefinitionAtomic
-```
+PrimaryAssetIdentity          Success
+RequirementGrantValidation   Success
+UntrainedNoRequirements      Success
+TrainedSkillId               Success
+ThresholdRequirements        Success
+MultipleSkillsProjection     Success
+InvalidRankAtomic            Success
+MissingDefinitionAtomic      Success
 
-Attendu :
-
-```text
 8 / 8 Success
 0 Fail
 0 Error
@@ -217,16 +213,18 @@ Attendu :
 ## 10. Critères de sortie
 
 ```text
-[ ] GrimrockPrototypeEditor compile sous UE5.5.4
-[ ] 8/8 Automation Success
-[ ] identité RPGSkill:<SkillId> confirmée
-[ ] SkillId projeté pour tout rang positif
-[ ] seuils atteints projetés
-[ ] seuils non atteints absents
-[ ] plusieurs Skills combinés sans collision
-[ ] définition absente -> rejet atomique
-[ ] rang > MaxRank canonique -> rejet atomique
-[ ] aucune migration SaveGame
+[OK] GrimrockPrototypeEditor compile sous UE5.5.4
+[OK] 8/8 Automation Success
+[OK] identité RPGSkill:<SkillId> confirmée
+[OK] SkillId projeté pour tout rang positif
+[OK] seuils atteints projetés
+[OK] seuils non atteints absents
+[OK] plusieurs Skills combinés sans collision
+[OK] définition absente -> rejet atomique
+[OK] rang > MaxRank canonique -> rejet atomique
+[OK] aucune migration SaveGame
 ```
 
-Après validation : **MON20.8.3 — Combat Action Requirement Integration & Diagnostics**.
+MON20.8.2 est **VALIDÉ**.
+
+Prochain travail : **MON20.8.3 — Combat Action Requirement Integration & Diagnostics**.
