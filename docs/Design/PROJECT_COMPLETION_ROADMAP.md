@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON20 EN COURS — MON20.1 À MON20.3 VALIDÉS — MON20.4 PROCHAIN**  
-Date de référence : **23 août 2026**
+Statut : **MON20 EN COURS — MON20.1 À MON20.4 VALIDÉS — MON20.5 PROCHAIN**  
+Date de référence : **24 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -33,7 +33,8 @@ MON20 — Recruitment / Skills / Talents
 MON20.1 — Audit & Architecture Contract                  TERMINÉ
 MON20.2 — Active Party Recruitment Foundation           VALIDÉ UE5.5.4 — 6/6
 MON20.3 — Story Companion Definition / Pool             VALIDÉ UE5.5.4 — 6/6
-MON20.4 — Story Companion Recruitment UI                PROCHAIN
+MON20.4 — Story Companion Recruitment UI                VALIDÉ UE5.5.4 — CLOS — 18/18
+MON20.5 — Custom Recruit / Wizard Context Reuse          PROCHAIN
 ```
 
 ---
@@ -86,9 +87,34 @@ Grimrock.MON20.3.StoryCompanion   6/6 Success
 
 Pas de SaveGame v8 ni `PartyMemberKind` persistant à ce stade.
 
-## MON20.4 — Story Companion Recruitment UI — PROCHAIN
+## MON20.4 — Story Companion Recruitment UI — VALIDÉ ET CLOS
 
-Objectif : écran scénarisé `Recruter / Refuser / Voir la fiche`, branché sur MON20.3 et MON20.2 sans logique métier Blueprint parallèle.
+Clôturé le **24 août 2026**.
+
+MON20.4 fournit le recrutement scénarisé complet, sans logique métier Blueprint parallèle :
+
+- `WBP_RPGStoryCompanionRecruitment` pour `Recruter / Refuser / Voir la fiche` ;
+- intégration modale dans `AGrimrockPartyPawn` ;
+- commande data-driven `OfferRecruitment` dans le pipeline Event → Command / Lua ;
+- cible `StoryCompanion` data-only ;
+- placement depuis le Grid Editor via `DefaultStoryCompanionDefinition` ;
+- appel des services MON20.3 puis MON20.2 comme autorités de transaction ;
+- suppression silencieuse d’une nouvelle offre si le compagnon est déjà actif ;
+- refus non définitif, mémorisé uniquement pour `SourceObjectId + CharacterId` pendant la session runtime ;
+- correction du focus modal UE5.
+
+Validation :
+
+```text
+Grimrock.MON20.4.RecruitmentUI   18/18 Success
+```
+
+PIE validé :
+
+```text
+Refuser  -> repasser sur la même source -> aucune popup
+Recruter -> repasser sur le Trigger     -> aucune popup si AlreadyActive
+```
 
 ## Suite MON20 proposée
 
@@ -147,7 +173,7 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.4 — Story Companion Recruitment UI
+MON20.5 — Custom Recruit / Wizard Context Reuse
 ```
 
-Cette reprise intervient après la passe de bilan `docs/Architecture` du 23 août 2026.
+MON20.4 — Story Companion Recruitment UI est validé et clos depuis le 24 août 2026.
