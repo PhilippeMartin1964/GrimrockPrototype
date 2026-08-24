@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON20 EN COURS — MON20.5 VALIDÉ FONCTIONNELLEMENT — CLÔTURE EN ATTENTE DES ASSETS**  
+Statut : **MON20 EN COURS — MON20.5 CLOS — MON20.6 EN COURS**  
 Date de référence : **24 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -34,8 +34,10 @@ MON20.1 — Audit & Architecture Contract                  TERMINÉ
 MON20.2 — Active Party Recruitment Foundation           VALIDÉ UE5.5.4 — 6/6
 MON20.3 — Story Companion Definition / Pool             VALIDÉ UE5.5.4 — 6/6
 MON20.4 — Story Companion Recruitment UI                VALIDÉ UE5.5.4 — CLOS — 18/18
-MON20.5 — Custom Recruit / Wizard Context Reuse          VALIDÉ UE5.5.4 — ASSETS À VERSIONNER
-MON20.6 — Skills Data Model & Runtime                    PROCHAIN APRÈS CLÔTURE MON20.5
+MON20.5 — Custom Recruit / Wizard Context Reuse          VALIDÉ UE5.5.4 — CLOS — 23/23 + PIE
+MON20.6 — Skills Data Model & Runtime                    EN COURS
+  MON20.6.1 — Audit & Architecture Contract             TERMINÉ
+  MON20.6.2 — Skill Definition + Character Runtime Ranks PROCHAIN
 ```
 
 ---
@@ -86,23 +88,19 @@ Grimrock.MON20.2.Recruitment   6/6 Success
 Grimrock.MON20.3.StoryCompanion   6/6 Success
 ```
 
-Pas de SaveGame v8 ni `PartyMemberKind` persistant à ce stade.
-
 ## MON20.4 — Story Companion Recruitment UI — VALIDÉ ET CLOS
 
 Clôturé le **24 août 2026**.
 
-MON20.4 fournit le recrutement scénarisé complet, sans logique métier Blueprint parallèle :
+MON20.4 fournit :
 
-- `WBP_RPGStoryCompanionRecruitment` pour `Recruter / Refuser / Voir la fiche` ;
-- intégration modale dans `AGrimrockPartyPawn` ;
-- commande data-driven `OfferRecruitment` dans le pipeline Event -> Command / Lua ;
-- cible `StoryCompanion` data-only ;
-- placement depuis le Grid Editor via `DefaultStoryCompanionDefinition` ;
-- appel des services MON20.3 puis MON20.2 comme autorités de transaction ;
-- suppression silencieuse d’une nouvelle offre si le compagnon est déjà actif ;
-- refus non définitif, mémorisé uniquement pour `SourceObjectId + CharacterId` pendant la session runtime ;
-- correction du focus modal UE5.
+- UI `Recruter / Refuser / Voir la fiche` ;
+- intégration modale Pawn ;
+- `OfferRecruitment` Event -> Command / Lua ;
+- cible StoryCompanion data-only ;
+- transaction MON20.3 -> MON20.2 ;
+- suppression des offres déjà recrutées ;
+- refus source-scoped pendant la session.
 
 Validation :
 
@@ -110,16 +108,9 @@ Validation :
 Grimrock.MON20.4.RecruitmentUI   18/18 Success
 ```
 
-PIE validé :
+## MON20.5 — Custom Recruit / Wizard Context Reuse — VALIDÉ ET CLOS
 
-```text
-Refuser  -> repasser sur la même source -> aucune popup
-Recruter -> repasser sur le Trigger     -> aucune popup si AlreadyActive
-```
-
-## MON20.5 — Custom Recruit / Wizard Context Reuse — VALIDÉ FONCTIONNELLEMENT
-
-MON20.5 réutilise le **même wizard de création de personnage** pour créer une recrue personnalisée pendant l'exploration, sans introduire un second système de groupe ou un second WBP métier.
+Clôturé le **24 août 2026**.
 
 Architecture finale :
 
@@ -127,8 +118,7 @@ Architecture finale :
 Trigger.Activated
     -> CustomRecruiter.OpenCustomRecruit
     -> AGrimrockPartyPawn
-    -> WBP_CharacterCreationWizard
-       Context=CustomRecruit
+    -> WBP_CharacterCreationWizard Context=CustomRecruit
     -> FRPGCustomRecruitService
     -> CharacterPool temporaire
     -> MON20.2 TryRecruitFromPool
@@ -137,58 +127,94 @@ Trigger.Activated
 
 Principaux acquis :
 
-- contexte transient `NewGameMainHero / CustomRecruit` ;
-- même `CharacterCreationWidgetClass`, même instance et même garde modale ;
+- réutilisation du même wizard ;
 - transaction custom recruit atomique ;
 - identité `CharacterId` unique ;
-- attributs, race, classe et portrait préservés ;
-- spellbook runtime garanti après recrutement ;
-- `Annuler` retourne au jeu sans mutation ;
-- target data-only `CustomRecruiter` ;
-- commande `OpenCustomRecruit = 24` dans le pipeline Event -> Command existant ;
-- policy CONNECTORS dédiée ;
-- bridge Lua générique réutilisé ;
-- recrutement refusé pendant un combat actif afin de préserver initiative, AP et états de tour ;
+- race, classe, attributs, portrait et spellbook préservés ;
+- `Annuler` sans mutation ;
+- target `CustomRecruiter` data-only ;
+- commande `OpenCustomRecruit` dans Event -> Command / Lua ;
+- refus propre pendant un combat actif ;
 - correction de la double suppression `RemoveFromParent()` ;
-- aucune migration SaveGame ni `PartyMemberKind` persistant introduit prématurément.
+- aucun SaveGame v8 prématuré.
 
-Validation automatisée finale :
+Validation :
 
 ```text
 Grimrock.MON20.5.CustomRecruit   23/23 Success
 ```
 
-Validation PIE finale sous UE5.5.4 :
+PIE :
 
 ```text
-[OK] Hors combat -> Annuler -> retour au jeu, aucune mutation, aucun warning RemoveFromParent
-[OK] Hors combat -> Engager -> nouvelle recrue active, retour au jeu
-[OK] En combat   -> OpenCustomRecruit refusé, aucun wizard, combat inchangé
+[OK] Hors combat -> Annuler
+[OK] Hors combat -> Engager
+[OK] En combat   -> recrutement refusé
 ```
 
-État de clôture :
+Assets d'authoring versionnés dans :
 
 ```text
-[OK] C++ / architecture
-[OK] Automation 23/23
-[OK] Grid authoring / connector
-[OK] PIE post-hardening
-[ ] Assets d'authoring MON20.5.6 versionnés dans Git
+3a4a7d1cd1133a9536dbde4c964d4b81bfcbc2d4
 ```
 
-MON20.5 sera marqué **CLOS** dès que l'archetype Custom Recruiter, la palette modifiée et le `GridLevelAsset` concerné auront été commités/poussés.
+Documentation de clôture :
+
+```text
+docs/Design/MON20_5_CLOSURE.md
+```
+
+## MON20.6 — Skills Data Model & Runtime — EN COURS
+
+MON20.6 introduit un domaine Skill dédié uniquement pour les besoins que les `ProgressionChoices` MON15 ne représentent pas proprement :
+
+- rang numérique par compétence ;
+- progression indépendante des talents ;
+- tests de compétence hors combat.
+
+Contrat MON20.6.1 :
+
+```text
+URPGSkillAsset
+ERPGSkillGoverningAttribute
+FRPGSkillRank dans FGridCharacterInventoryState
+FRPGSkillService
+FRPGSkillCheckService ensuite
+```
+
+Décisions :
+
+- aucun second registre de personnages ;
+- `SkillRanks` runtime/transient jusqu'à MON20.9 ;
+- aucune migration SaveGame dans MON20.6 ;
+- aucun couplage prématuré aux serrures/triggers ;
+- RequirementIds intégrés ultérieurement dans MON20.8 ;
+- talents laissés à MON20.7 via les `ProgressionChoices` existants.
+
+Découpage :
+
+```text
+MON20.6.1 — Audit & Architecture Contract               TERMINÉ
+MON20.6.2 — Skill Definition + Character Runtime Ranks  PROCHAIN
+MON20.6.3 — Deterministic Skill Check Resolution
+MON20.6.4 — Runtime Access / Character Selection API
+MON20.6.5 — Automation Regression / Closure
+```
+
+Document :
+
+```text
+docs/Design/MON20_6_1_SKILLS_ARCHITECTURE_CONTRACT.md
+```
 
 ## Suite MON20
 
 ```text
-MON20.6 — Skills Data Model & Runtime
 MON20.7 — Talents / Progression Choice Integration
 MON20.8 — Cross-System Requirements / Actions / UI
 MON20.9 — Reserve / Persistence / Migration
 MON20.10 — Balance / Regression / Closure
 ```
-
-La numérotation peut encore être ajustée si un sous-jalon doit être divisé, mais l’ordre fonctionnel est désormais clair.
 
 ---
 
@@ -234,9 +260,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-1. Versionner les assets MON20.5.6 dans Git
-2. Clore MON20.5
-3. Ouvrir MON20.6 — Skills Data Model & Runtime
+MON20.6.2 — Skill Definition + Character Runtime Ranks
 ```
-
-MON20.5 est fonctionnellement validé sous UE5.5.4 ; seul le versioning des assets d'authoring reste requis pour sa clôture formelle.
