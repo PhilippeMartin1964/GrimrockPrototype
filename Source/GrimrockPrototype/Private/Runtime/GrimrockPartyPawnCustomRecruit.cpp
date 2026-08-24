@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Magic/GridPartySpellbookComponent.h"
 #include "RPG/RPGCharacterTypes.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "UI/RPGCharacterCreationWidget.h"
 
@@ -42,6 +43,19 @@ bool AGrimrockPartyPawn::ShowCustomRecruitCharacterCreationWidget ()
             *GetName (),
             State.ActiveCharacters.Num (),
             State.MaxActiveCharacters);
+        return false;
+    }
+
+    if (const UGridTurnManagerComponent* TurnManager = FindTurnManager ();
+        IsValid (TurnManager) && TurnManager->bCombatActive)
+    {
+        UE_LOG (
+            LogGridCustomRecruitRuntime,
+            Log,
+            TEXT ("[GridCustomRecruitRuntime] Show Rejected Pawn=%s Reason=CombatActive Phase=%d Round=%d"),
+            *GetName (),
+            static_cast<int32> (TurnManager->CurrentPhase),
+            TurnManager->RoundNumber);
         return false;
     }
 
@@ -89,7 +103,10 @@ bool AGrimrockPartyPawn::ShowCustomRecruitCharacterCreationWidget ()
 
     if (CharacterCreationWidgetInstance)
     {
-        CharacterCreationWidgetInstance->RemoveFromParent ();
+        if (CharacterCreationWidgetInstance->IsInViewport ())
+        {
+            CharacterCreationWidgetInstance->RemoveFromParent ();
+        }
         CharacterCreationWidgetInstance = nullptr;
     }
 
@@ -135,7 +152,7 @@ bool AGrimrockPartyPawn::ShowCustomRecruitCharacterCreationWidget ()
         Log,
         TEXT ("[GridCustomRecruitRuntime] Shown Pawn=%s WidgetClass=%s Context=CustomRecruit"),
         *GetName (),
-        *GetNameSafe (CharacterCreationWidgetClass.Get ())); 
+        *GetNameSafe (CharacterCreationWidgetClass.Get ()));
     return true;
 }
 
@@ -194,10 +211,35 @@ void AGrimrockPartyPawn::HandleCustomRecruitCommitted (
 void AGrimrockPartyPawn::HandleCustomRecruitCancelled (
     URPGCharacterCreationWidget* SourceWidget)
 {
-    FinishCustomRecruitCharacterCreationWidget (
-        SourceWidget,
-        false,
-        INDEX_NONE);
+    if (!IsValid (SourceWidget) ||
+        CharacterCreationWidgetInstance.Get () != SourceWidget ||
+        SourceWidget->GetCreationContext () !=
+            ERPGCharacterCreationContext::CustomRecruit)
+    {
+        UE_LOG (
+            LogGridCustomRecruitRuntime,
+            Verbose,
+            TEXT ("[GridCustomRecruitRuntime] Cancel Ignored Pawn=%s Widget=%s Reason=StaleOrWrongContext"),
+            *GetName (),
+            *GetNameSafe (SourceWidget));
+        return;
+    }
+
+    // CancelWizard() owns the actual RemoveFromParent() call after this
+    // synchronous delegate returns. Only release Pawn-side modal/input state
+    // here, otherwise the widget is removed twice and PIE logs a warning.
+    CharacterCreationWidgetInstance = nullptr;
+    bCharacterCreationModalActive = false;
+    ClearBufferedCommand ();
+    ApplyCharacterCreationInputMode (false);
+    SyncHeldVisualFromSelectedCharacterEquipment ();
+    RefreshCombatActionPanelWidget ();
+
+    UE_LOG (
+        LogGridCustomRecruitRuntime,
+        Log,
+        TEXT ("[GridCustomRecruitRuntime] Cancelled Pawn=%s"),
+        *GetName ());
 }
 
 void AGrimrockPartyPawn::FinishCustomRecruitCharacterCreationWidget (
@@ -238,7 +280,10 @@ void AGrimrockPartyPawn::FinishCustomRecruitCharacterCreationWidget (
         }
     }
 
-    SourceWidget->RemoveFromParent ();
+    if (SourceWidget->IsInViewport ())
+    {
+        SourceWidget->RemoveFromParent ();
+    }
     CharacterCreationWidgetInstance = nullptr;
     bCharacterCreationModalActive = false;
     ClearBufferedCommand ();

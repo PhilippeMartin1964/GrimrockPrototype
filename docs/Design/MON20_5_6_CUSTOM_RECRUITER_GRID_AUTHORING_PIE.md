@@ -1,6 +1,6 @@
 # MON20.5.6 — Custom Recruiter Grid Authoring & PIE
 
-Statut : **À VALIDER MANUELLEMENT SOUS UE5.5.4**  
+Statut : **PIE FONCTIONNEL VALIDÉ — HARDENING COMBAT / FERMETURE À REVALIDER**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -18,13 +18,11 @@ Trigger.Activated
     -> Annuler ou Engager
 ```
 
-Cette tranche ne requiert aucun nouveau code C++ ni aucun nouveau Blueprint Graph. Elle consiste à créer les assets d'authoring, placer le target dans le `UGridLevelAsset`, créer le connector et exécuter deux scénarios PIE.
+Cette tranche crée les assets d'authoring, place le target dans le `UGridLevelAsset`, crée le connector et valide le comportement PIE.
 
 ---
 
 ## 2. Préconditions validées
-
-Les tranches précédentes sont validées :
 
 ```text
 MON20.5.2  Custom Recruit Transaction          9/9
@@ -33,7 +31,7 @@ MON20.5.4  Runtime Modal Integration           18/18 cumulés
 MON20.5.5  Event / Command Authoring Bridge    22/22 cumulés
 ```
 
-Le filtre de référence est :
+Filtre :
 
 ```text
 Grimrock.MON20.5.CustomRecruit
@@ -49,117 +47,48 @@ Résultat MON20.5.5 :
 
 ---
 
-## 3. Créer l'archetype
+## 3. Archetype et palette
 
-Créer un Data Asset de classe :
-
-```text
-GridObjectArchetypeAsset
-```
-
-Nom recommandé :
+Archetype de référence :
 
 ```text
 DA_Archetype_CustomRecruiter_Service
+Archetype Id              = CustomRecruiter_Service
+Display Name              = Custom Recruiter
+Gameplay Type             = CustomRecruiter
+Functional Category       = Decoration
+Default Initially Enabled = true
+Default Initially Active  = false
+Palette Category          = Recruitment
+Placement Kind            = Center
+Can Share Cell            = true
+Can Share Anchor          = true
+Blocks Movement           = false
+Runtime Interactable      = false
+Runtime Readable          = false
+Runtime Light Source      = false
+Runtime Actor Class       = None
+Item Actor Class          = None
 ```
 
-Le placer avec les autres archetypes Grimrock existants.
-
-Configurer :
+Entrée de palette :
 
 ```text
-Archetype
-  Archetype Id             = CustomRecruiter_Service
-  Display Name             = Custom Recruiter
-  Gameplay Type            = CustomRecruiter
-  Description              = Opens the custom character recruitment wizard.
-  Functional Category      = Decoration
-
-Defaults
-  Default Initially Enabled = true
-  Default Initially Active  = false
-  Default Tag               = None
-
-Palette
-  Palette Category          = Recruitment
-
-Placement
-  Placement Kind            = Center
-  Can Share Cell            = true
-  Can Share Anchor          = true
-  Blocks Movement           = false
-  Placement Z Offset        = 12.0 (default acceptable)
-
-Interaction
-  Runtime Interactable      = false
-  Runtime Readable          = false
-
-Light
-  Runtime Light Source      = false
-
-Visual
-  Main Mesh / Preview Mesh  = None
-  Main Material             = None
-
-Runtime
-  Runtime Actor Class       = None
-  Item Actor Class          = None
+Entry Id                            = CustomRecruiter_Service
+Display Name Override               = Custom Recruiter
+Category Override                   = Recruitment
+Default Archetype                   = DA_Archetype_CustomRecruiter_Service
+Default Monster Definition          = None
+Default Story Companion Definition  = None
 ```
 
-Le target est volontairement invisible et data-only. Un PreviewMesh pourra être ajouté plus tard uniquement si l'authoring visuel en a besoin.
-
-Le test `CustomRecruiterArchetypeContract` confirme qu'aucun `RuntimeActorClass` n'est requis.
+Le target est data-only et n'a pas besoin de RuntimeActorClass.
 
 ---
 
-## 4. Ajouter l'entrée de palette
+## 4. Connector validé
 
-Ouvrir le `GridObjectPaletteAsset` utilisé par le Grid Editor (dans le projet de référence : la palette par défaut déjà utilisée pour les autres objets).
-
-Ajouter une entrée :
-
-```text
-Entry Id                         = CustomRecruiter_Service
-Display Name Override            = Custom Recruiter
-Category Override                = Recruitment
-Icon                             = None
-Default Archetype                = DA_Archetype_CustomRecruiter_Service
-Default Monster Definition       = None
-Default Story Companion Definition = None
-```
-
-Aucune définition de compagnon n'est nécessaire : contrairement à `StoryCompanion`, l'identité est créée par le joueur dans le wizard.
-
-Sauvegarder la palette.
-
----
-
-## 5. Placer le target dans le niveau
-
-Dans le Grid Editor :
-
-1. ouvrir le niveau de test utilisé pour MON20.4/MON20.5 ;
-2. dans `TOOLS / PALETTE`, ouvrir la catégorie `Recruitment` ;
-3. sélectionner `Custom Recruiter` ;
-4. choisir une cellule libre ou une cellule partageable proche du Trigger de test ;
-5. placer l'objet ;
-6. sélectionner l'objet placé et vérifier dans l'inspecteur :
-
-```text
-Gameplay Type = CustomRecruiter
-ArchetypeId    = CustomRecruiter_Service
-Enabled at Start = true
-```
-
-Le target n'a pas besoin d'être visible en jeu.
-
----
-
-## 6. Créer le connector
-
-Sélectionner le Trigger source puis ouvrir `CONNECTORS`.
-
-Cliquer sur `+` et configurer exactement :
+Le connector authoré dans le Grid Editor est :
 
 ```text
 Source Object = Trigger placé
@@ -169,134 +98,189 @@ Command       = Open Custom Recruit
 Condition     = None
 ```
 
-Puis cliquer :
-
-```text
-Create
-```
-
-Le connector doit apparaître comme connector sortant du Trigger et entrant du Custom Recruiter.
-
 Aucun Blueprint Graph n'est nécessaire.
 
 ---
 
-## 7. PIE — scénario A : Annuler
+## 5. PIE validé — Annuler
 
-Précondition :
-
-- héros principal déjà créé ;
-- au moins une place libre dans le groupe actif.
-
-Procédure :
-
-1. lancer PIE ;
-2. entrer dans la cellule du Trigger ;
-3. vérifier que le **même** `WBP_CharacterCreationWizard` s'ouvre ;
-4. vérifier que le wizard est utilisable après le New Game ;
-5. cliquer `Annuler` ;
-6. vérifier le retour immédiat au jeu.
-
-Résultat attendu :
+Le 24 août 2026, le scénario réel a été exécuté avec succès :
 
 ```text
-Wizard visible
--> Context = CustomRecruit
+Trigger Activated
+-> OpenCustomRecruit Success=true
+-> WBP_CharacterCreationWizard Context=CustomRecruit
 -> Annuler
--> Wizard fermé
--> pas de retour Main Menu
--> input exploration restauré
--> nombre de personnages actifs inchangé
--> CharacterPool inchangé
+-> retour au jeu
+-> groupe inchangé
+-> input restauré
 ```
 
-Le Trigger peut être réutilisé plus tard : l'annulation n'est pas mémorisée comme un refus définitif.
+Les logs observés confirment notamment :
+
+```text
+[GridCustomRecruitRuntime] Shown ... Context=CustomRecruit
+CharacterCreationWizard Cancelled ... Context=1
+GridInventory UI State Open=false
+Viewport MouseCaptureMode ... -> CaptureDuringMouseDown
+[GridCustomRecruitRuntime] Cancelled
+```
+
+Le joueur a pu immédiatement reprendre le combat et exécuter une attaque après la fermeture du wizard.
+
+### Anomalie détectée
+
+PIE a aussi signalé :
+
+```text
+UWidget::RemoveFromParent() called ... which has no UMG parent
+```
+
+Cause : `CancelWizard()` notifie synchroniquement le Pawn, le Pawn retirait le widget, puis `CancelWizard()` exécutait son propre `RemoveFromParent()`.
+
+Hardening : le handler Pawn `HandleCustomRecruitCancelled()` libère désormais uniquement l'état modal/input ; `CancelWizard()` reste propriétaire de sa suppression visuelle. Les fermetures programmatiques continuent de passer par `FinishCustomRecruitCharacterCreationWidget()`.
 
 ---
 
-## 8. PIE — scénario B : Engager
+## 6. PIE validé — Engager
 
-Repartir d'un état avec au moins une place libre.
-
-Procédure :
-
-1. entrer dans le Trigger ;
-2. remplir le wizard normalement ;
-3. choisir race, classe, caractéristiques, identité et portrait ;
-4. atteindre la page finale ;
-5. cliquer `Engager` ;
-6. vérifier le retour au jeu.
-
-Résultat attendu :
+Le second passage sur le même Trigger a aussi été validé :
 
 ```text
-Wizard CustomRecruit
--> FRPGCustomRecruitService
--> candidat temporaire dans CharacterPool
--> MON20.2 TryRecruitFromPool
--> nouveau personnage dans ActiveCharacters
--> candidat retiré du pool
--> spellbook runtime garanti
--> wizard fermé
--> input exploration restauré
--> HUD rafraîchi
+Trigger Activated
+-> OpenCustomRecruit Success=true
+-> WBP_CharacterCreationWizard Context=CustomRecruit
+-> Engager
+-> Elarion créé
+-> Race=Elf
+-> Class=Mage
+-> CharacterIndex=1
+-> retour au jeu
 ```
 
-Le héros principal existant doit rester intact.
+Les attributs observés étaient :
+
+```text
+8 / 12 / 10 / 15 / 12 / 9
+```
+
+Le log runtime confirme :
+
+```text
+[GridCustomRecruitRuntime] Committed ... CharacterIndex=1
+```
+
+Le héros principal est resté actif et le contrôle du jeu a été restauré.
 
 ---
 
-## 9. PIE — réutilisation du service
+## 7. Découverte importante : recrutement pendant un combat
 
-Si une place reste disponible après le premier recrutement :
+Le test manuel a volontairement été effectué pendant un combat actif. Techniquement le flux fonctionnait, mais cette situation n'est pas retenue comme comportement supporté.
 
-1. ressortir du Trigger ;
-2. revenir ;
-3. vérifier que le wizard peut s'ouvrir à nouveau ;
-4. annuler ou recruter un autre personnage.
+Raison : l'initiative, les `PlayerCharacterTurnStates`, les AP et la séquence courante sont établis au début / pendant le combat. Ajouter un nouveau membre à `ActiveCharacters` au milieu d'un round créerait une divergence entre l'état persistant du groupe et le snapshot combat en cours.
 
-C'est volontaire : `CustomRecruiter` représente un service réutilisable (auberge, guilde, recruteur), pas un compagnon scénarisé unique.
+Politique MON20.5.6 :
 
-Lorsque le groupe est plein, l'ouverture doit être refusée proprement sans mutation.
+```text
+Exploration + place disponible
+    -> CustomRecruit autorisé
+
+Combat actif
+    -> OpenCustomRecruit refusé
+    -> aucun modal
+    -> aucune mutation du groupe
+```
+
+`ShowCustomRecruitCharacterCreationWidget()` vérifie maintenant le `UGridTurnManagerComponent` existant et refuse si `bCombatActive == true`.
+
+Log attendu :
+
+```text
+[GridCustomRecruitRuntime] Show Rejected ... Reason=CombatActive Phase=... Round=...
+```
+
+Le connector retourne alors `Success=false` sans ouvrir le wizard.
 
 ---
 
-## 10. Logs utiles
+## 8. Automation hardening
 
-En cas de problème, conserver les lignes contenant :
+Un test supplémentaire est ajouté :
 
 ```text
-CustomRecruit
-CharacterCreationWizard
-Grid link
-OpenCustomRecruit
-PartyInventory
-Recruit
+Grimrock.MON20.5.CustomRecruit.RuntimeCombatGate
 ```
 
-Les points de diagnostic prioritaires sont :
+Il vérifie qu'avec un TurnManager actif en combat :
+
+- `ShowCustomRecruitCharacterCreationWidget()` retourne false ;
+- aucun modal n'est marqué actif ;
+- aucune instance de Character Creation n'est créée.
+
+Total attendu après hardening :
 
 ```text
-le Trigger émet-il Activated ?
-le connector est-il exécuté ?
-le target est-il bien CustomRecruiter ?
-la commande est-elle OpenCustomRecruit ?
-le Pawn refuse-t-il le modal à cause d'un groupe plein ou d'un autre modal ?
-le wizard est-il bien initialisé avec Context=CustomRecruit ?
+23 tests
 ```
 
 ---
 
-## 11. Critère de clôture MON20.5
+## 9. Revalidation finale demandée
 
-MON20.5 pourra être clos lorsque les validations suivantes auront toutes été confirmées :
+### A — Automation
 
 ```text
-[OK] 22/22 Automation tests
-[ ] PIE Annuler : retour au jeu sans mutation
-[ ] PIE Engager : nouvelle recrue active et retour au jeu
-[ ] PIE input/modal : aucune anomalie de focus ou de contrôle
+Grimrock.MON20.5.CustomRecruit
+23 / 23 Success
+```
+
+### B — PIE exploration
+
+Hors combat :
+
+```text
+Trigger -> wizard -> Annuler
+```
+
+Attendu : aucune ligne `RemoveFromParent() ... has no UMG parent`.
+
+Puis :
+
+```text
+Trigger -> wizard -> Engager
+```
+
+Attendu : nouvelle recrue active et retour au jeu.
+
+### C — PIE combat
+
+Pendant un combat actif, traverser le même Trigger.
+
+Attendu :
+
+```text
+Reason=CombatActive
+pas de wizard
+pas de nouvelle recrue
+combat inchangé
+```
+
+---
+
+## 10. Critère de clôture MON20.5
+
+```text
+[OK] 22/22 Automation tests avant hardening
+[OK] Authoring CustomRecruiter + palette + connector
+[OK] PIE Annuler fonctionnel
+[OK] PIE Engager fonctionnel
+[OK] Input restauré après les deux chemins
+[OK] Recrue réelle Elarion créée CharacterIndex=1
+[ ] 23/23 Automation tests après hardening
+[ ] PIE Annuler sans warning RemoveFromParent
+[ ] PIE combat : recrutement correctement refusé
 [ ] Assets d'authoring versionnés dans Git
 ```
 
-Les `.uasset` créés/modifiés pendant cette tranche doivent être commités localement après validation PIE.
+Les `.uasset` créés/modifiés pendant cette tranche doivent être commités localement après la revalidation finale.

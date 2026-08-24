@@ -2,9 +2,70 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "Runtime/Combat/GridTurnManagerComponent.h"
+#include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/RPGCharacterCreationWidget.h"
 #include "UObject/Class.h"
+
+namespace RPGCustomRecruitMON205RuntimeIntegrationTests
+{
+    struct FTestWorld
+    {
+        UWorld* World = nullptr;
+
+        FTestWorld ()
+        {
+            const UWorld::InitializationValues Values =
+                UWorld::InitializationValues ()
+                    .AllowAudioPlayback (false)
+                    .RequiresHitProxies (false)
+                    .CreatePhysicsScene (false)
+                    .CreateNavigation (false)
+                    .CreateAISystem (false)
+                    .ShouldSimulatePhysics (false)
+                    .SetTransactional (false);
+
+            World = UWorld::CreateWorld (
+                EWorldType::Game,
+                false,
+                FName (*FString::Printf (
+                    TEXT ("MON2056_%s"),
+                    *FGuid::NewGuid ().ToString (EGuidFormats::Digits))),
+                nullptr,
+                true,
+                ERHIFeatureLevel::Num,
+                &Values);
+            if (!World || !GEngine)
+            {
+                return;
+            }
+
+            FWorldContext& Context =
+                GEngine->CreateNewWorldContext (EWorldType::Game);
+            Context.SetCurrentWorld (World);
+        }
+
+        ~FTestWorld ()
+        {
+            if (!World)
+            {
+                return;
+            }
+
+            World->DestroyWorld (false);
+            if (GEngine)
+            {
+                GEngine->DestroyWorldContext (World);
+            }
+        }
+    };
+}
+
+using namespace RPGCustomRecruitMON205RuntimeIntegrationTests;
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST (
     FRPGMON205CustomRecruitRuntimeContractTest,
@@ -100,6 +161,72 @@ bool FRPGMON205CustomRecruitRuntimeDefaultStateTest::RunTest (
     TestNull (
         TEXT ("Custom recruit widget getter is null by default"),
         DefaultPawn->GetCustomRecruitCharacterCreationWidget ());
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST (
+    FRPGMON2056CustomRecruitRuntimeCombatGateTest,
+    "Grimrock.MON20.5.CustomRecruit.RuntimeCombatGate",
+    EAutomationTestFlags::EditorContext |
+        EAutomationTestFlags::EngineFilter)
+
+bool FRPGMON2056CustomRecruitRuntimeCombatGateTest::RunTest (
+    const FString& Parameters)
+{
+    (void)Parameters;
+
+    FTestWorld TestWorld;
+    if (!TestWorld.World)
+    {
+        AddError (TEXT ("Unable to create MON20.5.6 test world."));
+        return false;
+    }
+
+    AGridLevelRuntimeActor* Runtime =
+        TestWorld.World->SpawnActor<AGridLevelRuntimeActor> ();
+    AGrimrockPartyPawn* Pawn =
+        TestWorld.World->SpawnActor<AGrimrockPartyPawn> ();
+    TestNotNull (TEXT ("Runtime actor spawns"), Runtime);
+    TestNotNull (TEXT ("Party pawn spawns"), Pawn);
+    if (!Runtime || !Pawn || !Pawn->PartyInventoryComponent)
+    {
+        return false;
+    }
+
+    Pawn->LevelRuntimeActor = Runtime;
+    FGridPartyInventoryState& PartyState =
+        Pawn->PartyInventoryComponent->PartyInventoryState;
+    PartyState.bInitialCharacterCreationCompleted = true;
+    PartyState.MaxActiveCharacters = 4;
+    PartyState.SelectedCharacterIndex = 0;
+    PartyState.ActiveCharacters.SetNum (1);
+    PartyState.ActiveCharacters[0].CharacterId =
+        FGuid (20, 5, 6, 1);
+
+    UGridTurnManagerComponent* TurnManager =
+        NewObject<UGridTurnManagerComponent> (Runtime);
+    TestNotNull (TEXT ("Turn manager component is created"), TurnManager);
+    if (!TurnManager)
+    {
+        return false;
+    }
+
+    Runtime->AddInstanceComponent (TurnManager);
+    TurnManager->RegisterComponent ();
+    TurnManager->bCombatActive = true;
+    TurnManager->CurrentPhase = EGridCombatPhase::PlayerPhase;
+    TurnManager->RoundNumber = 3;
+
+    TestFalse (
+        TEXT ("Custom recruit modal is rejected during active combat"),
+        Pawn->ShowCustomRecruitCharacterCreationWidget ());
+    TestFalse (
+        TEXT ("Combat rejection leaves character creation modal inactive"),
+        Pawn->bCharacterCreationModalActive);
+    TestNull (
+        TEXT ("Combat rejection creates no character creation widget"),
+        Pawn->CharacterCreationWidgetInstance.Get ());
+
     return true;
 }
 
