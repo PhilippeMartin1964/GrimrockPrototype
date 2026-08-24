@@ -1,6 +1,6 @@
 # MON20.6.4 — Runtime Access / Character Selection API
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 24/24 SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.6 — Skills Data Model & Runtime**
 
@@ -149,7 +149,7 @@ Le filtre cumulatif reste :
 Grimrock.MON20.6.Skills
 ```
 
-Après MON20.6.4, total attendu :
+Validation reçue sous UE5.5.4 le 24 août 2026 :
 
 ```text
 24 / 24 Success
@@ -157,7 +157,7 @@ Après MON20.6.4, total attendu :
 0 Error
 ```
 
-Les 16 tests MON20.6.2 + MON20.6.3 doivent rester verts.
+Les 16 tests MON20.6.2 + MON20.6.3 sont également restés verts dans la même exécution cumulative.
 
 ---
 
@@ -179,15 +179,10 @@ Ces intégrations restent dans MON20.8 / MON20.9 ou dans leurs consommateurs dé
 
 ## 8. Validation UE5.5.4
 
-Compiler `GrimrockPrototypeEditor`, puis exécuter :
+Statut final :
 
 ```text
 Grimrock.MON20.6.Skills
-```
-
-Attendu :
-
-```text
 24 / 24 Success
 0 Fail
 0 Error
@@ -199,10 +194,8 @@ Aucun PIE n'est requis : MON20.6.4 n'introduit ni UI ni interaction monde.
 
 ## 9. Suite
 
-Après validation :
-
 ```text
 MON20.6.5 — Automation Regression / Closure
 ```
 
-Cette dernière tranche fera la passe de régression, la clôture MON20.6 et la mise à jour de la roadmap avant MON20.7.
+La passe cumulative 24/24 sert de régression finale et permet la clôture de MON20.6 avant MON20.7.
