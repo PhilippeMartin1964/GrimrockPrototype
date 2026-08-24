@@ -1,6 +1,6 @@
 # MON20.7.3 — Level Up Talent Presentation Contract
 
-Statut : **IMPLÉMENTATION EN COURS — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.7 — Talents / Progression Choice Integration**
 
@@ -180,7 +180,7 @@ MON20.7.3 ne fait pas :
 
 ---
 
-## 9. Fichiers prévus
+## 9. Fichiers implémentés
 
 ```text
 Source/GrimrockPrototype/Public/UI/RPGLevelUpWidget.h
