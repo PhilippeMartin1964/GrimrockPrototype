@@ -1,6 +1,6 @@
 # MON20.7.3 — Level Up Talent Presentation Contract
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 16/16 AUTOMATION SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.7 — Talents / Progression Choice Integration**
 
@@ -133,15 +133,15 @@ SaveGame inchangé
 
 ---
 
-## 7. Automation
+## 7. Automation — VALIDÉ
 
-Huit tests MON20.7.3 sont ajoutés au filtre cumulatif :
+Filtre cumulatif :
 
 ```text
 Grimrock.MON20.7.Talents
 ```
 
-Tests :
+Tests MON20.7.3 :
 
 ```text
 PresentationVocabulary
@@ -154,15 +154,28 @@ PresentationConfirmTransaction
 PresentationCancelNoMutation
 ```
 
-Après MON20.7.3 :
+Validation fournie le **24 août 2026** :
 
 ```text
-16 / 16 Success attendus
+16 / 16 Success
 0 Fail
 0 Error
 ```
 
-Les 8 tests MON20.7.2 doivent rester verts.
+Les 8 tests MON20.7.2 restent verts et les 8 nouveaux tests MON20.7.3 passent tous.
+
+La validation confirme notamment :
+
+- vocabulaire Talent exposé par la vue ;
+- identité `ChoiceId` inchangée ;
+- talent disponible correctement présenté ;
+- talent staged correctement présenté ;
+- talent acquis correctement présenté ;
+- budget de points identique à MON15 ;
+- confirmation via la transaction MON15 ;
+- annulation sans mutation.
+
+Aucun PIE n'était requis pour cette tranche native/contractuelle.
 
 ---
 
@@ -194,30 +207,10 @@ Aucun `.uasset` / `.umap` n'est requis.
 
 ---
 
-## 10. Validation demandée
-
-Compiler `GrimrockPrototypeEditor`, puis exécuter :
-
-```text
-Grimrock.MON20.7.Talents
-```
-
-Attendu :
-
-```text
-16 / 16 Success
-0 Fail
-0 Error
-```
-
-Aucun PIE n'est requis pour cette tranche contractuelle/native Slate.
-
----
-
-## 11. Suite
-
-Après validation :
+## 10. Suite
 
 ```text
 MON20.7.4 — Requirement Projection / Persistence Regression
 ```
+
+MON20.7.4 doit vérifier que les talents restent correctement projetés vers `SatisfiedRequirements` et persistent/reviennent exclusivement via le snapshot MON15.6 existant, sans nouvelle donnée Talent.
