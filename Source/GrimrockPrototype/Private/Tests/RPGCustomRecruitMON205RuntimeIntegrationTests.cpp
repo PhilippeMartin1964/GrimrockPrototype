@@ -13,11 +13,11 @@
 
 namespace RPGCustomRecruitMON205RuntimeIntegrationTests
 {
-    struct FTestWorld
+    struct FRuntimeIntegrationTestWorld
     {
         UWorld* World = nullptr;
 
-        FTestWorld ()
+        FRuntimeIntegrationTestWorld ()
         {
             const UWorld::InitializationValues Values =
                 UWorld::InitializationValues ()
@@ -49,7 +49,7 @@ namespace RPGCustomRecruitMON205RuntimeIntegrationTests
             Context.SetCurrentWorld (World);
         }
 
-        ~FTestWorld ()
+        ~FRuntimeIntegrationTestWorld ()
         {
             if (!World)
             {
@@ -175,7 +175,7 @@ bool FRPGMON2056CustomRecruitRuntimeCombatGateTest::RunTest (
 {
     (void)Parameters;
 
-    FTestWorld TestWorld;
+    FRuntimeIntegrationTestWorld TestWorld;
     if (!TestWorld.World)
     {
         AddError (TEXT ("Unable to create MON20.5.6 test world."));
