@@ -43,8 +43,8 @@ MON20.6 — Skills Data Model & Runtime                     VALIDÉ UE5.5.4 — 
   MON20.6.5 — Automation Regression / Closure            CLOS
 MON20.7 — Talents / Progression Choice Integration        EN COURS
   MON20.7.1 — Audit & Architecture Contract              TERMINÉ
-  MON20.7.2 — Talent Runtime Read Model / Selection      IMPLÉMENTÉ — VALIDATION EN ATTENTE
-  MON20.7.3 — Level Up Talent Presentation Contract
+  MON20.7.2 — Talent Runtime Read Model / Selection      VALIDÉ UE5.5.4 — 8/8
+  MON20.7.3 — Level Up Talent Presentation Contract      IMPLÉMENTÉ — VALIDATION EN ATTENTE
   MON20.7.4 — Requirement Projection / Persistence Regression
   MON20.7.5 — Automation Regression / Closure
 ```
@@ -262,8 +262,8 @@ Découpage :
 
 ```text
 MON20.7.1 — Audit & Architecture Contract                    TERMINÉ
-MON20.7.2 — Talent Runtime Read Model / Selected Character  IMPLÉMENTÉ — VALIDATION EN ATTENTE
-MON20.7.3 — Level Up Talent Presentation Contract
+MON20.7.2 — Talent Runtime Read Model / Selected Character  VALIDÉ UE5.5.4 — 8/8
+MON20.7.3 — Level Up Talent Presentation Contract           IMPLÉMENTÉ — VALIDATION EN ATTENTE
 MON20.7.4 — Requirement Projection / Persistence Regression
 MON20.7.5 — Automation Regression / Closure
 ```
@@ -276,11 +276,25 @@ MON20.7.2 ajoute `FRPGTalentRuntimeService`, une façade read-only sans état qu
 - calculer les talents actuellement disponibles ;
 - travailler par `CharacterIndex` explicite ou personnage sélectionné.
 
+MON20.7.3 conserve le même `URPGLevelUpWidget` et le même workflow MON15, mais ajoute un contrat de présentation Blueprint/Slate explicite :
+
+```text
+FRPGLevelUpPresentationView
+    Title
+    TalentSectionTitle
+    TalentPointsLabel
+    EmptyTalentsMessage
+    SelectionPrompt
+```
+
+Les identifiants `ChoiceId`, le budget `ChoicePoints`, `PendingChoiceIds` et `TryCommitChoices()` restent inchangés.
+
 Documents :
 
 ```text
 docs/Design/MON20_7_1_TALENTS_PROGRESSION_CHOICE_ARCHITECTURE.md
 docs/Design/MON20_7_2_TALENT_RUNTIME_READ_MODEL.md
+docs/Design/MON20_7_3_LEVEL_UP_TALENT_PRESENTATION_CONTRACT.md
 ```
 
 ## Suite MON20
@@ -335,5 +349,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.7.2 — Talent Runtime Read Model / Selected Character — VALIDATION UE5.5.4
+MON20.7.3 — Level Up Talent Presentation Contract — VALIDATION UE5.5.4
 ```
