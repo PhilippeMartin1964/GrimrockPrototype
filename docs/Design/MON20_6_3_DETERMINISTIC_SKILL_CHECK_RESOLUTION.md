@@ -1,6 +1,6 @@
 # MON20.6.3 — Deterministic Skill Check Resolution
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 16/16 SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.6 — Skills Data Model & Runtime**
 
@@ -39,121 +39,35 @@ Le caller fournit explicitement le `FRandomStream`. Aucune source aléatoire glo
 
 ## 3. Formule figée
 
-La formule MON20.6.3 est :
-
 ```text
 Total = d20 + SkillRank + AttributeModifier
 Success = Total >= Difficulty
 ```
 
-Le `d20` est obtenu par :
+Le `d20` est obtenu par `RandomStream.RandRange(1, 20)` et le modificateur d'attribut réutilise `URPGCharacterRulesLibrary::GetAttributeModifier`.
 
-```cpp
-RandomStream.RandRange(1, 20)
-```
-
-Le modificateur d'attribut réutilise la règle existante :
-
-```text
-URPGCharacterRulesLibrary::GetAttributeModifier
-= floor((AttributeValue - 10) / 2)
-```
-
-Exemple :
-
-```text
-Dexterity = 14 -> +2
-SkillRank  = 3
-Roll       = 11
-Total      = 16
-DC         = 15
-Résultat   = Success
-```
+Aucune règle spéciale n'est appliquée au 1 naturel ou au 20 naturel.
 
 ---
 
 ## 4. Attribut directeur
 
-`ERPGSkillGoverningAttribute` sélectionne l'un des six attributs du `CharacterState` :
-
-```text
-Strength
-Dexterity
-Constitution
-Intelligence
-Wisdom
-Charisma
-```
-
-Pour :
-
-```text
-GoverningAttribute = None
-```
-
-le résultat expose :
-
-```text
-AttributeValue    = 0
-AttributeModifier = 0
-```
-
-Le test dépend alors uniquement du d20 et du rang.
+`ERPGSkillGoverningAttribute` sélectionne l'un des six attributs du personnage. Pour `None`, `AttributeValue` et `AttributeModifier` valent zéro.
 
 ---
 
-## 5. Politique des jets naturels
-
-MON20.6.3 n'introduit volontairement aucune règle spéciale pour 1 naturel ou 20 naturel.
-
-Donc :
+## 5. Compétences non entraînées
 
 ```text
-1 naturel  -> pas d'échec automatique
-20 naturel -> pas de réussite automatique
-```
-
-La réussite reste exclusivement :
-
-```text
-Total >= Difficulty
-```
-
-Cette règle garde les DC prévisibles et évite de figer prématurément une convention de critique pour les compétences hors combat.
-
----
-
-## 6. Compétences non entraînées
-
-Si :
-
-```text
-Rank = 0
-bAllowUntrainedChecks = true
-```
-
-le test est résolu normalement avec rang zéro.
-
-Si :
-
-```text
-Rank = 0
-bAllowUntrainedChecks = false
-```
-
-le test est rejeté avec :
-
-```text
-ERPGSkillCheckRejectReason::UntrainedNotAllowed
+Rank = 0 + bAllowUntrainedChecks=true  -> test résolu
+Rank = 0 + bAllowUntrainedChecks=false -> UntrainedNotAllowed
 ```
 
 Le rejet ne consomme pas le `FRandomStream`.
 
 ---
 
-## 7. Rejets
-
-`ERPGSkillCheckRejectReason` contient :
+## 6. Rejets
 
 ```text
 None
@@ -163,22 +77,11 @@ InvalidDifficulty
 UntrainedNotAllowed
 ```
 
-Une difficulté doit être strictement positive.
-
-Un `CharacterState` est rejeté si son état Skill sparse est invalide ou si le rang de la compétence dépasse `SkillDefinition.MaxRank`.
-
-Tous les rejets ont deux propriétés importantes :
-
-```text
-bResolved = false
-aucun tirage RNG consommé
-```
-
-Cela garantit qu'un échec de validation ne décale pas une séquence déterministe ultérieure.
+Tous les rejets conservent `bResolved=false` et ne consomment aucun tirage RNG.
 
 ---
 
-## 8. Résultat inspectable
+## 7. Résultat inspectable
 
 `FRPGSkillCheckResult` expose :
 
@@ -196,22 +99,11 @@ Total
 Difficulty
 ```
 
-Ce résultat pourra être consommé plus tard par :
-
-- lockpicking ;
-- détection/désamorçage de pièges ;
-- exploration ;
-- dialogue ;
-- Event -> Command / Lua ;
-- UI de feedback.
-
-Aucun de ces consommateurs n'est ajouté dans MON20.6.3.
-
 ---
 
-## 9. Automation
+## 8. Automation
 
-Tests ajoutés :
+Tests MON20.6.3 :
 
 ```text
 SkillCheckDeterministicSameSeed
@@ -224,13 +116,7 @@ SkillCheckInvalidDifficultyNoRandom
 SkillCheckInvalidStateNoRandom
 ```
 
-Le filtre cumulatif reste :
-
-```text
-Grimrock.MON20.6.Skills
-```
-
-Après MON20.6.3, total attendu :
+Validation utilisateur UE5.5.4 du 24 août 2026 :
 
 ```text
 16 / 16 Success
@@ -238,11 +124,11 @@ Après MON20.6.3, total attendu :
 0 Error
 ```
 
-Les 8 tests MON20.6.2 doivent rester verts.
+Les huit tests MON20.6.2 sont restés verts.
 
 ---
 
-## 10. Fichiers
+## 9. Fichiers
 
 Ajoutés :
 
@@ -262,32 +148,20 @@ Aucun `.uasset` / `.umap`.
 
 ---
 
-## 11. Validation demandée
+## 10. Validation UE5.5.4
 
-Après compilation `GrimrockPrototypeEditor`, exécuter :
+**VALIDÉ — 16/16 SUCCESS.**
 
-```text
-Grimrock.MON20.6.Skills
-```
+Le journal fourni confirme les seize tests `Grimrock.MON20.6.Skills`, notamment la reproductibilité par seed, la formule, le seuil, les checks non entraînés et les rejets sans consommation RNG.
 
-Attendu :
-
-```text
-16 / 16 Success
-0 Fail
-0 Error
-```
-
-Aucun PIE n'est nécessaire pour cette tranche purement logique.
+Aucun PIE n'est requis pour cette tranche purement logique.
 
 ---
 
-## 12. Suite
-
-Après validation :
+## 11. Suite
 
 ```text
 MON20.6.4 — Runtime Access / Character Selection API
 ```
 
-Cette étape exposera proprement les rangs et checks pour un personnage actif sélectionné, sans encore coupler le système à une serrure particulière.
+Cette étape expose les rangs, mutations et checks pour un personnage actif explicite ou sélectionné, sans couplage à une serrure particulière.
