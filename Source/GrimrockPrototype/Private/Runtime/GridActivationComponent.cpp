@@ -8,13 +8,19 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "Runtime/GridWallLockActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GridGenericObjectActor.h"
 #include "Runtime/GridLevelVariableStore.h"
 #include "Runtime/GridLogicRuntime.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
 #include "Kismet/GameplayStatics.h"
+#include "RPG/RPGClassAsset.h"
+#include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
+#include "UI/RPGStoryCompanionRecruitmentWidget.h"
+
+DEFINE_LOG_CATEGORY_STATIC (LogGridRecruitmentOffer, Log, All);
 
 namespace
 {
@@ -128,6 +134,7 @@ void UGridActivationComponent::Initialize (AGridLevelRuntimeActor* InRuntime)
 void UGridActivationComponent::ResetRuntimeState ()
 {
     ActiveObjectIds.Reset ();
+    DeclinedStoryCompanionOfferKeys.Reset ();
     DispatchingSourceObjectIds.Reset ();
     RuntimeDispatchDepth = 0;
     RuntimeActionBudgetRemaining = 0;
@@ -163,6 +170,66 @@ bool UGridActivationComponent::ReloadLuaRuntime (FString* OutError)
 void UGridActivationComponent::SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds)
 {
     ActiveObjectIds = InActiveObjectIds;
+}
+
+FString UGridActivationComponent::BuildStoryCompanionOfferKey (
+    FGuid SourceObjectId,
+    FGuid CharacterId)
+{
+    if (!SourceObjectId.IsValid () || !CharacterId.IsValid ())
+    {
+        return FString ();
+    }
+
+    return FString::Printf (
+        TEXT ("%s:%s"),
+        *SourceObjectId.ToString (EGuidFormats::Digits),
+        *CharacterId.ToString (EGuidFormats::Digits));
+}
+
+bool UGridActivationComponent::IsStoryCompanionOfferDeclined (
+    FGuid SourceObjectId,
+    FGuid CharacterId) const
+{
+    const FString Key = BuildStoryCompanionOfferKey (
+        SourceObjectId,
+        CharacterId);
+    return !Key.IsEmpty () &&
+        DeclinedStoryCompanionOfferKeys.Contains (Key);
+}
+
+void UGridActivationComponent::RememberStoryCompanionOfferDeclined (
+    FGuid SourceObjectId,
+    FGuid CharacterId)
+{
+    const FString Key = BuildStoryCompanionOfferKey (
+        SourceObjectId,
+        CharacterId);
+    if (!Key.IsEmpty ())
+    {
+        DeclinedStoryCompanionOfferKeys.Add (Key);
+    }
+}
+
+bool UGridActivationComponent::IsStoryCompanionAlreadyActive (
+    const FGridPartyInventoryState& PartyState,
+    const URPGStoryCompanionAsset& CompanionDefinition)
+{
+    if (!CompanionDefinition.CharacterId.IsValid () ||
+        !CompanionDefinition.RaceDefinition ||
+        !CompanionDefinition.ClassDefinition)
+    {
+        return false;
+    }
+
+    return PartyState.ActiveCharacters.ContainsByPredicate (
+        [&CompanionDefinition] (
+            const FGridCharacterInventoryState& Character)
+        {
+            return Character.CharacterId == CompanionDefinition.CharacterId &&
+                Character.RaceId == CompanionDefinition.RaceDefinition->RaceId &&
+                Character.ClassId == CompanionDefinition.ClassDefinition->ClassId;
+        });
 }
 
 bool UGridActivationComponent::TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn)
@@ -718,8 +785,10 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             return false;
         }
 
-        if (!IsValid (TargetObject->StoryCompanionDefinition) ||
-            !TargetObject->StoryCompanionDefinition->IsValidDefinition ())
+        URPGStoryCompanionAsset* CompanionDefinition =
+            TargetObject->StoryCompanionDefinition.Get ();
+        if (!IsValid (CompanionDefinition) ||
+            !CompanionDefinition->IsValidDefinition ())
         {
             LogLinkResult (
                 LinkData,
@@ -743,8 +812,78 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             return false;
         }
 
+        if (IsValid (PartyPawn->PartyInventoryComponent) &&
+            IsStoryCompanionAlreadyActive (
+                PartyPawn->PartyInventoryComponent->PartyInventoryState,
+                *CompanionDefinition))
+        {
+            UE_LOG (
+                LogGridRecruitmentOffer,
+                Log,
+                TEXT ("[GridRecruitmentOffer] Skipped Source=%s Companion=%s Reason=AlreadyActive"),
+                *LinkData.SourceObjectId.ToString (EGuidFormats::Digits),
+                *CompanionDefinition->CompanionId.ToString ());
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                true,
+                nullptr);
+            return true;
+        }
+
+        if (IsStoryCompanionOfferDeclined (
+                LinkData.SourceObjectId,
+                CompanionDefinition->CharacterId))
+        {
+            UE_LOG (
+                LogGridRecruitmentOffer,
+                Log,
+                TEXT ("[GridRecruitmentOffer] Skipped Source=%s Companion=%s Reason=DeclinedFromSource"),
+                *LinkData.SourceObjectId.ToString (EGuidFormats::Digits),
+                *CompanionDefinition->CompanionId.ToString ());
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                true,
+                nullptr);
+            return true;
+        }
+
         bSuccess = PartyPawn->ShowStoryCompanionRecruitmentWidget (
-            TargetObject->StoryCompanionDefinition);
+            CompanionDefinition);
+        if (bSuccess)
+        {
+            if (URPGStoryCompanionRecruitmentWidget* Widget =
+                PartyPawn->GetStoryCompanionRecruitmentWidget ())
+            {
+                const FGuid OfferSourceObjectId = LinkData.SourceObjectId;
+                const FGuid CharacterId = CompanionDefinition->CharacterId;
+                const FName CompanionId = CompanionDefinition->CompanionId;
+                const TWeakObjectPtr<UGridActivationComponent> WeakThis (this);
+
+                Widget->OnDeclined ().AddLambda (
+                    [WeakThis, OfferSourceObjectId, CharacterId, CompanionId] (
+                        URPGStoryCompanionRecruitmentWidget* /*DeclinedWidget*/)
+                    {
+                        UGridActivationComponent* Activation = WeakThis.Get ();
+                        if (!Activation)
+                        {
+                            return;
+                        }
+
+                        Activation->RememberStoryCompanionOfferDeclined (
+                            OfferSourceObjectId,
+                            CharacterId);
+                        UE_LOG (
+                            LogGridRecruitmentOffer,
+                            Log,
+                            TEXT ("[GridRecruitmentOffer] Suppressed Source=%s Companion=%s Reason=Declined"),
+                            *OfferSourceObjectId.ToString (EGuidFormats::Digits),
+                            *CompanionId.ToString ());
+                    });
+            }
+        }
+
         LogLinkResult (
             LinkData,
             ResolvedCommand,

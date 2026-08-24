@@ -9,6 +9,8 @@
 class AGridLevelRuntimeActor;
 class AGrimrockPartyPawn;
 class AGridReceptacleActor;
+class URPGStoryCompanionAsset;
+struct FGridPartyInventoryState;
 
 UCLASS (ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridActivationComponent : public UActorComponent
@@ -52,6 +54,12 @@ private:
     UPROPERTY (Transient)
     TSet<FGuid> ActiveObjectIds;
 
+    /**
+     * MON20.4.6 session-local memory of declined automatic recruitment offers.
+     * Key = SourceObjectId + CharacterId. Intentionally not serialized.
+     */
+    TSet<FString> DeclinedStoryCompanionOfferKeys;
+
     TSet<FGuid> DispatchingSourceObjectIds;
 
     /** One Lua VM per active runtime component/level. Not serialized. */
@@ -89,6 +97,19 @@ private:
     bool IsTargetActive (FGuid ObjectId) const;
     void LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedCommand, bool bSuccess, const TCHAR* FailureReason) const;
 
+    static FString BuildStoryCompanionOfferKey (
+        FGuid SourceObjectId,
+        FGuid CharacterId);
+    bool IsStoryCompanionOfferDeclined (
+        FGuid SourceObjectId,
+        FGuid CharacterId) const;
+    void RememberStoryCompanionOfferDeclined (
+        FGuid SourceObjectId,
+        FGuid CharacterId);
+    static bool IsStoryCompanionAlreadyActive (
+        const FGridPartyInventoryState& PartyState,
+        const URPGStoryCompanionAsset& CompanionDefinition);
+
     bool ProcessTriggersAtCell (int32 X, int32 Y, bool bEntering);
     bool ProcessTriggerEvent (const FGridLevelObjectData& TriggerData, bool bEntering);
 
@@ -114,4 +135,7 @@ private:
     }
     bool ActivateReadableObject (const FGridLevelObjectData& ObjectData);
     bool ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
+
+    friend class FGridMON2046RecruitmentOfferDeclineSourceScopeTest;
+    friend class FGridMON2046RecruitmentAlreadyActiveSuppressionTest;
 };
