@@ -1,6 +1,6 @@
 # MON20.5.2 — Context + Custom Recruit Transaction
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — CLOS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -176,33 +176,47 @@ Grimrock.MON20.5.CustomRecruit
 Tests ajoutés :
 
 ```text
-ContextContract
-ValidCreateAndRecruit
-PartyFullAtomicReject
-InvalidRequestAtomicReject
-UniqueCharacterIdentity
 AllocatedAttributesPreserved
-VisualSelectionPreserved
-RecruitmentRollbackLeavesNoPoolCandidate
+ContextContract
 InitialHeroStatePreserved
+InvalidRequestAtomicReject
+PartyFullAtomicReject
+RecruitmentRollbackLeavesNoPoolCandidate
+UniqueCharacterIdentity
+ValidCreateAndRecruit
+VisualSelectionPreserved
 ```
 
-Total attendu pour MON20.5.2 :
+Validation utilisateur UE5.5.4 du 24 août 2026 :
 
 ```text
-9 tests
+AllocatedAttributesPreserved                 Success
+ContextContract                              Success
+InitialHeroStatePreserved                    Success
+InvalidRequestAtomicReject                   Success
+PartyFullAtomicReject                        Success
+RecruitmentRollbackLeavesNoPoolCandidate     Success
+UniqueCharacterIdentity                      Success
+ValidCreateAndRecruit                        Success
+VisualSelectionPreserved                     Success
 ```
 
-La validation UE5.5.4 reste à effectuer par l’utilisateur. Aucun résultat de compilation ou d’Automation Test n’est présumé par ce document.
+Bilan :
+
+```text
+9 / 9 Success
+0 Fail
+0 Error
+```
+
+MON20.5.2 est donc validé et clos.
 
 ---
 
-## 10. Suite après validation
-
-Une fois compilation + 9/9 validés :
+## 10. Suite
 
 ```text
 MON20.5.3 — Wizard Context Reuse
 ```
 
-Cette tranche adaptera `URPGCharacterCreationWizardWidget` au contexte `CustomRecruit` sans créer de second WBP.
+Cette tranche adapte `URPGCharacterCreationWizardWidget` au contexte `CustomRecruit` sans créer de second WBP.
