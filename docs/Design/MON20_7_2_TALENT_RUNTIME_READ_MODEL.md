@@ -1,6 +1,6 @@
 # MON20.7.2 — Talent Runtime Read Model / Selected Character
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 8/8 AUTOMATION SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.7 — Talents / Progression Choice Integration**
 
@@ -10,7 +10,7 @@ Jalon parent : **MON20.7 — Talents / Progression Choice Integration**
 
 Exposer une lecture métier « Talent » au-dessus du système MON15 existant, sans créer de nouvel état, de nouvelle monnaie ni de nouveau workflow transactionnel.
 
-MON20.7.2 doit permettre aux futurs consommateurs/UI de demander :
+MON20.7.2 permet aux futurs consommateurs/UI de demander :
 
 ```text
 quels talents ce personnage possède ?
@@ -67,7 +67,7 @@ FRPGTalentRuntimeService
 
 Il ne possède aucune donnée membre et ne propose aucune mutation.
 
-Toute acquisition future continue à passer par :
+Toute acquisition continue à passer par :
 
 ```text
 FRPGClassProgressionTransactionService::TryCommitChoices(...)
@@ -247,28 +247,22 @@ Aucun `.uasset`, `.umap` ou changement SaveGame.
 
 ---
 
-## 8. Automation
+## 8. Validation UE5.5.4
 
-Filtre :
-
-```text
-Grimrock.MON20.7.Talents
-```
-
-Tests MON20.7.2 :
+Campagne Automation fournie le **24 août 2026** :
 
 ```text
-ExplicitSelectedTalents
-SelectedCharacterAuthority
-HasTalent
-PointBalance
-AvailableBeforeSelection
-AvailableAfterPrerequisite
-SelectedCharacterFacade
-InvalidIndexNoMutation
+Grimrock.MON20.7.Talents.AvailableAfterPrerequisite  Success
+Grimrock.MON20.7.Talents.AvailableBeforeSelection    Success
+Grimrock.MON20.7.Talents.ExplicitSelectedTalents     Success
+Grimrock.MON20.7.Talents.HasTalent                   Success
+Grimrock.MON20.7.Talents.InvalidIndexNoMutation      Success
+Grimrock.MON20.7.Talents.PointBalance                Success
+Grimrock.MON20.7.Talents.SelectedCharacterAuthority  Success
+Grimrock.MON20.7.Talents.SelectedCharacterFacade     Success
 ```
 
-Total attendu :
+Résultat final :
 
 ```text
 8 / 8 Success
@@ -276,50 +270,31 @@ Total attendu :
 0 Error
 ```
 
-Les tests vérifient notamment que :
+Le log confirme notamment :
 
-- le personnage explicite lit la sélection MON15 ;
-- le personnage sélectionné utilise la sélection inventaire existante ;
-- deux personnages restent isolés par `CharacterId` ;
-- `HasTalent` distingue acquis / non acquis ;
-- le solde est exactement celui de MON15 ;
-- les disponibilités respectent prérequis, niveau et budget MON15 ;
-- une lecture invalide n'altère jamais la sélection autoritaire.
-
----
-
-## 9. Validation UE5.5.4 demandée
-
-Compiler :
-
-```text
-GrimrockPrototypeEditor
-```
-
-puis exécuter :
-
-```text
-Grimrock.MON20.7.Talents
-```
-
-Attendu :
-
-```text
-8 / 8 Success
-0 Fail
-0 Error
-```
+- acquisition et lecture cohérentes via le runtime MON15 ;
+- prérequis correctement recalculés après acquisition ;
+- budget `Granted / Spent / Remaining` cohérent ;
+- changement de `SelectedCharacterIndex` respecté par la façade ;
+- isolation par `CharacterId` ;
+- index invalide rejeté sans mutation.
 
 Aucun PIE n'est requis : MON20.7.2 n'introduit ni UI ni interaction monde.
 
 ---
 
-## 10. Suite
+## 9. Résultat
 
-Après validation :
+MON20.7.2 est **VALIDÉ UE5.5.4 — CLOS**.
+
+Aucun second état Talent, aucune monnaie parallèle et aucune migration SaveGame n'ont été introduits.
+
+---
+
+## 10. Suite
 
 ```text
 MON20.7.3 — Level Up Talent Presentation Contract
 ```
 
-Cette tranche fera évoluer la présentation du Level Up existant pour rendre explicite le vocabulaire Talent sans créer un second workflow de sélection.
+Cette tranche fait évoluer la présentation du Level Up existant pour rendre explicite le vocabulaire Talent sans créer un second workflow de sélection.
