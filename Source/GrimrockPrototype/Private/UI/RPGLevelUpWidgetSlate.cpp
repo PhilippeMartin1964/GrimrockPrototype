@@ -41,7 +41,9 @@ TSharedRef<SWidget> URPGLevelUpWidget::RebuildWidget ()
                 [
                     SAssignNew (NativeTitleText, STextBlock)
                     .Justification (ETextJustify::Center)
-                    .Text (LOCTEXT ("Title", "NIVEAU SUPÉRIEUR"))
+                    .Text (View.Presentation.Title.IsEmpty ()
+                        ? LOCTEXT ("Title", "NIVEAU SUPÉRIEUR")
+                        : View.Presentation.Title)
                 ]
                 + SVerticalBox::Slot ().AutoHeight ().Padding (0.0f, 0.0f, 0.0f, 10.0f)
                 [
@@ -60,6 +62,12 @@ TSharedRef<SWidget> URPGLevelUpWidget::RebuildWidget ()
                     SAssignNew (NativePointsText, STextBlock)
                     .Justification (ETextJustify::Center)
                     .Text (BuildPointsLine ())
+                ]
+                + SVerticalBox::Slot ().AutoHeight ().Padding (0.0f, 0.0f, 0.0f, 8.0f)
+                [
+                    SAssignNew (NativeTalentSectionText, STextBlock)
+                    .Justification (ETextJustify::Center)
+                    .Text (View.Presentation.TalentSectionTitle)
                 ]
                 + SVerticalBox::Slot ().FillHeight (1.0f).Padding (0.0f, 0.0f, 0.0f, 12.0f)
                 [
@@ -119,6 +127,7 @@ void URPGLevelUpWidget::ReleaseSlateResources (bool bReleaseChildren)
     NativeCharacterText.Reset ();
     NativeStatsText.Reset ();
     NativePointsText.Reset ();
+    NativeTalentSectionText.Reset ();
     NativeValidationText.Reset ();
     NativeChoicesBox.Reset ();
     NativeConfirmButton.Reset ();
@@ -128,7 +137,9 @@ void URPGLevelUpWidget::RefreshNativeSlate ()
 {
     if (NativeTitleText.IsValid ())
     {
-        NativeTitleText->SetText (LOCTEXT ("Title", "NIVEAU SUPÉRIEUR"));
+        NativeTitleText->SetText (View.Presentation.Title.IsEmpty ()
+            ? LOCTEXT ("Title", "NIVEAU SUPÉRIEUR")
+            : View.Presentation.Title);
     }
     if (NativeCharacterText.IsValid ())
     {
@@ -141,6 +152,11 @@ void URPGLevelUpWidget::RefreshNativeSlate ()
     if (NativePointsText.IsValid ())
     {
         NativePointsText->SetText (BuildPointsLine ());
+    }
+    if (NativeTalentSectionText.IsValid ())
+    {
+        NativeTalentSectionText->SetText (
+            View.Presentation.TalentSectionTitle);
     }
     if (NativeValidationText.IsValid ())
     {
@@ -162,9 +178,11 @@ void URPGLevelUpWidget::RefreshNativeSlate ()
         [
             SNew (STextBlock)
             .Justification (ETextJustify::Center)
-            .Text (LOCTEXT (
-                "NoChoices",
-                "Aucun choix de classe à effectuer pour ce niveau."))
+            .Text (View.Presentation.EmptyTalentsMessage.IsEmpty ()
+                ? LOCTEXT (
+                    "NoTalentsFallback",
+                    "Aucun talent de classe à sélectionner pour ce niveau.")
+                : View.Presentation.EmptyTalentsMessage)
         ];
         return;
     }
@@ -173,7 +191,7 @@ void URPGLevelUpWidget::RefreshNativeSlate ()
     {
         const FText Label = FText::Format (
             LOCTEXT (
-                "ChoiceLabel",
+                "TalentLabel",
                 "{0} — coût {1} — {2}"),
             Choice.DisplayName.IsEmpty ()
                 ? FText::FromName (Choice.ChoiceId)
@@ -322,10 +340,14 @@ FText URPGLevelUpWidget::BuildStatsLine () const
 
 FText URPGLevelUpWidget::BuildPointsLine () const
 {
+    const FText Label = View.Presentation.TalentPointsLabel.IsEmpty ()
+        ? LOCTEXT ("TalentPointsFallback", "Points de talent")
+        : View.Presentation.TalentPointsLabel;
     return FText::Format (
         LOCTEXT (
-            "PointsLine",
-            "Points de progression : {0} accordés, {1} dépensés, {2} disponibles"),
+            "TalentPointsLine",
+            "{0} : {1} accordés, {2} dépensés, {3} disponibles"),
+        Label,
         FText::AsNumber (View.GrantedChoicePoints),
         FText::AsNumber (View.SpentChoicePoints),
         FText::AsNumber (View.RemainingChoicePoints));
