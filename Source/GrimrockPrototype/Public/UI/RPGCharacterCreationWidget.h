@@ -16,8 +16,18 @@ class URPGCharacterPortraitSetAsset;
 class URPGClassAsset;
 class URPGClassVisualAsset;
 class URPGRaceAsset;
+class URPGCharacterCreationWidget;
 class UTextBlock;
 class UTexture2D;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams (
+    FRPGCustomRecruitCommittedNativeSignature,
+    URPGCharacterCreationWidget*,
+    int32);
+
+DECLARE_MULTICAST_DELEGATE_OneParam (
+    FRPGCustomRecruitCancelledNativeSignature,
+    URPGCharacterCreationWidget*);
 
 UCLASS ()
 class GRIMROCKPROTOTYPE_API URPGCharacterCreationWidget : public UGrimrockDesignSurfaceWidget
@@ -60,6 +70,11 @@ public:
 
     UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
     TSoftObjectPtr<UTexture2D> DefaultPortrait;
+
+    /** MON20.5 transient purpose of this widget instance; never serialized into party state. */
+    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+    ERPGCharacterCreationContext CreationContext =
+        ERPGCharacterCreationContext::NewGameMainHero;
 
     UPROPERTY (BlueprintReadOnly, Category = "RPG|Character Creation")
     TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
@@ -184,8 +199,18 @@ public:
     UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
     TObjectPtr<UTextBlock> Text_ValidationMessage;
 
+    /** Backward-compatible New Game initialization. */
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     void InitializeCharacterCreationWidget (AGrimrockPartyPawn* InPartyPawn);
+
+    /** MON20.5 initializes the same widget for New Game or Custom Recruit. */
+    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
+    void InitializeCharacterCreationWidgetForContext (
+        AGrimrockPartyPawn* InPartyPawn,
+        ERPGCharacterCreationContext InCreationContext);
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
+    ERPGCharacterCreationContext GetCreationContext () const;
 
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     virtual void RefreshPreview ();
@@ -208,10 +233,23 @@ public:
     UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
     virtual bool SubmitCharacterCreation ();
 
+    FRPGCustomRecruitCommittedNativeSignature& OnCustomRecruitCommitted ()
+    {
+        return CustomRecruitCommittedDelegate;
+    }
+
+    FRPGCustomRecruitCancelledNativeSignature& OnCustomRecruitCancelled ()
+    {
+        return CustomRecruitCancelledDelegate;
+    }
+
 protected:
     virtual void NativeConstruct () override;
 
     void SetValidationMessage (const FText& Message, bool bIsError);
+    bool IsCreationContextPartyStateReady () const;
+    void NotifyCustomRecruitCommitted (int32 CharacterIndex);
+    void NotifyCustomRecruitCancelled ();
 
 private:
     UFUNCTION ()
@@ -261,4 +299,7 @@ private:
     void RefreshRaceIllustrationPreview ();
     void RefreshRaceEnvironmentPreview ();
     void RefreshGenderButtonVisualState ();
+
+    FRPGCustomRecruitCommittedNativeSignature CustomRecruitCommittedDelegate;
+    FRPGCustomRecruitCancelledNativeSignature CustomRecruitCancelledDelegate;
 };

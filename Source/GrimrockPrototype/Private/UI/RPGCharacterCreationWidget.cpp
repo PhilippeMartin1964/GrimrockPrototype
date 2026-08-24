@@ -10,6 +10,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
+#include "RPG/RPGCustomRecruitService.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
@@ -327,25 +328,59 @@ void URPGCharacterCreationWidget::PopulatePortraitOptions ()
     }
 }
 
-void URPGCharacterCreationWidget::InitializeCharacterCreationWidget (AGrimrockPartyPawn* InPartyPawn)
+void URPGCharacterCreationWidget::InitializeCharacterCreationWidget (
+    AGrimrockPartyPawn* InPartyPawn)
 {
+    InitializeCharacterCreationWidgetForContext (
+        InPartyPawn,
+        ERPGCharacterCreationContext::NewGameMainHero);
+}
+
+void URPGCharacterCreationWidget::InitializeCharacterCreationWidgetForContext (
+    AGrimrockPartyPawn* InPartyPawn,
+    ERPGCharacterCreationContext InCreationContext)
+{
+    CreationContext = InCreationContext;
     OwningPartyPawn = InPartyPawn;
-    InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent.Get () : nullptr;
+    InventoryComponent = InPartyPawn
+        ? InPartyPawn->PartyInventoryComponent.Get ()
+        : nullptr;
     SetValidationMessage (FText::GetEmpty (), false);
     RefreshPreview ();
 }
 
-void URPGCharacterCreationWidget::RefreshPreview ()
+ERPGCharacterCreationContext
+URPGCharacterCreationWidget::GetCreationContext () const
 {
-    if (InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation ())
+    return CreationContext;
+}
+
+bool URPGCharacterCreationWidget::IsCreationContextPartyStateReady () const
+{
+    if (!InventoryComponent)
     {
-        if (Button_CreateCharacter)
-        {
-            Button_CreateCharacter->SetIsEnabled (false);
-        }
-        return;
+        return false;
     }
 
+    const FGridPartyInventoryState& State =
+        InventoryComponent->PartyInventoryState;
+
+    if (CreationContext ==
+        ERPGCharacterCreationContext::NewGameMainHero)
+    {
+        return !State.bInitialCharacterCreationCompleted;
+    }
+
+    return State.bInitialCharacterCreationCompleted &&
+        !State.ActiveCharacters.IsEmpty () &&
+        State.ActiveEquipment.Num () == State.ActiveCharacters.Num () &&
+        State.ActiveCharacters.IsValidIndex (State.SelectedCharacterIndex) &&
+        State.MaxActiveCharacters >= State.ActiveCharacters.Num () &&
+        State.ActiveCharacters.Num () < State.MaxActiveCharacters;
+}
+
+void URPGCharacterCreationWidget::RefreshPreview ()
+{
     const bool bHasRaceDefinition = RaceDefinition && RaceDefinition->IsValidDefinition ();
     const bool bHasClassDefinition = ClassDefinition && ClassDefinition->IsValidDefinition ();
     const FText UnavailableValue = FText::FromString (TEXT ("-"));
@@ -438,6 +473,31 @@ void URPGCharacterCreationWidget::RefreshPreview ()
     {
         SetValidationMessage (FText::FromString (TEXT ("Composant d'inventaire indisponible.")), true);
     }
+    else if (CreationContext ==
+            ERPGCharacterCreationContext::NewGameMainHero &&
+        InventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        SetValidationMessage (
+            FText::FromString (TEXT ("La création initiale du personnage est déjà terminée.")),
+            true);
+    }
+    else if (CreationContext ==
+            ERPGCharacterCreationContext::CustomRecruit &&
+        !InventoryComponent->HasCompletedInitialCharacterCreation ())
+    {
+        SetValidationMessage (
+            FText::FromString (TEXT ("Créez d'abord le héros principal avant d'engager une recrue.")),
+            true);
+    }
+    else if (CreationContext ==
+            ERPGCharacterCreationContext::CustomRecruit &&
+        InventoryComponent->GetActiveCharacterCount () >=
+            InventoryComponent->GetMaxActiveCharacters ())
+    {
+        SetValidationMessage (
+            FText::FromString (TEXT ("Le groupe actif est complet.")),
+            true);
+    }
 
     const bool bCanSubmit = CanSubmitCharacterCreation ();
     if (Button_CreateCharacter)
@@ -456,8 +516,7 @@ void URPGCharacterCreationWidget::FocusNameInput ()
 
 bool URPGCharacterCreationWidget::CanSubmitCharacterCreation () const
 {
-    if (!InventoryComponent ||
-        InventoryComponent->HasCompletedInitialCharacterCreation () ||
+    if (!IsCreationContextPartyStateReady () ||
         !RaceDefinition ||
         !RaceDefinition->IsValidDefinition () ||
         !ClassDefinition ||
@@ -521,8 +580,32 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
         return false;
     }
 
-    FText Error;
     const FRPGCharacterCreationRequest Request = BuildCreationRequest ();
+    if (CreationContext ==
+        ERPGCharacterCreationContext::CustomRecruit)
+    {
+        FRPGCustomRecruitResult Result;
+        if (!FRPGCustomRecruitService::TryCreateAndRecruit (
+                InventoryComponent,
+                Request,
+                Result))
+        {
+            const FString ErrorMessage = Result.Error.IsEmpty ()
+                ? FString (TEXT ("Recrutement impossible."))
+                : Result.Error;
+            SetValidationMessage (
+                FText::FromString (ErrorMessage),
+                true);
+            RefreshPreview ();
+            return false;
+        }
+
+        SetValidationMessage (FText::GetEmpty (), false);
+        NotifyCustomRecruitCommitted (Result.CharacterIndex);
+        return true;
+    }
+
+    FText Error;
     if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
         SetValidationMessage (
@@ -547,6 +630,17 @@ bool URPGCharacterCreationWidget::SubmitCharacterCreation ()
     return true;
 }
 
+void URPGCharacterCreationWidget::NotifyCustomRecruitCommitted (
+    int32 CharacterIndex)
+{
+    CustomRecruitCommittedDelegate.Broadcast (this, CharacterIndex);
+}
+
+void URPGCharacterCreationWidget::NotifyCustomRecruitCancelled ()
+{
+    CustomRecruitCancelledDelegate.Broadcast (this);
+}
+
 void URPGCharacterCreationWidget::HandleCreateCharacterClicked ()
 {
     SubmitCharacterCreation ();
@@ -565,7 +659,10 @@ void URPGCharacterCreationWidget::HandleGenderFemaleClicked ()
 void URPGCharacterCreationWidget::HandleNameChanged (const FText& NewText)
 {
     (void)NewText;
-    if (InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation ())
+    if (CreationContext ==
+            ERPGCharacterCreationContext::NewGameMainHero &&
+        InventoryComponent &&
+        InventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         return;
     }
@@ -579,7 +676,10 @@ void URPGCharacterCreationWidget::HandleNameCommitted (
     ETextCommit::Type CommitMethod)
 {
     (void)NewText;
-    if (InventoryComponent && InventoryComponent->HasCompletedInitialCharacterCreation ())
+    if (CreationContext ==
+            ERPGCharacterCreationContext::NewGameMainHero &&
+        InventoryComponent &&
+        InventoryComponent->HasCompletedInitialCharacterCreation ())
     {
         return;
     }

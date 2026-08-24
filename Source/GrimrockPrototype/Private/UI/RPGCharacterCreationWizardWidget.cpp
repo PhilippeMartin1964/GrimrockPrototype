@@ -12,6 +12,7 @@
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
+#include "RPG/RPGCustomRecruitService.h"
 #include "RPG/RPGRaceAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockGameInstance.h"
@@ -200,6 +201,45 @@ namespace
             return FString (TEXT ("Composant d'inventaire indisponible."));
         }
 
+        const FGridPartyInventoryState& PartyState =
+            Widget->InventoryComponent->PartyInventoryState;
+        const bool bCustomRecruit =
+            Widget->CreationContext ==
+            ERPGCharacterCreationContext::CustomRecruit;
+
+        if (!bCustomRecruit && PartyState.bInitialCharacterCreationCompleted)
+        {
+            bOutIsError = true;
+            return FString (TEXT ("La création initiale du personnage est déjà terminée."));
+        }
+
+        if (bCustomRecruit && !PartyState.bInitialCharacterCreationCompleted)
+        {
+            bOutIsError = true;
+            return FString (TEXT ("Créez d'abord le héros principal avant d'engager une recrue."));
+        }
+
+        if (bCustomRecruit &&
+            (PartyState.ActiveCharacters.IsEmpty () ||
+                PartyState.ActiveEquipment.Num () !=
+                    PartyState.ActiveCharacters.Num () ||
+                !PartyState.ActiveCharacters.IsValidIndex (
+                    PartyState.SelectedCharacterIndex) ||
+                PartyState.MaxActiveCharacters <
+                    PartyState.ActiveCharacters.Num ()))
+        {
+            bOutIsError = true;
+            return FString (TEXT ("L'état du groupe n'est pas valide pour un recrutement."));
+        }
+
+        if (bCustomRecruit &&
+            PartyState.ActiveCharacters.Num () >=
+                PartyState.MaxActiveCharacters)
+        {
+            bOutIsError = true;
+            return FString (TEXT ("Le groupe actif est complet."));
+        }
+
         if (!Widget->RaceDefinition || !Widget->RaceDefinition->IsValidDefinition ())
         {
             bOutIsError = true;
@@ -227,7 +267,9 @@ namespace
             (Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Identity ||
                 Widget->CurrentWizardStep == ERPGCharacterCreationWizardStep::Summary))
         {
-            return FString (TEXT ("Saisissez un nom pour pouvoir créer le personnage."));
+            return bCustomRecruit
+                ? FString (TEXT ("Saisissez un nom pour pouvoir engager la recrue."))
+                : FString (TEXT ("Saisissez un nom pour pouvoir créer le personnage."));
         }
 
         if (NormalizedName.Len () > 24)
@@ -249,11 +291,15 @@ namespace
         case ERPGCharacterCreationWizardStep::Summary:
             if (Widget->CanSubmitCharacterCreation ())
             {
-                return FString (TEXT ("Tous les choix sont valides. Vous pouvez créer le personnage."));
+                return bCustomRecruit
+                    ? FString (TEXT ("Tous les choix sont valides. Vous pouvez engager cette recrue."))
+                    : FString (TEXT ("Tous les choix sont valides. Vous pouvez créer le personnage."));
             }
 
             bOutIsError = true;
-            return FString (TEXT ("Création impossible : vérifiez les choix précédents."));
+            return bCustomRecruit
+                ? FString (TEXT ("Recrutement impossible : vérifiez les choix précédents."))
+                : FString (TEXT ("Création impossible : vérifiez les choix précédents."));
         default:
             return FString ();
         }
@@ -356,7 +402,21 @@ bool URPGCharacterCreationWizardWidget::GoToPreviousWizardStep ()
 
 void URPGCharacterCreationWizardWidget::CancelWizard ()
 {
-    UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard Cancelled Widget=%s"), *GetName ());
+    UE_LOG (
+        LogTemp,
+        Log,
+        TEXT ("CharacterCreationWizard Cancelled Widget=%s Context=%d"),
+        *GetName (),
+        static_cast<int32> (CreationContext));
+
+    if (CreationContext ==
+        ERPGCharacterCreationContext::CustomRecruit)
+    {
+        NotifyCustomRecruitCancelled ();
+        RemoveFromParent ();
+        return;
+    }
+
     RemoveFromParent ();
 
     UGrimrockGameInstance* GrimrockGameInstance = GetWorld()
@@ -454,6 +514,8 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     const FString RaceName = RaceDefinition && RaceDefinition->IsValidDefinition () ? GetDisplayNameString (RaceDefinition->DisplayName, RaceDefinition->RaceId) : FString (TEXT ("-"));
     const FString ClassName = ClassDefinition && ClassDefinition->IsValidDefinition () ? GetDisplayNameString (ClassDefinition->DisplayName, ClassDefinition->ClassId) : FString (TEXT ("-"));
     const FString GenderName = GetGenderDisplayNameString (SelectedPortraitGender);
+    const bool bCustomRecruit =
+        CreationContext == ERPGCharacterCreationContext::CustomRecruit;
 
     FRPGCharacterPortraitVariant PortraitVariant;
     FString PortraitName = TEXT ("-");
@@ -478,14 +540,30 @@ void URPGCharacterCreationWizardWidget::RefreshSummaryStep ()
     const FString CarryLine = bHasAttributes ? FString::Printf (TEXT ("Charge max. : %d"), FMath::RoundToInt (GetPreviewCarryWeight ())) : FString (TEXT ("Charge max. : -"));
 
     FString State;
-    if (CanSubmitCharacterCreation ()) State = TEXT ("Prêt à créer le personnage.");
+    if (CanSubmitCharacterCreation ())
+    {
+        State = bCustomRecruit
+            ? TEXT ("Prêt à engager la recrue.")
+            : TEXT ("Prêt à créer le personnage.");
+    }
     else if (!InventoryComponent) State = TEXT ("Création impossible : inventaire indisponible.");
-    else if (Name.Len () < 1) State = TEXT ("Création impossible : saisissez un nom.");
-    else if (Name.Len () > 24) State = TEXT ("Création impossible : le nom dépasse 24 caractères.");
-    else if (!RaceDefinition || !RaceDefinition->IsValidDefinition ()) State = TEXT ("Création impossible : race invalide.");
-    else if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) State = TEXT ("Création impossible : classe invalide.");
-    else if (GetRemainingAttributePoints () > 0) State = FString::Printf (TEXT ("Création impossible : %d point(s) à répartir."), GetRemainingAttributePoints ());
-    else State = TEXT ("Création impossible : vérifiez les choix précédents.");
+    else if (bCustomRecruit && !InventoryComponent->HasCompletedInitialCharacterCreation ()) State = TEXT ("Recrutement impossible : héros principal absent.");
+    else if (bCustomRecruit && InventoryComponent->GetActiveCharacterCount () >= InventoryComponent->GetMaxActiveCharacters ()) State = TEXT ("Recrutement impossible : groupe actif complet.");
+    else if (Name.Len () < 1) State = bCustomRecruit ? TEXT ("Recrutement impossible : saisissez un nom.") : TEXT ("Création impossible : saisissez un nom.");
+    else if (Name.Len () > 24) State = bCustomRecruit ? TEXT ("Recrutement impossible : le nom dépasse 24 caractères.") : TEXT ("Création impossible : le nom dépasse 24 caractères.");
+    else if (!RaceDefinition || !RaceDefinition->IsValidDefinition ()) State = bCustomRecruit ? TEXT ("Recrutement impossible : race invalide.") : TEXT ("Création impossible : race invalide.");
+    else if (!ClassDefinition || !ClassDefinition->IsValidDefinition ()) State = bCustomRecruit ? TEXT ("Recrutement impossible : classe invalide.") : TEXT ("Création impossible : classe invalide.");
+    else if (GetRemainingAttributePoints () > 0)
+    {
+        State = bCustomRecruit
+            ? FString::Printf (
+                TEXT ("Recrutement impossible : %d point(s) à répartir."),
+                GetRemainingAttributePoints ())
+            : FString::Printf (
+                TEXT ("Création impossible : %d point(s) à répartir."),
+                GetRemainingAttributePoints ());
+    }
+    else State = bCustomRecruit ? TEXT ("Recrutement impossible : vérifiez les choix précédents.") : TEXT ("Création impossible : vérifiez les choix précédents.");
 
     SetWizardOptionalText (Text_SummaryName, FString::Printf (TEXT ("Nom : %s"), *DisplayName));
     SetWizardOptionalText (Text_SummaryRace, FString::Printf (TEXT ("Race : %s"), *RaceName));
@@ -701,6 +779,47 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     Request.Portrait = DefaultPortrait;
     Request.ClassIcon = ResolveWizardSelectedClassIcon ();
 
+    const FRPGAttributes CreatedAttributes = GetAllocatedClassAttributesForPreview ();
+
+    if (CreationContext ==
+        ERPGCharacterCreationContext::CustomRecruit)
+    {
+        FRPGCustomRecruitResult RecruitResult;
+        if (!FRPGCustomRecruitService::TryCreateAndRecruit (
+                InventoryComponent,
+                Request,
+                RecruitResult))
+        {
+            const FString ErrorMessage = RecruitResult.Error.IsEmpty ()
+                ? FString (TEXT ("Recrutement impossible."))
+                : RecruitResult.Error;
+            SetValidationMessage (
+                FText::FromString (ErrorMessage),
+                true);
+            RefreshSummaryStep ();
+            return false;
+        }
+
+        UE_LOG (
+            LogTemp,
+            Log,
+            TEXT ("CharacterCreationWizard RecruitedCustomCharacter Name=%s Race=%s Class=%s CharacterIndex=%d ClassAttributes=%d/%d/%d/%d/%d/%d"),
+            *NormalizedName,
+            RaceDefinition ? *RaceDefinition->RaceId.ToString () : TEXT ("None"),
+            ClassDefinition ? *ClassDefinition->ClassId.ToString () : TEXT ("None"),
+            RecruitResult.CharacterIndex,
+            CreatedAttributes.Strength,
+            CreatedAttributes.Dexterity,
+            CreatedAttributes.Constitution,
+            CreatedAttributes.Intelligence,
+            CreatedAttributes.Wisdom,
+            CreatedAttributes.Charisma);
+
+        SetValidationMessage (FText::GetEmpty (), false);
+        NotifyCustomRecruitCommitted (RecruitResult.CharacterIndex);
+        return true;
+    }
+
     FText Error;
     if (!InventoryComponent->CreateInitialCharacter (Request, Error))
     {
@@ -710,7 +829,6 @@ bool URPGCharacterCreationWizardWidget::SubmitCharacterCreation ()
     }
 
     InventoryComponent->SetCharacterVisualSelection (0, Request.PortraitGender, Request.PortraitVariantId, Request.Portrait, Request.ClassIcon);
-    const FRPGAttributes CreatedAttributes = GetAllocatedClassAttributesForPreview ();
     UE_LOG (LogTemp, Log, TEXT ("CharacterCreationWizard CreatedCharacter Name=%s Race=%s Class=%s ClassAttributes=%d/%d/%d/%d/%d/%d"), *NormalizedName,
         RaceDefinition ? *RaceDefinition->RaceId.ToString () : TEXT ("None"), ClassDefinition ? *ClassDefinition->ClassId.ToString () : TEXT ("None"), CreatedAttributes.Strength,
         CreatedAttributes.Dexterity, CreatedAttributes.Constitution, CreatedAttributes.Intelligence, CreatedAttributes.Wisdom, CreatedAttributes.Charisma);
