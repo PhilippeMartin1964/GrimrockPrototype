@@ -1,7 +1,7 @@
 # MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
 
 Date : **24 août 2026**  
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE**
+Statut : **VALIDÉ UE5.5.4 — 8/8 SUCCESS**
 
 ## 1. Objectif
 
@@ -155,7 +155,7 @@ FRPGSkillPersistence::ValidateSavedPartySkills(
 
 Cette validation couvre personnages actifs et réserve.
 
-## 7. Tests Automation ajoutés
+## 7. Tests Automation
 
 Filtre :
 
@@ -190,7 +190,33 @@ Ils couvrent notamment :
 - migration v7 -> v8 sans rang inventé ;
 - `CurrentSaveVersion == 8`.
 
-## 8. Hors scope
+## 8. Validation UE5.5.4
+
+Campagne exécutée le **24 août 2026** :
+
+```text
+Grimrock.MON20.9.SkillPersistence
+8 / 8 Success
+0 Fail
+0 Error
+```
+
+Tests confirmés `Success` :
+
+```text
+CaptureActivePoolSparse
+CaptureDeterministicOrder
+CaptureInvalidCharacterAtomic
+CaptureInvalidSkillAtomic
+RestoreByCharacterId
+RestoreInvalidSnapshotAtomic
+RestoreRoundTrip
+V7ToV8Migration
+```
+
+MON20.9.2 est donc **VALIDÉ UE5.5.4**.
+
+## 9. Hors scope
 
 MON20.9.2 n'ajoute pas :
 
@@ -201,20 +227,4 @@ MON20.9.2 n'ajoute pas :
 - de modification `.uasset` / `.umap` ;
 - de changement visuel de la page Compétences.
 
-## 9. Validation demandée
-
-Après compilation UE5.5.4 :
-
-```text
-Grimrock.MON20.9.SkillPersistence
-```
-
-Résultat attendu :
-
-```text
-8 / 8 Success
-0 Fail
-0 Error
-```
-
-Aucun PIE n'est requis pour cette tranche de persistance pure. Les régressions actifs/réserve et consommateurs restaurés sont réservées à MON20.9.3 et MON20.9.4.
+Les régressions actifs/réserve et consommateurs restaurés sont traitées dans MON20.9.3 et MON20.9.4.
