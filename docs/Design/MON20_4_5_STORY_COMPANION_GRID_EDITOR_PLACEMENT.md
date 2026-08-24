@@ -151,21 +151,83 @@ Utilise un vrai `AGridLevelEditorActor` dans un monde de test et vérifie :
 - conservation de `ArchetypeId` ;
 - copie exacte de `DefaultStoryCompanionDefinition` vers `FGridLevelObjectData::StoryCompanionDefinition`.
 
-Après compilation, le filtre MON20.4 doit donc passer de **13 à 16 tests**.
+## Validation UE5.5.4 obtenue
 
-## Validation manuelle / PIE restant
+Le 24 août 2026, le filtre complet :
 
-Après les 16/16 Automation Tests, le test final consiste à :
+```text
+Grimrock.MON20.4.RecruitmentUI
+```
 
-1. créer ou choisir un vrai `URPGStoryCompanionAsset` valide ;
-2. créer l'archetype `StoryCompanion_Recruit` ;
-3. ajouter une entrée à `DA_ObjectPalette_Default` avec `DefaultStoryCompanionDefinition` ;
-4. placer le compagnon dans le Grid Editor ;
-5. placer ou réutiliser un Trigger ;
-6. créer le lien `Activated -> OfferRecruitment` vers le compagnon ;
-7. lancer PIE ;
-8. vérifier l'ouverture de `WBP_RPGStoryCompanionRecruitment` ;
-9. tester Recruter, Refuser, groupe complet et compagnon déjà actif.
+a été exécuté sous UE5.5.4 avec le résultat :
+
+```text
+16 tests / 16 Success
+```
+
+Les trois tests MON20.4.5 `PaletteContract`, `PaletteMissingDefinition` et `PalettePlacement` sont donc validés, en plus des treize tests MON20.4.2 à MON20.4.4 déjà verts.
+
+## Validation PIE réelle
+
+Un vrai `DA_StoryCompanion_Scout`, un archetype `StoryCompanion_Recruit`, une entrée de palette et le lien suivant ont été utilisés dans le niveau :
+
+```text
+Trigger.Activated
+    -> StoryCompanion.OfferRecruitment
+```
+
+### Refuser — validé
+
+Le passage sur le Trigger :
+
+- exécute `OfferRecruitment` avec `Success=true` ;
+- ouvre `WBP_RPGStoryCompanionRecruitment` ;
+- applique le modal guard et met le jeu en pause ;
+- le clic `Refuser` produit `Declined` ;
+- restaure l'état d'input et ferme le modal ;
+- ne recrute aucun personnage.
+
+### Recruter — validé
+
+Le même Trigger :
+
+- ouvre le WBP de production ;
+- exécute le recrutement du `Companion_Scout` ;
+- conserve le `CharacterId` stable du Data Asset ;
+- fait passer `ActiveCharacters` de `1` à `2` ;
+- restaure ensuite le modal guard et l'input.
+
+Le pipeline PIE complet est donc validé :
+
+```text
+Trigger
+    -> Activated
+    -> OfferRecruitment
+    -> ShowStoryCompanionRecruitmentWidget
+    -> WBP_RPGStoryCompanionRecruitment
+    -> EnsureCandidateRegistered
+    -> TryRecruitFromPool
+```
+
+## Correctif de focus modal après PIE
+
+Les deux scénarios PIE ont aussi révélé le diagnostic UE5 :
+
+```text
+InputMode:UIOnly - Attempting to focus Non-Focusable widget SObjectWidget
+```
+
+La cause était l'appel explicite :
+
+```cpp
+InputMode.SetWidgetToFocus (TakeWidget ());
+```
+
+sur le `UUserWidget` racine, qui n'est pas focusable par défaut dans le WBP de production.
+
+Le correctif supprime ce focus forcé et conserve uniquement `FInputModeUIOnly`, conformément au comportement déjà utilisé par `URPGLevelUpWidget`. Le modal reste pilotable à la souris et n'impose plus un focus invalide au widget racine.
+
+Ce correctif doit être revalidé par un PIE rapide après récupération du commit de clôture afin de confirmer la disparition de cette ligne `Error`.
 
 ## Hors périmètre
 

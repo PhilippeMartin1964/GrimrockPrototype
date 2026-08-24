@@ -471,7 +471,6 @@ void URPGStoryCompanionRecruitmentWidget::ApplyInputGuard ()
     FInputModeUIOnly InputMode;
     InputMode.SetLockMouseToViewportBehavior (
         EMouseLockMode::DoNotLock);
-    InputMode.SetWidgetToFocus (TakeWidget ());
     PlayerController->SetInputMode (InputMode);
     PlayerController->bShowMouseCursor = true;
     bInputGuardApplied = true;
