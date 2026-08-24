@@ -327,6 +327,20 @@ public:
     UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
     bool IsCharacterCreationModalActive () const;
 
+    /** Opens the existing character creation wizard in MON20.5 CustomRecruit context. */
+    UFUNCTION (BlueprintCallable, Category = "RPG|Recruitment")
+    bool ShowCustomRecruitCharacterCreationWidget ();
+
+    /** Closes only an active CustomRecruit wizard and restores gameplay input. */
+    UFUNCTION (BlueprintCallable, Category = "RPG|Recruitment")
+    void CloseCustomRecruitCharacterCreationWidget ();
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Recruitment")
+    bool IsCustomRecruitCharacterCreationModalActive () const;
+
+    UFUNCTION (BlueprintPure, Category = "RPG|Recruitment")
+    URPGCharacterCreationWidget* GetCustomRecruitCharacterCreationWidget () const;
+
     UFUNCTION (BlueprintCallable, Category = "RPG|Recruitment")
     bool ShowStoryCompanionRecruitmentWidget (
         URPGStoryCompanionAsset* CompanionDefinition);
@@ -514,6 +528,15 @@ private:
     bool LoadCurrentGameData (FText& OutError, bool bApplyDungeonState);
     bool RehydrateLoadedItemDefinitions (FText& OutError);
     void CloseCharacterCreationWidget ();
+    void HandleCustomRecruitCommitted (
+        URPGCharacterCreationWidget* SourceWidget,
+        int32 CharacterIndex);
+    void HandleCustomRecruitCancelled (
+        URPGCharacterCreationWidget* SourceWidget);
+    void FinishCustomRecruitCharacterCreationWidget (
+        URPGCharacterCreationWidget* SourceWidget,
+        bool bCommitted,
+        int32 CharacterIndex);
     void HandleStoryCompanionRecruitmentClosed (
         URPGStoryCompanionRecruitmentWidget* ClosedWidget);
     bool TryConsumeBufferedCommand ();
