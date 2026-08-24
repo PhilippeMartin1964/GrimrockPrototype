@@ -44,6 +44,28 @@ namespace
             bSupportedTargeting;
     }
 
+    void CollectMON2083MissingRequirements (
+        const FGridCombatActionCatalogContext& Context,
+        const FGridCombatActionDefinition& Definition,
+        TArray<FName>& OutMissingRequirements)
+    {
+        OutMissingRequirements.Reset ();
+        for (const FName Requirement : Definition.Requirements)
+        {
+            if (!Context.SatisfiedRequirements.Contains (Requirement))
+            {
+                OutMissingRequirements.AddUnique (Requirement);
+            }
+        }
+        OutMissingRequirements.Sort (
+            [] (const FName Left, const FName Right)
+            {
+                return Left.ToString ().Compare (
+                    Right.ToString (),
+                    ESearchCase::CaseSensitive) < 0;
+            });
+    }
+
     EGridCombatActionAvailabilityReason EvaluateMON126Availability (
         const FGridCombatActionCatalogContext& Context,
         const FGridCombatActionContribution& Contribution)
@@ -188,7 +210,7 @@ namespace
                 const int32 ManaAfter = FMath::Clamp (
                     Context.CurrentMana -
                         Definition.ResourceCosts.ManaCost +
-                        Definition.EffectProfile.RestoreMana,
+                    Definition.EffectProfile.RestoreMana,
                     0,
                     FMath::Max (0, Context.MaximumMana));
                 if (HealthAfter <= Context.CurrentHealth &&
@@ -254,6 +276,10 @@ void FGridCombatActionCatalog::Build (
             Contribution.Definition.ResourceCosts.SourceItemQuantityCost;
         Available.CurrentSourceItemQuantity =
             Contribution.AvailableSourceQuantity;
+        CollectMON2083MissingRequirements (
+            EffectiveContext,
+            Contribution.Definition,
+            Available.MissingRequirements);
         Available.AvailabilityReason = EvaluateMON126Availability (
             EffectiveContext,
             Contribution);
