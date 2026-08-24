@@ -1,6 +1,6 @@
 # MON20.5.4 — Custom Recruit Modal Runtime Integration
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 18/18 SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -221,42 +221,44 @@ Le déclenchement data-driven appartient à la tranche suivante.
 
 ---
 
-## 10. Automation Tests
+## 10. Automation Tests — validation UE5.5.4
 
-Le filtre reste :
+Le filtre :
 
 ```text
 Grimrock.MON20.5.CustomRecruit
 ```
 
-MON20.5.4 ajoute :
+a été exécuté le **24 août 2026** sous UE5.5.4 avec le résultat :
 
 ```text
-RuntimeContract
-RuntimeDefaultState
+18 tests / 18 Success
+0 Fail
+0 Error
 ```
 
-Les 16 tests MON20.5.2 + MON20.5.3 restent présents.
-
-Total attendu :
+Les deux tests ajoutés par MON20.5.4 sont validés :
 
 ```text
-18 tests
+RuntimeContract      Success
+RuntimeDefaultState  Success
 ```
 
-La validation UE5.5.4 doit être fournie par l’utilisateur. Aucun résultat n’est présumé.
+Les 16 tests de MON20.5.2 + MON20.5.3 restent également verts, notamment :
+
+```text
+WizardCustomCancelNoMutation   Success
+WizardCustomRecruitSubmit      Success
+WizardNewGameSubmitRegression  Success
+```
+
+Le runtime modal peut donc être considéré validé avant le branchement Event -> Command.
 
 ---
 
-## 11. Suite après validation
+## 11. Suite validée
 
-Après compilation + :
-
-```text
-18 / 18 Success
-```
-
-la suite proposée est :
+La suite est :
 
 ```text
 MON20.5.5 — Custom Recruit Event / Command Authoring Bridge
