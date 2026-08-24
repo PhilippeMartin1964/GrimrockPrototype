@@ -44,8 +44,8 @@ MON20.6 — Skills Data Model & Runtime                     VALIDÉ UE5.5.4 — 
 MON20.7 — Talents / Progression Choice Integration        EN COURS
   MON20.7.1 — Audit & Architecture Contract              TERMINÉ
   MON20.7.2 — Talent Runtime Read Model / Selection      VALIDÉ UE5.5.4 — 8/8
-  MON20.7.3 — Level Up Talent Presentation Contract      IMPLÉMENTÉ — VALIDATION EN ATTENTE
-  MON20.7.4 — Requirement Projection / Persistence Regression
+  MON20.7.3 — Level Up Talent Presentation Contract      VALIDÉ UE5.5.4 — 16/16 cumulés
+  MON20.7.4 — Requirement Projection / Persistence       IMPLÉMENTÉ — VALIDATION EN ATTENTE
   MON20.7.5 — Automation Regression / Closure
 ```
 
@@ -263,8 +263,8 @@ Découpage :
 ```text
 MON20.7.1 — Audit & Architecture Contract                    TERMINÉ
 MON20.7.2 — Talent Runtime Read Model / Selected Character  VALIDÉ UE5.5.4 — 8/8
-MON20.7.3 — Level Up Talent Presentation Contract           IMPLÉMENTÉ — VALIDATION EN ATTENTE
-MON20.7.4 — Requirement Projection / Persistence Regression
+MON20.7.3 — Level Up Talent Presentation Contract           VALIDÉ UE5.5.4 — 16/16 cumulés
+MON20.7.4 — Requirement Projection / Persistence Regression IMPLÉMENTÉ — VALIDATION EN ATTENTE
 MON20.7.5 — Automation Regression / Closure
 ```
 
@@ -289,12 +289,23 @@ FRPGLevelUpPresentationView
 
 Les identifiants `ChoiceId`, le budget `ChoicePoints`, `PendingChoiceIds` et `TryCommitChoices()` restent inchangés.
 
+MON20.7.4 ne crée aucun runtime supplémentaire. Il verrouille par Automation :
+
+- projection de `ChoiceId` et `GrantedRequirementIds` ;
+- isolation par `CharacterId` ;
+- capture/restore via `ClassProgressionStates` MON15.6 ;
+- restore détaché immédiatement consommable ;
+- atomicité d'un restore invalide ;
+- restore par `CharacterId`, indépendant de l'ordre du tableau ;
+- `CurrentSaveVersion == 7` inchangé.
+
 Documents :
 
 ```text
 docs/Design/MON20_7_1_TALENTS_PROGRESSION_CHOICE_ARCHITECTURE.md
 docs/Design/MON20_7_2_TALENT_RUNTIME_READ_MODEL.md
 docs/Design/MON20_7_3_LEVEL_UP_TALENT_PRESENTATION_CONTRACT.md
+docs/Design/MON20_7_4_REQUIREMENT_PROJECTION_PERSISTENCE_REGRESSION.md
 ```
 
 ## Suite MON20
@@ -349,5 +360,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.7.3 — Level Up Talent Presentation Contract — VALIDATION UE5.5.4
+MON20.7.4 — Requirement Projection / Persistence Regression — VALIDATION UE5.5.4
 ```
