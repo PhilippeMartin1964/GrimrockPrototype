@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON20 EN COURS — MON20.7 CLOS — MON20.8 EN COURS**  
+Statut : **MON20 EN COURS — MON20.8 CLOS — MON20.9 EN COURS**  
 Date de référence : **24 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -47,12 +47,19 @@ MON20.7 — Talents / Progression Choice Integration        VALIDÉ UE5.5.4 — 
   MON20.7.3 — Level Up Talent Presentation Contract      VALIDÉ UE5.5.4 — 16/16 cumulés
   MON20.7.4 — Requirement Projection / Persistence       VALIDÉ UE5.5.4 — 24/24 cumulés
   MON20.7.5 — Automation Regression / Closure            CLOS
-MON20.8 — Cross-System Requirements / Actions / UI        EN COURS
+MON20.8 — Cross-System Requirements / Actions / UI        VALIDÉ UE5.5.4 — CLOS — 24/24 + PIE
   MON20.8.1 — Audit & Architecture Contract              TERMINÉ
-  MON20.8.2 — Skill Definition Identity & Requirement Projection    IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
-  MON20.8.3 — Combat Action Requirement Integration & Diagnostics
-  MON20.8.4 — Skills/Talents Page Read Model & Menu Integration
-  MON20.8.5 — Automation / PIE Regression & Closure
+  MON20.8.2 — Skill Definition Identity & Requirement Projection    VALIDÉ — 8/8
+  MON20.8.3 — Combat Action Requirement Integration & Diagnostics   VALIDÉ — 16/16 cumulés
+  MON20.8.4 — Skills/Talents Page Read Model & Menu Integration    VALIDÉ — 24/24 cumulés + PIE
+  MON20.8.5 — Automation / PIE Regression & Closure               CLOS
+MON20.9 — Persistence / Migration                         EN COURS
+  MON20.9.1 — Audit & Architecture Contract              PROCHAIN
+  MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
+  MON20.9.3 — Active/Pool Character Persistence Regression
+  MON20.9.4 — Skill Projection / Skills Page Restore Regression
+  MON20.9.5 — Automation / PIE Regression & Closure
+MON20.10 — Balance / Regression / Closure
 ```
 
 ---
@@ -309,21 +316,13 @@ docs/Design/MON20_7_4_REQUIREMENT_PROJECTION_PERSISTENCE_REGRESSION.md
 docs/Design/MON20_7_5_AUTOMATION_REGRESSION_CLOSURE.md
 ```
 
-## MON20.8 — Cross-System Requirements / Actions / UI — EN COURS
+## MON20.8 — Cross-System Requirements / Actions / UI — VALIDÉ ET CLOS
 
-MON20.8 branche les Skills et Talents sur les consommateurs existants sans créer de pipeline parallèle.
+Clôturé le **24 août 2026**.
 
-Audit MON20.8.1 :
+MON20.8 branche Skills et Talents sur les consommateurs existants sans créer de pipeline parallèle.
 
-- `FGridCombatActionDefinition::Requirements` est déjà le contrat de gating des actions ;
-- `FGridCombatActionCatalogContext::SatisfiedRequirements` reçoit déjà `ClassId` et `ItemTags` ;
-- MON15/MON20.7 projette déjà niveau, `ChoiceId` et `GrantedRequirementIds` dans le catalogue ;
-- le HUD/hotbar sait déjà conserver et présenter une action indisponible ;
-- les `SkillRanks` ne produisent encore aucun RequirementId ;
-- `URPGSkillAsset` n'a pas encore d'identité PrimaryAsset explicite basée sur `SkillId` ni de résolveur canonique ;
-- `WBP_GridSkills` existe, mais `Page_Skills` reste un `UWidget` générique sans init/refresh C++.
-
-Contrat :
+Architecture finale :
 
 ```text
 Skill rank > 0
@@ -333,33 +332,48 @@ FRPGSkillRequirementGrant
     MinimumRank
     GrantedRequirementIds[]
 
-Skill RequirementIds
-+ ClassId
-+ ItemTags
-+ Talent/Level RequirementIds
+ClassId + ItemTags + Talent/Level RequirementIds + Skill RequirementIds
     -> FGridCombatActionCatalog
-    -> MissingRequirement / Enabled
+    -> MissingRequirements[] / Enabled
     -> HUD + hotbar existants
+
+SelectedCharacterIndex
+    -> FGridSkillsPageService
+    -> UGridSkillsWidget
+    -> WBP_GridSkills
 ```
 
-MON20.8.2 est implémenté :
+Principaux acquis :
 
 - `URPGSkillAsset::GetPrimaryAssetId()` utilise `RPGSkill:<SkillId>` ;
-- `FRPGSkillRequirementGrant` définit les capabilities par seuil de rang ;
-- `FRPGSkillRequirementProjectionService` résout les définitions canoniques et projette les requirements de manière atomique ;
-- les RequirementIds restent dérivés et non persistés ;
-- 8 tests Automation ciblés attendent validation UE5.5.4.
+- `FRPGSkillRequirementProjectionService` projette les requirements par rang de manière atomique ;
+- les actions peuvent être déverrouillées par `SkillId` ou seuil de compétence ;
+- les anciens requirements classe, équipement et talents restent composables ;
+- `FGridAvailableCombatAction::MissingRequirements` expose un diagnostic structuré et déterministe ;
+- la page Compétences affiche en lecture seule Skills + Talents du personnage sélectionné ;
+- `WBP_GridSkills` est reparenté sur `UGridSkillsWidget` ;
+- la présentation native remplace le placeholder au runtime ;
+- le changement de personnage a été validé en PIE avec `Elias` puis `Elarion` ;
+- les `RequirementIds` restent dérivés et non persistés ;
+- `SkillRanks` reste `Transient` jusqu'à MON20.9.
 
-La page `Compétences` sera read-only pour la progression dans MON20.8 : elle affichera Skills + Talents du personnage sélectionné, mais n'inventera pas une monnaie de points de compétence. Les talents restent acquis via le Level Up MON15/MON20.7.
+Validation finale :
 
-Découpage :
+```text
+Grimrock.MON20.8   24/24 Success
+0 Fail
+0 Error
+PIE                OK — page Compétences + changement de personnage
+```
+
+Découpage final :
 
 ```text
 MON20.8.1 — Audit & Architecture Contract                         TERMINÉ
-MON20.8.2 — Skill Definition Identity & Requirement Projection    IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
-MON20.8.3 — Combat Action Requirement Integration & Diagnostics
-MON20.8.4 — Skills/Talents Page Read Model & Menu Integration
-MON20.8.5 — Automation / PIE Regression & Closure
+MON20.8.2 — Skill Definition Identity & Requirement Projection    VALIDÉ — 8/8
+MON20.8.3 — Combat Action Requirement Integration & Diagnostics   VALIDÉ — 16/16 cumulés
+MON20.8.4 — Skills/Talents Page Read Model & Menu Integration    VALIDÉ — 24/24 cumulés + PIE
+MON20.8.5 — Automation / PIE Regression & Closure                CLOS
 ```
 
 Documents :
@@ -367,13 +381,31 @@ Documents :
 ```text
 docs/Design/MON20_8_1_CROSS_SYSTEM_REQUIREMENTS_ACTIONS_UI_CONTRACT.md
 docs/Design/MON20_8_2_SKILL_DEFINITION_IDENTITY_REQUIREMENT_PROJECTION.md
+docs/Design/MON20_8_3_COMBAT_ACTION_REQUIREMENT_INTEGRATION_DIAGNOSTICS.md
+docs/Design/MON20_8_4_SKILLS_TALENTS_PAGE_READ_MODEL_MENU_INTEGRATION.md
+docs/Design/MON20_8_4_NATIVE_SKILLS_PRESENTATION.md
+docs/Design/MON20_8_4_AUTOMATION_VALIDATION.md
+docs/Design/MON20_8_5_AUTOMATION_PIE_REGRESSION_CLOSURE.md
+```
+
+## MON20.9 — Persistence / Migration — EN COURS
+
+Objectif : rendre persistantes les données MON20 qui restent runtime-only, en priorité les `SkillRanks`, sans dupliquer la progression de classe/talents déjà persistée par MON15.6.
+
+Découpage prévu :
+
+```text
+MON20.9.1 — Audit & Architecture Contract                     PROCHAIN
+MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
+MON20.9.3 — Active/Pool Character Persistence Regression
+MON20.9.4 — Skill Projection / Skills Page Restore Regression
+MON20.9.5 — Automation / PIE Regression & Closure
 ```
 
 ## Suite MON20
 
 ```text
-MON20.8 — Cross-System Requirements / Actions / UI       EN COURS
-MON20.9 — Reserve / Persistence / Migration
+MON20.9 — Persistence / Migration                    EN COURS
 MON20.10 — Balance / Regression / Closure
 ```
 
@@ -421,5 +453,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.8.2 — Skill Definition Identity & Requirement Projection — VALIDATION UE5.5.4
+MON20.9.1 — Audit & Architecture Contract
 ```
