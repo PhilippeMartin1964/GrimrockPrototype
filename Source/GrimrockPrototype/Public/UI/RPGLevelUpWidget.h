@@ -45,10 +45,39 @@ struct FRPGLevelUpChoiceView
     FText StatusText;
 };
 
+/**
+ * MON20.7 presentation-only vocabulary for the existing MON15 Level Up flow.
+ * No gameplay authority lives here: ChoiceId and ChoicePoints remain MON15.
+ */
+USTRUCT (BlueprintType)
+struct FRPGLevelUpPresentationView
+{
+    GENERATED_BODY ()
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up|Presentation")
+    FText Title;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up|Presentation")
+    FText TalentSectionTitle;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up|Presentation")
+    FText TalentPointsLabel;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up|Presentation")
+    FText EmptyTalentsMessage;
+
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up|Presentation")
+    FText SelectionPrompt;
+};
+
 USTRUCT (BlueprintType)
 struct FRPGLevelUpView
 {
     GENERATED_BODY ()
+
+    /** Presentation vocabulary only. Gameplay state continues to use Choice*. */
+    UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up")
+    FRPGLevelUpPresentationView Presentation;
 
     UPROPERTY (BlueprintReadOnly, Category = "RPG|Level Up")
     int32 CharacterIndex = INDEX_NONE;
@@ -118,6 +147,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam (
 /**
  * MON15.5 modal. The native Slate fallback is fully usable without a WBP;
  * Blueprint subclasses can instead project the public View.
+ * MON20.7.3 adds Talent vocabulary only; transaction semantics remain MON15.
  */
 UCLASS (BlueprintType, Blueprintable)
 class GRIMROCKPROTOTYPE_API URPGLevelUpWidget : public UUserWidget
@@ -185,6 +215,7 @@ private:
     TSharedPtr<STextBlock> NativeCharacterText;
     TSharedPtr<STextBlock> NativeStatsText;
     TSharedPtr<STextBlock> NativePointsText;
+    TSharedPtr<STextBlock> NativeTalentSectionText;
     TSharedPtr<STextBlock> NativeValidationText;
     TSharedPtr<SVerticalBox> NativeChoicesBox;
     TSharedPtr<SButton> NativeConfirmButton;
