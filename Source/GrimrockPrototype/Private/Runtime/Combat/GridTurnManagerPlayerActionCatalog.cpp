@@ -6,6 +6,7 @@
 #include "Magic/GridSpellHotbarExecution.h"
 #include "Magic/GridSpellPresentationComponent.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectLifecycleSubsystem.h"
@@ -477,6 +478,21 @@ void UGridTurnManagerComponent::GetAvailableCombatActions (
                 Context.SatisfiedRequirements.Add (ItemTag);
             }
         }
+    }
+
+    FString SkillRequirementError;
+    if (!FRPGSkillRequirementProjectionService::AppendSatisfiedRequirements (
+            Character,
+            Context.SatisfiedRequirements,
+            SkillRequirementError))
+    {
+        UE_LOG (
+            LogGridTurnManager,
+            Warning,
+            TEXT ("[GridActionCatalog] SkillRequirementProjectionFailed Character=%d CharacterId=%s Error=%s"),
+            CharacterIndex,
+            *Character.CharacterId.ToString (EGuidFormats::Digits),
+            *SkillRequirementError);
     }
 
     TArray<FGridCombatActionContribution> Contributions;
