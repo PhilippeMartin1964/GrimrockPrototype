@@ -892,6 +892,41 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
         return bSuccess;
     }
 
+    if (TargetObject->Type == EGridLevelObjectType::CustomRecruiter)
+    {
+        if (ResolvedCommand != EGridObjectCommand::OpenCustomRecruit)
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("custom recruiter only supports OpenCustomRecruit"));
+            return false;
+        }
+
+        AGrimrockPartyPawn* PartyPawn = RuntimeActor->GetWorld ()
+            ? Cast<AGrimrockPartyPawn> (
+                UGameplayStatics::GetPlayerPawn (RuntimeActor->GetWorld (), 0))
+            : nullptr;
+        if (!IsValid (PartyPawn))
+        {
+            LogLinkResult (
+                LinkData,
+                ResolvedCommand,
+                false,
+                TEXT ("missing player party pawn"));
+            return false;
+        }
+
+        bSuccess = PartyPawn->ShowCustomRecruitCharacterCreationWidget ();
+        LogLinkResult (
+            LinkData,
+            ResolvedCommand,
+            bSuccess,
+            bSuccess ? nullptr : TEXT ("custom recruit modal rejected"));
+        return bSuccess;
+    }
+
     if (TargetObject->Type == EGridLevelObjectType::Logic)
     {
         if (DispatchingSourceObjectIds.Contains (TargetObject->ObjectId))
@@ -1038,6 +1073,7 @@ bool UGridActivationComponent::ApplyLinkCommand (const FGridObjectLink& LinkData
             break;
         }
 
+        case EGridLevelObjectType::CustomRecruiter:
         case EGridLevelObjectType::StoryCompanion:
         case EGridLevelObjectType::Logic:
         case EGridLevelObjectType::None:

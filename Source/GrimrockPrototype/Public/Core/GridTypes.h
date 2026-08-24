@@ -45,7 +45,8 @@ enum class EGridLevelObjectType : uint8
     Receptacle      UMETA (DisplayName = "Receptacle"),
     Item            UMETA (DisplayName = "Item"),
     Logic           UMETA (DisplayName = "Logic"),
-    StoryCompanion  UMETA (DisplayName = "Story Companion")
+    StoryCompanion  UMETA (DisplayName = "Story Companion"),
+    CustomRecruiter UMETA (DisplayName = "Custom Recruiter")
 };
 
 UENUM (BlueprintType)
@@ -96,7 +97,8 @@ enum class EGridObjectCommand : uint8
     LogicExecute = 20              UMETA (DisplayName = "Logic Execute"),
     LogicReset = 21                UMETA (DisplayName = "Logic Reset"),
     LuaCallback = 22               UMETA (DisplayName = "Lua Callback"),
-    OfferRecruitment = 23          UMETA (DisplayName = "Offer Recruitment")
+    OfferRecruitment = 23          UMETA (DisplayName = "Offer Recruitment"),
+    OpenCustomRecruit = 24         UMETA (DisplayName = "Open Custom Recruit")
 };
 
 UENUM (BlueprintType)
