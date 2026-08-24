@@ -1,6 +1,6 @@
 # MON20.5.6 — Custom Recruiter Grid Authoring & PIE
 
-Statut : **PIE FONCTIONNEL VALIDÉ — HARDENING COMBAT / FERMETURE À REVALIDER**  
+Statut : **AUTOMATION 23/23 VALIDÉE — PIE POST-HARDENING À REVALIDER**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -29,6 +29,7 @@ MON20.5.2  Custom Recruit Transaction          9/9
 MON20.5.3  Wizard Context Reuse               16/16 cumulés
 MON20.5.4  Runtime Modal Integration           18/18 cumulés
 MON20.5.5  Event / Command Authoring Bridge    22/22 cumulés
+MON20.5.6  Runtime hardening                   23/23 cumulés
 ```
 
 Filtre :
@@ -37,13 +38,23 @@ Filtre :
 Grimrock.MON20.5.CustomRecruit
 ```
 
-Résultat MON20.5.5 :
+Résultat après hardening MON20.5.6, validé le 24 août 2026 :
 
 ```text
-22 / 22 Success
+23 / 23 Success
 0 Fail
 0 Error
 ```
+
+Le test négatif `EventCommandMissingPlayerPawn` produit volontairement son warning attendu puis termine en `Success`.
+
+Le nouveau test `RuntimeCombatGate` confirme :
+
+```text
+[GridCustomRecruitRuntime] Show Rejected ... Reason=CombatActive Phase=2 Round=3
+```
+
+et termine lui aussi en `Success`.
 
 ---
 
@@ -128,23 +139,25 @@ Viewport MouseCaptureMode ... -> CaptureDuringMouseDown
 
 Le joueur a pu immédiatement reprendre le combat et exécuter une attaque après la fermeture du wizard.
 
-### Anomalie détectée
+### Anomalie détectée puis corrigée
 
-PIE a aussi signalé :
+PIE avait signalé :
 
 ```text
 UWidget::RemoveFromParent() called ... which has no UMG parent
 ```
 
-Cause : `CancelWizard()` notifie synchroniquement le Pawn, le Pawn retirait le widget, puis `CancelWizard()` exécutait son propre `RemoveFromParent()`.
+Cause : `CancelWizard()` notifiait synchroniquement le Pawn, le Pawn retirait le widget, puis `CancelWizard()` exécutait son propre `RemoveFromParent()`.
 
 Hardening : le handler Pawn `HandleCustomRecruitCancelled()` libère désormais uniquement l'état modal/input ; `CancelWizard()` reste propriétaire de sa suppression visuelle. Les fermetures programmatiques continuent de passer par `FinishCustomRecruitCharacterCreationWidget()`.
+
+Une revalidation PIE hors combat reste demandée afin de confirmer l'absence de ce warning après correctif.
 
 ---
 
 ## 6. PIE validé — Engager
 
-Le second passage sur le même Trigger a aussi été validé :
+Le second passage sur le même Trigger a aussi été validé avant hardening :
 
 ```text
 Trigger Activated
@@ -172,13 +185,15 @@ Le log runtime confirme :
 
 Le héros principal est resté actif et le contrôle du jeu a été restauré.
 
+Une revalidation PIE hors combat reste demandée après le hardening afin de confirmer que ce chemin n'a subi aucune régression.
+
 ---
 
-## 7. Découverte importante : recrutement pendant un combat
+## 7. Politique finale : pas de recrutement pendant un combat
 
-Le test manuel a volontairement été effectué pendant un combat actif. Techniquement le flux fonctionnait, mais cette situation n'est pas retenue comme comportement supporté.
+Le premier test manuel avait volontairement été effectué pendant un combat actif. Techniquement le flux fonctionnait, mais cette situation n'est pas retenue comme comportement supporté.
 
-Raison : l'initiative, les `PlayerCharacterTurnStates`, les AP et la séquence courante sont établis au début / pendant le combat. Ajouter un nouveau membre à `ActiveCharacters` au milieu d'un round créerait une divergence entre l'état persistant du groupe et le snapshot combat en cours.
+Raison : l'initiative, les `PlayerCharacterTurnStates`, les AP et la séquence courante sont établis au début / pendant le combat. Ajouter un nouveau membre à `ActiveCharacters` au milieu d'un round créerait une divergence entre l'état du groupe et le snapshot combat en cours.
 
 Politique MON20.5.6 :
 
@@ -192,7 +207,7 @@ Combat actif
     -> aucune mutation du groupe
 ```
 
-`ShowCustomRecruitCharacterCreationWidget()` vérifie maintenant le `UGridTurnManagerComponent` existant et refuse si `bCombatActive == true`.
+`ShowCustomRecruitCharacterCreationWidget()` vérifie le `UGridTurnManagerComponent` existant et refuse si `bCombatActive == true`.
 
 Log attendu :
 
@@ -204,9 +219,9 @@ Le connector retourne alors `Success=false` sans ouvrir le wizard.
 
 ---
 
-## 8. Automation hardening
+## 8. Automation hardening — VALIDÉE
 
-Un test supplémentaire est ajouté :
+Test supplémentaire :
 
 ```text
 Grimrock.MON20.5.CustomRecruit.RuntimeCombatGate
@@ -218,10 +233,40 @@ Il vérifie qu'avec un TurnManager actif en combat :
 - aucun modal n'est marqué actif ;
 - aucune instance de Character Creation n'est créée.
 
-Total attendu après hardening :
+Validation utilisateur du 24 août 2026 :
 
 ```text
-23 tests
+23 / 23 Success
+0 Fail
+0 Error
+```
+
+Toutes les régressions MON20.5.2 à MON20.5.5 restent vertes, notamment :
+
+```text
+AllocatedAttributesPreserved
+ContextContract
+ContextGateCompletedParty
+ContextGateIncompleteParty
+ContextGatePartyFull
+CustomRecruiterArchetypeContract
+EditorLinkPolicy
+EventCommandContract
+EventCommandMissingPlayerPawn
+InitialHeroStatePreserved
+InvalidRequestAtomicReject
+PartyFullAtomicReject
+RecruitmentRollbackLeavesNoPoolCandidate
+RuntimeCombatGate
+RuntimeContract
+RuntimeDefaultState
+UniqueCharacterIdentity
+ValidCreateAndRecruit
+VisualSelectionPreserved
+WizardContextDefault
+WizardCustomCancelNoMutation
+WizardCustomRecruitSubmit
+WizardNewGameSubmitRegression
 ```
 
 ---
@@ -231,8 +276,8 @@ Total attendu après hardening :
 ### A — Automation
 
 ```text
-Grimrock.MON20.5.CustomRecruit
-23 / 23 Success
+[OK] Grimrock.MON20.5.CustomRecruit
+[OK] 23 / 23 Success
 ```
 
 ### B — PIE exploration
@@ -243,7 +288,14 @@ Hors combat :
 Trigger -> wizard -> Annuler
 ```
 
-Attendu : aucune ligne `RemoveFromParent() ... has no UMG parent`.
+Attendu :
+
+```text
+wizard fermé
+input restauré
+aucune mutation du groupe
+aucune ligne RemoveFromParent() ... has no UMG parent
+```
 
 Puis :
 
@@ -271,15 +323,15 @@ combat inchangé
 ## 10. Critère de clôture MON20.5
 
 ```text
-[OK] 22/22 Automation tests avant hardening
+[OK] 23/23 Automation tests après hardening
 [OK] Authoring CustomRecruiter + palette + connector
-[OK] PIE Annuler fonctionnel
-[OK] PIE Engager fonctionnel
-[OK] Input restauré après les deux chemins
+[OK] PIE Annuler fonctionnel avant hardening
+[OK] PIE Engager fonctionnel avant hardening
+[OK] Input restauré après les deux chemins avant hardening
 [OK] Recrue réelle Elarion créée CharacterIndex=1
-[ ] 23/23 Automation tests après hardening
-[ ] PIE Annuler sans warning RemoveFromParent
-[ ] PIE combat : recrutement correctement refusé
+[ ] PIE Annuler post-hardening sans warning RemoveFromParent
+[ ] PIE Engager post-hardening sans régression
+[ ] PIE combat post-hardening : recrutement correctement refusé
 [ ] Assets d'authoring versionnés dans Git
 ```
 
