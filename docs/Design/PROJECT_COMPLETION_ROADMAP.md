@@ -57,8 +57,8 @@ MON20.9 — Persistence / Migration                         EN COURS
   MON20.9.1 — Audit & Architecture Contract              TERMINÉ
   MON20.9.2 — Skill Rank Save Snapshot + v8 Migration   VALIDÉ UE5.5.4 — 8/8
   MON20.9.3 — Active/Pool Character Persistence Regression          VALIDÉ UE5.5.4 — 8/8 — 16/16 cumulés
-  MON20.9.4 — Skill Projection / Skills Page Restore Regression     IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
-  MON20.9.5 — Automation / PIE Regression & Closure
+  MON20.9.4 — Skill Projection / Skills Page Restore Regression     VALIDÉ UE5.5.4 — 8/8 — 24/24 cumulés
+  MON20.9.5 — Automation / PIE Regression & Closure                EN VALIDATION — AUTOMATION 24/24 — PIE À FAIRE
 MON20.10 — Balance / Regression / Closure
 ```
 
@@ -424,15 +424,24 @@ MON20.9.3 est validé UE5.5.4 : les Skills suivent `CharacterId` à travers recr
 
 ```text
 Grimrock.MON20.9.ActivePoolPersistence   8/8 Success
-
-Validation cumulative MON20.9 :
-SkillPersistence       8/8
-ActivePoolPersistence  8/8
---------------------------
-TOTAL                 16/16 Success
 ```
 
-MON20.9.4 est implémenté comme régression d'intégration uniquement. Il réutilise `FRPGSkillPersistence`, `FRPGSkillRequirementProjectionService`, `FGridCombatActionCatalog` et `FGridSkillsPageService` pour vérifier que les consumers MON20.8 retrouvent leur état immédiatement après restore, sans persister de données dérivées.
+MON20.9.4 est validé UE5.5.4 : les rangs restaurés redeviennent immédiatement consommables par la projection des requirements, le catalogue d'actions et la page Compétences, sans persister de données dérivées.
+
+```text
+Grimrock.MON20.9.RestoredConsumers   8/8 Success
+
+Validation cumulative MON20.9 :
+SkillPersistence        8/8
+ActivePoolPersistence   8/8
+RestoredConsumers       8/8
+---------------------------
+TOTAL                  24/24 Success
+0 Fail
+0 Error
+```
+
+MON20.9.5 est en validation finale. Aucun nouveau runtime n'est requis : la campagne logique est complète à 24/24 et le dernier travail est un smoke test PIE de la frontière Save/Continue v8 et de la page Compétences après chargement.
 
 Découpage :
 
@@ -440,8 +449,8 @@ Découpage :
 MON20.9.1 — Audit & Architecture Contract                     TERMINÉ
 MON20.9.2 — Skill Rank Save Snapshot + v8 Migration           VALIDÉ UE5.5.4 — 8/8
 MON20.9.3 — Active/Pool Character Persistence Regression      VALIDÉ UE5.5.4 — 8/8 — 16/16 cumulés
-MON20.9.4 — Skill Projection / Skills Page Restore Regression IMPLÉMENTÉ — VALIDATION UE5.5.4 À FAIRE
-MON20.9.5 — Automation / PIE Regression & Closure
+MON20.9.4 — Skill Projection / Skills Page Restore Regression VALIDÉ UE5.5.4 — 8/8 — 24/24 cumulés
+MON20.9.5 — Automation / PIE Regression & Closure             EN VALIDATION — AUTOMATION 24/24 — PIE À FAIRE
 ```
 
 Documents :
@@ -453,12 +462,14 @@ docs/Design/MON20_9_2_AUTOMATION_VALIDATION.md
 docs/Design/MON20_9_3_ACTIVE_POOL_CHARACTER_PERSISTENCE_REGRESSION.md
 docs/Design/MON20_9_3_AUTOMATION_VALIDATION.md
 docs/Design/MON20_9_4_SKILL_PROJECTION_SKILLS_PAGE_RESTORE_REGRESSION.md
+docs/Design/MON20_9_4_AUTOMATION_VALIDATION.md
+docs/Design/MON20_9_5_AUTOMATION_PIE_REGRESSION_CLOSURE.md
 ```
 
 ## Suite MON20
 
 ```text
-MON20.9 — Persistence / Migration                    EN COURS
+MON20.9 — Persistence / Migration                    EN COURS — AUTOMATION 24/24 — PIE FINAL À FAIRE
 MON20.10 — Balance / Regression / Closure
 ```
 
@@ -506,5 +517,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.9.4 — Skill Projection / Skills Page Restore Regression — VALIDATION UE5.5.4
+MON20.9.5 — Automation / PIE Regression & Closure — PIE FINAL
 ```
