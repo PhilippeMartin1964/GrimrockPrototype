@@ -9,6 +9,7 @@
 class AGrimrockPartyPawn;
 class UButton;
 class UGridInventoryWidget;
+class UGridSkillsWidget;
 class UGridSpellbookWidget;
 class UTexture2D;
 class UWidget;
@@ -27,6 +28,9 @@ public:
     void RefreshInventory ();
 
     UFUNCTION (BlueprintCallable, Category = "Menu")
+    void RefreshSkills ();
+
+    UFUNCTION (BlueprintCallable, Category = "Menu")
     void RefreshSpellbook ();
 
     UFUNCTION (BlueprintCallable, Category = "Menu|Top Tabs")
@@ -37,6 +41,9 @@ public:
 
     UFUNCTION (BlueprintCallable, Category = "Menu")
     UGridInventoryWidget* GetInventoryWidget () const;
+
+    UFUNCTION (BlueprintCallable, Category = "Menu")
+    UGridSkillsWidget* GetSkillsWidget () const;
 
     UFUNCTION (BlueprintCallable, Category = "Menu")
     UGridSpellbookWidget* GetSpellbookWidget () const;
@@ -103,6 +110,7 @@ private:
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UGridInventoryWidget> Page_Inventory;
 
+    /** Kept generic until WBP_GridSkills is reparented after C++ validation. */
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UWidget> Page_Skills;
 
@@ -118,7 +126,6 @@ private:
     UPROPERTY (meta = (BindWidget))
     TObjectPtr<UWidget> Page_Codex;
 
-    /** Kept generic until WBP_GridSpellbook is reparented in UI01.4.3b. */
     UPROPERTY (meta = (BindWidgetOptional))
     TObjectPtr<UWidget> Page_Spellbook;
 

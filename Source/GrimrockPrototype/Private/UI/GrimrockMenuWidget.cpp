@@ -4,6 +4,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "Engine/Texture2D.h"
 #include "UI/GridInventoryWidget.h"
+#include "UI/GridSkillsWidget.h"
 #include "UI/GridSpellbookWidget.h"
 
 void UGrimrockMenuWidget::NativeConstruct ()
@@ -28,6 +29,10 @@ void UGrimrockMenuWidget::InitializeMenuWidget (AGrimrockPartyPawn* InPartyPawn)
     {
         Page_Inventory->InitializeInventoryWidget (InPartyPawn);
     }
+    if (UGridSkillsWidget* SkillsWidget = GetSkillsWidget ())
+    {
+        SkillsWidget->InitializeSkillsWidget (InPartyPawn);
+    }
     if (UGridSpellbookWidget* SpellbookWidget = GetSpellbookWidget ())
     {
         SpellbookWidget->InitializeSpellbookWidget (InPartyPawn);
@@ -42,6 +47,14 @@ void UGrimrockMenuWidget::RefreshInventory ()
     }
 }
 
+void UGrimrockMenuWidget::RefreshSkills ()
+{
+    if (UGridSkillsWidget* SkillsWidget = GetSkillsWidget ())
+    {
+        SkillsWidget->RefreshSkills ();
+    }
+}
+
 void UGrimrockMenuWidget::RefreshSpellbook ()
 {
     if (UGridSpellbookWidget* SpellbookWidget = GetSpellbookWidget ())
@@ -53,6 +66,11 @@ void UGrimrockMenuWidget::RefreshSpellbook ()
 UGridInventoryWidget* UGrimrockMenuWidget::GetInventoryWidget () const
 {
     return Page_Inventory;
+}
+
+UGridSkillsWidget* UGrimrockMenuWidget::GetSkillsWidget () const
+{
+    return Cast<UGridSkillsWidget> (Page_Skills);
 }
 
 UGridSpellbookWidget* UGrimrockMenuWidget::GetSpellbookWidget () const
@@ -94,7 +112,11 @@ void UGrimrockMenuWidget::SetActiveTopTab (EInventoryTopTab NewTab)
 
     CurrentTopTab = NewTab;
     WidgetSwitcher_MainContent->SetActiveWidget (TargetPage);
-    if (NewTab == EInventoryTopTab::Spellbook)
+    if (NewTab == EInventoryTopTab::Skills)
+    {
+        RefreshSkills ();
+    }
+    else if (NewTab == EInventoryTopTab::Spellbook)
     {
         RefreshSpellbook ();
     }
