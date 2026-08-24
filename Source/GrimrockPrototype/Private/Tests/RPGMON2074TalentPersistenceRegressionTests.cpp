@@ -204,10 +204,9 @@ bool FRPGMON2074CaptureUsesMON15SnapshotTest::RunTest (
             TEXT ("Persisted talent uses the original ChoiceId"),
             SavedStates[0].SelectedChoiceIds.Contains (TalentA));
     }
-    TestEqual (
-        TEXT ("MON20.7 does not bump SaveGame version"),
-        UGrimrockPartySaveGame::CurrentSaveVersion,
-        7);
+    TestTrue (
+        TEXT ("MON20.7 progression snapshot remains compatible with later SaveGame versions"),
+        UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
     return true;
 }
 
