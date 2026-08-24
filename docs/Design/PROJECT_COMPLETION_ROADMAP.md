@@ -54,8 +54,8 @@ MON20.8 — Cross-System Requirements / Actions / UI        VALIDÉ UE5.5.4 — 
   MON20.8.4 — Skills/Talents Page Read Model & Menu Integration    VALIDÉ — 24/24 cumulés + PIE
   MON20.8.5 — Automation / PIE Regression & Closure               CLOS
 MON20.9 — Persistence / Migration                         EN COURS
-  MON20.9.1 — Audit & Architecture Contract              PROCHAIN
-  MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
+  MON20.9.1 — Audit & Architecture Contract              TERMINÉ
+  MON20.9.2 — Skill Rank Save Snapshot + v8 Migration   PROCHAIN
   MON20.9.3 — Active/Pool Character Persistence Regression
   MON20.9.4 — Skill Projection / Skills Page Restore Regression
   MON20.9.5 — Automation / PIE Regression & Closure
@@ -392,14 +392,33 @@ docs/Design/MON20_8_5_AUTOMATION_PIE_REGRESSION_CLOSURE.md
 
 Objectif : rendre persistantes les données MON20 qui restent runtime-only, en priorité les `SkillRanks`, sans dupliquer la progression de classe/talents déjà persistée par MON15.6.
 
-Découpage prévu :
+Contrat MON20.9.1 :
 
 ```text
-MON20.9.1 — Audit & Architecture Contract                     PROCHAIN
-MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
+SkillRanks runtime restent Transient
+    -> snapshot SaveGame dédié keyed by CharacterId
+    -> personnages actifs + CharacterPool
+    -> capture/restore atomiques
+    -> définition canonique RPGSkill:<SkillId>
+    -> SaveGame v8
+```
+
+La migration v7 -> v8 initialise un snapshot Skill vide : aucun rang ne peut être inventé puisque les rangs étaient volontairement runtime-only en v7. Les RequirementIds restent dérivés et ne sont jamais sauvegardés.
+
+Découpage :
+
+```text
+MON20.9.1 — Audit & Architecture Contract                     TERMINÉ
+MON20.9.2 — Skill Rank Save Snapshot + v8 Migration           PROCHAIN
 MON20.9.3 — Active/Pool Character Persistence Regression
 MON20.9.4 — Skill Projection / Skills Page Restore Regression
 MON20.9.5 — Automation / PIE Regression & Closure
+```
+
+Documents :
+
+```text
+docs/Design/MON20_9_1_PERSISTENCE_MIGRATION_ARCHITECTURE_CONTRACT.md
 ```
 
 ## Suite MON20
@@ -453,5 +472,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON20.9.1 — Audit & Architecture Contract
+MON20.9.2 — Skill Rank Save Snapshot + v8 Migration
 ```
