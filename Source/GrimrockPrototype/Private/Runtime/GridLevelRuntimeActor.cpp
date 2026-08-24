@@ -4542,6 +4542,12 @@ AGridMonsterActor* AGridLevelRuntimeActor::AddMonsterSpawnActor (
             RestoreState->EncounterGroupId;
     }
 
+    const bool bRestoreDead =
+        RestoreState &&
+        (RestoreState->bIsDead ||
+            RestoreState->CurrentHealth <= 0 ||
+            RestoreState->MonsterState == EGridMonsterState::Dead);
+
     const FString SpawnIdText =
         SpawnData.ObjectId.ToString (EGuidFormats::DigitsWithHyphens);
     if (SpawnedMonsterActors.Contains (SpawnData.ObjectId))
@@ -4616,45 +4622,48 @@ AGridMonsterActor* AGridLevelRuntimeActor::AddMonsterSpawnActor (
     const FIntPoint SpawnCell (
         SpawnData.CellX,
         SpawnData.CellY);
-    for (const TPair<FGuid, TObjectPtr<AGridMonsterActor>>& Pair :
-        SpawnedMonsterActors)
+    if (!bRestoreDead)
     {
-        const AGridMonsterActor* SpawnedMonster =
-            Pair.Value.Get ();
-        if (IsValid (SpawnedMonster) &&
-            !SpawnedMonster->IsDead () &&
-            SpawnedMonster->CurrentCell == SpawnCell)
+        for (const TPair<FGuid, TObjectPtr<AGridMonsterActor>>& Pair :
+            SpawnedMonsterActors)
         {
-            UE_LOG (LogGridMonsterState, Error,
-                TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=GeneratedMonsterCellConflict OccupantSpawnId=%s"),
-                *SpawnIdText,
-                SpawnCell.X,
-                SpawnCell.Y,
-                *Pair.Key.ToString (
-                    EGuidFormats::DigitsWithHyphens));
-            return nullptr;
+            const AGridMonsterActor* SpawnedMonster =
+                Pair.Value.Get ();
+            if (IsValid (SpawnedMonster) &&
+                !SpawnedMonster->IsDead () &&
+                SpawnedMonster->CurrentCell == SpawnCell)
+            {
+                UE_LOG (LogGridMonsterState, Error,
+                    TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=GeneratedMonsterCellConflict OccupantSpawnId=%s"),
+                    *SpawnIdText,
+                    SpawnCell.X,
+                    SpawnCell.Y,
+                    *Pair.Key.ToString (
+                        EGuidFormats::DigitsWithHyphens));
+                return nullptr;
+            }
         }
-    }
-    if (IsPartyOnCell (SpawnCell.X, SpawnCell.Y))
-    {
-        UE_LOG (LogGridMonsterState, Error,
-            TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=PartyOccupiesCell"),
-            *SpawnIdText,
-            SpawnCell.X,
-            SpawnCell.Y);
-        return nullptr;
-    }
-    if (const UGridMonsterOccupancySubsystem* Occupancy =
-        World->GetSubsystem<UGridMonsterOccupancySubsystem> ())
-    {
-        if (Occupancy->IsCellBlocked (SpawnCell))
+        if (IsPartyOnCell (SpawnCell.X, SpawnCell.Y))
         {
             UE_LOG (LogGridMonsterState, Error,
-                TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=MonsterOccupancyConflict"),
+                TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=PartyOccupiesCell"),
                 *SpawnIdText,
                 SpawnCell.X,
                 SpawnCell.Y);
             return nullptr;
+        }
+        if (const UGridMonsterOccupancySubsystem* Occupancy =
+            World->GetSubsystem<UGridMonsterOccupancySubsystem> ())
+        {
+            if (Occupancy->IsCellBlocked (SpawnCell))
+            {
+                UE_LOG (LogGridMonsterState, Error,
+                    TEXT ("[GridMonsterSpawn] Skipped SpawnId=%s Cell=(%d,%d) Reason=MonsterOccupancyConflict"),
+                    *SpawnIdText,
+                    SpawnCell.X,
+                    SpawnCell.Y);
+                return nullptr;
+            }
         }
     }
 
@@ -4723,19 +4732,22 @@ AGridMonsterActor* AGridLevelRuntimeActor::AddMonsterSpawnActor (
         Monster->DeathComponent->InitializeDeathComponent (this);
     }
 
-    bool bOccupancyInitialized = false;
-    if (UGridMonsterMovementComponent* Movement =
-        Monster->FindComponentByClass<
-            UGridMonsterMovementComponent> ())
+    bool bOccupancyInitialized = bRestoreDead;
+    if (!bRestoreDead)
     {
-        bOccupancyInitialized = Movement->IsInitialized () ||
-            Movement->InitializeMovement (this);
-    }
-    else if (UGridMonsterOccupancySubsystem* Occupancy =
-        World->GetSubsystem<UGridMonsterOccupancySubsystem> ())
-    {
-        bOccupancyInitialized =
-            Occupancy->RegisterMonster (Monster, SpawnCell);
+        if (UGridMonsterMovementComponent* Movement =
+            Monster->FindComponentByClass<
+                UGridMonsterMovementComponent> ())
+        {
+            bOccupancyInitialized = Movement->IsInitialized () ||
+                Movement->InitializeMovement (this);
+        }
+        else if (UGridMonsterOccupancySubsystem* Occupancy =
+            World->GetSubsystem<UGridMonsterOccupancySubsystem> ())
+        {
+            bOccupancyInitialized =
+                Occupancy->RegisterMonster (Monster, SpawnCell);
+        }
     }
     if (!bOccupancyInitialized)
     {
