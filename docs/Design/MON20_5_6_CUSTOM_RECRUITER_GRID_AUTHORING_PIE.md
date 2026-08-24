@@ -1,6 +1,6 @@
 # MON20.5.6 — Custom Recruiter Grid Authoring & PIE
 
-Statut : **VALIDÉ UE5.5.4 — CLÔTURE EN ATTENTE DU VERSIONING DES ASSETS**  
+Statut : **VALIDÉ UE5.5.4 — CLOS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -18,24 +18,11 @@ Trigger.Activated
     -> Annuler ou Engager
 ```
 
-MON20.5.6 couvre :
-
-- le target data-only `CustomRecruiter` ;
-- son entrée dans la palette du Grid Editor ;
-- le connector Event -> Command ;
-- l'ouverture du wizard existant en contexte `CustomRecruit` ;
-- la fermeture propre par `Annuler` ;
-- le recrutement effectif par `Engager` ;
-- la protection contre un recrutement pendant un combat actif ;
-- la validation automatisée et PIE sous UE5.5.4.
-
 Aucun Blueprint Graph métier parallèle n'est requis.
 
 ---
 
 ## 2. Chaîne de validation MON20.5
-
-Les sous-tranches précédentes sont validées :
 
 ```text
 MON20.5.2  Custom Recruit Transaction          9/9
@@ -45,13 +32,13 @@ MON20.5.5  Event / Command Authoring Bridge    22/22 cumulés
 MON20.5.6  Runtime hardening                   23/23 cumulés
 ```
 
-Filtre de référence :
+Filtre :
 
 ```text
 Grimrock.MON20.5.CustomRecruit
 ```
 
-Validation utilisateur du 24 août 2026 :
+Résultat final :
 
 ```text
 23 / 23 Success
@@ -59,19 +46,9 @@ Validation utilisateur du 24 août 2026 :
 0 Error
 ```
 
-Le test négatif `EventCommandMissingPlayerPawn` produit volontairement son warning attendu puis termine en `Success`.
-
-Le test `RuntimeCombatGate` confirme également :
-
-```text
-[GridCustomRecruitRuntime] Show Rejected ... Reason=CombatActive Phase=2 Round=3
-```
-
-Toutes les régressions MON20.5.2 à MON20.5.5 restent vertes.
-
 ---
 
-## 3. Archetype et palette validés
+## 3. Archetype et palette
 
 Archetype de référence :
 
@@ -106,13 +83,11 @@ Default Monster Definition          = None
 Default Story Companion Definition  = None
 ```
 
-`CustomRecruiter` reste volontairement data-only. Aucun `RuntimeActorClass` n'est nécessaire.
+Le target reste data-only.
 
 ---
 
-## 4. Connector Grid Editor validé
-
-Le connector authoré et testé est :
+## 4. Connector Grid Editor
 
 ```text
 Source Object = Trigger placé
@@ -122,17 +97,13 @@ Command       = Open Custom Recruit
 Condition     = None
 ```
 
-Le flux utilise le pipeline Event -> Command existant et reste compatible avec le bridge Lua générique.
+Le flux réutilise le pipeline Event -> Command existant ainsi que le bridge Lua générique.
 
 ---
 
 ## 5. PIE final post-hardening — VALIDÉ
 
-Le 24 août 2026, les trois scénarios finaux ont été revalidés sous UE5.5.4.
-
-### 5.1 Hors combat — Annuler
-
-Résultat validé :
+### Hors combat — Annuler
 
 ```text
 Trigger Activated
@@ -145,23 +116,9 @@ Trigger Activated
 -> input restauré
 ```
 
-Le warning précédemment observé :
+Le warning de double `RemoveFromParent()` ne se reproduit plus.
 
-```text
-UWidget::RemoveFromParent() called ... which has no UMG parent
-```
-
-ne se reproduit plus après hardening.
-
-La cause était une double suppression synchrone : `CancelWizard()` notifiait le Pawn, le Pawn retirait le widget, puis `CancelWizard()` tentait de le retirer une seconde fois. La responsabilité est désormais claire :
-
-- `CancelWizard()` reste propriétaire de la suppression visuelle après annulation utilisateur ;
-- le handler Pawn libère l'état modal et restaure l'input ;
-- les fermetures programmatiques passent toujours par `FinishCustomRecruitCharacterCreationWidget()`.
-
-### 5.2 Hors combat — Engager
-
-Résultat validé après hardening :
+### Hors combat — Engager
 
 ```text
 Trigger Activated
@@ -174,33 +131,18 @@ Trigger Activated
 -> input restauré
 ```
 
-Le chemin de recrutement reste celui défini par les étapes précédentes :
+Le chemin reste :
 
 ```text
 Wizard
 -> FRPGCustomRecruitService
--> candidat temporaire CharacterPool
+-> CharacterPool temporaire
 -> MON20.2 TryRecruitFromPool
 -> ActiveCharacters
--> candidat retiré du pool
 -> spellbook runtime garanti
 ```
 
-Le test précédent avait notamment créé avec succès :
-
-```text
-Nom             = Elarion
-Race            = Elf
-Classe          = Mage
-CharacterIndex  = 1
-Attributs       = 8 / 12 / 10 / 15 / 12 / 9
-```
-
-Le héros principal reste intact.
-
-### 5.3 Pendant un combat — refus propre
-
-Résultat validé :
+### Pendant un combat — refus propre
 
 ```text
 Trigger Activated
@@ -212,13 +154,9 @@ Trigger Activated
 -> combat inchangé
 ```
 
-Le joueur conserve donc le contrôle normal du combat et le groupe n'est jamais modifié au milieu d'un snapshot d'initiative.
-
 ---
 
 ## 6. Politique runtime finale
-
-La règle MON20.5 est désormais explicite :
 
 ```text
 Exploration + héros principal présent + place disponible
@@ -234,60 +172,37 @@ Autre modal de recrutement / création actif
     -> CustomRecruit refusé
 ```
 
-L'interdiction pendant un combat protège la cohérence entre :
-
-- `ActiveCharacters` ;
-- `InitiativeOrder` ;
-- `PlayerCharacterTurnStates` ;
-- AP du personnage actif ;
-- état de manche / phase ;
-- HUD combat.
-
-Aucune reconstruction opportuniste de l'initiative au milieu d'un combat n'est introduite.
+Cette politique protège l'initiative, les états de tour, les AP et le HUD combat.
 
 ---
 
-## 7. Validation automatisée finale
+## 7. Assets d'authoring versionnés
 
-Tests validés dans le filtre `Grimrock.MON20.5.CustomRecruit` :
+Le commit utilisateur :
 
 ```text
-AllocatedAttributesPreserved
-ContextContract
-ContextGateCompletedParty
-ContextGateIncompleteParty
-ContextGatePartyFull
-CustomRecruiterArchetypeContract
-EditorLinkPolicy
-EventCommandContract
-EventCommandMissingPlayerPawn
-InitialHeroStatePreserved
-InvalidRequestAtomicReject
-PartyFullAtomicReject
-RecruitmentRollbackLeavesNoPoolCandidate
-RuntimeCombatGate
-RuntimeContract
-RuntimeDefaultState
-UniqueCharacterIdentity
-ValidCreateAndRecruit
-VisualSelectionPreserved
-WizardContextDefault
-WizardCustomCancelNoMutation
-WizardCustomRecruitSubmit
-WizardNewGameSubmitRegression
+3a4a7d1cd1133a9536dbde4c964d4b81bfcbc2d4
+Close MON20.5 with the correct assets
 ```
 
-Résultat :
+versionne les assets requis :
 
 ```text
-23 / 23 Success
+DA_ObjectPalette_Default.uasset
+DA_Archetype_CustomRecruiter_Service.uasset
+DA_GridLevel_00.uasset
+L_GrimrockEditor.umap
+```
+
+Il a été réuni avec la documentation distante dans :
+
+```text
+8ec08af4ee8e85353ab1cbd51cb67754df46ed68
 ```
 
 ---
 
 ## 8. Critère de clôture MON20.5
-
-État final fonctionnel :
 
 ```text
 [OK] 23/23 Automation tests après hardening
@@ -298,22 +213,15 @@ Résultat :
 [OK] Input restauré après fermeture du wizard
 [OK] Aucune mutation du groupe sur Annuler / refus combat
 [OK] Recrutement réel hors combat fonctionnel
-[ ] Assets d'authoring versionnés dans Git
+[OK] Assets d'authoring versionnés dans Git
 ```
 
-La logique C++, les tests et les scénarios PIE sont donc **validés sous UE5.5.4**.
+MON20.5.6 et son jalon parent MON20.5 sont donc **VALIDÉS UE5.5.4 — CLOS**.
 
-Le seul élément restant avant de marquer MON20.5 `CLOS` est le versioning des `.uasset` créés/modifiés pendant l'authoring, notamment l'archetype Custom Recruiter, la palette et le `GridLevelAsset` contenant le target et son connector.
+La documentation de clôture synthétique se trouve dans :
 
----
+```text
+docs/Design/MON20_5_CLOSURE.md
+```
 
-## 9. Prochaine action
-
-Avant MON20.6 :
-
-1. identifier précisément les `.uasset` locaux modifiés avec `git status --short` ;
-2. versionner uniquement les assets MON20.5.6 nécessaires ;
-3. pousser le commit sur `origin/master` ;
-4. vérifier leur présence dans Git ;
-5. passer ce document à `VALIDÉ UE5.5.4 — CLOS` ;
-6. ouvrir **MON20.6 — Skills Data Model & Runtime**.
+Prochaine étape : **MON20.6 — Skills Data Model & Runtime**.
