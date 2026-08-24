@@ -7,6 +7,8 @@
 
 class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
+class UScrollBox;
+class UVerticalBox;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE (FGridSkillsWidgetRefreshedSignature);
 
@@ -62,6 +64,15 @@ private:
     void HandlePartyInventoryChanged (int32 CharacterIndex);
 
     void ClearView ();
+
+    /** Rebuild the minimal native runtime view inside the WBP root Border. */
+    void RebuildPresentation ();
+
+    UPROPERTY (Transient)
+    TObjectPtr<UScrollBox> NativeScrollBox;
+
+    UPROPERTY (Transient)
+    TObjectPtr<UVerticalBox> NativeContentBox;
 
     bool bRefreshInProgress = false;
 };
