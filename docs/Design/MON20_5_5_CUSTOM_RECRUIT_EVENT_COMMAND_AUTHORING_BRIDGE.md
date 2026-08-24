@@ -1,6 +1,6 @@
 # MON20.5.5 — Custom Recruit Event / Command Authoring Bridge
 
-Statut : **IMPLÉMENTÉ — VALIDATION UE5.5.4 EN ATTENTE**  
+Statut : **VALIDÉ UE5.5.4 — 22/22 AUTOMATION SUCCESS**  
 Date : **24 août 2026**  
 Jalon parent : **MON20.5 — Custom Recruit / Wizard Context Reuse**
 
@@ -292,17 +292,26 @@ Vérifie que :
 
 Les 18 tests MON20.5.2 à MON20.5.4 restent présents.
 
-Total attendu après MON20.5.5 :
+### Validation UE5.5.4 — 24 août 2026
+
+Automation Controller exécuté après le correctif unity-build du module `GrimrockPrototypeEditor` :
 
 ```text
-22 tests
+Grimrock.MON20.5.CustomRecruit
+22 / 22 Success
+0 Fail
+0 Error
 ```
+
+Les quatre tests MON20.5.5 sont `Success`, ainsi que les dix-huit tests précédents. Le warning du test négatif `EventCommandMissingPlayerPawn` est attendu : le lien échoue proprement avec `Reason=missing player party pawn`, puis le test termine en `Success`.
+
+MON20.5.5 est donc **validé en automation sous UE5.5.4**. La validation manuelle PIE est portée par MON20.5.6.
 
 ---
 
 ## 11. Validation manuelle après automation
 
-Après `22 / 22 Success`, l'authoring de production pourra être effectué dans le Grid Editor :
+Après `22 / 22 Success`, l'authoring de production peut être effectué dans le Grid Editor :
 
 1. créer `DA_Archetype_CustomRecruiter_Service` ;
 2. ajouter l'entrée correspondante dans le `GridObjectPaletteAsset` ;
