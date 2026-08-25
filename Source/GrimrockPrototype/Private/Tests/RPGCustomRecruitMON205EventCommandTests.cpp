@@ -54,8 +54,6 @@ namespace RPGCustomRecruitMON205EventCommandTests
 	};
 }
 
-using namespace RPGCustomRecruitMON205EventCommandTests;
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2055EventCommandContractTest, "Grimrock.MON20.5.CustomRecruit.EventCommandContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -118,7 +116,7 @@ bool FRPGMON2055EventCommandMissingPlayerPawnTest::RunTest(const FString& Parame
 {
 	(void)Parameters;
 
-	FTestWorld TestWorld;
+	RPGCustomRecruitMON205EventCommandTests::FTestWorld TestWorld;
 	if (!TestWorld.World)
 	{
 		AddError(TEXT("Unable to create MON20.5.5 test world."));
