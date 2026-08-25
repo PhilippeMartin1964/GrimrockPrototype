@@ -3,6 +3,8 @@
 #include "EngineUtils.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGridPIEPlaytest, Log, All);
+
 namespace
 {
 #if WITH_EDITOR
@@ -41,7 +43,7 @@ namespace GridPIEPlaytestRequest
 		if (!PreparedEditorActor || !PreparedEditorActor->GetWorld() || PreparedEditorActor->GetWorld()->WorldType != EWorldType::Editor ||
 			!PreparedEditorActor->LevelAsset)
 		{
-			UE_LOG(LogTemp, Error, TEXT("[GridPIEPlaytestRequest] Begin rejected: prepared editor runtime is invalid."));
+			UE_LOG(LogGridPIEPlaytest, Error, TEXT("[GridPIEPlaytestRequest] Begin rejected: prepared editor runtime is invalid."));
 			return;
 		}
 
@@ -51,7 +53,7 @@ namespace GridPIEPlaytestRequest
 		FreshPIERequest.DungeonAssetPath = FSoftObjectPath(PreparedEditorActor->DungeonAsset.Get());
 		FreshPIERequest.DungeonLevelId = PreparedEditorActor->CurrentDungeonLevelId;
 
-		UE_LOG(LogTemp, Log, TEXT("[GridPIEPlaytestRequest] Begin ActorName=%s LevelAsset=%s DungeonAsset=%s CurrentDungeonLevelId=%s"),
+		UE_LOG(LogGridPIEPlaytest, Log, TEXT("[GridPIEPlaytestRequest] Begin ActorName=%s LevelAsset=%s DungeonAsset=%s CurrentDungeonLevelId=%s"),
 			*FreshPIERequest.RuntimeActorName, *FreshPIERequest.LevelAssetPath.ToString(), *FreshPIERequest.DungeonAssetPath.ToString(),
 			*FreshPIERequest.DungeonLevelId.ToString());
 #endif
@@ -62,7 +64,7 @@ namespace GridPIEPlaytestRequest
 #if WITH_EDITOR
 		if (FreshPIERequest.bActive)
 		{
-			UE_LOG(LogTemp, Log, TEXT("[GridPIEPlaytestRequest] Clear Reason=%s ActorName=%s"), Reason ? Reason : TEXT("Unknown"),
+			UE_LOG(LogGridPIEPlaytest, Log, TEXT("[GridPIEPlaytestRequest] Clear Reason=%s ActorName=%s"), Reason ? Reason : TEXT("Unknown"),
 				*FreshPIERequest.RuntimeActorName);
 		}
 		FreshPIERequest = FGridFreshPIERequest();
@@ -106,7 +108,7 @@ namespace GridPIEPlaytestRequest
 				{
 					Match = RuntimeActor;
 				}
-				UE_LOG(LogTemp, Verbose,
+				UE_LOG(LogGridPIEPlaytest, Verbose,
 					TEXT("[GridPIEPlaytestRequest] Resolve ActorName=%s ActorPath=%s LevelAsset=%s DungeonAsset=%s CurrentDungeonLevelId=%s Matches=%s"),
 					*RuntimeActor->GetName(), *RuntimeActor->GetPathName(), RuntimeActor->LevelAsset ? *RuntimeActor->LevelAsset->GetPathName() : TEXT("None"),
 					RuntimeActor->DungeonAsset ? *RuntimeActor->DungeonAsset->GetPathName() : TEXT("None"), *RuntimeActor->CurrentDungeonLevelId.ToString(),
@@ -115,7 +117,7 @@ namespace GridPIEPlaytestRequest
 
 			if (MatchingActorCount != 1)
 			{
-				UE_LOG(LogTemp, Error, TEXT("[GridPIEPlaytestRequest] Resolve failed RuntimeActorCount=%d MatchingActorCount=%d"), RuntimeActorCount,
+				UE_LOG(LogGridPIEPlaytest, Error, TEXT("[GridPIEPlaytestRequest] Resolve failed RuntimeActorCount=%d MatchingActorCount=%d"), RuntimeActorCount,
 					MatchingActorCount);
 				Match = nullptr;
 			}
