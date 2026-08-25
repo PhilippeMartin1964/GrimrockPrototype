@@ -9,6 +9,8 @@ class AGridLevelRuntimeActor;
 class AGridDoorActor;
 class AGridRuntimeObjectActor;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogGridDoorSystem, Log, All);
+
 UCLASS(ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridDoorSystemComponent : public UActorComponent
 {
