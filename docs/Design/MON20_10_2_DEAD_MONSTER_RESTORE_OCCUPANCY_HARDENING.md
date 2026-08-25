@@ -1,7 +1,7 @@
 # MON20.10.2 — Dead Monster Restore Occupancy Hardening
 
 Date : **24 août 2026**  
-Statut : **IMPLÉMENTÉ — EN VALIDATION UE5.5.4**  
+Statut : **VALIDÉ UE5.5.4 — CLOS**  
 Jalon parent : **MON20.10 — Balance / Regression / Closure**
 
 ---
@@ -10,7 +10,7 @@ Jalon parent : **MON20.10 — Balance / Regression / Closure**
 
 Corriger la régression observée pendant le smoke test Save/Continue de MON20.9 : un monstre persistant déjà mort pouvait ne pas être recréé si sa cellule sauvegardée était occupée par le groupe au moment du chargement.
 
-Log observé :
+Ancien diagnostic :
 
 ```text
 [GridMonsterSpawn] ... Reason=PartyOccupiesCell
@@ -28,30 +28,11 @@ aucune occupation de grille
 aucune présentation de mort rejouée
 ```
 
----
-
 ## 2. Cause racine
 
-`AGridLevelRuntimeActor::AddMonsterSpawnActor()` appliquait les règles d'occupation d'un monstre vivant avant d'appeler :
+`AGridLevelRuntimeActor::AddMonsterSpawnActor()` appliquait les règles d'occupation d'un monstre vivant avant `AGridMonsterActor::RestoreRuntimeMonsterState()`.
 
-```cpp
-AGridMonsterActor::RestoreRuntimeMonsterState()
-```
-
-L'ordre précédent était donc :
-
-```text
-RestoreState fournit la cellule sauvegardée
-    -> GeneratedMonsterCellConflict
-    -> PartyOccupiesCell
-    -> MonsterOccupancyConflict
-    -> InitializeMovement / RegisterMonster
-    -> seulement ensuite RestoreRuntimeMonsterState
-```
-
-Le snapshot mort était ainsi rejeté avant que le pipeline MON17.8.6 puisse libérer l'occupation et cacher le monstre.
-
----
+Le snapshot mort pouvait donc être rejeté avant que le pipeline MON17.8.6 puisse libérer l'occupation et cacher le monstre.
 
 ## 3. Correction runtime
 
@@ -61,7 +42,7 @@ Fichier :
 Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp
 ```
 
-`AddMonsterSpawnActor()` détermine désormais si le snapshot sera restauré canoniquement mort avec exactement le même contrat logique que `RestoreRuntimeMonsterState()` :
+Le runtime détermine désormais si le snapshot doit être restauré canoniquement mort :
 
 ```cpp
 RestoreState &&
@@ -72,20 +53,9 @@ RestoreState &&
 )
 ```
 
-### Snapshot vivant ou spawn frais
+Snapshot vivant ou spawn frais : les règles d'occupation restent inchangées et bloquantes.
 
-Le comportement reste inchangé :
-
-```text
-GeneratedMonsterCellConflict -> rejet
-PartyOccupiesCell             -> rejet
-MonsterOccupancyConflict      -> rejet
-InitializeMovement / occupancy obligatoire
-```
-
-### Snapshot mort
-
-Les contrôles d'occupation préalables sont ignorés et aucune occupation n'est enregistrée avant le restore :
+Snapshot mort : les contrôles d'occupation préalables sont ignorés et aucune occupation n'est enregistrée avant le restore.
 
 ```text
 spawn Actor runtime
@@ -95,23 +65,14 @@ spawn Actor runtime
     -> Dead + hidden + no collision + no occupancy
 ```
 
-Le changement ne permet donc jamais à un monstre vivant de partager la cellule du groupe.
+Le changement ne permet jamais à un monstre vivant de partager la cellule du groupe.
 
----
-
-## 4. Régression Automation ajoutée
+## 4. Régression Automation
 
 Fichier :
 
 ```text
-Source/GrimrockPrototype/Private/Tests/
-    GridMonsterMON20102DeadRestoreOccupancyTests.cpp
-```
-
-Filtre :
-
-```text
-Grimrock.MON20.10.2
+Source/GrimrockPrototype/Private/Tests/GridMonsterMON20102DeadRestoreOccupancyTests.cpp
 ```
 
 Tests :
@@ -121,77 +82,60 @@ Grimrock.MON20.10.2.DeadRestoreOverPartyCell
 Grimrock.MON20.10.2.LivingRestoreStillRejectsPartyCell
 ```
 
-### DeadRestoreOverPartyCell
-
-Le test construit :
+Validation UE5.5.4 :
 
 ```text
-MonsterSpawn persistant
-+ snapshot MonsterPlacements bIsSpawned=true
-+ snapshot MonsterState Dead
-+ PartyPawn sur exactement la même cellule
+Grimrock.MON20.10.2   2/2 Success
+Grimrock.Monsters.MON17.8   8/8 Success
+0 Fail
+0 Error
 ```
 
-Puis exécute `RebuildLevel()` et vérifie :
+Le test mort confirme : Actor présent, HP=0, mesh caché, collision désactivée, aucune occupation et application complète du runtime state acceptée.
+
+Le test vivant confirme que `Reason=PartyOccupiesCell` reste un rejet normal pour un monstre vivant.
+
+## 5. Validation PIE finale
+
+MON20.10.5 a validé le cas réel via `L_MainMenu -> Continuer` avec deux Gobelins lanceurs morts persistés dans `GrimrockParty`.
+
+Le chargement produit :
 
 ```text
-spawn failure count = 0
-Actor mort présent
-CurrentHealth = 0
-mesh caché
-collision désactivée
-aucune occupation de grille
-ApplyCurrentLevelRuntimeState() accepté
-Actor toujours présent et non occupant après application complète
+[GridSaveMigration] Load SourceVersion=8 TargetVersion=8 ... Result=Accepted
+[GridMonsterState] RestoreDead ... MON_GoblinThrower ... PresentationHidden=true
+[GridMonsterState] RestoreDead ... MON_GoblinThrower ... PresentationHidden=true
+GridRuntimeState Apply ... Monsters=4 DeadMonsters=2
+PartySave Continued Slot=GrimrockParty CharacterCount=2
 ```
 
-### LivingRestoreStillRejectsPartyCell
+Aucun `PartyOccupiesCell` ni `MissingActor` ne réapparaît pour ces snapshots morts.
 
-Le même scénario est rejoué avec un snapshot vivant.
-
-Attendu :
+Le runtime re-capture ensuite correctement les deux Gobelins en :
 
 ```text
-Reason=PartyOccupiesCell
-spawn failure count = 1
-aucun Actor créé
+State=Dead HP=0 Dead=true
 ```
 
-Ce second test protège explicitement contre un relâchement involontaire des règles de collision/occupation des monstres vivants.
+puis resauvegarde le slot principal en version 8.
 
----
+## 6. Impact campagne MON20
 
-## 5. Impact sur la campagne MON20
-
-Baseline avant MON20.10 :
-
-```text
-Grimrock.MON20   149 tests
-```
-
-MON20.10.2 ajoute 2 tests, portant la cible finale connue à :
+MON20.10.2 porte la campagne cumulative MON20 à :
 
 ```text
 Grimrock.MON20   151 tests
 ```
 
-La campagne complète 151/151 est réservée à MON20.10.4. Pour cette tranche, la validation ciblée attendue est :
+La régression complète MON20.10.4 est validée :
 
 ```text
-Grimrock.MON20.10.2   2/2 Success
+151/151 Success
 0 Fail
 0 Error
 ```
 
-Une régression de sécurité MON17.8 est également recommandée :
-
-```text
-Grimrock.Monsters.MON17.8   8/8 Success
-```
-
----
-
-## 6. Fichiers modifiés
+## 7. Fichiers concernés
 
 ```text
 Source/GrimrockPrototype/Private/Runtime/GridLevelRuntimeActor.cpp
@@ -199,21 +143,18 @@ Source/GrimrockPrototype/Private/Tests/GridMonsterMON20102DeadRestoreOccupancyTe
 docs/Design/MON20_10_2_DEAD_MONSTER_RESTORE_OCCUPANCY_HARDENING.md
 ```
 
-Aucun `.uasset` et aucun `.umap` ne sont modifiés.
+Aucun `.uasset` et aucun `.umap` n'ont été requis.
 
----
-
-## 7. Critères de validation
+## 8. Critères de clôture
 
 ```text
-[ ] Projet compile sous UE5.5.4
-[ ] Grimrock.MON20.10.2 = 2/2 Success
-[ ] Grimrock.Monsters.MON17.8 = 8/8 Success
-[ ] aucun Fail / Error Automation inattendu
+[OK] projet recompilé sous UE5.5.4
+[OK] Grimrock.MON20.10.2 = 2/2 Success
+[OK] Grimrock.Monsters.MON17.8 = 8/8 Success
+[OK] campagne Grimrock.MON20 = 151/151 Success
+[OK] Continue réel v8 avec 2 DeadMonsters
+[OK] aucun PartyOccupiesCell / MissingActor pour snapshot mort
+[OK] dead actors retenus, cachés, sans occupation
 ```
 
-Après validation, MON20.10.2 pourra être marqué **VALIDÉ UE5.5.4** puis le travail passera à :
-
-```text
-MON20.10.3 — Log Hygiene / Known Diagnostics
-```
+Conclusion : **MON20.10.2 est VALIDÉ UE5.5.4 et CLOS.**
