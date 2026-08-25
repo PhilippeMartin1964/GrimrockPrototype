@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **25 août 2026**  
-Baseline fonctionnelle validée : `18fa0da79ec052a5af54214b3bd7590cf21da0e5` — post-TD-ARCH-001.1 / TD01.1
+Baseline fonctionnelle validée : `b04697a901a61764c369aea012f10c38735af0ae` — post-TD01.2
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -46,40 +46,14 @@ P3 — nettoyage opportuniste, nommage ou intégration non bloquante
 
 ```text
 P0 : aucun blocage connu
-P1 : 2 dettes actives
-P2 : 7 dettes actives
+P1 : 1 dette active
+P2 : 8 dettes actives
 P3 : 2 dettes actives
 ```
 
 ---
 
 # 3. Registre actif
-
-## TD-PARTY-001 — Synchronisation de sélection / présentation encore dépendante des appelants
-
-**Priorité : P1 — cohérence runtime/UI**  
-**Zone :** `UGridPartyInventoryComponent`, `AGrimrockPartyPawn`
-
-Le composant possède déjà `OnPartyInventoryChanged`, avec `INDEX_NONE` pour signaler notamment une sélection ou un registre de groupe modifié. C'est une bonne base et il ne faut pas créer une seconde autorité.
-
-Cependant, `AGrimrockPartyPawn::SyncHeldVisualFromSelectedCharacterEquipment()` contient encore le TODO historique :
-
-```text
-call this after any direct PartyInventoryComponent::SetSelectedCharacterIndex usage outside the pawn
-```
-
-Cela signifie que la cohérence du visuel tenu dépend encore partiellement de la discipline des appelants.
-
-Traitement recommandé :
-
-- rendre la synchronisation réactive à l'événement autoritaire existant, ou spécialiser proprement la notification si nécessaire ;
-- supprimer le besoin de rappeler manuellement `SyncHeldVisual...` après chaque mutation ;
-- tester sélection 0 -> 1 -> 0 avec équipements Main/Off différents ;
-- vérifier Skills, Spellbook, Combat HUD et held visual sur la même notification.
-
-Ne pas introduire un second `SelectedCharacter` ailleurs.
-
----
 
 ## TD-EVENT-001 — Branches Event -> Command incomplètes pour ItemSpawn / Teleporter
 
@@ -173,7 +147,7 @@ Une petite extraction `GridPartyInventoryComponentVisuals.cpp` existe déjà.
 
 Traitement recommandé : conserver **une seule autorité d'état** et extraire seulement des services stateless ou helpers de transaction/diagnostic. Ne pas découper l'état en plusieurs composants propriétaires.
 
-TD-PARTY-001 doit être traité avant une décomposition plus large afin de stabiliser la frontière de notification.
+TD-PARTY-001 est désormais résolu ; la frontière de notification sélection / présentation est stabilisée avant toute décomposition plus large.
 
 ---
 
@@ -385,7 +359,7 @@ La réduction de dette ne doit pas commencer par les plus gros fichiers. Elle do
 TD01.1 — Receptacle Removal Permission Persistence      [RÉSOLU]
          -> TD-PERSIST-001
 
-TD01.2 — Party Selection / Held Visual Notification Contract
+TD01.2 — Party Selection / Held Visual Notification Contract [RÉSOLU]
          -> TD-PARTY-001
 
 TD01.3 — Event -> Command Unsupported/Fallback Contract
@@ -495,19 +469,51 @@ et sur l'état courant des principaux fichiers runtime/editor.
 La prochaine tranche est :
 
 ```text
-TD01.2 — Party Selection / Held Visual Notification Contract
+TD01.3 — Event -> Command Unsupported/Fallback Contract
 ```
 
 Pourquoi :
 
-- le P1 de persistance TD-PERSIST-001 est désormais fermé ;
-- la sélection du personnage possède déjà une autorité et une notification existantes ;
-- le risque restant est une cohérence runtime/UI dépendante de la discipline des appelants ;
-- le périmètre peut être audité puis corrigé sans refactor transversal.
+- les P1 TD-PERSIST-001 et TD-PARTY-001 sont désormais fermés ;
+- TD-EVENT-001 est la seule dette P1 encore active ;
+- un lien d'authoring considéré comme valide ne doit pas aboutir silencieusement à un comportement « state stored but gameplay TODO » ;
+- le chantier peut être borné par une matrice exacte `ObjectType x Command`, puis par une décision explicite implémenter / router / rejeter pour chaque cas ;
+- le contrat final peut être verrouillé par des tests runtime et par la validation éditeur.
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
 
 # 11. Dettes résolues
+
+## TD-PARTY-001 — Synchronisation sélection / held visual dépendante des appelants — RÉSOLU
+
+**Priorité historique : P1 — cohérence runtime/UI**  
+**Résolu le : 25 août 2026**
+
+TD01.2 a fermé le contrat de notification sélection / présentation :
+
+- `UGridPartyInventoryComponent` reste l'unique autorité de `SelectedCharacterIndex` ;
+- `SetSelectedCharacterIndex()` continue d'émettre `OnPartyInventoryChanged(INDEX_NONE)` ;
+- `AGrimrockPartyPawn` s'abonne au delegate autoritaire dans `PostInitializeComponents()` ;
+- `HandlePartyInventoryChanged()` resynchronise le held visual pour `INDEX_NONE` ou pour le personnage actuellement sélectionné ;
+- les notifications relatives à un autre personnage sont ignorées ;
+- aucun second état de sélection, aucun second bus et aucun changement `.uasset/.umap` ;
+- Automation `SelectionChange` et `SelectedCharacterFilter` validées sous UE5.5.4.
+
+Le fixture Automation initialise son monde avec `UWorld::InitializeActorsForPlay(FURL())` afin d'exercer le vrai cycle de delegate dynamique Unreal.
+
+Commits associés :
+
+```text
+a640759a9449074fb865b187e66d2ecf057bf640
+ed36777d5bb3fcb06aaf7d1eb39aea4f546b067a
+fa91600a81334e53449fd71d20d6d48a401a922f
+275965ca55099b6582a6dd3a0cd7150d21b43aab
+6d8b36ec5cdd0f98872f7503a9f525a2eeaa8707
+12a93241c79078c3f8438b5e98a6f8e4c9da537c
+b04697a901a61764c369aea012f10c38735af0ae
+```
+
+---
 
 ## TD-PERSIST-001 — Permission de retrait des réceptacles non persistée — RÉSOLU
 
@@ -569,5 +575,5 @@ docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
 Le prochain travail recommandé est désormais :
 
 ```text
-TD01.2 — Party Selection / Held Visual Notification Contract
+TD01.3 — Event -> Command Unsupported/Fallback Contract
 ```
