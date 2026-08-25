@@ -75,6 +75,11 @@ namespace GridTD012Tests
 			return nullptr;
 		}
 
+		// This isolated transient world never enters the normal gameplay initialization
+		// phase. Drive the Pawn hook explicitly so the test exercises the same delegate
+		// binding that PIE executes before BeginPlay.
+		PartyPawn->PostInitializeComponents();
+
 		UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.ActiveCharacters.SetNum(2);
