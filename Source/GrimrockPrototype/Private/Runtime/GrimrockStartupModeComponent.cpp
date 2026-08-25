@@ -9,6 +9,8 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/GridDungeonBuildProgressWidget.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockStartupMode, Log, All);
+
 #define LOCTEXT_NAMESPACE "GrimrockStartupModeComponent"
 
 UGrimrockStartupModeComponent::UGrimrockStartupModeComponent()
@@ -24,7 +26,7 @@ void UGrimrockStartupModeComponent::BeginPlay()
 	AGrimrockPartyPawn* PartyPawn = Cast<AGrimrockPartyPawn>(GetOwner());
 	if (!PartyPawn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockStartupMode Apply Failed Owner=%s Reason=OwnerIsNotGrimrockPartyPawn"), *GetNameSafe(GetOwner()));
+		UE_LOG(LogGrimrockStartupMode, Warning, TEXT("GrimrockStartupMode Apply Failed Owner=%s Reason=OwnerIsNotGrimrockPartyPawn"), *GetNameSafe(GetOwner()));
 		return;
 	}
 
@@ -33,7 +35,7 @@ void UGrimrockStartupModeComponent::BeginPlay()
 	UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
 	if (!GrimrockGameInstance)
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("GrimrockStartupMode Apply Skipped Pawn=%s Reason=NoGrimrockGameInstance"), *GetNameSafe(PartyPawn));
+		UE_LOG(LogGrimrockStartupMode, Verbose, TEXT("GrimrockStartupMode Apply Skipped Pawn=%s Reason=NoGrimrockGameInstance"), *GetNameSafe(PartyPawn));
 		return;
 	}
 
@@ -47,7 +49,7 @@ void UGrimrockStartupModeComponent::BeginPlay()
 		bHasPendingLoadRequest = true;
 		PartyPawn->PartySaveSlotName = PendingLoadSlotName;
 		PartyPawn->PartySaveUserIndex = PendingLoadSlotUserIndex;
-		UE_LOG(LogTemp, Log, TEXT("GrimrockStartupMode AppliedSaveSlot Pawn=%s Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn), *PartyPawn->PartySaveSlotName,
+		UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode AppliedSaveSlot Pawn=%s Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn), *PartyPawn->PartySaveSlotName,
 			PartyPawn->PartySaveUserIndex);
 	}
 
@@ -62,7 +64,7 @@ void UGrimrockStartupModeComponent::BeginPlay()
 		SetWaitingTickEnabled();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockStartupMode Applied Pawn=%s Mode=%d Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn),
+	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode Applied Pawn=%s Mode=%d Slot=%s UserIndex=%d"), *GetNameSafe(PartyPawn),
 		static_cast<int32>(PartyPawn->PartyStartupMode), *PartyPawn->PartySaveSlotName, PartyPawn->PartySaveUserIndex);
 }
 
@@ -92,12 +94,12 @@ void UGrimrockStartupModeComponent::DeferNewGameRuntimeActivation(AGrimrockParty
 		PartyPawn->LevelRuntimeActor = RuntimeActor;
 		RuntimeActor->DungeonRuntimeState = FGridDungeonRuntimeState();
 		RuntimeActor->ClearVisuals(EGridRuntimeRebuildMode::Full);
-		UE_LOG(LogTemp, Log, TEXT("GrimrockStartupMode DeferredRuntimeActivation Pawn=%s Runtime=%s Reason=InitialCharacterCreationPending"),
+		UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode DeferredRuntimeActivation Pawn=%s Runtime=%s Reason=InitialCharacterCreationPending"),
 			*GetNameSafe(PartyPawn), *GetNameSafe(RuntimeActor));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockStartupMode DeferredRuntimeActivation MissingRuntimeActor Pawn=%s"), *GetNameSafe(PartyPawn));
+		UE_LOG(LogGrimrockStartupMode, Warning, TEXT("GrimrockStartupMode DeferredRuntimeActivation MissingRuntimeActor Pawn=%s"), *GetNameSafe(PartyPawn));
 	}
 
 	DeferredRuntimeActor = RuntimeActor;
@@ -132,7 +134,7 @@ void UGrimrockStartupModeComponent::TryActivateDeferredNewGameRuntime()
 	}
 	if (!RuntimeActor)
 	{
-		UE_LOG(LogTemp, Error, TEXT("GrimrockStartupMode ActivateDeferredRuntime Failed Pawn=%s Reason=NoRuntimeActor"), *GetNameSafe(PartyPawn));
+		UE_LOG(LogGrimrockStartupMode, Error, TEXT("GrimrockStartupMode ActivateDeferredRuntime Failed Pawn=%s Reason=NoRuntimeActor"), *GetNameSafe(PartyPawn));
 		return;
 	}
 
@@ -148,7 +150,7 @@ void UGrimrockStartupModeComponent::TryActivateDeferredNewGameRuntime()
 	bWaitingForInitialCharacterCreation = false;
 	DeferredRuntimeActor = nullptr;
 	CompleteBuildProgress(LOCTEXT("NewGameProgressReady", "Donjon prêt."));
-	UE_LOG(LogTemp, Log, TEXT("GrimrockStartupMode ActivatedDeferredRuntime Pawn=%s Runtime=%s"), *GetNameSafe(PartyPawn), *GetNameSafe(RuntimeActor));
+	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode ActivatedDeferredRuntime Pawn=%s Runtime=%s"), *GetNameSafe(PartyPawn), *GetNameSafe(RuntimeActor));
 }
 
 void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
@@ -181,7 +183,7 @@ void UGrimrockStartupModeComponent::TryCompleteLoadedGameProgress()
 	// A restored Level Up can pause the world on the next tick. Hiding the load
 	// overlay synchronously avoids freezing its delayed hide timer above the modal.
 	HideBuildProgress();
-	UE_LOG(LogTemp, Log, TEXT("GrimrockStartupMode LoadProgress HiddenImmediately Pawn=%s Reason=LoadedGameReady"), *GetNameSafe(PartyPawn));
+	UE_LOG(LogGrimrockStartupMode, Log, TEXT("GrimrockStartupMode LoadProgress HiddenImmediately Pawn=%s Reason=LoadedGameReady"), *GetNameSafe(PartyPawn));
 }
 
 void UGrimrockStartupModeComponent::SetWaitingTickEnabled()
@@ -210,7 +212,7 @@ void UGrimrockStartupModeComponent::ShowBuildProgress(const FText& Title, const 
 	}
 	if (!BuildProgressWidgetInstance)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DungeonBuildProgress Show Failed Reason=CreateWidgetFailed"));
+		UE_LOG(LogGrimrockStartupMode, Warning, TEXT("DungeonBuildProgress Show Failed Reason=CreateWidgetFailed"));
 		return;
 	}
 	if (!BuildProgressWidgetInstance->IsInViewport())
