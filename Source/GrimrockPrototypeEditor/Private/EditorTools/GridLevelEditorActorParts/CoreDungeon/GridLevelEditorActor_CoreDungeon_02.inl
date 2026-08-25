@@ -9,44 +9,18 @@ default:
 
 	bool IsCommandSupportedByCurrentRuntime(EGridLevelObjectType TargetType, EGridObjectCommand Command)
 	{
-		if (TargetType == EGridLevelObjectType::MonsterSpawn)
+		FGridLevelObjectData TargetObject;
+		TargetObject.Type = TargetType;
+
+		// LogicReset is gameplay-supported only by latch nodes. The historical validator
+		// passes only the target type, so use the most permissive real Logic shape here;
+		// normal authoring still filters LogicReset to latch targets via GridEditorLinkPolicy.
+		if (TargetType == EGridLevelObjectType::Logic && Command == EGridObjectCommand::LogicReset)
 		{
-			FGridLevelObjectData MonsterSpawn;
-			MonsterSpawn.Type = EGridLevelObjectType::MonsterSpawn;
-			return GridEditorLinkPolicy::GetSupportedCommandsForTarget(MonsterSpawn).Contains(Command);
+			TargetObject.Logic.NodeType = EGridLogicNodeType::Latch;
 		}
 
-		if (IsReceptacleCommand(Command))
-		{
-			return TargetType == EGridLevelObjectType::Receptacle;
-		}
-
-		const bool bStateCommand = Command == EGridObjectCommand::Toggle || Command == EGridObjectCommand::Open || Command == EGridObjectCommand::Close ||
-			Command == EGridObjectCommand::Activate || Command == EGridObjectCommand::Deactivate;
-		if (!bStateCommand)
-		{
-			return false;
-		}
-
-		switch (TargetType)
-		{
-			case EGridLevelObjectType::Door:
-			case EGridLevelObjectType::Button:
-			case EGridLevelObjectType::PressurePlate:
-			case EGridLevelObjectType::Lever:
-			case EGridLevelObjectType::Decoration:
-			case EGridLevelObjectType::ItemSpawn:
-			case EGridLevelObjectType::Item:
-			case EGridLevelObjectType::Light:
-			case EGridLevelObjectType::Teleporter:
-			case EGridLevelObjectType::Trigger:
-			case EGridLevelObjectType::Receptacle:
-				return true;
-
-			case EGridLevelObjectType::None:
-			default:
-				return false;
-		}
+		return GridEditorLinkPolicy::GetCommandRuntimeSupport(TargetObject, Command) == EGridEditorCommandRuntimeSupport::Gameplay;
 	}
 
 	FString GetLevelAssetStatsText(const UGridLevelAsset* Asset)

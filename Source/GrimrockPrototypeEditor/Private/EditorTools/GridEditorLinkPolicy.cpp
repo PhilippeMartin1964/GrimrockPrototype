@@ -63,10 +63,6 @@ namespace GridEditorLinkPolicy
 				return { EGridObjectCommand::Open, EGridObjectCommand::Close, EGridObjectCommand::Toggle, EGridObjectCommand::Activate,
 					EGridObjectCommand::Deactivate };
 
-			case EGridLevelObjectType::Teleporter:
-			case EGridLevelObjectType::Light:
-				return { EGridObjectCommand::Activate, EGridObjectCommand::Deactivate, EGridObjectCommand::Toggle };
-
 			case EGridLevelObjectType::Receptacle:
 				return { EGridObjectCommand::ReceptacleConsumeItem, EGridObjectCommand::ReceptacleConsumeAllItems, EGridObjectCommand::ReceptacleEnableRemoval,
 					EGridObjectCommand::ReceptacleDisableRemoval };
