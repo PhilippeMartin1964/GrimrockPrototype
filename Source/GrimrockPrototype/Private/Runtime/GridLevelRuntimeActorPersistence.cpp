@@ -16,7 +16,7 @@
 
 namespace
 {
-	FName ResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
+	FName PersistenceResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
 	{
 		if (!ItemActor)
 		{
@@ -40,7 +40,7 @@ namespace
 		return ItemActor->GetItemArchetypeId();
 	}
 
-	const FGridLevelObjectData* FindLevelObjectDataById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
+	const FGridLevelObjectData* PersistenceFindLevelObjectDataById(const UGridLevelAsset* LevelAsset, FGuid ObjectId)
 	{
 		if (!LevelAsset || !ObjectId.IsValid())
 		{
@@ -58,7 +58,7 @@ namespace
 		return nullptr;
 	}
 
-	int32 CountRemovedRuntimeObjects(const FGridLevelRuntimeState* RuntimeState)
+	int32 PersistenceCountRemovedRuntimeObjects(const FGridLevelRuntimeState* RuntimeState)
 	{
 		if (!RuntimeState)
 		{
@@ -76,7 +76,7 @@ namespace
 		return RemovedCount;
 	}
 
-	void GetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
+	void PersistenceGetWorldMonsters(const UWorld* World, TArray<AGridMonsterActor*>& OutMonsters)
 	{
 		OutMonsters.Reset();
 		if (!World)
@@ -196,7 +196,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 		ItemState.ObjectId = Entry.ObjectId;
 		ItemState.ArchetypeId = Entry.ItemArchetypeId;
 		ItemState.ItemDefinitionId =
-			!Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : ResolvePickupItemDefinitionId(ItemActor, Entry.ItemArchetypeId);
+			!Entry.ItemDefinitionId.IsNone() ? Entry.ItemDefinitionId : PersistenceResolvePickupItemDefinitionId(ItemActor, Entry.ItemArchetypeId);
 		ItemState.Quantity = FMath::Max(1, Entry.Quantity);
 		ItemState.CellX = Entry.Cell.X;
 		ItemState.CellY = Entry.Cell.Y;
@@ -244,7 +244,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	}
 
 	TArray<AGridMonsterActor*> Monsters;
-	GetWorldMonsters(GetWorld(), Monsters);
+	PersistenceGetWorldMonsters(GetWorld(), Monsters);
 	TMap<FGuid, int32> PersistenceIdCounts;
 	TSet<FGuid> CapturedMonsterSpawnIds;
 	for (AGridMonsterActor* Monster : Monsters)
@@ -322,7 +322,7 @@ bool AGridLevelRuntimeActor::CaptureCurrentLevelRuntimeState()
 	UE_LOG(LogTemp, Log,
 		TEXT(
 			"GridRuntimeState Capture Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d MonsterPlacements=%d DeadMonsters=%d"),
-		*State->LevelId.ToString(), State->Doors.Num(), CountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
+		*State->LevelId.ToString(), State->Doors.Num(), PersistenceCountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
 		State->InteractiveObjects.Num(), State->Monsters.Num(), State->MonsterPlacements.Num(), DeadMonsterCount);
 
 	return true;
@@ -345,7 +345,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	AbortActiveCombatAndMonsterActions();
 
 	TArray<AGridMonsterActor*> WorldMonsters;
-	GetWorldMonsters(GetWorld(), WorldMonsters);
+	PersistenceGetWorldMonsters(GetWorld(), WorldMonsters);
 	for (AGridMonsterActor* Monster : WorldMonsters)
 	{
 		SetMonsterRuntimeLevelActive(Monster, false);
@@ -469,7 +469,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 			AGridItemActor* ItemActor = SpawnItemActorForDefinition(ItemDefinition, RuntimeItemDefinitionId, this, nullptr);
 			if (ItemActor)
 			{
-				const FGridLevelObjectData* ItemObjectData = FindLevelObjectDataById(LevelAsset, Pair.Key);
+				const FGridLevelObjectData* ItemObjectData = PersistenceFindLevelObjectDataById(LevelAsset, Pair.Key);
 				const FIntPoint RuntimeCell =
 					ItemObjectData ? FIntPoint(ItemObjectData->CellX, ItemObjectData->CellY) : FIntPoint(ItemState.CellX, ItemState.CellY);
 				const EGridEdge RuntimeEdge = ItemObjectData ? ItemObjectData->Edge : ItemState.Edge;
@@ -506,7 +506,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		}
 		ReceptacleActor->SetCanRemoveItem(Pair.Value.bCanRemoveItem);
 		const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents(false);
-		const FGridLevelObjectData* ReceptacleObjectData = FindLevelObjectDataById(LevelAsset, Pair.Key);
+		const FGridLevelObjectData* ReceptacleObjectData = PersistenceFindLevelObjectDataById(LevelAsset, Pair.Key);
 		const UGridObjectArchetypeAsset* ReceptacleArchetype = ReceptacleObjectData ? FindObjectArchetype(ReceptacleObjectData->ArchetypeId) : nullptr;
 		const TSubclassOf<AGridItemActor> PreferredItemActorClass = ReceptacleActor->ContainedItemActorClass
 			? ReceptacleActor->ContainedItemActorClass
@@ -656,7 +656,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("GridRuntimeState Apply Level=%s Doors=%d RemovedObjects=%d Items=%d Receptacles=%d Interactives=%d Monsters=%d DeadMonsters=%d"),
-		*State->LevelId.ToString(), State->Doors.Num(), CountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
+		*State->LevelId.ToString(), State->Doors.Num(), PersistenceCountRemovedRuntimeObjects(State), State->Items.Num(), State->Receptacles.Num(),
 		State->InteractiveObjects.Num(), State->Monsters.Num(), DeadMonsterCount);
 
 	return true;
