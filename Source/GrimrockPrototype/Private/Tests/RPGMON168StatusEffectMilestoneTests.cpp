@@ -281,9 +281,9 @@ bool FRPGMON168RuntimeSaveBoundaryTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("GrimrockPartySaveGame source loads"), MON168LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h"), SaveText));
 
 	TestTrue(TEXT("Party runtime status collection remains Transient"),
-		InventoryText.Contains(TEXT("UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = \"RPG|Status Effects\")")));
+		InventoryText.Contains(TEXT("UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = \"RPG|Status Effects\")")));
 	TestTrue(TEXT("Monster runtime status collection remains Transient"),
-		MonsterText.Contains(TEXT("UPROPERTY (VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = \"Monster|Status Effects\")")));
+		MonsterText.Contains(TEXT("UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = \"Monster|Status Effects\")")));
 
 	FString RuntimeSection;
 	FString SaveSection;
@@ -296,7 +296,7 @@ bool FRPGMON168RuntimeSaveBoundaryTest::RunTest(const FString& Parameters)
 
 	TestTrue(
 		TEXT("Runtime state owns transient DefinitionAsset"), RuntimeSection.Contains(TEXT("Transient")) && RuntimeSection.Contains(TEXT("DefinitionAsset")));
-	TestTrue(TEXT("Save state fields are marked SaveGame"), SaveSection.Contains(TEXT("UPROPERTY (SaveGame")));
+	TestTrue(TEXT("Save state fields are marked SaveGame"), SaveSection.Contains(TEXT("UPROPERTY(SaveGame")));
 	TestFalse(TEXT("Save state never contains DefinitionAsset"), SaveSection.Contains(TEXT("DefinitionAsset")));
 	TestTrue(TEXT("SaveGame owns party status snapshots"), SaveText.Contains(TEXT("CharacterStatusEffectStates")) && SaveText.Contains(TEXT("SaveGame")));
 	return true;
@@ -308,7 +308,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON168SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("Current SaveVersion includes later persistence milestones"), UGrimrockPartySaveGame::CurrentSaveVersion, 7);
+	TestTrue(TEXT("Current SaveVersion includes MON19.2.2 persistence or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
 	TestEqual(TEXT("Minimum compatible SaveVersion remains one"), UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
 
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());

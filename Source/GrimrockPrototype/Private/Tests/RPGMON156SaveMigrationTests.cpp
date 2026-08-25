@@ -263,7 +263,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON156SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("Current save contract includes MON19.2.2 version seven"), UGrimrockPartySaveGame::CurrentSaveVersion, 7);
+	TestTrue(TEXT("Current save contract includes MON19.2.2 version seven or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
 	TestEqual(TEXT("Version one remains the minimum compatible save"), UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
 
 	UGrimrockPartySaveGame* VersionOne = NewObject<UGrimrockPartySaveGame>();

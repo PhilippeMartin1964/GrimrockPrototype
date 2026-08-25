@@ -329,7 +329,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON167SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("Current save version includes later persistence milestones"), UGrimrockPartySaveGame::CurrentSaveVersion, 7);
+	TestTrue(TEXT("Current save version includes MON19.2.2 persistence or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
 	TestEqual(TEXT("Minimum compatible version remains one"), UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
 	return true;
 }

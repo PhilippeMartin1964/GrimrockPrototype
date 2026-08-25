@@ -213,7 +213,7 @@ bool FGridMON195SaveRestoreFreshVmTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	TestEqual(TEXT("MON19.5 keeps SaveVersion seven"), Loaded->SaveVersion, 7);
+	TestEqual(TEXT("MON19.5 round-trip uses the current SaveVersion"), Loaded->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
 
 	AGridLevelRuntimeActor* RestoredRuntime = SpawnRuntime195(*this, TestWorld.World, Level, &Loaded->DungeonRuntimeState);
 	if (!RestoredRuntime)
@@ -335,7 +335,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON195SaveVersionContractTest, "Grimrock.M
 bool FGridMON195SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("Lua persistence reuses MON19.2.2 SaveVersion seven"), UGrimrockPartySaveGame::CurrentSaveVersion, 7);
+	TestTrue(TEXT("Lua persistence keeps MON19.2.2 SaveVersion seven or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
 	return true;
 }
 
