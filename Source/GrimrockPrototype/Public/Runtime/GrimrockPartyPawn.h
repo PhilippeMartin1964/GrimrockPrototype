@@ -48,6 +48,7 @@ class GRIMROCKPROTOTYPE_API AGrimrockPartyPawn : public APawn
 public:
 	AGrimrockPartyPawn();
 
+	virtual void PostInitializeComponents() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -478,6 +479,9 @@ protected:
 	void ConsumeOneCursorItemAfterSuccessfulAction();
 
 private:
+	UFUNCTION()
+	void HandlePartyInventoryChanged(int32 CharacterIndex);
+
 	UGridItemDefinitionAsset* ResolveEquippedItemDefinition(const FGridItemInstance& Item) const;
 	bool DoesEquippedItemEmitLight(const FGridItemInstance& Item) const;
 	bool RecomputeEquippedLightState(
