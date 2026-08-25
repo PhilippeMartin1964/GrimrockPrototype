@@ -10,1227 +10,944 @@
 
 namespace
 {
-    const FGridLevelObjectData* FindObjectById (
-        const UGridLevelAsset& LevelAsset,
-        const FGuid& ObjectId)
-    {
-        return LevelAsset.Objects.FindByPredicate (
-            [&ObjectId] (const FGridLevelObjectData& Object)
-        {
-            return Object.ObjectId == ObjectId;
-        });
-    }
+	const FGridLevelObjectData* FindObjectById(const UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
+	{
+		return LevelAsset.Objects.FindByPredicate(
+			[&ObjectId](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == ObjectId;
+			});
+	}
 
-    FGridLevelObjectData* FindObjectById (
-        UGridLevelAsset& LevelAsset,
-        const FGuid& ObjectId)
-    {
-        return LevelAsset.Objects.FindByPredicate (
-            [&ObjectId] (const FGridLevelObjectData& Object)
-        {
-            return Object.ObjectId == ObjectId;
-        });
-    }
+	FGridLevelObjectData* FindObjectById(UGridLevelAsset& LevelAsset, const FGuid& ObjectId)
+	{
+		return LevelAsset.Objects.FindByPredicate(
+			[&ObjectId](const FGridLevelObjectData& Object)
+			{
+				return Object.ObjectId == ObjectId;
+			});
+	}
 
-    const FGridLuaScriptSource* FindScriptById (
-        const UGridLevelAsset& LevelAsset,
-        FName ScriptId)
-    {
-        return LevelAsset.LuaScripts.FindByPredicate (
-            [ScriptId] (const FGridLuaScriptSource& Script)
-        {
-            return Script.ScriptId == ScriptId;
-        });
-    }
+	const FGridLuaScriptSource* FindScriptById(const UGridLevelAsset& LevelAsset, FName ScriptId)
+	{
+		return LevelAsset.LuaScripts.FindByPredicate(
+			[ScriptId](const FGridLuaScriptSource& Script)
+			{
+				return Script.ScriptId == ScriptId;
+			});
+	}
 
-    FGridLuaScriptSource* FindScriptById (
-        UGridLevelAsset& LevelAsset,
-        FName ScriptId)
-    {
-        return LevelAsset.LuaScripts.FindByPredicate (
-            [ScriptId] (const FGridLuaScriptSource& Script)
-        {
-            return Script.ScriptId == ScriptId;
-        });
-    }
+	FGridLuaScriptSource* FindScriptById(UGridLevelAsset& LevelAsset, FName ScriptId)
+	{
+		return LevelAsset.LuaScripts.FindByPredicate(
+			[ScriptId](const FGridLuaScriptSource& Script)
+			{
+				return Script.ScriptId == ScriptId;
+			});
+	}
 
-    const FGridLevelVariableDefinition* FindVariableDefinition (
-        const UGridLevelAsset& LevelAsset,
-        FName VariableId)
-    {
-        return LevelAsset.LevelVariables.FindByPredicate (
-            [VariableId] (const FGridLevelVariableDefinition& Definition)
-        {
-            return Definition.VariableId == VariableId;
-        });
-    }
+	const FGridLevelVariableDefinition* FindVariableDefinition(const UGridLevelAsset& LevelAsset, FName VariableId)
+	{
+		return LevelAsset.LevelVariables.FindByPredicate(
+			[VariableId](const FGridLevelVariableDefinition& Definition)
+			{
+				return Definition.VariableId == VariableId;
+			});
+	}
 
-    FGridLevelVariableDefinition* FindVariableDefinition (
-        TArray<FGridLevelVariableDefinition>& Definitions,
-        FName VariableId)
-    {
-        return Definitions.FindByPredicate (
-            [VariableId] (const FGridLevelVariableDefinition& Definition)
-        {
-            return Definition.VariableId == VariableId;
-        });
-    }
+	FGridLevelVariableDefinition* FindVariableDefinition(TArray<FGridLevelVariableDefinition>& Definitions, FName VariableId)
+	{
+		return Definitions.FindByPredicate(
+			[VariableId](const FGridLevelVariableDefinition& Definition)
+			{
+				return Definition.VariableId == VariableId;
+			});
+	}
 
-    void AddDetectedCallbacksFromPattern (
-        const FString& Source,
-        const FRegexPattern& Pattern,
-        TSet<FName>& OutCallbacks)
-    {
-        FRegexMatcher Matcher (Pattern, Source);
-        while (Matcher.FindNext ())
-        {
-            const FString Name = Matcher.GetCaptureGroup (1);
-            if (!Name.IsEmpty ())
-            {
-                OutCallbacks.Add (FName (*Name));
-            }
-        }
-    }
+	void AddDetectedCallbacksFromPattern(const FString& Source, const FRegexPattern& Pattern, TSet<FName>& OutCallbacks)
+	{
+		FRegexMatcher Matcher(Pattern, Source);
+		while (Matcher.FindNext())
+		{
+			const FString Name = Matcher.GetCaptureGroup(1);
+			if (!Name.IsEmpty())
+			{
+				OutCallbacks.Add(FName(*Name));
+			}
+		}
+	}
 
-    TArray<FName> DetectGlobalCallbackNames (const FString& Source)
-    {
-        // Only top-level global functions can be reached through the runtime
-        // ScriptId + CallbackName contract. Local and table-member functions
-        // are intentionally not reported.
-        static const FRegexPattern FunctionDeclaration (
-            TEXT ("(?m)^[ \\t]*function[ \\t]+([A-Za-z_][A-Za-z0-9_]*)[ \\t]*\\("));
-        static const FRegexPattern FunctionAssignment (
-            TEXT ("(?m)^[ \\t]*([A-Za-z_][A-Za-z0-9_]*)[ \\t]*=[ \\t]*function[ \\t]*\\("));
+	TArray<FName> DetectGlobalCallbackNames(const FString& Source)
+	{
+		// Only top-level global functions can be reached through the runtime
+		// ScriptId + CallbackName contract. Local and table-member functions
+		// are intentionally not reported.
+		static const FRegexPattern FunctionDeclaration(TEXT("(?m)^[ \\t]*function[ \\t]+([A-Za-z_][A-Za-z0-9_]*)[ \\t]*\\("));
+		static const FRegexPattern FunctionAssignment(TEXT("(?m)^[ \\t]*([A-Za-z_][A-Za-z0-9_]*)[ \\t]*=[ \\t]*function[ \\t]*\\("));
 
-        TSet<FName> UniqueCallbacks;
-        AddDetectedCallbacksFromPattern (
-            Source,
-            FunctionDeclaration,
-            UniqueCallbacks);
-        AddDetectedCallbacksFromPattern (
-            Source,
-            FunctionAssignment,
-            UniqueCallbacks);
+		TSet<FName> UniqueCallbacks;
+		AddDetectedCallbacksFromPattern(Source, FunctionDeclaration, UniqueCallbacks);
+		AddDetectedCallbacksFromPattern(Source, FunctionAssignment, UniqueCallbacks);
 
-        TArray<FName> Result = UniqueCallbacks.Array ();
-        Result.Sort ([] (FName Left, FName Right)
-        {
-            return Left.LexicalLess (Right);
-        });
-        return Result;
-    }
+		TArray<FName> Result = UniqueCallbacks.Array();
+		Result.Sort(
+			[](FName Left, FName Right)
+			{
+				return Left.LexicalLess(Right);
+			});
+		return Result;
+	}
 
-    bool ValidateOneScript (
-        const FGridLuaScriptSource& Script,
-        FString& OutError)
-    {
-        FGridLuaScriptSource EnabledScript = Script;
-        EnabledScript.bEnabled = true;
+	bool ValidateOneScript(const FGridLuaScriptSource& Script, FString& OutError)
+	{
+		FGridLuaScriptSource EnabledScript = Script;
+		EnabledScript.bEnabled = true;
 
-        FGridLuaVm Vm;
-        return Vm.Reload (
-            {EnabledScript},
-            FGridLuaVmConfig (),
-            OutError);
-    }
+		FGridLuaVm Vm;
+		return Vm.Reload({ EnabledScript }, FGridLuaVmConfig(), OutError);
+	}
 
-    bool IsSupportedLuaCondition (EGridObjectCondition Condition)
-    {
-        return Condition == EGridObjectCondition::None ||
-            Condition == EGridObjectCondition::LevelVariableBoolEquals ||
-            Condition == EGridObjectCondition::LevelVariableIntCompare;
-    }
+	bool IsSupportedLuaCondition(EGridObjectCondition Condition)
+	{
+		return Condition == EGridObjectCondition::None || Condition == EGridObjectCondition::LevelVariableBoolEquals ||
+			Condition == EGridObjectCondition::LevelVariableIntCompare;
+	}
 
-    FGridObjectLink NormalizeLuaLink (const FGridObjectLink& Link)
-    {
-        FGridObjectLink Normalized =
-            GridEditorLinkService::NormalizeLink (Link);
-        Normalized.Command = EGridObjectCommand::LuaCallback;
-        Normalized.TargetObjectId.Invalidate ();
-        return Normalized;
-    }
+	FGridObjectLink NormalizeLuaLink(const FGridObjectLink& Link)
+	{
+		FGridObjectLink Normalized = GridEditorLinkService::NormalizeLink(Link);
+		Normalized.Command = EGridObjectCommand::LuaCallback;
+		Normalized.TargetObjectId.Invalidate();
+		return Normalized;
+	}
 
-    bool TryGetLinkIndexFromMessage (
-        const FString& Message,
-        int32& OutLinkIndex)
-    {
-        OutLinkIndex = INDEX_NONE;
-        if (!Message.StartsWith (TEXT ("Link ")))
-        {
-            return false;
-        }
+	bool TryGetLinkIndexFromMessage(const FString& Message, int32& OutLinkIndex)
+	{
+		OutLinkIndex = INDEX_NONE;
+		if (!Message.StartsWith(TEXT("Link ")))
+		{
+			return false;
+		}
 
-        int32 Cursor = 5;
-        const int32 Start = Cursor;
-        while (Cursor < Message.Len () && FChar::IsDigit (Message[Cursor]))
-        {
-            ++Cursor;
-        }
-        if (Cursor == Start)
-        {
-            return false;
-        }
+		int32 Cursor = 5;
+		const int32 Start = Cursor;
+		while (Cursor < Message.Len() && FChar::IsDigit(Message[Cursor]))
+		{
+			++Cursor;
+		}
+		if (Cursor == Start)
+		{
+			return false;
+		}
 
-        OutLinkIndex = FCString::Atoi (*Message.Mid (Start, Cursor - Start));
-        return OutLinkIndex >= 0;
-    }
+		OutLinkIndex = FCString::Atoi(*Message.Mid(Start, Cursor - Start));
+		return OutLinkIndex >= 0;
+	}
 
-    bool IsExactLuaDuplicateAt (
-        const UGridLevelAsset& LevelAsset,
-        int32 LinkIndex)
-    {
-        if (!LevelAsset.Links.IsValidIndex (LinkIndex))
-        {
-            return false;
-        }
-        const FGridObjectLink& Link = LevelAsset.Links[LinkIndex];
-        for (int32 PreviousIndex = 0; PreviousIndex < LinkIndex; ++PreviousIndex)
-        {
-            if (GridEditorLinkPolicy::AreLinksExactlyEquivalent (
-                    LevelAsset.Links[PreviousIndex],
-                    Link))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+	bool IsExactLuaDuplicateAt(const UGridLevelAsset& LevelAsset, int32 LinkIndex)
+	{
+		if (!LevelAsset.Links.IsValidIndex(LinkIndex))
+		{
+			return false;
+		}
+		const FGridObjectLink& Link = LevelAsset.Links[LinkIndex];
+		for (int32 PreviousIndex = 0; PreviousIndex < LinkIndex; ++PreviousIndex)
+		{
+			if (GridEditorLinkPolicy::AreLinksExactlyEquivalent(LevelAsset.Links[PreviousIndex], Link))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
-    void FillMessageLocation (
-        const UGridLevelAsset& LevelAsset,
-        FGridLevelValidationMessage& Message)
-    {
-        FGuid LocationId = Message.OptionalObjectId;
-        if (!LocationId.IsValid ())
-        {
-            LocationId = Message.SourceObjectId.IsValid ()
-                ? Message.SourceObjectId
-                : Message.TargetObjectId;
-        }
-        if (const FGridLevelObjectData* Object =
-                FindObjectById (LevelAsset, LocationId))
-        {
-            Message.CellX = Object->CellX;
-            Message.CellY = Object->CellY;
-            Message.Edge = Object->Edge;
-        }
-    }
+	void FillMessageLocation(const UGridLevelAsset& LevelAsset, FGridLevelValidationMessage& Message)
+	{
+		FGuid LocationId = Message.OptionalObjectId;
+		if (!LocationId.IsValid())
+		{
+			LocationId = Message.SourceObjectId.IsValid() ? Message.SourceObjectId : Message.TargetObjectId;
+		}
+		if (const FGridLevelObjectData* Object = FindObjectById(LevelAsset, LocationId))
+		{
+			Message.CellX = Object->CellX;
+			Message.CellY = Object->CellY;
+			Message.Edge = Object->Edge;
+		}
+	}
 
-    void AddValidationMessage (
-        const UGridLevelAsset& LevelAsset,
-        TArray<FGridLevelValidationMessage>& Messages,
-        EGridLevelValidationSeverity Severity,
-        FName Category,
-        const FString& Text,
-        FGuid SourceObjectId = FGuid ())
-    {
-        FGridLevelValidationMessage Message;
-        Message.Severity = Severity;
-        Message.Category = Category;
-        Message.Message = Text;
-        Message.OptionalObjectId = SourceObjectId;
-        Message.SourceObjectId = SourceObjectId;
-        FillMessageLocation (LevelAsset, Message);
-        Messages.Add (MoveTemp (Message));
-    }
+	void AddValidationMessage(const UGridLevelAsset& LevelAsset, TArray<FGridLevelValidationMessage>& Messages, EGridLevelValidationSeverity Severity,
+		FName Category, const FString& Text, FGuid SourceObjectId = FGuid())
+	{
+		FGridLevelValidationMessage Message;
+		Message.Severity = Severity;
+		Message.Category = Category;
+		Message.Message = Text;
+		Message.OptionalObjectId = SourceObjectId;
+		Message.SourceObjectId = SourceObjectId;
+		FillMessageLocation(LevelAsset, Message);
+		Messages.Add(MoveTemp(Message));
+	}
 
-    bool IsSimpleLogicId (FName LogicId)
-    {
-        if (LogicId.IsNone ())
-        {
-            return true;
-        }
-        const FString Text = LogicId.ToString ();
-        if (Text.IsEmpty () ||
-            !(FChar::IsAlpha (Text[0]) || Text[0] == TEXT ('_')))
-        {
-            return false;
-        }
-        for (int32 Index = 1; Index < Text.Len (); ++Index)
-        {
-            if (!(FChar::IsAlnum (Text[Index]) || Text[Index] == TEXT ('_')))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
+	bool IsSimpleLogicId(FName LogicId)
+	{
+		if (LogicId.IsNone())
+		{
+			return true;
+		}
+		const FString Text = LogicId.ToString();
+		if (Text.IsEmpty() || !(FChar::IsAlpha(Text[0]) || Text[0] == TEXT('_')))
+		{
+			return false;
+		}
+		for (int32 Index = 1; Index < Text.Len(); ++Index)
+		{
+			if (!(FChar::IsAlnum(Text[Index]) || Text[Index] == TEXT('_')))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 
-    bool ArePersistentDefinitionsCompatible (
-        const FGridLuaPersistentVariableDefinition& A,
-        const FGridLuaPersistentVariableDefinition& B)
-    {
-        if (A.VariableId != B.VariableId || A.Type != B.Type)
-        {
-            return false;
-        }
-        return A.Type == EGridLuaPersistentValueType::Bool
-            ? A.bDefaultBoolValue == B.bDefaultBoolValue
-            : A.DefaultInt32Value == B.DefaultInt32Value;
-    }
+	bool ArePersistentDefinitionsCompatible(const FGridLuaPersistentVariableDefinition& A, const FGridLuaPersistentVariableDefinition& B)
+	{
+		if (A.VariableId != B.VariableId || A.Type != B.Type)
+		{
+			return false;
+		}
+		return A.Type == EGridLuaPersistentValueType::Bool ? A.bDefaultBoolValue == B.bDefaultBoolValue : A.DefaultInt32Value == B.DefaultInt32Value;
+	}
 
-    bool DoesLevelVariableMatchPersistent (
-        const FGridLevelVariableDefinition& LevelDefinition,
-        const FGridLuaPersistentVariableDefinition& LuaDefinition)
-    {
-        if (LevelDefinition.VariableId != LuaDefinition.VariableId)
-        {
-            return false;
-        }
-        if (LuaDefinition.Type == EGridLuaPersistentValueType::Bool)
-        {
-            return LevelDefinition.Type == EGridLevelVariableType::Bool &&
-                LevelDefinition.bDefaultBoolValue == LuaDefinition.bDefaultBoolValue;
-        }
-        return LevelDefinition.Type == EGridLevelVariableType::Int32 &&
-            LevelDefinition.DefaultInt32Value == LuaDefinition.DefaultInt32Value;
-    }
+	bool DoesLevelVariableMatchPersistent(const FGridLevelVariableDefinition& LevelDefinition, const FGridLuaPersistentVariableDefinition& LuaDefinition)
+	{
+		if (LevelDefinition.VariableId != LuaDefinition.VariableId)
+		{
+			return false;
+		}
+		if (LuaDefinition.Type == EGridLuaPersistentValueType::Bool)
+		{
+			return LevelDefinition.Type == EGridLevelVariableType::Bool && LevelDefinition.bDefaultBoolValue == LuaDefinition.bDefaultBoolValue;
+		}
+		return LevelDefinition.Type == EGridLevelVariableType::Int32 && LevelDefinition.DefaultInt32Value == LuaDefinition.DefaultInt32Value;
+	}
 
-    FGridLevelVariableDefinition MakeLevelVariableDefinition (
-        const FGridLuaPersistentVariableDefinition& LuaDefinition)
-    {
-        FGridLevelVariableDefinition Result;
-        Result.VariableId = LuaDefinition.VariableId;
-        if (LuaDefinition.Type == EGridLuaPersistentValueType::Bool)
-        {
-            Result.Type = EGridLevelVariableType::Bool;
-            Result.bDefaultBoolValue = LuaDefinition.bDefaultBoolValue;
-        }
-        else
-        {
-            Result.Type = EGridLevelVariableType::Int32;
-            Result.DefaultInt32Value = LuaDefinition.DefaultInt32Value;
-        }
-        return Result;
-    }
+	FGridLevelVariableDefinition MakeLevelVariableDefinition(const FGridLuaPersistentVariableDefinition& LuaDefinition)
+	{
+		FGridLevelVariableDefinition Result;
+		Result.VariableId = LuaDefinition.VariableId;
+		if (LuaDefinition.Type == EGridLuaPersistentValueType::Bool)
+		{
+			Result.Type = EGridLevelVariableType::Bool;
+			Result.bDefaultBoolValue = LuaDefinition.bDefaultBoolValue;
+		}
+		else
+		{
+			Result.Type = EGridLevelVariableType::Int32;
+			Result.DefaultInt32Value = LuaDefinition.DefaultInt32Value;
+		}
+		return Result;
+	}
 
-    bool CollectPersistentDefinitions (
-        const TArray<FGridLuaScriptSource>& Scripts,
-        TArray<FGridLuaPersistentVariableDefinition>& OutDefinitions,
-        FString& OutError)
-    {
-        OutDefinitions.Reset ();
-        TMap<FName, FGridLuaPersistentVariableDefinition> Merged;
+	bool CollectPersistentDefinitions(
+		const TArray<FGridLuaScriptSource>& Scripts, TArray<FGridLuaPersistentVariableDefinition>& OutDefinitions, FString& OutError)
+	{
+		OutDefinitions.Reset();
+		TMap<FName, FGridLuaPersistentVariableDefinition> Merged;
 
-        for (const FGridLuaScriptSource& Script : Scripts)
-        {
-            if (!Script.bEnabled)
-            {
-                continue;
-            }
+		for (const FGridLuaScriptSource& Script : Scripts)
+		{
+			if (!Script.bEnabled)
+			{
+				continue;
+			}
 
-            FGridLuaVm Vm;
-            FString ScriptError;
-            if (!Vm.Reload ({Script}, FGridLuaVmConfig (), ScriptError))
-            {
-                OutError = FString::Printf (
-                    TEXT ("Lua script '%s' cannot be synchronized: %s"),
-                    *Script.ScriptId.ToString (),
-                    *ScriptError);
-                return false;
-            }
+			FGridLuaVm Vm;
+			FString ScriptError;
+			if (!Vm.Reload({ Script }, FGridLuaVmConfig(), ScriptError))
+			{
+				OutError = FString::Printf(TEXT("Lua script '%s' cannot be synchronized: %s"), *Script.ScriptId.ToString(), *ScriptError);
+				return false;
+			}
 
-            for (const FGridLuaPersistentVariableDefinition& Definition :
-                Vm.GetPersistentVariableDefinitions ())
-            {
-                if (const FGridLuaPersistentVariableDefinition* Existing =
-                        Merged.Find (Definition.VariableId))
-                {
-                    if (!ArePersistentDefinitionsCompatible (*Existing, Definition))
-                    {
-                        OutError = FString::Printf (
-                            TEXT ("Lua persistent variable '%s' has conflicting declarations across scripts."),
-                            *Definition.VariableId.ToString ());
-                        return false;
-                    }
-                }
-                else
-                {
-                    Merged.Add (Definition.VariableId, Definition);
-                }
-            }
-        }
+			for (const FGridLuaPersistentVariableDefinition& Definition : Vm.GetPersistentVariableDefinitions())
+			{
+				if (const FGridLuaPersistentVariableDefinition* Existing = Merged.Find(Definition.VariableId))
+				{
+					if (!ArePersistentDefinitionsCompatible(*Existing, Definition))
+					{
+						OutError = FString::Printf(
+							TEXT("Lua persistent variable '%s' has conflicting declarations across scripts."), *Definition.VariableId.ToString());
+						return false;
+					}
+				}
+				else
+				{
+					Merged.Add(Definition.VariableId, Definition);
+				}
+			}
+		}
 
-        Merged.GenerateValueArray (OutDefinitions);
-        OutDefinitions.Sort (
-            [] (const FGridLuaPersistentVariableDefinition& A,
-                const FGridLuaPersistentVariableDefinition& B)
-            {
-                return A.VariableId.LexicalLess (B.VariableId);
-            });
-        OutError.Reset ();
-        return true;
-    }
+		Merged.GenerateValueArray(OutDefinitions);
+		OutDefinitions.Sort(
+			[](const FGridLuaPersistentVariableDefinition& A, const FGridLuaPersistentVariableDefinition& B)
+			{
+				return A.VariableId.LexicalLess(B.VariableId);
+			});
+		OutError.Reset();
+		return true;
+	}
 
-    bool BuildSynchronizedLevelVariables (
-        const UGridLevelAsset& LevelAsset,
-        const TArray<FGridLuaScriptSource>& CandidateScripts,
-        TArray<FGridLevelVariableDefinition>& OutDefinitions,
-        FString& OutError)
-    {
-        OutDefinitions = LevelAsset.LevelVariables;
+	bool BuildSynchronizedLevelVariables(const UGridLevelAsset& LevelAsset, const TArray<FGridLuaScriptSource>& CandidateScripts,
+		TArray<FGridLevelVariableDefinition>& OutDefinitions, FString& OutError)
+	{
+		OutDefinitions = LevelAsset.LevelVariables;
 
-        TArray<FGridLuaPersistentVariableDefinition> PersistentDefinitions;
-        if (!CollectPersistentDefinitions (
-                CandidateScripts,
-                PersistentDefinitions,
-                OutError))
-        {
-            return false;
-        }
+		TArray<FGridLuaPersistentVariableDefinition> PersistentDefinitions;
+		if (!CollectPersistentDefinitions(CandidateScripts, PersistentDefinitions, OutError))
+		{
+			return false;
+		}
 
-        for (const FGridLuaPersistentVariableDefinition& LuaDefinition :
-            PersistentDefinitions)
-        {
-            if (FGridLevelVariableDefinition* Existing =
-                    FindVariableDefinition (
-                        OutDefinitions,
-                        LuaDefinition.VariableId))
-            {
-                if (!DoesLevelVariableMatchPersistent (
-                        *Existing,
-                        LuaDefinition))
-                {
-                    OutError = FString::Printf (
-                        TEXT ("Lua persistent variable '%s' conflicts with the existing LevelVariable type/default."),
-                        *LuaDefinition.VariableId.ToString ());
-                    return false;
-                }
-                continue;
-            }
+		for (const FGridLuaPersistentVariableDefinition& LuaDefinition : PersistentDefinitions)
+		{
+			if (FGridLevelVariableDefinition* Existing = FindVariableDefinition(OutDefinitions, LuaDefinition.VariableId))
+			{
+				if (!DoesLevelVariableMatchPersistent(*Existing, LuaDefinition))
+				{
+					OutError = FString::Printf(
+						TEXT("Lua persistent variable '%s' conflicts with the existing LevelVariable type/default."), *LuaDefinition.VariableId.ToString());
+					return false;
+				}
+				continue;
+			}
 
-            OutDefinitions.Add (
-                MakeLevelVariableDefinition (LuaDefinition));
-        }
+			OutDefinitions.Add(MakeLevelVariableDefinition(LuaDefinition));
+		}
 
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool ValidatePersistentDeclarationsAgainstLevel (
-        const UGridLevelAsset& LevelAsset,
-        FString& OutError)
-    {
-        TArray<FGridLuaPersistentVariableDefinition> PersistentDefinitions;
-        if (!CollectPersistentDefinitions (
-                LevelAsset.LuaScripts,
-                PersistentDefinitions,
-                OutError))
-        {
-            return false;
-        }
+	bool ValidatePersistentDeclarationsAgainstLevel(const UGridLevelAsset& LevelAsset, FString& OutError)
+	{
+		TArray<FGridLuaPersistentVariableDefinition> PersistentDefinitions;
+		if (!CollectPersistentDefinitions(LevelAsset.LuaScripts, PersistentDefinitions, OutError))
+		{
+			return false;
+		}
 
-        for (const FGridLuaPersistentVariableDefinition& LuaDefinition :
-            PersistentDefinitions)
-        {
-            const FGridLevelVariableDefinition* Existing =
-                FindVariableDefinition (
-                    LevelAsset,
-                    LuaDefinition.VariableId);
-            if (!Existing)
-            {
-                OutError = FString::Printf (
-                    TEXT ("Lua persistent variable '%s' is not synchronized into LevelVariables; Apply the script in Grimrock Lua Scripts."),
-                    *LuaDefinition.VariableId.ToString ());
-                return false;
-            }
-            if (!DoesLevelVariableMatchPersistent (*Existing, LuaDefinition))
-            {
-                OutError = FString::Printf (
-                    TEXT ("Lua persistent variable '%s' conflicts with the LevelVariable type/default."),
-                    *LuaDefinition.VariableId.ToString ());
-                return false;
-            }
-        }
+		for (const FGridLuaPersistentVariableDefinition& LuaDefinition : PersistentDefinitions)
+		{
+			const FGridLevelVariableDefinition* Existing = FindVariableDefinition(LevelAsset, LuaDefinition.VariableId);
+			if (!Existing)
+			{
+				OutError =
+					FString::Printf(TEXT("Lua persistent variable '%s' is not synchronized into LevelVariables; Apply the script in Grimrock Lua Scripts."),
+						*LuaDefinition.VariableId.ToString());
+				return false;
+			}
+			if (!DoesLevelVariableMatchPersistent(*Existing, LuaDefinition))
+			{
+				OutError =
+					FString::Printf(TEXT("Lua persistent variable '%s' conflicts with the LevelVariable type/default."), *LuaDefinition.VariableId.ToString());
+				return false;
+			}
+		}
 
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 }
 
 namespace GridEditorLuaService
 {
-    bool AnalyzeLevel (
-        const UGridLevelAsset& LevelAsset,
-        FGridEditorLuaAnalysis& OutAnalysis)
-    {
-        OutAnalysis = FGridEditorLuaAnalysis ();
+	bool AnalyzeLevel(const UGridLevelAsset& LevelAsset, FGridEditorLuaAnalysis& OutAnalysis)
+	{
+		OutAnalysis = FGridEditorLuaAnalysis();
 
-        FString DefinitionError;
-        OutAnalysis.bDefinitionsValid =
-            FGridLuaVm::ValidateScriptDefinitions (
-                LevelAsset.LuaScripts,
-                DefinitionError);
-        if (!OutAnalysis.bDefinitionsValid)
-        {
-            OutAnalysis.GlobalError = DefinitionError;
-        }
+		FString DefinitionError;
+		OutAnalysis.bDefinitionsValid = FGridLuaVm::ValidateScriptDefinitions(LevelAsset.LuaScripts, DefinitionError);
+		if (!OutAnalysis.bDefinitionsValid)
+		{
+			OutAnalysis.GlobalError = DefinitionError;
+		}
 
-        for (const FGridLuaScriptSource& Script : LevelAsset.LuaScripts)
-        {
-            FGridEditorLuaScriptAnalysis ScriptAnalysis;
-            ScriptAnalysis.ScriptId = Script.ScriptId;
-            ScriptAnalysis.bEnabled = Script.bEnabled;
-            ScriptAnalysis.CallbackNames =
-                DetectGlobalCallbackNames (Script.Source);
+		for (const FGridLuaScriptSource& Script : LevelAsset.LuaScripts)
+		{
+			FGridEditorLuaScriptAnalysis ScriptAnalysis;
+			ScriptAnalysis.ScriptId = Script.ScriptId;
+			ScriptAnalysis.bEnabled = Script.bEnabled;
+			ScriptAnalysis.CallbackNames = DetectGlobalCallbackNames(Script.Source);
 
-            if (!Script.bEnabled)
-            {
-                ScriptAnalysis.bValid = true;
-            }
-            else
-            {
-                ScriptAnalysis.bValid =
-                    ValidateOneScript (Script, ScriptAnalysis.Error);
-            }
-            OutAnalysis.Scripts.Add (MoveTemp (ScriptAnalysis));
-        }
+			if (!Script.bEnabled)
+			{
+				ScriptAnalysis.bValid = true;
+			}
+			else
+			{
+				ScriptAnalysis.bValid = ValidateOneScript(Script, ScriptAnalysis.Error);
+			}
+			OutAnalysis.Scripts.Add(MoveTemp(ScriptAnalysis));
+		}
 
-        FString FullVmError;
-        FGridLuaVm FullVm;
-        OutAnalysis.bFullVmValid =
-            OutAnalysis.bDefinitionsValid &&
-            FullVm.Reload (
-                LevelAsset.LuaScripts,
-                FGridLuaVmConfig (),
-                FullVmError);
-        if (!OutAnalysis.bFullVmValid &&
-            OutAnalysis.GlobalError.IsEmpty ())
-        {
-            OutAnalysis.GlobalError = FullVmError;
-        }
+		FString FullVmError;
+		FGridLuaVm FullVm;
+		OutAnalysis.bFullVmValid = OutAnalysis.bDefinitionsValid && FullVm.Reload(LevelAsset.LuaScripts, FGridLuaVmConfig(), FullVmError);
+		if (!OutAnalysis.bFullVmValid && OutAnalysis.GlobalError.IsEmpty())
+		{
+			OutAnalysis.GlobalError = FullVmError;
+		}
 
-        if (OutAnalysis.bDefinitionsValid && OutAnalysis.bFullVmValid)
-        {
-            FString PersistentError;
-            if (!ValidatePersistentDeclarationsAgainstLevel (
-                    LevelAsset,
-                    PersistentError))
-            {
-                OutAnalysis.bDefinitionsValid = false;
-                OutAnalysis.GlobalError = PersistentError;
-            }
-        }
+		if (OutAnalysis.bDefinitionsValid && OutAnalysis.bFullVmValid)
+		{
+			FString PersistentError;
+			if (!ValidatePersistentDeclarationsAgainstLevel(LevelAsset, PersistentError))
+			{
+				OutAnalysis.bDefinitionsValid = false;
+				OutAnalysis.GlobalError = PersistentError;
+			}
+		}
 
-        return OutAnalysis.IsValid ();
-    }
+		return OutAnalysis.IsValid();
+	}
 
-    bool GetCallbacksForScript (
-        const UGridLevelAsset& LevelAsset,
-        FName ScriptId,
-        TArray<FName>& OutCallbacks,
-        FString& OutError)
-    {
-        OutCallbacks.Reset ();
-        const FGridLuaScriptSource* Script =
-            FindScriptById (LevelAsset, ScriptId);
-        if (!Script)
-        {
-            OutError = FString::Printf (
-                TEXT ("Lua ScriptId '%s' does not exist."),
-                *ScriptId.ToString ());
-            return false;
-        }
-        if (!Script->bEnabled)
-        {
-            OutError = FString::Printf (
-                TEXT ("Lua script '%s' is disabled."),
-                *ScriptId.ToString ());
-            return false;
-        }
-        if (!ValidateOneScript (*Script, OutError))
-        {
-            return false;
-        }
+	bool GetCallbacksForScript(const UGridLevelAsset& LevelAsset, FName ScriptId, TArray<FName>& OutCallbacks, FString& OutError)
+	{
+		OutCallbacks.Reset();
+		const FGridLuaScriptSource* Script = FindScriptById(LevelAsset, ScriptId);
+		if (!Script)
+		{
+			OutError = FString::Printf(TEXT("Lua ScriptId '%s' does not exist."), *ScriptId.ToString());
+			return false;
+		}
+		if (!Script->bEnabled)
+		{
+			OutError = FString::Printf(TEXT("Lua script '%s' is disabled."), *ScriptId.ToString());
+			return false;
+		}
+		if (!ValidateOneScript(*Script, OutError))
+		{
+			return false;
+		}
 
-        OutCallbacks = DetectGlobalCallbackNames (Script->Source);
-        OutError.Reset ();
-        return true;
-    }
+		OutCallbacks = DetectGlobalCallbackNames(Script->Source);
+		OutError.Reset();
+		return true;
+	}
 
-    bool IsLuaLinkSupported (
-        const UGridLevelAsset& LevelAsset,
-        const FGridObjectLink& Link,
-        FString& OutError)
-    {
-        const FGridObjectLink Normalized = NormalizeLuaLink (Link);
-        if (!Normalized.SourceObjectId.IsValid ())
-        {
-            OutError = TEXT ("Lua binding requires a valid SourceObjectId.");
-            return false;
-        }
-        const FGridLevelObjectData* Source =
-            FindObjectById (LevelAsset, Normalized.SourceObjectId);
-        if (!Source)
-        {
-            OutError = TEXT ("Lua binding source object does not exist.");
-            return false;
-        }
-        if (!GridEditorLinkPolicy::GetSupportedEventsForSource (*Source).Contains (
-                Normalized.SourceEvent))
-        {
-            OutError = TEXT ("Lua binding source event is not emitted by this object type.");
-            return false;
-        }
-        if (Normalized.LuaScriptId.IsNone () ||
-            Normalized.LuaCallbackName.IsNone ())
-        {
-            OutError = TEXT ("Lua binding requires ScriptId and CallbackName.");
-            return false;
-        }
-        if (!IsSupportedLuaCondition (Normalized.Condition) ||
-            !GridEditorLinkService::IsConditionConfigurationValid (Normalized))
-        {
-            OutError = TEXT ("Lua bindings support only None or typed level-variable conditions.");
-            return false;
-        }
+	bool IsLuaLinkSupported(const UGridLevelAsset& LevelAsset, const FGridObjectLink& Link, FString& OutError)
+	{
+		const FGridObjectLink Normalized = NormalizeLuaLink(Link);
+		if (!Normalized.SourceObjectId.IsValid())
+		{
+			OutError = TEXT("Lua binding requires a valid SourceObjectId.");
+			return false;
+		}
+		const FGridLevelObjectData* Source = FindObjectById(LevelAsset, Normalized.SourceObjectId);
+		if (!Source)
+		{
+			OutError = TEXT("Lua binding source object does not exist.");
+			return false;
+		}
+		if (!GridEditorLinkPolicy::GetSupportedEventsForSource(*Source).Contains(Normalized.SourceEvent))
+		{
+			OutError = TEXT("Lua binding source event is not emitted by this object type.");
+			return false;
+		}
+		if (Normalized.LuaScriptId.IsNone() || Normalized.LuaCallbackName.IsNone())
+		{
+			OutError = TEXT("Lua binding requires ScriptId and CallbackName.");
+			return false;
+		}
+		if (!IsSupportedLuaCondition(Normalized.Condition) || !GridEditorLinkService::IsConditionConfigurationValid(Normalized))
+		{
+			OutError = TEXT("Lua bindings support only None or typed level-variable conditions.");
+			return false;
+		}
 
-        if (Normalized.Condition == EGridObjectCondition::LevelVariableBoolEquals ||
-            Normalized.Condition == EGridObjectCondition::LevelVariableIntCompare)
-        {
-            const FGridLevelVariableDefinition* Variable =
-                FindVariableDefinition (
-                    LevelAsset,
-                    Normalized.ConditionVariableId);
-            if (!Variable)
-            {
-                OutError = FString::Printf (
-                    TEXT ("Lua binding references undeclared level variable '%s'."),
-                    *Normalized.ConditionVariableId.ToString ());
-                return false;
-            }
-            const EGridLevelVariableType RequiredType =
-                Normalized.Condition == EGridObjectCondition::LevelVariableBoolEquals
-                    ? EGridLevelVariableType::Bool
-                    : EGridLevelVariableType::Int32;
-            if (Variable->Type != RequiredType)
-            {
-                OutError = FString::Printf (
-                    TEXT ("Lua binding variable '%s' has the wrong type."),
-                    *Normalized.ConditionVariableId.ToString ());
-                return false;
-            }
-        }
+		if (Normalized.Condition == EGridObjectCondition::LevelVariableBoolEquals || Normalized.Condition == EGridObjectCondition::LevelVariableIntCompare)
+		{
+			const FGridLevelVariableDefinition* Variable = FindVariableDefinition(LevelAsset, Normalized.ConditionVariableId);
+			if (!Variable)
+			{
+				OutError = FString::Printf(TEXT("Lua binding references undeclared level variable '%s'."), *Normalized.ConditionVariableId.ToString());
+				return false;
+			}
+			const EGridLevelVariableType RequiredType =
+				Normalized.Condition == EGridObjectCondition::LevelVariableBoolEquals ? EGridLevelVariableType::Bool : EGridLevelVariableType::Int32;
+			if (Variable->Type != RequiredType)
+			{
+				OutError = FString::Printf(TEXT("Lua binding variable '%s' has the wrong type."), *Normalized.ConditionVariableId.ToString());
+				return false;
+			}
+		}
 
-        TArray<FName> Callbacks;
-        if (!GetCallbacksForScript (
-                LevelAsset,
-                Normalized.LuaScriptId,
-                Callbacks,
-                OutError))
-        {
-            return false;
-        }
-        if (!Callbacks.Contains (Normalized.LuaCallbackName))
-        {
-            OutError = FString::Printf (
-                TEXT ("Lua callback '%s.%s' is not declared as a global function."),
-                *Normalized.LuaScriptId.ToString (),
-                *Normalized.LuaCallbackName.ToString ());
-            return false;
-        }
+		TArray<FName> Callbacks;
+		if (!GetCallbacksForScript(LevelAsset, Normalized.LuaScriptId, Callbacks, OutError))
+		{
+			return false;
+		}
+		if (!Callbacks.Contains(Normalized.LuaCallbackName))
+		{
+			OutError = FString::Printf(
+				TEXT("Lua callback '%s.%s' is not declared as a global function."), *Normalized.LuaScriptId.ToString(), *Normalized.LuaCallbackName.ToString());
+			return false;
+		}
 
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool AddLuaLink (
-        AGridLevelEditorActor& EditorActor,
-        const FGridObjectLink& Link,
-        FString& OutError)
-    {
-        UGridLevelAsset* LevelAsset = EditorActor.LevelAsset;
-        if (!LevelAsset)
-        {
-            OutError = TEXT ("Grid Editor has no LevelAsset.");
-            return false;
-        }
+	bool AddLuaLink(AGridLevelEditorActor& EditorActor, const FGridObjectLink& Link, FString& OutError)
+	{
+		UGridLevelAsset* LevelAsset = EditorActor.LevelAsset;
+		if (!LevelAsset)
+		{
+			OutError = TEXT("Grid Editor has no LevelAsset.");
+			return false;
+		}
 
-        const FGridObjectLink Normalized = NormalizeLuaLink (Link);
-        if (!IsLuaLinkSupported (*LevelAsset, Normalized, OutError))
-        {
-            return false;
-        }
-        if (GridEditorLinkService::ContainsExactLink (
-                LevelAsset->Links,
-                Normalized))
-        {
-            OutError = TEXT ("An identical Lua binding already exists.");
-            return false;
-        }
+		const FGridObjectLink Normalized = NormalizeLuaLink(Link);
+		if (!IsLuaLinkSupported(*LevelAsset, Normalized, OutError))
+		{
+			return false;
+		}
+		if (GridEditorLinkService::ContainsExactLink(LevelAsset->Links, Normalized))
+		{
+			OutError = TEXT("An identical Lua binding already exists.");
+			return false;
+		}
 
 #if WITH_EDITOR
-        LevelAsset->Modify ();
+		LevelAsset->Modify();
 #endif
-        LevelAsset->Links.Add (Normalized);
+		LevelAsset->Links.Add(Normalized);
 #if WITH_EDITOR
-        LevelAsset->MarkPackageDirty ();
+		LevelAsset->MarkPackageDirty();
 #endif
-        EditorActor.LastSelectedObjectId = Normalized.SourceObjectId;
-        EditorActor.RebuildPreview ();
-        OutError.Reset ();
-        return true;
-    }
+		EditorActor.LastSelectedObjectId = Normalized.SourceObjectId;
+		EditorActor.RebuildPreview();
+		OutError.Reset();
+		return true;
+	}
 
-    bool RemoveLuaLink (
-        AGridLevelEditorActor& EditorActor,
-        const FGridObjectLink& Link)
-    {
-        return Link.Command == EGridObjectCommand::LuaCallback &&
-            GridEditorLinkService::RemoveExactLink (
-                EditorActor,
-                Link);
-    }
+	bool RemoveLuaLink(AGridLevelEditorActor& EditorActor, const FGridObjectLink& Link)
+	{
+		return Link.Command == EGridObjectCommand::LuaCallback && GridEditorLinkService::RemoveExactLink(EditorActor, Link);
+	}
 
-    FName MakeUniqueScriptId (const UGridLevelAsset& LevelAsset)
-    {
-        const FName BaseId (TEXT ("Script"));
-        if (!FindScriptById (LevelAsset, BaseId))
-        {
-            return BaseId;
-        }
+	FName MakeUniqueScriptId(const UGridLevelAsset& LevelAsset)
+	{
+		const FName BaseId(TEXT("Script"));
+		if (!FindScriptById(LevelAsset, BaseId))
+		{
+			return BaseId;
+		}
 
-        for (int32 Index = 2; Index < MAX_int32; ++Index)
-        {
-            const FName Candidate (*FString::Printf (
-                TEXT ("Script_%d"),
-                Index));
-            if (!FindScriptById (LevelAsset, Candidate))
-            {
-                return Candidate;
-            }
-        }
-        return NAME_None;
-    }
+		for (int32 Index = 2; Index < MAX_int32; ++Index)
+		{
+			const FName Candidate(*FString::Printf(TEXT("Script_%d"), Index));
+			if (!FindScriptById(LevelAsset, Candidate))
+			{
+				return Candidate;
+			}
+		}
+		return NAME_None;
+	}
 
-    int32 CountScriptReferences (
-        const UGridLevelAsset& LevelAsset,
-        FName ScriptId)
-    {
-        int32 ReferenceCount = 0;
-        for (const FGridObjectLink& Link : LevelAsset.Links)
-        {
-            if (Link.Command == EGridObjectCommand::LuaCallback &&
-                Link.LuaScriptId == ScriptId)
-            {
-                ++ReferenceCount;
-            }
-        }
-        return ReferenceCount;
-    }
+	int32 CountScriptReferences(const UGridLevelAsset& LevelAsset, FName ScriptId)
+	{
+		int32 ReferenceCount = 0;
+		for (const FGridObjectLink& Link : LevelAsset.Links)
+		{
+			if (Link.Command == EGridObjectCommand::LuaCallback && Link.LuaScriptId == ScriptId)
+			{
+				++ReferenceCount;
+			}
+		}
+		return ReferenceCount;
+	}
 
-    bool AddScript (
-        UGridLevelAsset& LevelAsset,
-        FName ScriptId,
-        const FString& Source,
-        FString& OutError)
-    {
-        if (ScriptId.IsNone ())
-        {
-            OutError = TEXT ("ScriptId cannot be empty.");
-            return false;
-        }
-        if (FindScriptById (LevelAsset, ScriptId))
-        {
-            OutError = FString::Printf (
-                TEXT ("ScriptId '%s' already exists."),
-                *ScriptId.ToString ());
-            return false;
-        }
+	bool AddScript(UGridLevelAsset& LevelAsset, FName ScriptId, const FString& Source, FString& OutError)
+	{
+		if (ScriptId.IsNone())
+		{
+			OutError = TEXT("ScriptId cannot be empty.");
+			return false;
+		}
+		if (FindScriptById(LevelAsset, ScriptId))
+		{
+			OutError = FString::Printf(TEXT("ScriptId '%s' already exists."), *ScriptId.ToString());
+			return false;
+		}
 
-        TArray<FGridLuaScriptSource> CandidateScripts = LevelAsset.LuaScripts;
-        FGridLuaScriptSource NewScript;
-        NewScript.ScriptId = ScriptId;
-        NewScript.bEnabled = true;
-        NewScript.Source = Source;
-        CandidateScripts.Add (MoveTemp (NewScript));
+		TArray<FGridLuaScriptSource> CandidateScripts = LevelAsset.LuaScripts;
+		FGridLuaScriptSource NewScript;
+		NewScript.ScriptId = ScriptId;
+		NewScript.bEnabled = true;
+		NewScript.Source = Source;
+		CandidateScripts.Add(MoveTemp(NewScript));
 
-        TArray<FGridLevelVariableDefinition> CandidateVariables;
-        if (!BuildSynchronizedLevelVariables (
-                LevelAsset,
-                CandidateScripts,
-                CandidateVariables,
-                OutError))
-        {
-            return false;
-        }
+		TArray<FGridLevelVariableDefinition> CandidateVariables;
+		if (!BuildSynchronizedLevelVariables(LevelAsset, CandidateScripts, CandidateVariables, OutError))
+		{
+			return false;
+		}
 
 #if WITH_EDITOR
-        LevelAsset.Modify ();
+		LevelAsset.Modify();
 #endif
-        LevelAsset.LuaScripts = MoveTemp (CandidateScripts);
-        LevelAsset.LevelVariables = MoveTemp (CandidateVariables);
+		LevelAsset.LuaScripts = MoveTemp(CandidateScripts);
+		LevelAsset.LevelVariables = MoveTemp(CandidateVariables);
 #if WITH_EDITOR
-        LevelAsset.MarkPackageDirty ();
+		LevelAsset.MarkPackageDirty();
 #endif
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool RenameScript (
-        UGridLevelAsset& LevelAsset,
-        FName OldScriptId,
-        FName NewScriptId,
-        FString& OutError)
-    {
-        if (NewScriptId.IsNone ())
-        {
-            OutError = TEXT ("New ScriptId cannot be empty.");
-            return false;
-        }
-        FGridLuaScriptSource* Script =
-            FindScriptById (LevelAsset, OldScriptId);
-        if (!Script)
-        {
-            OutError = TEXT ("Script to rename was not found.");
-            return false;
-        }
-        if (OldScriptId == NewScriptId)
-        {
-            OutError.Reset ();
-            return true;
-        }
-        if (FindScriptById (LevelAsset, NewScriptId))
-        {
-            OutError = FString::Printf (
-                TEXT ("ScriptId '%s' already exists."),
-                *NewScriptId.ToString ());
-            return false;
-        }
+	bool RenameScript(UGridLevelAsset& LevelAsset, FName OldScriptId, FName NewScriptId, FString& OutError)
+	{
+		if (NewScriptId.IsNone())
+		{
+			OutError = TEXT("New ScriptId cannot be empty.");
+			return false;
+		}
+		FGridLuaScriptSource* Script = FindScriptById(LevelAsset, OldScriptId);
+		if (!Script)
+		{
+			OutError = TEXT("Script to rename was not found.");
+			return false;
+		}
+		if (OldScriptId == NewScriptId)
+		{
+			OutError.Reset();
+			return true;
+		}
+		if (FindScriptById(LevelAsset, NewScriptId))
+		{
+			OutError = FString::Printf(TEXT("ScriptId '%s' already exists."), *NewScriptId.ToString());
+			return false;
+		}
 
 #if WITH_EDITOR
-        LevelAsset.Modify ();
+		LevelAsset.Modify();
 #endif
-        Script->ScriptId = NewScriptId;
-        for (FGridObjectLink& Link : LevelAsset.Links)
-        {
-            if (Link.Command == EGridObjectCommand::LuaCallback &&
-                Link.LuaScriptId == OldScriptId)
-            {
-                Link.LuaScriptId = NewScriptId;
-            }
-        }
+		Script->ScriptId = NewScriptId;
+		for (FGridObjectLink& Link : LevelAsset.Links)
+		{
+			if (Link.Command == EGridObjectCommand::LuaCallback && Link.LuaScriptId == OldScriptId)
+			{
+				Link.LuaScriptId = NewScriptId;
+			}
+		}
 #if WITH_EDITOR
-        LevelAsset.MarkPackageDirty ();
+		LevelAsset.MarkPackageDirty();
 #endif
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool SetScriptEnabled (
-        UGridLevelAsset& LevelAsset,
-        FName ScriptId,
-        bool bEnabled,
-        FString& OutError)
-    {
-        const int32 ScriptIndex = LevelAsset.LuaScripts.IndexOfByPredicate (
-            [ScriptId] (const FGridLuaScriptSource& Script)
-        {
-            return Script.ScriptId == ScriptId;
-        });
-        if (ScriptIndex == INDEX_NONE)
-        {
-            OutError = TEXT ("Lua script was not found.");
-            return false;
-        }
-        if (!bEnabled && CountScriptReferences (LevelAsset, ScriptId) > 0)
-        {
-            OutError = TEXT ("A referenced Lua script cannot be disabled; remove its bindings first.");
-            return false;
-        }
+	bool SetScriptEnabled(UGridLevelAsset& LevelAsset, FName ScriptId, bool bEnabled, FString& OutError)
+	{
+		const int32 ScriptIndex = LevelAsset.LuaScripts.IndexOfByPredicate(
+			[ScriptId](const FGridLuaScriptSource& Script)
+			{
+				return Script.ScriptId == ScriptId;
+			});
+		if (ScriptIndex == INDEX_NONE)
+		{
+			OutError = TEXT("Lua script was not found.");
+			return false;
+		}
+		if (!bEnabled && CountScriptReferences(LevelAsset, ScriptId) > 0)
+		{
+			OutError = TEXT("A referenced Lua script cannot be disabled; remove its bindings first.");
+			return false;
+		}
 
-        TArray<FGridLuaScriptSource> CandidateScripts = LevelAsset.LuaScripts;
-        CandidateScripts[ScriptIndex].bEnabled = bEnabled;
-        TArray<FGridLevelVariableDefinition> CandidateVariables;
-        if (!BuildSynchronizedLevelVariables (
-                LevelAsset,
-                CandidateScripts,
-                CandidateVariables,
-                OutError))
-        {
-            return false;
-        }
+		TArray<FGridLuaScriptSource> CandidateScripts = LevelAsset.LuaScripts;
+		CandidateScripts[ScriptIndex].bEnabled = bEnabled;
+		TArray<FGridLevelVariableDefinition> CandidateVariables;
+		if (!BuildSynchronizedLevelVariables(LevelAsset, CandidateScripts, CandidateVariables, OutError))
+		{
+			return false;
+		}
 
 #if WITH_EDITOR
-        LevelAsset.Modify ();
+		LevelAsset.Modify();
 #endif
-        LevelAsset.LuaScripts = MoveTemp (CandidateScripts);
-        LevelAsset.LevelVariables = MoveTemp (CandidateVariables);
+		LevelAsset.LuaScripts = MoveTemp(CandidateScripts);
+		LevelAsset.LevelVariables = MoveTemp(CandidateVariables);
 #if WITH_EDITOR
-        LevelAsset.MarkPackageDirty ();
+		LevelAsset.MarkPackageDirty();
 #endif
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool SetScriptSource (
-        UGridLevelAsset& LevelAsset,
-        FName ScriptId,
-        const FString& Source,
-        FString& OutError)
-    {
-        const int32 ScriptIndex = LevelAsset.LuaScripts.IndexOfByPredicate (
-            [ScriptId] (const FGridLuaScriptSource& Script)
-        {
-            return Script.ScriptId == ScriptId;
-        });
-        if (ScriptIndex == INDEX_NONE)
-        {
-            OutError = TEXT ("Lua script was not found.");
-            return false;
-        }
+	bool SetScriptSource(UGridLevelAsset& LevelAsset, FName ScriptId, const FString& Source, FString& OutError)
+	{
+		const int32 ScriptIndex = LevelAsset.LuaScripts.IndexOfByPredicate(
+			[ScriptId](const FGridLuaScriptSource& Script)
+			{
+				return Script.ScriptId == ScriptId;
+			});
+		if (ScriptIndex == INDEX_NONE)
+		{
+			OutError = TEXT("Lua script was not found.");
+			return false;
+		}
 
-        TArray<FGridLuaScriptSource> CandidateScripts = LevelAsset.LuaScripts;
-        CandidateScripts[ScriptIndex].Source = Source;
-        TArray<FGridLevelVariableDefinition> CandidateVariables;
-        if (!BuildSynchronizedLevelVariables (
-                LevelAsset,
-                CandidateScripts,
-                CandidateVariables,
-                OutError))
-        {
-            return false;
-        }
+		TArray<FGridLuaScriptSource> CandidateScripts = LevelAsset.LuaScripts;
+		CandidateScripts[ScriptIndex].Source = Source;
+		TArray<FGridLevelVariableDefinition> CandidateVariables;
+		if (!BuildSynchronizedLevelVariables(LevelAsset, CandidateScripts, CandidateVariables, OutError))
+		{
+			return false;
+		}
 
 #if WITH_EDITOR
-        LevelAsset.Modify ();
+		LevelAsset.Modify();
 #endif
-        LevelAsset.LuaScripts = MoveTemp (CandidateScripts);
-        LevelAsset.LevelVariables = MoveTemp (CandidateVariables);
+		LevelAsset.LuaScripts = MoveTemp(CandidateScripts);
+		LevelAsset.LevelVariables = MoveTemp(CandidateVariables);
 #if WITH_EDITOR
-        LevelAsset.MarkPackageDirty ();
+		LevelAsset.MarkPackageDirty();
 #endif
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool RemoveScript (
-        UGridLevelAsset& LevelAsset,
-        FName ScriptId,
-        FString& OutError)
-    {
-        const int32 References =
-            CountScriptReferences (LevelAsset, ScriptId);
-        if (References > 0)
-        {
-            OutError = FString::Printf (
-                TEXT ("Lua script '%s' is referenced by %d binding(s)."),
-                *ScriptId.ToString (),
-                References);
-            return false;
-        }
-        const int32 Index = LevelAsset.LuaScripts.IndexOfByPredicate (
-            [ScriptId] (const FGridLuaScriptSource& Script)
-        {
-            return Script.ScriptId == ScriptId;
-        });
-        if (Index == INDEX_NONE)
-        {
-            OutError = TEXT ("Lua script was not found.");
-            return false;
-        }
+	bool RemoveScript(UGridLevelAsset& LevelAsset, FName ScriptId, FString& OutError)
+	{
+		const int32 References = CountScriptReferences(LevelAsset, ScriptId);
+		if (References > 0)
+		{
+			OutError = FString::Printf(TEXT("Lua script '%s' is referenced by %d binding(s)."), *ScriptId.ToString(), References);
+			return false;
+		}
+		const int32 Index = LevelAsset.LuaScripts.IndexOfByPredicate(
+			[ScriptId](const FGridLuaScriptSource& Script)
+			{
+				return Script.ScriptId == ScriptId;
+			});
+		if (Index == INDEX_NONE)
+		{
+			OutError = TEXT("Lua script was not found.");
+			return false;
+		}
 
 #if WITH_EDITOR
-        LevelAsset.Modify ();
+		LevelAsset.Modify();
 #endif
-        LevelAsset.LuaScripts.RemoveAt (Index);
+		LevelAsset.LuaScripts.RemoveAt(Index);
 #if WITH_EDITOR
-        LevelAsset.MarkPackageDirty ();
+		LevelAsset.MarkPackageDirty();
 #endif
-        OutError.Reset ();
-        return true;
-    }
+		OutError.Reset();
+		return true;
+	}
 
-    bool SetSelectedObjectLogicId (
-        AGridLevelEditorActor& EditorActor,
-        FName LogicId,
-        FString& OutError)
-    {
-        UGridLevelAsset* LevelAsset = EditorActor.LevelAsset;
-        if (!LevelAsset || !EditorActor.LastSelectedObjectId.IsValid ())
-        {
-            OutError = TEXT ("No selected Grid object is available for LogicId editing.");
-            return false;
-        }
-        if (!IsSimpleLogicId (LogicId))
-        {
-            OutError = TEXT ("LogicId must match [A-Za-z_][A-Za-z0-9_]* or be empty.");
-            return false;
-        }
+	bool SetSelectedObjectLogicId(AGridLevelEditorActor& EditorActor, FName LogicId, FString& OutError)
+	{
+		UGridLevelAsset* LevelAsset = EditorActor.LevelAsset;
+		if (!LevelAsset || !EditorActor.LastSelectedObjectId.IsValid())
+		{
+			OutError = TEXT("No selected Grid object is available for LogicId editing.");
+			return false;
+		}
+		if (!IsSimpleLogicId(LogicId))
+		{
+			OutError = TEXT("LogicId must match [A-Za-z_][A-Za-z0-9_]* or be empty.");
+			return false;
+		}
 
-        FGridLevelObjectData* Selected =
-            FindObjectById (*LevelAsset, EditorActor.LastSelectedObjectId);
-        if (!Selected)
-        {
-            OutError = TEXT ("Selected Grid object no longer exists.");
-            return false;
-        }
+		FGridLevelObjectData* Selected = FindObjectById(*LevelAsset, EditorActor.LastSelectedObjectId);
+		if (!Selected)
+		{
+			OutError = TEXT("Selected Grid object no longer exists.");
+			return false;
+		}
 
-        if (!LogicId.IsNone ())
-        {
-            const FGridLevelObjectData* Existing =
-                LevelAsset->Objects.FindByPredicate (
-                    [LogicId, Selected] (const FGridLevelObjectData& Object)
-                {
-                    return Object.ObjectId != Selected->ObjectId &&
-                        Object.LogicId == LogicId;
-                });
-            if (Existing)
-            {
-                OutError = FString::Printf (
-                    TEXT ("LogicId '%s' is already used by another object."),
-                    *LogicId.ToString ());
-                return false;
-            }
-        }
+		if (!LogicId.IsNone())
+		{
+			const FGridLevelObjectData* Existing = LevelAsset->Objects.FindByPredicate(
+				[LogicId, Selected](const FGridLevelObjectData& Object)
+				{
+					return Object.ObjectId != Selected->ObjectId && Object.LogicId == LogicId;
+				});
+			if (Existing)
+			{
+				OutError = FString::Printf(TEXT("LogicId '%s' is already used by another object."), *LogicId.ToString());
+				return false;
+			}
+		}
 
 #if WITH_EDITOR
-        LevelAsset->Modify ();
+		LevelAsset->Modify();
 #endif
-        Selected->LogicId = LogicId;
+		Selected->LogicId = LogicId;
 #if WITH_EDITOR
-        LevelAsset->MarkPackageDirty ();
+		LevelAsset->MarkPackageDirty();
 #endif
-        EditorActor.RebuildPreview ();
-        OutError.Reset ();
-        return true;
-    }
+		EditorActor.RebuildPreview();
+		OutError.Reset();
+		return true;
+	}
 
-    TArray<FGridLevelValidationMessage> ValidateCurrentLevelWithLua (
-        AGridLevelEditorActor& EditorActor)
-    {
-        TArray<FGridLevelValidationMessage> Messages =
-            EditorActor.ValidateCurrentLevel ();
-        UGridLevelAsset* LevelAsset = EditorActor.LevelAsset;
-        if (!LevelAsset)
-        {
-            return Messages;
-        }
+	TArray<FGridLevelValidationMessage> ValidateCurrentLevelWithLua(AGridLevelEditorActor& EditorActor)
+	{
+		TArray<FGridLevelValidationMessage> Messages = EditorActor.ValidateCurrentLevel();
+		UGridLevelAsset* LevelAsset = EditorActor.LevelAsset;
+		if (!LevelAsset)
+		{
+			return Messages;
+		}
 
-        // Remove legacy assumptions that predate MON19 data-only Logic and the
-        // targetless LuaCallback contract.
-        Messages.RemoveAll ([LevelAsset] (const FGridLevelValidationMessage& Message)
-        {
-            if (Message.Message ==
-                    TEXT ("Placed object has no ArchetypeId. Preview and runtime archetype lookup cannot resolve it.") &&
-                Message.OptionalObjectId.IsValid ())
-            {
-                const FGridLevelObjectData* Object =
-                    FindObjectById (*LevelAsset, Message.OptionalObjectId);
-                if (Object && Object->Type == EGridLevelObjectType::Logic)
-                {
-                    return true;
-                }
-            }
+		// Remove legacy assumptions that predate MON19 data-only Logic and the
+		// targetless LuaCallback contract.
+		Messages.RemoveAll(
+			[LevelAsset](const FGridLevelValidationMessage& Message)
+			{
+				if (Message.Message == TEXT("Placed object has no ArchetypeId. Preview and runtime archetype lookup cannot resolve it.") &&
+					Message.OptionalObjectId.IsValid())
+				{
+					const FGridLevelObjectData* Object = FindObjectById(*LevelAsset, Message.OptionalObjectId);
+					if (Object && Object->Type == EGridLevelObjectType::Logic)
+					{
+						return true;
+					}
+				}
 
-            int32 LinkIndex = INDEX_NONE;
-            if (!TryGetLinkIndexFromMessage (
-                    Message.Message,
-                    LinkIndex) ||
-                !LevelAsset->Links.IsValidIndex (LinkIndex))
-            {
-                return false;
-            }
+				int32 LinkIndex = INDEX_NONE;
+				if (!TryGetLinkIndexFromMessage(Message.Message, LinkIndex) || !LevelAsset->Links.IsValidIndex(LinkIndex))
+				{
+					return false;
+				}
 
-            const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
-            if (Link.Command == EGridObjectCommand::LuaCallback)
-            {
-                if (Message.Message.Contains (TEXT ("TargetObjectId")) ||
-                    Message.Message.Contains (TEXT ("targets its own source object")))
-                {
-                    return true;
-                }
-                if (Message.Message.Contains (TEXT ("duplicates an identical link")) &&
-                    !IsExactLuaDuplicateAt (*LevelAsset, LinkIndex))
-                {
-                    return true;
-                }
-            }
+				const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
+				if (Link.Command == EGridObjectCommand::LuaCallback)
+				{
+					if (Message.Message.Contains(TEXT("TargetObjectId")) || Message.Message.Contains(TEXT("targets its own source object")))
+					{
+						return true;
+					}
+					if (Message.Message.Contains(TEXT("duplicates an identical link")) && !IsExactLuaDuplicateAt(*LevelAsset, LinkIndex))
+					{
+						return true;
+					}
+				}
 
-            if (Message.Message.Contains (
-                    TEXT ("is not emitted by the current C++ runtime")))
-            {
-                const FGridLevelObjectData* Source =
-                    FindObjectById (*LevelAsset, Link.SourceObjectId);
-                if (Source &&
-                    GridEditorLinkPolicy::GetSupportedEventsForSource (*Source).Contains (
-                        Link.SourceEvent))
-                {
-                    return true;
-                }
-            }
-            return false;
-        });
+				if (Message.Message.Contains(TEXT("is not emitted by the current C++ runtime")))
+				{
+					const FGridLevelObjectData* Source = FindObjectById(*LevelAsset, Link.SourceObjectId);
+					if (Source && GridEditorLinkPolicy::GetSupportedEventsForSource(*Source).Contains(Link.SourceEvent))
+					{
+						return true;
+					}
+				}
+				return false;
+			});
 
-        TMap<FName, FGuid> LogicIdOwners;
-        for (const FGridLevelObjectData& Object : LevelAsset->Objects)
-        {
-            if (!Object.LogicId.IsNone ())
-            {
-                if (!IsSimpleLogicId (Object.LogicId))
-                {
-                    AddValidationMessage (
-                        *LevelAsset,
-                        Messages,
-                        EGridLevelValidationSeverity::Error,
-                        TEXT ("LogicId"),
-                        FString::Printf (
-                            TEXT ("LogicId '%s' must match [A-Za-z_][A-Za-z0-9_]*."),
-                            *Object.LogicId.ToString ()),
-                        Object.ObjectId);
-                }
-                else if (const FGuid* ExistingOwner =
-                    LogicIdOwners.Find (Object.LogicId))
-                {
-                    AddValidationMessage (
-                        *LevelAsset,
-                        Messages,
-                        EGridLevelValidationSeverity::Error,
-                        TEXT ("LogicId"),
-                        FString::Printf (
-                            TEXT ("LogicId '%s' is duplicated by objects %s and %s."),
-                            *Object.LogicId.ToString (),
-                            *ExistingOwner->ToString (),
-                            *Object.ObjectId.ToString ()),
-                        Object.ObjectId);
-                }
-                else
-                {
-                    LogicIdOwners.Add (Object.LogicId, Object.ObjectId);
-                }
-            }
+		TMap<FName, FGuid> LogicIdOwners;
+		for (const FGridLevelObjectData& Object : LevelAsset->Objects)
+		{
+			if (!Object.LogicId.IsNone())
+			{
+				if (!IsSimpleLogicId(Object.LogicId))
+				{
+					AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("LogicId"),
+						FString::Printf(TEXT("LogicId '%s' must match [A-Za-z_][A-Za-z0-9_]*."), *Object.LogicId.ToString()), Object.ObjectId);
+				}
+				else if (const FGuid* ExistingOwner = LogicIdOwners.Find(Object.LogicId))
+				{
+					AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("LogicId"),
+						FString::Printf(TEXT("LogicId '%s' is duplicated by objects %s and %s."), *Object.LogicId.ToString(), *ExistingOwner->ToString(),
+							*Object.ObjectId.ToString()),
+						Object.ObjectId);
+				}
+				else
+				{
+					LogicIdOwners.Add(Object.LogicId, Object.ObjectId);
+				}
+			}
 
-            if (Object.Type != EGridLevelObjectType::Logic)
-            {
-                continue;
-            }
-            if (!Object.ArchetypeId.IsNone ())
-            {
-                AddValidationMessage (
-                    *LevelAsset,
-                    Messages,
-                    EGridLevelValidationSeverity::Error,
-                    TEXT ("Logic"),
-                    TEXT ("Data-only Logic object must use ArchetypeId=None."),
-                    Object.ObjectId);
-            }
+			if (Object.Type != EGridLevelObjectType::Logic)
+			{
+				continue;
+			}
+			if (!Object.ArchetypeId.IsNone())
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Logic"),
+					TEXT("Data-only Logic object must use ArchetypeId=None."), Object.ObjectId);
+			}
 
-            FString LogicError;
-            if (!GridLogicRuntime::ValidateNode (
-                    *LevelAsset,
-                    Object,
-                    LogicError))
-            {
-                AddValidationMessage (
-                    *LevelAsset,
-                    Messages,
-                    EGridLevelValidationSeverity::Error,
-                    TEXT ("Logic"),
-                    FString::Printf (
-                        TEXT ("Logic object is invalid: %s"),
-                        *LogicError),
-                    Object.ObjectId);
-            }
-        }
+			FString LogicError;
+			if (!GridLogicRuntime::ValidateNode(*LevelAsset, Object, LogicError))
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Logic"),
+					FString::Printf(TEXT("Logic object is invalid: %s"), *LogicError), Object.ObjectId);
+			}
+		}
 
-        FGridEditorLuaAnalysis Analysis;
-        AnalyzeLevel (*LevelAsset, Analysis);
-        if (!Analysis.bDefinitionsValid && !Analysis.GlobalError.IsEmpty ())
-        {
-            AddValidationMessage (
-                *LevelAsset,
-                Messages,
-                EGridLevelValidationSeverity::Error,
-                TEXT ("Lua"),
-                FString::Printf (
-                    TEXT ("Lua definitions are invalid: %s"),
-                    *Analysis.GlobalError));
-        }
+		FGridEditorLuaAnalysis Analysis;
+		AnalyzeLevel(*LevelAsset, Analysis);
+		if (!Analysis.bDefinitionsValid && !Analysis.GlobalError.IsEmpty())
+		{
+			AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Lua"),
+				FString::Printf(TEXT("Lua definitions are invalid: %s"), *Analysis.GlobalError));
+		}
 
-        for (const FGridEditorLuaScriptAnalysis& Script : Analysis.Scripts)
-        {
-            if (Script.bEnabled && !Script.bValid)
-            {
-                AddValidationMessage (
-                    *LevelAsset,
-                    Messages,
-                    EGridLevelValidationSeverity::Error,
-                    TEXT ("Lua"),
-                    FString::Printf (
-                        TEXT ("Lua script '%s' is invalid: %s"),
-                        *Script.ScriptId.ToString (),
-                        *Script.Error));
-            }
-        }
+		for (const FGridEditorLuaScriptAnalysis& Script : Analysis.Scripts)
+		{
+			if (Script.bEnabled && !Script.bValid)
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Lua"),
+					FString::Printf(TEXT("Lua script '%s' is invalid: %s"), *Script.ScriptId.ToString(), *Script.Error));
+			}
+		}
 
-        if (Analysis.bDefinitionsValid &&
-            !Analysis.bFullVmValid &&
-            !Analysis.GlobalError.IsEmpty ())
-        {
-            AddValidationMessage (
-                *LevelAsset,
-                Messages,
-                EGridLevelValidationSeverity::Error,
-                TEXT ("Lua"),
-                FString::Printf (
-                    TEXT ("Lua level VM cannot be built: %s"),
-                    *Analysis.GlobalError));
-        }
+		if (Analysis.bDefinitionsValid && !Analysis.bFullVmValid && !Analysis.GlobalError.IsEmpty())
+		{
+			AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Lua"),
+				FString::Printf(TEXT("Lua level VM cannot be built: %s"), *Analysis.GlobalError));
+		}
 
-        for (int32 LinkIndex = 0;
-            LinkIndex < LevelAsset->Links.Num ();
-            ++LinkIndex)
-        {
-            const FGridObjectLink& Link =
-                LevelAsset->Links[LinkIndex];
-            if (Link.Command != EGridObjectCommand::LuaCallback)
-            {
-                continue;
-            }
+		for (int32 LinkIndex = 0; LinkIndex < LevelAsset->Links.Num(); ++LinkIndex)
+		{
+			const FGridObjectLink& Link = LevelAsset->Links[LinkIndex];
+			if (Link.Command != EGridObjectCommand::LuaCallback)
+			{
+				continue;
+			}
 
-            FString LinkError;
-            if (!IsLuaLinkSupported (
-                    *LevelAsset,
-                    Link,
-                    LinkError))
-            {
-                AddValidationMessage (
-                    *LevelAsset,
-                    Messages,
-                    EGridLevelValidationSeverity::Error,
-                    TEXT ("Lua"),
-                    FString::Printf (
-                        TEXT ("Lua binding %d is invalid: %s"),
-                        LinkIndex,
-                        *LinkError),
-                    Link.SourceObjectId);
-            }
-            if (Link.TargetObjectId.IsValid ())
-            {
-                AddValidationMessage (
-                    *LevelAsset,
-                    Messages,
-                    EGridLevelValidationSeverity::Error,
-                    TEXT ("Lua"),
-                    FString::Printf (
-                        TEXT ("Lua binding %d must be targetless; TargetObjectId is ignored by runtime."),
-                        LinkIndex),
-                    Link.SourceObjectId);
-            }
-        }
+			FString LinkError;
+			if (!IsLuaLinkSupported(*LevelAsset, Link, LinkError))
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Lua"),
+					FString::Printf(TEXT("Lua binding %d is invalid: %s"), LinkIndex, *LinkError), Link.SourceObjectId);
+			}
+			if (Link.TargetObjectId.IsValid())
+			{
+				AddValidationMessage(*LevelAsset, Messages, EGridLevelValidationSeverity::Error, TEXT("Lua"),
+					FString::Printf(TEXT("Lua binding %d must be targetless; TargetObjectId is ignored by runtime."), LinkIndex), Link.SourceObjectId);
+			}
+		}
 
-        // A legacy validation run that had only now-filtered false positives
-        // does not add its usual success Info. Restore a useful success row.
-        if (Messages.IsEmpty ())
-        {
-            FGridLevelValidationMessage Success;
-            Success.Severity = EGridLevelValidationSeverity::Info;
-            Success.Category = TEXT ("Core");
-            Success.Message = TEXT ("Validation complete: no issues found.");
-            Messages.Add (MoveTemp (Success));
-        }
+		// A legacy validation run that had only now-filtered false positives
+		// does not add its usual success Info. Restore a useful success row.
+		if (Messages.IsEmpty())
+		{
+			FGridLevelValidationMessage Success;
+			Success.Severity = EGridLevelValidationSeverity::Info;
+			Success.Category = TEXT("Core");
+			Success.Message = TEXT("Validation complete: no issues found.");
+			Messages.Add(MoveTemp(Success));
+		}
 
-        EditorActor.LastValidationMessages = Messages;
-        return Messages;
-    }
+		EditorActor.LastValidationMessages = Messages;
+		return Messages;
+	}
 }

@@ -4,62 +4,49 @@
 #include "Runtime/GridReceptacleActor.h"
 #include "GridWallLockActor.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN (LogGridWallLock, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogGridWallLock, Log, All);
 
-UCLASS (Blueprintable)
+UCLASS(Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridWallLockActor : public AGridReceptacleActor
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    virtual void InitializeGridObject (
-        const FGridLevelObjectData& ObjectData,
-        UStaticMesh* Mesh,
-        UMaterialInterface* Material,
-        const FTransform& WorldTransform) override;
+	virtual void InitializeGridObject(
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
 
-    bool TryInteractWithParty (AGrimrockPartyPawn* PartyPawn);
+	bool TryInteractWithParty(AGrimrockPartyPawn* PartyPawn);
 
-    bool TryUnlockWithContextItem (
-        AGrimrockPartyPawn* PartyPawn,
-        const FGridItemInstance& KeyItem);
+	bool TryUnlockWithContextItem(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& KeyItem);
 
-    UFUNCTION (BlueprintPure, Category = "Lock")
-    bool CanAcceptKeyDefinition (FName ItemDefinitionId) const;
+	UFUNCTION(BlueprintPure, Category = "Lock")
+	bool CanAcceptKeyDefinition(FName ItemDefinitionId) const;
 
-    virtual bool CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
-    virtual void Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
-    virtual void InteractWithHit_Implementation (
-        APawn* InstigatorPawn,
-        UPrimitiveComponent* HitComponent,
-        const FHitResult& HitResult) override;
-    virtual EGridInteractionCursor GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const override;
-    virtual FText GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const override;
+	virtual bool CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const override;
+	virtual void Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) override;
+	virtual void InteractWithHit_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult) override;
+	virtual EGridInteractionCursor GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const override;
+	virtual FText GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const override;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Lock|Runtime")
-    bool bIsUnlocked = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Lock|Runtime")
+	bool bIsUnlocked = false;
 
 private:
-    bool bConsumeKeyOnUnlock = false;
+	bool bConsumeKeyOnUnlock = false;
 
-    UPROPERTY (Transient)
-    TArray<FName> AcceptedKeyDefinitionIds;
+	UPROPERTY(Transient)
+	TArray<FName> AcceptedKeyDefinitionIds;
 
-    FText LockedMessage;
-    FText UnlockedMessage;
-    FText MissingKeyMessage;
+	FText LockedMessage;
+	FText UnlockedMessage;
+	FText MissingKeyMessage;
 
-    FText GetEffectiveLockedMessage () const;
-    FText GetEffectiveUnlockSuccessMessage () const;
-    FText GetEffectiveAlreadyUnlockedMessage () const;
-    FText GetEffectiveMissingKeyMessage () const;
-    bool IsAcceptedKey (FName ItemDefinitionId) const;
-    bool AttachInsertedKeyVisual (
-        AGrimrockPartyPawn* PartyPawn,
-        const FGridItemInstance& CursorItem);
-    bool CompleteUnlock (
-        AGrimrockPartyPawn* PartyPawn,
-        FName MatchingKeyId,
-        const TCHAR* Source);
-    void ShowFeedback (AGrimrockPartyPawn* PartyPawn, const FText& Message) const;
+	FText GetEffectiveLockedMessage() const;
+	FText GetEffectiveUnlockSuccessMessage() const;
+	FText GetEffectiveAlreadyUnlockedMessage() const;
+	FText GetEffectiveMissingKeyMessage() const;
+	bool IsAcceptedKey(FName ItemDefinitionId) const;
+	bool AttachInsertedKeyVisual(AGrimrockPartyPawn* PartyPawn, const FGridItemInstance& CursorItem);
+	bool CompleteUnlock(AGrimrockPartyPawn* PartyPawn, FName MatchingKeyId, const TCHAR* Source);
+	void ShowFeedback(AGrimrockPartyPawn* PartyPawn, const FText& Message) const;
 };

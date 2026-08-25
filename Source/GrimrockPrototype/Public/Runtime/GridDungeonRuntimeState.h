@@ -8,281 +8,281 @@
 
 class UGridReadableContentAsset;
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeDoorState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid ObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsOpen = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsOpen = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bBlocksMovement = true;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bBlocksMovement = true;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeInteractiveState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid ObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsActivated = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsActivated = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsPressed = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsPressed = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsOn = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsOn = false;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeObjectPresenceState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid ObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bRemovedFromInitialPlacement = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bRemovedFromInitialPlacement = false;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeItemState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid ObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName ArchetypeId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName ArchetypeId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName ItemDefinitionId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName ItemDefinitionId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 Quantity = 1;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 Quantity = 1;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CellX = INDEX_NONE;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CellX = INDEX_NONE;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CellY = INDEX_NONE;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CellY = INDEX_NONE;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    EGridEdge Edge = EGridEdge::None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	EGridEdge Edge = EGridEdge::None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FTransform Transform = FTransform::Identity;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FTransform Transform = FTransform::Identity;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsSimulatingPhysics = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsSimulatingPhysics = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsContainedInReceptacle = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsContainedInReceptacle = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid ReceptacleObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ReceptacleObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bLightsEnabled = true;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bLightsEnabled = true;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TObjectPtr<UGridReadableContentAsset> ReadableContentAsset = nullptr;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName ReadableContentId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName ReadableContentId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FText ReadTitleOverride;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FText ReadTitleOverride;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FText ReadTextOverride;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FText ReadTextOverride;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeReceptacleState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid ObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid ObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TArray<FGridRuntimeItemState> ContainedItems;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TArray<FGridRuntimeItemState> ContainedItems;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeMonsterState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid PersistenceId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid PersistenceId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid SpawnObjectId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid SpawnObjectId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName MonsterDefinitionId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName MonsterDefinitionId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName DungeonLevelId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName DungeonLevelId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CellX = INDEX_NONE;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CellX = INDEX_NONE;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CellY = INDEX_NONE;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CellY = INDEX_NONE;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    EGridEdge Facing = EGridEdge::North;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	EGridEdge Facing = EGridEdge::North;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    EGridMonsterState MonsterState = EGridMonsterState::Idle;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	EGridMonsterState MonsterState = EGridMonsterState::Idle;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CurrentHealth = 0;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CurrentHealth = 0;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CurrentPhysicalArmor = 0;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CurrentPhysicalArmor = 0;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 CurrentMagicalArmor = 0;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 CurrentMagicalArmor = 0;
 
-    /** Stable MON16.7 status snapshots; DefinitionAsset remains transient. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TArray<FGridStatusEffectSaveState> StatusEffects;
+	/** Stable MON16.7 status snapshots; DefinitionAsset remains transient. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TArray<FGridStatusEffectSaveState> StatusEffects;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bMonsterEnabled = true;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bMonsterEnabled = true;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName EncounterGroupId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName EncounterGroupId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bHasLastKnownPartyCell = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bHasLastKnownPartyCell = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FIntPoint LastKnownPartyCell = FIntPoint::ZeroValue;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FIntPoint LastKnownPartyCell = FIntPoint::ZeroValue;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsDead = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsDead = false;
 };
 
 /** Persistent MON13.3 presence and last known state for one MonsterSpawn. */
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeMonsterPlacementState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid SpawnId;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid SpawnId;
 
-    /** False keeps the placement absent until a Spawn command succeeds. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bIsSpawned = false;
+	/** False keeps the placement absent until a Spawn command succeeds. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bIsSpawned = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bHasMonsterState = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bHasMonsterState = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGridRuntimeMonsterState MonsterState;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGridRuntimeMonsterState MonsterState;
 };
 
 /** Persistent MON13.4 progress for one encounter group. */
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridRuntimeMonsterEncounterState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName EncounterGroupId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName EncounterGroupId = NAME_None;
 
-    /** MonsterSpawn used as the source of encounter lifecycle links. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FGuid AnchorSpawnId;
+	/** MonsterSpawn used as the source of encounter lifecycle links. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FGuid AnchorSpawnId;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    int32 ActiveWaveIndex = INDEX_NONE;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	int32 ActiveWaveIndex = INDEX_NONE;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bStarted = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bStarted = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bCompleted = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bCompleted = false;
 
-    /** Only committed deaths advance waves; Despawn never adds an id here. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TSet<FGuid> DefeatedSpawnIds;
+	/** Only committed deaths advance waves; Despawn never adds an id here. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TSet<FGuid> DefeatedSpawnIds;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridLevelRuntimeState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    FName LevelId = NAME_None;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	FName LevelId = NAME_None;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeDoorState> Doors;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeDoorState> Doors;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeInteractiveState> InteractiveObjects;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeInteractiveState> InteractiveObjects;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeObjectPresenceState> ObjectPresence;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeObjectPresenceState> ObjectPresence;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeItemState> Items;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeItemState> Items;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeReceptacleState> Receptacles;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bHasBeenVisited = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bHasBeenVisited = false;
 
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeMonsterState> Monsters;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeMonsterState> Monsters;
 
-    /** MON13.3 lifecycle state keyed by persistent MonsterSpawn ObjectId. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FGuid, FGridRuntimeMonsterPlacementState> MonsterPlacements;
+	/** MON13.3 lifecycle state keyed by persistent MonsterSpawn ObjectId. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FGuid, FGridRuntimeMonsterPlacementState> MonsterPlacements;
 
-    /** MON13.4 encounter progress keyed by EncounterGroupId. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FName, FGridRuntimeMonsterEncounterState> MonsterEncounters;
+	/** MON13.4 encounter progress keyed by EncounterGroupId. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FName, FGridRuntimeMonsterEncounterState> MonsterEncounters;
 
-    /**
+	/**
      * MON19.2.2: distinguishes a canonical runtime variable snapshot from a
      * legacy save whose variables still need level-default initialization.
      */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    bool bLevelVariablesInitialized = false;
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bLevelVariablesInitialized = false;
 
-    /** MON19.2.2 Bool values keyed by stable VariableId. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FName, bool> BoolVariables;
+	/** MON19.2.2 Bool values keyed by stable VariableId. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FName, bool> BoolVariables;
 
-    /** MON19.2.2 Int32 values keyed by stable VariableId. */
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FName, int32> IntVariables;
+	/** MON19.2.2 Int32 values keyed by stable VariableId. */
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FName, int32> IntVariables;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridDungeonRuntimeState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    // Runtime state can be embedded in a versioned SaveGame while the actor keeps its owning property transient.
-    UPROPERTY (SaveGame, BlueprintReadWrite)
-    TMap<FName, FGridLevelRuntimeState> LevelStates;
+	// Runtime state can be embedded in a versioned SaveGame while the actor keeps its owning property transient.
+	UPROPERTY(SaveGame, BlueprintReadWrite)
+	TMap<FName, FGridLevelRuntimeState> LevelStates;
 };

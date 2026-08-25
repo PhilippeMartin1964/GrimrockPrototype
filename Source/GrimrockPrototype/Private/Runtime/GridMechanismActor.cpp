@@ -1,81 +1,81 @@
 #include "Runtime/GridMechanismActor.h"
 #include "Components/StaticMeshComponent.h"
 
-AGridMechanismActor::AGridMechanismActor ()
+AGridMechanismActor::AGridMechanismActor()
 {
-    PrimaryActorTick.bCanEverTick = true;
-    SetActorTickEnabled (false);
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 
-    FixedMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("FixedMesh"));
-    FixedMeshComponent->SetupAttachment (RootComponent);
+	FixedMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FixedMesh"));
+	FixedMeshComponent->SetupAttachment(RootComponent);
 
-    MovingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("MovingMesh"));
-    MovingMeshComponent->SetupAttachment (RootComponent);
+	MovingMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MovingMesh"));
+	MovingMeshComponent->SetupAttachment(RootComponent);
 }
 
-void AGridMechanismActor::InitializeMechanismVisuals (const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype,
-    const FTransform& WorldTransform)
+void AGridMechanismActor::InitializeMechanismVisuals(
+	const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform)
 {
-    ObjectId = ObjectData.ObjectId;
-    CellX = ObjectData.CellX;
-    CellY = ObjectData.CellY;
-    Edge = ObjectData.Edge;
+	ObjectId = ObjectData.ObjectId;
+	CellX = ObjectData.CellX;
+	CellY = ObjectData.CellY;
+	Edge = ObjectData.Edge;
 
-    SetActorTransform (WorldTransform);
+	SetActorTransform(WorldTransform);
 
-    if (!Archetype)
-    {
-        return;
-    }
-    SetFixedMesh (Archetype->FixedMesh.Get (), Archetype->FixedMaterial.Get ());
+	if (!Archetype)
+	{
+		return;
+	}
+	SetFixedMesh(Archetype->FixedMesh.Get(), Archetype->FixedMaterial.Get());
 
-    SetMovingMesh (Archetype->MovingMesh ? Archetype->MovingMesh.Get () : Archetype->PreviewMesh.Get (),
-        Archetype->MovingMaterial ? Archetype->MovingMaterial.Get () : Archetype->PreviewMaterial.Get ());
+	SetMovingMesh(Archetype->MovingMesh ? Archetype->MovingMesh.Get() : Archetype->PreviewMesh.Get(),
+		Archetype->MovingMaterial ? Archetype->MovingMaterial.Get() : Archetype->PreviewMaterial.Get());
 }
 
-void AGridMechanismActor::SetFixedMesh (UStaticMesh* Mesh, UMaterialInterface* Material)
+void AGridMechanismActor::SetFixedMesh(UStaticMesh* Mesh, UMaterialInterface* Material)
 {
-    if (!FixedMeshComponent)
-    {
-        return;
-    }
+	if (!FixedMeshComponent)
+	{
+		return;
+	}
 
-    FixedMeshComponent->SetStaticMesh (Mesh);
+	FixedMeshComponent->SetStaticMesh(Mesh);
 
-    if (Material)
-    {
-        FixedMeshComponent->SetMaterial (0, Material);
-    }
+	if (Material)
+	{
+		FixedMeshComponent->SetMaterial(0, Material);
+	}
 
-    FixedMeshComponent->SetVisibility (Mesh != nullptr);
+	FixedMeshComponent->SetVisibility(Mesh != nullptr);
 }
 
-void AGridMechanismActor::SetMovingMesh (UStaticMesh* Mesh, UMaterialInterface* Material)
+void AGridMechanismActor::SetMovingMesh(UStaticMesh* Mesh, UMaterialInterface* Material)
 {
-    if (!MovingMeshComponent)
-    {
-        return;
-    }
+	if (!MovingMeshComponent)
+	{
+		return;
+	}
 
-    MovingMeshComponent->SetStaticMesh (Mesh);
+	MovingMeshComponent->SetStaticMesh(Mesh);
 
-    if (Material)
-    {
-        MovingMeshComponent->SetMaterial (0, Material);
-    }
+	if (Material)
+	{
+		MovingMeshComponent->SetMaterial(0, Material);
+	}
 
-    MovingMeshComponent->SetVisibility (Mesh != nullptr);
+	MovingMeshComponent->SetVisibility(Mesh != nullptr);
 }
 
-void AGridMechanismActor::SetMovingRelativeLocation (const FVector& RelativeLocation)
+void AGridMechanismActor::SetMovingRelativeLocation(const FVector& RelativeLocation)
 {
-    if (MovingMeshComponent)
-    {
-        MovingMeshComponent->SetRelativeLocation (RelativeLocation);
-    }
+	if (MovingMeshComponent)
+	{
+		MovingMeshComponent->SetRelativeLocation(RelativeLocation);
+	}
 }
 
-FVector AGridMechanismActor::GetMovingRelativeLocation () const
+FVector AGridMechanismActor::GetMovingRelativeLocation() const
 {
-    return MovingMeshComponent ? MovingMeshComponent->GetRelativeLocation () : FVector::ZeroVector;
+	return MovingMeshComponent ? MovingMeshComponent->GetRelativeLocation() : FVector::ZeroVector;
 }

@@ -26,2648 +26,2231 @@
 
 namespace
 {
-    void SetInventoryOptionalText (UTextBlock* TextBlock, const FText& Value)
-    {
-        if (TextBlock)
-        {
-            TextBlock->SetText (Value);
-        }
-    }
+	void SetInventoryOptionalText(UTextBlock* TextBlock, const FText& Value)
+	{
+		if (TextBlock)
+		{
+			TextBlock->SetText(Value);
+		}
+	}
 
-    FText ResolveCharacterDisplayName (const FText& DisplayName, FName Id, const TCHAR* Fallback)
-    {
-        if (!DisplayName.IsEmpty ())
-        {
-            return DisplayName;
-        }
-        return Id.IsNone () ? FText::FromString (Fallback) : FText::FromName (Id);
-    }
+	FText ResolveCharacterDisplayName(const FText& DisplayName, FName Id, const TCHAR* Fallback)
+	{
+		if (!DisplayName.IsEmpty())
+		{
+			return DisplayName;
+		}
+		return Id.IsNone() ? FText::FromString(Fallback) : FText::FromName(Id);
+	}
 
-    FText FormatIntWithBonus (int32 FinalValue, int32 Bonus)
-    {
-        if (Bonus == 0)
-        {
-            return FText::AsNumber (FinalValue);
-        }
+	FText FormatIntWithBonus(int32 FinalValue, int32 Bonus)
+	{
+		if (Bonus == 0)
+		{
+			return FText::AsNumber(FinalValue);
+		}
 
-        return FText::FromString (FString::Printf (
-            TEXT ("%d (%+d)"),
-            FinalValue,
-            Bonus));
-    }
+		return FText::FromString(FString::Printf(TEXT("%d (%+d)"), FinalValue, Bonus));
+	}
 
-    FText FormatFloatWithBonus (float FinalValue, float Bonus, int32 FractionDigits = 1)
-    {
-        const FString FinalValueText = FString::Printf (TEXT ("%.*f"), FractionDigits, FinalValue);
-        if (FMath::IsNearlyZero (Bonus))
-        {
-            return FText::FromString (FinalValueText);
-        }
+	FText FormatFloatWithBonus(float FinalValue, float Bonus, int32 FractionDigits = 1)
+	{
+		const FString FinalValueText = FString::Printf(TEXT("%.*f"), FractionDigits, FinalValue);
+		if (FMath::IsNearlyZero(Bonus))
+		{
+			return FText::FromString(FinalValueText);
+		}
 
-        return FText::FromString (FString::Printf (
-            TEXT ("%s (%+.*f)"),
-            *FinalValueText,
-            FractionDigits,
-            Bonus));
-    }
+		return FText::FromString(FString::Printf(TEXT("%s (%+.*f)"), *FinalValueText, FractionDigits, Bonus));
+	}
 
-    FText FormatCurrentMaxWithMaxBonus (int32 CurrentValue, int32 FinalMaxValue, int32 MaxBonus)
-    {
-        if (MaxBonus == 0)
-        {
-            return FText::FromString (FString::Printf (
-                TEXT ("%d / %d"),
-                CurrentValue,
-                FinalMaxValue));
-        }
+	FText FormatCurrentMaxWithMaxBonus(int32 CurrentValue, int32 FinalMaxValue, int32 MaxBonus)
+	{
+		if (MaxBonus == 0)
+		{
+			return FText::FromString(FString::Printf(TEXT("%d / %d"), CurrentValue, FinalMaxValue));
+		}
 
-        return FText::FromString (FString::Printf (
-            TEXT ("%d / %d (%+d)"),
-            CurrentValue,
-            FinalMaxValue,
-            MaxBonus));
-    }
+		return FText::FromString(FString::Printf(TEXT("%d / %d (%+d)"), CurrentValue, FinalMaxValue, MaxBonus));
+	}
 
-    FText FormatWeightWithBonus (float CurrentWeight, float FinalMaxWeight, float MaxWeightBonus)
-    {
-        const FString CurrentWeightText = FString::Printf (TEXT ("%.1f"), CurrentWeight);
-        const FText FinalMaxWeightText = FormatFloatWithBonus (FinalMaxWeight, MaxWeightBonus);
-        return FText::FromString (FString::Printf (
-            TEXT ("%s / %s"),
-            *CurrentWeightText,
-            *FinalMaxWeightText.ToString ()));
-    }
+	FText FormatWeightWithBonus(float CurrentWeight, float FinalMaxWeight, float MaxWeightBonus)
+	{
+		const FString CurrentWeightText = FString::Printf(TEXT("%.1f"), CurrentWeight);
+		const FText FinalMaxWeightText = FormatFloatWithBonus(FinalMaxWeight, MaxWeightBonus);
+		return FText::FromString(FString::Printf(TEXT("%s / %s"), *CurrentWeightText, *FinalMaxWeightText.ToString()));
+	}
 
-    const TCHAR* GetContextActionName (EGridItemActionType ActionType)
-    {
-        switch (ActionType)
-        {
-        case EGridItemActionType::Equip: return TEXT ("Equip");
-        case EGridItemActionType::Unequip: return TEXT ("Unequip");
-        case EGridItemActionType::Consume: return TEXT ("Consume");
-        case EGridItemActionType::Read: return TEXT ("Read");
-        case EGridItemActionType::Examine: return TEXT ("Examine");
-        case EGridItemActionType::Use: return TEXT ("Use");
-        case EGridItemActionType::UseOnTarget: return TEXT ("UseOnTarget");
-        case EGridItemActionType::InsertIntoTarget: return TEXT ("InsertIntoTarget");
-        case EGridItemActionType::PlaceOnTarget: return TEXT ("PlaceOnTarget");
-        case EGridItemActionType::DropToGround: return TEXT ("DropToGround");
-        case EGridItemActionType::Throw: return TEXT ("Throw");
-        case EGridItemActionType::Combine: return TEXT ("Combine");
-        case EGridItemActionType::SplitStack: return TEXT ("SplitStack");
-        case EGridItemActionType::ToggleLight: return TEXT ("ToggleLight");
-        case EGridItemActionType::None:
-        default:
-            return TEXT ("None");
-        }
-    }
+	const TCHAR* GetContextActionName(EGridItemActionType ActionType)
+	{
+		switch (ActionType)
+		{
+			case EGridItemActionType::Equip:
+				return TEXT("Equip");
+			case EGridItemActionType::Unequip:
+				return TEXT("Unequip");
+			case EGridItemActionType::Consume:
+				return TEXT("Consume");
+			case EGridItemActionType::Read:
+				return TEXT("Read");
+			case EGridItemActionType::Examine:
+				return TEXT("Examine");
+			case EGridItemActionType::Use:
+				return TEXT("Use");
+			case EGridItemActionType::UseOnTarget:
+				return TEXT("UseOnTarget");
+			case EGridItemActionType::InsertIntoTarget:
+				return TEXT("InsertIntoTarget");
+			case EGridItemActionType::PlaceOnTarget:
+				return TEXT("PlaceOnTarget");
+			case EGridItemActionType::DropToGround:
+				return TEXT("DropToGround");
+			case EGridItemActionType::Throw:
+				return TEXT("Throw");
+			case EGridItemActionType::Combine:
+				return TEXT("Combine");
+			case EGridItemActionType::SplitStack:
+				return TEXT("SplitStack");
+			case EGridItemActionType::ToggleLight:
+				return TEXT("ToggleLight");
+			case EGridItemActionType::None:
+			default:
+				return TEXT("None");
+		}
+	}
 
-    const TCHAR* GetContextTargetTypeName (EGridFacingTargetType TargetType)
-    {
-        switch (TargetType)
-        {
-        case EGridFacingTargetType::WallLock: return TEXT ("WallLock");
-        case EGridFacingTargetType::Receptacle: return TEXT ("Receptacle");
-        case EGridFacingTargetType::TorchHolder: return TEXT ("TorchHolder");
-        case EGridFacingTargetType::Readable: return TEXT ("Readable");
-        case EGridFacingTargetType::Door: return TEXT ("Door");
-        case EGridFacingTargetType::Mechanism: return TEXT ("Mechanism");
-        case EGridFacingTargetType::None:
-        default:
-            return TEXT ("None");
-        }
-    }
+	const TCHAR* GetContextTargetTypeName(EGridFacingTargetType TargetType)
+	{
+		switch (TargetType)
+		{
+			case EGridFacingTargetType::WallLock:
+				return TEXT("WallLock");
+			case EGridFacingTargetType::Receptacle:
+				return TEXT("Receptacle");
+			case EGridFacingTargetType::TorchHolder:
+				return TEXT("TorchHolder");
+			case EGridFacingTargetType::Readable:
+				return TEXT("Readable");
+			case EGridFacingTargetType::Door:
+				return TEXT("Door");
+			case EGridFacingTargetType::Mechanism:
+				return TEXT("Mechanism");
+			case EGridFacingTargetType::None:
+			default:
+				return TEXT("None");
+		}
+	}
 
-    const TCHAR* GetContextEquipmentSlotName (EGridEquipmentSlot EquipmentSlot)
-    {
-        switch (EquipmentSlot)
-        {
-        case EGridEquipmentSlot::MainHand: return TEXT ("MainHand");
-        case EGridEquipmentSlot::OffHand: return TEXT ("OffHand");
-        case EGridEquipmentSlot::Head: return TEXT ("Head");
-        case EGridEquipmentSlot::Chest: return TEXT ("Chest");
-        case EGridEquipmentSlot::Legs: return TEXT ("Legs");
-        case EGridEquipmentSlot::Feet: return TEXT ("Feet");
-        case EGridEquipmentSlot::Amulet: return TEXT ("Amulet");
-        case EGridEquipmentSlot::Ring1: return TEXT ("Ring1");
-        case EGridEquipmentSlot::Ring2: return TEXT ("Ring2");
-        case EGridEquipmentSlot::Shoulders: return TEXT ("Shoulders");
-        case EGridEquipmentSlot::Gloves: return TEXT ("Gloves");
-        case EGridEquipmentSlot::Belt: return TEXT ("Belt");
-        case EGridEquipmentSlot::Cloak: return TEXT ("Cloak");
-        case EGridEquipmentSlot::Talisman: return TEXT ("Talisman");
-        case EGridEquipmentSlot::QuickSlot1: return TEXT ("QuickSlot1");
-        case EGridEquipmentSlot::QuickSlot2: return TEXT ("QuickSlot2");
-        case EGridEquipmentSlot::Face: return TEXT ("Visage");
-        case EGridEquipmentSlot::Shirt: return TEXT ("Chemise");
-        case EGridEquipmentSlot::Bracers: return TEXT ("Brassards");
-        case EGridEquipmentSlot::Earring1: return TEXT ("Bijou d'oreille I");
-        case EGridEquipmentSlot::Earring2: return TEXT ("Bijou d'oreille II");
-        case EGridEquipmentSlot::None:
-        default:
-            return TEXT ("None");
-        }
-    }
+	const TCHAR* GetContextEquipmentSlotName(EGridEquipmentSlot EquipmentSlot)
+	{
+		switch (EquipmentSlot)
+		{
+			case EGridEquipmentSlot::MainHand:
+				return TEXT("MainHand");
+			case EGridEquipmentSlot::OffHand:
+				return TEXT("OffHand");
+			case EGridEquipmentSlot::Head:
+				return TEXT("Head");
+			case EGridEquipmentSlot::Chest:
+				return TEXT("Chest");
+			case EGridEquipmentSlot::Legs:
+				return TEXT("Legs");
+			case EGridEquipmentSlot::Feet:
+				return TEXT("Feet");
+			case EGridEquipmentSlot::Amulet:
+				return TEXT("Amulet");
+			case EGridEquipmentSlot::Ring1:
+				return TEXT("Ring1");
+			case EGridEquipmentSlot::Ring2:
+				return TEXT("Ring2");
+			case EGridEquipmentSlot::Shoulders:
+				return TEXT("Shoulders");
+			case EGridEquipmentSlot::Gloves:
+				return TEXT("Gloves");
+			case EGridEquipmentSlot::Belt:
+				return TEXT("Belt");
+			case EGridEquipmentSlot::Cloak:
+				return TEXT("Cloak");
+			case EGridEquipmentSlot::Talisman:
+				return TEXT("Talisman");
+			case EGridEquipmentSlot::QuickSlot1:
+				return TEXT("QuickSlot1");
+			case EGridEquipmentSlot::QuickSlot2:
+				return TEXT("QuickSlot2");
+			case EGridEquipmentSlot::Face:
+				return TEXT("Visage");
+			case EGridEquipmentSlot::Shirt:
+				return TEXT("Chemise");
+			case EGridEquipmentSlot::Bracers:
+				return TEXT("Brassards");
+			case EGridEquipmentSlot::Earring1:
+				return TEXT("Bijou d'oreille I");
+			case EGridEquipmentSlot::Earring2:
+				return TEXT("Bijou d'oreille II");
+			case EGridEquipmentSlot::None:
+			default:
+				return TEXT("None");
+		}
+	}
 
-    const TCHAR* GetPaperDollEquipmentSlotName (EGridEquipmentSlot EquipmentSlot)
-    {
-        switch (EquipmentSlot)
-        {
-        case EGridEquipmentSlot::MainHand: return TEXT ("MainHand");
-        case EGridEquipmentSlot::OffHand: return TEXT ("OffHand");
-        case EGridEquipmentSlot::Head: return TEXT ("Head");
-        case EGridEquipmentSlot::Chest: return TEXT ("Chest");
-        case EGridEquipmentSlot::Legs: return TEXT ("Legs");
-        case EGridEquipmentSlot::Feet: return TEXT ("Feet");
-        case EGridEquipmentSlot::Amulet: return TEXT ("Amulet");
-        case EGridEquipmentSlot::Ring1: return TEXT ("Ring1");
-        case EGridEquipmentSlot::Ring2: return TEXT ("Ring2");
-        case EGridEquipmentSlot::Shoulders: return TEXT ("Shoulders");
-        case EGridEquipmentSlot::Gloves: return TEXT ("Gloves");
-        case EGridEquipmentSlot::Belt: return TEXT ("Belt");
-        case EGridEquipmentSlot::Cloak: return TEXT ("Cloak");
-        case EGridEquipmentSlot::Talisman: return TEXT ("Talisman");
-        case EGridEquipmentSlot::QuickSlot1: return TEXT ("QuickSlot1");
-        case EGridEquipmentSlot::QuickSlot2: return TEXT ("QuickSlot2");
-        case EGridEquipmentSlot::Face: return TEXT ("Face");
-        case EGridEquipmentSlot::Shirt: return TEXT ("Shirt");
-        case EGridEquipmentSlot::Bracers: return TEXT ("Bracers");
-        case EGridEquipmentSlot::Earring1: return TEXT ("Earring1");
-        case EGridEquipmentSlot::Earring2: return TEXT ("Earring2");
-        case EGridEquipmentSlot::None:
-        default:
-            return TEXT ("None");
-        }
-    }
+	const TCHAR* GetPaperDollEquipmentSlotName(EGridEquipmentSlot EquipmentSlot)
+	{
+		switch (EquipmentSlot)
+		{
+			case EGridEquipmentSlot::MainHand:
+				return TEXT("MainHand");
+			case EGridEquipmentSlot::OffHand:
+				return TEXT("OffHand");
+			case EGridEquipmentSlot::Head:
+				return TEXT("Head");
+			case EGridEquipmentSlot::Chest:
+				return TEXT("Chest");
+			case EGridEquipmentSlot::Legs:
+				return TEXT("Legs");
+			case EGridEquipmentSlot::Feet:
+				return TEXT("Feet");
+			case EGridEquipmentSlot::Amulet:
+				return TEXT("Amulet");
+			case EGridEquipmentSlot::Ring1:
+				return TEXT("Ring1");
+			case EGridEquipmentSlot::Ring2:
+				return TEXT("Ring2");
+			case EGridEquipmentSlot::Shoulders:
+				return TEXT("Shoulders");
+			case EGridEquipmentSlot::Gloves:
+				return TEXT("Gloves");
+			case EGridEquipmentSlot::Belt:
+				return TEXT("Belt");
+			case EGridEquipmentSlot::Cloak:
+				return TEXT("Cloak");
+			case EGridEquipmentSlot::Talisman:
+				return TEXT("Talisman");
+			case EGridEquipmentSlot::QuickSlot1:
+				return TEXT("QuickSlot1");
+			case EGridEquipmentSlot::QuickSlot2:
+				return TEXT("QuickSlot2");
+			case EGridEquipmentSlot::Face:
+				return TEXT("Face");
+			case EGridEquipmentSlot::Shirt:
+				return TEXT("Shirt");
+			case EGridEquipmentSlot::Bracers:
+				return TEXT("Bracers");
+			case EGridEquipmentSlot::Earring1:
+				return TEXT("Earring1");
+			case EGridEquipmentSlot::Earring2:
+				return TEXT("Earring2");
+			case EGridEquipmentSlot::None:
+			default:
+				return TEXT("None");
+		}
+	}
 
-    constexpr EGridEquipmentSlot PaperDollEquipmentSlots[] = {
-        EGridEquipmentSlot::Head,
-        EGridEquipmentSlot::Face,
-        EGridEquipmentSlot::Amulet,
-        EGridEquipmentSlot::Shoulders,
-        EGridEquipmentSlot::Shirt,
-        EGridEquipmentSlot::Chest,
-        EGridEquipmentSlot::Cloak,
-        EGridEquipmentSlot::Bracers,
-        EGridEquipmentSlot::Gloves,
-        EGridEquipmentSlot::Belt,
-        EGridEquipmentSlot::Legs,
-        EGridEquipmentSlot::Feet,
-        EGridEquipmentSlot::Ring1,
-        EGridEquipmentSlot::Ring2,
-        EGridEquipmentSlot::Earring1,
-        EGridEquipmentSlot::Earring2,
-        EGridEquipmentSlot::MainHand,
-        EGridEquipmentSlot::OffHand
-    };
+	constexpr EGridEquipmentSlot PaperDollEquipmentSlots[] = { EGridEquipmentSlot::Head, EGridEquipmentSlot::Face, EGridEquipmentSlot::Amulet,
+		EGridEquipmentSlot::Shoulders, EGridEquipmentSlot::Shirt, EGridEquipmentSlot::Chest, EGridEquipmentSlot::Cloak, EGridEquipmentSlot::Bracers,
+		EGridEquipmentSlot::Gloves, EGridEquipmentSlot::Belt, EGridEquipmentSlot::Legs, EGridEquipmentSlot::Feet, EGridEquipmentSlot::Ring1,
+		EGridEquipmentSlot::Ring2, EGridEquipmentSlot::Earring1, EGridEquipmentSlot::Earring2, EGridEquipmentSlot::MainHand, EGridEquipmentSlot::OffHand };
 
-    constexpr EGridEquipmentSlot ForbiddenPaperDollEquipmentSlots[] = {
-        EGridEquipmentSlot::Talisman,
-        EGridEquipmentSlot::QuickSlot1,
-        EGridEquipmentSlot::QuickSlot2
-    };
+	constexpr EGridEquipmentSlot ForbiddenPaperDollEquipmentSlots[] = { EGridEquipmentSlot::Talisman, EGridEquipmentSlot::QuickSlot1,
+		EGridEquipmentSlot::QuickSlot2 };
 
-    bool IsGridInventoryHandEquipmentSlot (EGridEquipmentSlot EquipmentSlot)
-    {
-        return EquipmentSlot == EGridEquipmentSlot::MainHand ||
-            EquipmentSlot == EGridEquipmentSlot::OffHand;
-    }
+	bool IsGridInventoryHandEquipmentSlot(EGridEquipmentSlot EquipmentSlot)
+	{
+		return EquipmentSlot == EGridEquipmentSlot::MainHand || EquipmentSlot == EGridEquipmentSlot::OffHand;
+	}
 
-    FObjectPropertyBase* FindCurrentItemActionMenuProperty (const UGridInventoryWidget* InventoryWidget)
-    {
-        if (!InventoryWidget)
-        {
-            return nullptr;
-        }
+	FObjectPropertyBase* FindCurrentItemActionMenuProperty(const UGridInventoryWidget* InventoryWidget)
+	{
+		if (!InventoryWidget)
+		{
+			return nullptr;
+		}
 
-        FProperty* Property = InventoryWidget->GetClass ()->FindPropertyByName (FName (TEXT ("CurrentItemActionMenu")));
-        return CastField<FObjectPropertyBase> (Property);
-    }
+		FProperty* Property = InventoryWidget->GetClass()->FindPropertyByName(FName(TEXT("CurrentItemActionMenu")));
+		return CastField<FObjectPropertyBase>(Property);
+	}
 
-    UUserWidget* GetCurrentItemActionMenuWidget (const UGridInventoryWidget* InventoryWidget)
-    {
-        FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty (InventoryWidget);
-        if (!Property || !InventoryWidget)
-        {
-            return nullptr;
-        }
+	UUserWidget* GetCurrentItemActionMenuWidget(const UGridInventoryWidget* InventoryWidget)
+	{
+		FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty(InventoryWidget);
+		if (!Property || !InventoryWidget)
+		{
+			return nullptr;
+		}
 
-        return Cast<UUserWidget> (Property->GetObjectPropertyValue_InContainer (InventoryWidget));
-    }
+		return Cast<UUserWidget>(Property->GetObjectPropertyValue_InContainer(InventoryWidget));
+	}
 
-    void ClearCurrentItemActionMenuWidget (UGridInventoryWidget* InventoryWidget)
-    {
-        FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty (InventoryWidget);
-        if (Property && InventoryWidget)
-        {
-            Property->SetObjectPropertyValue_InContainer (InventoryWidget, nullptr);
-        }
-    }
+	void ClearCurrentItemActionMenuWidget(UGridInventoryWidget* InventoryWidget)
+	{
+		FObjectPropertyBase* Property = FindCurrentItemActionMenuProperty(InventoryWidget);
+		if (Property && InventoryWidget)
+		{
+			Property->SetObjectPropertyValue_InContainer(InventoryWidget, nullptr);
+		}
+	}
 
-    bool IsItemActionMenuDetached (const UUserWidget* ItemActionMenu)
-    {
-        return ItemActionMenu && !ItemActionMenu->IsInViewport () && !ItemActionMenu->GetParent ();
-    }
+	bool IsItemActionMenuDetached(const UUserWidget* ItemActionMenu)
+	{
+		return ItemActionMenu && !ItemActionMenu->IsInViewport() && !ItemActionMenu->GetParent();
+	}
 
-    EGridEquipmentSlot ResolveUiEquipmentSlot (EGridInventoryUiSlotType SlotType, int32 SlotIndex)
-    {
-        switch (SlotType)
-        {
-        case EGridInventoryUiSlotType::Equipment:
-            return static_cast<EGridEquipmentSlot> (SlotIndex);
-        case EGridInventoryUiSlotType::MainHand:
-            return EGridEquipmentSlot::MainHand;
-        case EGridInventoryUiSlotType::OffHand:
-            return EGridEquipmentSlot::OffHand;
-        default:
-            return EGridEquipmentSlot::None;
-        }
-    }
+	EGridEquipmentSlot ResolveUiEquipmentSlot(EGridInventoryUiSlotType SlotType, int32 SlotIndex)
+	{
+		switch (SlotType)
+		{
+			case EGridInventoryUiSlotType::Equipment:
+				return static_cast<EGridEquipmentSlot>(SlotIndex);
+			case EGridInventoryUiSlotType::MainHand:
+				return EGridEquipmentSlot::MainHand;
+			case EGridInventoryUiSlotType::OffHand:
+				return EGridEquipmentSlot::OffHand;
+			default:
+				return EGridEquipmentSlot::None;
+		}
+	}
 
-    UVerticalBoxSlot* AddPaperDollSlotToColumn (
-        UVerticalBox* Column,
-        UGridInventorySlotWidget* SlotWidget)
-    {
-        if (!Column || !SlotWidget)
-        {
-            return nullptr;
-        }
+	UVerticalBoxSlot* AddPaperDollSlotToColumn(UVerticalBox* Column, UGridInventorySlotWidget* SlotWidget)
+	{
+		if (!Column || !SlotWidget)
+		{
+			return nullptr;
+		}
 
-        UVerticalBoxSlot* ColumnSlot = Column->AddChildToVerticalBox (SlotWidget);
-        if (ColumnSlot)
-        {
-            ColumnSlot->SetHorizontalAlignment (HAlign_Center);
-            ColumnSlot->SetVerticalAlignment (VAlign_Center);
-            ColumnSlot->SetPadding (FMargin (0.0f));
-        }
-        return ColumnSlot;
-    }
+		UVerticalBoxSlot* ColumnSlot = Column->AddChildToVerticalBox(SlotWidget);
+		if (ColumnSlot)
+		{
+			ColumnSlot->SetHorizontalAlignment(HAlign_Center);
+			ColumnSlot->SetVerticalAlignment(VAlign_Center);
+			ColumnSlot->SetPadding(FMargin(0.0f));
+		}
+		return ColumnSlot;
+	}
 
-    UHorizontalBoxSlot* AddPaperDollSlotToRow (
-        UHorizontalBox* Row,
-        UWidget* Widget,
-        const FMargin& Padding = FMargin (0.0f))
-    {
-        if (!Row || !Widget)
-        {
-            return nullptr;
-        }
+	UHorizontalBoxSlot* AddPaperDollSlotToRow(UHorizontalBox* Row, UWidget* Widget, const FMargin& Padding = FMargin(0.0f))
+	{
+		if (!Row || !Widget)
+		{
+			return nullptr;
+		}
 
-        UHorizontalBoxSlot* RowSlot = Row->AddChildToHorizontalBox (Widget);
-        if (RowSlot)
-        {
-            RowSlot->SetHorizontalAlignment (HAlign_Center);
-            RowSlot->SetVerticalAlignment (VAlign_Center);
-            RowSlot->SetPadding (Padding);
-        }
-        return RowSlot;
-    }
+		UHorizontalBoxSlot* RowSlot = Row->AddChildToHorizontalBox(Widget);
+		if (RowSlot)
+		{
+			RowSlot->SetHorizontalAlignment(HAlign_Center);
+			RowSlot->SetVerticalAlignment(VAlign_Center);
+			RowSlot->SetPadding(Padding);
+		}
+		return RowSlot;
+	}
 }
 
-void UGridInventoryWidget::InitializeInventoryWidget (AGrimrockPartyPawn* InPartyPawn)
+void UGridInventoryWidget::InitializeInventoryWidget(AGrimrockPartyPawn* InPartyPawn)
 {
-    OwningPartyPawn = InPartyPawn;
-    InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
-    RefreshInventory ();
+	OwningPartyPawn = InPartyPawn;
+	InventoryComponent = InPartyPawn ? InPartyPawn->PartyInventoryComponent : nullptr;
+	RefreshInventory();
 }
 
-void UGridInventoryWidget::RefreshInventory ()
+void UGridInventoryWidget::RefreshInventory()
 {
-    UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"),
-        *GetNameSafe (OwningPartyPawn),
-        *GetNameSafe (InventoryComponent));
-    RefreshSelectedCharacterDetails ();
-    RefreshRegisteredPartyMemberWidgets ();
-    RefreshRegisteredSlotWidgets ();
+	UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI Refresh Pawn=%s InventoryComponent=%s"), *GetNameSafe(OwningPartyPawn), *GetNameSafe(InventoryComponent));
+	RefreshSelectedCharacterDetails();
+	RefreshRegisteredPartyMemberWidgets();
+	RefreshRegisteredSlotWidgets();
 }
 
-int32 UGridInventoryWidget::GetSelectedCharacterIndex () const
+int32 UGridInventoryWidget::GetSelectedCharacterIndex() const
 {
-    return InventoryComponent ? InventoryComponent->GetSelectedCharacterIndex () : INDEX_NONE;
+	return InventoryComponent ? InventoryComponent->GetSelectedCharacterIndex() : INDEX_NONE;
 }
 
-int32 UGridInventoryWidget::GetInventorySlotCount () const
+int32 UGridInventoryWidget::GetInventorySlotCount() const
 {
-    if (!InventoryComponent)
-    {
-        return 0;
-    }
+	if (!InventoryComponent)
+	{
+		return 0;
+	}
 
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
-    return State.ActiveCharacters.IsValidIndex (CharacterIndex)
-        ? State.ActiveCharacters[CharacterIndex].InventorySlots.Num ()
-        : 0;
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+	return State.ActiveCharacters.IsValidIndex(CharacterIndex) ? State.ActiveCharacters[CharacterIndex].InventorySlots.Num() : 0;
 }
 
-bool UGridInventoryWidget::GetInventoryItemAtSlot (int32 SlotIndex, FGridItemInstance& OutItem) const
+bool UGridInventoryWidget::GetInventoryItemAtSlot(int32 SlotIndex, FGridItemInstance& OutItem) const
 {
-    OutItem = FGridItemInstance ();
-    if (!InventoryComponent)
-    {
-        return false;
-    }
+	OutItem = FGridItemInstance();
+	if (!InventoryComponent)
+	{
+		return false;
+	}
 
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
-    if (!State.ActiveCharacters.IsValidIndex (CharacterIndex))
-    {
-        return false;
-    }
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+	if (!State.ActiveCharacters.IsValidIndex(CharacterIndex))
+	{
+		return false;
+	}
 
-    const FGridCharacterInventoryState& CharacterState = State.ActiveCharacters[CharacterIndex];
-    if (!CharacterState.InventorySlots.IsValidIndex (SlotIndex) ||
-        CharacterState.InventorySlots[SlotIndex].IsEmpty ())
-    {
-        return false;
-    }
+	const FGridCharacterInventoryState& CharacterState = State.ActiveCharacters[CharacterIndex];
+	if (!CharacterState.InventorySlots.IsValidIndex(SlotIndex) || CharacterState.InventorySlots[SlotIndex].IsEmpty())
+	{
+		return false;
+	}
 
-    OutItem = CharacterState.InventorySlots[SlotIndex].Item;
-    return true;
+	OutItem = CharacterState.InventorySlots[SlotIndex].Item;
+	return true;
 }
 
-bool UGridInventoryWidget::GetMainHandItem (FGridItemInstance& OutItem) const
+bool UGridInventoryWidget::GetMainHandItem(FGridItemInstance& OutItem) const
 {
-    OutItem = FGridItemInstance ();
-    if (!InventoryComponent)
-    {
-        return false;
-    }
-    return InventoryComponent->GetEquippedItem (
-        InventoryComponent->GetSelectedCharacterIndex (),
-        EGridEquipmentSlot::MainHand,
-        OutItem);
+	OutItem = FGridItemInstance();
+	if (!InventoryComponent)
+	{
+		return false;
+	}
+	return InventoryComponent->GetEquippedItem(InventoryComponent->GetSelectedCharacterIndex(), EGridEquipmentSlot::MainHand, OutItem);
 }
 
-bool UGridInventoryWidget::GetOffHandItem (FGridItemInstance& OutItem) const
+bool UGridInventoryWidget::GetOffHandItem(FGridItemInstance& OutItem) const
 {
-    OutItem = FGridItemInstance ();
-    if (!InventoryComponent)
-    {
-        return false;
-    }
-    return InventoryComponent->GetEquippedItem (
-        InventoryComponent->GetSelectedCharacterIndex (),
-        EGridEquipmentSlot::OffHand,
-        OutItem);
+	OutItem = FGridItemInstance();
+	if (!InventoryComponent)
+	{
+		return false;
+	}
+	return InventoryComponent->GetEquippedItem(InventoryComponent->GetSelectedCharacterIndex(), EGridEquipmentSlot::OffHand, OutItem);
 }
 
-bool UGridInventoryWidget::GetEquipmentItem (EGridEquipmentSlot EquipmentSlot, FGridItemInstance& OutItem) const
+bool UGridInventoryWidget::GetEquipmentItem(EGridEquipmentSlot EquipmentSlot, FGridItemInstance& OutItem) const
 {
-    OutItem = FGridItemInstance ();
-    return InventoryComponent &&
-        EquipmentSlot != EGridEquipmentSlot::None &&
-        InventoryComponent->GetEquippedItem (
-            InventoryComponent->GetSelectedCharacterIndex (),
-            EquipmentSlot,
-            OutItem);
+	OutItem = FGridItemInstance();
+	return InventoryComponent && EquipmentSlot != EGridEquipmentSlot::None &&
+		InventoryComponent->GetEquippedItem(InventoryComponent->GetSelectedCharacterIndex(), EquipmentSlot, OutItem);
 }
 
-bool UGridInventoryWidget::GetCursorItem (FGridItemInstance& OutItem) const
+bool UGridInventoryWidget::GetCursorItem(FGridItemInstance& OutItem) const
 {
-    OutItem = FGridItemInstance ();
-    if (!InventoryComponent || !InventoryComponent->HasCursorItem ())
-    {
-        return false;
-    }
+	OutItem = FGridItemInstance();
+	if (!InventoryComponent || !InventoryComponent->HasCursorItem())
+	{
+		return false;
+	}
 
-    OutItem = InventoryComponent->GetCursorItem ();
-    return true;
+	OutItem = InventoryComponent->GetCursorItem();
+	return true;
 }
 
-bool UGridInventoryWidget::HasCursorItem () const
+bool UGridInventoryWidget::HasCursorItem() const
 {
-    return InventoryComponent && InventoryComponent->HasCursorItem ();
+	return InventoryComponent && InventoryComponent->HasCursorItem();
 }
 
-FString UGridInventoryWidget::GetItemDisplayString (const FGridItemInstance& Item) const
+FString UGridInventoryWidget::GetItemDisplayString(const FGridItemInstance& Item) const
 {
-    return Item.ItemDefinitionId.IsNone () ? FString (TEXT ("Empty")) : Item.ItemDefinitionId.ToString ();
+	return Item.ItemDefinitionId.IsNone() ? FString(TEXT("Empty")) : Item.ItemDefinitionId.ToString();
 }
 
-FString UGridInventoryWidget::GetCursorItemDisplayText () const
+FString UGridInventoryWidget::GetCursorItemDisplayText() const
 {
-    FGridItemInstance Item;
-    GetCursorItem (Item);
-    return FString::Printf (TEXT ("Cursor: %s"), *GetItemDisplayString (Item));
+	FGridItemInstance Item;
+	GetCursorItem(Item);
+	return FString::Printf(TEXT("Cursor: %s"), *GetItemDisplayString(Item));
 }
 
-FString UGridInventoryWidget::GetMainHandDisplayText () const
+FString UGridInventoryWidget::GetMainHandDisplayText() const
 {
-    FGridItemInstance Item;
-    GetMainHandItem (Item);
-    return FString::Printf (TEXT ("MainHand: %s"), *GetItemDisplayString (Item));
+	FGridItemInstance Item;
+	GetMainHandItem(Item);
+	return FString::Printf(TEXT("MainHand: %s"), *GetItemDisplayString(Item));
 }
 
-FString UGridInventoryWidget::GetOffHandDisplayText () const
+FString UGridInventoryWidget::GetOffHandDisplayText() const
 {
-    FGridItemInstance Item;
-    GetOffHandItem (Item);
-    return FString::Printf (TEXT ("OffHand: %s"), *GetItemDisplayString (Item));
+	FGridItemInstance Item;
+	GetOffHandItem(Item);
+	return FString::Printf(TEXT("OffHand: %s"), *GetItemDisplayString(Item));
 }
 
-FString UGridInventoryWidget::GetInventorySlotDisplayText (int32 SlotIndex) const
+FString UGridInventoryWidget::GetInventorySlotDisplayText(int32 SlotIndex) const
 {
-    FGridItemInstance Item;
-    GetInventoryItemAtSlot (SlotIndex, Item);
-    return FString::Printf (TEXT ("Slot %d: %s"), SlotIndex, *GetItemDisplayString (Item));
+	FGridItemInstance Item;
+	GetInventoryItemAtSlot(SlotIndex, Item);
+	return FString::Printf(TEXT("Slot %d: %s"), SlotIndex, *GetItemDisplayString(Item));
 }
 
-int32 UGridInventoryWidget::GetActiveCharacterCount () const
+int32 UGridInventoryWidget::GetActiveCharacterCount() const
 {
-    return InventoryComponent ? InventoryComponent->GetActiveCharacterCount () : 0;
+	return InventoryComponent ? InventoryComponent->GetActiveCharacterCount() : 0;
 }
 
-int32 UGridInventoryWidget::GetMaxActiveCharacterCount () const
+int32 UGridInventoryWidget::GetMaxActiveCharacterCount() const
 {
-    return InventoryComponent ? InventoryComponent->GetMaxActiveCharacterCount () : 0;
+	return InventoryComponent ? InventoryComponent->GetMaxActiveCharacterCount() : 0;
 }
 
-bool UGridInventoryWidget::GetCharacterSummary (
-    int32 CharacterIndex,
-    FGridInventoryCharacterSummary& OutSummary) const
+bool UGridInventoryWidget::GetCharacterSummary(int32 CharacterIndex, FGridInventoryCharacterSummary& OutSummary) const
 {
-    OutSummary = FGridInventoryCharacterSummary ();
-    return InventoryComponent && InventoryComponent->GetCharacterSummary (CharacterIndex, OutSummary);
+	OutSummary = FGridInventoryCharacterSummary();
+	return InventoryComponent && InventoryComponent->GetCharacterSummary(CharacterIndex, OutSummary);
 }
 
-bool UGridInventoryWidget::SelectCharacter (int32 CharacterIndex)
+bool UGridInventoryWidget::SelectCharacter(int32 CharacterIndex)
 {
-    const bool bResult = InventoryComponent && InventoryComponent->SetSelectedCharacterIndex (CharacterIndex);
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI SelectCharacter Index=%d Result=%s"),
-        CharacterIndex,
-        bResult ? TEXT ("true") : TEXT ("false"));
-    RefreshInventory ();
-    return bResult;
+	const bool bResult = InventoryComponent && InventoryComponent->SetSelectedCharacterIndex(CharacterIndex);
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SelectCharacter Index=%d Result=%s"), CharacterIndex, bResult ? TEXT("true") : TEXT("false"));
+	RefreshInventory();
+	return bResult;
 }
 
-FString UGridInventoryWidget::GetCharacterDisplayText (int32 CharacterIndex) const
+FString UGridInventoryWidget::GetCharacterDisplayText(int32 CharacterIndex) const
 {
-    FGridInventoryCharacterSummary Summary;
-    if (!GetCharacterSummary (CharacterIndex, Summary))
-    {
-        return FString::Printf (TEXT ("%d Empty"), CharacterIndex);
-    }
+	FGridInventoryCharacterSummary Summary;
+	if (!GetCharacterSummary(CharacterIndex, Summary))
+	{
+		return FString::Printf(TEXT("%d Empty"), CharacterIndex);
+	}
 
-    const FString NameText = Summary.DisplayName.IsEmpty ()
-        ? FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1)
-        : Summary.DisplayName.ToString ();
-    return FString::Printf (TEXT ("%d %s"), CharacterIndex, *NameText);
+	const FString NameText = Summary.DisplayName.IsEmpty() ? FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1) : Summary.DisplayName.ToString();
+	return FString::Printf(TEXT("%d %s"), CharacterIndex, *NameText);
 }
 
-FString UGridInventoryWidget::GetSelectedCharacterDisplayText () const
+FString UGridInventoryWidget::GetSelectedCharacterDisplayText() const
 {
-    const int32 CharacterIndex = GetSelectedCharacterIndex ();
-    FGridInventoryCharacterSummary Summary;
-    if (!GetCharacterSummary (CharacterIndex, Summary))
-    {
-        return TEXT ("SelectedCharacter: None");
-    }
+	const int32 CharacterIndex = GetSelectedCharacterIndex();
+	FGridInventoryCharacterSummary Summary;
+	if (!GetCharacterSummary(CharacterIndex, Summary))
+	{
+		return TEXT("SelectedCharacter: None");
+	}
 
-    const FString NameText = Summary.DisplayName.IsEmpty ()
-        ? FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1)
-        : Summary.DisplayName.ToString ();
-    const FString ClassText = Summary.ClassDisplayName.IsEmpty ()
-        ? (Summary.ClassId.IsNone () ? FString (TEXT ("Classe inconnue")) : Summary.ClassId.ToString ())
-        : Summary.ClassDisplayName.ToString ();
-    return FString::Printf (
-        TEXT ("SelectedCharacter: %d %s %s Lv%d"),
-        CharacterIndex,
-        *NameText,
-        *ClassText,
-        Summary.Level);
+	const FString NameText = Summary.DisplayName.IsEmpty() ? FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1) : Summary.DisplayName.ToString();
+	const FString ClassText = Summary.ClassDisplayName.IsEmpty() ? (Summary.ClassId.IsNone() ? FString(TEXT("Classe inconnue")) : Summary.ClassId.ToString())
+																 : Summary.ClassDisplayName.ToString();
+	return FString::Printf(TEXT("SelectedCharacter: %d %s %s Lv%d"), CharacterIndex, *NameText, *ClassText, Summary.Level);
 }
 
-void UGridInventoryWidget::RegisterPartyMemberWidget (
-    UGridPartyMemberWidget* MemberWidget,
-    int32 CharacterIndex)
+void UGridInventoryWidget::RegisterPartyMemberWidget(UGridPartyMemberWidget* MemberWidget, int32 CharacterIndex)
 {
-    if (!MemberWidget)
-    {
-        return;
-    }
+	if (!MemberWidget)
+	{
+		return;
+	}
 
-    MemberWidget->InitializePartyMember (CharacterIndex);
-    MemberWidget->OnPartyMemberClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
-    MemberWidget->OnPartyMemberClicked.AddDynamic (this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
-    RegisteredPartyMemberWidgets.AddUnique (MemberWidget);
-    RefreshRegisteredPartyMemberWidgets ();
+	MemberWidget->InitializePartyMember(CharacterIndex);
+	MemberWidget->OnPartyMemberClicked.RemoveDynamic(this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
+	MemberWidget->OnPartyMemberClicked.AddDynamic(this, &UGridInventoryWidget::HandleRegisteredPartyMemberClicked);
+	RegisteredPartyMemberWidgets.AddUnique(MemberWidget);
+	RefreshRegisteredPartyMemberWidgets();
 }
 
-void UGridInventoryWidget::RefreshRegisteredPartyMemberWidgets ()
+void UGridInventoryWidget::RefreshRegisteredPartyMemberWidgets()
 {
-    for (UGridPartyMemberWidget* MemberWidget : RegisteredPartyMemberWidgets)
-    {
-        if (!MemberWidget)
-        {
-            continue;
-        }
+	for (UGridPartyMemberWidget* MemberWidget : RegisteredPartyMemberWidgets)
+	{
+		if (!MemberWidget)
+		{
+			continue;
+		}
 
-        FGridInventoryCharacterSummary Summary;
-        if (GetCharacterSummary (MemberWidget->CharacterIndex, Summary))
-        {
-            MemberWidget->SetVisibility (ESlateVisibility::Visible);
-            MemberWidget->SetCharacterSummary (Summary);
-        }
-        else
-        {
-            MemberWidget->SetVisibility (ESlateVisibility::Collapsed);
-        }
-    }
+		FGridInventoryCharacterSummary Summary;
+		if (GetCharacterSummary(MemberWidget->CharacterIndex, Summary))
+		{
+			MemberWidget->SetVisibility(ESlateVisibility::Visible);
+			MemberWidget->SetCharacterSummary(Summary);
+		}
+		else
+		{
+			MemberWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
 }
 
-void UGridInventoryWidget::HandleRegisteredPartyMemberClicked (int32 CharacterIndex)
+void UGridInventoryWidget::HandleRegisteredPartyMemberClicked(int32 CharacterIndex)
 {
-    SelectCharacter (CharacterIndex);
+	SelectCharacter(CharacterIndex);
 }
 
-void UGridInventoryWidget::RefreshSelectedCharacterDetails ()
+void UGridInventoryWidget::RefreshSelectedCharacterDetails()
 {
-    FGridInventoryCharacterSummary Summary;
-    if (!GetCharacterSummary (GetSelectedCharacterIndex (), Summary))
-    {
-        SetInventoryOptionalText (Text_CharacterName, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterRace, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterClass, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterLevel, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterExperience, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterStrength, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterDexterity, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterConstitution, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterIntelligence, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterWisdom, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterCharisma, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterHealth, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterMana, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterCarryWeight, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_CharacterArmor, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistanceFire, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistanceIce, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistanceLightning, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistancePoison, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistanceHoly, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistanceNecrotic, FText::GetEmpty ());
-        SetInventoryOptionalText (Text_ResistanceArcane, FText::GetEmpty ());
-        if (Image_CharacterPortrait)
-        {
-            Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
-        }
-        return;
-    }
+	FGridInventoryCharacterSummary Summary;
+	if (!GetCharacterSummary(GetSelectedCharacterIndex(), Summary))
+	{
+		SetInventoryOptionalText(Text_CharacterName, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterRace, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterClass, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterLevel, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterExperience, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterStrength, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterDexterity, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterConstitution, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterIntelligence, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterWisdom, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterCharisma, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterHealth, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterMana, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterCarryWeight, FText::GetEmpty());
+		SetInventoryOptionalText(Text_CharacterArmor, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistanceFire, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistanceIce, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistanceLightning, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistancePoison, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistanceHoly, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistanceNecrotic, FText::GetEmpty());
+		SetInventoryOptionalText(Text_ResistanceArcane, FText::GetEmpty());
+		if (Image_CharacterPortrait)
+		{
+			Image_CharacterPortrait->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		return;
+	}
 
-    SetInventoryOptionalText (Text_CharacterName, Summary.DisplayName);
-    SetInventoryOptionalText (
-        Text_CharacterRace,
-        ResolveCharacterDisplayName (Summary.RaceDisplayName, Summary.RaceId, TEXT ("Race inconnue")));
-    SetInventoryOptionalText (
-        Text_CharacterClass,
-        ResolveCharacterDisplayName (Summary.ClassDisplayName, Summary.ClassId, TEXT ("Classe inconnue")));
-    SetInventoryOptionalText (Text_CharacterLevel, FText::AsNumber (Summary.Level));
-    SetInventoryOptionalText (Text_CharacterExperience, FText::AsNumber (Summary.Experience));
-    SetInventoryOptionalText (
-        Text_CharacterStrength,
-        FormatIntWithBonus (Summary.Attributes.Strength, Summary.EquipmentStatBonus.StrengthBonus));
-    SetInventoryOptionalText (
-        Text_CharacterDexterity,
-        FormatIntWithBonus (Summary.Attributes.Dexterity, Summary.EquipmentStatBonus.DexterityBonus));
-    SetInventoryOptionalText (
-        Text_CharacterConstitution,
-        FormatIntWithBonus (Summary.Attributes.Constitution, Summary.EquipmentStatBonus.ConstitutionBonus));
-    SetInventoryOptionalText (
-        Text_CharacterIntelligence,
-        FormatIntWithBonus (Summary.Attributes.Intelligence, Summary.EquipmentStatBonus.IntelligenceBonus));
-    SetInventoryOptionalText (
-        Text_CharacterWisdom,
-        FormatIntWithBonus (Summary.Attributes.Wisdom, Summary.EquipmentStatBonus.WisdomBonus));
-    SetInventoryOptionalText (
-        Text_CharacterCharisma,
-        FormatIntWithBonus (Summary.Attributes.Charisma, Summary.EquipmentStatBonus.CharismaBonus));
-    SetInventoryOptionalText (
-        Text_CharacterHealth,
-        FormatCurrentMaxWithMaxBonus (
-            Summary.DerivedStats.CurrentHealth,
-            Summary.DerivedStats.MaxHealth,
-            Summary.EquipmentStatBonus.MaxHealthBonus));
-    SetInventoryOptionalText (
-        Text_CharacterMana,
-        FormatCurrentMaxWithMaxBonus (
-            Summary.DerivedStats.CurrentMana,
-            Summary.DerivedStats.MaxMana,
-            Summary.EquipmentStatBonus.MaxManaBonus));
-    SetInventoryOptionalText (
-        Text_CharacterCarryWeight,
-        FormatWeightWithBonus (
-            Summary.CurrentWeight,
-            Summary.MaxWeight,
-            Summary.EquipmentStatBonus.CarryWeightBonus));
-    SetInventoryOptionalText (
-        Text_CharacterArmor,
-        FormatIntWithBonus (Summary.DerivedStats.PhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus));
-    SetInventoryOptionalText (Text_ResistanceFire, FText::AsNumber (Summary.FinalResistances.FireResistance));
-    SetInventoryOptionalText (Text_ResistanceIce, FText::AsNumber (Summary.FinalResistances.IceResistance));
-    SetInventoryOptionalText (Text_ResistanceLightning, FText::AsNumber (Summary.FinalResistances.LightningResistance));
-    SetInventoryOptionalText (Text_ResistancePoison, FText::AsNumber (Summary.FinalResistances.PoisonResistance));
-    SetInventoryOptionalText (Text_ResistanceHoly, FText::AsNumber (Summary.FinalResistances.HolyResistance));
-    SetInventoryOptionalText (Text_ResistanceNecrotic, FText::AsNumber (Summary.FinalResistances.NecroticResistance));
-    SetInventoryOptionalText (Text_ResistanceArcane, FText::AsNumber (Summary.FinalResistances.ArcaneResistance));
+	SetInventoryOptionalText(Text_CharacterName, Summary.DisplayName);
+	SetInventoryOptionalText(Text_CharacterRace, ResolveCharacterDisplayName(Summary.RaceDisplayName, Summary.RaceId, TEXT("Race inconnue")));
+	SetInventoryOptionalText(Text_CharacterClass, ResolveCharacterDisplayName(Summary.ClassDisplayName, Summary.ClassId, TEXT("Classe inconnue")));
+	SetInventoryOptionalText(Text_CharacterLevel, FText::AsNumber(Summary.Level));
+	SetInventoryOptionalText(Text_CharacterExperience, FText::AsNumber(Summary.Experience));
+	SetInventoryOptionalText(Text_CharacterStrength, FormatIntWithBonus(Summary.Attributes.Strength, Summary.EquipmentStatBonus.StrengthBonus));
+	SetInventoryOptionalText(Text_CharacterDexterity, FormatIntWithBonus(Summary.Attributes.Dexterity, Summary.EquipmentStatBonus.DexterityBonus));
+	SetInventoryOptionalText(Text_CharacterConstitution, FormatIntWithBonus(Summary.Attributes.Constitution, Summary.EquipmentStatBonus.ConstitutionBonus));
+	SetInventoryOptionalText(Text_CharacterIntelligence, FormatIntWithBonus(Summary.Attributes.Intelligence, Summary.EquipmentStatBonus.IntelligenceBonus));
+	SetInventoryOptionalText(Text_CharacterWisdom, FormatIntWithBonus(Summary.Attributes.Wisdom, Summary.EquipmentStatBonus.WisdomBonus));
+	SetInventoryOptionalText(Text_CharacterCharisma, FormatIntWithBonus(Summary.Attributes.Charisma, Summary.EquipmentStatBonus.CharismaBonus));
+	SetInventoryOptionalText(Text_CharacterHealth,
+		FormatCurrentMaxWithMaxBonus(Summary.DerivedStats.CurrentHealth, Summary.DerivedStats.MaxHealth, Summary.EquipmentStatBonus.MaxHealthBonus));
+	SetInventoryOptionalText(Text_CharacterMana,
+		FormatCurrentMaxWithMaxBonus(Summary.DerivedStats.CurrentMana, Summary.DerivedStats.MaxMana, Summary.EquipmentStatBonus.MaxManaBonus));
+	SetInventoryOptionalText(
+		Text_CharacterCarryWeight, FormatWeightWithBonus(Summary.CurrentWeight, Summary.MaxWeight, Summary.EquipmentStatBonus.CarryWeightBonus));
+	SetInventoryOptionalText(Text_CharacterArmor, FormatIntWithBonus(Summary.DerivedStats.PhysicalArmor, Summary.EquipmentStatBonus.ArmorBonus));
+	SetInventoryOptionalText(Text_ResistanceFire, FText::AsNumber(Summary.FinalResistances.FireResistance));
+	SetInventoryOptionalText(Text_ResistanceIce, FText::AsNumber(Summary.FinalResistances.IceResistance));
+	SetInventoryOptionalText(Text_ResistanceLightning, FText::AsNumber(Summary.FinalResistances.LightningResistance));
+	SetInventoryOptionalText(Text_ResistancePoison, FText::AsNumber(Summary.FinalResistances.PoisonResistance));
+	SetInventoryOptionalText(Text_ResistanceHoly, FText::AsNumber(Summary.FinalResistances.HolyResistance));
+	SetInventoryOptionalText(Text_ResistanceNecrotic, FText::AsNumber(Summary.FinalResistances.NecroticResistance));
+	SetInventoryOptionalText(Text_ResistanceArcane, FText::AsNumber(Summary.FinalResistances.ArcaneResistance));
 
-    if (Image_CharacterPortrait)
-    {
-        if (Summary.Portrait.IsNull ())
-        {
-            Image_CharacterPortrait->SetVisibility (ESlateVisibility::Collapsed);
-        }
-        else
-        {
-            Image_CharacterPortrait->SetBrushFromSoftTexture (Summary.Portrait, false);
-            Image_CharacterPortrait->SetVisibility (ESlateVisibility::HitTestInvisible);
-        }
-    }
+	if (Image_CharacterPortrait)
+	{
+		if (Summary.Portrait.IsNull())
+		{
+			Image_CharacterPortrait->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			Image_CharacterPortrait->SetBrushFromSoftTexture(Summary.Portrait, false);
+			Image_CharacterPortrait->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
 }
 
-void UGridInventoryWidget::RegisterInventorySlotWidget (
-    UGridInventorySlotWidget* SlotWidget,
-    EGridInventoryUiSlotType SlotType,
-    int32 SlotIndex)
+void UGridInventoryWidget::RegisterInventorySlotWidget(UGridInventorySlotWidget* SlotWidget, EGridInventoryUiSlotType SlotType, int32 SlotIndex)
 {
-    if (!SlotWidget)
-    {
-        return;
-    }
+	if (!SlotWidget)
+	{
+		return;
+	}
 
-    SlotWidget->InitializeInventorySlot (SlotType, SlotIndex);
-    SlotWidget->SetOwnerInventoryWidget (this);
-    SlotWidget->OnSlotClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
-    SlotWidget->OnSlotClicked.AddDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
+	SlotWidget->InitializeInventorySlot(SlotType, SlotIndex);
+	SlotWidget->SetOwnerInventoryWidget(this);
+	SlotWidget->OnSlotClicked.RemoveDynamic(this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
+	SlotWidget->OnSlotClicked.AddDynamic(this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
 
-    switch (SlotType)
-    {
-    case EGridInventoryUiSlotType::Inventory:
-        RegisteredInventorySlots.AddUnique (SlotWidget);
-        break;
-    case EGridInventoryUiSlotType::Equipment:
-        {
-            const EGridEquipmentSlot EquipmentSlot =
-                static_cast<EGridEquipmentSlot> (SlotIndex);
-            SlotWidget->InitializeEquipmentSlot (EquipmentSlot);
-            if (EquipmentSlot != EGridEquipmentSlot::None)
-            {
-                RegisteredEquipmentSlotWidgets.FindOrAdd (EquipmentSlot) = SlotWidget;
-            }
-            if (EquipmentSlot == EGridEquipmentSlot::MainHand)
-            {
-                MainHandSlotWidget = SlotWidget;
-            }
-            else if (EquipmentSlot == EGridEquipmentSlot::OffHand)
-            {
-                OffHandSlotWidget = SlotWidget;
-            }
-            break;
-        }
-    case EGridInventoryUiSlotType::MainHand:
-        MainHandSlotWidget = SlotWidget;
-        break;
-    case EGridInventoryUiSlotType::OffHand:
-        OffHandSlotWidget = SlotWidget;
-        break;
-    case EGridInventoryUiSlotType::Cursor:
-        CursorSlotWidget = SlotWidget;
-        break;
-    default:
-        break;
-    }
+	switch (SlotType)
+	{
+		case EGridInventoryUiSlotType::Inventory:
+			RegisteredInventorySlots.AddUnique(SlotWidget);
+			break;
+		case EGridInventoryUiSlotType::Equipment:
+		{
+			const EGridEquipmentSlot EquipmentSlot = static_cast<EGridEquipmentSlot>(SlotIndex);
+			SlotWidget->InitializeEquipmentSlot(EquipmentSlot);
+			if (EquipmentSlot != EGridEquipmentSlot::None)
+			{
+				RegisteredEquipmentSlotWidgets.FindOrAdd(EquipmentSlot) = SlotWidget;
+			}
+			if (EquipmentSlot == EGridEquipmentSlot::MainHand)
+			{
+				MainHandSlotWidget = SlotWidget;
+			}
+			else if (EquipmentSlot == EGridEquipmentSlot::OffHand)
+			{
+				OffHandSlotWidget = SlotWidget;
+			}
+			break;
+		}
+		case EGridInventoryUiSlotType::MainHand:
+			MainHandSlotWidget = SlotWidget;
+			break;
+		case EGridInventoryUiSlotType::OffHand:
+			OffHandSlotWidget = SlotWidget;
+			break;
+		case EGridInventoryUiSlotType::Cursor:
+			CursorSlotWidget = SlotWidget;
+			break;
+		default:
+			break;
+	}
 
-    RefreshRegisteredSlotWidgets ();
+	RefreshRegisteredSlotWidgets();
 }
 
-void UGridInventoryWidget::RegisterEquipmentSlotWidget (
-    UGridInventorySlotWidget* SlotWidget,
-    EGridEquipmentSlot EquipmentSlot)
+void UGridInventoryWidget::RegisterEquipmentSlotWidget(UGridInventorySlotWidget* SlotWidget, EGridEquipmentSlot EquipmentSlot)
 {
-    if (!SlotWidget || EquipmentSlot == EGridEquipmentSlot::None)
-    {
-        return;
-    }
+	if (!SlotWidget || EquipmentSlot == EGridEquipmentSlot::None)
+	{
+		return;
+	}
 
-    SlotWidget->SetOwnerInventoryWidget (this);
-    SlotWidget->InitializeEquipmentSlot (EquipmentSlot);
-    SlotWidget->OnSlotClicked.RemoveDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
-    SlotWidget->OnSlotClicked.AddDynamic (this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
-    RegisteredEquipmentSlotWidgets.FindOrAdd (EquipmentSlot) = SlotWidget;
+	SlotWidget->SetOwnerInventoryWidget(this);
+	SlotWidget->InitializeEquipmentSlot(EquipmentSlot);
+	SlotWidget->OnSlotClicked.RemoveDynamic(this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
+	SlotWidget->OnSlotClicked.AddDynamic(this, &UGridInventoryWidget::HandleRegisteredSlotClicked);
+	RegisteredEquipmentSlotWidgets.FindOrAdd(EquipmentSlot) = SlotWidget;
 
-    if (EquipmentSlot == EGridEquipmentSlot::MainHand)
-    {
-        MainHandSlotWidget = SlotWidget;
-    }
-    else if (EquipmentSlot == EGridEquipmentSlot::OffHand)
-    {
-        OffHandSlotWidget = SlotWidget;
-    }
+	if (EquipmentSlot == EGridEquipmentSlot::MainHand)
+	{
+		MainHandSlotWidget = SlotWidget;
+	}
+	else if (EquipmentSlot == EGridEquipmentSlot::OffHand)
+	{
+		OffHandSlotWidget = SlotWidget;
+	}
 
-    RefreshRegisteredSlotWidgets ();
+	RefreshRegisteredSlotWidgets();
 }
 
-void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidget (
-    UGridInventorySlotWidget* SlotWidget,
-    EGridEquipmentSlot EquipmentSlot,
-    const TCHAR* WidgetName)
+void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidget(UGridInventorySlotWidget* SlotWidget, EGridEquipmentSlot EquipmentSlot, const TCHAR* WidgetName)
 {
-    if (!SlotWidget)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridInventory PaperDoll SlotMissing Widget=%s EquipmentSlot=%s"),
-            WidgetName,
-            GetPaperDollEquipmentSlotName (EquipmentSlot));
-        return;
-    }
+	if (!SlotWidget)
+	{
+		UE_LOG(
+			LogTemp, Warning, TEXT("GridInventory PaperDoll SlotMissing Widget=%s EquipmentSlot=%s"), WidgetName, GetPaperDollEquipmentSlotName(EquipmentSlot));
+		return;
+	}
 
-    RegisterEquipmentSlotWidget (SlotWidget, EquipmentSlot);
+	RegisterEquipmentSlotWidget(SlotWidget, EquipmentSlot);
 
-    bool bValidRegistration = true;
-    if (SlotWidget->SlotType != EGridInventoryUiSlotType::Equipment)
-    {
-        bValidRegistration = false;
-    }
-    if (SlotWidget->EquipmentSlot != EquipmentSlot)
-    {
-        bValidRegistration = false;
-    }
-    if (SlotWidget->InventorySlotIndex != static_cast<int32> (EquipmentSlot))
-    {
-        bValidRegistration = false;
-    }
+	bool bValidRegistration = true;
+	if (SlotWidget->SlotType != EGridInventoryUiSlotType::Equipment)
+	{
+		bValidRegistration = false;
+	}
+	if (SlotWidget->EquipmentSlot != EquipmentSlot)
+	{
+		bValidRegistration = false;
+	}
+	if (SlotWidget->InventorySlotIndex != static_cast<int32>(EquipmentSlot))
+	{
+		bValidRegistration = false;
+	}
 
-    if (!bValidRegistration)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridInventory PaperDoll SlotInvalid Widget=%s EquipmentSlot=%s SlotType=%s WidgetEquipmentSlot=%s SlotIndex=%d ExpectedSlotIndex=%d"),
-            WidgetName,
-            GetPaperDollEquipmentSlotName (EquipmentSlot),
-            GetGridInventoryUiSlotTypeName (SlotWidget->SlotType),
-            GetPaperDollEquipmentSlotName (SlotWidget->EquipmentSlot),
-            SlotWidget->InventorySlotIndex,
-            static_cast<int32> (EquipmentSlot));
-    }
+	if (!bValidRegistration)
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("GridInventory PaperDoll SlotInvalid Widget=%s EquipmentSlot=%s SlotType=%s WidgetEquipmentSlot=%s SlotIndex=%d ExpectedSlotIndex=%d"),
+			WidgetName, GetPaperDollEquipmentSlotName(EquipmentSlot), GetGridInventoryUiSlotTypeName(SlotWidget->SlotType),
+			GetPaperDollEquipmentSlotName(SlotWidget->EquipmentSlot), SlotWidget->InventorySlotIndex, static_cast<int32>(EquipmentSlot));
+	}
 }
 
-void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidgets ()
+void UGridInventoryWidget::RegisterPaperDollEquipmentSlotWidgets()
 {
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Head, EGridEquipmentSlot::Head, TEXT ("SlotWidget_Head"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Face, EGridEquipmentSlot::Face, TEXT ("SlotWidget_Face"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Amulet, EGridEquipmentSlot::Amulet, TEXT ("SlotWidget_Amulet"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Shoulders, EGridEquipmentSlot::Shoulders, TEXT ("SlotWidget_Shoulders"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Shirt, EGridEquipmentSlot::Shirt, TEXT ("SlotWidget_Shirt"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Chest, EGridEquipmentSlot::Chest, TEXT ("SlotWidget_Chest"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Cloak, EGridEquipmentSlot::Cloak, TEXT ("SlotWidget_Cloak"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Bracers, EGridEquipmentSlot::Bracers, TEXT ("SlotWidget_Bracers"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Gloves, EGridEquipmentSlot::Gloves, TEXT ("SlotWidget_Gloves"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Belt, EGridEquipmentSlot::Belt, TEXT ("SlotWidget_Belt"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Legs, EGridEquipmentSlot::Legs, TEXT ("SlotWidget_Legs"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Feet, EGridEquipmentSlot::Feet, TEXT ("SlotWidget_Feet"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Ring1, EGridEquipmentSlot::Ring1, TEXT ("SlotWidget_Ring1"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Ring2, EGridEquipmentSlot::Ring2, TEXT ("SlotWidget_Ring2"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Earring1, EGridEquipmentSlot::Earring1, TEXT ("SlotWidget_Earring1"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_Earring2, EGridEquipmentSlot::Earring2, TEXT ("SlotWidget_Earring2"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_MainHand, EGridEquipmentSlot::MainHand, TEXT ("SlotWidget_MainHand"));
-    RegisterPaperDollEquipmentSlotWidget (SlotWidget_OffHand, EGridEquipmentSlot::OffHand, TEXT ("SlotWidget_OffHand"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Head, EGridEquipmentSlot::Head, TEXT("SlotWidget_Head"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Face, EGridEquipmentSlot::Face, TEXT("SlotWidget_Face"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Amulet, EGridEquipmentSlot::Amulet, TEXT("SlotWidget_Amulet"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Shoulders, EGridEquipmentSlot::Shoulders, TEXT("SlotWidget_Shoulders"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Shirt, EGridEquipmentSlot::Shirt, TEXT("SlotWidget_Shirt"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Chest, EGridEquipmentSlot::Chest, TEXT("SlotWidget_Chest"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Cloak, EGridEquipmentSlot::Cloak, TEXT("SlotWidget_Cloak"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Bracers, EGridEquipmentSlot::Bracers, TEXT("SlotWidget_Bracers"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Gloves, EGridEquipmentSlot::Gloves, TEXT("SlotWidget_Gloves"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Belt, EGridEquipmentSlot::Belt, TEXT("SlotWidget_Belt"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Legs, EGridEquipmentSlot::Legs, TEXT("SlotWidget_Legs"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Feet, EGridEquipmentSlot::Feet, TEXT("SlotWidget_Feet"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Ring1, EGridEquipmentSlot::Ring1, TEXT("SlotWidget_Ring1"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Ring2, EGridEquipmentSlot::Ring2, TEXT("SlotWidget_Ring2"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Earring1, EGridEquipmentSlot::Earring1, TEXT("SlotWidget_Earring1"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_Earring2, EGridEquipmentSlot::Earring2, TEXT("SlotWidget_Earring2"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_MainHand, EGridEquipmentSlot::MainHand, TEXT("SlotWidget_MainHand"));
+	RegisterPaperDollEquipmentSlotWidget(SlotWidget_OffHand, EGridEquipmentSlot::OffHand, TEXT("SlotWidget_OffHand"));
 }
 
-bool UGridInventoryWidget::ValidatePaperDollEquipmentRegistration () const
+bool UGridInventoryWidget::ValidatePaperDollEquipmentRegistration() const
 {
-    bool bIsValid = true;
-    int32 RegisteredPaperDollSlotCount = 0;
+	bool bIsValid = true;
+	int32 RegisteredPaperDollSlotCount = 0;
 
-    for (const EGridEquipmentSlot EquipmentSlot : PaperDollEquipmentSlots)
-    {
-        const TObjectPtr<UGridInventorySlotWidget>* SlotWidgetPtr =
-            RegisteredEquipmentSlotWidgets.Find (EquipmentSlot);
-        if (!SlotWidgetPtr)
-        {
-            bIsValid = false;
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory PaperDoll Validation Missing EquipmentSlot=%s"),
-                GetPaperDollEquipmentSlotName (EquipmentSlot));
-            continue;
-        }
+	for (const EGridEquipmentSlot EquipmentSlot : PaperDollEquipmentSlots)
+	{
+		const TObjectPtr<UGridInventorySlotWidget>* SlotWidgetPtr = RegisteredEquipmentSlotWidgets.Find(EquipmentSlot);
+		if (!SlotWidgetPtr)
+		{
+			bIsValid = false;
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Validation Missing EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
+			continue;
+		}
 
-        if (!SlotWidgetPtr->Get ())
-        {
-            bIsValid = false;
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory PaperDoll Validation NullWidget EquipmentSlot=%s"),
-                GetPaperDollEquipmentSlotName (EquipmentSlot));
-            continue;
-        }
+		if (!SlotWidgetPtr->Get())
+		{
+			bIsValid = false;
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Validation NullWidget EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
+			continue;
+		}
 
-        ++RegisteredPaperDollSlotCount;
-    }
+		++RegisteredPaperDollSlotCount;
+	}
 
-    for (const EGridEquipmentSlot EquipmentSlot : ForbiddenPaperDollEquipmentSlots)
-    {
-        if (RegisteredEquipmentSlotWidgets.Contains (EquipmentSlot))
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory PaperDoll Validation Forbidden EquipmentSlot=%s"),
-                GetPaperDollEquipmentSlotName (EquipmentSlot));
-        }
-    }
+	for (const EGridEquipmentSlot EquipmentSlot : ForbiddenPaperDollEquipmentSlots)
+	{
+		if (RegisteredEquipmentSlotWidgets.Contains(EquipmentSlot))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Validation Forbidden EquipmentSlot=%s"), GetPaperDollEquipmentSlotName(EquipmentSlot));
+		}
+	}
 
-    if (bIsValid)
-    {
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridInventory PaperDoll Validation OK Registered=%d"),
-            RegisteredPaperDollSlotCount);
-    }
+	if (bIsValid)
+	{
+		UE_LOG(LogTemp, Log, TEXT("GridInventory PaperDoll Validation OK Registered=%d"), RegisteredPaperDollSlotCount);
+	}
 
-    return bIsValid;
+	return bIsValid;
 }
 
-void UGridInventoryWidget::RebuildInventorySlotWidgets ()
+void UGridInventoryWidget::RebuildInventorySlotWidgets()
 {
-    if (!InventorySlotsGridPanel)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI RebuildSlots Failed Reason=NoGridPanel"));
-        return;
-    }
+	if (!InventorySlotsGridPanel)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=NoGridPanel"));
+		return;
+	}
 
-    if (!InventorySlotWidgetClass)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI RebuildSlots Failed Reason=NoSlotWidgetClass"));
-        return;
-    }
+	if (!InventorySlotWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=NoSlotWidgetClass"));
+		return;
+	}
 
-    const int32 SlotCount = FMath::Max (1, ResolveInventorySlotWidgetCount ());
-    const int32 ColumnCount = FMath::Max (1, InventorySlotColumnCount);
+	const int32 SlotCount = FMath::Max(1, ResolveInventorySlotWidgetCount());
+	const int32 ColumnCount = FMath::Max(1, InventorySlotColumnCount);
 
-    if (bInventorySlotsBuilt &&
-        LastBuiltSlotCount == SlotCount &&
-        LastBuiltColumnCount == ColumnCount &&
-        LastBuiltSlotWidgetClass == InventorySlotWidgetClass &&
-        LastBuiltGridPanel == InventorySlotsGridPanel &&
-        GeneratedInventorySlotWidgets.Num () == SlotCount)
-    {
-        UE_LOG (LogTemp, Verbose, TEXT ("GridInventory UI RebuildSlots Skipped Reason=AlreadyBuilt Count=%d Columns=%d"),
-            SlotCount,
-            ColumnCount);
-        return;
-    }
+	if (bInventorySlotsBuilt && LastBuiltSlotCount == SlotCount && LastBuiltColumnCount == ColumnCount &&
+		LastBuiltSlotWidgetClass == InventorySlotWidgetClass && LastBuiltGridPanel == InventorySlotsGridPanel &&
+		GeneratedInventorySlotWidgets.Num() == SlotCount)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("GridInventory UI RebuildSlots Skipped Reason=AlreadyBuilt Count=%d Columns=%d"), SlotCount, ColumnCount);
+		return;
+	}
 
-    ClearGeneratedInventorySlotWidgets ();
+	ClearGeneratedInventorySlotWidgets();
 
-    for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
-    {
-        UGridInventorySlotWidget* NewSlot = CreateWidget<UGridInventorySlotWidget> (this, InventorySlotWidgetClass);
-        if (!NewSlot)
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed Index=%d"), SlotIndex);
-            continue;
-        }
+	for (int32 SlotIndex = 0; SlotIndex < SlotCount; ++SlotIndex)
+	{
+		UGridInventorySlotWidget* NewSlot = CreateWidget<UGridInventorySlotWidget>(this, InventorySlotWidgetClass);
+		if (!NewSlot)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI RebuildSlots Failed Reason=CreateWidgetFailed Index=%d"), SlotIndex);
+			continue;
+		}
 
-        NewSlot->SetOwnerInventoryWidget (this);
-        NewSlot->InitializeInventorySlot (EGridInventoryUiSlotType::Inventory, SlotIndex);
-        RegisterInventorySlotWidget (NewSlot, EGridInventoryUiSlotType::Inventory, SlotIndex);
+		NewSlot->SetOwnerInventoryWidget(this);
+		NewSlot->InitializeInventorySlot(EGridInventoryUiSlotType::Inventory, SlotIndex);
+		RegisterInventorySlotWidget(NewSlot, EGridInventoryUiSlotType::Inventory, SlotIndex);
 
-        const int32 Row = SlotIndex / ColumnCount;
-        const int32 Column = SlotIndex % ColumnCount;
-        if (UUniformGridSlot* GridSlot = InventorySlotsGridPanel->AddChildToUniformGrid (NewSlot, Row, Column))
-        {
-            GridSlot->SetHorizontalAlignment (HAlign_Left);
-            GridSlot->SetVerticalAlignment (VAlign_Top);
-        }
+		const int32 Row = SlotIndex / ColumnCount;
+		const int32 Column = SlotIndex % ColumnCount;
+		if (UUniformGridSlot* GridSlot = InventorySlotsGridPanel->AddChildToUniformGrid(NewSlot, Row, Column))
+		{
+			GridSlot->SetHorizontalAlignment(HAlign_Left);
+			GridSlot->SetVerticalAlignment(VAlign_Top);
+		}
 
-        GeneratedInventorySlotWidgets.Add (NewSlot);
-    }
+		GeneratedInventorySlotWidgets.Add(NewSlot);
+	}
 
-    RefreshRegisteredSlotWidgets ();
-    bInventorySlotsBuilt = true;
-    LastBuiltSlotCount = SlotCount;
-    LastBuiltColumnCount = ColumnCount;
-    LastBuiltSlotWidgetClass = InventorySlotWidgetClass;
-    LastBuiltGridPanel = InventorySlotsGridPanel;
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
+	RefreshRegisteredSlotWidgets();
+	bInventorySlotsBuilt = true;
+	LastBuiltSlotCount = SlotCount;
+	LastBuiltColumnCount = ColumnCount;
+	LastBuiltSlotWidgetClass = InventorySlotWidgetClass;
+	LastBuiltGridPanel = InventorySlotsGridPanel;
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI RebuildSlots Count=%d Columns=%d"), SlotCount, ColumnCount);
 }
 
-void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets ()
+void UGridInventoryWidget::ClearGeneratedInventorySlotWidgets()
 {
-    RemoveGeneratedInventorySlotsFromRegistry ();
+	RemoveGeneratedInventorySlotsFromRegistry();
 
-    for (UGridInventorySlotWidget* SlotWidget : GeneratedInventorySlotWidgets)
-    {
-        if (SlotWidget)
-        {
-            SlotWidget->RemoveFromParent ();
-        }
-    }
+	for (UGridInventorySlotWidget* SlotWidget : GeneratedInventorySlotWidgets)
+	{
+		if (SlotWidget)
+		{
+			SlotWidget->RemoveFromParent();
+		}
+	}
 
-    if (InventorySlotsGridPanel)
-    {
-        InventorySlotsGridPanel->ClearChildren ();
-    }
+	if (InventorySlotsGridPanel)
+	{
+		InventorySlotsGridPanel->ClearChildren();
+	}
 
-    GeneratedInventorySlotWidgets.Empty ();
-    bInventorySlotsBuilt = false;
-    LastBuiltSlotCount = 0;
-    LastBuiltColumnCount = 0;
-    LastBuiltSlotWidgetClass = nullptr;
-    LastBuiltGridPanel = nullptr;
+	GeneratedInventorySlotWidgets.Empty();
+	bInventorySlotsBuilt = false;
+	LastBuiltSlotCount = 0;
+	LastBuiltColumnCount = 0;
+	LastBuiltSlotWidgetClass = nullptr;
+	LastBuiltGridPanel = nullptr;
 }
 
-int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount () const
+int32 UGridInventoryWidget::ResolveInventorySlotWidgetCount() const
 {
-    if (InventorySlotCountOverride > 0)
-    {
-        return InventorySlotCountOverride;
-    }
+	if (InventorySlotCountOverride > 0)
+	{
+		return InventorySlotCountOverride;
+	}
 
-    if (InventoryComponent)
-    {
-        FGridInventoryCharacterSummary Summary;
-        if (InventoryComponent->GetCharacterSummary (InventoryComponent->GetSelectedCharacterIndex (), Summary) &&
-            Summary.MaxInventorySlots > 0)
-        {
-            return Summary.MaxInventorySlots;
-        }
-    }
+	if (InventoryComponent)
+	{
+		FGridInventoryCharacterSummary Summary;
+		if (InventoryComponent->GetCharacterSummary(InventoryComponent->GetSelectedCharacterIndex(), Summary) && Summary.MaxInventorySlots > 0)
+		{
+			return Summary.MaxInventorySlots;
+		}
+	}
 
-    return 24;
+	return 24;
 }
 
-void UGridInventoryWidget::SetInventorySlotWidgetClass (TSubclassOf<UGridInventorySlotWidget> InClass)
+void UGridInventoryWidget::SetInventorySlotWidgetClass(TSubclassOf<UGridInventorySlotWidget> InClass)
 {
-    InventorySlotWidgetClass = InClass;
-    bInventorySlotsBuilt = false;
+	InventorySlotWidgetClass = InClass;
+	bInventorySlotsBuilt = false;
 }
 
-void UGridInventoryWidget::SetInventorySlotsGridPanel (UUniformGridPanel* InGridPanel)
+void UGridInventoryWidget::SetInventorySlotsGridPanel(UUniformGridPanel* InGridPanel)
 {
-    InventorySlotsGridPanel = InGridPanel;
-    bInventorySlotsBuilt = false;
+	InventorySlotsGridPanel = InGridPanel;
+	bInventorySlotsBuilt = false;
 }
 
-UGridInventorySlotWidget* UGridInventoryWidget::CreatePaperDollEquipmentSlot (EGridEquipmentSlot EquipmentSlot)
+UGridInventorySlotWidget* UGridInventoryWidget::CreatePaperDollEquipmentSlot(EGridEquipmentSlot EquipmentSlot)
 {
-    if (!InventorySlotWidgetClass || EquipmentSlot == EGridEquipmentSlot::None)
-    {
-        return nullptr;
-    }
+	if (!InventorySlotWidgetClass || EquipmentSlot == EGridEquipmentSlot::None)
+	{
+		return nullptr;
+	}
 
-    const FString SlotName = FString::Printf (
-        TEXT ("RuntimePaperDollSlot_%d"),
-        static_cast<int32> (EquipmentSlot));
-    UGridInventorySlotWidget* SlotWidget = CreateWidget<UGridInventorySlotWidget> (
-        this,
-        InventorySlotWidgetClass,
-        MakeUniqueObjectName (this, InventorySlotWidgetClass, FName (*SlotName)));
-    if (!SlotWidget)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridInventory PaperDoll Failed Reason=CreateSlotFailed Slot=%s"),
-            GetContextEquipmentSlotName (EquipmentSlot));
-        return nullptr;
-    }
+	const FString SlotName = FString::Printf(TEXT("RuntimePaperDollSlot_%d"), static_cast<int32>(EquipmentSlot));
+	UGridInventorySlotWidget* SlotWidget =
+		CreateWidget<UGridInventorySlotWidget>(this, InventorySlotWidgetClass, MakeUniqueObjectName(this, InventorySlotWidgetClass, FName(*SlotName)));
+	if (!SlotWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll Failed Reason=CreateSlotFailed Slot=%s"), GetContextEquipmentSlotName(EquipmentSlot));
+		return nullptr;
+	}
 
-    RegisterEquipmentSlotWidget (SlotWidget, EquipmentSlot);
-    GeneratedPaperDollSlotWidgets.Add (SlotWidget);
-    return SlotWidget;
+	RegisterEquipmentSlotWidget(SlotWidget, EquipmentSlot);
+	GeneratedPaperDollSlotWidgets.Add(SlotWidget);
+	return SlotWidget;
 }
 
-void UGridInventoryWidget::ClearGeneratedPaperDollEquipmentPanel ()
+void UGridInventoryWidget::ClearGeneratedPaperDollEquipmentPanel()
 {
-    for (const TObjectPtr<UGridInventorySlotWidget>& SlotWidget : GeneratedPaperDollSlotWidgets)
-    {
-        if (!SlotWidget)
-        {
-            continue;
-        }
+	for (const TObjectPtr<UGridInventorySlotWidget>& SlotWidget : GeneratedPaperDollSlotWidgets)
+	{
+		if (!SlotWidget)
+		{
+			continue;
+		}
 
-        if (RegisteredEquipmentSlotWidgets.FindRef (SlotWidget->EquipmentSlot) == SlotWidget)
-        {
-            RegisteredEquipmentSlotWidgets.Remove (SlotWidget->EquipmentSlot);
-        }
+		if (RegisteredEquipmentSlotWidgets.FindRef(SlotWidget->EquipmentSlot) == SlotWidget)
+		{
+			RegisteredEquipmentSlotWidgets.Remove(SlotWidget->EquipmentSlot);
+		}
 
-        if (MainHandSlotWidget == SlotWidget)
-        {
-            MainHandSlotWidget = nullptr;
-        }
-        if (OffHandSlotWidget == SlotWidget)
-        {
-            OffHandSlotWidget = nullptr;
-        }
+		if (MainHandSlotWidget == SlotWidget)
+		{
+			MainHandSlotWidget = nullptr;
+		}
+		if (OffHandSlotWidget == SlotWidget)
+		{
+			OffHandSlotWidget = nullptr;
+		}
 
-        SlotWidget->RemoveFromParent ();
-    }
+		SlotWidget->RemoveFromParent();
+	}
 
-    GeneratedPaperDollSlotWidgets.Empty ();
-    if (Border_EquipmentPanel)
-    {
-        Border_EquipmentPanel->SetContent (nullptr);
-    }
+	GeneratedPaperDollSlotWidgets.Empty();
+	if (Border_EquipmentPanel)
+	{
+		Border_EquipmentPanel->SetContent(nullptr);
+	}
 
-    bPaperDollEquipmentPanelBuilt = false;
-    LastBuiltPaperDollContainer = nullptr;
-    LastBuiltPaperDollSlotWidgetClass = nullptr;
+	bPaperDollEquipmentPanelBuilt = false;
+	LastBuiltPaperDollContainer = nullptr;
+	LastBuiltPaperDollSlotWidgetClass = nullptr;
 }
 
-void UGridInventoryWidget::BuildPaperDollEquipmentPanel ()
+void UGridInventoryWidget::BuildPaperDollEquipmentPanel()
 {
-    // Deprecated for manual UMG paper doll layout.
-    // Do not call automatically; WBP_GridInventory owns the visual paper doll layout.
-    if (!Border_EquipmentPanel)
-    {
-        if (!bPaperDollMissingContainerLogged)
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory PaperDoll non construit : Border_EquipmentPanel introuvable"));
-            bPaperDollMissingContainerLogged = true;
-        }
-        return;
-    }
+	// Deprecated for manual UMG paper doll layout.
+	// Do not call automatically; WBP_GridInventory owns the visual paper doll layout.
+	if (!Border_EquipmentPanel)
+	{
+		if (!bPaperDollMissingContainerLogged)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll non construit : Border_EquipmentPanel introuvable"));
+			bPaperDollMissingContainerLogged = true;
+		}
+		return;
+	}
 
-    bPaperDollMissingContainerLogged = false;
+	bPaperDollMissingContainerLogged = false;
 
-    if (!InventorySlotWidgetClass)
-    {
-        if (!bPaperDollMissingSlotClassLogged)
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory PaperDoll non construit : classe de slot manquante"));
-            bPaperDollMissingSlotClassLogged = true;
-        }
-        return;
-    }
+	if (!InventorySlotWidgetClass)
+	{
+		if (!bPaperDollMissingSlotClassLogged)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll non construit : classe de slot manquante"));
+			bPaperDollMissingSlotClassLogged = true;
+		}
+		return;
+	}
 
-    bPaperDollMissingSlotClassLogged = false;
+	bPaperDollMissingSlotClassLogged = false;
 
-    if (bPaperDollEquipmentPanelBuilt &&
-        LastBuiltPaperDollContainer == Border_EquipmentPanel &&
-        LastBuiltPaperDollSlotWidgetClass == InventorySlotWidgetClass)
-    {
-        return;
-    }
+	if (bPaperDollEquipmentPanelBuilt && LastBuiltPaperDollContainer == Border_EquipmentPanel && LastBuiltPaperDollSlotWidgetClass == InventorySlotWidgetClass)
+	{
+		return;
+	}
 
-    ClearGeneratedPaperDollEquipmentPanel ();
+	ClearGeneratedPaperDollEquipmentPanel();
 
-    UOverlay* PaperDollRoot = NewObject<UOverlay> (
-        this,
-        UOverlay::StaticClass (),
-        MakeUniqueObjectName (this, UOverlay::StaticClass (), TEXT ("Overlay_RuntimePaperDollRoot")));
-    UHorizontalBox* PaperDollColumns = NewObject<UHorizontalBox> (
-        this,
-        UHorizontalBox::StaticClass (),
-        MakeUniqueObjectName (this, UHorizontalBox::StaticClass (), TEXT ("HorizontalBox_RuntimePaperDollColumns")));
-    UVerticalBox* LeftColumn = NewObject<UVerticalBox> (
-        this,
-        UVerticalBox::StaticClass (),
-        MakeUniqueObjectName (this, UVerticalBox::StaticClass (), TEXT ("VerticalBox_LeftEquipmentColumn")));
-    UVerticalBox* RightColumn = NewObject<UVerticalBox> (
-        this,
-        UVerticalBox::StaticClass (),
-        MakeUniqueObjectName (this, UVerticalBox::StaticClass (), TEXT ("VerticalBox_RightEquipmentColumn")));
-    USizeBox* CharacterFigure = NewObject<USizeBox> (
-        this,
-        USizeBox::StaticClass (),
-        MakeUniqueObjectName (this, USizeBox::StaticClass (), TEXT ("SizeBox_CharacterFigure")));
-    UOverlay* CharacterFigureOverlay = NewObject<UOverlay> (
-        this,
-        UOverlay::StaticClass (),
-        MakeUniqueObjectName (this, UOverlay::StaticClass (), TEXT ("Overlay_CharacterFigure")));
-    UImage* CharacterFullBodyImage = NewObject<UImage> (
-        this,
-        UImage::StaticClass (),
-        MakeUniqueObjectName (this, UImage::StaticClass (), TEXT ("Image_CharacterFullBody")));
-    UHorizontalBox* BottomHandsRow = NewObject<UHorizontalBox> (
-        this,
-        UHorizontalBox::StaticClass (),
-        MakeUniqueObjectName (this, UHorizontalBox::StaticClass (), TEXT ("HorizontalBox_BottomHandsRow")));
+	UOverlay* PaperDollRoot =
+		NewObject<UOverlay>(this, UOverlay::StaticClass(), MakeUniqueObjectName(this, UOverlay::StaticClass(), TEXT("Overlay_RuntimePaperDollRoot")));
+	UHorizontalBox* PaperDollColumns = NewObject<UHorizontalBox>(
+		this, UHorizontalBox::StaticClass(), MakeUniqueObjectName(this, UHorizontalBox::StaticClass(), TEXT("HorizontalBox_RuntimePaperDollColumns")));
+	UVerticalBox* LeftColumn = NewObject<UVerticalBox>(
+		this, UVerticalBox::StaticClass(), MakeUniqueObjectName(this, UVerticalBox::StaticClass(), TEXT("VerticalBox_LeftEquipmentColumn")));
+	UVerticalBox* RightColumn = NewObject<UVerticalBox>(
+		this, UVerticalBox::StaticClass(), MakeUniqueObjectName(this, UVerticalBox::StaticClass(), TEXT("VerticalBox_RightEquipmentColumn")));
+	USizeBox* CharacterFigure =
+		NewObject<USizeBox>(this, USizeBox::StaticClass(), MakeUniqueObjectName(this, USizeBox::StaticClass(), TEXT("SizeBox_CharacterFigure")));
+	UOverlay* CharacterFigureOverlay =
+		NewObject<UOverlay>(this, UOverlay::StaticClass(), MakeUniqueObjectName(this, UOverlay::StaticClass(), TEXT("Overlay_CharacterFigure")));
+	UImage* CharacterFullBodyImage =
+		NewObject<UImage>(this, UImage::StaticClass(), MakeUniqueObjectName(this, UImage::StaticClass(), TEXT("Image_CharacterFullBody")));
+	UHorizontalBox* BottomHandsRow = NewObject<UHorizontalBox>(
+		this, UHorizontalBox::StaticClass(), MakeUniqueObjectName(this, UHorizontalBox::StaticClass(), TEXT("HorizontalBox_BottomHandsRow")));
 
-    if (!PaperDollRoot ||
-        !PaperDollColumns ||
-        !LeftColumn ||
-        !RightColumn ||
-        !CharacterFigure ||
-        !CharacterFigureOverlay ||
-        !CharacterFullBodyImage ||
-        !BottomHandsRow)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory PaperDoll non construit : creation layout echouee"));
-        ClearGeneratedPaperDollEquipmentPanel ();
-        return;
-    }
+	if (!PaperDollRoot || !PaperDollColumns || !LeftColumn || !RightColumn || !CharacterFigure || !CharacterFigureOverlay || !CharacterFullBodyImage ||
+		!BottomHandsRow)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory PaperDoll non construit : creation layout echouee"));
+		ClearGeneratedPaperDollEquipmentPanel();
+		return;
+	}
 
-    CharacterFigure->SetWidthOverride (360.0f);
-    CharacterFigure->SetHeightOverride (760.0f);
-    CharacterFullBodyImage->SetVisibility (ESlateVisibility::HitTestInvisible);
-    CharacterFigureOverlay->AddChild (CharacterFullBodyImage);
-    CharacterFigure->SetContent (CharacterFigureOverlay);
+	CharacterFigure->SetWidthOverride(360.0f);
+	CharacterFigure->SetHeightOverride(760.0f);
+	CharacterFullBodyImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+	CharacterFigureOverlay->AddChild(CharacterFullBodyImage);
+	CharacterFigure->SetContent(CharacterFigureOverlay);
 
-    const EGridEquipmentSlot LeftSlots[] = {
-        EGridEquipmentSlot::Head,
-        EGridEquipmentSlot::Face,
-        EGridEquipmentSlot::Amulet,
-        EGridEquipmentSlot::Shoulders,
-        EGridEquipmentSlot::Shirt,
-        EGridEquipmentSlot::Chest,
-        EGridEquipmentSlot::Cloak,
-        EGridEquipmentSlot::Bracers
-    };
+	const EGridEquipmentSlot LeftSlots[] = { EGridEquipmentSlot::Head, EGridEquipmentSlot::Face, EGridEquipmentSlot::Amulet, EGridEquipmentSlot::Shoulders,
+		EGridEquipmentSlot::Shirt, EGridEquipmentSlot::Chest, EGridEquipmentSlot::Cloak, EGridEquipmentSlot::Bracers };
 
-    const EGridEquipmentSlot RightSlots[] = {
-        EGridEquipmentSlot::Gloves,
-        EGridEquipmentSlot::Belt,
-        EGridEquipmentSlot::Legs,
-        EGridEquipmentSlot::Feet,
-        EGridEquipmentSlot::Ring1,
-        EGridEquipmentSlot::Ring2,
-        EGridEquipmentSlot::Earring1,
-        EGridEquipmentSlot::Earring2
-    };
+	const EGridEquipmentSlot RightSlots[] = { EGridEquipmentSlot::Gloves, EGridEquipmentSlot::Belt, EGridEquipmentSlot::Legs, EGridEquipmentSlot::Feet,
+		EGridEquipmentSlot::Ring1, EGridEquipmentSlot::Ring2, EGridEquipmentSlot::Earring1, EGridEquipmentSlot::Earring2 };
 
-    for (const EGridEquipmentSlot EquipmentSlot : LeftSlots)
-    {
-        AddPaperDollSlotToColumn (LeftColumn, CreatePaperDollEquipmentSlot (EquipmentSlot));
-    }
+	for (const EGridEquipmentSlot EquipmentSlot : LeftSlots)
+	{
+		AddPaperDollSlotToColumn(LeftColumn, CreatePaperDollEquipmentSlot(EquipmentSlot));
+	}
 
-    for (const EGridEquipmentSlot EquipmentSlot : RightSlots)
-    {
-        AddPaperDollSlotToColumn (RightColumn, CreatePaperDollEquipmentSlot (EquipmentSlot));
-    }
+	for (const EGridEquipmentSlot EquipmentSlot : RightSlots)
+	{
+		AddPaperDollSlotToColumn(RightColumn, CreatePaperDollEquipmentSlot(EquipmentSlot));
+	}
 
-    AddPaperDollSlotToRow (PaperDollColumns, LeftColumn);
-    AddPaperDollSlotToRow (PaperDollColumns, CharacterFigure, FMargin (48.0f, 0.0f));
-    AddPaperDollSlotToRow (PaperDollColumns, RightColumn);
+	AddPaperDollSlotToRow(PaperDollColumns, LeftColumn);
+	AddPaperDollSlotToRow(PaperDollColumns, CharacterFigure, FMargin(48.0f, 0.0f));
+	AddPaperDollSlotToRow(PaperDollColumns, RightColumn);
 
-    if (UOverlaySlot* ColumnsSlot = PaperDollRoot->AddChildToOverlay (PaperDollColumns))
-    {
-        ColumnsSlot->SetHorizontalAlignment (HAlign_Center);
-        ColumnsSlot->SetVerticalAlignment (VAlign_Center);
-    }
+	if (UOverlaySlot* ColumnsSlot = PaperDollRoot->AddChildToOverlay(PaperDollColumns))
+	{
+		ColumnsSlot->SetHorizontalAlignment(HAlign_Center);
+		ColumnsSlot->SetVerticalAlignment(VAlign_Center);
+	}
 
-    AddPaperDollSlotToRow (
-        BottomHandsRow,
-        CreatePaperDollEquipmentSlot (EGridEquipmentSlot::MainHand),
-        FMargin (0.0f, 0.0f, 48.0f, 0.0f));
-    AddPaperDollSlotToRow (
-        BottomHandsRow,
-        CreatePaperDollEquipmentSlot (EGridEquipmentSlot::OffHand),
-        FMargin (48.0f, 0.0f, 0.0f, 0.0f));
+	AddPaperDollSlotToRow(BottomHandsRow, CreatePaperDollEquipmentSlot(EGridEquipmentSlot::MainHand), FMargin(0.0f, 0.0f, 48.0f, 0.0f));
+	AddPaperDollSlotToRow(BottomHandsRow, CreatePaperDollEquipmentSlot(EGridEquipmentSlot::OffHand), FMargin(48.0f, 0.0f, 0.0f, 0.0f));
 
-    if (UOverlaySlot* HandsSlot = PaperDollRoot->AddChildToOverlay (BottomHandsRow))
-    {
-        HandsSlot->SetHorizontalAlignment (HAlign_Center);
-        HandsSlot->SetVerticalAlignment (VAlign_Bottom);
-    }
+	if (UOverlaySlot* HandsSlot = PaperDollRoot->AddChildToOverlay(BottomHandsRow))
+	{
+		HandsSlot->SetHorizontalAlignment(HAlign_Center);
+		HandsSlot->SetVerticalAlignment(VAlign_Bottom);
+	}
 
-    if (CursorSlotWidget)
-    {
-        CursorSlotWidget->RemoveFromParent ();
-        if (UOverlaySlot* CursorSlot = PaperDollRoot->AddChildToOverlay (CursorSlotWidget))
-        {
-            CursorSlot->SetHorizontalAlignment (HAlign_Right);
-            CursorSlot->SetVerticalAlignment (VAlign_Top);
-            CursorSlot->SetPadding (FMargin (0.0f, 0.0f, 8.0f, 8.0f));
-        }
-    }
+	if (CursorSlotWidget)
+	{
+		CursorSlotWidget->RemoveFromParent();
+		if (UOverlaySlot* CursorSlot = PaperDollRoot->AddChildToOverlay(CursorSlotWidget))
+		{
+			CursorSlot->SetHorizontalAlignment(HAlign_Right);
+			CursorSlot->SetVerticalAlignment(VAlign_Top);
+			CursorSlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 8.0f));
+		}
+	}
 
-    Border_EquipmentPanel->SetContent (PaperDollRoot);
-    RefreshRegisteredSlotWidgets ();
+	Border_EquipmentPanel->SetContent(PaperDollRoot);
+	RefreshRegisteredSlotWidgets();
 
-    bPaperDollEquipmentPanelBuilt = true;
-    LastBuiltPaperDollContainer = Border_EquipmentPanel;
-    LastBuiltPaperDollSlotWidgetClass = InventorySlotWidgetClass;
+	bPaperDollEquipmentPanelBuilt = true;
+	LastBuiltPaperDollContainer = Border_EquipmentPanel;
+	LastBuiltPaperDollSlotWidgetClass = InventorySlotWidgetClass;
 
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridInventory PaperDoll construit : 18 slots equipment enregistres"));
+	UE_LOG(LogTemp, Log, TEXT("GridInventory PaperDoll construit : 18 slots equipment enregistres"));
 }
 
-void UGridInventoryWidget::RemoveGeneratedInventorySlotsFromRegistry ()
+void UGridInventoryWidget::RemoveGeneratedInventorySlotsFromRegistry()
 {
-    RegisteredInventorySlots.RemoveAll ([this] (const TObjectPtr<UGridInventorySlotWidget>& SlotWidget)
-    {
-        if (!SlotWidget || SlotWidget->SlotType != EGridInventoryUiSlotType::Inventory)
-        {
-            return false;
-        }
+	RegisteredInventorySlots.RemoveAll(
+		[this](const TObjectPtr<UGridInventorySlotWidget>& SlotWidget)
+		{
+			if (!SlotWidget || SlotWidget->SlotType != EGridInventoryUiSlotType::Inventory)
+			{
+				return false;
+			}
 
-        return GeneratedInventorySlotWidgets.Contains (SlotWidget) ||
-            (InventorySlotsGridPanel && SlotWidget->GetParent () == InventorySlotsGridPanel);
-    });
+			return GeneratedInventorySlotWidgets.Contains(SlotWidget) || (InventorySlotsGridPanel && SlotWidget->GetParent() == InventorySlotsGridPanel);
+		});
 }
 
-void UGridInventoryWidget::RefreshRegisteredSlotWidgets ()
+void UGridInventoryWidget::RefreshRegisteredSlotWidgets()
 {
-    for (UGridInventorySlotWidget* SlotWidget : RegisteredInventorySlots)
-    {
-        if (!SlotWidget)
-        {
-            continue;
-        }
+	for (UGridInventorySlotWidget* SlotWidget : RegisteredInventorySlots)
+	{
+		if (!SlotWidget)
+		{
+			continue;
+		}
 
-        FGridItemInstance Item;
-        if (GetInventoryItemAtSlot (SlotWidget->InventorySlotIndex, Item))
-        {
-            SlotWidget->SetItem (Item);
-        }
-        else
-        {
-            SlotWidget->ClearItem ();
-        }
-    }
+		FGridItemInstance Item;
+		if (GetInventoryItemAtSlot(SlotWidget->InventorySlotIndex, Item))
+		{
+			SlotWidget->SetItem(Item);
+		}
+		else
+		{
+			SlotWidget->ClearItem();
+		}
+	}
 
-    for (const TPair<EGridEquipmentSlot, TObjectPtr<UGridInventorySlotWidget>>& RegisteredEquipmentSlot : RegisteredEquipmentSlotWidgets)
-    {
-        UGridInventorySlotWidget* SlotWidget = RegisteredEquipmentSlot.Value;
-        if (!SlotWidget)
-        {
-            continue;
-        }
+	for (const TPair<EGridEquipmentSlot, TObjectPtr<UGridInventorySlotWidget>>& RegisteredEquipmentSlot : RegisteredEquipmentSlotWidgets)
+	{
+		UGridInventorySlotWidget* SlotWidget = RegisteredEquipmentSlot.Value;
+		if (!SlotWidget)
+		{
+			continue;
+		}
 
-        FGridItemInstance Item;
-        if (GetEquipmentItem (RegisteredEquipmentSlot.Key, Item))
-        {
-            SlotWidget->SetItem (Item);
-        }
-        else
-        {
-            SlotWidget->ClearItem ();
-        }
-    }
+		FGridItemInstance Item;
+		if (GetEquipmentItem(RegisteredEquipmentSlot.Key, Item))
+		{
+			SlotWidget->SetItem(Item);
+		}
+		else
+		{
+			SlotWidget->ClearItem();
+		}
+	}
 
-    if (MainHandSlotWidget)
-    {
-        FGridItemInstance Item;
-        if (GetMainHandItem (Item))
-        {
-            MainHandSlotWidget->SetItem (Item);
-        }
-        else
-        {
-            MainHandSlotWidget->ClearItem ();
-        }
-    }
+	if (MainHandSlotWidget)
+	{
+		FGridItemInstance Item;
+		if (GetMainHandItem(Item))
+		{
+			MainHandSlotWidget->SetItem(Item);
+		}
+		else
+		{
+			MainHandSlotWidget->ClearItem();
+		}
+	}
 
-    if (OffHandSlotWidget)
-    {
-        FGridItemInstance Item;
-        if (GetOffHandItem (Item))
-        {
-            OffHandSlotWidget->SetItem (Item);
-        }
-        else
-        {
-            OffHandSlotWidget->ClearItem ();
-        }
-    }
+	if (OffHandSlotWidget)
+	{
+		FGridItemInstance Item;
+		if (GetOffHandItem(Item))
+		{
+			OffHandSlotWidget->SetItem(Item);
+		}
+		else
+		{
+			OffHandSlotWidget->ClearItem();
+		}
+	}
 
-    if (CursorSlotWidget)
-    {
-        FGridItemInstance Item;
-        if (GetCursorItem (Item))
-        {
-            CursorSlotWidget->SetItem (Item);
-        }
-        else
-        {
-            CursorSlotWidget->ClearItem ();
-        }
-    }
+	if (CursorSlotWidget)
+	{
+		FGridItemInstance Item;
+		if (GetCursorItem(Item))
+		{
+			CursorSlotWidget->SetItem(Item);
+		}
+		else
+		{
+			CursorSlotWidget->ClearItem();
+		}
+	}
 }
 
-void UGridInventoryWidget::HandleRegisteredSlotClicked (EGridInventoryUiSlotType SlotType, int32 SlotIndex)
+void UGridInventoryWidget::HandleRegisteredSlotClicked(EGridInventoryUiSlotType SlotType, int32 SlotIndex)
 {
-    switch (SlotType)
-    {
-    case EGridInventoryUiSlotType::Inventory:
-        HandleInventorySlotClicked (SlotIndex);
-        break;
-    case EGridInventoryUiSlotType::Equipment:
-        HandleEquipmentSlotClicked (static_cast<EGridEquipmentSlot> (SlotIndex));
-        break;
-    case EGridInventoryUiSlotType::MainHand:
-        HandleMainHandClicked ();
-        break;
-    case EGridInventoryUiSlotType::OffHand:
-        HandleOffHandClicked ();
-        break;
-    case EGridInventoryUiSlotType::Cursor:
-        HandleCursorReturnToInventoryClicked ();
-        break;
-    default:
-        break;
-    }
+	switch (SlotType)
+	{
+		case EGridInventoryUiSlotType::Inventory:
+			HandleInventorySlotClicked(SlotIndex);
+			break;
+		case EGridInventoryUiSlotType::Equipment:
+			HandleEquipmentSlotClicked(static_cast<EGridEquipmentSlot>(SlotIndex));
+			break;
+		case EGridInventoryUiSlotType::MainHand:
+			HandleMainHandClicked();
+			break;
+		case EGridInventoryUiSlotType::OffHand:
+			HandleOffHandClicked();
+			break;
+		case EGridInventoryUiSlotType::Cursor:
+			HandleCursorReturnToInventoryClicked();
+			break;
+		default:
+			break;
+	}
 }
 
-bool UGridInventoryWidget::HandleItemSlotRightClicked (
-    EGridInventoryUiSlotType SlotType,
-    int32 SlotIndex)
+bool UGridInventoryWidget::HandleItemSlotRightClicked(EGridInventoryUiSlotType SlotType, int32 SlotIndex)
 {
-    LastContextItem = FGridItemInstance ();
-    LastFacingTargetContext = FGridFacingTargetContext ();
-    LastContextActions.Reset ();
+	LastContextItem = FGridItemInstance();
+	LastFacingTargetContext = FGridFacingTargetContext();
+	LastContextActions.Reset();
 
-    const bool bBuilt = BuildContextActionsForSlot (
-        SlotType,
-        SlotIndex,
-        LastFacingTargetContext,
-        LastContextActions);
+	const bool bBuilt = BuildContextActionsForSlot(SlotType, SlotIndex, LastFacingTargetContext, LastContextActions);
 
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridInventory RightClick Slot=%d Item=%s Actions=%d Result=%s"),
-        SlotIndex,
-        LastContextItem.ItemDefinitionId.IsNone ()
-            ? TEXT ("None")
-            : *LastContextItem.ItemDefinitionId.ToString (),
-        LastContextActions.Num (),
-        bBuilt ? TEXT ("true") : TEXT ("false"));
+	UE_LOG(LogTemp, Log, TEXT("GridInventory RightClick Slot=%d Item=%s Actions=%d Result=%s"), SlotIndex,
+		LastContextItem.ItemDefinitionId.IsNone() ? TEXT("None") : *LastContextItem.ItemDefinitionId.ToString(), LastContextActions.Num(),
+		bBuilt ? TEXT("true") : TEXT("false"));
 
-    if (bBuilt)
-    {
-        bItemActionMenuCloseRequested = false;
-        OnContextActionsRequested.Broadcast (SlotType, SlotIndex);
-    }
-    return bBuilt;
+	if (bBuilt)
+	{
+		bItemActionMenuCloseRequested = false;
+		OnContextActionsRequested.Broadcast(SlotType, SlotIndex);
+	}
+	return bBuilt;
 }
 
-bool UGridInventoryWidget::BuildContextActionsForSlot (
-    EGridInventoryUiSlotType SlotType,
-    int32 SlotIndex,
-    FGridFacingTargetContext& OutFacingTarget,
-    TArray<FGridItemContextAction>& OutActions)
+bool UGridInventoryWidget::BuildContextActionsForSlot(
+	EGridInventoryUiSlotType SlotType, int32 SlotIndex, FGridFacingTargetContext& OutFacingTarget, TArray<FGridItemContextAction>& OutActions)
 {
-    OutFacingTarget = FGridFacingTargetContext ();
-    OutActions.Reset ();
-    LastContextItem = FGridItemInstance ();
-    if (!OwningPartyPawn || !InventoryComponent)
-    {
-        return false;
-    }
+	OutFacingTarget = FGridFacingTargetContext();
+	OutActions.Reset();
+	LastContextItem = FGridItemInstance();
+	if (!OwningPartyPawn || !InventoryComponent)
+	{
+		return false;
+	}
 
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    if (SlotType == EGridInventoryUiSlotType::Inventory)
-    {
-        if (!GetInventoryItemAtSlot (SlotIndex, LastContextItem))
-        {
-            return false;
-        }
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	if (SlotType == EGridInventoryUiSlotType::Inventory)
+	{
+		if (!GetInventoryItemAtSlot(SlotIndex, LastContextItem))
+		{
+			return false;
+		}
 
-        return UGridItemContextActionLibrary::BuildInventorySlotContextActions (
-            OwningPartyPawn,
-            CharacterIndex,
-            SlotIndex,
-            OutFacingTarget,
-            OutActions);
-    }
+		return UGridItemContextActionLibrary::BuildInventorySlotContextActions(OwningPartyPawn, CharacterIndex, SlotIndex, OutFacingTarget, OutActions);
+	}
 
-    FGridItemActionContext ItemContext;
-    ItemContext.PartyPawn = OwningPartyPawn;
-    ItemContext.CharacterIndex = CharacterIndex;
-    ItemContext.InventorySlotIndex = INDEX_NONE;
+	FGridItemActionContext ItemContext;
+	ItemContext.PartyPawn = OwningPartyPawn;
+	ItemContext.CharacterIndex = CharacterIndex;
+	ItemContext.InventorySlotIndex = INDEX_NONE;
 
-    switch (SlotType)
-    {
-    case EGridInventoryUiSlotType::Equipment:
-        {
-            const EGridEquipmentSlot EquipmentSlot =
-                ResolveUiEquipmentSlot (SlotType, SlotIndex);
-            if (!GetEquipmentItem (EquipmentSlot, LastContextItem))
-            {
-                return false;
-            }
-            ItemContext.EquipmentSlot = EquipmentSlot;
-            break;
-        }
-    case EGridInventoryUiSlotType::MainHand:
-        if (!GetMainHandItem (LastContextItem))
-        {
-            return false;
-        }
-        ItemContext.EquipmentSlot = EGridEquipmentSlot::MainHand;
-        break;
-    case EGridInventoryUiSlotType::OffHand:
-        if (!GetOffHandItem (LastContextItem))
-        {
-            return false;
-        }
-        ItemContext.EquipmentSlot = EGridEquipmentSlot::OffHand;
-        break;
-    case EGridInventoryUiSlotType::Cursor:
-        if (!GetCursorItem (LastContextItem))
-        {
-            return false;
-        }
-        break;
-    default:
-        return false;
-    }
+	switch (SlotType)
+	{
+		case EGridInventoryUiSlotType::Equipment:
+		{
+			const EGridEquipmentSlot EquipmentSlot = ResolveUiEquipmentSlot(SlotType, SlotIndex);
+			if (!GetEquipmentItem(EquipmentSlot, LastContextItem))
+			{
+				return false;
+			}
+			ItemContext.EquipmentSlot = EquipmentSlot;
+			break;
+		}
+		case EGridInventoryUiSlotType::MainHand:
+			if (!GetMainHandItem(LastContextItem))
+			{
+				return false;
+			}
+			ItemContext.EquipmentSlot = EGridEquipmentSlot::MainHand;
+			break;
+		case EGridInventoryUiSlotType::OffHand:
+			if (!GetOffHandItem(LastContextItem))
+			{
+				return false;
+			}
+			ItemContext.EquipmentSlot = EGridEquipmentSlot::OffHand;
+			break;
+		case EGridInventoryUiSlotType::Cursor:
+			if (!GetCursorItem(LastContextItem))
+			{
+				return false;
+			}
+			break;
+		default:
+			return false;
+	}
 
-    ItemContext.Item = LastContextItem;
-    ItemContext.ItemDefinition =
-        InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId);
-    return UGridItemContextActionLibrary::BuildItemContextActions (
-        ItemContext,
-        OutFacingTarget,
-        OutActions);
+	ItemContext.Item = LastContextItem;
+	ItemContext.ItemDefinition = InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+	return UGridItemContextActionLibrary::BuildItemContextActions(ItemContext, OutFacingTarget, OutActions);
 }
 
-bool UGridInventoryWidget::ExecuteInventoryContextAction (
-    EGridItemActionType ActionType,
-    EGridInventoryUiSlotType SourceSlotType,
-    int32 SourceSlotIndex)
+bool UGridInventoryWidget::ExecuteInventoryContextAction(EGridItemActionType ActionType, EGridInventoryUiSlotType SourceSlotType, int32 SourceSlotIndex)
 {
-    FGridFacingTargetContext FacingTarget;
-    TArray<FGridItemContextAction> AvailableActions;
-    if (!BuildContextActionsForSlot (
-        SourceSlotType,
-        SourceSlotIndex,
-        FacingTarget,
-        AvailableActions))
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute Failed Action=%s Reason=InvalidSource"),
-            GetContextActionName (ActionType));
-        return false;
-    }
+	FGridFacingTargetContext FacingTarget;
+	TArray<FGridItemContextAction> AvailableActions;
+	if (!BuildContextActionsForSlot(SourceSlotType, SourceSlotIndex, FacingTarget, AvailableActions))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=InvalidSource"), GetContextActionName(ActionType));
+		return false;
+	}
 
-    const int32 MatchingActionCount = AvailableActions.FilterByPredicate (
-        [ActionType] (const FGridItemContextAction& Action)
-        {
-            return Action.ActionType == ActionType;
-        }).Num ();
-    if (MatchingActionCount > 1)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"),
-            GetContextActionName (ActionType));
-        return false;
-    }
+	const int32 MatchingActionCount = AvailableActions
+										  .FilterByPredicate(
+											  [ActionType](const FGridItemContextAction& Action)
+											  {
+												  return Action.ActionType == ActionType;
+											  })
+										  .Num();
+	if (MatchingActionCount > 1)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Failed Action=%s Reason=AmbiguousActionType"), GetContextActionName(ActionType));
+		return false;
+	}
 
-    const FGridItemContextAction* SelectedAction = AvailableActions.FindByPredicate (
-        [ActionType] (const FGridItemContextAction& Action)
-        {
-            return Action.ActionType == ActionType;
-        });
-    if (!SelectedAction || !SelectedAction->bEnabled)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"),
-            GetContextActionName (ActionType),
-            *LastContextItem.ItemDefinitionId.ToString (),
-            SelectedAction
-                ? TEXT ("ActionDisabled")
-                : TEXT ("ActionUnavailable"));
-        return false;
-    }
+	const FGridItemContextAction* SelectedAction = AvailableActions.FindByPredicate(
+		[ActionType](const FGridItemContextAction& Action)
+		{
+			return Action.ActionType == ActionType;
+		});
+	if (!SelectedAction || !SelectedAction->bEnabled)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Failed Action=%s Item=%s Reason=%s"), GetContextActionName(ActionType),
+			*LastContextItem.ItemDefinitionId.ToString(), SelectedAction ? TEXT("ActionDisabled") : TEXT("ActionUnavailable"));
+		return false;
+	}
 
-    return ExecuteResolvedInventoryContextAction (
-        *SelectedAction,
-        FacingTarget,
-        SourceSlotType,
-        SourceSlotIndex);
+	return ExecuteResolvedInventoryContextAction(*SelectedAction, FacingTarget, SourceSlotType, SourceSlotIndex);
 }
 
-bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex (
-    EGridInventoryUiSlotType SourceSlotType,
-    int32 SourceSlotIndex,
-    int32 ActionIndex)
+bool UGridInventoryWidget::ExecuteInventoryContextActionByIndex(EGridInventoryUiSlotType SourceSlotType, int32 SourceSlotIndex, int32 ActionIndex)
 {
-    FGridFacingTargetContext FacingTarget;
-    TArray<FGridItemContextAction> AvailableActions;
-    if (!BuildContextActionsForSlot (
-        SourceSlotType,
-        SourceSlotIndex,
-        FacingTarget,
-        AvailableActions))
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions ExecuteByIndex Failed Reason=InvalidSource Slot=%s:%d ActionIndex=%d"),
-            GetGridInventoryUiSlotTypeName (SourceSlotType),
-            SourceSlotIndex,
-            ActionIndex);
-        return false;
-    }
+	FGridFacingTargetContext FacingTarget;
+	TArray<FGridItemContextAction> AvailableActions;
+	if (!BuildContextActionsForSlot(SourceSlotType, SourceSlotIndex, FacingTarget, AvailableActions))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=InvalidSource Slot=%s:%d ActionIndex=%d"),
+			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex);
+		return false;
+	}
 
-    if (!AvailableActions.IsValidIndex (ActionIndex))
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions ExecuteByIndex Failed Reason=InvalidActionIndex Slot=%s:%d ActionIndex=%d ActionCount=%d"),
-            GetGridInventoryUiSlotTypeName (SourceSlotType),
-            SourceSlotIndex,
-            ActionIndex,
-            AvailableActions.Num ());
-        return false;
-    }
+	if (!AvailableActions.IsValidIndex(ActionIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=InvalidActionIndex Slot=%s:%d ActionIndex=%d ActionCount=%d"),
+			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, AvailableActions.Num());
+		return false;
+	}
 
-    const FGridItemContextAction& SelectedAction = AvailableActions[ActionIndex];
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridItemActions ExecuteByIndex Slot=%s:%d ActionIndex=%d Action=%s Label=\"%s\" EquipmentSlot=%s TargetType=%s"),
-        GetGridInventoryUiSlotTypeName (SourceSlotType),
-        SourceSlotIndex,
-        ActionIndex,
-        GetContextActionName (SelectedAction.ActionType),
-        *SelectedAction.Label.ToString (),
-        GetContextEquipmentSlotName (SelectedAction.EquipmentSlot),
-        GetContextTargetTypeName (FacingTarget.TargetType));
+	const FGridItemContextAction& SelectedAction = AvailableActions[ActionIndex];
+	UE_LOG(LogTemp, Log, TEXT("GridItemActions ExecuteByIndex Slot=%s:%d ActionIndex=%d Action=%s Label=\"%s\" EquipmentSlot=%s TargetType=%s"),
+		GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetContextActionName(SelectedAction.ActionType),
+		*SelectedAction.Label.ToString(), GetContextEquipmentSlotName(SelectedAction.EquipmentSlot), GetContextTargetTypeName(FacingTarget.TargetType));
 
-    if (!SelectedAction.bEnabled)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions ExecuteByIndex Failed Reason=ActionDisabled Slot=%s:%d ActionIndex=%d Action=%s"),
-            GetGridInventoryUiSlotTypeName (SourceSlotType),
-            SourceSlotIndex,
-            ActionIndex,
-            GetContextActionName (SelectedAction.ActionType));
-        return false;
-    }
+	if (!SelectedAction.bEnabled)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions ExecuteByIndex Failed Reason=ActionDisabled Slot=%s:%d ActionIndex=%d Action=%s"),
+			GetGridInventoryUiSlotTypeName(SourceSlotType), SourceSlotIndex, ActionIndex, GetContextActionName(SelectedAction.ActionType));
+		return false;
+	}
 
-    return ExecuteResolvedInventoryContextAction (
-        SelectedAction,
-        FacingTarget,
-        SourceSlotType,
-        SourceSlotIndex);
+	return ExecuteResolvedInventoryContextAction(SelectedAction, FacingTarget, SourceSlotType, SourceSlotIndex);
 }
 
-void UGridInventoryWidget::CloseItemActionMenu (FName Reason)
+void UGridInventoryWidget::CloseItemActionMenu(FName Reason)
 {
-    const FString ReasonString = Reason.IsNone ()
-        ? TEXT ("Unspecified")
-        : Reason.ToString ();
+	const FString ReasonString = Reason.IsNone() ? TEXT("Unspecified") : Reason.ToString();
 
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridItemActionMenu Close Requested Reason=%s"),
-        *ReasonString);
+	UE_LOG(LogTemp, Log, TEXT("GridItemActionMenu Close Requested Reason=%s"), *ReasonString);
 
-    if (bItemActionMenuCloseRequested)
-    {
-        UE_LOG (LogTemp, Verbose,
-            TEXT ("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"),
-            *ReasonString);
-        return;
-    }
+	if (bItemActionMenuCloseRequested)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"), *ReasonString);
+		return;
+	}
 
-    bItemActionMenuCloseRequested = true;
-    if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget (this);
-        IsItemActionMenuDetached (CurrentItemActionMenu))
-    {
-        UE_LOG (LogTemp, Verbose,
-            TEXT ("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"),
-            *ReasonString);
-        ClearCurrentItemActionMenuWidget (this);
-        return;
-    }
+	bItemActionMenuCloseRequested = true;
+	if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget(this); IsItemActionMenuDetached(CurrentItemActionMenu))
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("GridItemActionMenu Close Skipped Reason=AlreadyDetached RequestedReason=%s"), *ReasonString);
+		ClearCurrentItemActionMenuWidget(this);
+		return;
+	}
 
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridItemActionMenu Closed Reason=%s"),
-        *ReasonString);
-    OnItemActionMenuCloseRequested (Reason);
+	UE_LOG(LogTemp, Log, TEXT("GridItemActionMenu Closed Reason=%s"), *ReasonString);
+	OnItemActionMenuCloseRequested(Reason);
 
-    if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget (this);
-        IsItemActionMenuDetached (CurrentItemActionMenu))
-    {
-        ClearCurrentItemActionMenuWidget (this);
-    }
+	if (UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget(this); IsItemActionMenuDetached(CurrentItemActionMenu))
+	{
+		ClearCurrentItemActionMenuWidget(this);
+	}
 }
 
-bool UGridInventoryWidget::IsItemActionMenuOpen () const
+bool UGridInventoryWidget::IsItemActionMenuOpen() const
 {
-    const UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget (this);
-    return CurrentItemActionMenu && !IsItemActionMenuDetached (CurrentItemActionMenu);
+	const UUserWidget* CurrentItemActionMenu = GetCurrentItemActionMenuWidget(this);
+	return CurrentItemActionMenu && !IsItemActionMenuDetached(CurrentItemActionMenu);
 }
 
-void UGridInventoryWidget::CloseItemReadPanel (FName Reason)
+void UGridInventoryWidget::CloseItemReadPanel(FName Reason)
 {
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridItemReadPanel Closed Reason=%s"),
-        Reason.IsNone () ? TEXT ("Unspecified") : *Reason.ToString ());
-    OnItemReadPanelCloseRequested (Reason);
+	UE_LOG(LogTemp, Log, TEXT("GridItemReadPanel Closed Reason=%s"), Reason.IsNone() ? TEXT("Unspecified") : *Reason.ToString());
+	OnItemReadPanelCloseRequested(Reason);
 }
 
-bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction (
-    const FGridItemContextAction& Action,
-    const FGridFacingTargetContext& FacingTarget,
-    EGridInventoryUiSlotType SourceSlotType,
-    int32 SourceSlotIndex)
+bool UGridInventoryWidget::ExecuteResolvedInventoryContextAction(
+	const FGridItemContextAction& Action, const FGridFacingTargetContext& FacingTarget, EGridInventoryUiSlotType SourceSlotType, int32 SourceSlotIndex)
 {
-    const int32 CharacterIndex = InventoryComponent
-        ? InventoryComponent->GetSelectedCharacterIndex ()
-        : INDEX_NONE;
-    bool bExecuted = false;
-    switch (Action.ActionType)
-    {
-    case EGridItemActionType::Examine:
-        {
-            UGridInventorySlotWidget* SourceWidget =
-                FindRegisteredSlotWidget (SourceSlotType, SourceSlotIndex);
-            const FText TooltipText = SourceWidget
-                ? SourceWidget->GetTooltipText ()
-                : LastContextItem.DisplayName;
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute Examine Item=%s"),
-                *LastContextItem.ItemDefinitionId.ToString ());
-            PresentItemExamination (LastContextItem, TooltipText);
-            bExecuted = true;
-            break;
-        }
+	const int32 CharacterIndex = InventoryComponent ? InventoryComponent->GetSelectedCharacterIndex() : INDEX_NONE;
+	bool bExecuted = false;
+	switch (Action.ActionType)
+	{
+		case EGridItemActionType::Examine:
+		{
+			UGridInventorySlotWidget* SourceWidget = FindRegisteredSlotWidget(SourceSlotType, SourceSlotIndex);
+			const FText TooltipText = SourceWidget ? SourceWidget->GetTooltipText() : LastContextItem.DisplayName;
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Examine Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
+			PresentItemExamination(LastContextItem, TooltipText);
+			bExecuted = true;
+			break;
+		}
 
-    case EGridItemActionType::Read:
-        {
-            const UGridItemDefinitionAsset* ItemDefinition = InventoryComponent
-                ? InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId)
-                : nullptr;
-            FText Title = LastContextItem.ReadTitleOverride;
-            if (Title.IsEmpty () && LastContextItem.ReadableContentAsset)
-            {
-                Title = LastContextItem.ReadableContentAsset->Title;
-            }
-            if (Title.IsEmpty ())
-            {
-                Title = LastContextItem.DisplayName;
-            }
-            if (Title.IsEmpty () && ItemDefinition)
-            {
-                Title = ItemDefinition->DisplayName;
-            }
-            if (Title.IsEmpty ())
-            {
-                Title = FText::FromName (LastContextItem.ItemDefinitionId);
-            }
+		case EGridItemActionType::Read:
+		{
+			const UGridItemDefinitionAsset* ItemDefinition =
+				InventoryComponent ? InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId) : nullptr;
+			FText Title = LastContextItem.ReadTitleOverride;
+			if (Title.IsEmpty() && LastContextItem.ReadableContentAsset)
+			{
+				Title = LastContextItem.ReadableContentAsset->Title;
+			}
+			if (Title.IsEmpty())
+			{
+				Title = LastContextItem.DisplayName;
+			}
+			if (Title.IsEmpty() && ItemDefinition)
+			{
+				Title = ItemDefinition->DisplayName;
+			}
+			if (Title.IsEmpty())
+			{
+				Title = FText::FromName(LastContextItem.ItemDefinitionId);
+			}
 
-            FText ReadText = LastContextItem.ReadTextOverride;
-            const TCHAR* ReadSource = TEXT ("InstanceOverride");
-            FName ResolvedContentId = LastContextItem.ReadableContentId;
-            if (ReadText.IsEmpty () && LastContextItem.ReadableContentAsset)
-            {
-                ReadText = LastContextItem.ReadableContentAsset->BodyText;
-                ReadSource = TEXT ("ReadableContentAsset");
-                if (ResolvedContentId.IsNone ())
-                {
-                    ResolvedContentId = LastContextItem.ReadableContentAsset->ReadableContentId;
-                }
-            }
-            if (ReadText.IsEmpty () && ItemDefinition && !ItemDefinition->ReadText.IsEmpty ())
-            {
-                ReadText = ItemDefinition->ReadText;
-                ReadSource = TEXT ("DefinitionFallback");
-            }
-            if (ReadText.IsEmpty ())
-            {
-                ReadText = NSLOCTEXT ("GridItemActions", "EmptyReadText", "Rien n'est écrit.");
-                ReadSource = TEXT ("EmptyFallback");
-            }
+			FText ReadText = LastContextItem.ReadTextOverride;
+			const TCHAR* ReadSource = TEXT("InstanceOverride");
+			FName ResolvedContentId = LastContextItem.ReadableContentId;
+			if (ReadText.IsEmpty() && LastContextItem.ReadableContentAsset)
+			{
+				ReadText = LastContextItem.ReadableContentAsset->BodyText;
+				ReadSource = TEXT("ReadableContentAsset");
+				if (ResolvedContentId.IsNone())
+				{
+					ResolvedContentId = LastContextItem.ReadableContentAsset->ReadableContentId;
+				}
+			}
+			if (ReadText.IsEmpty() && ItemDefinition && !ItemDefinition->ReadText.IsEmpty())
+			{
+				ReadText = ItemDefinition->ReadText;
+				ReadSource = TEXT("DefinitionFallback");
+			}
+			if (ReadText.IsEmpty())
+			{
+				ReadText = NSLOCTEXT("GridItemActions", "EmptyReadText", "Rien n'est écrit.");
+				ReadSource = TEXT("EmptyFallback");
+			}
 
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemReading Resolve Item=%s Source=%s Content=%s"),
-                *LastContextItem.ItemDefinitionId.ToString (),
-                ReadSource,
-                ResolvedContentId.IsNone () ? TEXT ("None") : *ResolvedContentId.ToString ());
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute Read Item=%s"),
-                *LastContextItem.ItemDefinitionId.ToString ());
-            PresentItemReading (LastContextItem, Title, ReadText);
-            bExecuted = true;
-            break;
-        }
+			UE_LOG(LogTemp, Log, TEXT("GridItemReading Resolve Item=%s Source=%s Content=%s"), *LastContextItem.ItemDefinitionId.ToString(), ReadSource,
+				ResolvedContentId.IsNone() ? TEXT("None") : *ResolvedContentId.ToString());
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Read Item=%s"), *LastContextItem.ItemDefinitionId.ToString());
+			PresentItemReading(LastContextItem, Title, ReadText);
+			bExecuted = true;
+			break;
+		}
 
-    case EGridItemActionType::Equip:
-        {
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute Equip Item=%s EquipmentSlot=%s"),
-                *LastContextItem.ItemDefinitionId.ToString (),
-                GetContextEquipmentSlotName (Action.EquipmentSlot));
-            if (SourceSlotType == EGridInventoryUiSlotType::Inventory &&
-                InventoryComponent &&
-                OwningPartyPawn &&
-                Action.EquipmentSlot != EGridEquipmentSlot::None)
-            {
-                const UGridItemDefinitionAsset* ItemDefinition =
-                    InventoryComponent->FindItemDefinition (LastContextItem.ItemDefinitionId);
-                if (!ItemDefinition ||
-                    !ItemDefinition->CanEquipToSlot (Action.EquipmentSlot))
-                {
-                    UE_LOG (LogTemp, Warning,
-                        TEXT ("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
-                        *LastContextItem.ItemDefinitionId.ToString (),
-                        GetContextEquipmentSlotName (Action.EquipmentSlot));
-                    break;
-                }
+		case EGridItemActionType::Equip:
+		{
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Equip Item=%s EquipmentSlot=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+				GetContextEquipmentSlotName(Action.EquipmentSlot));
+			if (SourceSlotType == EGridInventoryUiSlotType::Inventory && InventoryComponent && OwningPartyPawn &&
+				Action.EquipmentSlot != EGridEquipmentSlot::None)
+			{
+				const UGridItemDefinitionAsset* ItemDefinition = InventoryComponent->FindItemDefinition(LastContextItem.ItemDefinitionId);
+				if (!ItemDefinition || !ItemDefinition->CanEquipToSlot(Action.EquipmentSlot))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
+						*LastContextItem.ItemDefinitionId.ToString(), GetContextEquipmentSlotName(Action.EquipmentSlot));
+					break;
+				}
 
-                if (!InventoryComponent->CanEquipItemToSlot (
-                    CharacterIndex,
-                    LastContextItem,
-                    Action.EquipmentSlot))
-                {
-                    UE_LOG (LogTemp, Warning,
-                        TEXT ("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
-                        *LastContextItem.ItemDefinitionId.ToString (),
-                        GetContextEquipmentSlotName (Action.EquipmentSlot));
-                    break;
-                }
+				if (!InventoryComponent->CanEquipItemToSlot(CharacterIndex, LastContextItem, Action.EquipmentSlot))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Equip Failed Item=%s EquipmentSlot=%s Reason=IncompatibleSlot"),
+						*LastContextItem.ItemDefinitionId.ToString(), GetContextEquipmentSlotName(Action.EquipmentSlot));
+					break;
+				}
 
-                bExecuted = InventoryComponent->EquipItemFromInventorySlot (
-                    CharacterIndex,
-                    SourceSlotIndex,
-                    Action.EquipmentSlot);
-                if (bExecuted)
-                {
-                    OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-                }
-            }
-            break;
-        }
+				bExecuted = InventoryComponent->EquipItemFromInventorySlot(CharacterIndex, SourceSlotIndex, Action.EquipmentSlot);
+				if (bExecuted)
+				{
+					OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
+				}
+			}
+			break;
+		}
 
-    case EGridItemActionType::Unequip:
-        {
-            const EGridEquipmentSlot SourceEquipmentSlot =
-                ResolveSourceEquipmentSlot (Action, SourceSlotType);
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute Unequip Item=%s EquipmentSlot=%s"),
-                *LastContextItem.ItemDefinitionId.ToString (),
-                GetContextEquipmentSlotName (SourceEquipmentSlot));
-            if (InventoryComponent &&
-                OwningPartyPawn &&
-                SourceEquipmentSlot != EGridEquipmentSlot::None)
-            {
-                if (!InventoryComponent->CanAddItemToCharacterInventory (
-                    CharacterIndex,
-                    LastContextItem))
-                {
-                    UE_LOG (LogTemp, Warning,
-                        TEXT ("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
-                        *LastContextItem.ItemDefinitionId.ToString ());
-                    break;
-                }
+		case EGridItemActionType::Unequip:
+		{
+			const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute Unequip Item=%s EquipmentSlot=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+				GetContextEquipmentSlotName(SourceEquipmentSlot));
+			if (InventoryComponent && OwningPartyPawn && SourceEquipmentSlot != EGridEquipmentSlot::None)
+			{
+				if (!InventoryComponent->CanAddItemToCharacterInventory(CharacterIndex, LastContextItem))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
+						*LastContextItem.ItemDefinitionId.ToString());
+					break;
+				}
 
-                bExecuted = InventoryComponent->UnequipItemToInventory (
-                    CharacterIndex,
-                    SourceEquipmentSlot);
-                if (bExecuted)
-                {
-                    OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-                }
-                else
-                {
-                    UE_LOG (LogTemp, Warning,
-                        TEXT ("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
-                        *LastContextItem.ItemDefinitionId.ToString ());
-                }
-            }
-            break;
-        }
+				bExecuted = InventoryComponent->UnequipItemToInventory(CharacterIndex, SourceEquipmentSlot);
+				if (bExecuted)
+				{
+					OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute Unequip Failed Item=%s Reason=NoFreeInventorySlot"),
+						*LastContextItem.ItemDefinitionId.ToString());
+				}
+			}
+			break;
+		}
 
-    case EGridItemActionType::InsertIntoTarget:
-        {
-            AGridWallLockActor* WallLock =
-                Cast<AGridWallLockActor> (FacingTarget.TargetActor);
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute InsertIntoTarget Item=%s Target=%s"),
-                *LastContextItem.ItemDefinitionId.ToString (),
-                WallLock ? TEXT ("WallLock") : TEXT ("None"));
-            if (SourceSlotType == EGridInventoryUiSlotType::Inventory &&
-                WallLock &&
-                InventoryComponent &&
-                OwningPartyPawn)
-            {
-                bExecuted =
-                    UGridItemTransferService::TransferInventorySlotToWallLock (
-                        InventoryComponent,
-                        CharacterIndex,
-                        SourceSlotIndex,
-                        WallLock,
-                        OwningPartyPawn).bSuccess;
-            }
-            break;
-        }
+		case EGridItemActionType::InsertIntoTarget:
+		{
+			AGridWallLockActor* WallLock = Cast<AGridWallLockActor>(FacingTarget.TargetActor);
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute InsertIntoTarget Item=%s Target=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+				WallLock ? TEXT("WallLock") : TEXT("None"));
+			if (SourceSlotType == EGridInventoryUiSlotType::Inventory && WallLock && InventoryComponent && OwningPartyPawn)
+			{
+				bExecuted =
+					UGridItemTransferService::TransferInventorySlotToWallLock(InventoryComponent, CharacterIndex, SourceSlotIndex, WallLock, OwningPartyPawn)
+						.bSuccess;
+			}
+			break;
+		}
 
-    case EGridItemActionType::PlaceOnTarget:
-        {
-            AGridReceptacleActor* Receptacle =
-                Cast<AGridReceptacleActor> (FacingTarget.TargetActor);
-            const bool bIsTorchHolder =
-                FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
-            const bool bIsReceptacleTarget =
-                FacingTarget.TargetType == EGridFacingTargetType::Receptacle ||
-                FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridItemActions Execute PlaceOnTarget Item=%s Source=%s Target=%s"),
-                *LastContextItem.ItemDefinitionId.ToString (),
-                GetGridInventoryUiSlotTypeName (SourceSlotType),
-                bIsTorchHolder ? TEXT ("TorchHolder") : (bIsReceptacleTarget ? TEXT ("Receptacle") : TEXT ("None")));
-            if (!Receptacle || !InventoryComponent || !bIsReceptacleTarget)
-            {
-                UE_LOG (LogTemp, Warning,
-                    TEXT ("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=TargetRejected"),
-                    *LastContextItem.ItemDefinitionId.ToString (),
-                    GetGridInventoryUiSlotTypeName (SourceSlotType));
-                break;
-            }
+		case EGridItemActionType::PlaceOnTarget:
+		{
+			AGridReceptacleActor* Receptacle = Cast<AGridReceptacleActor>(FacingTarget.TargetActor);
+			const bool bIsTorchHolder = FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
+			const bool bIsReceptacleTarget =
+				FacingTarget.TargetType == EGridFacingTargetType::Receptacle || FacingTarget.TargetType == EGridFacingTargetType::TorchHolder;
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute PlaceOnTarget Item=%s Source=%s Target=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+				GetGridInventoryUiSlotTypeName(SourceSlotType),
+				bIsTorchHolder ? TEXT("TorchHolder") : (bIsReceptacleTarget ? TEXT("Receptacle") : TEXT("None")));
+			if (!Receptacle || !InventoryComponent || !bIsReceptacleTarget)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=TargetRejected"),
+					*LastContextItem.ItemDefinitionId.ToString(), GetGridInventoryUiSlotTypeName(SourceSlotType));
+				break;
+			}
 
-            FGridItemTransferResult TransferResult;
-            if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
-            {
-                TransferResult =
-                    UGridItemTransferService::TransferInventorySlotToReceptacle (
-                        InventoryComponent,
-                        CharacterIndex,
-                        SourceSlotIndex,
-                        Receptacle);
-            }
-            else if (SourceSlotType == EGridInventoryUiSlotType::Equipment ||
-                     SourceSlotType == EGridInventoryUiSlotType::MainHand ||
-                     SourceSlotType == EGridInventoryUiSlotType::OffHand)
-            {
-                const EGridEquipmentSlot SourceEquipmentSlot =
-                    ResolveSourceEquipmentSlot (Action, SourceSlotType);
-                TransferResult =
-                    UGridItemTransferService::TransferEquipmentSlotToReceptacle (
-                        InventoryComponent,
-                        CharacterIndex,
-                        SourceEquipmentSlot,
-                        Receptacle);
-            }
-            else
-            {
-                UE_LOG (LogTemp, Warning,
-                    TEXT ("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=InvalidSource"),
-                    *LastContextItem.ItemDefinitionId.ToString (),
-                    GetGridInventoryUiSlotTypeName (SourceSlotType));
-                break;
-            }
+			FGridItemTransferResult TransferResult;
+			if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
+			{
+				TransferResult = UGridItemTransferService::TransferInventorySlotToReceptacle(InventoryComponent, CharacterIndex, SourceSlotIndex, Receptacle);
+			}
+			else if (SourceSlotType == EGridInventoryUiSlotType::Equipment || SourceSlotType == EGridInventoryUiSlotType::MainHand ||
+				SourceSlotType == EGridInventoryUiSlotType::OffHand)
+			{
+				const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
+				TransferResult =
+					UGridItemTransferService::TransferEquipmentSlotToReceptacle(InventoryComponent, CharacterIndex, SourceEquipmentSlot, Receptacle);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=InvalidSource"),
+					*LastContextItem.ItemDefinitionId.ToString(), GetGridInventoryUiSlotTypeName(SourceSlotType));
+				break;
+			}
 
-            bExecuted = TransferResult.bSuccess;
-            if (!bExecuted)
-            {
-                const TCHAR* Reason =
-                    TransferResult.Result == EGridItemTransferResult::InvalidSource
-                        ? TEXT ("InvalidSource")
-                        : TEXT ("TargetRejected");
-                UE_LOG (LogTemp, Warning,
-                    TEXT ("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=%s"),
-                    *LastContextItem.ItemDefinitionId.ToString (),
-                    GetGridInventoryUiSlotTypeName (SourceSlotType),
-                    Reason);
-                break;
-            }
+			bExecuted = TransferResult.bSuccess;
+			if (!bExecuted)
+			{
+				const TCHAR* Reason = TransferResult.Result == EGridItemTransferResult::InvalidSource ? TEXT("InvalidSource") : TEXT("TargetRejected");
+				UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute PlaceOnTarget Failed Item=%s Source=%s Reason=%s"),
+					*LastContextItem.ItemDefinitionId.ToString(), GetGridInventoryUiSlotTypeName(SourceSlotType), Reason);
+				break;
+			}
 
-            if (bIsTorchHolder)
-            {
-                const int32 InsertedItemIndex =
-                    Receptacle->GetContainedItemCount () - 1;
-                const bool bTorchLightEnabled =
-                    Receptacle->SetContainedItemLightsEnabled (
-                        InsertedItemIndex,
-                        true);
-                UE_LOG (LogTemp, Log,
-                    TEXT ("GridItemActions Execute PlaceOnTarget TorchLightEnabled=%s"),
-                    bTorchLightEnabled ? TEXT ("true") : TEXT ("false"));
-            }
-            break;
-        }
+			if (bIsTorchHolder)
+			{
+				const int32 InsertedItemIndex = Receptacle->GetContainedItemCount() - 1;
+				const bool bTorchLightEnabled = Receptacle->SetContainedItemLightsEnabled(InsertedItemIndex, true);
+				UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute PlaceOnTarget TorchLightEnabled=%s"), bTorchLightEnabled ? TEXT("true") : TEXT("false"));
+			}
+			break;
+		}
 
-    case EGridItemActionType::DropToGround:
-        bExecuted = DropContextItemToGround (
-            Action,
-            SourceSlotType,
-            SourceSlotIndex);
-        break;
+		case EGridItemActionType::DropToGround:
+			bExecuted = DropContextItemToGround(Action, SourceSlotType, SourceSlotIndex);
+			break;
 
-    default:
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridItemActions Execute NotImplemented Action=%s Item=%s"),
-            GetContextActionName (Action.ActionType),
-            *LastContextItem.ItemDefinitionId.ToString ());
-        break;
-    }
+		default:
+			UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute NotImplemented Action=%s Item=%s"), GetContextActionName(Action.ActionType),
+				*LastContextItem.ItemDefinitionId.ToString());
+			break;
+	}
 
-    if (bExecuted)
-    {
-        RefreshInventory ();
-    }
-    return bExecuted;
+	if (bExecuted)
+	{
+		RefreshInventory();
+	}
+	return bExecuted;
 }
 
-EGridEquipmentSlot UGridInventoryWidget::ResolveSourceEquipmentSlot (
-    const FGridItemContextAction& Action,
-    EGridInventoryUiSlotType SourceSlotType) const
+EGridEquipmentSlot UGridInventoryWidget::ResolveSourceEquipmentSlot(const FGridItemContextAction& Action, EGridInventoryUiSlotType SourceSlotType) const
 {
-    if (Action.EquipmentSlot != EGridEquipmentSlot::None)
-    {
-        return Action.EquipmentSlot;
-    }
+	if (Action.EquipmentSlot != EGridEquipmentSlot::None)
+	{
+		return Action.EquipmentSlot;
+	}
 
-    switch (SourceSlotType)
-    {
-    case EGridInventoryUiSlotType::MainHand:
-        return EGridEquipmentSlot::MainHand;
-    case EGridInventoryUiSlotType::OffHand:
-        return EGridEquipmentSlot::OffHand;
-    default:
-        return EGridEquipmentSlot::None;
-    }
+	switch (SourceSlotType)
+	{
+		case EGridInventoryUiSlotType::MainHand:
+			return EGridEquipmentSlot::MainHand;
+		case EGridInventoryUiSlotType::OffHand:
+			return EGridEquipmentSlot::OffHand;
+		default:
+			return EGridEquipmentSlot::None;
+	}
 }
 
-bool UGridInventoryWidget::DropContextItemToGround (
-    const FGridItemContextAction& Action,
-    EGridInventoryUiSlotType SourceSlotType,
-    int32 SourceSlotIndex)
+bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction& Action, EGridInventoryUiSlotType SourceSlotType, int32 SourceSlotIndex)
 {
-    if (!InventoryComponent || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=MissingRuntime"),
-            *LastContextItem.ItemDefinitionId.ToString ());
-        return false;
-    }
+	if (!InventoryComponent || !OwningPartyPawn || !OwningPartyPawn->LevelRuntimeActor)
+	{
+		UE_LOG(
+			LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=MissingRuntime"), *LastContextItem.ItemDefinitionId.ToString());
+		return false;
+	}
 
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
-    {
-        const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
-        if (!State.ActiveCharacters.IsValidIndex (CharacterIndex) ||
-            !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex (SourceSlotIndex) ||
-            State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty ())
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlot"),
-                *LastContextItem.ItemDefinitionId.ToString ());
-            return false;
-        }
-    }
-    else if (SourceSlotType == EGridInventoryUiSlotType::Equipment ||
-             SourceSlotType == EGridInventoryUiSlotType::MainHand ||
-             SourceSlotType == EGridInventoryUiSlotType::OffHand)
-    {
-        const EGridEquipmentSlot SourceEquipmentSlot =
-            ResolveSourceEquipmentSlot (Action, SourceSlotType);
-        if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentState"),
-                *LastContextItem.ItemDefinitionId.ToString ());
-            return false;
-        }
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
+	{
+		const FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+		if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) || !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex) ||
+			State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex].IsEmpty())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlot"),
+				*LastContextItem.ItemDefinitionId.ToString());
+			return false;
+		}
+	}
+	else if (SourceSlotType == EGridInventoryUiSlotType::Equipment || SourceSlotType == EGridInventoryUiSlotType::MainHand ||
+		SourceSlotType == EGridInventoryUiSlotType::OffHand)
+	{
+		const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
+		if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentState"),
+				*LastContextItem.ItemDefinitionId.ToString());
+			return false;
+		}
 
-        const FGridCharacterEquipmentState& EquipmentState =
-            InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
-        const FGridItemInstance* EquippedItem = EquipmentState.GetSlot (SourceEquipmentSlot);
-        if (!EquippedItem || !EquippedItem->IsValid ())
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
-                *LastContextItem.ItemDefinitionId.ToString ());
-            return false;
-        }
-    }
-    else
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=UnsupportedSource"),
-            *LastContextItem.ItemDefinitionId.ToString ());
-        return false;
-    }
+		const FGridCharacterEquipmentState& EquipmentState = InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
+		const FGridItemInstance* EquippedItem = EquipmentState.GetSlot(SourceEquipmentSlot);
+		if (!EquippedItem || !EquippedItem->IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
+				*LastContextItem.ItemDefinitionId.ToString());
+			return false;
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=UnsupportedSource"),
+			*LastContextItem.ItemDefinitionId.ToString());
+		return false;
+	}
 
-    FGridItemInstance ItemToDrop = LastContextItem;
-    ItemToDrop.OwnerType = EGridItemOwnerType::World;
-    ItemToDrop.OwnerGuid = FGuid ();
-    ItemToDrop.OwnerCharacterIndex = INDEX_NONE;
-    ItemToDrop.EquipmentSlot = EGridEquipmentSlot::None;
+	FGridItemInstance ItemToDrop = LastContextItem;
+	ItemToDrop.OwnerType = EGridItemOwnerType::World;
+	ItemToDrop.OwnerGuid = FGuid();
+	ItemToDrop.OwnerCharacterIndex = INDEX_NONE;
+	ItemToDrop.EquipmentSlot = EGridEquipmentSlot::None;
 
-    if (!OwningPartyPawn->LevelRuntimeActor->TryDropItemInstanceAtCell (
-        ItemToDrop,
-        OwningPartyPawn->CurrentCellX,
-        OwningPartyPawn->CurrentCellY,
-        EGridEdge::None,
-        FVector::ZeroVector))
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=WorldDropFailed"),
-            *LastContextItem.ItemDefinitionId.ToString ());
-        return false;
-    }
+	if (!OwningPartyPawn->LevelRuntimeActor->TryDropItemInstanceAtCell(
+			ItemToDrop, OwningPartyPawn->CurrentCellX, OwningPartyPawn->CurrentCellY, EGridEdge::None, FVector::ZeroVector))
+	{
+		UE_LOG(
+			LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=WorldDropFailed"), *LastContextItem.ItemDefinitionId.ToString());
+		return false;
+	}
 
-    if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
-    {
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridItemActions Execute DropToGround Item=%s Source=Inventory Slot=%d"),
-            *LastContextItem.ItemDefinitionId.ToString (),
-            SourceSlotIndex);
-        FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
-        if (!State.ActiveCharacters.IsValidIndex (CharacterIndex) ||
-            !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex (SourceSlotIndex))
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlotAfterDrop"),
-                *LastContextItem.ItemDefinitionId.ToString ());
-            return false;
-        }
+	if (SourceSlotType == EGridInventoryUiSlotType::Inventory)
+	{
+		UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute DropToGround Item=%s Source=Inventory Slot=%d"), *LastContextItem.ItemDefinitionId.ToString(),
+			SourceSlotIndex);
+		FGridPartyInventoryState& State = InventoryComponent->PartyInventoryState;
+		if (!State.ActiveCharacters.IsValidIndex(CharacterIndex) || !State.ActiveCharacters[CharacterIndex].InventorySlots.IsValidIndex(SourceSlotIndex))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidInventorySlotAfterDrop"),
+				*LastContextItem.ItemDefinitionId.ToString());
+			return false;
+		}
 
-        State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex] = FGridInventorySlot ();
-        InventoryComponent->RecalculateCharacterWeight (CharacterIndex);
-        return true;
-    }
+		State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex] = FGridInventorySlot();
+		InventoryComponent->RecalculateCharacterWeight(CharacterIndex);
+		return true;
+	}
 
-    const EGridEquipmentSlot SourceEquipmentSlot =
-        ResolveSourceEquipmentSlot (Action, SourceSlotType);
-    UE_LOG (LogTemp, Log,
-        TEXT ("GridItemActions Execute DropToGround Item=%s Source=%s"),
-        *LastContextItem.ItemDefinitionId.ToString (),
-        GetContextEquipmentSlotName (SourceEquipmentSlot));
-    if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
-    {
-        UE_LOG (LogTemp, Warning,
-            TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentStateAfterDrop"),
-            *LastContextItem.ItemDefinitionId.ToString ());
-        return false;
-    }
+	const EGridEquipmentSlot SourceEquipmentSlot = ResolveSourceEquipmentSlot(Action, SourceSlotType);
+	UE_LOG(LogTemp, Log, TEXT("GridItemActions Execute DropToGround Item=%s Source=%s"), *LastContextItem.ItemDefinitionId.ToString(),
+		GetContextEquipmentSlotName(SourceEquipmentSlot));
+	if (!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentStateAfterDrop"),
+			*LastContextItem.ItemDefinitionId.ToString());
+		return false;
+	}
 
-    FGridCharacterEquipmentState& EquipmentState =
-        InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
-    if (FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot (SourceEquipmentSlot))
-    {
-        *EquippedItem = FGridItemInstance ();
-        InventoryComponent->RecalculateCharacterWeight (CharacterIndex);
-        OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-        return true;
-    }
+	FGridCharacterEquipmentState& EquipmentState = InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
+	if (FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(SourceEquipmentSlot))
+	{
+		*EquippedItem = FGridItemInstance();
+		InventoryComponent->RecalculateCharacterWeight(CharacterIndex);
+		OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
+		return true;
+	}
 
-    UE_LOG (LogTemp, Warning,
-        TEXT ("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
-        *LastContextItem.ItemDefinitionId.ToString ());
-    return false;
+	UE_LOG(LogTemp, Warning, TEXT("GridItemActions Execute DropToGround Failed Item=%s Reason=InvalidEquipmentSlot"),
+		*LastContextItem.ItemDefinitionId.ToString());
+	return false;
 }
 
-bool UGridInventoryWidget::HandleSlotDrop (
-    EGridInventoryUiSlotType SourceType,
-    int32 SourceIndex,
-    EGridInventoryUiSlotType TargetType,
-    int32 TargetIndex,
-    bool bSplitStack,
-    int32 RequestedQuantity)
+bool UGridInventoryWidget::HandleSlotDrop(
+	EGridInventoryUiSlotType SourceType, int32 SourceIndex, EGridInventoryUiSlotType TargetType, int32 TargetIndex, bool bSplitStack, int32 RequestedQuantity)
 {
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"),
-        GetGridInventoryUiSlotTypeName (SourceType),
-        SourceIndex,
-        GetGridInventoryUiSlotTypeName (TargetType),
-        TargetIndex);
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
+		SourceIndex, GetGridInventoryUiSlotTypeName(TargetType), TargetIndex);
 
-    if (!InventoryComponent || !OwningPartyPawn)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=MissingPawnOrInventoryComponent"));
-        RefreshInventory ();
-        return false;
-    }
+	if (!InventoryComponent || !OwningPartyPawn)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=MissingPawnOrInventoryComponent"));
+		RefreshInventory();
+		return false;
+	}
 
-    if (SourceType == TargetType && SourceIndex == TargetIndex)
-    {
-        UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Result=true Reason=SameSlot"));
-        RefreshInventory ();
-        return true;
-    }
+	if (SourceType == TargetType && SourceIndex == TargetIndex)
+	{
+		UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Result=true Reason=SameSlot"));
+		RefreshInventory();
+		return true;
+	}
 
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    auto ValidateOwnership = [&] ()
-    {
-        FString OwnershipError;
-        if (!InventoryComponent->ValidateInventoryOwnership (OwnershipError))
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
-        }
-        else
-        {
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Ownership OK"));
-        }
-    };
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	auto ValidateOwnership = [&]()
+	{
+		FString OwnershipError;
+		if (!InventoryComponent->ValidateInventoryOwnership(OwnershipError))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Ownership Failed Error=%s"), *OwnershipError);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Ownership OK"));
+		}
+	};
 
-    auto ResolveEquipmentSlot = [] (
-        EGridInventoryUiSlotType SlotType,
-        int32 SlotIndex) -> EGridEquipmentSlot
-    {
-        switch (SlotType)
-        {
-        case EGridInventoryUiSlotType::Equipment:
-            return static_cast<EGridEquipmentSlot> (SlotIndex);
-        case EGridInventoryUiSlotType::MainHand:
-            return EGridEquipmentSlot::MainHand;
-        case EGridInventoryUiSlotType::OffHand:
-            return EGridEquipmentSlot::OffHand;
-        default:
-            return EGridEquipmentSlot::None;
-        }
-    };
+	auto ResolveEquipmentSlot = [](EGridInventoryUiSlotType SlotType, int32 SlotIndex) -> EGridEquipmentSlot
+	{
+		switch (SlotType)
+		{
+			case EGridInventoryUiSlotType::Equipment:
+				return static_cast<EGridEquipmentSlot>(SlotIndex);
+			case EGridInventoryUiSlotType::MainHand:
+				return EGridEquipmentSlot::MainHand;
+			case EGridInventoryUiSlotType::OffHand:
+				return EGridEquipmentSlot::OffHand;
+			default:
+				return EGridEquipmentSlot::None;
+		}
+	};
 
-    auto SyncHeldVisualIfHandEquipmentSlot = [&] (EGridEquipmentSlot EquipmentSlot, const TCHAR* Reason)
-    {
-        if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot (EquipmentSlot))
-        {
-            OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridInventory UI Drop SyncHeldVisual Slot=%s Reason=%s"),
-                GetContextEquipmentSlotName (EquipmentSlot),
-                Reason);
-        }
-    };
+	auto SyncHeldVisualIfHandEquipmentSlot = [&](EGridEquipmentSlot EquipmentSlot, const TCHAR* Reason)
+	{
+		if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot(EquipmentSlot))
+		{
+			OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
+			UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop SyncHeldVisual Slot=%s Reason=%s"), GetContextEquipmentSlotName(EquipmentSlot), Reason);
+		}
+	};
 
-    auto GetMutableSlotItem = [&] (
-        EGridInventoryUiSlotType SlotType,
-        int32 SlotIndex) -> FGridItemInstance*
-    {
-        if (!InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex (CharacterIndex) ||
-            !InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex (CharacterIndex))
-        {
-            return nullptr;
-        }
+	auto GetMutableSlotItem = [&](EGridInventoryUiSlotType SlotType, int32 SlotIndex) -> FGridItemInstance*
+	{
+		if (!InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex) ||
+			!InventoryComponent->PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+		{
+			return nullptr;
+		}
 
-        if (SlotType == EGridInventoryUiSlotType::Inventory)
-        {
-            FGridCharacterInventoryState& CharacterState =
-                InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
-            if (!CharacterState.InventorySlots.IsValidIndex (SlotIndex) ||
-                CharacterState.InventorySlots[SlotIndex].IsEmpty ())
-            {
-                return nullptr;
-            }
-            return &CharacterState.InventorySlots[SlotIndex].Item;
-        }
+		if (SlotType == EGridInventoryUiSlotType::Inventory)
+		{
+			FGridCharacterInventoryState& CharacterState = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
+			if (!CharacterState.InventorySlots.IsValidIndex(SlotIndex) || CharacterState.InventorySlots[SlotIndex].IsEmpty())
+			{
+				return nullptr;
+			}
+			return &CharacterState.InventorySlots[SlotIndex].Item;
+		}
 
-        if (const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot (SlotType, SlotIndex);
-            EquipmentSlot != EGridEquipmentSlot::None)
-        {
-            FGridCharacterEquipmentState& EquipmentState =
-                InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
-            FGridItemInstance* Item = EquipmentState.GetMutableSlot (EquipmentSlot);
-            return Item && Item->IsValid () ? Item : nullptr;
-        }
+		if (const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot(SlotType, SlotIndex); EquipmentSlot != EGridEquipmentSlot::None)
+		{
+			FGridCharacterEquipmentState& EquipmentState = InventoryComponent->PartyInventoryState.ActiveEquipment[CharacterIndex];
+			FGridItemInstance* Item = EquipmentState.GetMutableSlot(EquipmentSlot);
+			return Item && Item->IsValid() ? Item : nullptr;
+		}
 
-        return nullptr;
-    };
+		return nullptr;
+	};
 
-    auto CanPlaceItemInSlot = [&] (
-        const FGridItemInstance& Item,
-        EGridInventoryUiSlotType SlotType,
-        int32 SlotIndex) -> bool
-    {
-        if (SlotType == EGridInventoryUiSlotType::Inventory)
-        {
-            return Item.IsValid ();
-        }
+	auto CanPlaceItemInSlot = [&](const FGridItemInstance& Item, EGridInventoryUiSlotType SlotType, int32 SlotIndex) -> bool
+	{
+		if (SlotType == EGridInventoryUiSlotType::Inventory)
+		{
+			return Item.IsValid();
+		}
 
-        const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot (SlotType, SlotIndex);
-        return EquipmentSlot != EGridEquipmentSlot::None &&
-            InventoryComponent->CanEquipItemToSlot (CharacterIndex, Item, EquipmentSlot);
-    };
+		const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot(SlotType, SlotIndex);
+		return EquipmentSlot != EGridEquipmentSlot::None && InventoryComponent->CanEquipItemToSlot(CharacterIndex, Item, EquipmentSlot);
+	};
 
-    auto PrepareItemForSlot = [&] (
-        FGridItemInstance& Item,
-        EGridInventoryUiSlotType SlotType,
-        int32 SlotIndex)
-    {
-        if (SlotType == EGridInventoryUiSlotType::Inventory)
-        {
-            Item.OwnerType = EGridItemOwnerType::CharacterInventory;
-            Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
-            Item.OwnerCharacterIndex = CharacterIndex;
-            Item.EquipmentSlot = EGridEquipmentSlot::None;
-            return;
-        }
+	auto PrepareItemForSlot = [&](FGridItemInstance& Item, EGridInventoryUiSlotType SlotType, int32 SlotIndex)
+	{
+		if (SlotType == EGridInventoryUiSlotType::Inventory)
+		{
+			Item.OwnerType = EGridItemOwnerType::CharacterInventory;
+			Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+			Item.OwnerCharacterIndex = CharacterIndex;
+			Item.EquipmentSlot = EGridEquipmentSlot::None;
+			return;
+		}
 
-        const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot (SlotType, SlotIndex);
-        Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
-        Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
-        Item.OwnerCharacterIndex = CharacterIndex;
-        Item.EquipmentSlot = EquipmentSlot;
-    };
+		const EGridEquipmentSlot EquipmentSlot = ResolveEquipmentSlot(SlotType, SlotIndex);
+		Item.OwnerType = EGridItemOwnerType::EquipmentSlot;
+		Item.OwnerGuid = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
+		Item.OwnerCharacterIndex = CharacterIndex;
+		Item.EquipmentSlot = EquipmentSlot;
+	};
 
-    bool bSwapOccupiedSlotsAttempted = false;
-    auto TrySwapOccupiedSlots = [&] () -> bool
-    {
-        if (bSplitStack ||
-            SourceType == EGridInventoryUiSlotType::Cursor ||
-            TargetType == EGridInventoryUiSlotType::Cursor)
-        {
-            return false;
-        }
+	bool bSwapOccupiedSlotsAttempted = false;
+	auto TrySwapOccupiedSlots = [&]() -> bool
+	{
+		if (bSplitStack || SourceType == EGridInventoryUiSlotType::Cursor || TargetType == EGridInventoryUiSlotType::Cursor)
+		{
+			return false;
+		}
 
-        FGridItemInstance* SourceItemPtr = GetMutableSlotItem (SourceType, SourceIndex);
-        FGridItemInstance* TargetItemPtr = GetMutableSlotItem (TargetType, TargetIndex);
-        if (!SourceItemPtr || !TargetItemPtr)
-        {
-            return false;
-        }
-        bSwapOccupiedSlotsAttempted = true;
+		FGridItemInstance* SourceItemPtr = GetMutableSlotItem(SourceType, SourceIndex);
+		FGridItemInstance* TargetItemPtr = GetMutableSlotItem(TargetType, TargetIndex);
+		if (!SourceItemPtr || !TargetItemPtr)
+		{
+			return false;
+		}
+		bSwapOccupiedSlotsAttempted = true;
 
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridInventory SwapSlots Source=%s SourceIndex=%d Target=%s TargetIndex=%d"),
-            GetGridInventoryUiSlotTypeName (SourceType),
-            SourceIndex,
-            GetGridInventoryUiSlotTypeName (TargetType),
-            TargetIndex);
+		UE_LOG(LogTemp, Log, TEXT("GridInventory SwapSlots Source=%s SourceIndex=%d Target=%s TargetIndex=%d"), GetGridInventoryUiSlotTypeName(SourceType),
+			SourceIndex, GetGridInventoryUiSlotTypeName(TargetType), TargetIndex);
 
-        FGridItemInstance SourceItem = *SourceItemPtr;
-        FGridItemInstance TargetItem = *TargetItemPtr;
-        if (!CanPlaceItemInSlot (SourceItem, TargetType, TargetIndex))
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory SwapSlots Failed Reason=IncompatibleSourceToTarget Item=%s"),
-                *SourceItem.ItemDefinitionId.ToString ());
-            return false;
-        }
+		FGridItemInstance SourceItem = *SourceItemPtr;
+		FGridItemInstance TargetItem = *TargetItemPtr;
+		if (!CanPlaceItemInSlot(SourceItem, TargetType, TargetIndex))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory SwapSlots Failed Reason=IncompatibleSourceToTarget Item=%s"), *SourceItem.ItemDefinitionId.ToString());
+			return false;
+		}
 
-        if (!CanPlaceItemInSlot (TargetItem, SourceType, SourceIndex))
-        {
-            UE_LOG (LogTemp, Warning,
-                TEXT ("GridInventory SwapSlots Failed Reason=IncompatibleTargetToSource Item=%s"),
-                *TargetItem.ItemDefinitionId.ToString ());
-            return false;
-        }
+		if (!CanPlaceItemInSlot(TargetItem, SourceType, SourceIndex))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory SwapSlots Failed Reason=IncompatibleTargetToSource Item=%s"), *TargetItem.ItemDefinitionId.ToString());
+			return false;
+		}
 
-        PrepareItemForSlot (SourceItem, TargetType, TargetIndex);
-        PrepareItemForSlot (TargetItem, SourceType, SourceIndex);
-        *SourceItemPtr = TargetItem;
-        *TargetItemPtr = SourceItem;
-        InventoryComponent->RecalculateCharacterWeight (CharacterIndex);
-        if (SourceType == EGridInventoryUiSlotType::Equipment ||
-            SourceType == EGridInventoryUiSlotType::MainHand ||
-            SourceType == EGridInventoryUiSlotType::OffHand ||
-            TargetType == EGridInventoryUiSlotType::Equipment ||
-            TargetType == EGridInventoryUiSlotType::MainHand ||
-            TargetType == EGridInventoryUiSlotType::OffHand)
-        {
-            OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-        }
+		PrepareItemForSlot(SourceItem, TargetType, TargetIndex);
+		PrepareItemForSlot(TargetItem, SourceType, SourceIndex);
+		*SourceItemPtr = TargetItem;
+		*TargetItemPtr = SourceItem;
+		InventoryComponent->RecalculateCharacterWeight(CharacterIndex);
+		if (SourceType == EGridInventoryUiSlotType::Equipment || SourceType == EGridInventoryUiSlotType::MainHand ||
+			SourceType == EGridInventoryUiSlotType::OffHand || TargetType == EGridInventoryUiSlotType::Equipment ||
+			TargetType == EGridInventoryUiSlotType::MainHand || TargetType == EGridInventoryUiSlotType::OffHand)
+		{
+			OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
+		}
 
-        UE_LOG (LogTemp, Log,
-            TEXT ("GridInventory SwapSlots Success ItemA=%s ItemB=%s"),
-            *SourceItem.ItemDefinitionId.ToString (),
-            *TargetItem.ItemDefinitionId.ToString ());
-        return true;
-    };
+		UE_LOG(LogTemp, Log, TEXT("GridInventory SwapSlots Success ItemA=%s ItemB=%s"), *SourceItem.ItemDefinitionId.ToString(),
+			*TargetItem.ItemDefinitionId.ToString());
+		return true;
+	};
 
-    if (TrySwapOccupiedSlots ())
-    {
-        ValidateOwnership ();
-        RefreshInventory ();
-        return true;
-    }
-    if (bSwapOccupiedSlotsAttempted)
-    {
-        ValidateOwnership ();
-        RefreshInventory ();
-        return false;
-    }
+	if (TrySwapOccupiedSlots())
+	{
+		ValidateOwnership();
+		RefreshInventory();
+		return true;
+	}
+	if (bSwapOccupiedSlotsAttempted)
+	{
+		ValidateOwnership();
+		RefreshInventory();
+		return false;
+	}
 
-    if (TargetType == EGridInventoryUiSlotType::Inventory)
-    {
-        if (TargetIndex < 0 || TargetIndex >= GetInventorySlotCount ())
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=InvalidTargetIndex Target=%d"),
-                TargetIndex);
-            RefreshInventory ();
-            return false;
-        }
+	if (TargetType == EGridInventoryUiSlotType::Inventory)
+	{
+		if (TargetIndex < 0 || TargetIndex >= GetInventorySlotCount())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=InvalidTargetIndex Target=%d"), TargetIndex);
+			RefreshInventory();
+			return false;
+		}
 
-        bool bInventoryTargetResult = false;
-        switch (SourceType)
-        {
-        case EGridInventoryUiSlotType::Inventory:
-            if (bSplitStack)
-            {
-                const bool bTookSplitStack = InventoryComponent->TryTakeInventorySlotQuantityToCursor (
-                    CharacterIndex,
-                    SourceIndex,
-                    FMath::Max (1, RequestedQuantity));
-                bInventoryTargetResult =
-                    bTookSplitStack &&
-                    InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
-                if (!bInventoryTargetResult && bTookSplitStack && InventoryComponent->HasCursorItem ())
-                {
-                    InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
-                }
-            }
-            else
-            {
-                bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot (
-                    CharacterIndex,
-                    SourceIndex,
-                    TargetIndex);
-            }
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"),
-                SourceIndex,
-                TargetIndex,
-                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
-            break;
+		bool bInventoryTargetResult = false;
+		switch (SourceType)
+		{
+			case EGridInventoryUiSlotType::Inventory:
+				if (bSplitStack)
+				{
+					const bool bTookSplitStack =
+						InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceIndex, FMath::Max(1, RequestedQuantity));
+					bInventoryTargetResult = bTookSplitStack && InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
+					if (!bInventoryTargetResult && bTookSplitStack && InventoryComponent->HasCursorItem())
+					{
+						InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
+					}
+				}
+				else
+				{
+					bInventoryTargetResult = InventoryComponent->TryMoveCharacterInventorySlot(CharacterIndex, SourceIndex, TargetIndex);
+				}
+				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop InventoryToInventory Source=%d Target=%d Result=%s"), SourceIndex, TargetIndex,
+					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
+				break;
 
-        case EGridInventoryUiSlotType::Cursor:
-            bInventoryTargetResult = InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (
-                CharacterIndex,
-                TargetIndex);
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop CursorToInventory Target=%d Result=%s"),
-                TargetIndex,
-                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
-            break;
+			case EGridInventoryUiSlotType::Cursor:
+				bInventoryTargetResult = InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
+				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop CursorToInventory Target=%d Result=%s"), TargetIndex,
+					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
+				break;
 
-        case EGridInventoryUiSlotType::MainHand:
-            bInventoryTargetResult =
-                OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor () &&
-                InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop MainHandToInventory Target=%d Result=%s"),
-                TargetIndex,
-                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
-            break;
+			case EGridInventoryUiSlotType::MainHand:
+				bInventoryTargetResult = OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor() &&
+					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
+				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop MainHandToInventory Target=%d Result=%s"), TargetIndex,
+					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
+				break;
 
-        case EGridInventoryUiSlotType::OffHand:
-            bInventoryTargetResult =
-                OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor () &&
-                InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop OffHandToInventory Target=%d Result=%s"),
-                TargetIndex,
-                bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
-            break;
+			case EGridInventoryUiSlotType::OffHand:
+				bInventoryTargetResult = OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor() &&
+					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
+				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop OffHandToInventory Target=%d Result=%s"), TargetIndex,
+					bInventoryTargetResult ? TEXT("true") : TEXT("false"));
+				break;
 
-        case EGridInventoryUiSlotType::Equipment:
-            {
-                const EGridEquipmentSlot SourceEquipmentSlot =
-                    ResolveEquipmentSlot (SourceType, SourceIndex);
-                bInventoryTargetResult =
-                    SourceEquipmentSlot != EGridEquipmentSlot::None &&
-                    InventoryComponent->TryTakeEquipmentSlotToCursor (CharacterIndex, SourceEquipmentSlot) &&
-                    InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot (CharacterIndex, TargetIndex);
-                UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop EquipmentToInventory Slot=%s Target=%d Result=%s"),
-                    GetContextEquipmentSlotName (SourceEquipmentSlot),
-                    TargetIndex,
-                    bInventoryTargetResult ? TEXT ("true") : TEXT ("false"));
-                if (bInventoryTargetResult)
-                {
-                    SyncHeldVisualIfHandEquipmentSlot (SourceEquipmentSlot, TEXT ("EquipmentToInventory"));
-                }
-                break;
-            }
+			case EGridInventoryUiSlotType::Equipment:
+			{
+				const EGridEquipmentSlot SourceEquipmentSlot = ResolveEquipmentSlot(SourceType, SourceIndex);
+				bInventoryTargetResult = SourceEquipmentSlot != EGridEquipmentSlot::None &&
+					InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, SourceEquipmentSlot) &&
+					InventoryComponent->TryPlaceCursorItemInCharacterInventorySlot(CharacterIndex, TargetIndex);
+				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop EquipmentToInventory Slot=%s Target=%d Result=%s"),
+					GetContextEquipmentSlotName(SourceEquipmentSlot), TargetIndex, bInventoryTargetResult ? TEXT("true") : TEXT("false"));
+				if (bInventoryTargetResult)
+				{
+					SyncHeldVisualIfHandEquipmentSlot(SourceEquipmentSlot, TEXT("EquipmentToInventory"));
+				}
+				break;
+			}
 
-        default:
-            break;
-        }
+			default:
+				break;
+		}
 
-        ValidateOwnership ();
-        RefreshInventory ();
-        return bInventoryTargetResult;
-    }
+		ValidateOwnership();
+		RefreshInventory();
+		return bInventoryTargetResult;
+	}
 
-    auto HasCurrentSourceItem = [&] () -> bool
-    {
-        FGridItemInstance Item;
-        switch (SourceType)
-        {
-        case EGridInventoryUiSlotType::Inventory:
-            return GetInventoryItemAtSlot (SourceIndex, Item);
-        case EGridInventoryUiSlotType::MainHand:
-            return GetMainHandItem (Item);
-        case EGridInventoryUiSlotType::OffHand:
-            return GetOffHandItem (Item);
-        case EGridInventoryUiSlotType::Equipment:
-            return GetEquipmentItem (ResolveEquipmentSlot (SourceType, SourceIndex), Item);
-        case EGridInventoryUiSlotType::Cursor:
-            return GetCursorItem (Item);
-        default:
-            return false;
-        }
-    };
+	auto HasCurrentSourceItem = [&]() -> bool
+	{
+		FGridItemInstance Item;
+		switch (SourceType)
+		{
+			case EGridInventoryUiSlotType::Inventory:
+				return GetInventoryItemAtSlot(SourceIndex, Item);
+			case EGridInventoryUiSlotType::MainHand:
+				return GetMainHandItem(Item);
+			case EGridInventoryUiSlotType::OffHand:
+				return GetOffHandItem(Item);
+			case EGridInventoryUiSlotType::Equipment:
+				return GetEquipmentItem(ResolveEquipmentSlot(SourceType, SourceIndex), Item);
+			case EGridInventoryUiSlotType::Cursor:
+				return GetCursorItem(Item);
+			default:
+				return false;
+		}
+	};
 
-    auto TakeSourceToCursor = [&] () -> bool
-    {
-        switch (SourceType)
-        {
-        case EGridInventoryUiSlotType::Inventory:
-            return bSplitStack
-                ? InventoryComponent->TryTakeInventorySlotQuantityToCursor (
-                    CharacterIndex,
-                    SourceIndex,
-                    FMath::Max (1, RequestedQuantity))
-                : InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SourceIndex);
-        case EGridInventoryUiSlotType::MainHand:
-            return OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor ();
-        case EGridInventoryUiSlotType::OffHand:
-            return OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor ();
-        case EGridInventoryUiSlotType::Equipment:
-            {
-                const EGridEquipmentSlot SourceEquipmentSlot =
-                    ResolveEquipmentSlot (SourceType, SourceIndex);
-                const bool bTaken = InventoryComponent->TryTakeEquipmentSlotToCursor (
-                    CharacterIndex,
-                    SourceEquipmentSlot);
-                if (bTaken)
-                {
-                    SyncHeldVisualIfHandEquipmentSlot (SourceEquipmentSlot, TEXT ("EquipmentToCursor"));
-                }
-                return bTaken;
-            }
-        case EGridInventoryUiSlotType::Cursor:
-            return InventoryComponent->HasCursorItem ();
-        default:
-            return false;
-        }
-    };
+	auto TakeSourceToCursor = [&]() -> bool
+	{
+		switch (SourceType)
+		{
+			case EGridInventoryUiSlotType::Inventory:
+				return bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SourceIndex, FMath::Max(1, RequestedQuantity))
+								   : InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SourceIndex);
+			case EGridInventoryUiSlotType::MainHand:
+				return OwningPartyPawn->TryTakeSelectedCharacterMainHandToCursor();
+			case EGridInventoryUiSlotType::OffHand:
+				return OwningPartyPawn->TryTakeSelectedCharacterOffHandToCursor();
+			case EGridInventoryUiSlotType::Equipment:
+			{
+				const EGridEquipmentSlot SourceEquipmentSlot = ResolveEquipmentSlot(SourceType, SourceIndex);
+				const bool bTaken = InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, SourceEquipmentSlot);
+				if (bTaken)
+				{
+					SyncHeldVisualIfHandEquipmentSlot(SourceEquipmentSlot, TEXT("EquipmentToCursor"));
+				}
+				return bTaken;
+			}
+			case EGridInventoryUiSlotType::Cursor:
+				return InventoryComponent->HasCursorItem();
+			default:
+				return false;
+		}
+	};
 
-    auto PlaceCursorToTarget = [&] () -> bool
-    {
-        switch (TargetType)
-        {
-        case EGridInventoryUiSlotType::Inventory:
-            UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop InventoryTargetIndex Informative TargetIndex=%d"), TargetIndex);
-            return InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
-        case EGridInventoryUiSlotType::MainHand:
-            return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterMainHand ();
-        case EGridInventoryUiSlotType::OffHand:
-            return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterOffHand ();
-        case EGridInventoryUiSlotType::Equipment:
-            {
-                const EGridEquipmentSlot TargetEquipmentSlot =
-                    ResolveEquipmentSlot (TargetType, TargetIndex);
-                const bool bEquipped = InventoryComponent->TryEquipCursorItemToCharacterSlot (
-                    CharacterIndex,
-                    TargetEquipmentSlot);
-                if (bEquipped)
-                {
-                    SyncHeldVisualIfHandEquipmentSlot (TargetEquipmentSlot, TEXT ("CursorToEquipment"));
-                }
-                return bEquipped;
-            }
-        case EGridInventoryUiSlotType::Cursor:
-            return InventoryComponent->HasCursorItem ();
-        default:
-            return false;
-        }
-    };
+	auto PlaceCursorToTarget = [&]() -> bool
+	{
+		switch (TargetType)
+		{
+			case EGridInventoryUiSlotType::Inventory:
+				UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop InventoryTargetIndex Informative TargetIndex=%d"), TargetIndex);
+				return InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
+			case EGridInventoryUiSlotType::MainHand:
+				return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterMainHand();
+			case EGridInventoryUiSlotType::OffHand:
+				return OwningPartyPawn->TryEquipCursorItemToSelectedCharacterOffHand();
+			case EGridInventoryUiSlotType::Equipment:
+			{
+				const EGridEquipmentSlot TargetEquipmentSlot = ResolveEquipmentSlot(TargetType, TargetIndex);
+				const bool bEquipped = InventoryComponent->TryEquipCursorItemToCharacterSlot(CharacterIndex, TargetEquipmentSlot);
+				if (bEquipped)
+				{
+					SyncHeldVisualIfHandEquipmentSlot(TargetEquipmentSlot, TEXT("CursorToEquipment"));
+				}
+				return bEquipped;
+			}
+			case EGridInventoryUiSlotType::Cursor:
+				return InventoryComponent->HasCursorItem();
+			default:
+				return false;
+		}
+	};
 
-    if (!HasCurrentSourceItem ())
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=SourceEmpty"));
-        RefreshInventory ();
-        return false;
-    }
+	if (!HasCurrentSourceItem())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=SourceEmpty"));
+		RefreshInventory();
+		return false;
+	}
 
-    bool bResult = false;
-    bool bTookSourceToCursor = false;
+	bool bResult = false;
+	bool bTookSourceToCursor = false;
 
-    if (SourceType == EGridInventoryUiSlotType::Cursor)
-    {
-        bResult = PlaceCursorToTarget ();
-    }
-    else
-    {
-        if (InventoryComponent->HasCursorItem ())
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=CursorOccupied"));
-            RefreshInventory ();
-            return false;
-        }
+	if (SourceType == EGridInventoryUiSlotType::Cursor)
+	{
+		bResult = PlaceCursorToTarget();
+	}
+	else
+	{
+		if (InventoryComponent->HasCursorItem())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=CursorOccupied"));
+			RefreshInventory();
+			return false;
+		}
 
-        bTookSourceToCursor = TakeSourceToCursor ();
-        if (!bTookSourceToCursor)
-        {
-            UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Failed Reason=TakeSourceFailed"));
-            RefreshInventory ();
-            return false;
-        }
+		bTookSourceToCursor = TakeSourceToCursor();
+		if (!bTookSourceToCursor)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Failed Reason=TakeSourceFailed"));
+			RefreshInventory();
+			return false;
+		}
 
-        bResult = TargetType == EGridInventoryUiSlotType::Cursor ? true : PlaceCursorToTarget ();
-    }
+		bResult = TargetType == EGridInventoryUiSlotType::Cursor ? true : PlaceCursorToTarget();
+	}
 
-    if (!bResult && bTookSourceToCursor && InventoryComponent->HasCursorItem ())
-    {
-        const bool bRecoveryResult = InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ();
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI Drop Recovery Result=%s"),
-            bRecoveryResult ? TEXT ("true") : TEXT ("false"));
-    }
+	if (!bResult && bTookSourceToCursor && InventoryComponent->HasCursorItem())
+	{
+		const bool bRecoveryResult = InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory();
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI Drop Recovery Result=%s"), bRecoveryResult ? TEXT("true") : TEXT("false"));
+	}
 
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI Drop Result=%s"),
-        bResult ? TEXT ("true") : TEXT ("false"));
-    ValidateOwnership ();
-    RefreshInventory ();
-    return bResult;
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI Drop Result=%s"), bResult ? TEXT("true") : TEXT("false"));
+	ValidateOwnership();
+	RefreshInventory();
+	return bResult;
 }
 
-UGridInventorySlotWidget* UGridInventoryWidget::FindRegisteredSlotWidget (
-    EGridInventoryUiSlotType SlotType,
-    int32 SlotIndex) const
+UGridInventorySlotWidget* UGridInventoryWidget::FindRegisteredSlotWidget(EGridInventoryUiSlotType SlotType, int32 SlotIndex) const
 {
-    switch (SlotType)
-    {
-    case EGridInventoryUiSlotType::Inventory:
-        for (UGridInventorySlotWidget* SlotWidget : RegisteredInventorySlots)
-        {
-            if (SlotWidget && SlotWidget->InventorySlotIndex == SlotIndex)
-            {
-                return SlotWidget;
-            }
-        }
-        return nullptr;
-    case EGridInventoryUiSlotType::Equipment:
-        if (const TObjectPtr<UGridInventorySlotWidget>* SlotWidget =
-            RegisteredEquipmentSlotWidgets.Find (static_cast<EGridEquipmentSlot> (SlotIndex)))
-        {
-            return SlotWidget->Get ();
-        }
-        return nullptr;
-    case EGridInventoryUiSlotType::MainHand:
-        return MainHandSlotWidget;
-    case EGridInventoryUiSlotType::OffHand:
-        return OffHandSlotWidget;
-    case EGridInventoryUiSlotType::Cursor:
-        return CursorSlotWidget;
-    default:
-        return nullptr;
-    }
+	switch (SlotType)
+	{
+		case EGridInventoryUiSlotType::Inventory:
+			for (UGridInventorySlotWidget* SlotWidget : RegisteredInventorySlots)
+			{
+				if (SlotWidget && SlotWidget->InventorySlotIndex == SlotIndex)
+				{
+					return SlotWidget;
+				}
+			}
+			return nullptr;
+		case EGridInventoryUiSlotType::Equipment:
+			if (const TObjectPtr<UGridInventorySlotWidget>* SlotWidget = RegisteredEquipmentSlotWidgets.Find(static_cast<EGridEquipmentSlot>(SlotIndex)))
+			{
+				return SlotWidget->Get();
+			}
+			return nullptr;
+		case EGridInventoryUiSlotType::MainHand:
+			return MainHandSlotWidget;
+		case EGridInventoryUiSlotType::OffHand:
+			return OffHandSlotWidget;
+		case EGridInventoryUiSlotType::Cursor:
+			return CursorSlotWidget;
+		default:
+			return nullptr;
+	}
 }
 
-bool UGridInventoryWidget::HandleInventorySlotClicked (int32 SlotIndex, bool bSplitStack)
+bool UGridInventoryWidget::HandleInventorySlotClicked(int32 SlotIndex, bool bSplitStack)
 {
-    if (!InventoryComponent)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI SlotClicked Slot=%d CursorBefore=false Result=false Reason=NoInventoryComponent"),
-            SlotIndex);
-        RefreshInventory ();
-        return false;
-    }
+	if (!InventoryComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=false Result=false Reason=NoInventoryComponent"), SlotIndex);
+		RefreshInventory();
+		return false;
+	}
 
-    const bool bCursorBefore = InventoryComponent->HasCursorItem ();
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    const bool bResult = bCursorBefore
-        ? InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory ()
-        : (bSplitStack
-            ? InventoryComponent->TryTakeInventorySlotQuantityToCursor (CharacterIndex, SlotIndex, 1)
-            : InventoryComponent->TryTakeInventorySlotToCursor (CharacterIndex, SlotIndex));
+	const bool bCursorBefore = InventoryComponent->HasCursorItem();
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	const bool bResult = bCursorBefore ? InventoryComponent->TryPlaceCursorItemInSelectedCharacterInventory()
+									   : (bSplitStack ? InventoryComponent->TryTakeInventorySlotQuantityToCursor(CharacterIndex, SlotIndex, 1)
+													  : InventoryComponent->TryTakeInventorySlotToCursor(CharacterIndex, SlotIndex));
 
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"),
-        SlotIndex,
-        bCursorBefore ? TEXT ("true") : TEXT ("false"),
-        bResult ? TEXT ("true") : TEXT ("false"));
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI SlotClicked Slot=%d CursorBefore=%s Result=%s"), SlotIndex, bCursorBefore ? TEXT("true") : TEXT("false"),
+		bResult ? TEXT("true") : TEXT("false"));
 
-    RefreshInventory ();
-    return bResult;
+	RefreshInventory();
+	return bResult;
 }
 
-bool UGridInventoryWidget::HandleMainHandClicked ()
+bool UGridInventoryWidget::HandleMainHandClicked()
 {
-    return HandleEquipmentSlotClicked (EGridEquipmentSlot::MainHand);
+	return HandleEquipmentSlotClicked(EGridEquipmentSlot::MainHand);
 }
 
-bool UGridInventoryWidget::HandleOffHandClicked ()
+bool UGridInventoryWidget::HandleOffHandClicked()
 {
-    return HandleEquipmentSlotClicked (EGridEquipmentSlot::OffHand);
+	return HandleEquipmentSlotClicked(EGridEquipmentSlot::OffHand);
 }
 
-bool UGridInventoryWidget::HandleEquipmentSlotClicked (EGridEquipmentSlot EquipmentSlot)
+bool UGridInventoryWidget::HandleEquipmentSlotClicked(EGridEquipmentSlot EquipmentSlot)
 {
-    if (!InventoryComponent || EquipmentSlot == EGridEquipmentSlot::None)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI EquipmentClicked Slot=%s CursorBefore=false Result=false Reason=MissingInventoryOrInvalidSlot"),
-            GetContextEquipmentSlotName (EquipmentSlot));
-        RefreshInventory ();
-        return false;
-    }
+	if (!InventoryComponent || EquipmentSlot == EGridEquipmentSlot::None)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI EquipmentClicked Slot=%s CursorBefore=false Result=false Reason=MissingInventoryOrInvalidSlot"),
+			GetContextEquipmentSlotName(EquipmentSlot));
+		RefreshInventory();
+		return false;
+	}
 
-    const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex ();
-    const bool bCursorBefore = InventoryComponent->HasCursorItem ();
-    const bool bResult = bCursorBefore
-        ? InventoryComponent->TryEquipCursorItemToCharacterSlot (CharacterIndex, EquipmentSlot)
-        : InventoryComponent->TryTakeEquipmentSlotToCursor (CharacterIndex, EquipmentSlot);
+	const int32 CharacterIndex = InventoryComponent->GetSelectedCharacterIndex();
+	const bool bCursorBefore = InventoryComponent->HasCursorItem();
+	const bool bResult = bCursorBefore ? InventoryComponent->TryEquipCursorItemToCharacterSlot(CharacterIndex, EquipmentSlot)
+									   : InventoryComponent->TryTakeEquipmentSlotToCursor(CharacterIndex, EquipmentSlot);
 
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI EquipmentClicked Slot=%s CursorBefore=%s Result=%s"),
-        GetContextEquipmentSlotName (EquipmentSlot),
-        bCursorBefore ? TEXT ("true") : TEXT ("false"),
-        bResult ? TEXT ("true") : TEXT ("false"));
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI EquipmentClicked Slot=%s CursorBefore=%s Result=%s"), GetContextEquipmentSlotName(EquipmentSlot),
+		bCursorBefore ? TEXT("true") : TEXT("false"), bResult ? TEXT("true") : TEXT("false"));
 
-    if (bResult)
-    {
-        if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot (EquipmentSlot))
-        {
-            OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment ();
-            UE_LOG (LogTemp, Log,
-                TEXT ("GridInventory UI EquipmentClicked SyncHeldVisual Slot=%s"),
-                GetContextEquipmentSlotName (EquipmentSlot));
-        }
-        RefreshInventory ();
-    }
-    return bResult;
+	if (bResult)
+	{
+		if (OwningPartyPawn && IsGridInventoryHandEquipmentSlot(EquipmentSlot))
+		{
+			OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
+			UE_LOG(LogTemp, Log, TEXT("GridInventory UI EquipmentClicked SyncHeldVisual Slot=%s"), GetContextEquipmentSlotName(EquipmentSlot));
+		}
+		RefreshInventory();
+	}
+	return bResult;
 }
 
-bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked ()
+bool UGridInventoryWidget::HandleCursorReturnToInventoryClicked()
 {
-    if (!OwningPartyPawn || !InventoryComponent)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
-        RefreshInventory ();
-        return false;
-    }
+	if (!OwningPartyPawn || !InventoryComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false Reason=MissingPawnOrInventoryComponent"));
+		RefreshInventory();
+		return false;
+	}
 
-    const bool bCursorBefore = InventoryComponent->HasCursorItem ();
-    if (!bCursorBefore)
-    {
-        UE_LOG (LogTemp, Log, TEXT ("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false"));
-        RefreshInventory ();
-        return false;
-    }
+	const bool bCursorBefore = InventoryComponent->HasCursorItem();
+	if (!bCursorBefore)
+	{
+		UE_LOG(LogTemp, Log, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=false Result=false"));
+		RefreshInventory();
+		return false;
+	}
 
-    const bool bResult = OwningPartyPawn->DebugPlaceCursorItemInSelectedInventory ();
-    UE_LOG (LogTemp, Log, TEXT ("GridInventory UI CursorReturnToInventory CursorBefore=true Result=%s"),
-        bResult ? TEXT ("true") : TEXT ("false"));
+	const bool bResult = OwningPartyPawn->DebugPlaceCursorItemInSelectedInventory();
+	UE_LOG(LogTemp, Log, TEXT("GridInventory UI CursorReturnToInventory CursorBefore=true Result=%s"), bResult ? TEXT("true") : TEXT("false"));
 
-    RefreshInventory ();
-    return bResult;
+	RefreshInventory();
+	return bResult;
 }

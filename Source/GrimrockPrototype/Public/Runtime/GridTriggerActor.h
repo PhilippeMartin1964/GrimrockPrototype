@@ -4,14 +4,14 @@
 #include "Runtime/GridRuntimeObjectActor.h"
 #include "GridTriggerActor.generated.h"
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API AGridTriggerActor : public AGridRuntimeObjectActor
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    AGridTriggerActor ();
+	AGridTriggerActor();
 
-    virtual void InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-        const FTransform& WorldTransform) override;
+	virtual void InitializeGridObject(
+		const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform) override;
 };

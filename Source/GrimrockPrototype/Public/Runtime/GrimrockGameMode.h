@@ -4,11 +4,11 @@
 #include "GameFramework/GameModeBase.h"
 #include "GrimrockGameMode.generated.h"
 
-UCLASS (Blueprintable)
+UCLASS(Blueprintable)
 class GRIMROCKPROTOTYPE_API AGrimrockGameMode : public AGameModeBase
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    AGrimrockGameMode ();
+	AGrimrockGameMode();
 };

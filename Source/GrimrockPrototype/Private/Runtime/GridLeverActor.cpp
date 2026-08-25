@@ -6,156 +6,153 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
-AGridLeverActor::AGridLeverActor ()
+AGridLeverActor::AGridLeverActor()
 {
-    PrimaryActorTick.bCanEverTick = true;
-    SetActorTickEnabled (false);
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 
-    if (FixedMeshComponent)
-    {
-        FixedMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-        FixedMeshComponent->SetGenerateOverlapEvents (false);
-    }
+	if (FixedMeshComponent)
+	{
+		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		FixedMeshComponent->SetGenerateOverlapEvents(false);
+	}
 
-    if (MovingMeshComponent)
-    {
-        MovingMeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
-        MovingMeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
-        MovingMeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-        MovingMeshComponent->SetGenerateOverlapEvents (false);
-    }
+	if (MovingMeshComponent)
+	{
+		MovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		MovingMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+		MovingMeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		MovingMeshComponent->SetGenerateOverlapEvents(false);
+	}
 }
 
-void AGridLeverActor::Tick (float DeltaSeconds)
+void AGridLeverActor::Tick(float DeltaSeconds)
 {
-    Super::Tick (DeltaSeconds);
+	Super::Tick(DeltaSeconds);
 
-    if (bIsAnimating)
-    {
-        UpdateAnimation (DeltaSeconds);
-    }
+	if (bIsAnimating)
+	{
+		UpdateAnimation(DeltaSeconds);
+	}
 }
 
-void AGridLeverActor::InitializeLever (const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh, UMaterialInterface* InMaterial,
-    const FVector& InWorldLocation, const FRotator& InWorldRotation, bool bStartOn)
+void AGridLeverActor::InitializeLever(const FGridLevelObjectData& ObjectData, UStaticMesh* InLeverMesh, UMaterialInterface* InMaterial,
+	const FVector& InWorldLocation, const FRotator& InWorldRotation, bool bStartOn)
 {
-    AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (InWorldRotation, InWorldLocation));
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, FTransform(InWorldRotation, InWorldLocation));
 
-    LeverOffPitch = ObjectData.Behavior.LeverAnimation.LeverOffPitch;
-    LeverOnPitch = ObjectData.Behavior.LeverAnimation.LeverOnPitch;
-    ToggleDuration = ObjectData.Behavior.LeverAnimation.ToggleDuration;
+	LeverOffPitch = ObjectData.Behavior.LeverAnimation.LeverOffPitch;
+	LeverOnPitch = ObjectData.Behavior.LeverAnimation.LeverOnPitch;
+	ToggleDuration = ObjectData.Behavior.LeverAnimation.ToggleDuration;
 
-    OffRelativeRotation = FRotator (LeverOffPitch, 0.f, 0.f);
-    OnRelativeRotation = FRotator (LeverOnPitch, 0.f, 0.f);
+	OffRelativeRotation = FRotator(LeverOffPitch, 0.f, 0.f);
+	OnRelativeRotation = FRotator(LeverOnPitch, 0.f, 0.f);
 
-    bIsOn = bStartOn;
-    bIsAnimating = false;
-    AnimElapsed = 0.f;
+	bIsOn = bStartOn;
+	bIsAnimating = false;
+	AnimElapsed = 0.f;
 
-    MovingMeshComponent->SetRelativeRotation (bIsOn ? OnRelativeRotation : OffRelativeRotation);
+	MovingMeshComponent->SetRelativeRotation(bIsOn ? OnRelativeRotation : OffRelativeRotation);
 }
 
-void AGridLeverActor::SetLeverState (bool bNewOn)
+void AGridLeverActor::SetLeverState(bool bNewOn)
 {
-    if (bIsOn == bNewOn && !bIsAnimating)
-    {
-        return;
-    }
+	if (bIsOn == bNewOn && !bIsAnimating)
+	{
+		return;
+	}
 
-    bIsOn = bNewOn;
-    AnimElapsed = 0.f;
-    bIsAnimating = true;
+	bIsOn = bNewOn;
+	AnimElapsed = 0.f;
+	bIsAnimating = true;
 
-    AnimStartRotation = MovingMeshComponent->GetRelativeRotation ();
-    AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
-    SetActorTickEnabled (true);
+	AnimStartRotation = MovingMeshComponent->GetRelativeRotation();
+	AnimTargetRotation = bIsOn ? OnRelativeRotation : OffRelativeRotation;
+	SetActorTickEnabled(true);
 }
 
-void AGridLeverActor::ToggleLever ()
+void AGridLeverActor::ToggleLever()
 {
-    SetLeverState (!bIsOn);
+	SetLeverState(!bIsOn);
 }
 
-void AGridLeverActor::UpdateAnimation (float DeltaSeconds)
+void AGridLeverActor::UpdateAnimation(float DeltaSeconds)
 {
-    const float SafeDuration = FMath::Max (0.01f, ToggleDuration);
+	const float SafeDuration = FMath::Max(0.01f, ToggleDuration);
 
-    AnimElapsed += DeltaSeconds;
-    const float Alpha = FMath::Clamp (AnimElapsed / SafeDuration, 0.f, 1.f);
+	AnimElapsed += DeltaSeconds;
+	const float Alpha = FMath::Clamp(AnimElapsed / SafeDuration, 0.f, 1.f);
 
-    MovingMeshComponent->SetRelativeRotation (FMath::Lerp (AnimStartRotation, AnimTargetRotation, Alpha));
+	MovingMeshComponent->SetRelativeRotation(FMath::Lerp(AnimStartRotation, AnimTargetRotation, Alpha));
 
-    if (Alpha >= 1.f)
-    {
-        MovingMeshComponent->SetRelativeRotation (AnimTargetRotation);
-        bIsAnimating = false;
-        AnimElapsed = 0.f;
-        SetActorTickEnabled (false);
-    }
+	if (Alpha >= 1.f)
+	{
+		MovingMeshComponent->SetRelativeRotation(AnimTargetRotation);
+		bIsAnimating = false;
+		AnimElapsed = 0.f;
+		SetActorTickEnabled(false);
+	}
 }
 
-void AGridLeverActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-    const FTransform& WorldTransform)
+void AGridLeverActor::InitializeGridObject(
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
 {
-    InitializeLever (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.Rotator (), ObjectData.bInitiallyActive);
+	InitializeLever(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.Rotator(), ObjectData.bInitiallyActive);
 }
 
-bool AGridLeverActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+bool AGridLeverActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    if (!InstigatorPawn || !HitComponent)
-    {
-        return false;
-    }
+	if (!InstigatorPawn || !HitComponent)
+	{
+		return false;
+	}
 
-    if (HitComponent != MovingMeshComponent)
-    {
-        return false;
-    }
+	if (HitComponent != MovingMeshComponent)
+	{
+		return false;
+	}
 
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    return !bIsAnimating &&
-        PartyPawn &&
-        RuntimeActor &&
-        RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn);
+	const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	return !bIsAnimating && PartyPawn && RuntimeActor && RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn);
 }
 
-void AGridLeverActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+void AGridLeverActor::Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
 {
-    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
-    {
-        return;
-    }
+	if (!CanInteract_Implementation(InstigatorPawn, HitComponent))
+	{
+		return;
+	}
 
-    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    if (!PartyPawn)
-    {
-        return;
-    }
+	AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	if (!PartyPawn)
+	{
+		return;
+	}
 
-    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    if (RuntimeActor)
-    {
-        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
-    }
+	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	if (RuntimeActor)
+	{
+		RuntimeActor->TryInteractAtEdge(CellX, CellY, Edge, PartyPawn);
+	}
 }
 
-EGridInteractionCursor AGridLeverActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+EGridInteractionCursor AGridLeverActor::GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent == MovingMeshComponent && !bIsAnimating)
-    {
-        return EGridInteractionCursor::Pull;
-    }
+	if (HitComponent == MovingMeshComponent && !bIsAnimating)
+	{
+		return EGridInteractionCursor::Pull;
+	}
 
-    return EGridInteractionCursor::Default;
+	return EGridInteractionCursor::Default;
 }
 
-FText AGridLeverActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+FText AGridLeverActor::GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent == MovingMeshComponent)
-    {
-        return FText::FromString (bIsOn ? TEXT ("Push lever") : TEXT ("Pull lever"));
-    }
+	if (HitComponent == MovingMeshComponent)
+	{
+		return FText::FromString(bIsOn ? TEXT("Push lever") : TEXT("Pull lever"));
+	}
 
-    return FText::GetEmpty ();
+	return FText::GetEmpty();
 }

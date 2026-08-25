@@ -16,124 +16,124 @@ enum class EGridObjectEvent : uint8;
 struct FGridLevelObjectData;
 struct FGridObjectLink;
 
-DECLARE_DELEGATE_RetVal (AGridLevelEditorActor*, FOnGetGridEditorLinksActor);
-DECLARE_DELEGATE (FOnGridEditorLinksRequestRefresh);
+DECLARE_DELEGATE_RetVal(AGridLevelEditorActor*, FOnGetGridEditorLinksActor);
+DECLARE_DELEGATE(FOnGridEditorLinksRequestRefresh);
 
 class SGridEditorLinksPanel : public SCompoundWidget
 {
 public:
-    SLATE_BEGIN_ARGS (SGridEditorLinksPanel)
-        {
-        }
-        SLATE_ARGUMENT (TWeakObjectPtr<AGridLevelEditorActor>, EditorActor)
-        SLATE_EVENT (FOnGetGridEditorLinksActor, OnGetEditorActor)
-        SLATE_EVENT (FOnGridEditorLinksRequestRefresh, OnRequestRefresh)
-    SLATE_END_ARGS ()
+	SLATE_BEGIN_ARGS(SGridEditorLinksPanel)
+	{
+	}
+	SLATE_ARGUMENT(TWeakObjectPtr<AGridLevelEditorActor>, EditorActor)
+	SLATE_EVENT(FOnGetGridEditorLinksActor, OnGetEditorActor)
+	SLATE_EVENT(FOnGridEditorLinksRequestRefresh, OnRequestRefresh)
+	SLATE_END_ARGS()
 
-    void Construct (const FArguments& InArgs);
-
-private:
-    AGridLevelEditorActor* GetEditorActor () const;
-    void RequestRefresh () const;
-
-    TSharedRef<SWidget> BuildLinksSection ();
-    TSharedRef<SWidget> BuildConnectorsHeader (bool bAllowAddConnector);
-    TSharedRef<SWidget> BuildConnectorLegend ();
-    TSharedRef<SWidget> BuildConnectorLegendItem (const FText& Label, const FSlateColor& Color) const;
-    TSharedRef<SWidget> BuildLinkCreationSection ();
-    TSharedRef<SWidget> BuildConditionCreationSection ();
-    TSharedRef<SWidget> BuildObjectLinksList (const FGridLevelObjectData& SelectedObject, bool bOutgoing);
-    TSharedRef<SWidget> BuildObjectCombo (const FText& EmptyText, bool bSourceObject);
-
-    void RebuildLinksSection ();
-    void BuildObjectOptions ();
-    void BuildEventOptions ();
-    void BuildCommandOptions ();
-    void BuildConditionOptions ();
-    void BuildItemTypeOptions ();
-    void BuildVariableOptions ();
-    void BuildIntComparisonOptions ();
-    void RefreshConnectorFormOptions ();
-    FReply OnRemoveExactLinkClicked (FGridObjectLink Link);
-    FReply OnClearSelectedObjectLinksClicked ();
-    FReply OnSelectObjectFromLinkClicked (FGuid ObjectId);
-    FReply OnToggleAddConnectorClicked ();
-    FReply OnCreateConnectorClicked ();
-    FReply OnCancelAddConnectorClicked ();
-
-    FText GetObjectSummaryText (const FGuid& ObjectId) const;
-    FText GetLinkSourceEventText (EGridObjectEvent SourceEvent) const;
-    FText GetLinkCommandText (EGridObjectCommand Command) const;
-    FText GetLinkConditionText (EGridObjectCondition Condition) const;
-    FText GetLinkConditionSummaryText (const FGridObjectLink& Link) const;
-    FText GetItemTypeText (EGridItemType ItemType) const;
-    FText GetIntComparisonText (EGridLogicIntComparison Comparison) const;
-    FText GetSelectedObjectOptionText (const TSharedPtr<FGuid>& ObjectId, const FText& EmptyText) const;
-    FGridObjectLink BuildLinkFromForm () const;
-    bool CanCreateConnector () const;
-    bool IsConditionSelected (EGridObjectCondition Condition) const;
-
-    void BuildLinkOptions ();
-
-    TSharedRef<SWidget> MakeObjectComboWidget (TSharedPtr<FGuid> Item) const;
-    void OnSourceObjectSelectionChanged (TSharedPtr<FGuid> NewValue, ESelectInfo::Type SelectInfo);
-    void OnTargetObjectSelectionChanged (TSharedPtr<FGuid> NewValue, ESelectInfo::Type SelectInfo);
-
-    TSharedRef<SWidget> MakeLinkSourceEventComboWidget (TSharedPtr<EGridObjectEvent> Item) const;
-    void OnLinkSourceEventSelectionChanged (TSharedPtr<EGridObjectEvent> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedLinkSourceEventText () const;
-
-    TSharedRef<SWidget> MakeLinkCommandComboWidget (TSharedPtr<EGridObjectCommand> Item) const;
-    void OnLinkCommandSelectionChanged (TSharedPtr<EGridObjectCommand> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedLinkCommandText () const;
-
-    TSharedRef<SWidget> MakeLinkConditionComboWidget (TSharedPtr<EGridObjectCondition> Item) const;
-    void OnLinkConditionSelectionChanged (TSharedPtr<EGridObjectCondition> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedLinkConditionText () const;
-
-    TSharedRef<SWidget> MakeItemTypeComboWidget (TSharedPtr<EGridItemType> Item) const;
-    void OnItemTypeSelectionChanged (TSharedPtr<EGridItemType> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedItemTypeText () const;
-
-    TSharedRef<SWidget> MakeVariableComboWidget (TSharedPtr<FName> Item) const;
-    void OnVariableSelectionChanged (TSharedPtr<FName> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedVariableText () const;
-
-    TSharedRef<SWidget> MakeIntComparisonComboWidget (TSharedPtr<EGridLogicIntComparison> Item) const;
-    void OnIntComparisonSelectionChanged (TSharedPtr<EGridLogicIntComparison> NewValue, ESelectInfo::Type SelectInfo);
-    FText GetSelectedIntComparisonText () const;
+	void Construct(const FArguments& InArgs);
 
 private:
-    TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
-    FOnGetGridEditorLinksActor OnGetEditorActor;
-    FOnGridEditorLinksRequestRefresh OnRequestRefresh;
+	AGridLevelEditorActor* GetEditorActor() const;
+	void RequestRefresh() const;
 
-    TArray<TSharedPtr<EGridObjectEvent>> LinkSourceEventOptions;
-    TArray<TSharedPtr<EGridObjectCommand>> LinkCommandOptions;
-    TArray<TSharedPtr<EGridObjectCondition>> LinkConditionOptions;
-    TArray<TSharedPtr<EGridItemType>> ItemTypeOptions;
-    TArray<TSharedPtr<EGridLogicIntComparison>> IntComparisonOptions;
-    TArray<TSharedPtr<FName>> VariableOptions;
-    TArray<TSharedPtr<FGuid>> SourceObjectOptions;
-    TArray<TSharedPtr<FGuid>> TargetObjectOptions;
+	TSharedRef<SWidget> BuildLinksSection();
+	TSharedRef<SWidget> BuildConnectorsHeader(bool bAllowAddConnector);
+	TSharedRef<SWidget> BuildConnectorLegend();
+	TSharedRef<SWidget> BuildConnectorLegendItem(const FText& Label, const FSlateColor& Color) const;
+	TSharedRef<SWidget> BuildLinkCreationSection();
+	TSharedRef<SWidget> BuildConditionCreationSection();
+	TSharedRef<SWidget> BuildObjectLinksList(const FGridLevelObjectData& SelectedObject, bool bOutgoing);
+	TSharedRef<SWidget> BuildObjectCombo(const FText& EmptyText, bool bSourceObject);
 
-    bool bAddConnectorVisible = false;
-    TSharedPtr<FGuid> SelectedSourceObjectId;
-    TSharedPtr<FGuid> SelectedTargetObjectId;
-    TSharedPtr<EGridObjectEvent> SelectedSourceEvent;
-    TSharedPtr<EGridObjectCommand> SelectedCommand;
-    TSharedPtr<EGridObjectCondition> SelectedCondition;
-    TSharedPtr<EGridItemType> SelectedConditionItemType;
-    TSharedPtr<EGridLogicIntComparison> SelectedConditionIntComparison;
-    TSharedPtr<FName> SelectedConditionVariableId;
+	void RebuildLinksSection();
+	void BuildObjectOptions();
+	void BuildEventOptions();
+	void BuildCommandOptions();
+	void BuildConditionOptions();
+	void BuildItemTypeOptions();
+	void BuildVariableOptions();
+	void BuildIntComparisonOptions();
+	void RefreshConnectorFormOptions();
+	FReply OnRemoveExactLinkClicked(FGridObjectLink Link);
+	FReply OnClearSelectedObjectLinksClicked();
+	FReply OnSelectObjectFromLinkClicked(FGuid ObjectId);
+	FReply OnToggleAddConnectorClicked();
+	FReply OnCreateConnectorClicked();
+	FReply OnCancelAddConnectorClicked();
 
-    FName ConditionItemDefinitionId = NAME_None;
-    FName ConditionItemTag = NAME_None;
-    int32 ConditionCount = 1;
-    float ConditionWeight = 0.0f;
-    bool ConditionBoolValue = false;
-    int32 ConditionIntValue = 0;
-    bool bInvertCondition = false;
+	FText GetObjectSummaryText(const FGuid& ObjectId) const;
+	FText GetLinkSourceEventText(EGridObjectEvent SourceEvent) const;
+	FText GetLinkCommandText(EGridObjectCommand Command) const;
+	FText GetLinkConditionText(EGridObjectCondition Condition) const;
+	FText GetLinkConditionSummaryText(const FGridObjectLink& Link) const;
+	FText GetItemTypeText(EGridItemType ItemType) const;
+	FText GetIntComparisonText(EGridLogicIntComparison Comparison) const;
+	FText GetSelectedObjectOptionText(const TSharedPtr<FGuid>& ObjectId, const FText& EmptyText) const;
+	FGridObjectLink BuildLinkFromForm() const;
+	bool CanCreateConnector() const;
+	bool IsConditionSelected(EGridObjectCondition Condition) const;
+
+	void BuildLinkOptions();
+
+	TSharedRef<SWidget> MakeObjectComboWidget(TSharedPtr<FGuid> Item) const;
+	void OnSourceObjectSelectionChanged(TSharedPtr<FGuid> NewValue, ESelectInfo::Type SelectInfo);
+	void OnTargetObjectSelectionChanged(TSharedPtr<FGuid> NewValue, ESelectInfo::Type SelectInfo);
+
+	TSharedRef<SWidget> MakeLinkSourceEventComboWidget(TSharedPtr<EGridObjectEvent> Item) const;
+	void OnLinkSourceEventSelectionChanged(TSharedPtr<EGridObjectEvent> NewValue, ESelectInfo::Type SelectInfo);
+	FText GetSelectedLinkSourceEventText() const;
+
+	TSharedRef<SWidget> MakeLinkCommandComboWidget(TSharedPtr<EGridObjectCommand> Item) const;
+	void OnLinkCommandSelectionChanged(TSharedPtr<EGridObjectCommand> NewValue, ESelectInfo::Type SelectInfo);
+	FText GetSelectedLinkCommandText() const;
+
+	TSharedRef<SWidget> MakeLinkConditionComboWidget(TSharedPtr<EGridObjectCondition> Item) const;
+	void OnLinkConditionSelectionChanged(TSharedPtr<EGridObjectCondition> NewValue, ESelectInfo::Type SelectInfo);
+	FText GetSelectedLinkConditionText() const;
+
+	TSharedRef<SWidget> MakeItemTypeComboWidget(TSharedPtr<EGridItemType> Item) const;
+	void OnItemTypeSelectionChanged(TSharedPtr<EGridItemType> NewValue, ESelectInfo::Type SelectInfo);
+	FText GetSelectedItemTypeText() const;
+
+	TSharedRef<SWidget> MakeVariableComboWidget(TSharedPtr<FName> Item) const;
+	void OnVariableSelectionChanged(TSharedPtr<FName> NewValue, ESelectInfo::Type SelectInfo);
+	FText GetSelectedVariableText() const;
+
+	TSharedRef<SWidget> MakeIntComparisonComboWidget(TSharedPtr<EGridLogicIntComparison> Item) const;
+	void OnIntComparisonSelectionChanged(TSharedPtr<EGridLogicIntComparison> NewValue, ESelectInfo::Type SelectInfo);
+	FText GetSelectedIntComparisonText() const;
+
+private:
+	TWeakObjectPtr<AGridLevelEditorActor> EditorActor;
+	FOnGetGridEditorLinksActor OnGetEditorActor;
+	FOnGridEditorLinksRequestRefresh OnRequestRefresh;
+
+	TArray<TSharedPtr<EGridObjectEvent>> LinkSourceEventOptions;
+	TArray<TSharedPtr<EGridObjectCommand>> LinkCommandOptions;
+	TArray<TSharedPtr<EGridObjectCondition>> LinkConditionOptions;
+	TArray<TSharedPtr<EGridItemType>> ItemTypeOptions;
+	TArray<TSharedPtr<EGridLogicIntComparison>> IntComparisonOptions;
+	TArray<TSharedPtr<FName>> VariableOptions;
+	TArray<TSharedPtr<FGuid>> SourceObjectOptions;
+	TArray<TSharedPtr<FGuid>> TargetObjectOptions;
+
+	bool bAddConnectorVisible = false;
+	TSharedPtr<FGuid> SelectedSourceObjectId;
+	TSharedPtr<FGuid> SelectedTargetObjectId;
+	TSharedPtr<EGridObjectEvent> SelectedSourceEvent;
+	TSharedPtr<EGridObjectCommand> SelectedCommand;
+	TSharedPtr<EGridObjectCondition> SelectedCondition;
+	TSharedPtr<EGridItemType> SelectedConditionItemType;
+	TSharedPtr<EGridLogicIntComparison> SelectedConditionIntComparison;
+	TSharedPtr<FName> SelectedConditionVariableId;
+
+	FName ConditionItemDefinitionId = NAME_None;
+	FName ConditionItemTag = NAME_None;
+	int32 ConditionCount = 1;
+	float ConditionWeight = 0.0f;
+	bool ConditionBoolValue = false;
+	int32 ConditionIntValue = 0;
+	bool bInvertCondition = false;
 };
 
 #endif

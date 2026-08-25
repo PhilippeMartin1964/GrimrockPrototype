@@ -10,107 +10,101 @@ class UTexture2D;
 class UGridObjectArchetypeAsset;
 class URPGStoryCompanionAsset;
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridObjectPaletteEntry
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    FName EntryId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
+	FName EntryId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
-        meta = (ToolTip = "Optional label override for this palette tile. Leave empty to use the archetype display name."))
-    FText DisplayNameOverride;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
+		meta = (ToolTip = "Optional label override for this palette tile. Leave empty to use the archetype display name."))
+	FText DisplayNameOverride;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette",
-        meta = (ToolTip = "Optional grouping override for this palette tile. Leave empty to use the archetype category."))
-    FName CategoryOverride = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette",
+		meta = (ToolTip = "Optional grouping override for this palette tile. Leave empty to use the archetype category."))
+	FName CategoryOverride = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    TObjectPtr<UTexture2D> Icon = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
+	TObjectPtr<UTexture2D> Icon = nullptr;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    TObjectPtr<UGridObjectArchetypeAsset> DefaultArchetype = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
+	TObjectPtr<UGridObjectArchetypeAsset> DefaultArchetype = nullptr;
 
-    /** Required default when the archetype places a MonsterSpawn. */
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
-    TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;
+	/** Required default when the archetype places a MonsterSpawn. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Monster")
+	TObjectPtr<UGridMonsterDefinitionAsset> DefaultMonsterDefinition = nullptr;
 
-    /** MON20.4.5 default copied into a placed StoryCompanion target. */
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette|Story Companion")
-    TObjectPtr<URPGStoryCompanionAsset> DefaultStoryCompanionDefinition = nullptr;
+	/** MON20.4.5 default copied into a placed StoryCompanion target. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette|Story Companion")
+	TObjectPtr<URPGStoryCompanionAsset> DefaultStoryCompanionDefinition = nullptr;
 
-    FName GetEffectiveArchetypeId () const
-    {
-        return DefaultArchetype ? DefaultArchetype->ArchetypeId : NAME_None;
-    }
+	FName GetEffectiveArchetypeId() const
+	{
+		return DefaultArchetype ? DefaultArchetype->ArchetypeId : NAME_None;
+	}
 
-    EGridLevelObjectType GetEffectiveObjectType () const
-    {
-        return DefaultArchetype
-            ? DefaultArchetype->SupportedType
-            : EGridLevelObjectType::None;
-    }
+	EGridLevelObjectType GetEffectiveObjectType() const
+	{
+		return DefaultArchetype ? DefaultArchetype->SupportedType : EGridLevelObjectType::None;
+	}
 
-    FName GetEffectiveCategory () const
-    {
-        if (!CategoryOverride.IsNone ())
-        {
-            return CategoryOverride;
-        }
+	FName GetEffectiveCategory() const
+	{
+		if (!CategoryOverride.IsNone())
+		{
+			return CategoryOverride;
+		}
 
-        if (DefaultArchetype && !DefaultArchetype->Category.IsNone ())
-        {
-            return DefaultArchetype->Category;
-        }
+		if (DefaultArchetype && !DefaultArchetype->Category.IsNone())
+		{
+			return DefaultArchetype->Category;
+		}
 
-        return FName (TEXT ("Uncategorized"));
-    }
+		return FName(TEXT("Uncategorized"));
+	}
 
-    FText GetEffectiveDisplayName () const
-    {
-        if (!DisplayNameOverride.IsEmpty ())
-        {
-            return DisplayNameOverride;
-        }
+	FText GetEffectiveDisplayName() const
+	{
+		if (!DisplayNameOverride.IsEmpty())
+		{
+			return DisplayNameOverride;
+		}
 
-        if (DefaultArchetype && !DefaultArchetype->DisplayName.IsEmpty ())
-        {
-            return DefaultArchetype->DisplayName;
-        }
+		if (DefaultArchetype && !DefaultArchetype->DisplayName.IsEmpty())
+		{
+			return DefaultArchetype->DisplayName;
+		}
 
-        const FName EffectiveArchetypeId = GetEffectiveArchetypeId ();
-        return !EffectiveArchetypeId.IsNone ()
-            ? FText::FromName (EffectiveArchetypeId)
-            : FText::FromName (EntryId);
-    }
+		const FName EffectiveArchetypeId = GetEffectiveArchetypeId();
+		return !EffectiveArchetypeId.IsNone() ? FText::FromName(EffectiveArchetypeId) : FText::FromName(EntryId);
+	}
 
-    bool IsValidEntry () const
-    {
-        return !EntryId.IsNone () &&
-            DefaultArchetype &&
-            !DefaultArchetype->ArchetypeId.IsNone () &&
-            DefaultArchetype->SupportedType != EGridLevelObjectType::None;
-    }
+	bool IsValidEntry() const
+	{
+		return !EntryId.IsNone() && DefaultArchetype && !DefaultArchetype->ArchetypeId.IsNone() &&
+			DefaultArchetype->SupportedType != EGridLevelObjectType::None;
+	}
 };
 
-UCLASS (BlueprintType)
+UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridObjectPaletteAsset : public UDataAsset
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Palette")
-    TArray<FGridObjectPaletteEntry> Entries;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Palette")
+	TArray<FGridObjectPaletteEntry> Entries;
 
-    const FGridObjectPaletteEntry* FindEntryById (FName EntryId) const
-    {
-        return Entries.FindByPredicate (
-            [EntryId] (const FGridObjectPaletteEntry& Entry)
-        {
-            return Entry.EntryId == EntryId;
-        });
-    }
+	const FGridObjectPaletteEntry* FindEntryById(FName EntryId) const
+	{
+		return Entries.FindByPredicate(
+			[EntryId](const FGridObjectPaletteEntry& Entry)
+			{
+				return Entry.EntryId == EntryId;
+			});
+	}
 
-    bool ValidatePalette (TArray<FGridArchetypeValidationMessage>& OutMessages) const;
+	bool ValidatePalette(TArray<FGridArchetypeValidationMessage>& OutMessages) const;
 };

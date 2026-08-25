@@ -11,131 +11,127 @@
 
 class UGridStatusEffectDefinitionAsset;
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FRPGCharacterProgressionSaveState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Progression")
-    FGuid CharacterId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Progression")
+	FGuid CharacterId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Progression")
-    TArray<FName> SelectedChoiceIds;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Progression")
+	TArray<FName> SelectedChoiceIds;
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FRPGPendingLevelUpSaveState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-    FGuid CharacterId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
+	FGuid CharacterId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-    int32 PreviousLevel = 1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
+	int32 PreviousLevel = 1;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-    int32 NewLevel = 1;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
+	int32 NewLevel = 1;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-    int32 LevelsGained = 0;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
+	int32 LevelsGained = 0;
 };
 
 /** MON16.7 status snapshots for one party member, keyed by stable CharacterId. */
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridCharacterStatusEffectSaveState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
-    FGuid CharacterId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
+	FGuid CharacterId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
-    TArray<FGridStatusEffectSaveState> StatusEffects;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
+	TArray<FGridStatusEffectSaveState> StatusEffects;
 };
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    /** MON20.9.2 adds explicit transient SkillRanks snapshots. */
-    static constexpr int32 CurrentSaveVersion = 8;
-    static constexpr int32 MinimumCompatibleSaveVersion = 1;
+	/** MON20.9.2 adds explicit transient SkillRanks snapshots. */
+	static constexpr int32 CurrentSaveVersion = 8;
+	static constexpr int32 MinimumCompatibleSaveVersion = 1;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    int32 SaveVersion = CurrentSaveVersion;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	int32 SaveVersion = CurrentSaveVersion;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    FGridPartyInventoryState PartyInventoryState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	FGridPartyInventoryState PartyInventoryState;
 
-    /** MON15.6 authoritative persisted class choices, keyed by CharacterId. */
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
-    TArray<FRPGCharacterProgressionSaveState> ClassProgressionStates;
+	/** MON15.6 authoritative persisted class choices, keyed by CharacterId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
+	TArray<FRPGCharacterProgressionSaveState> ClassProgressionStates;
 
-    /** MON15.6 level-up notifications that still need to be presented. */
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
-    TArray<FRPGPendingLevelUpSaveState> PendingLevelUpNotifications;
+	/** MON15.6 level-up notifications that still need to be presented. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
+	TArray<FRPGPendingLevelUpSaveState> PendingLevelUpNotifications;
 
-    /** MON16.7 party status snapshots. Runtime DefinitionAsset pointers are excluded. */
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Status Effects")
-    TArray<FGridCharacterStatusEffectSaveState> CharacterStatusEffectStates;
+	/** MON16.7 party status snapshots. Runtime DefinitionAsset pointers are excluded. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Status Effects")
+	TArray<FGridCharacterStatusEffectSaveState> CharacterStatusEffectStates;
 
-    /** MON18.8 sparse Spellbook snapshots. CharacterId + SpellId identities only. */
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Magic|Spellbook")
-    TArray<FGridCharacterSpellbookSaveState> CharacterSpellbookStates;
+	/** MON18.8 sparse Spellbook snapshots. CharacterId + SpellId identities only. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Magic|Spellbook")
+	TArray<FGridCharacterSpellbookSaveState> CharacterSpellbookStates;
 
-    /** MON20.9 sparse Skill rank snapshots for active and pooled characters. */
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Skills")
-    TArray<FRPGCharacterSkillSaveState> CharacterSkillStates;
+	/** MON20.9 sparse Skill rank snapshots for active and pooled characters. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Skills")
+	TArray<FRPGCharacterSkillSaveState> CharacterSkillStates;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    FGridDungeonRuntimeState DungeonRuntimeState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	FGridDungeonRuntimeState DungeonRuntimeState;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    FName CurrentDungeonLevelId = NAME_None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	FName CurrentDungeonLevelId = NAME_None;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    int32 PartyCellX = 0;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	int32 PartyCellX = 0;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    int32 PartyCellY = 0;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	int32 PartyCellY = 0;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
-    EGridEdge PartyFacing = EGridEdge::North;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
+	EGridEdge PartyFacing = EGridEdge::North;
 
-    virtual void Serialize (FArchive& Ar) override;
+	virtual void Serialize(FArchive& Ar) override;
 
-    /** Captures transient party status collections into stable MON16.7 snapshots. */
-    bool CaptureStatusEffectState (FString& OutError);
+	/** Captures transient party status collections into stable MON16.7 snapshots. */
+	bool CaptureStatusEffectState(FString& OutError);
 
-    /** Restores party status collections using canonical GridStatusEffect primary assets. */
-    bool RestoreStatusEffectState (FString& OutError);
+	/** Restores party status collections using canonical GridStatusEffect primary assets. */
+	bool RestoreStatusEffectState(FString& OutError);
 
-    /** Test seam and deterministic restore path with an injected definition resolver. */
-    bool RestoreStatusEffectState (
-        TFunctionRef<UGridStatusEffectDefinitionAsset* (FName)> DefinitionResolver,
-        FString& OutError);
+	/** Test seam and deterministic restore path with an injected definition resolver. */
+	bool RestoreStatusEffectState(TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError);
 
-    bool IsCompatible () const
-    {
-        return bProgressionLoadValid &&
-            SaveVersion >= MinimumCompatibleSaveVersion &&
-            SaveVersion <= CurrentSaveVersion;
-    }
+	bool IsCompatible() const
+	{
+		return bProgressionLoadValid && SaveVersion >= MinimumCompatibleSaveVersion && SaveVersion <= CurrentSaveVersion;
+	}
 
-    bool IsProgressionLoadValid () const
-    {
-        return bProgressionLoadValid;
-    }
+	bool IsProgressionLoadValid() const
+	{
+		return bProgressionLoadValid;
+	}
 
-    const FString& GetProgressionLoadError () const
-    {
-        return ProgressionLoadError;
-    }
+	const FString& GetProgressionLoadError() const
+	{
+		return ProgressionLoadError;
+	}
 
 private:
-    bool bProgressionLoadValid = true;
-    FString ProgressionLoadError;
+	bool bProgressionLoadValid = true;
+	FString ProgressionLoadError;
 };

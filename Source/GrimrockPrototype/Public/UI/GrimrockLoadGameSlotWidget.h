@@ -8,10 +8,7 @@
 class UButton;
 class UTextBlock;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
-    FGrimrockLoadGameSlotSelectedSignature,
-    const FString&, SlotName,
-    int32, UserIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGrimrockLoadGameSlotSelectedSignature, const FString&, SlotName, int32, UserIndex);
 
 /**
  * One selectable save-slot row used by WBP_LoadGameMenu.
@@ -19,41 +16,41 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockLoadGameSlotWidget : public UUserWidget
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, Category = "Load Game")
-    void InitializeSaveSlot(const FGrimrockSaveSlotInfo& InSaveSlotInfo);
+	UFUNCTION(BlueprintCallable, Category = "Load Game")
+	void InitializeSaveSlot(const FGrimrockSaveSlotInfo& InSaveSlotInfo);
 
-    UFUNCTION(BlueprintPure, Category = "Load Game")
-    FGrimrockSaveSlotInfo GetSaveSlotInfo() const;
+	UFUNCTION(BlueprintPure, Category = "Load Game")
+	FGrimrockSaveSlotInfo GetSaveSlotInfo() const;
 
-    UPROPERTY(BlueprintAssignable, Category = "Load Game")
-    FGrimrockLoadGameSlotSelectedSignature OnSaveSlotSelected;
+	UPROPERTY(BlueprintAssignable, Category = "Load Game")
+	FGrimrockLoadGameSlotSelectedSignature OnSaveSlotSelected;
 
 protected:
-    virtual void NativeConstruct() override;
+	virtual void NativeConstruct() override;
 
 private:
-    void BindSlotButton();
-    void RefreshSlotText();
+	void BindSlotButton();
+	void RefreshSlotText();
 
-    UFUNCTION()
-    void HandleLoadSlotClicked();
+	UFUNCTION()
+	void HandleLoadSlotClicked();
 
 private:
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
-    FGrimrockSaveSlotInfo SaveSlotInfo;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
+	FGrimrockSaveSlotInfo SaveSlotInfo;
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UButton> Button_LoadSlot;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_LoadSlot;
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UTextBlock> Text_DisplayName;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_DisplayName;
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UTextBlock> Text_SlotName;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_SlotName;
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UTextBlock> Text_Status;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_Status;
 };

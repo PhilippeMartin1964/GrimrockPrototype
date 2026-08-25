@@ -11,16 +11,13 @@ class UWorld;
  */
 namespace GridPIEPlaytestRequest
 {
-    GRIMROCKPROTOTYPE_API void BeginFreshPlaytest (
-        const AGridLevelRuntimeActor* PreparedEditorActor);
+	GRIMROCKPROTOTYPE_API void BeginFreshPlaytest(const AGridLevelRuntimeActor* PreparedEditorActor);
 
-    GRIMROCKPROTOTYPE_API void Clear (const TCHAR* Reason);
+	GRIMROCKPROTOTYPE_API void Clear(const TCHAR* Reason);
 
-    GRIMROCKPROTOTYPE_API bool IsActiveForWorld (const UWorld* World);
+	GRIMROCKPROTOTYPE_API bool IsActiveForWorld(const UWorld* World);
 
-    GRIMROCKPROTOTYPE_API bool Matches (
-        const AGridLevelRuntimeActor* RuntimeActor);
+	GRIMROCKPROTOTYPE_API bool Matches(const AGridLevelRuntimeActor* RuntimeActor);
 
-    GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor* ResolveMatchingRuntimeActor (
-        UWorld* World);
+	GRIMROCKPROTOTYPE_API AGridLevelRuntimeActor* ResolveMatchingRuntimeActor(UWorld* World);
 }

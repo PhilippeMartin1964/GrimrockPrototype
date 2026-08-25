@@ -2,79 +2,70 @@
 
 namespace
 {
-    bool HasValidPortrait (const TArray<FRPGCharacterPortraitVariant>& Portraits)
-    {
-        for (const FRPGCharacterPortraitVariant& Portrait : Portraits)
-        {
-            if (Portrait.IsValidDefinition ())
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+	bool HasValidPortrait(const TArray<FRPGCharacterPortraitVariant>& Portraits)
+	{
+		for (const FRPGCharacterPortraitVariant& Portrait : Portraits)
+		{
+			if (Portrait.IsValidDefinition())
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 }
 
-bool URPGCharacterPortraitSetAsset::IsValidDefinition () const
+bool URPGCharacterPortraitSetAsset::IsValidDefinition() const
 {
-    return !RaceId.IsNone () &&
-        (HasValidPortrait (MalePortraits) || HasValidPortrait (FemalePortraits));
+	return !RaceId.IsNone() && (HasValidPortrait(MalePortraits) || HasValidPortrait(FemalePortraits));
 }
 
-bool URPGCharacterPortraitSetAsset::IsValidForRace (FName InRaceId) const
+bool URPGCharacterPortraitSetAsset::IsValidForRace(FName InRaceId) const
 {
-    return IsValidDefinition () && !InRaceId.IsNone () && RaceId == InRaceId;
+	return IsValidDefinition() && !InRaceId.IsNone() && RaceId == InRaceId;
 }
 
-void URPGCharacterPortraitSetAsset::GetPortraitsForGender (
-    ERPGCharacterPortraitGender Gender,
-    TArray<FRPGCharacterPortraitVariant>& OutPortraits) const
+void URPGCharacterPortraitSetAsset::GetPortraitsForGender(ERPGCharacterPortraitGender Gender, TArray<FRPGCharacterPortraitVariant>& OutPortraits) const
 {
-    OutPortraits = GetPortraitsForGenderRef (Gender);
+	OutPortraits = GetPortraitsForGenderRef(Gender);
 }
 
-bool URPGCharacterPortraitSetAsset::FindPortraitVariant (
-    ERPGCharacterPortraitGender Gender,
-    FName VariantId,
-    FRPGCharacterPortraitVariant& OutVariant) const
+bool URPGCharacterPortraitSetAsset::FindPortraitVariant(ERPGCharacterPortraitGender Gender, FName VariantId, FRPGCharacterPortraitVariant& OutVariant) const
 {
-    OutVariant = FRPGCharacterPortraitVariant ();
-    if (VariantId.IsNone ())
-    {
-        return false;
-    }
+	OutVariant = FRPGCharacterPortraitVariant();
+	if (VariantId.IsNone())
+	{
+		return false;
+	}
 
-    for (const FRPGCharacterPortraitVariant& Portrait : GetPortraitsForGenderRef (Gender))
-    {
-        if (Portrait.IsValidDefinition () && Portrait.VariantId == VariantId)
-        {
-            OutVariant = Portrait;
-            return true;
-        }
-    }
+	for (const FRPGCharacterPortraitVariant& Portrait : GetPortraitsForGenderRef(Gender))
+	{
+		if (Portrait.IsValidDefinition() && Portrait.VariantId == VariantId)
+		{
+			OutVariant = Portrait;
+			return true;
+		}
+	}
 
-    return false;
+	return false;
 }
 
-bool URPGCharacterPortraitSetAsset::GetFirstValidPortrait (
-    ERPGCharacterPortraitGender Gender,
-    FRPGCharacterPortraitVariant& OutVariant) const
+bool URPGCharacterPortraitSetAsset::GetFirstValidPortrait(ERPGCharacterPortraitGender Gender, FRPGCharacterPortraitVariant& OutVariant) const
 {
-    OutVariant = FRPGCharacterPortraitVariant ();
-    for (const FRPGCharacterPortraitVariant& Portrait : GetPortraitsForGenderRef (Gender))
-    {
-        if (Portrait.IsValidDefinition ())
-        {
-            OutVariant = Portrait;
-            return true;
-        }
-    }
+	OutVariant = FRPGCharacterPortraitVariant();
+	for (const FRPGCharacterPortraitVariant& Portrait : GetPortraitsForGenderRef(Gender))
+	{
+		if (Portrait.IsValidDefinition())
+		{
+			OutVariant = Portrait;
+			return true;
+		}
+	}
 
-    return false;
+	return false;
 }
 
-const TArray<FRPGCharacterPortraitVariant>& URPGCharacterPortraitSetAsset::GetPortraitsForGenderRef (
-    ERPGCharacterPortraitGender Gender) const
+const TArray<FRPGCharacterPortraitVariant>& URPGCharacterPortraitSetAsset::GetPortraitsForGenderRef(ERPGCharacterPortraitGender Gender) const
 {
-    return Gender == ERPGCharacterPortraitGender::Female ? FemalePortraits : MalePortraits;
+	return Gender == ERPGCharacterPortraitGender::Female ? FemalePortraits : MalePortraits;
 }

@@ -5,187 +5,189 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GrimrockPartyPawn.h"
 
-AGridButtonActor::AGridButtonActor ()
+AGridButtonActor::AGridButtonActor()
 {
-    PrimaryActorTick.bCanEverTick = true;
-    SetActorTickEnabled (false);
+	PrimaryActorTick.bCanEverTick = true;
+	SetActorTickEnabled(false);
 
-    if (FixedMeshComponent)
-    {
-        FixedMeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
-        FixedMeshComponent->SetGenerateOverlapEvents (false);
-    }
+	if (FixedMeshComponent)
+	{
+		FixedMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		FixedMeshComponent->SetGenerateOverlapEvents(false);
+	}
 
-    if (MovingMeshComponent)
-    {
-        MovingMeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryOnly);
-        MovingMeshComponent->SetCollisionResponseToAllChannels (ECR_Ignore);
-        MovingMeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-        MovingMeshComponent->SetGenerateOverlapEvents (false);
-    }
+	if (MovingMeshComponent)
+	{
+		MovingMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		MovingMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+		MovingMeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		MovingMeshComponent->SetGenerateOverlapEvents(false);
+	}
 }
 
-void AGridButtonActor::Tick (float DeltaSeconds)
+void AGridButtonActor::Tick(float DeltaSeconds)
 {
-    Super::Tick (DeltaSeconds);
-    UpdateAnimation (DeltaSeconds);
+	Super::Tick(DeltaSeconds);
+	UpdateAnimation(DeltaSeconds);
 }
 
-void AGridButtonActor::InitializeButton (const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial,
-    const FVector& InWorldLocation, const FRotator& InWorldRotation)
+void AGridButtonActor::InitializeButton(const FGridLevelObjectData& ObjectData, UStaticMesh* InButtonMesh, UMaterialInterface* InMaterial,
+	const FVector& InWorldLocation, const FRotator& InWorldRotation)
 {
-    AGridRuntimeObjectActor::InitializeGridObject (ObjectData, nullptr, nullptr, FTransform (InWorldRotation, InWorldLocation));
-    PressDistance = ObjectData.Behavior.ButtonAnimation.ButtonPressDistance;
-    PressDuration = ObjectData.Behavior.ButtonAnimation.ButtonPressDuration;
-    ReleaseDuration = ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration;
-    HoldTime = ObjectData.Behavior.ButtonAnimation.ButtonHoldTime;
-    
-    ReleasedLocation = FVector::ZeroVector;
-    PressedLocation = FVector (PressDistance, 0.f, 0.f);
+	AGridRuntimeObjectActor::InitializeGridObject(ObjectData, nullptr, nullptr, FTransform(InWorldRotation, InWorldLocation));
+	PressDistance = ObjectData.Behavior.ButtonAnimation.ButtonPressDistance;
+	PressDuration = ObjectData.Behavior.ButtonAnimation.ButtonPressDuration;
+	ReleaseDuration = ObjectData.Behavior.ButtonAnimation.ButtonReleaseDuration;
+	HoldTime = ObjectData.Behavior.ButtonAnimation.ButtonHoldTime;
 
-	SetMovingRelativeLocation (ReleasedLocation);
+	ReleasedLocation = FVector::ZeroVector;
+	PressedLocation = FVector(PressDistance, 0.f, 0.f);
 
-    AnimState = EButtonAnimState::Idle;
-    StateElapsed = 0.f;
-    SetActorTickEnabled (false);
+	SetMovingRelativeLocation(ReleasedLocation);
+
+	AnimState = EButtonAnimState::Idle;
+	StateElapsed = 0.f;
+	SetActorTickEnabled(false);
 }
 
-void AGridButtonActor::TriggerPress ()
+void AGridButtonActor::TriggerPress()
 {
-    AnimState = EButtonAnimState::Pressing;
-    StateElapsed = 0.f;
-    SetActorTickEnabled (true);
+	AnimState = EButtonAnimState::Pressing;
+	StateElapsed = 0.f;
+	SetActorTickEnabled(true);
 }
 
-FVector AGridButtonActor::GetPressAxis () const
+FVector AGridButtonActor::GetPressAxis() const
 {
-    switch (Edge)
-    {
-        case EGridEdge::North: return FVector (0.f, 1.f, 0.f);
-        case EGridEdge::East:  return FVector (1.f, 0.f, 0.f);
-        case EGridEdge::South: return FVector (0.f, -1.f, 0.f);
-        case EGridEdge::West:  return FVector (-1.f, 0.f, 0.f);
-        default:               return FVector::ZeroVector;
-    }
+	switch (Edge)
+	{
+		case EGridEdge::North:
+			return FVector(0.f, 1.f, 0.f);
+		case EGridEdge::East:
+			return FVector(1.f, 0.f, 0.f);
+		case EGridEdge::South:
+			return FVector(0.f, -1.f, 0.f);
+		case EGridEdge::West:
+			return FVector(-1.f, 0.f, 0.f);
+		default:
+			return FVector::ZeroVector;
+	}
 }
 
-void AGridButtonActor::UpdateAnimation (float DeltaSeconds)
+void AGridButtonActor::UpdateAnimation(float DeltaSeconds)
 {
-    switch (AnimState)
-    {
-        case EButtonAnimState::Idle:
-            return;
+	switch (AnimState)
+	{
+		case EButtonAnimState::Idle:
+			return;
 
-        case EButtonAnimState::Pressing:
-        {
-            StateElapsed += DeltaSeconds;
-            const float Alpha = FMath::Clamp (StateElapsed / FMath::Max (0.01f, PressDuration), 0.f, 1.f);
-            SetMovingRelativeLocation (FMath::Lerp (ReleasedLocation, PressedLocation, Alpha));
+		case EButtonAnimState::Pressing:
+		{
+			StateElapsed += DeltaSeconds;
+			const float Alpha = FMath::Clamp(StateElapsed / FMath::Max(0.01f, PressDuration), 0.f, 1.f);
+			SetMovingRelativeLocation(FMath::Lerp(ReleasedLocation, PressedLocation, Alpha));
 
-            if (Alpha >= 1.f)
-            {
-                AnimState = EButtonAnimState::Holding;
-                StateElapsed = 0.f;
-                SetMovingRelativeLocation (PressedLocation);
-            }
-            break;
-        }
+			if (Alpha >= 1.f)
+			{
+				AnimState = EButtonAnimState::Holding;
+				StateElapsed = 0.f;
+				SetMovingRelativeLocation(PressedLocation);
+			}
+			break;
+		}
 
-        case EButtonAnimState::Holding:
-        {
-            StateElapsed += DeltaSeconds;
+		case EButtonAnimState::Holding:
+		{
+			StateElapsed += DeltaSeconds;
 
-            if (StateElapsed >= HoldTime)
-            {
-                AnimState = EButtonAnimState::Releasing;
-                StateElapsed = 0.f;
-            }
-            break;
-        }
+			if (StateElapsed >= HoldTime)
+			{
+				AnimState = EButtonAnimState::Releasing;
+				StateElapsed = 0.f;
+			}
+			break;
+		}
 
-        case EButtonAnimState::Releasing:
-        {
-            StateElapsed += DeltaSeconds;
-            const float Alpha = FMath::Clamp (StateElapsed / FMath::Max (0.01f, ReleaseDuration), 0.f, 1.f);
-            SetMovingRelativeLocation (FMath::Lerp (PressedLocation, ReleasedLocation, Alpha));
+		case EButtonAnimState::Releasing:
+		{
+			StateElapsed += DeltaSeconds;
+			const float Alpha = FMath::Clamp(StateElapsed / FMath::Max(0.01f, ReleaseDuration), 0.f, 1.f);
+			SetMovingRelativeLocation(FMath::Lerp(PressedLocation, ReleasedLocation, Alpha));
 
-            if (Alpha >= 1.f)
-            {
-                AnimState = EButtonAnimState::Idle;
-                StateElapsed = 0.f;
-                SetMovingRelativeLocation (ReleasedLocation);
-				SetActorTickEnabled (false);
-            }
-            break;
-        }
+			if (Alpha >= 1.f)
+			{
+				AnimState = EButtonAnimState::Idle;
+				StateElapsed = 0.f;
+				SetMovingRelativeLocation(ReleasedLocation);
+				SetActorTickEnabled(false);
+			}
+			break;
+		}
 
-        default:
-            break;
-    }
+		default:
+			break;
+	}
 }
 
-void AGridButtonActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-    const FTransform& WorldTransform)
+void AGridButtonActor::InitializeGridObject(
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
 {
-    InitializeButton (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
+	InitializeButton(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
 }
 
-bool AGridButtonActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+bool AGridButtonActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    if (!InstigatorPawn || !HitComponent)
-    {
-        return false;
-    }
+	if (!InstigatorPawn || !HitComponent)
+	{
+		return false;
+	}
 
-    if (HitComponent != MovingMeshComponent)
-    {
-        return false;
-    }
+	if (HitComponent != MovingMeshComponent)
+	{
+		return false;
+	}
 
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    return AnimState == EButtonAnimState::Idle &&
-        PartyPawn &&
-        RuntimeActor &&
-        RuntimeActor->CanPartyInteractWithEdgeObject (CellX, CellY, Edge, PartyPawn);
+	const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	return AnimState == EButtonAnimState::Idle && PartyPawn && RuntimeActor && RuntimeActor->CanPartyInteractWithEdgeObject(CellX, CellY, Edge, PartyPawn);
 }
 
-void AGridButtonActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+void AGridButtonActor::Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
 {
-    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
-    {
-        return;
-    }
+	if (!CanInteract_Implementation(InstigatorPawn, HitComponent))
+	{
+		return;
+	}
 
-    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    if (!PartyPawn)
-    {
-        return;
-    }
+	AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	if (!PartyPawn)
+	{
+		return;
+	}
 
-    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    if (RuntimeActor)
-    {
-        RuntimeActor->TryInteractAtEdge (CellX, CellY, Edge, PartyPawn);
-    }
+	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	if (RuntimeActor)
+	{
+		RuntimeActor->TryInteractAtEdge(CellX, CellY, Edge, PartyPawn);
+	}
 }
 
-EGridInteractionCursor AGridButtonActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+EGridInteractionCursor AGridButtonActor::GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent == MovingMeshComponent && AnimState == EButtonAnimState::Idle)
-    {
-        return EGridInteractionCursor::Push;
-    }
+	if (HitComponent == MovingMeshComponent && AnimState == EButtonAnimState::Idle)
+	{
+		return EGridInteractionCursor::Push;
+	}
 
-    return EGridInteractionCursor::Default;
+	return EGridInteractionCursor::Default;
 }
 
-FText AGridButtonActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+FText AGridButtonActor::GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent == MovingMeshComponent)
-    {
-        return FText::FromString (TEXT ("Push button"));
-    }
+	if (HitComponent == MovingMeshComponent)
+	{
+		return FText::FromString(TEXT("Push button"));
+	}
 
-    return FText::GetEmpty ();
+	return FText::GetEmpty();
 }

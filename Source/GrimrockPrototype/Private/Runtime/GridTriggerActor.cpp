@@ -1,17 +1,17 @@
 #include "Runtime/GridTriggerActor.h"
 
-AGridTriggerActor::AGridTriggerActor ()
+AGridTriggerActor::AGridTriggerActor()
 {
-    PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
-void AGridTriggerActor::InitializeGridObject (const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material,
-    const FTransform& WorldTransform)
+void AGridTriggerActor::InitializeGridObject(
+	const FGridLevelObjectData& ObjectData, UStaticMesh* Mesh, UMaterialInterface* Material, const FTransform& WorldTransform)
 {
-	InitializeGridObjectBase (ObjectData, Mesh, Material, WorldTransform.GetLocation (), WorldTransform.GetRotation ().Rotator ());
-	SetActorHiddenInGame (true);
+	InitializeGridObjectBase(ObjectData, Mesh, Material, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator());
+	SetActorHiddenInGame(true);
 	if (MeshComponent)
 	{
-		MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }

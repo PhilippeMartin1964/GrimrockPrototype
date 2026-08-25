@@ -5,26 +5,26 @@
 #include "RPG/RPGCharacterTypes.h"
 #include "RPGRaceAsset.generated.h"
 
-UCLASS (BlueprintType)
+UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API URPGRaceAsset : public UPrimaryDataAsset
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    URPGRaceAsset ();
+	URPGRaceAsset();
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
-    FName RaceId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
+	FName RaceId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
-    FText DisplayName;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
+	FText DisplayName;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Race", meta = (MultiLine = "true"))
-    FText Description;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Race", meta = (MultiLine = "true"))
+	FText Description;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
-    FRPGAttributes AttributeBonuses;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
+	FRPGAttributes AttributeBonuses;
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Race")
-    bool IsValidDefinition () const;
+	UFUNCTION(BlueprintPure, Category = "RPG|Race")
+	bool IsValidDefinition() const;
 };

@@ -20,286 +20,278 @@ class URPGCharacterCreationWidget;
 class UTextBlock;
 class UTexture2D;
 
-DECLARE_MULTICAST_DELEGATE_TwoParams (
-    FRPGCustomRecruitCommittedNativeSignature,
-    URPGCharacterCreationWidget*,
-    int32);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FRPGCustomRecruitCommittedNativeSignature, URPGCharacterCreationWidget*, int32);
 
-DECLARE_MULTICAST_DELEGATE_OneParam (
-    FRPGCustomRecruitCancelledNativeSignature,
-    URPGCharacterCreationWidget*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FRPGCustomRecruitCancelledNativeSignature, URPGCharacterCreationWidget*);
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API URPGCharacterCreationWidget : public UGrimrockDesignSurfaceWidget
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
-    TObjectPtr<URPGRaceAsset> RaceDefinition;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+	TObjectPtr<URPGRaceAsset> RaceDefinition;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
-    TObjectPtr<URPGClassAsset> ClassDefinition;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+	TObjectPtr<URPGClassAsset> ClassDefinition;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
-    TArray<TObjectPtr<URPGRaceAsset>> AvailableRaceDefinitions;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+	TArray<TObjectPtr<URPGRaceAsset>> AvailableRaceDefinitions;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
-    TArray<TObjectPtr<URPGClassAsset>> AvailableClassDefinitions;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+	TArray<TObjectPtr<URPGClassAsset>> AvailableClassDefinitions;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
-    TArray<TObjectPtr<URPGCharacterPortraitSetAsset>> AvailablePortraitSets;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+	TArray<TObjectPtr<URPGCharacterPortraitSetAsset>> AvailablePortraitSets;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
-    TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+	TArray<TObjectPtr<URPGClassVisualAsset>> AvailableClassVisuals;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
-    TArray<FRPGRaceIllustrationOption> AvailableRaceIllustrations;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Choices")
+	TArray<FRPGRaceIllustrationOption> AvailableRaceIllustrations;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Gender Buttons")
-    TSoftObjectPtr<UTexture2D> GenderMaleButtonIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Gender Buttons")
+	TSoftObjectPtr<UTexture2D> GenderMaleButtonIcon;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Gender Buttons")
-    TSoftObjectPtr<UTexture2D> GenderFemaleButtonIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation|Gender Buttons")
+	TSoftObjectPtr<UTexture2D> GenderFemaleButtonIcon;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
-    ERPGCharacterPortraitGender SelectedPortraitGender = ERPGCharacterPortraitGender::Male;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+	ERPGCharacterPortraitGender SelectedPortraitGender = ERPGCharacterPortraitGender::Male;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
-    FName SelectedPortraitVariantId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+	FName SelectedPortraitVariantId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
-    TSoftObjectPtr<UTexture2D> DefaultPortrait;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+	TSoftObjectPtr<UTexture2D> DefaultPortrait;
 
-    /** MON20.5 transient purpose of this widget instance; never serialized into party state. */
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
-    ERPGCharacterCreationContext CreationContext =
-        ERPGCharacterCreationContext::NewGameMainHero;
+	/** MON20.5 transient purpose of this widget instance; never serialized into party state. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RPG|Character Creation")
+	ERPGCharacterCreationContext CreationContext = ERPGCharacterCreationContext::NewGameMainHero;
 
-    UPROPERTY (BlueprintReadOnly, Category = "RPG|Character Creation")
-    TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Character Creation")
+	TObjectPtr<AGrimrockPartyPawn> OwningPartyPawn;
 
-    UPROPERTY (BlueprintReadOnly, Category = "RPG|Character Creation")
-    TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "RPG|Character Creation")
+	TObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
 
-    UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UEditableText> EditableText_Name;
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UEditableText> EditableText_Name;
 
-    UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UButton> Button_CreateCharacter;
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UButton> Button_CreateCharacter;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UImage> Image_Portrait;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UImage> Image_Portrait;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UImage> Image_RaceIllustration;
-    
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UImage> Image_RaceEnvironment;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UImage> Image_RaceIllustration;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UImage> Image_ClassIcon;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UImage> Image_RaceEnvironment;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UButton> Button_GenderMale;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UImage> Image_ClassIcon;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UButton> Button_GenderFemale;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UButton> Button_GenderMale;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UImage> Image_GenderMale;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UButton> Button_GenderFemale;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UImage> Image_GenderFemale;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UImage> Image_GenderMale;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UComboBoxString> ComboBox_Race;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UImage> Image_GenderFemale;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UComboBoxString> ComboBox_Class;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UComboBoxString> ComboBox_Race;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UComboBoxString> ComboBox_Gender;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UComboBoxString> ComboBox_Class;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UComboBoxString> ComboBox_PortraitVariant;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UComboBoxString> ComboBox_Gender;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_RaceValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UComboBoxString> ComboBox_PortraitVariant;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_ClassValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_RaceValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_RaceDescription;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_ClassValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_ClassDescription;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_RaceDescription;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_PortraitDescription;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_ClassDescription;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IdentityTitle;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_PortraitDescription;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IdentityHelp;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IdentityTitle;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_NameLabel;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IdentityHelp;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IdentitySummaryTitle;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_NameLabel;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IdentityRace;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IdentitySummaryTitle;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IdentityClass;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IdentityRace;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IdentityGender;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IdentityClass;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_PortraitVariantLabel;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IdentityGender;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_PortraitDescriptionTitle;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_PortraitVariantLabel;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_PortraitCaption;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_PortraitDescriptionTitle;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_StrengthValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_PortraitCaption;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_DexterityValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_StrengthValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_ConstitutionValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_DexterityValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_IntelligenceValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_ConstitutionValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_WisdomValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_IntelligenceValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_CharismaValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_WisdomValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_HealthValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_CharismaValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_ManaValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_HealthValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_CarryWeightValue;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_ManaValue;
 
-    UPROPERTY (meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
-    TObjectPtr<UTextBlock> Text_ValidationMessage;
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_CarryWeightValue;
 
-    /** Backward-compatible New Game initialization. */
-    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    void InitializeCharacterCreationWidget (AGrimrockPartyPawn* InPartyPawn);
+	UPROPERTY(meta = (BindWidgetOptional), BlueprintReadOnly, Category = "RPG|Character Creation|Widgets")
+	TObjectPtr<UTextBlock> Text_ValidationMessage;
 
-    /** MON20.5 initializes the same widget for New Game or Custom Recruit. */
-    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    void InitializeCharacterCreationWidgetForContext (
-        AGrimrockPartyPawn* InPartyPawn,
-        ERPGCharacterCreationContext InCreationContext);
+	/** Backward-compatible New Game initialization. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
+	void InitializeCharacterCreationWidget(AGrimrockPartyPawn* InPartyPawn);
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    ERPGCharacterCreationContext GetCreationContext () const;
+	/** MON20.5 initializes the same widget for New Game or Custom Recruit. */
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
+	void InitializeCharacterCreationWidgetForContext(AGrimrockPartyPawn* InPartyPawn, ERPGCharacterCreationContext InCreationContext);
 
-    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    virtual void RefreshPreview ();
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation")
+	ERPGCharacterCreationContext GetCreationContext() const;
 
-    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    void FocusNameInput ();
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
+	virtual void RefreshPreview();
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    virtual bool CanSubmitCharacterCreation () const;
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
+	void FocusNameInput();
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    virtual bool GetPreviewAttributes (FRPGAttributes& OutAttributes) const;
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation")
+	virtual bool CanSubmitCharacterCreation() const;
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    virtual bool GetPreviewDerivedStats (FRPGDerivedStats& OutDerivedStats) const;
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation")
+	virtual bool GetPreviewAttributes(FRPGAttributes& OutAttributes) const;
 
-    UFUNCTION (BlueprintPure, Category = "RPG|Character Creation")
-    virtual float GetPreviewCarryWeight () const;
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation")
+	virtual bool GetPreviewDerivedStats(FRPGDerivedStats& OutDerivedStats) const;
 
-    UFUNCTION (BlueprintCallable, Category = "RPG|Character Creation")
-    virtual bool SubmitCharacterCreation ();
+	UFUNCTION(BlueprintPure, Category = "RPG|Character Creation")
+	virtual float GetPreviewCarryWeight() const;
 
-    FRPGCustomRecruitCommittedNativeSignature& OnCustomRecruitCommitted ()
-    {
-        return CustomRecruitCommittedDelegate;
-    }
+	UFUNCTION(BlueprintCallable, Category = "RPG|Character Creation")
+	virtual bool SubmitCharacterCreation();
 
-    FRPGCustomRecruitCancelledNativeSignature& OnCustomRecruitCancelled ()
-    {
-        return CustomRecruitCancelledDelegate;
-    }
+	FRPGCustomRecruitCommittedNativeSignature& OnCustomRecruitCommitted()
+	{
+		return CustomRecruitCommittedDelegate;
+	}
+
+	FRPGCustomRecruitCancelledNativeSignature& OnCustomRecruitCancelled()
+	{
+		return CustomRecruitCancelledDelegate;
+	}
 
 protected:
-    virtual void NativeConstruct () override;
+	virtual void NativeConstruct() override;
 
-    void SetValidationMessage (const FText& Message, bool bIsError);
-    bool IsCreationContextPartyStateReady () const;
-    void NotifyCustomRecruitCommitted (int32 CharacterIndex);
-    void NotifyCustomRecruitCancelled ();
+	void SetValidationMessage(const FText& Message, bool bIsError);
+	bool IsCreationContextPartyStateReady() const;
+	void NotifyCustomRecruitCommitted(int32 CharacterIndex);
+	void NotifyCustomRecruitCancelled();
 
 private:
-    UFUNCTION ()
-    void HandleCreateCharacterClicked ();
+	UFUNCTION()
+	void HandleCreateCharacterClicked();
 
-    UFUNCTION ()
-    void HandleGenderMaleClicked ();
+	UFUNCTION()
+	void HandleGenderMaleClicked();
 
-    UFUNCTION ()
-    void HandleGenderFemaleClicked ();
+	UFUNCTION()
+	void HandleGenderFemaleClicked();
 
-    UFUNCTION ()
-    void HandleNameChanged (const FText& NewText);
+	UFUNCTION()
+	void HandleNameChanged(const FText& NewText);
 
-    UFUNCTION ()
-    void HandleNameCommitted (const FText& NewText, ETextCommit::Type CommitMethod);
+	UFUNCTION()
+	void HandleNameCommitted(const FText& NewText, ETextCommit::Type CommitMethod);
 
-    UFUNCTION ()
-    void HandleRaceSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION()
+	void HandleRaceSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
-    UFUNCTION ()
-    void HandleClassSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION()
+	void HandleClassSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
-    UFUNCTION ()
-    void HandleGenderSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION()
+	void HandleGenderSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
-    UFUNCTION ()
-    void HandlePortraitVariantSelectionChanged (FString SelectedItem, ESelectInfo::Type SelectionType);
+	UFUNCTION()
+	void HandlePortraitVariantSelectionChanged(FString SelectedItem, ESelectInfo::Type SelectionType);
 
-    void BindWidgetEvents ();
-    void PopulateDefinitionOptions ();
-    void PopulatePortraitOptions ();
-    FRPGCharacterCreationRequest BuildCreationRequest () const;
-    FText GetNormalizedNameText () const;
-    FText ResolveSelectedPortraitDescription () const;
-    const URPGCharacterPortraitSetAsset* FindPortraitSetForSelectedRace () const;
-    const URPGClassVisualAsset* FindClassVisualForSelectedClass () const;
-    const FRPGRaceIllustrationOption* FindRaceIllustrationForSelectedRaceAndGender () const;
-    bool TryResolveSelectedPortraitVariant (FRPGCharacterPortraitVariant& OutVariant) const;
-    void SelectPortraitVariant (const FRPGCharacterPortraitVariant& PortraitVariant);
-    void SelectFirstValidPortraitForCurrentRaceAndGender ();
-    void SelectPortraitGender (ERPGCharacterPortraitGender NewGender);
-    TSoftObjectPtr<UTexture2D> ResolveSelectedClassIcon () const;
-    TSoftObjectPtr<UTexture2D> ResolveSelectedRaceIllustration () const;
-    TSoftObjectPtr<UTexture2D> ResolveSelectedRaceEnvironment () const;
-    void RefreshClassIconPreview ();
-    void RefreshRaceIllustrationPreview ();
-    void RefreshRaceEnvironmentPreview ();
-    void RefreshGenderButtonVisualState ();
+	void BindWidgetEvents();
+	void PopulateDefinitionOptions();
+	void PopulatePortraitOptions();
+	FRPGCharacterCreationRequest BuildCreationRequest() const;
+	FText GetNormalizedNameText() const;
+	FText ResolveSelectedPortraitDescription() const;
+	const URPGCharacterPortraitSetAsset* FindPortraitSetForSelectedRace() const;
+	const URPGClassVisualAsset* FindClassVisualForSelectedClass() const;
+	const FRPGRaceIllustrationOption* FindRaceIllustrationForSelectedRaceAndGender() const;
+	bool TryResolveSelectedPortraitVariant(FRPGCharacterPortraitVariant& OutVariant) const;
+	void SelectPortraitVariant(const FRPGCharacterPortraitVariant& PortraitVariant);
+	void SelectFirstValidPortraitForCurrentRaceAndGender();
+	void SelectPortraitGender(ERPGCharacterPortraitGender NewGender);
+	TSoftObjectPtr<UTexture2D> ResolveSelectedClassIcon() const;
+	TSoftObjectPtr<UTexture2D> ResolveSelectedRaceIllustration() const;
+	TSoftObjectPtr<UTexture2D> ResolveSelectedRaceEnvironment() const;
+	void RefreshClassIconPreview();
+	void RefreshRaceIllustrationPreview();
+	void RefreshRaceEnvironmentPreview();
+	void RefreshGenderButtonVisualState();
 
-    FRPGCustomRecruitCommittedNativeSignature CustomRecruitCommittedDelegate;
-    FRPGCustomRecruitCancelledNativeSignature CustomRecruitCancelledDelegate;
+	FRPGCustomRecruitCommittedNativeSignature CustomRecruitCommittedDelegate;
+	FRPGCustomRecruitCancelledNativeSignature CustomRecruitCancelledDelegate;
 };

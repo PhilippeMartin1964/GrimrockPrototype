@@ -7,30 +7,29 @@ struct FRPGCharacterCreationRequest;
 
 enum class ERPGCustomRecruitRejectReason : uint8
 {
-    None,
-    InvalidInventory,
-    InitialCharacterMissing,
-    InvalidPartyState,
-    PartyFull,
-    InvalidName,
-    InvalidRace,
-    InvalidClass,
-    InvalidCombatActionSourceClass,
-    InvalidAttributes,
-    CharacterIdGenerationFailed,
-    RecruitmentFailed
+	None,
+	InvalidInventory,
+	InitialCharacterMissing,
+	InvalidPartyState,
+	PartyFull,
+	InvalidName,
+	InvalidRace,
+	InvalidClass,
+	InvalidCombatActionSourceClass,
+	InvalidAttributes,
+	CharacterIdGenerationFailed,
+	RecruitmentFailed
 };
 
 struct FRPGCustomRecruitResult
 {
-    bool bCommitted = false;
-    ERPGCustomRecruitRejectReason RejectReason =
-        ERPGCustomRecruitRejectReason::None;
-    FGuid CharacterId;
-    int32 CharacterIndex = INDEX_NONE;
-    int32 ActiveCountBefore = 0;
-    int32 ActiveCountAfter = 0;
-    FString Error;
+	bool bCommitted = false;
+	ERPGCustomRecruitRejectReason RejectReason = ERPGCustomRecruitRejectReason::None;
+	FGuid CharacterId;
+	int32 CharacterIndex = INDEX_NONE;
+	int32 ActiveCountBefore = 0;
+	int32 ActiveCountAfter = 0;
+	FString Error;
 };
 
 /**
@@ -40,8 +39,6 @@ struct FRPGCustomRecruitResult
  */
 struct GRIMROCKPROTOTYPE_API FRPGCustomRecruitService
 {
-    static bool TryCreateAndRecruit (
-        UGridPartyInventoryComponent* PartyInventoryComponent,
-        const FRPGCharacterCreationRequest& Request,
-        FRPGCustomRecruitResult& OutResult);
+	static bool TryCreateAndRecruit(
+		UGridPartyInventoryComponent* PartyInventoryComponent, const FRPGCharacterCreationRequest& Request, FRPGCustomRecruitResult& OutResult);
 };

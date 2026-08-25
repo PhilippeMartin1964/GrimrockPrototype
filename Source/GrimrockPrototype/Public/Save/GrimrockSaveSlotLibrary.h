@@ -12,27 +12,15 @@ class AGrimrockPartyPawn;
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockSaveSlotLibrary : public UBlueprintFunctionLibrary
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, Category = "RPG|Save")
-    static bool SetPartySaveSlot(
-        AGrimrockPartyPawn* PartyPawn,
-        const FString& SlotName,
-        int32 UserIndex,
-        UPARAM(ref) FText& OutError);
+	UFUNCTION(BlueprintCallable, Category = "RPG|Save")
+	static bool SetPartySaveSlot(AGrimrockPartyPawn* PartyPawn, const FString& SlotName, int32 UserIndex, UPARAM(ref) FText& OutError);
 
-    UFUNCTION(BlueprintCallable, Category = "RPG|Save")
-    static bool SavePartyGameToSlot(
-        AGrimrockPartyPawn* PartyPawn,
-        const FString& SlotName,
-        int32 UserIndex,
-        UPARAM(ref) FText& OutError);
+	UFUNCTION(BlueprintCallable, Category = "RPG|Save")
+	static bool SavePartyGameToSlot(AGrimrockPartyPawn* PartyPawn, const FString& SlotName, int32 UserIndex, UPARAM(ref) FText& OutError);
 
-    UFUNCTION(BlueprintCallable, Category = "RPG|Save")
-    static bool SavePartyGameCopyToSlot(
-        AGrimrockPartyPawn* PartyPawn,
-        const FString& SlotName,
-        int32 UserIndex,
-        UPARAM(ref) FText& OutError);
+	UFUNCTION(BlueprintCallable, Category = "RPG|Save")
+	static bool SavePartyGameCopyToSlot(AGrimrockPartyPawn* PartyPawn, const FString& SlotName, int32 UserIndex, UPARAM(ref) FText& OutError);
 };

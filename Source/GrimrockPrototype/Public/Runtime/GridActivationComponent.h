@@ -12,130 +12,121 @@ class AGridReceptacleActor;
 class URPGStoryCompanionAsset;
 struct FGridPartyInventoryState;
 
-UCLASS (ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = (Grid), meta = (BlueprintSpawnableComponent))
 class GRIMROCKPROTOTYPE_API UGridActivationComponent : public UActorComponent
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    UGridActivationComponent ();
+	UGridActivationComponent();
 
-    void Initialize (AGridLevelRuntimeActor* InRuntime);
-    void ResetRuntimeState ();
+	void Initialize(AGridLevelRuntimeActor* InRuntime);
+	void ResetRuntimeState();
 
-    //bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
-    bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
-    AGridReceptacleActor* FindReceptacleAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
-    void HandlePartyCellChanged (int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
-    void NotifyPawnEnteredCell (int32 CellX, int32 CellY);
-    void NotifyPawnExitedCell (int32 CellX, int32 CellY);
-    bool ExecuteLinksFromObjectForEvent (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
-    bool RefreshPressurePlatesAtCell (int32 X, int32 Y);
-    bool RefreshAllPressurePlates ();
+	//bool TryInteractAtEdge (int32 FromCellX, int32 FromCellY, EGridEdge Edge);
+	bool TryInteractAtEdge(int32 FromCellX, int32 FromCellY, EGridEdge Edge, AGrimrockPartyPawn* PartyPawn);
+	AGridReceptacleActor* FindReceptacleAtEdge(int32 FromCellX, int32 FromCellY, EGridEdge Edge) const;
+	void HandlePartyCellChanged(int32 OldCellX, int32 OldCellY, int32 NewCellX, int32 NewCellY);
+	void NotifyPawnEnteredCell(int32 CellX, int32 CellY);
+	void NotifyPawnExitedCell(int32 CellX, int32 CellY);
+	bool ExecuteLinksFromObjectForEvent(FGuid SourceObjectId, EGridObjectEvent SourceEvent);
+	bool RefreshPressurePlatesAtCell(int32 X, int32 Y);
+	bool RefreshAllPressurePlates();
 
-    void RegisterInitialObjectState (const FGridLevelObjectData& ObjectData);
+	void RegisterInitialObjectState(const FGridLevelObjectData& ObjectData);
 
-    void RebuildIndexes ();
+	void RebuildIndexes();
 
-    /** Reloads the MON19 Lua VM from the current LevelAsset scripts. */
-    bool ReloadLuaRuntime (FString* OutError = nullptr);
+	/** Reloads the MON19 Lua VM from the current LevelAsset scripts. */
+	bool ReloadLuaRuntime(FString* OutError = nullptr);
 
-    const TSet<FGuid>& GetActiveObjectIds () const { return ActiveObjectIds; }
-    void SetActiveObjectIds (const TSet<FGuid>& InActiveObjectIds);
+	const TSet<FGuid>& GetActiveObjectIds() const
+	{
+		return ActiveObjectIds;
+	}
+	void SetActiveObjectIds(const TSet<FGuid>& InActiveObjectIds);
 
-    // Debugging
-    FString GetDebugSummary () const;
-    void LogDebugSummary () const;
+	// Debugging
+	FString GetDebugSummary() const;
+	void LogDebugSummary() const;
 
 private:
-    UPROPERTY (Transient)
-    TObjectPtr<AGridLevelRuntimeActor> RuntimeActor;
+	UPROPERTY(Transient)
+	TObjectPtr<AGridLevelRuntimeActor> RuntimeActor;
 
-    UPROPERTY (Transient)
-    TSet<FGuid> ActiveObjectIds;
+	UPROPERTY(Transient)
+	TSet<FGuid> ActiveObjectIds;
 
-    /**
+	/**
      * MON20.4.6 session-local memory of declined automatic recruitment offers.
      * Key = SourceObjectId + CharacterId. Intentionally not serialized.
      */
-    TSet<FString> DeclinedStoryCompanionOfferKeys;
+	TSet<FString> DeclinedStoryCompanionOfferKeys;
 
-    TSet<FGuid> DispatchingSourceObjectIds;
+	TSet<FGuid> DispatchingSourceObjectIds;
 
-    /** One Lua VM per active runtime component/level. Not serialized. */
-    FGridLuaVm LuaVm;
+	/** One Lua VM per active runtime component/level. Not serialized. */
+	FGridLuaVm LuaVm;
 
-    /** Prevents synchronous Lua -> command -> Lua callback re-entry. */
-    bool bExecutingLuaCallback = false;
+	/** Prevents synchronous Lua -> command -> Lua callback re-entry. */
+	bool bExecutingLuaCallback = false;
 
-    /** Shared Event -> Command -> Lua action budget for one root dispatch. */
-    int32 RuntimeDispatchDepth = 0;
-    int32 RuntimeActionBudgetRemaining = 0;
-
-private:
-    static constexpr int32 MaxRuntimeActionBudget = 128;
-
-    const FGridLevelObjectData* FindObjectById (FGuid ObjectId) const;
-    const FGridLevelObjectData* FindInteractableObjectOnEdge (int32 X, int32 Y, EGridEdge Edge) const;
-
-    bool ActivateObject (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
-
-    bool ExecuteLinksFromObjectForEventInternal (FGuid SourceObjectId, EGridObjectEvent SourceEvent);
-    bool ApplyLinkCommand (const FGridObjectLink& LinkData);
-    bool ExecuteLuaCallbackLink (const FGridObjectLink& LinkData);
-    bool ExecuteLuaIssuedCommand (
-        FGuid SourceObjectId,
-        const FString& TargetObjectId,
-        const FString& CommandName,
-        FString& OutError);
-    bool ConsumeRuntimeActionBudget (const TCHAR* ActionLabel);
-    bool EvaluateGridObjectLinkCondition (const FGridObjectLink& LinkData, AActor* SourceActor, AActor* TargetActor) const;
-    bool ApplyDoorLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
-    bool ApplyReceptacleLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
-    bool ApplyStatefulLinkCommand (const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
-    bool SetTargetActiveState (const FGridLevelObjectData& TargetObject, bool bActive);
-    bool IsTargetActive (FGuid ObjectId) const;
-    void LogLinkResult (const FGridObjectLink& LinkData, EGridObjectCommand ResolvedCommand, bool bSuccess, const TCHAR* FailureReason) const;
-
-    static FString BuildStoryCompanionOfferKey (
-        FGuid SourceObjectId,
-        FGuid CharacterId);
-    bool IsStoryCompanionOfferDeclined (
-        FGuid SourceObjectId,
-        FGuid CharacterId) const;
-    void RememberStoryCompanionOfferDeclined (
-        FGuid SourceObjectId,
-        FGuid CharacterId);
-    static bool IsStoryCompanionAlreadyActive (
-        const FGridPartyInventoryState& PartyState,
-        const URPGStoryCompanionAsset& CompanionDefinition);
-
-    bool ProcessTriggersAtCell (int32 X, int32 Y, bool bEntering);
-    bool ProcessTriggerEvent (const FGridLevelObjectData& TriggerData, bool bEntering);
+	/** Shared Event -> Command -> Lua action budget for one root dispatch. */
+	int32 RuntimeDispatchDepth = 0;
+	int32 RuntimeActionBudgetRemaining = 0;
 
 private:
-    TMap<FGuid, int32> ObjectIndexById;
-    TMultiMap<FGuid, int32> LinkIndexesBySource;
-    TMap<FGridEdgeKey, int32> InteractableObjectIndexByEdge;
-    TMultiMap<FIntPoint, int32> PressurePlateIndexesByCell;
-    TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
-    const FGridLevelObjectData* GetObjectByIndex (int32 ObjectIndex) const;
+	static constexpr int32 MaxRuntimeActionBudget = 128;
 
-    int32 GetIndexedObjectCount () const
-    {
-        return ObjectIndexById.Num ();
-    }
-    int32 GetIndexedLinkCount () const
-    {
-        return LinkIndexesBySource.Num ();
-    }
-    int32 GetActiveObjectCount () const
-    {
-        return ActiveObjectIds.Num ();
-    }
-    bool ActivateReadableObject (const FGridLevelObjectData& ObjectData);
-    bool ActivateReceptacle (const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
+	const FGridLevelObjectData* FindObjectById(FGuid ObjectId) const;
+	const FGridLevelObjectData* FindInteractableObjectOnEdge(int32 X, int32 Y, EGridEdge Edge) const;
 
-    friend class FGridMON2046RecruitmentOfferDeclineSourceScopeTest;
-    friend class FGridMON2046RecruitmentAlreadyActiveSuppressionTest;
+	bool ActivateObject(const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
+
+	bool ExecuteLinksFromObjectForEventInternal(FGuid SourceObjectId, EGridObjectEvent SourceEvent);
+	bool ApplyLinkCommand(const FGridObjectLink& LinkData);
+	bool ExecuteLuaCallbackLink(const FGridObjectLink& LinkData);
+	bool ExecuteLuaIssuedCommand(FGuid SourceObjectId, const FString& TargetObjectId, const FString& CommandName, FString& OutError);
+	bool ConsumeRuntimeActionBudget(const TCHAR* ActionLabel);
+	bool EvaluateGridObjectLinkCondition(const FGridObjectLink& LinkData, AActor* SourceActor, AActor* TargetActor) const;
+	bool ApplyDoorLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
+	bool ApplyReceptacleLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
+	bool ApplyStatefulLinkCommand(const FGridLevelObjectData& TargetObject, EGridObjectCommand Command);
+	bool SetTargetActiveState(const FGridLevelObjectData& TargetObject, bool bActive);
+	bool IsTargetActive(FGuid ObjectId) const;
+	void LogLinkResult(const FGridObjectLink& LinkData, EGridObjectCommand ResolvedCommand, bool bSuccess, const TCHAR* FailureReason) const;
+
+	static FString BuildStoryCompanionOfferKey(FGuid SourceObjectId, FGuid CharacterId);
+	bool IsStoryCompanionOfferDeclined(FGuid SourceObjectId, FGuid CharacterId) const;
+	void RememberStoryCompanionOfferDeclined(FGuid SourceObjectId, FGuid CharacterId);
+	static bool IsStoryCompanionAlreadyActive(const FGridPartyInventoryState& PartyState, const URPGStoryCompanionAsset& CompanionDefinition);
+
+	bool ProcessTriggersAtCell(int32 X, int32 Y, bool bEntering);
+	bool ProcessTriggerEvent(const FGridLevelObjectData& TriggerData, bool bEntering);
+
+private:
+	TMap<FGuid, int32> ObjectIndexById;
+	TMultiMap<FGuid, int32> LinkIndexesBySource;
+	TMap<FGridEdgeKey, int32> InteractableObjectIndexByEdge;
+	TMultiMap<FIntPoint, int32> PressurePlateIndexesByCell;
+	TMultiMap<FIntPoint, int32> TriggerIndexesByCell;
+	const FGridLevelObjectData* GetObjectByIndex(int32 ObjectIndex) const;
+
+	int32 GetIndexedObjectCount() const
+	{
+		return ObjectIndexById.Num();
+	}
+	int32 GetIndexedLinkCount() const
+	{
+		return LinkIndexesBySource.Num();
+	}
+	int32 GetActiveObjectCount() const
+	{
+		return ActiveObjectIds.Num();
+	}
+	bool ActivateReadableObject(const FGridLevelObjectData& ObjectData);
+	bool ActivateReceptacle(const FGridLevelObjectData& ObjectData, AGrimrockPartyPawn* PartyPawn);
+
+	friend class FGridMON2046RecruitmentOfferDeclineSourceScopeTest;
+	friend class FGridMON2046RecruitmentAlreadyActiveSuppressionTest;
 };

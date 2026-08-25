@@ -10,291 +10,287 @@
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Runtime/GridReceptacleActor.h"
 
-AGridItemActor::AGridItemActor ()
+AGridItemActor::AGridItemActor()
 {
-    PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = false;
 
-    SceneRoot = CreateDefaultSubobject<USceneComponent> (TEXT ("Root"));
-    SetRootComponent (SceneRoot);
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(SceneRoot);
 
-    MeshComponent = CreateDefaultSubobject<UStaticMeshComponent> (TEXT ("Mesh"));
-    MeshComponent->SetupAttachment (SceneRoot);
-    MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+	MeshComponent->SetupAttachment(SceneRoot);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void AGridItemActor::InitializeItem (FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh, UMaterialInterface* Material)
+void AGridItemActor::InitializeItem(FName InArchetypeId, const TArray<FName>& InItemTags, UStaticMesh* Mesh, UMaterialInterface* Material)
 {
-    ArchetypeId = InArchetypeId;
-    ItemTags = InItemTags;
-    if (ItemDefinitionId.IsNone ())
-    {
-        ItemDefinitionId = InArchetypeId;
-    }
-    if (!RuntimeObjectId.IsValid ())
-    {
-        RuntimeObjectId = FGuid::NewGuid ();
-    }
+	ArchetypeId = InArchetypeId;
+	ItemTags = InItemTags;
+	if (ItemDefinitionId.IsNone())
+	{
+		ItemDefinitionId = InArchetypeId;
+	}
+	if (!RuntimeObjectId.IsValid())
+	{
+		RuntimeObjectId = FGuid::NewGuid();
+	}
 
-    if (MeshComponent)
-    {
-        if (Mesh)
-        {
-            MeshComponent->SetStaticMesh (Mesh);
-        }
-        if (Material)
-        {
-            MeshComponent->SetMaterial (0, Material);
-        }
-    }
+	if (MeshComponent)
+	{
+		if (Mesh)
+		{
+			MeshComponent->SetStaticMesh(Mesh);
+		}
+		if (Material)
+		{
+			MeshComponent->SetMaterial(0, Material);
+		}
+	}
 }
 
-void AGridItemActor::OnPlacedInWorld ()
+void AGridItemActor::OnPlacedInWorld()
 {
-    SetItemLightsEnabled (true);
+	SetItemLightsEnabled(true);
 }
 
-void AGridItemActor::OnRemovedFromWorld ()
+void AGridItemActor::OnRemovedFromWorld()
 {
-    SetItemLightsEnabled (false);
+	SetItemLightsEnabled(false);
 }
 
-void AGridItemActor::SetItemLightsEnabled (bool bEnabled)
+void AGridItemActor::SetItemLightsEnabled(bool bEnabled)
 {
-    TArray<UGridLightEmitterComponent*> LightEmitters;
-    GetComponents<UGridLightEmitterComponent> (LightEmitters);
+	TArray<UGridLightEmitterComponent*> LightEmitters;
+	GetComponents<UGridLightEmitterComponent>(LightEmitters);
 
-    for (UGridLightEmitterComponent* LightEmitter : LightEmitters)
-    {
-        if (LightEmitter)
-        {
-            LightEmitter->SetLightEnabled (bEnabled);
-        }
-    }
+	for (UGridLightEmitterComponent* LightEmitter : LightEmitters)
+	{
+		if (LightEmitter)
+		{
+			LightEmitter->SetLightEnabled(bEnabled);
+		}
+	}
 }
 
-void AGridItemActor::InitializeFromItemDefinition (UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId)
+void AGridItemActor::InitializeFromItemDefinition(UGridItemDefinitionAsset* InDefinition, const FGuid& InRuntimeObjectId)
 {
-    if (!InDefinition)
-    {
-        return;
-    }
+	if (!InDefinition)
+	{
+		return;
+	}
 
-    ItemDefinitionAsset = InDefinition;
-    ItemDefinitionId = InDefinition->ItemDefinitionId;
-    if (ArchetypeId.IsNone ())
-    {
-        ArchetypeId = ItemDefinitionId;
-    }
-    ItemTags = InDefinition->ItemTags;
-    SetRuntimeObjectId (InRuntimeObjectId);
-    if (!RuntimeObjectId.IsValid ())
-    {
-        RuntimeObjectId = FGuid::NewGuid ();
-    }
+	ItemDefinitionAsset = InDefinition;
+	ItemDefinitionId = InDefinition->ItemDefinitionId;
+	if (ArchetypeId.IsNone())
+	{
+		ArchetypeId = ItemDefinitionId;
+	}
+	ItemTags = InDefinition->ItemTags;
+	SetRuntimeObjectId(InRuntimeObjectId);
+	if (!RuntimeObjectId.IsValid())
+	{
+		RuntimeObjectId = FGuid::NewGuid();
+	}
 
-    if (MeshComponent)
-    {
-        if (UStaticMesh* WorldMesh = InDefinition->WorldMesh.LoadSynchronous ())
-        {
-            MeshComponent->SetStaticMesh (WorldMesh);
-        }
-    }
+	if (MeshComponent)
+	{
+		if (UStaticMesh* WorldMesh = InDefinition->WorldMesh.LoadSynchronous())
+		{
+			MeshComponent->SetStaticMesh(WorldMesh);
+		}
+	}
 }
 
-void AGridItemActor::InitializeFromItemDefinitionId (FName InItemDefinitionId, const FGuid& InRuntimeObjectId)
+void AGridItemActor::InitializeFromItemDefinitionId(FName InItemDefinitionId, const FGuid& InRuntimeObjectId)
 {
-    if (InItemDefinitionId.IsNone ())
-    {
-        return;
-    }
+	if (InItemDefinitionId.IsNone())
+	{
+		return;
+	}
 
-    ItemDefinitionAsset = nullptr;
-    ItemDefinitionId = InItemDefinitionId;
-    if (ArchetypeId.IsNone ())
-    {
-        ArchetypeId = InItemDefinitionId;
-    }
-    SetRuntimeObjectId (InRuntimeObjectId);
-    if (!RuntimeObjectId.IsValid ())
-    {
-        RuntimeObjectId = FGuid::NewGuid ();
-    }
+	ItemDefinitionAsset = nullptr;
+	ItemDefinitionId = InItemDefinitionId;
+	if (ArchetypeId.IsNone())
+	{
+		ArchetypeId = InItemDefinitionId;
+	}
+	SetRuntimeObjectId(InRuntimeObjectId);
+	if (!RuntimeObjectId.IsValid())
+	{
+		RuntimeObjectId = FGuid::NewGuid();
+	}
 }
 
-void AGridItemActor::InitializeReadableContent (
-    UGridReadableContentAsset* InReadableContentAsset,
-    FName InReadableContentId,
-    const FText& InReadTitleOverride,
-    const FText& InReadTextOverride)
+void AGridItemActor::InitializeReadableContent(
+	UGridReadableContentAsset* InReadableContentAsset, FName InReadableContentId, const FText& InReadTitleOverride, const FText& InReadTextOverride)
 {
-    ReadableContentAsset = InReadableContentAsset;
-    ReadableContentId = InReadableContentId;
-    ReadTitleOverride = InReadTitleOverride;
-    ReadTextOverride = InReadTextOverride;
+	ReadableContentAsset = InReadableContentAsset;
+	ReadableContentId = InReadableContentId;
+	ReadTitleOverride = InReadTitleOverride;
+	ReadTextOverride = InReadTextOverride;
 
-    if (ReadableContentAsset && ReadableContentId.IsNone ())
-    {
-        ReadableContentId = ReadableContentAsset->ReadableContentId;
-    }
+	if (ReadableContentAsset && ReadableContentId.IsNone())
+	{
+		ReadableContentId = ReadableContentAsset->ReadableContentId;
+	}
 }
 
-bool AGridItemActor::AreItemLightsEnabled () const
+bool AGridItemActor::AreItemLightsEnabled() const
 {
-    TArray<UGridLightEmitterComponent*> LightEmitters;
-    GetComponents<UGridLightEmitterComponent> (LightEmitters);
+	TArray<UGridLightEmitterComponent*> LightEmitters;
+	GetComponents<UGridLightEmitterComponent>(LightEmitters);
 
-    for (const UGridLightEmitterComponent* LightEmitter : LightEmitters)
-    {
-        if (LightEmitter)
-        {
-            return LightEmitter->IsLightEnabled ();
-        }
-    }
+	for (const UGridLightEmitterComponent* LightEmitter : LightEmitters)
+	{
+		if (LightEmitter)
+		{
+			return LightEmitter->IsLightEnabled();
+		}
+	}
 
-    return false;
+	return false;
 }
 
-void AGridItemActor::SetRuntimeObjectId (FGuid InRuntimeObjectId)
+void AGridItemActor::SetRuntimeObjectId(FGuid InRuntimeObjectId)
 {
-    if (InRuntimeObjectId.IsValid ())
-    {
-        RuntimeObjectId = InRuntimeObjectId;
-    }
+	if (InRuntimeObjectId.IsValid())
+	{
+		RuntimeObjectId = InRuntimeObjectId;
+	}
 }
 
-FGuid AGridItemActor::GetRuntimeObjectId () const
+FGuid AGridItemActor::GetRuntimeObjectId() const
 {
-    return RuntimeObjectId;
+	return RuntimeObjectId;
 }
 
-void AGridItemActor::ConfigureAsWorldPickup ()
+void AGridItemActor::ConfigureAsWorldPickup()
 {
-    if (!MeshComponent)
-    {
-        return;
-    }
+	if (!MeshComponent)
+	{
+		return;
+	}
 
-    MeshComponent->SetCollisionEnabled (ECollisionEnabled::QueryAndPhysics);
-    MeshComponent->SetCollisionProfileName (TEXT ("PhysicsActor"));
-    MeshComponent->SetCollisionResponseToChannel (ECC_Visibility, ECR_Block);
-    MeshComponent->SetEnableGravity (true);
-    MeshComponent->SetSimulatePhysics (true);
-    MeshComponent->WakeRigidBody ();
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	MeshComponent->SetCollisionProfileName(TEXT("PhysicsActor"));
+	MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	MeshComponent->SetEnableGravity(true);
+	MeshComponent->SetSimulatePhysics(true);
+	MeshComponent->WakeRigidBody();
 }
 
-void AGridItemActor::ConfigureAsAttachedItem ()
+void AGridItemActor::ConfigureAsAttachedItem()
 {
-    if (!MeshComponent)
-    {
-        return;
-    }
+	if (!MeshComponent)
+	{
+		return;
+	}
 
-    MeshComponent->SetSimulatePhysics (false);
-    MeshComponent->SetEnableGravity (false);
-    MeshComponent->SetCollisionEnabled (ECollisionEnabled::NoCollision);
+	MeshComponent->SetSimulatePhysics(false);
+	MeshComponent->SetEnableGravity(false);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-FName AGridItemActor::GetItemArchetypeId () const
+FName AGridItemActor::GetItemArchetypeId() const
 {
-    return ArchetypeId;
+	return ArchetypeId;
 }
 
-UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset () const
+UGridItemDefinitionAsset* AGridItemActor::GetItemDefinitionAsset() const
 {
-    return ItemDefinitionAsset;
+	return ItemDefinitionAsset;
 }
 
-FName AGridItemActor::GetItemDefinitionId () const
+FName AGridItemActor::GetItemDefinitionId() const
 {
-    if (ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone ())
-    {
-        return ItemDefinitionAsset->ItemDefinitionId;
-    }
-    return ItemDefinitionId;
+	if (ItemDefinitionAsset && !ItemDefinitionAsset->ItemDefinitionId.IsNone())
+	{
+		return ItemDefinitionAsset->ItemDefinitionId;
+	}
+	return ItemDefinitionId;
 }
 
-bool AGridItemActor::HasItemTag (FName Tag) const
+bool AGridItemActor::HasItemTag(FName Tag) const
 {
-    return !Tag.IsNone () && ItemTags.Contains (Tag);
+	return !Tag.IsNone() && ItemTags.Contains(Tag);
 }
 
-void AGridItemActor::SetRuntimeCell (int32 InCellX, int32 InCellY)
+void AGridItemActor::SetRuntimeCell(int32 InCellX, int32 InCellY)
 {
-    RuntimeCellX = InCellX;
-    RuntimeCellY = InCellY;
+	RuntimeCellX = InCellX;
+	RuntimeCellY = InCellY;
 }
 
-bool AGridItemActor::CanInteract_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
+bool AGridItemActor::CanInteract_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent) const
 {
-    if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent ||
-        (ArchetypeId.IsNone () && GetItemDefinitionId ().IsNone ()))
-    {
-        return false;
-    }
-    if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
-    {
-        return OwnerReceptacle->CanInteract_Implementation (const_cast<APawn*>(InstigatorPawn), MeshComponent);
-    }
+	if (!InstigatorPawn || !HitComponent || HitComponent != MeshComponent || (ArchetypeId.IsNone() && GetItemDefinitionId().IsNone()))
+	{
+		return false;
+	}
+	if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor>(GetOwner()))
+	{
+		return OwnerReceptacle->CanInteract_Implementation(const_cast<APawn*>(InstigatorPawn), MeshComponent);
+	}
 
-    const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    const AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    return PartyPawn && RuntimeActor && RuntimeActor->CanPartyPickupItemActor (this, PartyPawn);
+	const AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	const AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	return PartyPawn && RuntimeActor && RuntimeActor->CanPartyPickupItemActor(this, PartyPawn);
 }
 
-void AGridItemActor::Interact_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
+void AGridItemActor::Interact_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent)
 {
-    if (!CanInteract_Implementation (InstigatorPawn, HitComponent))
-    {
-        return;
-    }
+	if (!CanInteract_Implementation(InstigatorPawn, HitComponent))
+	{
+		return;
+	}
 
-    AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn (InstigatorPawn);
-    if (!PartyPawn)
-    {
-        return;
-    }
+	AGrimrockPartyPawn* PartyPawn = GridInteractionUtils::ResolvePartyPawn(InstigatorPawn);
+	if (!PartyPawn)
+	{
+		return;
+	}
 
-    if (AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
-    {
-        OwnerReceptacle->Interact_Implementation (PartyPawn, MeshComponent);
-        return;
-    }
+	if (AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor>(GetOwner()))
+	{
+		OwnerReceptacle->Interact_Implementation(PartyPawn, MeshComponent);
+		return;
+	}
 
-    AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor (InstigatorPawn, this);
-    if (RuntimeActor)
-    {
-        RuntimeActor->TryPickupItemActor (this, PartyPawn);
-    }
+	AGridLevelRuntimeActor* RuntimeActor = GridInteractionUtils::ResolveRuntimeActor(InstigatorPawn, this);
+	if (RuntimeActor)
+	{
+		RuntimeActor->TryPickupItemActor(this, PartyPawn);
+	}
 }
 
-void AGridItemActor::InteractWithHit_Implementation (APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
+void AGridItemActor::InteractWithHit_Implementation(APawn* InstigatorPawn, UPrimitiveComponent* HitComponent, const FHitResult& HitResult)
 {
-    (void)HitResult;
-    Interact_Implementation (InstigatorPawn, HitComponent);
+	(void)HitResult;
+	Interact_Implementation(InstigatorPawn, HitComponent);
 }
 
-EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation (UPrimitiveComponent* HitComponent) const
+EGridInteractionCursor AGridItemActor::GetInteractionCursor_Implementation(UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent != MeshComponent || (ArchetypeId.IsNone () && GetItemDefinitionId ().IsNone ()))
-    {
-        return EGridInteractionCursor::Default;
-    }
-    if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
-    {
-        return OwnerReceptacle->GetInteractionCursor_Implementation (MeshComponent);
-    }
-    return EGridInteractionCursor::Take;
+	if (HitComponent != MeshComponent || (ArchetypeId.IsNone() && GetItemDefinitionId().IsNone()))
+	{
+		return EGridInteractionCursor::Default;
+	}
+	if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor>(GetOwner()))
+	{
+		return OwnerReceptacle->GetInteractionCursor_Implementation(MeshComponent);
+	}
+	return EGridInteractionCursor::Take;
 }
 
-FText AGridItemActor::GetInteractionText_Implementation (UPrimitiveComponent* HitComponent) const
+FText AGridItemActor::GetInteractionText_Implementation(UPrimitiveComponent* HitComponent) const
 {
-    if (HitComponent != MeshComponent || (ArchetypeId.IsNone () && GetItemDefinitionId ().IsNone ()))
-    {
-        return FText::GetEmpty ();
-    }
-    if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor> (GetOwner ()))
-    {
-        return OwnerReceptacle->GetInteractionText_Implementation (MeshComponent);
-    }
-    return FText::FromString (TEXT ("Take"));
+	if (HitComponent != MeshComponent || (ArchetypeId.IsNone() && GetItemDefinitionId().IsNone()))
+	{
+		return FText::GetEmpty();
+	}
+	if (const AGridReceptacleActor* OwnerReceptacle = Cast<AGridReceptacleActor>(GetOwner()))
+	{
+		return OwnerReceptacle->GetInteractionText_Implementation(MeshComponent);
+	}
+	return FText::FromString(TEXT("Take"));
 }

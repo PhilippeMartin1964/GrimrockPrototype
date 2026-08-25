@@ -1,11 +1,11 @@
 #include "RPG/RPGRaceAsset.h"
 
-URPGRaceAsset::URPGRaceAsset ()
-    : AttributeBonuses (0, 0, 0, 0, 0, 0)
+URPGRaceAsset::URPGRaceAsset()
+	: AttributeBonuses(0, 0, 0, 0, 0, 0)
 {
 }
 
-bool URPGRaceAsset::IsValidDefinition () const
+bool URPGRaceAsset::IsValidDefinition() const
 {
-    return !RaceId.IsNone ();
+	return !RaceId.IsNone();
 }

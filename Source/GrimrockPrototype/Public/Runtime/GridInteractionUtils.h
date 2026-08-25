@@ -9,6 +9,6 @@ class APawn;
 
 namespace GridInteractionUtils
 {
-    AGridLevelRuntimeActor* ResolveRuntimeActor (APawn* InstigatorPawn, const AActor* ContextActor);
-    AGrimrockPartyPawn* ResolvePartyPawn (APawn* InstigatorPawn);
+	AGridLevelRuntimeActor* ResolveRuntimeActor(APawn* InstigatorPawn, const AActor* ContextActor);
+	AGrimrockPartyPawn* ResolvePartyPawn(APawn* InstigatorPawn);
 }

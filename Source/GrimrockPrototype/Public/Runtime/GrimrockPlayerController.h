@@ -13,125 +13,116 @@ class AGridWallLockActor;
 class AGrimrockPartyPawn;
 class UGridTurnManagerComponent;
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API AGrimrockPlayerController : public APlayerController
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    AGrimrockPlayerController ();
+	AGrimrockPlayerController();
 
-    virtual void BeginPlay () override;
-    virtual void PlayerTick (float DeltaTime) override;
-    virtual void SetupInputComponent () override;
+	virtual void BeginPlay() override;
+	virtual void PlayerTick(float DeltaTime) override;
+	virtual void SetupInputComponent() override;
 
-    UPROPERTY (BlueprintReadOnly, Category = "UI")
-    bool bInventoryUiOpen = false;
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	bool bInventoryUiOpen = false;
 
-    UFUNCTION (BlueprintCallable, Category = "UI")
-    void SetInventoryUiOpen (bool bOpen);
+	UFUNCTION(BlueprintCallable, Category = "UI")
+	void SetInventoryUiOpen(bool bOpen);
 
 protected:
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
-    float MaxInteractionDistance = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction", meta = (ClampMin = "0.0"))
+	float MaxInteractionDistance = 300.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
-    float ThrowDistanceThreshold = 200.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
+	float ThrowDistanceThreshold = 200.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
-    float MaxThrowTargetDistance = 2000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Inventory|Throw", meta = (ClampMin = "0.0"))
+	float MaxThrowTargetDistance = 2000.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
-    bool bDebugMouseInteraction = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Debug")
+	bool bDebugMouseInteraction = false;
 
-    //UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
-    //bool bUseCustomMouseCursor = true;
+	//UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+	//bool bUseCustomMouseCursor = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
-    TSubclassOf<UUserWidget> CustomCursorWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+	TSubclassOf<UUserWidget> CustomCursorWidgetClass;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
-    TObjectPtr<UUserWidget> CustomCursorWidget;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+	TObjectPtr<UUserWidget> CustomCursorWidget;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
-    EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grid Interaction|Cursor")
+	EGridInteractionCursor CurrentGridInteractionCursor = EGridInteractionCursor::Default;
 
-    enum class EGridMouseInteractionIntent : uint8
-    {
-        DismissReadableMessage,
-        IgnoreInventoryUiWithoutCursorItem,
-        IgnoreModalUi,
-        CursorItemNoWorldHit,
-        CursorItemWallLock,
-        CursorItemReceptacle,
-        CursorItemWorldDrop,
-        CursorItemThrow,
-        WorldInteractable,
-        WorldInteractableOutOfRange,
-        WorldInteractableInvalidPawnOrComponent,
-        WorldInteractableCanInteractRejected,
-        FallbackNoInteractable
-    };
+	enum class EGridMouseInteractionIntent : uint8
+	{
+		DismissReadableMessage,
+		IgnoreInventoryUiWithoutCursorItem,
+		IgnoreModalUi,
+		CursorItemNoWorldHit,
+		CursorItemWallLock,
+		CursorItemReceptacle,
+		CursorItemWorldDrop,
+		CursorItemThrow,
+		WorldInteractable,
+		WorldInteractableOutOfRange,
+		WorldInteractableInvalidPawnOrComponent,
+		WorldInteractableCanInteractRejected,
+		FallbackNoInteractable
+	};
 
-    struct FGridMouseInteractionResolution
-    {
-        EGridMouseInteractionIntent Intent = EGridMouseInteractionIntent::FallbackNoInteractable;
-        FName DiagnosticReason = NAME_None;
-        AGrimrockPartyPawn* PartyPawn = nullptr;
-        bool bHasCursorItem = false;
-        bool bItemActionMenuOpen = false;
-        FGridItemInstance CursorItem;
-        FHitResult HitResult;
-        bool bHasWorldHit = false;
-        bool bWithinInteractionDistance = false;
-        AActor* InteractableActor = nullptr;
-        UPrimitiveComponent* HitComponent = nullptr;
-        AGridReceptacleActor* ReceptacleActor = nullptr;
-        AGridWallLockActor* WallLockActor = nullptr;
-        bool bReceptacleAccessible = false;
-        int32 DropCellX = INDEX_NONE;
-        int32 DropCellY = INDEX_NONE;
-        FVector DropLocalOffset = FVector::ZeroVector;
-    };
+	struct FGridMouseInteractionResolution
+	{
+		EGridMouseInteractionIntent Intent = EGridMouseInteractionIntent::FallbackNoInteractable;
+		FName DiagnosticReason = NAME_None;
+		AGrimrockPartyPawn* PartyPawn = nullptr;
+		bool bHasCursorItem = false;
+		bool bItemActionMenuOpen = false;
+		FGridItemInstance CursorItem;
+		FHitResult HitResult;
+		bool bHasWorldHit = false;
+		bool bWithinInteractionDistance = false;
+		AActor* InteractableActor = nullptr;
+		UPrimitiveComponent* HitComponent = nullptr;
+		AGridReceptacleActor* ReceptacleActor = nullptr;
+		AGridWallLockActor* WallLockActor = nullptr;
+		bool bReceptacleAccessible = false;
+		int32 DropCellX = INDEX_NONE;
+		int32 DropCellY = INDEX_NONE;
+		FVector DropLocalOffset = FVector::ZeroVector;
+	};
 
-    void HandleLeftMousePressed ();
-    void HandleCancelCombatTargeting ();
-    void UpdateHoveredInteractable ();
-    bool UpdateCombatTargeting ();
-    bool HandleCombatTargetingClick ();
-    bool TryResolveCombatTargetCellUnderCursor (
-        FIntPoint& OutTargetCell) const;
-    void DrawCombatTargetingPreview (
-        const AGrimrockPartyPawn& PartyPawn) const;
-    void InitializeCustomCursor ();
-    void SetGridInteractionCursor (EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT ("Unspecified"));
-    FGridMouseInteractionResolution ResolveLeftMouseInteraction ();
-    bool ResolveCursorItemHoverCursor (
-        const FGridMouseInteractionResolution& MouseResolution,
-        EGridInteractionCursor& OutCursor,
-        const TCHAR*& OutReason) const;
-    bool TryGetInteractableUnderCursor (FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
-    bool TryGetReceptacleUnderCursor (FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
-    bool TryGetWorldHitUnderCursor (FHitResult& OutHitResult) const;
-    bool TryResolveWorldDropFromHit (
-        const FHitResult& HitResult,
-        const AGrimrockPartyPawn* PartyPawn,
-        int32& OutCellX,
-        int32& OutCellY,
-        FVector& OutLocalOffset) const;
-    bool IsHitWithinInteractionDistance (const FHitResult& HitResult) const;
-    void ShowInteractionFeedback (const FText& MessageText) const;
+	void HandleLeftMousePressed();
+	void HandleCancelCombatTargeting();
+	void UpdateHoveredInteractable();
+	bool UpdateCombatTargeting();
+	bool HandleCombatTargetingClick();
+	bool TryResolveCombatTargetCellUnderCursor(FIntPoint& OutTargetCell) const;
+	void DrawCombatTargetingPreview(const AGrimrockPartyPawn& PartyPawn) const;
+	void InitializeCustomCursor();
+	void SetGridInteractionCursor(EGridInteractionCursor NewCursor, const TCHAR* Reason = TEXT("Unspecified"));
+	FGridMouseInteractionResolution ResolveLeftMouseInteraction();
+	bool ResolveCursorItemHoverCursor(const FGridMouseInteractionResolution& MouseResolution, EGridInteractionCursor& OutCursor, const TCHAR*& OutReason) const;
+	bool TryGetInteractableUnderCursor(FHitResult& OutHitResult, AActor*& OutInteractableActor) const;
+	bool TryGetReceptacleUnderCursor(FHitResult& OutHitResult, AGridReceptacleActor*& OutReceptacleActor) const;
+	bool TryGetWorldHitUnderCursor(FHitResult& OutHitResult) const;
+	bool TryResolveWorldDropFromHit(
+		const FHitResult& HitResult, const AGrimrockPartyPawn* PartyPawn, int32& OutCellX, int32& OutCellY, FVector& OutLocalOffset) const;
+	bool IsHitWithinInteractionDistance(const FHitResult& HitResult) const;
+	void ShowInteractionFeedback(const FText& MessageText) const;
 
 #if !UE_BUILD_SHIPPING
-    UGridTurnManagerComponent* ResolveMON5TurnManager () const;
-    void LogMON5CommandResult (const TCHAR* CommandName, bool bSucceeded) const;
+	UGridTurnManagerComponent* ResolveMON5TurnManager() const;
+	void LogMON5CommandResult(const TCHAR* CommandName, bool bSucceeded) const;
 
-    void HandleMON5StartCombatFromPerception ();
-    void HandleMON5EndPlayerPhase ();
-    void HandleMON5AbortCombat ();
-    void HandleMON5LogTurnState ();
-    void HandleMON5StartCombatWithAllMonsters ();
-    void HandleMON5ForceVictory ();
-    void HandleMON11RequestSelectedCharacterAttack ();
+	void HandleMON5StartCombatFromPerception();
+	void HandleMON5EndPlayerPhase();
+	void HandleMON5AbortCombat();
+	void HandleMON5LogTurnState();
+	void HandleMON5StartCombatWithAllMonsters();
+	void HandleMON5ForceVictory();
+	void HandleMON11RequestSelectedCharacterAttack();
 #endif
 };

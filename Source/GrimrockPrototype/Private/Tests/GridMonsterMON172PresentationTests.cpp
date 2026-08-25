@@ -9,106 +9,67 @@
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterDefinitionAsset.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridMonsterMON172PresentationBridgeContractTest,
-    "Grimrock.Monsters.MON17.2.PresentationBridgeContract",
-    EAutomationTestFlags::EditorContext |
-        EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON172PresentationBridgeContractTest, "Grimrock.Monsters.MON17.2.PresentationBridgeContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON172PresentationBridgeContractTest::RunTest (
-    const FString& Parameters)
+bool FGridMonsterMON172PresentationBridgeContractTest::RunTest(const FString& Parameters)
 {
-    (void)Parameters;
+	(void)Parameters;
 
-    USkeletalMesh* SkeletalMesh = LoadObject<USkeletalMesh> (
-        nullptr,
-        TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Meshes/SK_RatGiant.SK_RatGiant"));
-    UClass* AnimationClass = LoadClass<UAnimInstance> (
-        nullptr,
-        TEXT ("/Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C"));
+	USkeletalMesh* SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Meshes/SK_RatGiant.SK_RatGiant"));
+	UClass* AnimationClass = LoadClass<UAnimInstance>(nullptr, TEXT("/Game/GrimrockPrototype/Monsters/RatGiant/Animation/ABP_MON_RatGiant.ABP_MON_RatGiant_C"));
 
-    TestNotNull (
-        TEXT ("Known-good monster skeletal mesh loads"),
-        SkeletalMesh);
-    TestNotNull (
-        TEXT ("Known-good monster Animation Blueprint class loads"),
-        AnimationClass);
-    if (!SkeletalMesh || !AnimationClass)
-    {
-        return false;
-    }
+	TestNotNull(TEXT("Known-good monster skeletal mesh loads"), SkeletalMesh);
+	TestNotNull(TEXT("Known-good monster Animation Blueprint class loads"), AnimationClass);
+	if (!SkeletalMesh || !AnimationClass)
+	{
+		return false;
+	}
 
-    USkeleton* MeshSkeleton = SkeletalMesh->GetSkeleton ();
-    TestNotNull (
-        TEXT ("Monster skeletal mesh owns a Skeleton"),
-        MeshSkeleton);
+	USkeleton* MeshSkeleton = SkeletalMesh->GetSkeleton();
+	TestNotNull(TEXT("Monster skeletal mesh owns a Skeleton"), MeshSkeleton);
 
-    TestTrue (
-        TEXT ("Monster Animation Blueprint derives from UGridMonsterAnimInstance"),
-        AnimationClass->IsChildOf (
-            UGridMonsterAnimInstance::StaticClass ()));
+	TestTrue(TEXT("Monster Animation Blueprint derives from UGridMonsterAnimInstance"), AnimationClass->IsChildOf(UGridMonsterAnimInstance::StaticClass()));
 
-    const IAnimClassInterface* AnimClassInterface =
-        IAnimClassInterface::GetFromClass (AnimationClass);
-    TestTrue (
-        TEXT ("Monster Animation Blueprint exposes IAnimClassInterface"),
-        AnimClassInterface != nullptr);
+	const IAnimClassInterface* AnimClassInterface = IAnimClassInterface::GetFromClass(AnimationClass);
+	TestTrue(TEXT("Monster Animation Blueprint exposes IAnimClassInterface"), AnimClassInterface != nullptr);
 
-    USkeleton* AnimationSkeleton = AnimClassInterface
-        ? AnimClassInterface->GetTargetSkeleton ()
-        : nullptr;
-    TestNotNull (
-        TEXT ("Monster Animation Blueprint targets a Skeleton"),
-        AnimationSkeleton);
+	USkeleton* AnimationSkeleton = AnimClassInterface ? AnimClassInterface->GetTargetSkeleton() : nullptr;
+	TestNotNull(TEXT("Monster Animation Blueprint targets a Skeleton"), AnimationSkeleton);
 
-    if (!MeshSkeleton || !AnimationSkeleton)
-    {
-        return false;
-    }
+	if (!MeshSkeleton || !AnimationSkeleton)
+	{
+		return false;
+	}
 
-    const bool bCompatibleSkeletons =
-        MeshSkeleton == AnimationSkeleton ||
-        MeshSkeleton->IsCompatible (AnimationSkeleton) ||
-        AnimationSkeleton->IsCompatible (MeshSkeleton);
-    TestTrue (
-        TEXT ("Monster mesh Skeleton and Animation Blueprint Skeleton are compatible"),
-        bCompatibleSkeletons);
+	const bool bCompatibleSkeletons =
+		MeshSkeleton == AnimationSkeleton || MeshSkeleton->IsCompatible(AnimationSkeleton) || AnimationSkeleton->IsCompatible(MeshSkeleton);
+	TestTrue(TEXT("Monster mesh Skeleton and Animation Blueprint Skeleton are compatible"), bCompatibleSkeletons);
 
-    return true;
+	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST (
-    FGridMonsterMON172VisualRotationOffsetContractTest,
-    "Grimrock.Monsters.MON17.2.VisualRotationOffsetContract",
-    EAutomationTestFlags::EditorContext |
-        EAutomationTestFlags::EngineFilter)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON172VisualRotationOffsetContractTest, "Grimrock.Monsters.MON17.2.VisualRotationOffsetContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON172VisualRotationOffsetContractTest::RunTest (
-    const FString& Parameters)
+bool FGridMonsterMON172VisualRotationOffsetContractTest::RunTest(const FString& Parameters)
 {
-    (void)Parameters;
+	(void)Parameters;
 
-    UGridMonsterDefinitionAsset* Definition =
-        NewObject<UGridMonsterDefinitionAsset> (GetTransientPackage ());
-    TestNotNull (
-        TEXT ("Transient monster definition can be created"),
-        Definition);
-    if (!Definition)
-    {
-        return false;
-    }
+	UGridMonsterDefinitionAsset* Definition = NewObject<UGridMonsterDefinitionAsset>(GetTransientPackage());
+	TestNotNull(TEXT("Transient monster definition can be created"), Definition);
+	if (!Definition)
+	{
+		return false;
+	}
 
-    TestTrue (
-        TEXT ("Visual rotation offset defaults to zero"),
-        Definition->VisualRotationOffset.IsNearlyZero ());
+	TestTrue(TEXT("Visual rotation offset defaults to zero"), Definition->VisualRotationOffset.IsNearlyZero());
 
-    const FRotator ExpectedOffset (0.0f, -90.0f, 0.0f);
-    Definition->VisualRotationOffset = ExpectedOffset;
-    TestTrue (
-        TEXT ("Visual rotation offset stores mesh-local yaw correction"),
-        Definition->VisualRotationOffset.Equals (ExpectedOffset));
+	const FRotator ExpectedOffset(0.0f, -90.0f, 0.0f);
+	Definition->VisualRotationOffset = ExpectedOffset;
+	TestTrue(TEXT("Visual rotation offset stores mesh-local yaw correction"), Definition->VisualRotationOffset.Equals(ExpectedOffset));
 
-    return true;
+	return true;
 }
 
 #endif

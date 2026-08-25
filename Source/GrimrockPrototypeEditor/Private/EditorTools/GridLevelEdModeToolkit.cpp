@@ -35,213 +35,207 @@
 #include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/SWindow.h"
 
-
-void FGridLevelEdModeToolkit::Init (const TSharedPtr<IToolkitHost>& InitToolkitHost)
+void FGridLevelEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost)
 {
-    ToolPaletteState = MakeShared<FGridEditorToolPalettePanelState> ();
-    ValidationState = MakeShared<FGridEditorValidationPanelState> ();
-    ToolkitWidget = BuildToolkitWidget ();
-    FModeToolkit::Init (InitToolkitHost);
+	ToolPaletteState = MakeShared<FGridEditorToolPalettePanelState>();
+	ValidationState = MakeShared<FGridEditorValidationPanelState>();
+	ToolkitWidget = BuildToolkitWidget();
+	FModeToolkit::Init(InitToolkitHost);
 }
 
-FName FGridLevelEdModeToolkit::GetToolkitFName () const
+FName FGridLevelEdModeToolkit::GetToolkitFName() const
 {
-    return FName ("GridLevelEdModeToolkit");
+	return FName("GridLevelEdModeToolkit");
 }
 
-FText FGridLevelEdModeToolkit::GetBaseToolkitName () const
+FText FGridLevelEdModeToolkit::GetBaseToolkitName() const
 {
-    return FText::FromString (TEXT ("Grimrock Grid Palette"));
+	return FText::FromString(TEXT("Grimrock Grid Palette"));
 }
 
-FEdMode* FGridLevelEdModeToolkit::GetEditorMode () const
+FEdMode* FGridLevelEdModeToolkit::GetEditorMode() const
 {
-    return GLevelEditorModeTools ().GetActiveMode (FGridLevelEdMode::EM_GridLevelEdModeId);
+	return GLevelEditorModeTools().GetActiveMode(FGridLevelEdMode::EM_GridLevelEdModeId);
 }
 
-TSharedPtr<SWidget> FGridLevelEdModeToolkit::GetInlineContent () const
+TSharedPtr<SWidget> FGridLevelEdModeToolkit::GetInlineContent() const
 {
-    return ToolkitWidget;
+	return ToolkitWidget;
 }
 
-AGridLevelEditorActor* FGridLevelEdModeToolkit::GetEditorActor () const
+AGridLevelEditorActor* FGridLevelEdModeToolkit::GetEditorActor() const
 {
-    if (!GEditor)
-    {
-        return nullptr;
-    }
+	if (!GEditor)
+	{
+		return nullptr;
+	}
 
-    UWorld* World = GEditor->GetEditorWorldContext ().World ();
-    if (!World)
-    {
-        return nullptr;
-    }
+	UWorld* World = GEditor->GetEditorWorldContext().World();
+	if (!World)
+	{
+		return nullptr;
+	}
 
-    for (TActorIterator<AGridLevelEditorActor> It (World); It; ++It)
-    {
-        return *It;
-    }
-    return nullptr;
+	for (TActorIterator<AGridLevelEditorActor> It(World); It; ++It)
+	{
+		return *It;
+	}
+	return nullptr;
 }
 
-void FGridLevelEdModeToolkit::RefreshPalette ()
+void FGridLevelEdModeToolkit::RefreshPalette()
 {
-    if (!ToolkitRoot.IsValid ())
-    {
-        return;
-    }
+	if (!ToolkitRoot.IsValid())
+	{
+		return;
+	}
 
-    ToolkitRoot->ClearChildren ();
+	ToolkitRoot->ClearChildren();
 
-    const FMargin PanelSpacing (0.f, 0.f, 0.f, 6.f);
-    const auto AddToolkitPanel = [this, PanelSpacing] (TSharedRef<SWidget> Panel)
-    {
-        ToolkitRoot->AddSlot ()
-            .AutoHeight ()
-            .Padding (PanelSpacing)
-            [
-                Panel
-            ];
-    };
+	const FMargin PanelSpacing(0.f, 0.f, 0.f, 6.f);
+	const auto AddToolkitPanel = [this, PanelSpacing](TSharedRef<SWidget> Panel)
+	{
+		ToolkitRoot->AddSlot().AutoHeight().Padding(PanelSpacing)[Panel];
+	};
 
-    AddToolkitPanel (
-        BuildHeaderSection ());
+	AddToolkitPanel(BuildHeaderSection());
 
-    AddToolkitPanel (
-        BuildCollapsiblePanelSection (
-            FText::FromString (TEXT ("DUNGEON LEVELS")),
-            [this] () -> TSharedRef<SWidget>
-            {
-                return BuildDungeonLevelsPanel ();
-            },
-            PanelExpansionState.bDungeonLevelsExpanded));
+	AddToolkitPanel(BuildCollapsiblePanelSection(
+		FText::FromString(TEXT("DUNGEON LEVELS")),
+		[this]() -> TSharedRef<SWidget>
+		{
+			return BuildDungeonLevelsPanel();
+		},
+		PanelExpansionState.bDungeonLevelsExpanded));
 
-    AddToolkitPanel (
-        BuildCollapsiblePanelSection (
-            FText::FromString (TEXT ("PLAYTEST")),
-            [this] () -> TSharedRef<SWidget>
-            {
-                return BuildPlaytestPanel ();
-            },
-            PanelExpansionState.bPlaytestExpanded));
+	AddToolkitPanel(BuildCollapsiblePanelSection(
+		FText::FromString(TEXT("PLAYTEST")),
+		[this]() -> TSharedRef<SWidget>
+		{
+			return BuildPlaytestPanel();
+		},
+		PanelExpansionState.bPlaytestExpanded));
 
-    AddToolkitPanel (
-        BuildCollapsiblePanelSection (
-            FText::FromString (TEXT ("TOOLS / PALETTE")),
-            [this] () -> TSharedRef<SWidget>
-            {
-                return SNew (SGridEditorToolPalettePanel)
-                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                .ToolPaletteState (ToolPaletteState)
-                .OnGetEditorActor (FOnGetGridEditorToolPaletteActor::CreateLambda ([this] ()
-                {
-                    return GetEditorActor ();
-                }))
-                .OnRequestRefresh (FOnGridEditorToolPaletteRequestRefresh::CreateLambda ([this] ()
-                {
-                    RefreshPalette ();
-                }));
-            },
-            PanelExpansionState.bToolsExpanded));
+	AddToolkitPanel(BuildCollapsiblePanelSection(
+		FText::FromString(TEXT("TOOLS / PALETTE")),
+		[this]() -> TSharedRef<SWidget>
+		{
+			return SNew(SGridEditorToolPalettePanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.ToolPaletteState(ToolPaletteState)
+				.OnGetEditorActor(FOnGetGridEditorToolPaletteActor::CreateLambda(
+					[this]()
+					{
+						return GetEditorActor();
+					}))
+				.OnRequestRefresh(FOnGridEditorToolPaletteRequestRefresh::CreateLambda(
+					[this]()
+					{
+						RefreshPalette();
+					}));
+		},
+		PanelExpansionState.bToolsExpanded));
 
-    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
+	const AGridLevelEditorActor* EditorActor = GetEditorActor();
 
-    AddToolkitPanel (
-        BuildCollapsiblePanelSection (
-            FText::FromString (TEXT ("OVERVIEW MAP")),
-            [this] () -> TSharedRef<SWidget>
-            {
-                return SNew (SGridEditorOverviewMapPanel)
-                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                .OnGetEditorActor (FOnGetGridEditorActor::CreateLambda ([this] ()
-                {
-                    return GetEditorActor ();
-                }))
-                .OnRequestRefresh (FOnGridEditorOverviewRequestRefresh::CreateLambda ([this] ()
-                {
-                    RefreshPalette ();
-                }));
-            },
-            PanelExpansionState.bOverviewExpanded));
+	AddToolkitPanel(BuildCollapsiblePanelSection(
+		FText::FromString(TEXT("OVERVIEW MAP")),
+		[this]() -> TSharedRef<SWidget>
+		{
+			return SNew(SGridEditorOverviewMapPanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.OnGetEditorActor(FOnGetGridEditorActor::CreateLambda(
+					[this]()
+					{
+						return GetEditorActor();
+					}))
+				.OnRequestRefresh(FOnGridEditorOverviewRequestRefresh::CreateLambda(
+					[this]()
+					{
+						RefreshPalette();
+					}));
+		},
+		PanelExpansionState.bOverviewExpanded));
 
-    const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData () : nullptr;
+	const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
 
-    AddToolkitPanel (
-        BuildCollapsiblePanelSection (
-            FText::FromString (TEXT ("SELECTED OBJECT")),
-            [this] () -> TSharedRef<SWidget>
-            {
-                return SNew (SGridEditorObjectInspectorPanel)
-                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                .OnGetEditorActor (FOnGetGridEditorObjectInspectorActor::CreateLambda ([this] ()
-                {
-                    return GetEditorActor ();
-                }))
-                .OnRequestRefresh (FOnGridEditorObjectInspectorRequestRefresh::CreateLambda ([this] ()
-                {
-                    RefreshPalette ();
-                }));
-            },
-            PanelExpansionState.bSelectedObjectExpanded));
+	AddToolkitPanel(BuildCollapsiblePanelSection(
+		FText::FromString(TEXT("SELECTED OBJECT")),
+		[this]() -> TSharedRef<SWidget>
+		{
+			return SNew(SGridEditorObjectInspectorPanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.OnGetEditorActor(FOnGetGridEditorObjectInspectorActor::CreateLambda(
+					[this]()
+					{
+						return GetEditorActor();
+					}))
+				.OnRequestRefresh(FOnGridEditorObjectInspectorRequestRefresh::CreateLambda(
+					[this]()
+					{
+						RefreshPalette();
+					}));
+		},
+		PanelExpansionState.bSelectedObjectExpanded));
 
-    if (Obj)
-    {
-        AddToolkitPanel (
-            BuildCollapsiblePanelSection (
-                FText::FromString (TEXT ("CONNECTORS")),
-                [this] () -> TSharedRef<SWidget>
-                {
-                    return SNew (SGridEditorLinksPanel)
-                    .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                    .OnGetEditorActor (FOnGetGridEditorLinksActor::CreateLambda ([this] ()
-                    {
-                        return GetEditorActor ();
-                    }))
-                    .OnRequestRefresh (FOnGridEditorLinksRequestRefresh::CreateLambda ([this] ()
-                    {
-                        RefreshPalette ();
-                    }));
-                },
-                PanelExpansionState.bLinksExpanded));
+	if (Obj)
+	{
+		AddToolkitPanel(BuildCollapsiblePanelSection(
+			FText::FromString(TEXT("CONNECTORS")),
+			[this]() -> TSharedRef<SWidget>
+			{
+				return SNew(SGridEditorLinksPanel)
+					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+					.OnGetEditorActor(FOnGetGridEditorLinksActor::CreateLambda(
+						[this]()
+						{
+							return GetEditorActor();
+						}))
+					.OnRequestRefresh(FOnGridEditorLinksRequestRefresh::CreateLambda(
+						[this]()
+						{
+							RefreshPalette();
+						}));
+			},
+			PanelExpansionState.bLinksExpanded));
+	}
 
-    }
-
-    AddToolkitPanel (
-        BuildCollapsiblePanelSection (
-            FText::FromString (TEXT ("VALIDATION")),
-            [this] () -> TSharedRef<SWidget>
-            {
-                return SNew (SGridEditorValidationPanel)
-                .EditorActor (TWeakObjectPtr<AGridLevelEditorActor> (GetEditorActor ()))
-                .ValidationState (ValidationState)
-                .OnGetEditorActor (FOnGetGridEditorValidationActor::CreateLambda ([this] ()
-                {
-                    return GetEditorActor ();
-                }))
-                .OnRequestRefresh (FOnGridEditorValidationRequestRefresh::CreateLambda ([this] ()
-                {
-                    ExpandValidationIfMessagesNeedAttention ();
-                    RefreshPalette ();
-                }));
-            },
-            PanelExpansionState.bValidationExpanded));
+	AddToolkitPanel(BuildCollapsiblePanelSection(
+		FText::FromString(TEXT("VALIDATION")),
+		[this]() -> TSharedRef<SWidget>
+		{
+			return SNew(SGridEditorValidationPanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.ValidationState(ValidationState)
+				.OnGetEditorActor(FOnGetGridEditorValidationActor::CreateLambda(
+					[this]()
+					{
+						return GetEditorActor();
+					}))
+				.OnRequestRefresh(FOnGridEditorValidationRequestRefresh::CreateLambda(
+					[this]()
+					{
+						ExpandValidationIfMessagesNeedAttention();
+						RefreshPalette();
+					}));
+		},
+		PanelExpansionState.bValidationExpanded));
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget ()
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildToolkitWidget()
 {
-    ToolkitRoot = SNew (SVerticalBox);
+	ToolkitRoot = SNew(SVerticalBox);
 
-    TSharedRef<SWidget> Widget = SNew (SBorder).Padding (8.f)
-        [SNew (SScrollBox) + SScrollBox::Slot ()[ToolkitRoot.ToSharedRef ()]];
+	TSharedRef<SWidget> Widget = SNew(SBorder).Padding(8.f)[SNew(SScrollBox) + SScrollBox::Slot()[ToolkitRoot.ToSharedRef()]];
 
-    RefreshPalette ();
+	RefreshPalette();
 
-    return Widget;
+	return Widget;
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection()
 {
-    return SNew (SBorder)
+	return SNew (SBorder)
         .Padding (FMargin (6.f, 4.f))
         .BorderImage (FAppStyle::GetBrush ("ToolPanel.GroupBorder"))
         [
@@ -410,483 +404,340 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection ()
         ];
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildDungeonLevelsPanel ()
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildDungeonLevelsPanel()
 {
-    AGridLevelEditorActor* EditorActor = GetEditorActor ();
-    if (!EditorActor)
-    {
-        return SNew (STextBlock)
-            .Text (FText::FromString (TEXT ("No GridLevelEditorActor found.")))
-            .AutoWrapText (true);
-    }
+	AGridLevelEditorActor* EditorActor = GetEditorActor();
+	if (!EditorActor)
+	{
+		return SNew(STextBlock).Text(FText::FromString(TEXT("No GridLevelEditorActor found."))).AutoWrapText(true);
+	}
 
-    UGridDungeonAsset* DungeonAsset = EditorActor->DungeonAsset.Get ();
-    if (!DungeonAsset)
-    {
-        return SNew (SVerticalBox)
-            + SVerticalBox::Slot ().AutoHeight ()
-            [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("No DungeonAsset assigned on BP_GridLevelEditorActor.")))
-                    .AutoWrapText (true)
-            ]
-            + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 3.f, 0.f, 0.f)
-            [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("Mono-LevelAsset editing remains available.")))
-                    .AutoWrapText (true)
-                    .ColorAndOpacity (FSlateColor (FLinearColor (0.65f, 0.65f, 0.65f)))
-            ];
-    }
+	UGridDungeonAsset* DungeonAsset = EditorActor->DungeonAsset.Get();
+	if (!DungeonAsset)
+	{
+		return SNew(SVerticalBox) +
+			SVerticalBox::Slot()
+				.AutoHeight()[SNew(STextBlock).Text(FText::FromString(TEXT("No DungeonAsset assigned on BP_GridLevelEditorActor."))).AutoWrapText(true)] +
+			SVerticalBox::Slot().AutoHeight().Padding(0.f, 3.f, 0.f, 0.f)[SNew(STextBlock)
+					.Text(FText::FromString(TEXT("Mono-LevelAsset editing remains available.")))
+					.AutoWrapText(true)
+					.ColorAndOpacity(FSlateColor(FLinearColor(0.65f, 0.65f, 0.65f)))];
+	}
 
-    const FText DungeonName = DungeonAsset->DungeonName.IsEmpty ()
-        ? FText::FromString (DungeonAsset->GetName ())
-        : DungeonAsset->DungeonName;
+	const FText DungeonName = DungeonAsset->DungeonName.IsEmpty() ? FText::FromString(DungeonAsset->GetName()) : DungeonAsset->DungeonName;
 
-    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Dungeon")),
-                DungeonName)
-        ]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Dungeon")), DungeonName)]
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Default Level Id")),
-                FText::FromName (DungeonAsset->DefaultLevelId))
-        ]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			  FText::FromString(TEXT("Default Level Id")), FText::FromName(DungeonAsset->DefaultLevelId))]
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Current Level Id")),
-                FText::FromName (EditorActor->CurrentDungeonLevelId))
-        ]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			  FText::FromString(TEXT("Current Level Id")), FText::FromName(EditorActor->CurrentDungeonLevelId))]
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Current LevelAsset")),
-                EditorActor->LevelAsset
-                    ? FText::FromString (EditorActor->LevelAsset->GetPathName ())
-                    : FText::FromString (TEXT ("None")))
-        ]
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Current LevelAsset")),
+			  EditorActor->LevelAsset ? FText::FromString(EditorActor->LevelAsset->GetPathName()) : FText::FromString(TEXT("None")))]
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Levels")),
-                FText::AsNumber (DungeonAsset->Levels.Num ()))
-        ]
+		+
+		SVerticalBox::Slot()
+			.AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Levels")), FText::AsNumber(DungeonAsset->Levels.Num()))]
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Auto PIE Prepare")),
-                EditorActor->bAutoPreparePIE
-                    ? FText::FromString (TEXT ("On"))
-                    : FText::FromString (TEXT ("Off")))
-        ];
+		+ SVerticalBox::Slot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			  FText::FromString(TEXT("Auto PIE Prepare")), EditorActor->bAutoPreparePIE ? FText::FromString(TEXT("On")) : FText::FromString(TEXT("Off")))];
 
-    TSharedRef<SHorizontalBox> ActionButtons = SNew (SHorizontalBox);
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Load Default")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    CurrentEditorActor->LoadDefaultDungeonLevelInEditor ();
-                    RefreshPalette ();
-                    if (GEditor)
-                    {
-                        GEditor->RedrawAllViewports ();
-                    }
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	TSharedRef<SHorizontalBox> ActionButtons = SNew(SHorizontalBox);
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Load Default")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					CurrentEditorActor->LoadDefaultDungeonLevelInEditor();
+					RefreshPalette();
+					if (GEditor)
+					{
+						GEditor->RedrawAllViewports();
+					}
+				}
+				return FReply::Handled();
+			}))];
 
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Reload Current")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    CurrentEditorActor->ApplyCurrentDungeonLevel ();
-                    RefreshPalette ();
-                    if (GEditor)
-                    {
-                        GEditor->RedrawAllViewports ();
-                    }
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Reload Current")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					CurrentEditorActor->ApplyCurrentDungeonLevel();
+					RefreshPalette();
+					if (GEditor)
+					{
+						GEditor->RedrawAllViewports();
+					}
+				}
+				return FReply::Handled();
+			}))];
 
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Log Dungeon")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    CurrentEditorActor->LogDungeonDiagnostics ();
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Log Dungeon")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					CurrentEditorActor->LogDungeonDiagnostics();
+				}
+				return FReply::Handled();
+			}))];
 
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Log Transitions")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    CurrentEditorActor->LogDungeonTransitionDiagnostics ();
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Log Transitions")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					CurrentEditorActor->LogDungeonTransitionDiagnostics();
+				}
+				return FReply::Handled();
+			}))];
 
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("New Level")),
-            FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::HandleCreateDungeonLevelClicked))
-    ];
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(
+		FText::FromString(TEXT("New Level")), FOnClicked::CreateRaw(this, &FGridLevelEdModeToolkit::HandleCreateDungeonLevelClicked))];
 
-    Root->AddSlot ().AutoHeight ().Padding (0.f, 6.f, 0.f, 5.f)
-    [
-        ActionButtons
-    ];
+	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 5.f)[ActionButtons];
 
-    TSharedRef<SVerticalBox> LevelList = SNew (SVerticalBox);
-    for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
-    {
-        const bool bSelected = Entry.LevelId == EditorActor->CurrentDungeonLevelId;
-        const bool bHasLevelAsset = Entry.LevelAsset != nullptr;
-        const bool bCanSelect = Entry.bEnabled && bHasLevelAsset;
-        const FText DisplayName = Entry.DisplayName.IsEmpty ()
-            ? FText::FromName (Entry.LevelId)
-            : Entry.DisplayName;
-        const FText ButtonText = FText::Format (
-            FText::FromString (TEXT ("({0},{1},{2}) {3}")),
-            FText::AsNumber (Entry.LogicalPosition.X),
-            FText::AsNumber (Entry.LogicalPosition.Y),
-            FText::AsNumber (Entry.LogicalPosition.Z),
-            DisplayName);
+	TSharedRef<SVerticalBox> LevelList = SNew(SVerticalBox);
+	for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+	{
+		const bool bSelected = Entry.LevelId == EditorActor->CurrentDungeonLevelId;
+		const bool bHasLevelAsset = Entry.LevelAsset != nullptr;
+		const bool bCanSelect = Entry.bEnabled && bHasLevelAsset;
+		const FText DisplayName = Entry.DisplayName.IsEmpty() ? FText::FromName(Entry.LevelId) : Entry.DisplayName;
+		const FText ButtonText = FText::Format(FText::FromString(TEXT("({0},{1},{2}) {3}")), FText::AsNumber(Entry.LogicalPosition.X),
+			FText::AsNumber(Entry.LogicalPosition.Y), FText::AsNumber(Entry.LogicalPosition.Z), DisplayName);
 
-        const FLinearColor ButtonColor = bSelected
-            ? FLinearColor (0.30f, 0.50f, 0.90f, 1.f)
-            : (!Entry.bEnabled
-                ? FLinearColor (0.35f, 0.35f, 0.35f, 1.f)
-                : (!bHasLevelAsset
-                    ? FLinearColor (0.90f, 0.55f, 0.16f, 1.f)
-                    : FLinearColor::White));
+		const FLinearColor ButtonColor = bSelected
+			? FLinearColor(0.30f, 0.50f, 0.90f, 1.f)
+			: (!Entry.bEnabled ? FLinearColor(0.35f, 0.35f, 0.35f, 1.f) : (!bHasLevelAsset ? FLinearColor(0.90f, 0.55f, 0.16f, 1.f) : FLinearColor::White));
 
-        LevelList->AddSlot ().AutoHeight ().Padding (0.f, 1.f, 0.f, 3.f)
-        [
-            SNew (SButton)
-                .IsEnabled (bCanSelect)
-                .ButtonColorAndOpacity (ButtonColor)
-                .HAlign (HAlign_Left)
-                .ContentPadding (FMargin (7.f, 4.f))
-                .OnClicked (FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::HandleSelectDungeonLevel, Entry.LevelId))
-                [
-                    SNew (STextBlock)
-                        .Text (ButtonText)
-                        .AutoWrapText (true)
-                ]
-        ];
-    }
+		LevelList->AddSlot().AutoHeight().Padding(0.f, 1.f, 0.f, 3.f)[SNew(SButton)
+				.IsEnabled(bCanSelect)
+				.ButtonColorAndOpacity(ButtonColor)
+				.HAlign(HAlign_Left)
+				.ContentPadding(FMargin(7.f, 4.f))
+				.OnClicked(FOnClicked::CreateRaw(
+					this, &FGridLevelEdModeToolkit::HandleSelectDungeonLevel, Entry.LevelId))[SNew(STextBlock).Text(ButtonText).AutoWrapText(true)]];
+	}
 
-    Root->AddSlot ().AutoHeight ()
-    [
-        LevelList
-    ];
+	Root->AddSlot().AutoHeight()[LevelList];
 
-    return Root;
+	return Root;
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPlaytestPanel ()
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPlaytestPanel()
 {
-    AGridLevelEditorActor* EditorActor = GetEditorActor ();
-    if (!EditorActor)
-    {
-        return SNew (STextBlock)
-            .Text (FText::FromString (TEXT ("No GridLevelEditorActor found.")))
-            .AutoWrapText (true);
-    }
+	AGridLevelEditorActor* EditorActor = GetEditorActor();
+	if (!EditorActor)
+	{
+		return SNew(STextBlock).Text(FText::FromString(TEXT("No GridLevelEditorActor found."))).AutoWrapText(true);
+	}
 
-    const UGridLevelAsset* LevelAsset = EditorActor->LevelAsset;
-    const bool bHasValidStart = LevelAsset && LevelAsset->IsStartCellValid ();
-    const FString FacingText = LevelAsset
-        ? (StaticEnum<EGridEdge> ()
-            ? StaticEnum<EGridEdge> ()->GetNameStringByValue (static_cast<int64> (LevelAsset->StartFacing))
-            : FString (TEXT ("Unknown")))
-        : FString (TEXT ("None"));
+	const UGridLevelAsset* LevelAsset = EditorActor->LevelAsset;
+	const bool bHasValidStart = LevelAsset && LevelAsset->IsStartCellValid();
+	const FString FacingText = LevelAsset
+		? (StaticEnum<EGridEdge>() ? StaticEnum<EGridEdge>()->GetNameStringByValue(static_cast<int64>(LevelAsset->StartFacing)) : FString(TEXT("Unknown")))
+		: FString(TEXT("None"));
 
-    TSharedRef<SVerticalBox> Root = SNew (SVerticalBox)
+	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            SNew (SCheckBox)
-                .IsChecked (EditorActor->bAutoPreparePIE ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                    {
-                        CurrentEditorActor->Modify ();
-                        CurrentEditorActor->bAutoPreparePIE = NewState == ECheckBoxState::Checked;
-                        RefreshPalette ();
-                    }
-                })
-                [
-                    SNew (STextBlock).Text (FText::FromString (TEXT ("Auto Prepare PIE")))
-                ]
-        ]
+		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox)
+				  .IsChecked(EditorActor->bAutoPreparePIE ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+				  .OnCheckStateChanged_Lambda(
+					  [this](ECheckBoxState NewState)
+					  {
+						  if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+						  {
+							  CurrentEditorActor->Modify();
+							  CurrentEditorActor->bAutoPreparePIE = NewState == ECheckBoxState::Checked;
+							  RefreshPalette();
+						  }
+					  })[SNew(STextBlock).Text(FText::FromString(TEXT("Auto Prepare PIE")))]]
 
-        + SVerticalBox::Slot ().AutoHeight ()
-        [
-            SNew (SCheckBox)
-                .IsChecked (EditorActor->bAbortPIEOnPreparationError ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-                .OnCheckStateChanged_Lambda ([this] (ECheckBoxState NewState)
-                {
-                    if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                    {
-                        CurrentEditorActor->Modify ();
-                        CurrentEditorActor->bAbortPIEOnPreparationError = NewState == ECheckBoxState::Checked;
-                        RefreshPalette ();
-                    }
-                })
-                [
-                    SNew (STextBlock).Text (FText::FromString (TEXT ("Abort PIE On Error")))
-                ]
-        ]
+		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox)
+				  .IsChecked(EditorActor->bAbortPIEOnPreparationError ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+				  .OnCheckStateChanged_Lambda(
+					  [this](ECheckBoxState NewState)
+					  {
+						  if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+						  {
+							  CurrentEditorActor->Modify();
+							  CurrentEditorActor->bAbortPIEOnPreparationError = NewState == ECheckBoxState::Checked;
+							  RefreshPalette();
+						  }
+					  })[SNew(STextBlock).Text(FText::FromString(TEXT("Abort PIE On Error")))]]
 
-        + SVerticalBox::Slot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Current LevelAsset")),
-                LevelAsset ? FText::FromString (LevelAsset->GetName ()) : FText::FromString (TEXT ("None")))
-        ];
+		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
+			  FText::FromString(TEXT("Current LevelAsset")), LevelAsset ? FText::FromString(LevelAsset->GetName()) : FText::FromString(TEXT("None")))];
 
-    if (!LevelAsset)
-    {
-        Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
-        [
-            SNew (STextBlock)
-                .Text (FText::FromString (TEXT ("No LevelAsset assigned.")))
-                .AutoWrapText (true)
-                .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.25f, 0.18f, 1.f)))
-        ];
-    }
-    else
-    {
-        Root->AddSlot ().AutoHeight ()
-        [
-            GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow (
-                FText::FromString (TEXT ("Start Cell")),
-                FText::Format (
-                    FText::FromString (TEXT ("X={0} Y={1} Facing={2} Valid={3}")),
-                    FText::AsNumber (LevelAsset->StartCellX),
-                    FText::AsNumber (LevelAsset->StartCellY),
-                    FText::FromString (FacingText),
-                    bHasValidStart ? FText::FromString (TEXT ("true")) : FText::FromString (TEXT ("false"))))
-        ];
+	if (!LevelAsset)
+	{
+		Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(STextBlock)
+				.Text(FText::FromString(TEXT("No LevelAsset assigned.")))
+				.AutoWrapText(true)
+				.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.25f, 0.18f, 1.f)))];
+	}
+	else
+	{
+		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Start Cell")),
+			FText::Format(FText::FromString(TEXT("X={0} Y={1} Facing={2} Valid={3}")), FText::AsNumber(LevelAsset->StartCellX),
+				FText::AsNumber(LevelAsset->StartCellY), FText::FromString(FacingText),
+				bHasValidStart ? FText::FromString(TEXT("true")) : FText::FromString(TEXT("false"))))];
 
-        if (!bHasValidStart)
-        {
-            Root->AddSlot ().AutoHeight ().Padding (0.f, 5.f, 0.f, 0.f)
-            [
-                SNew (STextBlock)
-                    .Text (FText::FromString (TEXT ("Warning: StartCell is invalid. PIE auto preparation will fail.")))
-                    .AutoWrapText (true)
-                    .ColorAndOpacity (FSlateColor (FLinearColor (1.f, 0.55f, 0.18f, 1.f)))
-            ];
-        }
-    }
+		if (!bHasValidStart)
+		{
+			Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(STextBlock)
+					.Text(FText::FromString(TEXT("Warning: StartCell is invalid. PIE auto preparation will fail.")))
+					.AutoWrapText(true)
+					.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))];
+		}
+	}
 
-    TSharedRef<SHorizontalBox> ActionButtons = SNew (SHorizontalBox);
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Set Start From Selection")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    CurrentEditorActor->SetStartFromSelection ();
-                    RefreshPalette ();
-                    if (GEditor)
-                    {
-                        GEditor->RedrawAllViewports ();
-                    }
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	TSharedRef<SHorizontalBox> ActionButtons = SNew(SHorizontalBox);
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Set Start From Selection")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					CurrentEditorActor->SetStartFromSelection();
+					RefreshPalette();
+					if (GEditor)
+					{
+						GEditor->RedrawAllViewports();
+					}
+				}
+				return FReply::Handled();
+			}))];
 
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Log PIE Readiness")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    if (CurrentEditorActor->PreviewRuntimeActor)
-                    {
-                        CurrentEditorActor->PreviewRuntimeActor->LogPIEReadinessDiagnostics ();
-                    }
-                    else
-                    {
-                        UE_LOG (LogTemp, Warning, TEXT ("Log PIE Readiness failed: PreviewRuntimeActor is null."));
-                    }
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Log PIE Readiness")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					if (CurrentEditorActor->PreviewRuntimeActor)
+					{
+						CurrentEditorActor->PreviewRuntimeActor->LogPIEReadinessDiagnostics();
+					}
+					else
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Log PIE Readiness failed: PreviewRuntimeActor is null."));
+					}
+				}
+				return FReply::Handled();
+			}))];
 
-    ActionButtons->AddSlot ().Padding (0.f, 0.f, 4.f, 4.f)
-    [
-        GridEditorWidgetHelpers::BuildGridActionButton (
-            FText::FromString (TEXT ("Debug Prepare PIE")),
-            FOnClicked::CreateLambda ([this] ()
-            {
-                if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor ())
-                {
-                    CurrentEditorActor->PreparePIETestFromStart ();
-                    RefreshPalette ();
-                }
-                return FReply::Handled ();
-            }))
-    ];
+	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Debug Prepare PIE")),
+		FOnClicked::CreateLambda(
+			[this]()
+			{
+				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
+				{
+					CurrentEditorActor->PreparePIETestFromStart();
+					RefreshPalette();
+				}
+				return FReply::Handled();
+			}))];
 
-    Root->AddSlot ().AutoHeight ().Padding (0.f, 7.f, 0.f, 0.f)
-    [
-        ActionButtons
-    ];
+	Root->AddSlot().AutoHeight().Padding(0.f, 7.f, 0.f, 0.f)[ActionButtons];
 
-    return Root;
+	return Root;
 }
 
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection (
-    const FText& Title,
-    const TFunctionRef<TSharedRef<SWidget> ()>& BuildContent,
-    bool& bExpanded)
+TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection(
+	const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool& bExpanded)
 {
-    return GridEditorWidgetHelpers::BuildGridCollapsiblePanelSection (
-        Title,
-        BuildContent,
-        bExpanded,
-        FOnClicked::CreateRaw (this, &FGridLevelEdModeToolkit::TogglePanelExpansion, &bExpanded));
+	return GridEditorWidgetHelpers::BuildGridCollapsiblePanelSection(
+		Title, BuildContent, bExpanded, FOnClicked::CreateRaw(this, &FGridLevelEdModeToolkit::TogglePanelExpansion, &bExpanded));
 }
 
-FReply FGridLevelEdModeToolkit::HandleSelectDungeonLevel (FName LevelId)
+FReply FGridLevelEdModeToolkit::HandleSelectDungeonLevel(FName LevelId)
 {
-    if (AGridLevelEditorActor* EditorActor = GetEditorActor ())
-    {
-        EditorActor->Modify ();
-        EditorActor->CurrentDungeonLevelId = LevelId;
-        EditorActor->ApplyCurrentDungeonLevel ();
-        RefreshPalette ();
+	if (AGridLevelEditorActor* EditorActor = GetEditorActor())
+	{
+		EditorActor->Modify();
+		EditorActor->CurrentDungeonLevelId = LevelId;
+		EditorActor->ApplyCurrentDungeonLevel();
+		RefreshPalette();
 
-        if (GEditor)
-        {
-            GEditor->RedrawAllViewports ();
-        }
-    }
+		if (GEditor)
+		{
+			GEditor->RedrawAllViewports();
+		}
+	}
 
-    return FReply::Handled ();
+	return FReply::Handled();
 }
 
-FReply FGridLevelEdModeToolkit::HandleCreateDungeonLevelClicked ()
+FReply FGridLevelEdModeToolkit::HandleCreateDungeonLevelClicked()
 {
-    AGridLevelEditorActor* EditorActor = GetEditorActor ();
-    if (!EditorActor)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("New Level failed: no GridLevelEditorActor found."));
-        return FReply::Handled ();
-    }
+	AGridLevelEditorActor* EditorActor = GetEditorActor();
+	if (!EditorActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("New Level failed: no GridLevelEditorActor found."));
+		return FReply::Handled();
+	}
 
-    UGridDungeonAsset* DungeonAsset = EditorActor->DungeonAsset.Get ();
-    if (!DungeonAsset)
-    {
-        UE_LOG (LogTemp, Warning, TEXT ("New Level failed: DungeonAsset is null."));
-        return FReply::Handled ();
-    }
+	UGridDungeonAsset* DungeonAsset = EditorActor->DungeonAsset.Get();
+	if (!DungeonAsset)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("New Level failed: DungeonAsset is null."));
+		return FReply::Handled();
+	}
 
-    int32 SuggestedZ = 0;
-    for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
-    {
-        SuggestedZ = FMath::Max (SuggestedZ, Entry.LogicalPosition.Z + 1);
-    }
+	int32 SuggestedZ = 0;
+	for (const FGridDungeonLevelEntry& Entry : DungeonAsset->Levels)
+	{
+		SuggestedZ = FMath::Max(SuggestedZ, Entry.LogicalPosition.Z + 1);
+	}
 
-    FString SuggestedLevelId = SuggestedZ > 0
-        ? FString::Printf (TEXT ("New_Level_%02d"), SuggestedZ)
-        : FString (TEXT ("New_Level"));
-    FString SuggestedDisplayName = SuggestedZ > 0
-        ? FString::Printf (TEXT ("New Level %02d"), SuggestedZ)
-        : FString (TEXT ("New Level"));
+	FString SuggestedLevelId = SuggestedZ > 0 ? FString::Printf(TEXT("New_Level_%02d"), SuggestedZ) : FString(TEXT("New_Level"));
+	FString SuggestedDisplayName = SuggestedZ > 0 ? FString::Printf(TEXT("New Level %02d"), SuggestedZ) : FString(TEXT("New Level"));
 
-    int32 UniqueSuffix = SuggestedZ;
-    while (DungeonAsset->Levels.ContainsByPredicate (
-        [&SuggestedLevelId] (const FGridDungeonLevelEntry& Entry)
-        {
-            return Entry.LevelId == FName (*SuggestedLevelId);
-        }))
-    {
-        ++UniqueSuffix;
-        SuggestedLevelId = FString::Printf (TEXT ("New_Level_%02d"), UniqueSuffix);
-        SuggestedDisplayName = FString::Printf (TEXT ("New Level %02d"), UniqueSuffix);
-    }
+	int32 UniqueSuffix = SuggestedZ;
+	while (DungeonAsset->Levels.ContainsByPredicate(
+		[&SuggestedLevelId](const FGridDungeonLevelEntry& Entry)
+		{
+			return Entry.LevelId == FName(*SuggestedLevelId);
+		}))
+	{
+		++UniqueSuffix;
+		SuggestedLevelId = FString::Printf(TEXT("New_Level_%02d"), UniqueSuffix);
+		SuggestedDisplayName = FString::Printf(TEXT("New Level %02d"), UniqueSuffix);
+	}
 
-    TSharedPtr<SEditableTextBox> LevelIdTextBox;
-    TSharedPtr<SEditableTextBox> DisplayNameTextBox;
-    TSharedPtr<SSpinBox<int32>> LogicalXSpinBox;
-    TSharedPtr<SSpinBox<int32>> LogicalYSpinBox;
-    TSharedPtr<SSpinBox<int32>> LogicalZSpinBox;
-    TSharedPtr<STextBlock> ErrorTextBlock;
-    TSharedPtr<SWindow> DialogWindow;
+	TSharedPtr<SEditableTextBox> LevelIdTextBox;
+	TSharedPtr<SEditableTextBox> DisplayNameTextBox;
+	TSharedPtr<SSpinBox<int32>> LogicalXSpinBox;
+	TSharedPtr<SSpinBox<int32>> LogicalYSpinBox;
+	TSharedPtr<SSpinBox<int32>> LogicalZSpinBox;
+	TSharedPtr<STextBlock> ErrorTextBlock;
+	TSharedPtr<SWindow> DialogWindow;
 
-    const auto BuildLabeledRow = [] (const FText& Label, TSharedRef<SWidget> ValueWidget)
-    {
-        return SNew (SHorizontalBox)
-            + SHorizontalBox::Slot ()
-            .AutoWidth ()
-            .VAlign (VAlign_Center)
-            .Padding (0.f, 0.f, 8.f, 4.f)
-            [
-                SNew (STextBlock)
-                    .MinDesiredWidth (130.f)
-                    .Text (Label)
-            ]
-            + SHorizontalBox::Slot ()
-            .FillWidth (1.f)
-            .Padding (0.f, 0.f, 0.f, 4.f)
-            [
-                ValueWidget
-            ];
-    };
+	const auto BuildLabeledRow = [](const FText& Label, TSharedRef<SWidget> ValueWidget)
+	{
+		return SNew(SHorizontalBox) +
+			SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(0.f, 0.f, 8.f, 4.f)[SNew(STextBlock).MinDesiredWidth(130.f).Text(Label)] +
+			SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 0.f, 4.f)[ValueWidget];
+	};
 
-    DialogWindow = SNew (SWindow)
-        .Title (FText::FromString (TEXT ("Create New Dungeon Level")))
-        .SizingRule (ESizingRule::Autosized)
-        .SupportsMaximize (false)
-        .SupportsMinimize (false);
+	DialogWindow = SNew(SWindow)
+					   .Title(FText::FromString(TEXT("Create New Dungeon Level")))
+					   .SizingRule(ESizingRule::Autosized)
+					   .SupportsMaximize(false)
+					   .SupportsMinimize(false);
 
-    DialogWindow->SetContent (
+	DialogWindow->SetContent (
         SNew (SBorder)
         .Padding (12.f)
         [
@@ -1085,103 +936,94 @@ FReply FGridLevelEdModeToolkit::HandleCreateDungeonLevelClicked ()
             ]
         ]);
 
-    FSlateApplication::Get ().AddWindow (DialogWindow.ToSharedRef ());
-    return FReply::Handled ();
+	FSlateApplication::Get().AddWindow(DialogWindow.ToSharedRef());
+	return FReply::Handled();
 }
 
-FReply FGridLevelEdModeToolkit::TogglePanelExpansion (bool* bExpanded)
+FReply FGridLevelEdModeToolkit::TogglePanelExpansion(bool* bExpanded)
 {
-    if (bExpanded)
-    {
-        *bExpanded = !*bExpanded;
-        RefreshPalette ();
-    }
+	if (bExpanded)
+	{
+		*bExpanded = !*bExpanded;
+		RefreshPalette();
+	}
 
-    return FReply::Handled ();
+	return FReply::Handled();
 }
 
-void FGridLevelEdModeToolkit::ExpandValidationIfMessagesNeedAttention ()
+void FGridLevelEdModeToolkit::ExpandValidationIfMessagesNeedAttention()
 {
-    if (!ValidationState.IsValid ())
-    {
-        return;
-    }
+	if (!ValidationState.IsValid())
+	{
+		return;
+	}
 
-    int32 ErrorCount = 0;
-    int32 WarningCount = 0;
-    ValidationState->CountValidationErrorsWarnings (ErrorCount, WarningCount);
+	int32 ErrorCount = 0;
+	int32 WarningCount = 0;
+	ValidationState->CountValidationErrorsWarnings(ErrorCount, WarningCount);
 
-    if (ErrorCount > 0 || WarningCount > 0)
-    {
-        PanelExpansionState.bValidationExpanded = true;
-    }
+	if (ErrorCount > 0 || WarningCount > 0)
+	{
+		PanelExpansionState.bValidationExpanded = true;
+	}
 }
 
-FText FGridLevelEdModeToolkit::GetActiveToolText () const
+FText FGridLevelEdModeToolkit::GetActiveToolText() const
 {
-    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
-    {
-        const UEnum* Enum = StaticEnum<EGridEditorTool> ();
-        if (Enum)
-        {
-            return Enum->GetDisplayNameTextByValue (static_cast<int64>(EditorActor->ActiveTool));
-        }
-    }
-    return FText::FromString (TEXT ("Unknown"));
+	if (const AGridLevelEditorActor* EditorActor = GetEditorActor())
+	{
+		const UEnum* Enum = StaticEnum<EGridEditorTool>();
+		if (Enum)
+		{
+			return Enum->GetDisplayNameTextByValue(static_cast<int64>(EditorActor->ActiveTool));
+		}
+	}
+	return FText::FromString(TEXT("Unknown"));
 }
 
-FText FGridLevelEdModeToolkit::GetSelectedCellStatusText () const
+FText FGridLevelEdModeToolkit::GetSelectedCellStatusText() const
 {
-    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
-    {
-        return FText::Format (
-            FText::FromString (TEXT ("X={0} Y={1}")),
-            FText::AsNumber (EditorActor->SelectedCellX),
-            FText::AsNumber (EditorActor->SelectedCellY));
-    }
+	if (const AGridLevelEditorActor* EditorActor = GetEditorActor())
+	{
+		return FText::Format(FText::FromString(TEXT("X={0} Y={1}")), FText::AsNumber(EditorActor->SelectedCellX), FText::AsNumber(EditorActor->SelectedCellY));
+	}
 
-    return FText::FromString (TEXT ("None"));
+	return FText::FromString(TEXT("None"));
 }
 
-FText FGridLevelEdModeToolkit::GetSelectedEdgeStatusText () const
+FText FGridLevelEdModeToolkit::GetSelectedEdgeStatusText() const
 {
-    if (const AGridLevelEditorActor* EditorActor = GetEditorActor ())
-    {
-        const UEnum* EdgeEnum = StaticEnum<EGridEdge> ();
-        return EdgeEnum
-            ? EdgeEnum->GetDisplayNameTextByValue (static_cast<int64> (EditorActor->SelectedEdge))
-            : FText::FromString (TEXT ("Unknown"));
-    }
+	if (const AGridLevelEditorActor* EditorActor = GetEditorActor())
+	{
+		const UEnum* EdgeEnum = StaticEnum<EGridEdge>();
+		return EdgeEnum ? EdgeEnum->GetDisplayNameTextByValue(static_cast<int64>(EditorActor->SelectedEdge)) : FText::FromString(TEXT("Unknown"));
+	}
 
-    return FText::FromString (TEXT ("None"));
+	return FText::FromString(TEXT("None"));
 }
 
-FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText () const
+FText FGridLevelEdModeToolkit::GetSelectedObjectStatusText() const
 {
-    const AGridLevelEditorActor* EditorActor = GetEditorActor ();
-    const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData () : nullptr;
-    if (!Obj)
-    {
-        return FText::FromString (TEXT ("None"));
-    }
+	const AGridLevelEditorActor* EditorActor = GetEditorActor();
+	const FGridLevelObjectData* Obj = EditorActor ? EditorActor->GetSelectedObjectData() : nullptr;
+	if (!Obj)
+	{
+		return FText::FromString(TEXT("None"));
+	}
 
-    const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType> ();
-    const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText (TypeEnum, static_cast<int64> (Obj->Type));
+	const UEnum* TypeEnum = StaticEnum<EGridLevelObjectType>();
+	const FText TypeText = GridEditorWidgetHelpers::GetGridEnumDisplayText(TypeEnum, static_cast<int64>(Obj->Type));
 
-    return FText::Format (
-        FText::FromString (TEXT ("{0} ({1},{2})")),
-        TypeText,
-        FText::AsNumber (Obj->CellX),
-        FText::AsNumber (Obj->CellY));
+	return FText::Format(FText::FromString(TEXT("{0} ({1},{2})")), TypeText, FText::AsNumber(Obj->CellX), FText::AsNumber(Obj->CellY));
 }
 
-FText FGridLevelEdModeToolkit::GetValidationStatusText () const
+FText FGridLevelEdModeToolkit::GetValidationStatusText() const
 {
-    if (!ValidationState.IsValid ())
-    {
-        return FText::FromString (TEXT ("Not run"));
-    }
+	if (!ValidationState.IsValid())
+	{
+		return FText::FromString(TEXT("Not run"));
+	}
 
-    return ValidationState->GetValidationStatusText ();
+	return ValidationState->GetValidationStatusText();
 }
 #endif

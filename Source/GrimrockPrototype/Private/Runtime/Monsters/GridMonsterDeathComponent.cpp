@@ -18,561 +18,420 @@
 #include "Runtime/Monsters/GridMonsterMovementComponent.h"
 #include "Runtime/Monsters/GridMonsterOccupancySubsystem.h"
 
-DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterDeath, Log, All);
-DEFINE_LOG_CATEGORY_STATIC (LogGridMonsterLoot, Log, All);
-DEFINE_LOG_CATEGORY_STATIC (LogGridExperience, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogGridMonsterDeath, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogGridMonsterLoot, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogGridExperience, Log, All);
 
 namespace
 {
-    constexpr uint32 MON8LootSeedSalt = 0x4D4F4E38u;
+	constexpr uint32 MON8LootSeedSalt = 0x4D4F4E38u;
 
-    int32 BuildMON8LootSeed (const AGridMonsterActor* Monster)
-    {
-        uint32 Seed = MON8LootSeedSalt;
-        if (Monster)
-        {
-            Seed = HashCombine (
-                Seed,
-                GetTypeHash (Monster->ResolvePersistenceId ()));
-            Seed = HashCombine (
-                Seed,
-                GetTypeHash (Monster->MonsterDefinition
-                    ? Monster->MonsterDefinition->MonsterId
-                    : NAME_None));
-        }
-        return static_cast<int32> (Seed);
-    }
+	int32 BuildMON8LootSeed(const AGridMonsterActor* Monster)
+	{
+		uint32 Seed = MON8LootSeedSalt;
+		if (Monster)
+		{
+			Seed = HashCombine(Seed, GetTypeHash(Monster->ResolvePersistenceId()));
+			Seed = HashCombine(Seed, GetTypeHash(Monster->MonsterDefinition ? Monster->MonsterDefinition->MonsterId : NAME_None));
+		}
+		return static_cast<int32>(Seed);
+	}
 
-    FVector GetMON8LootLocalOffset (int32 LootIndex)
-    {
-        static const FVector Offsets[] = {
-            FVector (0.0f, 0.0f, 0.0f),
-            FVector (20.0f, 0.0f, 0.0f),
-            FVector (-20.0f, 0.0f, 0.0f),
-            FVector (0.0f, 20.0f, 0.0f),
-            FVector (0.0f, -20.0f, 0.0f),
-            FVector (20.0f, 20.0f, 0.0f),
-            FVector (-20.0f, 20.0f, 0.0f),
-            FVector (20.0f, -20.0f, 0.0f),
-            FVector (-20.0f, -20.0f, 0.0f)
-        };
-        return Offsets[LootIndex % UE_ARRAY_COUNT (Offsets)];
-    }
+	FVector GetMON8LootLocalOffset(int32 LootIndex)
+	{
+		static const FVector Offsets[] = { FVector(0.0f, 0.0f, 0.0f), FVector(20.0f, 0.0f, 0.0f), FVector(-20.0f, 0.0f, 0.0f), FVector(0.0f, 20.0f, 0.0f),
+			FVector(0.0f, -20.0f, 0.0f), FVector(20.0f, 20.0f, 0.0f), FVector(-20.0f, 20.0f, 0.0f), FVector(20.0f, -20.0f, 0.0f),
+			FVector(-20.0f, -20.0f, 0.0f) };
+		return Offsets[LootIndex % UE_ARRAY_COUNT(Offsets)];
+	}
 
-    UGridPartyInventoryComponent* FindMON152PartyInventory (
-        UWorld* World)
-    {
-        if (!World)
-        {
-            return nullptr;
-        }
+	UGridPartyInventoryComponent* FindMON152PartyInventory(UWorld* World)
+	{
+		if (!World)
+		{
+			return nullptr;
+		}
 
-        for (TActorIterator<AGrimrockPartyPawn> It (World); It; ++It)
-        {
-            AGrimrockPartyPawn* PartyPawn = *It;
-            if (IsValid (PartyPawn) &&
-                IsValid (PartyPawn->PartyInventoryComponent))
-            {
-                return PartyPawn->PartyInventoryComponent;
-            }
-        }
-        return nullptr;
-    }
+		for (TActorIterator<AGrimrockPartyPawn> It(World); It; ++It)
+		{
+			AGrimrockPartyPawn* PartyPawn = *It;
+			if (IsValid(PartyPawn) && IsValid(PartyPawn->PartyInventoryComponent))
+			{
+				return PartyPawn->PartyInventoryComponent;
+			}
+		}
+		return nullptr;
+	}
 }
 
-UGridMonsterDeathComponent::UGridMonsterDeathComponent ()
+UGridMonsterDeathComponent::UGridMonsterDeathComponent()
 {
-    PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UGridMonsterDeathComponent::InitializeDeathComponent (
-    AGridLevelRuntimeActor* InRuntimeActor)
+bool UGridMonsterDeathComponent::InitializeDeathComponent(AGridLevelRuntimeActor* InRuntimeActor)
 {
-    if (!IsValid (OwnerMonster))
-    {
-        OwnerMonster = Cast<AGridMonsterActor> (GetOwner ());
-    }
-    if (!IsValid (OwnerMonster))
-    {
-        return false;
-    }
+	if (!IsValid(OwnerMonster))
+	{
+		OwnerMonster = Cast<AGridMonsterActor>(GetOwner());
+	}
+	if (!IsValid(OwnerMonster))
+	{
+		return false;
+	}
 
-    RuntimeActor = IsValid (InRuntimeActor) ? InRuntimeActor : nullptr;
-    if (!RuntimeActor)
-    {
-        if (const UGridMonsterMovementComponent* Movement =
-            OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent> ())
-        {
-            RuntimeActor = Movement->RuntimeActor;
-        }
-    }
-    if (!RuntimeActor)
-    {
-        RuntimeActor = FindRuntimeActor ();
-    }
-    return true;
+	RuntimeActor = IsValid(InRuntimeActor) ? InRuntimeActor : nullptr;
+	if (!RuntimeActor)
+	{
+		if (const UGridMonsterMovementComponent* Movement = OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent>())
+		{
+			RuntimeActor = Movement->RuntimeActor;
+		}
+	}
+	if (!RuntimeActor)
+	{
+		RuntimeActor = FindRuntimeActor();
+	}
+	return true;
 }
 
-bool UGridMonsterDeathComponent::CommitDeath ()
+bool UGridMonsterDeathComponent::CommitDeath()
 {
-    if (bDeathCommitted)
-    {
-        return false;
-    }
-    if (!InitializeDeathComponent (RuntimeActor))
-    {
-        return false;
-    }
+	if (bDeathCommitted)
+	{
+		return false;
+	}
+	if (!InitializeDeathComponent(RuntimeActor))
+	{
+		return false;
+	}
 
-    if (OwnerMonster->IdleVariationComponent)
-    {
-        OwnerMonster->IdleVariationComponent->
-            StopIdleVariations ();
-    }
+	if (OwnerMonster->IdleVariationComponent)
+	{
+		OwnerMonster->IdleVariationComponent->StopIdleVariations();
+	}
 
-    // Commit the guard before calling any external gameplay hook.
-    bDeathCommitted = true;
-    DeathCell = OwnerMonster->CurrentCell;
-    const FGuid EncounterSpawnId =
-        OwnerMonster->HasMonsterSpawnIdentity ()
-            ? OwnerMonster->SpawnObjectId
-            : FGuid ();
+	// Commit the guard before calling any external gameplay hook.
+	bDeathCommitted = true;
+	DeathCell = OwnerMonster->CurrentCell;
+	const FGuid EncounterSpawnId = OwnerMonster->HasMonsterSpawnIdentity() ? OwnerMonster->SpawnObjectId : FGuid();
 
-    if (UGridMonsterCombatComponent* Combat =
-        OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent> ())
-    {
-        Combat->CancelAttackPresentation ();
-    }
-    if (OwnerMonster->AudioComponent)
-    {
-        OwnerMonster->AudioComponent->PlayDeath ();
-    }
-    if (OwnerMonster->VFXComponent)
-    {
-        OwnerMonster->VFXComponent->PlayDeathVFX ();
-    }
+	if (UGridMonsterCombatComponent* Combat = OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent>())
+	{
+		Combat->CancelAttackPresentation();
+	}
+	if (OwnerMonster->AudioComponent)
+	{
+		OwnerMonster->AudioComponent->PlayDeath();
+	}
+	if (OwnerMonster->VFXComponent)
+	{
+		OwnerMonster->VFXComponent->PlayDeathVFX();
+	}
 
-    bool bOccupancyReleased = false;
-    if (UGridMonsterMovementComponent* Movement =
-        OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent> ())
-    {
-        Movement->CancelCurrentAction ();
-        Movement->HandleOwnerDeath ();
-        bOccupancyReleased = true;
-    }
-    else
-    {
-        if (UGridMonsterOccupancySubsystem* Occupancy =
-            GetWorld ()
-                ? GetWorld ()->GetSubsystem<
-                    UGridMonsterOccupancySubsystem> ()
-                : nullptr)
-        {
-            Occupancy->UnregisterMonster (OwnerMonster);
-            bOccupancyReleased = true;
-        }
-        UE_LOG (LogGridMonsterDeath, Warning,
-            TEXT ("[GridMonsterDeath] Monster=%s Reason=MissingMonsterMovement; continuing death."),
-            *GetNameSafe (OwnerMonster));
-    }
+	bool bOccupancyReleased = false;
+	if (UGridMonsterMovementComponent* Movement = OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent>())
+	{
+		Movement->CancelCurrentAction();
+		Movement->HandleOwnerDeath();
+		bOccupancyReleased = true;
+	}
+	else
+	{
+		if (UGridMonsterOccupancySubsystem* Occupancy = GetWorld() ? GetWorld()->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr)
+		{
+			Occupancy->UnregisterMonster(OwnerMonster);
+			bOccupancyReleased = true;
+		}
+		UE_LOG(
+			LogGridMonsterDeath, Warning, TEXT("[GridMonsterDeath] Monster=%s Reason=MissingMonsterMovement; continuing death."), *GetNameSafe(OwnerMonster));
+	}
 
-    if (OwnerMonster->CollisionComponent)
-    {
-        OwnerMonster->CollisionComponent->SetCollisionEnabled (
-            ECollisionEnabled::NoCollision);
-    }
+	if (OwnerMonster->CollisionComponent)
+	{
+		OwnerMonster->CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 
-    GenerateAndPlaceLoot ();
+	GenerateAndPlaceLoot();
 
-    const int32 RequestedExperienceReward =
-        OwnerMonster->MonsterDefinition
-            ? FMath::Max (0, OwnerMonster->MonsterDefinition->ExperienceReward)
-            : 0;
-    int32 AppliedExperienceReward = 0;
-    if (RequestedExperienceReward > 0)
-    {
-        if (UGridPartyInventoryComponent* PartyInventory =
-            FindMON152PartyInventory (GetWorld ()))
-        {
-            AppliedExperienceReward =
-                FRPGExperienceRewardService::AwardToActiveParty (
-                    PartyInventory,
-                    RequestedExperienceReward);
-        }
-        else
-        {
-            UE_LOG (
-                LogGridExperience,
-                Warning,
-                TEXT ("[GridExperience] Monster=%s PersistenceId=%s Reward=%d Applied=0 Reason=MissingPartyInventory"),
-                *GetNameSafe (OwnerMonster),
-                *OwnerMonster->ResolvePersistenceId ().ToString (),
-                RequestedExperienceReward);
-        }
-    }
+	const int32 RequestedExperienceReward = OwnerMonster->MonsterDefinition ? FMath::Max(0, OwnerMonster->MonsterDefinition->ExperienceReward) : 0;
+	int32 AppliedExperienceReward = 0;
+	if (RequestedExperienceReward > 0)
+	{
+		if (UGridPartyInventoryComponent* PartyInventory = FindMON152PartyInventory(GetWorld()))
+		{
+			AppliedExperienceReward = FRPGExperienceRewardService::AwardToActiveParty(PartyInventory, RequestedExperienceReward);
+		}
+		else
+		{
+			UE_LOG(LogGridExperience, Warning, TEXT("[GridExperience] Monster=%s PersistenceId=%s Reward=%d Applied=0 Reason=MissingPartyInventory"),
+				*GetNameSafe(OwnerMonster), *OwnerMonster->ResolvePersistenceId().ToString(), RequestedExperienceReward);
+		}
+	}
 
-    if (RequestedExperienceReward > 0)
-    {
-        UE_LOG (
-            LogGridExperience,
-            Log,
-            TEXT ("[GridExperience] Monster=%s PersistenceId=%s Reward=%d Applied=%d"),
-            *GetNameSafe (OwnerMonster),
-            *OwnerMonster->ResolvePersistenceId ().ToString (),
-            RequestedExperienceReward,
-            AppliedExperienceReward);
-    }
+	if (RequestedExperienceReward > 0)
+	{
+		UE_LOG(LogGridExperience, Log, TEXT("[GridExperience] Monster=%s PersistenceId=%s Reward=%d Applied=%d"), *GetNameSafe(OwnerMonster),
+			*OwnerMonster->ResolvePersistenceId().ToString(), RequestedExperienceReward, AppliedExperienceReward);
+	}
 
-    bool bLinksExecuted = false;
-    if (RuntimeActor && EncounterSpawnId.IsValid ())
-    {
-        ++LinkExecutionAttemptCount;
-        bLinksExecuted = RuntimeActor->ExecuteLinksFromRuntimeObject (
-            EncounterSpawnId,
-            EGridObjectEvent::MonsterDied);
-        UE_LOG (LogGridMonsterDeath, Log,
-            TEXT ("[GridMonsterDeath] Links Monster=%s SourceId=%s Event=MonsterDied Executed=%s"),
-            *GetNameSafe (OwnerMonster),
-            *OwnerMonster->SpawnObjectId.ToString (),
-            bLinksExecuted ? TEXT ("true") : TEXT ("false"));
-    }
-    else
-    {
-        UE_LOG (LogGridMonsterDeath, Log,
-            TEXT ("[GridMonsterDeath] Links Monster=%s SourceId=%s Event=MonsterDied Executed=false Reason=%s"),
-            *GetNameSafe (OwnerMonster),
-            *OwnerMonster->SpawnObjectId.ToString (),
-            RuntimeActor ? TEXT ("InvalidSpawnObjectId") : TEXT ("MissingRuntimeActor"));
-    }
+	bool bLinksExecuted = false;
+	if (RuntimeActor && EncounterSpawnId.IsValid())
+	{
+		++LinkExecutionAttemptCount;
+		bLinksExecuted = RuntimeActor->ExecuteLinksFromRuntimeObject(EncounterSpawnId, EGridObjectEvent::MonsterDied);
+		UE_LOG(LogGridMonsterDeath, Log, TEXT("[GridMonsterDeath] Links Monster=%s SourceId=%s Event=MonsterDied Executed=%s"), *GetNameSafe(OwnerMonster),
+			*OwnerMonster->SpawnObjectId.ToString(), bLinksExecuted ? TEXT("true") : TEXT("false"));
+	}
+	else
+	{
+		UE_LOG(LogGridMonsterDeath, Log, TEXT("[GridMonsterDeath] Links Monster=%s SourceId=%s Event=MonsterDied Executed=false Reason=%s"),
+			*GetNameSafe(OwnerMonster), *OwnerMonster->SpawnObjectId.ToString(), RuntimeActor ? TEXT("InvalidSpawnObjectId") : TEXT("MissingRuntimeActor"));
+	}
 
-    ++LogicalDeathEventCount;
-    OwnerMonster->OnMonsterDied.Broadcast (OwnerMonster, DeathCell);
-    if (RuntimeActor && EncounterSpawnId.IsValid ())
-    {
-        RuntimeActor->NotifyMonsterEncounterDeath (EncounterSpawnId);
-    }
-    UE_LOG (LogGridMonsterDeath, Log,
-        TEXT ("[GridMonsterDeath] Broadcast Monster=%s DeathCell=(%d,%d)"),
-        *GetNameSafe (OwnerMonster),
-        DeathCell.X,
-        DeathCell.Y);
+	++LogicalDeathEventCount;
+	OwnerMonster->OnMonsterDied.Broadcast(OwnerMonster, DeathCell);
+	if (RuntimeActor && EncounterSpawnId.IsValid())
+	{
+		RuntimeActor->NotifyMonsterEncounterDeath(EncounterSpawnId);
+	}
+	UE_LOG(LogGridMonsterDeath, Log, TEXT("[GridMonsterDeath] Broadcast Monster=%s DeathCell=(%d,%d)"), *GetNameSafe(OwnerMonster), DeathCell.X, DeathCell.Y);
 
-    StartDeathPresentation ();
+	StartDeathPresentation();
 
-    UE_LOG (LogGridMonsterDeath, Log,
-        TEXT ("[GridMonsterDeath] Commit Monster=%s Cell=(%d,%d) SpawnObjectId=%s OccupancyReleased=%s"),
-        *GetNameSafe (OwnerMonster),
-        DeathCell.X,
-        DeathCell.Y,
-        *OwnerMonster->SpawnObjectId.ToString (),
-        bOccupancyReleased ? TEXT ("true") : TEXT ("false"));
-    return true;
+	UE_LOG(LogGridMonsterDeath, Log, TEXT("[GridMonsterDeath] Commit Monster=%s Cell=(%d,%d) SpawnObjectId=%s OccupancyReleased=%s"),
+		*GetNameSafe(OwnerMonster), DeathCell.X, DeathCell.Y, *OwnerMonster->SpawnObjectId.ToString(), bOccupancyReleased ? TEXT("true") : TEXT("false"));
+	return true;
 }
 
-void UGridMonsterDeathComponent::RestoreCommittedDeathState (
-    FIntPoint InDeathCell,
-    bool bRestorePresentationPose)
+void UGridMonsterDeathComponent::RestoreCommittedDeathState(FIntPoint InDeathCell, bool bRestorePresentationPose)
 {
-    if (!InitializeDeathComponent (RuntimeActor))
-    {
-        return;
-    }
+	if (!InitializeDeathComponent(RuntimeActor))
+	{
+		return;
+	}
 
-    if (OwnerMonster->IdleVariationComponent)
-    {
-        OwnerMonster->IdleVariationComponent->
-            StopIdleVariations ();
-    }
+	if (OwnerMonster->IdleVariationComponent)
+	{
+		OwnerMonster->IdleVariationComponent->StopIdleVariations();
+	}
 
-    if (UWorld* World = GetWorld ())
-    {
-        World->GetTimerManager ().ClearTimer (
-            DeathPresentationTimerHandle);
-    }
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeathPresentationTimerHandle);
+	}
 
-    ResetDeathDissolvePresentation (true, false);
+	ResetDeathDissolvePresentation(true, false);
 
-    if (UGridMonsterCombatComponent* Combat =
-        OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent> ())
-    {
-        Combat->CancelAttackPresentation ();
-    }
-    if (OwnerMonster->AudioComponent)
-    {
-        OwnerMonster->AudioComponent->StopAllMonsterAudio ();
-    }
-    if (OwnerMonster->VFXComponent)
-    {
-        OwnerMonster->VFXComponent->StopAllMonsterVFX ();
-    }
+	if (UGridMonsterCombatComponent* Combat = OwnerMonster->FindComponentByClass<UGridMonsterCombatComponent>())
+	{
+		Combat->CancelAttackPresentation();
+	}
+	if (OwnerMonster->AudioComponent)
+	{
+		OwnerMonster->AudioComponent->StopAllMonsterAudio();
+	}
+	if (OwnerMonster->VFXComponent)
+	{
+		OwnerMonster->VFXComponent->StopAllMonsterVFX();
+	}
 
-    bool bReleasedByMovement = false;
-    if (UGridMonsterMovementComponent* Movement =
-        OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent> ())
-    {
-        Movement->CancelCurrentAction ();
-        Movement->HandleOwnerDeath ();
-        bReleasedByMovement = true;
-    }
+	bool bReleasedByMovement = false;
+	if (UGridMonsterMovementComponent* Movement = OwnerMonster->FindComponentByClass<UGridMonsterMovementComponent>())
+	{
+		Movement->CancelCurrentAction();
+		Movement->HandleOwnerDeath();
+		bReleasedByMovement = true;
+	}
 
-    if (!bReleasedByMovement)
-    {
-        if (UGridMonsterOccupancySubsystem* Occupancy =
-            GetWorld ()
-                ? GetWorld ()->GetSubsystem<UGridMonsterOccupancySubsystem> ()
-                : nullptr)
-        {
-            Occupancy->UnregisterMonster (OwnerMonster);
-        }
-    }
+	if (!bReleasedByMovement)
+	{
+		if (UGridMonsterOccupancySubsystem* Occupancy = GetWorld() ? GetWorld()->GetSubsystem<UGridMonsterOccupancySubsystem>() : nullptr)
+		{
+			Occupancy->UnregisterMonster(OwnerMonster);
+		}
+	}
 
-    bDeathCommitted = true;
-    bLootGenerated = true;
-    bDeathPresentationActive = false;
-    DeathCell = InDeathCell;
+	bDeathCommitted = true;
+	bLootGenerated = true;
+	bDeathPresentationActive = false;
+	DeathCell = InDeathCell;
 
-    OwnerMonster->CurrentCell = InDeathCell;
-    OwnerMonster->CurrentHealth = 0;
-    OwnerMonster->MonsterState = EGridMonsterState::Dead;
-    OwnerMonster->ResetAnimationSignals ();
-    OwnerMonster->SetActorEnableCollision (false);
-    OwnerMonster->SetActorHiddenInGame (false);
-    if (OwnerMonster->CollisionComponent)
-    {
-        OwnerMonster->CollisionComponent->SetCollisionEnabled (
-            ECollisionEnabled::NoCollision);
-    }
-    if (OwnerMonster->SkeletalMeshComponent)
-    {
-        OwnerMonster->SkeletalMeshComponent->SetVisibility (
-            bRestorePresentationPose,
-            true);
-    }
+	OwnerMonster->CurrentCell = InDeathCell;
+	OwnerMonster->CurrentHealth = 0;
+	OwnerMonster->MonsterState = EGridMonsterState::Dead;
+	OwnerMonster->ResetAnimationSignals();
+	OwnerMonster->SetActorEnableCollision(false);
+	OwnerMonster->SetActorHiddenInGame(false);
+	if (OwnerMonster->CollisionComponent)
+	{
+		OwnerMonster->CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	if (OwnerMonster->SkeletalMeshComponent)
+	{
+		OwnerMonster->SkeletalMeshComponent->SetVisibility(bRestorePresentationPose, true);
+	}
 }
 
-void UGridMonsterDeathComponent::RestoreLivingState ()
+void UGridMonsterDeathComponent::RestoreLivingState()
 {
-    if (!InitializeDeathComponent (RuntimeActor))
-    {
-        return;
-    }
+	if (!InitializeDeathComponent(RuntimeActor))
+	{
+		return;
+	}
 
-    if (UWorld* World = GetWorld ())
-    {
-        World->GetTimerManager ().ClearTimer (
-            DeathPresentationTimerHandle);
-    }
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeathPresentationTimerHandle);
+	}
 
-    ResetDeathDissolvePresentation (true, true);
+	ResetDeathDissolvePresentation(true, true);
 
-    bDeathCommitted = false;
-    bLootGenerated = false;
-    bDeathPresentationActive = false;
-    DeathCell = FIntPoint::ZeroValue;
-    GeneratedLoot.Reset ();
-    PlacedLootCount = 0;
-    FailedLootCount = 0;
-    LogicalDeathEventCount = 0;
-    LinkExecutionAttemptCount = 0;
+	bDeathCommitted = false;
+	bLootGenerated = false;
+	bDeathPresentationActive = false;
+	DeathCell = FIntPoint::ZeroValue;
+	GeneratedLoot.Reset();
+	PlacedLootCount = 0;
+	FailedLootCount = 0;
+	LogicalDeathEventCount = 0;
+	LinkExecutionAttemptCount = 0;
 }
 
-void UGridMonsterDeathComponent::GenerateAndPlaceLoot ()
+void UGridMonsterDeathComponent::GenerateAndPlaceLoot()
 {
-    if (bLootGenerated)
-    {
-        return;
-    }
-    bLootGenerated = true;
+	if (bLootGenerated)
+	{
+		return;
+	}
+	bLootGenerated = true;
 
-    if (!OwnerMonster || !OwnerMonster->MonsterDefinition)
-    {
-        return;
-    }
+	if (!OwnerMonster || !OwnerMonster->MonsterDefinition)
+	{
+		return;
+	}
 
-    const TArray<FGridMonsterLootEntry>& LootTable =
-        OwnerMonster->MonsterDefinition->LootTable;
-    const TArray<FGridMonsterLootRollResult> Results =
-        FGridMonsterLootResolver::ResolveLoot (
-            LootTable,
-            BuildMON8LootSeed (OwnerMonster));
-    int32 DroppedLootCount = 0;
+	const TArray<FGridMonsterLootEntry>& LootTable = OwnerMonster->MonsterDefinition->LootTable;
+	const TArray<FGridMonsterLootRollResult> Results = FGridMonsterLootResolver::ResolveLoot(LootTable, BuildMON8LootSeed(OwnerMonster));
+	int32 DroppedLootCount = 0;
 
-    for (const FGridMonsterLootRollResult& Result : Results)
-    {
-        const float DropChance = LootTable.IsValidIndex (Result.EntryIndex)
-            ? LootTable[Result.EntryIndex].DropChance
-            : 0.0f;
-        UE_LOG (LogGridMonsterLoot, Log,
-            TEXT ("[GridMonsterLoot] Roll Monster=%s Entry=%d Item=%s Chance=%.3f Roll=%.3f Dropped=%s Quantity=%d"),
-            *GetNameSafe (OwnerMonster),
-            Result.EntryIndex,
-            *Result.ItemDefinitionId.ToString (),
-            DropChance,
-            Result.DropRoll,
-            Result.bDropped ? TEXT ("true") : TEXT ("false"),
-            Result.Quantity);
+	for (const FGridMonsterLootRollResult& Result : Results)
+	{
+		const float DropChance = LootTable.IsValidIndex(Result.EntryIndex) ? LootTable[Result.EntryIndex].DropChance : 0.0f;
+		UE_LOG(LogGridMonsterLoot, Log, TEXT("[GridMonsterLoot] Roll Monster=%s Entry=%d Item=%s Chance=%.3f Roll=%.3f Dropped=%s Quantity=%d"),
+			*GetNameSafe(OwnerMonster), Result.EntryIndex, *Result.ItemDefinitionId.ToString(), DropChance, Result.DropRoll,
+			Result.bDropped ? TEXT("true") : TEXT("false"), Result.Quantity);
 
-        if (!Result.bDropped)
-        {
-            UE_LOG (LogGridMonsterLoot, Log,
-                TEXT ("[GridMonsterLoot] NoDrop Monster=%s Entry=%d Item=%s Chance=%.3f Roll=%.3f"),
-                *GetNameSafe (OwnerMonster),
-                Result.EntryIndex,
-                *Result.ItemDefinitionId.ToString (),
-                DropChance,
-                Result.DropRoll);
-            continue;
-        }
+		if (!Result.bDropped)
+		{
+			UE_LOG(LogGridMonsterLoot, Log, TEXT("[GridMonsterLoot] NoDrop Monster=%s Entry=%d Item=%s Chance=%.3f Roll=%.3f"), *GetNameSafe(OwnerMonster),
+				Result.EntryIndex, *Result.ItemDefinitionId.ToString(), DropChance, Result.DropRoll);
+			continue;
+		}
 
-        ++DroppedLootCount;
-        if (!LootTable.IsValidIndex (Result.EntryIndex))
-        {
-            ++FailedLootCount;
-            continue;
-        }
+		++DroppedLootCount;
+		if (!LootTable.IsValidIndex(Result.EntryIndex))
+		{
+			++FailedLootCount;
+			continue;
+		}
 
-        const FGridMonsterLootEntry& Entry =
-            LootTable[Result.EntryIndex];
-        UGridItemDefinitionAsset* ItemDefinition =
-            Entry.ItemDefinitionAsset;
+		const FGridMonsterLootEntry& Entry = LootTable[Result.EntryIndex];
+		UGridItemDefinitionAsset* ItemDefinition = Entry.ItemDefinitionAsset;
 
-        FGridItemInstance ItemInstance;
-        ItemInstance.RuntimeObjectId = FGuid::NewGuid ();
-        ItemInstance.ItemDefinitionId = Result.ItemDefinitionId;
-        ItemInstance.DisplayName = ItemDefinition
-            ? ItemDefinition->DisplayName
-            : FText::FromName (Result.ItemDefinitionId);
-        ItemInstance.Quantity = Result.Quantity;
-        ItemInstance.Weight =
-            ItemDefinition ? ItemDefinition->Weight : 0.0f;
-        ItemInstance.OwnerType = EGridItemOwnerType::World;
-        ItemInstance.OwnerGuid = FGuid ();
-        ItemInstance.OwnerCharacterIndex = INDEX_NONE;
-        ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
-        ItemInstance.bLightsEnabled =
-            ItemDefinition && ItemDefinition->bDefaultLightEnabled;
+		FGridItemInstance ItemInstance;
+		ItemInstance.RuntimeObjectId = FGuid::NewGuid();
+		ItemInstance.ItemDefinitionId = Result.ItemDefinitionId;
+		ItemInstance.DisplayName = ItemDefinition ? ItemDefinition->DisplayName : FText::FromName(Result.ItemDefinitionId);
+		ItemInstance.Quantity = Result.Quantity;
+		ItemInstance.Weight = ItemDefinition ? ItemDefinition->Weight : 0.0f;
+		ItemInstance.OwnerType = EGridItemOwnerType::World;
+		ItemInstance.OwnerGuid = FGuid();
+		ItemInstance.OwnerCharacterIndex = INDEX_NONE;
+		ItemInstance.EquipmentSlot = EGridEquipmentSlot::None;
+		ItemInstance.bLightsEnabled = ItemDefinition && ItemDefinition->bDefaultLightEnabled;
 
-        const FVector LocalOffset =
-            GetMON8LootLocalOffset (PlacedLootCount);
-        if (RuntimeActor)
-        {
-            ItemInstance.LastWorldTransform = FTransform (
-                FRotator::ZeroRotator,
-                RuntimeActor->GetCellCenterWorld (
-                    DeathCell.X,
-                    DeathCell.Y,
-                    12.0f) + LocalOffset,
-                FVector::OneVector);
-        }
+		const FVector LocalOffset = GetMON8LootLocalOffset(PlacedLootCount);
+		if (RuntimeActor)
+		{
+			ItemInstance.LastWorldTransform =
+				FTransform(FRotator::ZeroRotator, RuntimeActor->GetCellCenterWorld(DeathCell.X, DeathCell.Y, 12.0f) + LocalOffset, FVector::OneVector);
+		}
 
-        const bool bPlaced = RuntimeActor &&
-            RuntimeActor->TryDropItemInstanceAtCell (
-                ItemInstance,
-                ItemDefinition,
-                DeathCell.X,
-                DeathCell.Y,
-                EGridEdge::None,
-                LocalOffset);
-        if (!bPlaced)
-        {
-            ++FailedLootCount;
-            UE_LOG (LogGridMonsterLoot, Warning,
-                TEXT ("[GridMonsterLoot] PlacementFailed Monster=%s Item=%s Cell=(%d,%d) Reason=%s"),
-                *GetNameSafe (OwnerMonster),
-                *Result.ItemDefinitionId.ToString (),
-                DeathCell.X,
-                DeathCell.Y,
-                RuntimeActor
-                    ? TEXT ("UnresolvedDefinitionOrInvalidCell")
-                    : TEXT ("MissingRuntimeActor"));
-            continue;
-        }
+		const bool bPlaced =
+			RuntimeActor && RuntimeActor->TryDropItemInstanceAtCell(ItemInstance, ItemDefinition, DeathCell.X, DeathCell.Y, EGridEdge::None, LocalOffset);
+		if (!bPlaced)
+		{
+			++FailedLootCount;
+			UE_LOG(LogGridMonsterLoot, Warning, TEXT("[GridMonsterLoot] PlacementFailed Monster=%s Item=%s Cell=(%d,%d) Reason=%s"), *GetNameSafe(OwnerMonster),
+				*Result.ItemDefinitionId.ToString(), DeathCell.X, DeathCell.Y,
+				RuntimeActor ? TEXT("UnresolvedDefinitionOrInvalidCell") : TEXT("MissingRuntimeActor"));
+			continue;
+		}
 
-        GeneratedLoot.Add (ItemInstance);
-        ++PlacedLootCount;
-        UE_LOG (LogGridMonsterLoot, Log,
-            TEXT ("[GridMonsterLoot] Placed Monster=%s Item=%s Quantity=%d Cell=(%d,%d) RuntimeId=%s"),
-            *GetNameSafe (OwnerMonster),
-            *Result.ItemDefinitionId.ToString (),
-            Result.Quantity,
-            DeathCell.X,
-            DeathCell.Y,
-            *ItemInstance.RuntimeObjectId.ToString ());
-    }
+		GeneratedLoot.Add(ItemInstance);
+		++PlacedLootCount;
+		UE_LOG(LogGridMonsterLoot, Log, TEXT("[GridMonsterLoot] Placed Monster=%s Item=%s Quantity=%d Cell=(%d,%d) RuntimeId=%s"), *GetNameSafe(OwnerMonster),
+			*Result.ItemDefinitionId.ToString(), Result.Quantity, DeathCell.X, DeathCell.Y, *ItemInstance.RuntimeObjectId.ToString());
+	}
 
-    UE_LOG (LogGridMonsterLoot, Log,
-        TEXT ("[GridMonsterLoot] Summary Monster=%s Evaluated=%d Dropped=%d Placed=%d Failed=%d"),
-        *GetNameSafe (OwnerMonster),
-        Results.Num (),
-        DroppedLootCount,
-        PlacedLootCount,
-        FailedLootCount);
+	UE_LOG(LogGridMonsterLoot, Log, TEXT("[GridMonsterLoot] Summary Monster=%s Evaluated=%d Dropped=%d Placed=%d Failed=%d"), *GetNameSafe(OwnerMonster),
+		Results.Num(), DroppedLootCount, PlacedLootCount, FailedLootCount);
 }
 
-void UGridMonsterDeathComponent::StartDeathPresentation ()
+void UGridMonsterDeathComponent::StartDeathPresentation()
 {
-    if (!OwnerMonster || !OwnerMonster->MonsterDefinition)
-    {
-        return;
-    }
+	if (!OwnerMonster || !OwnerMonster->MonsterDefinition)
+	{
+		return;
+	}
 
-    UAnimMontage* Montage =
-        OwnerMonster->MonsterDefinition->DeathMontage.LoadSynchronous ();
-    UAnimInstance* AnimInstance =
-        OwnerMonster->SkeletalMeshComponent
-            ? OwnerMonster->SkeletalMeshComponent->GetAnimInstance ()
-            : nullptr;
-    if (!Montage || !AnimInstance ||
-        AnimInstance->Montage_Play (Montage) <= 0.0f)
-    {
-        bDeathPresentationActive = false;
-        return;
-    }
+	UAnimMontage* Montage = OwnerMonster->MonsterDefinition->DeathMontage.LoadSynchronous();
+	UAnimInstance* AnimInstance = OwnerMonster->SkeletalMeshComponent ? OwnerMonster->SkeletalMeshComponent->GetAnimInstance() : nullptr;
+	if (!Montage || !AnimInstance || AnimInstance->Montage_Play(Montage) <= 0.0f)
+	{
+		bDeathPresentationActive = false;
+		return;
+	}
 
-    bDeathPresentationActive = true;
-    if (UWorld* World = GetWorld ())
-    {
-        World->GetTimerManager ().SetTimer (
-            DeathPresentationTimerHandle,
-            this,
-            &UGridMonsterDeathComponent::NotifyDeathPresentationComplete,
-            FMath::Max (
-                0.01f,
-                OwnerMonster->MonsterDefinition->DeathExpectedDuration),
-            false);
-    }
+	bDeathPresentationActive = true;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(DeathPresentationTimerHandle, this, &UGridMonsterDeathComponent::NotifyDeathPresentationComplete,
+			FMath::Max(0.01f, OwnerMonster->MonsterDefinition->DeathExpectedDuration), false);
+	}
 }
 
-void UGridMonsterDeathComponent::NotifyDeathPresentationComplete ()
+void UGridMonsterDeathComponent::NotifyDeathPresentationComplete()
 {
-    if (UWorld* World = GetWorld ())
-    {
-        World->GetTimerManager ().ClearTimer (DeathPresentationTimerHandle);
-    }
-    bDeathPresentationActive = false;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeathPresentationTimerHandle);
+	}
+	bDeathPresentationActive = false;
 }
 
-void UGridMonsterDeathComponent::DebugKillMonster ()
+void UGridMonsterDeathComponent::DebugKillMonster()
 {
 #if !UE_BUILD_SHIPPING
-    if (!InitializeDeathComponent (RuntimeActor))
-    {
-        return;
-    }
-    OwnerMonster->MarkDead ();
+	if (!InitializeDeathComponent(RuntimeActor))
+	{
+		return;
+	}
+	OwnerMonster->MarkDead();
 #endif
 }
 
-AGridLevelRuntimeActor* UGridMonsterDeathComponent::FindRuntimeActor () const
+AGridLevelRuntimeActor* UGridMonsterDeathComponent::FindRuntimeActor() const
 {
-    UWorld* World = GetWorld ();
-    if (!World)
-    {
-        return nullptr;
-    }
-    for (TActorIterator<AGridLevelRuntimeActor> It (World); It; ++It)
-    {
-        return *It;
-    }
-    return nullptr;
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+	for (TActorIterator<AGridLevelRuntimeActor> It(World); It; ++It)
+	{
+		return *It;
+	}
+	return nullptr;
 }

@@ -11,6 +11,5 @@
 class GRIMROCKPROTOTYPE_API FGridStatusEffectControlResolver
 {
 public:
-    static FGridStatusEffectControlProfile Resolve (
-        const FGridStatusEffectCollection& StatusEffects);
+	static FGridStatusEffectControlProfile Resolve(const FGridStatusEffectCollection& StatusEffects);
 };

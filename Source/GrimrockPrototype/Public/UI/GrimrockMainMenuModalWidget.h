@@ -15,22 +15,22 @@ class UButton;
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockMainMenuModalWidget : public UUserWidget
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, Category = "Main Menu|Modal")
-    void CloseModal();
+	UFUNCTION(BlueprintCallable, Category = "Main Menu|Modal")
+	void CloseModal();
 
 protected:
-    virtual void NativeConstruct() override;
+	virtual void NativeConstruct() override;
 
 private:
-    void BindButtons();
+	void BindButtons();
 
-    UFUNCTION()
-    void HandleBackClicked();
+	UFUNCTION()
+	void HandleBackClicked();
 
 private:
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UButton> Button_Back;
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_Back;
 };

@@ -2,10 +2,10 @@
 
 #include "Components/TextBlock.h"
 
-void UReadableMessageWidget::SetReadableText (const FText& InText)
+void UReadableMessageWidget::SetReadableText(const FText& InText)
 {
-    if (ReadableTextBlock)
-    {
-        ReadableTextBlock->SetText (InText);
-    }
+	if (ReadableTextBlock)
+	{
+		ReadableTextBlock->SetText(InText);
+	}
 }

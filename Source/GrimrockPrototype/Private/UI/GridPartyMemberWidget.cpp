@@ -6,136 +6,129 @@
 #include "Engine/Texture2D.h"
 #include "RPG/RPGClassVisualAsset.h"
 
-void UGridPartyMemberWidget::InitializePartyMember (int32 InCharacterIndex)
+void UGridPartyMemberWidget::InitializePartyMember(int32 InCharacterIndex)
 {
-    CharacterIndex = InCharacterIndex;
+	CharacterIndex = InCharacterIndex;
 }
 
-void UGridPartyMemberWidget::SetCharacterSummary (const FGridInventoryCharacterSummary& InSummary)
+void UGridPartyMemberWidget::SetCharacterSummary(const FGridInventoryCharacterSummary& InSummary)
 {
-    CachedSummary = InSummary;
-    CharacterIndex = InSummary.CharacterIndex;
-    RefreshBoundMemberFields ();
-    RefreshBoundMemberVisuals ();
-    RefreshMemberVisual ();
+	CachedSummary = InSummary;
+	CharacterIndex = InSummary.CharacterIndex;
+	RefreshBoundMemberFields();
+	RefreshBoundMemberVisuals();
+	RefreshMemberVisual();
 }
 
-void UGridPartyMemberWidget::SetAvailableClassVisuals (
-    const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals)
+void UGridPartyMemberWidget::SetAvailableClassVisuals(const TArray<URPGClassVisualAsset*>& InAvailableClassVisuals)
 {
-    AvailableClassVisuals.Reset ();
-    for (URPGClassVisualAsset* ClassVisual : InAvailableClassVisuals)
-    {
-        if (ClassVisual)
-        {
-            AvailableClassVisuals.Add (ClassVisual);
-        }
-    }
-    RefreshBoundMemberVisuals ();
+	AvailableClassVisuals.Reset();
+	for (URPGClassVisualAsset* ClassVisual : InAvailableClassVisuals)
+	{
+		if (ClassVisual)
+		{
+			AvailableClassVisuals.Add(ClassVisual);
+		}
+	}
+	RefreshBoundMemberVisuals();
 }
 
-FString UGridPartyMemberWidget::GetDisplayNameText () const
+FString UGridPartyMemberWidget::GetDisplayNameText() const
 {
-    const FString NameText = CachedSummary.DisplayName.IsEmpty ()
-        ? FString::Printf (TEXT ("Hero_%02d"), CharacterIndex + 1)
-        : CachedSummary.DisplayName.ToString ();
-    return NameText;
+	const FString NameText =
+		CachedSummary.DisplayName.IsEmpty() ? FString::Printf(TEXT("Hero_%02d"), CharacterIndex + 1) : CachedSummary.DisplayName.ToString();
+	return NameText;
 }
 
-FString UGridPartyMemberWidget::GetClassLevelText () const
+FString UGridPartyMemberWidget::GetClassLevelText() const
 {
-    const FString ClassText = CachedSummary.ClassDisplayName.IsEmpty ()
-        ? (CachedSummary.ClassId.IsNone () ? FString (TEXT ("Classe inconnue")) : CachedSummary.ClassId.ToString ())
-        : CachedSummary.ClassDisplayName.ToString ();
-    return FString::Printf (TEXT ("%s - Niv. %d"), *ClassText, CachedSummary.Level);
+	const FString ClassText = CachedSummary.ClassDisplayName.IsEmpty()
+		? (CachedSummary.ClassId.IsNone() ? FString(TEXT("Classe inconnue")) : CachedSummary.ClassId.ToString())
+		: CachedSummary.ClassDisplayName.ToString();
+	return FString::Printf(TEXT("%s - Niv. %d"), *ClassText, CachedSummary.Level);
 }
 
-FString UGridPartyMemberWidget::GetWeightText () const
+FString UGridPartyMemberWidget::GetWeightText() const
 {
-    return FString::Printf (
-        TEXT ("Charge %.1f / %.1f"),
-        CachedSummary.CurrentWeight,
-        CachedSummary.MaxWeight);
+	return FString::Printf(TEXT("Charge %.1f / %.1f"), CachedSummary.CurrentWeight, CachedSummary.MaxWeight);
 }
 
-bool UGridPartyMemberWidget::IsSelected () const
+bool UGridPartyMemberWidget::IsSelected() const
 {
-    return CachedSummary.bIsSelected;
+	return CachedSummary.bIsSelected;
 }
 
-void UGridPartyMemberWidget::HandleClicked ()
+void UGridPartyMemberWidget::HandleClicked()
 {
-    OnPartyMemberClicked.Broadcast (CharacterIndex);
+	OnPartyMemberClicked.Broadcast(CharacterIndex);
 }
 
-void UGridPartyMemberWidget::RefreshMemberVisual_Implementation ()
+void UGridPartyMemberWidget::RefreshMemberVisual_Implementation()
 {
 }
 
-const URPGClassVisualAsset* UGridPartyMemberWidget::FindClassVisualForCachedClass () const
+const URPGClassVisualAsset* UGridPartyMemberWidget::FindClassVisualForCachedClass() const
 {
-    if (CachedSummary.ClassId.IsNone ())
-    {
-        return nullptr;
-    }
+	if (CachedSummary.ClassId.IsNone())
+	{
+		return nullptr;
+	}
 
-    for (const URPGClassVisualAsset* ClassVisual : AvailableClassVisuals)
-    {
-        if (ClassVisual && ClassVisual->IsValidForClass (CachedSummary.ClassId))
-        {
-            return ClassVisual;
-        }
-    }
+	for (const URPGClassVisualAsset* ClassVisual : AvailableClassVisuals)
+	{
+		if (ClassVisual && ClassVisual->IsValidForClass(CachedSummary.ClassId))
+		{
+			return ClassVisual;
+		}
+	}
 
-    return nullptr;
+	return nullptr;
 }
 
-void UGridPartyMemberWidget::RefreshBoundMemberFields ()
+void UGridPartyMemberWidget::RefreshBoundMemberFields()
 {
-    if (Text_Name)
-    {
-        Text_Name->SetText (FText::FromString (GetDisplayNameText ()));
-    }
-    if (Text_ClassLevel)
-    {
-        Text_ClassLevel->SetText (FText::FromString (GetClassLevelText ()));
-    }
-    if (Text_Weight)
-    {
-        Text_Weight->SetText (FText::FromString (GetWeightText ()));
-    }
+	if (Text_Name)
+	{
+		Text_Name->SetText(FText::FromString(GetDisplayNameText()));
+	}
+	if (Text_ClassLevel)
+	{
+		Text_ClassLevel->SetText(FText::FromString(GetClassLevelText()));
+	}
+	if (Text_Weight)
+	{
+		Text_Weight->SetText(FText::FromString(GetWeightText()));
+	}
 }
 
-void UGridPartyMemberWidget::RefreshBoundMemberVisuals ()
+void UGridPartyMemberWidget::RefreshBoundMemberVisuals()
 {
-    const URPGClassVisualAsset* ClassVisual = FindClassVisualForCachedClass ();
-    const TSoftObjectPtr<UTexture2D> ClassIcon = ClassVisual && !ClassVisual->ClassIcon.IsNull ()
-        ? ClassVisual->ClassIcon
-        : CachedSummary.ClassIcon;
+	const URPGClassVisualAsset* ClassVisual = FindClassVisualForCachedClass();
+	const TSoftObjectPtr<UTexture2D> ClassIcon = ClassVisual && !ClassVisual->ClassIcon.IsNull() ? ClassVisual->ClassIcon : CachedSummary.ClassIcon;
 
-    if (Image_ClassIcon)
-    {
-        if (ClassIcon.IsNull ())
-        {
-            Image_ClassIcon->SetVisibility (ESlateVisibility::Collapsed);
-        }
-        else
-        {
-            Image_ClassIcon->SetBrushFromSoftTexture (ClassIcon, false);
-            Image_ClassIcon->SetVisibility (ESlateVisibility::HitTestInvisible);
-        }
-    }
+	if (Image_ClassIcon)
+	{
+		if (ClassIcon.IsNull())
+		{
+			Image_ClassIcon->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			Image_ClassIcon->SetBrushFromSoftTexture(ClassIcon, false);
+			Image_ClassIcon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
 
-    if (Border_ClassAccent)
-    {
-        if (!ClassVisual)
-        {
-            Border_ClassAccent->SetVisibility (ESlateVisibility::Collapsed);
-        }
-        else
-        {
-            Border_ClassAccent->SetBrushColor (ClassVisual->AccentColor);
-            Border_ClassAccent->SetVisibility (ESlateVisibility::HitTestInvisible);
-        }
-    }
+	if (Border_ClassAccent)
+	{
+		if (!ClassVisual)
+		{
+			Border_ClassAccent->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			Border_ClassAccent->SetBrushColor(ClassVisual->AccentColor);
+			Border_ClassAccent->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
 }

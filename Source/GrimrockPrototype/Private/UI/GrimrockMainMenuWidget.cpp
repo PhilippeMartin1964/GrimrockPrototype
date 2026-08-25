@@ -7,223 +7,221 @@
 
 void UGrimrockMainMenuWidget::NativeConstruct()
 {
-    Super::NativeConstruct();
+	Super::NativeConstruct();
 
-    BindMainMenuButtons();
-    RefreshSaveAvailabilityFromGameInstance();
-    RefreshButtonStates();
+	BindMainMenuButtons();
+	RefreshSaveAvailabilityFromGameInstance();
+	RefreshButtonStates();
 }
 
 void UGrimrockMainMenuWidget::SetHasValidSaveGame(bool bInHasValidSaveGame)
 {
-    bHasValidSaveGame = bInHasValidSaveGame;
-    bHasLoadableSaveSlot = bInHasValidSaveGame;
-    RefreshButtonStates();
+	bHasValidSaveGame = bInHasValidSaveGame;
+	bHasLoadableSaveSlot = bInHasValidSaveGame;
+	RefreshButtonStates();
 }
 
 bool UGrimrockMainMenuWidget::HasValidSaveGame() const
 {
-    return bHasValidSaveGame;
+	return bHasValidSaveGame;
 }
 
 void UGrimrockMainMenuWidget::RefreshButtonStates()
 {
-    if (Button_Continue)
-    {
-        Button_Continue->SetIsEnabled(bHasValidSaveGame);
-    }
+	if (Button_Continue)
+	{
+		Button_Continue->SetIsEnabled(bHasValidSaveGame);
+	}
 
-    if (Button_LoadGame)
-    {
-        Button_LoadGame->SetIsEnabled(bHasLoadableSaveSlot);
-    }
+	if (Button_LoadGame)
+	{
+		Button_LoadGame->SetIsEnabled(bHasLoadableSaveSlot);
+	}
 }
 
 bool UGrimrockMainMenuWidget::OpenOptionsMenu()
 {
-    return OpenMainMenuModal(OptionsMenuWidgetClass, TEXT("NoOptionsMenuWidgetClass"));
+	return OpenMainMenuModal(OptionsMenuWidgetClass, TEXT("NoOptionsMenuWidgetClass"));
 }
 
 bool UGrimrockMainMenuWidget::OpenCreditsMenu()
 {
-    return OpenMainMenuModal(CreditsMenuWidgetClass, TEXT("NoCreditsMenuWidgetClass"));
+	return OpenMainMenuModal(CreditsMenuWidgetClass, TEXT("NoCreditsMenuWidgetClass"));
 }
 
 bool UGrimrockMainMenuWidget::OpenLicenseMenu()
 {
-    return OpenMainMenuModal(LicenseMenuWidgetClass, TEXT("NoLicenseMenuWidgetClass"));
+	return OpenMainMenuModal(LicenseMenuWidgetClass, TEXT("NoLicenseMenuWidgetClass"));
 }
 
 void UGrimrockMainMenuWidget::QuitMainMenu()
 {
-    APlayerController* PlayerController = GetOwningPlayer();
-    if (!PlayerController && GetWorld())
-    {
-        PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    }
+	APlayerController* PlayerController = GetOwningPlayer();
+	if (!PlayerController && GetWorld())
+	{
+		PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	}
 
-    UE_LOG(LogTemp, Log, TEXT("MainMenu Quit Requested Widget=%s"), *GetName());
-    UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
+	UE_LOG(LogTemp, Log, TEXT("MainMenu Quit Requested Widget=%s"), *GetName());
+	UKismetSystemLibrary::QuitGame(this, PlayerController, EQuitPreference::Quit, false);
 }
 
 void UGrimrockMainMenuWidget::BindMainMenuButtons()
 {
-    if (Button_Continue)
-    {
-        Button_Continue->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleContinueClicked);
-        Button_Continue->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleContinueClicked);
-    }
+	if (Button_Continue)
+	{
+		Button_Continue->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleContinueClicked);
+		Button_Continue->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleContinueClicked);
+	}
 
-    if (Button_NewGame)
-    {
-        Button_NewGame->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleNewGameClicked);
-        Button_NewGame->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleNewGameClicked);
-    }
+	if (Button_NewGame)
+	{
+		Button_NewGame->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleNewGameClicked);
+		Button_NewGame->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleNewGameClicked);
+	}
 
-    if (Button_LoadGame)
-    {
-        Button_LoadGame->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleLoadGameClicked);
-        Button_LoadGame->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleLoadGameClicked);
-    }
+	if (Button_LoadGame)
+	{
+		Button_LoadGame->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleLoadGameClicked);
+		Button_LoadGame->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleLoadGameClicked);
+	}
 
-    if (Button_Options)
-    {
-        Button_Options->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleOptionsClicked);
-        Button_Options->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleOptionsClicked);
-    }
+	if (Button_Options)
+	{
+		Button_Options->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleOptionsClicked);
+		Button_Options->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleOptionsClicked);
+	}
 
-    if (Button_Credits)
-    {
-        Button_Credits->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleCreditsClicked);
-        Button_Credits->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleCreditsClicked);
-    }
+	if (Button_Credits)
+	{
+		Button_Credits->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleCreditsClicked);
+		Button_Credits->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleCreditsClicked);
+	}
 
-    if (Button_License)
-    {
-        Button_License->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleLicenseClicked);
-        Button_License->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleLicenseClicked);
-    }
+	if (Button_License)
+	{
+		Button_License->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleLicenseClicked);
+		Button_License->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleLicenseClicked);
+	}
 
-    if (Button_Quit)
-    {
-        Button_Quit->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleQuitClicked);
-        Button_Quit->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleQuitClicked);
-    }
+	if (Button_Quit)
+	{
+		Button_Quit->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuWidget::HandleQuitClicked);
+		Button_Quit->OnClicked.AddDynamic(this, &UGrimrockMainMenuWidget::HandleQuitClicked);
+	}
 }
 
 void UGrimrockMainMenuWidget::RefreshSaveAvailabilityFromGameInstance()
 {
-    const UGrimrockGameInstance* GrimrockGameInstance = GetWorld()
-        ? GetWorld()->GetGameInstance<UGrimrockGameInstance>()
-        : nullptr;
+	const UGrimrockGameInstance* GrimrockGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UGrimrockGameInstance>() : nullptr;
 
-    if (!GrimrockGameInstance)
-    {
-        bHasValidSaveGame = false;
-        bHasLoadableSaveSlot = false;
-        return;
-    }
+	if (!GrimrockGameInstance)
+	{
+		bHasValidSaveGame = false;
+		bHasLoadableSaveSlot = false;
+		return;
+	}
 
-    bHasValidSaveGame = GrimrockGameInstance->HasDefaultPartySaveGame();
-    bHasLoadableSaveSlot = GrimrockGameInstance->GetExistingPartySaveSlotInfos().Num() > 0;
+	bHasValidSaveGame = GrimrockGameInstance->HasDefaultPartySaveGame();
+	bHasLoadableSaveSlot = GrimrockGameInstance->GetExistingPartySaveSlotInfos().Num() > 0;
 }
 
 bool UGrimrockMainMenuWidget::OpenMainMenuModal(TSubclassOf<UUserWidget> WidgetClass, const TCHAR* MissingClassReason)
 {
-    if (!WidgetClass)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=%s"), *GetName(), MissingClassReason);
-        return false;
-    }
+	if (!WidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=%s"), *GetName(), MissingClassReason);
+		return false;
+	}
 
-    APlayerController* PlayerController = GetOwningPlayer();
-    if (!PlayerController && GetWorld())
-    {
-        PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    }
+	APlayerController* PlayerController = GetOwningPlayer();
+	if (!PlayerController && GetWorld())
+	{
+		PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	}
 
-    if (!PlayerController)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=NoPlayerController"), *GetName());
-        return false;
-    }
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=NoPlayerController"), *GetName());
+		return false;
+	}
 
-    UUserWidget* ModalWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
-    if (!ModalWidget)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=CreateWidgetFailed Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
-        return false;
-    }
+	UUserWidget* ModalWidget = CreateWidget<UUserWidget>(PlayerController, WidgetClass);
+	if (!ModalWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MainMenu Modal Open Failed Widget=%s Reason=CreateWidgetFailed Class=%s"), *GetName(), *GetNameSafe(WidgetClass));
+		return false;
+	}
 
-    ModalWidget->AddToViewport(ModalZOrder);
-    ModalWidget->SetVisibility(ESlateVisibility::Visible);
+	ModalWidget->AddToViewport(ModalZOrder);
+	ModalWidget->SetVisibility(ESlateVisibility::Visible);
 
-    UE_LOG(LogTemp, Log, TEXT("MainMenu Modal Opened Widget=%s Class=%s ZOrder=%d"), *GetName(), *GetNameSafe(WidgetClass), ModalZOrder);
-    return true;
+	UE_LOG(LogTemp, Log, TEXT("MainMenu Modal Opened Widget=%s Class=%s ZOrder=%d"), *GetName(), *GetNameSafe(WidgetClass), ModalZOrder);
+	return true;
 }
 
 void UGrimrockMainMenuWidget::HandleContinueClicked()
 {
-    if (!bHasValidSaveGame)
-    {
-        return;
-    }
+	if (!bHasValidSaveGame)
+	{
+		return;
+	}
 
-    OnContinueRequested();
+	OnContinueRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleNewGameClicked()
 {
-    OnNewGameRequested();
+	OnNewGameRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleLoadGameClicked()
 {
-    if (!bHasLoadableSaveSlot)
-    {
-        return;
-    }
+	if (!bHasLoadableSaveSlot)
+	{
+		return;
+	}
 
-    OnLoadGameRequested();
+	OnLoadGameRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleOptionsClicked()
 {
-    if (OpenOptionsMenu())
-    {
-        return;
-    }
+	if (OpenOptionsMenu())
+	{
+		return;
+	}
 
-    OnOptionsRequested();
+	OnOptionsRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleCreditsClicked()
 {
-    if (OpenCreditsMenu())
-    {
-        return;
-    }
+	if (OpenCreditsMenu())
+	{
+		return;
+	}
 
-    OnCreditsRequested();
+	OnCreditsRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleLicenseClicked()
 {
-    if (OpenLicenseMenu())
-    {
-        return;
-    }
+	if (OpenLicenseMenu())
+	{
+		return;
+	}
 
-    OnLicenseRequested();
+	OnLicenseRequested();
 }
 
 void UGrimrockMainMenuWidget::HandleQuitClicked()
 {
-    if (bQuitDirectlyFromMainMenu)
-    {
-        QuitMainMenu();
-        return;
-    }
+	if (bQuitDirectlyFromMainMenu)
+	{
+		QuitMainMenu();
+		return;
+	}
 
-    OnQuitRequested();
+	OnQuitRequested();
 }

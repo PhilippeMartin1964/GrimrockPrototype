@@ -5,27 +5,27 @@
 #include "Core/GridObjectArchetypeAsset.h"
 #include "GridMechanismActor.generated.h"
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API AGridMechanismActor : public AGridRuntimeObjectActor
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    AGridMechanismActor ();
-    virtual void InitializeMechanismVisuals (const FGridLevelObjectData& ObjectData,
-        const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);
+	AGridMechanismActor();
+	virtual void InitializeMechanismVisuals(
+		const FGridLevelObjectData& ObjectData, const UGridObjectArchetypeAsset* Archetype, const FTransform& WorldTransform);
 
 protected:
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
-    TObjectPtr<UStaticMeshComponent> FixedMeshComponent = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
+	TObjectPtr<UStaticMeshComponent> FixedMeshComponent = nullptr;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
-    TObjectPtr<UStaticMeshComponent> MovingMeshComponent = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mechanism")
+	TObjectPtr<UStaticMeshComponent> MovingMeshComponent = nullptr;
 
 protected:
-    void SetFixedMesh (UStaticMesh* Mesh, UMaterialInterface* Material);
-    void SetMovingMesh (UStaticMesh* Mesh, UMaterialInterface* Material);
+	void SetFixedMesh(UStaticMesh* Mesh, UMaterialInterface* Material);
+	void SetMovingMesh(UStaticMesh* Mesh, UMaterialInterface* Material);
 
-    void SetMovingRelativeLocation (const FVector& RelativeLocation);
-    FVector GetMovingRelativeLocation () const;
+	void SetMovingRelativeLocation(const FVector& RelativeLocation);
+	FVector GetMovingRelativeLocation() const;
 };

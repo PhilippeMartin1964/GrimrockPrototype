@@ -2,324 +2,198 @@
 
 #define LOCTEXT_NAMESPACE "GridCombatLog"
 
-DEFINE_LOG_CATEGORY (LogGridCombat);
+DEFINE_LOG_CATEGORY(LogGridCombat);
 
 namespace
 {
-    FText FormatAttackLead (
-        const FText& SourceName,
-        const FText& TargetName,
-        FName AttackId,
-        const FText& Pattern)
-    {
-        FFormatNamedArguments Arguments;
-        Arguments.Add (TEXT ("Source"), SourceName);
-        Arguments.Add (TEXT ("Target"), TargetName);
-        Arguments.Add (TEXT ("Attack"), FText::FromName (AttackId));
-        return FText::Format (Pattern, Arguments);
-    }
+	FText FormatAttackLead(const FText& SourceName, const FText& TargetName, FName AttackId, const FText& Pattern)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("Source"), SourceName);
+		Arguments.Add(TEXT("Target"), TargetName);
+		Arguments.Add(TEXT("Attack"), FText::FromName(AttackId));
+		return FText::Format(Pattern, Arguments);
+	}
 
-    FText FormatAppliedDamage (const FGridAttackResult& Result)
-    {
-        TArray<FText> Parts;
-        if (Result.PhysicalArmorDamage > 0)
-        {
-            Parts.Add (FText::Format (
-                LOCTEXT ("PhysicalArmorDamage", "{0} armure physique"),
-                FText::AsNumber (Result.PhysicalArmorDamage)));
-        }
-        if (Result.MagicalArmorDamage > 0)
-        {
-            Parts.Add (FText::Format (
-                LOCTEXT ("MagicalArmorDamage", "{0} armure magique"),
-                FText::AsNumber (Result.MagicalArmorDamage)));
-        }
-        if (Result.HealthDamage > 0)
-        {
-            Parts.Add (FText::Format (
-                LOCTEXT ("HealthDamage", "{0} PV"),
-                FText::AsNumber (Result.HealthDamage)));
-        }
+	FText FormatAppliedDamage(const FGridAttackResult& Result)
+	{
+		TArray<FText> Parts;
+		if (Result.PhysicalArmorDamage > 0)
+		{
+			Parts.Add(FText::Format(LOCTEXT("PhysicalArmorDamage", "{0} armure physique"), FText::AsNumber(Result.PhysicalArmorDamage)));
+		}
+		if (Result.MagicalArmorDamage > 0)
+		{
+			Parts.Add(FText::Format(LOCTEXT("MagicalArmorDamage", "{0} armure magique"), FText::AsNumber(Result.MagicalArmorDamage)));
+		}
+		if (Result.HealthDamage > 0)
+		{
+			Parts.Add(FText::Format(LOCTEXT("HealthDamage", "{0} PV"), FText::AsNumber(Result.HealthDamage)));
+		}
 
-        FText DamageBreakdown;
-        if (Parts.Num () == 1 && Result.HealthDamage > 0)
-        {
-            DamageBreakdown = FText::Format (
-                LOCTEXT ("HealthOnlyDamage", "{0} dégâts"),
-                FText::AsNumber (Result.HealthDamage));
-        }
-        else
-        {
-            DamageBreakdown = FText::Join (
-                LOCTEXT ("DamageSeparator", ", "),
-                Parts);
-        }
+		FText DamageBreakdown;
+		if (Parts.Num() == 1 && Result.HealthDamage > 0)
+		{
+			DamageBreakdown = FText::Format(LOCTEXT("HealthOnlyDamage", "{0} dégâts"), FText::AsNumber(Result.HealthDamage));
+		}
+		else
+		{
+			DamageBreakdown = FText::Join(LOCTEXT("DamageSeparator", ", "), Parts);
+		}
 
-        if (Result.HealthDamage > 0)
-        {
-            FFormatNamedArguments Arguments;
-            Arguments.Add (TEXT ("Damage"), DamageBreakdown);
-            Arguments.Add (
-                TEXT ("Before"),
-                FText::AsNumber (Result.TargetHealthBefore));
-            Arguments.Add (
-                TEXT ("After"),
-                FText::AsNumber (Result.TargetHealthAfter));
-            return FText::Format (
-                LOCTEXT (
-                    "DamageWithHealth",
-                    "{Damage}, {Before} → {After} PV"),
-                Arguments);
-        }
+		if (Result.HealthDamage > 0)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Damage"), DamageBreakdown);
+			Arguments.Add(TEXT("Before"), FText::AsNumber(Result.TargetHealthBefore));
+			Arguments.Add(TEXT("After"), FText::AsNumber(Result.TargetHealthAfter));
+			return FText::Format(LOCTEXT("DamageWithHealth", "{Damage}, {Before} → {After} PV"), Arguments);
+		}
 
-        const int32 TotalDamage = Result.GetTotalAppliedDamage ();
-        return TotalDamage > 0
-            ? FText::Format (
-                LOCTEXT (
-                    "ArmorAbsorbedDamage",
-                    "{0} dégâts absorbés par l'armure"),
-                FText::AsNumber (TotalDamage))
-            : LOCTEXT ("NoAppliedDamage", "aucun dégât appliqué");
-    }
+		const int32 TotalDamage = Result.GetTotalAppliedDamage();
+		return TotalDamage > 0 ? FText::Format(LOCTEXT("ArmorAbsorbedDamage", "{0} dégâts absorbés par l'armure"), FText::AsNumber(TotalDamage))
+							   : LOCTEXT("NoAppliedDamage", "aucun dégât appliqué");
+	}
 
-    FText FormatStatusStateSuffix (
-        int32 StackCount,
-        const FText& DurationText)
-    {
-        if (StackCount > 1)
-        {
-            FFormatNamedArguments Arguments;
-            Arguments.Add (TEXT ("Stacks"), FText::AsNumber (StackCount));
-            Arguments.Add (TEXT ("Duration"), DurationText);
-            return FText::Format (
-                LOCTEXT (
-                    "StatusStateWithStacks",
-                    "{Stacks} stacks, {Duration}"),
-                Arguments);
-        }
-        return DurationText;
-    }
+	FText FormatStatusStateSuffix(int32 StackCount, const FText& DurationText)
+	{
+		if (StackCount > 1)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("Stacks"), FText::AsNumber(StackCount));
+			Arguments.Add(TEXT("Duration"), DurationText);
+			return FText::Format(LOCTEXT("StatusStateWithStacks", "{Stacks} stacks, {Duration}"), Arguments);
+		}
+		return DurationText;
+	}
 }
 
-FText FGridCombatLogFormatter::FormatCombatStarted ()
+FText FGridCombatLogFormatter::FormatCombatStarted()
 {
-    return LOCTEXT ("CombatStarted", "Le combat commence.");
+	return LOCTEXT("CombatStarted", "Le combat commence.");
 }
 
-FText FGridCombatLogFormatter::FormatRoundStarted (int32 RoundNumber)
+FText FGridCombatLogFormatter::FormatRoundStarted(int32 RoundNumber)
 {
-    return FText::Format (
-        LOCTEXT ("RoundStarted", "Manche {0}."),
-        FText::AsNumber (RoundNumber));
+	return FText::Format(LOCTEXT("RoundStarted", "Manche {0}."), FText::AsNumber(RoundNumber));
 }
 
-FText FGridCombatLogFormatter::FormatPhaseChanged (EGridCombatPhase Phase)
+FText FGridCombatLogFormatter::FormatPhaseChanged(EGridCombatPhase Phase)
 {
-    switch (Phase)
-    {
-    case EGridCombatPhase::Exploration:
-        return LOCTEXT ("ExplorationPhase", "Retour à l'exploration.");
-    case EGridCombatPhase::StartingCombat:
-        return LOCTEXT ("StartingCombatPhase", "Préparation du combat.");
-    case EGridCombatPhase::PlayerPhase:
-        return LOCTEXT ("PlayerPhase", "Tour d’un personnage du groupe.");
-    case EGridCombatPhase::EnemyPhase:
-        return LOCTEXT ("EnemyPhase", "Tour d’un ennemi.");
-    case EGridCombatPhase::EndingRound:
-        return LOCTEXT ("EndingRoundPhase", "Fin de la manche.");
-    case EGridCombatPhase::Victory:
-        return FormatCombatEnded (EGridCombatPhase::Victory);
-    case EGridCombatPhase::Defeat:
-        return FormatCombatEnded (EGridCombatPhase::Defeat);
-    default:
-        return FText::GetEmpty ();
-    }
+	switch (Phase)
+	{
+		case EGridCombatPhase::Exploration:
+			return LOCTEXT("ExplorationPhase", "Retour à l'exploration.");
+		case EGridCombatPhase::StartingCombat:
+			return LOCTEXT("StartingCombatPhase", "Préparation du combat.");
+		case EGridCombatPhase::PlayerPhase:
+			return LOCTEXT("PlayerPhase", "Tour d’un personnage du groupe.");
+		case EGridCombatPhase::EnemyPhase:
+			return LOCTEXT("EnemyPhase", "Tour d’un ennemi.");
+		case EGridCombatPhase::EndingRound:
+			return LOCTEXT("EndingRoundPhase", "Fin de la manche.");
+		case EGridCombatPhase::Victory:
+			return FormatCombatEnded(EGridCombatPhase::Victory);
+		case EGridCombatPhase::Defeat:
+			return FormatCombatEnded(EGridCombatPhase::Defeat);
+		default:
+			return FText::GetEmpty();
+	}
 }
 
-FText FGridCombatLogFormatter::FormatMonsterTurnStarted (
-    const FText& MonsterName)
+FText FGridCombatLogFormatter::FormatMonsterTurnStarted(const FText& MonsterName)
 {
-    return FText::Format (
-        LOCTEXT ("MonsterTurnStarted", "Tour de {0}."),
-        MonsterName);
+	return FText::Format(LOCTEXT("MonsterTurnStarted", "Tour de {0}."), MonsterName);
 }
 
-FText FGridCombatLogFormatter::FormatMonsterAttack (
-    const FText& MonsterName,
-    const FText& TargetName,
-    FName AttackId,
-    const FGridAttackResult& Result)
+FText FGridCombatLogFormatter::FormatMonsterAttack(const FText& MonsterName, const FText& TargetName, FName AttackId, const FGridAttackResult& Result)
 {
-    const FText Lead = FormatAttackLead (
-        MonsterName,
-        TargetName,
-        AttackId,
-        LOCTEXT (
-            "MonsterAttackLead",
-            "{Source} attaque {Target} avec {Attack}"));
+	const FText Lead = FormatAttackLead(MonsterName, TargetName, AttackId, LOCTEXT("MonsterAttackLead", "{Source} attaque {Target} avec {Attack}"));
 
-    if (!Result.bHit)
-    {
-        FFormatNamedArguments Arguments;
-        Arguments.Add (TEXT ("Lead"), Lead);
-        Arguments.Add (TEXT ("Roll"), FText::AsNumber (Result.AttackRoll));
-        Arguments.Add (
-            TEXT ("Defense"),
-            FText::AsNumber (Result.DefenseValue));
-        return FText::Format (
-            LOCTEXT (
-                "MonsterAttackMiss",
-                "{Lead} : échec (jet {Roll} contre défense {Defense})."),
-            Arguments);
-    }
+	if (!Result.bHit)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("Lead"), Lead);
+		Arguments.Add(TEXT("Roll"), FText::AsNumber(Result.AttackRoll));
+		Arguments.Add(TEXT("Defense"), FText::AsNumber(Result.DefenseValue));
+		return FText::Format(LOCTEXT("MonsterAttackMiss", "{Lead} : échec (jet {Roll} contre défense {Defense})."), Arguments);
+	}
 
-    FFormatNamedArguments Arguments;
-    Arguments.Add (TEXT ("Lead"), Lead);
-    Arguments.Add (TEXT ("Damage"), FormatAppliedDamage (Result));
-    return Result.bCriticalHit
-        ? FText::Format (
-            LOCTEXT (
-                "MonsterAttackCritical",
-                "{Lead} : coup critique, {Damage}."),
-            Arguments)
-        : FText::Format (
-            LOCTEXT ("MonsterAttackHit", "{Lead} : {Damage}."),
-            Arguments);
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Lead"), Lead);
+	Arguments.Add(TEXT("Damage"), FormatAppliedDamage(Result));
+	return Result.bCriticalHit ? FText::Format(LOCTEXT("MonsterAttackCritical", "{Lead} : coup critique, {Damage}."), Arguments)
+							   : FText::Format(LOCTEXT("MonsterAttackHit", "{Lead} : {Damage}."), Arguments);
 }
 
-FText FGridCombatLogFormatter::FormatPlayerAttack (
-    const FText& CharacterName,
-    const FText& MonsterName,
-    FName AttackId,
-    const FGridAttackResult& Result)
+FText FGridCombatLogFormatter::FormatPlayerAttack(const FText& CharacterName, const FText& MonsterName, FName AttackId, const FGridAttackResult& Result)
 {
-    const FText Lead = FormatAttackLead (
-        CharacterName,
-        MonsterName,
-        AttackId,
-        LOCTEXT (
-            "PlayerAttackLead",
-            "{Source} attaque {Target} avec {Attack}"));
+	const FText Lead = FormatAttackLead(CharacterName, MonsterName, AttackId, LOCTEXT("PlayerAttackLead", "{Source} attaque {Target} avec {Attack}"));
 
-    if (!Result.bHit)
-    {
-        FFormatNamedArguments Arguments;
-        Arguments.Add (TEXT ("Lead"), Lead);
-        Arguments.Add (TEXT ("Roll"), FText::AsNumber (Result.AttackRoll));
-        Arguments.Add (
-            TEXT ("Defense"),
-            FText::AsNumber (Result.DefenseValue));
-        return FText::Format (
-            LOCTEXT (
-                "PlayerAttackMiss",
-                "{Lead} : échec (jet {Roll} contre défense {Defense})."),
-            Arguments);
-    }
+	if (!Result.bHit)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("Lead"), Lead);
+		Arguments.Add(TEXT("Roll"), FText::AsNumber(Result.AttackRoll));
+		Arguments.Add(TEXT("Defense"), FText::AsNumber(Result.DefenseValue));
+		return FText::Format(LOCTEXT("PlayerAttackMiss", "{Lead} : échec (jet {Roll} contre défense {Defense})."), Arguments);
+	}
 
-    FFormatNamedArguments Arguments;
-    Arguments.Add (TEXT ("Lead"), Lead);
-    Arguments.Add (TEXT ("Damage"), FormatAppliedDamage (Result));
-    return Result.bCriticalHit
-        ? FText::Format (
-            LOCTEXT (
-                "PlayerAttackCritical",
-                "{Lead} : coup critique, {Damage}."),
-            Arguments)
-        : FText::Format (
-            LOCTEXT ("PlayerAttackHit", "{Lead} : {Damage}."),
-            Arguments);
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Lead"), Lead);
+	Arguments.Add(TEXT("Damage"), FormatAppliedDamage(Result));
+	return Result.bCriticalHit ? FText::Format(LOCTEXT("PlayerAttackCritical", "{Lead} : coup critique, {Damage}."), Arguments)
+							   : FText::Format(LOCTEXT("PlayerAttackHit", "{Lead} : {Damage}."), Arguments);
 }
 
-FText FGridCombatLogFormatter::FormatCharacterDefeated (
-    const FText& CharacterName)
+FText FGridCombatLogFormatter::FormatCharacterDefeated(const FText& CharacterName)
 {
-    return FText::Format (
-        LOCTEXT ("CharacterDefeated", "{0} est hors combat."),
-        CharacterName);
+	return FText::Format(LOCTEXT("CharacterDefeated", "{0} est hors combat."), CharacterName);
 }
 
-FText FGridCombatLogFormatter::FormatMonsterDefeated (
-    const FText& MonsterName)
+FText FGridCombatLogFormatter::FormatMonsterDefeated(const FText& MonsterName)
 {
-    return FText::Format (
-        LOCTEXT ("MonsterDefeated", "{0} est vaincu."),
-        MonsterName);
+	return FText::Format(LOCTEXT("MonsterDefeated", "{0} est vaincu."), MonsterName);
 }
 
-FText FGridCombatLogFormatter::FormatCombatEnded (
-    EGridCombatPhase ResultPhase)
+FText FGridCombatLogFormatter::FormatCombatEnded(EGridCombatPhase ResultPhase)
 {
-    return ResultPhase == EGridCombatPhase::Victory
-        ? LOCTEXT ("Victory", "Victoire.")
-        : LOCTEXT ("Defeat", "Défaite.");
+	return ResultPhase == EGridCombatPhase::Victory ? LOCTEXT("Victory", "Victoire.") : LOCTEXT("Defeat", "Défaite.");
 }
 
-FText FGridCombatLogFormatter::FormatStatusApplied (
-    const FText& TargetName,
-    const FText& EffectName,
-    int32 StackCount,
-    const FText& DurationText)
+FText FGridCombatLogFormatter::FormatStatusApplied(const FText& TargetName, const FText& EffectName, int32 StackCount, const FText& DurationText)
 {
-    FFormatNamedArguments Arguments;
-    Arguments.Add (TEXT ("Target"), TargetName);
-    Arguments.Add (TEXT ("Effect"), EffectName);
-    Arguments.Add (
-        TEXT ("State"),
-        FormatStatusStateSuffix (StackCount, DurationText));
-    return FText::Format (
-        LOCTEXT (
-            "StatusApplied",
-            "{Target} reçoit {Effect} ({State})."),
-        Arguments);
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Target"), TargetName);
+	Arguments.Add(TEXT("Effect"), EffectName);
+	Arguments.Add(TEXT("State"), FormatStatusStateSuffix(StackCount, DurationText));
+	return FText::Format(LOCTEXT("StatusApplied", "{Target} reçoit {Effect} ({State})."), Arguments);
 }
 
-FText FGridCombatLogFormatter::FormatStatusRefreshed (
-    const FText& TargetName,
-    const FText& EffectName,
-    int32 StackCount,
-    const FText& DurationText)
+FText FGridCombatLogFormatter::FormatStatusRefreshed(const FText& TargetName, const FText& EffectName, int32 StackCount, const FText& DurationText)
 {
-    FFormatNamedArguments Arguments;
-    Arguments.Add (TEXT ("Target"), TargetName);
-    Arguments.Add (TEXT ("Effect"), EffectName);
-    Arguments.Add (
-        TEXT ("State"),
-        FormatStatusStateSuffix (StackCount, DurationText));
-    return FText::Format (
-        LOCTEXT (
-            "StatusRefreshed",
-            "{Effect} est actualisé sur {Target} ({State})."),
-        Arguments);
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Target"), TargetName);
+	Arguments.Add(TEXT("Effect"), EffectName);
+	Arguments.Add(TEXT("State"), FormatStatusStateSuffix(StackCount, DurationText));
+	return FText::Format(LOCTEXT("StatusRefreshed", "{Effect} est actualisé sur {Target} ({State})."), Arguments);
 }
 
-FText FGridCombatLogFormatter::FormatStatusTick (
-    const FText& TargetName,
-    const FText& EffectName,
-    const FGridAttackResult& Result)
+FText FGridCombatLogFormatter::FormatStatusTick(const FText& TargetName, const FText& EffectName, const FGridAttackResult& Result)
 {
-    FFormatNamedArguments Arguments;
-    Arguments.Add (TEXT ("Target"), TargetName);
-    Arguments.Add (TEXT ("Effect"), EffectName);
-    Arguments.Add (TEXT ("Damage"), FormatAppliedDamage (Result));
-    return FText::Format (
-        LOCTEXT (
-            "StatusTick",
-            "{Effect} affecte {Target} : {Damage}."),
-        Arguments);
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Target"), TargetName);
+	Arguments.Add(TEXT("Effect"), EffectName);
+	Arguments.Add(TEXT("Damage"), FormatAppliedDamage(Result));
+	return FText::Format(LOCTEXT("StatusTick", "{Effect} affecte {Target} : {Damage}."), Arguments);
 }
 
-FText FGridCombatLogFormatter::FormatStatusExpired (
-    const FText& TargetName,
-    const FText& EffectName)
+FText FGridCombatLogFormatter::FormatStatusExpired(const FText& TargetName, const FText& EffectName)
 {
-    FFormatNamedArguments Arguments;
-    Arguments.Add (TEXT ("Target"), TargetName);
-    Arguments.Add (TEXT ("Effect"), EffectName);
-    return FText::Format (
-        LOCTEXT (
-            "StatusExpired",
-            "{Effect} expire sur {Target}."),
-        Arguments);
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Target"), TargetName);
+	Arguments.Add(TEXT("Effect"), EffectName);
+	return FText::Format(LOCTEXT("StatusExpired", "{Effect} expire sur {Target}."), Arguments);
 }
 
 #undef LOCTEXT_NAMESPACE

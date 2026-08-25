@@ -6,29 +6,28 @@ class UGridPartyInventoryComponent;
 
 enum class ERPGPartyRecruitmentRejectReason : uint8
 {
-    None,
-    InvalidInventory,
-    InitialCharacterMissing,
-    InvalidPartyState,
-    InvalidCharacterId,
-    CandidateNotFound,
-    AmbiguousCandidate,
-    DuplicateActiveCharacter,
-    PartyFull,
-    InvalidCandidate,
-    OwnershipValidationFailed
+	None,
+	InvalidInventory,
+	InitialCharacterMissing,
+	InvalidPartyState,
+	InvalidCharacterId,
+	CandidateNotFound,
+	AmbiguousCandidate,
+	DuplicateActiveCharacter,
+	PartyFull,
+	InvalidCandidate,
+	OwnershipValidationFailed
 };
 
 struct FRPGPartyRecruitmentResult
 {
-    bool bCommitted = false;
-    ERPGPartyRecruitmentRejectReason RejectReason =
-        ERPGPartyRecruitmentRejectReason::None;
-    FGuid CharacterId;
-    int32 CharacterIndex = INDEX_NONE;
-    int32 ActiveCountBefore = 0;
-    int32 ActiveCountAfter = 0;
-    FString Error;
+	bool bCommitted = false;
+	ERPGPartyRecruitmentRejectReason RejectReason = ERPGPartyRecruitmentRejectReason::None;
+	FGuid CharacterId;
+	int32 CharacterIndex = INDEX_NONE;
+	int32 ActiveCountBefore = 0;
+	int32 ActiveCountAfter = 0;
+	FString Error;
 };
 
 /**
@@ -41,8 +40,5 @@ struct FRPGPartyRecruitmentResult
  */
 struct GRIMROCKPROTOTYPE_API FRPGPartyRecruitmentService
 {
-    static bool TryRecruitFromPool (
-        UGridPartyInventoryComponent* PartyInventoryComponent,
-        const FGuid& CharacterId,
-        FRPGPartyRecruitmentResult& OutResult);
+	static bool TryRecruitFromPool(UGridPartyInventoryComponent* PartyInventoryComponent, const FGuid& CharacterId, FRPGPartyRecruitmentResult& OutResult);
 };

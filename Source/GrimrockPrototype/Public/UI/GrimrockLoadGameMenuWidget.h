@@ -18,41 +18,41 @@ class UGrimrockLoadGameSlotWidget;
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockLoadGameMenuWidget : public UUserWidget
 {
-    GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, Category = "Load Game")
-    void RefreshSaveSlots();
+	UFUNCTION(BlueprintCallable, Category = "Load Game")
+	void RefreshSaveSlots();
 
 protected:
-    virtual void NativeConstruct() override;
+	virtual void NativeConstruct() override;
 
-    UFUNCTION(BlueprintImplementableEvent, Category = "Load Game")
-    void OnLoadSlotRequestFailed(const FString& SlotName, int32 UserIndex);
-
-private:
-    void BindButtons();
-    void SetEmptyStateVisible(bool bIsVisible);
-
-    UFUNCTION()
-    void HandleBackClicked();
-
-    UFUNCTION()
-    void HandleSaveSlotSelected(const FString& SlotName, int32 UserIndex);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Load Game")
+	void OnLoadSlotRequestFailed(const FString& SlotName, int32 UserIndex);
 
 private:
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
-    TSubclassOf<UGrimrockLoadGameSlotWidget> SaveSlotEntryWidgetClass;
+	void BindButtons();
+	void SetEmptyStateVisible(bool bIsVisible);
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
-    FName RuntimeLevelName = TEXT("L_GrimrockEditor");
+	UFUNCTION()
+	void HandleBackClicked();
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UVerticalBox> VerticalBox_SaveSlots;
+	UFUNCTION()
+	void HandleSaveSlotSelected(const FString& SlotName, int32 UserIndex);
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UButton> Button_Back;
+private:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UGrimrockLoadGameSlotWidget> SaveSlotEntryWidgetClass;
 
-    UPROPERTY(meta = (BindWidgetOptional))
-    TObjectPtr<UTextBlock> Text_EmptyState;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Load Game", meta = (AllowPrivateAccess = "true"))
+	FName RuntimeLevelName = TEXT("L_GrimrockEditor");
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UVerticalBox> VerticalBox_SaveSlots;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UButton> Button_Back;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> Text_EmptyState;
 };

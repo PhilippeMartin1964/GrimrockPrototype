@@ -16,22 +16,18 @@ class UGridStatusEffectDefinitionAsset;
  */
 struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionResult
 {
-    FRPGDerivedStats CasterStats;
-    FGridPlayerCharacterTurnState CasterTurnState;
-    int32 TargetCurrentHealth = 0;
-    FGridStatusEffectCollection TargetStatusEffects;
-    FGridSpellResolvedTarget ResolvedTarget;
-    FGridSpellCastCostReceipt CostReceipt;
-    FGridSpellEffectResolutionResult EffectResult;
-    EGridSpellCastPipelineRejectStage PipelineRejectStage =
-        EGridSpellCastPipelineRejectStage::None;
-    EGridSpellTargetingRejectReason TargetingRejectReason =
-        EGridSpellTargetingRejectReason::None;
-    EGridSpellCastTransactionRejectReason TransactionRejectReason =
-        EGridSpellCastTransactionRejectReason::None;
-    EGridSpellEffectResolutionRejectReason EffectRejectReason =
-        EGridSpellEffectResolutionRejectReason::None;
-    FString Error;
+	FRPGDerivedStats CasterStats;
+	FGridPlayerCharacterTurnState CasterTurnState;
+	int32 TargetCurrentHealth = 0;
+	FGridStatusEffectCollection TargetStatusEffects;
+	FGridSpellResolvedTarget ResolvedTarget;
+	FGridSpellCastCostReceipt CostReceipt;
+	FGridSpellEffectResolutionResult EffectResult;
+	EGridSpellCastPipelineRejectStage PipelineRejectStage = EGridSpellCastPipelineRejectStage::None;
+	EGridSpellTargetingRejectReason TargetingRejectReason = EGridSpellTargetingRejectReason::None;
+	EGridSpellCastTransactionRejectReason TransactionRejectReason = EGridSpellCastTransactionRejectReason::None;
+	EGridSpellEffectResolutionRejectReason EffectRejectReason = EGridSpellEffectResolutionRejectReason::None;
+	FString Error;
 };
 
 /**
@@ -40,17 +36,8 @@ struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionResult
  */
 struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionService
 {
-    static bool TryExecute (
-        const FGridSpellDefinition& Definition,
-        const FGridSpellCastRequest& Request,
-        const FGridSpellTargetingContext& TargetingContext,
-        const FGridCharacterSpellbookState& Spellbook,
-        const FRPGDerivedStats& CasterStats,
-        const FGridPlayerCharacterTurnState& CasterTurnState,
-        int32 TargetMaxHealth,
-        int32 TargetCurrentHealth,
-        const FGridStatusEffectCollection& TargetStatusEffects,
-        TFunctionRef<const UGridStatusEffectDefinitionAsset* (FName)>
-            StatusDefinitionResolver,
-        FGridSpellHotbarExecutionResult& OutResult);
+	static bool TryExecute(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request, const FGridSpellTargetingContext& TargetingContext,
+		const FGridCharacterSpellbookState& Spellbook, const FRPGDerivedStats& CasterStats, const FGridPlayerCharacterTurnState& CasterTurnState,
+		int32 TargetMaxHealth, int32 TargetCurrentHealth, const FGridStatusEffectCollection& TargetStatusEffects,
+		TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver, FGridSpellHotbarExecutionResult& OutResult);
 };

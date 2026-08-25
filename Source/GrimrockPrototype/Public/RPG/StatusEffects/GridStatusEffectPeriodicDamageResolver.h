@@ -7,12 +7,12 @@
 /** Pure snapshot of one periodic status damage resolution. */
 struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageResolution
 {
-    FName EffectId = NAME_None;
-    FGuid SourceId;
-    EGridDamageType DamageType = EGridDamageType::Physical;
-    int32 StackCount = 0;
-    int32 RawDamage = 0;
-    FGridAttackResult DamageResult;
+	FName EffectId = NAME_None;
+	FGuid SourceId;
+	EGridDamageType DamageType = EGridDamageType::Physical;
+	int32 StackCount = 0;
+	int32 RawDamage = 0;
+	FGridAttackResult DamageResult;
 };
 
 /**
@@ -22,9 +22,6 @@ struct GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageResolution
 class GRIMROCKPROTOTYPE_API FGridStatusEffectPeriodicDamageResolver
 {
 public:
-    static bool Resolve (
-        const FGridStatusEffectRuntimeState& State,
-        const FGridAttackTargetStats& Target,
-        FGridStatusEffectPeriodicDamageResolution& OutResolution,
-        FString& OutError);
+	static bool Resolve(const FGridStatusEffectRuntimeState& State, const FGridAttackTargetStats& Target,
+		FGridStatusEffectPeriodicDamageResolution& OutResolution, FString& OutError);
 };

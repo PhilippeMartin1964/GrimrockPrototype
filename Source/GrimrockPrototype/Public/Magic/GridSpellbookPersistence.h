@@ -9,16 +9,16 @@
  * MON18.8 persistent spell knowledge for one stable CharacterId.
  * Static spell definitions and presentation data are deliberately excluded.
  */
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridCharacterSpellbookSaveState
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Magic|Spellbook|Save")
-    FGuid CharacterId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Magic|Spellbook|Save")
+	FGuid CharacterId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Magic|Spellbook|Save")
-    TArray<FName> KnownSpellIds;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Magic|Spellbook|Save")
+	TArray<FName> KnownSpellIds;
 };
 
 /**
@@ -28,34 +28,26 @@ struct FGridCharacterSpellbookSaveState
  */
 struct GRIMROCKPROTOTYPE_API FGridSpellbookPersistence
 {
-    /**
+	/**
      * Captures a deterministic sparse snapshot. Empty per-character
      * spellbooks are omitted, but every runtime entry must resolve to exactly
      * one character in the party state.
      */
-    static bool CapturePartySpellbooks (
-        const FGridPartyInventoryState& PartyState,
-        const FGridPartySpellbookState& RuntimeState,
-        TArray<FGridCharacterSpellbookSaveState>& OutSavedStates,
-        FString& OutError);
+	static bool CapturePartySpellbooks(const FGridPartyInventoryState& PartyState, const FGridPartySpellbookState& RuntimeState,
+		TArray<FGridCharacterSpellbookSaveState>& OutSavedStates, FString& OutError);
 
-    /**
+	/**
      * Validates a saved snapshot against stable CharacterIds without resolving
      * spell definitions. Unknown-but-non-empty SpellIds are preserved so
      * temporarily missing content remains recoverable.
      */
-    static bool ValidateSavedPartySpellbooks (
-        const FGridPartyInventoryState& PartyState,
-        const TArray<FGridCharacterSpellbookSaveState>& SavedStates,
-        FString& OutError);
+	static bool ValidateSavedPartySpellbooks(
+		const FGridPartyInventoryState& PartyState, const TArray<FGridCharacterSpellbookSaveState>& SavedStates, FString& OutError);
 
-    /**
+	/**
      * Atomically rebuilds one runtime spellbook container for every active and
      * pooled character. OutRuntimeState is untouched on failure.
      */
-    static bool RestorePartySpellbooks (
-        const FGridPartyInventoryState& PartyState,
-        const TArray<FGridCharacterSpellbookSaveState>& SavedStates,
-        FGridPartySpellbookState& OutRuntimeState,
-        FString& OutError);
+	static bool RestorePartySpellbooks(const FGridPartyInventoryState& PartyState, const TArray<FGridCharacterSpellbookSaveState>& SavedStates,
+		FGridPartySpellbookState& OutRuntimeState, FString& OutError);
 };

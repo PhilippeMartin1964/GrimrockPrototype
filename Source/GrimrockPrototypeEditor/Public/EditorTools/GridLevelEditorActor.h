@@ -15,567 +15,561 @@ class UGridItemDefinitionAsset;
 class UGridReadableContentAsset;
 class UGridMonsterDefinitionAsset;
 
-UENUM (BlueprintType)
+UENUM(BlueprintType)
 enum class EGridEditorTool : uint8
 {
-    Select      UMETA (DisplayName = "Select"),
-    PaintCell   UMETA (DisplayName = "Paint Cell"),
-    PaintWall   UMETA (DisplayName = "Paint Wall"),
-    PaintObject UMETA (DisplayName = "Paint Object"),
-    Erase       UMETA (DisplayName = "Erase"),
-    Link        UMETA (DisplayName = "Link")
+	Select UMETA(DisplayName = "Select"),
+	PaintCell UMETA(DisplayName = "Paint Cell"),
+	PaintWall UMETA(DisplayName = "Paint Wall"),
+	PaintObject UMETA(DisplayName = "Paint Object"),
+	Erase UMETA(DisplayName = "Erase"),
+	Link UMETA(DisplayName = "Link")
 };
 
-UENUM (BlueprintType)
+UENUM(BlueprintType)
 enum class EGridEditorObjectPlacementPolicy : uint8
 {
-    ReplaceSameSlotOnly UMETA (DisplayName = "Replace Same Slot Only"),
-    RemoveAllAtSlot     UMETA (DisplayName = "Remove All At Slot")
+	ReplaceSameSlotOnly UMETA(DisplayName = "Replace Same Slot Only"),
+	RemoveAllAtSlot UMETA(DisplayName = "Remove All At Slot")
 };
 
-UENUM (BlueprintType)
+UENUM(BlueprintType)
 enum class EGridLevelValidationSeverity : uint8
 {
-    Info    UMETA (DisplayName = "Info"),
-    Warning UMETA (DisplayName = "Warning"),
-    Error   UMETA (DisplayName = "Error")
+	Info UMETA(DisplayName = "Info"),
+	Warning UMETA(DisplayName = "Warning"),
+	Error UMETA(DisplayName = "Error")
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridLevelValidationMessage
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    EGridLevelValidationSeverity Severity = EGridLevelValidationSeverity::Info;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	EGridLevelValidationSeverity Severity = EGridLevelValidationSeverity::Info;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    FString Message;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	FString Message;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    FGuid OptionalObjectId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	FGuid OptionalObjectId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    FGuid SourceObjectId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	FGuid SourceObjectId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    FGuid TargetObjectId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	FGuid TargetObjectId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    int32 CellX = INDEX_NONE;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	int32 CellX = INDEX_NONE;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    int32 CellY = INDEX_NONE;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	int32 CellY = INDEX_NONE;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    EGridEdge Edge = EGridEdge::None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	EGridEdge Edge = EGridEdge::None;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
-    FName Category = TEXT ("Core");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation")
+	FName Category = TEXT("Core");
 };
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPEEDITOR_API AGridLevelEditorActor : public AActor
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    AGridLevelEditorActor ();
+	AGridLevelEditorActor();
 
 public:
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
-    TObjectPtr<UGridLevelAsset> LevelAsset;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
+	TObjectPtr<UGridLevelAsset> LevelAsset;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
-    TObjectPtr<UGridDungeonAsset> DungeonAsset;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
+	TObjectPtr<UGridDungeonAsset> DungeonAsset;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Core")
-    FName CurrentDungeonLevelId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor|Core")
+	FName CurrentDungeonLevelId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
-    TObjectPtr<AGridLevelRuntimeActor> PreviewRuntimeActor;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
+	TObjectPtr<AGridLevelRuntimeActor> PreviewRuntimeActor;
 
-    UPROPERTY (VisibleAnywhere, Category = "Editor")
-    TObjectPtr<USceneComponent> SceneRoot;
+	UPROPERTY(VisibleAnywhere, Category = "Editor")
+	TObjectPtr<USceneComponent> SceneRoot;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
-    int32 SelectedCellX = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selection")
+	int32 SelectedCellX = 0;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
-    int32 SelectedCellY = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selection")
+	int32 SelectedCellY = 0;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection")
-    EGridEdge SelectedEdge = EGridEdge::North;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selection")
+	EGridEdge SelectedEdge = EGridEdge::North;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
-    int32 HoveredCellX = INDEX_NONE;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
+	int32 HoveredCellX = INDEX_NONE;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
-    int32 HoveredCellY = INDEX_NONE;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
+	int32 HoveredCellY = INDEX_NONE;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
-    EGridEdge HoveredEdge = EGridEdge::None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
+	EGridEdge HoveredEdge = EGridEdge::None;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
-    FGuid HoveredObjectId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection", meta = (AdvancedDisplay))
+	FGuid HoveredObjectId;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "1.0", AdvancedDisplay))
-    float ObjectHoverPickRadius = 48.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Selection", meta = (ClampMin = "1.0", AdvancedDisplay))
+	float ObjectHoverPickRadius = 48.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking", meta = (ClampMin = "100.0", AdvancedDisplay))
-    float ViewportPickTraceDistance = 50000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Viewport Picking", meta = (ClampMin = "100.0", AdvancedDisplay))
+	float ViewportPickTraceDistance = 50000.f;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
-    EGridCellType PaintCellType = EGridCellType::Floor;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
+	EGridCellType PaintCellType = EGridCellType::Floor;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
-    bool bPaintCellHasCeiling = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
+	bool bPaintCellHasCeiling = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
-    bool bPaintCellBlocksOccupancy = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cell Paint")
+	bool bPaintCellBlocksOccupancy = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Wall Paint")
-    EGridWallType PaintWallType = EGridWallType::Solid;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Paint")
+	EGridWallType PaintWallType = EGridWallType::Solid;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    EGridLevelObjectType PaintObjectType = EGridLevelObjectType::Button;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	EGridLevelObjectType PaintObjectType = EGridLevelObjectType::Button;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    bool bObjectInitiallyEnabled = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	bool bObjectInitiallyEnabled = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    bool bObjectInitiallyActive = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	bool bObjectInitiallyActive = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    FName ObjectArchetypeId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	FName ObjectArchetypeId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    FName ObjectTag = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	FName ObjectTag = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint", meta = (MultiLine = "true"))
-    FString ObjectNotes;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint", meta = (MultiLine = "true"))
+	FString ObjectNotes;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    EGridEditorObjectPlacementPolicy PlacementPolicy = EGridEditorObjectPlacementPolicy::ReplaceSameSlotOnly;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	EGridEditorObjectPlacementPolicy PlacementPolicy = EGridEditorObjectPlacementPolicy::ReplaceSameSlotOnly;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
-    FGuid LastSelectedObjectId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+	FGuid LastSelectedObjectId;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Tool")
-    EGridEditorTool ActiveTool = EGridEditorTool::Select;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Tool")
+	EGridEditorTool ActiveTool = EGridEditorTool::Select;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
-    EGridObjectEvent LinkSourceEvent = EGridObjectEvent::Activated;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Link")
+	EGridObjectEvent LinkSourceEvent = EGridObjectEvent::Activated;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Link")
-    EGridObjectCommand LinkCommand = EGridObjectCommand::Toggle;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Link")
+	EGridObjectCommand LinkCommand = EGridObjectCommand::Toggle;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link", meta = (AdvancedDisplay))
-    FGuid PendingLinkSourceObjectId;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Link", meta = (AdvancedDisplay))
+	FGuid PendingLinkSourceObjectId;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Link", meta = (AdvancedDisplay))
-    bool bHasPendingLinkSource = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Link", meta = (AdvancedDisplay))
+	bool bHasPendingLinkSource = false;
 
-    UPROPERTY (EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
-    TObjectPtr<UGridObjectPaletteAsset> ObjectPalette;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Editor|Core")
+	TObjectPtr<UGridObjectPaletteAsset> ObjectPalette;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Palette")
-    FName SelectedPaletteEntryId = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Palette")
+	FName SelectedPaletteEntryId = NAME_None;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Palette")
-    FName SelectedArchetypeId = NAME_None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Palette")
+	FName SelectedArchetypeId = NAME_None;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
-    FGridObjectBehaviorParams ObjectBehavior;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Object Paint")
+	FGridObjectBehaviorParams ObjectBehavior;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Validation", meta = (AdvancedDisplay))
-    TArray<FGridLevelValidationMessage> LastValidationMessages;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Validation", meta = (AdvancedDisplay))
+	TArray<FGridLevelValidationMessage> LastValidationMessages;
 
-    UPROPERTY (VisibleAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
-    TObjectPtr<UStaticMeshComponent> CoordinateGridPlane;
+	UPROPERTY(VisibleAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
+	TObjectPtr<UStaticMeshComponent> CoordinateGridPlane;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
-    TObjectPtr<UStaticMesh> CoordinateGridPlaneMesh;
+	UPROPERTY(EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
+	TObjectPtr<UStaticMesh> CoordinateGridPlaneMesh;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
-    TObjectPtr<UMaterialInterface> CoordinateGridMaterial;
+	UPROPERTY(EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
+	TObjectPtr<UMaterialInterface> CoordinateGridMaterial;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Display")
-    bool bShowCoordinateGrid = false;
+	UPROPERTY(EditAnywhere, Category = "Editor|Display")
+	bool bShowCoordinateGrid = false;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
-    float CoordinateGridZOffset = 2.f;
+	UPROPERTY(EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
+	float CoordinateGridZOffset = 2.f;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Display")
-    bool bShowCoordinateLabels = false;
+	UPROPERTY(EditAnywhere, Category = "Editor|Display")
+	bool bShowCoordinateLabels = false;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Display")
-    bool bShowOutgoingConnectors = true;
+	UPROPERTY(EditAnywhere, Category = "Editor|Display")
+	bool bShowOutgoingConnectors = true;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Display")
-    bool bShowIncomingConnectors = true;
+	UPROPERTY(EditAnywhere, Category = "Editor|Display")
+	bool bShowIncomingConnectors = true;
 
-    UPROPERTY (EditAnywhere, Category = "Editor|Display")
-    bool bShowConnectorLabels = true;
+	UPROPERTY(EditAnywhere, Category = "Editor|Display")
+	bool bShowConnectorLabels = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|Patrol Route")
-    bool bShowSelectedMonsterPatrolRoute = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor|Patrol Route")
+	bool bShowSelectedMonsterPatrolRoute = true;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Editor|Patrol Route")
-    bool bPatrolRouteEditMode = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Editor|Patrol Route")
+	bool bPatrolRouteEditMode = false;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Editor|Patrol Route")
-    int32 SelectedPatrolWaypointIndex = INDEX_NONE;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Editor|Patrol Route")
+	int32 SelectedPatrolWaypointIndex = INDEX_NONE;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
-    bool bHideEditorActorDuringPIE = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
+	bool bHideEditorActorDuringPIE = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
-    bool bAutoPreparePIE = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
+	bool bAutoPreparePIE = true;
 
-    UPROPERTY (EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
-    bool bAbortPIEOnPreparationError = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Editor|PIE")
+	bool bAbortPIEOnPreparationError = true;
 
-    UPROPERTY (EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
-    float CoordinateLabelWorldSize = 28.f;
+	UPROPERTY(EditAnywhere, Category = "Editor Grid", meta = (AdvancedDisplay))
+	float CoordinateLabelWorldSize = 28.f;
 
 public:
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
-    void EnsureLevelReady ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
+	void EnsureLevelReady();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
-    void RebuildPreview ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
+	void RebuildPreview();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
-    bool ApplyCurrentDungeonLevel ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
+	bool ApplyCurrentDungeonLevel();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Apply Current Dungeon Level"))
-    void ApplyCurrentDungeonLevelInEditor ();
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Apply Current Dungeon Level"))
+	void ApplyCurrentDungeonLevelInEditor();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Load Default Dungeon Level"))
-    void LoadDefaultDungeonLevelInEditor ();
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Load Default Dungeon Level"))
+	void LoadDefaultDungeonLevelInEditor();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
-    void LogDungeonDiagnostics () const;
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon")
+	void LogDungeonDiagnostics() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Transition Diagnostics"))
-    void LogDungeonTransitionDiagnostics () const;
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Log Dungeon Transition Diagnostics"))
+	void LogDungeonTransitionDiagnostics() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
-    FString GetDungeonDiagnostics () const;
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon")
+	FString GetDungeonDiagnostics() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Dungeon")
-    bool CreateAndAddDungeonLevel (
-        FName NewLevelId,
-        FText DisplayName,
-        FIntVector LogicalPosition,
-        FString& OutError);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon")
+	bool CreateAndAddDungeonLevel(FName NewLevelId, FText DisplayName, FIntVector LogicalPosition, FString& OutError);
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Palette")
-    bool EnsureStairsTransitionArchetypes (FString& OutError);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Palette")
+	bool EnsureStairsTransitionArchetypes(FString& OutError);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
-    void LogEditorRuntimeAssetConsistency () const;
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
+	void LogEditorRuntimeAssetConsistency() const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
-    void LogItemWorkflowDiagnostics () const;
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Diagnostics")
+	void LogItemWorkflowDiagnostics() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Diagnostics")
-    FString GetEditorRuntimeAssetConsistencyDiagnostics () const;
+	UFUNCTION(BlueprintCallable, Category = "Editor|Diagnostics")
+	FString GetEditorRuntimeAssetConsistencyDiagnostics() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Diagnostics")
-    FString GetItemWorkflowDiagnostics () const;
+	UFUNCTION(BlueprintCallable, Category = "Editor|Diagnostics")
+	FString GetItemWorkflowDiagnostics() const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
-    void SyncPreviewRuntimeLevelAsset ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
+	void SyncPreviewRuntimeLevelAsset();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Advanced Debug")
-    void PreparePIETestFromStart ();
+	UFUNCTION(BlueprintCallable, Category = "Editor|Advanced Debug")
+	void PreparePIETestFromStart();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|PIE")
-    bool PreparePIETestFromStartInternal (FString& OutError);
+	UFUNCTION(BlueprintCallable, Category = "Editor|PIE")
+	bool PreparePIETestFromStartInternal(FString& OutError);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Gameplay|Start")
-    void SetStartFromSelection ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Gameplay|Start")
+	void SetStartFromSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Cell Paint")
-    void ClearSelectedCell ();
+	UFUNCTION(BlueprintCallable, Category = "Cell Paint")
+	void ClearSelectedCell();
 
-    UFUNCTION (BlueprintCallable, Category = "Wall Paint")
-    void PaintSelectedWall ();
+	UFUNCTION(BlueprintCallable, Category = "Wall Paint")
+	void PaintSelectedWall();
 
-    UFUNCTION (BlueprintCallable, Category = "Wall Paint")
-    void ClearSelectedWall ();
+	UFUNCTION(BlueprintCallable, Category = "Wall Paint")
+	void ClearSelectedWall();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    void PlaceSelectedObject ();
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	void PlaceSelectedObject();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    void RemoveObjectsAtSelection ();
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	void RemoveObjectsAtSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    void SelectObjectAtSelection ();
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	void SelectObjectAtSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool ApplyEditedSelectedObject ();
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool ApplyEditedSelectedObject();
 
-    UFUNCTION (BlueprintCallable, Category = "Viewport Picking")
-    bool ApplyViewportHitSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
+	UFUNCTION(BlueprintCallable, Category = "Viewport Picking")
+	bool ApplyViewportHitSelection(const FVector& WorldHitLocation, const FVector& HitNormal);
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool IsSelectionValidForEditing () const;
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool IsSelectionValidForEditing() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool SelectCellFromOverview (int32 CellX, int32 CellY);
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool SelectCellFromOverview(int32 CellX, int32 CellY);
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool ApplyGridHoverFromWorldPoint (const FVector& WorldPoint);
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool ApplyGridHoverFromWorldPoint(const FVector& WorldPoint);
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool CommitHoveredCellSelection ();
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool CommitHoveredCellSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    FVector GetSelectionPreviewCenter (float ZOffset = 4.f) const;
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	FVector GetSelectionPreviewCenter(float ZOffset = 4.f) const;
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool UpdateHoveredObjectFromWorldPoint (const FVector& WorldPoint);
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool UpdateHoveredObjectFromWorldPoint(const FVector& WorldPoint);
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool SelectHoveredObject ();
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool SelectHoveredObject();
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool TryGetHoveredObjectWorldLocation (FVector& OutWorldLocation) const;
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool TryGetHoveredObjectWorldLocation(FVector& OutWorldLocation) const;
 
-    UFUNCTION (BlueprintCallable, Category = "Tool")
-    void ApplyPrimaryToolAction ();
+	UFUNCTION(BlueprintCallable, Category = "Tool")
+	void ApplyPrimaryToolAction();
 
-    UFUNCTION (BlueprintCallable, Category = "Tool")
-    void ApplySecondaryToolAction ();
+	UFUNCTION(BlueprintCallable, Category = "Tool")
+	void ApplySecondaryToolAction();
 
-    UFUNCTION (BlueprintCallable, Category = "Tool")
-    void EraseAtSelection ();
+	UFUNCTION(BlueprintCallable, Category = "Tool")
+	void EraseAtSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool BeginOrCompleteLinkAtSelection ();
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool BeginOrCompleteLinkAtSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    void ClearPendingLinkSource ();
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	void ClearPendingLinkSource();
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool RemoveLinksAtSelection ();
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool RemoveLinksAtSelection();
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool HasPendingLinkSource () const;
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool HasPendingLinkSource() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool TryGetPendingLinkSourceLocation (FVector& OutWorldLocation) const;
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool TryGetPendingLinkSourceLocation(FVector& OutWorldLocation) const;
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool RemoveLinkByIndexForSelectedObject (int32 LinkIndex);
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool RemoveLinkByIndexForSelectedObject(int32 LinkIndex);
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool RemoveAllLinksForSelectedObject ();
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool RemoveAllLinksForSelectedObject();
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool CreateLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool CreateLink(FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
 
-    UFUNCTION (BlueprintCallable, Category = "Link")
-    bool RemoveExactLink (FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
+	UFUNCTION(BlueprintCallable, Category = "Link")
+	bool RemoveExactLink(FGuid SourceObjectId, FGuid TargetObjectId, EGridObjectEvent SourceEvent, EGridObjectCommand Command);
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool TryGetSelectedObjectWorldLocation (FVector& OutWorldLocation) const;
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool TryGetSelectedObjectWorldLocation(FVector& OutWorldLocation) const;
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool SelectObjectById (FGuid ObjectId);
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool SelectObjectById(FGuid ObjectId);
 
-    void ResolvePreviewRuntimeActor ();
+	void ResolvePreviewRuntimeActor();
 
-    UFUNCTION (BlueprintCallable, Category = "Palette")
-    bool ApplyPaletteEntry (FName EntryId);
+	UFUNCTION(BlueprintCallable, Category = "Palette")
+	bool ApplyPaletteEntry(FName EntryId);
 
-    UFUNCTION (BlueprintCallable, Category = "Palette")
-    void ApplySelectedPaletteEntry ();
+	UFUNCTION(BlueprintCallable, Category = "Palette")
+	void ApplySelectedPaletteEntry();
 
-    const FGridLevelObjectData* GetSelectedObjectData () const;
+	const FGridLevelObjectData* GetSelectedObjectData() const;
 
-    UFUNCTION (BlueprintCallable, Category = "Selection")
-    bool TryGetObjectWorldLocationById (FGuid ObjectId, FVector& OutWorldLocation) const;
+	UFUNCTION(BlueprintCallable, Category = "Selection")
+	bool TryGetObjectWorldLocationById(FGuid ObjectId, FVector& OutWorldLocation) const;
 
-    bool GetObjectEditorWorldCenter (const FGridLevelObjectData& Obj, FVector& OutWorldCenter) const;
+	bool GetObjectEditorWorldCenter(const FGridLevelObjectData& Obj, FVector& OutWorldCenter) const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Selection")
-    bool FocusSelectedObject ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Selection")
+	bool FocusSelectedObject();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool ApplyBehaviorToSelectedObject (const FGridObjectBehaviorParams& NewBehavior);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool ApplyBehaviorToSelectedObject(const FGridObjectBehaviorParams& NewBehavior);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool ResetSelectedObjectBehaviorFromArchetype ();
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool ResetSelectedObjectBehaviorFromArchetype();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectArchetypeId (FName NewArchetypeId);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool SetSelectedObjectArchetypeId(FName NewArchetypeId);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
-    bool SetSelectedObjectItemDefinitionAsset (UGridItemDefinitionAsset* NewItemDefinitionAsset);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
+	bool SetSelectedObjectItemDefinitionAsset(UGridItemDefinitionAsset* NewItemDefinitionAsset);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Definition")
-    bool SetSelectedObjectItemDefinitionId (FName NewItemDefinitionId);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
+	bool SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
-    bool SyncSelectedItemDefinitionIdFromAsset ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
+	bool SyncSelectedItemDefinitionIdFromAsset();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
-    bool SetSelectedObjectMonsterDefinitionAsset (
-        UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
+	bool SetSelectedObjectMonsterDefinitionAsset(UGridMonsterDefinitionAsset* NewMonsterDefinitionAsset);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
-    bool SetSelectedObjectMonsterDefinitionId (FName NewMonsterDefinitionId);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
+	bool SetSelectedObjectMonsterDefinitionId(FName NewMonsterDefinitionId);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint|Monster Definition")
-    bool SyncSelectedMonsterDefinitionIdFromAsset ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint|Monster Definition")
+	bool SyncSelectedMonsterDefinitionIdFromAsset();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
-    bool SetSelectedObjectEncounterGroupId (FName NewEncounterGroupId);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
+	bool SetSelectedObjectEncounterGroupId(FName NewEncounterGroupId);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Monster Definition")
-    bool SetSelectedObjectEncounterWaveIndex (int32 NewEncounterWaveIndex);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
+	bool SetSelectedObjectEncounterWaveIndex(int32 NewEncounterWaveIndex);
 
-    UFUNCTION (BlueprintPure, Category = "Editor|Patrol Route")
-    bool CanEditSelectedMonsterPatrolRoute () const;
+	UFUNCTION(BlueprintPure, Category = "Editor|Patrol Route")
+	bool CanEditSelectedMonsterPatrolRoute() const;
 
-    UFUNCTION (BlueprintPure, Category = "Editor|Patrol Route")
-    bool IsPatrolRouteEditModeActive () const;
+	UFUNCTION(BlueprintPure, Category = "Editor|Patrol Route")
+	bool IsPatrolRouteEditModeActive() const;
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void ToggleSelectedMonsterPatrolRouteEditing ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void ToggleSelectedMonsterPatrolRouteEditing();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
-    bool SetSelectedMonsterPatrolMode (EGridMonsterPatrolMode NewMode);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Patrol Route")
+	bool SetSelectedMonsterPatrolMode(EGridMonsterPatrolMode NewMode);
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
-    bool AddOrSelectPatrolWaypointAtHoveredCell ();
+	UFUNCTION(BlueprintCallable, Category = "Editor|Patrol Route")
+	bool AddOrSelectPatrolWaypointAtHoveredCell();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
-    bool SelectPatrolWaypointByIndex (int32 WaypointIndex);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Patrol Route")
+	bool SelectPatrolWaypointByIndex(int32 WaypointIndex);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    bool RemoveSelectedPatrolWaypoint ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	bool RemoveSelectedPatrolWaypoint();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    bool ClearSelectedMonsterPatrolRoute ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	bool ClearSelectedMonsterPatrolRoute();
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
-    bool MoveSelectedPatrolWaypoint (int32 IndexDelta);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Patrol Route")
+	bool MoveSelectedPatrolWaypoint(int32 IndexDelta);
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
-    bool SetSelectedPatrolWaypointFacing (EGridEdge NewFacing);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Patrol Route")
+	bool SetSelectedPatrolWaypointFacing(EGridEdge NewFacing);
 
-    UFUNCTION (BlueprintCallable, Category = "Editor|Patrol Route")
-    bool SetSelectedPatrolWaypointWaitSeconds (float NewWaitSeconds);
+	UFUNCTION(BlueprintCallable, Category = "Editor|Patrol Route")
+	bool SetSelectedPatrolWaypointWaitSeconds(float NewWaitSeconds);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void CycleSelectedMonsterPatrolMode ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void CycleSelectedMonsterPatrolMode();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void CycleSelectedPatrolWaypointFacing ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void CycleSelectedPatrolWaypointFacing();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void MoveSelectedPatrolWaypointEarlier ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void MoveSelectedPatrolWaypointEarlier();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void MoveSelectedPatrolWaypointLater ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void MoveSelectedPatrolWaypointLater();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void IncreaseSelectedPatrolWaypointWait ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void IncreaseSelectedPatrolWaypointWait();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
-    void DecreaseSelectedPatrolWaypointWait ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Patrol Route")
+	void DecreaseSelectedPatrolWaypointWait();
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
-    bool SetSelectedObjectReadableContentAsset (UGridReadableContentAsset* NewReadableContentAsset);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Reading")
+	bool SetSelectedObjectReadableContentAsset(UGridReadableContentAsset* NewReadableContentAsset);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
-    bool SetSelectedObjectReadableContentId (FName NewReadableContentId);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Reading")
+	bool SetSelectedObjectReadableContentId(FName NewReadableContentId);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
-    bool SetSelectedObjectReadTitleOverride (const FText& NewReadTitleOverride);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Reading")
+	bool SetSelectedObjectReadTitleOverride(const FText& NewReadTitleOverride);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint|Item Reading")
-    bool SetSelectedObjectReadTextOverride (const FText& NewReadTextOverride);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Reading")
+	bool SetSelectedObjectReadTextOverride(const FText& NewReadTextOverride);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectTag (FName NewTag);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool SetSelectedObjectTag(FName NewTag);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectNotes (const FString& NewNotes);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool SetSelectedObjectNotes(const FString& NewNotes);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectReadableText (const FText& NewReadableText);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool SetSelectedObjectReadableText(const FText& NewReadableText);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectInitiallyEnabled (bool bNewInitiallyEnabled);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool SetSelectedObjectInitiallyEnabled(bool bNewInitiallyEnabled);
 
-    UFUNCTION (BlueprintCallable, Category = "Object Paint")
-    bool SetSelectedObjectInitiallyActive (bool bNewInitiallyActive);
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
+	bool SetSelectedObjectInitiallyActive(bool bNewInitiallyActive);
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Object Paint")
-    bool MoveSelectedObjectToCurrentSelection ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint")
+	bool MoveSelectedObjectToCurrentSelection();
 
-    UFUNCTION (CallInEditor, BlueprintCallable, Category = "Validation")
-    TArray<FGridLevelValidationMessage> ValidateCurrentLevel ();
+	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Validation")
+	TArray<FGridLevelValidationMessage> ValidateCurrentLevel();
 
-    const UGridObjectArchetypeAsset* FindObjectArchetypeById (FName ArchetypeId) const;
+	const UGridObjectArchetypeAsset* FindObjectArchetypeById(FName ArchetypeId) const;
 
-    bool SetSelectedObjectOrientation (EGridEdge Orientation);
+	bool SetSelectedObjectOrientation(EGridEdge Orientation);
 
 protected:
-    virtual void BeginPlay () override;
+	virtual void BeginPlay() override;
 
-    virtual void OnConstruction (const FTransform& Transform) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 #if WITH_EDITOR
-    virtual void PostEditChangeProperty (FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 private:
-    bool HasValidLevelAsset () const;
-    bool IsValidSelectedCell () const;
-    bool RequiresEdge (EGridLevelObjectType ObjectType) const;
-    bool IsEdgePlacedObject (const FGridLevelObjectData& ObjectData) const;
-    bool IsEdgePlacedObject (EGridLevelObjectType ObjectType, FName ArchetypeId) const;
-    bool IsCellCenteredObject (EGridLevelObjectType ObjectType) const;
+	bool HasValidLevelAsset() const;
+	bool IsValidSelectedCell() const;
+	bool RequiresEdge(EGridLevelObjectType ObjectType) const;
+	bool IsEdgePlacedObject(const FGridLevelObjectData& ObjectData) const;
+	bool IsEdgePlacedObject(EGridLevelObjectType ObjectType, FName ArchetypeId) const;
+	bool IsCellCenteredObject(EGridLevelObjectType ObjectType) const;
 
-    FGridLevelCellData* GetSelectedCellMutable ();
-    EGridWallType* GetSelectedWallMutable (FGridLevelCellData& CellData);
+	FGridLevelCellData* GetSelectedCellMutable();
+	EGridWallType* GetSelectedWallMutable(FGridLevelCellData& CellData);
 
-    int32 RemoveObjectsAtSelectionInternal (bool bSameTypeOnly);
-    int32 RemoveObjectsConflictingWithPlacementInternal (EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge);
+	int32 RemoveObjectsAtSelectionInternal(bool bSameTypeOnly);
+	int32 RemoveObjectsConflictingWithPlacementInternal(EGridLevelObjectType NewObjectType, FName NewArchetypeId, bool bNewObjectOnEdge);
 
-    FVector GetSelectedCellWorldCenter (float ZOffset = 0.f) const;
-    bool TryConvertWorldHitToSelection (const FVector& WorldHitLocation, const FVector& HitNormal);
+	FVector GetSelectedCellWorldCenter(float ZOffset = 0.f) const;
+	bool TryConvertWorldHitToSelection(const FVector& WorldHitLocation, const FVector& HitNormal);
 
-    EGridEdge GetEdgeFromPointInCell (const FVector2D& LocalInCell, float CellSize) const;
+	EGridEdge GetEdgeFromPointInCell(const FVector2D& LocalInCell, float CellSize) const;
 
-    const FGridLevelObjectData* FindObjectAtSelection () const;
-    const FGridLevelObjectData* FindObjectById (const FGuid& ObjectId) const;
-    FGridLevelObjectData* FindSelectedObjectMutable ();
-    bool TryGetObjectWorldLocation (const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const;
+	const FGridLevelObjectData* FindObjectAtSelection() const;
+	const FGridLevelObjectData* FindObjectById(const FGuid& ObjectId) const;
+	FGridLevelObjectData* FindSelectedObjectMutable();
+	bool TryGetObjectWorldLocation(const FGridLevelObjectData& ObjectData, FVector& OutWorldLocation) const;
 
-    void ClearSelectedObjectState ();
+	void ClearSelectedObjectState();
 
-    bool HasAnyObjectInSelectedCell () const;
-    bool HasAnyWallInSelectedCell () const;
+	bool HasAnyObjectInSelectedCell() const;
+	bool HasAnyWallInSelectedCell() const;
 
-    void PaintSelectedCell ();
+	void PaintSelectedCell();
 
-    void RebuildGeometryPreview ();
-    void SyncPreviewRuntimeObjectArchetypesFromPalette ();
+	void RebuildGeometryPreview();
+	void SyncPreviewRuntimeObjectArchetypesFromPalette();
 
-    UPROPERTY (Transient)
-    TObjectPtr<UTextRenderComponent> CoordinateHoverLabel;
+	UPROPERTY(Transient)
+	TObjectPtr<UTextRenderComponent> CoordinateHoverLabel;
 
-    void EnsureCoordinateHoverLabel ();
-    void UpdateCoordinateHoverLabel ();
-    void UpdateCoordinateGridPlane ();
-
+	void EnsureCoordinateHoverLabel();
+	void UpdateCoordinateHoverLabel();
+	void UpdateCoordinateGridPlane();
 };

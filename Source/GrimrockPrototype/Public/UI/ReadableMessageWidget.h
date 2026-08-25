@@ -6,16 +6,16 @@
 
 class UTextBlock;
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API UReadableMessageWidget : public UUserWidget
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    UFUNCTION (BlueprintCallable, Category = "Readable")
-    void SetReadableText (const FText& InText);
+	UFUNCTION(BlueprintCallable, Category = "Readable")
+	void SetReadableText(const FText& InText);
 
 protected:
-    UPROPERTY (meta = (BindWidget), BlueprintReadOnly, Category = "Readable")
-    TObjectPtr<UTextBlock> ReadableTextBlock;
+	UPROPERTY(meta = (BindWidget), BlueprintReadOnly, Category = "Readable")
+	TObjectPtr<UTextBlock> ReadableTextBlock;
 };

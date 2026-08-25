@@ -5,27 +5,27 @@
 #include "Runtime/GridItemDefinitionAsset.h"
 #include "GridReceptacleTypes.generated.h"
 
-UENUM (BlueprintType)
+UENUM(BlueprintType)
 enum class EGridReceptacleRejectReason : uint8
 {
-    None,
-    InvalidItem,
-    Full,
-    ExplicitlyRejected,
-    NoMatchingAcceptanceRule
+	None,
+	InvalidItem,
+	Full,
+	ExplicitlyRejected,
+	NoMatchingAcceptanceRule
 };
 
-USTRUCT (BlueprintType)
+USTRUCT(BlueprintType)
 struct FGridReceptacleAcceptanceResult
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    bool bAccepted = false;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+	bool bAccepted = false;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    EGridReceptacleRejectReason RejectReason = EGridReceptacleRejectReason::None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+	EGridReceptacleRejectReason RejectReason = EGridReceptacleRejectReason::None;
 
-    UPROPERTY (VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
-    FName MatchedRule = NAME_None;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Receptacle")
+	FName MatchedRule = NAME_None;
 };

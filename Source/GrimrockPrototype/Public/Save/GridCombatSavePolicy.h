@@ -16,27 +16,21 @@ class UGridTurnManagerComponent;
 class GRIMROCKPROTOTYPE_API FGridCombatSavePolicy
 {
 public:
-    static FString BuildPreCombatCheckpointSlotName (
-        const FString& BaseSlotName);
+	static FString BuildPreCombatCheckpointSlotName(const FString& BaseSlotName);
 
-    static bool IsSaveBlockedByCombatState (
-        const UGridTurnManagerComponent* TurnManager);
+	static bool IsSaveBlockedByCombatState(const UGridTurnManagerComponent* TurnManager);
 
-    /**
+	/**
      * Serialization boundary guard. The saved party is matched to its live
      * TurnManager by stable CharacterId so unrelated game/test worlds do not
      * block each other's saves.
      */
-    static bool IsSaveBlockedForParty (
-        const FGridPartyInventoryState& PartyState);
+	static bool IsSaveBlockedForParty(const FGridPartyInventoryState& PartyState);
 
-    /**
+	/**
      * Saves the current stable exploration state to <PartySaveSlot>_AutoCombat.
      * Non-persistent transient fixtures (no slot / no completed character) are
      * deliberately accepted as skipped so historical combat tests stay pure.
      */
-    static bool PreparePreCombatCheckpoint (
-        AGrimrockPartyPawn* PartyPawn,
-        FText& OutError,
-        bool& bOutSkipped);
+	static bool PreparePreCombatCheckpoint(AGrimrockPartyPawn* PartyPawn, FText& OutError, bool& bOutSkipped);
 };

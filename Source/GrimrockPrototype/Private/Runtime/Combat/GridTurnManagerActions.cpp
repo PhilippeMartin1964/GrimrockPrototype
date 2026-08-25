@@ -15,699 +15,547 @@
 
 namespace
 {
-    FString GetTurnActionTypeText (EGridCombatActionType Type)
-    {
-        if (const UEnum* Enum = StaticEnum<EGridCombatActionType> ())
-        {
-            return Enum->GetNameStringByValue (static_cast<int64> (Type));
-        }
-        return TEXT ("Unknown");
-    }
+	FString GetTurnActionTypeText(EGridCombatActionType Type)
+	{
+		if (const UEnum* Enum = StaticEnum<EGridCombatActionType>())
+		{
+			return Enum->GetNameStringByValue(static_cast<int64>(Type));
+		}
+		return TEXT("Unknown");
+	}
 
-    bool IsExecutableMonsterAttackAction (EGridCombatActionType Type)
-    {
-        return Type == EGridCombatActionType::MeleeAttack ||
-            Type == EGridCombatActionType::RangedAttack;
-    }
+	bool IsExecutableMonsterAttackAction(EGridCombatActionType Type)
+	{
+		return Type == EGridCombatActionType::MeleeAttack || Type == EGridCombatActionType::RangedAttack;
+	}
 }
 
-void UGridTurnManagerComponent::ExecuteNextAction ()
+void UGridTurnManagerComponent::ExecuteNextAction()
 {
-    if (!bCombatActive || CurrentPhase != EGridCombatPhase::EnemyPhase || !IsValid (CurrentMonster))
-    {
-        return;
-    }
+	if (!bCombatActive || CurrentPhase != EGridCombatPhase::EnemyPhase || !IsValid(CurrentMonster))
+	{
+		return;
+	}
 
-    if (CurrentMonster->IsDead () || ActionPointBudget.IsExhausted () || PendingActions.IsEmpty ())
-    {
-        FinishCurrentMonsterTurn ();
-        return;
-    }
+	if (CurrentMonster->IsDead() || ActionPointBudget.IsExhausted() || PendingActions.IsEmpty())
+	{
+		FinishCurrentMonsterTurn();
+		return;
+	}
 
-    const FGridCombatAction NextAction = PendingActions[0];
-    PendingActions.RemoveAt (0);
+	const FGridCombatAction NextAction = PendingActions[0];
+	PendingActions.RemoveAt(0);
 
-    if (!NextAction.IsValid () || !ActionPointBudget.CanSpend (NextAction.ActionPointCost))
-    {
-        UE_LOG (LogGridTurnManager, Warning,
-            TEXT ("[GridTurnManager] Invalid or unaffordable action skipped. Monster=%s Type=%s Cost=%d AP=%d"),
-            *GetNameSafe (CurrentMonster),
-            *GetTurnActionTypeText (NextAction.Type),
-            NextAction.ActionPointCost,
-            ActionPointBudget.GetRemainingPoints ());
-        ExecuteNextAction ();
-        return;
-    }
+	if (!NextAction.IsValid() || !ActionPointBudget.CanSpend(NextAction.ActionPointCost))
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Invalid or unaffordable action skipped. Monster=%s Type=%s Cost=%d AP=%d"),
+			*GetNameSafe(CurrentMonster), *GetTurnActionTypeText(NextAction.Type), NextAction.ActionPointCost, ActionPointBudget.GetRemainingPoints());
+		ExecuteNextAction();
+		return;
+	}
 
-    ActiveAction = NextAction;
-    bHasActiveAction = true;
-    if (bCollectRuntimeMetrics)
-    {
-        ++RuntimeMetrics.ActionsStarted;
-    }
-    OnActionStarted.Broadcast (ActiveAction);
+	ActiveAction = NextAction;
+	bHasActiveAction = true;
+	if (bCollectRuntimeMetrics)
+	{
+		++RuntimeMetrics.ActionsStarted;
+	}
+	OnActionStarted.Broadcast(ActiveAction);
 
-    if (!StartActiveAction (ActiveAction))
-    {
-        CompleteActiveAction (false);
-    }
+	if (!StartActiveAction(ActiveAction))
+	{
+		CompleteActiveAction(false);
+	}
 }
 
-bool UGridTurnManagerComponent::StartActiveAction (const FGridCombatAction& Action)
+bool UGridTurnManagerComponent::StartActiveAction(const FGridCombatAction& Action)
 {
-    if (!IsValid (CurrentMonster))
-    {
-        return false;
-    }
+	if (!IsValid(CurrentMonster))
+	{
+		return false;
+	}
 
-    if (Action.Type == EGridCombatActionType::Move &&
-        FGridStatusEffectControlResolver::Resolve (
-            CurrentMonster->StatusEffects).bBlockTranslation)
-    {
-        UE_LOG (
-            LogGridTurnManager,
-            Log,
-            TEXT ("[MON16.5] TranslationBlocked Target=Monster Monster=%s Round=%d"),
-            *GetNameSafe (CurrentMonster),
-            RoundNumber);
-        return false;
-    }
+	if (Action.Type == EGridCombatActionType::Move && FGridStatusEffectControlResolver::Resolve(CurrentMonster->StatusEffects).bBlockTranslation)
+	{
+		UE_LOG(LogGridTurnManager, Log, TEXT("[MON16.5] TranslationBlocked Target=Monster Monster=%s Round=%d"), *GetNameSafe(CurrentMonster), RoundNumber);
+		return false;
+	}
 
-    if (Action.bIsRepositioningAction && !CurrentMonster->IsDead ())
-    {
-        CurrentMonster->SetMonsterState (EGridMonsterState::Repositioning);
-    }
+	if (Action.bIsRepositioningAction && !CurrentMonster->IsDead())
+	{
+		CurrentMonster->SetMonsterState(EGridMonsterState::Repositioning);
+	}
 
-    if (Action.Type == EGridCombatActionType::Wait)
-    {
-        CompleteActiveAction (true);
-        return true;
-    }
+	if (Action.Type == EGridCombatActionType::Wait)
+	{
+		CompleteActiveAction(true);
+		return true;
+	}
 
-    if (IsExecutableMonsterAttackAction (Action.Type))
-    {
-        // Kept under its historical name for ABI/source compatibility. The
-        // implementation now executes both MeleeAttack and RangedAttack.
-        return StartActiveMeleeAttack ();
-    }
+	if (IsExecutableMonsterAttackAction(Action.Type))
+	{
+		// Kept under its historical name for ABI/source compatibility. The
+		// implementation now executes both MeleeAttack and RangedAttack.
+		return StartActiveMeleeAttack();
+	}
 
-    if (!CurrentMovementComponent)
-    {
-        return false;
-    }
+	if (!CurrentMovementComponent)
+	{
+		return false;
+	}
 
-    const EGridEdge TargetDirection =
-        FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
-            CurrentMonster->CurrentCell,
-            Action.TargetCell);
-    if (TargetDirection == EGridEdge::None)
-    {
-        return false;
-    }
+	const EGridEdge TargetDirection = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(CurrentMonster->CurrentCell, Action.TargetCell);
+	if (TargetDirection == EGridEdge::None)
+	{
+		return false;
+	}
 
-    bool bStarted = false;
-    if (Action.Type == EGridCombatActionType::Move)
-    {
-        bStarted = CurrentMovementComponent->TryMove (TargetDirection);
-    }
-    else if (Action.Type == EGridCombatActionType::Turn)
-    {
-        if (CurrentMonster->Facing == TargetDirection)
-        {
-            CompleteActiveAction (true);
-            return true;
-        }
+	bool bStarted = false;
+	if (Action.Type == EGridCombatActionType::Move)
+	{
+		bStarted = CurrentMovementComponent->TryMove(TargetDirection);
+	}
+	else if (Action.Type == EGridCombatActionType::Turn)
+	{
+		if (CurrentMonster->Facing == TargetDirection)
+		{
+			CompleteActiveAction(true);
+			return true;
+		}
 
-        if (GridDirectionUtils::RotateLeft (CurrentMonster->Facing) == TargetDirection)
-        {
-            bStarted = CurrentMovementComponent->TryTurnLeft ();
-        }
-        else if (GridDirectionUtils::RotateRight (CurrentMonster->Facing) == TargetDirection)
-        {
-            bStarted = CurrentMovementComponent->TryTurnRight ();
-        }
-    }
+		if (GridDirectionUtils::RotateLeft(CurrentMonster->Facing) == TargetDirection)
+		{
+			bStarted = CurrentMovementComponent->TryTurnLeft();
+		}
+		else if (GridDirectionUtils::RotateRight(CurrentMonster->Facing) == TargetDirection)
+		{
+			bStarted = CurrentMovementComponent->TryTurnRight();
+		}
+	}
 
-    if (bStarted)
-    {
-        ActiveActionTimeoutRemaining =
-            GetExpectedActionDuration (Action) + FMath::Max (0.0f, ActionTimeoutPadding);
-        RefreshTickEnabled ();
-    }
-    return bStarted;
+	if (bStarted)
+	{
+		ActiveActionTimeoutRemaining = GetExpectedActionDuration(Action) + FMath::Max(0.0f, ActionTimeoutPadding);
+		RefreshTickEnabled();
+	}
+	return bStarted;
 }
 
-bool UGridTurnManagerComponent::StartActiveMeleeAttack ()
+bool UGridTurnManagerComponent::StartActiveMeleeAttack()
 {
-    if (!IsValid (CurrentMonster) ||
-        !IsValid (CurrentMonster->MonsterDefinition) ||
-        !IsValid (CurrentCombatComponent) ||
-        !IsValid (RuntimeActor) ||
-        !IsValid (PartyPawn))
-    {
-        return false;
-    }
+	if (!IsValid(CurrentMonster) || !IsValid(CurrentMonster->MonsterDefinition) || !IsValid(CurrentCombatComponent) || !IsValid(RuntimeActor) ||
+		!IsValid(PartyPawn))
+	{
+		return false;
+	}
 
-    const bool bMeleeAction =
-        ActiveAction.Type == EGridCombatActionType::MeleeAttack;
-    const bool bRangedAction =
-        ActiveAction.Type == EGridCombatActionType::RangedAttack;
-    if (!bMeleeAction && !bRangedAction)
-    {
-        return false;
-    }
+	const bool bMeleeAction = ActiveAction.Type == EGridCombatActionType::MeleeAttack;
+	const bool bRangedAction = ActiveAction.Type == EGridCombatActionType::RangedAttack;
+	if (!bMeleeAction && !bRangedAction)
+	{
+		return false;
+	}
 
-    const FGridMonsterAttackDefinition* Attack =
-        CurrentMonster->MonsterDefinition->FindAttackDefinition (ActiveAction.AttackId);
-    if (!Attack || !Attack->IsValidDefinition ())
-    {
-        UE_LOG (LogGridTurnManager, Warning,
-            TEXT ("[GridTurnManager] Attack definition unavailable. Monster=%s Attack=%s"),
-            *GetNameSafe (CurrentMonster),
-            *ActiveAction.AttackId.ToString ());
-        return false;
-    }
+	const FGridMonsterAttackDefinition* Attack = CurrentMonster->MonsterDefinition->FindAttackDefinition(ActiveAction.AttackId);
+	if (!Attack || !Attack->IsValidDefinition())
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Attack definition unavailable. Monster=%s Attack=%s"), *GetNameSafe(CurrentMonster),
+			*ActiveAction.AttackId.ToString());
+		return false;
+	}
 
-    const FIntPoint PartyCell (
-        PartyPawn->CurrentCellX,
-        PartyPawn->CurrentCellY);
-    if (ActiveAction.TargetCell != PartyCell)
-    {
-        UE_LOG (LogGridTurnManager, Warning,
-            TEXT ("[GridTurnManager] Monster attack target moved. Monster=%s Action=%s Planned=(%d,%d) Current=(%d,%d)"),
-            *GetNameSafe (CurrentMonster),
-            *GetTurnActionTypeText (ActiveAction.Type),
-            ActiveAction.TargetCell.X,
-            ActiveAction.TargetCell.Y,
-            PartyCell.X,
-            PartyCell.Y);
-        return false;
-    }
+	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
+	if (ActiveAction.TargetCell != PartyCell)
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Monster attack target moved. Monster=%s Action=%s Planned=(%d,%d) Current=(%d,%d)"),
+			*GetNameSafe(CurrentMonster), *GetTurnActionTypeText(ActiveAction.Type), ActiveAction.TargetCell.X, ActiveAction.TargetCell.Y, PartyCell.X,
+			PartyCell.Y);
+		return false;
+	}
 
-    const int32 AttackDistance =
-        FGridMonsterPathfinder::ManhattanDistance (
-            CurrentMonster->CurrentCell,
-            PartyCell);
-    if (!Attack->SupportsDistance (AttackDistance))
-    {
-        UE_LOG (LogGridTurnManager, Warning,
-            TEXT ("[GridTurnManager] Monster attack out of authored range. Monster=%s Attack=%s Distance=%d Range=%d..%d"),
-            *GetNameSafe (CurrentMonster),
-            *Attack->AttackId.ToString (),
-            AttackDistance,
-            Attack->MinRangeCells,
-            Attack->RangeCells);
-        return false;
-    }
+	const int32 AttackDistance = FGridMonsterPathfinder::ManhattanDistance(CurrentMonster->CurrentCell, PartyCell);
+	if (!Attack->SupportsDistance(AttackDistance))
+	{
+		UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Monster attack out of authored range. Monster=%s Attack=%s Distance=%d Range=%d..%d"),
+			*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString(), AttackDistance, Attack->MinRangeCells, Attack->RangeCells);
+		return false;
+	}
 
-    if (bMeleeAction)
-    {
-        const EGridEdge AttackDirection =
-            FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
-                CurrentMonster->CurrentCell,
-                PartyCell);
-        if (AttackDirection == EGridEdge::None ||
-            !RuntimeActor->CanMove (
-                CurrentMonster->CurrentCell.X,
-                CurrentMonster->CurrentCell.Y,
-                AttackDirection))
-        {
-            UE_LOG (LogGridTurnManager, Warning,
-                TEXT ("[GridTurnManager] Melee attack blocked by grid edge. Monster=%s From=(%d,%d) Target=(%d,%d)"),
-                *GetNameSafe (CurrentMonster),
-                CurrentMonster->CurrentCell.X,
-                CurrentMonster->CurrentCell.Y,
-                PartyCell.X,
-                PartyCell.Y);
-            return false;
-        }
-    }
-    else
-    {
-        if (!Attack->IsRangedAttack ())
-        {
-            UE_LOG (LogGridTurnManager, Warning,
-                TEXT ("[GridTurnManager] Ranged action references non-ranged attack. Monster=%s Attack=%s"),
-                *GetNameSafe (CurrentMonster),
-                *Attack->AttackId.ToString ());
-            return false;
-        }
+	if (bMeleeAction)
+	{
+		const EGridEdge AttackDirection = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(CurrentMonster->CurrentCell, PartyCell);
+		if (AttackDirection == EGridEdge::None || !RuntimeActor->CanMove(CurrentMonster->CurrentCell.X, CurrentMonster->CurrentCell.Y, AttackDirection))
+		{
+			UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Melee attack blocked by grid edge. Monster=%s From=(%d,%d) Target=(%d,%d)"),
+				*GetNameSafe(CurrentMonster), CurrentMonster->CurrentCell.X, CurrentMonster->CurrentCell.Y, PartyCell.X, PartyCell.Y);
+			return false;
+		}
+	}
+	else
+	{
+		if (!Attack->IsRangedAttack())
+		{
+			UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Ranged action references non-ranged attack. Monster=%s Attack=%s"),
+				*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString());
+			return false;
+		}
 
-        const EGridEdge AttackDirection =
-            FGridMonsterRangedAttackPlanner::GetAxialDirection (
-                CurrentMonster->CurrentCell,
-                PartyCell);
-        if (AttackDirection == EGridEdge::None ||
-            CurrentMonster->Facing != AttackDirection)
-        {
-            UE_LOG (LogGridTurnManager, Warning,
-                TEXT ("[GridTurnManager] Ranged attack requires axial facing. Monster=%s Attack=%s Facing=%s From=(%d,%d) Target=(%d,%d)"),
-                *GetNameSafe (CurrentMonster),
-                *Attack->AttackId.ToString (),
-                *UEnum::GetValueAsString (CurrentMonster->Facing),
-                CurrentMonster->CurrentCell.X,
-                CurrentMonster->CurrentCell.Y,
-                PartyCell.X,
-                PartyCell.Y);
-            return false;
-        }
+		const EGridEdge AttackDirection = FGridMonsterRangedAttackPlanner::GetAxialDirection(CurrentMonster->CurrentCell, PartyCell);
+		if (AttackDirection == EGridEdge::None || CurrentMonster->Facing != AttackDirection)
+		{
+			UE_LOG(LogGridTurnManager, Warning,
+				TEXT("[GridTurnManager] Ranged attack requires axial facing. Monster=%s Attack=%s Facing=%s From=(%d,%d) Target=(%d,%d)"),
+				*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString(), *UEnum::GetValueAsString(CurrentMonster->Facing), CurrentMonster->CurrentCell.X,
+				CurrentMonster->CurrentCell.Y, PartyCell.X, PartyCell.Y);
+			return false;
+		}
 
-        if (Attack->bRequiresLineOfSight &&
-            !FGridMonsterPerception::HasStraightLineOfSight (
-                CurrentMonster->CurrentCell,
-                PartyCell,
-                Attack->RangeCells,
-                [this] (const FIntPoint& From, const FIntPoint& To)
-                {
-                    const EGridEdge Direction =
-                        FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells (
-                            From,
-                            To);
-                    return IsValid (RuntimeActor) &&
-                        Direction != EGridEdge::None &&
-                        RuntimeActor->CanMove (
-                            From.X,
-                            From.Y,
-                            Direction);
-                }))
-        {
-            UE_LOG (LogGridTurnManager, Warning,
-                TEXT ("[GridTurnManager] Ranged attack blocked by LOS. Monster=%s Attack=%s From=(%d,%d) Target=(%d,%d)"),
-                *GetNameSafe (CurrentMonster),
-                *Attack->AttackId.ToString (),
-                CurrentMonster->CurrentCell.X,
-                CurrentMonster->CurrentCell.Y,
-                PartyCell.X,
-                PartyCell.Y);
-            return false;
-        }
-    }
+		if (Attack->bRequiresLineOfSight &&
+			!FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, Attack->RangeCells,
+				[this](const FIntPoint& From, const FIntPoint& To)
+				{
+					const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);
+					return IsValid(RuntimeActor) && Direction != EGridEdge::None && RuntimeActor->CanMove(From.X, From.Y, Direction);
+				}))
+		{
+			UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Ranged attack blocked by LOS. Monster=%s Attack=%s From=(%d,%d) Target=(%d,%d)"),
+				*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString(), CurrentMonster->CurrentCell.X, CurrentMonster->CurrentCell.Y, PartyCell.X,
+				PartyCell.Y);
+			return false;
+		}
+	}
 
-    const int32 TargetCharacterIndex =
-        CurrentCombatComponent->SelectPartyTarget (CombatRandomStream);
-    if (TargetCharacterIndex == INDEX_NONE)
-    {
-        return false;
-    }
+	const int32 TargetCharacterIndex = CurrentCombatComponent->SelectPartyTarget(CombatRandomStream);
+	if (TargetCharacterIndex == INDEX_NONE)
+	{
+		return false;
+	}
 
-    ActiveAction.TargetCharacterIndex = TargetCharacterIndex;
-    ActiveAttackDefinition = *Attack;
-    LastTargetCharacterIndex = TargetCharacterIndex;
-    bActiveAttackImpactCommitted = false;
-    ActiveAttackImpactTimeRemaining = FMath::Clamp (
-        Attack->ImpactTimeSeconds,
-        0.0f,
-        Attack->ExpectedDuration);
-    ActiveAttackCompleteTimeRemaining = FMath::Max (
-        0.01f,
-        Attack->ExpectedDuration);
-    ActiveActionTimeoutRemaining =
-        ActiveAttackCompleteTimeRemaining + FMath::Max (0.0f, ActionTimeoutPadding);
+	ActiveAction.TargetCharacterIndex = TargetCharacterIndex;
+	ActiveAttackDefinition = *Attack;
+	LastTargetCharacterIndex = TargetCharacterIndex;
+	bActiveAttackImpactCommitted = false;
+	ActiveAttackImpactTimeRemaining = FMath::Clamp(Attack->ImpactTimeSeconds, 0.0f, Attack->ExpectedDuration);
+	ActiveAttackCompleteTimeRemaining = FMath::Max(0.01f, Attack->ExpectedDuration);
+	ActiveActionTimeoutRemaining = ActiveAttackCompleteTimeRemaining + FMath::Max(0.0f, ActionTimeoutPadding);
 
-    if (!CurrentCombatComponent->StartAttackPresentation (ActiveAction, *Attack))
-    {
-        ResetActiveAttackState ();
-        return false;
-    }
+	if (!CurrentCombatComponent->StartAttackPresentation(ActiveAction, *Attack))
+	{
+		ResetActiveAttackState();
+		return false;
+	}
 
-    RefreshTickEnabled ();
-    return true;
+	RefreshTickEnabled();
+	return true;
 }
 
-void UGridTurnManagerComponent::NotifyActiveAttackImpact ()
+void UGridTurnManagerComponent::NotifyActiveAttackImpact()
 {
-    CommitActiveAttackImpact ();
+	CommitActiveAttackImpact();
 }
 
-void UGridTurnManagerComponent::NotifyActiveAttackComplete ()
+void UGridTurnManagerComponent::NotifyActiveAttackComplete()
 {
-    if (!bHasActiveAction || !IsExecutableMonsterAttackAction (ActiveAction.Type))
-    {
-        return;
-    }
+	if (!bHasActiveAction || !IsExecutableMonsterAttackAction(ActiveAction.Type))
+	{
+		return;
+	}
 
-    CommitActiveAttackImpact ();
-    if (CurrentCombatComponent && CurrentCombatComponent->bAttackPresentationActive)
-    {
-        CurrentCombatComponent->CancelAttackPresentation ();
-    }
-    CompleteActiveAction (ActiveAction.bOutcomeCommitted);
+	CommitActiveAttackImpact();
+	if (CurrentCombatComponent && CurrentCombatComponent->bAttackPresentationActive)
+	{
+		CurrentCombatComponent->CancelAttackPresentation();
+	}
+	CompleteActiveAction(ActiveAction.bOutcomeCommitted);
 }
 
-void UGridTurnManagerComponent::CommitActiveAttackImpact ()
+void UGridTurnManagerComponent::CommitActiveAttackImpact()
 {
-    if (!bHasActiveAction ||
-        !IsExecutableMonsterAttackAction (ActiveAction.Type) ||
-        bActiveAttackImpactCommitted)
-    {
-        return;
-    }
+	if (!bHasActiveAction || !IsExecutableMonsterAttackAction(ActiveAction.Type) || bActiveAttackImpactCommitted)
+	{
+		return;
+	}
 
-    bActiveAttackImpactCommitted = true;
-    ActiveAttackImpactTimeRemaining = 0.0f;
+	bActiveAttackImpactCommitted = true;
+	ActiveAttackImpactTimeRemaining = 0.0f;
 
-    if (!IsValid (CurrentCombatComponent) || !ActiveAttackDefinition.IsValidDefinition ())
-    {
-        return;
-    }
+	if (!IsValid(CurrentCombatComponent) || !ActiveAttackDefinition.IsValidDefinition())
+	{
+		return;
+	}
 
-    int32 TargetCharacterIndex = ActiveAction.TargetCharacterIndex;
-    if (!IsValid (PartyPawn) ||
-        !IsValid (PartyPawn->PartyInventoryComponent) ||
-        !PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex (
-            TargetCharacterIndex) ||
-        PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[
-            TargetCharacterIndex].DerivedStats.CurrentHealth <= 0)
-    {
-        TargetCharacterIndex = CurrentCombatComponent->SelectPartyTarget (CombatRandomStream);
-        ActiveAction.TargetCharacterIndex = TargetCharacterIndex;
-    }
+	int32 TargetCharacterIndex = ActiveAction.TargetCharacterIndex;
+	if (!IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent) ||
+		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(TargetCharacterIndex) ||
+		PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[TargetCharacterIndex].DerivedStats.CurrentHealth <= 0)
+	{
+		TargetCharacterIndex = CurrentCombatComponent->SelectPartyTarget(CombatRandomStream);
+		ActiveAction.TargetCharacterIndex = TargetCharacterIndex;
+	}
 
-    if (TargetCharacterIndex == INDEX_NONE)
-    {
-        return;
-    }
+	if (TargetCharacterIndex == INDEX_NONE)
+	{
+		return;
+	}
 
-    FGridAttackResult Result;
-    if (!CurrentCombatComponent->ResolveAndApplyPartyAttack (
-        TargetCharacterIndex,
-        ActiveAttackDefinition,
-        CombatRandomStream,
-        Result))
-    {
-        return;
-    }
+	FGridAttackResult Result;
+	if (!CurrentCombatComponent->ResolveAndApplyPartyAttack(TargetCharacterIndex, ActiveAttackDefinition, CombatRandomStream, Result))
+	{
+		return;
+	}
 
-    LastTargetCharacterIndex = TargetCharacterIndex;
-    LastAttackResult = Result;
-    ActiveAction.bHit = Result.bHit;
-    ActiveAction.bCriticalHit = Result.bCriticalHit;
-    ActiveAction.RolledDamage = Result.RawDamage;
-    ActiveAction.bOutcomeCommitted = true;
+	LastTargetCharacterIndex = TargetCharacterIndex;
+	LastAttackResult = Result;
+	ActiveAction.bHit = Result.bHit;
+	ActiveAction.bCriticalHit = Result.bCriticalHit;
+	ActiveAction.RolledDamage = Result.RawDamage;
+	ActiveAction.bOutcomeCommitted = true;
 
-    if (IsValid (CurrentMonster) &&
-        CurrentMonster->AudioComponent)
-    {
-        const FVector ImpactWorldLocation = IsValid (PartyPawn)
-            ? PartyPawn->GetActorLocation ()
-            : CurrentMonster->GetActorLocation ();
-        CurrentMonster->AudioComponent->PlayAttackImpact (
-            ActiveAttackDefinition,
-            Result,
-            ImpactWorldLocation);
-    }
+	if (IsValid(CurrentMonster) && CurrentMonster->AudioComponent)
+	{
+		const FVector ImpactWorldLocation = IsValid(PartyPawn) ? PartyPawn->GetActorLocation() : CurrentMonster->GetActorLocation();
+		CurrentMonster->AudioComponent->PlayAttackImpact(ActiveAttackDefinition, Result, ImpactWorldLocation);
+	}
 
-    if (IsValid (CurrentMonster) &&
-        CurrentMonster->VFXComponent)
-    {
-        const FVector ImpactWorldLocation = IsValid (PartyPawn)
-            ? PartyPawn->GetActorLocation ()
-            : CurrentMonster->GetActorLocation ();
-        CurrentMonster->VFXComponent->PlayAttackImpactVFX (
-            ActiveAttackDefinition,
-            Result,
-            ImpactWorldLocation,
-            TargetCharacterIndex);
-    }
+	if (IsValid(CurrentMonster) && CurrentMonster->VFXComponent)
+	{
+		const FVector ImpactWorldLocation = IsValid(PartyPawn) ? PartyPawn->GetActorLocation() : CurrentMonster->GetActorLocation();
+		CurrentMonster->VFXComponent->PlayAttackImpactVFX(ActiveAttackDefinition, Result, ImpactWorldLocation, TargetCharacterIndex);
+	}
 
-    const FText MonsterName =
-        ResolveMonsterDisplayName (CurrentMonster);
-    const FText CharacterName =
-        ResolveCharacterDisplayName (TargetCharacterIndex);
-    const FName AttackId = !ActiveAttackDefinition.AttackId.IsNone ()
-        ? ActiveAttackDefinition.AttackId
-        : ActiveAction.AttackId;
-    const bool bTargetDefeated =
-        Result.TargetHealthBefore > 0 &&
-        Result.TargetHealthAfter <= 0;
+	const FText MonsterName = ResolveMonsterDisplayName(CurrentMonster);
+	const FText CharacterName = ResolveCharacterDisplayName(TargetCharacterIndex);
+	const FName AttackId = !ActiveAttackDefinition.AttackId.IsNone() ? ActiveAttackDefinition.AttackId : ActiveAction.AttackId;
+	const bool bTargetDefeated = Result.TargetHealthBefore > 0 && Result.TargetHealthAfter <= 0;
 
-    FGridCombatLogEntry AttackEntry;
-    AttackEntry.RoundNumber = RoundNumber;
-    AttackEntry.Phase = CurrentPhase;
-    AttackEntry.Type = Result.bHit
-        ? EGridCombatLogEntryType::AttackHit
-        : EGridCombatLogEntryType::AttackMiss;
-    AttackEntry.SourceId = ResolveMonsterLogId (CurrentMonster);
-    AttackEntry.SourceDisplayName = MonsterName;
-    AttackEntry.TargetCharacterIndex = TargetCharacterIndex;
-    AttackEntry.TargetDisplayName = CharacterName;
-    AttackEntry.AttackId = AttackId;
-    AttackEntry.AttackResult = Result;
-    AttackEntry.bTargetDefeated = bTargetDefeated;
-    AttackEntry.Message = FGridCombatLogFormatter::FormatMonsterAttack (
-        MonsterName,
-        CharacterName,
-        AttackId,
-        Result);
-    AppendCombatLogEntry (AttackEntry);
+	FGridCombatLogEntry AttackEntry;
+	AttackEntry.RoundNumber = RoundNumber;
+	AttackEntry.Phase = CurrentPhase;
+	AttackEntry.Type = Result.bHit ? EGridCombatLogEntryType::AttackHit : EGridCombatLogEntryType::AttackMiss;
+	AttackEntry.SourceId = ResolveMonsterLogId(CurrentMonster);
+	AttackEntry.SourceDisplayName = MonsterName;
+	AttackEntry.TargetCharacterIndex = TargetCharacterIndex;
+	AttackEntry.TargetDisplayName = CharacterName;
+	AttackEntry.AttackId = AttackId;
+	AttackEntry.AttackResult = Result;
+	AttackEntry.bTargetDefeated = bTargetDefeated;
+	AttackEntry.Message = FGridCombatLogFormatter::FormatMonsterAttack(MonsterName, CharacterName, AttackId, Result);
+	AppendCombatLogEntry(AttackEntry);
 
-    if (bTargetDefeated)
-    {
-        FGridCombatLogEntry DefeatedEntry;
-        DefeatedEntry.RoundNumber = RoundNumber;
-        DefeatedEntry.Phase = CurrentPhase;
-        DefeatedEntry.Type =
-            EGridCombatLogEntryType::CharacterDefeated;
-        DefeatedEntry.SourceId =
-            ResolveMonsterLogId (CurrentMonster);
-        DefeatedEntry.SourceDisplayName = MonsterName;
-        DefeatedEntry.TargetCharacterIndex =
-            TargetCharacterIndex;
-        DefeatedEntry.TargetDisplayName = CharacterName;
-        DefeatedEntry.bTargetDefeated = true;
-        DefeatedEntry.Message =
-            FGridCombatLogFormatter::FormatCharacterDefeated (
-                CharacterName);
-        AppendCombatLogEntry (DefeatedEntry);
-    }
+	if (bTargetDefeated)
+	{
+		FGridCombatLogEntry DefeatedEntry;
+		DefeatedEntry.RoundNumber = RoundNumber;
+		DefeatedEntry.Phase = CurrentPhase;
+		DefeatedEntry.Type = EGridCombatLogEntryType::CharacterDefeated;
+		DefeatedEntry.SourceId = ResolveMonsterLogId(CurrentMonster);
+		DefeatedEntry.SourceDisplayName = MonsterName;
+		DefeatedEntry.TargetCharacterIndex = TargetCharacterIndex;
+		DefeatedEntry.TargetDisplayName = CharacterName;
+		DefeatedEntry.bTargetDefeated = true;
+		DefeatedEntry.Message = FGridCombatLogFormatter::FormatCharacterDefeated(CharacterName);
+		AppendCombatLogEntry(DefeatedEntry);
+	}
 
-    ++AttackResolvedBroadcastCount;
-    if (bCollectRuntimeMetrics)
-    {
-        ++RuntimeMetrics.AttacksResolved;
-    }
-    RefreshPlayerCharacterVitalState (TargetCharacterIndex);
-    OnAttackResolved.Broadcast (CurrentMonster, TargetCharacterIndex, Result);
+	++AttackResolvedBroadcastCount;
+	if (bCollectRuntimeMetrics)
+	{
+		++RuntimeMetrics.AttacksResolved;
+	}
+	RefreshPlayerCharacterVitalState(TargetCharacterIndex);
+	OnAttackResolved.Broadcast(CurrentMonster, TargetCharacterIndex, Result);
 }
 
-void UGridTurnManagerComponent::CompleteActiveAction (bool bSucceeded)
+void UGridTurnManagerComponent::CompleteActiveAction(bool bSucceeded)
 {
-    if (!bHasActiveAction)
-    {
-        return;
-    }
-    if (bCollectRuntimeMetrics)
-    {
-        ++RuntimeMetrics.ActionsCompleted;
-    }
+	if (!bHasActiveAction)
+	{
+		return;
+	}
+	if (bCollectRuntimeMetrics)
+	{
+		++RuntimeMetrics.ActionsCompleted;
+	}
 
-    const FGridCombatAction CompletedAction = ActiveAction;
-    bHasActiveAction = false;
-    ActiveAction = FGridCombatAction ();
-    ActiveActionTimeoutRemaining = 0.0f;
+	const FGridCombatAction CompletedAction = ActiveAction;
+	bHasActiveAction = false;
+	ActiveAction = FGridCombatAction();
+	ActiveActionTimeoutRemaining = 0.0f;
 
-    if (bSucceeded)
-    {
-        ActionPointBudget.Spend (CompletedAction.ActionPointCost);
-    }
-    CurrentMonsterRemainingActionPoints = ActionPointBudget.GetRemainingPoints ();
+	if (bSucceeded)
+	{
+		ActionPointBudget.Spend(CompletedAction.ActionPointCost);
+	}
+	CurrentMonsterRemainingActionPoints = ActionPointBudget.GetRemainingPoints();
 
-    const bool bFailedReposition =
-        CompletedAction.bIsRepositioningAction && !bSucceeded;
-    if (CompletedAction.bIsRepositioningAction &&
-        IsValid (CurrentMonster) &&
-        !CurrentMonster->IsDead ())
-    {
-        if (bFailedReposition ||
-            CompletedAction.Type == EGridCombatActionType::Move)
-        {
-            CurrentMonster->SetMonsterState (EGridMonsterState::Pursuing);
-        }
-    }
+	const bool bFailedReposition = CompletedAction.bIsRepositioningAction && !bSucceeded;
+	if (CompletedAction.bIsRepositioningAction && IsValid(CurrentMonster) && !CurrentMonster->IsDead())
+	{
+		if (bFailedReposition || CompletedAction.Type == EGridCombatActionType::Move)
+		{
+			CurrentMonster->SetMonsterState(EGridMonsterState::Pursuing);
+		}
+	}
 
-    OnActionCompleted.Broadcast (CompletedAction, bSucceeded);
+	OnActionCompleted.Broadcast(CompletedAction, bSucceeded);
 
-    if (bFailedReposition)
-    {
-        if (CurrentMovementComponent)
-        {
-            CurrentMovementComponent->CancelCurrentAction ();
-            if (UGridMonsterOccupancySubsystem* OccupancySubsystem =
-                CurrentMovementComponent->GetOccupancySubsystem ())
-            {
-                OccupancySubsystem->CancelReservation (CurrentMonster);
-            }
-        }
-        PendingActions.Reset ();
-        FinishCurrentMonsterTurn ();
-        return;
-    }
+	if (bFailedReposition)
+	{
+		if (CurrentMovementComponent)
+		{
+			CurrentMovementComponent->CancelCurrentAction();
+			if (UGridMonsterOccupancySubsystem* OccupancySubsystem = CurrentMovementComponent->GetOccupancySubsystem())
+			{
+				OccupancySubsystem->CancelReservation(CurrentMonster);
+			}
+		}
+		PendingActions.Reset();
+		FinishCurrentMonsterTurn();
+		return;
+	}
 
-    if (IsExecutableMonsterAttackAction (CompletedAction.Type))
-    {
-        ResetActiveAttackState ();
-        if (!HasLivingPartyCharacter ())
-        {
-            FinishCombat (EGridCombatPhase::Defeat);
-            return;
-        }
-    }
+	if (IsExecutableMonsterAttackAction(CompletedAction.Type))
+	{
+		ResetActiveAttackState();
+		if (!HasLivingPartyCharacter())
+		{
+			FinishCombat(EGridCombatPhase::Defeat);
+			return;
+		}
+	}
 
-    if (CompletedAction.Type == EGridCombatActionType::Wait)
-    {
-        PendingActions.Reset ();
-        FinishCurrentMonsterTurn ();
-        return;
-    }
+	if (CompletedAction.Type == EGridCombatActionType::Wait)
+	{
+		PendingActions.Reset();
+		FinishCurrentMonsterTurn();
+		return;
+	}
 
-    if (ActionPointBudget.IsExhausted ())
-    {
-        FinishCurrentMonsterTurn ();
-        return;
-    }
+	if (ActionPointBudget.IsExhausted())
+	{
+		FinishCurrentMonsterTurn();
+		return;
+	}
 
-    ExecuteNextAction ();
+	ExecuteNextAction();
 }
 
-float UGridTurnManagerComponent::GetExpectedActionDuration (const FGridCombatAction& Action) const
+float UGridTurnManagerComponent::GetExpectedActionDuration(const FGridCombatAction& Action) const
 {
-    if (!IsValid (CurrentMonster) || !IsValid (CurrentMonster->MonsterDefinition))
-    {
-        return 0.01f;
-    }
+	if (!IsValid(CurrentMonster) || !IsValid(CurrentMonster->MonsterDefinition))
+	{
+		return 0.01f;
+	}
 
-    if (Action.Type == EGridCombatActionType::Move)
-    {
-        return FMath::Max (0.01f, CurrentMonster->MonsterDefinition->MoveDuration);
-    }
-    if (Action.Type == EGridCombatActionType::Turn)
-    {
-        return FMath::Max (0.01f, CurrentMonster->MonsterDefinition->TurnDuration);
-    }
-    if (IsExecutableMonsterAttackAction (Action.Type))
-    {
-        if (ActiveAttackDefinition.IsValidDefinition ())
-        {
-            return FMath::Max (0.01f, ActiveAttackDefinition.ExpectedDuration);
-        }
-        if (const FGridMonsterAttackDefinition* Attack =
-            CurrentMonster->MonsterDefinition->FindAttackDefinition (Action.AttackId))
-        {
-            return FMath::Max (0.01f, Attack->ExpectedDuration);
-        }
-    }
-    return 0.01f;
+	if (Action.Type == EGridCombatActionType::Move)
+	{
+		return FMath::Max(0.01f, CurrentMonster->MonsterDefinition->MoveDuration);
+	}
+	if (Action.Type == EGridCombatActionType::Turn)
+	{
+		return FMath::Max(0.01f, CurrentMonster->MonsterDefinition->TurnDuration);
+	}
+	if (IsExecutableMonsterAttackAction(Action.Type))
+	{
+		if (ActiveAttackDefinition.IsValidDefinition())
+		{
+			return FMath::Max(0.01f, ActiveAttackDefinition.ExpectedDuration);
+		}
+		if (const FGridMonsterAttackDefinition* Attack = CurrentMonster->MonsterDefinition->FindAttackDefinition(Action.AttackId))
+		{
+			return FMath::Max(0.01f, Attack->ExpectedDuration);
+		}
+	}
+	return 0.01f;
 }
 
-void UGridTurnManagerComponent::ResetActiveAttackState ()
+void UGridTurnManagerComponent::ResetActiveAttackState()
 {
-    ActiveAttackDefinition = FGridMonsterAttackDefinition ();
-    ActiveAttackImpactTimeRemaining = 0.0f;
-    ActiveAttackCompleteTimeRemaining = 0.0f;
-    bActiveAttackImpactCommitted = false;
+	ActiveAttackDefinition = FGridMonsterAttackDefinition();
+	ActiveAttackImpactTimeRemaining = 0.0f;
+	ActiveAttackCompleteTimeRemaining = 0.0f;
+	bActiveAttackImpactCommitted = false;
 }
 
-void UGridTurnManagerComponent::RefreshTickEnabled ()
+void UGridTurnManagerComponent::RefreshTickEnabled()
 {
-    SetComponentTickEnabled (bWaitingForCombatStart || bHasActiveAction);
+	SetComponentTickEnabled(bWaitingForCombatStart || bHasActiveAction);
 }
 
-void UGridTurnManagerComponent::BindCurrentMovement (
-    UGridMonsterMovementComponent* MovementComponent)
+void UGridTurnManagerComponent::BindCurrentMovement(UGridMonsterMovementComponent* MovementComponent)
 {
-    UnbindCurrentMovement ();
-    CurrentMovementComponent = MovementComponent;
-    if (!CurrentMovementComponent)
-    {
-        return;
-    }
+	UnbindCurrentMovement();
+	CurrentMovementComponent = MovementComponent;
+	if (!CurrentMovementComponent)
+	{
+		return;
+	}
 
-    CurrentMovementComponent->OnMoveCompleted.AddDynamic (
-        this,
-        &UGridTurnManagerComponent::HandleMonsterMoveCompleted);
-    CurrentMovementComponent->OnTurnCompleted.AddDynamic (
-        this,
-        &UGridTurnManagerComponent::HandleMonsterTurnCompleted);
+	CurrentMovementComponent->OnMoveCompleted.AddDynamic(this, &UGridTurnManagerComponent::HandleMonsterMoveCompleted);
+	CurrentMovementComponent->OnTurnCompleted.AddDynamic(this, &UGridTurnManagerComponent::HandleMonsterTurnCompleted);
 }
 
-void UGridTurnManagerComponent::UnbindCurrentMovement ()
+void UGridTurnManagerComponent::UnbindCurrentMovement()
 {
-    if (CurrentMovementComponent)
-    {
-        CurrentMovementComponent->OnMoveCompleted.RemoveDynamic (
-            this,
-            &UGridTurnManagerComponent::HandleMonsterMoveCompleted);
-        CurrentMovementComponent->OnTurnCompleted.RemoveDynamic (
-            this,
-            &UGridTurnManagerComponent::HandleMonsterTurnCompleted);
-    }
-    CurrentMovementComponent = nullptr;
+	if (CurrentMovementComponent)
+	{
+		CurrentMovementComponent->OnMoveCompleted.RemoveDynamic(this, &UGridTurnManagerComponent::HandleMonsterMoveCompleted);
+		CurrentMovementComponent->OnTurnCompleted.RemoveDynamic(this, &UGridTurnManagerComponent::HandleMonsterTurnCompleted);
+	}
+	CurrentMovementComponent = nullptr;
 }
 
-void UGridTurnManagerComponent::BindCurrentCombat (
-    UGridMonsterCombatComponent* CombatComponent)
+void UGridTurnManagerComponent::BindCurrentCombat(UGridMonsterCombatComponent* CombatComponent)
 {
-    UnbindCurrentCombat ();
-    CurrentCombatComponent = CombatComponent;
-    if (!CurrentCombatComponent)
-    {
-        return;
-    }
+	UnbindCurrentCombat();
+	CurrentCombatComponent = CombatComponent;
+	if (!CurrentCombatComponent)
+	{
+		return;
+	}
 
-    CurrentCombatComponent->OnAttackImpactNotify.AddDynamic (
-        this,
-        &UGridTurnManagerComponent::HandleMonsterAttackImpactNotify);
-    CurrentCombatComponent->OnActionCompleteNotify.AddDynamic (
-        this,
-        &UGridTurnManagerComponent::HandleMonsterActionCompleteNotify);
+	CurrentCombatComponent->OnAttackImpactNotify.AddDynamic(this, &UGridTurnManagerComponent::HandleMonsterAttackImpactNotify);
+	CurrentCombatComponent->OnActionCompleteNotify.AddDynamic(this, &UGridTurnManagerComponent::HandleMonsterActionCompleteNotify);
 }
 
-void UGridTurnManagerComponent::UnbindCurrentCombat ()
+void UGridTurnManagerComponent::UnbindCurrentCombat()
 {
-    if (CurrentCombatComponent)
-    {
-        CurrentCombatComponent->OnAttackImpactNotify.RemoveDynamic (
-            this,
-            &UGridTurnManagerComponent::HandleMonsterAttackImpactNotify);
-        CurrentCombatComponent->OnActionCompleteNotify.RemoveDynamic (
-            this,
-            &UGridTurnManagerComponent::HandleMonsterActionCompleteNotify);
-    }
-    CurrentCombatComponent = nullptr;
+	if (CurrentCombatComponent)
+	{
+		CurrentCombatComponent->OnAttackImpactNotify.RemoveDynamic(this, &UGridTurnManagerComponent::HandleMonsterAttackImpactNotify);
+		CurrentCombatComponent->OnActionCompleteNotify.RemoveDynamic(this, &UGridTurnManagerComponent::HandleMonsterActionCompleteNotify);
+	}
+	CurrentCombatComponent = nullptr;
 }
 
-void UGridTurnManagerComponent::HandleMonsterMoveCompleted (
-    FIntPoint FromCell,
-    FIntPoint ToCell)
+void UGridTurnManagerComponent::HandleMonsterMoveCompleted(FIntPoint FromCell, FIntPoint ToCell)
 {
-    (void)FromCell;
-    (void)ToCell;
+	(void)FromCell;
+	(void)ToCell;
 
-    if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::Move)
-    {
-        CompleteActiveAction (true);
-    }
+	if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::Move)
+	{
+		CompleteActiveAction(true);
+	}
 }
 
-void UGridTurnManagerComponent::HandleMonsterTurnCompleted (
-    EGridEdge FromFacing,
-    EGridEdge ToFacing)
+void UGridTurnManagerComponent::HandleMonsterTurnCompleted(EGridEdge FromFacing, EGridEdge ToFacing)
 {
-    (void)FromFacing;
-    (void)ToFacing;
+	(void)FromFacing;
+	(void)ToFacing;
 
-    if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::Turn)
-    {
-        CompleteActiveAction (true);
-    }
+	if (bHasActiveAction && ActiveAction.Type == EGridCombatActionType::Turn)
+	{
+		CompleteActiveAction(true);
+	}
 }
 
-void UGridTurnManagerComponent::HandleMonsterAttackImpactNotify ()
+void UGridTurnManagerComponent::HandleMonsterAttackImpactNotify()
 {
-    NotifyActiveAttackImpact ();
+	NotifyActiveAttackImpact();
 }
 
-void UGridTurnManagerComponent::HandleMonsterActionCompleteNotify ()
+void UGridTurnManagerComponent::HandleMonsterActionCompleteNotify()
 {
-    NotifyActiveAttackComplete ();
+	NotifyActiveAttackComplete();
 }

@@ -4,28 +4,28 @@
 
 void UGrimrockMainMenuModalWidget::NativeConstruct()
 {
-    Super::NativeConstruct();
+	Super::NativeConstruct();
 
-    BindButtons();
+	BindButtons();
 }
 
 void UGrimrockMainMenuModalWidget::CloseModal()
 {
-    RemoveFromParent();
+	RemoveFromParent();
 }
 
 void UGrimrockMainMenuModalWidget::BindButtons()
 {
-    if (!Button_Back)
-    {
-        return;
-    }
+	if (!Button_Back)
+	{
+		return;
+	}
 
-    Button_Back->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuModalWidget::HandleBackClicked);
-    Button_Back->OnClicked.AddDynamic(this, &UGrimrockMainMenuModalWidget::HandleBackClicked);
+	Button_Back->OnClicked.RemoveDynamic(this, &UGrimrockMainMenuModalWidget::HandleBackClicked);
+	Button_Back->OnClicked.AddDynamic(this, &UGrimrockMainMenuModalWidget::HandleBackClicked);
 }
 
 void UGrimrockMainMenuModalWidget::HandleBackClicked()
 {
-    CloseModal();
+	CloseModal();
 }

@@ -2,7 +2,7 @@
 
 #include "Runtime/GrimrockPartyPawn.h"
 
-AGrimrockGameMode::AGrimrockGameMode ()
+AGrimrockGameMode::AGrimrockGameMode()
 {
-    DefaultPawnClass = AGrimrockPartyPawn::StaticClass ();
+	DefaultPawnClass = AGrimrockPartyPawn::StaticClass();
 }

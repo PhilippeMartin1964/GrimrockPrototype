@@ -6,11 +6,11 @@
 
 class UStaticMeshComponent;
 
-UCLASS ()
+UCLASS()
 class GRIMROCKPROTOTYPE_API AGridSecretDoorActor : public AGridDoorActor
 {
-    GENERATED_BODY ()
+	GENERATED_BODY()
 
 public:
-    AGridSecretDoorActor ();
+	AGridSecretDoorActor();
 };
