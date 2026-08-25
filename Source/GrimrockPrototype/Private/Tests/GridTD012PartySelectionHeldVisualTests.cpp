@@ -35,6 +35,7 @@ namespace GridTD012Tests
 
 			FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
 			Context.SetCurrentWorld(World);
+			World->InitializeActorsForPlay(FURL());
 		}
 
 		~FTestWorld()
@@ -74,11 +75,6 @@ namespace GridTD012Tests
 			Test.AddError(TEXT("TD01.2 could not spawn a party pawn with its inventory component."));
 			return nullptr;
 		}
-
-		// This isolated transient world never enters the normal gameplay initialization
-		// phase. Drive the Pawn hook explicitly so the test exercises the same delegate
-		// binding that PIE executes before BeginPlay.
-		PartyPawn->PostInitializeComponents();
 
 		UGridPartyInventoryComponent* Inventory = PartyPawn->PartyInventoryComponent;
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
