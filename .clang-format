@@ -1,4 +1,3 @@
----
 Language: Cpp
 BasedOnStyle: LLVM
 
@@ -38,7 +37,6 @@ IndentAccessModifiers: false
 IndentCaseBlocks: false
 IndentCaseLabels: true
 IndentPPDirectives: None
-NamespaceIndentation: None
 
 MaxEmptyLinesToKeep: 1
 KeepEmptyLines:
@@ -46,7 +44,6 @@ KeepEmptyLines:
   AtStartOfBlock: false
   AtStartOfFile: false
 EmptyLineAfterAccessModifier: Never
-EmptyLineBeforeAccessModifier: Never
 SeparateDefinitionBlocks: Leave
 
 SortIncludes: Never
@@ -54,9 +51,7 @@ IncludeBlocks: Preserve
 SortUsingDeclarations: Never
 
 ReflowComments: false
-AlignAfterOpenBracket: Align
 AlignEscapedNewlines: DontAlign
-AlignOperands: Align
 AlignTrailingComments:
   Kind: Leave
   OverEmptyLines: 0
@@ -79,4 +74,9 @@ StatementMacros:
   - GENERATED_BODY
   - GENERATED_UCLASS_BODY
   - GENERATED_USTRUCT_BODY
-...
+AlignAfterOpenBracket: DontAlign
+AlignOperands: DontAlign
+EmptyLineBeforeAccessModifier: LogicalBlock
+NamespaceIndentation: All
+FixNamespaceComments: false
+Cpp11BracedListStyle: false
