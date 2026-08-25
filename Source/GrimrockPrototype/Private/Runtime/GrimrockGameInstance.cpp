@@ -3,6 +3,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Save/GrimrockPartySaveGame.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogGrimrockGameInstance, Log, All);
+
 namespace
 {
 	bool IsPartyInventoryStateLoadable(const FGridPartyInventoryState& PartyState)
@@ -55,7 +57,7 @@ void UGrimrockGameInstance::SetPendingStartupMode(EGrimrockPartyStartupMode NewM
 		ResetPendingLoadSlot();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingStartupMode Set Mode=%d"), static_cast<int32>(PendingStartupMode));
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingStartupMode Set Mode=%d"), static_cast<int32>(PendingStartupMode));
 }
 
 EGrimrockPartyStartupMode UGrimrockGameInstance::GetPendingStartupMode() const
@@ -68,7 +70,7 @@ EGrimrockPartyStartupMode UGrimrockGameInstance::ConsumePendingStartupMode()
 	const EGrimrockPartyStartupMode ConsumedMode = PendingStartupMode;
 	PendingStartupMode = EGrimrockPartyStartupMode::Continue;
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingStartupMode Consumed Mode=%d NextMode=%d"), static_cast<int32>(ConsumedMode),
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingStartupMode Consumed Mode=%d NextMode=%d"), static_cast<int32>(ConsumedMode),
 		static_cast<int32>(PendingStartupMode));
 
 	return ConsumedMode;
@@ -77,7 +79,7 @@ EGrimrockPartyStartupMode UGrimrockGameInstance::ConsumePendingStartupMode()
 void UGrimrockGameInstance::ClearPendingStartupMode()
 {
 	PendingStartupMode = EGrimrockPartyStartupMode::Continue;
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingStartupMode Cleared"));
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingStartupMode Cleared"));
 }
 
 void UGrimrockGameInstance::RequestReturnToMainMenu(const UObject* WorldContextObject)
@@ -87,12 +89,12 @@ void UGrimrockGameInstance::RequestReturnToMainMenu(const UObject* WorldContextO
 
 	if (MainMenuLevelName.IsNone())
 	{
-		UE_LOG(LogTemp, Error, TEXT("GrimrockGameInstance ReturnToMainMenu Failed Reason=NoMainMenuLevelName"));
+		UE_LOG(LogGrimrockGameInstance, Error, TEXT("GrimrockGameInstance ReturnToMainMenu Failed Reason=NoMainMenuLevelName"));
 		return;
 	}
 
 	const UObject* EffectiveWorldContext = WorldContextObject ? WorldContextObject : this;
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance ReturnToMainMenu Level=%s"), *MainMenuLevelName.ToString());
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance ReturnToMainMenu Level=%s"), *MainMenuLevelName.ToString());
 	UGameplayStatics::OpenLevel(EffectiveWorldContext, MainMenuLevelName, true);
 }
 
@@ -116,20 +118,22 @@ bool UGrimrockGameInstance::HasPartySaveGame(const FString& SlotName, int32 User
 	UGrimrockPartySaveGame* SaveGame = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
 	if (!SaveGame)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=LoadFailedOrWrongClass"), *SlotName, UserIndex);
+		UE_LOG(LogGrimrockGameInstance, Warning, TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=LoadFailedOrWrongClass"), *SlotName,
+			UserIndex);
 		return false;
 	}
 
 	if (!SaveGame->IsCompatible())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=IncompatibleSave Version=%d Detail=%s"), *SlotName,
-			UserIndex, SaveGame->SaveVersion, *SaveGame->GetProgressionLoadError());
+		UE_LOG(LogGrimrockGameInstance, Warning,
+			TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=IncompatibleSave Version=%d Detail=%s"), *SlotName, UserIndex,
+			SaveGame->SaveVersion, *SaveGame->GetProgressionLoadError());
 		return false;
 	}
 
 	if (!IsPartyInventoryStateLoadable(SaveGame->PartyInventoryState))
 	{
-		UE_LOG(LogTemp, Warning,
+		UE_LOG(LogGrimrockGameInstance, Warning,
 			TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=PartyInventoryStateNotLoadable Version=%d ActiveCharacters=%d"), *SlotName,
 			UserIndex, SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num());
 		return false;
@@ -208,14 +212,15 @@ bool UGrimrockGameInstance::RequestLoadPartySaveSlot(const FString& SlotName, in
 {
 	if (!HasPartySaveGame(SlotName, UserIndex))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GrimrockGameInstance LoadSlot Request Failed Slot=%s UserIndex=%d Reason=SaveNotLoadable"), *SlotName, UserIndex);
+		UE_LOG(LogGrimrockGameInstance, Warning, TEXT("GrimrockGameInstance LoadSlot Request Failed Slot=%s UserIndex=%d Reason=SaveNotLoadable"), *SlotName,
+			UserIndex);
 		return false;
 	}
 
 	SetPendingLoadSlot(SlotName, UserIndex);
 	SetPendingStartupMode(EGrimrockPartyStartupMode::Continue);
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance LoadSlot Requested Slot=%s UserIndex=%d"), *SlotName, UserIndex);
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance LoadSlot Requested Slot=%s UserIndex=%d"), *SlotName, UserIndex);
 	return true;
 }
 
@@ -225,7 +230,8 @@ void UGrimrockGameInstance::SetPendingLoadSlot(const FString& SlotName, int32 Us
 	PendingLoadSlotUserIndex = UserIndex;
 	bHasPendingLoadSlot = !PendingLoadSlotName.IsEmpty();
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingLoadSlot Set Slot=%s UserIndex=%d"), *PendingLoadSlotName, PendingLoadSlotUserIndex);
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingLoadSlot Set Slot=%s UserIndex=%d"), *PendingLoadSlotName,
+		PendingLoadSlotUserIndex);
 }
 
 bool UGrimrockGameInstance::HasPendingLoadSlot() const
@@ -246,14 +252,14 @@ bool UGrimrockGameInstance::ConsumePendingLoadSlot(FString& OutSlotName, int32& 
 	OutUserIndex = PendingLoadSlotUserIndex;
 	ResetPendingLoadSlot();
 
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingLoadSlot Consumed Slot=%s UserIndex=%d"), *OutSlotName, OutUserIndex);
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingLoadSlot Consumed Slot=%s UserIndex=%d"), *OutSlotName, OutUserIndex);
 	return true;
 }
 
 void UGrimrockGameInstance::ClearPendingLoadSlot()
 {
 	ResetPendingLoadSlot();
-	UE_LOG(LogTemp, Log, TEXT("GrimrockGameInstance PendingLoadSlot Cleared"));
+	UE_LOG(LogGrimrockGameInstance, Log, TEXT("GrimrockGameInstance PendingLoadSlot Cleared"));
 }
 
 FGrimrockSaveSlotInfo UGrimrockGameInstance::MakeSaveSlotInfo(const FString& SlotName, int32 UserIndex, bool bIsDefaultSlot, int32 DisplayIndex) const
