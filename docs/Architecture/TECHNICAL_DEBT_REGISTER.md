@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **25 août 2026**  
-Baseline fonctionnelle auditée : `d02d1484ddcc3bf99dd5b7b9ffc2a98d2ddd637d` — post-STYLE01
+Baseline fonctionnelle validée : `18fa0da79ec052a5af54214b3bd7590cf21da0e5` — post-TD-ARCH-001.1 / TD01.1
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -46,7 +46,7 @@ P3 — nettoyage opportuniste, nommage ou intégration non bloquante
 
 ```text
 P0 : aucun blocage connu
-P1 : 3 dettes actives
+P1 : 2 dettes actives
 P2 : 7 dettes actives
 P3 : 2 dettes actives
 ```
@@ -54,32 +54,6 @@ P3 : 2 dettes actives
 ---
 
 # 3. Registre actif
-
-## TD-PERSIST-001 — Permission de retrait des réceptacles non persistée
-
-**Priorité : P1 — correction fonctionnelle / SaveGame**  
-**Zone :** `GridReceptacleActor`, `FGridRuntimeReceptacleState`
-
-Constat :
-
-- `AGridReceptacleActor::InitializeGridObject()` réinitialise `bCanRemoveItem = true` ;
-- les commandes `ReceptacleEnableRemoval` / `ReceptacleDisableRemoval` modifient cet état runtime ;
-- `FGridRuntimeReceptacleState` persiste actuellement `ObjectId` et `ContainedItems`, mais pas `bCanRemoveItem` ;
-- `CaptureRuntimeReceptacleState()` ne capture donc pas cette permission.
-
-Risque : après Save / Continue ou reconstruction de niveau, un réceptacle verrouillé dynamiquement peut retrouver une autorisation de retrait qui ne correspond plus à l'état de la partie.
-
-Traitement recommandé :
-
-1. ajouter une valeur persistante explicite au snapshot du réceptacle ;
-2. capturer/restaurer atomiquement la permission ;
-3. définir le comportement des anciennes sauvegardes ;
-4. ajouter Automation : Disable -> Capture -> Restore reste disabled, Enable idem ;
-5. vérifier qu'aucun changement de `bCanRemoveItem` ne contourne le snapshot.
-
-**Premier chantier recommandé.** Périmètre réduit, contrat clair, forte valeur de non-régression.
-
----
 
 ## TD-PARTY-001 — Synchronisation de sélection / présentation encore dépendante des appelants
 
@@ -138,7 +112,7 @@ Le but n'est pas d'ajouter de nouvelles fonctionnalités gratuitement, mais de r
 
 **Priorité : P2 — maintenabilité structurelle**
 
-Indicateur actuel :
+Indicateur de départ :
 
 ```text
 GridLevelRuntimeActor.cpp ≈ 139 KB post-STYLE01 (142 626 octets)
@@ -147,6 +121,19 @@ GridLevelRuntimeActor.cpp ≈ 139 KB post-STYLE01 (142 626 octets)
 Le header expose encore de nombreux domaines : géométrie, reconstruction, portes, items, lancers, interaction, monstres, persistance, transitions, feedback UI, preview éditeur, diagnostics, etc.
 
 Des extractions existent déjà (`UGridDoorSystemComponent`, `UGridActivationComponent`, `UGridMonsterEncounterComponent`, `UGridEditorPreviewComponent`, présentation d'attaque), donc la bonne stratégie est de **poursuivre les frontières déjà prouvées**, pas de réécrire l'acteur.
+
+### TD-ARCH-001.1 — extraction de la persistance — RÉALISÉ
+
+Le 25 août 2026, la douleur concrète rencontrée pendant TD01.1 a justifié une première extraction ciblée :
+
+- `CaptureCurrentLevelRuntimeState()` et `ApplyCurrentLevelRuntimeState()` ont été déplacées dans `GridLevelRuntimeActorPersistence.cpp` ;
+- 551 lignes ont été retirées de `GridLevelRuntimeActor.cpp` ;
+- aucune nouvelle classe, aucun `.inl` et aucune modification d'API publique ;
+- `AGridLevelRuntimeActor` reste la façade/orchestrateur ;
+- le hotfix `18fa0da7...` a rendu les helpers locaux compatibles avec les Unity Builds Unreal ;
+- build UE5.5.4 et Automation TD01.1 / MON20.9 validés après extraction.
+
+Cette réalisation réduit une concentration réelle, mais **ne clôt pas TD-ARCH-001** : d'autres responsabilités restent regroupées dans l'acteur. Les extractions futures ne seront engagées que lorsqu'une douleur concrète les justifiera.
 
 Traitement recommandé :
 
@@ -395,7 +382,7 @@ La présente passe corrige les fondations les plus directement concernées et fa
 La réduction de dette ne doit pas commencer par les plus gros fichiers. Elle doit commencer par les contrats qui peuvent produire une incohérence de jeu.
 
 ```text
-TD01.1 — Receptacle Removal Permission Persistence
+TD01.1 — Receptacle Removal Permission Persistence      [RÉSOLU]
          -> TD-PERSIST-001
 
 TD01.2 — Party Selection / Held Visual Notification Contract
@@ -409,6 +396,7 @@ TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
 
 TD02.1 — GridLevelRuntimeActor targeted extraction
          -> TD-ARCH-001
+         -> TD-ARCH-001.1 Persistence extraction [RÉALISÉ]
 
 TD02.2 — PartyInventory targeted service extraction
          -> TD-ARCH-002
@@ -504,27 +492,54 @@ et sur l'état courant des principaux fichiers runtime/editor.
 
 # 10. Prochain travail recommandé
 
-La meilleure première tranche est :
+La prochaine tranche est :
 
 ```text
-TD01.1 — Receptacle Removal Permission Persistence
+TD01.2 — Party Selection / Held Visual Notification Contract
 ```
 
 Pourquoi :
 
-- risque Save/Continue concret ;
-- périmètre petit ;
-- comportement attendu déjà défini par les commandes existantes ;
-- testable sans refactor transversal ;
-- excellent point de départ pour une campagne de dette fondée sur des corrections mesurables.
+- le P1 de persistance TD-PERSIST-001 est désormais fermé ;
+- la sélection du personnage possède déjà une autorité et une notification existantes ;
+- le risque restant est une cohérence runtime/UI dépendante de la discipline des appelants ;
+- le périmètre peut être audité puis corrigé sans refactor transversal.
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
 
-# 11. Dette résolue — STYLE01
+# 11. Dettes résolues
+
+## TD-PERSIST-001 — Permission de retrait des réceptacles non persistée — RÉSOLU
+
+**Priorité historique : P1 — correction fonctionnelle / SaveGame**  
+**Résolu le : 25 août 2026**
+
+TD01.1 a fermé le contrat de persistance de `bCanRemoveItem` :
+
+- `FGridRuntimeReceptacleState` persiste désormais `bCanRemoveItem` ;
+- `CaptureRuntimeReceptacleState()` capture la permission ;
+- `ApplyCurrentLevelRuntimeState()` la restaure explicitement avant la reconstruction du contenu ;
+- SaveGame passe de v8 à v9 ;
+- les sauvegardes v1-v8 migrent avec la politique legacy explicite `bCanRemoveItem = true` ;
+- aucun changement `.uasset/.umap` ;
+- Automation `DisabledRoundTrip`, `EnabledRoundTrip` et `V8Migration` validées ;
+- les 8 tests `Grimrock.MON20.9.SkillPersistence` restent verts.
+
+Commits associés :
+
+```text
+63fd803d1411bb87487b54c00f3c12f44cb1bfb2  Extract GridLevelRuntimeActor persistence
+897481d5cb6f1dd1d9eae321dfc770f6454ad0a9  Persist receptacle removal permission
+18fa0da79ec052a5af54214b3bd7590cf21da0e5  Fix persistence helpers for Unity builds
+```
+
+La validation UE5.5.4 du 25 août 2026 confirme le nouveau test Save/Continue, la migration v8 -> v9 et l'absence de régression MON20.9.
+
+---
 
 ## TD-STYLE-001 — Formatage C++ hétérogène / baseline non reproductible — RÉSOLU
 
-**Priorité historique : P2 — maintenabilité / tooling**
+**Priorité historique : P2 — maintenabilité / tooling**  
 **Résolu le : 25 août 2026**
 
 STYLE01 a fermé la dette de formatage transversal :
@@ -551,8 +566,8 @@ La référence détaillée est :
 docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
 ```
 
-Le prochain travail recommandé reste :
+Le prochain travail recommandé est désormais :
 
 ```text
-TD01.1 — Receptacle Removal Permission Persistence
+TD01.2 — Party Selection / Held Visual Notification Contract
 ```
