@@ -116,6 +116,9 @@ struct FGridRuntimeReceptacleState
 	FGuid ObjectId;
 
 	UPROPERTY(SaveGame, BlueprintReadWrite)
+	bool bCanRemoveItem = true;
+
+	UPROPERTY(SaveGame, BlueprintReadWrite)
 	TArray<FGridRuntimeItemState> ContainedItems;
 };
 

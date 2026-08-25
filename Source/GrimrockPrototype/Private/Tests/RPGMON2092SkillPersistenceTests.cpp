@@ -399,10 +399,10 @@ bool FRPGMON2092V7ToV8MigrationTest::RunTest(const FString& Parameters)
 	FText Error;
 	FRPGSaveMigrationReport Report;
 	TestTrue(TEXT("Version seven migrates to the current contract"), FRPGSaveMigrationService::PrepareLoadedSave(Save, Error, &Report));
-	TestEqual(TEXT("Current SaveGame contract is v8"), UGrimrockPartySaveGame::CurrentSaveVersion, 8);
-	TestEqual(TEXT("Migrated save is v8"), Save->SaveVersion, 8);
+	TestEqual(TEXT("Current SaveGame contract is v9"), UGrimrockPartySaveGame::CurrentSaveVersion, 9);
+	TestEqual(TEXT("Migrated save is v9"), Save->SaveVersion, 9);
 	TestEqual(TEXT("Migration report preserves source version"), Report.SourceVersion, 7);
-	TestEqual(TEXT("Migration report targets v8"), Report.TargetVersion, 8);
+	TestEqual(TEXT("Migration report targets v9"), Report.TargetVersion, 9);
 	TestTrue(TEXT("Migration report marks v7 as migrated"), Report.bMigrated);
 	TestTrue(TEXT("v7 cannot invent persisted Skill snapshots"), Save->CharacterSkillStates.IsEmpty());
 	TestTrue(TEXT("Any in-memory legacy transient SkillRanks are discarded"), Save->PartyInventoryState.CharacterPool[0].SkillRanks.IsEmpty());

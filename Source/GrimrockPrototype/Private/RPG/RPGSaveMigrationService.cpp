@@ -101,6 +101,17 @@ namespace MON156SaveMigrationPrivate
 		}
 	}
 
+	void ResetLegacyReceptacleRemovalPermissions(FGridDungeonRuntimeState& DungeonState)
+	{
+		for (TPair<FName, FGridLevelRuntimeState>& LevelPair : DungeonState.LevelStates)
+		{
+			for (TPair<FGuid, FGridRuntimeReceptacleState>& ReceptaclePair : LevelPair.Value.Receptacles)
+			{
+				ReceptaclePair.Value.bCanRemoveItem = true;
+			}
+		}
+	}
+
 	bool MigrateLegacyCharacter(FGridCharacterInventoryState& Character, int32& InOutReconciledCount, FText& OutError)
 	{
 		const int32 OriginalLevel = Character.Level;
@@ -340,9 +351,35 @@ bool FRPGSaveMigrationService::PrepareLoadedSave(UGrimrockPartySaveGame* SaveGam
 		return ValidateCurrentSave(SaveGame, OutError);
 	}
 
+	// TD01.1: v8 already owns all MON15-MON20 durable domains, but receptacle
+	// removal permission did not exist in its snapshot. Preserve the historical
+	// load behavior by initializing every legacy receptacle to removable.
+	if (SourceVersion == 8)
+	{
+		if (!ValidateSnapshot(SaveGame->PartyInventoryState, SaveGame->ClassProgressionStates, SaveGame->PendingLevelUpNotifications, OutError) ||
+			!ValidateSpellbooks(*SaveGame, OutError) || !ValidateSkills(*SaveGame, OutError) || !ValidateLevelVariables(*SaveGame, OutError))
+		{
+			return false;
+		}
+
+		ResetLegacyReceptacleRemovalPermissions(SaveGame->DungeonRuntimeState);
+		SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
+		if (!ValidateCurrentSave(SaveGame, OutError))
+		{
+			return false;
+		}
+
+		if (OutReport)
+		{
+			OutReport->ReconciledCharacterCount = 0;
+			OutReport->bMigrated = true;
+		}
+		return true;
+	}
+
 	// MON20.9.2: v7 owns all MON15-MON19 durable domains, but SkillRanks were
 	// deliberately Transient. Validate the v7 snapshot, initialize an empty
-	// Skill snapshot and move to v8 without inventing any rank.
+	// Skill snapshot and the legacy receptacle permission without inventing ranks.
 	if (SourceVersion == 7)
 	{
 		if (!ValidateSnapshot(SaveGame->PartyInventoryState, SaveGame->ClassProgressionStates, SaveGame->PendingLevelUpNotifications, OutError) ||
@@ -353,6 +390,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave(UGrimrockPartySaveGame* SaveGam
 
 		ResetLegacyPartySkillRanks(SaveGame->PartyInventoryState);
 		SaveGame->CharacterSkillStates.Reset();
+		ResetLegacyReceptacleRemovalPermissions(SaveGame->DungeonRuntimeState);
 		SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 		if (!ValidateCurrentSave(SaveGame, OutError))
 		{
@@ -380,6 +418,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave(UGrimrockPartySaveGame* SaveGam
 		ResetLegacyPartySkillRanks(SaveGame->PartyInventoryState);
 		SaveGame->CharacterSkillStates.Reset();
 		GridLevelVariableStore::ResetLegacyDungeonSnapshots(SaveGame->DungeonRuntimeState);
+		ResetLegacyReceptacleRemovalPermissions(SaveGame->DungeonRuntimeState);
 		SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 		if (!ValidateCurrentSave(SaveGame, OutError))
 		{
@@ -408,6 +447,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave(UGrimrockPartySaveGame* SaveGam
 		SaveGame->CharacterSpellbookStates.Reset();
 		SaveGame->CharacterSkillStates.Reset();
 		GridLevelVariableStore::ResetLegacyDungeonSnapshots(SaveGame->DungeonRuntimeState);
+		ResetLegacyReceptacleRemovalPermissions(SaveGame->DungeonRuntimeState);
 		SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
 		if (!ValidateCurrentSave(SaveGame, OutError))
@@ -439,6 +479,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave(UGrimrockPartySaveGame* SaveGam
 		SaveGame->CharacterSpellbookStates.Reset();
 		SaveGame->CharacterSkillStates.Reset();
 		GridLevelVariableStore::ResetLegacyDungeonSnapshots(SaveGame->DungeonRuntimeState);
+		ResetLegacyReceptacleRemovalPermissions(SaveGame->DungeonRuntimeState);
 		SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 
 		if (!ValidateCurrentSave(SaveGame, OutError))
@@ -491,6 +532,7 @@ bool FRPGSaveMigrationService::PrepareLoadedSave(UGrimrockPartySaveGame* SaveGam
 	FGridDungeonRuntimeState MigratedDungeonState = SaveGame->DungeonRuntimeState;
 	ResetLegacyMonsterStatusEffects(MigratedDungeonState);
 	GridLevelVariableStore::ResetLegacyDungeonSnapshots(MigratedDungeonState);
+	ResetLegacyReceptacleRemovalPermissions(MigratedDungeonState);
 
 	SaveGame->PartyInventoryState = MoveTemp(MigratedPartyState);
 	SaveGame->ClassProgressionStates = MoveTemp(MigratedProgressionStates);

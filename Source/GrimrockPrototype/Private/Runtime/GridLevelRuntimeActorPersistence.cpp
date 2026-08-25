@@ -504,6 +504,7 @@ bool AGridLevelRuntimeActor::ApplyCurrentLevelRuntimeState()
 		{
 			continue;
 		}
+		ReceptacleActor->SetCanRemoveItem(Pair.Value.bCanRemoveItem);
 		const int32 ClearedItemCount = ReceptacleActor->ForceClearRuntimeContents(false);
 		const FGridLevelObjectData* ReceptacleObjectData = FindLevelObjectDataById(LevelAsset, Pair.Key);
 		const UGridObjectArchetypeAsset* ReceptacleArchetype = ReceptacleObjectData ? FindObjectArchetype(ReceptacleObjectData->ArchetypeId) : nullptr;

@@ -60,8 +60,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** MON20.9.2 adds explicit transient SkillRanks snapshots. */
-	static constexpr int32 CurrentSaveVersion = 8;
+	/** TD01.1 adds persistent receptacle removal permissions. */
+	static constexpr int32 CurrentSaveVersion = 9;
 	static constexpr int32 MinimumCompatibleSaveVersion = 1;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")

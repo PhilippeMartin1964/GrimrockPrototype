@@ -729,6 +729,7 @@ bool AGridReceptacleActor::TryPlaceCursorItemFromHit(AGrimrockPartyPawn* PartyPa
 void AGridReceptacleActor::CaptureRuntimeReceptacleState(FGridRuntimeReceptacleState& OutState) const
 {
 	OutState.ObjectId = ObjectId;
+	OutState.bCanRemoveItem = bCanRemoveItem;
 	OutState.ContainedItems.Reset();
 
 	for (const FGridContainedReceptacleItem& Item : ContainedItems)
