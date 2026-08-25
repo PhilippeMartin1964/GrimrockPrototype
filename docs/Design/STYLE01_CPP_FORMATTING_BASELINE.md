@@ -481,3 +481,23 @@ Le prochain chantier redevient :
 TD01.1 — Receptacle Removal Permission Persistence
         -> TD-PERSIST-001
 ```
+
+### 12.6 Impact quantitatif du reformatage
+
+Mesure effectuée sur le périmètre complet des **486 fichiers C++ first-party** (`.h`, `.cpp`, `.inl`), en comparant directement les snapshots Git :
+
+```text
+Avant : cc007331dc18d0e8679ac9f3892e776496b9d6da
+Après : 3c4032beaad5a0fa9e7b3809701ee3de85c4e1de
+```
+
+| Mesure | Avant | Après | Réduction |
+|---|---:|---:|---:|
+| Fichiers | 486 | 486 | 0 |
+| Lignes physiques | 160'019 | 124'544 | **35'475 lignes (-22,17 %)** |
+| Taille | 5'599'329 octets | 4'722'960 octets | **876'369 octets (-15,65 %)** |
+| Taille lisible | 5'468,1 KiB / 5,34 MiB | 4'612,3 KiB / 4,50 MiB | **855,8 KiB / 0,84 MiB** |
+
+Le résultat principal est une réduction de **35'475 lignes physiques**, soit plus d'une ligne sur cinq, sans suppression de logique fonctionnelle. La baisse porte principalement sur les retours à la ligne artificiels, les paramètres/arguments inutilement éclatés, les expressions verticalisées et l'espacement historique.
+
+Cette réduction de **22,17 % de la surface physique de lecture** ne doit pas être interprétée comme une réduction équivalente de la complexité métier ou architecturale. Elle diminue en revanche fortement le bruit de lecture et de diff, et fournit une baseline plus compacte et plus comparable pour les futurs travaux TD01/TD02.
