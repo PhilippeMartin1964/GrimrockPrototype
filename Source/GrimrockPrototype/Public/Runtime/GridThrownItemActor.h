@@ -10,6 +10,8 @@ class UGridItemDefinitionAsset;
 class UProjectileMovementComponent;
 class USphereComponent;
 
+DECLARE_LOG_CATEGORY_EXTERN(LogGridThrownItem, Log, All);
+
 UCLASS(Blueprintable)
 class GRIMROCKPROTOTYPE_API AGridThrownItemActor : public AGridItemActor
 {
