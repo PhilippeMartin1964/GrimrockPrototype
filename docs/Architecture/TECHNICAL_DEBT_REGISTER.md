@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **25 août 2026**  
-Baseline auditée : `ab98928e55756d185749789594eaca5d573872e8`  
+Baseline fonctionnelle auditée : `d02d1484ddcc3bf99dd5b7b9ffc2a98d2ddd637d` — post-STYLE01
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -141,7 +141,7 @@ Le but n'est pas d'ajouter de nouvelles fonctionnalités gratuitement, mais de r
 Indicateur actuel :
 
 ```text
-GridLevelRuntimeActor.cpp ≈ 174 KB
+GridLevelRuntimeActor.cpp ≈ 139 KB post-STYLE01 (142 626 octets)
 ```
 
 Le header expose encore de nombreux domaines : géométrie, reconstruction, portes, items, lancers, interaction, monstres, persistance, transitions, feedback UI, preview éditeur, diagnostics, etc.
@@ -167,7 +167,7 @@ Le volume est un signal de risque, pas une justification suffisante pour un refa
 Indicateur actuel :
 
 ```text
-GridPartyInventoryComponent.cpp ≈ 113 KB
+GridPartyInventoryComponent.cpp ≈ 93 KB post-STYLE01 (95 417 octets)
 ```
 
 Le composant est à juste titre l'autorité du groupe/inventaire, mais concentre :
@@ -197,7 +197,7 @@ TD-PARTY-001 doit être traité avant une décomposition plus large afin de stab
 Indicateur actuel :
 
 ```text
-GrimrockPartyPawn.cpp ≈ 92 KB
+GrimrockPartyPawn.cpp ≈ 76 KB post-STYLE01 (77 540 octets)
 + fichiers dédiés Recruitment / CustomRecruit déjà extraits
 ```
 
@@ -226,7 +226,7 @@ Traitement recommandé : extraire uniquement une responsabilité stable lorsqu'e
 Indicateur actuel :
 
 ```text
-GrimrockPlayerController.cpp ≈ 61 KB
+GrimrockPlayerController.cpp ≈ 49 KB post-STYLE01 (50 463 octets)
 ```
 
 Le contrôleur porte encore une part importante de souris, interaction, curseur et coordination UI/runtime.
@@ -242,7 +242,7 @@ Traitement recommandé : ne pas le découper isolément. Auditer d'abord la fron
 Indicateur actuel :
 
 ```text
-GridActivationComponent.cpp ≈ 62 KB
+GridActivationComponent.cpp ≈ 48 KB post-STYLE01 (49 646 octets)
 ```
 
 Il regroupe aujourd'hui interaction, triggers, pressure plates, link dispatch, conditions, Logic, Lua, recrutement et command routing.
@@ -260,12 +260,12 @@ Traitement recommandé : fermer d'abord TD-EVENT-001, puis seulement envisager d
 Indicateurs actuels :
 
 ```text
-SGridEditorObjectInspectorPanel.cpp ≈ 104 KB
-SGridEditorLinksPanel.cpp           ≈ 63 KB
-SGridEditorLuaScriptsPanel.cpp      ≈ 48 KB
-GridLevelEdModeToolkit.cpp          ≈ 46 KB
-GridEditorLuaService.cpp            ≈ 40 KB
-GridLevelEdMode.cpp                 ≈ 35 KB
+SGridEditorObjectInspectorPanel.cpp ≈ 88 KB post-STYLE01 (89 765 octets)
+SGridEditorLinksPanel.cpp           ≈ 54 KB post-STYLE01 (55 200 octets)
+SGridEditorLuaScriptsPanel.cpp      ≈ 41 KB post-STYLE01 (41 770 octets)
+GridLevelEdModeToolkit.cpp          ≈ 39 KB post-STYLE01 (40 003 octets)
+GridEditorLuaService.cpp            ≈ 29 KB post-STYLE01 (29 473 octets)
+GridLevelEdMode.cpp                 ≈ 27 KB post-STYLE01 (27 380 octets)
 ```
 
 `GRID_EDITOR_ACTOR_UI_AUDIT.md` identifie en parallèle de nombreux contrôles `CallInEditor` historiques qui doublonnent désormais le workflow du Grid Editor Mode.
@@ -519,3 +519,40 @@ Pourquoi :
 - excellent point de départ pour une campagne de dette fondée sur des corrections mesurables.
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
+
+# 11. Dette résolue — STYLE01
+
+## TD-STYLE-001 — Formatage C++ hétérogène / baseline non reproductible — RÉSOLU
+
+**Priorité historique : P2 — maintenabilité / tooling**
+**Résolu le : 25 août 2026**
+
+STYLE01 a fermé la dette de formatage transversal :
+
+- contrat `.clang-format` versionné ;
+- clang-format 19.1.5 figé ;
+- `.editorconfig` versionné ;
+- scripts `FormatCpp.ps1` / `CheckCppFormat.ps1` versionnés ;
+- 486 fichiers C++ first-party validés UTF-8 ;
+- 480 fichiers reformatés mécaniquement dans `3c4032be...` ;
+- contrôle hors espaces identique au `HEAD` pré-formatage ;
+- build UE5.5.4 validé ;
+- Automation post-correction validée ;
+- commit mécanique ajouté à `.git-blame-ignore-revs` ;
+- `.h`, `.cpp` et `.inl` normalisés en LF par `.gitattributes`.
+
+Les baisses de taille observées dans TD-ARCH-001..005 et TD-EDITOR-001 sont **principalement dues au compactage mécanique STYLE01**. Elles ne constituent pas une réduction de responsabilités, de couplage ou de complexité architecturale. Les priorités de ces dettes restent donc inchangées.
+
+STYLE01 n'est plus compté comme dette active. Les compteurs P1/P2/P3 du registre actif restent inchangés parce que TD-STYLE-001 n'avait pas été ajouté comme entrée active lors de l'audit initial : il a été traité comme préalable immédiat à TD01.
+
+La référence détaillée est :
+
+```text
+docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
+```
+
+Le prochain travail recommandé reste :
+
+```text
+TD01.1 — Receptacle Removal Permission Persistence
+```

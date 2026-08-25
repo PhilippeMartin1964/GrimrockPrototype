@@ -1,6 +1,6 @@
 # STYLE01 — C++ Formatting Baseline
 
-Statut : **STYLE01.1 — AUDIT & CONTRACT ÉTABLI**  
+Statut : **STYLE01.5 — CLOS — GRIMROCK C++ STYLE v1 FIGÉ**
 Date de préparation : **25 août 2026**  
 Baseline de préparation : `3ac78b3b892207c30734dacfba3d0ed2613f6542`  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
@@ -226,7 +226,7 @@ Scripts/FormatCpp.ps1
 Scripts/CheckCppFormat.ps1
 ```
 
-`.git-blame-ignore-revs` sera évalué après création du commit mécanique de reformatage global, lorsque le SHA à ignorer existera réellement.
+Le commit mécanique global `3c4032beaad5a0fa9e7b3809701ee3de85c4e1de` est enregistré dans `.git-blame-ignore-revs` afin que les analyses `git blame` puissent ignorer le bruit du reformatage STYLE01.
 
 ### 5.3 Contrat des scripts
 
@@ -404,3 +404,80 @@ STYLE01 est une dette **P2 de maintenabilité**, mais constitue un préalable pr
 - réduit le bruit lors des revues de gros fichiers.
 
 Elle ne change pas la priorité fonctionnelle de TD-PERSIST-001, TD-PARTY-001 ou TD-EVENT-001. Elle doit être courte, mécanique et fermée avant de reprendre ces corrections.
+
+## 12. Clôture STYLE01 — 25 août 2026
+
+**État final : CLOS.**
+
+### 12.1 Commits de référence
+
+```text
+4c8c1c082d5ccbc5d6262ede308ca1ea6ca39df2
+    Define STYLE01 formatting contract and tooling
+
+cc007331dc18d0e8679ac9f3892e776496b9d6da
+    Refine STYLE01 formatter after representative validation
+
+3c4032beaad5a0fa9e7b3809701ee3de85c4e1de
+    Apply repository-wide mechanical C++ formatting baseline
+
+d02d1484ddcc3bf99dd5b7b9ffc2a98d2ddd637d
+    Fix stale automation contracts after STYLE01 formatting
+```
+
+Le commit `3c4032be...` est le commit mécanique à ignorer dans `git blame`. Le commit `d02d1484...` ne modifie que quatre fichiers de tests historiques dont les assertions avaient dérivé par rapport au contrat SaveGame v8 ou dépendaient littéralement de l'ancien espacement `UPROPERTY (`.
+
+### 12.2 Validation mécanique
+
+Résultats validés pendant STYLE01.2 / STYLE01.3 :
+
+- clang-format **19.1.5** de Visual Studio 2022 ;
+- échantillon représentatif validé avant propagation ;
+- Slate validé avec la configuration racine finale, sans override local ;
+- **480 fichiers** modifiés par le reformatage global ;
+- contrôle fichier par fichier : séquence hors espaces identique au `HEAD` pré-formatage ;
+- aucun asset `.uasset/.umap` modifié ;
+- aucun changement gameplay dans le commit mécanique ;
+- `Scripts/CheckCppFormat.ps1` : **486 fichiers first-party conformes** ;
+- audit UTF-8 strict : **486 / 486 fichiers valides**.
+
+### 12.3 Build / Automation
+
+Validation réelle après reformatage :
+
+- compilation UE5.5.4 / Visual Studio 2022 : **validée par l'utilisateur** ;
+- première campagne Automation globale : 6 tests historiques en échec ;
+- diagnostic : 5 assertions figées sur `SaveVersion == 7` alors que MON20.9.2 a porté le contrat courant à v8 ; 1 test de frontière cherchait littéralement l'ancien espacement `UPROPERTY (` ;
+- correctif limité aux tests, commit `d02d1484...` ;
+- campagne Automation complète relancée par l'utilisateur après correctif : **aucun échec remonté** ;
+- les tests de contrats corrigés observés dans le log fourni terminent en `Success` ;
+- aucun `Ensure condition failed`, `Assertion failed` ou `Fatal error` signalé dans la validation finale transmise.
+
+### 12.4 Baseline durable
+
+Grimrock C++ Style v1 signifie désormais :
+
+```text
+Unreal / Epic Coding Standard = autorité supérieure
+clang-format 19.1.5          = version figée
+ColumnLimit                  = 160
+UTF-8                        = obligatoire pour le C++ first-party
+LF                           = .h / .cpp / .inl
+includes                     = jamais triés mécaniquement
+commentaires                 = jamais reflow mécaniquement
+reformatage                  = Scripts/FormatCpp.ps1
+contrôle                     = Scripts/CheckCppFormat.ps1
+```
+
+Les futurs changements C++ doivent partir de cette baseline ; un chantier fonctionnel ou structurel ne doit plus embarquer de reformatage global parasite.
+
+### 12.5 Suite
+
+STYLE01 ne change pas les priorités fonctionnelles du registre de dette.
+
+Le prochain chantier redevient :
+
+```text
+TD01.1 — Receptacle Removal Permission Persistence
+        -> TD-PERSIST-001
+```
