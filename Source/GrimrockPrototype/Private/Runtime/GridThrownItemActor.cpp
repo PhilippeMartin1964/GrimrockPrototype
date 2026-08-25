@@ -6,6 +6,8 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "TimerManager.h"
 
+DEFINE_LOG_CATEGORY(LogGridThrownItem);
+
 AGridThrownItemActor::AGridThrownItemActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -137,9 +139,10 @@ void AGridThrownItemActor::InitializeThrownItem(AGridLevelRuntimeActor* InRuntim
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
 
-	UE_LOG(LogTemp, Log, TEXT("GridThrownItem Visual Item=%s RuntimeId=%s Mesh=%s Rotation=%s Scale=%s Spin=%.1f"), *InItemInstance.ItemDefinitionId.ToString(),
-		*InItemInstance.RuntimeObjectId.ToString(), MeshComponent ? *GetNameSafe(MeshComponent->GetStaticMesh()) : TEXT("None"),
-		*VisualRotation.ToCompactString(), *VisualScale.ToCompactString(), AppliedThrowVisualSpinDegreesPerSecond);
+	UE_LOG(LogGridThrownItem, Log, TEXT("GridThrownItem Visual Item=%s RuntimeId=%s Mesh=%s Rotation=%s Scale=%s Spin=%.1f"),
+		*InItemInstance.ItemDefinitionId.ToString(), *InItemInstance.RuntimeObjectId.ToString(),
+		MeshComponent ? *GetNameSafe(MeshComponent->GetStaticMesh()) : TEXT("None"), *VisualRotation.ToCompactString(), *VisualScale.ToCompactString(),
+		AppliedThrowVisualSpinDegreesPerSecond);
 
 	if (ProjectileMovementComponent)
 	{
@@ -221,7 +224,7 @@ void AGridThrownItemActor::ConvertToWorldPickupAtImpact(const FHitResult& Hit)
 
 	if (!bDropped)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("GridInventory Throw Impact Failed Item=%s RuntimeId=%s SourceCell=(%d,%d) Reason=NoValidDropCell"),
+		UE_LOG(LogGridThrownItem, Warning, TEXT("GridInventory Throw Impact Failed Item=%s RuntimeId=%s SourceCell=(%d,%d) Reason=NoValidDropCell"),
 			*ThrownItemInstance.ItemDefinitionId.ToString(), *ThrownItemInstance.RuntimeObjectId.ToString(), SourceCellX, SourceCellY);
 	}
 
