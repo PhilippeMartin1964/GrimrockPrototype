@@ -1,6 +1,7 @@
 #include "Runtime/GridLevelRuntimeActor.h"
 
 #include "Core/GridDirectionUtils.h"
+#include "Engine/World.h"
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -19,7 +20,7 @@ namespace
 		return FString::Printf(TEXT("%d"), static_cast<int32>(Edge));
 	}
 
-	FName ResolvePickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
+	FName ResolveWorldPickupItemDefinitionId(const AGridItemActor* ItemActor, FName FallbackArchetypeId)
 	{
 		if (!ItemActor)
 		{
@@ -181,7 +182,7 @@ bool AGridLevelRuntimeActor::TryPickupItemAtCell(int32 CellX, int32 CellY, AGrim
 		}
 
 		const FName ItemDefinitionId =
-			ResolvePickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId.IsNone() ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId.IsNone() ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed at cell %d,%d: missing item definition id."), CellX, CellY);
@@ -258,7 +259,7 @@ bool AGridLevelRuntimeActor::TryPickupItemActor(AGridItemActor* ItemActor, AGrim
 		}
 
 		const FName ItemDefinitionId =
-			ResolvePickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId.IsNone() ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
+			ResolveWorldPickupItemDefinitionId(ItemActor, Entry.ItemDefinitionId.IsNone() ? Entry.ItemArchetypeId : Entry.ItemDefinitionId);
 		if (ItemDefinitionId.IsNone())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Item pickup failed for actor %s: missing item definition id."), *ItemActor->GetName());
