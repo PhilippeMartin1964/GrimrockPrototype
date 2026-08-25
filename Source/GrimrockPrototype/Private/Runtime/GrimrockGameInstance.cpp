@@ -118,14 +118,14 @@ bool UGrimrockGameInstance::HasPartySaveGame(const FString& SlotName, int32 User
 	UGrimrockPartySaveGame* SaveGame = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName, UserIndex));
 	if (!SaveGame)
 	{
-		UE_LOG(LogGrimrockGameInstance, Warning, TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=LoadFailedOrWrongClass"), *SlotName,
+		UE_LOG(LogGrimrockGameInstance, Verbose, TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=LoadFailedOrWrongClass"), *SlotName,
 			UserIndex);
 		return false;
 	}
 
 	if (!SaveGame->IsCompatible())
 	{
-		UE_LOG(LogGrimrockGameInstance, Warning,
+		UE_LOG(LogGrimrockGameInstance, Verbose,
 			TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=IncompatibleSave Version=%d Detail=%s"), *SlotName, UserIndex,
 			SaveGame->SaveVersion, *SaveGame->GetProgressionLoadError());
 		return false;
@@ -133,7 +133,7 @@ bool UGrimrockGameInstance::HasPartySaveGame(const FString& SlotName, int32 User
 
 	if (!IsPartyInventoryStateLoadable(SaveGame->PartyInventoryState))
 	{
-		UE_LOG(LogGrimrockGameInstance, Warning,
+		UE_LOG(LogGrimrockGameInstance, Verbose,
 			TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=PartyInventoryStateNotLoadable Version=%d ActiveCharacters=%d"), *SlotName,
 			UserIndex, SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num());
 		return false;
