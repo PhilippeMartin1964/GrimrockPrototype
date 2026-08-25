@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **25 août 2026**  
-Baseline fonctionnelle validée : `d308df500907950288d800d61c23db25b3d35672` — post-TD01.4
+Baseline fonctionnelle validée : `d3bc5f0e8a8c1b3526506cace457982c94ae3a07` — post-TD02.1 World Items extraction
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -80,7 +80,45 @@ Le 25 août 2026, la douleur concrète rencontrée pendant TD01.1 a justifié un
 - le hotfix `18fa0da7...` a rendu les helpers locaux compatibles avec les Unity Builds Unreal ;
 - build UE5.5.4 et Automation TD01.1 / MON20.9 validés après extraction.
 
-Cette réalisation réduit une concentration réelle, mais **ne clôt pas TD-ARCH-001** : d'autres responsabilités restent regroupées dans l'acteur. Les extractions futures ne seront engagées que lorsqu'une douleur concrète les justifiera.
+### TD-ARCH-001.2 — extraction des World Items — RÉALISÉ
+
+Le 25 août 2026, TD02.1 a isolé une seconde frontière déjà cohérente et testable : les opérations de pickup, drop, lancer, résolution impact -> cellule et poids des objets monde.
+
+Le contrat a d'abord été caractérisé **avant extraction** par :
+
+```text
+Grimrock.TechnicalDebt.TD02_1.WorldItemsContract  Success
+```
+
+Puis :
+
+- les méthodes `CanPartyPickupItemEntry()`, `CanPartyPickupItemActor()`, `TryPickupItemAtCell()`, `TryPickupItemActor()`, `TryDropItemInstanceAtCell()`, `TrySpawnThrownItemProjectile()`, `SpawnThrownItemProjectile()`, `TryResolveWorldCellFromImpactPoint()` et `GetWorldItemWeightAtCell()` ont été déplacées vers `GridLevelRuntimeActorWorldItems.cpp` ;
+- 460 lignes ont été retirées de `GridLevelRuntimeActor.cpp` ;
+- aucune nouvelle classe propriétaire, aucun nouvel état, aucun changement de header public et aucun changement SaveGame ;
+- `AGridLevelRuntimeActor` reste l'unique façade et autorité ;
+- les helpers locaux du nouveau fichier ont été rendus compatibles avec les Unity Builds Unreal ;
+- aucun `.uasset/.umap` n'a été modifié.
+
+Validation UE5.5.4 après extraction :
+
+```text
+Grimrock.TechnicalDebt.TD02_1.WorldItemsContract                  Success
+Grimrock.Monsters.MON11.Presentation.ThrownWeaponLifecycle       Success
+Grimrock.Monsters.MON11.Presentation.PlacedItemRebuildUniqueness Success
+```
+
+Les tests couvrent notamment le RuntimeObjectId, le poids de stack, la distinction centre/bord pour les plaques de pression, les règles de pickup selon cellule/facing, le transfert vers l'inventaire, la disparition du poids monde après pickup, le lancer -> impact -> world drop et l'unicité lors d'un rebuild.
+
+Commits associés :
+
+```text
+c08f85723e96c67d73a8dad7e6478a7a303d72f7  Characterize TD02.1 world item contract
+ad8b1e30ee19141bd576d5f118a7ad722344176b  Extract TD02.1 world item implementation
+246bae8d29e034e88aeaafdbe657bf6ce12feecf  Remove moved TD02.1 world item implementation
+d3bc5f0e8a8c1b3526506cace457982c94ae3a07  Make TD02.1 world item helpers Unity-safe
+```
+
+Ces deux réalisations réduisent une concentration réelle, mais **ne clôturent pas TD-ARCH-001** : d'autres responsabilités restent regroupées dans l'acteur. Les extractions futures ne seront engagées que lorsqu'une douleur concrète les justifiera.
 
 Traitement recommandé :
 
@@ -380,9 +418,10 @@ TD01.3 — Event -> Command Unsupported/Fallback Contract [RÉSOLU]
 TD01.4 — Runtime Logging Categories / Diagnostic Hygiene [RÉALISÉ]
          -> TD-LOG-001 reste actif / opportuniste
 
-TD02.1 — GridLevelRuntimeActor targeted extraction
-         -> TD-ARCH-001
+TD02.1 — GridLevelRuntimeActor targeted extraction       [RÉALISÉ]
+         -> TD-ARCH-001 reste actif
          -> TD-ARCH-001.1 Persistence extraction [RÉALISÉ]
+         -> TD-ARCH-001.2 World Items extraction  [RÉALISÉ]
 
 TD02.2 — PartyInventory targeted service extraction
          -> TD-ARCH-002
@@ -481,16 +520,16 @@ et sur l'état courant des principaux fichiers runtime/editor.
 La prochaine tranche est :
 
 ```text
-TD02.1 — GridLevelRuntimeActor targeted extraction
+TD02.2 — PartyInventory targeted service extraction
 ```
 
 Pourquoi :
 
-- TD01.1 à TD01.4 ont stabilisé les contrats de persistance, notification, Event -> Command et diagnostic ;
-- `AGridLevelRuntimeActor` reste le principal point de concentration P2 ;
-- l'extraction doit viser une responsabilité déjà cohérente et testable, sans nouvelle classe propriétaire ni changement d'API ;
-- le domaine `Inventory|World / Inventory|Throw` est un candidat naturel parce que pickup, drop, projectile lancé, résolution d'impact et poids des objets monde forment déjà une frontière publique cohérente ;
-- la décision d'extraction reste conditionnée à un audit de dépendances et à l'existence de tests de caractérisation couvrant les comportements déplacés.
+- TD02.1 a prouvé que les extractions `.cpp` ciblées, précédées d'un test de caractérisation, réduisent la concentration sans créer une nouvelle autorité ;
+- `UGridPartyInventoryComponent` reste le prochain point de concentration P2 dans l'ordre du registre ;
+- le domaine `EquipmentWorldTransfer` est un candidat initial crédible parce que l'extraction d'une unité équipée, son rollback et la consommation associée sont déjà des transactions explicites ;
+- `ThrownWeaponLifecycle` exerce déjà le chemin extraction -> rollback et extraction -> lancer ;
+- la décision d'extraction reste conditionnée à un audit des helpers partagés : si la séparation nécessite de dupliquer l'autorité ou des helpers transversaux, TD02.2 devra choisir une autre frontière.
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
 
@@ -637,5 +676,5 @@ docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
 Le prochain travail recommandé est désormais :
 
 ```text
-TD02.1 — GridLevelRuntimeActor targeted extraction
+TD02.2 — PartyInventory targeted service extraction
 ```
