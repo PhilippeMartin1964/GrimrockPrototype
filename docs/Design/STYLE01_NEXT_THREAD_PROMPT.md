@@ -1,6 +1,8 @@
 # Prompt — STYLE01 C++ Formatting Baseline
 
-Nous poursuivons le développement de **GrimrockPrototype**, clone/inspiration de *Legend of Grimrock 2* sous **Unreal Engine 5.5.4**, en C++ avec Visual Studio 2026.
+Nous poursuivons le développement de **GrimrockPrototype**, clone/inspiration de *Legend of Grimrock 2* sous **Unreal Engine 5.5.4**, en C++ avec Visual Studio 2022.
+
+Environnement de développement de référence : **Visual Studio 2022 — clang-format 19.1.5**.
 
 Repo GitHub :
 `https://github.com/PhilippeMartin1964/GrimrockPrototype`

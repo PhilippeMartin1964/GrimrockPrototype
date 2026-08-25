@@ -25,7 +25,7 @@ Le projet vise à développer une architecture simple, modulaire et orientée do
 
 - Unreal Engine : **5.5.4**
 - Langage : **C++**
-- IDE : **Visual Studio 2026**
+- IDE : **Visual Studio 2022**
 - Plateforme de développement principale : **Windows**
 - Type de projet : **module Unreal C++**
 

@@ -1,9 +1,10 @@
 # STYLE01 — C++ Formatting Baseline
 
-Statut : **PRÉPARÉ — NON DÉMARRÉ**  
+Statut : **STYLE01.1 — AUDIT & CONTRACT ÉTABLI**  
 Date de préparation : **25 août 2026**  
 Baseline de préparation : `3ac78b3b892207c30734dacfba3d0ed2613f6542`  
-Projet : **GrimrockPrototype — Unreal Engine 5.5.4**
+Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
+Environnement de développement : **Visual Studio 2022 — clang-format 19.1.5**
 
 ## 1. Objectif
 
@@ -175,9 +176,17 @@ Source/**/*.cpp
 Source/**/*.inl
 ```
 
-Cela inclut les modules runtime, editor et les tests first-party.
+Après audit de l'arborescence réelle, le périmètre automatisé est limité aux modules first-party suivants :
 
-Sont exclus sauf audit explicite :
+```text
+Source/GrimrockPrototype/**/*.h|cpp|inl
+Source/GrimrockPrototypeEditor/**/*.h|cpp|inl
+Source/GrimrockLua/**/*.h|cpp|inl
+```
+
+`Source/GrimrockLua` est le module Unreal first-party d'intégration Lua et fait donc partie du périmètre. Le code Lua tiers reste fourni par le sous-module `ThirdParty/Lua54` et est exclu.
+
+Sont exclus :
 
 ```text
 Binaries/
@@ -190,11 +199,25 @@ assets .uasset/.umap
 Build.cs et autres langages non C++
 ```
 
-Avant d'appliquer le formatage global, le prochain thread doit vérifier l'arborescence réelle et exclure tout code vendor/third-party éventuel présent sous `Source/`.
+## 5. Audit formatter et outillage
 
-## 5. Fichiers d'outillage cible
+### 5.1 Environnement de référence
 
-STYLE01 doit évaluer puis, si compatible avec la version de clang-format réellement disponible, introduire :
+Audit effectué le **25 août 2026** sur l'environnement de développement réel :
+
+```text
+IDE : Visual Studio 2022 Community
+clang-format : 19.1.5
+Chemin vérifié : C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin\clang-format.exe
+```
+
+`clang-format.exe` n'est pas exposé dans le `PATH` de la session PowerShell. Les scripts STYLE01 ne dépendent donc pas du `PATH` : ils recherchent d'abord l'installation Visual Studio 2022 via `vswhere`, puis le chemin Community par défaut, puis seulement un éventuel `clang-format` disponible dans le `PATH`.
+
+La version **19.1.5** est figée pour **Grimrock C++ Style v1**. Les scripts refusent une autre version afin d'éviter des diffs dépendant de la version de formatter.
+
+### 5.2 Fichiers versionnés
+
+STYLE01.1 introduit :
 
 ```text
 .clang-format
@@ -203,48 +226,67 @@ Scripts/FormatCpp.ps1
 Scripts/CheckCppFormat.ps1
 ```
 
-Éventuellement :
+`.git-blame-ignore-revs` sera évalué après création du commit mécanique de reformatage global, lorsque le SHA à ignorer existera réellement.
 
-```text
-.git-blame-ignore-revs
-```
+### 5.3 Contrat des scripts
 
-afin d'ignorer le commit de reformatage mécanique lors d'un `git blame` local.
+`Scripts/FormatCpp.ps1` :
 
-Ne pas créer d'option `.clang-format` supposée disponible sans vérifier la version installée sur la machine Visual Studio / LLVM utilisée par le projet.
+- résout automatiquement clang-format 19.1.5 depuis Visual Studio 2022 ;
+- refuse toute autre version ;
+- ne parcourt que les trois modules first-party audités ;
+- ne traite que `.h`, `.cpp`, `.inl` ;
+- exclut explicitement code généré et répertoires tiers/build ;
+- applique `.clang-format` en place.
 
-## 6. Direction `.clang-format`
+`Scripts/CheckCppFormat.ps1` :
 
-La configuration finale doit être dérivée d'un profil compatible Unreal et atteindre au minimum les comportements suivants :
+- utilise exactement le même périmètre et la même version ;
+- fonctionne sans écrire dans les sources ;
+- utilise `--dry-run --Werror` ;
+- retourne un code non nul si un fichier doit être reformaté.
+
+## 6. Contrat `.clang-format`
+
+La configuration versionnée est dérivée des options réellement supportées par clang-format 19.1.x et atteint les comportements suivants :
 
 ```text
 ColumnLimit = 160
 Allman braces
 accolades conservées
-SpaceBeforeParens = contrôles seulement
+SpaceBeforeParens = ControlStatements
 bin-pack arguments/parameters
 pas de fonction/if/boucle condensé sur une seule ligne
 MaxEmptyLinesToKeep = 1
 pas de lignes vides au début des blocs
-SortIncludes = Never / équivalent supporté
-IncludeBlocks = Preserve / équivalent supporté
+SortIncludes = Never
+IncludeBlocks = Preserve
+SortUsingDeclarations = Never
 pas de reflow des commentaires
 indentation tabs / largeur 4
+pointeurs et références attachés au type
+case labels indentés conformément aux exemples Epic
+préprocesseur non réindenté artificiellement
+newline finale
 ```
 
-Cette liste décrit le **résultat attendu**, pas encore le fichier YAML définitif. STYLE01.1 doit vérifier les noms et valeurs exacts supportés par la version réellement utilisée.
+Les options qui pourraient modifier des tokens ou la sémantique ne sont pas activées. En particulier, STYLE01 ne demande pas à clang-format d'ajouter des accolades : il interdit leur suppression (`RemoveBracesLLVM: false`) et laisse toute éventuelle violation structurelle à une correction explicite hors reformatage mécanique.
 
 ## 7. Sous-jalons proposés
 
 ### STYLE01.1 — Formatter Audit & Contract
 
-Objectif :
+**État : établi.**
 
-- identifier la version exacte de clang-format disponible ;
-- vérifier s'il existe déjà une configuration locale Visual Studio/LLVM non versionnée ;
-- auditer quelques fichiers représentatifs ;
-- finaliser `.clang-format` et `.editorconfig` sans reformater tout le dépôt ;
-- documenter toute divergence nécessaire avec les options disponibles.
+Résultat :
+
+- Visual Studio 2022 confirmé comme IDE réel ;
+- clang-format 19.1.5 confirmé ;
+- absence préalable de `.clang-format`, `.editorconfig` et scripts STYLE01 confirmée ;
+- périmètre first-party audité ;
+- contrat `.clang-format` / `.editorconfig` défini ;
+- scripts de formatage et de contrôle préparés ;
+- aucun fichier `Source/` reformaté à ce stade.
 
 Aucun changement gameplay.
 
@@ -289,7 +331,7 @@ Le commit de reformatage doit être identifiable comme purement mécanique.
 
 Après le reformatage global :
 
-- l'utilisateur compile sous Unreal Engine 5.5.4 / Visual Studio 2026 ;
+- l'utilisateur compile sous Unreal Engine 5.5.4 / Visual Studio 2022 ;
 - exécuter le socle Automation approprié ;
 - lancer PIE si nécessaire pour vérifier qu'aucun asset/binding n'a été indirectement affecté ;
 - traiter toute anomalie comme une régression STYLE01, pas comme une occasion de refactor.
@@ -318,8 +360,6 @@ Cible recommandée :
 Commit A — Define STYLE01 formatting contract/tooling
 Commit B — Apply repository-wide mechanical formatting baseline
 ```
-
-Si STYLE01.1 et STYLE01.2 peuvent être regroupés proprement sans perdre la lisibilité du diff, préférer un seul commit logique.
 
 Le reformatage global doit rester séparé de toute correction fonctionnelle afin que Git permette de l'ignorer ou de l'isoler facilement.
 

@@ -1,0 +1,28 @@
+root = true
+
+[Source/GrimrockPrototype/**/*.{h,cpp,inl}]
+charset = utf-8
+indent_style = tab
+indent_size = 4
+tab_width = 4
+max_line_length = 160
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[Source/GrimrockPrototypeEditor/**/*.{h,cpp,inl}]
+charset = utf-8
+indent_style = tab
+indent_size = 4
+tab_width = 4
+max_line_length = 160
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[Source/GrimrockLua/**/*.{h,cpp,inl}]
+charset = utf-8
+indent_style = tab
+indent_size = 4
+tab_width = 4
+max_line_length = 160
+trim_trailing_whitespace = true
+insert_final_newline = true

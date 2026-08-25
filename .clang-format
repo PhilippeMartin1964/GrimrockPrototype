@@ -1,0 +1,82 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Grimrock C++ Style v1 — clang-format 19.1.5
+# Epic / Unreal Engine C++ Coding Standard is the higher authority.
+
+ColumnLimit: 160
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
+UseTab: ForContinuationAndIndentation
+
+BreakBeforeBraces: Allman
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: None
+AllowShortLoopsOnASingleLine: false
+RemoveBracesLLVM: false
+
+SpaceBeforeParens: ControlStatements
+
+BinPackArguments: true
+BinPackParameters: true
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+BreakFunctionDefinitionParameters: false
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+QualifierAlignment: Leave
+
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentPPDirectives: None
+NamespaceIndentation: None
+
+MaxEmptyLinesToKeep: 1
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: Never
+SeparateDefinitionBlocks: Leave
+
+SortIncludes: Never
+IncludeBlocks: Preserve
+SortUsingDeclarations: Never
+
+ReflowComments: false
+AlignAfterOpenBracket: Align
+AlignEscapedNewlines: DontAlign
+AlignOperands: Align
+AlignTrailingComments:
+  Kind: Leave
+  OverEmptyLines: 0
+
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: BinPack
+ConstructorInitializerIndentWidth: 4
+BreakStringLiterals: false
+
+InsertNewlineAtEOF: true
+RemoveParentheses: Leave
+
+StatementMacros:
+  - UCLASS
+  - USTRUCT
+  - UENUM
+  - UINTERFACE
+  - UPROPERTY
+  - UFUNCTION
+  - GENERATED_BODY
+  - GENERATED_UCLASS_BODY
+  - GENERATED_USTRUCT_BODY
+...

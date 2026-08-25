@@ -1,7 +1,7 @@
 # Project Context - GrimrockPrototype
 
 ## 1. Vision
-Développer un dungeon crawler inspiré de Legend of Grimrock 2 sous Unreal Engine 5.5.4 et Visual Studio 2026.
+Développer un dungeon crawler inspiré de Legend of Grimrock 2 sous Unreal Engine 5.5.4 et Visual Studio 2022.
 
 Développer un jeu de type dungeon crawler en vue subjective, à déplacement case par case, inspiré de Legend of Grimrock 2, avec une architecture reposant sur un asset de niveau unique.
 
@@ -30,9 +30,10 @@ Les principes qui doivent guider les choix.
 - Gestion de groupe, inventaire, sorts, etc.
 
 ## 4. Technical Stack
-Le développement se fait en C++ sous Unreal Engine 5.5.4, avec Visual Studio 2026, en privilégiant une architecture simple, modulaire et orientée données.
+Le développement se fait en C++ sous Unreal Engine 5.5.4, avec Visual Studio 2022, en privilégiant une architecture simple, modulaire et orientée données.
 - Unreal Engine 5.5.4
-- C++ (Visual Studio 2026). A noter que UE5.5.4 génère une solution au format VS2022, mais elle est ouverte et compilée avec VS2026.
+- C++ (Visual Studio 2022)
+- clang-format 19.1.5 fourni par Visual Studio 2022 pour la baseline STYLE01
 - FAB UE5
 - Le jeu devra à terme pouvoir être lancé en mode standalone. Question ouverte : Comment rendre l'éditeur de niveau standalone ?
 
