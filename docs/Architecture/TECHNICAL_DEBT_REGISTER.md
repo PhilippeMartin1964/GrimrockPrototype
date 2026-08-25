@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **25 août 2026**  
-Baseline fonctionnelle validée : `b04697a901a61764c369aea012f10c38735af0ae` — post-TD01.2
+Baseline fonctionnelle validée : `9786eaf5a66fc8d325e5b95ee26c73e2fb9adac0` — post-TD01.3
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -46,7 +46,7 @@ P3 — nettoyage opportuniste, nommage ou intégration non bloquante
 
 ```text
 P0 : aucun blocage connu
-P1 : 1 dette active
+P1 : 0 dette active
 P2 : 8 dettes actives
 P3 : 2 dettes actives
 ```
@@ -54,33 +54,6 @@ P3 : 2 dettes actives
 ---
 
 # 3. Registre actif
-
-## TD-EVENT-001 — Branches Event -> Command incomplètes pour ItemSpawn / Teleporter
-
-**Priorité : P1 — contrat d'authoring**  
-**Zone :** `UGridActivationComponent`
-
-Le dispatcher contient encore des chemins explicites :
-
-```text
-ItemSpawn ... state stored, spawn behavior TODO
-Teleporter ... state stored, teleport behavior TODO
-```
-
-Ces messages ne signifient pas que tout le système de téléportation est absent : le problème est que certains liens atteignent encore un fallback dont la sémantique n'est pas fermée.
-
-Risque : un level designer peut créer un lien considéré comme valide alors que l'effet attendu n'est pas exécuté, ou dépend d'un chemin implicite différent.
-
-Traitement recommandé :
-
-1. dresser la matrice `ObjectType x Command` réellement supportée ;
-2. décider pour chaque branche : implémenter, router vers l'autorité existante, ou rejeter à la validation éditeur ;
-3. supprimer les comportements « state stored but gameplay TODO » des chemins considérés valides ;
-4. ajouter tests runtime + validation editor du contrat final.
-
-Le but n'est pas d'ajouter de nouvelles fonctionnalités gratuitement, mais de rendre le contrat Event -> Command exact.
-
----
 
 ## TD-ARCH-001 — `AGridLevelRuntimeActor` trop centralisé
 
@@ -200,7 +173,7 @@ Traitement recommandé : ne pas le découper isolément. Auditer d'abord la fron
 
 **Priorité : P2 — maintenabilité / Event -> Command**
 
-Indicateur actuel :
+Indicateur de référence :
 
 ```text
 GridActivationComponent.cpp ≈ 48 KB post-STYLE01 (49 646 octets)
@@ -210,7 +183,9 @@ Il regroupe aujourd'hui interaction, triggers, pressure plates, link dispatch, c
 
 MON19 a volontairement conservé un bus unique, ce qui est correct. La dette porte donc sur l'organisation interne, pas sur le concept Event -> Command.
 
-Traitement recommandé : fermer d'abord TD-EVENT-001, puis seulement envisager des services internes stateless pour évaluation de conditions, dispatch ou résolution de commandes. Ne jamais créer un second bus.
+TD-EVENT-001 est désormais fermé : la sémantique des commandes supportées n'est plus un préalable bloquant à une future décomposition interne.
+
+Traitement recommandé : seulement lorsqu'une douleur concrète le justifie, envisager des services internes stateless pour évaluation de conditions, dispatch ou résolution de commandes. Ne jamais créer un second bus.
 
 ---
 
@@ -362,7 +337,7 @@ TD01.1 — Receptacle Removal Permission Persistence      [RÉSOLU]
 TD01.2 — Party Selection / Held Visual Notification Contract [RÉSOLU]
          -> TD-PARTY-001
 
-TD01.3 — Event -> Command Unsupported/Fallback Contract
+TD01.3 — Event -> Command Unsupported/Fallback Contract [RÉSOLU]
          -> TD-EVENT-001
 
 TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
@@ -469,20 +444,70 @@ et sur l'état courant des principaux fichiers runtime/editor.
 La prochaine tranche est :
 
 ```text
-TD01.3 — Event -> Command Unsupported/Fallback Contract
+TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
 ```
 
 Pourquoi :
 
-- les P1 TD-PERSIST-001 et TD-PARTY-001 sont désormais fermés ;
-- TD-EVENT-001 est la seule dette P1 encore active ;
-- un lien d'authoring considéré comme valide ne doit pas aboutir silencieusement à un comportement « state stored but gameplay TODO » ;
-- le chantier peut être borné par une matrice exacte `ObjectType x Command`, puis par une décision explicite implémenter / router / rejeter pour chaque cas ;
-- le contrat final peut être verrouillé par des tests runtime et par la validation éditeur.
+- les trois dettes P1 de la campagne TD01.1 à TD01.3 sont désormais fermées ;
+- il n'existe plus de dette P1 active dans le registre ;
+- les longues sessions PIE et Automation restent coûteuses à lire parce que plusieurs domaines runtime utilisent encore `LogTemp` ;
+- TD01.4 peut rester strictement incrémental : définir quelques catégories stables dans les domaines réellement touchés et supprimer les diagnostics ambigus, sans remplacement global ;
+- `UGridActivationComponent`, fraîchement stabilisé par TD01.3, constitue un bon premier domaine pour caractériser la taxonomie avant d'étendre ailleurs.
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
 
+---
+
 # 11. Dettes résolues
+
+## TD-EVENT-001 — Branches Event -> Command incomplètes pour ItemSpawn / Teleporter — RÉSOLU
+
+**Priorité historique : P1 — contrat d'authoring**  
+**Résolu le : 25 août 2026**
+
+TD01.3 a fermé le contrat `Event -> Command` sans ajouter de fonctionnalité gameplay artificielle :
+
+- `GridEditorLinkPolicy` est désormais l'autorité utilisée par la validation éditeur pour distinguer `Gameplay`, `StateOnly` et `Unsupported` ;
+- seules les commandes classées `Gameplay` sont authorables et considérées valides ;
+- `Teleporter`, `Light` et `ItemSpawn` ne sont plus proposés comme cibles de commandes génériques tant qu'aucun comportement gameplay spécialisé n'existe ;
+- leur classification `StateOnly` reste explicite pour diagnostiquer les données legacy ;
+- `Logic`, `StoryCompanion` et `CustomRecruiter` sont correctement reconnus comme cibles gameplay par la validation ;
+- `UGridActivationComponent` refuse désormais au runtime les anciennes commandes génériques `StateOnly` au lieu de modifier `ActiveObjectIds` puis de retourner un faux succès ;
+- les fallbacks `state stored, spawn behavior TODO`, `state stored, teleport behavior TODO` et le succès générique sans handler gameplay ont été supprimés ;
+- les commandes gameplay spécialisées Door, Receptacle, MonsterSpawn, Logic, StoryCompanion et CustomRecruiter restent routées vers leurs autorités existantes ;
+- le chemin générique d'état reste réservé à Lever / PressurePlate ;
+- aucun second bus Event -> Command, aucun changement SaveGame et aucun `.uasset/.umap`.
+
+Validation UE5.5.4 du 25 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD01_3.EventCommandContract
+  Policy            Success
+  Validation        Success
+  RuntimeHardening  Success
+
+Grimrock.MON19.4.LuaBridge
+  5/5 Success
+
+Grimrock.MON19.8.ProductionPuzzles
+  4/4 Success
+
+Grimrock.MON19.2.Editor.LinkPolicyMatrix
+  1/1 Success
+```
+
+Le test `RuntimeHardening` vérifie aussi l'absence de mutation silencieuse : une commande rejetée ne peut ni activer une cible `StateOnly` inactive, ni désactiver un état legacy préexistant.
+
+Commits associés :
+
+```text
+57927020ece7f8a0c2f865debdca988c1a38d70b  Enforce TD01.3 event command contract
+51cd7da4e2af4052bfb38e0a9ea90382fff999d3  Add TD01.3 runtime hardening coverage
+9786eaf5a66fc8d325e5b95ee26c73e2fb9adac0  Reject state-only event commands at runtime
+```
+
+---
 
 ## TD-PARTY-001 — Synchronisation sélection / held visual dépendante des appelants — RÉSOLU
 
@@ -575,5 +600,5 @@ docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
 Le prochain travail recommandé est désormais :
 
 ```text
-TD01.3 — Event -> Command Unsupported/Fallback Contract
+TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
 ```
