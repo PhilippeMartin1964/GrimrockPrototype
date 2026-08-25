@@ -1,17 +1,21 @@
 # UI Architecture Current State
 
-Statut : **UI01.4.3e VALIDÉ ET CLOS sous UE5.5.4**  
-Date : **21 août 2026**
+Statut : **CURRENT — après MON20 / avant implémentation MON21**  
+Date : **25 août 2026**
 
 ## Référence canonique
 
-Le détail technique autoritaire du menu joueur est désormais :
+Le détail technique autoritaire du menu joueur reste :
 
 ```text
 docs/Design/UI_GRIMROCK_MENU_CURRENT.md
 ```
 
-Ce document résume uniquement l'état architectural global afin d'éviter de conserver des descriptions devenues obsolètes.
+Pour la dette technique transversale, la référence est :
+
+```text
+docs/Architecture/TECHNICAL_DEBT_REGISTER.md
+```
 
 ## Menu joueur actuel
 
@@ -20,13 +24,13 @@ Ce document résume uniquement l'état architectural global afin d'éviter de co
 Pages intégrées :
 
 ```text
-Inventaire
-Compétences
-Sorts
-Journal
-Carte
-Recettes
-Codex
+Inventaire      fonctionnel
+Compétences     fonctionnel MON20
+Sorts           fonctionnel MON18
+Journal         shell présent, domaine métier non démarré
+Carte           shell présent, domaine métier non démarré
+Recettes        shell présent, fonctionnalité future
+Codex           shell présent, domaine métier non démarré
 ```
 
 La navigation des onglets est portée par le C++. Le Graph de `WBP_GrimrockMenu` ne doit pas recréer une navigation parallèle.
@@ -45,6 +49,21 @@ UGridPartySpellbookComponent
 
 La vue est construite par `UGridSpellbookUILibrary` et ne possède aucune copie gameplay autoritaire.
 
+La persistance `KnownSpellIds` est **livrée depuis MON18.8** via `CharacterSpellbookStates` dans le SaveGame courant. L'ancienne mention « persistance à faire MON18.8 » est obsolète.
+
+## Skills / Talents
+
+MON20 a livré :
+
+```text
+SelectedCharacterIndex
+    -> FGridSkillsPageService
+    -> UGridSkillsWidget
+    -> WBP_GridSkills
+```
+
+La page Compétences projette Skills + Talents du personnage sélectionné. Les rangs de Skills sont persistés en SaveGame v8 ; les Talents réutilisent les `ProgressionChoices` MON15.
+
 ## Hotbar
 
 Le Spellbook réutilise la hotbar MON12 à dix slots. Aucun second stockage de raccourcis n'existe.
@@ -59,9 +78,9 @@ SourceDefinitionId = SpellId
 
 Le drag/drop, le move/swap et la désaffectation réutilisent les API MON12 existantes.
 
-## Exécution
+## Exécution des sorts
 
-UI01.4.3e a fermé le parcours complet :
+Le parcours complet reste :
 
 ```text
 Spellbook
@@ -74,19 +93,17 @@ Spellbook
     -> présentation MON18.6
 ```
 
-Validation UE5.5.4 :
-
-- 6/6 tests Automation UI01.4.3e.2 ;
-- `Lesser Heal` validé en PIE ;
-- `Arcane Bolt` validé en PIE ;
-- mort d'un monstre par sort correctement propagée vers les systèmes existants ;
-- refus correct pour mana insuffisant.
-
 ## Responsabilités
 
 ```text
 UGrimrockMenuWidget
     navigation / shell
+
+UGridInventoryWidget
+    présentation inventaire
+
+UGridSkillsWidget
+    projection Skills / Talents
 
 UGridSpellbookWidget
     présentation de la page Sorts
@@ -95,27 +112,38 @@ UGridPartySpellbookComponent
     connaissance runtime des sorts
 
 UGridPartyInventoryComponent
-    sélection personnage + hotbar
+    autorité groupe/inventaire + sélection + hotbar
 
 UGridTurnManagerComponent
     autorité combat
 
-Services MON18
-    ciblage / coûts / effets / présentation
+Services MON18 / MON20
+    résolution métier et read-models
 ```
 
-## Dette / travail futur
+## Dette technique UI active
 
-Les éléments suivants ne remettent pas en cause la clôture UI01.4.3e :
+Ne pas mélanger dette technique et fonctionnalités futures.
 
-- persistance `KnownSpellIds` : MON18.8 ;
-- sélection explicite d'un autre allié depuis la hotbar ;
-- icônes finales de sorts ;
-- modules complets Skills, Journal, Map, Recipes et Codex selon leurs jalons futurs ;
-- éventuel renommage des API historiques encore centrées sur le mot `Inventory`.
+Dette réelle suivie dans `TECHNICAL_DEBT_REGISTER.md` :
 
-## Prochain travail autoritaire
+- `TD-PARTY-001` : synchronisation held visual encore dépendante des appelants de `SetSelectedCharacterIndex` ;
+- `TD-UI-001` : nommage historique `EInventoryTopTab` / `ToggleInventoryWidget()` ; faible priorité ;
+- `TD-LOG-001` : plusieurs zones UI utilisent encore `LogTemp` ;
+- risque transversal de divergence visuelle entre nombreuses surfaces UMG, à traiter par conventions/composants partagés sans déplacer la logique métier en Blueprint.
+
+## Travail futur qui n'est pas de la dette technique
+
+- sélection explicite d'un autre allié pour les sorts `Ally` depuis la hotbar : amélioration fonctionnelle/UX ;
+- icônes finales : contenu de production ;
+- Journal / Map / Codex : MON21, actuellement suspendu après MON21.1 ;
+- Recipes : fonctionnalité future.
+
+## Phase actuelle
 
 ```text
-MON18.8 — Persistence / Migration du Spellbook
+MON20      CLOS
+MON21.1    Audit & Architecture Contract terminé
+MON21.2    SUSPENDU
+Phase      Exploitation / playtest / stabilisation / dette technique ciblée
 ```

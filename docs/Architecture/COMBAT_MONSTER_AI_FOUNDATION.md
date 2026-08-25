@@ -52,6 +52,16 @@ Mort, dissolve, loot et XP sont séparés du planner. Les récompenses s’intè
 
 L’état vivant des monstres est capturé dans le dungeon runtime state. La sauvegarde durable est bloquée pendant un combat actif afin de ne pas sérialiser un tour partiel.
 
-## Dette
+MON20.10 a également verrouillé la restauration des monstres déjà morts : Actor conservé, état `Dead`, mesh caché, collision et occupation désactivées.
 
-Le bestiaire reste plus petit que l’architecture disponible : la priorité future est la variété de contenu, non un nouveau framework d’IA.
+## Dette technique vs contenu
+
+Le petit nombre de familles de monstres **n'est pas une dette technique**. C'est un manque de contenu de production : l'architecture existante doit d'abord être exploitée avec davantage de variantes avant d'envisager un nouveau framework d'IA.
+
+La dette technique transversale liée au runtime est suivie dans :
+
+```text
+docs/Architecture/TECHNICAL_DEBT_REGISTER.md
+```
+
+Elle concerne notamment la concentration de `AGridLevelRuntimeActor`, certaines frontières Event -> Command et la maintenabilité des gros orchestrateurs ; elle ne remet pas en cause le modèle de combat/IA actuel.
