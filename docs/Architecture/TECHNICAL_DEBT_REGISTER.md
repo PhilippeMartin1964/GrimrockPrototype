@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **25 août 2026**  
-Baseline fonctionnelle validée : `9786eaf5a66fc8d325e5b95ee26c73e2fb9adac0` — post-TD01.3
+Baseline fonctionnelle validée : `d308df500907950288d800d61c23db25b3d35672` — post-TD01.4
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -226,6 +226,43 @@ Risque : filtrage difficile pendant les longues sessions PIE et distinction moin
 
 Traitement recommandé : migration incrémentale par domaine touché, avec catégories stables ; ne pas faire un commit géant de remplacement global.
 
+### TD01.4 — tranche de stabilisation réalisée
+
+Le 25 août 2026, TD01.4 a établi la taxonomie incrémentale sur cinq domaines runtime réellement exercés, sans remplacement transversal :
+
+- `UGridDoorSystemComponent` -> `LogGridDoorSystem` ;
+- `AGridThrownItemActor` -> `LogGridThrownItem` ;
+- `GridPIEPlaytestRequest` -> `LogGridPIEPlaytest` ;
+- `UGrimrockStartupModeComponent` -> `LogGrimrockStartupMode` ;
+- `UGrimrockGameInstance` -> `LogGrimrockGameInstance`.
+
+La passe a aussi corrigé une ambiguïté de sévérité : les rejets de `SlotProbe` utilisés pour sonder les sauvegardes du menu sont désormais `Verbose`, tandis qu'une vraie requête utilisateur `LoadSlot Request Failed` reste `Warning`.
+
+Validation UE5.5.4 / PIE :
+
+```text
+Grimrock.MON19.8.ProductionPuzzles                        4/4 Success
+Grimrock.Monsters.MON11.Presentation.ThrownWeaponLifecycle Success
+PIE Grid Editor Playtest                                  Begin/Clear sous LogGridPIEPlaytest
+New Game                                                  démarrage complet sous LogGrimrockStartupMode
+Load / Continue                                           chargement complet sous LogGrimrockStartupMode / LogGrimrockGameInstance
+```
+
+Commits associés :
+
+```text
+ad0d05b87388a7b957b676cea0dda38a40b9fff1  Declare door runtime log category
+0906f4993a13b0865bf0b86d89d6e38da0c778b3  Use door runtime log category
+0c7c859c31da0c97633b17b9c3a14fdd5b27b2a5  Declare thrown item runtime log category
+80856449fe0e2e07a9efbd0fd5bfe7c999c6c5a9  Use thrown item runtime log category
+71621c2ece1d6aa1c6932c59a347ea826e401a5e  Use PIE playtest runtime log category
+5bb73c63d8e8286e114cf6a12e7770ea9adf6fd0  Use startup mode runtime log category
+a154839e6118be4a8dd472f0cd1223ddf519389f  Use game instance runtime log category
+d308df500907950288d800d61c23db25b3d35672  Demote save slot probe diagnostics
+```
+
+TD01.4 est **terminé comme tranche de stabilisation**. TD-LOG-001 reste volontairement actif en P2 : les futurs `LogTemp` seront migrés opportunistement lorsqu'un domaine est touché ou qu'un diagnostic ambigu produit un coût réel. Ce statut évite de transformer l'hygiène de logs en refactor cosmétique sans fin.
+
 ---
 
 ## TD-TOOL-001 — Validation CI/Shipping non autoritaire
@@ -340,8 +377,8 @@ TD01.2 — Party Selection / Held Visual Notification Contract [RÉSOLU]
 TD01.3 — Event -> Command Unsupported/Fallback Contract [RÉSOLU]
          -> TD-EVENT-001
 
-TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
-         -> TD-LOG-001
+TD01.4 — Runtime Logging Categories / Diagnostic Hygiene [RÉALISÉ]
+         -> TD-LOG-001 reste actif / opportuniste
 
 TD02.1 — GridLevelRuntimeActor targeted extraction
          -> TD-ARCH-001
@@ -444,16 +481,16 @@ et sur l'état courant des principaux fichiers runtime/editor.
 La prochaine tranche est :
 
 ```text
-TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
+TD02.1 — GridLevelRuntimeActor targeted extraction
 ```
 
 Pourquoi :
 
-- les trois dettes P1 de la campagne TD01.1 à TD01.3 sont désormais fermées ;
-- il n'existe plus de dette P1 active dans le registre ;
-- les longues sessions PIE et Automation restent coûteuses à lire parce que plusieurs domaines runtime utilisent encore `LogTemp` ;
-- TD01.4 peut rester strictement incrémental : définir quelques catégories stables dans les domaines réellement touchés et supprimer les diagnostics ambigus, sans remplacement global ;
-- `UGridActivationComponent`, fraîchement stabilisé par TD01.3, constitue un bon premier domaine pour caractériser la taxonomie avant d'étendre ailleurs.
+- TD01.1 à TD01.4 ont stabilisé les contrats de persistance, notification, Event -> Command et diagnostic ;
+- `AGridLevelRuntimeActor` reste le principal point de concentration P2 ;
+- l'extraction doit viser une responsabilité déjà cohérente et testable, sans nouvelle classe propriétaire ni changement d'API ;
+- le domaine `Inventory|World / Inventory|Throw` est un candidat naturel parce que pickup, drop, projectile lancé, résolution d'impact et poids des objets monde forment déjà une frontière publique cohérente ;
+- la décision d'extraction reste conditionnée à un audit de dépendances et à l'existence de tests de caractérisation couvrant les comportements déplacés.
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
 
@@ -600,5 +637,5 @@ docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
 Le prochain travail recommandé est désormais :
 
 ```text
-TD01.4 — Runtime Logging Categories / Diagnostic Hygiene
+TD02.1 — GridLevelRuntimeActor targeted extraction
 ```
