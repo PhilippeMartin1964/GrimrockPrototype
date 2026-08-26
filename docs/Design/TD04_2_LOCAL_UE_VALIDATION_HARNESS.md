@@ -2,7 +2,7 @@
 
 Date : 26 août 2026  
 Projet : GrimrockPrototype — Unreal Engine 5.5.4  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE À EFFECTUER**
+Statut : **RÉALISÉ / VALIDÉ UE5.5.4**
 
 ## 1. Objectif
 
@@ -76,7 +76,7 @@ Sauf `-SkipAutomation`, le filtre est obligatoire :
 -AutomationFilter "Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract"
 ```
 
-Le lancement suit le contrat documenté par Epic pour les Automation en ligne de commande : un Editor/Client peut recevoir une commande `Automation RunTest ...;Quit`, avec export de rapport.
+Le lancement suit le contrat Automation en ligne de commande d'Unreal : un Editor/Client reçoit une commande `Automation RunTest ...;Quit`, avec export de rapport.
 
 Le harness lance notamment :
 
@@ -136,29 +136,43 @@ Saved\Automation\TD04\TD04-yyyyMMdd-HHmmss\
 
 par défaut.
 
-## 6. Commande de validation TD04.2
+## 6. Validation réelle du 26 août 2026
 
-Sur l'environnement de développement actuel, la validation recommandée est :
+Commande exécutée sur la machine de développement UE5.5.4 :
 
 ```powershell
-cd D:\Development\GrimrockPrototype
-git pull origin master
-
 .\Scripts\ValidateUE.ps1 `
     -EngineRoot D:\UE_5.5 `
     -AutomationFilter "Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract"
 ```
 
-Cette commande doit prouver dans un seul passage :
+Résultat transmis par la validation locale :
+
+```text
+=== Automation summary ===
+Filter                 : Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260826-133532
+Log                    : D:\Development\GrimrockPrototype\Saved\Automation\TD04\TD04-20260826-133532\Automation.log
+[OK] Automation filter validated.
+
+TD04.2 validation completed successfully.
+```
+
+Le passage complet valide donc :
 
 ```text
 Development Editor build : OK
-TD03.4 Automation         : Success
+Automation exécutée       : 1
+Automation échouée        : 0
 rapport index.json        : présent et interprété
-code final                : 0
+code final harness        : 0
 ```
 
-Le chemin `D:\UE_5.5` ci-dessus est uniquement un exemple de commande pour la machine actuelle ; il n'est pas codé dans le script.
+Cette validation constitue la preuve de fonctionnement réelle du harness TD04.2 sous UE5.5.4.
 
 ## 7. Utilisations courantes
 
@@ -186,7 +200,7 @@ $env:UE_ROOT = 'D:\UE_5.5'
 
 ## 8. Non-objectifs
 
-TD04.2 ne fait pas encore :
+TD04.2 ne fait pas :
 
 - cook/package ;
 - smoke test d'un build packagé ;
@@ -199,12 +213,13 @@ Le filtre reste explicite afin d'éviter qu'un script de validation devienne un 
 
 ## 9. Stop condition
 
-TD04.2 sera marqué **RÉALISÉ / VALIDÉ** seulement après exécution réelle sous UE5.5.4 de la commande de validation ci-dessus.
+La stop condition TD04.2 est atteinte :
 
-En cas de succès, la suite est :
+- harness versionné ;
+- résolution portable du moteur/projet ;
+- build Development Editor réellement exécuté ;
+- Automation réellement exécutée ;
+- rapport exporté et interprété ;
+- code final de succès obtenu sous UE5.5.4.
 
-```text
-TD04.3 — Cook / Package validation
-```
-
-En cas d'échec du harness, corriger TD04.2 avant toute tentative de CI distante.
+**Décision : TD04.2 est RÉALISÉ / VALIDÉ. La suite est TD04.3 — Cook / Package validation.**

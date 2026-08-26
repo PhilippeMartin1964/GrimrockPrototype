@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **26 août 2026**  
-Baseline fonctionnelle validée : `fbab179a7366cce9322b39fb4f70eabb5d618dc8` — post-TD03.4 Grid Editor Details cleanup  
+Baseline fonctionnelle validée : `2245dc187d981be2187948911f6354efb0f1e80b` — TD04.2 local UE validation harness validé sous UE5.5.4  
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents historiques de jalon restent valides pour leur époque, mais l'état courant, les priorités et le prochain travail sont définis ici.
@@ -308,15 +308,15 @@ Audit de la baseline `fbab179a...` :
 GitHub commit statuses HEAD     aucun
 Scripts/CheckCppFormat.ps1      présent
 Scripts/FormatCpp.ps1           présent
-harness UBT/Automation/RunUAT   absent
+harness UBT/Automation/RunUAT   absent à la baseline TD04.1
 ```
 
-Conclusion autoritaire :
+Conclusion autoritaire TD04.1 :
 
-- le dépôt automatise le formatage C++ ;
-- il ne possède actuellement aucune CI GitHub UE5.5.4 ;
+- le dépôt automatisait le formatage C++ ;
+- il ne possédait aucune CI GitHub UE5.5.4 ;
 - un push GitHub ne prouve ni compilation ni Automation ni Shipping ;
-- l'autorité actuelle reste la validation réellement exécutée sous UE5.5.4 : build, Automation et PIE ciblé.
+- l'autorité restait la validation réellement exécutée sous UE5.5.4.
 
 Référence :
 
@@ -324,7 +324,45 @@ Référence :
 docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md
 ```
 
-**État : actif. Prochaine tranche = TD04.2 Local UE Validation Harness.**
+### TD04.2 — Local UE Validation Harness — RÉALISÉ / VALIDÉ UE5.5.4
+
+Le harness versionné `Scripts/ValidateUE.ps1` automatise désormais :
+
+```text
+GrimrockPrototypeEditor Win64 Development build
++ filtre Automation explicite via UnrealEditor-Cmd.exe
++ export et lecture de index.json
++ échec si 0 test exécuté ou failed > 0
+```
+
+Validation réelle du 26 août 2026 :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved\Automation\TD04\TD04-20260826-133532
+[OK] Automation filter validated.
+TD04.2 validation completed successfully.
+```
+
+Commit d'implémentation :
+
+```text
+2245dc187d981be2187948911f6354efb0f1e80b  Add TD04.2 local UE validation harness
+```
+
+Référence :
+
+```text
+docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
+```
+
+Le dépôt possède donc maintenant un contrat local reproductible pour **Editor build + Automation**, mais pas encore de preuve Shipping.
+
+**État : actif. Prochaine tranche = TD04.3 Cook / Package validation.**
 
 ---
 
@@ -414,8 +452,8 @@ TD03.4 — dungeon level Details cleanup                 RÉALISÉ
 TD03   — stop condition                                ATTEINTE
 
 TD04.1 — CI / Shipping validation contract audit       RÉALISÉ
-TD04.2 — Local UE Validation Harness                   PROCHAIN
-TD04.3 — Cook / Package validation                     APRÈS TD04.2
+TD04.2 — Local UE Validation Harness                   RÉALISÉ / VALIDÉ
+TD04.3 — Cook / Package validation                     PROCHAIN
 TD04.4 — CI UE réelle                                  CONDITIONNEL
 ```
 
@@ -481,7 +519,14 @@ Build Editor != Shipping
 Shipping = cook/package réellement exécuté et validé
 ```
 
-Voir `docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md`.
+Le niveau local `Editor build + Automation` est désormais reproductible via `Scripts/ValidateUE.ps1`. Le niveau Shipping reste à établir par TD04.3.
+
+Voir :
+
+```text
+docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md
+docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
+```
 
 ---
 
@@ -497,6 +542,7 @@ docs/Design/UI_GRIMROCK_MENU_CURRENT.md
 docs/Design/GRID_EDITOR_ACTOR_UI_AUDIT.md
 docs/Design/TD02_9_PARTY_MOVEMENT_AND_STOP_CONDITION.md
 docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md
+docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
 ```
 
 Les documents historiques MON/TD antérieurs ne sont pas réécrits pour simuler l'état courant ; ils restent des archives de jalon.
@@ -506,20 +552,24 @@ Les documents historiques MON/TD antérieurs ne sont pas réécrits pour simuler
 # 9. Prochain travail recommandé
 
 ```text
-TD04.2 — Local UE Validation Harness
+TD04.3 — Cook / Package validation
 ```
 
-Objectif : versionner un script portable qui reproduit d'abord la validation locale réellement utile :
+Objectif : versionner un harness distinct qui exerce réellement la cible de distribution Win64 et sépare clairement le pipeline Shipping de la validation Editor.
+
+Contrat visé :
 
 ```text
 - résolution paramétrable de UE5.5.4 ;
-- build GrimrockPrototypeEditor Win64 Development ;
-- lancement d'un filtre Automation explicite ;
-- codes de sortie fiables ;
-- logs/commandes visibles ;
-- aucun chemin machine projet ou moteur codé en dur.
+- RunUAT.bat BuildCookRun ;
+- cible jeu Win64 Shipping ;
+- build + cook + stage + package + archive ;
+- sortie sous Saved/Packaging/TD04 par défaut ;
+- échec propagé si UAT échoue ;
+- vérification qu'un exécutable packagé et du contenu packagé existent réellement ;
+- aucun chemin machine codé en dur.
 ```
 
-Ne pas créer de workflow GitHub Actions UE avant que ce harness local soit fiable et qu'un runner disposant réellement d'UE5.5.4 soit défini.
+TD04.4 ne sera envisagé qu'après validation locale réelle de TD04.3 et seulement si un runner disposant réellement d'UE5.5.4 peut exécuter les mêmes contrats.
 
 MON21.2 reste suspendu pendant TD04.
