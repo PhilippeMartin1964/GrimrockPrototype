@@ -10,6 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -98,9 +99,14 @@ namespace
 		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Outer);
 		Archetype->ArchetypeId = ArchetypeId;
 		Archetype->SupportedType = EGridLevelObjectType::Lever;
+		Archetype->Category = TEXT("Mechanisms");
+		Archetype->ObjectCategory = EGridObjectCategory::Mechanism;
 		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
+		Archetype->bPlaceOnEdge = true;
+		Archetype->bPlaceAtCellCenter = false;
 		Archetype->RuntimeActorClass = AGridLeverActor::StaticClass();
-		Archetype->bIsInteractable = false;
+		Archetype->MovingMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+		Archetype->bIsInteractable = true;
 		return Archetype;
 	}
 
