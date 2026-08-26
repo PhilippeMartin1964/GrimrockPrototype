@@ -291,7 +291,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Editor|PIE")
 	bool PreparePIETestFromStartInternal(FString& OutError);
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Gameplay|Start")
+	UFUNCTION(BlueprintCallable, Category = "Gameplay|Start")
 	void SetStartFromSelection();
 
 	UFUNCTION(BlueprintCallable, Category = "Cell Paint")
@@ -516,7 +516,7 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint")
 	bool MoveSelectedObjectToCurrentSelection();
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Validation")
+	UFUNCTION(BlueprintCallable, Category = "Validation")
 	TArray<FGridLevelValidationMessage> ValidateCurrentLevel();
 
 	const UGridObjectArchetypeAsset* FindObjectArchetypeById(FName ArchetypeId) const;
