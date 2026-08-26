@@ -172,19 +172,43 @@ TD02.3 — Inventory Diagnostics
 
 ```text
 Party lifecycle / restore / character creation / selection / summary
-Combat Hotbar 0–9
 Inventory add / stack / remove / count / consume
 Item Definition registry / rehydration / instance application
-Equipment core / compatibility / equip / unequip / combat consumption
-Equipment stat bonuses / resistances
-Cursor transfers Inventory <-> Cursor <-> Equipment
 Weight recalculation
 Ownership validation
 Default initialization / hotbar validation
+Equipment diagnostic glue encore partagé
 ```
 
-La taille seule n’est pas le motif du refactor. Le signal concret est la concentration de plusieurs contrats transactionnels indépendamment testables dans la même unité d’implémentation, avec un coût croissant de modification et de revue.
+### Frontières dédiées après TD06.7
 
+```text
+Hotbar
+    GridPartyInventoryComponentHotbar.cpp
+
+Cursor Transfer
+    GridPartyInventoryComponentCursorTransfer.cpp
+
+Equipment Core
+    GridPartyInventoryComponentEquipment.cpp
+
+Equipment World Transfer
+    GridPartyInventoryComponentWorldTransfer.cpp
+
+Diagnostics
+    GridPartyInventoryComponentDiagnostics.cpp
+```
+
+Mesure courante :
+
+```text
+TD06.1 baseline principale     2 337 lignes
+après TD06.3 Hotbar           ~2 117 lignes
+après TD06.5 Cursor            1 677 lignes
+après TD06.7 Equipment         1 357 lignes
+```
+
+TD06.7 reste soumis à validation UE réelle ; ces mesures décrivent l'arbre de code publié, pas encore sa clôture fonctionnelle.
 ### Résidu TD02.3 identifié
 
 Le `.cpp` principal contient encore des helpers de diagnostics historiques alors que la responsabilité Diagnostics a été déplacée dans `GridPartyInventoryComponentDiagnostics.cpp`, qui possède désormais ses propres helpers préfixés Unity-safe `GridPartyInventoryDiagnostics...`.
@@ -393,13 +417,13 @@ TD05.7          RuntimeActor post-feedback re-audit                   RÉALISÉ
 TD05.8          RuntimeActor Monster extraction                       VALIDÉ
 TD05.9          RuntimeActor final stop condition                     ATTEINTE
 TD06.1          PartyInventory re-baseline / documentation audit      RÉALISÉ
-TD06.2          PartyInventory Hotbar characterization                PROCHAIN
-TD06.3          PartyInventory Hotbar extraction                      À FAIRE
-TD06.4          PartyInventory Cursor Transfer characterization       À FAIRE
-TD06.5          PartyInventory Cursor Transfer extraction             À FAIRE
-TD06.6          PartyInventory Equipment Core characterization        À FAIRE
-TD06.7          PartyInventory Equipment Core extraction              À FAIRE
-TD06.8          Item Definition Registry / Rehydration audit          À FAIRE
+TD06.2          PartyInventory Hotbar characterization                VALIDÉ
+TD06.3          PartyInventory Hotbar extraction                      VALIDÉ
+TD06.4          PartyInventory Cursor Transfer characterization       VALIDÉ
+TD06.5          PartyInventory Cursor Transfer extraction             VALIDÉ
+TD06.6          PartyInventory Equipment Core characterization        VALIDÉ
+TD06.7          PartyInventory Equipment Core extraction              À VALIDER
+TD06.8          Item Definition Registry / Rehydration audit          PROCHAIN APRÈS TD06.7
 TD06.9          PartyInventory final re-audit / stop condition        À FAIRE
 ```
 
@@ -466,7 +490,7 @@ docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md
 
 # 9. Prochain travail recommandé
 
-**TD06.2 — PartyInventory Hotbar characterization.**
+**Valider TD06.7 — PartyInventory Equipment Core extraction, puis ouvrir TD06.8 — Item Definition Registry / Rehydration audit.**
 
 Avant tout déplacement de code :
 

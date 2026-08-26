@@ -4,7 +4,7 @@ Date : **26 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD06.5 — PartyInventory Cursor Transfer extraction**  
 Baseline GitHub : `776827223a584ed7287bba5c029c5c0a224f515f`  
-Statut : **PRÊT À VALIDER LOCALEMENT**
+Statut : **VALIDÉ**
 
 ## Objet
 
@@ -180,30 +180,39 @@ Aucun nouveau composant propriétaire et aucune copie de `FGridPartyInventorySta
 
 Les helpers nécessaires au nouveau `.cpp` devront être locaux et préfixés `GridPartyInventoryEquipment...` afin de rester Unity-safe.
 
-## Validation locale demandée
+## Validation réelle
 
-Depuis la racine du projet :
+Première exécution du contrat : fonctionnellement réussie mais avec **1 warning attendu non déclaré**. La cause était exclusivement dans le test de caractérisation : deux branches négatives (`Shield -> MainHand` incompatible et `Unequip` avec inventaire plein) déclenchent volontairement les warnings de production correspondants.
+
+Le correctif `c3142eefa07d62e24523ea42b9a6f495b0b999ad` a ajouté deux `AddExpectedError()`, sans modification du code runtime.
+
+Validation locale finale fournie le **26 août 2026** :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD06_6
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+```
+
+La régression Cursor exécutée juste avant le correctif de test est également verte :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD06_4
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+```
+
+Commande de référence :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_6"
 ```
 
-Puis, sans reconstruire, régression Cursor/Inventory immédiate :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD06_4"
-```
-
-Critères :
-
-```text
-TD06_6 contract : 1 Success / 0 Failed / 0 warning
-TD06_4 contract : 1 Success / 0 Failed / 0 warning
-Editor build    : Success
-```
-
-TD06.6 ne devient **VALIDÉ** qu'après exécution réelle sous UE5.5.4.
-
+TD06.6 est donc **VALIDÉ** et autorise l'extraction TD06.7.
 ## Étape suivante
 
 Après validation verte :
