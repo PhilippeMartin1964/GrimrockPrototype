@@ -513,7 +513,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint")
 	bool SetSelectedObjectInitiallyActive(bool bNewInitiallyActive);
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint")
+	UFUNCTION(BlueprintCallable, Category = "Object Paint")
 	bool MoveSelectedObjectToCurrentSelection();
 
 	UFUNCTION(BlueprintCallable, Category = "Validation")

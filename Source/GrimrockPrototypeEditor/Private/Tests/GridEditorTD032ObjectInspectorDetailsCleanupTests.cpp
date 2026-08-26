@@ -98,7 +98,7 @@ bool FGridTD032ObjectInspectorMoveContractTest::RunTest(const FString& Parameter
 	TestNotNull(TEXT("MoveSelectedObjectToCurrentSelection remains reflected"), MoveFunction);
 	TestTrue(TEXT("MoveSelectedObjectToCurrentSelection is BlueprintCallable"),
 		MoveFunction && MoveFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("Baseline exposes MoveSelectedObjectToCurrentSelection as CallInEditor"),
+	TestFalse(TEXT("MoveSelectedObjectToCurrentSelection is no longer exposed as CallInEditor"),
 		MoveFunction && MoveFunction->HasMetaData(TEXT("CallInEditor")));
 
 	EditorActor->SelectedCellX = 2;
