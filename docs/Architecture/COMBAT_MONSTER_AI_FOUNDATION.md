@@ -54,20 +54,38 @@ L’état vivant des monstres est capturé dans le dungeon runtime state. La sau
 
 SaveGame courant : **v9**.
 
-## Event -> Command
+## Event -> Command et Quests
 
-`TD-EVENT-001` est **RÉSOLU**. La sémantique Gameplay / StateOnly / Unsupported est explicite et protégée par tests. Le bus Event -> Command reste le chemin d’effet gameplay et n’est pas remis en cause.
+`TD-EVENT-001` est **RÉSOLU**. La sémantique Gameplay / StateOnly / Unsupported est explicite et protégée par tests. Le bus Event -> Command reste le chemin d’effet gameplay.
+
+MON21.3 ajoute les commandes campagne :
+
+```text
+QuestStart
+QuestCompleteObjective
+QuestComplete
+QuestFail
+```
+
+Elles délèguent à `UGridQuestSubsystem`, sans créer de second bus ni de second état Quest.
 
 La dette encore suivie sous `TD-ARCH-005` concerne uniquement la concentration interne de `UGridActivationComponent`. Une extraction future ne doit créer ni second bus, ni second état.
 
 ## Dette technique runtime
 
-La dette transversale est suivie dans :
+Le registre autoritaire est :
 
 ```text
 docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 ```
 
-`AGridLevelRuntimeActor` reste la concentration runtime la plus forte. TD05.1 l’a rebaseliné à 3 359 lignes / 107 095 octets pour le `.cpp`, en plus d’un header public de 22 161 octets. Les extractions Persistence et World Items existent déjà ; la prochaine frontière ciblée est Diagnostics, après caractérisation.
+Les deux gros orchestrateurs audités ont atteint leur stop condition :
 
-Ce constat ne justifie pas un framework de combat/IA parallèle ni un refactor massif des monstres.
+```text
+TD05.9  AGridLevelRuntimeActor
+TD06.9  UGridPartyInventoryComponent
+```
+
+Le RuntimeActor reste volontairement façade du niveau ; PartyInventory reste l’autorité groupe/inventaire. Aucun refactor massif de Combat/IA n’est justifié par ces clôtures.
+
+Réouvrir une dette structurelle uniquement en présence d’un signal concret : duplication d’autorité, régression récurrente, difficulté de test ou nouvelle responsabilité autonome importante.

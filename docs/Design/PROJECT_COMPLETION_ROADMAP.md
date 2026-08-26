@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON20 CLOS — MON21 PROCHAIN**  
-Date de référence : **24 août 2026**
+Statut : **MON21.3 VALIDÉ — MON21.4 PROCHAIN**  
+Date de référence : **26 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -22,7 +22,7 @@ MON19 — Advanced Dungeon Logic / Scripting
 MON20 — Recruitment / Skills / Talents
 ```
 
-Jalon courant autoritaire :
+Jalon courant :
 
 ```text
 MON21 — Quests / Journal / Map / Codex
@@ -34,28 +34,15 @@ Puis :
 MON22 — 45–90 Minute Vertical Slice
 ```
 
+Les campagnes de dette ciblée TD05 et TD06 sont closes par stop condition ; elles ne bloquent plus la roadmap fonctionnelle.
+
 ---
 
 ## 2. MON20 — Recruitment / Skills / Talents — CLOS
 
-Clôturé le **24 août 2026** sous UE5.5.4.
+MON20 a livré recrutement actif/réserve, Story Companions, Custom Recruit, Skills, Talents et persistance associée.
 
-### État final
-
-```text
-MON20.1 — Audit & Architecture Contract                   CLOS
-MON20.2 — Active Party Recruitment Foundation            VALIDÉ — 6/6
-MON20.3 — Story Companion Definition / Pool              VALIDÉ — 6/6
-MON20.4 — Story Companion Recruitment UI                 VALIDÉ — 18/18
-MON20.5 — Custom Recruit / Wizard Context Reuse          VALIDÉ — 23/23 + PIE
-MON20.6 — Skills Data Model & Runtime                     VALIDÉ — 24/24
-MON20.7 — Talents / Progression Choice Integration       VALIDÉ — 24/24
-MON20.8 — Cross-System Requirements / Actions / UI       VALIDÉ — 24/24 + PIE
-MON20.9 — Persistence / Migration                        VALIDÉ — 24/24 + PIE
-MON20.10 — Balance / Regression / Closure                VALIDÉ — 151/151 global + PIE
-```
-
-### Architecture finale MON20
+Architecture autoritaire :
 
 ```text
 FGridPartyInventoryState
@@ -64,86 +51,17 @@ FGridPartyInventoryState
 ├── CharacterPool
 └── FGridCharacterInventoryState
     └── SkillRanks
-
-Story Companion / Custom Recruit
-    -> CharacterPool
-    -> FRPGPartyRecruitmentService
-    -> ActiveCharacters
-
-Skills
-    -> URPGSkillAsset
-    -> FRPGSkillService
-    -> FRPGSkillCheckService
-    -> FRPGSkillRuntimeService
-    -> Requirement projection
-
-Talents
-    -> MON15 ProgressionChoices
-    -> ChoiceId / ChoicePoints
-    -> GrantedRequirementIds
-
-Class + ItemTags + Talents + Skills
-    -> FGridCombatActionCatalog
-    -> MissingRequirements
-    -> HUD / hotbar
-
-SaveGame v8
-    -> CharacterSkillStates keyed by CharacterId
-    -> active + CharacterPool
-    -> consommateurs reconstruits après restore
 ```
 
-Décisions structurantes :
-
-- `FGridPartyInventoryState` reste l'autorité unique du groupe ;
-- maximum actif = 6 ;
-- recrutement atomique pool -> actifs avec rollback ;
-- aucune abstraction Talent parallèle : réutilisation de MON15 ;
-- Skills sparse, data-driven et rattachés au personnage ;
-- `RequirementIds` dérivés et non persistés ;
-- identité persistante par `CharacterId` ;
-- SaveGame version 8 ;
-- migration v7 -> v8 sans inventer de Skill rank ;
-- restore fail-closed ;
-- monstres morts persistants restaurés cachés, sans collision ni occupation.
-
-### Validation finale MON20
-
-```text
-Grimrock.MON20
-151/151 Success
-0 Fail
-0 Error
-```
-
-Le smoke test PIE final valide :
-
-```text
-L_MainMenu
--> Continuer GrimrockParty
--> Save v8 Result=Accepted
--> 2 Gobelins RestoreDead
--> GridRuntimeState Apply DeadMonsters=2
--> PartySave Continued CharacterCount=2
--> menu / SelectedCharacter fonctionnels
--> resauvegarde GrimrockParty v8 réussie
-```
-
-Aucun `PartyOccupiesCell` / `MissingActor` ne réapparaît pour les snapshots morts.
-
-Document de clôture :
-
-```text
-docs/Design/MON20_10_5_FINAL_PIE_MON20_CLOSURE.md
-```
+Le SaveGame était v8 à la clôture MON20 ; le projet est depuis passé en **v9** via TD01.1.
 
 ---
 
-# MON21 — Quests / Journal / Map / Codex — PROCHAIN
+# 3. MON21 — Quests / Journal / Map / Codex — ACTIF
 
 ## Objectif
 
-Transformer les surfaces UI déjà présentes en systèmes de campagne data-driven :
+Transformer les surfaces campagne déjà présentes en systèmes data-driven :
 
 - quêtes et objectifs ;
 - journal ;
@@ -153,53 +71,135 @@ Transformer les surfaces UI déjà présentes en systèmes de campagne data-driv
 - persistance SaveGame ;
 - intégration au menu existant.
 
-## MON21.1 — Audit & Architecture Contract
-
-Première étape obligatoire : auditer l'existant avant tout nouveau modèle.
-
-À relire notamment :
+## État actuel
 
 ```text
-WBP_GridJournal
-WBP_GridMap
-WBP_GridCodex
-UGrimrockMenuWidget / WBP_GrimrockMenu
-UGridLevelAsset / runtime state
-Event -> Command
-Variables / Logic / Lua
-SaveGame v8
-Monster definitions / Bestiary presentation
+MON21.1 — Audit & Architecture Contract                         CLOS
+MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
+MON21.3 — Quest Event/Command Integration                       VALIDÉ
+MON21.4 — Quest Persistence / Migration                         PROCHAIN
+MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
+MON21.6 — Map Geometry + Exploration State + Existing WBP       À FAIRE
+MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
+MON21.8 — Cross-System Regression / PIE / Closure               À FAIRE
 ```
 
-Questions à verrouiller :
+## MON21.1 — Contrat établi
 
-1. Quelle autorité porte une quête ?
-2. Quelle identité stable utiliser pour QuestId / ObjectiveId / CodexEntryId ?
-3. Qu'est-ce qui est design-time, runtime, dérivé et persistant ?
-4. Comment Event -> Command déclenche progression, journal et codex sans pipeline parallèle ?
-5. Quelle donnée de carte est globale au donjon, au niveau ou au groupe ?
-6. Quels états doivent migrer dans le prochain SaveGame si nécessaire ?
+MON21.1 a figé notamment :
 
-Règle : **ne pas créer de nouveau subsystem ou registre avant d'avoir vérifié les structures déjà présentes.**
+1. une autorité Quest globale de campagne ;
+2. des identités stables `QuestId` / `ObjectiveId` ;
+3. Event -> Command comme voie de mutation ;
+4. Journal/Map/Codex comme projections, jamais autorités ;
+5. aucune nouvelle Actor manager permanente ;
+6. aucune persistance de read model dérivé.
 
-## Découpage pressenti MON21
+## MON21.2 — Quest Definition + Campaign Runtime State — VALIDÉ
 
-À confirmer par MON21.1 :
+Livré :
 
 ```text
-MON21.1 — Audit & Architecture Contract
-MON21.2 — Quest Definition / Runtime State
-MON21.3 — Event -> Command Quest Progression
-MON21.4 — Journal Read Model / UI
-MON21.5 — Map Exploration / Annotations
-MON21.6 — Codex / Bestiary / Lore Unlocks
-MON21.7 — Persistence / Migration
-MON21.8 — Cross-System Regression / PIE Closure
+UGridQuestDefinitionAsset
+    -> QuestId
+    -> Objectives[] / ObjectiveId
+
+UGridQuestSubsystem : UGameInstanceSubsystem
+    -> registre transient des définitions
+    -> FGridCampaignQuestRuntimeState
+    -> StartQuest
+    -> CompleteObjective
+    -> CompleteQuest
+    -> FailQuest
+    -> OnQuestStateChanged
+```
+
+L’état runtime Quest est encore transient.
+
+Validation :
+
+```text
+Grimrock.Quests.MON21_2
+2 Success / 0 Failed
+```
+
+## MON21.3 — Quest Event/Command Integration — VALIDÉ
+
+Le bus existant porte maintenant :
+
+```text
+QuestStart              = 25
+QuestCompleteObjective  = 26
+QuestComplete           = 27
+QuestFail               = 28
+```
+
+`FGridObjectLink` transporte `QuestId` / `QuestObjectiveId`. `UGridLevelAsset::QuestDefinitions` référence les définitions utilisées par le niveau. `UGridActivationComponent` délègue les mutations au `UGridQuestSubsystem`.
+
+Validation :
+
+```text
+Grimrock.Quests.MON21_3.EventCommandIntegration
+1 Success / 0 Failed
+```
+
+## MON21.4 — Quest Persistence / Migration — PROCHAIN
+
+Objectif : rendre durable l’état autoritaire de campagne introduit en MON21.2, sans persister de projection Journal.
+
+À verrouiller :
+
+- snapshot SaveGame par `QuestId` et `ObjectiveId` ;
+- restauration atomique du `FGridCampaignQuestRuntimeState` ;
+- validation des définitions lors du restore ;
+- politique pour quêtes/objectifs retirés ou inconnus ;
+- éventuelle montée de SaveVersion **uniquement si nécessaire** ;
+- migration depuis v9 ;
+- ordre restore : définitions Quest disponibles avant application du snapshot ;
+- Event -> Command inchangé ;
+- aucune persistance de `UGridQuestDefinitionAsset*` comme source de vérité.
+
+MON21.4 doit être caractérisé et validé sous UE5.5.4 avant MON21.5.
+
+## MON21.5–MON21.8
+
+```text
+MON21.5 — Journal
+    projection read-only de UGridQuestSubsystem
+    intégration au WBP existant
+
+MON21.6 — Map
+    géométrie depuis DataAssets
+    exploration / annotations autoritaires
+    intégration au WBP existant
+
+MON21.7 — Codex
+    discovery state
+    projection Monster / Item / Spell / Skill / lore
+
+MON21.8 — Closure
+    persistance croisée
+    Event -> Command
+    UI
+    PIE
+    régressions
 ```
 
 ---
 
-# MON22 — 45–90 Minute Vertical Slice
+# 4. Dette technique — état après TD06
+
+```text
+TD01–TD04  stabilisation / outillage                  RÉALISÉ
+TD05.9     RuntimeActor stop condition                ATTEINTE
+TD06.9     PartyInventory stop condition              ATTEINTE
+```
+
+Aucune nouvelle tranche TD05/TD06 n’est recommandée sans signal concret. Le registre autoritaire reste `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`.
+
+---
+
+# 5. MON22 — 45–90 Minute Vertical Slice
 
 Objectif : construire un parcours jouable de bout en bout avant la production étendue.
 
@@ -220,7 +220,7 @@ Le vertical slice devra combiner au minimum :
 
 ---
 
-# Horizon MON23+
+# 6. Horizon MON23+
 
 ```text
 MON23 — Containers / Lock Traps / Crafting
@@ -251,5 +251,5 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-MON21.1 — Audit & Architecture Contract
+MON21.4 — Quest Persistence / Migration
 ```

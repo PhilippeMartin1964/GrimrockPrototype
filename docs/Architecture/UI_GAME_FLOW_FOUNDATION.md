@@ -15,6 +15,7 @@ Main Menu
   -> Runtime dungeon
   -> Exploration / Inventory / In-game Menu
   -> Combat / Level Up / Spellbook / Skills
+  -> Quest progression via Event -> Command
   -> Save / Transition
 ```
 
@@ -31,11 +32,31 @@ Main Menu
 - `GridSkillsWidget` ;
 - `GrimrockMenuWidget` pour les tabs du menu en jeu.
 
-## Pages shell / futures
+## Quests / Journal / Map / Codex
 
-Le menu contient déjà Journal, Map, Recipes et Codex. Journal/Map/Codex ont été audités dans MON21.1 mais leur domaine métier n’est pas encore implémenté. MON21.2 n’est plus bloqué par TD04 ; sa reprise relève maintenant de la roadmap produit après les tranches de dette explicitement décidées. Recipes reste une fonctionnalité future.
+Le menu contient déjà Journal, Map, Recipes et Codex.
 
-L’existence de ces widgets n’est pas une dette technique.
+La couche Quest n’est plus un simple futur :
+
+```text
+MON21.2
+    UGridQuestDefinitionAsset
+    UGridQuestSubsystem
+    FGridCampaignQuestRuntimeState
+
+MON21.3
+    Event -> QuestStart / QuestCompleteObjective / QuestComplete / QuestFail
+```
+
+L’état Quest est encore transient. **MON21.4 — Quest Persistence / Migration** est la prochaine étape.
+
+Journal, Map et Codex restent des projections UI :
+
+- MON21.5 : Journal Read Model + WBP existant ;
+- MON21.6 : Map Geometry + Exploration State + WBP existant ;
+- MON21.7 : Codex Discovery + projection des définitions existantes.
+
+Recipes reste une fonctionnalité future hors MON21.
 
 ## Recruitment UI
 
@@ -53,7 +74,9 @@ Spellbook et SkillRanks sont persistés dans le SaveGame courant **v9**.
 
 ## Sélection de personnage / held visual
 
-`TD-PARTY-001` est **RÉSOLU**. `UGridPartyInventoryComponent` reste l’autorité de `SelectedCharacterIndex`. Le changement de sélection émet la notification autoritaire et `AGrimrockPartyPawn` resynchronise le held visual. Les contrats `SelectionChange` et `SelectedCharacterFilter` ont été validés sous UE5.5.4.
+`TD-PARTY-001` est **RÉSOLU**. `UGridPartyInventoryComponent` reste l’autorité de `SelectedCharacterIndex`. Le changement de sélection émet la notification autoritaire et `AGrimrockPartyPawn` resynchronise le held visual.
+
+TD06.9 a atteint la stop condition de PartyInventory sans modifier ce contrat.
 
 ## Dette technique UI active
 
@@ -67,20 +90,20 @@ Points UI encore actifs ou surveillés :
 
 - `TD-UI-001` : nommage historique `Inventory` du shell global, faible priorité ;
 - `TD-LOG-001` : taxonomie de logs encore partiellement `LogTemp` ;
-- risque de divergence visuelle entre nombreuses surfaces UMG, à traiter par conventions/composants partagés sans déplacer la logique métier en Blueprint.
+- divergence visuelle potentielle entre surfaces UMG, à traiter par conventions/composants partagés lorsqu’une douleur concrète apparaît.
 
 `TD-PARTY-001` ne doit plus être listé comme dette active.
 
 ## Validation
 
-Le code UI/C++ touché par un jalon doit passer le harness local approprié :
+Le code UI/C++ touché par un jalon doit passer le harness local :
 
 ```text
 Scripts/ValidateUE.ps1
 ```
 
-Les changements de bindings, widgets Blueprint ou assets nécessitent toujours une validation PIE ciblée. TD04.3 a également validé le packaging Win64 Shipping du projet via `Scripts/ValidatePackage.ps1`.
+Les changements de bindings, widgets Blueprint ou assets nécessitent une validation PIE ciblée. TD04.3 a également validé le packaging Win64 Shipping via `Scripts/ValidatePackage.ps1`.
 
-## Règle de réduction de dette
+## Règle
 
-Conserver les contrats C++ existants et éviter tout graphe Blueprint métier parallèle. Une extraction UI ou un renommage transversal n’est engagé que s’il réduit un risque concret.
+Conserver les contrats C++ existants et éviter tout graphe Blueprint métier parallèle. Journal/Map/Codex lisent les autorités runtime ; ils ne stockent pas une copie gameplay indépendante.

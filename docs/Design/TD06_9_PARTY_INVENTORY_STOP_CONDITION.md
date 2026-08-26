@@ -4,7 +4,7 @@ Date : **26 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD06.8 — Item Definition Registry / Rehydration audit**  
 Baseline GitHub : `0c4b8050bd5fc55bda50364a7b9953b6a44394b3`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Statut : **VALIDÉ — STOP CONDITION ATTEINTE**
 
 ## Objet
 
@@ -116,7 +116,7 @@ Après ce nettoyage, les frontières à forte cohésion qui justifiaient TD06 di
 
 Le cœur restant est cohérent avec le rôle d'autorité/orchestrateur de `UGridPartyInventoryComponent`.
 
-**Décision TD06.9 : arrêter ici la décomposition de `UGridPartyInventoryComponent`, sous réserve de la validation UE post-changement.**
+**Décision TD06.9 : arrêter ici la décomposition de `UGridPartyInventoryComponent`.**
 
 Réouvrir uniquement en présence d'un signal concret :
 
@@ -142,22 +142,38 @@ TD06.9 ne modifie pas :
 - l'ownership ;
 - Registry/Rehydration.
 
-## Validation post-TD06.9 requise
+## Validation post-TD06.9 réelle
 
-Depuis la racine du projet :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD02_3"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC5"
-```
-
-Critères :
+Validation locale fournie le **26 août 2026** :
 
 ```text
-TD06_8 : 1 Success / 0 warning / 0 Failed
-TD02_3 : 1 Success / 0 warning / 0 Failed
-CC5    : 2 Success / 0 warning / 0 Failed
+Filter                 : Grimrock.TechnicalDebt.TD06_8
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.TechnicalDebt.TD02_3
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.CharacterCreation.CC5
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
 ```
 
-Après validation verte, TD06.9 devient **VALIDÉ**, `TD-ARCH-002` passe en **surveillance / stop condition atteinte**, et les documents d'architecture courants peuvent être rafraîchis avant retour à la roadmap fonctionnelle.
+Les trois validations post-changement sont vertes. Le déplacement Diagnostics, le nettoyage de code mort et les contrats Registry/Save restent donc cohérents.
+
+## Décision finale
+
+```text
+TD06.9       VALIDÉ
+TD-ARCH-002  SURVEILLANCE / STOP CONDITION ATTEINTE
+TD06         CLOS
+```
+
+Aucune TD06.10 n'est justifiée. Le prochain travail autoritaire revient à la roadmap fonctionnelle, **MON21.4 — Quest Persistence / Migration**.

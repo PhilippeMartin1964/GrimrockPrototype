@@ -1,6 +1,6 @@
 # UI Architecture Current State
 
-Statut : **CURRENT — après TD04 / pendant audit TD05**  
+Statut : **CURRENT — après TD06.9 / MON21.3**  
 Date : **26 août 2026**
 
 ## Références canoniques
@@ -17,6 +17,12 @@ Pour la dette technique transversale :
 docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 ```
 
+Pour la roadmap active :
+
+```text
+docs/Design/PROJECT_COMPLETION_ROADMAP.md
+```
+
 ## Menu joueur actuel
 
 `WBP_GrimrockMenu` est un menu RPG multipage fonctionnel. Son parent natif est `UGrimrockMenuWidget`.
@@ -25,13 +31,36 @@ docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 Inventaire      fonctionnel
 Compétences     fonctionnel MON20
 Sorts           fonctionnel MON18
-Journal         shell présent, métier futur MON21
-Carte           shell présent, métier futur MON21
-Recettes        shell présent, fonctionnalité future
-Codex           shell présent, métier futur MON21
+Journal         shell présent ; read model prévu MON21.5
+Carte           shell présent ; exploration prévue MON21.6
+Recettes        shell présent ; fonctionnalité future
+Codex           shell présent ; discovery prévu MON21.7
 ```
 
 La navigation des onglets est portée par le C++. Le Graph de `WBP_GrimrockMenu` ne doit pas recréer une navigation parallèle.
+
+## Quest runtime
+
+MON21.2 et MON21.3 ont livré la couche métier avant l’UI Journal :
+
+```text
+UGridQuestDefinitionAsset
+    -> QuestId / Objectives
+
+UGridQuestSubsystem
+    -> état runtime campagne
+    -> OnQuestStateChanged
+
+FGridObjectLink / Event -> Command
+    -> QuestStart
+    -> QuestCompleteObjective
+    -> QuestComplete
+    -> QuestFail
+```
+
+Le Journal futur doit relire cette autorité. Il ne doit pas stocker sa propre copie des quêtes.
+
+L’état Quest n’est pas encore persistant en SaveGame v9 ; **MON21.4 — Quest Persistence / Migration** est la prochaine tranche.
 
 ## Spellbook
 
@@ -43,7 +72,7 @@ UGridPartySpellbookComponent
     -> KnownSpellIds[]
 ```
 
-La vue est construite depuis les autorités runtime et ne possède aucune copie gameplay autoritaire. La persistance est livrée depuis MON18.8 via `CharacterSpellbookStates`.
+La vue est construite depuis les autorités runtime et ne possède aucune copie gameplay autoritaire.
 
 ## Skills / Talents
 
@@ -56,7 +85,7 @@ SelectedCharacterIndex
     -> WBP_GridSkills
 ```
 
-La page Compétences projette Skills + Talents du personnage sélectionné. Les rangs de Skills sont persistés dans le SaveGame courant **v9** ; les Talents réutilisent les `ProgressionChoices` MON15.
+La page Compétences projette Skills + Talents du personnage sélectionné. Les rangs de Skills sont persistés dans SaveGame v9 ; les Talents réutilisent les `ProgressionChoices` MON15.
 
 ## Hotbar
 
@@ -89,13 +118,18 @@ UGridPartySpellbookComponent
 UGridPartyInventoryComponent
     autorité groupe/inventaire + sélection + hotbar
 
+UGridQuestSubsystem
+    autorité runtime des quêtes
+
 UGridTurnManagerComponent
     autorité combat
 ```
 
 ## Sélection / held visual
 
-`TD-PARTY-001` est **RÉSOLU**. `SetSelectedCharacterIndex()` déclenche la notification autoritaire ; `AGrimrockPartyPawn` resynchronise son held visual. Les tests `SelectionChange` et `SelectedCharacterFilter` ont été validés sous UE5.5.4.
+`TD-PARTY-001` est **RÉSOLU**. `SetSelectedCharacterIndex()` déclenche la notification autoritaire ; `AGrimrockPartyPawn` resynchronise son held visual.
+
+TD06.9 a clôturé le découpage PartyInventory ; aucune nouvelle extraction n’est recommandée sans signal concret.
 
 ## Dette technique UI active
 
@@ -105,15 +139,16 @@ Dette réelle suivie dans `TECHNICAL_DEBT_REGISTER.md` :
 
 - `TD-UI-001` : nommage historique `EInventoryTopTab` / `ToggleInventoryWidget()` ; faible priorité ;
 - `TD-LOG-001` : certaines zones utilisent encore `LogTemp` ;
-- divergence visuelle potentielle entre nombreuses surfaces UMG : à réduire par conventions/composants partagés lorsqu’une douleur concrète apparaît, sans déplacer le métier en Blueprint.
-
-`TD-PARTY-001` ne fait plus partie de la dette active.
+- divergence visuelle potentielle entre surfaces UMG : à réduire seulement si une douleur concrète apparaît.
 
 ## Travail futur qui n’est pas de la dette technique
 
+- MON21.4 : persistance Quest / migration ;
+- MON21.5 : Journal Read Model / intégration WBP ;
+- MON21.6 : Map Geometry / Exploration ;
+- MON21.7 : Codex Discovery / projections ;
 - sélection explicite d’un autre allié pour les sorts `Ally` : amélioration fonctionnelle/UX ;
 - icônes finales : contenu de production ;
-- Journal / Map / Codex : MON21 ;
 - Recipes : fonctionnalité future.
 
 ## Validation
@@ -131,8 +166,10 @@ Les bindings/Blueprints/UMG/assets réellement touchés restent à vérifier en 
 
 ```text
 MON20      CLOS
-MON21.1    Audit terminé
-TD01–TD04  stabilisation réalisée
-TD05       audit/réduction ciblée de GridLevelRuntimeActor
-MON21.2    peut reprendre après la tranche TD05 jugée utile
+MON21.1    CLOS
+MON21.2    VALIDÉ
+MON21.3    VALIDÉ
+TD05.9     STOP CONDITION ATTEINTE
+TD06.9     STOP CONDITION ATTEINTE
+MON21.4    PROCHAIN — Quest Persistence / Migration
 ```

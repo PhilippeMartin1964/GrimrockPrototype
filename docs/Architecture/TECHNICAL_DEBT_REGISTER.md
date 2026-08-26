@@ -3,12 +3,12 @@
 Date de référence : **26 août 2026**  
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
-Baseline PartyInventory : **TD06.9 — stop condition implémentée, validation UE requise**  
-Statut : **ACTIF — TD06.9 STOP CONDITION À VALIDER**
+Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
+Statut : **SURVEILLANCE — TD05 / TD06 STOP CONDITIONS ATTEINTES**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
-TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition pour `AGridLevelRuntimeActor`. TD06 a extrait les frontières Hotbar, Cursor et Equipment de `UGridPartyInventoryComponent`, caractérisé Registry/Rehydration et atteint sa stop condition architecturale en TD06.9 sous réserve de validation UE.
+TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition pour `AGridLevelRuntimeActor`. TD06 a extrait les frontières Hotbar, Cursor et Equipment de `UGridPartyInventoryComponent`, caractérisé Registry/Rehydration et atteint sa stop condition architecturale en TD06.9, validée sous UE5.5.4.
 
 ---
 
@@ -46,7 +46,7 @@ P2 : 8 dettes actives ou surveillées
 P3 : 2 dettes actives
 ```
 
-`TD-ARCH-002` est la dette P2 architecturale ciblée actuelle. Les autres entrées P2 restent surveillées, opportunistes ou différées tant qu’aucun risque observable ne justifie leur réouverture.
+Aucune dette P2 architecturale ne justifie actuellement une nouvelle tranche ciblée. Les entrées P2 restent surveillées, opportunistes ou différées tant qu’un risque observable ne justifie pas leur réouverture.
 
 ---
 
@@ -143,7 +143,7 @@ Référence : `docs/Design/TD05_9_RUNTIMEACTOR_STOP_CONDITION.md`.
 
 ## TD-ARCH-002 — `UGridPartyInventoryComponent` historiquement très volumineux
 
-**Priorité : P2 — CIBLÉE / STOP CONDITION TD06.9 À VALIDER**
+**Priorité : P2 — surveillée / stop condition atteinte**
 
 ### Baseline TD06.1
 
@@ -207,11 +207,19 @@ TD06.9 supprime huit helpers Diagnostics morts confirmés et déplace `GetEquipm
 
 ### Stop condition
 
-**Décision : arrêter ici la décomposition de `UGridPartyInventoryComponent`, sous réserve de la validation post-TD06.9.**
+**Décision : arrêter ici la décomposition de `UGridPartyInventoryComponent`.**
 
 Réouvrir uniquement si une douleur concrète apparaît : duplication d'autorité, régression récurrente, difficulté de test, dépendance de compilation problématique ou nouvelle responsabilité autonome importante.
 
 Référence : `docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md`.
+
+Validation finale TD06.9 :
+
+```text
+Grimrock.TechnicalDebt.TD06_8   1 Success / 0 warning / 0 Failed
+Grimrock.TechnicalDebt.TD02_3   1 Success / 0 warning / 0 Failed
+Grimrock.CharacterCreation.CC5  2 Success / 0 warning / 0 Failed
+```
 ---
 
 ## TD-ARCH-003 — `AGrimrockPartyPawn` historiquement trop chargé
@@ -399,12 +407,12 @@ TD06.5          PartyInventory Cursor Transfer extraction             VALIDÉ
 TD06.6          PartyInventory Equipment Core characterization        VALIDÉ
 TD06.7          PartyInventory Equipment Core extraction              VALIDÉ
 TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
-TD06.9          PartyInventory final re-audit / stop condition        IMPLÉMENTÉ — À VALIDER
+TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ — ATTEINTE
 ```
 
 **TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
 
-TD06 a atteint sa stop condition architecturale en code. Après validation TD06.9, aucune nouvelle tranche PartyInventory ne doit être ouverte sans signal concret ; les autres dettes du registre restent surveillées, opportunistes ou différées selon leur statut.
+TD06 est clos : la stop condition PartyInventory est validée. Aucune nouvelle tranche PartyInventory ne doit être ouverte sans signal concret ; les autres dettes du registre restent surveillées, opportunistes ou différées selon leur statut.
 
 ---
 
@@ -467,14 +475,12 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD06.9 — PartyInventory final re-audit / cleanup / stop condition.**
+**Aucune nouvelle tranche de refactor TD05/TD06 n'est recommandée.**
 
-Commandes de référence :
+Reprendre la roadmap fonctionnelle :
 
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD02_3"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC5"
+```text
+MON21.4 — Quest Persistence / Migration
 ```
 
-Si ces validations sont vertes, marquer TD06.9 et `TD-ARCH-002` comme stop condition atteinte, puis rafraîchir les documents d'architecture **courants** avant de reprendre la roadmap fonctionnelle. Les snapshots historiques restent inchangés.
+Les dettes encore inscrites dans ce registre restent surveillées, opportunistes ou différées. Elles ne doivent redevenir un chantier dédié qu'en présence d'un signal concret conforme aux règles de la section 6.
