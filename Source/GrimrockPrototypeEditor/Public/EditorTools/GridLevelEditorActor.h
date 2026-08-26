@@ -417,7 +417,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SetSelectedObjectItemDefinitionId(FName NewItemDefinitionId);
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint|Item Definition")
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Item Definition")
 	bool SyncSelectedItemDefinitionIdFromAsset();
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
@@ -426,7 +426,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
 	bool SetSelectedObjectMonsterDefinitionId(FName NewMonsterDefinitionId);
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Object Paint|Monster Definition")
+	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")
 	bool SyncSelectedMonsterDefinitionIdFromAsset();
 
 	UFUNCTION(BlueprintCallable, Category = "Object Paint|Monster Definition")

@@ -120,9 +120,9 @@ bool FGridTD033DefinitionSyncContractTest::RunTest(const FString& Parameters)
 		ItemSyncFunction && ItemSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	TestTrue(TEXT("Monster definition sync is BlueprintCallable"),
 		MonsterSyncFunction && MonsterSyncFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("Baseline exposes item definition sync as CallInEditor"),
+	TestFalse(TEXT("Item definition sync is no longer exposed as CallInEditor"),
 		ItemSyncFunction && ItemSyncFunction->HasMetaData(TEXT("CallInEditor")));
-	TestTrue(TEXT("Baseline exposes monster definition sync as CallInEditor"),
+	TestFalse(TEXT("Monster definition sync is no longer exposed as CallInEditor"),
 		MonsterSyncFunction && MonsterSyncFunction->HasMetaData(TEXT("CallInEditor")));
 
 	TestTrue(TEXT("The item object can be selected"), EditorActor->SelectObjectById(ItemObject.ObjectId));
