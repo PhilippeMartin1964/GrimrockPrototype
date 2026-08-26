@@ -117,7 +117,7 @@ bool FGridTD034DungeonLevelContractTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("ApplyCurrentDungeonLevel remains reflected"), ApplyFunction);
 	TestTrue(TEXT("ApplyCurrentDungeonLevel remains BlueprintCallable"),
 		ApplyFunction && ApplyFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
-	TestTrue(TEXT("Baseline exposes ApplyCurrentDungeonLevel as CallInEditor"),
+	TestFalse(TEXT("ApplyCurrentDungeonLevel is no longer exposed as CallInEditor"),
 		ApplyFunction && ApplyFunction->HasMetaData(TEXT("CallInEditor")));
 
 	TestTrue(TEXT("No explicit level selects the dungeon default"), EditorActor->ApplyCurrentDungeonLevel());

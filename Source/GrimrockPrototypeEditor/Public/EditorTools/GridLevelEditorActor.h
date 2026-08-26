@@ -246,7 +246,7 @@ public:
 	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Advanced Debug")
 	void RebuildPreview();
 
-	UFUNCTION(CallInEditor, BlueprintCallable, Category = "Editor|Dungeon")
+	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon")
 	bool ApplyCurrentDungeonLevel();
 
 	UFUNCTION(BlueprintCallable, Category = "Editor|Dungeon", meta = (DisplayName = "Apply Current Dungeon Level"))
