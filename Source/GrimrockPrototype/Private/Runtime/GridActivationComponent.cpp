@@ -13,7 +13,11 @@
 #include "Runtime/GridLogicRuntime.h"
 #include "Runtime/Monsters/GridAutomaticPerceptionEngagementSubsystem.h"
 #include "Core/GridLevelAsset.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "Quests/GridQuestDefinitionAsset.h"
+#include "Quests/GridQuestSubsystem.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
@@ -94,6 +98,21 @@ namespace
 			case EGridObjectCommand::ReceptacleConsumeAllItems:
 			case EGridObjectCommand::ReceptacleEnableRemoval:
 			case EGridObjectCommand::ReceptacleDisableRemoval:
+				return true;
+
+			default:
+				return false;
+		}
+	}
+
+	bool IsQuestCommand(EGridObjectCommand Command)
+	{
+		switch (Command)
+		{
+			case EGridObjectCommand::QuestStart:
+			case EGridObjectCommand::QuestCompleteObjective:
+			case EGridObjectCommand::QuestComplete:
+			case EGridObjectCommand::QuestFail:
 				return true;
 
 			default:
@@ -571,6 +590,89 @@ bool UGridActivationComponent::ExecuteLuaCallbackLink(const FGridObjectLink& Lin
 	return true;
 }
 
+void UGridActivationComponent::RegisterCurrentLevelQuestDefinitions()
+{
+	if (!RuntimeActor || !RuntimeActor->LevelAsset)
+	{
+		return;
+	}
+
+	UWorld* World = RuntimeActor->GetWorld();
+	if (!World || !World->IsGameWorld() || RuntimeActor->LevelAsset->QuestDefinitions.IsEmpty())
+	{
+		return;
+	}
+
+	UGameInstance* GameInstance = World->GetGameInstance();
+	UGridQuestSubsystem* QuestSubsystem = GameInstance ? GameInstance->GetSubsystem<UGridQuestSubsystem>() : nullptr;
+	if (!QuestSubsystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Grid quest definitions were not registered: missing UGridQuestSubsystem."));
+		return;
+	}
+
+	for (UGridQuestDefinitionAsset* Definition : RuntimeActor->LevelAsset->QuestDefinitions)
+	{
+		FString Error;
+		if (!QuestSubsystem->RegisterQuestDefinition(Definition, Error))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Grid quest definition registration failed: Definition=%s Reason=%s"), *GetNameSafe(Definition), *Error);
+		}
+	}
+}
+
+bool UGridActivationComponent::ApplyQuestLinkCommand(const FGridObjectLink& LinkData)
+{
+	if (!RuntimeActor || !IsQuestCommand(LinkData.Command) || LinkData.QuestId.IsNone())
+	{
+		return false;
+	}
+
+	UWorld* World = RuntimeActor->GetWorld();
+	UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
+	UGridQuestSubsystem* QuestSubsystem = GameInstance ? GameInstance->GetSubsystem<UGridQuestSubsystem>() : nullptr;
+	if (!QuestSubsystem)
+	{
+		return false;
+	}
+
+	EGridQuestMutationResult Result = EGridQuestMutationResult::InvalidTransition;
+	switch (LinkData.Command)
+	{
+		case EGridObjectCommand::QuestStart:
+			Result = QuestSubsystem->StartQuest(LinkData.QuestId);
+			break;
+
+		case EGridObjectCommand::QuestCompleteObjective:
+			Result = QuestSubsystem->CompleteObjective(LinkData.QuestId, LinkData.QuestObjectiveId);
+			break;
+
+		case EGridObjectCommand::QuestComplete:
+			Result = QuestSubsystem->CompleteQuest(LinkData.QuestId);
+			break;
+
+		case EGridObjectCommand::QuestFail:
+			Result = QuestSubsystem->FailQuest(LinkData.QuestId);
+			break;
+
+		default:
+			return false;
+	}
+
+	const bool bSuccess = Result == EGridQuestMutationResult::Success || Result == EGridQuestMutationResult::AlreadyInState;
+	const FString ResultText = UEnum::GetValueAsString(Result);
+	if (bSuccess)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Grid quest command result: Quest=%s Objective=%s Command=%s Result=%s"), *LinkData.QuestId.ToString(),
+			*LinkData.QuestObjectiveId.ToString(), *GridObjectCommandToString(LinkData.Command), *ResultText);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Grid quest command result: Quest=%s Objective=%s Command=%s Result=%s"), *LinkData.QuestId.ToString(),
+			*LinkData.QuestObjectiveId.ToString(), *GridObjectCommandToString(LinkData.Command), *ResultText);
+	}
+	return bSuccess;
+}
 bool UGridActivationComponent::ApplyLinkCommand(const FGridObjectLink& LinkData)
 {
 	if (!RuntimeActor)
@@ -593,6 +695,18 @@ bool UGridActivationComponent::ApplyLinkCommand(const FGridObjectLink& LinkData)
 			return false;
 		}
 		return ExecuteLuaCallbackLink(LinkData);
+	}
+
+	if (IsQuestCommand(LinkData.Command))
+	{
+		if (!EvaluateGridObjectLinkCondition(LinkData, SourceActor, nullptr))
+		{
+			return false;
+		}
+
+		const bool bSuccess = ApplyQuestLinkCommand(LinkData);
+		LogLinkResult(LinkData, LinkData.Command, bSuccess, bSuccess ? nullptr : TEXT("quest command failed"));
+		return bSuccess;
 	}
 
 	const FGridLevelObjectData* TargetObject = FindObjectById(LinkData.TargetObjectId);
@@ -1305,6 +1419,8 @@ void UGridActivationComponent::RebuildIndexes()
 	{
 		return;
 	}
+
+	RegisterCurrentLevelQuestDefinitions();
 
 	const TArray<FGridLevelObjectData>& Objects = RuntimeActor->LevelAsset->Objects;
 

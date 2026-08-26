@@ -7,6 +7,8 @@
 #include "GridTypes.h"
 #include "GridLevelAsset.generated.h"
 
+class UGridQuestDefinitionAsset;
+
 UCLASS(BlueprintType)
 class GRIMROCKPROTOTYPE_API UGridLevelAsset : public UDataAsset
 {
@@ -50,6 +52,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
 	TArray<FGridObjectLink> Links;
+
+	/** Definitions referenced by this level. Runtime quest state remains campaign-owned. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay|Quests")
+	TArray<TObjectPtr<UGridQuestDefinitionAsset>> QuestDefinitions;
 
 	/**
      * MON19.2.2 logical variables. VariableId is unique across Bool and Int32

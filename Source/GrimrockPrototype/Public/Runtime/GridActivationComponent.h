@@ -85,6 +85,8 @@ private:
 
 	bool ExecuteLinksFromObjectForEventInternal(FGuid SourceObjectId, EGridObjectEvent SourceEvent);
 	bool ApplyLinkCommand(const FGridObjectLink& LinkData);
+	bool ApplyQuestLinkCommand(const FGridObjectLink& LinkData);
+	void RegisterCurrentLevelQuestDefinitions();
 	bool ExecuteLuaCallbackLink(const FGridObjectLink& LinkData);
 	bool ExecuteLuaIssuedCommand(FGuid SourceObjectId, const FString& TargetObjectId, const FString& CommandName, FString& OutError);
 	bool ConsumeRuntimeActionBudget(const TCHAR* ActionLabel);

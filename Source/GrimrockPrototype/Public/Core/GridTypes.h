@@ -98,7 +98,11 @@ enum class EGridObjectCommand : uint8
 	LogicReset = 21 UMETA(DisplayName = "Logic Reset"),
 	LuaCallback = 22 UMETA(DisplayName = "Lua Callback"),
 	OfferRecruitment = 23 UMETA(DisplayName = "Offer Recruitment"),
-	OpenCustomRecruit = 24 UMETA(DisplayName = "Open Custom Recruit")
+	OpenCustomRecruit = 24 UMETA(DisplayName = "Open Custom Recruit"),
+	QuestStart = 25 UMETA(DisplayName = "Quest Start"),
+	QuestCompleteObjective = 26 UMETA(DisplayName = "Quest Complete Objective"),
+	QuestComplete = 27 UMETA(DisplayName = "Quest Complete"),
+	QuestFail = 28 UMETA(DisplayName = "Quest Fail")
 };
 
 UENUM(BlueprintType)
@@ -303,6 +307,14 @@ struct FGridObjectLink
 	/** MON19.4 callback function used only when Command == LuaCallback. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lua")
 	FName LuaCallbackName = NAME_None;
+
+	/** MON21.3 stable quest identity used by Quest* commands. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FName QuestId = NAME_None;
+
+	/** MON21.3 objective identity required by QuestCompleteObjective. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+	FName QuestObjectiveId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Condition")
 	EGridObjectCondition Condition = EGridObjectCondition::None;
