@@ -5,6 +5,7 @@
 #include <initializer_list>
 
 #include "Engine/DataAsset.h"
+#include "Engine/GameInstance.h"
 #include "Quests/GridQuestDefinitionAsset.h"
 #include "Quests/GridQuestSubsystem.h"
 #include "Subsystems/GameInstanceSubsystem.h"
@@ -66,7 +67,14 @@ bool FGridQuestMON212CampaignRuntimeStateTest::RunTest(const FString& Parameters
 {
 	(void)Parameters;
 
-	UGridQuestSubsystem* QuestSubsystem = NewObject<UGridQuestSubsystem>(GetTransientPackage());
+	UGameInstance* GameInstance = NewObject<UGameInstance>(GetTransientPackage());
+	TestNotNull(TEXT("Transient GameInstance exists for subsystem ownership"), GameInstance);
+	if (!GameInstance)
+	{
+		return false;
+	}
+
+	UGridQuestSubsystem* QuestSubsystem = NewObject<UGridQuestSubsystem>(GameInstance);
 	TestNotNull(TEXT("Campaign quest authority can exist without a world Actor"), QuestSubsystem);
 	if (!QuestSubsystem)
 	{
