@@ -220,6 +220,28 @@ namespace
 	}
 }
 
+FString UGridPartyInventoryComponent::GetEquipmentDiagnosticsForCharacter(int32 CharacterIndex) const
+{
+	if (!IsValidCharacterIndex(CharacterIndex) || !PartyInventoryState.ActiveEquipment.IsValidIndex(CharacterIndex))
+	{
+		return TEXT("    Equipment: None");
+	}
+
+	const FGridCharacterEquipmentState& EquipmentState = PartyInventoryState.ActiveEquipment[CharacterIndex];
+	TArray<FString> OccupiedSlots;
+	GridPartyInventoryDiagnosticsForEachEquipmentItem(EquipmentState,
+		[&OccupiedSlots](EGridEquipmentSlot Slot, const FGridItemInstance& Item)
+		{
+			if (Item.IsValid())
+			{
+				OccupiedSlots.Add(FString::Printf(TEXT("%s=%s"), GridPartyInventoryDiagnosticsGetEquipmentSlotName(Slot), *Item.ItemDefinitionId.ToString()));
+			}
+		});
+
+	return OccupiedSlots.Num() > 0 ? FString::Printf(TEXT("    Equipment: %s"), *FString::Join(OccupiedSlots, TEXT(" "))) : TEXT("    Equipment: None");
+}
+
+
 FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics() const
 {
 	FString Result;

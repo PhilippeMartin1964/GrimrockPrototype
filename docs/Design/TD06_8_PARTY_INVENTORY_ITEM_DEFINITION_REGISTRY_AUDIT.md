@@ -4,7 +4,7 @@ Date : **26 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD06.7 — PartyInventory Equipment Core extraction**  
 Baseline GitHub : `3351ebb1a003db0a5ffccfe1f7450da4b674a195`  
-Statut : **PRÊT À VALIDER LOCALEMENT**
+Statut : **VALIDÉ**
 
 ## Objet
 
@@ -40,9 +40,9 @@ Le registre est `Transient` et sert de table de résolution runtime pour des ide
 
 `RehydrateOwnedItemDefinitions()` parcourt les sources possédées autoritaires et reconstruit le registre après restore. Le déplacer dans un fichier séparé resterait techniquement possible, mais ne réduirait pas aujourd'hui une dépendance ou un risque comparable aux frontières Hotbar/Cursor/Equipment.
 
-**Décision provisoire TD06.8 : ne pas extraire le Registry/Rehydration.**
+**Décision TD06.8 : ne pas extraire le Registry/Rehydration.**
 
-Cette décision devient définitive pour TD06 lorsque le contrat ci-dessous est vert et que TD06.9 confirme la stop condition.
+Le contrat TD06.8 est vert. Cette responsabilité reste donc dans le cœur ; TD06.9 doit seulement confirmer la stop condition globale après nettoyage des résidus Diagnostics.
 
 ## Contrats existants réutilisés
 
@@ -118,29 +118,33 @@ Ils sont donc **code mort confirmé**. Leur suppression est réservée à TD06.9
 
 `GetEquipmentSlotName` et `ForEachEquipmentItem` ne sont pas morts : ils restent utilisés par le rehydrate, les diagnostics, le poids et l'ownership.
 
-## Validation demandée
+## Validation réelle
 
-Depuis la racine du projet :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
-```
-
-Puis régression Save/rehydration existante :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC5"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Magic.MON18.8.SpellBindingIsNotItemDefinition"
-```
-
-Critères :
+Validation locale fournie le **26 août 2026** :
 
 ```text
-TD06_8 : 1 Success / 0 warning / 0 Failed
-CC5    : 2 Success / 0 warning / 0 Failed
-MON18.8 SpellBindingIsNotItemDefinition : 1 Success / 0 warning / 0 Failed
+Filter                 : Grimrock.TechnicalDebt.TD06_8
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.CharacterCreation.CC5
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.Magic.MON18.8.SpellBindingIsNotItemDefinition
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
 ```
 
+Le premier build TD06.8 avait échoué uniquement sur une ambiguïté de surcharge `TestEqual(int32, UE_ARRAY_COUNT)` dans le nouveau test. Le correctif `0c4b8050bd5fc55bda50364a7b9953b6a44394b3` convertit explicitement la taille attendue en `int32`, sans toucher au runtime.
+
+Les trois contrats sont maintenant verts, sans warning ni échec. TD06.8 est **VALIDÉ**.
 ## Suite
 
 Si cette validation reste verte :

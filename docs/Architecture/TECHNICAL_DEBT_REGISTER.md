@@ -3,12 +3,12 @@
 Date de référence : **26 août 2026**  
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
-Baseline PartyInventory : **TD06.1 — re-baseline réalisée**  
-Statut : **ACTIF — TD06 PARTY INVENTORY CIBLÉ**
+Baseline PartyInventory : **TD06.9 — stop condition implémentée, validation UE requise**  
+Statut : **ACTIF — TD06.9 STOP CONDITION À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
-TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition pour `AGridLevelRuntimeActor`. Cette clôture locale ne clôt pas la campagne globale : TD06 reprend `TD-ARCH-002`, car `UGridPartyInventoryComponent` conserve plusieurs responsabilités cohérentes et extractibles dans un fichier principal de 2 337 lignes.
+TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition pour `AGridLevelRuntimeActor`. TD06 a extrait les frontières Hotbar, Cursor et Equipment de `UGridPartyInventoryComponent`, caractérisé Registry/Rehydration et atteint sa stop condition architecturale en TD06.9 sous réserve de validation UE.
 
 ---
 
@@ -141,118 +141,77 @@ Référence : `docs/Design/TD05_9_RUNTIMEACTOR_STOP_CONDITION.md`.
 
 ---
 
-## TD-ARCH-002 — `UGridPartyInventoryComponent` très volumineux
+## TD-ARCH-002 — `UGridPartyInventoryComponent` historiquement très volumineux
 
-**Priorité : P2 — CIBLÉE / TD06 ACTIF**
+**Priorité : P2 — CIBLÉE / STOP CONDITION TD06.9 À VALIDER**
 
-### Re-baseline TD06.1
+### Baseline TD06.1
 
 ```text
-Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponent.cpp
-    2 337 lignes
-
-Source/GrimrockPrototype/Public/Runtime/GridPartyInventoryComponent.h
-      293 lignes
-
-Extractions déjà présentes :
-    GridPartyInventoryComponentWorldTransfer.cpp   ~104 lignes
-    GridPartyInventoryComponentDiagnostics.cpp      465 lignes
+GridPartyInventoryComponent.cpp            2 337 lignes
+GridPartyInventoryComponent.h                293 lignes
+GridPartyInventoryComponentWorldTransfer.cpp ~104 lignes
+GridPartyInventoryComponentDiagnostics.cpp    465 lignes
 ```
 
-Le composant reste **l’unique autorité d’état du groupe/inventaire** via `FGridPartyInventoryState`. TD06 ne crée ni second composant propriétaire, ni copie autoritaire d’inventaire. Les extractions répartissent l’implémentation de la même classe entre plusieurs `.cpp` cohérents.
+Le composant reste l'unique autorité d'état du groupe/inventaire via `FGridPartyInventoryState`. TD06 n'a créé ni second composant propriétaire, ni copie autoritaire de l'inventaire ; les extractions répartissent l'implémentation de la même classe entre plusieurs `.cpp`.
 
-### Réalisé avant TD06
+### Tranches TD06
 
 ```text
-TD02.2 — Equipment World Transfer
-TD02.3 — Inventory Diagnostics
+TD06.2 / TD06.3   Hotbar characterization + extraction
+TD06.4 / TD06.5   Cursor Transfer characterization + extraction
+TD06.6 / TD06.7   Equipment Core characterization + extraction
+TD06.8            Registry / Rehydration audit + characterization
+TD06.9            final cleanup / Diagnostics relocation / stop condition
 ```
 
-### Responsabilités encore concentrées dans le fichier principal
+### Distribution après TD06.9
 
 ```text
-Party lifecycle / restore / character creation / selection / summary
-Inventory add / stack / remove / count / consume
+GridPartyInventoryComponent.cpp                 1 228 lignes
+GridPartyInventoryComponentHotbar.cpp             237 lignes
+GridPartyInventoryComponentCursorTransfer.cpp     513 lignes
+GridPartyInventoryComponentEquipment.cpp          397 lignes
+GridPartyInventoryComponentWorldTransfer.cpp      105 lignes
+GridPartyInventoryComponentDiagnostics.cpp        488 lignes
+GridPartyInventoryComponent.h                     294 lignes
+```
+
+Le fichier principal diminue de **1 109 lignes / ~47,5 %** depuis la re-baseline TD06.1.
+
+### Cœur restant
+
+```text
+Party lifecycle / reset / restore
+character creation / selection / summary
+inventory add / stack / remove / count / consume
 Item Definition registry / rehydration / instance application
-Weight recalculation
-Ownership validation
-Default initialization / hotbar validation
-Equipment diagnostic glue encore partagé
+weight recalculation
+ownership validation
+default initialization / hotbar restore-sanitation-validation
+equipment-count synchronization
 ```
 
-### Frontières dédiées après TD06.7
+Ces responsabilités constituent le cœur d'autorité/orchestration de `FGridPartyInventoryState`.
 
-```text
-Hotbar
-    GridPartyInventoryComponentHotbar.cpp
+### Registry / Rehydration
 
-Cursor Transfer
-    GridPartyInventoryComponentCursorTransfer.cpp
+TD06.8 protège explicitement : atomicité du rehydrate, liste des sources possédées, déduplication, remplacement du registre transient après succès et exclusion des bindings Spell/Ability.
 
-Equipment Core
-    GridPartyInventoryComponentEquipment.cpp
+**Décision : conserver Registry/Rehydration dans le cœur.** Son extraction isolée ne supprimerait aujourd'hui aucun risque observé.
 
-Equipment World Transfer
-    GridPartyInventoryComponentWorldTransfer.cpp
+### Nettoyage TD06.9
 
-Diagnostics
-    GridPartyInventoryComponentDiagnostics.cpp
-```
+TD06.9 supprime huit helpers Diagnostics morts confirmés et déplace `GetEquipmentDiagnosticsForCharacter()` dans `GridPartyInventoryComponentDiagnostics.cpp`, où son contrat TD02.3 existe déjà.
 
-Mesure courante :
+### Stop condition
 
-```text
-TD06.1 baseline principale     2 337 lignes
-après TD06.3 Hotbar           ~2 117 lignes
-après TD06.5 Cursor            1 677 lignes
-après TD06.7 Equipment         1 357 lignes
-```
+**Décision : arrêter ici la décomposition de `UGridPartyInventoryComponent`, sous réserve de la validation post-TD06.9.**
 
-TD06.7 reste soumis à validation UE réelle ; ces mesures décrivent l'arbre de code publié, pas encore sa clôture fonctionnelle.
-### Résidu TD02.3 confirmé mort par TD06.8
+Réouvrir uniquement si une douleur concrète apparaît : duplication d'autorité, régression récurrente, difficulté de test, dépendance de compilation problématique ou nouvelle responsabilité autonome importante.
 
-L'audit statique après TD06.7 confirme que huit helpers diagnostics historiques du fichier principal n'ont plus de caller :
-
-```text
-GetItemTypeName
-GetEquipmentSlotsText
-GridInventoryCompatibilityDiagnosticsIsHandSlot
-GridInventoryCompatibilityDiagnosticsIsExcludedPaperDollSlot
-GridInventoryCompatibilityDiagnosticsIsNewPaperDollSlot
-GridInventoryCompatibilityDiagnosticsLooksPotentiallyEquippable
-GetEquipmentStatBonusText
-GetDamageResistanceSetText
-```
-
-Suppression prévue en TD06.9 après validation du contrat Registry/Rehydration. `GetEquipmentSlotName` et `ForEachEquipmentItem` restent actifs.
-
-### Décision TD06.8 — Registry / Rehydration
-
-Le registre transient reste dans le cœur : il est transversal à l'inventaire, au restore, à la Hotbar, au Cursor, à l'Equipment et au combat, et son extraction n'enlèverait actuellement ni autorité dupliquée ni risque isolé.
-
-TD06.8 ajoute une caractérisation ciblée de l'atomicité du rehydrate et des sources résolues. Si elle est verte, TD06.9 pourra clôturer `TD-ARCH-002` après le nettoyage mort.
-### Première frontière TD06 : Hotbar
-
-La hotbar constitue la première frontière recommandée parce qu’elle possède :
-
-- un contrat métier cohérent ;
-- aucune nécessité de nouvelle autorité ;
-- des API publiques déjà stabilisées ;
-- une couverture existante MON12 (`GridMonsterMON128HotbarTests.cpp`, `GridMonsterMON12CombatHudTests.cpp`) ;
-- des invariants explicites : 10 slots, identité de source, unicité des bindings Equipment/QuickItem, move/swap, sanitation au restore.
-
-Cible après caractérisation :
-
-```text
-GridPartyInventoryComponentHotbar.cpp
-```
-
-### Stop condition TD06
-
-TD06 s’arrête lorsque le fichier principal représente de nouveau un cœur cohérent d’autorité/orchestration et qu’une extraction supplémentaire n’enlève plus de risque réel. **Aucun objectif arbitraire de nombre de lignes n’est imposé.**
-
-Référence : `docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md`.
-
+Référence : `docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md`.
 ---
 
 ## TD-ARCH-003 — `AGrimrockPartyPawn` historiquement trop chargé
@@ -439,13 +398,13 @@ TD06.4          PartyInventory Cursor Transfer characterization       VALIDÉ
 TD06.5          PartyInventory Cursor Transfer extraction             VALIDÉ
 TD06.6          PartyInventory Equipment Core characterization        VALIDÉ
 TD06.7          PartyInventory Equipment Core extraction              VALIDÉ
-TD06.8          Item Definition Registry / Rehydration audit          À VALIDER
-TD06.9          PartyInventory final re-audit / stop condition        PROCHAIN APRÈS TD06.8
+TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
+TD06.9          PartyInventory final re-audit / stop condition        IMPLÉMENTÉ — À VALIDER
 ```
 
 **TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
 
-La campagne globale de réduction de dette reste **ouverte** avec TD06. Les extractions TD06 doivent préserver `UGridPartyInventoryComponent` comme unique autorité de `FGridPartyInventoryState`; elles répartissent l’implémentation, pas l’état.
+TD06 a atteint sa stop condition architecturale en code. Après validation TD06.9, aucune nouvelle tranche PartyInventory ne doit être ouverte sans signal concret ; les autres dettes du registre restent surveillées, opportunistes ou différées selon leur statut.
 
 ---
 
@@ -498,6 +457,8 @@ docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
 docs/Design/TD05_4_RUNTIMEACTOR_REAUDIT.md
 docs/Design/TD05_9_RUNTIMEACTOR_STOP_CONDITION.md
 docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md
+docs/Design/TD06_8_PARTY_INVENTORY_ITEM_DEFINITION_REGISTRY_AUDIT.md
+docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 ```
 
 `TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md` reste le snapshot historique de TD05.1. `ARCHITECTURE_CONSISTENCY_AUDIT.md`, `Maps/GRIMROCK_PROJECT_MAP.md` et les documents MON/TD/STYLE datés restent des snapshots historiques jusqu’à rafraîchissement explicite.
@@ -506,14 +467,14 @@ docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD06.8 — Item Definition Registry / Rehydration audit, puis exécuter TD06.9 — re-audit final, suppression des helpers diagnostics morts et stop condition.**
+**Valider TD06.9 — PartyInventory final re-audit / cleanup / stop condition.**
 
-Avant tout déplacement de code :
+Commandes de référence :
 
-1. figer par Automation les invariants de la hotbar ;
-2. réutiliser la couverture MON12 existante et ajouter uniquement les contrats manquants ;
-3. valider la baseline sous UE5.5.4 ;
-4. seulement ensuite extraire la frontière vers `GridPartyInventoryComponentHotbar.cpp` dans TD06.3 ;
-5. profiter du changement caractérisé pour retirer les helpers diagnostics réellement morts du fichier principal si leur absence d’usage est confirmée.
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD02_3"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC5"
+```
 
-Ne pas créer un nouveau composant Hotbar propriétaire : `UGridPartyInventoryComponent` reste la façade et l’autorité.
+Si ces validations sont vertes, marquer TD06.9 et `TD-ARCH-002` comme stop condition atteinte, puis rafraîchir les documents d'architecture **courants** avant de reprendre la roadmap fonctionnelle. Les snapshots historiques restent inchangés.
