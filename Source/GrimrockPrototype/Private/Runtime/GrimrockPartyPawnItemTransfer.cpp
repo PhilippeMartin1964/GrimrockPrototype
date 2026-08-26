@@ -10,12 +10,12 @@
 
 namespace
 {
-	bool IsPawnHandEquipmentSlot(EGridEquipmentSlot Slot)
+	bool GridPartyPawnItemTransferIsHandEquipmentSlot(EGridEquipmentSlot Slot)
 	{
 		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
 	}
 
-	const TCHAR* GetPawnEquipmentSlotName(EGridEquipmentSlot Slot)
+	const TCHAR* GridPartyPawnItemTransferGetEquipmentSlotName(EGridEquipmentSlot Slot)
 	{
 		switch (Slot)
 		{
@@ -80,7 +80,7 @@ bool AGrimrockPartyPawn::EquipSelectedCharacterItemFromInventorySlot(int32 Inven
 	const bool bEquipped =
 		PartyInventoryComponent->EquipItemFromInventorySlot(PartyInventoryComponent->GetSelectedCharacterIndex(), InventorySlotIndex, TargetSlot);
 
-	if (bEquipped && IsPawnHandEquipmentSlot(TargetSlot))
+	if (bEquipped && GridPartyPawnItemTransferIsHandEquipmentSlot(TargetSlot))
 	{
 		SyncHeldVisualFromSelectedCharacterEquipment();
 	}
@@ -98,16 +98,16 @@ bool AGrimrockPartyPawn::UnequipSelectedCharacterItemToInventory(EGridEquipmentS
 	const int32 CharacterIndex = PartyInventoryComponent->GetSelectedCharacterIndex();
 	FGridItemInstance PreviouslyEquippedItem;
 	const bool bHadHandItem =
-		IsPawnHandEquipmentSlot(SourceSlot) && PartyInventoryComponent->GetEquippedItem(CharacterIndex, SourceSlot, PreviouslyEquippedItem);
+		GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot) && PartyInventoryComponent->GetEquippedItem(CharacterIndex, SourceSlot, PreviouslyEquippedItem);
 
 	const bool bUnequipped = PartyInventoryComponent->UnequipItemToInventory(CharacterIndex, SourceSlot);
-	if (bUnequipped && IsPawnHandEquipmentSlot(SourceSlot))
+	if (bUnequipped && GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot))
 	{
 		if (bHadHandItem && PreviouslyEquippedItem.ItemDefinitionId == GetHeldItemDefinitionId())
 		{
 			ClearHeldItem();
 			UE_LOG(LogTemp, Log, TEXT("GridInventory HeldVisual Clear Unequipped Character=%d Slot=%s Item=%s"), CharacterIndex,
-				GetPawnEquipmentSlotName(SourceSlot), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
+				GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), *PreviouslyEquippedItem.ItemDefinitionId.ToString());
 		}
 
 		SyncHeldVisualFromSelectedCharacterEquipment();
@@ -121,7 +121,7 @@ bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEqui
 	if (!PartyInventoryComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Take Equipment Relay Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
-			GetPawnEquipmentSlotName(SourceSlot));
+			GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot));
 		return false;
 	}
 
@@ -131,7 +131,7 @@ bool AGrimrockPartyPawn::TryTakeSelectedCharacterEquipmentSlotToCursor(EGridEqui
 		SyncHeldVisualFromSelectedCharacterEquipment();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(), GetPawnEquipmentSlotName(SourceSlot),
+	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take Equipment Relay Pawn=%s Slot=%s Result=%s"), *GetName(), GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot),
 		bTaken ? TEXT("true") : TEXT("false"));
 	return bTaken;
 }
@@ -151,17 +151,17 @@ bool AGrimrockPartyPawn::TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmen
 	if (!PartyInventoryComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("GridInventory Cursor Equip Failed Pawn=%s Slot=%s Reason=NoPartyInventoryComponent"), *GetName(),
-			GetPawnEquipmentSlotName(TargetSlot));
+			GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot));
 		return false;
 	}
 
 	const bool bEquipped = PartyInventoryComponent->TryEquipCursorItemToSelectedCharacterSlot(TargetSlot);
-	if (bEquipped && IsPawnHandEquipmentSlot(TargetSlot))
+	if (bEquipped && GridPartyPawnItemTransferIsHandEquipmentSlot(TargetSlot))
 	{
 		SyncHeldVisualFromSelectedCharacterEquipment();
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(), GetPawnEquipmentSlotName(TargetSlot),
+	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Equip Relay Pawn=%s Slot=%s Result=%s"), *GetName(), GridPartyPawnItemTransferGetEquipmentSlotName(TargetSlot),
 		bEquipped ? TEXT("true") : TEXT("false"));
 	return bEquipped;
 }
@@ -351,7 +351,7 @@ bool AGrimrockPartyPawn::TryThrowOneCursorItem(const FVector& LaunchDirection, E
 AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	int32 CharacterIndex, EGridEquipmentSlot SourceSlot, FName ExpectedItemDefinitionId, const FVector& TargetWorldLocation, const FIntPoint& SourceCell)
 {
-	if (!PartyInventoryComponent || !LevelRuntimeActor || !IsPawnHandEquipmentSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() ||
+	if (!PartyInventoryComponent || !LevelRuntimeActor || !GridPartyPawnItemTransferIsHandEquipmentSlot(SourceSlot) || ExpectedItemDefinitionId.IsNone() ||
 		TargetWorldLocation.ContainsNaN())
 	{
 		return nullptr;
@@ -393,13 +393,13 @@ AGridThrownItemActor* AGrimrockPartyPawn::TryLaunchEquippedItemForAttack(
 	{
 		const bool bRestored = PartyInventoryComponent->TryRestoreExtractedItemToEquipment(CharacterIndex, SourceSlot, WorldItem);
 		UE_LOG(LogTemp, Error, TEXT("GridPlayerAttack Throw Failed Item=%s Character=%d Slot=%s Restored=%s"), *ExpectedItemDefinitionId.ToString(),
-			CharacterIndex, GetPawnEquipmentSlotName(SourceSlot), bRestored ? TEXT("true") : TEXT("false"));
+			CharacterIndex, GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot), bRestored ? TEXT("true") : TEXT("false"));
 		return nullptr;
 	}
 
 	SyncHeldVisualFromSelectedCharacterEquipment();
 	UE_LOG(LogTemp, Log, TEXT("GridPlayerAttack Throw Launched Item=%s RuntimeId=%s Character=%d Slot=%s Target=(%.2f,%.2f,%.2f) Result=true"),
-		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex, GetPawnEquipmentSlotName(SourceSlot),
+		*WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString(), CharacterIndex, GridPartyPawnItemTransferGetEquipmentSlotName(SourceSlot),
 		TargetWorldLocation.X, TargetWorldLocation.Y, TargetWorldLocation.Z);
 	return ThrownActor;
 }
