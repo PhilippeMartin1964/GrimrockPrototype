@@ -209,12 +209,28 @@ après TD06.7 Equipment         1 357 lignes
 ```
 
 TD06.7 reste soumis à validation UE réelle ; ces mesures décrivent l'arbre de code publié, pas encore sa clôture fonctionnelle.
-### Résidu TD02.3 identifié
+### Résidu TD02.3 confirmé mort par TD06.8
 
-Le `.cpp` principal contient encore des helpers de diagnostics historiques alors que la responsabilité Diagnostics a été déplacée dans `GridPartyInventoryComponentDiagnostics.cpp`, qui possède désormais ses propres helpers préfixés Unity-safe `GridPartyInventoryDiagnostics...`.
+L'audit statique après TD06.7 confirme que huit helpers diagnostics historiques du fichier principal n'ont plus de caller :
 
-Ce résidu est enregistré comme nettoyage de production à effectuer **avec une tranche caractérisée**, et non comme suppression aveugle dans TD06.1.
+```text
+GetItemTypeName
+GetEquipmentSlotsText
+GridInventoryCompatibilityDiagnosticsIsHandSlot
+GridInventoryCompatibilityDiagnosticsIsExcludedPaperDollSlot
+GridInventoryCompatibilityDiagnosticsIsNewPaperDollSlot
+GridInventoryCompatibilityDiagnosticsLooksPotentiallyEquippable
+GetEquipmentStatBonusText
+GetDamageResistanceSetText
+```
 
+Suppression prévue en TD06.9 après validation du contrat Registry/Rehydration. `GetEquipmentSlotName` et `ForEachEquipmentItem` restent actifs.
+
+### Décision TD06.8 — Registry / Rehydration
+
+Le registre transient reste dans le cœur : il est transversal à l'inventaire, au restore, à la Hotbar, au Cursor, à l'Equipment et au combat, et son extraction n'enlèverait actuellement ni autorité dupliquée ni risque isolé.
+
+TD06.8 ajoute une caractérisation ciblée de l'atomicité du rehydrate et des sources résolues. Si elle est verte, TD06.9 pourra clôturer `TD-ARCH-002` après le nettoyage mort.
 ### Première frontière TD06 : Hotbar
 
 La hotbar constitue la première frontière recommandée parce qu’elle possède :
@@ -422,9 +438,9 @@ TD06.3          PartyInventory Hotbar extraction                      VALIDÉ
 TD06.4          PartyInventory Cursor Transfer characterization       VALIDÉ
 TD06.5          PartyInventory Cursor Transfer extraction             VALIDÉ
 TD06.6          PartyInventory Equipment Core characterization        VALIDÉ
-TD06.7          PartyInventory Equipment Core extraction              À VALIDER
-TD06.8          Item Definition Registry / Rehydration audit          PROCHAIN APRÈS TD06.7
-TD06.9          PartyInventory final re-audit / stop condition        À FAIRE
+TD06.7          PartyInventory Equipment Core extraction              VALIDÉ
+TD06.8          Item Definition Registry / Rehydration audit          À VALIDER
+TD06.9          PartyInventory final re-audit / stop condition        PROCHAIN APRÈS TD06.8
 ```
 
 **TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
@@ -490,7 +506,7 @@ docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD06.7 — PartyInventory Equipment Core extraction, puis ouvrir TD06.8 — Item Definition Registry / Rehydration audit.**
+**Valider TD06.8 — Item Definition Registry / Rehydration audit, puis exécuter TD06.9 — re-audit final, suppression des helpers diagnostics morts et stop condition.**
 
 Avant tout déplacement de code :
 

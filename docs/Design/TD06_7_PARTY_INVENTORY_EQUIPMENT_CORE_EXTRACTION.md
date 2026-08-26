@@ -4,7 +4,7 @@ Date : **26 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD06.6 — PartyInventory Equipment Core characterization**  
 Baseline GitHub : `c3142eefa07d62e24523ea42b9a6f495b0b999ad`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Statut : **VALIDÉ**
 
 ## Objet
 
@@ -105,26 +105,31 @@ Failed                 : 0
 Not run                : 0
 ```
 
-## Validation post-extraction requise
+## Validation post-extraction réelle
 
-Depuis la racine du projet :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_6"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD06_4"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC5"
-```
-
-Critères :
+Validation locale fournie le **26 août 2026** :
 
 ```text
-TD06_6 : 1 Success / 0 warning / 0 Failed
-TD06_4 : 1 Success / 0 warning / 0 Failed
-CC5    : 2 Success / 0 Failed
+Filter                 : Grimrock.TechnicalDebt.TD06_6
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.TechnicalDebt.TD06_4
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.CharacterCreation.CC5
+Succeeded              : 2
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
 ```
 
-TD06.7 ne devient **VALIDÉ** qu'après ces exécutions réelles sous UE5.5.4.
-
+Les trois validations post-extraction sont vertes. TD06.7 est donc **VALIDÉ**.
 ## Suite
 
 Si la validation reste verte :
