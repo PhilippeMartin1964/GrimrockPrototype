@@ -93,9 +93,9 @@ bool FGridTD031CanonicalEditorActionsContractTest::RunTest(const FString& Parame
 	TestTrue(TEXT("ValidateCurrentLevel remains BlueprintCallable"),
 		ValidateFunction && ValidateFunction->HasAnyFunctionFlags(FUNC_BlueprintCallable));
 	TestFalse(TEXT("SetStartFromSelection is no longer exposed as CallInEditor"),
-		SetStartFunction && SetStartFunction->HasAnyFunctionFlags(FUNC_CallInEditor));
+		SetStartFunction && SetStartFunction->HasMetaData(TEXT("CallInEditor")));
 	TestFalse(TEXT("ValidateCurrentLevel is no longer exposed as CallInEditor"),
-		ValidateFunction && ValidateFunction->HasAnyFunctionFlags(FUNC_CallInEditor));
+		ValidateFunction && ValidateFunction->HasMetaData(TEXT("CallInEditor")));
 
 	EditorActor->SelectedCellX = 2;
 	EditorActor->SelectedCellY = 1;
