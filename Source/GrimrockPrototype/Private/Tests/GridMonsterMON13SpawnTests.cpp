@@ -16,6 +16,7 @@
 #include "Runtime/GridActivationComponent.h"
 #include "Runtime/GridEditorPreviewObjectActor.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "Runtime/GridLeverActor.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
 #include "Runtime/Monsters/GridMonsterBehaviorComponent.h"
 #include "Runtime/Monsters/GridMonsterCombatComponent.h"
@@ -90,6 +91,17 @@ namespace
 		Spawn.EncounterGroupId = TEXT("Encounter_MON13");
 		Spawn.bInitiallyEnabled = true;
 		return Spawn;
+	}
+
+	UGridObjectArchetypeAsset* GridMonsterMON13MakeLeverMarkerArchetype(UObject* Outer, FName ArchetypeId)
+	{
+		UGridObjectArchetypeAsset* Archetype = NewObject<UGridObjectArchetypeAsset>(Outer);
+		Archetype->ArchetypeId = ArchetypeId;
+		Archetype->SupportedType = EGridLevelObjectType::Lever;
+		Archetype->PlacementKind = EGridObjectPlacementKind::Wall;
+		Archetype->RuntimeActorClass = AGridLeverActor::StaticClass();
+		Archetype->bIsInteractable = false;
+		return Archetype;
 	}
 
 	bool HasErrorContaining(const TArray<FString>& Errors, const TCHAR* ExpectedText)
@@ -501,6 +513,7 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 	const FGuid FirstSpawnId(13, 3, 1, 2);
 	const FGuid SecondSpawnId(13, 3, 1, 3);
 	const FGuid SpawnEventMarkerId(13, 3, 1, 4);
+	const FName SpawnEventMarkerArchetypeId(TEXT("MON133_EventMarkerLever"));
 
 	FGridLevelObjectData Trigger;
 	Trigger.ObjectId = TriggerId;
@@ -523,12 +536,15 @@ bool FGridMonsterMON133DeferredSpawnLinksTest::RunTest(const FString& Parameters
 
 	FGridLevelObjectData SpawnEventMarker;
 	SpawnEventMarker.ObjectId = SpawnEventMarkerId;
+	SpawnEventMarker.ArchetypeId = SpawnEventMarkerArchetypeId;
 	SpawnEventMarker.Type = EGridLevelObjectType::Lever;
 	SpawnEventMarker.CellX = 2;
 	SpawnEventMarker.CellY = 3;
 	SpawnEventMarker.Edge = EGridEdge::North;
-	SpawnEventMarker.bInitiallyEnabled = false;
+	SpawnEventMarker.bInitiallyEnabled = true;
+	SpawnEventMarker.bInitiallyActive = false;
 	Level->Objects.Add(SpawnEventMarker);
+	Runtime->ObjectArchetypes.Add(GridMonsterMON13MakeLeverMarkerArchetype(Runtime, SpawnEventMarkerArchetypeId));
 
 	FGridObjectLink TriggerLink;
 	TriggerLink.SourceObjectId = TriggerId;
@@ -791,6 +807,7 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	const FGuid Wave1Id(13, 4, 1, 4);
 	const FGuid WaveStartedMarkerId(13, 4, 1, 5);
 	const FGuid CompletedMarkerId(13, 4, 1, 6);
+	const FName EncounterMarkerArchetypeId(TEXT("MON134_EventMarkerLever"));
 
 	FGridLevelObjectData Trigger;
 	Trigger.ObjectId = TriggerId;
@@ -821,6 +838,7 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 
 	FGridLevelObjectData WaveStartedMarker;
 	WaveStartedMarker.ObjectId = WaveStartedMarkerId;
+	WaveStartedMarker.ArchetypeId = EncounterMarkerArchetypeId;
 	WaveStartedMarker.Type = EGridLevelObjectType::Lever;
 	WaveStartedMarker.CellX = 0;
 	WaveStartedMarker.CellY = 3;
@@ -833,6 +851,7 @@ bool FGridMonsterMON134EncounterWavesTest::RunTest(const FString& Parameters)
 	CompletedMarker.ObjectId = CompletedMarkerId;
 	CompletedMarker.CellX = 1;
 	Level->Objects.Add(CompletedMarker);
+	Runtime->ObjectArchetypes.Add(GridMonsterMON13MakeLeverMarkerArchetype(Runtime, EncounterMarkerArchetypeId));
 
 	FGridObjectLink StartLink;
 	StartLink.SourceObjectId = TriggerId;
