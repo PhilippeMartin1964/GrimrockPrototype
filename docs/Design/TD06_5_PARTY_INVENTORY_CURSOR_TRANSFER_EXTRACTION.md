@@ -1,0 +1,110 @@
+# TD06.5 — PartyInventory Cursor Transfer extraction
+
+Date : **26 août 2026**  
+Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
+Parent : **TD06.4 — PartyInventory Cursor Transfer characterization**  
+Baseline GitHub : `324e88195aa34966a2d47f49f020c93afef8e3da`  
+Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+
+## Objet
+
+TD06.5 extrait la frontière transactionnelle Cursor de `UGridPartyInventoryComponent` vers :
+
+```text
+Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponentCursorTransfer.cpp
+```
+
+L'extraction répartit uniquement l'implémentation de la même classe. `UGridPartyInventoryComponent` et `FGridPartyInventoryState` restent l'unique façade et l'unique autorité d'état du groupe/inventaire.
+
+## Périmètre déplacé
+
+```text
+TryTakeEquipmentSlotToCursor
+TryTakeSelectedCharacterEquipmentSlotToCursor
+SetCursorItem
+ClearCursorItem
+HasCursorItem
+GetCursorItem
+TryTakeInventorySlotToCursor
+TryTakeInventorySlotQuantityToCursor
+TryPlaceCursorItemInCharacterInventorySlot
+TryMoveCharacterInventorySlot
+TryPlaceCursorItemInCharacterInventory
+TryPlaceCursorItemInSelectedCharacterInventory
+TryClearCursorToSelectedCharacterInventory
+TryDropCursorItem
+CanEquipCursorItemToCharacterSlot
+TryEquipCursorItemToCharacterSlot
+TryEquipCursorItemToSelectedCharacterSlot
+```
+
+Soit **17 méthodes**.
+
+## Helpers locaux
+
+Le nouveau fichier utilise des helpers locaux préfixés pour rester Unity-safe :
+
+```text
+GridPartyInventoryCursorTransferFindFreeInventorySlotIndex
+GridPartyInventoryCursorTransferGetEquipmentSlotName
+```
+
+Aucune nouvelle autorité ni structure persistée n'est introduite.
+
+## Mesure
+
+Le fichier principal `GridPartyInventoryComponent.cpp` passe d'environ **2 116 lignes** avant TD06.5 à **1 677 lignes** après extraction.
+
+La réduction de taille n'est pas un objectif en soi ; elle matérialise le retrait d'une frontière transactionnelle déjà caractérisée.
+
+## Invariants préservés
+
+TD06.5 ne modifie pas :
+
+- `GridPartyInventoryComponent.h` ;
+- les `UFUNCTION` / Blueprint APIs ;
+- `FGridPartyInventoryState` ;
+- la structure SaveGame ;
+- les valeurs de retour ;
+- les règles de split de pile ;
+- les `RuntimeObjectId` ;
+- les règles d'ownership ;
+- les recalculs de poids / notifications déclenchés par les transactions ;
+- la compatibilité Equipment.
+
+## Baseline avant extraction
+
+Validation réelle fournie le 26 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD06_4
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+
+Grimrock.CharacterCreation.CC0
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+```
+
+## Validation post-extraction requise
+
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_4"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC0"
+```
+
+Résultat attendu : mêmes résultats qu'avant extraction, sans warning ni échec.
+
+TD06.5 ne devient **VALIDÉ** qu'après cette exécution réelle sous UE5.5.4.
+
+## Suite
+
+Si la validation post-extraction reste verte :
+
+```text
+TD06.6 — PartyInventory Equipment Core characterization
+```
+
+La caractérisation TD06.6 devra précéder toute extraction de l'Equipment Core et préserver la même autorité unique.
