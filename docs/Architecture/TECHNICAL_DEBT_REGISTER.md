@@ -1,12 +1,12 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **26 août 2026**  
-Baseline fonctionnelle validée : `2245dc187d981be2187948911f6354efb0f1e80b` — TD04.2 local UE validation harness validé sous UE5.5.4  
-Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
+Baseline fonctionnelle validée : `4722e3d3d77d32a9722aa075dfce2f00823a8d35` — TD04.3 Shipping cook/package harness validé sous UE5.5.4  
+Statut : **ACTIF — DETTES SURVEILLÉES / STOP CONDITION TD04 ATTEINTE**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents historiques de jalon restent valides pour leur époque, mais l'état courant, les priorités et le prochain travail sont définis ici.
 
-MON21.2 reste suspendu pendant cette campagne de stabilisation.
+La campagne locale TD04 a atteint sa stop condition. MON21.2 n'est plus bloqué par TD04 et peut reprendre lorsque la roadmap produit est relancée.
 
 ---
 
@@ -42,9 +42,11 @@ P3 — nettoyage opportuniste ou intégration non bloquante
 ```text
 P0 : aucun blocage connu
 P1 : 0 dette active
-P2 : 8 dettes actives
+P2 : 8 dettes actives ou surveillées
 P3 : 2 dettes actives
 ```
+
+Aucune dette P2 restante ne justifie actuellement un refactor transversal immédiat. Elles doivent être traitées à nouveau lorsqu'une douleur concrète, une régression ou un coût de maintenance observable réapparaît.
 
 ---
 
@@ -54,25 +56,25 @@ P3 : 2 dettes actives
 
 **Priorité : P2 — maintenabilité structurelle**
 
-L'acteur reste la façade/orchestrateur du niveau et expose encore plusieurs domaines. La stratégie reste ciblée : extraire uniquement une frontière déjà cohérente lorsqu'une douleur concrète le justifie.
+L'acteur reste la façade/orchestrateur du niveau et expose plusieurs domaines. La stratégie reste ciblée : extraire uniquement une frontière déjà cohérente lorsqu'une douleur concrète le justifie.
 
 Sous-jalons réalisés :
 
 ```text
-TD-ARCH-001.1 — Persistence                 RÉALISÉ
-TD-ARCH-001.2 — World Items                 RÉALISÉ
+TD-ARCH-001.1 — Persistence   RÉALISÉ
+TD-ARCH-001.2 — World Items   RÉALISÉ
 ```
 
-Réalisations notables :
+Fichiers dédiés :
 
-- `GridLevelRuntimeActorPersistence.cpp` ;
-- `GridLevelRuntimeActorWorldItems.cpp` ;
-- API publique et autorité conservées ;
-- SaveGame inchangé par les extractions structurelles ;
-- helpers locaux rendus Unity-safe ;
-- Automation de caractérisation repassée après extraction.
+```text
+GridLevelRuntimeActorPersistence.cpp
+GridLevelRuntimeActorWorldItems.cpp
+```
 
-**État : actif mais non prioritaire immédiatement.** Aucun refactor massif n'est autorisé par le seul volume du fichier.
+API publique et autorité conservées ; aucune extraction supplémentaire n'est prévue par simple critère de taille.
+
+**État : actif mais non prioritaire.**
 
 ---
 
@@ -80,23 +82,16 @@ Réalisations notables :
 
 **Priorité : P2 — maintenabilité structurelle**
 
-Le composant reste l'unique autorité d'état du groupe/inventaire. Les extractions doivent rester stateless ou transactionnelles et ne jamais fragmenter l'autorité.
+Le composant reste l'unique autorité d'état du groupe/inventaire.
 
 Sous-jalons réalisés :
 
 ```text
-TD-ARCH-002.1 — Equipment World Transfer    RÉALISÉ
-TD-ARCH-002.2 — Inventory Diagnostics       RÉALISÉ
+TD-ARCH-002.1 — Equipment World Transfer   RÉALISÉ
+TD-ARCH-002.2 — Inventory Diagnostics      RÉALISÉ
 ```
 
-Fichiers dédiés :
-
-```text
-GridPartyInventoryComponentWorldTransfer.cpp
-GridPartyInventoryComponentVisuals.cpp
-```
-
-Les diagnostics ont également été isolés dans une unité dédiée.
+Les extractions futures doivent rester stateless ou transactionnelles et ne jamais fragmenter l'autorité.
 
 **État : actif, à traiter uniquement lorsqu'un coût concret réapparaît.**
 
@@ -119,7 +114,7 @@ TD02.8 — UI Façade
 TD02.9 — Movement & Rotation Façade
 ```
 
-Unités dédiées actuelles :
+Unités dédiées :
 
 ```text
 GrimrockPartyPawnInputBuffer.cpp
@@ -132,8 +127,6 @@ GrimrockPartyPawnMovement.cpp
 
 ### TD02.8 — PartyPawn UI Façade — RÉALISÉ / VALIDÉ UE5.5.4
 
-Caractérisation :
-
 ```text
 Grimrock.TechnicalDebt.TD02_8.PartyUIFacade.ModalBlockingContract  Success
 ```
@@ -145,11 +138,7 @@ a1c25a031cb288565205b424cd2dbb05be198cf3  Characterize TD02.8 party UI facade
 b9d3c189731f935cc185c0d83f9e2f32f04a4b39  Extract TD02.8 party UI facade
 ```
 
-La création initiale de personnage a également été repassée après extraction : création valide et rejets atomiques restent verts.
-
 ### TD02.9 — Party Movement & Rotation — RÉALISÉ / VALIDÉ UE5.5.4
-
-Caractérisation et régression :
 
 ```text
 Grimrock.TechnicalDebt.TD02_9.PartyMovementFacade.GridStartContract  Success
@@ -164,7 +153,7 @@ af3cc82f4ac3156a820d21911be565c04a3bce14  Extract TD02.9 party movement facade
 3c91656b5996aad6d40719cc510aaf0126c01071  Document TD02.9 closure and PartyPawn stop condition
 ```
 
-Décision autoritaire : **arrêter ici la décomposition de `AGrimrockPartyPawn`.** Les responsabilités restantes appartiennent naturellement au Pawn ou sont de petites façades. Une nouvelle extraction devra être motivée par une douleur concrète, pas par le nombre de lignes.
+Décision autoritaire : **arrêter ici la décomposition de `AGrimrockPartyPawn`.**
 
 **État : actif comme dette surveillée, sans tranche immédiate.**
 
@@ -174,7 +163,7 @@ Décision autoritaire : **arrêter ici la décomposition de `AGrimrockPartyPawn`
 
 **Priorité : P2 — dette surveillée**
 
-L'audit de frontière effectué à la clôture TD02.9 confirme actuellement une séparation cohérente :
+L'audit de frontière TD02.9 confirme actuellement :
 
 ```text
 Pawn       -> état logique groupe, mouvement, façades transactions, UI propre au Pawn
@@ -183,7 +172,7 @@ Controller -> pointeur/curseur, intention clic, hover, ciblage souris, délégat
 
 Aucune duplication d'autorité justifiant un refactor immédiat n'a été identifiée.
 
-Décision : **ne pas découper le PlayerController isolément**. Un split d'unités de traduction serait aujourd'hui principalement cosmétique.
+Décision : **ne pas découper le PlayerController isolément**.
 
 ---
 
@@ -193,7 +182,7 @@ Décision : **ne pas découper le PlayerController isolément**. Un split d'unit
 
 Le bus Event -> Command unique reste la bonne architecture. La dette porte sur l'organisation interne, pas sur le concept.
 
-TD-EVENT-001 est résolu : la sémantique des cibles Gameplay / StateOnly / Unsupported est maintenant explicite et protégée par tests.
+TD-EVENT-001 est résolu : Gameplay / StateOnly / Unsupported sont explicites et protégés par tests.
 
 Décision : extractions internes seulement si une douleur concrète le justifie, sans créer de second bus ni de second état.
 
@@ -203,84 +192,47 @@ Décision : extractions internes seulement si une douleur concrète le justifie,
 
 **Priorité : P2 — maintenabilité éditeur**
 
-Les gros panneaux Slate restent des zones de concentration. En revanche, la tranche de duplication réelle entre Grid Editor Mode canonique et anciens boutons `CallInEditor` des Details a été traitée par TD03.
+La concentration Slate reste surveillée. La duplication réelle entre Grid Editor Mode canonique et anciens boutons `CallInEditor` des Details a été traitée par TD03.
 
-### TD03.1 — Canonical Actions / legacy Details — RÉALISÉ / VALIDÉ UE5.5.4
-
-Contrat :
+### TD03.1 — Canonical Actions / legacy Details — RÉALISÉ / VALIDÉ
 
 ```text
 Grimrock.TechnicalDebt.TD03_1.EditorDetailsRedundancy.CanonicalActionsContract  Success
 ```
 
-Nettoyage : `SetStartFromSelection()` et `ValidateCurrentLevel()` restent `BlueprintCallable`, mais ne sont plus exposés comme actions `CallInEditor` redondantes.
+`SetStartFromSelection()` et `ValidateCurrentLevel()` restent `BlueprintCallable` mais ne sont plus exposés comme actions Details redondantes.
 
-Commits principaux :
-
-```text
-40b9a7927c3a5d4e86f91e419ca255115ba2dfed  Characterize TD03.1 editor Details redundancy
-4fb419b4d43ca53fb5e61be08f08747c1aada87b  Remove TD03.1 redundant Details actions
-760f11e64588c5c30f74c27473d8067858693c57  Fix TD03.1 CallInEditor metadata assertion
-```
-
-### TD03.2 — Object Inspector Move To Current Cell — RÉALISÉ / VALIDÉ UE5.5.4
-
-Contrat :
+### TD03.2 — Move To Current Cell — RÉALISÉ / VALIDÉ
 
 ```text
 Grimrock.TechnicalDebt.TD03_2.ObjectInspectorDetails.MoveToCurrentCellContract  Success
 ```
 
-Le bouton Slate `Move To Current Cell` reste canonique ; `MoveSelectedObjectToCurrentSelection()` conserve son API mais perd uniquement son exposition `CallInEditor` redondante.
+`MoveSelectedObjectToCurrentSelection()` conserve son API ; le bouton Slate reste canonique.
 
-Commits :
-
-```text
-fed38eda9deda62afcb66a6220f5340e1ef97d94  Characterize TD03.2 object inspector Details redundancy
-2895309fa44dd20a7ab065e7a23549ea4238e722  Clean TD03.2 object inspector Details action
-```
-
-### TD03.3 — Definition Sync Details Actions — RÉALISÉ / VALIDÉ UE5.5.4
-
-Contrat :
+### TD03.3 — Definition Sync — RÉALISÉ / VALIDÉ
 
 ```text
 Grimrock.TechnicalDebt.TD03_3.ObjectInspectorDetails.DefinitionSyncContract  Success
 ```
 
-Les synchronisations Item/Monster restent `BlueprintCallable` et fonctionnelles via le workflow canonique, sans boutons Details historiques redondants.
+Les synchronisations Item/Monster restent `BlueprintCallable`, sans actions Details historiques redondantes.
 
-Commits :
-
-```text
-101763657f5897447da29308b4add8a5f89a4781  Characterize TD03.3 definition sync Details redundancy
-15e2f0e6b93d328d34e28d889f634674a51a8599  Clean TD03.3 definition sync Details actions
-```
-
-### TD03.4 — Dungeon Level Apply Details Action — RÉALISÉ / VALIDÉ UE5.5.4
-
-Contrat :
+### TD03.4 — Dungeon Level Apply — RÉALISÉ / VALIDÉ
 
 ```text
 Grimrock.TechnicalDebt.TD03_4.DungeonLevelsDetails.ApplyCurrentLevelContract  Success
 ```
 
-`ApplyCurrentDungeonLevel()` reste réfléchi/BlueprintCallable et conserve son comportement de sélection niveau par défaut/explicite, mais l'action Details historique redondante a été nettoyée.
-
-Commits :
-
-```text
-bf3093d1a5741bfff50ffae87c21ac4803f985c5  Characterize TD03.4 dungeon level Details redundancy
-fbab179a7366cce9322b39fb4f70eabb5d618dc8  Clean TD03.4 dungeon level Details action
-```
+`ApplyCurrentDungeonLevel()` reste réfléchi/BlueprintCallable et fonctionnel ; l'action Details redondante a été retirée.
 
 ### Stop condition TD03
 
-La duplication `CallInEditor` **prouvée** par un chemin Slate canonique a été traitée. Les actions avancées/debug restantes ne doivent pas être supprimées sans preuve d'équivalence.
+La duplication `CallInEditor` **prouvée** par un chemin Slate canonique a été traitée. Les actions avancées/debug restantes n'ont pas d'équivalence suffisamment prouvée pour être supprimées.
 
 Décision : **pas de TD03.5 cosmétique.**
 
-`TD-EDITOR-001` reste actif à cause de la concentration Slate, mais une nouvelle extraction ne sera engagée que si une douleur réelle de maintenance apparaît.
+**État : actif comme dette Slate surveillée, sans tranche immédiate.**
 
 ---
 
@@ -288,35 +240,30 @@ Décision : **pas de TD03.5 cosmétique.**
 
 **Priorité : P2 — diagnostic / exploitation**
 
-TD01.4 a stabilisé plusieurs domaines : Door, Thrown Item, PIE playtest, Startup Mode et Game Instance. La dette reste volontairement active et doit être réduite opportunistement par domaine touché.
+TD01.4 a stabilisé Door, Thrown Item, PIE playtest, Startup Mode et Game Instance.
 
-Décision : aucun remplacement global de `LogTemp`.
+Décision : migration opportuniste par domaine réellement touché ; aucun remplacement global de `LogTemp`.
 
 ---
 
 ## TD-TOOL-001 — Validation CI / Shipping non autoritaire
 
-**Priorité : P2 — tooling/process**
+**Priorité : P2 — tooling/process / dette différée**
 
 ### TD04.1 — CI / Shipping Validation Contract Audit — RÉALISÉ
 
-Audit de la baseline `fbab179a...` :
+Baseline TD04.1 :
 
 ```text
 .github/                        absent
 .github/workflows/              absent
-GitHub commit statuses HEAD     aucun
+GitHub commit statuses          aucun check UE autoritaire
 Scripts/CheckCppFormat.ps1      présent
 Scripts/FormatCpp.ps1           présent
-harness UBT/Automation/RunUAT   absent à la baseline TD04.1
+harness UBT/Automation/RunUAT   absent à la baseline
 ```
 
-Conclusion autoritaire TD04.1 :
-
-- le dépôt automatisait le formatage C++ ;
-- il ne possédait aucune CI GitHub UE5.5.4 ;
-- un push GitHub ne prouve ni compilation ni Automation ni Shipping ;
-- l'autorité restait la validation réellement exécutée sous UE5.5.4.
+Conclusion : un push GitHub seul ne prouve ni compilation, ni Automation, ni Shipping.
 
 Référence :
 
@@ -326,12 +273,12 @@ docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md
 
 ### TD04.2 — Local UE Validation Harness — RÉALISÉ / VALIDÉ UE5.5.4
 
-Le harness versionné `Scripts/ValidateUE.ps1` automatise désormais :
+`Scripts/ValidateUE.ps1` automatise :
 
 ```text
 GrimrockPrototypeEditor Win64 Development build
 + filtre Automation explicite via UnrealEditor-Cmd.exe
-+ export et lecture de index.json
++ export/lecture index.json
 + échec si 0 test exécuté ou failed > 0
 ```
 
@@ -348,10 +295,11 @@ Report                 : Saved\Automation\TD04\TD04-20260826-133532
 TD04.2 validation completed successfully.
 ```
 
-Commit d'implémentation :
+Commits :
 
 ```text
 2245dc187d981be2187948911f6354efb0f1e80b  Add TD04.2 local UE validation harness
+c196cafc1f4ef2018571f3f95e83f58898f914db  Validate TD04.2 local UE harness
 ```
 
 Référence :
@@ -360,9 +308,71 @@ Référence :
 docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
 ```
 
-Le dépôt possède donc maintenant un contrat local reproductible pour **Editor build + Automation**, mais pas encore de preuve Shipping.
+### TD04.3 — Cook / Package Validation — RÉALISÉ / VALIDÉ UE5.5.4 SHIPPING
 
-**État : actif. Prochaine tranche = TD04.3 Cook / Package validation.**
+`Scripts/ValidatePackage.ps1` automatise :
+
+```text
+RunUAT BuildCookRun
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Build + Cook + Stage + Package + Pak + Archive
+```
+
+Validation réelle du 26 août 2026 :
+
+```text
+Executable    : Saved\Packaging\TD04\TD04-Shipping-20260826-141330\Windows\GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905582948
+[OK] Cook / package validated.
+TD04.3 validation completed successfully.
+```
+
+Commit d'implémentation :
+
+```text
+4722e3d3d77d32a9722aa075dfce2f00823a8d35  Add TD04.3 cook package validation harness
+```
+
+Référence :
+
+```text
+docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
+```
+
+### TD04.4 — CI UE réelle — CONDITIONNEL / DIFFÉRÉ
+
+Une vraie CI UE n'est autoritaire que si un runner provisionné dispose réellement de :
+
+```text
+Windows
+UE5.5.4
+prérequis Visual Studio/SDK correspondants
+contenu du projet
+disponibilité disque/temps suffisante
+capacité à exécuter Scripts/ValidateUE.ps1
+capacité à exécuter Scripts/ValidatePackage.ps1
+```
+
+Aucun runner UE5.5.4 provisionné et vérifiable n'est actuellement établi par le dépôt ou le workflow du projet. Créer un YAML sans runner réel produirait une pseudo-CI ou un workflow bloqué, pas une validation.
+
+Décision : **ne pas créer TD04.4 tant que cette condition externe n'est pas satisfaite.** Lorsqu'un runner réel sera disponible, le workflow devra réutiliser les harness locaux plutôt que dupliquer les commandes UE.
+
+### Stop condition TD04
+
+Le projet possède maintenant deux contrats reproductibles et réellement validés :
+
+```text
+Editor build + Automation  -> Scripts/ValidateUE.ps1
+Win64 Shipping package     -> Scripts/ValidatePackage.ps1
+```
+
+TD04.4 dépend d'une infrastructure externe non disponible dans l'état vérifiable actuel.
+
+**Décision : stop condition TD04 atteinte. TD-TOOL-001 reste une dette différée uniquement pour la CI distante.**
 
 ---
 
@@ -422,8 +432,7 @@ Commits principaux :
 - `.clang-format`, `.editorconfig`, `.gitattributes` ;
 - `Scripts/FormatCpp.ps1` ;
 - `Scripts/CheckCppFormat.ps1` ;
-- baseline clang-format 19.1.5 ;
-- mécanique de formatage isolée de la logique.
+- baseline clang-format 19.1.5.
 
 ---
 
@@ -453,8 +462,9 @@ TD03   — stop condition                                ATTEINTE
 
 TD04.1 — CI / Shipping validation contract audit       RÉALISÉ
 TD04.2 — Local UE Validation Harness                   RÉALISÉ / VALIDÉ
-TD04.3 — Cook / Package validation                     PROCHAIN
-TD04.4 — CI UE réelle                                  CONDITIONNEL
+TD04.3 — Cook / Package validation                     RÉALISÉ / VALIDÉ SHIPPING
+TD04.4 — CI UE réelle                                  CONDITIONNEL / DIFFÉRÉ
+TD04   — stop condition locale                         ATTEINTE
 ```
 
 ---
@@ -468,7 +478,7 @@ TD04.4 — CI UE réelle                                  CONDITIONNEL
 5. Toute évolution SaveGame inclut compatibilité/migration et tests.
 6. Event -> Command reste un bus unique.
 7. Un sous-jalon = un commit logique autant que possible.
-8. **Après caractérisation séparée, le changement de production et l'adaptation/renforcement du test correspondant appartiennent au même commit logique.**
+8. Après caractérisation séparée, le changement de production et l'adaptation du test correspondant appartiennent au même commit logique.
 9. Validation UE réelle dès qu'un asset, binding, présentation ou contrat moteur est impliqué.
 10. Une extraction doit réduire un risque ou clarifier une frontière, pas seulement déplacer des lignes.
 11. Helpers de namespace anonyme Unity-safe par nommage préfixé fichier/domaine.
@@ -498,8 +508,9 @@ Unity Build vérifié lorsque nouveaux .cpp/helpers locaux
 ### Editor
 
 ```text
-Automation EditorContext
-ouverture et workflow Grid Editor Mode si présentation/authoring touché
+Scripts/ValidateUE.ps1
++ Automation EditorContext ciblée
++ ouverture/workflow Grid Editor Mode si présentation/authoring touché
 ```
 
 ### UI / assets
@@ -509,23 +520,27 @@ Automation read-model/transaction si disponible
 PIE des bindings UMG/assets réellement touchés
 ```
 
-### CI / Shipping
+### Shipping
 
 ```text
-Format script != build UE
-Build Editor != Automation
-Automation != PIE
-Build Editor != Shipping
-Shipping = cook/package réellement exécuté et validé
+Scripts/ValidatePackage.ps1
+Win64 Shipping
+Build + Cook + Stage + Package + Pak + Archive
+exécutable + .pak + archive non vide obligatoires
 ```
 
-Le niveau local `Editor build + Automation` est désormais reproductible via `Scripts/ValidateUE.ps1`. Le niveau Shipping reste à établir par TD04.3.
+### CI distante
+
+```text
+non autoritaire tant qu'aucun runner UE5.5.4 réel n'est provisionné
+```
 
 Voir :
 
 ```text
 docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md
 docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
+docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
 ```
 
 ---
@@ -543,6 +558,7 @@ docs/Design/GRID_EDITOR_ACTOR_UI_AUDIT.md
 docs/Design/TD02_9_PARTY_MOVEMENT_AND_STOP_CONDITION.md
 docs/Design/TD04_1_CI_SHIPPING_VALIDATION_CONTRACT_AUDIT.md
 docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
+docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
 ```
 
 Les documents historiques MON/TD antérieurs ne sont pas réécrits pour simuler l'état courant ; ils restent des archives de jalon.
@@ -551,25 +567,17 @@ Les documents historiques MON/TD antérieurs ne sont pas réécrits pour simuler
 
 # 9. Prochain travail recommandé
 
-```text
-TD04.3 — Cook / Package validation
-```
-
-Objectif : versionner un harness distinct qui exerce réellement la cible de distribution Win64 et sépare clairement le pipeline Shipping de la validation Editor.
-
-Contrat visé :
+La campagne immédiate de réduction de dette atteint sa stop condition locale après TD04.3.
 
 ```text
-- résolution paramétrable de UE5.5.4 ;
-- RunUAT.bat BuildCookRun ;
-- cible jeu Win64 Shipping ;
-- build + cook + stage + package + archive ;
-- sortie sous Saved/Packaging/TD04 par défaut ;
-- échec propagé si UAT échoue ;
-- vérification qu'un exécutable packagé et du contenu packagé existent réellement ;
-- aucun chemin machine codé en dur.
+TD04.4 — différé jusqu'à disponibilité d'un vrai runner UE5.5.4
 ```
 
-TD04.4 ne sera envisagé qu'après validation locale réelle de TD04.3 et seulement si un runner disposant réellement d'UE5.5.4 peut exécuter les mêmes contrats.
+Il n'est pas rentable de poursuivre les dettes P2 surveillées par des refactors cosmétiques. La roadmap produit peut reprendre ; **MON21.2 peut être réactivé** lorsqu'on décide de poursuivre les fonctionnalités prévues.
 
-MON21.2 reste suspendu pendant TD04.
+Les harness TD04 doivent désormais être réutilisés pour les validations futures :
+
+```text
+Scripts/ValidateUE.ps1       -> Editor build + Automation
+Scripts/ValidatePackage.ps1  -> Win64 Shipping cook/package
+```

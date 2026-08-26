@@ -2,7 +2,7 @@
 
 Date : 26 août 2026  
 Projet : GrimrockPrototype — Unreal Engine 5.5.4  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE À EFFECTUER**
+Statut : **TERMINÉ / VALIDÉ UE5.5.4 — SHIPPING**
 
 ## 1. Objectif
 
@@ -35,7 +35,7 @@ ExtraModuleNames.Add("GrimrockPrototype")
 
 TD04.3 ne crée pas de nouvelle Target Unreal et ne modifie aucun `.uasset/.umap`.
 
-Le profil par défaut du harness est :
+Le profil de référence est :
 
 ```text
 Target        : GrimrockPrototype
@@ -43,7 +43,7 @@ Platform      : Win64
 Configuration : Shipping
 ```
 
-`Development` reste disponible explicitement pour diagnostic, mais la validation de référence TD04.3 est Shipping.
+`Development` reste disponible explicitement pour diagnostic, mais ne remplace pas la validation Shipping.
 
 ## 3. Pipeline UAT
 
@@ -53,7 +53,7 @@ Le harness utilise :
 <EngineRoot>\Engine\Build\BatchFiles\RunUAT.bat
 ```
 
-avec le pipeline Unreal Automation Tool `BuildCookRun` :
+avec `BuildCookRun` :
 
 ```text
 Build
@@ -82,11 +82,7 @@ RunUAT.bat BuildCookRun
     -archivedirectory=<session>
 ```
 
-Ce découpage correspond au pipeline Build/Cook/Stage/Package documenté par Unreal Automation Tool.
-
 ## 4. Résolution portable de l'environnement
-
-Comme TD04.2, le script ne contient aucun chemin machine obligatoire.
 
 La racine UE est fournie par :
 
@@ -94,13 +90,7 @@ La racine UE est fournie par :
 -EngineRoot <chemin>
 ```
 
-ou :
-
-```text
-UE_ROOT
-```
-
-La racine projet est déduite de l'emplacement du script.
+ou par `UE_ROOT`. La racine projet est déduite de l'emplacement du script.
 
 La sortie par défaut est :
 
@@ -108,19 +98,11 @@ La sortie par défaut est :
 Saved\Packaging\TD04\TD04-Shipping-yyyyMMdd-HHmmss\
 ```
 
-`Saved/` étant déjà ignoré par Git, les archives de validation ne polluent pas le dépôt.
-
-Un autre dossier peut être fourni avec :
-
-```powershell
--ArchiveRoot <chemin>
-```
+`Saved/` étant ignoré par Git, les archives de validation ne polluent pas le dépôt.
 
 ## 5. Critères de succès
 
-TD04.3 ne se contente pas du code retour UAT.
-
-Après `BuildCookRun`, le script exige aussi :
+Le script exige :
 
 ```text
 1. code UAT = 0 ;
@@ -132,22 +114,9 @@ Après `BuildCookRun`, le script exige aussi :
 En cas d'échec :
 
 ```text
-UAT non nul              -> échec immédiat
-exécutable absent        -> exit 2
-aucun .pak               -> exit 3
-```
-
-Le résumé final affiche notamment :
-
-```text
-Target
-Platform
-Configuration
-Executable
-Pak files
-Archive files
-Archive bytes
-Archive path
+UAT non nul       -> échec immédiat
+exécutable absent -> exit 2
+aucun .pak        -> exit 3
 ```
 
 ## 6. Configuration projet observée
@@ -160,75 +129,66 @@ GlobalDefaultGameMode=/Game/GrimrockPrototype/Blueprints/Runtime/BP_GrimrockGame
 GameInstanceClass=/Game/GrimrockPrototype/Blueprints/System/BP_GrimrockGameInstance.BP_GrimrockGameInstance_C
 ```
 
-TD04.3 ne force pas une liste artificielle de maps dans le script. Le cook doit exercer les références/configurations réelles du projet et révéler les assets ou maps insuffisamment inclus plutôt que masquer le problème par `-allmaps`.
+TD04.3 ne force pas `-allmaps` et ne modifie pas automatiquement les Packaging Settings. Le cook exerce les références/configurations réelles du projet.
 
-## 7. Commande de validation TD04.3
+## 7. Validation réelle du 26 août 2026
 
-Fermer Unreal Editor avant le test, puis :
+Commande exécutée sur l'environnement de développement UE5.5.4 :
 
 ```powershell
-cd D:\Development\GrimrockPrototype
-git pull origin master
-
 .\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
 ```
 
-Résultat attendu :
+Résultat communiqué après exécution réelle :
 
 ```text
-=== UE5.5.4 Win64 Shipping BuildCookRun ===
-...
-
 === Package summary ===
 Target        : GrimrockPrototype
 Platform      : Win64
 Configuration : Shipping
-Executable    : <...>\GrimrockPrototype.exe
-Pak files     : >= 1
-Archive files : > 0
-Archive bytes : > 0
-Archive       : <...>\Saved\Packaging\TD04\TD04-Shipping-...
+Executable    : D:\Development\GrimrockPrototype\Saved\Packaging\TD04\TD04-Shipping-20260826-141330\Windows\GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905582948
+Archive       : D:\Development\GrimrockPrototype\Saved\Packaging\TD04\TD04-Shipping-20260826-141330
 [OK] Cook / package validated.
 
 TD04.3 validation completed successfully.
 ```
 
-## 8. Diagnostic Development optionnel
+La stop condition est donc satisfaite :
 
-Si Shipping échoue et qu'il faut distinguer un problème général de packaging d'un problème propre à Shipping :
-
-```powershell
-.\Scripts\ValidatePackage.ps1 `
-    -EngineRoot D:\UE_5.5 `
-    -Configuration Development
+```text
+BuildCookRun              Success
+Win64 Shipping executable présent
+.pak                       présent
+archive                    non vide
+code final                 0
 ```
 
-Ce passage Development est un diagnostic ; il ne remplace pas la validation Shipping demandée par TD04.3.
+## 8. Commits
+
+```text
+4722e3d3d77d32a9722aa075dfce2f00823a8d35  Add TD04.3 cook package validation harness
+```
 
 ## 9. Non-objectifs
 
-TD04.3 ne fait pas encore :
+TD04.3 ne couvre pas :
 
 - lancement automatisé du jeu packagé ;
 - test visuel du menu ou d'une partie ;
 - signature/installer ;
 - distribution ;
 - GitHub Actions ;
-- installation automatique des prérequis UE/Visual Studio ;
-- modification automatique des Packaging Settings.
+- installation automatique des prérequis UE/Visual Studio.
 
-Toute erreur de cook liée à une référence asset/map manquante doit d'abord être comprise comme un résultat de validation, pas contournée automatiquement.
+Ces points ne doivent pas être confondus avec la preuve désormais acquise de `build + cook + stage + package + archive` Shipping.
 
-## 10. Stop condition
+## 10. Décision après validation
 
-TD04.3 sera marqué **RÉALISÉ / VALIDÉ UE5.5.4** uniquement après une exécution réelle du harness en `Shipping` avec :
+TD04.3 est **TERMINÉ / VALIDÉ UE5.5.4**.
 
-```text
-BuildCookRun = succès
-GrimrockPrototype.exe = présent
-.pak = présent
-archive non vide
-code final = 0
-```
+TD04.4 — CI UE réelle reste conditionnel. Aucun workflow ne doit être créé tant qu'un runner capable d'exécuter réellement UE5.5.4, `Scripts/ValidateUE.ps1` et `Scripts/ValidatePackage.ps1` n'est pas provisionné et vérifiable.
 
-Après cette validation, TD04 pourra décider s'il est rentable de poursuivre vers une vraie CI UE (`TD04.4`) ou si l'absence de runner UE5.5.4 impose une stop condition locale.
+En l'absence d'un tel runner, la bonne stop condition est de conserver les deux harness locaux versionnés comme autorité reproductible et de reprendre la roadmap produit plutôt que d'introduire une pseudo-CI.
