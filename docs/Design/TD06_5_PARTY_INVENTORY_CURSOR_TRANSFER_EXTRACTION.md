@@ -4,7 +4,8 @@ Date : **26 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD06.4 — PartyInventory Cursor Transfer characterization**  
 Baseline GitHub : `324e88195aa34966a2d47f49f020c93afef8e3da`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Commit : `776827223a584ed7287bba5c029c5c0a224f515f`  
+Statut : **VALIDÉ**
 
 ## Objet
 
@@ -88,23 +89,37 @@ Succeeded with warnings: 0
 Failed                 : 0
 ```
 
-## Validation post-extraction requise
+## Validation post-extraction réelle
+
+Validation locale fournie le **26 août 2026** après le commit TD06.5 :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD06_4
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+
+Filter                 : Grimrock.CharacterCreation.CC0
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+```
+
+Commandes de référence :
 
 ```powershell
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_4"
 .\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.CharacterCreation.CC0"
 ```
 
-Résultat attendu : mêmes résultats qu'avant extraction, sans warning ni échec.
-
-TD06.5 ne devient **VALIDÉ** qu'après cette exécution réelle sous UE5.5.4.
+La couverture caractérisée est identique avant et après extraction. TD06.5 est donc **VALIDÉ**.
 
 ## Suite
-
-Si la validation post-extraction reste verte :
 
 ```text
 TD06.6 — PartyInventory Equipment Core characterization
 ```
 
-La caractérisation TD06.6 devra précéder toute extraction de l'Equipment Core et préserver la même autorité unique.
+La caractérisation TD06.6 doit précéder toute extraction de l'Equipment Core et préserver la même autorité unique.
