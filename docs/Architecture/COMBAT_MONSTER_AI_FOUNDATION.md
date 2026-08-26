@@ -1,5 +1,7 @@
 # Combat, monstres et IA — Fondation d’architecture
 
+Date de référence : **26 août 2026**
+
 ## Combat
 
 `UGridTurnManagerComponent` est l’orchestrateur du combat. Son implémentation est répartie entre initiative, phases, tours joueurs, actions, catalogue et mouvement du groupe. Le combat reste déterministe et basé sur la grille.
@@ -41,27 +43,31 @@ Le NavMesh ne remplace pas l’autorité de la grille.
 
 ## Familles de référence
 
-- Rat géant : baseline mêlée et vertical slice historique ;
+- Rat géant : baseline mêlée ;
 - Gobelin lanceur : attaque à distance/projectile et maintien de distance.
 
-## Récompenses et présentation
-
-Mort, dissolve, loot et XP sont séparés du planner. Les récompenses s’intègrent au pipeline MON15.
+Le petit nombre de familles de monstres n’est pas une dette technique : il s’agit d’un manque de contenu de production.
 
 ## Persistance
 
-L’état vivant des monstres est capturé dans le dungeon runtime state. La sauvegarde durable est bloquée pendant un combat actif afin de ne pas sérialiser un tour partiel.
+L’état vivant des monstres est capturé dans le dungeon runtime state. La sauvegarde durable est bloquée pendant un combat actif afin de ne pas sérialiser un tour partiel. MON20.10 a verrouillé la restauration des monstres déjà morts : Actor conservé, état `Dead`, mesh caché, collision et occupation désactivées.
 
-MON20.10 a également verrouillé la restauration des monstres déjà morts : Actor conservé, état `Dead`, mesh caché, collision et occupation désactivées.
+SaveGame courant : **v9**.
 
-## Dette technique vs contenu
+## Event -> Command
 
-Le petit nombre de familles de monstres **n'est pas une dette technique**. C'est un manque de contenu de production : l'architecture existante doit d'abord être exploitée avec davantage de variantes avant d'envisager un nouveau framework d'IA.
+`TD-EVENT-001` est **RÉSOLU**. La sémantique Gameplay / StateOnly / Unsupported est explicite et protégée par tests. Le bus Event -> Command reste le chemin d’effet gameplay et n’est pas remis en cause.
 
-La dette technique transversale liée au runtime est suivie dans :
+La dette encore suivie sous `TD-ARCH-005` concerne uniquement la concentration interne de `UGridActivationComponent`. Une extraction future ne doit créer ni second bus, ni second état.
+
+## Dette technique runtime
+
+La dette transversale est suivie dans :
 
 ```text
 docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 ```
 
-Elle concerne notamment la concentration de `AGridLevelRuntimeActor`, certaines frontières Event -> Command et la maintenabilité des gros orchestrateurs ; elle ne remet pas en cause le modèle de combat/IA actuel.
+`AGridLevelRuntimeActor` reste la concentration runtime la plus forte. TD05.1 l’a rebaseliné à 3 359 lignes / 107 095 octets pour le `.cpp`, en plus d’un header public de 22 161 octets. Les extractions Persistence et World Items existent déjà ; la prochaine frontière ciblée est Diagnostics, après caractérisation.
+
+Ce constat ne justifie pas un framework de combat/IA parallèle ni un refactor massif des monstres.

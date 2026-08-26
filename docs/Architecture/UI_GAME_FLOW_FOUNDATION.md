@@ -1,6 +1,6 @@
 # UI et flux de jeu — Fondation d’architecture
 
-Date de référence : **25 août 2026**
+Date de référence : **26 août 2026**
 
 ## Principe
 
@@ -33,18 +33,9 @@ Main Menu
 
 ## Pages shell / futures
 
-Le menu contient déjà :
+Le menu contient déjà Journal, Map, Recipes et Codex. Journal/Map/Codex ont été audités dans MON21.1 mais leur domaine métier n’est pas encore implémenté. MON21.2 n’est plus bloqué par TD04 ; sa reprise relève maintenant de la roadmap produit après les tranches de dette explicitement décidées. Recipes reste une fonctionnalité future.
 
-```text
-Journal
-Map
-Recipes
-Codex
-```
-
-Journal/Map/Codex ont été audités dans MON21.1 mais leur domaine métier n'est pas encore implémenté. MON21.2 est suspendu pendant la phase d'exploitation/stabilisation. Recipes relève d'une fonctionnalité future.
-
-L'existence de ces widgets n'est donc pas une dette technique.
+L’existence de ces widgets n’est pas une dette technique.
 
 ## Recruitment UI
 
@@ -56,11 +47,15 @@ Le HUD ne décide pas initiative/coûts/résolution. Il reflète le Turn Manager
 
 ## Skills / Spellbook
 
-Les pages Skills et Spellbook suivent `SelectedCharacterIndex` et projettent les autorités C++ existantes. Elles ne possèdent pas de copie gameplay indépendante.
+Les pages Skills et Spellbook suivent `SelectedCharacterIndex` et projettent les autorités C++ existantes. Elles ne possèdent aucune copie gameplay indépendante.
 
-Spellbook et SkillRanks sont persistés dans le SaveGame courant v8.
+Spellbook et SkillRanks sont persistés dans le SaveGame courant **v9**.
 
-## Dette technique UI
+## Sélection de personnage / held visual
+
+`TD-PARTY-001` est **RÉSOLU**. `UGridPartyInventoryComponent` reste l’autorité de `SelectedCharacterIndex`. Le changement de sélection émet la notification autoritaire et `AGrimrockPartyPawn` resynchronise le held visual. Les contrats `SelectionChange` et `SelectedCharacterFilter` ont été validés sous UE5.5.4.
+
+## Dette technique UI active
 
 Le registre autoritaire est :
 
@@ -68,11 +63,24 @@ Le registre autoritaire est :
 docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 ```
 
-Points UI réellement actifs :
+Points UI encore actifs ou surveillés :
 
-- synchronisation de certaines présentations après changement direct de personnage sélectionné (`TD-PARTY-001`) ;
-- nommage historique `Inventory` du shell global (`TD-UI-001`, faible priorité) ;
-- taxonomie de logs encore partiellement `LogTemp` (`TD-LOG-001`) ;
-- risque de divergence visuelle entre surfaces UMG nombreuses.
+- `TD-UI-001` : nommage historique `Inventory` du shell global, faible priorité ;
+- `TD-LOG-001` : taxonomie de logs encore partiellement `LogTemp` ;
+- risque de divergence visuelle entre nombreuses surfaces UMG, à traiter par conventions/composants partagés sans déplacer la logique métier en Blueprint.
 
-La règle de réduction de dette reste : conserver les contrats C++ existants et éviter tout graphe Blueprint métier parallèle.
+`TD-PARTY-001` ne doit plus être listé comme dette active.
+
+## Validation
+
+Le code UI/C++ touché par un jalon doit passer le harness local approprié :
+
+```text
+Scripts/ValidateUE.ps1
+```
+
+Les changements de bindings, widgets Blueprint ou assets nécessitent toujours une validation PIE ciblée. TD04.3 a également validé le packaging Win64 Shipping du projet via `Scripts/ValidatePackage.ps1`.
+
+## Règle de réduction de dette
+
+Conserver les contrats C++ existants et éviter tout graphe Blueprint métier parallèle. Une extraction UI ou un renommage transversal n’est engagé que s’il réduit un risque concret.
