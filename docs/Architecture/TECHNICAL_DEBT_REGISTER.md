@@ -1,13 +1,14 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **26 août 2026**  
-Baseline fonctionnelle validée : `2e5c00f64265603033d86b36869e84b1b8311179` — TD05.8 RuntimeActor Monsters extrait et validé sous UE5.5.4  
-Baseline documentaire : **TD05.9 — stop condition RuntimeActor**  
-Statut : **ACTIF — AUCUN REFACTOR ARCHITECTURAL CIBLÉ IMMÉDIAT**
+Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
+Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
+Baseline PartyInventory : **TD06.1 — re-baseline réalisée**  
+Statut : **ACTIF — TD06 PARTY INVENTORY CIBLÉ**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
-TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition RuntimeActor. Le développement fonctionnel peut reprendre ; une dette surveillée ne doit être réouverte que lorsqu’une douleur concrète apparaît.
+TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition pour `AGridLevelRuntimeActor`. Cette clôture locale ne clôt pas la campagne globale : TD06 reprend `TD-ARCH-002`, car `UGridPartyInventoryComponent` conserve plusieurs responsabilités cohérentes et extractibles dans un fichier principal de 2 337 lignes.
 
 ---
 
@@ -45,7 +46,7 @@ P2 : 8 dettes actives ou surveillées
 P3 : 2 dettes actives
 ```
 
-Aucune dette P2 n’est actuellement en priorité architecturale immédiate. Les entrées P2 restent surveillées, opportunistes ou différées jusqu’à apparition d’un risque observable.
+`TD-ARCH-002` est la dette P2 architecturale ciblée actuelle. Les autres entrées P2 restent surveillées, opportunistes ou différées tant qu’aucun risque observable ne justifie leur réouverture.
 
 ---
 
@@ -128,17 +129,9 @@ La suite MON13 a été verte avant et après TD05.8.
 
 ### Décision TD05.9
 
-`AGridLevelRuntimeActor` reste volontairement la façade/orchestrateur du niveau. Le corps principal conserve essentiellement :
+`AGridLevelRuntimeActor` reste volontairement la façade/orchestrateur du niveau. Le corps principal conserve essentiellement : lifecycle de niveau, geometry/rebuild, requêtes de grille, placement/runtime objects génériques, portes/interactions via composants spécialisés, transitions de dungeon et orchestration transverse `RebuildRuntimeObjects()`.
 
-- lifecycle de niveau ;
-- geometry/rebuild ;
-- requêtes de grille ;
-- placement/runtime objects génériques ;
-- portes/interactions via composants spécialisés ;
-- transitions de dungeon ;
-- orchestration transverse `RebuildRuntimeObjects()`.
-
-Les splits Geometry, Doors ou Generic Objects sont techniquement possibles, mais aucun risque observé ne les justifie aujourd’hui. Les réaliser uniquement pour réduire le nombre de lignes contreviendrait à la règle de stop condition.
+Les splits Geometry, Doors ou Generic Objects sont techniquement possibles, mais aucun risque observé ne les justifie aujourd’hui.
 
 **Décision : arrêter ici la décomposition de `AGridLevelRuntimeActor`.**
 
@@ -150,20 +143,75 @@ Référence : `docs/Design/TD05_9_RUNTIMEACTOR_STOP_CONDITION.md`.
 
 ## TD-ARCH-002 — `UGridPartyInventoryComponent` très volumineux
 
-**Priorité : P2 — surveillée**
+**Priorité : P2 — CIBLÉE / TD06 ACTIF**
 
-Le composant reste l’unique autorité d’état du groupe/inventaire.
-
-Réalisé :
+### Re-baseline TD06.1
 
 ```text
-TD-ARCH-002.1 — Equipment World Transfer
-TD-ARCH-002.2 — Inventory Diagnostics
+Source/GrimrockPrototype/Private/Runtime/GridPartyInventoryComponent.cpp
+    2 337 lignes
+
+Source/GrimrockPrototype/Public/Runtime/GridPartyInventoryComponent.h
+      293 lignes
+
+Extractions déjà présentes :
+    GridPartyInventoryComponentWorldTransfer.cpp   ~104 lignes
+    GridPartyInventoryComponentDiagnostics.cpp      465 lignes
 ```
 
-Les extractions futures doivent rester stateless ou transactionnelles et ne jamais fragmenter l’autorité.
+Le composant reste **l’unique autorité d’état du groupe/inventaire** via `FGridPartyInventoryState`. TD06 ne crée ni second composant propriétaire, ni copie autoritaire d’inventaire. Les extractions répartissent l’implémentation de la même classe entre plusieurs `.cpp` cohérents.
 
-**État : aucune tranche immédiate.**
+### Réalisé avant TD06
+
+```text
+TD02.2 — Equipment World Transfer
+TD02.3 — Inventory Diagnostics
+```
+
+### Responsabilités encore concentrées dans le fichier principal
+
+```text
+Party lifecycle / restore / character creation / selection / summary
+Combat Hotbar 0–9
+Inventory add / stack / remove / count / consume
+Item Definition registry / rehydration / instance application
+Equipment core / compatibility / equip / unequip / combat consumption
+Equipment stat bonuses / resistances
+Cursor transfers Inventory <-> Cursor <-> Equipment
+Weight recalculation
+Ownership validation
+Default initialization / hotbar validation
+```
+
+La taille seule n’est pas le motif du refactor. Le signal concret est la concentration de plusieurs contrats transactionnels indépendamment testables dans la même unité d’implémentation, avec un coût croissant de modification et de revue.
+
+### Résidu TD02.3 identifié
+
+Le `.cpp` principal contient encore des helpers de diagnostics historiques alors que la responsabilité Diagnostics a été déplacée dans `GridPartyInventoryComponentDiagnostics.cpp`, qui possède désormais ses propres helpers préfixés Unity-safe `GridPartyInventoryDiagnostics...`.
+
+Ce résidu est enregistré comme nettoyage de production à effectuer **avec une tranche caractérisée**, et non comme suppression aveugle dans TD06.1.
+
+### Première frontière TD06 : Hotbar
+
+La hotbar constitue la première frontière recommandée parce qu’elle possède :
+
+- un contrat métier cohérent ;
+- aucune nécessité de nouvelle autorité ;
+- des API publiques déjà stabilisées ;
+- une couverture existante MON12 (`GridMonsterMON128HotbarTests.cpp`, `GridMonsterMON12CombatHudTests.cpp`) ;
+- des invariants explicites : 10 slots, identité de source, unicité des bindings Equipment/QuickItem, move/swap, sanitation au restore.
+
+Cible après caractérisation :
+
+```text
+GridPartyInventoryComponentHotbar.cpp
+```
+
+### Stop condition TD06
+
+TD06 s’arrête lorsque le fichier principal représente de nouveau un cœur cohérent d’autorité/orchestration et qu’une extraction supplémentaire n’enlève plus de risque réel. **Aucun objectif arbitraire de nombre de lignes n’est imposé.**
+
+Référence : `docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md`.
 
 ---
 
@@ -323,7 +371,7 @@ Le TODO de scaling du lancer reste à relier au design Skills lorsque vitesse/pr
 - `Scripts/CheckCppFormat.ps1` ;
 - clang-format 19.1.5 figé.
 
-**Note de suivi :** le contrôle global a révélé le 26 août 2026 une dérive historique de formatage dans du code first-party, notamment `GridPartyInventoryComponentDiagnostics.cpp`. Cette anomalie est distincte de TD05 et doit être auditée séparément avant de considérer la baseline de format globale comme entièrement verte.
+**Note de suivi :** le contrôle global a révélé le 26 août 2026 une dérive historique de formatage dans du code first-party, notamment `GridPartyInventoryComponentDiagnostics.cpp`. Cette anomalie est distincte de TD06 et doit être auditée séparément avant de considérer la baseline de format globale comme entièrement verte.
 
 ---
 
@@ -334,19 +382,30 @@ TD01.1–TD01.4   persistance / notification / Event->Command / logs    RÉALIS�
 TD02.1–TD02.9   extractions structurelles ciblées                     RÉALISÉ
 TD03.1–TD03.4   Grid Editor Details cleanup                           RÉALISÉ
 TD04.1–TD04.3   validation Editor/Automation/Shipping                 RÉALISÉ
-TD04.4           CI UE réelle                                         DIFFÉRÉ
-TD05.1           doc debt audit / RuntimeActor re-baseline            RÉALISÉ
-TD05.2           RuntimeActor Diagnostics characterization            VALIDÉ
-TD05.3           RuntimeActor Diagnostics extraction                  VALIDÉ
-TD05.4           RuntimeActor re-audit                                RÉALISÉ
-TD05.5           Feedback UI characterization                         VALIDÉ
-TD05.6           RuntimeActor Feedback UI extraction                  VALIDÉ
-TD05.7           RuntimeActor post-feedback re-audit                  RÉALISÉ
-TD05.8           RuntimeActor Monster extraction                      VALIDÉ
-TD05.9           RuntimeActor final stop condition                    ATTEINTE
+TD04.4          CI UE réelle                                          DIFFÉRÉ
+TD05.1          doc debt audit / RuntimeActor re-baseline             RÉALISÉ
+TD05.2          RuntimeActor Diagnostics characterization             VALIDÉ
+TD05.3          RuntimeActor Diagnostics extraction                   VALIDÉ
+TD05.4          RuntimeActor re-audit                                 RÉALISÉ
+TD05.5          Feedback UI characterization                          VALIDÉ
+TD05.6          RuntimeActor Feedback UI extraction                   VALIDÉ
+TD05.7          RuntimeActor post-feedback re-audit                   RÉALISÉ
+TD05.8          RuntimeActor Monster extraction                       VALIDÉ
+TD05.9          RuntimeActor final stop condition                     ATTEINTE
+TD06.1          PartyInventory re-baseline / documentation audit      RÉALISÉ
+TD06.2          PartyInventory Hotbar characterization                PROCHAIN
+TD06.3          PartyInventory Hotbar extraction                      À FAIRE
+TD06.4          PartyInventory Cursor Transfer characterization       À FAIRE
+TD06.5          PartyInventory Cursor Transfer extraction             À FAIRE
+TD06.6          PartyInventory Equipment Core characterization        À FAIRE
+TD06.7          PartyInventory Equipment Core extraction              À FAIRE
+TD06.8          Item Definition Registry / Rehydration audit          À FAIRE
+TD06.9          PartyInventory final re-audit / stop condition        À FAIRE
 ```
 
-**TD05 est clos.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
+**TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
+
+La campagne globale de réduction de dette reste **ouverte** avec TD06. Les extractions TD06 doivent préserver `UGridPartyInventoryComponent` comme unique autorité de `FGridPartyInventoryState`; elles répartissent l’implémentation, pas l’état.
 
 ---
 
@@ -379,6 +438,8 @@ CI distante: non autoritaire tant qu’aucun runner UE5.5.4 réel n’est provis
 Format     : clang-format 19.1.5 ; baseline first-party globale à réauditer séparément
 ```
 
+TD06.1 ne modifie aucun contrat C++ ni asset : sa validation est documentaire/statique. À partir de TD06.2, la caractérisation puis toute extraction C++ doivent passer le harness UE et les Automations ciblées.
+
 ---
 
 # 8. Références courantes
@@ -396,19 +457,23 @@ docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
 docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
 docs/Design/TD05_4_RUNTIMEACTOR_REAUDIT.md
 docs/Design/TD05_9_RUNTIMEACTOR_STOP_CONDITION.md
+docs/Design/TD06_1_PARTY_INVENTORY_REBASELINE.md
 ```
 
-`ARCHITECTURE_CONSISTENCY_AUDIT.md`, `Maps/GRIMROCK_PROJECT_MAP.md` et les documents MON/TD/STYLE datés restent des snapshots historiques jusqu’à rafraîchissement explicite.
+`TECHNICAL_DEBT_DOCUMENTATION_AUDIT.md` reste le snapshot historique de TD05.1. `ARCHITECTURE_CONSISTENCY_AUDIT.md`, `Maps/GRIMROCK_PROJECT_MAP.md` et les documents MON/TD/STYLE datés restent des snapshots historiques jusqu’à rafraîchissement explicite.
 
 ---
 
 # 9. Prochain travail recommandé
 
-La campagne de décomposition RuntimeActor est terminée.
+**TD06.2 — PartyInventory Hotbar characterization.**
 
-Deux suites sont légitimes et non concurrentes :
+Avant tout déplacement de code :
 
-1. reprendre le développement fonctionnel avec **MON21.2**, qui n’est plus bloqué par TD04/TD05 ;
-2. traiter séparément la dérive historique `clang-format` si l’on veut rendre `CheckCppFormat.ps1` globalement vert avant la prochaine campagne de code.
+1. figer par Automation les invariants de la hotbar ;
+2. réutiliser la couverture MON12 existante et ajouter uniquement les contrats manquants ;
+3. valider la baseline sous UE5.5.4 ;
+4. seulement ensuite extraire la frontière vers `GridPartyInventoryComponentHotbar.cpp` dans TD06.3 ;
+5. profiter du changement caractérisé pour retirer les helpers diagnostics réellement morts du fichier principal si leur absence d’usage est confirmée.
 
-Ne pas rouvrir TD05 uniquement parce que `GridLevelRuntimeActor.cpp` reste un fichier important.
+Ne pas créer un nouveau composant Hotbar propriétaire : `UGridPartyInventoryComponent` reste la façade et l’autorité.
