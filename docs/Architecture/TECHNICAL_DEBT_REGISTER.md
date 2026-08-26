@@ -1,7 +1,7 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
-Date de référence : **25 août 2026**  
-Baseline fonctionnelle validée : `d3bc5f0e8a8c1b3526506cace457982c94ae3a07` — post-TD02.1 World Items extraction
+Date de référence : **26 août 2026**  
+Baseline fonctionnelle validée : `af17b2b5e5b9bf63ce77977dd05a2015d6b1e35a` — post-TD02.7 Party Item Transfer + Unity fix
 Statut : **ACTIF — PHASE EXPLOITATION / STABILISATION**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les rubriques `Dette`, `Dette technique`, `Risques` ou `Points futurs` présentes dans d'autres documents restent utiles comme contexte historique ou local, mais doivent être interprétées à travers le présent registre.
@@ -42,7 +42,7 @@ P2 — maintenabilité / architecture / tooling à réduire de manière ciblée
 P3 — nettoyage opportuniste, nommage ou intégration non bloquante
 ```
 
-État au 25 août 2026 :
+État au 26 août 2026 :
 
 ```text
 P0 : aucun blocage connu
@@ -136,7 +136,7 @@ Le volume est un signal de risque, pas une justification suffisante pour un refa
 
 **Priorité : P2 — maintenabilité structurelle**
 
-Indicateur actuel :
+Indicateur de référence :
 
 ```text
 GridPartyInventoryComponent.cpp ≈ 93 KB post-STYLE01 (95 417 octets)
@@ -154,11 +154,43 @@ Le composant est à juste titre l'autorité du groupe/inventaire, mais concentre
 - calculs de bonus/résistances ;
 - sélection du personnage.
 
-Une petite extraction `GridPartyInventoryComponentVisuals.cpp` existe déjà.
+Une petite extraction `GridPartyInventoryComponentVisuals.cpp` existait déjà avant la campagne TD02.
+
+### TD-ARCH-002.1 — Equipment World Transfer — RÉALISÉ
+
+TD02.2 a isolé les transactions d'extraction/restauration d'un objet équipé vers le monde dans `GridPartyInventoryComponentWorldTransfer.cpp`, sans créer de nouvelle autorité :
+
+- `TryExtractOneEquippedItemForWorldTransfer()` ;
+- `TryRestoreExtractedItemToEquipment()`.
+
+Le contrat a été caractérisé avant extraction et le cycle `ThrownWeaponLifecycle` continue d'exercer extraction, rollback et consommation.
+
+Commits associés :
+
+```text
+f2000a12  Characterize TD02.2 equipment world transfer
+f2f63c37  Extract TD02.2 equipment world transfer
+```
+
+### TD-ARCH-002.2 — Inventory Diagnostics — RÉALISÉ
+
+TD02.3 a déplacé les diagnostics d'inventaire vers une unité dédiée, sans déplacer l'état ni la propriété des données. Le test dédié est :
+
+```text
+GridTD023PartyInventoryDiagnosticsTests.cpp
+```
+
+Commits associés :
+
+```text
+09abe638  Characterize TD02.3 inventory diagnostics
+7a9a9724  Extract TD02.3 inventory diagnostics
+9c843489  Fix Unity namespace collision encountered during validation
+```
 
 Traitement recommandé : conserver **une seule autorité d'état** et extraire seulement des services stateless ou helpers de transaction/diagnostic. Ne pas découper l'état en plusieurs composants propriétaires.
 
-TD-PARTY-001 est désormais résolu ; la frontière de notification sélection / présentation est stabilisée avant toute décomposition plus large.
+TD-PARTY-001 est résolu ; les deux extractions TD02.2/TD02.3 réduisent la concentration, mais **TD-ARCH-002 reste actif**.
 
 ---
 
@@ -166,28 +198,116 @@ TD-PARTY-001 est désormais résolu ; la frontière de notification sélection /
 
 **Priorité : P2 — maintenabilité structurelle**
 
-Indicateur actuel :
+Indicateur courant après TD02.7 :
 
 ```text
-GrimrockPartyPawn.cpp ≈ 76 KB post-STYLE01 (77 540 octets)
-+ fichiers dédiés Recruitment / CustomRecruit déjà extraits
+GrimrockPartyPawn.cpp ≈ 1 400 lignes
++ GrimrockPartyPawnRecruitment.cpp / CustomRecruit.cpp
++ GrimrockPartyPawnInputBuffer.cpp
++ GrimrockPartyPawnHeldItem.cpp
++ GrimrockPartyPawnSave.cpp
++ GrimrockPartyPawnItemTransfer.cpp
 ```
 
-Responsabilités encore mélangées :
+La campagne TD02 a démontré qu'une séparation par unités de traduction, sans nouvelle classe propriétaire ni duplication d'état, est viable.
 
+### TD-ARCH-003.1 — Input Buffer — RÉALISÉ
+
+TD02.4 a déplacé dans `GrimrockPartyPawnInputBuffer.cpp` :
+
+- `BufferMoveCommand()` ;
+- `BufferTurnCommand()` ;
+- `BufferUseCommand()` ;
+- `ClearBufferedCommand()` ;
+- `TryConsumeBufferedCommand()` ;
+- `IsBusy()`.
+
+Commit :
+
+```text
+e976f957677fef04456555f2186aebb8c0da489d  Extract TD02.4 party input buffer
+```
+
+### TD-ARCH-003.2 — Held Item Presentation — RÉALISÉ
+
+TD02.5 a déplacé la présentation held item dans `GrimrockPartyPawnHeldItem.cpp` : équipement visuel, clear, résolution de définition, lumière et synchronisation avec le personnage sélectionné.
+
+Le contrat TD01.2 de sélection / held visual a été repassé après extraction et est resté vert.
+
+Commit :
+
+```text
+34439c29c32f73bc57b8833955e17e4aa7aa8fd8  Extract TD02.5 held item presentation
+```
+
+### TD-ARCH-003.3 — Save / Load Façade — RÉALISÉ
+
+TD02.6 a déplacé dans `GrimrockPartyPawnSave.cpp` :
+
+- `HasCurrentSave()` ;
+- `SaveCurrentGame()` ;
+- `RehydrateLoadedItemDefinitions()` ;
+- `LoadCurrentGameData()` ;
+- `LoadCurrentGame()` ;
+- `StartNewGame()`.
+
+Aucun format SaveGame, version, état ou API publique n'a été modifié.
+
+Validation UE5.5.4 :
+
+```text
+Grimrock.Save.MON18.9.1                              6/6 Success
+Grimrock.Save.SAVEFIX.2.ContinueFailureIsNonDestructive  Success
+Grimrock.Magic.MON18.8                              12/12 Success
+```
+
+Commit :
+
+```text
+558036c58dee2570c4800a851d0d2f461dd79752  Extract TD02.6 party save load facade
+```
+
+### TD-ARCH-003.4 — Party Item Transfer — RÉALISÉ
+
+TD02.7 a caractérisé puis déplacé dans `GrimrockPartyPawnItemTransfer.cpp` la façade de transfert :
+
+- équipement <-> inventaire / curseur ;
+- cursor <-> inventaire ;
+- cursor -> réceptacle ;
+- cursor -> sol ;
+- lancer libre ;
+- lancement d'objet équipé ou d'inventaire pour une attaque ;
+- helpers de construction/consommation d'une unité de stack.
+
+L'extraction initiale a révélé une collision de helpers de namespace anonyme en Unity Build. Le correctif `af17b2b5...` a préfixé les helpers du nouveau fichier sans modifier leur comportement.
+
+Validation UE5.5.4 post-correctif :
+
+```text
+Grimrock.TechnicalDebt.TD02_7.PartyItemTransfer.CursorFacadeContract Success
+Grimrock.Monsters.MON11.Presentation.ThrownWeaponLifecycle           Success
+Grimrock.TechnicalDebt.TD02_1.WorldItemsContract                     Success
+```
+
+Commits associés :
+
+```text
+6bc1cc29e91798382c1241ae331a851367164f35  Characterize TD02.7 party item transfer
+5b493f3ec9d7a408a10dc43a009ca4e5592f9bcc  Extract TD02.7 party item transfer
+af17b2b5e5b9bf63ce77977dd05a2015d6b1e35a  Fix TD02.7 Unity helper collision
+```
+
+Responsabilités principales encore présentes dans `GrimrockPartyPawn.cpp` :
+
+- cycle de vie / startup orchestration ;
+- binding des inputs ;
 - mouvement case par case et rotation ;
-- input et buffer ;
-- caméra/head bob/free look ;
-- interaction monde ;
-- held item / lancer ;
-- UI principale ;
-- Save / Continue ;
-- orchestration combat ;
-- création de personnage.
+- caméra / head bob / free look ;
+- petites façades niveau/inventaire ;
+- UI menu / combat HUD ;
+- création initiale de personnage.
 
-La présence des fichiers `GrimrockPartyPawnRecruitment.cpp` et `GrimrockPartyPawnCustomRecruit.cpp` montre que l'extraction incrémentale est déjà viable.
-
-Traitement recommandé : extraire uniquement une responsabilité stable lorsqu'elle doit être modifiée. Les candidats naturels sont présentation held item, save/load façade, ou interaction/input, mais l'ordre doit être dicté par les problèmes réels rencontrés.
+**TD-ARCH-003 reste actif**, mais sa concentration a nettement diminué. La prochaine extraction doit continuer à être précédée d'une caractérisation et ne doit pas déplacer la complexité vers `AGrimrockPlayerController`.
 
 ---
 
@@ -195,7 +315,7 @@ Traitement recommandé : extraire uniquement une responsabilité stable lorsqu'e
 
 **Priorité : P2 — maintenabilité structurelle**
 
-Indicateur actuel :
+Indicateur de référence :
 
 ```text
 GrimrockPlayerController.cpp ≈ 49 KB post-STYLE01 (50 463 octets)
@@ -204,6 +324,8 @@ GrimrockPlayerController.cpp ≈ 49 KB post-STYLE01 (50 463 octets)
 Le contrôleur porte encore une part importante de souris, interaction, curseur et coordination UI/runtime.
 
 Traitement recommandé : ne pas le découper isolément. Auditer d'abord la frontière Pawn / Controller / Inventory / Interaction afin d'éviter de déplacer la complexité sans réduire les dépendances.
+
+TD02.7 a clarifié la façade de transfert côté Pawn mais n'a pas modifié l'autorité du Controller ; TD-ARCH-004 reste donc actif sans refactor dédié.
 
 ---
 
@@ -307,7 +429,7 @@ TD01.4 est **terminé comme tranche de stabilisation**. TD-LOG-001 reste volonta
 
 **Priorité : P2 — tooling/process**
 
-Le dépôt courant ne présente pas de `.github/workflows` exploitable sur `master`. La compilation UE5.5.4 et les Automation/PIE restent donc principalement validées sur la machine de développement.
+La compilation UE5.5.4 et les Automation/PIE restent principalement validées sur la machine de développement. Les workflows GitHub éventuels ne sont pas considérés comme autorité tant qu'ils ne reproduisent pas réellement l'environnement UE du projet.
 
 Ce n'est pas une faiblesse de l'architecture gameplay, mais cela augmente le coût de détection des régressions et la dépendance à une validation manuelle.
 
@@ -341,7 +463,7 @@ Décision : **ne pas lancer de renommage transversal dédié**. Traiter uniqueme
 
 **Priorité : P3 — intégration fonctionnelle**
 
-`AGrimrockPartyPawn` contient encore :
+`AGrimrockPartyPawn` contient encore, désormais dans `GrimrockPartyPawnItemTransfer.cpp` :
 
 ```text
 TODO: Scale throw speed, accuracy and damage with the selected character's ranged/throwing skill.
@@ -389,15 +511,14 @@ Les fichiers `.uasset/.umap` ne sont pas pleinement auditables comme du texte ho
 
 Plusieurs documents « courants » avaient dérivé par rapport au code :
 
-- SaveGame encore indiqué v7 alors que MON20.9 a introduit v8 ;
+- SaveGame encore indiqué v7 alors que MON20.9 avait introduit v8, puis TD01.1 v9 ;
 - persistance Spellbook encore indiquée « à faire MON18.8 » alors qu'elle est livrée ;
 - Skills encore présentés comme futurs dans certains résumés UI ;
-- MON20.4 encore annoncé comme prochain dans des fondations datant du 23 août ;
-- contenu futur mélangé à la dette technique.
+- MON20.4 encore annoncé comme prochain dans des fondations anciennes ;
+- contenu futur mélangé à la dette technique ;
+- le présent registre lui-même était resté sur la baseline TD02.1 alors que TD02.2 à TD02.7 avaient été réalisés.
 
 Les documents historiques de jalon ne doivent pas être réécrits : ils décrivent correctement leur époque. En revanche, les documents portant explicitement `CURRENT`, `FOUNDATION`, `INDEX`, `PROJECT_SYNTHESIS` ou carte autoritaire doivent pointer vers l'état courant ou vers ce registre.
-
-La présente passe corrige les fondations les plus directement concernées et fait de ce registre la référence unique pour la dette.
 
 ---
 
@@ -406,31 +527,25 @@ La présente passe corrige les fondations les plus directement concernées et fa
 La réduction de dette ne doit pas commencer par les plus gros fichiers. Elle doit commencer par les contrats qui peuvent produire une incohérence de jeu.
 
 ```text
-TD01.1 — Receptacle Removal Permission Persistence      [RÉSOLU]
-         -> TD-PERSIST-001
-
+TD01.1 — Receptacle Removal Permission Persistence          [RÉSOLU]
 TD01.2 — Party Selection / Held Visual Notification Contract [RÉSOLU]
-         -> TD-PARTY-001
+TD01.3 — Event -> Command Unsupported/Fallback Contract     [RÉSOLU]
+TD01.4 — Runtime Logging Categories / Diagnostic Hygiene    [RÉALISÉ]
 
-TD01.3 — Event -> Command Unsupported/Fallback Contract [RÉSOLU]
-         -> TD-EVENT-001
+TD02.1 — GridLevelRuntimeActor targeted extraction          [RÉALISÉ]
+TD02.2 — PartyInventory Equipment World Transfer            [RÉALISÉ]
+TD02.3 — PartyInventory Diagnostics                         [RÉALISÉ]
+TD02.4 — PartyPawn Input Buffer                             [RÉALISÉ]
+TD02.5 — PartyPawn Held Item Presentation                   [RÉALISÉ]
+TD02.6 — PartyPawn Save / Load Façade                      [RÉALISÉ]
+TD02.7 — PartyPawn Item Transfer Façade                    [RÉALISÉ]
 
-TD01.4 — Runtime Logging Categories / Diagnostic Hygiene [RÉALISÉ]
-         -> TD-LOG-001 reste actif / opportuniste
+TD02.8 — PartyPawn UI façade characterization / extraction  [PROCHAIN]
+         -> TD-ARCH-003
+         -> audit explicite de la frontière PlayerController sans découper le Controller
 
-TD02.1 — GridLevelRuntimeActor targeted extraction       [RÉALISÉ]
-         -> TD-ARCH-001 reste actif
-         -> TD-ARCH-001.1 Persistence extraction [RÉALISÉ]
-         -> TD-ARCH-001.2 World Items extraction  [RÉALISÉ]
-
-TD02.2 — PartyInventory targeted service extraction
-         -> TD-ARCH-002
-
-TD02.3 — PartyPawn / PlayerController responsibility audit + extraction
-         -> TD-ARCH-003 / TD-ARCH-004
-
-TD02.4 — ActivationComponent internal decomposition
-         -> TD-ARCH-005
+TD02.9 — décision de stop pour PartyPawn / passage au prochain point P2
+         -> TD-ARCH-003 / TD-ARCH-004 / TD-ARCH-005 selon audit
 
 TD03 — Grid Editor Slate / legacy Details cleanup
        -> TD-EDITOR-001
@@ -454,7 +569,8 @@ TD04 — CI / Shipping validation
 7. **Un sous-jalon = un commit logique** autant que possible : code + tests + documentation.
 8. **Validation UE réelle** dès qu'un asset, un binding Blueprint ou une présentation est impliqué.
 9. **Mesurer le résultat.** Une extraction doit réduire un couplage ou clarifier une frontière, pas seulement déplacer des lignes.
-10. **Stop condition.** Si le code devient plus complexe sans supprimer de risque observé, le refactor s'arrête.
+10. **Unity-safe par défaut.** Les helpers de namespace anonyme ajoutés dans de nouvelles unités `.cpp` doivent porter un préfixe propre au fichier/domaine afin d'éviter les collisions quand Unreal regroupe les sources.
+11. **Stop condition.** Si le code devient plus complexe sans supprimer de risque observé, le refactor s'arrête.
 
 ---
 
@@ -475,6 +591,7 @@ mêmes tests avant/après
 aucune modification de format sérialisé
 aucun changement d'asset sans besoin
 API publique conservée ou migration documentée
+Unity Build vérifié lorsque de nouveaux .cpp/helpers locaux sont ajoutés
 ```
 
 ### Editor
@@ -520,16 +637,22 @@ et sur l'état courant des principaux fichiers runtime/editor.
 La prochaine tranche est :
 
 ```text
-TD02.2 — PartyInventory targeted service extraction
+TD02.8 — PartyPawn UI Façade Characterization
 ```
 
 Pourquoi :
 
-- TD02.1 a prouvé que les extractions `.cpp` ciblées, précédées d'un test de caractérisation, réduisent la concentration sans créer une nouvelle autorité ;
-- `UGridPartyInventoryComponent` reste le prochain point de concentration P2 dans l'ordre du registre ;
-- le domaine `EquipmentWorldTransfer` est un candidat initial crédible parce que l'extraction d'une unité équipée, son rollback et la consommation associée sont déjà des transactions explicites ;
-- `ThrownWeaponLifecycle` exerce déjà le chemin extraction -> rollback et extraction -> lancer ;
-- la décision d'extraction reste conditionnée à un audit des helpers partagés : si la séparation nécessite de dupliquer l'autorité ou des helpers transversaux, TD02.2 devra choisir une autre frontière.
+- TD02.4 à TD02.7 ont déjà retiré du Pawn les responsabilités input-buffer, held-item, save/load et item-transfer ;
+- le bloc UI restant est une frontière contiguë et stable : menu global, Combat HUD et création initiale de personnage ;
+- les API correspondantes sont déjà exposées par `AGrimrockPartyPawn`, donc une extraction vers une nouvelle unité `.cpp` peut préserver totalement le contrat public ;
+- `AGrimrockPlayerController` reste impliqué dans le mode d'entrée et le curseur : TD02.8 doit donc **déplacer uniquement l'implémentation existante**, sans transférer d'état ni redéfinir l'autorité Pawn/Controller ;
+- un test de caractérisation doit verrouiller au minimum le contrat de blocage Hotbar par les modales UI avant toute extraction.
+
+Le candidat d'extraction, uniquement après validation du test de caractérisation, est :
+
+```text
+GrimrockPartyPawnUI.cpp
+```
 
 MON21.2 reste suspendu pendant cette campagne d'exploitation/stabilisation.
 
@@ -676,5 +799,5 @@ docs/Design/STYLE01_CPP_FORMATTING_BASELINE.md
 Le prochain travail recommandé est désormais :
 
 ```text
-TD02.2 — PartyInventory targeted service extraction
+TD02.8 — PartyPawn UI Façade Characterization
 ```
