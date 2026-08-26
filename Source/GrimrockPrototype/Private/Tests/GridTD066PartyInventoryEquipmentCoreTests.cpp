@@ -156,6 +156,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 	TestEqual(TEXT("Equip records the owning character"), EquippedItem.OwnerCharacterIndex, 0);
 	TestTrue(TEXT("Equip records the actual equipment slot"), EquippedItem.EquipmentSlot == EGridEquipmentSlot::MainHand);
 
+	AddExpectedError(TEXT("GridInventory Equip Failed Character=0 Slot=MainHand Reason=UnsupportedSlot"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("An incompatible Shield -> MainHand equip is rejected"),
 		Component->EquipItemFromInventorySlot(0, 2, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("A rejected incompatible equip leaves the shield in its source slot"),
@@ -288,6 +289,7 @@ bool FGridTD066PartyInventoryEquipmentCoreContractTest::RunTest(const FString& P
 			FullInventoryComponent->AddItemToCharacterInventory(0, Filler));
 	}
 
+	AddExpectedError(TEXT("GridInventory Unequip Failed Character=0 Slot=MainHand Reason=InventoryFull"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("Unequip fails atomically when no inventory slot is free"),
 		FullInventoryComponent->UnequipItemToInventory(0, EGridEquipmentSlot::MainHand));
 	TestTrue(TEXT("Failed full-inventory unequip keeps the source equipment occupied"),
