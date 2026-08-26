@@ -227,7 +227,7 @@ bool FGridTD068PartyInventoryItemDefinitionRegistryContractTest::RunTest(const F
 			},
 			MissingDefinitionId));
 	TestTrue(TEXT("Successful rehydration reports no missing definition"), MissingDefinitionId.IsNone());
-	TestEqual(TEXT("Rehydration deduplicates owned definition IDs"), RequestedIds.Num(), UE_ARRAY_COUNT(ExpectedIds));
+	TestEqual(TEXT("Rehydration deduplicates owned definition IDs"), RequestedIds.Num(), static_cast<int32>(UE_ARRAY_COUNT(ExpectedIds)));
 	for (const FName ExpectedId : ExpectedIds)
 	{
 		TestTrue(FString::Printf(TEXT("Rehydration requests %s"), *ExpectedId.ToString()), RequestedIds.Contains(ExpectedId));
