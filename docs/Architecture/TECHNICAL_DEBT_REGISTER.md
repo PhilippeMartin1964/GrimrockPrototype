@@ -1,13 +1,13 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
 Date de référence : **26 août 2026**  
-Baseline fonctionnelle validée : `4722e3d3d77d32a9722aa075dfce2f00823a8d35` — TD04.3 Shipping cook/package harness validé sous UE5.5.4  
-Baseline documentaire auditée : `7b6daf18fbc1a9f589fa3f1ad85668428cf8c71f`  
+Baseline fonctionnelle validée : `0564d296003fec7da8ca1dc99b791e46ed579861` — TD05.3 RuntimeActor Diagnostics extrait et validé sous UE5.5.4  
+Baseline documentaire auditée : `0564d296003fec7da8ca1dc99b791e46ed579861`  
 Statut : **ACTIF — TD05 RUNTIMEACTOR CIBLÉ**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
-TD04 a atteint sa stop condition locale. MON21.2 n’est plus bloqué par TD04, mais TD05 traite d’abord une concentration runtime redevenue concrète après re-baseline.
+TD04 a atteint sa stop condition locale. MON21.2 n’est plus bloqué par TD04, mais TD05 traite d’abord la concentration résiduelle de `AGridLevelRuntimeActor` tant qu’une frontière claire et à faible risque reste disponible.
 
 ---
 
@@ -45,7 +45,7 @@ P2 : 8 dettes actives ou surveillées
 P3 : 2 dettes actives
 ```
 
-`TD-ARCH-001` est la seule dette P2 actuellement remise en **priorité ciblée immédiate**. Les autres P2 restent surveillées ou différées.
+`TD-ARCH-001` est la seule dette P2 actuellement en **priorité ciblée immédiate**. Les autres P2 restent surveillées ou différées.
 
 ---
 
@@ -55,7 +55,7 @@ P3 : 2 dettes actives
 
 **Priorité : P2 — PRIORITÉ CIBLÉE ACTUELLE**
 
-TD05.1 a rebaseliné la concentration actuelle :
+TD05.1 a rebaseliné la concentration initiale :
 
 ```text
 GridLevelRuntimeActor.cpp
@@ -74,9 +74,24 @@ TD-ARCH-001.1 — Persistence   RÉALISÉ
 
 TD-ARCH-001.2 — World Items   RÉALISÉ
     GridLevelRuntimeActorWorldItems.cpp
+
+TD-ARCH-001.3 — Diagnostics   RÉALISÉ / VALIDÉ UE5.5.4
+    GridLevelRuntimeActorDiagnostics.cpp
 ```
 
-Le volume n’est pas le seul signal : le header expose encore dungeon/level state, geometry/rebuild, grid queries, portes, interactions, items, monstres/encounters, transitions, façade Event -> Command, diagnostics, feedback UI et preview éditeur.
+### État après TD05.3
+
+Mesure locale sur l’état validé puis publié :
+
+```text
+GridLevelRuntimeActor.cpp
+    2 951 lignes
+
+GridLevelRuntimeActorDiagnostics.cpp
+    480 lignes après clang-format 19.1.5
+```
+
+Le volume n’est pas le seul signal : le header expose encore dungeon/level state, geometry/rebuild, grid queries, portes, interactions, items, monstres/encounters, transitions, façade Event -> Command, feedback UI et preview éditeur.
 
 `AGridLevelRuntimeActor` doit néanmoins rester la façade/orchestrateur du niveau. Aucune extraction ne doit créer une seconde autorité.
 
@@ -84,30 +99,61 @@ Le volume n’est pas le seul signal : le header expose encore dungeon/level sta
 
 ```text
 TD05.1 — Documentation debt audit / RuntimeActor re-baseline    RÉALISÉ
-TD05.2 — RuntimeActor Diagnostics characterization              PROCHAIN
-TD05.3 — Extract RuntimeActor Diagnostics                       après baseline verte
-TD05.4 — Re-audit RuntimeActor stop condition                   après validation
+TD05.2 — RuntimeActor Diagnostics characterization              RÉALISÉ / VALIDÉ
+TD05.3 — Extract RuntimeActor Diagnostics                       RÉALISÉ / VALIDÉ
+TD05.4 — RuntimeActor re-audit                                  RÉALISÉ
+TD05.5 — Feedback UI characterization                           PROCHAIN
+TD05.6 — Extract RuntimeActor Feedback UI                       après baseline verte
+TD05.7 — RuntimeActor final stop-condition audit                après validation
 ```
 
-Première frontière retenue :
+TD05.2 a verrouillé :
 
 ```text
-GetRuntimeDebugSummary
-LogRuntimeDebugSummary
-ShowRuntimeDebugSummary
-GetLevelAssetDiagnostics
-LogLevelAssetDiagnostics
-GetPIEReadinessDiagnostics
-LogPIEReadinessDiagnostics
+Grimrock.TechnicalDebt.TD05_2.RuntimeActorDiagnostics.Contract
 ```
 
-Cible envisagée après caractérisation :
+TD05.3 a conservé l’API publique et déplacé uniquement l’implémentation Diagnostics. Validation post-extraction : 1 Success / 0 Failed / 0 warning.
+
+### Frontière suivante retenue : Feedback UI
+
+Méthodes :
 
 ```text
-GridLevelRuntimeActorDiagnostics.cpp
+ShowReadableMessage
+HasActiveReadableMessage
+DismissReadableMessage
+HideReadableMessage
+ShowInteractionFeedback
+HideInteractionFeedback
+ShowCombatFeedback
+HideCombatFeedback
 ```
 
-**Règle :** pas de Geometry/Monster split tant que Diagnostics n’a pas été caractérisé, extrait et réévalué.
+État associé déjà groupé dans le RuntimeActor : classes de widget Readable/Interaction/Combat, trois widgets transient, trois timers, `bReadableMessageAutoHide` et `ReadableMessageDuration`.
+
+Cette responsabilité ne possède aucune donnée gameplay autoritaire et peut être déplacée vers :
+
+```text
+GridLevelRuntimeActorFeedbackUI.cpp
+```
+
+sans changer le header public ni créer une nouvelle classe d’état.
+
+### Frontières différées
+
+```text
+Monster spawn/lifecycle
+    -> fortement couplé persistance + occupancy + encounters + combat + Event->Command
+
+Geometry/rebuild
+    -> fortement couplé ISM + transforms + preview + spawning runtime
+
+Doors/interactions/transitions
+    -> cohérent mais partagé avec conventions directionnelles et composants runtime
+```
+
+Décision TD05.4 : **stop condition non atteinte**, uniquement parce que Feedback UI constitue encore une frontière nette et à faible risque. Aucun split Monster/Geometry n’est autorisé par défaut.
 
 ---
 
@@ -222,7 +268,7 @@ Automation explicite
 index.json contrôlé
 ```
 
-Validation réelle : 1 Success / 0 Failed sur le contrat TD03.4.
+Le harness a depuis été réutilisé avec succès pour TD05.2/TD05.3.
 
 ### TD04.3 — Shipping Package Harness — RÉALISÉ / VALIDÉ
 
@@ -297,7 +343,10 @@ TD03.1–TD03.4   Grid Editor Details cleanup                           RÉALIS�
 TD04.1–TD04.3   validation Editor/Automation/Shipping                 RÉALISÉ
 TD04.4           CI UE réelle                                         DIFFÉRÉ
 TD05.1           doc debt audit / RuntimeActor re-baseline            RÉALISÉ
-TD05.2           RuntimeActor Diagnostics characterization            PROCHAIN
+TD05.2           RuntimeActor Diagnostics characterization            RÉALISÉ / VALIDÉ
+TD05.3           RuntimeActor Diagnostics extraction                  RÉALISÉ / VALIDÉ
+TD05.4           RuntimeActor re-audit                                RÉALISÉ
+TD05.5           Feedback UI characterization                         PROCHAIN
 ```
 
 ---
@@ -316,6 +365,7 @@ TD05.2           RuntimeActor Diagnostics characterization            PROCHAIN
 10. Une extraction doit réduire un risque ou clarifier une frontière, pas seulement déplacer des lignes.
 11. Helpers locaux de nouveaux `.cpp` nommés de façon Unity-safe.
 12. Stop condition : si le changement ajoute de la complexité sans supprimer un risque observé, arrêter.
+13. `Scripts/FormatCpp.ps1` formate tout le périmètre first-party : pour une micro-extraction, vérifier le diff et restaurer toute modification historique hors périmètre avant commit.
 
 ---
 
@@ -344,6 +394,7 @@ docs/Architecture/TEST_AUTOMATION_FOUNDATION.md
 docs/Design/UI_ARCHITECTURE_CURRENT.md
 docs/Design/TD04_2_LOCAL_UE_VALIDATION_HARNESS.md
 docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
+docs/Design/TD05_4_RUNTIMEACTOR_REAUDIT.md
 ```
 
 `ARCHITECTURE_CONSISTENCY_AUDIT.md`, `Maps/GRIMROCK_PROJECT_MAP.md` et les documents MON/TD/STYLE datés restent des snapshots historiques jusqu’à rafraîchissement explicite.
@@ -353,7 +404,7 @@ docs/Design/TD04_3_COOK_PACKAGE_VALIDATION.md
 # 9. Prochain travail recommandé
 
 ```text
-TD05.2 — RuntimeActor Diagnostics characterization
+TD05.5 — Feedback UI characterization
 ```
 
-Objectif : figer les sorties et comportements des diagnostics avant toute extraction vers `GridLevelRuntimeActorDiagnostics.cpp`. MON21.2 peut reprendre après la tranche TD05 jugée utile ; il n’est plus bloqué par TD04.
+Objectif : figer le contrat public et les comportements sûrs de Readable/Interaction/Combat feedback avant extraction vers `GridLevelRuntimeActorFeedbackUI.cpp`. MON21.2 peut reprendre après la tranche TD05 jugée utile ; il n’est plus bloqué par TD04.
