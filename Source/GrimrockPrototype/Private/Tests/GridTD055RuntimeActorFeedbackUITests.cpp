@@ -5,6 +5,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Runtime/GridLevelRuntimeActor.h"
+#include "UI/ReadableMessageWidget.h"
 #include "UObject/Class.h"
 #include "UObject/UnrealType.h"
 
