@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.4 — Authoring Identity Normalization**  
 Baseline v21 validée : `089fba0097f923d22af2cc39fdd3bb93778724c4`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Statut : **GATE 16/16 VALIDÉ — RÉGRESSIONS / SHIPPING REQUIS**
 
 ## 1. Objet
 
@@ -268,8 +268,56 @@ Enfin Shipping Win64 v22.
 - [x] Active + Pool rehydration ;
 - [x] SaveGame v22 exact-match ;
 - [x] 4 tests .4 ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] gate 16/16 vert ;
+- [x] build UE5.5.4 vert ;
+- [x] gate 16/16 vert ;
 - [ ] régressions ciblées vertes ;
 - [ ] Shipping Win64 vert ;
 - [ ] TD07.3.4 clos.
+
+
+## 14. Validation locale — gate TD07.3.4.4
+
+```text
+Grimrock.TechnicalDebt.TD07_3_4_4.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-001641
+
+Grimrock.TechnicalDebt.TD07_3_4_3.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-001654
+
+Grimrock.TechnicalDebt.TD07_3_4_2.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-001707
+
+Grimrock.TechnicalDebt.TD07_3_4.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-001720
+```
+
+Gate total :
+
+```text
+16/16
+Warnings 0
+Failures 0
+Not run 0
+```
+
+Reste : régressions ciblées puis Win64 Shipping v22.
