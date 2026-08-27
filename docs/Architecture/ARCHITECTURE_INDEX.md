@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 27 août 2026, TD07.3.3.6 implémenté — validation requise.**  
+**Référence courante : 27 août 2026, TD07.3.3.6 validé et clos ; TD07.3.3.7 Spellbook characterization active.**  
 Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
@@ -97,7 +97,7 @@ TD07.3.3.2 Remove Legacy Attribute Bridge                  VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources      VALIDÉ
 TD07.3.3.4 Normalize Weight State                             VALIDÉ
 TD07.3.3.5 Normalize XP / Level / Class Progression              VALIDÉ
-TD07.3.3.6 Normalize Skills                                          IMPLÉMENTÉ — À VALIDER
+TD07.3.3.6 Normalize Skills                                          VALIDÉ — CLOS\nTD07.3.3.7 Normalize Spellbook                                       CHARACTERIZATION ACTIVE
 TD07.3.4–TD07.3.8                                       À FAIRE
 ```
 

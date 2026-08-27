@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.6 VALIDÉ ET CLOS**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.7 SPELLBOOK CHARACTERIZATION ACTIVE**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -615,7 +615,7 @@ TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
 TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS
+TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS\nTD07.3.3.7      Normalize Spellbook                                    CHARACTERIZATION ACTIVE
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -693,68 +693,66 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.6 — Normalize Skills est validé et clos. Prochaine tranche : TD07.3.3.7 — Normalize Spellbook.**
+**TD07.3.3.7 — Normalize Spellbook — characterization active.**
 
-Implémentation :
-
-```text
-FGridCharacterInventoryState::SkillRanks
-    durable
-    autorité unique
-    sparse SkillId + Rank
-
-FRPGSkillRankSaveState
-    supprimé
-
-FRPGCharacterSkillSaveState
-    supprimé
-
-UGrimrockPartySaveGame::CharacterSkillStates
-    supprimé
-
-FRPGSkillPersistence
-    réduit à ValidatePartySkills()
-    validation CharacterId / structure / définition canonique / MaxRank
-```
-
-Le déterminisme de l'état durable est maintenu par `FRPGSkillService::TrySetSkillRank()`, qui trie les ranks par `SkillId` après mutation.
-
-SaveGame courant :
+État actuel :
 
 ```text
-CurrentSaveVersion = 16
-v15 et antérieures -> rejet sans migration
+UGridPartySpellbookComponent::SpellbookState
+    Transient
+    autorité runtime
+    CharacterId + KnownSpellIds
+
+UGrimrockPartySaveGame::CharacterSpellbookStates
+    miroir Save séparé
+    CharacterId + KnownSpellIds
+
+FGridSpellbookPersistence
+    Capture runtime -> Save mirror
+    Restore Save mirror -> runtime
 ```
 
-Filtres requis :
+Le gate doit figer :
 
 ```text
-Grimrock.TechnicalDebt.TD07_3_3_6.Normalization
-Grimrock.TechnicalDebt.TD07_3_3_6.Characterization
-Grimrock.MON20.9.SkillPersistence
-Grimrock.MON20.9.ActivePoolPersistence
-Grimrock.MON20.9.RestoredConsumers
+1. autorité runtime séparée du personnage ;
+2. snapshot sparse Active + CharacterPool ;
+3. tri déterministe à la frontière Save ;
+4. restore de remplacement atomique ;
+5. indépendance Hotbar / connaissance ;
+6. tolérance MON18.8 des SpellId inconnus.
 ```
 
-Puis les régressions Skills/requirements/UI pertinentes, TD07.3.2, MON18.8, MON16.7/8 et Win64 Shipping.
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_7.Characterization
+```
+
+Direction après gate :
+
+```text
+FGridCharacterInventoryState::KnownSpellIds
+    autorité durable unique
+
+CharacterSpellbookStates
+    supprimer
+
+capture / restore Spellbook séparés
+    supprimer
+
+runtime containers parallèles
+    supprimer s'ils ne servent plus
+
+SaveGame
+    nouvelle génération exact-match
+    aucune migration
+```
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_6_SKILL_STATE_NORMALIZATION.md
+docs/Design/TD07_3_3_7_SPELLBOOK_STATE_CHARACTERIZATION.md
 ```
-
-Validation TD07.3.3.6 finale :
-
-```text
-Normalization                 4/4
-Characterization              4/4
-MON20.6 / MON20.8 / MON20.9   vert
-Save / Progression / Magic    vert
-Status Effects                vert
-Win64 Shipping                vert
-```
-
-TD07.3.3.6 final : stop condition atteinte.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
