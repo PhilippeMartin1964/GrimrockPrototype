@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `32082dac856207d762ad32112ddd7cd3f27fa311`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / SHIPPING REQUISE**
+Statut : **VALIDÉ — CLOS**
 
 ## 1. Objet
 
@@ -216,10 +216,10 @@ TD07.3.3.2 sera clos lorsque :
 - [x] création et recrutement utilisent directement `Attributes` ;
 - [x] SaveGame courant passe à v11 ;
 - [x] Save v10 est rejetée sans migration ;
-- [ ] compilation UE5.5.4 verte ;
-- [ ] filtre TD07.3.3.2 vert ;
-- [ ] régressions ciblées vertes ;
-- [ ] Shipping Win64 vert.
+- [x] compilation UE5.5.4 verte ;
+- [x] filtre TD07.3.3.2 vert ;
+- [x] régressions ciblées vertes ;
+- [x] Shipping Win64 vert.
 
 Prochaine tranche après validation :
 
@@ -227,4 +227,50 @@ Prochaine tranche après validation :
 TD07.3.3.3 — Normalize Derived Stats / Mutable Resources
 ```
 
-Elle ne doit pas commencer avant clôture de TD07.3.3.2.
+TD07.3.3.2 est clos. TD07.3.3.3 peut désormais commencer.
+
+## 10. Validation finale du 27 août 2026
+
+Résultats fournis depuis l'environnement UE5.5.4 local :
+
+```text
+Development Editor build    OK
+TD07.3.3.2                  vert
+régressions ciblées         vertes
+MON16.7                     10/10
+MON16.8                     10/10
+warnings Automation         0 sur MON16.8
+failed Automation           0
+```
+
+Le test MON16.8 `RegressionNamespaceCoverage` a été corrigé après suppression du test legacy CC1 :
+
+```text
+MON16.7 frozen count : 11 -> 10
+MON16.1-MON16.7 total: 71 -> 70
+```
+
+Cette correction est une mise à jour de baseline de test, pas une modification du runtime Status Effects.
+
+Validation Win64 Shipping :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Pak files     : 1
+Archive files : 41
+Archive bytes : 906014651
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260827-173404
+```
+
+Le warning UBT indiquant que Visual Studio 2022 14.44.35227 n'est pas la version préférée reste la baseline toolchain documentée par TD07.1 ; il n'a empêché ni le build Editor ni le Shipping.
+
+Commits de validation associés :
+
+```text
+05445f57311639ca0a624c54c699d7934da9047b  Fix MON16.8 frozen regression baseline
+129b2e35eac39bcbb6b467fc9ac0b98004539782  Add concise UE automation summaries
+```
+
+La stop condition de TD07.3.3.2 est atteinte.

@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.2 IMPLÉMENTÉ / À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.2 VALIDÉ / TD07.3.3.3 PROCHAIN**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -611,7 +611,8 @@ TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
 TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
 TD07.3.3        Character State Normalization                         ACTIF
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
-TD07.3.3.2      Remove Legacy Attribute Bridge                        IMPLÉMENTÉ — À VALIDER
+TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
+TD07.3.3.3      Normalize Derived Stats / Mutable Resources            PROCHAIN
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -689,36 +690,41 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.3.2 — Remove Legacy Attribute Bridge.**
+**TD07.3.3.3 — Normalize Derived Stats / Mutable Resources.**
 
-Implémentation courante :
-
-```text
-FGridCharacterInventoryState
-    Strength                  SUPPRIMÉ
-    bRPGAttributesInitialized SUPPRIMÉ
-    Attributes                AUTORITÉ UNIQUE
-
-InitializeCharacterDefaults
-    fallback Strength -> Attributes   SUPPRIMÉ
-
-SaveGame
-    CurrentSaveVersion = 11
-    v10 rejetée sans migration
-```
-
-Le filtre dédié est :
+TD07.3.3.2 est validé le 27 août 2026 :
 
 ```text
-Grimrock.TechnicalDebt.TD07_3_3_2
+legacy Strength                  supprimé
+bRPGAttributesInitialized        supprimé
+Attributes                       autorité unique
+SaveGame                         v11 exact-match
+MON16.7                          10/10
+MON16.8                          10/10
+Win64 Shipping                   validé
+Pak files                        1
+Archive files                    41
+Archive bytes                    906014651
 ```
 
-Référence :
+Le prochain risque caractérisé par TD07.3.3.1 est le conteneur `FRPGDerivedStats`, qui mélange actuellement :
 
 ```text
-docs/Design/TD07_3_3_2_REMOVE_LEGACY_ATTRIBUTE_BRIDGE.md
+projection/calculable
+    MaxHealth
+    MaxMana
+    Initiative
+    Accuracy
+    Evasion
+    capacités initiales d'armure selon contrat
+
+mutable/durable
+    CurrentHealth
+    CurrentMana
+    PhysicalArmor courant
+    MagicalArmor courant
 ```
 
-TD07.3.3.3 ne commence qu'après validation Editor/Automation/Shipping de TD07.3.3.2.
+TD07.3.3.3 doit commencer par des tests de caractérisation, notamment sur les bonus d'équipement et leur effet réel en combat, avant toute modification de structure.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
