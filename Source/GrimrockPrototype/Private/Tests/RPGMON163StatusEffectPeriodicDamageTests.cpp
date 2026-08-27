@@ -277,6 +277,7 @@ bool FRPGMON163TurnLifecycleMonsterTest::RunTest(const FString& Parameters)
 	Completed.Side = EGridCombatantSide::Monster;
 	Completed.CombatantId = Monster->ResolvePersistenceId();
 	Completed.State = EGridCombatantTurnState::Completed;
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 	TurnManager->OnCombatantStateChanged.Broadcast(Completed);
 
 	TestEqual(TEXT("Fire first consumes monster magical armor"), Monster->CurrentMagicalArmor, 0);
