@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `c050f608410653b75712eecf938b8056d3d49c4a`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / RÉGRESSIONS / SHIPPING REQUISES**
+Statut : **IMPLÉMENTÉ — BUILD / NORMALIZATION / CHARACTERIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUIS**
 
 ## 1. Objet
 
@@ -178,6 +178,30 @@ Ces sujets appartiennent toujours à :
 TD07.3.4 — Authoring Identity Normalization
 ```
 
+## 9.1 Validation locale — gates finaux
+
+Validation du 27 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_10.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-231740
+
+Grimrock.TechnicalDebt.TD07_3_3_10.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-231753
+```
+
+Les deux gates finaux sont verts. Il reste la campagne de régression globale puis le Win64 Shipping.
+
 ## 10. Stop condition
 
 - [x] DerivedStats marqué transient ;
@@ -188,9 +212,9 @@ TD07.3.4 — Authoring Identity Normalization
 - [x] v19 rejeté sans migration ;
 - [x] tests Normalization ajoutés ;
 - [x] Characterization réécrite post-refactor ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
-- [ ] Characterization 4/4 post-refactor ;
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
+- [x] Characterization 4/4 post-refactor ;
 - [ ] régressions finales vertes ;
 - [ ] Shipping Win64 vert ;
 - [ ] TD07.3.3 clos.
