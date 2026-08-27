@@ -157,6 +157,29 @@ Les garanties caractérisées avant normalisation restent donc valides avec `Ski
 
 ## 9. Régressions requises
 
+Validation locale du 27 août 2026 — bloc Skills / MON20 :
+
+```text
+Grimrock.MON20.6.Skills
+    24 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.MON20.8
+    24 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.MON20.9.SkillPersistence
+    7 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.MON20.9.ActivePoolPersistence
+    8 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.MON20.9.RestoredConsumers
+    8 succeeded / 0 warning / 0 failed / 0 not run
+```
+
+Le bloc de régressions Skills / requirements / UI et MON20.9 est vert. Restent les régressions transverses Save / Magic / Status puis le Shipping Win64.
+
+
+
 ```text
 Grimrock.MON20.6.Skills
 Grimrock.MON20.8
@@ -198,7 +221,7 @@ maps
 - [x] build UE5.5.4 vert ;
 - [x] Normalization 4/4 ;
 - [x] Characterization 4/4 après refactor ;
-- [ ] régressions MON20.6/20.8/20.9 vertes ;
+- [x] régressions MON20.6/20.8/20.9 vertes ;
 - [ ] régressions Save/Magic/Status vertes ;
 - [ ] Shipping Win64 vert.
 
