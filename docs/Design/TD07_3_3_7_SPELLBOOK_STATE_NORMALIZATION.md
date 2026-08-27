@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `b5b017b745914742728be281de65af055cf6ebb9`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / RÉGRESSIONS / SHIPPING REQUISES**
+Statut : **IMPLÉMENTÉ — BUILD ET NORMALIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUISES**
 
 ## 1. Autorité durable unique
 
@@ -90,6 +90,22 @@ Grimrock.TechnicalDebt.TD07_3_3_6.Normalization
 
 Puis Win64 Shipping.
 
+## 8.1 Validation locale — build + Normalization
+
+Validation du 27 août 2026 :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_3_7.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-214921
+```
+
+Le build UE5.5.4 Development Editor est vert et le gate Normalization est validé.
+
 ## 9. Stop condition
 
 - [x] KnownSpellIds durable ajouté au personnage ;
@@ -103,8 +119,8 @@ Puis Win64 Shipping.
 - [x] hotbar indépendante de la connaissance ;
 - [x] SaveGame v17 exact-match ;
 - [x] tests dédiés ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
 - [ ] Characterization 4/4 post-refactor ;
 - [ ] régressions Magic/UI/Save vertes ;
 - [ ] Shipping Win64 vert.
