@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `8193fae0c704fbef3faf8c9981bf65d2b248f9e1`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.2 ACTIVE**
 
 ## 1. Contexte
 
@@ -329,5 +329,20 @@ Not run                : 0
 - [x] ordre de rehydration v21 documenté ;
 - [x] séquence TD07.3.4.1–.4 définie ;
 - [x] 4 tests ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] 4/4 tests verts.
+- [x] build UE5.5.4 vert ;
+- [x] 4/4 tests verts.
+
+
+## 13. Validation locale
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_4.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-233658
+```
+
+Le gate est atteint. TD07.3.4.2 — Canonical Authoring Asset Identity peut commencer.
