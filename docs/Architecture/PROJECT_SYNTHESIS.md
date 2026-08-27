@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **27 août 2026, TD07.3.1 — Prototype Data Model Reset.**
+> État : **27 août 2026, TD07.3.2 validé — Prototype Data Model Reset.**
 
 ## 1. Référence
 
@@ -15,8 +15,8 @@
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière tranche validée | `TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit` |
-| Tranche active | `TD07.3.2 — SaveGame Reset / no backward migration` — implémentée, à valider |
+| Dernière tranche validée | `TD07.3.2 — SaveGame Reset / no backward migration` |
+| Tranche active | `TD07.3.3 — Character State Normalization` — prochaine tranche, non démarrée |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -24,7 +24,7 @@ La dette technique courante est autoritairement suivie dans `docs/Architecture/T
 
 GrimrockPrototype est un dungeon crawler case par case avancé : édition de donjons, exploration, mécanismes, Event -> Command enrichi de variables/Logic/Lua, groupe RPG persistant, inventaire/équipement, combat tactique, IA de monstres, XP/niveaux, Status Effects, magie/Spellbook, recrutement, Skills, Talents et persistance associée.
 
-MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype. TD07.3.1 a scanné 86 DataAssets et produit une baseline de 41 findings ; TD07.3.2 traite maintenant uniquement le SaveGame.
+MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype. TD07.3.1 a scanné 86 DataAssets et produit une baseline de 41 findings. TD07.3.2 est désormais validé : SaveGame v10 exact-match, aucune migration historique, régressions de persistance validées et Shipping vert. TD07.3.3 est la prochaine tranche.
 
 Les campagnes TD05 et TD06 ont atteint leur stop condition : `AGridLevelRuntimeActor` et `UGridPartyInventoryComponent` restent des façades/orchestrateurs, mais leurs frontières à forte cohésion sont désormais séparées sans dupliquer l’autorité.
 
@@ -172,6 +172,8 @@ Scripts/ValidatePackage.ps1
     -> Build + Cook + Stage + Package + Pak + Archive
 ```
 
+Validation TD07.3.2 du 27 août 2026 : 6/6 sur le contrat TD07.3.2, 2/2 MON19.2 Save, 7/7 MON20.9 Skills, 10/10 MON16.7, 11/11 MON18.8 ; TD01.1 termine avec 2 tests `Succeeded with warnings` et 0 échec à cause de warnings du fixture transient. Le Shipping Win64 est validé.
+
 La CI distante UE reste différée tant qu’aucun vrai runner UE5.5.4 n’est provisionné.
 
 ## 14. Dette technique
@@ -194,7 +196,8 @@ MON21.2      Quest Definition + Campaign Runtime State    VALIDÉ
 MON21.3      Quest Event -> Command Integration           VALIDÉ
 TD01–TD06    stabilisation / dette ciblée                 STOP CONDITIONS ATTEINTES
 TD07.3.1     Prototype Data Model Asset Audit             VALIDÉ
-TD07.3.2     SaveGame Reset                              IMPLÉMENTÉ — À VALIDER
+TD07.3.2     SaveGame Reset                              VALIDÉ
+TD07.3.3     Character State Normalization                  PROCHAIN
 MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE

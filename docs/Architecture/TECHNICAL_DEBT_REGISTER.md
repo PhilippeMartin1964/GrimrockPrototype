@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.2 IMPLÉMENTÉ / À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.2 VALIDÉ / TD07.3.3 PROCHAIN**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -241,6 +241,8 @@ SchemaRename       2
 Les deux conflits réels sont des incohérences Shuriken/Stone. Les autres findings caractérisent les suppressions de schéma à venir.
 
 Référence : `docs/Design/TD07_3_1_PROTOTYPE_DATA_MODEL_POLICY_AND_ASSET_AUDIT.md`.
+
+TD07.3.2 est validé le 27 août 2026 : SaveGame v10 exact-match, migrations historiques supprimées, validations ciblées vertes et Shipping Win64 validé. Le correctif de validation `25e59f4a516dbc7dfde043c0a0dc0d0c66113c29` a remplacé une assertion TD01.1 encore figée sur v9 par `CurrentSaveVersion`.
 
 ---
 
@@ -606,7 +608,7 @@ TD07.1          Build / dependency reproducibility                     VALIDÉ �
 TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
 TD07.3          Prototype Data Model Reset                             ACTIF
 TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
-TD07.3.2        SaveGame Reset / no backward migration                IMPLÉMENTÉ — À VALIDER
+TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
 TD07.3.3        Character State Normalization                         À FAIRE
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
@@ -685,35 +687,26 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.2 — SaveGame Reset / no backward migration.**
+**TD07.3.3 — Character State Normalization.**
 
-Implémentation :
+Objectif : normaliser l'état durable du personnage autour d'une seule autorité, sans conserver de représentation historique ou dérivée uniquement pour compatibilité.
 
-```text
-CurrentSaveVersion = 10
-MinimumCompatibleSaveVersion supprimé
-FRPGSaveMigrationService supprimé
-ResetLegacyDungeonSnapshots supprimé
-tests de migration historiques supprimés
-ValidateCurrentState() = validation stricte sans mutation
-```
-
-Validation :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD07_3_2"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.MON19.2.Save"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.MON20.9.SkillPersistence"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.RPG.MON16.7"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Magic.MON18.8"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence"
-.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
-```
-
-Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
-
-Après validation verte :
+Périmètre d'audit prioritaire :
 
 ```text
-TD07.3.3 — Character State Normalization
+Strength deprecated
+bRPGAttributesInitialized
+Attributes / DerivedStats
+poids et capacités dérivées
+Level / Experience / progression de classe
+SkillRanks / CharacterSkillStates
+Spellbook runtime / CharacterSpellbookStates
+StatusEffects / CharacterStatusEffectStates
+PendingLevelUpNotifications
 ```
+
+Règle : pour chaque donnée, choisir explicitement l'autorité authoring/runtime/save ; supprimer les doublons et champs dérivables plutôt que les synchroniser. Toute rupture de schéma Save incrémente la version exacte et rejette l'ancienne version sans migration.
+
+Les 41 findings DataAsset de TD07.3.1 restent hors périmètre de TD07.3.3 sauf lorsqu'un type C++ doit être caractérisé pour comprendre l'autorité du personnage. Leur réparation de contenu reste réservée à TD07.3.4–TD07.3.7.
+
+TD07.3.3 doit commencer par une caractérisation et des tests de contrat avant toute suppression.

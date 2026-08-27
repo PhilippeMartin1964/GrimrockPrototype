@@ -1,6 +1,6 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **27 août 2026 — TD07.3.2**
+Date de référence : **27 août 2026 — TD07.3.2 VALIDÉ**
 
 ## Politique prototype autoritaire
 
@@ -102,6 +102,24 @@ seront réaudités par TD07.3.3. L'objectif est de supprimer les doubles représ
 `GridCombatSavePolicy` reste valide : le système refuse une sauvegarde durable lorsque l'état de combat n'est pas sérialisable de façon cohérente et utilise le checkpoint pré-combat.
 
 Ce comportement n'est pas une compatibilité arrière et n'est pas remis en cause par TD07.3.
+
+## Validation TD07.3.2
+
+Validation réelle du 27 août 2026 :
+
+```text
+TD07.3.2 contract       6 Success / 0 warning / 0 Failed
+MON19.2 Save            2 Success / 0 warning / 0 Failed
+MON20.9 Skills          7 Success / 0 warning / 0 Failed
+MON16.7                 10 Success / 0 warning / 0 Failed
+MON18.8                 11 Success / 0 warning / 0 Failed
+TD01.1 Receptacles      2 Succeeded with warnings / 0 Failed
+Win64 Shipping          [OK] Cook / package validated
+```
+
+Les deux warnings TD01.1 sont émis par le fixture transient de test et ne correspondent ni à un échec fonctionnel ni à une migration Save.
+
+TD07.3.2 est clos. TD07.3.3 poursuit la normalisation de l'état du personnage.
 
 ## Validation
 
