@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.9 VALIDÉ ET CLOS — TD07.3.3.10 À OUVRIR — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.10 CLOSURE CHARACTERIZATION ACTIVE — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -209,7 +209,7 @@ TD07.3.3.6 Normalize Skills                                        VALIDÉ — C
 TD07.3.3.7 Normalize Spellbook                                     VALIDÉ — CLOS
 TD07.3.3.8 Normalize Status Effects                                 VALIDÉ — CLOS
 TD07.3.3.9 Normalize Level-Up Notification State                       VALIDÉ — CLOS
-TD07.3.3.10 Current Save Schema / Regressions / Closure                À OUVRIR
+TD07.3.3.10 Current Save Schema / Regressions / Closure                CHARACTERIZATION ACTIVE
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 
