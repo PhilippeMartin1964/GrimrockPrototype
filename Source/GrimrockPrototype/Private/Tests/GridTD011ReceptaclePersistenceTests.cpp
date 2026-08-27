@@ -180,7 +180,7 @@ bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	TestEqual(TEXT("Round-trip uses SaveGame v9"), Loaded->SaveVersion, 9);
+	TestEqual(TEXT("Round-trip uses the current SaveVersion"), Loaded->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
 
 	AGridLevelRuntimeActor* RestoredRuntime = SpawnRuntime(*this, TestWorld.World, Fixture, &Loaded->DungeonRuntimeState);
 	if (!RestoredRuntime)
@@ -188,7 +188,7 @@ bool FGridTD011DisabledRoundTripTest::RunTest(const FString& Parameters)
 		return false;
 	}
 	AGridReceptacleActor* RestoredReceptacle = RestoredRuntime->FindRuntimeObjectActor<AGridReceptacleActor>(ReceptacleObjectId);
-	TestTrue(TEXT("Rebuild initializes legacy runtime default before apply"), RestoredReceptacle->bCanRemoveItem);
+	TestTrue(TEXT("Rebuild initializes the runtime default before apply"), RestoredReceptacle->bCanRemoveItem);
 	TestTrue(TEXT("Saved runtime snapshot applies"), RestoredRuntime->ApplyCurrentLevelRuntimeState());
 	TestFalse(TEXT("Disabled removal permission survives Save/Continue"), RestoredReceptacle->bCanRemoveItem);
 	return true;
