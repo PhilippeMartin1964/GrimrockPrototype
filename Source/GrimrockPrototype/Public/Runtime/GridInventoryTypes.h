@@ -398,15 +398,12 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FName PortraitVariantId = NAME_None;
 
-	/**
-	 * TD07.3.4.4 deferred visual authoring cache.
-	 * Still durable in v21 until companion/creation authoring is proven fully ID-resolvable.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	/** TD07.3.4.4 transient visual cache reconstructed from RaceId + PortraitGender + PortraitVariantId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	TSoftObjectPtr<UTexture2D> Portrait;
 
-	/** TD07.3.4.4 deferred; remains durable in v21. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	/** TD07.3.4.4 transient visual cache reconstructed from ClassId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	TSoftObjectPtr<UTexture2D> ClassIcon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")

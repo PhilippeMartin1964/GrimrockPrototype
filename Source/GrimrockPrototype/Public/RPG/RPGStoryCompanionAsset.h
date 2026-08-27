@@ -50,13 +50,7 @@ public:
 	FName PortraitVariantId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Companion|Visual")
-	TSoftObjectPtr<UTexture2D> Portrait;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Companion|Visual")
 	TSoftObjectPtr<UTexture2D> FullBody;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Companion|Visual")
-	TSoftObjectPtr<UTexture2D> ClassIcon;
 
 	/** Content contract for the later equipment-materialization tranche. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Companion|Equipment")

@@ -3,6 +3,7 @@
 #include "Components/Border.h"
 #include "Components/Image.h"
 #include "Engine/Texture2D.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassVisualAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -31,11 +32,12 @@ const URPGClassVisualAsset* UGridInventoryWidget::FindClassVisualForClass(FName 
 	{
 		if (ClassVisual && ClassVisual->IsValidForClass(ClassId))
 		{
+			FRPGAuthoringIdentityResolver::RememberClassVisual(const_cast<URPGClassVisualAsset*>(ClassVisual));
 			return ClassVisual;
 		}
 	}
 
-	return nullptr;
+	return FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId(ClassId);
 }
 
 void UGridInventoryWidget::RefreshSelectedCharacterClassIcon()
@@ -73,7 +75,8 @@ void UGridInventoryWidget::RefreshSelectedCharacterClassIcon()
 	}
 
 	const URPGClassVisualAsset* ClassVisual = FindClassVisualForClass(VisualSelection.ClassId);
-	const TSoftObjectPtr<UTexture2D> ClassIcon = ClassVisual && !ClassVisual->ClassIcon.IsNull() ? ClassVisual->ClassIcon : VisualSelection.ClassIcon;
+	const TSoftObjectPtr<UTexture2D> ClassIcon =
+		ClassVisual && !ClassVisual->ClassIcon.IsNull() ? ClassVisual->ClassIcon : FRPGAuthoringIdentityResolver::ResolveClassIcon(VisualSelection.ClassId);
 
 	if (Image_CharacterClassIcon)
 	{

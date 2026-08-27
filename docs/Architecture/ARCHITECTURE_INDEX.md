@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 27 août 2026, TD07.3.3 clos ; TD07.3.4.3 Character Identity v21 implémenté — à valider.**  
+**Référence courante : 28 août 2026, TD07.3.3 clos ; TD07.3.4.4 Authoring Cleanup v22 implémenté — à valider.**  
 Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
@@ -34,7 +34,7 @@ Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu
 | [COMBAT_MONSTER_AI_FOUNDATION.md](COMBAT_MONSTER_AI_FOUNDATION.md) | Turn manager, actions, monstres, perception, patrouille, planners. |
 | [PARTY_RPG_RECRUITMENT_FOUNDATION.md](PARTY_RPG_RECRUITMENT_FOUNDATION.md) | Groupe, XP/progression, CharacterPool et recrutement. |
 | [MAGIC_STATUS_EFFECTS_FOUNDATION.md](MAGIC_STATUS_EFFECTS_FOUNDATION.md) | Spellbook, cast pipeline et Status Effects. |
-| [SAVE_PERSISTENCE_FOUNDATION.md](SAVE_PERSISTENCE_FOUNDATION.md) | Save prototype v21 exact-match ; aucune migration arrière. |
+| [SAVE_PERSISTENCE_FOUNDATION.md](SAVE_PERSISTENCE_FOUNDATION.md) | Save prototype v22 exact-match ; aucune migration arrière. |
 | [UI_GAME_FLOW_FOUNDATION.md](UI_GAME_FLOW_FOUNDATION.md) | Menus, inventaire, Skills, Spellbook et surfaces campagne. |
 | [TEST_AUTOMATION_FOUNDATION.md](TEST_AUTOMATION_FOUNDATION.md) | Automation, harness Editor/Shipping, PIE et règles de validation. |
 | [TECHNICAL_DEBT_REGISTER.md](TECHNICAL_DEBT_REGISTER.md) | Dette technique active, surveillée et différée. |
@@ -102,7 +102,7 @@ TD07.3.3.7 Normalize Spellbook                                       VALIDÉ —
 TD07.3.3.8 Normalize Status Effects                                  VALIDÉ — CLOS
 TD07.3.3.9 Normalize Level-Up Notification State                    VALIDÉ — CLOS
 TD07.3.3.10 Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
-TD07.3.4 Authoring Identity Normalization                         .3 v21 IMPLÉMENTÉ — À VALIDER
+TD07.3.4 Authoring Identity Normalization                         .4 v22 IMPLÉMENTÉ — À VALIDER
 TD07.3.5–TD07.3.8                                             À FAIRE
 ```
 

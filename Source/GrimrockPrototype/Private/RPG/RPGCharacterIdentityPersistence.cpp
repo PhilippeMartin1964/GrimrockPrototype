@@ -37,6 +37,8 @@ namespace RPGCharacterIdentityPersistencePrivate
 			Character.ClassDisplayName = ClassDefinition->DisplayName;
 		}
 
+		Character.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(Character.ClassId);
+
 		if (Character.RaceId.IsNone())
 		{
 			Character.RaceDisplayName = FText::GetEmpty();
@@ -55,6 +57,8 @@ namespace RPGCharacterIdentityPersistencePrivate
 			}
 		}
 
+		Character.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
+			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId);
 		return true;
 	}
 
@@ -102,6 +106,21 @@ namespace RPGCharacterIdentityPersistencePrivate
 			return false;
 		}
 
+		const TSoftObjectPtr<UTexture2D> ExpectedPortrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
+			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId);
+		if (Character.Portrait.ToSoftObjectPath() != ExpectedPortrait.ToSoftObjectPath())
+		{
+			OutError = FString::Printf(TEXT("%s has a Portrait cache inconsistent with durable visual identity."), Location);
+			return false;
+		}
+
+		const TSoftObjectPtr<UTexture2D> ExpectedClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(Character.ClassId);
+		if (Character.ClassIcon.ToSoftObjectPath() != ExpectedClassIcon.ToSoftObjectPath())
+		{
+			OutError = FString::Printf(TEXT("%s has a ClassIcon cache inconsistent with ClassId=%s."), Location, *Character.ClassId.ToString());
+			return false;
+		}
+
 		return true;
 	}
 
@@ -142,6 +161,9 @@ void FRPGCharacterIdentityPersistence::RememberRuntimeCaches(const FGridPartyInv
 		{
 			FRPGAuthoringIdentityResolver::RememberClassDefinition(Definition);
 		}
+		FRPGAuthoringIdentityResolver::RememberClassIcon(Character.ClassId, Character.ClassIcon);
+		FRPGAuthoringIdentityResolver::RememberPortraitVisual(
+			Character.RaceId, Character.PortraitGender, Character.PortraitVariantId, Character.Portrait);
 	};
 
 	for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)

@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.4 — Authoring Identity Normalization**  
 Canonical identity baseline : `995c6bdff2624041e17b908bd3a62e0b9ef7eff6`  
-Statut : **VALIDÉ — TD07.3.4.4 ACTIVE**
+Statut : **VALIDÉ ET CLOS — TD07.3.4.4 IMPLÉMENTÉ / À VALIDER**
 
 ## 1. Objet
 
@@ -268,3 +268,8 @@ Report                 : Saved/Automation/TD04/TD04-20260828-000320
 ```
 
 TD07.3.4.3 est validé. TD07.3.4.4 peut commencer.
+
+
+## 13. TD07.3.4.4 supersession
+
+TD07.3.4.4 ouvre la v22 et rend également `Portrait` / `ClassIcon` transients. Les assertions historiques de TD07.3.4.3 sont future-proofées : TD07.3.4.3 établit la frontière classe/race v21, tandis que TD07.3.4.4 complète la frontière visuelle.

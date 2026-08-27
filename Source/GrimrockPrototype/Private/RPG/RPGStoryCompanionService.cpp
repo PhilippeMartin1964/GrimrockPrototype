@@ -57,8 +57,9 @@ namespace RPGStoryCompanionServicePrivate
 		Candidate.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Candidate.DerivedStats, Definition.ClassDefinition);
 		Candidate.PortraitGender = Definition.PortraitGender;
 		Candidate.PortraitVariantId = Definition.PortraitVariantId;
-		Candidate.Portrait = Definition.Portrait;
-		Candidate.ClassIcon = Definition.ClassIcon;
+		Candidate.Portrait = FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
+			Candidate.RaceId, Candidate.PortraitGender, Candidate.PortraitVariantId);
+		Candidate.ClassIcon = FRPGAuthoringIdentityResolver::ResolveClassIcon(Candidate.ClassId);
 		Candidate.InventorySlots.SetNum(FMath::Max(0, InventorySlotCount));
 		InitializeEmptyHotbar(Candidate);
 

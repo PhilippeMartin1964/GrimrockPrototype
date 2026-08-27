@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v21 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v22 exact-match.
 
 ## Dungeon state
 
@@ -242,3 +242,27 @@ transient
 Au chargement, les caches d'identité sont réhydratés avant `Level` et `DerivedStats`. `Portrait` et `ClassIcon` restent durablement sérialisés en v21 et sont différés à TD07.3.4.4 après nettoyage de l'authoring visuel Story Companion / création.
 
 La v20 et les générations antérieures sont incompatibles, sans migration.
+
+
+## TD07.3.4.4 — complete character presentation normalization / v22
+
+TD07.3.4.4 ouvre la v22 exact-match.
+
+```text
+durable character identity
+    ClassId
+    RaceId
+    PortraitGender
+    PortraitVariantId
+
+transient presentation caches
+    ClassDefinition
+    ClassDisplayName
+    RaceDisplayName
+    Portrait
+    ClassIcon
+```
+
+Le portrait est résolu depuis `RaceId + PortraitGender + PortraitVariantId`. L'icône de classe est résolue depuis `ClassId`. Les anciennes soft references de présentation ne font plus partie du Save.
+
+La v21 et les générations antérieures sont incompatibles, sans migration.

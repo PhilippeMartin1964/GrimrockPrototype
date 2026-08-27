@@ -56,8 +56,10 @@ bool FGridTD0734CharacterDurableIdentityDuplicationTest::RunTest(const FString& 
 
 	TestTrue(TEXT("PortraitGender is durable"), IsDurableCharacterProperty(TEXT("PortraitGender")));
 	TestTrue(TEXT("PortraitVariantId is durable"), IsDurableCharacterProperty(TEXT("PortraitVariantId")));
-	TestTrue(TEXT("Portrait remains durable until TD07.3.4.4 authoring cleanup"), IsDurableCharacterProperty(TEXT("Portrait")));
-	TestTrue(TEXT("ClassIcon remains durable until TD07.3.4.4 authoring cleanup"), IsDurableCharacterProperty(TEXT("ClassIcon")));
+	const FProperty* Portrait = FindCharacterProperty(TEXT("Portrait"));
+	const FProperty* ClassIcon = FindCharacterProperty(TEXT("ClassIcon"));
+	TestTrue(TEXT("Portrait is transient"), Portrait && Portrait->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("ClassIcon is transient"), ClassIcon && ClassIcon->HasAnyPropertyFlags(CPF_Transient));
 	return true;
 }
 
@@ -110,20 +112,19 @@ bool FGridTD0734CreationCopiesPresentationStateTest::RunTest(const FString& Para
 	TestTrue(TEXT("Story companion source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/RPG/RPGStoryCompanionService.cpp"), StoryCompanionSource));
 
-	const TCHAR* CopiedFields[] = {
-		TEXT("Candidate.RaceDisplayName ="),
-		TEXT("Candidate.ClassDisplayName ="),
-		TEXT("Candidate.Portrait ="),
-		TEXT("Candidate.ClassIcon =")
-	};
+	TestTrue(TEXT("Custom recruit still projects transient race label"), CustomRecruitSource.Contains(TEXT("Candidate.RaceDisplayName =")));
+	TestTrue(TEXT("Custom recruit still projects transient class label"), CustomRecruitSource.Contains(TEXT("Candidate.ClassDisplayName =")));
+	TestTrue(TEXT("Story companion still projects transient race label"), StoryCompanionSource.Contains(TEXT("Candidate.RaceDisplayName =")));
+	TestTrue(TEXT("Story companion still projects transient class label"), StoryCompanionSource.Contains(TEXT("Candidate.ClassDisplayName =")));
 
-	for (const TCHAR* CopiedField : CopiedFields)
-	{
-		TestTrue(FString::Printf(TEXT("Custom recruit copies %s into durable character state"), CopiedField),
-			CustomRecruitSource.Contains(CopiedField));
-		TestTrue(FString::Printf(TEXT("Story companion copies %s into durable character state"), CopiedField),
-			StoryCompanionSource.Contains(CopiedField));
-	}
+	TestFalse(TEXT("Custom recruit no longer copies Portrait directly"),
+		CustomRecruitSource.Contains(TEXT("Candidate.Portrait = Request.Portrait")));
+	TestFalse(TEXT("Custom recruit no longer copies ClassIcon directly"),
+		CustomRecruitSource.Contains(TEXT("Candidate.ClassIcon = Request.ClassIcon")));
+	TestFalse(TEXT("Story companion no longer copies Portrait override"),
+		StoryCompanionSource.Contains(TEXT("Candidate.Portrait = Definition.Portrait")));
+	TestFalse(TEXT("Story companion no longer copies ClassIcon override"),
+		StoryCompanionSource.Contains(TEXT("Candidate.ClassIcon = Definition.ClassIcon")));
 	return true;
 }
 
@@ -143,14 +144,14 @@ bool FGridTD0734VisualFallbackDuplicationTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Inventory class-icon source loads"),
 		LoadProjectFile(TEXT("Source/GrimrockPrototype/Private/UI/GridInventoryWidgetClassIcon.cpp"), ClassIconSource));
 
-	TestTrue(TEXT("Visual read model copies durable Portrait"),
-		InventoryVisualSource.Contains(TEXT("OutSelection.Portrait = CharacterState.Portrait")));
-	TestTrue(TEXT("Visual read model copies durable ClassIcon"),
-		InventoryVisualSource.Contains(TEXT("OutSelection.ClassIcon = CharacterState.ClassIcon")));
-	TestTrue(TEXT("Class visual lookup is already keyed by ClassId"),
+	TestTrue(TEXT("Visual read model resolves Portrait from durable identity"),
+		InventoryVisualSource.Contains(TEXT("ResolvePortraitVisual")));
+	TestTrue(TEXT("Visual read model resolves ClassIcon from ClassId"),
+		InventoryVisualSource.Contains(TEXT("ResolveClassIcon")));
+	TestTrue(TEXT("Class visual lookup remains keyed by ClassId"),
 		ClassIconSource.Contains(TEXT("FindClassVisualForClass(VisualSelection.ClassId)")));
-	TestTrue(TEXT("UI still falls back to the character-stored ClassIcon"),
-		ClassIconSource.Contains(TEXT("VisualSelection.ClassIcon")));
+	TestFalse(TEXT("UI no longer falls back to character-stored ClassIcon"),
+		ClassIconSource.Contains(TEXT(": VisualSelection.ClassIcon")));
 	return true;
 }
 

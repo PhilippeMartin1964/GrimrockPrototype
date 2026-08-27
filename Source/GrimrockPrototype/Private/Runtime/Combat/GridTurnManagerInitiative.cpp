@@ -40,7 +40,7 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder()
 			Entry.Side = EGridCombatantSide::Party;
 			Entry.CharacterIndex = CharacterIndex;
 			Entry.DisplayName = ResolveInitiativeCharacterName(Character, CharacterIndex);
-			Entry.Portrait = Character.Portrait;
+			Entry.Portrait = bHasSummary ? Summary.Portrait : TSoftObjectPtr<UTexture2D>();
 			Entry.InitiativeBase = 10 + Character.DerivedStats.Initiative;
 			Entry.Dexterity = bHasSummary ? Summary.Attributes.Dexterity : Character.Attributes.Dexterity;
 			Entry.CurrentHealth = Character.Resources.CurrentHealth;

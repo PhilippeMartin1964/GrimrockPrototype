@@ -1,6 +1,7 @@
 #include "RPG/RPGAuthoringIdentityResolver.h"
 
 #include "Engine/AssetManager.h"
+#include "Engine/Texture2D.h"
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassVisualAsset.h"
@@ -17,6 +18,13 @@ namespace RPGAuthoringIdentityResolverPrivate
 	TMap<FName, TWeakObjectPtr<URPGRaceAsset>> RaceCache;
 	TMap<FName, TWeakObjectPtr<URPGClassVisualAsset>> ClassVisualCache;
 	TMap<FName, TWeakObjectPtr<URPGCharacterPortraitSetAsset>> PortraitSetCache;
+	TMap<FString, TSoftObjectPtr<UTexture2D>> PortraitVisualCache;
+	TMap<FName, TSoftObjectPtr<UTexture2D>> ClassIconCache;
+
+	FString MakePortraitVisualCacheKey(FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId)
+	{
+		return FString::Printf(TEXT("%s|%d|%s"), *RaceId.ToString(), static_cast<int32>(Gender), *PortraitVariantId.ToString());
+	}
 
 	template <typename T>
 	T* ResolveCanonicalAsset(const FPrimaryAssetId& PrimaryAssetId, UClass* AssetClass)
@@ -137,12 +145,36 @@ bool FRPGAuthoringIdentityResolver::RememberPortraitSet(URPGCharacterPortraitSet
 	return true;
 }
 
+bool FRPGAuthoringIdentityResolver::RememberPortraitVisual(
+	FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId, TSoftObjectPtr<UTexture2D> Portrait)
+{
+	if (RaceId.IsNone() || PortraitVariantId.IsNone() || Portrait.IsNull())
+	{
+		return false;
+	}
+	RPGAuthoringIdentityResolverPrivate::PortraitVisualCache.Add(
+		RPGAuthoringIdentityResolverPrivate::MakePortraitVisualCacheKey(RaceId, Gender, PortraitVariantId), Portrait);
+	return true;
+}
+
+bool FRPGAuthoringIdentityResolver::RememberClassIcon(FName ClassId, TSoftObjectPtr<UTexture2D> ClassIcon)
+{
+	if (ClassId.IsNone() || ClassIcon.IsNull())
+	{
+		return false;
+	}
+	RPGAuthoringIdentityResolverPrivate::ClassIconCache.Add(ClassId, ClassIcon);
+	return true;
+}
+
 void FRPGAuthoringIdentityResolver::ResetRuntimeCache()
 {
 	RPGAuthoringIdentityResolverPrivate::ClassCache.Reset();
 	RPGAuthoringIdentityResolverPrivate::RaceCache.Reset();
 	RPGAuthoringIdentityResolverPrivate::ClassVisualCache.Reset();
 	RPGAuthoringIdentityResolverPrivate::PortraitSetCache.Reset();
+	RPGAuthoringIdentityResolverPrivate::PortraitVisualCache.Reset();
+	RPGAuthoringIdentityResolverPrivate::ClassIconCache.Reset();
 }
 
 URPGClassAsset* FRPGAuthoringIdentityResolver::ResolveClassById(FName ClassId)
@@ -229,4 +261,54 @@ URPGCharacterPortraitSetAsset* FRPGAuthoringIdentityResolver::ResolvePortraitSet
 	}
 	RememberPortraitSet(Definition);
 	return Definition;
+}
+
+
+TSoftObjectPtr<UTexture2D> FRPGAuthoringIdentityResolver::ResolvePortraitVisual(
+	FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId)
+{
+	if (RaceId.IsNone() || PortraitVariantId.IsNone())
+	{
+		return TSoftObjectPtr<UTexture2D>();
+	}
+
+	if (URPGCharacterPortraitSetAsset* PortraitSet = ResolvePortraitSetByRaceId(RaceId))
+	{
+		FRPGCharacterPortraitVariant Variant;
+		if (PortraitSet->FindPortraitVariant(Gender, PortraitVariantId, Variant) && Variant.IsValidDefinition())
+		{
+			RememberPortraitVisual(RaceId, Gender, PortraitVariantId, Variant.Portrait);
+			return Variant.Portrait;
+		}
+	}
+
+	const FString CacheKey = RPGAuthoringIdentityResolverPrivate::MakePortraitVisualCacheKey(RaceId, Gender, PortraitVariantId);
+	if (const TSoftObjectPtr<UTexture2D>* Cached = RPGAuthoringIdentityResolverPrivate::PortraitVisualCache.Find(CacheKey))
+	{
+		return *Cached;
+	}
+	return TSoftObjectPtr<UTexture2D>();
+}
+
+TSoftObjectPtr<UTexture2D> FRPGAuthoringIdentityResolver::ResolveClassIcon(FName ClassId)
+{
+	if (ClassId.IsNone())
+	{
+		return TSoftObjectPtr<UTexture2D>();
+	}
+
+	if (URPGClassVisualAsset* ClassVisual = ResolveClassVisualByClassId(ClassId))
+	{
+		if (!ClassVisual->ClassIcon.IsNull())
+		{
+			RememberClassIcon(ClassId, ClassVisual->ClassIcon);
+			return ClassVisual->ClassIcon;
+		}
+	}
+
+	if (const TSoftObjectPtr<UTexture2D>* Cached = RPGAuthoringIdentityResolverPrivate::ClassIconCache.Find(ClassId))
+	{
+		return *Cached;
+	}
+	return TSoftObjectPtr<UTexture2D>();
 }

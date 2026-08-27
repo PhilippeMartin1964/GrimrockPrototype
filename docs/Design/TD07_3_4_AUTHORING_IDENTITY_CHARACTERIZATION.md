@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `8193fae0c704fbef3faf8c9981bf65d2b248f9e1`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.3 IMPLÉMENTÉ / À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.4 IMPLÉMENTÉ / À VALIDER**
 
 ## 1. Contexte
 
@@ -371,3 +371,25 @@ Report                 : Saved/Automation/TD04/TD04-20260827-233658
 ```
 
 Le gate est atteint. TD07.3.4.2 — Canonical Authoring Asset Identity peut commencer.
+
+
+## 14. Mise à jour TD07.3.4.4
+
+La cible finale est maintenant implémentée :
+
+```text
+durable
+    ClassId
+    RaceId
+    PortraitGender
+    PortraitVariantId
+
+transient
+    ClassDefinition
+    ClassDisplayName
+    RaceDisplayName
+    Portrait
+    ClassIcon
+```
+
+`URPGStoryCompanionAsset` ne porte plus de `Portrait` ni de `ClassIcon` dupliqués. La Characterization post-refactor exige désormais la résolution visuelle depuis les IDs.

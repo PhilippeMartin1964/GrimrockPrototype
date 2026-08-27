@@ -2,11 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "Engine/AssetManagerTypes.h"
+#include "RPG/RPGCharacterTypes.h"
 
 class URPGCharacterPortraitSetAsset;
 class URPGClassAsset;
 class URPGClassVisualAsset;
 class URPGRaceAsset;
+class UTexture2D;
 
 /**
  * TD07.3.4.2 canonical resolver for RPG authoring definitions.
@@ -34,10 +36,14 @@ struct GRIMROCKPROTOTYPE_API FRPGAuthoringIdentityResolver
 	static bool RememberRaceDefinition(URPGRaceAsset* Definition);
 	static bool RememberClassVisual(URPGClassVisualAsset* Definition);
 	static bool RememberPortraitSet(URPGCharacterPortraitSetAsset* Definition);
+	static bool RememberPortraitVisual(FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId, TSoftObjectPtr<UTexture2D> Portrait);
+	static bool RememberClassIcon(FName ClassId, TSoftObjectPtr<UTexture2D> ClassIcon);
 	static void ResetRuntimeCache();
 
 	static URPGClassAsset* ResolveClassById(FName ClassId);
 	static URPGRaceAsset* ResolveRaceById(FName RaceId);
 	static URPGClassVisualAsset* ResolveClassVisualByClassId(FName ClassId);
 	static URPGCharacterPortraitSetAsset* ResolvePortraitSetByRaceId(FName RaceId);
+	static TSoftObjectPtr<UTexture2D> ResolvePortraitVisual(FName RaceId, ERPGCharacterPortraitGender Gender, FName PortraitVariantId);
+	static TSoftObjectPtr<UTexture2D> ResolveClassIcon(FName ClassId);
 };

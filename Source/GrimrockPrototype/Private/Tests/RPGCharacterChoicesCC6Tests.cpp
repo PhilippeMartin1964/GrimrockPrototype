@@ -179,6 +179,7 @@ bool FRPGPortraitSelectionPersistsCC6Test::RunTest(const FString& Parameters)
 	Request.DisplayName = FText::FromString(TEXT("Aelwen"));
 	Request.RaceDefinition = Races[2];
 	Request.ClassDefinition = Classes[3];
+	Request.PortraitVariantId = TEXT("ElfMage");
 	Request.Portrait = TSoftObjectPtr<UTexture2D>(PortraitPath);
 
 	UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
@@ -192,7 +193,7 @@ bool FRPGPortraitSelectionPersistsCC6Test::RunTest(const FString& Parameters)
 	}
 
 	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	TestEqual(TEXT("The portrait path is stored on the character"), Character.Portrait.ToSoftObjectPath().ToString(), PortraitPath.ToString());
+	TestEqual(TEXT("The portrait cache is projected on the character"), Character.Portrait.ToSoftObjectPath().ToString(), PortraitPath.ToString());
 
 	FGridInventoryCharacterSummary Summary;
 	TestTrue(TEXT("The character summary can be read"), Component->GetCharacterSummary(0, Summary));
@@ -200,12 +201,12 @@ bool FRPGPortraitSelectionPersistsCC6Test::RunTest(const FString& Parameters)
 
 	UGridPartyInventoryComponent* RestoredComponent = NewObject<UGridPartyInventoryComponent>();
 	RestoredComponent->InitializeDefaultPartyIfNeeded();
-	TestTrue(TEXT("The saved party inventory state restores with the portrait"),
+	TestTrue(TEXT("The party inventory state restores with portrait identity"),
 		RestoredComponent->RestorePartyInventoryState(Component->PartyInventoryState, Error));
 
 	FGridInventoryCharacterSummary RestoredSummary;
 	TestTrue(TEXT("The restored character summary can be read"), RestoredComponent->GetCharacterSummary(0, RestoredSummary));
-	TestEqual(TEXT("The restored summary keeps the portrait path"), RestoredSummary.Portrait.ToSoftObjectPath().ToString(), PortraitPath.ToString());
+	TestEqual(TEXT("The restored summary reprojects the portrait path"), RestoredSummary.Portrait.ToSoftObjectPath().ToString(), PortraitPath.ToString());
 	return true;
 }
 

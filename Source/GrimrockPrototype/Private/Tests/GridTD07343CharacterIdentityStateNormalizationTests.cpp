@@ -100,9 +100,7 @@ bool FGridTD07343SchemaAuthorityTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("ClassDefinition becomes transient"), IsTransient(TEXT("ClassDefinition")));
 	TestTrue(TEXT("ClassDisplayName becomes transient"), IsTransient(TEXT("ClassDisplayName")));
 	TestTrue(TEXT("RaceDisplayName becomes transient"), IsTransient(TEXT("RaceDisplayName")));
-	TestTrue(TEXT("Portrait remains durable until TD07.3.4.4"), IsDurable(TEXT("Portrait")));
-	TestTrue(TEXT("ClassIcon remains durable until TD07.3.4.4"), IsDurable(TEXT("ClassIcon")));
-	TestEqual(TEXT("TD07.3.4.3 opens SaveGame v21"), UGrimrockPartySaveGame::CurrentSaveVersion, 21);
+	TestTrue(TEXT("TD07.3.4.3 established SaveGame v21 or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 21);
 	return true;
 }
 
@@ -192,8 +190,8 @@ bool FGridTD07343SaveSchemaVersionTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("New SaveGame starts on v21"), Current->SaveVersion, 21);
-	TestTrue(TEXT("Current v21 is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("New SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Current schema is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
 	Previous->SaveVersion = 20;
