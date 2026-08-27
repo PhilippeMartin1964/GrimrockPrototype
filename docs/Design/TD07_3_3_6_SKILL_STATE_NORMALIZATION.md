@@ -140,7 +140,20 @@ Not run                : 0
 Process exit code       : 0
 ```
 
-Le build UE5.5.4 associé est vert. Le filtre de caractérisation doit maintenant rester 4/4 après refactor.
+Le build UE5.5.4 associé est vert.
+
+Validation post-refactor du gate de caractérisation :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_3_6.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Les garanties caractérisées avant normalisation restent donc valides avec `SkillRanks` comme autorité durable unique.
 
 ## 9. Régressions requises
 
@@ -184,7 +197,7 @@ maps
 - [x] tests dédiés ajoutés ;
 - [x] build UE5.5.4 vert ;
 - [x] Normalization 4/4 ;
-- [ ] Characterization 4/4 après refactor ;
+- [x] Characterization 4/4 après refactor ;
 - [ ] régressions MON20.6/20.8/20.9 vertes ;
 - [ ] régressions Save/Magic/Status vertes ;
 - [ ] Shipping Win64 vert.
