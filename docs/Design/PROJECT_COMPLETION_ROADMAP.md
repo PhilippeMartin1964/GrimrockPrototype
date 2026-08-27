@@ -1,7 +1,7 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **MON21.3 VALIDÉ — MON21.4 PROCHAIN**  
-Date de référence : **26 août 2026**
+Statut : **TD07.3.1 ACTIF — MON21.4 SUSPENDU**  
+Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
 
@@ -22,10 +22,16 @@ MON19 — Advanced Dungeon Logic / Scripting
 MON20 — Recruitment / Skills / Talents
 ```
 
-Jalon courant :
+Jalon fonctionnel suspendu :
 
 ```text
 MON21 — Quests / Journal / Map / Codex
+```
+
+Campagne active :
+
+```text
+TD07.3 — Prototype Data Model Reset
 ```
 
 Puis :
@@ -34,7 +40,7 @@ Puis :
 MON22 — 45–90 Minute Vertical Slice
 ```
 
-Les campagnes de dette ciblée TD05 et TD06 sont closes par stop condition ; elles ne bloquent plus la roadmap fonctionnelle.
+Les campagnes TD05 et TD06 restent closes. TD07.1 et TD07.2 sont validées. Une nouvelle campagne volontaire, **TD07.3 — Prototype Data Model Reset**, suspend temporairement MON21 afin de supprimer les compatibilités historiques et schémas legacy avant de poursuivre les nouvelles fonctionnalités.
 
 ---
 
@@ -57,7 +63,7 @@ Le SaveGame était v8 à la clôture MON20 ; le projet est depuis passé en **v9
 
 ---
 
-# 3. MON21 — Quests / Journal / Map / Codex — ACTIF
+# 3. MON21 — Quests / Journal / Map / Codex — SUSPENDU PENDANT TD07.3
 
 ## Objectif
 
@@ -77,7 +83,7 @@ Transformer les surfaces campagne déjà présentes en systèmes data-driven :
 MON21.1 — Audit & Architecture Contract                         CLOS
 MON21.2 — Quest Definition + Campaign Runtime State             VALIDÉ
 MON21.3 — Quest Event/Command Integration                       VALIDÉ
-MON21.4 — Quest Persistence / Migration                         PROCHAIN
+MON21.4 — Quest Persistence                                   SUSPENDU JUSQU'À TD07.3
 MON21.5 — Journal Read Model + Existing WBP Integration         À FAIRE
 MON21.6 — Map Geometry + Exploration State + Existing WBP       À FAIRE
 MON21.7 — Codex Discovery + Existing Definition Projection      À FAIRE
@@ -143,23 +149,19 @@ Grimrock.Quests.MON21_3.EventCommandIntegration
 1 Success / 0 Failed
 ```
 
-## MON21.4 — Quest Persistence / Migration — PROCHAIN
+## MON21.4 — Quest Persistence — SUSPENDU
 
-Objectif : rendre durable l’état autoritaire de campagne introduit en MON21.2, sans persister de projection Journal.
+MON21.4 reprendra après la stop condition TD07.3.
 
-À verrouiller :
+Sa persistance suivra alors le contrat prototype courant :
 
-- snapshot SaveGame par `QuestId` et `ObjectiveId` ;
-- restauration atomique du `FGridCampaignQuestRuntimeState` ;
-- validation des définitions lors du restore ;
-- politique pour quêtes/objectifs retirés ou inconnus ;
-- éventuelle montée de SaveVersion **uniquement si nécessaire** ;
-- migration depuis v9 ;
-- ordre restore : définitions Quest disponibles avant application du snapshot ;
+- snapshot par `QuestId` / `ObjectiveId` ;
+- restauration atomique ;
+- validation contre les définitions courantes ;
+- quêtes/objectifs inconnus -> snapshot invalide ;
+- aucune migration depuis les anciennes SaveGames du prototype ;
 - Event -> Command inchangé ;
 - aucune persistance de `UGridQuestDefinitionAsset*` comme source de vérité.
-
-MON21.4 doit être caractérisé et validé sous UE5.5.4 avant MON21.5.
 
 ## MON21.5–MON21.8
 
@@ -187,18 +189,23 @@ MON21.8 — Closure
 
 ---
 
-# 4. Dette technique — état après TD06
+# 4. Dette technique — TD07.3 actif
 
 ```text
-TD01–TD04  stabilisation / outillage                  RÉALISÉ
-TD05.9     RuntimeActor stop condition                ATTEINTE
-TD06.9     PartyInventory stop condition              ATTEINTE
+TD01–TD04  stabilisation / outillage                         RÉALISÉ
+TD05.9     RuntimeActor stop condition                       ATTEINTE
+TD06.9     PartyInventory stop condition                     ATTEINTE
+TD07.1     Build / dependency reproducibility                VALIDÉ
+TD07.2     UE compatibility warnings                         VALIDÉ
+TD07.3.1   Prototype Data Model Policy + Asset Audit         ACTIF
+TD07.3.2–8 Data model reset                                  À FAIRE
 ```
 
-Aucune nouvelle tranche TD05/TD06 n’est recommandée sans signal concret. Le registre autoritaire reste `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`.
+Politique autoritaire pendant le prototype : **aucune compatibilité arrière Save/DataAsset/Blueprint n'est requise**. Les données incompatibles peuvent être recréées ; Git conserve l'historique.
+
+Le registre autoritaire reste `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`.
 
 ---
-
 # 5. MON22 — 45–90 Minute Vertical Slice
 
 Objectif : construire un parcours jouable de bout en bout avant la production étendue.

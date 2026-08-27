@@ -4,8 +4,8 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 26 août 2026, après TD06.9 et MON21.3.**  
-Phase active : **MON21.4 — Quest Persistence / Migration**.
+**Référence courante : 27 août 2026, après TD07.2 et ouverture TD07.3.1.**  
+Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
 
@@ -34,7 +34,7 @@ Phase active : **MON21.4 — Quest Persistence / Migration**.
 | [COMBAT_MONSTER_AI_FOUNDATION.md](COMBAT_MONSTER_AI_FOUNDATION.md) | Turn manager, actions, monstres, perception, patrouille, planners. |
 | [PARTY_RPG_RECRUITMENT_FOUNDATION.md](PARTY_RPG_RECRUITMENT_FOUNDATION.md) | Groupe, XP/progression, CharacterPool et recrutement. |
 | [MAGIC_STATUS_EFFECTS_FOUNDATION.md](MAGIC_STATUS_EFFECTS_FOUNDATION.md) | Spellbook, cast pipeline et Status Effects. |
-| [SAVE_PERSISTENCE_FOUNDATION.md](SAVE_PERSISTENCE_FOUNDATION.md) | **SaveGame v9**, snapshots, migration et politique combat. |
+| [SAVE_PERSISTENCE_FOUNDATION.md](SAVE_PERSISTENCE_FOUNDATION.md) | Save courant v9 avant reset TD07.3 ; politique prototype sans compatibilité arrière. |
 | [UI_GAME_FLOW_FOUNDATION.md](UI_GAME_FLOW_FOUNDATION.md) | Menus, inventaire, Skills, Spellbook et surfaces campagne. |
 | [TEST_AUTOMATION_FOUNDATION.md](TEST_AUTOMATION_FOUNDATION.md) | Automation, harness Editor/Shipping, PIE et règles de validation. |
 | [TECHNICAL_DEBT_REGISTER.md](TECHNICAL_DEBT_REGISTER.md) | Dette technique active, surveillée et différée. |
@@ -61,7 +61,7 @@ L’Editor dépend aussi directement de `GrimrockLua`. Le Runtime ne dépend jam
 6. `UGridQuestSubsystem` est l’autorité runtime de campagne pour les quêtes ; `UGridQuestDefinitionAsset` porte les définitions.
 7. Ownership item exclusif.
 8. `FGridPartyInventoryState` reste l’autorité groupe/`CharacterPool`.
-9. SaveGame courant = **v9** ; toute montée de version exige un nouvel état durable et une migration définie.
+9. Pendant le prototype, le SaveGame utilise uniquement le schéma courant ; une version ancienne est rejetée et aucune migration arrière n'est exigée.
 10. Blueprint configure/compose ; logique métier validable en C++.
 11. Les assets binaires exigent une validation Unreal/PIE lorsqu’ils sont concernés.
 12. `Scripts/ValidateUE.ps1` est le harness local Editor + Automation validé.
@@ -82,13 +82,24 @@ Aucune nouvelle tranche de refactor de ces classes n’est recommandée sans sig
 docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 ```
 
-## Phase fonctionnelle courante
+## Phase courante
+
+Les fonctionnalités sont volontairement suspendues pendant le nettoyage du modèle de données.
+
+```text
+TD07.1    Build / dependency reproducibility             VALIDÉ
+TD07.2    UE compatibility cleanup                       VALIDÉ
+TD07.3.1  Prototype Data Model Policy + Asset Audit      ACTIF
+TD07.3.2–TD07.3.8                                       À FAIRE
+```
+
+## Phase fonctionnelle suspendue
 
 ```text
 MON21.1  Audit & Architecture Contract                  CLOS
 MON21.2  Quest Definition + Campaign Runtime State      VALIDÉ
 MON21.3  Quest Event -> Command Integration             VALIDÉ
-MON21.4  Quest Persistence / Migration                  PROCHAIN
+MON21.4  Quest Persistence                            SUSPENDU JUSQU'À TD07.3
 MON21.5  Journal Read Model + Existing WBP Integration  À FAIRE
 MON21.6  Map Geometry + Exploration State + Existing WBP À FAIRE
 MON21.7  Codex Discovery + Definition Projection        À FAIRE

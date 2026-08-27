@@ -1,53 +1,70 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **26 août 2026**
+Date de référence : **27 août 2026 — TD07.3.1**
 
-## Contrat courant
+## Politique prototype autoritaire
+
+Tant que GrimrockPrototype reste un **prototype**, aucune compatibilité arrière des sauvegardes n'est exigée.
+
+Git conserve l'historique du code et du contenu. Une ancienne sauvegarde incompatible peut être supprimée. Le projet ne maintient pas de migration uniquement pour permettre de relire une ancienne phase du prototype.
+
+Le contrat cible devient :
+
+```text
+Save schema courant
+    version exacte attendue -> chargement
+    version différente       -> rejet
+
+aucune chaîne de migration v1 -> vN
+aucune valeur legacy reconstruite
+aucun champ conservé seulement pour anciennes saves
+```
+
+Cette politique sera réévaluée lorsque le prototype sera validé et que le projet entrera en phase de développement produit.
+
+## Implémentation encore présente avant TD07.3.2
+
+Le code courant contient toujours temporairement :
 
 ```text
 UGrimrockPartySaveGame::CurrentSaveVersion = 9
 UGrimrockPartySaveGame::MinimumCompatibleSaveVersion = 1
+FRPGSaveMigrationService
+migrations v1-v8
 ```
 
-Le SaveGame conserve notamment :
+TD07.3.1 ne les supprime pas encore : il caractérise le modèle. **TD07.3.2 doit retirer cette compatibilité historique.**
 
-- `FGridPartyInventoryState` ;
-- progression de classe / talents ;
-- notifications Level Up ;
-- Status Effects ;
-- Spellbooks ;
-- Skill ranks MON20 ;
-- `FGridDungeonRuntimeState` ;
-- niveau courant ;
-- cellule et orientation du groupe.
+## Frontière persistante cible
+
+Un SaveGame prototype doit contenir uniquement :
+
+- identités stables nécessaires à la résolution du contenu courant ;
+- état réellement mutable du groupe et du donjon ;
+- ressources courantes qui ne sont pas recalculables ;
+- progression choisie par le joueur ;
+- position / orientation / présence / état logique nécessaires au Continue.
+
+Ne doivent pas être persistés comme autorités :
+
+- pointeurs vers DataAssets lorsqu'un ID runtime suffit ;
+- noms, icônes ou textes recalculables ;
+- poids recalculables ;
+- statistiques dérivées qui peuvent être reconstruites ;
+- duplications runtime/save de la même structure sans nécessité ;
+- marqueurs servant uniquement à distinguer un ancien snapshot.
 
 ## Dungeon state
 
-Le `UGridLevelAsset` décrit l’état initial. Le dungeon runtime state décrit l’état vivant : présence d’objets, portes, items, réceptacles, monstres/placements/encounters, variables de niveau et permissions runtime persistantes.
+`UGridLevelAsset` décrit l'état initial. `FGridDungeonRuntimeState` décrit l'état vivant : présence d'objets, portes, items, réceptacles, monstres/placements/encounters, variables de niveau et permissions runtime persistantes.
 
-Les monstres morts persistants restent des Actors runtime restaurés canoniquement `Dead`, cachés, sans collision ni occupation. Le durcissement MON20.10.2 autorise leur restauration même si leur ancienne cellule est occupée par le groupe, sans relâcher les règles applicables aux monstres vivants.
-
-## Réceptacles — Save v9
-
-TD01.1 a fermé `TD-PERSIST-001` :
-
-```text
-FGridRuntimeReceptacleState::bCanRemoveItem
-```
-
-est désormais capturé et restauré. SaveGame est passé de v8 à v9. Les sauvegardes v1-v8 migrent avec la politique legacy explicite :
-
-```text
-bCanRemoveItem = true
-```
-
-afin de préserver le comportement historique des sauvegardes antérieures.
+Le principe reste valide. TD07.3 auditera cependant les champs qui existent uniquement pour reconnaître ou normaliser d'anciens snapshots, notamment `bLevelVariablesInitialized` et `ResetLegacyDungeonSnapshots`.
 
 ## RPG state
 
-Les snapshots supplémentaires utilisent `CharacterId` comme clé stable. `CharacterPool` est contenu dans `PartyInventoryState`; un personnage de réserve est donc persistant sans registre parallèle.
+`FGridPartyInventoryState` reste l'autorité du groupe et du CharacterPool.
 
-Persistance dédiée :
+Les snapshots séparés actuellement présents :
 
 ```text
 ClassProgressionStates
@@ -57,49 +74,34 @@ CharacterSpellbookStates
 CharacterSkillStates
 ```
 
-Les données dérivées comme les `RequirementIds` ne sont pas sauvegardées ; elles sont reconstruites depuis les autorités persistantes.
-
-## Migrations principales récentes
-
-```text
-v7 -> v8 : snapshots SkillRanks MON20.9
-v8 -> v9 : permission de retrait des réceptacles TD01.1
-```
-
-`FRPGSaveMigrationService` prépare les sauvegardes legacy puis applique la validation stricte du contrat courant. Toute future montée de version doit correspondre à un état durable démontré et être accompagnée d’une migration et de tests explicites.
+sont réaudités par TD07.3.3. L'objectif n'est pas de supprimer une donnée gameplay nécessaire, mais de supprimer les doubles représentations et de rapprocher les données durables de leur autorité réelle.
 
 ## Politique de sauvegarde en combat
 
-`GridCombatSavePolicy` refuse la sérialisation durable quand l’état de combat n’est pas sauvegardable. Tour, initiative et pending action ne constituent pas un contrat durable. Le système utilise le checkpoint pré-combat pour revenir à un état cohérent.
+`GridCombatSavePolicy` reste valide : le système refuse une sauvegarde durable lorsque l'état de combat n'est pas sérialisable de façon cohérente et utilise le checkpoint pré-combat.
 
-Un log `PartySave SaveRejected ... CombatStateNotSaveable` en combat est attendu.
+Ce comportement n'est pas une compatibilité arrière et n'est pas remis en cause par TD07.3.
 
-## Validation récente
+## Validation
 
-La frontière de persistance est couverte par les validations MON20 et TD01.1. Les tests TD01.1 couvrent notamment :
+Pendant TD07.3 :
 
 ```text
-DisabledRoundTrip
-EnabledRoundTrip
-V8Migration
+capture/restore courant
+validation structurelle stricte
+ancienne version rejetée
+Automation ciblée
+PIE lorsque le comportement joueur est concerné
+Shipping après changement de schéma
 ```
 
-Les tests `Grimrock.MON20.9.SkillPersistence` sont restés verts après la migration v9.
-
-## Dette technique liée à la persistance
-
-La source autoritaire est `TECHNICAL_DEBT_REGISTER.md`.
-
-`TD-PERSIST-001` est **RÉSOLU**. Il n’existe actuellement aucune dette P1 de persistance ouverte dans le registre. Une future donnée Quest/Map/Codex ne devra déclencher une nouvelle SaveVersion que lorsqu’elle devient réellement autoritaire et persistante.
+Les anciens tests de migration restent historiques jusqu'à leur suppression dans TD07.3.2.
 
 ## Invariants
 
+- une seule autorité par donnée ;
 - identités valides et non ambiguës ;
-- ownership d’items cohérent ;
-- niveau/XP cohérents ;
-- progression, Spellbook et Skills validables ;
-- variables de niveau typées ;
-- permission runtime des réceptacles restaurée ;
-- aucune sauvegarde de combat partielle ;
-- aucune donnée dérivée persistée lorsqu’elle peut être reconstruite ;
-- restore atomique/fail-closed sur snapshot incohérent.
+- aucune donnée dérivée persistée lorsqu'elle peut être reconstruite ;
+- aucune compatibilité arrière maintenue pendant le prototype ;
+- restore atomique/fail-closed sur snapshot courant incohérent ;
+- Git, et non le runtime, conserve l'histoire du prototype.

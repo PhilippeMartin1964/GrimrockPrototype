@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — PAUSE AVANT TD07.3**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.1 IMPLÉMENTÉ / À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -37,12 +37,12 @@ P2 — maintenabilité / architecture / tooling à réduire de manière ciblée
 P3 — nettoyage opportuniste ou intégration non bloquante
 ```
 
-État au 27 août 2026, après validation TD07.1 et implémentation TD07.2 :
+État au 27 août 2026, après ouverture du Prototype Data Model Reset :
 
 ```text
 P0 : aucun blocage connu
-P1 : 0 dette active
-P2 : 11 dettes actives, surveillées ou à valider
+P1 : 1 dette active — TD-DATA-001
+P2 : 9 dettes actives, surveillées ou différées
 P3 : 2 dettes actives
 ```
 
@@ -160,7 +160,7 @@ MON17.8 8 Success / 0 warning / 0 Failed
 
 ## TD-COMPAT-002 — Collision Python ItemTransfer
 
-**Priorité : P2 — correction TD07.2 implémentée / validation requise**
+**Priorité : RÉSOLUE — TD07.2 VALIDÉ**
 
 Le cook Shipping du 27 août 2026 expose un conflit de nom Python entre :
 
@@ -183,6 +183,49 @@ GridItemTransferResult search in AutomationTool logs -> no match
 ```
 
 **TD-COMPAT-002 est RÉSOLU.**
+
+---
+
+## TD-DATA-001 — Compatibilité historique et modèles legacy conservés pendant le prototype
+
+**Priorité : P1 — ACTIVE / TD07.3**
+
+### Constat
+
+Le projet contient encore plusieurs générations de schémas simultanées :
+
+```text
+SaveGame v1-v9 + migrations
+champs DeprecatedProperty
+flags / enums legacy
+Asset + Id représentant la même définition
+fallbacks ancien -> nouveau système
+snapshots runtime/save dupliqués
+données calculables persistées
+```
+
+Cette complexité n'apporte aucune valeur tant que GrimrockPrototype reste un prototype jetable.
+
+### Décision autoritaire du 27 août 2026
+
+**Aucune compatibilité arrière n'est requise pendant la phase prototype.**
+
+Git conserve l'historique. Une ancienne SaveGame, map, Blueprint ou DataAsset incompatible peut être supprimée ou recréée.
+
+Le projet ne recommencera à garantir des migrations et une compatibilité durable qu'après validation définitive du prototype et entrée en phase de développement produit.
+
+### Cible
+
+```text
+Authoring     : références de définitions, une seule autorité
+Runtime/Save  : identités stables + état réellement mutable
+Derived       : recalculé, jamais conservé pour compatibilité
+Schema change : ancien état rejeté, aucune migration arrière
+```
+
+TD07.3 porte le nettoyage complet correspondant.
+
+Référence : `docs/Design/TD07_3_1_PROTOTYPE_DATA_MODEL_POLICY_AND_ASSET_AUDIT.md`.
 
 ---
 
@@ -346,6 +389,7 @@ TD06.9 supprime huit helpers Diagnostics morts confirmés et déplace `GetEquipm
 Réouvrir uniquement si une douleur concrète apparaît : duplication d'autorité, régression récurrente, difficulté de test, dépendance de compilation problématique ou nouvelle responsabilité autonome importante.
 
 Référence : `docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
+docs/Design/TD07_3_1_PROTOTYPE_DATA_MODEL_POLICY_AND_ASSET_AUDIT.md
 docs/Design/TD07_1_BUILD_DEPENDENCY_REPRODUCIBILITY.md
 docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md`.
 
@@ -546,10 +590,18 @@ TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
 TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ — ATTEINTE
 TD07.1          Build / dependency reproducibility                     VALIDÉ — TD-BUILD-001 RÉSOLU
 TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
-TD07.3          Save compatibility / legacy model audit                À FAIRE
+TD07.3          Prototype Data Model Reset                             ACTIF
+TD07.3.1        Policy + Current Schema Asset Audit                    IMPLÉMENTÉ — À VALIDER
+TD07.3.2        SaveGame Reset / no backward migration                À FAIRE
+TD07.3.3        Character State Normalization                         À FAIRE
+TD07.3.4        Authoring Identity Normalization                      À FAIRE
+TD07.3.5        Combat Data Schema Reset                              À FAIRE
+TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
+TD07.3.7        Current Asset Repair / Recreation                     À FAIRE
+TD07.3.8        Strict Current-Schema Validation / stop condition     À FAIRE
 TD07.4          ActivationComponent characterization                   À FAIRE
 TD07.5          Suspended test infrastructure / branch recovery        À FAIRE
-TD07.6          Legacy asset/API cleanup audit                          À FAIRE
+TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
 TD07.7          Targeted log / formatting hygiene                      À FAIRE
 TD07.8          Future-proofing re-audit / stop condition              À FAIRE
 ```
@@ -565,8 +617,8 @@ TD06 est clos : la stop condition PartyInventory est validée. Aucune nouvelle t
 1. Pas de refactor massif.
 2. Caractériser avant extraction/changement.
 3. Une seule autorité d’état.
-4. Préserver les API Blueprint sauf migration explicitement auditée.
-5. Toute évolution SaveGame inclut compatibilité/migration et tests.
+4. Pendant TD07.3, les ruptures C++ / Blueprint / DataAsset sont autorisées lorsqu'elles sont caractérisées et que le contenu courant est réparé ou recréé ; ne pas ajouter de shim de compatibilité.
+5. Pendant le prototype, toute évolution SaveGame utilise un schéma courant exact-match ; aucune migration arrière n'est requise.
 6. Event -> Command reste un bus unique.
 7. Un sous-jalon = un commit logique autant que possible.
 8. Après caractérisation séparée, production + adaptation du test = même commit logique.
@@ -583,7 +635,7 @@ TD06 est clos : la stop condition PartyInventory est validée. Aucune nouvelle t
 ```text
 Editor/C++ : Scripts/ValidateUE.ps1 + Automation ciblée
 UI/assets  : Automation disponible + PIE ciblé
-Save       : capture/restore + migration + PIE lorsque nécessaire
+Save       : capture/restore du schéma courant + rejet strict des anciennes versions ; aucune migration prototype
 Shipping   : Scripts/ValidatePackage.ps1
 CI distante: non autoritaire tant qu’aucun runner UE5.5.4 réel n’est provisionné
 Format     : clang-format 19.1.5 ; baseline first-party globale à réauditer séparément
@@ -619,16 +671,15 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**PAUSE VOLONTAIRE AVANT TD07.3.**
+**Valider TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit.**
 
-TD07.1 et TD07.2 sont clos et validés.
-
-Le prochain sujet identifié reste :
-
-```text
-TD07.3 — Save compatibility / legacy model audit
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD07_3_1"
+Get-Content .\Saved\Diagnostics\TD07\TD07_3_1_CurrentSchemaAssetAudit.txt
 ```
 
-mais **aucune modification TD07.3 ne doit être engagée avant clarification explicite de sa portée, de la politique de compatibilité des SaveGames et des conséquences sur les sauvegardes existantes**.
+Le rapport local est une baseline de caractérisation : ses findings sont attendus et guideront TD07.3.2–TD07.3.7.
 
-Les nouvelles fonctionnalités restent suspendues pendant cette clarification.
+**Ne pas commencer TD07.3.2 avant lecture du rapport.**
+
+Les nouvelles fonctionnalités, notamment MON21.4, restent suspendues pendant TD07.3.

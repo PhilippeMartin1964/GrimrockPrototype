@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **26 août 2026, après TD06.9 et MON21.3.**
+> État : **27 août 2026, TD07.3.1 — Prototype Data Model Reset.**
 
 ## 1. Référence
 
@@ -11,11 +11,11 @@
 | Moteur | Unreal Engine 5.5.4 |
 | Branche | `master` |
 | Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
-| SaveGame | version courante **9**, compatibilité minimale `1` |
+| SaveGame | implémentation encore **v9** ; compatibilité v1-v8 désormais dette à supprimer en TD07.3.2 |
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Prochaine tranche | `MON21.4 — Quest Persistence / Migration` |
+| Tranche active | `TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -23,7 +23,7 @@ La dette technique courante est autoritairement suivie dans `docs/Architecture/T
 
 GrimrockPrototype est un dungeon crawler case par case avancé : édition de donjons, exploration, mécanismes, Event -> Command enrichi de variables/Logic/Lua, groupe RPG persistant, inventaire/équipement, combat tactique, IA de monstres, XP/niveaux, Status Effects, magie/Spellbook, recrutement, Skills, Talents et persistance associée.
 
-MON13 à MON20 sont clos. MON21 a maintenant une fondation Quest data-driven : `UGridQuestDefinitionAsset`, `UGridQuestSubsystem`, état runtime de campagne et intégration au bus Event -> Command. La prochaine étape est de persister cet état de quête avant de construire le Journal.
+MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet d'abord à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype.
 
 Les campagnes TD05 et TD06 ont atteint leur stop condition : `AGridLevelRuntimeActor` et `UGridPartyInventoryComponent` restent des façades/orchestrateurs, mais leurs frontières à forte cohésion sont désormais séparées sans dupliquer l’autorité.
 
@@ -41,6 +41,7 @@ Les campagnes TD05 et TD06 ont atteint leur stop condition : `AGridLevelRuntimeA
 10. `UGridQuestSubsystem` reste l’autorité runtime unique des quêtes.
 11. Les données dérivées ne sont pas persistées lorsqu’elles peuvent être reconstruites.
 12. Refactors structurels uniquement après caractérisation et avec une stop condition explicite.
+13. Tant que le projet reste un prototype, aucune compatibilité arrière Save/DataAsset/Blueprint n'est exigée ; Git conserve l'historique.
 
 ## 4. Architecture des modules
 
@@ -72,7 +73,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Magic / Spellbook | ✅ MON18 |
 | Recrutement / réserve | ✅ MON20 |
 | Skills / Talents | ✅ MON20 |
-| Save | ✅ **v9** ; état Quest non encore persisté |
+| Save | ✅ fonctionnement courant ; schéma v1-v9/migrations en cours de suppression TD07.3 |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
 | Map | ⬜ WBP existant ; exploration prévue MON21.6 |
@@ -134,20 +135,23 @@ UGridQuestSubsystem : UGameInstanceSubsystem
 
 MON21.2 a établi l’autorité runtime et les transitions séquentielles. MON21.3 a relié les commandes Quest au bus Event -> Command via `FGridObjectLink`.
 
-L’état Quest reste transient en v9 : **MON21.4 doit introduire sa persistance et la migration associée avant MON21.5 Journal**.
+L’état Quest reste transient. **MON21.4 est suspendu jusqu’à la stop condition TD07.3** ; sa future persistance suivra le schéma prototype courant sans migration historique.
 
 ## 11. Persistance
 
-`UGrimrockPartySaveGame v9` conserve notamment groupe, inventaire/équipement/hotbar, progression, Status Effects, Spellbooks, Skills, dungeon runtime state, variables, position/facing, monstres et permissions runtime des réceptacles.
+`UGrimrockPartySaveGame` fonctionne encore avec la structure v9 et les anciennes migrations, mais ce n'est plus le contrat cible.
 
-Migrations récentes :
+TD07.3 impose désormais :
 
 ```text
-v7 -> v8  SkillRanks MON20.9
-v8 -> v9  Receptacle removal permission TD01.1
+ancienne save incompatible -> rejet
+aucune migration arrière pendant le prototype
+une seule représentation de chaque donnée durable
+données dérivées recalculées
+runtime/save fondés sur identités stables, pas sur pointeurs de contenu persistants
 ```
 
-Le prochain changement de SaveVersion n’est justifié que si MON21.4 ajoute effectivement un snapshot Quest durable.
+TD07.3.2 supprimera la chaîne v1-v9. TD07.3.3 normalisera le personnage et ses snapshots annexes. TD07.3.4–TD07.3.7 nettoieront les DataAssets et le contenu courant.
 
 ## 12. UI
 
@@ -188,7 +192,8 @@ MON21.1      architecture Quests/Journal/Map/Codex        CLOS
 MON21.2      Quest Definition + Campaign Runtime State    VALIDÉ
 MON21.3      Quest Event -> Command Integration           VALIDÉ
 TD01–TD06    stabilisation / dette ciblée                 STOP CONDITIONS ATTEINTES
-MON21.4      Quest Persistence / Migration                PROCHAIN
+TD07.3       Prototype Data Model Reset                ACTIF
+MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE
 MON21.7      Codex Discovery / Projection                 À FAIRE
