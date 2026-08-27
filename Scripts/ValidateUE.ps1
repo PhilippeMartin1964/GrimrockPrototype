@@ -4,7 +4,8 @@ param(
     [string]$ReportRoot,
     [switch]$SkipBuild,
     [switch]$SkipAutomation,
-    [switch]$UseRHI
+    [switch]$UseRHI,
+    [switch]$ShowAutomationOutput
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,6 +68,84 @@ function Invoke-GrimrockNativeStep
     }
 }
 
+function Get-GrimrockAutomationDiagnosticLines
+{
+    param(
+        [string]$LogPath,
+        [int]$FailedCount,
+        [int]$WarningCount
+    )
+
+    $Lines = @()
+    if (-not (Test-Path -LiteralPath $LogPath -PathType Leaf))
+    {
+        return $Lines
+    }
+
+    if ($FailedCount -gt 0)
+    {
+        $Lines += Get-Content -LiteralPath $LogPath | Where-Object {
+            $_ -match 'LogAutomationController: Error:' -or
+            $_ -match 'LogAutomationCommandLine: Display: \*\*\*\* TEST COMPLETE\. EXIT CODE:'
+        }
+    }
+
+    if ($WarningCount -gt 0)
+    {
+        $Lines += Get-Content -LiteralPath $LogPath | Where-Object {
+            $_ -match 'LogAutomationController: Warning:'
+        }
+    }
+
+    return @($Lines | Select-Object -Unique)
+}
+
+function Write-GrimrockAutomationSummary
+{
+    param(
+        [string]$SummaryPath,
+        [string]$Filter,
+        [int]$Succeeded,
+        [int]$SucceededWithWarnings,
+        [int]$Failed,
+        [int]$NotRun,
+        [int]$ProcessExitCode,
+        [string]$ReportPath,
+        [string]$LogPath,
+        [string]$ConsoleLogPath
+    )
+
+    $SummaryLines = @(
+        '=== Automation summary ===',
+        "Filter                 : $Filter",
+        "Succeeded              : $Succeeded",
+        "Succeeded with warnings: $SucceededWithWarnings",
+        "Failed                 : $Failed",
+        "Not run                : $NotRun",
+        "Process exit code      : $ProcessExitCode",
+        "Report                 : $ReportPath",
+        "Log                    : $LogPath",
+        "Console log            : $ConsoleLogPath",
+        "Summary                : $SummaryPath"
+    )
+
+    $Diagnostics = @(Get-GrimrockAutomationDiagnosticLines -LogPath $LogPath -FailedCount $Failed -WarningCount $SucceededWithWarnings)
+    if ($Diagnostics.Count -gt 0)
+    {
+        $SummaryLines += ''
+        $SummaryLines += '=== Relevant diagnostics ==='
+        $SummaryLines += $Diagnostics
+    }
+
+    Set-Content -LiteralPath $SummaryPath -Value $SummaryLines -Encoding UTF8
+
+    Write-Host ''
+    foreach ($Line in $SummaryLines)
+    {
+        Write-Host $Line
+    }
+}
+
 if ($SkipBuild -and $SkipAutomation)
 {
     throw 'Rien a valider : -SkipBuild et -SkipAutomation ne peuvent pas etre utilises ensemble.'
@@ -121,6 +200,8 @@ if (-not $SkipAutomation)
     New-Item -ItemType Directory -Path $SessionReportPath -Force | Out-Null
 
     $ExecCommands = "Automation RunTest $AutomationFilter;Quit"
+    $AutomationConsolePath = Join-Path $SessionReportPath 'Automation.console.log'
+    $AutomationSummaryPath = Join-Path $SessionReportPath 'Automation.summary.txt'
     $EditorArguments = @(
         $ProjectFile,
         '-Unattended',
@@ -138,10 +219,47 @@ if (-not $SkipAutomation)
         $EditorArguments += '-NullRHI'
     }
 
-    Invoke-GrimrockNativeStep -Label 'UE5.5.4 Automation' -Executable $EditorCmd -Arguments $EditorArguments
+    Write-Host ''
+    Write-Host '=== UE5.5.4 Automation ==='
+    Write-Host "Filter      : $AutomationFilter"
+    Write-Host "Report      : $SessionReportPath"
+    Write-Host "Full log    : $AutomationLogPath"
+    if (-not $ShowAutomationOutput)
+    {
+        Write-Host "Console log : $AutomationConsolePath"
+        Write-Host 'Output      : concise (use -ShowAutomationOutput for live Unreal output)'
+    }
+
+    if ($ShowAutomationOutput)
+    {
+        & $EditorCmd @EditorArguments
+        $ConsoleLogForSummary = '<live output; not redirected>'
+    }
+    else
+    {
+        & $EditorCmd @EditorArguments *> $AutomationConsolePath
+        $ConsoleLogForSummary = $AutomationConsolePath
+    }
+    $AutomationExitCode = $LASTEXITCODE
 
     $IndexJsonPath = Join-Path $SessionReportPath 'index.json'
-    Assert-FileExists -Path $IndexJsonPath -Description 'Rapport Automation index.json'
+    if (-not (Test-Path -LiteralPath $IndexJsonPath -PathType Leaf))
+    {
+        $FallbackLines = @(
+            '=== Automation summary ===',
+            "Filter                 : $AutomationFilter",
+            'Result                 : Automation report was not generated',
+            "Process exit code      : $AutomationExitCode",
+            "Report                 : $SessionReportPath",
+            "Log                    : $AutomationLogPath",
+            "Console log            : $ConsoleLogForSummary",
+            "Summary                : $AutomationSummaryPath"
+        )
+        Set-Content -LiteralPath $AutomationSummaryPath -Value $FallbackLines -Encoding UTF8
+        Write-Host ''
+        $FallbackLines | ForEach-Object { Write-Host $_ }
+        throw "Rapport Automation index.json introuvable. Consultez : $AutomationSummaryPath"
+    }
 
     $Report = Get-Content -LiteralPath $IndexJsonPath -Raw | ConvertFrom-Json
     $Succeeded = [int]$Report.succeeded
@@ -150,26 +268,34 @@ if (-not $SkipAutomation)
     $NotRun = [int]$Report.notRun
     $Executed = $Succeeded + $SucceededWithWarnings + $Failed
 
-    Write-Host ''
-    Write-Host '=== Automation summary ==='
-    Write-Host "Filter                 : $AutomationFilter"
-    Write-Host "Succeeded              : $Succeeded"
-    Write-Host "Succeeded with warnings: $SucceededWithWarnings"
-    Write-Host "Failed                 : $Failed"
-    Write-Host "Not run                : $NotRun"
-    Write-Host "Report                 : $SessionReportPath"
-    Write-Host "Log                    : $AutomationLogPath"
+    Write-GrimrockAutomationSummary `
+        -SummaryPath $AutomationSummaryPath `
+        -Filter $AutomationFilter `
+        -Succeeded $Succeeded `
+        -SucceededWithWarnings $SucceededWithWarnings `
+        -Failed $Failed `
+        -NotRun $NotRun `
+        -ProcessExitCode $AutomationExitCode `
+        -ReportPath $SessionReportPath `
+        -LogPath $AutomationLogPath `
+        -ConsoleLogPath $ConsoleLogForSummary
 
     if ($Executed -le 0)
     {
-        Write-Error "Aucun test Automation n'a ete execute pour le filtre : $AutomationFilter"
+        Write-Error "Aucun test Automation n'a ete execute pour le filtre : $AutomationFilter. Resume : $AutomationSummaryPath"
         exit 2
     }
 
     if ($Failed -gt 0)
     {
-        Write-Error "$Failed test(s) Automation en echec. Consultez : $SessionReportPath"
+        Write-Error "$Failed test(s) Automation en echec. Resume : $AutomationSummaryPath"
         exit 3
+    }
+
+    if ($AutomationExitCode -ne 0)
+    {
+        Write-Error "UE5.5.4 Automation a retourne le code $AutomationExitCode sans test marque en echec. Resume : $AutomationSummaryPath"
+        exit 4
     }
 
     Write-Host '[OK] Automation filter validated.'

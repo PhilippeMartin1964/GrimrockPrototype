@@ -1,6 +1,6 @@
 # Tests Automation et validation — Fondation d’architecture
 
-Date de référence : **26 août 2026**
+Date de référence : **27 août 2026**
 
 ## Niveaux de validation
 
@@ -33,6 +33,11 @@ Le script :
 - lance un filtre Automation explicite via `UnrealEditor-Cmd.exe` ;
 - exporte et lit `index.json` ;
 - échoue si aucun test n’est exécuté ou si `failed > 0`.
+- redirige par défaut la sortie brute de `UnrealEditor-Cmd.exe` vers `Automation.console.log` ;
+- conserve le log UE complet dans `Automation.log` ;
+- génère `Automation.summary.txt` avec les compteurs et, en cas d’échec/warning, les diagnostics `LogAutomationController` pertinents ;
+- affiche ce même résumé compact dans le terminal ;
+- accepte `-ShowAutomationOutput` pour restaurer ponctuellement la sortie Unreal temps réel.
 
 Validation réelle TD04.2 :
 
