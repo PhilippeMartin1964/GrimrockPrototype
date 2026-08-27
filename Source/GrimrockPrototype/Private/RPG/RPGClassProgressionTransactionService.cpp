@@ -2,7 +2,6 @@
 
 #include "RPG/RPGClassAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Save/GrimrockPartySaveGame.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridClassProgression, Log, All);
 
@@ -15,7 +14,6 @@ namespace
 		FGuid CharacterId;
 		FName ClassId = NAME_None;
 		int32 CharacterLevel = 1;
-		TArray<FName> SelectedChoiceIds;
 		TSet<FName> SatisfiedRequirements;
 	};
 
@@ -63,7 +61,7 @@ namespace
 		}
 	}
 
-	bool BuildRuntimeStateFromSnapshot(const FGridCharacterInventoryState& Character, int32 CharacterIndex, const TArray<FName>& SavedChoiceIds,
+	bool BuildRuntimeStateFromCharacter(const FGridCharacterInventoryState& Character, int32 CharacterIndex,
 		UGridPartyInventoryComponent* InventoryComponent, FRuntimeClassProgressionState& OutState, FText& OutError)
 	{
 		OutState = FRuntimeClassProgressionState();
@@ -76,7 +74,7 @@ namespace
 		}
 
 		TSet<FName> SelectedChoiceIds;
-		if (!BuildSelectionSet(SavedChoiceIds, SelectedChoiceIds))
+		if (!BuildSelectionSet(Character.SelectedClassProgressionChoiceIds, SelectedChoiceIds))
 		{
 			OutError = FText::FromString(FString::Printf(TEXT("Les choix persistants du personnage %s contiennent un identifiant vide ou dupliqué."),
 				*Character.CharacterId.ToString(EGuidFormats::Digits)));
@@ -88,9 +86,9 @@ namespace
 		{
 			if (!SelectedChoiceIds.IsEmpty())
 			{
-				OutError =
-					FText::FromString(FString::Printf(TEXT("La classe du personnage %s est introuvable alors que des choix de progression sont sauvegardés."),
-						*Character.CharacterId.ToString(EGuidFormats::Digits)));
+				OutError = FText::FromString(FString::Printf(
+					TEXT("La classe du personnage %s est introuvable alors que des choix de progression sont enregistrés."),
+					*Character.CharacterId.ToString(EGuidFormats::Digits)));
 				return false;
 			}
 
@@ -130,34 +128,8 @@ namespace
 		OutState.CharacterId = Character.CharacterId;
 		OutState.ClassId = Character.ClassId;
 		OutState.CharacterLevel = Character.Level;
-		NormalizeSelectionOrder(*ClassDefinition, SelectedChoiceIds, OutState.SelectedChoiceIds);
 		OutState.SatisfiedRequirements = MoveTemp(SatisfiedRequirements);
 		return true;
-	}
-
-	FRuntimeClassProgressionState* FindCompatibleRuntimeState(
-		UGridPartyInventoryComponent* PartyInventoryComponent, const FGridCharacterInventoryState& Character)
-	{
-		FRuntimeClassProgressionState* State = RuntimeStates.Find(Character.CharacterId);
-		if (!State)
-		{
-			return nullptr;
-		}
-
-		if (State->CharacterId != Character.CharacterId || State->ClassId != Character.ClassId)
-		{
-			RuntimeStates.Remove(Character.CharacterId);
-			return nullptr;
-		}
-
-		// A detached state restored from SaveGame has no live component yet.
-		// It becomes bound when the actual party inventory first refreshes it.
-		if (State->InventoryComponent.IsValid() && State->InventoryComponent.Get() != PartyInventoryComponent)
-		{
-			RuntimeStates.Remove(Character.CharacterId);
-			return nullptr;
-		}
-		return State;
 	}
 
 	bool ResolveCharacter(UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, FGridCharacterInventoryState*& OutCharacter,
@@ -243,15 +215,9 @@ bool FRPGClassProgressionTransactionService::RefreshCharacterProjection(UGridPar
 		return false;
 	}
 
-	TArray<FName> ExistingChoices;
-	if (FRuntimeClassProgressionState* ExistingState = FindCompatibleRuntimeState(PartyInventoryComponent, *Character))
-	{
-		ExistingChoices = ExistingState->SelectedChoiceIds;
-	}
-
 	FRuntimeClassProgressionState RebuiltState;
 	FText RebuildError;
-	if (!BuildRuntimeStateFromSnapshot(*Character, CharacterIndex, ExistingChoices, PartyInventoryComponent, RebuiltState, RebuildError))
+	if (!BuildRuntimeStateFromCharacter(*Character, CharacterIndex, PartyInventoryComponent, RebuiltState, RebuildError))
 	{
 		return false;
 	}
@@ -269,14 +235,7 @@ bool FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(
 		return false;
 	}
 
-	const FGridCharacterInventoryState& Character = PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
-	const FRuntimeClassProgressionState* State = RuntimeStates.Find(Character.CharacterId);
-	if (!State)
-	{
-		return false;
-	}
-
-	OutSelectedChoiceIds = State->SelectedChoiceIds;
+	OutSelectedChoiceIds = PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].SelectedClassProgressionChoiceIds;
 	return true;
 }
 
@@ -295,14 +254,8 @@ bool FRPGClassProgressionTransactionService::TryGetChoicePointBalance(
 		return false;
 	}
 
-	const FRuntimeClassProgressionState* State = RuntimeStates.Find(Character->CharacterId);
-	if (!State)
-	{
-		return false;
-	}
-
 	TSet<FName> SelectedChoiceIds;
-	if (!BuildSelectionSet(State->SelectedChoiceIds, SelectedChoiceIds))
+	if (!BuildSelectionSet(Character->SelectedClassProgressionChoiceIds, SelectedChoiceIds))
 	{
 		return false;
 	}
@@ -338,21 +291,9 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidClassDefinition;
 		return false;
 	}
-	if (!RefreshCharacterProjection(PartyInventoryComponent, CharacterIndex))
-	{
-		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection;
-		return false;
-	}
-
-	FRuntimeClassProgressionState* State = RuntimeStates.Find(Character->CharacterId);
-	if (!State)
-	{
-		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection;
-		return false;
-	}
 
 	TSet<FName> CurrentSelection;
-	if (!BuildSelectionSet(State->SelectedChoiceIds, CurrentSelection) ||
+	if (!BuildSelectionSet(Character->SelectedClassProgressionChoiceIds, CurrentSelection) ||
 		!FRPGClassProgressionService::TryGetChoicePointBalance(
 			ClassDefinition, Character->Level, CurrentSelection, OutResult.GrantedPoints, OutResult.SpentPointsBefore, OutResult.RemainingPoints))
 	{
@@ -399,18 +340,21 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 		return false;
 	}
 
-	TSet<FName> SatisfiedRequirements;
-	if (!FRPGClassProgressionService::CollectSatisfiedRequirements(ClassDefinition, Character->Level, CandidateSelection, SatisfiedRequirements))
+	TArray<FName> NormalizedChoices;
+	NormalizeSelectionOrder(*ClassDefinition, CandidateSelection, NormalizedChoices);
+
+	FGridCharacterInventoryState CandidateCharacter = *Character;
+	CandidateCharacter.SelectedClassProgressionChoiceIds = NormalizedChoices;
+	FRuntimeClassProgressionState CandidateRuntimeState;
+	FText ProjectionError;
+	if (!BuildRuntimeStateFromCharacter(CandidateCharacter, CharacterIndex, PartyInventoryComponent, CandidateRuntimeState, ProjectionError))
 	{
 		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection;
 		return false;
 	}
 
-	NormalizeSelectionOrder(*ClassDefinition, CandidateSelection, State->SelectedChoiceIds);
-	State->InventoryComponent = PartyInventoryComponent;
-	State->CharacterIndex = CharacterIndex;
-	State->CharacterLevel = Character->Level;
-	State->SatisfiedRequirements = MoveTemp(SatisfiedRequirements);
+	Character->SelectedClassProgressionChoiceIds = MoveTemp(NormalizedChoices);
+	RuntimeStates.Add(Character->CharacterId, MoveTemp(CandidateRuntimeState));
 
 	OutResult.bCommitted = true;
 	OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::None;
@@ -441,104 +385,36 @@ void FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(
 		return;
 	}
 
-	// Detached MON15.6 states are valid after load and deliberately have no
-	// InventoryComponent until a live character refresh binds them.
 	for (const FName RequirementId : State->SatisfiedRequirements)
 	{
 		InOutSatisfiedRequirements.Add(RequirementId);
 	}
 }
 
-bool FRPGClassProgressionTransactionService::CapturePersistentState(
-	const FGridPartyInventoryState& PartyState, TArray<FRPGCharacterProgressionSaveState>& OutStates, FText& OutError)
+bool FRPGClassProgressionTransactionService::RebuildRuntimeProjection(const FGridPartyInventoryState& PartyState, FText& OutError)
 {
-	OutStates.Reset(PartyState.ActiveCharacters.Num());
 	OutError = FText::GetEmpty();
-
+	TMap<FGuid, FRuntimeClassProgressionState> RebuiltStates;
 	TSet<FGuid> CharacterIds;
+
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
 		const FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[CharacterIndex];
 		if (!Character.CharacterId.IsValid() || CharacterIds.Contains(Character.CharacterId))
 		{
 			OutError = FText::FromString(TEXT("Les personnages actifs possèdent un CharacterId invalide ou dupliqué."));
-			OutStates.Reset();
 			return false;
 		}
 		CharacterIds.Add(Character.CharacterId);
 
-		FRPGCharacterProgressionSaveState SavedState;
-		SavedState.CharacterId = Character.CharacterId;
-		if (const FRuntimeClassProgressionState* RuntimeState = RuntimeStates.Find(Character.CharacterId))
-		{
-			if (RuntimeState->ClassId != Character.ClassId)
-			{
-				OutError = FText::FromString(FString::Printf(
-					TEXT("Le cache de progression du personnage %s ne correspond plus à sa classe."), *Character.CharacterId.ToString(EGuidFormats::Digits)));
-				OutStates.Reset();
-				return false;
-			}
-			SavedState.SelectedChoiceIds = RuntimeState->SelectedChoiceIds;
-		}
-
-		FRuntimeClassProgressionState ValidationState;
-		FText ValidationError;
-		if (!BuildRuntimeStateFromSnapshot(Character, CharacterIndex, SavedState.SelectedChoiceIds, nullptr, ValidationState, ValidationError))
-		{
-			OutError = ValidationError;
-			OutStates.Reset();
-			return false;
-		}
-		SavedState.SelectedChoiceIds = ValidationState.SelectedChoiceIds;
-		OutStates.Add(MoveTemp(SavedState));
-	}
-	return true;
-}
-
-bool FRPGClassProgressionTransactionService::RestorePersistentState(
-	const FGridPartyInventoryState& PartyState, const TArray<FRPGCharacterProgressionSaveState>& SavedStates, FText& OutError)
-{
-	OutError = FText::GetEmpty();
-	if (SavedStates.Num() != PartyState.ActiveCharacters.Num())
-	{
-		OutError =
-			FText::FromString(FString::Printf(TEXT("Le nombre d'états de progression sauvegardés (%d) ne correspond pas au nombre de personnages actifs (%d)."),
-				SavedStates.Num(), PartyState.ActiveCharacters.Num()));
-		return false;
-	}
-
-	TMap<FGuid, const FRPGCharacterProgressionSaveState*> StatesByCharacterId;
-	for (const FRPGCharacterProgressionSaveState& SavedState : SavedStates)
-	{
-		if (!SavedState.CharacterId.IsValid() || StatesByCharacterId.Contains(SavedState.CharacterId))
-		{
-			OutError = FText::FromString(TEXT("Un état de progression sauvegardé possède un CharacterId invalide ou dupliqué."));
-			return false;
-		}
-		StatesByCharacterId.Add(SavedState.CharacterId, &SavedState);
-	}
-
-	TMap<FGuid, FRuntimeClassProgressionState> RebuiltStates;
-	for (int32 CharacterIndex = 0; CharacterIndex < PartyState.ActiveCharacters.Num(); ++CharacterIndex)
-	{
-		const FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[CharacterIndex];
-		const FRPGCharacterProgressionSaveState* const* SavedStatePtr = StatesByCharacterId.Find(Character.CharacterId);
-		if (!SavedStatePtr || !*SavedStatePtr)
-		{
-			OutError = FText::FromString(FString::Printf(
-				TEXT("Aucun état de progression n'est sauvegardé pour le personnage %s."), *Character.CharacterId.ToString(EGuidFormats::Digits)));
-			return false;
-		}
-
 		FRuntimeClassProgressionState RebuiltState;
-		if (!BuildRuntimeStateFromSnapshot(Character, CharacterIndex, (*SavedStatePtr)->SelectedChoiceIds, nullptr, RebuiltState, OutError))
+		if (!BuildRuntimeStateFromCharacter(Character, CharacterIndex, nullptr, RebuiltState, OutError))
 		{
 			return false;
 		}
 		RebuiltStates.Add(Character.CharacterId, MoveTemp(RebuiltState));
 	}
 
-	// Commit only after every character has validated successfully.
 	for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
 	{
 		RuntimeStates.Remove(Character.CharacterId);

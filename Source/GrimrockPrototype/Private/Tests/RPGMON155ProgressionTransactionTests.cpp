@@ -26,6 +26,7 @@ bool FRPGMON155AtomicBatchCommitTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Both choices are committed"), Selected.Num(), 2);
 	TestTrue(TEXT("Choice A is committed"), Selected.Contains(TEXT("Choice_A")));
 	TestTrue(TEXT("Choice B is committed"), Selected.Contains(TEXT("Choice_B")));
+	TestEqual(TEXT("Character authority owns both committed choices"), Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Num(), 2);
 	return true;
 }
 
@@ -48,6 +49,8 @@ bool FRPGMON155AtomicFailureTest::RunTest(const FString& Parameters)
 	TArray<FName> Selected;
 	TestTrue(TEXT("Runtime progression state remains readable"), FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, Selected));
 	TestTrue(TEXT("No partial choice was committed"), Selected.IsEmpty());
+	TestTrue(TEXT("Character authority remains unchanged on rejected commit"),
+		Component->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.IsEmpty());
 
 	TSet<FName> Requirements;
 	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, Requirements);
@@ -97,14 +100,15 @@ bool FRPGMON155TransientBoundaryTest::RunTest(const FString& Parameters)
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
 	Save->PartyInventoryState = Component->PartyInventoryState;
 	TestEqual(TEXT("Save object uses the current SaveVersion contract"), Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Ordinary party snapshot now owns Choice A"),
+		Save->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState(Component);
 	TArray<FName> SelectedAfterRuntimeReset;
 	TestTrue(TEXT("Projection rebuilds after transient runtime reset"),
 		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, SelectedAfterRuntimeReset));
-	TestTrue(TEXT("A cache reset alone still clears the MON15.5 transient selection"), SelectedAfterRuntimeReset.IsEmpty());
-	TestTrue(TEXT("MON15.6 persistence is captured by SaveGame serialization, not the ordinary party snapshot"), Save->ClassProgressionStates.IsEmpty());
-	TestEqual(TEXT("The ordinary party snapshot is otherwise unchanged"), Save->PartyInventoryState.ActiveCharacters.Num(), 1);
+	TestTrue(TEXT("A cache reset no longer clears durable class choices"), SelectedAfterRuntimeReset.Contains(TEXT("Choice_A")));
+	TestEqual(TEXT("The ordinary party snapshot remains complete"), Save->PartyInventoryState.ActiveCharacters.Num(), 1);
 	return true;
 }
 

@@ -11,6 +11,10 @@
 
 class UGridStatusEffectDefinitionAsset;
 
+/**
+ * Transitional TD07.3.3.5 B1 projection only. SelectedClassProgressionChoiceIds
+ * on FGridCharacterInventoryState is the authority; this type is removed in B2.
+ */
 USTRUCT(BlueprintType)
 struct FRPGCharacterProgressionSaveState
 {
@@ -60,8 +64,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3: exact-match prototype schema. TD07.3.3.4 removes derived weight caches from character state. */
-	static constexpr int32 CurrentSaveVersion = 13;
+	/** TD07.3.3.5 B1: Level is transient and rebuilt from Experience. */
+	static constexpr int32 CurrentSaveVersion = 14;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -69,7 +73,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridPartyInventoryState PartyInventoryState;
 
-	/** MON15.6 authoritative persisted class choices, keyed by CharacterId. */
+	/** Transitional B1 field kept compile-visible but no longer authoritative or consumed. Removed in B2. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
 	TArray<FRPGCharacterProgressionSaveState> ClassProgressionStates;
 
@@ -106,16 +110,9 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 
-	/** Captures transient party status collections into stable MON16.7 snapshots. */
 	bool CaptureStatusEffectState(FString& OutError);
-
-	/** Restores party status collections using canonical GridStatusEffect primary assets. */
 	bool RestoreStatusEffectState(FString& OutError);
-
-	/** Test seam and deterministic restore path with an injected definition resolver. */
 	bool RestoreStatusEffectState(TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError);
-
-	/** Strict validation of the current prototype save schema. Never migrates or mutates the save. */
 	bool ValidateCurrentState(FText& OutError) const;
 
 	bool IsCompatible() const

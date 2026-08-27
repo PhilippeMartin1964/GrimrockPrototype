@@ -18,17 +18,6 @@ namespace RPGMON2074TalentPersistenceRegressionTests
 		FRPGClassProgressionCommitResult Result;
 		return FRPGClassProgressionTransactionService::TryCommitChoices(Component, CharacterIndex, { TalentA }, Result);
 	}
-
-	bool CaptureProgression(UGridPartyInventoryComponent* Component, TArray<FRPGCharacterProgressionSaveState>& OutStates)
-	{
-		if (!Component)
-		{
-			return false;
-		}
-
-		FText Error;
-		return FRPGClassProgressionTransactionService::CapturePersistentState(Component->PartyInventoryState, OutStates, Error);
-	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2074RequirementBeforeTalentTest, "Grimrock.MON20.7.Talents.RequirementBeforeTalent",
@@ -42,7 +31,6 @@ bool FRPGMON2074RequirementBeforeTalentTest::RunTest(const FString& Parameters)
 
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
-
 	TestTrue(TEXT("Initial MON15 projection refresh succeeds"), FRPGClassProgressionTransactionService::RefreshCharacterProjection(Component, 0));
 
 	const TSet<FName> Requirements = GetMON155RuntimeRequirements(Component, 0);
@@ -63,7 +51,6 @@ bool FRPGMON2074RequirementAfterTalentTest::RunTest(const FString& Parameters)
 
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
-
 	TestTrue(TEXT("Talent A commits"), CommitTalentA(Component, 0));
 
 	const TSet<FName> Requirements = GetMON155RuntimeRequirements(Component, 0);
@@ -92,7 +79,6 @@ bool FRPGMON2074RequirementCharacterIsolationTest::RunTest(const FString& Parame
 
 	const TSet<FName> CharacterZeroRequirements = GetMON155RuntimeRequirements(Component, 0);
 	const TSet<FName> CharacterOneRequirements = GetMON155RuntimeRequirements(Component, 1);
-
 	TestTrue(TEXT("Character zero owns Talent A projection"), CharacterZeroRequirements.Contains(TalentA));
 	TestTrue(TEXT("Character zero owns Feature A projection"), CharacterZeroRequirements.Contains(TalentARequirement));
 	TestFalse(TEXT("Character one does not inherit Talent A"), CharacterOneRequirements.Contains(TalentA));
@@ -114,16 +100,11 @@ bool FRPGMON2074CaptureUsesMON15SnapshotTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
 	TestTrue(TEXT("Talent A commits"), CommitTalentA(Component, 0));
 
-	TArray<FRPGCharacterProgressionSaveState> SavedStates;
-	TestTrue(TEXT("MON15.6 progression snapshot captures"), CaptureProgression(Component, SavedStates));
-	TestEqual(TEXT("One active character produces one progression snapshot"), SavedStates.Num(), 1);
-	if (SavedStates.Num() == 1)
-	{
-		TestEqual(TEXT("Snapshot keeps stable CharacterId"), SavedStates[0].CharacterId, Component->PartyInventoryState.ActiveCharacters[0].CharacterId);
-		TestEqual(TEXT("Exactly one talent ChoiceId is persisted"), SavedStates[0].SelectedChoiceIds.Num(), 1);
-		TestTrue(TEXT("Persisted talent uses the original ChoiceId"), SavedStates[0].SelectedChoiceIds.Contains(TalentA));
-	}
-	TestTrue(TEXT("MON20.7 progression snapshot remains compatible with later SaveGame versions"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
+	const FGridPartyInventoryState SavedState = Component->PartyInventoryState;
+	TestEqual(TEXT("One active character remains in ordinary party snapshot"), SavedState.ActiveCharacters.Num(), 1);
+	TestEqual(TEXT("Exactly one talent ChoiceId is persisted on the character"), SavedState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Num(), 1);
+	TestTrue(TEXT("Persisted talent uses the original ChoiceId"), SavedState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TalentA));
+	TestTrue(TEXT("MON20.7 character-owned persistence remains compatible with later SaveGame versions"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
 	return true;
 }
 
@@ -140,17 +121,10 @@ bool FRPGMON2074RestoreTalentReadModelTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
 	TestTrue(TEXT("Talent A commits"), CommitTalentA(Component, 0));
 
-	TArray<FRPGCharacterProgressionSaveState> SavedStates;
-	TestTrue(TEXT("Progression snapshot captures before reset"), CaptureProgression(Component, SavedStates));
-
-	FRPGClassProgressionTransactionService::ResetRuntimeState();
-	FText RestoreError;
-	TestTrue(TEXT("MON15.6 progression snapshot restores"),
-		FRPGClassProgressionTransactionService::RestorePersistentState(Component->PartyInventoryState, SavedStates, RestoreError));
-
+	FRPGClassProgressionTransactionService::ResetRuntimeState(Component);
 	bool bHasTalent = false;
-	TestTrue(TEXT("MON20.7 read facade remains usable after restore"), FRPGTalentRuntimeService::HasTalent(Component, 0, TalentA, bHasTalent));
-	TestTrue(TEXT("Restored ChoiceId is still exposed as acquired talent"), bHasTalent);
+	TestTrue(TEXT("MON20.7 read facade remains usable after cache reset"), FRPGTalentRuntimeService::HasTalent(Component, 0, TalentA, bHasTalent));
+	TestTrue(TEXT("Character-owned ChoiceId is still exposed as acquired talent"), bHasTalent);
 	return true;
 }
 
@@ -167,20 +141,18 @@ bool FRPGMON2074RestoreDetachedRequirementsTest::RunTest(const FString& Paramete
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
 	TestTrue(TEXT("Talent A commits"), CommitTalentA(Component, 0));
 
-	TArray<FRPGCharacterProgressionSaveState> SavedStates;
-	TestTrue(TEXT("Progression snapshot captures before reset"), CaptureProgression(Component, SavedStates));
-
-	const FGuid CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
+	const FGridPartyInventoryState SavedState = Component->PartyInventoryState;
+	const FGuid CharacterId = SavedState.ActiveCharacters[0].CharacterId;
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	FText RestoreError;
-	TestTrue(TEXT("Detached progression projection restores"),
-		FRPGClassProgressionTransactionService::RestorePersistentState(Component->PartyInventoryState, SavedStates, RestoreError));
+	TestTrue(TEXT("Detached progression projection rebuilds from character-owned state"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(SavedState, RestoreError));
 
 	TSet<FName> Requirements;
 	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, Requirements);
-	TestTrue(TEXT("Detached restore immediately projects automatic requirement"), Requirements.Contains(AutomaticLevelRequirement));
-	TestTrue(TEXT("Detached restore immediately projects ChoiceId"), Requirements.Contains(TalentA));
-	TestTrue(TEXT("Detached restore immediately projects GrantedRequirementIds"), Requirements.Contains(TalentARequirement));
+	TestTrue(TEXT("Detached rebuild immediately projects automatic requirement"), Requirements.Contains(AutomaticLevelRequirement));
+	TestTrue(TEXT("Detached rebuild immediately projects ChoiceId"), Requirements.Contains(TalentA));
+	TestTrue(TEXT("Detached rebuild immediately projects GrantedRequirementIds"), Requirements.Contains(TalentARequirement));
 	return true;
 }
 
@@ -196,22 +168,20 @@ bool FRPGMON2074InvalidRestoreAtomicTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
 	TestTrue(TEXT("Talent A commits"), CommitTalentA(Component, 0));
+	const FGuid CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
+	const TSet<FName> RequirementsBefore = GetMON155RuntimeRequirements(Component, 0);
 
-	FRPGCharacterProgressionSaveState InvalidState;
-	InvalidState.CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
-	InvalidState.SelectedChoiceIds = { TalentB };
-
+	FGridPartyInventoryState InvalidState = Component->PartyInventoryState;
+	InvalidState.ActiveCharacters[0].SelectedClassProgressionChoiceIds = { TalentB };
 	FText RestoreError;
-	TestFalse(TEXT("Snapshot missing Talent B prerequisite is rejected"),
-		FRPGClassProgressionTransactionService::RestorePersistentState(Component->PartyInventoryState, { InvalidState }, RestoreError));
+	TestFalse(TEXT("Character state missing Talent B prerequisite is rejected"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(InvalidState, RestoreError));
 
-	bool bHasTalentA = false;
-	TestTrue(TEXT("Existing runtime state remains readable after rejected restore"), FRPGTalentRuntimeService::HasTalent(Component, 0, TalentA, bHasTalentA));
-	TestTrue(TEXT("Rejected restore does not erase existing Talent A"), bHasTalentA);
-
-	const TSet<FName> Requirements = GetMON155RuntimeRequirements(Component, 0);
-	TestTrue(TEXT("Rejected restore preserves Talent A requirement projection"), Requirements.Contains(TalentA));
-	TestTrue(TEXT("Rejected restore preserves Feature A projection"), Requirements.Contains(TalentARequirement));
+	TSet<FName> RequirementsAfter;
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, RequirementsAfter);
+	TestTrue(TEXT("Rejected rebuild preserves existing Talent A projection"), RequirementsAfter.Contains(TalentA));
+	TestTrue(TEXT("Rejected rebuild preserves Feature A projection"), RequirementsAfter.Contains(TalentARequirement));
+	TestEqual(TEXT("Rejected rebuild preserves prior requirement count"), RequirementsAfter.Num(), RequirementsBefore.Num());
 	return true;
 }
 
@@ -230,37 +200,24 @@ bool FRPGMON2074RestoreByCharacterIdTest::RunTest(const FString& Parameters)
 	Component->PartyInventoryState.ActiveEquipment.SetNum(2);
 
 	TestTrue(TEXT("Character zero commits Talent A"), CommitTalentA(Component, 0));
-
 	FRPGClassProgressionCommitResult CharacterOneResult;
 	TestTrue(TEXT("Character one commits prerequisite chain A+B"),
 		FRPGClassProgressionTransactionService::TryCommitChoices(Component, 1, { TalentA, TalentB }, CharacterOneResult));
 
-	TArray<FRPGCharacterProgressionSaveState> SavedStates;
-	TestTrue(TEXT("Two-character progression snapshot captures"), CaptureProgression(Component, SavedStates));
-	TestEqual(TEXT("Two active characters produce two snapshots"), SavedStates.Num(), 2);
-	if (SavedStates.Num() != 2)
-	{
-		return false;
-	}
+	FGridPartyInventoryState SavedState = Component->PartyInventoryState;
+	SavedState.ActiveCharacters.Swap(0, 1);
+	SavedState.ActiveEquipment.Swap(0, 1);
 
-	SavedStates.Swap(0, 1);
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	FText RestoreError;
-	TestTrue(TEXT("Restore is keyed by CharacterId, not snapshot array order"),
-		FRPGClassProgressionTransactionService::RestorePersistentState(Component->PartyInventoryState, SavedStates, RestoreError));
+	TestTrue(TEXT("Projection rebuild follows character-owned choices after party reordering"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(SavedState, RestoreError));
 
-	TArray<FName> CharacterZeroTalents;
-	TArray<FName> CharacterOneTalents;
-	TestTrue(TEXT("Character zero restored selection is readable"),
-		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, CharacterZeroTalents));
-	TestTrue(TEXT("Character one restored selection is readable"),
-		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 1, CharacterOneTalents));
-
-	TestEqual(TEXT("Character zero restores exactly one talent"), CharacterZeroTalents.Num(), 1);
-	TestTrue(TEXT("Character zero restores Talent A"), CharacterZeroTalents.Contains(TalentA));
-	TestEqual(TEXT("Character one restores two talents"), CharacterOneTalents.Num(), 2);
-	TestTrue(TEXT("Character one restores Talent A"), CharacterOneTalents.Contains(TalentA));
-	TestTrue(TEXT("Character one restores Talent B"), CharacterOneTalents.Contains(TalentB));
+	TestEqual(TEXT("First reordered character retains two talents"), SavedState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Num(), 2);
+	TestTrue(TEXT("First reordered character retains Talent A"), SavedState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TalentA));
+	TestTrue(TEXT("First reordered character retains Talent B"), SavedState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TalentB));
+	TestEqual(TEXT("Second reordered character retains one talent"), SavedState.ActiveCharacters[1].SelectedClassProgressionChoiceIds.Num(), 1);
+	TestTrue(TEXT("Second reordered character retains Talent A"), SavedState.ActiveCharacters[1].SelectedClassProgressionChoiceIds.Contains(TalentA));
 	return true;
 }
 

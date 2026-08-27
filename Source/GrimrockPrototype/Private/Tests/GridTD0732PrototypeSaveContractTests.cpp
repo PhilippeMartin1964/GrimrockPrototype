@@ -29,13 +29,6 @@ namespace
 		Save->PartyInventoryState = Component->PartyInventoryState;
 		return Save;
 	}
-
-	void AddEmptyProgressionState(UGrimrockPartySaveGame* Save, const FGuid& CharacterId)
-	{
-		FRPGCharacterProgressionSaveState Progression;
-		Progression.CharacterId = CharacterId;
-		Save->ClassProgressionStates.Add(Progression);
-	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD0732ExactVersionContractTest,
@@ -46,7 +39,7 @@ bool FGridTD0732ExactVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("TD07.3 exact-match contract tracks the current prototype schema generation"), UGrimrockPartySaveGame::CurrentSaveVersion, 13);
+	TestEqual(TEXT("TD07.3 exact-match contract tracks the current prototype schema generation"), UGrimrockPartySaveGame::CurrentSaveVersion, 14);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
 	TestEqual(TEXT("A new SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
@@ -67,7 +60,6 @@ bool FGridTD0732ExactVersionContractTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("A future schema is incompatible"), Future->IsCompatible());
 	TestEqual(TEXT("Validation never rewrites a future version"), Future->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion + 1);
 	TestTrue(TEXT("Future-version rejection reports an error"), !FutureError.IsEmpty());
-
 	return true;
 }
 
@@ -102,15 +94,17 @@ bool FGridTD0732PersistentChoiceRoundTripTest::RunTest(const FString& Parameters
 
 	TestEqual(TEXT("Round trip keeps the current schema"), LoadedSave->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
 	TestTrue(TEXT("Loaded current-schema save is compatible"), LoadedSave->IsCompatible());
-	TestEqual(TEXT("One character progression snapshot is restored"), LoadedSave->ClassProgressionStates.Num(), 1);
-	TestTrue(TEXT("Choice A survives serialization"), LoadedSave->ClassProgressionStates[0].SelectedChoiceIds.Contains(TEXT("Choice_A")));
-	TestTrue(TEXT("Choice B survives serialization"), LoadedSave->ClassProgressionStates[0].SelectedChoiceIds.Contains(TEXT("Choice_B")));
+	TestEqual(TEXT("One active character is restored"), LoadedSave->PartyInventoryState.ActiveCharacters.Num(), 1);
+	const FGridCharacterInventoryState& LoadedCharacter = LoadedSave->PartyInventoryState.ActiveCharacters[0];
+	TestTrue(TEXT("Choice A survives serialization on the character"), LoadedCharacter.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
+	TestTrue(TEXT("Choice B survives serialization on the character"), LoadedCharacter.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_B")));
+	TestEqual(TEXT("Transient Level is rebuilt from Experience after load"), LoadedCharacter.Level, 3);
 
 	TSet<FName> RestoredRequirements;
 	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(CharacterId, RestoredRequirements);
-	TestTrue(TEXT("Choice A requirement is restored before live cache binding"), RestoredRequirements.Contains(TEXT("Choice_A")));
-	TestTrue(TEXT("Choice B requirement is restored before live cache binding"), RestoredRequirements.Contains(TEXT("Choice_B")));
-	TestTrue(TEXT("Choice A granted feature is restored"), RestoredRequirements.Contains(TEXT("Feature_A")));
+	TestTrue(TEXT("Choice A requirement is rebuilt before live cache binding"), RestoredRequirements.Contains(TEXT("Choice_A")));
+	TestTrue(TEXT("Choice B requirement is rebuilt before live cache binding"), RestoredRequirements.Contains(TEXT("Choice_B")));
+	TestTrue(TEXT("Choice A granted feature is rebuilt"), RestoredRequirements.Contains(TEXT("Feature_A")));
 	return true;
 }
 
@@ -126,12 +120,11 @@ bool FGridTD0732RejectCurrentMismatchTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(1, 1000, ClassDefinition);
 	UGrimrockPartySaveGame* Save = MakeTD0732Save(Component);
-	AddEmptyProgressionState(Save, Component->PartyInventoryState.ActiveCharacters[0].CharacterId);
 
 	FText Error;
-	TestFalse(TEXT("Current-schema inconsistent Level/Experience is rejected"), Save->ValidateCurrentState(Error));
+	TestFalse(TEXT("Current-schema inconsistent transient Level/Experience is rejected before serialization"), Save->ValidateCurrentState(Error));
 	TestTrue(TEXT("Mismatch rejection reports an error"), !Error.IsEmpty());
-	TestEqual(TEXT("Strict validation does not mutate the stored level"), Save->PartyInventoryState.ActiveCharacters[0].Level, 1);
+	TestEqual(TEXT("Strict validation does not mutate the runtime level cache"), Save->PartyInventoryState.ActiveCharacters[0].Level, 1);
 	TestEqual(TEXT("Strict validation does not mutate XP"), Save->PartyInventoryState.ActiveCharacters[0].Experience, 1000);
 	return true;
 }
@@ -148,11 +141,7 @@ bool FGridTD0732RejectInvalidChoiceSnapshotTest::RunTest(const FString& Paramete
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
 	UGrimrockPartySaveGame* Save = MakeTD0732Save(Component);
-
-	FRPGCharacterProgressionSaveState Progression;
-	Progression.CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
-	Progression.SelectedChoiceIds.Add(TEXT("Choice_Unknown"));
-	Save->ClassProgressionStates.Add(Progression);
+	Save->PartyInventoryState.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Add(TEXT("Choice_Unknown"));
 
 	FText Error;
 	TestFalse(TEXT("Unknown persisted class choice is rejected"), Save->ValidateCurrentState(Error));
@@ -218,7 +207,6 @@ bool FGridTD0732RejectInvalidPendingNotificationTest::RunTest(const FString& Par
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
 	UGrimrockPartySaveGame* Save = MakeTD0732Save(Component);
 	const FGuid CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
-	AddEmptyProgressionState(Save, CharacterId);
 
 	FRPGPendingLevelUpSaveState Pending;
 	Pending.CharacterId = CharacterId;

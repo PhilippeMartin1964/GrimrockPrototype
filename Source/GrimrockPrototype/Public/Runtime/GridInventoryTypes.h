@@ -348,11 +348,17 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FText RaceDisplayName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	/** Runtime projection reconstructed from Experience. It is not persistent authority. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	int32 Level = 1;
 
+	/** Durable progression authority. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character", meta = (ClampMin = "0"))
 	int32 Experience = 0;
+
+	/** Durable player-selected class progression choices. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Progression")
+	TArray<FName> SelectedClassProgressionChoiceIds;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG")
 	FRPGAttributes Attributes;
@@ -384,15 +390,12 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	TSoftObjectPtr<UTexture2D> ClassIcon;
 
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TArray<FGridInventorySlot> InventorySlots;
 
 	/** Ten player-configured combat shortcuts. New characters start empty. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
 	TArray<FGridCombatHotbarBinding> CombatHotbarSlots;
-
 };
 
 USTRUCT(BlueprintType)

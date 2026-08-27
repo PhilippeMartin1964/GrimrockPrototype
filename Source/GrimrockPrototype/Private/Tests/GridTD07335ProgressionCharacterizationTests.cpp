@@ -6,7 +6,6 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGLevelUpService.h"
 #include "RPGMON155TestHelpers.h"
-#include "Save/GrimrockPartySaveGame.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335ExperienceLevelContractTest,
 	"Grimrock.TechnicalDebt.TD07_3_3_5.Characterization.ExperienceLevelContract",
@@ -47,8 +46,8 @@ bool FGridTD07335StoredLevelSynchronizationTest::RunTest(const FString& Paramete
 
 	const int32 PreviousMaxHealth = Character.DerivedStats.MaxHealth;
 	TestTrue(TEXT("Pending multi-level synchronization applies"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
-	TestEqual(TEXT("Stored Level is synchronized from Experience"), Character.Level, 3);
-	TestEqual(TEXT("Experience remains the source value"), Character.Experience, 3000);
+	TestEqual(TEXT("Runtime Level cache is synchronized from Experience"), Character.Level, 3);
+	TestEqual(TEXT("Experience remains the durable source value"), Character.Experience, 3000);
 	TestTrue(TEXT("Derived stats are rebuilt for the synchronized level"), Character.DerivedStats.MaxHealth > PreviousMaxHealth);
 
 	Character.Level = 3;
@@ -57,8 +56,8 @@ bool FGridTD07335StoredLevelSynchronizationTest::RunTest(const FString& Paramete
 	const FRPGCharacterResources ResourcesBeforeRejectedDemotion = Character.Resources;
 
 	AddExpectedError(TEXT("WouldDemote"), EAutomationExpectedErrorFlags::Contains, 1);
-	TestFalse(TEXT("Level-up service refuses to demote a stored level"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
-	TestEqual(TEXT("Rejected demotion preserves stored Level"), Character.Level, 3);
+	TestFalse(TEXT("Level-up service keeps its existing no-demotion runtime policy"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
+	TestEqual(TEXT("Rejected demotion preserves runtime Level cache"), Character.Level, 3);
 	TestEqual(TEXT("Rejected demotion preserves Experience"), Character.Experience, 1000);
 	TestEqual(TEXT("Rejected demotion preserves MaxHealth"), Character.DerivedStats.MaxHealth, StatsBeforeRejectedDemotion.MaxHealth);
 	TestEqual(TEXT("Rejected demotion preserves CurrentHealth"), Character.Resources.CurrentHealth, ResourcesBeforeRejectedDemotion.CurrentHealth);
@@ -78,34 +77,30 @@ bool FGridTD07335ProgressionMirrorBoundaryTest::RunTest(const FString& Parameter
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
 
 	FRPGClassProgressionCommitResult CommitResult;
-	TestTrue(TEXT("Choice A commits into runtime progression state"),
+	TestTrue(TEXT("Choice A commits into character progression authority"),
 		FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A") }, CommitResult));
 
-	const FGridPartyInventoryState OrdinaryPartySnapshot = Component->PartyInventoryState;
+	const FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
+	TestTrue(TEXT("Character authority contains Choice A"), Character.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
 
-	TArray<FRPGCharacterProgressionSaveState> SavedProgression;
-	FText CaptureError;
-	TestTrue(TEXT("Separate progression snapshot captures committed choices"),
-		FRPGClassProgressionTransactionService::CapturePersistentState(Component->PartyInventoryState, SavedProgression, CaptureError));
-	TestEqual(TEXT("One active character produces one separate progression record"), SavedProgression.Num(), 1);
-	TestTrue(TEXT("Separate snapshot contains Choice A"),
-		SavedProgression.Num() == 1 && SavedProgression[0].SelectedChoiceIds.Contains(TEXT("Choice_A")));
+	const FGridPartyInventoryState OrdinaryPartySnapshot = Component->PartyInventoryState;
+	TestTrue(TEXT("Ordinary party snapshot now retains Choice A"),
+		OrdinaryPartySnapshot.ActiveCharacters[0].SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState(Component);
-
 	TArray<FName> ChoicesAfterRuntimeReset;
-	TestTrue(TEXT("Runtime projection rebuilds from ordinary party state"),
+	TestTrue(TEXT("Projection rebuilds after runtime cache reset"),
 		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, ChoicesAfterRuntimeReset));
-	TestTrue(TEXT("Ordinary party state alone does not retain committed Choice A"), ChoicesAfterRuntimeReset.IsEmpty());
+	TestTrue(TEXT("Cache reset no longer erases committed Choice A"), ChoicesAfterRuntimeReset.Contains(TEXT("Choice_A")));
 
-	FText RestoreError;
-	TestTrue(TEXT("Separate progression snapshot restores committed choices"),
-		FRPGClassProgressionTransactionService::RestorePersistentState(OrdinaryPartySnapshot, SavedProgression, RestoreError));
+	FRPGClassProgressionTransactionService::ResetRuntimeState();
+	FText RebuildError;
+	TestTrue(TEXT("Detached runtime projection rebuilds from ordinary party snapshot"),
+		FRPGClassProgressionTransactionService::RebuildRuntimeProjection(OrdinaryPartySnapshot, RebuildError));
 
-	TArray<FName> ChoicesAfterRestore;
-	TestTrue(TEXT("Restored runtime selection is readable"),
-		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, ChoicesAfterRestore));
-	TestTrue(TEXT("Choice A returns only after the separate snapshot restore"), ChoicesAfterRestore.Contains(TEXT("Choice_A")));
+	TSet<FName> Requirements;
+	FRPGClassProgressionTransactionService::AppendRuntimeSatisfiedRequirements(Character.CharacterId, Requirements);
+	TestTrue(TEXT("Detached projection exposes Choice A requirement"), Requirements.Contains(TEXT("Choice_A")));
 	return true;
 }
 
@@ -127,13 +122,14 @@ bool FGridTD07335LevelUpProjectionRefreshTest::RunTest(const FString& Parameters
 		FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A") }, ChoiceAResult));
 
 	Character.Experience = 3000;
-	TestTrue(TEXT("XP threshold synchronizes stored level to three"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
-	TestEqual(TEXT("Stored level becomes three"), Character.Level, 3);
+	TestTrue(TEXT("XP threshold synchronizes runtime level to three"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
+	TestEqual(TEXT("Runtime level becomes three"), Character.Level, 3);
 
 	TArray<FName> SelectedAfterLevelUp;
 	TestTrue(TEXT("Progression state remains readable after level-up refresh"),
 		FRPGClassProgressionTransactionService::TryGetSelectedChoiceIds(Component, 0, SelectedAfterLevelUp));
 	TestTrue(TEXT("Previously committed Choice A survives level-up projection refresh"), SelectedAfterLevelUp.Contains(TEXT("Choice_A")));
+	TestTrue(TEXT("Character authority still owns Choice A"), Character.SelectedClassProgressionChoiceIds.Contains(TEXT("Choice_A")));
 
 	int32 GrantedPoints = 0;
 	int32 SpentPoints = 0;

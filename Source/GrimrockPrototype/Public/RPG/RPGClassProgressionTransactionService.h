@@ -5,7 +5,6 @@
 
 class UGridPartyInventoryComponent;
 struct FGridPartyInventoryState;
-struct FRPGCharacterProgressionSaveState;
 
 enum class ERPGClassProgressionCommitRejectReason : uint8
 {
@@ -37,47 +36,33 @@ struct FRPGClassProgressionCommitResult
 DECLARE_MULTICAST_DELEGATE_FourParams(FRPGClassProgressionCommittedNativeSignature, UGridPartyInventoryComponent*, int32, const TArray<FName>&, int32);
 
 /**
- * Authoritative runtime transaction and projection cache for class choices.
+ * Class progression transaction service.
  *
- * MON15.6 persists the selected choices in UGrimrockPartySaveGame. RuntimeStates
- * remains a derived cache keyed by CharacterId and may be rebuilt from a save.
+ * TD07.3.3.5 makes FGridCharacterInventoryState::SelectedClassProgressionChoiceIds
+ * the durable authority. RuntimeStates contains only reconstructible requirement
+ * projections keyed by CharacterId.
  */
 struct GRIMROCKPROTOTYPE_API FRPGClassProgressionTransactionService
 {
 	/** Rebuilds automatic + committed requirement tags for one live character. */
 	static bool RefreshCharacterProjection(UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex);
 
-	/** Reads committed choices for the current character. */
+	/** Reads committed choices from the character authority. */
 	static bool TryGetSelectedChoiceIds(UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, TArray<FName>& OutSelectedChoiceIds);
 
 	/** Returns the point balance of the committed selection. */
 	static bool TryGetChoicePointBalance(
 		UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, int32& OutGrantedPoints, int32& OutSpentPoints, int32& OutRemainingPoints);
 
-	/**
-     * Atomically appends a staged batch of choices. Nothing is mutated when
-     * validation fails. A successful batch triggers one inventory notification.
-     */
+	/** Atomically appends a staged batch of choices and rebuilds the derived projection. */
 	static bool TryCommitChoices(UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, const TArray<FName>& ChoiceIdsToCommit,
 		FRPGClassProgressionCommitResult& OutResult);
 
-	/** Adds the current runtime projection to a combat catalogue context. */
+	/** Adds the current derived runtime projection to a combat catalogue context. */
 	static void AppendRuntimeSatisfiedRequirements(const FGuid& CharacterId, TSet<FName>& InOutSatisfiedRequirements);
 
-	/**
-     * Captures exactly one progression record per active character. The runtime
-     * cache is the authority during play; missing cache entries serialize as an
-     * empty selection.
-     */
-	static bool CapturePersistentState(const FGridPartyInventoryState& PartyState, TArray<FRPGCharacterProgressionSaveState>& OutStates, FText& OutError);
-
-	/**
-     * Validates and rebuilds detached runtime projections from persisted data.
-     * The rebuilt projections become immediately consumable by MON12 catalogues
-     * and bind to the live inventory component on the next refresh.
-     */
-	static bool RestorePersistentState(
-		const FGridPartyInventoryState& PartyState, const TArray<FRPGCharacterProgressionSaveState>& SavedStates, FText& OutError);
+	/** Rebuilds detached derived projections from authoritative character state, e.g. after SaveGame load. */
+	static bool RebuildRuntimeProjection(const FGridPartyInventoryState& PartyState, FText& OutError);
 
 	/** Test/session cache reset. Null clears all derived progression state. */
 	static void ResetRuntimeState(UGridPartyInventoryComponent* PartyInventoryComponent = nullptr);
