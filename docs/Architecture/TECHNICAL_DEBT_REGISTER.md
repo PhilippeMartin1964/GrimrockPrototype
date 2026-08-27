@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.9 LEVEL-UP NOTIFICATION NORMALIZATION IMPLÉMENTÉE — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.9 NORMALIZATION 4/4 VALIDÉE — RÉGRESSIONS / SHIPPING REQUIS**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -618,7 +618,7 @@ TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
 TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS
 TD07.3.3.7      Normalize Spellbook                                    VALIDÉ — CLOS
 TD07.3.3.8      Normalize Status Effects                               VALIDÉ — CLOS
-TD07.3.3.9      Normalize Level-Up Notification State                  IMPLÉMENTÉ — À VALIDER
+TD07.3.3.9      Normalize Level-Up Notification State                  NORMALIZATION 4/4 — RÉGRESSIONS
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -697,6 +697,14 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 # 9. Prochain travail recommandé
 
 **Valider TD07.3.3.9 — Normalize Level-Up Notification State.**
+
+Gate local validé le 27 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_9.Normalization
+4 Success / 0 warning / 0 Failed / 0 Not run
+Report : TD04-20260827-224647
+```
 
 Nouveau contrat :
 
