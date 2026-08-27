@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.4 VALIDÉ / TD07.3.3.5 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.5 CHARACTERIZATION À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -614,7 +614,7 @@ TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
-TD07.3.3.5      Normalize XP / Level / Class Progression                PROCHAIN
+TD07.3.3.5      Normalize XP / Level / Class Progression                CHARACTERIZATION À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -692,60 +692,58 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.5 — Normalize XP / Level / Class Progression.**
+**Valider la caractérisation TD07.3.3.5 — Normalize XP / Level / Class Progression.**
 
-TD07.3.3.4 est validé :
+Le gate distingue deux catégories d'état :
+
+```text
+projection reconstructible
+    Level
+        dérivable de Experience
+        déjà contrôlé par IsLevelExperienceConsistent()
+
+état métier durable
+    SelectedChoiceIds
+        choix explicites du joueur
+        actuellement hors FGridCharacterInventoryState
+```
+
+Le runtime actuel possède encore deux duplications :
 
 ```text
 FGridCharacterInventoryState
-    CurrentWeight       supprimé
-    MaxCarryWeight      supprimé
-    IsOverloaded()      supprimé
+    Experience
+    Level
 
-GetCharacterSummary()
-    CurrentWeight       projection live
-    BaseMaxWeight       depuis Attributes
-    MaxWeight           + CarryWeightBonus
-    bOverloaded         dérivé
+FRPGClassProgressionTransactionService::RuntimeStates
+    SelectedChoiceIds
 
-SaveGame
-    CurrentSaveVersion = 13
-    v12 et antérieures rejetées sans migration
+UGrimrockPartySaveGame::ClassProgressionStates
+    SelectedChoiceIds
 ```
 
-Validation de clôture du 27 août 2026 :
+La caractérisation doit figer :
 
 ```text
-Normalization        4/4
-Characterization     4/4
-régressions ciblées  0 Failed
-Shipping Win64       VALIDÉ
+1. seuils Experience -> Level ;
+2. synchronisation multi-level et refus de démotion ;
+3. perte des choix après reset du cache runtime sans snapshot séparé ;
+4. restauration des choix depuis ClassProgressionStates ;
+5. conservation des choix lors d'un level-up et recalcul du budget.
 ```
 
-Prochaine dette ciblée :
+Filtre :
 
 ```text
-Experience
-Level
-Class progression choices
-runtime/save progression mirrors
+Grimrock.TechnicalDebt.TD07_3_3_5.Characterization
 ```
 
-Objectif initial de TD07.3.3.5 :
+Référence :
 
 ```text
-1. caractériser la relation Experience -> Level ;
-2. déterminer l'autorité durable exacte ;
-3. caractériser les choix de progression de classe ;
-4. supprimer les duplications runtime/save devenues inutiles ;
-5. ne modifier aucun équilibrage XP/level-up implicitement.
+docs/Design/TD07_3_3_5_XP_LEVEL_CLASS_PROGRESSION_CHARACTERIZATION.md
 ```
 
-Références :
+Aucun changement de schéma n'est encore effectué et le SaveGame reste v13 exact-match.
 
-```text
-docs/Design/TD07_3_3_1_CHARACTER_STATE_AUTHORITY_AUDIT.md
-docs/Design/TD07_3_3_4_WEIGHT_STATE_NORMALIZATION.md
-```
-
-Les 41 findings DataAsset TD07.3.1 restent hors périmètre de TD07.3.3.5.
+Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
