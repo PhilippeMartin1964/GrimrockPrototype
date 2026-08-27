@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.4 — Authoring Identity Normalization**  
 Baseline v21 validée : `089fba0097f923d22af2cc39fdd3bb93778724c4`  
-Statut : **GATE 16/16 VALIDÉ — RÉGRESSIONS / SHIPPING REQUIS**
+Statut : **VALIDÉ ET CLOS — TD07.3.4 CLOS**
 
 ## 1. Objet
 
@@ -270,9 +270,9 @@ Enfin Shipping Win64 v22.
 - [x] 4 tests .4 ajoutés ;
 - [x] build UE5.5.4 vert ;
 - [x] gate 16/16 vert ;
-- [ ] régressions ciblées vertes ;
-- [ ] Shipping Win64 vert ;
-- [ ] TD07.3.4 clos.
+- [x] régressions ciblées vertes ;
+- [x] Shipping Win64 vert ;
+- [x] TD07.3.4 clos.
 
 
 ## 14. Validation locale — gate TD07.3.4.4
@@ -321,3 +321,57 @@ Not run 0
 ```
 
 Reste : régressions ciblées puis Win64 Shipping v22.
+
+
+## 15. Régressions finales
+
+Campagne fonctionnelle finale du 28 août 2026 :
+
+```text
+MON15.3 Level Up                         6/6
+MON15.4 Class Progression                7/7
+MON15.5 Level-Up UI / transactions       8/8
+MON20.7 Talents                         24/24
+MON12 ActionCatalog                      2/2
+MON18.9.1 Save                           6/6
+TD07.3.2 SaveContract                    6/6
+CharacterCreation CC5                    2/2
+CharacterCreation CC6                    6/6
+MON20.2 Recruitment                      6/6
+MON20.3 Story Companion                  6/6
+MON20.4 RecruitmentUI                   18/18
+MON20.5 Custom Recruit                  23/23
+TD07.3.3.10 Normalization                4/4
+--------------------------------------------
+TOTAL                                  124/124
+
+Warnings                                  0
+Failures                                  0
+Not run                                   0
+```
+
+Le warning historique du test négatif `EventCommandMissingDefinition` a été déclaré explicitement attendu dans le test, puis le filtre complet `Grimrock.MON20.4.RecruitmentUI` a été revalidé :
+
+```text
+Succeeded              : 18
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-002908
+```
+
+## 16. Shipping final v22
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260828-002416/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 906000955
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260828-002416
+[OK] Cook / package validated.
+```
+
+TD07.3.4 est entièrement clos.

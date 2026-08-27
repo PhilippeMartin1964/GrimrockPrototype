@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.4.4 GATE 16/16 VALIDÉ — RÉGRESSIONS / SHIPPING REQUIS**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.4 AUTHORING IDENTITY NORMALIZATION VALIDÉ ET CLOS — TD07.3.5 À OUVRIR**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -620,8 +620,8 @@ TD07.3.3.7      Normalize Spellbook                                    VALIDÉ �
 TD07.3.3.8      Normalize Status Effects                               VALIDÉ — CLOS
 TD07.3.3.9      Normalize Level-Up Notification State                  VALIDÉ — CLOS
 TD07.3.3.10     Current Save Schema / Regressions / Closure            VALIDÉ — CLOS
-TD07.3.4        Authoring Identity Normalization                      .4 GATE 16/16 — RÉGRESSIONS
-TD07.3.5        Combat Data Schema Reset                              À FAIRE
+TD07.3.4        Authoring Identity Normalization                      VALIDÉ — CLOS
+TD07.3.5        Combat Data Schema Reset                              À OUVRIR
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
 TD07.3.7        Current Asset Repair / Recreation                     À FAIRE
 TD07.3.8        Strict Current-Schema Validation / stop condition     À FAIRE
@@ -821,3 +821,44 @@ Failures                     0
 ```
 
 Reste : campagne fonctionnelle ciblée puis Win64 Shipping v22.
+
+
+## TD07.3.4 — clôture Authoring Identity Normalization
+
+TD07.3.4 clôturé le 28 août 2026.
+
+```text
+SaveGame schema       v22 exact-match
+TD07.3.4 gates        16/16
+Régressions          124/124
+Warnings                0
+Failures                0
+Shipping Win64          OK
+```
+
+Référence Shipping : `TD04-Shipping-20260828-002416`.
+
+Résultat architectural :
+
+```text
+Durable character identity
+    ClassId
+    RaceId
+    PortraitGender
+    PortraitVariantId
+
+Transient / reconstructed presentation
+    ClassDefinition
+    ClassDisplayName
+    RaceDisplayName
+    Portrait
+    ClassIcon
+
+Canonical authoring identity
+    RPGClass:<ClassId>
+    RPGRace:<RaceId>
+    RPGClassVisual:<ClassId>
+    RPGPortraitSet:<RaceId>
+```
+
+Prochaine tranche : `TD07.3.5 — Combat Data Schema Reset`.

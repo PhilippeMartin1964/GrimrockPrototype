@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.4.4 GATE 16/16 VALIDÉ — RÉGRESSIONS / SHIPPING REQUIS — MON21.4 SUSPENDU**  
+Statut : **TD07.3.4 VALIDÉ ET CLOS — TD07.3.5 À OUVRIR — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -210,8 +210,9 @@ TD07.3.3.7 Normalize Spellbook                                     VALIDÉ — C
 TD07.3.3.8 Normalize Status Effects                                 VALIDÉ — CLOS
 TD07.3.3.9 Normalize Level-Up Notification State                       VALIDÉ — CLOS
 TD07.3.3.10 Current Save Schema / Regressions / Closure                VALIDÉ — CLOS
-TD07.3.4 Authoring Identity Normalization                     .4 GATE 16/16 — RÉGRESSIONS
-TD07.3.5–8 Data model reset                                   À FAIRE
+TD07.3.4 Authoring Identity Normalization                     VALIDÉ — CLOS
+TD07.3.5 Combat Data Schema Reset                           À OUVRIR
+TD07.3.6–8 Data model reset                                   À FAIRE
 ```
 
 Politique autoritaire pendant le prototype : **aucune compatibilité arrière Save/DataAsset/Blueprint n'est requise**. Les données incompatibles peuvent être recréées ; Git conserve l'historique.

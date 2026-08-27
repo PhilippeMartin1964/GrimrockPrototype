@@ -1,6 +1,6 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **27 août 2026 — TD07.3.3.6 IMPLÉMENTÉ / À VALIDER**
+Date de référence : **28 août 2026 — TD07.3.4 VALIDÉ ET CLOS**
 
 ## Politique prototype autoritaire
 
@@ -11,13 +11,13 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 21
+UGrimrockPartySaveGame::CurrentSaveVersion = 22
 
-SaveVersion == 19
+SaveVersion == 22
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 19
+SaveVersion != 22
     -> rejet
     -> aucune migration
 ```
@@ -52,7 +52,7 @@ Elle ne migre et ne modifie jamais le snapshot. Elle vérifie notamment :
 - Skills ;
 - variables de niveau.
 
-La restauration des Status Effects et notifications Level Up reste assurée par leurs services de domaine. Les Skills sont désormais directement présents dans `FGridCharacterInventoryState::SkillRanks`; aucune restauration Skill séparée n'existe. La projection de progression de classe est reconstruite depuis `SelectedClassProgressionChoiceIds`.
+La restauration des Status Effects reste assurée par son service de domaine ; les notifications Level Up sont reconstruites depuis LastAcknowledgedLevel. Les Skills sont désormais directement présents dans `FGridCharacterInventoryState::SkillRanks`; aucune restauration Skill séparée n'existe. La projection de progression de classe est reconstruite depuis `SelectedClassProgressionChoiceIds`.
 
 ## Frontière persistante cible
 
@@ -85,13 +85,7 @@ TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poid
 
 `FGridPartyInventoryState` reste l'autorité du groupe et du CharacterPool.
 
-Les snapshots séparés encore présents :
-
-```text
-PendingLevelUpNotifications
-```
-
-seront réaudités par TD07.3.3. L'objectif est de supprimer les doubles représentations sans perdre d'état gameplay réellement mutable.
+Les snapshots parallèles de progression, skills, spellbook, status effects et Level-Up ont été supprimés pendant TD07.3.3. L'état du personnage persistant est désormais porté directement par FGridCharacterInventoryState et ses IDs durables.
 
 ## Politique de sauvegarde en combat
 
@@ -266,3 +260,35 @@ transient presentation caches
 Le portrait est résolu depuis `RaceId + PortraitGender + PortraitVariantId`. L'icône de classe est résolue depuis `ClassId`. Les anciennes soft references de présentation ne font plus partie du Save.
 
 La v21 et les générations antérieures sont incompatibles, sans migration.
+
+
+## TD07.3.4 — clôture v22
+
+Authoring Identity Normalization est clôturé sur le schéma v22 exact-match.
+
+```text
+TD07.3.4 gates        16/16
+Régressions          124/124
+Warnings                0
+Failures                0
+Shipping Win64          OK
+```
+
+Référence Shipping : `TD04-Shipping-20260828-002416`.
+
+La frontière finale de présentation du personnage est :
+
+```text
+Durable
+    ClassId
+    RaceId
+    PortraitGender
+    PortraitVariantId
+
+Transient / reconstructed
+    ClassDefinition
+    ClassDisplayName
+    RaceDisplayName
+    Portrait
+    ClassIcon
+```
