@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `dc53cc1ab4a9443adca022aff412ebc98b3e6ce2`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
 
 ## 1. Objet
 
@@ -238,5 +238,18 @@ Aucune suppression de runtime ou de Save mirror ne commence avant validation de 
 - [x] indépendance Hotbar / connaissance documentée ;
 - [x] tolérance unknown SpellId documentée ;
 - [x] 4 tests de caractérisation ajoutés ;
-- [ ] compilation UE5.5.4 verte ;
-- [ ] 4/4 tests verts.
+- [x] compilation UE5.5.4 verte ;
+- [x] 4/4 tests verts.
+
+Validation locale du 27 août 2026 :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_3_7.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le gate est atteint. La normalisation peut commencer.
