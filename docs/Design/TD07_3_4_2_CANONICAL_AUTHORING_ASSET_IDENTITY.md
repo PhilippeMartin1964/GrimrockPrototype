@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.4 — Authoring Identity Normalization**  
 Characterization validée : `01d7f2f753132632908b8650e08e523af2803f4d`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Statut : **VALIDÉ — TD07.3.4.3 ACTIVE**
 
 ## 1. Objet
 
@@ -193,6 +193,29 @@ deserialize IDs
 - [x] Save v20 inchangé ;
 - [x] 4 tests dédiés ajoutés ;
 - [x] Characterization adaptée post-refactor ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
-- [ ] Characterization 4/4 post-refactor.
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
+- [x] Characterization 4/4 post-refactor.
+
+
+## 12. Validation locale
+
+```text
+Grimrock.TechnicalDebt.TD07_3_4_2.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-234554
+
+Grimrock.TechnicalDebt.TD07_3_4.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-234629
+```
+
+TD07.3.4.2 est validé. TD07.3.4.3 peut commencer.
