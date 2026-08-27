@@ -193,7 +193,26 @@ Grimrock.RPG.MON16.7
 Grimrock.RPG.MON16.8
 ```
 
-Puis Win64 Shipping.
+Validation locale du 27 août 2026 — bloc transversal Save / Progression / Magic / Status :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_2
+    6 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2
+    4 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.Magic.MON18.8
+    11 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.RPG.MON16.7
+    10 succeeded / 0 warning / 0 failed / 0 not run
+
+Grimrock.RPG.MON16.8
+    10 succeeded / 0 warning / 0 failed / 0 not run
+```
+
+Le bloc de régressions transverses est vert. Puis Win64 Shipping.
 
 ## 10. Hors périmètre
 
@@ -222,7 +241,7 @@ maps
 - [x] Normalization 4/4 ;
 - [x] Characterization 4/4 après refactor ;
 - [x] régressions MON20.6/20.8/20.9 vertes ;
-- [ ] régressions Save/Magic/Status vertes ;
+- [x] régressions Save/Magic/Status vertes ;
 - [ ] Shipping Win64 vert.
 
 Prochaine tranche après validation complète :
