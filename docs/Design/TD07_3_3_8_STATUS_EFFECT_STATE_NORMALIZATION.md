@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `07f10dacd81d4d42c07a5bb6449bc7fb314b0b76`  
-Statut : **IMPLÉMENTÉ — BUILD / NORMALIZATION / RÉGRESSIONS VALIDÉS — SHIPPING REQUIS**
+Statut : **VALIDÉ ET CLOS**
 
 ## 1. Autorité durable personnage
 
@@ -227,6 +227,24 @@ Failed    : 0
 
 Le bloc de régressions post-refactor est entièrement vert. Il ne reste que la validation Win64 Shipping.
 
+## 8.3 Validation Win64 Shipping
+
+Validation finale du 27 août 2026 :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260827-222314/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905590363
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260827-222314
+[OK] Cook / package validated.
+```
+
+La stop condition TD07.3.3.8 est entièrement atteinte.
+
 ## 9. Stop condition
 
 - [x] Character.StatusEffects rendu durable ;
@@ -243,9 +261,9 @@ Le bloc de régressions post-refactor est entièrement vert. Il ne reste que la 
 - [x] Normalization 4/4 ;
 - [x] Characterization 4/4 post-refactor ;
 - [x] régressions Status/Magic/Save vertes ;
-- [ ] Shipping Win64 vert.
+- [x] Shipping Win64 vert.
 
-Prochaine tranche après validation complète :
+Prochaine tranche :
 
 ```text
 TD07.3.3.9 — Normalize Level-Up Notification State

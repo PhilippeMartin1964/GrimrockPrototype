@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **27 août 2026, TD07.3.3.7 Spellbook clos ; TD07.3.3.8 Status Effects régressions 111/111 validées — Shipping requis.**
+> État : **27 août 2026, TD07.3.3.8 Status Effects validé et clos ; TD07.3.3.9 Level-Up Notification State à ouvrir.**
 
 ## 1. Référence
 
@@ -16,7 +16,7 @@
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.3.3.5 — Normalize XP / Level / Class Progression` |
-| Tranche active | `TD07.3.3.8 — Normalize Status Effects` — régressions validées, Shipping requis |
+| Tranche active | `TD07.3.3.9 — Normalize Level-Up Notification State` — à ouvrir |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -205,7 +205,8 @@ TD07.3.3.4   Normalize Weight State                            VALIDÉ
 TD07.3.3.5   Normalize XP / Level / Class Progression              VALIDÉ
 TD07.3.3.6   Normalize Skills                                          VALIDÉ — CLOS
 TD07.3.3.7   Normalize Spellbook                                       VALIDÉ — CLOS
-TD07.3.3.8   Normalize Status Effects                                  RÉGRESSIONS VALIDÉES — SHIPPING
+TD07.3.3.8   Normalize Status Effects                                  VALIDÉ — CLOS
+TD07.3.3.9   Normalize Level-Up Notification State                    À OUVRIR
 MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE
