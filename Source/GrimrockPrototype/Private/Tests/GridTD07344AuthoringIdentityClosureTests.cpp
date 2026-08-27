@@ -217,9 +217,9 @@ bool FGridTD07344AuthoringCleanupTest::RunTest(const FString& Parameters)
 				FPaths::ProjectDir(),
 				TEXT("Source/GrimrockPrototype/Private/UI/RPGStoryCompanionRecruitmentWidget.cpp"))));
 	TestFalse(TEXT("Recruitment widget no longer reads removed Portrait authoring field"),
-		RecruitmentWidgetSource.Contains(TEXT("CompanionDefinition->Portrait")));
+		RecruitmentWidgetSource.Contains(TEXT("View.Portrait = CompanionDefinition->Portrait;")));
 	TestFalse(TEXT("Recruitment widget no longer reads removed ClassIcon authoring field"),
-		RecruitmentWidgetSource.Contains(TEXT("CompanionDefinition->ClassIcon")));
+		RecruitmentWidgetSource.Contains(TEXT("View.ClassIcon = CompanionDefinition->ClassIcon;")));
 	TestTrue(TEXT("Recruitment widget resolves canonical Portrait identity"),
 		RecruitmentWidgetSource.Contains(TEXT("ResolvePortraitVisual")));
 	TestTrue(TEXT("Recruitment widget resolves canonical ClassIcon identity"),
