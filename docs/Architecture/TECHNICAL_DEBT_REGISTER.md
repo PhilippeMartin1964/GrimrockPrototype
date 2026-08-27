@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.2 À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — PAUSE AVANT TD07.3**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -140,11 +140,21 @@ Référence : `docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md`.
 
 ## TD-COMPAT-001 — API Skeleton Editor dépréciée
 
-**Priorité : P2 — correction TD07.2 implémentée / validation requise**
+**Priorité : RÉSOLUE — TD07.2 VALIDÉ**
 
 Deux tests MON17 utilisaient encore `USkeleton::IsCompatible()`, signalé C4996 par UE5.5.4 avec demande explicite de migration vers `IsCompatibleForEditor()`.
 
 TD07.2 remplace uniquement ces deux appels dans les tests `EditorContext`. Aucun runtime monster n'est modifié.
+
+Validation du 27 août 2026 :
+
+```text
+TD07_2  1 Success / 0 warning / 0 Failed
+MON17.2 2 Success / 0 warning / 0 Failed
+MON17.8 8 Success / 0 warning / 0 Failed
+```
+
+**TD-COMPAT-001 est RÉSOLU.**
 
 ---
 
@@ -165,7 +175,14 @@ TD07.2 conserve les noms C++/Blueprint et donne au `UENUM` :
 ScriptName = GridItemTransferResultCode
 ```
 
-Le cook Shipping post-correction doit confirmer la disparition du warning.
+Validation Shipping du 27 août 2026 :
+
+```text
+package validated
+GridItemTransferResult search in AutomationTool logs -> no match
+```
+
+**TD-COMPAT-002 est RÉSOLU.**
 
 ---
 
@@ -528,7 +545,7 @@ TD06.7          PartyInventory Equipment Core extraction              VALIDÉ
 TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
 TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ — ATTEINTE
 TD07.1          Build / dependency reproducibility                     VALIDÉ — TD-BUILD-001 RÉSOLU
-TD07.2          UE deprecation cleanup / compiler warning audit        IMPLÉMENTÉ — À VALIDER
+TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
 TD07.3          Save compatibility / legacy model audit                À FAIRE
 TD07.4          ActivationComponent characterization                   À FAIRE
 TD07.5          Suspended test infrastructure / branch recovery        À FAIRE
@@ -602,19 +619,16 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.2 — UE deprecation cleanup / compiler & cook warning audit.**
+**PAUSE VOLONTAIRE AVANT TD07.3.**
 
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD07_2"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Monsters.MON17.2"
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Monsters.MON17.8"
-.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
-```
+TD07.1 et TD07.2 sont clos et validés.
 
-Après validation verte :
+Le prochain sujet identifié reste :
 
 ```text
 TD07.3 — Save compatibility / legacy model audit
 ```
 
-Les nouvelles fonctionnalités restent suspendues pendant TD07.
+mais **aucune modification TD07.3 ne doit être engagée avant clarification explicite de sa portée, de la politique de compatibilité des SaveGames et des conséquences sur les sauvegardes existantes**.
+
+Les nouvelles fonctionnalités restent suspendues pendant cette clarification.

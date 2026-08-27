@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.1 — Build / Dependency Reproducibility**  
 Baseline GitHub : `cd11b743d9450454698211be360bc088a65a220c`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Statut : **VALIDÉ — TD-COMPAT-001 / TD-COMPAT-002 RÉSOLUS**
 
 ## 1. Objet
 
@@ -117,66 +117,49 @@ docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 
 Aucun asset, SaveGame, Blueprint ou logique gameplay n'est modifié.
 
-## 6. Validation requise
+## 6. Validation réelle
 
-### Build + contrat TD07.2
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD07_2"
-```
-
-Critère :
+Validation locale fournie le **27 août 2026** :
 
 ```text
-1 Success / 0 warning / 0 Failed
+Grimrock.TechnicalDebt.TD07_2
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Not run                : 0
+
+Grimrock.Monsters.MON17.2
+    Succeeded              : 2
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Not run                : 0
+
+Grimrock.Monsters.MON17.8
+    Succeeded              : 8
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Not run                : 0
+
+Win64 Shipping
+    package validated
+    Pak files     : 1
+    Archive files : 41
+    Archive bytes : 906089915
 ```
 
-Le build Editor ne doit plus émettre C4996 sur `USkeleton::IsCompatible`.
+Contrôles qualitatifs :
 
-### Régression MON17.2
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Monsters.MON17.2"
-```
-
-Critère :
-
-```text
-2 Success / 0 Failed
-```
-
-### Régression MON17.8
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Monsters.MON17.8"
-```
-
-Critère :
-
-```text
-2 Success / 0 Failed
-```
-
-### Cook / Shipping
-
-```powershell
-.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
-```
-
-Critère :
-
-- package Shipping réussi ;
-- le warning Python `GridItemTransferResult` ne doit plus apparaître.
-
+- aucun C4996 `USkeleton::IsCompatible` observé dans le build post-correction ;
+- recherche `GridItemTransferResult` dans les logs AutomationTool : **aucun résultat** ;
+- le warning Python ItemTransfer du cook précédent a donc disparu ;
+- le warning MSVC non préféré reste classé séparément sous `TD-BUILD-002`.
 ## 7. Stop condition
 
-TD07.2 est clos lorsque :
+Les trois conditions sont satisfaites. **TD07.2 est clos.**
 
-1. le build Editor est vert sans C4996 first-party MON17 ;
-2. TD07.2, MON17.2 et MON17.8 sont verts ;
-3. le package Shipping est vert sans collision Python ItemTransfer.
+`TD-COMPAT-001` et `TD-COMPAT-002` sont résolus.
 
-La prochaine tranche devient ensuite :
+La tranche suivante reste volontairement en attente de clarification avant toute implémentation :
 
 ```text
 TD07.3 — Save compatibility / legacy model audit
