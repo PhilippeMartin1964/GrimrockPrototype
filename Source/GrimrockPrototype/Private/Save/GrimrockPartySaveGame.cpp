@@ -1,5 +1,6 @@
 #include "Save/GrimrockPartySaveGame.h"
 
+#include "Magic/GridSpellbookPersistence.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
