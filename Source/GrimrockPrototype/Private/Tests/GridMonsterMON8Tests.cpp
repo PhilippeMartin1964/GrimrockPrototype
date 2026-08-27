@@ -421,7 +421,7 @@ bool FGridMonsterMON8VictoryOnLastDeathTest::RunTest(const FString& Parameters)
 	Party->CurrentCellY = 4;
 	FGridCharacterInventoryState LivingCharacter;
 	LivingCharacter.CharacterId = FGuid(25, 1, 0, 1);
-	LivingCharacter.DerivedStats.CurrentHealth = 10;
+	LivingCharacter.Resources.CurrentHealth = 10;
 	LivingCharacter.DerivedStats.Initiative = 100;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { LivingCharacter };
 
@@ -482,7 +482,7 @@ bool FGridMonsterMON8VictoryAfterEnemyPhaseStartedTest::RunTest(const FString& P
 
 	FGridCharacterInventoryState LivingCharacter;
 	LivingCharacter.CharacterId = FGuid(25, 1, 0, 2);
-	LivingCharacter.DerivedStats.CurrentHealth = 10;
+	LivingCharacter.Resources.CurrentHealth = 10;
 	LivingCharacter.DerivedStats.Initiative = 100;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { LivingCharacter };
 

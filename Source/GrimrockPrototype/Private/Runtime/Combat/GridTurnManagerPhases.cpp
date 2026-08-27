@@ -811,7 +811,7 @@ bool UGridTurnManagerComponent::HasLivingPartyCharacter() const
 
 	for (const FGridCharacterInventoryState& Character : PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
 	{
-		if (Character.DerivedStats.CurrentHealth > 0)
+		if (Character.Resources.CurrentHealth > 0)
 		{
 			return true;
 		}

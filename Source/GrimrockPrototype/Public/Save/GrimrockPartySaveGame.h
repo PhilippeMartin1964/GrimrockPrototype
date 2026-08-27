@@ -60,8 +60,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3: exact-match prototype schema. TD07.3.3.2 removes the legacy character attribute bridge. */
-	static constexpr int32 CurrentSaveVersion = 11;
+	/** TD07.3: exact-match prototype schema. TD07.3.3.3 separates mutable character resources from derived stats. */
+	static constexpr int32 CurrentSaveVersion = 12;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;

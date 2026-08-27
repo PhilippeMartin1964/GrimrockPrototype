@@ -387,6 +387,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.Experience = 0;
 	NewCharacter.Attributes = FinalAttributes;
 	NewCharacter.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, NewCharacter.Level);
+	NewCharacter.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewCharacter.DerivedStats, Request.ClassDefinition);
 	NewCharacter.Portrait = Request.Portrait;
 	NewCharacter.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(FinalAttributes);
 	NewCharacter.CurrentWeight = 0.0f;
@@ -490,11 +491,13 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.Attributes.Wisdom = FMath::Max(0, OutSummary.Attributes.Wisdom + OutSummary.EquipmentStatBonus.WisdomBonus);
 	OutSummary.Attributes.Charisma = FMath::Max(0, OutSummary.Attributes.Charisma + OutSummary.EquipmentStatBonus.CharismaBonus);
 	OutSummary.DerivedStats = OutSummary.BaseDerivedStats;
+	OutSummary.Resources = CharacterState.Resources;
 	OutSummary.DerivedStats.MaxHealth = FMath::Max(1, OutSummary.DerivedStats.MaxHealth + OutSummary.EquipmentStatBonus.MaxHealthBonus);
-	OutSummary.DerivedStats.CurrentHealth = FMath::Clamp(OutSummary.DerivedStats.CurrentHealth, 0, OutSummary.DerivedStats.MaxHealth);
+	OutSummary.Resources.CurrentHealth = FMath::Clamp(OutSummary.Resources.CurrentHealth, 0, OutSummary.DerivedStats.MaxHealth);
 	OutSummary.DerivedStats.MaxMana = FMath::Max(0, OutSummary.DerivedStats.MaxMana + OutSummary.EquipmentStatBonus.MaxManaBonus);
-	OutSummary.DerivedStats.CurrentMana = FMath::Clamp(OutSummary.DerivedStats.CurrentMana, 0, OutSummary.DerivedStats.MaxMana);
-	OutSummary.DerivedStats.PhysicalArmor = FMath::Max(0, OutSummary.DerivedStats.PhysicalArmor + OutSummary.EquipmentStatBonus.ArmorBonus);
+	OutSummary.Resources.CurrentMana = FMath::Clamp(OutSummary.Resources.CurrentMana, 0, OutSummary.DerivedStats.MaxMana);
+	OutSummary.Resources.CurrentPhysicalArmor =
+		FMath::Max(0, OutSummary.Resources.CurrentPhysicalArmor + OutSummary.EquipmentStatBonus.ArmorBonus);
 	OutSummary.Portrait = CharacterState.Portrait;
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);
 	OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num();

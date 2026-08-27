@@ -38,6 +38,7 @@ namespace
 		Character.Experience = Experience;
 		Character.Attributes = ClassDefinition ? ClassDefinition->BaseAttributes : FRPGAttributes{};
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
+		Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
 		Character.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(Character.Attributes);
 		Character.InventorySlots.SetNum(1);
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
@@ -74,18 +75,18 @@ bool FRPGMON153SingleLevelResourcePolicyTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Fixture level-one max health"), Character.DerivedStats.MaxHealth, 21);
 	TestEqual(TEXT("Fixture level-one max mana"), Character.DerivedStats.MaxMana, 10);
 
-	Character.DerivedStats.CurrentHealth = 15; // six damage taken.
-	Character.DerivedStats.CurrentMana = 4;    // six mana spent.
+	Character.Resources.CurrentHealth = 15; // six damage taken.
+	Character.Resources.CurrentMana = 4;    // six mana spent.
 
 	TestTrue(TEXT("The pending level is applied"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0));
 	TestEqual(TEXT("Stored level becomes two"), Character.Level, 2);
 	TestEqual(TEXT("XP is never consumed by level-up"), Character.Experience, 1000);
 	TestEqual(TEXT("HealthPerLevel and Constitution are applied"), Character.DerivedStats.MaxHealth, 27);
-	TestEqual(TEXT("Absolute damage deficit is preserved"), Character.DerivedStats.CurrentHealth, 21);
+	TestEqual(TEXT("Absolute damage deficit is preserved"), Character.Resources.CurrentHealth, 21);
 	TestEqual(TEXT("ManaPerLevel is applied"), Character.DerivedStats.MaxMana, 13);
-	TestEqual(TEXT("Absolute mana deficit is preserved"), Character.DerivedStats.CurrentMana, 7);
-	TestEqual(TEXT("Physical armor is recalculated from the class"), Character.DerivedStats.PhysicalArmor, 2);
-	TestEqual(TEXT("Magical armor is recalculated from the class"), Character.DerivedStats.MagicalArmor, 1);
+	TestEqual(TEXT("Absolute mana deficit is preserved"), Character.Resources.CurrentMana, 7);
+	TestEqual(TEXT("Physical armor is recalculated from the class"), Character.Resources.CurrentPhysicalArmor, 2);
+	TestEqual(TEXT("Magical armor is recalculated from the class"), Character.Resources.CurrentMagicalArmor, 1);
 	return true;
 }
 
@@ -123,8 +124,8 @@ bool FRPGMON153MultiLevelTransactionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Event new level"), EventNewLevel, 4);
 	TestEqual(TEXT("Level-four max health is calculated directly"), Character.DerivedStats.MaxHealth, 39);
 	TestEqual(TEXT("Level-four max mana is calculated directly"), Character.DerivedStats.MaxMana, 19);
-	TestEqual(TEXT("A full-health character stays full after growth"), Character.DerivedStats.CurrentHealth, 39);
-	TestEqual(TEXT("A full-mana character stays full after growth"), Character.DerivedStats.CurrentMana, 19);
+	TestEqual(TEXT("A full-health character stays full after growth"), Character.Resources.CurrentHealth, 39);
+	TestEqual(TEXT("A full-mana character stays full after growth"), Character.Resources.CurrentMana, 19);
 	return true;
 }
 
@@ -137,11 +138,11 @@ bool FRPGMON153DeadCharacterTest::RunTest(const FString& Parameters)
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON153Party(ClassDefinition, 1, 1000);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
-	Character.DerivedStats.CurrentHealth = 0;
+	Character.Resources.CurrentHealth = 0;
 
 	TestTrue(TEXT("A dead character may still resolve its pending level"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0));
 	TestEqual(TEXT("The level is updated"), Character.Level, 2);
-	TestEqual(TEXT("Level-up never resurrects a dead character"), Character.DerivedStats.CurrentHealth, 0);
+	TestEqual(TEXT("Level-up never resurrects a dead character"), Character.Resources.CurrentHealth, 0);
 	return true;
 }
 
@@ -155,17 +156,18 @@ bool FRPGMON153AtomicFailureTest::RunTest(const FString& Parameters)
 	UGridPartyInventoryComponent* Component = MakeMON153Party(ClassDefinition, 1, 1000);
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	Character.ClassId = TEXT("Wrong_Class_Id");
-	Character.DerivedStats.CurrentHealth = 13;
-	Character.DerivedStats.CurrentMana = 2;
+	Character.Resources.CurrentHealth = 13;
+	Character.Resources.CurrentMana = 2;
 
 	const int32 LevelBefore = Character.Level;
 	const FRPGDerivedStats StatsBefore = Character.DerivedStats;
+	const FRPGCharacterResources ResourcesBefore = Character.Resources;
 	TestFalse(TEXT("A mismatched class definition rejects the transaction"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0));
 	TestEqual(TEXT("Rejected transaction preserves Level"), Character.Level, LevelBefore);
 	TestEqual(TEXT("Rejected transaction preserves MaxHealth"), Character.DerivedStats.MaxHealth, StatsBefore.MaxHealth);
-	TestEqual(TEXT("Rejected transaction preserves CurrentHealth"), Character.DerivedStats.CurrentHealth, StatsBefore.CurrentHealth);
+	TestEqual(TEXT("Rejected transaction preserves CurrentHealth"), Character.Resources.CurrentHealth, ResourcesBefore.CurrentHealth);
 	TestEqual(TEXT("Rejected transaction preserves MaxMana"), Character.DerivedStats.MaxMana, StatsBefore.MaxMana);
-	TestEqual(TEXT("Rejected transaction preserves CurrentMana"), Character.DerivedStats.CurrentMana, StatsBefore.CurrentMana);
+	TestEqual(TEXT("Rejected transaction preserves CurrentMana"), Character.Resources.CurrentMana, ResourcesBefore.CurrentMana);
 
 	Character.ClassId = ClassDefinition->ClassId;
 	Character.Level = 3;

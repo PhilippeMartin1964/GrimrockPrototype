@@ -58,7 +58,7 @@ bool UGridTurnManagerComponent::GetPlayerCharacterTurnState(int32 CharacterIndex
 		}
 	}
 
-	if (Character.DerivedStats.CurrentHealth <= 0)
+	if (Character.Resources.CurrentHealth <= 0)
 	{
 		OutTurnState.State = EGridCombatantTurnState::Defeated;
 		OutTurnState.RemainingActionPoints = 0;
@@ -121,7 +121,7 @@ void UGridTurnManagerComponent::BeginPlayerCharacterPhase()
 		TurnState.CharacterIndex = CharacterIndex;
 		TurnState.CharacterId = ResolvePlayerCombatantId(CharacterIndex);
 		TurnState.MaximumActionPoints = MaximumActionPoints;
-		if (Character.DerivedStats.CurrentHealth > 0)
+		if (Character.Resources.CurrentHealth > 0)
 		{
 			TurnState.State = InitiativeOrder.IsEmpty() ? EGridCombatantTurnState::Active : EGridCombatantTurnState::Waiting;
 			TurnState.RemainingActionPoints = InitiativeOrder.IsEmpty() ? MaximumActionPoints : 0;
@@ -214,7 +214,7 @@ void UGridTurnManagerComponent::RefreshPlayerCharacterVitalState(int32 Character
 		return;
 	}
 
-	const bool bDefeated = Characters[CharacterIndex].DerivedStats.CurrentHealth <= 0;
+	const bool bDefeated = Characters[CharacterIndex].Resources.CurrentHealth <= 0;
 	if (bDefeated && TurnState->State != EGridCombatantTurnState::Defeated)
 	{
 		TurnState->State = EGridCombatantTurnState::Defeated;

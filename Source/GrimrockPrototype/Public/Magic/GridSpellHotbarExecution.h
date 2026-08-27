@@ -16,7 +16,7 @@ class UGridStatusEffectDefinitionAsset;
  */
 struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionResult
 {
-	FRPGDerivedStats CasterStats;
+	FRPGCharacterResources CasterResources;
 	FGridPlayerCharacterTurnState CasterTurnState;
 	int32 TargetCurrentHealth = 0;
 	FGridStatusEffectCollection TargetStatusEffects;
@@ -37,7 +37,7 @@ struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionResult
 struct GRIMROCKPROTOTYPE_API FGridSpellHotbarExecutionService
 {
 	static bool TryExecute(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request, const FGridSpellTargetingContext& TargetingContext,
-		const FGridCharacterSpellbookState& Spellbook, const FRPGDerivedStats& CasterStats, const FGridPlayerCharacterTurnState& CasterTurnState,
+		const FGridCharacterSpellbookState& Spellbook, const FRPGCharacterResources& CasterResources, const FGridPlayerCharacterTurnState& CasterTurnState,
 		int32 TargetMaxHealth, int32 TargetCurrentHealth, const FGridStatusEffectCollection& TargetStatusEffects,
 		TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver, FGridSpellHotbarExecutionResult& OutResult);
 };

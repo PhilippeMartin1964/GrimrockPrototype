@@ -46,7 +46,7 @@ bool FGridTD0732ExactVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("TD07.3 exact-match contract tracks the current prototype schema generation"), UGrimrockPartySaveGame::CurrentSaveVersion, 11);
+	TestEqual(TEXT("TD07.3 exact-match contract tracks the current prototype schema generation"), UGrimrockPartySaveGame::CurrentSaveVersion, 12);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
 	TestEqual(TEXT("A new SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);

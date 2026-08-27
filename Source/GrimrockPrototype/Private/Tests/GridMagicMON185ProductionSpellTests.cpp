@@ -76,15 +76,16 @@ bool FGridMON185HealingClampTest::RunTest(const FString& Parameters)
 	const FGridSpellDefinition Spell = FGridProductionSpellLibrary::MakeLesserHeal();
 	FRPGDerivedStats Stats;
 	Stats.MaxHealth = 10;
-	Stats.CurrentHealth = 8;
+	FRPGCharacterResources Resources;
+	Resources.CurrentHealth = 8;
 	FGridStatusEffectCollection Statuses;
 	FGridSpellEffectResolutionResult Result;
 	EGridSpellEffectResolutionRejectReason RejectReason = EGridSpellEffectResolutionRejectReason::InvalidTargetState;
 	FString Error;
 
 	TestTrue(TEXT("Lesser Heal resolves"),
-		FGridSpellEffectResolver::ResolveCharacterEffects(Spell, FGuid::NewGuid(), Stats, Statuses, ResolveNone, Result, RejectReason, Error));
-	TestEqual(TEXT("Healing clamps to max health"), Stats.CurrentHealth, 10);
+		FGridSpellEffectResolver::ResolveCharacterEffects(Spell, FGuid::NewGuid(), Stats, Resources, Statuses, ResolveNone, Result, RejectReason, Error));
+	TestEqual(TEXT("Healing clamps to max health"), Resources.CurrentHealth, 10);
 	TestEqual(TEXT("Only missing health is reported"), Result.TotalHealing, 2);
 	return true;
 }

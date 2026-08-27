@@ -65,9 +65,9 @@ namespace
 		Character.Experience = Experience;
 		Character.Attributes = FRPGAttributes{ 12, 11, 10, 9, 8, 7 };
 		Character.DerivedStats.MaxHealth = 20 + Seed;
-		Character.DerivedStats.CurrentHealth = 10 + Seed;
+		Character.Resources.CurrentHealth = 10 + Seed;
 		Character.DerivedStats.MaxMana = 5;
-		Character.DerivedStats.CurrentMana = 3;
+		Character.Resources.CurrentMana = 3;
 		return Character;
 	}
 
@@ -178,6 +178,8 @@ bool FRPGMON152ProgressionBoundariesTest::RunTest(const FString& Parameters)
 
 	const FRPGDerivedStats FirstStatsBefore = Component->PartyInventoryState.ActiveCharacters[0].DerivedStats;
 	const FRPGDerivedStats SecondStatsBefore = Component->PartyInventoryState.ActiveCharacters[1].DerivedStats;
+	const FRPGCharacterResources FirstResourcesBefore = Component->PartyInventoryState.ActiveCharacters[0].Resources;
+	const FRPGCharacterResources SecondResourcesBefore = Component->PartyInventoryState.ActiveCharacters[1].Resources;
 
 	TestEqual(TEXT("Three XP are fully shared at the boundary"), FRPGExperienceRewardService::AwardToActiveParty(Component, 3), 3);
 	TestEqual(TEXT("The first character crosses the level-two XP threshold"), Component->PartyInventoryState.ActiveCharacters[0].Experience, 1001);
@@ -195,12 +197,12 @@ bool FRPGMON152ProgressionBoundariesTest::RunTest(const FString& Parameters)
 
 	TestEqual(
 		TEXT("First MaxHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[0].DerivedStats.MaxHealth, FirstStatsBefore.MaxHealth);
-	TestEqual(TEXT("First CurrentHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth,
-		FirstStatsBefore.CurrentHealth);
+	TestEqual(TEXT("First CurrentHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
+		FirstResourcesBefore.CurrentHealth);
 	TestEqual(
 		TEXT("Second MaxHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[1].DerivedStats.MaxHealth, SecondStatsBefore.MaxHealth);
-	TestEqual(TEXT("Second CurrentHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[1].DerivedStats.CurrentHealth,
-		SecondStatsBefore.CurrentHealth);
+	TestEqual(TEXT("Second CurrentHealth is not recalculated"), Component->PartyInventoryState.ActiveCharacters[1].Resources.CurrentHealth,
+		SecondResourcesBefore.CurrentHealth);
 	return true;
 }
 

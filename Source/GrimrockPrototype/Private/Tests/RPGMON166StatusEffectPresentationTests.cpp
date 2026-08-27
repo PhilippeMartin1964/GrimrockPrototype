@@ -42,9 +42,9 @@ namespace
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = Id;
 		Character.DisplayName = FText::FromString(TEXT("MON16.6 Hero"));
-		Character.DerivedStats.CurrentHealth = 10;
+		Character.Resources.CurrentHealth = 10;
 		Character.DerivedStats.MaxHealth = 10;
-		Character.DerivedStats.CurrentMana = 8;
+		Character.Resources.CurrentMana = 8;
 		Character.DerivedStats.MaxMana = 8;
 		Character.InventorySlots.SetNum(4);
 		return Character;
@@ -361,12 +361,12 @@ bool FRPGMON166TickAndExpirationFeedbackTest::RunTest(const FString& Parameters)
 	Completed.State = EGridCombatantTurnState::Completed;
 	Fixture.TurnManager->OnCombatantStateChanged.Broadcast(Completed);
 	TestEqual(TEXT("First boundary leaves tick as latest feedback"), Fixture.Lifecycle->LastStatusEffectFeedback.Type, EGridCombatLogEntryType::StatusTicked);
-	TestEqual(TEXT("Tick dealt two HP"), Character->DerivedStats.CurrentHealth, 8);
+	TestEqual(TEXT("Tick dealt two HP"), Character->Resources.CurrentHealth, 8);
 
 	Fixture.TurnManager->OnCombatantStateChanged.Broadcast(Completed);
 	TestEqual(TEXT("Second boundary expires after final tick"), Fixture.Lifecycle->LastStatusEffectFeedback.Type, EGridCombatLogEntryType::StatusExpired);
 	TestFalse(TEXT("Effect removed after final tick"), Character->StatusEffects.Contains(Definition->EffectId));
-	TestEqual(TEXT("Second tick also dealt damage"), Character->DerivedStats.CurrentHealth, 6);
+	TestEqual(TEXT("Second tick also dealt damage"), Character->Resources.CurrentHealth, 6);
 	return true;
 }
 

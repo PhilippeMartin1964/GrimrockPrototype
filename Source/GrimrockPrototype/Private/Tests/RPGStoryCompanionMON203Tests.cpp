@@ -59,7 +59,7 @@ namespace GridMON203StoryCompanionTests
 		Character.Experience = 0;
 		Character.Attributes = FRPGAttributes(10, 10, 10, 10, 10, 10);
 		Character.DerivedStats.MaxHealth = 10;
-		Character.DerivedStats.CurrentHealth = 10;
+		Character.Resources.CurrentHealth = 10;
 		Character.InventorySlots.SetNum(4);
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)

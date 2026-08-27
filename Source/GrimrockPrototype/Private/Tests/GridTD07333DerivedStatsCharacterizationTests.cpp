@@ -30,11 +30,11 @@ namespace GridTD07333Characterization
 		Character.Experience = 0;
 		Character.Attributes = FRPGAttributes(10, 12, 10, 10, 10, 10);
 		Character.DerivedStats.MaxHealth = 20;
-		Character.DerivedStats.CurrentHealth = 15;
+		Character.Resources.CurrentHealth = 15;
 		Character.DerivedStats.MaxMana = 10;
-		Character.DerivedStats.CurrentMana = 4;
-		Character.DerivedStats.PhysicalArmor = 2;
-		Character.DerivedStats.MagicalArmor = 1;
+		Character.Resources.CurrentMana = 4;
+		Character.Resources.CurrentPhysicalArmor = 2;
+		Character.Resources.CurrentMagicalArmor = 1;
 		Character.DerivedStats.Initiative = 1;
 		Character.DerivedStats.Accuracy = 1;
 		Character.DerivedStats.Evasion = 1;
@@ -108,10 +108,10 @@ bool FGridTD07333EquipmentProjectionContractTest::RunTest(const FString& Paramet
 
 	TestEqual(TEXT("MaxHealth bonus changes projected maximum"), Summary.DerivedStats.MaxHealth, 30);
 	TestEqual(TEXT("MaxMana bonus changes projected maximum"), Summary.DerivedStats.MaxMana, 16);
-	TestEqual(TEXT("Equipment does not grant current health"), Summary.DerivedStats.CurrentHealth, 15);
-	TestEqual(TEXT("Equipment does not grant current mana"), Summary.DerivedStats.CurrentMana, 4);
-	TestEqual(TEXT("ArmorBonus changes projected physical armor"), Summary.DerivedStats.PhysicalArmor, 7);
-	TestEqual(TEXT("ArmorBonus does not change projected magical armor"), Summary.DerivedStats.MagicalArmor, 1);
+	TestEqual(TEXT("Equipment does not grant current health"), Summary.Resources.CurrentHealth, 15);
+	TestEqual(TEXT("Equipment does not grant current mana"), Summary.Resources.CurrentMana, 4);
+	TestEqual(TEXT("ArmorBonus changes projected physical armor"), Summary.Resources.CurrentPhysicalArmor, 7);
+	TestEqual(TEXT("ArmorBonus does not change projected magical armor"), Summary.Resources.CurrentMagicalArmor, 1);
 
 	TestEqual(TEXT("Stored Dexterity remains base state"), Character.Attributes.Dexterity, 12);
 	TestEqual(TEXT("Stored Initiative remains unchanged by equipment"), Character.DerivedStats.Initiative, 1);
@@ -119,7 +119,7 @@ bool FGridTD07333EquipmentProjectionContractTest::RunTest(const FString& Paramet
 	TestEqual(TEXT("Stored Evasion remains unchanged by equipment"), Character.DerivedStats.Evasion, 1);
 	TestEqual(TEXT("Stored MaxHealth remains unchanged by equipment"), Character.DerivedStats.MaxHealth, 20);
 	TestEqual(TEXT("Stored MaxMana remains unchanged by equipment"), Character.DerivedStats.MaxMana, 10);
-	TestEqual(TEXT("Stored physical armor remains unchanged by equipment"), Character.DerivedStats.PhysicalArmor, 2);
+	TestEqual(TEXT("Stored physical armor remains unchanged by equipment"), Character.Resources.CurrentPhysicalArmor, 2);
 	return true;
 }
 
@@ -138,25 +138,25 @@ bool FGridTD07333ResourceRemovalProjectionTest::RunTest(const FString& Parameter
 
 	// Characterize the current projection-only cap behavior. These values are
 	// deliberately legal under the equipped summary but exceed the base maxima.
-	Character.DerivedStats.CurrentHealth = 28;
-	Character.DerivedStats.CurrentMana = 12;
+	Character.Resources.CurrentHealth = 28;
+	Character.Resources.CurrentMana = 12;
 
 	FGridInventoryCharacterSummary EquippedSummary;
 	TestTrue(TEXT("Equipped summary resolves"), Inventory->GetCharacterSummary(0, EquippedSummary));
-	TestEqual(TEXT("Equipped projected health accepts the equipment-supported value"), EquippedSummary.DerivedStats.CurrentHealth, 28);
-	TestEqual(TEXT("Equipped projected mana accepts the equipment-supported value"), EquippedSummary.DerivedStats.CurrentMana, 12);
+	TestEqual(TEXT("Equipped projected health accepts the equipment-supported value"), EquippedSummary.Resources.CurrentHealth, 28);
+	TestEqual(TEXT("Equipped projected mana accepts the equipment-supported value"), EquippedSummary.Resources.CurrentMana, 12);
 
 	TestTrue(TEXT("Projection item can be unequipped"), Inventory->UnequipItemToInventory(0, EGridEquipmentSlot::Amulet));
 
 	FGridInventoryCharacterSummary UnequippedSummary;
 	TestTrue(TEXT("Unequipped summary resolves"), Inventory->GetCharacterSummary(0, UnequippedSummary));
 	TestEqual(TEXT("Unequip returns projected MaxHealth to base"), UnequippedSummary.DerivedStats.MaxHealth, 20);
-	TestEqual(TEXT("Unequip clamps projected CurrentHealth to base maximum"), UnequippedSummary.DerivedStats.CurrentHealth, 20);
+	TestEqual(TEXT("Unequip clamps projected CurrentHealth to base maximum"), UnequippedSummary.Resources.CurrentHealth, 20);
 	TestEqual(TEXT("Unequip returns projected MaxMana to base"), UnequippedSummary.DerivedStats.MaxMana, 10);
-	TestEqual(TEXT("Unequip clamps projected CurrentMana to base maximum"), UnequippedSummary.DerivedStats.CurrentMana, 10);
+	TestEqual(TEXT("Unequip clamps projected CurrentMana to base maximum"), UnequippedSummary.Resources.CurrentMana, 10);
 
-	TestEqual(TEXT("Unequip does not normalize stored CurrentHealth"), Character.DerivedStats.CurrentHealth, 28);
-	TestEqual(TEXT("Unequip does not normalize stored CurrentMana"), Character.DerivedStats.CurrentMana, 12);
+	TestEqual(TEXT("Unequip does not normalize stored CurrentHealth"), Character.Resources.CurrentHealth, 28);
+	TestEqual(TEXT("Unequip does not normalize stored CurrentMana"), Character.Resources.CurrentMana, 12);
 	return true;
 }
 
@@ -175,18 +175,18 @@ bool FGridTD07333CombatConsumerBoundaryTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Incoming attacks currently read stored Evasion directly"),
 		MonsterCombat.Contains(TEXT("Target.Evasion = Character.DerivedStats.Evasion;")));
 	TestTrue(TEXT("Incoming attacks currently read stored physical armor directly"),
-		MonsterCombat.Contains(TEXT("Target.PhysicalArmor = Character.DerivedStats.PhysicalArmor;")));
+		MonsterCombat.Contains(TEXT("Target.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;")));
 	TestTrue(TEXT("Incoming attacks currently read stored magical armor directly"),
-		MonsterCombat.Contains(TEXT("Target.MagicalArmor = Character.DerivedStats.MagicalArmor;")));
+		MonsterCombat.Contains(TEXT("Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored physical armor directly"),
-		MonsterCombat.Contains(TEXT("Character.DerivedStats.PhysicalArmor = FMath::Max(0, Character.DerivedStats.PhysicalArmor - OutResult.PhysicalArmorDamage);")));
+		MonsterCombat.Contains(TEXT("Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - OutResult.PhysicalArmorDamage);")));
 	TestTrue(TEXT("Incoming attacks currently mutate stored current health directly"),
-		MonsterCombat.Contains(TEXT("Character.DerivedStats.CurrentHealth = FMath::Max(0, Character.DerivedStats.CurrentHealth - OutResult.HealthDamage);")));
+		MonsterCombat.Contains(TEXT("Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);")));
 
 	FString Initiative;
 	TestTrue(TEXT("Initiative source loads"),
 		LoadProjectSource(TEXT("Source/GrimrockPrototype/Private/Runtime/Combat/GridTurnManagerInitiative.cpp"), Initiative));
-	TestTrue(TEXT("Party initiative currently reads stored DerivedStats directly"),
+	TestTrue(TEXT("Party initiative remains a calculated DerivedStats consumer"),
 		Initiative.Contains(TEXT("Entry.InitiativeBase = 10 + Character.DerivedStats.Initiative;")));
 	return true;
 }
@@ -211,13 +211,14 @@ bool FGridTD07333MixedFactoryContractTest::RunTest(const FString& Parameters)
 
 	const FRPGAttributes Attributes(10, 14, 12, 10, 10, 10);
 	const FRPGDerivedStats Stats = URPGCharacterRulesLibrary::CalculateDerivedStats(Attributes, ClassDefinition, 1);
+	const FRPGCharacterResources Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Stats, ClassDefinition);
 
 	TestEqual(TEXT("Factory calculates MaxHealth"), Stats.MaxHealth, 21);
-	TestEqual(TEXT("Factory also initializes mutable CurrentHealth"), Stats.CurrentHealth, Stats.MaxHealth);
+	TestEqual(TEXT("Resource initializer starts CurrentHealth at MaxHealth"), Resources.CurrentHealth, Stats.MaxHealth);
 	TestEqual(TEXT("Factory calculates MaxMana"), Stats.MaxMana, 8);
-	TestEqual(TEXT("Factory also initializes mutable CurrentMana"), Stats.CurrentMana, Stats.MaxMana);
-	TestEqual(TEXT("Factory initializes current physical armor from class base"), Stats.PhysicalArmor, 3);
-	TestEqual(TEXT("Factory initializes current magical armor from class base"), Stats.MagicalArmor, 2);
+	TestEqual(TEXT("Resource initializer starts CurrentMana at MaxMana"), Resources.CurrentMana, Stats.MaxMana);
+	TestEqual(TEXT("Resource initializer starts physical armor from class base"), Resources.CurrentPhysicalArmor, 3);
+	TestEqual(TEXT("Resource initializer starts magical armor from class base"), Resources.CurrentMagicalArmor, 2);
 	TestEqual(TEXT("Factory calculates Initiative from Dexterity"), Stats.Initiative, 2);
 	TestEqual(TEXT("Factory calculates Accuracy from Dexterity"), Stats.Accuracy, 2);
 	TestEqual(TEXT("Factory calculates Evasion from Dexterity"), Stats.Evasion, 2);

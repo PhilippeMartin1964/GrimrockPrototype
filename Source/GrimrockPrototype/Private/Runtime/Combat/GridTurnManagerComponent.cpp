@@ -335,8 +335,8 @@ void UGridTurnManagerComponent::LogPartyCombatState() const
 		const bool bHasTurnState = GetPlayerCharacterTurnState(Index, TurnState);
 		UE_LOG(LogGridTurnManager, Log,
 			TEXT("[GridTurnManager] PartyCharacter Index=%d Name=%s HP=%d/%d PhysicalArmor=%d MagicalArmor=%d Evasion=%d AP=%d/%d TurnState=%s"), Index,
-			*Character.DisplayName.ToString(), Character.DerivedStats.CurrentHealth, Character.DerivedStats.MaxHealth, Character.DerivedStats.PhysicalArmor,
-			Character.DerivedStats.MagicalArmor, Character.DerivedStats.Evasion, bHasTurnState ? TurnState.RemainingActionPoints : 0,
+			*Character.DisplayName.ToString(), Character.Resources.CurrentHealth, Character.DerivedStats.MaxHealth, Character.Resources.CurrentPhysicalArmor,
+			Character.Resources.CurrentMagicalArmor, Character.DerivedStats.Evasion, bHasTurnState ? TurnState.RemainingActionPoints : 0,
 			bHasTurnState ? TurnState.MaximumActionPoints : 0, bHasTurnState ? *UEnum::GetValueAsString(TurnState.State) : TEXT("Unavailable"));
 	}
 }

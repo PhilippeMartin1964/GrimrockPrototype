@@ -172,7 +172,7 @@ namespace
 			Character.DisplayName = FText::FromString(TEXT("Mina"));
 			Character.Attributes = FRPGAttributes{ 18, 16, 14, 18, 12, 10 };
 			Character.DerivedStats.MaxHealth = 30;
-			Character.DerivedStats.CurrentHealth = 30;
+			Character.Resources.CurrentHealth = 30;
 			Character.DerivedStats.Accuracy = 6;
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(1);

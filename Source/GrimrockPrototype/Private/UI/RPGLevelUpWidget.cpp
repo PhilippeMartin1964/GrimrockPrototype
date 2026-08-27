@@ -292,14 +292,16 @@ void URPGLevelUpWidget::RefreshView()
 
 	const FRPGDerivedStats PreviousStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, PreviousLevel);
 	const FRPGDerivedStats NewStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, NewLevel);
+	const FRPGCharacterResources PreviousResources = URPGCharacterRulesLibrary::InitializeCharacterResources(PreviousStats, ClassDefinition);
+	const FRPGCharacterResources NewResources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewStats, ClassDefinition);
 	NewView.PreviousMaxHealth = PreviousStats.MaxHealth;
 	NewView.NewMaxHealth = NewStats.MaxHealth;
 	NewView.PreviousMaxMana = PreviousStats.MaxMana;
 	NewView.NewMaxMana = NewStats.MaxMana;
-	NewView.PreviousPhysicalArmor = PreviousStats.PhysicalArmor;
-	NewView.NewPhysicalArmor = NewStats.PhysicalArmor;
-	NewView.PreviousMagicalArmor = PreviousStats.MagicalArmor;
-	NewView.NewMagicalArmor = NewStats.MagicalArmor;
+	NewView.PreviousPhysicalArmor = PreviousResources.CurrentPhysicalArmor;
+	NewView.NewPhysicalArmor = NewResources.CurrentPhysicalArmor;
+	NewView.PreviousMagicalArmor = PreviousResources.CurrentMagicalArmor;
+	NewView.NewMagicalArmor = NewResources.CurrentMagicalArmor;
 
 	TArray<FName> CommittedChoices;
 	TSet<FName> CombinedSelection;

@@ -92,7 +92,7 @@ namespace
 		Character.Level = 1;
 		Character.Experience = 0;
 		Character.DerivedStats.MaxHealth = 20;
-		Character.DerivedStats.CurrentHealth = 20;
+		Character.Resources.CurrentHealth = 20;
 		Character.DerivedStats.Initiative = 10;
 		return Character;
 	}

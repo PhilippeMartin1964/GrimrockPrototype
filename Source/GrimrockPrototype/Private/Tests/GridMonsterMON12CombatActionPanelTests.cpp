@@ -68,9 +68,9 @@ namespace
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = CharacterId;
 		Character.DisplayName = FText::FromString(DisplayName);
-		Character.DerivedStats.CurrentHealth = CurrentHealth;
+		Character.Resources.CurrentHealth = CurrentHealth;
 		Character.DerivedStats.MaxHealth = MaxHealth;
-		Character.DerivedStats.CurrentMana = CurrentMana;
+		Character.Resources.CurrentMana = CurrentMana;
 		Character.DerivedStats.MaxMana = MaxMana;
 		Character.Portrait = Portrait;
 		Character.InventorySlots.SetNum(4);
@@ -302,7 +302,7 @@ bool FGridMonsterMON12CombatActionPanelTurnAuthorityTest::RunTest(const FString&
 	TestEqual(TEXT("The status panel reflects Completed"), Fixture.Panel->View.TurnState, EGridCombatantTurnState::Completed);
 	TestFalse(TEXT("Completed disables the panel"), Fixture.Panel->View.bCanAct);
 
-	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[1].DerivedStats.CurrentHealth = 9;
+	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[1].Resources.CurrentHealth = 9;
 	FGridAttackResult Result;
 	Fixture.TurnManager->OnAttackResolved.Broadcast(nullptr, 1, Result);
 	Fixture.Panel->RefreshFromSources();
@@ -371,7 +371,7 @@ bool FGridMonsterMON12CharacterActionPointLifecycleTest::RunTest(const FString& 
 	TestEqual(TEXT("The next round restores four action points"), EliasTurn.RemainingActionPoints, 4);
 	TestEqual(TEXT("The next round restores Active"), EliasTurn.State, EGridCombatantTurnState::Active);
 
-	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[1].DerivedStats.CurrentHealth = 0;
+	Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[1].Resources.CurrentHealth = 0;
 	Fixture.TurnManager->RefreshPlayerCharacterVitalState(1);
 	TestTrue(TEXT("The defeated Mina state remains queryable"), Fixture.TurnManager->GetPlayerCharacterTurnState(1, MinaTurn));
 	TestEqual(TEXT("Zero health produces Defeated"), MinaTurn.State, EGridCombatantTurnState::Defeated);

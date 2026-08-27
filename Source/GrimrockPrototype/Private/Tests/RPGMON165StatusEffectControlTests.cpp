@@ -56,9 +56,9 @@ namespace
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = CharacterId;
 		Character.DisplayName = FText::FromString(TEXT("MON16.5 Hero"));
-		Character.DerivedStats.CurrentHealth = 5;
+		Character.Resources.CurrentHealth = 5;
 		Character.DerivedStats.MaxHealth = 10;
-		Character.DerivedStats.CurrentMana = 10;
+		Character.Resources.CurrentMana = 10;
 		Character.DerivedStats.MaxMana = 10;
 		Character.InventorySlots.SetNum(4);
 		return Character;
@@ -403,8 +403,8 @@ bool FRPGMON165SilenceRequestAtomicTest::RunTest(const FString& Parameters)
 
 	FGridPlayerCharacterTurnState Before;
 	Fixture.TurnManager->GetPlayerCharacterTurnState(0, Before);
-	const int32 HealthBefore = Character->DerivedStats.CurrentHealth;
-	const int32 ManaBefore = Character->DerivedStats.CurrentMana;
+	const int32 HealthBefore = Character->Resources.CurrentHealth;
+	const int32 ManaBefore = Character->Resources.CurrentMana;
 
 	FGridCombatActionRequestResult Result;
 	const bool bAccepted = Fixture.TurnManager->RequestCharacterCombatAction(
@@ -415,8 +415,8 @@ bool FRPGMON165SilenceRequestAtomicTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Silenced spell request is rejected"), bAccepted);
 	TestEqual(TEXT("Canonical reject reason is ActionUnavailable"), Result.RejectReason, EGridCombatActionRequestRejectReason::ActionUnavailable);
 	TestEqual(TEXT("Rejected spell spends no AP"), After.RemainingActionPoints, Before.RemainingActionPoints);
-	TestEqual(TEXT("Rejected spell spends no mana"), Character->DerivedStats.CurrentMana, ManaBefore);
-	TestEqual(TEXT("Rejected spell applies no effect"), Character->DerivedStats.CurrentHealth, HealthBefore);
+	TestEqual(TEXT("Rejected spell spends no mana"), Character->Resources.CurrentMana, ManaBefore);
+	TestEqual(TEXT("Rejected spell applies no effect"), Character->Resources.CurrentHealth, HealthBefore);
 	return true;
 }
 

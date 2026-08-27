@@ -16,14 +16,12 @@ namespace
 		return Spellbook;
 	}
 
-	FRPGDerivedStats MakeMON1892CasterStats()
+	FRPGCharacterResources MakeMON1892CasterResources()
 	{
-		FRPGDerivedStats Stats;
-		Stats.MaxHealth = 20;
-		Stats.CurrentHealth = 20;
-		Stats.MaxMana = 10;
-		Stats.CurrentMana = 10;
-		return Stats;
+		FRPGCharacterResources Resources;
+		Resources.CurrentHealth = 20;
+		Resources.CurrentMana = 10;
+		return Resources;
 	}
 
 	FGridPlayerCharacterTurnState MakeMON1892TurnState(const FGuid& CharacterId)
@@ -127,21 +125,21 @@ bool FGridMON1892FullHealthHealNoCostTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	const FGuid CharacterId = FGuid::NewGuid();
 	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeLesserHeal();
-	const FRPGDerivedStats CasterStats = MakeMON1892CasterStats();
+	const FRPGCharacterResources CasterResources = MakeMON1892CasterResources();
 	const FGridPlayerCharacterTurnState TurnState = MakeMON1892TurnState(CharacterId);
 	FGridSpellHotbarExecutionResult Result;
 
 	TestFalse(TEXT("Lesser Heal rejects a full-health target"),
 		FGridSpellHotbarExecutionService::TryExecute(
 			Definition, MakeMON1892AllyRequest(CharacterId, Definition.SpellId), MakeMON1892AllyContext(CharacterId),
-			MakeMON1892Spellbook(CharacterId, Definition.SpellId), CasterStats, TurnState, 20, 20, FGridStatusEffectCollection(),
+			MakeMON1892Spellbook(CharacterId, Definition.SpellId), CasterResources, TurnState, 20, 20, FGridStatusEffectCollection(),
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
 			},
 			Result));
 	TestEqual(TEXT("No-effect rejection"), Result.EffectRejectReason, EGridSpellEffectResolutionRejectReason::NoEffectWouldApply);
-	TestEqual(TEXT("Authoritative input mana unchanged"), CasterStats.CurrentMana, 10);
+	TestEqual(TEXT("Authoritative input mana unchanged"), CasterResources.CurrentMana, 10);
 	TestEqual(TEXT("Authoritative input AP unchanged"), TurnState.RemainingActionPoints, 4);
 	return true;
 }
@@ -154,21 +152,21 @@ bool FGridMON1892CleanCureNoCostTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	const FGuid CharacterId = FGuid::NewGuid();
 	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeCurePoison();
-	const FRPGDerivedStats CasterStats = MakeMON1892CasterStats();
+	const FRPGCharacterResources CasterResources = MakeMON1892CasterResources();
 	const FGridPlayerCharacterTurnState TurnState = MakeMON1892TurnState(CharacterId);
 	FGridSpellHotbarExecutionResult Result;
 
 	TestFalse(TEXT("Cure Poison rejects a clean target"),
 		FGridSpellHotbarExecutionService::TryExecute(
 			Definition, MakeMON1892AllyRequest(CharacterId, Definition.SpellId), MakeMON1892AllyContext(CharacterId),
-			MakeMON1892Spellbook(CharacterId, Definition.SpellId), CasterStats, TurnState, 20, 20, FGridStatusEffectCollection(),
+			MakeMON1892Spellbook(CharacterId, Definition.SpellId), CasterResources, TurnState, 20, 20, FGridStatusEffectCollection(),
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
 			},
 			Result));
 	TestEqual(TEXT("No-effect rejection"), Result.EffectRejectReason, EGridSpellEffectResolutionRejectReason::NoEffectWouldApply);
-	TestEqual(TEXT("Authoritative input mana unchanged"), CasterStats.CurrentMana, 10);
+	TestEqual(TEXT("Authoritative input mana unchanged"), CasterResources.CurrentMana, 10);
 	TestEqual(TEXT("Authoritative input AP unchanged"), TurnState.RemainingActionPoints, 4);
 	return true;
 }
@@ -190,13 +188,13 @@ bool FGridMON1892CurePoisonCommitTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Cure Poison executes when poison is present"),
 		FGridSpellHotbarExecutionService::TryExecute(
 			Definition, MakeMON1892AllyRequest(CharacterId, Definition.SpellId), MakeMON1892AllyContext(CharacterId),
-			MakeMON1892Spellbook(CharacterId, Definition.SpellId), MakeMON1892CasterStats(), MakeMON1892TurnState(CharacterId), 20, 20, Statuses,
+			MakeMON1892Spellbook(CharacterId, Definition.SpellId), MakeMON1892CasterResources(), MakeMON1892TurnState(CharacterId), 20, 20, Statuses,
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
 			},
 			Result));
-	TestEqual(TEXT("Cure Poison spends four mana"), Result.CasterStats.CurrentMana, 6);
+	TestEqual(TEXT("Cure Poison spends four mana"), Result.CasterResources.CurrentMana, 6);
 	TestEqual(TEXT("Cure Poison spends two AP"), Result.CasterTurnState.RemainingActionPoints, 2);
 	TestFalse(TEXT("Poison removed"), Result.TargetStatusEffects.Contains(TEXT("Status_Poison")));
 	return true;
@@ -216,14 +214,14 @@ bool FGridMON1892HasteCommitTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Haste executes through the MON16 bridge"),
 		FGridSpellHotbarExecutionService::TryExecute(
 			Definition, MakeMON1892AllyRequest(CharacterId, Definition.SpellId), MakeMON1892AllyContext(CharacterId),
-			MakeMON1892Spellbook(CharacterId, Definition.SpellId), MakeMON1892CasterStats(), MakeMON1892TurnState(CharacterId), 20, 20,
+			MakeMON1892Spellbook(CharacterId, Definition.SpellId), MakeMON1892CasterResources(), MakeMON1892TurnState(CharacterId), 20, 20,
 			FGridStatusEffectCollection(),
 			[Haste](FName EffectId) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return EffectId == Haste->EffectId ? Haste : nullptr;
 			},
 			Result));
-	TestEqual(TEXT("Haste spends five mana"), Result.CasterStats.CurrentMana, 5);
+	TestEqual(TEXT("Haste spends five mana"), Result.CasterResources.CurrentMana, 5);
 	TestEqual(TEXT("Haste spends two AP"), Result.CasterTurnState.RemainingActionPoints, 2);
 	TestTrue(TEXT("Haste status committed"), Result.TargetStatusEffects.Contains(TEXT("Status_Haste")));
 	return true;

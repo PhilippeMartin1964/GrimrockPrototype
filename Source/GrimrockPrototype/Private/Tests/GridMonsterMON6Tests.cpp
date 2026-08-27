@@ -90,20 +90,20 @@ bool FGridMonsterMON6PartyTargetSelectorTest::RunTest(const FString& Parameters)
 	Party.ActiveCharacters.SetNum(5);
 	for (FGridCharacterInventoryState& Character : Party.ActiveCharacters)
 	{
-		Character.DerivedStats.CurrentHealth = 0;
+		Character.Resources.CurrentHealth = 0;
 	}
 
-	Party.ActiveCharacters[1].DerivedStats.CurrentHealth = 5;
-	Party.ActiveCharacters[3].DerivedStats.CurrentHealth = 5;
+	Party.ActiveCharacters[1].Resources.CurrentHealth = 5;
+	Party.ActiveCharacters[3].Resources.CurrentHealth = 5;
 
 	FRandomStream RandomStream(42);
 	TestEqual(TEXT("A living front-line character is preferred"), FGridPartyTargetSelector::SelectTarget(Party, RandomStream, 3), 1);
 
-	Party.ActiveCharacters[1].DerivedStats.CurrentHealth = 0;
+	Party.ActiveCharacters[1].Resources.CurrentHealth = 0;
 	RandomStream.Initialize(42);
 	TestEqual(TEXT("The second line is used when the front line is defeated"), FGridPartyTargetSelector::SelectTarget(Party, RandomStream, 3), 3);
 
-	Party.ActiveCharacters[3].DerivedStats.CurrentHealth = 0;
+	Party.ActiveCharacters[3].Resources.CurrentHealth = 0;
 	RandomStream.Initialize(42);
 	TestEqual(TEXT("No living character produces no target"), FGridPartyTargetSelector::SelectTarget(Party, RandomStream, 3), INDEX_NONE);
 

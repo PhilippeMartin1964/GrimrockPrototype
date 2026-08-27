@@ -116,17 +116,19 @@ bool FGridMON186PresentationPurityTest::RunTest(const FString& Parameters)
 {
 	FRPGDerivedStats Stats;
 	Stats.MaxHealth = 10;
-	Stats.CurrentHealth = 7;
 	Stats.MaxMana = 12;
-	Stats.CurrentMana = 9;
-	const FRPGDerivedStats Before = Stats;
+	FRPGCharacterResources Resources;
+	Resources.CurrentHealth = 7;
+	Resources.CurrentMana = 9;
+	const FRPGDerivedStats StatsBefore = Stats;
+	const FRPGCharacterResources ResourcesBefore = Resources;
 
 	FGridSpellPresentationPlan Plan;
 	TestTrue(TEXT("Presentation plan builds"),
 		FGridSpellPresentationService::BuildPlan(FGridProductionSpellLibrary::MakeArcaneBolt(), MakeResolvedTarget(),
 			FGridProductionSpellLibrary::MakeArcaneBoltPresentation(), FVector::ZeroVector, FVector(200.0f, 0.0f, 0.0f), Plan));
-	TestEqual(TEXT("Health untouched"), Stats.CurrentHealth, Before.CurrentHealth);
-	TestEqual(TEXT("Mana untouched"), Stats.CurrentMana, Before.CurrentMana);
+	TestEqual(TEXT("Health untouched"), Resources.CurrentHealth, ResourcesBefore.CurrentHealth);
+	TestEqual(TEXT("Mana untouched"), Resources.CurrentMana, ResourcesBefore.CurrentMana);
 	TestTrue(TEXT("Runtime component remains an ActorComponent"), UGridSpellPresentationComponent::StaticClass()->IsChildOf(UActorComponent::StaticClass()));
 	return true;
 }

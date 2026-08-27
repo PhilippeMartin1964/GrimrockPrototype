@@ -182,7 +182,7 @@ namespace
 		Character.CharacterId = FGuid::NewGuid();
 		Character.DisplayName = FText::FromString(TEXT("Elias"));
 		Character.DerivedStats.MaxHealth = Health;
-		Character.DerivedStats.CurrentHealth = Health;
+		Character.Resources.CurrentHealth = Health;
 		Character.DerivedStats.Evasion = 0;
 		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 		return Party;
@@ -372,9 +372,9 @@ bool FGridMonsterMON10AudioAttackAndImpactExactlyOnceTest::RunTest(const FString
 	TurnManager->bHasActiveAction = true;
 	TurnManager->bActiveAttackImpactCommitted = false;
 	TurnManager->CombatRandomStream.Initialize(1337);
-	const int32 HealthBefore = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth;
+	const int32 HealthBefore = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 	TurnManager->CommitActiveAttackImpact();
-	const int32 HealthAfterFirst = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth;
+	const int32 HealthAfterFirst = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 	TurnManager->CommitActiveAttackImpact();
 
 	const int32 ImpactRequests = Monster->AudioComponent->GetPlaybackRequestCountForEvent(EGridMonsterAudioEvent::ImpactHit) +
@@ -382,7 +382,7 @@ bool FGridMonsterMON10AudioAttackAndImpactExactlyOnceTest::RunTest(const FString
 	TestEqual(TEXT("Impact audio is requested exactly once"), ImpactRequests, 1);
 	TestTrue(TEXT("The attack resolution ran"), HealthAfterFirst <= HealthBefore);
 	TestEqual(TEXT("Damage is not applied by a second impact"),
-		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth, HealthAfterFirst);
+		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth, HealthAfterFirst);
 	TestEqual(TEXT("OnAttackResolved remains unique"), TurnManager->AttackResolvedBroadcastCount, 1);
 	TestEqual(TEXT("GridCombat attack feedback remains unique"), CountMON10AttackEntries(TurnManager), 1);
 	return true;

@@ -429,7 +429,7 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 	UGridTurnManagerComponent* TurnManager = BoundTurnManager.Get();
 	UGridPartyInventoryComponent* Inventory =
 		IsValid(TurnManager) && IsValid(TurnManager->PartyPawn) ? TurnManager->PartyPawn->PartyInventoryComponent.Get() : nullptr;
-	if (!IsValid(Inventory) || Character.DerivedStats.CurrentHealth <= 0)
+	if (!IsValid(Inventory) || Character.Resources.CurrentHealth <= 0)
 	{
 		return;
 	}
@@ -437,7 +437,7 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 	const FGridDamageResistanceSet Resistances = Inventory->ComputeCharacterEquipmentResistances(CharacterIndex);
 	for (const FGridStatusEffectRuntimeState& State : Character.StatusEffects.ActiveEffects)
 	{
-		if (Character.DerivedStats.CurrentHealth <= 0)
+		if (Character.Resources.CurrentHealth <= 0)
 		{
 			break;
 		}
@@ -447,9 +447,9 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 		}
 
 		FGridAttackTargetStats Target;
-		Target.CurrentHealth = Character.DerivedStats.CurrentHealth;
-		Target.PhysicalArmor = Character.DerivedStats.PhysicalArmor;
-		Target.MagicalArmor = Character.DerivedStats.MagicalArmor;
+		Target.CurrentHealth = Character.Resources.CurrentHealth;
+		Target.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
+		Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;
 		Target.ResistancePercent = FGridCombatResolver::GetResistancePercent(Resistances, State.DefinitionAsset->PeriodicDamage.DamageType);
 		Target.DamageMultiplier = 1.0f;
 
@@ -465,9 +465,9 @@ void UGridStatusEffectLifecycleSubsystem::ApplyPeriodicDamageToCharacter(
 		const FGridAttackResult& Damage = Resolution.DamageResult;
 		if (Damage.bHit)
 		{
-			Character.DerivedStats.PhysicalArmor = FMath::Max(0, Character.DerivedStats.PhysicalArmor - Damage.PhysicalArmorDamage);
-			Character.DerivedStats.MagicalArmor = FMath::Max(0, Character.DerivedStats.MagicalArmor - Damage.MagicalArmorDamage);
-			Character.DerivedStats.CurrentHealth = FMath::Max(0, Character.DerivedStats.CurrentHealth - Damage.HealthDamage);
+			Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - Damage.PhysicalArmorDamage);
+			Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - Damage.MagicalArmorDamage);
+			Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - Damage.HealthDamage);
 		}
 
 		EmitStatusFeedback(EGridCombatLogEntryType::StatusTicked, State, CharacterIndex, nullptr, &Damage);
@@ -644,7 +644,7 @@ bool UGridStatusEffectLifecycleSubsystem::HasLivingPartyCharacter() const
 
 	for (const FGridCharacterInventoryState& Character : TurnManager->PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
 	{
-		if (Character.DerivedStats.CurrentHealth > 0)
+		if (Character.Resources.CurrentHealth > 0)
 		{
 			return true;
 		}

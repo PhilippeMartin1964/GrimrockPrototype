@@ -66,8 +66,9 @@ bool FRPGHumanWarriorProfileCC1Test::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Starting attributes stay in the supported range"), URPGCharacterRulesLibrary::AreAttributesInRange(Attributes));
 
 	const FRPGDerivedStats DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Attributes, WarriorClass, 1);
+	const FRPGCharacterResources Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(DerivedStats, WarriorClass);
 	TestEqual(TEXT("Level-one warrior has 20 health with Constitution modifier"), DerivedStats.MaxHealth, 20);
-	TestEqual(TEXT("Current health starts full"), DerivedStats.CurrentHealth, 20);
+	TestEqual(TEXT("Current health starts full"), Resources.CurrentHealth, 20);
 	TestEqual(TEXT("Warrior starts without mana"), DerivedStats.MaxMana, 0);
 	TestTrue(TEXT("Strength 16 gives carry capacity 80"), FMath::IsNearlyEqual(URPGCharacterRulesLibrary::CalculateMaxCarryWeight(Attributes), 80.0f));
 	return true;

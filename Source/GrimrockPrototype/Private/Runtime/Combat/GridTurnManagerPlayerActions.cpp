@@ -178,7 +178,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidAttacker, OutRejectReason);
 	}
-	if (Attacker.DerivedStats.CurrentHealth <= 0)
+	if (Attacker.Resources.CurrentHealth <= 0)
 	{
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::AttackerDefeated, OutRejectReason);
 	}
@@ -361,7 +361,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 	}
 
 	FGridItemInstance EquippedSourceItem;
-	if (Attacker.DerivedStats.CurrentMana < ManaCost ||
+	if (Attacker.Resources.CurrentMana < ManaCost ||
 		(SourcePolicy == EGridCombatActionSourcePolicy::QuickItem &&
 			(OffensiveItemDefinitionId.IsNone() || SourceItemQuantityCost <= 0 ||
 				Inventory->CountItemDefinitionInCharacterInventory(AttackerCharacterIndex, OffensiveItemDefinitionId) < SourceItemQuantityCost)) ||
@@ -432,7 +432,7 @@ bool UGridTurnManagerComponent::RequestCharacterAttackInternal(int32 AttackerCha
 		return RejectPlayerAttack(AttackerCharacterIndex, EGridPlayerAttackRejectReason::InvalidOffensiveEquipment, OutRejectReason);
 	}
 
-	Attacker.DerivedStats.CurrentMana = FMath::Max(0, Attacker.DerivedStats.CurrentMana - ManaCost);
+	Attacker.Resources.CurrentMana = FMath::Max(0, Attacker.Resources.CurrentMana - ManaCost);
 	Request.PreparedThrownItemActor = PreparedThrownItem;
 	const bool bCooldownStarted = CombatActionOverride && CombatActionOverride->Definition.CooldownRounds > 0;
 	if (CombatActionOverride)

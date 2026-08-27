@@ -74,6 +74,7 @@ namespace RPGCustomRecruitServicePrivate
 		Candidate.Experience = 0;
 		Candidate.Attributes = FinalAttributes;
 		Candidate.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, Candidate.Level);
+		Candidate.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Candidate.DerivedStats, Request.ClassDefinition);
 		Candidate.PortraitGender = Request.PortraitGender;
 		Candidate.PortraitVariantId = Request.PortraitVariantId;
 		Candidate.Portrait = Request.Portrait;

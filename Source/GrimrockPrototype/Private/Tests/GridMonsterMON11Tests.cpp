@@ -97,13 +97,13 @@ namespace
 			FirstCharacter.CharacterId = FGuid(11, 2, 0, 1);
 			FirstCharacter.DisplayName = FText::FromString(TEXT("Elias"));
 			FirstCharacter.DerivedStats.MaxHealth = 12;
-			FirstCharacter.DerivedStats.CurrentHealth = 12;
+			FirstCharacter.Resources.CurrentHealth = 12;
 
 			FGridCharacterInventoryState SecondCharacter;
 			SecondCharacter.CharacterId = FGuid(11, 2, 0, 2);
 			SecondCharacter.DisplayName = FText::FromString(TEXT("Mina"));
 			SecondCharacter.DerivedStats.MaxHealth = 10;
-			SecondCharacter.DerivedStats.CurrentHealth = 10;
+			SecondCharacter.Resources.CurrentHealth = 10;
 
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { FirstCharacter, SecondCharacter };
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(2);
@@ -223,11 +223,11 @@ bool FGridMonsterMON11RequestValidationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("A missing CharacterId reports InvalidAttacker"), RejectReason, EGridPlayerAttackRejectReason::InvalidAttacker);
 
 	Attacker.CharacterId = CharacterId;
-	const int32 Health = Attacker.DerivedStats.CurrentHealth;
-	Attacker.DerivedStats.CurrentHealth = 0;
+	const int32 Health = Attacker.Resources.CurrentHealth;
+	Attacker.Resources.CurrentHealth = 0;
 	TestFalse(TEXT("A defeated attacker is rejected"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));
 	TestEqual(TEXT("A zero-health attacker reports AttackerDefeated"), RejectReason, EGridPlayerAttackRejectReason::AttackerDefeated);
-	Attacker.DerivedStats.CurrentHealth = Health;
+	Attacker.Resources.CurrentHealth = Health;
 
 	Fixture.TurnManager->CombatMonsters.Reset();
 	TestFalse(TEXT("A target outside the encounter is rejected"), Fixture.TurnManager->RequestCharacterAttack(0, Request, Result, RejectReason));

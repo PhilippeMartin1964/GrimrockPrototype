@@ -230,7 +230,7 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 	}
 
 	FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[TargetCharacterIndex];
-	if (Character.DerivedStats.CurrentHealth <= 0)
+	if (Character.Resources.CurrentHealth <= 0)
 	{
 		return false;
 	}
@@ -243,9 +243,9 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 
 	FGridAttackTargetStats Target;
 	Target.Evasion = Character.DerivedStats.Evasion;
-	Target.CurrentHealth = Character.DerivedStats.CurrentHealth;
-	Target.PhysicalArmor = Character.DerivedStats.PhysicalArmor;
-	Target.MagicalArmor = Character.DerivedStats.MagicalArmor;
+	Target.CurrentHealth = Character.Resources.CurrentHealth;
+	Target.PhysicalArmor = Character.Resources.CurrentPhysicalArmor;
+	Target.MagicalArmor = Character.Resources.CurrentMagicalArmor;
 	Target.ResistancePercent = GetResistancePercent(Resistances, Attack.DamageType);
 	Target.DamageMultiplier = 1.0f;
 
@@ -260,9 +260,9 @@ bool UGridMonsterCombatComponent::ResolveAndApplyPartyAttack(
 
 	if (OutResult.bHit)
 	{
-		Character.DerivedStats.PhysicalArmor = FMath::Max(0, Character.DerivedStats.PhysicalArmor - OutResult.PhysicalArmorDamage);
-		Character.DerivedStats.MagicalArmor = FMath::Max(0, Character.DerivedStats.MagicalArmor - OutResult.MagicalArmorDamage);
-		Character.DerivedStats.CurrentHealth = FMath::Max(0, Character.DerivedStats.CurrentHealth - OutResult.HealthDamage);
+		Character.Resources.CurrentPhysicalArmor = FMath::Max(0, Character.Resources.CurrentPhysicalArmor - OutResult.PhysicalArmorDamage);
+		Character.Resources.CurrentMagicalArmor = FMath::Max(0, Character.Resources.CurrentMagicalArmor - OutResult.MagicalArmorDamage);
+		Character.Resources.CurrentHealth = FMath::Max(0, Character.Resources.CurrentHealth - OutResult.HealthDamage);
 	}
 
 	LastAttackId = Attack.AttackId;

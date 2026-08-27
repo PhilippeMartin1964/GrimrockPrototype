@@ -106,7 +106,7 @@ namespace
 			Character.CharacterId = FGuid::NewGuid();
 			Character.DisplayName = FText::FromString(TEXT("MON17.5.1 Party"));
 			Character.DerivedStats.MaxHealth = 20;
-			Character.DerivedStats.CurrentHealth = 20;
+			Character.Resources.CurrentHealth = 20;
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 
 			TurnManager = NewObject<UGridTurnManagerComponent>(Runtime, TEXT("MON1751TurnManager"));

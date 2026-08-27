@@ -55,13 +55,13 @@ struct FGridSpellCastCostReceipt
 struct GRIMROCKPROTOTYPE_API FGridSpellCastTransactionService
 {
 	static EGridSpellCastTransactionRejectReason ValidateCostCommit(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request,
-		const FGridCharacterSpellbookState& Spellbook, const FRPGDerivedStats& CharacterStats, const FGridPlayerCharacterTurnState& TurnState);
+		const FGridCharacterSpellbookState& Spellbook, const FRPGCharacterResources& CharacterResources, const FGridPlayerCharacterTurnState& TurnState);
 
 	/**
      * Atomic with respect to PA/mana: every validation completes before either
      * resource is mutated. On failure, both inputs remain unchanged.
      */
 	static bool TryCommitCosts(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request, const FGridCharacterSpellbookState& Spellbook,
-		FRPGDerivedStats& InOutCharacterStats, FGridPlayerCharacterTurnState& InOutTurnState, FGridSpellCastCostReceipt& OutReceipt,
+		FRPGCharacterResources& InOutCharacterResources, FGridPlayerCharacterTurnState& InOutTurnState, FGridSpellCastCostReceipt& OutReceipt,
 		EGridSpellCastTransactionRejectReason& OutRejectReason);
 };

@@ -87,7 +87,7 @@ enum class EGridSpellCastPipelineRejectStage : uint8
 struct GRIMROCKPROTOTYPE_API FGridSpellCastPipelineService
 {
 	static bool TryValidateTargetAndCommitCosts(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request,
-		const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, FRPGDerivedStats& InOutCharacterStats,
+		const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, FRPGCharacterResources& InOutCharacterResources,
 		FGridPlayerCharacterTurnState& InOutTurnState, FGridSpellResolvedTarget& OutResolvedTarget, FGridSpellCastCostReceipt& OutReceipt,
 		EGridSpellCastPipelineRejectStage& OutRejectStage, EGridSpellTargetingRejectReason& OutTargetingRejectReason,
 		EGridSpellCastTransactionRejectReason& OutTransactionRejectReason);

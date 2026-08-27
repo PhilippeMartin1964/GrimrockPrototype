@@ -300,6 +300,7 @@ bool FRPGMON154LevelUpIntegrationTest::RunTest(const FString& Parameters)
 	Character.Experience = 1000;
 	Character.Attributes = ClassDefinition->BaseAttributes;
 	Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Character.Level);
+	Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
 	Component->PartyInventoryState.ActiveCharacters.Add(Character);
 
 	TestTrue(TEXT("MON15.3 level-up applies"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));

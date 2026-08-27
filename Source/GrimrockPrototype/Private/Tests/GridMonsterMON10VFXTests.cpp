@@ -182,7 +182,7 @@ namespace
 		Character.CharacterId = FGuid::NewGuid();
 		Character.DisplayName = FText::FromString(TEXT("Elias"));
 		Character.DerivedStats.MaxHealth = Health;
-		Character.DerivedStats.CurrentHealth = Health;
+		Character.Resources.CurrentHealth = Health;
 		Character.DerivedStats.Evasion = 0;
 		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 		return Party;
@@ -363,9 +363,9 @@ bool FGridMonsterMON10VFXAttackAndImpactExactlyOnceTest::RunTest(const FString& 
 	TurnManager->bHasActiveAction = true;
 	TurnManager->bActiveAttackImpactCommitted = false;
 	TurnManager->CombatRandomStream.Initialize(1337);
-	const int32 HealthBefore = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth;
+	const int32 HealthBefore = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 	TurnManager->CommitActiveAttackImpact();
-	const int32 HealthAfterFirst = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth;
+	const int32 HealthAfterFirst = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 	TurnManager->CommitActiveAttackImpact();
 
 	const int32 ImpactVFXCount = Monster->VFXComponent->GetSpawnRequestCountForEvent(EGridMonsterVFXEvent::ImpactHit) +
@@ -375,7 +375,7 @@ bool FGridMonsterMON10VFXAttackAndImpactExactlyOnceTest::RunTest(const FString& 
 	TestEqual(TEXT("Impact VFX remains unique"), ImpactVFXCount, 1);
 	TestEqual(TEXT("Impact audio remains unique"), ImpactAudioCount, 1);
 	TestTrue(TEXT("The attack resolution ran"), HealthAfterFirst <= HealthBefore);
-	TestEqual(TEXT("Damage is not applied twice"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth,
+	TestEqual(TEXT("Damage is not applied twice"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
 		HealthAfterFirst);
 	TestEqual(TEXT("OnAttackResolved remains unique"), TurnManager->AttackResolvedBroadcastCount, 1);
 	TestEqual(TEXT("GridCombat attack entry remains unique"), CountMON10VFXAttackEntries(TurnManager), 1);

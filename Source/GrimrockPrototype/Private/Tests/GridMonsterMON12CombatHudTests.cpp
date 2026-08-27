@@ -79,9 +79,9 @@ namespace
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = CharacterId;
 		Character.DisplayName = FText::FromString(Name);
-		Character.DerivedStats.CurrentHealth = 20;
+		Character.Resources.CurrentHealth = 20;
 		Character.DerivedStats.MaxHealth = 20;
-		Character.DerivedStats.CurrentMana = 8;
+		Character.Resources.CurrentMana = 8;
 		Character.DerivedStats.MaxMana = 8;
 		Character.InventorySlots.SetNum(4);
 		return Character;
@@ -738,8 +738,8 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 
 	UGridPartyInventoryComponent* Inventory = Fixture.Party->PartyInventoryComponent;
 	FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
-	Character.DerivedStats.CurrentHealth = 5;
-	Character.DerivedStats.CurrentMana = 4;
+	Character.Resources.CurrentHealth = 5;
+	Character.Resources.CurrentMana = 4;
 
 	UGridItemDefinitionAsset* PotionDefinition = NewObject<UGridItemDefinitionAsset>(Fixture.Party);
 	PotionDefinition->ItemDefinitionId = TEXT("Potion_MON1284_Health");
@@ -774,8 +774,8 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 
 	FGridCombatActionRequestResult FirstUse;
 	TestTrue(TEXT("The first potion use is accepted"), Fixture.Hud->RequestHotbarSlot(0, FirstUse));
-	TestEqual(TEXT("The potion restores seven health"), Character.DerivedStats.CurrentHealth, 12);
-	TestEqual(TEXT("The same potion restores three mana"), Character.DerivedStats.CurrentMana, 7);
+	TestEqual(TEXT("The potion restores seven health"), Character.Resources.CurrentHealth, 12);
+	TestEqual(TEXT("The same potion restores three mana"), Character.Resources.CurrentMana, 7);
 	TestEqual(TEXT("The potion spends one action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
 	TestEqual(TEXT("Exactly one potion remains"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 1);
 	TestEqual(TEXT("The result records the consumed unit"), FirstUse.QuickItemResult.SourceQuantityAfter, 1);
@@ -786,8 +786,8 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 
 	TestTrue(TEXT("The remaining potion can be assigned again"), Inventory->SetCharacterCombatHotbarBindingFromItem(0, 0, Potion, EGridEquipmentSlot::None));
 
-	Character.DerivedStats.CurrentHealth = 20;
-	Character.DerivedStats.CurrentMana = 8;
+	Character.Resources.CurrentHealth = 20;
+	Character.Resources.CurrentMana = 8;
 	Fixture.Hud->RefreshFromSources();
 	TestFalse(TEXT("A full-health character cannot waste the potion"), Fixture.Hud->View.Actions[0].Action.bEnabled);
 	TestEqual(TEXT("The disabled reason identifies a useless effect"), Fixture.Hud->View.Actions[0].Action.AvailabilityReason,
@@ -798,7 +798,7 @@ bool FGridMonsterMON1284QuickItemEffectTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("A refused potion consumes no action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
 	TestTrue(TEXT("A refused potion keeps its shortcut"), Fixture.Hud->View.Actions[0].bHasBinding);
 
-	Character.DerivedStats.CurrentHealth = 10;
+	Character.Resources.CurrentHealth = 10;
 	FGridCombatActionRequestResult LastUse;
 	TestTrue(TEXT("The last potion unit can be consumed"), Fixture.Hud->RequestHotbarSlot(0, LastUse));
 	TestEqual(TEXT("The inventory quantity reaches zero"), Inventory->CountItemDefinitionInCharacterInventory(0, PotionDefinition->ItemDefinitionId), 0);
@@ -966,14 +966,14 @@ bool FGridMonsterMON1285DirectSpellManaTransactionTest::RunTest(const FString& P
 	Fixture.Party->Facing = EGridEdge::South;
 	FGridCombatActionRequestResult Rejected;
 	TestFalse(TEXT("A spell without an axial target is rejected"), Fixture.Hud->RequestHotbarSlot(2, Rejected));
-	TestEqual(TEXT("The rejected spell restores its reserved mana"), Character.DerivedStats.CurrentMana, 8);
+	TestEqual(TEXT("The rejected spell restores its reserved mana"), Character.Resources.CurrentMana, 8);
 	TestEqual(TEXT("The rejected spell consumes no action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4);
 
 	Fixture.Party->Facing = EGridEdge::North;
 	FGridCombatActionRequestResult Accepted;
 	TestTrue(TEXT("The direct axial spell is accepted"), Fixture.Hud->RequestHotbarSlot(2, Accepted));
 	TestTrue(TEXT("The generic result reports spell acceptance"), Accepted.bAccepted);
-	TestEqual(TEXT("The spell pays exactly three mana"), Character.DerivedStats.CurrentMana, 5);
+	TestEqual(TEXT("The spell pays exactly three mana"), Character.Resources.CurrentMana, 5);
 	TestEqual(TEXT("The spell pays exactly two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 	TestEqual(TEXT("The spell attack uses its offensive profile"), Accepted.AttackRequest.AttackId, FName(TEXT("Attack_MON1285_ArcaneBolt")));
 	TestTrue(TEXT("The spell attack has no fake item source"), Accepted.AttackRequest.OffensiveItemDefinitionId.IsNone());
@@ -1000,8 +1000,8 @@ bool FGridMonsterMON1285SelfAbilityEffectTest::RunTest(const FString& Parameters
 	FGridCharacterInventoryState& Character = Fixture.Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
 	Character.ClassId = PriestClass->ClassId;
 	Character.ClassDefinition = PriestClass;
-	Character.DerivedStats.CurrentHealth = 10;
-	Character.DerivedStats.CurrentMana = 8;
+	Character.Resources.CurrentHealth = 10;
+	Character.Resources.CurrentMana = 8;
 	Fixture.Hud->RefreshFromSources();
 	const FGridAvailableCombatAction* AbilityAction = FindPaletteAction(Fixture.Hud, TEXT("Ability_MON1285_Recovery"));
 	if (!TestNotNull(TEXT("The ability is catalogued for the active priest"), AbilityAction))
@@ -1012,18 +1012,18 @@ bool FGridMonsterMON1285SelfAbilityEffectTest::RunTest(const FString& Parameters
 
 	FGridCombatActionRequestResult Accepted;
 	TestTrue(TEXT("The self-targeted ability is accepted"), Fixture.Hud->RequestHotbarSlot(3, Accepted));
-	TestEqual(TEXT("The ability restores six health"), Character.DerivedStats.CurrentHealth, 16);
-	TestEqual(TEXT("The ability pays two mana"), Character.DerivedStats.CurrentMana, 6);
+	TestEqual(TEXT("The ability restores six health"), Character.Resources.CurrentHealth, 16);
+	TestEqual(TEXT("The ability pays two mana"), Character.Resources.CurrentMana, 6);
 	TestEqual(TEXT("The ability pays one action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
 	TestEqual(TEXT("The class result records restored health"), Accepted.ClassActionResult.HealthAfter, 16);
 
-	Character.DerivedStats.CurrentHealth = 20;
+	Character.Resources.CurrentHealth = 20;
 	Fixture.Hud->RefreshFromSources();
 	TestEqual(TEXT("A useless recovery is disabled"), Fixture.Hud->View.Actions[3].Action.AvailabilityReason,
 		EGridCombatActionAvailabilityReason::NoApplicableEffect);
 	FGridCombatActionRequestResult Rejected;
 	TestFalse(TEXT("A useless recovery cannot be spent"), Fixture.Hud->RequestHotbarSlot(3, Rejected));
-	TestEqual(TEXT("The refused ability consumes no mana"), Character.DerivedStats.CurrentMana, 6);
+	TestEqual(TEXT("The refused ability consumes no mana"), Character.Resources.CurrentMana, 6);
 	TestEqual(TEXT("The refused ability consumes no action point"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 3);
 	return true;
 }
@@ -1059,14 +1059,14 @@ bool FGridMonsterMON1286CellTargetingLifecycleTest::RunTest(const FString& Param
 	TestTrue(TEXT("The shortcut opens explicit targeting"), Fixture.Hud->RequestHotbarSlot(5, Pending));
 	TestTrue(TEXT("Targeting remains active until confirmation"), Fixture.Hud->IsCombatActionTargetingActive());
 	TestFalse(TEXT("Opening targeting does not resolve the spell"), Pending.bAccepted);
-	TestEqual(TEXT("Opening targeting spends no mana"), Character.DerivedStats.CurrentMana, 8);
+	TestEqual(TEXT("Opening targeting spends no mana"), Character.Resources.CurrentMana, 8);
 	TestEqual(TEXT("Opening targeting spends no action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 4);
 
 	TestFalse(TEXT("An empty cell is not a valid attack target"), Fixture.Hud->UpdateCombatActionTargetingPreview(FIntPoint(0, 0)));
 	TestTrue(TEXT("Invalid hover keeps targeting active"), Fixture.Hud->IsCombatActionTargetingActive());
 	Fixture.Hud->CancelCombatActionTargeting();
 	TestFalse(TEXT("Cancellation closes targeting"), Fixture.Hud->IsCombatActionTargetingActive());
-	TestEqual(TEXT("Cancellation still spends no mana"), Character.DerivedStats.CurrentMana, 8);
+	TestEqual(TEXT("Cancellation still spends no mana"), Character.Resources.CurrentMana, 8);
 
 	TestTrue(TEXT("The shortcut can reopen targeting"), Fixture.Hud->RequestHotbarSlot(5, Pending));
 	TestTrue(TEXT("The occupied monster cell previews as valid"), Fixture.Hud->UpdateCombatActionTargetingPreview(FIntPoint(1, 2)));
@@ -1078,7 +1078,7 @@ bool FGridMonsterMON1286CellTargetingLifecycleTest::RunTest(const FString& Param
 	TestFalse(TEXT("Accepted execution closes targeting"), Fixture.Hud->IsCombatActionTargetingActive());
 	TestTrue(TEXT("The targeted result is accepted"), Accepted.bAccepted);
 	TestEqual(TEXT("One targeted attack is resolved"), Accepted.TargetedActionResult.AttackResults.Num(), 1);
-	TestEqual(TEXT("The cell spell pays exactly three mana"), Character.DerivedStats.CurrentMana, 5);
+	TestEqual(TEXT("The cell spell pays exactly three mana"), Character.Resources.CurrentMana, 5);
 	TestEqual(TEXT("The cell spell pays exactly two action points"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 	return true;
 }
@@ -1130,7 +1130,7 @@ bool FGridMonsterMON1286AreaTargetingTransactionTest::RunTest(const FString& Par
 	TestTrue(TEXT("The area spell is accepted"), Fixture.Hud->ConfirmCombatActionTarget(FIntPoint(1, 2), Accepted));
 	TestEqual(TEXT("Two attacks are resolved by one area action"), Accepted.TargetedActionResult.AttackResults.Num(), 2);
 	TestEqual(TEXT("Both target identities are retained"), Accepted.TargetedActionResult.TargetMonsterIds.Num(), 2);
-	TestEqual(TEXT("The area spell pays mana only once"), Character.DerivedStats.CurrentMana, 5);
+	TestEqual(TEXT("The area spell pays mana only once"), Character.Resources.CurrentMana, 5);
 	TestEqual(TEXT("The area spell pays action points only once"), Fixture.Hud->View.PartyMembers[0].RemainingActionPoints, 2);
 	return true;
 }
@@ -1173,7 +1173,7 @@ bool FGridMonsterMON1286TargetRequiredNoSpendTest::RunTest(const FString& Parame
 		Fixture.TurnManager->RequestCharacterCombatActionAtCell(
 			0, Action.Definition.ActionId, Action.Definition.SourcePolicy, Action.SourceDefinitionId, Action.SourceEquipmentSlot, FIntPoint(0, 0), EmptyArea));
 	TestEqual(TEXT("The empty area reports InvalidTarget"), EmptyArea.RejectReason, EGridCombatActionRequestRejectReason::InvalidTarget);
-	TestEqual(TEXT("Rejected targeting spends no mana"), Character.DerivedStats.CurrentMana, 8);
+	TestEqual(TEXT("Rejected targeting spends no mana"), Character.Resources.CurrentMana, 8);
 	FGridPlayerCharacterTurnState TurnState;
 	TestTrue(TEXT("The active turn state remains available"), Fixture.TurnManager->GetPlayerCharacterTurnState(0, TurnState));
 	TestEqual(TEXT("Rejected targeting spends no action points"), TurnState.RemainingActionPoints, 4);
@@ -1674,7 +1674,7 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The accepted attack is structurally valid"), Accepted.AttackRequest.IsValid());
 	TestNotNull(TEXT("Gameplay prepares a recoverable projectile"), Accepted.AttackRequest.PreparedThrownItemActor.Get());
 	TestEqual(TEXT("Exactly one equipped source unit is paid"), Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, 1);
-	TestEqual(TEXT("The equipment mana cost is paid"), Inventory->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentMana, 6);
+	TestEqual(TEXT("The equipment mana cost is paid"), Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana, 6);
 	FGridPlayerCharacterTurnState TurnState;
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);
 	TestEqual(TEXT("The equipment AP cost is paid"), TurnState.RemainingActionPoints, 3);
@@ -1714,7 +1714,7 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 		});
 	TestTrue(TEXT("The action returns after one complete round"), CoolingAction && CoolingAction->bEnabled);
 	ShurikenDefinition->ThrowSpeed = 0.0f;
-	const int32 ManaBeforeRefusal = Inventory->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentMana;
+	const int32 ManaBeforeRefusal = Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana;
 	const int32 QuantityBeforeRefusal = Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity;
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);
 	const int32 ActionPointsBeforeRefusal = TurnState.RemainingActionPoints;
@@ -1725,7 +1725,7 @@ bool FGridMonsterMON12ActionTransactionTest::RunTest(const FString& Parameters)
 			EGridEquipmentSlot::MainHand, Rejected));
 	TurnManager->GetPlayerCharacterTurnState(0, TurnState);
 	TestEqual(TEXT("A rejected action keeps AP"), TurnState.RemainingActionPoints, ActionPointsBeforeRefusal);
-	TestEqual(TEXT("A rejected action keeps mana"), Inventory->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentMana, ManaBeforeRefusal);
+	TestEqual(TEXT("A rejected action keeps mana"), Inventory->PartyInventoryState.ActiveCharacters[0].Resources.CurrentMana, ManaBeforeRefusal);
 	TestEqual(TEXT("A rejected action keeps its equipment source"), Inventory->PartyInventoryState.ActiveEquipment[0].MainHand.Quantity, QuantityBeforeRefusal);
 	TestEqual(TEXT("A rejected action cannot damage its target"), Fixture.Monster->CurrentHealth, MonsterHealthBeforeRefusal);
 

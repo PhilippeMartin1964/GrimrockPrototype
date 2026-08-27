@@ -67,12 +67,12 @@ namespace
 	}
 
 	bool TryPipeline(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request, const FGridSpellTargetingContext& Context,
-		const FGridCharacterSpellbookState& Spellbook, FRPGDerivedStats& Stats, FGridPlayerCharacterTurnState& Turn, FGridSpellResolvedTarget& ResolvedTarget,
+		const FGridCharacterSpellbookState& Spellbook, FRPGCharacterResources& Resources, FGridPlayerCharacterTurnState& Turn, FGridSpellResolvedTarget& ResolvedTarget,
 		FGridSpellCastCostReceipt& Receipt, EGridSpellCastPipelineRejectStage& RejectStage, EGridSpellTargetingRejectReason& TargetReject,
 		EGridSpellCastTransactionRejectReason& TransactionReject)
 	{
 		return FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(
-			Definition, Request, Context, Spellbook, Stats, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject);
+			Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject);
 	}
 }
 
@@ -87,8 +87,8 @@ bool FGridMON184AxialTargetSuccessTest::RunTest(const FString& Parameters)
 	FGridSpellCastRequest Request = MakeTargetingRequest(CharacterId, TargetId);
 	FGridSpellTargetingContext Context = MakeHostileContext(TargetId, FIntPoint(2, 5));
 	FGridCharacterSpellbookState Spellbook = MakeTargetingSpellbook(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 8;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 8;
 	FGridPlayerCharacterTurnState Turn = MakeTargetingTurn(CharacterId);
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt Receipt;
@@ -97,8 +97,8 @@ bool FGridMON184AxialTargetSuccessTest::RunTest(const FString& Parameters)
 	EGridSpellCastTransactionRejectReason TransactionReject;
 
 	TestTrue(TEXT("Valid axial target commits"),
-		TryPipeline(Definition, Request, Context, Spellbook, Stats, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
-	TestEqual(TEXT("Mana paid"), Stats.CurrentMana, 5);
+		TryPipeline(Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
+	TestEqual(TEXT("Mana paid"), Resources.CurrentMana, 5);
 	TestEqual(TEXT("PA paid"), Turn.RemainingActionPoints, 1);
 	TestTrue(TEXT("Target resolved"), ResolvedTarget.TargetId == TargetId);
 	TestTrue(TEXT("Resolved cell retained"), ResolvedTarget.GridCell == FIntPoint(2, 5));
@@ -118,8 +118,8 @@ bool FGridMON184OutOfRangeNoMutationTest::RunTest(const FString& Parameters)
 	FGridSpellCastRequest Request = MakeTargetingRequest(CharacterId, TargetId);
 	FGridSpellTargetingContext Context = MakeHostileContext(TargetId, FIntPoint(2, 5));
 	FGridCharacterSpellbookState Spellbook = MakeTargetingSpellbook(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 8;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 8;
 	FGridPlayerCharacterTurnState Turn = MakeTargetingTurn(CharacterId);
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt Receipt;
@@ -128,8 +128,8 @@ bool FGridMON184OutOfRangeNoMutationTest::RunTest(const FString& Parameters)
 	EGridSpellCastTransactionRejectReason TransactionReject;
 
 	TestFalse(TEXT("Out of range rejected"),
-		TryPipeline(Definition, Request, Context, Spellbook, Stats, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 8);
+		TryPipeline(Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 8);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Targeting stage"), RejectStage, EGridSpellCastPipelineRejectStage::Targeting);
 	TestEqual(TEXT("Range reason"), TargetReject, EGridSpellTargetingRejectReason::TargetOutOfRange);
@@ -147,8 +147,8 @@ bool FGridMON184NonAxialNoMutationTest::RunTest(const FString& Parameters)
 	FGridSpellCastRequest Request = MakeTargetingRequest(CharacterId, TargetId);
 	FGridSpellTargetingContext Context = MakeHostileContext(TargetId, FIntPoint(4, 4));
 	FGridCharacterSpellbookState Spellbook = MakeTargetingSpellbook(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 8;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 8;
 	FGridPlayerCharacterTurnState Turn = MakeTargetingTurn(CharacterId);
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt Receipt;
@@ -157,8 +157,8 @@ bool FGridMON184NonAxialNoMutationTest::RunTest(const FString& Parameters)
 	EGridSpellCastTransactionRejectReason TransactionReject;
 
 	TestFalse(TEXT("Non axial target rejected"),
-		TryPipeline(Definition, Request, Context, Spellbook, Stats, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 8);
+		TryPipeline(Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 8);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Axial reason"), TargetReject, EGridSpellTargetingRejectReason::TargetNotAxial);
 	return true;
@@ -176,8 +176,8 @@ bool FGridMON184LineOfSightNoMutationTest::RunTest(const FString& Parameters)
 	FGridSpellTargetingContext Context = MakeHostileContext(TargetId, FIntPoint(2, 4));
 	Context.bLineOfSightClear = false;
 	FGridCharacterSpellbookState Spellbook = MakeTargetingSpellbook(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 8;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 8;
 	FGridPlayerCharacterTurnState Turn = MakeTargetingTurn(CharacterId);
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt Receipt;
@@ -186,8 +186,8 @@ bool FGridMON184LineOfSightNoMutationTest::RunTest(const FString& Parameters)
 	EGridSpellCastTransactionRejectReason TransactionReject;
 
 	TestFalse(TEXT("Blocked LOS rejected"),
-		TryPipeline(Definition, Request, Context, Spellbook, Stats, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 8);
+		TryPipeline(Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 8);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("LOS reason"), TargetReject, EGridSpellTargetingRejectReason::LineOfSightBlocked);
 	return true;
@@ -280,8 +280,8 @@ bool FGridMON184TransactionFailureAfterTargetTest::RunTest(const FString& Parame
 	FGridSpellCastRequest Request = MakeTargetingRequest(CharacterId, TargetId);
 	FGridSpellTargetingContext Context = MakeHostileContext(TargetId, FIntPoint(2, 4));
 	FGridCharacterSpellbookState Spellbook = MakeTargetingSpellbook(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 1;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 1;
 	FGridPlayerCharacterTurnState Turn = MakeTargetingTurn(CharacterId);
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt Receipt;
@@ -290,8 +290,8 @@ bool FGridMON184TransactionFailureAfterTargetTest::RunTest(const FString& Parame
 	EGridSpellCastTransactionRejectReason TransactionReject;
 
 	TestFalse(TEXT("Transaction rejection returned"),
-		TryPipeline(Definition, Request, Context, Spellbook, Stats, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 1);
+		TryPipeline(Definition, Request, Context, Spellbook, Resources, Turn, ResolvedTarget, Receipt, RejectStage, TargetReject, TransactionReject));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 1);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Transaction stage"), RejectStage, EGridSpellCastPipelineRejectStage::Transaction);
 	TestEqual(TEXT("Targeting succeeded first"), TargetReject, EGridSpellTargetingRejectReason::None);

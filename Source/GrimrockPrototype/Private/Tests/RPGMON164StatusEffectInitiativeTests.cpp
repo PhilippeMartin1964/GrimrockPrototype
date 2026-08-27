@@ -37,7 +37,7 @@ namespace
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = CharacterId;
 		Character.DisplayName = FText::FromString(Name);
-		Character.DerivedStats.CurrentHealth = 20;
+		Character.Resources.CurrentHealth = 20;
 		Character.DerivedStats.MaxHealth = 20;
 		return Character;
 	}

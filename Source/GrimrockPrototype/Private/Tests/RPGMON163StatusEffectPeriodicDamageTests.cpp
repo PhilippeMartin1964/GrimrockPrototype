@@ -224,7 +224,7 @@ bool FRPGMON163TurnLifecyclePartyTest::RunTest(const FString& Parameters)
 
 	FGridCharacterInventoryState Character;
 	Character.CharacterId = FGuid::NewGuid();
-	Character.DerivedStats.CurrentHealth = 10;
+	Character.Resources.CurrentHealth = 10;
 	Character.DerivedStats.MaxHealth = 10;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.Add(Character);
 	FGridCharacterInventoryState& RuntimeCharacter = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
@@ -244,7 +244,7 @@ bool FRPGMON163TurnLifecyclePartyTest::RunTest(const FString& Parameters)
 	Completed.State = EGridCombatantTurnState::Completed;
 	TurnManager->OnCombatantStateChanged.Broadcast(Completed);
 
-	TestEqual(TEXT("DoT damages party before turn expiration"), RuntimeCharacter.DerivedStats.CurrentHealth, 7);
+	TestEqual(TEXT("DoT damages party before turn expiration"), RuntimeCharacter.Resources.CurrentHealth, 7);
 	TestFalse(TEXT("Final turn tick then status expires"), RuntimeCharacter.StatusEffects.Contains(TEXT("MON163_TurnBurning")));
 	Lifecycle->UnbindFromTurnManager();
 	return true;
@@ -337,7 +337,7 @@ bool FRPGMON163RoundLifecycleTest::RunTest(const FString& Parameters)
 
 	FGridCharacterInventoryState Character;
 	Character.CharacterId = FGuid::NewGuid();
-	Character.DerivedStats.CurrentHealth = 10;
+	Character.Resources.CurrentHealth = 10;
 	Character.DerivedStats.MaxHealth = 10;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.Add(Character);
 	FGridCharacterInventoryState& RuntimeCharacter = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
@@ -350,15 +350,15 @@ bool FRPGMON163RoundLifecycleTest::RunTest(const FString& Parameters)
 	UGridStatusEffectLifecycleSubsystem* Lifecycle = NewObject<UGridStatusEffectLifecycleSubsystem>(TestWorld.World);
 	Lifecycle->BindToTurnManager(TurnManager);
 	TurnManager->OnRoundStarted.Broadcast(1);
-	TestEqual(TEXT("Round one is baseline and does not tick"), RuntimeCharacter.DerivedStats.CurrentHealth, 10);
+	TestEqual(TEXT("Round one is baseline and does not tick"), RuntimeCharacter.Resources.CurrentHealth, 10);
 	TestEqual(TEXT("Round one does not decrement"), RuntimeCharacter.StatusEffects.FindByEffectId(TEXT("MON163_RoundPoison"))->RemainingDuration, 2);
 
 	TurnManager->OnRoundStarted.Broadcast(2);
-	TestEqual(TEXT("First round boundary ticks once"), RuntimeCharacter.DerivedStats.CurrentHealth, 8);
+	TestEqual(TEXT("First round boundary ticks once"), RuntimeCharacter.Resources.CurrentHealth, 8);
 	TestEqual(TEXT("First boundary decrements once"), RuntimeCharacter.StatusEffects.FindByEffectId(TEXT("MON163_RoundPoison"))->RemainingDuration, 1);
 
 	TurnManager->OnRoundStarted.Broadcast(3);
-	TestEqual(TEXT("Final round boundary ticks before expiry"), RuntimeCharacter.DerivedStats.CurrentHealth, 6);
+	TestEqual(TEXT("Final round boundary ticks before expiry"), RuntimeCharacter.Resources.CurrentHealth, 6);
 	TestFalse(TEXT("Round DoT expires after its second tick"), RuntimeCharacter.StatusEffects.Contains(TEXT("MON163_RoundPoison")));
 	Lifecycle->UnbindFromTurnManager();
 	return true;
@@ -380,7 +380,7 @@ bool FRPGMON163NonPeriodicIsolationTest::RunTest(const FString& Parameters)
 
 	FGridCharacterInventoryState Character;
 	Character.CharacterId = FGuid::NewGuid();
-	Character.DerivedStats.CurrentHealth = 10;
+	Character.Resources.CurrentHealth = 10;
 	Character.DerivedStats.MaxHealth = 10;
 	Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.Add(Character);
 	FGridCharacterInventoryState& RuntimeCharacter = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0];
@@ -395,7 +395,7 @@ bool FRPGMON163NonPeriodicIsolationTest::RunTest(const FString& Parameters)
 	TurnManager->OnRoundStarted.Broadcast(1);
 	TurnManager->OnRoundStarted.Broadcast(2);
 
-	TestEqual(TEXT("Non-periodic status never deals damage"), RuntimeCharacter.DerivedStats.CurrentHealth, 10);
+	TestEqual(TEXT("Non-periodic status never deals damage"), RuntimeCharacter.Resources.CurrentHealth, 10);
 	TestFalse(TEXT("Non-periodic status still follows lifecycle"), RuntimeCharacter.StatusEffects.Contains(TEXT("MON163_NonPeriodic")));
 	Lifecycle->UnbindFromTurnManager();
 	return true;

@@ -47,7 +47,7 @@ bool FRPGCharacterInventorySummaryCC4Test::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The summary exposes Intelligence 10"), Summary.Attributes.Intelligence, 10);
 	TestEqual(TEXT("The summary exposes Wisdom 10"), Summary.Attributes.Wisdom, 10);
 	TestEqual(TEXT("The summary exposes Charisma 10"), Summary.Attributes.Charisma, 10);
-	TestEqual(TEXT("The summary exposes current health"), Summary.DerivedStats.CurrentHealth, 20);
+	TestEqual(TEXT("The summary exposes current health"), Summary.Resources.CurrentHealth, 20);
 	TestEqual(TEXT("The summary exposes maximum health"), Summary.DerivedStats.MaxHealth, 20);
 	TestEqual(TEXT("The summary exposes maximum mana"), Summary.DerivedStats.MaxMana, 0);
 	TestTrue(TEXT("The summary exposes maximum carry weight 80"), FMath::IsNearlyEqual(Summary.MaxWeight, 80.0f));

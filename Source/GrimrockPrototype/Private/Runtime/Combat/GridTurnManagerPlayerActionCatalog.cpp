@@ -275,16 +275,16 @@ void UGridTurnManagerComponent::GetAvailableCombatActions(int32 CharacterIndex, 
 	Context.CharacterIndex = CharacterIndex;
 	Context.CharacterId = Character.CharacterId;
 	Context.bCombatActive = bCombatActive;
-	Context.bCharacterDefeated = Character.DerivedStats.CurrentHealth <= 0;
+	Context.bCharacterDefeated = Character.Resources.CurrentHealth <= 0;
 	Context.bActiveCombatant = bHasTurnState && TurnState.State == EGridCombatantTurnState::Active && CurrentPhase == EGridCombatPhase::PlayerPhase;
 	Context.bPartyBusy = !IsPartyAtRest() || bPlayerAttackResolutionInProgress || IsPartyMotionInProgress();
 	Context.RemainingActionPoints = bHasTurnState ? FMath::Max(0, TurnState.RemainingActionPoints) : 0;
 	FGridInventoryCharacterSummary CharacterSummary;
 	if (Inventory->GetCharacterSummary(CharacterIndex, CharacterSummary))
 	{
-		Context.CurrentHealth = FMath::Max(0, CharacterSummary.DerivedStats.CurrentHealth);
+		Context.CurrentHealth = FMath::Max(0, CharacterSummary.Resources.CurrentHealth);
 		Context.MaximumHealth = FMath::Max(0, CharacterSummary.DerivedStats.MaxHealth);
-		Context.CurrentMana = FMath::Max(0, CharacterSummary.DerivedStats.CurrentMana);
+		Context.CurrentMana = FMath::Max(0, CharacterSummary.Resources.CurrentMana);
 		Context.MaximumMana = FMath::Max(0, CharacterSummary.DerivedStats.MaxMana);
 	}
 	Context.bEnableQuickItemExecutors = true;
@@ -446,8 +446,8 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 	}
 
 	OutResult.SourceQuantityBefore = Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId);
-	OutResult.HealthBefore = Character.DerivedStats.CurrentHealth;
-	OutResult.ManaBefore = Character.DerivedStats.CurrentMana;
+	OutResult.HealthBefore = Character.Resources.CurrentHealth;
+	OutResult.ManaBefore = Character.Resources.CurrentMana;
 	const int32 QuantityCost = Action.CurrentSourceItemQuantityCost;
 	const int32 ManaCost = Action.CurrentManaCost;
 	if (QuantityCost <= 0 || OutResult.SourceQuantityBefore < QuantityCost || OutResult.ManaBefore < ManaCost ||
@@ -470,12 +470,12 @@ bool UGridTurnManagerComponent::RequestCharacterQuickItemEffect(const FGridAvail
 		return false;
 	}
 
-	Character.DerivedStats.CurrentHealth = OutResult.HealthAfter;
-	Character.DerivedStats.CurrentMana = OutResult.ManaAfter;
+	Character.Resources.CurrentHealth = OutResult.HealthAfter;
+	Character.Resources.CurrentMana = OutResult.ManaAfter;
 	if (!Inventory->RemoveItemDefinitionFromCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId, QuantityCost))
 	{
-		Character.DerivedStats.CurrentHealth = OutResult.HealthBefore;
-		Character.DerivedStats.CurrentMana = OutResult.ManaBefore;
+		Character.Resources.CurrentHealth = OutResult.HealthBefore;
+		Character.Resources.CurrentMana = OutResult.ManaBefore;
 		OutResult.HealthAfter = OutResult.HealthBefore;
 		OutResult.ManaAfter = OutResult.ManaBefore;
 		OutResult.SourceQuantityAfter = OutResult.SourceQuantityBefore;
@@ -524,8 +524,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		return false;
 	}
 
-	OutResult.HealthBefore = Character.DerivedStats.CurrentHealth;
-	OutResult.ManaBefore = Character.DerivedStats.CurrentMana;
+	OutResult.HealthBefore = Character.Resources.CurrentHealth;
+	OutResult.ManaBefore = Character.Resources.CurrentMana;
 	if (OutResult.ManaBefore < Action.CurrentManaCost)
 	{
 		return false;
@@ -544,8 +544,8 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionEffect(const FGridAva
 		return false;
 	}
 
-	Character.DerivedStats.CurrentHealth = OutResult.HealthAfter;
-	Character.DerivedStats.CurrentMana = OutResult.ManaAfter;
+	Character.Resources.CurrentHealth = OutResult.HealthAfter;
+	Character.Resources.CurrentMana = OutResult.ManaAfter;
 	StartCombatActionCooldown(Action);
 	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 	if (FGridCombatantInitiativeEntry* Entry = FindInitiativeEntry(EGridCombatantSide::Party, Character.CharacterId))
@@ -580,9 +580,9 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionAttack(const FGridAva
 	}
 
 	const FGridCharacterInventoryState& CharacterBefore = Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex];
-	OutClassResult.HealthBefore = CharacterBefore.DerivedStats.CurrentHealth;
+	OutClassResult.HealthBefore = CharacterBefore.Resources.CurrentHealth;
 	OutClassResult.HealthAfter = OutClassResult.HealthBefore;
-	OutClassResult.ManaBefore = CharacterBefore.DerivedStats.CurrentMana;
+	OutClassResult.ManaBefore = CharacterBefore.Resources.CurrentMana;
 	OutClassResult.ManaAfter = OutClassResult.ManaBefore;
 	if (OutClassResult.ManaBefore < Action.CurrentManaCost)
 	{
@@ -596,7 +596,7 @@ bool UGridTurnManagerComponent::RequestCharacterClassActionAttack(const FGridAva
 
 	if (IsValid(Inventory) && Inventory->PartyInventoryState.ActiveCharacters.IsValidIndex(Action.CharacterIndex))
 	{
-		OutClassResult.ManaAfter = Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex].DerivedStats.CurrentMana;
+		OutClassResult.ManaAfter = Inventory->PartyInventoryState.ActiveCharacters[Action.CharacterIndex].Resources.CurrentMana;
 	}
 	return true;
 }
@@ -735,7 +735,7 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	FGridInventoryCharacterSummary CharacterSummary;
 	FGridPlayerCharacterTurnState TurnStateBefore;
 	if (!Inventory->GetCharacterSummary(Action.CharacterIndex, CharacterSummary) || !GetPlayerCharacterTurnState(Action.CharacterIndex, TurnStateBefore) ||
-		!CanCharacterSpendActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost) || Character.DerivedStats.CurrentMana < Action.CurrentManaCost)
+		!CanCharacterSpendActionPoints(Action.CharacterIndex, Action.CurrentActionPointCost) || Character.Resources.CurrentMana < Action.CurrentManaCost)
 	{
 		return false;
 	}
@@ -792,8 +792,8 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 		return false;
 	}
 
-	const int32 ManaBefore = Character.DerivedStats.CurrentMana;
-	Character.DerivedStats.CurrentMana = FMath::Max(0, ManaBefore - Action.CurrentManaCost);
+	const int32 ManaBefore = Character.Resources.CurrentMana;
+	Character.Resources.CurrentMana = FMath::Max(0, ManaBefore - Action.CurrentManaCost);
 	StartCombatActionCooldown(Action);
 	Inventory->NotifyPartyInventoryChanged(Action.CharacterIndex);
 
@@ -804,17 +804,17 @@ bool UGridTurnManagerComponent::RequestCharacterTargetedAttack(
 	{
 		OutResult.QuickItemResult.SourceQuantityBefore = QuantityBefore;
 		OutResult.QuickItemResult.SourceQuantityAfter = Inventory->CountItemDefinitionInCharacterInventory(Action.CharacterIndex, Action.SourceDefinitionId);
-		OutResult.QuickItemResult.HealthBefore = Character.DerivedStats.CurrentHealth;
-		OutResult.QuickItemResult.HealthAfter = Character.DerivedStats.CurrentHealth;
+		OutResult.QuickItemResult.HealthBefore = Character.Resources.CurrentHealth;
+		OutResult.QuickItemResult.HealthAfter = Character.Resources.CurrentHealth;
 		OutResult.QuickItemResult.ManaBefore = ManaBefore;
-		OutResult.QuickItemResult.ManaAfter = Character.DerivedStats.CurrentMana;
+		OutResult.QuickItemResult.ManaAfter = Character.Resources.CurrentMana;
 	}
 	else
 	{
-		OutResult.ClassActionResult.HealthBefore = Character.DerivedStats.CurrentHealth;
-		OutResult.ClassActionResult.HealthAfter = Character.DerivedStats.CurrentHealth;
+		OutResult.ClassActionResult.HealthBefore = Character.Resources.CurrentHealth;
+		OutResult.ClassActionResult.HealthAfter = Character.Resources.CurrentHealth;
 		OutResult.ClassActionResult.ManaBefore = ManaBefore;
-		OutResult.ClassActionResult.ManaAfter = Character.DerivedStats.CurrentMana;
+		OutResult.ClassActionResult.ManaAfter = Character.Resources.CurrentMana;
 	}
 
 	const FIntPoint PartyCell(PartyPawn->CurrentCellX, PartyPawn->CurrentCellY);
@@ -1059,12 +1059,12 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		const int32 TargetMaxHealth = TargetMonster ? IsValid(TargetMonster->MonsterDefinition) ? FMath::Max(1, TargetMonster->MonsterDefinition->MaxHealth)
 																								: FMath::Max(1, TargetMonster->CurrentHealth)
 													: FMath::Max(1, SpellCharacter->DerivedStats.MaxHealth);
-		const int32 TargetCurrentHealth = TargetMonster ? TargetMonster->CurrentHealth : SpellCharacter->DerivedStats.CurrentHealth;
+		const int32 TargetCurrentHealth = TargetMonster ? TargetMonster->CurrentHealth : SpellCharacter->Resources.CurrentHealth;
 		const FGridStatusEffectCollection TargetStatusEffects = TargetMonster ? TargetMonster->StatusEffects : SpellCharacter->StatusEffects;
 
 		FGridSpellHotbarExecutionResult Execution;
 		const bool bExecuted = FGridSpellHotbarExecutionService::TryExecute(
-			SpellDefinition, CastRequest, TargetingContext, *CharacterSpellbook, SpellCharacter->DerivedStats, TurnStateBefore, TargetMaxHealth,
+			SpellDefinition, CastRequest, TargetingContext, *CharacterSpellbook, SpellCharacter->Resources, TurnStateBefore, TargetMaxHealth,
 			TargetCurrentHealth, TargetStatusEffects,
 			[](FName EffectId) -> const UGridStatusEffectDefinitionAsset*
 			{
@@ -1092,14 +1092,14 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 		}
 
 		FGridCharacterInventoryState& MutableCharacter = SpellInventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
-		OutResult.ClassActionResult.HealthBefore = MutableCharacter.DerivedStats.CurrentHealth;
-		OutResult.ClassActionResult.ManaBefore = MutableCharacter.DerivedStats.CurrentMana;
+		OutResult.ClassActionResult.HealthBefore = MutableCharacter.Resources.CurrentHealth;
+		OutResult.ClassActionResult.ManaBefore = MutableCharacter.Resources.CurrentMana;
 
-		MutableCharacter.DerivedStats = Execution.CasterStats;
+		MutableCharacter.Resources = Execution.CasterResources;
 		*AuthoritativeTurnState = Execution.CasterTurnState;
 		if (!TargetMonster)
 		{
-			MutableCharacter.DerivedStats.CurrentHealth = Execution.TargetCurrentHealth;
+			MutableCharacter.Resources.CurrentHealth = Execution.TargetCurrentHealth;
 			MutableCharacter.StatusEffects = Execution.TargetStatusEffects;
 		}
 		BroadcastPlayerCharacterTurnState(*AuthoritativeTurnState);
@@ -1166,8 +1166,8 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 			}
 		}
 
-		OutResult.ClassActionResult.HealthAfter = MutableCharacter.DerivedStats.CurrentHealth;
-		OutResult.ClassActionResult.ManaAfter = MutableCharacter.DerivedStats.CurrentMana;
+		OutResult.ClassActionResult.HealthAfter = MutableCharacter.Resources.CurrentHealth;
+		OutResult.ClassActionResult.ManaAfter = MutableCharacter.Resources.CurrentMana;
 		OutResult.bAccepted = true;
 		OutResult.RejectReason = EGridCombatActionRequestRejectReason::None;
 
@@ -1232,9 +1232,9 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 			}
 			OutResult.QuickItemResult.SourceQuantityBefore = Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, Action->SourceDefinitionId);
 			const FGridCharacterInventoryState& CharacterBefore = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
-			OutResult.QuickItemResult.HealthBefore = CharacterBefore.DerivedStats.CurrentHealth;
-			OutResult.QuickItemResult.HealthAfter = CharacterBefore.DerivedStats.CurrentHealth;
-			OutResult.QuickItemResult.ManaBefore = CharacterBefore.DerivedStats.CurrentMana;
+			OutResult.QuickItemResult.HealthBefore = CharacterBefore.Resources.CurrentHealth;
+			OutResult.QuickItemResult.HealthAfter = CharacterBefore.Resources.CurrentHealth;
+			OutResult.QuickItemResult.ManaBefore = CharacterBefore.Resources.CurrentMana;
 			OutResult.QuickItemResult.ManaAfter = OutResult.QuickItemResult.ManaBefore;
 
 			FGridPlayerAttackRequest AttackRequest;
@@ -1253,8 +1253,8 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 					const FGridCharacterInventoryState& CharacterAfter = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
 					OutResult.QuickItemResult.SourceQuantityAfter =
 						Inventory->CountItemDefinitionInCharacterInventory(CharacterIndex, Action->SourceDefinitionId);
-					OutResult.QuickItemResult.HealthAfter = CharacterAfter.DerivedStats.CurrentHealth;
-					OutResult.QuickItemResult.ManaAfter = CharacterAfter.DerivedStats.CurrentMana;
+					OutResult.QuickItemResult.HealthAfter = CharacterAfter.Resources.CurrentHealth;
+					OutResult.QuickItemResult.ManaAfter = CharacterAfter.Resources.CurrentMana;
 				}
 			}
 			else

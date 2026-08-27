@@ -76,7 +76,7 @@ bool FRPGCreateInitialCharacterCC2Test::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Final Wisdom is 10"), Character.Attributes.Wisdom, 10);
 	TestEqual(TEXT("Final Charisma is 10"), Character.Attributes.Charisma, 10);
 	TestEqual(TEXT("The character starts with 20 maximum health"), Character.DerivedStats.MaxHealth, 20);
-	TestEqual(TEXT("The character starts at full health"), Character.DerivedStats.CurrentHealth, 20);
+	TestEqual(TEXT("The character starts at full health"), Character.Resources.CurrentHealth, 20);
 	TestEqual(TEXT("The warrior starts with zero mana"), Character.DerivedStats.MaxMana, 0);
 	TestTrue(TEXT("Strength 16 gives maximum carry weight 80"), FMath::IsNearlyEqual(Character.MaxCarryWeight, 80.0f));
 

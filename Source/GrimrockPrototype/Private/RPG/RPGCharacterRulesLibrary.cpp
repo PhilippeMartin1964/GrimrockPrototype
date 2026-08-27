@@ -65,14 +65,24 @@ FRPGDerivedStats URPGCharacterRulesLibrary::CalculateDerivedStats(const FRPGAttr
 	const int32 HealthGainPerLevel = FMath::Max(1, ClassDefinition->HealthPerLevel + ConstitutionModifier);
 
 	Result.MaxHealth = FMath::Max(1, ClassDefinition->HealthAtLevelOne + ConstitutionModifier + AdditionalLevels * HealthGainPerLevel);
-	Result.CurrentHealth = Result.MaxHealth;
 	Result.MaxMana = FMath::Max(0, ClassDefinition->ManaAtLevelOne + AdditionalLevels * ClassDefinition->ManaPerLevel);
-	Result.CurrentMana = Result.MaxMana;
-	Result.PhysicalArmor = FMath::Max(0, ClassDefinition->BasePhysicalArmor);
-	Result.MagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
 	Result.Initiative = GetAttributeModifier(Attributes.Dexterity);
 	Result.Accuracy = GetAttributeModifier(Attributes.Dexterity);
 	Result.Evasion = GetAttributeModifier(Attributes.Dexterity);
+	return Result;
+}
+
+FRPGCharacterResources URPGCharacterRulesLibrary::InitializeCharacterResources(
+	const FRPGDerivedStats& DerivedStats, const URPGClassAsset* ClassDefinition)
+{
+	FRPGCharacterResources Result;
+	Result.CurrentHealth = FMath::Max(1, DerivedStats.MaxHealth);
+	Result.CurrentMana = FMath::Max(0, DerivedStats.MaxMana);
+	if (ClassDefinition && ClassDefinition->IsValidDefinition())
+	{
+		Result.CurrentPhysicalArmor = FMath::Max(0, ClassDefinition->BasePhysicalArmor);
+		Result.CurrentMagicalArmor = FMath::Max(0, ClassDefinition->BaseMagicalArmor);
+	}
 	return Result;
 }
 

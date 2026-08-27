@@ -9,11 +9,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogGridLevelUp, Log, All);
 
 namespace
 {
-	int32 PreserveHealthDeficit(const FRPGDerivedStats& PreviousStats, int32 NewMaximumHealth)
+	int32 PreserveHealthDeficit(const FRPGDerivedStats& PreviousStats, const FRPGCharacterResources& PreviousResources, int32 NewMaximumHealth)
 	{
 		const int32 SafeNewMaximum = FMath::Max(1, NewMaximumHealth);
 		const int32 SafePreviousMaximum = FMath::Max(1, PreviousStats.MaxHealth);
-		const int32 SafePreviousCurrent = FMath::Clamp(PreviousStats.CurrentHealth, 0, SafePreviousMaximum);
+		const int32 SafePreviousCurrent = FMath::Clamp(PreviousResources.CurrentHealth, 0, SafePreviousMaximum);
 
 		// A level-up must never resurrect a defeated character.
 		if (SafePreviousCurrent <= 0)
@@ -25,11 +25,11 @@ namespace
 		return FMath::Clamp(SafeNewMaximum - DamageTaken, 0, SafeNewMaximum);
 	}
 
-	int32 PreserveManaDeficit(const FRPGDerivedStats& PreviousStats, int32 NewMaximumMana)
+	int32 PreserveManaDeficit(const FRPGDerivedStats& PreviousStats, const FRPGCharacterResources& PreviousResources, int32 NewMaximumMana)
 	{
 		const int32 SafeNewMaximum = FMath::Max(0, NewMaximumMana);
 		const int32 SafePreviousMaximum = FMath::Max(0, PreviousStats.MaxMana);
-		const int32 SafePreviousCurrent = FMath::Clamp(PreviousStats.CurrentMana, 0, SafePreviousMaximum);
+		const int32 SafePreviousCurrent = FMath::Clamp(PreviousResources.CurrentMana, 0, SafePreviousMaximum);
 		const int32 ManaSpent = SafePreviousMaximum - SafePreviousCurrent;
 		return FMath::Clamp(SafeNewMaximum - ManaSpent, 0, SafeNewMaximum);
 	}
@@ -99,14 +99,17 @@ bool FRPGLevelUpService::ApplyPendingLevelUp(UGridPartyInventoryComponent* Party
 
 	const int32 PreviousLevel = Character.Level;
 	const FRPGDerivedStats PreviousStats = Character.DerivedStats;
+	const FRPGCharacterResources PreviousResources = Character.Resources;
 
 	FRPGDerivedStats NewStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, TargetLevel);
-	NewStats.CurrentHealth = PreserveHealthDeficit(PreviousStats, NewStats.MaxHealth);
-	NewStats.CurrentMana = PreserveManaDeficit(PreviousStats, NewStats.MaxMana);
+	FRPGCharacterResources NewResources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewStats, ClassDefinition);
+	NewResources.CurrentHealth = PreserveHealthDeficit(PreviousStats, PreviousResources, NewStats.MaxHealth);
+	NewResources.CurrentMana = PreserveManaDeficit(PreviousStats, PreviousResources, NewStats.MaxMana);
 
-	// Commit Level and base DerivedStats together after all validation/calculation.
+	// Commit the new calculated projection and mutable resources together.
 	Character.Level = TargetLevel;
 	Character.DerivedStats = NewStats;
+	Character.Resources = NewResources;
 
 	// MON15.5 projection is ready before any observer or UI reads the new level.
 	FRPGClassProgressionTransactionService::RefreshCharacterProjection(PartyInventoryComponent, CharacterIndex);
@@ -121,8 +124,8 @@ bool FRPGLevelUpService::ApplyPendingLevelUp(UGridPartyInventoryComponent* Party
 	OnCharacterLevelUpApplied().Broadcast(CharacterIndex, PreviousLevel, TargetLevel, LevelsGained);
 
 	UE_LOG(LogGridLevelUp, Log, TEXT("[GridLevelUp] Character=%d PreviousLevel=%d NewLevel=%d LevelsGained=%d Experience=%d HP=%d/%d Mana=%d/%d"),
-		CharacterIndex, PreviousLevel, TargetLevel, LevelsGained, Character.Experience, Character.DerivedStats.CurrentHealth, Character.DerivedStats.MaxHealth,
-		Character.DerivedStats.CurrentMana, Character.DerivedStats.MaxMana);
+		CharacterIndex, PreviousLevel, TargetLevel, LevelsGained, Character.Experience, Character.Resources.CurrentHealth, Character.DerivedStats.MaxHealth,
+		Character.Resources.CurrentMana, Character.DerivedStats.MaxMana);
 	return true;
 }
 

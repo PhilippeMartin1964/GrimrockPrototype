@@ -360,6 +360,10 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG")
 	FRPGDerivedStats DerivedStats;
 
+	/** Durable mutable health, mana and armor state. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG")
+	FRPGCharacterResources Resources;
+
 	/** Runtime-only in MON20.6; save/restore is introduced by MON20.9. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG|Skills")
 	TArray<FRPGSkillRank> SkillRanks;
@@ -437,6 +441,10 @@ struct FGridInventoryCharacterSummary
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG")
 	FRPGDerivedStats DerivedStats;
+
+	/** Final resource projection after the existing equipment summary rules. */
+	UPROPERTY(BlueprintReadOnly, Category = "RPG")
+	FRPGCharacterResources Resources;
 
 	UPROPERTY(BlueprintReadOnly, Category = "RPG")
 	FRPGAttributes BaseAttributes;

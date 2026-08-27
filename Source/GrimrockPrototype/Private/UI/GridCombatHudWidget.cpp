@@ -593,9 +593,9 @@ void UGridCombatHudWidget::RefreshFromSources()
 		}
 		Member.DisplayName = Summary.DisplayName;
 		Member.Portrait = Summary.Portrait;
-		Member.CurrentHealth = Summary.DerivedStats.CurrentHealth;
+		Member.CurrentHealth = Summary.Resources.CurrentHealth;
 		Member.MaximumHealth = Summary.DerivedStats.MaxHealth;
-		Member.CurrentMana = Summary.DerivedStats.CurrentMana;
+		Member.CurrentMana = Summary.Resources.CurrentMana;
 		Member.MaximumMana = Summary.DerivedStats.MaxMana;
 	}
 

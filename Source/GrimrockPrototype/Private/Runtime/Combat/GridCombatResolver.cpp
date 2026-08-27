@@ -144,7 +144,7 @@ int32 FGridPartyTargetSelector::SelectTarget(const FGridPartyInventoryState& Par
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
 		const FGridCharacterInventoryState& Character = PartyState.ActiveCharacters[CharacterIndex];
-		if (Character.DerivedStats.CurrentHealth <= 0)
+		if (Character.Resources.CurrentHealth <= 0)
 		{
 			continue;
 		}

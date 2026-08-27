@@ -28,6 +28,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Rules")
 	static FRPGDerivedStats CalculateDerivedStats(const FRPGAttributes& Attributes, const URPGClassAsset* ClassDefinition, int32 Level);
 
+	/** Initializes mutable resources for a freshly created character or a deliberate reset boundary. */
+	UFUNCTION(BlueprintPure, Category = "RPG|Rules")
+	static FRPGCharacterResources InitializeCharacterResources(const FRPGDerivedStats& DerivedStats, const URPGClassAsset* ClassDefinition);
+
 	/** Lowest supported character level. */
 	UFUNCTION(BlueprintPure, Category = "RPG|Progression")
 	static int32 GetMinimumLevel();

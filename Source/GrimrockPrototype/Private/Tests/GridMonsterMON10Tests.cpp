@@ -97,9 +97,9 @@ namespace
 		Character.CharacterId = FGuid::NewGuid();
 		Character.DisplayName = FText::FromString(TEXT("Elias"));
 		Character.DerivedStats.MaxHealth = Health;
-		Character.DerivedStats.CurrentHealth = Health;
-		Character.DerivedStats.PhysicalArmor = 0;
-		Character.DerivedStats.MagicalArmor = 0;
+		Character.Resources.CurrentHealth = Health;
+		Character.Resources.CurrentPhysicalArmor = 0;
+		Character.Resources.CurrentMagicalArmor = 0;
 		Character.DerivedStats.Evasion = 0;
 		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 		return Party;
@@ -227,11 +227,11 @@ bool FGridMonsterMON10CombatLogAttackExactlyOnceTest::RunTest(const FString& Par
 	TurnManager->CombatRandomStream.Initialize(1337);
 
 	TurnManager->CommitActiveAttackImpact();
-	const int32 HealthAfterFirst = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth;
+	const int32 HealthAfterFirst = Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth;
 	TurnManager->CommitActiveAttackImpact();
 
 	TestTrue(TEXT("The guaranteed-accuracy attack hits"), TurnManager->LastAttackResult.bHit);
-	TestEqual(TEXT("Damage is applied only once"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].DerivedStats.CurrentHealth,
+	TestEqual(TEXT("Damage is applied only once"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Resources.CurrentHealth,
 		HealthAfterFirst);
 	TestEqual(TEXT("Exactly one attack entry is appended"), CountEntries(TurnManager, EGridCombatLogEntryType::AttackHit), 1);
 	TestEqual(TEXT("Attack resolution broadcasts exactly once"), TurnManager->AttackResolvedBroadcastCount, 1);

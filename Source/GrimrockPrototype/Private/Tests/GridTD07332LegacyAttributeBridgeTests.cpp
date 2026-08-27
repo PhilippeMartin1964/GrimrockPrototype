@@ -21,7 +21,7 @@ namespace GridTD07332Tests
 		Character.Experience = 0;
 		Character.Attributes = FRPGAttributes(Strength, 10, 10, 10, 10, 10);
 		Character.DerivedStats.MaxHealth = 10;
-		Character.DerivedStats.CurrentHealth = 10;
+		Character.Resources.CurrentHealth = 10;
 		Character.InventorySlots.SetNum(4);
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
@@ -94,20 +94,20 @@ bool FGridTD07332SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("Removing the legacy character attribute bridge opens SaveGame v11"),
-		UGrimrockPartySaveGame::CurrentSaveVersion, 11);
+	TestTrue(TEXT("The current exact-match schema remains newer than the TD07.3.3.2 v11 generation"),
+		UGrimrockPartySaveGame::CurrentSaveVersion >= 11);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("New saves start on v11"), Current->SaveVersion, 11);
-	TestTrue(TEXT("Current v11 is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("New saves start on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Current exact-match schema is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
-	Previous->SaveVersion = 10;
+	Previous->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
 	FText Error;
-	TestFalse(TEXT("Previous v10 is rejected without migration"), Previous->ValidateCurrentState(Error));
-	TestFalse(TEXT("Previous v10 is incompatible"), Previous->IsCompatible());
-	TestEqual(TEXT("Validation never rewrites v10"), Previous->SaveVersion, 10);
-	TestTrue(TEXT("Rejected v10 reports an error"), !Error.IsEmpty());
+	TestFalse(TEXT("Previous prototype schema is rejected without migration"), Previous->ValidateCurrentState(Error));
+	TestFalse(TEXT("Previous prototype schema is incompatible"), Previous->IsCompatible());
+	TestEqual(TEXT("Validation never rewrites the previous schema"), Previous->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion - 1);
+	TestTrue(TEXT("Rejected previous schema reports an error"), !Error.IsEmpty());
 	return true;
 }
 

@@ -131,7 +131,7 @@ namespace
 		Character.CharacterId = FGuid(9, 9, 9, 9);
 		Character.DisplayName = FText::FromString(TEXT("Elias"));
 		Character.DerivedStats.MaxHealth = 30;
-		Character.DerivedStats.CurrentHealth = 30;
+		Character.Resources.CurrentHealth = 30;
 		Character.DerivedStats.Evasion = 0;
 		Character.DerivedStats.Initiative = 100;
 		Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };

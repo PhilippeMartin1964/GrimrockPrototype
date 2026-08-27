@@ -124,10 +124,10 @@ bool FGridSpellEffectResolver::ResolveEffects(const FGridSpellDefinition& Defini
 	return true;
 }
 
-bool FGridSpellEffectResolver::ResolveCharacterEffects(const FGridSpellDefinition& Definition, const FGuid& SourceId, FRPGDerivedStats& InOutStats,
+bool FGridSpellEffectResolver::ResolveCharacterEffects(const FGridSpellDefinition& Definition, const FGuid& SourceId, const FRPGDerivedStats& DerivedStats, FRPGCharacterResources& InOutResources,
 	FGridStatusEffectCollection& InOutStatusEffects, TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver,
 	FGridSpellEffectResolutionResult& OutResult, EGridSpellEffectResolutionRejectReason& OutRejectReason, FString& OutError)
 {
-	return ResolveEffects(Definition, SourceId, InOutStats.MaxHealth, InOutStats.CurrentHealth, InOutStatusEffects, StatusDefinitionResolver, OutResult,
+	return ResolveEffects(Definition, SourceId, DerivedStats.MaxHealth, InOutResources.CurrentHealth, InOutStatusEffects, StatusDefinitionResolver, OutResult,
 		OutRejectReason, OutError);
 }

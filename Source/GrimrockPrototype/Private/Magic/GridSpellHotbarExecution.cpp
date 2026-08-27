@@ -1,18 +1,18 @@
 #include "Magic/GridSpellHotbarExecution.h"
 
 bool FGridSpellHotbarExecutionService::TryExecute(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request,
-	const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, const FRPGDerivedStats& CasterStats,
+	const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, const FRPGCharacterResources& CasterResources,
 	const FGridPlayerCharacterTurnState& CasterTurnState, int32 TargetMaxHealth, int32 TargetCurrentHealth,
 	const FGridStatusEffectCollection& TargetStatusEffects, TFunctionRef<const UGridStatusEffectDefinitionAsset*(FName)> StatusDefinitionResolver,
 	FGridSpellHotbarExecutionResult& OutResult)
 {
 	OutResult = FGridSpellHotbarExecutionResult();
 
-	FRPGDerivedStats WorkingCasterStats = CasterStats;
+	FRPGCharacterResources WorkingCasterResources = CasterResources;
 	FGridPlayerCharacterTurnState WorkingTurnState = CasterTurnState;
 	FGridSpellResolvedTarget ResolvedTarget;
 	FGridSpellCastCostReceipt CostReceipt;
-	if (!FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(Definition, Request, TargetingContext, Spellbook, WorkingCasterStats, WorkingTurnState,
+	if (!FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(Definition, Request, TargetingContext, Spellbook, WorkingCasterResources, WorkingTurnState,
 			ResolvedTarget, CostReceipt, OutResult.PipelineRejectStage, OutResult.TargetingRejectReason, OutResult.TransactionRejectReason))
 	{
 		return false;
@@ -39,7 +39,7 @@ bool FGridSpellHotbarExecutionService::TryExecute(const FGridSpellDefinition& De
 		return false;
 	}
 
-	OutResult.CasterStats = MoveTemp(WorkingCasterStats);
+	OutResult.CasterResources = MoveTemp(WorkingCasterResources);
 	OutResult.CasterTurnState = MoveTemp(WorkingTurnState);
 	OutResult.TargetCurrentHealth = WorkingTargetHealth;
 	OutResult.TargetStatusEffects = MoveTemp(WorkingTargetStatuses);

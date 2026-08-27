@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **27 août 2026, TD07.3.3.3 characterization validée — normalization active.**
+> État : **27 août 2026, TD07.3.3.3 implémenté — validation requise.**
 
 ## 1. Référence
 
@@ -11,12 +11,12 @@
 | Moteur | Unreal Engine 5.5.4 |
 | Branche | `master` |
 | Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
-| SaveGame | **v11 exact-match** ; aucune compatibilité arrière ni migration |
+| SaveGame | **v12 exact-match** ; aucune compatibilité arrière ni migration |
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.3.3.2 — Remove Legacy Attribute Bridge` |
-| Tranche active | `TD07.3.3.3 — Normalize Derived Stats / Mutable Resources` — normalization active |
+| Tranche active | `TD07.3.3.3 — Normalize Derived Stats / Mutable Resources` — implémentée, à valider |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -140,7 +140,7 @@ L’état Quest reste transient. **MON21.4 est suspendu jusqu’à la stop condi
 
 ## 11. Persistance
 
-`UGrimrockPartySaveGame` utilise désormais la génération prototype v11 en exact-match. La v10 et toutes les générations antérieures sont rejetées ; aucune migration n'est exécutée.
+`UGrimrockPartySaveGame` utilise désormais la génération prototype v12 en exact-match. La v11 et toutes les générations antérieures sont rejetées ; aucune migration n'est exécutée.
 
 TD07.3 impose désormais :
 
@@ -200,7 +200,7 @@ TD07.3.2     SaveGame Reset                              VALIDÉ
 TD07.3.3     Character State Normalization                  ACTIF
 TD07.3.3.1   Character State Authority Audit                VALIDÉ
 TD07.3.3.2   Remove Legacy Attribute Bridge                 VALIDÉ
-TD07.3.3.3   Normalize Derived Stats / Mutable Resources     NORMALIZATION ACTIVE
+TD07.3.3.3   Normalize Derived Stats / Mutable Resources     IMPLÉMENTÉ — À VALIDER
 MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE

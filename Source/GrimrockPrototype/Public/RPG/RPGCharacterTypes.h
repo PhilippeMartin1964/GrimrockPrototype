@@ -48,23 +48,13 @@ struct FRPGDerivedStats
 {
 	GENERATED_BODY()
 
+	/** Reconstructible maximum derived from attributes, class and level. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
 	int32 MaxHealth = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
-	int32 CurrentHealth = 1;
-
+	/** Reconstructible maximum derived from class and level. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
 	int32 MaxMana = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
-	int32 CurrentMana = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
-	int32 PhysicalArmor = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
-	int32 MagicalArmor = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
 	int32 Initiative = 0;
@@ -74,6 +64,30 @@ struct FRPGDerivedStats
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Derived Stats")
 	int32 Evasion = 0;
+};
+
+/**
+ * Durable mutable resources for one party character.
+ *
+ * TD07.3.3.3 separates these values from FRPGDerivedStats because damage,
+ * mana spending and armor absorption mutate them directly at runtime.
+ */
+USTRUCT(BlueprintType)
+struct FRPGCharacterResources
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Resources")
+	int32 CurrentHealth = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Resources")
+	int32 CurrentMana = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Resources")
+	int32 CurrentPhysicalArmor = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Resources")
+	int32 CurrentMagicalArmor = 0;
 };
 
 UENUM(BlueprintType)

@@ -43,7 +43,7 @@ void UGridTurnManagerComponent::BuildGlobalInitiativeOrder()
 			Entry.Portrait = Character.Portrait;
 			Entry.InitiativeBase = 10 + Character.DerivedStats.Initiative;
 			Entry.Dexterity = bHasSummary ? Summary.Attributes.Dexterity : Character.Attributes.Dexterity;
-			Entry.CurrentHealth = Character.DerivedStats.CurrentHealth;
+			Entry.CurrentHealth = Character.Resources.CurrentHealth;
 			Entry.MaximumHealth = FMath::Max(1, Character.DerivedStats.MaxHealth);
 			Entry.State = Entry.CurrentHealth > 0 ? EGridCombatantTurnState::Waiting : EGridCombatantTurnState::Defeated;
 			InitiativeOrder.Add(Entry);
@@ -455,7 +455,7 @@ void UGridTurnManagerComponent::RefreshInitiativeEntryVitals(FGridCombatantIniti
 		}
 
 		const FGridCharacterInventoryState& Character = Characters[Entry.CharacterIndex];
-		Entry.CurrentHealth = Character.DerivedStats.CurrentHealth;
+		Entry.CurrentHealth = Character.Resources.CurrentHealth;
 		Entry.MaximumHealth = FMath::Max(1, Character.DerivedStats.MaxHealth);
 		return;
 	}

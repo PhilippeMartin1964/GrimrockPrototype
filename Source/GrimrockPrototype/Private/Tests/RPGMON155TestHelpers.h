@@ -120,6 +120,7 @@ namespace
 		Character.Experience = Experience;
 		Character.Attributes = ClassDefinition->BaseAttributes;
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
+		Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
 		return Character;
 	}
 

@@ -114,7 +114,7 @@ EGridSpellTargetingRejectReason FGridSpellTargetingService::ValidateAndResolveTa
 }
 
 bool FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request,
-	const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, FRPGDerivedStats& InOutCharacterStats,
+	const FGridSpellTargetingContext& TargetingContext, const FGridCharacterSpellbookState& Spellbook, FRPGCharacterResources& InOutCharacterResources,
 	FGridPlayerCharacterTurnState& InOutTurnState, FGridSpellResolvedTarget& OutResolvedTarget, FGridSpellCastCostReceipt& OutReceipt,
 	EGridSpellCastPipelineRejectStage& OutRejectStage, EGridSpellTargetingRejectReason& OutTargetingRejectReason,
 	EGridSpellCastTransactionRejectReason& OutTransactionRejectReason)
@@ -134,7 +134,7 @@ bool FGridSpellCastPipelineService::TryValidateTargetAndCommitCosts(const FGridS
 	}
 
 	if (!FGridSpellCastTransactionService::TryCommitCosts(
-			Definition, Request, Spellbook, InOutCharacterStats, InOutTurnState, OutReceipt, OutTransactionRejectReason))
+			Definition, Request, Spellbook, InOutCharacterResources, InOutTurnState, OutReceipt, OutTransactionRejectReason))
 	{
 		OutRejectStage = EGridSpellCastPipelineRejectStage::Transaction;
 		OutResolvedTarget = FGridSpellResolvedTarget();

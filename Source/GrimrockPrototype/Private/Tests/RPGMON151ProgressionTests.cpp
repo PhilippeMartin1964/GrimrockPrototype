@@ -96,9 +96,9 @@ bool FRPGMON151ExistingCharacterStateTest::RunTest(const FString& Parameters)
 	Character.Experience = 3500;
 	Character.Attributes = FRPGAttributes{ 16, 12, 14, 10, 10, 10 };
 	Character.DerivedStats.MaxHealth = 42;
-	Character.DerivedStats.CurrentHealth = 31;
+	Character.Resources.CurrentHealth = 31;
 	Character.DerivedStats.MaxMana = 12;
-	Character.DerivedStats.CurrentMana = 7;
+	Character.Resources.CurrentMana = 7;
 
 	FGridInventorySlot InventorySlot;
 	InventorySlot.bOccupied = true;
@@ -117,6 +117,7 @@ bool FRPGMON151ExistingCharacterStateTest::RunTest(const FString& Parameters)
 	const int32 OriginalExperience = Character.Experience;
 	const FRPGAttributes OriginalAttributes = Character.Attributes;
 	const FRPGDerivedStats OriginalDerivedStats = Character.DerivedStats;
+	const FRPGCharacterResources OriginalResources = Character.Resources;
 	const FGuid OriginalItemRuntimeId = Character.InventorySlots[0].Item.RuntimeObjectId;
 	const int32 OriginalItemQuantity = Character.InventorySlots[0].Item.Quantity;
 	const FName OriginalHotbarActionId = Character.CombatHotbarSlots[0].ActionId;
@@ -132,7 +133,7 @@ bool FRPGMON151ExistingCharacterStateTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Pure helpers do not change the stored level"), Character.Level, OriginalLevel);
 	TestEqual(TEXT("Pure helpers do not change stored cumulative XP"), Character.Experience, OriginalExperience);
 	TestEqual(TEXT("Pure helpers do not change Strength"), Character.Attributes.Strength, OriginalAttributes.Strength);
-	TestEqual(TEXT("Pure helpers do not change current health"), Character.DerivedStats.CurrentHealth, OriginalDerivedStats.CurrentHealth);
+	TestEqual(TEXT("Pure helpers do not change current health"), Character.Resources.CurrentHealth, OriginalResources.CurrentHealth);
 	TestEqual(TEXT("Pure helpers do not change inventory size"), Character.InventorySlots.Num(), 1);
 	TestTrue(TEXT("Pure helpers do not change inventory runtime identity"), Character.InventorySlots[0].Item.RuntimeObjectId == OriginalItemRuntimeId);
 	TestEqual(TEXT("Pure helpers do not change inventory quantity"), Character.InventorySlots[0].Item.Quantity, OriginalItemQuantity);

@@ -17,14 +17,12 @@ namespace
 		return Spellbook;
 	}
 
-	FRPGDerivedStats MakeUI0143e2CasterStats(int32 CurrentHealth = 20, int32 CurrentMana = 10)
+	FRPGCharacterResources MakeUI0143e2CasterResources(int32 CurrentHealth = 20, int32 CurrentMana = 10)
 	{
-		FRPGDerivedStats Stats;
-		Stats.MaxHealth = 20;
-		Stats.CurrentHealth = CurrentHealth;
-		Stats.MaxMana = 10;
-		Stats.CurrentMana = CurrentMana;
-		return Stats;
+		FRPGCharacterResources Resources;
+		Resources.CurrentHealth = CurrentHealth;
+		Resources.CurrentMana = CurrentMana;
+		return Resources;
 	}
 
 	FGridPlayerCharacterTurnState MakeUI0143e2TurnState(const FGuid& CharacterId, int32 RemainingActionPoints = 4)
@@ -61,7 +59,7 @@ bool FGridUI0143e2ArcaneBoltExecutionTest::RunTest(const FString& Parameters)
 	const FGuid TargetId = FGuid::NewGuid();
 	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeArcaneBolt();
 	const FGridCharacterSpellbookState Spellbook = MakeUI0143e2Spellbook(CharacterId, Definition.SpellId);
-	const FRPGDerivedStats CasterStats = MakeUI0143e2CasterStats();
+	const FRPGCharacterResources CasterResources = MakeUI0143e2CasterResources();
 	const FGridPlayerCharacterTurnState TurnState = MakeUI0143e2TurnState(CharacterId);
 	const FGridSpellCastRequest Request = MakeUI0143e2Request(CharacterId, Definition.SpellId, TargetId, FIntPoint(1, 3));
 
@@ -76,14 +74,14 @@ bool FGridUI0143e2ArcaneBoltExecutionTest::RunTest(const FString& Parameters)
 	FGridSpellHotbarExecutionResult Result;
 	TestTrue(TEXT("Arcane Bolt executes through the MON18 pipeline"),
 		FGridSpellHotbarExecutionService::TryExecute(
-			Definition, Request, Context, Spellbook, CasterStats, TurnState, 12, 12, FGridStatusEffectCollection(),
+			Definition, Request, Context, Spellbook, CasterResources, TurnState, 12, 12, FGridStatusEffectCollection(),
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
 			},
 			Result));
 	TestEqual(TEXT("Arcane Bolt spends two AP"), Result.CasterTurnState.RemainingActionPoints, 2);
-	TestEqual(TEXT("Arcane Bolt spends three mana"), Result.CasterStats.CurrentMana, 7);
+	TestEqual(TEXT("Arcane Bolt spends three mana"), Result.CasterResources.CurrentMana, 7);
 	TestEqual(TEXT("Arcane Bolt deals four damage"), Result.TargetCurrentHealth, 8);
 	TestEqual(TEXT("Arcane Bolt reports four total damage"), Result.EffectResult.TotalDamage, 4);
 	return true;
@@ -99,7 +97,7 @@ bool FGridUI0143e2LesserHealExecutionTest::RunTest(const FString& Parameters)
 	const FGuid CharacterId = FGuid::NewGuid();
 	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeLesserHeal();
 	const FGridCharacterSpellbookState Spellbook = MakeUI0143e2Spellbook(CharacterId, Definition.SpellId);
-	const FRPGDerivedStats CasterStats = MakeUI0143e2CasterStats(10, 10);
+	const FRPGCharacterResources CasterResources = MakeUI0143e2CasterResources(10, 10);
 	const FGridPlayerCharacterTurnState TurnState = MakeUI0143e2TurnState(CharacterId);
 	const FGridSpellCastRequest Request = MakeUI0143e2Request(CharacterId, Definition.SpellId, CharacterId, FIntPoint(2, 2));
 
@@ -114,14 +112,14 @@ bool FGridUI0143e2LesserHealExecutionTest::RunTest(const FString& Parameters)
 	FGridSpellHotbarExecutionResult Result;
 	TestTrue(TEXT("Lesser Heal executes on an allied target"),
 		FGridSpellHotbarExecutionService::TryExecute(
-			Definition, Request, Context, Spellbook, CasterStats, TurnState, 20, 10, FGridStatusEffectCollection(),
+			Definition, Request, Context, Spellbook, CasterResources, TurnState, 20, 10, FGridStatusEffectCollection(),
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
 			},
 			Result));
 	TestEqual(TEXT("Lesser Heal spends two AP"), Result.CasterTurnState.RemainingActionPoints, 2);
-	TestEqual(TEXT("Lesser Heal spends four mana"), Result.CasterStats.CurrentMana, 6);
+	TestEqual(TEXT("Lesser Heal spends four mana"), Result.CasterResources.CurrentMana, 6);
 	TestEqual(TEXT("Lesser Heal restores five health"), Result.TargetCurrentHealth, 15);
 	TestEqual(TEXT("Lesser Heal reports five healing"), Result.EffectResult.TotalHealing, 5);
 	return true;
@@ -137,7 +135,7 @@ bool FGridUI0143e2MissingStatusNoCostCommitTest::RunTest(const FString& Paramete
 	const FGuid CharacterId = FGuid::NewGuid();
 	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeHaste();
 	const FGridCharacterSpellbookState Spellbook = MakeUI0143e2Spellbook(CharacterId, Definition.SpellId);
-	const FRPGDerivedStats CasterStats = MakeUI0143e2CasterStats();
+	const FRPGCharacterResources CasterResources = MakeUI0143e2CasterResources();
 	const FGridPlayerCharacterTurnState TurnState = MakeUI0143e2TurnState(CharacterId);
 	const FGridSpellCastRequest Request = MakeUI0143e2Request(CharacterId, Definition.SpellId, CharacterId, FIntPoint(0, 0));
 
@@ -152,7 +150,7 @@ bool FGridUI0143e2MissingStatusNoCostCommitTest::RunTest(const FString& Paramete
 	FGridSpellHotbarExecutionResult Result;
 	TestFalse(TEXT("Haste rejects a missing MON16 status definition"),
 		FGridSpellHotbarExecutionService::TryExecute(
-			Definition, Request, Context, Spellbook, CasterStats, TurnState, 20, 20, FGridStatusEffectCollection(),
+			Definition, Request, Context, Spellbook, CasterResources, TurnState, 20, 20, FGridStatusEffectCollection(),
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
@@ -160,7 +158,7 @@ bool FGridUI0143e2MissingStatusNoCostCommitTest::RunTest(const FString& Paramete
 			Result));
 	TestTrue(TEXT("The rejection is an effect-definition rejection"),
 		Result.EffectRejectReason == EGridSpellEffectResolutionRejectReason::MissingStatusEffectDefinition);
-	TestEqual(TEXT("Input mana remains unchanged"), CasterStats.CurrentMana, 10);
+	TestEqual(TEXT("Input mana remains unchanged"), CasterResources.CurrentMana, 10);
 	TestEqual(TEXT("Input AP remains unchanged"), TurnState.RemainingActionPoints, 4);
 	return true;
 }
@@ -175,7 +173,7 @@ bool FGridUI0143e2UnknownSpellNoCostCommitTest::RunTest(const FString& Parameter
 	const FGuid CharacterId = FGuid::NewGuid();
 	const FGridSpellDefinition Definition = FGridProductionSpellLibrary::MakeLesserHeal();
 	const FGridCharacterSpellbookState Spellbook = MakeUI0143e2Spellbook(CharacterId, NAME_None);
-	const FRPGDerivedStats CasterStats = MakeUI0143e2CasterStats(10, 10);
+	const FRPGCharacterResources CasterResources = MakeUI0143e2CasterResources(10, 10);
 	const FGridPlayerCharacterTurnState TurnState = MakeUI0143e2TurnState(CharacterId);
 	const FGridSpellCastRequest Request = MakeUI0143e2Request(CharacterId, Definition.SpellId, CharacterId, FIntPoint(0, 0));
 
@@ -190,7 +188,7 @@ bool FGridUI0143e2UnknownSpellNoCostCommitTest::RunTest(const FString& Parameter
 	FGridSpellHotbarExecutionResult Result;
 	TestFalse(TEXT("An unknown spell cannot execute from the hotbar"),
 		FGridSpellHotbarExecutionService::TryExecute(
-			Definition, Request, Context, Spellbook, CasterStats, TurnState, 20, 10, FGridStatusEffectCollection(),
+			Definition, Request, Context, Spellbook, CasterResources, TurnState, 20, 10, FGridStatusEffectCollection(),
 			[](FName) -> const UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
@@ -198,7 +196,7 @@ bool FGridUI0143e2UnknownSpellNoCostCommitTest::RunTest(const FString& Parameter
 			Result));
 	TestTrue(TEXT("Unknown spell rejects in the transaction stage"), Result.PipelineRejectStage == EGridSpellCastPipelineRejectStage::Transaction);
 	TestTrue(TEXT("Unknown spell reports SpellNotKnown"), Result.TransactionRejectReason == EGridSpellCastTransactionRejectReason::SpellNotKnown);
-	TestEqual(TEXT("Input mana remains unchanged"), CasterStats.CurrentMana, 10);
+	TestEqual(TEXT("Input mana remains unchanged"), CasterResources.CurrentMana, 10);
 	TestEqual(TEXT("Input AP remains unchanged"), TurnState.RemainingActionPoints, 4);
 	return true;
 }

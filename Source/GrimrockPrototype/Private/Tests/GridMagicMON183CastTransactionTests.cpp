@@ -65,16 +65,15 @@ bool FGridMON183SuccessfulCommitTest::RunTest(const FString& Parameters)
 	FGridSpellDefinition Definition = MakeValidSpell();
 	FGridCharacterSpellbookState Spellbook = MakeSpellbook(CharacterId);
 	FGridSpellCastRequest Request = MakeRequest(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.MaxMana = 10;
-	Stats.CurrentMana = 10;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 10;
 	FGridPlayerCharacterTurnState Turn = MakeTurn(CharacterId);
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::InvalidRequest;
 
 	TestTrue(
-		TEXT("Valid cast costs commit"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Stats, Turn, Receipt, RejectReason));
-	TestEqual(TEXT("Mana paid"), Stats.CurrentMana, 6);
+		TEXT("Valid cast costs commit"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestEqual(TEXT("Mana paid"), Resources.CurrentMana, 6);
 	TestEqual(TEXT("PA paid"), Turn.RemainingActionPoints, 1);
 	TestEqual(TEXT("No reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::None);
 	TestTrue(TEXT("Receipt valid"), Receipt.IsValid());
@@ -92,15 +91,15 @@ bool FGridMON183UnknownSpellNoMutationTest::RunTest(const FString& Parameters)
 	FGridSpellDefinition Definition = MakeValidSpell();
 	FGridCharacterSpellbookState Spellbook = MakeSpellbook(CharacterId, false);
 	FGridSpellCastRequest Request = MakeRequest(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 10;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 10;
 	FGridPlayerCharacterTurnState Turn = MakeTurn(CharacterId);
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::None;
 
 	TestFalse(
-		TEXT("Unknown spell rejected"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Stats, Turn, Receipt, RejectReason));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 10);
+		TEXT("Unknown spell rejected"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 10);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::SpellNotKnown);
 	return true;
@@ -115,15 +114,15 @@ bool FGridMON183InsufficientManaNoMutationTest::RunTest(const FString& Parameter
 	FGridSpellDefinition Definition = MakeValidSpell();
 	FGridCharacterSpellbookState Spellbook = MakeSpellbook(CharacterId);
 	FGridSpellCastRequest Request = MakeRequest(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 3;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 3;
 	FGridPlayerCharacterTurnState Turn = MakeTurn(CharacterId);
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::None;
 
 	TestFalse(TEXT("Insufficient mana rejected"),
-		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Stats, Turn, Receipt, RejectReason));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 3);
+		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 3);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::InsufficientMana);
 	return true;
@@ -138,15 +137,15 @@ bool FGridMON183InsufficientActionPointsNoMutationTest::RunTest(const FString& P
 	FGridSpellDefinition Definition = MakeValidSpell();
 	FGridCharacterSpellbookState Spellbook = MakeSpellbook(CharacterId);
 	FGridSpellCastRequest Request = MakeRequest(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 10;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 10;
 	FGridPlayerCharacterTurnState Turn = MakeTurn(CharacterId, 1);
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::None;
 
 	TestFalse(
-		TEXT("Insufficient PA rejected"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Stats, Turn, Receipt, RejectReason));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 10);
+		TEXT("Insufficient PA rejected"), FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 10);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 1);
 	TestEqual(TEXT("Reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::InsufficientActionPoints);
 	return true;
@@ -162,15 +161,15 @@ bool FGridMON183IdentityMismatchNoMutationTest::RunTest(const FString& Parameter
 	FGridSpellDefinition Definition = MakeValidSpell();
 	FGridCharacterSpellbookState Spellbook = MakeSpellbook(CharacterId);
 	FGridSpellCastRequest Request = MakeRequest(OtherCharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 10;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 10;
 	FGridPlayerCharacterTurnState Turn = MakeTurn(CharacterId);
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::None;
 
 	TestFalse(TEXT("Character mismatch rejected"),
-		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Stats, Turn, Receipt, RejectReason));
-	TestEqual(TEXT("Mana unchanged"), Stats.CurrentMana, 10);
+		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestEqual(TEXT("Mana unchanged"), Resources.CurrentMana, 10);
 	TestEqual(TEXT("PA unchanged"), Turn.RemainingActionPoints, 3);
 	TestEqual(TEXT("Reject reason"), RejectReason, EGridSpellCastTransactionRejectReason::CharacterMismatch);
 	return true;
@@ -186,15 +185,15 @@ bool FGridMON183TargetingDeferredTest::RunTest(const FString& Parameters)
 	Definition.TargetingPolicy = EGridCombatTargetingPolicy::Ally;
 	FGridCharacterSpellbookState Spellbook = MakeSpellbook(CharacterId);
 	FGridSpellCastRequest Request = MakeRequest(CharacterId);
-	FRPGDerivedStats Stats;
-	Stats.CurrentMana = 10;
+	FRPGCharacterResources Resources;
+	Resources.CurrentMana = 10;
 	FGridPlayerCharacterTurnState Turn = MakeTurn(CharacterId);
 	FGridSpellCastCostReceipt Receipt;
 	EGridSpellCastTransactionRejectReason RejectReason = EGridSpellCastTransactionRejectReason::InvalidRequest;
 
 	TestTrue(TEXT("Cost transaction deliberately ignores target payload until MON18.4"),
-		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Stats, Turn, Receipt, RejectReason));
-	TestEqual(TEXT("Mana paid"), Stats.CurrentMana, 6);
+		FGridSpellCastTransactionService::TryCommitCosts(Definition, Request, Spellbook, Resources, Turn, Receipt, RejectReason));
+	TestEqual(TEXT("Mana paid"), Resources.CurrentMana, 6);
 	TestEqual(TEXT("PA paid"), Turn.RemainingActionPoints, 1);
 	return true;
 }

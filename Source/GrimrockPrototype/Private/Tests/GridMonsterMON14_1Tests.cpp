@@ -108,9 +108,9 @@ namespace
 			Character.CharacterId = FGuid::NewGuid();
 			Character.DisplayName = FText::FromString(TEXT("MON14 Party"));
 			Character.DerivedStats.MaxHealth = 20;
-			Character.DerivedStats.CurrentHealth = 20;
-			Character.DerivedStats.PhysicalArmor = 0;
-			Character.DerivedStats.MagicalArmor = 0;
+			Character.Resources.CurrentHealth = 20;
+			Character.Resources.CurrentPhysicalArmor = 0;
+			Character.Resources.CurrentMagicalArmor = 0;
 			Character.DerivedStats.Evasion = 0;
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 

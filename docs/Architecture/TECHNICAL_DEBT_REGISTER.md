@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.3 NORMALIZATION ACTIVE**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.3 IMPLÉMENTÉ / À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -612,7 +612,7 @@ TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
 TD07.3.3        Character State Normalization                         ACTIF
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
-TD07.3.3.3      Normalize Derived Stats / Mutable Resources            NORMALIZATION ACTIVE
+TD07.3.3.3      Normalize Derived Stats / Mutable Resources            IMPLÉMENTÉ — À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -690,49 +690,55 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.3 — Normalize Derived Stats / Mutable Resources — phase B active.**
+**Valider TD07.3.3.3 — Normalize Derived Stats / Mutable Resources.**
 
-TD07.3.3.3 commence volontairement par un gate de comportement avant toute modification de structure.
-
-Constats que le nouveau filtre doit figer :
+Implémentation :
 
 ```text
-GetCharacterSummary
-    bonus DEX -> Attributes.Dexterity
-    mais ne recalcule pas Initiative / Accuracy / Evasion
+FRPGDerivedStats
+    MaxHealth
+    MaxMana
+    Initiative
+    Accuracy
+    Evasion
 
-Equipment ArmorBonus
-    -> Summary.DerivedStats.PhysicalArmor
-    mais ne modifie pas Character.DerivedStats.PhysicalArmor
+FRPGCharacterResources
+    CurrentHealth
+    CurrentMana
+    CurrentPhysicalArmor
+    CurrentMagicalArmor
 
-MaxHealth / MaxMana equipment
-    -> maxima du résumé uniquement
-    -> aucune ressource courante accordée automatiquement
-
-Unequip d'un bonus de maximum
-    -> le résumé clamp CurrentHealth / CurrentMana
-    -> l'état stocké n'est pas normalisé
-
-Combat entrant
-    -> lit directement Character.DerivedStats.Evasion
-    -> lit directement Character.DerivedStats.PhysicalArmor / MagicalArmor
-
-Initiative
-    -> lit directement Character.DerivedStats.Initiative
+FGridCharacterInventoryState
+    DerivedStats   -> projection calculable
+    Resources      -> état durable mutable
 ```
 
-Filtre :
+Le contrat d'équipement caractérisé est conservé : `GetCharacterSummary()` applique toujours les bonus de maxima/armure uniquement dans sa projection finale, sans recalcul implicite de l'initiative/accuracy/evasion.
+
+Les transactions Magic consomment désormais `FRPGCharacterResources` et ne recopient plus un conteneur mixte.
+
+SaveGame courant :
 
 ```text
+CurrentSaveVersion = 12
+v11 et antérieures -> rejet sans migration
+```
+
+Filtres requis :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_3.Normalization
 Grimrock.TechnicalDebt.TD07_3_3_3.Characterization
 ```
+
+Puis régressions MON15.3, MON16.3, MON16.7, MON16.8, Magic MON18.3–MON18.9.2 et Shipping Win64.
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_3_DERIVED_STATS_CHARACTERIZATION.md
+docs/Design/TD07_3_3_3_DERIVED_STATS_NORMALIZATION.md
 ```
 
-Aucune structure persistante n'est encore modifiée et le SaveGame reste v11.
+TD07.3.3.4 ne commence qu'après validation complète de TD07.3.3.3.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.

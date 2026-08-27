@@ -115,7 +115,7 @@ namespace
 			Character.DisplayName = FText::FromString(TEXT("Elias"));
 			Character.Attributes.Strength = 16;
 			Character.DerivedStats.MaxHealth = 20;
-			Character.DerivedStats.CurrentHealth = 20;
+			Character.Resources.CurrentHealth = 20;
 			Character.DerivedStats.Accuracy = 7;
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters = { Character };
 			Party->PartyInventoryComponent->PartyInventoryState.ActiveEquipment.SetNum(1);

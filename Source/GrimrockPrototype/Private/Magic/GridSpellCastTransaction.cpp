@@ -1,7 +1,7 @@
 #include "Magic/GridSpellCastTransaction.h"
 
 EGridSpellCastTransactionRejectReason FGridSpellCastTransactionService::ValidateCostCommit(const FGridSpellDefinition& Definition,
-	const FGridSpellCastRequest& Request, const FGridCharacterSpellbookState& Spellbook, const FRPGDerivedStats& CharacterStats,
+	const FGridSpellCastRequest& Request, const FGridCharacterSpellbookState& Spellbook, const FRPGCharacterResources& CharacterResources,
 	const FGridPlayerCharacterTurnState& TurnState)
 {
 	if (FGridSpellContract::ValidateDefinition(Definition) != EGridSpellValidationError::None)
@@ -39,7 +39,7 @@ EGridSpellCastTransactionRejectReason FGridSpellCastTransactionService::Validate
 		return EGridSpellCastTransactionRejectReason::InsufficientActionPoints;
 	}
 
-	if (CharacterStats.CurrentMana < 0 || Definition.ManaCost > CharacterStats.CurrentMana)
+	if (CharacterResources.CurrentMana < 0 || Definition.ManaCost > CharacterResources.CurrentMana)
 	{
 		return EGridSpellCastTransactionRejectReason::InsufficientMana;
 	}
@@ -48,11 +48,11 @@ EGridSpellCastTransactionRejectReason FGridSpellCastTransactionService::Validate
 }
 
 bool FGridSpellCastTransactionService::TryCommitCosts(const FGridSpellDefinition& Definition, const FGridSpellCastRequest& Request,
-	const FGridCharacterSpellbookState& Spellbook, FRPGDerivedStats& InOutCharacterStats, FGridPlayerCharacterTurnState& InOutTurnState,
+	const FGridCharacterSpellbookState& Spellbook, FRPGCharacterResources& InOutCharacterResources, FGridPlayerCharacterTurnState& InOutTurnState,
 	FGridSpellCastCostReceipt& OutReceipt, EGridSpellCastTransactionRejectReason& OutRejectReason)
 {
 	OutReceipt = FGridSpellCastCostReceipt();
-	OutRejectReason = ValidateCostCommit(Definition, Request, Spellbook, InOutCharacterStats, InOutTurnState);
+	OutRejectReason = ValidateCostCommit(Definition, Request, Spellbook, InOutCharacterResources, InOutTurnState);
 
 	if (OutRejectReason != EGridSpellCastTransactionRejectReason::None)
 	{
@@ -60,10 +60,10 @@ bool FGridSpellCastTransactionService::TryCommitCosts(const FGridSpellDefinition
 	}
 
 	const int32 PreviousActionPoints = InOutTurnState.RemainingActionPoints;
-	const int32 PreviousMana = InOutCharacterStats.CurrentMana;
+	const int32 PreviousMana = InOutCharacterResources.CurrentMana;
 
 	InOutTurnState.RemainingActionPoints = PreviousActionPoints - Definition.ActionPointCost;
-	InOutCharacterStats.CurrentMana = PreviousMana - Definition.ManaCost;
+	InOutCharacterResources.CurrentMana = PreviousMana - Definition.ManaCost;
 
 	OutReceipt.CharacterId = Request.CasterCharacterId;
 	OutReceipt.SpellId = Definition.SpellId;

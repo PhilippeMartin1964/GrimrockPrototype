@@ -82,9 +82,9 @@ void UGridCombatActionPanelWidget::RefreshFromSources()
 	View.bHasValidCharacter = true;
 	View.DisplayName = ResolveCharacterName(Summary);
 	View.Portrait = Summary.Portrait;
-	View.CurrentHealth = Summary.DerivedStats.CurrentHealth;
+	View.CurrentHealth = Summary.Resources.CurrentHealth;
 	View.MaxHealth = Summary.DerivedStats.MaxHealth;
-	View.CurrentMana = Summary.DerivedStats.CurrentMana;
+	View.CurrentMana = Summary.Resources.CurrentMana;
 	View.MaxMana = Summary.DerivedStats.MaxMana;
 
 	if (InventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(View.CharacterIndex))

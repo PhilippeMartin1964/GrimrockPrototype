@@ -287,7 +287,7 @@ void UGridTurnManagerComponent::CommitActiveAttackImpact()
 	int32 TargetCharacterIndex = ActiveAction.TargetCharacterIndex;
 	if (!IsValid(PartyPawn) || !IsValid(PartyPawn->PartyInventoryComponent) ||
 		!PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(TargetCharacterIndex) ||
-		PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[TargetCharacterIndex].DerivedStats.CurrentHealth <= 0)
+		PartyPawn->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[TargetCharacterIndex].Resources.CurrentHealth <= 0)
 	{
 		TargetCharacterIndex = CurrentCombatComponent->SelectPartyTarget(CombatRandomStream);
 		ActiveAction.TargetCharacterIndex = TargetCharacterIndex;
