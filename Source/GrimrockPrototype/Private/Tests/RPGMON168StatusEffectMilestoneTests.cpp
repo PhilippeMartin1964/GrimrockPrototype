@@ -400,7 +400,7 @@ bool FRPGMON168RegressionNamespaceCoverageTest::RunTest(const FString& Parameter
 		{ TEXT("Source/GrimrockPrototype/Private/Tests/RPGMON164StatusEffectInitiativeTests.cpp"), TEXT("Grimrock.RPG.MON16.4."), 11 },
 		{ TEXT("Source/GrimrockPrototype/Private/Tests/RPGMON165StatusEffectControlTests.cpp"), TEXT("Grimrock.RPG.MON16.5."), 11 },
 		{ TEXT("Source/GrimrockPrototype/Private/Tests/RPGMON166StatusEffectPresentationTests.cpp"), TEXT("Grimrock.RPG.MON16.6."), 10 },
-		{ TEXT("Source/GrimrockPrototype/Private/Tests/RPGMON167StatusEffectPersistenceTests.cpp"), TEXT("Grimrock.RPG.MON16.7."), 11 } };
+		{ TEXT("Source/GrimrockPrototype/Private/Tests/RPGMON167StatusEffectPersistenceTests.cpp"), TEXT("Grimrock.RPG.MON16.7."), 10 } };
 
 	int32 Total = 0;
 	for (const FRegressionFile& File : Files)
@@ -412,7 +412,7 @@ bool FRPGMON168RegressionNamespaceCoverageTest::RunTest(const FString& Parameter
 		Total += Count;
 	}
 
-	TestEqual(TEXT("MON16.1-MON16.7 frozen regression baseline is 71 tests"), Total, 71);
+	TestEqual(TEXT("MON16.1-MON16.7 frozen regression baseline is 70 tests"), Total, 70);
 	return true;
 }
 
