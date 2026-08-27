@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.2 VALIDÉ / TD07.3.3 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.1 VALIDÉ / TD07.3.3.2 PROCHAIN**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -609,7 +609,9 @@ TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
 TD07.3          Prototype Data Model Reset                             ACTIF
 TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
 TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
-TD07.3.3        Character State Normalization                         À FAIRE
+TD07.3.3        Character State Normalization                         ACTIF
+TD07.3.3.1      Character State Authority Audit                       VALIDÉ
+TD07.3.3.2      Remove Legacy Attribute Bridge                        PROCHAIN
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -687,26 +689,41 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3 — Character State Normalization.**
+**TD07.3.3.2 — Remove Legacy Attribute Bridge.**
 
-Objectif : normaliser l'état durable du personnage autour d'une seule autorité, sans conserver de représentation historique ou dérivée uniquement pour compatibilité.
+TD07.3.3.1 a établi la matrice d'autorité du personnage à la baseline `a82340df79d69c33d4ccc2e77617b984c9f8eb79`.
 
-Périmètre d'audit prioritaire :
+Constats principaux :
 
 ```text
-Strength deprecated
-bRPGAttributesInitialized
-Attributes / DerivedStats
-poids et capacités dérivées
-Level / Experience / progression de classe
-SkillRanks / CharacterSkillStates
-Spellbook runtime / CharacterSpellbookStates
-StatusEffects / CharacterStatusEffectStates
-PendingLevelUpNotifications
+Attributes                         autorité légitime
+Strength                           legacy pur à supprimer
+bRPGAttributesInitialized          shim legacy pur à supprimer
+DerivedStats                       conteneur mixte calculable + mutable
+CurrentWeight / MaxCarryWeight     caches dérivés
+Level / Experience                 double représentation de progression
+SkillRanks / CharacterSkillStates  duplication runtime/save
+SpellbookState / Save snapshot     duplication hors personnage
+StatusEffects / Save snapshot      duplication runtime/save
+Class progression cache / snapshot duplication de choix joueur
+Pending Level Up                   workflow UI persisté en plusieurs copies
 ```
 
-Règle : pour chaque donnée, choisir explicitement l'autorité authoring/runtime/save ; supprimer les doublons et champs dérivables plutôt que les synchroniser. Toute rupture de schéma Save incrémente la version exacte et rejette l'ancienne version sans migration.
+Référence :
 
-Les 41 findings DataAsset de TD07.3.1 restent hors périmètre de TD07.3.3 sauf lorsqu'un type C++ doit être caractérisé pour comprendre l'autorité du personnage. Leur réparation de contenu reste réservée à TD07.3.4–TD07.3.7.
+```text
+docs/Design/TD07_3_3_1_CHARACTER_STATE_AUTHORITY_AUDIT.md
+```
 
-TD07.3.3 doit commencer par une caractérisation et des tests de contrat avant toute suppression.
+La prochaine tranche est volontairement petite :
+
+```text
+TD07.3.3.2
+    supprimer Strength
+    supprimer bRPGAttributesInitialized
+    supprimer le fallback Strength -> Attributes
+    adapter création/recrutement/tests
+    ne toucher ni DerivedStats, ni Skills, ni Spellbook, ni Status Effects
+```
+
+Les 41 findings DataAsset TD07.3.1 restent hors périmètre.

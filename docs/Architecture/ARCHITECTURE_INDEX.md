@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 27 août 2026, après validation de TD07.3.2.**  
+**Référence courante : 27 août 2026, après validation de TD07.3.3.1.**  
 Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
@@ -91,7 +91,9 @@ TD07.1    Build / dependency reproducibility             VALIDÉ
 TD07.2    UE compatibility cleanup                       VALIDÉ
 TD07.3.1  Prototype Data Model Policy + Asset Audit      VALIDÉ
 TD07.3.2  SaveGame Reset / no backward migration         VALIDÉ
-TD07.3.3  Character State Normalization                    PROCHAIN
+TD07.3.3  Character State Normalization                    ACTIF
+TD07.3.3.1 Character State Authority Audit                 VALIDÉ
+TD07.3.3.2 Remove Legacy Attribute Bridge                  PROCHAIN
 TD07.3.4–TD07.3.8                                       À FAIRE
 ```
 

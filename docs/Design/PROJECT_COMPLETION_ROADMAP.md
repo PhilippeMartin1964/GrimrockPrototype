@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.2 VALIDÉ — TD07.3.3 PROCHAIN — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.1 VALIDÉ — TD07.3.3.2 PROCHAIN — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -199,7 +199,9 @@ TD07.1     Build / dependency reproducibility                VALIDÉ
 TD07.2     UE compatibility warnings                         VALIDÉ
 TD07.3.1   Prototype Data Model Policy + Asset Audit         VALIDÉ
 TD07.3.2   SaveGame Reset / no backward migration            VALIDÉ
-TD07.3.3   Character State Normalization                      PROCHAIN
+TD07.3.3   Character State Normalization                      ACTIF
+TD07.3.3.1 Character State Authority Audit                    VALIDÉ
+TD07.3.3.2 Remove Legacy Attribute Bridge                     PROCHAIN
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 
@@ -260,7 +262,7 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-TD07.3.3 — Character State Normalization
+TD07.3.3.2 — Remove Legacy Attribute Bridge
 ```
 
 MON21.4 reste suspendu jusqu'à la stop condition complète de TD07.3.
