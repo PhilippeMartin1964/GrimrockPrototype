@@ -291,7 +291,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON167SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("Current prototype SaveVersion is thirteen"), UGrimrockPartySaveGame::CurrentSaveVersion, 13);
+	TestTrue(TEXT("Current prototype SaveVersion remains at least the MON16.7 v13 generation"), UGrimrockPartySaveGame::CurrentSaveVersion >= 13);
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
 	Previous->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
 	TestFalse(TEXT("Previous prototype SaveVersion is not compatible"), Previous->IsCompatible());

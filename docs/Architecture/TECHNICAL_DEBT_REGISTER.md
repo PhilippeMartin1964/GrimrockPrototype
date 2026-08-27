@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.5 NORMALIZATION ACTIVE**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.5 B1 IMPLEMENTÉ — À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -614,7 +614,7 @@ TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
-TD07.3.3.5      Normalize XP / Level / Class Progression                NORMALIZATION ACTIVE
+TD07.3.3.5      Normalize XP / Level / Class Progression                B1 IMPLEMENTÉ — À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -692,58 +692,61 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider la caractérisation TD07.3.3.5 — Normalize XP / Level / Class Progression.**
+**Valider TD07.3.3.5 B1 — Character progression authority normalization.**
 
-Le gate distingue deux catégories d'état :
-
-```text
-projection reconstructible
-    Level
-        dérivable de Experience
-        déjà contrôlé par IsLevelExperienceConsistent()
-
-état métier durable
-    SelectedChoiceIds
-        choix explicites du joueur
-        actuellement hors FGridCharacterInventoryState
-```
-
-Le runtime actuel possède encore deux duplications :
+La caractérisation est validée. B1 applique maintenant la séparation suivante :
 
 ```text
-FGridCharacterInventoryState
+autorité durable
     Experience
+    SelectedClassProgressionChoiceIds
+
+projection runtime reconstructible
     Level
-
-FRPGClassProgressionTransactionService::RuntimeStates
-    SelectedChoiceIds
-
-UGrimrockPartySaveGame::ClassProgressionStates
-    SelectedChoiceIds
+    RuntimeStates.SatisfiedRequirements
 ```
 
-La caractérisation doit figer :
+Contrats B1 :
 
 ```text
-1. seuils Experience -> Level ;
-2. synchronisation multi-level et refus de démotion ;
-3. perte des choix après reset du cache runtime sans snapshot séparé ;
-4. restauration des choix depuis ClassProgressionStates ;
-5. conservation des choix lors d'un level-up et recalcul du budget.
+Level
+    UPROPERTY Transient
+    reconstruit depuis Experience au chargement
+
+SelectedClassProgressionChoiceIds
+    stocké directement dans FGridCharacterInventoryState
+    survit au reset du cache RuntimeStates
+
+RuntimeStates
+    ne contient plus SelectedChoiceIds
+    reste un read-model de requirements
+
+SaveGame
+    v14 exact-match
+    v13 rejeté sans migration
 ```
 
-Filtre :
+Le champ `UGrimrockPartySaveGame::ClassProgressionStates` reste temporairement présent en B1 pour conserver la compilation de quelques régressions historiques. Il est remis à vide lors des nouvelles sauvegardes, n'est plus validé, n'est plus restauré et n'est plus une autorité.
+
+**B2 supprimera physiquement** `FRPGCharacterProgressionSaveState` et `ClassProgressionStates`. TD07.3.3.5 ne sera pas fermé avant cette suppression et les régressions associées.
+
+Filtres de validation B1 :
 
 ```text
+Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1
 Grimrock.TechnicalDebt.TD07_3_3_5.Characterization
+Grimrock.RPG.MON15.2
+Grimrock.RPG.MON15.3
+Grimrock.RPG.MON15.5
+Grimrock.MON20.7.Talents
+Grimrock.TechnicalDebt.TD07_3_2
 ```
 
-Référence :
+Références :
 
 ```text
 docs/Design/TD07_3_3_5_XP_LEVEL_CLASS_PROGRESSION_CHARACTERIZATION.md
+docs/Design/TD07_3_3_5_PROGRESSION_AUTHORITY_NORMALIZATION.md
 ```
-
-Aucun changement de schéma n'est encore effectué et le SaveGame reste v13 exact-match.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
