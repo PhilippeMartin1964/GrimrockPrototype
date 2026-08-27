@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `9080cf37385e89d6b08371898dbd28aca62dd357`  
-Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Objet
 
@@ -184,7 +184,7 @@ si LastAcknowledgedLevel < Level
 
 ## 10. SaveGame
 
-La normalisation ouvrira une nouvelle génération exact-match, attendue :
+La normalisation implémentée ouvre une nouvelle génération exact-match :
 
 ```text
 CurrentSaveVersion = 19

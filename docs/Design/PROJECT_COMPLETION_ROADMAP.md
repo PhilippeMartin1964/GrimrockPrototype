@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.9 LEVEL-UP NOTIFICATION CHARACTERIZATION ACTIVE — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.9 LEVEL-UP NOTIFICATION NORMALIZATION IMPLÉMENTÉE — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -208,7 +208,7 @@ TD07.3.3.5 Normalize XP / Level / Class Progression                VALIDÉ
 TD07.3.3.6 Normalize Skills                                        VALIDÉ — CLOS
 TD07.3.3.7 Normalize Spellbook                                     VALIDÉ — CLOS
 TD07.3.3.8 Normalize Status Effects                                 VALIDÉ — CLOS
-TD07.3.3.9 Normalize Level-Up Notification State                       CHARACTERIZATION ACTIVE
+TD07.3.3.9 Normalize Level-Up Notification State                       IMPLÉMENTÉ — À VALIDER
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 
@@ -273,3 +273,6 @@ TD07.3.3.7 — Normalize Spellbook
 ```
 
 MON21.4 reste suspendu jusqu'à la stop condition complète de TD07.3.
+
+
+TD07.3.3.9 ouvre **v19 exact-match** : `LastAcknowledgedLevel` devient l'état durable minimal de notification Level-Up et les queues persistantes MON15.6 sont supprimées.

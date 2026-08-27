@@ -5,48 +5,25 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
-#include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "Save/GrimrockPartySaveGame.h"
 #include "UObject/UnrealType.h"
 
 namespace GridTD07339Characterization
 {
-	struct FTD07339PersistentMirrorGuard
-	{
-		FTD07339PersistentMirrorGuard()
-		{
-			URPGLevelUpNotificationSubsystem::RestorePersistentState({});
-		}
-
-		~FTD07339PersistentMirrorGuard()
-		{
-			URPGLevelUpNotificationSubsystem::RestorePersistentState({});
-		}
-	};
-
 	FGuid MakeTD07339Id(uint32 Suffix)
 	{
 		return FGuid(7, 3, 39, Suffix);
 	}
 
-	FGridCharacterInventoryState MakeTD07339Character(uint32 Suffix, int32 Level)
+	FGridCharacterInventoryState MakeTD07339Character(uint32 Suffix, int32 Level, int32 LastAcknowledgedLevel)
 	{
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = MakeTD07339Id(Suffix);
 		Character.Experience = URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(Level);
 		Character.Level = Level;
+		Character.LastAcknowledgedLevel = LastAcknowledgedLevel;
 		return Character;
-	}
-
-	FRPGPendingLevelUpSaveState MakeTD07339Pending(const FGuid& CharacterId, int32 PreviousLevel, int32 NewLevel)
-	{
-		FRPGPendingLevelUpSaveState State;
-		State.CharacterId = CharacterId;
-		State.PreviousLevel = PreviousLevel;
-		State.NewLevel = NewLevel;
-		State.LevelsGained = FMath::Max(0, NewLevel - PreviousLevel);
-		return State;
 	}
 
 	bool LoadTD07339ProjectFile(const TCHAR* RelativePath, FString& OutText)
@@ -64,10 +41,13 @@ bool FGridTD07339RepresentationMultiplicityTest::RunTest(const FString& Paramete
 	(void)Parameters;
 	using namespace GridTD07339Characterization;
 
-	TestNotNull(TEXT("SaveGame owns PendingLevelUpNotifications"),
+	const FProperty* AcknowledgementProperty =
+		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("LastAcknowledgedLevel"));
+	TestNotNull(TEXT("Character owns minimal durable acknowledgement state"), AcknowledgementProperty);
+	TestTrue(TEXT("Acknowledgement state is non-transient"),
+		AcknowledgementProperty && !AcknowledgementProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestNull(TEXT("SaveGame owns no PendingLevelUpNotifications mirror"),
 		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("PendingLevelUpNotifications")));
-	TestNull(TEXT("Character has no minimal durable acknowledgement field yet"),
-		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("LastAcknowledgedLevel")));
 
 	FString HeaderText;
 	FString SourceText;
@@ -76,10 +56,10 @@ bool FGridTD07339RepresentationMultiplicityTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Level-up notification source loads"),
 		LoadTD07339ProjectFile(TEXT("Source/GrimrockPrototype/Private/RPG/RPGLevelUpNotificationSubsystem.cpp"), SourceText));
 
-	TestTrue(TEXT("Runtime queue exists"), HeaderText.Contains(TEXT("PendingNotifications")));
-	TestTrue(TEXT("Active notification exists"), HeaderText.Contains(TEXT("ActiveNotification")));
-	TestTrue(TEXT("Deferred persistent restore queue exists"), HeaderText.Contains(TEXT("PendingPersistentRestoreStates")));
-	TestTrue(TEXT("Static persistent mirror exists"), SourceText.Contains(TEXT("PersistentNotificationMirror")));
+	TestTrue(TEXT("Transient runtime queue remains"), HeaderText.Contains(TEXT("PendingNotifications")));
+	TestTrue(TEXT("Transient active notification remains"), HeaderText.Contains(TEXT("ActiveNotification")));
+	TestFalse(TEXT("Deferred persistent restore queue is removed"), HeaderText.Contains(TEXT("PendingPersistentRestoreStates")));
+	TestFalse(TEXT("Static persistent mirror is removed"), SourceText.Contains(TEXT("PersistentNotificationMirror")));
 	return true;
 }
 
@@ -91,27 +71,17 @@ bool FGridTD07339PersistentMirrorRoundTripTest::RunTest(const FString& Parameter
 {
 	(void)Parameters;
 	using namespace GridTD07339Characterization;
-	FTD07339PersistentMirrorGuard Guard;
 
 	FGridPartyInventoryState Party;
-	const FGridCharacterInventoryState Character = MakeTD07339Character(1, 2);
-	Party.ActiveCharacters.Add(Character);
+	Party.ActiveCharacters.Add(MakeTD07339Character(1, 3, 1));
 
-	const FRPGPendingLevelUpSaveState Pending = MakeTD07339Pending(Character.CharacterId, 1, 2);
-	URPGLevelUpNotificationSubsystem::RestorePersistentState({ Pending });
-
-	TArray<FRPGPendingLevelUpSaveState> Captured;
-	FText Error;
-	TestTrue(TEXT("Static persistent mirror captures for current active party"),
-		URPGLevelUpNotificationSubsystem::CapturePersistentState(Party, Captured, Error));
-	TestEqual(TEXT("One notification round-trips through the mirror"), Captured.Num(), 1);
-	if (Captured.Num() == 1)
-	{
-		TestTrue(TEXT("CharacterId survives"), Captured[0].CharacterId == Character.CharacterId);
-		TestEqual(TEXT("PreviousLevel survives"), Captured[0].PreviousLevel, 1);
-		TestEqual(TEXT("NewLevel survives"), Captured[0].NewLevel, 2);
-		TestEqual(TEXT("LevelsGained survives"), Captured[0].LevelsGained, 1);
-	}
+	const FGridPartyInventoryState DurableCopy = Party;
+	const FGridCharacterInventoryState& Character = DurableCopy.ActiveCharacters[0];
+	TestEqual(TEXT("Acknowledged level survives ordinary party-state copy"), Character.LastAcknowledgedLevel, 1);
+	TestEqual(TEXT("Current level remains three"), Character.Level, 3);
+	TestEqual(TEXT("PreviousLevel is derivable from acknowledgement"), Character.LastAcknowledgedLevel, 1);
+	TestEqual(TEXT("NewLevel is derivable from current Level"), Character.Level, 3);
+	TestEqual(TEXT("LevelsGained is derivable"), Character.Level - Character.LastAcknowledgedLevel, 2);
 	return true;
 }
 
@@ -123,25 +93,21 @@ bool FGridTD07339ActiveOnlyPersistenceBoundaryTest::RunTest(const FString& Param
 {
 	(void)Parameters;
 	using namespace GridTD07339Characterization;
-	FTD07339PersistentMirrorGuard Guard;
 
 	FGridPartyInventoryState Party;
-	const FGridCharacterInventoryState Active = MakeTD07339Character(2, 2);
-	const FGridCharacterInventoryState Reserve = MakeTD07339Character(3, 2);
-	Party.ActiveCharacters.Add(Active);
-	Party.CharacterPool.Add(Reserve);
+	Party.ActiveCharacters.Add(MakeTD07339Character(2, 2, 1));
+	Party.CharacterPool.Add(MakeTD07339Character(3, 3, 2));
 
-	URPGLevelUpNotificationSubsystem::RestorePersistentState(
-		{ MakeTD07339Pending(Active.CharacterId, 1, 2), MakeTD07339Pending(Reserve.CharacterId, 1, 2) });
+	TestEqual(TEXT("Active character carries pending acknowledgement state directly"),
+		Party.ActiveCharacters[0].Level - Party.ActiveCharacters[0].LastAcknowledgedLevel, 1);
+	TestEqual(TEXT("Pool character also carries pending acknowledgement state directly"),
+		Party.CharacterPool[0].Level - Party.CharacterPool[0].LastAcknowledgedLevel, 1);
 
-	TArray<FRPGPendingLevelUpSaveState> Captured;
-	FText Error;
-	TestTrue(TEXT("Current persistent mirror can be captured"), URPGLevelUpNotificationSubsystem::CapturePersistentState(Party, Captured, Error));
-	TestEqual(TEXT("Current persistence filters notifications to active characters"), Captured.Num(), 1);
-	if (Captured.Num() == 1)
-	{
-		TestTrue(TEXT("Active notification is retained"), Captured[0].CharacterId == Active.CharacterId);
-	}
+	FGridCharacterInventoryState Recruited = Party.CharacterPool[0];
+	Party.CharacterPool.Reset();
+	Party.ActiveCharacters.Add(Recruited);
+	TestEqual(TEXT("Pool -> Active naturally preserves the pending Level-Up delta"),
+		Party.ActiveCharacters[1].Level - Party.ActiveCharacters[1].LastAcknowledgedLevel, 1);
 	return true;
 }
 
@@ -155,17 +121,14 @@ bool FGridTD07339SaveValidationContractTest::RunTest(const FString& Parameters)
 	using namespace GridTD07339Characterization;
 
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	const FGridCharacterInventoryState Character = MakeTD07339Character(4, 2);
-	Save->PartyInventoryState.ActiveCharacters.Add(Character);
-	Save->PendingLevelUpNotifications.Add(MakeTD07339Pending(Character.CharacterId, 1, 2));
+	Save->PartyInventoryState.ActiveCharacters.Add(MakeTD07339Character(4, 2, 1));
 
 	FText Error;
-	TestTrue(TEXT("Notification whose NewLevel equals current character Level is valid"), Save->ValidateCurrentState(Error));
+	TestTrue(TEXT("Acknowledgement below current Level is a valid unacknowledged Level-Up"), Save->ValidateCurrentState(Error));
 
-	Save->PendingLevelUpNotifications[0].NewLevel = 3;
-	Save->PendingLevelUpNotifications[0].LevelsGained = 2;
-	TestFalse(TEXT("Notification targeting a level other than current character Level is rejected"), Save->ValidateCurrentState(Error));
-	TestTrue(TEXT("Invalid notification reports a reason"), !Error.IsEmpty());
+	Save->PartyInventoryState.ActiveCharacters[0].LastAcknowledgedLevel = 3;
+	TestFalse(TEXT("Acknowledgement above current Level is rejected"), Save->ValidateCurrentState(Error));
+	TestTrue(TEXT("Invalid acknowledgement reports a reason"), !Error.IsEmpty());
 	return true;
 }
 

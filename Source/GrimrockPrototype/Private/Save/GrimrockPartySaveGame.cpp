@@ -1,11 +1,12 @@
 #include "Save/GrimrockPartySaveGame.h"
 
+#include "Algo/Count.h"
+
 #include "Magic/GridSpellbookPersistence.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
-#include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "RPG/RPGSkillPersistence.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Runtime/GridLevelVariableStore.h"
@@ -79,6 +80,14 @@ namespace GridPartySaveValidationPrivate
 			return false;
 		}
 
+		const int32 MinimumLevel = URPGCharacterRulesLibrary::GetMinimumLevel();
+		if (Character.LastAcknowledgedLevel < MinimumLevel || Character.LastAcknowledgedLevel > Character.Level)
+		{
+			OutError = FText::FromString(FString::Printf(
+				TEXT("%s possède un LastAcknowledgedLevel invalide : Acknowledged=%d Level=%d."), Location, Character.LastAcknowledgedLevel, Character.Level));
+			return false;
+		}
+
 		TSet<FName> SelectedChoiceIds;
 		if (!BuildSelectionSet(Character.SelectedClassProgressionChoiceIds, SelectedChoiceIds))
 		{
@@ -111,8 +120,7 @@ namespace GridPartySaveValidationPrivate
 		return true;
 	}
 
-	bool ValidateProgressionState(
-		const FGridPartyInventoryState& PartyState, const TArray<FRPGPendingLevelUpSaveState>& PendingNotifications, FText& OutError)
+	bool ValidateProgressionState(const FGridPartyInventoryState& PartyState, FText& OutError)
 	{
 		OutError = FText::GetEmpty();
 
@@ -143,29 +151,6 @@ namespace GridPartySaveValidationPrivate
 			}
 		}
 
-		TSet<FGuid> PendingCharacterIds;
-		for (const FRPGPendingLevelUpSaveState& Pending : PendingNotifications)
-		{
-			if (!Pending.CharacterId.IsValid() || PendingCharacterIds.Contains(Pending.CharacterId) || !ActiveCharacterIds.Contains(Pending.CharacterId))
-			{
-				OutError = FText::FromString(TEXT("Une notification Level Up persistante référence un CharacterId invalide, dupliqué ou non actif."));
-				return false;
-			}
-			PendingCharacterIds.Add(Pending.CharacterId);
-
-			const FGridCharacterInventoryState* Character = PartyState.ActiveCharacters.FindByPredicate(
-				[&Pending](const FGridCharacterInventoryState& Candidate)
-				{
-					return Candidate.CharacterId == Pending.CharacterId;
-				});
-			if (!Character || Pending.PreviousLevel < URPGCharacterRulesLibrary::GetMinimumLevel() ||
-				Pending.NewLevel > URPGCharacterRulesLibrary::GetMaximumLevel() || Pending.PreviousLevel >= Pending.NewLevel ||
-				Pending.LevelsGained != Pending.NewLevel - Pending.PreviousLevel || Pending.NewLevel != Character->Level)
-			{
-				OutError = FText::FromString(TEXT("Une notification Level Up persistante est incohérente avec le niveau actuel du personnage."));
-				return false;
-			}
-		}
 		return true;
 	}
 
@@ -266,7 +251,7 @@ bool UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
 		OutError = FText::FromString(FString::Printf(TEXT("Version de sauvegarde %d incompatible avec le schéma prototype courant %d."), SaveVersion, CurrentSaveVersion));
 		return false;
 	}
-	if (!ValidateProgressionState(PartyInventoryState, PendingLevelUpNotifications, OutError) || !ValidateSpellbooks(*this, OutError) ||
+	if (!ValidateProgressionState(PartyInventoryState, OutError) || !ValidateSpellbooks(*this, OutError) ||
 		!ValidateSkills(*this, OutError) || !ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError))
 	{
 		return false;
@@ -295,12 +280,6 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 			return;
 		}
 		FText CaptureError;
-		if (!URPGLevelUpNotificationSubsystem::CapturePersistentState(PartyInventoryState, PendingLevelUpNotifications, CaptureError))
-		{
-			UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] SaveCapture Result=Rejected Reason=%s"), *CaptureError.ToString());
-			Ar.SetError();
-			return;
-		}
 		if (!ValidateCurrentState(CaptureError))
 		{
 			UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] SaveValidation Version=%d Result=Rejected Reason=%s"), SaveVersion, *CaptureError.ToString());
@@ -340,9 +319,14 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] ProgressionProjection Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
-	URPGLevelUpNotificationSubsystem::RestorePersistentState(PendingLevelUpNotifications);
+	const int32 PendingLevelUpAcknowledgements = Algo::CountIf(
+		PartyInventoryState.ActiveCharacters,
+		[](const FGridCharacterInventoryState& Character)
+		{
+			return Character.LastAcknowledgedLevel < Character.Level;
+		});
 	UE_LOG(LogGrimrockPartySave, Log,
 		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"),
-		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpNotifications.Num(),
+		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpAcknowledgements,
 		CountCharactersWithStatusEffects(PartyInventoryState), CountCharactersWithKnownSpells(PartyInventoryState));
 }

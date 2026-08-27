@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Runtime/Combat/GridCombatTypes.h"
-#include "Save/GrimrockPartySaveGame.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "RPGLevelUpNotificationSubsystem.generated.h"
 
@@ -11,9 +10,10 @@ class UGridTurnManagerComponent;
 class URPGLevelUpWidget;
 
 /**
- * Runtime coordinator that turns source-aware level-up events into modal
- * notifications. MON15.6 additionally persists notifications that have not
- * yet been acknowledged.
+ * Runtime coordinator that derives transient Level-Up presentation from the
+ * durable FGridCharacterInventoryState::LastAcknowledgedLevel contract.
+ *
+ * TD07.3.3.9 removes all persistent notification queues and SaveGame mirrors.
  */
 UCLASS()
 class GRIMROCKPROTOTYPE_API URPGLevelUpNotificationSubsystem : public UGameInstanceSubsystem
@@ -30,14 +30,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RPG|Level Up")
 	bool IsLevelUpModalOpen() const;
 
-	/** Captures pending + currently displayed notifications for this party. */
-	static bool CapturePersistentState(const FGridPartyInventoryState& PartyState, TArray<FRPGPendingLevelUpSaveState>& OutStates, FText& OutError);
-
 	/**
-     * Replaces the persistent mirror after SaveGame load. Live subsystems adopt
-     * it on a following world tick, after PartyInventoryState is restored.
-     */
-	static void RestorePersistentState(const TArray<FRPGPendingLevelUpSaveState>& SavedStates);
+	 * Binds the authoritative party inventory and reconstructs transient
+	 * notifications from LastAcknowledgedLevel < Level.
+	 */
+	void RefreshFromPartyState(UGridPartyInventoryComponent* PartyInventoryComponent);
 
 private:
 	struct FPendingNotification
@@ -52,8 +49,7 @@ private:
 
 	TArray<FPendingNotification> PendingNotifications;
 	TOptional<FPendingNotification> ActiveNotification;
-	TArray<FRPGPendingLevelUpSaveState> PendingPersistentRestoreStates;
-	int32 PersistentRestoreRetryCount = 0;
+	TWeakObjectPtr<UGridPartyInventoryComponent> ObservedPartyInventory;
 
 	UPROPERTY(Transient)
 	TObjectPtr<URPGLevelUpWidget> ActiveWidget;
@@ -69,14 +65,15 @@ private:
 	void HandleWidgetClosed(URPGLevelUpWidget* ClosedWidget);
 
 	UFUNCTION()
+	void HandlePartyInventoryChanged(int32 CharacterIndex);
+
+	UFUNCTION()
 	void HandleDeferredCombatEnded(EGridCombatPhase ResultPhase);
 
+	void BindPartyInventory(UGridPartyInventoryComponent* PartyInventoryComponent);
+	void RebuildPendingNotificationsFromPartyState(UGridPartyInventoryComponent* PartyInventoryComponent);
+	void AcknowledgeNotification(const FPendingNotification& Notification);
 	void SetDeferredCombatTurnManager(UGridTurnManagerComponent* TurnManager);
 	void ClearDeferredCombatTurnManager();
 	void TryPresentNextNotification();
-	void HandlePersistentStateRestored(const TArray<FRPGPendingLevelUpSaveState>& SavedStates);
-	bool TryAdoptPersistentRestoreState();
-	void SchedulePersistentRestoreRetry();
-	void HandlePersistentRestoreRetryTick();
-	void SyncPersistentMirrorForCharacter(const FGuid& CharacterId);
 };

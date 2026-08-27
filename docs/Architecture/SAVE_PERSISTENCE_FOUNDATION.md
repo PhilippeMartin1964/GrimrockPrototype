@@ -11,13 +11,13 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 18
+UGrimrockPartySaveGame::CurrentSaveVersion = 19
 
-SaveVersion == 18
+SaveVersion == 19
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 18
+SaveVersion != 19
     -> rejet
     -> aucune migration
 ```
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v18 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v19 exact-match.
 
 ## Dungeon state
 
@@ -140,3 +140,20 @@ Shipping après changement de schéma
 - validation sans mutation ;
 - restore atomique/fail-closed sur snapshot courant incohérent ;
 - Git, et non le runtime, conserve l'histoire du prototype.
+
+
+## TD07.3.3.9 — Level-Up acknowledgement
+
+TD07.3.3.9 ouvre la v19 exact-match.
+
+```text
+FGridCharacterInventoryState::LastAcknowledgedLevel
+    état durable
+
+PendingLevelUpNotifications
+FRPGPendingLevelUpSaveState
+PersistentNotificationMirror
+    supprimés
+```
+
+La notification de niveau est reconstruite lorsque `LastAcknowledgedLevel < Level`. Le SaveGame ne restaure plus de queue UI ; le subsystem est rafraîchi depuis le PartyInventory une fois le Pawn prêt. La v18 et toutes les générations antérieures sont incompatibles, sans migration.

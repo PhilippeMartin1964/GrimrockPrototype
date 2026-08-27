@@ -2,9 +2,9 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
-#include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "RPGMON155TestHelpers.h"
 #include "Save/GrimrockPartySaveGame.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
@@ -13,13 +13,11 @@ namespace
 		FGridTD0732StateGuard()
 		{
 			FRPGClassProgressionTransactionService::ResetRuntimeState();
-			URPGLevelUpNotificationSubsystem::RestorePersistentState({});
 		}
 
 		~FGridTD0732StateGuard()
 		{
 			FRPGClassProgressionTransactionService::ResetRuntimeState();
-			URPGLevelUpNotificationSubsystem::RestorePersistentState({});
 		}
 	};
 
@@ -160,37 +158,26 @@ bool FGridTD0732PendingLevelUpRoundTripTest::RunTest(const FString& Parameters)
 
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
-	const FGuid CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
-
-	FRPGPendingLevelUpSaveState Pending;
-	Pending.CharacterId = CharacterId;
-	Pending.PreviousLevel = 1;
-	Pending.NewLevel = 2;
-	Pending.LevelsGained = 1;
-	URPGLevelUpNotificationSubsystem::RestorePersistentState({ Pending });
+	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
+	Character.LastAcknowledgedLevel = 1;
 
 	UGrimrockPartySaveGame* SourceSave = MakeTD0732Save(Component);
 	TArray<uint8> SaveBytes;
-	TestTrue(TEXT("Save with pending Level Up serializes"), UGameplayStatics::SaveGameToMemory(SourceSave, SaveBytes));
+	TestTrue(TEXT("Save with an unacknowledged Level Up serializes"), UGameplayStatics::SaveGameToMemory(SourceSave, SaveBytes));
 
-	URPGLevelUpNotificationSubsystem::RestorePersistentState({});
 	UGrimrockPartySaveGame* LoadedSave = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(SaveBytes));
-	TestNotNull(TEXT("Save with pending Level Up deserializes"), LoadedSave);
+	TestNotNull(TEXT("Save with an unacknowledged Level Up deserializes"), LoadedSave);
 	if (!LoadedSave)
 	{
 		return false;
 	}
 
-	TestEqual(TEXT("One pending Level Up survives serialization"), LoadedSave->PendingLevelUpNotifications.Num(), 1);
-	TestTrue(TEXT("Pending Level Up keeps CharacterId"), LoadedSave->PendingLevelUpNotifications[0].CharacterId == CharacterId);
-	TestEqual(TEXT("Pending Level Up keeps previous level"), LoadedSave->PendingLevelUpNotifications[0].PreviousLevel, 1);
-	TestEqual(TEXT("Pending Level Up keeps new level"), LoadedSave->PendingLevelUpNotifications[0].NewLevel, 2);
-
-	TArray<FRPGPendingLevelUpSaveState> Recaptured;
-	FText CaptureError;
-	TestTrue(TEXT("Loaded notification is restored into the persistent mirror"),
-		URPGLevelUpNotificationSubsystem::CapturePersistentState(LoadedSave->PartyInventoryState, Recaptured, CaptureError));
-	TestEqual(TEXT("Persistent mirror contains the restored notification"), Recaptured.Num(), 1);
+	const FGridCharacterInventoryState& LoadedCharacter = LoadedSave->PartyInventoryState.ActiveCharacters[0];
+	TestEqual(TEXT("Current level survives as rebuilt projection"), LoadedCharacter.Level, 2);
+	TestEqual(TEXT("Durable acknowledgement survives serialization"), LoadedCharacter.LastAcknowledgedLevel, 1);
+	TestEqual(TEXT("Pending Level-Up delta remains derivable"), LoadedCharacter.Level - LoadedCharacter.LastAcknowledgedLevel, 1);
+	TestNull(TEXT("Separate PendingLevelUpNotifications SaveGame mirror is absent"),
+		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("PendingLevelUpNotifications")));
 	return true;
 }
 
@@ -206,18 +193,11 @@ bool FGridTD0732RejectInvalidPendingNotificationTest::RunTest(const FString& Par
 	URPGClassAsset* ClassDefinition = nullptr;
 	UGridPartyInventoryComponent* Component = MakeMON155Inventory(2, 1000, ClassDefinition);
 	UGrimrockPartySaveGame* Save = MakeTD0732Save(Component);
-	const FGuid CharacterId = Component->PartyInventoryState.ActiveCharacters[0].CharacterId;
-
-	FRPGPendingLevelUpSaveState Pending;
-	Pending.CharacterId = CharacterId;
-	Pending.PreviousLevel = 1;
-	Pending.NewLevel = 3;
-	Pending.LevelsGained = 2;
-	Save->PendingLevelUpNotifications.Add(Pending);
+	Save->PartyInventoryState.ActiveCharacters[0].LastAcknowledgedLevel = 3;
 
 	FText Error;
-	TestFalse(TEXT("Pending notification targeting a level other than current is rejected"), Save->ValidateCurrentState(Error));
-	TestTrue(TEXT("Invalid pending notification reports an error"), !Error.IsEmpty());
+	TestFalse(TEXT("Acknowledgement above the current level is rejected"), Save->ValidateCurrentState(Error));
+	TestTrue(TEXT("Invalid Level-Up acknowledgement reports an error"), !Error.IsEmpty());
 	return true;
 }
 

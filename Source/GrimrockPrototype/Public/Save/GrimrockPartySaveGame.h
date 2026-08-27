@@ -6,43 +6,20 @@
 #include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPartySaveGame.generated.h"
 
-USTRUCT(BlueprintType)
-struct FRPGPendingLevelUpSaveState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-	FGuid CharacterId;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-	int32 PreviousLevel = 1;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-	int32 NewLevel = 1;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Level Up")
-	int32 LevelsGained = 0;
-};
-
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 {
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.3.8: Character.StatusEffects is durable directly; the separate party status snapshot is removed. */
-	static constexpr int32 CurrentSaveVersion = 18;
+	/** TD07.3.3.9: Level-Up acknowledgement is durable per character; the separate pending-notification snapshot is removed. */
+	static constexpr int32 CurrentSaveVersion = 19;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridPartyInventoryState PartyInventoryState;
-
-
-	/** MON15.6 level-up notifications that still need to be presented. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
-	TArray<FRPGPendingLevelUpSaveState> PendingLevelUpNotifications;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")

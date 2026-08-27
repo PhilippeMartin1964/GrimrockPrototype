@@ -1,7 +1,9 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Magic/GridPartySpellbookComponent.h"
+#include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GridCombatSavePolicy.h"
@@ -247,6 +249,17 @@ bool AGrimrockPartyPawn::LoadCurrentGame(FText& OutError)
 	{
 		MenuWidgetInstance->RefreshInventory();
 		MenuWidgetInstance->RefreshSpellbook();
+	}
+
+	if (PartyInventoryComponent)
+	{
+		if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+		{
+			if (URPGLevelUpNotificationSubsystem* LevelUpNotifications = GameInstance->GetSubsystem<URPGLevelUpNotificationSubsystem>())
+			{
+				LevelUpNotifications->RefreshFromPartyState(PartyInventoryComponent);
+			}
+		}
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("PartySave Loaded Slot=%s"), *PartySaveSlotName);

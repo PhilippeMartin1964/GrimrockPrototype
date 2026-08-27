@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Engine/GameInstance.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputActionValue.h"
@@ -12,6 +13,7 @@
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
 #include "Magic/GridPartySpellbookComponent.h"
+#include "RPG/RPGLevelUpNotificationSubsystem.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -252,6 +254,17 @@ void AGrimrockPartyPawn::BeginPlay()
 	}
 	ApplyCameraLocalViewOffset();
 	ShowCombatActionPanelWidget();
+
+	if (bLoadedSavedGame && PartyInventoryComponent)
+	{
+		if (UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr)
+		{
+			if (URPGLevelUpNotificationSubsystem* LevelUpNotifications = GameInstance->GetSubsystem<URPGLevelUpNotificationSubsystem>())
+			{
+				LevelUpNotifications->RefreshFromPartyState(PartyInventoryComponent);
+			}
+		}
+	}
 
 	if (bLoadedSavedGame && bFreshDungeonPlaytest)
 	{

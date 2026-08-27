@@ -47,6 +47,7 @@ namespace RPGStoryCompanionServicePrivate
 		Candidate.ClassDefinition = Definition.ClassDefinition.Get();
 		Candidate.Level = Definition.Level;
 		Candidate.Experience = URPGCharacterRulesLibrary::GetCumulativeExperienceRequiredForLevel(Definition.Level);
+		Candidate.LastAcknowledgedLevel = Candidate.Level;
 		Candidate.Attributes = FinalAttributes;
 		Candidate.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Definition.ClassDefinition, Definition.Level);
 		Candidate.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Candidate.DerivedStats, Definition.ClassDefinition);

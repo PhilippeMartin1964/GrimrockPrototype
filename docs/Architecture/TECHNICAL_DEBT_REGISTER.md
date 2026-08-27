@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.9 LEVEL-UP NOTIFICATION CHARACTERIZATION ACTIVE**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.9 LEVEL-UP NOTIFICATION NORMALIZATION IMPLÉMENTÉE — À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -618,7 +618,7 @@ TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
 TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS
 TD07.3.3.7      Normalize Spellbook                                    VALIDÉ — CLOS
 TD07.3.3.8      Normalize Status Effects                               VALIDÉ — CLOS
-TD07.3.3.9      Normalize Level-Up Notification State                  CHARACTERIZATION ACTIVE
+TD07.3.3.9      Normalize Level-Up Notification State                  IMPLÉMENTÉ — À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -696,38 +696,47 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.9 — Normalize Level-Up Notification State — characterization active.**
+**Valider TD07.3.3.9 — Normalize Level-Up Notification State.**
 
-État actuel :
-
-```text
-PendingNotifications
-ActiveNotification
-PersistentNotificationMirror
-PendingPersistentRestoreStates
-PendingLevelUpNotifications [SaveGame]
-```
-
-Décision : conserver le comportement Save / Continue, mais remplacer la queue persistée par un état durable minimal :
+Nouveau contrat :
 
 ```text
 FGridCharacterInventoryState::LastAcknowledgedLevel
-```
+    autorité durable unique
 
-Une notification sera reconstruite lorsque :
-
-```text
 LastAcknowledgedLevel < Level
+    Level-Up non acquitté
 ```
 
-Filtre :
+Supprimés :
 
 ```text
+FRPGPendingLevelUpSaveState
+PendingLevelUpNotifications
+PersistentNotificationMirror
+PendingPersistentRestoreStates
+CapturePersistentState / RestorePersistentState
+restore retries
+```
+
+Le subsystem conserve uniquement sa queue transient et la reconstruit depuis le PartyInventory.
+
+```text
+CurrentSaveVersion = 19
+v18 et antérieures -> rejet sans migration
+```
+
+Filtres prioritaires :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_9.Normalization
 Grimrock.TechnicalDebt.TD07_3_3_9.Characterization
+Grimrock.TechnicalDebt.TD07_3_2.SaveContract
+Grimrock.RPG.MON15.5
 ```
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_9_LEVEL_UP_NOTIFICATION_STATE_CHARACTERIZATION.md
+docs/Design/TD07_3_3_9_LEVEL_UP_NOTIFICATION_STATE_NORMALIZATION.md
 ```

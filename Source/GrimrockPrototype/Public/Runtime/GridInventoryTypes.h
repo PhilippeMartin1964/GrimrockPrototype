@@ -356,6 +356,13 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character", meta = (ClampMin = "0"))
 	int32 Experience = 0;
 
+	/**
+	 * TD07.3.3.9 durable Level-Up acknowledgement authority.
+	 * A notification is required whenever LastAcknowledgedLevel < Level.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Progression", meta = (ClampMin = "1"))
+	int32 LastAcknowledgedLevel = 1;
+
 	/** Durable player-selected class progression choices. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Progression")
 	TArray<FName> SelectedClassProgressionChoiceIds;

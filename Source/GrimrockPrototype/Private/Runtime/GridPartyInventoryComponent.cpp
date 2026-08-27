@@ -385,6 +385,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.ClassDefinition = CombatActionSourceClass;
 	NewCharacter.Level = 1;
 	NewCharacter.Experience = 0;
+	NewCharacter.LastAcknowledgedLevel = NewCharacter.Level;
 	NewCharacter.Attributes = FinalAttributes;
 	NewCharacter.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, NewCharacter.Level);
 	NewCharacter.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewCharacter.DerivedStats, Request.ClassDefinition);
@@ -1118,6 +1119,8 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInv
 
 	CharacterState.Level = FMath::Max(1, CharacterState.Level);
 	CharacterState.Experience = FMath::Max(0, CharacterState.Experience);
+	CharacterState.LastAcknowledgedLevel =
+		FMath::Clamp(CharacterState.LastAcknowledgedLevel, URPGCharacterRulesLibrary::GetMinimumLevel(), CharacterState.Level);
 
 	CharacterState.Attributes.Strength = FMath::Max(0, CharacterState.Attributes.Strength);
 	CharacterState.Attributes.Dexterity = FMath::Max(0, CharacterState.Attributes.Dexterity);
