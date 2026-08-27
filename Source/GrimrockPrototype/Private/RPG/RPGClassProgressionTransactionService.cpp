@@ -10,10 +10,6 @@ namespace
 	struct FRuntimeClassProgressionState
 	{
 		TWeakObjectPtr<UGridPartyInventoryComponent> InventoryComponent;
-		int32 CharacterIndex = INDEX_NONE;
-		FGuid CharacterId;
-		FName ClassId = NAME_None;
-		int32 CharacterLevel = 1;
 		TSet<FName> SatisfiedRequirements;
 	};
 
@@ -61,7 +57,7 @@ namespace
 		}
 	}
 
-	bool BuildRuntimeStateFromCharacter(const FGridCharacterInventoryState& Character, int32 CharacterIndex,
+	bool BuildRuntimeStateFromCharacter(const FGridCharacterInventoryState& Character,
 		UGridPartyInventoryComponent* InventoryComponent, FRuntimeClassProgressionState& OutState, FText& OutError)
 	{
 		OutState = FRuntimeClassProgressionState();
@@ -93,10 +89,6 @@ namespace
 			}
 
 			OutState.InventoryComponent = InventoryComponent;
-			OutState.CharacterIndex = CharacterIndex;
-			OutState.CharacterId = Character.CharacterId;
-			OutState.ClassId = Character.ClassId;
-			OutState.CharacterLevel = Character.Level;
 			if (!Character.ClassId.IsNone())
 			{
 				OutState.SatisfiedRequirements.Add(Character.ClassId);
@@ -124,10 +116,6 @@ namespace
 		}
 
 		OutState.InventoryComponent = InventoryComponent;
-		OutState.CharacterIndex = CharacterIndex;
-		OutState.CharacterId = Character.CharacterId;
-		OutState.ClassId = Character.ClassId;
-		OutState.CharacterLevel = Character.Level;
 		OutState.SatisfiedRequirements = MoveTemp(SatisfiedRequirements);
 		return true;
 	}
@@ -217,7 +205,7 @@ bool FRPGClassProgressionTransactionService::RefreshCharacterProjection(UGridPar
 
 	FRuntimeClassProgressionState RebuiltState;
 	FText RebuildError;
-	if (!BuildRuntimeStateFromCharacter(*Character, CharacterIndex, PartyInventoryComponent, RebuiltState, RebuildError))
+	if (!BuildRuntimeStateFromCharacter(*Character, PartyInventoryComponent, RebuiltState, RebuildError))
 	{
 		return false;
 	}
@@ -347,7 +335,7 @@ bool FRPGClassProgressionTransactionService::TryCommitChoices(UGridPartyInventor
 	CandidateCharacter.SelectedClassProgressionChoiceIds = NormalizedChoices;
 	FRuntimeClassProgressionState CandidateRuntimeState;
 	FText ProjectionError;
-	if (!BuildRuntimeStateFromCharacter(CandidateCharacter, CharacterIndex, PartyInventoryComponent, CandidateRuntimeState, ProjectionError))
+	if (!BuildRuntimeStateFromCharacter(CandidateCharacter, PartyInventoryComponent, CandidateRuntimeState, ProjectionError))
 	{
 		OutResult.RejectReason = ERPGClassProgressionCommitRejectReason::InvalidCurrentSelection;
 		return false;
@@ -408,7 +396,7 @@ bool FRPGClassProgressionTransactionService::RebuildRuntimeProjection(const FGri
 		CharacterIds.Add(Character.CharacterId);
 
 		FRuntimeClassProgressionState RebuiltState;
-		if (!BuildRuntimeStateFromCharacter(Character, CharacterIndex, nullptr, RebuiltState, OutError))
+		if (!BuildRuntimeStateFromCharacter(Character, nullptr, RebuiltState, OutError))
 		{
 			return false;
 		}
