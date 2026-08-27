@@ -3,7 +3,7 @@
 Date : **27 août 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Baseline GitHub : `b15330c7bbcae2b2d8f45a5bf94ee8f6d05bea5f`  
-Statut : **IMPLÉMENTÉ — VALIDATION LOCALE REQUISE**
+Statut : **VALIDÉ — TD-BUILD-001 RÉSOLU**
 
 ## 1. Objet
 
@@ -136,50 +136,47 @@ docs/Architecture/TECHNICAL_DEBT_REGISTER.md
 
 Aucun C++, Blueprint, DataAsset, map ou SaveGame n'est modifié.
 
-## 9. Validation requise
+## 9. Validation réelle
 
-Après `git pull` :
-
-```powershell
-.\Scripts\CheckProjectDependencies.ps1 -EngineRoot D:\UE_5.5
-```
-
-Résultat attendu :
+Validation locale fournie le **27 août 2026** :
 
 ```text
-ModelingToolsEditorMode  -> trouvé dans Engine/Plugins
-meshy                    -> optional disabled ; présent ou absent accepté
-[OK] Project dependency contract validated.
+CheckProjectDependencies.ps1
+    Enabled plugins validated : 1
+    Optional disabled plugins : 1
+    [OK] Project dependency contract validated.
+
+Grimrock.TechnicalDebt.TD06_8
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+    Not run                : 0
+
+Win64 Shipping
+    BUILD SUCCESSFUL
+    Pak files     : 1
+    Archive files : 41
+    Archive bytes : 906089915
 ```
 
-Puis build/Automation :
-
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
-```
-
-Enfin, pour prouver que Meshy n'est pas requis par le produit Shipping :
-
-```powershell
-.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
-```
-
-Critères TD07.1 :
+Le contrôle de dépendances résout correctement :
 
 ```text
-Dependency check = success
-Editor build      = success
-Automation TD06_8 = 1 Success / 0 warning / 0 Failed
-Shipping package  = success
+ModelingToolsEditorMode -> Engine/Plugins/Editor/ModelingToolsEditorMode
+meshy                  -> optional disabled, installé localement mais non requis
 ```
 
-Les warnings Meshy précédemment observés ne doivent plus apparaître puisque le plugin est désactivé par défaut.
+Le build/cook/package ne charge plus Meshy et les warnings provenant de `Plugins/meshy/Source/meshy/meshy.Build.cs` ont disparu.
+
+Le cook expose encore un warning first-party distinct, concernant le nom Python de `EGridItemTransferResult` / `FGridItemTransferResult`. Il est transféré à TD07.2.
 
 ## 10. Stop condition
 
-TD07.1 est clos lorsque les trois validations ci-dessus sont vertes.
+Les trois validations sont vertes. **TD07.1 est clos et TD-BUILD-001 est résolu.**
 
-Le plugin Meshy ne doit alors plus être classé comme dette bloquante. La prochaine tranche de future-proofing devient :
+Meshy reste un outil local optionnel. Toute future dépendance dure à Meshy doit rouvrir TD-BUILD-001.
+
+La prochaine tranche de future-proofing est :
 
 ```text
 TD07.2 — UE deprecation cleanup / compiler warning audit

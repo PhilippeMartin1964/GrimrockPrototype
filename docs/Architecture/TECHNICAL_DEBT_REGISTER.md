@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.1 À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.2 PROCHAIN**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -55,7 +55,7 @@ TD05 et TD06 restent clos. TD07 traite uniquement des risques concrets identifi�
 
 ## TD-BUILD-001 — Dépendance Meshy / clone non reproductible
 
-**Priorité : P1 — mitigation TD07.1 implémentée / validation requise**
+**Priorité : RÉSOLUE — TD07.1 VALIDÉ**
 
 ### Constat
 
@@ -100,7 +100,16 @@ docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md
 docs/Design/TD07_1_BUILD_DEPENDENCY_REPRODUCIBILITY.md
 ```
 
-TD-BUILD-001 devient **RÉSOLU** lorsque le dependency check, le build Editor/Automation et le package Shipping sont verts sans chargement Meshy.
+Validation TD07.1 du 27 août 2026 :
+
+```text
+Dependency check     [OK]
+TD06_8 Automation    1 Success / 0 warning / 0 Failed
+Win64 Shipping       BUILD SUCCESSFUL
+Meshy Build.cs       aucun warning / plugin non chargé
+```
+
+**TD-BUILD-001 est RÉSOLU.**
 
 ---
 
@@ -487,7 +496,7 @@ TD06.6          PartyInventory Equipment Core characterization        VALIDÉ
 TD06.7          PartyInventory Equipment Core extraction              VALIDÉ
 TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
 TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ — ATTEINTE
-TD07.1          Build / dependency reproducibility                     IMPLÉMENTÉ — À VALIDER
+TD07.1          Build / dependency reproducibility                     VALIDÉ — TD-BUILD-001 RÉSOLU
 TD07.2          UE deprecation cleanup / compiler warning audit        PROCHAIN
 TD07.3          Save compatibility / legacy model audit                À FAIRE
 TD07.4          ActivationComponent characterization                   À FAIRE
@@ -562,18 +571,23 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.1 — Build / Dependency Reproducibility.**
+**TD07.2 — UE deprecation cleanup / compiler & cook warning audit.**
 
-```powershell
-.\Scripts\CheckProjectDependencies.ps1 -EngineRoot D:\UE_5.5
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
-.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
-```
-
-Après validation verte :
+First-party identifiés :
 
 ```text
-TD07.2 — UE deprecation cleanup / compiler warning audit
+USkeleton::IsCompatible()
+    -> 2 tests MON17 utilisent une API UE dépréciée
+
+EGridItemTransferResult / FGridItemTransferResult
+    -> collision de nom Python au cook
 ```
 
-Les nouvelles fonctionnalités restent suspendues pendant cette passe TD07 de future-proofing.
+Surveillé séparément :
+
+```text
+TD-BUILD-002
+    MSVC 14.44.35227 accepté mais non préféré par UE5.5.4
+```
+
+Les nouvelles fonctionnalités restent suspendues pendant TD07.
