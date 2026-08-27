@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "Magic/GridSpellbookPersistence.h"
-#include "RPG/RPGSkillPersistence.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -48,8 +47,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.3.5 B2: Level is transient and class choices live directly on character state. */
-	static constexpr int32 CurrentSaveVersion = 15;
+	/** TD07.3.3.6: SkillRanks is durable character state; the separate Skill snapshot is removed. */
+	static constexpr int32 CurrentSaveVersion = 16;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -70,9 +69,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Magic|Spellbook")
 	TArray<FGridCharacterSpellbookSaveState> CharacterSpellbookStates;
 
-	/** MON20.9 sparse Skill rank snapshots for active and pooled characters. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Skills")
-	TArray<FRPGCharacterSkillSaveState> CharacterSkillStates;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridDungeonRuntimeState DungeonRuntimeState;

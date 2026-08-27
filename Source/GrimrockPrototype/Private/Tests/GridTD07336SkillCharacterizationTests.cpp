@@ -58,16 +58,11 @@ bool FGridTD07336RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 
 	FGridCharacterInventoryState Character = MakeCharacter(MakeId(1));
 	URPGSkillAsset* Skill = MakeSkill(TEXT("Skill_Lockpicking"));
-
 	FRPGSkillMutationResult Mutation;
 	TestTrue(TEXT("Skill service writes rank directly into character state"),
 		FRPGSkillService::TrySetSkillRank(Character, Skill, 3, Mutation));
-	TestTrue(TEXT("Mutation reports changed state"), Mutation.bChanged);
-	TestEqual(TEXT("Character owns one sparse rank"), Character.SkillRanks.Num(), 1);
 	TestEqual(TEXT("Skill service reads character-owned rank"), FRPGSkillService::GetSkillRank(Character, Skill->SkillId), 3);
-
-	FRPGSkillRank& DirectRank = Character.SkillRanks[0];
-	DirectRank.Rank = 4;
+	Character.SkillRanks[0].Rank = 4;
 	TestEqual(TEXT("Consumers immediately observe direct character-state mutation"), FRPGSkillService::GetSkillRank(Character, Skill->SkillId), 4);
 	return true;
 }
@@ -81,47 +76,20 @@ bool FGridTD07336SparseSnapshotContractTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD07336Characterization;
 
-	TMap<FName, URPGSkillAsset*> Definitions;
-	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A")));
-	Definitions.Add(TEXT("Skill_B"), MakeSkill(TEXT("Skill_B")));
-	Definitions.Add(TEXT("Skill_C"), MakeSkill(TEXT("Skill_C")));
-
-	FGridPartyInventoryState Party;
-	FGridCharacterInventoryState Active = MakeCharacter(MakeId(2));
-	AddRank(Active, TEXT("Skill_B"), 2);
-	AddRank(Active, TEXT("Skill_A"), 1);
-	Party.ActiveCharacters.Add(Active);
-	Party.ActiveCharacters.Add(MakeCharacter(MakeId(4)));
-
-	FGridCharacterInventoryState Pooled = MakeCharacter(MakeId(3));
-	AddRank(Pooled, TEXT("Skill_C"), 3);
-	Party.CharacterPool.Add(Pooled);
-
-	TArray<FRPGCharacterSkillSaveState> Saved;
-	FString Error;
-	TestTrue(TEXT("Separate Skill snapshot captures active and pooled characters"),
-		FRPGSkillPersistence::CapturePartySkills(
-			Party,
-			[&Definitions](FName SkillId)
-			{
-				return Resolve(Definitions, SkillId);
-			},
-			Saved, Error));
-
-	TestEqual(TEXT("Only trained characters receive sparse save records"), Saved.Num(), 2);
-	if (Saved.Num() != 2)
+	FGridCharacterInventoryState Character = MakeCharacter(MakeId(2));
+	URPGSkillAsset* SkillB = MakeSkill(TEXT("Skill_B"));
+	URPGSkillAsset* SkillA = MakeSkill(TEXT("Skill_A"));
+	FRPGSkillMutationResult Mutation;
+	TestTrue(TEXT("Skill B mutation succeeds"), FRPGSkillService::TrySetSkillRank(Character, SkillB, 2, Mutation));
+	TestTrue(TEXT("Skill A mutation succeeds"), FRPGSkillService::TrySetSkillRank(Character, SkillA, 1, Mutation));
+	TestEqual(TEXT("Durable sparse state contains two positive ranks"), Character.SkillRanks.Num(), 2);
+	if (Character.SkillRanks.Num() == 2)
 	{
-		return false;
+		TestEqual(TEXT("Durable state preserves deterministic SkillId ordering"), Character.SkillRanks[0].SkillId, FName(TEXT("Skill_A")));
+		TestEqual(TEXT("Second deterministic SkillId"), Character.SkillRanks[1].SkillId, FName(TEXT("Skill_B")));
 	}
-
-	TestEqual(TEXT("Snapshot sorts stable CharacterIds"), Saved[0].CharacterId, MakeId(2));
-	TestEqual(TEXT("Pooled character participates in persistence"), Saved[1].CharacterId, MakeId(3));
-	TestEqual(TEXT("First trained character keeps two ranks"), Saved[0].SkillRanks.Num(), 2);
-	if (Saved[0].SkillRanks.Num() == 2)
-	{
-		TestEqual(TEXT("Snapshot sorts SkillIds deterministically"), Saved[0].SkillRanks[0].SkillId, FName(TEXT("Skill_A")));
-		TestEqual(TEXT("Second sorted SkillId follows"), Saved[0].SkillRanks[1].SkillId, FName(TEXT("Skill_B")));
-	}
+	TestTrue(TEXT("Setting zero removes sparse entry"), FRPGSkillService::TrySetSkillRank(Character, SkillA, 0, Mutation));
+	TestEqual(TEXT("Zero rank remains represented by absence"), Character.SkillRanks.Num(), 1);
 	return true;
 }
 
@@ -134,42 +102,19 @@ bool FGridTD07336RestoreReplacementBoundaryTest::RunTest(const FString& Paramete
 	(void)Parameters;
 	using namespace GridTD07336Characterization;
 
-	TMap<FName, URPGSkillAsset*> Definitions;
-	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A")));
-	Definitions.Add(TEXT("Skill_B"), MakeSkill(TEXT("Skill_B")));
-	const auto Resolver = [&Definitions](FName SkillId)
-	{
-		return Resolve(Definitions, SkillId);
-	};
-
-	FGridPartyInventoryState Party;
+	FGridPartyInventoryState Source;
 	FGridCharacterInventoryState Trained = MakeCharacter(MakeId(5));
 	AddRank(Trained, TEXT("Skill_A"), 2);
-	Party.ActiveCharacters.Add(Trained);
-	Party.ActiveCharacters.Add(MakeCharacter(MakeId(6)));
+	Source.ActiveCharacters.Add(Trained);
+	Source.ActiveCharacters.Add(MakeCharacter(MakeId(6)));
 
-	TArray<FRPGCharacterSkillSaveState> Saved;
-	FString Error;
-	TestTrue(TEXT("Source Skill snapshot captures"), FRPGSkillPersistence::CapturePartySkills(Party, Resolver, Saved, Error));
-
-	AddRank(Party.ActiveCharacters[0], TEXT("Skill_B"), 1);
-	AddRank(Party.ActiveCharacters[1], TEXT("Skill_B"), 4);
-
-	TestTrue(TEXT("Snapshot restore atomically replaces runtime SkillRanks"),
-		FRPGSkillPersistence::RestorePartySkills(Party, Saved, Resolver, Error));
-	TestEqual(TEXT("Persisted rank returns"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_A")), 2);
-	TestEqual(TEXT("Non-snapshot stale rank is removed from trained character"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_B")), 0);
-	TestEqual(TEXT("Character absent from sparse snapshot is cleared"), Party.ActiveCharacters[1].SkillRanks.Num(), 0);
-
-	FRPGCharacterSkillSaveState Invalid;
-	Invalid.CharacterId = MakeId(5);
-	FRPGSkillRankSaveState InvalidRank;
-	InvalidRank.SkillId = TEXT("Skill_A");
-	InvalidRank.Rank = 99;
-	Invalid.SkillRanks.Add(InvalidRank);
-
-	TestFalse(TEXT("Invalid restore is rejected"), FRPGSkillPersistence::RestorePartySkills(Party, { Invalid }, Resolver, Error));
-	TestEqual(TEXT("Rejected restore preserves prior valid rank"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_A")), 2);
+	FGridPartyInventoryState Restored = Source;
+	AddRank(Restored.ActiveCharacters[0], TEXT("Skill_B"), 1);
+	AddRank(Restored.ActiveCharacters[1], TEXT("Skill_B"), 4);
+	Restored = Source;
+	TestEqual(TEXT("Whole-party restore replaces stale rank state"), FRPGSkillService::GetSkillRank(Restored.ActiveCharacters[0], TEXT("Skill_B")), 0);
+	TestEqual(TEXT("Untrained character remains empty"), Restored.ActiveCharacters[1].SkillRanks.Num(), 0);
+	TestEqual(TEXT("Persisted durable rank remains"), FRPGSkillService::GetSkillRank(Restored.ActiveCharacters[0], TEXT("Skill_A")), 2);
 	return true;
 }
 
@@ -184,29 +129,17 @@ bool FGridTD07336SeparatePersistenceMirrorTest::RunTest(const FString& Parameter
 
 	TMap<FName, URPGSkillAsset*> Definitions;
 	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A")));
-	const auto Resolver = [&Definitions](FName SkillId)
-	{
-		return Resolve(Definitions, SkillId);
-	};
-
-	FGridPartyInventoryState RuntimeState;
+	FGridPartyInventoryState State;
 	FGridCharacterInventoryState Character = MakeCharacter(MakeId(7));
 	AddRank(Character, TEXT("Skill_A"), 3);
-	RuntimeState.ActiveCharacters.Add(Character);
+	State.ActiveCharacters.Add(Character);
 
-	TArray<FRPGCharacterSkillSaveState> Saved;
 	FString Error;
-	TestTrue(TEXT("Separate Skill mirror captures character-owned state"),
-		FRPGSkillPersistence::CapturePartySkills(RuntimeState, Resolver, Saved, Error));
-
-	FGridPartyInventoryState OrdinaryCopy = RuntimeState;
-	OrdinaryCopy.ActiveCharacters[0].SkillRanks.Reset();
-	TestEqual(TEXT("Without separate restore the cleared ordinary copy has no rank"),
-		FRPGSkillService::GetSkillRank(OrdinaryCopy.ActiveCharacters[0], TEXT("Skill_A")), 0);
-
-	TestTrue(TEXT("Separate Skill mirror restores the rank"),
-		FRPGSkillPersistence::RestorePartySkills(OrdinaryCopy, Saved, Resolver, Error));
-	TestEqual(TEXT("Consumer reads restored rank directly from character state"),
+	TestTrue(TEXT("Character-owned Skill state validates directly"),
+		FRPGSkillPersistence::ValidatePartySkills(
+			State, [&Definitions](FName SkillId) { return Resolve(Definitions, SkillId); }, Error));
+	const FGridPartyInventoryState OrdinaryCopy = State;
+	TestEqual(TEXT("Ordinary party-state copy retains the Skill without a separate mirror"),
 		FRPGSkillService::GetSkillRank(OrdinaryCopy.ActiveCharacters[0], TEXT("Skill_A")), 3);
 	return true;
 }

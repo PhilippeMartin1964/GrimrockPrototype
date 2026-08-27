@@ -1,11 +1,11 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillPersistence.h"
 #include "RPG/RPGSkillService.h"
 #include "Runtime/GridInventoryTypes.h"
-#include "Save/GrimrockPartySaveGame.h"
 
 namespace RPGMON2092Tests
 {
@@ -18,6 +18,7 @@ namespace RPGMON2092Tests
 	{
 		URPGSkillAsset* Skill = NewObject<URPGSkillAsset>();
 		Skill->SkillId = SkillId;
+		Skill->DisplayName = FText::FromName(SkillId);
 		Skill->MaxRank = MaxRank;
 		return Skill;
 	}
@@ -45,15 +46,15 @@ namespace RPGMON2092Tests
 		return Found ? *Found : nullptr;
 	}
 
-	FRPGCharacterSkillSaveState MakeSentinelSnapshot()
+	const FGridCharacterInventoryState* FindCharacter(const FGridPartyInventoryState& State, const FGuid& CharacterId)
 	{
-		FRPGCharacterSkillSaveState Sentinel;
-		Sentinel.CharacterId = MakeId(999);
-		FRPGSkillRankSaveState Rank;
-		Rank.SkillId = TEXT("Sentinel");
-		Rank.Rank = 1;
-		Sentinel.SkillRanks.Add(Rank);
-		return Sentinel;
+		if (const FGridCharacterInventoryState* Active = State.ActiveCharacters.FindByPredicate(
+				[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; }))
+		{
+			return Active;
+		}
+		return State.CharacterPool.FindByPredicate(
+			[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; });
 	}
 }
 
@@ -65,7 +66,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092CaptureActivePoolSparseTest, "Grimro
 bool FRPGMON2092CaptureActivePoolSparseTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
 	TMap<FName, URPGSkillAsset*> Definitions;
 	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A"), 5));
 	Definitions.Add(TEXT("Skill_B"), MakeSkill(TEXT("Skill_B"), 5));
@@ -73,39 +73,21 @@ bool FRPGMON2092CaptureActivePoolSparseTest::RunTest(const FString& Parameters)
 
 	FGridPartyInventoryState Party;
 	FGridCharacterInventoryState Active = MakeCharacter(MakeId(1));
-	AddRank(Active, TEXT("Skill_B"), 2);
 	AddRank(Active, TEXT("Skill_A"), 1);
+	AddRank(Active, TEXT("Skill_B"), 2);
 	Party.ActiveCharacters.Add(Active);
 	Party.ActiveCharacters.Add(MakeCharacter(MakeId(3)));
-
 	FGridCharacterInventoryState Pooled = MakeCharacter(MakeId(2));
 	AddRank(Pooled, TEXT("Skill_C"), 3);
 	Party.CharacterPool.Add(Pooled);
 
-	TArray<FRPGCharacterSkillSaveState> Saved;
 	FString Error;
-	TestTrue(TEXT("Active and pooled Skills capture"),
-		FRPGSkillPersistence::CapturePartySkills(
-			Party,
-			[&Definitions](FName SkillId)
-			{
-				return Resolve(Definitions, SkillId);
-			},
-			Saved, Error));
-	TestEqual(TEXT("Only trained characters get sparse snapshots"), Saved.Num(), 2);
-	if (Saved.Num() != 2)
-	{
-		return false;
-	}
-
-	TestTrue(TEXT("Snapshots sort by CharacterId"), Saved[0].CharacterId == MakeId(1));
-	TestTrue(TEXT("Pooled character is captured"), Saved[1].CharacterId == MakeId(2));
-	TestEqual(TEXT("Active snapshot contains two ranks"), Saved[0].SkillRanks.Num(), 2);
-	if (Saved[0].SkillRanks.Num() == 2)
-	{
-		TestEqual(TEXT("Skill ranks sort by SkillId"), Saved[0].SkillRanks[0].SkillId, FName(TEXT("Skill_A")));
-		TestEqual(TEXT("Second sorted SkillId"), Saved[0].SkillRanks[1].SkillId, FName(TEXT("Skill_B")));
-	}
+	TestTrue(TEXT("Durable active and pooled Skill state validates"),
+		FRPGSkillPersistence::ValidatePartySkills(
+			Party, [&Definitions](FName SkillId) { return Resolve(Definitions, SkillId); }, Error));
+	TestEqual(TEXT("Active trained character owns two sparse ranks"), Party.ActiveCharacters[0].SkillRanks.Num(), 2);
+	TestEqual(TEXT("Untrained active character owns no sparse ranks"), Party.ActiveCharacters[1].SkillRanks.Num(), 0);
+	TestEqual(TEXT("Pooled character owns its durable rank"), Party.CharacterPool[0].SkillRanks.Num(), 1);
 	return true;
 }
 
@@ -115,54 +97,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092CaptureDeterministicOrderTest, "Grim
 bool FRPGMON2092CaptureDeterministicOrderTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
-	TMap<FName, URPGSkillAsset*> Definitions;
-	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A"), 5));
-	Definitions.Add(TEXT("Skill_B"), MakeSkill(TEXT("Skill_B"), 5));
-
-	FGridCharacterInventoryState Character1A = MakeCharacter(MakeId(1));
-	AddRank(Character1A, TEXT("Skill_B"), 2);
-	AddRank(Character1A, TEXT("Skill_A"), 1);
-	FGridCharacterInventoryState Character2A = MakeCharacter(MakeId(2));
-	AddRank(Character2A, TEXT("Skill_A"), 4);
-
-	FGridPartyInventoryState PartyA;
-	PartyA.ActiveCharacters = { Character2A, Character1A };
-
-	FGridCharacterInventoryState Character1B = MakeCharacter(MakeId(1));
-	AddRank(Character1B, TEXT("Skill_A"), 1);
-	AddRank(Character1B, TEXT("Skill_B"), 2);
-	FGridCharacterInventoryState Character2B = MakeCharacter(MakeId(2));
-	AddRank(Character2B, TEXT("Skill_A"), 4);
-
-	FGridPartyInventoryState PartyB;
-	PartyB.ActiveCharacters = { Character1B, Character2B };
-
-	const auto Resolver = [&Definitions](FName SkillId)
+	FGridCharacterInventoryState Character = MakeCharacter(MakeId(1));
+	URPGSkillAsset* SkillB = MakeSkill(TEXT("Skill_B"), 5);
+	URPGSkillAsset* SkillA = MakeSkill(TEXT("Skill_A"), 5);
+	FRPGSkillMutationResult Mutation;
+	TestTrue(TEXT("Skill B mutation succeeds"), FRPGSkillService::TrySetSkillRank(Character, SkillB, 2, Mutation));
+	TestTrue(TEXT("Skill A mutation succeeds"), FRPGSkillService::TrySetSkillRank(Character, SkillA, 1, Mutation));
+	TestEqual(TEXT("Durable rank count"), Character.SkillRanks.Num(), 2);
+	if (Character.SkillRanks.Num() == 2)
 	{
-		return Resolve(Definitions, SkillId);
-	};
-
-	TArray<FRPGCharacterSkillSaveState> SavedA;
-	TArray<FRPGCharacterSkillSaveState> SavedB;
-	FString Error;
-	TestTrue(TEXT("First ordering captures"), FRPGSkillPersistence::CapturePartySkills(PartyA, Resolver, SavedA, Error));
-	TestTrue(TEXT("Second ordering captures"), FRPGSkillPersistence::CapturePartySkills(PartyB, Resolver, SavedB, Error));
-	TestEqual(TEXT("Snapshot counts match"), SavedA.Num(), SavedB.Num());
-	if (SavedA.Num() != SavedB.Num())
-	{
-		return false;
-	}
-
-	for (int32 Index = 0; Index < SavedA.Num(); ++Index)
-	{
-		TestTrue(TEXT("Character order is deterministic"), SavedA[Index].CharacterId == SavedB[Index].CharacterId);
-		TestEqual(TEXT("Rank counts are deterministic"), SavedA[Index].SkillRanks.Num(), SavedB[Index].SkillRanks.Num());
-		for (int32 RankIndex = 0; RankIndex < SavedA[Index].SkillRanks.Num() && RankIndex < SavedB[Index].SkillRanks.Num(); ++RankIndex)
-		{
-			TestEqual(TEXT("SkillId order is deterministic"), SavedA[Index].SkillRanks[RankIndex].SkillId, SavedB[Index].SkillRanks[RankIndex].SkillId);
-			TestEqual(TEXT("Rank values are deterministic"), SavedA[Index].SkillRanks[RankIndex].Rank, SavedB[Index].SkillRanks[RankIndex].Rank);
-		}
+		TestEqual(TEXT("Durable ranks sort by SkillId"), Character.SkillRanks[0].SkillId, FName(TEXT("Skill_A")));
+		TestEqual(TEXT("Second durable SkillId"), Character.SkillRanks[1].SkillId, FName(TEXT("Skill_B")));
 	}
 	return true;
 }
@@ -173,37 +118,20 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092CaptureInvalidCharacterAtomicTest, "
 bool FRPGMON2092CaptureInvalidCharacterAtomicTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
-	const FGuid DuplicateId = MakeId(1);
 	FGridPartyInventoryState Party;
-	Party.ActiveCharacters.Add(MakeCharacter(DuplicateId));
-	Party.CharacterPool.Add(MakeCharacter(DuplicateId));
-
-	TArray<FRPGCharacterSkillSaveState> Saved;
-	Saved.Add(MakeSentinelSnapshot());
+	Party.ActiveCharacters.Add(MakeCharacter(MakeId(1)));
+	Party.CharacterPool.Add(MakeCharacter(MakeId(1)));
+	const FGridPartyInventoryState Before = Party;
 	FString Error;
 	TestFalse(TEXT("Duplicate CharacterId is rejected"),
-		FRPGSkillPersistence::CapturePartySkills(
-			Party,
-			[](FName) -> const URPGSkillAsset*
-			{
-				return nullptr;
-			},
-			Saved, Error));
-	TestEqual(TEXT("Failed capture leaves output untouched"), Saved.Num(), 1);
-	TestTrue(TEXT("Sentinel snapshot survives failed capture"), Saved[0].CharacterId == MakeId(999));
+		FRPGSkillPersistence::ValidatePartySkills(Party, [](FName) -> const URPGSkillAsset* { return nullptr; }, Error));
+	TestEqual(TEXT("Validation never mutates active character count"), Party.ActiveCharacters.Num(), Before.ActiveCharacters.Num());
+	TestEqual(TEXT("Validation never mutates pool character count"), Party.CharacterPool.Num(), Before.CharacterPool.Num());
 
 	Party = FGridPartyInventoryState();
 	Party.ActiveCharacters.Add(MakeCharacter(FGuid()));
 	TestFalse(TEXT("Invalid CharacterId is rejected"),
-		FRPGSkillPersistence::CapturePartySkills(
-			Party,
-			[](FName) -> const URPGSkillAsset*
-			{
-				return nullptr;
-			},
-			Saved, Error));
-	TestEqual(TEXT("Second failed capture is also atomic"), Saved.Num(), 1);
+		FRPGSkillPersistence::ValidatePartySkills(Party, [](FName) -> const URPGSkillAsset* { return nullptr; }, Error));
 	return true;
 }
 
@@ -213,40 +141,29 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092CaptureInvalidSkillAtomicTest, "Grim
 bool FRPGMON2092CaptureInvalidSkillAtomicTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
 	TMap<FName, URPGSkillAsset*> Definitions;
 	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A"), 2));
-	const auto Resolver = [&Definitions](FName SkillId)
-	{
-		return Resolve(Definitions, SkillId);
-	};
-
-	TArray<FRPGCharacterSkillSaveState> Saved;
-	Saved.Add(MakeSentinelSnapshot());
+	const auto Resolver = [&Definitions](FName SkillId) { return Resolve(Definitions, SkillId); };
 	FString Error;
 
 	FGridPartyInventoryState DuplicateParty;
-	FGridCharacterInventoryState DuplicateCharacter = MakeCharacter(MakeId(1));
-	AddRank(DuplicateCharacter, TEXT("Skill_A"), 1);
-	AddRank(DuplicateCharacter, TEXT("Skill_A"), 2);
-	DuplicateParty.ActiveCharacters.Add(DuplicateCharacter);
-	TestFalse(TEXT("Duplicate runtime SkillId is rejected"), FRPGSkillPersistence::CapturePartySkills(DuplicateParty, Resolver, Saved, Error));
-	TestEqual(TEXT("Duplicate rejection is atomic"), Saved.Num(), 1);
+	FGridCharacterInventoryState Duplicate = MakeCharacter(MakeId(1));
+	AddRank(Duplicate, TEXT("Skill_A"), 1);
+	AddRank(Duplicate, TEXT("Skill_A"), 2);
+	DuplicateParty.ActiveCharacters.Add(Duplicate);
+	TestFalse(TEXT("Duplicate durable SkillId is rejected"), FRPGSkillPersistence::ValidatePartySkills(DuplicateParty, Resolver, Error));
 
 	FGridPartyInventoryState OverRankParty;
-	FGridCharacterInventoryState OverRankCharacter = MakeCharacter(MakeId(1));
-	AddRank(OverRankCharacter, TEXT("Skill_A"), 3);
-	OverRankParty.ActiveCharacters.Add(OverRankCharacter);
-	TestFalse(TEXT("Rank above MaxRank is rejected"), FRPGSkillPersistence::CapturePartySkills(OverRankParty, Resolver, Saved, Error));
-	TestEqual(TEXT("MaxRank rejection is atomic"), Saved.Num(), 1);
+	FGridCharacterInventoryState OverRank = MakeCharacter(MakeId(2));
+	AddRank(OverRank, TEXT("Skill_A"), 3);
+	OverRankParty.ActiveCharacters.Add(OverRank);
+	TestFalse(TEXT("Rank above MaxRank is rejected"), FRPGSkillPersistence::ValidatePartySkills(OverRankParty, Resolver, Error));
 
 	FGridPartyInventoryState MissingParty;
-	FGridCharacterInventoryState MissingCharacter = MakeCharacter(MakeId(1));
-	AddRank(MissingCharacter, TEXT("Skill_Missing"), 1);
-	MissingParty.ActiveCharacters.Add(MissingCharacter);
-	TestFalse(TEXT("Missing canonical definition is rejected"), FRPGSkillPersistence::CapturePartySkills(MissingParty, Resolver, Saved, Error));
-	TestEqual(TEXT("Missing-definition rejection is atomic"), Saved.Num(), 1);
-	TestTrue(TEXT("Sentinel output remains intact"), Saved[0].CharacterId == MakeId(999));
+	FGridCharacterInventoryState Missing = MakeCharacter(MakeId(3));
+	AddRank(Missing, TEXT("Skill_Missing"), 1);
+	MissingParty.ActiveCharacters.Add(Missing);
+	TestFalse(TEXT("Missing canonical definition is rejected"), FRPGSkillPersistence::ValidatePartySkills(MissingParty, Resolver, Error));
 	return true;
 }
 
@@ -256,38 +173,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092RestoreRoundTripTest, "Grimrock.MON2
 bool FRPGMON2092RestoreRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
-	TMap<FName, URPGSkillAsset*> Definitions;
-	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A"), 5));
-	Definitions.Add(TEXT("Skill_B"), MakeSkill(TEXT("Skill_B"), 5));
-	const auto Resolver = [&Definitions](FName SkillId)
-	{
-		return Resolve(Definitions, SkillId);
-	};
-
-	FGridPartyInventoryState Party;
+	FGridPartyInventoryState Source;
 	FGridCharacterInventoryState Active = MakeCharacter(MakeId(1));
 	AddRank(Active, TEXT("Skill_A"), 2);
-	Party.ActiveCharacters.Add(Active);
-	Party.ActiveCharacters.Add(MakeCharacter(MakeId(3)));
-	FGridCharacterInventoryState Pooled = MakeCharacter(MakeId(2));
-	AddRank(Pooled, TEXT("Skill_B"), 4);
-	Party.CharacterPool.Add(Pooled);
+	Source.ActiveCharacters.Add(Active);
+	FGridCharacterInventoryState Pool = MakeCharacter(MakeId(2));
+	AddRank(Pool, TEXT("Skill_B"), 4);
+	Source.CharacterPool.Add(Pool);
 
-	TArray<FRPGCharacterSkillSaveState> Saved;
-	FString Error;
-	TestTrue(TEXT("Source state captures"), FRPGSkillPersistence::CapturePartySkills(Party, Resolver, Saved, Error));
-
-	FGridPartyInventoryState Restored = Party;
-	Restored.ActiveCharacters[0].SkillRanks.Reset();
-	AddRank(Restored.ActiveCharacters[0], TEXT("Skill_B"), 1);
-	AddRank(Restored.ActiveCharacters[1], TEXT("Skill_A"), 5);
-	Restored.CharacterPool[0].SkillRanks.Reset();
-
-	TestTrue(TEXT("Captured state restores"), FRPGSkillPersistence::RestorePartySkills(Restored, Saved, Resolver, Error));
-	TestEqual(TEXT("Active Skill rank is restored"), FRPGSkillService::GetSkillRank(Restored.ActiveCharacters[0], TEXT("Skill_A")), 2);
-	TestEqual(TEXT("Unpersisted active character is cleared"), Restored.ActiveCharacters[1].SkillRanks.Num(), 0);
-	TestEqual(TEXT("Pooled Skill rank is restored"), FRPGSkillService::GetSkillRank(Restored.CharacterPool[0], TEXT("Skill_B")), 4);
+	const FGridPartyInventoryState Restored = Source;
+	TestEqual(TEXT("Active durable rank survives ordinary party-state copy"), FRPGSkillService::GetSkillRank(Restored.ActiveCharacters[0], TEXT("Skill_A")), 2);
+	TestEqual(TEXT("Pooled durable rank survives ordinary party-state copy"), FRPGSkillService::GetSkillRank(Restored.CharacterPool[0], TEXT("Skill_B")), 4);
 	return true;
 }
 
@@ -297,38 +193,21 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092RestoreByCharacterIdTest, "Grimrock.
 bool FRPGMON2092RestoreByCharacterIdTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	const FGuid CharacterId = MakeId(7);
+	FGridPartyInventoryState State;
+	FGridCharacterInventoryState Character = MakeCharacter(CharacterId);
+	AddRank(Character, TEXT("Skill_A"), 3);
+	State.ActiveCharacters.Add(Character);
 
-	TMap<FName, URPGSkillAsset*> Definitions;
-	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A"), 5));
-	Definitions.Add(TEXT("Skill_B"), MakeSkill(TEXT("Skill_B"), 5));
-	const auto Resolver = [&Definitions](FName SkillId)
+	FGridCharacterInventoryState Moved = State.ActiveCharacters[0];
+	State.ActiveCharacters.Reset();
+	State.CharacterPool.Add(Moved);
+	const FGridCharacterInventoryState* Found = FindCharacter(State, CharacterId);
+	TestNotNull(TEXT("Moved durable character remains resolvable by CharacterId"), Found);
+	if (Found)
 	{
-		return Resolve(Definitions, SkillId);
-	};
-
-	FGridPartyInventoryState Party;
-	Party.ActiveCharacters.Add(MakeCharacter(MakeId(2)));
-	Party.CharacterPool.Add(MakeCharacter(MakeId(1)));
-
-	FRPGCharacterSkillSaveState ForPooled;
-	ForPooled.CharacterId = MakeId(1);
-	FRPGSkillRankSaveState RankA;
-	RankA.SkillId = TEXT("Skill_A");
-	RankA.Rank = 1;
-	ForPooled.SkillRanks.Add(RankA);
-
-	FRPGCharacterSkillSaveState ForActive;
-	ForActive.CharacterId = MakeId(2);
-	FRPGSkillRankSaveState RankB;
-	RankB.SkillId = TEXT("Skill_B");
-	RankB.Rank = 3;
-	ForActive.SkillRanks.Add(RankB);
-
-	TArray<FRPGCharacterSkillSaveState> ReversedSnapshots = { ForActive, ForPooled };
-	FString Error;
-	TestTrue(TEXT("Reversed snapshots restore"), FRPGSkillPersistence::RestorePartySkills(Party, ReversedSnapshots, Resolver, Error));
-	TestEqual(TEXT("Active character receives its CharacterId-matched Skill"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_B")), 3);
-	TestEqual(TEXT("Pooled character receives its CharacterId-matched Skill"), FRPGSkillService::GetSkillRank(Party.CharacterPool[0], TEXT("Skill_A")), 1);
+		TestEqual(TEXT("Skill rank moves with character authority"), FRPGSkillService::GetSkillRank(*Found, TEXT("Skill_A")), 3);
+	}
 	return true;
 }
 
@@ -338,38 +217,20 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092RestoreInvalidSnapshotAtomicTest, "G
 bool FRPGMON2092RestoreInvalidSnapshotAtomicTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-
 	TMap<FName, URPGSkillAsset*> Definitions;
 	Definitions.Add(TEXT("Skill_A"), MakeSkill(TEXT("Skill_A"), 2));
-	const auto Resolver = [&Definitions](FName SkillId)
-	{
-		return Resolve(Definitions, SkillId);
-	};
+	const auto Resolver = [&Definitions](FName SkillId) { return Resolve(Definitions, SkillId); };
 
-	FGridPartyInventoryState Party;
+	FGridPartyInventoryState Valid;
 	FGridCharacterInventoryState Character = MakeCharacter(MakeId(1));
 	AddRank(Character, TEXT("Skill_A"), 1);
-	Party.ActiveCharacters.Add(Character);
+	Valid.ActiveCharacters.Add(Character);
 
-	FRPGCharacterSkillSaveState MissingDefinition;
-	MissingDefinition.CharacterId = MakeId(1);
-	FRPGSkillRankSaveState MissingRank;
-	MissingRank.SkillId = TEXT("Skill_Missing");
-	MissingRank.Rank = 1;
-	MissingDefinition.SkillRanks.Add(MissingRank);
-
+	FGridPartyInventoryState Candidate = Valid;
+	Candidate.ActiveCharacters[0].SkillRanks[0].Rank = 3;
 	FString Error;
-	TestFalse(TEXT("Missing definition rejects restore"), FRPGSkillPersistence::RestorePartySkills(Party, { MissingDefinition }, Resolver, Error));
-	TestEqual(TEXT("Failed restore preserves original runtime rank"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_A")), 1);
-
-	FRPGCharacterSkillSaveState OverRank;
-	OverRank.CharacterId = MakeId(1);
-	FRPGSkillRankSaveState InvalidRank;
-	InvalidRank.SkillId = TEXT("Skill_A");
-	InvalidRank.Rank = 3;
-	OverRank.SkillRanks.Add(InvalidRank);
-	TestFalse(TEXT("Rank above MaxRank rejects restore"), FRPGSkillPersistence::RestorePartySkills(Party, { OverRank }, Resolver, Error));
-	TestEqual(TEXT("Second failed restore remains atomic"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_A")), 1);
+	TestFalse(TEXT("Invalid durable candidate is rejected"), FRPGSkillPersistence::ValidatePartySkills(Candidate, Resolver, Error));
+	TestEqual(TEXT("Rejected candidate does not mutate original durable state"), FRPGSkillService::GetSkillRank(Valid.ActiveCharacters[0], TEXT("Skill_A")), 1);
 	return true;
 }
 

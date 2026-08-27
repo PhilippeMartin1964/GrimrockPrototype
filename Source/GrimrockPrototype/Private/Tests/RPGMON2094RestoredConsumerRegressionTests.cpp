@@ -5,7 +5,6 @@
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "RPG/RPGSkillAsset.h"
-#include "RPG/RPGSkillPersistence.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/RPGSkillService.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
@@ -85,31 +84,67 @@ namespace RPGMON2094Tests
 		return Grant;
 	}
 
-	TArray<FRPGCharacterSkillSaveState> MakeMON2094Snapshot(const FGuid& CharacterId, FName SkillId, int32 Rank)
+	struct FMON2094DurableSkillState
 	{
-		FRPGSkillRankSaveState SavedRank;
-		SavedRank.SkillId = SkillId;
-		SavedRank.Rank = Rank;
+		FGuid CharacterId;
+		FName SkillId = NAME_None;
+		int32 Rank = 0;
+	};
 
-		FRPGCharacterSkillSaveState SavedCharacter;
-		SavedCharacter.CharacterId = CharacterId;
-		SavedCharacter.SkillRanks.Add(SavedRank);
-
-		TArray<FRPGCharacterSkillSaveState> SavedStates;
-		SavedStates.Add(SavedCharacter);
-		return SavedStates;
+	TArray<FMON2094DurableSkillState> MakeMON2094Snapshot(const FGuid& CharacterId, FName SkillId, int32 Rank)
+	{
+		FMON2094DurableSkillState State;
+		State.CharacterId = CharacterId;
+		State.SkillId = SkillId;
+		State.Rank = Rank;
+		return { State };
 	}
 
 	bool RestoreMON2094Skill(
-		UGridPartyInventoryComponent* Party, const TArray<FRPGCharacterSkillSaveState>& SavedStates, URPGSkillAsset* Skill, FString& OutError)
+		UGridPartyInventoryComponent* Party, const TArray<FMON2094DurableSkillState>& SavedStates, URPGSkillAsset* Skill, FString& OutError)
 	{
-		return FRPGSkillPersistence::RestorePartySkills(
-			Party->PartyInventoryState, SavedStates,
-			[Skill](FName SkillId) -> const URPGSkillAsset*
+		if (!Party || !IsValid(Skill))
+		{
+			OutError = TEXT("Invalid durable Skill restore fixture.");
+			return false;
+		}
+
+		FGridPartyInventoryState Candidate = Party->PartyInventoryState;
+		for (FGridCharacterInventoryState& Character : Candidate.ActiveCharacters)
+		{
+			Character.SkillRanks.Reset();
+		}
+		for (FGridCharacterInventoryState& Character : Candidate.CharacterPool)
+		{
+			Character.SkillRanks.Reset();
+		}
+
+		for (const FMON2094DurableSkillState& Saved : SavedStates)
+		{
+			FGridCharacterInventoryState* Target = Candidate.ActiveCharacters.FindByPredicate(
+				[&Saved](const FGridCharacterInventoryState& Character) { return Character.CharacterId == Saved.CharacterId; });
+			if (!Target)
 			{
-				return SkillId == Skill->SkillId ? Skill : nullptr;
-			},
-			OutError);
+				Target = Candidate.CharacterPool.FindByPredicate(
+					[&Saved](const FGridCharacterInventoryState& Character) { return Character.CharacterId == Saved.CharacterId; });
+			}
+			if (!Target || Saved.SkillId != Skill->SkillId)
+			{
+				OutError = TEXT("Durable Skill restore fixture cannot resolve the target.");
+				return false;
+			}
+
+			FRPGSkillMutationResult Mutation;
+			if (!FRPGSkillService::TrySetSkillRank(*Target, Skill, Saved.Rank, Mutation))
+			{
+				OutError = TEXT("Durable Skill restore fixture rejects the rank.");
+				return false;
+			}
+		}
+
+		Party->PartyInventoryState = MoveTemp(Candidate);
+		OutError.Reset();
+		return true;
 	}
 
 	bool SetMON2094Rank(FGridCharacterInventoryState& Character, URPGSkillAsset* Skill, int32 Rank)
@@ -350,7 +385,7 @@ bool FRPGMON2094EmptySnapshotClearsConsumersTest::RunTest(const FString& Paramet
 	TestTrue(TEXT("Stale transient rank setup succeeds"), SetMON2094Rank(Party->PartyInventoryState.ActiveCharacters[0], Skill, 3));
 
 	FString Error;
-	const TArray<FRPGCharacterSkillSaveState> EmptySnapshot;
+	const TArray<FMON2094DurableSkillState> EmptySnapshot;
 	TestTrue(TEXT("Authoritative empty snapshot restores"), RestoreMON2094Skill(Party, EmptySnapshot, Skill, Error));
 	TestEqual(TEXT("Transient rank is cleared"), FRPGSkillService::GetSkillRank(Party->PartyInventoryState.ActiveCharacters[0], Skill->SkillId), 0);
 

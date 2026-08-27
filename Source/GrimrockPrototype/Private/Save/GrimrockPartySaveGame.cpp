@@ -230,7 +230,7 @@ namespace GridPartySaveValidationPrivate
 	bool ValidateSkills(const UGrimrockPartySaveGame& SaveGame, FText& OutError)
 	{
 		FString SkillError;
-		if (FRPGSkillPersistence::ValidateSavedPartySkills(SaveGame.PartyInventoryState, SaveGame.CharacterSkillStates, SkillError))
+		if (FRPGSkillPersistence::ValidatePartySkills(SaveGame.PartyInventoryState, SkillError))
 		{
 			return true;
 		}
@@ -387,13 +387,6 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 			Ar.SetError();
 			return;
 		}
-		FString SkillCaptureError;
-		if (!FRPGSkillPersistence::CapturePartySkills(PartyInventoryState, CharacterSkillStates, SkillCaptureError))
-		{
-			UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSkillPersistence] SaveCapture Result=Rejected Reason=%s"), *SkillCaptureError);
-			Ar.SetError();
-			return;
-		}
 		if (!ValidateCurrentState(CaptureError))
 		{
 			UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] SaveValidation Version=%d Result=Rejected Reason=%s"), SaveVersion, *CaptureError.ToString());
@@ -433,17 +426,9 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] ProgressionProjection Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
-	FString SkillRestoreError;
-	if (!FRPGSkillPersistence::RestorePartySkills(PartyInventoryState, CharacterSkillStates, SkillRestoreError))
-	{
-		bLoadValid = false;
-		LoadError = SkillRestoreError;
-		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSkillPersistence] PartyRestore Result=Rejected Reason=%s"), *LoadError);
-		return;
-	}
 	URPGLevelUpNotificationSubsystem::RestorePersistentState(PendingLevelUpNotifications);
 	UE_LOG(LogGrimrockPartySave, Log,
-		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d SpellbookCharacters=%d SkillCharacters=%d Result=Accepted"),
+		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d SpellbookCharacters=%d Result=Accepted"),
 		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpNotifications.Num(), CharacterStatusEffectStates.Num(),
-		CharacterSpellbookStates.Num(), CharacterSkillStates.Num());
+		CharacterSpellbookStates.Num());
 }

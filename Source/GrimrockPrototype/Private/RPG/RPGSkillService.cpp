@@ -98,6 +98,12 @@ bool FRPGSkillService::TrySetSkillRank(
 		CharacterState.SkillRanks.Add(NewEntry);
 	}
 
+	CharacterState.SkillRanks.Sort(
+		[](const FRPGSkillRank& Left, const FRPGSkillRank& Right)
+		{
+			return Left.SkillId.ToString() < Right.SkillId.ToString();
+		});
+
 	OutResult.bChanged = true;
 	return true;
 }

@@ -370,8 +370,8 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG")
 	FRPGCharacterResources Resources;
 
-	/** Runtime-only in MON20.6; save/restore is introduced by MON20.9. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG|Skills")
+	/** Durable sparse Skill rank authority. Rank zero is represented by no entry. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Skills")
 	TArray<FRPGSkillRank> SkillRanks;
 
 	/** Runtime-only in MON16.1; save/restore is introduced by MON16.7. */
