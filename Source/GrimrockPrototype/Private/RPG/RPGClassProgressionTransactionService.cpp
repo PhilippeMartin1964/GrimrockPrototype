@@ -1,6 +1,7 @@
 #include "RPG/RPGClassProgressionTransactionService.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridClassProgression, Log, All);
@@ -17,17 +18,12 @@ namespace
 
 	URPGClassAsset* ResolveClassDefinition(const FGridCharacterInventoryState& Character)
 	{
-		URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-		if (!ClassDefinition && !Character.ClassDefinition.IsNull())
+		if (URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+			FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 		{
-			ClassDefinition = Character.ClassDefinition.LoadSynchronous();
+			return ClassDefinition;
 		}
-		if (!IsValid(ClassDefinition) || !ClassDefinition->IsValidDefinition() ||
-			(!Character.ClassId.IsNone() && ClassDefinition->ClassId != Character.ClassId))
-		{
-			return nullptr;
-		}
-		return ClassDefinition;
+		return FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 	}
 
 	bool BuildSelectionSet(const TArray<FName>& ChoiceIds, TSet<FName>& OutChoiceIds)

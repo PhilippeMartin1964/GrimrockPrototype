@@ -1,6 +1,7 @@
 #include "RPG/RPGLevelUpService.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -36,10 +37,17 @@ namespace
 
 	URPGClassAsset* ResolveCharacterClassDefinition(FGridCharacterInventoryState& Character)
 	{
-		URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-		if (!ClassDefinition && !Character.ClassDefinition.IsNull())
+		if (URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+			FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 		{
-			ClassDefinition = Character.ClassDefinition.LoadSynchronous();
+			return ClassDefinition;
+		}
+
+		URPGClassAsset* ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
+		if (ClassDefinition)
+		{
+			Character.ClassDefinition = ClassDefinition;
+			Character.ClassDisplayName = ClassDefinition->DisplayName;
 		}
 		return ClassDefinition;
 	}

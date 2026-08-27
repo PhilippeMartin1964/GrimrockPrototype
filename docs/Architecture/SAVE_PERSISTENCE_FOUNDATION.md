@@ -11,7 +11,7 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 20
+UGrimrockPartySaveGame::CurrentSaveVersion = 21
 
 SaveVersion == 19
     -> validation du schéma courant
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v20 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v21 exact-match.
 
 ## Dungeon state
 
@@ -222,3 +222,23 @@ Transient
     DefinitionAsset caches
     runtime projections / UI read models
 ```
+
+
+## TD07.3.4.3 — identity caches transient / v21
+
+TD07.3.4.3 ouvre la v21 exact-match.
+
+```text
+durable
+    ClassId
+    RaceId
+
+transient
+    ClassDefinition
+    ClassDisplayName
+    RaceDisplayName
+```
+
+Au chargement, les caches d'identité sont réhydratés avant `Level` et `DerivedStats`. `Portrait` et `ClassIcon` restent durablement sérialisés en v21 et sont différés à TD07.3.4.4 après nettoyage de l'authoring visuel Story Companion / création.
+
+La v20 et les générations antérieures sont incompatibles, sans migration.

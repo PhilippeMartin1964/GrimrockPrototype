@@ -335,17 +335,19 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FName ClassId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	/** TD07.3.4.3 presentation cache reconstructed from ClassId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	FText ClassDisplayName;
 
-	/** Persistent source for class abilities and spells. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	/** TD07.3.4.3 runtime class-definition cache reconstructed from ClassId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	TSoftObjectPtr<URPGClassAsset> ClassDefinition;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FName RaceId = TEXT("Human");
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
+	/** TD07.3.4.3 presentation cache reconstructed from RaceId. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "Character")
 	FText RaceDisplayName;
 
 	/** Runtime projection reconstructed from Experience. It is not persistent authority. */
@@ -396,9 +398,14 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	FName PortraitVariantId = NAME_None;
 
+	/**
+	 * TD07.3.4.4 deferred visual authoring cache.
+	 * Still durable in v21 until companion/creation authoring is proven fully ID-resolvable.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	TSoftObjectPtr<UTexture2D> Portrait;
 
+	/** TD07.3.4.4 deferred; remains durable in v21. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	TSoftObjectPtr<UTexture2D> ClassIcon;
 

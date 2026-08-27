@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.4.2 CANONICAL AUTHORING IDENTITY IMPLÉMENTÉ — À VALIDER — MON21.4 SUSPENDU**  
+Statut : **TD07.3.4.3 CHARACTER IDENTITY v21 IMPLÉMENTÉ — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -210,7 +210,7 @@ TD07.3.3.7 Normalize Spellbook                                     VALIDÉ — C
 TD07.3.3.8 Normalize Status Effects                                 VALIDÉ — CLOS
 TD07.3.3.9 Normalize Level-Up Notification State                       VALIDÉ — CLOS
 TD07.3.3.10 Current Save Schema / Regressions / Closure                VALIDÉ — CLOS
-TD07.3.4 Authoring Identity Normalization                     .2 IMPLÉMENTÉ — À VALIDER
+TD07.3.4 Authoring Identity Normalization                     .3 v21 IMPLÉMENTÉ — À VALIDER
 TD07.3.5–8 Data model reset                                   À FAIRE
 ```
 

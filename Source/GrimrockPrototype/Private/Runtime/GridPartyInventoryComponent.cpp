@@ -1,6 +1,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 
 #include "Runtime/GridItemDefinitionAsset.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
@@ -367,6 +368,9 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 		return false;
 	}
 
+	FRPGAuthoringIdentityResolver::RememberRaceDefinition(Request.RaceDefinition);
+	FRPGAuthoringIdentityResolver::RememberClassDefinition(CombatActionSourceClass);
+
 	const FRPGAttributes FinalAttributes =
 		URPGCharacterRulesLibrary::AddAttributes(Request.ClassDefinition->BaseAttributes, Request.RaceDefinition->AttributeBonuses);
 	if (!URPGCharacterRulesLibrary::AreAttributesInRange(FinalAttributes))
@@ -389,7 +393,10 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.Attributes = FinalAttributes;
 	NewCharacter.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, NewCharacter.Level);
 	NewCharacter.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewCharacter.DerivedStats, Request.ClassDefinition);
+	NewCharacter.PortraitGender = Request.PortraitGender;
+	NewCharacter.PortraitVariantId = Request.PortraitVariantId;
 	NewCharacter.Portrait = Request.Portrait;
+	NewCharacter.ClassIcon = Request.ClassIcon;
 	NewCharacter.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
 	InitializeCombatHotbarDefaults(NewCharacter);
 

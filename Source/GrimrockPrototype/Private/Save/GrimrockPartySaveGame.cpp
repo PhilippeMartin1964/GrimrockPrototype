@@ -4,6 +4,8 @@
 
 #include "Magic/GridSpellbookPersistence.h"
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGCharacterIdentityPersistence.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
@@ -35,17 +37,12 @@ namespace GridPartySaveValidationPrivate
 
 	URPGClassAsset* ResolveClassDefinition(const FGridCharacterInventoryState& Character)
 	{
-		URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-		if (!ClassDefinition && !Character.ClassDefinition.IsNull())
+		if (URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+			FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 		{
-			ClassDefinition = Character.ClassDefinition.LoadSynchronous();
+			return ClassDefinition;
 		}
-		if (!IsValid(ClassDefinition) || !ClassDefinition->IsValidDefinition() ||
-			(!Character.ClassId.IsNone() && ClassDefinition->ClassId != Character.ClassId))
-		{
-			return nullptr;
-		}
-		return ClassDefinition;
+		return FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 	}
 
 	void RebuildTransientCharacterDerivedStats(FGridCharacterInventoryState& Character)
@@ -288,6 +285,7 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 			return;
 		}
 		SaveVersion = CurrentSaveVersion;
+		FRPGCharacterIdentityPersistence::RememberRuntimeCaches(PartyInventoryState);
 		bLoadValid = true;
 		LoadError.Reset();
 		FString StatusValidationError;
@@ -313,6 +311,16 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 	}
 	bLoadValid = true;
 	LoadError.Reset();
+
+	FString IdentityRehydrateError;
+	if (!FRPGCharacterIdentityPersistence::RehydratePartyIdentity(PartyInventoryState, IdentityRehydrateError))
+	{
+		bLoadValid = false;
+		LoadError = IdentityRehydrateError;
+		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] IdentityRehydrate Result=Rejected Reason=%s"), *LoadError);
+		return;
+	}
+
 	RebuildTransientPartyLevels(PartyInventoryState);
 	RebuildTransientPartyDerivedStats(PartyInventoryState);
 	FText ValidationError;
@@ -321,6 +329,14 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		bLoadValid = false;
 		LoadError = ValidationError.ToString();
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] LoadValidation Version=%d Result=Rejected Reason=%s"), SaveVersion, *LoadError);
+		return;
+	}
+	FString IdentityValidationError;
+	if (!FRPGCharacterIdentityPersistence::ValidateRuntimePartyIdentity(PartyInventoryState, IdentityValidationError))
+	{
+		bLoadValid = false;
+		LoadError = IdentityValidationError;
+		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] IdentityValidation Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
 	FString StatusRehydrateError;

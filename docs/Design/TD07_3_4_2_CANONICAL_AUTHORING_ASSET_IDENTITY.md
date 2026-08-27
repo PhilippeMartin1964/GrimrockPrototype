@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.4 — Authoring Identity Normalization**  
 Characterization validée : `01d7f2f753132632908b8650e08e523af2803f4d`  
-Statut : **VALIDÉ — TD07.3.4.3 ACTIVE**
+Statut : **VALIDÉ ET CLOS — TD07.3.4.3 IMPLÉMENTÉ / À VALIDER**
 
 ## 1. Objet
 
@@ -219,3 +219,8 @@ Report                 : Saved/Automation/TD04/TD04-20260827-234629
 ```
 
 TD07.3.4.2 est validé. TD07.3.4.3 peut commencer.
+
+
+## 13. TD07.3.4.3 implementation note
+
+La normalisation v21 utilise désormais les IDs canoniques établis ici pour réhydrater `ClassDefinition`, `ClassDisplayName` et `RaceDisplayName`. Les caches visuels `Portrait` et `ClassIcon` sont explicitement différés à TD07.3.4.4 afin de préserver les overrides Story Companion tant que leur authoring n'est pas entièrement catalogué.

@@ -45,16 +45,19 @@ bool FGridTD0734CharacterDurableIdentityDuplicationTest::RunTest(const FString& 
 	using namespace GridTD0734Characterization;
 
 	TestTrue(TEXT("ClassId is durable"), IsDurableCharacterProperty(TEXT("ClassId")));
-	TestTrue(TEXT("ClassDisplayName is also durable today"), IsDurableCharacterProperty(TEXT("ClassDisplayName")));
-	TestTrue(TEXT("ClassDefinition is also durable today"), IsDurableCharacterProperty(TEXT("ClassDefinition")));
+	const FProperty* ClassDisplayName = FindCharacterProperty(TEXT("ClassDisplayName"));
+	const FProperty* ClassDefinition = FindCharacterProperty(TEXT("ClassDefinition"));
+	TestTrue(TEXT("ClassDisplayName is now transient"), ClassDisplayName && ClassDisplayName->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("ClassDefinition is now transient"), ClassDefinition && ClassDefinition->HasAnyPropertyFlags(CPF_Transient));
 
 	TestTrue(TEXT("RaceId is durable"), IsDurableCharacterProperty(TEXT("RaceId")));
-	TestTrue(TEXT("RaceDisplayName is also durable today"), IsDurableCharacterProperty(TEXT("RaceDisplayName")));
+	const FProperty* RaceDisplayName = FindCharacterProperty(TEXT("RaceDisplayName"));
+	TestTrue(TEXT("RaceDisplayName is now transient"), RaceDisplayName && RaceDisplayName->HasAnyPropertyFlags(CPF_Transient));
 
 	TestTrue(TEXT("PortraitGender is durable"), IsDurableCharacterProperty(TEXT("PortraitGender")));
 	TestTrue(TEXT("PortraitVariantId is durable"), IsDurableCharacterProperty(TEXT("PortraitVariantId")));
-	TestTrue(TEXT("Portrait soft reference is also durable today"), IsDurableCharacterProperty(TEXT("Portrait")));
-	TestTrue(TEXT("ClassIcon soft reference is also durable today"), IsDurableCharacterProperty(TEXT("ClassIcon")));
+	TestTrue(TEXT("Portrait remains durable until TD07.3.4.4 authoring cleanup"), IsDurableCharacterProperty(TEXT("Portrait")));
+	TestTrue(TEXT("ClassIcon remains durable until TD07.3.4.4 authoring cleanup"), IsDurableCharacterProperty(TEXT("ClassIcon")));
 	return true;
 }
 

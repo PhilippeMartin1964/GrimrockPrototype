@@ -1,6 +1,7 @@
 #include "RPG/RPGStoryCompanionService.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGRaceAsset.h"
 #include "RPG/RPGStoryCompanionAsset.h"
@@ -29,6 +30,9 @@ namespace RPGStoryCompanionServicePrivate
 		{
 			return false;
 		}
+
+		FRPGAuthoringIdentityResolver::RememberRaceDefinition(Definition.RaceDefinition);
+		FRPGAuthoringIdentityResolver::RememberClassDefinition(Definition.ClassDefinition);
 
 		const FRPGAttributes FinalAttributes =
 			URPGCharacterRulesLibrary::AddAttributes(Definition.ClassDefinition->BaseAttributes, Definition.RaceDefinition->AttributeBonuses);

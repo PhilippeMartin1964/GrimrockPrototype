@@ -13,6 +13,11 @@ const FPrimaryAssetType FRPGAuthoringIdentityResolver::PortraitSetPrimaryAssetTy
 
 namespace RPGAuthoringIdentityResolverPrivate
 {
+	TMap<FName, TWeakObjectPtr<URPGClassAsset>> ClassCache;
+	TMap<FName, TWeakObjectPtr<URPGRaceAsset>> RaceCache;
+	TMap<FName, TWeakObjectPtr<URPGClassVisualAsset>> ClassVisualCache;
+	TMap<FName, TWeakObjectPtr<URPGCharacterPortraitSetAsset>> PortraitSetCache;
+
 	template <typename T>
 	T* ResolveCanonicalAsset(const FPrimaryAssetId& PrimaryAssetId, UClass* AssetClass)
 	{
@@ -92,32 +97,136 @@ bool FRPGAuthoringIdentityResolver::IsMatchingPortraitSet(FName RaceId, const UR
 		Definition->RaceId == RaceId && Definition->GetPrimaryAssetId() == ExpectedId;
 }
 
+bool FRPGAuthoringIdentityResolver::RememberClassDefinition(URPGClassAsset* Definition)
+{
+	if (!IsValid(Definition) || !IsMatchingClassDefinition(Definition->ClassId, Definition))
+	{
+		return false;
+	}
+	RPGAuthoringIdentityResolverPrivate::ClassCache.Add(Definition->ClassId, Definition);
+	return true;
+}
+
+bool FRPGAuthoringIdentityResolver::RememberRaceDefinition(URPGRaceAsset* Definition)
+{
+	if (!IsValid(Definition) || !IsMatchingRaceDefinition(Definition->RaceId, Definition))
+	{
+		return false;
+	}
+	RPGAuthoringIdentityResolverPrivate::RaceCache.Add(Definition->RaceId, Definition);
+	return true;
+}
+
+bool FRPGAuthoringIdentityResolver::RememberClassVisual(URPGClassVisualAsset* Definition)
+{
+	if (!IsValid(Definition) || !IsMatchingClassVisual(Definition->ClassId, Definition))
+	{
+		return false;
+	}
+	RPGAuthoringIdentityResolverPrivate::ClassVisualCache.Add(Definition->ClassId, Definition);
+	return true;
+}
+
+bool FRPGAuthoringIdentityResolver::RememberPortraitSet(URPGCharacterPortraitSetAsset* Definition)
+{
+	if (!IsValid(Definition) || !IsMatchingPortraitSet(Definition->RaceId, Definition))
+	{
+		return false;
+	}
+	RPGAuthoringIdentityResolverPrivate::PortraitSetCache.Add(Definition->RaceId, Definition);
+	return true;
+}
+
+void FRPGAuthoringIdentityResolver::ResetRuntimeCache()
+{
+	RPGAuthoringIdentityResolverPrivate::ClassCache.Reset();
+	RPGAuthoringIdentityResolverPrivate::RaceCache.Reset();
+	RPGAuthoringIdentityResolverPrivate::ClassVisualCache.Reset();
+	RPGAuthoringIdentityResolverPrivate::PortraitSetCache.Reset();
+}
+
 URPGClassAsset* FRPGAuthoringIdentityResolver::ResolveClassById(FName ClassId)
 {
+	if (const TWeakObjectPtr<URPGClassAsset>* Cached = RPGAuthoringIdentityResolverPrivate::ClassCache.Find(ClassId))
+	{
+		if (URPGClassAsset* Definition = Cached->Get(); IsMatchingClassDefinition(ClassId, Definition))
+		{
+			return Definition;
+		}
+		RPGAuthoringIdentityResolverPrivate::ClassCache.Remove(ClassId);
+	}
+
 	URPGClassAsset* Definition =
 		RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGClassAsset>(MakeClassPrimaryAssetId(ClassId), URPGClassAsset::StaticClass());
-	return IsMatchingClassDefinition(ClassId, Definition) ? Definition : nullptr;
+	if (!IsMatchingClassDefinition(ClassId, Definition))
+	{
+		return nullptr;
+	}
+	RememberClassDefinition(Definition);
+	return Definition;
 }
 
 URPGRaceAsset* FRPGAuthoringIdentityResolver::ResolveRaceById(FName RaceId)
 {
+	if (const TWeakObjectPtr<URPGRaceAsset>* Cached = RPGAuthoringIdentityResolverPrivate::RaceCache.Find(RaceId))
+	{
+		if (URPGRaceAsset* Definition = Cached->Get(); IsMatchingRaceDefinition(RaceId, Definition))
+		{
+			return Definition;
+		}
+		RPGAuthoringIdentityResolverPrivate::RaceCache.Remove(RaceId);
+	}
+
 	URPGRaceAsset* Definition =
 		RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGRaceAsset>(MakeRacePrimaryAssetId(RaceId), URPGRaceAsset::StaticClass());
-	return IsMatchingRaceDefinition(RaceId, Definition) ? Definition : nullptr;
+	if (!IsMatchingRaceDefinition(RaceId, Definition))
+	{
+		return nullptr;
+	}
+	RememberRaceDefinition(Definition);
+	return Definition;
 }
 
 URPGClassVisualAsset* FRPGAuthoringIdentityResolver::ResolveClassVisualByClassId(FName ClassId)
 {
+	if (const TWeakObjectPtr<URPGClassVisualAsset>* Cached = RPGAuthoringIdentityResolverPrivate::ClassVisualCache.Find(ClassId))
+	{
+		if (URPGClassVisualAsset* Definition = Cached->Get(); IsMatchingClassVisual(ClassId, Definition))
+		{
+			return Definition;
+		}
+		RPGAuthoringIdentityResolverPrivate::ClassVisualCache.Remove(ClassId);
+	}
+
 	URPGClassVisualAsset* Definition =
 		RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGClassVisualAsset>(
 			MakeClassVisualPrimaryAssetId(ClassId), URPGClassVisualAsset::StaticClass());
-	return IsMatchingClassVisual(ClassId, Definition) ? Definition : nullptr;
+	if (!IsMatchingClassVisual(ClassId, Definition))
+	{
+		return nullptr;
+	}
+	RememberClassVisual(Definition);
+	return Definition;
 }
 
 URPGCharacterPortraitSetAsset* FRPGAuthoringIdentityResolver::ResolvePortraitSetByRaceId(FName RaceId)
 {
+	if (const TWeakObjectPtr<URPGCharacterPortraitSetAsset>* Cached = RPGAuthoringIdentityResolverPrivate::PortraitSetCache.Find(RaceId))
+	{
+		if (URPGCharacterPortraitSetAsset* Definition = Cached->Get(); IsMatchingPortraitSet(RaceId, Definition))
+		{
+			return Definition;
+		}
+		RPGAuthoringIdentityResolverPrivate::PortraitSetCache.Remove(RaceId);
+	}
+
 	URPGCharacterPortraitSetAsset* Definition =
 		RPGAuthoringIdentityResolverPrivate::ResolveCanonicalAsset<URPGCharacterPortraitSetAsset>(
 			MakePortraitSetPrimaryAssetId(RaceId), URPGCharacterPortraitSetAsset::StaticClass());
-	return IsMatchingPortraitSet(RaceId, Definition) ? Definition : nullptr;
+	if (!IsMatchingPortraitSet(RaceId, Definition))
+	{
+		return nullptr;
+	}
+	RememberPortraitSet(Definition);
+	return Definition;
 }

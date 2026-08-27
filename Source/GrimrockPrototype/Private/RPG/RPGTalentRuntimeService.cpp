@@ -1,6 +1,7 @@
 #include "RPG/RPGTalentRuntimeService.h"
 
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
@@ -24,12 +25,11 @@ namespace RPGTalentRuntimeServicePrivate
 		}
 
 		URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-		if (!ClassDefinition && !Character.ClassDefinition.IsNull())
+		if (!FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 		{
-			ClassDefinition = Character.ClassDefinition.LoadSynchronous();
+			ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 		}
-		if (!IsValid(ClassDefinition) || !ClassDefinition->IsValidDefinition() ||
-			(!Character.ClassId.IsNone() && Character.ClassId != ClassDefinition->ClassId))
+		if (!ClassDefinition)
 		{
 			return false;
 		}

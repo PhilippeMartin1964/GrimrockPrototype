@@ -52,7 +52,7 @@ bool FGridTD073310SchemaAuthorityTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Level remains transient projection"),
 		LevelProperty && LevelProperty->HasAnyPropertyFlags(CPF_Transient));
 
-	TestEqual(TEXT("TD07.3.3.10 opens SaveGame v20"), UGrimrockPartySaveGame::CurrentSaveVersion, 20);
+	TestTrue(TEXT("TD07.3.3.10 established SaveGame v20 or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 20);
 	return true;
 }
 
@@ -157,8 +157,8 @@ bool FGridTD073310SaveSchemaVersionTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("New SaveGame starts on v20"), Current->SaveVersion, 20);
-	TestTrue(TEXT("Current v20 is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("New SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Current schema is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
 	Previous->SaveVersion = 19;

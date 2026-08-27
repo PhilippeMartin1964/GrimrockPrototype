@@ -1,6 +1,7 @@
 #include "UI/RPGLevelUpWidget.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGClassProgressionService.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
@@ -181,15 +182,11 @@ URPGClassAsset* URPGLevelUpWidget::ResolveClassDefinition() const
 
 	FGridCharacterInventoryState& Character = InventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex];
 	URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
-	if (!ClassDefinition && !Character.ClassDefinition.IsNull())
+	if (FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 	{
-		ClassDefinition = Character.ClassDefinition.LoadSynchronous();
+		return ClassDefinition;
 	}
-	if (!IsValid(ClassDefinition) || !ClassDefinition->IsValidDefinition() || (!Character.ClassId.IsNone() && ClassDefinition->ClassId != Character.ClassId))
-	{
-		return nullptr;
-	}
-	return ClassDefinition;
+	return FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
 }
 
 bool URPGLevelUpWidget::BuildCombinedSelection(TSet<FName>& OutSelectedChoiceIds, TArray<FName>* OutCommittedChoiceIds) const

@@ -5,6 +5,7 @@
 #include "Magic/GridSpellHotbarExecution.h"
 #include "Magic/GridSpellPresentationComponent.h"
 #include "RPG/RPGClassAsset.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGSkillRequirementProjectionService.h"
 #include "RPG/StatusEffects/GridStatusEffectControlResolver.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
@@ -114,16 +115,17 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 	}
 
 	const FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[CharacterIndex];
-	if (!Character.ClassDefinition.IsNull())
+	const URPGClassAsset* ClassDefinition = Character.ClassDefinition.Get();
+	if (!FRPGAuthoringIdentityResolver::IsMatchingClassDefinition(Character.ClassId, ClassDefinition))
 	{
-		const URPGClassAsset* ClassDefinition = Character.ClassDefinition.LoadSynchronous();
-		if (IsValid(ClassDefinition) && ClassDefinition->IsValidDefinition() && ClassDefinition->ClassId == Character.ClassId)
+		ClassDefinition = FRPGAuthoringIdentityResolver::ResolveClassById(Character.ClassId);
+	}
+	if (ClassDefinition)
+	{
+		for (const FGridCombatActionDefinition& Definition : ClassDefinition->CombatActions)
 		{
-			for (const FGridCombatActionDefinition& Definition : ClassDefinition->CombatActions)
-			{
-				AddMON126Contribution(Definition, Definition.SourcePolicy == EGridCombatActionSourcePolicy::Universal ? NAME_None : ClassDefinition->ClassId,
-					FGuid(), EGridEquipmentSlot::None, 1, OutContributions);
-			}
+			AddMON126Contribution(Definition, Definition.SourcePolicy == EGridCombatActionSourcePolicy::Universal ? NAME_None : ClassDefinition->ClassId,
+				FGuid(), EGridEquipmentSlot::None, 1, OutContributions);
 		}
 	}
 

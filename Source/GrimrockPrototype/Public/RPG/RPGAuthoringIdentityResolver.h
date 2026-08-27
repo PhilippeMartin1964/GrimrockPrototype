@@ -29,6 +29,13 @@ struct GRIMROCKPROTOTYPE_API FRPGAuthoringIdentityResolver
 	static bool IsMatchingClassVisual(FName ClassId, const URPGClassVisualAsset* Definition);
 	static bool IsMatchingPortraitSet(FName RaceId, const URPGCharacterPortraitSetAsset* Definition);
 
+	/** TD07.3.4.3 transient weak caches; never serialized and never authoritative. */
+	static bool RememberClassDefinition(URPGClassAsset* Definition);
+	static bool RememberRaceDefinition(URPGRaceAsset* Definition);
+	static bool RememberClassVisual(URPGClassVisualAsset* Definition);
+	static bool RememberPortraitSet(URPGCharacterPortraitSetAsset* Definition);
+	static void ResetRuntimeCache();
+
 	static URPGClassAsset* ResolveClassById(FName ClassId);
 	static URPGRaceAsset* ResolveRaceById(FName RaceId);
 	static URPGClassVisualAsset* ResolveClassVisualByClassId(FName ClassId);

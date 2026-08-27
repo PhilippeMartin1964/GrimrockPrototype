@@ -1,6 +1,7 @@
 #include "RPG/RPGCustomRecruitService.h"
 
 #include "RPG/RPGCharacterRulesLibrary.h"
+#include "RPG/RPGAuthoringIdentityResolver.h"
 #include "RPG/RPGClassAsset.h"
 #include "RPG/RPGPartyRecruitmentService.h"
 #include "RPG/RPGRaceAsset.h"
@@ -148,6 +149,11 @@ bool FRPGCustomRecruitService::TryCreateAndRecruit(
 
 	URPGClassAsset* CombatActionSourceClass =
 		Request.CombatActionSourceClassDefinition ? Request.CombatActionSourceClassDefinition.Get() : Request.ClassDefinition.Get();
+	if (CombatActionSourceClass)
+	{
+		FRPGAuthoringIdentityResolver::RememberClassDefinition(CombatActionSourceClass);
+	}
+	FRPGAuthoringIdentityResolver::RememberRaceDefinition(Request.RaceDefinition);
 	if (!CombatActionSourceClass || !CombatActionSourceClass->IsValidDefinition() || CombatActionSourceClass->ClassId != Request.ClassDefinition->ClassId)
 	{
 		OutResult.RejectReason = ERPGCustomRecruitRejectReason::InvalidCombatActionSourceClass;

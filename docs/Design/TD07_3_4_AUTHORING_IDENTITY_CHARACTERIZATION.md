@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `8193fae0c704fbef3faf8c9981bf65d2b248f9e1`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.2 IMPLÉMENTÉ / À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.3 IMPLÉMENTÉ / À VALIDER**
 
 ## 1. Contexte
 
@@ -238,6 +238,18 @@ URPGStoryCompanionAsset
 ```
 
 Les authoring assets conservent des références de définitions, pas des snapshots runtime/save.
+
+### Mise à jour TD07.3.4.3
+
+Le schéma v21 rend désormais transient :
+
+```text
+ClassDefinition
+ClassDisplayName
+RaceDisplayName
+```
+
+Après audit des Story Companions, `Portrait` et `ClassIcon` restent volontairement durables jusqu'à TD07.3.4.4 pour éviter une perte visuelle tant que les overrides directs ne sont pas garantis ID-resolvables.
 
 ## 9. Séquence proposée
 
