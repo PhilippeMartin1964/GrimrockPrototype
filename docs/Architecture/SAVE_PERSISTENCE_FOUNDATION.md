@@ -157,3 +157,18 @@ PersistentNotificationMirror
 ```
 
 La notification de niveau est reconstruite lorsque `LastAcknowledgedLevel < Level`. Le SaveGame ne restaure plus de queue UI ; le subsystem est rafraîchi depuis le PartyInventory une fois le Pawn prêt. La v18 et toutes les générations antérieures sont incompatibles, sans migration.
+
+
+## TD07.3.3.9 — clôture v19
+
+TD07.3.3.9 clôturé le 27 août 2026 après :
+
+```text
+Normalization     4/4
+Characterization  4/4
+Régressions     105/105
+Warnings           0
+Shipping Win64     OK
+```
+
+Référence Shipping : `TD04-Shipping-20260827-230225`.

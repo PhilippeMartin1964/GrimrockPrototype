@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `240e1e752c52dfb7e2115905b09cc39ccf72719e`  
-Statut : **IMPLÉMENTÉ — BUILD ET NORMALIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUISES**
+Statut : **VALIDÉ ET CLOS**
 
 ## 1. Autorité durable
 
@@ -235,6 +235,40 @@ Report                 : Saved/Automation/TD04/TD04-20260827-224647
 
 Le build UE5.5.4 Development Editor et le gate Normalization sont validés.
 
+## 12.2 Validation post-refactor et Shipping
+
+Campagne finale du 27 août 2026 :
+
+```text
+Characterization post-refactor     4/4
+Régressions ciblées               105/105
+Warnings                            0
+Failures                            0
+Not run                             0
+
+MON15.2 rerun                        5/5
+Report : TD04-20260827-230114
+
+MON20.5.CustomRecruit rerun         23/23
+Report : TD04-20260827-230155
+```
+
+Shipping final :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260827-230225/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905463867
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260827-230225
+[OK] Cook / package validated.
+```
+
+La stop condition TD07.3.3.9 est entièrement atteinte.
+
 ## 13. Stop condition
 
 - [x] LastAcknowledgedLevel durable ajouté ;
@@ -251,11 +285,11 @@ Le build UE5.5.4 Development Editor et le gate Normalization sont validés.
 - [x] tests dédiés ajoutés ;
 - [x] build UE5.5.4 vert ;
 - [x] Normalization 4/4 ;
-- [ ] Characterization 4/4 post-refactor ;
-- [ ] régressions progression / Save vertes ;
-- [ ] Shipping Win64 vert.
+- [x] Characterization 4/4 post-refactor ;
+- [x] régressions progression / Save vertes ;
+- [x] Shipping Win64 vert.
 
-Prochaine tranche après validation complète :
+Prochaine tranche :
 
 ```text
 TD07.3.3.10 — Audit remaining character snapshots / close Character State Normalization
