@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.3 VALIDÉ / TD07.3.3.4 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.4 CHARACTERIZATION À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -613,6 +613,7 @@ TD07.3.3        Character State Normalization                         ACTIF
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
+TD07.3.3.4      Normalize Weight State                                 CHARACTERIZATION À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -690,57 +691,51 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.4 — Normalize Weight State.**
+**Valider la caractérisation TD07.3.3.4 — Normalize Weight State.**
 
-TD07.3.3.3 est validé :
-
-```text
-FRPGDerivedStats
-    MaxHealth
-    MaxMana
-    Initiative
-    Accuracy
-    Evasion
-
-FRPGCharacterResources
-    CurrentHealth
-    CurrentMana
-    CurrentPhysicalArmor
-    CurrentMagicalArmor
-
-SaveGame
-    CurrentSaveVersion = 12
-    v11 et antérieures rejetées sans migration
-```
-
-Validation de clôture du 27 août 2026 :
-
-```text
-Normalization       4/4
-Characterization    4/4
-régressions ciblées 0 Failed
-Shipping Win64      VALIDÉ
-```
-
-Prochaine dette ciblée :
+Le modèle courant possède deux caches dans `FGridCharacterInventoryState` :
 
 ```text
 CurrentWeight
-    -> calculé depuis inventory/equipment
-
 MaxCarryWeight
-    -> calculé depuis Attributes + CarryWeightBonus
-
-objectif
-    -> supprimer les caches persistants inutiles
-    -> une seule projection de surcharge
-    -> caractériser avant modification
 ```
 
-Référence TD07.3.3.3 :
+La caractérisation doit figer quatre comportements avant suppression :
 
 ```text
-docs/Design/TD07_3_3_3_DERIVED_STATS_NORMALIZATION.md
+1. MaxCarryWeight
+   -> mis à jour uniquement par RecalculateCharacterWeight()
+   -> peut rester stale après modification directe de Strength
+
+2. Equipment
+   -> CarryWeightBonus modifie Summary.MaxWeight
+   -> StrengthBonus modifie Summary.Attributes.Strength
+   -> mais StrengthBonus ne recalcule pas la capacité de port
+
+3. Overload
+   -> Character.IsOverloaded() compare les caches bruts
+   -> Summary.bOverloaded utilise CarryWeightBonus
+   -> les deux peuvent donc diverger
+
+4. Restore
+   -> RestorePartyInventoryState() appelle RecalculateAllWeights()
+   -> les caches sérialisés sont écrasés par reconstruction
 ```
 
-Les 41 findings DataAsset TD07.3.1 restent hors périmètre de TD07.3.3.4.
+Le curseur global reste hors du poids du personnage lorsqu'il détient temporairement un item.
+
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_4.Characterization
+```
+
+Référence :
+
+```text
+docs/Design/TD07_3_3_4_WEIGHT_STATE_CHARACTERIZATION.md
+```
+
+Aucune structure persistante n'est encore modifiée et le SaveGame reste v12 exact-match.
+
+Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
