@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.4 — Authoring Identity Normalization**  
 Canonical identity baseline : `995c6bdff2624041e17b908bd3a62e0b9ef7eff6`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE REQUISE**
+Statut : **VALIDÉ — TD07.3.4.4 ACTIVE**
 
 ## 1. Objet
 
@@ -233,7 +233,38 @@ ClassIcon durable [deferred .4]
 - [x] Portrait / ClassIcon explicitement différés à .4 ;
 - [x] 4 tests Normalization ajoutés ;
 - [x] Characterization adaptée ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
-- [ ] Characterization 4/4 post-refactor ;
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
+- [x] Characterization 4/4 post-refactor ;
 - [ ] régressions ciblées vertes.
+
+
+## 12. Validation locale
+
+```text
+Grimrock.TechnicalDebt.TD07_3_4_3.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-000254
+
+Grimrock.TechnicalDebt.TD07_3_4_2.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-000307
+
+Grimrock.TechnicalDebt.TD07_3_4.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-000320
+```
+
+TD07.3.4.3 est validé. TD07.3.4.4 peut commencer.
