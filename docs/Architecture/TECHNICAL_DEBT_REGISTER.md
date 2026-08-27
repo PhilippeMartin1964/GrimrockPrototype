@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.6 IMPLÉMENTÉ — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.6 VALIDÉ ET CLOS**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -615,7 +615,7 @@ TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
 TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6      Normalize Skills                                       IMPLÉMENTÉ — À VALIDER
+TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -693,7 +693,7 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.3.6 — Normalize Skills.**
+**TD07.3.3.6 — Normalize Skills est validé et clos. Prochaine tranche : TD07.3.3.7 — Normalize Spellbook.**
 
 Implémentation :
 
@@ -744,6 +744,17 @@ Référence :
 docs/Design/TD07_3_3_6_SKILL_STATE_NORMALIZATION.md
 ```
 
-TD07.3.3.7 ne commence qu'après validation complète de TD07.3.3.6.
+Validation TD07.3.3.6 finale :
+
+```text
+Normalization                 4/4
+Characterization              4/4
+MON20.6 / MON20.8 / MON20.9   vert
+Save / Progression / Magic    vert
+Status Effects                vert
+Win64 Shipping                vert
+```
+
+TD07.3.3.6 final : stop condition atteinte.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.

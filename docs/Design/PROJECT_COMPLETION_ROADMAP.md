@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.6 IMPLÉMENTÉ — À VALIDER — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.6 VALIDÉ ET CLOS — TD07.3.3.7 À OUVRIR — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -59,7 +59,7 @@ FGridPartyInventoryState
     └── SkillRanks
 ```
 
-Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 a ouvert **v12 exact-match** après séparation des ressources mutables. TD07.3.3.4 a ouvert **v13 exact-match** après suppression des caches de poids. TD07.3.3.5 B1 a ouvert **v14** lorsque `Level` est devenu transient ; B2 ouvre désormais **v15 exact-match** après suppression du miroir `ClassProgressionStates` ; aucune migration arrière.
+Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 a ouvert **v12 exact-match** après séparation des ressources mutables. TD07.3.3.4 a ouvert **v13 exact-match** après suppression des caches de poids. TD07.3.3.5 B1 a ouvert **v14** lorsque `Level` est devenu transient ; B2 a ouvert **v15 exact-match** après suppression du miroir `ClassProgressionStates`. TD07.3.3.6 ouvre **v16 exact-match** avec `SkillRanks` comme autorité durable unique et suppression de `CharacterSkillStates` ; aucune migration arrière.
 
 ---
 
@@ -205,7 +205,7 @@ TD07.3.3.2 Remove Legacy Attribute Bridge                     VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources         VALIDÉ
 TD07.3.3.4 Normalize Weight State                              VALIDÉ
 TD07.3.3.5 Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6 Normalize Skills                                        IMPLÉMENTÉ — À VALIDER
+TD07.3.3.6 Normalize Skills                                        VALIDÉ — CLOS
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 
@@ -266,7 +266,7 @@ MON30 — Full Campaign
 ## Prochain travail autoritaire
 
 ```text
-TD07.3.3.6 — Normalize Skills
+TD07.3.3.7 — Normalize Spellbook
 ```
 
 MON21.4 reste suspendu jusqu'à la stop condition complète de TD07.3.

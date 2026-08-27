@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Caractérisation validée : `b3a23f4ec45d5b5f5d143a1248eade56bf74d7e5`  
-Statut : **IMPLÉMENTÉ — NORMALIZATION 4/4 VALIDÉE — VALIDATION COMPLÈTE EN COURS**
+Statut : **VALIDÉ ET CLOS — STOP CONDITION ATTEINTE**
 
 ## 1. Autorité cible
 
@@ -226,6 +226,23 @@ Blueprints
 maps
 ```
 
+## 10.1 Validation Shipping finale
+
+Validation locale du 27 août 2026 :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260827-210902/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905737979
+Result        : Cook / package validated
+```
+
+La validation Build + Cook + Stage + Package + Pak + Archive est verte.
+
 ## 11. Stop condition
 
 - [x] SkillRanks non-transient ;
@@ -242,9 +259,9 @@ maps
 - [x] Characterization 4/4 après refactor ;
 - [x] régressions MON20.6/20.8/20.9 vertes ;
 - [x] régressions Save/Magic/Status vertes ;
-- [ ] Shipping Win64 vert.
+- [x] Shipping Win64 vert.
 
-Prochaine tranche après validation complète :
+Stop condition atteinte. Prochaine tranche :
 
 ```text
 TD07.3.3.7 — Normalize Spellbook
