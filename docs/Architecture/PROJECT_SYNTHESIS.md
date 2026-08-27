@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **27 août 2026, TD07.3.3.3 implémenté — validation requise.**
+> État : **27 août 2026, TD07.3.3.3 validé — TD07.3.3.4 prochain.**
 
 ## 1. Référence
 
@@ -15,8 +15,8 @@
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Dernière tranche validée | `TD07.3.3.2 — Remove Legacy Attribute Bridge` |
-| Tranche active | `TD07.3.3.3 — Normalize Derived Stats / Mutable Resources` — implémentée, à valider |
+| Dernière tranche validée | `TD07.3.3.3 — Normalize Derived Stats / Mutable Resources` |
+| Tranche active | `TD07.3.3.4 — Normalize Weight State` — prochain |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -24,7 +24,7 @@ La dette technique courante est autoritairement suivie dans `docs/Architecture/T
 
 GrimrockPrototype est un dungeon crawler case par case avancé : édition de donjons, exploration, mécanismes, Event -> Command enrichi de variables/Logic/Lua, groupe RPG persistant, inventaire/équipement, combat tactique, IA de monstres, XP/niveaux, Status Effects, magie/Spellbook, recrutement, Skills, Talents et persistance associée.
 
-MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype. TD07.3.1 a scanné 86 DataAssets et produit une baseline de 41 findings. TD07.3.2 est validé : SaveGame v10 exact-match, aucune migration historique, régressions de persistance validées et Shipping vert. TD07.3.3.1 a ensuite cartographié l'autorité du personnage : pont legacy Attributes, DerivedStats mixte, poids dérivés et snapshots parallèles Progression/Skills/Spellbook/Status Effects. TD07.3.3.2 est validé : `Attributes` est l'unique autorité d'attributs, `Strength` legacy et `bRPGAttributesInitialized` sont supprimés, le SaveGame courant est v11 exact-match, les régressions sont vertes et le Shipping Win64 est validé. TD07.3.3.3 a maintenant ouvert son gate de caractérisation afin de figer les interactions équipement / DerivedStats / ressources avant toute séparation structurelle.
+MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype. TD07.3.1 a scanné 86 DataAssets et produit une baseline de 41 findings. TD07.3.2 est validé : SaveGame v10 exact-match, aucune migration historique, régressions de persistance validées et Shipping vert. TD07.3.3.1 a ensuite cartographié l'autorité du personnage : pont legacy Attributes, DerivedStats mixte, poids dérivés et snapshots parallèles Progression/Skills/Spellbook/Status Effects. TD07.3.3.2 est validé : `Attributes` est l'unique autorité d'attributs, `Strength` legacy et `bRPGAttributesInitialized` sont supprimés, le SaveGame courant est v11 exact-match, les régressions sont vertes et le Shipping Win64 est validé. TD07.3.3.3 est validé : `FRPGDerivedStats` ne porte plus que les valeurs reconstructibles, `FRPGCharacterResources` porte HP/mana/armures courantes, le pipeline Magic consomme les ressources mutables, le SaveGame courant est v12 exact-match et les régressions ciblées ainsi que le Shipping Win64 sont verts. TD07.3.3.4 peut maintenant normaliser l'état de poids.
 
 Les campagnes TD05 et TD06 ont atteint leur stop condition : `AGridLevelRuntimeActor` et `UGridPartyInventoryComponent` restent des façades/orchestrateurs, mais leurs frontières à forte cohésion sont désormais séparées sans dupliquer l’autorité.
 
@@ -74,7 +74,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Magic / Spellbook | ✅ MON18 |
 | Recrutement / réserve | ✅ MON20 |
 | Skills / Talents | ✅ MON20 |
-| Save | ✅ v11 exact-match ; aucune migration arrière |
+| Save | ✅ v12 exact-match ; aucune migration arrière |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
 | Map | ⬜ WBP existant ; exploration prévue MON21.6 |
@@ -200,7 +200,8 @@ TD07.3.2     SaveGame Reset                              VALIDÉ
 TD07.3.3     Character State Normalization                  ACTIF
 TD07.3.3.1   Character State Authority Audit                VALIDÉ
 TD07.3.3.2   Remove Legacy Attribute Bridge                 VALIDÉ
-TD07.3.3.3   Normalize Derived Stats / Mutable Resources     IMPLÉMENTÉ — À VALIDER
+TD07.3.3.3   Normalize Derived Stats / Mutable Resources     VALIDÉ
+TD07.3.3.4   Normalize Weight State                            PROCHAIN
 MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE
