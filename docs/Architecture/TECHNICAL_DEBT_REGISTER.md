@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.10 FINAL NORMALIZATION IMPLÉMENTÉE — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.10 GATES 8/8 VALIDÉS — RÉGRESSIONS / SHIPPING REQUIS**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -619,7 +619,7 @@ TD07.3.3.6      Normalize Skills                                       VALIDÉ �
 TD07.3.3.7      Normalize Spellbook                                    VALIDÉ — CLOS
 TD07.3.3.8      Normalize Status Effects                               VALIDÉ — CLOS
 TD07.3.3.9      Normalize Level-Up Notification State                  VALIDÉ — CLOS
-TD07.3.3.10     Current Save Schema / Regressions / Closure            IMPLÉMENTÉ — À VALIDER
+TD07.3.3.10     Current Save Schema / Regressions / Closure            GATES 8/8 — RÉGRESSIONS
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -749,3 +749,15 @@ Référence :
 ```text
 docs/Design/TD07_3_3_9_LEVEL_UP_NOTIFICATION_STATE_NORMALIZATION.md
 ```
+
+
+TD07.3.3.10 gates locaux validés le 27 août 2026 :
+
+```text
+Normalization     4/4 — TD04-20260827-231740
+Characterization  4/4 — TD04-20260827-231753
+Warnings            0
+Failures            0
+```
+
+Reste : campagne de régression finale TD07.3.3 puis Win64 Shipping.
