@@ -10,7 +10,7 @@ class AGridWallLockActor;
 class AGrimrockPartyPawn;
 class UGridPartyInventoryComponent;
 
-UENUM(BlueprintType)
+UENUM(BlueprintType, meta = (ScriptName = "GridItemTransferResultCode"))
 enum class EGridItemTransferResult : uint8
 {
 	Success,

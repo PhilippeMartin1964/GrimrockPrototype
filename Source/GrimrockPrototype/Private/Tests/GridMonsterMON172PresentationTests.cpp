@@ -43,7 +43,7 @@ bool FGridMonsterMON172PresentationBridgeContractTest::RunTest(const FString& Pa
 	}
 
 	const bool bCompatibleSkeletons =
-		MeshSkeleton == AnimationSkeleton || MeshSkeleton->IsCompatible(AnimationSkeleton) || AnimationSkeleton->IsCompatible(MeshSkeleton);
+		MeshSkeleton == AnimationSkeleton || MeshSkeleton->IsCompatibleForEditor(AnimationSkeleton) || AnimationSkeleton->IsCompatibleForEditor(MeshSkeleton);
 	TestTrue(TEXT("Monster mesh Skeleton and Animation Blueprint Skeleton are compatible"), bCompatibleSkeletons);
 
 	return true;
