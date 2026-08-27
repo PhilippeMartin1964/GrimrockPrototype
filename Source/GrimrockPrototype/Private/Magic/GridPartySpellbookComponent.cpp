@@ -1,67 +1,196 @@
 #include "Magic/GridPartySpellbookComponent.h"
 
+#include "GameFramework/Actor.h"
+#include "Magic/GridProductionSpellLibrary.h"
+#include "Magic/GridSpellbookPersistence.h"
+#include "Runtime/GridPartyInventoryComponent.h"
+
+namespace GridPartySpellbookPrivate
+{
+	bool IsCanonicalSpellId(FName SpellId)
+	{
+		if (SpellId.IsNone())
+		{
+			return false;
+		}
+
+		TArray<FGridSpellDefinition> Definitions;
+		FGridProductionSpellLibrary::BuildAll(Definitions);
+		const FGridSpellDefinition* Definition = Definitions.FindByPredicate(
+			[SpellId](const FGridSpellDefinition& Candidate)
+			{
+				return Candidate.SpellId == SpellId;
+			});
+		return Definition && FGridSpellContract::ValidateDefinition(*Definition) == EGridSpellValidationError::None;
+	}
+
+	void SortSpellIds(TArray<FName>& SpellIds)
+	{
+		SpellIds.Sort([](const FName Left, const FName Right) { return Left.ToString() < Right.ToString(); });
+	}
+}
+
+using namespace GridPartySpellbookPrivate;
+
 UGridPartySpellbookComponent::UGridPartySpellbookComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+void UGridPartySpellbookComponent::InitializeSpellbookComponent(UGridPartyInventoryComponent* InInventoryComponent)
+{
+	InventoryComponentOverride = InInventoryComponent;
+}
+
+UGridPartyInventoryComponent* UGridPartySpellbookComponent::ResolveInventoryComponent() const
+{
+	if (InventoryComponentOverride.IsValid())
+	{
+		return InventoryComponentOverride.Get();
+	}
+	if (AActor* Owner = GetOwner())
+	{
+		return Owner->FindComponentByClass<UGridPartyInventoryComponent>();
+	}
+	return nullptr;
+}
+
+FGridCharacterInventoryState* UGridPartySpellbookComponent::FindMutableCharacter(FGuid CharacterId) const
+{
+	if (!CharacterId.IsValid())
+	{
+		return nullptr;
+	}
+	UGridPartyInventoryComponent* Inventory = ResolveInventoryComponent();
+	if (!Inventory)
+	{
+		return nullptr;
+	}
+	if (FGridCharacterInventoryState* Active = Inventory->PartyInventoryState.ActiveCharacters.FindByPredicate(
+			[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; }))
+	{
+		return Active;
+	}
+	return Inventory->PartyInventoryState.CharacterPool.FindByPredicate(
+		[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; });
+}
+
+const FGridCharacterInventoryState* UGridPartySpellbookComponent::FindCharacter(FGuid CharacterId) const
+{
+	return FindMutableCharacter(CharacterId);
+}
+
 bool UGridPartySpellbookComponent::EnsureCharacterSpellbook(FGuid CharacterId)
 {
-	const bool bAlreadyRegistered = SpellbookState.FindSpellbook(CharacterId) != nullptr;
-	const bool bResult = SpellbookState.EnsureCharacter(CharacterId);
-	if (bResult && !bAlreadyRegistered)
-	{
-		OnSpellbookChanged.Broadcast();
-	}
-	return bResult;
+	return FindCharacter(CharacterId) != nullptr;
 }
 
 bool UGridPartySpellbookComponent::RemoveCharacterSpellbook(FGuid CharacterId)
 {
-	const bool bResult = SpellbookState.RemoveCharacter(CharacterId);
-	if (bResult)
+	FGridCharacterInventoryState* Character = FindMutableCharacter(CharacterId);
+	if (!Character)
+	{
+		return false;
+	}
+
+	const bool bChanged = !Character->KnownSpellIds.IsEmpty();
+	Character->KnownSpellIds.Reset();
+	if (bChanged)
 	{
 		OnSpellbookChanged.Broadcast();
 	}
-	return bResult;
+	return true;
 }
 
 EGridSpellbookMutationResult UGridPartySpellbookComponent::LearnSpell(FGuid CharacterId, FName SpellId)
 {
-	const EGridSpellbookMutationResult Result = SpellbookState.LearnSpell(CharacterId, SpellId);
-	if (Result == EGridSpellbookMutationResult::Success)
+	FGridCharacterInventoryState* Character = FindMutableCharacter(CharacterId);
+	if (!Character)
 	{
-		OnSpellbookChanged.Broadcast();
+		return EGridSpellbookMutationResult::InvalidCharacter;
 	}
-	return Result;
+	if (!IsCanonicalSpellId(SpellId))
+	{
+		return EGridSpellbookMutationResult::InvalidSpell;
+	}
+	if (Character->KnownSpellIds.Contains(SpellId))
+	{
+		return EGridSpellbookMutationResult::AlreadyKnown;
+	}
+
+	Character->KnownSpellIds.Add(SpellId);
+	SortSpellIds(Character->KnownSpellIds);
+	OnSpellbookChanged.Broadcast();
+	return EGridSpellbookMutationResult::Success;
 }
 
 EGridSpellbookMutationResult UGridPartySpellbookComponent::ForgetSpell(FGuid CharacterId, FName SpellId)
 {
-	const EGridSpellbookMutationResult Result = SpellbookState.ForgetSpell(CharacterId, SpellId);
-	if (Result == EGridSpellbookMutationResult::Success)
+	FGridCharacterInventoryState* Character = FindMutableCharacter(CharacterId);
+	if (!Character)
 	{
-		OnSpellbookChanged.Broadcast();
+		return EGridSpellbookMutationResult::InvalidCharacter;
 	}
-	return Result;
+	if (SpellId.IsNone())
+	{
+		return EGridSpellbookMutationResult::InvalidSpell;
+	}
+	if (Character->KnownSpellIds.RemoveSingle(SpellId) == 0)
+	{
+		return EGridSpellbookMutationResult::NotKnown;
+	}
+
+	OnSpellbookChanged.Broadcast();
+	return EGridSpellbookMutationResult::Success;
 }
 
 bool UGridPartySpellbookComponent::KnowsSpell(FGuid CharacterId, FName SpellId) const
 {
-	return SpellbookState.KnowsSpell(CharacterId, SpellId);
+	const FGridCharacterInventoryState* Character = FindCharacter(CharacterId);
+	return Character && !SpellId.IsNone() && Character->KnownSpellIds.Contains(SpellId);
 }
 
 TArray<FName> UGridPartySpellbookComponent::GetKnownSpellIds(FGuid CharacterId) const
 {
-	const FGridCharacterSpellbookState* Spellbook = SpellbookState.FindSpellbook(CharacterId);
-	return Spellbook ? Spellbook->KnownSpellIds : TArray<FName>();
+	const FGridCharacterInventoryState* Character = FindCharacter(CharacterId);
+	return Character ? Character->KnownSpellIds : TArray<FName>();
+}
+
+bool UGridPartySpellbookComponent::GetCharacterSpellbookState(FGuid CharacterId, FGridCharacterSpellbookState& OutState) const
+{
+	OutState = FGridCharacterSpellbookState();
+	const FGridCharacterInventoryState* Character = FindCharacter(CharacterId);
+	if (!Character)
+	{
+		return false;
+	}
+
+	OutState.CharacterId = Character->CharacterId;
+	OutState.KnownSpellIds = Character->KnownSpellIds;
+	return true;
 }
 
 void UGridPartySpellbookComponent::ResetAllSpellbooks()
 {
-	const bool bHadSpellbooks = SpellbookState.CharacterSpellbooks.Num() > 0;
-	SpellbookState.Reset();
-	if (bHadSpellbooks)
+	UGridPartyInventoryComponent* Inventory = ResolveInventoryComponent();
+	if (!Inventory)
+	{
+		return;
+	}
+
+	bool bChanged = false;
+	const auto ResetCharacters = [&bChanged](TArray<FGridCharacterInventoryState>& Characters)
+	{
+		for (FGridCharacterInventoryState& Character : Characters)
+		{
+			bChanged |= !Character.KnownSpellIds.IsEmpty();
+			Character.KnownSpellIds.Reset();
+		}
+	};
+	ResetCharacters(Inventory->PartyInventoryState.ActiveCharacters);
+	ResetCharacters(Inventory->PartyInventoryState.CharacterPool);
+
+	if (bChanged)
 	{
 		OnSpellbookChanged.Broadcast();
 	}
@@ -69,39 +198,11 @@ void UGridPartySpellbookComponent::ResetAllSpellbooks()
 
 bool UGridPartySpellbookComponent::ValidateSpellbookState(FString& OutError) const
 {
-	OutError.Reset();
-
-	TSet<FGuid> SeenCharacterIds;
-	for (const FGridCharacterSpellbookState& Spellbook : SpellbookState.CharacterSpellbooks)
+	const UGridPartyInventoryComponent* Inventory = ResolveInventoryComponent();
+	if (!Inventory)
 	{
-		if (!Spellbook.CharacterId.IsValid())
-		{
-			OutError = TEXT("Spellbook contains an invalid CharacterId.");
-			return false;
-		}
-		if (SeenCharacterIds.Contains(Spellbook.CharacterId))
-		{
-			OutError = TEXT("Spellbook contains duplicate CharacterIds.");
-			return false;
-		}
-		SeenCharacterIds.Add(Spellbook.CharacterId);
-
-		TSet<FName> SeenSpellIds;
-		for (const FName SpellId : Spellbook.KnownSpellIds)
-		{
-			if (SpellId.IsNone())
-			{
-				OutError = TEXT("Spellbook contains NAME_None.");
-				return false;
-			}
-			if (SeenSpellIds.Contains(SpellId))
-			{
-				OutError = TEXT("Spellbook contains duplicate SpellIds.");
-				return false;
-			}
-			SeenSpellIds.Add(SpellId);
-		}
+		OutError = TEXT("Party inventory component is unavailable.");
+		return false;
 	}
-
-	return true;
+	return FGridSpellbookPersistence::ValidatePartySpellbooks(Inventory->PartyInventoryState, OutError);
 }

@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
-#include "Magic/GridSpellbookPersistence.h"
 #include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
@@ -47,8 +46,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.3.6: SkillRanks is durable character state; the separate Skill snapshot is removed. */
-	static constexpr int32 CurrentSaveVersion = 16;
+	/** TD07.3.3.7: KnownSpellIds joins durable character state; the separate Spellbook snapshot is removed. */
+	static constexpr int32 CurrentSaveVersion = 17;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -64,10 +63,6 @@ public:
 	/** MON16.7 party status snapshots. Runtime DefinitionAsset pointers are excluded. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Status Effects")
 	TArray<FGridCharacterStatusEffectSaveState> CharacterStatusEffectStates;
-
-	/** MON18.8 sparse Spellbook snapshots. CharacterId + SpellId identities only. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|Magic|Spellbook")
-	TArray<FGridCharacterSpellbookSaveState> CharacterSpellbookStates;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")

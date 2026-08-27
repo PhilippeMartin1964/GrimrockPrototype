@@ -219,7 +219,7 @@ namespace GridPartySaveValidationPrivate
 	bool ValidateSpellbooks(const UGrimrockPartySaveGame& SaveGame, FText& OutError)
 	{
 		FString SpellbookError;
-		if (FGridSpellbookPersistence::ValidateSavedPartySpellbooks(SaveGame.PartyInventoryState, SaveGame.CharacterSpellbookStates, SpellbookError))
+		if (FGridSpellbookPersistence::ValidatePartySpellbooks(SaveGame.PartyInventoryState, SpellbookError))
 		{
 			return true;
 		}
@@ -259,6 +259,20 @@ namespace GridPartySaveValidationPrivate
 		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
 		{
 			Count += Character.SelectedClassProgressionChoiceIds.Num();
+		}
+		return Count;
+	}
+
+	int32 CountCharactersWithKnownSpells(const FGridPartyInventoryState& PartyState)
+	{
+		int32 Count = 0;
+		for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
+		{
+			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
+		}
+		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
+		{
+			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
 		}
 		return Count;
 	}
@@ -428,7 +442,7 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 	}
 	URPGLevelUpNotificationSubsystem::RestorePersistentState(PendingLevelUpNotifications);
 	UE_LOG(LogGrimrockPartySave, Log,
-		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d SpellbookCharacters=%d Result=Accepted"),
+		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"),
 		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpNotifications.Num(), CharacterStatusEffectStates.Num(),
-		CharacterSpellbookStates.Num());
+		CountCharactersWithKnownSpells(PartyInventoryState));
 }

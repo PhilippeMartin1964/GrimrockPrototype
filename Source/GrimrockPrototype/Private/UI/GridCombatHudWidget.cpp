@@ -854,13 +854,13 @@ bool UGridCombatHudWidget::HandleHotbarDrop(int32 TargetSlotIndex, UDragDropOper
 				return false;
 			}
 
-			const FGridCharacterSpellbookState* CharacterSpellbook = SpellbookComponent->SpellbookState.FindSpellbook(CharacterId);
-			if (!CharacterSpellbook)
+			FGridCharacterSpellbookState CharacterSpellbook;
+			if (!SpellbookComponent->GetCharacterSpellbookState(CharacterId, CharacterSpellbook))
 			{
 				return false;
 			}
 
-			return HotbarOperation->CommitSpellbookDrop(InventoryComponent, *CharacterSpellbook, TargetSlotIndex) == EGridSpellHotbarAssignmentResult::Success;
+			return HotbarOperation->CommitSpellbookDrop(InventoryComponent, CharacterSpellbook, TargetSlotIndex) == EGridSpellHotbarAssignmentResult::Success;
 		}
 
 		if (HotbarOperation->bFromActionPalette)

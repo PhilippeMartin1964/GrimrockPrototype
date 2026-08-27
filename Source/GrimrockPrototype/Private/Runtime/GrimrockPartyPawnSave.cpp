@@ -2,7 +2,6 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Magic/GridPartySpellbookComponent.h"
-#include "Magic/GridSpellbookPersistence.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Save/GridCombatSavePolicy.h"
@@ -16,12 +15,18 @@ namespace
 		return IsValid(PartyPawn) ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>() : nullptr;
 	}
 
-	void GridPartyPawnSaveResetSpellbook(AGrimrockPartyPawn* PartyPawn)
+	int32 GridPartyPawnSaveCountKnownSpellCharacters(const FGridPartyInventoryState& PartyState)
 	{
-		if (UGridPartySpellbookComponent* SpellbookComponent = GridPartyPawnSaveGetSpellbookComponent(PartyPawn))
+		int32 Count = 0;
+		for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
 		{
-			SpellbookComponent->ResetAllSpellbooks();
+			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
 		}
+		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
+		{
+			Count += Character.KnownSpellIds.IsEmpty() ? 0 : 1;
+		}
+		return Count;
 	}
 }
 
@@ -56,26 +61,10 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 		return false;
 	}
 
-	UGridPartySpellbookComponent* SpellbookComponent = GridPartyPawnSaveGetSpellbookComponent(this);
-	if (!SpellbookComponent)
-	{
-		OutError = FText::FromString(TEXT("Le composant Spellbook du groupe est indisponible."));
-		return false;
-	}
-
 	FString OwnershipError;
 	if (!PartyInventoryComponent->ValidateInventoryOwnership(OwnershipError))
 	{
 		OutError = FText::FromString(FString::Printf(TEXT("L'ownership du groupe est invalide : %s"), *OwnershipError));
-		return false;
-	}
-
-	TArray<FGridCharacterSpellbookSaveState> SpellbookSnapshots;
-	FString SpellbookCaptureError;
-	if (!FGridSpellbookPersistence::CapturePartySpellbooks(
-			PartyInventoryComponent->PartyInventoryState, SpellbookComponent->SpellbookState, SpellbookSnapshots, SpellbookCaptureError))
-	{
-		OutError = FText::FromString(FString::Printf(TEXT("Le Spellbook ne peut pas être capturé : %s"), *SpellbookCaptureError));
 		return false;
 	}
 
@@ -94,7 +83,6 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 
 	SaveGame->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 	SaveGame->PartyInventoryState = PartyInventoryComponent->PartyInventoryState;
-	SaveGame->CharacterSpellbookStates = MoveTemp(SpellbookSnapshots);
 	SaveGame->DungeonRuntimeState = LevelRuntimeActor->DungeonRuntimeState;
 	SaveGame->CurrentDungeonLevelId = LevelRuntimeActor->CurrentDungeonLevelId;
 	SaveGame->PartyCellX = CurrentCellX;
@@ -107,9 +95,9 @@ bool AGrimrockPartyPawn::SaveCurrentGame(FText& OutError)
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d Spellbooks=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
-		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(), SaveGame->CharacterSpellbookStates.Num(), CurrentCellX, CurrentCellY,
-		static_cast<int32>(Facing));
+	UE_LOG(LogTemp, Log, TEXT("PartySave Saved Slot=%s Version=%d Characters=%d KnownSpellCharacters=%d Cell=(%d,%d) Facing=%d"), *PartySaveSlotName,
+		SaveGame->SaveVersion, SaveGame->PartyInventoryState.ActiveCharacters.Num(),
+		GridPartyPawnSaveCountKnownSpellCharacters(SaveGame->PartyInventoryState), CurrentCellX, CurrentCellY, static_cast<int32>(Facing));
 	return true;
 }
 
@@ -160,19 +148,9 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 		return false;
 	}
 
-	UGridPartySpellbookComponent* SpellbookComponent = GridPartyPawnSaveGetSpellbookComponent(this);
-	if (!PartyInventoryComponent || !SpellbookComponent || !IsValid(LevelRuntimeActor))
+	if (!PartyInventoryComponent || !IsValid(LevelRuntimeActor))
 	{
-		OutError = FText::FromString(TEXT("Le groupe, le Spellbook ou le niveau runtime est indisponible."));
-		return false;
-	}
-
-	FGridPartySpellbookState RestoredSpellbookState;
-	FString SpellbookRestoreError;
-	if (!FGridSpellbookPersistence::RestorePartySpellbooks(
-			SaveGame->PartyInventoryState, SaveGame->CharacterSpellbookStates, RestoredSpellbookState, SpellbookRestoreError))
-	{
-		OutError = FText::FromString(FString::Printf(TEXT("Le Spellbook sauvegardé est invalide : %s"), *SpellbookRestoreError));
+		OutError = FText::FromString(TEXT("Le groupe ou le niveau runtime est indisponible."));
 		return false;
 	}
 
@@ -238,8 +216,10 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 		return false;
 	}
 
-	SpellbookComponent->SpellbookState = MoveTemp(RestoredSpellbookState);
-	SpellbookComponent->OnSpellbookChanged.Broadcast();
+	if (UGridPartySpellbookComponent* SpellbookComponent = GridPartyPawnSaveGetSpellbookComponent(this))
+	{
+		SpellbookComponent->OnSpellbookChanged.Broadcast();
+	}
 	return true;
 }
 
@@ -290,7 +270,6 @@ bool AGrimrockPartyPawn::StartNewGame(FText& OutError)
 	}
 
 	PartyInventoryComponent->ResetPartyForNewGame();
-	GridPartyPawnSaveResetSpellbook(this);
 
 	if (bInventoryWidgetVisible)
 	{

@@ -374,6 +374,10 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Skills")
 	TArray<FRPGSkillRank> SkillRanks;
 
+	/** TD07.3.3.7 durable Spellbook authority. Entries are canonical SpellIds sorted deterministically. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magic|Spellbook")
+	TArray<FName> KnownSpellIds;
+
 	/** Runtime-only in MON16.1; save/restore is introduced by MON16.7. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG|Status Effects")
 	FGridStatusEffectCollection StatusEffects;

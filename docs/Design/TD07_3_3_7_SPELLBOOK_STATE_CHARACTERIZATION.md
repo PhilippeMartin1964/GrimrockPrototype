@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `dc53cc1ab4a9443adca022aff412ebc98b3e6ce2`  
-Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Objet
 
@@ -135,7 +135,7 @@ aucune migration arrière
 aucune compatibilité prototype
 ```
 
-cette tolérance sera réévaluée après validation du gate. La direction cible est de rejeter un SpellId qui ne résout plus une définition canonique courante.
+cette tolérance sera réévaluée après validation du gate. La normalisation implémentée rejette désormais tout SpellId qui ne résout plus une définition canonique courante.
 
 ## 8. Tests ajoutés
 

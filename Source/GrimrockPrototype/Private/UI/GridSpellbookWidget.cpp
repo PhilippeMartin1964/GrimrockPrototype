@@ -163,6 +163,7 @@ UGridPartySpellbookComponent* UGridSpellbookWidget::ResolveOrCreateSpellbookComp
 
 	if (UGridPartySpellbookComponent* Existing = PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>())
 	{
+		Existing->InitializeSpellbookComponent(PartyPawn->PartyInventoryComponent);
 		return Existing;
 	}
 
@@ -175,6 +176,7 @@ UGridPartySpellbookComponent* UGridSpellbookWidget::ResolveOrCreateSpellbookComp
 	}
 
 	PartyPawn->AddInstanceComponent(Created);
+	Created->InitializeSpellbookComponent(PartyPawn->PartyInventoryComponent);
 	Created->RegisterComponent();
 
 	UE_LOG(LogTemp, VeryVerbose, TEXT("GridSpellbookWidget created runtime PartySpellbookComponent for %s."), *GetNameSafe(PartyPawn));
@@ -214,17 +216,8 @@ void UGridSpellbookWidget::RefreshSpellbook()
 		return;
 	}
 
-	// Registration creates only the empty per-character knowledge container.
-	// It never teaches a spell and keeps SpellId as the sole stable identity.
-	if (!SpellbookComponent->EnsureCharacterSpellbook(SelectedCharacterId))
-	{
-		ClearViewState();
-		NotifySpellbookRefreshed();
-		return;
-	}
-
-	const FGridCharacterSpellbookState* CharacterSpellbook = GetSelectedCharacterSpellbook();
-	if (!CharacterSpellbook)
+	FGridCharacterSpellbookState CharacterSpellbook;
+	if (!GetSelectedCharacterSpellbook(CharacterSpellbook))
 	{
 		ClearViewState();
 		NotifySpellbookRefreshed();
@@ -241,7 +234,7 @@ void UGridSpellbookWidget::RefreshSpellbook()
 		InventoryComponent->GetCharacterCombatHotbarBinding(SelectedCharacterIndex, SlotIndex, HotbarBindings[SlotIndex]);
 	}
 
-	UGridSpellbookUILibrary::BuildProductionSpellbookEntries(*CharacterSpellbook, HotbarBindings, SpellEntries);
+	UGridSpellbookUILibrary::BuildProductionSpellbookEntries(CharacterSpellbook, HotbarBindings, SpellEntries);
 
 	NotifySpellbookRefreshed();
 }
@@ -297,14 +290,14 @@ bool UGridSpellbookWidget::GetSpellEntry(int32 EntryIndex, FGridSpellbookEntryVi
 
 EGridSpellHotbarAssignmentResult UGridSpellbookWidget::AssignSpellToHotbar(FName SpellId, int32 TargetSlotIndex)
 {
-	const FGridCharacterSpellbookState* CharacterSpellbook = GetSelectedCharacterSpellbook();
-	if (!InventoryComponent || !CharacterSpellbook)
+	FGridCharacterSpellbookState CharacterSpellbook;
+	if (!InventoryComponent || !GetSelectedCharacterSpellbook(CharacterSpellbook))
 	{
 		return EGridSpellHotbarAssignmentResult::InvalidCharacter;
 	}
 
 	const EGridSpellHotbarAssignmentResult Result =
-		UGridSpellbookUILibrary::AssignKnownSpellToHotbar(InventoryComponent, SelectedCharacterIndex, *CharacterSpellbook, SpellId, TargetSlotIndex);
+		UGridSpellbookUILibrary::AssignKnownSpellToHotbar(InventoryComponent, SelectedCharacterIndex, CharacterSpellbook, SpellId, TargetSlotIndex);
 
 	if (Result == EGridSpellHotbarAssignmentResult::Success)
 	{
@@ -315,14 +308,14 @@ EGridSpellHotbarAssignmentResult UGridSpellbookWidget::AssignSpellToHotbar(FName
 
 EGridSpellHotbarAssignmentResult UGridSpellbookWidget::UnassignSpellFromHotbar(FName SpellId)
 {
-	const FGridCharacterSpellbookState* CharacterSpellbook = GetSelectedCharacterSpellbook();
-	if (!InventoryComponent || !CharacterSpellbook)
+	FGridCharacterSpellbookState CharacterSpellbook;
+	if (!InventoryComponent || !GetSelectedCharacterSpellbook(CharacterSpellbook))
 	{
 		return EGridSpellHotbarAssignmentResult::InvalidCharacter;
 	}
 
 	const EGridSpellHotbarAssignmentResult Result =
-		UGridSpellbookUILibrary::UnassignSpellFromHotbar(InventoryComponent, SelectedCharacterIndex, *CharacterSpellbook, SpellId);
+		UGridSpellbookUILibrary::UnassignSpellFromHotbar(InventoryComponent, SelectedCharacterIndex, CharacterSpellbook, SpellId);
 
 	if (Result == EGridSpellHotbarAssignmentResult::Success)
 	{
@@ -341,12 +334,9 @@ void UGridSpellbookWidget::HandleSpellbookChanged()
 	RefreshSpellbook();
 }
 
-const FGridCharacterSpellbookState* UGridSpellbookWidget::GetSelectedCharacterSpellbook() const
+bool UGridSpellbookWidget::GetSelectedCharacterSpellbook(FGridCharacterSpellbookState& OutState) const
 {
-	if (!SpellbookComponent || !SelectedCharacterId.IsValid())
-	{
-		return nullptr;
-	}
-
-	return SpellbookComponent->SpellbookState.FindSpellbook(SelectedCharacterId);
+	OutState = FGridCharacterSpellbookState();
+	return SpellbookComponent && SelectedCharacterId.IsValid() &&
+		SpellbookComponent->GetCharacterSpellbookState(SelectedCharacterId, OutState);
 }

@@ -1,211 +1,89 @@
 #include "Magic/GridSpellbookPersistence.h"
 
+#include "Magic/GridProductionSpellLibrary.h"
+#include "Runtime/GridInventoryTypes.h"
+
 namespace GridSpellbookPersistencePrivate
 {
-	bool CollectPartyCharacterIds(const FGridPartyInventoryState& PartyState, TArray<FGuid>& OutOrderedIds, TSet<FGuid>& OutUniqueIds, FString& OutError)
+	bool IsCanonicalSpellId(FName SpellId)
 	{
-		OutOrderedIds.Reset();
-		OutUniqueIds.Reset();
-		OutError.Reset();
-
-		const auto AppendCharacters = [&OutOrderedIds, &OutUniqueIds, &OutError](
-										  const TArray<FGridCharacterInventoryState>& Characters, const TCHAR* Location) -> bool
-		{
-			for (int32 Index = 0; Index < Characters.Num(); ++Index)
+		TArray<FGridSpellDefinition> Definitions;
+		FGridProductionSpellLibrary::BuildAll(Definitions);
+		const FGridSpellDefinition* Definition = Definitions.FindByPredicate(
+			[SpellId](const FGridSpellDefinition& Candidate)
 			{
-				const FGuid CharacterId = Characters[Index].CharacterId;
-				if (!CharacterId.IsValid())
-				{
-					OutError = FString::Printf(TEXT("%s[%d] has an invalid CharacterId."), Location, Index);
-					return false;
-				}
-				if (OutUniqueIds.Contains(CharacterId))
-				{
-					OutError =
-						FString::Printf(TEXT("CharacterId %s is duplicated or ambiguous in the party snapshot."), *CharacterId.ToString(EGuidFormats::Digits));
-					return false;
-				}
-
-				OutUniqueIds.Add(CharacterId);
-				OutOrderedIds.Add(CharacterId);
-			}
-			return true;
-		};
-
-		return AppendCharacters(PartyState.ActiveCharacters, TEXT("ActiveCharacter")) && AppendCharacters(PartyState.CharacterPool, TEXT("CharacterPool"));
+				return Candidate.SpellId == SpellId;
+			});
+		return Definition && FGridSpellContract::ValidateDefinition(*Definition) == EGridSpellValidationError::None;
 	}
 
-	bool ValidateSpellIds(const TArray<FName>& SpellIds, const FGuid& CharacterId, FString& OutError)
+	bool ValidateCharacters(
+		const TArray<FGridCharacterInventoryState>& Characters, const TCHAR* Location, TSet<FGuid>& InOutCharacterIds, FString& OutError)
 	{
-		TSet<FName> SeenSpellIds;
-		for (const FName SpellId : SpellIds)
+		for (int32 CharacterIndex = 0; CharacterIndex < Characters.Num(); ++CharacterIndex)
 		{
-			if (SpellId.IsNone())
+			const FGridCharacterInventoryState& Character = Characters[CharacterIndex];
+			if (!Character.CharacterId.IsValid())
 			{
-				OutError = FString::Printf(TEXT("Spellbook %s contains NAME_None."), *CharacterId.ToString(EGuidFormats::Digits));
+				OutError = FString::Printf(TEXT("%s[%d] has an invalid CharacterId."), Location, CharacterIndex);
 				return false;
 			}
-			if (SeenSpellIds.Contains(SpellId))
+			if (InOutCharacterIds.Contains(Character.CharacterId))
 			{
-				OutError =
-					FString::Printf(TEXT("Spellbook %s contains duplicate SpellId '%s'."), *CharacterId.ToString(EGuidFormats::Digits), *SpellId.ToString());
+				OutError = FString::Printf(
+					TEXT("CharacterId %s is duplicated or ambiguous in durable Spellbook state."), *Character.CharacterId.ToString(EGuidFormats::Digits));
 				return false;
 			}
-			SeenSpellIds.Add(SpellId);
+			InOutCharacterIds.Add(Character.CharacterId);
+
+			TSet<FName> SeenSpellIds;
+			FString PreviousSpellId;
+			for (int32 SpellIndex = 0; SpellIndex < Character.KnownSpellIds.Num(); ++SpellIndex)
+			{
+				const FName SpellId = Character.KnownSpellIds[SpellIndex];
+				if (SpellId.IsNone())
+				{
+					OutError = FString::Printf(TEXT("%s[%d] Spellbook contains NAME_None."), Location, CharacterIndex);
+					return false;
+				}
+				if (SeenSpellIds.Contains(SpellId))
+				{
+					OutError = FString::Printf(
+						TEXT("%s[%d] Spellbook contains duplicate SpellId '%s'."), Location, CharacterIndex, *SpellId.ToString());
+					return false;
+				}
+				if (!IsCanonicalSpellId(SpellId))
+				{
+					OutError = FString::Printf(
+						TEXT("%s[%d] Spellbook references non-canonical SpellId '%s'."), Location, CharacterIndex, *SpellId.ToString());
+					return false;
+				}
+
+				const FString CurrentSpellId = SpellId.ToString();
+				if (SpellIndex > 0 && !(PreviousSpellId < CurrentSpellId))
+				{
+					OutError = FString::Printf(TEXT("%s[%d] Spellbook is not deterministically sorted by SpellId."), Location, CharacterIndex);
+					return false;
+				}
+				PreviousSpellId = CurrentSpellId;
+				SeenSpellIds.Add(SpellId);
+			}
 		}
 		return true;
 	}
-
-	void SortSpellIds(TArray<FName>& SpellIds)
-	{
-		SpellIds.Sort(
-			[](const FName Left, const FName Right)
-			{
-				return Left.ToString() < Right.ToString();
-			});
-	}
 }
 
-using namespace GridSpellbookPersistencePrivate;
-
-bool FGridSpellbookPersistence::CapturePartySpellbooks(const FGridPartyInventoryState& PartyState, const FGridPartySpellbookState& RuntimeState,
-	TArray<FGridCharacterSpellbookSaveState>& OutSavedStates, FString& OutError)
+bool FGridSpellbookPersistence::ValidatePartySpellbooks(const FGridPartyInventoryState& PartyState, FString& OutError)
 {
-	TArray<FGuid> OrderedPartyIds;
-	TSet<FGuid> PartyIds;
-	if (!CollectPartyCharacterIds(PartyState, OrderedPartyIds, PartyIds, OutError))
+	TSet<FGuid> CharacterIds;
+	if (!GridSpellbookPersistencePrivate::ValidateCharacters(
+			PartyState.ActiveCharacters, TEXT("ActiveCharacter"), CharacterIds, OutError) ||
+		!GridSpellbookPersistencePrivate::ValidateCharacters(
+			PartyState.CharacterPool, TEXT("CharacterPool"), CharacterIds, OutError))
 	{
 		return false;
 	}
 
-	if (!RuntimeState.IsValid())
-	{
-		OutError = TEXT("Runtime spellbook state is structurally invalid.");
-		return false;
-	}
-
-	TArray<FGridCharacterSpellbookSaveState> Candidate;
-	Candidate.Reserve(RuntimeState.CharacterSpellbooks.Num());
-	for (const FGridCharacterSpellbookState& RuntimeSpellbook : RuntimeState.CharacterSpellbooks)
-	{
-		if (!PartyIds.Contains(RuntimeSpellbook.CharacterId))
-		{
-			OutError =
-				FString::Printf(TEXT("Runtime spellbook references orphan CharacterId %s."), *RuntimeSpellbook.CharacterId.ToString(EGuidFormats::Digits));
-			return false;
-		}
-		if (!ValidateSpellIds(RuntimeSpellbook.KnownSpellIds, RuntimeSpellbook.CharacterId, OutError))
-		{
-			return false;
-		}
-		if (RuntimeSpellbook.KnownSpellIds.IsEmpty())
-		{
-			continue;
-		}
-
-		FGridCharacterSpellbookSaveState Saved;
-		Saved.CharacterId = RuntimeSpellbook.CharacterId;
-		Saved.KnownSpellIds = RuntimeSpellbook.KnownSpellIds;
-		SortSpellIds(Saved.KnownSpellIds);
-		Candidate.Add(MoveTemp(Saved));
-	}
-
-	Candidate.Sort(
-		[](const FGridCharacterSpellbookSaveState& Left, const FGridCharacterSpellbookSaveState& Right)
-		{
-			return Left.CharacterId.ToString(EGuidFormats::Digits) < Right.CharacterId.ToString(EGuidFormats::Digits);
-		});
-
-	OutSavedStates = MoveTemp(Candidate);
-	OutError.Reset();
-	return true;
-}
-
-bool FGridSpellbookPersistence::ValidateSavedPartySpellbooks(
-	const FGridPartyInventoryState& PartyState, const TArray<FGridCharacterSpellbookSaveState>& SavedStates, FString& OutError)
-{
-	TArray<FGuid> OrderedPartyIds;
-	TSet<FGuid> PartyIds;
-	if (!CollectPartyCharacterIds(PartyState, OrderedPartyIds, PartyIds, OutError))
-	{
-		return false;
-	}
-
-	TSet<FGuid> SeenCharacterIds;
-	for (const FGridCharacterSpellbookSaveState& Saved : SavedStates)
-	{
-		if (!Saved.CharacterId.IsValid())
-		{
-			OutError = TEXT("Saved spellbook contains an invalid CharacterId.");
-			return false;
-		}
-		if (SeenCharacterIds.Contains(Saved.CharacterId))
-		{
-			OutError = FString::Printf(TEXT("Saved spellbook duplicates CharacterId %s."), *Saved.CharacterId.ToString(EGuidFormats::Digits));
-			return false;
-		}
-		if (!PartyIds.Contains(Saved.CharacterId))
-		{
-			OutError = FString::Printf(TEXT("Saved spellbook references orphan CharacterId %s."), *Saved.CharacterId.ToString(EGuidFormats::Digits));
-			return false;
-		}
-		if (!ValidateSpellIds(Saved.KnownSpellIds, Saved.CharacterId, OutError))
-		{
-			return false;
-		}
-
-		SeenCharacterIds.Add(Saved.CharacterId);
-	}
-
-	OutError.Reset();
-	return true;
-}
-
-bool FGridSpellbookPersistence::RestorePartySpellbooks(const FGridPartyInventoryState& PartyState, const TArray<FGridCharacterSpellbookSaveState>& SavedStates,
-	FGridPartySpellbookState& OutRuntimeState, FString& OutError)
-{
-	if (!ValidateSavedPartySpellbooks(PartyState, SavedStates, OutError))
-	{
-		return false;
-	}
-
-	TArray<FGuid> OrderedPartyIds;
-	TSet<FGuid> PartyIds;
-	if (!CollectPartyCharacterIds(PartyState, OrderedPartyIds, PartyIds, OutError))
-	{
-		return false;
-	}
-
-	FGridPartySpellbookState Candidate;
-	for (const FGuid& CharacterId : OrderedPartyIds)
-	{
-		if (!Candidate.EnsureCharacter(CharacterId))
-		{
-			OutError = FString::Printf(TEXT("Could not create runtime spellbook for CharacterId %s."), *CharacterId.ToString(EGuidFormats::Digits));
-			return false;
-		}
-	}
-
-	for (const FGridCharacterSpellbookSaveState& Saved : SavedStates)
-	{
-		FGridCharacterSpellbookState* RuntimeSpellbook = Candidate.FindMutableSpellbook(Saved.CharacterId);
-		if (!RuntimeSpellbook)
-		{
-			OutError = FString::Printf(TEXT("Saved spellbook cannot resolve CharacterId %s."), *Saved.CharacterId.ToString(EGuidFormats::Digits));
-			return false;
-		}
-
-		RuntimeSpellbook->KnownSpellIds = Saved.KnownSpellIds;
-		SortSpellIds(RuntimeSpellbook->KnownSpellIds);
-	}
-
-	if (!Candidate.IsValid())
-	{
-		OutError = TEXT("Restored runtime spellbook candidate is invalid.");
-		return false;
-	}
-
-	OutRuntimeState = MoveTemp(Candidate);
 	OutError.Reset();
 	return true;
 }

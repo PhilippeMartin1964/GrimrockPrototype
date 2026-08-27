@@ -1,7 +1,6 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
 #include "GameFramework/PlayerController.h"
-#include "Magic/GridPartySpellbookComponent.h"
 #include "RPG/RPGCharacterTypes.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -174,11 +173,6 @@ void AGrimrockPartyPawn::FinishCustomRecruitCharacterCreationWidget(URPGCharacte
 	if (bCommitted && IsValid(PartyInventoryComponent) && PartyInventoryComponent->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex))
 	{
 		RecruitedCharacterId = PartyInventoryComponent->PartyInventoryState.ActiveCharacters[CharacterIndex].CharacterId;
-
-		if (UGridPartySpellbookComponent* SpellbookComponent = FindComponentByClass<UGridPartySpellbookComponent>())
-		{
-			SpellbookComponent->EnsureCharacterSpellbook(RecruitedCharacterId);
-		}
 	}
 
 	if (SourceWidget->IsInViewport())

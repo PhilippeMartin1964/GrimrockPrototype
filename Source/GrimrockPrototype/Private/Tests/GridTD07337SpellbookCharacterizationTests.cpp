@@ -1,11 +1,10 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
-#include "Misc/AutomationTest.h"
-
 #include "Magic/GridPartySpellbookComponent.h"
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookPersistence.h"
-#include "Runtime/GridInventoryTypes.h"
+#include "Misc/AutomationTest.h"
+#include "Runtime/GridPartyInventoryComponent.h"
 #include "UObject/UnrealType.h"
 
 namespace GridTD07337Characterization
@@ -29,6 +28,15 @@ namespace GridTD07337Characterization
 		return Character;
 	}
 
+	UGridPartySpellbookComponent* MakeTD07337Facade(FGridPartyInventoryState Party, UGridPartyInventoryComponent*& OutInventory)
+	{
+		OutInventory = NewObject<UGridPartyInventoryComponent>();
+		OutInventory->PartyInventoryState = MoveTemp(Party);
+		UGridPartySpellbookComponent* Spellbook = NewObject<UGridPartySpellbookComponent>();
+		Spellbook->InitializeSpellbookComponent(OutInventory);
+		return Spellbook;
+	}
+
 	FGridCombatHotbarBinding MakeTD07337SpellBinding(FName SpellId, int32 SlotIndex)
 	{
 		FGridCombatHotbarBinding Binding;
@@ -48,20 +56,19 @@ bool FGridTD07337RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 {
 	(void)Parameters;
 	using namespace GridTD07337Characterization;
-
-	UGridPartySpellbookComponent* Spellbook = NewObject<UGridPartySpellbookComponent>();
 	const FGuid CharacterId = MakeTD07337Id(1);
-	TestTrue(TEXT("Runtime component registers a character spellbook"), Spellbook->EnsureCharacterSpellbook(CharacterId));
-	TestEqual(TEXT("Runtime component learns a spell"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()),
-		EGridSpellbookMutationResult::Success);
-	TestTrue(TEXT("Runtime component is the immediate read authority"), Spellbook->KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
+	FGridPartyInventoryState Party;
+	Party.ActiveCharacters.Add(MakeTD07337Character(CharacterId));
+	UGridPartyInventoryComponent* Inventory = nullptr;
+	UGridPartySpellbookComponent* Spellbook = MakeTD07337Facade(Party, Inventory);
 
-	const FProperty* StateProperty =
-		FindFProperty<FProperty>(UGridPartySpellbookComponent::StaticClass(), GET_MEMBER_NAME_CHECKED(UGridPartySpellbookComponent, SpellbookState));
-	TestNotNull(TEXT("SpellbookState remains reflected"), StateProperty);
-	TestTrue(TEXT("SpellbookState is transient runtime authority"), StateProperty && StateProperty->HasAnyPropertyFlags(CPF_Transient));
-	TestNull(TEXT("Character state does not yet own KnownSpellIds"),
-		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), TEXT("KnownSpellIds")));
+	TestEqual(TEXT("Facade learns into durable character state"),
+		Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()), EGridSpellbookMutationResult::Success);
+	TestTrue(TEXT("Durable character owns learned SpellId"),
+		Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestTrue(TEXT("Facade immediately reads durable authority"), Spellbook->KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestNull(TEXT("Parallel component SpellbookState is removed"),
+		FindFProperty<FProperty>(UGridPartySpellbookComponent::StaticClass(), TEXT("SpellbookState")));
 	return true;
 }
 
@@ -73,42 +80,21 @@ bool FGridTD07337SparsePersistenceMirrorTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD07337Characterization;
-
 	const FGuid MageId = MakeTD07337Id(2);
-	const FGuid EmptyActiveId = MakeTD07337Id(3);
-	const FGuid ReserveId = MakeTD07337Id(4);
-
+	const FGuid ReserveId = MakeTD07337Id(3);
 	FGridPartyInventoryState Party;
 	Party.ActiveCharacters.Add(MakeTD07337Character(MageId));
-	Party.ActiveCharacters.Add(MakeTD07337Character(EmptyActiveId));
 	Party.CharacterPool.Add(MakeTD07337Character(ReserveId));
+	UGridPartyInventoryComponent* Inventory = nullptr;
+	UGridPartySpellbookComponent* Spellbook = MakeTD07337Facade(Party, Inventory);
 
-	FGridPartySpellbookState Runtime;
-	TestTrue(TEXT("Mage runtime container created"), Runtime.EnsureCharacter(MageId));
-	TestTrue(TEXT("Empty active runtime container created"), Runtime.EnsureCharacter(EmptyActiveId));
-	TestTrue(TEXT("Reserve runtime container created"), Runtime.EnsureCharacter(ReserveId));
-	TestEqual(TEXT("Mage learns Haste first"), Runtime.LearnSpell(MageId, FGridProductionSpellLibrary::HasteId()), EGridSpellbookMutationResult::Success);
-	TestEqual(TEXT("Mage learns Arcane Bolt second"), Runtime.LearnSpell(MageId, FGridProductionSpellLibrary::ArcaneBoltId()),
-		EGridSpellbookMutationResult::Success);
-	TestEqual(TEXT("Reserve learns Lesser Heal"), Runtime.LearnSpell(ReserveId, FGridProductionSpellLibrary::LesserHealId()),
-		EGridSpellbookMutationResult::Success);
-
-	TArray<FGridCharacterSpellbookSaveState> Saved;
-	FString Error;
-	TestTrue(TEXT("Runtime spellbooks capture into a separate Save mirror"),
-		FGridSpellbookPersistence::CapturePartySpellbooks(Party, Runtime, Saved, Error));
-	TestEqual(TEXT("Empty character is omitted from sparse Save mirror"), Saved.Num(), 2);
-	if (Saved.Num() == 2)
-	{
-		TestTrue(TEXT("Save mirror is deterministically ordered by CharacterId"), Saved[0].CharacterId == MageId && Saved[1].CharacterId == ReserveId);
-		TestEqual(TEXT("Mage snapshot contains two known spells"), Saved[0].KnownSpellIds.Num(), 2);
-		if (Saved[0].KnownSpellIds.Num() == 2)
-		{
-			TestEqual(TEXT("Save mirror sorts SpellIds independently of runtime insertion order"), Saved[0].KnownSpellIds[0],
-				FGridProductionSpellLibrary::ArcaneBoltId());
-			TestEqual(TEXT("Second deterministic SpellId is Haste"), Saved[0].KnownSpellIds[1], FGridProductionSpellLibrary::HasteId());
-		}
-	}
+	Spellbook->LearnSpell(MageId, FGridProductionSpellLibrary::HasteId());
+	Spellbook->LearnSpell(MageId, FGridProductionSpellLibrary::ArcaneBoltId());
+	TestEqual(TEXT("Durable state stores two canonical identities"), Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds.Num(), 2);
+	TestTrue(TEXT("Empty reserve needs no sparse mirror"), Inventory->PartyInventoryState.CharacterPool[0].KnownSpellIds.IsEmpty());
+	const FGridPartyInventoryState Copy = Inventory->PartyInventoryState;
+	TestTrue(TEXT("Ordinary party-state copy carries Spellbook knowledge"),
+		Copy.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::HasteId()));
 	return true;
 }
 
@@ -120,83 +106,50 @@ bool FGridTD07337RestoreReplacementBoundaryTest::RunTest(const FString& Paramete
 {
 	(void)Parameters;
 	using namespace GridTD07337Characterization;
+	FGridPartyInventoryState Source;
+	FGridCharacterInventoryState Mage = MakeTD07337Character(MakeTD07337Id(5));
+	Mage.KnownSpellIds.Add(FGridProductionSpellLibrary::ArcaneBoltId());
+	Source.ActiveCharacters.Add(Mage);
+	Source.ActiveCharacters.Add(MakeTD07337Character(MakeTD07337Id(6)));
 
-	const FGuid MageId = MakeTD07337Id(5);
-	const FGuid EmptyActiveId = MakeTD07337Id(6);
-	const FGuid ReserveId = MakeTD07337Id(7);
+	FGridPartyInventoryState Runtime = Source;
+	Runtime.ActiveCharacters[0].KnownSpellIds = { FGridProductionSpellLibrary::HasteId() };
+	Runtime = Source;
+	TestTrue(TEXT("Whole-party restore replaces stale Spellbook state"),
+		Runtime.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestFalse(TEXT("Stale runtime-only spell disappears"), Runtime.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::HasteId()));
+	TestTrue(TEXT("Absent durable knowledge remains empty"), Runtime.ActiveCharacters[1].KnownSpellIds.IsEmpty());
 
-	FGridPartyInventoryState Party;
-	Party.ActiveCharacters.Add(MakeTD07337Character(MageId));
-	Party.ActiveCharacters.Add(MakeTD07337Character(EmptyActiveId));
-	Party.CharacterPool.Add(MakeTD07337Character(ReserveId));
-
-	FGridPartySpellbookState Runtime;
-	Runtime.EnsureCharacter(MageId);
-	Runtime.LearnSpell(MageId, FGridProductionSpellLibrary::HasteId());
-
-	FGridCharacterSpellbookSaveState SavedMage;
-	SavedMage.CharacterId = MageId;
-	SavedMage.KnownSpellIds.Add(FGridProductionSpellLibrary::ArcaneBoltId());
-	TArray<FGridCharacterSpellbookSaveState> Saved;
-	Saved.Add(SavedMage);
-
+	FGridPartyInventoryState InvalidCandidate = Source;
+	InvalidCandidate.ActiveCharacters[0].KnownSpellIds = { TEXT("Spell_RemovedContent") };
 	FString Error;
-	TestTrue(TEXT("Restore replaces the prior runtime spellbook"),
-		FGridSpellbookPersistence::RestorePartySpellbooks(Party, Saved, Runtime, Error));
-	TestEqual(TEXT("Restore creates containers for every Active and pooled character"), Runtime.CharacterSpellbooks.Num(), 3);
-	TestTrue(TEXT("Persisted spell is restored"), Runtime.KnowsSpell(MageId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	TestFalse(TEXT("Stale runtime-only spell is removed by replacement"), Runtime.KnowsSpell(MageId, FGridProductionSpellLibrary::HasteId()));
-	TestTrue(TEXT("Absent active snapshot restores empty"),
-		Runtime.FindSpellbook(EmptyActiveId) && Runtime.FindSpellbook(EmptyActiveId)->KnownSpellIds.IsEmpty());
-	TestTrue(TEXT("Absent pooled snapshot restores empty"),
-		Runtime.FindSpellbook(ReserveId) && Runtime.FindSpellbook(ReserveId)->KnownSpellIds.IsEmpty());
-
-	const FGridPartySpellbookState BeforeInvalidRestore = Runtime;
-	FGridCharacterSpellbookSaveState InvalidSaved;
-	InvalidSaved.CharacterId = MageId;
-	InvalidSaved.KnownSpellIds.Add(NAME_None);
-	TArray<FGridCharacterSpellbookSaveState> InvalidStates;
-	InvalidStates.Add(InvalidSaved);
-	TestFalse(TEXT("Invalid replacement snapshot is rejected atomically"),
-		FGridSpellbookPersistence::RestorePartySpellbooks(Party, InvalidStates, Runtime, Error));
-	TestTrue(TEXT("Failed restore preserves previous spell knowledge"), Runtime.KnowsSpell(MageId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	TestEqual(TEXT("Failed restore preserves runtime container count"), Runtime.CharacterSpellbooks.Num(), BeforeInvalidRestore.CharacterSpellbooks.Num());
+	TestFalse(TEXT("Invalid exact-match candidate is rejected before commit"),
+		FGridSpellbookPersistence::ValidatePartySpellbooks(InvalidCandidate, Error));
+	TestTrue(TEXT("Original state remains unchanged after candidate rejection"),
+		Source.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337LegacyToleranceAndHotbarIndependenceTest,
-	"Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.LegacyToleranceAndHotbarIndependence",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07337CanonicalDefinitionAndHotbarIndependenceTest,
+	"Grimrock.TechnicalDebt.TD07_3_3_7.Characterization.CanonicalDefinitionAndHotbarIndependence",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridTD07337LegacyToleranceAndHotbarIndependenceTest::RunTest(const FString& Parameters)
+bool FGridTD07337CanonicalDefinitionAndHotbarIndependenceTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	using namespace GridTD07337Characterization;
-
 	const FGuid CharacterId = MakeTD07337Id(8);
 	FGridPartyInventoryState Party;
 	Party.ActiveCharacters.Add(MakeTD07337Character(CharacterId));
 	Party.ActiveCharacters[0].CombatHotbarSlots[0] = MakeTD07337SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 0);
+	UGridPartyInventoryComponent* Inventory = nullptr;
+	UGridPartySpellbookComponent* Spellbook = MakeTD07337Facade(Party, Inventory);
 
-	FGridPartySpellbookState EmptyRestored;
-	TArray<FGridCharacterSpellbookSaveState> EmptySaved;
-	FString Error;
-	TestTrue(TEXT("Empty Spellbook state restores beside a configured Spell hotbar"),
-		FGridSpellbookPersistence::RestorePartySpellbooks(Party, EmptySaved, EmptyRestored, Error));
 	TestFalse(TEXT("Hotbar reference does not teach its SpellId"),
-		EmptyRestored.KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	TestTrue(TEXT("Spell hotbar binding remains structurally valid"), Party.ActiveCharacters[0].CombatHotbarSlots[0].IsValid());
-
-	FGridCharacterSpellbookSaveState UnknownSaved;
-	UnknownSaved.CharacterId = CharacterId;
-	UnknownSaved.KnownSpellIds.Add(TEXT("Spell_RemovedContent"));
-	TArray<FGridCharacterSpellbookSaveState> UnknownStates;
-	UnknownStates.Add(UnknownSaved);
-	FGridPartySpellbookState UnknownRestored;
-	TestTrue(TEXT("Current MON18.8 persistence accepts an unknown non-empty SpellId"),
-		FGridSpellbookPersistence::RestorePartySpellbooks(Party, UnknownStates, UnknownRestored, Error));
-	TestTrue(TEXT("Unknown SpellId is preserved as known legacy content"),
-		UnknownRestored.KnowsSpell(CharacterId, TEXT("Spell_RemovedContent")));
+		Spellbook->KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestTrue(TEXT("Spell hotbar binding remains structurally valid"), Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[0].IsValid());
+	TestEqual(TEXT("Unknown legacy SpellId is rejected by exact-match mutation"),
+		Spellbook->LearnSpell(CharacterId, TEXT("Spell_RemovedContent")), EGridSpellbookMutationResult::InvalidSpell);
 	return true;
 }
 

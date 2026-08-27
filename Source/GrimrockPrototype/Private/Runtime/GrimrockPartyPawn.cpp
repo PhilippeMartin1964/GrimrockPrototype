@@ -12,7 +12,6 @@
 #include "Core/GridDirectionUtils.h"
 #include "InputCoreTypes.h"
 #include "Magic/GridPartySpellbookComponent.h"
-#include "Magic/GridSpellbookPersistence.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridItemActor.h"
 #include "Runtime/GridItemDefinitionAsset.h"
@@ -35,19 +34,6 @@ namespace
 	bool IsPawnHandEquipmentSlot(EGridEquipmentSlot Slot)
 	{
 		return Slot == EGridEquipmentSlot::MainHand || Slot == EGridEquipmentSlot::OffHand;
-	}
-
-	UGridPartySpellbookComponent* GetPawnSpellbookComponent(AGrimrockPartyPawn* PartyPawn)
-	{
-		return IsValid(PartyPawn) ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>() : nullptr;
-	}
-
-	void ResetPawnSpellbook(AGrimrockPartyPawn* PartyPawn)
-	{
-		if (UGridPartySpellbookComponent* SpellbookComponent = GetPawnSpellbookComponent(PartyPawn))
-		{
-			SpellbookComponent->ResetAllSpellbooks();
-		}
 	}
 
 	const TCHAR* GetPawnEquipmentSlotName(EGridEquipmentSlot Slot)
@@ -131,7 +117,8 @@ AGrimrockPartyPawn::AGrimrockPartyPawn()
 	HeldItemRoot->SetupAttachment(Camera ? Cast<USceneComponent>(Camera) : SceneRoot);
 
 	PartyInventoryComponent = CreateDefaultSubobject<UGridPartyInventoryComponent>(TEXT("PartyInventoryComponent"));
-	CreateDefaultSubobject<UGridPartySpellbookComponent>(TEXT("PartySpellbookComponent"));
+	UGridPartySpellbookComponent* PartySpellbookComponent = CreateDefaultSubobject<UGridPartySpellbookComponent>(TEXT("PartySpellbookComponent"));
+	PartySpellbookComponent->InitializeSpellbookComponent(PartyInventoryComponent);
 
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 	Camera->SetRelativeLocation(CameraLocalOffset);
@@ -192,13 +179,11 @@ void AGrimrockPartyPawn::BeginPlay()
 				{
 					UE_LOG(LogTemp, Warning, TEXT("PartySave PlaytestProfileLoad Failed Slot=%s Reason=%s"), *PartySaveSlotName, *LoadError.ToString());
 					PartyInventoryComponent->ResetPartyForNewGame();
-					ResetPawnSpellbook(this);
 				}
 			}
 			else
 			{
 				PartyInventoryComponent->ResetPartyForNewGame();
-				ResetPawnSpellbook(this);
 			}
 		}
 		else if (PartyStartupMode == EGrimrockPartyStartupMode::NewGame)
@@ -208,7 +193,6 @@ void AGrimrockPartyPawn::BeginPlay()
 				UGameplayStatics::DeleteGameInSlot(PartySaveSlotName, PartySaveUserIndex);
 			}
 			PartyInventoryComponent->ResetPartyForNewGame();
-			ResetPawnSpellbook(this);
 		}
 		else if (HasCurrentSave())
 		{
@@ -241,7 +225,6 @@ void AGrimrockPartyPawn::BeginPlay()
 		else
 		{
 			PartyInventoryComponent->ResetPartyForNewGame();
-			ResetPawnSpellbook(this);
 		}
 	}
 

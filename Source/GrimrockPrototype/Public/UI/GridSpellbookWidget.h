@@ -96,7 +96,7 @@ private:
 
 	UGridPartySpellbookComponent* ResolveOrCreateSpellbookComponent(AGrimrockPartyPawn* PartyPawn) const;
 
-	const FGridCharacterSpellbookState* GetSelectedCharacterSpellbook() const;
+	bool GetSelectedCharacterSpellbook(FGridCharacterSpellbookState& OutState) const;
 
 	void ClearViewState();
 	void NotifySpellbookRefreshed();

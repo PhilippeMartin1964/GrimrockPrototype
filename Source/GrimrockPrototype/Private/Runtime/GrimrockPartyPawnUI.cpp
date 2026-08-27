@@ -1,7 +1,6 @@
 #include "Runtime/GrimrockPartyPawn.h"
 
 #include "GameFramework/PlayerController.h"
-#include "Magic/GridPartySpellbookComponent.h"
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridPartyInventoryComponent.h"
@@ -10,14 +9,6 @@
 #include "UI/GridInventoryWidget.h"
 #include "UI/GrimrockMenuWidget.h"
 #include "UI/RPGCharacterCreationWidget.h"
-
-namespace
-{
-	UGridPartySpellbookComponent* GridPartyPawnUIGetSpellbookComponent(AGrimrockPartyPawn* PartyPawn)
-	{
-		return IsValid(PartyPawn) ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>() : nullptr;
-	}
-}
 
 void AGrimrockPartyPawn::ToggleInventoryWidget()
 {
@@ -327,14 +318,6 @@ void AGrimrockPartyPawn::HandleInitialCharacterCreated()
 	if (!PartyInventoryComponent || !PartyInventoryComponent->HasCompletedInitialCharacterCreation())
 	{
 		return;
-	}
-
-	if (UGridPartySpellbookComponent* SpellbookComponent = GridPartyPawnUIGetSpellbookComponent(this))
-	{
-		for (const FGridCharacterInventoryState& Character : PartyInventoryComponent->PartyInventoryState.ActiveCharacters)
-		{
-			SpellbookComponent->EnsureCharacterSpellbook(Character.CharacterId);
-		}
 	}
 
 	CloseCharacterCreationWidget();

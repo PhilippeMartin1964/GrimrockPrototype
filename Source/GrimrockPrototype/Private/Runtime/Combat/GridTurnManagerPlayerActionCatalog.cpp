@@ -1,6 +1,5 @@
 #include "Runtime/Combat/GridTurnManagerComponent.h"
 
-#include "Magic/GridPartySpellbookComponent.h"
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookUI.h"
 #include "Magic/GridSpellHotbarExecution.h"
@@ -128,19 +127,15 @@ void UGridTurnManagerComponent::BuildPlayerCombatActionContributions(int32 Chara
 		}
 	}
 
-	// UI01.4.3e: the runtime Spellbook is the authoritative source of known
-	// spell actions. The hotbar stores identity only; the combat catalogue
-	// must reconstruct the action from SpellId every time it is queried.
+	// TD07.3.3.7: durable character KnownSpellIds is the sole authority.
+	// The hotbar stores identity only; the combat catalogue reconstructs
+	// the action from canonical SpellId every time it is queried.
 	if (IsValid(PartyPawn))
 	{
-		const UGridPartySpellbookComponent* SpellbookComponent = PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>();
-		const FGridCharacterSpellbookState* CharacterSpellbook =
-			IsValid(SpellbookComponent) ? SpellbookComponent->SpellbookState.FindSpellbook(Character.CharacterId) : nullptr;
-		if (CharacterSpellbook)
 		{
 			TArray<FGridSpellDefinition> ProductionSpells;
 			FGridProductionSpellLibrary::BuildAll(ProductionSpells);
-			for (const FName SpellId : CharacterSpellbook->KnownSpellIds)
+			for (const FName SpellId : Character.KnownSpellIds)
 			{
 				const FGridSpellDefinition* SpellDefinition = ProductionSpells.FindByPredicate(
 					[SpellId](const FGridSpellDefinition& Candidate)
@@ -983,19 +978,20 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 	}
 
 	UGridPartyInventoryComponent* SpellInventory = IsValid(PartyPawn) ? PartyPawn->PartyInventoryComponent.Get() : nullptr;
-	UGridPartySpellbookComponent* SpellbookComponent = IsValid(PartyPawn) ? PartyPawn->FindComponentByClass<UGridPartySpellbookComponent>() : nullptr;
 	const FGridCharacterInventoryState* SpellCharacter =
 		IsValid(SpellInventory) && SpellInventory->PartyInventoryState.ActiveCharacters.IsValidIndex(CharacterIndex)
 		? &SpellInventory->PartyInventoryState.ActiveCharacters[CharacterIndex]
 		: nullptr;
-	const FGridCharacterSpellbookState* CharacterSpellbook =
-		SpellCharacter && IsValid(SpellbookComponent) ? SpellbookComponent->SpellbookState.FindSpellbook(SpellCharacter->CharacterId) : nullptr;
 	const bool bSpellbookBackedAction = Action->Definition.SourcePolicy == EGridCombatActionSourcePolicy::Spell &&
-		Action->SourceDefinitionId == Action->Definition.ActionId && CharacterSpellbook && CharacterSpellbook->KnowsSpell(Action->Definition.ActionId);
+		Action->SourceDefinitionId == Action->Definition.ActionId && SpellCharacter &&
+		SpellCharacter->KnownSpellIds.Contains(Action->Definition.ActionId);
 
 	if (bSpellbookBackedAction)
 	{
 		FGridSpellDefinition SpellDefinition;
+		FGridCharacterSpellbookState CharacterSpellbook;
+		CharacterSpellbook.CharacterId = SpellCharacter->CharacterId;
+		CharacterSpellbook.KnownSpellIds = SpellCharacter->KnownSpellIds;
 		FGridPlayerCharacterTurnState TurnStateBefore;
 		if (!SpellCharacter || !TryBuildUI0143e2ProductionSpell(Action->Definition.ActionId, SpellDefinition) ||
 			!GetPlayerCharacterTurnState(CharacterIndex, TurnStateBefore))
@@ -1064,7 +1060,7 @@ bool UGridTurnManagerComponent::RequestCharacterCombatAction(int32 CharacterInde
 
 		FGridSpellHotbarExecutionResult Execution;
 		const bool bExecuted = FGridSpellHotbarExecutionService::TryExecute(
-			SpellDefinition, CastRequest, TargetingContext, *CharacterSpellbook, SpellCharacter->Resources, TurnStateBefore, TargetMaxHealth,
+			SpellDefinition, CastRequest, TargetingContext, CharacterSpellbook, SpellCharacter->Resources, TurnStateBefore, TargetMaxHealth,
 			TargetCurrentHealth, TargetStatusEffects,
 			[](FName EffectId) -> const UGridStatusEffectDefinitionAsset*
 			{

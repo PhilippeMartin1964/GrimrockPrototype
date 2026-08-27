@@ -13,7 +13,11 @@ enum class EGridSpellbookMutationResult : uint8
 	NotKnown UMETA(DisplayName = "Not Known")
 };
 
-/** Runtime spell knowledge owned by one stable CharacterId. */
+/**
+ * Ephemeral read/transaction view for one character Spellbook.
+ * TD07.3.3.7 durable authority lives in FGridCharacterInventoryState::KnownSpellIds.
+ * This struct is never stored as party or SaveGame authority.
+ */
 USTRUCT(BlueprintType)
 struct FGridCharacterSpellbookState
 {
@@ -22,7 +26,6 @@ struct FGridCharacterSpellbookState
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magic|Spellbook")
 	FGuid CharacterId;
 
-	/** Stable MON18.1 identities only. Definitions are resolved elsewhere. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magic|Spellbook")
 	TArray<FName> KnownSpellIds;
 
@@ -47,6 +50,7 @@ struct FGridCharacterSpellbookState
 		}
 
 		KnownSpellIds.Add(SpellId);
+		KnownSpellIds.Sort([](const FName Left, const FName Right) { return Left.ToString() < Right.ToString(); });
 		return EGridSpellbookMutationResult::Success;
 	}
 
@@ -77,6 +81,7 @@ struct FGridCharacterSpellbookState
 			}
 			SeenSpellIds.Add(SpellId);
 		}
+		KnownSpellIds.Sort([](const FName Left, const FName Right) { return Left.ToString() < Right.ToString(); });
 	}
 
 	bool IsValid() const
@@ -96,96 +101,5 @@ struct FGridCharacterSpellbookState
 			SeenSpellIds.Add(SpellId);
 		}
 		return true;
-	}
-};
-
-/** Party-wide runtime collection. One spellbook is allowed per CharacterId. */
-USTRUCT(BlueprintType)
-struct FGridPartySpellbookState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magic|Spellbook")
-	TArray<FGridCharacterSpellbookState> CharacterSpellbooks;
-
-	const FGridCharacterSpellbookState* FindSpellbook(const FGuid& CharacterId) const
-	{
-		return CharacterSpellbooks.FindByPredicate(
-			[&CharacterId](const FGridCharacterSpellbookState& Spellbook)
-			{
-				return Spellbook.CharacterId == CharacterId;
-			});
-	}
-
-	FGridCharacterSpellbookState* FindMutableSpellbook(const FGuid& CharacterId)
-	{
-		return CharacterSpellbooks.FindByPredicate(
-			[&CharacterId](FGridCharacterSpellbookState& Spellbook)
-			{
-				return Spellbook.CharacterId == CharacterId;
-			});
-	}
-
-	bool EnsureCharacter(const FGuid& CharacterId)
-	{
-		if (!CharacterId.IsValid())
-		{
-			return false;
-		}
-		if (FindSpellbook(CharacterId))
-		{
-			return true;
-		}
-
-		FGridCharacterSpellbookState& NewSpellbook = CharacterSpellbooks.AddDefaulted_GetRef();
-		NewSpellbook.CharacterId = CharacterId;
-		return true;
-	}
-
-	bool RemoveCharacter(const FGuid& CharacterId)
-	{
-		return CharacterId.IsValid() &&
-			CharacterSpellbooks.RemoveAll(
-				[&CharacterId](const FGridCharacterSpellbookState& Spellbook)
-				{
-					return Spellbook.CharacterId == CharacterId;
-				}) > 0;
-	}
-
-	bool KnowsSpell(const FGuid& CharacterId, FName SpellId) const
-	{
-		const FGridCharacterSpellbookState* Spellbook = FindSpellbook(CharacterId);
-		return Spellbook && Spellbook->KnowsSpell(SpellId);
-	}
-
-	EGridSpellbookMutationResult LearnSpell(const FGuid& CharacterId, FName SpellId)
-	{
-		FGridCharacterSpellbookState* Spellbook = FindMutableSpellbook(CharacterId);
-		return Spellbook ? Spellbook->LearnSpell(SpellId) : EGridSpellbookMutationResult::InvalidCharacter;
-	}
-
-	EGridSpellbookMutationResult ForgetSpell(const FGuid& CharacterId, FName SpellId)
-	{
-		FGridCharacterSpellbookState* Spellbook = FindMutableSpellbook(CharacterId);
-		return Spellbook ? Spellbook->ForgetSpell(SpellId) : EGridSpellbookMutationResult::InvalidCharacter;
-	}
-
-	bool IsValid() const
-	{
-		TSet<FGuid> SeenCharacterIds;
-		for (const FGridCharacterSpellbookState& Spellbook : CharacterSpellbooks)
-		{
-			if (!Spellbook.IsValid() || SeenCharacterIds.Contains(Spellbook.CharacterId))
-			{
-				return false;
-			}
-			SeenCharacterIds.Add(Spellbook.CharacterId);
-		}
-		return true;
-	}
-
-	void Reset()
-	{
-		CharacterSpellbooks.Reset();
 	}
 };

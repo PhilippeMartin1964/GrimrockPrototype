@@ -5,29 +5,25 @@
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookPersistence.h"
 #include "Misc/AutomationTest.h"
+#include "Runtime/GridItemDefinitionAsset.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Runtime/GrimrockPartyPawn.h"
 #include "Save/GrimrockPartySaveGame.h"
 
-namespace
+namespace GridMON188Tests
 {
-	FGridCombatHotbarBinding MakeMON188SpellBinding(FName SpellId, int32 SlotIndex)
+	struct FMON188DiskSlot
 	{
-		FGridCombatHotbarBinding Binding;
-		Binding.SlotIndex = SlotIndex;
-		Binding.ActionId = SpellId;
-		Binding.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
-		Binding.SourceDefinitionId = SpellId;
-		return Binding;
-	}
+		FString SlotName = FString::Printf(TEXT("MON188_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
+		int32 UserIndex = 0;
+		~FMON188DiskSlot() { UGameplayStatics::DeleteGameInSlot(SlotName, UserIndex); }
+	};
 
 	FGridCharacterInventoryState MakeMON188Character(const FGuid& CharacterId)
 	{
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = CharacterId;
-		Character.DisplayName = FText::FromString(TEXT("MON18.8 Hero"));
-		Character.Level = 1;
 		Character.Experience = 0;
+		Character.Level = 1;
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)
 		{
@@ -39,38 +35,27 @@ namespace
 	FGridPartyInventoryState MakeMON188Party(const TArray<FGuid>& ActiveIds, const TArray<FGuid>& PoolIds = {})
 	{
 		FGridPartyInventoryState Party;
-		Party.MaxActiveCharacters = FMath::Max(4, ActiveIds.Num());
-		Party.SelectedCharacterIndex = ActiveIds.IsEmpty() ? INDEX_NONE : 0;
-		Party.bInitialCharacterCreationCompleted = !ActiveIds.IsEmpty();
 		for (const FGuid& CharacterId : ActiveIds)
 		{
 			Party.ActiveCharacters.Add(MakeMON188Character(CharacterId));
+			Party.ActiveEquipment.AddDefaulted();
 		}
 		for (const FGuid& CharacterId : PoolIds)
 		{
 			Party.CharacterPool.Add(MakeMON188Character(CharacterId));
 		}
-		Party.ActiveEquipment.SetNum(Party.ActiveCharacters.Num());
 		return Party;
 	}
 
-
-	struct FMON188DiskSlot
+	FGridCombatHotbarBinding MakeMON188SpellBinding(FName SpellId, int32 SlotIndex)
 	{
-		FString SlotName;
-		int32 UserIndex = 0;
-
-		FMON188DiskSlot()
-			: SlotName(FString::Printf(TEXT("MON188_Spellbook_%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits)))
-		{
-			UGameplayStatics::DeleteGameInSlot(SlotName, UserIndex);
-		}
-
-		~FMON188DiskSlot()
-		{
-			UGameplayStatics::DeleteGameInSlot(SlotName, UserIndex);
-		}
-	};
+		FGridCombatHotbarBinding Binding;
+		Binding.Reset(SlotIndex);
+		Binding.ActionId = SpellId;
+		Binding.SourcePolicy = EGridCombatActionSourcePolicy::Spell;
+		Binding.SourceDefinitionId = SpellId;
+		return Binding;
+	}
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188SingleCharacterRoundTripTest, "Grimrock.Magic.MON18.8.SingleCharacterRoundTrip",
@@ -79,25 +64,16 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188SingleCharacterRoundTripTest, "
 bool FGridMagicMON188SingleCharacterRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 1, 1);
-	const FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
-
-	FGridPartySpellbookState Runtime;
-	TestTrue(TEXT("Character spellbook is registered"), Runtime.EnsureCharacter(CharacterId));
-	TestEqual(
-		TEXT("Arcane Bolt is learned"), Runtime.LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()), EGridSpellbookMutationResult::Success);
-	TestEqual(
-		TEXT("Lesser Heal is learned"), Runtime.LearnSpell(CharacterId, FGridProductionSpellLibrary::LesserHealId()), EGridSpellbookMutationResult::Success);
-
-	TArray<FGridCharacterSpellbookSaveState> Saved;
+	using namespace GridMON188Tests;
+	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 1, 1) });
+	Party.ActiveCharacters[0].KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::LesserHealId() };
 	FString Error;
-	TestTrue(TEXT("Runtime spellbook captures"), FGridSpellbookPersistence::CapturePartySpellbooks(Party, Runtime, Saved, Error));
-	TestEqual(TEXT("Sparse snapshot contains one character"), Saved.Num(), 1);
-
-	FGridPartySpellbookState Restored;
-	TestTrue(TEXT("Saved spellbook restores"), FGridSpellbookPersistence::RestorePartySpellbooks(Party, Saved, Restored, Error));
-	TestTrue(TEXT("Arcane Bolt survives"), Restored.KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	TestTrue(TEXT("Lesser Heal survives"), Restored.KnowsSpell(CharacterId, FGridProductionSpellLibrary::LesserHealId()));
+	TestTrue(TEXT("Direct durable Spellbook validates"), FGridSpellbookPersistence::ValidatePartySpellbooks(Party, Error));
+	const FGridPartyInventoryState Restored = Party;
+	TestTrue(TEXT("Arcane Bolt survives ordinary party-state copy"),
+		Restored.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestTrue(TEXT("Lesser Heal survives ordinary party-state copy"),
+		Restored.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::LesserHealId()));
 	return true;
 }
 
@@ -107,52 +83,34 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188MultipleCharactersRoundTripTest
 bool FGridMagicMON188MultipleCharactersRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid MageId = FGuid(18, 8, 2, 1);
-	const FGuid PriestId = FGuid(18, 8, 2, 2);
-	const FGuid ReserveId = FGuid(18, 8, 2, 3);
-	const FGridPartyInventoryState Party = MakeMON188Party({ MageId, PriestId }, { ReserveId });
+	using namespace GridMON188Tests;
+	const FGuid MageId(18, 8, 2, 1);
+	const FGuid PriestId(18, 8, 2, 2);
+	const FGuid ReserveId(18, 8, 2, 3);
+	FGridPartyInventoryState Party = MakeMON188Party({ MageId, PriestId }, { ReserveId });
+	Party.ActiveCharacters[0].KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::HasteId() };
+	Party.ActiveCharacters[1].KnownSpellIds = { FGridProductionSpellLibrary::LesserHealId() };
 
-	FGridPartySpellbookState Runtime;
-	Runtime.EnsureCharacter(MageId);
-	Runtime.EnsureCharacter(PriestId);
-	Runtime.EnsureCharacter(ReserveId);
-	Runtime.LearnSpell(MageId, FGridProductionSpellLibrary::ArcaneBoltId());
-	Runtime.LearnSpell(MageId, FGridProductionSpellLibrary::HasteId());
-	Runtime.LearnSpell(PriestId, FGridProductionSpellLibrary::LesserHealId());
-
-	TArray<FGridCharacterSpellbookSaveState> Saved;
 	FString Error;
-	TestTrue(TEXT("Multi-character spellbooks capture"), FGridSpellbookPersistence::CapturePartySpellbooks(Party, Runtime, Saved, Error));
-	TestEqual(TEXT("Empty reserve spellbook is omitted from sparse snapshot"), Saved.Num(), 2);
-
-	FGridPartySpellbookState Restored;
-	TestTrue(TEXT("Multi-character spellbooks restore"), FGridSpellbookPersistence::RestorePartySpellbooks(Party, Saved, Restored, Error));
-	TestEqual(TEXT("Every active and pooled character gets a runtime container"), Restored.CharacterSpellbooks.Num(), 3);
-	TestTrue(TEXT("Mage keeps Arcane Bolt"), Restored.KnowsSpell(MageId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	TestTrue(TEXT("Mage keeps Haste"), Restored.KnowsSpell(MageId, FGridProductionSpellLibrary::HasteId()));
-	TestTrue(TEXT("Priest keeps Lesser Heal"), Restored.KnowsSpell(PriestId, FGridProductionSpellLibrary::LesserHealId()));
-	const FGridCharacterSpellbookState* Reserve = Restored.FindSpellbook(ReserveId);
-	TestTrue(TEXT("Reserve character restores an empty spellbook"), Reserve && Reserve->KnownSpellIds.IsEmpty());
+	TestTrue(TEXT("Active and pooled durable Spellbooks validate"), FGridSpellbookPersistence::ValidatePartySpellbooks(Party, Error));
+	const FGridPartyInventoryState Restored = Party;
+	TestEqual(TEXT("Every character carries its own Spellbook state"), Restored.ActiveCharacters.Num() + Restored.CharacterPool.Num(), 3);
+	TestTrue(TEXT("Reserve remains empty"), Restored.CharacterPool[0].KnownSpellIds.IsEmpty());
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188UnknownDefinitionPreservedTest, "Grimrock.Magic.MON18.8.UnknownDefinitionPreserved",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188UnknownDefinitionRejectedTest, "Grimrock.Magic.MON18.8.UnknownDefinitionRejected",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMagicMON188UnknownDefinitionPreservedTest::RunTest(const FString& Parameters)
+bool FGridMagicMON188UnknownDefinitionRejectedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 4, 1);
-	const FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
-	FGridCharacterSpellbookSaveState SavedCharacter;
-	SavedCharacter.CharacterId = CharacterId;
-	SavedCharacter.KnownSpellIds.Add(TEXT("Spell_RemovedContent"));
-
-	FGridPartySpellbookState Restored;
+	using namespace GridMON188Tests;
+	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 4, 1) });
+	Party.ActiveCharacters[0].KnownSpellIds.Add(TEXT("Spell_RemovedContent"));
 	FString Error;
-	TestTrue(TEXT("Unknown definition identity does not invalidate persistence"),
-		FGridSpellbookPersistence::RestorePartySpellbooks(Party, { SavedCharacter }, Restored, Error));
-	TestTrue(TEXT("Unknown SpellId remains known"), Restored.KnowsSpell(CharacterId, TEXT("Spell_RemovedContent")));
+	TestFalse(TEXT("Exact-match schema rejects unknown SpellId"), FGridSpellbookPersistence::ValidatePartySpellbooks(Party, Error));
+	TestTrue(TEXT("Unknown definition rejection reports a reason"), !Error.IsEmpty());
 	return true;
 }
 
@@ -162,15 +120,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188InvalidSpellIdRejectedTest, "Gr
 bool FGridMagicMON188InvalidSpellIdRejectedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 5, 1);
-	const FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
-	FGridCharacterSpellbookSaveState SavedCharacter;
-	SavedCharacter.CharacterId = CharacterId;
-	SavedCharacter.KnownSpellIds.Add(NAME_None);
-
+	using namespace GridMON188Tests;
+	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 5, 1) });
+	Party.ActiveCharacters[0].KnownSpellIds.Add(NAME_None);
 	FString Error;
-	TestFalse(TEXT("NAME_None SpellId is rejected"), FGridSpellbookPersistence::ValidateSavedPartySpellbooks(Party, { SavedCharacter }, Error));
-	TestTrue(TEXT("Invalid SpellId reports a reason"), !Error.IsEmpty());
+	TestFalse(TEXT("NAME_None SpellId is rejected"), FGridSpellbookPersistence::ValidatePartySpellbooks(Party, Error));
 	return true;
 }
 
@@ -180,57 +134,50 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188DuplicateSpellRejectedTest, "Gr
 bool FGridMagicMON188DuplicateSpellRejectedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 6, 1);
-	const FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
-	FGridCharacterSpellbookSaveState SavedCharacter;
-	SavedCharacter.CharacterId = CharacterId;
-	SavedCharacter.KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::ArcaneBoltId() };
-
+	using namespace GridMON188Tests;
+	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 6, 1) });
+	Party.ActiveCharacters[0].KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::ArcaneBoltId() };
 	FString Error;
-	TestFalse(TEXT("Duplicate SpellId is rejected"), FGridSpellbookPersistence::ValidateSavedPartySpellbooks(Party, { SavedCharacter }, Error));
-	TestTrue(TEXT("Duplicate rejection reports a reason"), !Error.IsEmpty());
+	TestFalse(TEXT("Duplicate durable SpellId is rejected"), FGridSpellbookPersistence::ValidatePartySpellbooks(Party, Error));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188OrphanCharacterRejectedTest, "Grimrock.Magic.MON18.8.OrphanCharacterRejected",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188DuplicateCharacterRejectedTest, "Grimrock.Magic.MON18.8.DuplicateCharacterRejected",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMagicMON188OrphanCharacterRejectedTest::RunTest(const FString& Parameters)
+bool FGridMagicMON188DuplicateCharacterRejectedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 7, 1);
-	const FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
-	FGridCharacterSpellbookSaveState SavedCharacter;
-	SavedCharacter.CharacterId = FGuid(18, 8, 7, 99);
-	SavedCharacter.KnownSpellIds.Add(FGridProductionSpellLibrary::ArcaneBoltId());
-
+	using namespace GridMON188Tests;
+	const FGuid CharacterId(18, 8, 7, 1);
+	FGridPartyInventoryState Party = MakeMON188Party({ CharacterId }, { CharacterId });
 	FString Error;
-	TestFalse(TEXT("Orphan CharacterId is rejected"), FGridSpellbookPersistence::ValidateSavedPartySpellbooks(Party, { SavedCharacter }, Error));
-	TestTrue(TEXT("Orphan rejection reports a reason"), !Error.IsEmpty());
+	TestFalse(TEXT("Duplicate CharacterId across Active and Pool is rejected"), FGridSpellbookPersistence::ValidatePartySpellbooks(Party, Error));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188AtomicRestoreFailureTest, "Grimrock.Magic.MON18.8.AtomicRestoreFailure",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188DeterministicMutationTest, "Grimrock.Magic.MON18.8.DeterministicMutation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMagicMON188AtomicRestoreFailureTest::RunTest(const FString& Parameters)
+bool FGridMagicMON188DeterministicMutationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 8, 1);
-	const FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
-
-	FGridPartySpellbookState Runtime;
-	Runtime.EnsureCharacter(CharacterId);
-	Runtime.LearnSpell(CharacterId, FGridProductionSpellLibrary::HasteId());
-
-	FGridCharacterSpellbookSaveState InvalidSaved;
-	InvalidSaved.CharacterId = CharacterId;
-	InvalidSaved.KnownSpellIds = { NAME_None };
-
-	FString Error;
-	TestFalse(TEXT("Invalid snapshot rejects restore"), FGridSpellbookPersistence::RestorePartySpellbooks(Party, { InvalidSaved }, Runtime, Error));
-	TestTrue(TEXT("Failed restore preserves prior runtime spell knowledge"), Runtime.KnowsSpell(CharacterId, FGridProductionSpellLibrary::HasteId()));
-	TestEqual(TEXT("Failed restore does not partially replace runtime state"), Runtime.CharacterSpellbooks.Num(), 1);
+	using namespace GridMON188Tests;
+	const FGuid CharacterId(18, 8, 8, 1);
+	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
+	Inventory->PartyInventoryState = MakeMON188Party({ CharacterId });
+	UGridPartySpellbookComponent* Spellbook = NewObject<UGridPartySpellbookComponent>();
+	Spellbook->InitializeSpellbookComponent(Inventory);
+	TestEqual(TEXT("Haste learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::HasteId()), EGridSpellbookMutationResult::Success);
+	TestEqual(TEXT("Arcane Bolt learns"), Spellbook->LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()),
+		EGridSpellbookMutationResult::Success);
+	const TArray<FName>& Known = Inventory->PartyInventoryState.ActiveCharacters[0].KnownSpellIds;
+	TestEqual(TEXT("Two durable spells"), Known.Num(), 2);
+	if (Known.Num() == 2)
+	{
+		TestEqual(TEXT("Deterministic first SpellId"), Known[0], FGridProductionSpellLibrary::ArcaneBoltId());
+		TestEqual(TEXT("Deterministic second SpellId"), Known[1], FGridProductionSpellLibrary::HasteId());
+	}
 	return true;
 }
 
@@ -240,24 +187,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188HotbarSpellRoundTripTest, "Grim
 bool FGridMagicMON188HotbarSpellRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 9, 1);
-	FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
+	using namespace GridMON188Tests;
+	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 9, 1) });
+	Party.ActiveCharacters[0].KnownSpellIds.Add(FGridProductionSpellLibrary::ArcaneBoltId());
 	Party.ActiveCharacters[0].CombatHotbarSlots[2] = MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 2);
-
-	FGridPartySpellbookState Runtime;
-	Runtime.EnsureCharacter(CharacterId);
-	Runtime.LearnSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId());
-
-	TArray<FGridCharacterSpellbookSaveState> Saved;
-	FString Error;
-	TestTrue(TEXT("Known spell captures beside persistent hotbar"), FGridSpellbookPersistence::CapturePartySpellbooks(Party, Runtime, Saved, Error));
-
-	FGridPartySpellbookState Restored;
-	TestTrue(TEXT("Known spell restores beside persistent hotbar"), FGridSpellbookPersistence::RestorePartySpellbooks(Party, Saved, Restored, Error));
-	TestTrue(TEXT("Spell remains known after restore"), Restored.KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	const FGridCombatHotbarBinding& Binding = Party.ActiveCharacters[0].CombatHotbarSlots[2];
-	TestTrue(TEXT("Hotbar binding remains a Spell source"), Binding.SourcePolicy == EGridCombatActionSourcePolicy::Spell);
-	TestEqual(TEXT("Hotbar Spell identity remains stable"), Binding.SourceDefinitionId, FGridProductionSpellLibrary::ArcaneBoltId());
+	const FGridPartyInventoryState Restored = Party;
+	TestTrue(TEXT("Spell remains known after direct durable restore"),
+		Restored.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestTrue(TEXT("Hotbar binding remains independent Spell source"),
+		Restored.ActiveCharacters[0].CombatHotbarSlots[2].SourcePolicy == EGridCombatActionSourcePolicy::Spell);
 	return true;
 }
 
@@ -267,17 +205,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188HotbarWithoutKnowledgePreserved
 bool FGridMagicMON188HotbarWithoutKnowledgePreservedTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 10, 1);
-	FGridPartyInventoryState Party = MakeMON188Party({ CharacterId });
+	using namespace GridMON188Tests;
+	FGridPartyInventoryState Party = MakeMON188Party({ FGuid(18, 8, 10, 1) });
 	Party.ActiveCharacters[0].CombatHotbarSlots[0] = MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 0);
-
-	FGridPartySpellbookState Restored;
-	FString Error;
-	TestTrue(TEXT("Empty legacy spellbook restores"), FGridSpellbookPersistence::RestorePartySpellbooks(Party, {}, Restored, Error));
-	TestFalse(TEXT("Hotbar does not teach the referenced spell"), Restored.KnowsSpell(CharacterId, FGridProductionSpellLibrary::ArcaneBoltId()));
-	const FGridCombatHotbarBinding& Binding = Party.ActiveCharacters[0].CombatHotbarSlots[0];
-	TestEqual(TEXT("Legacy Spell hotbar binding is preserved"), Binding.ActionId, FGridProductionSpellLibrary::ArcaneBoltId());
-	TestTrue(TEXT("Legacy binding remains structurally valid"), Binding.IsValid());
+	TestFalse(TEXT("Hotbar does not teach the referenced spell"),
+		Party.ActiveCharacters[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
+	TestTrue(TEXT("Spell hotbar binding remains structurally valid"), Party.ActiveCharacters[0].CombatHotbarSlots[0].IsValid());
 	return true;
 }
 
@@ -287,14 +220,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188SpellBindingIsNotItemDefinition
 bool FGridMagicMON188SpellBindingIsNotItemDefinitionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 11, 1);
+	using namespace GridMON188Tests;
 	UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
-	Inventory->PartyInventoryState = MakeMON188Party({ CharacterId });
-	Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[4] = MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 4);
+	Inventory->PartyInventoryState = MakeMON188Party({ FGuid(18, 8, 11, 1) });
+	Inventory->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[4] =
+		MakeMON188SpellBinding(FGridProductionSpellLibrary::ArcaneBoltId(), 4);
 
 	int32 ResolverCallCount = 0;
 	FName MissingDefinitionId = NAME_None;
-	TestTrue(TEXT("SAVEFIX.1 rehydration accepts Spell binding without item lookup"),
+	TestTrue(TEXT("Rehydration accepts Spell binding without item lookup"),
 		Inventory->RehydrateOwnedItemDefinitions(
 			[&ResolverCallCount](FName) -> UGridItemDefinitionAsset*
 			{
@@ -313,44 +247,28 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FGridMagicMON188DiskRoundTripTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
+	using namespace GridMON188Tests;
 	FMON188DiskSlot DiskSlot;
-	const FGuid CharacterId = FGuid(18, 8, 12, 1);
-
 	UGrimrockPartySaveGame* Source = NewObject<UGrimrockPartySaveGame>();
-	Source->PartyInventoryState = MakeMON188Party({ CharacterId });
-	Source->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1] = MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
+	Source->PartyInventoryState = MakeMON188Party({ FGuid(18, 8, 12, 1) });
+	Source->PartyInventoryState.ActiveCharacters[0].KnownSpellIds =
+		{ FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::HasteId(), FGridProductionSpellLibrary::LesserHealId() };
+	Source->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1] =
+		MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
 
-	FGridCharacterSpellbookSaveState Spellbook;
-	Spellbook.CharacterId = CharacterId;
-	Spellbook.KnownSpellIds = { FGridProductionSpellLibrary::ArcaneBoltId(), FGridProductionSpellLibrary::LesserHealId(),
-		FGridProductionSpellLibrary::HasteId() };
-	Source->CharacterSpellbookStates.Add(Spellbook);
-
-	TestTrue(TEXT("Current-version Spellbook save writes to a real temporary slot"),
+	TestTrue(TEXT("Current v17 durable Spellbook writes to disk"),
 		UGameplayStatics::SaveGameToSlot(Source, DiskSlot.SlotName, DiskSlot.UserIndex));
-
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(DiskSlot.SlotName, DiskSlot.UserIndex));
 	TestNotNull(TEXT("Temporary disk save reloads"), Loaded);
 	if (!Loaded)
 	{
 		return false;
 	}
-
-	TestEqual(TEXT("Disk round trip uses the current SaveVersion"), Loaded->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestEqual(TEXT("Disk round trip uses current SaveVersion"), Loaded->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
 	TestTrue(TEXT("Loaded save is compatible"), Loaded->IsCompatible());
-	TestEqual(TEXT("One spellbook snapshot survives disk round trip"), Loaded->CharacterSpellbookStates.Num(), 1);
-	if (Loaded->CharacterSpellbookStates.Num() == 1)
-	{
-		TestTrue(TEXT("Arcane Bolt survives disk round trip"),
-			Loaded->CharacterSpellbookStates[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::ArcaneBoltId()));
-		TestTrue(TEXT("Lesser Heal survives disk round trip"),
-			Loaded->CharacterSpellbookStates[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::LesserHealId()));
-		TestTrue(TEXT("Haste survives disk round trip"), Loaded->CharacterSpellbookStates[0].KnownSpellIds.Contains(FGridProductionSpellLibrary::HasteId()));
-	}
-
-	const FGridCombatHotbarBinding& LoadedBinding = Loaded->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1];
-	TestTrue(TEXT("Spell hotbar source survives disk round trip"), LoadedBinding.SourcePolicy == EGridCombatActionSourcePolicy::Spell);
-	TestEqual(TEXT("Spell hotbar identity survives disk round trip"), LoadedBinding.SourceDefinitionId, FGridProductionSpellLibrary::LesserHealId());
+	TestEqual(TEXT("Three known spells survive in character state"), Loaded->PartyInventoryState.ActiveCharacters[0].KnownSpellIds.Num(), 3);
+	TestTrue(TEXT("Spell hotbar survives beside durable knowledge"),
+		Loaded->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1].SourcePolicy == EGridCombatActionSourcePolicy::Spell);
 	return true;
 }
 

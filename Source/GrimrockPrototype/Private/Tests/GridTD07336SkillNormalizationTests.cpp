@@ -109,10 +109,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07336SaveSchemaVersionTest,
 bool FGridTD07336SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("TD07.3.3.6 opens SaveGame v16"), UGrimrockPartySaveGame::CurrentSaveVersion, 16);
+	TestTrue(TEXT("TD07.3.3.6 established SaveGame v16 or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 16);
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("New SaveGame starts on v16"), Current->SaveVersion, 16);
-	TestTrue(TEXT("Current v16 is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("New SaveGame starts on current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Current schema is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
 	Previous->SaveVersion = 15;
