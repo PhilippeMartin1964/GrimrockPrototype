@@ -12,8 +12,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.3.9: Level-Up acknowledgement is durable per character; the separate pending-notification snapshot is removed. */
-	static constexpr int32 CurrentSaveVersion = 19;
+	/** TD07.3.3.10: DerivedStats is transient and rebuilt from durable character authority after load. */
+	static constexpr int32 CurrentSaveVersion = 20;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;

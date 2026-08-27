@@ -11,7 +11,7 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 19
+UGrimrockPartySaveGame::CurrentSaveVersion = 20
 
 SaveVersion == 19
     -> validation du schéma courant
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v19 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v20 exact-match.
 
 ## Dungeon state
 
@@ -172,3 +172,18 @@ Shipping Win64     OK
 ```
 
 Référence Shipping : `TD04-Shipping-20260827-230225`.
+
+
+## TD07.3.3.10 — DerivedStats transient / v20
+
+TD07.3.3.10 ouvre la v20 exact-match.
+
+```text
+Level         transient, reconstruit depuis Experience
+DerivedStats  transient, reconstruit depuis Attributes + ClassDefinition + Level
+Resources     durable mutable
+```
+
+Après désérialisation, les projections sont reconstruites pour `ActiveCharacters` et `CharacterPool` avant la validation du schéma durable et la réhydratation des caches runtime.
+
+La v19 et toutes les générations antérieures sont incompatibles, sans migration.

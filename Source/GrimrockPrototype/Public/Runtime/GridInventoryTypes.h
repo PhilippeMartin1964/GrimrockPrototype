@@ -370,7 +370,8 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG")
 	FRPGAttributes Attributes;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG")
+	/** TD07.3.3.10 transient projection reconstructed from Attributes + ClassDefinition + Level. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG")
 	FRPGDerivedStats DerivedStats;
 
 	/** Durable mutable health, mana and armor state. */

@@ -296,3 +296,15 @@ Prochaine tranche après validation complète :
 ```text
 TD07.3.3.4 — Normalize Weight State
 ```
+
+
+## Finalisation TD07.3.3.10
+
+TD07.3.3.3 a séparé le contenu calculable de `DerivedStats` des ressources mutables. TD07.3.3.10 finalise la frontière de persistance :
+
+```text
+DerivedStats  -> Transient
+Resources     -> durable
+```
+
+La projection `DerivedStats` est désormais reconstruite après chargement depuis `Attributes + ClassDefinition + Level`. Le schéma correspondant est v20 exact-match.

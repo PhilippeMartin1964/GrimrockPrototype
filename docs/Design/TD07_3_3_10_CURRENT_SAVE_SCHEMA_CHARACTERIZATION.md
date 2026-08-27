@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `9fcfca344daa9c1a9007d56212a9be87972792f1`  
-Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Objet
 
@@ -148,7 +148,7 @@ Un cache DerivedStats incohérent peut donc être accepté par le schéma v19.
 
 ## 6. Cible après gate
 
-Si la Characterization est verte, TD07.3.3.10 normalisera :
+La Characterization étant verte, TD07.3.3.10 normalise :
 
 ```text
 DerivedStats

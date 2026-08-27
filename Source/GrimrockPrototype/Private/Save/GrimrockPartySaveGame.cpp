@@ -48,6 +48,24 @@ namespace GridPartySaveValidationPrivate
 		return ClassDefinition;
 	}
 
+	void RebuildTransientCharacterDerivedStats(FGridCharacterInventoryState& Character)
+	{
+		Character.DerivedStats =
+			URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ResolveClassDefinition(Character), Character.Level);
+	}
+
+	void RebuildTransientPartyDerivedStats(FGridPartyInventoryState& PartyState)
+	{
+		for (FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
+		{
+			RebuildTransientCharacterDerivedStats(Character);
+		}
+		for (FGridCharacterInventoryState& Character : PartyState.CharacterPool)
+		{
+			RebuildTransientCharacterDerivedStats(Character);
+		}
+	}
+
 	bool BuildSelectionSet(const TArray<FName>& ChoiceIds, TSet<FName>& OutChoiceIds)
 	{
 		OutChoiceIds.Reset();
@@ -296,6 +314,7 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 	bLoadValid = true;
 	LoadError.Reset();
 	RebuildTransientPartyLevels(PartyInventoryState);
+	RebuildTransientPartyDerivedStats(PartyInventoryState);
 	FText ValidationError;
 	if (!ValidateCurrentState(ValidationError))
 	{
