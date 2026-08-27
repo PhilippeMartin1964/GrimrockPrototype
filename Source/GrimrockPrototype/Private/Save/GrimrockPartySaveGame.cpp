@@ -373,7 +373,6 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		SaveVersion = CurrentSaveVersion;
 		bLoadValid = true;
 		LoadError.Reset();
-		ClassProgressionStates.Reset();
 		FString StatusCaptureError;
 		if (!CaptureStatusEffectState(StatusCaptureError))
 		{

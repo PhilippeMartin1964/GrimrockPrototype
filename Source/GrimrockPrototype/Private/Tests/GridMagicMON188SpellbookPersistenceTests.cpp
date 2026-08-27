@@ -54,20 +54,6 @@ namespace
 		return Party;
 	}
 
-	void AddMON188EmptyProgressionSnapshots(UGrimrockPartySaveGame* Save)
-	{
-		if (!Save)
-		{
-			return;
-		}
-		Save->ClassProgressionStates.Reset();
-		for (const FGridCharacterInventoryState& Character : Save->PartyInventoryState.ActiveCharacters)
-		{
-			FRPGCharacterProgressionSaveState Progression;
-			Progression.CharacterId = Character.CharacterId;
-			Save->ClassProgressionStates.Add(Progression);
-		}
-	}
 
 	struct FMON188DiskSlot
 	{

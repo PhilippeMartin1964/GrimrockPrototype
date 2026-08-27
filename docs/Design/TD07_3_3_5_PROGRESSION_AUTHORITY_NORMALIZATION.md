@@ -1,6 +1,6 @@
 # TD07.3.3.5 — XP / Level / Class Progression Authority Normalization
 
-Statut : **B1 IMPLÉMENTÉ — À VALIDER**
+Statut : **B2 IMPLÉMENTÉ — À VALIDER**
 
 ## Objectif
 
@@ -32,7 +32,7 @@ FGridCharacterInventoryState::SelectedClassProgressionChoiceIds
 
 Un reset du cache runtime ne doit donc plus supprimer les choix acquis.
 
-## SaveGame v14
+## SaveGame v14 — B1
 
 La suppression de `Level` du schéma durable ouvre le schéma prototype exact-match **v14**.
 
@@ -64,17 +64,37 @@ Ce tableau n'est plus une autorité :
 
 Il est conservé uniquement pour minimiser le bruit de compilation dans quelques tests historiques pendant B1.
 
-## B2 — stop condition intermédiaire
+## B2 — miroir Save supprimé
 
-B2 doit :
-1. supprimer `FRPGCharacterProgressionSaveState` ;
-2. supprimer `ClassProgressionStates` ;
-3. supprimer les helpers de test qui ne servent plus qu'à cet ancien format ;
-4. confirmer qu'aucune référence C++ à cet ancien miroir ne subsiste ;
-5. conserver le schéma v14 si aucune nouvelle donnée sérialisée ne change ;
-6. exécuter les régressions MON15 / MON20.7 / TD07.3.2.
+B2 supprime physiquement :
 
-TD07.3.3.5 reste ouvert jusqu'à validation de B2.
+```text
+FRPGCharacterProgressionSaveState
+UGrimrockPartySaveGame::ClassProgressionStates
+```
+
+Le serializer ne vide plus de tableau legacy et MON18.8 ne fabrique plus de snapshots de progression vides.
+
+Comme ce retrait modifie le layout sérialisé, B2 ouvre :
+
+```text
+CurrentSaveVersion = 15
+v14 et antérieures -> rejet sans migration
+```
+
+Il ne reste plus qu'une autorité durable pour les choix :
+
+```text
+FGridCharacterInventoryState::SelectedClassProgressionChoiceIds
+```
+
+et une projection runtime reconstructible :
+
+```text
+RuntimeStates.SatisfiedRequirements
+```
+
+TD07.3.3.5 reste ouvert jusqu'à validation de B2 et du Shipping Win64.
 
 ## Validation B1
 
@@ -97,3 +117,55 @@ Régressions ciblées :
 - `Grimrock.RPG.MON15.5`
 - `Grimrock.MON20.7.Talents`
 - `Grimrock.TechnicalDebt.TD07_3_2`
+
+
+## Validation B2
+
+Filtre principal :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2
+```
+
+Tests :
+
+```text
+SchemaPurge
+CharacterChoiceRoundTrip
+ProjectionRebuild
+SaveSchemaVersion
+```
+
+Régressions :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1
+Grimrock.TechnicalDebt.TD07_3_3_5.Characterization
+Grimrock.RPG.MON15.2
+Grimrock.RPG.MON15.3
+Grimrock.RPG.MON15.5
+Grimrock.MON20.7.Talents
+Grimrock.Magic.MON18.8
+Grimrock.TechnicalDebt.TD07_3_2
+Grimrock.Monsters.MON9
+Grimrock.RPG.MON16.7
+Grimrock.RPG.MON16.8
+```
+
+Puis Win64 Shipping.
+
+### Stop condition B2
+
+- [x] autorité durable Experience ;
+- [x] Level transient ;
+- [x] choix de classe durables sur le personnage ;
+- [x] RuntimeStates réduit au read-model requirements ;
+- [x] FRPGCharacterProgressionSaveState supprimé ;
+- [x] ClassProgressionStates supprimé ;
+- [x] helper MON18.8 legacy supprimé ;
+- [x] SaveGame v15 exact-match ;
+- [x] test B2 ajouté ;
+- [ ] build UE5.5.4 vert ;
+- [ ] NormalizationB2 4/4 ;
+- [ ] régressions B1 / MON15 / MON20.7 / MON18.8 / Save vertes ;
+- [ ] Shipping Win64 vert.

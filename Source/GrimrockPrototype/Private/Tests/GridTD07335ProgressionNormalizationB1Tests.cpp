@@ -75,11 +75,11 @@ bool FGridTD07335TransientLevelRoundTripTest::RunTest(const FString& Parameters)
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
 	Save->PartyInventoryState = Component->PartyInventoryState;
 	TArray<uint8> Bytes;
-	TestTrue(TEXT("v14 save serializes to memory"), UGameplayStatics::SaveGameToMemory(Save, Bytes));
+	TestTrue(TEXT("Current-schema save serializes to memory"), UGameplayStatics::SaveGameToMemory(Save, Bytes));
 
 	FRPGClassProgressionTransactionService::ResetRuntimeState();
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(Bytes));
-	TestNotNull(TEXT("v14 save loads from memory"), Loaded);
+	TestNotNull(TEXT("Current-schema save loads from memory"), Loaded);
 	if (!Loaded)
 	{
 		return false;
@@ -99,18 +99,18 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD07335SaveSchemaVersionTest,
 bool FGridTD07335SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("TD07.3.3.5 B1 opens SaveGame v14"), UGrimrockPartySaveGame::CurrentSaveVersion, 14);
+	TestTrue(TEXT("Current exact-match schema remains at least the TD07.3.3.5 B1 v14 generation"), UGrimrockPartySaveGame::CurrentSaveVersion >= 14);
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("New SaveGame starts on v14"), Current->SaveVersion, 14);
-	TestTrue(TEXT("Current v14 is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("New SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Current exact-match schema is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
-	Previous->SaveVersion = 13;
+	Previous->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
 	FText Error;
-	TestFalse(TEXT("Previous v13 is rejected without migration"), Previous->ValidateCurrentState(Error));
-	TestFalse(TEXT("Previous v13 is incompatible"), Previous->IsCompatible());
-	TestEqual(TEXT("Validation does not rewrite v13"), Previous->SaveVersion, 13);
-	TestTrue(TEXT("Rejected v13 reports an error"), !Error.IsEmpty());
+	TestFalse(TEXT("Previous prototype schema is rejected without migration"), Previous->ValidateCurrentState(Error));
+	TestFalse(TEXT("Previous prototype schema is incompatible"), Previous->IsCompatible());
+	TestEqual(TEXT("Validation does not rewrite the previous schema"), Previous->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion - 1);
+	TestTrue(TEXT("Rejected previous schema reports an error"), !Error.IsEmpty());
 	return true;
 }
 

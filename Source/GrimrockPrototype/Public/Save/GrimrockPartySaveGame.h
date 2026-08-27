@@ -11,22 +11,6 @@
 
 class UGridStatusEffectDefinitionAsset;
 
-/**
- * Transitional TD07.3.3.5 B1 projection only. SelectedClassProgressionChoiceIds
- * on FGridCharacterInventoryState is the authority; this type is removed in B2.
- */
-USTRUCT(BlueprintType)
-struct FRPGCharacterProgressionSaveState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Progression")
-	FGuid CharacterId;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Progression")
-	TArray<FName> SelectedChoiceIds;
-};
-
 USTRUCT(BlueprintType)
 struct FRPGPendingLevelUpSaveState
 {
@@ -64,8 +48,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.3.5 B1: Level is transient and rebuilt from Experience. */
-	static constexpr int32 CurrentSaveVersion = 14;
+	/** TD07.3.3.5 B2: Level is transient and class choices live directly on character state. */
+	static constexpr int32 CurrentSaveVersion = 15;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -73,9 +57,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	FGridPartyInventoryState PartyInventoryState;
 
-	/** Transitional B1 field kept compile-visible but no longer authoritative or consumed. Removed in B2. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
-	TArray<FRPGCharacterProgressionSaveState> ClassProgressionStates;
 
 	/** MON15.6 level-up notifications that still need to be presented. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
