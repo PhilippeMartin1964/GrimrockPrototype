@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline de caractérisation validée : `48c3f8e230c7bd5f0ef73fac45cf4e58d685f112`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / SHIPPING REQUISE**
+Statut : **VALIDÉ — STOP CONDITION ATTEINTE**
 
 ## 1. Objet
 
@@ -240,11 +240,44 @@ Les 41 findings TD07.3.1 restent inchangés.
 - [x] SaveGame passe à v13 exact-match ;
 - [x] v12 rejetée sans migration ;
 - [x] tests dédiés ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
-- [ ] Characterization 4/4 après refactor ;
-- [ ] régressions ciblées vertes ;
-- [ ] Shipping Win64 vert.
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
+- [x] Characterization 4/4 après refactor ;
+- [x] régressions ciblées vertes ;
+- [x] Shipping Win64 vert.
+
+## 13. Validation de clôture — 27 août 2026
+
+Validation locale fournie après le commit de normalisation :
+
+```text
+TD07.3.3.4 Normalization     4 success / 0 warning / 0 failed
+TD07.3.3.4 Characterization  4 success / 0 warning / 0 failed
+
+CC0                            4 success / 0 warning / 0 failed
+CC1                            3 success / 0 warning / 0 failed
+CC2                            3 success / 0 warning / 0 failed
+CC6                            6 success / 0 warning / 0 failed
+
+MON15.3                        5 success / 1 warning / 0 failed
+MON20.2 Recruitment            6 success / 0 warning / 0 failed
+
+TD02.3                         1 success / 0 warning / 0 failed
+TD06.6                         1 success / 0 warning / 0 failed
+TD07.3.2                       6 success / 0 warning / 0 failed
+TD07.3.3.2                     3 success / 0 warning / 0 failed
+TD07.3.3.3                     8 success / 0 warning / 0 failed
+
+MON9                           9 success / 4 warning / 0 failed
+MON16.7                       10 success / 0 warning / 0 failed
+MON16.8                       10 success / 0 warning / 0 failed
+
+Win64 Shipping                 COOK / PACKAGE VALIDATED
+```
+
+Tous les filtres ont terminé avec `Process exit code = 0` et aucun test Failed / Not run. Les warnings de MON15.3 et MON9 restent non bloquants pour cette tranche : le harness les classe en validation réussie.
+
+**TD07.3.3.4 est clos et validé.**
 
 Prochaine tranche après validation complète :
 

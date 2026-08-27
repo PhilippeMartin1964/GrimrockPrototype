@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.4 IMPLÉMENTÉ — À VALIDER — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.4 VALIDÉ — TD07.3.3.5 PROCHAIN — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -59,7 +59,7 @@ FGridPartyInventoryState
     └── SkillRanks
 ```
 
-Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 ouvre désormais **v12 exact-match** après séparation des ressources mutables ; aucune migration arrière.
+Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 a ouvert **v12 exact-match** après séparation des ressources mutables. TD07.3.3.4 ouvre désormais **v13 exact-match** après suppression des caches de poids ; aucune migration arrière.
 
 ---
 
@@ -203,7 +203,8 @@ TD07.3.3   Character State Normalization                      ACTIF
 TD07.3.3.1 Character State Authority Audit                    VALIDÉ
 TD07.3.3.2 Remove Legacy Attribute Bridge                     VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources         VALIDÉ
-TD07.3.3.4 Normalize Weight State                              IMPLÉMENTÉ — À VALIDER
+TD07.3.3.4 Normalize Weight State                              VALIDÉ
+TD07.3.3.5 Normalize XP / Level / Class Progression                PROCHAIN
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 
