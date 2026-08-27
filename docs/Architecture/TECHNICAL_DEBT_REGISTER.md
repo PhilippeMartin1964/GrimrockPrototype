@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.7 SPELLBOOK IMPLÉMENTÉ — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.7 RÉGRESSIONS VALIDÉES — SHIPPING REQUIS**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -615,7 +615,7 @@ TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
 TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS\nTD07.3.3.7      Normalize Spellbook                                    IMPLÉMENTÉ — À VALIDER
+TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS\nTD07.3.3.7      Normalize Spellbook                                    RÉGRESSIONS VALIDÉES — SHIPPING
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -693,7 +693,7 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.3.7 — Normalize Spellbook.**
+**Finaliser TD07.3.3.7 — Normalize Spellbook par Win64 Shipping.**
 
 Implémentation :
 
@@ -730,7 +730,13 @@ Grimrock.Magic.MON18.2
 Grimrock.Magic.MON18.8
 ```
 
-Puis régressions Magic/UI/Save et Win64 Shipping.
+Régressions post-refactor : **55/55 vertes**, zéro warning, zéro échec.
+
+Reste à valider :
+
+```text
+Win64 Shipping
+```
 
 Référence :
 

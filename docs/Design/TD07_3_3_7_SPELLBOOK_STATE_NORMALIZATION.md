@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `b5b017b745914742728be281de65af055cf6ebb9`  
-Statut : **IMPLÉMENTÉ — BUILD ET NORMALIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUISES**
+Statut : **IMPLÉMENTÉ — BUILD / NORMALIZATION / RÉGRESSIONS VALIDÉS — SHIPPING REQUIS**
 
 ## 1. Autorité durable unique
 
@@ -106,6 +106,43 @@ Report                 : Saved/Automation/TD04/TD04-20260827-214921
 
 Le build UE5.5.4 Development Editor est vert et le gate Normalization est validé.
 
+## 8.2 Validation des régressions post-refactor
+
+Validation locale du 27 août 2026 :
+
+```text
+TD07.3.3.7 Characterization     4/4
+MON18.2 Spellbook               5/5
+MON18.3 Cast transactions       6/6
+MON18.7a Spellbook UI           7/7
+MON18.8 Persistence            11/11
+UI01.4.3e.2 Spell execution     6/6
+MON18.9.1 Save policy           6/6
+TD07.3.2 Save contract          6/6
+TD07.3.3.6 Skills               4/4
+
+Total                          55/55
+Warnings                        0
+Failures                        0
+Not run                         0
+```
+
+Références de rapports :
+
+```text
+TD04-20260827-215107
+TD04-20260827-215120
+TD04-20260827-215133
+TD04-20260827-215146
+TD04-20260827-215158
+TD04-20260827-215211
+TD04-20260827-215224
+TD04-20260827-215237
+TD04-20260827-215250
+```
+
+Le bloc de régressions post-refactor est entièrement vert. Il ne reste que la validation Win64 Shipping.
+
 ## 9. Stop condition
 
 - [x] KnownSpellIds durable ajouté au personnage ;
@@ -121,8 +158,8 @@ Le build UE5.5.4 Development Editor est vert et le gate Normalization est valid�
 - [x] tests dédiés ajoutés ;
 - [x] build UE5.5.4 vert ;
 - [x] Normalization 4/4 ;
-- [ ] Characterization 4/4 post-refactor ;
-- [ ] régressions Magic/UI/Save vertes ;
+- [x] Characterization 4/4 post-refactor ;
+- [x] régressions Magic/UI/Save vertes ;
 - [ ] Shipping Win64 vert.
 
 Prochaine tranche après validation complète :
