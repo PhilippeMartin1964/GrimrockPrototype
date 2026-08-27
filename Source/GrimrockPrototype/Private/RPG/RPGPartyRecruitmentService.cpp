@@ -29,9 +29,9 @@ namespace GridPartyRecruitmentPrivate
 			return false;
 		}
 
-		if (Candidate.Level < 1 || Candidate.Experience < 0 || !Candidate.bRPGAttributesInitialized)
+		if (Candidate.Level < 1 || Candidate.Experience < 0)
 		{
-			OutError = TEXT("Candidate RPG progression state is not initialized.");
+			OutError = TEXT("Candidate RPG progression state is invalid.");
 			return false;
 		}
 

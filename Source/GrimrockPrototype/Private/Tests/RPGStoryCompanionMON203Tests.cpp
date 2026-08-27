@@ -60,8 +60,6 @@ namespace GridMON203StoryCompanionTests
 		Character.Attributes = FRPGAttributes(10, 10, 10, 10, 10, 10);
 		Character.DerivedStats.MaxHealth = 10;
 		Character.DerivedStats.CurrentHealth = 10;
-		Character.bRPGAttributesInitialized = true;
-		Character.Strength = 10.0f;
 		Character.InventorySlots.SetNum(4);
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < FGridCombatHotbarBinding::SlotCount; ++SlotIndex)
@@ -131,7 +129,7 @@ bool FGridMON203RegisterCandidateTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Level-three XP floor is derived"), Candidate.Experience, 3000);
 	TestEqual(TEXT("Inventory slots use party default"), Candidate.InventorySlots.Num(), Inventory->DefaultInventorySlotCountPerCharacter);
 	TestEqual(TEXT("Hotbar contains ten empty bindings"), Candidate.CombatHotbarSlots.Num(), FGridCombatHotbarBinding::SlotCount);
-	TestTrue(TEXT("Candidate RPG state is initialized"), Candidate.bRPGAttributesInitialized);
+	TestEqual(TEXT("Candidate uses current Attributes authority"), Candidate.Attributes.Strength, ClassDefinition->BaseAttributes.Strength);
 	return true;
 }
 

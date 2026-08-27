@@ -11,18 +11,18 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 10
+UGrimrockPartySaveGame::CurrentSaveVersion = 11
 
-SaveVersion == 10
+SaveVersion == 11
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 10
+SaveVersion != 11
     -> rejet
     -> aucune migration
 ```
 
-La v10 est une rupture volontaire TD07.3.2 : les anciennes v1-v9 ne sont plus compatibles.
+La v10 a été la rupture volontaire TD07.3.2. TD07.3.3.2 ouvre la v11 après suppression de `Strength` legacy et `bRPGAttributesInitialized`. La v10 et toutes les générations antérieures sont désormais incompatibles.
 
 Il n'existe plus de :
 
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.2 a supprimé le bridge legacy des attributs et a ouvert le schéma v11 exact-match.
 
 ## Dungeon state
 

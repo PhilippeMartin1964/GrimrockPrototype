@@ -825,7 +825,7 @@ bool FGridMonsterMON9SaveVersionExactMatchTest::RunTest(const FString& Parameter
 	(void)Parameters;
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
 
-	TestEqual(TEXT("MON9 observes the TD07.3.2 prototype SaveVersion"), UGrimrockPartySaveGame::CurrentSaveVersion, 10);
+	TestEqual(TEXT("MON9 observes the current prototype SaveVersion"), UGrimrockPartySaveGame::CurrentSaveVersion, 11);
 	Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 	TestTrue(TEXT("The current save version is accepted"), Save->IsCompatible());
 

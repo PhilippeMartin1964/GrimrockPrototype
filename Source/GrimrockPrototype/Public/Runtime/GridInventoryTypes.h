@@ -380,12 +380,6 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")
 	TSoftObjectPtr<UTexture2D> ClassIcon;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "RPG")
-	bool bRPGAttributesInitialized = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats",
-		meta = (DeprecatedProperty, DeprecationMessage = "Use Attributes.Strength. Kept temporarily for serialized data migration."))
-	float Strength = 10.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	float CurrentWeight = 0.0f;

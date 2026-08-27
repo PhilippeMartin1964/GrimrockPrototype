@@ -73,23 +73,22 @@ bool FRPGHumanWarriorProfileCC1Test::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGLegacyStrengthMigrationCC1Test, "Grimrock.CharacterCreation.CC1.LegacyStrengthMigration",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGCurrentAttributeAuthorityCC1Test, "Grimrock.CharacterCreation.CC1.CurrentAttributeAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGLegacyStrengthMigrationCC1Test::RunTest(const FString& Parameters)
+bool FRPGCurrentAttributeAuthorityCC1Test::RunTest(const FString& Parameters)
 {
+	(void)Parameters;
 	UGridPartyInventoryComponent* Component = NewObject<UGridPartyInventoryComponent>();
-	FGridCharacterInventoryState LegacyCharacter;
-	LegacyCharacter.Strength = 13.0f;
-	LegacyCharacter.bRPGAttributesInitialized = false;
-	Component->PartyInventoryState.ActiveCharacters.Add(LegacyCharacter);
+	FGridCharacterInventoryState Character;
+	Character.Attributes = FRPGAttributes(13, 10, 10, 10, 10, 10);
+	Component->PartyInventoryState.ActiveCharacters.Add(Character);
 
 	Component->InitializeDefaultPartyIfNeeded();
 
-	const FGridCharacterInventoryState& MigratedCharacter = Component->PartyInventoryState.ActiveCharacters[0];
-	TestTrue(TEXT("RPG attributes are marked initialized"), MigratedCharacter.bRPGAttributesInitialized);
-	TestEqual(TEXT("Legacy Strength migrates to RPG attributes"), MigratedCharacter.Attributes.Strength, 13);
-	TestTrue(TEXT("Migrated Strength controls carry capacity"), FMath::IsNearlyEqual(MigratedCharacter.MaxCarryWeight, 65.0f));
+	const FGridCharacterInventoryState& InitializedCharacter = Component->PartyInventoryState.ActiveCharacters[0];
+	TestEqual(TEXT("Current Attributes.Strength remains authoritative"), InitializedCharacter.Attributes.Strength, 13);
+	TestTrue(TEXT("Current Strength controls carry capacity"), FMath::IsNearlyEqual(InitializedCharacter.MaxCarryWeight, 65.0f));
 	return true;
 }
 

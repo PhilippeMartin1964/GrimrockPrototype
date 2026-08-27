@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.1 VALIDÉ / TD07.3.3.2 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.2 IMPLÉMENTÉ / À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -611,7 +611,7 @@ TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
 TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
 TD07.3.3        Character State Normalization                         ACTIF
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
-TD07.3.3.2      Remove Legacy Attribute Bridge                        PROCHAIN
+TD07.3.3.2      Remove Legacy Attribute Bridge                        IMPLÉMENTÉ — À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -689,41 +689,36 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.2 — Remove Legacy Attribute Bridge.**
+**Valider TD07.3.3.2 — Remove Legacy Attribute Bridge.**
 
-TD07.3.3.1 a établi la matrice d'autorité du personnage à la baseline `a82340df79d69c33d4ccc2e77617b984c9f8eb79`.
-
-Constats principaux :
+Implémentation courante :
 
 ```text
-Attributes                         autorité légitime
-Strength                           legacy pur à supprimer
-bRPGAttributesInitialized          shim legacy pur à supprimer
-DerivedStats                       conteneur mixte calculable + mutable
-CurrentWeight / MaxCarryWeight     caches dérivés
-Level / Experience                 double représentation de progression
-SkillRanks / CharacterSkillStates  duplication runtime/save
-SpellbookState / Save snapshot     duplication hors personnage
-StatusEffects / Save snapshot      duplication runtime/save
-Class progression cache / snapshot duplication de choix joueur
-Pending Level Up                   workflow UI persisté en plusieurs copies
+FGridCharacterInventoryState
+    Strength                  SUPPRIMÉ
+    bRPGAttributesInitialized SUPPRIMÉ
+    Attributes                AUTORITÉ UNIQUE
+
+InitializeCharacterDefaults
+    fallback Strength -> Attributes   SUPPRIMÉ
+
+SaveGame
+    CurrentSaveVersion = 11
+    v10 rejetée sans migration
+```
+
+Le filtre dédié est :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_2
 ```
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_1_CHARACTER_STATE_AUTHORITY_AUDIT.md
+docs/Design/TD07_3_3_2_REMOVE_LEGACY_ATTRIBUTE_BRIDGE.md
 ```
 
-La prochaine tranche est volontairement petite :
-
-```text
-TD07.3.3.2
-    supprimer Strength
-    supprimer bRPGAttributesInitialized
-    supprimer le fallback Strength -> Attributes
-    adapter création/recrutement/tests
-    ne toucher ni DerivedStats, ni Skills, ni Spellbook, ni Status Effects
-```
+TD07.3.3.3 ne commence qu'après validation Editor/Automation/Shipping de TD07.3.3.2.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.

@@ -38,8 +38,6 @@ namespace
 		Character.Experience = Experience;
 		Character.Attributes = ClassDefinition ? ClassDefinition->BaseAttributes : FRPGAttributes{};
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
-		Character.bRPGAttributesInitialized = true;
-		Character.Strength = static_cast<float>(Character.Attributes.Strength);
 		Character.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(Character.Attributes);
 		Character.InventorySlots.SetNum(1);
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);

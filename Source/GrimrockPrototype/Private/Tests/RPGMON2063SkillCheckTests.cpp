@@ -26,7 +26,6 @@ namespace
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = FGuid::NewGuid();
 		Character.Attributes = FRPGAttributes(10, Dexterity, 10, 10, 10, 10);
-		Character.bRPGAttributesInitialized = true;
 		return Character;
 	}
 

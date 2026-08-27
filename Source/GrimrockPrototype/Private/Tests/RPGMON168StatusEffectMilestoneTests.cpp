@@ -308,7 +308,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON168SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestEqual(TEXT("TD07.3.2 current prototype SaveVersion is ten"), UGrimrockPartySaveGame::CurrentSaveVersion, 10);
+	TestEqual(TEXT("Current prototype SaveVersion is eleven"), UGrimrockPartySaveGame::CurrentSaveVersion, 11);
 
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
 	TestEqual(TEXT("New save object starts on current version"), Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);

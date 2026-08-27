@@ -388,8 +388,6 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.Attributes = FinalAttributes;
 	NewCharacter.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, NewCharacter.Level);
 	NewCharacter.Portrait = Request.Portrait;
-	NewCharacter.bRPGAttributesInitialized = true;
-	NewCharacter.Strength = static_cast<float>(FinalAttributes.Strength);
 	NewCharacter.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(FinalAttributes);
 	NewCharacter.CurrentWeight = 0.0f;
 	NewCharacter.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
@@ -1119,12 +1117,6 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInv
 
 	CharacterState.Level = FMath::Max(1, CharacterState.Level);
 	CharacterState.Experience = FMath::Max(0, CharacterState.Experience);
-
-	if (!CharacterState.bRPGAttributesInitialized)
-	{
-		CharacterState.Attributes.Strength = FMath::RoundToInt(FMath::Max(0.0f, CharacterState.Strength));
-		CharacterState.bRPGAttributesInitialized = true;
-	}
 
 	CharacterState.Attributes.Strength = FMath::Max(0, CharacterState.Attributes.Strength);
 	CharacterState.Attributes.Dexterity = FMath::Max(0, CharacterState.Attributes.Dexterity);
