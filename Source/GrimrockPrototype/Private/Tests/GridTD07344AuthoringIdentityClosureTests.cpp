@@ -2,6 +2,8 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 #include "Engine/Texture2D.h"
 #include "RPG/RPGAuthoringIdentityResolver.h"
@@ -206,6 +208,22 @@ bool FGridTD07344AuthoringCleanupTest::RunTest(const FString& Parameters)
 		FindFProperty<FProperty>(URPGStoryCompanionAsset::StaticClass(), TEXT("Portrait")));
 	TestNull(TEXT("Story Companion no longer authors a duplicate ClassIcon field"),
 		FindFProperty<FProperty>(URPGStoryCompanionAsset::StaticClass(), TEXT("ClassIcon")));
+
+	FString RecruitmentWidgetSource;
+	TestTrue(TEXT("Story Companion recruitment widget source loads"),
+		FFileHelper::LoadFileToString(
+			RecruitmentWidgetSource,
+			*FPaths::Combine(
+				FPaths::ProjectDir(),
+				TEXT("Source/GrimrockPrototype/Private/UI/RPGStoryCompanionRecruitmentWidget.cpp"))));
+	TestFalse(TEXT("Recruitment widget no longer reads removed Portrait authoring field"),
+		RecruitmentWidgetSource.Contains(TEXT("CompanionDefinition->Portrait")));
+	TestFalse(TEXT("Recruitment widget no longer reads removed ClassIcon authoring field"),
+		RecruitmentWidgetSource.Contains(TEXT("CompanionDefinition->ClassIcon")));
+	TestTrue(TEXT("Recruitment widget resolves canonical Portrait identity"),
+		RecruitmentWidgetSource.Contains(TEXT("ResolvePortraitVisual")));
+	TestTrue(TEXT("Recruitment widget resolves canonical ClassIcon identity"),
+		RecruitmentWidgetSource.Contains(TEXT("ResolveClassIcon")));
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
 	Previous->SaveVersion = 21;
