@@ -12,6 +12,8 @@ class GRIMROCKPROTOTYPE_API URPGClassVisualAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class Visual")
 	FName ClassId = NAME_None;
 

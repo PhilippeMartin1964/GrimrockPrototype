@@ -2,6 +2,15 @@
 
 #include "RPG/RPGCharacterRulesLibrary.h"
 
+FPrimaryAssetId URPGClassAsset::GetPrimaryAssetId() const
+{
+	if (ClassId.IsNone())
+	{
+		return Super::GetPrimaryAssetId();
+	}
+	return FPrimaryAssetId(FPrimaryAssetType(TEXT("RPGClass")), ClassId);
+}
+
 namespace
 {
 	bool AreMON154RequirementIdsValid(const TArray<FName>& RequirementIds)

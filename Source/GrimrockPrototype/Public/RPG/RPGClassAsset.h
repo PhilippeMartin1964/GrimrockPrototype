@@ -60,6 +60,8 @@ class GRIMROCKPROTOTYPE_API URPGClassAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Class")
 	FName ClassId = NAME_None;
 

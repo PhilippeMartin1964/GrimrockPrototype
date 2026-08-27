@@ -80,13 +80,13 @@ bool FGridTD0734PrimaryAssetIdentityGapTest::RunTest(const FString& Parameters)
 		NewObject<URPGCharacterPortraitSetAsset>(GetTransientPackage(), TEXT("TD0734_PortraitSet"));
 	PortraitSet->RaceId = RaceDefinition->RaceId;
 
-	TestFalse(TEXT("Class PrimaryAssetId is not canonically keyed by ClassId yet"),
+	TestTrue(TEXT("Class PrimaryAssetId is canonically keyed by ClassId"),
 		PrimaryAssetIdUsesBusinessId(ClassDefinition->GetPrimaryAssetId(), ClassDefinition->ClassId));
-	TestFalse(TEXT("Race PrimaryAssetId is not canonically keyed by RaceId yet"),
+	TestTrue(TEXT("Race PrimaryAssetId is canonically keyed by RaceId"),
 		PrimaryAssetIdUsesBusinessId(RaceDefinition->GetPrimaryAssetId(), RaceDefinition->RaceId));
-	TestFalse(TEXT("ClassVisual PrimaryAssetId is not canonically keyed by ClassId yet"),
+	TestTrue(TEXT("ClassVisual PrimaryAssetId is canonically keyed by ClassId"),
 		PrimaryAssetIdUsesBusinessId(ClassVisual->GetPrimaryAssetId(), ClassVisual->ClassId));
-	TestFalse(TEXT("PortraitSet PrimaryAssetId is not canonically keyed by RaceId yet"),
+	TestTrue(TEXT("PortraitSet PrimaryAssetId is canonically keyed by RaceId"),
 		PrimaryAssetIdUsesBusinessId(PortraitSet->GetPrimaryAssetId(), PortraitSet->RaceId));
 	return true;
 }

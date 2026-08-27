@@ -13,6 +13,8 @@ class GRIMROCKPROTOTYPE_API URPGRaceAsset : public UPrimaryDataAsset
 public:
 	URPGRaceAsset();
 
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Race")
 	FName RaceId = NAME_None;
 

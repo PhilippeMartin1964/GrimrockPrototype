@@ -1,5 +1,14 @@
 #include "RPG/RPGCharacterPortraitSetAsset.h"
 
+FPrimaryAssetId URPGCharacterPortraitSetAsset::GetPrimaryAssetId() const
+{
+	if (RaceId.IsNone())
+	{
+		return Super::GetPrimaryAssetId();
+	}
+	return FPrimaryAssetId(FPrimaryAssetType(TEXT("RPGPortraitSet")), RaceId);
+}
+
 namespace
 {
 	bool HasValidPortrait(const TArray<FRPGCharacterPortraitVariant>& Portraits)

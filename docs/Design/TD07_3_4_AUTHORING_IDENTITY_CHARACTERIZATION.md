@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `8193fae0c704fbef3faf8c9981bf65d2b248f9e1`  
-Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.2 ACTIVE**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.4.2 IMPLÉMENTÉ / À VALIDER**
 
 ## 1. Contexte
 
@@ -155,7 +155,7 @@ Le visuel de classe a donc aujourd'hui deux sources possibles.
 
 ## 6. Gap PrimaryAsset identity
 
-Contrairement aux Status Effects, les DataAssets suivants n'exposent pas encore un PrimaryAssetId canonique fondé sur l'identité métier :
+À la baseline de Characterization, contrairement aux Status Effects, les DataAssets suivants n'exposaient pas encore un PrimaryAssetId canonique fondé sur l'identité métier :
 
 ```text
 URPGClassAsset              ClassId
@@ -174,6 +174,19 @@ RPGPortraitSet:<RaceId>
 ```
 
 Par conséquent, supprimer aujourd'hui `ClassDefinition` ou les références visuelles du personnage sans établir d'abord un resolver canonique créerait une régression de chargement.
+
+### Mise à jour TD07.3.4.2
+
+Le gap PrimaryAsset identity est désormais implémenté :
+
+```text
+RPGClass:<ClassId>
+RPGRace:<RaceId>
+RPGClassVisual:<ClassId>
+RPGPortraitSet:<RaceId>
+```
+
+La Characterization post-refactor exige maintenant ces identités canoniques.
 
 ## 7. Duplications acceptables
 

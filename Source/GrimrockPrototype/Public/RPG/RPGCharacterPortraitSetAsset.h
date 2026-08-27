@@ -11,6 +11,8 @@ class GRIMROCKPROTOTYPE_API URPGCharacterPortraitSetAsset : public UPrimaryDataA
 	GENERATED_BODY()
 
 public:
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "RPG|Portrait Set")
 	FName RaceId = NAME_None;
 
