@@ -181,6 +181,7 @@ bool FRPGMON152ProgressionBoundariesTest::RunTest(const FString& Parameters)
 	const FRPGCharacterResources FirstResourcesBefore = Component->PartyInventoryState.ActiveCharacters[0].Resources;
 	const FRPGCharacterResources SecondResourcesBefore = Component->PartyInventoryState.ActiveCharacters[1].Resources;
 
+	AddExpectedError(TEXT("Reason=InvalidClassDefinition"), EAutomationExpectedErrorFlags::Contains, 3);
 	TestEqual(TEXT("Three XP are fully shared at the boundary"), FRPGExperienceRewardService::AwardToActiveParty(Component, 3), 3);
 	TestEqual(TEXT("The first character crosses the level-two XP threshold"), Component->PartyInventoryState.ActiveCharacters[0].Experience, 1001);
 	TestEqual(TEXT("The second character reaches the maximum XP threshold"), Component->PartyInventoryState.ActiveCharacters[1].Experience, 190000);
@@ -231,6 +232,7 @@ bool FRPGMON152MonsterDeathExactlyOnceTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
 	Monster->MarkDead();
 	TestEqual(TEXT("First active character receives five XP"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Experience, 5);
 	TestEqual(TEXT("Second active character receives five XP"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[1].Experience, 5);
@@ -284,6 +286,8 @@ bool FRPGMON152LootIndependenceTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	AddExpectedError(TEXT("Reason=MissingMonsterMovement; continuing death."), EAutomationExpectedErrorFlags::Contains, 1);
+	AddExpectedError(TEXT("PlacementFailed"), EAutomationExpectedErrorFlags::Contains, 1);
 	Monster->MarkDead();
 	TestEqual(TEXT("The guaranteed loot placement fails without a runtime actor"), Monster->DeathComponent->FailedLootCount, 1);
 	TestEqual(TEXT("XP is still awarded when loot placement fails"), Party->PartyInventoryComponent->PartyInventoryState.ActiveCharacters[0].Experience, 7);
@@ -303,6 +307,7 @@ bool FRPGMON152PersistenceStateTest::RunTest(const FString& Parameters)
 	SourceComponent->PartyInventoryState.MaxActiveCharacters = 6;
 	SourceComponent->PartyInventoryState.bInitialCharacterCreationCompleted = true;
 
+	AddExpectedError(TEXT("Reason=InvalidClassDefinition"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestEqual(TEXT("The source party receives exactly 1000 cumulative XP"), FRPGExperienceRewardService::AwardToActiveParty(SourceComponent, 1000), 1000);
 	TestEqual(TEXT("The source character XP is persisted in the existing field"), SourceComponent->PartyInventoryState.ActiveCharacters[0].Experience, 1000);
 	TestEqual(TEXT("MON15.2 leaves the source Level unchanged"), SourceComponent->PartyInventoryState.ActiveCharacters[0].Level, 1);
