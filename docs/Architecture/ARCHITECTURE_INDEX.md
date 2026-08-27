@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 28 août 2026, TD07.3.4 Authoring Identity Normalization validé et clos ; TD07.3.5 à ouvrir.**  
+**Référence courante : 28 août 2026, TD07.3.4 clos ; TD07.3.5 Combat Data Schema characterization active.**  
 Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
@@ -103,7 +103,7 @@ TD07.3.3.8 Normalize Status Effects                                  VALIDÉ —
 TD07.3.3.9 Normalize Level-Up Notification State                    VALIDÉ — CLOS
 TD07.3.3.10 Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
 TD07.3.4 Authoring Identity Normalization                         VALIDÉ — CLOS
-TD07.3.5 Combat Data Schema Reset                              À OUVRIR
+TD07.3.5 Combat Data Schema Reset                              CHARACTERIZATION ACTIVE
 TD07.3.6–TD07.3.8                                             À FAIRE
 ```
 
