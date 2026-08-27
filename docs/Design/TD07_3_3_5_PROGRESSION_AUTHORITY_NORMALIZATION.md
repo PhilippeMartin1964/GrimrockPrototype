@@ -1,6 +1,6 @@
 # TD07.3.3.5 — XP / Level / Class Progression Authority Normalization
 
-Statut : **B2 IMPLÉMENTÉ — À VALIDER**
+Statut : **VALIDÉ — STOP CONDITION ATTEINTE**
 
 ## Objectif
 
@@ -165,7 +165,33 @@ Puis Win64 Shipping.
 - [x] helper MON18.8 legacy supprimé ;
 - [x] SaveGame v15 exact-match ;
 - [x] test B2 ajouté ;
-- [ ] build UE5.5.4 vert ;
-- [ ] NormalizationB2 4/4 ;
-- [ ] régressions B1 / MON15 / MON20.7 / MON18.8 / Save vertes ;
-- [ ] Shipping Win64 vert.
+- [x] build UE5.5.4 vert ;
+- [x] NormalizationB2 4/4 ;
+- [x] régressions B1 / MON15 / MON20.7 / MON18.8 / Save vertes ;
+- [x] Shipping Win64 vert.
+
+
+## Validation de clôture — 27 août 2026
+
+```text
+NormalizationB2             4 success / 0 warning / 0 failed
+NormalizationB1             4 success / 0 warning / 0 failed
+Characterization            4 success / 0 warning / 0 failed
+
+MON15.2                      1 success / 4 warnings / 0 failed
+MON15.3                      5 success / 1 warning / 0 failed
+MON15.5                      8 success / 0 warning / 0 failed
+
+MON20.7 Talents             24 success / 0 warning / 0 failed
+MON18.8 Spellbook           11 success / 0 warning / 0 failed
+TD07.3.2                     6 success / 0 warning / 0 failed
+MON9                         9 success / 4 warnings / 0 failed
+MON16.7                     10 success / 0 warning / 0 failed
+MON16.8                     10 success / 0 warning / 0 failed
+
+Win64 Shipping               COOK / PACKAGE VALIDATED
+```
+
+Tous les filtres bloquants ont terminé sans Failed ni Not run. Les warnings MON15.2, MON15.3 et MON9 restent non bloquants et appartiennent aux baselines déjà connues.
+
+**TD07.3.3.5 est clos et validé.**

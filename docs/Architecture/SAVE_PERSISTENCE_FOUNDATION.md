@@ -1,6 +1,6 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **27 août 2026 — TD07.3.3.5 B2 IMPLÉMENTÉ / À VALIDER**
+Date de référence : **27 août 2026 — TD07.3.3.5 VALIDÉ**
 
 ## Politique prototype autoritaire
 

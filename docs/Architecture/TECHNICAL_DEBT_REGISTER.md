@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.5 B2 IMPLÉMENTÉ — À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.5 VALIDÉ / TD07.3.3.6 PROCHAIN**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -614,7 +614,8 @@ TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
-TD07.3.3.5      Normalize XP / Level / Class Progression                B2 IMPLÉMENTÉ — À VALIDER
+TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
+TD07.3.3.6      Normalize Skills                                       PROCHAIN
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -692,65 +693,45 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.3.5 B2 — suppression du miroir Save de progression de classe.**
+**TD07.3.3.6 — Normalize Skills.**
 
-B1 a établi :
+TD07.3.3.5 est validé :
 
 ```text
-autorité durable
-    Experience
-    SelectedClassProgressionChoiceIds
+Experience
+    autorité durable
 
-projection runtime
-    Level (Transient)
-    RuntimeStates.SatisfiedRequirements
+Level
+    projection Transient reconstruite depuis Experience
+
+SelectedClassProgressionChoiceIds
+    autorité durable sur le personnage
+
+RuntimeStates
+    requirements reconstructibles uniquement
+
+ClassProgressionStates
+    supprimé
+
+SaveGame
+    v15 exact-match
 ```
 
-B2 supprime maintenant physiquement :
+La prochaine tranche doit caractériser puis normaliser :
 
 ```text
-FRPGCharacterProgressionSaveState
-UGrimrockPartySaveGame::ClassProgressionStates
+FGridCharacterInventoryState::SkillRanks
+FRPGCharacterSkillSaveState
+UGrimrockPartySaveGame::CharacterSkillStates
+URPGSkillRuntimeService / persistence helpers
 ```
 
-Il ne reste donc plus de snapshot Save parallèle pour les choix de progression de classe.
+Objectif : une seule autorité durable pour les ranks de Skills, sans snapshot Save parallèle, en conservant les règles MON20.9 et les skill checks existants.
 
-Le changement de layout sérialisé ouvre :
-
-```text
-CurrentSaveVersion = 15
-v14 et antérieures -> rejet sans migration
-```
-
-Filtre principal :
+Références :
 
 ```text
-Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB2
-```
-
-Régressions requises après build :
-
-```text
-Grimrock.TechnicalDebt.TD07_3_3_5.NormalizationB1
-Grimrock.TechnicalDebt.TD07_3_3_5.Characterization
-Grimrock.RPG.MON15.2
-Grimrock.RPG.MON15.3
-Grimrock.RPG.MON15.5
-Grimrock.MON20.7.Talents
-Grimrock.Magic.MON18.8
-Grimrock.TechnicalDebt.TD07_3_2
-Grimrock.Monsters.MON9
-Grimrock.RPG.MON16.7
-Grimrock.RPG.MON16.8
-```
-
-Puis Win64 Shipping.
-
-TD07.3.3.5 ne sera fermé qu'après validation de cette matrice.
-
-Référence :
-
-```text
+docs/Design/TD07_3_3_1_CHARACTER_STATE_AUTHORITY_AUDIT.md
 docs/Design/TD07_3_3_5_PROGRESSION_AUTHORITY_NORMALIZATION.md
 ```
 
