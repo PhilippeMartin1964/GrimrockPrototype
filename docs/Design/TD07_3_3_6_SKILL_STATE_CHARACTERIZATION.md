@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `157d7b5d75ddfeeb779101cb0dfd363c4b78d8b7`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
 
 ## 1. Objet
 
@@ -202,7 +202,20 @@ Le build doit être exécuté : un nouveau fichier C++ de tests est ajouté.
 - [x] restore de remplacement documenté ;
 - [x] atomicité documentée ;
 - [x] 4 tests de caractérisation ajoutés ;
-- [ ] compilation UE5.5.4 verte ;
-- [ ] 4/4 tests verts.
+- [x] compilation UE5.5.4 verte ;
+- [x] 4/4 tests verts.
+
+Validation locale du 27 août 2026 :
+
+```text
+Filter                  : Grimrock.TechnicalDebt.TD07_3_3_6.Characterization
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+```
+
+Le gate est atteint. La normalisation peut commencer.
 
 Aucune suppression de `Transient` ou de `CharacterSkillStates` ne commence avant ce gate vert.
