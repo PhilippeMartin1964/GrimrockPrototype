@@ -10,7 +10,7 @@
 
 namespace RPGMON2093Tests
 {
-	FGridCharacterInventoryState MakeCharacter(const FGuid& CharacterId, const TCHAR* Name)
+	FGridCharacterInventoryState MakeMON2093Character(const FGuid& CharacterId, const TCHAR* Name)
 	{
 		FGridCharacterInventoryState Character;
 		Character.CharacterId = CharacterId;
@@ -33,19 +33,19 @@ namespace RPGMON2093Tests
 		return Character;
 	}
 
-	UGridPartyInventoryComponent* MakeParty(int32 MaxActiveCharacters = 3)
+	UGridPartyInventoryComponent* MakeMON2093Party(int32 MaxActiveCharacters = 3)
 	{
 		UGridPartyInventoryComponent* Inventory = NewObject<UGridPartyInventoryComponent>();
 		Inventory->PartyInventoryState = FGridPartyInventoryState();
 		Inventory->PartyInventoryState.MaxActiveCharacters = MaxActiveCharacters;
 		Inventory->PartyInventoryState.bInitialCharacterCreationCompleted = true;
 		Inventory->PartyInventoryState.SelectedCharacterIndex = 0;
-		Inventory->PartyInventoryState.ActiveCharacters.Add(MakeCharacter(FGuid(20, 9, 3, 1), TEXT("MainHero")));
+		Inventory->PartyInventoryState.ActiveCharacters.Add(MakeMON2093Character(FGuid(20, 9, 3, 1), TEXT("MainHero")));
 		Inventory->PartyInventoryState.ActiveEquipment.SetNum(1);
 		return Inventory;
 	}
 
-	URPGSkillAsset* MakeSkill(FName SkillId, int32 MaxRank = 5)
+	URPGSkillAsset* MakeMON2093Skill(FName SkillId, int32 MaxRank = 5)
 	{
 		URPGSkillAsset* Skill = NewObject<URPGSkillAsset>();
 		Skill->SkillId = SkillId;
@@ -54,7 +54,7 @@ namespace RPGMON2093Tests
 		return Skill;
 	}
 
-	void AddRank(FGridCharacterInventoryState& Character, FName SkillId, int32 Rank)
+	void AddMON2093Rank(FGridCharacterInventoryState& Character, FName SkillId, int32 Rank)
 	{
 		FRPGSkillRank Entry;
 		Entry.SkillId = SkillId;
@@ -62,7 +62,7 @@ namespace RPGMON2093Tests
 		Character.SkillRanks.Add(Entry);
 	}
 
-	const FGridCharacterInventoryState* FindCharacter(const FGridPartyInventoryState& State, const FGuid& CharacterId)
+	const FGridCharacterInventoryState* FindMON2093Character(const FGridPartyInventoryState& State, const FGuid& CharacterId)
 	{
 		if (const FGridCharacterInventoryState* Active = State.ActiveCharacters.FindByPredicate(
 				[&CharacterId](const FGridCharacterInventoryState& Character) { return Character.CharacterId == CharacterId; }))
@@ -82,10 +82,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093RecruitmentPreservesPoolSkillTest, "
 bool FRPGMON2093RecruitmentPreservesPoolSkillTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(2);
 	const FGuid RecruitId(20, 9, 3, 2);
-	FGridCharacterInventoryState Recruit = MakeCharacter(RecruitId, TEXT("SkilledRecruit"));
-	AddRank(Recruit, TEXT("Skill_Lockpicking"), 3);
+	FGridCharacterInventoryState Recruit = MakeMON2093Character(RecruitId, TEXT("SkilledRecruit"));
+	AddMON2093Rank(Recruit, TEXT("Skill_Lockpicking"), 3);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Result;
 	TestTrue(TEXT("Skilled pool candidate recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Result));
@@ -100,10 +100,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093PoolSnapshotRestoresAfterRecruitment
 bool FRPGMON2093PoolSnapshotRestoresAfterRecruitmentTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(2);
 	const FGuid RecruitId(20, 9, 3, 3);
-	FGridCharacterInventoryState Recruit = MakeCharacter(RecruitId, TEXT("PoolToActive"));
-	AddRank(Recruit, TEXT("Skill_Lockpicking"), 4);
+	FGridCharacterInventoryState Recruit = MakeMON2093Character(RecruitId, TEXT("PoolToActive"));
+	AddMON2093Rank(Recruit, TEXT("Skill_Lockpicking"), 4);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	const FGridPartyInventoryState SavedState = Inventory->PartyInventoryState;
 
@@ -122,10 +122,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093ActiveSnapshotRestoresAfterReserveMo
 bool FRPGMON2093ActiveSnapshotRestoresAfterReserveMoveTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(2);
 	const FGuid RecruitId(20, 9, 3, 4);
-	FGridCharacterInventoryState Recruit = MakeCharacter(RecruitId, TEXT("ActiveToPool"));
-	AddRank(Recruit, TEXT("Skill_Athletics"), 2);
+	FGridCharacterInventoryState Recruit = MakeMON2093Character(RecruitId, TEXT("ActiveToPool"));
+	AddMON2093Rank(Recruit, TEXT("Skill_Athletics"), 2);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Recruitment;
 	TestTrue(TEXT("Candidate recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Recruitment));
@@ -135,7 +135,7 @@ bool FRPGMON2093ActiveSnapshotRestoresAfterReserveMoveTest::RunTest(const FStrin
 	SavedState.ActiveCharacters.RemoveAt(1);
 	SavedState.ActiveEquipment.RemoveAt(1);
 	SavedState.CharacterPool.Add(Moved);
-	const FGridCharacterInventoryState* Found = FindCharacter(SavedState, RecruitId);
+	const FGridCharacterInventoryState* Found = FindMON2093Character(SavedState, RecruitId);
 	TestNotNull(TEXT("Moved identity remains resolvable"), Found);
 	if (Found)
 	{
@@ -150,10 +150,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093MixedActivePoolIsolationTest, "Grimr
 bool FRPGMON2093MixedActivePoolIsolationTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(3);
-	AddRank(Inventory->PartyInventoryState.ActiveCharacters[0], TEXT("Skill_Perception"), 1);
-	FGridCharacterInventoryState Pool = MakeCharacter(FGuid(20, 9, 3, 5), TEXT("Reserve"));
-	AddRank(Pool, TEXT("Skill_Perception"), 4);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(3);
+	AddMON2093Rank(Inventory->PartyInventoryState.ActiveCharacters[0], TEXT("Skill_Perception"), 1);
+	FGridCharacterInventoryState Pool = MakeMON2093Character(FGuid(20, 9, 3, 5), TEXT("Reserve"));
+	AddMON2093Rank(Pool, TEXT("Skill_Perception"), 4);
 	Inventory->PartyInventoryState.CharacterPool.Add(Pool);
 	const FGridPartyInventoryState SavedState = Inventory->PartyInventoryState;
 	TestEqual(TEXT("Active durable rank remains isolated"), FRPGSkillService::GetSkillRank(SavedState.ActiveCharacters[0], TEXT("Skill_Perception")), 1);
@@ -167,11 +167,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093SelectedCharacterIndependentTest, "G
 bool FRPGMON2093SelectedCharacterIndependentTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(2);
 	const FGuid RecruitId(20, 9, 3, 6);
-	AddRank(Inventory->PartyInventoryState.ActiveCharacters[0], TEXT("Skill_Survival"), 1);
-	FGridCharacterInventoryState Recruit = MakeCharacter(RecruitId, TEXT("SelectedRecruit"));
-	AddRank(Recruit, TEXT("Skill_Survival"), 3);
+	AddMON2093Rank(Inventory->PartyInventoryState.ActiveCharacters[0], TEXT("Skill_Survival"), 1);
+	FGridCharacterInventoryState Recruit = MakeMON2093Character(RecruitId, TEXT("SelectedRecruit"));
+	AddMON2093Rank(Recruit, TEXT("Skill_Survival"), 3);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Recruitment;
 	TestTrue(TEXT("Second character recruits"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Recruitment));
@@ -189,10 +189,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093RecruitmentRejectPreservesPoolSkillT
 bool FRPGMON2093RecruitmentRejectPreservesPoolSkillTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(1);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(1);
 	const FGuid RecruitId(20, 9, 3, 7);
-	FGridCharacterInventoryState Recruit = MakeCharacter(RecruitId, TEXT("WaitingRecruit"));
-	AddRank(Recruit, TEXT("Skill_Lockpicking"), 3);
+	FGridCharacterInventoryState Recruit = MakeMON2093Character(RecruitId, TEXT("WaitingRecruit"));
+	AddMON2093Rank(Recruit, TEXT("Skill_Lockpicking"), 3);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
 	FRPGPartyRecruitmentResult Result;
 	TestFalse(TEXT("Full party rejects recruitment"), FRPGPartyRecruitmentService::TryRecruitFromPool(Inventory, RecruitId, Result));
@@ -207,19 +207,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093PoolReorderRestoresByIdentityTest, "
 bool FRPGMON2093PoolReorderRestoresByIdentityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(3);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(3);
 	const FGuid FirstId(20, 9, 3, 8);
 	const FGuid SecondId(20, 9, 3, 9);
-	FGridCharacterInventoryState First = MakeCharacter(FirstId, TEXT("FirstReserve"));
-	FGridCharacterInventoryState Second = MakeCharacter(SecondId, TEXT("SecondReserve"));
-	AddRank(First, TEXT("Skill_Perception"), 1);
-	AddRank(Second, TEXT("Skill_Perception"), 4);
+	FGridCharacterInventoryState First = MakeMON2093Character(FirstId, TEXT("FirstReserve"));
+	FGridCharacterInventoryState Second = MakeMON2093Character(SecondId, TEXT("SecondReserve"));
+	AddMON2093Rank(First, TEXT("Skill_Perception"), 1);
+	AddMON2093Rank(Second, TEXT("Skill_Perception"), 4);
 	Inventory->PartyInventoryState.CharacterPool.Add(First);
 	Inventory->PartyInventoryState.CharacterPool.Add(Second);
 	FGridPartyInventoryState SavedState = Inventory->PartyInventoryState;
 	SavedState.CharacterPool.Swap(0, 1);
-	const FGridCharacterInventoryState* FirstFound = FindCharacter(SavedState, FirstId);
-	const FGridCharacterInventoryState* SecondFound = FindCharacter(SavedState, SecondId);
+	const FGridCharacterInventoryState* FirstFound = FindMON2093Character(SavedState, FirstId);
+	const FGridCharacterInventoryState* SecondFound = FindMON2093Character(SavedState, SecondId);
 	TestNotNull(TEXT("First identity resolves after reorder"), FirstFound);
 	TestNotNull(TEXT("Second identity resolves after reorder"), SecondFound);
 	if (FirstFound && SecondFound)
@@ -236,12 +236,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2093SnapshotValidAfterRecruitmentMoveTes
 bool FRPGMON2093SnapshotValidAfterRecruitmentMoveTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	UGridPartyInventoryComponent* Inventory = MakeParty(2);
+	UGridPartyInventoryComponent* Inventory = MakeMON2093Party(2);
 	const FGuid RecruitId(20, 9, 3, 10);
-	FGridCharacterInventoryState Recruit = MakeCharacter(RecruitId, TEXT("MovingIdentity"));
-	AddRank(Recruit, TEXT("Skill_Lockpicking"), 2);
+	FGridCharacterInventoryState Recruit = MakeMON2093Character(RecruitId, TEXT("MovingIdentity"));
+	AddMON2093Rank(Recruit, TEXT("Skill_Lockpicking"), 2);
 	Inventory->PartyInventoryState.CharacterPool.Add(Recruit);
-	URPGSkillAsset* Skill = MakeSkill(TEXT("Skill_Lockpicking"), 5);
+	URPGSkillAsset* Skill = MakeMON2093Skill(TEXT("Skill_Lockpicking"), 5);
 	const auto Resolver = [Skill](FName SkillId) -> const URPGSkillAsset* { return SkillId == Skill->SkillId ? Skill : nullptr; };
 	FString Error;
 	TestTrue(TEXT("Pooled durable state validates"), FRPGSkillPersistence::ValidatePartySkills(Inventory->PartyInventoryState, Resolver, Error));
