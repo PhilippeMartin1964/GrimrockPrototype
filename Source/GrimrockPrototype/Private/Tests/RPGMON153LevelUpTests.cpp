@@ -161,6 +161,7 @@ bool FRPGMON153AtomicFailureTest::RunTest(const FString& Parameters)
 	const int32 LevelBefore = Character.Level;
 	const FRPGDerivedStats StatsBefore = Character.DerivedStats;
 	const FRPGCharacterResources ResourcesBefore = Character.Resources;
+	AddExpectedError(TEXT("Reason=InvalidClassDefinition"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("A mismatched class definition rejects the transaction"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0));
 	TestEqual(TEXT("Rejected transaction preserves Level"), Character.Level, LevelBefore);
 	TestEqual(TEXT("Rejected transaction preserves MaxHealth"), Character.DerivedStats.MaxHealth, StatsBefore.MaxHealth);
@@ -172,6 +173,7 @@ bool FRPGMON153AtomicFailureTest::RunTest(const FString& Parameters)
 	Character.Level = 3;
 	Character.Experience = 1000; // XP resolves to level two: never demote.
 	const FRPGDerivedStats NoDemotionStatsBefore = Character.DerivedStats;
+	AddExpectedError(TEXT("Reason=WouldDemote"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("MON15.3 never demotes an inconsistent stored level"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0));
 	TestEqual(TEXT("Would-demote state preserves Level"), Character.Level, 3);
 	TestEqual(TEXT("Would-demote state preserves stats"), Character.DerivedStats.MaxHealth, NoDemotionStatsBefore.MaxHealth);
