@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `b5b017b745914742728be281de65af055cf6ebb9`  
-Statut : **IMPLÉMENTÉ — BUILD / NORMALIZATION / RÉGRESSIONS VALIDÉS — SHIPPING REQUIS**
+Statut : **VALIDÉ ET CLOS**
 
 ## 1. Autorité durable unique
 
@@ -143,6 +143,24 @@ TD04-20260827-215250
 
 Le bloc de régressions post-refactor est entièrement vert. Il ne reste que la validation Win64 Shipping.
 
+## 8.3 Validation Win64 Shipping
+
+Validation finale du 27 août 2026 :
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260827-215448/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905609387
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260827-215448
+[OK] Cook / package validated.
+```
+
+La stop condition TD07.3.3.7 est entièrement atteinte.
+
 ## 9. Stop condition
 
 - [x] KnownSpellIds durable ajouté au personnage ;
@@ -160,7 +178,7 @@ Le bloc de régressions post-refactor est entièrement vert. Il ne reste que la 
 - [x] Normalization 4/4 ;
 - [x] Characterization 4/4 post-refactor ;
 - [x] régressions Magic/UI/Save vertes ;
-- [ ] Shipping Win64 vert.
+- [x] Shipping Win64 vert.
 
 Prochaine tranche après validation complète :
 
