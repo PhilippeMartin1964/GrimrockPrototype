@@ -1,6 +1,6 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **27 août 2026 — TD07.3.3.5 VALIDÉ**
+Date de référence : **27 août 2026 — TD07.3.3.6 IMPLÉMENTÉ / À VALIDER**
 
 ## Politique prototype autoritaire
 
@@ -11,18 +11,18 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 15
+UGrimrockPartySaveGame::CurrentSaveVersion = 16
 
-SaveVersion == 15
+SaveVersion == 16
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 15
+SaveVersion != 16
     -> rejet
     -> aucune migration
 ```
 
-La v10 a été la rupture volontaire TD07.3.2. TD07.3.3.2 a ouvert la v11 après suppression du bridge d'attributs. TD07.3.3.3 a ouvert la v12 après séparation des ressources mutables. TD07.3.3.4 a ouvert la v13 après suppression des caches de poids. TD07.3.3.5 B1 a ouvert la v14 lorsque `Level` est devenu Transient. B2 ouvre la v15 après suppression physique de `ClassProgressionStates`. La v14 et toutes les générations antérieures sont désormais incompatibles.
+La v10 a été la rupture volontaire TD07.3.2. TD07.3.3.2 a ouvert la v11 après suppression du bridge d'attributs. TD07.3.3.3 a ouvert la v12 après séparation des ressources mutables. TD07.3.3.4 a ouvert la v13 après suppression des caches de poids. TD07.3.3.5 B1 a ouvert la v14 lorsque `Level` est devenu Transient. B2 ouvre la v15 après suppression physique de `ClassProgressionStates`. TD07.3.3.6 ouvre la v16 lorsque `SkillRanks` devient durable et que `CharacterSkillStates` est supprimé. La v15 et toutes les générations antérieures sont désormais incompatibles.
 
 Il n'existe plus de :
 
@@ -52,7 +52,7 @@ Elle ne migre et ne modifie jamais le snapshot. Elle vérifie notamment :
 - Skills ;
 - variables de niveau.
 
-La restauration des Status Effects, Skills et notifications Level Up reste assurée par les services de domaine existants. La projection de progression de classe est reconstruite depuis `SelectedClassProgressionChoiceIds` dans le personnage.
+La restauration des Status Effects et notifications Level Up reste assurée par leurs services de domaine. Les Skills sont désormais directement présents dans `FGridCharacterInventoryState::SkillRanks`; aucune restauration Skill séparée n'existe. La projection de progression de classe est reconstruite depuis `SelectedClassProgressionChoiceIds`.
 
 ## Frontière persistante cible
 
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 B1 a rendu `Level` transient et déplacé les choix de classe sur `FGridCharacterInventoryState`; B2 supprime le dernier miroir Save séparé. Le schéma courant est v15 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 a supprimé les caches de poids. TD07.3.3.5 a normalisé Level et la progression de classe. TD07.3.3.6 rend `SkillRanks` durable et supprime `CharacterSkillStates`. Le schéma courant est v16 exact-match.
 
 ## Dungeon state
 
@@ -91,7 +91,6 @@ Les snapshots séparés encore présents :
 PendingLevelUpNotifications
 CharacterStatusEffectStates
 CharacterSpellbookStates
-CharacterSkillStates
 ```
 
 seront réaudités par TD07.3.3. L'objectif est de supprimer les doubles représentations sans perdre d'état gameplay réellement mutable.

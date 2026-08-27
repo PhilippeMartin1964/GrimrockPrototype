@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.6 NORMALIZATION ACTIVE**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.6 IMPLÉMENTÉ — À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -615,7 +615,7 @@ TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
 TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6      Normalize Skills                                       NORMALIZATION ACTIVE
+TD07.3.3.6      Normalize Skills                                       IMPLÉMENTÉ — À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -693,43 +693,57 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.6 — Normalize Skills — normalisation active.**
+**Valider TD07.3.3.6 — Normalize Skills.**
 
-Le modèle courant possède deux représentations :
+Implémentation :
 
 ```text
 FGridCharacterInventoryState::SkillRanks
-    autorité runtime réellement lue et mutée par les services
-    actuellement Transient
+    durable
+    autorité unique
+    sparse SkillId + Rank
+
+FRPGSkillRankSaveState
+    supprimé
+
+FRPGCharacterSkillSaveState
+    supprimé
 
 UGrimrockPartySaveGame::CharacterSkillStates
-    snapshot sparse séparé
-    FRPGCharacterSkillSaveState[]
+    supprimé
+
+FRPGSkillPersistence
+    réduit à ValidatePartySkills()
+    validation CharacterId / structure / définition canonique / MaxRank
 ```
 
-Le gate doit figer :
+Le déterminisme de l'état durable est maintenu par `FRPGSkillService::TrySetSkillRank()`, qui trie les ranks par `SkillId` après mutation.
+
+SaveGame courant :
 
 ```text
-1. mutation et lecture directes de SkillRanks ;
-2. snapshot sparse Active + CharacterPool ;
-3. ordre déterministe CharacterId / SkillId ;
-4. restore de remplacement : les ranks absents sont effacés ;
-5. atomicité du restore invalide ;
-6. consumers lisant immédiatement le state restauré.
+CurrentSaveVersion = 16
+v15 et antérieures -> rejet sans migration
 ```
 
-Filtre :
+Filtres requis :
 
 ```text
+Grimrock.TechnicalDebt.TD07_3_3_6.Normalization
 Grimrock.TechnicalDebt.TD07_3_3_6.Characterization
+Grimrock.MON20.9.SkillPersistence
+Grimrock.MON20.9.ActivePoolPersistence
+Grimrock.MON20.9.RestoredConsumers
 ```
+
+Puis les régressions Skills/requirements/UI pertinentes, TD07.3.2, MON18.8, MON16.7/8 et Win64 Shipping.
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_6_SKILL_STATE_CHARACTERIZATION.md
+docs/Design/TD07_3_3_6_SKILL_STATE_NORMALIZATION.md
 ```
 
-Aucun changement de schéma n'est encore effectué. Le SaveGame reste v15 exact-match.
+TD07.3.3.7 ne commence qu'après validation complète de TD07.3.3.6.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
