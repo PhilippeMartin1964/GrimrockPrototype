@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `d831bf70fe5b596d599b5d88e74d287cf85f5853`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
 
 ## 1. Objet
 
@@ -244,7 +244,18 @@ Le build doit être exécuté : un nouveau fichier C++ de tests est ajouté.
 - [x] frontière cursor documentée ;
 - [x] reconstruction au restore documentée ;
 - [x] 4 tests de caractérisation ajoutés ;
-- [ ] compilation UE5.5.4 verte ;
-- [ ] 4/4 tests verts.
+- [x] compilation UE5.5.4 verte ;
+- [x] 4/4 tests verts.
 
-Aucune suppression de propriété persistante ne commence avant ce gate vert.
+Validation locale du 27 août 2026 :
+
+```text
+Filter                  : Grimrock.TechnicalDebt.TD07_3_3_4.Characterization
+Succeeded               : 4
+Succeeded with warnings : 0
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+```
+
+Le gate est atteint. La phase B de normalisation peut commencer.
