@@ -1736,7 +1736,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 		}
 
 		State.ActiveCharacters[CharacterIndex].InventorySlots[SourceSlotIndex] = FGridInventorySlot();
-		InventoryComponent->RecalculateCharacterWeight(CharacterIndex);
+		InventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
 		return true;
 	}
 
@@ -1754,7 +1754,7 @@ bool UGridInventoryWidget::DropContextItemToGround(const FGridItemContextAction&
 	if (FGridItemInstance* EquippedItem = EquipmentState.GetMutableSlot(SourceEquipmentSlot))
 	{
 		*EquippedItem = FGridItemInstance();
-		InventoryComponent->RecalculateCharacterWeight(CharacterIndex);
+		InventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
 		OwningPartyPawn->SyncHeldVisualFromSelectedCharacterEquipment();
 		return true;
 	}
@@ -1916,7 +1916,7 @@ bool UGridInventoryWidget::HandleSlotDrop(
 		PrepareItemForSlot(TargetItem, SourceType, SourceIndex);
 		*SourceItemPtr = TargetItem;
 		*TargetItemPtr = SourceItem;
-		InventoryComponent->RecalculateCharacterWeight(CharacterIndex);
+		InventoryComponent->NotifyPartyInventoryChanged(CharacterIndex);
 		if (SourceType == EGridInventoryUiSlotType::Equipment || SourceType == EGridInventoryUiSlotType::MainHand ||
 			SourceType == EGridInventoryUiSlotType::OffHand || TargetType == EGridInventoryUiSlotType::Equipment ||
 			TargetType == EGridInventoryUiSlotType::MainHand || TargetType == EGridInventoryUiSlotType::OffHand)

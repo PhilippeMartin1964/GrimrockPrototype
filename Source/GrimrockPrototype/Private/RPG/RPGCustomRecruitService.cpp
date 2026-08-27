@@ -79,8 +79,6 @@ namespace RPGCustomRecruitServicePrivate
 		Candidate.PortraitVariantId = Request.PortraitVariantId;
 		Candidate.Portrait = Request.Portrait;
 		Candidate.ClassIcon = Request.ClassIcon;
-		Candidate.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(FinalAttributes);
-		Candidate.CurrentWeight = 0.0f;
 		Candidate.InventorySlots.SetNum(FMath::Max(0, InventorySlotCount));
 		InitializeEmptyHotbar(Candidate);
 		return Candidate;

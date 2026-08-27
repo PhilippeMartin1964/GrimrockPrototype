@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.4 NORMALIZATION ACTIVE — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.4 IMPLÉMENTÉ — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -203,7 +203,7 @@ TD07.3.3   Character State Normalization                      ACTIF
 TD07.3.3.1 Character State Authority Audit                    VALIDÉ
 TD07.3.3.2 Remove Legacy Attribute Bridge                     VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources         VALIDÉ
-TD07.3.3.4 Normalize Weight State                              NORMALIZATION ACTIVE
+TD07.3.3.4 Normalize Weight State                              IMPLÉMENTÉ — À VALIDER
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 

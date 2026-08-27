@@ -89,7 +89,9 @@ bool FRPGCurrentAttributeAuthorityCC1Test::RunTest(const FString& Parameters)
 
 	const FGridCharacterInventoryState& InitializedCharacter = Component->PartyInventoryState.ActiveCharacters[0];
 	TestEqual(TEXT("Current Attributes.Strength remains authoritative"), InitializedCharacter.Attributes.Strength, 13);
-	TestTrue(TEXT("Current Strength controls carry capacity"), FMath::IsNearlyEqual(InitializedCharacter.MaxCarryWeight, 65.0f));
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Initialized character summary resolves"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Current Strength controls carry capacity"), FMath::IsNearlyEqual(Summary.BaseMaxWeight, 65.0f));
 	return true;
 }
 

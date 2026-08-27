@@ -160,7 +160,9 @@ bool FRPGElfMageCreationCC6Test::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Elf Mage Charisma"), Character.Attributes.Charisma, 9);
 	TestEqual(TEXT("Elf Mage maximum health"), Character.DerivedStats.MaxHealth, 8);
 	TestEqual(TEXT("Elf Mage maximum mana"), Character.DerivedStats.MaxMana, 18);
-	TestTrue(TEXT("Elf Mage maximum carry weight"), FMath::IsNearlyEqual(Character.MaxCarryWeight, 40.0f));
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Elf Mage summary resolves"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Elf Mage maximum carry weight"), FMath::IsNearlyEqual(Summary.BaseMaxWeight, 40.0f));
 	return true;
 }
 

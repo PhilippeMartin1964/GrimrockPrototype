@@ -148,19 +148,20 @@ bool FGridTD07333SaveSchemaVersionTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 
-	TestEqual(TEXT("TD07.3.3.3 resource separation opens SaveGame v12"), UGrimrockPartySaveGame::CurrentSaveVersion, 12);
+	TestTrue(TEXT("The current exact-match schema remains newer than the TD07.3.3.3 v12 generation"),
+		UGrimrockPartySaveGame::CurrentSaveVersion >= 12);
 
 	UGrimrockPartySaveGame* Current = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("New SaveGame starts on v12"), Current->SaveVersion, 12);
-	TestTrue(TEXT("Current v12 is compatible"), Current->IsCompatible());
+	TestEqual(TEXT("New SaveGame starts on the current schema"), Current->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestTrue(TEXT("Current exact-match schema is compatible"), Current->IsCompatible());
 
 	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>();
-	Previous->SaveVersion = 11;
+	Previous->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
 	FText Error;
-	TestFalse(TEXT("Previous v11 is rejected without migration"), Previous->ValidateCurrentState(Error));
-	TestFalse(TEXT("Previous v11 is incompatible"), Previous->IsCompatible());
-	TestEqual(TEXT("Validation does not rewrite v11"), Previous->SaveVersion, 11);
-	TestTrue(TEXT("Rejected v11 reports an error"), !Error.IsEmpty());
+	TestFalse(TEXT("Previous prototype schema is rejected without migration"), Previous->ValidateCurrentState(Error));
+	TestFalse(TEXT("Previous prototype schema is incompatible"), Previous->IsCompatible());
+	TestEqual(TEXT("Validation does not rewrite the previous schema"), Previous->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion - 1);
+	TestTrue(TEXT("Rejected previous schema reports an error"), !Error.IsEmpty());
 	return true;
 }
 

@@ -248,11 +248,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Cursor")
 	bool TryEquipCursorItemToSelectedCharacterSlot(EGridEquipmentSlot TargetSlot);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Weight")
-	void RecalculateCharacterWeight(int32 CharacterIndex);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Weight")
-	void RecalculateAllWeights();
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Diagnostics")
 	FString GetPartyInventoryDiagnostics() const;
@@ -289,5 +284,7 @@ private:
 	void InitializeCharacterDefaults(FGridCharacterInventoryState& CharacterState, int32 CharacterIndex) const;
 	void InitializeCombatHotbarDefaults(FGridCharacterInventoryState& CharacterState) const;
 	bool ValidateCombatHotbar(const FGridCharacterInventoryState& CharacterState, FString& OutError) const;
+	float CalculateCharacterCurrentWeight(int32 CharacterIndex) const;
+	float CalculateCharacterBaseMaxWeight(int32 CharacterIndex) const;
 	float CalculateEquipmentWeight(const FGridCharacterEquipmentState& EquipmentState) const;
 };

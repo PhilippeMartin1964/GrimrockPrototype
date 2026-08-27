@@ -54,8 +54,6 @@ namespace RPGStoryCompanionServicePrivate
 		Candidate.PortraitVariantId = Definition.PortraitVariantId;
 		Candidate.Portrait = Definition.Portrait;
 		Candidate.ClassIcon = Definition.ClassIcon;
-		Candidate.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(FinalAttributes);
-		Candidate.CurrentWeight = 0.0f;
 		Candidate.InventorySlots.SetNum(FMath::Max(0, InventorySlotCount));
 		InitializeEmptyHotbar(Candidate);
 

@@ -55,7 +55,7 @@ bool UGridPartyInventoryComponent::TryExtractOneEquippedItemForWorldTransfer(
 	{
 		*EquippedItem = FGridItemInstance();
 	}
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory EquipmentWorldTransfer Extract Character=%d Slot=%s Item=%s RuntimeId=%s Quantity=%d->%d Result=true"),
 		CharacterIndex, GridPartyInventoryWorldTransferGetEquipmentSlotName(SourceSlot), *OutWorldItem.ItemDefinitionId.ToString(),
@@ -96,7 +96,7 @@ bool UGridPartyInventoryComponent::TryRestoreExtractedItemToEquipment(
 		EquippedItem->OwnerCharacterIndex = CharacterIndex;
 		EquippedItem->EquipmentSlot = TargetSlot;
 	}
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Warning, TEXT("GridInventory EquipmentWorldTransfer Restored Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridPartyInventoryWorldTransferGetEquipmentSlotName(TargetSlot), *WorldItem.ItemDefinitionId.ToString(), *WorldItem.RuntimeObjectId.ToString());

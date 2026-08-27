@@ -226,7 +226,7 @@ void UGridPartyInventoryComponent::InitializeDefaultPartyIfNeeded()
 		PartyInventoryState.SelectedCharacterIndex = PartyInventoryState.ActiveCharacters.Num() > 0 ? 0 : INDEX_NONE;
 	}
 
-	RecalculateAllWeights();
+	NotifyPartyInventoryChanged(INDEX_NONE);
 }
 
 bool UGridPartyInventoryComponent::HasCompletedInitialCharacterCreation() const
@@ -315,7 +315,7 @@ bool UGridPartyInventoryComponent::RestorePartyInventoryState(const FGridPartyIn
 
 	const FGridPartyInventoryState PreviousState = PartyInventoryState;
 	PartyInventoryState = MoveTemp(RestoredState);
-	RecalculateAllWeights();
+	NotifyPartyInventoryChanged(INDEX_NONE);
 
 	FString OwnershipError;
 	if (!ValidateInventoryOwnership(OwnershipError))
@@ -389,8 +389,6 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 	NewCharacter.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(FinalAttributes, Request.ClassDefinition, NewCharacter.Level);
 	NewCharacter.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(NewCharacter.DerivedStats, Request.ClassDefinition);
 	NewCharacter.Portrait = Request.Portrait;
-	NewCharacter.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(FinalAttributes);
-	NewCharacter.CurrentWeight = 0.0f;
 	NewCharacter.InventorySlots.SetNum(FMath::Max(0, DefaultInventorySlotCountPerCharacter));
 	InitializeCombatHotbarDefaults(NewCharacter);
 
@@ -405,7 +403,7 @@ bool UGridPartyInventoryComponent::CreateInitialCharacter(const FRPGCharacterCre
 
 	const FGridPartyInventoryState PreviousPartyState = PartyInventoryState;
 	PartyInventoryState = MoveTemp(NewPartyState);
-	RecalculateAllWeights();
+	NotifyPartyInventoryChanged(INDEX_NONE);
 
 	FString OwnershipError;
 	if (!ValidateInventoryOwnership(OwnershipError))
@@ -479,7 +477,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.Experience = CharacterState.Experience;
 	OutSummary.BaseAttributes = CharacterState.Attributes;
 	OutSummary.BaseDerivedStats = CharacterState.DerivedStats;
-	OutSummary.BaseMaxWeight = CharacterState.MaxCarryWeight;
+	OutSummary.BaseMaxWeight = CalculateCharacterBaseMaxWeight(CharacterIndex);
 	OutSummary.EquipmentStatBonus = ComputeCharacterEquipmentStatBonus(CharacterIndex);
 	OutSummary.EquipmentResistances = ComputeCharacterEquipmentResistances(CharacterIndex);
 	OutSummary.FinalResistances = OutSummary.EquipmentResistances;
@@ -501,7 +499,7 @@ bool UGridPartyInventoryComponent::GetCharacterSummary(int32 CharacterIndex, FGr
 	OutSummary.Portrait = CharacterState.Portrait;
 	OutSummary.UsedInventorySlots = CountOccupiedSlots(CharacterState);
 	OutSummary.MaxInventorySlots = CharacterState.InventorySlots.Num();
-	OutSummary.CurrentWeight = CharacterState.CurrentWeight;
+	OutSummary.CurrentWeight = CalculateCharacterCurrentWeight(CharacterIndex);
 	OutSummary.MaxWeight = FMath::Max(0.0f, OutSummary.BaseMaxWeight + OutSummary.EquipmentStatBonus.CarryWeightBonus);
 	OutSummary.bOverloaded = OutSummary.CurrentWeight > OutSummary.MaxWeight;
 	OutSummary.bIsSelected = CharacterIndex == PartyInventoryState.SelectedCharacterIndex;
@@ -631,7 +629,7 @@ bool UGridPartyInventoryComponent::AddItemToCharacterInventory(int32 CharacterIn
 	}
 
 	CharacterState.InventorySlots = MoveTemp(UpdatedInventorySlots);
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
 }
 
@@ -658,7 +656,7 @@ bool UGridPartyInventoryComponent::RemoveItemFromCharacterInventoryByRuntimeId(i
 
 		OutRemovedItem = Slot.Item;
 		Slot = FGridInventorySlot();
-		RecalculateCharacterWeight(CharacterIndex);
+		NotifyPartyInventoryChanged(CharacterIndex);
 		return true;
 	}
 
@@ -684,7 +682,7 @@ bool UGridPartyInventoryComponent::RemoveFirstItemFromCharacterInventoryByDefini
 
 		OutRemovedItem = Slot.Item;
 		Slot = FGridInventorySlot();
-		RecalculateCharacterWeight(CharacterIndex);
+		NotifyPartyInventoryChanged(CharacterIndex);
 		return true;
 	}
 
@@ -775,7 +773,7 @@ bool UGridPartyInventoryComponent::RemoveItemDefinitionFromCharacterInventory(in
 
 	ClearQuickItemHotbarBindings(CharacterState, ItemDefinitionId);
 
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
 }
 
@@ -922,14 +920,14 @@ bool UGridPartyInventoryComponent::ApplyItemDefinitionToInstance(FGridItemInstan
 	return true;
 }
 
-void UGridPartyInventoryComponent::RecalculateCharacterWeight(int32 CharacterIndex)
+float UGridPartyInventoryComponent::CalculateCharacterCurrentWeight(int32 CharacterIndex) const
 {
 	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		return;
+		return 0.0f;
 	}
 
-	FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+	const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
 	float TotalWeight = 0.0f;
 
 	for (const FGridInventorySlot& Slot : CharacterState.InventorySlots)
@@ -945,17 +943,17 @@ void UGridPartyInventoryComponent::RecalculateCharacterWeight(int32 CharacterInd
 		TotalWeight += CalculateEquipmentWeight(PartyInventoryState.ActiveEquipment[CharacterIndex]);
 	}
 
-	CharacterState.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(CharacterState.Attributes);
-	CharacterState.CurrentWeight = TotalWeight;
-	NotifyPartyInventoryChanged(CharacterIndex);
+	return FMath::Max(0.0f, TotalWeight);
 }
 
-void UGridPartyInventoryComponent::RecalculateAllWeights()
+float UGridPartyInventoryComponent::CalculateCharacterBaseMaxWeight(int32 CharacterIndex) const
 {
-	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
+	if (!IsValidCharacterIndex(CharacterIndex))
 	{
-		RecalculateCharacterWeight(CharacterIndex);
+		return 0.0f;
 	}
+
+	return URPGCharacterRulesLibrary::CalculateMaxCarryWeight(PartyInventoryState.ActiveCharacters[CharacterIndex].Attributes);
 }
 
 bool UGridPartyInventoryComponent::ValidateInventoryOwnership(FString& OutError) const
@@ -1127,7 +1125,6 @@ void UGridPartyInventoryComponent::InitializeCharacterDefaults(FGridCharacterInv
 	CharacterState.Attributes.Intelligence = FMath::Max(0, CharacterState.Attributes.Intelligence);
 	CharacterState.Attributes.Wisdom = FMath::Max(0, CharacterState.Attributes.Wisdom);
 	CharacterState.Attributes.Charisma = FMath::Max(0, CharacterState.Attributes.Charisma);
-	CharacterState.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(CharacterState.Attributes);
 
 	if (CharacterState.InventorySlots.Num() == 0)
 	{

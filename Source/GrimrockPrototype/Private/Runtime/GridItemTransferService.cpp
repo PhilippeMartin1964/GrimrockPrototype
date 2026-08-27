@@ -92,7 +92,7 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToRecepta
 	}
 
 	CharacterState.InventorySlots[InventorySlotIndex] = FGridInventorySlot();
-	Inventory->RecalculateCharacterWeight(CharacterIndex);
+	Inventory->NotifyPartyInventoryChanged(CharacterIndex);
 
 	FGridItemInstance AcceptedItem;
 	if (!Receptacle->TryInsertItemInstanceFromCursor(Candidate, AcceptedItem))
@@ -104,7 +104,7 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToRecepta
 		}
 
 		CharacterState.InventorySlots[InventorySlotIndex] = SourceSnapshot;
-		Inventory->RecalculateCharacterWeight(CharacterIndex);
+		Inventory->NotifyPartyInventoryChanged(CharacterIndex);
 		return LogTransferFailure(
 			Operation, EGridItemTransferResult::DestinationInsertFailed, TEXT("Destination insertion failed; inventory source was restored."), &Candidate);
 	}
@@ -146,7 +146,7 @@ FGridItemTransferResult UGridItemTransferService::TransferEquipmentSlotToRecepta
 	}
 
 	*SourceItem = FGridItemInstance();
-	Inventory->RecalculateCharacterWeight(CharacterIndex);
+	Inventory->NotifyPartyInventoryChanged(CharacterIndex);
 	SyncEquipmentVisual(Inventory);
 
 	FGridItemInstance AcceptedItem;
@@ -159,7 +159,7 @@ FGridItemTransferResult UGridItemTransferService::TransferEquipmentSlotToRecepta
 		}
 
 		*SourceItem = SourceSnapshot;
-		Inventory->RecalculateCharacterWeight(CharacterIndex);
+		Inventory->NotifyPartyInventoryChanged(CharacterIndex);
 		SyncEquipmentVisual(Inventory);
 		return LogTransferFailure(
 			Operation, EGridItemTransferResult::DestinationInsertFailed, TEXT("Destination insertion failed; equipment source was restored."), &SourceSnapshot);
@@ -204,12 +204,12 @@ FGridItemTransferResult UGridItemTransferService::TransferInventorySlotToWallLoc
 	{
 		CharacterState.InventorySlots[InventorySlotIndex] = FGridInventorySlot();
 	}
-	Inventory->RecalculateCharacterWeight(CharacterIndex);
+	Inventory->NotifyPartyInventoryChanged(CharacterIndex);
 
 	if (!WallLock->TryUnlockWithContextItem(PartyPawn, KeyItem))
 	{
 		CharacterState.InventorySlots[InventorySlotIndex] = SourceSnapshot;
-		Inventory->RecalculateCharacterWeight(CharacterIndex);
+		Inventory->NotifyPartyInventoryChanged(CharacterIndex);
 		return LogTransferFailure(
 			Operation, EGridItemTransferResult::DestinationInsertFailed, TEXT("Wall lock insertion failed; inventory source was restored."), &KeyItem);
 	}

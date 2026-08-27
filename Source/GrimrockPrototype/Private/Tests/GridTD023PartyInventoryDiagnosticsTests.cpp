@@ -23,8 +23,6 @@ bool FGridTD023PartyInventoryDiagnosticsContractTest::RunTest(const FString& Par
 	Character.DisplayName = FText::FromString(TEXT("TD02 Diagnostics Tester"));
 	Character.ClassId = TEXT("Warrior");
 	Character.Level = 3;
-	Character.CurrentWeight = 2.0f;
-	Character.MaxCarryWeight = 50.0f;
 	Character.InventorySlots.SetNum(1);
 
 	FGridItemInstance Stone;

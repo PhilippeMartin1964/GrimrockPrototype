@@ -1,6 +1,5 @@
 #include "RPG/RPGPartyRecruitmentService.h"
 
-#include "RPG/RPGCharacterRulesLibrary.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 
 namespace GridPartyRecruitmentPrivate
@@ -88,20 +87,6 @@ namespace GridPartyRecruitmentPrivate
 		}
 	}
 
-	float CalculateCandidateInventoryWeight(const FGridCharacterInventoryState& Candidate)
-	{
-		float TotalWeight = 0.0f;
-		for (const FGridInventorySlot& Slot : Candidate.InventorySlots)
-		{
-			if (Slot.IsEmpty())
-			{
-				continue;
-			}
-
-			TotalWeight += Slot.Item.Weight * FMath::Max(1, Slot.Item.Quantity);
-		}
-		return TotalWeight;
-	}
 }
 
 bool FRPGPartyRecruitmentService::TryRecruitFromPool(
@@ -214,8 +199,6 @@ bool FRPGPartyRecruitmentService::TryRecruitFromPool(
 	const int32 NewCharacterIndex = State.ActiveCharacters.Num();
 
 	GridPartyRecruitmentPrivate::NormalizeCandidateInventoryOwnership(Candidate, NewCharacterIndex);
-	Candidate.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(Candidate.Attributes);
-	Candidate.CurrentWeight = GridPartyRecruitmentPrivate::CalculateCandidateInventoryWeight(Candidate);
 
 	State.CharacterPool.RemoveAt(CandidateIndex);
 	State.ActiveCharacters.Add(MoveTemp(Candidate));

@@ -173,7 +173,9 @@ bool FGridMON202InventoryOwnershipNormalizationTest::RunTest(const FString& Para
 	TestEqual(TEXT("Inventory owner index is normalized"), Item.OwnerCharacterIndex, 1);
 	TestTrue(TEXT("Inventory owner guid is normalized"), Item.OwnerGuid == RecruitId);
 	TestTrue(TEXT("Inventory item is not equipment"), Item.EquipmentSlot == EGridEquipmentSlot::None);
-	TestEqual(TEXT("Inventory weight is recomputed"), Recruited.CurrentWeight, 2.5f);
+	FGridInventoryCharacterSummary RecruitedSummary;
+	TestTrue(TEXT("Recruited character summary resolves"), Inventory->GetCharacterSummary(1, RecruitedSummary));
+	TestTrue(TEXT("Inventory weight is projected from recruited contents"), FMath::IsNearlyEqual(RecruitedSummary.CurrentWeight, 2.5f));
 
 	FString OwnershipError;
 	TestTrue(TEXT("Normalized ownership validates"), Inventory->ValidateInventoryOwnership(OwnershipError));

@@ -385,11 +385,6 @@ struct FGridCharacterInventoryState
 	TSoftObjectPtr<UTexture2D> ClassIcon;
 
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
-	float CurrentWeight = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
-	float MaxCarryWeight = 50.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
 	TArray<FGridInventorySlot> InventorySlots;
@@ -398,10 +393,6 @@ struct FGridCharacterInventoryState
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Hotbar")
 	TArray<FGridCombatHotbarBinding> CombatHotbarSlots;
 
-	bool IsOverloaded() const
-	{
-		return CurrentWeight > MaxCarryWeight;
-	}
 };
 
 USTRUCT(BlueprintType)

@@ -253,10 +253,12 @@ FString UGridPartyInventoryComponent::GetPartyInventoryDiagnostics() const
 	for (int32 CharacterIndex = 0; CharacterIndex < PartyInventoryState.ActiveCharacters.Num(); ++CharacterIndex)
 	{
 		const FGridCharacterInventoryState& CharacterState = PartyInventoryState.ActiveCharacters[CharacterIndex];
+		FGridInventoryCharacterSummary Summary;
+		GetCharacterSummary(CharacterIndex, Summary);
 		Result += FString::Printf(TEXT("[%d] Name=%s Class=%s Level=%d Slots=%d/%d Weight=%.1f/%.1f Overloaded=%s\n"), CharacterIndex,
 			*CharacterState.DisplayName.ToString(), *CharacterState.ClassId.ToString(), CharacterState.Level,
-			GridPartyInventoryDiagnosticsCountOccupiedSlots(CharacterState), CharacterState.InventorySlots.Num(), CharacterState.CurrentWeight,
-			CharacterState.MaxCarryWeight, CharacterState.IsOverloaded() ? TEXT("true") : TEXT("false"));
+			GridPartyInventoryDiagnosticsCountOccupiedSlots(CharacterState), CharacterState.InventorySlots.Num(), Summary.CurrentWeight, Summary.MaxWeight,
+			Summary.bOverloaded ? TEXT("true") : TEXT("false"));
 		Result += GetEquipmentDiagnosticsForCharacter(CharacterIndex);
 		Result += TEXT("\n");
 

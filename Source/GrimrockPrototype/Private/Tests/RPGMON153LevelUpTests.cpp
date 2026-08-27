@@ -39,7 +39,6 @@ namespace
 		Character.Attributes = ClassDefinition ? ClassDefinition->BaseAttributes : FRPGAttributes{};
 		Character.DerivedStats = URPGCharacterRulesLibrary::CalculateDerivedStats(Character.Attributes, ClassDefinition, Level);
 		Character.Resources = URPGCharacterRulesLibrary::InitializeCharacterResources(Character.DerivedStats, ClassDefinition);
-		Character.MaxCarryWeight = URPGCharacterRulesLibrary::CalculateMaxCarryWeight(Character.Attributes);
 		Character.InventorySlots.SetNum(1);
 		Character.CombatHotbarSlots.SetNum(FGridCombatHotbarBinding::SlotCount);
 		for (int32 SlotIndex = 0; SlotIndex < Character.CombatHotbarSlots.Num(); ++SlotIndex)

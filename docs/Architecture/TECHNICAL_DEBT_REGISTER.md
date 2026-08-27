@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.4 NORMALIZATION ACTIVE**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.4 IMPLÉMENTÉ / À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -613,7 +613,7 @@ TD07.3.3        Character State Normalization                         ACTIF
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
-TD07.3.3.4      Normalize Weight State                                 NORMALIZATION ACTIVE
+TD07.3.3.4      Normalize Weight State                                 IMPLÉMENTÉ — À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -691,51 +691,58 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.4 — Normalize Weight State — phase B active.**
+**Valider TD07.3.3.4 — Normalize Weight State.**
 
-Le modèle courant possède deux caches dans `FGridCharacterInventoryState` :
+Implémentation :
 
 ```text
-CurrentWeight
-MaxCarryWeight
+FGridCharacterInventoryState
+    CurrentWeight       SUPPRIMÉ
+    MaxCarryWeight      SUPPRIMÉ
+    IsOverloaded()      SUPPRIMÉ
+
+UGridPartyInventoryComponent::GetCharacterSummary()
+    CurrentWeight       calculé InventorySlots + ActiveEquipment
+    BaseMaxWeight       CalculateMaxCarryWeight(Attributes)
+    MaxWeight           BaseMaxWeight + CarryWeightBonus
+    bOverloaded         CurrentWeight > MaxWeight
 ```
 
-La caractérisation doit figer quatre comportements avant suppression :
+Politique d'équipement conservée :
 
 ```text
-1. MaxCarryWeight
-   -> mis à jour uniquement par RecalculateCharacterWeight()
-   -> peut rester stale après modification directe de Strength
+StrengthBonus
+    -> Summary.Attributes.Strength
+    -> ne modifie pas la capacité de port
 
-2. Equipment
-   -> CarryWeightBonus modifie Summary.MaxWeight
-   -> StrengthBonus modifie Summary.Attributes.Strength
-   -> mais StrengthBonus ne recalcule pas la capacité de port
-
-3. Overload
-   -> Character.IsOverloaded() compare les caches bruts
-   -> Summary.bOverloaded utilise CarryWeightBonus
-   -> les deux peuvent donc diverger
-
-4. Restore
-   -> RestorePartyInventoryState() appelle RecalculateAllWeights()
-   -> les caches sérialisés sont écrasés par reconstruction
+CarryWeightBonus
+    -> modifie Summary.MaxWeight
 ```
 
-Le curseur global reste hors du poids du personnage lorsqu'il détient temporairement un item.
+Les anciennes API `RecalculateCharacterWeight` et `RecalculateAllWeights` sont supprimées. Les mutations d'inventaire/équipement notifient simplement les observateurs ; aucune écriture de cache n'est requise.
 
-Filtre :
+SaveGame courant :
 
 ```text
+CurrentSaveVersion = 13
+v12 et antérieures -> rejet sans migration
+```
+
+Filtres requis :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_4.Normalization
 Grimrock.TechnicalDebt.TD07_3_3_4.Characterization
 ```
+
+Puis régressions CC0, CC1, CC2, CC6, MON15.3, MON20.2, TD02.3, TD06.6, TD07.3.2, TD07.3.3.2, TD07.3.3.3, MON9, MON16.7, MON16.8 et Shipping Win64.
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_4_WEIGHT_STATE_CHARACTERIZATION.md
+docs/Design/TD07_3_3_4_WEIGHT_STATE_NORMALIZATION.md
 ```
 
-Aucune structure persistante n'est encore modifiée et le SaveGame reste v12 exact-match.
+TD07.3.3.5 ne commence qu'après validation complète de TD07.3.3.4.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.

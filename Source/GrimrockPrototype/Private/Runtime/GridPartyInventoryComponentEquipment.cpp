@@ -223,7 +223,7 @@ bool UGridPartyInventoryComponent::EquipItemFromInventorySlot(int32 CharacterInd
 	}
 
 	*TargetItem = ItemToEquip;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Equip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex, GridPartyInventoryEquipmentGetSlotName(TargetSlot),
 		*ItemToEquip.ItemDefinitionId.ToString(), *ItemToEquip.RuntimeObjectId.ToString());
@@ -274,7 +274,7 @@ bool UGridPartyInventoryComponent::UnequipItemToInventory(int32 CharacterIndex, 
 	CharacterState.InventorySlots[FreeSlotIndex].bOccupied = true;
 	CharacterState.InventorySlots[FreeSlotIndex].Item = ItemToInventory;
 	*EquippedItem = FGridItemInstance();
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Unequip Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex, GridPartyInventoryEquipmentGetSlotName(SourceSlot),
 		*ItemToInventory.ItemDefinitionId.ToString(), *ItemToInventory.RuntimeObjectId.ToString());
@@ -335,7 +335,7 @@ bool UGridPartyInventoryComponent::TryConsumeEquippedItemQuantityForCombatAction
 	{
 		EquippedItem->Quantity = QuantityBefore - Quantity;
 	}
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 	return true;
 }
 

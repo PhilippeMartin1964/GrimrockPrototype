@@ -121,7 +121,7 @@ bool UGridPartyInventoryComponent::TryTakeEquipmentSlotToCursor(int32 CharacterI
 	*EquippedItem = FGridItemInstance();
 	PartyInventoryState.CursorItem = ItemToCursor;
 	PartyInventoryState.bHasCursorItem = true;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take FromEquipment Character=%d Slot=%s Item=%s RuntimeId=%s Result=true"), CharacterIndex,
 		GridPartyInventoryCursorTransferGetEquipmentSlotName(SourceSlot), *ItemToCursor.ItemDefinitionId.ToString(), *ItemToCursor.RuntimeObjectId.ToString());
@@ -227,7 +227,7 @@ bool UGridPartyInventoryComponent::TryTakeInventorySlotQuantityToCursor(int32 Ch
 
 	PartyInventoryState.CursorItem = ItemToCursor;
 	PartyInventoryState.bHasCursorItem = true;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Take FromInventory Character=%d Slot=%d Item=%s RuntimeId=%s Quantity=%d Split=%s"), CharacterIndex,
 		InventorySlotIndex, *ItemToCursor.ItemDefinitionId.ToString(), *ItemToCursor.RuntimeObjectId.ToString(), ItemToCursor.Quantity,
@@ -273,7 +273,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 		TargetSlot.Item = CursorItem;
 		PartyInventoryState.CursorItem = FGridItemInstance();
 		PartyInventoryState.bHasCursorItem = false;
-		RecalculateCharacterWeight(CharacterIndex);
+		NotifyPartyInventoryChanged(CharacterIndex);
 
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Place ToInventorySlot Character=%d Slot=%d Item=%s Result=true"), CharacterIndex, TargetSlotIndex,
 			*CursorItem.ItemDefinitionId.ToString());
@@ -290,7 +290,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventorySlot(in
 	TargetSlot.bOccupied = true;
 	PartyInventoryState.CursorItem = SlotItem;
 	PartyInventoryState.bHasCursorItem = true;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Swap WithInventorySlot Character=%d Slot=%d CursorItem=%s SlotItem=%s Result=true"), CharacterIndex,
 		TargetSlotIndex, *CursorItem.ItemDefinitionId.ToString(), *SlotItem.ItemDefinitionId.ToString());
@@ -348,7 +348,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 		TargetSlot.bOccupied = true;
 		TargetSlot.Item = SourceItem;
 		SourceSlot = FGridInventorySlot();
-		RecalculateCharacterWeight(CharacterIndex);
+		NotifyPartyInventoryChanged(CharacterIndex);
 
 		UE_LOG(LogTemp, Log, TEXT("GridInventory Move InventorySlot Character=%d Source=%d Target=%d Item=%s Result=true"), CharacterIndex, SourceSlotIndex,
 			TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString());
@@ -365,7 +365,7 @@ bool UGridPartyInventoryComponent::TryMoveCharacterInventorySlot(int32 Character
 	SourceSlot.Item = TargetItem;
 	TargetSlot.bOccupied = true;
 	TargetSlot.Item = SourceItem;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Swap InventorySlots Character=%d A=%d B=%d ItemA=%s ItemB=%s Result=true"), CharacterIndex, SourceSlotIndex,
 		TargetSlotIndex, *SourceItem.ItemDefinitionId.ToString(), *TargetItem.ItemDefinitionId.ToString());
@@ -406,7 +406,7 @@ bool UGridPartyInventoryComponent::TryPlaceCursorItemInCharacterInventory(int32 
 	CharacterState.InventorySlots[FreeSlotIndex].Item = ItemToInventory;
 	PartyInventoryState.CursorItem = FGridItemInstance();
 	PartyInventoryState.bHasCursorItem = false;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	UE_LOG(LogTemp, Log, TEXT("GridInventory Cursor Place ToInventory Character=%d Slot=%d Item=%s RuntimeId=%s"), CharacterIndex, FreeSlotIndex,
 		*ItemToInventory.ItemDefinitionId.ToString(), *ItemToInventory.RuntimeObjectId.ToString());
@@ -490,7 +490,7 @@ bool UGridPartyInventoryComponent::TryEquipCursorItemToCharacterSlot(int32 Chara
 	}
 
 	*TargetItem = ItemToEquip;
-	RecalculateCharacterWeight(CharacterIndex);
+	NotifyPartyInventoryChanged(CharacterIndex);
 
 	if (bWasOccupied)
 	{

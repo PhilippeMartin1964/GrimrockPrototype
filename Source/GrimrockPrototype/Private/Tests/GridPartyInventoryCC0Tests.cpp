@@ -104,15 +104,17 @@ bool FGridPartyInventoryCarryWeightTest::RunTest(const FString& Parameters)
 
 	FGridCharacterInventoryState& Character = Component->PartyInventoryState.ActiveCharacters[0];
 	Character.Attributes.Strength = 10;
-	Component->RecalculateCharacterWeight(0);
 
-	TestTrue(TEXT("Carry capacity uses Strength x 5"), FMath::IsNearlyEqual(Character.MaxCarryWeight, 50.0f));
-	TestTrue(TEXT("An empty inventory is not overloaded"), !Character.IsOverloaded());
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Weight summary resolves"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Carry capacity uses Strength x 5"), FMath::IsNearlyEqual(Summary.BaseMaxWeight, 50.0f));
+	TestTrue(TEXT("An empty inventory is not overloaded"), !Summary.bOverloaded);
 
 	const FGridItemInstance HeavyItem = CreateTestItem(TEXT("CC0_HeavyItem"), 51.0f);
 	TestTrue(TEXT("The heavy item can still be stored"), Component->AddItemToSelectedCharacterInventory(HeavyItem));
-	TestTrue(TEXT("Current weight includes the stored item"), FMath::IsNearlyEqual(Character.CurrentWeight, 51.0f));
-	TestTrue(TEXT("Weight above capacity marks the character overloaded"), Character.IsOverloaded());
+	TestTrue(TEXT("Updated weight summary resolves"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Current weight includes the stored item"), FMath::IsNearlyEqual(Summary.CurrentWeight, 51.0f));
+	TestTrue(TEXT("Weight above capacity marks the character overloaded"), Summary.bOverloaded);
 
 	return true;
 }

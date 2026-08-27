@@ -78,7 +78,9 @@ bool FRPGCreateInitialCharacterCC2Test::RunTest(const FString& Parameters)
 	TestEqual(TEXT("The character starts with 20 maximum health"), Character.DerivedStats.MaxHealth, 20);
 	TestEqual(TEXT("The character starts at full health"), Character.Resources.CurrentHealth, 20);
 	TestEqual(TEXT("The warrior starts with zero mana"), Character.DerivedStats.MaxMana, 0);
-	TestTrue(TEXT("Strength 16 gives maximum carry weight 80"), FMath::IsNearlyEqual(Character.MaxCarryWeight, 80.0f));
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Created character summary resolves"), Component->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Strength 16 gives maximum carry weight 80"), FMath::IsNearlyEqual(Summary.BaseMaxWeight, 80.0f));
 
 	FString OwnershipError;
 	TestTrue(TEXT("The newly created party has valid ownership"), Component->ValidateInventoryOwnership(OwnershipError));

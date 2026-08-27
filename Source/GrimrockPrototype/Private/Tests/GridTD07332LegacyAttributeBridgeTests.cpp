@@ -61,7 +61,9 @@ bool FGridTD07332CurrentAttributeAuthorityTest::RunTest(const FString& Parameter
 
 	const FGridCharacterInventoryState& Character = Inventory->PartyInventoryState.ActiveCharacters[0];
 	TestEqual(TEXT("Attributes.Strength remains the current authority"), Character.Attributes.Strength, 13);
-	TestTrue(TEXT("Carry capacity is calculated directly from current Attributes"), FMath::IsNearlyEqual(Character.MaxCarryWeight, 65.0f));
+	FGridInventoryCharacterSummary Summary;
+	TestTrue(TEXT("Current character summary resolves"), Inventory->GetCharacterSummary(0, Summary));
+	TestTrue(TEXT("Carry capacity is calculated directly from current Attributes"), FMath::IsNearlyEqual(Summary.BaseMaxWeight, 65.0f));
 	return true;
 }
 

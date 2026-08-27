@@ -1,6 +1,6 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **27 août 2026 — TD07.3.2 VALIDÉ**
+Date de référence : **27 août 2026 — TD07.3.3.4 IMPLÉMENTÉ / À VALIDER**
 
 ## Politique prototype autoritaire
 
@@ -11,18 +11,18 @@ Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un 
 ## Contrat courant
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 12
+UGrimrockPartySaveGame::CurrentSaveVersion = 13
 
-SaveVersion == 12
+SaveVersion == 13
     -> validation du schéma courant
     -> restore
 
-SaveVersion != 12
+SaveVersion != 13
     -> rejet
     -> aucune migration
 ```
 
-La v10 a été la rupture volontaire TD07.3.2. TD07.3.3.2 a ouvert la v11 après suppression du bridge d'attributs. TD07.3.3.3 ouvre la v12 après séparation des ressources mutables. La v11 et toutes les générations antérieures sont désormais incompatibles.
+La v10 a été la rupture volontaire TD07.3.2. TD07.3.3.2 a ouvert la v11 après suppression du bridge d'attributs. TD07.3.3.3 a ouvert la v12 après séparation des ressources mutables. TD07.3.3.4 ouvre la v13 après suppression des caches de poids. La v12 et toutes les générations antérieures sont désormais incompatibles.
 
 Il n'existe plus de :
 
@@ -73,7 +73,7 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
-TD07.3.3 poursuit cette normalisation. TD07.3.3.3 sépare les ressources mutables de `FRPGDerivedStats` et ouvre le schéma v12 exact-match.
+TD07.3.3 poursuit cette normalisation. TD07.3.3.4 supprime `CurrentWeight` et `MaxCarryWeight` de l'état durable : la charge, la capacité et la surcharge sont des projections reconstruites à la demande. Le schéma courant est v13 exact-match.
 
 ## Dungeon state
 
