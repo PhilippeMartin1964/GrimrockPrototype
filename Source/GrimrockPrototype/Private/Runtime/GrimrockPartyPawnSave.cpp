@@ -155,8 +155,8 @@ bool AGrimrockPartyPawn::LoadCurrentGameData(FText& OutError, bool bApplyDungeon
 
 	if (!SaveGame->IsCompatible())
 	{
-		OutError = FText::FromString(FString::Printf(TEXT("Version de sauvegarde incompatible : %d, versions acceptées : %d à %d."), SaveGame->SaveVersion,
-			UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion));
+		OutError = FText::FromString(FString::Printf(TEXT("Version de sauvegarde incompatible : %d, version prototype attendue : %d."), SaveGame->SaveVersion,
+			UGrimrockPartySaveGame::CurrentSaveVersion));
 		return false;
 	}
 

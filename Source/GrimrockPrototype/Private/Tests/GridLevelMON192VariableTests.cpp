@@ -3,7 +3,6 @@
 #include "Core/GridLevelAsset.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
-#include "RPG/RPGSaveMigrationService.h"
 #include "Runtime/GridLevelVariableStore.h"
 #include "Save/GrimrockPartySaveGame.h"
 
@@ -132,40 +131,6 @@ bool FGridMON192LevelVariableSnapshotValidationTest::RunTest(const FString& Para
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON192V6ToV7LevelVariableMigrationTest, "Grimrock.MON19.2.Save.V6ToV7LevelVariables",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridMON192V6ToV7LevelVariableMigrationTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	Save->SaveVersion = 6;
-	FGridLevelRuntimeState& LegacyState = Save->DungeonRuntimeState.LevelStates.Add(TEXT("Crypt"));
-	LegacyState.LevelId = TEXT("Crypt");
-	LegacyState.bLevelVariablesInitialized = true;
-	LegacyState.BoolVariables.Add(TEXT("LegacySentinel"), true);
-	LegacyState.IntVariables.Add(TEXT("LegacyCounter"), 99);
-
-	FText Error;
-	FRPGSaveMigrationReport Report;
-	TestTrue(TEXT("Version six migrates explicitly to version seven"), FRPGSaveMigrationService::PrepareLoadedSave(Save, Error, &Report));
-	TestEqual(TEXT("Migration report keeps source version six"), Report.SourceVersion, 6);
-	TestEqual(TEXT("Migration target is current version"), Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
-	TestTrue(TEXT("Migration is reported"), Report.bMigrated);
-
-	const FGridLevelRuntimeState* Migrated = Save->DungeonRuntimeState.LevelStates.Find(TEXT("Crypt"));
-	TestNotNull(TEXT("Existing level runtime state survives migration"), Migrated);
-	if (!Migrated)
-	{
-		return false;
-	}
-	TestFalse(TEXT("Legacy variable domain is marked uninitialized"), Migrated->bLevelVariablesInitialized);
-	TestTrue(TEXT("Legacy Bool variable values are not invented/preserved"), Migrated->BoolVariables.IsEmpty());
-	TestTrue(TEXT("Legacy Int32 variable values are not invented/preserved"), Migrated->IntVariables.IsEmpty());
-	return true;
-}
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMON192LevelVariableSaveRoundTripTest, "Grimrock.MON19.2.Save.LevelVariablesRoundTrip",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -181,7 +146,7 @@ bool FGridMON192LevelVariableSaveRoundTripTest::RunTest(const FString& Parameter
 	SourceState.IntVariables.Add(TEXT("RuneCount"), 4);
 
 	TArray<uint8> SaveBytes;
-	TestTrue(TEXT("Version-seven variable snapshot serializes to memory"), UGameplayStatics::SaveGameToMemory(Source, SaveBytes));
+	TestTrue(TEXT("Current-schema variable snapshot serializes to memory"), UGameplayStatics::SaveGameToMemory(Source, SaveBytes));
 
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromMemory(SaveBytes));
 	TestNotNull(TEXT("Variable snapshot deserializes from memory"), Loaded);

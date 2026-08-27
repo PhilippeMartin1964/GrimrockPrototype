@@ -39,7 +39,4 @@ namespace GridLevelVariableStore
 
 	/** Structural validation possible without loading a UGridLevelAsset. */
 	GRIMROCKPROTOTYPE_API bool ValidateDungeonSnapshots(const FGridDungeonRuntimeState& DungeonState, FString& OutError);
-
-	/** v1-v6 saves have no authoritative MON19.2 variable snapshot. */
-	GRIMROCKPROTOTYPE_API void ResetLegacyDungeonSnapshots(FGridDungeonRuntimeState& DungeonState);
 }

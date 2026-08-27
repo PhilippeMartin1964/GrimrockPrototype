@@ -8,7 +8,6 @@
 #include "RPG/RPGLevelUpService.h"
 #include "Runtime/Combat/GridCombatActionCatalog.h"
 #include "Runtime/GridPartyInventoryComponent.h"
-#include "Save/GrimrockPartySaveGame.h"
 
 namespace
 {
@@ -317,25 +316,23 @@ bool FRPGMON154LevelUpIntegrationTest::RunTest(const FString& Parameters)
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FRPGMON154LegacyCompatibilityTest, "Grimrock.RPG.MON15.4.LegacyCompatibility", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+	FRPGMON154NoProgressionChoicesCompatibilityTest, "Grimrock.RPG.MON15.4.NoProgressionChoicesCompatibility", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FRPGMON154LegacyCompatibilityTest::RunTest(const FString& Parameters)
+bool FRPGMON154NoProgressionChoicesCompatibilityTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	URPGClassAsset* ClassDefinition = NewObject<URPGClassAsset>(GetTransientPackage());
-	ClassDefinition->ClassId = TEXT("MON154_LegacyClass");
+	ClassDefinition->ClassId = TEXT("MON154_NoProgressionClass");
 	ClassDefinition->HealthAtLevelOne = 10;
-	ClassDefinition->CombatActions.Add(MakeMON154EffectAction(TEXT("Legacy_Ability"), NAME_None));
+	ClassDefinition->CombatActions.Add(MakeMON154EffectAction(TEXT("NoProgression_Ability"), NAME_None));
 
-	TestTrue(TEXT("Class with no MON15.4 progression remains valid"), ClassDefinition->IsValidDefinition());
-	TestEqual(TEXT("Legacy class grants no progression points"), FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, 10), 0);
+	TestTrue(TEXT("Class with no progression choices remains valid"), ClassDefinition->IsValidDefinition());
+	TestEqual(TEXT("Class without progression choices grants no progression points"), FRPGClassProgressionService::GetTotalChoicePointsGranted(ClassDefinition, 10), 0);
 
 	TSet<FName> Requirements;
-	TestTrue(TEXT("Legacy class requirement projection succeeds"),
+	TestTrue(TEXT("Class without progression choices still projects requirements"),
 		FRPGClassProgressionService::CollectAutomaticSatisfiedRequirements(ClassDefinition, 10, Requirements));
-	TestTrue(TEXT("Legacy class identity remains available"), Requirements.Contains(ClassDefinition->ClassId));
-	TestTrue(TEXT("MON15.4-era version three remains migration-compatible"),
-		UGrimrockPartySaveGame::MinimumCompatibleSaveVersion <= 3 && UGrimrockPartySaveGame::CurrentSaveVersion >= 3);
+	TestTrue(TEXT("Class identity remains available without progression choices"), Requirements.Contains(ClassDefinition->ClassId));
 	return true;
 }
 

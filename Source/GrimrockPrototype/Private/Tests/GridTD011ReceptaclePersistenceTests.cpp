@@ -7,7 +7,6 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
-#include "RPG/RPGSaveMigrationService.h"
 #include "Runtime/GridLevelRuntimeActor.h"
 #include "Runtime/GridReceptacleActor.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -235,45 +234,6 @@ bool FGridTD011EnabledRoundTripTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Runtime mutation proves restore is authoritative"), Receptacle->bCanRemoveItem);
 	TestTrue(TEXT("Captured runtime snapshot reapplies"), Runtime->ApplyCurrentLevelRuntimeState());
 	TestTrue(TEXT("Enabled removal permission restores from snapshot"), Receptacle->bCanRemoveItem);
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridTD011V8MigrationTest,
-	"Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence.V8Migration",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridTD011V8MigrationTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
-	Save->SaveVersion = 8;
-
-	FGridLevelRuntimeState LevelState;
-	LevelState.LevelId = TEXT("SingleLevel");
-	LevelState.bHasBeenVisited = true;
-	FGridRuntimeReceptacleState LegacyReceptacle;
-	LegacyReceptacle.ObjectId = ReceptacleObjectId;
-	LegacyReceptacle.bCanRemoveItem = false;
-	LevelState.Receptacles.Add(ReceptacleObjectId, LegacyReceptacle);
-	Save->DungeonRuntimeState.LevelStates.Add(LevelState.LevelId, LevelState);
-
-	FText Error;
-	FRPGSaveMigrationReport Report;
-	TestTrue(TEXT("SaveGame v8 migrates to current contract"), FRPGSaveMigrationService::PrepareLoadedSave(Save, Error, &Report));
-	TestEqual(TEXT("TD01.1 current SaveGame contract is v9"), UGrimrockPartySaveGame::CurrentSaveVersion, 9);
-	TestEqual(TEXT("Migrated legacy save is v9"), Save->SaveVersion, 9);
-	TestEqual(TEXT("Migration report preserves source version"), Report.SourceVersion, 8);
-	TestEqual(TEXT("Migration report targets v9"), Report.TargetVersion, 9);
-	TestTrue(TEXT("Migration report marks v8 as migrated"), Report.bMigrated);
-
-	const FGridLevelRuntimeState* MigratedLevel = Save->DungeonRuntimeState.LevelStates.Find(TEXT("SingleLevel"));
-	const FGridRuntimeReceptacleState* MigratedReceptacle = MigratedLevel ? MigratedLevel->Receptacles.Find(ReceptacleObjectId) : nullptr;
-	TestNotNull(TEXT("Migrated legacy receptacle remains present"), MigratedReceptacle);
-	if (!MigratedReceptacle)
-	{
-		return false;
-	}
-	TestTrue(TEXT("Legacy v8 policy preserves historical removable behavior"), MigratedReceptacle->bCanRemoveItem);
 	return true;
 }
 

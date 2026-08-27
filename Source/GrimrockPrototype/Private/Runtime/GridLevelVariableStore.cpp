@@ -225,14 +225,4 @@ namespace GridLevelVariableStore
 		return true;
 	}
 
-	void ResetLegacyDungeonSnapshots(FGridDungeonRuntimeState& DungeonState)
-	{
-		for (TPair<FName, FGridLevelRuntimeState>& LevelPair : DungeonState.LevelStates)
-		{
-			FGridLevelRuntimeState& State = LevelPair.Value;
-			State.bLevelVariablesInitialized = false;
-			State.BoolVariables.Reset();
-			State.IntVariables.Reset();
-		}
-	}
 }

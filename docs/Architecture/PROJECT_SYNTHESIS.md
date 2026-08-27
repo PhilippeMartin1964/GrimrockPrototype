@@ -11,12 +11,12 @@
 | Moteur | Unreal Engine 5.5.4 |
 | Branche | `master` |
 | Modules C++ | `GrimrockPrototype`, `GrimrockPrototypeEditor`, `GrimrockLua` |
-| SaveGame | implémentation encore **v9** ; compatibilité v1-v8 désormais dette à supprimer en TD07.3.2 |
+| SaveGame | **v10 exact-match** ; aucune compatibilité arrière ni migration |
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit` |
-| Prochaine tranche | `TD07.3.2 — SaveGame Reset / no backward migration` |
+| Tranche active | `TD07.3.2 — SaveGame Reset / no backward migration` — implémentée, à valider |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -74,7 +74,7 @@ Le module Editor dépend aussi de `GrimrockLua`. Le Runtime ne dépend pas du mo
 | Magic / Spellbook | ✅ MON18 |
 | Recrutement / réserve | ✅ MON20 |
 | Skills / Talents | ✅ MON20 |
-| Save | ✅ fonctionnement courant ; schéma v1-v9/migrations en cours de suppression TD07.3 |
+| Save | ✅ v10 exact-match ; migration historique supprimée TD07.3.2 |
 | Quêtes runtime | ✅ MON21.2–MON21.3 |
 | Journal | ⬜ WBP existant ; read model prévu MON21.5 |
 | Map | ⬜ WBP existant ; exploration prévue MON21.6 |
@@ -140,7 +140,7 @@ L’état Quest reste transient. **MON21.4 est suspendu jusqu’à la stop condi
 
 ## 11. Persistance
 
-`UGrimrockPartySaveGame` fonctionne encore avec la structure v9 et les anciennes migrations, mais ce n'est plus le contrat cible.
+`UGrimrockPartySaveGame` utilise désormais la génération prototype v10 en exact-match. Les anciennes v1-v9 sont rejetées et aucune migration n'est exécutée.
 
 TD07.3 impose désormais :
 
@@ -152,7 +152,7 @@ données dérivées recalculées
 runtime/save fondés sur identités stables, pas sur pointeurs de contenu persistants
 ```
 
-TD07.3.2 supprimera la chaîne v1-v9. TD07.3.3 normalisera le personnage et ses snapshots annexes. TD07.3.4–TD07.3.7 nettoieront les DataAssets et le contenu courant.
+TD07.3.2 supprime la chaîne de migration v1-v9. TD07.3.3 normalisera le personnage et ses snapshots annexes. TD07.3.4–TD07.3.7 nettoieront les DataAssets et le contenu courant.
 
 ## 12. UI
 
@@ -194,7 +194,7 @@ MON21.2      Quest Definition + Campaign Runtime State    VALIDÉ
 MON21.3      Quest Event -> Command Integration           VALIDÉ
 TD01–TD06    stabilisation / dette ciblée                 STOP CONDITIONS ATTEINTES
 TD07.3.1     Prototype Data Model Asset Audit             VALIDÉ
-TD07.3.2     SaveGame Reset                              PROCHAIN
+TD07.3.2     SaveGame Reset                              IMPLÉMENTÉ — À VALIDER
 MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE

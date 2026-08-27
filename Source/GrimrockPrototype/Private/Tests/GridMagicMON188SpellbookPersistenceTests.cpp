@@ -5,7 +5,6 @@
 #include "Magic/GridProductionSpellLibrary.h"
 #include "Magic/GridSpellbookPersistence.h"
 #include "Misc/AutomationTest.h"
-#include "RPG/RPGSaveMigrationService.h"
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "Save/GrimrockPartySaveGame.h"
@@ -148,34 +147,6 @@ bool FGridMagicMON188MultipleCharactersRoundTripTest::RunTest(const FString& Par
 	TestTrue(TEXT("Priest keeps Lesser Heal"), Restored.KnowsSpell(PriestId, FGridProductionSpellLibrary::LesserHealId()));
 	const FGridCharacterSpellbookState* Reserve = Restored.FindSpellbook(ReserveId);
 	TestTrue(TEXT("Reserve character restores an empty spellbook"), Reserve && Reserve->KnownSpellIds.IsEmpty());
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMagicMON188V5MigrationCreatesEmptySpellbookTest, "Grimrock.Magic.MON18.8.V5MigrationCreatesEmptySpellbook",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FGridMagicMON188V5MigrationCreatesEmptySpellbookTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-	const FGuid CharacterId = FGuid(18, 8, 3, 1);
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	Save->SaveVersion = 5;
-	Save->PartyInventoryState = MakeMON188Party({ CharacterId });
-	AddMON188EmptyProgressionSnapshots(Save);
-
-	FGridCharacterStatusEffectSaveState StatusSentinel;
-	StatusSentinel.CharacterId = CharacterId;
-	Save->CharacterStatusEffectStates.Add(StatusSentinel);
-
-	FText Error;
-	FRPGSaveMigrationReport Report;
-	TestTrue(TEXT("Version five migrates explicitly to the current version"), FRPGSaveMigrationService::PrepareLoadedSave(Save, Error, &Report));
-	TestEqual(TEXT("Migration source is version five"), Report.SourceVersion, 5);
-	TestEqual(TEXT("Migration target is the current version"), Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
-	TestTrue(TEXT("Migration is reported"), Report.bMigrated);
-	TestEqual(TEXT("Version five performs no progression reconciliation"), Report.ReconciledCharacterCount, 0);
-	TestTrue(TEXT("Old save receives no invented spell knowledge"), Save->CharacterSpellbookStates.IsEmpty());
-	TestEqual(TEXT("Existing MON16 status snapshots are preserved"), Save->CharacterStatusEffectStates.Num(), 1);
 	return true;
 }
 

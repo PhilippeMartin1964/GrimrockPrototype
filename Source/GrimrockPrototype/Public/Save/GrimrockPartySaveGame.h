@@ -60,9 +60,8 @@ class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/** TD01.1 adds persistent receptacle removal permissions. */
-	static constexpr int32 CurrentSaveVersion = 9;
-	static constexpr int32 MinimumCompatibleSaveVersion = 1;
+	/** TD07.3.2: exact-match prototype schema. No backward migration is supported. */
+	static constexpr int32 CurrentSaveVersion = 10;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -116,22 +115,25 @@ public:
 	/** Test seam and deterministic restore path with an injected definition resolver. */
 	bool RestoreStatusEffectState(TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError);
 
+	/** Strict validation of the current prototype save schema. Never migrates or mutates the save. */
+	bool ValidateCurrentState(FText& OutError) const;
+
 	bool IsCompatible() const
 	{
-		return bProgressionLoadValid && SaveVersion >= MinimumCompatibleSaveVersion && SaveVersion <= CurrentSaveVersion;
+		return bLoadValid && SaveVersion == CurrentSaveVersion;
 	}
 
-	bool IsProgressionLoadValid() const
+	bool IsLoadValid() const
 	{
-		return bProgressionLoadValid;
+		return bLoadValid;
 	}
 
-	const FString& GetProgressionLoadError() const
+	const FString& GetLoadError() const
 	{
-		return ProgressionLoadError;
+		return LoadError;
 	}
 
 private:
-	bool bProgressionLoadValid = true;
-	FString ProgressionLoadError;
+	bool bLoadValid = true;
+	FString LoadError;
 };

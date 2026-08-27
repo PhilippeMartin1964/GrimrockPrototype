@@ -817,48 +817,26 @@ bool FGridMonsterMON9LevelTransitionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9SaveVersionCompatibilityTest, "Grimrock.Monsters.MON9.SaveVersionCompatibility",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGridMonsterMON9SaveVersionExactMatchTest, "Grimrock.Monsters.MON9.SaveVersionExactMatch",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FGridMonsterMON9SaveVersionCompatibilityTest::RunTest(const FString& Parameters)
+bool FGridMonsterMON9SaveVersionExactMatchTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	Save->SaveVersion = 1;
-	TestTrue(TEXT("Version 1 is accepted"), Save->IsCompatible());
-	Save->SaveVersion = 2;
-	TestTrue(TEXT("Version 2 is accepted"), Save->IsCompatible());
-	Save->SaveVersion = 3;
-	TestTrue(TEXT("Version 3 is accepted"), Save->IsCompatible());
+
+	TestEqual(TEXT("MON9 observes the TD07.3.2 prototype SaveVersion"), UGrimrockPartySaveGame::CurrentSaveVersion, 10);
 	Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion;
 	TestTrue(TEXT("The current save version is accepted"), Save->IsCompatible());
+
+	Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
+	TestFalse(TEXT("The previous prototype save version is rejected"), Save->IsCompatible());
+
 	Save->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion + 1;
-	TestFalse(TEXT("A future version is rejected"), Save->IsCompatible());
-	Save->SaveVersion = 0;
-	TestFalse(TEXT("A pre-minimum version is rejected"), Save->IsCompatible());
-
-	FGridMON9TestWorld TestWorld;
-	if (!TestWorld.World)
-	{
-		return false;
-	}
-	AGridLevelRuntimeActor* Runtime = TestWorld.World->SpawnActor<AGridLevelRuntimeActor>();
-	Runtime->LevelAsset = MakeMON9Floor(Runtime);
-	SpawnMON9Party(TestWorld.World, Runtime);
-	UGridMonsterDefinitionAsset* Definition = MakeMON9Definition(Runtime, TEXT("MON9_V1Rat"));
-	AGridMonsterActor* Monster =
-		SpawnMON9Monster(TestWorld.World, Definition, FGuid(95, 1, 1, 1), MON9SingleLevelId, FIntPoint(2, 2), TEXT("MON9_V1Rat"), false);
-	Monster->CurrentHealth = 6;
-
-	FGridLevelRuntimeState VersionOneLevelState;
-	VersionOneLevelState.LevelId = MON9SingleLevelId;
-	VersionOneLevelState.bHasBeenVisited = true;
-	Runtime->DungeonRuntimeState.LevelStates.Add(MON9SingleLevelId, VersionOneLevelState);
-	TestTrue(TEXT("A v1 level state without Monsters applies"), Runtime->ApplyCurrentLevelRuntimeState());
-	TestEqual(TEXT("A v1 save preserves initial monster health"), Monster->CurrentHealth, 6);
+	TestFalse(TEXT("A future save version is rejected"), Save->IsCompatible());
 
 	UGrimrockPartySaveGame* NextSave = NewObject<UGrimrockPartySaveGame>();
-	TestEqual(TEXT("The next save defaults to the current save version"), NextSave->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	TestEqual(TEXT("A new save defaults to the current save version"), NextSave->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
 	return true;
 }
 

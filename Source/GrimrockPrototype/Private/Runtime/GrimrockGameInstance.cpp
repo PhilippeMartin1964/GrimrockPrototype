@@ -127,7 +127,7 @@ bool UGrimrockGameInstance::HasPartySaveGame(const FString& SlotName, int32 User
 	{
 		UE_LOG(LogGrimrockGameInstance, Verbose,
 			TEXT("[MON18.9.3] SlotProbe Slot=%s UserIndex=%d Result=Rejected Reason=IncompatibleSave Version=%d Detail=%s"), *SlotName, UserIndex,
-			SaveGame->SaveVersion, *SaveGame->GetProgressionLoadError());
+			SaveGame->SaveVersion, *SaveGame->GetLoadError());
 		return false;
 	}
 

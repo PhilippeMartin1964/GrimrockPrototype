@@ -1,39 +1,58 @@
 # Sauvegarde et persistance — Fondation d’architecture
 
-Date de référence : **27 août 2026 — TD07.3.1**
+Date de référence : **27 août 2026 — TD07.3.2**
 
 ## Politique prototype autoritaire
 
 Tant que GrimrockPrototype reste un **prototype**, aucune compatibilité arrière des sauvegardes n'est exigée.
 
-Git conserve l'historique du code et du contenu. Une ancienne sauvegarde incompatible peut être supprimée. Le projet ne maintient pas de migration uniquement pour permettre de relire une ancienne phase du prototype.
+Git conserve l'historique du code et du contenu. Une sauvegarde créée avec un ancien schéma peut être supprimée. Le runtime ne maintient aucune migration uniquement pour permettre de relire une phase antérieure du prototype.
 
-Le contrat cible devient :
+## Contrat courant
 
 ```text
-Save schema courant
-    version exacte attendue -> chargement
-    version différente       -> rejet
+UGrimrockPartySaveGame::CurrentSaveVersion = 10
 
-aucune chaîne de migration v1 -> vN
-aucune valeur legacy reconstruite
-aucun champ conservé seulement pour anciennes saves
+SaveVersion == 10
+    -> validation du schéma courant
+    -> restore
+
+SaveVersion != 10
+    -> rejet
+    -> aucune migration
 ```
 
-Cette politique sera réévaluée lorsque le prototype sera validé et que le projet entrera en phase de développement produit.
+La v10 est une rupture volontaire TD07.3.2 : les anciennes v1-v9 ne sont plus compatibles.
 
-## Implémentation encore présente avant TD07.3.2
-
-Le code courant contient toujours temporairement :
+Il n'existe plus de :
 
 ```text
-UGrimrockPartySaveGame::CurrentSaveVersion = 9
-UGrimrockPartySaveGame::MinimumCompatibleSaveVersion = 1
+MinimumCompatibleSaveVersion
 FRPGSaveMigrationService
-migrations v1-v8
+FRPGSaveMigrationReport
+PrepareLoadedSave()
+ResetLegacyDungeonSnapshots()
 ```
 
-TD07.3.1 ne les supprime pas encore : il caractérise le modèle. **TD07.3.2 doit retirer cette compatibilité historique.**
+## Validation du schéma courant
+
+```cpp
+UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
+```
+
+est la frontière de validation Save.
+
+Elle ne migre et ne modifie jamais le snapshot. Elle vérifie notamment :
+
+- version exacte ;
+- cohérence Level / Experience ;
+- CharacterId et progression active ;
+- notifications Level Up ;
+- Spellbooks ;
+- Skills ;
+- variables de niveau.
+
+La restauration des Status Effects, progression, Skills et notifications Level Up reste assurée par les services de domaine existants.
 
 ## Frontière persistante cible
 
@@ -54,17 +73,19 @@ Ne doivent pas être persistés comme autorités :
 - duplications runtime/save de la même structure sans nécessité ;
 - marqueurs servant uniquement à distinguer un ancien snapshot.
 
+TD07.3.3 poursuit cette normalisation.
+
 ## Dungeon state
 
 `UGridLevelAsset` décrit l'état initial. `FGridDungeonRuntimeState` décrit l'état vivant : présence d'objets, portes, items, réceptacles, monstres/placements/encounters, variables de niveau et permissions runtime persistantes.
 
-Le principe reste valide. TD07.3 auditera cependant les champs qui existent uniquement pour reconnaître ou normaliser d'anciens snapshots, notamment `bLevelVariablesInitialized` et `ResetLegacyDungeonSnapshots`.
+`bLevelVariablesInitialized` reste temporairement présent car il participe encore au lifecycle runtime courant. Il n'est pas supprimé opportunistement par TD07.3.2.
 
 ## RPG state
 
 `FGridPartyInventoryState` reste l'autorité du groupe et du CharacterPool.
 
-Les snapshots séparés actuellement présents :
+Les snapshots séparés encore présents :
 
 ```text
 ClassProgressionStates
@@ -74,7 +95,7 @@ CharacterSpellbookStates
 CharacterSkillStates
 ```
 
-sont réaudités par TD07.3.3. L'objectif n'est pas de supprimer une donnée gameplay nécessaire, mais de supprimer les doubles représentations et de rapprocher les données durables de leur autorité réelle.
+seront réaudités par TD07.3.3. L'objectif est de supprimer les doubles représentations sans perdre d'état gameplay réellement mutable.
 
 ## Politique de sauvegarde en combat
 
@@ -89,13 +110,11 @@ Pendant TD07.3 :
 ```text
 capture/restore courant
 validation structurelle stricte
-ancienne version rejetée
+version ancienne rejetée
 Automation ciblée
 PIE lorsque le comportement joueur est concerné
 Shipping après changement de schéma
 ```
-
-Les anciens tests de migration restent historiques jusqu'à leur suppression dans TD07.3.2.
 
 ## Invariants
 
@@ -103,5 +122,7 @@ Les anciens tests de migration restent historiques jusqu'à leur suppression dan
 - identités valides et non ambiguës ;
 - aucune donnée dérivée persistée lorsqu'elle peut être reconstruite ;
 - aucune compatibilité arrière maintenue pendant le prototype ;
+- version Save exacte ou rejet ;
+- validation sans mutation ;
 - restore atomique/fail-closed sur snapshot courant incohérent ;
 - Git, et non le runtime, conserve l'histoire du prototype.

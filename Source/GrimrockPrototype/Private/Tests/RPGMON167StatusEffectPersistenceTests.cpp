@@ -2,7 +2,6 @@
 
 #include "Misc/AutomationTest.h"
 #include "RPG/RPGClassProgressionTransactionService.h"
-#include "RPG/RPGSaveMigrationService.h"
 #include "RPG/StatusEffects/GridStatusEffectDefinitionAsset.h"
 #include "RPG/StatusEffects/GridStatusEffectPersistence.h"
 #include "Runtime/Monsters/GridMonsterActor.h"
@@ -267,43 +266,6 @@ bool FRPGMON167PartyAtomicFailureTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON167V4MigrationPreservesProgressionTest, "Grimrock.RPG.MON16.7.V4MigrationPreservesProgression",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FRPGMON167V4MigrationPreservesProgressionTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-	FMON167ProgressionGuard Guard;
-	URPGClassAsset* ClassDefinition = nullptr;
-	UGridPartyInventoryComponent* Component = MakeMON155Inventory(3, 3000, ClassDefinition);
-
-	FRPGClassProgressionCommitResult CommitResult;
-	TestTrue(TEXT("Progression choices exist before v4 migration"),
-		FRPGClassProgressionTransactionService::TryCommitChoices(Component, 0, { TEXT("Choice_A"), TEXT("Choice_B") }, CommitResult));
-
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	Save->SaveVersion = 4;
-	Save->PartyInventoryState = Component->PartyInventoryState;
-	FText CaptureError;
-	TestTrue(TEXT("v4 progression snapshot captures"),
-		FRPGClassProgressionTransactionService::CapturePersistentState(Save->PartyInventoryState, Save->ClassProgressionStates, CaptureError));
-
-	FText MigrationError;
-	FRPGSaveMigrationReport Report;
-	TestTrue(TEXT("v4 migrates to the current save contract"), FRPGSaveMigrationService::PrepareLoadedSave(Save, MigrationError, &Report));
-	TestEqual(TEXT("v4 migration targets the current save version"), Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
-	TestEqual(TEXT("v4 migration performs no level reconciliation"), Report.ReconciledCharacterCount, 0);
-	TestEqual(TEXT("v4 progression snapshot count is preserved"), Save->ClassProgressionStates.Num(), 1);
-	if (Save->ClassProgressionStates.Num() == 1)
-	{
-		TestTrue(TEXT("Choice A survives legacy migration"), Save->ClassProgressionStates[0].SelectedChoiceIds.Contains(TEXT("Choice_A")));
-		TestTrue(TEXT("Choice B survives legacy migration"), Save->ClassProgressionStates[0].SelectedChoiceIds.Contains(TEXT("Choice_B")));
-	}
-	TestTrue(TEXT("v4 starts with no status snapshots"), Save->CharacterStatusEffectStates.IsEmpty());
-	TestTrue(TEXT("v4 starts with no spellbook snapshots"), Save->CharacterSpellbookStates.IsEmpty());
-	return true;
-}
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON167MonsterSnapshotContractTest, "Grimrock.RPG.MON16.7.MonsterSnapshotContract",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -329,8 +291,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON167SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestTrue(TEXT("Current save version includes MON19.2.2 persistence or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
-	TestEqual(TEXT("Minimum compatible version remains one"), UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
+	TestEqual(TEXT("TD07.3.2 current prototype SaveVersion is ten"), UGrimrockPartySaveGame::CurrentSaveVersion, 10);
+	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
+	Previous->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
+	TestFalse(TEXT("Previous prototype SaveVersion is not compatible"), Previous->IsCompatible());
 	return true;
 }
 

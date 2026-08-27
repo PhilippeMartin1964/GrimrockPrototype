@@ -308,11 +308,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 bool FRPGMON168SaveVersionContractTest::RunTest(const FString& Parameters)
 {
 	(void)Parameters;
-	TestTrue(TEXT("Current SaveVersion includes MON19.2.2 persistence or later"), UGrimrockPartySaveGame::CurrentSaveVersion >= 7);
-	TestEqual(TEXT("Minimum compatible SaveVersion remains one"), UGrimrockPartySaveGame::MinimumCompatibleSaveVersion, 1);
+	TestEqual(TEXT("TD07.3.2 current prototype SaveVersion is ten"), UGrimrockPartySaveGame::CurrentSaveVersion, 10);
 
 	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
 	TestEqual(TEXT("New save object starts on current version"), Save->SaveVersion, UGrimrockPartySaveGame::CurrentSaveVersion);
+	UGrimrockPartySaveGame* Previous = NewObject<UGrimrockPartySaveGame>(GetTransientPackage());
+	Previous->SaveVersion = UGrimrockPartySaveGame::CurrentSaveVersion - 1;
+	TestFalse(TEXT("Previous prototype SaveVersion is incompatible"), Previous->IsCompatible());
 	return true;
 }
 

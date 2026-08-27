@@ -1,7 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "RPG/RPGSaveMigrationService.h"
 #include "RPG/RPGSkillAsset.h"
 #include "RPG/RPGSkillPersistence.h"
 #include "RPG/RPGSkillService.h"
@@ -371,41 +370,6 @@ bool FRPGMON2092RestoreInvalidSnapshotAtomicTest::RunTest(const FString& Paramet
 	OverRank.SkillRanks.Add(InvalidRank);
 	TestFalse(TEXT("Rank above MaxRank rejects restore"), FRPGSkillPersistence::RestorePartySkills(Party, { OverRank }, Resolver, Error));
 	TestEqual(TEXT("Second failed restore remains atomic"), FRPGSkillService::GetSkillRank(Party.ActiveCharacters[0], TEXT("Skill_A")), 1);
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRPGMON2092V7ToV8MigrationTest, "Grimrock.MON20.9.SkillPersistence.V7ToV8Migration",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FRPGMON2092V7ToV8MigrationTest::RunTest(const FString& Parameters)
-{
-	(void)Parameters;
-
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	Save->SaveVersion = 7;
-
-	FGridCharacterInventoryState Pooled = MakeCharacter(MakeId(1));
-	AddRank(Pooled, TEXT("TransientLegacySkill"), 3);
-	Save->PartyInventoryState.CharacterPool.Add(Pooled);
-
-	FRPGCharacterSkillSaveState ImpossibleLegacySnapshot;
-	ImpossibleLegacySnapshot.CharacterId = MakeId(1);
-	FRPGSkillRankSaveState ImpossibleRank;
-	ImpossibleRank.SkillId = TEXT("ImpossibleLegacySkill");
-	ImpossibleRank.Rank = 99;
-	ImpossibleLegacySnapshot.SkillRanks.Add(ImpossibleRank);
-	Save->CharacterSkillStates.Add(ImpossibleLegacySnapshot);
-
-	FText Error;
-	FRPGSaveMigrationReport Report;
-	TestTrue(TEXT("Version seven migrates to the current contract"), FRPGSaveMigrationService::PrepareLoadedSave(Save, Error, &Report));
-	TestEqual(TEXT("Current SaveGame contract is v9"), UGrimrockPartySaveGame::CurrentSaveVersion, 9);
-	TestEqual(TEXT("Migrated save is v9"), Save->SaveVersion, 9);
-	TestEqual(TEXT("Migration report preserves source version"), Report.SourceVersion, 7);
-	TestEqual(TEXT("Migration report targets v9"), Report.TargetVersion, 9);
-	TestTrue(TEXT("Migration report marks v7 as migrated"), Report.bMigrated);
-	TestTrue(TEXT("v7 cannot invent persisted Skill snapshots"), Save->CharacterSkillStates.IsEmpty());
-	TestTrue(TEXT("Any in-memory legacy transient SkillRanks are discarded"), Save->PartyInventoryState.CharacterPool[0].SkillRanks.IsEmpty());
 	return true;
 }
 

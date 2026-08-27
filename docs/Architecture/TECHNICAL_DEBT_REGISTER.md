@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.1 VALIDÉ / TD07.3.2 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.2 IMPLÉMENTÉ / À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -548,10 +548,9 @@ Le TODO de scaling du lancer reste à relier au design Skills lorsque vitesse/pr
 
 ## TD-PERSIST-001 — Permission de retrait des réceptacles — RÉSOLU
 
-- SaveGame v8 -> v9 ;
-- `bCanRemoveItem` capturé/restauré ;
-- migration v1-v8 explicite ;
-- Automation round-trip/migration et MON20.9 validées.
+- `bCanRemoveItem` est capturé/restauré dans le schéma courant ;
+- la migration historique v8 -> v9 a été supprimée par TD07.3.2 ;
+- les tests round-trip courants restent l'autorité.
 
 ## TD-PARTY-001 — Selection / Held Visual notification — RÉSOLU
 
@@ -607,7 +606,7 @@ TD07.1          Build / dependency reproducibility                     VALIDÉ �
 TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
 TD07.3          Prototype Data Model Reset                             ACTIF
 TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
-TD07.3.2        SaveGame Reset / no backward migration                À FAIRE
+TD07.3.2        SaveGame Reset / no backward migration                IMPLÉMENTÉ — À VALIDER
 TD07.3.3        Character State Normalization                         À FAIRE
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
@@ -686,21 +685,35 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.2 — SaveGame Reset / no backward migration.**
+**Valider TD07.3.2 — SaveGame Reset / no backward migration.**
 
-Objectif : supprimer la compatibilité historique Save sans toucher encore aux DataAssets binaires caractérisés par TD07.3.1.
-
-À caractériser puis retirer :
+Implémentation :
 
 ```text
-MinimumCompatibleSaveVersion
-FRPGSaveMigrationService
-branches v1-v8
-ResetLegacyDungeonSnapshots
-tests dédiés aux migrations historiques
-marqueurs servant uniquement à distinguer un ancien snapshot
+CurrentSaveVersion = 10
+MinimumCompatibleSaveVersion supprimé
+FRPGSaveMigrationService supprimé
+ResetLegacyDungeonSnapshots supprimé
+tests de migration historiques supprimés
+ValidateCurrentState() = validation stricte sans mutation
 ```
 
-Contrat cible : version Save exacte attendue ou rejet.
+Validation :
 
-Les 41 findings DataAsset restent la baseline de TD07.3.4–TD07.3.7 ; ils ne doivent pas être corrigés opportunistement dans TD07.3.2.
+```powershell
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD07_3_2"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.MON19.2.Save"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.MON20.9.SkillPersistence"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.RPG.MON16.7"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.Magic.MON18.8"
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -SkipBuild -AutomationFilter "Grimrock.TechnicalDebt.TD01_1.ReceptaclePersistence"
+.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
+```
+
+Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
+
+Après validation verte :
+
+```text
+TD07.3.3 — Character State Normalization
+```

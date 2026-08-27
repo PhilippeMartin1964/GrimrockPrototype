@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.1 VALIDÉ — TD07.3.2 PROCHAIN — MON21.4 SUSPENDU**  
+Statut : **TD07.3.2 IMPLÉMENTÉ — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -198,7 +198,7 @@ TD06.9     PartyInventory stop condition                     ATTEINTE
 TD07.1     Build / dependency reproducibility                VALIDÉ
 TD07.2     UE compatibility warnings                         VALIDÉ
 TD07.3.1   Prototype Data Model Policy + Asset Audit         VALIDÉ
-TD07.3.2   SaveGame Reset / no backward migration            PROCHAIN
+TD07.3.2   SaveGame Reset / no backward migration            IMPLÉMENTÉ — À VALIDER
 TD07.3.3–8 Data model reset                                  À FAIRE
 ```
 
