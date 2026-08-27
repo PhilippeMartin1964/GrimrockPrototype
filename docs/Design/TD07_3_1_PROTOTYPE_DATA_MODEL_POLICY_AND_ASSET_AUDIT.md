@@ -3,7 +3,7 @@
 Date : **27 août 2026**  
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Baseline GitHub : `11d7609e1c81e844bec6cb0c0c0dc82c14d8fd3b`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / RAPPORT LOCAL REQUIS**
+Statut : **VALIDÉ — BASELINE COURANTE CAPTURÉE**
 
 ## 1. Décision autoritaire
 
@@ -234,7 +234,7 @@ Le contenu du rapport doit être conservé comme baseline locale de TD07.3.1. Il
 ## 7. Sous-tranches TD07.3
 
 ```text
-TD07.3.1  Data Model Policy & Current Schema Asset Audit        EN COURS
+TD07.3.1  Data Model Policy & Current Schema Asset Audit        VALIDÉ
 TD07.3.2  SaveGame Reset / no backward migration               À FAIRE
 TD07.3.3  Character State Normalization                        À FAIRE
 TD07.3.4  Authoring Identity Normalization                     À FAIRE
@@ -244,12 +244,88 @@ TD07.3.7  Current Asset Repair / Recreation                    À FAIRE
 TD07.3.8  Strict Current-Schema Validation / stop condition    À FAIRE
 ```
 
-## 8. Stop condition TD07.3.1
+## 8. Validation réelle
 
-TD07.3.1 est validé lorsque :
+Automation UE5.5.4 du 27 août 2026 :
 
-1. l'Automation Editor est verte ;
-2. le rapport local est généré ;
-3. le nombre et les catégories de findings sont connus ;
-4. aucune suppression de schéma n'a encore été faite ;
-5. TD07.3.2 peut être planifié depuis des données réelles, et non depuis des suppositions.
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_1
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+```
+
+Rapport généré :
+
+```text
+Saved/Diagnostics/TD07/TD07_3_1_CurrentSchemaAssetAudit.txt
+```
+
+Baseline :
+
+```text
+Scanned DataAssets : 86
+Findings           : 41
+
+Conflict           : 2
+DuplicateAuthority : 23
+LegacyField        : 11
+LegacyOnly         : 3
+SchemaRename       : 2
+```
+
+Codes :
+
+```text
+ARCHETYPE.LEGACY_PLACEMENT_MIRROR : 4
+AUTHORING.ASSET_ID_CONFLICT       : 2
+AUTHORING.ASSET_ID_DUPLICATE      : 23
+AUTHORING.ID_ONLY                 : 2
+AUTHORING.LOCK_KEY_IDS            : 5
+ITEM.LEGACY_OFFENSE_ONLY          : 1
+MONSTER.LEGACY_ATTACK_SOUND       : 2
+MONSTER.RANGE_FIELD_RENAME        : 2
+```
+
+Les deux conflits de données immédiats concernent :
+
+```text
+DA_Object_ShurikenPickup
+    ItemDefinitionAsset = Shuriken
+    ItemDefinitionId    = Stone
+
+DA_GridLevel_00 Objects[38]
+    Behavior.Item.ItemDefinitionAsset = Shuriken
+    Behavior.Item.ItemDefinitionId    = Stone
+```
+
+Autres groupes structurants :
+
+- cinq usages `AcceptedKeyIds` ;
+- quatre archetypes Wall avec miroirs legacy de `PlacementKind` ;
+- `DA_Weapon_Shuriken` dépend encore uniquement de `bProvidesAttack / OffensiveProfile` ;
+- RatGiant et GoblinThrower utilisent encore `AttackSound` ;
+- les deux familles de monstres utilisent le nom legacy `RangeCells` ;
+- RatGiant possède deux entrées de loot `ID_ONLY` sans asset de définition ;
+- les LevelAssets et loots contiennent de nombreuses paires Asset + Id redondantes.
+
+## 9. Conclusion / stop condition
+
+Les cinq critères TD07.3.1 sont satisfaits :
+
+1. Automation verte ;
+2. rapport local généré ;
+3. baseline quantitative connue ;
+4. aucune suppression de schéma effectuée ;
+5. les tranches suivantes peuvent être ordonnées depuis le contenu réel.
+
+**TD07.3.1 est VALIDÉ et clos.**
+
+La prochaine tranche reste :
+
+```text
+TD07.3.2 — SaveGame Reset / no backward migration
+```
+
+Elle ne doit pas tenter de réparer les DataAssets : le nettoyage des assets reste réservé à TD07.3.4–TD07.3.7.

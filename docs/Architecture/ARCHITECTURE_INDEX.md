@@ -89,8 +89,9 @@ Les fonctionnalités sont volontairement suspendues pendant le nettoyage du mod�
 ```text
 TD07.1    Build / dependency reproducibility             VALIDÉ
 TD07.2    UE compatibility cleanup                       VALIDÉ
-TD07.3.1  Prototype Data Model Policy + Asset Audit      ACTIF
-TD07.3.2–TD07.3.8                                       À FAIRE
+TD07.3.1  Prototype Data Model Policy + Asset Audit      VALIDÉ
+TD07.3.2  SaveGame Reset / no backward migration         PROCHAIN
+TD07.3.3–TD07.3.8                                       À FAIRE
 ```
 
 ## Phase fonctionnelle suspendue

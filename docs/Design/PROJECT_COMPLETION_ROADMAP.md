@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.1 ACTIF — MON21.4 SUSPENDU**  
+Statut : **TD07.3.1 VALIDÉ — TD07.3.2 PROCHAIN — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -197,8 +197,9 @@ TD05.9     RuntimeActor stop condition                       ATTEINTE
 TD06.9     PartyInventory stop condition                     ATTEINTE
 TD07.1     Build / dependency reproducibility                VALIDÉ
 TD07.2     UE compatibility warnings                         VALIDÉ
-TD07.3.1   Prototype Data Model Policy + Asset Audit         ACTIF
-TD07.3.2–8 Data model reset                                  À FAIRE
+TD07.3.1   Prototype Data Model Policy + Asset Audit         VALIDÉ
+TD07.3.2   SaveGame Reset / no backward migration            PROCHAIN
+TD07.3.3–8 Data model reset                                  À FAIRE
 ```
 
 Politique autoritaire pendant le prototype : **aucune compatibilité arrière Save/DataAsset/Blueprint n'est requise**. Les données incompatibles peuvent être recréées ; Git conserve l'historique.

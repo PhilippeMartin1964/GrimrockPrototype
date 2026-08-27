@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.1 IMPLÉMENTÉ / À VALIDER**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.1 VALIDÉ / TD07.3.2 PROCHAIN**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -224,6 +224,21 @@ Schema change : ancien état rejeté, aucune migration arrière
 ```
 
 TD07.3 porte le nettoyage complet correspondant.
+
+Baseline TD07.3.1 validée le 27 août 2026 :
+
+```text
+86 DataAssets scannés
+41 findings
+
+Conflict           2
+DuplicateAuthority 23
+LegacyField        11
+LegacyOnly         3
+SchemaRename       2
+```
+
+Les deux conflits réels sont des incohérences Shuriken/Stone. Les autres findings caractérisent les suppressions de schéma à venir.
 
 Référence : `docs/Design/TD07_3_1_PROTOTYPE_DATA_MODEL_POLICY_AND_ASSET_AUDIT.md`.
 
@@ -591,7 +606,7 @@ TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ �
 TD07.1          Build / dependency reproducibility                     VALIDÉ — TD-BUILD-001 RÉSOLU
 TD07.2          UE deprecation cleanup / compiler warning audit        VALIDÉ
 TD07.3          Prototype Data Model Reset                             ACTIF
-TD07.3.1        Policy + Current Schema Asset Audit                    IMPLÉMENTÉ — À VALIDER
+TD07.3.1        Policy + Current Schema Asset Audit                    VALIDÉ
 TD07.3.2        SaveGame Reset / no backward migration                À FAIRE
 TD07.3.3        Character State Normalization                         À FAIRE
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
@@ -671,15 +686,21 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit.**
+**TD07.3.2 — SaveGame Reset / no backward migration.**
 
-```powershell
-.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD07_3_1"
-Get-Content .\Saved\Diagnostics\TD07\TD07_3_1_CurrentSchemaAssetAudit.txt
+Objectif : supprimer la compatibilité historique Save sans toucher encore aux DataAssets binaires caractérisés par TD07.3.1.
+
+À caractériser puis retirer :
+
+```text
+MinimumCompatibleSaveVersion
+FRPGSaveMigrationService
+branches v1-v8
+ResetLegacyDungeonSnapshots
+tests dédiés aux migrations historiques
+marqueurs servant uniquement à distinguer un ancien snapshot
 ```
 
-Le rapport local est une baseline de caractérisation : ses findings sont attendus et guideront TD07.3.2–TD07.3.7.
+Contrat cible : version Save exacte attendue ou rejet.
 
-**Ne pas commencer TD07.3.2 avant lecture du rapport.**
-
-Les nouvelles fonctionnalités, notamment MON21.4, restent suspendues pendant TD07.3.
+Les 41 findings DataAsset restent la baseline de TD07.3.4–TD07.3.7 ; ils ne doivent pas être corrigés opportunistement dans TD07.3.2.

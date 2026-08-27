@@ -15,7 +15,8 @@
 | Dernier jalon fonctionnel | `MON21.3 — Quest Event -> Command Integration` |
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
-| Tranche active | `TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit` |
+| Dernière tranche validée | `TD07.3.1 — Prototype Data Model Policy & Current Schema Asset Audit` |
+| Prochaine tranche | `TD07.3.2 — SaveGame Reset / no backward migration` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -23,7 +24,7 @@ La dette technique courante est autoritairement suivie dans `docs/Architecture/T
 
 GrimrockPrototype est un dungeon crawler case par case avancé : édition de donjons, exploration, mécanismes, Event -> Command enrichi de variables/Logic/Lua, groupe RPG persistant, inventaire/équipement, combat tactique, IA de monstres, XP/niveaux, Status Effects, magie/Spellbook, recrutement, Skills, Talents et persistance associée.
 
-MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet d'abord à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype.
+MON13 à MON20 sont clos. MON21 possède déjà sa fondation Quest data-driven, mais les nouvelles fonctionnalités sont temporairement suspendues. TD07.3 remet à plat le modèle de données afin d'éliminer les compatibilités historiques, duplications d'autorité et schémas legacy devenus inutiles pendant la phase prototype. TD07.3.1 a scanné 86 DataAssets et produit une baseline de 41 findings ; TD07.3.2 traite maintenant uniquement le SaveGame.
 
 Les campagnes TD05 et TD06 ont atteint leur stop condition : `AGridLevelRuntimeActor` et `UGridPartyInventoryComponent` restent des façades/orchestrateurs, mais leurs frontières à forte cohésion sont désormais séparées sans dupliquer l’autorité.
 
@@ -192,7 +193,8 @@ MON21.1      architecture Quests/Journal/Map/Codex        CLOS
 MON21.2      Quest Definition + Campaign Runtime State    VALIDÉ
 MON21.3      Quest Event -> Command Integration           VALIDÉ
 TD01–TD06    stabilisation / dette ciblée                 STOP CONDITIONS ATTEINTES
-TD07.3       Prototype Data Model Reset                ACTIF
+TD07.3.1     Prototype Data Model Asset Audit             VALIDÉ
+TD07.3.2     SaveGame Reset                              PROCHAIN
 MON21.4      Quest Persistence                          SUSPENDU
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE
