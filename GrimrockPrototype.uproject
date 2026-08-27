@@ -34,7 +34,8 @@
 		},
 		{
 			"Name": "meshy",
-			"Enabled": true,
+			"Enabled": false,
+			"Optional": true,
 			"SupportedTargetPlatforms": [
 				"Win64",
 				"Mac"

@@ -10,7 +10,16 @@
 /Content/F_FreeFlameFx_Pack/
 /Content/GrimrockPrototype/Dev
 /Content/Goblin_Bomber
-/Plugins/
+
+# --- Optional local development plugins ---
+# TD07.1: Meshy is an optional asset-production tool, not a project dependency.
+# A developer may install it locally under Plugins/meshy without versioning it.
+/Plugins/meshy/
+
+# Generated output for any future project plugin that is intentionally versioned.
+/Plugins/**/Binaries/
+/Plugins/**/Intermediate/
+/Plugins/**/Saved/
 
 # --- Optional build artifacts ---
 Build/*

@@ -1,14 +1,14 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
-Date de référence : **26 août 2026**  
+Date de référence : **27 août 2026**  
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **SURVEILLANCE — TD05 / TD06 STOP CONDITIONS ATTEINTES**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.1 À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
-TD04 a atteint sa stop condition locale. TD05 a atteint sa stop condition pour `AGridLevelRuntimeActor`. TD06 a extrait les frontières Hotbar, Cursor et Equipment de `UGridPartyInventoryComponent`, caractérisé Registry/Rehydration et atteint sa stop condition architecturale en TD06.9, validée sous UE5.5.4.
+TD04 a atteint sa stop condition locale. TD05 et TD06 ont atteint leurs stop conditions respectives. La revue post-TD06 du 27 août 2026 ouvre TD07 sur les risques de future-proofing : reproductibilité des dépendances, dépréciations UE, dette de migration Save, concentration d’ActivationComponent et infrastructures de test suspendues.
 
 ---
 
@@ -37,20 +37,97 @@ P2 — maintenabilité / architecture / tooling à réduire de manière ciblée
 P3 — nettoyage opportuniste ou intégration non bloquante
 ```
 
-État au 26 août 2026 :
+État au 27 août 2026, après ouverture TD07.1 :
 
 ```text
 P0 : aucun blocage connu
-P1 : 0 dette active
-P2 : 8 dettes actives ou surveillées
+P1 : 1 dette en mitigation / validation (TD-BUILD-001)
+P2 : 9 dettes actives, surveillées ou différées
 P3 : 2 dettes actives
 ```
 
-Aucune dette P2 architecturale ne justifie actuellement une nouvelle tranche ciblée. Les entrées P2 restent surveillées, opportunistes ou différées tant qu’un risque observable ne justifie pas leur réouverture.
+TD05 et TD06 restent clos. TD07 traite uniquement des risques concrets identifiés après leur clôture ; il ne réouvre pas leurs refactors sans nouveau signal.
 
 ---
 
 # 3. Registre actif
+
+
+## TD-BUILD-001 — Dépendance Meshy / clone non reproductible
+
+**Priorité : P1 — mitigation TD07.1 implémentée / validation requise**
+
+### Constat
+
+Avant TD07.1 :
+
+```text
+GrimrockPrototype.uproject
+    meshy Enabled=true
+
+.gitignore
+    /Plugins/
+
+master
+    aucun Plugins/meshy versionné
+```
+
+La machine de développement compilait uniquement parce qu'une copie locale de Meshy existait. Cette copie produisait en plus plusieurs warnings de chemins Editor UE inexistants.
+
+Aucune dépendance C++, module ou API first-party à Meshy n'a été trouvée dans le repository.
+
+### Décision TD07.1
+
+Meshy est un **outil local optionnel de production d'assets**, pas une dépendance du jeu.
+
+Le contrat versionné devient :
+
+```text
+meshy
+    Enabled=false
+    Optional=true
+```
+
+`.gitignore` ignore uniquement `/Plugins/meshy/`, et non plus tout `/Plugins/`.
+
+Un futur développeur peut installer Meshy localement sous `Plugins/meshy/`, l'activer ponctuellement, produire/importer ses assets puis restaurer le `.uproject` avant commit.
+
+### Contrôle
+
+```text
+Scripts/CheckProjectDependencies.ps1
+docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md
+docs/Design/TD07_1_BUILD_DEPENDENCY_REPRODUCIBILITY.md
+```
+
+TD-BUILD-001 devient **RÉSOLU** lorsque le dependency check, le build Editor/Automation et le package Shipping sont verts sans chargement Meshy.
+
+---
+
+## TD-BUILD-002 — Toolchain Visual Studio / MSVC non figée
+
+**Priorité : P2 — surveillée**
+
+En août 2026, UBT utilise avec succès :
+
+```text
+Visual Studio 2022
+MSVC 14.44.35227
+Windows SDK 10.0.26100.0
+```
+
+mais UE5.5.4 avertit que `14.44.35227` n'est pas sa version préférée et cite `14.38.33130`.
+
+Décision TD07.1 : ne pas forcer un downgrade ou un pinning tant que les harness Editor et Shipping restent verts. Documenter la baseline et réouvrir uniquement si :
+
+- un nouvel environnement ne compile plus ;
+- UBT transforme le warning en incompatibilité ;
+- deux toolchains produisent des résultats divergents ;
+- la future CI exige un environnement strictement reproductible.
+
+Référence : `docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md`.
+
+---
 
 ## TD-ARCH-001 — `AGridLevelRuntimeActor` historiquement trop centralisé
 
@@ -211,7 +288,9 @@ TD06.9 supprime huit helpers Diagnostics morts confirmés et déplace `GetEquipm
 
 Réouvrir uniquement si une douleur concrète apparaît : duplication d'autorité, régression récurrente, difficulté de test, dépendance de compilation problématique ou nouvelle responsabilité autonome importante.
 
-Référence : `docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md`.
+Référence : `docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
+docs/Design/TD07_1_BUILD_DEPENDENCY_REPRODUCIBILITY.md
+docs/Design/DEVELOPMENT_ENVIRONMENT_SETUP.md`.
 
 Validation finale TD06.9 :
 
@@ -408,6 +487,14 @@ TD06.6          PartyInventory Equipment Core characterization        VALIDÉ
 TD06.7          PartyInventory Equipment Core extraction              VALIDÉ
 TD06.8          Item Definition Registry / Rehydration audit          VALIDÉ
 TD06.9          PartyInventory final re-audit / stop condition        VALIDÉ — ATTEINTE
+TD07.1          Build / dependency reproducibility                     IMPLÉMENTÉ — À VALIDER
+TD07.2          UE deprecation cleanup / compiler warning audit        PROCHAIN
+TD07.3          Save compatibility / legacy model audit                À FAIRE
+TD07.4          ActivationComponent characterization                   À FAIRE
+TD07.5          Suspended test infrastructure / branch recovery        À FAIRE
+TD07.6          Legacy asset/API cleanup audit                          À FAIRE
+TD07.7          Targeted log / formatting hygiene                      À FAIRE
+TD07.8          Future-proofing re-audit / stop condition              À FAIRE
 ```
 
 **TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
@@ -475,12 +562,18 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Aucune nouvelle tranche de refactor TD05/TD06 n'est recommandée.**
+**Valider TD07.1 — Build / Dependency Reproducibility.**
 
-Reprendre la roadmap fonctionnelle :
-
-```text
-MON21.4 — Quest Persistence / Migration
+```powershell
+.\Scripts\CheckProjectDependencies.ps1 -EngineRoot D:\UE_5.5
+.\Scripts\ValidateUE.ps1 -EngineRoot D:\UE_5.5 -AutomationFilter "Grimrock.TechnicalDebt.TD06_8"
+.\Scripts\ValidatePackage.ps1 -EngineRoot D:\UE_5.5
 ```
 
-Les dettes encore inscrites dans ce registre restent surveillées, opportunistes ou différées. Elles ne doivent redevenir un chantier dédié qu'en présence d'un signal concret conforme aux règles de la section 6.
+Après validation verte :
+
+```text
+TD07.2 — UE deprecation cleanup / compiler warning audit
+```
+
+Les nouvelles fonctionnalités restent suspendues pendant cette passe TD07 de future-proofing.
