@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.5 VALIDÉ — TD07.3.3.6 PROCHAIN — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.6 CHARACTERIZATION À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -205,7 +205,7 @@ TD07.3.3.2 Remove Legacy Attribute Bridge                     VALIDÉ
 TD07.3.3.3 Normalize Derived Stats / Mutable Resources         VALIDÉ
 TD07.3.3.4 Normalize Weight State                              VALIDÉ
 TD07.3.3.5 Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6 Normalize Skills                                        PROCHAIN
+TD07.3.3.6 Normalize Skills                                        CHARACTERIZATION À VALIDER
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 

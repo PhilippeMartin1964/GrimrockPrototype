@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.5 VALIDÉ / TD07.3.3.6 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.6 CHARACTERIZATION À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -615,7 +615,7 @@ TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
 TD07.3.3.3      Normalize Derived Stats / Mutable Resources            VALIDÉ
 TD07.3.3.4      Normalize Weight State                                 VALIDÉ
 TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
-TD07.3.3.6      Normalize Skills                                       PROCHAIN
+TD07.3.3.6      Normalize Skills                                       CHARACTERIZATION À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -693,46 +693,43 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.6 — Normalize Skills.**
+**Valider la caractérisation TD07.3.3.6 — Normalize Skills.**
 
-TD07.3.3.5 est validé :
-
-```text
-Experience
-    autorité durable
-
-Level
-    projection Transient reconstruite depuis Experience
-
-SelectedClassProgressionChoiceIds
-    autorité durable sur le personnage
-
-RuntimeStates
-    requirements reconstructibles uniquement
-
-ClassProgressionStates
-    supprimé
-
-SaveGame
-    v15 exact-match
-```
-
-La prochaine tranche doit caractériser puis normaliser :
+Le modèle courant possède deux représentations :
 
 ```text
 FGridCharacterInventoryState::SkillRanks
-FRPGCharacterSkillSaveState
+    autorité runtime réellement lue et mutée par les services
+    actuellement Transient
+
 UGrimrockPartySaveGame::CharacterSkillStates
-URPGSkillRuntimeService / persistence helpers
+    snapshot sparse séparé
+    FRPGCharacterSkillSaveState[]
 ```
 
-Objectif : une seule autorité durable pour les ranks de Skills, sans snapshot Save parallèle, en conservant les règles MON20.9 et les skill checks existants.
-
-Références :
+Le gate doit figer :
 
 ```text
-docs/Design/TD07_3_3_1_CHARACTER_STATE_AUTHORITY_AUDIT.md
-docs/Design/TD07_3_3_5_PROGRESSION_AUTHORITY_NORMALIZATION.md
+1. mutation et lecture directes de SkillRanks ;
+2. snapshot sparse Active + CharacterPool ;
+3. ordre déterministe CharacterId / SkillId ;
+4. restore de remplacement : les ranks absents sont effacés ;
+5. atomicité du restore invalide ;
+6. consumers lisant immédiatement le state restauré.
 ```
+
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_6.Characterization
+```
+
+Référence :
+
+```text
+docs/Design/TD07_3_3_6_SKILL_STATE_CHARACTERIZATION.md
+```
+
+Aucun changement de schéma n'est encore effectué. Le SaveGame reste v15 exact-match.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
