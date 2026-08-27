@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `07f10dacd81d4d42c07a5bb6449bc7fb314b0b76`  
-Statut : **IMPLÉMENTÉ — BUILD ET NORMALIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUISES**
+Statut : **IMPLÉMENTÉ — BUILD / NORMALIZATION / RÉGRESSIONS VALIDÉS — SHIPPING REQUIS**
 
 ## 1. Autorité durable personnage
 
@@ -190,6 +190,43 @@ Report                 : Saved/Automation/TD04/TD04-20260827-221234
 
 Le build UE5.5.4 Development Editor et le gate Normalization sont validés.
 
+## 8.2 Validation des régressions post-refactor
+
+Validation locale du 27 août 2026 :
+
+```text
+TD07.3.3.8 Characterization     4/4
+MON16.1                         7/7
+MON16.2                        10/10
+MON16.3                        11/11
+MON16.4                        11/11
+MON16.5                        11/11
+MON16.6                        10/10
+MON16.7                        10/10
+MON16.8                        10/10
+MON18.5                         6/6
+MON18.9.2                       5/5
+MON18.9.1 Save                  6/6
+TD07.3.2 Save Contract          6/6
+TD07.3.3.7 Spellbook            4/4
+
+Total                         111/111
+Warnings                        0
+Failures                        0
+Not run                         0
+```
+
+MON16.3 a été relancé après correction du fixture warning :
+
+```text
+Report : Saved/Automation/TD04/TD04-20260827-222122
+Succeeded : 11
+Warnings  : 0
+Failed    : 0
+```
+
+Le bloc de régressions post-refactor est entièrement vert. Il ne reste que la validation Win64 Shipping.
+
 ## 9. Stop condition
 
 - [x] Character.StatusEffects rendu durable ;
@@ -204,8 +241,8 @@ Le build UE5.5.4 Development Editor et le gate Normalization sont validés.
 - [x] tests dédiés ajoutés ;
 - [x] build UE5.5.4 vert ;
 - [x] Normalization 4/4 ;
-- [ ] Characterization 4/4 post-refactor ;
-- [ ] régressions Status/Magic/Save vertes ;
+- [x] Characterization 4/4 post-refactor ;
+- [x] régressions Status/Magic/Save vertes ;
 - [ ] Shipping Win64 vert.
 
 Prochaine tranche après validation complète :
