@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.2 VALIDÉ / TD07.3.3.3 PROCHAIN**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.3 CHARACTERIZATION À VALIDER**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -612,7 +612,7 @@ TD07.3.2        SaveGame Reset / no backward migration                VALIDÉ
 TD07.3.3        Character State Normalization                         ACTIF
 TD07.3.3.1      Character State Authority Audit                       VALIDÉ
 TD07.3.3.2      Remove Legacy Attribute Bridge                        VALIDÉ
-TD07.3.3.3      Normalize Derived Stats / Mutable Resources            PROCHAIN
+TD07.3.3.3      Normalize Derived Stats / Mutable Resources            CHARACTERIZATION À VALIDER
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -690,41 +690,49 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.3 — Normalize Derived Stats / Mutable Resources.**
+**Valider la caractérisation TD07.3.3.3 — Normalize Derived Stats / Mutable Resources.**
 
-TD07.3.3.2 est validé le 27 août 2026 :
+TD07.3.3.3 commence volontairement par un gate de comportement avant toute modification de structure.
 
-```text
-legacy Strength                  supprimé
-bRPGAttributesInitialized        supprimé
-Attributes                       autorité unique
-SaveGame                         v11 exact-match
-MON16.7                          10/10
-MON16.8                          10/10
-Win64 Shipping                   validé
-Pak files                        1
-Archive files                    41
-Archive bytes                    906014651
-```
-
-Le prochain risque caractérisé par TD07.3.3.1 est le conteneur `FRPGDerivedStats`, qui mélange actuellement :
+Constats que le nouveau filtre doit figer :
 
 ```text
-projection/calculable
-    MaxHealth
-    MaxMana
-    Initiative
-    Accuracy
-    Evasion
-    capacités initiales d'armure selon contrat
+GetCharacterSummary
+    bonus DEX -> Attributes.Dexterity
+    mais ne recalcule pas Initiative / Accuracy / Evasion
 
-mutable/durable
-    CurrentHealth
-    CurrentMana
-    PhysicalArmor courant
-    MagicalArmor courant
+Equipment ArmorBonus
+    -> Summary.DerivedStats.PhysicalArmor
+    mais ne modifie pas Character.DerivedStats.PhysicalArmor
+
+MaxHealth / MaxMana equipment
+    -> maxima du résumé uniquement
+    -> aucune ressource courante accordée automatiquement
+
+Unequip d'un bonus de maximum
+    -> le résumé clamp CurrentHealth / CurrentMana
+    -> l'état stocké n'est pas normalisé
+
+Combat entrant
+    -> lit directement Character.DerivedStats.Evasion
+    -> lit directement Character.DerivedStats.PhysicalArmor / MagicalArmor
+
+Initiative
+    -> lit directement Character.DerivedStats.Initiative
 ```
 
-TD07.3.3.3 doit commencer par des tests de caractérisation, notamment sur les bonus d'équipement et leur effet réel en combat, avant toute modification de structure.
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_3.Characterization
+```
+
+Référence :
+
+```text
+docs/Design/TD07_3_3_3_DERIVED_STATS_CHARACTERIZATION.md
+```
+
+Aucune structure persistante n'est encore modifiée et le SaveGame reste v11.
 
 Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
