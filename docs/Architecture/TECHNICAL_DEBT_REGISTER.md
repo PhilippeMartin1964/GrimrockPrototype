@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.8 VALIDÉ ET CLOS — TD07.3.3.9 À OUVRIR**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.9 LEVEL-UP NOTIFICATION CHARACTERIZATION ACTIVE**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -618,7 +618,7 @@ TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
 TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS
 TD07.3.3.7      Normalize Spellbook                                    VALIDÉ — CLOS
 TD07.3.3.8      Normalize Status Effects                               VALIDÉ — CLOS
-TD07.3.3.9      Normalize Level-Up Notification State                  À OUVRIR
+TD07.3.3.9      Normalize Level-Up Notification State                  CHARACTERIZATION ACTIVE
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -696,55 +696,38 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.3.3.8 — Normalize Status Effects.**
+**TD07.3.3.9 — Normalize Level-Up Notification State — characterization active.**
 
-Gate local validé le 27 août 2026 :
-
-```text
-Grimrock.TechnicalDebt.TD07_3_3_8.Normalization
-4 Success / 0 warning / 0 Failed / 0 Not run
-Report : TD04-20260827-221234
-```
-
-Implémentation :
+État actuel :
 
 ```text
-Character.StatusEffects
-    durable
-    autorité unique personnage
-
-DefinitionAsset
-    Transient
-    rehydraté depuis EffectId
-
-CharacterStatusEffectStates
-CaptureStatusEffectState
-RestoreStatusEffectState
-    supprimés
-
-FGridStatusEffectSaveState
-CaptureCollection / RestoreCollection
-    conservés pour les monstres
-
-CurrentSaveVersion = 18
-v17 et antérieures -> rejet sans migration
+PendingNotifications
+ActiveNotification
+PersistentNotificationMirror
+PendingPersistentRestoreStates
+PendingLevelUpNotifications [SaveGame]
 ```
 
-Filtres prioritaires :
+Décision : conserver le comportement Save / Continue, mais remplacer la queue persistée par un état durable minimal :
 
 ```text
-Grimrock.TechnicalDebt.TD07_3_3_8.Normalization
-Grimrock.TechnicalDebt.TD07_3_3_8.Characterization
-Grimrock.RPG.MON16.7
-Grimrock.RPG.MON16.8
+FGridCharacterInventoryState::LastAcknowledgedLevel
 ```
 
-Régressions Status/Magic/Save : **111/111 vertes**, zéro warning. Reste Win64 Shipping.
+Une notification sera reconstruite lorsque :
+
+```text
+LastAcknowledgedLevel < Level
+```
+
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_9.Characterization
+```
 
 Référence :
 
 ```text
-docs/Design/TD07_3_3_8_STATUS_EFFECT_STATE_NORMALIZATION.md
+docs/Design/TD07_3_3_9_LEVEL_UP_NOTIFICATION_STATE_CHARACTERIZATION.md
 ```
-
-Les 41 findings DataAsset TD07.3.1 restent hors périmètre.
