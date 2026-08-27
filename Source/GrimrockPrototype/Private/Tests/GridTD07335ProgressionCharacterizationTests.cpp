@@ -56,6 +56,7 @@ bool FGridTD07335StoredLevelSynchronizationTest::RunTest(const FString& Paramete
 	const FRPGDerivedStats StatsBeforeRejectedDemotion = Character.DerivedStats;
 	const FRPGCharacterResources ResourcesBeforeRejectedDemotion = Character.Resources;
 
+	AddExpectedError(TEXT("WouldDemote"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(TEXT("Level-up service refuses to demote a stored level"), FRPGLevelUpService::ApplyPendingLevelUp(Component, 0, false));
 	TestEqual(TEXT("Rejected demotion preserves stored Level"), Character.Level, 3);
 	TestEqual(TEXT("Rejected demotion preserves Experience"), Character.Experience, 1000);

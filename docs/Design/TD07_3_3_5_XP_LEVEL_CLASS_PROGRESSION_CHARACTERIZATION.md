@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `4112a0b2daae24e29f3c12319f6cbac3a190230a`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
 
 ## 1. Objet
 
@@ -267,7 +267,20 @@ Le build doit être exécuté : un nouveau fichier C++ de tests est ajouté.
 - [x] duplication RuntimeStates / ClassProgressionStates documentée ;
 - [x] projection après level-up documentée ;
 - [x] 4 tests de caractérisation ajoutés ;
-- [ ] compilation UE5.5.4 verte ;
-- [ ] 4/4 tests verts.
+- [x] compilation UE5.5.4 verte ;
+- [x] 4 tests exécutés sans échec.
 
-Aucune suppression de `Level` ni déplacement de `SelectedChoiceIds` ne commence avant ce gate vert.
+Validation locale du 27 août 2026 :
+
+```text
+Filter                  : Grimrock.TechnicalDebt.TD07_3_3_5.Characterization
+Succeeded               : 3
+Succeeded with warnings : 1
+Failed                  : 0
+Not run                 : 0
+Process exit code        : 0
+```
+
+Le warning provient du scénario volontaire `WouldDemote`. Il est désormais déclaré via `AddExpectedError` afin que la prochaine régression du gate soit silencieuse.
+
+Le gate est atteint. La phase B de normalisation peut commencer.
