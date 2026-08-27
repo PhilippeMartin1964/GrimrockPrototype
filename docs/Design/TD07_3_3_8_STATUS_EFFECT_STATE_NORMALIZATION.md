@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `07f10dacd81d4d42c07a5bb6449bc7fb314b0b76`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / RÉGRESSIONS / SHIPPING REQUISES**
+Statut : **IMPLÉMENTÉ — BUILD ET NORMALIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUISES**
 
 ## 1. Autorité durable personnage
 
@@ -174,6 +174,22 @@ Grimrock.TechnicalDebt.TD07_3_3_7.Normalization
 
 Puis Win64 Shipping.
 
+## 8.1 Validation locale — build + Normalization
+
+Validation du 27 août 2026 :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_3_8.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-221234
+```
+
+Le build UE5.5.4 Development Editor et le gate Normalization sont validés.
+
 ## 9. Stop condition
 
 - [x] Character.StatusEffects rendu durable ;
@@ -186,8 +202,8 @@ Puis Win64 Shipping.
 - [x] persistance monster préservée ;
 - [x] SaveGame v18 exact-match ;
 - [x] tests dédiés ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
 - [ ] Characterization 4/4 post-refactor ;
 - [ ] régressions Status/Magic/Save vertes ;
 - [ ] Shipping Win64 vert.
