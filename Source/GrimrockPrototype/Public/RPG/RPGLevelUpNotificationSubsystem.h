@@ -59,6 +59,7 @@ private:
 
 	FDelegateHandle LevelUpDelegateHandle;
 	FDelegateHandle WidgetClosedDelegateHandle;
+	bool bInventoryRefreshScheduled = false;
 
 	void HandleCharacterLevelUpApplied(
 		UGridPartyInventoryComponent* PartyInventoryComponent, int32 CharacterIndex, int32 PreviousLevel, int32 NewLevel, int32 LevelsGained);
@@ -66,6 +67,8 @@ private:
 
 	UFUNCTION()
 	void HandlePartyInventoryChanged(int32 CharacterIndex);
+
+	void HandleScheduledInventoryRefresh();
 
 	UFUNCTION()
 	void HandleDeferredCombatEnded(EGridCombatPhase ResultPhase);

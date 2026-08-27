@@ -70,6 +70,8 @@ ObservedPartyInventory
 
 Le subsystem observe le `UGridPartyInventoryComponent` connu et reconstruit la queue depuis l'état durable.
 
+Les notifications `OnPartyInventoryChanged` sont **debounced au tick suivant**. Ce délai est purement transient : il évite qu'une restauration `LoadCurrentGameData()` encore susceptible de rollback n'ouvre une modal au milieu de la transaction. Les événements Level-Up explicites restent traités immédiatement.
+
 ## 4. Reconstruction
 
 `RefreshFromPartyState()` :

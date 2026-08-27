@@ -13,6 +13,7 @@
 #include "Runtime/GridPartyInventoryComponent.h"
 #include "Runtime/GrimrockPartyPawn.h"
 #include "UI/RPGLevelUpWidget.h"
+#include "TimerManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGridLevelUpUI, Log, All);
 
@@ -90,6 +91,7 @@ void URPGLevelUpNotificationSubsystem::Deinitialize()
 		Inventory->OnPartyInventoryChanged.RemoveDynamic(this, &URPGLevelUpNotificationSubsystem::HandlePartyInventoryChanged);
 	}
 	ObservedPartyInventory.Reset();
+	bInventoryRefreshScheduled = false;
 
 	ClearDeferredCombatTurnManager();
 
@@ -135,6 +137,7 @@ void URPGLevelUpNotificationSubsystem::RefreshFromPartyState(UGridPartyInventory
 	}
 
 	BindPartyInventory(PartyInventoryComponent);
+	bInventoryRefreshScheduled = false;
 	RebuildPendingNotificationsFromPartyState(PartyInventoryComponent);
 	TryPresentNextNotification();
 }
@@ -242,6 +245,35 @@ void URPGLevelUpNotificationSubsystem::HandleCharacterLevelUpApplied(
 void URPGLevelUpNotificationSubsystem::HandlePartyInventoryChanged(int32 CharacterIndex)
 {
 	(void)CharacterIndex;
+	if (bInventoryRefreshScheduled)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		if (UGridPartyInventoryComponent* Inventory = ObservedPartyInventory.Get())
+		{
+			RebuildPendingNotificationsFromPartyState(Inventory);
+			TryPresentNextNotification();
+		}
+		return;
+	}
+
+	bInventoryRefreshScheduled = true;
+	World->GetTimerManager().SetTimerForNextTick(
+		FTimerDelegate::CreateUObject(this, &URPGLevelUpNotificationSubsystem::HandleScheduledInventoryRefresh));
+}
+
+void URPGLevelUpNotificationSubsystem::HandleScheduledInventoryRefresh()
+{
+	if (!bInventoryRefreshScheduled)
+	{
+		return;
+	}
+	bInventoryRefreshScheduled = false;
+
 	if (UGridPartyInventoryComponent* Inventory = ObservedPartyInventory.Get())
 	{
 		RebuildPendingNotificationsFromPartyState(Inventory);
