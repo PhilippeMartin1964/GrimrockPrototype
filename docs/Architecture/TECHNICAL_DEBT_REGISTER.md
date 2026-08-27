@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.10 GATES 8/8 VALIDÉS — RÉGRESSIONS / SHIPPING REQUIS**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3 CHARACTER STATE NORMALIZATION VALIDÉ ET CLOS — TD07.3.4 À OUVRIR**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -619,8 +619,8 @@ TD07.3.3.6      Normalize Skills                                       VALIDÉ �
 TD07.3.3.7      Normalize Spellbook                                    VALIDÉ — CLOS
 TD07.3.3.8      Normalize Status Effects                               VALIDÉ — CLOS
 TD07.3.3.9      Normalize Level-Up Notification State                  VALIDÉ — CLOS
-TD07.3.3.10     Current Save Schema / Regressions / Closure            GATES 8/8 — RÉGRESSIONS
-TD07.3.4        Authoring Identity Normalization                      À FAIRE
+TD07.3.3.10     Current Save Schema / Regressions / Closure            VALIDÉ — CLOS
+TD07.3.4        Authoring Identity Normalization                      À OUVRIR
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
 TD07.3.7        Current Asset Repair / Recreation                     À FAIRE
@@ -761,3 +761,49 @@ Failures            0
 ```
 
 Reste : campagne de régression finale TD07.3.3 puis Win64 Shipping.
+
+
+## TD07.3.3 — clôture Character State Normalization
+
+TD07.3.3 clôturé le 27 août 2026.
+
+```text
+SaveGame schema         v20 exact-match
+Character-state tests   71/71
+Campagne finale        314/314
+Warnings                  0
+Failures                  0
+Shipping Win64            OK
+```
+
+Référence Shipping : `TD04-Shipping-20260827-232723`.
+
+Résultat architectural :
+
+```text
+Durable character authority
+    Attributes
+    Experience
+    Resources
+    SelectedClassProgressionChoiceIds
+    SkillRanks
+    KnownSpellIds
+    StatusEffects
+    LastAcknowledgedLevel
+    inventory / hotbar / identity
+
+Transient / reconstructed
+    Level
+    DerivedStats
+    StatusEffect DefinitionAsset
+    runtime projections / read models
+
+Removed parallel Save snapshots
+    ClassProgressionStates
+    CharacterSkillStates
+    CharacterSpellbookStates
+    CharacterStatusEffectStates
+    PendingLevelUpNotifications
+```
+
+Prochaine tranche : `TD07.3.4 — Authoring Identity Normalization`.

@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Characterization validée : `c050f608410653b75712eecf938b8056d3d49c4a`  
-Statut : **IMPLÉMENTÉ — BUILD / NORMALIZATION / CHARACTERIZATION VALIDÉS — RÉGRESSIONS / SHIPPING REQUIS**
+Statut : **VALIDÉ ET CLOS — TD07.3.3 CLOS**
 
 ## 1. Objet
 
@@ -202,6 +202,59 @@ Report                 : Saved/Automation/TD04/TD04-20260827-231753
 
 Les deux gates finaux sont verts. Il reste la campagne de régression globale puis le Win64 Shipping.
 
+## 9.2 Campagne finale TD07.3.3
+
+Campagne de clôture du 27 août 2026 :
+
+```text
+TD07.3.3 complet                          71
+TD07.3.2 SaveContract                      6
+MON15 progression                         34
+MON16 Status Effects                      80
+MON20 Skills                              47
+MON18 Magic / Spellbook / Save            40
+CharacterCreation CC5                      1
+MON20 Recruitment                         35
+--------------------------------------------
+TOTAL                                    314
+
+Succeeded                                314
+Succeeded with warnings                    0
+Failed                                     0
+Not run                                    0
+```
+
+Rapport noyau TD07.3.3 :
+
+```text
+Saved/Automation/TD04/TD04-20260827-232129
+71/71
+```
+
+Dernier filtre de la campagne :
+
+```text
+Grimrock.MON20.5.CustomRecruit
+23/23
+Report : Saved/Automation/TD04/TD04-20260827-232617
+```
+
+## 9.3 Shipping final v20
+
+```text
+Target        : GrimrockPrototype
+Platform      : Win64
+Configuration : Shipping
+Executable    : Saved/Packaging/TD04/TD04-Shipping-20260827-232723/Windows/GrimrockPrototype.exe
+Pak files     : 1
+Archive files : 41
+Archive bytes : 905473595
+Archive       : Saved/Packaging/TD04/TD04-Shipping-20260827-232723
+[OK] Cook / package validated.
+```
+
+La stop condition TD07.3.3 est entièrement atteinte.
+
 ## 10. Stop condition
 
 - [x] DerivedStats marqué transient ;
@@ -215,6 +268,6 @@ Les deux gates finaux sont verts. Il reste la campagne de régression globale pu
 - [x] build UE5.5.4 vert ;
 - [x] Normalization 4/4 ;
 - [x] Characterization 4/4 post-refactor ;
-- [ ] régressions finales vertes ;
-- [ ] Shipping Win64 vert ;
-- [ ] TD07.3.3 clos.
+- [x] régressions finales vertes ;
+- [x] Shipping Win64 vert ;
+- [x] TD07.3.3 clos.

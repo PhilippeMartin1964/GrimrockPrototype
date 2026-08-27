@@ -187,3 +187,38 @@ Resources     durable mutable
 Après désérialisation, les projections sont reconstruites pour `ActiveCharacters` et `CharacterPool` avant la validation du schéma durable et la réhydratation des caches runtime.
 
 La v19 et toutes les générations antérieures sont incompatibles, sans migration.
+
+
+## TD07.3.3 — clôture v20
+
+Character State Normalization est clôturé sur le schéma v20 exact-match.
+
+```text
+TD07.3.3 core tests     71/71
+Campagne finale        314/314
+Warnings                  0
+Failures                  0
+Shipping Win64            OK
+```
+
+Référence Shipping : `TD04-Shipping-20260827-232723`.
+
+La frontière finale est :
+
+```text
+Durable
+    Attributes
+    Experience
+    Resources
+    SelectedClassProgressionChoiceIds
+    SkillRanks
+    KnownSpellIds
+    StatusEffects
+    LastAcknowledgedLevel
+
+Transient
+    Level
+    DerivedStats
+    DefinitionAsset caches
+    runtime projections / UI read models
+```
