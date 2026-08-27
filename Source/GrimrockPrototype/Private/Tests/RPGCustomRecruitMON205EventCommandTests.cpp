@@ -166,6 +166,7 @@ bool FRPGMON2055EventCommandMissingPlayerPawnTest::RunTest(const FString& Parame
 	Activation->Initialize(Runtime);
 	Activation->RebuildIndexes();
 
+	AddExpectedError(TEXT("Reason=missing player party pawn"), EAutomationExpectedErrorFlags::Contains, 1);
 	TestFalse(
 		TEXT("OpenCustomRecruit rejects when no player party pawn exists"), Activation->ExecuteLinksFromObjectForEvent(SourceId, EGridObjectEvent::Activated));
 	TestFalse(TEXT("Rejected CustomRecruiter command does not create stateful activation"), Activation->GetActiveObjectIds().Contains(RecruiterId));
