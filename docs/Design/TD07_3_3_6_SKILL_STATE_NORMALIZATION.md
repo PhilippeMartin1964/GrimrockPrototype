@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Caractérisation validée : `b3a23f4ec45d5b5f5d143a1248eade56bf74d7e5`  
-Statut : **IMPLÉMENTÉ — VALIDATION UE / SHIPPING REQUISE**
+Statut : **IMPLÉMENTÉ — NORMALIZATION 4/4 VALIDÉE — VALIDATION COMPLÈTE EN COURS**
 
 ## 1. Autorité cible
 
@@ -129,9 +129,18 @@ Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.DeterministicMutation
 Grimrock.TechnicalDebt.TD07_3_3_6.Normalization.SaveSchemaVersion
 ```
 
-Attendu : 4/4 sans warning.
+Validation locale du 27 août 2026 :
 
-Le filtre de caractérisation doit rester 4/4.
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_3_6.Normalization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+```
+
+Le build UE5.5.4 associé est vert. Le filtre de caractérisation doit maintenant rester 4/4 après refactor.
 
 ## 9. Régressions requises
 
@@ -173,8 +182,8 @@ maps
 - [x] ordre déterministe maintenu à la mutation ;
 - [x] SaveGame v16 exact-match ;
 - [x] tests dédiés ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] Normalization 4/4 ;
+- [x] build UE5.5.4 vert ;
+- [x] Normalization 4/4 ;
 - [ ] Characterization 4/4 après refactor ;
 - [ ] régressions MON20.6/20.8/20.9 vertes ;
 - [ ] régressions Save/Magic/Status vertes ;
