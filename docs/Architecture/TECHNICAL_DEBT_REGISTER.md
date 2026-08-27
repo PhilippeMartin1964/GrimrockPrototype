@@ -4,7 +4,7 @@ Date de référence : **27 août 2026**
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.7 VALIDÉ ET CLOS — TD07.3.3.8 À OUVRIR**
+Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.3.3.8 STATUS EFFECT CHARACTERIZATION ACTIVE**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -617,7 +617,7 @@ TD07.3.3.4      Normalize Weight State                                 VALIDÉ
 TD07.3.3.5      Normalize XP / Level / Class Progression                VALIDÉ
 TD07.3.3.6      Normalize Skills                                       VALIDÉ — CLOS
 TD07.3.3.7      Normalize Spellbook                                    VALIDÉ — CLOS
-TD07.3.3.8      Normalize Status Effects                               À OUVRIR
+TD07.3.3.8      Normalize Status Effects                               CHARACTERIZATION ACTIVE
 TD07.3.4        Authoring Identity Normalization                      À FAIRE
 TD07.3.5        Combat Data Schema Reset                              À FAIRE
 TD07.3.6        Remaining Legacy API/Data Purge                       À FAIRE
@@ -695,38 +695,47 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**TD07.3.3.8 — Normalize Status Effects.**
+**TD07.3.3.8 — Normalize Status Effects — characterization active.**
 
-TD07.3.3.7 est validé et clos :
-
-```text
-KnownSpellIds durable dans FGridCharacterInventoryState
-aucun runtime Spellbook propriétaire parallèle
-aucun CharacterSpellbookStates
-SaveGame v17 exact-match
-Normalization 4/4
-Régressions 55/55
-Win64 Shipping vert
-```
-
-Prochain objectif :
+État actuel personnage :
 
 ```text
-Character.StatusEffects
-    état runtime déjà porté par le personnage
-    stable fields + DefinitionAsset transient
+FGridCharacterInventoryState::StatusEffects
+    runtime authority
+    Transient
 
 CharacterStatusEffectStates
-    miroir Save séparé à supprimer
+    miroir Save séparé
 
-FGridStatusEffectSaveState
-    ne pas supprimer globalement :
-    encore requis par FGridRuntimeMonsterState
+CaptureStatusEffectState / RestoreStatusEffectState
+    conversion et rehydration party
 ```
 
-La tranche TD07.3.3.8 doit donc normaliser le **Character Status Effect state** sans casser la persistance monster.
+Distinction à préserver :
 
-Référence à créer :
+```text
+FGridStatusEffectSaveState
+    encore utilisé par FGridRuntimeMonsterState::StatusEffects
+    ne pas supprimer globalement
+```
+
+Filtre :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_3_8.Characterization
+```
+
+Direction après gate :
+
+```text
+Character.StatusEffects durable directement
+DefinitionAsset transient / rehydraté
+CharacterStatusEffectStates supprimé
+SaveGame nouvelle génération exact-match
+monster persistence conservée
+```
+
+Référence :
 
 ```text
 docs/Design/TD07_3_3_8_STATUS_EFFECT_STATE_CHARACTERIZATION.md

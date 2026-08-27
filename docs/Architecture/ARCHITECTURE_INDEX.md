@@ -4,7 +4,7 @@
 
 Cet index référence les contrats d’architecture courants. Les documents de `docs/Design/` décrivent les jalons et décisions ; `docs/Architecture/` décrit la structure durable et les autorités runtime/editor.
 
-**Référence courante : 27 août 2026, TD07.3.3.7 Spellbook validé et clos ; TD07.3.3.8 Status Effects à ouvrir.**  
+**Référence courante : 27 août 2026, TD07.3.3.7 Spellbook clos ; TD07.3.3.8 Status Effects characterization active.**  
 Phase active : **TD07.3 — Prototype Data Model Reset**. MON21.4 reste suspendu jusqu'à la stop condition TD07.3.
 
 ## Ordre de lecture recommandé
@@ -99,7 +99,7 @@ TD07.3.3.4 Normalize Weight State                             VALIDÉ
 TD07.3.3.5 Normalize XP / Level / Class Progression              VALIDÉ
 TD07.3.3.6 Normalize Skills                                          VALIDÉ — CLOS
 TD07.3.3.7 Normalize Spellbook                                       VALIDÉ — CLOS
-TD07.3.3.8 Normalize Status Effects                                  À OUVRIR
+TD07.3.3.8 Normalize Status Effects                                  CHARACTERIZATION ACTIVE
 TD07.3.4–TD07.3.8                                       À FAIRE
 ```
 
