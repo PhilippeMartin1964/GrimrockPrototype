@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `be869676c208a7fa7484d00bde3c90d4392389b5`  
-Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION IMPLÉMENTÉE / À VALIDER**
 
 ## 1. Objet
 
@@ -123,7 +123,7 @@ TD07.3.3.8 concerne l'autorité **personnage**. La persistance monster doit rest
 
 ## 7. Direction cible après gate
 
-Après validation du gate :
+Après le gate, la normalisation implémentée utilise :
 
 ```text
 FGridCharacterInventoryState::StatusEffects
@@ -154,7 +154,7 @@ FGridStatusEffectPersistence::RestoreCollection()
 FGridRuntimeMonsterState::StatusEffects
 ```
 
-Le SaveGame devrait ouvrir une nouvelle génération exact-match, vraisemblablement **v18**, sans migration.
+Le SaveGame ouvre **v18 exact-match**, sans migration.
 
 ## 8. Rehydration cible
 

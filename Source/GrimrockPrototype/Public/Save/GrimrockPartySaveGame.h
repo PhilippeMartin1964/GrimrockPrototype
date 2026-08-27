@@ -2,12 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
-#include "RPG/StatusEffects/GridStatusEffectTypes.h"
 #include "Runtime/GridDungeonRuntimeState.h"
 #include "Runtime/GridInventoryTypes.h"
 #include "GrimrockPartySaveGame.generated.h"
-
-class UGridStatusEffectDefinitionAsset;
 
 USTRUCT(BlueprintType)
 struct FRPGPendingLevelUpSaveState
@@ -27,27 +24,14 @@ struct FRPGPendingLevelUpSaveState
 	int32 LevelsGained = 0;
 };
 
-/** MON16.7 status snapshots for one party member, keyed by stable CharacterId. */
-USTRUCT(BlueprintType)
-struct FGridCharacterStatusEffectSaveState
-{
-	GENERATED_BODY()
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
-	FGuid CharacterId;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "RPG|Status Effects|Save")
-	TArray<FGridStatusEffectSaveState> StatusEffects;
-};
-
 UCLASS()
 class GRIMROCKPROTOTYPE_API UGrimrockPartySaveGame : public USaveGame
 {
 	GENERATED_BODY()
 
 public:
-	/** TD07.3.3.7: KnownSpellIds joins durable character state; the separate Spellbook snapshot is removed. */
-	static constexpr int32 CurrentSaveVersion = 17;
+	/** TD07.3.3.8: Character.StatusEffects is durable directly; the separate party status snapshot is removed. */
+	static constexpr int32 CurrentSaveVersion = 18;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
 	int32 SaveVersion = CurrentSaveVersion;
@@ -59,10 +43,6 @@ public:
 	/** MON15.6 level-up notifications that still need to be presented. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG")
 	TArray<FRPGPendingLevelUpSaveState> PendingLevelUpNotifications;
-
-	/** MON16.7 party status snapshots. Runtime DefinitionAsset pointers are excluded. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save|RPG|Status Effects")
-	TArray<FGridCharacterStatusEffectSaveState> CharacterStatusEffectStates;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, SaveGame, Category = "Save")
@@ -82,9 +62,6 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 
-	bool CaptureStatusEffectState(FString& OutError);
-	bool RestoreStatusEffectState(FString& OutError);
-	bool RestoreStatusEffectState(TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError);
 	bool ValidateCurrentState(FText& OutError) const;
 
 	bool IsCompatible() const

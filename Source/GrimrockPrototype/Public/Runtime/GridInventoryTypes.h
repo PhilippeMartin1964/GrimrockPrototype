@@ -378,8 +378,8 @@ struct FGridCharacterInventoryState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magic|Spellbook")
 	TArray<FName> KnownSpellIds;
 
-	/** Runtime-only in MON16.1; save/restore is introduced by MON16.7. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = "RPG|Status Effects")
+	/** TD07.3.3.8 durable Status Effect authority. DefinitionAsset caches inside each effect remain transient. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RPG|Status Effects")
 	FGridStatusEffectCollection StatusEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character")

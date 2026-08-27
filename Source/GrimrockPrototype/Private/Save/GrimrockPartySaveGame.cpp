@@ -15,54 +15,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogGrimrockPartySave, Log, All);
 
 namespace GridPartySaveValidationPrivate
 {
-	int32 CountCharacterId(const FGridPartyInventoryState& PartyState, const FGuid& CharacterId)
-	{
-		if (!CharacterId.IsValid())
-		{
-			return 0;
-		}
-
-		int32 Count = 0;
-		for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
-		{
-			Count += Character.CharacterId == CharacterId ? 1 : 0;
-		}
-		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
-		{
-			Count += Character.CharacterId == CharacterId ? 1 : 0;
-		}
-		return Count;
-	}
-
-	FGridCharacterInventoryState* FindCharacterById(FGridPartyInventoryState& PartyState, const FGuid& CharacterId)
-	{
-		if (FGridCharacterInventoryState* Active = PartyState.ActiveCharacters.FindByPredicate(
-				[&CharacterId](const FGridCharacterInventoryState& Character)
-				{
-					return Character.CharacterId == CharacterId;
-				}))
-		{
-			return Active;
-		}
-		return PartyState.CharacterPool.FindByPredicate(
-			[&CharacterId](const FGridCharacterInventoryState& Character)
-			{
-				return Character.CharacterId == CharacterId;
-			});
-	}
-
-	void ResetRuntimeStatusEffects(FGridPartyInventoryState& PartyState)
-	{
-		for (FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
-		{
-			Character.StatusEffects.Reset();
-		}
-		for (FGridCharacterInventoryState& Character : PartyState.CharacterPool)
-		{
-			Character.StatusEffects.Reset();
-		}
-	}
-
 	void RebuildTransientCharacterLevel(FGridCharacterInventoryState& Character)
 	{
 		Character.Level = URPGCharacterRulesLibrary::GetLevelForExperience(Character.Experience);
@@ -239,6 +191,17 @@ namespace GridPartySaveValidationPrivate
 		return false;
 	}
 
+	bool ValidateStatusEffects(const UGrimrockPartySaveGame& SaveGame, FText& OutError)
+	{
+		FString StatusError;
+		if (FGridStatusEffectPersistence::ValidatePartyStatusEffects(SaveGame.PartyInventoryState, StatusError))
+		{
+			return true;
+		}
+		OutError = FText::FromString(StatusError);
+		return false;
+	}
+
 	bool ValidateLevelVariables(const UGrimrockPartySaveGame& SaveGame, FText& OutError)
 	{
 		FString VariableError;
@@ -277,87 +240,23 @@ namespace GridPartySaveValidationPrivate
 		}
 		return Count;
 	}
+
+	int32 CountCharactersWithStatusEffects(const FGridPartyInventoryState& PartyState)
+	{
+		int32 Count = 0;
+		for (const FGridCharacterInventoryState& Character : PartyState.ActiveCharacters)
+		{
+			Count += Character.StatusEffects.IsEmpty() ? 0 : 1;
+		}
+		for (const FGridCharacterInventoryState& Character : PartyState.CharacterPool)
+		{
+			Count += Character.StatusEffects.IsEmpty() ? 0 : 1;
+		}
+		return Count;
+	}
 }
 
 using namespace GridPartySaveValidationPrivate;
-
-bool UGrimrockPartySaveGame::CaptureStatusEffectState(FString& OutError)
-{
-	TArray<FGridCharacterStatusEffectSaveState> Candidate;
-	const auto CaptureCharacters = [this, &Candidate, &OutError](const TArray<FGridCharacterInventoryState>& Characters) -> bool
-	{
-		for (const FGridCharacterInventoryState& Character : Characters)
-		{
-			if (Character.StatusEffects.IsEmpty())
-			{
-				continue;
-			}
-			if (!Character.CharacterId.IsValid() || CountCharacterId(PartyInventoryState, Character.CharacterId) != 1)
-			{
-				OutError = TEXT("A status-bearing party character has an invalid or ambiguous CharacterId.");
-				return false;
-			}
-			FGridCharacterStatusEffectSaveState SavedCharacter;
-			SavedCharacter.CharacterId = Character.CharacterId;
-			if (!FGridStatusEffectPersistence::CaptureCollection(Character.StatusEffects, SavedCharacter.StatusEffects, OutError))
-			{
-				return false;
-			}
-			Candidate.Add(MoveTemp(SavedCharacter));
-		}
-		return true;
-	};
-	if (!CaptureCharacters(PartyInventoryState.ActiveCharacters) || !CaptureCharacters(PartyInventoryState.CharacterPool))
-	{
-		return false;
-	}
-	Candidate.Sort([](const FGridCharacterStatusEffectSaveState& Left, const FGridCharacterStatusEffectSaveState& Right)
-	{
-		return Left.CharacterId.ToString(EGuidFormats::Digits) < Right.CharacterId.ToString(EGuidFormats::Digits);
-	});
-	CharacterStatusEffectStates = MoveTemp(Candidate);
-	OutError.Reset();
-	return true;
-}
-
-bool UGrimrockPartySaveGame::RestoreStatusEffectState(TFunctionRef<UGridStatusEffectDefinitionAsset*(FName)> DefinitionResolver, FString& OutError)
-{
-	FGridPartyInventoryState CandidateParty = PartyInventoryState;
-	ResetRuntimeStatusEffects(CandidateParty);
-	TSet<FGuid> RestoredCharacterIds;
-	for (const FGridCharacterStatusEffectSaveState& SavedCharacter : CharacterStatusEffectStates)
-	{
-		if (!SavedCharacter.CharacterId.IsValid() || RestoredCharacterIds.Contains(SavedCharacter.CharacterId) || CountCharacterId(CandidateParty, SavedCharacter.CharacterId) != 1)
-		{
-			OutError = TEXT("A saved status collection references an invalid, duplicated or ambiguous CharacterId.");
-			return false;
-		}
-		FGridCharacterInventoryState* TargetCharacter = FindCharacterById(CandidateParty, SavedCharacter.CharacterId);
-		if (!TargetCharacter)
-		{
-			OutError = TEXT("A saved status collection cannot resolve its party character.");
-			return false;
-		}
-		FGridStatusEffectCollection RestoredCollection;
-		if (!FGridStatusEffectPersistence::RestoreCollection(SavedCharacter.StatusEffects, DefinitionResolver, RestoredCollection, OutError))
-		{
-			return false;
-		}
-		TargetCharacter->StatusEffects = MoveTemp(RestoredCollection);
-		RestoredCharacterIds.Add(SavedCharacter.CharacterId);
-	}
-	PartyInventoryState = MoveTemp(CandidateParty);
-	OutError.Reset();
-	return true;
-}
-
-bool UGrimrockPartySaveGame::RestoreStatusEffectState(FString& OutError)
-{
-	return RestoreStatusEffectState([](FName EffectId)
-	{
-		return FGridStatusEffectPersistence::ResolveDefinitionByEffectId(EffectId);
-	}, OutError);
-}
 
 bool UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
 {
@@ -368,7 +267,7 @@ bool UGrimrockPartySaveGame::ValidateCurrentState(FText& OutError) const
 		return false;
 	}
 	if (!ValidateProgressionState(PartyInventoryState, PendingLevelUpNotifications, OutError) || !ValidateSpellbooks(*this, OutError) ||
-		!ValidateSkills(*this, OutError) || !ValidateLevelVariables(*this, OutError))
+		!ValidateSkills(*this, OutError) || !ValidateStatusEffects(*this, OutError) || !ValidateLevelVariables(*this, OutError))
 	{
 		return false;
 	}
@@ -388,10 +287,10 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		SaveVersion = CurrentSaveVersion;
 		bLoadValid = true;
 		LoadError.Reset();
-		FString StatusCaptureError;
-		if (!CaptureStatusEffectState(StatusCaptureError))
+		FString StatusValidationError;
+		if (!FGridStatusEffectPersistence::ValidateRuntimePartyStatusEffects(PartyInventoryState, StatusValidationError))
 		{
-			UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridStatusPersistence] SaveCapture Result=Rejected Reason=%s"), *StatusCaptureError);
+			UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridStatusPersistence] SaveValidation Result=Rejected Reason=%s"), *StatusValidationError);
 			Ar.SetError();
 			return;
 		}
@@ -426,12 +325,12 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridSave] LoadValidation Version=%d Result=Rejected Reason=%s"), SaveVersion, *LoadError);
 		return;
 	}
-	FString StatusRestoreError;
-	if (!RestoreStatusEffectState(StatusRestoreError))
+	FString StatusRehydrateError;
+	if (!FGridStatusEffectPersistence::RehydratePartyStatusEffects(PartyInventoryState, StatusRehydrateError))
 	{
 		bLoadValid = false;
-		LoadError = StatusRestoreError;
-		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridStatusPersistence] PartyRestore Result=Rejected Reason=%s"), *LoadError);
+		LoadError = StatusRehydrateError;
+		UE_LOG(LogGrimrockPartySave, Error, TEXT("[GridStatusPersistence] PartyRehydrate Result=Rejected Reason=%s"), *LoadError);
 		return;
 	}
 	if (!FRPGClassProgressionTransactionService::RebuildRuntimeProjection(PartyInventoryState, ValidationError))
@@ -444,6 +343,6 @@ void UGrimrockPartySaveGame::Serialize(FArchive& Ar)
 	URPGLevelUpNotificationSubsystem::RestorePersistentState(PendingLevelUpNotifications);
 	UE_LOG(LogGrimrockPartySave, Log,
 		TEXT("[GridSave] Load Version=%d ClassChoices=%d PendingLevelUps=%d StatusCharacters=%d KnownSpellCharacters=%d Result=Accepted"),
-		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpNotifications.Num(), CharacterStatusEffectStates.Num(),
-		CountCharactersWithKnownSpells(PartyInventoryState));
+		SaveVersion, CountSelectedClassChoices(PartyInventoryState), PendingLevelUpNotifications.Num(),
+		CountCharactersWithStatusEffects(PartyInventoryState), CountCharactersWithKnownSpells(PartyInventoryState));
 }

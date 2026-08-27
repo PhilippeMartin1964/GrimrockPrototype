@@ -1,6 +1,6 @@
 # GrimrockPrototype — Active Completion Roadmap
 
-Statut : **TD07.3.3.8 STATUS EFFECT CHARACTERIZATION ACTIVE — MON21.4 SUSPENDU**  
+Statut : **TD07.3.3.8 STATUS EFFECT NORMALIZATION IMPLÉMENTÉE — À VALIDER — MON21.4 SUSPENDU**  
 Date de référence : **27 août 2026**
 
 Ce document est la feuille de route active et autoritaire du projet. `04_IMPLEMENTATION_ROADMAP.md` reste historique.
@@ -59,7 +59,7 @@ FGridPartyInventoryState
     └── SkillRanks
 ```
 
-Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 a ouvert **v12 exact-match** après séparation des ressources mutables. TD07.3.3.4 a ouvert **v13 exact-match** après suppression des caches de poids. TD07.3.3.5 B1 a ouvert **v14** lorsque `Level` est devenu transient ; B2 a ouvert **v15 exact-match** après suppression du miroir `ClassProgressionStates`. TD07.3.3.6 ouvre **v16 exact-match** avec `SkillRanks` comme autorité durable unique et suppression de `CharacterSkillStates`. TD07.3.3.7 ouvre **v17 exact-match** avec `KnownSpellIds` comme autorité durable unique et suppression du miroir Spellbook ; aucune migration arrière. TD07.3.3.7 Shipping final est validé le 27 août 2026.
+Le SaveGame était v8 à la clôture MON20, puis v9 via TD01.1. TD07.3.2 a ouvert le schéma prototype v10 exact-match. TD07.3.3.2 a ouvert **v11 exact-match** après suppression du bridge legacy des attributs. TD07.3.3.3 a ouvert **v12 exact-match** après séparation des ressources mutables. TD07.3.3.4 a ouvert **v13 exact-match** après suppression des caches de poids. TD07.3.3.5 B1 a ouvert **v14** lorsque `Level` est devenu transient ; B2 a ouvert **v15 exact-match** après suppression du miroir `ClassProgressionStates`. TD07.3.3.6 ouvre **v16 exact-match** avec `SkillRanks` comme autorité durable unique et suppression de `CharacterSkillStates`. TD07.3.3.7 ouvre **v17 exact-match** avec `KnownSpellIds` comme autorité durable unique et suppression du miroir Spellbook ; aucune migration arrière. TD07.3.3.7 Shipping final est validé le 27 août 2026. TD07.3.3.8 ouvre **v18 exact-match** avec `Character.StatusEffects` comme autorité durable directe et suppression du miroir `CharacterStatusEffectStates`.
 
 ---
 
@@ -207,7 +207,7 @@ TD07.3.3.4 Normalize Weight State                              VALIDÉ
 TD07.3.3.5 Normalize XP / Level / Class Progression                VALIDÉ
 TD07.3.3.6 Normalize Skills                                        VALIDÉ — CLOS
 TD07.3.3.7 Normalize Spellbook                                     VALIDÉ — CLOS
-TD07.3.3.8 Normalize Status Effects                                 CHARACTERIZATION ACTIVE
+TD07.3.3.8 Normalize Status Effects                                 IMPLÉMENTÉ — À VALIDER
 TD07.3.4–8 Data model reset                                  À FAIRE
 ```
 

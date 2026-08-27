@@ -64,28 +64,27 @@ bool FGridTD07338RuntimeAuthorityBoundaryTest::RunTest(const FString& Parameters
 	const FProperty* CharacterStatusProperty =
 		FindFProperty<FProperty>(FGridCharacterInventoryState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridCharacterInventoryState, StatusEffects));
 	TestNotNull(TEXT("Character.StatusEffects is reflected"), CharacterStatusProperty);
-	TestTrue(TEXT("Character.StatusEffects is currently transient at the Save boundary"),
-		CharacterStatusProperty && CharacterStatusProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Character.StatusEffects is durable and non-transient"),
+		CharacterStatusProperty && !CharacterStatusProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	const FProperty* DefinitionProperty =
 		FindFProperty<FProperty>(FGridStatusEffectRuntimeState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridStatusEffectRuntimeState, DefinitionAsset));
 	TestNotNull(TEXT("Runtime DefinitionAsset cache is reflected"), DefinitionProperty);
-	TestTrue(TEXT("DefinitionAsset is transient and reconstructible"),
+	TestTrue(TEXT("DefinitionAsset remains transient and reconstructible"),
 		DefinitionProperty && DefinitionProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	const FProperty* EffectIdProperty =
 		FindFProperty<FProperty>(FGridStatusEffectRuntimeState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridStatusEffectRuntimeState, EffectId));
 	TestNotNull(TEXT("Stable EffectId is reflected"), EffectIdProperty);
-	TestTrue(TEXT("Stable EffectId is not transient"), EffectIdProperty && !EffectIdProperty->HasAnyPropertyFlags(CPF_Transient));
+	TestTrue(TEXT("Stable EffectId remains durable"), EffectIdProperty && !EffectIdProperty->HasAnyPropertyFlags(CPF_Transient));
 
 	UGridStatusEffectDefinitionAsset* Definition = MakeTD07338Definition(TEXT("TD07338_Runtime"));
 	FGridCharacterInventoryState Character = MakeTD07338Character(MakeTD07338Id(1));
 	Character.StatusEffects.ActiveEffects.Add(MakeTD07338RuntimeState(Definition, MakeTD07338Id(101), 2, 3, 7));
 
-	TestEqual(TEXT("Character runtime state owns one active effect"), Character.StatusEffects.Num(), 1);
-	TestEqual(TEXT("Stable runtime EffectId is carried by character state"), Character.StatusEffects.ActiveEffects[0].EffectId, Definition->EffectId);
-	TestTrue(TEXT("Runtime state carries only a rehydratable DefinitionAsset cache"),
-		Character.StatusEffects.ActiveEffects[0].DefinitionAsset.Get() == Definition);
+	TestEqual(TEXT("Character durable state owns one active effect"), Character.StatusEffects.Num(), 1);
+	TestEqual(TEXT("Stable EffectId is carried directly by character state"), Character.StatusEffects.ActiveEffects[0].EffectId, Definition->EffectId);
+	TestTrue(TEXT("DefinitionAsset remains only a runtime cache"), Character.StatusEffects.ActiveEffects[0].DefinitionAsset.Get() == Definition);
 	return true;
 }
 
@@ -98,39 +97,30 @@ bool FGridTD07338PartySparseSaveMirrorTest::RunTest(const FString& Parameters)
 	(void)Parameters;
 	using namespace GridTD07338Characterization;
 
+	TestNull(TEXT("Separate CharacterStatusEffectStates SaveGame mirror is removed"),
+		FindFProperty<FProperty>(UGrimrockPartySaveGame::StaticClass(), TEXT("CharacterStatusEffectStates")));
+
 	UGridStatusEffectDefinitionAsset* ActiveDefinition = MakeTD07338Definition(TEXT("TD07338_Active"));
 	UGridStatusEffectDefinitionAsset* PoolDefinition =
 		MakeTD07338Definition(TEXT("TD07338_Pool"), EGridStatusEffectDurationUnit::Turns, 2, 2);
 
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-
+	FGridPartyInventoryState Party;
 	FGridCharacterInventoryState Active = MakeTD07338Character(MakeTD07338Id(2));
 	Active.StatusEffects.ActiveEffects.Add(MakeTD07338RuntimeState(ActiveDefinition, MakeTD07338Id(102), 2, 2, 5));
-	Save->PartyInventoryState.ActiveCharacters.Add(Active);
-	Save->PartyInventoryState.ActiveCharacters.Add(MakeTD07338Character(MakeTD07338Id(3)));
+	Party.ActiveCharacters.Add(Active);
+	Party.ActiveCharacters.Add(MakeTD07338Character(MakeTD07338Id(3)));
 
 	FGridCharacterInventoryState Pool = MakeTD07338Character(MakeTD07338Id(4));
 	Pool.StatusEffects.ActiveEffects.Add(MakeTD07338RuntimeState(PoolDefinition, MakeTD07338Id(104), 1, 1, 2));
-	Save->PartyInventoryState.CharacterPool.Add(Pool);
+	Party.CharacterPool.Add(Pool);
+
+	const FGridPartyInventoryState DurableCopy = Party;
+	TestEqual(TEXT("Active character carries its status directly"), DurableCopy.ActiveCharacters[0].StatusEffects.Num(), 1);
+	TestTrue(TEXT("Empty active character needs no sparse mirror"), DurableCopy.ActiveCharacters[1].StatusEffects.IsEmpty());
+	TestEqual(TEXT("Pool character carries its status directly"), DurableCopy.CharacterPool[0].StatusEffects.Num(), 1);
 
 	FString Error;
-	TestTrue(TEXT("Current party status state captures into a separate Save mirror"), Save->CaptureStatusEffectState(Error));
-	TestEqual(TEXT("Sparse mirror omits the empty active character"), Save->CharacterStatusEffectStates.Num(), 2);
-	if (Save->CharacterStatusEffectStates.Num() == 2)
-	{
-		TestTrue(TEXT("Snapshots are deterministically sorted by CharacterId"),
-			Save->CharacterStatusEffectStates[0].CharacterId == MakeTD07338Id(2) &&
-				Save->CharacterStatusEffectStates[1].CharacterId == MakeTD07338Id(4));
-		TestEqual(TEXT("Active snapshot contains one stable effect"), Save->CharacterStatusEffectStates[0].StatusEffects.Num(), 1);
-		if (Save->CharacterStatusEffectStates[0].StatusEffects.Num() == 1)
-		{
-			const FGridStatusEffectSaveState& Snapshot = Save->CharacterStatusEffectStates[0].StatusEffects[0];
-			TestEqual(TEXT("Snapshot preserves EffectId"), Snapshot.EffectId, ActiveDefinition->EffectId);
-			TestEqual(TEXT("Snapshot preserves StackCount"), Snapshot.StackCount, 2);
-			TestEqual(TEXT("Snapshot preserves RemainingDuration"), Snapshot.RemainingDuration, 2);
-			TestEqual(TEXT("Snapshot preserves Potency"), Snapshot.Potency, 5);
-		}
-	}
+	TestTrue(TEXT("Direct durable party state validates"), FGridStatusEffectPersistence::ValidatePartyStatusEffects(DurableCopy, Error));
 	return true;
 }
 
@@ -146,46 +136,45 @@ bool FGridTD07338PartyRestoreReplacementBoundaryTest::RunTest(const FString& Par
 	UGridStatusEffectDefinitionAsset* SavedDefinition = MakeTD07338Definition(TEXT("TD07338_Saved"));
 	UGridStatusEffectDefinitionAsset* SentinelDefinition = MakeTD07338Definition(TEXT("TD07338_Sentinel"));
 
-	UGrimrockPartySaveGame* Save = NewObject<UGrimrockPartySaveGame>();
-	FGridCharacterInventoryState Character = MakeTD07338Character(MakeTD07338Id(5));
-	Character.StatusEffects.ActiveEffects.Add(MakeTD07338RuntimeState(SavedDefinition, MakeTD07338Id(105), 1, 2, 3));
-	Save->PartyInventoryState.ActiveCharacters.Add(Character);
-	Save->PartyInventoryState.ActiveCharacters.Add(MakeTD07338Character(MakeTD07338Id(6)));
+	FGridPartyInventoryState SavedParty;
+	FGridCharacterInventoryState SavedCharacter = MakeTD07338Character(MakeTD07338Id(5));
+	SavedCharacter.StatusEffects.ActiveEffects.Add(MakeTD07338RuntimeState(SavedDefinition, MakeTD07338Id(105), 1, 2, 3));
+	SavedCharacter.StatusEffects.ActiveEffects[0].DefinitionAsset = nullptr;
+	SavedParty.ActiveCharacters.Add(SavedCharacter);
+	SavedParty.ActiveCharacters.Add(MakeTD07338Character(MakeTD07338Id(6)));
 
+	FGridPartyInventoryState RuntimeParty;
+	FGridCharacterInventoryState RuntimeCharacter = MakeTD07338Character(MakeTD07338Id(5));
+	RuntimeCharacter.StatusEffects.ActiveEffects.Add(MakeTD07338RuntimeState(SentinelDefinition, MakeTD07338Id(106), 1, 3, 1));
+	RuntimeParty.ActiveCharacters.Add(RuntimeCharacter);
+	RuntimeParty.ActiveCharacters.Add(MakeTD07338Character(MakeTD07338Id(6)));
+
+	RuntimeParty = SavedParty;
 	FString Error;
-	TestTrue(TEXT("Initial party mirror captures"), Save->CaptureStatusEffectState(Error));
-
-	Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.Reset();
-	Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.ActiveEffects.Add(
-		MakeTD07338RuntimeState(SentinelDefinition, MakeTD07338Id(106), 1, 3, 1));
-
-	TestTrue(TEXT("Restore replaces runtime character status state"),
-		Save->RestoreStatusEffectState(
+	TestTrue(TEXT("Whole-party restore candidate rehydrates directly"),
+		FGridStatusEffectPersistence::RehydratePartyStatusEffects(
+			RuntimeParty,
 			[SavedDefinition](FName EffectId) -> UGridStatusEffectDefinitionAsset*
 			{
 				return EffectId == SavedDefinition->EffectId ? SavedDefinition : nullptr;
 			},
 			Error));
-	TestTrue(TEXT("Persisted effect is restored"),
-		Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.Contains(SavedDefinition->EffectId));
-	TestFalse(TEXT("Stale runtime-only effect is removed"),
-		Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.Contains(SentinelDefinition->EffectId));
-	TestTrue(TEXT("Character absent from sparse mirror restores empty"),
-		Save->PartyInventoryState.ActiveCharacters[1].StatusEffects.IsEmpty());
+	TestTrue(TEXT("Persisted effect remains"), RuntimeParty.ActiveCharacters[0].StatusEffects.Contains(SavedDefinition->EffectId));
+	TestFalse(TEXT("Stale runtime effect is absent after whole-party replacement"),
+		RuntimeParty.ActiveCharacters[0].StatusEffects.Contains(SentinelDefinition->EffectId));
+	TestTrue(TEXT("Character with no durable status remains empty"), RuntimeParty.ActiveCharacters[1].StatusEffects.IsEmpty());
 
-	Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.Reset();
-	Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.ActiveEffects.Add(
-		MakeTD07338RuntimeState(SentinelDefinition, MakeTD07338Id(107), 1, 3, 1));
-
-	TestFalse(TEXT("Missing canonical definition rejects whole-party restore atomically"),
-		Save->RestoreStatusEffectState(
+	FGridPartyInventoryState InvalidCandidate = SavedParty;
+	TestFalse(TEXT("Missing canonical definition rejects rehydration atomically"),
+		FGridStatusEffectPersistence::RehydratePartyStatusEffects(
+			InvalidCandidate,
 			[](FName) -> UGridStatusEffectDefinitionAsset*
 			{
 				return nullptr;
 			},
 			Error));
-	TestTrue(TEXT("Failed restore preserves previous runtime collection"),
-		Save->PartyInventoryState.ActiveCharacters[0].StatusEffects.Contains(SentinelDefinition->EffectId));
+	TestNull(TEXT("Failed rehydration does not partially bind DefinitionAsset"),
+		InvalidCandidate.ActiveCharacters[0].StatusEffects.ActiveEffects[0].DefinitionAsset.Get());
 	return true;
 }
 
@@ -200,16 +189,16 @@ bool FGridTD07338MonsterSnapshotIsolationTest::RunTest(const FString& Parameters
 	const FArrayProperty* MonsterStatusProperty =
 		FindFProperty<FArrayProperty>(FGridRuntimeMonsterState::StaticStruct(), GET_MEMBER_NAME_CHECKED(FGridRuntimeMonsterState, StatusEffects));
 	TestNotNull(TEXT("Monster persistent runtime state keeps a status snapshot array"), MonsterStatusProperty);
-	TestTrue(TEXT("Monster status snapshot is explicitly SaveGame state"),
+	TestTrue(TEXT("Monster status snapshot remains explicit SaveGame state"),
 		MonsterStatusProperty && MonsterStatusProperty->HasAnyPropertyFlags(CPF_SaveGame));
 
 	const FStructProperty* InnerStructProperty =
 		MonsterStatusProperty ? CastField<FStructProperty>(MonsterStatusProperty->Inner) : nullptr;
 	TestNotNull(TEXT("Monster status array has a struct element type"), InnerStructProperty);
-	TestTrue(TEXT("Monster persistence intentionally depends on FGridStatusEffectSaveState"),
+	TestTrue(TEXT("Monster persistence still depends on FGridStatusEffectSaveState"),
 		InnerStructProperty && InnerStructProperty->Struct == FGridStatusEffectSaveState::StaticStruct());
 
-	TestNull(TEXT("Save snapshot deliberately contains no DefinitionAsset pointer"),
+	TestNull(TEXT("Monster save snapshot still contains no DefinitionAsset pointer"),
 		FindFProperty<FProperty>(FGridStatusEffectSaveState::StaticStruct(), TEXT("DefinitionAsset")));
 	return true;
 }

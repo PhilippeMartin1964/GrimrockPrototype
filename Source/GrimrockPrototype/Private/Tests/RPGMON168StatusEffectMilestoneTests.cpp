@@ -280,8 +280,8 @@ bool FRPGMON168RuntimeSaveBoundaryTest::RunTest(const FString& Parameters)
 		MON168LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/RPG/StatusEffects/GridStatusEffectTypes.h"), TypesText));
 	TestTrue(TEXT("GrimrockPartySaveGame source loads"), MON168LoadProjectFile(TEXT("Source/GrimrockPrototype/Public/Save/GrimrockPartySaveGame.h"), SaveText));
 
-	TestTrue(TEXT("Party runtime status collection remains Transient"),
-		InventoryText.Contains(TEXT("UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = \"RPG|Status Effects\")")));
+	TestTrue(TEXT("Party status collection is durable in character state"),
+		InventoryText.Contains(TEXT("UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = \"RPG|Status Effects\")")));
 	TestTrue(TEXT("Monster runtime status collection remains Transient"),
 		MonsterText.Contains(TEXT("UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Transient, Category = \"Monster|Status Effects\")")));
 
@@ -298,7 +298,7 @@ bool FRPGMON168RuntimeSaveBoundaryTest::RunTest(const FString& Parameters)
 		TEXT("Runtime state owns transient DefinitionAsset"), RuntimeSection.Contains(TEXT("Transient")) && RuntimeSection.Contains(TEXT("DefinitionAsset")));
 	TestTrue(TEXT("Save state fields are marked SaveGame"), SaveSection.Contains(TEXT("UPROPERTY(SaveGame")));
 	TestFalse(TEXT("Save state never contains DefinitionAsset"), SaveSection.Contains(TEXT("DefinitionAsset")));
-	TestTrue(TEXT("SaveGame owns party status snapshots"), SaveText.Contains(TEXT("CharacterStatusEffectStates")) && SaveText.Contains(TEXT("SaveGame")));
+	TestFalse(TEXT("SaveGame no longer owns a parallel party status snapshot"), SaveText.Contains(TEXT("CharacterStatusEffectStates")));
 	return true;
 }
 

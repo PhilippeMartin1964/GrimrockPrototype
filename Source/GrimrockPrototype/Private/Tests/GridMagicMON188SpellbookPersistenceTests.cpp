@@ -256,7 +256,7 @@ bool FGridMagicMON188DiskRoundTripTest::RunTest(const FString& Parameters)
 	Source->PartyInventoryState.ActiveCharacters[0].CombatHotbarSlots[1] =
 		MakeMON188SpellBinding(FGridProductionSpellLibrary::LesserHealId(), 1);
 
-	TestTrue(TEXT("Current v17 durable Spellbook writes to disk"),
+	TestTrue(TEXT("Current-schema durable Spellbook writes to disk"),
 		UGameplayStatics::SaveGameToSlot(Source, DiskSlot.SlotName, DiskSlot.UserIndex));
 	UGrimrockPartySaveGame* Loaded = Cast<UGrimrockPartySaveGame>(UGameplayStatics::LoadGameFromSlot(DiskSlot.SlotName, DiskSlot.UserIndex));
 	TestNotNull(TEXT("Temporary disk save reloads"), Loaded);
