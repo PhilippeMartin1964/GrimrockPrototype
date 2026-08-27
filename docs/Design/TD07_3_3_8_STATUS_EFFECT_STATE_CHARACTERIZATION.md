@@ -4,7 +4,7 @@ Date : **27 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3.3 — Character State Normalization**  
 Baseline : `be869676c208a7fa7484d00bde3c90d4392389b5`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — NORMALIZATION ACTIVE**
 
 ## 1. Objet
 
@@ -240,5 +240,19 @@ DataAssets / Blueprints / maps
 - [x] dépendance monster à `FGridStatusEffectSaveState` documentée ;
 - [x] cible de suppression personnage documentée ;
 - [x] 4 tests de caractérisation ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] 4/4 tests verts.
+- [x] build UE5.5.4 vert ;
+- [x] 4/4 tests verts.
+
+Validation locale du 27 août 2026 :
+
+```text
+Filter                 : Grimrock.TechnicalDebt.TD07_3_3_8.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260827-220118
+```
+
+Le gate est atteint. La normalisation peut commencer.
