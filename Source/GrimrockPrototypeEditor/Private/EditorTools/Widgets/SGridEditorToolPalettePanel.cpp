@@ -23,7 +23,6 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
-#include "Widgets/Layout/SWrapBox.h"
 
 namespace
 {
@@ -144,36 +143,26 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolPalettePanel()
 
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildToolSection()
 {
-	TSharedRef<SUniformGridPanel> ToolGrid = SNew(SUniformGridPanel)
-		.SlotPadding(FMargin(4.f));
+	TSharedRef<SHorizontalBox> ToolRow = SNew(SHorizontalBox);
 
-	struct FToolEntry
+	const auto AddTool = [this, &ToolRow](const FText& Label, EGridEditorTool Tool)
 	{
-		FText Label;
-		EGridEditorTool Tool;
+		ToolRow->AddSlot()
+			.AutoWidth()
+			.Padding(FMargin(2.f, 0.f, 2.f, 0.f))
+			[
+				BuildToolTile(Label, GetToolGlyph(Tool), Tool)
+			];
 	};
 
-	const TArray<FToolEntry> Tools =
-	{
-		{ FText::FromString(TEXT("Select")), EGridEditorTool::Select },
-		{ FText::FromString(TEXT("Paint Cell")), EGridEditorTool::PaintCell },
-		{ FText::FromString(TEXT("Paint Wall")), EGridEditorTool::PaintWall },
-		{ FText::FromString(TEXT("Paint Object")), EGridEditorTool::PaintObject },
-		{ FText::FromString(TEXT("Erase")), EGridEditorTool::Erase },
-		{ FText::FromString(TEXT("Link")), EGridEditorTool::Link }
-	};
+	AddTool(FText::FromString(TEXT("Select")), EGridEditorTool::Select);
+	AddTool(FText::FromString(TEXT("Paint Cell")), EGridEditorTool::PaintCell);
+	AddTool(FText::FromString(TEXT("Paint Wall")), EGridEditorTool::PaintWall);
+	AddTool(FText::FromString(TEXT("Paint Object")), EGridEditorTool::PaintObject);
+	AddTool(FText::FromString(TEXT("Erase")), EGridEditorTool::Erase);
+	AddTool(FText::FromString(TEXT("Link")), EGridEditorTool::Link);
 
-	for (int32 Index = 0; Index < Tools.Num(); ++Index)
-	{
-		const int32 Column = Index % 3;
-		const int32 Row = Index / 3;
-		ToolGrid->AddSlot(Column, Row)
-		[
-			BuildToolTile(Tools[Index].Label, GetToolGlyph(Tools[Index].Tool), Tools[Index].Tool)
-		];
-	}
-
-	return ToolGrid;
+	return ToolRow;
 }
 
 UTexture2D* SGridEditorToolPalettePanel::GetToolIcon(EGridEditorTool Tool) const
@@ -527,7 +516,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteResults()
 
 	Root->AddSlot()
 		.AutoHeight()
-		.Padding(0.f, 2.f, 0.f, 4.f)
+		.Padding(0.f, 2.f, 0.f, 3.f)
 		[
 			SNew(STextBlock)
 				.Text(FText::Format(
@@ -541,7 +530,7 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteResults()
 	{
 		Root->AddSlot()
 			.AutoHeight()
-			.Padding(0.f, 6.f, 0.f, 0.f)
+			.Padding(0.f, 4.f, 0.f, 0.f)
 			[
 				SNew(STextBlock)
 					.Text(FText::FromString(TEXT("No palette entries match the active filters.")))
@@ -560,6 +549,9 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteResults()
 			return SortOrderA == SortOrderB ? CategoryA.ToString() < CategoryB.ToString() : SortOrderA < SortOrderB;
 		});
 
+	const bool bShowCategoryHeaders = GetToolPaletteState().SelectedCategory.IsNone();
+	constexpr int32 PaletteColumnsPerRow = 8;
+
 	for (const FName& Category : SortedCategories)
 	{
 		const TArray<const FGridObjectPaletteEntry*>* CategoryEntries = EntriesByCategory.Find(Category);
@@ -568,25 +560,35 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteResults()
 			continue;
 		}
 
-		Root->AddSlot()
-			.AutoHeight()
-			.Padding(0.f, 6.f, 0.f, 2.f)
-			[
-				SNew(STextBlock)
-					.Text(GetPaletteCategoryDisplayText(Category))
-					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 10))
-			];
-
-		TSharedRef<SWrapBox> EntryWrap = SNew(SWrapBox);
-		for (const FGridObjectPaletteEntry* Entry : *CategoryEntries)
+		if (bShowCategoryHeaders)
 		{
+			Root->AddSlot()
+				.AutoHeight()
+				.Padding(0.f, 5.f, 0.f, 2.f)
+				[
+					SNew(STextBlock)
+						.Text(GetPaletteCategoryDisplayText(Category))
+						.Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))
+				];
+		}
+
+		TSharedRef<SUniformGridPanel> Grid = SNew(SUniformGridPanel)
+			.SlotPadding(FMargin(2.f));
+
+		for (int32 Index = 0; Index < CategoryEntries->Num(); ++Index)
+		{
+			const FGridObjectPaletteEntry* Entry = (*CategoryEntries)[Index];
 			if (!Entry)
 			{
 				continue;
 			}
 
-			EntryWrap->AddSlot()
-				.Padding(FMargin(4.f))
+			const int32 Row = Index / PaletteColumnsPerRow;
+			const int32 Column = Index % PaletteColumnsPerRow;
+
+			Grid->AddSlot(Column, Row)
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Top)
 				[
 					BuildPaletteTile(*Entry)
 				];
@@ -594,8 +596,13 @@ TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteResults()
 
 		Root->AddSlot()
 			.AutoHeight()
+			.HAlign(HAlign_Left)
 			[
-				EntryWrap
+				SNew(SBox)
+					.HAlign(HAlign_Left)
+					[
+						Grid
+					]
 			];
 	}
 
@@ -618,32 +625,54 @@ FReply SGridEditorToolPalettePanel::OnPaletteCategoryClicked(FName Category)
 TSharedRef<SWidget> SGridEditorToolPalettePanel::BuildPaletteTile(const FGridObjectPaletteEntry& Entry)
 {
 	const AGridLevelEditorActor* CurrentEditorActor = GetEditorActor();
-
 	const bool bSelected = CurrentEditorActor && CurrentEditorActor->SelectedPaletteEntryId == Entry.EntryId;
 
 	const FText Label = Entry.GetEffectiveDisplayName();
-
 	const FName EntryId = Entry.EntryId;
 	UTexture2D* IconTexture = Entry.Icon.Get();
 
-	return SNew(SButton)
-		.ContentPadding(6.f)
-		.ButtonColorAndOpacity(bSelected ? FLinearColor(0.10f, 0.45f, 0.55f, 1.f) : FLinearColor(0.07f, 0.07f, 0.07f, 1.f))
-		.OnClicked_Lambda(
-			[this, EntryId]() -> FReply
-			{
-				return OnPaletteEntryClicked(EntryId);
-			})[SNew(SBox).WidthOverride(112.f).HeightOverride(96.f)[SNew(SVerticalBox)
+	constexpr float TileSize = 96.f;
+	constexpr float IconSize = 44.f;
 
-			+ SVerticalBox::Slot()
-				  .FillHeight(1.f)
-				  .HAlign(HAlign_Center)
-				  .VAlign(VAlign_Center)[BuildIconOrFallback(IconTexture, Entry.GetEffectiveObjectType(), 52.f)]
+	return SNew(SBox)
+		.WidthOverride(TileSize)
+		.HeightOverride(TileSize)
+		[
+			SNew(SButton)
+				.ContentPadding(FMargin(3.f))
+				.ButtonColorAndOpacity(
+					bSelected
+						? FLinearColor(0.10f, 0.45f, 0.55f, 1.f)
+						: FLinearColor(0.035f, 0.035f, 0.035f, 1.f))
+				.OnClicked_Lambda(
+					[this, EntryId]() -> FReply
+					{
+						return OnPaletteEntryClicked(EntryId);
+					})
+				[
+					SNew(SVerticalBox)
 
-			+ SVerticalBox::Slot()
-				  .AutoHeight()
-				  .HAlign(HAlign_Center)
-				  .Padding(0.f, 4.f, 0.f, 0.f)[SNew(STextBlock).Text(Label).Justification(ETextJustify::Center)]]];
+					+ SVerticalBox::Slot()
+					.FillHeight(1.f)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					[
+						BuildIconOrFallback(IconTexture, Entry.GetEffectiveObjectType(), IconSize)
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.HAlign(HAlign_Center)
+					.Padding(2.f, 2.f, 2.f, 1.f)
+					[
+						SNew(STextBlock)
+							.Text(Label)
+							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 8))
+							.Justification(ETextJustify::Center)
+							.AutoWrapText(true)
+					]
+				]
+		];
 }
 
 FReply SGridEditorToolPalettePanel::OnToolClicked(int32 ToolValue)

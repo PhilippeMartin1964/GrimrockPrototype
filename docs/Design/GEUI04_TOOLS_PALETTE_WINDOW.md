@@ -225,3 +225,40 @@ All
 followed by the effective palette categories. The selected tab uses distinct background/text treatment and a visible underline. If the complete tab strip is wider than the docked window, it scrolls horizontally instead of wrapping into button rows.
 
 Search remains above the tabs. Object result tiles remain responsive below them.
+
+
+## GEUI04.2 — Compact single-row tools and square palette grid
+
+A second visual review on the actual UE5.5.4 dockable window showed two remaining layout defects:
+
+- the six Tools were still split over two rows;
+- palette result tiles were effectively laid out as a single vertical column, with excessive surrounding empty space.
+
+GEUI04.2 removes both ambiguous responsive layouts.
+
+### Tools
+
+Tools are now hosted in a single `SHorizontalBox` with six `AutoWidth` slots:
+
+~~~text
+Select | Paint Cell | Paint Wall | Paint Object | Erase | Link
+~~~
+
+There is no wrap and no second row.
+
+### Palette results
+
+Palette entries no longer use `SWrapBox`.
+
+Each category uses a compact `SUniformGridPanel` with up to **8 columns per row**. Grid slots use explicit left/top alignment so the square buttons cannot stretch with the available panel width.
+
+Each palette tile is a strict **96 x 96** square with:
+
+- reduced 3 px button content padding;
+- 44 px icon area;
+- compact centered 8 pt label;
+- 2 px spacing between grid cells.
+
+When a specific category tab is selected, its category title is not repeated above the grid. Category headers are retained only in the `All` tab where they separate groups.
+
+This milestone changes presentation only; palette selection and archetype application remain unchanged.
