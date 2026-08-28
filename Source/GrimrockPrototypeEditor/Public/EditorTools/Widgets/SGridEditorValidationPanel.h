@@ -15,6 +15,7 @@ struct FGridEditorValidationPanelState
 	bool bShowErrors = true;
 	bool bShowWarnings = true;
 	bool bShowInfos = true;
+	FString SearchText;
 
 	void CountValidationErrorsWarnings(int32& OutErrorCount, int32& OutWarningCount) const;
 	void CountValidationMessages(int32& OutErrorCount, int32& OutWarningCount, int32& OutInfoCount) const;
@@ -46,9 +47,12 @@ private:
 	TSharedRef<SWidget> BuildValidationSection();
 	FReply OnValidateLevelClicked();
 	FReply OnCopySummaryClicked() const;
+	FReply OnClearFiltersClicked();
 	FReply OnSelectObjectClicked(FGuid ObjectId, bool bFocus);
 	FReply OnSelectCellClicked(int32 CellX, int32 CellY);
+	void OnSearchTextChanged(const FText& NewText);
 	bool ShouldShowMessage(const FGridLevelValidationMessage& ValidationMessage) const;
+	bool DoesMessageMatchSearch(const FGridLevelValidationMessage& ValidationMessage) const;
 
 private:
 	TWeakObjectPtr<AGridLevelEditorActor> EditorActor;

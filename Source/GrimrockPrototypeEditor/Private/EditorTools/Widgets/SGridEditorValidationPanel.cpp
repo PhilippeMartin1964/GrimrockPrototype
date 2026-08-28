@@ -13,6 +13,7 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBorder.h"
 
@@ -61,6 +62,33 @@ namespace
 				return 2;
 		}
 	}
+
+
+	FText GetValidationHeadlineText(int32 ErrorCount, int32 WarningCount)
+	{
+		if (ErrorCount > 0)
+		{
+			return FText::FromString(TEXT("INVALID"));
+		}
+		if (WarningCount > 0)
+		{
+			return FText::FromString(TEXT("VALID WITH WARNINGS"));
+		}
+		return FText::FromString(TEXT("VALID"));
+	}
+
+	FSlateColor GetValidationHeadlineColor(int32 ErrorCount, int32 WarningCount)
+	{
+		if (ErrorCount > 0)
+		{
+			return FSlateColor(FLinearColor(0.95f, 0.25f, 0.20f, 1.f));
+		}
+		if (WarningCount > 0)
+		{
+			return FSlateColor(FLinearColor(1.0f, 0.72f, 0.20f, 1.f));
+		}
+		return FSlateColor(FLinearColor(0.35f, 0.85f, 0.45f, 1.f));
+	}
 }
 
 void FGridEditorValidationPanelState::CountValidationErrorsWarnings(int32& OutErrorCount, int32& OutWarningCount) const
@@ -108,21 +136,102 @@ FText FGridEditorValidationPanelState::GetValidationStatusText() const
 		FText::FromString(TEXT("{0} errors, {1} warnings, {2} infos")), FText::AsNumber(ErrorCount), FText::AsNumber(WarningCount), FText::AsNumber(InfoCount));
 }
 
+bool SGridEditorValidationPanel::DoesMessageMatchSearch(const FGridLevelValidationMessage& ValidationMessage) const
+{
+	FString Search = GetValidationState().SearchText;
+	Search.TrimStartAndEndInline();
+	if (Search.IsEmpty())
+	{
+		return true;
+	}
+
+	const auto Matches = [&Search](const FString& Candidate)
+	{
+		return Candidate.Contains(Search, ESearchCase::IgnoreCase);
+	};
+
+	if (Matches(ValidationMessage.Message) || Matches(ValidationMessage.Category.ToString()))
+	{
+		return true;
+	}
+
+	if (ValidationMessage.OptionalObjectId.IsValid() && Matches(ValidationMessage.OptionalObjectId.ToString()))
+	{
+		return true;
+	}
+	if (ValidationMessage.SourceObjectId.IsValid() && Matches(ValidationMessage.SourceObjectId.ToString()))
+	{
+		return true;
+	}
+	if (ValidationMessage.TargetObjectId.IsValid() && Matches(ValidationMessage.TargetObjectId.ToString()))
+	{
+		return true;
+	}
+
+	if (ValidationMessage.CellX != INDEX_NONE && ValidationMessage.CellY != INDEX_NONE)
+	{
+		const FString CellText = FString::Printf(TEXT("%d,%d"), ValidationMessage.CellX, ValidationMessage.CellY);
+		const FString CellTextWithSpace = FString::Printf(TEXT("%d, %d"), ValidationMessage.CellX, ValidationMessage.CellY);
+		if (Matches(CellText) || Matches(CellTextWithSpace))
+		{
+			return true;
+		}
+	}
+
+	if (ValidationMessage.Edge != EGridEdge::None)
+	{
+		if (const UEnum* EdgeEnum = StaticEnum<EGridEdge>())
+		{
+			if (Matches(EdgeEnum->GetNameStringByValue(static_cast<int64>(ValidationMessage.Edge))) ||
+				Matches(EdgeEnum->GetDisplayNameTextByValue(static_cast<int64>(ValidationMessage.Edge)).ToString()))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 bool SGridEditorValidationPanel::ShouldShowMessage(const FGridLevelValidationMessage& ValidationMessage) const
 {
 	const FGridEditorValidationPanelState& CurrentValidationState = GetValidationState();
+	bool bSeverityVisible = false;
+
 	switch (ValidationMessage.Severity)
 	{
 		case EGridLevelValidationSeverity::Error:
-			return CurrentValidationState.bShowErrors;
+			bSeverityVisible = CurrentValidationState.bShowErrors;
+			break;
 
 		case EGridLevelValidationSeverity::Warning:
-			return CurrentValidationState.bShowWarnings;
+			bSeverityVisible = CurrentValidationState.bShowWarnings;
+			break;
 
 		case EGridLevelValidationSeverity::Info:
 		default:
-			return CurrentValidationState.bShowInfos;
+			bSeverityVisible = CurrentValidationState.bShowInfos;
+			break;
 	}
+
+	return bSeverityVisible && DoesMessageMatchSearch(ValidationMessage);
+}
+
+void SGridEditorValidationPanel::OnSearchTextChanged(const FText& NewText)
+{
+	GetValidationState().SearchText = NewText.ToString();
+	RequestRefresh();
+}
+
+FReply SGridEditorValidationPanel::OnClearFiltersClicked()
+{
+	FGridEditorValidationPanelState& State = GetValidationState();
+	State.bShowErrors = true;
+	State.bShowWarnings = true;
+	State.bShowInfos = true;
+	State.SearchText.Reset();
+	RequestRefresh();
+	return FReply::Handled();
 }
 
 FReply SGridEditorValidationPanel::OnCopySummaryClicked() const
@@ -168,10 +277,20 @@ FReply SGridEditorValidationPanel::OnSelectCellClicked(int32 CellX, int32 CellY)
 }
 
 void AddValidationFilter(
-	const TSharedRef<SHorizontalBox>& FilterRow, const FText& Label, TFunction<ECheckBoxState()> GetState, TFunction<void(ECheckBoxState)> SetState)
+	const TSharedRef<SHorizontalBox>& FilterRow, const FText& Label, int32 Count, TFunction<ECheckBoxState()> GetState, TFunction<void(ECheckBoxState)> SetState)
 {
-	FilterRow->AddSlot().AutoWidth().Padding(
-		0.f, 0.f, 10.f, 0.f)[SNew(SCheckBox).IsChecked_Lambda(MoveTemp(GetState)).OnCheckStateChanged_Lambda(MoveTemp(SetState))[SNew(STextBlock).Text(Label)]];
+	FilterRow->AddSlot()
+		.AutoWidth()
+		.Padding(0.f, 0.f, 10.f, 0.f)
+		[
+			SNew(SCheckBox)
+				.IsChecked_Lambda(MoveTemp(GetState))
+				.OnCheckStateChanged_Lambda(MoveTemp(SetState))
+				[
+					SNew(STextBlock)
+						.Text(FText::Format(FText::FromString(TEXT("{0} ({1})")), Label, FText::AsNumber(Count)))
+				]
+		];
 }
 
 void AddValidationObjectAction(const TSharedRef<SHorizontalBox>& ActionRow, const FText& Label, TFunction<FReply()> OnClicked)
@@ -252,29 +371,93 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 	const FGridEditorValidationPanelState& CurrentValidationState = GetValidationState();
 	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
 
-	Root->AddSlot().AutoHeight()[SNew(SHorizontalBox)
+	Root->AddSlot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
 
-		+ SHorizontalBox::Slot().FillWidth(1.f).Padding(0.f, 0.f, 4.f, 0.f)[GridEditorWidgetHelpers::BuildGridActionButton(
-			  FText::FromString(TEXT("Refresh Validation")), FOnClicked::CreateSP(this, &SGridEditorValidationPanel::OnValidateLevelClicked))]
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.f)
+			.Padding(0.f, 0.f, 4.f, 0.f)
+			[
+				GridEditorWidgetHelpers::BuildGridActionButton(
+					FText::FromString(TEXT("Refresh Validation")),
+					FOnClicked::CreateSP(this, &SGridEditorValidationPanel::OnValidateLevelClicked))
+			]
 
-		+ SHorizontalBox::Slot().AutoWidth()[SNew(SButton)
-				  .Text(FText::FromString(TEXT("Copy Summary")))
-				  .IsEnabled(CurrentValidationState.bValidationHasRun)
-				  .OnClicked(FOnClicked::CreateSP(this, &SGridEditorValidationPanel::OnCopySummaryClicked))]];
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+					.Text(FText::FromString(TEXT("Copy Summary")))
+					.IsEnabled(CurrentValidationState.bValidationHasRun)
+					.OnClicked(FOnClicked::CreateSP(this, &SGridEditorValidationPanel::OnCopySummaryClicked))
+			]
+		];
 
 	if (!CurrentValidationState.bValidationHasRun)
 	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("No validation run yet."))).AutoWrapText(true)];
-
+		Root->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 6.f, 0.f, 0.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("No validation run yet.")))
+					.AutoWrapText(true)
+			];
 		return Root;
 	}
 
-	Root->AddSlot().AutoHeight().Padding(
-		0.f, 6.f, 0.f, 0.f)[SNew(STextBlock).Text(GetValidationSummaryText(CurrentValidationState)).Font(FCoreStyle::GetDefaultFontStyle("Bold", 9))];
+	int32 ErrorCount = 0;
+	int32 WarningCount = 0;
+	int32 InfoCount = 0;
+	CurrentValidationState.CountValidationMessages(ErrorCount, WarningCount, InfoCount);
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 6.f, 0.f, 0.f)
+		[
+			SNew(SBorder)
+				.Padding(FMargin(8.f, 6.f))
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(0.f, 0.f, 10.f, 0.f)
+					[
+						SNew(STextBlock)
+							.Text(GetValidationHeadlineText(ErrorCount, WarningCount))
+							.Font(FCoreStyle::GetDefaultFontStyle("Bold", 11))
+							.ColorAndOpacity(GetValidationHeadlineColor(ErrorCount, WarningCount))
+					]
+
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+							.Text(GetValidationSummaryText(CurrentValidationState))
+							.Font(FCoreStyle::GetDefaultFontStyle("Regular", 9))
+					]
+				]
+		];
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 6.f, 0.f, 0.f)
+		[
+			SNew(SSearchBox)
+				.HintText(FText::FromString(TEXT("Search message, category, cell, edge or object id...")))
+				.InitialText(FText::FromString(CurrentValidationState.SearchText))
+				.OnTextChanged(this, &SGridEditorValidationPanel::OnSearchTextChanged)
+		];
 
 	TSharedRef<SHorizontalBox> FilterRow = SNew(SHorizontalBox);
 	AddValidationFilter(
-		FilterRow, FText::FromString(TEXT("Errors")),
+		FilterRow, FText::FromString(TEXT("Errors")), ErrorCount,
 		[this]()
 		{
 			return GetValidationState().bShowErrors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -285,7 +468,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 			RequestRefresh();
 		});
 	AddValidationFilter(
-		FilterRow, FText::FromString(TEXT("Warnings")),
+		FilterRow, FText::FromString(TEXT("Warnings")), WarningCount,
 		[this]()
 		{
 			return GetValidationState().bShowWarnings ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -296,7 +479,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 			RequestRefresh();
 		});
 	AddValidationFilter(
-		FilterRow, FText::FromString(TEXT("Infos")),
+		FilterRow, FText::FromString(TEXT("Infos")), InfoCount,
 		[this]()
 		{
 			return GetValidationState().bShowInfos ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -307,12 +490,32 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 			RequestRefresh();
 		});
 
-	Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[FilterRow];
+	FilterRow->AddSlot()
+		.AutoWidth()
+		.Padding(4.f, 0.f, 0.f, 0.f)
+		[
+			SNew(SButton)
+				.Text(FText::FromString(TEXT("Clear Filters")))
+				.OnClicked(FOnClicked::CreateSP(this, &SGridEditorValidationPanel::OnClearFiltersClicked))
+		];
+
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 6.f, 0.f, 0.f)
+		[
+			FilterRow
+		];
 
 	if (CurrentValidationState.ValidationMessages.Num() == 0)
 	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 6.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("No validation messages."))).AutoWrapText(true)];
-
+		Root->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 6.f, 0.f, 0.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("No validation messages.")))
+					.AutoWrapText(true)
+			];
 		return Root;
 	}
 
@@ -324,6 +527,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 			SortedMessages.Add(&ValidationMessage);
 		}
 	}
+
 	SortedMessages.StableSort(
 		[](const FGridLevelValidationMessage& Left, const FGridLevelValidationMessage& Right)
 		{
@@ -332,10 +536,28 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 			return LeftOrder == RightOrder ? Left.Category.LexicalLess(Right.Category) : LeftOrder < RightOrder;
 		});
 
+	Root->AddSlot()
+		.AutoHeight()
+		.Padding(0.f, 6.f, 0.f, 0.f)
+		[
+			SNew(STextBlock)
+				.Text(FText::Format(
+					FText::FromString(TEXT("Showing {0} of {1} validation messages")),
+					FText::AsNumber(SortedMessages.Num()),
+					FText::AsNumber(CurrentValidationState.ValidationMessages.Num())))
+				.ColorAndOpacity(FSlateColor(FLinearColor(0.68f, 0.68f, 0.68f, 1.f)))
+		];
+
 	if (SortedMessages.Num() == 0)
 	{
-		Root->AddSlot().AutoHeight().Padding(
-			0.f, 6.f, 0.f, 0.f)[SNew(STextBlock).Text(FText::FromString(TEXT("No messages match the active filters."))).AutoWrapText(true)];
+		Root->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 6.f, 0.f, 0.f)
+			[
+				SNew(STextBlock)
+					.Text(FText::FromString(TEXT("No messages match the active filters or search.")))
+					.AutoWrapText(true)
+			];
 		return Root;
 	}
 
@@ -412,6 +634,7 @@ TSharedRef<SWidget> SGridEditorValidationPanel::BuildValidationSection()
 
 			+ SVerticalBox::Slot().AutoHeight().Padding(0.f, ActionObjectIds.Num() > 0 ? 5.f : 0.f, 0.f, 0.f)[ActionRow]]];
 	}
+
 
 	return Root;
 }
