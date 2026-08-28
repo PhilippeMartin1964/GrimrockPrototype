@@ -4,7 +4,7 @@ Date : **28 août 2026**
 Projet : **GrimrockPrototype — Unreal Engine 5.5.4**  
 Parent : **TD07.3 — Prototype Data Model Reset**  
 Baseline : `edca373674ed2ca4fc476b9592efe93710575b84`  
-Statut : **CHARACTERIZATION À VALIDER**
+Statut : **CHARACTERIZATION VALIDÉE — TD07.3.5.2 ACTIVE**
 
 ## 1. Contexte
 
@@ -264,5 +264,20 @@ Not run                : 0
 - [x] cible MaxRangeCells fixée ;
 - [x] séquence .1–.5 proposée ;
 - [x] 4 tests ajoutés ;
-- [ ] build UE5.5.4 vert ;
-- [ ] 4/4 tests verts.
+- [x] build UE5.5.4 vert ;
+- [x] 4/4 tests verts.
+
+
+## 12. Validation locale
+
+```text
+Grimrock.TechnicalDebt.TD07_3_5.Characterization
+Succeeded              : 4
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Process exit code       : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-083606
+```
+
+TD07.3.5.1 est validé. TD07.3.5.2 peut commencer.
