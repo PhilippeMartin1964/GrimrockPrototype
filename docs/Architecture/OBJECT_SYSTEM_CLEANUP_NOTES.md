@@ -44,7 +44,7 @@ Ces contrôles ne modifient ni les données ni le gameplay.
 - `IsRuntimeSpawnableObject()` contient un fallback par `Type`, alors que le spawn final exige toujours une classe issue d'un archétype ;
 - `SpawnRuntimeObjectActor()` exige un mesh même pour les types déclarés invisibles par `AllowsInvisibleRuntimeObject()` ;
 - `SyncPreviewRuntimeObjectArchetypesFromPalette()` ajoute les références sans purger les archétypes retirés de la palette ;
-- `bPlaceOnEdge` et `bPlaceAtCellCenter` restent sérialisés malgré `PlacementKind` ;
+- TD07.3.6 a supprimé les miroirs legacy `bPlaceOnEdge` et `bPlaceAtCellCenter`; `PlacementKind` est l'autorité unique ;
 - la preview utilise un mesh simplifié et non les véritables acteurs runtime ;
 - changer localement `ArchetypeId` ne resynchronise pas les autres copies locales ;
 - plusieurs fonctions `BlueprintCallable` semblent internes, mais aucune n'a été retirée sans audit des Blueprints.

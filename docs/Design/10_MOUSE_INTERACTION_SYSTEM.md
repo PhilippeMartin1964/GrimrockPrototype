@@ -546,21 +546,20 @@ et non :
 Set Brush From Texture — Target is Border
 ```
 
-## 8. Ancien système F / UseAction
+## 8. Ancien système F / UseAction — supprimé
 
-L’ancien système clavier existe encore dans `AGrimrockPartyPawn`.
+TD07.3.6 a supprimé définitivement l'ancien chemin clavier global :
 
-`UseAction`, `HandleUse`, `TryUseFrontInteraction` et le buffer `Use` ne sont pas supprimés.
-
-Mais l’action clavier est neutralisée par défaut via :
-
-```cpp
-bEnableLegacyKeyboardUseAction = false
+```text
+UseAction
+HandleUse
+TryUseFrontInteraction
+BufferUseCommand
+EBufferedCommandType::Use
+bEnableLegacyKeyboardUseAction
 ```
 
-Le binding de `UseAction` n’est actif que si ce booléen est explicitement activé.
-
-Cela permet de conserver l’ancien système comme outil de debug, sans en faire le comportement joueur normal.
+Il n'existe plus de binding joueur pour la touche F/Use. Le système souris décrit dans ce document est l'autorité unique pour les interactions directes avec le monde. Les services runtime appelés par les objets interactifs restent inchangés.
 
 ## 9. Règles à ne pas casser
 

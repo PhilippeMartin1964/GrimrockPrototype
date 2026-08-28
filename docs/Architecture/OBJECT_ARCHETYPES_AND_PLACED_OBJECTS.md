@@ -111,7 +111,7 @@ L'archétype est la source partagée utilisée à la fois par l'éditeur et le r
 
 Les copies persistées dans l'objet placé ne sont pas resynchronisées automatiquement lorsque l'archétype évolue.
 
-`PlacementKind` est la source de vérité actuelle. `bPlaceOnEdge` et `bPlaceAtCellCenter` sont conservés pour compatibilité et seulement contrôlés par la validation.
+`PlacementKind` est l'unique source de vérité du placement. TD07.3.6 a supprimé les anciens miroirs `bPlaceOnEdge` et `bPlaceAtCellCenter`.
 
 `ValidateArchetype()` vérifie notamment l'identité, le type, la classe runtime requise, le placement, les meshes attendus et plusieurs cohérences de catégorie ou de paramètres.
 

@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07.3 — Prototype Data Model Reset
-Statut : CHARACTERIZATION VALIDÉE — STATIC PURGE IMPLÉMENTÉ / MONSTERSPAWN ASSET REPAIR PREPARED
+Statut : NORMALISATION FINALE IMPLÉMENTÉE — À VALIDER
 
 ## 1. Objectif
 
@@ -212,3 +212,65 @@ Prepare TD07.3.6 MonsterSpawn facing repair
 ```
 
 Après réparation LFS, la normalisation finale supprimera `GetFacingForLegacyYaw` et le fallback `InitialFacing <- LocalYaw`.
+
+
+## 12. MonsterSpawn asset repair validé
+
+Validation locale du 28 août 2026 :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_6.AssetRepair.MonsterSpawnFacing
+Succeeded              : 1
+Succeeded with warnings: 0
+Failed                 : 0
+Not run                : 0
+Report                 : Saved/Automation/TD04/TD04-20260828-100422
+```
+
+Le one-shot a resauvegardé exactement :
+
+```text
+Content/GrimrockPrototype/Core/DataAssets/GrimrockLevels/DA_GridLevel_00.uasset
+```
+
+Commit LFS :
+
+```text
+06e11a4e3c86c36379776a36fe7b1d31d435de86
+Repair MonsterSpawn facing authoring
+```
+
+## 13. Normalisation finale implémentée
+
+Commit :
+
+```text
+e0abbb315ecd175fd9a862f16f0f74196d51c17a
+Normalize TD07.3.6 remaining legacy API data
+```
+
+Le schéma courant est strict :
+
+- `InitialFacing` est l'unique autorité gameplay du facing MonsterSpawn ;
+- `LocalYaw` reste uniquement le miroir générique de preview dérivé de `InitialFacing` ;
+- `GetFacingForLegacyYaw` est supprimé ;
+- aucune reconstruction `InitialFacing <- LocalYaw` ne subsiste ;
+- les findings `MONSTERSPAWN.LEGACY_YAW_FACING` et `MONSTERSPAWN.FACING_YAW_MISMATCH` sont retirés de l'audit TD07.3.1 ;
+- le script et l'Automation one-shot sont supprimés.
+
+Nouveau gate :
+
+```text
+Grimrock.TechnicalDebt.TD07_3_6.Normalization
+```
+
+Tests :
+
+```text
+LegacySymbolsAbsent
+MonsterSpawnFacingAuthority
+CurrentMonsterSpawnAssets
+LegacyInfrastructureRemoved
+```
+
+Attendu : 4/4, zéro warning, zéro échec.

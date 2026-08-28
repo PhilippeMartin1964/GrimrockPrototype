@@ -155,6 +155,8 @@ EGridRuntimeRebuildMode::ObjectsOnly
 
 Cible TD07.3.6 : suppression après caractérisation des usages courants.
 
+**Résolu le 28 août 2026 :** les six reliquats de cette baseline ont été supprimés. Le LevelAsset courant `DA_GridLevel_00` a été resauvegardé avant retrait du fallback MonsterSpawn `LocalYaw -> InitialFacing`.
+
 ## 4. Audit automatisé du contenu courant
 
 Nouveau test Editor :

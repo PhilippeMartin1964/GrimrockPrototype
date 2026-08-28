@@ -410,8 +410,6 @@ RebuildGeometryPreview()
 
 En monde non jeu, un rebuild complet peut reconstruire les objets d'aperçu via `UGridEditorPreviewComponent`. Un rebuild `GeometryOnly` conserve les acteurs/objets d'aperçu et ne reconstruit que `FloorISM`, `WallISM` et `CeilingISM`.
 
-`EGridRuntimeRebuildMode::ObjectsOnly` est une valeur héritée conservée pour compatibilité sérialisée. Aucun appel C++ actuel ne l'utilise; son comportement ne doit pas être considéré comme une API stabilisée.
-
 L'illustration de flux éditeur reste valable si « Preview Runtime » est compris comme un véritable `AGridLevelRuntimeActor` utilisé en monde éditeur.
 
 ---

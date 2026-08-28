@@ -101,8 +101,6 @@ La colonne `Libellé UE5` correspond au nom affiché dans la fenêtre d’éditi
 | Palette | `Palette Category` | `Category` | `FName` | Catégorie de palette. | Toujours pour objets plaçables. | `Doors`, `Mechanisms`, `Items` | N’a pas d’impact gameplay. |
 | Archetype | `Functional Category` | `ObjectCategory` | `EGridObjectCategory` | Catégorie fonctionnelle éditeur/validation. | Toujours. | `Mechanism`, `Item`, `Decoration` | Ne remplace pas `SupportedType`. |
 | Placement | `Placement Kind` | `PlacementKind` | `EGridObjectPlacementKind` | Source de vérité du placement. | Toujours. | `Edge`, `Wall`, `Floor`, `Center` | Détermine preview, placement, orientation et transform runtime. |
-| Placement / Legacy | `Legacy Place On Edge` | `bPlaceOnEdge` | `bool` | Ancien flag de placement edge. | Ne plus utiliser. | `false` | Legacy seulement. `PlacementKind` prime. |
-| Placement / Legacy | `Legacy Place At Cell Center` | `bPlaceAtCellCenter` | `bool` | Ancien flag de placement au centre. | Ne plus utiliser. | `true` ou legacy | Legacy seulement. `PlacementKind` prime. |
 | Placement | `Can Share Cell` | `bCanShareCell` | `bool` | Autorise le partage de cellule avec d’autres objets. | Décorations, triggers, items. | Floor decoration = `true` | Empêche ou autorise les conflits de placement. |
 | Placement | `Can Share Anchor` | `bCanShareAnchor` | `bool` | Autorise le partage du même edge/ancre. | Objets edge/wall. | Door = souvent `false`, deco = selon besoin | Évite les chevauchements sur le même edge. |
 | Placement | `Blocks Movement (Generic Object)` | `bBlocksMovement` | `bool` | Blocage générique de mouvement. | Props bloquants non-door. | Généralement `false` | Les portes sont bloquées par le système de portes, pas par ce flag. |

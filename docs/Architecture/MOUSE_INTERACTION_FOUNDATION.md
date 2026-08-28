@@ -55,7 +55,7 @@ Chaque branche est exclusive : la fermeture d'un message, le dépôt d'un item o
 
 Si l'interface d'inventaire est ouverte et qu'aucun item n'est porté par le curseur, le clic de gameplay est ignoré. Si un item est porté, le chemin de dépôt direct vers un réceptacle reste disponible.
 
-Il n'existe pas de solution de repli à la souris vers la cellule ou le bord situé en face. `AGrimrockPartyPawn::TryUseFrontInteraction()` reste une solution de repli historique au clavier, désactivée par défaut avec `bEnableLegacyKeyboardUseAction=false`.
+Il n'existe plus de solution de repli clavier globale vers la cellule ou le bord situé en face. TD07.3.6 a supprimé `UseAction`, `HandleUse`, `TryUseFrontInteraction`, le buffer `Use` et `bEnableLegacyKeyboardUseAction`. L'interaction directe à la souris est désormais l'unique voie joueur pour ce comportement.
 
 ## 5. Règles de grille
 

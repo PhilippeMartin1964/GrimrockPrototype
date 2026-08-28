@@ -19,6 +19,6 @@
 
 ## Points à traiter plus tard
 
-- `EGridRuntimeRebuildMode::ObjectsOnly` n'a aucun appel C++ et reste conservé pour compatibilité ; son contrat devra être défini avant utilisation ou suppression ;
+- TD07.3.6 a supprimé `EGridRuntimeRebuildMode::ObjectsOnly`; les modes courants sont `Full` et `GeometryOnly` ;
 - une API structurée commune de diagnostics pourrait remplacer à terme les synthèses textuelles et messages éditeur, mais cette passe évite une refonte publique ;
 - les fonctions `BlueprintCallable` potentiellement internes doivent être auditées avec les Blueprints du projet avant toute réduction de visibilité.
