@@ -3,7 +3,7 @@
 Date : 28 août 2026
 Projet : GrimrockPrototype — Unreal Engine 5.5.4
 Parent : TD07 — Future-Proofing
-Statut : RE-AUDIT COMPLET — FINAL VALIDATION PREPARED
+Statut : VALIDÉ — STOP CONDITION ATTEINTE
 
 ## 1. Objet
 
@@ -159,3 +159,82 @@ Après validation :
 - marquer TD07 global **VALIDÉ — CLOS** ;
 - lever la suspension de MON21.4 ;
 - reprendre MON21.4 à partir de sa caractérisation existante, sans nouvelle phase d'audit redondante.
+
+
+## 7. Validation finale
+
+Gate exécuté localement le 28 août 2026 :
+
+```text
+Git branch / cleanup contract                    OK
+TD07.1 project dependency contract              OK
+TD07.7 global C++ format baseline               568/568 conforme
+Development Editor build                        OK
+
+Grimrock.TechnicalDebt.TD07_3_8.StrictCurrentSchema
+    Succeeded              : 5
+    Succeeded with warnings: 0
+    Failed                 : 0
+
+Grimrock.TechnicalDebt.TD07_2
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+
+Grimrock.TechnicalDebt.TD07_4.Characterization
+    Succeeded              : 4
+    Succeeded with warnings: 0
+    Failed                 : 0
+
+Grimrock.TechnicalDebt.TD07_5.Recovery.ReceptacleCommands
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+
+Grimrock.TechnicalDebt.TD01_3.EventCommandContract.RuntimeHardening
+    Succeeded              : 1
+    Succeeded with warnings: 0
+    Failed                 : 0
+
+Grimrock.Quests.MON21_4.Characterization
+    Succeeded              : 4
+    Succeeded with warnings: 0
+    Failed                 : 0
+
+Win64 Shipping
+    BUILD SUCCESSFUL
+    Cook                    : Success - 0 error(s), 0 warning(s)
+    Pak files               : 1
+    Archive files           : 41
+    Archive bytes           : 905990059
+    Archive                 : Saved/Packaging/TD04/TD04-Shipping-20260828-125341
+```
+
+Résumé du harness :
+
+```text
+Branch             : master only
+Dependencies       : validated
+C++ format         : validated
+Strict schema      : validated
+UE compatibility   : validated
+Activation         : validated
+Receptacle recovery: validated
+Event->Command     : validated
+MON21.4 assumptions: validated
+Shipping           : validated
+```
+
+**TD07.8 a atteint sa stop condition.**
+
+Le script one-shot `Scripts/ValidateTD078StopCondition.ps1` est supprimé après usage.
+
+## 8. Clôture TD07
+
+La campagne TD07 est **VALIDÉE — CLOSE**.
+
+Aucune dette P0/P1 active ne subsiste. Les dettes restantes sont surveillées, différées ou opportunistes et ne justifient pas de prolonger la campagne technique.
+
+Conséquence autoritaire :
+
+**MON21.4 — Quest Persistence reprend immédiatement à partir de sa characterization déjà validée.**

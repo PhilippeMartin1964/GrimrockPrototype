@@ -1,7 +1,7 @@
 # GrimrockPrototype — Synthèse globale du projet
 
 > Point d’entrée transversal de l’architecture et de l’état fonctionnel actuel.  
-> État : **28 août 2026, TD07.8 re-audit complet ; gate final Editor/Automation/Shipping préparé ; MON21.4 suspendu jusqu'à validation.**
+> État : **28 août 2026, TD07 validé/clos ; stop condition future-proofing atteinte ; MON21.4 Quest Persistence actif.**
 
 ## 1. Référence
 
@@ -16,7 +16,7 @@
 | Dette structurelle ciblée | TD05 et TD06 en **stop condition atteinte** |
 | Validation locale | Editor + Automation + Win64 Shipping via les harness TD04 |
 | Dernière tranche validée | `TD07.7 — Targeted log / formatting hygiene` |
-| Tranche active | `TD07.8 — Future-proofing re-audit / stop condition` |
+| Tranche active | `MON21.4 — Quest Persistence` |
 
 La dette technique courante est autoritairement suivie dans `docs/Architecture/TECHNICAL_DEBT_REGISTER.md`. La roadmap produit est `docs/Design/PROJECT_COMPLETION_ROADMAP.md`.
 
@@ -136,7 +136,7 @@ UGridQuestSubsystem : UGameInstanceSubsystem
 
 MON21.2 a établi l’autorité runtime et les transitions séquentielles. MON21.3 a relié les commandes Quest au bus Event -> Command via `FGridObjectLink`.
 
-L’état Quest reste transient. La characterization MON21.4 est validée mais l'implémentation reste suspendue jusqu'à clôture complète de TD07. La tranche technique active est TD07.4.
+L’état Quest reste transient. La characterization MON21.4 est validée et TD07 est maintenant clos ; l'implémentation de Quest Persistence est la tranche active.
 
 ## 11. Persistance
 
@@ -208,7 +208,7 @@ TD07.3.3.7   Normalize Spellbook                                       VALIDÉ �
 TD07.3.3.8   Normalize Status Effects                                  VALIDÉ — CLOS
 TD07.3.3.9   Normalize Level-Up Notification State                    VALIDÉ — CLOS
 TD07.3.3.10  Current Save Schema / Regressions / Closure              VALIDÉ — CLOS
-MON21.4      Quest Persistence                          SUSPENDU
+MON21.4      Quest Persistence                          ACTIF
 MON21.5      Journal Read Model / WBP                     À FAIRE
 MON21.6      Map Geometry / Exploration                   À FAIRE
 MON21.7      Codex Discovery / Projection                 À FAIRE

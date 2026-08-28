@@ -1,10 +1,10 @@
 # GrimrockPrototype — Registre autoritaire de dette technique
 
-Date de référence : **27 août 2026**  
+Date de référence : **28 août 2026**  
 Baseline GitHub auditée pour TD06.1 : `51f9e300cfcc1039412bc8951ac7d64cdece73f0`  
 Baseline RuntimeActor : **TD05.9 — stop condition atteinte**  
 Baseline PartyInventory : **TD06.9 — stop condition atteinte et validée**  
-Statut : **TD07 FUTURE-PROOFING ACTIF — TD07.8 FINAL VALIDATION PREPARED**
+Statut : **TD07 FUTURE-PROOFING VALIDÉ — STOP CONDITION ATTEINTE — CAMPAGNE CLOSE**
 
 Ce document est la source autoritaire pour la dette technique du projet. Les documents de jalon datés restent valides pour leur époque ; l’état courant, les priorités et la prochaine tranche de dette sont définis ici.
 
@@ -629,7 +629,7 @@ TD07.4          ActivationComponent characterization                   VALIDÉ �
 TD07.5          Suspended test infrastructure / branch recovery        VALIDÉ — CLOS
 TD07.6          Legacy asset/API cleanup audit                          ABSORBÉ PAR TD07.3
 TD07.7          Targeted log / formatting hygiene                      VALIDÉ — CLOS
-TD07.8          Future-proofing re-audit / stop condition              FINAL VALIDATION PREPARED
+TD07.8          Future-proofing re-audit / stop condition              VALIDÉ — STOP CONDITION ATTEINTE
 ```
 
 **TD05 reste clos pour `AGridLevelRuntimeActor`.** Aucun split Geometry/Doors/Generic Objects n’est recommandé sans nouveau signal concret.
@@ -698,9 +698,9 @@ docs/Design/TD06_9_PARTY_INVENTORY_STOP_CONDITION.md
 
 # 9. Prochain travail recommandé
 
-**Valider TD07.8 — Future-proofing re-audit / stop condition.**
+**Reprendre MON21.4 — Quest Persistence.**
 
-Gate final préparé : `Scripts/ValidateTD078StopCondition.ps1`. Il couvre dépendances, format, schéma strict, compatibilité UE, Activation/Event->Command/Receptacle, caractérisation MON21.4 et Shipping Win64.
+TD07.8 est validé : dépendances, format, Editor, schéma strict, compatibilité UE, Activation/Event->Command/Receptacle, caractérisation MON21.4 et Shipping Win64 sont verts. La campagne TD07 est close.
 
 Nouveau contrat :
 
