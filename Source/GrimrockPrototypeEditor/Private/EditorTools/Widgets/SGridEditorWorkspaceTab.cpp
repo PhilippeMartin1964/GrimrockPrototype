@@ -16,10 +16,13 @@
 #include "Editor.h"
 #include "EngineUtils.h"
 #include "Styling/AppStyle.h"
+#include "Styling/CoreStyle.h"
 #include "Styling/SlateColor.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 
@@ -266,39 +269,108 @@ TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildToolsPaletteContent()
 TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildSelectedObjectContent()
 {
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
+	const bool bPropertiesSelected = SelectedObjectPage == EGridEditorSelectedObjectPage::Properties;
+	const bool bConnectorsSelected = SelectedObjectPage == EGridEditorSelectedObjectPage::Connectors;
 
-	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
+	TSharedRef<SHorizontalBox> PageTabs = SNew(SHorizontalBox);
 
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0.f, 0.f, 0.f, 8.f)
-		[
-			GridEditorWidgetHelpers::BuildGridPanelSection(
-				FText::FromString(TEXT("PROPERTIES")),
+	const auto AddPageTab =
+		[this, &PageTabs](const FText& Label, EGridEditorSelectedObjectPage Page, bool bSelected)
+		{
+			const FSlateColor LabelColor = bSelected
+				? FSlateColor(FLinearColor(0.90f, 0.96f, 1.f, 1.f))
+				: FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
+
+			PageTabs->AddSlot()
+				.AutoWidth()
+				.VAlign(VAlign_Bottom)
+				[
+					SNew(SBorder)
+						.Padding(0.f)
+						.BorderImage(FAppStyle::GetBrush(bSelected ? "ToolPanel.GroupBorder" : "ToolPanel.DarkGroupBorder"))
+						.BorderBackgroundColor(
+							bSelected
+								? FSlateColor(FLinearColor(0.10f, 0.30f, 0.38f, 1.f))
+								: FSlateColor(FLinearColor(0.035f, 0.035f, 0.035f, 1.f)))
+						[
+							SNew(SButton)
+								.ButtonStyle(FAppStyle::Get(), "NoBorder")
+								.ContentPadding(FMargin(14.f, 7.f, 14.f, 7.f))
+								.OnClicked_Lambda(
+									[this, Page]()
+									{
+										SelectedObjectPage = Page;
+										Rebuild();
+										return FReply::Handled();
+									})
+								[
+									SNew(SVerticalBox)
+
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									.HAlign(HAlign_Center)
+									[
+										SNew(STextBlock)
+											.Text(Label)
+											.Font(FCoreStyle::GetDefaultFontStyle(bSelected ? "Bold" : "Regular", 9))
+											.ColorAndOpacity(LabelColor)
+									]
+
+									+ SVerticalBox::Slot()
+									.AutoHeight()
+									.Padding(0.f, 4.f, 0.f, 0.f)
+									[
+										SNew(SBox)
+											.HeightOverride(2.f)
+											.Visibility(bSelected ? EVisibility::Visible : EVisibility::Hidden)
+											[
+												SNew(SBorder)
+													.Padding(0.f)
+													.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+													.BorderBackgroundColor(FSlateColor(FLinearColor(0.20f, 0.80f, 1.f, 1.f)))
+											]
+									]
+								]
+						]
+				];
+		};
+
+	AddPageTab(FText::FromString(TEXT("Properties")), EGridEditorSelectedObjectPage::Properties, bPropertiesSelected);
+	AddPageTab(FText::FromString(TEXT("Connectors")), EGridEditorSelectedObjectPage::Connectors, bConnectorsSelected);
+
+	TSharedRef<SWidget> ActivePage =
+		bPropertiesSelected
+			? StaticCastSharedRef<SWidget>(
 				SNew(SGridEditorObjectInspectorPanel)
 					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
 					.OnGetEditorActor(FOnGetGridEditorObjectInspectorActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
 					.OnRequestRefresh(FOnGridEditorObjectInspectorRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild)))
-		]
-
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			GridEditorWidgetHelpers::BuildGridPanelSection(
-				FText::FromString(TEXT("CONNECTORS")),
+			: StaticCastSharedRef<SWidget>(
 				SNew(SGridEditorLinksPanel)
 					.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
 					.OnGetEditorActor(FOnGetGridEditorLinksActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
-					.OnRequestRefresh(FOnGridEditorLinksRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild)))
-		];
+					.OnRequestRefresh(FOnGridEditorLinksRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild)));
 
 	return SNew(SBorder)
 		.Padding(8.f)
 		[
-			SNew(SScrollBox)
-			+ SScrollBox::Slot()
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 0.f, 0.f, 6.f)
 			[
-				Root
+				PageTabs
+			]
+
+			+ SVerticalBox::Slot()
+			.FillHeight(1.f)
+			[
+				SNew(SScrollBox)
+				+ SScrollBox::Slot()
+				[
+					ActivePage
+				]
 			]
 		];
 }

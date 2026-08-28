@@ -20,6 +20,12 @@ enum class EGridEditorWorkspaceTab : uint8
 	SelectedObject
 };
 
+enum class EGridEditorSelectedObjectPage : uint8
+{
+	Properties,
+	Connectors
+};
+
 /**
  * GEUI01 dockable workspace host.
  *
@@ -55,6 +61,7 @@ private:
 
 private:
 	EGridEditorWorkspaceTab WorkspaceTab = EGridEditorWorkspaceTab::DungeonLevels;
+	EGridEditorSelectedObjectPage SelectedObjectPage = EGridEditorSelectedObjectPage::Properties;
 	TSharedPtr<FGridEditorToolPalettePanelState> ToolPaletteState;
 	TSharedPtr<FGridEditorValidationPanelState> ValidationState;
 
