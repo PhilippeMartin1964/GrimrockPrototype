@@ -30,8 +30,9 @@ enum class EGridEditorSelectedObjectPage : uint8
  * GEUI01 dockable workspace host.
  *
  * The host intentionally composes existing Grid Editor widgets instead of
- * introducing a parallel authoring model. It observes only lightweight editor
- * context so detached Nomad tabs follow viewport selection/tool changes.
+ * introducing a parallel authoring model. GEUI09 keeps lightweight context
+ * observation but scopes it per workspace so unrelated editor changes no
+ * longer rebuild every detached Nomad tab.
  */
 class SGridEditorWorkspaceTab : public SCompoundWidget
 {
@@ -51,6 +52,7 @@ private:
 	void Rebuild();
 	void CaptureObservedContext();
 	bool HasObservedContextChanged() const;
+	void PrepareSessionStateForCurrentContext();
 
 	TSharedRef<SWidget> BuildContent();
 	TSharedRef<SWidget> BuildDungeonLevelsContent();
@@ -66,6 +68,7 @@ private:
 	TSharedPtr<FGridEditorValidationPanelState> ValidationState;
 
 	TWeakObjectPtr<AGridLevelEditorActor> ObservedEditorActor;
+	bool bObservedHasEditorActor = false;
 	TWeakObjectPtr<UGridDungeonAsset> ObservedDungeonAsset;
 	TWeakObjectPtr<UGridLevelAsset> ObservedLevelAsset;
 	TWeakObjectPtr<UGridObjectPaletteAsset> ObservedObjectPalette;

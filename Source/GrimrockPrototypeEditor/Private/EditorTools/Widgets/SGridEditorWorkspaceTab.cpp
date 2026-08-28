@@ -26,12 +26,33 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 
+namespace
+{
+	struct FGridEditorWorkspaceSessionState
+	{
+		TSharedPtr<FGridEditorToolPalettePanelState> ToolPaletteState = MakeShared<FGridEditorToolPalettePanelState>();
+		TSharedPtr<FGridEditorValidationPanelState> ValidationState = MakeShared<FGridEditorValidationPanelState>();
+		EGridEditorSelectedObjectPage SelectedObjectPage = EGridEditorSelectedObjectPage::Properties;
+		TWeakObjectPtr<UGridLevelAsset> ValidationLevelAsset;
+	};
+
+	FGridEditorWorkspaceSessionState& GetGridEditorWorkspaceSessionState()
+	{
+		static FGridEditorWorkspaceSessionState State;
+		return State;
+	}
+}
+
 void SGridEditorWorkspaceTab::Construct(const FArguments& InArgs)
 {
 	WorkspaceTab = InArgs._WorkspaceTab;
-	ToolPaletteState = MakeShared<FGridEditorToolPalettePanelState>();
-	ValidationState = MakeShared<FGridEditorValidationPanelState>();
 
+	FGridEditorWorkspaceSessionState& SessionState = GetGridEditorWorkspaceSessionState();
+	ToolPaletteState = SessionState.ToolPaletteState;
+	ValidationState = SessionState.ValidationState;
+	SelectedObjectPage = SessionState.SelectedObjectPage;
+
+	PrepareSessionStateForCurrentContext();
 	ChildSlot[BuildContent()];
 	CaptureObservedContext();
 }
@@ -69,8 +90,30 @@ AGridLevelEditorActor* SGridEditorWorkspaceTab::FindEditorActor() const
 
 void SGridEditorWorkspaceTab::Rebuild()
 {
+	PrepareSessionStateForCurrentContext();
 	ChildSlot[BuildContent()];
 	CaptureObservedContext();
+}
+
+void SGridEditorWorkspaceTab::PrepareSessionStateForCurrentContext()
+{
+	if (WorkspaceTab != EGridEditorWorkspaceTab::PlaytestValidation || !ValidationState.IsValid())
+	{
+		return;
+	}
+
+	FGridEditorWorkspaceSessionState& SessionState = GetGridEditorWorkspaceSessionState();
+	AGridLevelEditorActor* EditorActor = FindEditorActor();
+	UGridLevelAsset* CurrentLevelAsset = EditorActor ? EditorActor->LevelAsset.Get() : nullptr;
+
+	if (SessionState.ValidationLevelAsset.Get() == CurrentLevelAsset)
+	{
+		return;
+	}
+
+	SessionState.ValidationLevelAsset = CurrentLevelAsset;
+	ValidationState->ValidationMessages.Reset();
+	ValidationState->bValidationHasRun = false;
 }
 
 void SGridEditorWorkspaceTab::CaptureObservedContext()
@@ -78,6 +121,7 @@ void SGridEditorWorkspaceTab::CaptureObservedContext()
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
 
 	ObservedEditorActor = EditorActor;
+	bObservedHasEditorActor = EditorActor != nullptr;
 	ObservedDungeonAsset = EditorActor ? EditorActor->DungeonAsset.Get() : nullptr;
 	ObservedLevelAsset = EditorActor ? EditorActor->LevelAsset.Get() : nullptr;
 	ObservedObjectPalette = EditorActor ? EditorActor->ObjectPalette.Get() : nullptr;
@@ -96,9 +140,10 @@ void SGridEditorWorkspaceTab::CaptureObservedContext()
 
 bool SGridEditorWorkspaceTab::HasObservedContextChanged() const
 {
-	AGridLevelEditorActor* EditorActor = FindEditorActor();
+	AGridLevelEditorActor* EditorActor = ObservedEditorActor.IsValid() ? ObservedEditorActor.Get() : FindEditorActor();
+	const bool bHasEditorActor = EditorActor != nullptr;
 
-	if (ObservedEditorActor.Get() != EditorActor)
+	if (bObservedHasEditorActor != bHasEditorActor)
 	{
 		return true;
 	}
@@ -111,13 +156,43 @@ bool SGridEditorWorkspaceTab::HasObservedContextChanged() const
 	const int32 ObjectCount = EditorActor->LevelAsset ? EditorActor->LevelAsset->Objects.Num() : INDEX_NONE;
 	const int32 LinkCount = EditorActor->LevelAsset ? EditorActor->LevelAsset->Links.Num() : INDEX_NONE;
 
-	return ObservedDungeonAsset.Get() != EditorActor->DungeonAsset.Get() || ObservedLevelAsset.Get() != EditorActor->LevelAsset.Get() ||
-		ObservedObjectPalette.Get() != EditorActor->ObjectPalette.Get() || ObservedDungeonLevelId != EditorActor->CurrentDungeonLevelId ||
-		ObservedPaletteEntryId != EditorActor->SelectedPaletteEntryId || ObservedSelectedObjectId != EditorActor->LastSelectedObjectId ||
-		ObservedSelectedCellX != EditorActor->SelectedCellX || ObservedSelectedCellY != EditorActor->SelectedCellY ||
-		ObservedSelectedEdge != static_cast<int32>(EditorActor->SelectedEdge) || ObservedActiveTool != static_cast<int32>(EditorActor->ActiveTool) ||
-		ObservedObjectCount != ObjectCount || ObservedLinkCount != LinkCount || bObservedPatrolRouteEditMode != EditorActor->bPatrolRouteEditMode ||
-		ObservedPatrolWaypointIndex != EditorActor->SelectedPatrolWaypointIndex;
+	const bool bEditorIdentityChanged =
+		ObservedDungeonAsset.Get() != EditorActor->DungeonAsset.Get() ||
+		ObservedLevelAsset.Get() != EditorActor->LevelAsset.Get() ||
+		ObservedDungeonLevelId != EditorActor->CurrentDungeonLevelId;
+
+	switch (WorkspaceTab)
+	{
+		case EGridEditorWorkspaceTab::DungeonLevels:
+			return bEditorIdentityChanged ||
+				ObservedSelectedCellX != EditorActor->SelectedCellX ||
+				ObservedSelectedCellY != EditorActor->SelectedCellY ||
+				ObservedSelectedEdge != static_cast<int32>(EditorActor->SelectedEdge) ||
+				ObservedObjectCount != ObjectCount;
+
+		case EGridEditorWorkspaceTab::PlaytestValidation:
+			return bEditorIdentityChanged;
+
+		case EGridEditorWorkspaceTab::ToolsPalette:
+			return ObservedObjectPalette.Get() != EditorActor->ObjectPalette.Get() ||
+				ObservedPaletteEntryId != EditorActor->SelectedPaletteEntryId ||
+				ObservedActiveTool != static_cast<int32>(EditorActor->ActiveTool);
+
+		case EGridEditorWorkspaceTab::SelectedObject:
+			return bEditorIdentityChanged ||
+				ObservedObjectPalette.Get() != EditorActor->ObjectPalette.Get() ||
+				ObservedSelectedObjectId != EditorActor->LastSelectedObjectId ||
+				ObservedSelectedCellX != EditorActor->SelectedCellX ||
+				ObservedSelectedCellY != EditorActor->SelectedCellY ||
+				ObservedSelectedEdge != static_cast<int32>(EditorActor->SelectedEdge) ||
+				ObservedObjectCount != ObjectCount ||
+				ObservedLinkCount != LinkCount ||
+				bObservedPatrolRouteEditMode != EditorActor->bPatrolRouteEditMode ||
+				ObservedPatrolWaypointIndex != EditorActor->SelectedPatrolWaypointIndex;
+
+		default:
+			return bEditorIdentityChanged;
+	}
 }
 
 TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildMigrationNotice(const FText& Text) const
@@ -300,6 +375,7 @@ TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildSelectedObjectContent()
 									[this, Page]()
 									{
 										SelectedObjectPage = Page;
+										GetGridEditorWorkspaceSessionState().SelectedObjectPage = Page;
 										Rebuild();
 										return FReply::Handled();
 									})
