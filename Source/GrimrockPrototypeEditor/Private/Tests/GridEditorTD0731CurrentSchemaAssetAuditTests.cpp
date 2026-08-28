@@ -208,12 +208,6 @@ namespace GridTD0731SchemaAuditPrivate
 
 	void AuditMonsterDefinition(const UGridMonsterDefinitionAsset& Monster, const FString& AssetPath, TArray<FGridTD0731Finding>& Findings)
 	{
-		if (!Monster.Attacks.IsEmpty())
-		{
-			AddFinding(Findings, EGridTD0731FindingKind::SchemaRename, TEXT("MONSTER.RANGE_FIELD_RENAME"), AssetPath, TEXT("Attacks"),
-				FString::Printf(TEXT("%d attack(s) store maximum range in legacy-named RangeCells; target property name is MaxRangeCells."), Monster.Attacks.Num()));
-		}
-
 		for (int32 LootIndex = 0; LootIndex < Monster.LootTable.Num(); ++LootIndex)
 		{
 			const FGridMonsterLootEntry& Loot = Monster.LootTable[LootIndex];

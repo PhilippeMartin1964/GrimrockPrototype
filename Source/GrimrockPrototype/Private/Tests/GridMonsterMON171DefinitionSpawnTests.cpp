@@ -36,7 +36,7 @@ namespace
 		ThrowKnife.MinDamage = 2;
 		ThrowKnife.MaxDamage = 5;
 		ThrowKnife.MinRangeCells = 2;
-		ThrowKnife.RangeCells = 6;
+		ThrowKnife.MaxRangeCells = 6;
 		ThrowKnife.Delivery = EGridMonsterAttackDelivery::Projectile;
 		ThrowKnife.bRequiresLineOfSight = true;
 		ThrowKnife.ActionPointCost = 2;
@@ -74,7 +74,7 @@ bool FGridMonsterMON171RangedAttackContractTest::RunTest(const FString& Paramete
 	Attack.MinDamage = 1;
 	Attack.MaxDamage = 3;
 	Attack.MinRangeCells = 2;
-	Attack.RangeCells = 6;
+	Attack.MaxRangeCells = 6;
 	Attack.Delivery = EGridMonsterAttackDelivery::Projectile;
 	Attack.bRequiresLineOfSight = true;
 	Attack.ActionPointCost = 2;
@@ -91,7 +91,7 @@ bool FGridMonsterMON171RangedAttackContractTest::RunTest(const FString& Paramete
 
 	Attack.MinRangeCells = 7;
 	TestFalse(TEXT("Minimum range greater than maximum is rejected"), Attack.ValidateDefinition(Error));
-	TestTrue(TEXT("Invalid range reports the generic range contract"), Error.Contains(TEXT("RangeCells must be at least MinRangeCells")));
+	TestTrue(TEXT("Invalid range reports the generic range contract"), Error.Contains(TEXT("MaxRangeCells must be at least MinRangeCells")));
 
 	Attack.MinRangeCells = 2;
 	Attack.CooldownTurns = -1;

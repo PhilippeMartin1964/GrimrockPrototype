@@ -12,7 +12,7 @@ namespace
 		Attack.MinDamage = 1;
 		Attack.MaxDamage = 1;
 		Attack.MinRangeCells = 1;
-		Attack.RangeCells = 1;
+		Attack.MaxRangeCells = 1;
 		Attack.ActionPointCost = 1;
 		Attack.CooldownTurns = CooldownTurns;
 		return Attack;
@@ -95,7 +95,7 @@ bool FGridMonsterMON1734GoblinZeroCooldownContractTest::RunTest(const FString& P
 	ThrowKnife.MinDamage = 2;
 	ThrowKnife.MaxDamage = 5;
 	ThrowKnife.MinRangeCells = 2;
-	ThrowKnife.RangeCells = 6;
+	ThrowKnife.MaxRangeCells = 6;
 	ThrowKnife.Delivery = EGridMonsterAttackDelivery::Projectile;
 	ThrowKnife.bRequiresLineOfSight = true;
 	ThrowKnife.ActionPointCost = 2;

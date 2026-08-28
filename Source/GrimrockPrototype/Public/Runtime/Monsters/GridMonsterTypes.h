@@ -102,10 +102,6 @@ struct FGridMonsterAttackDefinition
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
 	int32 MinRangeCells = 1;
 
-	/** Temporary TD07.3.5.4 repair source. Removed after current monster assets are resaved. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1", DisplayName = "Legacy Maximum Range Cells"))
-	int32 RangeCells = 1;
-
 	/** Inclusive maximum legal grid distance. Current target field for TD07.3.5.4. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster|Attack", meta = (ClampMin = "1"))
 	int32 MaxRangeCells = 1;
@@ -186,12 +182,12 @@ struct FGridMonsterAttackDefinition
 
 	bool SupportsDistance(int32 DistanceCells) const
 	{
-		return DistanceCells >= MinRangeCells && DistanceCells <= RangeCells;
+		return DistanceCells >= MinRangeCells && DistanceCells <= MaxRangeCells;
 	}
 
 	bool IsRangedAttack() const
 	{
-		return Delivery != EGridMonsterAttackDelivery::Contact || RangeCells > 1;
+		return Delivery != EGridMonsterAttackDelivery::Contact || MaxRangeCells > 1;
 	}
 
 	bool ValidateDefinition(FString& OutError) const
@@ -213,9 +209,9 @@ struct FGridMonsterAttackDefinition
 		{
 			Errors.Add(TEXT("MinRangeCells must be greater than zero."));
 		}
-		if (RangeCells < MinRangeCells)
+		if (MaxRangeCells < MinRangeCells)
 		{
-			Errors.Add(TEXT("RangeCells must be at least MinRangeCells."));
+			Errors.Add(TEXT("MaxRangeCells must be at least MinRangeCells."));
 		}
 		if (ActionPointCost <= 0)
 		{

@@ -79,7 +79,7 @@ bool FGridMonsterMON177ProductionBalanceBaselineTest::RunTest(const FString& Par
 	TestEqual(TEXT("ThrowKnife minimum damage remains two"), ThrowKnife.MinDamage + ThrowKnife.DamageBonus, 2);
 	TestEqual(TEXT("ThrowKnife maximum damage remains five"), ThrowKnife.MaxDamage + ThrowKnife.DamageBonus, 5);
 	TestEqual(TEXT("ThrowKnife minimum range remains two"), ThrowKnife.MinRangeCells, 2);
-	TestEqual(TEXT("ThrowKnife maximum range remains six"), ThrowKnife.RangeCells, 6);
+	TestEqual(TEXT("ThrowKnife maximum range remains six"), ThrowKnife.MaxRangeCells, 6);
 	TestEqual(TEXT("ThrowKnife action point cost remains two"), ThrowKnife.ActionPointCost, 2);
 
 	FGridMonsterBalanceSnapshot Snapshot;

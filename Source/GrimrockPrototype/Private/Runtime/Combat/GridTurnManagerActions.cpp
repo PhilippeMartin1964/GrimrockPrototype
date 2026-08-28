@@ -177,7 +177,7 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack()
 	if (!Attack->SupportsDistance(AttackDistance))
 	{
 		UE_LOG(LogGridTurnManager, Warning, TEXT("[GridTurnManager] Monster attack out of authored range. Monster=%s Attack=%s Distance=%d Range=%d..%d"),
-			*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString(), AttackDistance, Attack->MinRangeCells, Attack->RangeCells);
+			*GetNameSafe(CurrentMonster), *Attack->AttackId.ToString(), AttackDistance, Attack->MinRangeCells, Attack->MaxRangeCells);
 		return false;
 	}
 
@@ -211,7 +211,7 @@ bool UGridTurnManagerComponent::StartActiveMeleeAttack()
 		}
 
 		if (Attack->bRequiresLineOfSight &&
-			!FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, Attack->RangeCells,
+			!FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, Attack->MaxRangeCells,
 				[this](const FIntPoint& From, const FIntPoint& To)
 				{
 					const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);

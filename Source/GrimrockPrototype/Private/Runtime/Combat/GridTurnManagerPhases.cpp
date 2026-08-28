@@ -202,7 +202,7 @@ namespace
 		}
 
 		return IsValid(RuntimeActor) &&
-			FGridMonsterPerception::HasStraightLineOfSight(FromCell, PartyCell, Attack.RangeCells,
+			FGridMonsterPerception::HasStraightLineOfSight(FromCell, PartyCell, Attack.MaxRangeCells,
 				[RuntimeActor](const FIntPoint& From, const FIntPoint& To)
 				{
 					const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);
@@ -285,7 +285,7 @@ namespace
 		const int32 AuthoredPreferredMin = FMath::Max(0, Monster->MonsterDefinition->PreferredMinDistance);
 		const int32 AuthoredPreferredMax = FMath::Max(AuthoredPreferredMin, Monster->MonsterDefinition->PreferredMaxDistance);
 		const int32 PreferredMin = FMath::Max(RangedAttack.MinRangeCells, AuthoredPreferredMin);
-		const int32 PreferredMax = FMath::Min(RangedAttack.RangeCells, AuthoredPreferredMax);
+		const int32 PreferredMax = FMath::Min(RangedAttack.MaxRangeCells, AuthoredPreferredMax);
 		const bool bHasPreferredBand = PreferredMin <= PreferredMax;
 
 		if (bMayAttackThisTurn && bCurrentShotLegal && bHasPreferredBand &&
@@ -333,7 +333,7 @@ namespace
 		{
 			TArray<FIntPoint> LegalGoals;
 			MON174BuildValidFiringGoals(
-				RuntimeActor, OccupancySubsystem, Monster, PartyCell, RangedAttack, RangedAttack.MinRangeCells, RangedAttack.RangeCells, LegalGoals);
+				RuntimeActor, OccupancySubsystem, Monster, PartyCell, RangedAttack, RangedAttack.MinRangeCells, RangedAttack.MaxRangeCells, LegalGoals);
 
 			FGridMonsterPathResult LegalPath;
 			if (MON174FindPathToFiringGoals(RuntimeActor, OccupancySubsystem, Monster, PartyCell, LegalGoals, LegalPath) &&
@@ -538,7 +538,7 @@ void UGridTurnManagerComponent::PrepareCurrentMonsterActions()
 			if (RangedAttack.bRequiresLineOfSight)
 			{
 				bLineOfSightSatisfied = IsValid(RuntimeActor) &&
-					FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, RangedAttack.RangeCells,
+					FGridMonsterPerception::HasStraightLineOfSight(CurrentMonster->CurrentCell, PartyCell, RangedAttack.MaxRangeCells,
 						[this](const FIntPoint& From, const FIntPoint& To)
 						{
 							const EGridEdge Direction = FGridMonsterPathfinder::GetDirectionBetweenAdjacentCells(From, To);

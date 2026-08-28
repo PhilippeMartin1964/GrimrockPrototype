@@ -57,7 +57,7 @@ bool FGridMonsterMON1732ProjectileVisualOptionalityTest::RunTest(const FString& 
 	Attack.MinDamage = 2;
 	Attack.MaxDamage = 5;
 	Attack.MinRangeCells = 2;
-	Attack.RangeCells = 6;
+	Attack.MaxRangeCells = 6;
 	Attack.Delivery = EGridMonsterAttackDelivery::Projectile;
 	Attack.bRequiresLineOfSight = true;
 	Attack.ActionPointCost = 2;

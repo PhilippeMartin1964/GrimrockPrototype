@@ -36,7 +36,7 @@ namespace
 		Bite.PhysicalSubtype = EGridPhysicalDamageSubtype::Piercing;
 		Bite.MinDamage = 2;
 		Bite.MaxDamage = 5;
-		Bite.RangeCells = 1;
+		Bite.MaxRangeCells = 1;
 		Bite.ActionPointCost = 1;
 		Rat->Attacks.Add(Bite);
 

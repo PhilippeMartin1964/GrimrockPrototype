@@ -16,7 +16,7 @@ bool FGridMonsterMON1733ProjectileSourceContractTest::RunTest(const FString& Par
 	Attack.AttackId = TEXT("Attack_TestProjectile");
 	Attack.Delivery = EGridMonsterAttackDelivery::Projectile;
 	Attack.MinRangeCells = 2;
-	Attack.RangeCells = 6;
+	Attack.MaxRangeCells = 6;
 
 	TestTrue(TEXT("Legacy projectile definitions remain valid without a source socket"), Attack.IsValidDefinition());
 	TestTrue(TEXT("Projectile source socket defaults to None"), Attack.ProjectileSourceSocketName.IsNone());

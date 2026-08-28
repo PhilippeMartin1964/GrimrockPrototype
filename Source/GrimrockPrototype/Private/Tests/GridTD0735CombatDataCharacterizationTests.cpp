@@ -98,8 +98,9 @@ bool FGridTD0735MonsterPresentationAuthorityTest::RunTest(const FString& Paramet
 	TestNotNull(TEXT("Current AttackVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("AttackVFXDefinition")));
 	TestNotNull(TEXT("Current ImpactHitVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("ImpactHitVFXDefinition")));
 	TestNotNull(TEXT("Current ImpactMissVFXDefinition exists"), AttackStruct->FindPropertyByName(TEXT("ImpactMissVFXDefinition")));
-	TestNotNull(TEXT("RangeCells remains temporarily as the TD07.3.5.4 repair source"), AttackStruct->FindPropertyByName(TEXT("RangeCells")));
-	TestNotNull(TEXT("Target current field MaxRangeCells exists for the one-shot repair"), AttackStruct->FindPropertyByName(TEXT("MaxRangeCells")));
+	TestNull(TEXT("Legacy RangeCells is removed"), AttackStruct->FindPropertyByName(TEXT("RangeCells")));
+	TestNotNull(TEXT("Current MinRangeCells exists"), AttackStruct->FindPropertyByName(TEXT("MinRangeCells")));
+	TestNotNull(TEXT("Current MaxRangeCells exists"), AttackStruct->FindPropertyByName(TEXT("MaxRangeCells")));
 	return true;
 }
 
@@ -126,10 +127,10 @@ bool FGridTD0735MonsterPresentationRuntimeNormalizedTest::RunTest(const FString&
 		AudioSource.Contains(TEXT("Attack.AttackSound")) || AudioSource.Contains(TEXT("LegacyDefinition.Sounds.Add")));
 	TestFalse(TEXT("Hit VFX no longer falls back to legacy ImpactVFX"),
 		VFXSource.Contains(TEXT("Attack.ImpactVFX")) || VFXSource.Contains(TEXT("LegacyDefinition.Systems.Add")));
-	TestTrue(TEXT("Monster range helpers still use serialized RangeCells for TD07.3.5.4"),
-		TypesSource.Contains(TEXT("DistanceCells <= RangeCells")) && TypesSource.Contains(TEXT("RangeCells > 1")));
-	TestTrue(TEXT("MaxRangeCells target is declared during the one-shot repair stage"),
-		TypesSource.Contains(TEXT("int32 MaxRangeCells = 1")));
+	TestTrue(TEXT("Monster range helpers use the current MaxRangeCells authority"),
+		TypesSource.Contains(TEXT("DistanceCells <= MaxRangeCells")) && TypesSource.Contains(TEXT("MaxRangeCells > 1")));
+	TestFalse(TEXT("Legacy RangeCells declaration is absent"),
+		TypesSource.Contains(TEXT("int32 RangeCells = 1")));
 	return true;
 }
 
