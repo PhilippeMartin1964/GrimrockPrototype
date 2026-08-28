@@ -9,6 +9,7 @@
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
+#include "EditorTools/Widgets/SGridEditorPlaytestPanel.h"
 #include "EditorTools/Widgets/SGridEditorToolPalettePanel.h"
 #include "EditorTools/Widgets/SGridEditorValidationPanel.h"
 
@@ -197,46 +198,48 @@ TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildDungeonLevelsContent()
 TSharedRef<SWidget> SGridEditorWorkspaceTab::BuildPlaytestValidationContent()
 {
 	AGridLevelEditorActor* EditorActor = FindEditorActor();
-	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox);
-
-	Root->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
-	[
-		BuildMigrationNotice(FText::FromString(
-			TEXT("GEUI01 foundation: Validation is already hosted here. PlayTest controls remain in the main Grid Editor toolkit until GEUI03.")))
-	];
-
-	if (EditorActor && EditorActor->LevelAsset)
-	{
-		Root->AddSlot().AutoHeight()
-		[
-			GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				FText::FromString(TEXT("Current LevelAsset")), FText::FromString(EditorActor->LevelAsset->GetName()))
-		];
-		Root->AddSlot().AutoHeight().Padding(0.f, 0.f, 0.f, 8.f)
-		[
-			GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-				FText::FromString(TEXT("Start Cell")),
-				FText::Format(FText::FromString(TEXT("({0}, {1})")), FText::AsNumber(EditorActor->LevelAsset->StartCellX),
-					FText::AsNumber(EditorActor->LevelAsset->StartCellY)))
-		];
-	}
-
-	Root->AddSlot().AutoHeight()
-	[
-		SNew(SGridEditorValidationPanel)
-			.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
-			.ValidationState(ValidationState)
-			.OnGetEditorActor(FOnGetGridEditorValidationActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
-			.OnRequestRefresh(FOnGridEditorValidationRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
-	];
 
 	return SNew(SBorder)
 		.Padding(8.f)
 		[
-			SNew(SScrollBox)
-			+ SScrollBox::Slot()
+			SNew(SSplitter)
+			.Orientation(Orient_Horizontal)
+
+			+ SSplitter::Slot()
+			.Value(0.34f)
 			[
-				Root
+				SNew(SBorder)
+				.Padding(6.f)
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SScrollBox)
+					+ SScrollBox::Slot()
+					[
+						SNew(SGridEditorPlaytestPanel)
+							.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+							.OnGetEditorActor(FOnGetGridEditorPlaytestActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+							.OnRequestRefresh(FOnGridEditorPlaytestRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+					]
+				]
+			]
+
+			+ SSplitter::Slot()
+			.Value(0.66f)
+			[
+				SNew(SBorder)
+				.Padding(6.f)
+				.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SScrollBox)
+					+ SScrollBox::Slot()
+					[
+						SNew(SGridEditorValidationPanel)
+							.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(EditorActor))
+							.ValidationState(ValidationState)
+							.OnGetEditorActor(FOnGetGridEditorValidationActor::CreateSP(this, &SGridEditorWorkspaceTab::FindEditorActor))
+							.OnRequestRefresh(FOnGridEditorValidationRequestRefresh::CreateSP(this, &SGridEditorWorkspaceTab::Rebuild))
+					]
+				]
 			]
 		];
 }

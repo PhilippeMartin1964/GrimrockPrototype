@@ -9,6 +9,7 @@
 #include "EditorTools/Widgets/SGridEditorLinksPanel.h"
 #include "EditorTools/Widgets/SGridEditorObjectInspectorPanel.h"
 #include "EditorTools/Widgets/SGridEditorOverviewMapPanel.h"
+#include "EditorTools/Widgets/SGridEditorPlaytestPanel.h"
 #include "EditorTools/Widgets/SGridEditorToolPalettePanel.h"
 #include "EditorTools/Widgets/SGridEditorValidationPanel.h"
 #include "Core/GridTypes.h"
@@ -124,7 +125,18 @@ void FGridLevelEdModeToolkit::RefreshPalette()
 		FText::FromString(TEXT("PLAYTEST")),
 		[this]() -> TSharedRef<SWidget>
 		{
-			return BuildPlaytestPanel();
+			return SNew(SGridEditorPlaytestPanel)
+				.EditorActor(TWeakObjectPtr<AGridLevelEditorActor>(GetEditorActor()))
+				.OnGetEditorActor(FOnGetGridEditorPlaytestActor::CreateLambda(
+					[this]()
+					{
+						return GetEditorActor();
+					}))
+				.OnRequestRefresh(FOnGridEditorPlaytestRequestRefresh::CreateLambda(
+					[this]()
+					{
+						RefreshPalette();
+					}));
 		},
 		PanelExpansionState.bPlaytestExpanded));
 
@@ -414,126 +426,6 @@ TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildHeaderSection()
                         ]
                 ]
         ];
-}
-
-TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildPlaytestPanel()
-{
-	AGridLevelEditorActor* EditorActor = GetEditorActor();
-	if (!EditorActor)
-	{
-		return SNew(STextBlock).Text(FText::FromString(TEXT("No GridLevelEditorActor found."))).AutoWrapText(true);
-	}
-
-	const UGridLevelAsset* LevelAsset = EditorActor->LevelAsset;
-	const bool bHasValidStart = LevelAsset && LevelAsset->IsStartCellValid();
-	const FString FacingText = LevelAsset
-		? (StaticEnum<EGridEdge>() ? StaticEnum<EGridEdge>()->GetNameStringByValue(static_cast<int64>(LevelAsset->StartFacing)) : FString(TEXT("Unknown")))
-		: FString(TEXT("None"));
-
-	TSharedRef<SVerticalBox> Root = SNew(SVerticalBox)
-
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox)
-				  .IsChecked(EditorActor->bAutoPreparePIE ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-				  .OnCheckStateChanged_Lambda(
-					  [this](ECheckBoxState NewState)
-					  {
-						  if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-						  {
-							  CurrentEditorActor->Modify();
-							  CurrentEditorActor->bAutoPreparePIE = NewState == ECheckBoxState::Checked;
-							  RefreshPalette();
-						  }
-					  })[SNew(STextBlock).Text(FText::FromString(TEXT("Auto Prepare PIE")))]]
-
-		+ SVerticalBox::Slot().AutoHeight()[SNew(SCheckBox)
-				  .IsChecked(EditorActor->bAbortPIEOnPreparationError ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
-				  .OnCheckStateChanged_Lambda(
-					  [this](ECheckBoxState NewState)
-					  {
-						  if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-						  {
-							  CurrentEditorActor->Modify();
-							  CurrentEditorActor->bAbortPIEOnPreparationError = NewState == ECheckBoxState::Checked;
-							  RefreshPalette();
-						  }
-					  })[SNew(STextBlock).Text(FText::FromString(TEXT("Abort PIE On Error")))]]
-
-		+ SVerticalBox::Slot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(
-			  FText::FromString(TEXT("Current LevelAsset")), LevelAsset ? FText::FromString(LevelAsset->GetName()) : FText::FromString(TEXT("None")))];
-
-	if (!LevelAsset)
-	{
-		Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(STextBlock)
-				.Text(FText::FromString(TEXT("No LevelAsset assigned.")))
-				.AutoWrapText(true)
-				.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.25f, 0.18f, 1.f)))];
-	}
-	else
-	{
-		Root->AddSlot().AutoHeight()[GridEditorWidgetHelpers::BuildGridReadOnlyPropertyRow(FText::FromString(TEXT("Start Cell")),
-			FText::Format(FText::FromString(TEXT("X={0} Y={1} Facing={2} Valid={3}")), FText::AsNumber(LevelAsset->StartCellX),
-				FText::AsNumber(LevelAsset->StartCellY), FText::FromString(FacingText),
-				bHasValidStart ? FText::FromString(TEXT("true")) : FText::FromString(TEXT("false"))))];
-
-		if (!bHasValidStart)
-		{
-			Root->AddSlot().AutoHeight().Padding(0.f, 5.f, 0.f, 0.f)[SNew(STextBlock)
-					.Text(FText::FromString(TEXT("Warning: StartCell is invalid. PIE auto preparation will fail.")))
-					.AutoWrapText(true)
-					.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 0.55f, 0.18f, 1.f)))];
-		}
-	}
-
-	TSharedRef<SHorizontalBox> ActionButtons = SNew(SHorizontalBox);
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Set Start From Selection")),
-		FOnClicked::CreateLambda(
-			[this]()
-			{
-				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-				{
-					CurrentEditorActor->SetStartFromSelection();
-					RefreshPalette();
-					if (GEditor)
-					{
-						GEditor->RedrawAllViewports();
-					}
-				}
-				return FReply::Handled();
-			}))];
-
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Log PIE Readiness")),
-		FOnClicked::CreateLambda(
-			[this]()
-			{
-				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-				{
-					if (CurrentEditorActor->PreviewRuntimeActor)
-					{
-						CurrentEditorActor->PreviewRuntimeActor->LogPIEReadinessDiagnostics();
-					}
-					else
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Log PIE Readiness failed: PreviewRuntimeActor is null."));
-					}
-				}
-				return FReply::Handled();
-			}))];
-
-	ActionButtons->AddSlot().Padding(0.f, 0.f, 4.f, 4.f)[GridEditorWidgetHelpers::BuildGridActionButton(FText::FromString(TEXT("Debug Prepare PIE")),
-		FOnClicked::CreateLambda(
-			[this]()
-			{
-				if (AGridLevelEditorActor* CurrentEditorActor = GetEditorActor())
-				{
-					CurrentEditorActor->PreparePIETestFromStart();
-					RefreshPalette();
-				}
-				return FReply::Handled();
-			}))];
-
-	Root->AddSlot().AutoHeight().Padding(0.f, 7.f, 0.f, 0.f)[ActionButtons];
-
-	return Root;
 }
 
 TSharedRef<SWidget> FGridLevelEdModeToolkit::BuildCollapsiblePanelSection(

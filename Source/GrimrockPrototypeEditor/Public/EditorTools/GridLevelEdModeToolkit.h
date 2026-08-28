@@ -43,7 +43,6 @@ private:
 	TSharedRef<SWidget> BuildToolkitWidget();
 
 	TSharedRef<SWidget> BuildHeaderSection();
-	TSharedRef<SWidget> BuildPlaytestPanel();
 	TSharedRef<SWidget> BuildCollapsiblePanelSection(const FText& Title, const TFunctionRef<TSharedRef<SWidget>()>& BuildContent, bool& bExpanded);
 	FReply TogglePanelExpansion(bool* bExpanded);
 	void ExpandValidationIfMessagesNeedAttention();
